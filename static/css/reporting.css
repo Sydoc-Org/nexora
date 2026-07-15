@@ -1326,3 +1326,95 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 /* Task 7: 2px ink rule over the chart block, Simple and Advanced panes. */
 .reporting-ledger .reporting-simple-chartcard { border-top: 2px solid var(--rl-ink); }
 .reporting-ledger .reporting-viz { border-top: 2px solid var(--rl-ink); }
+
+/* Task 8: Advanced builder — panels lose the card shadow in favor of a
+   flat band + hairline border (same move as the masthead in Task 1).
+   Layout/grid untouched. */
+.reporting-ledger .reporting-fields,
+.reporting-ledger .reporting-wells,
+.reporting-ledger .reporting-results {
+  background: var(--rl-band);
+  border: 1px solid var(--rl-hairline);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Task 8: Toolbar selects (saved-report picker, export format) and the
+   .reporting-input controls (field search, subtitle, share/schedule/name
+   modal fields — the class is shared by both <input> and <select> in the
+   markup) read as flat chips: pill radius, hairline border, mono value
+   text. Overrides the "Toolbar" (~L741) and "Inputs / selects / textareas"
+   (~L573) sections above without editing either. */
+.reporting-ledger .reporting-input,
+.reporting-ledger .reporting-saved select,
+.reporting-ledger .reporting-export-format {
+  border-radius: 999px;
+  border-color: var(--rl-hairline);
+  background: var(--rl-band);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+}
+.reporting-ledger .reporting-input:focus,
+.reporting-ledger .reporting-saved select:focus,
+.reporting-ledger .reporting-export-format:focus {
+  border-color: var(--rl-navy);
+}
+
+/* --- Drill-through drawer: ledger canvas + hairlines, mono metadata on
+   the subtitle/note/column-headers (reads like a ledger stamp). Shell
+   structure and all data-testids (Task 3) are untouched. --- */
+.reporting-ledger .reporting-drill-panel {
+  background: var(--rl-band);
+  border-left: 1px solid var(--rl-hairline);
+  box-shadow: none;
+}
+.reporting-ledger .reporting-drill-head,
+.reporting-ledger .reporting-drill-foot {
+  border-color: var(--rl-hairline);
+}
+.reporting-ledger .reporting-drill-subtitle,
+.reporting-ledger .reporting-drill-note {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+}
+.reporting-ledger .reporting-drill-body th,
+.reporting-ledger .reporting-drill-body td {
+  border-color: var(--rl-hairline);
+}
+.reporting-ledger .reporting-drill-body th {
+  background: var(--rl-band);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--nx-text-meta);
+}
+.reporting-ledger .reporting-drill-clickable tbody tr:hover {
+  background: var(--nx-accent-tint);
+}
+
+/* --- AI panels (Ask-AI bar, Agent thread trace, SQL draft): same canvas
+   + hairline treatment, mono metadata on badges/step labels. Chrome only
+   — submode buttons, prompt bar and result wiring keep their structure
+   and testids. --- */
+.reporting-ledger .reporting-ai-panel {
+  background: var(--rl-band);
+  border-color: var(--rl-hairline);
+}
+.reporting-ledger .reporting-ai-turn {
+  background: var(--rl-band);
+  border-color: var(--rl-hairline);
+}
+.reporting-ledger .reporting-ai-sql {
+  background: var(--rl-canvas);
+  border-color: var(--rl-hairline);
+}
+.reporting-ledger .reporting-ai-step-name,
+.reporting-ledger .reporting-ai-step-meta,
+.reporting-ledger .reporting-ai-q-badge {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.reporting-ledger .reporting-ai-panel,
+.reporting-ledger .reporting-ai-turn {
+  border-radius: 0;
+}
