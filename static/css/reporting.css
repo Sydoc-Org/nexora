@@ -1107,9 +1107,40 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
 .reporting-drill-null { color: var(--nx-text-meta); font-style: italic; }
 .reporting-drill-clickable tbody tr { cursor: pointer; }
 .reporting-drill-clickable tbody tr:hover { background: var(--nx-accent-tint); }
+.reporting-drill-wi-link { color: var(--nx-accent); text-decoration: underline; }
+.reporting-drill-wi-link:hover { color: var(--nx-accent-hover); }
 @media (max-width: 900px) {
   .reporting-drill-panel { width: 100vw; min-width: 0; }
 }
+
+/* --- Workitem detail panel modal, opened from a .reporting-drill-wi-link
+   row in the drill drawer (templates/js/_reporting_drill_js.html
+   openWorkitemPanel). Plain-CSS shell (ids/behaviour mirror
+   templates/prepared_documents.html's #pdocPreviewModal); the shared
+   _workitem_detail_panel_js.html markup inside #rdWiBody is itself styled
+   with Tailwind utility classes, loaded gated in templates/reporting.html. */
+.reporting-drill-wi-modal {
+  position: fixed; inset: 0; z-index: 210;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, .5); padding: 16px;
+}
+.reporting-drill-wi-modal[hidden] { display: none; }
+.reporting-drill-wi-modal__dialog {
+  background: var(--nx-card); border-radius: 12px; box-shadow: var(--nx-shadow-pop);
+  width: 100%; max-width: 1100px; max-height: 90vh; overflow-y: auto;
+}
+.reporting-drill-wi-modal__head {
+  position: sticky; top: 0; background: var(--nx-card);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid var(--nx-border);
+}
+.reporting-drill-wi-modal__title { margin: 0; font-size: 16px; font-weight: 600; color: var(--nx-text); }
+.reporting-drill-wi-modal__close {
+  background: none; border: none; cursor: pointer; padding: 4px;
+  color: var(--nx-text-meta); font-size: 20px; line-height: 1;
+}
+.reporting-drill-wi-modal__close:hover { color: var(--nx-text); }
+.reporting-drill-wi-modal__body { padding: 8px; }
 
 /* --- Page-head Beta badge (was an inline style on the h1 span) --- */
 .reporting-beta { vertical-align: middle; margin-inline-start: .5rem; }

@@ -972,6 +972,9 @@ def reporting():
         ai_sql_enabled=has_permission("reporting.ai.sql"),
         ai_explain_enabled=has_permission("reporting.ai.explain_data")
         and has_permission("reporting.sql.run"),
+        details_images_perm=has_permission("workitems.details.view.images"),
+        details_audit_perm=has_permission("workitems.details.view.audit"),
+        details_fields_perm=has_permission("workitems.details.view.fields"),
     )
 
 

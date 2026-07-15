@@ -2084,6 +2084,131 @@ def test_advanced_grid_drill_click_through(nexora_server, page):
         )
 
 
+def test_drill_row_opens_workitem_panel(nexora_server, page):
+    """Clicking a workitem-id link inside the drill drawer opens the shared
+    NexoraWorkitemDetail panel in a read-only modal over the drawer, without
+    navigating away; a plain aggregate-row click still opens the drawer as
+    usual. Same source/metric seeding as test_advanced_grid_drill_click_through
+    above -- the drill *request* is built from that source's fields, but the
+    drill *response* is stubbed (keyed on rowLimit === 100, the drill's
+    fixed page size -- see templates/js/_reporting_drill_js.html buildDrillDefinition)
+    so it can carry a synthetic workitem_id column regardless of the
+    underlying dbo.Users-backed source."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    ids = page.evaluate(
+        """async () => {
+          const csrf = document.querySelector('meta[name="csrf-token"]').content;
+          const post = (url, body) => fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify(body)
+          }).then(r => r.json());
+          const src = await post('/api/reporting/admin/sources', {
+            code: 'wi_panel_drill', kind: 'curated', label: 'WI Panel Drill',
+            permission: 'reporting.source.docprocessing', provider: 'table',
+            engine: 'nexora', baseObject: 'dbo.Users',
+            columns: [{field: 'username', label: 'Username', type: 'string',
+                       filterable: true, sortable: true}],
+            enabled: true, sortOrder: 41});
+          const met = await post('/api/reporting/admin/metrics', {
+            code: 'wi_panel_drill_count', sourceId: 'wi_panel_drill', label: 'WI panel drill count',
+            aggregation: 'count', format: 'int'});
+          return {src: src.id, met: met.id};
+        }"""
+    )
+    try:
+        # NexoraWorkitemDetail.render() fires audit/media/collaboration fetches
+        # for whatever workitem id we hand it; the id here only exists in the
+        # stubbed drill response below, so stub those too (minimal deterministic
+        # shapes -- see templates/js/_workitem_detail_panel_js.html loadHistory /
+        # loadDetailData / loadCollaborationData for the exact fields read).
+        page.route(
+            "**/api/get_audithistory/*",
+            lambda r: r.fulfill(status=200, content_type="application/json", body="[]"),
+        )
+        page.route(
+            "**/api/get_media_info/*",
+            lambda r: r.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps({"media_count": 0, "fields": {}}),
+            ),
+        )
+        page.route(
+            "**/api/workitem/*/interactions",
+            lambda r: r.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps(
+                    {"priority": 0, "assigneduserid": None, "tags": [], "comments": []}
+                ),
+            ),
+        )
+
+        def _run_handler(route):
+            body = route.request.post_data_json or {}
+            if body.get("rowLimit") == 100 and body.get("visualization") == "table":
+                route.fulfill(
+                    status=200,
+                    content_type="application/json",
+                    body=json.dumps(
+                        {
+                            "columns": [{"field": "workitem_id", "header": "Workitem ID"}],
+                            "rows": [["999901"]],
+                            "truncated": False,
+                            "rowCount": 1,
+                            "sql": None,
+                            "params": [],
+                            "resolvedDates": [],
+                        }
+                    ),
+                )
+            else:
+                route.continue_()
+
+        page.route("**/api/reporting/run", _run_handler)
+
+        page.goto(f"{nexora_server}/reporting?tab=advanced")
+        page.locator('[data-testid="reporting-source-select"]').select_option(
+            value="wi_panel_drill"
+        )
+        page.locator("#rpFieldList").get_by_text("Username", exact=True).click()
+        page.get_by_test_id("reporting-add-metric").click()
+        page.get_by_test_id("reporting-run").click()
+        table = page.locator("#rpResults table")
+        expect(table).to_be_visible()
+        table.locator("tbody tr").first.click()
+
+        panel = page.get_by_test_id("reporting-drill-panel")
+        expect(panel).to_be_visible()
+        wi_link = panel.locator("a.reporting-drill-wi-link")
+        expect(wi_link).to_have_text("999901")
+
+        current_url = page.url
+        wi_link.click()
+
+        modal = page.locator("#rdWiModal")
+        expect(modal).to_be_visible()
+        body_el = page.locator("#rdWiBody")
+        expect(body_el).to_be_visible()
+        assert body_el.inner_html().strip() != ""
+        assert page.url == current_url  # click was intercepted, no navigation
+
+        page.locator("#rdWiClose").click()
+        expect(modal).to_be_hidden()
+    finally:
+        page.evaluate(
+            """async (ids) => {
+              const csrf = document.querySelector('meta[name="csrf-token"]').content;
+              const del = url => fetch(url, {method: 'DELETE', headers: {'X-CSRFToken': csrf}});
+              await del('/api/reporting/admin/metrics/' + ids.met);
+              await del('/api/reporting/admin/sources/' + ids.src);
+            }""",
+            ids,
+        )
+
+
 def test_advanced_sql_sandbox_not_drillable(nexora_server, page):
     """A SQL-sandbox result is never drillable: canDrill()'s `kind !== 'sql'`
     guard (templates/js/_reporting_js.html) excludes it, so the results grid

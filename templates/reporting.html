@@ -12,6 +12,19 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
   <link rel="stylesheet" href="{{ url_for('static',filename='css/reporting.css') }}">
   <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
+  {% if details_images_perm or details_fields_perm %}
+  {# The drill-drawer workitem panel (below, near the drill include) reuses
+     templates/js/_workitem_detail_panel_js.html verbatim -- same partial as
+     templates/prepared_documents.html and templates/workitems_overview.html,
+     both of which load this same Tailwind runtime + the two stylesheets
+     below so its Tailwind-utility-class markup renders styled. Gated behind
+     the same perm check as the include itself so users without workitem
+     detail permissions never pay for it. #}
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.0" integrity="sha384-AIH1kL7JmmReCxSwiSyaRNwzSFO7h4Ir4F/PO28EKezqFza1LwIMgEPLd83KwmZ4" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1.0.22" integrity="sha384-E7dy6eN+cKffMM/2+QF5MMP1q8KS0AT4IlmT4v3mG2mNZ7ISeLRPdlHrlWJK/8yx" crossorigin="anonymous" type="module"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/workitems_overview.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/source-highlight.css') }}">
+  {% endif %}
   <script>
     // Resolve the initial tab synchronously (?tab= > localStorage > 'simple')
     // and enable the no-FOUC builder entrance only when landing on Advanced
@@ -98,6 +111,77 @@
     </div>
   </aside>
   {% include "js/_reporting_drill_js.html" %}
+
+  {% if details_images_perm or details_fields_perm %}
+  <!-- Read-only workitem preview modal, opened by clicking a workitem-id link
+       in the drill drawer (templates/js/_reporting_drill_js.html). Same
+       shared partial + shell pattern as templates/prepared_documents.html's
+       #pdocPreviewModal / #pdocPreviewLightbox, renamed to the rdWi* id set. -->
+  <input type="hidden" id="csrfToken" value="{{ csrf_token() }}" />
+  <div id="rdWiModal" class="reporting-drill-wi-modal" hidden data-testid="reporting-drill-wi-modal">
+    <div class="reporting-drill-wi-modal__dialog">
+      <div class="reporting-drill-wi-modal__head">
+        <h2 class="reporting-drill-wi-modal__title">{{ _("Workitem preview") }}</h2>
+        <button type="button" id="rdWiClose" class="reporting-drill-wi-modal__close"
+                aria-label="{{ _('Close') }}" title="{{ _('Close') }}" data-testid="reporting-drill-wi-close">
+          <i class="fas fa-xmark" aria-hidden="true"></i>
+        </button>
+      </div>
+      <div id="rdWiBody" class="reporting-drill-wi-modal__body" data-testid="reporting-drill-wi-body"></div>
+    </div>
+  </div>
+
+  <!-- Source-highlight lightbox shell for the panel (own rdWi* ids). -->
+  <div id="rdWiLightbox" class="modal">
+    <button type="button" class="modal-close" aria-label="{{ _('Close') }}" title="{{ _('Close') }}">
+      <i class="fas fa-xmark" aria-hidden="true"></i>
+    </button>
+    <div class="src-modal-body">
+      <div class="src-modal-page">
+        <button type="button" id="rdWiHlToggle" class="src-hl-toggle" hidden
+                title="{{ _('Show where extracted values were found on the document') }}">
+          <i class="fas fa-magnifying-glass-location"></i>
+          <span id="rdWiHlToggleLabel">{{ _('Show sources') }}</span>
+        </button>
+        <img class="modal-content" id="rdWiImage">
+        <div id="rdWiHlLayer"></div>
+        <a class="modal-prev">&#10094;</a>
+        <a class="modal-next">&#10095;</a>
+      </div>
+      <aside id="rdWiReviewPanel" class="src-modal-values" hidden aria-label="{{ _('Extracted values') }}">
+        <h3 class="src-modal-values-title">{{ _('Extracted values') }}</h3>
+        <div id="rdWiReviewPanelBody"></div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    // Source-highlight confidence helpers + an empty fieldConfig the shared
+    // panel reads (same idiom as templates/prepared_documents.html; guarded
+    // so a page that already defines these — none currently do on
+    // reporting.html — doesn't get them clobbered).
+    window.srcConfClass = window.srcConfClass || function (conf) {
+      if (typeof conf !== 'number' || isNaN(conf)) return '';
+      if (conf >= 0.9) return 'src-conf-high';
+      if (conf >= 0.7) return 'src-conf-med';
+      return 'src-conf-low';
+    };
+    window.srcConfPct = window.srcConfPct || function (conf) {
+      if (typeof conf !== 'number' || isNaN(conf)) return '';
+      return Math.round(conf * 100) + '%';
+    };
+    window.fieldConfig = window.fieldConfig || { search_options: {}, labels: {} };
+    window.mentionableUsers = window.mentionableUsers || [];
+    window.__rpDrillPerms = {
+      images: {{ 'true' if details_images_perm else 'false' }},
+      audit:  {{ 'true' if details_audit_perm else 'false' }},
+      fields: {{ 'true' if details_fields_perm else 'false' }},
+      setPriority: false, addTag: false, assignUsers: false, addComment: false,
+    };
+  </script>
+
+  {% include 'js/_workitem_detail_panel_js.html' %}
+  {% endif %}
 
   <div id="rpPaneSimple" role="tabpanel" aria-labelledby="rpTabSimple" hidden>
     {% include 'js/_reporting_sqlformat_js.html' %}
