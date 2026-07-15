@@ -64,6 +64,7 @@
     noChartThreeDims: {{ _("Charts support up to two breakdowns — the table shows all of them.")|tojson }},
     chartSeriesCapped: {{ _("Showing the {shown} largest of {n} series.")|tojson }},
     noChartLib: {{ _("The chart could not be drawn (chart library failed to load).")|tojson }},
+    openInAdvanced: {{ _("Open in Advanced")|tojson }},
     showQuery: {{ _("Show query")|tojson }},
     truncatedNote: {{ _("Showing the first {n} rows — narrow the filters or time range to see the rest.")|tojson }},
     hideQuery: {{ _("Hide query")|tojson }},
@@ -213,17 +214,45 @@
   }
 
   // ---------- Result view ----------
-  function showResultError(msg) {
+  // Save/Export must never act on a definition the last run couldn't produce
+  // rows for — disabled while the result pane shows an error, re-enabled the
+  // moment a run actually succeeds.
+  function setHeaderActionsEnabled(enabled) {
+    el('rsSave').disabled = !enabled;
+    if (EXPORT_ALLOWED) el('rsExport').disabled = !enabled;
+  }
+
+  // The Open-in-Advanced escape hatch rendered under rsError (only when the
+  // caller passes opts.openAdvanced — e.g. a failed run whose definition can
+  // still be fixed up in Advanced). Delegates to the header button's own
+  // handler rather than duplicating it.
+  function renderErrorOpenAdvanced(show) {
+    var existing = document.getElementById('rsErrorOpenAdvanced');
+    if (existing) existing.remove();
+    if (!show) return;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'rsErrorOpenAdvanced';
+    btn.className = 'reporting-btn nx-btn nx-btn--secondary';
+    btn.setAttribute('data-testid', 'rs-error-open-advanced');
+    btn.textContent = I18N.openInAdvanced;
+    btn.addEventListener('click', function () { el('rsOpenAdvanced').click(); });
+    el('rsError').insertAdjacentElement('afterend', btn);
+  }
+
+  function showResultError(msg, opts) {
     hideAiLoading();
     el('rsRunLoading').hidden = true;
     if (el('rsRefineBar')) el('rsRefineBar').hidden = true;
     if (el('rsChips')) el('rsChips').hidden = true;
     setView('result');
-    el('rsResultTitle').textContent = '';
+    el('rsResultTitle').textContent = (opts && opts.title) || '';
     el('rsMsg').hidden = true;
     el('rsSaveName').hidden = true;
     el('rsError').textContent = msg;
     el('rsError').hidden = false;
+    renderErrorOpenAdvanced(!!(opts && opts.openAdvanced));
+    setHeaderActionsEnabled(false);
     el('rsStatCard').hidden = true;
     el('rsChartCard').hidden = true;
     el('rsChartNote').hidden = true;
@@ -235,9 +264,15 @@
     el('rsDrillHint').hidden = true;
   }
 
+  // Prefers the server's own error + detail (e.g. "…invalid or outdated. —
+  // unknown metric: 'x'") over the generic 400 fallback, so a stale saved
+  // report's actual problem is visible instead of a canned line.
   function friendlyRunError(status, data) {
     if (status === 403) return I18N.noAccess;
-    if (status === 400) return I18N.outdated;
+    if (status === 400) {
+      if (data && data.error) return data.error + (data.detail ? ' — ' + data.detail : '');
+      return I18N.outdated;
+    }
     return (data && data.error) || I18N.couldNotRun;
   }
 
@@ -913,6 +948,7 @@
   async function runCurrent() {
     var cur = state.current;
     var seq = ++runSeq;
+    setHeaderActionsEnabled(false);
     // A new run supersedes any open drill drawer — it shows rows behind the
     // PREVIOUS result and would sit stale over the new one (e.g. after Refine).
     if (window.ReportingDrill) ReportingDrill.close();
@@ -984,7 +1020,12 @@
     // Hide only after the staleness guard: a slow stale response must never
     // hide the indicator a newer run just showed.
     el('rsRunLoading').hidden = true;
-    if (!res.ok) { showResultError(friendlyRunError(res.status, res.data)); return; }
+    if (!res.ok) {
+      showResultError(friendlyRunError(res.status, res.data),
+        { title: cur.name || cur.def.title || '', openAdvanced: true });
+      return;
+    }
+    setHeaderActionsEnabled(true);
     showTiming(res.data.rowCount, performance.now() - runT0);
     state.current.sql = res.data.sql || null;
     state.current.sqlPretty = res.data.sqlPretty || null;

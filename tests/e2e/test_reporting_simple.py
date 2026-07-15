@@ -62,6 +62,78 @@ def test_library_groups_and_hides_sql_kind(nexora_server, page):
     expect(page.get_by_test_id("reporting-simple")).not_to_contain_text("e2e sql hidden")
 
 
+def test_library_report_run_400_shows_detail_and_advanced_action(nexora_server, page):
+    """A 400 from /api/reporting/run must show the server's error + detail
+    (a stale saved report's actual problem), keep the report title visible,
+    offer an Open-in-Advanced escape hatch, and disable Save/Export until a
+    successful run replaces the error state."""
+    _login(page, nexora_server)
+    report_row = {
+        "id": "e2e-400-report",
+        "name": "e2e 400 report",
+        "ownerName": "Admin",
+        "updatedAt": "2026-07-01T00:00:00Z",
+        "visibility": "private",
+        "owned": True,
+        "kind": "table",
+    }
+    definition = {
+        "schemaVersion": 1,
+        "source": "docprocessing",
+        "visualization": "table",
+        "title": "e2e 400 report",
+        "columns": [{"field": "processname"}],
+        "filters": [],
+        "sort": [],
+        "scope": {"clients": [], "processes": []},
+        "rowLimit": 100,
+    }
+    # Register stubs BEFORE goto — the library load fires as soon as the
+    # Simple pane mounts.
+    page.route(
+        "**/api/reporting/reports",
+        lambda r: r.fulfill(
+            status=200, content_type="application/json", body=json.dumps([report_row])
+        ),
+    )
+    page.route(
+        "**/api/reporting/reports/*",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "name": report_row["name"],
+                    "definition": definition,
+                    "owned": True,
+                    "canEdit": True,
+                }
+            ),
+        ),
+    )
+    page.route(
+        "**/api/reporting/run",
+        lambda r: r.fulfill(
+            status=400,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "error": "This report definition is invalid or outdated.",
+                    "detail": "unknown metric: 'workitem_count'",
+                }
+            ),
+        ),
+    )
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-group-mine").get_by_text("e2e 400 report").click()
+
+    expect(page.get_by_test_id("rs-error")).to_contain_text("unknown metric: 'workitem_count'")
+    expect(page.get_by_test_id("rs-result-title")).to_contain_text("e2e 400 report")
+    expect(page.get_by_test_id("rs-error-open-advanced")).to_be_visible()
+    expect(page.get_by_test_id("rs-save")).to_be_disabled()
+    expect(page.get_by_test_id("rs-export")).to_be_disabled()
+
+
 def test_wizard_opens_and_lists_measures_or_empty_state(nexora_server, page):
     _login(page, nexora_server)
     page.goto(f"{nexora_server}/reporting")
