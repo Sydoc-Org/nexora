@@ -393,6 +393,16 @@
     var stacked = type === 'stacked';
     var chartJsType = stacked ? 'bar' : type;
     var circular = chartJsType === 'pie' || chartJsType === 'doughnut';
+    // Single-series bar/line get the ink-navy treatment (peak bucket accented
+    // in indigo for bars); stacked, pie/doughnut and multi-series charts keep
+    // their existing palette.
+    var singleSeries = d.datasets.length === 1 && !stacked &&
+      (chartJsType === 'bar' || chartJsType === 'line');
+    var maxIdx = 0;
+    if (singleSeries && chartJsType === 'bar') {
+      var vals0 = d.datasets[0].data;
+      for (var mi = 1; mi < vals0.length; mi++) { if (vals0[mi] > vals0[maxIdx]) maxIdx = mi; }
+    }
     var datasets = d.datasets.map(function (ds) {
       var out = Object.assign({}, ds);
       if (!multi && circular) {
@@ -400,6 +410,13 @@
           return SIMPLE_PALETTE[i % SIMPLE_PALETTE.length];
         });
         out.borderColor = '#fff';
+      } else if (singleSeries) {
+        if (chartJsType === 'bar') {
+          out.backgroundColor = ds.data.map(function (v, i) { return i === maxIdx ? '#4f46e5' : '#312e81'; });
+        } else {
+          out.backgroundColor = 'rgba(49,46,129,.12)';
+        }
+        out.borderColor = '#312e81';
       }
       return out;
     });

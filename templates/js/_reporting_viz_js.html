@@ -192,11 +192,15 @@
       lastChartLabels = labels;
       var single = (type === 'bar' || type === 'line');
       var colors = labels.map(function (_, i) { return PALETTE[i % PALETTE.length]; });
+      var maxIdx = 0;
+      for (var mi = 1; mi < data.length; mi++) { if (data[mi] > data[maxIdx]) maxIdx = mi; }
       var ds = {
         label: colLabel(columns, yi),
         data: data,
-        backgroundColor: single ? (type === 'line' ? 'rgba(67,56,202,.15)' : PALETTE[0]) : colors,
-        borderColor: single ? PALETTE[0] : '#fff',
+        backgroundColor: single
+          ? (type === 'line' ? 'rgba(49,46,129,.12)' : data.map(function (v, i) { return i === maxIdx ? '#4f46e5' : '#312e81'; }))
+          : colors,
+        borderColor: single ? '#312e81' : '#fff',
         borderWidth: type === 'line' ? 2 : 1,
         fill: type === 'line'
       };
