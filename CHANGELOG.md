@@ -58,6 +58,17 @@ Work toward 2.5.64.
   with a tooltip naming the providers; the chip list follows the process-scope
   picker (zero-coverage chips hide, stranded selections prune), and metrics
   whose base field no allowed process provides are not offered.
+- Reporting: a **KPI stat band** above the results (both tabs) — total, bucket
+  count, and average per bucket, computed client-side from the rows already
+  returned (no extra query); hidden for zero-row or non-numeric results, with
+  no "vs prior period" delta in v1 (deferred — needs a second query).
+- Reporting: a **timing badge** in the masthead — "N rows · M ms" — showing
+  the run response's row count and the elapsed time measured client-side
+  around the fetch; appears after the first successful run.
+- Reporting: a **persistent query footer** — a one-line peek of the inlined
+  `sqlDisplay` SQL under the results, click to expand into the existing
+  Show-query panel; hidden whenever `sqlDisplay` is absent (the WS1
+  inliner-degrade fallback keeps working).
 
 ### Changed
 
@@ -81,6 +92,18 @@ Work toward 2.5.64.
   unchanged and stays fully parameterized. Visual polish across the page: unified
   24px gutters, dark-mode SQL syntax colors, tokenised hint/warning colors,
   Show-query panel chrome.
+- Reporting: the page carries its own **"Editorial Ledger" visual identity** —
+  a serif masthead title and section headings on a cool-neutral canvas, mono
+  (tabular) numerals for KPI figures, table cells and metadata, uppercase
+  letter-spaced captions on the KPI band, and a single 2px ink rule topping
+  the chart block — restyled in place across the masthead, Simple library/
+  wizard/ask-AI, Advanced builder, drill drawer and AI surfaces, light and
+  dark. Every `.reporting-*` class, `id`, `name` and `data-testid` is
+  unchanged, so existing e2e selectors keep working; the process-coverage
+  "n/m" badge on wizard chips and measures picks up the same mono ink-navy
+  treatment. Single-series bar/line charts now render in ink-navy with a
+  brand-indigo accent on the peak value; multi-series palettes are unchanged.
+  Design spec: `docs/superpowers/specs/2026-07-15-reporting-editorial-ledger-design.md`.
 
 ### Fixed
 
