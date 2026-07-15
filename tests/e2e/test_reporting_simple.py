@@ -2193,3 +2193,100 @@ def test_wizard_measure_coverage_badge_and_unrunnable_hidden(nexora_server, page
     count_btn = mlist.locator("button", has_text="Cov count stub")
     expect(count_btn.locator(".reporting-simple-chip-cov")).to_have_count(0)
     expect(mlist.get_by_text("Ghost stub")).to_have_count(0)
+
+
+# ---------------------------------------------------------------------------
+# Three breakdowns: the chart caps at two dims (mountChart shows a note
+# instead), so the table — the only surface that can show all three and the
+# only remaining drill-through target — must render visible immediately, not
+# collapsed behind the "Show table" toggle.
+# ---------------------------------------------------------------------------
+
+THREE_DIM_SOURCES = [
+    {
+        "id": "docprocessing",
+        "label": "Document processing",
+        "kind": "curated",
+        "fields": [
+            {
+                "field": "doctype",
+                "label": "Document Type",
+                "type": "string",
+                "grainable": False,
+                "filterable": True,
+            },
+            {
+                "field": "docsource",
+                "label": "Document Source",
+                "type": "string",
+                "grainable": False,
+                "filterable": True,
+            },
+            {
+                "field": "propertynr",
+                "label": "Property No.",
+                "type": "string",
+                "grainable": False,
+                "filterable": True,
+            },
+        ],
+    }
+]
+THREE_DIM_METRICS = {
+    "docprocessing": [
+        {
+            "code": "doc_count",
+            "label": "Count stub",
+            "aggregation": "count",
+            "baseField": None,
+            "format": "int",
+        },
+    ]
+}
+
+
+def test_three_breakdowns_show_table_and_drill(nexora_server, page):
+    """A 3-breakdown aggregate renders no chart — the table must be visible
+    without a toggle click, and its rows must still open the drill drawer."""
+    _login(page, nexora_server)
+    _stub_wiz_catalogs(page, THREE_DIM_SOURCES, THREE_DIM_METRICS)
+    page.route(
+        "**/api/reporting/run",
+        lambda route: route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [
+                        {"field": "doctype", "header": "Document Type"},
+                        {"field": "docsource", "header": "Document Source"},
+                        {"field": "propertynr", "header": "Property No."},
+                        {"field": "doc_count", "header": "doc_count"},
+                    ],
+                    "rows": [["Invoice", "Mail", "P-1", 7], ["Order", "Scan", "P-2", 3]],
+                    "truncated": False,
+                    "rowCount": 2,
+                    "sql": None,
+                    "params": [],
+                    "resolvedDates": [],
+                }
+            ),
+        ),
+    )
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Count stub").click()
+    bklist = page.get_by_test_id("rs-breakdown-list")
+    for fld in ("doctype", "docsource", "propertynr"):
+        bklist.locator(f'[data-bd-field="{fld}"]').click()
+    page.get_by_test_id("rs-breakdown-next").click()
+    page.get_by_test_id("rs-wizard-run").click()
+    expect(page.get_by_test_id("rs-result")).to_be_visible()
+    # No chart at three dims — the note explains why...
+    expect(page.locator("#rsChartNote")).to_be_visible()
+    # ...and the table is immediately visible (the fix), toggle hidden.
+    expect(page.locator("#rsTableWrap table")).to_be_visible()
+    expect(page.get_by_test_id("rs-table-toggle")).to_be_hidden()
+    # Drill-through stays reachable: clicking a row opens the drawer.
+    page.locator("#rsTableWrap tbody tr").first.click()
+    expect(page.get_by_test_id("reporting-drill-panel")).to_be_visible()

@@ -423,9 +423,9 @@
     el('rsChartTools').hidden = true;
     el('rsChartCanvas').hidden = false;
     var dims = (def.columns || []).length;
-    if (!dims || !rows.length) { el('rsChartCard').hidden = true; return; }
-    if (!window.Chart) { chartCardNote(I18N.noChartLib); return; }
-    if (dims >= 3) { chartCardNote(I18N.noChartThreeDims); return; }
+    if (!dims || !rows.length) { el('rsChartCard').hidden = true; return false; }
+    if (!window.Chart) { chartCardNote(I18N.noChartLib); return false; }
+    if (dims >= 3) { chartCardNote(I18N.noChartThreeDims); return false; }
     var firstCol = def.columns[0];
     var isDate = !!firstCol.grain || /date/.test(firstCol.field);
     // Single-dim only: here rows.length IS the x-point count, so the raw-row
@@ -434,7 +434,7 @@
     // far fewer x-points, so two-dim is judged AFTER pivoting by the xOrder>50
     // guard + 12-series cap (mirrors render_chart_png MAX_X / MAX_SERIES).
     if (dims === 1 && rows.length > 50) {
-      if (isDate) { chartCardNote(I18N.noChartTooManyPoints); return; }
+      if (isDate) { chartCardNote(I18N.noChartTooManyPoints); return false; }
       el('rsChartNote').textContent = I18N.chartFirst50.replace('{n}', String(rows.length));
       el('rsChartNote').hidden = false;
       rows = rows.slice(0, 50);
@@ -451,7 +451,7 @@
         cell[x][s] = (cell[x][s] || 0) + v;
         seriesTot[s] = (seriesTot[s] || 0) + v;
       });
-      if (xOrder.length > 50) { chartCardNote(I18N.noChartTooManyPoints); return; }
+      if (xOrder.length > 50) { chartCardNote(I18N.noChartTooManyPoints); return false; }
       var series = Object.keys(seriesTot).sort(function (a, b) {
         return seriesTot[b] - seriesTot[a];
       });
@@ -481,7 +481,7 @@
       el('rsChartCard').hidden = false;
       el('rsChartTools').hidden = false;
       renderChart(def.chartType || (isDate ? 'line' : 'bar'));
-      return;
+      return true;
     }
     var metricIdx = columns.length - (def.metrics || []).length;
     var labels = rows.map(function (r) {
@@ -505,6 +505,7 @@
     el('rsChartCard').hidden = false;
     el('rsChartTools').hidden = false;
     renderChart(def.chartType || (isDate ? 'line' : 'bar'));
+    return true;
   }
 
   // One-line transparency note under the title of AI-built reports: the
@@ -849,9 +850,14 @@
       el('rsTableWrap').hidden = false;
       return;
     }
-    if (hasMetrics && dims) mountChart(def, columns, rows);
+    var charted = (hasMetrics && dims) ? !!mountChart(def, columns, rows) : false;
     renderTable(columns, rows);
-    if (hasMetrics) {
+    // Collapse the table behind the toggle only when a chart actually rendered
+    // (or the stat card carries a dimensionless total). When mountChart bails
+    // — three breakdowns, too many points, no Chart.js — the table is the only
+    // surface showing the result AND the only drill-through target left, so it
+    // must be visible immediately.
+    if (hasMetrics && (charted || !dims)) {
       el('rsTableToggle').hidden = false;
       el('rsTableToggle').textContent = I18N.showTable;
       el('rsTableWrap').hidden = true;
