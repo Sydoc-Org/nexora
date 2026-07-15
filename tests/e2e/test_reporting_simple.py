@@ -159,6 +159,7 @@ def test_library_report_run_400_shows_detail_and_advanced_action(nexora_server, 
     expect(page.get_by_test_id("rs-error-open-advanced")).to_be_visible()
     expect(page.get_by_test_id("rs-save")).to_be_disabled()
     expect(page.get_by_test_id("rs-export")).to_be_disabled()
+    expect(page.get_by_test_id("reporting-timing")).to_be_hidden()
 
     # Error -> success: opening a different report that runs fine must clear
     # the stale escape hatch along with the error text.

@@ -299,7 +299,11 @@ tabs:
   (`workitem_id`, `processname`, `import_date`, `export_date`), those four
   come first, followed by the clicked breakdown field(s). Generic sources
   without the smart fields instead top up with up to ~6 leading catalog
-  columns. `workitem_id` values render as a link into `/workitems`.
+  columns. `workitem_id` values render as links: a plain click opens the
+  shared workitem detail panel (the same read-only view used by the Prepared
+  Documents register preview) in a modal over the drawer, permission-gated
+  the same way that panel is gated elsewhere; Ctrl-click or middle-click
+  still opens the workitem in a new `/workitems` tab.
 - **Row cap:** the drawer displays up to **100 rows** and shows a truncation
   note when more exist; use the drawer's **CSV** / **XLSX** export buttons
   (same `/api/reporting/export` endpoint used elsewhere) to get the full set.
@@ -752,6 +756,18 @@ if the provider is broken, `'blocked'` when the cap is hit). The last validated
 definition/SQL in the tool trace is returned for one-click **Open in builder** /
 **Insert SQL**.
 
+When a run hits the turn cap or otherwise produces no usable artifact, the
+Agent panel shows a **Try again** button that resends the exact same question
+in a fresh turn — no retyping needed. Tool and SQL-sandbox errors surfaced to
+the model (and to the visible tool-step trace) go through
+`humanize_sql_error`, which strips ODBC driver noise (`[Microsoft][ODBC
+Driver 17 for SQL Server]…`-style prefixes) and adds a teaching hint for SQL
+Server error 1033 (`ORDER BY` used inside a derived table/subquery without
+`TOP`/`OFFSET`) so the model — and a human reading the trace — sees the
+actual fix instead of a raw driver message. The system prompt also forbids
+resubmitting SQL that just failed unchanged, pushing the model to actually
+address the error on the next tool call.
+
 > **Phase 3e — explain the data (opt-in).** When the caller holds
 > `reporting.ai.explain_data` **and** `reporting.sql.run`, the loop additionally
 > binds `run_sql` and `compute_stats` (`nx_lib/reporting/stats.py`), so the model
@@ -848,6 +864,11 @@ not shown again on subsequent runs.
 - **Timeout:** a ~30-second statement timeout is enforced server-side.
 - **Audit:** every run (query text, user, row count, duration, status) is
   written to `dbo.ReportingSqlAudit` (NexoraDB).
+- **Error detail:** a query that fails on the target server (not just the
+  sqlglot gate) returns a generic 500 whose `detail` is run through
+  `humanize_sql_error` — ODBC driver-prefix noise is stripped and SQL Server
+  error 1033 (`ORDER BY` in a derived table) gets a plain-language hint —
+  instead of the raw pyodbc exception text.
 
 ### Owner setup
 

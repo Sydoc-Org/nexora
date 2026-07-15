@@ -150,7 +150,11 @@
     if (aiGone && aiBar && aiBar.dataset.gone) aiGone.hidden = view !== 'library';
     el('rsWizard').hidden = view !== 'wizard';
     el('rsResult').hidden = view !== 'result';
-    if (view !== 'result') destroyChart();
+    if (view !== 'result') {
+      destroyChart();
+      var timing = document.getElementById('reportingTiming');
+      if (timing) timing.hidden = true;
+    }
   }
 
   function destroyChart() {
@@ -248,6 +252,8 @@
     if (el('rsRefineBar')) el('rsRefineBar').hidden = true;
     if (el('rsChips')) el('rsChips').hidden = true;
     setView('result');
+    var timing = document.getElementById('reportingTiming');
+    if (timing) timing.hidden = true;
     el('rsResultTitle').textContent = (opts && opts.title) || '';
     el('rsMsg').hidden = true;
     el('rsSaveName').hidden = true;

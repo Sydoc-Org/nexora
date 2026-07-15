@@ -74,6 +74,19 @@ Work toward 2.5.64.
   `sqlDisplay` SQL under the results, click to expand into the existing
   Show-query panel; hidden whenever `sqlDisplay` is absent (the WS1
   inliner-degrade fallback keeps working).
+- Reporting: the drill-through drawer's workitem ids are links — clicking one
+  opens the shared workitem detail panel (the same read-only view used by the
+  Prepared Documents register preview) in a modal over the drawer, permission-
+  gated the same way; Ctrl/middle-click still opens `/workitems` in a new tab.
+- Reporting AI: a **Try again** button on a failed agent run (turn cap hit, or
+  no artifacts produced) resends the same question instead of forcing a
+  retype.
+- Reporting AI/SQL: tool and sandbox errors strip ODBC driver noise before
+  reaching the model or the trace UI, and SQL Server error 1033 (`ORDER BY`
+  inside a derived table without `TOP`/`OFFSET`) gets a teaching hint instead
+  of the raw message; the agent prompt now forbids resubmitting SQL that just
+  failed unchanged. The SQL editor's generic 500 also carries a humanized
+  detail.
 
 ### Changed
 
@@ -208,6 +221,23 @@ Work toward 2.5.64.
   and catalog field names instead of raw codes, fallback report titles ("Report",
   "Untitled report", "SQL report", "AI report", drill exports) and the Beta badge
   are localized, and result numbers format with the app locale.
+- Reporting Simple pane: a failed `/api/reporting/run` (400) now shows the
+  server's own error + detail (e.g. "unknown metric: 'workitem_count'")
+  instead of a canned message, keeps the report title visible, and offers an
+  inline Open-in-Advanced escape hatch; Save/Export stay disabled until a run
+  actually succeeds.
+- Reporting Simple pane: a zero-row result always renders the designed
+  no-data empty state with a "widen the range" hint — previously a
+  header-only grid could show instead when the zero stat card happened to be
+  visible.
+- Reporting Simple pane: Back returns to wherever the report was opened from
+  (library, wizard, or an AI ask) instead of always preferring the wizard.
+- Reporting Simple wizard: restoring a saved report with a literal (non-token)
+  custom date range now prefills the Custom picker with that range, so the
+  picker's display always matches what actually runs.
+- Reporting: the masthead timing badge (`#reportingTiming`) now hides
+  whenever the Simple pane leaves the result view or shows a run error,
+  instead of showing a stale "N rows · M ms" from a previous successful run.
 
 ## [2.5.63] - 2026-06-24
 
