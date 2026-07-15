@@ -1129,3 +1129,35 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
 /* Process-coverage badge on wizard chips/measure cards: "n/m" processes
    provide this field (tooltip on the chip names them). */
 .reporting-simple-chip-cov { margin-left: 6px; font-size: 11px; font-weight: 600; background: var(--nx-accent-tint); color: var(--nx-accent); border-radius: 999px; padding: 1px 7px; }
+
+/* ============ Editorial Ledger (2026-07-15 reskin) ============ */
+
+/* Local palette for the reporting page only; redefined below for dark
+   mode. Light values are the locked spec palette; dark values are
+   picked from the existing --nx-* dark tokens (nexora-ui.css) so
+   nothing reads broken. */
+body.reporting-ledger {
+  --rl-canvas:   #fcfcfc;
+  --rl-band:     #fff;
+  --rl-hairline: #e4e4e7;
+  --rl-ink:      #18181b;
+  --rl-navy:     #312e81;
+}
+html.dark body.reporting-ledger {
+  --rl-canvas:   var(--nx-page);
+  --rl-band:     var(--nx-card);
+  --rl-hairline: var(--nx-border);
+  --rl-ink:      var(--nx-text);
+  --rl-navy:     var(--nx-accent);
+}
+
+/* Canvas + masthead: white band over the cool-neutral page canvas,
+   hairline rule where the card chrome used to be. */
+body.reporting-ledger { background: var(--rl-canvas); }
+.reporting-ledger .reporting-page-head {
+  background: var(--rl-band);
+  border-bottom: 1px solid var(--rl-hairline);
+}
+.reporting-ledger .nx-title {
+  font-family: Georgia, 'Charter', 'Times New Roman', serif;
+}
