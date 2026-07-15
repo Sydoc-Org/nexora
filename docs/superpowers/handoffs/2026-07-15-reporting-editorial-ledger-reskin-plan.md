@@ -1,3 +1,7 @@
+> **Superseded same-day:** see `2026-07-15-reporting-editorial-ledger-reskin-execution-complete.md`
+> for what actually happened when this plan was executed — 11/12 tasks done, Task 12 blocked on a
+> VPN/DNS issue. If `/reset-session` might grab either file, prefer the execution-complete one.
+
 # Handoff — reporting editorial-ledger reskin: PLAN READY, execute next
 
 **Date:** 2026-07-15 · **Branch:** `plan/reporting-editorial-ledger-reskin` (worktree

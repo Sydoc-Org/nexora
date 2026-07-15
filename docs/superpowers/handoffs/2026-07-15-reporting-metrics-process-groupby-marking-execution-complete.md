@@ -1,3 +1,7 @@
+> **Newer same-day handoff exists:** `2026-07-15-reporting-editorial-ledger-reskin-execution-complete.md`
+> is a later, unrelated plan's handoff also dated today. If `/reset-session` is ambiguous about which
+> same-date file to pick, that one is the most recent.
+
 # Handoff — reporting metrics + process-coverage marking: EXECUTION COMPLETE, ready for owner push
 
 **Date:** 2026-07-15 · **Branch:** `feature/2.5.64` (worktree `plan/reporting-metrics-process-groupby-marking`
