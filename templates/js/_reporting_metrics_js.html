@@ -93,6 +93,9 @@
     document.getElementById('rpmCode').value = r.code;
     document.getElementById('rpmSource').value = r.sourceId;
     document.getElementById('rpmLabel').value = r.label;
+    document.getElementById('rpmLabelDe').value = r.labelDe || '';
+    document.getElementById('rpmLabelFr').value = r.labelFr || '';
+    document.getElementById('rpmLabelIt').value = r.labelIt || '';
     document.getElementById('rpmAggregation').value = r.aggregation;
     document.getElementById('rpmBaseField').value = r.baseField || '';
     document.getElementById('rpmFormat').value = r.format || '';
@@ -105,7 +108,7 @@
   function reset() {
     editingId = null;
     document.getElementById('rpmFormTitle').textContent = '{{ _("Add metric") }}';
-    ['rpmCode', 'rpmLabel', 'rpmBaseField']
+    ['rpmCode', 'rpmLabel', 'rpmLabelDe', 'rpmLabelFr', 'rpmLabelIt', 'rpmBaseField']
       .forEach(function (i) { document.getElementById(i).value = ''; });
     if (sources.length) document.getElementById('rpmSource').value = sources[0].id;
     document.getElementById('rpmAggregation').value = 'count';
@@ -121,6 +124,9 @@
       code: val('rpmCode'),
       sourceId: val('rpmSource'),
       label: val('rpmLabel'),
+      labelDe: val('rpmLabelDe') || null,
+      labelFr: val('rpmLabelFr') || null,
+      labelIt: val('rpmLabelIt') || null,
       aggregation: val('rpmAggregation'),
       baseField: val('rpmBaseField') || null,
       format: val('rpmFormat') || null,
