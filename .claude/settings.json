@@ -10,7 +10,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "powershell.exe -ExecutionPolicy Bypass -File %CLAUDE_PROJECT_DIR%/.claude/helpers/check-handoff-pending.ps1",
+            "command": "sh -c 'exec powershell.exe -ExecutionPolicy Bypass -File \"${CLAUDE_PROJECT_DIR:-.}/.claude/helpers/check-handoff-pending.ps1\"'",
             "timeout": 10000
           }
         ]
@@ -21,7 +21,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "powershell.exe -ExecutionPolicy Bypass -File %CLAUDE_PROJECT_DIR%/.claude/helpers/notify-toast.ps1 \"Claude Code\" \"Done - your turn\"",
+            "command": "sh -c 'exec powershell.exe -ExecutionPolicy Bypass -File \"${CLAUDE_PROJECT_DIR:-.}/.claude/helpers/notify-toast.ps1\" \"Claude Code\" \"Done - your turn\"'",
             "timeout": 15000
           }
         ]
@@ -33,7 +33,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "powershell.exe -ExecutionPolicy Bypass -File %CLAUDE_PROJECT_DIR%/.claude/helpers/notify-toast.ps1 \"Claude Code\" \"Question - your input needed\"",
+            "command": "sh -c 'exec powershell.exe -ExecutionPolicy Bypass -File \"${CLAUDE_PROJECT_DIR:-.}/.claude/helpers/notify-toast.ps1\" \"Claude Code\" \"Question - your input needed\"'",
             "timeout": 15000
           }
         ]
@@ -44,7 +44,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "powershell.exe -ExecutionPolicy Bypass -File %CLAUDE_PROJECT_DIR%/.claude/helpers/notify-toast.ps1 \"Claude Code\" \"Needs your attention\"",
+            "command": "sh -c 'exec powershell.exe -ExecutionPolicy Bypass -File \"${CLAUDE_PROJECT_DIR:-.}/.claude/helpers/notify-toast.ps1\" \"Claude Code\" \"Needs your attention\"'",
             "timeout": 15000
           }
         ]
@@ -55,7 +55,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "powershell.exe -ExecutionPolicy Bypass -File %CLAUDE_PROJECT_DIR%/.claude/helpers/notify-toast.ps1 \"Claude Code\" \"Permission requested\"",
+            "command": "sh -c 'exec powershell.exe -ExecutionPolicy Bypass -File \"${CLAUDE_PROJECT_DIR:-.}/.claude/helpers/notify-toast.ps1\" \"Claude Code\" \"Permission requested\"'",
             "timeout": 15000
           }
         ]
