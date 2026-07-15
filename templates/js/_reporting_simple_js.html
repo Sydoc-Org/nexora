@@ -505,6 +505,72 @@
       });
   }
 
+  // ----- Zero-fill for date-grain buckets -----
+  // "Documents per month in Q1" with data only in February must render three
+  // buckets (0, 2, 0), not a single point — sparse SQL GROUP BY drops empty
+  // buckets, misleading trend lines. Fills only the single-dimension case
+  // with a metric and a bounded between filter on the grain column.
+  // ponytail: dims>=2 keeps SQL's buckets — cross-product fill needs a
+  // series axis decision; add if sparse multi-series charts start to hurt.
+  function bucketSeq(startIso, endIso, grain) {
+    var d = new Date(startIso.slice(0, 10) + 'T00:00:00Z');
+    var end = new Date(endIso.slice(0, 10) + 'T00:00:00Z');
+    if (isNaN(d) || isNaN(end)) return null;
+    // Snap to the bucket start the SQL grain produces (week = Monday-anchored,
+    // matching query.py's DATEDIFF(week, 0, d)).
+    if (grain === 'week') d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+    else if (grain === 'month') d.setUTCDate(1);
+    else if (grain === 'quarter') d.setUTCMonth(Math.floor(d.getUTCMonth() / 3) * 3, 1);
+    else if (grain === 'year') d.setUTCMonth(0, 1);
+    var out = [];
+    while (d <= end) {
+      if (out.length >= 366) return null;   // unbounded/absurd range: skip fill
+      out.push(d.toISOString().slice(0, 10));
+      if (grain === 'day') d.setUTCDate(d.getUTCDate() + 1);
+      else if (grain === 'week') d.setUTCDate(d.getUTCDate() + 7);
+      else if (grain === 'month') d.setUTCMonth(d.getUTCMonth() + 1);
+      else if (grain === 'quarter') d.setUTCMonth(d.getUTCMonth() + 3);
+      else d.setUTCFullYear(d.getUTCFullYear() + 1);
+    }
+    return out;
+  }
+
+  function zeroFillDateBuckets(def, rows, resolvedDates) {
+    var cols = def.columns || [];
+    var grain = cols.length === 1 ? cols[0].grain : null;
+    if (!grain || !(def.metrics || []).length) return rows;
+    var f = (def.filters || []).find(function (x) {
+      return x.field === cols[0].field && x.op === 'between';
+    });
+    if (!f) return rows;
+    var range = null;
+    if (Array.isArray(f.value) && f.value.length === 2) {
+      range = [String(f.value[0]), String(f.value[1])];
+    } else if (f.value && typeof f.value === 'object') {
+      var rd = resolvedDates.find(function (x) { return x.field === cols[0].field; });
+      if (rd) range = [rd.start, rd.end];
+    }
+    if (!range) return rows;
+    var seq = bucketSeq(range[0], range[1], grain);
+    if (!seq) return rows;
+    var byBucket = {};
+    rows.forEach(function (r) {
+      byBucket[String(r[0] == null ? '' : r[0]).slice(0, 10)] = r;
+    });
+    var zeros = (def.metrics || []).map(function () { return 0; });
+    var filled = seq.map(function (b) { return byBucket[b] || [b].concat(zeros); });
+    // A data row whose bucket string didn't match the generated sequence
+    // (dialect formatting drift) means the fill would DROP data — bail to
+    // the raw rows instead.
+    var misses = rows.some(function (r) {
+      return seq.indexOf(String(r[0] == null ? '' : r[0]).slice(0, 10)) === -1;
+    });
+    if (misses) return rows;
+    var s0 = (def.sort || [])[0];
+    if (s0 && s0.field === cols[0].field && s0.dir === 'desc') filled.reverse();
+    return filled;
+  }
+
   function mountChart(def, columns, rows) {
     destroyChart();
     state.chartData = null;
@@ -847,6 +913,9 @@
   async function runCurrent() {
     var cur = state.current;
     var seq = ++runSeq;
+    // A new run supersedes any open drill drawer — it shows rows behind the
+    // PREVIOUS result and would sit stale over the new one (e.g. after Refine).
+    if (window.ReportingDrill) ReportingDrill.close();
     // Fire-and-forget: every runCurrent() caller except askAi already awaits
     // loadSourcesCatalog() first, but Ask-AI results need it too for the drill
     // affordance (openDrill/renderTable read state.sources). Idempotent — a
@@ -932,6 +1001,7 @@
       peek.hidden = true;
     }
     var columns = res.data.columns || [], rows = res.data.rows || [];
+    rows = zeroFillDateBuckets(def, rows, res.data.resolvedDates || []);
     renderKpiBand(dims, rows);
     var rdates = res.data.resolvedDates || [];
     if (rdates.length) {

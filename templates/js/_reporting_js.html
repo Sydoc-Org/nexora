@@ -950,6 +950,9 @@
 
   function run() {
     showRunLoading();
+    // A new run supersedes any open drill drawer — it shows rows behind the
+    // PREVIOUS result and would sit stale over the new one.
+    if (window.ReportingDrill) ReportingDrill.close();
     // Captured here (not recomputed from live builder state in renderResults)
     // so drill-through always transforms the definition that actually
     // produced the rows on screen, even if the builder is edited afterwards.
