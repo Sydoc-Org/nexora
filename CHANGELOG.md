@@ -112,6 +112,29 @@ Work toward 2.5.64.
 
 ### Fixed
 
+- Reporting AI: the Agent surface completes instead of dying at the turn cap
+  on nearly every ask. The `build_definition` tool now carries the full v1
+  definition JSON schema (the model used to guess the shape — filters as a
+  map, grain on non-date fields — and burn every turn on validation errors),
+  tolerates a stringified or top-level definition argument, and the
+  validator/sandbox errors teach the correct shape (filter-list example,
+  grainable field list, literal-ISO-dates hint). A `LIMIT` in drafted SQL is
+  rejected at the gate with "use TOP (n)" instead of passing sqlglot and
+  failing on the real server. The selected builder source is grounding, not
+  a gate: the data tools stay bound with `reporting.ai.explain_data` even
+  while the builder sits on a builder-only curated source, and the model is
+  told the selection is a UI default, not the question's subject. Turn cap
+  raised 6 → 10 to fit the full build → validate → run → answer loop.
+
+- Reporting: the drill-through drawer closes when a new run starts — after a
+  Refine it kept showing the rows behind the previous result on top of the
+  new one.
+
+- Reporting: Simple-pane charts zero-fill empty date-grain buckets —
+  "documents per month in Q1" with data only in February now renders three
+  buckets (0 / 2 / 0) instead of a single point (single dimension + metric +
+  bounded `between` filter; literal dates and resolved relative tokens).
+
 - Reporting: three-breakdown results chart again — the first two breakdowns
   become axis + colored series (the third collapses into the pivot; exact for
   additive count/sum metrics), with a note pointing at the table for all

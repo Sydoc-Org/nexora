@@ -758,7 +758,11 @@ definition/SQL in the tool trace is returned for one-click **Open in builder** /
 > runs validated read-only SELECTs and **narrates the actual numbers** — a
 > deliberate **data-egress** path (result rows reach the model). Seeded to admins
 > by migration `0015`; grantable per-user; **off by default** (then the loop stays
-> schema-only as above). The response/audit carry an `explainData` flag. Glossary
+> schema-only as above). The response/audit carry an `explainData` flag.
+> The data tools stay bound even while the builder's source dropdown sits on a
+> **builder-only** curated source (e.g. Generali on GeneraliDB): the selected
+> source is prompt grounding, not a gate — the grounding marks it builder-only
+> and steers `run_sql` to the real RO targets instead. Glossary
 > RAG (the other Phase 3e item) is still planned — it needs a curation owner.
 
 ### Configuration (`AI_*` env vars)
