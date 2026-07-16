@@ -459,15 +459,24 @@ def test_ai_ask_shows_loading_then_result(nexora_server, page):
     page.goto(f"{nexora_server}/reporting?tab=simple")
 
     # Inject a MutationObserver that sets window.__aiLoadingWasSeen = true
-    # the first time rsAiLoading.hidden flips to false.
+    # the first time rsAiLoading.hidden flips to false — and records whether
+    # the header Save button was disabled at that same moment (an out-of-page
+    # expect() can't observe the in-flight window: the stub's blocking sleep
+    # stalls the Playwright dispatcher until fulfillment).
     page.evaluate("""() => {
         window.__aiLoadingWasSeen = false;
+        window.__saveDisabledDuringLoading = false;
         const el = document.getElementById('rsAiLoading');
         if (!el) return;
-        if (!el.hidden) { window.__aiLoadingWasSeen = true; return; }
+        const record = () => {
+            window.__aiLoadingWasSeen = true;
+            const save = document.getElementById('rsSave');
+            window.__saveDisabledDuringLoading = !!(save && save.disabled);
+        };
+        if (!el.hidden) { record(); return; }
         const obs = new MutationObserver(() => {
             if (!el.hidden) {
-                window.__aiLoadingWasSeen = true;
+                record();
                 obs.disconnect();
             }
         });
@@ -490,6 +499,11 @@ def test_ai_ask_shows_loading_then_result(nexora_server, page):
     # the in-flight period.
     was_seen = page.evaluate("() => window.__aiLoadingWasSeen")
     assert was_seen, "rsAiLoading was never made visible during the AI request"
+
+    # …and that Save was disabled at that in-flight moment, so a mid-draft
+    # click can't save the previous result under a blank header.
+    save_disabled = page.evaluate("() => window.__saveDisabledDuringLoading")
+    assert save_disabled, "rsSave stayed enabled while the AI draft was in flight"
 
 
 def test_saved_token_report_shows_resolved_range(nexora_server, page):
