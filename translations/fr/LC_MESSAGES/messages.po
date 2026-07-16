@@ -469,7 +469,7 @@ msgstr "Construction non autorisée : {kw}"
 
 #: nx_lib/views/reporting.py:1073
 msgid "T-SQL does not support LIMIT — use TOP (n) instead."
-msgstr "-SQL ne prend pas en charge LIMIT — utilisez TOP (n) à la place."
+msgstr "T-SQL ne prend pas en charge LIMIT — utilisez TOP (n) à la place."
 
 #: nx_lib/views/reporting.py:1089 nx_lib/views/reporting.py:1649
 msgid "Acknowledgment required"

@@ -467,7 +467,7 @@ msgstr "Costrutto non consentito: {kw}"
 
 #: nx_lib/views/reporting.py:1073
 msgid "T-SQL does not support LIMIT — use TOP (n) instead."
-msgstr "-SQL non supporta LIMIT — usare invece TOP (n)."
+msgstr "T-SQL non supporta LIMIT — usare invece TOP (n)."
 
 #: nx_lib/views/reporting.py:1089 nx_lib/views/reporting.py:1649
 msgid "Acknowledgment required"

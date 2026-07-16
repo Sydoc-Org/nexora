@@ -152,9 +152,17 @@
     el('rsResult').hidden = view !== 'result';
     if (view !== 'result') {
       destroyChart();
-      var timing = document.getElementById('reportingTiming');
-      if (timing) timing.hidden = true;
+      hideTimingBadge();
     }
+  }
+
+  // Hide the shared masthead timing badge — but only when the Simple pane
+  // actually owns the current tab; the Advanced tab's still-rendered result
+  // must keep its badge across Simple-pane view changes.
+  function hideTimingBadge() {
+    if (!(window.ReportingTabs && window.ReportingTabs.current() === 'simple')) return;
+    var timing = el('reportingTiming');
+    if (timing) timing.hidden = true;
   }
 
   function destroyChart() {
@@ -252,8 +260,7 @@
     if (el('rsRefineBar')) el('rsRefineBar').hidden = true;
     if (el('rsChips')) el('rsChips').hidden = true;
     setView('result');
-    var timing = document.getElementById('reportingTiming');
-    if (timing) timing.hidden = true;
+    hideTimingBadge();
     el('rsResultTitle').textContent = (opts && opts.title) || '';
     el('rsMsg').hidden = true;
     el('rsSaveName').hidden = true;
