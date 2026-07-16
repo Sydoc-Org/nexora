@@ -10,6 +10,21 @@ Work toward 2.5.64.
 
 ### Added
 
+- Reporting: the Simple-tab wizard measure step is now **multi-select** — pick
+  several metrics from one source (e.g. Document count + Pages processed) and
+  the result carries one column/series per metric; the stat card shows one
+  total per metric. The first pick pins the source; other sources' chips
+  disable until the selection is cleared.
+- Reporting: process selection is now its **own wizard step** ("Which
+  processes?", between measure and breakdown, skipped for sources without
+  processes) instead of a collapsed picker inside the breakdown step — the
+  breakdown chips render pre-filtered by the chosen processes. Step headings
+  auto-number via CSS counters so the skipped step leaves no gap.
+- Reporting: breakdown chips sort by **process coverage** (full-coverage
+  fields first, `1/x` fields at the bottom, recomputed live as the process
+  selection changes) and the `n/m` coverage badge is now tiered by colour —
+  amber for partial, muted for low (≤ ⅓ of the selected scope).
+
 - `nx --no-conflict` — start an extra instance on the first free port from 8001 up,
   with separate log/state files, so any number of nexora instances can run alongside
   one already on 8000 (e.g. one a Claude session is testing against).
@@ -90,6 +105,9 @@ Work toward 2.5.64.
 
 ### Changed
 
+- Reporting: the Simple-tab wizard's 16-chip category cap is **removed** —
+  every filterable string field the Advanced tab offers is now available as a
+  breakdown chip (the docprocessing noise hide-list stays).
 - AI-workflow slimming (token cost): the MS02 multi-source detail moved from
   `CLAUDE.md` into `docs/design/ms02-multisource.md` (short summary + pointer
   remains); the GitNexus guidance in `CLAUDE.md` is now advisory instead of
@@ -125,6 +143,12 @@ Work toward 2.5.64.
 
 ### Fixed
 
+- Reporting/Prepared documents: the workitem-preview **lightbox was broken**
+  outside the Workitems page (image and values panel stacked unpositioned,
+  reported via the drill-through preview) — the split-pane CSS in
+  `source-highlight.css` was scoped to the Workitems shell ids
+  (`#imageModal`/`#srcHlLayer`); de-scoped to the shared `.modal` class plus
+  a `src-hl-layer-full` class on all three overlay layers.
 - Reporting AI: the Agent surface completes instead of dying at the turn cap
   on nearly every ask. The `build_definition` tool now carries the full v1
   definition JSON schema (the model used to guess the shape — filters as a

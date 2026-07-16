@@ -217,6 +217,7 @@ def test_wizard_category_breakdown_to_result_cards(nexora_server, page):
         page.goto(f"{nexora_server}/reporting?tab=simple")
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Wizard user count").click()
+        page.get_by_test_id("rs-measure-next").click()
         page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
         page.get_by_test_id("rs-breakdown-next").click()
         run = page.get_by_test_id("rs-wizard-run")
@@ -274,6 +275,7 @@ def test_timing_badge_shows_rows_and_elapsed_ms(nexora_server, page):
         _stub_run_ok(page)
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Timing user count").click()
+        page.get_by_test_id("rs-measure-next").click()
         page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
         page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
@@ -357,6 +359,7 @@ def test_kpi_band_shows_total_buckets_avg(nexora_server, page):
         page.route("**/api/reporting/run", handler)
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("KPI user count").click()
+        page.get_by_test_id("rs-measure-next").click()
         page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
         page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
@@ -704,6 +707,7 @@ def test_wizard_result_shows_chips_and_refine_bar(nexora_server, page):
         page.goto(f"{nexora_server}/reporting?tab=simple")
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Wizard chips count").click()
+        page.get_by_test_id("rs-measure-next").click()
         page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
         page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
@@ -797,6 +801,7 @@ def test_adjust_wizard_button_round_trip(nexora_server, page):
         page.goto(f"{nexora_server}/reporting?tab=simple")
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Wizard adjust count").click()
+        page.get_by_test_id("rs-measure-next").click()
         page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
         page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
@@ -861,6 +866,7 @@ def test_total_only_result_explains_missing_chart(nexora_server, page):
         page.goto(f"{nexora_server}/reporting?tab=simple")
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Total note count").click()
+        page.get_by_test_id("rs-measure-next").click()
         # pick "None — just the total" (the last button in breakdown list)
         page.get_by_test_id("rs-breakdown-list").get_by_role(
             "button", name=re.compile(r"just the total", re.I)
@@ -911,6 +917,7 @@ def test_chart_type_switcher(nexora_server, page):
         page.goto(f"{nexora_server}/reporting?tab=simple")
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Chart switch count").click()
+        page.get_by_test_id("rs-measure-next").click()
         # pick the first category breakdown (not 'just the total')
         page.get_by_test_id("rs-breakdown-list").get_by_role("button").first.click()
         page.get_by_test_id("rs-breakdown-next").click()
@@ -963,6 +970,7 @@ def test_saved_report_adjust_in_wizard(nexora_server, page):
         page.goto(f"{nexora_server}/reporting?tab=simple")
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Saved adjust count").click()
+        page.get_by_test_id("rs-measure-next").click()
         page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
         page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
@@ -1038,6 +1046,7 @@ def test_show_query_reveals_sql(nexora_server, page):
         page.goto(f"{nexora_server}/reporting?tab=simple")
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Show SQL count").click()
+        page.get_by_test_id("rs-measure-next").click()
         page.get_by_test_id("rs-breakdown-list").get_by_role("button").first.click()
         page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
@@ -1096,6 +1105,7 @@ def test_result_back_returns_to_wizard(nexora_server, page):
         page.goto(f"{nexora_server}/reporting?tab=simple")
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Back test count").click()
+        page.get_by_test_id("rs-measure-next").click()
         page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
         page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
@@ -1109,6 +1119,7 @@ def test_result_back_returns_to_wizard(nexora_server, page):
         # Now open a fresh wizard result and use rs-exit from the result bar
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Back test count").click()
+        page.get_by_test_id("rs-measure-next").click()
         page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
         page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
@@ -1241,6 +1252,7 @@ def test_wizard_two_breakdowns(nexora_server, page):
         page.goto(f"{nexora_server}/reporting?tab=simple")
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Two-bd count").click()
+        page.get_by_test_id("rs-measure-next").click()
         bklist = page.get_by_test_id("rs-breakdown-list")
         bklist.get_by_text("Username", exact=True).click()
         bklist.get_by_text("Locale", exact=True).click()
@@ -1296,6 +1308,7 @@ def test_two_breakdown_chart_has_series(page, nexora_server):
         page.goto(f"{nexora_server}/reporting?tab=simple")
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Chart 2-bd count").click()
+        page.get_by_test_id("rs-measure-next").click()
         bklist = page.get_by_test_id("rs-breakdown-list")
         # Locale first (X axis, 1 distinct value in TEST), Username second
         # (series dimension, 3 distinct values in TEST) — guarantees >= 2 series.
@@ -1361,6 +1374,7 @@ def test_chart_png_download(page, nexora_server):
         page.goto(f"{nexora_server}/reporting?tab=simple")
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("PNG dl count").click()
+        page.get_by_test_id("rs-measure-next").click()
         page.get_by_test_id("rs-breakdown-list").get_by_text("Locale", exact=True).click()
         page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
@@ -1586,6 +1600,7 @@ def test_wizard_time_step_offers_week_and_quarter(nexora_server, page):
     page.goto(f"{nexora_server}/reporting?tab=simple")
     page.get_by_test_id("rs-new-report").click()
     page.get_by_test_id("rs-measure-list").get_by_text("Stub count").click()
+    page.get_by_test_id("rs-measure-next").click()
     page.get_by_test_id("rs-breakdown-next").click()
     tl = page.get_by_test_id("rs-time-list")
     expect(tl.get_by_text("This week", exact=True)).to_be_visible()
@@ -1743,6 +1758,7 @@ def test_wizard_back_steps_back_not_exit(nexora_server, page):
         page.goto(f"{nexora_server}/reporting?tab=simple")
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Back user count").click()
+        page.get_by_test_id("rs-measure-next").click()
         page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
         page.get_by_test_id("rs-breakdown-next").click()
         expect(page.get_by_test_id("rs-wizard-run")).to_be_visible()
@@ -1816,6 +1832,7 @@ def test_run_shows_loading_then_result(nexora_server, page):
         }""")
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Run load count").click()
+        page.get_by_test_id("rs-measure-next").click()
         page.get_by_test_id("rs-breakdown-list").get_by_role("button").first.click()
         page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
@@ -1900,6 +1917,7 @@ def test_simple_export_csv(nexora_server, page):
         page.goto(f"{nexora_server}/reporting?tab=simple")
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("CSV dl count").click()
+        page.get_by_test_id("rs-measure-next").click()
         page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
         page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
@@ -2002,6 +2020,7 @@ def test_drill_row_opens_panel(nexora_server, page):
         page.goto(f"{nexora_server}/reporting?tab=simple")
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Wizard drill count").click()
+        page.get_by_test_id("rs-measure-next").click()
         page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
         page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
@@ -2363,6 +2382,8 @@ def test_wizard_docprocessing_offers_process_breakdown(nexora_server, page):
     page.goto(f"{nexora_server}/reporting?tab=simple")
     page.get_by_test_id("rs-new-report").click()
     page.get_by_test_id("rs-measure-list").get_by_text("Docproc count stub").click()
+    page.get_by_test_id("rs-measure-next").click()
+    page.get_by_test_id("rs-scope-next").click()
     bklist = page.get_by_test_id("rs-breakdown-list")
     proc = bklist.locator('[data-bd-field="processname"]')
     expect(proc).to_be_visible()
@@ -2387,6 +2408,8 @@ def test_wizard_process_breakdown_serializes_to_processname_column(nexora_server
     page.goto(f"{nexora_server}/reporting?tab=simple")
     page.get_by_test_id("rs-new-report").click()
     page.get_by_test_id("rs-measure-list").get_by_text("Docproc count stub").click()
+    page.get_by_test_id("rs-measure-next").click()
+    page.get_by_test_id("rs-scope-next").click()
     page.get_by_test_id("rs-breakdown-list").locator('[data-bd-field="processname"]').click()
     page.get_by_test_id("rs-breakdown-next").click()
     run = page.get_by_test_id("rs-wizard-run")  # renderTimeStep() unhides it; All time default
@@ -2400,17 +2423,18 @@ def test_wizard_process_breakdown_serializes_to_processname_column(nexora_server
     assert with_cols[0]["columns"][0]["field"] == "processname"
 
 
-def test_wizard_caps_category_chips_at_16(nexora_server, page):
-    """The category-chip cap is 16 for EVERY source (raised from 12 with
-    headroom, so the saturated docprocessing list absorbs the Process chip
-    and the next doc-field addition cannot silently vanish again)."""
+def test_wizard_shows_all_category_chips_uncapped(nexora_server, page):
+    """The category-chip cap is GONE: every filterable string field renders a
+    chip (the coverage sort keeps rarely-provided fields at the bottom, the
+    docprocessing hide-list still filters noise)."""
     _login(page, nexora_server)
     _stub_wiz_catalogs(page, CAP_WIZ_SOURCES, CAP_WIZ_METRICS)
     page.goto(f"{nexora_server}/reporting?tab=simple")
     page.get_by_test_id("rs-new-report").click()
     page.get_by_test_id("rs-measure-list").get_by_text("Cap count stub").click()
+    page.get_by_test_id("rs-measure-next").click()
     bklist = page.get_by_test_id("rs-breakdown-list")
-    expect(bklist.locator('[data-bd-kind="category"]')).to_have_count(16)
+    expect(bklist.locator('[data-bd-kind="category"]')).to_have_count(20)
 
 
 # ---------------------------------------------------------------------------
@@ -2475,6 +2499,8 @@ def test_wizard_chip_coverage_badge(nexora_server, page):
     page.goto(f"{nexora_server}/reporting?tab=simple")
     page.get_by_test_id("rs-new-report").click()
     page.get_by_test_id("rs-measure-list").get_by_text("Cov count stub").click()
+    page.get_by_test_id("rs-measure-next").click()
+    page.get_by_test_id("rs-scope-next").click()
     bklist = page.get_by_test_id("rs-breakdown-list")
     prop = bklist.locator('[data-bd-field="propertynr"]')
     expect(prop.locator(".reporting-simple-chip-cov")).to_have_text("1/2")
@@ -2494,12 +2520,15 @@ def test_wizard_scope_filters_chips_and_prunes_selection(nexora_server, page):
     page.goto(f"{nexora_server}/reporting?tab=simple")
     page.get_by_test_id("rs-new-report").click()
     page.get_by_test_id("rs-measure-list").get_by_text("Cov count stub").click()
+    page.get_by_test_id("rs-measure-next").click()
+    page.get_by_test_id("rs-scope-next").click()
     bklist = page.get_by_test_id("rs-breakdown-list")
     bklist.locator('[data-bd-field="propertynr"]').click()
     expect(bklist.locator('[data-bd-field="propertynr"]')).to_have_class(
         re.compile(r"\bis-selected\b")
     )
-    page.locator("#rsScopeWrap summary").click()
+    # The scope step stays visible above the breakdown step (progressive
+    # accordion) — its checkboxes re-filter the chip list live.
     page.get_by_test_id("rs-scope-list").locator('input[value="acme.inv"]').uncheck()
     expect(bklist.locator('[data-bd-field="propertynr"]')).to_have_count(0)
     expect(bklist.locator('[data-bd-field="doctype"]')).to_be_visible()
@@ -2566,6 +2595,7 @@ def test_show_query_inlines_parameters_and_copies_runnable_sql(nexora_server, pa
     page.goto(f"{nexora_server}/reporting?tab=simple")
     page.get_by_test_id("rs-new-report").click()
     page.get_by_test_id("rs-measure-list").get_by_text("Stub count").click()
+    page.get_by_test_id("rs-measure-next").click()
     page.get_by_test_id("rs-breakdown-list").get_by_role("button").first.click()
     page.get_by_test_id("rs-breakdown-next").click()
     page.get_by_test_id("rs-wizard-run").click()
@@ -2683,6 +2713,7 @@ def test_zero_rows_shows_empty_state_hint(nexora_server, page):
     page.goto(f"{nexora_server}/reporting?tab=simple")
     page.get_by_test_id("rs-new-report").click()
     page.get_by_test_id("rs-measure-list").get_by_text("Stub count").click()
+    page.get_by_test_id("rs-measure-next").click()
     page.get_by_test_id("rs-breakdown-list").get_by_text("Doc type", exact=True).click()
     page.get_by_test_id("rs-breakdown-next").click()
     page.get_by_test_id("rs-wizard-run").click()
@@ -2732,6 +2763,7 @@ def test_wizard_alltime_hint_toggles(nexora_server, page):
     page.goto(f"{nexora_server}/reporting?tab=simple")
     page.get_by_test_id("rs-new-report").click()
     page.get_by_test_id("rs-measure-list").get_by_text("Stub count").click()
+    page.get_by_test_id("rs-measure-next").click()
     page.get_by_test_id("rs-breakdown-list").get_by_role("button").first.click()
     page.get_by_test_id("rs-breakdown-next").click()
     hint = page.get_by_test_id("rs-alltime-hint")
@@ -2864,6 +2896,7 @@ def _walk_three_breakdowns(nexora_server, page, measure_label):
     page.goto(f"{nexora_server}/reporting?tab=simple")
     page.get_by_test_id("rs-new-report").click()
     page.get_by_test_id("rs-measure-list").get_by_text(measure_label).click()
+    page.get_by_test_id("rs-measure-next").click()
     bklist = page.get_by_test_id("rs-breakdown-list")
     for fld in ("doctype", "docsource", "propertynr"):
         bklist.locator(f'[data-bd-field="{fld}"]').click()
@@ -2952,6 +2985,7 @@ def test_sql_peek_footer_reveals_query_on_click(nexora_server, page):
     page.goto(f"{nexora_server}/reporting?tab=simple")
     page.get_by_test_id("rs-new-report").click()
     page.get_by_test_id("rs-measure-list").get_by_text("Stub count").click()
+    page.get_by_test_id("rs-measure-next").click()
     page.get_by_test_id("rs-breakdown-list").get_by_role("button").first.click()
     page.get_by_test_id("rs-breakdown-next").click()
     page.get_by_test_id("rs-wizard-run").click()

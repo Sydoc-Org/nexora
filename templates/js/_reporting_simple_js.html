@@ -359,12 +359,25 @@
     band.hidden = false;
   }
 
-  function metricLabelFor(def) {
-    var m = (def.metrics && def.metrics[0]) || null;
-    if (!m) return '';
+  function metricLabelsFor(def) {
     var list = (state.metricsBySource || {})[def.source] || [];
-    var hit = list.find(function (x) { return x.code === m.metric; });
-    return hit ? hit.label : m.metric;
+    return (def.metrics || []).map(function (m) {
+      var hit = list.find(function (x) { return x.code === m.metric; });
+      return hit ? hit.label : m.metric;
+    });
+  }
+
+  // One label/value pair per metric in the stat card (the first pair keeps
+  // the rsStatLabel/rsStatValue ids the tests target).
+  function fillStatCard(def, rowVals) {
+    var labels = metricLabelsFor(def);
+    el('rsStatBody').innerHTML = labels.map(function (lb, i) {
+      var idL = i === 0 ? ' id="rsStatLabel"' : '';
+      var idV = i === 0 ? ' id="rsStatValue"' : '';
+      return '<p class="nx-stat__label"' + idL + '>' + esc(lb) + '</p>' +
+             '<div class="nx-stat__value"' + idV + '>' + fmtNumber(rowVals[i]) + '</div>';
+    }).join('');
+    el('rsStatCard').hidden = false;
   }
 
   // The metric's aggregation (sum/avg/count/count_distinct/…), used to decide
@@ -711,12 +724,18 @@
     // Raw click values for drill-through, same order as labels/rows (labels
     // are display strings — e.g. date-trimmed — so NULL/full values live here).
     var rawX = rows.map(function (r) { return r[0]; });
+    var mLabels = metricLabelsFor(def);
     var datasets = (def.metrics || []).map(function (m, i) {
       var col = columns[metricIdx + i];
       return {
-        label: col ? (col.header || m.metric) : m.metric,
+        label: mLabels[i] || (col ? (col.header || m.metric) : m.metric),
         data: rows.map(function (r) { return Number(r[metricIdx + i]); }),
-        borderColor: '#4f46e5', backgroundColor: 'rgba(79,70,229,.45)', tension: .25
+        // First metric keeps the classic indigo; further metrics take the
+        // series palette so a multi-measure report reads as distinct series.
+        borderColor: i === 0 ? '#4f46e5' : SIMPLE_PALETTE[i % SIMPLE_PALETTE.length],
+        backgroundColor: i === 0 ? 'rgba(79,70,229,.45)'
+                                 : SIMPLE_PALETTE[i % SIMPLE_PALETTE.length],
+        tension: .25
       };
     });
     state.chartData = { labels: labels, rawX: rawX, datasets: datasets, multiSeries: false };
@@ -1026,9 +1045,7 @@
       var t = await api('/api/reporting/run', { method: 'POST', body: JSON.stringify(totalDef) });
       if (seq !== runSeq) return;
       if (t.ok && t.data && t.data.rows && t.data.rows.length) {
-        el('rsStatLabel').textContent = metricLabelFor(def);
-        el('rsStatValue').textContent = fmtNumber(t.data.rows[0][0]);
-        el('rsStatCard').hidden = false;
+        fillStatCard(def, t.data.rows[0]);
       }
     }
 
@@ -1080,9 +1097,7 @@
       tNote.hidden = false;
     }
     if (hasMetrics && !dims && rows.length) {
-      el('rsStatLabel').textContent = metricLabelFor(def);
-      el('rsStatValue').textContent = fmtNumber(rows[0][0]);
-      el('rsStatCard').hidden = false;
+      fillStatCard(def, rows[0]);
       var totMsg = el('rsMsg');
       totMsg.textContent = (!totMsg.hidden && totMsg.textContent)
         ? totMsg.textContent + ' — ' + I18N.noChartTotalOnly : I18N.noChartTotalOnly;
@@ -1278,9 +1293,34 @@
   async function startWizard() {
     await loadSourcesCatalog();
     if (!state.metricsBySource) await loadMetricsCatalog();
-    state.wiz = { measure: null, source: null, breakdowns: [],
+    state.wiz = { measures: [], source: null, breakdowns: [],
                   scopeProcs: [], range: null, dateField: null, _fp: null };
     setView('wizard');
+    el('rsStepScope').hidden = true;
+    el('rsStepBreakdown').hidden = true;
+    el('rsStepTime').hidden = true;
+    el('rsWizardRun').hidden = true;
+    renderMeasureStep();
+  }
+
+  // Measures are toggle-select; the first pick pins the source (the query
+  // engine is single-source), other sources' chips gray out until empty.
+  function toggleMeasure(m, src) {
+    var w = state.wiz;
+    if (w.source && w.source.id !== src.id) return;   // disabled chip
+    var idx = -1, i;
+    for (i = 0; i < w.measures.length; i++) {
+      if (w.measures[i].code === m.code) { idx = i; break; }
+    }
+    if (idx !== -1) { w.measures.splice(idx, 1); } else { w.measures.push(m); }
+    if (!w.measures.length) {
+      // Unpinning the source invalidates everything downstream.
+      w.source = null; w.scopeProcs = []; w.breakdowns = [];
+    } else {
+      w.source = src;
+    }
+    // Any change re-gates the later steps behind Continue.
+    el('rsStepScope').hidden = true;
     el('rsStepBreakdown').hidden = true;
     el('rsStepTime').hidden = true;
     el('rsWizardRun').hidden = true;
@@ -1290,6 +1330,8 @@
   function renderMeasureStep() {
     var list = el('rsMeasureList');
     list.innerHTML = '';
+    var w = state.wiz;
+    if (!Array.isArray(w.measures)) w.measures = [];
     var bySource = state.metricsBySource || {};
     var visible = Object.keys(bySource).filter(function (sid) {
       return (state.sources || []).some(function (s) { return s.id === sid; });
@@ -1309,17 +1351,17 @@
         if (m.baseField && !fld) return;
         var label = multi ? (m.label + ' · ' + src.label) : m.label;
         var btn = choiceBtn(label, function () {
-          state.wiz.measure = m;
-          state.wiz.source = src;   // picking a measure pins the source
-          renderBreakdownStep();
-        }, !!(state.wiz.measure && state.wiz.measure.code === m.code
-              && state.wiz.source && state.wiz.source.id === src.id));
+          toggleMeasure(m, src);
+        }, !!(w.source && w.source.id === src.id
+              && w.measures.some(function (x) { return x.code === m.code; })));
+        if (w.source && w.source.id !== src.id) btn.disabled = true;
         // Partial coverage (vs ALL allowed processes — no scope exists yet at
         // this step): same badge as the breakdown chips.
         if (fld && fld.processes && fld.processes.length && srcProcs.length
             && fld.processes.length < srcProcs.length) {
           var cov = document.createElement('span');
-          cov.className = 'reporting-simple-chip-cov';
+          cov.className = 'reporting-simple-chip-cov '
+            + (fld.processes.length / srcProcs.length <= 1 / 3 ? 'is-cov-low' : 'is-cov-mid');
           cov.textContent = fld.processes.length + '/' + srcProcs.length;
           btn.appendChild(cov);
           btn.title = I18N.measureCoverage.replace('{n}', fld.processes.length)
@@ -1331,6 +1373,42 @@
     if (!list.children.length) {
       list.innerHTML = '<p class="reporting-simple-empty">' + esc(I18N.noMeasures) + '</p>';
     }
+    el('rsMeasureNext').hidden = !w.measures.length;
+  }
+
+  // Own wizard step between measure and breakdown: sources without processes
+  // (table sources) skip straight to the breakdown step. Emits the same
+  // scope serialisation as before; empty/full selection = all allowed (the
+  // server clamps to grants either way).
+  function renderScopeStep() {
+    var w = state.wiz;
+    var procs = w.source.processes || [];
+    var step = el('rsStepScope');
+    if (!procs.length) { step.hidden = true; renderBreakdownStep(); return; }
+    step.hidden = false;
+    el('rsStepBreakdown').hidden = true;
+    el('rsStepTime').hidden = true;
+    el('rsWizardRun').hidden = true;
+    var box = el('rsScopeList');
+    box.innerHTML = '';
+    var prior = w.scopeProcs || [];
+    procs.forEach(function (p) {
+      var lbl = document.createElement('label');
+      var cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.value = p;
+      cb.checked = !prior.length || prior.indexOf(p) !== -1;
+      cb.addEventListener('change', function () {
+        w.scopeProcs = Array.prototype.map.call(
+          box.querySelectorAll('input:checked'), function (c) { return c.value; });
+        // The chip list follows the scope live when the breakdown step is
+        // already open (reopened wizard / user stepped back).
+        if (!el('rsStepBreakdown').hidden) renderBreakdownStep();
+      });
+      lbl.appendChild(cb);
+      lbl.appendChild(document.createTextNode(' ' + p));
+      box.appendChild(lbl);
+    });
+    if (!prior.length) w.scopeProcs = procs.slice();
   }
 
   function renderBreakdownStep() {
@@ -1412,7 +1490,8 @@
       var cov = coveredBy(f);
       if (cov === null || cov.length >= scopeSel().length) return;
       var b = document.createElement('span');
-      b.className = 'reporting-simple-chip-cov';
+      b.className = 'reporting-simple-chip-cov '
+        + (cov.length / scopeSel().length <= 1 / 3 ? 'is-cov-low' : 'is-cov-mid');
       b.textContent = cov.length + '/' + scopeSel().length;
       btn.appendChild(b);
       btn.title = I18N.chipCoverage.replace('{n}', cov.length).replace('{m}', scopeSel().length)
@@ -1433,7 +1512,16 @@
 
       if (w.source.id === 'docprocessing') {
         catFields = catFields.filter(function (f) { return !DOCPROC_DIM_HIDE[f.field]; });
+        // Coverage first (full-coverage chips on top, 1/x at the bottom,
+        // recomputed against the CURRENT process scope), curated order and
+        // label only break ties within the same coverage.
+        var fracOf = function (f) {
+          var cov = coveredBy(f);
+          return cov === null ? 1 : cov.length / scopeSel().length;
+        };
         catFields.sort(function (a, b) {
+          var fa = fracOf(a), fb = fracOf(b);
+          if (fa !== fb) return fb - fa;
           var ia = DOCPROC_DIM_ORDER.indexOf(a.field), ib = DOCPROC_DIM_ORDER.indexOf(b.field);
           if (ia === -1) ia = DOCPROC_DIM_ORDER.length;
           if (ib === -1) ib = DOCPROC_DIM_ORDER.length;
@@ -1454,12 +1542,10 @@
         applyCoverageBadge(btn, f);
         list.appendChild(btn);
       });
-      // Cap 16 = headroom over docprocessing's current 13 candidates (the 12
-      // previously-visible chips + Process). An exactly-saturated cap silently
-      // evicts the newest chip -- that trap is why this was raised from 12.
-      // Keep slack when adding doc-fields; the cap is pinned by
-      // test_wizard_caps_category_chips_at_16.
-      catFields.slice(0, 16).forEach(function (f) {
+      // No cap: everything the Advanced tab offers is available here — the
+      // coverage sort keeps rarely-provided fields at the bottom, and the
+      // hide-list still filters the noise.
+      catFields.forEach(function (f) {
         var bd = { kind: 'category', field: f };
         var btn = choiceBtn(f.label, function () {
           toggleBreakdown(bd);
@@ -1482,40 +1568,6 @@
     var nextBtn = el('rsBreakdownNext');
     if (nextBtn) {
       nextBtn.onclick = function () { renderTimeStep(); };
-    }
-
-    // Optional collapsed process picker (docprocessing only). Emits the same
-    // scope serialisation as the Advanced picker; empty/full = all allowed
-    // (the server clamps to grants either way).
-    var scopeWrap = el('rsScopeWrap');
-    var procs = state.wiz.source.processes || [];
-    scopeWrap.hidden = !procs.length;
-    if (procs.length) {
-      var box = el('rsScopeList');
-      box.innerHTML = '';
-      var prior = state.wiz.scopeProcs || [];
-      var updateScopeBadge = function () {
-        var picked = (state.wiz.scopeProcs || []).length;
-        el('rsScopeBadge').textContent =
-          (!picked || picked === procs.length) ? I18N.allProcesses : picked + ' / ' + procs.length;
-      };
-      procs.forEach(function (p) {
-        var lbl = document.createElement('label');
-        var cb = document.createElement('input');
-        cb.type = 'checkbox'; cb.value = p;
-        cb.checked = !prior.length || prior.indexOf(p) !== -1;
-        cb.addEventListener('change', function () {
-          state.wiz.scopeProcs = Array.prototype.map.call(
-            box.querySelectorAll('input:checked'), function (c) { return c.value; });
-          updateScopeBadge();
-          renderChipList();
-        });
-        lbl.appendChild(cb);
-        lbl.appendChild(document.createTextNode(' ' + p));
-        box.appendChild(lbl);
-      });
-      if (!prior.length) state.wiz.scopeProcs = procs.slice();
-      updateScopeBadge();
     }
   }
 
@@ -1622,7 +1674,7 @@
   function wizardDefinition() {
     var w = state.wiz;
     var columns = [], sort = [], filters = [];
-    var title = w.measure.label;
+    var title = w.measures.map(function (m) { return m.label; }).join(' + ');
     var bds = (w.breakdowns || []).slice();
     // date first: it becomes the chart axis (X)
     bds.sort(function (a, b) {
@@ -1643,7 +1695,7 @@
       }
     });
     if (!sort.length && columns.length) {
-      sort.push({ field: w.measure.code, dir: 'desc' });
+      sort.push({ field: w.measures[0].code, dir: 'desc' });
     }
     if (titleParts.length) {
       if (hasDate && bds.length === 1) {
@@ -1664,7 +1716,7 @@
       schemaVersion: 1, source: w.source.id, visualization: 'table',
       title: title, subtitle: null,
       columns: columns,
-      metrics: [{ metric: w.measure.code }],
+      metrics: w.measures.map(function (m) { return { metric: m.code }; }),
       filters: filters, sort: sort, scope: scope, rowLimit: 5000
     };
   }
@@ -1678,11 +1730,17 @@
   // definitions, or null when the def can't be represented in the wizard
   // (multiple columns/filters/metrics, exotic ops, client scope).
   function wizardStateFromDefinition(def) {
-    if (!def || !Array.isArray(def.metrics) || def.metrics.length !== 1) return null;
+    if (!def || !Array.isArray(def.metrics) || !def.metrics.length) return null;
     var src = (state.sources || []).find(function (s) { return s.id === def.source; });
     var mlist = (state.metricsBySource || {})[def.source] || [];
-    var m = mlist.find(function (x) { return x.code === def.metrics[0].metric; });
-    if (!src || !m) return null;
+    var measures = [];
+    for (var mi = 0; mi < def.metrics.length; mi++) {
+      var code = def.metrics[mi].metric;
+      var hit = mlist.find(function (x) { return x.code === code; });
+      if (!hit) return null;
+      measures.push(hit);
+    }
+    if (!src) return null;
     var cols = def.columns || [];
     if (cols.length > 3) return null;
     var breakdowns = [], grain = null, dateSeen = false;
@@ -1719,7 +1777,7 @@
     }
     var scope = def.scope || {};
     if ((scope.clients || []).length) return null;
-    return { wiz: { measure: m, source: src, breakdowns: breakdowns,
+    return { wiz: { measures: measures, source: src, breakdowns: breakdowns,
                     scopeProcs: (scope.processes || []).slice(),
                     range: range, dateField: dateField, _fp: null },
              grain: grain };
@@ -1728,7 +1786,7 @@
   async function adjustInWizard() {
     var cur = state.current;
     if (!cur) return;
-    if (cur.builtBy === 'wizard' && state.wiz && state.wiz.measure) {
+    if (cur.builtBy === 'wizard' && state.wiz && (state.wiz.measures || []).length) {
       reopenWizard(); return;
     }
     await loadSourcesCatalog();
@@ -1741,16 +1799,19 @@
   }
 
   async function reopenWizard() {
-    if (!state.wiz || !state.wiz.measure) { startWizard(); return; }
+    if (!state.wiz || !(state.wiz.measures || []).length) { startWizard(); return; }
     await loadSourcesCatalog();
     if (!state.metricsBySource) await loadMetricsCatalog();
     setView('wizard');
     renderMeasureStep();
+    renderScopeStep();
     renderBreakdownStep();
     renderTimeStep();
   }
 
   el('rsNewReport').addEventListener('click', startWizard);
+  el('rsMeasureNext').addEventListener('click', function () { renderScopeStep(); });
+  el('rsScopeNext').addEventListener('click', function () { renderBreakdownStep(); });
   // Back steps one wizard step backwards (picks are preserved in state.wiz);
   // only from step 1 does it exit. The ✕ stays the explicit exit at any point.
   el('rsWizardBack').addEventListener('click', function () {
@@ -1759,14 +1820,22 @@
       el('rsWizardRun').hidden = true;
       return;
     }
-    if (!el('rsStepBreakdown').hidden) {      // breakdown -> measure
+    if (!el('rsStepBreakdown').hidden) {      // breakdown -> scope (or measure)
       el('rsStepBreakdown').hidden = true;
+      if (!el('rsStepScope').hidden) return;  // scope step stays visible above
+      // no scope step for this source: renderScopeStep would have skipped it
+      var procs = (state.wiz && state.wiz.source && state.wiz.source.processes) || [];
+      if (procs.length) el('rsStepScope').hidden = false;
+      return;
+    }
+    if (!el('rsStepScope').hidden) {          // scope -> measure
+      el('rsStepScope').hidden = true;
       return;
     }
     setView('library');                       // measure -> out
   });
   el('rsWizardRun').addEventListener('click', function () {
-    if (!state.wiz || !state.wiz.measure) return;
+    if (!state.wiz || !(state.wiz.measures || []).length) return;
     var def = wizardDefinition();
     state.current = { def: def, name: def.title, reportId: null,
                       owned: true, canEdit: true, fromWizard: true,

@@ -39,11 +39,19 @@
               title="{{ _('Back to library') }}" aria-label="{{ _('Back to library') }}">&times;</button>
     </div>
     <div class="reporting-simple-step" id="rsStepMeasure">
-      <h3 class="reporting-simple-h">1. {{ _("What do you want to measure?") }}</h3>
+      <h3 class="reporting-simple-h">{{ _("What do you want to measure?") }}</h3>
       <div id="rsMeasureList" class="reporting-simple-choices" data-testid="rs-measure-list"></div>
+      <p class="reporting-simple-hint">{{ _("Pick one or more — combined measures must come from the same source.") }}</p>
+      <button type="button" id="rsMeasureNext" class="nx-btn nx-btn--primary" hidden data-testid="rs-measure-next">{{ _("Continue") }}</button>
+    </div>
+    <div class="reporting-simple-step" id="rsStepScope" hidden>
+      <h3 class="reporting-simple-h">{{ _("Which processes?") }}</h3>
+      <div id="rsScopeList" class="reporting-simple-scopestep" data-testid="rs-scope-list"></div>
+      <p class="reporting-simple-hint">{{ _("The next step only offers fields these processes provide.") }}</p>
+      <button type="button" id="rsScopeNext" class="nx-btn nx-btn--primary" data-testid="rs-scope-next">{{ _("Continue") }}</button>
     </div>
     <div class="reporting-simple-step" id="rsStepBreakdown" hidden>
-      <h3 class="reporting-simple-h">2. {{ _("Break it down by…") }}</h3>
+      <h3 class="reporting-simple-h">{{ _("Break it down by…") }}</h3>
       <div id="rsBreakdownList" class="reporting-simple-choices" data-testid="rs-breakdown-list"></div>
       <label id="rsGrainWrap" class="reporting-simple-inline" hidden>{{ _("Granularity") }}
         <select id="rsGrain" class="reporting-input">
@@ -53,19 +61,11 @@
           <option value="quarter">{{ _("Quarter") }}</option>
           <option value="year">{{ _("Year") }}</option>
         </select></label>
-      <details id="rsScopeWrap" class="reporting-simple-scope" hidden>
-        <summary data-testid="rs-scope-summary">
-          <i class="fas fa-filter" aria-hidden="true"></i>
-          <span>{{ _("Limit to specific processes") }}</span>
-          <span id="rsScopeBadge" class="reporting-simple-scope-badge" data-testid="rs-scope-badge"></span>
-        </summary>
-        <div id="rsScopeList" data-testid="rs-scope-list"></div>
-      </details>
       <p class="reporting-simple-hint">{{ _("Pick up to three — the first is the chart axis, the second becomes the colored series.") }}</p>
       <button type="button" id="rsBreakdownNext" class="nx-btn nx-btn--primary" data-testid="rs-breakdown-next">{{ _("Continue") }}</button>
     </div>
     <div class="reporting-simple-step" id="rsStepTime" hidden>
-      <h3 class="reporting-simple-h">3. {{ _("Time range") }}</h3>
+      <h3 class="reporting-simple-h">{{ _("Time range") }}</h3>
       <div class="reporting-simple-choices" id="rsTimeList" data-testid="rs-time-list"></div>
       <div id="rsTimeCustom" hidden>
         <input id="rsTimeRange" class="reporting-input" placeholder="{{ _('Pick a date range') }}">
@@ -125,7 +125,7 @@
     <div id="rsKpiBand" class="reporting-ledger-kpis" hidden data-testid="rs-kpi-band"></div>
     <div class="reporting-simple-cards">
       <div class="nx-card nx-card--pad nx-stat reporting-simple-stat" id="rsStatCard" hidden data-testid="rs-stat-card">
-        <div>
+        <div id="rsStatBody">
           <p class="nx-stat__label" id="rsStatLabel"></p>
           <div class="nx-stat__value" id="rsStatValue"></div>
         </div>

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-07-16 01:16+0200\n"
+"POT-Creation-Date: 2026-07-16 09:12+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -1043,37 +1043,52 @@ msgstr "Torna alla libreria"
 msgid "What do you want to measure?"
 msgstr "Cosa vuoi misurare?"
 
-#: templates/_reporting_simple.html:46
+#: templates/_reporting_simple.html:44
+msgid "Pick one or more — combined measures must come from the same source."
+msgstr ""
+"Scegline una o più — le misure combinate devono provenire dalla stessa "
+"fonte."
+
+#: templates/_reporting_simple.html:45 templates/_reporting_simple.html:51
+#: templates/_reporting_simple.html:65 templates/init_reset.html:74
+msgid "Continue"
+msgstr "Continua"
+
+#: templates/_reporting_simple.html:48
+msgid "Which processes?"
+msgstr "Quali processi?"
+
+#: templates/_reporting_simple.html:50
+msgid "The next step only offers fields these processes provide."
+msgstr "Il passaggio successivo offre solo i campi forniti da questi processi."
+
+#: templates/_reporting_simple.html:54
 msgid "Break it down by…"
 msgstr "Suddividi per…"
 
-#: templates/_reporting_simple.html:48
+#: templates/_reporting_simple.html:56
 msgid "Granularity"
 msgstr "Granularità"
 
-#: templates/_reporting_simple.html:50 templates/js/_reporting_js.html:334
+#: templates/_reporting_simple.html:58 templates/js/_reporting_js.html:334
 msgid "Day"
 msgstr "Giorno"
 
-#: templates/_reporting_simple.html:51 templates/js/_reporting_js.html:334
+#: templates/_reporting_simple.html:59 templates/js/_reporting_js.html:334
 msgid "Week"
 msgstr "Settimana"
 
-#: templates/_reporting_simple.html:52 templates/js/_reporting_js.html:334
+#: templates/_reporting_simple.html:60 templates/js/_reporting_js.html:334
 msgid "Month"
 msgstr "Mese"
 
-#: templates/_reporting_simple.html:53 templates/js/_reporting_js.html:335
+#: templates/_reporting_simple.html:61 templates/js/_reporting_js.html:335
 msgid "Quarter"
 msgstr "Trimestre"
 
-#: templates/_reporting_simple.html:54 templates/js/_reporting_js.html:335
+#: templates/_reporting_simple.html:62 templates/js/_reporting_js.html:335
 msgid "Year"
 msgstr "Anno"
-
-#: templates/_reporting_simple.html:59
-msgid "Limit to specific processes"
-msgstr "Limita a processi specifici"
 
 #: templates/_reporting_simple.html:64
 msgid ""
@@ -1082,10 +1097,6 @@ msgid ""
 msgstr ""
 "Scelga fino a tre — il primo è l'asse del grafico, il secondo diventa la "
 "serie colorata."
-
-#: templates/_reporting_simple.html:65 templates/init_reset.html:74
-msgid "Continue"
-msgstr "Continua"
 
 #: templates/_reporting_simple.html:68
 msgid "Time range"
@@ -5996,4 +6007,7 @@ msgstr ""
 
 #~ msgid "Nothing here yet."
 #~ msgstr "Ancora niente qui."
+
+#~ msgid "Limit to specific processes"
+#~ msgstr "Limita a processi specifici"
 

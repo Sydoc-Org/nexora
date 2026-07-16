@@ -47,10 +47,15 @@ a separately designed "ink edition". Full design spec:
     with me*. Click a card to run it (lazy — nothing runs until opened).
     Live-SQL (`kind:'sql'`) reports are hidden here (viewers can't run them);
     they stay fully usable in Advanced.
-  - **+ New report (wizard)** — measure (from the metrics registry; picking a
-    measure pins the source — admins grow the wizard's reach by adding rows at
-    `/reporting/metrics`, zero code change) → break down by *over time* (with a
-    grain select, default month) / a category / *none — just the total* → time
+  - **+ New report (wizard)** — measures (from the metrics registry;
+    **multi-select** — the first pick pins the source and other sources'
+    chips disable until the selection is cleared; the result carries one
+    column/series per metric and the stat card one total per metric; admins
+    grow the wizard's reach by adding rows at `/reporting/metrics`, zero code
+    change) → **which processes?** (own step, checkbox list all pre-checked;
+    skipped for sources without processes — step headings auto-number via CSS
+    counters so no gap shows) → break down by *over time* (with a grain
+    select, default month) / a category / *none — just the total* → time
     range (presets or a custom flatpickr range; emits a `between` filter on the
     **raw** date field, defaulting to `import_date`). Time presets include **This
     week** and **This quarter** (both stored as tokens in `WIZ_TOKENS`, so saved
@@ -59,24 +64,25 @@ a separately designed "ink edition". Full design spec:
     picks pre-selected. **Back** steps back through wizard steps preserving picks;
     **✕** (on both the wizard header and the result bar) exits straight to the
     library without discarding anything already saved.
-    Measures and category/date chips whose field only *some* processes provide
-    carry an **"n/m" coverage badge** (styled in the ledger's mono ink-navy
-    treatment; tooltip names the providing processes —
-    documents from the others land in the empty-value bucket, and a partial
-    measure counts only its providers' documents). The chip list follows the
-    **"Limit to specific processes"** picker like the Advanced tab's field
-    list: chips with zero coverage under the picked scope hide, and stranded
-    selections are pruned. A metric whose base field no allowed process
-    provides is not offered at all.
-    The category list is curated for the Document Processing source — **Process**
-    leads (one value per Octo process; in this deployment each process corresponds
-    to a client, so it delivers per-client numbers), then the preferred business
-    dimensions (Document Source, Document Type, Forwarding, Owner no., Property
-    No., Registered, Tenancy no.), and technical noise (Bank PK, creditor no.,
-    barcode, document date, workitem id) is hidden; other sources list their
-    catalog fields unfiltered (up to 16 category chips per source). The **"Limit to specific
-    processes"** control is a prominent bordered row with a live selection badge
-    ("All processes" or "n / m").
+    Measures and category/date chips whose field only *some* of the selected
+    processes provide carry an **"n/m" coverage badge**, colour-tiered —
+    amber for partial coverage, muted for low (≤ ⅓ of the scope) — with a
+    tooltip naming the providing processes (documents from the others land in
+    the empty-value bucket, and a partial measure counts only its providers'
+    documents). The chip list follows the process step live: chips with zero
+    coverage under the picked scope hide, stranded selections are pruned, and
+    the remaining chips **sort by coverage** (full coverage first, `1/x` at
+    the bottom). A metric whose base field no allowed process provides is not
+    offered at all.
+    The category list is curated for the Document Processing source — within
+    the same coverage tier **Process** leads (one value per Octo process; in
+    this deployment each process corresponds to a client, so it delivers
+    per-client numbers), then the preferred business dimensions (Document
+    Source, Document Type, Forwarding, Owner no., Property No., Registered,
+    Tenancy no.), and technical noise (Bank PK, creditor no., barcode,
+    document date, workitem id) is hidden; other sources list their catalog
+    fields unfiltered. There is **no chip cap** — every filterable string
+    field the Advanced tab offers renders as a chip.
   - **Ask AI** — one input to Surface A; a valid draft renders straight to the
     result view. Hidden if AI is unconfigured.
   - **Result view** — a grand-total **number card** (computed by a zero-column

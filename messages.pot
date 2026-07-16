@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-07-16 01:16+0200\n"
+"POT-Creation-Date: 2026-07-16 09:12+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1033,46 +1033,55 @@ msgstr ""
 msgid "What do you want to measure?"
 msgstr ""
 
-#: templates/_reporting_simple.html:46
-msgid "Break it down by…"
+#: templates/_reporting_simple.html:44
+msgid "Pick one or more — combined measures must come from the same source."
+msgstr ""
+
+#: templates/_reporting_simple.html:45 templates/_reporting_simple.html:51
+#: templates/_reporting_simple.html:65 templates/init_reset.html:74
+msgid "Continue"
 msgstr ""
 
 #: templates/_reporting_simple.html:48
+msgid "Which processes?"
+msgstr ""
+
+#: templates/_reporting_simple.html:50
+msgid "The next step only offers fields these processes provide."
+msgstr ""
+
+#: templates/_reporting_simple.html:54
+msgid "Break it down by…"
+msgstr ""
+
+#: templates/_reporting_simple.html:56
 msgid "Granularity"
 msgstr ""
 
-#: templates/_reporting_simple.html:50 templates/js/_reporting_js.html:334
+#: templates/_reporting_simple.html:58 templates/js/_reporting_js.html:334
 msgid "Day"
 msgstr ""
 
-#: templates/_reporting_simple.html:51 templates/js/_reporting_js.html:334
+#: templates/_reporting_simple.html:59 templates/js/_reporting_js.html:334
 msgid "Week"
 msgstr ""
 
-#: templates/_reporting_simple.html:52 templates/js/_reporting_js.html:334
+#: templates/_reporting_simple.html:60 templates/js/_reporting_js.html:334
 msgid "Month"
 msgstr ""
 
-#: templates/_reporting_simple.html:53 templates/js/_reporting_js.html:335
+#: templates/_reporting_simple.html:61 templates/js/_reporting_js.html:335
 msgid "Quarter"
 msgstr ""
 
-#: templates/_reporting_simple.html:54 templates/js/_reporting_js.html:335
+#: templates/_reporting_simple.html:62 templates/js/_reporting_js.html:335
 msgid "Year"
-msgstr ""
-
-#: templates/_reporting_simple.html:59
-msgid "Limit to specific processes"
 msgstr ""
 
 #: templates/_reporting_simple.html:64
 msgid ""
 "Pick up to three — the first is the chart axis, the second becomes the "
 "colored series."
-msgstr ""
-
-#: templates/_reporting_simple.html:65 templates/init_reset.html:74
-msgid "Continue"
 msgstr ""
 
 #: templates/_reporting_simple.html:68
