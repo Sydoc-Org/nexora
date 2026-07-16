@@ -46,9 +46,9 @@ This is fine to start, but should be migrated to a dedicated service account
 in the Atlassian org admin. Migration = create token on the service account,
 update both credential files, revoke the old token.
 
-**Pending (owner):** provision `C:\sydoc\runner-secrets\CONFLUENCE.env` on
-SYAPP01 with the credentials from `env/CONFLUENCE.env`, then run the CI
-workflow once to confirm end-to-end.
+The runner reads its copy from `C:\sydoc\runner-secrets\CONFLUENCE.env` on
+SYAPP01 (provisioned 2026-07-16, CI verified end-to-end). When rotating the
+token, update **both** that file and your local `env/CONFLUENCE.env`.
 
 ## Token rotation (yearly!)
 
@@ -56,7 +56,9 @@ Atlassian API tokens expire after at most 365 days. When the sync fails with
 the 401 token message:
 
 1. Log in as the sync account → <https://id.atlassian.com/manage-profile/security/api-tokens>
-   → create a new (unscoped) token.
+   → create a new **unscoped** token ("Create API token", *not* "with scopes").
+   Unscoped tokens start with `ATATT`; scoped ones start with `ATCTT` and
+   silently fail (see Troubleshooting).
 2. Update `C:\sydoc\runner-secrets\CONFLUENCE.env` on SYAPP01 (and your local
    `env/CONFLUENCE.env` if you run the script locally).
 3. Re-run the workflow (*Actions → Confluence docs sync → Run workflow*).
@@ -74,6 +76,13 @@ add/edit/archive from user groups, keep full write for the sync account only.
 
 ## Troubleshooting
 
+- **403 "caller cannot access Confluence" / 404 on the spaces endpoint** —
+  the token is being ignored and the request runs as *anonymous*. Almost
+  always a **scoped** API token (`ATCTT...` prefix): scoped tokens don't work
+  with Basic auth against the site domain. Mint an unscoped token (`ATATT...`)
+  and update both credential files. (Diagnostic: the API responds identically
+  with and without the `Authorization` header.) This is not a seat/permission
+  problem — don't chase product access in org admin (been there, 2026-07-16).
 - **"duplicate page title"** — two source files share an H1. Titles must be
   unique per space; change one heading.
 - **"A page with this title already exists" from the API** — a *trashed* page
