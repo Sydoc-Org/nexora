@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-07-16 09:12+0200\n"
+"POT-Creation-Date: 2026-07-16 11:36+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1127,7 +1127,7 @@ msgid "Save"
 msgstr ""
 
 #: templates/_reporting_simple.html:91
-#: templates/js/_reporting_simple_js.html:68
+#: templates/js/_reporting_simple_js.html:67
 msgid "Open in Advanced"
 msgstr ""
 
@@ -1145,7 +1145,7 @@ msgid "Export"
 msgstr ""
 
 #: templates/_reporting_simple.html:100 templates/js/_reporting_js.html:412
-#: templates/js/_reporting_simple_js.html:69 templates/reporting.html:243
+#: templates/js/_reporting_simple_js.html:68 templates/reporting.html:243
 msgid "Show query"
 msgstr ""
 
@@ -1426,7 +1426,7 @@ msgstr ""
 #: templates/generali-dashboard.html:142 templates/generali_documents.html:34
 #: templates/js/_generali_dashboard_js.html:25
 #: templates/js/_reporting_js.html:416
-#: templates/js/_reporting_simple_js.html:83
+#: templates/js/_reporting_simple_js.html:82
 #: templates/js/_reporting_viz_js.html:449
 #: templates/js/_reporting_viz_js.html:511
 #: templates/js/_reporting_viz_js.html:567
@@ -4403,7 +4403,7 @@ msgid "AI report"
 msgstr ""
 
 #: templates/js/_reporting_ai_js.html:64 templates/js/_reporting_js.html:414
-#: templates/js/_reporting_simple_js.html:79
+#: templates/js/_reporting_simple_js.html:78
 msgid "Copied"
 msgstr ""
 
@@ -4570,7 +4570,7 @@ msgid "Custom dates…"
 msgstr ""
 
 #: templates/js/_reporting_js.html:394
-#: templates/js/_reporting_simple_js.html:82
+#: templates/js/_reporting_simple_js.html:81
 #, python-brace-format
 msgid "{rows} rows · {ms} ms"
 msgstr ""
@@ -4584,47 +4584,47 @@ msgid "SQL report"
 msgstr ""
 
 #: templates/js/_reporting_js.html:404
-#: templates/js/_reporting_simple_js.html:72
+#: templates/js/_reporting_simple_js.html:71
 msgid "between"
 msgstr ""
 
 #: templates/js/_reporting_js.html:405
-#: templates/js/_reporting_simple_js.html:73
+#: templates/js/_reporting_simple_js.html:72
 msgid "is one of"
 msgstr ""
 
 #: templates/js/_reporting_js.html:406
-#: templates/js/_reporting_simple_js.html:74
+#: templates/js/_reporting_simple_js.html:73
 msgid "is not one of"
 msgstr ""
 
 #: templates/js/_reporting_js.html:407
-#: templates/js/_reporting_simple_js.html:75
+#: templates/js/_reporting_simple_js.html:74
 msgid "contains"
 msgstr ""
 
 #: templates/js/_reporting_js.html:408
-#: templates/js/_reporting_simple_js.html:76
+#: templates/js/_reporting_simple_js.html:75
 msgid "starts with"
 msgstr ""
 
 #: templates/js/_reporting_js.html:409
-#: templates/js/_reporting_simple_js.html:77
+#: templates/js/_reporting_simple_js.html:76
 msgid "is empty"
 msgstr ""
 
 #: templates/js/_reporting_js.html:410
-#: templates/js/_reporting_simple_js.html:78
+#: templates/js/_reporting_simple_js.html:77
 msgid "is not empty"
 msgstr ""
 
 #: templates/js/_reporting_js.html:413
-#: templates/js/_reporting_simple_js.html:71
+#: templates/js/_reporting_simple_js.html:70
 msgid "Hide query"
 msgstr ""
 
 #: templates/js/_reporting_js.html:415
-#: templates/js/_reporting_simple_js.html:70
+#: templates/js/_reporting_simple_js.html:69
 #, python-brace-format
 msgid ""
 "Showing the first {n} rows — narrow the filters or time range to see the "
@@ -4632,12 +4632,12 @@ msgid ""
 msgstr ""
 
 #: templates/js/_reporting_js.html:417
-#: templates/js/_reporting_simple_js.html:84
+#: templates/js/_reporting_simple_js.html:83
 msgid "Buckets"
 msgstr ""
 
 #: templates/js/_reporting_js.html:418
-#: templates/js/_reporting_simple_js.html:85
+#: templates/js/_reporting_simple_js.html:84
 msgid "Avg per bucket"
 msgstr ""
 
@@ -4872,26 +4872,22 @@ msgid ""
 msgstr ""
 
 #: templates/js/_reporting_simple_js.html:65
-msgid "Charts support up to two breakdowns — the table shows all of them."
-msgstr ""
-
-#: templates/js/_reporting_simple_js.html:66
 #, python-brace-format
 msgid "Showing the {shown} largest of {n} series."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:67
+#: templates/js/_reporting_simple_js.html:66
 msgid "The chart could not be drawn (chart library failed to load)."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:80
+#: templates/js/_reporting_simple_js.html:79
 #, python-brace-format
 msgid ""
 "Only {n} of {m} selected processes provide this field — documents from "
 "the other processes show an empty value here. Provided by:"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:81
+#: templates/js/_reporting_simple_js.html:80
 #, python-brace-format
 msgid ""
 "Only {n} of {m} processes provide this field — the measure only counts "

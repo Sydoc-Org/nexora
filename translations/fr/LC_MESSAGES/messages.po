@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-07-16 09:12+0200\n"
+"POT-Creation-Date: 2026-07-16 11:36+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -1050,8 +1050,8 @@ msgstr "Que voulez-vous mesurer ?"
 #: templates/_reporting_simple.html:44
 msgid "Pick one or more — combined measures must come from the same source."
 msgstr ""
-"Choisissez-en une ou plusieurs — les mesures combinées doivent provenir de "
-"la même source."
+"Choisissez-en une ou plusieurs — les mesures combinées doivent provenir "
+"de la même source."
 
 #: templates/_reporting_simple.html:45 templates/_reporting_simple.html:51
 #: templates/_reporting_simple.html:65 templates/init_reset.html:74
@@ -1147,7 +1147,7 @@ msgid "Save"
 msgstr "Enregistrer"
 
 #: templates/_reporting_simple.html:91
-#: templates/js/_reporting_simple_js.html:68
+#: templates/js/_reporting_simple_js.html:67
 msgid "Open in Advanced"
 msgstr "Ouvrir dans Avancé"
 
@@ -1165,7 +1165,7 @@ msgid "Export"
 msgstr "Exporter"
 
 #: templates/_reporting_simple.html:100 templates/js/_reporting_js.html:412
-#: templates/js/_reporting_simple_js.html:69 templates/reporting.html:243
+#: templates/js/_reporting_simple_js.html:68 templates/reporting.html:243
 msgid "Show query"
 msgstr "Afficher la requête"
 
@@ -1452,7 +1452,7 @@ msgstr "Volume de traitement journalier"
 #: templates/generali-dashboard.html:142 templates/generali_documents.html:34
 #: templates/js/_generali_dashboard_js.html:25
 #: templates/js/_reporting_js.html:416
-#: templates/js/_reporting_simple_js.html:83
+#: templates/js/_reporting_simple_js.html:82
 #: templates/js/_reporting_viz_js.html:449
 #: templates/js/_reporting_viz_js.html:511
 #: templates/js/_reporting_viz_js.html:567
@@ -4522,7 +4522,7 @@ msgid "AI report"
 msgstr "Rapport IA"
 
 #: templates/js/_reporting_ai_js.html:64 templates/js/_reporting_js.html:414
-#: templates/js/_reporting_simple_js.html:79
+#: templates/js/_reporting_simple_js.html:78
 msgid "Copied"
 msgstr "Copié"
 
@@ -4693,7 +4693,7 @@ msgid "Custom dates…"
 msgstr "Dates personnalisées…"
 
 #: templates/js/_reporting_js.html:394
-#: templates/js/_reporting_simple_js.html:82
+#: templates/js/_reporting_simple_js.html:81
 #, python-brace-format
 msgid "{rows} rows · {ms} ms"
 msgstr "{rows} lignes · {ms} ms"
@@ -4707,47 +4707,47 @@ msgid "SQL report"
 msgstr "Rapport SQL"
 
 #: templates/js/_reporting_js.html:404
-#: templates/js/_reporting_simple_js.html:72
+#: templates/js/_reporting_simple_js.html:71
 msgid "between"
 msgstr "entre"
 
 #: templates/js/_reporting_js.html:405
-#: templates/js/_reporting_simple_js.html:73
+#: templates/js/_reporting_simple_js.html:72
 msgid "is one of"
 msgstr "est l'un de"
 
 #: templates/js/_reporting_js.html:406
-#: templates/js/_reporting_simple_js.html:74
+#: templates/js/_reporting_simple_js.html:73
 msgid "is not one of"
 msgstr "n'est pas l'un de"
 
 #: templates/js/_reporting_js.html:407
-#: templates/js/_reporting_simple_js.html:75
+#: templates/js/_reporting_simple_js.html:74
 msgid "contains"
 msgstr "contient"
 
 #: templates/js/_reporting_js.html:408
-#: templates/js/_reporting_simple_js.html:76
+#: templates/js/_reporting_simple_js.html:75
 msgid "starts with"
 msgstr "commence par"
 
 #: templates/js/_reporting_js.html:409
-#: templates/js/_reporting_simple_js.html:77
+#: templates/js/_reporting_simple_js.html:76
 msgid "is empty"
 msgstr "est vide"
 
 #: templates/js/_reporting_js.html:410
-#: templates/js/_reporting_simple_js.html:78
+#: templates/js/_reporting_simple_js.html:77
 msgid "is not empty"
 msgstr "n'est pas vide"
 
 #: templates/js/_reporting_js.html:413
-#: templates/js/_reporting_simple_js.html:71
+#: templates/js/_reporting_simple_js.html:70
 msgid "Hide query"
 msgstr "Masquer la requête"
 
 #: templates/js/_reporting_js.html:415
-#: templates/js/_reporting_simple_js.html:70
+#: templates/js/_reporting_simple_js.html:69
 #, python-brace-format
 msgid ""
 "Showing the first {n} rows — narrow the filters or time range to see the "
@@ -4757,12 +4757,12 @@ msgstr ""
 "temps pour voir la suite."
 
 #: templates/js/_reporting_js.html:417
-#: templates/js/_reporting_simple_js.html:84
+#: templates/js/_reporting_simple_js.html:83
 msgid "Buckets"
 msgstr "Groupes"
 
 #: templates/js/_reporting_js.html:418
-#: templates/js/_reporting_simple_js.html:85
+#: templates/js/_reporting_simple_js.html:84
 msgid "Avg per bucket"
 msgstr "Moy. par groupe"
 
@@ -5005,23 +5005,17 @@ msgstr ""
 "plus grossière ou une plage de temps plus courte."
 
 #: templates/js/_reporting_simple_js.html:65
-msgid "Charts support up to two breakdowns — the table shows all of them."
-msgstr ""
-"Les graphiques prennent en charge jusqu'à deux ventilations — le tableau "
-"les montre toutes."
-
-#: templates/js/_reporting_simple_js.html:66
 #, python-brace-format
 msgid "Showing the {shown} largest of {n} series."
 msgstr "Affichage des {shown} plus grandes séries sur {n}."
 
-#: templates/js/_reporting_simple_js.html:67
+#: templates/js/_reporting_simple_js.html:66
 msgid "The chart could not be drawn (chart library failed to load)."
 msgstr ""
 "Le graphique n'a pas pu être tracé (échec du chargement de la "
 "bibliothèque)."
 
-#: templates/js/_reporting_simple_js.html:80
+#: templates/js/_reporting_simple_js.html:79
 #, python-brace-format
 msgid ""
 "Only {n} of {m} selected processes provide this field — documents from "
@@ -5031,7 +5025,7 @@ msgstr ""
 "documents des autres processus apparaissent ici avec une valeur vide. "
 "Fourni par :"
 
-#: templates/js/_reporting_simple_js.html:81
+#: templates/js/_reporting_simple_js.html:80
 #, python-brace-format
 msgid ""
 "Only {n} of {m} processes provide this field — the measure only counts "
@@ -6029,4 +6023,10 @@ msgstr ""
 
 #~ msgid "Limit to specific processes"
 #~ msgstr "Limiter à certains processus"
+
+#~ msgid "Charts support up to two breakdowns — the table shows all of them."
+#~ msgstr ""
+#~ "Les graphiques prennent en charge "
+#~ "jusqu'à deux ventilations — le tableau"
+#~ " les montre toutes."
 

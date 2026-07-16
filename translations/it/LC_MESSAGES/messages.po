@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-07-16 09:12+0200\n"
+"POT-Creation-Date: 2026-07-16 11:36+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -1143,7 +1143,7 @@ msgid "Save"
 msgstr "Salva"
 
 #: templates/_reporting_simple.html:91
-#: templates/js/_reporting_simple_js.html:68
+#: templates/js/_reporting_simple_js.html:67
 msgid "Open in Advanced"
 msgstr "Apri in Avanzato"
 
@@ -1161,7 +1161,7 @@ msgid "Export"
 msgstr "Esporta"
 
 #: templates/_reporting_simple.html:100 templates/js/_reporting_js.html:412
-#: templates/js/_reporting_simple_js.html:69 templates/reporting.html:243
+#: templates/js/_reporting_simple_js.html:68 templates/reporting.html:243
 msgid "Show query"
 msgstr "Mostra query"
 
@@ -1448,7 +1448,7 @@ msgstr "Volume di elaborazione giornaliero"
 #: templates/generali-dashboard.html:142 templates/generali_documents.html:34
 #: templates/js/_generali_dashboard_js.html:25
 #: templates/js/_reporting_js.html:416
-#: templates/js/_reporting_simple_js.html:83
+#: templates/js/_reporting_simple_js.html:82
 #: templates/js/_reporting_viz_js.html:449
 #: templates/js/_reporting_viz_js.html:511
 #: templates/js/_reporting_viz_js.html:567
@@ -4506,7 +4506,7 @@ msgid "AI report"
 msgstr "Report IA"
 
 #: templates/js/_reporting_ai_js.html:64 templates/js/_reporting_js.html:414
-#: templates/js/_reporting_simple_js.html:79
+#: templates/js/_reporting_simple_js.html:78
 msgid "Copied"
 msgstr "Copiato"
 
@@ -4675,7 +4675,7 @@ msgid "Custom dates…"
 msgstr "Date personalizzate…"
 
 #: templates/js/_reporting_js.html:394
-#: templates/js/_reporting_simple_js.html:82
+#: templates/js/_reporting_simple_js.html:81
 #, python-brace-format
 msgid "{rows} rows · {ms} ms"
 msgstr "{rows} righe · {ms} ms"
@@ -4689,47 +4689,47 @@ msgid "SQL report"
 msgstr "Report SQL"
 
 #: templates/js/_reporting_js.html:404
-#: templates/js/_reporting_simple_js.html:72
+#: templates/js/_reporting_simple_js.html:71
 msgid "between"
 msgstr "tra"
 
 #: templates/js/_reporting_js.html:405
-#: templates/js/_reporting_simple_js.html:73
+#: templates/js/_reporting_simple_js.html:72
 msgid "is one of"
 msgstr "è uno di"
 
 #: templates/js/_reporting_js.html:406
-#: templates/js/_reporting_simple_js.html:74
+#: templates/js/_reporting_simple_js.html:73
 msgid "is not one of"
 msgstr "non è uno di"
 
 #: templates/js/_reporting_js.html:407
-#: templates/js/_reporting_simple_js.html:75
+#: templates/js/_reporting_simple_js.html:74
 msgid "contains"
 msgstr "contiene"
 
 #: templates/js/_reporting_js.html:408
-#: templates/js/_reporting_simple_js.html:76
+#: templates/js/_reporting_simple_js.html:75
 msgid "starts with"
 msgstr "inizia con"
 
 #: templates/js/_reporting_js.html:409
-#: templates/js/_reporting_simple_js.html:77
+#: templates/js/_reporting_simple_js.html:76
 msgid "is empty"
 msgstr "è vuoto"
 
 #: templates/js/_reporting_js.html:410
-#: templates/js/_reporting_simple_js.html:78
+#: templates/js/_reporting_simple_js.html:77
 msgid "is not empty"
 msgstr "non è vuoto"
 
 #: templates/js/_reporting_js.html:413
-#: templates/js/_reporting_simple_js.html:71
+#: templates/js/_reporting_simple_js.html:70
 msgid "Hide query"
 msgstr "Nascondi query"
 
 #: templates/js/_reporting_js.html:415
-#: templates/js/_reporting_simple_js.html:70
+#: templates/js/_reporting_simple_js.html:69
 #, python-brace-format
 msgid ""
 "Showing the first {n} rows — narrow the filters or time range to see the "
@@ -4739,12 +4739,12 @@ msgstr ""
 "di tempo per vedere il resto."
 
 #: templates/js/_reporting_js.html:417
-#: templates/js/_reporting_simple_js.html:84
+#: templates/js/_reporting_simple_js.html:83
 msgid "Buckets"
 msgstr "Gruppi"
 
 #: templates/js/_reporting_js.html:418
-#: templates/js/_reporting_simple_js.html:85
+#: templates/js/_reporting_simple_js.html:84
 msgid "Avg per bucket"
 msgstr "Media per gruppo"
 
@@ -4989,19 +4989,15 @@ msgstr ""
 "o un intervallo di tempo più breve."
 
 #: templates/js/_reporting_simple_js.html:65
-msgid "Charts support up to two breakdowns — the table shows all of them."
-msgstr "I grafici supportano fino a due suddivisioni — la tabella le mostra tutte."
-
-#: templates/js/_reporting_simple_js.html:66
 #, python-brace-format
 msgid "Showing the {shown} largest of {n} series."
 msgstr "Mostrate le {shown} serie più grandi su {n}."
 
-#: templates/js/_reporting_simple_js.html:67
+#: templates/js/_reporting_simple_js.html:66
 msgid "The chart could not be drawn (chart library failed to load)."
 msgstr "Impossibile disegnare il grafico (libreria non caricata)."
 
-#: templates/js/_reporting_simple_js.html:80
+#: templates/js/_reporting_simple_js.html:79
 #, python-brace-format
 msgid ""
 "Only {n} of {m} selected processes provide this field — documents from "
@@ -5011,7 +5007,7 @@ msgstr ""
 "documenti degli altri processi appaiono qui con un valore vuoto. Fornito "
 "da:"
 
-#: templates/js/_reporting_simple_js.html:81
+#: templates/js/_reporting_simple_js.html:80
 #, python-brace-format
 msgid ""
 "Only {n} of {m} processes provide this field — the measure only counts "
@@ -6010,4 +6006,10 @@ msgstr ""
 
 #~ msgid "Limit to specific processes"
 #~ msgstr "Limita a processi specifici"
+
+#~ msgid "Charts support up to two breakdowns — the table shows all of them."
+#~ msgstr ""
+#~ "I grafici supportano fino a due "
+#~ "suddivisioni — la tabella le mostra "
+#~ "tutte."
 

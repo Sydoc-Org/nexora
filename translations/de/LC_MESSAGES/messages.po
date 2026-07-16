@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-07-16 09:12+0200\n"
+"POT-Creation-Date: 2026-07-16 11:36+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -1056,8 +1056,8 @@ msgstr "Was möchten Sie messen?"
 #: templates/_reporting_simple.html:44
 msgid "Pick one or more — combined measures must come from the same source."
 msgstr ""
-"Wählen Sie eine oder mehrere — kombinierte Kennzahlen müssen aus derselben "
-"Quelle stammen."
+"Wählen Sie eine oder mehrere — kombinierte Kennzahlen müssen aus "
+"derselben Quelle stammen."
 
 #: templates/_reporting_simple.html:45 templates/_reporting_simple.html:51
 #: templates/_reporting_simple.html:65 templates/init_reset.html:74
@@ -1070,7 +1070,9 @@ msgstr "Welche Prozesse?"
 
 #: templates/_reporting_simple.html:50
 msgid "The next step only offers fields these processes provide."
-msgstr "Der nächste Schritt bietet nur Felder an, die diese Prozesse bereitstellen."
+msgstr ""
+"Der nächste Schritt bietet nur Felder an, die diese Prozesse "
+"bereitstellen."
 
 #: templates/_reporting_simple.html:54
 msgid "Break it down by…"
@@ -1153,7 +1155,7 @@ msgid "Save"
 msgstr "Speichern"
 
 #: templates/_reporting_simple.html:91
-#: templates/js/_reporting_simple_js.html:68
+#: templates/js/_reporting_simple_js.html:67
 msgid "Open in Advanced"
 msgstr "In Erweitert öffnen"
 
@@ -1171,7 +1173,7 @@ msgid "Export"
 msgstr "Exportieren"
 
 #: templates/_reporting_simple.html:100 templates/js/_reporting_js.html:412
-#: templates/js/_reporting_simple_js.html:69 templates/reporting.html:243
+#: templates/js/_reporting_simple_js.html:68 templates/reporting.html:243
 msgid "Show query"
 msgstr "SQL anzeigen"
 
@@ -1456,7 +1458,7 @@ msgstr "Tägliches Verarbeitungsvolumen"
 #: templates/generali-dashboard.html:142 templates/generali_documents.html:34
 #: templates/js/_generali_dashboard_js.html:25
 #: templates/js/_reporting_js.html:416
-#: templates/js/_reporting_simple_js.html:83
+#: templates/js/_reporting_simple_js.html:82
 #: templates/js/_reporting_viz_js.html:449
 #: templates/js/_reporting_viz_js.html:511
 #: templates/js/_reporting_viz_js.html:567
@@ -4526,7 +4528,7 @@ msgid "AI report"
 msgstr "KI-Bericht"
 
 #: templates/js/_reporting_ai_js.html:64 templates/js/_reporting_js.html:414
-#: templates/js/_reporting_simple_js.html:79
+#: templates/js/_reporting_simple_js.html:78
 msgid "Copied"
 msgstr "Kopiert"
 
@@ -4697,7 +4699,7 @@ msgid "Custom dates…"
 msgstr "Benutzerdefinierte Daten…"
 
 #: templates/js/_reporting_js.html:394
-#: templates/js/_reporting_simple_js.html:82
+#: templates/js/_reporting_simple_js.html:81
 #, python-brace-format
 msgid "{rows} rows · {ms} ms"
 msgstr "{rows} Zeilen · {ms} ms"
@@ -4711,47 +4713,47 @@ msgid "SQL report"
 msgstr "SQL-Bericht"
 
 #: templates/js/_reporting_js.html:404
-#: templates/js/_reporting_simple_js.html:72
+#: templates/js/_reporting_simple_js.html:71
 msgid "between"
 msgstr "zwischen"
 
 #: templates/js/_reporting_js.html:405
-#: templates/js/_reporting_simple_js.html:73
+#: templates/js/_reporting_simple_js.html:72
 msgid "is one of"
 msgstr "ist eines von"
 
 #: templates/js/_reporting_js.html:406
-#: templates/js/_reporting_simple_js.html:74
+#: templates/js/_reporting_simple_js.html:73
 msgid "is not one of"
 msgstr "ist keines von"
 
 #: templates/js/_reporting_js.html:407
-#: templates/js/_reporting_simple_js.html:75
+#: templates/js/_reporting_simple_js.html:74
 msgid "contains"
 msgstr "enthält"
 
 #: templates/js/_reporting_js.html:408
-#: templates/js/_reporting_simple_js.html:76
+#: templates/js/_reporting_simple_js.html:75
 msgid "starts with"
 msgstr "beginnt mit"
 
 #: templates/js/_reporting_js.html:409
-#: templates/js/_reporting_simple_js.html:77
+#: templates/js/_reporting_simple_js.html:76
 msgid "is empty"
 msgstr "ist leer"
 
 #: templates/js/_reporting_js.html:410
-#: templates/js/_reporting_simple_js.html:78
+#: templates/js/_reporting_simple_js.html:77
 msgid "is not empty"
 msgstr "ist nicht leer"
 
 #: templates/js/_reporting_js.html:413
-#: templates/js/_reporting_simple_js.html:71
+#: templates/js/_reporting_simple_js.html:70
 msgid "Hide query"
 msgstr "SQL ausblenden"
 
 #: templates/js/_reporting_js.html:415
-#: templates/js/_reporting_simple_js.html:70
+#: templates/js/_reporting_simple_js.html:69
 #, python-brace-format
 msgid ""
 "Showing the first {n} rows — narrow the filters or time range to see the "
@@ -4761,12 +4763,12 @@ msgstr ""
 " den Zeitraum ein, um weitere zu sehen."
 
 #: templates/js/_reporting_js.html:417
-#: templates/js/_reporting_simple_js.html:84
+#: templates/js/_reporting_simple_js.html:83
 msgid "Buckets"
 msgstr "Gruppen"
 
 #: templates/js/_reporting_js.html:418
-#: templates/js/_reporting_simple_js.html:85
+#: templates/js/_reporting_simple_js.html:84
 msgid "Avg per bucket"
 msgstr "Ø pro Gruppe"
 
@@ -5014,23 +5016,17 @@ msgstr ""
 "Granularität oder einen kürzeren Zeitraum."
 
 #: templates/js/_reporting_simple_js.html:65
-msgid "Charts support up to two breakdowns — the table shows all of them."
-msgstr ""
-"Diagramme unterstützen bis zu zwei Aufschlüsselungen — die Tabelle zeigt "
-"alle."
-
-#: templates/js/_reporting_simple_js.html:66
 #, python-brace-format
 msgid "Showing the {shown} largest of {n} series."
 msgstr "Die {shown} grössten von {n} Serien werden angezeigt."
 
-#: templates/js/_reporting_simple_js.html:67
+#: templates/js/_reporting_simple_js.html:66
 msgid "The chart could not be drawn (chart library failed to load)."
 msgstr ""
 "Das Diagramm konnte nicht gezeichnet werden (Diagrammbibliothek nicht "
 "geladen)."
 
-#: templates/js/_reporting_simple_js.html:80
+#: templates/js/_reporting_simple_js.html:79
 #, python-brace-format
 msgid ""
 "Only {n} of {m} selected processes provide this field — documents from "
@@ -5039,7 +5035,7 @@ msgstr ""
 "Nur {n} von {m} ausgewählten Prozessen liefern dieses Feld — Dokumente "
 "der übrigen Prozesse erscheinen hier mit leerem Wert. Geliefert von:"
 
-#: templates/js/_reporting_simple_js.html:81
+#: templates/js/_reporting_simple_js.html:80
 #, python-brace-format
 msgid ""
 "Only {n} of {m} processes provide this field — the measure only counts "
@@ -6038,4 +6034,10 @@ msgstr ""
 
 #~ msgid "Limit to specific processes"
 #~ msgstr "Auf bestimmte Prozesse einschränken"
+
+#~ msgid "Charts support up to two breakdowns — the table shows all of them."
+#~ msgstr ""
+#~ "Diagramme unterstützen bis zu zwei "
+#~ "Aufschlüsselungen — die Tabelle zeigt "
+#~ "alle."
 

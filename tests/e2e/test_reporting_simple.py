@@ -2875,7 +2875,8 @@ THREE_DIM_RUN_BODY = json.dumps(
             {"field": "doc_count", "header": "doc_count"},
         ],
         # Two propertynr values under the same (doctype, docsource) pair — the
-        # chart pivot must collapse them into one 7+3=10 series point.
+        # chart pivot keys series on ALL remaining dims, so these become two
+        # composite series ("Mail · P-1" = 7, "Mail · P-2" = 3), not one 10.
         "rows": [["Invoice", "Mail", "P-1", 7], ["Invoice", "Mail", "P-2", 3]],
         "truncated": False,
         "rowCount": 2,
@@ -2905,34 +2906,33 @@ def _walk_three_breakdowns(nexora_server, page, measure_label):
     expect(page.get_by_test_id("rs-result")).to_be_visible()
 
 
-def test_three_breakdowns_chart_first_two_and_drill(nexora_server, page):
-    """An additive (count/sum) metric with three breakdowns charts the first
-    two — the pivot collapses the third — with a note saying the table shows
-    all of them; the table stays reachable via the toggle and rows drill."""
+def test_three_breakdowns_chart_composite_series_and_drill(nexora_server, page):
+    """Three breakdowns chart with the first as axis and the remaining two
+    joined into composite series ("Mail · P-1") — nothing collapses, no
+    limitation note; the table stays reachable via the toggle and rows drill."""
     _login(page, nexora_server)
     _stub_wiz_catalogs(page, THREE_DIM_SOURCES, THREE_DIM_METRICS)
     _walk_three_breakdowns(nexora_server, page, "Count stub")
-    # Chart rendered (first two dims), with the collapsed-third note.
     expect(page.locator("#rsChartCanvas")).to_be_visible()
-    expect(page.locator("#rsChartNote")).to_be_visible()
-    # The pivot collapsed the two propertynr rows into one series point (10).
-    total = page.evaluate(
+    expect(page.locator("#rsChartNote")).to_be_hidden()
+    # One series per (docsource, propertynr) combo, each with its exact value.
+    chart = page.evaluate(
         "() => window.Chart && (() => {"
         "  const c = Chart.getChart(document.getElementById('rsChartCanvas'));"
-        "  return c ? c.data.datasets[0].data.reduce((a, b) => a + b, 0) : null;"
+        "  return c ? c.data.datasets.map(d => [d.label, d.data[0]]) : null;"
         "})()"
     )
-    assert total == 10
+    assert sorted(chart) == [["Mail · P-1", 7], ["Mail · P-2", 3]]
     # Charted result: table behind the toggle as usual; rows still drill.
     page.get_by_test_id("rs-table-toggle").click()
     page.locator("#rsTableWrap tbody tr").first.click()
     expect(page.get_by_test_id("reporting-drill-panel")).to_be_visible()
 
 
-def test_three_breakdowns_nonadditive_shows_table(nexora_server, page):
-    """A non-additive metric (avg) cannot collapse a third breakdown into the
-    pivot — no chart renders, and the table must be visible immediately (not
-    behind the Show-table toggle) so the result and drill stay reachable."""
+def test_three_breakdowns_nonadditive_charts_exact(nexora_server, page):
+    """A non-additive metric (avg) charts three breakdowns too: with every
+    dim in the composite series key nothing collapses in the pivot, so each
+    point is one exact aggregate row — the old note-only card is gone."""
     metrics = {
         "docprocessing": [
             {
@@ -2947,12 +2947,15 @@ def test_three_breakdowns_nonadditive_shows_table(nexora_server, page):
     _login(page, nexora_server)
     _stub_wiz_catalogs(page, THREE_DIM_SOURCES, metrics)
     _walk_three_breakdowns(nexora_server, page, "Avg stub")
-    expect(page.locator("#rsChartCanvas")).to_be_hidden()
-    expect(page.locator("#rsChartNote")).to_be_visible()
-    expect(page.locator("#rsTableWrap table")).to_be_visible()
-    expect(page.get_by_test_id("rs-table-toggle")).to_be_hidden()
-    page.locator("#rsTableWrap tbody tr").first.click()
-    expect(page.get_by_test_id("reporting-drill-panel")).to_be_visible()
+    expect(page.locator("#rsChartCanvas")).to_be_visible()
+    expect(page.locator("#rsChartNote")).to_be_hidden()
+    chart = page.evaluate(
+        "() => window.Chart && (() => {"
+        "  const c = Chart.getChart(document.getElementById('rsChartCanvas'));"
+        "  return c ? c.data.datasets.map(d => [d.label, d.data[0]]) : null;"
+        "})()"
+    )
+    assert sorted(chart) == [["Mail · P-1", 7], ["Mail · P-2", 3]]
 
 
 def test_sql_peek_footer_reveals_query_on_click(nexora_server, page):

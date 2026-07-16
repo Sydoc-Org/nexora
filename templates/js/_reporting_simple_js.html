@@ -62,7 +62,6 @@
     noChartTotalOnly: {{ _("No chart — this report is a single total. Adjust it in the wizard and pick a breakdown to get one.")|tojson }},
     chartFirst50: {{ _("Chart shows the first 50 of {n} rows.")|tojson }},
     noChartTooManyPoints: {{ _("Too many data points to chart — choose a coarser granularity or a shorter time range.")|tojson }},
-    noChartThreeDims: {{ _("Charts support up to two breakdowns — the table shows all of them.")|tojson }},
     chartSeriesCapped: {{ _("Showing the {shown} largest of {n} series.")|tojson }},
     noChartLib: {{ _("The chart could not be drawn (chart library failed to load).")|tojson }},
     openInAdvanced: {{ _("Open in Advanced")|tojson }},
@@ -434,10 +433,12 @@
       value: (cd.rawX || cd.labels || [])[index]
     }];
     if (cd.multiSeries && dims.length > 1) {
-      clicked.push({
-        field: dims[1].field, grain: null,
-        value: (cd.rawSeries || [])[datasetIndex]
-      });
+      // rawSeries entries are per-dim value arrays (["Process", "Source"]) —
+      // one filter per remaining breakdown.
+      var parts = (cd.rawSeries || [])[datasetIndex] || [];
+      for (var d = 1; d < dims.length; d++) {
+        clicked.push({ field: dims[d].field, grain: null, value: parts[d - 1] });
+      }
     }
     openDrill(clicked);
   }
@@ -643,14 +644,6 @@
     var dims = (def.columns || []).length;
     if (!dims || !rows.length) { el('rsChartCard').hidden = true; return false; }
     if (!window.Chart) { chartCardNote(I18N.noChartLib); return false; }
-    // Three breakdowns: chart the first two (axis + colored series — the
-    // wizard's stated semantics), letting the pivot's accumulation collapse
-    // the third. That is exact only for additive aggregations (count/sum);
-    // for avg/min/max/count_distinct a sum of partial aggregates lies, so
-    // those keep the note-only card (the table below shows all three).
-    if (dims >= 3 && !/^(count|sum)$/.test(String(metricAggFor(def) || ''))) {
-      chartCardNote(I18N.noChartThreeDims); return false;
-    }
     var firstCol = def.columns[0];
     var isDate = !!firstCol.grain || /date/.test(firstCol.field);
     // Single-dim only: here rows.length IS the x-point count, so the raw-row
@@ -667,14 +660,22 @@
     if (dims >= 2) {
       // Only the first metric is pivoted into series — wizard always emits one metric.
       var metricIdx2 = columns.length - (def.metrics || []).length;
-      var xOrder = [], cell = {}, seriesTot = {};
+      var xOrder = [], cell = {}, seriesTot = {}, seriesParts = {};
       rows.forEach(function (r) {
         var x = String(r[0] == null ? '' : r[0]).slice(0, isDate ? 10 : 200);
-        var s = String(r[1] == null ? '' : r[1]);
+        // Series key = ALL remaining breakdowns joined ("Process · Source").
+        // With every dim in the key nothing collapses in the pivot, so each
+        // cell is one exact aggregate row — correct for any aggregation, not
+        // just additive ones (the old third-dim collapse only held for
+        // count/sum). The 12-series cap below bounds the cross-product.
+        var parts = [], d;
+        for (d = 1; d < dims; d++) parts.push(String(r[d] == null ? '' : r[d]));
+        var s = parts.join(' · ');
         var v = Number(r[metricIdx2]) || 0;
         if (!cell[x]) { xOrder.push(x); cell[x] = {}; }
         cell[x][s] = (cell[x][s] || 0) + v;
         seriesTot[s] = (seriesTot[s] || 0) + v;
+        seriesParts[s] = parts;
       });
       if (xOrder.length > 50) { chartCardNote(I18N.noChartTooManyPoints); return false; }
       var series = Object.keys(seriesTot).sort(function (a, b) {
@@ -686,18 +687,13 @@
         el('rsChartNote').hidden = false;
         series = series.slice(0, 12);
       }
-      // Third+ breakdowns are collapsed into the pivot — say so (the existing
-      // msgid still reads true: the chart carries two, the table all of them).
-      if (dims >= 3) {
-        el('rsChartNote').textContent = I18N.noChartThreeDims;
-        el('rsChartNote').hidden = false;
-      }
       state.chartData = {
         labels: xOrder,
         // Raw click values for drill-through: the pivot above already
-        // stringifies x/series keys ('' means NULL), so labels === raw here.
+        // stringifies x keys ('' means NULL), so labels === raw here. Series
+        // are per-dim value arrays so a click can filter each breakdown.
         rawX: xOrder,
-        rawSeries: series,
+        rawSeries: series.map(function (s) { return seriesParts[s]; }),
         datasets: series.map(function (s, i) {
           return {
             label: s,

@@ -90,8 +90,9 @@ a separately designed "ink edition". Full design spec:
     included), a **chart card** (line for date breakdowns, bar for categories by default,
     with a bar/line/pie/doughnut switcher; the chosen type is saved with the report).
     The wizard supports **up to three breakdowns** (at most one date); the first breakdown is
-    the chart axis, the second becomes the colored series (grouped bars or one line per
-    series, with a stacked-bar option); a third breakdown shows in the table only. Charts cap
+    the chart axis and every remaining breakdown joins into the composite colored series
+    ("Process · Source" — grouped bars or one line per series, with a stacked-bar option),
+    exact for every aggregation since nothing collapses in the pivot. Charts cap
     at 50 axis values and 12 series; categories beyond 50 chart the top 50 with a note.
     When no chart is possible the result explains why (single total, too many date points,
     chart library unavailable). A **chart-PNG download** button in the chart toolbar saves
@@ -628,7 +629,7 @@ the server because `ops/` is deployed) finds due rows
 web path — renders the file, emails it via Microsoft Graph (`nx_lib/mail.py`,
 ROPC + `/me/sendMail`), and advances `NextRunAt` (`compute_next_run`).
 
-For reports with **1–2 breakdowns**, the runner server-renders a chart using
+For reports with **breakdowns**, the runner server-renders a chart using
 **matplotlib** (Agg backend, no display required) and embeds it in two places:
 inline in the HTML mail body (as a `cid:` image) and above the data table in
 the attached XLSX. Chart rendering failures degrade gracefully — the mail is

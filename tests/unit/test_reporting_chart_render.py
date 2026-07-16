@@ -59,11 +59,21 @@ def test_no_dims_returns_none():
     assert render_chart_png(_defn([]), [{"field": "doc_count"}], [[42]]) is None
 
 
-def test_three_dims_returns_none():
-    cols = [{"field": "a"}, {"field": "b"}, {"field": "c"}]
-    assert (
-        render_chart_png(_defn(cols), [*cols, {"field": "doc_count"}], [["x", "y", "z", 1]]) is None
+def test_three_dims_pivots_composite_series_png():
+    # dims 2+3 join into one composite series key ("Scan · SAP"), so a
+    # three-breakdown result renders instead of returning None.
+    cols = [{"field": "exportdate", "grain": "month"}, {"field": "process"}, {"field": "docsource"}]
+    png = render_chart_png(
+        _defn(cols),
+        [*cols, {"field": "doc_count"}],
+        [
+            ["2026-04-01", "Scan", "SAP", 10],
+            ["2026-04-01", "Scan", "Mail", 4],
+            ["2026-04-01", "Import", "SAP", 7],
+            ["2026-05-01", "Scan", "SAP", 12],
+        ],
     )
+    assert png and png[:8] == _PNG_MAGIC
 
 
 def test_empty_rows_returns_none():

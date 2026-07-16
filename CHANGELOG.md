@@ -172,14 +172,15 @@ Work toward 2.5.64.
   buckets (0 / 2 / 0) instead of a single point (single dimension + metric +
   bounded `between` filter; literal dates and resolved relative tokens).
 
-- Reporting: three-breakdown results chart again — the first two breakdowns
-  become axis + colored series (the third collapses into the pivot; exact for
-  additive count/sum metrics), with a note pointing at the table for all
-  three. Non-additive metrics (avg/min/max/distinct) keep the note-only card,
-  and whenever no chart renders the table now shows immediately instead of
-  hiding behind the "Show table" toggle — previously a three-breakdown
-  result was an empty chart card with the data and its row-level
-  drill-through both invisible.
+- Reporting: charts now carry **all** breakdowns, not just two — the first
+  breakdown stays the axis and every remaining breakdown joins into composite
+  colored series ("Process · Source"), client chart and scheduled-mail PNG
+  alike. Nothing collapses in the pivot anymore, so this is exact for every
+  aggregation (the old third-dim collapse only held for count/sum, and the
+  server renderer refused three breakdowns outright); the existing top-12
+  series cap bounds the cross-product. Chart clicks drill through with one
+  filter per breakdown, and whenever no chart renders the table shows
+  immediately instead of hiding behind the "Show table" toggle.
 
 - Workitems: a doc-field search on a field with no `SearchConfig` mapping for one
   of the two workitem sources let that source run **unconstrained** instead of
