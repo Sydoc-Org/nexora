@@ -170,16 +170,24 @@ pybabel compile -d translations
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **nexora** (3437 symbols, 4819 relationships, 106 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **nexora** (9855 symbols, 14192 relationships, 213 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
-## When to reach for it (advisory, not mandatory)
+## Always Do
 
-- Exploring unfamiliar code: `gitnexus_query({query: "concept"})` finds execution flows (process-grouped, ranked); `gitnexus_context({name: "symbolName"})` gives a symbol's callers, callees, and flows.
-- Run `gitnexus_impact({target: "symbolName", direction: "upstream"})` when the blast radius of an edit is unclear or the symbol looks widely used — and warn the user before proceeding if it returns HIGH or CRITICAL risk. Small, obviously-scoped edits don't need it.
-- Prefer `gitnexus_rename` over find-and-replace for symbol renames — it understands the call graph.
-- `gitnexus_detect_changes()` before committing is a cheap sanity check for refactors and wide diffs; skip it for small scoped changes.
+- **MUST run impact analysis before editing any symbol.** Before modifying a function, class, or method, run `gitnexus_impact({target: "symbolName", direction: "upstream"})` and report the blast radius (direct callers, affected processes, risk level) to the user.
+- **MUST run `gitnexus_detect_changes()` before committing** to verify your changes only affect expected symbols and execution flows.
+- **MUST warn the user** if impact analysis returns HIGH or CRITICAL risk before proceeding with edits.
+- When exploring unfamiliar code, use `gitnexus_query({query: "concept"})` to find execution flows instead of grepping. It returns process-grouped results ranked by relevance.
+- When you need full context on a specific symbol — callers, callees, which execution flows it participates in — use `gitnexus_context({name: "symbolName"})`.
+
+## Never Do
+
+- NEVER edit a function, class, or method without first running `gitnexus_impact` on it.
+- NEVER ignore HIGH or CRITICAL risk warnings from impact analysis.
+- NEVER rename symbols with find-and-replace — use `gitnexus_rename` which understands the call graph.
+- NEVER commit changes without running `gitnexus_detect_changes()` to check affected scope.
 
 ## Resources
 
