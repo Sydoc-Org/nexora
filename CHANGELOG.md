@@ -10,6 +10,10 @@ Work toward 2.5.64.
 
 ### Added
 
+- `db-standard/` — design proposal for a standardised statistics-DB schema
+  (README + DDL) replacing the grown per-client `sydoc_stat` tables. Dev-side
+  only: excluded from the prod deploy mirror; the sample Crystal Report binary
+  stays untracked.
 - Reporting: the Simple-tab wizard measure step is now **multi-select** — pick
   several metrics from one source (e.g. Document count + Pages processed) and
   the result carries one column/series per metric; the stat card shows one
