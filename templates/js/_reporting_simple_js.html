@@ -993,7 +993,12 @@
       // Chip labels resolve field keys against the catalog — re-render once it
       // lands (the first paint may fall back to raw keys on a cold session).
       // The seq guard keeps a stale resolve from repainting a newer result.
-      if (seq === runSeq && state.current === cur) renderAiChips(cur);
+      // The editor guard keeps a slow resolve from wiping an open chip editor
+      // mid-edit (rs-chip-apply vanished between fill and click on slow CI);
+      // labels catch up on the next runCurrent() repaint anyway.
+      var wrap = el('rsChips');
+      if (seq === runSeq && state.current === cur
+          && !(wrap && wrap.querySelector('.rs-chip-editor'))) renderAiChips(cur);
     });
     setView('result');
     el('rsError').hidden = true;
