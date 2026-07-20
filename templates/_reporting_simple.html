@@ -57,48 +57,60 @@
   </div>
 
   <div id="rsWizard" class="reporting-simple-wizard" hidden data-testid="rs-wizard">
-    <div class="reporting-simple-wizbar">
-      <button id="rsWizardBack" class="reporting-link" data-testid="rs-wizard-back">&larr; {{ _("Back") }}</button>
+    <div class="rs-wizard-head">
+      <button id="rsWizardClose2" class="nx-btn nx-btn--secondary rs-wizard-backlib" data-testid="rs-wizard-backlib">
+        <i class="fas fa-arrow-left" aria-hidden="true"></i>{{ _("Library") }}</button>
+      <h2 class="rs-wizard-title">{{ _("New report") }}</h2>
+      <span class="rs-wizard-spacer"></span>
+      <span id="rsWizardStepNo" class="rs-wizard-stepno"></span>
       <button id="rsWizardClose" class="reporting-link reporting-simple-close" data-testid="rs-wizard-close"
               title="{{ _('Back to library') }}" aria-label="{{ _('Back to library') }}">&times;</button>
     </div>
-    <div class="reporting-simple-step" id="rsStepMeasure">
-      <h3 class="reporting-simple-h">{{ _("What do you want to measure?") }}</h3>
-      <div id="rsMeasureList" class="reporting-simple-choices" data-testid="rs-measure-list"></div>
-      <p class="reporting-simple-hint">{{ _("Pick one or more — combined measures must come from the same source.") }}</p>
-      <button type="button" id="rsMeasureNext" class="nx-btn nx-btn--primary" hidden data-testid="rs-measure-next">{{ _("Continue") }}</button>
-    </div>
-    <div class="reporting-simple-step" id="rsStepScope" hidden>
-      <h3 class="reporting-simple-h">{{ _("Which processes?") }}</h3>
-      <div id="rsScopeList" class="reporting-simple-scopestep" data-testid="rs-scope-list"></div>
-      <p class="reporting-simple-hint">{{ _("The next step only offers fields these processes provide.") }}</p>
-      <button type="button" id="rsScopeNext" class="nx-btn nx-btn--primary" data-testid="rs-scope-next">{{ _("Continue") }}</button>
-    </div>
-    <div class="reporting-simple-step" id="rsStepBreakdown" hidden>
-      <h3 class="reporting-simple-h">{{ _("Break it down by…") }}</h3>
-      <div id="rsBreakdownList" class="reporting-simple-choices" data-testid="rs-breakdown-list"></div>
-      <label id="rsGrainWrap" class="reporting-simple-inline" hidden>{{ _("Granularity") }}
-        <select id="rsGrain" class="reporting-input">
-          <option value="day">{{ _("Day") }}</option>
-          <option value="week">{{ _("Week") }}</option>
-          <option value="month" selected>{{ _("Month") }}</option>
-          <option value="quarter">{{ _("Quarter") }}</option>
-          <option value="year">{{ _("Year") }}</option>
-        </select></label>
-      <p class="reporting-simple-hint">{{ _("Pick up to three — the first is the chart axis, the second becomes the colored series.") }}</p>
-      <button type="button" id="rsBreakdownNext" class="nx-btn nx-btn--primary" data-testid="rs-breakdown-next">{{ _("Continue") }}</button>
-    </div>
-    <div class="reporting-simple-step" id="rsStepTime" hidden>
-      <h3 class="reporting-simple-h">{{ _("Time range") }}</h3>
-      <div class="reporting-simple-choices" id="rsTimeList" data-testid="rs-time-list"></div>
-      <div id="rsTimeCustom" hidden>
-        <input id="rsTimeRange" class="reporting-input" placeholder="{{ _('Pick a date range') }}">
+    <div class="rs-wizard-grid">
+      <div id="rsWizardRail" class="rs-wizard-rail" data-testid="rs-wizard-rail"></div>
+      <div class="rs-wizard-stepcard">
+        <div class="reporting-simple-wizbar">
+          <button id="rsWizardBack" class="reporting-link" data-testid="rs-wizard-back">&larr; {{ _("Back") }}</button>
+        </div>
+        <div class="reporting-simple-step" id="rsStepMeasure">
+          <h3 class="reporting-simple-h">{{ _("What do you want to measure?") }}</h3>
+          <div id="rsMeasureList" class="reporting-simple-choices" data-testid="rs-measure-list"></div>
+          <p class="reporting-simple-hint">{{ _("Pick one or more — combined measures must come from the same source.") }}</p>
+          <button type="button" id="rsMeasureNext" class="nx-btn nx-btn--primary" hidden data-testid="rs-measure-next">{{ _("Continue") }}</button>
+        </div>
+        <div class="reporting-simple-step" id="rsStepScope" hidden>
+          <h3 class="reporting-simple-h">{{ _("Which processes?") }}</h3>
+          <div id="rsScopeList" class="reporting-simple-scopestep" data-testid="rs-scope-list"></div>
+          <p class="reporting-simple-hint">{{ _("The next step only offers fields these processes provide.") }}</p>
+          <button type="button" id="rsScopeNext" class="nx-btn nx-btn--primary" data-testid="rs-scope-next">{{ _("Continue") }}</button>
+        </div>
+        <div class="reporting-simple-step" id="rsStepBreakdown" hidden>
+          <h3 class="reporting-simple-h">{{ _("Break it down by…") }}</h3>
+          <div id="rsBreakdownList" class="reporting-simple-choices" data-testid="rs-breakdown-list"></div>
+          <label id="rsGrainWrap" class="reporting-simple-inline" hidden>{{ _("Granularity") }}
+            <select id="rsGrain" class="reporting-input">
+              <option value="day">{{ _("Day") }}</option>
+              <option value="week">{{ _("Week") }}</option>
+              <option value="month" selected>{{ _("Month") }}</option>
+              <option value="quarter">{{ _("Quarter") }}</option>
+              <option value="year">{{ _("Year") }}</option>
+            </select></label>
+          <p class="reporting-simple-hint">{{ _("Pick up to three — the first is the chart axis, the second becomes the colored series.") }}</p>
+          <button type="button" id="rsBreakdownNext" class="nx-btn nx-btn--primary" data-testid="rs-breakdown-next">{{ _("Continue") }}</button>
+        </div>
+        <div class="reporting-simple-step" id="rsStepTime" hidden>
+          <h3 class="reporting-simple-h">{{ _("Time range") }}</h3>
+          <div class="reporting-simple-choices" id="rsTimeList" data-testid="rs-time-list"></div>
+          <div id="rsTimeCustom" hidden>
+            <input id="rsTimeRange" class="reporting-input" placeholder="{{ _('Pick a date range') }}">
+          </div>
+          <p class="reporting-simple-hint" id="rsAllTimeHint" hidden data-testid="rs-alltime-hint">{{ _("“All time” scans the whole history — pick a shorter range for faster results.") }}</p>
+          <label id="rsTimeFieldWrap" class="reporting-simple-inline" hidden>{{ _("Date field") }}
+            <select id="rsTimeField" class="reporting-input"></select></label>
+          <button id="rsWizardRun" class="nx-btn nx-btn--primary reporting-simple-runbtn" hidden
+                  data-testid="rs-wizard-run">{{ _("Show result") }}</button>
+        </div>
       </div>
-      <p class="reporting-simple-hint" id="rsAllTimeHint" hidden data-testid="rs-alltime-hint">{{ _("“All time” scans the whole history — pick a shorter range for faster results.") }}</p>
-      <label id="rsTimeFieldWrap" class="reporting-simple-inline" hidden>{{ _("Date field") }}
-        <select id="rsTimeField" class="reporting-input"></select></label>
-      <button id="rsWizardRun" class="nx-btn nx-btn--primary reporting-simple-runbtn" hidden
-              data-testid="rs-wizard-run">{{ _("Show result") }}</button>
     </div>
   </div>
 

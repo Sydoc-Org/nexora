@@ -84,7 +84,14 @@
     timingBadge: {{ _("{rows} rows · {ms} ms")|tojson }},
     kpiTotal: {{ _("Total")|tojson }},
     kpiBuckets: {{ _("Buckets")|tojson }},
-    kpiAvg: {{ _("Avg per bucket")|tojson }}
+    kpiAvg: {{ _("Avg per bucket")|tojson }},
+    stepNof4: {{ _("Step {n} of 4")|tojson }},
+    wizMeasure: {{ _("Measure")|tojson }},
+    wizScope: {{ _("Processes")|tojson }},
+    wizBreakdown: {{ _("Breakdown")|tojson }},
+    wizTime: {{ _("Time range")|tojson }},
+    wizPreviewTitle: {{ _("So far")|tojson }},
+    wizScopeCount: {{ _("{n} of {m} selected")|tojson }}
   };
 
   // Wizard category-dimension curation (docprocessing only). Process first
@@ -1443,6 +1450,99 @@
   }
 
   // ---------- Wizard ----------
+  // Progress rail (Task 5): a fixed 4-row list mirroring the 4 step divs.
+  // Rows are presentational only -- they read state.wiz + the steps' own
+  // `hidden` flags, never drive the click flow (renderMeasureStep and co.
+  // are untouched and remain the single source of truth for what's shown).
+  var WIZ_STEPS = [
+    { id: 'rsStepMeasure', label: I18N.wizMeasure },
+    { id: 'rsStepScope', label: I18N.wizScope },
+    { id: 'rsStepBreakdown', label: I18N.wizBreakdown },
+    { id: 'rsStepTime', label: I18N.wizTime }
+  ];
+  var WIZ_TIME_TOKEN_LABELS = {
+    this_week: I18N.thisWeek, this_month: I18N.thisMonth, last_month: I18N.lastMonth,
+    this_quarter: I18N.thisQuarter, last_quarter: I18N.lastQuarter,
+    last_3_months: I18N.last3Months, this_year: I18N.thisYear, last_year: I18N.lastYear
+  };
+
+  // The accordion never re-hides an earlier step once shown (only cascades
+  // hidden=true onto LATER steps when an earlier answer changes), so the
+  // "current" step is the deepest (highest-index) visible row -- scan from
+  // the end. A source with no processes skips rsStepScope entirely, which
+  // still yields the right "of 4" position (jumps straight to Breakdown).
+  function wizStepIndex() {
+    var i;
+    for (i = WIZ_STEPS.length - 1; i >= 0; i--) {
+      var stepEl = el(WIZ_STEPS[i].id);
+      if (stepEl && !stepEl.hidden) return i;
+    }
+    return 0;
+  }
+
+  function wizTimeLabel(token) {
+    return WIZ_TIME_TOKEN_LABELS[token] || token;
+  }
+
+  // One short summary string per WIZ_STEPS row, in order, from the exact
+  // fields the step renderers themselves read/write on state.wiz. Blank
+  // until that part of the state is meaningful (no source picked yet, or
+  // this source has no processes to scope).
+  function wizSummaries() {
+    var w = state.wiz || {};
+    var out = ['', '', '', ''];
+    if ((w.measures || []).length) {
+      out[0] = w.measures.map(function (m) { return m.label; }).join(' + ');
+    }
+    var allProcs = (w.source && w.source.processes) || [];
+    if (allProcs.length) {
+      var chosen = (w.scopeProcs || []).length || allProcs.length;
+      out[1] = (chosen === allProcs.length) ? I18N.allProcesses
+        : I18N.wizScopeCount.replace('{n}', chosen).replace('{m}', allProcs.length);
+    }
+    if (w.source) {
+      if ((w.breakdowns || []).length) {
+        var grainSel = el('rsGrain');
+        var grainTxt = grainSel ? grainSel.options[grainSel.selectedIndex].text : '';
+        out[2] = w.breakdowns.map(function (b) {
+          if (!b.field) return I18N.justTotal;
+          return b.kind === 'date' ? (b.field.label + ' (' + grainTxt + ')') : b.field.label;
+        }).join(', ');
+      } else {
+        out[2] = I18N.justTotal;
+      }
+      if (Array.isArray(w.range)) out[3] = I18N.custom;
+      else if (w.range && w.range.token) out[3] = wizTimeLabel(w.range.token);
+      else out[3] = I18N.allTime;
+    }
+    return out;
+  }
+
+  // Called from every point that shows/hides a wizard step (renderMeasureStep,
+  // renderScopeStep, renderBreakdownStep, renderTimeStep and the Back button
+  // handler) so the header step counter + rail always match the visible step.
+  function renderWizardRail() {
+    var idx = wizStepIndex();
+    el('rsWizardStepNo').textContent = I18N.stepNof4.replace('{n}', idx + 1);
+    var sums = wizSummaries();
+    var html = '';
+    var previewParts = [];
+    WIZ_STEPS.forEach(function (step, i) {
+      var cls = i < idx ? 'is-done' : (i === idx ? 'is-active' : '');
+      var dot = i < idx ? '<i class="fas fa-check" aria-hidden="true"></i>' : String(i + 1);
+      var sum = (i <= idx && sums[i]) ? '<div class="rs-rail-sum">' + esc(sums[i]) + '</div>' : '';
+      if (i <= idx && sums[i]) previewParts.push(sums[i]);
+      html += '<div class="rs-rail-step ' + cls + '">'
+        + '<div><span class="rs-rail-dot">' + dot + '</span><span class="rs-rail-line"></span></div>'
+        + '<div><div class="rs-rail-title">' + esc(step.label) + '</div>' + sum + '</div>'
+        + '</div>';
+    });
+    html += '<div id="rsWizardPreview" class="rs-wizard-preview">'
+      + '<strong>' + esc(I18N.wizPreviewTitle) + ':</strong> ' + esc(previewParts.join(' · '))
+      + '</div>';
+    el('rsWizardRail').innerHTML = html;
+  }
+
   function choiceBtn(label, onpick, selected) {
     var b = document.createElement('button');
     b.type = 'button';
@@ -1553,6 +1653,7 @@
       list.innerHTML = '<p class="reporting-simple-empty">' + esc(I18N.noMeasures) + '</p>';
     }
     el('rsMeasureNext').hidden = !w.measures.length;
+    renderWizardRail();
   }
 
   // Own wizard step between measure and breakdown: sources without processes
@@ -1588,6 +1689,7 @@
       box.appendChild(lbl);
     });
     if (!prior.length) w.scopeProcs = procs.slice();
+    renderWizardRail();
   }
 
   function renderBreakdownStep() {
@@ -1748,6 +1850,7 @@
     if (nextBtn) {
       nextBtn.onclick = function () { renderTimeStep(); };
     }
+    renderWizardRail();
   }
 
   function isoDate(d) {
@@ -1794,6 +1897,7 @@
       el('rsTimeFieldWrap').hidden = true;
       state.wiz.range = null;
       el('rsAllTimeHint').hidden = true;
+      renderWizardRail();
       return;
     }
     // Date field defaults to import_date, switchable to export_date.
@@ -1844,6 +1948,7 @@
     // Only default to all-time if no prior choice is being restored.
     if (!state.wiz.range) state.wiz.range = null;
     el('rsAllTimeHint').hidden = state.wiz.range !== null;
+    renderWizardRail();
   }
 
   // Wizard invariants (validator-enforced server-side): sort fields are among
@@ -1997,18 +2102,21 @@
     if (!el('rsStepTime').hidden) {           // time -> breakdown
       el('rsStepTime').hidden = true;
       el('rsWizardRun').hidden = true;
+      renderWizardRail();
       return;
     }
     if (!el('rsStepBreakdown').hidden) {      // breakdown -> scope (or measure)
       el('rsStepBreakdown').hidden = true;
-      if (!el('rsStepScope').hidden) return;  // scope step stays visible above
+      if (!el('rsStepScope').hidden) { renderWizardRail(); return; }  // scope step stays visible above
       // no scope step for this source: renderScopeStep would have skipped it
       var procs = (state.wiz && state.wiz.source && state.wiz.source.processes) || [];
       if (procs.length) el('rsStepScope').hidden = false;
+      renderWizardRail();
       return;
     }
     if (!el('rsStepScope').hidden) {          // scope -> measure
       el('rsStepScope').hidden = true;
+      renderWizardRail();
       return;
     }
     setView('library');                       // measure -> out
@@ -2125,6 +2233,7 @@
   });
   el('rsExit').addEventListener('click', exitToLibrary);
   el('rsWizardClose').addEventListener('click', exitToLibrary);
+  el('rsWizardClose2').addEventListener('click', exitToLibrary);
 
   document.addEventListener('rp:tabshown', function (e) {
     if (e.detail.tab === 'simple') initOnce();

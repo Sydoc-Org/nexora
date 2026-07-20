@@ -3052,3 +3052,22 @@ def test_landing_hero_suggestion_fills_prompt(nexora_server, page):
     chip_text = chip.inner_text()
     chip.click()
     expect(page.get_by_test_id("rs-ai-prompt")).to_have_value(chip_text)
+
+
+def test_wizard_rail_tracks_progress(nexora_server, page):
+    """Task 5: the two-column wizard shell shows a step counter + a left
+    progress rail tracking wiz state. Same stub catalog + click sequence as
+    test_wizard_docprocessing_offers_process_breakdown (a source WITH
+    processes, so Continue reveals the Processes/scope step next, i.e. step 2
+    of 4) rather than the empty-process WIZ_STUB_SOURCES used elsewhere."""
+    _login(page, nexora_server)
+    _stub_wiz_catalogs(page, DOCPROC_WIZ_SOURCES, DOCPROC_WIZ_METRICS)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-report").click()
+    rail = page.get_by_test_id("rs-wizard-rail")
+    expect(rail).to_be_visible()
+    expect(page.locator("#rsWizardStepNo")).to_have_text("Step 1 of 4")
+    page.get_by_test_id("rs-measure-list").get_by_text("Docproc count stub").click()
+    page.get_by_test_id("rs-measure-next").click()
+    expect(page.locator("#rsWizardStepNo")).to_have_text("Step 2 of 4")
+    expect(rail).to_contain_text("Docproc count stub")  # chosen-value summary
