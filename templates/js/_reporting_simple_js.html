@@ -180,21 +180,11 @@
     catch (e) { return null; }
   }
 
-  // Badge/thumbnail kind, derived from whatever the list endpoint gives us:
-  // r.kind, plus r.definition summary fields when present (the real list
-  // endpoint only sends `kind` today — a full definition is opportunistic,
-  // e.g. in tests — so the common case falls through to the 'bar' default).
+  // Badge/thumbnail kind. The list endpoint computes this server-side
+  // (previewKind, derived from DefinitionJSON) so the client just consumes it.
   function previewKindOf(r) {
     if (r.kind === 'dashboard') return 'dash';
-    var def = r.definition;
-    if (def) {
-      var cols = def.columns || [];
-      if (!cols.length) return 'total';
-      var first = cols[0];
-      if (first.grain || /date/i.test(first.field || '')) return 'line';
-      if (def.visualization === 'pie' || def.visualization === 'donut') return 'donut';
-    }
-    return 'bar';
+    return r.previewKind || 'bar';
   }
 
   // Shared by the line preview: polyline point list, pure. (h-4)/(h-10) keep
