@@ -6,22 +6,36 @@
    window.ReportingTabs. Advanced (the full builder) is untouched.
    ============================================================ #}
 <section class="reporting-simple nx-rise" data-testid="reporting-simple">
-  <div class="reporting-simple-top">
-    <button id="rsNewReport" class="nx-btn nx-btn--primary" data-testid="rs-new-report">
-      <i class="fas fa-plus" aria-hidden="true"></i>{{ _("New report") }}</button>
+  <div id="rsHero" class="reporting-hero nx-rise" data-testid="rs-hero">
+    <h2 class="reporting-hero__title">{{ _("Build a report in seconds") }}</h2>
+    <p class="reporting-hero__sub">{{ _("Ask in plain language, or step through the guided builder.") }}</p>
     {% if ai_enabled %}
-    <div class="reporting-simple-aibar" id="rsAiBar" data-testid="rs-ai-bar">
-      <input id="rsAiPrompt" class="reporting-input"
-             placeholder="{{ _('Ask AI — e.g. “documents per month this year”') }}"
-             data-testid="rs-ai-prompt">
-      <button id="rsAiAsk" class="nx-btn nx-btn--secondary" data-testid="rs-ai-ask">
-        <i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>{{ _("Ask AI") }}</button>
+    <div class="reporting-hero__aiwrap">
+      <div class="reporting-simple-aibar" id="rsAiBar" data-testid="rs-ai-bar">
+        <i class="fas fa-wand-magic-sparkles reporting-hero__wand" aria-hidden="true"></i>
+        <input id="rsAiPrompt" class="reporting-hero__aiinput"
+               placeholder="{{ _('Ask AI — e.g. “documents per month this year”') }}"
+               data-testid="rs-ai-prompt">
+        <button id="rsAiAsk" class="reporting-hero__aibtn" data-testid="rs-ai-ask">{{ _("Ask AI") }}</button>
+      </div>
+    </div>
+    <div class="reporting-hero__chips">
+      <button type="button" class="rs-suggestion" data-testid="rs-suggestion">{{ _("documents per month this year") }}</button>
+      <button type="button" class="rs-suggestion" data-testid="rs-suggestion">{{ _("invoices by process, last 3 months") }}</button>
+      <button type="button" class="rs-suggestion" data-testid="rs-suggestion">{{ _("pages processed per week") }}</button>
     </div>
     <p class="reporting-simple-hint" id="rsAiGone" hidden data-testid="rs-ai-gone">{{ _("The AI assistant is unavailable right now — you can still build reports with “New report”.") }}</p>
     {% endif %}
-    <input id="rsSearch" class="reporting-input reporting-simple-search"
-           placeholder="{{ _('Search reports…') }}" data-testid="rs-search">
+    <div class="reporting-hero__actions">
+      <button id="rsNewReport" class="nx-btn nx-btn--secondary" data-testid="rs-new-report">
+        <i class="fas fa-plus" aria-hidden="true"></i>{{ _("New report — guided builder") }}</button>
+      <button id="rsNewDashboard" class="nx-btn nx-btn--secondary reporting-hero__dashbtn" hidden data-testid="rs-new-dashboard">
+        <i class="fas fa-table-cells-large" aria-hidden="true"></i>{{ _("New dashboard") }}</button>
+    </div>
   </div>
+
+  <input id="rsSearch" class="reporting-input reporting-simple-search"
+         placeholder="{{ _('Search reports…') }}" data-testid="rs-search">
 
   <div id="rsLibrary" data-testid="rs-library">
     <h3 class="reporting-simple-h">{{ _("Library") }}</h3>

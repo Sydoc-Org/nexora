@@ -3002,3 +3002,18 @@ def test_sql_peek_footer_reveals_query_on_click(nexora_server, page):
     peek.click()
     expect(sql_view).to_be_visible()
     expect(page.locator("#rsSqlText")).to_contain_text("GROUP BY")
+
+
+def test_landing_hero_suggestion_fills_prompt(nexora_server, page):
+    """Task 3: the landing hero holds the AI command bar + suggestion chips.
+    Clicking a chip fills rsAiPrompt with the chip's own text (no wizard or
+    catalog interaction needed to reach this — the hero is static markup)."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    hero = page.get_by_test_id("rs-hero")
+    expect(hero).to_be_visible()
+    expect(hero.get_by_test_id("rs-ai-prompt")).to_be_visible()
+    chip = page.get_by_test_id("rs-suggestion").first
+    chip_text = chip.inner_text()
+    chip.click()
+    expect(page.get_by_test_id("rs-ai-prompt")).to_have_value(chip_text)

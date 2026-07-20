@@ -1866,6 +1866,13 @@
     }
   }
 
+  document.querySelectorAll('.rs-suggestion').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var p = el('rsAiPrompt'); if (!p) return;
+      p.value = b.textContent.trim(); p.focus();
+    });
+  });
+
   async function askAi(refineQuestion) {
     var fromRefine = refineQuestion !== undefined;
     var q = fromRefine ? refineQuestion : el('rsAiPrompt').value.trim();
