@@ -62,6 +62,117 @@ def test_library_groups_and_hides_sql_kind(nexora_server, page):
     expect(page.get_by_test_id("reporting-simple")).not_to_contain_text("e2e sql hidden")
 
 
+def test_library_report_run_400_shows_detail_and_advanced_action(nexora_server, page):
+    """A 400 from /api/reporting/run must show the server's error + detail
+    (a stale saved report's actual problem), keep the report title visible,
+    offer an Open-in-Advanced escape hatch, and disable Save/Export until a
+    successful run replaces the error state. Opening a DIFFERENT report that
+    then succeeds must clear the escape-hatch button — it must never float
+    above a successful result."""
+    _login(page, nexora_server)
+
+    def _row(rid, name):
+        return {
+            "id": rid,
+            "name": name,
+            "ownerName": "Admin",
+            "updatedAt": "2026-07-01T00:00:00Z",
+            "visibility": "private",
+            "owned": True,
+            "kind": "table",
+        }
+
+    def _definition(title):
+        return {
+            "schemaVersion": 1,
+            "source": "docprocessing",
+            "visualization": "table",
+            "title": title,
+            "columns": [{"field": "processname"}],
+            "filters": [],
+            "sort": [],
+            "scope": {"clients": [], "processes": []},
+            "rowLimit": 100,
+        }
+
+    # Register stubs BEFORE goto — the library load fires as soon as the
+    # Simple pane mounts.
+    page.route(
+        "**/api/reporting/reports",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                [_row("e2e-400-report", "e2e 400 report"), _row("e2e-ok-report", "e2e ok report")]
+            ),
+        ),
+    )
+
+    def _report_detail(route):
+        name = "e2e ok report" if route.request.url.endswith("e2e-ok-report") else "e2e 400 report"
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {"name": name, "definition": _definition(name), "owned": True, "canEdit": True}
+            ),
+        )
+
+    page.route("**/api/reporting/reports/*", _report_detail)
+
+    def _run(route):
+        body = route.request.post_data_json or {}
+        if body.get("title") == "e2e 400 report":
+            route.fulfill(
+                status=400,
+                content_type="application/json",
+                body=json.dumps(
+                    {
+                        "error": "This report definition is invalid or outdated.",
+                        "detail": "unknown metric: 'workitem_count'",
+                    }
+                ),
+            )
+        else:
+            route.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps(
+                    {
+                        "columns": [{"field": "processname", "header": "Process"}],
+                        "rows": [["acme.inv"]],
+                        "truncated": False,
+                        "rowCount": 1,
+                        "sql": None,
+                        "params": [],
+                        "resolvedDates": [],
+                    }
+                ),
+            )
+
+    page.route("**/api/reporting/run", _run)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-group-mine").get_by_text("e2e 400 report").click()
+
+    expect(page.get_by_test_id("rs-error")).to_contain_text("unknown metric: 'workitem_count'")
+    expect(page.get_by_test_id("rs-result-title")).to_contain_text("e2e 400 report")
+    expect(page.get_by_test_id("rs-error-open-advanced")).to_be_visible()
+    expect(page.get_by_test_id("rs-save")).to_be_disabled()
+    expect(page.get_by_test_id("rs-export")).to_be_disabled()
+    expect(page.get_by_test_id("reporting-timing")).to_be_hidden()
+
+    # Error -> success: opening a different report that runs fine must clear
+    # the stale escape hatch along with the error text.
+    page.get_by_test_id("rs-exit").click()
+    page.get_by_test_id("rs-group-mine").get_by_text("e2e ok report").click()
+    expect(page.get_by_test_id("rs-result-title")).to_contain_text("e2e ok report")
+    expect(page.get_by_test_id("rs-table")).to_be_visible()
+    expect(page.get_by_test_id("rs-error")).to_be_hidden()
+    expect(page.get_by_test_id("rs-error-open-advanced")).to_have_count(0)
+    expect(page.get_by_test_id("rs-save")).to_be_enabled()
+    expect(page.get_by_test_id("rs-export")).to_be_enabled()
+
+
 def test_wizard_opens_and_lists_measures_or_empty_state(nexora_server, page):
     _login(page, nexora_server)
     page.goto(f"{nexora_server}/reporting")
@@ -106,6 +217,7 @@ def test_wizard_category_breakdown_to_result_cards(nexora_server, page):
         page.goto(f"{nexora_server}/reporting?tab=simple")
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Wizard user count").click()
+        page.get_by_test_id("rs-measure-next").click()
         page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
         page.get_by_test_id("rs-breakdown-next").click()
         run = page.get_by_test_id("rs-wizard-run")
@@ -119,6 +231,146 @@ def test_wizard_category_breakdown_to_result_cards(nexora_server, page):
         value = page.locator("#rsStatValue").inner_text()
         assert value.strip() not in ("", "–", "0")  # noqa: RUF001 — fmtNumber's null dash
         expect(page.get_by_test_id("rs-table-toggle")).to_be_visible()
+    finally:
+        page.evaluate(
+            """async (ids) => {
+              const csrf = document.querySelector('meta[name="csrf-token"]').content;
+              const del = url => fetch(url, {method: 'DELETE', headers: {'X-CSRFToken': csrf}});
+              await del('/api/reporting/admin/metrics/' + ids.met);
+              await del('/api/reporting/admin/sources/' + ids.src);
+            }""",
+            ids,
+        )
+
+
+def test_timing_badge_shows_rows_and_elapsed_ms(nexora_server, page):
+    """After a Simple wizard run, the masthead timing badge becomes visible
+    and reports "<rows> rows · <ms> ms" for the round-trip."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    ids = page.evaluate(
+        """async () => {
+          const csrf = document.querySelector('meta[name="csrf-token"]').content;
+          const post = (url, body) => fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify(body)
+          }).then(r => r.json());
+          const src = await post('/api/reporting/admin/sources', {
+            code: 'timing_users', kind: 'curated', label: 'Timing Users',
+            permission: 'reporting.source.docprocessing', provider: 'table',
+            engine: 'nexora', baseObject: 'dbo.Users',
+            columns: [{field: 'username', label: 'Username', type: 'string',
+                       filterable: true, sortable: true}],
+            enabled: true, sortOrder: 13});
+          const met = await post('/api/reporting/admin/metrics', {
+            code: 'timing_user_count', sourceId: 'timing_users', label: 'Timing user count',
+            aggregation: 'count', format: 'int'});
+          return {src: src.id, met: met.id};
+        }"""
+    )
+    try:
+        page.goto(f"{nexora_server}/reporting?tab=simple")
+        badge = page.get_by_test_id("reporting-timing")
+        _stub_run_ok(page)
+        page.get_by_test_id("rs-new-report").click()
+        page.get_by_test_id("rs-measure-list").get_by_text("Timing user count").click()
+        page.get_by_test_id("rs-measure-next").click()
+        page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
+        page.get_by_test_id("rs-breakdown-next").click()
+        page.get_by_test_id("rs-wizard-run").click()
+        expect(page.get_by_test_id("rs-result")).to_be_visible()
+        expect(badge).to_be_visible()
+        expect(badge).to_have_text(re.compile(r"\d+ rows · \d+ ms"))
+    finally:
+        page.evaluate(
+            """async (ids) => {
+              const csrf = document.querySelector('meta[name="csrf-token"]').content;
+              const del = url => fetch(url, {method: 'DELETE', headers: {'X-CSRFToken': csrf}});
+              await del('/api/reporting/admin/metrics/' + ids.met);
+              await del('/api/reporting/admin/sources/' + ids.src);
+            }""",
+            ids,
+        )
+
+
+def test_kpi_band_shows_total_buckets_avg(nexora_server, page):
+    """After a Simple wizard run whose result has a numeric measure column,
+    the KPI band renders client-computed total/buckets/avg for the rows
+    already on screen (no second query)."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    ids = page.evaluate(
+        """async () => {
+          const csrf = document.querySelector('meta[name="csrf-token"]').content;
+          const post = (url, body) => fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify(body)
+          }).then(r => r.json());
+          const src = await post('/api/reporting/admin/sources', {
+            code: 'kpi_users', kind: 'curated', label: 'KPI Users',
+            permission: 'reporting.source.docprocessing', provider: 'table',
+            engine: 'nexora', baseObject: 'dbo.Users',
+            columns: [{field: 'username', label: 'Username', type: 'string',
+                       filterable: true, sortable: true}],
+            enabled: true, sortOrder: 22});
+          const met = await post('/api/reporting/admin/metrics', {
+            code: 'kpi_user_count', sourceId: 'kpi_users', label: 'KPI user count',
+            aggregation: 'count', format: 'int'});
+          return {src: src.id, met: met.id};
+        }"""
+    )
+    try:
+        page.goto(f"{nexora_server}/reporting?tab=simple")
+
+        # /api/reporting/run is hit twice per wizard run: once with an empty
+        # columns array for the grand-total stat card, once with the real
+        # breakdown. Only the breakdown response carries the numeric measure
+        # column the KPI band needs, so branch on that to keep both calls
+        # deterministic.
+        def handler(route):
+            body = route.request.post_data_json or {}
+            if body.get("columns"):
+                payload = {
+                    "columns": [
+                        {"field": "username", "header": "Username"},
+                        {"field": "kpi_user_count", "header": "KPI user count"},
+                    ],
+                    "rows": [["alice", 4], ["bob", 5], ["carol", 3]],
+                    "truncated": False,
+                    "rowCount": 3,
+                    "sql": None,
+                    "params": [],
+                    "resolvedDates": [],
+                }
+            else:
+                payload = {
+                    "columns": [{"field": "kpi_user_count", "header": "KPI user count"}],
+                    "rows": [[12]],
+                    "truncated": False,
+                    "rowCount": 1,
+                    "sql": None,
+                    "params": [],
+                    "resolvedDates": [],
+                }
+            route.fulfill(status=200, content_type="application/json", body=json.dumps(payload))
+
+        page.route("**/api/reporting/run", handler)
+        page.get_by_test_id("rs-new-report").click()
+        page.get_by_test_id("rs-measure-list").get_by_text("KPI user count").click()
+        page.get_by_test_id("rs-measure-next").click()
+        page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
+        page.get_by_test_id("rs-breakdown-next").click()
+        page.get_by_test_id("rs-wizard-run").click()
+        expect(page.get_by_test_id("rs-result")).to_be_visible()
+
+        band = page.get_by_test_id("rs-kpi-band")
+        expect(band).to_be_visible()
+        # total: 4 + 5 + 3; buckets: 3 rows; avg per bucket: 12 / 3
+        expect(page.get_by_test_id("rs-kpi-total")).to_contain_text("12")
+        expect(page.get_by_test_id("rs-kpi-buckets")).to_contain_text("3")
+        expect(page.get_by_test_id("rs-kpi-avg")).to_contain_text("4")
     finally:
         page.evaluate(
             """async (ids) => {
@@ -210,15 +462,24 @@ def test_ai_ask_shows_loading_then_result(nexora_server, page):
     page.goto(f"{nexora_server}/reporting?tab=simple")
 
     # Inject a MutationObserver that sets window.__aiLoadingWasSeen = true
-    # the first time rsAiLoading.hidden flips to false.
+    # the first time rsAiLoading.hidden flips to false — and records whether
+    # the header Save button was disabled at that same moment (an out-of-page
+    # expect() can't observe the in-flight window: the stub's blocking sleep
+    # stalls the Playwright dispatcher until fulfillment).
     page.evaluate("""() => {
         window.__aiLoadingWasSeen = false;
+        window.__saveDisabledDuringLoading = false;
         const el = document.getElementById('rsAiLoading');
         if (!el) return;
-        if (!el.hidden) { window.__aiLoadingWasSeen = true; return; }
+        const record = () => {
+            window.__aiLoadingWasSeen = true;
+            const save = document.getElementById('rsSave');
+            window.__saveDisabledDuringLoading = !!(save && save.disabled);
+        };
+        if (!el.hidden) { record(); return; }
         const obs = new MutationObserver(() => {
             if (!el.hidden) {
-                window.__aiLoadingWasSeen = true;
+                record();
                 obs.disconnect();
             }
         });
@@ -241,6 +502,11 @@ def test_ai_ask_shows_loading_then_result(nexora_server, page):
     # the in-flight period.
     was_seen = page.evaluate("() => window.__aiLoadingWasSeen")
     assert was_seen, "rsAiLoading was never made visible during the AI request"
+
+    # …and that Save was disabled at that in-flight moment, so a mid-draft
+    # click can't save the previous result under a blank header.
+    save_disabled = page.evaluate("() => window.__saveDisabledDuringLoading")
+    assert save_disabled, "rsSave stayed enabled while the AI draft was in flight"
 
 
 def test_saved_token_report_shows_resolved_range(nexora_server, page):
@@ -354,8 +620,10 @@ def test_chips_edit_and_remove_rerun_without_ai(nexora_server, page):
     page.get_by_test_id("rs-ai-ask").click()
     chips = page.get_by_test_id("rs-chips")
     expect(chips).to_be_visible()
-    # STUB_AI_DEFINITION has filters: [{field: "processname", op: "eq", value: "acme.inv"}]
-    expect(chips.get_by_test_id("rs-chip").first).to_contain_text("processname eq acme.inv")
+    # STUB_AI_DEFINITION has filters: [{field: "processname", op: "eq", value: "acme.inv"}].
+    # eq renders as '='; the field key stays raw here because the TEST env's
+    # docprocessing catalog is empty (no Statistics DB), so no label resolves.
+    expect(chips.get_by_test_id("rs-chip").first).to_contain_text("processname = acme.inv")
 
     # Edit the filter value in place; the run payload must carry the new value.
     chips.get_by_test_id("rs-chip").first.click()
@@ -369,6 +637,45 @@ def test_chips_edit_and_remove_rerun_without_ai(nexora_server, page):
     # Remove the filter chip entirely -> "no filters" placeholder renders.
     chips.get_by_test_id("rs-chip-remove").first.click()
     expect(chips).to_contain_text("no filters")
+
+
+def test_chip_labels_resolve_field_and_op(nexora_server, page):
+    """Chips show the catalog field label and a symbol op, not raw codes."""
+    _login(page, nexora_server)
+    page.route(
+        "**/api/reporting/sources",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                [
+                    {
+                        "id": "docprocessing",
+                        "label": "Document processing",
+                        "kind": "curated",
+                        "processes": ["acme.inv"],
+                        "fields": [
+                            {
+                                "field": "processname",
+                                "label": "Process",
+                                "type": "string",
+                                "grainable": False,
+                                "filterable": True,
+                            }
+                        ],
+                    }
+                ]
+            ),
+        ),
+    )
+    _stub_ai_build(page)
+    _stub_run_ok(page)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-ai-prompt").fill("docs by process")
+    page.get_by_test_id("rs-ai-ask").click()
+    chips = page.get_by_test_id("rs-chips")
+    # First paint may show the raw key; the catalog-resolve re-render fixes it.
+    expect(chips.get_by_test_id("rs-chip").first).to_contain_text("Process = acme.inv")
 
 
 def test_wizard_result_shows_chips_and_refine_bar(nexora_server, page):
@@ -400,6 +707,7 @@ def test_wizard_result_shows_chips_and_refine_bar(nexora_server, page):
         page.goto(f"{nexora_server}/reporting?tab=simple")
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Wizard chips count").click()
+        page.get_by_test_id("rs-measure-next").click()
         page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
         page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
@@ -493,6 +801,7 @@ def test_adjust_wizard_button_round_trip(nexora_server, page):
         page.goto(f"{nexora_server}/reporting?tab=simple")
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Wizard adjust count").click()
+        page.get_by_test_id("rs-measure-next").click()
         page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
         page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
@@ -557,6 +866,7 @@ def test_total_only_result_explains_missing_chart(nexora_server, page):
         page.goto(f"{nexora_server}/reporting?tab=simple")
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Total note count").click()
+        page.get_by_test_id("rs-measure-next").click()
         # pick "None — just the total" (the last button in breakdown list)
         page.get_by_test_id("rs-breakdown-list").get_by_role(
             "button", name=re.compile(r"just the total", re.I)
@@ -607,6 +917,7 @@ def test_chart_type_switcher(nexora_server, page):
         page.goto(f"{nexora_server}/reporting?tab=simple")
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Chart switch count").click()
+        page.get_by_test_id("rs-measure-next").click()
         # pick the first category breakdown (not 'just the total')
         page.get_by_test_id("rs-breakdown-list").get_by_role("button").first.click()
         page.get_by_test_id("rs-breakdown-next").click()
@@ -659,6 +970,7 @@ def test_saved_report_adjust_in_wizard(nexora_server, page):
         page.goto(f"{nexora_server}/reporting?tab=simple")
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Saved adjust count").click()
+        page.get_by_test_id("rs-measure-next").click()
         page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
         page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
@@ -734,6 +1046,7 @@ def test_show_query_reveals_sql(nexora_server, page):
         page.goto(f"{nexora_server}/reporting?tab=simple")
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Show SQL count").click()
+        page.get_by_test_id("rs-measure-next").click()
         page.get_by_test_id("rs-breakdown-list").get_by_role("button").first.click()
         page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
@@ -792,6 +1105,7 @@ def test_result_back_returns_to_wizard(nexora_server, page):
         page.goto(f"{nexora_server}/reporting?tab=simple")
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Back test count").click()
+        page.get_by_test_id("rs-measure-next").click()
         page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
         page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
@@ -805,6 +1119,7 @@ def test_result_back_returns_to_wizard(nexora_server, page):
         # Now open a fresh wizard result and use rs-exit from the result bar
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Back test count").click()
+        page.get_by_test_id("rs-measure-next").click()
         page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
         page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
@@ -821,6 +1136,87 @@ def test_result_back_returns_to_wizard(nexora_server, page):
             }""",
             ids,
         )
+
+
+def test_back_from_library_report_returns_to_library(nexora_server, page):
+    """Back on a library-opened result returns to the library -- even when the
+    definition happens to be wizard-shaped (single metric, <=3 columns). Back
+    must key off where the result was opened from (its origin), not guess
+    from the definition's shape (that guess is what test_result_back_
+    returns_to_wizard's wizard-built case still legitimately relies on)."""
+    _login(page, nexora_server)
+
+    def _row(rid, name):
+        return {
+            "id": rid,
+            "name": name,
+            "ownerName": "Admin",
+            "updatedAt": "2026-07-01T00:00:00Z",
+            "visibility": "private",
+            "owned": True,
+            "kind": "table",
+        }
+
+    definition = {
+        "schemaVersion": 1,
+        "source": "stub_src",
+        "visualization": "table",
+        "title": "e2e origin lib report",
+        "columns": [{"field": "doctype"}],
+        "metrics": [{"metric": "stub_count"}],
+        "filters": [],
+        "sort": [],
+        "scope": {"clients": [], "processes": []},
+        "rowLimit": 100,
+    }
+
+    # Register stubs BEFORE goto -- the library list + catalogs fetch as soon
+    # as the Simple pane mounts.
+    page.route(
+        "**/api/reporting/reports",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps([_row("e2e-origin-lib", "e2e origin lib report")]),
+        ),
+    )
+    page.route(
+        "**/api/reporting/reports/*",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "name": definition["title"],
+                    "definition": definition,
+                    "owned": True,
+                    "canEdit": True,
+                }
+            ),
+        ),
+    )
+    page.route(
+        "**/api/reporting/sources",
+        lambda r: r.fulfill(
+            status=200, content_type="application/json", body=json.dumps(WIZ_STUB_SOURCES)
+        ),
+    )
+    page.route(
+        "**/api/reporting/metrics",
+        lambda r: r.fulfill(
+            status=200, content_type="application/json", body=json.dumps(WIZ_STUB_METRICS)
+        ),
+    )
+    _stub_run_ok(page)
+
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-group-mine").get_by_text("e2e origin lib report").click()
+    expect(page.get_by_test_id("rs-result")).to_be_visible()
+
+    page.get_by_test_id("rs-back").click()
+    expect(page.get_by_test_id("rs-library")).to_be_visible()
+    expect(page.get_by_test_id("rs-group-mine")).to_be_visible()
+    expect(page.get_by_test_id("rs-wizard")).to_be_hidden()
 
 
 def test_wizard_two_breakdowns(nexora_server, page):
@@ -856,6 +1252,7 @@ def test_wizard_two_breakdowns(nexora_server, page):
         page.goto(f"{nexora_server}/reporting?tab=simple")
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Two-bd count").click()
+        page.get_by_test_id("rs-measure-next").click()
         bklist = page.get_by_test_id("rs-breakdown-list")
         bklist.get_by_text("Username", exact=True).click()
         bklist.get_by_text("Locale", exact=True).click()
@@ -911,6 +1308,7 @@ def test_two_breakdown_chart_has_series(page, nexora_server):
         page.goto(f"{nexora_server}/reporting?tab=simple")
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Chart 2-bd count").click()
+        page.get_by_test_id("rs-measure-next").click()
         bklist = page.get_by_test_id("rs-breakdown-list")
         # Locale first (X axis, 1 distinct value in TEST), Username second
         # (series dimension, 3 distinct values in TEST) — guarantees >= 2 series.
@@ -976,6 +1374,7 @@ def test_chart_png_download(page, nexora_server):
         page.goto(f"{nexora_server}/reporting?tab=simple")
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("PNG dl count").click()
+        page.get_by_test_id("rs-measure-next").click()
         page.get_by_test_id("rs-breakdown-list").get_by_text("Locale", exact=True).click()
         page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
@@ -1201,6 +1600,7 @@ def test_wizard_time_step_offers_week_and_quarter(nexora_server, page):
     page.goto(f"{nexora_server}/reporting?tab=simple")
     page.get_by_test_id("rs-new-report").click()
     page.get_by_test_id("rs-measure-list").get_by_text("Stub count").click()
+    page.get_by_test_id("rs-measure-next").click()
     page.get_by_test_id("rs-breakdown-next").click()
     tl = page.get_by_test_id("rs-time-list")
     expect(tl.get_by_text("This week", exact=True)).to_be_visible()
@@ -1257,6 +1657,78 @@ def test_adjust_in_wizard_maps_this_quarter(nexora_server, page):
     expect(page.get_by_test_id("rs-adjust-wizard")).to_be_visible()
 
 
+def test_adjust_in_wizard_prefills_custom_range(nexora_server, page):
+    """A definition with a literal between range must have its custom range
+    visible in the flatpickr the moment adjustInWizard opens the wizard --
+    not just applied silently on the next Show result while the picker looks
+    empty."""
+    _login(page, nexora_server)
+
+    def _row(rid, name):
+        return {
+            "id": rid,
+            "name": name,
+            "ownerName": "Admin",
+            "updatedAt": "2026-07-01T00:00:00Z",
+            "visibility": "private",
+            "owned": True,
+            "kind": "table",
+        }
+
+    definition = {
+        "schemaVersion": 1,
+        "source": "stub_src",
+        "visualization": "table",
+        "title": "e2e custom range report",
+        "columns": [{"field": "doctype"}],
+        "metrics": [{"metric": "stub_count"}],
+        "filters": [
+            {"field": "import_date", "op": "between", "value": ["2026-01-01", "2026-03-31"]}
+        ],
+        "sort": [],
+        "scope": {"clients": [], "processes": []},
+        "rowLimit": 100,
+    }
+
+    # Register stubs BEFORE goto -- the library list + catalogs fetch as soon
+    # as the Simple pane mounts.
+    page.route(
+        "**/api/reporting/reports",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps([_row("e2e-custom-range", "e2e custom range report")]),
+        ),
+    )
+    page.route(
+        "**/api/reporting/reports/*",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "name": definition["title"],
+                    "definition": definition,
+                    "owned": True,
+                    "canEdit": True,
+                }
+            ),
+        ),
+    )
+    _stub_catalogs(page)
+    _stub_run_ok(page)
+
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-group-mine").get_by_text("e2e custom range report").click()
+    expect(page.get_by_test_id("rs-result")).to_be_visible()
+
+    page.get_by_test_id("rs-adjust-wizard").click()
+    expect(page.get_by_test_id("rs-wizard")).to_be_visible()
+    range_input = page.locator("#rsTimeRange")
+    expect(range_input).to_be_visible()
+    expect(range_input).to_have_value(re.compile("2026-01-01"))
+
+
 def test_wizard_back_steps_back_not_exit(nexora_server, page):
     """Back walks time -> breakdown -> measure -> library, preserving picks."""
     _login(page, nexora_server)
@@ -1286,6 +1758,7 @@ def test_wizard_back_steps_back_not_exit(nexora_server, page):
         page.goto(f"{nexora_server}/reporting?tab=simple")
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Back user count").click()
+        page.get_by_test_id("rs-measure-next").click()
         page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
         page.get_by_test_id("rs-breakdown-next").click()
         expect(page.get_by_test_id("rs-wizard-run")).to_be_visible()
@@ -1359,6 +1832,7 @@ def test_run_shows_loading_then_result(nexora_server, page):
         }""")
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Run load count").click()
+        page.get_by_test_id("rs-measure-next").click()
         page.get_by_test_id("rs-breakdown-list").get_by_role("button").first.click()
         page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
@@ -1443,6 +1917,7 @@ def test_simple_export_csv(nexora_server, page):
         page.goto(f"{nexora_server}/reporting?tab=simple")
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("CSV dl count").click()
+        page.get_by_test_id("rs-measure-next").click()
         page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
         page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
@@ -1545,6 +2020,7 @@ def test_drill_row_opens_panel(nexora_server, page):
         page.goto(f"{nexora_server}/reporting?tab=simple")
         page.get_by_test_id("rs-new-report").click()
         page.get_by_test_id("rs-measure-list").get_by_text("Wizard drill count").click()
+        page.get_by_test_id("rs-measure-next").click()
         page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
         page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
@@ -1630,6 +2106,131 @@ def test_advanced_grid_drill_click_through(nexora_server, page):
         expect(panel.locator("tbody tr").first).to_be_visible()
         page.keyboard.press("Escape")
         expect(panel).to_be_hidden()
+    finally:
+        page.evaluate(
+            """async (ids) => {
+              const csrf = document.querySelector('meta[name="csrf-token"]').content;
+              const del = url => fetch(url, {method: 'DELETE', headers: {'X-CSRFToken': csrf}});
+              await del('/api/reporting/admin/metrics/' + ids.met);
+              await del('/api/reporting/admin/sources/' + ids.src);
+            }""",
+            ids,
+        )
+
+
+def test_drill_row_opens_workitem_panel(nexora_server, page):
+    """Clicking a workitem-id link inside the drill drawer opens the shared
+    NexoraWorkitemDetail panel in a read-only modal over the drawer, without
+    navigating away; a plain aggregate-row click still opens the drawer as
+    usual. Same source/metric seeding as test_advanced_grid_drill_click_through
+    above -- the drill *request* is built from that source's fields, but the
+    drill *response* is stubbed (keyed on rowLimit === 100, the drill's
+    fixed page size -- see templates/js/_reporting_drill_js.html buildDrillDefinition)
+    so it can carry a synthetic workitem_id column regardless of the
+    underlying dbo.Users-backed source."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    ids = page.evaluate(
+        """async () => {
+          const csrf = document.querySelector('meta[name="csrf-token"]').content;
+          const post = (url, body) => fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify(body)
+          }).then(r => r.json());
+          const src = await post('/api/reporting/admin/sources', {
+            code: 'wi_panel_drill', kind: 'curated', label: 'WI Panel Drill',
+            permission: 'reporting.source.docprocessing', provider: 'table',
+            engine: 'nexora', baseObject: 'dbo.Users',
+            columns: [{field: 'username', label: 'Username', type: 'string',
+                       filterable: true, sortable: true}],
+            enabled: true, sortOrder: 41});
+          const met = await post('/api/reporting/admin/metrics', {
+            code: 'wi_panel_drill_count', sourceId: 'wi_panel_drill', label: 'WI panel drill count',
+            aggregation: 'count', format: 'int'});
+          return {src: src.id, met: met.id};
+        }"""
+    )
+    try:
+        # NexoraWorkitemDetail.render() fires audit/media/collaboration fetches
+        # for whatever workitem id we hand it; the id here only exists in the
+        # stubbed drill response below, so stub those too (minimal deterministic
+        # shapes -- see templates/js/_workitem_detail_panel_js.html loadHistory /
+        # loadDetailData / loadCollaborationData for the exact fields read).
+        page.route(
+            "**/api/get_audithistory/*",
+            lambda r: r.fulfill(status=200, content_type="application/json", body="[]"),
+        )
+        page.route(
+            "**/api/get_media_info/*",
+            lambda r: r.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps({"media_count": 0, "fields": {}}),
+            ),
+        )
+        page.route(
+            "**/api/workitem/*/interactions",
+            lambda r: r.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps(
+                    {"priority": 0, "assigneduserid": None, "tags": [], "comments": []}
+                ),
+            ),
+        )
+
+        def _run_handler(route):
+            body = route.request.post_data_json or {}
+            if body.get("rowLimit") == 100 and body.get("visualization") == "table":
+                route.fulfill(
+                    status=200,
+                    content_type="application/json",
+                    body=json.dumps(
+                        {
+                            "columns": [{"field": "workitem_id", "header": "Workitem ID"}],
+                            "rows": [["999901"]],
+                            "truncated": False,
+                            "rowCount": 1,
+                            "sql": None,
+                            "params": [],
+                            "resolvedDates": [],
+                        }
+                    ),
+                )
+            else:
+                route.continue_()
+
+        page.route("**/api/reporting/run", _run_handler)
+
+        page.goto(f"{nexora_server}/reporting?tab=advanced")
+        page.locator('[data-testid="reporting-source-select"]').select_option(
+            value="wi_panel_drill"
+        )
+        page.locator("#rpFieldList").get_by_text("Username", exact=True).click()
+        page.get_by_test_id("reporting-add-metric").click()
+        page.get_by_test_id("reporting-run").click()
+        table = page.locator("#rpResults table")
+        expect(table).to_be_visible()
+        table.locator("tbody tr").first.click()
+
+        panel = page.get_by_test_id("reporting-drill-panel")
+        expect(panel).to_be_visible()
+        wi_link = panel.locator("a.reporting-drill-wi-link")
+        expect(wi_link).to_have_text("999901")
+
+        current_url = page.url
+        wi_link.click()
+
+        modal = page.locator("#rdWiModal")
+        expect(modal).to_be_visible()
+        body_el = page.locator("#rdWiBody")
+        expect(body_el).to_be_visible()
+        assert body_el.inner_html().strip() != ""
+        assert page.url == current_url  # click was intercepted, no navigation
+
+        page.locator("#rdWiClose").click()
+        expect(modal).to_be_hidden()
     finally:
         page.evaluate(
             """async (ids) => {
@@ -1781,6 +2382,8 @@ def test_wizard_docprocessing_offers_process_breakdown(nexora_server, page):
     page.goto(f"{nexora_server}/reporting?tab=simple")
     page.get_by_test_id("rs-new-report").click()
     page.get_by_test_id("rs-measure-list").get_by_text("Docproc count stub").click()
+    page.get_by_test_id("rs-measure-next").click()
+    page.get_by_test_id("rs-scope-next").click()
     bklist = page.get_by_test_id("rs-breakdown-list")
     proc = bklist.locator('[data-bd-field="processname"]')
     expect(proc).to_be_visible()
@@ -1805,6 +2408,8 @@ def test_wizard_process_breakdown_serializes_to_processname_column(nexora_server
     page.goto(f"{nexora_server}/reporting?tab=simple")
     page.get_by_test_id("rs-new-report").click()
     page.get_by_test_id("rs-measure-list").get_by_text("Docproc count stub").click()
+    page.get_by_test_id("rs-measure-next").click()
+    page.get_by_test_id("rs-scope-next").click()
     page.get_by_test_id("rs-breakdown-list").locator('[data-bd-field="processname"]').click()
     page.get_by_test_id("rs-breakdown-next").click()
     run = page.get_by_test_id("rs-wizard-run")  # renderTimeStep() unhides it; All time default
@@ -1818,14 +2423,582 @@ def test_wizard_process_breakdown_serializes_to_processname_column(nexora_server
     assert with_cols[0]["columns"][0]["field"] == "processname"
 
 
-def test_wizard_caps_category_chips_at_16(nexora_server, page):
-    """The category-chip cap is 16 for EVERY source (raised from 12 with
-    headroom, so the saturated docprocessing list absorbs the Process chip
-    and the next doc-field addition cannot silently vanish again)."""
+def test_wizard_shows_all_category_chips_uncapped(nexora_server, page):
+    """The category-chip cap is GONE: every filterable string field renders a
+    chip (the coverage sort keeps rarely-provided fields at the bottom, the
+    docprocessing hide-list still filters noise)."""
     _login(page, nexora_server)
     _stub_wiz_catalogs(page, CAP_WIZ_SOURCES, CAP_WIZ_METRICS)
     page.goto(f"{nexora_server}/reporting?tab=simple")
     page.get_by_test_id("rs-new-report").click()
     page.get_by_test_id("rs-measure-list").get_by_text("Cap count stub").click()
+    page.get_by_test_id("rs-measure-next").click()
     bklist = page.get_by_test_id("rs-breakdown-list")
-    expect(bklist.locator('[data-bd-kind="category"]')).to_have_count(16)
+    expect(bklist.locator('[data-bd-kind="category"]')).to_have_count(20)
+
+
+# ---------------------------------------------------------------------------
+# Process-coverage marking: chips/measures whose field only some processes
+# provide get an "n/m" badge; the chip list follows the scope picker like the
+# Advanced tab's field list. Fields WITHOUT a `processes` tag are universal
+# (table sources; also why the older wizard stubs above are unaffected).
+# ---------------------------------------------------------------------------
+
+COV_WIZ_SOURCES = [
+    {
+        "id": "docprocessing",
+        "label": "Document processing",
+        "kind": "curated",
+        "processes": ["acme.inv", "acme.hr"],
+        "fields": [
+            {
+                "field": "import_date",
+                "label": "Import date",
+                "type": "date",
+                "grainable": True,
+                "filterable": True,
+                "processes": ["acme.inv", "acme.hr"],
+            },
+            {
+                "field": "doctype",
+                "label": "Document Type",
+                "type": "string",
+                "grainable": False,
+                "filterable": True,
+                "processes": ["acme.inv", "acme.hr"],
+            },
+            {
+                "field": "propertynr",
+                "label": "Property No.",
+                "type": "string",
+                "grainable": False,
+                "filterable": True,
+                "processes": ["acme.inv"],
+            },
+        ],
+    }
+]
+COV_WIZ_METRICS = {
+    "docprocessing": [
+        {
+            "code": "doc_count",
+            "label": "Cov count stub",
+            "aggregation": "count",
+            "baseField": None,
+            "format": "int",
+        },
+    ]
+}
+
+
+def test_wizard_chip_coverage_badge(nexora_server, page):
+    """A chip whose field only some selected processes provide shows an n/m
+    badge and a tooltip naming the providers; full-coverage chips stay plain."""
+    _login(page, nexora_server)
+    _stub_wiz_catalogs(page, COV_WIZ_SOURCES, COV_WIZ_METRICS)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Cov count stub").click()
+    page.get_by_test_id("rs-measure-next").click()
+    page.get_by_test_id("rs-scope-next").click()
+    bklist = page.get_by_test_id("rs-breakdown-list")
+    prop = bklist.locator('[data-bd-field="propertynr"]')
+    expect(prop.locator(".reporting-simple-chip-cov")).to_have_text("1/2")
+    assert "acme.inv" in prop.get_attribute("title")
+    expect(bklist.locator('[data-bd-field="doctype"] .reporting-simple-chip-cov')).to_have_count(0)
+    expect(
+        bklist.locator('[data-bd-field="import_date"] .reporting-simple-chip-cov')
+    ).to_have_count(0)
+
+
+def test_wizard_scope_filters_chips_and_prunes_selection(nexora_server, page):
+    """Unticking the only process that provides a field hides its chip and
+    drops it from the selected breakdowns (Advanced-tab parity); re-ticking
+    brings the chip back (unselected)."""
+    _login(page, nexora_server)
+    _stub_wiz_catalogs(page, COV_WIZ_SOURCES, COV_WIZ_METRICS)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Cov count stub").click()
+    page.get_by_test_id("rs-measure-next").click()
+    page.get_by_test_id("rs-scope-next").click()
+    bklist = page.get_by_test_id("rs-breakdown-list")
+    bklist.locator('[data-bd-field="propertynr"]').click()
+    expect(bklist.locator('[data-bd-field="propertynr"]')).to_have_class(
+        re.compile(r"\bis-selected\b")
+    )
+    # The scope step stays visible above the breakdown step (progressive
+    # accordion) — its checkboxes re-filter the chip list live.
+    page.get_by_test_id("rs-scope-list").locator('input[value="acme.inv"]').uncheck()
+    expect(bklist.locator('[data-bd-field="propertynr"]')).to_have_count(0)
+    expect(bklist.locator('[data-bd-field="doctype"]')).to_be_visible()
+    page.get_by_test_id("rs-scope-list").locator('input[value="acme.inv"]').check()
+    prop = bklist.locator('[data-bd-field="propertynr"]')
+    expect(prop).to_be_visible()
+    expect(prop).not_to_have_class(re.compile(r"\bis-selected\b"))
+
+
+def test_sqlformat_display_and_copy_policy(nexora_server, page):
+    """displayText prefers the inlined sqlDisplay; copyText returns runnable
+    SQL when inlined and falls back to raw + params comment otherwise. One
+    window seam serves BOTH tabs' Show-query panels."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting")
+    res = {
+        "sql": "SELECT ?",
+        "sqlPretty": "SELECT\n  ?",
+        "sqlDisplay": "SELECT\n  'x'",
+        "params": ["x"],
+    }
+    assert page.evaluate("(r) => ReportingSqlFormat.displayText(r)", res) == "SELECT\n  'x'"
+    assert page.evaluate("(r) => ReportingSqlFormat.copyText(r)", res) == "SELECT\n  'x'"
+    fb = {"sql": "SELECT ?", "sqlPretty": "SELECT\n  ?", "sqlDisplay": None, "params": ["x"]}
+    assert page.evaluate("(r) => ReportingSqlFormat.displayText(r)", fb) == "SELECT\n  ?"
+    assert (
+        page.evaluate("(r) => ReportingSqlFormat.copyText(r)", fb) == 'SELECT ?\n-- params: ["x"]'
+    )
+
+
+def test_show_query_inlines_parameters_and_copies_runnable_sql(nexora_server, page):
+    """D-params: the panel shows literals instead of ?, the params footer is
+    gone from the DOM, and Copy writes the runnable inlined statement."""
+    _login(page, nexora_server)
+    _stub_catalogs(page)
+    raw = (
+        "SELECT TOP (100) [d] AS [d], COUNT(*) AS [n] FROM [dbo].[T] "
+        "WHERE [d] >= ? AND [d] < ? GROUP BY [d]"
+    )
+    inlined = (
+        "SELECT TOP 100 [d] AS [d], COUNT(*) AS [n] FROM [dbo].[T] "
+        "WHERE [d] >= '2026-07-01' AND [d] < '2026-08-01' GROUP BY [d]"
+    )
+
+    def _handler(route):
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [{"field": "d", "header": "D"}, {"field": "n", "header": "N"}],
+                    "rows": [["2026-07-01", 7]],
+                    "truncated": False,
+                    "rowCount": 1,
+                    "sql": raw,
+                    "sqlPretty": raw,
+                    "sqlDisplay": inlined,
+                    "params": ["2026-07-01", "2026-08-01"],
+                }
+            ),
+        )
+
+    page.route("**/api/reporting/run", _handler)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Stub count").click()
+    page.get_by_test_id("rs-measure-next").click()
+    page.get_by_test_id("rs-breakdown-list").get_by_role("button").first.click()
+    page.get_by_test_id("rs-breakdown-next").click()
+    page.get_by_test_id("rs-wizard-run").click()
+    show = page.get_by_test_id("rs-show-sql")
+    expect(show).to_be_visible()
+    # Capture clipboard writes without clipboard-read permissions.
+    page.evaluate(
+        "() => { window.__copied = null;"
+        " navigator.clipboard.writeText = t => { window.__copied = t; return Promise.resolve(); }; }"
+    )
+    show.click()
+    expect(page.locator("#rsSqlText")).to_contain_text("'2026-07-01'")
+    assert page.locator("#rsSqlText span.sql-param").count() == 0  # no bare ? shown
+    assert page.locator("#rsSqlParams").count() == 0  # footer element gone
+    page.get_by_test_id("rs-sql-copy").click()
+    assert page.evaluate("() => window.__copied") == inlined
+
+
+def test_library_empty_groups_show_calls_to_action(nexora_server, page):
+    """Empty library groups explain the next step instead of a dead end."""
+    _login(page, nexora_server)
+    page.route(
+        "**/api/reporting/reports",
+        lambda r: r.fulfill(status=200, content_type="application/json", body="[]"),
+    )
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    expect(page.get_by_test_id("rs-group-mine")).to_contain_text(
+        "You haven't saved any reports yet"
+    )
+    expect(page.get_by_test_id("rs-group-shared")).to_contain_text(
+        "No reports have been shared with everyone yet."
+    )
+    expect(page.get_by_test_id("rs-group-direct")).to_contain_text(
+        "No reports have been shared with you yet."
+    )
+
+
+def test_ai_unavailable_shows_notice_not_silent_vanish(nexora_server, page):
+    """A 503 from the AI hides the bar AND tells the user why (previously the
+    bar just disappeared, eating the typed question without a word)."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.route(
+        "**/api/reporting/ai/build",
+        lambda r: r.fulfill(
+            status=503, content_type="application/json", body='{"error": "AI is not configured"}'
+        ),
+    )
+    page.get_by_test_id("rs-ai-prompt").fill("anything")
+    page.get_by_test_id("rs-ai-ask").click()
+    expect(page.get_by_test_id("rs-ai-bar")).to_be_hidden()
+    notice = page.get_by_test_id("rs-ai-gone")
+    expect(notice).to_be_visible()
+    expect(notice).to_contain_text("AI assistant is unavailable")
+
+
+def test_advanced_no_rows_shows_designed_empty_state(nexora_server, page):
+    """A zero-row Advanced run renders the nx-empty pattern, not a bare 'No rows.'"""
+    _login(page, nexora_server)
+    page.route(
+        "**/api/reporting/run",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [{"field": "n", "header": "N"}],
+                    "rows": [],
+                    "rowCount": 0,
+                    "truncated": False,
+                    "sql": None,
+                    "params": [],
+                }
+            ),
+        ),
+    )
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    page.get_by_test_id("reporting-run").click()
+    empty = page.get_by_test_id("reporting-no-rows")
+    expect(empty).to_be_visible()
+    expect(empty).to_contain_text("No rows matched")
+
+
+def test_zero_rows_shows_empty_state_hint(nexora_server, page):
+    """A successful zero-row Simple-pane run always shows the no-data empty
+    state plus a hint — even though the zero-column grand-total call succeeds
+    and leaves the stat card visible (previously the empty state only showed
+    when el('rsStatCard') was hidden, so a visible zero stat card produced a
+    bare header-only grid instead)."""
+    _login(page, nexora_server)
+    _stub_catalogs(page)
+
+    def handler(route):
+        body = route.request.post_data_json or {}
+        is_total_call = not body.get("columns")
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [
+                        {"field": "import_date", "header": "Import date"},
+                        {"field": "doc_count", "header": "doc_count"},
+                    ],
+                    "rows": [[0]] if is_total_call else [],
+                    "rowCount": 0,
+                    "truncated": False,
+                    "sql": None,
+                    "params": [],
+                }
+            ),
+        )
+
+    page.route("**/api/reporting/run", handler)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Stub count").click()
+    page.get_by_test_id("rs-measure-next").click()
+    page.get_by_test_id("rs-breakdown-list").get_by_text("Doc type", exact=True).click()
+    page.get_by_test_id("rs-breakdown-next").click()
+    page.get_by_test_id("rs-wizard-run").click()
+
+    expect(page.get_by_test_id("rs-result")).to_be_visible()
+    empty = page.locator("#rsTableWrap .nx-empty")
+    expect(empty).to_be_visible()
+    expect(empty).to_contain_text("No data for this report")
+    expect(empty).to_contain_text("Widen the time range or remove a filter.")
+    # Zero rows must never render as a bare header-only grid alongside/instead
+    # of the empty state.
+    expect(page.locator("#rsTableWrap table")).to_have_count(0)
+
+
+def test_advanced_save_shows_toast_not_alert(nexora_server, page):
+    """Saving surfaces an in-page toast; no browser alert dialog fires."""
+    _login(page, nexora_server)
+    token = page.evaluate("() => document.querySelector('meta[name=\"csrf-token\"]').content")
+    headers = {"X-CSRFToken": token, "Content-Type": "application/json"}
+    page.request.post(f"{nexora_server}/api/reporting/sql/ack", headers=headers, data={})
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    page.locator('[data-testid="reporting-mode-sql"]').click()
+    page.locator('[data-testid="reporting-sql-editor"]').fill("SELECT 1 AS x")
+    dialogs = []
+    page.on("dialog", lambda d: (dialogs.append(d.type), d.accept()))
+    page.locator('[data-testid="reporting-save-as"]').click()
+    page.get_by_test_id("reporting-name-input").fill("toast-save-e2e")
+    page.get_by_test_id("reporting-name-ok").click()
+    try:
+        expect(page.get_by_test_id("reporting-toast")).to_be_visible()
+        expect(page.get_by_test_id("reporting-toast")).to_contain_text("Saved")
+        assert dialogs == []  # window.alert is gone from the save path
+    finally:
+        reports = page.request.get(f"{nexora_server}/api/reporting/reports").json()
+        for r in reports:
+            if r.get("name") == "toast-save-e2e":
+                page.request.delete(
+                    f"{nexora_server}/api/reporting/reports/{r['id']}", headers=headers
+                )
+
+
+def test_wizard_alltime_hint_toggles(nexora_server, page):
+    """The default All-time choice warns about full-history scans; picking a
+    bounded range hides the hint, coming back shows it again."""
+    _login(page, nexora_server)
+    _stub_catalogs(page)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Stub count").click()
+    page.get_by_test_id("rs-measure-next").click()
+    page.get_by_test_id("rs-breakdown-list").get_by_role("button").first.click()
+    page.get_by_test_id("rs-breakdown-next").click()
+    hint = page.get_by_test_id("rs-alltime-hint")
+    expect(hint).to_be_visible()  # All time is the default selection
+    page.get_by_test_id("rs-time-list").get_by_text("This year", exact=True).click()
+    expect(hint).to_be_hidden()
+    page.get_by_test_id("rs-time-list").get_by_text("All time", exact=True).click()
+    expect(hint).to_be_visible()
+
+
+def test_wizard_measure_coverage_badge_and_unrunnable_hidden(nexora_server, page):
+    """A sum measure over a partially-covered base field gets the n/m badge;
+    a metric whose base field no allowed process provides is not offered at
+    all (it could never run); count metrics stay plain."""
+    metrics = {
+        "docprocessing": [
+            {
+                "code": "doc_count",
+                "label": "Cov count stub",
+                "aggregation": "count",
+                "baseField": None,
+                "format": "int",
+            },
+            {
+                "code": "page_sum",
+                "label": "Pages stub",
+                "aggregation": "sum",
+                "baseField": "propertynr",
+                "format": "int",
+            },
+            {
+                "code": "ghost_sum",
+                "label": "Ghost stub",
+                "aggregation": "sum",
+                "baseField": "ghostfield",
+                "format": "int",
+            },
+        ]
+    }
+    _login(page, nexora_server)
+    _stub_wiz_catalogs(page, COV_WIZ_SOURCES, metrics)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-report").click()
+    mlist = page.get_by_test_id("rs-measure-list")
+    pages_btn = mlist.locator("button", has_text="Pages stub")
+    expect(pages_btn.locator(".reporting-simple-chip-cov")).to_have_text("1/2")
+    assert "acme.inv" in pages_btn.get_attribute("title")
+    count_btn = mlist.locator("button", has_text="Cov count stub")
+    expect(count_btn.locator(".reporting-simple-chip-cov")).to_have_count(0)
+    expect(mlist.get_by_text("Ghost stub")).to_have_count(0)
+
+
+# ---------------------------------------------------------------------------
+# Three breakdowns: the chart caps at two dims (mountChart shows a note
+# instead), so the table — the only surface that can show all three and the
+# only remaining drill-through target — must render visible immediately, not
+# collapsed behind the "Show table" toggle.
+# ---------------------------------------------------------------------------
+
+THREE_DIM_SOURCES = [
+    {
+        "id": "docprocessing",
+        "label": "Document processing",
+        "kind": "curated",
+        "fields": [
+            {
+                "field": "doctype",
+                "label": "Document Type",
+                "type": "string",
+                "grainable": False,
+                "filterable": True,
+            },
+            {
+                "field": "docsource",
+                "label": "Document Source",
+                "type": "string",
+                "grainable": False,
+                "filterable": True,
+            },
+            {
+                "field": "propertynr",
+                "label": "Property No.",
+                "type": "string",
+                "grainable": False,
+                "filterable": True,
+            },
+        ],
+    }
+]
+THREE_DIM_METRICS = {
+    "docprocessing": [
+        {
+            "code": "doc_count",
+            "label": "Count stub",
+            "aggregation": "count",
+            "baseField": None,
+            "format": "int",
+        },
+    ]
+}
+
+
+THREE_DIM_RUN_BODY = json.dumps(
+    {
+        "columns": [
+            {"field": "doctype", "header": "Document Type"},
+            {"field": "docsource", "header": "Document Source"},
+            {"field": "propertynr", "header": "Property No."},
+            {"field": "doc_count", "header": "doc_count"},
+        ],
+        # Two propertynr values under the same (doctype, docsource) pair — the
+        # chart pivot keys series on ALL remaining dims, so these become two
+        # composite series ("Mail · P-1" = 7, "Mail · P-2" = 3), not one 10.
+        "rows": [["Invoice", "Mail", "P-1", 7], ["Invoice", "Mail", "P-2", 3]],
+        "truncated": False,
+        "rowCount": 2,
+        "sql": None,
+        "params": [],
+        "resolvedDates": [],
+    }
+)
+
+
+def _walk_three_breakdowns(nexora_server, page, measure_label):
+    page.route(
+        "**/api/reporting/run",
+        lambda route: route.fulfill(
+            status=200, content_type="application/json", body=THREE_DIM_RUN_BODY
+        ),
+    )
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text(measure_label).click()
+    page.get_by_test_id("rs-measure-next").click()
+    bklist = page.get_by_test_id("rs-breakdown-list")
+    for fld in ("doctype", "docsource", "propertynr"):
+        bklist.locator(f'[data-bd-field="{fld}"]').click()
+    page.get_by_test_id("rs-breakdown-next").click()
+    page.get_by_test_id("rs-wizard-run").click()
+    expect(page.get_by_test_id("rs-result")).to_be_visible()
+
+
+def test_three_breakdowns_chart_composite_series_and_drill(nexora_server, page):
+    """Three breakdowns chart with the first as axis and the remaining two
+    joined into composite series ("Mail · P-1") — nothing collapses, no
+    limitation note; the table stays reachable via the toggle and rows drill."""
+    _login(page, nexora_server)
+    _stub_wiz_catalogs(page, THREE_DIM_SOURCES, THREE_DIM_METRICS)
+    _walk_three_breakdowns(nexora_server, page, "Count stub")
+    expect(page.locator("#rsChartCanvas")).to_be_visible()
+    expect(page.locator("#rsChartNote")).to_be_hidden()
+    # One series per (docsource, propertynr) combo, each with its exact value.
+    chart = page.evaluate(
+        "() => window.Chart && (() => {"
+        "  const c = Chart.getChart(document.getElementById('rsChartCanvas'));"
+        "  return c ? c.data.datasets.map(d => [d.label, d.data[0]]) : null;"
+        "})()"
+    )
+    assert sorted(chart) == [["Mail · P-1", 7], ["Mail · P-2", 3]]
+    # Charted result: table behind the toggle as usual; rows still drill.
+    page.get_by_test_id("rs-table-toggle").click()
+    page.locator("#rsTableWrap tbody tr").first.click()
+    expect(page.get_by_test_id("reporting-drill-panel")).to_be_visible()
+
+
+def test_three_breakdowns_nonadditive_charts_exact(nexora_server, page):
+    """A non-additive metric (avg) charts three breakdowns too: with every
+    dim in the composite series key nothing collapses in the pivot, so each
+    point is one exact aggregate row — the old note-only card is gone."""
+    metrics = {
+        "docprocessing": [
+            {
+                "code": "avg_prop",
+                "label": "Avg stub",
+                "aggregation": "avg",
+                "baseField": "propertynr",
+                "format": "int",
+            },
+        ]
+    }
+    _login(page, nexora_server)
+    _stub_wiz_catalogs(page, THREE_DIM_SOURCES, metrics)
+    _walk_three_breakdowns(nexora_server, page, "Avg stub")
+    expect(page.locator("#rsChartCanvas")).to_be_visible()
+    expect(page.locator("#rsChartNote")).to_be_hidden()
+    chart = page.evaluate(
+        "() => window.Chart && (() => {"
+        "  const c = Chart.getChart(document.getElementById('rsChartCanvas'));"
+        "  return c ? c.data.datasets.map(d => [d.label, d.data[0]]) : null;"
+        "})()"
+    )
+    assert sorted(chart) == [["Mail · P-1", 7], ["Mail · P-2", 3]]
+
+
+def test_sql_peek_footer_reveals_query_on_click(nexora_server, page):
+    """Task 6: a persistent one-line query footer sits under the results,
+    showing the first line of the inlined sqlDisplay. Clicking it opens the
+    same Show-query panel as the rs-show-sql button (same reveal path)."""
+    _login(page, nexora_server)
+    _stub_catalogs(page)
+    sql_display = "SELECT [d] AS [d], COUNT(*) AS [n]\nFROM [dbo].[T]\nGROUP BY [d]"
+
+    def _handler(route):
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [{"field": "d", "header": "D"}, {"field": "n", "header": "N"}],
+                    "rows": [["2026-07-01", 7]],
+                    "truncated": False,
+                    "rowCount": 1,
+                    "sql": "SELECT [d] AS [d], COUNT(*) AS [n] FROM [dbo].[T] GROUP BY [d]",
+                    "sqlPretty": sql_display,
+                    "sqlDisplay": sql_display,
+                    "params": [],
+                }
+            ),
+        )
+
+    page.route("**/api/reporting/run", _handler)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Stub count").click()
+    page.get_by_test_id("rs-measure-next").click()
+    page.get_by_test_id("rs-breakdown-list").get_by_role("button").first.click()
+    page.get_by_test_id("rs-breakdown-next").click()
+    page.get_by_test_id("rs-wizard-run").click()
+
+    peek = page.get_by_test_id("rs-sql-peek")
+    expect(peek).to_be_visible()
+    expect(peek).to_have_text("SELECT [d] AS [d], COUNT(*) AS [n]…")
+
+    sql_view = page.get_by_test_id("rs-sql-view")
+    expect(sql_view).to_be_hidden()
+    peek.click()
+    expect(sql_view).to_be_visible()
+    expect(page.locator("#rsSqlText")).to_contain_text("GROUP BY")

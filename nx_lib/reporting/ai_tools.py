@@ -8,8 +8,104 @@ compute_stats) are built in; ``run_sql`` and ``build_definition`` are injected b
 the route because they need request scope (permissions, RO engines, catalogs).
 """
 
-from .sandbox import SqlSandboxError, validate_select
+import contextlib
+import json
+
+from .sandbox import SqlSandboxError, humanize_sql_error, validate_select
+from .schema import FILTER_OPS, GRAINS, REPORT_SCHEMA_VERSION
 from .stats import StatsError, compute_stats
+
+# Full JSON schema for the v1 report definition, surfaced to the model through
+# the build_definition tool spec. Without it the model has to guess the shape
+# (and reliably guessed wrong: filters as a map, grain on non-date fields),
+# burning every turn on validation errors. Mirrors schema.validate_report_definition.
+_DEFINITION_PARAM_SCHEMA = {
+    "type": "object",
+    "description": (
+        "v1 report definition. Example: "
+        '{"schemaVersion": 1, "visualization": "table", "source": "<source id>", '
+        '"title": "Docs per month", "columns": [{"field": "export_date", '
+        '"header": "Month", "grain": "month"}], "metrics": [{"metric": "doc_count"}], '
+        '"filters": [{"field": "export_date", "op": "between", '
+        '"value": {"token": "this_year"}}], "sort": [], '
+        '"scope": {"clients": [], "processes": []}, "rowLimit": 5000}'
+    ),
+    "properties": {
+        "schemaVersion": {"type": "integer", "enum": [REPORT_SCHEMA_VERSION]},
+        "visualization": {"type": "string", "enum": ["table"]},
+        "source": {"type": "string", "description": "Source id from the grounding."},
+        "title": {"type": "string"},
+        "subtitle": {"type": ["string", "null"]},
+        "columns": {
+            "type": "array",
+            "description": (
+                "Dimension columns. With metrics present these become the GROUP BY "
+                "dims; may be [] for a single grand total."
+            ),
+            "items": {
+                "type": "object",
+                "properties": {
+                    "field": {"type": "string", "description": "Exact field key."},
+                    "header": {"type": ["string", "null"]},
+                    "grain": {
+                        "type": "string",
+                        "enum": sorted(GRAINS),
+                        "description": "Date bucketing — only on date (grainable) fields.",
+                    },
+                },
+                "required": ["field"],
+            },
+        },
+        "metrics": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {"metric": {"type": "string"}},
+                "required": ["metric"],
+            },
+            "description": "Canonical metric codes from the source's metrics line.",
+        },
+        "filters": {
+            "type": "array",
+            "description": "A LIST of filter objects — never a map keyed by field name.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "field": {"type": "string"},
+                    "op": {"type": "string", "enum": sorted(FILTER_OPS)},
+                    "value": {
+                        "description": (
+                            "Scalar; 2-element list for 'between'; list for in/not_in; "
+                            'a relative-date token object like {"token": "last_month"} '
+                            "on date fields; omit for is_null/is_not_null."
+                        )
+                    },
+                },
+                "required": ["field", "op"],
+            },
+        },
+        "sort": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "field": {"type": "string"},
+                    "dir": {"type": "string", "enum": ["asc", "desc"]},
+                },
+                "required": ["field", "dir"],
+            },
+        },
+        "scope": {
+            "type": "object",
+            "properties": {
+                "clients": {"type": "array", "items": {"type": "string"}},
+                "processes": {"type": "array", "items": {"type": "string"}},
+            },
+        },
+        "rowLimit": {"type": "integer"},
+    },
+    "required": ["schemaVersion", "visualization", "source", "title"],
+}
 
 # Provider-neutral tool catalogue (translated to Anthropic/Azure shapes in ai.py).
 TOOL_SPECS = [
@@ -48,7 +144,7 @@ TOOL_SPECS = [
         ),
         "parameters": {
             "type": "object",
-            "properties": {"definition": {"type": "object"}},
+            "properties": {"definition": _DEFINITION_PARAM_SCHEMA},
             "required": ["definition"],
         },
     },
@@ -91,7 +187,7 @@ class ToolRegistry:
                 return {"ok": False, "error": f"unknown tool: {name}"}
             return handler(args or {})
         except Exception as e:  # never let a tool break the loop
-            return {"ok": False, "error": str(e) or e.__class__.__name__}
+            return {"ok": False, "error": humanize_sql_error(str(e) or e.__class__.__name__)}
 
     def _tool_validate_sql(self, args):
         try:
@@ -112,7 +208,19 @@ class ToolRegistry:
     def _tool_build_definition(self, args):
         if self._validate_definition is None:
             return {"ok": False, "error": "build_definition is not available"}
-        ok, error = self._validate_definition(args.get("definition"))
+        definition = args.get("definition")
+        if isinstance(definition, str):
+            # Some models stringify the nested object argument — tolerate it.
+            with contextlib.suppress(ValueError, TypeError):
+                definition = json.loads(definition)
+        if definition is None and "schemaVersion" in args:
+            # ... or pass the definition's fields as the top-level arguments.
+            definition = dict(args)
+        if isinstance(definition, dict):
+            # Write the coerced dict back so the tool trace (and the artifact
+            # extraction that offers "Open in builder") sees the parsed shape.
+            args["definition"] = definition
+        ok, error = self._validate_definition(definition)
         return {"ok": True} if ok else {"ok": False, "error": error}
 
     def _tool_compute_stats(self, args):

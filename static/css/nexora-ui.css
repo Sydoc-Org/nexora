@@ -305,7 +305,7 @@ a.nx-card:hover, .nx-card--link:hover {
   border: 1px dashed var(--nx-accent); opacity: .35;
 }
 .nx-empty__title { font-size: 15px; font-weight: 600; color: var(--nx-text); margin: 0 0 4px; }
-.nx-empty__sub { font-size: 13px; color: var(--nx-text-sec); margin: 0; max-width: 360px; }
+.nx-empty__sub, .nx-empty__hint { font-size: 13px; color: var(--nx-text-sec); margin: 0; max-width: 360px; }
 
 /* Segmented tabs (underline style, GitHub-ish) */
 .nx-tabs { display: flex; gap: 24px; list-style: none; margin: 0 0 20px; padding: 0; border-bottom: 1px solid var(--nx-border); }

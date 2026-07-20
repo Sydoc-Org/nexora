@@ -10,6 +10,34 @@ custom-header, save/load, and Excel-export support.
 `/reporting` opens as two tabs (one route, two client-side panes;
 `templates/js/_reporting_tabs_js.html` is the controller):
 
+### Editorial Ledger identity
+
+The page carries its own visual identity, distinct from the rest of the app: a
+serif masthead title and section headings on a cool-neutral canvas, mono
+(tabular) numerals for KPI figures, table cells, and metadata, and a single
+2px ink rule topping the chart block. It's a restyle in place — every
+`.reporting-*` class and every `id`/`name`/`data-testid` is unchanged, so
+existing e2e selectors keep working. Three elements ride on it, shared by
+both tabs:
+
+- **KPI stat band** above the results — total, bucket count, and average per
+  bucket, computed client-side from the rows already returned (no extra
+  query); hidden for zero-row or non-numeric results, with no "vs prior
+  period" delta in v1 (deferred — it would need a second query).
+- **Timing badge** in the masthead — "N rows · M ms", the row count from the
+  run response and the elapsed time measured client-side around the fetch;
+  appears after the first successful run.
+- **Persistent query footer** — a one-line peek of the inlined `sqlDisplay`
+  SQL under the results; click it to expand the existing Show-query panel.
+  Hidden whenever `sqlDisplay` is absent (the WS1 inliner-degrade fallback
+  keeps working).
+
+Single-series bar/line charts render in ink-navy with a brand-indigo accent
+on the peak value; multi-series charts keep the existing categorical
+palette. Dark mode gets a minimal adaptation of each new element rather than
+a separately designed "ink edition". Full design spec:
+`docs/superpowers/specs/2026-07-15-reporting-editorial-ledger-design.md`.
+
 - **Simple** — the default; built for report *viewers* and non-data-science
   stakeholders. It is purely a presentation layer over the existing REST
   endpoints (`templates/_reporting_simple.html` +
@@ -19,10 +47,15 @@ custom-header, save/load, and Excel-export support.
     with me*. Click a card to run it (lazy — nothing runs until opened).
     Live-SQL (`kind:'sql'`) reports are hidden here (viewers can't run them);
     they stay fully usable in Advanced.
-  - **+ New report (wizard)** — measure (from the metrics registry; picking a
-    measure pins the source — admins grow the wizard's reach by adding rows at
-    `/reporting/metrics`, zero code change) → break down by *over time* (with a
-    grain select, default month) / a category / *none — just the total* → time
+  - **+ New report (wizard)** — measures (from the metrics registry;
+    **multi-select** — the first pick pins the source and other sources'
+    chips disable until the selection is cleared; the result carries one
+    column/series per metric and the stat card one total per metric; admins
+    grow the wizard's reach by adding rows at `/reporting/metrics`, zero code
+    change) → **which processes?** (own step, checkbox list all pre-checked;
+    skipped for sources without processes — step headings auto-number via CSS
+    counters so no gap shows) → break down by *over time* (with a grain
+    select, default month) / a category / *none — just the total* → time
     range (presets or a custom flatpickr range; emits a `between` filter on the
     **raw** date field, defaulting to `import_date`). Time presets include **This
     week** and **This quarter** (both stored as tokens in `WIZ_TOKENS`, so saved
@@ -31,15 +64,25 @@ custom-header, save/load, and Excel-export support.
     picks pre-selected. **Back** steps back through wizard steps preserving picks;
     **✕** (on both the wizard header and the result bar) exits straight to the
     library without discarding anything already saved.
-    The category list is curated for the Document Processing source — **Process**
-    leads (one value per Octo process; in this deployment each process corresponds
-    to a client, so it delivers per-client numbers), then the preferred business
-    dimensions (Document Source, Document Type, Forwarding, Owner no., Property
-    No., Registered, Tenancy no.), and technical noise (Bank PK, creditor no.,
-    barcode, document date, workitem id) is hidden; other sources list their
-    catalog fields unfiltered (up to 16 category chips per source). The **"Limit to specific
-    processes"** control is a prominent bordered row with a live selection badge
-    ("All processes" or "n / m").
+    Measures and category/date chips whose field only *some* of the selected
+    processes provide carry an **"n/m" coverage badge**, colour-tiered —
+    amber for partial coverage, muted for low (≤ ⅓ of the scope) — with a
+    tooltip naming the providing processes (documents from the others land in
+    the empty-value bucket, and a partial measure counts only its providers'
+    documents). The chip list follows the process step live: chips with zero
+    coverage under the picked scope hide, stranded selections are pruned, and
+    the remaining chips **sort by coverage** (full coverage first, `1/x` at
+    the bottom). A metric whose base field no allowed process provides is not
+    offered at all.
+    The category list is curated for the Document Processing source — within
+    the same coverage tier **Process** leads (one value per Octo process; in
+    this deployment each process corresponds to a client, so it delivers
+    per-client numbers), then the preferred business dimensions (Document
+    Source, Document Type, Forwarding, Owner no., Property No., Registered,
+    Tenancy no.), and technical noise (Bank PK, creditor no., barcode,
+    document date, workitem id) is hidden; other sources list their catalog
+    fields unfiltered. There is **no chip cap** — every filterable string
+    field the Advanced tab offers renders as a chip.
   - **Ask AI** — one input to Surface A; a valid draft renders straight to the
     result view. Hidden if AI is unconfigured.
   - **Result view** — a grand-total **number card** (computed by a zero-column
@@ -47,15 +90,18 @@ custom-header, save/load, and Excel-export support.
     included), a **chart card** (line for date breakdowns, bar for categories by default,
     with a bar/line/pie/doughnut switcher; the chosen type is saved with the report).
     The wizard supports **up to three breakdowns** (at most one date); the first breakdown is
-    the chart axis, the second becomes the colored series (grouped bars or one line per
-    series, with a stacked-bar option); a third breakdown shows in the table only. Charts cap
+    the chart axis and every remaining breakdown joins into the composite colored series
+    ("Process · Source" — grouped bars or one line per series, with a stacked-bar option),
+    exact for every aggregation since nothing collapses in the pivot. Charts cap
     at 50 axis values and 12 series; categories beyond 50 chart the top 50 with a note.
     When no chart is possible the result explains why (single total, too many date points,
     chart library unavailable). A **chart-PNG download** button in the chart toolbar saves
     the current chart as an image. A **Show query** toggle (collapsed by default,
     re-collapsed on every run) reveals the executed SQL — pretty-printed server-side
-    (sqlglot) and syntax-highlighted — plus its bind parameters (visible to anyone who
-    can run reports; the Copy button copies the raw executed statement). While a report
+    (sqlglot), syntax-highlighted, and with the bind-parameter values inlined as
+    literals, so the statement reads (and copies) as runnable SQL. Execution itself
+    stays fully parameterized; the Copy button copies the inlined statement (visible
+    to anyone who can run reports). While a report
     runs, both tabs show a pulsing in-flight indicator (the Advanced **Run** button locks
     until the response lands), and the Advanced Ask-AI surfaces show the same indicator
     with rotating status lines.
@@ -260,7 +306,11 @@ tabs:
   (`workitem_id`, `processname`, `import_date`, `export_date`), those four
   come first, followed by the clicked breakdown field(s). Generic sources
   without the smart fields instead top up with up to ~6 leading catalog
-  columns. `workitem_id` values render as a link into `/workitems`.
+  columns. `workitem_id` values render as links: a plain click opens the
+  shared workitem detail panel (the same read-only view used by the Prepared
+  Documents register preview) in a modal over the drawer, permission-gated
+  the same way that panel is gated elsewhere; Ctrl-click or middle-click
+  still opens the workitem in a new `/workitems` tab.
 - **Row cap:** the drawer displays up to **100 rows** and shows a truncation
   note when more exist; use the drawer's **CSV** / **XLSX** export buttons
   (same `/api/reporting/export` endpoint used elsewhere) to get the full set.
@@ -465,9 +515,18 @@ definition's `metrics` list), a `SourceId` (which source it aggregates), a
 `Label`, an `Aggregation` (`count`, `count_distinct`, `sum`, `avg`, `min`,
 `max`), and a `BaseField` (a whitelisted column of that source — required for
 every aggregation except `count`). `Format` (`int`/`decimal`/`percent`) is a
-display hint; `Enabled` and `SortOrder` control visibility/ordering. Migration
-`0017` seeds a worked example, `doc_count` (a `count` over the docprocessing
-source).
+display hint; `Enabled` and `SortOrder` control visibility/ordering. Labels are
+DB-driven i18n: `Label` (English) plus nullable `GermanLabel`/`FrenchLabel`/
+`ItalianLabel` (migration `0039`; NULL falls back to `Label`, the
+`Search_Field_Labels` convention) — `/api/reporting/metrics` serves the session
+locale's label, while the AI catalogs deliberately keep the English `Label` for
+prompt-grounding stability. Migration `0017` seeds a worked example, `doc_count`
+(a `count` over the docprocessing source); migration `0039` adds **`page_count`**
+("Pages processed", `SUM` over `pagecount`, `SortOrder` 30). For `sum`/`avg`
+metrics the docprocessing query builder projects the base field as
+`TRY_CAST(<col> AS float)` per UNION-ALL subquery — the stat columns are
+varchar, so non-numeric cells become NULL and drop out of the aggregate instead
+of erroring; only processes with the mapped `col_*` contribute.
 
 In the builder, the **Metrics well** (top of the wells column) lets a user add
 canonical metrics for the selected source; once at least one is picked, the
@@ -570,7 +629,7 @@ the server because `ops/` is deployed) finds due rows
 web path — renders the file, emails it via Microsoft Graph (`nx_lib/mail.py`,
 ROPC + `/me/sendMail`), and advances `NextRunAt` (`compute_next_run`).
 
-For reports with **1–2 breakdowns**, the runner server-renders a chart using
+For reports with **breakdowns**, the runner server-renders a chart using
 **matplotlib** (Agg backend, no display required) and embeds it in two places:
 inline in the HTML mail body (as a `cid:` image) and above the data table in
 the attached XLSX. Chart rendering failures degrade gracefully — the mail is
@@ -704,13 +763,29 @@ if the provider is broken, `'blocked'` when the cap is hit). The last validated
 definition/SQL in the tool trace is returned for one-click **Open in builder** /
 **Insert SQL**.
 
+When a run hits the turn cap or otherwise produces no usable artifact, the
+Agent panel shows a **Try again** button that resends the exact same question
+in a fresh turn — no retyping needed. Tool and SQL-sandbox errors surfaced to
+the model (and to the visible tool-step trace) go through
+`humanize_sql_error`, which strips ODBC driver noise (`[Microsoft][ODBC
+Driver 17 for SQL Server]…`-style prefixes) and adds a teaching hint for SQL
+Server error 1033 (`ORDER BY` used inside a derived table/subquery without
+`TOP`/`OFFSET`) so the model — and a human reading the trace — sees the
+actual fix instead of a raw driver message. The system prompt also forbids
+resubmitting SQL that just failed unchanged, pushing the model to actually
+address the error on the next tool call.
+
 > **Phase 3e — explain the data (opt-in).** When the caller holds
 > `reporting.ai.explain_data` **and** `reporting.sql.run`, the loop additionally
 > binds `run_sql` and `compute_stats` (`nx_lib/reporting/stats.py`), so the model
 > runs validated read-only SELECTs and **narrates the actual numbers** — a
 > deliberate **data-egress** path (result rows reach the model). Seeded to admins
 > by migration `0015`; grantable per-user; **off by default** (then the loop stays
-> schema-only as above). The response/audit carry an `explainData` flag. Glossary
+> schema-only as above). The response/audit carry an `explainData` flag.
+> The data tools stay bound even while the builder's source dropdown sits on a
+> **builder-only** curated source (e.g. Generali on GeneraliDB): the selected
+> source is prompt grounding, not a gate — the grounding marks it builder-only
+> and steers `run_sql` to the real RO targets instead. Glossary
 > RAG (the other Phase 3e item) is still planned — it needs a curation owner.
 
 ### Configuration (`AI_*` env vars)
@@ -796,6 +871,11 @@ not shown again on subsequent runs.
 - **Timeout:** a ~30-second statement timeout is enforced server-side.
 - **Audit:** every run (query text, user, row count, duration, status) is
   written to `dbo.ReportingSqlAudit` (NexoraDB).
+- **Error detail:** a query that fails on the target server (not just the
+  sqlglot gate) returns a generic 500 whose `detail` is run through
+  `humanize_sql_error` — ODBC driver-prefix noise is stripped and SQL Server
+  error 1033 (`ORDER BY` in a derived table) gets a plain-language hint —
+  instead of the raw pyodbc exception text.
 
 ### Owner setup
 
@@ -841,3 +921,6 @@ live schema grounding and scheduled-report delivery.
 - `docs/design/reporting-ai-assistant.md` — AI assistant design spec.
 - `docs/superpowers/specs/2026-06-02-reporting-foundation-design.md` — full
   design spec (decisions, architecture, endpoint list, security model).
+- `docs/superpowers/specs/2026-07-15-reporting-editorial-ledger-design.md` —
+  "Editorial Ledger" visual identity design spec (masthead, KPI band, timing
+  badge, query footer, single-series chart colors).

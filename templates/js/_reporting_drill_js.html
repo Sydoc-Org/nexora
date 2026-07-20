@@ -10,6 +10,8 @@ window.ReportingDrill = (function () {
     distinctNote: {{ _("Rows contributing to this number — the distinct count may be smaller.")|tojson }},
     truncatedNote: {{ _("Showing the first {n} rows — export to get all.")|tojson }},
     nullLabel: {{ _("(empty)")|tojson }},
+    exportName: {{ _("Detail rows")|tojson }},
+    loading: {{ _("Loading the rows…")|tojson }},
     loadError: {{ _("Could not load the rows behind this number.")|tojson }},
     close: {{ _("Close")|tojson }},
     couldNotExport: {{ _("Could not export this report.")|tojson }}
@@ -75,7 +77,7 @@ window.ReportingDrill = (function () {
     var dd = {
       schemaVersion: 1,
       source: def.source,
-      title: def.title || 'drill',
+      title: def.title || I18N.exportName,
       visualization: 'table',
       columns: cols.map(function (fd) { return { field: fd }; }),
       filters: filters,
@@ -113,7 +115,8 @@ window.ReportingDrill = (function () {
                              : esc(String(v).slice(0, 200));
         if (i === wiIdx && v != null) {
           cell = '<a href="' + API_PREFIX + 'workitems?search=' + encodeURIComponent(String(v)) +
-                 '" target="_blank" rel="noopener">' + esc(String(v)) + '</a>';
+                 '" target="_blank" rel="noopener" class="reporting-drill-wi-link" data-wid="' +
+                 esc(String(v)) + '">' + esc(String(v)) + '</a>';
         }
         return '<td>' + cell + '</td>';
       }).join('') + '</tr>';
@@ -135,7 +138,9 @@ window.ReportingDrill = (function () {
                                                     // the race once current is reassigned
     el('rdTitle').textContent = opts.header || I18N.title;
     el('rdSubtitle').textContent = I18N.title;
-    el('rdBody').innerHTML = '<p class="reporting-drill-note">…</p>';
+    el('rdBody').innerHTML =
+      '<div class="reporting-ai-loading"><span class="reporting-ai-dots" aria-hidden="true">' +
+      '<i></i><i></i><i></i></span><span role="status">' + esc(I18N.loading) + '</span></div>';
     el('rdNote').textContent = '';
     el('rdPanel').hidden = false;
     el('rdBackdrop').hidden = false;
@@ -182,21 +187,86 @@ window.ReportingDrill = (function () {
     var blob = await res.blob();
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = (current.definition.title || 'drill') + '.' + format;
+    a.download = (current.definition.title || I18N.exportName) + '.' + format;
     a.click();
     URL.revokeObjectURL(a.href);
+  }
+
+  /* ---- Workitem detail panel: opened from a workitem-id link inside the
+     drill body. Read-only, perm-gated (window.NexoraWorkitemDetail and the
+     #rdWiModal shell only exist when templates/reporting.html included
+     js/_workitem_detail_panel_js.html -- see details_images_perm /
+     details_fields_perm in nx_lib/views/reporting.py's reporting()). Mirrors
+     openPreview/closePreview in templates/js/_prepared_documents_js.html. ---- */
+  var _wiLightbox = null;
+
+  function openWorkitemPanel(wid) {
+    var modal = el('rdWiModal');
+    var body = el('rdWiBody');
+    if (!modal || !body || !window.NexoraWorkitemDetail) return;
+    if (!_wiLightbox && window.NexoraWorkitemDetail.attachLightbox) {
+      _wiLightbox = window.NexoraWorkitemDetail.attachLightbox({
+        modal: 'rdWiLightbox', image: 'rdWiImage',
+        hlLayer: 'rdWiHlLayer', hlToggle: 'rdWiHlToggle',
+        hlToggleLabel: 'rdWiHlToggleLabel',
+        reviewPanel: 'rdWiReviewPanel', reviewPanelBody: 'rdWiReviewPanelBody'
+      });
+    }
+    body.innerHTML = '';
+    window.NexoraWorkitemDetail.render(wid, body, {
+      readOnly: true,
+      perms: window.__rpDrillPerms || {}
+    });
+    modal.hidden = false;
+  }
+
+  function closeWorkitemPanel() {
+    var modal = el('rdWiModal');
+    if (!modal) return;
+    modal.hidden = true;
+    var body = el('rdWiBody');
+    if (body) body.innerHTML = '';
   }
 
   function wire() {
     el('rdClose').addEventListener('click', close);
     el('rdBackdrop').addEventListener('click', close);
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && !el('rdPanel').hidden) close();
-    });
     if (el('rdExportCsv')) {
       el('rdExportCsv').addEventListener('click', function () { exportDrill('csv'); });
       el('rdExportXlsx').addEventListener('click', function () { exportDrill('xlsx'); });
     }
+
+    // Workitem-id links in the drill body: a plain click opens the shared
+    // read-only detail panel in a modal instead of navigating; Ctrl/Cmd/Shift
+    // click (and middle-click, which never fires 'click') keep the native
+    // new-tab anchor behaviour. No-op entirely when the panel shell/module
+    // isn't on the page (perm-gated out in templates/reporting.html).
+    el('rdBody').addEventListener('click', function (e) {
+      var link = e.target.closest('.reporting-drill-wi-link');
+      if (!link || !window.NexoraWorkitemDetail || !el('rdWiModal')) return;
+      if (e.ctrlKey || e.metaKey || e.shiftKey) return;
+      e.preventDefault();
+      openWorkitemPanel(link.dataset.wid);
+    });
+    var rdWiModal = el('rdWiModal');
+    if (rdWiModal) {
+      el('rdWiClose').addEventListener('click', closeWorkitemPanel);
+      rdWiModal.addEventListener('click', function (e) {
+        if (e.target === rdWiModal) closeWorkitemPanel();
+      });
+    }
+    // Single Escape handler, innermost layer first: the lightbox's own
+    // Escape handler (its shell is #rdWiLightbox, display:flex when open) --
+    // same guard as _prepared_documents_js.html's closePreview -- then the
+    // workitem panel, then the drill drawer itself. Only one layer closes
+    // per press.
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape') return;
+      var lb = document.getElementById('rdWiLightbox');
+      if (lb && lb.style.display === 'flex') return;
+      if (rdWiModal && !rdWiModal.hidden) { closeWorkitemPanel(); return; }
+      if (!el('rdPanel').hidden) close();
+    });
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', wire);

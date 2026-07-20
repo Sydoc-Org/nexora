@@ -10,6 +10,30 @@ Work toward 2.5.64.
 
 ### Added
 
+- `db-standard/` — design proposal for a standardised statistics-DB schema
+  (README + DDL) replacing the grown per-client `sydoc_stat` tables. Dev-side
+  only: excluded from the prod deploy mirror; the sample Crystal Report binary
+  stays untracked.
+- Reporting: the Simple-tab wizard measure step is now **multi-select** — pick
+  several metrics from one source (e.g. Document count + Pages processed) and
+  the result carries one column/series per metric; the stat card shows one
+  total per metric. The first pick pins the source; other sources' chips
+  disable until the selection is cleared.
+- Reporting: process selection is now its **own wizard step** ("Which
+  processes?", between measure and breakdown, skipped for sources without
+  processes) instead of a collapsed picker inside the breakdown step — the
+  breakdown chips render pre-filtered by the chosen processes. Step headings
+  auto-number via CSS counters so the skipped step leaves no gap.
+- Reporting: breakdown chips sort by **process coverage** (full-coverage
+  fields first, `1/x` fields at the bottom, recomputed live as the process
+  selection changes) and the `n/m` coverage badge is now tiered by colour —
+  amber for partial, muted for low (≤ ⅓ of the selected scope).
+
+- `nx --no-conflict` — start an extra instance on the first free port from 8001 up,
+  with separate log/state files, so any number of nexora instances can run alongside
+  one already on 8000 (e.g. one a Claude session is testing against).
+- `nx --down-all` — stop all nexora instances on any port; `-d` / `--down` keeps
+  targeting only the default port-8000 instance.
 - Reporting: drill-through — click a chart element or aggregate row to see the underlying
   document rows in a slide-over panel, with workitem links and CSV/XLSX export.
 - Reporting: `is_null` filters now match rows from processes that don't expose the field
@@ -32,9 +56,68 @@ Work toward 2.5.64.
   every source (the docprocessing list was exactly saturated at 12; table
   sources with 13–16 string columns now show chips that were previously
   truncated).
+- External API v1 for machine-to-machine clients: `GET /api/v1/stats/today`
+  returns the dashboard's "imported today" / "processed today" KPI numbers
+  as JSON, scoped per API key. Auth is `Authorization: Bearer <key>` against
+  `dbo.ApiKeys` (migration `0038`; only the SHA-256 hash is stored; disabled
+  keys answer like unknown ones), new decorator `require_api_key`
+  (`nx_lib/api_auth.py`), 60/min rate limit checked before auth, JSON error
+  handlers for `/api/v1` paths, key issuance via dev-side
+  `scripts/new-api-key.py`. See `docs/howto/external-api.md`.
+- Reporting: smarter UX — group-specific call-to-action empty states in the Simple
+  library, an explanatory notice (instead of silent removal) when the AI assistant
+  is unavailable, in-page toasts replacing every `window.alert` on the Advanced tab,
+  a designed "No rows matched" empty state, a real loading indicator in the
+  drill-through drawer, a full-scan hint while the wizard's "All time" range is
+  selected, and copy feedback on the AI SQL draft.
+- Reporting: **Pages processed** (`page_count`) metric — `SUM` over the
+  `pagecount` doc field (migration `0039`); the query builder now `TRY_CAST`s
+  `sum`/`avg` metric bases to float so varchar stat columns aggregate safely.
+- Reporting: metric labels are localized — `dbo.ReportingMetrics` gains
+  German/French/Italian label columns (migration `0039`, admin form updated);
+  `/api/reporting/metrics` serves the session locale's label with English
+  fallback.
+- Reporting: the Simple wizard marks **process coverage** — measures and
+  breakdown chips whose field only some processes provide show an "n/m" badge
+  with a tooltip naming the providers; the chip list follows the process-scope
+  picker (zero-coverage chips hide, stranded selections prune), and metrics
+  whose base field no allowed process provides are not offered.
+- Reporting: a **KPI stat band** above the results (both tabs) — total, bucket
+  count, and average per bucket, computed client-side from the rows already
+  returned (no extra query); hidden for zero-row or non-numeric results, with
+  no "vs prior period" delta in v1 (deferred — needs a second query).
+- Reporting: a **timing badge** in the masthead — "N rows · M ms" — showing
+  the run response's row count and the elapsed time measured client-side
+  around the fetch; appears after the first successful run.
+- Reporting: a **persistent query footer** — a one-line peek of the inlined
+  `sqlDisplay` SQL under the results, click to expand into the existing
+  Show-query panel; hidden whenever `sqlDisplay` is absent (the WS1
+  inliner-degrade fallback keeps working).
+- Reporting: the drill-through drawer's workitem ids are links — clicking one
+  opens the shared workitem detail panel (the same read-only view used by the
+  Prepared Documents register preview) in a modal over the drawer, permission-
+  gated the same way; Ctrl/middle-click still opens `/workitems` in a new tab.
+- Reporting AI: a **Try again** button on a failed agent run (turn cap hit, or
+  no artifacts produced) resends the same question instead of forcing a
+  retype.
+- Reporting AI/SQL: tool and sandbox errors strip ODBC driver noise before
+  reaching the model or the trace UI, and SQL Server error 1033 (`ORDER BY`
+  inside a derived table without `TOP`/`OFFSET`) gets a teaching hint instead
+  of the raw message; the agent prompt now forbids resubmitting SQL that just
+  failed unchanged. The SQL editor's generic 500 also carries a humanized
+  detail.
 
 ### Changed
 
+- Reporting: the Simple-tab wizard's 16-chip category cap is **removed** —
+  every filterable string field the Advanced tab offers is now available as a
+  breakdown chip (the docprocessing noise hide-list stays).
+- AI-workflow slimming (token cost): the MS02 multi-source detail moved from
+  `CLAUDE.md` into `docs/design/ms02-multisource.md` (short summary + pointer
+  remains); the GitNexus guidance in `CLAUDE.md` is now advisory instead of
+  mandatory-per-edit; `/write-plan` plans single-session by default (the
+  7-agent workflow is behind a `--deep` flag); `/execute-plan` batches
+  spec/quality reviews per plan phase instead of two reviews per task.
 - CI/deploy pipeline speedups (`deploy.yml`, `.pre-commit-config.yaml`):
   docs-only pushes (`docs/**`, `**.md`, `.claude/**`) no longer trigger the
   pipeline at all (those paths are excluded from the prod mirror anyway); a
@@ -43,8 +126,65 @@ Work toward 2.5.64.
   integration first, e2e browsers second — in both CI and the local pre-push
   gate, so a cheap failure surfaces in ~2 minutes instead of after the
   10-minute browser tier (default alphabetical collection ran e2e *first*).
+- Reporting: the Show-query panels (Simple and Advanced) now display the executed
+  SQL with parameter values inlined as literals and **Copy** copies that runnable
+  statement; the separate "Parameters: 1 = …" footer is gone. Execution is
+  unchanged and stays fully parameterized. Visual polish across the page: unified
+  24px gutters, dark-mode SQL syntax colors, tokenised hint/warning colors,
+  Show-query panel chrome.
+- Reporting: the page carries its own **"Editorial Ledger" visual identity** —
+  a serif masthead title and section headings on a cool-neutral canvas, mono
+  (tabular) numerals for KPI figures, table cells and metadata, uppercase
+  letter-spaced captions on the KPI band, and a single 2px ink rule topping
+  the chart block — restyled in place across the masthead, Simple library/
+  wizard/ask-AI, Advanced builder, drill drawer and AI surfaces, light and
+  dark. Every `.reporting-*` class, `id`, `name` and `data-testid` is
+  unchanged, so existing e2e selectors keep working; the process-coverage
+  "n/m" badge on wizard chips and measures picks up the same mono ink-navy
+  treatment. Single-series bar/line charts now render in ink-navy with a
+  brand-indigo accent on the peak value; multi-series palettes are unchanged.
+  Design spec: `docs/superpowers/specs/2026-07-15-reporting-editorial-ledger-design.md`.
 
 ### Fixed
+
+- Reporting/Prepared documents: the workitem-preview **lightbox was broken**
+  outside the Workitems page (image and values panel stacked unpositioned,
+  reported via the drill-through preview) — the split-pane CSS in
+  `source-highlight.css` was scoped to the Workitems shell ids
+  (`#imageModal`/`#srcHlLayer`); de-scoped to the shared `.modal` class plus
+  a `src-hl-layer-full` class on all three overlay layers.
+- Reporting AI: the Agent surface completes instead of dying at the turn cap
+  on nearly every ask. The `build_definition` tool now carries the full v1
+  definition JSON schema (the model used to guess the shape — filters as a
+  map, grain on non-date fields — and burn every turn on validation errors),
+  tolerates a stringified or top-level definition argument, and the
+  validator/sandbox errors teach the correct shape (filter-list example,
+  grainable field list, literal-ISO-dates hint). A `LIMIT` in drafted SQL is
+  rejected at the gate with "use TOP (n)" instead of passing sqlglot and
+  failing on the real server. The selected builder source is grounding, not
+  a gate: the data tools stay bound with `reporting.ai.explain_data` even
+  while the builder sits on a builder-only curated source, and the model is
+  told the selection is a UI default, not the question's subject. Turn cap
+  raised 6 → 10 to fit the full build → validate → run → answer loop.
+
+- Reporting: the drill-through drawer closes when a new run starts — after a
+  Refine it kept showing the rows behind the previous result on top of the
+  new one.
+
+- Reporting: Simple-pane charts zero-fill empty date-grain buckets —
+  "documents per month in Q1" with data only in February now renders three
+  buckets (0 / 2 / 0) instead of a single point (single dimension + metric +
+  bounded `between` filter; literal dates and resolved relative tokens).
+
+- Reporting: charts now carry **all** breakdowns, not just two — the first
+  breakdown stays the axis and every remaining breakdown joins into composite
+  colored series ("Process · Source"), client chart and scheduled-mail PNG
+  alike. Nothing collapses in the pivot anymore, so this is exact for every
+  aggregation (the old third-dim collapse only held for count/sum, and the
+  server renderer refused three breakdowns outright); the existing top-12
+  series cap bounds the cross-product. Chart clicks drill through with one
+  filter per breakdown, and whenever no chart renders the table shows
+  immediately instead of hiding behind the "Show table" toggle.
 
 - Workitems: a doc-field search on a field with no `SearchConfig` mapping for one
   of the two workitem sources let that source run **unconstrained** instead of
@@ -104,6 +244,29 @@ Work toward 2.5.64.
   process (83 confirmed PROD `app.log` occurrences over two weeks). `sydoc.05_PDBS` is
   MS02-only, so it never hit the mixed-type path — the only process that ever rendered. Fixed
   by normalizing the default leg's date to `datetime.date` at the merge point.
+- Reporting: no more English fragments in localized UIs — reporting API errors are
+  translated at the boundary (raw engine text demoted to a debug-only `detail`
+  field), filter chips and the Advanced op dropdown show localized operator labels
+  and catalog field names instead of raw codes, fallback report titles ("Report",
+  "Untitled report", "SQL report", "AI report", drill exports) and the Beta badge
+  are localized, and result numbers format with the app locale.
+- Reporting Simple pane: a failed `/api/reporting/run` (400) now shows the
+  server's own error + detail (e.g. "unknown metric: 'workitem_count'")
+  instead of a canned message, keeps the report title visible, and offers an
+  inline Open-in-Advanced escape hatch; Save/Export stay disabled until a run
+  actually succeeds.
+- Reporting Simple pane: a zero-row result always renders the designed
+  no-data empty state with a "widen the range" hint — previously a
+  header-only grid could show instead when the zero stat card happened to be
+  visible.
+- Reporting Simple pane: Back returns to wherever the report was opened from
+  (library, wizard, or an AI ask) instead of always preferring the wizard.
+- Reporting Simple wizard: restoring a saved report with a literal (non-token)
+  custom date range now prefills the Custom picker with that range, so the
+  picker's display always matches what actually runs.
+- Reporting: the masthead timing badge (`#reportingTiming`) now hides
+  whenever the Simple pane leaves the result view or shows a run error,
+  instead of showing a stale "N rows · M ms" from a previous successful run.
 
 ## [2.5.63] - 2026-06-24
 

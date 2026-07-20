@@ -48,9 +48,11 @@
   var agentInvalid = document.getElementById("rpAiAgentInvalid");
   var agentOpenBuilderBtn = document.getElementById("rpAiAgentOpenBuilder");
   var agentInsertSqlBtn = document.getElementById("rpAiAgentInsertSql");
+  var agentRetryBtn = document.getElementById("rpAiAgentRetry");
   var agentThread = [];          // [{q, a}] — drives the conversation + follow-up context
   var lastAgentDef = null;
   var lastAgentSql = "";
+  var lastAgentQuestion = "";
 
   // In-flight indicator shared by all three surfaces. Rotating lines mirror
   // the Simple pane's component; the agent surface gets a "takes a minute"
@@ -58,6 +60,8 @@
   var aiLoadingEl = document.getElementById("rpAiLoading");
   var aiLoadingTextEl = document.getElementById("rpAiLoadingText");
   var aiLoadingTimer = null;
+  var I18N_AI_REPORT = {{ _("AI report")|tojson }};
+  var I18N_AI_COPIED = {{ _("Copied")|tojson }};
   var AI_LINES = [
     {{ _("Asking the AI…")|tojson }},
     {{ _("Drafting your report…")|tojson }},
@@ -104,6 +108,7 @@
     if (defResult) defResult.hidden = true;
     if (agentResult) agentResult.hidden = !(s === "agent" && agentThread.length);
     if (errorEl) errorEl.hidden = true;
+    if (agentRetryBtn) agentRetryBtn.hidden = true;
     if (askBtn) askBtn.textContent = (s === "agent" && agentThread.length)
       ? '{{ _("Ask follow-up") }}' : '{{ _("Ask") }}';
   }
@@ -235,6 +240,7 @@
 
   function askAgent(question) {
     askBtn.disabled = true;
+    if (agentRetryBtn) agentRetryBtn.disabled = true;
     errorEl.hidden = true;
     showAiLoading(AGENT_LINES);
     fetch(API_PREFIX + "api/reporting/ai/agent", {
@@ -249,12 +255,14 @@
       return r.json().then(function (data) { return { ok: r.ok, data: data }; });
     }).then(function (res) {
       askBtn.disabled = false;
+      if (agentRetryBtn) agentRetryBtn.disabled = false;
       hideAiLoading();
       if (!res.ok) {
         errorEl.textContent = (res.data && res.data.error) || '{{ _("Error") }}';
         errorEl.hidden = false; agentResult.hidden = true; return;
       }
       var d = res.data;
+      lastAgentQuestion = question;
       agentThread.push({ q: question, a: d.answer || "" });
       renderAgentThread();
       renderAgentTrace(d.toolTrace, d.turns);
@@ -264,11 +272,14 @@
       if (agentInsertSqlBtn) agentInsertSqlBtn.hidden = !(lastAgentSql && sqlEditor);
       if (agentInvalid)
         agentInvalid.hidden = !!(d.answer && (lastAgentDef || lastAgentSql));
+      if (agentRetryBtn)
+        agentRetryBtn.hidden = !(d.stoppedReason !== "final" || !(lastAgentDef || lastAgentSql));
       agentResult.hidden = false;
       promptEl.value = "";
       askBtn.textContent = '{{ _("Ask follow-up") }}';
     }).catch(function () {
       askBtn.disabled = false;
+      if (agentRetryBtn) agentRetryBtn.disabled = false;
       hideAiLoading();
       errorEl.textContent = '{{ _("Network error") }}'; errorEl.hidden = false;
     });
@@ -337,12 +348,17 @@
   });
 
   if (copyBtn) copyBtn.addEventListener("click", function () {
-    if (navigator.clipboard && lastSql) navigator.clipboard.writeText(lastSql);
+    if (!navigator.clipboard || !lastSql) return;
+    navigator.clipboard.writeText(lastSql).then(function () {
+      var prev = copyBtn.textContent;
+      copyBtn.textContent = I18N_AI_COPIED;
+      setTimeout(function () { copyBtn.textContent = prev; }, 1200);
+    }).catch(function () { /* clipboard unavailable (non-HTTPS / unfocused) */ });
   });
 
   if (openBuilderBtn) openBuilderBtn.addEventListener("click", function () {
     if (!lastDef || !window.Reporting || !window.Reporting.applyDefinition) return;
-    window.Reporting.applyDefinition(lastDef, lastDef.title || "AI report", null);
+    window.Reporting.applyDefinition(lastDef, lastDef.title || I18N_AI_REPORT, null);
     panel.hidden = true;
     modeAi.classList.remove("active");
   });
@@ -356,9 +372,14 @@
 
   if (agentOpenBuilderBtn) agentOpenBuilderBtn.addEventListener("click", function () {
     if (!lastAgentDef || !window.Reporting || !window.Reporting.applyDefinition) return;
-    window.Reporting.applyDefinition(lastAgentDef, lastAgentDef.title || "AI report", null);
+    window.Reporting.applyDefinition(lastAgentDef, lastAgentDef.title || I18N_AI_REPORT, null);
     panel.hidden = true;
     modeAi.classList.remove("active");
+  });
+
+  if (agentRetryBtn) agentRetryBtn.addEventListener("click", function () {
+    if (!lastAgentQuestion) return;
+    askAgent(lastAgentQuestion);
   });
 
   if (agentInsertSqlBtn) agentInsertSqlBtn.addEventListener("click", function () {

@@ -68,9 +68,13 @@ Do **not** start executing yet.
 ## 4. Execute via subagent-driven development
 
 Invoke the **Skill tool** with `skill: superpowers:subagent-driven-development`, passing the plan
-content and full context. Follow that skill's process exactly:
+content and full context. Follow that skill's process, with one override:
 
-- Fresh subagent per task → spec-compliance review → code-quality review → mark complete → next task
+- Fresh subagent per task → mark complete → next task
+- **Reviews are batched per plan `# PHASE`, not per task** (overrides the skill's per-task
+  spec-compliance + code-quality double review): after the last task of each phase, run ONE
+  combined spec-compliance + code-quality review subagent over that phase's full diff and fix its
+  findings before starting the next phase. Single-phase plans get one review at the end.
 - The skill runs to completion on its own; do not interrupt between tasks
 
 **Natural stop conditions** — when any of these occur, proceed to step 5 rather than continuing:

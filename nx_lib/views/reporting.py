@@ -59,7 +59,13 @@ from ..reporting.ai_tools import TOOL_SPECS, ToolRegistry
 from ..reporting.catalog import fetch_docprocessing_catalog
 from ..reporting.export import rows_to_csv, rows_to_xlsx
 from ..reporting.query import QueryBuildError, build_table_query
-from ..reporting.sandbox import SqlSandboxError, validate_select, wrap_with_cap
+from ..reporting.sandbox import (
+    MAX_SQL_LEN,
+    SqlSandboxError,
+    humanize_sql_error,
+    validate_select,
+    wrap_with_cap,
+)
 from ..reporting.schedule import compute_next_run, utcnow, validate_schedule
 from ..reporting.schema import (
     ReportDefinitionError,
@@ -82,7 +88,7 @@ from ..reporting.sources import (
     code_sources,
     merge_sources,
 )
-from ..reporting.sqlformat import format_sql
+from ..reporting.sqlformat import format_sql, inline_sql_params
 from ..reporting.table_query import (
     TableQueryError,
     build_generic_query,
@@ -195,8 +201,9 @@ def _load_db_metrics():
     try:
         cur = conn.cursor()
         cur.execute(
-            "SELECT Code, SourceId, Label, Aggregation, BaseField, Description, "
-            "Format, Enabled, SortOrder FROM dbo.ReportingMetrics WHERE Enabled = 1"
+            "SELECT Code, SourceId, Label, GermanLabel, FrenchLabel, ItalianLabel, "
+            "Aggregation, BaseField, Description, Format, Enabled, SortOrder "
+            "FROM dbo.ReportingMetrics WHERE Enabled = 1"
         )
         out = {}
         for r in cur.fetchall():
@@ -204,6 +211,9 @@ def _load_db_metrics():
                 "code": r.Code,
                 "source_id": r.SourceId,
                 "label": r.Label,
+                "label_de": r.GermanLabel,
+                "label_fr": r.FrenchLabel,
+                "label_it": r.ItalianLabel,
                 "aggregation": r.Aggregation,
                 "base_field": r.BaseField,
                 "description": r.Description,
@@ -216,6 +226,20 @@ def _load_db_metrics():
         return {}
     finally:
         conn.close()
+
+
+_METRIC_LABEL_ATTRS = {"de": "label_de", "fr": "label_fr", "it": "label_it"}
+
+
+def _metric_label(m):
+    """Locale-aware metric label with English fallback (mirrors the
+    Search_Field_Labels convention: a missing translation falls back to Label).
+
+    Request-context only (reads get_locale()); non-request callers — the AI
+    catalogs and the scheduler's _metrics_for_source — keep using m['label'].
+    """
+    attr = _METRIC_LABEL_ATTRS.get(str(get_locale()))
+    return (m.get(attr) if attr else None) or m["label"]
 
 
 def _metrics_for_source(source_id):
@@ -954,6 +978,9 @@ def reporting():
         ai_sql_enabled=has_permission("reporting.ai.sql"),
         ai_explain_enabled=has_permission("reporting.ai.explain_data")
         and has_permission("reporting.sql.run"),
+        details_images_perm=has_permission("workitems.details.view.images"),
+        details_audit_perm=has_permission("workitems.details.view.audit"),
+        details_fields_perm=has_permission("workitems.details.view.fields"),
     )
 
 
@@ -995,7 +1022,9 @@ def api_run():
     except PermissionError:
         return jsonify({"error": _("Not authorized for this source")}), 403
     except (ReportDefinitionError, QueryBuildError, TableQueryError, MetricResolveError) as e:
-        return jsonify({"error": str(e)}), 400
+        return jsonify(
+            {"error": _("This report definition is invalid or outdated."), "detail": str(e)}
+        ), 400
     except Exception as e:
         current_app.logger.error(f"/api/reporting/run prepare error: {e}")
         return jsonify({"error": _("Could not build report")}), 500
@@ -1004,6 +1033,7 @@ def api_run():
     except Exception as e:
         current_app.logger.error(f"/api/reporting/run exec error: {e}")
         return jsonify({"error": _("Could not run report")}), 500
+    pretty = format_sql(sql)
     payload = {
         "columns": [
             {"field": c["field"], "header": c.get("header") or c["field"]} for c in columns
@@ -1012,7 +1042,8 @@ def api_run():
         "rowCount": len(rows),
         "truncated": len(rows) >= min(int(rd.get("rowLimit", DEFAULT_ROW_LIMIT)), MAX_ROW_LIMIT),
         "sql": sql,
-        "sqlPretty": format_sql(sql),
+        "sqlPretty": pretty,
+        "sqlDisplay": inline_sql_params(pretty, params),
         "params": [_json_safe(p) for p in params],
     }
     # rd is the original request body (tokens intact) — _prepare_run resolves
@@ -1021,6 +1052,27 @@ def api_run():
     if resolved_dates:
         payload["resolvedDates"] = resolved_dates
     return jsonify(payload)
+
+
+def _sandbox_error_message(e):
+    """Translated user-facing message for a SqlSandboxError, keyed by rule.
+
+    The raw English message stays in the response's `detail` field; dynamic
+    bits (keyword / construct name) arrive via e.token. Unknown rules fall
+    back to the raw message rather than hiding information.
+    """
+    token = getattr(e, "token", None) or ""
+    messages = {
+        "empty": _("SQL is required."),
+        "too_long": _("The SQL exceeds {n} characters.").format(n=MAX_SQL_LEN),
+        "blocked_keyword": _("Disallowed keyword: {kw}").format(kw=token),
+        "parse": _("The SQL could not be parsed."),
+        "multi_statement": _("Exactly one statement is allowed."),
+        "not_select": _("Only SELECT / WITH / set operations are allowed."),
+        "forbidden_node": _("Disallowed construct: {kw}").format(kw=token),
+        "tsql_limit": _("T-SQL does not support LIMIT — use TOP (n) instead."),
+    }
+    return messages.get(e.rule, str(e))
 
 
 @require_permission("reporting.sql.run")
@@ -1041,14 +1093,16 @@ def api_sql_run():
     except PermissionError:
         return jsonify({"error": _("Not authorized for this SQL target")}), 403
     except SqlSandboxError as e:
-        return jsonify({"error": str(e), "rule": e.rule}), 400
+        return jsonify({"error": _sandbox_error_message(e), "rule": e.rule, "detail": str(e)}), 400
     except ReportDefinitionError as e:
-        return jsonify({"error": str(e)}), 400
+        return jsonify({"error": _("Invalid SQL request."), "detail": str(e)}), 400
     except RuntimeError:
         return jsonify({"error": _("SQL source is not configured")}), 503
     except Exception as e:
         current_app.logger.error(f"/api/reporting/sql/run exec error: {e}")
-        return jsonify({"error": _("Could not run query")}), 500
+        return jsonify(
+            {"error": _("Could not run query"), "detail": humanize_sql_error(str(e))}
+        ), 500
     return jsonify(
         {
             "columns": columns,
@@ -1434,26 +1488,24 @@ def api_ai_agent():
     # are bound ONLY with reporting.ai.explain_data (Phase 3e data-egress grant) AND
     # reporting.sql.run (the live-SQL gate). Without explain_data the loop stays
     # schema-only: no result rows ever reach the model.
-    # The client sends the active builder source so the data tools can be gated on
-    # whether run_sql can actually reach it. A curated table-provider source (e.g.
-    # Generali on GeneraliDB) has no RO SQL target, so binding run_sql for it only
-    # makes the model loop on "invalid object name" — bind build_definition instead.
+    # The client sends the active builder source only as prompt grounding. It is a
+    # UI default, not the question's subject: a curated table-provider source (e.g.
+    # Generali on GeneraliDB) has no RO SQL target, but the grounding marks such
+    # sources builder-only and the system prompt steers run_sql away from them —
+    # the data tools stay bound so questions about run_sql-able sources still get
+    # real numbers even while the builder happens to sit on a curated source.
     active_source = None
     source_id = (body.get("source") or "").strip()
     if source_id:
         active_source = _get_effective_source(source_id)
-    source_blocks_run_sql = bool(
+    source_is_builder_only = bool(
         active_source
         and active_source.get("kind") == "curated"
         and (active_source.get("provider") or "docprocessing") != "docprocessing"
     )
 
     has_sql = has_permission("reporting.ai.sql")
-    explain = (
-        has_permission("reporting.ai.explain_data")
-        and has_permission("reporting.sql.run")
-        and not source_blocks_run_sql
-    )
+    explain = has_permission("reporting.ai.explain_data") and has_permission("reporting.sql.run")
     tool_names = {"build_definition"}
     if has_sql:
         tool_names.add("validate_sql")
@@ -1485,9 +1537,12 @@ def api_ai_agent():
     if active_source:
         grounding += (
             f'\n\nThe user\'s selected source is "{active_source.get("label")}" '
-            f'(id {active_source.get("id")}); "this source" in the question means it.'
+            f'(id {active_source.get("id")}); "this source" in the question means it. '
+            "It is only a UI default — when the question neither says \"this source\" "
+            "nor names it, choose the best-fitting source from the catalog instead "
+            "(for counting/aggregation questions, one that lists metrics)."
         )
-        if source_blocks_run_sql:
+        if source_is_builder_only:
             grounding += (
                 " It is builder-only — answer it with build_definition; run_sql cannot " "reach it."
             )
@@ -1601,16 +1656,18 @@ def api_export():
         except PermissionError:
             return jsonify({"error": _("Not authorized for this SQL target")}), 403
         except SqlSandboxError as e:
-            return jsonify({"error": str(e), "rule": e.rule}), 400
+            return jsonify(
+                {"error": _sandbox_error_message(e), "rule": e.rule, "detail": str(e)}
+            ), 400
         except ReportDefinitionError as e:
-            return jsonify({"error": str(e)}), 400
+            return jsonify({"error": _("Invalid SQL request."), "detail": str(e)}), 400
         except RuntimeError:
             return jsonify({"error": _("SQL source is not configured")}), 503
         except Exception as e:
             current_app.logger.error(f"/api/reporting/export sql error: {e}")
             return jsonify({"error": _("Could not export query")}), 500
         return _serialize_export(
-            columns, rows, rd.get("title") or "Report", fmt, chart_png=chart_png
+            columns, rows, rd.get("title") or _("Report"), fmt, chart_png=chart_png
         )
     try:
         columns, sql, params, engine = _prepare_run(rd)
@@ -1618,11 +1675,15 @@ def api_export():
     except PermissionError:
         return jsonify({"error": _("Not authorized for this source")}), 403
     except (ReportDefinitionError, QueryBuildError, TableQueryError, MetricResolveError) as e:
-        return jsonify({"error": str(e)}), 400
+        return jsonify(
+            {"error": _("This report definition is invalid or outdated."), "detail": str(e)}
+        ), 400
     except Exception as e:
         current_app.logger.error(f"/api/reporting/export error: {e}")
         return jsonify({"error": _("Could not export report")}), 500
-    return _serialize_export(columns, rows, rd.get("title") or "Report", fmt, chart_png=chart_png)
+    return _serialize_export(
+        columns, rows, rd.get("title") or _("Report"), fmt, chart_png=chart_png
+    )
 
 
 @require_permission("reporting.export")
@@ -1652,7 +1713,7 @@ def api_export_grid():
     rows = [list(r) if isinstance(r, list | tuple) else [r] for r in rows[:MAX_ROW_LIMIT]]
     fmt = _resolve_export_format(payload.get("format"))
     return _serialize_export(
-        columns, rows, payload.get("title") or "Report", fmt, chart_png=chart_png
+        columns, rows, payload.get("title") or _("Report"), fmt, chart_png=chart_png
     )
 
 
@@ -2244,6 +2305,9 @@ def _metric_insert_params(p):
         p["code"].strip(),
         p["sourceId"].strip(),
         p["label"].strip(),
+        (p.get("labelDe") or "").strip() or None,
+        (p.get("labelFr") or "").strip() or None,
+        (p.get("labelIt") or "").strip() or None,
         p["aggregation"].strip(),
         (p.get("baseField") or "").strip() or None,
         p.get("format") or None,
@@ -2387,9 +2451,9 @@ def api_admin_metrics_list():
     try:
         cur = conn.cursor()
         cur.execute(
-            "SELECT MetricID, Code, SourceId, Label, Aggregation, BaseField, "
-            "Description, Format, Enabled, SortOrder FROM dbo.ReportingMetrics "
-            "ORDER BY SortOrder, Label"
+            "SELECT MetricID, Code, SourceId, Label, GermanLabel, FrenchLabel, "
+            "ItalianLabel, Aggregation, BaseField, Description, Format, Enabled, "
+            "SortOrder FROM dbo.ReportingMetrics ORDER BY SortOrder, Label"
         )
         rows = [
             {
@@ -2397,6 +2461,9 @@ def api_admin_metrics_list():
                 "code": r.Code,
                 "sourceId": r.SourceId,
                 "label": r.Label,
+                "labelDe": r.GermanLabel,
+                "labelFr": r.FrenchLabel,
+                "labelIt": r.ItalianLabel,
                 "aggregation": r.Aggregation,
                 "baseField": r.BaseField,
                 "description": r.Description,
@@ -2427,8 +2494,9 @@ def api_admin_metrics_create():
         cur = conn.cursor()
         cur.execute(
             "INSERT INTO dbo.ReportingMetrics "
-            "(Code, SourceId, Label, Aggregation, BaseField, Format, Enabled, SortOrder) "
-            "OUTPUT INSERTED.MetricID VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "(Code, SourceId, Label, GermanLabel, FrenchLabel, ItalianLabel, "
+            "Aggregation, BaseField, Format, Enabled, SortOrder) "
+            "OUTPUT INSERTED.MetricID VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             _metric_insert_params(p),
         )
         new_id = cur.fetchone()[0]
@@ -2453,9 +2521,9 @@ def api_admin_metrics_update(metric_id):
         cur = conn.cursor()
         params = (*_metric_insert_params(p), metric_id)
         cur.execute(
-            "UPDATE dbo.ReportingMetrics SET Code=?, SourceId=?, Label=?, Aggregation=?, "
-            "BaseField=?, Format=?, Enabled=?, SortOrder=?, UpdatedAt=SYSUTCDATETIME() "
-            "WHERE MetricID=?",
+            "UPDATE dbo.ReportingMetrics SET Code=?, SourceId=?, Label=?, GermanLabel=?, "
+            "FrenchLabel=?, ItalianLabel=?, Aggregation=?, BaseField=?, Format=?, "
+            "Enabled=?, SortOrder=?, UpdatedAt=SYSUTCDATETIME() WHERE MetricID=?",
             params,
         )
         affected = cur.rowcount
@@ -2508,7 +2576,7 @@ def api_metrics():
         out.setdefault(sid, []).append(
             {
                 "code": m["code"],
-                "label": m["label"],
+                "label": _metric_label(m),
                 "aggregation": m["aggregation"],
                 "baseField": m["base_field"],
                 "format": m["format"],

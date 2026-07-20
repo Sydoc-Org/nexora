@@ -109,7 +109,8 @@ function Show-Help {
     Write-Host ""
     Write-Host "  Commands:" -ForegroundColor Gray
     Write-Host "    -u, --up              Start nexora"
-    Write-Host "    -d, --down            Stop nexora"
+    Write-Host "    -d, --down            Stop nexora (port 8000 instance)"
+    Write-Host "    --down-all            Stop ALL nexora instances (any port)"
     Write-Host "    -r, --restart         Restart nexora"
     Write-Host "    -s, --status          Show running status (PID, env, port) + in-flight autopilot issue"
     Write-Host "    -l, --logs            Stream live logs  " -NoNewline
@@ -133,6 +134,8 @@ function Show-Help {
     Write-Host "(any INT username, implies -b)" -ForegroundColor Gray
     Write-Host "    --body:<text>              Issue body for --queue  " -NoNewline
     Write-Host "(defaults to the title)" -ForegroundColor Gray
+    Write-Host "    --no-conflict              Use the first free port from 8001 up  " -NoNewline
+    Write-Host "(run alongside any already-running instances)" -ForegroundColor Gray
     Write-Host "    --env                      Print current env from .env"
     Write-Host "    --env:<int|staging>        Switch env file  " -NoNewline
     Write-Host "(requires -u / -r / --routes, prod not allowed)" -ForegroundColor Gray
@@ -147,6 +150,8 @@ function Show-Help {
     Write-Host "    nx -u -b                             start and open browser"
     Write-Host "    nx -b:/admin/users                   open browser to /admin/users"
     Write-Host "    nx -u -b:/admin --loginas:username   start, log in as username, navigate to /admin"
+    Write-Host "    nx -u -b --no-conflict               start an extra instance on the next free port"
+    Write-Host "    nx --down-all                        stop every nexora instance"
     Write-Host "    nx --routes                          list all Flask routes"
     Write-Host "    nx --routes:admin                    list routes matching regex /admin/i"
     Write-Host "    nx --routes:^/api                    list routes whose path starts with /api"
@@ -179,6 +184,7 @@ $doctorFast    = $false
 $doctorFix     = $false
 $queueTitle    = $null
 $queueBody     = $null
+$noConflict    = $false
 $unknown       = @()
 
 for ($i = 0; $i -lt $args.Count; $i++) {
@@ -236,6 +242,11 @@ for ($i = 0; $i -lt $args.Count; $i++) {
         $queueBody = $Matches[1]
         continue
     }
+    # --no-conflict  run on port 8001 so an instance on 8000 (e.g. Claude's) is untouched
+    if ($arg -match '^--no-conflict$') {
+        $noConflict = $true
+        continue
+    }
     switch -Exact ($arg.ToLower()) {
         '-u'        { $action = 'start'   }
         '--up'      { $action = 'start'   }
@@ -243,6 +254,7 @@ for ($i = 0; $i -lt $args.Count; $i++) {
         '--restart' { $action = 'restart' }
         '-d'        { $action = 'stop'    }
         '--down'    { $action = 'stop'    }
+        '--down-all' { $action = 'stop-all' }
         '-l'        { $action = 'logs'    }
         '--logs'    { $action = 'logs'    }
         '-s'        { $action = 'status'  }
@@ -267,6 +279,23 @@ if ($unknown.Count -gt 0) {
 }
 
 if ($loginAs) { $browser = $true }
+
+# --no-conflict: first free port from 8001 upward + suffixed log/state files so
+# instances never clash. Dynamic port means -d/-s can't target such an instance
+# afterwards — that's what --down-all is for.
+$Port = 8000
+if ($noConflict) {
+    if ($action -notin @('start', 'restart')) {
+        Write-Fail "--no-conflict only applies to -u / --up or -r / --restart (use --down-all to stop extra instances)"
+        exit 1
+    }
+    $used = @(Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty LocalPort)
+    $Port = 8001
+    while ($used -contains $Port) { $Port++ }
+    $StderrLog    = "$LogDir\app_stderr.$Port.log"
+    $StdoutLog    = "$LogDir\app_stdout.$Port.log"
+    $EnvStateFile = "$LogDir\current_env.$Port"
+}
 
 if (-not $action) { $action = if ($browser) { 'browser' } else { 'status' } }
 
@@ -302,7 +331,7 @@ if ($envOverride) {
 
 # ── core functions ────────────────────────────────────────────────────────────
 function Find-AppProcess {
-    $conn = Get-NetTCPConnection -LocalPort 8000 -State Listen -ErrorAction SilentlyContinue |
+    $conn = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue |
             Select-Object -First 1
     if ($conn) { Get-Process -Id $conn.OwningProcess -ErrorAction SilentlyContinue }
 }
@@ -320,6 +349,24 @@ function Stop-App {
     }
 }
 
+function Stop-AllApps {
+    # Kill every nexora instance regardless of port: match python processes
+    # running nx_main.py rather than scanning ports (works for dynamic
+    # --no-conflict ports and instances started outside nx).
+    $procs = @(Get-CimInstance Win32_Process -Filter "Name LIKE 'python%'" -ErrorAction SilentlyContinue |
+               Where-Object { $_.CommandLine -like '*nx_main.py*' })
+    if ($procs.Count -eq 0) {
+        Write-Warn "Nothing to stop — no nexora instance is running"
+        return
+    }
+    foreach ($proc in $procs) {
+        Write-Info "Stopping PID $($proc.ProcessId)..."
+        Stop-Process -Id $proc.ProcessId -Force -ErrorAction SilentlyContinue
+    }
+    Remove-Item -Path "$LogDir\current_env*" -ErrorAction SilentlyContinue
+    Write-Ok "Stopped $($procs.Count) instance(s)"
+}
+
 function Start-App {
     $existing = Find-AppProcess
     if ($existing) {
@@ -327,10 +374,12 @@ function Start-App {
         return $null
     }
     $envValue = if ($envOverride) { $envOverride } else { "INT" }
-    Write-Info "Starting nexora ($envValue)..."
-    $prev = [System.Environment]::GetEnvironmentVariable("ENVIRONMENT")
+    Write-Info "Starting nexora ($envValue, port $Port)..."
+    $prev     = [System.Environment]::GetEnvironmentVariable("ENVIRONMENT")
+    $prevPort = [System.Environment]::GetEnvironmentVariable("FLASK_RUN_PORT")
     try {
-        $env:ENVIRONMENT = $envValue
+        $env:ENVIRONMENT    = $envValue
+        $env:FLASK_RUN_PORT = "$Port"
         foreach ($f in $StdoutLog, $StderrLog) { if ((Test-Path $f) -and (Get-Item $f).Length -gt 10MB) { Move-Item -Force $f "$f.1" } }
         $p = Start-Process -FilePath $Python `
                  -ArgumentList "`"$AppPy`"" `
@@ -345,6 +394,8 @@ function Start-App {
     } finally {
         if ($null -eq $prev) { Remove-Item Env:ENVIRONMENT -ErrorAction SilentlyContinue }
         else                  { $env:ENVIRONMENT = $prev }
+        if ($null -eq $prevPort) { Remove-Item Env:FLASK_RUN_PORT -ErrorAction SilentlyContinue }
+        else                      { $env:FLASK_RUN_PORT = $prevPort }
     }
 }
 
@@ -383,7 +434,7 @@ function Wait-ForStartup {
         }
         try {
             $tcp = [System.Net.Sockets.TcpClient]::new()
-            $tcp.Connect('127.0.0.1', 8000)
+            $tcp.Connect('127.0.0.1', $Port)
             $tcp.Close()
             return 'ready'
         } catch { }
@@ -401,7 +452,7 @@ function Show-StartupError {
 }
 
 function Open-Browser {
-    $base = "http://127.0.0.1:8000"
+    $base = "http://127.0.0.1:$Port"
     $path = ""
     if ($browserRoute) {
         $path = $browserRoute.Trim()
@@ -568,6 +619,7 @@ switch ($action) {
         Open-Browser
     }
     'stop'     { Stop-App }
+    'stop-all' { Stop-AllApps }
     'maindir'  {
         # NOTE: when invoked as `nx -md` via the profile function, that wrapper
         # intercepts this flag and runs Set-Location in the caller's scope.
@@ -590,7 +642,7 @@ switch ($action) {
             $envName = if (Test-Path $EnvStateFile) {
                 (Get-Content $EnvStateFile -Raw).Trim()
             } else { '?' }
-            Write-Ok "Running  (PID $($p.Id)  ·  env $envName  ·  port 8000)"
+            Write-Ok "Running  (PID $($p.Id)  ·  env $envName  ·  port $Port)"
         } else {
             Write-Warn "Not running  — use -u / --up to start"
         }

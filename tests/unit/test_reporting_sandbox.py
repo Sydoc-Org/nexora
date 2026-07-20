@@ -4,6 +4,7 @@ import pytest
 
 from nx_lib.reporting.sandbox import (
     SqlSandboxError,
+    humanize_sql_error,
     validate_select,
     wrap_with_cap,
 )
@@ -72,3 +73,53 @@ def test_wrap_with_cap_shape():
 
 def test_wrap_with_cap_coerces_int():
     assert "TOP (10)" in wrap_with_cap("SELECT 1", "10")
+
+
+def test_sandbox_error_token_carries_dynamic_part():
+    # The view boundary translates rule-keyed messages; the dynamic bit
+    # (keyword/construct name) must ride on the exception, not be regexed
+    # back out of the English message.
+    with pytest.raises(SqlSandboxError) as ei:
+        validate_select("SELECT 1; DROP TABLE x")
+    assert ei.value.rule == "blocked_keyword"
+    assert ei.value.token.upper() == "DROP"
+
+
+# ---- Task 6: humanize_sql_error (pyodbc/ODBC driver noise -> teaching text) --
+
+# The exact live-audit pyodbc str(exception) text for a derived-table ORDER BY
+# without TOP/OFFSET (SQL Server error 1033) — known and hinted in v1.
+_ODBC_ORDER_BY_1033 = (
+    "('42000', '[42000] [Microsoft][ODBC SQL Server Driver][SQL Server]"
+    "The ORDER BY clause is invalid in views, inline functions, derived "
+    "tables, subqueries, and common table expressions, unless TOP, OFFSET "
+    "or FOR XML is also specified. (1033) (SQLExecDirectW)')"
+)
+
+# An incorrect-syntax message (error 102) — cleaned like any ODBC error, but
+# unmapped in v1 so no Hint: line is appended.
+_ODBC_INCORRECT_SYNTAX_102 = (
+    "('42000', \"[42000] [Microsoft][ODBC SQL Server Driver][SQL Server]"
+    "Incorrect syntax near 'FROM'. (102) (SQLExecDirectW)\")"
+)
+
+
+def test_humanize_sql_error_strips_noise_and_hints_known_code():
+    out = humanize_sql_error(_ODBC_ORDER_BY_1033)
+    assert "ORDER BY clause is invalid" in out
+    assert "Hint:" in out
+    assert "SQLExecDirectW" not in out
+    assert "[Microsoft]" not in out
+
+
+def test_humanize_sql_error_strips_noise_without_hint_for_unmapped_code():
+    out = humanize_sql_error(_ODBC_INCORRECT_SYNTAX_102)
+    assert "Incorrect syntax near 'FROM'" in out
+    assert "Hint:" not in out
+    assert "SQLExecDirectW" not in out
+    assert "[Microsoft]" not in out
+
+
+def test_humanize_sql_error_passes_through_non_odbc_message():
+    msg = "unknown metric: 'x'"
+    assert humanize_sql_error(msg) == msg

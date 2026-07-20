@@ -298,3 +298,78 @@ def test_run_zero_dim_metric_returns_single_total_row(admin_client):
     finally:
         admin_client.delete(f"/api/reporting/admin/metrics/{mid}")
         admin_client.delete(f"/api/reporting/admin/sources/{sid}")
+
+
+def test_admin_metrics_roundtrip_localized_labels(admin_client):
+    create = admin_client.post(
+        "/api/reporting/admin/metrics",
+        json={
+            "code": "api_l10n_metric",
+            "sourceId": "docprocessing",
+            "label": "Pages processed",
+            "labelDe": "Verarbeitete Seiten",
+            "labelFr": "Pages traitées",
+            "aggregation": "sum",
+            "baseField": "pagecount",
+            "format": "int",
+        },
+    )
+    assert create.status_code == 200
+    mid = create.get_json()["id"]
+    try:
+        rows = admin_client.get("/api/reporting/admin/metrics").get_json()["rows"]
+        row = next(r for r in rows if r["code"] == "api_l10n_metric")
+        assert row["labelDe"] == "Verarbeitete Seiten"
+        assert row["labelFr"] == "Pages traitées"
+        assert row["labelIt"] is None
+        upd = admin_client.put(
+            f"/api/reporting/admin/metrics/{mid}",
+            json={
+                "code": "api_l10n_metric",
+                "sourceId": "docprocessing",
+                "label": "Pages processed",
+                "labelDe": "Verarbeitete Seiten",
+                "labelIt": "Pagine elaborate",
+                "aggregation": "sum",
+                "baseField": "pagecount",
+            },
+        )
+        assert upd.status_code == 200
+        rows = admin_client.get("/api/reporting/admin/metrics").get_json()["rows"]
+        row = next(r for r in rows if r["code"] == "api_l10n_metric")
+        assert row["labelIt"] == "Pagine elaborate"
+        assert row["labelFr"] is None  # update replaces all three
+    finally:
+        admin_client.delete(f"/api/reporting/admin/metrics/{mid}")
+
+
+def test_metrics_api_label_follows_session_locale_with_fallback(admin_client):
+    create = admin_client.post(
+        "/api/reporting/admin/metrics",
+        json={
+            "code": "api_l10n_pick",
+            "sourceId": "docprocessing",
+            "label": "Pages processed",
+            "labelDe": "Verarbeitete Seiten",
+            "aggregation": "sum",
+            "baseField": "pagecount",
+        },
+    )
+    assert create.status_code == 200
+    mid = create.get_json()["id"]
+    try:
+        with admin_client.session_transaction() as sess:
+            sess["locale"] = "de"
+        data = admin_client.get("/api/reporting/metrics").get_json()
+        entry = next(m for m in data["docprocessing"] if m["code"] == "api_l10n_pick")
+        assert entry["label"] == "Verarbeitete Seiten"
+        # No Italian translation -> falls back to the English Label.
+        with admin_client.session_transaction() as sess:
+            sess["locale"] = "it"
+        data = admin_client.get("/api/reporting/metrics").get_json()
+        entry = next(m for m in data["docprocessing"] if m["code"] == "api_l10n_pick")
+        assert entry["label"] == "Pages processed"
+    finally:
+        with admin_client.session_transaction() as sess:
+            sess["locale"] = "en"
+        admin_client.delete(f"/api/reporting/admin/metrics/{mid}")

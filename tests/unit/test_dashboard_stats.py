@@ -10,6 +10,7 @@ import types
 from datetime import date, timedelta
 from unittest.mock import MagicMock
 
+import pytest
 from flask import session
 
 import nx_lib.views.dashboard as dv
@@ -308,3 +309,43 @@ def test_cacheable_response_rejects_error_statuses():
     assert dv._cacheable_response((ok_resp, 200))
     assert not dv._cacheable_response(("body", 500))
     assert not dv._cacheable_response(("body", 401))
+
+
+# --------------------------- compute_today_stats --------------------------- #
+# Session-free seam shared by the dashboard KPI card and the external API v1
+# (/api/v1/stats/today). Extracted verbatim from dashboard_kpi_stats, so the
+# numbers must match the route's previous inline computation exactly.
+
+
+def test_compute_today_stats_sums_both_legs(app, monkeypatch):
+    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning(_CONFIGS))
+    # T-SQL leg returns (processed, imported) = (5, 7); MS02 leg adds (2, 3).
+    monkeypatch.setattr(dv, "engine_statistics_db", _engine_returning([(5, 7)]))
+    monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [(2, 3)])
+    with app.app_context():
+        assert dv.compute_today_stats(["sydoc.Alpha", "sydoc.05_PDBS"]) == (10, 7)
+
+
+def test_compute_today_stats_ms02_leg_survives_dead_statistics_db(app, monkeypatch):
+    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning(_CONFIGS))
+    monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine())
+    monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [(5, 2)])
+    with app.app_context():
+        assert dv.compute_today_stats(["sydoc.Alpha", "sydoc.05_PDBS"]) == (2, 5)
+
+
+def test_compute_today_stats_null_sums_count_as_zero(app, monkeypatch):
+    # A Statconfig table with no rows today yields SUM(...) = (NULL, NULL).
+    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning([_CONFIGS[0]]))
+    monkeypatch.setattr(dv, "engine_statistics_db", _engine_returning([(None, None)]))
+    with app.app_context():
+        assert dv.compute_today_stats(["sydoc.Alpha"]) == (0, 0)
+
+
+def test_compute_today_stats_raises_when_nexora_db_down(app, monkeypatch):
+    # Fail-through contract: the Statconfig read must RAISE (not zero-fill) so
+    # the dashboard's uncached-500 semantics and the API's JSON 500 both hold --
+    # zeros here would be cached/reported as real numbers on a NexoraDB blip.
+    monkeypatch.setattr(dv, "engine_nexora_db", _dead_engine("NexoraDB down"))
+    with app.app_context(), pytest.raises(Exception):  # noqa: B017 -- any exception must propagate
+        dv.compute_today_stats(["sydoc.Alpha"])

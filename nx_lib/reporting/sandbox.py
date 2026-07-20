@@ -38,6 +38,12 @@ _BLOCKED_WORDS = (
 )
 _BLOCKED_RE = re.compile(r"\b(" + "|".join(_BLOCKED_WORDS) + r")\b", re.IGNORECASE)
 
+# LIMIT parses under sqlglot's lenient tsql dialect into the SAME AST node as
+# TOP, so it passes the AST gate but fails on the real SQL Server. Textual check
+# is the only reliable reject. ponytail: matches a bare column alias named
+# "limit" too — bracket-quote it ([limit]) in the unlikely case you need one.
+_TSQL_LIMIT_RE = re.compile(r"(?<![\[\.\w])LIMIT\b", re.IGNORECASE)
+
 # Any of these appearing anywhere in the parsed tree is a hard reject.
 _FORBIDDEN_NODES = (
     exp.Insert,
@@ -59,9 +65,58 @@ _QUERY_ROOTS = (exp.Select, exp.Union, exp.Intersect, exp.Except, exp.Subquery)
 class SqlSandboxError(ValueError):
     """Raised when SQL fails sandbox validation. `.rule` names the failed layer."""
 
-    def __init__(self, rule, message):
+    def __init__(self, rule, message, token=None):
         super().__init__(message)
         self.rule = rule
+        self.token = token  # dynamic part (keyword/construct) for the i18n boundary
+
+
+# pyodbc surfaces driver failures as a stringified (sqlstate, message) tuple,
+# e.g. ('42000', "[42000] [Microsoft][ODBC SQL Server Driver][SQL Server]The
+# ORDER BY clause is invalid ... (1033) (SQLExecDirectW)") — unreadable noise
+# for both the model and the UI trace. humanize_sql_error() below strips the
+# tuple wrapper, the leading "[..][..]" driver-identity brackets, and the
+# trailing "(NNNN) (SQLExecDirectW)" code+call suffix, then appends a teaching
+# hint for known SQL Server error codes. Messages that don't look ODBC-shaped
+# pass through unchanged.
+_ODBC_TUPLE_RE = re.compile(r"^\(\s*'[^']*'\s*,\s*(['\"])(?P<msg>.*)\1\s*\)\s*$", re.DOTALL)
+_ODBC_LEADING_BRACKETS_RE = re.compile(r"^(?:\[[^\[\]]*\]\s*)+")
+_ODBC_TRAILING_CALL_RE = re.compile(r"\s*\(SQL\w*\)\s*$")
+_ODBC_TRAILING_CODE_RE = re.compile(r"\s*\((\d+)\)\s*$")
+
+# Mapping v1: SQL Server error code -> teaching hint. Unmapped codes are still
+# cleaned of driver noise, just without a Hint: line.
+_SQL_ERROR_HINTS = {
+    "1033": (
+        "ORDER BY inside a derived table needs TOP or OFFSET — or move "
+        "ORDER BY to the outer SELECT."
+    ),
+}
+
+
+def humanize_sql_error(msg):
+    """Strip pyodbc/ODBC driver noise from `msg` and append a teaching hint.
+
+    Pure and English-only — this text feeds the model as well as the UI tool
+    trace, so it must stay deterministic; never gettext it. Non-ODBC-shaped
+    messages (validation errors, tool errors) are returned unchanged.
+    """
+    if not isinstance(msg, str) or not msg:
+        return msg
+    text = msg.strip()
+    tuple_match = _ODBC_TUPLE_RE.match(text)
+    if tuple_match:
+        text = tuple_match.group("msg")
+    unbracketed = _ODBC_LEADING_BRACKETS_RE.sub("", text)
+    if unbracketed == text and tuple_match is None:
+        return msg  # no ODBC markers at all -> pass through verbatim
+    text = _ODBC_TRAILING_CALL_RE.sub("", unbracketed)
+    code_match = _ODBC_TRAILING_CODE_RE.search(text)
+    text = _ODBC_TRAILING_CODE_RE.sub("", text).strip()
+    hint = _SQL_ERROR_HINTS.get(code_match.group(1)) if code_match else None
+    if hint:
+        text = f"{text}\nHint: {hint}"
+    return text
 
 
 def _strip_comments(sql):
@@ -80,7 +135,14 @@ def validate_select(sql):
     scan = _strip_comments(sql)
     m = _BLOCKED_RE.search(scan)
     if m:
-        raise SqlSandboxError("blocked_keyword", f"disallowed keyword: {m.group(0).strip()}")
+        kw = m.group(0).strip()
+        raise SqlSandboxError("blocked_keyword", f"disallowed keyword: {kw}", token=kw)
+    if _TSQL_LIMIT_RE.search(scan):
+        raise SqlSandboxError(
+            "tsql_limit",
+            "T-SQL does not support LIMIT — use TOP (n) instead",
+            token="LIMIT",
+        )
 
     try:
         statements = [s for s in sqlglot.parse(sql, dialect="tsql") if s is not None]
@@ -95,7 +157,8 @@ def validate_select(sql):
 
     forbidden = next(root.find_all(*_FORBIDDEN_NODES), None)
     if forbidden is not None:
-        raise SqlSandboxError("forbidden_node", f"disallowed construct: {type(forbidden).__name__}")
+        name = type(forbidden).__name__
+        raise SqlSandboxError("forbidden_node", f"disallowed construct: {name}", token=name)
     return sql
 
 

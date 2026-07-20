@@ -26,6 +26,7 @@ IF OBJECT_ID('dbo.ReportShares', 'U') IS NOT NULL DROP TABLE dbo.ReportShares;
 IF OBJECT_ID('dbo.Reports', 'U') IS NOT NULL DROP TABLE dbo.Reports;
 IF OBJECT_ID('dbo.ReportingSqlAudit', 'U') IS NOT NULL DROP TABLE dbo.ReportingSqlAudit;
 IF OBJECT_ID('dbo.ReportingSqlAck', 'U') IS NOT NULL DROP TABLE dbo.ReportingSqlAck;
+IF OBJECT_ID('dbo.ApiKeys', 'U') IS NOT NULL DROP TABLE dbo.ApiKeys;
 IF OBJECT_ID('dbo.UserPermissionOverride', 'U') IS NOT NULL DROP TABLE dbo.UserPermissionOverride;
 IF OBJECT_ID('dbo.AccessProfilePermission', 'U') IS NOT NULL DROP TABLE dbo.AccessProfilePermission;
 IF OBJECT_ID('dbo.ActiveSessions', 'U') IS NOT NULL DROP TABLE dbo.ActiveSessions;
@@ -262,7 +263,7 @@ BEGIN
 END;
 GO
 
--- Canonical metrics registry (mirrors 0017_create_reporting_metrics.sql).
+-- Canonical metrics registry (mirrors 0017_create_reporting_metrics.sql + 0039 label columns).
 IF OBJECT_ID(N'dbo.ReportingMetrics', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.ReportingMetrics (
@@ -270,6 +271,9 @@ BEGIN
         Code         NVARCHAR(64) NOT NULL CONSTRAINT UQ_ReportingMetrics_Code UNIQUE,
         SourceId     NVARCHAR(64) NOT NULL,
         Label        NVARCHAR(120) NOT NULL,
+        GermanLabel  NVARCHAR(120) NULL,
+        FrenchLabel  NVARCHAR(120) NULL,
+        ItalianLabel NVARCHAR(120) NULL,
         Aggregation  NVARCHAR(16) NOT NULL,
         BaseField    NVARCHAR(128) NULL,
         FilterJson   NVARCHAR(MAX) NULL,
@@ -301,5 +305,23 @@ BEGIN
             REFERENCES dbo.Users(userID)
     );
     CREATE INDEX IX_ReportShares_User ON dbo.ReportShares(SharedWithUserID);
+END;
+GO
+
+-- Per-client API keys for the external machine-to-machine API v1
+-- (mirrors 0038_create_api_keys.sql). Integration tests insert/delete
+-- their own committed rows (tests/integration/test_api_external_routes.py).
+IF OBJECT_ID(N'dbo.ApiKeys', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.ApiKeys (
+        ID          INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_ApiKeys PRIMARY KEY,
+        KeyHash     CHAR(64) NOT NULL CONSTRAINT UQ_ApiKeys_KeyHash UNIQUE,
+        ClientCode  NVARCHAR(32) NOT NULL,
+        Label       NVARCHAR(255) NULL,
+        ProcessList NVARCHAR(MAX) NOT NULL,
+        Enabled     BIT NOT NULL CONSTRAINT DF_ApiKeys_Enabled DEFAULT (1),
+        CreatedAt   DATETIME2 NOT NULL CONSTRAINT DF_ApiKeys_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        LastUsedAt  DATETIME2 NULL
+    );
 END;
 GO

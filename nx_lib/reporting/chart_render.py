@@ -56,7 +56,7 @@ def render_chart_png(definition, columns, rows, *, width=8.0, height=4.5, dpi=11
     """
     dims = list(definition.get("columns") or [])
     metrics = list(definition.get("metrics") or [])
-    if not metrics or not rows or not 1 <= len(dims) <= 2:
+    if not metrics or not rows or not dims:
         return None
     # Assumes query engine places metrics as trailing columns (dims first).
     metric_idx = len(columns) - len(metrics)
@@ -75,12 +75,15 @@ def render_chart_png(definition, columns, rows, *, width=8.0, height=4.5, dpi=11
             else:
                 ax.bar(labels, values, color=_PALETTE[0])
         else:
-            # 2-dim: grouped bars or lines. Pie is intentionally unsupported here
+            # Multi-dim: grouped bars or lines. Pie is intentionally unsupported here
             # (summing across the second dim would silently lie for distinct-count metrics).
-            # pivot: x = dim1 (row order), series = dim2 (12 largest by total)
+            # pivot: x = dim1 (row order), series = remaining dims joined
+            # ("Process · Source", 12 largest by total) — mirrors the Simple-pane
+            # client mountChart composite series key.
             x_order, series_tot, cell = [], {}, {}
             for r in rows:
-                x, s = _label(r[0]), _label(r[1])
+                x = _label(r[0])
+                s = " · ".join(_label(v) for v in r[1 : len(dims)])
                 v = float(r[metric_idx] or 0)
                 if x not in cell:
                     x_order.append(x)

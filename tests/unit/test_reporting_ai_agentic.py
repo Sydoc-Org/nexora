@@ -243,6 +243,18 @@ def test_agent_system_prompt_forbids_grouping_by_the_counted_field():
     assert "forces every count to 1" in _AGENT_SYSTEM
 
 
+def test_agent_system_prompt_forbids_resubmitting_identical_failed_sql():
+    # Lives in the explain_data suffix (not the base _AGENT_SYSTEM) — run_sql
+    # itself is only ever mentioned there, since the base prompt must stay
+    # silent about a tool that isn't bound without reporting.ai.explain_data.
+    from nx_lib.reporting.ai import _AGENT_EXPLAIN_SUFFIX
+
+    assert (
+        "After a failed run_sql, never resubmit the identical SQL; change the "
+        "query before retrying." in _AGENT_EXPLAIN_SUFFIX
+    )
+
+
 def test_anthropic_translates_prior_tool_results():
     captured = {}
 

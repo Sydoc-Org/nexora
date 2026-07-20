@@ -4,13 +4,13 @@
    naturalWidth/naturalHeight (the rects from Octopus are in image pixels). */
 
 /* ---- Lightbox overlay ---- */
-/* Absolutely positioned inside #imageModal (the positioned ancestor), with inline
+/* Absolutely positioned inside .modal (the positioned ancestor), with inline
    left/top/width/height set from the modal image's LAYOUT box (offsetLeft/Top/
    Width/Height). Layout metrics are immune to the image's open-zoom
    `transform: scale()` animation — reading getBoundingClientRect() instead pinned
    the overlay to a mid-zoom (shrunken) frame that never updated once the zoom
    settled, stranding the boxes in blank space. */
-#srcHlLayer {
+.src-hl-layer-full {
   position: absolute;
   pointer-events: none;
   z-index: 1001;
@@ -28,7 +28,7 @@
    AND over dark text / logos / QR codes: a thin white ring just outside the
    coloured border, plus a soft drop shadow. The confidence colour (border + fill)
    is untouched. Thumbnails stay hairline-thin (handled below). */
-#srcHlLayer .src-hl-box {
+.src-hl-layer-full .src-hl-box {
   border-width: 2.5px;
   box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.9), 0 1px 5px rgba(15, 23, 42, 0.35);
 }
@@ -137,17 +137,17 @@
 .src-table-cell.src-cell-loc:hover { background: rgba(234, 88, 12, 0.08); }
 
 /* ---- Full-page source review (split lightbox) ----
-   #imageModal is a two-pane review: the document page (with the highlight overlay)
+   .modal is a two-pane review: the document page (with the highlight overlay)
    on the LEFT, the extracted values on the RIGHT. The values panel hides itself for
    documents with no extracted values, so plain media viewing stays full-width. */
-#imageModal .src-modal-body {
+.modal .src-modal-body {
   display: flex;
   width: 100%;
   height: 100%;
   align-items: stretch;
 }
 .src-modal-page {
-  position: relative;          /* containing block for #srcHlLayer + the nav arrows */
+  position: relative;          /* containing block for .src-hl-layer-full + the nav arrows */
   flex: 1 1 auto;
   min-width: 0;
   display: flex;
@@ -212,7 +212,7 @@
    It sits over the white values panel (and the dark backdrop), so it carries its
    own surface + soft shadow. Gray glyph -> danger red on hover, indigo focus ring,
    subtle press scale. No layout shift (transform is on the absolute button only). */
-#imageModal .modal-close {
+.modal .modal-close {
   z-index: 1003;
   top: 16px;
   right: 16px;
@@ -235,20 +235,20 @@
               box-shadow 150ms cubic-bezier(.4, 0, .2, 1),
               transform 150ms cubic-bezier(.4, 0, .2, 1);
 }
-#imageModal .modal-close > i { pointer-events: none; }
-#imageModal .modal-close:hover {
+.modal .modal-close > i { pointer-events: none; }
+.modal .modal-close:hover {
   color: #dc2626;                 /* --nx-danger */
   background: #f9fafb;            /* --nx-alt */
   box-shadow: 0 6px 18px rgba(16, 24, 40, 0.24);
 }
-#imageModal .modal-close:focus-visible {
+.modal .modal-close:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.45);   /* --nx-accent ring */
 }
-#imageModal .modal-close:active { transform: scale(0.92); }
+.modal .modal-close:active { transform: scale(0.92); }
 /* Narrow screens: stack the page over the values panel. */
 @media (max-width: 900px) {
-  #imageModal .src-modal-body { flex-direction: column; }
+  .modal .src-modal-body { flex-direction: column; }
   .src-modal-page { padding: 0.5rem; }
   .src-modal-values {
     width: 100%;
