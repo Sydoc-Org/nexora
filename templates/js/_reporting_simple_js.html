@@ -18,6 +18,9 @@
     emptyMine: {{ _("You haven't saved any reports yet — click “New report” to build your first one.")|tojson }},
     emptyShared: {{ _("No reports have been shared with everyone yet.")|tojson }},
     emptyDirect: {{ _("No reports have been shared with you yet.")|tojson }},
+    groupNameMine: {{ _("My reports")|tojson }},
+    groupNameShared: {{ _("Library")|tojson }},
+    groupNameDirect: {{ _("Shared with me")|tojson }},
     couldNotLoad: {{ _("Could not load this report.")|tojson }},
     couldNotRun: {{ _("Could not run this report.")|tojson }},
     couldNotSave: {{ _("Could not save.")|tojson }},
@@ -140,8 +143,7 @@
 
   function setView(view) {
     state.view = view;
-    el('rsLibrary').hidden = view !== 'library';
-    el('rsSearch').hidden = view !== 'library';
+    el('rsLibrary').hidden = view !== 'library';  // #rsSearch nests under it now
     el('rsNewReport').hidden = view !== 'library';
     var aiBar = el('rsAiBar');
     if (aiBar && !aiBar.dataset.gone) aiBar.hidden = view !== 'library';
@@ -169,13 +171,153 @@
   }
 
   // ---------- Library ----------
+  // Preview cache (D5 contract): 'nx.reporting.preview.<reportId>' =
+  // {t:'line'|'bar'|'donut'|'total', v:number[]|number, ts}. Written after a
+  // successful run of a SAVED report (writePreviewCache, below); read here to
+  // feed the card's inline-SVG thumbnail with real numbers when available.
+  function previewCacheGet(id) {
+    try { return JSON.parse(localStorage.getItem('nx.reporting.preview.' + id) || 'null'); }
+    catch (e) { return null; }
+  }
+
+  // Badge/thumbnail kind, derived from whatever the list endpoint gives us:
+  // r.kind, plus r.definition summary fields when present (the real list
+  // endpoint only sends `kind` today — a full definition is opportunistic,
+  // e.g. in tests — so the common case falls through to the 'bar' default).
+  function previewKindOf(r) {
+    if (r.kind === 'dashboard') return 'dash';
+    var def = r.definition;
+    if (def) {
+      var cols = def.columns || [];
+      if (!cols.length) return 'total';
+      var first = cols[0];
+      if (first.grain || /date/i.test(first.field || '')) return 'line';
+      if (def.visualization === 'pie' || def.visualization === 'donut') return 'donut';
+    }
+    return 'bar';
+  }
+
+  // Shared by the line preview: polyline point list, pure. (h-4)/(h-10) keep
+  // a 4px top margin and a few px of headroom above the peak.
+  function sparkPath(vals, w, h) {
+    var max = Math.max.apply(null, vals) || 1;
+    return vals.map(function (v, i) {
+      return (i / (vals.length - 1) * w).toFixed(1) + ',' + (h - 4 - (v / max) * (h - 10)).toFixed(1);
+    }).join(' ');
+  }
+
+  // Deterministic decorative fallback (D5) for reports with no run-cache yet
+  // — same id always draws the same shape instead of jittering on refresh.
+  // Ids are ints in prod but strings in tests, so fold to an int first.
+  function seededVals(id, n) {
+    var s = String(id), h = 0, i;
+    for (i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+    var vals = [], x = (h * 2654435761) % 977;
+    for (i = 0; i < n; i++) { x = (x * 48271) % 2147483647; vals.push(40 + (x % 60)); }
+    return vals;
+  }
+
+  var PREVIEW_BADGE = {
+    line: { icon: 'fa-chart-line', label: 'LINE' },
+    bar: { icon: 'fa-chart-column', label: 'BAR' },
+    donut: { icon: 'fa-chart-pie', label: 'DONUT' },
+    total: { icon: 'fa-hashtag', label: 'TOTAL' },
+    dash: { icon: 'fa-table-cells-large', label: 'DASHBOARD' }
+  };
+
+  function previewSvgLine(vals) {
+    var w = 200, h = 60;
+    var pts = sparkPath(vals, w, h).split(' ');
+    var last = pts[pts.length - 1].split(',');
+    var area = pts.join(' ') + ' ' + w.toFixed(1) + ',' + h + ' 0,' + h;
+    return '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" class="rs-card-svg">' +
+      '<polygon points="' + area + '" fill="#4f46e5" opacity=".12"></polygon>' +
+      '<polyline points="' + pts.join(' ') + '" fill="none" stroke="#4f46e5" stroke-width="2"></polyline>' +
+      '<circle cx="' + last[0] + '" cy="' + last[1] + '" r="3" fill="#4f46e5"></circle>' +
+      '</svg>';
+  }
+
+  function previewSvgBar(vals) {
+    var w = 200, h = 60, n = vals.length, gap = 6;
+    var bw = (w - gap * (n - 1)) / n;
+    var max = Math.max.apply(null, vals) || 1;
+    var maxIdx = 0;
+    vals.forEach(function (v, i) { if (v > vals[maxIdx]) maxIdx = i; });
+    var bars = vals.map(function (v, i) {
+      var bh = Math.max(4, (v / max) * (h - 8));
+      var x = i * (bw + gap);
+      return '<rect x="' + x.toFixed(1) + '" y="' + (h - bh).toFixed(1) + '" width="' + bw.toFixed(1) +
+        '" height="' + bh.toFixed(1) + '" rx="2.5" fill="' + (i === maxIdx ? '#7c3aed' : '#a5b4fc') + '"></rect>';
+    }).join('');
+    return '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" class="rs-card-svg">' + bars + '</svg>';
+  }
+
+  function previewSvgDonut(vals) {
+    var cx = 30, cy = 30, r = 22, circ = 2 * Math.PI * r;
+    var total = (Number(vals[0]) || 0) + (Number(vals[1]) || 0) || 1;
+    var seg1 = (Number(vals[0]) || 0) / total * circ;
+    return '<svg viewBox="0 0 60 60" class="rs-card-svg rs-card-svg-donut">' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#e0e7ff" stroke-width="8"></circle>' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#4f46e5" stroke-width="8" ' +
+      'stroke-dasharray="' + seg1.toFixed(1) + ' ' + circ.toFixed(1) + '" ' +
+      'transform="rotate(-90 ' + cx + ' ' + cy + ')"></circle></svg>';
+  }
+
+  function previewSvgDash() {
+    var s = 22, gap = 6, x0 = 5, y0 = 5, cells = '';
+    [[0, 0], [1, 0], [0, 1], [1, 1]].forEach(function (p) {
+      cells += '<rect x="' + (x0 + p[0] * (s + gap)) + '" y="' + (y0 + p[1] * (s + gap)) +
+        '" width="' + s + '" height="' + s + '" rx="4" fill="#eef2ff" stroke="#c7d2fe"></rect>';
+    });
+    return '<svg viewBox="0 0 60 60" class="rs-card-svg">' + cells + '</svg>';
+  }
+
+  // Preview band: thumbnail (real cache values when the kind matches, else
+  // the seeded decorative fallback) + the type badge pinned top-right.
+  function previewBandHtml(r) {
+    var kind = previewKindOf(r);
+    var cache = previewCacheGet(r.id);
+    var real = cache && cache.t === kind;
+    var body;
+    if (kind === 'total') {
+      var metricLabel = (r.definition && r.definition.metrics && r.definition.metrics[0]
+        && r.definition.metrics[0].label) || '—';
+      body = real
+        ? '<div class="rs-card-total">' + esc(fmtNumber(cache.v)) + '</div>'
+        : '<div class="rs-card-total rs-card-total-label">' + esc(metricLabel) + '</div>';
+    } else if (kind === 'dash') {
+      body = previewSvgDash();
+    } else {
+      var n = kind === 'donut' ? 2 : 8;
+      var vals = real ? (Array.isArray(cache.v) ? cache.v : [cache.v]) : seededVals(r.id, n);
+      body = kind === 'line' ? previewSvgLine(vals)
+        : kind === 'bar' ? previewSvgBar(vals) : previewSvgDonut(vals);
+    }
+    var badge = PREVIEW_BADGE[kind] || PREVIEW_BADGE.bar;
+    return '<div class="rs-card-preview" data-kind="' + kind + '">' + body +
+      '<span class="rs-card-badge"><i class="fas ' + badge.icon + '" aria-hidden="true"></i>' +
+      badge.label + '</span></div>';
+  }
+
+  function initialsOf(name) {
+    var parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '?';
+    return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+  }
+
   function card(r) {
     var b = document.createElement('button');
     b.type = 'button';
-    b.className = 'reporting-simple-card';
+    b.className = 'rs-card';
     b.setAttribute('data-testid', 'rs-card');
-    b.innerHTML = '<p class="rs-card-name">' + esc(r.name) + '</p>' +
-      '<p class="rs-card-meta">' + esc(r.ownerName || '') + ' · ' + esc(relTime(r.updatedAt)) + '</p>';
+    b.innerHTML = previewBandHtml(r) +
+      '<div class="rs-card-body">' +
+        '<p class="rs-card-name">' + esc(r.name) + '</p>' +
+        '<div class="rs-card-meta">' +
+          '<span class="rs-card-avatar">' + esc(initialsOf(r.ownerName)) + '</span>' +
+          '<span class="rs-card-metatext">' + esc(r.ownerName || '') + ' · ' + esc(relTime(r.updatedAt)) + '</span>' +
+        '</div>' +
+      '</div>';
     b.addEventListener('click', function () { openReport(r); });
     return b;
   }
@@ -183,16 +325,29 @@
   function renderLibrary() {
     var q = (el('rsSearch').value || '').toLowerCase();
     var groups = { shared: el('rsGroupShared'), mine: el('rsGroupMine'), direct: el('rsGroupDirect') };
+    var counts = { shared: 0, mine: 0, direct: 0 };
     Object.keys(groups).forEach(function (k) { groups[k].innerHTML = ''; });
     state.reports.forEach(function (r) {
       if (q && r.name.toLowerCase().indexOf(q) === -1) return;
       var g = r.visibility === 'shared' ? 'shared' : (r.owned ? 'mine' : 'direct');
       groups[g].appendChild(card(r));
+      counts[g]++;
     });
-    var groupEmptyText = { mine: I18N.emptyMine, shared: I18N.emptyShared, direct: I18N.emptyDirect };
+    var pills = { mine: el('rsCountMine'), shared: el('rsCountShared'), direct: el('rsCountDirect') };
+    // The empty-state name line reuses the group's own header string (already
+    // translated above the grid); the hint line reuses the existing
+    // emptyMine/emptyShared/emptyDirect copy — no new translated sentences.
+    var groupEmpty = {
+      mine: { name: I18N.groupNameMine, hint: I18N.emptyMine },
+      shared: { name: I18N.groupNameShared, hint: I18N.emptyShared },
+      direct: { name: I18N.groupNameDirect, hint: I18N.emptyDirect }
+    };
     Object.keys(groups).forEach(function (k) {
-      if (!groups[k].children.length) {
-        groups[k].innerHTML = '<p class="reporting-simple-empty">' + esc(groupEmptyText[k]) + '</p>';
+      if (pills[k]) pills[k].textContent = String(counts[k]);
+      if (!counts[k]) {
+        groups[k].innerHTML = '<div class="rs-group-empty">' +
+          '<p class="rs-group-empty-name">' + esc(groupEmpty[k].name) + '</p>' +
+          '<p class="rs-group-empty-hint">' + esc(groupEmpty[k].hint) + '</p></div>';
       }
     });
   }
@@ -703,11 +858,14 @@
             tension: .25
           };
         }),
-        multiSeries: true
+        multiSeries: true,
+        // Preview cache (Step 5) reads this back to tag the cached series —
+        // must match whatever renderChart() below actually draws.
+        type: def.chartType || (isDate ? 'line' : 'bar')
       };
       el('rsChartCard').hidden = false;
       el('rsChartTools').hidden = false;
-      renderChart(def.chartType || (isDate ? 'line' : 'bar'));
+      renderChart(state.chartData.type);
       return true;
     }
     var metricIdx = columns.length - (def.metrics || []).length;
@@ -734,10 +892,13 @@
         tension: .25
       };
     });
-    state.chartData = { labels: labels, rawX: rawX, datasets: datasets, multiSeries: false };
+    state.chartData = {
+      labels: labels, rawX: rawX, datasets: datasets, multiSeries: false,
+      type: def.chartType || (isDate ? 'line' : 'bar')
+    };
     el('rsChartCard').hidden = false;
     el('rsChartTools').hidden = false;
-    renderChart(def.chartType || (isDate ? 'line' : 'bar'));
+    renderChart(state.chartData.type);
     return true;
   }
 
@@ -1126,6 +1287,33 @@
     } else {
       el('rsTableWrap').hidden = false;   // plain table reports: grid directly
     }
+    writePreviewCache(dims, hasMetrics, rows);
+  }
+
+  // Step 5 — refresh the library card's preview thumbnail from the result
+  // that's actually on screen. Only for a SAVED report (state.current.reportId
+  // set) — an unsaved ad-hoc result has no card to feed. Wrapped in try/catch:
+  // a localStorage quota error (or a browser with storage disabled) must
+  // never break a run.
+  function writePreviewCache(dims, hasMetrics, rows) {
+    var reportId = state.current && state.current.reportId;
+    if (!reportId) return;
+    try {
+      var payload;
+      if (hasMetrics && !dims && rows.length) {
+        payload = { t: 'total', v: Number(rows[0][0]) || 0, ts: Date.now() };
+      } else if (hasMetrics && dims && state.chartData) {
+        var series = (state.chartData.datasets[0] || {}).data || [];
+        payload = {
+          t: state.chartData.type === 'line' ? 'line' : 'bar',
+          v: series.slice(0, 16),
+          ts: Date.now()
+        };
+      } else {
+        return;
+      }
+      localStorage.setItem('nx.reporting.preview.' + reportId, JSON.stringify(payload));
+    } catch (e) { /* quota or storage disabled — never break a run */ }
   }
 
   el('rsTableToggle').addEventListener('click', function () {

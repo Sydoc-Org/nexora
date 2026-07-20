@@ -173,6 +173,54 @@ def test_library_report_run_400_shows_detail_and_advanced_action(nexora_server, 
     expect(page.get_by_test_id("rs-export")).to_be_enabled()
 
 
+def test_library_card_shows_preview_band_and_type_badge(nexora_server, page):
+    """A library card renders a two-band layout: a preview thumbnail on top
+    with a type badge. A saved report whose first breakdown column carries a
+    grain (a month bucket) must show the LINE badge (previewKindOf's
+    dashboard/zero-dim/grain-or-date/donut/bar precedence)."""
+    _login(page, nexora_server)
+
+    def _row(rid, name, definition=None):
+        row = {
+            "id": rid,
+            "name": name,
+            "ownerName": "Admin",
+            "updatedAt": "2026-07-01T00:00:00Z",
+            "visibility": "private",
+            "owned": True,
+            "kind": "table",
+        }
+        if definition is not None:
+            row["definition"] = definition
+        return row
+
+    line_def = {
+        "schemaVersion": 1,
+        "source": "docprocessing",
+        "visualization": "table",
+        "title": "e2e preview line",
+        "columns": [{"field": "docdate", "grain": "month"}],
+        "metrics": [{"metric": "workitem_count"}],
+        "filters": [],
+        "sort": [],
+        "scope": {"clients": [], "processes": []},
+        "rowLimit": 100,
+    }
+
+    page.route(
+        "**/api/reporting/reports",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps([_row("e2e-preview-line", "e2e preview line", line_def)]),
+        ),
+    )
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    card = page.get_by_test_id("rs-card").first
+    expect(card.locator(".rs-card-preview")).to_be_visible()
+    expect(card.locator(".rs-card-badge")).to_contain_text("LINE")
+
+
 def test_wizard_opens_and_lists_measures_or_empty_state(nexora_server, page):
     _login(page, nexora_server)
     page.goto(f"{nexora_server}/reporting")

@@ -975,11 +975,7 @@ body.nx-app {
 .reporting-simple-aibar .reporting-input { flex: 1; }
 .reporting-simple-search { max-width: 220px; margin-left: auto; }
 .reporting-simple-h { font-size: 13px; font-weight: 600; color: var(--nx-text-sec); text-transform: uppercase; letter-spacing: .04em; margin: 18px 0 10px; }
-.reporting-simple-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
-.reporting-simple-card { text-align: left; cursor: pointer; border: 1px solid var(--nx-border); border-radius: 8px; padding: 12px 14px; background: var(--nx-card); color: var(--nx-text); font-family: inherit; }
-.reporting-simple-card:hover { border-color: var(--nx-accent); box-shadow: 0 2px 8px var(--nx-accent-soft); }
-.reporting-simple-card .rs-card-name { font-weight: 600; font-size: 14px; margin: 0 0 4px; }
-.reporting-simple-card .rs-card-meta { font-size: 12px; color: var(--nx-text-meta); margin: 0; }
+.reporting-simple-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
 .reporting-simple-empty { font-size: 13px; color: var(--nx-text-sec); padding: 8px 0 4px; }
 .reporting-simple-step { margin: 18px 0; }
 .reporting-simple-choices { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -1295,18 +1291,10 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   outline-offset: -2px;
 }
 
-/* Task 7: Simple library tiles — card chrome (border/radius/background,
-   hover accent) comes from the un-scoped .reporting-simple-card rule above
-   (~L979); the ledger's hairline-row flattening is retired (Task 2), so
-   only the name/meta typography is overridden here. */
-.reporting-ledger .reporting-simple-card .rs-card-name {
-  font-weight: 400;
-  font-size: 15px;
-}
-.reporting-ledger .reporting-simple-card .rs-card-meta {
-  font-variant-numeric: tabular-nums;
-  font-size: 11px;
-}
+/* Task 4 retired the .reporting-simple-card tile in favor of the two-band
+   .rs-card (chrome + typography now live with the rest of Task 4's CSS,
+   ~L1443) — the old ledger-scoped name/meta override that used to sit here
+   has no selector left to attach to. */
 
 /* Task 7: Wizard step headings ("1. What do you want to measure?" etc.) take
    the same uppercase tracked-caption treatment as .reporting-ledger-caption
@@ -1440,3 +1428,55 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 .rs-suggestion { border: 1px solid #e0e7ff; border-radius: 999px; background: var(--nx-card); color: var(--nx-accent); font: 500 12px var(--nx-font); padding: 6px 14px; cursor: pointer; }
 .rs-suggestion:hover { background: var(--nx-accent-tint); }
 .reporting-hero__actions { margin-top: 24px; display: flex; justify-content: center; gap: 10px; }
+
+/* ---- Library group headers + report cards (spec §Landing "Report cards") ---- */
+.rs-group-head { display: flex; align-items: center; gap: 10px; margin: 18px 0 10px; }
+.rs-group-head .reporting-simple-h { margin: 0; }
+.rs-group-spacer { flex: 1; }
+.rs-count-pill { display: inline-block; border: 1px solid var(--nx-border); border-radius: 999px; font: 600 11.5px var(--nx-font); color: var(--nx-accent); padding: 1px 9px; min-width: 8px; text-align: center; }
+.rs-search-wrap { position: relative; width: 200px; }
+.rs-search-wrap i { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--nx-text-meta); font-size: 12px; pointer-events: none; }
+.rs-search-wrap .reporting-simple-search { width: 100%; max-width: none; margin-left: 0; border-radius: 8px; padding: 7px 10px 7px 28px; }
+
+.rs-card {
+  display: block; text-align: left; cursor: pointer; padding: 0; overflow: hidden;
+  border: 1px solid var(--nx-border); border-radius: var(--nx-radius-lg);
+  background: var(--nx-card); color: var(--nx-text); font-family: inherit;
+  transition: border-color 150ms cubic-bezier(.4, 0, .2, 1), box-shadow 150ms cubic-bezier(.4, 0, .2, 1),
+              transform 150ms cubic-bezier(.4, 0, .2, 1);
+}
+.rs-card:hover {
+  border-color: var(--nx-card-hover-border); box-shadow: var(--nx-card-hover-shadow);
+  transform: translateY(-2px);
+}
+.rs-card-preview {
+  position: relative; height: 78px; padding: 14px 14px 0;
+  background: linear-gradient(180deg, #fafaff, var(--nx-card));
+  border-bottom: 1px solid var(--nx-divider);
+  display: flex; align-items: flex-end;
+}
+.rs-card-svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.rs-card-badge {
+  position: absolute; top: 8px; right: 8px; display: inline-flex; align-items: center; gap: 4px;
+  background: var(--nx-card); border-radius: 999px; padding: 2px 8px;
+  font: 600 10px var(--nx-font); text-transform: uppercase; letter-spacing: .02em; color: var(--nx-violet);
+  box-shadow: 0 1px 3px rgba(16, 24, 40, .08);
+}
+.rs-card-badge i { font-size: 9px; }
+.rs-card-total { width: 100%; padding-bottom: 10px; font: 600 30px var(--nx-font); color: var(--nx-accent); }
+.rs-card-total-label { font-size: 13px; font-weight: 500; color: var(--nx-text-sec); }
+.rs-card-body { padding: 12px 14px; }
+.rs-card-name {
+  margin: 0 0 6px; font: 600 13.5px/1.35 var(--nx-font); color: var(--nx-text);
+  min-height: 36px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.rs-card-meta { display: flex; align-items: center; gap: 6px; }
+.rs-card-avatar {
+  flex: none; width: 16px; height: 16px; border-radius: 50%; background: var(--nx-brand-grad);
+  color: #fff; font: 600 8px var(--nx-font); display: flex; align-items: center; justify-content: center;
+}
+.rs-card-metatext { font-size: 11.5px; color: var(--nx-text-meta); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.rs-group-empty { border: 1px dashed var(--nx-border); border-radius: var(--nx-radius-lg); padding: 22px; text-align: center; grid-column: 1 / -1; }
+.rs-group-empty-name { margin: 0 0 4px; font: 600 13px var(--nx-font); color: var(--nx-text); }
+.rs-group-empty-hint { margin: 0; font-size: 12.5px; color: var(--nx-text-meta); }

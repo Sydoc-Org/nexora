@@ -34,15 +34,25 @@
     </div>
   </div>
 
-  <input id="rsSearch" class="reporting-input reporting-simple-search"
-         placeholder="{{ _('Search reports…') }}" data-testid="rs-search">
-
   <div id="rsLibrary" data-testid="rs-library">
-    <h3 class="reporting-simple-h">{{ _("Library") }}</h3>
-    <div id="rsGroupShared" class="reporting-simple-grid" data-testid="rs-group-shared"></div>
-    <h3 class="reporting-simple-h">{{ _("My reports") }}</h3>
+    <div class="rs-group-head">
+      <h3 class="reporting-simple-h">{{ _("My reports") }}</h3>
+      <span class="rs-count-pill" id="rsCountMine"></span>
+      <span class="rs-group-spacer"></span>
+      <span class="rs-search-wrap"><i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+        <input id="rsSearch" class="reporting-input reporting-simple-search"
+               placeholder="{{ _('Search reports…') }}" data-testid="rs-search"></span>
+    </div>
     <div id="rsGroupMine" class="reporting-simple-grid" data-testid="rs-group-mine"></div>
-    <h3 class="reporting-simple-h">{{ _("Shared with me") }}</h3>
+    <div class="rs-group-head">
+      <h3 class="reporting-simple-h">{{ _("Library") }}</h3>
+      <span class="rs-count-pill" id="rsCountShared"></span>
+    </div>
+    <div id="rsGroupShared" class="reporting-simple-grid" data-testid="rs-group-shared"></div>
+    <div class="rs-group-head">
+      <h3 class="reporting-simple-h">{{ _("Shared with me") }}</h3>
+      <span class="rs-count-pill" id="rsCountDirect"></span>
+    </div>
     <div id="rsGroupDirect" class="reporting-simple-grid" data-testid="rs-group-direct"></div>
   </div>
 
