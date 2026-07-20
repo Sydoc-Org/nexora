@@ -20,6 +20,11 @@ this is the authoritative reference for the facts below.
   `public."DossierStatistik"`); stays `None` until `MS02_DOCFIELDS_DB_*` are set (defaults reuse
   the MS02 runtime host/login; only the dbname differs). Doc-field search pre-resolves matches
   against it into a workitem-id allow-set — no ETL, never joined in-query to the runtime DB.
+  **Degrade contract (fail closed):** while this engine is `None` — or any resolution step
+  errors — an active doc-field search excludes MS02 rows entirely (empty allow-set), it never
+  runs the Postgres source unconstrained. An env with the MS02 runtime configured but no
+  `MS02_DOCFIELDS_DB_NAME` (STAGING, 2026-07-20) used to flood every doc-field search with the
+  full MS02 corpus.
 
 ## Multi-source workitems
 

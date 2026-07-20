@@ -552,7 +552,10 @@ def _get_workitems_data(args, export_all=False):
                         stat_conn.close()
 
                 if matching_ids is None:
-                    continue  # error/no config -> no constraint from this pair
+                    # StatisticsDB error -> this pair cannot be checked. Fail
+                    # CLOSED (zero SQL Server rows), never unconstrained.
+                    docfield_ids = set()
+                    break
                 if not matching_ids:
                     docfield_ids = set()  # a pair matched nothing -> whole result empty
                     break
@@ -567,13 +570,13 @@ def _get_workitems_data(args, export_all=False):
             if conn_nex:
                 conn_nex.close()
 
-    # --- MS02 EAV doc-field pre-resolution (sibling to the default block) ---
+    # --- MS02 columnar doc-field pre-resolution (sibling to the default block) ---
     # Resolves through the SAME SearchConfig mapping but against the separate
-    # MS02 doc-field DB (EAV "Name"/"StringValue"). The default block above
-    # (StatisticsDB -> docfield_ids) is untouched and byte-identical; this is a
-    # parallel, independent allow-set so a mixed default+MS02 request never
-    # cross-shrinks. None = no constraint; the resolver short-circuits when the
-    # engine is absent. Guarded by the same permission + target_processes.
+    # MS02 doc-field DB (wide per-process statistik tables). The default block
+    # above (StatisticsDB -> docfield_ids) is a parallel, independent allow-set
+    # so a mixed default+MS02 request never cross-shrinks. Guarded by the same
+    # permission + target_processes; when the engine is absent this block is
+    # skipped and the fail-closed guard below forces zero MS02 rows.
     if (
         has_permission("workitems.filter.documentfields")
         and target_processes
@@ -644,6 +647,25 @@ def _get_workitems_data(args, export_all=False):
                 cursor_nex2.close()
             if conn_nex2:
                 conn_nex2.close()
+
+    # Fail CLOSED: an active doc-field search must never leave a source
+    # unconstrained. Every unresolved path -- absent MS02 engine, resolver/DB
+    # error, unusable mapping, unknown field key -- lands here as None and
+    # becomes an empty allow-set (zero rows from that source) instead of "no
+    # constraint" (which floods the result with the source's entire corpus;
+    # observed on STAGING 2026-07-20). Sensitive-blocked fields keep their
+    # designed "silently ignored" semantics and do not count as active.
+    if has_permission("workitems.filter.documentfields") and target_processes:
+        _blocked = sensitive_blocked_keys()
+        _active = any(
+            (f or "").strip() and (v or "").strip() and (f or "").lower().strip() not in _blocked
+            for f, v in zip(docfields, docvalues, strict=False)
+        )
+        if _active:
+            if docfield_ids is None:
+                docfield_ids = set()
+            if ms02_docfield_ids is None:
+                ms02_docfield_ids = set()
 
     status_map = {"Ready": 0, "In Progress": 1, "Done": 5}
     filt = WorkitemFilter(

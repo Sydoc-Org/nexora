@@ -147,6 +147,15 @@ Work toward 2.5.64.
 
 ### Fixed
 
+- Workitems: an active doc-field search could return a source's **entire
+  corpus** instead of only matching rows when that source's allow-set could
+  not be resolved — observed on STAGING (MS02 runtime configured but
+  `MS02_DOCFIELDS_DB_NAME` unset), where a barcode search flooded the list
+  with all ~2.4k MS02 workitems. Every unresolved path (absent MS02
+  doc-field engine, resolver/DB error, unusable SearchConfig mapping,
+  unknown field key) now **fails closed**: the affected source contributes
+  zero rows to the filtered result. Sensitive-blocked fields keep their
+  designed "silently ignored" semantics.
 - Reporting/Prepared documents: the workitem-preview **lightbox was broken**
   outside the Workitems page (image and values panel stacked unpositioned,
   reported via the drill-through preview) — the split-pane CSS in

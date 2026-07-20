@@ -326,6 +326,131 @@ def test_get_workitems_data_skips_sensitive_docfield_search(
     assert captured["filt"].ms02_docfield_ids is None
 
 
+def test_docfield_search_absent_ms02_engine_fails_closed(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Cross-source bleed regression (observed on STAGING, 2026-07-20): with the
+    MS02 doc-field engine unset (env vars missing) but the MS02 runtime client
+    registered, a doc-field search skipped the MS02 pre-resolution entirely and
+    left ms02_docfield_ids = None -- "no constraint" -- so the Postgres source
+    returned its ENTIRE corpus into the filtered list. An active doc-field
+    search must fail CLOSED: a source that cannot be checked contributes zero
+    rows, never all of them."""
+    import nx_lib.hooks as hooks
+    import nx_lib.views.workitems as wv
+
+    monkeypatch.setattr(
+        hooks,
+        "load_permissions_for_user",
+        lambda uid: [
+            "workitems.view",
+            "workitems.filter.documentfields",
+            "workitems.filter.process.sydoc.test_proc",
+        ],
+    )
+
+    sql_log = []
+    monkeypatch.setattr(wv, "engine_nexora_db", _SqlLogEngine(sql_log))
+    monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", None)
+
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["col_docbarcode"])
+    monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: set())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+
+    captured = {}
+
+    def _fake_fetch_merged_page(filt, offset, per_page):
+        captured["filt"] = filt
+        return [], 0, []
+
+    monkeypatch.setattr(wv, "fetch_merged_page", _fake_fetch_merged_page)
+
+    resp = user_client.get(
+        "/api/workitems",
+        query_string={"prcfW": "all", "docfield": "docbarcode", "docvalue": "M629648"},
+    )
+
+    assert resp.status_code == 200
+    assert captured["filt"].ms02_docfield_ids == set()
+
+
+def test_docfield_search_ms02_resolver_error_fails_closed(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Sibling to the absent-engine test: the engine exists and the ms02
+    SearchConfig mapping row is found, but resolve_ms02_docfield_ids errors
+    (its contract returns None on any failure). That None must be coerced to
+    an empty allow-set -- zero MS02 rows -- not treated as "no constraint"."""
+    import nx_lib.hooks as hooks
+    import nx_lib.views.workitems as wv
+
+    monkeypatch.setattr(
+        hooks,
+        "load_permissions_for_user",
+        lambda uid: [
+            "workitems.view",
+            "workitems.filter.documentfields",
+            "workitems.filter.process.sydoc.test_proc",
+        ],
+    )
+
+    class _Ms02ConfigCursor(_SqlLogCursor):
+        """Returns one usable ms02 SearchConfig mapping row for the MS02 leg's
+        lookup; every other query still returns no rows."""
+
+        def execute(self, sql, params=None):
+            self._last_sql = sql
+            return super().execute(sql, params)
+
+        def fetchall(self):
+            if "ClientCode = 'ms02'" in getattr(self, "_last_sql", ""):
+                return [
+                    (
+                        'public."DossierStatistik"',
+                        "d",
+                        "d.WorkItemID = twi.id",
+                        None,
+                        "DossierBarcode",
+                    )
+                ]
+            return []
+
+    class _Ms02ConfigConn(_SqlLogConn):
+        def cursor(self):
+            return _Ms02ConfigCursor(self._log)
+
+    class _Ms02ConfigEngine(_SqlLogEngine):
+        def raw_connection(self):
+            return _Ms02ConfigConn(self._log)
+
+    sql_log = []
+    monkeypatch.setattr(wv, "engine_nexora_db", _Ms02ConfigEngine(sql_log))
+    monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["col_docbarcode"])
+    monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: set())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    monkeypatch.setattr(wv, "resolve_ms02_docfield_ids", lambda *a, **k: None)
+
+    captured = {}
+
+    def _fake_fetch_merged_page(filt, offset, per_page):
+        captured["filt"] = filt
+        return [], 0, []
+
+    monkeypatch.setattr(wv, "fetch_merged_page", _fake_fetch_merged_page)
+
+    resp = user_client.get(
+        "/api/workitems",
+        query_string={"prcfW": "all", "docfield": "docbarcode", "docvalue": "M629648"},
+    )
+
+    assert resp.status_code == 200
+    assert captured["filt"].ms02_docfield_ids == set()
+
+
 def test_get_workitems_data_queries_nonsensitive_docfield_search(
     user_client, workitems_all_perms, monkeypatch
 ):

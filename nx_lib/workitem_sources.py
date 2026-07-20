@@ -421,7 +421,10 @@ def resolve_ms02_docfield_ids(engine, pairs):
     Server path's collation.
 
     Three-way contract (mirrors the DEFAULT docfield pre-fetch block):
-      * None      -> no constraint (engine absent, no pairs, or any error).
+      * None      -> unresolved (engine absent, no pairs, or any error). The
+                     view coerces this to set() for an active doc-field search
+                     (fail closed) -- None never reaches the source as
+                     "no constraint" while a doc-field filter is in play.
       * set()     -> a docfield matched nothing -> force zero MS02 rows.
       * {ids...}  -> intersected allow-set -> twi."ID" = ANY(%s).
     Never raises: on error it logs and returns None (no constraint).
