@@ -1174,7 +1174,7 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
 .reporting-simple-chip-cov.is-cov-mid { background: rgba(217, 119, 6, .14); color: #b45309; }
 .reporting-simple-chip-cov.is-cov-low { background: var(--nx-alt, #f1f5f9); color: var(--nx-text-meta, #94a3b8); }
 
-/* ============ Editorial Ledger (2026-07-15 reskin) ============ */
+/* ============ body.reporting-ledger — flat surface chrome (Editorial Ledger typography retired 2026-07-20) ============ */
 
 /* Local palette for the reporting page only; redefined below for dark
    mode. Light values are the locked spec palette; dark values are
@@ -1202,41 +1202,22 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   background: var(--rl-band);
   border-bottom: 1px solid var(--rl-hairline);
 }
-.reporting-ledger .nx-title {
-  font-family: Georgia, 'Charter', 'Times New Roman', serif;
-}
+/* Task 2: .nx-title serif override retired — falls back to the page's
+   Inter (var(--nx-font)). */
 
 /* Data typography: numeric cells are tagged reporting-ledger-num at render
    time in both panes' table builders (renderTable in
    _reporting_simple_js.html, renderResults in _reporting_js.html — both key
    off the same Number(v)/isNaN check as fmtNumber). */
 .reporting-ledger-num {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
 
-/* Hairline ledger table: 1px --rl-hairline row rules and a flat, muted
-   uppercase tracked-cap header replace the calmer card-table borders
-   (.reporting-table-wrap above) while the ledger skin is active. No zebra
-   striping — rows stay flat, separated only by the hairline. */
-.reporting-ledger .reporting-table-wrap .reporting-table th,
-.reporting-ledger .reporting-table-wrap .reporting-table td {
-  border: none;
-  border-bottom: 1px solid var(--rl-hairline);
-  background: transparent;
-}
-.reporting-ledger .reporting-table-wrap .reporting-table thead th {
-  border-bottom: 1px solid var(--rl-ink);
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  color: var(--nx-text-meta);
-}
-.reporting-ledger .reporting-table-wrap .reporting-table tbody tr:last-child td {
-  border-bottom: none;
-}
+/* Task 2: the ledger's hairline table (flat row rules, no zebra, tracked
+   uppercase header) is retired — .reporting-table th/td and .reporting-table
+   thead th (base rules ~L905, ~L911) already give the calmer GitHub-style
+   borders; nothing left to layer here. */
 
 .reporting-ledger-caption {
   font-size: .68rem;
@@ -1256,7 +1237,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 }
 .reporting-ledger-timing {
   margin-left: auto;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
   font-size: .75rem;
   color: var(--nx-text-meta);
 }
@@ -1277,7 +1258,6 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   gap: .2rem;
 }
 .reporting-ledger-kpi-value {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-variant-numeric: tabular-nums;
   font-size: 1.6rem;
   font-weight: 600;
@@ -1288,18 +1268,19 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
    (#rsSqlPeek, #rpSqlPeek) under the results, showing the first line of
    sqlDisplay. Hidden whenever sqlDisplay is absent (inliner degrade path).
    Clicking it delegates to the existing Show-query reveal handler — this
-   button owns no panel-fill logic of its own. */
+   button owns no panel-fill logic of its own. Task 2: SQL keeps a mono face
+   (it's code) — restyled per the Result query-peek footer spec instead of
+   the old ledger palette. */
 .reporting-ledger-sqlpeek {
   display: block;
   width: 100%;
   margin-top: .5rem;
   padding: .5rem .1rem;
   border: none;
-  border-top: 1px solid var(--rl-hairline);
-  background: var(--rl-band);
+  border-top: 1px solid var(--nx-divider);
+  background: #fcfcfd;
   color: var(--nx-text-meta);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: .75rem;
+  font: 11px var(--nx-mono);
   text-align: left;
   white-space: nowrap;
   overflow: hidden;
@@ -1307,37 +1288,23 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   cursor: pointer;
 }
 .reporting-ledger-sqlpeek:hover {
-  color: var(--rl-ink);
+  color: var(--nx-accent);
 }
 .reporting-ledger-sqlpeek:focus-visible {
   outline: 2px solid var(--rl-navy);
   outline-offset: -2px;
 }
 
-/* Task 7: Simple library tiles flatten to hairline-separated ledger rows —
-   card chrome (border/radius/shadow) is dropped in favor of a bottom
-   hairline; report names take the serif masthead face, the owner/updated
-   line goes mono to read as a ledger metadata stamp. */
-.reporting-ledger .reporting-simple-card {
-  border: none;
-  border-bottom: 1px solid var(--rl-hairline);
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-  padding: 10px 2px;
-}
-.reporting-ledger .reporting-simple-card:hover {
-  border-color: var(--rl-hairline);
-  background: var(--rl-band);
-  box-shadow: none;
-}
+/* Task 7: Simple library tiles — card chrome (border/radius/background,
+   hover accent) comes from the un-scoped .reporting-simple-card rule above
+   (~L979); the ledger's hairline-row flattening is retired (Task 2), so
+   only the name/meta typography is overridden here. */
 .reporting-ledger .reporting-simple-card .rs-card-name {
-  font-family: Georgia, 'Charter', 'Times New Roman', serif;
   font-weight: 400;
   font-size: 15px;
 }
 .reporting-ledger .reporting-simple-card .rs-card-meta {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
   font-size: 11px;
 }
 
@@ -1356,7 +1323,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   color: var(--nx-text-meta);
 }
 
-/* Task 7: Process-coverage "n/m" badge (base rule above, ~L1131) goes mono
+/* Task 7: Process-coverage "n/m" badge (base rule above, ~L1131) goes
    ink-navy on a hairline pill under the ledger skin instead of the stock
    accent-tint chip, on both the measure-step chips (renderMeasureStep) and
    the breakdown-step chips (renderBreakdownStep) — same class, no JS change. */
@@ -1364,33 +1331,26 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   background: transparent;
   color: var(--rl-navy);
   border: 1px solid var(--rl-hairline);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
 }
 /* Coverage tiers keep their hue under the ledger skin's transparent pill. */
 .reporting-ledger .reporting-simple-chip-cov.is-cov-mid { background: transparent; color: #b45309; border-color: rgba(180, 83, 9, .5); }
 .reporting-ledger .reporting-simple-chip-cov.is-cov-low { background: transparent; color: var(--nx-text-meta, #94a3b8); }
 
-/* Task 7: 2px ink rule over the chart block, Simple and Advanced panes. */
-.reporting-ledger .reporting-simple-chartcard { border-top: 2px solid var(--rl-ink); }
-.reporting-ledger .reporting-viz { border-top: 2px solid var(--rl-ink); }
+/* Task 2: the ledger's 2px ink rule over the chart block (Simple + Advanced)
+   is retired — .reporting-simple-chartcard already carries nx-card/
+   nx-card--pad chrome, and .reporting-viz sits inside the already-bordered
+   .reporting-results card. Nothing left to layer here. */
 
-/* Task 8: Advanced builder — panels lose the card shadow in favor of a
-   flat band + hairline border (same move as the masthead in Task 1).
-   Layout/grid untouched. */
-.reporting-ledger .reporting-fields,
-.reporting-ledger .reporting-wells,
-.reporting-ledger .reporting-results {
-  background: var(--rl-band);
-  border: 1px solid var(--rl-hairline);
-  border-radius: 0;
-  box-shadow: none;
-}
+/* Task 2: Advanced builder panel shadow/radius flattening is retired —
+   .reporting-fields/.reporting-wells/.reporting-results (base rule ~L505)
+   keep their card border, radius and shadow again. */
 
 /* Task 8: Toolbar selects (saved-report picker, export format) and the
    .reporting-input controls (field search, subtitle, share/schedule/name
    modal fields — the class is shared by both <input> and <select> in the
-   markup) read as flat chips: pill radius, hairline border, mono value
-   text. Overrides the "Toolbar" (~L741) and "Inputs / selects / textareas"
+   markup) read as flat chips: pill radius, hairline border, tabular-nums
+   value text. Overrides the "Toolbar" (~L741) and "Inputs / selects / textareas"
    (~L573) sections above without editing either. */
 .reporting-ledger .reporting-input,
 .reporting-ledger .reporting-saved select,
@@ -1398,7 +1358,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   border-radius: 999px;
   border-color: var(--rl-hairline);
   background: var(--rl-band);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
   font-size: 12.5px;
 }
 .reporting-ledger .reporting-input:focus,
@@ -1407,8 +1367,8 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   border-color: var(--rl-navy);
 }
 
-/* --- Drill-through drawer: ledger canvas + hairlines, mono metadata on
-   the subtitle/note/column-headers (reads like a ledger stamp). Shell
+/* --- Drill-through drawer: ledger canvas + hairlines, tabular-nums metadata
+   on the subtitle/note/column-headers (reads like a ledger stamp). Shell
    structure and all data-testids (Task 3) are untouched. --- */
 .reporting-ledger .reporting-drill-panel {
   background: var(--rl-band);
@@ -1421,7 +1381,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 }
 .reporting-ledger .reporting-drill-subtitle,
 .reporting-ledger .reporting-drill-note {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
   font-size: 11px;
 }
 .reporting-ledger .reporting-drill-body th,
@@ -1430,7 +1390,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 }
 .reporting-ledger .reporting-drill-body th {
   background: var(--rl-band);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
   font-size: 10.5px;
   letter-spacing: .08em;
   text-transform: uppercase;
@@ -1441,8 +1401,8 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 }
 
 /* --- AI panels (Ask-AI bar, Agent thread trace, SQL draft): same canvas
-   + hairline treatment, mono metadata on badges/step labels. Chrome only
-   — submode buttons, prompt bar and result wiring keep their structure
+   + hairline treatment, tabular-nums metadata on badges/step labels. Chrome
+   only — submode buttons, prompt bar and result wiring keep their structure
    and testids. --- */
 .reporting-ledger .reporting-ai-panel {
   background: var(--rl-band);
@@ -1459,7 +1419,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 .reporting-ledger .reporting-ai-step-name,
 .reporting-ledger .reporting-ai-step-meta,
 .reporting-ledger .reporting-ai-q-badge {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
 }
 .reporting-ledger .reporting-ai-panel,
 .reporting-ledger .reporting-ai-turn {
