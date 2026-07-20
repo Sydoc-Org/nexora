@@ -243,3 +243,23 @@ def test_request_password_reset_rate_limit_eventually_429(client, reset_limiter)
         if last_status == 429:
             break
     assert last_status in (200, 429)
+
+
+def test_verify_2fa_rate_limit_eventually_429(client, reset_limiter):
+    """auth.py:309 — @limiter.limit('10 per hour'), added to close a TOTP
+    brute-force gap (a valid pre_2fa_userid session let a caller try all
+    1,000,000 6-digit codes with no throttling). 10 bad-code attempts are
+    allowed (each 401); the 11th within the hour must be 429. Unlike the
+    login/reset-password rate-limit tests above, this asserts the 11th
+    status strictly rather than accepting a bare 401 fallback — 401 on every
+    attempt is exactly the pre-fix defect this test exists to catch, so
+    tolerating it here would make the test pass whether or not the limit is
+    applied."""
+    with client.session_transaction() as sess:
+        sess["pre_2fa_userid"] = "1001"
+    statuses = []
+    for _ in range(11):
+        resp = client.post("/verify_2fa", data={"code": "000000"}, follow_redirects=False)
+        statuses.append(resp.status_code)
+    assert statuses[:10] == [401] * 10, statuses
+    assert statuses[10] == 429, statuses
