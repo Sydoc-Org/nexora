@@ -20,7 +20,7 @@ from flask_babel import gettext as _
 
 from ..config import BEXIO_PAT
 from ..db import engine_nexora_db
-from ..security import has_permission, page_visibility, require_permission
+from ..security import PermissionDenied, has_permission, page_visibility, require_permission
 
 # --------------------------------- bexio ---------------------------------- #
 
@@ -143,6 +143,37 @@ def get_bexio_invoice_pdf(invoice_id):
     except requests.exceptions.RequestException as e:
         current_app.logger.error(f"Bexio API PDF fetch failed for {invoice_id}: {e}")
         return None, None
+
+
+def get_bexio_invoice_contact_id(invoice_id):
+    """Fetch just the owning contact_id for an invoice.
+
+    Used by download_invoice_pdf to verify the caller is scoped to the client
+    that owns the invoice before releasing the PDF (the kb_invoice/<id>/pdf
+    endpoint response has no contact_id, so this is a separate lookup).
+    """
+    url = f"https://api.bexio.com/2.0/kb_invoice/{invoice_id}"
+    access_token = BEXIO_PAT
+    if not access_token:
+        current_app.logger.error("BEXIO_PAT is not set.")
+        return None
+
+    headers = {
+        "Accept": "application/json",
+        "Authorization": f"Bearer {access_token}",
+    }
+
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        return data.get("contact_id")
+    except requests.exceptions.RequestException as e:
+        current_app.logger.error(f"Bexio API invoice fetch failed for {invoice_id}: {e}")
+        return None
+    except json.JSONDecodeError:
+        current_app.logger.error("Bexio API returned invalid JSON.")
+        return None
 
 
 def get_bexio_client_ids():
@@ -285,6 +316,14 @@ def api_invoices():
 def download_invoice_pdf(invoice_id):
     if "username" not in session:
         return redirect(url_for("login"))
+
+    # IDOR guard: invoices.download is a blanket permission, so scope the
+    # actual download to the invoices the caller is allowed to see — same
+    # trust boundary api_invoices already enforces via get_bexio_client_ids().
+    contact_id = get_bexio_invoice_contact_id(invoice_id)
+    allowed_ids = set(get_bexio_client_ids() or [])
+    if contact_id is None or contact_id not in allowed_ids:
+        raise PermissionDenied()
 
     try:
         pdf_content, pdf_name = get_bexio_invoice_pdf(invoice_id)
