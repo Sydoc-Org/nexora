@@ -597,7 +597,29 @@ def test_get_single_workitem_anonymous(client):
     assert resp.status_code in (200, 302, 401, 500)
 
 
-def test_get_single_workitem_authed_unknown_id(user_client):
+@pytest.mark.parametrize(
+    ("method", "path", "payload"),
+    [
+        ("get", "/api/workitem/999999", None),
+        ("get", "/api/workitem/999999/interactions", None),
+        ("post", "/api/workitem/999999/comment", {"comment": "x"}),
+        ("post", "/api/workitem/999999/assign", {"assignedUserID": 1001}),
+        ("post", "/api/workitem/999999/priority", {"priority": 2}),
+        ("post", "/api/workitem/999999/tags", {"tagName": "x", "tagColor": "#fff"}),
+        ("delete", "/api/workitem/999999/tags/999", None),
+    ],
+)
+def test_workitem_metadata_endpoints_require_permission(noperm_client, method, path, payload):
+    """These seven endpoints checked only `"username" in session`, so ANY logged-in
+    user could read and mutate any workitem's tags/priority/assignment/comments --
+    verified live on INT with a user who gets 403 on the workitems page itself yet
+    successfully tagged, prioritized and re-assigned workitem 18319."""
+    kwargs = {"json": payload} if payload is not None else {}
+    resp = getattr(noperm_client, method)(path, **kwargs)
+    assert resp.status_code == 403, f"{method.upper()} {path} -> {resp.status_code}"
+
+
+def test_get_single_workitem_authed_unknown_id(user_client, workitems_all_perms):
     resp = user_client.get("/api/workitem/999999")
     assert resp.status_code in (200, 404, 500)
 
@@ -656,7 +678,7 @@ def test_get_users_for_mentions_authed(user_client):
     assert resp.status_code in (200, 401, 500)
 
 
-def test_get_workitem_interactions_authed(user_client):
+def test_get_workitem_interactions_authed(user_client, workitems_all_perms):
     resp = user_client.get("/api/workitem/999999/interactions")
     assert resp.status_code in (200, 404, 500)
 
@@ -666,17 +688,17 @@ def test_add_workitem_comment_anonymous_returns_unauth(client):
     assert resp.status_code in (200, 302, 401, 500)
 
 
-def test_add_workitem_comment_authed_unknown(user_client):
+def test_add_workitem_comment_authed_unknown(user_client, workitems_all_perms):
     resp = user_client.post("/api/workitem/999999/comment", json={"comment": "x"})
     assert resp.status_code in (200, 400, 404, 500)
 
 
-def test_assign_workitem_authed_unknown(user_client):
+def test_assign_workitem_authed_unknown(user_client, workitems_all_perms):
     resp = user_client.post("/api/workitem/999999/assign", json={"userId": 1001})
     assert resp.status_code in (200, 400, 404, 500)
 
 
-def test_set_workitem_priority_authed_unknown(user_client):
+def test_set_workitem_priority_authed_unknown(user_client, workitems_all_perms):
     resp = user_client.post("/api/workitem/999999/priority", json={"priority": "high"})
     assert resp.status_code in (200, 400, 404, 500)
 
@@ -695,7 +717,7 @@ def test_api_workitems_page_init_authed(user_client):
     assert resp.status_code in (200, 500)
 
 
-def test_add_tag_to_workitem_authed_unknown(user_client):
+def test_add_tag_to_workitem_authed_unknown(user_client, workitems_all_perms):
     resp = user_client.post("/api/workitem/999999/tags", json={"tag_id": 1})
     assert resp.status_code in (200, 400, 404, 500)
 
@@ -751,7 +773,7 @@ def test_api_docfield_values_allows_sensitive_with_perm(
     assert resp.status_code in (200, 500)
 
 
-def test_remove_tag_from_workitem_authed_unknown(user_client):
+def test_remove_tag_from_workitem_authed_unknown(user_client, workitems_all_perms):
     resp = user_client.delete("/api/workitem/999999/tags/999")
     assert resp.status_code in (200, 404, 500)
 
@@ -1288,10 +1310,60 @@ def test_stamp_in_register_marks_rows(monkeypatch):
     monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [("t", "id", "pid", None)])
     monkeypatch.setattr(wv, "resolve_ms02_wids_to_pids", lambda e, s, w: {42: "100", 43: "200"})
     monkeypatch.setattr(wv, "pids_in_register", lambda pids: {"100"})
-    rows = [{"workitemid": 42}, {"workitemid": 43}]
+    monkeypatch.setattr(wv, "sensitive_blocked_keys", set)
+    rows = [
+        {"workitemid": 42, "client": "ms02"},
+        {"workitemid": 43, "client": "ms02"},
+    ]
     wv._stamp_in_register(rows)
     assert rows[0]["pid"] == "100" and rows[0]["in_register"] is True
     assert rows[1]["pid"] == "200" and rows[1]["in_register"] is False
+
+
+def test_stamp_in_register_skips_non_ms02_rows(monkeypatch):
+    """Workitem ids collide across clients, so a default-client row must never
+    be resolved against MS02's PID table — it would be stamped with (and link
+    to) an unrelated person's PID."""
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: ["sydoc.05_PDBS"])
+    monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [("t", "id", "pid", None)])
+    monkeypatch.setattr(wv, "sensitive_blocked_keys", set)
+    seen = {}
+
+    def _resolve(engine, specs, wids):
+        seen["wids"] = list(wids)
+        return {42: "100"}
+
+    monkeypatch.setattr(wv, "resolve_ms02_wids_to_pids", _resolve)
+    monkeypatch.setattr(wv, "pids_in_register", lambda pids: {"100"})
+    rows = [{"workitemid": 42, "client": "default"}, {"workitemid": 42, "client": "ms02"}]
+    wv._stamp_in_register(rows)
+    assert seen["wids"] == [42], "only the MS02 row's id may be resolved"
+    assert "pid" not in rows[0] and "in_register" not in rows[0]
+    assert rows[1]["pid"] == "100" and rows[1]["in_register"] is True
+
+
+def test_stamp_in_register_respects_sensitive_pid_gate(monkeypatch):
+    """PID is a personal identifying number: when it is flagged sensitive and
+    the caller lacks the perm, it must not be stamped onto list rows."""
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "sensitive_blocked_keys", lambda: {"pid"})
+
+    def _must_not_run(*a, **k):
+        raise AssertionError("PID resolution must not run when the field is blocked")
+
+    monkeypatch.setattr(wv, "resolve_ms02_wids_to_pids", _must_not_run)
+    rows = [{"workitemid": 42, "client": "ms02"}]
+    wv._stamp_in_register(rows)
+    assert "pid" not in rows[0]
 
 
 def test_stamp_in_register_noop_when_not_ms02(monkeypatch):
@@ -1322,12 +1394,14 @@ def test_api_workitems_carries_pid_in_register(user_client, workitems_all_perms,
                     "priority": 0,
                     "tags": [],
                     "modifiedat": None,
+                    "client": "ms02",
                 }
             ],
             1,
             [],
         ),
     )
+    monkeypatch.setattr(wv, "sensitive_blocked_keys", set)
     monkeypatch.setattr(wv, "_ms02_target_processes", lambda: ["sydoc.05_PDBS"])
     monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [("t", "id", "pid", None)])
     monkeypatch.setattr(wv, "resolve_ms02_wids_to_pids", lambda e, s, w: {42: "100"})

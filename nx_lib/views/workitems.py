@@ -165,14 +165,21 @@ def api_config_fields():
     return jsonify(result)
 
 
-@cache.cached(timeout=3600, key_prefix="search_config_columns")
 def get_valid_search_columns():
+    """Whitelist of SearchConfig col_<field> columns. Cached for an hour, but
+    ONLY on success: caching the empty error-fallback used to disable doc-field
+    search, autocomplete and the PID/register lookups app-wide for a full hour
+    after a single transient DB blip."""
+    cached = cache.get("search_config_columns")
+    if cached is not None:
+        return cached
     conn = None
     try:
         conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT TOP 0 * FROM SearchConfig")
         valid_cols = [c[0].lower() for c in cursor.description if c[0].lower().startswith("col_")]
+        cache.set("search_config_columns", valid_cols, timeout=3600)
         return valid_cols
     except Exception as e:
         current_app.logger.error(f"Error fetching search config columns: {e}")
@@ -384,6 +391,32 @@ def _ms02_prepared_docs_processes():
             conn.close()
 
 
+# Hard ceiling on a CSV export. It used to be 5000 with no signal to the user,
+# which silently dropped ~34k of PROD's ~39k visible workitems from a full
+# export. Truncation is now both far less likely and explicitly reported (see
+# export_workitems_csv).
+# ponytail: single in-memory page, not a streaming cursor — revisit if exports
+# outgrow this ceiling.
+EXPORT_MAX_ROWS = 100_000
+
+
+def _client_hint():
+    """Client code the front-end row carried (``?client=ms02``), or None.
+
+    Workitem ids are not unique across clients, so the row the user clicked is
+    the only reliable disambiguator; unknown/absent values fall through to the
+    probe path in ``get_source_for_workitem``."""
+    hint = (request.args.get("client") or "").strip().lower()
+    return hint if hint in CLIENTS else None
+
+
+def _wi_cache_key(prefix, workitem_id, domain):
+    """Per-workitem cache key that includes the resolved client domain — a bare
+    id would let one client's cached document answer for another client's
+    identically numbered workitem."""
+    return f"{prefix}_{domain}_{workitem_id}"
+
+
 def _stamp_in_register(rows):
     """MS02-only, in place: stamp row['pid'] + row['in_register'] onto each visible
     workitem row. Resolves the page's wids -> PIDs (resolve_ms02_wids_to_pids) and
@@ -392,17 +425,28 @@ def _stamp_in_register(rows):
     ms02_active = "ms02" in CLIENTS and engine_ms02_docfields_pg is not None
     if not (ms02_active and rows):
         return
+    # The PID is a personal identifying number: honour the same sensitive
+    # doc-field gate every other surface applies, instead of stamping it onto
+    # every list row unconditionally.
+    if "pid" in sensitive_blocked_keys():
+        return
+    # Only MS02 rows may be resolved against the MS02 PID table. Ids collide
+    # across clients, so a default-client row with the same number would
+    # otherwise be stamped with an unrelated MS02 person's PID.
+    ms02_rows = [r for r in rows if r.get("client") == "ms02"]
+    if not ms02_rows:
+        return
     try:
         pid_specs = _ms02_pid_specs(_ms02_target_processes())
         wid_to_pid = (
             resolve_ms02_wids_to_pids(
-                engine_ms02_docfields_pg, pid_specs, [r["workitemid"] for r in rows]
+                engine_ms02_docfields_pg, pid_specs, [r["workitemid"] for r in ms02_rows]
             )
             if pid_specs
             else None
         ) or {}
         registered = pids_in_register(list(wid_to_pid.values())) if wid_to_pid else set()
-        for r in rows:
+        for r in ms02_rows:
             pid = wid_to_pid.get(r["workitemid"])
             r["pid"] = pid or ""
             r["in_register"] = bool(pid and pid in registered)
@@ -422,7 +466,7 @@ def _get_workitems_data(args, export_all=False):
     priority = args.get("priority", "")
     assigned_user = args.get("assignedUser", "")
     if export_all:
-        per_page = 5000
+        per_page = EXPORT_MAX_ROWS
         offset = 0
     else:
         per_page = int(args.get("perPage", 40))
@@ -672,7 +716,9 @@ def _get_workitems_data(args, export_all=False):
         process_names=process_params,
         client_names=client_params,
         activity_ignore_csv=activity_instances_to_ignore,
-        status_code=status_map.get(status) if status else None,
+        status_code=status_map.get(status)
+        if (status and has_permission("workitems.filter.status"))
+        else None,
         search_id=search_term
         if (search_term and has_permission("workitems.filter.workitemid"))
         else None,
@@ -879,9 +925,17 @@ def export_workitems_csv():
     try:
         result = _get_workitems_data(request.args, export_all=True)
         workitems = result.get("workitems", [])
+        matched_total = result.get("pagination", {}).get("totalItems", len(workitems))
     except Exception as e:
         current_app.logger.error(f"Export: failed to fetch workitems: {e}")
         return jsonify({"error": "Failed to fetch workitems"}), 500
+
+    truncated = matched_total > len(workitems)
+    if truncated:
+        current_app.logger.warning(
+            f"Export truncated: {len(workitems)} of {matched_total} matching workitems "
+            f"(cap {EXPORT_MAX_ROWS}); user={session.get('username')}"
+        )
 
     if specific_ids:
         workitems = [w for w in workitems if w["workitemid"] in specific_ids]
@@ -1073,8 +1127,16 @@ def export_workitems_csv():
         writer.writerow(row)
 
     csv_content = output.getvalue()
+    if truncated:
+        # Never let an export look complete when it is not.
+        csv_content += (
+            f"\r\n# {_('TRUNCATED')}: "
+            f"{_('exported')} {len(workitems)} / {matched_total} {_('matching workitems')}\r\n"
+        )
     response = make_response(csv_content)
     response.headers["Content-Type"] = "text/csv; charset=utf-8"
+    if truncated:
+        response.headers["X-Export-Truncated"] = f"{len(workitems)}/{matched_total}"
     filename = f'workitems_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
     response.headers["Content-Disposition"] = f"attachment; filename={filename}"
     return response
@@ -1307,6 +1369,7 @@ def import_prepared_audit():
     return jsonify(result), 200
 
 
+@require_permission("workitems.details.view")
 def get_single_workitem(workitemid):
     if "username" not in session:
         return jsonify({"error": _("Not authorized")}), 401
@@ -1383,11 +1446,18 @@ def api_get_media_info(workitem_id):
             d["table_sources"] = ts
             return d
 
-        cached_info = cache.get(f"media_info_{workitem_id}")
+        # Workitem ids are NOT globally unique across clients (1216 collide on
+        # INT), so both the routing and every cache key must carry the client
+        # the row came from -- otherwise one client's document is served, and
+        # then cached, for the other client's identically numbered workitem.
+        client_hint = _client_hint()
+        domain = get_domain_for_workitem(workitem_id, client_hint=client_hint)
+        _ck = _wi_cache_key("media_info", workitem_id, domain)
+
+        cached_info = cache.get(_ck)
         if cached_info:
             return jsonify(_suppress(cached_info))
 
-        domain = get_domain_for_workitem(workitem_id)
         returndata = get_workitemdata_param(workitem_id, domain)
         if not returndata:
             return jsonify({"error": _("Workitem not found")}), 404
@@ -1400,7 +1470,10 @@ def api_get_media_info(workitem_id):
         media_count = len(urls) if urls else 0
 
         if media_count > 0:
-            cache.set(f"media_data_{workitem_id}", {"extensions": extensions, "urls": urls})
+            cache.set(
+                _wi_cache_key("media_data", workitem_id, domain),
+                {"extensions": extensions, "urls": urls},
+            )
 
         response_data = {
             "workitem_id": workitem_id,
@@ -1410,7 +1483,7 @@ def api_get_media_info(workitem_id):
             "table_sources": table_sources,
         }
 
-        cache.set(f"media_info_{workitem_id}", response_data)
+        cache.set(_ck, response_data)
 
         return jsonify(_suppress(response_data))
     except Exception as e:
@@ -1421,8 +1494,9 @@ def api_get_media_info(workitem_id):
 @require_permission("workitems.details.view.images")
 def api_get_media_raw(workitem_id, media_index):
     try:
-        domain = get_domain_for_workitem(workitem_id)
-        media_data = cache.get(f"media_data_{workitem_id}")
+        domain = get_domain_for_workitem(workitem_id, client_hint=_client_hint())
+        _ck = _wi_cache_key("media_data", workitem_id, domain)
+        media_data = cache.get(_ck)
         if not media_data:
             returndata = get_workitemdata_param(workitem_id, domain)
             if not returndata:
@@ -1433,7 +1507,7 @@ def api_get_media_raw(workitem_id, media_index):
                 workitemdata, document_id, domain
             )
             media_data = {"extensions": extensions, "urls": urls}
-            cache.set(f"media_data_{workitem_id}", media_data)
+            cache.set(_ck, media_data)
 
         extensions = media_data.get("extensions", [])
         urls = media_data.get("urls", [])
@@ -1513,13 +1587,13 @@ def api_get_media_raw(workitem_id, media_index):
 
 @require_permission("workitems.details.view.audit")
 def get_audithistory(workitem_id):
-    _cache_key = f"audithistory_{workitem_id}"
+    domain = get_domain_for_workitem(workitem_id, client_hint=_client_hint())
+    _cache_key = _wi_cache_key("audithistory", workitem_id, domain)
     cached = cache.get(_cache_key)
     if cached is not None:
         return jsonify(cached)
 
     try:
-        domain = get_domain_for_workitem(workitem_id)
         audit_url = (
             f"https://{domain}/api/processservice/api/v2.1/processService/WorkItemAudits"
             f"?WorkItemID={workitem_id}&VerifyAuditSignatures=true&ExportSignatureVerificationCertificates=true"
@@ -1571,27 +1645,34 @@ def get_users_for_mentions():
 
     _all_users = has_permission("admin.interact.users.all")
     _org = session.get("organizationcode", "")
-    _cache_key = f"users_mentions_{'all' if _all_users else _org}"
+    # The comment permission decides whether any users are returned at all, so
+    # it must be part of the key: otherwise a permitted user's cached list was
+    # served to unpermitted callers in the same org.
+    _can_mention = has_permission("workitems.details.add.comment")
+    _cache_key = f"users_mentions_{'all' if _all_users else _org}_c{int(_can_mention)}"
     cached = cache.get(_cache_key)
     if cached is not None:
         return jsonify(cached)
+
+    if not _can_mention:
+        cache.set(_cache_key, [], timeout=900)
+        return jsonify([])
 
     conn = None
     cursor = None
     try:
         conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
-        if has_permission("workitems.details.add.comment"):
-            if _all_users:
-                cursor.execute("SELECT userID, username, fullname FROM Users")
-            else:
-                cursor.execute(
-                    """
-                    SELECT userID, username, fullname FROM Users
-                    WHERE organizationcode IN ('SYDC', ?) AND accessid not in (1,2)
-                    """,
-                    _org,
-                )
+        if _all_users:
+            cursor.execute("SELECT userID, username, fullname FROM Users")
+        else:
+            cursor.execute(
+                """
+                SELECT userID, username, fullname FROM Users
+                WHERE organizationcode IN ('SYDC', ?) AND accessid not in (1,2)
+                """,
+                _org,
+            )
         users = [
             dict(zip([column[0] for column in cursor.description], row, strict=False))
             for row in cursor.fetchall()
@@ -1608,6 +1689,7 @@ def get_users_for_mentions():
             conn.close()
 
 
+@require_permission("workitems.details.view")
 def get_workitem_interactions(workitemid):
     if "username" not in session:
         return jsonify({"error": _("Not authorized")}), 401
@@ -1699,6 +1781,7 @@ def get_workitem_interactions(workitemid):
             conn.close()
 
 
+@require_permission("workitems.details.add.comment")
 def add_workitem_comment(workitemid):
     if "username" not in session:
         return jsonify({"error": _("Not authorized")}), 401
@@ -1761,6 +1844,7 @@ def add_workitem_comment(workitemid):
             conn.close()
 
 
+@require_permission("workitems.details.assign.users")
 def assign_workitem(workitemid):
     if "username" not in session:
         return jsonify({"error": _("Not authorized")}), 401
@@ -1812,6 +1896,7 @@ def assign_workitem(workitemid):
             conn.close()
 
 
+@require_permission("workitems.details.set.priority")
 def set_workitem_priority(workitemid):
     if "username" not in session:
         return jsonify({"error": _("Not authorized")}), 401
@@ -2010,6 +2095,7 @@ def api_workitems_page_init():
     return jsonify({"tags": tags, "users": users, "field_config": field_config})
 
 
+@require_permission("workitems.details.add.tag")
 def add_tag_to_workitem(workitemid):
     if "username" not in session:
         return jsonify({"error": _("Not authorized")}), 401
@@ -2070,6 +2156,7 @@ def add_tag_to_workitem(workitemid):
             conn.close()
 
 
+@require_permission("workitems.details.add.tag")
 def remove_tag_from_workitem(workitemid, tag_id):
     if "username" not in session:
         return jsonify({"error": _("Not authorized")}), 401

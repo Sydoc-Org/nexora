@@ -24,6 +24,12 @@ from .db import engine_nexora_db
 DB_NEXORA = cfg.DB_NEXORA
 
 
+# Status code the UI's "In Progress" option maps to. It is a BUCKET, not a
+# single code: the display CASE renders every status that is not 0 (Ready) or
+# 5 (Done) as "In Progress", so both sources filter it as `NOT IN (0, 5)`.
+_STATUS_IN_PROGRESS = 1
+
+
 @dataclass
 class WorkitemFilter:
     """Dialect-neutral bag of the list filters. Each source renders its own SQL."""
@@ -32,7 +38,7 @@ class WorkitemFilter:
     client_names: list  # tp.ClientName allow-list (from permissions)
     activity_ignore_csv: str  # "'A','B'" string from ActivityInstancesToIgnore
     status_code: int | None = None
-    search_id: str | None = None  # LIKE term (no % yet)
+    search_id: str | None = None  # exact workitem id to match
     start_date: object = None
     end_date: object = None
     priority: str | None = None
@@ -94,17 +100,29 @@ class SqlServerSource:
     def list_workitems(self, filt, offset, limit):
         """Return (rows, total_count). Builds the same WHERE + SQL the original
         _get_workitems_data ran against engine_octo_db."""
+        # Zero permitted processes -> `IN ()`, a syntax error that surfaced as a
+        # degraded-source banner instead of a clean empty list.
+        if not (filt.process_names and filt.client_names):
+            return [], 0
         where_clauses = [
             f"tp.Name IN ({_qmarks(filt.process_names)})",
             f"tp.ClientName IN ({_qmarks(filt.client_names)})",
             "twi.Status <> 2",
-            f"tai.ActivityInstanceName not in ({filt.activity_ignore_csv})",
         ]
+        if filt.activity_ignore_csv:
+            where_clauses.append(f"tai.ActivityInstanceName not in ({filt.activity_ignore_csv})")
         params = list(filt.process_names) + list(filt.client_names)
 
         if filt.status_code is not None:
-            where_clauses.append("twi.Status = ?")
-            params.append(filt.status_code)
+            # The display CASE maps 0 -> Ready, 5 -> Done and EVERYTHING ELSE to
+            # 'In Progress' (live data really carries 3 and 4), so filtering the
+            # In-Progress bucket must match the same set -- `Status = 1` hid 96
+            # rows that the list showed as In Progress.
+            if filt.status_code == _STATUS_IN_PROGRESS:
+                where_clauses.append("twi.Status NOT IN (0, 5)")
+            else:
+                where_clauses.append("twi.Status = ?")
+                params.append(filt.status_code)
         if filt.tag:
             where_clauses.append(
                 f"""
@@ -118,8 +136,9 @@ class SqlServerSource:
             )
             params.append(f"%{filt.tag}%")
         if filt.search_id:
-            where_clauses.append("twi.id LIKE ?")
-            params.append(f"%{filt.search_id}%")
+            # Exact match: searching 371 must not also return 1371/3716/16371.
+            where_clauses.append("CAST(twi.id AS NVARCHAR(50)) = ?")
+            params.append(str(filt.search_id).strip())
         if filt.start_date:
             where_clauses.append("twi.ModifiedAt >= ?")
             params.append(filt.start_date)
@@ -165,7 +184,7 @@ class SqlServerSource:
 
             cur.execute(
                 f"""
-                SELECT COUNT(twi.ID)
+                SELECT COUNT(DISTINCT twi.ID)
                 FROM t_WorkItems twi
                 INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
                 INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
@@ -341,7 +360,12 @@ def resolve_nexora_filter_ids(filt):
                         "SELECT WorkItemID FROM Workitem_Metadata WHERE AssignedUserID = ?",
                         val,
                     )
-            ids = {r.WorkItemID for r in cur.fetchall()}
+            # NexoraDB stores WorkitemId as NVARCHAR -> pyodbc yields str, but
+            # this allow-set is bound against Postgres' INTEGER "ID" column
+            # (int = ANY(text[]) is a hard error there, which degraded the whole
+            # MS02 source and silently dropped its rows from every tag/priority/
+            # assigned filter). Normalize to int, dropping non-numeric ids.
+            ids = _as_workitem_ids((r.WorkItemID,) for r in cur.fetchall())
             result = ids if result is None else (result & ids)
         return result if result is not None else set()
     except Exception as e:
@@ -847,11 +871,15 @@ class PostgresSource:
         if filt.activity_ignore_csv:
             clauses.append(f'tai."ActivityInstanceName" NOT IN ({filt.activity_ignore_csv})')
         if filt.status_code is not None:
-            clauses.append('twi."Status" = %s')
-            params.append(filt.status_code)
+            # Same In-Progress bucket semantics as the SQL Server source.
+            if filt.status_code == _STATUS_IN_PROGRESS:
+                clauses.append('twi."Status" NOT IN (0, 5)')
+            else:
+                clauses.append('twi."Status" = %s')
+                params.append(filt.status_code)
         if filt.search_id:
-            clauses.append('CAST(twi."ID" AS TEXT) LIKE %s')
-            params.append(f"%{filt.search_id}%")
+            clauses.append('CAST(twi."ID" AS TEXT) = %s')
+            params.append(str(filt.search_id).strip())
         if filt.start_date:
             clauses.append('twi."ModifiedAt" >= %s')
             params.append(filt.start_date)
@@ -883,13 +911,16 @@ class PostgresSource:
         return " AND ".join(clauses), params
 
     def list_workitems(self, filt, offset, limit):
+        # Same empty-scope guard as the SQL Server source (see there).
+        if not (filt.process_names and filt.client_names):
+            return [], 0
         where, params = self._build_where(filt)
         conn = self.engine.raw_connection()
         try:
             cur = conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor)
             cur.execute(
                 f"""
-                SELECT COUNT(twi."ID")
+                SELECT COUNT(DISTINCT twi."ID")
                 FROM "t_WorkItems" twi
                 JOIN "t_ActivityInstances" tai ON twi."ActivityInstanceID" = tai."ID"
                 JOIN "t_Processes" tp ON tp."ID" = tai."ProcessID"
@@ -1013,7 +1044,10 @@ def enrich_rows_from_nexora(rows):
     ids = [r["workitemid"] for r in rows]
     if not ids:
         return rows
-    by_id = {r["workitemid"]: r for r in rows}
+    # Key on str: NexoraDB's WorkitemId is NVARCHAR (pyodbc -> str) while the
+    # Postgres source's workitemid is an int, so an int-keyed map never matched
+    # and MS02 rows silently rendered with no tags and priority 0.
+    by_id = {str(r["workitemid"]): r for r in rows}
 
     conn = engine_nexora_db.raw_connection()
     try:
@@ -1025,8 +1059,9 @@ def enrich_rows_from_nexora(rows):
                 list(chunk),
             )
             for r in cur.fetchall():
-                if r.WorkItemID in by_id:
-                    by_id[r.WorkItemID]["priority"] = r.Priority or 0
+                row = by_id.get(str(r.WorkItemID))
+                if row is not None:
+                    row["priority"] = r.Priority or 0
         for chunk in _chunked(ids):
             ph = ", ".join(["?"] * len(chunk))
             cur.execute(
@@ -1038,10 +1073,9 @@ def enrich_rows_from_nexora(rows):
                 list(chunk),
             )
             for r in cur.fetchall():
-                if r.WorkItemID in by_id:
-                    by_id[r.WorkItemID]["tags"].append(
-                        {"id": r.TagID, "name": r.TagName, "color": r.TagColor}
-                    )
+                row = by_id.get(str(r.WorkItemID))
+                if row is not None:
+                    row["tags"].append({"id": r.TagID, "name": r.TagName, "color": r.TagColor})
     except Exception as e:
         current_app.logger.error(f"enrich_rows_from_nexora: {e}")
     finally:
@@ -1106,22 +1140,31 @@ def _cache_store(workitem_id, client_code):
         conn.close()
 
 
-def get_source_for_workitem(workitem_id):
+def get_source_for_workitem(workitem_id, client_hint=None):
     """Resolve which client owns ``workitem_id``.
 
     Order of trust (collision fail-safe):
-    1. Cache hit — authoritative.
-    2. Probe ALL non-default sources. Exactly one claimant -> that client (cache
-       it). Zero -> 'default'.
-    3. FAIL-SAFE: more than one claimant means id spaces overlap — do NOT guess,
-       log loudly and fall back to 'default'.
+    1. Explicit ``client_hint`` from the caller (the list row knows its own
+       client) — authoritative, and the ONLY way to disambiguate a colliding id.
+    2. Cache hit.
+    3. Probe ALL sources, INCLUDING the default one. Exactly one claimant ->
+       that client (cache it). Zero -> 'default'.
+    4. FAIL-SAFE: more than one claimant means id spaces overlap — do NOT guess
+       and do NOT cache; log loudly and fall back to 'default'.
+
+    The default source used to be excluded from the probe, so a default/MS02
+    collision (1216 such ids on INT) looked like a single MS02 claim and was
+    cached permanently — serving the other client's document for that id.
     """
+    if client_hint and client_hint in CLIENTS:
+        return client_hint
+
     cached = _cache_lookup(workitem_id)
     if cached:
         return cached
 
     claimers = []
-    for src in non_default_source_instances():
+    for src in active_sources():
         try:
             if src.has_workitem(workitem_id):
                 claimers.append(src.code)
@@ -1160,10 +1203,11 @@ def single_workitem_tags(workitem_id):
         conn.close()
 
 
-def get_domain_for_workitem(workitem_id):
+def get_domain_for_workitem(workitem_id, client_hint=None):
     """Octo domain for a workitem's owning client. Real replacement for the
-    former octo.py stub."""
-    code = get_source_for_workitem(workitem_id)
+    former octo.py stub. ``client_hint`` comes from the list row the user
+    actually clicked, and is what makes colliding ids resolvable."""
+    code = get_source_for_workitem(workitem_id, client_hint=client_hint)
     client = CLIENTS.get(code) or CLIENTS["default"]
     return client.octo_domain
 

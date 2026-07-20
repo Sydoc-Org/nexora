@@ -162,6 +162,117 @@ def test_enrich_rows_from_nexora_attaches_priority_and_tags(app):
     assert by_id[1002]["tags"] == [{"id": 9, "name": "vip", "color": "#0f0"}]
 
 
+def test_resolve_nexora_filter_ids_coerces_nvarchar_ids_to_int(app):
+    """NexoraDB stores WorkitemId as NVARCHAR, so pyodbc yields str. The
+    Postgres source binds this allow-set against an INTEGER "ID" column
+    (`twi."ID" = ANY(%s)`), which errors on a text[] -- observed live: every
+    tag/priority/assigned filter degraded the whole MS02 source, silently
+    dropping its rows from the result. The resolver must hand back ints."""
+    f = _mk_filter()
+    f.tag = "urgent"
+    fake_cur = MagicMock()
+    fake_cur.fetchall.side_effect = [
+        [MagicMock(WorkItemID="1001"), MagicMock(WorkItemID="1002")],
+    ]
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cur
+    with patch("nx_lib.workitem_sources.engine_nexora_db") as eng, app.app_context():
+        eng.raw_connection.return_value = fake_conn
+        ids = resolve_nexora_filter_ids(f)
+    assert ids == {1001, 1002}
+    assert all(isinstance(i, int) for i in ids)
+
+
+def test_enrich_rows_from_nexora_matches_nvarchar_ids(app):
+    """Same NVARCHAR-vs-int seam on the display side: the Postgres source's
+    workitemid is an int while NexoraDB returns str, so tags/priority set on an
+    MS02 workitem never rendered in the list."""
+    rows = [{"workitemid": 3413, "priority": 0, "tags": []}]
+    fake_cur = MagicMock()
+    fake_cur.fetchall.side_effect = [
+        [MagicMock(WorkItemID="3413", Priority=3)],
+        [MagicMock(WorkItemID="3413", TagID=56, TagName="nxsweep", TagColor="#8b5cf6")],
+    ]
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cur
+    with patch("nx_lib.workitem_sources.engine_nexora_db") as eng, app.app_context():
+        eng.raw_connection.return_value = fake_conn
+        out = enrich_rows_from_nexora(rows)
+    assert out[0]["priority"] == 3
+    assert out[0]["tags"] == [{"id": 56, "name": "nxsweep", "color": "#8b5cf6"}]
+
+
+def _captured_sql(src, filt, is_pg=False):
+    """Run list_workitems against a mock cursor and return all executed SQL."""
+    fake_cur = MagicMock()
+    fake_cur.fetchone.return_value = [0]
+    fake_cur.fetchall.return_value = []
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cur
+    patches = [patch.object(src, "engine")]
+    if is_pg:
+        patches.append(patch("nx_lib.workitem_sources.enrich_rows_from_nexora", lambda r: r))
+        patches.append(patch("nx_lib.workitem_sources.resolve_nexora_filter_ids", lambda f: None))
+    with patches[0] as eng:
+        for p in patches[1:]:
+            p.start()
+        try:
+            eng.raw_connection.return_value = fake_conn
+            src.list_workitems(filt, offset=0, limit=40)
+        finally:
+            for p in patches[1:]:
+                p.stop()
+    return " ".join(str(c.args[0]) for c in fake_cur.execute.call_args_list), fake_cur
+
+
+def test_status_in_progress_filter_covers_all_non_terminal_codes(app):
+    """The display CASE maps every status that is not 0/5 to 'In Progress'
+    (live INT has codes 3 and 4 in real use), but the status filter compared
+    `Status = 1`, so 96 rows shown as 'In Progress' could not be found by
+    filtering for it. Both sources must filter the whole bucket."""
+    for src, is_pg in ((SqlServerSource(), False), (PostgresSource(CLIENTS_code="ms02"), True)):
+        f = _mk_filter()
+        f.status_code = 1
+        with app.app_context():
+            sql, _ = _captured_sql(src, f, is_pg=is_pg)
+        norm = sql.replace('"', "").replace(" ", "").lower()
+        assert "statusnotin(0,5)" in norm, f"{type(src).__name__}: {sql}"
+
+
+def test_search_id_is_exact_match_not_substring(app):
+    """Searching workitem 371 must not also return 1371/3716/16371."""
+    for src, is_pg in ((SqlServerSource(), False), (PostgresSource(CLIENTS_code="ms02"), True)):
+        f = _mk_filter()
+        f.search_id = "371"
+        with app.app_context():
+            sql, cur = _captured_sql(src, f, is_pg=is_pg)
+        params = [c.args[1] for c in cur.execute.call_args_list if len(c.args) > 1]
+        flat = [p for group in params for p in (group if isinstance(group, list) else [group])]
+        assert "%371%" not in flat, f"{type(src).__name__} still binds a LIKE pattern: {flat}"
+        assert "371" in flat, f"{type(src).__name__} lost the search term: {flat}"
+
+
+def test_empty_process_scope_yields_no_rows_without_sql_error(app):
+    """A user with zero process permissions produced `IN ()` -- a syntax error
+    in both dialects -- so both sources errored and the page showed a degraded
+    banner instead of a clean empty state."""
+    for src in (SqlServerSource(), PostgresSource(CLIENTS_code="ms02")):
+        f = WorkitemFilter(process_names=[], client_names=[], activity_ignore_csv="'Ignore'")
+        with app.app_context():
+            rows, total = (None, None)
+            fake_cur = MagicMock()
+            fake_cur.fetchone.return_value = [0]
+            fake_cur.fetchall.return_value = []
+            fake_conn = MagicMock()
+            fake_conn.cursor.return_value = fake_cur
+            with patch.object(src, "engine") as eng:
+                eng.raw_connection.return_value = fake_conn
+                rows, total = src.list_workitems(f, offset=0, limit=40)
+            sql = " ".join(str(c.args[0]) for c in fake_cur.execute.call_args_list)
+        assert rows == [] and total == 0, f"{type(src).__name__}: {rows}, {total}"
+        assert "in ()" not in sql.lower().replace("in  (", "in ("), sql
+
+
 def test_get_source_for_workitem_cache_hit(app, monkeypatch):
     monkeypatch.setattr(ws, "_cache_lookup", lambda wid: "ms02")
     with app.app_context():
@@ -213,11 +324,48 @@ def test_get_source_for_workitem_ambiguous_falls_back_to_default(app, monkeypatc
 
 
 def test_get_domain_for_workitem_maps_client_to_domain(app, monkeypatch):
-    monkeypatch.setattr(ws, "get_source_for_workitem", lambda wid: "default")
+    monkeypatch.setattr(ws, "get_source_for_workitem", lambda wid, client_hint=None: "default")
     with app.app_context():
         from nx_lib.workitem_sources import CLIENTS
 
         assert ws.get_domain_for_workitem(5) == CLIENTS["default"].octo_domain
+
+
+def test_get_source_for_workitem_honours_client_hint_over_probe(app, monkeypatch):
+    """Ids collide across clients (1216 of them on INT), so the client of the
+    row the user actually clicked wins over probing -- which cannot tell two
+    identically numbered workitems apart."""
+    monkeypatch.setattr(ws, "_cache_lookup", lambda wid: "ms02")
+
+    def _must_not_probe():
+        raise AssertionError("probe must not run when a valid client hint is given")
+
+    monkeypatch.setattr(ws, "active_sources", _must_not_probe)
+    with app.app_context():
+        assert ws.get_source_for_workitem(217, client_hint="default") == "default"
+
+
+def test_get_source_for_workitem_probes_default_source_too(app, monkeypatch):
+    """The default source used to be excluded from the probe, so a default+MS02
+    collision looked like a single MS02 claim and was cached permanently."""
+    probed = []
+
+    class _Src:
+        def __init__(self, code):
+            self.code = code
+
+        def has_workitem(self, wid):
+            probed.append(self.code)
+            return True
+
+    monkeypatch.setattr(ws, "_cache_lookup", lambda wid: None)
+    monkeypatch.setattr(ws, "active_sources", lambda: [_Src("default"), _Src("ms02")])
+    stored = []
+    monkeypatch.setattr(ws, "_cache_store", lambda wid, code: stored.append(code))
+    with app.app_context():
+        assert ws.get_source_for_workitem(217) == "default"  # ambiguous -> fail safe
+    assert "default" in probed, probed
+    assert stored == [], "an ambiguous id must not be cached"
 
 
 def test_fetch_merged_page_single_source_passthrough(app, monkeypatch):

@@ -145,8 +145,62 @@ Work toward 2.5.64.
   brand-indigo accent on the peak value; multi-series palettes are unchanged.
   Design spec: `docs/superpowers/specs/2026-07-15-reporting-editorial-ledger-design.md`.
 
+### Security
+
+- Workitems: seven `/api/workitem/<id>*` endpoints (`GET` detail, `GET`
+  interactions, `POST` comment / assign / priority / tags, `DELETE` tag)
+  checked only that a session existed — **any** logged-in user could read and
+  mutate any workitem's metadata, including users who get a 403 on the
+  workitems page itself (verified live on INT). They now enforce
+  `workitems.details.view` / `.add.comment` / `.assign.users` / `.set.priority`
+  / `.add.tag`.
+- Workitems: the `status` filter is now gated on `workitems.filter.status` like
+  every other filter (it was applied for anyone with `workitems.view`, in both
+  the list and the CSV export).
+- Workitems: `/api/users` (comment mentions) cached its result under a key that
+  omitted the mention permission, so a permitted user's list could be served to
+  users without `workitems.details.add.comment`.
+- Workitems: the MS02 personal-number (PID) stamped onto list rows now respects
+  the sensitive doc-field gate instead of being attached unconditionally.
+
 ### Fixed
 
+- Workitems: workitem ids are **not unique across clients** (1216 ids exist in
+  both the Octo and MS02 runtimes on INT, 96 of them visible in one list), and
+  the detail/media/audit endpoints resolved a bare id by probing only the
+  non-default sources — so a colliding id always resolved to MS02, was cached
+  permanently, and served the **wrong client's document, fields and images**.
+  The list row's client is now carried through to every detail request
+  (`?client=`), the probe includes the default source and refuses to cache an
+  ambiguous id, and the per-workitem caches are keyed per client. In the UI,
+  row element ids are keyed by client+id (two rows previously shared one DOM
+  id, so both toggles opened the same panel).
+- Workitems: tag / priority / assigned-user filters silently dropped **all**
+  MS02 rows — NexoraDB stores `WorkitemId` as `NVARCHAR`, and binding those
+  string ids against Postgres' integer `"ID"` column errored, degrading the
+  whole MS02 source. Ids are normalized before use.
+- Workitems: tags and priority set on an MS02 workitem never appeared in the
+  list (same `NVARCHAR`-vs-int mismatch in the row-enrichment lookup).
+- Workitems: the "In Progress" status filter matched only status code `1`,
+  while the list renders every non-Ready/Done code as "In Progress" — 96 rows
+  displayed as In Progress could not be found by filtering for it, and the
+  per-status counts did not add up to the total. Both sources now filter the
+  whole bucket (`NOT IN (0, 5)`).
+- Workitems: the workitem search box now matches the id **exactly** — searching
+  `371` returned 1371, 2371, 3716, 16371 and more.
+- Workitems: CSV export silently capped at 5000 rows (PROD has ~39k visible
+  workitems, so a full export dropped ~34k of them without any indication). The
+  cap is now 100k, and a truncated export is reported in the response headers,
+  a trailing CSV marker, and the application log.
+- Workitems: a user with zero process permissions produced an invalid `IN ()`
+  query in both sources, showing a degraded-source banner instead of an empty
+  list.
+- Workitems: the per-source row counts now count distinct workitems, matching
+  the deduplicated rows the page actually renders.
+- Workitems: a transient DB error while reading the doc-field column whitelist
+  was cached for an hour, disabling doc-field search, autocomplete and the
+  PID/register lookups app-wide for that period. Only successful reads are
+  cached now.
 - Workitems: deleted MS02/PDBS workitems parked on the `Deletion Marker PDBS
   Dokument Statistik` / `Dossier Statistik` activity instances were still
   visible in the workitems list — those two instance names were missing from

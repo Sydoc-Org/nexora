@@ -24,7 +24,7 @@ SOURCES = [
 
 
 def _patch(monkeypatch, perms):
-    monkeypatch.setattr(w, "get_domain_for_workitem", lambda wid: "d")
+    monkeypatch.setattr(w, "get_domain_for_workitem", lambda wid, client_hint=None: "d")
     monkeypatch.setattr(w, "get_workitemdata_param", lambda wid, dom: ("wd", "doc1"))
     monkeypatch.setattr(
         w,
