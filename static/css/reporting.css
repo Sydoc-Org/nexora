@@ -961,8 +961,12 @@ body.nx-app {
   .reporting-title-input { flex-basis: 100%; order: -1; }
 }
 
-/* --- Simple/Advanced tabs (Spec 2) --- */
-.reporting-tabs { margin: 0 24px 12px; }
+/* Masthead segmented control (Indigo Studio) */
+.reporting-head-actions { display: flex; align-items: center; gap: 10px; }
+.reporting-tabs { display: flex; gap: 2px; padding: 3px; background: var(--nx-divider); border: 1px solid var(--nx-border); border-radius: 8px; margin: 0; }
+.reporting-tabs .nx-tab { border: none; background: transparent; border-radius: 6px; padding: 6px 14px; font: 500 12.5px var(--nx-font); color: var(--nx-text-sec); cursor: pointer; }
+.reporting-tabs .nx-tab:hover { color: var(--nx-text); }
+.reporting-tabs .nx-tab[aria-selected="true"] { background: var(--nx-card); color: var(--nx-accent); font-weight: 600; box-shadow: 0 1px 2px rgba(16, 24, 40, .06); }
 
 /* --- Simple pane (Spec 2) --- */
 .reporting-simple { padding: 0 24px 32px; max-width: 1100px; margin: 0 auto; }

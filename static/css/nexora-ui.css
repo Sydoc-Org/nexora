@@ -66,6 +66,14 @@
   /* — Type — */
   --nx-font: 'Inter', system-ui, -apple-system, sans-serif;
   --nx-mono: ui-monospace, "SF Mono", "Roboto Mono", Consolas, monospace;
+
+  /* Indigo Studio (2026-07-20 reporting redesign) */
+  --nx-violet-tint: #f5f3ff;
+  --nx-violet-border: #ddd6fe;
+  --nx-radius-lg: 12px;
+  --nx-radius-hero: 16px;
+  --nx-card-hover-border: #c7d2fe;
+  --nx-card-hover-shadow: 0 8px 24px -8px rgba(79, 70, 229, .18);
 }
 
 html.dark {
@@ -102,6 +110,12 @@ html.dark {
 
   --nx-shadow:     0 1px 2px rgba(0,0,0,0.4);
   --nx-shadow-pop: 0 12px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04);
+
+  /* Indigo Studio (2026-07-20 reporting redesign) */
+  --nx-violet-tint: rgba(167, 139, 250, .12);
+  --nx-violet-border: #4c1d95;
+  --nx-card-hover-border: #4c4a8f;
+  --nx-card-hover-shadow: 0 8px 24px -8px rgba(0, 0, 0, .5);
 }
 
 /* ============================================================
