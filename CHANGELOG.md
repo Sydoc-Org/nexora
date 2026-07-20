@@ -147,6 +147,11 @@ Work toward 2.5.64.
 
 ### Fixed
 
+- Workitems: deleted MS02/PDBS workitems parked on the `Deletion Marker PDBS
+  Dokument Statistik` / `Dossier Statistik` activity instances were still
+  visible in the workitems list — those two instance names were missing from
+  `dbo.ActivityInstancesToIgnore` (migration `0041`; the other two PDBS
+  markers were already ignored).
 - Workitems: an active doc-field search could return a source's **entire
   corpus** instead of only matching rows when that source's allow-set could
   not be resolved — observed on STAGING (MS02 runtime configured but
