@@ -1866,7 +1866,7 @@ def api_generali_baseservices_list():
             conn.close()
 
 
-VALID_BASE_CATEGORIES = {"Physical Mailroom, AVOR & Scanning", "Nk1 & NK2", "POE / PPR"}
+VALID_BASE_CATEGORIES = {"Physical Mailroom, AVOR & Scanning", "Nk1 & NK2", "POE", "PPR"}
 
 
 @require_permission("generali.baseservices.add")

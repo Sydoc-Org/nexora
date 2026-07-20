@@ -281,6 +281,9 @@ a.nx-card:hover, .nx-card--link:hover {
 .nx-table .nx-num { font-family: var(--nx-mono); font-variant-numeric: tabular-nums; }
 .nx-table .align-right { text-align: right; }
 .nx-table .align-center { text-align: center; }
+/* Tailwind v4 utilities are @layer'd and lose to this unlayered file — re-assert alignment on th */
+.nx-table thead th.text-center { text-align: center; }
+.nx-table thead th.text-right { text-align: right; }
 
 /* Mono metadata helper (IDs, dates, counts) */
 .nx-mono { font-family: var(--nx-mono); font-variant-numeric: tabular-nums; font-size: 0.92em; }

@@ -109,6 +109,11 @@ Work toward 2.5.64.
 
 ### Changed
 
+- Generali Base Services: the combined "POE / PPR" category is split into
+  separate "POE" and "PPR" categories for new entries and edits. Existing
+  rows keep their stored "POE / PPR" label and stay filterable via a legacy
+  filter option; editing such a row requires picking one of the new
+  categories.
 - Reporting: the Simple-tab wizard's 16-chip category cap is **removed** —
   every filterable string field the Advanced tab offers is now available as a
   breakdown chip (the docprocessing noise hide-list stays).
@@ -165,6 +170,11 @@ Work toward 2.5.64.
 
 ### Fixed
 
+- Table headers: `text-center`/`text-right` utilities on `.nx-table` header
+  cells were silently overridden by the unlayered `.nx-table thead th`
+  rule (Tailwind v4 `@layer` precedence), so headers rendered left-aligned
+  over centered column content on every nx-table page (issue #121).
+  `nexora-ui.css` now re-asserts those utilities at higher specificity.
 - Workitems: workitem ids are **not unique across clients** (1216 ids exist in
   both the Octo and MS02 runtimes on INT, 96 of them visible in one list), and
   the detail/media/audit endpoints resolved a bare id by probing only the
