@@ -431,6 +431,7 @@ def validate_dashboard_layout(layout, allowed_processes, valid_field_keys, aggre
 # ----------------------------- legacy KPI endpoints (still used by the templates) ----- #
 
 
+@require_permission("dashboard.view")
 @cache.cached(timeout=300, key_prefix=make_cache_key, response_filter=_cacheable_response)
 def dashboard_processed_over_time():
     if "username" not in session:
@@ -536,6 +537,7 @@ def dashboard_processed_over_time():
             conn.close()
 
 
+@require_permission("dashboard.view")
 @cache.cached(
     timeout=60,
     key_prefix=lambda: f"kpi_stats_{session.get('userid')}_{session.get('process_name_dashboard','all')}",
@@ -585,6 +587,7 @@ def dashboard_kpi_stats():
         return jsonify({"error": str(e)}), 500
 
 
+@require_permission("dashboard.view")
 @cache.cached(
     timeout=120,
     key_prefix=lambda: f"hourly_stats_{session.get('userid')}_{session.get('process_name_dashboard','all')}",
@@ -676,6 +679,7 @@ def dashboard_hourly_stats():
             conn_nex.close()
 
 
+@require_permission("dashboard.view")
 @cache.cached(
     timeout=300,
     key_prefix=lambda: f"avg_proc_time_{session.get('userid')}_{session.get('process_name_dashboard','all')}",

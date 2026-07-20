@@ -226,6 +226,38 @@ def _fake_nexora_engine(rows):
     return eng
 
 
+# --------------------- dashboard.view required on the four legacy KPI endpoints -----------
+# Defect: these endpoints only checked "username" in session, missing the
+# @require_permission("dashboard.view") gate present on every sibling dashboard
+# route (see test_dashboard_without_perm_returns_403 above for the page route's
+# equivalent). A user holding just a grantable dashboard.filter.process.*
+# permission (but not the base dashboard.view) could curl real KPI data.
+# noperm_client (no permissions at all, incl. no filter.process.* grants) is
+# the strictest case of "missing dashboard.view" and — same as the page route
+# — must 403 before any Statconfig/DB work happens, matching this module's own
+# "deterministic, no DB-write needed" precedent noted above.
+
+
+def test_processed_over_time_without_dashboard_view_returns_403(noperm_client):
+    resp = noperm_client.get("/api/dashboard/processed_over_time")
+    assert resp.status_code == 403
+
+
+def test_kpi_stats_without_dashboard_view_returns_403(noperm_client):
+    resp = noperm_client.get("/api/dashboard/kpi_stats")
+    assert resp.status_code == 403
+
+
+def test_hourly_stats_without_dashboard_view_returns_403(noperm_client):
+    resp = noperm_client.get("/api/dashboard/hourly_stats")
+    assert resp.status_code == 403
+
+
+def test_avg_processing_time_without_dashboard_view_returns_403(noperm_client):
+    resp = noperm_client.get("/api/dashboard/avg_processing_time")
+    assert resp.status_code == 403
+
+
 def test_processed_over_time_error_response_is_not_cached(user_client, monkeypatch):
     """A transient 500 (Statconfig read on NexoraDB fails) must not be pinned
     in the 300s response cache: the next request re-executes the view."""
