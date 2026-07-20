@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<style>
+  body { margin: 0; background: #f9fafb; font-family: 'Inter', system-ui, sans-serif; color: #1f2937; }
+  a { color: #4f46e5; text-decoration: none; }
+  a:hover { color: #4338ca; }
+</style>
+</helmet>
+<div style="min-height:100vh;">
+  <div style="background:#fff;border-bottom:1px solid #e5e7eb;padding:16px 40px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:10;">
+    <button style="display:inline-flex;align-items:center;gap:7px;background:none;border:1px solid #e5e7eb;border-radius:8px;padding:7px 13px;color:#6b7280;font:500 12.5px Inter;cursor:pointer;" style-hover="color:#1f2937;background:#f9fafb;"><i class="fas fa-arrow-left" style="font-size:10px;"></i>Library</button>
+    <div>
+      <h1 style="margin:0;font:600 17px Inter;letter-spacing:-.2px;color:#1f2937;display:inline-flex;align-items:center;gap:8px;">Document operations <i class="fas fa-pen" style="font-size:10px;color:#d1d5db;cursor:pointer;"></i></h1>
+      <p style="margin:2px 0 0;font:11px Inter;color:#9ca3af;">{{ cardCount }} cards · drag to rearrange · hover a card for controls</p>
+    </div>
+    <span style="flex:1;"></span>
+    <sc-if value="{{ editing }}" hint-placeholder-val="{{ true }}">
+      <span style="display:inline-flex;align-items:center;gap:7px;padding:6px 13px;border-radius:999px;background:#eef2ff;border:1px solid #c7d2fe;font:600 12px Inter;color:#4338ca;"><span style="width:7px;height:7px;border-radius:999px;background:#4f46e5;"></span>Editing</span>
+    </sc-if>
+    <button onClick="{{ addChart }}" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:7px;font:600 12.5px Inter;border:1px solid #c7d2fe;background:#eef2ff;color:#4338ca;cursor:pointer;" style-hover="background:#e0e7ff;"><i class="fas fa-plus" style="font-size:10px;"></i>Add card</button>
+    <button style="display:inline-flex;align-items:center;gap:6px;padding:8px 13px;border-radius:7px;font:500 12.5px Inter;border:1px solid #d1d5db;background:#fff;color:#1f2937;cursor:pointer;"><i class="fas fa-file-export" style="font-size:10px;"></i>Export</button>
+    <button onClick="{{ toggleEditing }}" style="display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:7px;font:600 12.5px Inter;border:none;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;box-shadow:0 2px 8px -2px rgba(79,70,229,.45);cursor:pointer;" style-hover="filter:brightness(1.07);">{{ editLabel }}</button>
+  </div>
+  <div style="max-width:1240px;margin:0 auto;padding:20px 40px 80px;box-sizing:border-box;">
+    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:18px;">
+      <span style="font:600 10px Inter;letter-spacing:.8px;text-transform:uppercase;color:#9ca3af;display:inline-flex;align-items:center;gap:6px;"><i class="fas fa-filter" style="font-size:9px;color:#7c3aed;"></i>Global filters</span>
+      <span style="width:1px;height:18px;background:#e5e7eb;"></span>
+      <sc-for list="{{ globalFilters }}" as="f" hint-placeholder-count="2">
+        <span onClick="{{ f.cycle }}" title="Click to change" style="display:inline-flex;align-items:center;gap:7px;padding:5px 13px;border-radius:999px;font:500 12px Inter;background:#eef2ff;border:1px solid #e0e7ff;color:#4338ca;cursor:pointer;user-select:none;" style-hover="border-color:#c7d2fe;">
+          <i class="fas {{ f.icon }}" style="font-size:10px;"></i>{{ f.label }} · {{ f.value }}
+          <i onClick="{{ f.remove }}" class="fas fa-xmark" style="font-size:10px;opacity:.55;padding:2px;" style-hover="opacity:1;"></i>
+        </span>
+      </sc-for>
+      <sc-if value="{{ canAddFilter }}" hint-placeholder-val="{{ true }}">
+        <button onClick="{{ addFilter }}" style="display:inline-flex;align-items:center;gap:6px;border:1px dashed #d1d5db;border-radius:999px;background:transparent;color:#9ca3af;font:500 12px Inter;padding:5px 13px;cursor:pointer;" style-hover="color:#4f46e5;border-color:#c7d2fe;"><i class="fas fa-plus" style="font-size:9px;"></i>Add filter</button>
+      </sc-if>
+      <span style="flex:1;"></span>
+      <span style="font:11px Inter;color:#9ca3af;">apply to every card · a card can override them</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(12,1fr);gap:14px;">
+      <sc-for list="{{ cards }}" as="c" hint-placeholder-count="6">
+        <div draggable="{{ c.draggable }}" onDragStart="{{ c.onDragStart }}" onDragOver="{{ c.onDragOver }}" onDrop="{{ c.onDrop }}" onDragEnd="{{ c.onDragEnd }}"
+             style="grid-column:span {{ c.span }};background:#fff;border:1px solid {{ c.borderColor }};border-radius:12px;padding:14px 18px;position:relative;opacity:{{ c.opacity }};box-shadow:{{ c.shadow }};transition:border-color .12s, box-shadow .12s;box-sizing:border-box;"
+             style-hover="border-color:#c7d2fe;">
+          <sc-if value="{{ c.editing }}" hint-placeholder-val="{{ true }}">
+            <div style="position:absolute;top:-11px;right:10px;display:flex;gap:4px;z-index:3;">
+              <button onClick="{{ c.duplicate }}" title="Duplicate" style="width:22px;height:22px;border-radius:6px;border:1px solid #e5e7eb;background:#fff;color:#6b7280;font-size:9px;cursor:pointer;box-shadow:0 2px 6px rgba(16,24,40,.1);" style-hover="color:#4f46e5;border-color:#c7d2fe;"><i class="fas fa-clone"></i></button>
+              <button onClick="{{ c.remove }}" title="Remove" style="width:22px;height:22px;border-radius:6px;border:1px solid #fecaca;background:#fff;color:#dc2626;font-size:9px;cursor:pointer;box-shadow:0 2px 6px rgba(16,24,40,.1);" style-hover="background:#fef2f2;"><i class="fas fa-xmark"></i></button>
+            </div>
+          </sc-if>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:{{ c.headGap }};">
+            <sc-if value="{{ c.editing }}" hint-placeholder-val="{{ true }}"><i class="fas fa-grip-vertical" style="color:#d3d9f8;font-size:11px;cursor:grab;"></i></sc-if>
+            <span style="font:600 {{ c.titleSize }} Inter;letter-spacing:{{ c.titleSpacing }};text-transform:{{ c.titleCase }};color:{{ c.titleColor }};">{{ c.title }}</span>
+            <sc-if value="{{ c.filter }}" hint-placeholder-val="{{ false }}">
+              <span style="display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;background:#f5f3ff;border:1px solid #ddd6fe;font:500 10.5px Inter;color:#7c3aed;" title="This card overrides the global filters"><i class="fas fa-filter" style="font-size:8px;"></i>{{ c.filter }}<i onClick="{{ c.removeFilter }}" class="fas fa-xmark" style="font-size:9px;opacity:.6;cursor:pointer;padding:1px;" style-hover="opacity:1;"></i></span>
+            </sc-if>
+            <span style="flex:1;"></span>
+            <sc-if value="{{ c.showInherit }}" hint-placeholder-val="{{ false }}"><span style="font:10.5px Inter;color:#c4c4c9;">inherits global filters</span></sc-if>
+          </div>
+          <sc-if value="{{ c.isKpi }}" hint-placeholder-val="{{ true }}">
+            <p style="margin:0;font:600 30px Inter;letter-spacing:-1px;font-variant-numeric:tabular-nums;color:#1f2937;">{{ c.value }}</p>
+            <p style="margin:6px 0 0;font:600 11px Inter;color:{{ c.trendColor }};"><i class="fas {{ c.trendIcon }}" style="font-size:9px;"></i> {{ c.trend }}</p>
+          </sc-if>
+          <sc-if value="{{ c.isLine }}" hint-placeholder-val="{{ false }}">
+            <svg viewBox="0 0 100 40" preserveAspectRatio="none" style="width:100%;height:190px;display:block;">
+              <line x1="0" y1="10" x2="100" y2="10" stroke="#f3f4f6" stroke-width="1" vector-effect="non-scaling-stroke"></line>
+              <line x1="0" y1="20" x2="100" y2="20" stroke="#f3f4f6" stroke-width="1" vector-effect="non-scaling-stroke"></line>
+              <line x1="0" y1="30" x2="100" y2="30" stroke="#f3f4f6" stroke-width="1" vector-effect="non-scaling-stroke"></line>
+              <polygon points="{{ c.area }}" fill="rgba(79,70,229,.12)"></polygon>
+              <polyline points="{{ c.points }}" fill="none" stroke="#4f46e5" stroke-width="2.5" vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round"></polyline>
+            </svg>
+            <div style="display:flex;justify-content:space-between;margin-top:6px;">
+              <sc-for list="{{ c.labels }}" as="l" hint-placeholder-count="12"><span style="font:10.5px Inter;color:#9ca3af;">{{ l }}</span></sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ c.isBar }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;align-items:flex-end;gap:10px;height:170px;padding-top:10px;">
+              <sc-for list="{{ c.bars }}" as="b" hint-placeholder-count="5">
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;">
+                  <span style="font:600 10.5px Inter;color:#6b7280;">{{ b.v }}</span>
+                  <div style="width:70%;max-width:44px;height:{{ b.h }};background:{{ b.fill }};border-radius:6px 6px 3px 3px;"></div>
+                  <span style="font:10.5px Inter;color:#9ca3af;white-space:nowrap;">{{ b.label }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ c.isDonut }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;align-items:center;gap:18px;padding:8px 0;">
+              <div style="position:relative;width:150px;height:150px;flex-shrink:0;">
+                <svg viewBox="0 0 42 42" style="width:150px;height:150px;display:block;">
+                  <sc-for list="{{ c.segs }}" as="s" hint-placeholder-count="4">
+                    <circle cx="21" cy="21" r="16" fill="none" stroke="{{ s.color }}" stroke-width="7" pathLength="100" stroke-dasharray="{{ s.dash }}" stroke-dashoffset="{{ s.off }}" transform="rotate(-90 21 21)"></circle>
+                  </sc-for>
+                </svg>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                  <span style="font:600 22px Inter;letter-spacing:-.5px;color:#1f2937;font-variant-numeric:tabular-nums;">{{ c.total }}</span>
+                  <span style="font:600 9px Inter;letter-spacing:.8px;color:#9ca3af;">TOTAL</span>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <sc-for list="{{ c.segs }}" as="s" hint-placeholder-count="4">
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <span style="width:9px;height:9px;border-radius:3px;background:{{ s.color }};"></span>
+                    <span style="font:12px Inter;color:#374151;min-width:90px;">{{ s.label }}</span>
+                    <span style="font:600 12px Inter;color:#6b7280;font-variant-numeric:tabular-nums;">{{ s.value }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ c.isTable }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:1fr auto;border-top:1px solid #f3f4f6;">
+              <sc-for list="{{ c.rows }}" as="r" hint-placeholder-count="4">
+                <span style="padding:9px 4px;border-bottom:1px solid #f3f4f6;font:12.5px Inter;color:#374151;">{{ r.k }}</span>
+                <span style="padding:9px 4px;border-bottom:1px solid #f3f4f6;font:600 12.5px Inter;color:#1f2937;text-align:right;font-variant-numeric:tabular-nums;">{{ r.v }}</span>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+      <sc-if value="{{ editing }}" hint-placeholder-val="{{ true }}">
+        <div style="grid-column:span 6;border:2px dashed #d1d5db;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;min-height:180px;" style-hover="border-color:#a5b4fc;background:rgba(238,242,255,.4);">
+          <span style="width:40px;height:40px;border-radius:999px;background:#eef2ff;color:#4f46e5;display:inline-flex;align-items:center;justify-content:center;font-size:15px;"><i class="fas fa-plus"></i></span>
+          <span style="font:600 13px Inter;color:#6b7280;">Add a card</span>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+            <button onClick="{{ addChart }}" style="display:inline-flex;align-items:center;gap:6px;border:1px solid #e5e7eb;border-radius:999px;background:#fff;color:#374151;font:500 12px Inter;padding:6px 14px;cursor:pointer;" style-hover="border-color:#c7d2fe;color:#4f46e5;"><i class="fas fa-chart-line" style="font-size:10px;color:#7c3aed;"></i>Chart</button>
+            <button onClick="{{ addKpi }}" style="display:inline-flex;align-items:center;gap:6px;border:1px solid #e5e7eb;border-radius:999px;background:#fff;color:#374151;font:500 12px Inter;padding:6px 14px;cursor:pointer;" style-hover="border-color:#c7d2fe;color:#4f46e5;"><i class="fas fa-hashtag" style="font-size:10px;color:#7c3aed;"></i>KPI</button>
+            <button onClick="{{ addTable }}" style="display:inline-flex;align-items:center;gap:6px;border:1px solid #e5e7eb;border-radius:999px;background:#fff;color:#374151;font:500 12px Inter;padding:6px 14px;cursor:pointer;" style-hover="border-color:#c7d2fe;color:#4f46e5;"><i class="fas fa-table" style="font-size:10px;color:#7c3aed;"></i>Table</button>
+            <button onClick="{{ addDonut }}" style="display:inline-flex;align-items:center;gap:6px;border:1px solid #e5e7eb;border-radius:999px;background:#fff;color:#374151;font:500 12px Inter;padding:6px 14px;cursor:pointer;" style-hover="border-color:#c7d2fe;color:#4f46e5;"><i class="fas fa-chart-pie" style="font-size:10px;color:#7c3aed;"></i>Donut</button>
+          </div>
+          <span style="font:11px Inter;color:#c4c4c9;">or drop a saved report here</span>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;editing&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;}}">
+class Component extends DCLogic {
+  state = {
+    editingOverride: null,
+    dragId: null,
+    overId: null,
+    seq: 100,
+    globalFilters: [
+      { id: 'date', label: 'Export date', icon: 'fa-calendar', idx: 0, values: ['This year', 'Last year', 'Last 3 months', 'All time'] },
+      { id: 'proc', label: 'Processes', icon: 'fa-diagram-project', idx: 0, values: ['All', 'privera only', 'compass only', 'elektro only'] }
+    ],
+    cards: [
+      { id: 'k1', type: 'kpi', span: 3, title: 'Document count', value: '1,204', trend: '+8.2% vs last year', up: true, filter: null },
+      { id: 'k2', type: 'kpi', span: 3, title: 'Pages processed', value: '18,930', trend: '+3.1% vs last year', up: true, filter: null },
+      { id: 'k3', type: 'kpi', span: 3, title: 'Invoices', value: '486', trend: '−2.4% vs last year', up: false, filter: 'privera only' },
+      { id: 'k4', type: 'kpi', span: 3, title: 'Avg pages / doc', value: '15.7', trend: '+0.4 vs last year', up: true, filter: null },
+      { id: 'c1', type: 'line', span: 8, title: 'Documents per month', filter: 'Type: Invoice' },
+      { id: 'c2', type: 'donut', span: 4, title: 'By document type', filter: null },
+      { id: 'c3', type: 'bar', span: 6, title: 'Documents by process', filter: null },
+      { id: 'c4', type: 'table', span: 6, title: 'Top departments', filter: null }
+    ]
+  };
+
+  setCards(fn) { this.setState(s => ({ cards: fn(s.cards.slice()) })); }
+
+  renderVals() {
+    const s = this.state;
+    s.editing = s.editingOverride !== null ? s.editingOverride : (this.props.editing ?? true);
+    const lineVals = [64, 92, 78, 110, 96, 124, 101, 138, 120, 146, 132, 103];
+    const max = 150;
+    const pts = lineVals.map((v, i) => [(i / 11) * 100, 38 - (v / max) * 34]);
+    const points = pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+    const area = points + ' 100,40 0,40';
+    const donutData = [['Invoice', 486, '#4f46e5'], ['Initial scan', 312, '#7c3aed'], ['Mail intake', 268, '#a5b4fc'], ['Other', 138, '#e0e7ff']];
+    const donutTotal = donutData.reduce((a, d) => a + d[1], 0);
+    let off = 0;
+    const segs = donutData.map(d => {
+      const pct = d[1] / donutTotal * 100;
+      const seg = { label: d[0], value: d[1].toLocaleString('en-US'), color: d[2], dash: pct.toFixed(2) + ' ' + (100 - pct).toFixed(2), off: (-off).toFixed(2) };
+      off += pct; return seg;
+    });
+    const barData = [['compass.01', 214], ['elektro.02', 186], ['privera IS', 298], ['privera PE', 342], ['privera.03', 164]];
+    const barMax = 360;
+    const barFills = ['#4f46e5', '#6366f1', '#7c3aed', '#8b5cf6', '#a5b4fc'];
+
+    const cards = s.cards.map((c, i) => {
+      const isDragged = s.dragId === c.id;
+      const isOver = s.overId === c.id && s.dragId && s.dragId !== c.id;
+      const base = {
+        id: c.id, span: c.span, title: c.title, filter: c.filter || false, editing: s.editing,
+        draggable: s.editing ? 'true' : 'false',
+        opacity: isDragged ? '.35' : '1',
+        borderColor: isOver ? '#4f46e5' : '#e5e7eb',
+        shadow: isOver ? '0 0 0 3px rgba(79,70,229,.15)' : 'none',
+        isKpi: false, isLine: false, isBar: false, isDonut: false, isTable: false,
+        showInherit: !c.filter && c.type !== 'kpi',
+        headGap: c.type === 'kpi' ? '8px' : '10px',
+        titleSize: c.type === 'kpi' ? '10.5px' : '13.5px',
+        titleSpacing: c.type === 'kpi' ? '.7px' : '-.1px',
+        titleCase: c.type === 'kpi' ? 'uppercase' : 'none',
+        titleColor: c.type === 'kpi' ? '#9ca3af' : '#1f2937',
+        onDragStart: (e) => { e.dataTransfer.effectAllowed = 'move'; this.setState({ dragId: c.id }); },
+        onDragOver: (e) => { e.preventDefault(); if (this.state.overId !== c.id) this.setState({ overId: c.id }); },
+        onDrop: (e) => {
+          e.preventDefault();
+          const from = this.state.dragId;
+          if (from && from !== c.id) this.setCards(list => {
+            const fi = list.findIndex(x => x.id === from), ti = list.findIndex(x => x.id === c.id);
+            const [m] = list.splice(fi, 1); list.splice(ti, 0, m); return list;
+          });
+          this.setState({ dragId: null, overId: null });
+        },
+        onDragEnd: () => this.setState({ dragId: null, overId: null }),
+        remove: (e) => { e.stopPropagation(); this.setCards(list => list.filter(x => x.id !== c.id)); },
+        duplicate: (e) => {
+          e.stopPropagation();
+          this.setState(st => {
+            const list = st.cards.slice();
+            const idx = list.findIndex(x => x.id === c.id);
+            list.splice(idx + 1, 0, Object.assign({}, c, { id: 'dup' + st.seq }));
+            return { cards: list, seq: st.seq + 1 };
+          });
+        },
+        removeFilter: (e) => { e.stopPropagation(); this.setCards(list => list.map(x => x.id === c.id ? Object.assign({}, x, { filter: null }) : x)); }
+      };
+      if (c.type === 'kpi') Object.assign(base, { isKpi: true, value: c.value, trend: c.trend, trendColor: c.up ? '#059669' : '#dc2626', trendIcon: c.up ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down' });
+      if (c.type === 'line') Object.assign(base, { isLine: true, points, area, labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'] });
+      if (c.type === 'donut') Object.assign(base, { isDonut: true, segs, total: donutTotal.toLocaleString('en-US') });
+      if (c.type === 'bar') Object.assign(base, { isBar: true, bars: barData.map((b, j) => ({ label: b[0], v: b[1], h: Math.round(b[1] / barMax * 120) + 'px', fill: barFills[j] })) });
+      if (c.type === 'table') Object.assign(base, { isTable: true, rows: [
+        { k: 'Finance', v: '342' }, { k: 'Operations', v: '298' }, { k: 'Property mgmt', v: '214' }, { k: 'Legal', v: '96' }
+      ] });
+      return base;
+    });
+
+    const add = (card) => this.setState(st => ({ cards: st.cards.concat([Object.assign({ id: 'n' + st.seq }, card)]), seq: st.seq + 1 }));
+    const pool = [
+      { id: 'date', label: 'Export date', icon: 'fa-calendar', values: ['This year', 'Last year', 'Last 3 months', 'All time'] },
+      { id: 'proc', label: 'Processes', icon: 'fa-diagram-project', values: ['All', 'privera only', 'compass only', 'elektro only'] },
+      { id: 'dept', label: 'Department', icon: 'fa-building', values: ['Any', 'Finance', 'Operations', 'Legal'] },
+      { id: 'type', label: 'Doc type', icon: 'fa-file-lines', values: ['Any', 'Invoice', 'Initial scan', 'Mail intake'] }
+    ];
+    return {
+      editing: s.editing,
+      editLabel: s.editing ? 'Done' : 'Edit',
+      cardCount: s.cards.length,
+      toggleEditing: () => this.setState({ editingOverride: !s.editing }),
+      cards,
+      globalFilters: s.globalFilters.map(f => ({
+        label: f.label, icon: f.icon, value: f.values[f.idx],
+        cycle: () => this.setState(st => ({ globalFilters: st.globalFilters.map(x => x.id === f.id ? Object.assign({}, x, { idx: (x.idx + 1) % x.values.length }) : x) })),
+        remove: (e) => { e.stopPropagation(); this.setState(st => ({ globalFilters: st.globalFilters.filter(x => x.id !== f.id) })); }
+      })),
+      canAddFilter: s.globalFilters.length < pool.length,
+      addFilter: () => this.setState(st => {
+        const missing = pool.find(p => !st.globalFilters.some(g => g.id === p.id));
+        return missing ? { globalFilters: st.globalFilters.concat([Object.assign({ idx: 0 }, missing)]) } : {};
+      }),
+      addChart: () => add({ type: 'line', span: 8, title: 'New chart — documents per month', filter: null }),
+      addKpi: () => add({ type: 'kpi', span: 3, title: 'New KPI', value: '0', trend: 'no comparison yet', up: true, filter: null }),
+      addTable: () => add({ type: 'table', span: 6, title: 'New table', filter: null }),
+      addDonut: () => add({ type: 'donut', span: 4, title: 'New donut — by type', filter: null })
+    };
+  }
+}
+</script>
+</body>
+</html>
