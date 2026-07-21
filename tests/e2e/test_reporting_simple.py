@@ -3079,6 +3079,7 @@ def test_wizard_rail_tracks_progress(nexora_server, page):
     page.get_by_test_id("rs-measure-list").get_by_text("Docproc count stub").click()
     page.get_by_test_id("rs-measure-next").click()
     expect(page.locator("#rsWizardStepNo")).to_have_text("Step 2 of 4")
+    expect(rail).to_contain_text("Docproc count stub")  # chosen-value summary
 
 
 def test_result_more_menu_holds_advanced_and_sql(nexora_server, page):

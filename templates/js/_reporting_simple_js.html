@@ -447,6 +447,7 @@
     setHeaderActionsEnabled(false);
     el('rsStatCard').hidden = true;
     el('rsChartCard').hidden = true;
+    el('rsTableCard').hidden = true;
     el('rsChartNote').hidden = true;
     el('rsChartTools').hidden = true;
     el('rsTableToggle').hidden = true;
@@ -1191,6 +1192,7 @@
     el('rsSaveName').hidden = true;
     el('rsStatCard').hidden = true;
     el('rsChartCard').hidden = true;
+    el('rsTableCard').hidden = true;
     el('rsTableToggle').hidden = true;
     el('rsTableWrap').hidden = true;
     el('rsRunLoading').hidden = true;
@@ -1256,6 +1258,7 @@
     el('rsSaveName').hidden = true;
     el('rsStatCard').hidden = true;
     el('rsChartCard').hidden = true;
+    el('rsTableCard').hidden = true;
     el('rsTableToggle').hidden = true;
     el('rsTableWrap').hidden = true;
     el('rsRunLoading').hidden = false;
@@ -1296,6 +1299,7 @@
       return;
     }
     setHeaderActionsEnabled(true);
+    el('rsTableCard').hidden = false;
     showTiming(res.data.rowCount, performance.now() - runT0);
     state.current.sql = res.data.sql || null;
     state.current.sqlPretty = res.data.sqlPretty || null;
