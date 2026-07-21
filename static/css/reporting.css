@@ -1920,6 +1920,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
   background: var(--nx-card); border: 1px solid var(--nx-border);
   border-radius: var(--nx-radius-lg); padding: 12px 18px; margin-bottom: 18px;
+  position: relative;  /* anchors the filter popover (Task 13) */
 }
 .rdb-filterbar-label {
   display: inline-flex; align-items: center; gap: 6px;
@@ -1928,8 +1929,42 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 }
 .rdb-filterbar-label i { color: var(--nx-violet); font-size: 9px; }
 .rdb-filterbar-divider { width: 1px; height: 18px; background: var(--nx-border); }
-.rdb-filterchips { display: flex; flex-wrap: wrap; gap: 6px; }
+.rdb-filterchips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .rdb-filterbar-hint { font-size: 11px; color: var(--nx-text-meta); }
+
+/* Global filter chips (indigo, reuses .reporting-drill-chip) + the dashed
+   add-filter chip (Task 13). */
+.rdb-gfilter { cursor: pointer; user-select: none; }
+.rdb-gfilter-x { margin-left: 1px; opacity: .55; cursor: pointer; padding: 1px; }
+.rdb-gfilter-x:hover { opacity: 1; }
+.rdb-add-filter {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px dashed var(--nx-border-strong); border-radius: 999px;
+  background: transparent; color: var(--nx-text-meta);
+  font: 500 12px var(--nx-font); padding: 5px 13px; cursor: pointer;
+  transition: color var(--nx-dur) var(--nx-ease), border-color var(--nx-dur) var(--nx-ease);
+}
+.rdb-add-filter i { font-size: 9px; }
+.rdb-add-filter:hover { color: var(--nx-accent); border-color: #c7d2fe; }
+
+/* Filter popover (#rdbFilterPop): field/op/value + Apply/Cancel, positioned
+   under the clicked chip via JS-computed top/left off .rdb-filterbar's
+   getBoundingClientRect(). z-index only needs to clear the (unpositioned,
+   z-index:auto) card grid below it -- no ancestor here uses
+   animation-fill-mode:both (see nexora-ui.css's .nx-rise comment: that's
+   what buried a popover once before), so there's no stacking-context trap
+   to route around beyond this. */
+.rdb-filter-pop {
+  position: absolute; z-index: 40;
+  display: flex; flex-direction: column; gap: 6px;
+  min-width: 220px; padding: 14px;
+  background: var(--nx-card); border: 1px solid var(--nx-border);
+  border-radius: 10px; box-shadow: var(--nx-shadow-pop);
+}
+.rdb-filter-pop label { font: 600 10.5px var(--nx-font); color: var(--nx-text-meta); }
+.rdb-filter-pop select,
+.rdb-filter-pop input { width: 100%; box-sizing: border-box; }
+.rdb-filter-pop-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
 
 .rdb-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px; }
 .rdb-card {
@@ -1943,6 +1978,13 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   .rdb-grid { grid-template-columns: repeat(6, 1fr); }
   .rdb-card { grid-column: span 6 !important; }
 }
+
+/* Per-card override chip (violet, reuses .reporting-drill-chip) + the
+   "inherits global filters" note (Task 13). */
+.rdb-card-filter-chip { cursor: default; }
+.rdb-card-filter-x { margin-left: 1px; opacity: .6; cursor: pointer; padding: 1px; }
+.rdb-card-filter-x:hover { opacity: 1; }
+.rdb-card-inherit { font-size: 10.5px; color: var(--nx-text-meta); }
 
 /* ============================================================
    Task 12 — Card rendering + per-card runs. Hover affordance only in

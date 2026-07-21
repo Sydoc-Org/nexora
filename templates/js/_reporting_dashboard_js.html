@@ -70,6 +70,18 @@
     cardsMeta: {{ _("{n} cards · drag to rearrange · hover a card for controls")|tojson }},
     globalFilters: {{ _("Global filters")|tojson }},
     filterHint: {{ _("apply to every card · a card can override them")|tojson }},
+    addFilter: {{ _("Add filter")|tojson }},
+    inherits: {{ _("inherits global filters")|tojson }},
+    overrideTitle: {{ _("This card overrides the global filters")|tojson }},
+    filterField: {{ _("Field")|tojson }},
+    filterOperator: {{ _("Operator")|tojson }},
+    filterValue: {{ _("Value")|tojson }},
+    apply: {{ _("Apply")|tojson }},
+    cancel: {{ _("Cancel")|tojson }},
+    opContains: {{ _("contains")|tojson }},
+    opStartsWith: {{ _("starts with")|tojson }},
+    opIsEmpty: {{ _("is empty")|tojson }},
+    opIsNotEmpty: {{ _("is not empty")|tojson }},
     saved: {{ _("Dashboard saved")|tojson }},
     saveFailed: {{ _("Could not save the dashboard")|tojson }},
     couldNotLoad: {{ _("Could not load this card.")|tojson }},
@@ -81,6 +93,18 @@
   // Chart.js palette for bar/donut cards (spec §Dashboard "Cards") -- cycles
   // if a card has more categories than colors.
   var CARD_PALETTE = ['#4f46e5', '#6366f1', '#7c3aed', '#8b5cf6', '#a5b4fc'];
+
+  // Filter-op set + labels for the global-filter popover (D11/Task 13) --
+  // mirrors _reporting_js.html's OP_LABELS/op <select> (same msgids, so
+  // translations can't drift apart between the two). Narrower than that
+  // list: no between/in/not_in here -- those need the multi-value UI the
+  // Simple/Advanced panes have and this self-contained popover doesn't.
+  var FILTER_OPS = ['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'contains', 'starts_with', 'is_null', 'is_not_null'];
+  var OP_LABELS = {
+    eq: '=', ne: '≠', gt: '>', gte: '≥', lt: '<', lte: '≤',
+    contains: I18N.opContains, starts_with: I18N.opStartsWith,
+    is_null: I18N.opIsEmpty, is_not_null: I18N.opIsNotEmpty
+  };
 
   // ---- State model (D2/D3 -- exact shape, Tasks 12-15 build on this) -------
   var state = { editing: false, dirty: false, reportId: null, canEdit: true,
@@ -207,6 +231,24 @@
     // (chart/kpi/table/donut) is Task 12/13's job; this proves the round trip.
     el('rdbAddCard').addEventListener('click', function () { addCard('kpi'); });
     el('rdbEditToggle').addEventListener('click', toggleEditing);
+    // Per-card override chip's x -- delegated (cards are rebuilt/replaced on
+    // every renderCard(), so a direct listener would be lost on re-render).
+    el('rdbGrid').addEventListener('click', function (e) {
+      var x = e.target.closest && e.target.closest('[data-testid="rdb-card-filter-remove"]');
+      if (!x) return;
+      var cardEl = x.closest('[data-card-id]');
+      if (cardEl) clearCardOverrides(cardEl.getAttribute('data-card-id'));
+    });
+    // Filter popover: outside-click / Escape close -- same idiom as the
+    // Simple pane's rs-more-menu (hidden flag + outside-click + Escape).
+    document.addEventListener('click', function (e) {
+      if (!filterPop.open) return;
+      var pop = el('rdbFilterPop');
+      if (pop && !pop.contains(e.target)) closeFilterPopover();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (filterPop.open && e.key === 'Escape') closeFilterPopover();
+    });
     built = true;
   }
 
@@ -241,16 +283,6 @@
     el('rdbEditToggle').textContent = state.editing ? I18N.done : I18N.edit;
   }
 
-  function renderFilterBar() {
-    var chips = el('rdbFilterChips');
-    var filters = (state.def && state.def.globalFilters) || [];
-    chips.innerHTML = filters.map(function (f) {
-      return '<span class="reporting-drill-chip reporting-drill-chip--indigo">' +
-        '<i class="fas fa-filter" aria-hidden="true"></i>' +
-        esc(f.field) + ' ' + esc(f.op) + ' ' + esc(f.value) + '</span>';
-    }).join('');
-  }
-
   // ---- D4 filter merge -------------------------------------------------
   // card.definition.filters (base) <- state.def.globalFilters (dashboard-
   // wide) <- card.filterOverrides (per-card, wins last), merged field-keyed
@@ -271,6 +303,268 @@
     apply(state.def && state.def.globalFilters);
     apply(card.filterOverrides);
     return order.map(function (k) { return byField[k]; });
+  }
+
+  // ---- Filter-field catalog (D11) ----------------------------------------
+  // Self-contained: fetches its own copy of the same catalog endpoints the
+  // Simple pane loads (GET /api/reporting/sources + /metrics) -- this is a
+  // separate IIFE, it can't read the Simple pane's already-fetched state.
+  // Lazy: only fetched the first time a filter popover opens, cached after.
+  var catalog = { loaded: false, sources: [] };
+
+  async function ensureCatalog() {
+    if (catalog.loaded) return;
+    var sourcesRes = await api('/api/reporting/sources');
+    // Fetched for parity with the Simple pane's catalog load (same two
+    // endpoints); not itself read by the filter popover below.
+    await api('/api/reporting/metrics');
+    catalog.sources = (sourcesRes.ok && Array.isArray(sourcesRes.data)) ? sourcesRes.data : [];
+    catalog.loaded = true;
+  }
+
+  // Distinct source ids actually used by this dashboard's cards. Empty on a
+  // brand-new/empty dashboard -- filterableFieldCatalog() then falls back to
+  // every catalog source (nothing to narrow by yet).
+  function cardSourceIds() {
+    var ids = [];
+    ((state.def && state.def.cards) || []).forEach(function (c) {
+      var sid = c.definition && c.definition.source;
+      if (sid && ids.indexOf(sid) === -1) ids.push(sid);
+    });
+    return ids;
+  }
+
+  // The popover field <select>'s options: filterable fields of the sources
+  // the card sources' shared catalog. Deduped by field key (first match's
+  // label wins) since a global filter targets one field across every card.
+  function filterableFieldCatalog() {
+    var ids = cardSourceIds();
+    var out = [], seen = {};
+    catalog.sources.forEach(function (src) {
+      if (ids.length && ids.indexOf(src.id) === -1) return;
+      (src.fields || []).forEach(function (f) {
+        if (!f.filterable || seen[f.field]) return;
+        seen[f.field] = 1;
+        out.push(f);
+      });
+    });
+    return out;
+  }
+
+  function fieldMetaByKey(key) {
+    var match = null;
+    filterableFieldCatalog().forEach(function (f) { if (f.field === key) match = f; });
+    return match;
+  }
+
+  // Text vs. date value input -- same rule as the Simple pane's chip editor
+  // (filterChipEditor in _reporting_simple_js.html) and the Advanced
+  // builder's filter row (_reporting_js.html): grainable OR a "date"-ish type.
+  function isDateFieldMeta(meta) {
+    return !!(meta && (meta.grainable || /date/i.test(meta.type || '')));
+  }
+
+  function filterChipLabel(f) {
+    var meta = fieldMetaByKey(f.field);
+    var parts = [(meta && meta.label) || f.field, OP_LABELS[f.op] || f.op];
+    if (f.value != null && f.value !== '') parts.push(String(f.value));
+    return parts.join(' ');
+  }
+
+  // ---- Global filter popover (D11 -- field/op/value, self-contained) -----
+  var filterPop = { open: false, index: -1 };
+
+  function closeFilterPopover() {
+    var pop = el('rdbFilterPop');
+    if (pop && pop.parentNode) pop.parentNode.removeChild(pop);
+    filterPop.open = false;
+    filterPop.index = -1;
+  }
+
+  function positionFilterPopover(pop, anchorEl) {
+    var bar = el('rdbFilterBar');
+    var barRect = bar.getBoundingClientRect();
+    var aRect = anchorEl.getBoundingClientRect();
+    pop.style.top = (aRect.bottom - barRect.top + 8) + 'px';
+    pop.style.left = Math.max(0, aRect.left - barRect.left) + 'px';
+  }
+
+  // is_null/is_not_null carry no value (mirrors the Simple/Advanced chip
+  // editors skipping a value for those ops); text vs. date otherwise.
+  function refreshFilterPopoverValueField(pop) {
+    var fieldSel = pop.querySelector('[data-testid="rdb-filter-field"]');
+    var opSel = pop.querySelector('[data-testid="rdb-filter-op"]');
+    var valInput = pop.querySelector('[data-testid="rdb-filter-value"]');
+    var isNullOp = opSel.value === 'is_null' || opSel.value === 'is_not_null';
+    valInput.hidden = isNullOp;
+    valInput.type = isDateFieldMeta(fieldMetaByKey(fieldSel.value)) ? 'date' : 'text';
+  }
+
+  // Opens (or replaces) the popover under anchorEl. existing/index are null/-1
+  // for a brand-new filter (appended on apply); otherwise the filter object +
+  // its index in state.def.globalFilters being edited in place ("cycle"
+  // becomes "open popover pre-filled" per D11 -- no more fixed value lists).
+  async function openFilterPopover(anchorEl, existing, index) {
+    await ensureCatalog();
+    if (!anchorEl.isConnected) return;  // bar re-rendered while fetching
+    closeFilterPopover();
+    var fields = filterableFieldCatalog();
+    if (!fields.length) return;  // nothing filterable to offer
+    var f = existing || { field: fields[0].field, op: 'eq', value: '' };
+
+    var pop = document.createElement('div');
+    pop.id = 'rdbFilterPop';
+    pop.className = 'rdb-filter-pop';
+    pop.setAttribute('data-testid', 'rdb-filter-pop');
+    pop.setAttribute('role', 'dialog');
+    pop.setAttribute('aria-label', I18N.globalFilters);
+
+    var fieldLabelEl = document.createElement('label');
+    fieldLabelEl.textContent = I18N.filterField;
+    var fieldSel = document.createElement('select');
+    fieldSel.setAttribute('data-testid', 'rdb-filter-field');
+    fields.forEach(function (fm) {
+      var o = document.createElement('option');
+      o.value = fm.field; o.textContent = fm.label || fm.field;
+      fieldSel.appendChild(o);
+    });
+    fieldSel.value = f.field;
+
+    var opLabelEl = document.createElement('label');
+    opLabelEl.textContent = I18N.filterOperator;
+    var opSel = document.createElement('select');
+    opSel.setAttribute('data-testid', 'rdb-filter-op');
+    FILTER_OPS.forEach(function (o) {
+      var opt = document.createElement('option');
+      opt.value = o; opt.textContent = OP_LABELS[o] || o;
+      opSel.appendChild(opt);
+    });
+    opSel.value = f.op || 'eq';
+
+    var valLabelEl = document.createElement('label');
+    valLabelEl.textContent = I18N.filterValue;
+    var valInput = document.createElement('input');
+    valInput.className = 'reporting-input';
+    valInput.setAttribute('data-testid', 'rdb-filter-value');
+    valInput.value = f.value == null ? '' : f.value;
+
+    var actions = document.createElement('div');
+    actions.className = 'rdb-filter-pop-actions';
+    var cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'nx-btn nx-btn--secondary';
+    cancelBtn.setAttribute('data-testid', 'rdb-filter-cancel');
+    cancelBtn.textContent = I18N.cancel;
+    cancelBtn.addEventListener('click', closeFilterPopover);
+    var applyBtn = document.createElement('button');
+    applyBtn.type = 'button';
+    applyBtn.className = 'nx-btn nx-btn--primary';
+    applyBtn.setAttribute('data-testid', 'rdb-filter-apply');
+    applyBtn.textContent = I18N.apply;
+    applyBtn.addEventListener('click', function () {
+      var isNullOp = opSel.value === 'is_null' || opSel.value === 'is_not_null';
+      applyGlobalFilter(index, fieldSel.value, opSel.value, isNullOp ? null : valInput.value);
+    });
+    actions.appendChild(cancelBtn);
+    actions.appendChild(applyBtn);
+
+    pop.appendChild(fieldLabelEl); pop.appendChild(fieldSel);
+    pop.appendChild(opLabelEl); pop.appendChild(opSel);
+    pop.appendChild(valLabelEl); pop.appendChild(valInput);
+    pop.appendChild(actions);
+
+    fieldSel.addEventListener('change', function () { refreshFilterPopoverValueField(pop); });
+    opSel.addEventListener('change', function () { refreshFilterPopoverValueField(pop); });
+
+    el('rdbFilterBar').appendChild(pop);
+    refreshFilterPopoverValueField(pop);
+    positionFilterPopover(pop, anchorEl);
+    filterPop.open = true;
+    filterPop.index = (index === undefined || index === null) ? -1 : index;
+    valInput.focus();
+  }
+
+  // ---- Selective re-run (only cards whose effectiveFilters() changed) ----
+  function snapshotEffectiveByCard() {
+    var map = {};
+    ((state.def && state.def.cards) || []).forEach(function (c) {
+      map[c.id] = JSON.stringify(effectiveFilters(c));
+    });
+    return map;
+  }
+
+  function rerunCardsWhereChanged(before) {
+    ((state.def && state.def.cards) || []).forEach(function (c) {
+      if (JSON.stringify(effectiveFilters(c)) !== before[c.id]) renderCard(c);
+    });
+  }
+
+  function applyGlobalFilter(index, field, op, value) {
+    var before = snapshotEffectiveByCard();
+    state.def.globalFilters = state.def.globalFilters || [];
+    var f = { field: field, op: op, value: value };
+    if (index == null || index < 0) {
+      state.def.globalFilters.push(f);
+    } else {
+      state.def.globalFilters[index] = f;
+    }
+    state.dirty = true;
+    closeFilterPopover();
+    renderFilterBar();
+    rerunCardsWhereChanged(before);
+  }
+
+  function removeGlobalFilter(index) {
+    var before = snapshotEffectiveByCard();
+    state.def.globalFilters.splice(index, 1);
+    state.dirty = true;
+    closeFilterPopover();
+    renderFilterBar();
+    rerunCardsWhereChanged(before);
+  }
+
+  // Per-card override chip's x: clears filterOverrides ENTIRELY for that
+  // card (no partial-edit UI in v1 -- overrides are set elsewhere, e.g. a
+  // dropped saved report's own filters; this task only ships clearing them).
+  function clearCardOverrides(cardId) {
+    var card = ((state.def && state.def.cards) || []).find(function (c) { return c.id === cardId; });
+    if (!card || !card.filterOverrides || !card.filterOverrides.length) return;
+    card.filterOverrides = [];
+    state.dirty = true;
+    renderCard(card);
+  }
+
+  function renderFilterBar() {
+    closeFilterPopover();
+    var chips = el('rdbFilterChips');
+    chips.innerHTML = '';
+    var filters = (state.def && state.def.globalFilters) || [];
+    filters.forEach(function (f, i) {
+      var chipEl = document.createElement('span');
+      chipEl.className = 'reporting-drill-chip reporting-drill-chip--indigo rdb-gfilter';
+      chipEl.setAttribute('data-testid', 'rdb-gfilter');
+      chipEl.tabIndex = 0;
+      var icon = document.createElement('i');
+      icon.className = 'fas fa-filter';
+      icon.setAttribute('aria-hidden', 'true');
+      var label = document.createElement('span');
+      label.textContent = filterChipLabel(f);
+      var x = document.createElement('i');
+      x.className = 'fas fa-xmark rdb-gfilter-x';
+      x.setAttribute('data-testid', 'rdb-gfilter-remove');
+      x.setAttribute('aria-hidden', 'true');
+      x.addEventListener('click', function (e) { e.stopPropagation(); removeGlobalFilter(i); });
+      chipEl.appendChild(icon); chipEl.appendChild(label); chipEl.appendChild(x);
+      chipEl.addEventListener('click', function () { openFilterPopover(chipEl, f, i); });
+      chips.appendChild(chipEl);
+    });
+    var add = document.createElement('button');
+    add.type = 'button';
+    add.className = 'rdb-add-filter';
+    add.setAttribute('data-testid', 'rdb-add-filter');
+    add.innerHTML = '<i class="fas fa-plus" aria-hidden="true"></i>' + esc(I18N.addFilter);
+    add.addEventListener('click', function () { openFilterPopover(add, null, -1); });
+    chips.appendChild(add);
   }
 
   // ---- Chart instance lifecycle -----------------------------------------
@@ -497,11 +791,38 @@
     return '<div class="rdb-skeleton rdb-skeleton--chart"></div>';  // line/bar
   }
 
+  // Per-card head extras after the title: a violet override-summary chip
+  // (with its own x) when the card overrides the global filters, otherwise
+  // an "inherits global filters" note -- except on KPI cards, which hide the
+  // note (prototype's showInherit: !c.filter && c.type !== 'kpi').
+  function cardHeadExtrasHtml(c) {
+    var overrides = c.filterOverrides || [];
+    if (overrides.length) {
+      var summary = overrides.map(function (f) {
+        var parts = [esc(f.field), esc(OP_LABELS[f.op] || f.op)];
+        if (f.value != null && f.value !== '') parts.push(esc(String(f.value)));
+        return parts.join(' ');
+      }).join(', ');
+      return '<span class="reporting-drill-chip reporting-drill-chip--violet rdb-card-filter-chip" ' +
+        'data-testid="rdb-card-filter" title="' + esc(I18N.overrideTitle) + '">' +
+        '<i class="fas fa-filter" aria-hidden="true"></i>' + summary +
+        '<i class="fas fa-xmark rdb-card-filter-x" data-testid="rdb-card-filter-remove" ' +
+          'aria-hidden="true"></i></span>' +
+        '<span class="rdb-spacer"></span>';
+    }
+    if (c.type !== 'kpi') {
+      return '<span class="rdb-spacer"></span><span class="rdb-card-inherit">' + esc(I18N.inherits) + '</span>';
+    }
+    return '';
+  }
+
   function cardShellHtml(c) {
     var span = c.span || DEFAULT_SPAN[c.type] || 6;
     return '<div class="rdb-card" data-testid="rdb-card" data-card-id="' + esc(c.id) + '" ' +
       'data-type="' + esc(c.type) + '" style="grid-column:span ' + span + '">' +
-      '<div class="rdb-card-head"><span class="rdb-card-title">' + esc(c.title || '') + '</span></div>' +
+      '<div class="rdb-card-head"><span class="rdb-card-title">' + esc(c.title || '') + '</span>' +
+        cardHeadExtrasHtml(c) +
+      '</div>' +
       '<div class="rdb-card-body rdb-card-body--loading" data-testid="rdb-card-body">' +
         loadingBodyHtml(c.type) +
       '</div>' +
