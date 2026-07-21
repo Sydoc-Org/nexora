@@ -1789,3 +1789,92 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 .rs-group-empty { border: 1px dashed var(--nx-border); border-radius: var(--nx-radius-lg); padding: 22px; text-align: center; grid-column: 1 / -1; }
 .rs-group-empty-name { margin: 0 0 4px; font: 600 13px var(--nx-font); color: var(--nx-text); }
 .rs-group-empty-hint { margin: 0; font-size: 12.5px; color: var(--nx-text-meta); }
+
+/* ============================================================
+   Task 10 — Advanced builder skin (mock 3b). Layout (260/1fr/300 grid,
+   toolbar flex structure, wells stack) is untouched -- chrome only: panel
+   radius, mode/view toggle brought to Task 1's exact masthead-tab chrome,
+   field-row type icons, and metric/filter/column wells as chips.
+   ============================================================ */
+
+/* Panels: Task 2 retired the ledger's flatness override (~L1646), so
+   .reporting-fields/.reporting-wells/.reporting-results fell back to the
+   base card radius (--nx-radius, ~L505/L511) -- bump to the studio's
+   larger panel radius, matching .rs-card/.rs-group-empty above. */
+.reporting-fields,
+.reporting-wells,
+.reporting-results {
+  border-radius: var(--nx-radius-lg);
+}
+
+/* Mode (Table/SQL/Ask-AI) + view (Grid/Chart/Pivot) toggles are already a
+   segmented track (structural flex/padding/gap set by the REDESIGN layer,
+   ~L751/~L841) -- this layers the exact chrome values Task 1 used for the
+   masthead .reporting-tabs/.nx-tab segmented control (~L966) so both read
+   as the same component. Structural properties (display, flex-shrink,
+   margin) are left untouched. */
+.reporting-mode-toggle,
+.reporting-view-toggle {
+  background: var(--nx-divider);
+  border-radius: 8px;
+}
+.reporting-mode-toggle button,
+.reporting-view-toggle button {
+  border-radius: 6px;
+  font: 500 12.5px var(--nx-font);
+}
+.reporting-mode-toggle button.active,
+.reporting-view-toggle button.active {
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, .06);
+}
+
+/* Field-list rows: leading type icon (built in renderFields,
+   _reporting_js.html) -- fa-calendar/fa-hashtag/fa-font per field.type.
+   Fixed tint colour (same hex as --nx-accent-hover's dark-mode value, so
+   it reads the same muted-indigo in both themes) rather than a token, per
+   spec. The trailing "+" affordance + accent-tint hover bg already exist
+   (~L724-739); this just gives the new icon a lane + vertical centering. */
+.reporting-field-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.reporting-field-icon {
+  color: #a5b4fc;
+  font-size: 12px;
+  width: 14px;
+  flex: none;
+  text-align: center;
+}
+
+/* Wells: metric rows -> indigo chip, filter rows -> violet chip (scoped to
+   #rpWellFilters so #rpWellSort, which reuses .reporting-filter-row,
+   keeps its plain row -- Sort isn't part of the spec's chip set), column
+   rows -> bordered "draggable" row + a display-only grip icon (columns
+   have no reorder logic today -- add/remove/rename/grain only, see
+   renderWells in _reporting_js.html; the grip is visual-only). */
+.reporting-well ul li.reporting-metric-row {
+  background: var(--nx-accent-tint);
+  border: 1px solid var(--nx-accent-soft);
+  border-radius: 999px;
+  padding: 4px 6px 4px 12px;
+}
+#rpWellFilters .reporting-filter-row {
+  background: var(--nx-violet-tint);
+  border: 1px solid var(--nx-violet-border);
+  border-radius: 999px;
+  padding: 4px 6px 4px 12px;
+}
+.reporting-col-row {
+  background: var(--nx-alt);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  padding: 4px 6px;
+}
+.reporting-col-grip {
+  color: var(--nx-text-meta);
+  font-size: 11px;
+  cursor: grab;
+  flex: none;
+}
