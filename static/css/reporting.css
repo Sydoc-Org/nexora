@@ -1112,7 +1112,8 @@ body.nx-app {
 .rs-wizard-stepcard:has(#rsStepTime:not([hidden])) #rsMeasureNext,
 .rs-wizard-stepcard:has(#rsStepBreakdown:not([hidden])) #rsScopeNext,
 .rs-wizard-stepcard:has(#rsStepTime:not([hidden])) #rsScopeNext,
-.rs-wizard-stepcard:has(#rsStepTime:not([hidden])) #rsBreakdownNext { display: none; }
+.rs-wizard-stepcard:has(#rsStepTime:not([hidden])) #rsBreakdownNext,
+.rs-wizard-stepcard:has(#rsStepTime:not([hidden])) #rsPickedCount { display: none; }
 
 /* Step transition: 200ms fade/slide, guarded the same way as .nx-rise
    (`backwards`, never `both` -- see nexora-ui.css for why `both` traps
