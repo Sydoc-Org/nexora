@@ -73,7 +73,7 @@ def _check_generali_record_org(cursor, table, user_id_col, record_id):
     if not rec:
         return  # record not found — UPDATE/DELETE will affect 0 rows
     record_uid = rec[0]
-    if record_uid == session.get("userid"):
+    if str(record_uid) == str(session.get("userid")):
         return  # own record always allowed
     nx_conn = engine_nexora_db.raw_connection()
     nx_cur = nx_conn.cursor()
