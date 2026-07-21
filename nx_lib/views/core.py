@@ -5,12 +5,12 @@ from flask import current_app, jsonify, redirect, render_template, session, url_
 
 from ..db import engine_nexora_db
 from ..maintenance import _get_blocking_maintenance, _maintenance_iso
-from ..security import require_permission
+from ..security import page_visibility, require_permission, startpage_redirect_to
 
 
 def index():
     if "username" in session:
-        return redirect(url_for("dashboard"))
+        return redirect(url_for(startpage_redirect_to(page_visibility())))
     return render_template("hero.html")
 
 

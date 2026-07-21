@@ -31,6 +31,22 @@ def test_index_authenticated_redirects_to_dashboard(user_client):
     assert "/dashboard" in resp.headers.get("Location", "")
 
 
+def test_index_without_dashboard_view_redirects_to_permitted_page(noperm_client, monkeypatch):
+    """A user without dashboard.view but with workitems.view must land on their
+    permitted page (e.g. /workitems), not hit a 403 via a hardcoded /dashboard
+    redirect. Mirrors the startpage_redirect_to(page_visibility()) idiom used
+    everywhere else post-auth (see nx_lib/views/auth.py)."""
+    monkeypatch.setattr(
+        "nx_lib.security.has_permission",
+        lambda code: code == "workitems.view",
+    )
+    resp = noperm_client.get("/", follow_redirects=False)
+    assert resp.status_code == 302
+    location = resp.headers.get("Location", "")
+    assert "/workitems" in location
+    assert "/dashboard" not in location
+
+
 def test_jdvance_anonymous_redirects_to_login(client):
     resp = client.get("/jdvance", follow_redirects=False)
     assert resp.status_code == 302
