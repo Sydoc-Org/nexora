@@ -71,8 +71,16 @@
     globalFilters: {{ _("Global filters")|tojson }},
     filterHint: {{ _("apply to every card · a card can override them")|tojson }},
     saved: {{ _("Dashboard saved")|tojson }},
-    saveFailed: {{ _("Could not save the dashboard")|tojson }}
+    saveFailed: {{ _("Could not save the dashboard")|tojson }},
+    couldNotLoad: {{ _("Could not load this card.")|tojson }},
+    chartUnavailable: {{ _("Charting library unavailable.")|tojson }},
+    other: {{ _("Other")|tojson }},
+    total: {{ _("Total")|tojson }}
   };
+
+  // Chart.js palette for bar/donut cards (spec §Dashboard "Cards") -- cycles
+  // if a card has more categories than colors.
+  var CARD_PALETTE = ['#4f46e5', '#6366f1', '#7c3aed', '#8b5cf6', '#a5b4fc'];
 
   // ---- State model (D2/D3 -- exact shape, Tasks 12-15 build on this) -------
   var state = { editing: false, dirty: false, reportId: null, canEdit: true,
@@ -243,19 +251,286 @@
     }).join('');
   }
 
-  // Grid items are bare title-only shells until Task 12 lands the real
-  // per-type card renderer (renderCard(card)) -- explicitly fine per the
-  // plan's own sequencing.
+  // ---- D4 filter merge -------------------------------------------------
+  // card.definition.filters (base) <- state.def.globalFilters (dashboard-
+  // wide) <- card.filterOverrides (per-card, wins last), merged field-keyed
+  // so a later source replaces an earlier one on the SAME field. Exact
+  // semantics Tasks 13 (override editing UI) and 15 (KPI trend/drill) build
+  // on -- keep this shape if it's ever extended.
+  function effectiveFilters(card) {
+    var byField = {};
+    var order = [];
+    function apply(list) {
+      (list || []).forEach(function (f) {
+        if (!f || f.field == null) return;
+        if (!(f.field in byField)) order.push(f.field);
+        byField[f.field] = f;
+      });
+    }
+    apply(card.definition && card.definition.filters);
+    apply(state.def && state.def.globalFilters);
+    apply(card.filterOverrides);
+    return order.map(function (k) { return byField[k]; });
+  }
+
+  // ---- Chart instance lifecycle -----------------------------------------
+  // Keyed by card id. Same destroy-before-recreate discipline as
+  // ReportingViz.destroyChart (templates/js/_reporting_viz_js.html) --
+  // forgetting this leaks a canvas + its ResizeObserver on every re-render.
+  var charts = {};
+
+  function destroyCardChart(id) {
+    if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+  }
+
+  function destroyChartsExcept(keepIds) {
+    Object.keys(charts).forEach(function (id) {
+      if (!keepIds[id]) destroyCardChart(id);
+    });
+  }
+
+  // ---- Small formatting/number helpers -----------------------------------
+  function toNum(v) {
+    if (v === null || v === undefined || v === '') return null;
+    var n = Number(v);
+    return isFinite(n) ? n : null;
+  }
+
+  function fmtNum(v) {
+    var n = toNum(v);
+    if (n === null) return v == null ? '—' : String(v);
+    return n.toLocaleString('en-US', { maximumFractionDigits: Number.isInteger(n) ? 0 : 2 });
+  }
+
+  function fmtLabel(v) { return v == null ? '' : String(v); }
+
+  // First response column is the label/dimension; first metric is the
+  // value. A zero-dimension definition (KPI cards run a zero-column clone,
+  // same pattern as the Simple pane's grand-total call) returns just the
+  // metric column, so there's no dimension to read.
+  function dimValIdx(columns) {
+    return columns.length > 1 ? { dim: 0, val: 1 } : { dim: -1, val: 0 };
+  }
+
+  function findCardEl(id) {
+    var nodes = el('rdbGrid').children;
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i].getAttribute('data-card-id') === id) return nodes[i];
+    }
+    return null;
+  }
+
+  function dividerColor() {
+    return getComputedStyle(document.documentElement).getPropertyValue('--nx-divider').trim() || '#e5e7eb';
+  }
+
+  // ---- Per-type card body renderers --------------------------------------
+  // Each takes the already-cleared <body> element for the card plus the
+  // {columns, rows} the run returned, and draws into it.
+  function renderKpi(card, body, columns, rows) {
+    var idx = dimValIdx(columns);
+    var v = rows.length ? rows[0][idx.val] : null;
+    body.innerHTML = '<p class="rdb-kpi-value" data-testid="rdb-kpi-value">' + esc(fmtNum(v)) + '</p>';
+  }
+
+  function renderLine(card, body, columns, rows) {
+    destroyCardChart(card.id);
+    if (typeof Chart === 'undefined') { body.textContent = I18N.chartUnavailable; return; }
+    body.innerHTML = '<div class="rdb-chart-wrap"><canvas></canvas></div>';
+    var canvas = body.querySelector('canvas');
+    var idx = dimValIdx(columns);
+    var labels = rows.map(function (r) { return idx.dim >= 0 ? fmtLabel(r[idx.dim]) : ''; });
+    var data = rows.map(function (r) { return toNum(r[idx.val]) || 0; });
+    var ctx = canvas.getContext('2d');
+    var h = (canvas.parentNode && canvas.parentNode.clientHeight) || 190;
+    var gradient = ctx.createLinearGradient(0, 0, 0, h);
+    gradient.addColorStop(0, 'rgba(79,70,229,.20)');
+    gradient.addColorStop(1, 'rgba(79,70,229,0)');
+    charts[card.id] = new Chart(ctx, {
+      type: 'line',
+      data: { labels: labels, datasets: [{
+        data: data, borderColor: '#4f46e5', borderWidth: 2.5, tension: 0.4,
+        pointRadius: 0, fill: true, backgroundColor: gradient
+      }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 10.5 }, color: '#9ca3af' } },
+          y: { grid: { color: dividerColor() },
+               ticks: { font: { family: 'Inter', size: 10.5 }, color: '#9ca3af' } }
+        }
+      }
+    });
+  }
+
+  function renderBar(card, body, columns, rows) {
+    destroyCardChart(card.id);
+    if (typeof Chart === 'undefined') { body.textContent = I18N.chartUnavailable; return; }
+    body.innerHTML = '<div class="rdb-chart-wrap"><canvas></canvas></div>';
+    var canvas = body.querySelector('canvas');
+    var idx = dimValIdx(columns);
+    var labels = rows.map(function (r) { return idx.dim >= 0 ? fmtLabel(r[idx.dim]) : ''; });
+    var data = rows.map(function (r) { return toNum(r[idx.val]) || 0; });
+    var colors = labels.map(function (_, i) { return CARD_PALETTE[i % CARD_PALETTE.length]; });
+    charts[card.id] = new Chart(canvas.getContext('2d'), {
+      type: 'bar',
+      data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderRadius: 5, barThickness: 26 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 10.5 }, color: '#9ca3af' } },
+          y: { grid: { color: dividerColor() },
+               ticks: { font: { family: 'Inter', size: 10.5 }, color: '#9ca3af' } }
+        }
+      }
+    });
+  }
+
+  // Donut/table cap at 8 rows; donuts additionally roll the remainder into
+  // an 8th "Other" segment (tables just show the first 8, no roll-up row).
+  function renderDonut(card, body, columns, rows) {
+    destroyCardChart(card.id);
+    var idx = dimValIdx(columns);
+    var pairs = rows.map(function (r) {
+      return { label: idx.dim >= 0 ? fmtLabel(r[idx.dim]) : '', value: toNum(r[idx.val]) || 0 };
+    });
+    if (pairs.length > 8) {
+      var rest = pairs.slice(7).reduce(function (a, p) { return a + p.value; }, 0);
+      pairs = pairs.slice(0, 7).concat([{ label: I18N.other, value: rest }]);
+    }
+    var total = pairs.reduce(function (a, p) { return a + p.value; }, 0);
+    var colors = pairs.map(function (_, i) { return CARD_PALETTE[i % CARD_PALETTE.length]; });
+    body.innerHTML =
+      '<div class="rdb-donut-wrap">' +
+        '<div class="rdb-donut-ring">' +
+          '<canvas></canvas>' +
+          '<div class="rdb-donut-center" data-testid="rdb-donut-center">' +
+            '<span class="rdb-donut-total-value">' + esc(fmtNum(total)) + '</span>' +
+            '<span class="rdb-donut-total-label">' + esc(I18N.total) + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="rdb-donut-legend">' +
+          pairs.map(function (p, i) {
+            return '<div class="rdb-donut-legend-row">' +
+              '<span class="rdb-donut-swatch" style="background:' + colors[i] + '"></span>' +
+              '<span class="rdb-donut-legend-label">' + esc(p.label) + '</span>' +
+              '<span class="rdb-donut-legend-value">' + esc(fmtNum(p.value)) + '</span>' +
+            '</div>';
+          }).join('') +
+        '</div>' +
+      '</div>';
+    if (typeof Chart === 'undefined') return;
+    var canvas = body.querySelector('canvas');
+    charts[card.id] = new Chart(canvas.getContext('2d'), {
+      type: 'doughnut',
+      data: { labels: pairs.map(function (p) { return p.label; }),
+              datasets: [{ data: pairs.map(function (p) { return p.value; }),
+                           backgroundColor: colors, borderColor: '#fff', borderWidth: 2 }] },
+      options: { responsive: true, maintainAspectRatio: false, cutout: '68%',
+                 plugins: { legend: { display: false } } }
+    });
+  }
+
+  function renderTable(card, body, columns, rows) {
+    destroyCardChart(card.id);
+    var idx = dimValIdx(columns);
+    var capped = rows.slice(0, 8);
+    body.innerHTML = '<div class="rdb-table-rows" data-testid="rdb-table-rows">' +
+      capped.map(function (r) {
+        return '<span class="rdb-table-k">' + esc(idx.dim >= 0 ? fmtLabel(r[idx.dim]) : '') + '</span>' +
+               '<span class="rdb-table-v">' + esc(fmtNum(r[idx.val])) + '</span>';
+      }).join('') +
+    '</div>';
+  }
+
+  function renderCardContent(card, body, columns, rows) {
+    if (card.type === 'kpi') return renderKpi(card, body, columns, rows);
+    if (card.type === 'line') return renderLine(card, body, columns, rows);
+    if (card.type === 'bar') return renderBar(card, body, columns, rows);
+    if (card.type === 'donut') return renderDonut(card, body, columns, rows);
+    if (card.type === 'table') return renderTable(card, body, columns, rows);
+    body.textContent = '';
+  }
+
+  // ---- Per-card run: one POST /api/reporting/run per card ----------------
+  var runGen = {};  // per-card fetch generation -- staleness guard (same idea
+                     // as the Simple pane's seq/runSeq): a card can be
+                     // re-rendered (edit toggled, cards changed) while an
+                     // older fetch for the same card id is still in flight.
+
+  async function runCard(card, cardEl) {
+    if (!cardEl) return;
+    var gen = (runGen[card.id] = (runGen[card.id] || 0) + 1);
+    var def = Object.assign({}, card.definition || {});
+    def.filters = effectiveFilters(card);
+    var res = await api('/api/reporting/run', { method: 'POST', body: JSON.stringify(def) });
+    if (runGen[card.id] !== gen) return;  // superseded by a newer render/run
+    var body = cardEl.querySelector('[data-testid="rdb-card-body"]');
+    if (!body) return;
+    if (!res.ok || !res.data || !Array.isArray(res.data.columns) || !Array.isArray(res.data.rows)) {
+      destroyCardChart(card.id);
+      body.className = 'rdb-card-body rdb-card-body--error';
+      body.innerHTML = '<p class="rdb-card-error" data-testid="rdb-card-error">' +
+        esc(I18N.couldNotLoad) + '</p>';
+      return;
+    }
+    body.className = 'rdb-card-body';
+    renderCardContent(card, body, res.data.columns, res.data.rows);
+  }
+
+  // ---- Card shells (loading skeleton until the run resolves) -------------
+  function loadingBodyHtml(type) {
+    if (type === 'kpi') return '<div class="rdb-skeleton rdb-skeleton--kpi"></div>';
+    if (type === 'donut') {
+      return '<div class="rdb-donut-wrap">' +
+        '<div class="rdb-skeleton rdb-skeleton--donut"></div>' +
+        '<div class="rdb-skeleton rdb-skeleton--legend"></div>' +
+      '</div>';
+    }
+    if (type === 'table') {
+      return '<div class="rdb-skeleton rdb-skeleton--row"></div>' +
+        '<div class="rdb-skeleton rdb-skeleton--row"></div>' +
+        '<div class="rdb-skeleton rdb-skeleton--row"></div>';
+    }
+    return '<div class="rdb-skeleton rdb-skeleton--chart"></div>';  // line/bar
+  }
+
+  function cardShellHtml(c) {
+    var span = c.span || DEFAULT_SPAN[c.type] || 6;
+    return '<div class="rdb-card" data-testid="rdb-card" data-card-id="' + esc(c.id) + '" ' +
+      'data-type="' + esc(c.type) + '" style="grid-column:span ' + span + '">' +
+      '<div class="rdb-card-head"><span class="rdb-card-title">' + esc(c.title || '') + '</span></div>' +
+      '<div class="rdb-card-body rdb-card-body--loading" data-testid="rdb-card-body">' +
+        loadingBodyHtml(c.type) +
+      '</div>' +
+    '</div>';
+  }
+
+  // Renders (or re-renders in place) exactly one card: builds its shell,
+  // inserts/replaces it in the grid, then kicks off its run. Public per the
+  // plan so Tasks 13/15 can re-render a single card (e.g. after a filter
+  // override edit) without rebuilding the whole grid.
+  function renderCard(card) {
+    destroyCardChart(card.id);
+    var existing = findCardEl(card.id);
+    var html = cardShellHtml(card);
+    if (existing) { existing.outerHTML = html; } else { el('rdbGrid').insertAdjacentHTML('beforeend', html); }
+    var cardEl = findCardEl(card.id);
+    runCard(card, cardEl);
+    return cardEl;
+  }
+
   function renderGrid() {
     var grid = el('rdbGrid');
+    grid.classList.toggle('rdb-grid--editing', state.editing);
     var cards = (state.def && state.def.cards) || [];
-    grid.innerHTML = cards.map(function (c) {
-      var span = c.span || DEFAULT_SPAN[c.type] || 6;
-      return '<div class="rdb-card" data-id="' + esc(c.id) + '" data-type="' + esc(c.type) + '" ' +
-        'style="grid-column:span ' + span + '">' +
-        '<div class="rdb-card-head"><span class="rdb-card-title">' + esc(c.title || '') + '</span></div>' +
-        '</div>';
-    }).join('');
+    var keep = {};
+    cards.forEach(function (c) { keep[c.id] = 1; });
+    destroyChartsExcept(keep);
+    grid.innerHTML = '';
+    cards.forEach(renderCard);
   }
 
   function render() {

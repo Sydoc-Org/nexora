@@ -1937,9 +1937,88 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   border-radius: var(--nx-radius-lg); padding: 14px 18px; box-sizing: border-box;
   min-width: 0;
 }
-.rdb-card-head { display: flex; align-items: center; gap: 8px; }
+.rdb-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 .rdb-card-title { font: 600 13.5px var(--nx-font); letter-spacing: -.1px; color: var(--nx-text); }
 @media (max-width: 900px) {
   .rdb-grid { grid-template-columns: repeat(6, 1fr); }
   .rdb-card { grid-column: span 6 !important; }
+}
+
+/* ============================================================
+   Task 12 — Card rendering + per-card runs. Hover affordance only in
+   view mode (renderGrid toggles .rdb-grid--editing on #rdbGrid); edit mode
+   surfaces drag/duplicate/remove controls instead (Task 14).
+   ============================================================ */
+.rdb-grid:not(.rdb-grid--editing) .rdb-card {
+  transition: border-color var(--nx-dur) var(--nx-ease), box-shadow var(--nx-dur) var(--nx-ease);
+}
+.rdb-grid:not(.rdb-grid--editing) .rdb-card:hover {
+  border-color: var(--nx-card-hover-border); box-shadow: var(--nx-card-hover-shadow);
+}
+
+/* KPI cards get the muted uppercase eyebrow title from the spec; other
+   types keep the default .rdb-card-title look. */
+.rdb-card[data-type="kpi"] .rdb-card-head { margin-bottom: 8px; }
+.rdb-card[data-type="kpi"] .rdb-card-title {
+  font-size: 10.5px; font-weight: 600; letter-spacing: .7px;
+  text-transform: uppercase; color: var(--nx-text-meta);
+}
+
+.rdb-card-body { min-width: 0; }
+
+/* ---- Loading shimmer -------------------------------------------------- */
+.rdb-skeleton {
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--nx-divider) 25%, var(--nx-border) 50%, var(--nx-divider) 75%);
+  background-size: 200% 100%;
+  animation: rdb-shimmer 1.4s infinite linear;
+}
+@keyframes rdb-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .rdb-skeleton { animation: none; }
+}
+.rdb-skeleton--kpi { height: 30px; width: 60%; }
+.rdb-skeleton--chart { height: 190px; width: 100%; }
+.rdb-skeleton--donut { height: 150px; width: 150px; border-radius: 50%; flex: none; }
+.rdb-skeleton--legend { height: 90px; flex: 1; min-width: 100px; }
+.rdb-skeleton--row { height: 14px; width: 100%; margin-bottom: 10px; }
+.rdb-card-body--loading .rdb-donut-wrap { align-items: center; }
+
+/* ---- Error state ------------------------------------------------------- */
+.rdb-card-body--error { display: flex; align-items: center; justify-content: center; min-height: 80px; }
+.rdb-card-error { margin: 0; font: 12.5px var(--nx-font); color: var(--nx-text-meta); text-align: center; }
+
+/* ---- KPI ---------------------------------------------------------------- */
+.rdb-kpi-value {
+  margin: 0; font: 600 30px var(--nx-font); letter-spacing: -1px;
+  font-variant-numeric: tabular-nums; color: var(--nx-text);
+}
+
+/* ---- Line / bar (Chart.js canvas) --------------------------------------- */
+.rdb-chart-wrap { position: relative; height: 190px; }
+
+/* ---- Donut: HTML center overlay (not a Chart.js plugin) + DOM legend ---- */
+.rdb-donut-wrap { display: flex; align-items: center; gap: 18px; padding: 8px 0; flex-wrap: wrap; }
+.rdb-donut-ring { position: relative; width: 150px; height: 150px; flex: none; }
+.rdb-donut-center {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; pointer-events: none;
+}
+.rdb-donut-total-value {
+  font: 600 22px var(--nx-font); letter-spacing: -.5px; color: var(--nx-text);
+  font-variant-numeric: tabular-nums;
+}
+.rdb-donut-total-label { font: 600 9px var(--nx-font); letter-spacing: .8px; text-transform: uppercase; color: var(--nx-text-meta); }
+.rdb-donut-legend { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 120px; }
+.rdb-donut-legend-row { display: flex; align-items: center; gap: 8px; }
+.rdb-donut-swatch { width: 9px; height: 9px; border-radius: 3px; flex: none; }
+.rdb-donut-legend-label { font: 12px var(--nx-font); color: var(--nx-text-sec); flex: 1; min-width: 60px; }
+.rdb-donut-legend-value { font: 600 12px var(--nx-font); color: var(--nx-text-sec); font-variant-numeric: tabular-nums; }
+
+/* ---- Table: 2-col grid rows ---------------------------------------------- */
+.rdb-table-rows { display: grid; grid-template-columns: 1fr auto; border-top: 1px solid var(--nx-divider); }
+.rdb-table-k { padding: 9px 4px; border-bottom: 1px solid var(--nx-divider); font: 12.5px var(--nx-font); color: var(--nx-text-sec); }
+.rdb-table-v {
+  padding: 9px 4px; border-bottom: 1px solid var(--nx-divider); font: 600 12.5px var(--nx-font);
+  color: var(--nx-text); text-align: right; font-variant-numeric: tabular-nums;
 }
