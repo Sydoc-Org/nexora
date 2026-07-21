@@ -345,6 +345,72 @@ Work toward 2.5.64.
 - Reporting: the masthead timing badge (`#reportingTiming`) now hides
   whenever the Simple pane leaves the result view or shows a run error,
   instead of showing a stale "N rows · M ms" from a previous successful run.
+- Security: JS partials for Generali documents, the dashboard activity feed, and the
+  notification bell built `innerHTML`/`insertAdjacentHTML` from server-derived text
+  (scanned-document fields, OCR'd activity content, notification messages) without
+  escaping, allowing stored XSS. All three now escape at the render sink.
+- Invoices: `/invoice/<id>/pdf` was gated only by a blanket `invoices.download`
+  permission with no per-client check, letting a user scoped to one client download
+  any client's invoice PDF (IDOR). It now resolves the invoice's Bexio contact and
+  rejects the download if it isn't in the caller's allowed client set.
+- Generali: PDQM's three read endpoints (list, organizations, month report) never
+  applied the own-records restriction every sibling module already enforces, so a
+  `generali.pdqm.view`-only user saw every org's entries. They now restrict to the
+  caller's own records unless they hold an organizational/transorganizational edit
+  permission.
+- Dashboard: four legacy KPI endpoints checked only for a logged-in session, missing
+  the `dashboard.view` gate present on every sibling route.
+- Auth: 2FA verification had no rate limit, allowing unlimited brute-force attempts
+  against the 6-digit TOTP code; `/init_2fa` and `/verify_2fa` are now limited to 10
+  attempts per hour.
+- Auth: only the 2FA-enabled login branch cleared the session before starting a new
+  pre-auth flow, so a prior user's session keys could survive into another user's
+  pending login on a shared browser. Every credential-accepted branch now clears the
+  session first.
+- Auth: `/request-password-reset` returned a different message for a registered vs.
+  an unregistered email, letting a caller enumerate accounts. Both branches now
+  return the same neutral message.
+- Workitems: `api_recent_activity` discarded the row's own client when resolving its
+  domain, so a colliding id (present in both the default Octo client and MS02) could
+  resolve to the wrong client's fields on the dashboard activity feed.
+- Workitems: CSV export cached each workitem's domain/details/media/audit-history by
+  bare id, so exporting a set containing both clients' copies of a colliding id let
+  one row silently carry the other client's fields, images, or audit history.
+  Caches — and "export selected" filtering — are now keyed by client+id end to end.
+- Admin: deleting a user committed each of eight child-table deletes individually
+  before the final `DELETE FROM users`, so any later failure left a half-deleted,
+  undeletable user — and the cascade omitted the reporting tables entirely, so
+  deleting a report-owning user failed outright. Deletion is now one atomic
+  transaction that also cascades the user's owned reports, schedules, and shares.
+- Workitems: the "Recent Validations" query appended an unconditional
+  `NOT IN (...)` clause that became `NOT IN ()` — a SQL syntax error — whenever the
+  ignore list was empty (the normal state for the default client), silently emptying
+  the feed.
+- Dashboard: the "Current backlog" KPI read a `status` filter but never applied it
+  as a predicate, so the widget counted every row ever recorded instead of documents
+  actually outstanding; it now uses a real "entered, not yet exported" predicate (or
+  an honest no-data state where a process's stat table can't express it), and a date
+  range no longer gets silently dropped when combined with the backlog status.
+- Invoices: a Bexio search spanning multiple clients discarded every result already
+  gathered as soon as one client's request failed, returning an empty list instead
+  of the other clients' real data. A failing client is now logged and skipped,
+  keeping whatever succeeded.
+- Workitems: the prepared-documents register showed Preview / "Open in Workitems"
+  buttons for any PID with a wid mapping, even when Octo had no matching record for
+  it, producing dead buttons; the flag now reflects whether Octo actually resolved
+  the wid.
+- Invoices: two helper functions could raise `UnboundLocalError` or implicitly
+  return `None` on a database failure instead of degrading gracefully, the latter
+  causing a downstream `TypeError`.
+- Generali: the "own record" fast-path in the org-scope check compared an integer id
+  to the session's string user id, so it never matched — an admin re-organizing a
+  still-logged-in user locked that user out of editing their own records until they
+  logged back in.
+- Core: `/` always redirected to `/dashboard`, which requires `dashboard.view` — a
+  user without it hit a 403 instead of their actual permitted landing page.
+- Invoices: an invoice's status label showed "Open" for any non-Paid status, but the
+  Open filter only matched one specific status id, so some "Open"-labeled invoices
+  vanished when filtered by Open.
 
 ## [2.5.63] - 2026-06-24
 
