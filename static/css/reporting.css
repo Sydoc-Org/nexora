@@ -979,8 +979,23 @@ body.nx-app {
 .reporting-simple-empty { font-size: 13px; color: var(--nx-text-sec); padding: 8px 0 4px; }
 .reporting-simple-step { margin: 18px 0; }
 .reporting-simple-choices { display: flex; flex-wrap: wrap; gap: 8px; }
-.reporting-simple-choice { border: 1px solid var(--nx-border); border-radius: 999px; background: var(--nx-card); color: var(--nx-text); padding: 7px 14px; font-size: 13px; cursor: pointer; font-family: inherit; }
-.reporting-simple-choice.is-selected { border-color: var(--nx-accent); background: var(--nx-accent-tint); font-weight: 600; }
+.reporting-simple-choice { border: 1px solid var(--nx-border); border-radius: 999px; background: var(--nx-card); color: var(--nx-text); padding: 8px 16px; font-size: 13px; cursor: pointer; font-family: inherit; }
+.reporting-simple-choice.is-selected {
+  border: 1.5px solid var(--nx-accent); background: var(--nx-accent-tint);
+  color: #4338ca; font-weight: 600;
+}
+.reporting-simple-choice.is-selected::before { content: "\2713"; margin-right: 6px; font-weight: 700; }
+/* "None -- just the total": dashed outline sets it apart from the real
+   breakdown choices above it (selected state still gets the accent border
+   color + check from .is-selected -- only the dash pattern is added here). */
+.reporting-simple-choice.rs-choice-none { border-style: dashed; }
+/* Uppercase group captions above each breakdown cluster (Time / Document
+   fields / Or); a full-width flex item forces the wrap onto its own row. */
+.rs-choice-group-label {
+  flex: 1 0 100%; font: 700 10.5px var(--nx-font); text-transform: uppercase;
+  letter-spacing: .06em; color: var(--nx-text-meta); margin: 12px 0 2px;
+}
+.rs-choice-group-label:first-child { margin-top: 0; }
 .reporting-simple-inline { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 13px; font-weight: 600; color: var(--nx-text-sec); }
 .reporting-simple-scopestep { margin-bottom: 10px; font-size: 14px; border: 1px solid var(--nx-border); border-radius: 8px; background: var(--nx-card); max-width: 520px; max-height: 260px; overflow: auto; padding: 10px 12px; }
 .reporting-simple-scopestep label { display: block; padding: 3px 0; }
@@ -993,7 +1008,6 @@ body.nx-app {
 }
 /* Measure chips of a non-pinned source (multi-measure is single-source). */
 .reporting-simple-choice:disabled { opacity: .45; cursor: not-allowed; }
-.reporting-simple-runbtn { margin-top: 14px; }
 .reporting-simple-resultbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
 .reporting-simple-rtitle { margin: 0; font-size: 16px; flex: 1; }
 .reporting-simple-ractions { display: flex; gap: 8px; align-items: center; }
@@ -1003,7 +1017,6 @@ body.nx-app {
 .reporting-simple-chartcard canvas { max-height: 320px; }
 .reporting-simple-table { margin-top: 12px; }
 .reporting-simple-chartnote { font-size: 13px; color: var(--nx-text-meta); margin: 0 0 8px; }
-.reporting-simple-wizbar { display: flex; justify-content: space-between; align-items: center; }
 .reporting-simple-close { font-size: 20px; line-height: 1; padding: 2px 8px; }
 .reporting-simple-charttools { position: absolute; top: 10px; right: 10px; display: flex; gap: 4px; z-index: 1; }
 .reporting-chartbtn { border: 1px solid var(--nx-border); background: var(--nx-card); border-radius: 6px; padding: 4px 8px; font-size: 12px; color: var(--nx-text-meta); cursor: pointer; }
@@ -1061,6 +1074,45 @@ body.nx-app {
   background: var(--nx-card); border: 1px solid var(--nx-border);
   border-radius: 14px; padding: 28px 32px;
 }
+
+/* ============================================================
+   Task 6 -- step footer: Back / spacer / picked-counter / Continue,
+   shared across all four .reporting-simple-step divs (the accordion
+   never re-hides an earlier step, so rsMeasureNext/rsScopeNext/
+   rsBreakdownNext/rsWizardRun can legitimately sit side by side here;
+   each keeps its own pre-existing hidden-flag logic -- see the JS
+   partial). Ids/handlers unchanged; this is placement + CSS only.
+   ============================================================ */
+.rs-wizard-footer {
+  display: flex; align-items: center; gap: 12px;
+  border-top: 1px solid var(--nx-divider); padding-top: 20px; margin-top: 30px;
+}
+.rs-wizard-footer-spacer { flex: 1; }
+.rs-picked-count { font-size: 13px; font-weight: 600; color: var(--nx-text-sec); }
+.rs-wizard-footer .nx-btn--primary::after { content: "\2192"; margin-left: 8px; }
+/* rsScopeNext/rsBreakdownNext have no JS-driven hidden flag of their own --
+   before this task they inherited visibility from their parent
+   .reporting-simple-step div; now that they live in the shared footer
+   (outside that div), :has() reinstates the same gating purely in CSS so
+   moving them doesn't make an unreached step's Continue button clickable
+   early (rsMeasureNext and rsWizardRun already toggle their own `hidden`
+   in the JS partial and need no shim). rsPickedCount piggybacks on the
+   same mechanism to stay breakdown-step-only. */
+.rs-wizard-stepcard:has(#rsStepScope[hidden]) #rsScopeNext { display: none; }
+.rs-wizard-stepcard:has(#rsStepBreakdown[hidden]) #rsBreakdownNext,
+.rs-wizard-stepcard:has(#rsStepBreakdown[hidden]) #rsPickedCount { display: none; }
+/* The accordion keeps every answered step's own Continue button "live" (see
+   above) -- with all four stacked in one footer that reads as 2-3 identical
+   "Continue" pills at once. Once a later step is revealed its earlier
+   sibling's Continue is redundant (the user already acted on it), so hide
+   it here too: display-only, no id/handler/flow change -- Back still steps
+   through exactly as before and nothing here is asserted on by a test. */
+.rs-wizard-stepcard:has(#rsStepScope:not([hidden])) #rsMeasureNext,
+.rs-wizard-stepcard:has(#rsStepBreakdown:not([hidden])) #rsMeasureNext,
+.rs-wizard-stepcard:has(#rsStepTime:not([hidden])) #rsMeasureNext,
+.rs-wizard-stepcard:has(#rsStepBreakdown:not([hidden])) #rsScopeNext,
+.rs-wizard-stepcard:has(#rsStepTime:not([hidden])) #rsScopeNext,
+.rs-wizard-stepcard:has(#rsStepTime:not([hidden])) #rsBreakdownNext { display: none; }
 
 /* Step transition: 200ms fade/slide, guarded the same way as .nx-rise
    (`backwards`, never `both` -- see nexora-ui.css for why `both` traps
@@ -1224,12 +1276,25 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
 .reporting-toast--error { border-color: var(--nx-danger); }
 .reporting-toast.is-gone { opacity: 0; }
 
-/* Process-coverage badge on wizard chips/measure cards: "n/m" processes
-   provide this field (tooltip on the chip names them). */
-.reporting-simple-chip-cov { margin-left: 6px; font-size: 11px; font-weight: 600; background: var(--nx-accent-tint); color: var(--nx-accent); border-radius: 999px; padding: 1px 7px; }
-/* Coverage tiers: amber = partial, muted = low (≤ 1/3 of the selected scope). */
-.reporting-simple-chip-cov.is-cov-mid { background: rgba(217, 119, 6, .14); color: #b45309; }
-.reporting-simple-chip-cov.is-cov-low { background: var(--nx-alt, #f1f5f9); color: var(--nx-text-meta, #94a3b8); }
+/* Process-coverage badge on wizard chips/measure cards: an in-chip 26x4px
+   bar + "n/m" (tooltip on the chip names the providing processes -- kept
+   verbatim, see the JS partial's covBadge()/applyCoverageBadge()). Tiers:
+   >=80% accent, 33-80% amber (partial), <=1/3 muted (low). */
+.reporting-simple-chip-cov {
+  display: inline-flex; align-items: center; gap: 5px; margin-left: 6px;
+  font-size: 11px; font-weight: 600; color: var(--nx-text-meta, #94a3b8);
+}
+.rs-cov-bar {
+  display: inline-block; width: 26px; height: 4px; border-radius: 2px;
+  background: var(--nx-border); overflow: hidden;
+}
+.rs-cov-fill { display: block; height: 100%; border-radius: 2px; background: var(--nx-text-meta, #94a3b8); }
+.reporting-simple-chip-cov.is-cov-high { color: var(--nx-accent); }
+.reporting-simple-chip-cov.is-cov-high .rs-cov-fill { background: var(--nx-accent); }
+.reporting-simple-chip-cov.is-cov-mid { color: #b45309; }
+.reporting-simple-chip-cov.is-cov-mid .rs-cov-fill { background: #b45309; }
+.reporting-simple-chip-cov.is-cov-low { color: var(--nx-text-meta, #94a3b8); }
+.reporting-simple-chip-cov.is-cov-low .rs-cov-fill { background: var(--nx-text-meta, #94a3b8); }
 
 /* ============ body.reporting-ledger — flat surface chrome (Editorial Ledger typography retired 2026-07-20) ============ */
 
@@ -1372,19 +1437,20 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   color: var(--nx-text-meta);
 }
 
-/* Task 7: Process-coverage "n/m" badge (base rule above, ~L1131) goes
-   ink-navy on a hairline pill under the ledger skin instead of the stock
-   accent-tint chip, on both the measure-step chips (renderMeasureStep) and
-   the breakdown-step chips (renderBreakdownStep) — same class, no JS change. */
-.reporting-ledger .reporting-simple-chip-cov {
-  background: transparent;
-  color: var(--rl-navy);
-  border: 1px solid var(--rl-hairline);
-  font-variant-numeric: tabular-nums;
-}
-/* Coverage tiers keep their hue under the ledger skin's transparent pill. */
-.reporting-ledger .reporting-simple-chip-cov.is-cov-mid { background: transparent; color: #b45309; border-color: rgba(180, 83, 9, .5); }
-.reporting-ledger .reporting-simple-chip-cov.is-cov-low { background: transparent; color: var(--nx-text-meta, #94a3b8); }
+/* Task 7/6: Process-coverage badge, ledger skin. Task 6 replaced the old
+   pill (base rule above, ~L1229) with an in-chip bar, so there's no more
+   pill/border to reskin here -- just tabular-nums for the "n/m" digits.
+   The three tiers are repeated at matching specificity (not left to
+   source-order tie-breaking against the base rule) purely so the colour
+   is unambiguous regardless of which rule the cascade would otherwise
+   prefer; the hex values are identical to the base tiers either way. */
+.reporting-ledger .reporting-simple-chip-cov { font-variant-numeric: tabular-nums; }
+.reporting-ledger .reporting-simple-chip-cov.is-cov-high { color: var(--nx-accent); }
+.reporting-ledger .reporting-simple-chip-cov.is-cov-high .rs-cov-fill { background: var(--nx-accent); }
+.reporting-ledger .reporting-simple-chip-cov.is-cov-mid { color: #b45309; }
+.reporting-ledger .reporting-simple-chip-cov.is-cov-mid .rs-cov-fill { background: #b45309; }
+.reporting-ledger .reporting-simple-chip-cov.is-cov-low { color: var(--nx-text-meta, #94a3b8); }
+.reporting-ledger .reporting-simple-chip-cov.is-cov-low .rs-cov-fill { background: var(--nx-text-meta, #94a3b8); }
 
 /* Task 2: the ledger's 2px ink rule over the chart block (Simple + Advanced)
    is retired — .reporting-simple-chartcard already carries nx-card/

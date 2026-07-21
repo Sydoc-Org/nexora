@@ -91,7 +91,11 @@
     wizBreakdown: {{ _("Breakdown")|tojson }},
     wizTime: {{ _("Time range")|tojson }},
     wizPreviewTitle: {{ _("So far")|tojson }},
-    wizScopeCount: {{ _("{n} of {m} selected")|tojson }}
+    wizScopeCount: {{ _("{n} of {m} selected")|tojson }},
+    groupTime: {{ _("Time")|tojson }},
+    groupFields: {{ _("Document fields")|tojson }},
+    groupOr: {{ _("Or")|tojson }},
+    pickedCount: {{ _("{n} of 3 picked")|tojson }}
   };
 
   // Wizard category-dimension curation (docprocessing only). Process first
@@ -1543,6 +1547,26 @@
     el('rsWizardRail').innerHTML = html;
   }
 
+  // In-chip coverage bar: n of m allowed/selected processes provide this
+  // field or metric's base field. Same three colour tiers everywhere it's
+  // used (renderMeasureStep, applyCoverageBadge in renderBreakdownStep);
+  // the caller is still responsible for the (unchanged) tooltip text.
+  function covBadge(n, m) {
+    var frac = n / m;
+    var tier = frac <= 1 / 3 ? 'is-cov-low' : (frac >= 0.8 ? 'is-cov-high' : 'is-cov-mid');
+    var b = document.createElement('span');
+    b.className = 'reporting-simple-chip-cov ' + tier;
+    var bar = document.createElement('span');
+    bar.className = 'rs-cov-bar';
+    var fill = document.createElement('span');
+    fill.className = 'rs-cov-fill';
+    fill.style.width = Math.round(frac * 100) + '%';
+    bar.appendChild(fill);
+    b.appendChild(bar);
+    b.appendChild(document.createTextNode(n + '/' + m));
+    return b;
+  }
+
   function choiceBtn(label, onpick, selected) {
     var b = document.createElement('button');
     b.type = 'button';
@@ -1638,11 +1662,7 @@
         // this step): same badge as the breakdown chips.
         if (fld && fld.processes && fld.processes.length && srcProcs.length
             && fld.processes.length < srcProcs.length) {
-          var cov = document.createElement('span');
-          cov.className = 'reporting-simple-chip-cov '
-            + (fld.processes.length / srcProcs.length <= 1 / 3 ? 'is-cov-low' : 'is-cov-mid');
-          cov.textContent = fld.processes.length + '/' + srcProcs.length;
-          btn.appendChild(cov);
+          btn.appendChild(covBadge(fld.processes.length, srcProcs.length));
           btn.title = I18N.measureCoverage.replace('{n}', fld.processes.length)
             .replace('{m}', srcProcs.length) + '\n' + fld.processes.join('\n');
         }
@@ -1726,6 +1746,7 @@
         if (w.breakdowns[ci].kind === 'date') { hasDate = true; break; }
       }
       el('rsGrainWrap').hidden = !hasDate;
+      updatePickedCount();
     }
 
     function toggleBreakdown(bd) {
@@ -1770,13 +1791,23 @@
     function applyCoverageBadge(btn, f) {
       var cov = coveredBy(f);
       if (cov === null || cov.length >= scopeSel().length) return;
-      var b = document.createElement('span');
-      b.className = 'reporting-simple-chip-cov '
-        + (cov.length / scopeSel().length <= 1 / 3 ? 'is-cov-low' : 'is-cov-mid');
-      b.textContent = cov.length + '/' + scopeSel().length;
-      btn.appendChild(b);
+      btn.appendChild(covBadge(cov.length, scopeSel().length));
       btn.title = I18N.chipCoverage.replace('{n}', cov.length).replace('{m}', scopeSel().length)
         + '\n' + cov.join('\n');
+    }
+
+    // Task 6: "{n} of 3 picked" footer counter, breakdown step only (the
+    // footer itself is shared across all four steps -- visibility is a pure
+    // CSS :has() shim keyed on #rsStepBreakdown[hidden], see reporting.css).
+    function updatePickedCount() {
+      el('rsPickedCount').textContent = I18N.pickedCount.replace('{n}', String(w.breakdowns.length));
+    }
+
+    function groupLabel(text) {
+      var l = document.createElement('div');
+      l.className = 'rs-choice-group-label';
+      l.textContent = text;
+      return l;
     }
 
     // The chip list is re-rendered whenever the process scope changes: a chip
@@ -1813,6 +1844,7 @@
       // Scope narrowing can strand a selected breakdown on a hidden field.
       w.breakdowns = w.breakdowns.filter(function (b) { return !b.field || inScope(b.field); });
 
+      if (dateFields.length) list.appendChild(groupLabel(I18N.groupTime));
       dateFields.forEach(function (f) {
         var bd = { kind: 'date', field: f };
         var btn = choiceBtn(I18N.overTime + ' (' + f.label + ')', function () {
@@ -1826,6 +1858,7 @@
       // No cap: everything the Advanced tab offers is available here — the
       // coverage sort keeps rarely-provided fields at the bottom, and the
       // hide-list still filters the noise.
+      if (catFields.length) list.appendChild(groupLabel(I18N.groupFields));
       catFields.forEach(function (f) {
         var bd = { kind: 'category', field: f };
         var btn = choiceBtn(f.label, function () {
@@ -1836,14 +1869,17 @@
         applyCoverageBadge(btn, f);
         list.appendChild(btn);
       });
+      list.appendChild(groupLabel(I18N.groupOr));
       var noneBtn = choiceBtn(I18N.justTotal, function () {
         toggleBreakdown({ kind: 'none' });
       }, w.breakdowns.length === 0);
       noneBtn.dataset.bdKind = 'none';
+      noneBtn.classList.add('rs-choice-none');
       list.appendChild(noneBtn);
     }
 
     renderChipList();
+    updatePickedCount();
 
     // Wire Continue button
     var nextBtn = el('rsBreakdownNext');

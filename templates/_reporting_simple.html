@@ -69,20 +69,15 @@
     <div class="rs-wizard-grid">
       <div id="rsWizardRail" class="rs-wizard-rail" data-testid="rs-wizard-rail"></div>
       <div class="rs-wizard-stepcard">
-        <div class="reporting-simple-wizbar">
-          <button id="rsWizardBack" class="reporting-link" data-testid="rs-wizard-back">&larr; {{ _("Back") }}</button>
-        </div>
         <div class="reporting-simple-step" id="rsStepMeasure">
           <h3 class="reporting-simple-h">{{ _("What do you want to measure?") }}</h3>
           <div id="rsMeasureList" class="reporting-simple-choices" data-testid="rs-measure-list"></div>
           <p class="reporting-simple-hint">{{ _("Pick one or more — combined measures must come from the same source.") }}</p>
-          <button type="button" id="rsMeasureNext" class="nx-btn nx-btn--primary" hidden data-testid="rs-measure-next">{{ _("Continue") }}</button>
         </div>
         <div class="reporting-simple-step" id="rsStepScope" hidden>
           <h3 class="reporting-simple-h">{{ _("Which processes?") }}</h3>
           <div id="rsScopeList" class="reporting-simple-scopestep" data-testid="rs-scope-list"></div>
           <p class="reporting-simple-hint">{{ _("The next step only offers fields these processes provide.") }}</p>
-          <button type="button" id="rsScopeNext" class="nx-btn nx-btn--primary" data-testid="rs-scope-next">{{ _("Continue") }}</button>
         </div>
         <div class="reporting-simple-step" id="rsStepBreakdown" hidden>
           <h3 class="reporting-simple-h">{{ _("Break it down by…") }}</h3>
@@ -96,7 +91,6 @@
               <option value="year">{{ _("Year") }}</option>
             </select></label>
           <p class="reporting-simple-hint">{{ _("Pick up to three — the first is the chart axis, the second becomes the colored series.") }}</p>
-          <button type="button" id="rsBreakdownNext" class="nx-btn nx-btn--primary" data-testid="rs-breakdown-next">{{ _("Continue") }}</button>
         </div>
         <div class="reporting-simple-step" id="rsStepTime" hidden>
           <h3 class="reporting-simple-h">{{ _("Time range") }}</h3>
@@ -107,7 +101,22 @@
           <p class="reporting-simple-hint" id="rsAllTimeHint" hidden data-testid="rs-alltime-hint">{{ _("“All time” scans the whole history — pick a shorter range for faster results.") }}</p>
           <label id="rsTimeFieldWrap" class="reporting-simple-inline" hidden>{{ _("Date field") }}
             <select id="rsTimeField" class="reporting-input"></select></label>
-          <button id="rsWizardRun" class="nx-btn nx-btn--primary reporting-simple-runbtn" hidden
+        </div>
+        {# Task 6: shared footer for all four steps -- the accordion never
+           re-hides an earlier step (see the JS partial), so more than one of
+           these Continue-style buttons can legitimately be visible at once;
+           each keeps the exact hidden-flag logic it already had. rsPickedCount
+           and rsScopeNext/rsBreakdownNext are gated to their own step purely
+           via the CSS :has() shim in reporting.css (they have no independent
+           `hidden` toggle of their own, unlike rsMeasureNext/rsWizardRun). #}
+        <div class="rs-wizard-footer">
+          <button id="rsWizardBack" class="nx-btn nx-btn--ghost" data-testid="rs-wizard-back">&larr; {{ _("Back") }}</button>
+          <span class="rs-wizard-footer-spacer"></span>
+          <span id="rsPickedCount" class="rs-picked-count" data-testid="rs-picked-count"></span>
+          <button type="button" id="rsMeasureNext" class="nx-btn nx-btn--primary" hidden data-testid="rs-measure-next">{{ _("Continue") }}</button>
+          <button type="button" id="rsScopeNext" class="nx-btn nx-btn--primary" data-testid="rs-scope-next">{{ _("Continue") }}</button>
+          <button type="button" id="rsBreakdownNext" class="nx-btn nx-btn--primary" data-testid="rs-breakdown-next">{{ _("Continue") }}</button>
+          <button id="rsWizardRun" class="nx-btn nx-btn--primary" hidden
                   data-testid="rs-wizard-run">{{ _("Show result") }}</button>
         </div>
       </div>
