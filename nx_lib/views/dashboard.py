@@ -1126,10 +1126,28 @@ def _build_kpi_sql(widget, filters, configs):
             continue
 
         where = []
-        if start_date is not None and status != "Ready":
+        if status == "Ready":
+            # "Ready" means "current backlog". The legacy reference
+            # (SqlServerSource.backlog_count in workitem_sources.py) joins the
+            # Octo runtime DB to t_ActivityTypes and matches Name = 'C+A' --
+            # but Statconfig (this widget engine's own config table) has no
+            # activity-type column at all, so that exact match can't be
+            # expressed here. The closest honest, structurally-real
+            # approximation this schema supports is "entered this process but
+            # hasn't exited/exported yet" (Import set, Export still NULL) --
+            # the same Import/Export pairing proc_time_avg already treats as
+            # entry/exit timestamps. This is a real predicate, never WHERE 1=1.
+            # If a process's Statconfig row has no ImportColumn configured, it
+            # can't express "still outstanding" honestly either -- skip that
+            # row rather than fabricate a count for it (falls through to the
+            # existing no_data_in_scope warning if every row gets skipped).
+            if not import_col:
+                continue
+            where.append(f"{import_col} IS NOT NULL AND {export_col} IS NULL")
+        if start_date is not None:
             where.append(f"CAST({export_col} AS DATE) >= ?")
             params.append(start_date.isoformat())
-        if end_date is not None and status != "Ready":
+        if end_date is not None:
             where.append(f"CAST({export_col} AS DATE) <= ?")
             params.append(end_date.isoformat())
         for f in filters.get("docFilters") or []:

@@ -349,3 +349,80 @@ def test_compute_today_stats_raises_when_nexora_db_down(app, monkeypatch):
     monkeypatch.setattr(dv, "engine_nexora_db", _dead_engine("NexoraDB down"))
     with app.app_context(), pytest.raises(Exception):  # noqa: B017 -- any exception must propagate
         dv.compute_today_stats(["sydoc.Alpha"])
+
+
+# ------------------------- _build_kpi_sql: backlog KPI ------------------------ #
+# `status: "Ready"` is meant to represent "current backlog" (the legacy
+# reference is `SqlServerSource.backlog_count` in workitem_sources.py, a live
+# join to `t_ActivityTypes.Name = 'C+A'` on the Octo runtime DB). But
+# `Statconfig` -- the widget engine's own config table -- has no activity-type
+# column at all, so `status` used to be read and then never turned into a row
+# predicate; it only gated (and thereby silently dropped) the date clause.
+# That made "Ready" KPIs count every row ever recorded (`WHERE 1=1`) instead of
+# the current backlog, and dropped any explicit date range combined with it.
+
+
+def _kpi_widget(kind="count"):
+    return {"config": {"metric": {"kind": kind}}}
+
+
+def test_kpi_status_ready_is_not_unconditional_where_1_equals_1():
+    widget = _kpi_widget()
+    filters = {"status": "Ready"}
+    configs = [_cfg_row("default", "sydoc.Alpha", "dbo.tblAlpha", "ExportDate", "ImportDate")]
+    sql, _params = dv._build_kpi_sql(widget, filters, configs)
+    assert "WHERE 1=1" not in sql
+    # Real "still outstanding in this process" predicate: entered but not yet
+    # exported/exited -- the same Import/Export pairing Task 13's
+    # proc_time_avg metric already treats as process entry/exit timestamps.
+    assert "ImportDate IS NOT NULL" in sql
+    assert "ExportDate IS NULL" in sql
+
+
+def test_kpi_status_ready_with_explicit_date_range_keeps_date_clause():
+    widget = _kpi_widget()
+    filters = {
+        "status": "Ready",
+        "datePreset": "custom",
+        "dateFrom": "2026-01-01",
+        "dateTo": "2026-01-31",
+    }
+    configs = [_cfg_row("default", "sydoc.Alpha", "dbo.tblAlpha", "ExportDate", "ImportDate")]
+    sql, params = dv._build_kpi_sql(widget, filters, configs)
+    assert "CAST(ExportDate AS DATE) >= ?" in sql
+    assert "CAST(ExportDate AS DATE) <= ?" in sql
+    assert "2026-01-01" in params
+    assert "2026-01-31" in params
+    # The backlog predicate must still be present too -- status no longer gates it off.
+    assert "ImportDate IS NOT NULL" in sql
+    assert "ExportDate IS NULL" in sql
+
+
+def test_kpi_status_ready_skips_process_with_no_import_column():
+    # A process whose Statconfig row has no ImportColumn can't express "still
+    # outstanding" honestly -- skip that row rather than fabricate a count for it.
+    widget = _kpi_widget()
+    filters = {"status": "Ready"}
+    configs = [_cfg_row("default", "sydoc.Alpha", "dbo.tblAlpha", "ExportDate", None)]
+    sql, params = dv._build_kpi_sql(widget, filters, configs)
+    assert sql == ""
+    assert params == []
+
+
+def test_kpi_status_done_unaffected_by_backlog_predicate():
+    # Regression guard: only "Ready" gets the new backlog predicate. "Done"
+    # (and any other/no status) must keep behaving like a plain count, still
+    # respecting an explicit date range on the export column.
+    widget = _kpi_widget()
+    filters = {
+        "status": "Done",
+        "datePreset": "custom",
+        "dateFrom": "2026-01-01",
+        "dateTo": "2026-01-31",
+    }
+    configs = [_cfg_row("default", "sydoc.Alpha", "dbo.tblAlpha", "ExportDate", "ImportDate")]
+    sql, params = dv._build_kpi_sql(widget, filters, configs)
+    assert "ImportDate IS NOT NULL" not in sql
+    assert "ExportDate IS NULL" not in sql
+    assert "CAST(ExportDate AS DATE) >= ?" in sql
+    assert "CAST(ExportDate AS DATE) <= ?" in sql
