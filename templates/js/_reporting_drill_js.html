@@ -14,7 +14,8 @@ window.ReportingDrill = (function () {
     loading: {{ _("Loading the rows…")|tojson }},
     loadError: {{ _("Could not load the rows behind this number.")|tojson }},
     close: {{ _("Close")|tojson }},
-    couldNotExport: {{ _("Could not export this report.")|tojson }}
+    couldNotExport: {{ _("Could not export this report.")|tojson }},
+    calloutText: {{ _("Click a workitem to open its read-only preview.")|tojson }}
   };
 
   var SMART_FIELDS = ['workitem_id', 'processname', 'import_date', 'export_date'];
@@ -97,6 +98,70 @@ window.ReportingDrill = (function () {
 
   var current = null;   // {definition} of the open drill, for export
 
+  /* Context chip row (#rdChips, testid reporting-drill-chips): indigo chips
+     for filters already on the definition that produced the aggregate
+     result (pre-existing), violet chips for the filters derived from the
+     clicked cell(s) (opts.clicked). Reused verbatim by dashboard-card drills
+     (see the plan's Task 15) -- keep this a general "definition filters +
+     clicked filters" renderer, not result-view-specific. */
+  function isDateField(fields, fieldName, grain) {
+    if (grain) return true;
+    for (var i = 0; i < (fields || []).length; i++) {
+      if (fields[i].field === fieldName) return !!fields[i].grainable;
+    }
+    return false;
+  }
+
+  function fieldLabel(fields, fieldName) {
+    for (var i = 0; i < (fields || []).length; i++) {
+      if (fields[i].field === fieldName) return fields[i].label || fieldName;
+    }
+    return fieldName;
+  }
+
+  function chipHtml(colorClass, icon, text) {
+    return '<span class="reporting-drill-chip ' + colorClass + '">' +
+      '<i class="fas ' + icon + '" aria-hidden="true"></i><span>' + esc(text) + '</span></span>';
+  }
+
+  function renderChips(definition, fields, clicked) {
+    var container = el('rdChips');
+    if (!container) return;
+    var parts = [];
+    ((definition && definition.filters) || []).forEach(function (f) {
+      var val = (f.value === null || f.value === undefined) ? I18N.nullLabel : f.value;
+      parts.push(chipHtml('reporting-drill-chip--indigo',
+        isDateField(fields, f.field) ? 'fa-calendar' : 'fa-filter',
+        fieldLabel(fields, f.field) + ' · ' + val));
+    });
+    (clicked || []).forEach(function (c) {
+      var val = (c.value === null || c.value === undefined || c.value === '') ? I18N.nullLabel : c.value;
+      parts.push(chipHtml('reporting-drill-chip--violet',
+        isDateField(fields, c.field, c.grain) ? 'fa-calendar' : 'fa-filter',
+        fieldLabel(fields, c.field) + ' · ' + val));
+    });
+    container.innerHTML = parts.join('');
+  }
+
+  /* Info callout ("Click a workitem to open its read-only preview"): only
+     meaningful when the workitem-preview modal is actually on the page --
+     same availability check the click-delegation handler in wire() already
+     uses (window.NexoraWorkitemDetail + #rdWiModal, both gated in
+     templates/reporting.html behind details_images_perm/details_fields_perm)
+     -- so this reuses that check rather than inventing a new one. Built
+     once, lazily, right before the foot bar. */
+  function ensureCallout() {
+    if (el('rdCallout') || !window.NexoraWorkitemDetail || !el('rdWiModal')) return;
+    var foot = document.querySelector('#rdPanel .reporting-drill-foot');
+    if (!foot || !foot.parentNode) return;
+    var div = document.createElement('div');
+    div.id = 'rdCallout';
+    div.className = 'reporting-drill-callout';
+    div.setAttribute('data-testid', 'reporting-drill-callout');
+    div.innerHTML = '<i class="fas fa-eye" aria-hidden="true"></i><span>' + esc(I18N.calloutText) + '</span>';
+    foot.parentNode.insertBefore(div, foot);
+  }
+
   function close() {
     el('rdPanel').hidden = true;
     el('rdBackdrop').hidden = true;
@@ -107,8 +172,11 @@ window.ReportingDrill = (function () {
     var head = '<tr>' + columns.map(function (c) {
       return '<th>' + esc(c.header || c.field) + '</th>';
     }).join('') + '</tr>';
-    var wiIdx = -1;
-    columns.forEach(function (c, i) { if (c.field === 'workitem_id') wiIdx = i; });
+    var wiIdx = -1, typeIdx = -1;
+    columns.forEach(function (c, i) {
+      if (c.field === 'workitem_id') wiIdx = i;
+      if (c.field === 'doctype') typeIdx = i;
+    });
     var body = rows.map(function (r) {
       return '<tr>' + r.map(function (v, i) {
         var cell = v == null ? '<span class="reporting-drill-null">' + esc(I18N.nullLabel) + '</span>'
@@ -117,6 +185,8 @@ window.ReportingDrill = (function () {
           cell = '<a href="' + API_PREFIX + 'workitems?search=' + encodeURIComponent(String(v)) +
                  '" target="_blank" rel="noopener" class="reporting-drill-wi-link" data-wid="' +
                  esc(String(v)) + '">' + esc(String(v)) + '</a>';
+        } else if (i === typeIdx && v != null) {
+          cell = '<span class="reporting-drill-type-pill">' + esc(String(v).slice(0, 200)) + '</span>';
         }
         return '<td>' + cell + '</td>';
       }).join('') + '</tr>';
@@ -138,6 +208,8 @@ window.ReportingDrill = (function () {
                                                     // the race once current is reassigned
     el('rdTitle').textContent = opts.header || I18N.title;
     el('rdSubtitle').textContent = I18N.title;
+    renderChips(opts.definition, opts.fields, opts.clicked);
+    ensureCallout();
     el('rdBody').innerHTML =
       '<div class="reporting-ai-loading"><span class="reporting-ai-dots" aria-hidden="true">' +
       '<i></i><i></i><i></i></span><span role="status">' + esc(I18N.loading) + '</span></div>';

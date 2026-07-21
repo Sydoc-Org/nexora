@@ -92,13 +92,17 @@
   <aside id="rdPanel" class="reporting-drill-panel" hidden role="dialog"
          aria-labelledby="rdTitle" data-testid="reporting-drill-panel">
     <div class="reporting-drill-head">
-      <div>
-        <h3 id="rdTitle"></h3>
-        <p id="rdSubtitle" class="reporting-drill-subtitle"></p>
+      <div class="reporting-drill-head__main">
+        <span class="reporting-drill-icon" aria-hidden="true"><i class="fas fa-magnifying-glass-chart"></i></span>
+        <div>
+          <h3 id="rdTitle"></h3>
+          <p id="rdSubtitle" class="reporting-drill-subtitle"></p>
+        </div>
       </div>
       <button type="button" id="rdClose" class="reporting-link nx-btn nx-btn--ghost nx-btn--sm"
               aria-label="{{ _('Close') }}" data-testid="reporting-drill-close">&#10005;</button>
     </div>
+    <div id="rdChips" class="reporting-drill-chips" data-testid="reporting-drill-chips"></div>
     <div id="rdBody" class="reporting-drill-body"></div>
     <div class="reporting-drill-foot">
       <p id="rdNote" class="reporting-drill-note"></p>

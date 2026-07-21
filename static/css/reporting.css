@@ -1263,26 +1263,61 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
 
 /* --- Drill-through drawer (slide-over from the right; shared by Simple and
    Advanced). Tokenised to match the nexora-ui harmonization above. Behaviour
-   (open/close/fetch) is wired in Task 3; this is the shell only. --- */
+   (open/close/fetch) is wired in Task 3; Task 9 restyles the shell (width,
+   backdrop, shadow, icon-chip header, slide-in) and adds the #rdChips
+   context-chip row + info callout -- see reporting.md §Drill / the
+   2026-07-20 redesign plan Task 9. --- */
 .reporting-drill-backdrop {
-  position: fixed; inset: 0; background: rgba(0, 0, 0, .45); z-index: 60;
+  position: fixed; inset: 0; background: rgba(15, 23, 42, .28); z-index: 60;
 }
 .reporting-drill-backdrop[hidden] { display: none; }
 .reporting-drill-panel {
   position: fixed; top: 0; right: 0; bottom: 0; z-index: 61;
-  width: 45vw; min-width: 420px; max-width: 720px;
+  width: 640px; max-width: 640px;
   display: flex; flex-direction: column;
   background: var(--nx-card); color: var(--nx-text);
   border-left: 1px solid var(--nx-border);
-  box-shadow: var(--nx-shadow-pop);
+  box-shadow: -24px 0 64px -24px rgba(15, 23, 42, .35);
 }
 .reporting-drill-panel[hidden] { display: none; }
+/* Slide-in, 250ms (spec §Drill). `backwards` only (never `both` -- see
+   nexora-ui.css's .nx-rise comment): the "from" state paints for the instant
+   before/at the JS-driven [hidden] flip, and the effect fully ends once the
+   animation completes -- no lingering held transform/stacking context. */
+@keyframes rd-slide-in { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+.reporting-drill-panel:not([hidden]) { animation: rd-slide-in .25s var(--nx-ease) backwards; }
+@media (prefers-reduced-motion: reduce) {
+  .reporting-drill-panel:not([hidden]) { animation: none; }
+}
 .reporting-drill-head {
   display: flex; justify-content: space-between; align-items: flex-start;
   padding: 16px; border-bottom: 1px solid var(--nx-border);
 }
-.reporting-drill-head h3 { margin: 0; font-size: 15px; color: var(--nx-text); }
-.reporting-drill-subtitle { margin: 4px 0 0; font-size: 12px; color: var(--nx-text-meta); }
+.reporting-drill-head__main { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
+.reporting-drill-icon {
+  flex: 0 0 auto; width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--nx-accent-tint); color: var(--nx-accent); font-size: 15px;
+}
+.reporting-drill-head h3 { margin: 0; font-size: 16px; font-weight: 600; color: var(--nx-text); }
+.reporting-drill-subtitle { margin: 4px 0 0; font-size: 11.5px; color: var(--nx-text-meta); }
+/* Context chip row (#rdChips, testid reporting-drill-chips): indigo chips for
+   filters already on the definition, violet chips for the clicked-cell
+   filters. General surface -- reused verbatim by dashboard-card drills
+   (Task 15). Empty (no filters at all) collapses to zero height. */
+.reporting-drill-chips {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding: 0 16px; margin-top: 10px;
+}
+.reporting-drill-chips:empty { margin-top: 0; }
+.reporting-drill-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 999px; border: 1px solid transparent;
+  font-size: 11.5px; font-weight: 600; white-space: nowrap;
+}
+.reporting-drill-chip i { font-size: 10px; }
+.reporting-drill-chip--indigo { background: var(--nx-accent-tint); border-color: #e0e7ff; color: #4338ca; }
+.reporting-drill-chip--violet { background: var(--nx-violet-tint); border-color: var(--nx-violet-border); color: var(--nx-violet); }
 .reporting-drill-body { flex: 1; overflow: auto; padding: 0 16px; }
 .reporting-drill-body table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .reporting-drill-body th,
@@ -1290,7 +1325,24 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
   padding: 6px 8px; border-bottom: 1px solid var(--nx-border);
   text-align: left; white-space: nowrap;
 }
-.reporting-drill-body th { background: var(--nx-alt); color: var(--nx-text); }
+.reporting-drill-body th {
+  background: var(--nx-alt); color: var(--nx-text-meta);
+  font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+}
+/* Type pill (doctype column, when present in the drilled columns). */
+.reporting-drill-type-pill {
+  display: inline-block; padding: 2px 8px; border-radius: 999px;
+  background: var(--nx-accent-tint); color: #4338ca; font-size: 11px; font-weight: 600;
+}
+/* Info callout, built by ensureCallout() in _reporting_drill_js.html, only
+   when the workitem-preview modal is on the page -- sits above the foot. */
+.reporting-drill-callout {
+  display: flex; align-items: flex-start; gap: 8px;
+  margin: 10px 16px; padding: 10px 12px;
+  border: 1px solid #e0e7ff; background: #fafaff; border-radius: 10px;
+  font-size: 12px; color: var(--nx-text-meta);
+}
+.reporting-drill-callout i { color: var(--nx-accent); margin-top: 1px; }
 .reporting-drill-foot {
   display: flex; justify-content: space-between; align-items: center;
   padding: 10px 16px; border-top: 1px solid var(--nx-border);
@@ -1302,7 +1354,7 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
 .reporting-drill-wi-link { color: var(--nx-accent); text-decoration: underline; }
 .reporting-drill-wi-link:hover { color: var(--nx-accent-hover); }
 @media (max-width: 900px) {
-  .reporting-drill-panel { width: 100vw; min-width: 0; }
+  .reporting-drill-panel { width: 100vw; max-width: 100vw; }
 }
 
 /* --- Workitem detail panel modal, opened from a .reporting-drill-wi-link
@@ -1616,13 +1668,14 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   border-color: var(--rl-navy);
 }
 
-/* --- Drill-through drawer: ledger canvas + hairlines, tabular-nums metadata
-   on the subtitle/note/column-headers (reads like a ledger stamp). Shell
+/* --- Drill-through drawer: studio canvas + hairlines (Task 9 restyle --
+   width/backdrop/shadow/slide-in/chips/callout live on the base
+   .reporting-drill-* rules above; this section only layers the
+   --rl-band/--rl-hairline canvas tokens + tabular-nums metadata). Shell
    structure and all data-testids (Task 3) are untouched. --- */
 .reporting-ledger .reporting-drill-panel {
   background: var(--rl-band);
   border-left: 1px solid var(--rl-hairline);
-  box-shadow: none;
 }
 .reporting-ledger .reporting-drill-head,
 .reporting-ledger .reporting-drill-foot {
@@ -1631,7 +1684,6 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 .reporting-ledger .reporting-drill-subtitle,
 .reporting-ledger .reporting-drill-note {
   font-variant-numeric: tabular-nums;
-  font-size: 11px;
 }
 .reporting-ledger .reporting-drill-body th,
 .reporting-ledger .reporting-drill-body td {
@@ -1640,10 +1692,6 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 .reporting-ledger .reporting-drill-body th {
   background: var(--rl-band);
   font-variant-numeric: tabular-nums;
-  font-size: 10.5px;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: var(--nx-text-meta);
 }
 .reporting-ledger .reporting-drill-clickable tbody tr:hover {
   background: var(--nx-accent-tint);
