@@ -164,13 +164,36 @@
     render();
   }
 
+  // addCard/duplicateCard mint ids as 'n' + state.seq++ / 'dup' + state.seq++,
+  // and those ids are persisted as part of the saved card definitions. Always
+  // resetting seq to the literal 100 on open() meant a saved dashboard whose
+  // cards already used n100/dup100 (from a prior add/duplicate) would collide
+  // with the very next add/duplicate after being reopened -- two cards with
+  // the same id, breaking every id-keyed lookup (findCardById, the charts/
+  // cardRunData/runGen maps, remove/duplicate targeting). Seed instead from
+  // the highest existing n-/dup-prefixed numeric suffix in the loaded
+  // definition, ignoring non-matching ids (e.g. prototype-style k1/c1/t1
+  // fixtures, which aren't in this numeric scheme).
+  function nextSeqFor(cards) {
+    var max = 99;
+    (cards || []).forEach(function (c) {
+      var m = /^(?:n|dup)(\d+)$/.exec(c && c.id);
+      if (m) {
+        var n = parseInt(m[1], 10);
+        if (n > max) max = n;
+      }
+    });
+    return max + 1;
+  }
+
   function open(report) {
     state.def = report.definition;
     state.reportId = report.id;
     state.canEdit = !!report.canEdit;
     state.editing = false;
     state.dirty = false;
-    state.dragId = null; state.overId = null; state.seq = 100;
+    state.dragId = null; state.overId = null;
+    state.seq = nextSeqFor(state.def.cards);
     render();
   }
 
@@ -786,6 +809,13 @@
   }
 
   // index is the Chart.js element index from onClick (getElementsAtEventForMode).
+  // The dimension's field/grain come from the CARD'S OWN DEFINITION
+  // (card.definition.columns) -- mirrors the Simple pane's own
+  // clickedFor/drillFromChart in _reporting_simple_js.html, which reads
+  // state.current.def.columns rather than the run result's columns. The run
+  // result's columns are only {field, header} (api_reports_run never echoes
+  // grain), so sourcing grain from there always drilled as an exact-value
+  // match on the truncated bucket label instead of a date range.
   function handleCardChartClick(card, index) {
     var data = cardRunData[card.id];
     if (!data) return;
@@ -793,12 +823,14 @@
     if (idx.dim < 0) return;  // no dimension column -- nothing to drill on
     var row = data.rows[index];
     if (!row) return;
-    var col = data.columns[idx.dim];
+    var col = ((card.definition && card.definition.columns) || [])[idx.dim];
+    if (!col) return;
     openCardDrill(card, [{ field: col.field, grain: col.grain || null, value: row[idx.dim] }]);
   }
 
   // rowIndex is the table card's row position (0-based, matching the capped
-  // rows renderTable actually drew).
+  // rows renderTable actually drew). Same card.definition.columns sourcing
+  // as handleCardChartClick above, for the same reason.
   function handleCardTableRowClick(card, rowIndex) {
     var data = cardRunData[card.id];
     if (!data) return;
@@ -806,7 +838,8 @@
     if (idx.dim < 0) return;
     var row = data.rows[rowIndex];
     if (!row) return;
-    var col = data.columns[idx.dim];
+    var col = ((card.definition && card.definition.columns) || [])[idx.dim];
+    if (!col) return;
     openCardDrill(card, [{ field: col.field, grain: col.grain || null, value: row[idx.dim] }]);
   }
 

@@ -1236,3 +1236,195 @@ def test_kpi_card_without_single_date_filter_shows_no_trend(nexora_server, page)
 
     expect(page.get_by_test_id("rdb-kpi-trend")).to_have_count(0)
     assert len(run_calls) == 1
+
+
+# ---------------------------------------------------------------------------
+# Phase 7 review-finding regressions:
+#  1) handleCardChartClick/handleCardTableRowClick sourced grain from the
+#     RUN RESULT's columns ({field, header} only -- api_reports_run never
+#     echoes grain), so a grained line card always drilled with grain=null,
+#     falling back to an exact-value match on the truncated bucket label
+#     instead of a date range. Fixed to source {field, grain} from the
+#     card's own definition.columns instead (mirrors clickedFor/
+#     drillFromChart in _reporting_simple_js.html).
+#  2) open() unconditionally reset state.seq to 100, so a saved dashboard
+#     whose cards already used the n100/dup100 ids (persisted from a prior
+#     add/duplicate) collided with the very next add/duplicate after
+#     reopening. Fixed to seed seq from the highest existing n-/dup-prefixed
+#     numeric id already in the loaded definition.
+# ---------------------------------------------------------------------------
+
+DRILL_LINE_GRAIN_DASH = {
+    "kind": "dashboard",
+    "schemaVersion": 1,
+    "title": "e2e grain drill dashboard",
+    "globalFilters": [],
+    "cards": [
+        {
+            "id": "c1",
+            "type": "line",
+            "span": 8,
+            "title": "Documents per month",
+            "definition": {
+                "source": "workitems",
+                "metrics": [{"field": "id", "agg": "count"}],
+                "columns": [{"field": "createdDate", "grain": "month"}],
+                "filters": [],
+            },
+            "filterOverrides": [],
+        }
+    ],
+}
+
+
+def test_line_card_chart_click_drills_by_date_range_not_exact_bucket(nexora_server, page):
+    """Review finding 1: a grained line card's chart-click drill must build a
+    gte/lt date-RANGE filter for the clicked month bucket (sourced from
+    card.definition.columns[0].grain), not an exact-value match on the raw
+    bucket value (which the run result's columns never carry grain to guard
+    against). Distinguishes the drill drawer's own detail-row request from
+    the card's own aggregate run via rowLimit === 100, same convention as
+    test_line_card_chart_click_opens_drill_panel above.
+    """
+    _login(page, nexora_server)
+    _stub_dashboard_report(page, "e2e-dash-grain-drill", DRILL_LINE_GRAIN_DASH)
+    page.route(
+        "**/api/reporting/sources",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                [
+                    {
+                        "id": "workitems",
+                        "label": "Workitems",
+                        "kind": "curated",
+                        "processes": [],
+                        "fields": [
+                            {
+                                "field": "createdDate",
+                                "label": "Created",
+                                "type": "date",
+                                "grainable": True,
+                                "filterable": True,
+                            }
+                        ],
+                    }
+                ]
+            ),
+        ),
+    )
+    page.route(
+        "**/api/reporting/metrics",
+        lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps({})),
+    )
+
+    drill_requests = []
+
+    def fulfill_run(route):
+        posted = route.request.post_data_json or {}
+        if posted.get("rowLimit") == 100:  # the drill drawer's own detail-row request
+            drill_requests.append(posted)
+            payload = {
+                "columns": [{"field": "createdDate", "header": "Created"}],
+                "rows": [["2026-01-01"]],
+                "rowCount": 1,
+                "truncated": False,
+            }
+        else:  # the card's own aggregate run -- run-result columns carry NO grain
+            payload = {
+                "columns": [
+                    {"field": "createdDate", "header": "Month"},
+                    {"field": "id", "header": "Count"},
+                ],
+                "rows": [["2026-01-01", 12], ["2026-02-01", 18], ["2026-03-01", 9]],
+                "rowCount": 3,
+            }
+        route.fulfill(status=200, content_type="application/json", body=json.dumps(payload))
+
+    page.route("**/api/reporting/run", fulfill_run)
+
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-card").first.click()
+    expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
+
+    line_card = page.locator('[data-testid="rdb-card"][data-card-id="c1"]')
+    canvas = line_card.locator("canvas")
+    expect(canvas).to_be_visible()
+    # Same animation-settle wait as test_line_card_chart_click_opens_drill_panel.
+    page.wait_for_timeout(1200)
+
+    point = canvas.evaluate(
+        "(el) => { const c = Chart.getChart(el); const meta = c.getDatasetMeta(0); "
+        "const r = el.getBoundingClientRect(); "
+        "return { x: r.left + meta.data[0].x, y: r.top + meta.data[0].y }; }"
+    )
+    page.mouse.click(point["x"], point["y"])
+
+    panel = page.get_by_test_id("reporting-drill-panel")
+    expect(panel).to_be_visible()
+
+    assert len(drill_requests) == 1
+    date_filters = [f for f in drill_requests[0]["filters"] if f["field"] == "createdDate"]
+    # A grain-aware drill emits a RANGE (gte + lt), never a bare eq on the
+    # clicked bucket value.
+    assert {f["op"] for f in date_filters} == {"gte", "lt"}
+    gte_filter = next(f for f in date_filters if f["op"] == "gte")
+    lt_filter = next(f for f in date_filters if f["op"] == "lt")
+    assert gte_filter["value"] == "2026-01-01"
+    assert lt_filter["value"] == "2026-02-01"
+
+
+SEQ_COLLISION_DASH = {
+    "kind": "dashboard",
+    "schemaVersion": 1,
+    "title": "e2e seq dashboard",
+    "globalFilters": [],
+    "cards": [
+        {
+            "id": "n100",
+            "type": "kpi",
+            "span": 3,
+            "title": "Document count",
+            "definition": {
+                "source": "workitems",
+                "metrics": [{"field": "id", "agg": "count"}],
+                "columns": [],
+                "filters": [],
+            },
+            "filterOverrides": [],
+        }
+    ],
+}
+
+
+def test_reopen_dashboard_then_add_card_does_not_collide_with_persisted_id(nexora_server, page):
+    """Review finding 2: reopening a saved dashboard whose first card already
+    uses the persisted id n100 (e.g. minted by an add/duplicate in an earlier
+    session), entering edit mode, and adding a new card via the add-card tile
+    must NOT mint another n100 -- open() has to seed state.seq past the
+    highest existing n-/dup-prefixed numeric id in the loaded definition
+    instead of always resetting it to 100.
+    """
+    _login(page, nexora_server)
+    _stub_dashboard_report(page, "e2e-dash-seq", SEQ_COLLISION_DASH)
+    page.route(
+        "**/api/reporting/run",
+        lambda r: r.fulfill(
+            status=200, content_type="application/json", body=json.dumps(RUN_STUB_SIMPLE)
+        ),
+    )
+
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-card").first.click()
+    expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
+    expect(page.get_by_test_id("rdb-card")).to_have_count(1)
+
+    page.get_by_test_id("rdb-edit-toggle").click()  # Edit -> enter editing mode
+    page.get_by_test_id("rdb-add-kpi").click()
+
+    cards = page.get_by_test_id("rdb-card")
+    expect(cards).to_have_count(2)
+    ids = [cards.nth(i).get_attribute("data-card-id") for i in range(2)]
+    assert len(set(ids)) == 2, f"duplicate data-card-id after add: {ids}"
+    assert "n100" in ids  # the originally persisted card is untouched
