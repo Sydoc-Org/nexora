@@ -1613,7 +1613,13 @@ def api_recent_activity():
         activity = []
         for row in raw_rows:
             domain = get_domain_for_workitem(row["id"], client_hint=row.get("client"))
-            workitemdata, doc_id = get_workitemdata_param(row["id"], domain)
+            returndata = get_workitemdata_param(row["id"], domain)
+            if not returndata:
+                current_app.logger.warning(
+                    f"Activity feed: skipping workitem {row['id']} (Octo lookup failed)"
+                )
+                continue
+            workitemdata, doc_id = returndata
             _ext, _urls, fields, _fs, _ts = get_extensions_urls_fields(workitemdata, doc_id, domain)
             fields = {k: v for k, v in fields.items() if v}
             activity.append(
