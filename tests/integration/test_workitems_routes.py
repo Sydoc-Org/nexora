@@ -1252,6 +1252,65 @@ def test_prepared_documents_page_octo_resolve_failure_degrades(
     assert resp.status_code == 200
 
 
+def test_prepared_documents_octo_status_false_when_stage_not_found(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """A wid MAPPING existing is not enough: resolve_octo_wid_stage returning
+    {"status": None, "current_stage": None} (nothing found in Octo) must yield
+    in_octo=False, so the Preview / "Open in Workitems" buttons -- which would
+    otherwise be dead links for a wid that isn't actually in Octo -- are not
+    rendered."""
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None: 1)
+    monkeypatch.setattr(
+        wv,
+        "fetch_prepared_documents_page",
+        lambda offset, limit, pid=None: [
+            {
+                "id": 1,
+                "pid": "100",
+                "collected": True,
+                "collected_by": "A",
+                "prepared": False,
+                "prepared_by": "",
+                "uploaded_by": 7,
+                "uploaded_at": None,
+                "updated_at": None,
+            }
+        ],
+    )
+    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: ["sydoc.05_PDBS"])
+    monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [("t", "id", "pid", None)])
+    monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: {"100": [42]})
+    monkeypatch.setattr(
+        wv,
+        "resolve_octo_wid_stage",
+        lambda e, w: {"status": None, "current_stage": None},
+    )
+
+    captured = {}
+    real_render_template = wv.render_template
+
+    def _capture(template_name, **kwargs):
+        captured.update(kwargs)
+        return real_render_template(template_name, **kwargs)
+
+    monkeypatch.setattr(wv, "render_template", _capture)
+
+    resp = user_client.get("/prepared_documents")
+    assert resp.status_code == 200
+    assert captured["octo_status"]["100"]["in_octo"] is False
+    # The row must fall back to the dash placeholder, not render the (dead) Preview
+    # button / "Open in Workitems" link for a wid that Octo doesn't actually have.
+    assert b'data-wid="42"' not in resp.data
+    assert b'data-testid="prepared-docs-octo-link"' not in resp.data
+
+
 def test_prepared_documents_clear_gated(noperm_client):
     resp = noperm_client.post("/prepared_documents/clear")
     assert resp.status_code in (403, 302)
@@ -1306,6 +1365,11 @@ def test_prepared_documents_preview_button_requires_details_view(
     monkeypatch.setattr(wv, "_ms02_target_processes", lambda: ["sydoc.05_PDBS"])
     monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [("t", "id", "pid", None)])
     monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: {"100": [42]})
+    monkeypatch.setattr(
+        wv,
+        "resolve_octo_wid_stage",
+        lambda e, w: {"status": "Ready", "current_stage": "Import"},
+    )
 
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
     resp = user_client.get("/prepared_documents")

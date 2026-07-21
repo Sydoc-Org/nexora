@@ -2266,7 +2266,7 @@ def prepared_documents():
                     wid = wids[0]
                     stage = resolve_octo_wid_stage(CLIENTS["default"].runtime_engine, wid)
                     octo_status[pid] = {
-                        "in_octo": True,
+                        "in_octo": bool(stage and stage.get("status")),
                         "wid": wid,
                         "status": stage["status"] or "",
                         "current_stage": stage["current_stage"] or "",
