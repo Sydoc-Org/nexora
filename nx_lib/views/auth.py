@@ -484,9 +484,11 @@ def login():
                     if blocking:
                         return render_template("maintenance.html", maintenance=blocking), 503
                     if not stored_init_reset:
+                        session.clear()
                         session["pre_auth_userid"] = str(stored_userid)
                         return redirect(url_for("init_reset"))
                     if not stored_2fa:
+                        session.clear()
                         session["pre_2fa_userid"] = str(stored_userid)
                         session["pre_2fa_username"] = stored_username
                         return redirect(url_for("init_2FA"))
