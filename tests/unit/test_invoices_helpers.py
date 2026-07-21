@@ -28,6 +28,13 @@ def test_map_invoice_status_other():
     assert out["color"] == "blue"
 
 
+def test_map_invoice_status_unlisted_bexio_code_is_open():
+    """Any non-9 status (drafts, cancelled, or any other Bexio code) must
+    label as 'Open' - map_invoice_status only special-cases Paid (Task 22)."""
+    out = map_invoice_status(3)
+    assert out["color"] == "blue"
+
+
 def test_search_bexio_invoices_no_pat(monkeypatch, app):
     monkeypatch.setattr("nx_lib.views.invoices.BEXIO_PAT", None)
     from nx_lib.views.invoices import search_bexio_invoices
@@ -71,6 +78,58 @@ def test_search_bexio_invoices_filters_by_status(monkeypatch, app):
     ):
         paid = search_bexio_invoices([1], "2026-01-01", "2026-12-31", status="Paid")
     assert all(inv["kb_item_status_id"] == 9 for inv in paid)
+
+
+def test_search_bexio_invoices_open_filter_matches_label_rule(monkeypatch, app):
+    """The Open filter must agree with map_invoice_status: an invoice whose
+    kb_item_status_id is neither 9 (Paid) nor the old hardcoded 8 - e.g. 3,
+    a draft/cancelled/other Bexio code - is labeled 'Open' and must therefore
+    also pass the status='Open' filter instead of vanishing (Task 22)."""
+    monkeypatch.setattr("nx_lib.views.invoices.BEXIO_PAT", "tok")
+    fake_resp = MagicMock()
+    fake_resp.json.return_value = [
+        {"id": 1, "document_nr": "A", "total": "1", "kb_item_status_id": 9},
+        {"id": 2, "document_nr": "B", "total": "2", "kb_item_status_id": 8},
+        {"id": 3, "document_nr": "C", "total": "3", "kb_item_status_id": 3},
+    ]
+    fake_resp.raise_for_status.return_value = None
+    from nx_lib.views.invoices import search_bexio_invoices
+
+    with (
+        app.test_request_context("/"),
+        patch("nx_lib.views.invoices.requests.post", return_value=fake_resp),
+    ):
+        open_invoices = search_bexio_invoices([1], "2026-01-01", "2026-12-31", status="Open")
+
+    ids = {inv["id"] for inv in open_invoices}
+    assert ids == {
+        2,
+        3,
+    }, f"expected non-Paid invoices (8 and 3) in Open filter, got {open_invoices!r}"
+    assert all(inv["status_info"]["text"] for inv in open_invoices)
+
+
+def test_search_bexio_invoices_open_filter_excludes_paid(monkeypatch, app):
+    """Paid (9) must never leak into the Open filter, and Paid must stay an
+    exact-match filter (Task 22 regression guard)."""
+    monkeypatch.setattr("nx_lib.views.invoices.BEXIO_PAT", "tok")
+    fake_resp = MagicMock()
+    fake_resp.json.return_value = [
+        {"id": 1, "document_nr": "A", "total": "1", "kb_item_status_id": 9},
+        {"id": 2, "document_nr": "B", "total": "2", "kb_item_status_id": 8},
+    ]
+    fake_resp.raise_for_status.return_value = None
+    from nx_lib.views.invoices import search_bexio_invoices
+
+    with (
+        app.test_request_context("/"),
+        patch("nx_lib.views.invoices.requests.post", return_value=fake_resp),
+    ):
+        open_invoices = search_bexio_invoices([1], "2026-01-01", "2026-12-31", status="Open")
+        paid_invoices = search_bexio_invoices([1], "2026-01-01", "2026-12-31", status="Paid")
+
+    assert {inv["id"] for inv in open_invoices} == {2}
+    assert {inv["id"] for inv in paid_invoices} == {1}
 
 
 def test_search_bexio_invoices_total_format_bad_value(monkeypatch, app):

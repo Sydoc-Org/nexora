@@ -57,8 +57,17 @@ def get_allowed_client_details():
             conn.close()
 
 
+def _is_paid_status(status_id):
+    """Single source of truth for what counts as 'Paid' in Bexio's
+    kb_item_status_id. Any other status (draft, cancelled, or any other
+    Bexio code) is 'Open' - both map_invoice_status (the label) and
+    search_bexio_invoices (the filter) must derive from this same rule so
+    they never drift apart (Task 22)."""
+    return status_id == 9
+
+
 def map_invoice_status(status_id):
-    if status_id == 9:
+    if _is_paid_status(status_id):
         return {"text": _("Paid"), "color": "green"}
     return {"text": _("Open"), "color": "blue"}
 
@@ -91,12 +100,17 @@ def search_bexio_invoices(client_ids, date_from, date_to, search_nr=None, status
             invoices = response.json()
 
             if status:
-                status_map = {"Paid": [9], "Open": [8]}
-                target_status_ids = status_map.get(status, [])
-                if target_status_ids:
-                    invoices = [
-                        inv for inv in invoices if inv.get("kb_item_status_id") in target_status_ids
-                    ]
+                # "Paid" is the exact-match id 9; "Open" is everything else
+                # that map_invoice_status would label "Open" - derived from
+                # the same _is_paid_status predicate so the filter can never
+                # disagree with the label (Task 22).
+                status_predicates = {
+                    "Paid": _is_paid_status,
+                    "Open": lambda sid: not _is_paid_status(sid),
+                }
+                predicate = status_predicates.get(status)
+                if predicate:
+                    invoices = [inv for inv in invoices if predicate(inv.get("kb_item_status_id"))]
 
             for inv in invoices:
                 inv["status_info"] = map_invoice_status(inv.get("kb_item_status_id"))
