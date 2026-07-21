@@ -51,7 +51,7 @@ def get_access_token(domain=None):
         cache.set(cache_key, token, timeout=timeout)
         return token
     except requests.exceptions.RequestException as e:
-        print(f"Error fetching access token: {e}")
+        current_app.logger.error(f"Error fetching access token: {e}")
         return None
 
 
@@ -77,7 +77,7 @@ def get_workitemdata_param(workitem_id, domain=None):
         base64_string = base64_bytes.decode("utf-8")
         return base64_string, data["DocumentID"]
     except requests.exceptions.RequestException as e:
-        print(f"Error fetching workitem data for {workitem_id}: {e}")
+        current_app.logger.error(f"Error fetching workitem data for {workitem_id}: {e}")
         return None
 
 
@@ -290,5 +290,5 @@ def get_activity_type_name(activity_instance_id: str, domain: str | None = None)
         activity_instance_config = response.json()
         return activity_instance_config.get("ActivityTypeName", "Unknown Activity")
     except requests.exceptions.RequestException as e:
-        print(f"Error fetching activity instance {activity_instance_id}: {e}")
+        current_app.logger.error(f"Error fetching activity instance {activity_instance_id}: {e}")
         return _("Error fetching activity instance")

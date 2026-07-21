@@ -121,8 +121,8 @@ def test_get_activity_instances_to_ignore_returns_joined_quoted(app):
     assert result == "'Approval', 'Index'"
 
 
-def test_get_activity_instances_to_ignore_returns_empty_string_on_db_error(app, capsys):
-    """If raw_connection raises, the function prints and returns "" explicitly
+def test_get_activity_instances_to_ignore_returns_empty_string_on_db_error(app):
+    """If raw_connection raises, the function logs and returns "" explicitly
     (not None) -- callers treat the ignore-csv as a string, and an implicit
     None previously risked `NOT IN (None)`-style misuse downstream."""
     with (

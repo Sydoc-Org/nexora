@@ -88,7 +88,7 @@ def get_activity_instances_to_ignore():
         cache.set("activity_instances_ignore", result, timeout=3600)
         return result
     except Exception as e:
-        print(e)
+        current_app.logger.error(f"Failed to load activity instances to ignore: {e}")
         return ""
     finally:
         if cursor:
@@ -117,7 +117,8 @@ def build_stat_query(proc):
         cursor.execute(query, proc)
         return cursor.fetchone()
     except Exception as e:
-        print(e)
+        current_app.logger.error(f"Failed to build stat query for process {proc}: {e}")
+        return None
     finally:
         if conn:
             conn.close()
