@@ -87,7 +87,19 @@
     couldNotLoad: {{ _("Could not load this card.")|tojson }},
     chartUnavailable: {{ _("Charting library unavailable.")|tojson }},
     other: {{ _("Other")|tojson }},
-    total: {{ _("Total")|tojson }}
+    total: {{ _("Total")|tojson }},
+    duplicate: {{ _("Duplicate")|tojson }},
+    remove: {{ _("Remove")|tojson }},
+    addCardTile: {{ _("Add a card")|tojson }},
+    pillChart: {{ _("Chart")|tojson }},
+    pillKpi: {{ _("KPI")|tojson }},
+    pillTable: {{ _("Table")|tojson }},
+    pillDonut: {{ _("Donut")|tojson }},
+    dropHint: {{ _("or drop a saved report here")|tojson }},
+    configureCard: {{ _("Click to configure this card")|tojson }},
+    pickReport: {{ _("Choose a saved report")|tojson }},
+    noSavedReports: {{ _("No saved reports yet")|tojson }},
+    loading: {{ _("Loading…")|tojson }}
   };
 
   // Chart.js palette for bar/donut cards (spec §Dashboard "Cards") -- cycles
@@ -127,8 +139,13 @@
   }
 
   function addCard(type) {
+    if (!state.editing) return;
+    // Empty definition placeholder (D14) -- renders as a "configure this
+    // card" body until a saved report is adopted into it (adoptReport()).
     var card = { id: 'n' + state.seq, type: type, span: DEFAULT_SPAN[type] || 6,
-                 title: I18N.newCard, definition: {}, filterOverrides: [] };
+                 title: I18N.newCard,
+                 definition: { source: null, metrics: [], columns: [], filters: [] },
+                 filterOverrides: [] };
     state.seq += 1;
     setCards(function (list) { return list.concat([card]); });
   }
@@ -227,18 +244,50 @@
       if (e.key === 'Enter') commitTitle();
     });
     el('rdbTitleInput').addEventListener('blur', commitTitle);
-    // Header "Add card" defaults to a KPI shell -- the full type-picker tile
-    // (chart/kpi/table/donut) is Task 12/13's job; this proves the round trip.
+    // Header "Add card" is a fast shortcut that always adds a KPI shell --
+    // the full type-picker (chart/kpi/table/donut) lives on the grid's
+    // add-card tile (Task 14, rdb-add-tile), the only place a non-KPI type
+    // or the saved-report picker is reachable from.
     el('rdbAddCard').addEventListener('click', function () { addCard('kpi'); });
     el('rdbEditToggle').addEventListener('click', toggleEditing);
-    // Per-card override chip's x -- delegated (cards are rebuilt/replaced on
-    // every renderCard(), so a direct listener would be lost on re-render).
+    // Delegated grid clicks -- cards (and the add-card tile) are rebuilt/
+    // replaced on every render, so direct per-element listeners would be
+    // lost on re-render.
     el('rdbGrid').addEventListener('click', function (e) {
-      var x = e.target.closest && e.target.closest('[data-testid="rdb-card-filter-remove"]');
-      if (!x) return;
-      var cardEl = x.closest('[data-card-id]');
-      if (cardEl) clearCardOverrides(cardEl.getAttribute('data-card-id'));
+      var filterX = e.target.closest && e.target.closest('[data-testid="rdb-card-filter-remove"]');
+      if (filterX) {
+        var filterCardEl = filterX.closest('[data-card-id]');
+        if (filterCardEl) clearCardOverrides(filterCardEl.getAttribute('data-card-id'));
+        return;
+      }
+      var dup = e.target.closest && e.target.closest('[data-testid="rdb-card-dup"]');
+      if (dup) {
+        var dupCardEl = dup.closest('[data-card-id]');
+        if (dupCardEl) duplicateCard(dupCardEl.getAttribute('data-card-id'));
+        return;
+      }
+      var rm = e.target.closest && e.target.closest('[data-testid="rdb-card-remove"]');
+      if (rm) {
+        var rmCardEl = rm.closest('[data-card-id]');
+        if (rmCardEl) removeCard(rmCardEl.getAttribute('data-card-id'));
+        return;
+      }
+      var configure = e.target.closest && e.target.closest('[data-testid="rdb-card-configure"]');
+      if (configure) {
+        var cfgCardEl = configure.closest('[data-card-id]');
+        if (cfgCardEl) openReportPicker(cfgCardEl.getAttribute('data-card-id'));
+        return;
+      }
+      var addType = e.target.closest && e.target.closest('[data-add-type]');
+      if (addType) addCard(addType.getAttribute('data-add-type'));
     });
+    // Drag-to-reorder (D10, ported 1:1 from the prototype's onDragStart/
+    // onDragOver/onDrop/onDragEnd) -- delegated on the grid since HTML5 DnD
+    // events bubble and cards are rebuilt on every render.
+    el('rdbGrid').addEventListener('dragstart', handleGridDragStart);
+    el('rdbGrid').addEventListener('dragover', handleGridDragOver);
+    el('rdbGrid').addEventListener('drop', handleGridDrop);
+    el('rdbGrid').addEventListener('dragend', handleGridDragEnd);
     // Filter popover: outside-click / Escape close -- same idiom as the
     // Simple pane's rs-more-menu (hidden flag + outside-click + Escape).
     document.addEventListener('click', function (e) {
@@ -248,6 +297,7 @@
     });
     document.addEventListener('keydown', function (e) {
       if (filterPop.open && e.key === 'Escape') closeFilterPopover();
+      if (reportPicker.open && e.key === 'Escape') closeReportPicker();
     });
     built = true;
   }
@@ -816,31 +866,93 @@
     return '';
   }
 
+  // A card with no source yet (the add-card tile's placeholder shape, D14)
+  // never gets POSTed to /api/reporting/run -- it renders a "configure this
+  // card" body instead until a saved report is adopted into it.
+  function isEmptyCardDef(c) {
+    return !c.definition || !c.definition.source;
+  }
+
+  // Hover control cluster (Task 14, edit mode only): duplicate + remove,
+  // top:-11px;right:10px per D10, built fresh on every render like the rest
+  // of the card shell.
+  function cardControlClusterHtml() {
+    return '<div class="rdb-card-controls">' +
+      '<button type="button" class="rdb-card-ctrl-btn" data-testid="rdb-card-dup" ' +
+        'title="' + esc(I18N.duplicate) + '" aria-label="' + esc(I18N.duplicate) + '">' +
+        '<i class="fas fa-clone" aria-hidden="true"></i></button>' +
+      '<button type="button" class="rdb-card-ctrl-btn rdb-card-ctrl-btn--danger" ' +
+        'data-testid="rdb-card-remove" title="' + esc(I18N.remove) + '" aria-label="' + esc(I18N.remove) + '">' +
+        '<i class="fas fa-xmark" aria-hidden="true"></i></button>' +
+    '</div>';
+  }
+
+  // Empty-definition card body: clickable (opens the report picker) only in
+  // edit mode -- a static note otherwise, since the picker is a mutation.
+  function emptyCardBodyHtml() {
+    if (state.editing) {
+      return '<button type="button" class="rdb-card-configure" data-testid="rdb-card-configure">' +
+        '<i class="fas fa-plug" aria-hidden="true"></i>' + esc(I18N.configureCard) + '</button>';
+    }
+    return '<p class="rdb-card-unconfigured">' + esc(I18N.configureCard) + '</p>';
+  }
+
   function cardShellHtml(c) {
     var span = c.span || DEFAULT_SPAN[c.type] || 6;
+    var empty = isEmptyCardDef(c);
+    var bodyClass = 'rdb-card-body' + (empty ? '' : ' rdb-card-body--loading');
     return '<div class="rdb-card" data-testid="rdb-card" data-card-id="' + esc(c.id) + '" ' +
-      'data-type="' + esc(c.type) + '" style="grid-column:span ' + span + '">' +
-      '<div class="rdb-card-head"><span class="rdb-card-title">' + esc(c.title || '') + '</span>' +
+      'data-type="' + esc(c.type) + '" draggable="' + (state.editing ? 'true' : 'false') + '" ' +
+      'style="grid-column:span ' + span + '">' +
+      (state.editing ? cardControlClusterHtml() : '') +
+      '<div class="rdb-card-head">' +
+        (state.editing ? '<i class="fas fa-grip-vertical rdb-card-grip" aria-hidden="true"></i>' : '') +
+        '<span class="rdb-card-title">' + esc(c.title || '') + '</span>' +
         cardHeadExtrasHtml(c) +
       '</div>' +
-      '<div class="rdb-card-body rdb-card-body--loading" data-testid="rdb-card-body">' +
-        loadingBodyHtml(c.type) +
+      '<div class="' + bodyClass + '" data-testid="rdb-card-body">' +
+        (empty ? emptyCardBodyHtml() : loadingBodyHtml(c.type)) +
       '</div>' +
     '</div>';
   }
 
   // Renders (or re-renders in place) exactly one card: builds its shell,
-  // inserts/replaces it in the grid, then kicks off its run. Public per the
-  // plan so Tasks 13/15 can re-render a single card (e.g. after a filter
-  // override edit) without rebuilding the whole grid.
+  // inserts/replaces it in the grid, then kicks off its run -- unless the
+  // card has no source yet (D14 empty placeholder), in which case there's
+  // nothing to run. Public per the plan so Tasks 13/15 can re-render a
+  // single card (e.g. after a filter override edit) without rebuilding the
+  // whole grid.
   function renderCard(card) {
     destroyCardChart(card.id);
     var existing = findCardEl(card.id);
     var html = cardShellHtml(card);
     if (existing) { existing.outerHTML = html; } else { el('rdbGrid').insertAdjacentHTML('beforeend', html); }
     var cardEl = findCardEl(card.id);
-    runCard(card, cardEl);
+    if (!isEmptyCardDef(card)) runCard(card, cardEl);
     return cardEl;
+  }
+
+  // Add-card tile (Task 14): last grid item in edit mode, span 6, type
+  // pills mapped to internal card types via data-add-type (delegated click
+  // in ensureShell). The "drop a saved report here" hint is decorative only
+  // (D14 deviation) -- v1's real affordance is clicking a placeholder card's
+  // body to open the report picker, not cross-view drag of a library card.
+  function addTileHtml() {
+    return '<div class="rdb-add-tile" data-testid="rdb-add-tile" style="grid-column:span 6">' +
+      '<span class="rdb-add-tile-icon"><i class="fas fa-plus" aria-hidden="true"></i></span>' +
+      '<span class="rdb-add-tile-label">' + esc(I18N.addCardTile) + '</span>' +
+      '<div class="rdb-add-tile-pills">' +
+        '<button type="button" class="rdb-add-pill" data-testid="rdb-add-chart" data-add-type="line">' +
+          '<i class="fas fa-chart-line" aria-hidden="true"></i>' + esc(I18N.pillChart) + '</button>' +
+        '<button type="button" class="rdb-add-pill" data-testid="rdb-add-kpi" data-add-type="kpi">' +
+          '<i class="fas fa-hashtag" aria-hidden="true"></i>' + esc(I18N.pillKpi) + '</button>' +
+        '<button type="button" class="rdb-add-pill" data-testid="rdb-add-table" data-add-type="table">' +
+          '<i class="fas fa-table" aria-hidden="true"></i>' + esc(I18N.pillTable) + '</button>' +
+        '<button type="button" class="rdb-add-pill" data-testid="rdb-add-donut" data-add-type="donut">' +
+          '<i class="fas fa-chart-pie" aria-hidden="true"></i>' + esc(I18N.pillDonut) + '</button>' +
+      '</div>' +
+      '<span class="rdb-add-tile-hint">' + esc(I18N.dropHint) + '</span>' +
+    '</div>';
   }
 
   function renderGrid() {
@@ -852,6 +964,178 @@
     destroyChartsExcept(keep);
     grid.innerHTML = '';
     cards.forEach(renderCard);
+    if (state.editing) grid.insertAdjacentHTML('beforeend', addTileHtml());
+  }
+
+  // ---- Drag-to-reorder (D10 -- ported 1:1 from the prototype's
+  // onDragStart/onDragOver/onDrop/onDragEnd). The dashed drop-slot + tilted
+  // drag-image from the mock are explicitly skipped (nice-to-have only, per
+  // the plan) -- only the state transitions + splice mechanics are ported.
+  // Cards are moved via direct DOM insertBefore() on drop rather than a full
+  // renderGrid() re-render, so an in-flight drag never tears down/rebuilds
+  // Chart.js canvases or re-fetches every card's data mid-reorder. ---------
+  function clearDragOverClass() {
+    if (!state.overId) return;
+    var prev = findCardEl(state.overId);
+    if (prev) prev.classList.remove('rdb-card--over');
+  }
+
+  function handleGridDragStart(e) {
+    var cardEl = e.target.closest && e.target.closest('[data-card-id]');
+    if (!state.editing || !cardEl) return;
+    state.dragId = cardEl.getAttribute('data-card-id');
+    if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+    cardEl.classList.add('rdb-card--dragging');
+  }
+
+  function handleGridDragOver(e) {
+    if (!state.editing || !state.dragId) return;
+    var cardEl = e.target.closest && e.target.closest('[data-card-id]');
+    if (!cardEl) return;
+    e.preventDefault();  // required for drop to fire
+    var id = cardEl.getAttribute('data-card-id');
+    if (id === state.overId) return;
+    clearDragOverClass();
+    if (id !== state.dragId) {
+      state.overId = id;
+      cardEl.classList.add('rdb-card--over');
+    } else {
+      state.overId = null;
+    }
+  }
+
+  function reorderGridDom() {
+    var grid = el('rdbGrid');
+    var addTile = grid.querySelector('[data-testid="rdb-add-tile"]');
+    (state.def.cards || []).forEach(function (c) {
+      var node = findCardEl(c.id);
+      if (node) grid.insertBefore(node, addTile || null);
+    });
+  }
+
+  function handleGridDrop(e) {
+    var cardEl = e.target.closest && e.target.closest('[data-card-id]');
+    if (!state.editing || !cardEl) return;
+    e.preventDefault();
+    var from = state.dragId;
+    var toId = cardEl.getAttribute('data-card-id');
+    clearDragOverClass();
+    if (from && from !== toId) {
+      var cards = state.def.cards || [];
+      var fi = cards.findIndex(function (c) { return c.id === from; });
+      var ti = cards.findIndex(function (c) { return c.id === toId; });
+      if (fi > -1 && ti > -1) {
+        var moved = cards.splice(fi, 1)[0];
+        cards.splice(ti, 0, moved);
+        state.dirty = true;
+        reorderGridDom();
+      }
+    }
+    var dragEl = from && findCardEl(from);
+    if (dragEl) dragEl.classList.remove('rdb-card--dragging');
+    state.dragId = null; state.overId = null;
+  }
+
+  function handleGridDragEnd(e) {
+    var cardEl = e.target.closest && e.target.closest('[data-card-id]');
+    if (cardEl) cardEl.classList.remove('rdb-card--dragging');
+    clearDragOverClass();
+    state.dragId = null; state.overId = null;
+  }
+
+  // ---- Duplicate / remove (D10) ------------------------------------------
+  function duplicateCard(id) {
+    if (!state.editing) return;
+    var cards = (state.def && state.def.cards) || [];
+    var found = cards.find(function (c) { return c.id === id; });
+    if (!found) return;
+    var copy = Object.assign({}, found, { id: 'dup' + state.seq });
+    state.seq += 1;
+    setCards(function (list) {
+      var idx = list.findIndex(function (c) { return c.id === id; });
+      if (idx > -1) list.splice(idx + 1, 0, copy);
+      return list;
+    });
+  }
+
+  function removeCard(id) {
+    if (!state.editing) return;
+    setCards(function (list) { return list.filter(function (c) { return c.id !== id; }); });
+  }
+
+  // ---- Saved-report picker (D14 v1 card configuration) -------------------
+  // Self-contained, like the filter catalog above: fetches its own copy of
+  // GET /api/reporting/reports (the same endpoint/shape the Simple pane's
+  // library uses), filtered to the caller's own non-SQL, non-dashboard
+  // reports. Adopting one copies its definition + name into the card.
+  var reportPicker = { open: false, cardId: null };
+
+  function closeReportPicker() {
+    var overlay = el('rdbReportPicker');
+    if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    reportPicker.open = false;
+    reportPicker.cardId = null;
+  }
+
+  async function adoptReport(cardId, reportId) {
+    var res = await api('/api/reporting/reports/' + reportId);
+    if (!res.ok || !res.data) { toast(I18N.couldNotLoad, true); return; }
+    var card = ((state.def && state.def.cards) || []).find(function (c) { return c.id === cardId; });
+    if (!card) return;
+    card.definition = res.data.definition;
+    card.title = res.data.name;
+    state.dirty = true;
+    closeReportPicker();
+    renderCard(card);
+  }
+
+  function reportPickerBodyHtml(reports) {
+    if (!reports.length) return '<p class="rdb-modal-empty">' + esc(I18N.noSavedReports) + '</p>';
+    return '<ul class="rdb-report-list">' +
+      reports.map(function (r) {
+        return '<li><button type="button" class="rdb-report-item" data-testid="rdb-report-pick" ' +
+          'data-report-id="' + esc(r.id) + '">' + esc(r.name) + '</button></li>';
+      }).join('') +
+    '</ul>';
+  }
+
+  async function openReportPicker(cardId) {
+    if (!state.editing) return;
+    closeReportPicker();
+    reportPicker.open = true;
+    reportPicker.cardId = cardId;
+    var overlay = document.createElement('div');
+    overlay.id = 'rdbReportPicker';
+    overlay.className = 'rdb-modal-overlay';
+    overlay.setAttribute('data-testid', 'rdb-report-picker');
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', I18N.pickReport);
+    overlay.innerHTML =
+      '<div class="rdb-modal">' +
+        '<div class="rdb-modal-head"><span class="rdb-modal-title">' + esc(I18N.pickReport) + '</span>' +
+          '<button type="button" class="rdb-modal-close" data-testid="rdb-report-picker-close" ' +
+            'aria-label="' + esc(I18N.cancel) + '"><i class="fas fa-xmark" aria-hidden="true"></i></button></div>' +
+        '<div class="rdb-modal-body" data-testid="rdb-report-picker-body">' +
+          '<p class="rdb-modal-loading">' + esc(I18N.loading) + '</p></div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay || (e.target.closest && e.target.closest('[data-testid="rdb-report-picker-close"]'))) {
+        closeReportPicker();
+        return;
+      }
+      var pick = e.target.closest && e.target.closest('[data-testid="rdb-report-pick"]');
+      if (pick) adoptReport(cardId, pick.getAttribute('data-report-id'));
+    });
+
+    var res = await api('/api/reporting/reports');
+    if (!reportPicker.open || reportPicker.cardId !== cardId) return;  // closed/superseded meanwhile
+    var reports = (res.ok && Array.isArray(res.data)) ? res.data.filter(function (r) {
+      return r.owned && r.kind !== 'sql' && r.kind !== 'dashboard';
+    }) : [];
+    var body = overlay.querySelector('[data-testid="rdb-report-picker-body"]');
+    if (body) body.innerHTML = reportPickerBodyHtml(reports);
   }
 
   function render() {

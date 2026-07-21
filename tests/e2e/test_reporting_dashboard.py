@@ -434,3 +434,391 @@ def test_card_override_chip_removal_clears_filter_and_reruns_card(nexora_server,
     expect(page.get_by_test_id("rdb-kpi-value")).to_have_text("500")
     assert len(run_calls) == 2
     assert run_calls[-1]["filters"] == []
+
+
+# ---------------------------------------------------------------------------
+# Task 14 -- edit mode: DnD reorder, add/duplicate/remove, add-card tile.
+# Handlers ported 1:1 from the prototype's onDragStart/onDragOver/onDrop/
+# onDragEnd + remove/duplicate (D10) -- see
+# docs/superpowers/specs/2026-07-20-reporting-dashboard-prototype.dc.html.
+# ---------------------------------------------------------------------------
+
+RUN_STUB_SIMPLE = {"columns": [{"field": "id", "header": "Count"}], "rows": [[1]], "rowCount": 1}
+
+
+def test_edit_mode_drag_reorders_cards_and_persists_on_done(nexora_server, page):
+    """Dragging card k1 onto c1 splices k1 to sit after c1 in
+    state.def.cards; Done then autosaves the reordered definition, observable
+    in the captured PUT body's card id order.
+    """
+    _login(page, nexora_server)
+    report_id = "e2e-dash-reorder"
+    dash_definition = {
+        "kind": "dashboard",
+        "schemaVersion": 1,
+        "title": "e2e reorder dashboard",
+        "globalFilters": [],
+        "cards": [
+            {
+                "id": "k1",
+                "type": "kpi",
+                "span": 3,
+                "title": "Document count",
+                "definition": {
+                    "source": "workitems",
+                    "metrics": [{"field": "id", "agg": "count"}],
+                    "columns": [],
+                    "filters": [],
+                },
+                "filterOverrides": [],
+            },
+            {
+                "id": "c1",
+                "type": "line",
+                "span": 8,
+                "title": "Documents per month",
+                "definition": {
+                    "source": "workitems",
+                    "metrics": [{"field": "id", "agg": "count"}],
+                    "columns": [{"field": "createdDate", "grain": "month"}],
+                    "filters": [],
+                },
+                "filterOverrides": [],
+            },
+        ],
+    }
+
+    page.route(
+        "**/api/reporting/reports",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                [
+                    {
+                        "id": report_id,
+                        "name": dash_definition["title"],
+                        "ownerName": "Admin",
+                        "updatedAt": "2026-07-01T00:00:00Z",
+                        "visibility": "private",
+                        "owned": True,
+                        "kind": "dashboard",
+                    }
+                ]
+            ),
+        ),
+    )
+
+    put_bodies = []
+
+    def handle_report(route):
+        if route.request.method == "PUT":
+            put_bodies.append(route.request.post_data_json)
+            route.fulfill(
+                status=200, content_type="application/json", body=json.dumps({"ok": True})
+            )
+        else:
+            route.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps(
+                    {
+                        "id": report_id,
+                        "name": dash_definition["title"],
+                        "definition": dash_definition,
+                        "visibility": "private",
+                        "owned": True,
+                        "canEdit": True,
+                    }
+                ),
+            )
+
+    page.route(f"**/api/reporting/reports/{report_id}", handle_report)
+    page.route(
+        "**/api/reporting/run",
+        lambda r: r.fulfill(
+            status=200, content_type="application/json", body=json.dumps(RUN_STUB_SIMPLE)
+        ),
+    )
+
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-card").first.click()
+    expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
+    expect(page.get_by_test_id("rdb-card")).to_have_count(2)
+
+    page.get_by_test_id("rdb-edit-toggle").click()  # Edit -> enter editing mode
+    expect(page.get_by_test_id("rdb-edit-toggle")).to_have_text("Done")
+
+    source = page.locator('[data-testid="rdb-card"][data-card-id="k1"]')
+    target = page.locator('[data-testid="rdb-card"][data-card-id="c1"]')
+    try:
+        source.drag_to(target, timeout=3000)
+    except Exception:
+        # Playwright's synthetic drag_to doesn't reliably fire native HTML5
+        # DnD events in every environment (per the task brief's documented
+        # fallback) -- dispatch dragstart/dragover/drop by hand instead.
+        page.eval_on_selector(
+            '[data-testid="rdb-card"][data-card-id="k1"]',
+            "(el) => el.dispatchEvent(new DragEvent('dragstart', "
+            "{bubbles: true, dataTransfer: new DataTransfer()}))",
+        )
+        page.eval_on_selector(
+            '[data-testid="rdb-card"][data-card-id="c1"]',
+            "(el) => { "
+            "  el.dispatchEvent(new DragEvent('dragover', "
+            "    {bubbles: true, cancelable: true, dataTransfer: new DataTransfer()})); "
+            "  el.dispatchEvent(new DragEvent('drop', "
+            "    {bubbles: true, cancelable: true, dataTransfer: new DataTransfer()})); "
+            "}",
+        )
+
+    page.get_by_test_id("rdb-edit-toggle").click()  # Done -> autosave (D2)
+    expect(page.get_by_test_id("reporting-toast")).to_contain_text("Dashboard saved")
+    assert len(put_bodies) == 1
+    ids = [c["id"] for c in put_bodies[0]["definition"]["cards"]]
+    assert ids == ["c1", "k1"]
+
+
+def test_edit_mode_duplicate_button_adds_a_card(nexora_server, page):
+    """The control-cluster duplicate button (fa-clone, rdb-card-dup) clones
+    the card with a fresh 'dup<seq>' id, inserted right after the original.
+    """
+    _login(page, nexora_server)
+    dash_definition = {
+        "kind": "dashboard",
+        "schemaVersion": 1,
+        "title": "e2e dup dashboard",
+        "globalFilters": [],
+        "cards": [
+            {
+                "id": "k1",
+                "type": "kpi",
+                "span": 3,
+                "title": "Document count",
+                "definition": {
+                    "source": "workitems",
+                    "metrics": [{"field": "id", "agg": "count"}],
+                    "columns": [],
+                    "filters": [],
+                },
+                "filterOverrides": [],
+            }
+        ],
+    }
+    _stub_dashboard_report(page, "e2e-dash-dup", dash_definition)
+    page.route(
+        "**/api/reporting/run",
+        lambda r: r.fulfill(
+            status=200, content_type="application/json", body=json.dumps(RUN_STUB_SIMPLE)
+        ),
+    )
+
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-card").first.click()
+    expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
+    expect(page.get_by_test_id("rdb-card")).to_have_count(1)
+
+    page.get_by_test_id("rdb-edit-toggle").click()
+    page.locator('[data-testid="rdb-card"][data-card-id="k1"] [data-testid="rdb-card-dup"]').click()
+
+    expect(page.get_by_test_id("rdb-card")).to_have_count(2)
+
+
+def test_edit_mode_remove_button_removes_a_card(nexora_server, page):
+    """The control-cluster remove button (fa-xmark, rdb-card-remove) splices
+    the card out of state.def.cards.
+    """
+    _login(page, nexora_server)
+    dash_definition = {
+        "kind": "dashboard",
+        "schemaVersion": 1,
+        "title": "e2e remove dashboard",
+        "globalFilters": [],
+        "cards": [
+            {
+                "id": "k1",
+                "type": "kpi",
+                "span": 3,
+                "title": "Document count",
+                "definition": {
+                    "source": "workitems",
+                    "metrics": [{"field": "id", "agg": "count"}],
+                    "columns": [],
+                    "filters": [],
+                },
+                "filterOverrides": [],
+            },
+            {
+                "id": "c1",
+                "type": "line",
+                "span": 8,
+                "title": "Documents per month",
+                "definition": {
+                    "source": "workitems",
+                    "metrics": [{"field": "id", "agg": "count"}],
+                    "columns": [{"field": "createdDate", "grain": "month"}],
+                    "filters": [],
+                },
+                "filterOverrides": [],
+            },
+        ],
+    }
+    _stub_dashboard_report(page, "e2e-dash-remove", dash_definition)
+    page.route(
+        "**/api/reporting/run",
+        lambda r: r.fulfill(
+            status=200, content_type="application/json", body=json.dumps(RUN_STUB_SIMPLE)
+        ),
+    )
+
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-card").first.click()
+    expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
+    expect(page.get_by_test_id("rdb-card")).to_have_count(2)
+
+    page.get_by_test_id("rdb-edit-toggle").click()
+    page.locator(
+        '[data-testid="rdb-card"][data-card-id="k1"] [data-testid="rdb-card-remove"]'
+    ).click()
+
+    expect(page.get_by_test_id("rdb-card")).to_have_count(1)
+    expect(page.locator('[data-testid="rdb-card"][data-card-id="c1"]')).to_have_count(1)
+
+
+def test_add_card_tile_type_pill_adds_new_card_shell(nexora_server, page):
+    """Clicking a type pill on the add-card tile (rdb-add-tile) appends a new
+    empty-definition card shell of that type. A brand-new dashboard opens
+    directly into editing mode with zero cards, so the tile is the only way
+    to add one.
+    """
+    _login(page, nexora_server)
+
+    def capture_reports(route):
+        if route.request.method == "POST":
+            route.fulfill(
+                status=200, content_type="application/json", body=json.dumps({"id": 77, "ok": True})
+            )
+        else:
+            route.fulfill(status=200, content_type="application/json", body=json.dumps([]))
+
+    page.route("**/api/reporting/reports", capture_reports)
+
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-dashboard").click()
+    expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
+    expect(page.get_by_test_id("rdb-edit-toggle")).to_have_text("Done")
+
+    expect(page.get_by_test_id("rdb-add-tile")).to_be_visible()
+    expect(page.get_by_test_id("rdb-card")).to_have_count(0)
+
+    page.get_by_test_id("rdb-add-kpi").click()
+
+    expect(page.get_by_test_id("rdb-card")).to_have_count(1)
+    expect(page.locator('[data-testid="rdb-card"][data-type="kpi"]')).to_have_count(1)
+
+
+def test_add_card_configure_click_opens_picker_and_adopts_report(nexora_server, page):
+    """v1 card configuration: a freshly added empty-definition card's body is
+    a click-to-configure placeholder (rdb-card-configure); clicking it opens
+    a picker of the caller's own saved non-SQL, non-dashboard reports (GET
+    /api/reporting/reports), and picking one copies that report's definition
+    + name into the card, then re-runs it.
+    """
+    _login(page, nexora_server)
+
+    reports_list = [
+        {
+            "id": 501,
+            "name": "Invoices by month",
+            "ownerName": "Admin",
+            "updatedAt": "2026-07-01T00:00:00Z",
+            "visibility": "private",
+            "owned": True,
+            "kind": "table",
+        },
+        # excluded from the picker -- sql / dashboard kinds:
+        {
+            "id": 502,
+            "name": "Raw SQL",
+            "ownerName": "Admin",
+            "updatedAt": "2026-07-01T00:00:00Z",
+            "visibility": "private",
+            "owned": True,
+            "kind": "sql",
+        },
+        {
+            "id": 503,
+            "name": "Another dashboard",
+            "ownerName": "Admin",
+            "updatedAt": "2026-07-01T00:00:00Z",
+            "visibility": "private",
+            "owned": True,
+            "kind": "dashboard",
+        },
+    ]
+    adopted_definition = {
+        "source": "workitems",
+        "metrics": [{"field": "id", "agg": "count"}],
+        "columns": [],
+        "filters": [],
+    }
+
+    def handle_reports(route):
+        if route.request.method == "POST":
+            route.fulfill(
+                status=200, content_type="application/json", body=json.dumps({"id": 9, "ok": True})
+            )
+        else:
+            route.fulfill(
+                status=200, content_type="application/json", body=json.dumps(reports_list)
+            )
+
+    page.route("**/api/reporting/reports", handle_reports)
+    page.route(
+        "**/api/reporting/reports/501",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "id": 501,
+                    "name": "Invoices by month",
+                    "definition": adopted_definition,
+                    "visibility": "private",
+                    "owned": True,
+                    "canEdit": True,
+                }
+            ),
+        ),
+    )
+    page.route(
+        "**/api/reporting/run",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {"columns": [{"field": "id", "header": "Count"}], "rows": [[42]], "rowCount": 1}
+            ),
+        ),
+    )
+
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-dashboard").click()
+    expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
+
+    page.get_by_test_id("rdb-add-kpi").click()
+    expect(page.get_by_test_id("rdb-card")).to_have_count(1)
+
+    page.get_by_test_id("rdb-card-configure").click()
+    picker = page.get_by_test_id("rdb-report-picker")
+    expect(picker).to_be_visible()
+    picks = picker.get_by_test_id("rdb-report-pick")
+    expect(picks).to_have_count(1)  # sql/dashboard-kind + non-owned rows filtered out
+    expect(picks).to_have_text("Invoices by month")
+    picks.click()
+
+    expect(picker).to_be_hidden()
+    expect(page.get_by_test_id("rdb-card").locator(".rdb-card-title")).to_have_text(
+        "Invoices by month"
+    )
+    expect(page.get_by_test_id("rdb-kpi-value")).to_have_text("42")

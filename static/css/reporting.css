@@ -1970,7 +1970,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 .rdb-card {
   background: var(--nx-card); border: 1px solid var(--nx-border);
   border-radius: var(--nx-radius-lg); padding: 14px 18px; box-sizing: border-box;
-  min-width: 0;
+  min-width: 0; position: relative;  /* anchors the edit-mode control cluster */
 }
 .rdb-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 .rdb-card-title { font: 600 13.5px var(--nx-font); letter-spacing: -.1px; color: var(--nx-text); }
@@ -2064,3 +2064,94 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   padding: 9px 4px; border-bottom: 1px solid var(--nx-divider); font: 600 12.5px var(--nx-font);
   color: var(--nx-text); text-align: right; font-variant-numeric: tabular-nums;
 }
+
+/* ============================================================
+   Task 14 -- Edit mode: drag-to-reorder, hover control cluster, add-card
+   tile. Mechanics ported 1:1 from the prototype's onDragStart/onDragOver/
+   onDrop/onDragEnd + remove/duplicate handlers (D10) -- the dashed
+   drop-slot + tilted drag-image from the mock are explicitly skipped
+   (nice-to-have only, per the plan).
+   ============================================================ */
+.rdb-card-grip { color: #d3d9f8; font-size: 11px; cursor: grab; }
+.rdb-card--dragging { opacity: .35; }
+.rdb-card--over { border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79, 70, 229, .15); }
+
+/* Hover control cluster: 22px squares, top:-11px;right:10px per D10. */
+.rdb-card-controls { position: absolute; top: -11px; right: 10px; z-index: 3; display: flex; gap: 4px; }
+.rdb-card-ctrl-btn {
+  width: 22px; height: 22px; border-radius: 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--nx-border); background: var(--nx-card); color: var(--nx-text-sec);
+  font-size: 9px; cursor: pointer; box-shadow: 0 2px 6px rgba(16, 24, 40, .1);
+  transition: color var(--nx-dur) var(--nx-ease), border-color var(--nx-dur) var(--nx-ease),
+              background-color var(--nx-dur) var(--nx-ease);
+}
+.rdb-card-ctrl-btn:hover { color: var(--nx-accent); border-color: #c7d2fe; }
+.rdb-card-ctrl-btn--danger { border-color: #fecaca; color: #dc2626; }
+.rdb-card-ctrl-btn--danger:hover { background: #fef2f2; color: #dc2626; }
+
+/* ---- Empty-card "configure this card" placeholder ---------------------- */
+.rdb-card-configure {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; width: 100%; min-height: 90px; padding: 12px; box-sizing: border-box;
+  border: 1px dashed var(--nx-border-strong); border-radius: var(--nx-radius-sm);
+  background: transparent; color: var(--nx-text-meta); font: 500 12.5px var(--nx-font);
+  cursor: pointer;
+  transition: border-color var(--nx-dur) var(--nx-ease), color var(--nx-dur) var(--nx-ease);
+}
+.rdb-card-configure:hover { border-color: #c7d2fe; color: var(--nx-accent); }
+.rdb-card-configure i { font-size: 14px; }
+.rdb-card-unconfigured { margin: 0; padding: 24px 0; text-align: center; font: 12.5px var(--nx-font); color: var(--nx-text-meta); }
+
+/* ---- Add-card tile (last grid item, edit mode only) --------------------- */
+.rdb-add-tile {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; min-height: 180px; padding: 24px; box-sizing: border-box;
+  border: 2px dashed var(--nx-border-strong); border-radius: var(--nx-radius-lg);
+  transition: border-color var(--nx-dur) var(--nx-ease), background-color var(--nx-dur) var(--nx-ease);
+}
+.rdb-add-tile:hover { border-color: #a5b4fc; background: rgba(238, 242, 255, .4); }
+.rdb-add-tile-icon {
+  width: 40px; height: 40px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center; font-size: 15px;
+  background: var(--nx-accent-tint); color: var(--nx-accent);
+}
+.rdb-add-tile-label { font: 600 13px var(--nx-font); color: var(--nx-text-sec); }
+.rdb-add-tile-pills { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.rdb-add-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--nx-border); border-radius: 999px;
+  background: var(--nx-card); color: var(--nx-text-sec); font: 500 12px var(--nx-font);
+  padding: 6px 14px; cursor: pointer;
+  transition: border-color var(--nx-dur) var(--nx-ease), color var(--nx-dur) var(--nx-ease);
+}
+.rdb-add-pill i { font-size: 10px; color: var(--nx-violet); }
+.rdb-add-pill:hover { border-color: #c7d2fe; color: var(--nx-accent); }
+.rdb-add-tile-hint { font: 11px var(--nx-font); color: var(--nx-text-meta); }
+
+/* ---- Saved-report picker modal (D14 v1 card configuration) ------------- */
+.rdb-modal-overlay {
+  position: fixed; inset: 0; z-index: 60; background: rgba(16, 24, 40, .45);
+  display: flex; align-items: center; justify-content: center;
+}
+.rdb-modal {
+  width: 100%; max-width: 380px; max-height: 70vh; box-sizing: border-box;
+  background: var(--nx-card); border-radius: var(--nx-radius-lg); box-shadow: var(--nx-shadow-pop);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.rdb-modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid var(--nx-divider);
+}
+.rdb-modal-title { font: 600 13.5px var(--nx-font); color: var(--nx-text); }
+.rdb-modal-close { border: none; background: transparent; color: var(--nx-text-meta); cursor: pointer; font-size: 13px; padding: 4px; }
+.rdb-modal-close:hover { color: var(--nx-text); }
+.rdb-modal-body { padding: 8px; overflow-y: auto; }
+.rdb-modal-loading, .rdb-modal-empty { margin: 0; padding: 20px; text-align: center; font: 12.5px var(--nx-font); color: var(--nx-text-meta); }
+.rdb-report-list { list-style: none; margin: 0; padding: 0; }
+.rdb-report-item {
+  display: block; width: 100%; box-sizing: border-box; text-align: left;
+  padding: 10px 12px; border: none; border-radius: var(--nx-radius-sm);
+  background: transparent; color: var(--nx-text); font: 500 12.5px var(--nx-font); cursor: pointer;
+}
+.rdb-report-item:hover { background: var(--nx-accent-tint); color: var(--nx-accent); }
