@@ -112,6 +112,31 @@ def test_init_2fa_post_missing_session_redirects(client):
     assert resp.status_code == 302
 
 
+def test_init_2fa_post_db_failure_renders_graceful_error(client, totp_for):
+    """auth.py init_2fa: a VALID code takes the DB-write branch. If
+    raw_connection() raises before conn/cursor are assigned, the finally
+    block must not crash with UnboundLocalError - it should degrade to the
+    except branch's render_template("init_2FA.html", error="Database error")
+    (same bug/fix shape as Task 18's get_allowed_client_details)."""
+    with client.session_transaction() as sess:
+        sess["pre_2fa_userid"] = "1001"
+        sess["pre_2fa_username"] = "admin@test.local"
+        sess["temp_2fa_secret"] = "JBSWY3DPEHPK3PXP"
+    code = totp_for("admin@test.local")
+    with patch(
+        "nx_lib.views.auth.engine_nexora_db.raw_connection",
+        side_effect=RuntimeError("db down"),
+    ):
+        resp = client.post("/init_2FA", data={"code": code}, follow_redirects=False)
+    # Graceful degrade: re-renders init_2FA.html (200), not a 500 crash. The
+    # error path doesn't pass qr_code, so the template's "no QR" branch is a
+    # cheap, precise signal that we hit the except/render, not the success path.
+    assert resp.status_code == 200
+    assert b"error generating qr code" in resp.data.lower()
+    with client.session_transaction() as sess:
+        assert "userid" not in sess
+
+
 def test_verify_2fa_get_without_pre_2fa_redirects_to_login(client):
     resp = client.get("/verify_2fa", follow_redirects=False)
     assert resp.status_code == 302

@@ -253,6 +253,8 @@ def init_2fa():
         # client/server clock skew and the window rolling over between code
         # generation and verification (the latter flakes E2E tests hard).
         if totp.verify(code, valid_window=1):
+            conn = None
+            cursor = None
             try:
                 conn = engine_nexora_db.raw_connection()
                 cursor = conn.cursor()
