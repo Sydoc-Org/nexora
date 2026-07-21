@@ -948,27 +948,35 @@ def export_workitems_csv():
         resp.headers["Content-Disposition"] = "attachment; filename=workitems_export.csv"
         return resp
 
+    # Workitem ids are NOT globally unique across clients (1216 collides
+    # between the default Octo client and MS02) -- domains/details/caches
+    # below are all keyed by (client, wid), and the client hint the row
+    # already carries is forwarded to get_domain_for_workitem rather than
+    # re-probed, per D9. A bare-id key here would let the second row of a
+    # colliding id silently answer for (or overwrite the cached entry of)
+    # the first.
     domains = {}
     for w in workitems:
         wid = w["workitemid"]
+        client = w.get("client")
         try:
-            domains[wid] = get_domain_for_workitem(wid)
+            domains[(client, wid)] = get_domain_for_workitem(wid, client_hint=client)
         except Exception:
-            domains[wid] = OCTO_DOMAIN
+            domains[(client, wid)] = OCTO_DOMAIN
 
     _include_fields = include_fields
     _include_history = include_history
     _include_images = include_images
     _app = current_app._get_current_object()
 
-    def _fetch(wid):
+    def _fetch(wid, client):
         detail = {"fields": {}, "history": [], "images": []}
-        domain = domains.get(wid, OCTO_DOMAIN)
+        domain = domains.get((client, wid), OCTO_DOMAIN)
         with _app.app_context():
             if _include_fields or _include_images:
                 try:
                     urls, extensions = [], []
-                    cached = cache.get(f"media_info_{wid}")
+                    cached = cache.get(_wi_cache_key("media_info", wid, domain))
                     if cached:
                         detail["fields"] = cached.get("fields", {})
                     else:
@@ -980,14 +988,16 @@ def export_workitems_csv():
                             )
                             detail["fields"] = fields
                             cache.set(
-                                f"media_info_{wid}", {"fields": fields, "media_count": len(urls)}
+                                _wi_cache_key("media_info", wid, domain),
+                                {"fields": fields, "media_count": len(urls)},
                             )
                             if urls:
                                 cache.set(
-                                    f"media_data_{wid}", {"extensions": extensions, "urls": urls}
+                                    _wi_cache_key("media_data", wid, domain),
+                                    {"extensions": extensions, "urls": urls},
                                 )
                     if _include_images:
-                        cached_media = cache.get(f"media_data_{wid}")
+                        cached_media = cache.get(_wi_cache_key("media_data", wid, domain))
                         if cached_media:
                             urls = cached_media.get("urls", [])
                             extensions = cached_media.get("extensions", [])
@@ -1013,7 +1023,7 @@ def export_workitems_csv():
 
             if _include_history:
                 try:
-                    cached = cache.get(f"audithistory_{wid}")
+                    cached = cache.get(_wi_cache_key("audithistory", wid, domain))
                     if cached is not None:
                         detail["history"] = cached
                     else:
@@ -1043,25 +1053,33 @@ def export_workitems_csv():
                             history_list.append(
                                 {"Activity": name, "DateTime": ts, "Step": total - i}
                             )
-                        cache.set(f"audithistory_{wid}", history_list, timeout=1800)
+                        cache.set(
+                            _wi_cache_key("audithistory", wid, domain), history_list, timeout=1800
+                        )
                         detail["history"] = history_list
                 except Exception as e:
                     _app.logger.error(f"Export: history error for {wid}: {e}")
-        return wid, detail
+        return (client, wid), detail
 
     details_map = {}
     if include_fields or include_history or include_images:
         max_workers = min(10, len(workitems))
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = {executor.submit(_fetch, w["workitemid"]): w["workitemid"] for w in workitems}
+            futures = {
+                executor.submit(_fetch, w["workitemid"], w.get("client")): (
+                    w.get("client"),
+                    w["workitemid"],
+                )
+                for w in workitems
+            }
             for future in as_completed(futures, timeout=120):
                 try:
-                    wid, detail = future.result()
-                    details_map[wid] = detail
+                    key, detail = future.result()
+                    details_map[key] = detail
                 except Exception as e:
-                    wid = futures[future]
-                    _app.logger.error(f"Export: future error for {wid}: {e}")
-                    details_map[wid] = {"fields": {}, "history": [], "images": []}
+                    key = futures[future]
+                    _app.logger.error(f"Export: future error for {key}: {e}")
+                    details_map[key] = {"fields": {}, "history": [], "images": []}
 
     if include_fields:
         _strip_export_fields(details_map, sensitive_blocked_tokens())
@@ -1070,7 +1088,7 @@ def export_workitems_csv():
     if include_fields:
         seen_keys = set()
         for w in workitems:
-            for k in details_map.get(w["workitemid"], {}).get("fields", {}):
+            for k in details_map.get((w.get("client"), w["workitemid"]), {}).get("fields", {}):
                 if k not in seen_keys:
                     seen_keys.add(k)
                     all_field_keys.append(k)
@@ -1079,7 +1097,8 @@ def export_workitems_csv():
     if include_images:
         for w in workitems:
             max_images = max(
-                max_images, len(details_map.get(w["workitemid"], {}).get("images", []))
+                max_images,
+                len(details_map.get((w.get("client"), w["workitemid"]), {}).get("images", [])),
             )
 
     priority_label = {3: "High", 2: "Medium", 1: "Low"}
@@ -1097,7 +1116,9 @@ def export_workitems_csv():
 
     for w in workitems:
         wid = w["workitemid"]
-        detail = details_map.get(wid, {"fields": {}, "history": [], "images": []})
+        detail = details_map.get(
+            (w.get("client"), wid), {"fields": {}, "history": [], "images": []}
+        )
         ts = w.get("modifiedat")
         date_str = (
             ts.strftime("%Y-%m-%d %H:%M:%S") if hasattr(ts, "strftime") else str(ts or "")[:19]

@@ -32,6 +32,9 @@ Routes covered (19 endpoints):
 - /api/workitem/<id>/tags/<tag_id>           DELETE
 """
 
+import csv
+import io
+
 import pytest
 
 
@@ -563,6 +566,98 @@ def test_export_workitems_csv_with_perms(user_client, workitems_all_perms):
     assert resp.status_code in (200, 500)
     if resp.status_code == 200:
         assert "text/csv" in resp.headers.get("Content-Type", "")
+
+
+# --- colliding-id export rows must not mix client fields (D9) --------------- #
+# Workitem ids are not globally unique across clients (1216 collides between
+# the default Octo client and MS02, see docs/design/ms02-multisource.md). The
+# export builds `domains`/`details_map`/media+audit cache entries per row; if
+# any of those are keyed by the bare id, the second row processed for a
+# colliding id silently answers for (or overwrites the cache entry of) the
+# first, so one CSV row ends up carrying the OTHER client's field values.
+
+
+def test_export_workitems_csv_keys_by_client_not_bare_id(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Two rows share workitemid=1216 but belong to different clients. Each
+    exported row must carry ITS OWN client's field value, never the other
+    client's cached/fetched copy of the same bare id."""
+    import nx_lib.views.workitems as wv
+
+    fake_cache = _FakeCache()
+    monkeypatch.setattr(wv, "cache", fake_cache)
+    # workitems_all_perms only patches nx_lib.security.has_permission, which
+    # covers the @require_permission route gate (looked up inside security.py
+    # at call time) but NOT the `include_fields = ... and has_permission(...)`
+    # check inside this module -- that name was bound at import time and needs
+    # patching directly on the view module, same as test_api_config_fields_
+    # perm_state_in_cache_key above.
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+
+    rows = [
+        {
+            "workitemid": 1216,
+            "client": "default",
+            "status": "Open",
+            "current_stage": "Stage A",
+            "priority": 2,
+            "tags": [],
+            "modifiedat": None,
+        },
+        {
+            "workitemid": 1216,
+            "client": "ms02",
+            "status": "Closed",
+            "current_stage": "Stage B",
+            "priority": 1,
+            "tags": [],
+            "modifiedat": None,
+        },
+    ]
+
+    monkeypatch.setattr(
+        wv,
+        "_get_workitems_data",
+        lambda args, export_all=False: {
+            "workitems": rows,
+            "pagination": {"totalItems": len(rows)},
+        },
+    )
+
+    def fake_get_domain(wid, client_hint=None):
+        return (
+            "default-domain.example.com" if client_hint == "default" else "ms02-domain.example.com"
+        )
+
+    monkeypatch.setattr(wv, "get_domain_for_workitem", fake_get_domain)
+    monkeypatch.setattr(
+        wv, "get_workitemdata_param", lambda wid, domain: (f"wdata-{domain}", f"doc-{domain}")
+    )
+
+    def fake_get_extensions_urls_fields(workitemdata, document_id, domain, with_tables=False):
+        fields = (
+            {"Amount": "100-default"}
+            if domain == "default-domain.example.com"
+            else {"Amount": "999-ms02"}
+        )
+        return [], [], fields, {}, {}
+
+    monkeypatch.setattr(wv, "get_extensions_urls_fields", fake_get_extensions_urls_fields)
+
+    resp = user_client.get("/api/export/workitems/csv?include=fields")
+    assert resp.status_code == 200
+    body = resp.get_data(as_text=True)
+    csv_rows = list(csv.reader(io.StringIO(body)))
+    header, data_rows = csv_rows[0], csv_rows[1:]
+    assert len(data_rows) == 2, f"expected 2 data rows, got {data_rows!r}"
+    amount_idx = header.index("Amount")
+    values = {r[amount_idx] for r in data_rows}
+    assert values == {"100-default", "999-ms02"}, (
+        f"expected each row to carry its own client's Amount, got {values!r} "
+        f"(cross-contamination: a bare-id cache/dict key let one client's "
+        f"fetched value answer for the other's)"
+    )
 
 
 def test_strip_export_fields_removes_sensitive_columns():
