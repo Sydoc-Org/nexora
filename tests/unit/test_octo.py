@@ -143,6 +143,43 @@ def test_get_workitemdata_param_returns_base64_and_doc_id(app):
     assert doc_id == "doc-42"
 
 
+def test_get_workitemdata_param_returns_none_on_http_error(app):
+    """An Octo hiccup must return a falsy value, not raise -- callers guard
+    with `if returndata:` expecting a "not found" signal, not an exception."""
+    import requests as real_requests
+
+    with (
+        patch.object(octo_mod, "get_access_token", return_value="tok"),
+        patch.object(
+            octo_mod.requests,
+            "get",
+            side_effect=real_requests.exceptions.ConnectionError("down"),
+        ),
+        app.app_context(),
+    ):
+        returndata = get_workitemdata_param("workitem-1", domain="octo.example")
+
+    assert not returndata
+
+
+def test_get_workitemdata_param_returns_none_on_bad_status(app):
+    """A non-2xx response (e.g. Octo 404/500) must also be treated as a
+    failure via raise_for_status, not blindly indexed for DocumentID."""
+    import requests as real_requests
+
+    fake_resp = MagicMock()
+    fake_resp.raise_for_status.side_effect = real_requests.exceptions.HTTPError("500 Server Error")
+
+    with (
+        patch.object(octo_mod, "get_access_token", return_value="tok"),
+        patch.object(octo_mod.requests, "get", return_value=fake_resp),
+        app.app_context(),
+    ):
+        returndata = get_workitemdata_param("workitem-1", domain="octo.example")
+
+    assert not returndata
+
+
 # ---------- get_index_field_mappings ----------
 
 

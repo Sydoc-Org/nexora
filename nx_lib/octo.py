@@ -66,12 +66,19 @@ def get_workitemdata_param(workitem_id, domain=None):
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json",
     }
-    response = requests.get(url=url, headers=headers, timeout=10)
-    str_content = json.dumps(response.json())
-    base64_bytes = base64.b64encode(str_content.encode("utf-8"))
-    base64_string = base64_bytes.decode("utf-8")
 
-    return base64_string, response.json()["DocumentID"]
+    try:
+        response = requests.get(url=url, headers=headers, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+
+        str_content = json.dumps(data)
+        base64_bytes = base64.b64encode(str_content.encode("utf-8"))
+        base64_string = base64_bytes.decode("utf-8")
+        return base64_string, data["DocumentID"]
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching workitem data for {workitem_id}: {e}")
+        return None
 
 
 @cache.cached(timeout=3600, key_prefix="index_field_mappings")
