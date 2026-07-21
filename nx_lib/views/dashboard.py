@@ -1103,6 +1103,20 @@ def _build_kpi_sql(widget, filters, configs):
     )
     status = filters.get("status")
 
+    # "Current backlog" (status:"Ready") means the LIVE Octo-runtime count of
+    # workitems currently on activity type 'C+A' -- exactly what the legacy
+    # total_backlog_count()/backlog_count() (workitem_sources.py) compute against
+    # the runtime DB. build_widget_query already routes the one shape that
+    # function can honestly answer -- a plain count with no doc-field filter --
+    # to it directly. Anything that still reaches this builder with
+    # status:"Ready" (an avg/sum/min/max metric, or a doc-field filter) cannot be
+    # expressed from the Statistics-DB stat tables at all: Statconfig carries no
+    # activity-type/stage column, so there is no honest predicate for "currently
+    # on C+A". Return an explicit empty query and let _run_widget_queries surface
+    # the no_data_in_scope warning rather than approximate a wrong headline number.
+    if status == "Ready":
+        return "", []
+
     if not configs:
         return "", []
     sub_qs = []
@@ -1126,24 +1140,6 @@ def _build_kpi_sql(widget, filters, configs):
             continue
 
         where = []
-        if status == "Ready":
-            # "Ready" means "current backlog". The legacy reference
-            # (SqlServerSource.backlog_count in workitem_sources.py) joins the
-            # Octo runtime DB to t_ActivityTypes and matches Name = 'C+A' --
-            # but Statconfig (this widget engine's own config table) has no
-            # activity-type column at all, so that exact match can't be
-            # expressed here. The closest honest, structurally-real
-            # approximation this schema supports is "entered this process but
-            # hasn't exited/exported yet" (Import set, Export still NULL) --
-            # the same Import/Export pairing proc_time_avg already treats as
-            # entry/exit timestamps. This is a real predicate, never WHERE 1=1.
-            # If a process's Statconfig row has no ImportColumn configured, it
-            # can't express "still outstanding" honestly either -- skip that
-            # row rather than fabricate a count for it (falls through to the
-            # existing no_data_in_scope warning if every row gets skipped).
-            if not import_col:
-                continue
-            where.append(f"{import_col} IS NOT NULL AND {export_col} IS NULL")
         if start_date is not None:
             where.append(f"CAST({export_col} AS DATE) >= ?")
             params.append(start_date.isoformat())
@@ -1343,6 +1339,28 @@ def build_widget_query(widget, global_filters, allowed_processes):
     target_processes = _process_scope(filters, allowed_processes)
     if not target_processes:
         return []
+
+    # "Current backlog" (status:"Ready") is defined as the workitems currently on
+    # activity type 'C+A' -- a live Octo-runtime fact that the Statistics-DB stat
+    # tables this widget engine queries cannot express (Statconfig has no
+    # activity-type/stage column). Route the one shape that the already-correct
+    # total_backlog_count() can honestly answer -- a plain count with no doc-field
+    # filter -- to that Octo-backed function, matching the exact proc/cli split
+    # the legacy dashboard_kpi_stats call site uses, and feed the result through
+    # the unchanged _run_widget_queries path as a parameterized literal select.
+    # Every other status:"Ready" shape falls through to _build_kpi_sql, which
+    # returns an honest empty (no_data_in_scope) rather than a wrong number.
+    metric_kind = ((widget.get("config") or {}).get("metric") or {}).get("kind")
+    if (
+        widget.get("type") == "kpi"
+        and filters.get("status") == "Ready"
+        and metric_kind == "count"
+        and not filters.get("docFilters")
+    ):
+        proc_params = sorted({p.split(".")[-1] for p in target_processes if "." in p})
+        cli_params = sorted({p.split(".")[0] for p in target_processes if "." in p})
+        value = total_backlog_count(proc_params, cli_params)
+        return [(engine_nexora_db, "SELECT ?", [value])]
 
     conn = engine_nexora_db.raw_connection()
     try:

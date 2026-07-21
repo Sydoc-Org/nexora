@@ -388,9 +388,13 @@ Work toward 2.5.64.
   the feed.
 - Dashboard: the "Current backlog" KPI read a `status` filter but never applied it
   as a predicate, so the widget counted every row ever recorded instead of documents
-  actually outstanding; it now uses a real "entered, not yet exported" predicate (or
-  an honest no-data state where a process's stat table can't express it), and a date
-  range no longer gets silently dropped when combined with the backlog status.
+  actually outstanding. "Current backlog" is the count of workitems currently on
+  activity type `C+A` (a live Octo-runtime fact), so a `status:"Ready"` count KPI now
+  routes to the already-correct `total_backlog_count()` C+A activity-type count; the
+  Statistics-DB stat tables have no activity-type column, so any other `status:"Ready"`
+  shape (an average/sum metric, or a doc-field filter) returns an honest no-data state
+  rather than a wrong number. A date range also no longer gets silently dropped when
+  combined with a non-backlog status.
 - Invoices: a Bexio search spanning multiple clients discarded every result already
   gathered as soon as one client's request failed, returning an empty list instead
   of the other clients' real data. A failing client is now logged and skipped,

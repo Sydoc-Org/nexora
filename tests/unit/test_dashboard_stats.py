@@ -351,62 +351,122 @@ def test_compute_today_stats_raises_when_nexora_db_down(app, monkeypatch):
         dv.compute_today_stats(["sydoc.Alpha"])
 
 
-# ------------------------- _build_kpi_sql: backlog KPI ------------------------ #
-# `status: "Ready"` is meant to represent "current backlog" (the legacy
-# reference is `SqlServerSource.backlog_count` in workitem_sources.py, a live
-# join to `t_ActivityTypes.Name = 'C+A'` on the Octo runtime DB). But
-# `Statconfig` -- the widget engine's own config table -- has no activity-type
-# column at all, so `status` used to be read and then never turned into a row
-# predicate; it only gated (and thereby silently dropped) the date clause.
-# That made "Ready" KPIs count every row ever recorded (`WHERE 1=1`) instead of
-# the current backlog, and dropped any explicit date range combined with it.
+# ------------------------- backlog KPI: real C+A count ----------------------- #
+# `status: "Ready"` means "current backlog" -- and the product owner defines the
+# backlog, unambiguously, as "the workitems currently on the activity type
+# 'C+A'". That is a LIVE Octo-runtime fact (the workitem's current
+# ActivityInstance's ActivityType.Name), already implemented correctly by
+# `total_backlog_count()` / `SqlServerSource.backlog_count` in
+# workitem_sources.py (a join to `t_ActivityTypes.Name = 'C+A'`).
+#
+# `Statconfig` -- the widget engine's own config table -- has NO activity-type /
+# stage column at all (only Import/Export "entered tracking"/"fully done"
+# timestamps), so the Statistics-DB-driven `_build_kpi_sql` structurally cannot
+# express "currently on C+A" for any process. An earlier fix approximated it as
+# "entered, not yet exported" (`Import IS NOT NULL AND Export IS NULL`); that was
+# based on a wrong assumption and is now removed. Instead `build_widget_query`
+# routes the one shape `total_backlog_count` can honestly answer -- a plain
+# count with no doc-field filter -- to that function, and `_build_kpi_sql`
+# returns an explicit empty (honest no_data) for every other status:"Ready"
+# shape rather than approximate a wrong headline number.
 
 
 def _kpi_widget(kind="count"):
-    return {"config": {"metric": {"kind": kind}}}
+    return {"type": "kpi", "config": {"metric": {"kind": kind}}}
 
 
-def test_kpi_status_ready_is_not_unconditional_where_1_equals_1():
-    widget = _kpi_widget()
+def test_backlog_kpi_routes_to_total_backlog_count(monkeypatch):
+    # count + status:"Ready" + no docFilters is the ONLY shape total_backlog_count
+    # can answer. build_widget_query must intercept it BEFORE touching Statconfig,
+    # split the target processes exactly like the legacy dashboard_kpi_stats call
+    # site (client = segment before the dot, process = segment after), and feed
+    # the C+A count through the normal execution path as a literal select.
+    calls = []
+
+    def _fake_total_backlog(procs, clients):
+        calls.append((procs, clients))
+        return 7
+
+    monkeypatch.setattr(dv, "total_backlog_count", _fake_total_backlog)
+    widget = _kpi_widget("count")
+    filters = {"status": "Ready"}
+    allowed = ["zzztest.AlphaProc", "zzztest.BetaProc"]
+    queries = dv.build_widget_query(widget, filters, allowed)
+
+    assert len(queries) == 1
+    engine, sql, params = queries[0]
+    assert engine is dv.engine_nexora_db
+    assert sql == "SELECT ?"
+    assert params == [7]
+    # Never the old wrong approximation, never an unconditional count.
+    assert "1=1" not in sql
+    assert "IS NULL" not in sql
+    assert "IS NOT NULL" not in sql
+    # Same proc/cli derivation as the existing correct dashboard_kpi_stats site.
+    assert calls == [(["AlphaProc", "BetaProc"], ["zzztest"])]
+
+
+def test_backlog_kpi_value_executes_via_run_widget_queries(app, monkeypatch):
+    # The literal-select mechanism (`SELECT ?`) must actually execute through the
+    # UNCHANGED _run_widget_queries KPI branch (engine_nexora_db.raw_connection()
+    # + pyodbc) and yield exactly the C+A count -- not the old predicate, not 0.
+    monkeypatch.setattr(dv, "total_backlog_count", lambda procs, clients: 7)
+    widget = _kpi_widget("count")
+    filters = {"status": "Ready"}
+    allowed = ["zzztest.AlphaProc"]
+    with app.app_context():
+        queries = dv.build_widget_query(widget, filters, allowed)
+        result = dv._run_widget_queries(widget, queries)
+
+    assert result == {"value": 7.0, "unit": None}
+
+
+def test_backlog_kpi_with_docfilters_does_not_call_total_backlog_count(monkeypatch):
+    # A doc-field filter is something total_backlog_count has no notion of, so the
+    # backlog shortcut must NOT fire; it falls through to Statconfig +
+    # _build_kpi_sql, which returns an honest empty (build_widget_query -> []).
+    called = MagicMock()
+    monkeypatch.setattr(dv, "total_backlog_count", called)
+    # A real Statconfig row is returned so the fall-through genuinely reaches
+    # _build_kpi_sql (rather than bailing at the empty-configs guard).
+    cfg = _cfg_row("default", "sydoc.Alpha", "dbo.tblAlpha", "ExportDate", "ImportDate")
+    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning([cfg]))
+
+    widget = _kpi_widget("count")
+    filters = {"status": "Ready", "docFilters": [{"field": "amount", "value": "5"}]}
+    allowed = ["sydoc.Alpha"]
+    queries = dv.build_widget_query(widget, filters, allowed)
+
+    assert queries == []
+    called.assert_not_called()
+
+
+def test_build_kpi_sql_status_ready_count_returns_honest_empty():
+    # A "Ready" count that still reaches _build_kpi_sql (i.e. was not intercepted
+    # by build_widget_query) must NOT emit the old "entered, not yet exported"
+    # predicate and must NOT emit WHERE 1=1 -- it returns an explicit empty.
+    widget = _kpi_widget("count")
     filters = {"status": "Ready"}
     configs = [_cfg_row("default", "sydoc.Alpha", "dbo.tblAlpha", "ExportDate", "ImportDate")]
-    sql, _params = dv._build_kpi_sql(widget, filters, configs)
-    assert "WHERE 1=1" not in sql
-    # Real "still outstanding in this process" predicate: entered but not yet
-    # exported/exited -- the same Import/Export pairing Task 13's
-    # proc_time_avg metric already treats as process entry/exit timestamps.
-    assert "ImportDate IS NOT NULL" in sql
-    assert "ExportDate IS NULL" in sql
+    assert dv._build_kpi_sql(widget, filters, configs) == ("", [])
 
 
-def test_kpi_status_ready_with_explicit_date_range_keeps_date_clause():
-    widget = _kpi_widget()
-    filters = {
-        "status": "Ready",
-        "datePreset": "custom",
-        "dateFrom": "2026-01-01",
-        "dateTo": "2026-01-31",
-    }
-    configs = [_cfg_row("default", "sydoc.Alpha", "dbo.tblAlpha", "ExportDate", "ImportDate")]
-    sql, params = dv._build_kpi_sql(widget, filters, configs)
-    assert "CAST(ExportDate AS DATE) >= ?" in sql
-    assert "CAST(ExportDate AS DATE) <= ?" in sql
-    assert "2026-01-01" in params
-    assert "2026-01-31" in params
-    # The backlog predicate must still be present too -- status no longer gates it off.
-    assert "ImportDate IS NOT NULL" in sql
-    assert "ExportDate IS NULL" in sql
-
-
-def test_kpi_status_ready_skips_process_with_no_import_column():
-    # A process whose Statconfig row has no ImportColumn can't express "still
-    # outstanding" honestly -- skip that row rather than fabricate a count for it.
-    widget = _kpi_widget()
+def test_build_kpi_sql_status_ready_avg_returns_honest_empty(monkeypatch):
+    # avg/sum/min/max + "Ready" cannot be a C+A backlog count -- honest empty.
+    monkeypatch.setattr(dv, "_resolve_aggregation_column", lambda p, f: "AmountCol")
+    widget = {"type": "kpi", "config": {"metric": {"kind": "avg", "field": "amount"}}}
     filters = {"status": "Ready"}
-    configs = [_cfg_row("default", "sydoc.Alpha", "dbo.tblAlpha", "ExportDate", None)]
-    sql, params = dv._build_kpi_sql(widget, filters, configs)
-    assert sql == ""
-    assert params == []
+    configs = [_cfg_row("default", "sydoc.Alpha", "dbo.tblAlpha", "ExportDate", "ImportDate")]
+    assert dv._build_kpi_sql(widget, filters, configs) == ("", [])
+
+
+def test_build_kpi_sql_status_ready_with_docfilters_returns_honest_empty(monkeypatch):
+    # docFilters + "Ready" -> honest empty (never the old backlog predicate).
+    monkeypatch.setattr(dv, "_resolve_aggregation_column", lambda p, f: "SomeCol")
+    widget = _kpi_widget("count")
+    filters = {"status": "Ready", "docFilters": [{"field": "x", "value": "y"}]}
+    configs = [_cfg_row("default", "sydoc.Alpha", "dbo.tblAlpha", "ExportDate", "ImportDate")]
+    assert dv._build_kpi_sql(widget, filters, configs) == ("", [])
 
 
 def test_kpi_status_done_unaffected_by_backlog_predicate():
