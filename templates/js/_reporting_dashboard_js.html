@@ -99,7 +99,10 @@
     configureCard: {{ _("Click to configure this card")|tojson }},
     pickReport: {{ _("Choose a saved report")|tojson }},
     noSavedReports: {{ _("No saved reports yet")|tojson }},
-    loading: {{ _("Loading…")|tojson }}
+    loading: {{ _("Loading…")|tojson }},
+    vsPreviousPeriod: {{ _("vs previous period")|tojson }},
+    couldNotExport: {{ _("Could not export this report.")|tojson }},
+    noExportableCards: {{ _("No cards to export yet.")|tojson }}
   };
 
   // Chart.js palette for bar/donut cards (spec §Dashboard "Cards") -- cycles
@@ -203,8 +206,16 @@
   // ---- Rendering -------------------------------------------------------
   var built = false;
 
+  // Export (D9) is perm-gated like every other export control
+  // (has_permission('reporting.export')) -- the dashboard header is
+  // JS-rendered so no Jinja if-block can wrap the button directly; the
+  // permission flag instead rides on #rsDashboard's data-can-export
+  // attribute (set in templates/_reporting_simple.html), read once here.
+  var canExport = false;
+
   function ensureShell() {
     if (built) return;
+    canExport = el('rsDashboard').getAttribute('data-can-export') === '1';
     el('rsDashboard').innerHTML =
       '<div class="rdb-head">' +
         '<button type="button" id="rdbBack" class="nx-btn nx-btn--secondary" data-testid="rdb-back">' +
@@ -225,8 +236,10 @@
           '<span class="rdb-editing-dot" aria-hidden="true"></span>' + esc(I18N.editing) + '</span>' +
         '<button type="button" id="rdbAddCard" class="rdb-addcard-btn" data-testid="rdb-add-card" hidden>' +
           '<i class="fas fa-plus" aria-hidden="true"></i>' + esc(I18N.addCard) + '</button>' +
-        '<button type="button" id="rdbExport" class="nx-btn nx-btn--secondary" data-testid="rdb-export">' +
-          '<i class="fas fa-file-export" aria-hidden="true"></i>' + esc(I18N.export_) + '</button>' +
+        (canExport ?
+          '<button type="button" id="rdbExport" class="nx-btn nx-btn--secondary" data-testid="rdb-export">' +
+            '<i class="fas fa-file-export" aria-hidden="true"></i>' + esc(I18N.export_) + '</button>'
+          : '') +
         '<button type="button" id="rdbEditToggle" class="nx-btn nx-btn--primary" data-testid="rdb-edit-toggle"></button>' +
       '</div>' +
       '<div id="rdbFilterBar" class="rdb-filterbar" data-testid="rdb-filter-bar">' +
@@ -244,6 +257,7 @@
       if (e.key === 'Enter') commitTitle();
     });
     el('rdbTitleInput').addEventListener('blur', commitTitle);
+    if (canExport) el('rdbExport').addEventListener('click', toggleExportMenu);
     // Header "Add card" is a fast shortcut that always adds a KPI shell --
     // the full type-picker (chart/kpi/table/donut) lives on the grid's
     // add-card tile (Task 14, rdb-add-tile), the only place a non-KPI type
@@ -279,7 +293,22 @@
         return;
       }
       var addType = e.target.closest && e.target.closest('[data-add-type]');
-      if (addType) addCard(addType.getAttribute('data-add-type'));
+      if (addType) { addCard(addType.getAttribute('data-add-type')); return; }
+      // Table-card row drill-through (Task 15): renderTable draws each row as
+      // a flat k/v span pair (no per-row wrapper element -- see its comment),
+      // so the row index is derived from the hit span's position among its
+      // siblings rather than a data-row-index attribute.
+      var tableHit = e.target.closest && e.target.closest('.rdb-table-k, .rdb-table-v');
+      if (tableHit) {
+        var rowsContainer = tableHit.closest('[data-testid="rdb-table-rows"]');
+        var tableCardEl = tableHit.closest('[data-card-id]');
+        if (rowsContainer && tableCardEl) {
+          var siblings = Array.prototype.slice.call(rowsContainer.children);
+          var pos = siblings.indexOf(tableHit);
+          var tableCard = pos > -1 && findCardById(tableCardEl.getAttribute('data-card-id'));
+          if (tableCard) handleCardTableRowClick(tableCard, Math.floor(pos / 2));
+        }
+      }
     });
     // Drag-to-reorder (D10, ported 1:1 from the prototype's onDragStart/
     // onDragOver/onDrop/onDragEnd) -- delegated on the grid since HTML5 DnD
@@ -288,16 +317,24 @@
     el('rdbGrid').addEventListener('dragover', handleGridDragOver);
     el('rdbGrid').addEventListener('drop', handleGridDrop);
     el('rdbGrid').addEventListener('dragend', handleGridDragEnd);
-    // Filter popover: outside-click / Escape close -- same idiom as the
-    // Simple pane's rs-more-menu (hidden flag + outside-click + Escape).
+    // Filter popover / export menu: outside-click / Escape close -- same
+    // idiom as the Simple pane's rs-more-menu (hidden flag + outside-click +
+    // Escape).
     document.addEventListener('click', function (e) {
-      if (!filterPop.open) return;
-      var pop = el('rdbFilterPop');
-      if (pop && !pop.contains(e.target)) closeFilterPopover();
+      if (filterPop.open) {
+        var pop = el('rdbFilterPop');
+        if (pop && !pop.contains(e.target)) closeFilterPopover();
+      }
+      if (exportMenu.open) {
+        var menu = el('rdbExportMenu');
+        var onBtn = e.target.closest && e.target.closest('#rdbExport');
+        if (menu && !menu.contains(e.target) && !onBtn) closeExportMenu();
+      }
     });
     document.addEventListener('keydown', function (e) {
       if (filterPop.open && e.key === 'Escape') closeFilterPopover();
       if (reportPicker.open && e.key === 'Escape') closeReportPicker();
+      if (exportMenu.open && e.key === 'Escape') closeExportMenu();
     });
     built = true;
   }
@@ -353,6 +390,54 @@
     apply(state.def && state.def.globalFilters);
     apply(card.filterOverrides);
     return order.map(function (k) { return byField[k]; });
+  }
+
+  // ---- KPI trend period-shift (D8) ---------------------------------------
+  // A "date-range filter" is any effective filter with op 'between' -- the
+  // same signal the Advanced pane's own drill code uses to spot the date
+  // axis (see _reporting_js.html: `x.op === 'between'`). Its value is either
+  // a relative-date token {token:'<name>'} or a literal [start, end] ISO
+  // pair (the Simple wizard's own two shapes -- _reporting_simple_js.html's
+  // isTokenValue/TOKEN_LABELS).
+  function isTokenValue(v) {
+    return !!v && typeof v === 'object' && !Array.isArray(v) && typeof v.token === 'string';
+  }
+
+  // Known relative-date tokens with a documented "previous period" sibling
+  // (nx_lib/reporting/tokens.py's RELATIVE_DATE_TOKENS) -- mapped directly,
+  // never re-derived client-side. Tokens without a listed sibling here
+  // (last_year, last_month, last_quarter, last_week, last_3_months,
+  // last_n_days, today, yesterday) are NOT resolved locally -- doing so
+  // would duplicate the server's own date math -- so shiftDateRangeFilter
+  // returns null for them (D8: honest numbers or nothing).
+  var PREV_TOKEN = {
+    this_week: 'last_week', this_month: 'last_month',
+    this_quarter: 'last_quarter', this_year: 'last_year'
+  };
+
+  function isoDate(d) { return d.toISOString().slice(0, 10); }
+
+  // Pure: given ONE date-range filter, returns the equivalent filter for
+  // "one period back", or null when no shift is possible. A token with a
+  // sibling in PREV_TOKEN maps directly; a literal [start, end] pair shifts
+  // back by its own (inclusive) length, ending the day before `start`.
+  function shiftDateRangeFilter(f) {
+    if (!f || f.op !== 'between') return null;
+    var v = f.value;
+    if (isTokenValue(v)) {
+      var prev = PREV_TOKEN[v.token];
+      return prev ? { field: f.field, op: 'between', value: { token: prev } } : null;
+    }
+    if (Array.isArray(v) && v.length === 2 && v[0] && v[1]) {
+      var start = new Date(String(v[0]).slice(0, 10) + 'T00:00:00Z');
+      var end = new Date(String(v[1]).slice(0, 10) + 'T00:00:00Z');
+      if (isNaN(start.getTime()) || isNaN(end.getTime()) || end < start) return null;
+      var spanMs = end.getTime() - start.getTime();
+      var newEnd = new Date(start.getTime() - 86400000);
+      var newStart = new Date(newEnd.getTime() - spanMs);
+      return { field: f.field, op: 'between', value: [isoDate(newStart), isoDate(newEnd)] };
+    }
+    return null;
   }
 
   // ---- Filter-field catalog (D11) ----------------------------------------
@@ -664,8 +749,65 @@
     return null;
   }
 
+  function findCardById(id) {
+    return ((state.def && state.def.cards) || []).find(function (c) { return c.id === id; });
+  }
+
   function dividerColor() {
     return getComputedStyle(document.documentElement).getPropertyValue('--nx-divider').trim() || '#e5e7eb';
+  }
+
+  // ---- Drill-through (chart-element / table-row clicks) ------------------
+  // Last successful {columns, rows} per card id -- feeds the click handlers
+  // below (a Chart.js onClick only gets the clicked point's index; the raw
+  // row values it maps to live here, same idea as the Simple pane's own
+  // state.chartData.rawX). Populated by runCard() on every successful run.
+  var cardRunData = {};
+
+  // Mirrors the Simple pane's chart onClick -> ReportingDrill.open call
+  // exactly (_reporting_simple_js.html's drillFromChart/openDrill): fields
+  // come from this module's own lazily-fetched source catalog (D11, Task
+  // 13's ensureCatalog), definition = the card definition with merged
+  // filters, clicked = one {field, grain, value} entry (dashboard cards
+  // never break down by more than one dimension -- see dimValIdx), header =
+  // the card's own title (simpler than Simple's per-value header, since a
+  // dashboard card's title already names what's being drilled into).
+  async function openCardDrill(card, clicked) {
+    if (!card.definition || !card.definition.source) return;
+    await ensureCatalog();
+    var src = catalog.sources.find(function (s) { return s.id === card.definition.source; });
+    if (!src) return;
+    var def = Object.assign({}, card.definition || {});
+    def.filters = effectiveFilters(card);
+    ReportingDrill.open({
+      definition: def, fields: src.fields || [],
+      clicked: clicked, header: card.title || ''
+    });
+  }
+
+  // index is the Chart.js element index from onClick (getElementsAtEventForMode).
+  function handleCardChartClick(card, index) {
+    var data = cardRunData[card.id];
+    if (!data) return;
+    var idx = dimValIdx(data.columns);
+    if (idx.dim < 0) return;  // no dimension column -- nothing to drill on
+    var row = data.rows[index];
+    if (!row) return;
+    var col = data.columns[idx.dim];
+    openCardDrill(card, [{ field: col.field, grain: col.grain || null, value: row[idx.dim] }]);
+  }
+
+  // rowIndex is the table card's row position (0-based, matching the capped
+  // rows renderTable actually drew).
+  function handleCardTableRowClick(card, rowIndex) {
+    var data = cardRunData[card.id];
+    if (!data) return;
+    var idx = dimValIdx(data.columns);
+    if (idx.dim < 0) return;
+    var row = data.rows[rowIndex];
+    if (!row) return;
+    var col = data.columns[idx.dim];
+    openCardDrill(card, [{ field: col.field, grain: col.grain || null, value: row[idx.dim] }]);
   }
 
   // ---- Per-type card body renderers --------------------------------------
@@ -703,6 +845,12 @@
           x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 10.5 }, color: '#9ca3af' } },
           y: { grid: { color: dividerColor() },
                ticks: { font: { family: 'Inter', size: 10.5 }, color: '#9ca3af' } }
+        },
+        // Drill-through (Task 15): same getElementsAtEventForMode hit-test
+        // the Simple pane's own chart onClick uses.
+        onClick: function (evt) {
+          var els = this.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, false);
+          if (els.length) handleCardChartClick(card, els[0].index);
         }
       }
     });
@@ -727,6 +875,10 @@
           x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 10.5 }, color: '#9ca3af' } },
           y: { grid: { color: dividerColor() },
                ticks: { font: { family: 'Inter', size: 10.5 }, color: '#9ca3af' } }
+        },
+        onClick: function (evt) {
+          var els = this.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, false);
+          if (els.length) handleCardChartClick(card, els[0].index);
         }
       }
     });
@@ -777,6 +929,10 @@
     });
   }
 
+  // Each row is a flat k/v span pair with no wrapping element (2 children
+  // per row, k then v) -- kept minimal since the CSS grid places them
+  // directly; the grid's delegated click handler above derives the row
+  // index from the hit span's position among rowsContainer.children.
   function renderTable(card, body, columns, rows) {
     destroyCardChart(card.id);
     var idx = dimValIdx(columns);
@@ -821,7 +977,43 @@
       return;
     }
     body.className = 'rdb-card-body';
+    cardRunData[card.id] = { columns: res.data.columns, rows: res.data.rows };
     renderCardContent(card, body, res.data.columns, res.data.rows);
+    if (card.type === 'kpi') maybeRenderKpiTrend(card, body, res.data.columns, res.data.rows, gen);
+  }
+
+  // ---- KPI trend (D8): a second /api/reporting/run with the one date-range
+  // filter shifted back a period, rendered as "+x.y% vs previous period" --
+  // computed only when the card's effective filters hold EXACTLY one
+  // date-range filter and its shift is possible (shiftDateRangeFilter);
+  // otherwise no trend line at all (honest numbers or nothing, per D8).
+  async function maybeRenderKpiTrend(card, body, columns, rows, gen) {
+    var dateFilters = effectiveFilters(card).filter(function (f) { return f.op === 'between'; });
+    if (dateFilters.length !== 1) return;
+    var shifted = shiftDateRangeFilter(dateFilters[0]);
+    if (!shifted) return;
+    var idx = dimValIdx(columns);
+    var curVal = toNum(rows.length ? rows[0][idx.val] : null);
+    if (curVal === null) return;
+    var filters2 = effectiveFilters(card).map(function (f) {
+      return f === dateFilters[0] ? shifted : f;
+    });
+    var def2 = Object.assign({}, card.definition || {});
+    def2.filters = filters2;
+    var res2 = await api('/api/reporting/run', { method: 'POST', body: JSON.stringify(def2) });
+    if (runGen[card.id] !== gen) return;  // superseded meanwhile
+    if (!res2.ok || !res2.data || !Array.isArray(res2.data.rows)) return;
+    var prevVal = toNum(res2.data.rows.length ? res2.data.rows[0][idx.val] : null);
+    if (!prevVal) return;  // null or 0 -- no honest percentage to show
+    var pct = ((curVal - prevVal) / prevVal) * 100;
+    var up = pct >= 0;
+    var text = (up ? '+' : '') + pct.toFixed(1) + '% ' + I18N.vsPreviousPeriod;
+    var trendEl = document.createElement('p');
+    trendEl.className = 'rdb-kpi-trend rdb-kpi-trend--' + (up ? 'up' : 'down');
+    trendEl.setAttribute('data-testid', 'rdb-kpi-trend');
+    trendEl.innerHTML = '<i class="fas ' + (up ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down') +
+      '" aria-hidden="true"></i> ' + esc(text);
+    body.appendChild(trendEl);
   }
 
   // ---- Card shells (loading skeleton until the run resolves) -------------
@@ -1136,6 +1328,79 @@
     }) : [];
     var body = overlay.querySelector('[data-testid="rdb-report-picker-body"]');
     if (body) body.innerHTML = reportPickerBodyHtml(reports);
+  }
+
+  // ---- Export (D9 -- per-card, gated by data-can-export) ------------------
+  // #rdbExport opens a menu of card titles; picking one POSTs that card's
+  // EFFECTIVE (post-merge) definition to the existing /api/reporting/export
+  // and downloads it -- mirrors the Simple pane's own #rsExport fetch ->
+  // blob -> anchor-click listener exactly (_reporting_simple_js.html),
+  // xlsx only in v1 (no format picker here, unlike Simple's).
+  var exportMenu = { open: false };
+
+  function closeExportMenu() {
+    var menu = el('rdbExportMenu');
+    if (menu && menu.parentNode) menu.parentNode.removeChild(menu);
+    exportMenu.open = false;
+  }
+
+  function positionExportMenu(menu) {
+    var btn = el('rdbExport');
+    var r = btn.getBoundingClientRect();
+    menu.style.position = 'fixed';
+    menu.style.top = (r.bottom + 6) + 'px';
+    menu.style.right = (window.innerWidth - r.right) + 'px';
+  }
+
+  function openExportMenu() {
+    closeExportMenu();
+    var cards = ((state.def && state.def.cards) || []).filter(function (c) { return !isEmptyCardDef(c); });
+    var menu = document.createElement('div');
+    menu.id = 'rdbExportMenu';
+    menu.className = 'rdb-export-menu';
+    menu.setAttribute('data-testid', 'rdb-export-menu');
+    menu.setAttribute('role', 'menu');
+    menu.innerHTML = cards.length
+      ? cards.map(function (c) {
+          return '<button type="button" class="rdb-export-item" role="menuitem" ' +
+            'data-testid="rdb-export-item" data-card-id="' + esc(c.id) + '">' +
+            esc(c.title || '') + '</button>';
+        }).join('')
+      : '<p class="rdb-modal-empty">' + esc(I18N.noExportableCards) + '</p>';
+    document.body.appendChild(menu);
+    positionExportMenu(menu);
+    menu.addEventListener('click', function (e) {
+      var item = e.target.closest && e.target.closest('[data-testid="rdb-export-item"]');
+      if (item) { exportCard(item.getAttribute('data-card-id')); closeExportMenu(); }
+    });
+    exportMenu.open = true;
+  }
+
+  function toggleExportMenu() {
+    if (exportMenu.open) closeExportMenu(); else openExportMenu();
+  }
+
+  async function exportCard(cardId) {
+    var card = findCardById(cardId);
+    if (!card) return;
+    var def = Object.assign({}, card.definition || {});
+    def.filters = effectiveFilters(card);
+    def.format = 'xlsx';
+    var res;
+    try {
+      res = await fetch(API_PREFIX + 'api/reporting/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+        body: JSON.stringify(def)
+      });
+    } catch (e) { res = { ok: false }; }
+    if (!res.ok) { toast(I18N.couldNotExport, true); return; }
+    var blob = await res.blob();
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = (card.title || I18N.export_) + '.xlsx';
+    a.click();
+    URL.revokeObjectURL(a.href);
   }
 
   function render() {

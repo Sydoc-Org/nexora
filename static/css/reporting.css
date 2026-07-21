@@ -2036,6 +2036,14 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   font-variant-numeric: tabular-nums; color: var(--nx-text);
 }
 
+/* KPI trend (Task 15/D8): "+x.y% vs previous period", only rendered when a
+   comparison is actually possible (see maybeRenderKpiTrend) -- no empty
+   placeholder for the "no trend" case, per D8's honest-numbers-or-nothing. */
+.rdb-kpi-trend { margin: 4px 0 0; font: 600 11px var(--nx-font); }
+.rdb-kpi-trend--up { color: var(--nx-success); }
+.rdb-kpi-trend--down { color: var(--nx-danger); }
+.rdb-kpi-trend i { font-size: 9px; }
+
 /* ---- Line / bar (Chart.js canvas) --------------------------------------- */
 .rdb-chart-wrap { position: relative; height: 190px; }
 
@@ -2155,3 +2163,21 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   background: transparent; color: var(--nx-text); font: 500 12.5px var(--nx-font); cursor: pointer;
 }
 .rdb-report-item:hover { background: var(--nx-accent-tint); color: var(--nx-accent); }
+
+/* ---- Export menu (D9 -- #rdbExport, card-title list) -------------------- */
+.rdb-export-menu {
+  z-index: 60; min-width: 200px; max-width: 280px; padding: 6px;
+  background: var(--nx-card); border: 1px solid var(--nx-border);
+  border-radius: 10px; box-shadow: var(--nx-shadow-pop);
+}
+.rdb-export-item {
+  display: block; width: 100%; box-sizing: border-box; text-align: left;
+  padding: 9px 10px; border: none; border-radius: var(--nx-radius-sm);
+  background: transparent; color: var(--nx-text); font: 500 12.5px var(--nx-font); cursor: pointer;
+}
+.rdb-export-item:hover { background: var(--nx-accent-tint); color: var(--nx-accent); }
+
+/* ---- Drill-through affordance (Task 15) --------------------------------- */
+.rdb-card[data-type="line"] canvas,
+.rdb-card[data-type="bar"] canvas { cursor: pointer; }
+.rdb-table-rows { cursor: pointer; }
