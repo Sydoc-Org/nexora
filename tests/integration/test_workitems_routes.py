@@ -660,6 +660,70 @@ def test_export_workitems_csv_keys_by_client_not_bare_id(
     )
 
 
+# --- "export selected" must filter by (client, id), not bare id ------------ #
+# The bulk-select checkboxes / `ids` query param used to carry a bare
+# workitemid. Selecting only the default-client row of a colliding id (1216
+# collides between the default Octo client and MS02) also exported the MS02
+# row, because `specific_ids` membership was checked against the bare id
+# alone. The UI now sends compound `client-id` pairs (matching renderTable's
+# `rowKey = `${client}-${workitemid}`` in _workitems_overview_js.html) and the
+# backend must filter on that compound key.
+
+
+def test_export_workitems_csv_selected_ids_are_client_aware(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Two rows share workitemid=1216 but belong to different clients. Passing
+    ids=default-1216 must export only the default row, never the ms02 row
+    that also matches the base filter."""
+    import nx_lib.views.workitems as wv
+
+    rows = [
+        {
+            "workitemid": 1216,
+            "client": "default",
+            "status": "Open",
+            "current_stage": "Stage A",
+            "priority": 2,
+            "tags": [],
+            "modifiedat": None,
+        },
+        {
+            "workitemid": 1216,
+            "client": "ms02",
+            "status": "Closed",
+            "current_stage": "Stage B",
+            "priority": 1,
+            "tags": [],
+            "modifiedat": None,
+        },
+    ]
+
+    monkeypatch.setattr(
+        wv,
+        "_get_workitems_data",
+        lambda args, export_all=False: {
+            "workitems": rows,
+            "pagination": {"totalItems": len(rows)},
+        },
+    )
+
+    resp = user_client.get("/api/export/workitems/csv?ids=default-1216")
+    assert resp.status_code == 200
+    body = resp.get_data(as_text=True)
+    csv_rows = list(csv.reader(io.StringIO(body)))
+    header, data_rows = csv_rows[0], csv_rows[1:]
+    assert len(data_rows) == 1, (
+        f"expected exactly 1 row (the default-client row) for ids=default-1216, "
+        f"got {data_rows!r} (bare-id filtering also matched the colliding ms02 row)"
+    )
+    status_idx = header.index("Status")
+    assert data_rows[0][status_idx] == "Open", (
+        f"expected the default-client row (Status=Open), got {data_rows[0]!r} "
+        f"-- wrong client's row was exported"
+    )
+
+
 def test_strip_export_fields_removes_sensitive_columns():
     from nx_lib.views.workitems import _strip_export_fields
 

@@ -917,10 +917,24 @@ def export_workitems_csv():
     include_history = "history" in include_set and has_permission("workitems.details.view.audit")
     include_images = "images" in include_set and has_permission("workitems.details.view.images")
 
+    # Selective export ("export selected checked rows") comes in as compound
+    # `client-id` pairs, matching the `rowKey` the workitems list already
+    # builds per row (_workitems_overview_js.html renderTable/checkbox
+    # data-id). Workitem ids are NOT globally unique across clients (1216
+    # collides between the default Octo client and MS02, see
+    # docs/design/ms02-multisource.md) -- filtering on the bare id let
+    # selecting one client's row also export the other client's row sharing
+    # that id. The UI is the only caller of this param and always sends the
+    # compound form now, so bare-id values are simply ignored rather than
+    # silently matching any client.
     ids_param = request.args.get("ids", "").strip()
-    specific_ids = (
-        set(int(i) for i in ids_param.split(",") if i.strip().isdigit()) if ids_param else set()
-    )
+    specific_ids = set()
+    if ids_param:
+        for part in ids_param.split(","):
+            part = part.strip()
+            client_part, sep, wid_part = part.rpartition("-")
+            if sep and client_part and wid_part.isdigit():
+                specific_ids.add((client_part, int(wid_part)))
 
     try:
         result = _get_workitems_data(request.args, export_all=True)
@@ -938,7 +952,7 @@ def export_workitems_csv():
         )
 
     if specific_ids:
-        workitems = [w for w in workitems if w["workitemid"] in specific_ids]
+        workitems = [w for w in workitems if (w.get("client"), w["workitemid"]) in specific_ids]
 
     if not workitems:
         output = io.StringIO()
