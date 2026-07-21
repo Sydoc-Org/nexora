@@ -105,11 +105,11 @@ def search_bexio_invoices(client_ids, date_from, date_to, search_nr=None, status
             all_invoices.extend(invoices)
 
         except requests.exceptions.RequestException as e:
-            current_app.logger.error(f"Bexio API search failed: {e}")
-            return []
+            current_app.logger.error(f"Bexio API search failed for client {client_id}: {e}")
+            continue
         except json.JSONDecodeError:
-            current_app.logger.error("Bexio API returned invalid JSON.")
-            return []
+            current_app.logger.error(f"Bexio API returned invalid JSON for client {client_id}.")
+            continue
     return all_invoices
 
 
