@@ -121,15 +121,17 @@ def test_get_activity_instances_to_ignore_returns_joined_quoted(app):
     assert result == "'Approval', 'Index'"
 
 
-def test_get_activity_instances_to_ignore_returns_none_on_db_error(app, capsys):
-    """If raw_connection raises, the function prints and returns None."""
+def test_get_activity_instances_to_ignore_returns_empty_string_on_db_error(app, capsys):
+    """If raw_connection raises, the function prints and returns "" explicitly
+    (not None) -- callers treat the ignore-csv as a string, and an implicit
+    None previously risked `NOT IN (None)`-style misuse downstream."""
     with (
         patch.object(ph_mod, "engine_nexora_db") as mock_engine,
         app.app_context(),
     ):
         mock_engine.raw_connection.side_effect = RuntimeError("DB down")
         result = get_activity_instances_to_ignore()
-    assert result is None
+    assert result == ""
 
 
 # ---------- get_params_from_process_list ----------

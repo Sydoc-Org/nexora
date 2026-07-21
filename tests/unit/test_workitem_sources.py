@@ -452,6 +452,41 @@ def test_sqlserver_recent_rows_normalizes(app):
     assert "%s" not in executed_sql
 
 
+def test_sqlserver_recent_rows_omits_not_in_when_ignore_csv_empty(app):
+    """Empty ActivityInstancesToIgnore table (the normal default-client state)
+    yields activity_ignore_csv="" -- must not render `NOT IN ()`, a SQL syntax
+    error that was previously swallowed and silently emptied Recent Validations."""
+    fake_cur = MagicMock()
+    fake_cur.fetchall.return_value = []
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cur
+
+    src = SqlServerSource()
+    with patch.object(src, "engine") as eng, app.app_context():
+        eng.raw_connection.return_value = fake_conn
+        rows = src.recent_rows(["Invoices"], ["Privera"], "", top=3)
+
+    assert rows == []
+    executed_sql = " ".join(str(c.args[0]) for c in fake_cur.execute.call_args_list)
+    assert "NOT IN" not in executed_sql.upper()
+
+
+def test_sqlserver_recent_rows_omits_not_in_when_ignore_csv_none(app):
+    fake_cur = MagicMock()
+    fake_cur.fetchall.return_value = []
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cur
+
+    src = SqlServerSource()
+    with patch.object(src, "engine") as eng, app.app_context():
+        eng.raw_connection.return_value = fake_conn
+        rows = src.recent_rows(["Invoices"], ["Privera"], None, top=3)
+
+    assert rows == []
+    executed_sql = " ".join(str(c.args[0]) for c in fake_cur.execute.call_args_list)
+    assert "NOT IN" not in executed_sql.upper()
+
+
 def test_sqlserver_backlog_count(app):
     fake_cur = MagicMock()
     fake_cur.fetchone.return_value = [12]

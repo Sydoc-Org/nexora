@@ -254,16 +254,21 @@ class SqlServerSource:
         conn = self.engine.raw_connection()
         try:
             cur = conn.cursor()
+            where_clauses = [
+                "twi.Status <> 2",
+                f"tp.Name IN ({_qmarks(process_names)})",
+                f"tp.ClientName IN ({_qmarks(client_names)})",
+            ]
+            if activity_ignore_csv:
+                where_clauses.append(f"tai.ActivityInstanceName NOT IN ({activity_ignore_csv})")
+            where = " AND ".join(where_clauses)
             cur.execute(
                 f"""
                 SELECT TOP {int(top)} twi.ID, twi.ModifiedAt, tp.Name AS ProcessName
                 FROM t_WorkItems twi
                 JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
                 JOIN t_Processes tp ON tp.ID = tai.ProcessID
-                WHERE twi.Status <> 2
-                  AND tp.Name IN ({_qmarks(process_names)})
-                  AND tp.ClientName IN ({_qmarks(client_names)})
-                  AND tai.ActivityInstanceName NOT IN ({activity_ignore_csv})
+                WHERE {where}
                 ORDER BY twi.ModifiedAt DESC
                 """,
                 list(process_names) + list(client_names),

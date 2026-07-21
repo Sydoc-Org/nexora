@@ -89,6 +89,7 @@ def get_activity_instances_to_ignore():
         return result
     except Exception as e:
         print(e)
+        return ""
     finally:
         if cursor:
             cursor.close()
