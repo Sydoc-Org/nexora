@@ -236,6 +236,24 @@ def test_get_allowed_client_details_db_failure_returns_empty(monkeypatch, app):
     assert out == []
 
 
+def test_get_bexio_client_ids_db_failure_returns_empty(monkeypatch, app):
+    """If raw_connection() raises before conn/cursor are assigned, the function
+    must degrade to [] (a list), not the implicit None a bare `except: print(e)`
+    would return - downstream `sel_id in allowed_ids` raises TypeError on None
+    (Task 19)."""
+    from nx_lib.views.invoices import get_bexio_client_ids
+
+    with (
+        app.test_request_context("/"),
+        patch(
+            "nx_lib.views.invoices.engine_nexora_db.raw_connection",
+            side_effect=RuntimeError("db down"),
+        ),
+    ):
+        out = get_bexio_client_ids()
+    assert out == []
+
+
 def test_get_bexio_invoice_pdf_http_error(monkeypatch, app):
     import requests as _requests
 

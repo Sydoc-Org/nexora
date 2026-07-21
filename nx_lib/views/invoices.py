@@ -201,7 +201,8 @@ def get_bexio_client_ids():
                 client_ids.append(row[0])
         return client_ids
     except Exception as e:
-        print(e)
+        current_app.logger.error(f"Error fetching Bexio client ids: {e}")
+        return []
     finally:
         if cursor:
             cursor.close()
