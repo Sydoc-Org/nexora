@@ -37,6 +37,29 @@ def test_login_get_renders_form(client):
     assert b"<form" in resp.data.lower()
 
 
+def test_login_post_db_failure_renders_graceful_503(client):
+    """auth.py login(): raw_connection() is the first statement in the try
+    block. If it raises before conn/cursor are assigned, the finally block's
+    unconditional `if cursor:` / `if conn:` must not crash with
+    UnboundLocalError - it should degrade to the except branch's graceful
+    render_template("index.html", error="Login temporarily unavailable"), 503
+    (same bug/fix shape as Task 18's get_allowed_client_details and the
+    init_2fa fix above)."""
+    with patch(
+        "nx_lib.views.auth.engine_nexora_db.raw_connection",
+        side_effect=RuntimeError("db down"),
+    ):
+        resp = client.post(
+            "/login",
+            data={"username": "user@test.local", "password": "Test1234!"},
+            follow_redirects=False,
+        )
+    assert resp.status_code == 503
+    assert b"login temporarily unavailable" in resp.data.lower()
+    with client.session_transaction() as sess:
+        assert "userid" not in sess
+
+
 def test_logout_clears_session(user_client):
     resp = user_client.get("/logout", follow_redirects=False)
     assert resp.status_code == 302

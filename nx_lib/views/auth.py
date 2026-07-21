@@ -461,6 +461,8 @@ def login():
         if not username_request or not password_request:
             return render_template("index.html", error=_("Invalid credentials")), 401
 
+        conn = None
+        cursor = None
         try:
             conn = engine_nexora_db.raw_connection()
             cursor = conn.cursor()
