@@ -368,6 +368,181 @@ def test_admin_delete_user_missing_returns_404_or_500(admin_client, admin_all_pe
     assert resp.status_code in (200, 404, 500)
 
 
+# ---- delete-user cascade / atomicity (Task 13) -----------------------------
+# admin_delete_user commits on its own raw connection, so its writes PERSIST
+# past the transaction-scoped db_conn fixture. These tests therefore seed and
+# tear down through a separate, explicitly-committed raw connection (the same
+# approach the /admin/users/add cleanup above uses).
+
+
+def _dc_raw():
+    from nx_lib.db import engine_nexora_db
+
+    return engine_nexora_db.raw_connection()
+
+
+def _dc_seed_user(cur, username):
+    cur.execute(
+        "INSERT INTO Users (username, password, Fullname, Email, accessid, organizationCode) "
+        "VALUES (?, 'x', 'Seed', ?, "
+        "(SELECT AccessID FROM AccessProfile WHERE Name = 'TestUser'), 'TEST')",
+        (username, username),
+    )
+    cur.execute("SELECT userID FROM Users WHERE username = ?", (username,))
+    return cur.fetchone()[0]
+
+
+def _dc_seed_report(cur, owner_id, name):
+    cur.execute(
+        "INSERT INTO Reports (OwnerUserID, Name, DefinitionJSON, Visibility) "
+        "VALUES (?, ?, '{}', 'shared')",
+        (owner_id, name),
+    )
+    cur.execute("SELECT ReportID FROM Reports WHERE OwnerUserID = ? AND Name = ?", (owner_id, name))
+    return cur.fetchone()[0]
+
+
+def _dc_cleanup(user_ids, report_ids):
+    """Best-effort FK-safe teardown of anything the tests seeded, whether or not
+    the route under test removed it (RED runs leave the whole fixture behind)."""
+    uids = [u for u in user_ids if u]
+    rids = [r for r in report_ids if r]
+    conn = _dc_raw()
+    try:
+        cur = conn.cursor()
+        if rids:
+            rmarks = ",".join(["?"] * len(rids))
+            cur.execute(f"DELETE FROM ReportShares WHERE ReportID IN ({rmarks})", rids)
+            cur.execute(f"DELETE FROM ReportSchedules WHERE ReportID IN ({rmarks})", rids)
+        if uids:
+            umarks = ",".join(["?"] * len(uids))
+            cur.execute(f"DELETE FROM ReportShares WHERE SharedWithUserID IN ({umarks})", uids)
+            cur.execute(f"DELETE FROM ReportSchedules WHERE OwnerUserID IN ({umarks})", uids)
+        if rids:
+            cur.execute(f"DELETE FROM Reports WHERE ReportID IN ({rmarks})", rids)
+        if uids:
+            cur.execute(f"DELETE FROM Notifications WHERE UserID IN ({umarks})", uids)
+            cur.execute(f"DELETE FROM Users WHERE userID IN ({umarks})", uids)
+        conn.commit()
+        cur.close()
+    finally:
+        conn.close()
+
+
+def test_admin_delete_user_report_owner_is_atomic_no_halfstate(
+    admin_client, admin_all_perms, db_conn
+):
+    """A report-owning user with a committed child row must never end up in a
+    half-deleted state (child rows gone but the Users row surviving).
+
+    Under the pre-fix code each child delete committed individually, then the
+    final `DELETE FROM users` violated FK_Reports_Users and threw — leaving the
+    notification gone but the user present and now undeletable.
+    """
+    from sqlalchemy import text
+
+    suffix = uuid.uuid4().hex[:8]
+    d_id = r_id = None
+    try:
+        conn = _dc_raw()
+        cur = conn.cursor()
+        d_id = _dc_seed_user(cur, f"del-{suffix}@test.local")
+        r_id = _dc_seed_report(cur, d_id, f"rep-{suffix}")
+        cur.execute("INSERT INTO Notifications (UserID, Message) VALUES (?, 'seed')", (d_id,))
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        resp = admin_client.delete(f"/admin/users/delete/{d_id}")
+
+        user_left = db_conn.execute(
+            text("SELECT COUNT(*) FROM Users WHERE userID = :u"), {"u": d_id}
+        ).scalar()
+        notif_left = db_conn.execute(
+            text("SELECT COUNT(*) FROM Notifications WHERE UserID = :u"), {"u": d_id}
+        ).scalar()
+
+        # The atomicity invariant: it is never the case that the child row was
+        # committed-deleted while the Users row survives.
+        assert not (notif_left == 0 and user_left == 1), (
+            "HALF-STATE: notification committed-deleted but Users row survives "
+            f"(status={resp.status_code}, user_left={user_left}, notif_left={notif_left})"
+        )
+        # Fixed behaviour: a clean, fully atomic success.
+        assert resp.status_code == 200, resp.get_json()
+        assert user_left == 0
+        assert notif_left == 0
+        report_left = db_conn.execute(
+            text("SELECT COUNT(*) FROM Reports WHERE ReportID = :r"), {"r": r_id}
+        ).scalar()
+        assert report_left == 0
+    finally:
+        _dc_cleanup([d_id], [r_id])
+
+
+def test_admin_delete_user_cascades_reporting_artifacts(admin_client, admin_all_perms, db_conn):
+    """Deleting a report-owning user removes every reporting artifact tied to
+    them — their reports, the shares/schedules they hold, AND the shares/
+    schedules that point at reports they own but that belong to *other* users —
+    while leaving the other user and their own report completely untouched.
+    """
+    from sqlalchemy import text
+
+    suffix = uuid.uuid4().hex[:8]
+    d_id = o_id = r_d = r_o = None
+    try:
+        conn = _dc_raw()
+        cur = conn.cursor()
+        d_id = _dc_seed_user(cur, f"del-{suffix}@test.local")
+        o_id = _dc_seed_user(cur, f"other-{suffix}@test.local")
+        r_d = _dc_seed_report(cur, d_id, f"rD-{suffix}")  # report owned by deleted user
+        r_o = _dc_seed_report(cur, o_id, f"rO-{suffix}")  # report owned by survivor
+        # Direct: a share held BY / schedule owned BY the deleted user, on the
+        # survivor's report.
+        cur.execute(
+            "INSERT INTO ReportShares (ReportID, SharedWithUserID) VALUES (?, ?)", (r_o, d_id)
+        )
+        cur.execute(
+            "INSERT INTO ReportSchedules (ReportID, OwnerUserID, Recipients, Frequency) "
+            "VALUES (?, ?, 'x@test.local', 'daily')",
+            (r_o, d_id),
+        )
+        # Transitive: a share / schedule that points at the deleted user's OWN
+        # report but belongs to the *other* user — only reachable via the
+        # report, not via SharedWithUserID / OwnerUserID = deleted user.
+        cur.execute(
+            "INSERT INTO ReportShares (ReportID, SharedWithUserID) VALUES (?, ?)", (r_d, o_id)
+        )
+        cur.execute(
+            "INSERT INTO ReportSchedules (ReportID, OwnerUserID, Recipients, Frequency) "
+            "VALUES (?, ?, 'x@test.local', 'daily')",
+            (r_d, o_id),
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        resp = admin_client.delete(f"/admin/users/delete/{d_id}")
+        assert resp.status_code == 200, resp.get_json()
+
+        def _count(sql, **params):
+            return db_conn.execute(text(sql), params).scalar()
+
+        # The deleted user and every artifact tied to them are gone.
+        assert _count("SELECT COUNT(*) FROM Users WHERE userID = :u", u=d_id) == 0
+        assert _count("SELECT COUNT(*) FROM Reports WHERE ReportID = :r", r=r_d) == 0
+        assert _count("SELECT COUNT(*) FROM ReportShares WHERE SharedWithUserID = :u", u=d_id) == 0
+        assert _count("SELECT COUNT(*) FROM ReportSchedules WHERE OwnerUserID = :u", u=d_id) == 0
+        # Transitive rows on the deleted user's report are gone too.
+        assert _count("SELECT COUNT(*) FROM ReportShares WHERE ReportID = :r", r=r_d) == 0
+        assert _count("SELECT COUNT(*) FROM ReportSchedules WHERE ReportID = :r", r=r_d) == 0
+        # The survivor and their own report are untouched.
+        assert _count("SELECT COUNT(*) FROM Users WHERE userID = :u", u=o_id) == 1
+        assert _count("SELECT COUNT(*) FROM Reports WHERE ReportID = :r", r=r_o) == 1
+    finally:
+        _dc_cleanup([d_id, o_id], [r_d, r_o])
+
+
 def test_admin_revoke_session_unknown_id(admin_client, admin_all_perms):
     resp = admin_client.post("/admin/sessions/not-a-real-sid/revoke")
     assert resp.status_code in (200, 404, 500)
