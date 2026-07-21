@@ -1,0 +1,270 @@
+{# Dashboard builder (kind:'dashboard' saved reports) -- Task 11 skeleton.
+   State model + open/save/edit-toggle handlers ported from the design
+   prototype (docs/superpowers/specs/2026-07-20-reporting-dashboard-prototype.dc.html)
+   per spec section 3 (docs/superpowers/specs/2026-07-20-reporting-redesign-handoff.md).
+   A dashboard is simply a saved report whose DefinitionJSON is
+   {kind:'dashboard', schemaVersion:1, title, globalFilters, cards} --
+   persisted through the existing /api/reporting/reports CRUD, zero
+   backend change. This module only builds the skeleton: open/close/save/
+   toggleEditing and a render dispatch drawing bare card shells. Card
+   rendering, per-card/global filters, drag-reorder and export are later
+   tasks (12-15) layered on top of the state model here (setCards/addCard
+   already exist for them to build on). Self-contained IIFE: talks only to
+   /api/reporting/reports and exposes window.ReportingDashboard. #}
+<script>
+(function () {
+  'use strict';
+  var csrf = document.querySelector('meta[name="csrf-token"]').content;
+  var API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+
+  // Same shape as the Simple pane's api() helper (templates/js/_reporting_simple_js.html):
+  // never throws, always resolves to {ok, status, data}.
+  async function api(url, opts) {
+    if (url.startsWith('/')) url = API_PREFIX + url.slice(1);
+    opts = opts || {};
+    var res;
+    try {
+      res = await fetch(url, Object.assign(
+        { headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf } }, opts));
+    } catch (e) {
+      return { ok: false, status: 0, data: null };
+    }
+    var data = null;
+    try { data = await res.json(); } catch (e) { /* non-JSON */ }
+    return { ok: res.ok, status: res.status, data: data };
+  }
+
+  function el(id) { return document.getElementById(id); }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  // In-page toast -- same DOM/CSS contract as the Advanced tab's private
+  // toast() (.reporting-toast / data-testid="reporting-toast", defined in
+  // _reporting_js.html): this module is self-contained so it draws its own,
+  // reusing the existing shared CSS class rather than a new one.
+  function toast(msg, isError) {
+    var t = document.createElement('div');
+    t.className = 'reporting-toast' + (isError ? ' reporting-toast--error' : '');
+    t.setAttribute('role', 'status');
+    t.setAttribute('data-testid', 'reporting-toast');
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(function () { t.classList.add('is-gone'); }, 2600);
+    setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 3000);
+  }
+
+  var I18N = {
+    library: {{ _("Library")|tojson }},
+    rename: {{ _("Rename")|tojson }},
+    editing: {{ _("Editing")|tojson }},
+    edit: {{ _("Edit")|tojson }},
+    done: {{ _("Done")|tojson }},
+    addCard: {{ _("Add card")|tojson }},
+    export_: {{ _("Export")|tojson }},
+    untitled: {{ _("Untitled dashboard")|tojson }},
+    newCard: {{ _("New card")|tojson }},
+    cardsMeta: {{ _("{n} cards · drag to rearrange · hover a card for controls")|tojson }},
+    globalFilters: {{ _("Global filters")|tojson }},
+    filterHint: {{ _("apply to every card · a card can override them")|tojson }},
+    saved: {{ _("Dashboard saved")|tojson }},
+    saveFailed: {{ _("Could not save the dashboard")|tojson }}
+  };
+
+  // ---- State model (D2/D3 -- exact shape, Tasks 12-15 build on this) -------
+  var state = { editing: false, dirty: false, reportId: null, canEdit: true,
+                dragId: null, overId: null, seq: 100, def: null };
+
+  var DEFAULT_SPAN = { kpi: 3, line: 8, donut: 4, bar: 6, table: 6 };
+
+  function blankDef() {
+    return { kind: 'dashboard', schemaVersion: 1, title: I18N.untitled,
+             globalFilters: [], cards: [] };
+  }
+
+  // ---- Card-array helpers (ported from the prototype's setCards/addCard;
+  // per-card remove/duplicate + drag-reorder + real filter editing are
+  // Tasks 12/13's job -- this only proves the array -> render round trip). ----
+  function setCards(fn) {
+    state.def.cards = fn((state.def.cards || []).slice());
+    state.dirty = true;
+    render();
+  }
+
+  function addCard(type) {
+    var card = { id: 'n' + state.seq, type: type, span: DEFAULT_SPAN[type] || 6,
+                 title: I18N.newCard, definition: {}, filterOverrides: [] };
+    state.seq += 1;
+    setCards(function (list) { return list.concat([card]); });
+  }
+
+  // ---- Public entry points (window.ReportingDashboard) ---------------------
+  function openNew() {
+    state.def = blankDef();
+    state.reportId = null;
+    state.canEdit = true;
+    state.editing = true;
+    state.dirty = true;   // nothing persisted yet -- first Done must create it
+    state.dragId = null; state.overId = null; state.seq = 100;
+    render();
+  }
+
+  function open(report) {
+    state.def = report.definition;
+    state.reportId = report.id;
+    state.canEdit = !!report.canEdit;
+    state.editing = false;
+    state.dirty = false;
+    state.dragId = null; state.overId = null; state.seq = 100;
+    render();
+  }
+
+  function close() {
+    if (el('rsDashboard')) el('rsDashboard').hidden = true;
+    // The Simple pane owns the view-state switch back to the library; this
+    // module never calls setView itself (self-contained modules don't reach
+    // into each other's functions) -- it just announces the intent.
+    document.dispatchEvent(new CustomEvent('rs:dashboard-closed'));
+  }
+
+  async function save() {
+    var body = JSON.stringify({ name: (state.def.title || I18N.untitled), definition: state.def });
+    var res = state.reportId
+      ? await api('/api/reporting/reports/' + state.reportId, { method: 'PUT', body: body })
+      : await api('/api/reporting/reports', { method: 'POST', body: body });
+    if (res.ok) {
+      if (!state.reportId && res.data && res.data.id) state.reportId = res.data.id;
+      state.dirty = false;
+      toast(I18N.saved);
+    } else {
+      toast(I18N.saveFailed, true);
+    }
+  }
+
+  function toggleEditing() {
+    if (!state.canEdit) return;
+    if (state.editing && state.dirty) save();  // Done autosaves (D2/D3)
+    state.editing = !state.editing;
+    render();
+  }
+
+  // ---- Rendering -------------------------------------------------------
+  var built = false;
+
+  function ensureShell() {
+    if (built) return;
+    el('rsDashboard').innerHTML =
+      '<div class="rdb-head">' +
+        '<button type="button" id="rdbBack" class="nx-btn nx-btn--secondary" data-testid="rdb-back">' +
+          '<i class="fas fa-arrow-left" aria-hidden="true"></i>' + esc(I18N.library) + '</button>' +
+        '<div class="rdb-titleblock">' +
+          '<div class="rdb-titlerow">' +
+            '<h2 id="rdbTitle" class="rdb-title" data-testid="rdb-title"></h2>' +
+            '<button type="button" id="rdbRenamePencil" class="rs-rename-pencil" ' +
+              'title="' + esc(I18N.rename) + '" aria-label="' + esc(I18N.rename) + '">' +
+              '<i class="fas fa-pencil" aria-hidden="true"></i></button>' +
+            '<input id="rdbTitleInput" class="reporting-input rdb-title-input" hidden ' +
+              'aria-label="' + esc(I18N.rename) + '">' +
+          '</div>' +
+          '<p id="rdbMeta" class="rdb-meta"></p>' +
+        '</div>' +
+        '<span class="rdb-spacer"></span>' +
+        '<span id="rdbEditingPill" class="rdb-editing-pill" hidden>' +
+          '<span class="rdb-editing-dot" aria-hidden="true"></span>' + esc(I18N.editing) + '</span>' +
+        '<button type="button" id="rdbAddCard" class="rdb-addcard-btn" data-testid="rdb-add-card" hidden>' +
+          '<i class="fas fa-plus" aria-hidden="true"></i>' + esc(I18N.addCard) + '</button>' +
+        '<button type="button" id="rdbExport" class="nx-btn nx-btn--secondary" data-testid="rdb-export">' +
+          '<i class="fas fa-file-export" aria-hidden="true"></i>' + esc(I18N.export_) + '</button>' +
+        '<button type="button" id="rdbEditToggle" class="nx-btn nx-btn--primary" data-testid="rdb-edit-toggle"></button>' +
+      '</div>' +
+      '<div id="rdbFilterBar" class="rdb-filterbar" data-testid="rdb-filter-bar">' +
+        '<span class="rdb-filterbar-label"><i class="fas fa-filter" aria-hidden="true"></i>' +
+          esc(I18N.globalFilters) + '</span>' +
+        '<span class="rdb-filterbar-divider"></span>' +
+        '<span id="rdbFilterChips" class="rdb-filterchips"></span>' +
+        '<span class="rdb-spacer"></span>' +
+        '<span class="rdb-filterbar-hint">' + esc(I18N.filterHint) + '</span>' +
+      '</div>' +
+      '<div id="rdbGrid" class="rdb-grid" data-testid="rdb-grid"></div>';
+    el('rdbBack').addEventListener('click', close);
+    el('rdbRenamePencil').addEventListener('click', revealTitleInput);
+    el('rdbTitleInput').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') commitTitle();
+    });
+    el('rdbTitleInput').addEventListener('blur', commitTitle);
+    // Header "Add card" defaults to a KPI shell -- the full type-picker tile
+    // (chart/kpi/table/donut) is Task 12/13's job; this proves the round trip.
+    el('rdbAddCard').addEventListener('click', function () { addCard('kpi'); });
+    el('rdbEditToggle').addEventListener('click', toggleEditing);
+    built = true;
+  }
+
+  function revealTitleInput() {
+    if (!state.editing) return;
+    var input = el('rdbTitleInput');
+    input.value = state.def.title || '';
+    input.hidden = false;
+    el('rdbTitle').hidden = true;
+    el('rdbRenamePencil').hidden = true;
+    input.focus();
+  }
+
+  function commitTitle() {
+    var input = el('rdbTitleInput');
+    if (input.hidden) return;
+    var v = input.value.trim();
+    if (v && v !== state.def.title) { state.def.title = v; state.dirty = true; }
+    renderHeader();
+  }
+
+  function renderHeader() {
+    var def = state.def || blankDef();
+    el('rdbTitle').hidden = false;
+    el('rdbTitle').textContent = def.title || I18N.untitled;
+    el('rdbTitleInput').hidden = true;
+    el('rdbMeta').textContent = I18N.cardsMeta.replace('{n}', String((def.cards || []).length));
+    el('rdbEditingPill').hidden = !state.editing;
+    el('rdbAddCard').hidden = !state.editing;
+    el('rdbRenamePencil').hidden = !state.editing || !state.canEdit;
+    el('rdbEditToggle').hidden = !state.canEdit;
+    el('rdbEditToggle').textContent = state.editing ? I18N.done : I18N.edit;
+  }
+
+  function renderFilterBar() {
+    var chips = el('rdbFilterChips');
+    var filters = (state.def && state.def.globalFilters) || [];
+    chips.innerHTML = filters.map(function (f) {
+      return '<span class="reporting-drill-chip reporting-drill-chip--indigo">' +
+        '<i class="fas fa-filter" aria-hidden="true"></i>' +
+        esc(f.field) + ' ' + esc(f.op) + ' ' + esc(f.value) + '</span>';
+    }).join('');
+  }
+
+  // Grid items are bare title-only shells until Task 12 lands the real
+  // per-type card renderer (renderCard(card)) -- explicitly fine per the
+  // plan's own sequencing.
+  function renderGrid() {
+    var grid = el('rdbGrid');
+    var cards = (state.def && state.def.cards) || [];
+    grid.innerHTML = cards.map(function (c) {
+      var span = c.span || DEFAULT_SPAN[c.type] || 6;
+      return '<div class="rdb-card" data-id="' + esc(c.id) + '" data-type="' + esc(c.type) + '" ' +
+        'style="grid-column:span ' + span + '">' +
+        '<div class="rdb-card-head"><span class="rdb-card-title">' + esc(c.title || '') + '</span></div>' +
+        '</div>';
+    }).join('');
+  }
+
+  function render() {
+    ensureShell();
+    renderHeader();
+    renderFilterBar();
+    renderGrid();
+  }
+
+  window.ReportingDashboard = { openNew: openNew, open: open, close: close };
+}());
+</script>

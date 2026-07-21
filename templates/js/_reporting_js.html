@@ -1269,8 +1269,12 @@
           opt.dataset.canEdit = r.canEdit ? '1' : '0';
           group.appendChild(opt);
         }
-        var mine = (reports || []).filter(function (r) { return r.owned; });
-        var shared = (reports || []).filter(function (r) { return !r.owned; });
+        // D17: dashboards can't be represented by the Advanced builder's
+        // definition shape (unlike sql-kind reports, which just get an
+        // ' (SQL)' suffix above and stay pickable) -- drop the row entirely.
+        var buildable = (reports || []).filter(function (r) { return r.kind !== 'dashboard'; });
+        var mine = buildable.filter(function (r) { return r.owned; });
+        var shared = buildable.filter(function (r) { return !r.owned; });
         if (mine.length) {
           var g1 = document.createElement('optgroup');
           g1.label = '{{ _("My reports") }}';

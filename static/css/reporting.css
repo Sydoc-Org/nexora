@@ -1878,3 +1878,68 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   cursor: grab;
   flex: none;
 }
+
+/* ============================================================
+   Task 11 — Dashboard builder skeleton (mock 2b; prototype file is the
+   spec for state/handlers). Header band, global-filter bar and the
+   12-column grid container. Card bodies, per-card/global filter chips,
+   drag-reorder and export are Tasks 12-15, layered into #rdbGrid/
+   #rdbFilterChips by templates/js/_reporting_dashboard_js.html.
+   ============================================================ */
+.reporting-dashboard { max-width: 1240px; margin: 0 auto; padding: 20px 40px 80px; box-sizing: border-box; }
+@keyframes rdb-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.reporting-dashboard:not([hidden]) { animation: rdb-in .32s var(--nx-ease) backwards; }
+@media (prefers-reduced-motion: reduce) {
+  .reporting-dashboard:not([hidden]) { animation: none; }
+}
+
+.rdb-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
+.rdb-titleblock { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rdb-titlerow { display: flex; align-items: center; gap: 6px; }
+.rdb-title { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -.4px; color: var(--nx-text); }
+.rdb-title-input { font-size: 18px; font-weight: 600; padding: 4px 8px; max-width: 360px; }
+.rdb-meta { margin: 0; font-size: 11px; color: var(--nx-text-meta); }
+.rdb-spacer { flex: 1; }
+.rdb-editing-pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 6px 13px; border-radius: var(--nx-radius-pill);
+  background: var(--nx-accent-tint); border: 1px solid #c7d2fe;
+  font: 600 12px var(--nx-font); color: #4338ca;
+}
+.rdb-editing-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--nx-accent); }
+.rdb-addcard-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: var(--nx-radius-sm);
+  font: 600 12.5px var(--nx-font); border: 1px solid #c7d2fe;
+  background: var(--nx-accent-tint); color: #4338ca; cursor: pointer;
+  transition: background-color var(--nx-dur) var(--nx-ease);
+}
+.rdb-addcard-btn:hover { background: #e0e7ff; }
+
+.rdb-filterbar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: var(--nx-card); border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-lg); padding: 12px 18px; margin-bottom: 18px;
+}
+.rdb-filterbar-label {
+  display: inline-flex; align-items: center; gap: 6px;
+  font: 600 10px var(--nx-font); letter-spacing: .8px; text-transform: uppercase;
+  color: var(--nx-text-meta);
+}
+.rdb-filterbar-label i { color: var(--nx-violet); font-size: 9px; }
+.rdb-filterbar-divider { width: 1px; height: 18px; background: var(--nx-border); }
+.rdb-filterchips { display: flex; flex-wrap: wrap; gap: 6px; }
+.rdb-filterbar-hint { font-size: 11px; color: var(--nx-text-meta); }
+
+.rdb-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px; }
+.rdb-card {
+  background: var(--nx-card); border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-lg); padding: 14px 18px; box-sizing: border-box;
+  min-width: 0;
+}
+.rdb-card-head { display: flex; align-items: center; gap: 8px; }
+.rdb-card-title { font: 600 13.5px var(--nx-font); letter-spacing: -.1px; color: var(--nx-text); }
+@media (max-width: 900px) {
+  .rdb-grid { grid-template-columns: repeat(6, 1fr); }
+  .rdb-card { grid-column: span 6 !important; }
+}

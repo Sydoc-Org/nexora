@@ -160,12 +160,14 @@
     state.view = view;
     el('rsLibrary').hidden = view !== 'library';  // #rsSearch nests under it now
     el('rsNewReport').hidden = view !== 'library';
+    el('rsNewDashboard').hidden = view !== 'library';
     var aiBar = el('rsAiBar');
     if (aiBar && !aiBar.dataset.gone) aiBar.hidden = view !== 'library';
     var aiGone = el('rsAiGone');
     if (aiGone && aiBar && aiBar.dataset.gone) aiGone.hidden = view !== 'library';
     el('rsWizard').hidden = view !== 'wizard';
     el('rsResult').hidden = view !== 'result';
+    el('rsDashboard').hidden = view !== 'dashboard';
     if (view !== 'result') {
       destroyChart();
       hideTimingBadge();
@@ -338,7 +340,12 @@
           '<span class="rs-card-metatext">' + esc(r.ownerName || '') + ' · ' + esc(relTime(r.updatedAt)) + '</span>' +
         '</div>' +
       '</div>';
-    b.addEventListener('click', function () { openReport(r); });
+    b.addEventListener('click', function () {
+      // D17: a dashboard-kind report routes to the builder view instead of
+      // the normal single-report result view.
+      if (r.kind === 'dashboard') { openDashboard(r); return; }
+      openReport(r);
+    });
     return b;
   }
 
@@ -394,6 +401,20 @@
       origin: 'library'
     };
     runCurrent();
+  }
+
+  // D3/D17: a dashboard-kind library card opens the builder view (a fourth
+  // Simple-pane view, window.ReportingDashboard) instead of the normal
+  // single-report result view -- same GET-by-id endpoint as openReport, the
+  // response payload IS the {id, name, definition, owned, canEdit} shape
+  // window.ReportingDashboard.open() expects.
+  async function openDashboard(r) {
+    var res = await api('/api/reporting/reports/' + r.id);
+    if (!res.ok || !res.data || !res.data.definition) {
+      showResultError(I18N.couldNotLoad); return;
+    }
+    setView('dashboard');
+    window.ReportingDashboard.open(res.data);
   }
 
   async function loadMetricsCatalog() {
@@ -2228,6 +2249,10 @@
   }
 
   el('rsNewReport').addEventListener('click', startWizard);
+  el('rsNewDashboard').addEventListener('click', function () {
+    setView('dashboard');
+    window.ReportingDashboard.openNew();
+  });
   el('rsMeasureNext').addEventListener('click', function () { renderScopeStep(); });
   el('rsScopeNext').addEventListener('click', function () { renderBreakdownStep(); });
   // Back steps one wizard step backwards (picks are preserved in state.wiz);
@@ -2368,6 +2393,11 @@
   el('rsExit').addEventListener('click', exitToLibrary);
   el('rsWizardClose').addEventListener('click', exitToLibrary);
   el('rsWizardClose2').addEventListener('click', exitToLibrary);
+
+  // The dashboard builder module is self-contained and never calls setView
+  // itself -- it announces intent via a custom event instead of reaching
+  // into this module's functions (D3).
+  document.addEventListener('rs:dashboard-closed', exitToLibrary);
 
   document.addEventListener('rp:tabshown', function (e) {
     if (e.detail.tab === 'simple') initOnce();
