@@ -402,10 +402,13 @@ def test_kpi_band_shows_total_buckets_avg(nexora_server, page):
 
         band = page.get_by_test_id("rs-kpi-band")
         expect(band).to_be_visible()
-        # total: 4 + 5 + 3; buckets: 3 rows; avg per bucket: 12 / 3
+        # total: 4 + 5 + 3; buckets: 3 rows; avg per bucket: 12 / 3;
+        # peak: bob's row (5) is the largest metric value.
         expect(page.get_by_test_id("rs-kpi-total")).to_contain_text("12")
         expect(page.get_by_test_id("rs-kpi-buckets")).to_contain_text("3")
         expect(page.get_by_test_id("rs-kpi-avg")).to_contain_text("4")
+        expect(page.get_by_test_id("rs-kpi-peak")).to_contain_text("5")
+        expect(page.get_by_test_id("rs-kpi-peak")).to_contain_text("bob")
     finally:
         page.evaluate(
             """async (ids) => {

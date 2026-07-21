@@ -1015,17 +1015,31 @@ body.nx-app {
 }
 .reporting-simple-rtitle { margin: 0; font-size: 16px; font-weight: 700; }
 .reporting-simple-ractions { display: flex; gap: 8px; align-items: center; }
-.reporting-simple-cards { display: grid; grid-template-columns: 260px 1fr; gap: 14px; align-items: start; }
-.reporting-simple-cards:has(#rsChartCard[hidden]) { grid-template-columns: 260px; }
-.reporting-simple-chartcard { min-height: 260px; position: relative; }
+/* Task 8 retires .reporting-simple-cards (260px sidebar) in favor of
+   .rs-result-grid (250px) -- rsStatCard/rsKpiBand share the left rail via
+   the new .rs-result-left wrapper, rsChartCard is the sole right item. */
+.rs-result-grid { display: grid; grid-template-columns: 250px 1fr; gap: 14px; align-items: start; }
+.rs-result-grid:has(#rsChartCard[hidden]) { grid-template-columns: 250px; }
+.rs-result-left { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.reporting-simple-chartcard { min-height: 260px; position: relative; border-radius: 14px; }
 .reporting-simple-chartcard canvas { max-height: 320px; }
 .reporting-simple-table { margin-top: 12px; }
 .reporting-simple-chartnote { font-size: 13px; color: var(--nx-text-meta); margin: 0 0 8px; }
 .reporting-simple-close { font-size: 20px; line-height: 1; padding: 2px 8px; }
-.reporting-simple-charttools { position: absolute; top: 10px; right: 10px; display: flex; gap: 4px; z-index: 1; }
-.reporting-chartbtn { border: 1px solid var(--nx-border); background: var(--nx-card); border-radius: 6px; padding: 4px 8px; font-size: 12px; color: var(--nx-text-meta); cursor: pointer; }
-.reporting-chartbtn.is-selected { border-color: var(--nx-accent); color: var(--nx-accent); background: var(--nx-accent-tint); }
-@media (max-width: 800px) { .reporting-simple-cards { grid-template-columns: 1fr; } }
+/* Chart segmented control: same visual language as Task 1's masthead
+   .reporting-tabs/.nx-tab pattern (~L966, untouched) -- padding/border/
+   radius/active-segment repeated here at .reporting-simple-charttools
+   specificity rather than shared. The PNG-download button (no data-type,
+   so it never gets .is-selected) sits outside .rs-chart-track as its own
+   bordered button, right end of the toolbar. */
+.reporting-simple-charttools { position: absolute; top: 10px; right: 10px; z-index: 1; display: flex; align-items: center; gap: 8px; }
+.rs-chart-track { display: flex; gap: 2px; padding: 3px; background: var(--nx-divider); border: 1px solid var(--nx-border); border-radius: 8px; }
+.reporting-chartbtn { border: none; margin: 0; background: transparent; border-radius: 6px; padding: 6px 10px; font-size: 13px; color: var(--nx-text-sec); cursor: pointer; }
+.reporting-chartbtn:hover { color: var(--nx-text); }
+.reporting-chartbtn.is-selected { background: var(--nx-card); color: var(--nx-accent); font-weight: 600; box-shadow: 0 1px 2px rgba(16, 24, 40, .06); }
+#rsChartPng { border: 1px solid var(--nx-border); border-radius: 6px; background: var(--nx-card); color: var(--nx-text-meta); }
+#rsChartPng:hover { color: var(--nx-accent); border-color: var(--nx-border-strong); }
+@media (max-width: 800px) { .rs-result-grid { grid-template-columns: 1fr; } }
 
 /* ============================================================
    Task 5 — wizard header bar, two-column layout, progress rail.
@@ -1444,6 +1458,67 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   font-weight: 600;
   color: var(--rl-ink);
 }
+
+/* Task 8 -- result body left rail: rsStatCard (zero-dimension total) sits
+   at the same 14px radius as the other studio cards. #rsKpiBand itself
+   (breakdown case) is restyled by ID rather than editing the shared
+   .reporting-ledger-kpis/-kpi/-kpi-value rules above, so the Advanced
+   pane's rpKpiBand keeps its flat flex-row band untouched. renderKpiBand
+   (JS partial) nests a gradient total card and a stacked secondary card
+   (Buckets/Avg/Peak) inside #rsKpiBand; those two inner cards are new. */
+.reporting-simple-stat { border-radius: 14px; }
+#rsKpiBand { display: flex; flex-direction: column; gap: 10px; padding: 0; }
+.rs-kpi-total-card {
+  background: var(--nx-brand-grad);
+  color: #fff;
+  border-radius: 14px;
+  box-shadow: 0 12px 28px -10px rgba(79, 70, 229, .5);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.rs-kpi-total-card .reporting-ledger-caption { color: rgba(255, 255, 255, .8); }
+.rs-kpi-total-card .reporting-ledger-kpi-value { color: #fff; font-size: 38px; letter-spacing: -1.5px; }
+.rs-kpi-stats-card {
+  background: var(--nx-card);
+  border: 1px solid var(--nx-border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rs-kpi-stats-card .reporting-ledger-kpi {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 8px;
+}
+.rs-kpi-stats-card .reporting-ledger-kpi-value { font-size: 1rem; }
+/* Peak's bucket label (e.g. the winning breakdown value) -- wraps onto its
+   own row under the caption/value pair, right-aligned to match the value. */
+.reporting-ledger-kpi-sub { flex: 1 0 100%; font-size: .72rem; color: var(--nx-text-meta); text-align: right; }
+
+/* Table card: head row ("Table" + row count + right-aligned drill hint),
+   the table itself, and rsSqlPeek as the card's flush footer (Task 2
+   already restyled .reporting-ledger-sqlpeek's colors/font above -- it is
+   already full-width/border-top/left-aligned/ellipsis, so nothing to
+   duplicate here beyond the card chrome around it). */
+.rs-table-card { margin-top: 14px; border-radius: 14px; }
+.rs-table-card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: 10px;
+}
+.rs-table-card__titlewrap { display: flex; align-items: baseline; gap: 12px; }
+.rs-table-card__title { font-size: 13px; font-weight: 700; color: var(--nx-text); }
+.rs-table-card__count { font-weight: 400; color: var(--nx-text-meta); }
+.rs-table-card__hint { margin: 0; font-size: 12px; color: var(--nx-text-meta); }
 
 /* Persistent query footer (Task 6, L9): one always-rendered element per pane
    (#rsSqlPeek, #rpSqlPeek) under the results, showing the first line of

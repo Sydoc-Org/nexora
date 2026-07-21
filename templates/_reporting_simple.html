@@ -195,32 +195,43 @@
     <p id="rsMsg" class="reporting-ai-explain" hidden data-testid="rs-msg"></p>
     <div id="rsChips" class="reporting-simple-chips" hidden data-testid="rs-chips"></div>
     <p id="rsError" class="reporting-ai-error" hidden data-testid="rs-error"></p>
-    <div id="rsKpiBand" class="reporting-ledger-kpis" hidden data-testid="rs-kpi-band"></div>
-    <div class="reporting-simple-cards">
-      <div class="nx-card nx-card--pad nx-stat reporting-simple-stat" id="rsStatCard" hidden data-testid="rs-stat-card">
-        <div id="rsStatBody">
-          <p class="nx-stat__label" id="rsStatLabel"></p>
-          <div class="nx-stat__value" id="rsStatValue"></div>
+    <div class="rs-result-grid">
+      <div class="rs-result-left">
+        <div class="nx-card nx-card--pad nx-stat reporting-simple-stat" id="rsStatCard" hidden data-testid="rs-stat-card">
+          <div id="rsStatBody">
+            <p class="nx-stat__label" id="rsStatLabel"></p>
+            <div class="nx-stat__value" id="rsStatValue"></div>
+          </div>
+          <i class="fas fa-chart-simple nx-stat__icon" aria-hidden="true"></i>
         </div>
-        <i class="fas fa-chart-simple nx-stat__icon" aria-hidden="true"></i>
+        <div id="rsKpiBand" class="reporting-ledger-kpis" hidden data-testid="rs-kpi-band"></div>
       </div>
       <div class="nx-card nx-card--pad reporting-simple-chartcard" id="rsChartCard" hidden data-testid="rs-chart-card">
         <div class="reporting-simple-charttools" id="rsChartTools" hidden data-testid="rs-chart-tools">
-          <button type="button" class="reporting-chartbtn" data-type="bar" title="{{ _('Bar chart') }}" aria-label="{{ _('Bar chart') }}" data-testid="rs-chart-bar"><i class="fas fa-chart-column" aria-hidden="true"></i></button>
-          <button type="button" class="reporting-chartbtn" data-type="line" title="{{ _('Line chart') }}" aria-label="{{ _('Line chart') }}" data-testid="rs-chart-line"><i class="fas fa-chart-line" aria-hidden="true"></i></button>
-          <button type="button" class="reporting-chartbtn" data-type="stacked" hidden title="{{ _('Stacked bar chart') }}" aria-label="{{ _('Stacked bar chart') }}" data-testid="rs-chart-stacked"><i class="fas fa-layer-group" aria-hidden="true"></i></button>
+          <div class="rs-chart-track">
+            <button type="button" class="reporting-chartbtn" data-type="bar" title="{{ _('Bar chart') }}" aria-label="{{ _('Bar chart') }}" data-testid="rs-chart-bar"><i class="fas fa-chart-column" aria-hidden="true"></i></button>
+            <button type="button" class="reporting-chartbtn" data-type="line" title="{{ _('Line chart') }}" aria-label="{{ _('Line chart') }}" data-testid="rs-chart-line"><i class="fas fa-chart-line" aria-hidden="true"></i></button>
+            <button type="button" class="reporting-chartbtn" data-type="stacked" hidden title="{{ _('Stacked bar chart') }}" aria-label="{{ _('Stacked bar chart') }}" data-testid="rs-chart-stacked"><i class="fas fa-layer-group" aria-hidden="true"></i></button>
+            <button type="button" class="reporting-chartbtn" data-type="pie" title="{{ _('Pie chart') }}" aria-label="{{ _('Pie chart') }}" data-testid="rs-chart-pie"><i class="fas fa-chart-pie" aria-hidden="true"></i></button>
+            <button type="button" class="reporting-chartbtn" data-type="doughnut" title="{{ _('Doughnut chart') }}" aria-label="{{ _('Doughnut chart') }}" data-testid="rs-chart-doughnut"><i class="fas fa-circle-notch" aria-hidden="true"></i></button>
+          </div>
           <button type="button" class="reporting-chartbtn" id="rsChartPng" title="{{ _('Download chart as image') }}" aria-label="{{ _('Download chart as image') }}" data-testid="rs-chart-png"><i class="fas fa-download" aria-hidden="true"></i></button>
-          <button type="button" class="reporting-chartbtn" data-type="pie" title="{{ _('Pie chart') }}" aria-label="{{ _('Pie chart') }}" data-testid="rs-chart-pie"><i class="fas fa-chart-pie" aria-hidden="true"></i></button>
-          <button type="button" class="reporting-chartbtn" data-type="doughnut" title="{{ _('Doughnut chart') }}" aria-label="{{ _('Doughnut chart') }}" data-testid="rs-chart-doughnut"><i class="fas fa-circle-notch" aria-hidden="true"></i></button>
         </div>
         <p id="rsChartNote" class="reporting-simple-chartnote" hidden data-testid="rs-chart-note"></p>
         <canvas id="rsChartCanvas"></canvas>
       </div>
     </div>
-    <button id="rsTableToggle" class="reporting-link" hidden data-testid="rs-table-toggle">{{ _("Show table") }}</button>
-    <div id="rsTableWrap" class="reporting-table-wrap reporting-simple-table" hidden data-testid="rs-table"></div>
-    <button type="button" id="rsSqlPeek" class="reporting-ledger-sqlpeek" hidden data-testid="rs-sql-peek"></button>
-    <p class="reporting-simple-hint" id="rsDrillHint" hidden data-testid="rs-drill-hint">{{ _("Click a row or chart element to see the documents behind it.") }}</p>
+    <div class="nx-card nx-card--pad rs-table-card" data-testid="rs-table-card">
+      <div class="rs-table-card__head">
+        <span class="rs-table-card__titlewrap">
+          <span class="rs-table-card__title">{{ _("Table") }}<span id="rsTableRowCount" class="rs-table-card__count"></span></span>
+          <button id="rsTableToggle" class="reporting-link" hidden data-testid="rs-table-toggle">{{ _("Show table") }}</button>
+        </span>
+        <p class="reporting-simple-hint rs-table-card__hint" id="rsDrillHint" hidden data-testid="rs-drill-hint">{{ _("Click a row or chart element to see the documents behind it.") }}</p>
+      </div>
+      <div id="rsTableWrap" class="reporting-table-wrap reporting-simple-table" hidden data-testid="rs-table"></div>
+      <button type="button" id="rsSqlPeek" class="reporting-ledger-sqlpeek" hidden data-testid="rs-sql-peek"></button>
+    </div>
       <div class="nx-card nx-card--pad reporting-sqlview" id="rsSqlView" hidden data-testid="rs-sql-view">
         <div class="reporting-sqlview-bar">
           <span><i class="fas fa-database" aria-hidden="true"></i>{{ _("Query sent to the database") }}</span>

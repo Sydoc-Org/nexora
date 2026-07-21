@@ -87,6 +87,8 @@
     kpiTotal: {{ _("Total")|tojson }},
     kpiBuckets: {{ _("Buckets")|tojson }},
     kpiAvg: {{ _("Avg per bucket")|tojson }},
+    kpiPeak: {{ _("Peak")|tojson }},
+    tableRowCount: {{ _("{n} rows")|tojson }},
     stepNof4: {{ _("Step {n} of 4")|tojson }},
     wizMeasure: {{ _("Measure")|tojson }},
     wizScope: {{ _("Processes")|tojson }},
@@ -436,6 +438,7 @@
     toggleMoreMenu(false);
     el('rsResultTitle').textContent = (opts && opts.title) || '';
     el('rsResultMeta').textContent = '';
+    el('rsTableRowCount').textContent = '';
     el('rsMsg').hidden = true;
     el('rsSaveName').hidden = true;
     el('rsError').textContent = msg;
@@ -478,8 +481,9 @@
   // Masthead timing badge, shared with _reporting_js.html's own showTiming
   // (same #reportingTiming element, same "N rows · M ms" shape). Hidden until
   // the first successful run in either pane. #rsResultMeta (Task 7) renders
-  // the same rowCount/ms values inline under the result title — no separate
-  // computation, just a second format of the same two numbers.
+  // the same rowCount/ms values inline under the result title, and the
+  // table card's head row (Task 8) renders the row count a third time —
+  // no separate computation, just further formats of the same rowsTxt.
   function showTiming(rows, elapsedMs) {
     var rowsTxt = String(rows == null ? 0 : rows);
     var msTxt = String(Math.round(elapsedMs));
@@ -493,6 +497,8 @@
       meta.textContent = I18N.resultMeta
         .replace('{rows}', rowsTxt).replace('{ms}', msTxt).replace('{when}', I18N.runJustNow);
     }
+    var tableCount = el('rsTableRowCount');
+    if (tableCount) tableCount.textContent = ' · ' + I18N.tableRowCount.replace('{n}', rowsTxt);
   }
 
   // Same numeric check fmtNumber uses (Number(v) + isNaN), guarded against
@@ -511,6 +517,10 @@
   // treated as the measure (every row's value must be finite); hidden when
   // there are no rows or no such column. Mirrored in _reporting_js.html's
   // own computeKpiBand/renderKpiBand for the Advanced grid.
+  // Peak: the single row with the largest metric value -- its leading
+  // dimension column(s) become the label (e.g. "bob" for a per-user
+  // breakdown). Zero-dimension runs (dims === 0, the grand-total-only
+  // case) have no bucket to label, so peakLabel is just left blank.
   function computeKpiBand(dims, rows) {
     if (!rows.length) return null;
     var idx = -1;
@@ -518,10 +528,16 @@
       if (rows.every(function (r) { return isNumericCell(r[i]); })) { idx = i; break; }
     }
     if (idx === -1) return null;
-    var total = 0;
-    rows.forEach(function (r) { total += Number(r[idx]); });
+    var total = 0, peak = -Infinity, peakRow = rows[0];
+    rows.forEach(function (r) {
+      var v = Number(r[idx]);
+      total += v;
+      if (v > peak) { peak = v; peakRow = r; }
+    });
     var buckets = rows.length;
-    return { total: total, buckets: buckets, avg: buckets ? total / buckets : 0 };
+    var peakLabel = dims ? Array.prototype.slice.call(peakRow, 0, dims).map(String).join(' · ') : '';
+    return { total: total, buckets: buckets, avg: buckets ? total / buckets : 0,
+             peak: peak, peakLabel: peakLabel };
   }
 
   function kpiBlock(testid, caption, value) {
@@ -530,14 +546,40 @@
       '<span class="reporting-ledger-kpi-value">' + fmtNumber(value) + '</span></div>';
   }
 
+  // Peak row additionally carries the winning bucket's label under the
+  // value (omitted for the zero-dimension case, where there is none).
+  function kpiPeakBlock(testid, caption, label, value) {
+    return '<div class="reporting-ledger-kpi" id="rsKpiPeak" data-testid="' + testid + '">' +
+      '<span class="reporting-ledger-caption">' + esc(caption) + '</span>' +
+      '<span class="reporting-ledger-kpi-value">' + fmtNumber(value) + '</span>' +
+      (label ? '<span class="reporting-ledger-kpi-sub">' + esc(label) + '</span>' : '') +
+      '</div>';
+  }
+
+  // Left-rail layout (studio result body): the primary total renders into
+  // its own gradient card, the secondary Buckets/Avg/Peak rows stack into a
+  // second card below it -- both inside the one #rsKpiBand container that
+  // computeKpiBand already owned (see the CSS for the ID-scoped override
+  // that turns the Advanced pane's shared flat .reporting-ledger-kpis row
+  // into this stacked pair for Simple only). A breakdown run also keeps
+  // showing the legacy rsStatCard (filled by runCurrent's separate
+  // grand-total clone query, untouched here) alongside this band --
+  // existing, tested behavior (test_wizard_category_breakdown_to_result_cards)
+  // that this task's regroup does not change.
   function renderKpiBand(dims, rows) {
     var band = el('rsKpiBand');
     var kpi = computeKpiBand(dims, rows);
     if (!kpi) { band.hidden = true; band.innerHTML = ''; return; }
     band.innerHTML =
-      kpiBlock('rs-kpi-total', I18N.kpiTotal, kpi.total) +
-      kpiBlock('rs-kpi-buckets', I18N.kpiBuckets, kpi.buckets) +
-      kpiBlock('rs-kpi-avg', I18N.kpiAvg, kpi.avg);
+      '<div class="rs-kpi-total-card" data-testid="rs-kpi-total">' +
+        '<span class="reporting-ledger-caption">' + esc(I18N.kpiTotal) + '</span>' +
+        '<span class="reporting-ledger-kpi-value">' + fmtNumber(kpi.total) + '</span>' +
+      '</div>' +
+      '<div class="rs-kpi-stats-card">' +
+        kpiBlock('rs-kpi-buckets', I18N.kpiBuckets, kpi.buckets) +
+        kpiBlock('rs-kpi-avg', I18N.kpiAvg, kpi.avg) +
+        kpiPeakBlock('rs-kpi-peak', I18N.kpiPeak, kpi.peakLabel, kpi.peak) +
+      '</div>';
     band.hidden = false;
   }
 
