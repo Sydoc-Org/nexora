@@ -82,6 +82,8 @@
     chipCoverage: {{ _("Only {n} of {m} selected processes provide this field — documents from the other processes show an empty value here. Provided by:")|tojson }},
     measureCoverage: {{ _("Only {n} of {m} processes provide this field — the measure only counts documents from these processes:")|tojson }},
     timingBadge: {{ _("{rows} rows · {ms} ms")|tojson }},
+    resultMeta: {{ _("{rows} rows · {ms} ms · {when}")|tojson }},
+    runJustNow: {{ _("run just now")|tojson }},
     kpiTotal: {{ _("Total")|tojson }},
     kpiBuckets: {{ _("Buckets")|tojson }},
     kpiAvg: {{ _("Avg per bucket")|tojson }},
@@ -165,6 +167,7 @@
     if (view !== 'result') {
       destroyChart();
       hideTimingBadge();
+      toggleMoreMenu(false);
     }
   }
 
@@ -175,6 +178,20 @@
     if (!(window.ReportingTabs && window.ReportingTabs.current() === 'simple')) return;
     var timing = el('reportingTiming');
     if (timing) timing.hidden = true;
+  }
+
+  // Result-header ⋯ overflow menu (Task 7) — same open/close idiom as the
+  // Advanced tab's process-scope dropdown (toggleScopeMenu/#rpScopeMenu in
+  // _reporting_js.html): hidden flag on the menu, aria-expanded on the
+  // trigger. Click-to-toggle, outside-click and Escape wiring live at the
+  // bottom of this file, next to the other header button bindings.
+  function toggleMoreMenu(open) {
+    var menu = el('rsMoreMenu');
+    var btn = el('rsMore');
+    if (!menu || !btn) return;
+    var willOpen = (open === undefined) ? menu.hidden : open;
+    menu.hidden = !willOpen;
+    btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
   }
 
   function destroyChart() {
@@ -416,7 +433,9 @@
     if (el('rsChips')) el('rsChips').hidden = true;
     setView('result');
     hideTimingBadge();
+    toggleMoreMenu(false);
     el('rsResultTitle').textContent = (opts && opts.title) || '';
+    el('rsResultMeta').textContent = '';
     el('rsMsg').hidden = true;
     el('rsSaveName').hidden = true;
     el('rsError').textContent = msg;
@@ -458,14 +477,22 @@
 
   // Masthead timing badge, shared with _reporting_js.html's own showTiming
   // (same #reportingTiming element, same "N rows · M ms" shape). Hidden until
-  // the first successful run in either pane.
+  // the first successful run in either pane. #rsResultMeta (Task 7) renders
+  // the same rowCount/ms values inline under the result title — no separate
+  // computation, just a second format of the same two numbers.
   function showTiming(rows, elapsedMs) {
+    var rowsTxt = String(rows == null ? 0 : rows);
+    var msTxt = String(Math.round(elapsedMs));
     var badge = document.getElementById('reportingTiming');
-    if (!badge) return;
-    badge.textContent = I18N.timingBadge
-      .replace('{rows}', String(rows == null ? 0 : rows))
-      .replace('{ms}', String(Math.round(elapsedMs)));
-    badge.hidden = false;
+    if (badge) {
+      badge.textContent = I18N.timingBadge.replace('{rows}', rowsTxt).replace('{ms}', msTxt);
+      badge.hidden = false;
+    }
+    var meta = el('rsResultMeta');
+    if (meta) {
+      meta.textContent = I18N.resultMeta
+        .replace('{rows}', rowsTxt).replace('{ms}', msTxt).replace('{when}', I18N.runJustNow);
+    }
   }
 
   // Same numeric check fmtNumber uses (Number(v) + isNaN), guarded against
@@ -1113,8 +1140,10 @@
   function showAiLoading() {
     setView('result');
     el('rsResultTitle').textContent = '';
+    el('rsResultMeta').textContent = '';
     el('rsError').hidden = true;
     renderErrorOpenAdvanced(false);
+    toggleMoreMenu(false);
     setHeaderActionsEnabled(false);
     el('rsMsg').hidden = true;
     el('rsSaveName').hidden = true;
@@ -1165,6 +1194,7 @@
     setView('result');
     el('rsError').hidden = true;
     renderErrorOpenAdvanced(false);
+    toggleMoreMenu(false);
     el('rsMsg').hidden = true;
     el('rsResultTitle').textContent = cur.name || cur.def.title || '';
     if (cur.aiExplanation !== undefined) {
@@ -1363,16 +1393,23 @@
     }).catch(function () { /* clipboard unavailable (non-HTTPS / unfocused) */ });
   });
 
+  // Reveal the inline rename/save-name input (Task 7's pencil icon and the
+  // first click of Save both land here — one rename path, two entry points).
+  function revealSaveNameInput() {
+    if (!state.current) return;  // error view without a loaded report
+    var nameInput = el('rsSaveName');
+    nameInput.hidden = false;
+    nameInput.value = state.current.name || state.current.def.title || '';
+    nameInput.focus();
+  }
+
+  el('rsRenamePencil').addEventListener('click', revealSaveNameInput);
+
   // Save: always a NEW row (inline name input, no window.prompt).
   el('rsSave').addEventListener('click', async function () {
     if (!state.current) return;  // error view without a loaded report
     var nameInput = el('rsSaveName');
-    if (nameInput.hidden) {
-      nameInput.hidden = false;
-      nameInput.value = state.current.name || state.current.def.title || '';
-      nameInput.focus();
-      return;
-    }
+    if (nameInput.hidden) { revealSaveNameInput(); return; }
     var name = nameInput.value.trim();
     if (!name) return;
     var res = await api('/api/reporting/reports', {
@@ -1393,6 +1430,21 @@
   // shares mutate shared reports in place; a null id makes Advanced's Save
   // default to create-a-copy.
   el('rsAdjustWizard').addEventListener('click', adjustInWizard);
+
+  // ⋯ overflow menu: toggle on the button, close on Escape or an outside
+  // click — same idiom as the Advanced tab's process-scope dropdown
+  // (rpScopeBtn/#rpScopeWrap wiring at the bottom of _reporting_js.html).
+  var rsMoreBtn = el('rsMore');
+  if (rsMoreBtn) {
+    rsMoreBtn.addEventListener('click', function (e) { e.stopPropagation(); toggleMoreMenu(); });
+    document.addEventListener('click', function (e) {
+      var wrap = el('rsMoreWrap');
+      if (wrap && !wrap.contains(e.target)) toggleMoreMenu(false);
+    });
+    el('rsMoreWrap').addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { toggleMoreMenu(false); rsMoreBtn.focus(); }
+    });
+  }
 
   el('rsOpenAdvanced').addEventListener('click', function () {
     var cur = state.current;

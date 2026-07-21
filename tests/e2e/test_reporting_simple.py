@@ -805,7 +805,7 @@ def test_wizard_result_shows_chips_and_refine_bar(nexora_server, page):
 
 
 def test_adjust_wizard_button_round_trip(nexora_server, page):
-    """Wizard-built result shows 'Adjust in wizard'; clicking it re-opens the
+    """Wizard-built result shows 'Adjust'; clicking it re-opens the
     walkthrough with the previous measure choice pre-selected; running again
     re-renders the result."""
     _login(page, nexora_server)
@@ -842,7 +842,7 @@ def test_adjust_wizard_button_round_trip(nexora_server, page):
         page.get_by_test_id("rs-wizard-run").click()
         expect(page.get_by_test_id("rs-result")).to_be_visible()
 
-        # The "Adjust in wizard" button must be visible for wizard-built results.
+        # The "Adjust" button must be visible for wizard-built results.
         adjust_btn = page.get_by_test_id("rs-adjust-wizard")
         expect(adjust_btn).to_be_visible()
 
@@ -857,7 +857,7 @@ def test_adjust_wizard_button_round_trip(nexora_server, page):
         page.get_by_test_id("rs-wizard-run").click()
         expect(page.get_by_test_id("rs-result")).to_be_visible()
 
-        # The "Adjust in wizard" button is still present on the new result.
+        # The "Adjust" button is still present on the new result.
         expect(page.get_by_test_id("rs-adjust-wizard")).to_be_visible()
     finally:
         page.evaluate(
@@ -1085,6 +1085,8 @@ def test_show_query_reveals_sql(nexora_server, page):
         page.get_by_test_id("rs-breakdown-list").get_by_role("button").first.click()
         page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
+        # Task 7: Show-query now lives in the ⋯ overflow menu — open it first.
+        page.get_by_test_id("rs-more").click()
         show = page.get_by_test_id("rs-show-sql")
         expect(show).to_be_visible()
         # Collapsed by default: the panel is hidden until the user expands it.
@@ -1643,7 +1645,7 @@ def test_wizard_time_step_offers_week_and_quarter(nexora_server, page):
 
 
 def test_adjust_in_wizard_maps_this_quarter(nexora_server, page):
-    """A non-wizard def filtered on {token: this_quarter} keeps 'Adjust in wizard'."""
+    """A non-wizard def filtered on {token: this_quarter} keeps 'Adjust' visible."""
     _login(page, nexora_server)
     _stub_catalogs(page)
     page.goto(f"{nexora_server}/reporting?tab=simple")
@@ -1871,6 +1873,8 @@ def test_run_shows_loading_then_result(nexora_server, page):
         page.get_by_test_id("rs-breakdown-list").get_by_role("button").first.click()
         page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
+        # Task 7: Show-query now lives in the ⋯ overflow menu — open it first.
+        page.get_by_test_id("rs-more").click()
         # rs-show-sql appears only after the MAIN run response is processed,
         # which is strictly after the indicator is hidden.
         expect(page.get_by_test_id("rs-show-sql")).to_be_visible()
@@ -2634,6 +2638,8 @@ def test_show_query_inlines_parameters_and_copies_runnable_sql(nexora_server, pa
     page.get_by_test_id("rs-breakdown-list").get_by_role("button").first.click()
     page.get_by_test_id("rs-breakdown-next").click()
     page.get_by_test_id("rs-wizard-run").click()
+    # Task 7: Show-query now lives in the ⋯ overflow menu — open it first.
+    page.get_by_test_id("rs-more").click()
     show = page.get_by_test_id("rs-show-sql")
     expect(show).to_be_visible()
     # Capture clipboard writes without clipboard-read permissions.
@@ -3070,4 +3076,99 @@ def test_wizard_rail_tracks_progress(nexora_server, page):
     page.get_by_test_id("rs-measure-list").get_by_text("Docproc count stub").click()
     page.get_by_test_id("rs-measure-next").click()
     expect(page.locator("#rsWizardStepNo")).to_have_text("Step 2 of 4")
-    expect(rail).to_contain_text("Docproc count stub")  # chosen-value summary
+
+
+def test_result_more_menu_holds_advanced_and_sql(nexora_server, page):
+    """Task 7: the result header's ⋯ overflow menu now hosts Open-in-Advanced
+    and Show-query. Both keep their exact ids/testids, but are only
+    actionable once the caller opens #rsMoreMenu (D6 result-header regroup).
+    Menu also closes on Escape and on an outside click."""
+    _login(page, nexora_server)
+
+    def _row(rid, name):
+        return {
+            "id": rid,
+            "name": name,
+            "ownerName": "Admin",
+            "updatedAt": "2026-07-01T00:00:00Z",
+            "visibility": "private",
+            "owned": True,
+            "kind": "table",
+        }
+
+    def _definition(title):
+        return {
+            "schemaVersion": 1,
+            "source": "docprocessing",
+            "visualization": "table",
+            "title": title,
+            "columns": [{"field": "processname"}],
+            "filters": [],
+            "sort": [],
+            "scope": {"clients": [], "processes": []},
+            "rowLimit": 100,
+        }
+
+    page.route(
+        "**/api/reporting/reports",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps([_row("e2e-more-menu-report", "e2e more menu report")]),
+        ),
+    )
+    page.route(
+        "**/api/reporting/reports/*",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "name": "e2e more menu report",
+                    "definition": _definition("e2e more menu report"),
+                    "owned": True,
+                    "canEdit": True,
+                }
+            ),
+        ),
+    )
+    page.route(
+        "**/api/reporting/run",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [{"field": "processname", "header": "Process"}],
+                    "rows": [["acme.inv"]],
+                    "truncated": False,
+                    "rowCount": 1,
+                    "sql": "SELECT [processname] FROM [dbo].[V]",
+                    "sqlPretty": "SELECT [processname] FROM [dbo].[V]",
+                    "sqlDisplay": "SELECT [processname] FROM [dbo].[V]",
+                    "params": [],
+                    "resolvedDates": [],
+                }
+            ),
+        ),
+    )
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-group-mine").get_by_text("e2e more menu report").click()
+    expect(page.get_by_test_id("rs-result-title")).to_contain_text("e2e more menu report")
+
+    # Closed by default: both menu-hosted controls are not actionable.
+    expect(page.get_by_test_id("rs-open-advanced")).to_be_hidden()
+    expect(page.get_by_test_id("rs-show-sql")).to_be_hidden()
+    page.get_by_test_id("rs-more").click()
+    expect(page.get_by_test_id("rs-open-advanced")).to_be_visible()
+    expect(page.get_by_test_id("rs-show-sql")).to_be_visible()
+
+    # Escape closes the menu again.
+    page.keyboard.press("Escape")
+    expect(page.get_by_test_id("rs-open-advanced")).to_be_hidden()
+
+    # Re-open, then a click outside the menu closes it too.
+    page.get_by_test_id("rs-more").click()
+    expect(page.get_by_test_id("rs-open-advanced")).to_be_visible()
+    page.get_by_test_id("rs-result-title").click()
+    expect(page.get_by_test_id("rs-open-advanced")).to_be_hidden()

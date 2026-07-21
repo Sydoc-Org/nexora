@@ -1008,8 +1008,12 @@ body.nx-app {
 }
 /* Measure chips of a non-pinned source (multi-measure is single-source). */
 .reporting-simple-choice:disabled { opacity: .45; cursor: not-allowed; }
-.reporting-simple-resultbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
-.reporting-simple-rtitle { margin: 0; font-size: 16px; flex: 1; }
+.reporting-simple-resultbar {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  background: var(--nx-card); border: 1px solid var(--nx-border); border-radius: 12px;
+  padding: 14px 20px; margin-bottom: 14px;
+}
+.reporting-simple-rtitle { margin: 0; font-size: 16px; font-weight: 700; }
 .reporting-simple-ractions { display: flex; gap: 8px; align-items: center; }
 .reporting-simple-cards { display: grid; grid-template-columns: 260px 1fr; gap: 14px; align-items: start; }
 .reporting-simple-cards:has(#rsChartCard[hidden]) { grid-template-columns: 260px; }
@@ -1123,6 +1127,60 @@ body.nx-app {
 @media (prefers-reduced-motion: reduce) {
   .reporting-simple-step:not([hidden]) { animation: none; }
 }
+
+/* ============================================================
+   Task 7 -- result header regroup: inline-editable title + meta line,
+   unified Export group, gradient Save (reuses .nx-btn--primary as-is --
+   its existing box-shadow already matches spec), and the new ⋯ overflow
+   menu hosting the unchanged rsOpenAdvanced/rsShowSql buttons. The bar
+   itself becomes a white band (background/border/radius added above on
+   .reporting-simple-resultbar); this block covers everything new.
+   ============================================================ */
+.rs-result-titleblock { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rs-result-titlerow { display: flex; align-items: center; gap: 6px; }
+.rs-result-spacer { flex: 1; }
+.rs-result-meta { margin: 0; font-size: 11px; color: var(--nx-text-meta); }
+.rs-rename-pencil {
+  background: none; border: none; padding: 2px 4px; margin: 0;
+  font-size: 12px; line-height: 1; color: var(--nx-text-meta); cursor: pointer;
+}
+.rs-rename-pencil:hover { color: var(--nx-accent); }
+.rs-rename-input { font-size: 16px; font-weight: 700; padding: 4px 8px; max-width: 320px; }
+/* Renaming swaps the input in for the title + pencil, in place -- no second
+   rename path, just CSS keyed on the existing rsSaveName hidden flag. */
+.rs-result-titlerow:has(#rsSaveName:not([hidden])) #rsResultTitle,
+.rs-result-titlerow:has(#rsSaveName:not([hidden])) .rs-rename-pencil { display: none; }
+
+/* Export group: format select + Export button rendered as one bordered
+   control (⌄ appended via ::after, same idiom as .rs-wizard-footer's → on
+   Continue -- no new translated string needed for the caret). */
+.rs-export-group {
+  display: flex; align-items: stretch;
+  border: 1px solid var(--nx-border-strong); border-radius: var(--nx-radius-sm);
+  overflow: hidden;
+}
+.rs-export-group #rsExportFormat { border: none; border-radius: 0; border-right: 1px solid var(--nx-border); }
+.rs-export-group #rsExport { border: none; border-radius: 0; }
+.rs-export-group #rsExport::after { content: "\25BE"; margin-left: 6px; font-size: 10px; }
+
+/* ⋯ overflow menu -- same open/close idiom as the Advanced tab's process
+   scope dropdown (toggleScopeMenu/#rpScopeMenu in _reporting_js.html):
+   absolutely-positioned card, aria-expanded on the trigger, outside-click
+   + Escape close (see the JS partial). */
+.rs-more-wrap { position: relative; }
+.rs-more-menu {
+  position: absolute; z-index: 30; top: 100%; right: 0; margin-top: 6px;
+  min-width: 180px; padding: 6px;
+  background: var(--nx-card); border: 1px solid var(--nx-border);
+  border-radius: 10px; box-shadow: var(--nx-shadow-pop);
+}
+.rs-more-row {
+  display: block; width: 100%; text-align: left;
+  background: none; border: none; border-radius: 6px;
+  padding: 8px 10px; font: 500 13px var(--nx-font); color: var(--nx-text);
+  cursor: pointer;
+}
+.rs-more-row:hover { background: var(--nx-accent-tint); }
 
 /* AI thinking indicator (Simple pane) */
 .reporting-ai-loading {
