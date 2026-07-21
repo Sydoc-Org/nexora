@@ -361,7 +361,7 @@ Work toward 2.5.64.
 - Dashboard: four legacy KPI endpoints checked only for a logged-in session, missing
   the `dashboard.view` gate present on every sibling route.
 - Auth: 2FA verification had no rate limit, allowing unlimited brute-force attempts
-  against the 6-digit TOTP code; `/init_2fa` and `/verify_2fa` are now limited to 10
+  against the 6-digit TOTP code; `/init_2fa` and `/verify_2fa` are now limited to 30
   attempts per hour.
 - Auth: only the 2FA-enabled login branch cleared the session before starting a new
   pre-auth flow, so a prior user's session keys could survive into another user's

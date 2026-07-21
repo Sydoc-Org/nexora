@@ -218,7 +218,7 @@ def send_reset_email(email):
         return False
 
 
-@limiter.limit("10 per hour")
+@limiter.limit("30 per hour")
 def init_2fa():
     if "pre_2fa_userid" not in session:
         return redirect(url_for("login"))
@@ -308,7 +308,7 @@ def init_2fa():
             return redirect(url_for("init_2FA"))
 
 
-@limiter.limit("10 per hour")
+@limiter.limit("30 per hour")
 def verify_2fa():
     if "pre_2fa_userid" not in session:
         return redirect(url_for("login"))
