@@ -167,6 +167,11 @@ Work toward 2.5.64.
   users without `workitems.details.add.comment`.
 - Workitems: the MS02 personal-number (PID) stamped onto list rows now respects
   the sensitive doc-field gate instead of being attached unconditionally.
+- Auth: `/request-password-reset` returned a different message for a
+  registered email (success) vs. an unregistered one (`"Invalid Email
+  Address"`), letting a caller enumerate valid accounts. Both branches now
+  return the same neutral message; `send_reset_email()` is still only called
+  when the row actually exists, so mail is unaffected.
 
 ### Fixed
 

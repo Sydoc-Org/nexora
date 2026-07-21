@@ -614,15 +614,17 @@ def request_password_reset():
         cursor.execute("SELECT * FROM Users WHERE Email = ?", (request_email,))
         rows = cursor.fetchone()
 
+        # D8: always return the same neutral message regardless of whether the
+        # email belongs to a registered account — differing responses let a
+        # caller enumerate valid accounts. send_reset_email() itself stays
+        # gated on the row actually existing, so mail is only ever sent to a
+        # real, registered address.
         if rows:
-            sendreset = send_reset_email(request_email)
-            if sendreset:
-                return render_template(
-                    "forgot_password.html",
-                    message=_("A password reset link has been sent to your email"),
-                )
-            return render_template("forgot_password.html", error=_("Unexpected error occurred"))
-        return render_template("forgot_password.html", error=_("Invalid Email Address"))
+            send_reset_email(request_email)
+        return render_template(
+            "forgot_password.html",
+            message=_("If that email is registered, a reset link has been sent."),
+        )
     except Exception as e:
         print(e)
         return render_template("forgot_password.html", error=_("Unexpected error occurred"))

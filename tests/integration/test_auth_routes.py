@@ -198,7 +198,8 @@ def test_set_new_password_too_short(client):
 
 
 def test_request_password_reset_unknown_email(client):
-    """Unknown email → re-render forgot_password.html with error."""
+    """Unknown email → re-render forgot_password.html with the neutral message
+    (D8: no "Invalid Email Address" — that would leak account existence)."""
     resp = client.post("/request-password-reset", data={"email": "nobody@nowhere.local"})
     assert resp.status_code == 200
     assert b"forgot" in resp.data.lower() or b"email" in resp.data.lower()
@@ -214,6 +215,31 @@ def test_request_password_reset_known_email_send_mocked(client):
     with patch("nx_lib.views.auth.requests.post", fake_post):
         resp = client.post("/request-password-reset", data={"email": "admin@test.local"})
     assert resp.status_code == 200
+
+
+def test_request_password_reset_known_and_unknown_email_same_response(client):
+    """D8/Task 9 (user enumeration): the response must not reveal whether the
+    submitted email belongs to a registered account. Known and unknown emails
+    must get byte-identical status + body; only send_reset_email() may still
+    branch on the row actually existing."""
+    fake_post = MagicMock()
+    fake_post.return_value.json.return_value = {"access_token": "fake"}
+    fake_post.return_value.text = ""
+    fake_post.return_value.ok = True
+    fake_post.return_value.status_code = 200
+    with patch("nx_lib.views.auth.requests.post", fake_post) as mock_post:
+        known_resp = client.post("/request-password-reset", data={"email": "admin@test.local"})
+        known_call_count = mock_post.call_count
+        unknown_resp = client.post(
+            "/request-password-reset", data={"email": "nobody@nowhere.local"}
+        )
+        unknown_call_count = mock_post.call_count - known_call_count
+
+    assert known_resp.status_code == unknown_resp.status_code == 200
+    assert known_resp.data == unknown_resp.data
+    # Mail must still only be attempted for the real account.
+    assert known_call_count > 0
+    assert unknown_call_count == 0
 
 
 def test_login_rate_limit_eventually_429(client, reset_limiter):
