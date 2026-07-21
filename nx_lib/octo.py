@@ -134,6 +134,16 @@ def get_extensions_urls_fields(workitemdata, document_id, domain=None, with_tabl
     urls = []
     extensions = []
     fields = {}
+    # Per-leaf-item count of PDF-expanded page slots, in the same order as
+    # items_to_process / items_of(doc_json) below. field_locations.py and
+    # table_locations.py are deliberately I/O-free (see their module
+    # docstrings), so the real PDF page counting -- fetch + pypdfium2, done
+    # once per PDF medium in the loop below -- happens here and gets threaded
+    # into extract_field_locations/extract_table_locations as pre-computed
+    # data, instead of those pure modules re-deriving it (or silently treating
+    # PDFs as 0-page media, which used to undercount the offset for any leaf
+    # item after a PDF in a mixed PDF+image container).
+    pdf_page_counts = []
 
     field_mapping = get_index_field_mappings()
 
@@ -145,6 +155,7 @@ def get_extensions_urls_fields(workitemdata, document_id, domain=None, with_tabl
 
     for item in items_to_process:
         media_list = item.get("Media") or []
+        item_pdf_pages = 0
         for media in media_list:
             ext = str(media.get("Extension", "")).lower()
             raw_url = media.get("Url")
@@ -166,6 +177,8 @@ def get_extensions_urls_fields(workitemdata, document_id, domain=None, with_tabl
                 for p in range(n_pages):
                     urls.append(f"{url}#page={p}")
                     extensions.append(".pdf")
+                item_pdf_pages += n_pages
+        pdf_page_counts.append(item_pdf_pages)
 
         index_fields = item.get("IndexFields") or []
         for field_obj in index_fields:
@@ -176,8 +189,8 @@ def get_extensions_urls_fields(workitemdata, document_id, domain=None, with_tabl
                 if target_key not in fields and field_value is not None:
                     fields[target_key] = field_value
 
-    field_sources = extract_field_locations(doc_json, field_mapping)
-    table_sources = extract_table_locations(doc_json) if with_tables else []
+    field_sources = extract_field_locations(doc_json, field_mapping, pdf_page_counts)
+    table_sources = extract_table_locations(doc_json, pdf_page_counts) if with_tables else []
     return extensions, urls, fields, field_sources, table_sources
 
 

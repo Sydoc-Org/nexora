@@ -412,6 +412,70 @@ def test_get_extensions_urls_fields_with_tables_parses_tables(app):
     assert cell["locations"][0]["page"] == 0
 
 
+def test_get_extensions_urls_fields_pdf_pages_offset_later_field(app):
+    """Mixed PDF + image container: child0 is a PDF (expands to N pages via
+    real I/O), child1 is an image with a mapped field. The field's page must
+    account for child0's expanded PDF pages, not silently treat the PDF as 0
+    pages (the bug: 'Show sources' highlighted the wrong page for later
+    leaves in a mixed PDF+image container)."""
+    fake_resp = MagicMock()
+    fake_resp.raise_for_status.return_value = None
+    fake_resp.json.return_value = {
+        "DocumentType": "Batch",
+        "ChildDocuments": [
+            {
+                "Media": [{"Url": "https://cdn.sydoc.ch/a.pdf", "Extension": ".pdf"}],
+                "IndexFields": [],
+            },
+            {
+                "Media": [{"Url": "https://cdn.sydoc.ch/b.jpg", "Extension": ".jpg"}],
+                "IndexFields": [
+                    {
+                        "Name": "Invoice_Date",
+                        "FieldValue": {"Text": "2026-06-01"},
+                        "Location": {
+                            "PageIndex": 0,
+                            "Rectangle": {
+                                "Left": 1,
+                                "Top": 1,
+                                "Width": 5,
+                                "Height": 5,
+                            },
+                        },
+                    }
+                ],
+            },
+        ],
+    }
+    with (
+        patch.object(octo_mod, "get_access_token", return_value="tok"),
+        patch.object(octo_mod.requests, "get", return_value=fake_resp),
+        patch.object(
+            octo_mod, "get_index_field_mappings", return_value={"Invoice_Date": "invoice_date"}
+        ),
+        patch.object(octo_mod, "pdf_src_bytes", return_value=b"%PDF-fake"),
+        patch.object(octo_mod, "pdf_page_count", return_value=3),
+        app.app_context(),
+    ):
+        extensions, urls, fields, field_sources, table_sources = get_extensions_urls_fields(
+            "wid", "doc-mixed"
+        )
+
+    # 3 PDF page slots + 1 image slot
+    assert extensions == [".pdf", ".pdf", ".pdf", ".jpg"]
+    assert len(urls) == 4
+    # The field lives on child1 (page index 0 locally) -> global page 3, after
+    # the 3 PDF page slots contributed by child0.
+    assert field_sources == [
+        {
+            "key": "invoice_date",
+            "label": "invoice_date",
+            "value": "2026-06-01",
+            "locations": [{"page": 3, "rect": {"left": 1, "top": 1, "width": 5, "height": 5}}],
+        }
+    ]
+
+
 # ---------- get_media ----------
 
 
