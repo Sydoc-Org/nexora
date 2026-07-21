@@ -219,6 +219,23 @@ def test_get_bexio_invoice_pdf_missing_fields(monkeypatch, app):
     assert content is None and name is None
 
 
+def test_get_allowed_client_details_db_failure_returns_empty(monkeypatch, app):
+    """If raw_connection() raises before conn/cursor are assigned, the
+    finally block must not crash with UnboundLocalError - it should degrade
+    to [] like the function's except branch intends (Task 18)."""
+    from nx_lib.views.invoices import get_allowed_client_details
+
+    with (
+        app.test_request_context("/"),
+        patch(
+            "nx_lib.views.invoices.engine_nexora_db.raw_connection",
+            side_effect=RuntimeError("db down"),
+        ),
+    ):
+        out = get_allowed_client_details()
+    assert out == []
+
+
 def test_get_bexio_invoice_pdf_http_error(monkeypatch, app):
     import requests as _requests
 

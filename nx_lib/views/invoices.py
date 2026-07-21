@@ -26,6 +26,8 @@ from ..security import PermissionDenied, has_permission, page_visibility, requir
 
 
 def get_allowed_client_details():
+    conn = None
+    cursor = None
     try:
         perms = session.get("permissions", [])
         prefix = "invoices.view."
