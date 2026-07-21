@@ -1594,7 +1594,7 @@ def api_recent_activity():
 
         activity = []
         for row in raw_rows:
-            domain = get_domain_for_workitem(row["id"])
+            domain = get_domain_for_workitem(row["id"], client_hint=row.get("client"))
             workitemdata, doc_id = get_workitemdata_param(row["id"], domain)
             _ext, _urls, fields, _fs, _ts = get_extensions_urls_fields(workitemdata, doc_id, domain)
             fields = {k: v for k, v in fields.items() if v}

@@ -30,6 +30,7 @@ Routes covered:
 - GET  /api/dashboard/recent_activity        early-empty (returns [])
 """
 
+from datetime import datetime
 from unittest.mock import MagicMock
 
 import nx_lib.hooks
@@ -200,6 +201,54 @@ def test_recent_activity_authed_returns_empty_list(user_client):
     resp = user_client.get("/api/dashboard/recent_activity")
     assert resp.status_code == 200
     assert resp.get_json() == []
+
+
+# --------------------- colliding-id rows must carry their client (D9) ------- #
+# recent_activity_rows() (nx_lib/workitem_sources.py) already puts `client` on
+# every row it returns. A colliding id (e.g. 1216 exists in both the default
+# Octo client and MS02) is only resolvable to the RIGHT client if that hint is
+# forwarded to get_domain_for_workitem — discarding it re-probes/defaults and
+# can surface the wrong client's fields. cache.clear() first: SimpleCache is
+# process-global and keyed by (userid, process_name_dashboard), same trap the
+# section below documents.
+
+
+def test_recent_activity_forwards_row_client_as_hint(user_client, monkeypatch):
+    """A row for a colliding id carries client='ms02' — that must reach
+    get_domain_for_workitem as client_hint, not be silently dropped."""
+    cache.clear()
+    monkeypatch.setattr(
+        nx_lib.hooks,
+        "load_permissions_for_user",
+        lambda uid: ["dashboard.view", "dashboard.filter.process.ms02.TestProc"],
+    )
+    monkeypatch.setattr(dv, "get_activity_instances_to_ignore", lambda: "")
+
+    row = {
+        "id": 1216,
+        "modifiedat": datetime(2026, 7, 20, 9, 30),
+        "process": "TestProc",
+        "client": "ms02",
+    }
+    monkeypatch.setattr(dv, "recent_activity_rows", lambda *a, **k: [row])
+
+    calls = []
+
+    def fake_get_domain(workitem_id, client_hint=None):
+        calls.append((workitem_id, client_hint))
+        return "ms02-domain.example.com"
+
+    monkeypatch.setattr(dv, "get_domain_for_workitem", fake_get_domain)
+    monkeypatch.setattr(dv, "get_workitemdata_param", lambda wid, domain: ("wdata", "docid"))
+    monkeypatch.setattr(
+        dv,
+        "get_extensions_urls_fields",
+        lambda workitemdata, document_id, domain: (None, None, {}, None, None),
+    )
+
+    resp = user_client.get("/api/dashboard/recent_activity")
+    assert resp.status_code == 200
+    assert calls == [(1216, "ms02")]
 
 
 # --------------------- error responses must not be cached ------------------- #
