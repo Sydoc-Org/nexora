@@ -2181,3 +2181,78 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 .rdb-card[data-type="line"] canvas,
 .rdb-card[data-type="bar"] canvas { cursor: pointer; }
 .rdb-table-rows { cursor: pointer; }
+
+/* ============================================================
+   DARK MODE -- Indigo Studio redesign (Task 16)
+   Every literal hex the redesign (Tasks 1-15) introduced that wasn't
+   already riding a dark-aware --nx-* token (nexora-ui.css's html.dark
+   block already recolors --nx-page/--nx-card/--nx-border/--nx-text/
+   --nx-accent/--nx-violet/--nx-accent-tint/--nx-divider etc., so any
+   rule below that only used those needed no entry here). One section,
+   grouped in the order the light-mode rules appear above. Spec §Dark
+   (mock 3c) values used verbatim where it names one; elsewhere this
+   reuses the existing dark tokens for the matching semantic color
+   (indigo accent -> --nx-accent, danger -> --nx-danger, warning ->
+   --nx-warning, subtle dark surface -> --nx-alt, subtle indigo border
+   -> --nx-card-hover-border) rather than inventing new literals.
+   ============================================================ */
+
+/* Wizard breakdown chip (indigo chip: #312e81 bg via --nx-accent-tint,
+   already dark-aware -- only the text needs the dark chip fg). */
+html.dark .reporting-simple-choice.is-selected { color: #c7d2fe; }
+
+/* Wizard progress rail (Task 5/7). */
+html.dark .rs-rail-dot { background: var(--nx-card); color: var(--nx-text-meta); border-color: var(--nx-border); }
+html.dark .rs-rail-line { background: var(--nx-border); }
+html.dark .rs-rail-step.is-done .rs-rail-dot { border-color: var(--nx-card-hover-border); color: #c7d2fe; }
+html.dark .rs-rail-step.is-done .rs-rail-line { background: var(--nx-accent); }
+/* Active dot sits on --nx-brand-grad, which dark-remaps to the lighter
+   #818cf8->#a78bfa gradient (spec's "gradient buttons"); white text loses
+   contrast there, so it flips to dark text per the mock. */
+html.dark .rs-rail-step.is-active .rs-rail-dot { color: var(--nx-page); }
+html.dark .rs-wizard-preview { background: var(--nx-accent-soft); border-color: var(--nx-card-hover-border); }
+
+/* Drill drawer indigo chips + callout (Task 9). */
+html.dark .reporting-drill-chip--indigo { border-color: var(--nx-card-hover-border); color: #c7d2fe; }
+html.dark .reporting-drill-type-pill { color: #c7d2fe; }
+html.dark .reporting-drill-callout { border-color: var(--nx-card-hover-border); background: var(--nx-alt); }
+
+/* Process-coverage badge, mid tier (amber) -- base + ledger-scoped repeat. */
+html.dark .reporting-simple-chip-cov.is-cov-mid,
+html.dark .reporting-ledger .reporting-simple-chip-cov.is-cov-mid { color: var(--nx-warning); }
+html.dark .reporting-simple-chip-cov.is-cov-mid .rs-cov-fill,
+html.dark .reporting-ledger .reporting-simple-chip-cov.is-cov-mid .rs-cov-fill { background: var(--nx-warning); }
+
+/* Result KPI band: gradient total card (Task 8) -- same "dark text on the
+   dark-remapped gradient" treatment as the rail's active dot above. */
+html.dark .rs-kpi-total-card { color: var(--nx-page); }
+html.dark .rs-kpi-total-card .reporting-ledger-caption { color: rgba(15, 23, 42, .65); }
+html.dark .rs-kpi-total-card .reporting-ledger-kpi-value { color: var(--nx-page); }
+html.dark .reporting-ledger-sqlpeek { background: var(--nx-alt); }
+
+/* Landing hero (spec §Landing) -- radial stops + border, and the gradient
+   AI button's text (same dark-text-on-gradient treatment). */
+html.dark .reporting-hero {
+  border-color: var(--nx-card-hover-border);
+  background: radial-gradient(1200px 320px at 50% -80px, rgba(49, 46, 129, .55) 0%, #1e293b 70%);
+}
+html.dark .reporting-hero__aibtn { color: var(--nx-page); }
+html.dark .rs-suggestion { border-color: var(--nx-card-hover-border); }
+html.dark .rs-card-preview { background: linear-gradient(180deg, var(--nx-alt), var(--nx-card)); }
+html.dark .rs-card-avatar { color: var(--nx-page); }
+
+/* Dashboard builder: editing pill + add-card button (indigo chips). */
+html.dark .rdb-editing-pill { border-color: var(--nx-card-hover-border); color: #c7d2fe; }
+html.dark .rdb-addcard-btn { border-color: var(--nx-card-hover-border); color: #c7d2fe; }
+html.dark .rdb-addcard-btn:hover { background: var(--nx-accent-soft); }
+html.dark .rdb-add-filter:hover { border-color: var(--nx-accent); }
+
+/* Dashboard builder: edit-mode drag/hover chrome (Task 14). */
+html.dark .rdb-card-grip { color: var(--nx-text-meta); }
+html.dark .rdb-card--over { border-color: var(--nx-accent); box-shadow: 0 0 0 3px rgba(129, 140, 248, .25); }
+html.dark .rdb-card-ctrl-btn:hover { border-color: var(--nx-accent); }
+html.dark .rdb-card-ctrl-btn--danger { border-color: rgba(248, 113, 113, .4); color: var(--nx-danger); }
+html.dark .rdb-card-ctrl-btn--danger:hover { background: rgba(248, 113, 113, .15); color: var(--nx-danger); }
+html.dark .rdb-card-configure:hover { border-color: var(--nx-accent); }
+html.dark .rdb-add-tile:hover { background: var(--nx-accent-soft); }
+html.dark .rdb-add-pill:hover { border-color: var(--nx-accent); }

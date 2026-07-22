@@ -780,6 +780,17 @@
     return getComputedStyle(document.documentElement).getPropertyValue('--nx-divider').trim() || '#e5e7eb';
   }
 
+  // Chart-build-time dark check (Task 16) -- read once per render call, not
+  // live-reactive: toggling dark mode with a dashboard open re-themes on the
+  // next render, which is acceptable v1 (see the redesign plan's Task 16).
+  function isDark() {
+    return document.documentElement.classList.contains('dark');
+  }
+
+  function tickColor() {
+    return isDark() ? '#64748b' : '#9ca3af';
+  }
+
   // ---- Drill-through (chart-element / table-row clicks) ------------------
   // Last successful {columns, rows} per card id -- feeds the click handlers
   // below (a Chart.js onClick only gets the clicked point's index; the raw
@@ -875,9 +886,9 @@
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 10.5 }, color: '#9ca3af' } },
+          x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 10.5 }, color: tickColor() } },
           y: { grid: { color: dividerColor() },
-               ticks: { font: { family: 'Inter', size: 10.5 }, color: '#9ca3af' } }
+               ticks: { font: { family: 'Inter', size: 10.5 }, color: tickColor() } }
         },
         // Drill-through (Task 15): same getElementsAtEventForMode hit-test
         // the Simple pane's own chart onClick uses.
@@ -905,9 +916,9 @@
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 10.5 }, color: '#9ca3af' } },
+          x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 10.5 }, color: tickColor() } },
           y: { grid: { color: dividerColor() },
-               ticks: { font: { family: 'Inter', size: 10.5 }, color: '#9ca3af' } }
+               ticks: { font: { family: 'Inter', size: 10.5 }, color: tickColor() } }
         },
         onClick: function (evt) {
           var els = this.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, false);
