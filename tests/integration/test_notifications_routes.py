@@ -1,8 +1,9 @@
 """Integration tests for nx_lib.views.notifications — 2 routes.
 
-The Notifications table is absent from sql/test/schema.sql, so the route
-bodies hit the except branch and return 500 JSON. The 401 branches are
-exercised directly. The 200 happy path uses MagicMock on raw_connection.
+The 500 branch is exercised by patching raw_connection to raise (the
+Notifications table exists in sql/test/schema.sql since the delete-user
+cascade tests need it). The 401 branches are exercised directly. The 200
+happy path uses MagicMock on raw_connection.
 
 Routes:
 - GET  /api/notifications              get_notifications
@@ -19,9 +20,11 @@ def test_get_notifications_anonymous_returns_401(client):
     assert "error" in resp.get_json()
 
 
-def test_get_notifications_authed_table_missing_returns_500(user_client):
-    """Notifications table absent → except branch → 500."""
-    resp = user_client.get("/api/notifications")
+def test_get_notifications_authed_db_failure_returns_500(user_client):
+    """raw_connection raises → except branch → 500."""
+    with patch("nx_lib.views.notifications.engine_nexora_db") as fake_engine:
+        fake_engine.raw_connection.side_effect = Exception("db down")
+        resp = user_client.get("/api/notifications")
     assert resp.status_code == 500
     assert resp.is_json
 
@@ -67,8 +70,10 @@ def test_mark_as_read_non_list_ids_returns_400(user_client):
     assert resp.status_code == 400
 
 
-def test_mark_as_read_authed_table_missing_returns_500(user_client):
-    resp = user_client.post("/api/notifications/mark_as_read", json={"ids": [1, 2]})
+def test_mark_as_read_authed_db_failure_returns_500(user_client):
+    with patch("nx_lib.views.notifications.engine_nexora_db") as fake_engine:
+        fake_engine.raw_connection.side_effect = Exception("db down")
+        resp = user_client.post("/api/notifications/mark_as_read", json={"ids": [1, 2]})
     assert resp.status_code == 500
 
 
