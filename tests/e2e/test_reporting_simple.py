@@ -173,6 +173,140 @@ def test_library_report_run_400_shows_detail_and_advanced_action(nexora_server, 
     expect(page.get_by_test_id("rs-export")).to_be_enabled()
 
 
+def test_library_card_shows_preview_band_and_type_badge(nexora_server, page):
+    """A library card renders a two-band layout: a preview thumbnail on top
+    with a type badge. A saved report whose server-computed previewKind is
+    'line' (mirroring the real list endpoint's shape — it never sends the raw
+    definition, only the derived kind) must show the LINE badge."""
+    _login(page, nexora_server)
+
+    def _row(rid, name, preview_kind=None):
+        row = {
+            "id": rid,
+            "name": name,
+            "ownerName": "Admin",
+            "updatedAt": "2026-07-01T00:00:00Z",
+            "visibility": "private",
+            "owned": True,
+            "kind": "table",
+        }
+        if preview_kind is not None:
+            row["previewKind"] = preview_kind
+        return row
+
+    page.route(
+        "**/api/reporting/reports",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps([_row("e2e-preview-line", "e2e preview line", "line")]),
+        ),
+    )
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    card = page.get_by_test_id("rs-card").first
+    expect(card.locator(".rs-card-preview")).to_be_visible()
+    expect(card.locator(".rs-card-badge")).to_contain_text("LINE")
+
+
+def test_library_card_preview_cache_round_trips_real_values(nexora_server, page):
+    """D5 contract, end-to-end: running a saved report once must write its
+    real result into the preview cache (writePreviewCache, keyed off
+    state.current.reportId), and the NEXT library render must surface that
+    real value in the card's thumbnail -- not the deterministic seeded
+    fallback used before any cache exists. Uses the zero-dim (metrics-only,
+    no columns) shape so fillResult takes the 'total' cache branch:
+    payload = {t: 'total', v: Number(rows[0][0])}. previewBandHtml renders
+    the cached value via fmtNumber in a bare '.rs-card-total' div, versus the
+    '.rs-card-total.rs-card-total-label' fallback shown pre-cache -- so the
+    class list itself distinguishes real-cache from seeded-fallback."""
+    _login(page, nexora_server)
+
+    def _row(rid, name):
+        return {
+            "id": rid,
+            "name": name,
+            "ownerName": "Admin",
+            "updatedAt": "2026-07-01T00:00:00Z",
+            "visibility": "private",
+            "owned": True,
+            "kind": "table",
+            "previewKind": "total",
+        }
+
+    definition = {
+        "schemaVersion": 1,
+        "source": "docprocessing",
+        "visualization": "table",
+        "title": "e2e preview cache report",
+        "columns": [],
+        "metrics": [{"metric": "workitem_count", "label": "Total Widgets"}],
+        "filters": [],
+        "sort": [],
+        "scope": {"clients": [], "processes": []},
+        "rowLimit": 100,
+    }
+
+    # Register stubs BEFORE goto -- the library load fires as soon as the
+    # Simple pane mounts.
+    page.route(
+        "**/api/reporting/reports",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps([_row("e2e-preview-cache", "e2e preview cache report")]),
+        ),
+    )
+    page.route(
+        "**/api/reporting/reports/*",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "name": definition["title"],
+                    "definition": definition,
+                    "owned": True,
+                    "canEdit": True,
+                }
+            ),
+        ),
+    )
+    page.route(
+        "**/api/reporting/run",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [{"field": "workitem_count", "header": "Total"}],
+                    "rows": [[777]],
+                    "rowCount": 1,
+                    "truncated": False,
+                    "sql": None,
+                    "params": [],
+                    "resolvedDates": [],
+                }
+            ),
+        ),
+    )
+
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    total_before = page.get_by_test_id("rs-card").first.locator(".rs-card-total")
+    # No cache yet -- the seeded/label fallback renders, not a real number.
+    expect(total_before).to_have_class(re.compile(r"\brs-card-total-label\b"))
+
+    page.get_by_test_id("rs-group-mine").get_by_text("e2e preview cache report").click()
+    expect(page.get_by_test_id("rs-result")).to_be_visible()
+
+    # Exit re-fetches the list and re-renders every card from scratch --
+    # this is where a just-cached run's real value must now surface.
+    page.get_by_test_id("rs-exit").click()
+    expect(page.get_by_test_id("rs-library")).to_be_visible()
+    total_after = page.get_by_test_id("rs-card").first.locator(".rs-card-total")
+    expect(total_after).to_have_text("777")
+    expect(total_after).not_to_have_class(re.compile(r"\brs-card-total-label\b"))
+
+
 def test_wizard_opens_and_lists_measures_or_empty_state(nexora_server, page):
     _login(page, nexora_server)
     page.goto(f"{nexora_server}/reporting")
@@ -367,10 +501,13 @@ def test_kpi_band_shows_total_buckets_avg(nexora_server, page):
 
         band = page.get_by_test_id("rs-kpi-band")
         expect(band).to_be_visible()
-        # total: 4 + 5 + 3; buckets: 3 rows; avg per bucket: 12 / 3
+        # total: 4 + 5 + 3; buckets: 3 rows; avg per bucket: 12 / 3;
+        # peak: bob's row (5) is the largest metric value.
         expect(page.get_by_test_id("rs-kpi-total")).to_contain_text("12")
         expect(page.get_by_test_id("rs-kpi-buckets")).to_contain_text("3")
         expect(page.get_by_test_id("rs-kpi-avg")).to_contain_text("4")
+        expect(page.get_by_test_id("rs-kpi-peak")).to_contain_text("5")
+        expect(page.get_by_test_id("rs-kpi-peak")).to_contain_text("bob")
     finally:
         page.evaluate(
             """async (ids) => {
@@ -770,7 +907,7 @@ def test_wizard_result_shows_chips_and_refine_bar(nexora_server, page):
 
 
 def test_adjust_wizard_button_round_trip(nexora_server, page):
-    """Wizard-built result shows 'Adjust in wizard'; clicking it re-opens the
+    """Wizard-built result shows 'Adjust'; clicking it re-opens the
     walkthrough with the previous measure choice pre-selected; running again
     re-renders the result."""
     _login(page, nexora_server)
@@ -807,7 +944,7 @@ def test_adjust_wizard_button_round_trip(nexora_server, page):
         page.get_by_test_id("rs-wizard-run").click()
         expect(page.get_by_test_id("rs-result")).to_be_visible()
 
-        # The "Adjust in wizard" button must be visible for wizard-built results.
+        # The "Adjust" button must be visible for wizard-built results.
         adjust_btn = page.get_by_test_id("rs-adjust-wizard")
         expect(adjust_btn).to_be_visible()
 
@@ -822,7 +959,7 @@ def test_adjust_wizard_button_round_trip(nexora_server, page):
         page.get_by_test_id("rs-wizard-run").click()
         expect(page.get_by_test_id("rs-result")).to_be_visible()
 
-        # The "Adjust in wizard" button is still present on the new result.
+        # The "Adjust" button is still present on the new result.
         expect(page.get_by_test_id("rs-adjust-wizard")).to_be_visible()
     finally:
         page.evaluate(
@@ -1050,6 +1187,8 @@ def test_show_query_reveals_sql(nexora_server, page):
         page.get_by_test_id("rs-breakdown-list").get_by_role("button").first.click()
         page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
+        # Task 7: Show-query now lives in the ⋯ overflow menu — open it first.
+        page.get_by_test_id("rs-more").click()
         show = page.get_by_test_id("rs-show-sql")
         expect(show).to_be_visible()
         # Collapsed by default: the panel is hidden until the user expands it.
@@ -1608,7 +1747,7 @@ def test_wizard_time_step_offers_week_and_quarter(nexora_server, page):
 
 
 def test_adjust_in_wizard_maps_this_quarter(nexora_server, page):
-    """A non-wizard def filtered on {token: this_quarter} keeps 'Adjust in wizard'."""
+    """A non-wizard def filtered on {token: this_quarter} keeps 'Adjust' visible."""
     _login(page, nexora_server)
     _stub_catalogs(page)
     page.goto(f"{nexora_server}/reporting?tab=simple")
@@ -1836,6 +1975,8 @@ def test_run_shows_loading_then_result(nexora_server, page):
         page.get_by_test_id("rs-breakdown-list").get_by_role("button").first.click()
         page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
+        # Task 7: Show-query now lives in the ⋯ overflow menu — open it first.
+        page.get_by_test_id("rs-more").click()
         # rs-show-sql appears only after the MAIN run response is processed,
         # which is strictly after the indicator is hidden.
         expect(page.get_by_test_id("rs-show-sql")).to_be_visible()
@@ -2032,6 +2173,68 @@ def test_drill_row_opens_panel(nexora_server, page):
         panel = page.get_by_test_id("reporting-drill-panel")
         expect(panel).to_be_visible()
         expect(panel.locator("tbody tr").first).to_be_visible()
+        page.keyboard.press("Escape")
+        expect(panel).to_be_hidden()
+    finally:
+        page.evaluate(
+            """async (ids) => {
+              const csrf = document.querySelector('meta[name="csrf-token"]').content;
+              const del = url => fetch(url, {method: 'DELETE', headers: {'X-CSRFToken': csrf}});
+              await del('/api/reporting/admin/metrics/' + ids.met);
+              await del('/api/reporting/admin/sources/' + ids.src);
+            }""",
+            ids,
+        )
+
+
+def test_drill_row_opens_panel_with_context_chips(nexora_server, page):
+    """Task 9 restyle: opening a drill renders #rdChips (testid
+    reporting-drill-chips) with at least one .reporting-drill-chip -- one
+    indigo chip per pre-existing definition filter, one violet chip per
+    clicked-derived filter. Same wizard-walk + seed pattern as
+    test_drill_row_opens_panel above."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    ids = page.evaluate(
+        """async () => {
+          const csrf = document.querySelector('meta[name="csrf-token"]').content;
+          const post = (url, body) => fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify(body)
+          }).then(r => r.json());
+          const src = await post('/api/reporting/admin/sources', {
+            code: 'wiz_drill_chips', kind: 'curated', label: 'Wizard Drill Chips',
+            permission: 'reporting.source.docprocessing', provider: 'table',
+            engine: 'nexora', baseObject: 'dbo.Users',
+            columns: [{field: 'username', label: 'Username', type: 'string',
+                       filterable: true, sortable: true}],
+            enabled: true, sortOrder: 34});
+          const met = await post('/api/reporting/admin/metrics', {
+            code: 'wiz_drill_chips_count', sourceId: 'wiz_drill_chips',
+            label: 'Wizard drill chips count', aggregation: 'count', format: 'int'});
+          return {src: src.id, met: met.id};
+        }"""
+    )
+    try:
+        # Same wizard-walk pattern as test_drill_row_opens_panel (measure ->
+        # category breakdown -> Continue -> Show result), then click an
+        # aggregate row to open the drill drawer and inspect its chip row.
+        page.goto(f"{nexora_server}/reporting?tab=simple")
+        page.get_by_test_id("rs-new-report").click()
+        page.get_by_test_id("rs-measure-list").get_by_text("Wizard drill chips count").click()
+        page.get_by_test_id("rs-measure-next").click()
+        page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
+        page.get_by_test_id("rs-breakdown-next").click()
+        page.get_by_test_id("rs-wizard-run").click()
+        expect(page.get_by_test_id("rs-result")).to_be_visible()
+        page.get_by_test_id("rs-table-toggle").click()
+        page.locator("#rsTableWrap tbody tr").first.click()
+        panel = page.get_by_test_id("reporting-drill-panel")
+        expect(panel).to_be_visible()
+        chips = page.get_by_test_id("reporting-drill-chips")
+        expect(chips).to_be_visible()
+        assert chips.locator(".reporting-drill-chip").count() >= 1
         page.keyboard.press("Escape")
         expect(panel).to_be_hidden()
     finally:
@@ -2599,6 +2802,8 @@ def test_show_query_inlines_parameters_and_copies_runnable_sql(nexora_server, pa
     page.get_by_test_id("rs-breakdown-list").get_by_role("button").first.click()
     page.get_by_test_id("rs-breakdown-next").click()
     page.get_by_test_id("rs-wizard-run").click()
+    # Task 7: Show-query now lives in the ⋯ overflow menu — open it first.
+    page.get_by_test_id("rs-more").click()
     show = page.get_by_test_id("rs-show-sql")
     expect(show).to_be_visible()
     # Capture clipboard writes without clipboard-read permissions.
@@ -3002,3 +3207,133 @@ def test_sql_peek_footer_reveals_query_on_click(nexora_server, page):
     peek.click()
     expect(sql_view).to_be_visible()
     expect(page.locator("#rsSqlText")).to_contain_text("GROUP BY")
+
+
+def test_landing_hero_suggestion_fills_prompt(nexora_server, page):
+    """Task 3: the landing hero holds the AI command bar + suggestion chips.
+    Clicking a chip fills rsAiPrompt with the chip's own text (no wizard or
+    catalog interaction needed to reach this — the hero is static markup)."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    hero = page.get_by_test_id("rs-hero")
+    expect(hero).to_be_visible()
+    expect(hero.get_by_test_id("rs-ai-prompt")).to_be_visible()
+    chip = page.get_by_test_id("rs-suggestion").first
+    chip_text = chip.inner_text()
+    chip.click()
+    expect(page.get_by_test_id("rs-ai-prompt")).to_have_value(chip_text)
+
+
+def test_wizard_rail_tracks_progress(nexora_server, page):
+    """Task 5: the two-column wizard shell shows a step counter + a left
+    progress rail tracking wiz state. Same stub catalog + click sequence as
+    test_wizard_docprocessing_offers_process_breakdown (a source WITH
+    processes, so Continue reveals the Processes/scope step next, i.e. step 2
+    of 4) rather than the empty-process WIZ_STUB_SOURCES used elsewhere."""
+    _login(page, nexora_server)
+    _stub_wiz_catalogs(page, DOCPROC_WIZ_SOURCES, DOCPROC_WIZ_METRICS)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-report").click()
+    rail = page.get_by_test_id("rs-wizard-rail")
+    expect(rail).to_be_visible()
+    expect(page.locator("#rsWizardStepNo")).to_have_text("Step 1 of 4")
+    page.get_by_test_id("rs-measure-list").get_by_text("Docproc count stub").click()
+    page.get_by_test_id("rs-measure-next").click()
+    expect(page.locator("#rsWizardStepNo")).to_have_text("Step 2 of 4")
+    expect(rail).to_contain_text("Docproc count stub")  # chosen-value summary
+
+
+def test_result_more_menu_holds_advanced_and_sql(nexora_server, page):
+    """Task 7: the result header's ⋯ overflow menu now hosts Open-in-Advanced
+    and Show-query. Both keep their exact ids/testids, but are only
+    actionable once the caller opens #rsMoreMenu (D6 result-header regroup).
+    Menu also closes on Escape and on an outside click."""
+    _login(page, nexora_server)
+
+    def _row(rid, name):
+        return {
+            "id": rid,
+            "name": name,
+            "ownerName": "Admin",
+            "updatedAt": "2026-07-01T00:00:00Z",
+            "visibility": "private",
+            "owned": True,
+            "kind": "table",
+        }
+
+    def _definition(title):
+        return {
+            "schemaVersion": 1,
+            "source": "docprocessing",
+            "visualization": "table",
+            "title": title,
+            "columns": [{"field": "processname"}],
+            "filters": [],
+            "sort": [],
+            "scope": {"clients": [], "processes": []},
+            "rowLimit": 100,
+        }
+
+    page.route(
+        "**/api/reporting/reports",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps([_row("e2e-more-menu-report", "e2e more menu report")]),
+        ),
+    )
+    page.route(
+        "**/api/reporting/reports/*",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "name": "e2e more menu report",
+                    "definition": _definition("e2e more menu report"),
+                    "owned": True,
+                    "canEdit": True,
+                }
+            ),
+        ),
+    )
+    page.route(
+        "**/api/reporting/run",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [{"field": "processname", "header": "Process"}],
+                    "rows": [["acme.inv"]],
+                    "truncated": False,
+                    "rowCount": 1,
+                    "sql": "SELECT [processname] FROM [dbo].[V]",
+                    "sqlPretty": "SELECT [processname] FROM [dbo].[V]",
+                    "sqlDisplay": "SELECT [processname] FROM [dbo].[V]",
+                    "params": [],
+                    "resolvedDates": [],
+                }
+            ),
+        ),
+    )
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-group-mine").get_by_text("e2e more menu report").click()
+    expect(page.get_by_test_id("rs-result-title")).to_contain_text("e2e more menu report")
+
+    # Closed by default: both menu-hosted controls are not actionable.
+    expect(page.get_by_test_id("rs-open-advanced")).to_be_hidden()
+    expect(page.get_by_test_id("rs-show-sql")).to_be_hidden()
+    page.get_by_test_id("rs-more").click()
+    expect(page.get_by_test_id("rs-open-advanced")).to_be_visible()
+    expect(page.get_by_test_id("rs-show-sql")).to_be_visible()
+
+    # Escape closes the menu again.
+    page.keyboard.press("Escape")
+    expect(page.get_by_test_id("rs-open-advanced")).to_be_hidden()
+
+    # Re-open, then a click outside the menu closes it too.
+    page.get_by_test_id("rs-more").click()
+    expect(page.get_by_test_id("rs-open-advanced")).to_be_visible()
+    page.get_by_test_id("rs-result-title").click()
+    expect(page.get_by_test_id("rs-open-advanced")).to_be_hidden()

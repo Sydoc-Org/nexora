@@ -145,6 +145,44 @@ def test_batch_child_documents_offset_page_by_prior_image_media():
     assert out["Doc date"]["locations"][0]["page"] == 1  # child1, offset +1
 
 
+# --- PDF-expanded page offset (mixed PDF + image container) ----------------
+# octo.get_extensions_urls_fields expands each PDF medium into N page slots
+# (real I/O: fetch + pypdfium2 page count) *before* calling this module, and
+# passes the pre-computed per-item counts in as ``pdf_page_counts`` -- keeping
+# this module I/O-free while still accounting for PDF pages in the offset.
+
+
+def test_pdf_media_counted_in_page_offset_when_supplied():
+    # child0 (a PDF, pre-counted upstream as 3 pages) has no locatable field of
+    # its own; child1's PageIndex 0 must map to global page 3 (not 0), since
+    # child0's PDF occupies pages 0-2.
+    child0 = {
+        "Media": [{"Extension": ".pdf", "Url": "u0"}],
+        "IndexFields": [],
+    }
+    child1 = {
+        "Media": [{"Extension": ".jpg", "Url": "u1"}],
+        "IndexFields": [_field("DocDate", "B", _loc(0, [(2, 2, 6, 6)]))],
+    }
+    doc = {"DocumentType": "Batch", "ChildDocuments": [child0, child1]}
+    out = extract_field_locations(doc, MAPPING, pdf_page_counts=[3, 0])
+    assert out[0]["key"] == "Doc date"
+    assert out[0]["locations"][0]["page"] == 3
+
+
+def test_pdf_media_defaults_to_zero_pages_without_pdf_page_counts():
+    # Backward compatibility: callers that don't pass pdf_page_counts (or pass
+    # None) keep the pre-fix behaviour -- PDFs contribute 0 to the offset.
+    child0 = {"Media": [{"Extension": ".pdf", "Url": "u0"}], "IndexFields": []}
+    child1 = {
+        "Media": [{"Extension": ".jpg", "Url": "u1"}],
+        "IndexFields": [_field("DocDate", "B", _loc(0, [(2, 2, 6, 6)]))],
+    }
+    doc = {"DocumentType": "Batch", "ChildDocuments": [child0, child1]}
+    out = extract_field_locations(doc, MAPPING)
+    assert out[0]["locations"][0]["page"] == 0
+
+
 # --- nested / non-"Batch" container documents -----------------------------
 # MS02 documents are a tree (MobScnBatch -> MobScnDossier -> MobScnDocument)
 # whose page images + index fields live on the leaf documents, and whose types

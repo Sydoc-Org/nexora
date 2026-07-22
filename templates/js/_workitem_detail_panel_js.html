@@ -120,7 +120,7 @@
             }
 
             try {
-                const response = await fetch(`${API_PREFIX}api/get_audithistory/${workitemId}`, {headers: {
+                const response = await fetch(`${API_PREFIX}api/get_audithistory/${workitemId}${_clientQS(workitemId, '?')}`, {headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': csrfToken
                 }});
@@ -472,7 +472,7 @@
                 container.appendChild(placeholder);
             }
             try {
-                const apiUrl = `${API_PREFIX}api/get_media_raw/${workitemid}/${index}`;
+                const apiUrl = `${API_PREFIX}api/get_media_raw/${workitemid}/${index}${_clientQS(workitemid, '?')}`;
                 const response = await fetch(apiUrl, {headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': csrfToken
@@ -523,7 +523,7 @@
         if (!(imageContainer && imageContainer.dataset.loaded !== 'true') && !fieldsContainer) return;
         if (imageContainer) imageContainer.innerHTML = `<p class="text-gray-500 animate-pulse">{{ _("Checking for media...") }}</p>`;
         try {
-          const infoResponse = await fetch(`${API_PREFIX}api/get_media_info/${workitemid}`, {headers: {
+          const infoResponse = await fetch(`${API_PREFIX}api/get_media_info/${workitemid}${_clientQS(workitemid, '?')}`, {headers: {
             'Content-Type': 'application/json', 'X-CSRFToken': csrfToken
           }});
           if (!infoResponse.ok) {
@@ -567,10 +567,19 @@
 
       window.NexoraWorkitemDetail = window.NexoraWorkitemDetail || {};
       window.NexoraWorkitemDetail._buildPanelMarkup = buildPanelMarkup;
+      // wid -> client code of the row it was rendered from (see render()).
+      const _clientByWid = {};
+      function _clientQS(workitemId, sep) {
+        const c = _clientByWid[String(workitemId)];
+        return c ? `${sep}client=${encodeURIComponent(c)}` : '';
+      }
       window.NexoraWorkitemDetail.render = function (workitemId, containerEl, opts) {
         const { readOnly = false, perms = {} } = opts || {};
         if (!containerEl) return;
         const wid = String(workitemId);
+        // Workitem ids are not unique across clients, so every detail request
+        // must say which client's row was clicked.
+        _clientByWid[wid] = (opts && opts.client) || containerEl.dataset.client || '';
         const status = containerEl.dataset.status || (opts && opts.status) || '';
         const currentStage = containerEl.dataset.currentStage || (opts && opts.currentStage) || '';
         containerEl.innerHTML = buildPanelMarkup(wid, status, currentStage, perms, readOnly);

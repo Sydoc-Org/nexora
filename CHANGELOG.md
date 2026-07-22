@@ -106,9 +106,19 @@ Work toward 2.5.64.
   of the raw message; the agent prompt now forbids resubmitting SQL that just
   failed unchanged. The SQL editor's generic 500 also carries a humanized
   detail.
+- Reporting: multi-card dashboards — a new `kind:'dashboard'` saved-report type
+  built in the Simple pane: KPI / line / bar / donut / table cards over the
+  existing run endpoint, global filters with per-card overrides, drag-to-
+  rearrange, add/duplicate/remove, Edit/Done with autosave, per-card export
+  and drill-through. No schema change.
 
 ### Changed
 
+- Generali Base Services: the combined "POE / PPR" category is split into
+  separate "POE" and "PPR" categories for new entries and edits. Existing
+  rows keep their stored "POE / PPR" label and stay filterable via a legacy
+  filter option; editing such a row requires picking one of the new
+  categories.
 - Reporting: the Simple-tab wizard's 16-chip category cap is **removed** —
   every filterable string field the Advanced tab offers is now available as a
   breakdown chip (the docprocessing noise hide-list stays).
@@ -144,9 +154,93 @@ Work toward 2.5.64.
   treatment. Single-series bar/line charts now render in ink-navy with a
   brand-indigo accent on the peak value; multi-series palettes are unchanged.
   Design spec: `docs/superpowers/specs/2026-07-15-reporting-editorial-ledger-design.md`.
+  **Superseded below by the "Indigo Studio" redesign** (retired before this
+  cycle shipped; kept here for the historical record).
+- Reporting: full "Indigo Studio" redesign — landing hero with AI command bar
+  and live-preview report cards, progress-rail wizard, refined result view
+  with overflow menu, restyled drill drawer and Advanced builder, dark mode.
+  The Editorial Ledger serif/mono skin is retired; all ids and testids kept.
+  The only backend change the redesign needed: `api_reports_list`
+  (`GET /api/reporting/reports`) now computes a `previewKind` per report
+  server-side (new `_preview_kind()` helper in `nx_lib/views/reporting.py`)
+  so library card badges/thumbnails match the report's real definition
+  instead of guessing client-side.
+
+### Security
+
+- Workitems: seven `/api/workitem/<id>*` endpoints (`GET` detail, `GET`
+  interactions, `POST` comment / assign / priority / tags, `DELETE` tag)
+  checked only that a session existed — **any** logged-in user could read and
+  mutate any workitem's metadata, including users who get a 403 on the
+  workitems page itself (verified live on INT). They now enforce
+  `workitems.details.view` / `.add.comment` / `.assign.users` / `.set.priority`
+  / `.add.tag`.
+- Workitems: the `status` filter is now gated on `workitems.filter.status` like
+  every other filter (it was applied for anyone with `workitems.view`, in both
+  the list and the CSV export).
+- Workitems: `/api/users` (comment mentions) cached its result under a key that
+  omitted the mention permission, so a permitted user's list could be served to
+  users without `workitems.details.add.comment`.
+- Workitems: the MS02 personal-number (PID) stamped onto list rows now respects
+  the sensitive doc-field gate instead of being attached unconditionally.
 
 ### Fixed
 
+- Table headers: `text-center`/`text-right` utilities on `.nx-table` header
+  cells were silently overridden by the unlayered `.nx-table thead th`
+  rule (Tailwind v4 `@layer` precedence), so headers rendered left-aligned
+  over centered column content on every nx-table page (issue #121).
+  `nexora-ui.css` now re-asserts those utilities at higher specificity.
+- Workitems: workitem ids are **not unique across clients** (1216 ids exist in
+  both the Octo and MS02 runtimes on INT, 96 of them visible in one list), and
+  the detail/media/audit endpoints resolved a bare id by probing only the
+  non-default sources — so a colliding id always resolved to MS02, was cached
+  permanently, and served the **wrong client's document, fields and images**.
+  The list row's client is now carried through to every detail request
+  (`?client=`), the probe includes the default source and refuses to cache an
+  ambiguous id, and the per-workitem caches are keyed per client. In the UI,
+  row element ids are keyed by client+id (two rows previously shared one DOM
+  id, so both toggles opened the same panel).
+- Workitems: tag / priority / assigned-user filters silently dropped **all**
+  MS02 rows — NexoraDB stores `WorkitemId` as `NVARCHAR`, and binding those
+  string ids against Postgres' integer `"ID"` column errored, degrading the
+  whole MS02 source. Ids are normalized before use.
+- Workitems: tags and priority set on an MS02 workitem never appeared in the
+  list (same `NVARCHAR`-vs-int mismatch in the row-enrichment lookup).
+- Workitems: the "In Progress" status filter matched only status code `1`,
+  while the list renders every non-Ready/Done code as "In Progress" — 96 rows
+  displayed as In Progress could not be found by filtering for it, and the
+  per-status counts did not add up to the total. Both sources now filter the
+  whole bucket (`NOT IN (0, 5)`).
+- Workitems: the workitem search box now matches the id **exactly** — searching
+  `371` returned 1371, 2371, 3716, 16371 and more.
+- Workitems: CSV export silently capped at 5000 rows (PROD has ~39k visible
+  workitems, so a full export dropped ~34k of them without any indication). The
+  cap is now 100k, and a truncated export is reported in the response headers,
+  a trailing CSV marker, and the application log.
+- Workitems: a user with zero process permissions produced an invalid `IN ()`
+  query in both sources, showing a degraded-source banner instead of an empty
+  list.
+- Workitems: the per-source row counts now count distinct workitems, matching
+  the deduplicated rows the page actually renders.
+- Workitems: a transient DB error while reading the doc-field column whitelist
+  was cached for an hour, disabling doc-field search, autocomplete and the
+  PID/register lookups app-wide for that period. Only successful reads are
+  cached now.
+- Workitems: deleted MS02/PDBS workitems parked on the `Deletion Marker PDBS
+  Dokument Statistik` / `Dossier Statistik` activity instances were still
+  visible in the workitems list — those two instance names were missing from
+  `dbo.ActivityInstancesToIgnore` (migration `0041`; the other two PDBS
+  markers were already ignored).
+- Workitems: an active doc-field search could return a source's **entire
+  corpus** instead of only matching rows when that source's allow-set could
+  not be resolved — observed on STAGING (MS02 runtime configured but
+  `MS02_DOCFIELDS_DB_NAME` unset), where a barcode search flooded the list
+  with all ~2.4k MS02 workitems. Every unresolved path (absent MS02
+  doc-field engine, resolver/DB error, unusable SearchConfig mapping,
+  unknown field key) now **fails closed**: the affected source contributes
+  zero rows to the filtered result. Sensitive-blocked fields keep their
+  designed "silently ignored" semantics.
 - Reporting/Prepared documents: the workitem-preview **lightbox was broken**
   outside the Workitems page (image and values panel stacked unpositioned,
   reported via the drill-through preview) — the split-pane CSS in
@@ -267,6 +361,76 @@ Work toward 2.5.64.
 - Reporting: the masthead timing badge (`#reportingTiming`) now hides
   whenever the Simple pane leaves the result view or shows a run error,
   instead of showing a stale "N rows · M ms" from a previous successful run.
+- Security: JS partials for Generali documents, the dashboard activity feed, and the
+  notification bell built `innerHTML`/`insertAdjacentHTML` from server-derived text
+  (scanned-document fields, OCR'd activity content, notification messages) without
+  escaping, allowing stored XSS. All three now escape at the render sink.
+- Invoices: `/invoice/<id>/pdf` was gated only by a blanket `invoices.download`
+  permission with no per-client check, letting a user scoped to one client download
+  any client's invoice PDF (IDOR). It now resolves the invoice's Bexio contact and
+  rejects the download if it isn't in the caller's allowed client set.
+- Generali: PDQM's three read endpoints (list, organizations, month report) never
+  applied the own-records restriction every sibling module already enforces, so a
+  `generali.pdqm.view`-only user saw every org's entries. They now restrict to the
+  caller's own records unless they hold an organizational/transorganizational edit
+  permission.
+- Dashboard: four legacy KPI endpoints checked only for a logged-in session, missing
+  the `dashboard.view` gate present on every sibling route.
+- Auth: 2FA verification had no rate limit, allowing unlimited brute-force attempts
+  against the 6-digit TOTP code; `/init_2fa` and `/verify_2fa` are now limited to 30
+  attempts per hour.
+- Auth: only the 2FA-enabled login branch cleared the session before starting a new
+  pre-auth flow, so a prior user's session keys could survive into another user's
+  pending login on a shared browser. Every credential-accepted branch now clears the
+  session first.
+- Auth: `/request-password-reset` returned a different message for a registered vs.
+  an unregistered email, letting a caller enumerate accounts. Both branches now
+  return the same neutral message.
+- Workitems: `api_recent_activity` discarded the row's own client when resolving its
+  domain, so a colliding id (present in both the default Octo client and MS02) could
+  resolve to the wrong client's fields on the dashboard activity feed.
+- Workitems: CSV export cached each workitem's domain/details/media/audit-history by
+  bare id, so exporting a set containing both clients' copies of a colliding id let
+  one row silently carry the other client's fields, images, or audit history.
+  Caches — and "export selected" filtering — are now keyed by client+id end to end.
+- Admin: deleting a user committed each of eight child-table deletes individually
+  before the final `DELETE FROM users`, so any later failure left a half-deleted,
+  undeletable user — and the cascade omitted the reporting tables entirely, so
+  deleting a report-owning user failed outright. Deletion is now one atomic
+  transaction that also cascades the user's owned reports, schedules, and shares.
+- Workitems: the "Recent Validations" query appended an unconditional
+  `NOT IN (...)` clause that became `NOT IN ()` — a SQL syntax error — whenever the
+  ignore list was empty (the normal state for the default client), silently emptying
+  the feed.
+- Dashboard: the "Current backlog" KPI read a `status` filter but never applied it
+  as a predicate, so the widget counted every row ever recorded instead of documents
+  actually outstanding. "Current backlog" is the count of workitems currently on
+  activity type `C+A` (a live Octo-runtime fact), so a `status:"Ready"` count KPI now
+  routes to the already-correct `total_backlog_count()` C+A activity-type count; the
+  Statistics-DB stat tables have no activity-type column, so any other `status:"Ready"`
+  shape (an average/sum metric, or a doc-field filter) returns an honest no-data state
+  rather than a wrong number. A date range also no longer gets silently dropped when
+  combined with a non-backlog status.
+- Invoices: a Bexio search spanning multiple clients discarded every result already
+  gathered as soon as one client's request failed, returning an empty list instead
+  of the other clients' real data. A failing client is now logged and skipped,
+  keeping whatever succeeded.
+- Workitems: the prepared-documents register showed Preview / "Open in Workitems"
+  buttons for any PID with a wid mapping, even when Octo had no matching record for
+  it, producing dead buttons; the flag now reflects whether Octo actually resolved
+  the wid.
+- Invoices: two helper functions could raise `UnboundLocalError` or implicitly
+  return `None` on a database failure instead of degrading gracefully, the latter
+  causing a downstream `TypeError`.
+- Generali: the "own record" fast-path in the org-scope check compared an integer id
+  to the session's string user id, so it never matched — an admin re-organizing a
+  still-logged-in user locked that user out of editing their own records until they
+  logged back in.
+- Core: `/` always redirected to `/dashboard`, which requires `dashboard.view` — a
+  user without it hit a 403 instead of their actual permitted landing page.
+- Invoices: an invoice's status label showed "Open" for any non-Paid status, but the
+  Open filter only matched one specific status id, so some "Open"-labeled invoices
+  vanished when filtered by Open.
 
 ## [2.5.63] - 2026-06-24
 

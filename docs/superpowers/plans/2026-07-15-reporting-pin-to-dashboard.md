@@ -1,4 +1,5 @@
 # Reporting: Pin to Dashboard — Implementation Plan
+> **SUPERSEDED (2026-07-20):** replaced by docs/superpowers/plans/2026-07-20-reporting-redesign-dashboard-builder.md (owner decision — dashboard builder covers the need).
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. Single-session planning run (recon → draft → self-red-team); **every file path, symbol, and quoted snippet below was Grep/Read-verified against `feature/2.5.64` HEAD (`159a2dc`) on 2026-07-15** — trust the anchors, but re-Grep before editing (this plan quotes code, never line numbers). Plan file: `docs/superpowers/plans/2026-07-15-reporting-pin-to-dashboard.md`.
 

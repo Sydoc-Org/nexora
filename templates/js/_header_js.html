@@ -314,6 +314,32 @@
                 }
             }
 
+            function escapeHtml(str) {
+                if (!str) return '';
+                return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+            }
+
+            // Notifications.Icon is always one of a small set of Font Awesome
+            // tokens the server itself picks (see nx_lib/notifications.py callers).
+            // It's interpolated as a CSS class, so escaping HTML entities wouldn't
+            // stop an attacker-chosen token from landing there (or breaking out of
+            // the class attribute via a stray quote) — validate against the known
+            // set instead and fall back to the default icon otherwise.
+            const ALLOWED_NOTIFICATION_ICONS = new Set([
+                'fa-info-circle', 'fa-at', 'fa-people-carry-box', 'fa-comments'
+            ]);
+
+            // Notifications.Link is always a server-built relative path (via
+            // Flask's url_for(), already prefix-correct under PROD's /nexora
+            // mount) or null — never assembled client-side from an id. Reject
+            // anything that isn't a same-origin relative path (absolute URLs,
+            // protocol-relative //host, javascript:/data: URIs) so a malformed
+            // or future notification feeder can't smuggle a dangerous href in.
+            function safeNotificationHref(raw) {
+                if (typeof raw !== 'string' || !raw.startsWith('/') || raw.startsWith('//')) return null;
+                return raw;
+            }
+
             function updateNotificationUI(notifications) {
                 unreadNotificationIds = notifications.map(n => n.NotificationID);
 
@@ -333,15 +359,16 @@
                 }
 
                 notifications.forEach(n => {
-                    const link = n.Link ? `href="${n.Link}"` : 'href="#"';
-                    const icon = n.Icon || 'fa-info-circle';
+                    const safeHref = safeNotificationHref(n.Link);
+                    const link = safeHref ? `href="${escapeHtml(safeHref)}"` : 'href="#"';
+                    const icon = ALLOWED_NOTIFICATION_ICONS.has(n.Icon) ? n.Icon : 'fa-info-circle';
                     const timestamp = new Date(n.Timestamp + 'Z');
 
                     const itemHTML = `
                     <a ${link} class="flex items-start px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 transition">
                         <i class="fas ${icon} text-indigo-500 mt-1 mr-3"></i>
                         <div>
-                            <p class="font-medium">${n.Message}</p>
+                            <p class="font-medium">${escapeHtml(n.Message)}</p>
                             <p class="text-xs text-gray-500">${timeAgo(timestamp)}</p>
                         </div>
                     </a>`;

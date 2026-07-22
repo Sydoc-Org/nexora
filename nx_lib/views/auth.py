@@ -218,6 +218,7 @@ def send_reset_email(email):
         return False
 
 
+@limiter.limit("30 per hour")
 def init_2fa():
     if "pre_2fa_userid" not in session:
         return redirect(url_for("login"))
@@ -252,6 +253,8 @@ def init_2fa():
         # client/server clock skew and the window rolling over between code
         # generation and verification (the latter flakes E2E tests hard).
         if totp.verify(code, valid_window=1):
+            conn = None
+            cursor = None
             try:
                 conn = engine_nexora_db.raw_connection()
                 cursor = conn.cursor()
@@ -305,6 +308,7 @@ def init_2fa():
             return redirect(url_for("init_2FA"))
 
 
+@limiter.limit("30 per hour")
 def verify_2fa():
     if "pre_2fa_userid" not in session:
         return redirect(url_for("login"))
@@ -457,6 +461,8 @@ def login():
         if not username_request or not password_request:
             return render_template("index.html", error=_("Invalid credentials")), 401
 
+        conn = None
+        cursor = None
         try:
             conn = engine_nexora_db.raw_connection()
             cursor = conn.cursor()
@@ -482,9 +488,11 @@ def login():
                     if blocking:
                         return render_template("maintenance.html", maintenance=blocking), 503
                     if not stored_init_reset:
+                        session.clear()
                         session["pre_auth_userid"] = str(stored_userid)
                         return redirect(url_for("init_reset"))
                     if not stored_2fa:
+                        session.clear()
                         session["pre_2fa_userid"] = str(stored_userid)
                         session["pre_2fa_username"] = stored_username
                         return redirect(url_for("init_2FA"))
@@ -610,15 +618,17 @@ def request_password_reset():
         cursor.execute("SELECT * FROM Users WHERE Email = ?", (request_email,))
         rows = cursor.fetchone()
 
+        # D8: always return the same neutral message regardless of whether the
+        # email belongs to a registered account — differing responses let a
+        # caller enumerate valid accounts. send_reset_email() itself stays
+        # gated on the row actually existing, so mail is only ever sent to a
+        # real, registered address.
         if rows:
-            sendreset = send_reset_email(request_email)
-            if sendreset:
-                return render_template(
-                    "forgot_password.html",
-                    message=_("A password reset link has been sent to your email"),
-                )
-            return render_template("forgot_password.html", error=_("Unexpected error occurred"))
-        return render_template("forgot_password.html", error=_("Invalid Email Address"))
+            send_reset_email(request_email)
+        return render_template(
+            "forgot_password.html",
+            message=_("If that email is registered, a reset link has been sent."),
+        )
     except Exception as e:
         print(e)
         return render_template("forgot_password.html", error=_("Unexpected error occurred"))

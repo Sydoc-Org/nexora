@@ -1,0 +1,1459 @@
+{# Dashboard builder (kind:'dashboard' saved reports) -- Task 11 skeleton.
+   State model + open/save/edit-toggle handlers ported from the design
+   prototype (docs/superpowers/specs/2026-07-20-reporting-dashboard-prototype.dc.html)
+   per spec section 3 (docs/superpowers/specs/2026-07-20-reporting-redesign-handoff.md).
+   A dashboard is simply a saved report whose DefinitionJSON is
+   {kind:'dashboard', schemaVersion:1, title, globalFilters, cards} --
+   persisted through the existing /api/reporting/reports CRUD, zero
+   backend change. This module only builds the skeleton: open/close/save/
+   toggleEditing and a render dispatch drawing bare card shells. Card
+   rendering, per-card/global filters, drag-reorder and export are later
+   tasks (12-15) layered on top of the state model here (setCards/addCard
+   already exist for them to build on). Self-contained IIFE: talks only to
+   /api/reporting/reports and exposes window.ReportingDashboard. #}
+<script>
+(function () {
+  'use strict';
+  var csrf = document.querySelector('meta[name="csrf-token"]').content;
+  var API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+
+  // Same shape as the Simple pane's api() helper (templates/js/_reporting_simple_js.html):
+  // never throws, always resolves to {ok, status, data}.
+  async function api(url, opts) {
+    if (url.startsWith('/')) url = API_PREFIX + url.slice(1);
+    opts = opts || {};
+    var res;
+    try {
+      res = await fetch(url, Object.assign(
+        { headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf } }, opts));
+    } catch (e) {
+      return { ok: false, status: 0, data: null };
+    }
+    var data = null;
+    try { data = await res.json(); } catch (e) { /* non-JSON */ }
+    return { ok: res.ok, status: res.status, data: data };
+  }
+
+  function el(id) { return document.getElementById(id); }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  // In-page toast -- same DOM/CSS contract as the Advanced tab's private
+  // toast() (.reporting-toast / data-testid="reporting-toast", defined in
+  // _reporting_js.html): this module is self-contained so it draws its own,
+  // reusing the existing shared CSS class rather than a new one.
+  function toast(msg, isError) {
+    var t = document.createElement('div');
+    t.className = 'reporting-toast' + (isError ? ' reporting-toast--error' : '');
+    t.setAttribute('role', 'status');
+    t.setAttribute('data-testid', 'reporting-toast');
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(function () { t.classList.add('is-gone'); }, 2600);
+    setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 3000);
+  }
+
+  var I18N = {
+    library: {{ _("Library")|tojson }},
+    rename: {{ _("Rename")|tojson }},
+    editing: {{ _("Editing")|tojson }},
+    edit: {{ _("Edit")|tojson }},
+    done: {{ _("Done")|tojson }},
+    addCard: {{ _("Add card")|tojson }},
+    export_: {{ _("Export")|tojson }},
+    untitled: {{ _("Untitled dashboard")|tojson }},
+    newCard: {{ _("New card")|tojson }},
+    cardsMeta: {{ _("{n} cards · drag to rearrange · hover a card for controls")|tojson }},
+    globalFilters: {{ _("Global filters")|tojson }},
+    filterHint: {{ _("apply to every card · a card can override them")|tojson }},
+    addFilter: {{ _("Add filter")|tojson }},
+    inherits: {{ _("inherits global filters")|tojson }},
+    overrideTitle: {{ _("This card overrides the global filters")|tojson }},
+    filterField: {{ _("Field")|tojson }},
+    filterOperator: {{ _("Operator")|tojson }},
+    filterValue: {{ _("Value")|tojson }},
+    apply: {{ _("Apply")|tojson }},
+    cancel: {{ _("Cancel")|tojson }},
+    opContains: {{ _("contains")|tojson }},
+    opStartsWith: {{ _("starts with")|tojson }},
+    opIsEmpty: {{ _("is empty")|tojson }},
+    opIsNotEmpty: {{ _("is not empty")|tojson }},
+    saved: {{ _("Dashboard saved")|tojson }},
+    saveFailed: {{ _("Could not save the dashboard")|tojson }},
+    couldNotLoad: {{ _("Could not load this card.")|tojson }},
+    chartUnavailable: {{ _("Charting library unavailable.")|tojson }},
+    other: {{ _("Other")|tojson }},
+    total: {{ _("Total")|tojson }},
+    duplicate: {{ _("Duplicate")|tojson }},
+    remove: {{ _("Remove")|tojson }},
+    addCardTile: {{ _("Add a card")|tojson }},
+    pillChart: {{ _("Chart")|tojson }},
+    pillKpi: {{ _("KPI")|tojson }},
+    pillTable: {{ _("Table")|tojson }},
+    pillDonut: {{ _("Donut")|tojson }},
+    dropHint: {{ _("or drop a saved report here")|tojson }},
+    configureCard: {{ _("Click to configure this card")|tojson }},
+    pickReport: {{ _("Choose a saved report")|tojson }},
+    noSavedReports: {{ _("No saved reports yet")|tojson }},
+    loading: {{ _("Loading…")|tojson }},
+    vsPreviousPeriod: {{ _("vs previous period")|tojson }},
+    couldNotExport: {{ _("Could not export this report.")|tojson }},
+    noExportableCards: {{ _("No cards to export yet.")|tojson }}
+  };
+
+  // Chart.js palette for bar/donut cards (spec §Dashboard "Cards") -- cycles
+  // if a card has more categories than colors.
+  var CARD_PALETTE = ['#4f46e5', '#6366f1', '#7c3aed', '#8b5cf6', '#a5b4fc'];
+
+  // Filter-op set + labels for the global-filter popover (D11/Task 13) --
+  // mirrors _reporting_js.html's OP_LABELS/op <select> (same msgids, so
+  // translations can't drift apart between the two). Narrower than that
+  // list: no between/in/not_in here -- those need the multi-value UI the
+  // Simple/Advanced panes have and this self-contained popover doesn't.
+  var FILTER_OPS = ['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'contains', 'starts_with', 'is_null', 'is_not_null'];
+  var OP_LABELS = {
+    eq: '=', ne: '≠', gt: '>', gte: '≥', lt: '<', lte: '≤',
+    contains: I18N.opContains, starts_with: I18N.opStartsWith,
+    is_null: I18N.opIsEmpty, is_not_null: I18N.opIsNotEmpty
+  };
+
+  // ---- State model (D2/D3 -- exact shape, Tasks 12-15 build on this) -------
+  var state = { editing: false, dirty: false, reportId: null, canEdit: true,
+                dragId: null, overId: null, seq: 100, def: null };
+
+  var DEFAULT_SPAN = { kpi: 3, line: 8, donut: 4, bar: 6, table: 6 };
+
+  function blankDef() {
+    return { kind: 'dashboard', schemaVersion: 1, title: I18N.untitled,
+             globalFilters: [], cards: [] };
+  }
+
+  // ---- Card-array helpers (ported from the prototype's setCards/addCard;
+  // per-card remove/duplicate + drag-reorder + real filter editing are
+  // Tasks 12/13's job -- this only proves the array -> render round trip). ----
+  function setCards(fn) {
+    state.def.cards = fn((state.def.cards || []).slice());
+    state.dirty = true;
+    render();
+  }
+
+  function addCard(type) {
+    if (!state.editing) return;
+    // Empty definition placeholder (D14) -- renders as a "configure this
+    // card" body until a saved report is adopted into it (adoptReport()).
+    var card = { id: 'n' + state.seq, type: type, span: DEFAULT_SPAN[type] || 6,
+                 title: I18N.newCard,
+                 definition: { source: null, metrics: [], columns: [], filters: [] },
+                 filterOverrides: [] };
+    state.seq += 1;
+    setCards(function (list) { return list.concat([card]); });
+  }
+
+  // ---- Public entry points (window.ReportingDashboard) ---------------------
+  function openNew() {
+    state.def = blankDef();
+    state.reportId = null;
+    state.canEdit = true;
+    state.editing = true;
+    state.dirty = true;   // nothing persisted yet -- first Done must create it
+    state.dragId = null; state.overId = null; state.seq = 100;
+    render();
+  }
+
+  // addCard/duplicateCard mint ids as 'n' + state.seq++ / 'dup' + state.seq++,
+  // and those ids are persisted as part of the saved card definitions. Always
+  // resetting seq to the literal 100 on open() meant a saved dashboard whose
+  // cards already used n100/dup100 (from a prior add/duplicate) would collide
+  // with the very next add/duplicate after being reopened -- two cards with
+  // the same id, breaking every id-keyed lookup (findCardById, the charts/
+  // cardRunData/runGen maps, remove/duplicate targeting). Seed instead from
+  // the highest existing n-/dup-prefixed numeric suffix in the loaded
+  // definition, ignoring non-matching ids (e.g. prototype-style k1/c1/t1
+  // fixtures, which aren't in this numeric scheme).
+  function nextSeqFor(cards) {
+    var max = 99;
+    (cards || []).forEach(function (c) {
+      var m = /^(?:n|dup)(\d+)$/.exec(c && c.id);
+      if (m) {
+        var n = parseInt(m[1], 10);
+        if (n > max) max = n;
+      }
+    });
+    return max + 1;
+  }
+
+  function open(report) {
+    state.def = report.definition;
+    state.reportId = report.id;
+    state.canEdit = !!report.canEdit;
+    state.editing = false;
+    state.dirty = false;
+    state.dragId = null; state.overId = null;
+    state.seq = nextSeqFor(state.def.cards);
+    render();
+  }
+
+  function close() {
+    if (el('rsDashboard')) el('rsDashboard').hidden = true;
+    // The Simple pane owns the view-state switch back to the library; this
+    // module never calls setView itself (self-contained modules don't reach
+    // into each other's functions) -- it just announces the intent.
+    document.dispatchEvent(new CustomEvent('rs:dashboard-closed'));
+  }
+
+  async function save() {
+    var body = JSON.stringify({ name: (state.def.title || I18N.untitled), definition: state.def });
+    var res = state.reportId
+      ? await api('/api/reporting/reports/' + state.reportId, { method: 'PUT', body: body })
+      : await api('/api/reporting/reports', { method: 'POST', body: body });
+    if (res.ok) {
+      if (!state.reportId && res.data && res.data.id) state.reportId = res.data.id;
+      state.dirty = false;
+      toast(I18N.saved);
+    } else {
+      toast(I18N.saveFailed, true);
+    }
+  }
+
+  function toggleEditing() {
+    if (!state.canEdit) return;
+    if (state.editing && state.dirty) save();  // Done autosaves (D2/D3)
+    state.editing = !state.editing;
+    render();
+  }
+
+  // ---- Rendering -------------------------------------------------------
+  var built = false;
+
+  // Export (D9) is perm-gated like every other export control
+  // (has_permission('reporting.export')) -- the dashboard header is
+  // JS-rendered so no Jinja if-block can wrap the button directly; the
+  // permission flag instead rides on #rsDashboard's data-can-export
+  // attribute (set in templates/_reporting_simple.html), read once here.
+  var canExport = false;
+
+  function ensureShell() {
+    if (built) return;
+    canExport = el('rsDashboard').getAttribute('data-can-export') === '1';
+    el('rsDashboard').innerHTML =
+      '<div class="rdb-head">' +
+        '<button type="button" id="rdbBack" class="nx-btn nx-btn--secondary" data-testid="rdb-back">' +
+          '<i class="fas fa-arrow-left" aria-hidden="true"></i>' + esc(I18N.library) + '</button>' +
+        '<div class="rdb-titleblock">' +
+          '<div class="rdb-titlerow">' +
+            '<h2 id="rdbTitle" class="rdb-title" data-testid="rdb-title"></h2>' +
+            '<button type="button" id="rdbRenamePencil" class="rs-rename-pencil" ' +
+              'title="' + esc(I18N.rename) + '" aria-label="' + esc(I18N.rename) + '">' +
+              '<i class="fas fa-pencil" aria-hidden="true"></i></button>' +
+            '<input id="rdbTitleInput" class="reporting-input rdb-title-input" hidden ' +
+              'aria-label="' + esc(I18N.rename) + '">' +
+          '</div>' +
+          '<p id="rdbMeta" class="rdb-meta"></p>' +
+        '</div>' +
+        '<span class="rdb-spacer"></span>' +
+        '<span id="rdbEditingPill" class="rdb-editing-pill" hidden>' +
+          '<span class="rdb-editing-dot" aria-hidden="true"></span>' + esc(I18N.editing) + '</span>' +
+        '<button type="button" id="rdbAddCard" class="rdb-addcard-btn" data-testid="rdb-add-card" hidden>' +
+          '<i class="fas fa-plus" aria-hidden="true"></i>' + esc(I18N.addCard) + '</button>' +
+        (canExport ?
+          '<button type="button" id="rdbExport" class="nx-btn nx-btn--secondary" data-testid="rdb-export">' +
+            '<i class="fas fa-file-export" aria-hidden="true"></i>' + esc(I18N.export_) + '</button>'
+          : '') +
+        '<button type="button" id="rdbEditToggle" class="nx-btn nx-btn--primary" data-testid="rdb-edit-toggle"></button>' +
+      '</div>' +
+      '<div id="rdbFilterBar" class="rdb-filterbar" data-testid="rdb-filter-bar">' +
+        '<span class="rdb-filterbar-label"><i class="fas fa-filter" aria-hidden="true"></i>' +
+          esc(I18N.globalFilters) + '</span>' +
+        '<span class="rdb-filterbar-divider"></span>' +
+        '<span id="rdbFilterChips" class="rdb-filterchips"></span>' +
+        '<span class="rdb-spacer"></span>' +
+        '<span class="rdb-filterbar-hint">' + esc(I18N.filterHint) + '</span>' +
+      '</div>' +
+      '<div id="rdbGrid" class="rdb-grid" data-testid="rdb-grid"></div>';
+    el('rdbBack').addEventListener('click', close);
+    el('rdbRenamePencil').addEventListener('click', revealTitleInput);
+    el('rdbTitleInput').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') commitTitle();
+    });
+    el('rdbTitleInput').addEventListener('blur', commitTitle);
+    if (canExport) el('rdbExport').addEventListener('click', toggleExportMenu);
+    // Header "Add card" is a fast shortcut that always adds a KPI shell --
+    // the full type-picker (chart/kpi/table/donut) lives on the grid's
+    // add-card tile (Task 14, rdb-add-tile), the only place a non-KPI type
+    // or the saved-report picker is reachable from.
+    el('rdbAddCard').addEventListener('click', function () { addCard('kpi'); });
+    el('rdbEditToggle').addEventListener('click', toggleEditing);
+    // Delegated grid clicks -- cards (and the add-card tile) are rebuilt/
+    // replaced on every render, so direct per-element listeners would be
+    // lost on re-render.
+    el('rdbGrid').addEventListener('click', function (e) {
+      var filterX = e.target.closest && e.target.closest('[data-testid="rdb-card-filter-remove"]');
+      if (filterX) {
+        var filterCardEl = filterX.closest('[data-card-id]');
+        if (filterCardEl) clearCardOverrides(filterCardEl.getAttribute('data-card-id'));
+        return;
+      }
+      var dup = e.target.closest && e.target.closest('[data-testid="rdb-card-dup"]');
+      if (dup) {
+        var dupCardEl = dup.closest('[data-card-id]');
+        if (dupCardEl) duplicateCard(dupCardEl.getAttribute('data-card-id'));
+        return;
+      }
+      var rm = e.target.closest && e.target.closest('[data-testid="rdb-card-remove"]');
+      if (rm) {
+        var rmCardEl = rm.closest('[data-card-id]');
+        if (rmCardEl) removeCard(rmCardEl.getAttribute('data-card-id'));
+        return;
+      }
+      var configure = e.target.closest && e.target.closest('[data-testid="rdb-card-configure"]');
+      if (configure) {
+        var cfgCardEl = configure.closest('[data-card-id]');
+        if (cfgCardEl) openReportPicker(cfgCardEl.getAttribute('data-card-id'));
+        return;
+      }
+      var addType = e.target.closest && e.target.closest('[data-add-type]');
+      if (addType) { addCard(addType.getAttribute('data-add-type')); return; }
+      // Table-card row drill-through (Task 15): renderTable draws each row as
+      // a flat k/v span pair (no per-row wrapper element -- see its comment),
+      // so the row index is derived from the hit span's position among its
+      // siblings rather than a data-row-index attribute.
+      var tableHit = e.target.closest && e.target.closest('.rdb-table-k, .rdb-table-v');
+      if (tableHit) {
+        var rowsContainer = tableHit.closest('[data-testid="rdb-table-rows"]');
+        var tableCardEl = tableHit.closest('[data-card-id]');
+        if (rowsContainer && tableCardEl) {
+          var siblings = Array.prototype.slice.call(rowsContainer.children);
+          var pos = siblings.indexOf(tableHit);
+          var tableCard = pos > -1 && findCardById(tableCardEl.getAttribute('data-card-id'));
+          if (tableCard) handleCardTableRowClick(tableCard, Math.floor(pos / 2));
+        }
+      }
+    });
+    // Drag-to-reorder (D10, ported 1:1 from the prototype's onDragStart/
+    // onDragOver/onDrop/onDragEnd) -- delegated on the grid since HTML5 DnD
+    // events bubble and cards are rebuilt on every render.
+    el('rdbGrid').addEventListener('dragstart', handleGridDragStart);
+    el('rdbGrid').addEventListener('dragover', handleGridDragOver);
+    el('rdbGrid').addEventListener('drop', handleGridDrop);
+    el('rdbGrid').addEventListener('dragend', handleGridDragEnd);
+    // Filter popover / export menu: outside-click / Escape close -- same
+    // idiom as the Simple pane's rs-more-menu (hidden flag + outside-click +
+    // Escape).
+    document.addEventListener('click', function (e) {
+      if (filterPop.open) {
+        var pop = el('rdbFilterPop');
+        if (pop && !pop.contains(e.target)) closeFilterPopover();
+      }
+      if (exportMenu.open) {
+        var menu = el('rdbExportMenu');
+        var onBtn = e.target.closest && e.target.closest('#rdbExport');
+        if (menu && !menu.contains(e.target) && !onBtn) closeExportMenu();
+      }
+    });
+    document.addEventListener('keydown', function (e) {
+      if (filterPop.open && e.key === 'Escape') closeFilterPopover();
+      if (reportPicker.open && e.key === 'Escape') closeReportPicker();
+      if (exportMenu.open && e.key === 'Escape') closeExportMenu();
+    });
+    built = true;
+  }
+
+  function revealTitleInput() {
+    if (!state.editing) return;
+    var input = el('rdbTitleInput');
+    input.value = state.def.title || '';
+    input.hidden = false;
+    el('rdbTitle').hidden = true;
+    el('rdbRenamePencil').hidden = true;
+    input.focus();
+  }
+
+  function commitTitle() {
+    var input = el('rdbTitleInput');
+    if (input.hidden) return;
+    var v = input.value.trim();
+    if (v && v !== state.def.title) { state.def.title = v; state.dirty = true; }
+    renderHeader();
+  }
+
+  function renderHeader() {
+    var def = state.def || blankDef();
+    el('rdbTitle').hidden = false;
+    el('rdbTitle').textContent = def.title || I18N.untitled;
+    el('rdbTitleInput').hidden = true;
+    el('rdbMeta').textContent = I18N.cardsMeta.replace('{n}', String((def.cards || []).length));
+    el('rdbEditingPill').hidden = !state.editing;
+    el('rdbAddCard').hidden = !state.editing;
+    el('rdbRenamePencil').hidden = !state.editing || !state.canEdit;
+    el('rdbEditToggle').hidden = !state.canEdit;
+    el('rdbEditToggle').textContent = state.editing ? I18N.done : I18N.edit;
+  }
+
+  // ---- D4 filter merge -------------------------------------------------
+  // card.definition.filters (base) <- state.def.globalFilters (dashboard-
+  // wide) <- card.filterOverrides (per-card, wins last), merged field-keyed
+  // so a later source replaces an earlier one on the SAME field. Exact
+  // semantics Tasks 13 (override editing UI) and 15 (KPI trend/drill) build
+  // on -- keep this shape if it's ever extended.
+  function effectiveFilters(card) {
+    var byField = {};
+    var order = [];
+    function apply(list) {
+      (list || []).forEach(function (f) {
+        if (!f || f.field == null) return;
+        if (!(f.field in byField)) order.push(f.field);
+        byField[f.field] = f;
+      });
+    }
+    apply(card.definition && card.definition.filters);
+    apply(state.def && state.def.globalFilters);
+    apply(card.filterOverrides);
+    return order.map(function (k) { return byField[k]; });
+  }
+
+  // ---- KPI trend period-shift (D8) ---------------------------------------
+  // A "date-range filter" is any effective filter with op 'between' -- the
+  // same signal the Advanced pane's own drill code uses to spot the date
+  // axis (see _reporting_js.html: `x.op === 'between'`). Its value is either
+  // a relative-date token {token:'<name>'} or a literal [start, end] ISO
+  // pair (the Simple wizard's own two shapes -- _reporting_simple_js.html's
+  // isTokenValue/TOKEN_LABELS).
+  function isTokenValue(v) {
+    return !!v && typeof v === 'object' && !Array.isArray(v) && typeof v.token === 'string';
+  }
+
+  // Known relative-date tokens with a documented "previous period" sibling
+  // (nx_lib/reporting/tokens.py's RELATIVE_DATE_TOKENS) -- mapped directly,
+  // never re-derived client-side. Tokens without a listed sibling here
+  // (last_year, last_month, last_quarter, last_week, last_3_months,
+  // last_n_days, today, yesterday) are NOT resolved locally -- doing so
+  // would duplicate the server's own date math -- so shiftDateRangeFilter
+  // returns null for them (D8: honest numbers or nothing).
+  var PREV_TOKEN = {
+    this_week: 'last_week', this_month: 'last_month',
+    this_quarter: 'last_quarter', this_year: 'last_year'
+  };
+
+  function isoDate(d) { return d.toISOString().slice(0, 10); }
+
+  // Pure: given ONE date-range filter, returns the equivalent filter for
+  // "one period back", or null when no shift is possible. A token with a
+  // sibling in PREV_TOKEN maps directly; a literal [start, end] pair shifts
+  // back by its own (inclusive) length, ending the day before `start`.
+  function shiftDateRangeFilter(f) {
+    if (!f || f.op !== 'between') return null;
+    var v = f.value;
+    if (isTokenValue(v)) {
+      var prev = PREV_TOKEN[v.token];
+      return prev ? { field: f.field, op: 'between', value: { token: prev } } : null;
+    }
+    if (Array.isArray(v) && v.length === 2 && v[0] && v[1]) {
+      var start = new Date(String(v[0]).slice(0, 10) + 'T00:00:00Z');
+      var end = new Date(String(v[1]).slice(0, 10) + 'T00:00:00Z');
+      if (isNaN(start.getTime()) || isNaN(end.getTime()) || end < start) return null;
+      var spanMs = end.getTime() - start.getTime();
+      var newEnd = new Date(start.getTime() - 86400000);
+      var newStart = new Date(newEnd.getTime() - spanMs);
+      return { field: f.field, op: 'between', value: [isoDate(newStart), isoDate(newEnd)] };
+    }
+    return null;
+  }
+
+  // ---- Filter-field catalog (D11) ----------------------------------------
+  // Self-contained: fetches its own copy of the same catalog endpoints the
+  // Simple pane loads (GET /api/reporting/sources + /metrics) -- this is a
+  // separate IIFE, it can't read the Simple pane's already-fetched state.
+  // Lazy: only fetched the first time a filter popover opens, cached after.
+  var catalog = { loaded: false, sources: [] };
+
+  async function ensureCatalog() {
+    if (catalog.loaded) return;
+    var sourcesRes = await api('/api/reporting/sources');
+    // Fetched for parity with the Simple pane's catalog load (same two
+    // endpoints); not itself read by the filter popover below.
+    await api('/api/reporting/metrics');
+    catalog.sources = (sourcesRes.ok && Array.isArray(sourcesRes.data)) ? sourcesRes.data : [];
+    catalog.loaded = true;
+  }
+
+  // Distinct source ids actually used by this dashboard's cards. Empty on a
+  // brand-new/empty dashboard -- filterableFieldCatalog() then falls back to
+  // every catalog source (nothing to narrow by yet).
+  function cardSourceIds() {
+    var ids = [];
+    ((state.def && state.def.cards) || []).forEach(function (c) {
+      var sid = c.definition && c.definition.source;
+      if (sid && ids.indexOf(sid) === -1) ids.push(sid);
+    });
+    return ids;
+  }
+
+  // The popover field <select>'s options: filterable fields of the sources
+  // the card sources' shared catalog. Deduped by field key (first match's
+  // label wins) since a global filter targets one field across every card.
+  function filterableFieldCatalog() {
+    var ids = cardSourceIds();
+    var out = [], seen = {};
+    catalog.sources.forEach(function (src) {
+      if (ids.length && ids.indexOf(src.id) === -1) return;
+      (src.fields || []).forEach(function (f) {
+        if (!f.filterable || seen[f.field]) return;
+        seen[f.field] = 1;
+        out.push(f);
+      });
+    });
+    return out;
+  }
+
+  function fieldMetaByKey(key) {
+    var match = null;
+    filterableFieldCatalog().forEach(function (f) { if (f.field === key) match = f; });
+    return match;
+  }
+
+  // Text vs. date value input -- same rule as the Simple pane's chip editor
+  // (filterChipEditor in _reporting_simple_js.html) and the Advanced
+  // builder's filter row (_reporting_js.html): grainable OR a "date"-ish type.
+  function isDateFieldMeta(meta) {
+    return !!(meta && (meta.grainable || /date/i.test(meta.type || '')));
+  }
+
+  function filterChipLabel(f) {
+    var meta = fieldMetaByKey(f.field);
+    var parts = [(meta && meta.label) || f.field, OP_LABELS[f.op] || f.op];
+    if (f.value != null && f.value !== '') parts.push(String(f.value));
+    return parts.join(' ');
+  }
+
+  // ---- Global filter popover (D11 -- field/op/value, self-contained) -----
+  var filterPop = { open: false, index: -1 };
+
+  function closeFilterPopover() {
+    var pop = el('rdbFilterPop');
+    if (pop && pop.parentNode) pop.parentNode.removeChild(pop);
+    filterPop.open = false;
+    filterPop.index = -1;
+  }
+
+  function positionFilterPopover(pop, anchorEl) {
+    var bar = el('rdbFilterBar');
+    var barRect = bar.getBoundingClientRect();
+    var aRect = anchorEl.getBoundingClientRect();
+    pop.style.top = (aRect.bottom - barRect.top + 8) + 'px';
+    pop.style.left = Math.max(0, aRect.left - barRect.left) + 'px';
+  }
+
+  // is_null/is_not_null carry no value (mirrors the Simple/Advanced chip
+  // editors skipping a value for those ops); text vs. date otherwise.
+  function refreshFilterPopoverValueField(pop) {
+    var fieldSel = pop.querySelector('[data-testid="rdb-filter-field"]');
+    var opSel = pop.querySelector('[data-testid="rdb-filter-op"]');
+    var valInput = pop.querySelector('[data-testid="rdb-filter-value"]');
+    var isNullOp = opSel.value === 'is_null' || opSel.value === 'is_not_null';
+    valInput.hidden = isNullOp;
+    valInput.type = isDateFieldMeta(fieldMetaByKey(fieldSel.value)) ? 'date' : 'text';
+  }
+
+  // Opens (or replaces) the popover under anchorEl. existing/index are null/-1
+  // for a brand-new filter (appended on apply); otherwise the filter object +
+  // its index in state.def.globalFilters being edited in place ("cycle"
+  // becomes "open popover pre-filled" per D11 -- no more fixed value lists).
+  async function openFilterPopover(anchorEl, existing, index) {
+    await ensureCatalog();
+    if (!anchorEl.isConnected) return;  // bar re-rendered while fetching
+    closeFilterPopover();
+    var fields = filterableFieldCatalog();
+    if (!fields.length) return;  // nothing filterable to offer
+    var f = existing || { field: fields[0].field, op: 'eq', value: '' };
+
+    var pop = document.createElement('div');
+    pop.id = 'rdbFilterPop';
+    pop.className = 'rdb-filter-pop';
+    pop.setAttribute('data-testid', 'rdb-filter-pop');
+    pop.setAttribute('role', 'dialog');
+    pop.setAttribute('aria-label', I18N.globalFilters);
+
+    var fieldLabelEl = document.createElement('label');
+    fieldLabelEl.textContent = I18N.filterField;
+    var fieldSel = document.createElement('select');
+    fieldSel.setAttribute('data-testid', 'rdb-filter-field');
+    fields.forEach(function (fm) {
+      var o = document.createElement('option');
+      o.value = fm.field; o.textContent = fm.label || fm.field;
+      fieldSel.appendChild(o);
+    });
+    fieldSel.value = f.field;
+
+    var opLabelEl = document.createElement('label');
+    opLabelEl.textContent = I18N.filterOperator;
+    var opSel = document.createElement('select');
+    opSel.setAttribute('data-testid', 'rdb-filter-op');
+    FILTER_OPS.forEach(function (o) {
+      var opt = document.createElement('option');
+      opt.value = o; opt.textContent = OP_LABELS[o] || o;
+      opSel.appendChild(opt);
+    });
+    opSel.value = f.op || 'eq';
+
+    var valLabelEl = document.createElement('label');
+    valLabelEl.textContent = I18N.filterValue;
+    var valInput = document.createElement('input');
+    valInput.className = 'reporting-input';
+    valInput.setAttribute('data-testid', 'rdb-filter-value');
+    valInput.value = f.value == null ? '' : f.value;
+
+    var actions = document.createElement('div');
+    actions.className = 'rdb-filter-pop-actions';
+    var cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'nx-btn nx-btn--secondary';
+    cancelBtn.setAttribute('data-testid', 'rdb-filter-cancel');
+    cancelBtn.textContent = I18N.cancel;
+    cancelBtn.addEventListener('click', closeFilterPopover);
+    var applyBtn = document.createElement('button');
+    applyBtn.type = 'button';
+    applyBtn.className = 'nx-btn nx-btn--primary';
+    applyBtn.setAttribute('data-testid', 'rdb-filter-apply');
+    applyBtn.textContent = I18N.apply;
+    applyBtn.addEventListener('click', function () {
+      var isNullOp = opSel.value === 'is_null' || opSel.value === 'is_not_null';
+      applyGlobalFilter(index, fieldSel.value, opSel.value, isNullOp ? null : valInput.value);
+    });
+    actions.appendChild(cancelBtn);
+    actions.appendChild(applyBtn);
+
+    pop.appendChild(fieldLabelEl); pop.appendChild(fieldSel);
+    pop.appendChild(opLabelEl); pop.appendChild(opSel);
+    pop.appendChild(valLabelEl); pop.appendChild(valInput);
+    pop.appendChild(actions);
+
+    fieldSel.addEventListener('change', function () { refreshFilterPopoverValueField(pop); });
+    opSel.addEventListener('change', function () { refreshFilterPopoverValueField(pop); });
+
+    el('rdbFilterBar').appendChild(pop);
+    refreshFilterPopoverValueField(pop);
+    positionFilterPopover(pop, anchorEl);
+    filterPop.open = true;
+    filterPop.index = (index === undefined || index === null) ? -1 : index;
+    valInput.focus();
+  }
+
+  // ---- Selective re-run (only cards whose effectiveFilters() changed) ----
+  function snapshotEffectiveByCard() {
+    var map = {};
+    ((state.def && state.def.cards) || []).forEach(function (c) {
+      map[c.id] = JSON.stringify(effectiveFilters(c));
+    });
+    return map;
+  }
+
+  function rerunCardsWhereChanged(before) {
+    ((state.def && state.def.cards) || []).forEach(function (c) {
+      if (JSON.stringify(effectiveFilters(c)) !== before[c.id]) renderCard(c);
+    });
+  }
+
+  function applyGlobalFilter(index, field, op, value) {
+    var before = snapshotEffectiveByCard();
+    state.def.globalFilters = state.def.globalFilters || [];
+    var f = { field: field, op: op, value: value };
+    if (index == null || index < 0) {
+      state.def.globalFilters.push(f);
+    } else {
+      state.def.globalFilters[index] = f;
+    }
+    state.dirty = true;
+    closeFilterPopover();
+    renderFilterBar();
+    rerunCardsWhereChanged(before);
+  }
+
+  function removeGlobalFilter(index) {
+    var before = snapshotEffectiveByCard();
+    state.def.globalFilters.splice(index, 1);
+    state.dirty = true;
+    closeFilterPopover();
+    renderFilterBar();
+    rerunCardsWhereChanged(before);
+  }
+
+  // Per-card override chip's x: clears filterOverrides ENTIRELY for that
+  // card (no partial-edit UI in v1 -- overrides are set elsewhere, e.g. a
+  // dropped saved report's own filters; this task only ships clearing them).
+  function clearCardOverrides(cardId) {
+    var card = ((state.def && state.def.cards) || []).find(function (c) { return c.id === cardId; });
+    if (!card || !card.filterOverrides || !card.filterOverrides.length) return;
+    card.filterOverrides = [];
+    state.dirty = true;
+    renderCard(card);
+  }
+
+  function renderFilterBar() {
+    closeFilterPopover();
+    var chips = el('rdbFilterChips');
+    chips.innerHTML = '';
+    var filters = (state.def && state.def.globalFilters) || [];
+    filters.forEach(function (f, i) {
+      var chipEl = document.createElement('span');
+      chipEl.className = 'reporting-drill-chip reporting-drill-chip--indigo rdb-gfilter';
+      chipEl.setAttribute('data-testid', 'rdb-gfilter');
+      chipEl.tabIndex = 0;
+      var icon = document.createElement('i');
+      icon.className = 'fas fa-filter';
+      icon.setAttribute('aria-hidden', 'true');
+      var label = document.createElement('span');
+      label.textContent = filterChipLabel(f);
+      var x = document.createElement('i');
+      x.className = 'fas fa-xmark rdb-gfilter-x';
+      x.setAttribute('data-testid', 'rdb-gfilter-remove');
+      x.setAttribute('aria-hidden', 'true');
+      x.addEventListener('click', function (e) { e.stopPropagation(); removeGlobalFilter(i); });
+      chipEl.appendChild(icon); chipEl.appendChild(label); chipEl.appendChild(x);
+      chipEl.addEventListener('click', function () { openFilterPopover(chipEl, f, i); });
+      chips.appendChild(chipEl);
+    });
+    var add = document.createElement('button');
+    add.type = 'button';
+    add.className = 'rdb-add-filter';
+    add.setAttribute('data-testid', 'rdb-add-filter');
+    add.innerHTML = '<i class="fas fa-plus" aria-hidden="true"></i>' + esc(I18N.addFilter);
+    add.addEventListener('click', function () { openFilterPopover(add, null, -1); });
+    chips.appendChild(add);
+  }
+
+  // ---- Chart instance lifecycle -----------------------------------------
+  // Keyed by card id. Same destroy-before-recreate discipline as
+  // ReportingViz.destroyChart (templates/js/_reporting_viz_js.html) --
+  // forgetting this leaks a canvas + its ResizeObserver on every re-render.
+  var charts = {};
+
+  function destroyCardChart(id) {
+    if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+  }
+
+  function destroyChartsExcept(keepIds) {
+    Object.keys(charts).forEach(function (id) {
+      if (!keepIds[id]) destroyCardChart(id);
+    });
+  }
+
+  // ---- Small formatting/number helpers -----------------------------------
+  function toNum(v) {
+    if (v === null || v === undefined || v === '') return null;
+    var n = Number(v);
+    return isFinite(n) ? n : null;
+  }
+
+  function fmtNum(v) {
+    var n = toNum(v);
+    if (n === null) return v == null ? '—' : String(v);
+    return n.toLocaleString('en-US', { maximumFractionDigits: Number.isInteger(n) ? 0 : 2 });
+  }
+
+  function fmtLabel(v) { return v == null ? '' : String(v); }
+
+  // First response column is the label/dimension; first metric is the
+  // value. A zero-dimension definition (KPI cards run a zero-column clone,
+  // same pattern as the Simple pane's grand-total call) returns just the
+  // metric column, so there's no dimension to read.
+  function dimValIdx(columns) {
+    return columns.length > 1 ? { dim: 0, val: 1 } : { dim: -1, val: 0 };
+  }
+
+  function findCardEl(id) {
+    var nodes = el('rdbGrid').children;
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i].getAttribute('data-card-id') === id) return nodes[i];
+    }
+    return null;
+  }
+
+  function findCardById(id) {
+    return ((state.def && state.def.cards) || []).find(function (c) { return c.id === id; });
+  }
+
+  function dividerColor() {
+    return getComputedStyle(document.documentElement).getPropertyValue('--nx-divider').trim() || '#e5e7eb';
+  }
+
+  // Chart-build-time dark check (Task 16) -- read once per render call, not
+  // live-reactive: toggling dark mode with a dashboard open re-themes on the
+  // next render, which is acceptable v1 (see the redesign plan's Task 16).
+  function isDark() {
+    return document.documentElement.classList.contains('dark');
+  }
+
+  function tickColor() {
+    return isDark() ? '#64748b' : '#9ca3af';
+  }
+
+  // ---- Drill-through (chart-element / table-row clicks) ------------------
+  // Last successful {columns, rows} per card id -- feeds the click handlers
+  // below (a Chart.js onClick only gets the clicked point's index; the raw
+  // row values it maps to live here, same idea as the Simple pane's own
+  // state.chartData.rawX). Populated by runCard() on every successful run.
+  var cardRunData = {};
+
+  // Mirrors the Simple pane's chart onClick -> ReportingDrill.open call
+  // exactly (_reporting_simple_js.html's drillFromChart/openDrill): fields
+  // come from this module's own lazily-fetched source catalog (D11, Task
+  // 13's ensureCatalog), definition = the card definition with merged
+  // filters, clicked = one {field, grain, value} entry (dashboard cards
+  // never break down by more than one dimension -- see dimValIdx), header =
+  // the card's own title (simpler than Simple's per-value header, since a
+  // dashboard card's title already names what's being drilled into).
+  async function openCardDrill(card, clicked) {
+    if (!card.definition || !card.definition.source) return;
+    await ensureCatalog();
+    var src = catalog.sources.find(function (s) { return s.id === card.definition.source; });
+    if (!src) return;
+    var def = Object.assign({}, card.definition || {});
+    def.filters = effectiveFilters(card);
+    ReportingDrill.open({
+      definition: def, fields: src.fields || [],
+      clicked: clicked, header: card.title || ''
+    });
+  }
+
+  // index is the Chart.js element index from onClick (getElementsAtEventForMode).
+  // The dimension's field/grain come from the CARD'S OWN DEFINITION
+  // (card.definition.columns) -- mirrors the Simple pane's own
+  // clickedFor/drillFromChart in _reporting_simple_js.html, which reads
+  // state.current.def.columns rather than the run result's columns. The run
+  // result's columns are only {field, header} (api_reports_run never echoes
+  // grain), so sourcing grain from there always drilled as an exact-value
+  // match on the truncated bucket label instead of a date range.
+  function handleCardChartClick(card, index) {
+    var data = cardRunData[card.id];
+    if (!data) return;
+    var idx = dimValIdx(data.columns);
+    if (idx.dim < 0) return;  // no dimension column -- nothing to drill on
+    var row = data.rows[index];
+    if (!row) return;
+    var col = ((card.definition && card.definition.columns) || [])[idx.dim];
+    if (!col) return;
+    openCardDrill(card, [{ field: col.field, grain: col.grain || null, value: row[idx.dim] }]);
+  }
+
+  // rowIndex is the table card's row position (0-based, matching the capped
+  // rows renderTable actually drew). Same card.definition.columns sourcing
+  // as handleCardChartClick above, for the same reason.
+  function handleCardTableRowClick(card, rowIndex) {
+    var data = cardRunData[card.id];
+    if (!data) return;
+    var idx = dimValIdx(data.columns);
+    if (idx.dim < 0) return;
+    var row = data.rows[rowIndex];
+    if (!row) return;
+    var col = ((card.definition && card.definition.columns) || [])[idx.dim];
+    if (!col) return;
+    openCardDrill(card, [{ field: col.field, grain: col.grain || null, value: row[idx.dim] }]);
+  }
+
+  // ---- Per-type card body renderers --------------------------------------
+  // Each takes the already-cleared <body> element for the card plus the
+  // {columns, rows} the run returned, and draws into it.
+  function renderKpi(card, body, columns, rows) {
+    var idx = dimValIdx(columns);
+    var v = rows.length ? rows[0][idx.val] : null;
+    body.innerHTML = '<p class="rdb-kpi-value" data-testid="rdb-kpi-value">' + esc(fmtNum(v)) + '</p>';
+  }
+
+  function renderLine(card, body, columns, rows) {
+    destroyCardChart(card.id);
+    if (typeof Chart === 'undefined') { body.textContent = I18N.chartUnavailable; return; }
+    body.innerHTML = '<div class="rdb-chart-wrap"><canvas></canvas></div>';
+    var canvas = body.querySelector('canvas');
+    var idx = dimValIdx(columns);
+    var labels = rows.map(function (r) { return idx.dim >= 0 ? fmtLabel(r[idx.dim]) : ''; });
+    var data = rows.map(function (r) { return toNum(r[idx.val]) || 0; });
+    var ctx = canvas.getContext('2d');
+    var h = (canvas.parentNode && canvas.parentNode.clientHeight) || 190;
+    var gradient = ctx.createLinearGradient(0, 0, 0, h);
+    gradient.addColorStop(0, 'rgba(79,70,229,.20)');
+    gradient.addColorStop(1, 'rgba(79,70,229,0)');
+    charts[card.id] = new Chart(ctx, {
+      type: 'line',
+      data: { labels: labels, datasets: [{
+        data: data, borderColor: '#4f46e5', borderWidth: 2.5, tension: 0.4,
+        pointRadius: 0, fill: true, backgroundColor: gradient
+      }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 10.5 }, color: tickColor() } },
+          y: { grid: { color: dividerColor() },
+               ticks: { font: { family: 'Inter', size: 10.5 }, color: tickColor() } }
+        },
+        // Drill-through (Task 15): same getElementsAtEventForMode hit-test
+        // the Simple pane's own chart onClick uses.
+        onClick: function (evt) {
+          var els = this.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, false);
+          if (els.length) handleCardChartClick(card, els[0].index);
+        }
+      }
+    });
+  }
+
+  function renderBar(card, body, columns, rows) {
+    destroyCardChart(card.id);
+    if (typeof Chart === 'undefined') { body.textContent = I18N.chartUnavailable; return; }
+    body.innerHTML = '<div class="rdb-chart-wrap"><canvas></canvas></div>';
+    var canvas = body.querySelector('canvas');
+    var idx = dimValIdx(columns);
+    var labels = rows.map(function (r) { return idx.dim >= 0 ? fmtLabel(r[idx.dim]) : ''; });
+    var data = rows.map(function (r) { return toNum(r[idx.val]) || 0; });
+    var colors = labels.map(function (_, i) { return CARD_PALETTE[i % CARD_PALETTE.length]; });
+    charts[card.id] = new Chart(canvas.getContext('2d'), {
+      type: 'bar',
+      data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderRadius: 5, barThickness: 26 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 10.5 }, color: tickColor() } },
+          y: { grid: { color: dividerColor() },
+               ticks: { font: { family: 'Inter', size: 10.5 }, color: tickColor() } }
+        },
+        onClick: function (evt) {
+          var els = this.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, false);
+          if (els.length) handleCardChartClick(card, els[0].index);
+        }
+      }
+    });
+  }
+
+  // Donut/table cap at 8 rows; donuts additionally roll the remainder into
+  // an 8th "Other" segment (tables just show the first 8, no roll-up row).
+  function renderDonut(card, body, columns, rows) {
+    destroyCardChart(card.id);
+    var idx = dimValIdx(columns);
+    var pairs = rows.map(function (r) {
+      return { label: idx.dim >= 0 ? fmtLabel(r[idx.dim]) : '', value: toNum(r[idx.val]) || 0 };
+    });
+    if (pairs.length > 8) {
+      var rest = pairs.slice(7).reduce(function (a, p) { return a + p.value; }, 0);
+      pairs = pairs.slice(0, 7).concat([{ label: I18N.other, value: rest }]);
+    }
+    var total = pairs.reduce(function (a, p) { return a + p.value; }, 0);
+    var colors = pairs.map(function (_, i) { return CARD_PALETTE[i % CARD_PALETTE.length]; });
+    body.innerHTML =
+      '<div class="rdb-donut-wrap">' +
+        '<div class="rdb-donut-ring">' +
+          '<canvas></canvas>' +
+          '<div class="rdb-donut-center" data-testid="rdb-donut-center">' +
+            '<span class="rdb-donut-total-value">' + esc(fmtNum(total)) + '</span>' +
+            '<span class="rdb-donut-total-label">' + esc(I18N.total) + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="rdb-donut-legend">' +
+          pairs.map(function (p, i) {
+            return '<div class="rdb-donut-legend-row">' +
+              '<span class="rdb-donut-swatch" style="background:' + colors[i] + '"></span>' +
+              '<span class="rdb-donut-legend-label">' + esc(p.label) + '</span>' +
+              '<span class="rdb-donut-legend-value">' + esc(fmtNum(p.value)) + '</span>' +
+            '</div>';
+          }).join('') +
+        '</div>' +
+      '</div>';
+    if (typeof Chart === 'undefined') return;
+    var canvas = body.querySelector('canvas');
+    charts[card.id] = new Chart(canvas.getContext('2d'), {
+      type: 'doughnut',
+      data: { labels: pairs.map(function (p) { return p.label; }),
+              datasets: [{ data: pairs.map(function (p) { return p.value; }),
+                           backgroundColor: colors, borderColor: '#fff', borderWidth: 2 }] },
+      options: { responsive: true, maintainAspectRatio: false, cutout: '68%',
+                 plugins: { legend: { display: false } } }
+    });
+  }
+
+  // Each row is a flat k/v span pair with no wrapping element (2 children
+  // per row, k then v) -- kept minimal since the CSS grid places them
+  // directly; the grid's delegated click handler above derives the row
+  // index from the hit span's position among rowsContainer.children.
+  function renderTable(card, body, columns, rows) {
+    destroyCardChart(card.id);
+    var idx = dimValIdx(columns);
+    var capped = rows.slice(0, 8);
+    body.innerHTML = '<div class="rdb-table-rows" data-testid="rdb-table-rows">' +
+      capped.map(function (r) {
+        return '<span class="rdb-table-k">' + esc(idx.dim >= 0 ? fmtLabel(r[idx.dim]) : '') + '</span>' +
+               '<span class="rdb-table-v">' + esc(fmtNum(r[idx.val])) + '</span>';
+      }).join('') +
+    '</div>';
+  }
+
+  function renderCardContent(card, body, columns, rows) {
+    if (card.type === 'kpi') return renderKpi(card, body, columns, rows);
+    if (card.type === 'line') return renderLine(card, body, columns, rows);
+    if (card.type === 'bar') return renderBar(card, body, columns, rows);
+    if (card.type === 'donut') return renderDonut(card, body, columns, rows);
+    if (card.type === 'table') return renderTable(card, body, columns, rows);
+    body.textContent = '';
+  }
+
+  // ---- Per-card run: one POST /api/reporting/run per card ----------------
+  var runGen = {};  // per-card fetch generation -- staleness guard (same idea
+                     // as the Simple pane's seq/runSeq): a card can be
+                     // re-rendered (edit toggled, cards changed) while an
+                     // older fetch for the same card id is still in flight.
+
+  async function runCard(card, cardEl) {
+    if (!cardEl) return;
+    var gen = (runGen[card.id] = (runGen[card.id] || 0) + 1);
+    var def = Object.assign({}, card.definition || {});
+    def.filters = effectiveFilters(card);
+    var res = await api('/api/reporting/run', { method: 'POST', body: JSON.stringify(def) });
+    if (runGen[card.id] !== gen) return;  // superseded by a newer render/run
+    var body = cardEl.querySelector('[data-testid="rdb-card-body"]');
+    if (!body) return;
+    if (!res.ok || !res.data || !Array.isArray(res.data.columns) || !Array.isArray(res.data.rows)) {
+      destroyCardChart(card.id);
+      body.className = 'rdb-card-body rdb-card-body--error';
+      body.innerHTML = '<p class="rdb-card-error" data-testid="rdb-card-error">' +
+        esc(I18N.couldNotLoad) + '</p>';
+      return;
+    }
+    body.className = 'rdb-card-body';
+    cardRunData[card.id] = { columns: res.data.columns, rows: res.data.rows };
+    renderCardContent(card, body, res.data.columns, res.data.rows);
+    if (card.type === 'kpi') maybeRenderKpiTrend(card, body, res.data.columns, res.data.rows, gen);
+  }
+
+  // ---- KPI trend (D8): a second /api/reporting/run with the one date-range
+  // filter shifted back a period, rendered as "+x.y% vs previous period" --
+  // computed only when the card's effective filters hold EXACTLY one
+  // date-range filter and its shift is possible (shiftDateRangeFilter);
+  // otherwise no trend line at all (honest numbers or nothing, per D8).
+  async function maybeRenderKpiTrend(card, body, columns, rows, gen) {
+    var dateFilters = effectiveFilters(card).filter(function (f) { return f.op === 'between'; });
+    if (dateFilters.length !== 1) return;
+    var shifted = shiftDateRangeFilter(dateFilters[0]);
+    if (!shifted) return;
+    var idx = dimValIdx(columns);
+    var curVal = toNum(rows.length ? rows[0][idx.val] : null);
+    if (curVal === null) return;
+    var filters2 = effectiveFilters(card).map(function (f) {
+      return f === dateFilters[0] ? shifted : f;
+    });
+    var def2 = Object.assign({}, card.definition || {});
+    def2.filters = filters2;
+    var res2 = await api('/api/reporting/run', { method: 'POST', body: JSON.stringify(def2) });
+    if (runGen[card.id] !== gen) return;  // superseded meanwhile
+    if (!res2.ok || !res2.data || !Array.isArray(res2.data.rows)) return;
+    var prevVal = toNum(res2.data.rows.length ? res2.data.rows[0][idx.val] : null);
+    if (!prevVal) return;  // null or 0 -- no honest percentage to show
+    var pct = ((curVal - prevVal) / prevVal) * 100;
+    var up = pct >= 0;
+    var text = (up ? '+' : '') + pct.toFixed(1) + '% ' + I18N.vsPreviousPeriod;
+    var trendEl = document.createElement('p');
+    trendEl.className = 'rdb-kpi-trend rdb-kpi-trend--' + (up ? 'up' : 'down');
+    trendEl.setAttribute('data-testid', 'rdb-kpi-trend');
+    trendEl.innerHTML = '<i class="fas ' + (up ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down') +
+      '" aria-hidden="true"></i> ' + esc(text);
+    body.appendChild(trendEl);
+  }
+
+  // ---- Card shells (loading skeleton until the run resolves) -------------
+  function loadingBodyHtml(type) {
+    if (type === 'kpi') return '<div class="rdb-skeleton rdb-skeleton--kpi"></div>';
+    if (type === 'donut') {
+      return '<div class="rdb-donut-wrap">' +
+        '<div class="rdb-skeleton rdb-skeleton--donut"></div>' +
+        '<div class="rdb-skeleton rdb-skeleton--legend"></div>' +
+      '</div>';
+    }
+    if (type === 'table') {
+      return '<div class="rdb-skeleton rdb-skeleton--row"></div>' +
+        '<div class="rdb-skeleton rdb-skeleton--row"></div>' +
+        '<div class="rdb-skeleton rdb-skeleton--row"></div>';
+    }
+    return '<div class="rdb-skeleton rdb-skeleton--chart"></div>';  // line/bar
+  }
+
+  // Per-card head extras after the title: a violet override-summary chip
+  // (with its own x) when the card overrides the global filters, otherwise
+  // an "inherits global filters" note -- except on KPI cards, which hide the
+  // note (prototype's showInherit: !c.filter && c.type !== 'kpi').
+  function cardHeadExtrasHtml(c) {
+    var overrides = c.filterOverrides || [];
+    if (overrides.length) {
+      var summary = overrides.map(function (f) {
+        var parts = [esc(f.field), esc(OP_LABELS[f.op] || f.op)];
+        if (f.value != null && f.value !== '') parts.push(esc(String(f.value)));
+        return parts.join(' ');
+      }).join(', ');
+      return '<span class="reporting-drill-chip reporting-drill-chip--violet rdb-card-filter-chip" ' +
+        'data-testid="rdb-card-filter" title="' + esc(I18N.overrideTitle) + '">' +
+        '<i class="fas fa-filter" aria-hidden="true"></i>' + summary +
+        '<i class="fas fa-xmark rdb-card-filter-x" data-testid="rdb-card-filter-remove" ' +
+          'aria-hidden="true"></i></span>' +
+        '<span class="rdb-spacer"></span>';
+    }
+    if (c.type !== 'kpi') {
+      return '<span class="rdb-spacer"></span><span class="rdb-card-inherit">' + esc(I18N.inherits) + '</span>';
+    }
+    return '';
+  }
+
+  // A card with no source yet (the add-card tile's placeholder shape, D14)
+  // never gets POSTed to /api/reporting/run -- it renders a "configure this
+  // card" body instead until a saved report is adopted into it.
+  function isEmptyCardDef(c) {
+    return !c.definition || !c.definition.source;
+  }
+
+  // Hover control cluster (Task 14, edit mode only): duplicate + remove,
+  // top:-11px;right:10px per D10, built fresh on every render like the rest
+  // of the card shell.
+  function cardControlClusterHtml() {
+    return '<div class="rdb-card-controls">' +
+      '<button type="button" class="rdb-card-ctrl-btn" data-testid="rdb-card-dup" ' +
+        'title="' + esc(I18N.duplicate) + '" aria-label="' + esc(I18N.duplicate) + '">' +
+        '<i class="fas fa-clone" aria-hidden="true"></i></button>' +
+      '<button type="button" class="rdb-card-ctrl-btn rdb-card-ctrl-btn--danger" ' +
+        'data-testid="rdb-card-remove" title="' + esc(I18N.remove) + '" aria-label="' + esc(I18N.remove) + '">' +
+        '<i class="fas fa-xmark" aria-hidden="true"></i></button>' +
+    '</div>';
+  }
+
+  // Empty-definition card body: clickable (opens the report picker) only in
+  // edit mode -- a static note otherwise, since the picker is a mutation.
+  function emptyCardBodyHtml() {
+    if (state.editing) {
+      return '<button type="button" class="rdb-card-configure" data-testid="rdb-card-configure">' +
+        '<i class="fas fa-plug" aria-hidden="true"></i>' + esc(I18N.configureCard) + '</button>';
+    }
+    return '<p class="rdb-card-unconfigured">' + esc(I18N.configureCard) + '</p>';
+  }
+
+  function cardShellHtml(c) {
+    var span = parseInt(c.span, 10) || DEFAULT_SPAN[c.type] || 6;
+    var empty = isEmptyCardDef(c);
+    var bodyClass = 'rdb-card-body' + (empty ? '' : ' rdb-card-body--loading');
+    return '<div class="rdb-card" data-testid="rdb-card" data-card-id="' + esc(c.id) + '" ' +
+      'data-type="' + esc(c.type) + '" draggable="' + (state.editing ? 'true' : 'false') + '" ' +
+      'style="grid-column:span ' + span + '">' +
+      (state.editing ? cardControlClusterHtml() : '') +
+      '<div class="rdb-card-head">' +
+        (state.editing ? '<i class="fas fa-grip-vertical rdb-card-grip" aria-hidden="true"></i>' : '') +
+        '<span class="rdb-card-title">' + esc(c.title || '') + '</span>' +
+        cardHeadExtrasHtml(c) +
+      '</div>' +
+      '<div class="' + bodyClass + '" data-testid="rdb-card-body">' +
+        (empty ? emptyCardBodyHtml() : loadingBodyHtml(c.type)) +
+      '</div>' +
+    '</div>';
+  }
+
+  // Renders (or re-renders in place) exactly one card: builds its shell,
+  // inserts/replaces it in the grid, then kicks off its run -- unless the
+  // card has no source yet (D14 empty placeholder), in which case there's
+  // nothing to run. Public per the plan so Tasks 13/15 can re-render a
+  // single card (e.g. after a filter override edit) without rebuilding the
+  // whole grid.
+  function renderCard(card) {
+    destroyCardChart(card.id);
+    var existing = findCardEl(card.id);
+    var html = cardShellHtml(card);
+    if (existing) { existing.outerHTML = html; } else { el('rdbGrid').insertAdjacentHTML('beforeend', html); }
+    var cardEl = findCardEl(card.id);
+    if (!isEmptyCardDef(card)) runCard(card, cardEl);
+    return cardEl;
+  }
+
+  // Add-card tile (Task 14): last grid item in edit mode, span 6, type
+  // pills mapped to internal card types via data-add-type (delegated click
+  // in ensureShell). The "drop a saved report here" hint is decorative only
+  // (D14 deviation) -- v1's real affordance is clicking a placeholder card's
+  // body to open the report picker, not cross-view drag of a library card.
+  function addTileHtml() {
+    return '<div class="rdb-add-tile" data-testid="rdb-add-tile" style="grid-column:span 6">' +
+      '<span class="rdb-add-tile-icon"><i class="fas fa-plus" aria-hidden="true"></i></span>' +
+      '<span class="rdb-add-tile-label">' + esc(I18N.addCardTile) + '</span>' +
+      '<div class="rdb-add-tile-pills">' +
+        '<button type="button" class="rdb-add-pill" data-testid="rdb-add-chart" data-add-type="line">' +
+          '<i class="fas fa-chart-line" aria-hidden="true"></i>' + esc(I18N.pillChart) + '</button>' +
+        '<button type="button" class="rdb-add-pill" data-testid="rdb-add-kpi" data-add-type="kpi">' +
+          '<i class="fas fa-hashtag" aria-hidden="true"></i>' + esc(I18N.pillKpi) + '</button>' +
+        '<button type="button" class="rdb-add-pill" data-testid="rdb-add-table" data-add-type="table">' +
+          '<i class="fas fa-table" aria-hidden="true"></i>' + esc(I18N.pillTable) + '</button>' +
+        '<button type="button" class="rdb-add-pill" data-testid="rdb-add-donut" data-add-type="donut">' +
+          '<i class="fas fa-chart-pie" aria-hidden="true"></i>' + esc(I18N.pillDonut) + '</button>' +
+      '</div>' +
+      '<span class="rdb-add-tile-hint">' + esc(I18N.dropHint) + '</span>' +
+    '</div>';
+  }
+
+  function renderGrid() {
+    var grid = el('rdbGrid');
+    grid.classList.toggle('rdb-grid--editing', state.editing);
+    var cards = (state.def && state.def.cards) || [];
+    var keep = {};
+    cards.forEach(function (c) { keep[c.id] = 1; });
+    destroyChartsExcept(keep);
+    grid.innerHTML = '';
+    cards.forEach(renderCard);
+    if (state.editing) grid.insertAdjacentHTML('beforeend', addTileHtml());
+  }
+
+  // ---- Drag-to-reorder (D10 -- ported 1:1 from the prototype's
+  // onDragStart/onDragOver/onDrop/onDragEnd). The dashed drop-slot + tilted
+  // drag-image from the mock are explicitly skipped (nice-to-have only, per
+  // the plan) -- only the state transitions + splice mechanics are ported.
+  // Cards are moved via direct DOM insertBefore() on drop rather than a full
+  // renderGrid() re-render, so an in-flight drag never tears down/rebuilds
+  // Chart.js canvases or re-fetches every card's data mid-reorder. ---------
+  function clearDragOverClass() {
+    if (!state.overId) return;
+    var prev = findCardEl(state.overId);
+    if (prev) prev.classList.remove('rdb-card--over');
+  }
+
+  function handleGridDragStart(e) {
+    var cardEl = e.target.closest && e.target.closest('[data-card-id]');
+    if (!state.editing || !cardEl) return;
+    state.dragId = cardEl.getAttribute('data-card-id');
+    if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+    cardEl.classList.add('rdb-card--dragging');
+  }
+
+  function handleGridDragOver(e) {
+    if (!state.editing || !state.dragId) return;
+    var cardEl = e.target.closest && e.target.closest('[data-card-id]');
+    if (!cardEl) return;
+    e.preventDefault();  // required for drop to fire
+    var id = cardEl.getAttribute('data-card-id');
+    if (id === state.overId) return;
+    clearDragOverClass();
+    if (id !== state.dragId) {
+      state.overId = id;
+      cardEl.classList.add('rdb-card--over');
+    } else {
+      state.overId = null;
+    }
+  }
+
+  function reorderGridDom() {
+    var grid = el('rdbGrid');
+    var addTile = grid.querySelector('[data-testid="rdb-add-tile"]');
+    (state.def.cards || []).forEach(function (c) {
+      var node = findCardEl(c.id);
+      if (node) grid.insertBefore(node, addTile || null);
+    });
+  }
+
+  function handleGridDrop(e) {
+    var cardEl = e.target.closest && e.target.closest('[data-card-id]');
+    if (!state.editing || !cardEl) return;
+    e.preventDefault();
+    var from = state.dragId;
+    var toId = cardEl.getAttribute('data-card-id');
+    clearDragOverClass();
+    if (from && from !== toId) {
+      var cards = state.def.cards || [];
+      var fi = cards.findIndex(function (c) { return c.id === from; });
+      var ti = cards.findIndex(function (c) { return c.id === toId; });
+      if (fi > -1 && ti > -1) {
+        var moved = cards.splice(fi, 1)[0];
+        cards.splice(ti, 0, moved);
+        state.dirty = true;
+        reorderGridDom();
+      }
+    }
+    var dragEl = from && findCardEl(from);
+    if (dragEl) dragEl.classList.remove('rdb-card--dragging');
+    state.dragId = null; state.overId = null;
+  }
+
+  function handleGridDragEnd(e) {
+    var cardEl = e.target.closest && e.target.closest('[data-card-id]');
+    if (cardEl) cardEl.classList.remove('rdb-card--dragging');
+    clearDragOverClass();
+    state.dragId = null; state.overId = null;
+  }
+
+  // ---- Duplicate / remove (D10) ------------------------------------------
+  function duplicateCard(id) {
+    if (!state.editing) return;
+    var cards = (state.def && state.def.cards) || [];
+    var found = cards.find(function (c) { return c.id === id; });
+    if (!found) return;
+    var copy = Object.assign({}, found, { id: 'dup' + state.seq });
+    state.seq += 1;
+    setCards(function (list) {
+      var idx = list.findIndex(function (c) { return c.id === id; });
+      if (idx > -1) list.splice(idx + 1, 0, copy);
+      return list;
+    });
+  }
+
+  function removeCard(id) {
+    if (!state.editing) return;
+    setCards(function (list) { return list.filter(function (c) { return c.id !== id; }); });
+  }
+
+  // ---- Saved-report picker (D14 v1 card configuration) -------------------
+  // Self-contained, like the filter catalog above: fetches its own copy of
+  // GET /api/reporting/reports (the same endpoint/shape the Simple pane's
+  // library uses), filtered to the caller's own non-SQL, non-dashboard
+  // reports. Adopting one copies its definition + name into the card.
+  var reportPicker = { open: false, cardId: null };
+
+  function closeReportPicker() {
+    var overlay = el('rdbReportPicker');
+    if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    reportPicker.open = false;
+    reportPicker.cardId = null;
+  }
+
+  async function adoptReport(cardId, reportId) {
+    var res = await api('/api/reporting/reports/' + reportId);
+    if (!res.ok || !res.data) { toast(I18N.couldNotLoad, true); return; }
+    var card = ((state.def && state.def.cards) || []).find(function (c) { return c.id === cardId; });
+    if (!card) return;
+    card.definition = res.data.definition;
+    card.title = res.data.name;
+    state.dirty = true;
+    closeReportPicker();
+    renderCard(card);
+  }
+
+  function reportPickerBodyHtml(reports) {
+    if (!reports.length) return '<p class="rdb-modal-empty">' + esc(I18N.noSavedReports) + '</p>';
+    return '<ul class="rdb-report-list">' +
+      reports.map(function (r) {
+        return '<li><button type="button" class="rdb-report-item" data-testid="rdb-report-pick" ' +
+          'data-report-id="' + esc(r.id) + '">' + esc(r.name) + '</button></li>';
+      }).join('') +
+    '</ul>';
+  }
+
+  async function openReportPicker(cardId) {
+    if (!state.editing) return;
+    closeReportPicker();
+    reportPicker.open = true;
+    reportPicker.cardId = cardId;
+    var overlay = document.createElement('div');
+    overlay.id = 'rdbReportPicker';
+    overlay.className = 'rdb-modal-overlay';
+    overlay.setAttribute('data-testid', 'rdb-report-picker');
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', I18N.pickReport);
+    overlay.innerHTML =
+      '<div class="rdb-modal">' +
+        '<div class="rdb-modal-head"><span class="rdb-modal-title">' + esc(I18N.pickReport) + '</span>' +
+          '<button type="button" class="rdb-modal-close" data-testid="rdb-report-picker-close" ' +
+            'aria-label="' + esc(I18N.cancel) + '"><i class="fas fa-xmark" aria-hidden="true"></i></button></div>' +
+        '<div class="rdb-modal-body" data-testid="rdb-report-picker-body">' +
+          '<p class="rdb-modal-loading">' + esc(I18N.loading) + '</p></div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay || (e.target.closest && e.target.closest('[data-testid="rdb-report-picker-close"]'))) {
+        closeReportPicker();
+        return;
+      }
+      var pick = e.target.closest && e.target.closest('[data-testid="rdb-report-pick"]');
+      if (pick) adoptReport(cardId, pick.getAttribute('data-report-id'));
+    });
+
+    var res = await api('/api/reporting/reports');
+    if (!reportPicker.open || reportPicker.cardId !== cardId) return;  // closed/superseded meanwhile
+    var reports = (res.ok && Array.isArray(res.data)) ? res.data.filter(function (r) {
+      return r.owned && r.kind !== 'sql' && r.kind !== 'dashboard';
+    }) : [];
+    var body = overlay.querySelector('[data-testid="rdb-report-picker-body"]');
+    if (body) body.innerHTML = reportPickerBodyHtml(reports);
+  }
+
+  // ---- Export (D9 -- per-card, gated by data-can-export) ------------------
+  // #rdbExport opens a menu of card titles; picking one POSTs that card's
+  // EFFECTIVE (post-merge) definition to the existing /api/reporting/export
+  // and downloads it -- mirrors the Simple pane's own #rsExport fetch ->
+  // blob -> anchor-click listener exactly (_reporting_simple_js.html),
+  // xlsx only in v1 (no format picker here, unlike Simple's).
+  var exportMenu = { open: false };
+
+  function closeExportMenu() {
+    var menu = el('rdbExportMenu');
+    if (menu && menu.parentNode) menu.parentNode.removeChild(menu);
+    exportMenu.open = false;
+  }
+
+  function positionExportMenu(menu) {
+    var btn = el('rdbExport');
+    var r = btn.getBoundingClientRect();
+    menu.style.position = 'fixed';
+    menu.style.top = (r.bottom + 6) + 'px';
+    menu.style.right = (window.innerWidth - r.right) + 'px';
+  }
+
+  function openExportMenu() {
+    closeExportMenu();
+    var cards = ((state.def && state.def.cards) || []).filter(function (c) { return !isEmptyCardDef(c); });
+    var menu = document.createElement('div');
+    menu.id = 'rdbExportMenu';
+    menu.className = 'rdb-export-menu';
+    menu.setAttribute('data-testid', 'rdb-export-menu');
+    menu.setAttribute('role', 'menu');
+    menu.innerHTML = cards.length
+      ? cards.map(function (c) {
+          return '<button type="button" class="rdb-export-item" role="menuitem" ' +
+            'data-testid="rdb-export-item" data-card-id="' + esc(c.id) + '">' +
+            esc(c.title || '') + '</button>';
+        }).join('')
+      : '<p class="rdb-modal-empty">' + esc(I18N.noExportableCards) + '</p>';
+    document.body.appendChild(menu);
+    positionExportMenu(menu);
+    menu.addEventListener('click', function (e) {
+      var item = e.target.closest && e.target.closest('[data-testid="rdb-export-item"]');
+      if (item) { exportCard(item.getAttribute('data-card-id')); closeExportMenu(); }
+    });
+    exportMenu.open = true;
+  }
+
+  function toggleExportMenu() {
+    if (exportMenu.open) closeExportMenu(); else openExportMenu();
+  }
+
+  async function exportCard(cardId) {
+    var card = findCardById(cardId);
+    if (!card) return;
+    var def = Object.assign({}, card.definition || {});
+    def.filters = effectiveFilters(card);
+    def.format = 'xlsx';
+    var res;
+    try {
+      res = await fetch(API_PREFIX + 'api/reporting/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+        body: JSON.stringify(def)
+      });
+    } catch (e) { res = { ok: false }; }
+    if (!res.ok) { toast(I18N.couldNotExport, true); return; }
+    var blob = await res.blob();
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = (card.title || I18N.export_) + '.xlsx';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function render() {
+    ensureShell();
+    renderHeader();
+    renderFilterBar();
+    renderGrid();
+  }
+
+  window.ReportingDashboard = { openNew: openNew, open: open, close: close };
+}());
+</script>

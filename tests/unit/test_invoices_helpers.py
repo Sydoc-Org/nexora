@@ -8,6 +8,7 @@ Covers the Bexio-facing helpers that don't need a Flask request context:
 - get_allowed_client_details (mocked session + DB)
 """
 
+import json
 from unittest.mock import MagicMock, patch
 
 from nx_lib.views.invoices import (
@@ -24,6 +25,13 @@ def test_map_invoice_status_paid():
 
 def test_map_invoice_status_other():
     out = map_invoice_status(8)
+    assert out["color"] == "blue"
+
+
+def test_map_invoice_status_unlisted_bexio_code_is_open():
+    """Any non-9 status (drafts, cancelled, or any other Bexio code) must
+    label as 'Open' - map_invoice_status only special-cases Paid (Task 22)."""
+    out = map_invoice_status(3)
     assert out["color"] == "blue"
 
 
@@ -72,6 +80,58 @@ def test_search_bexio_invoices_filters_by_status(monkeypatch, app):
     assert all(inv["kb_item_status_id"] == 9 for inv in paid)
 
 
+def test_search_bexio_invoices_open_filter_matches_label_rule(monkeypatch, app):
+    """The Open filter must agree with map_invoice_status: an invoice whose
+    kb_item_status_id is neither 9 (Paid) nor the old hardcoded 8 - e.g. 3,
+    a draft/cancelled/other Bexio code - is labeled 'Open' and must therefore
+    also pass the status='Open' filter instead of vanishing (Task 22)."""
+    monkeypatch.setattr("nx_lib.views.invoices.BEXIO_PAT", "tok")
+    fake_resp = MagicMock()
+    fake_resp.json.return_value = [
+        {"id": 1, "document_nr": "A", "total": "1", "kb_item_status_id": 9},
+        {"id": 2, "document_nr": "B", "total": "2", "kb_item_status_id": 8},
+        {"id": 3, "document_nr": "C", "total": "3", "kb_item_status_id": 3},
+    ]
+    fake_resp.raise_for_status.return_value = None
+    from nx_lib.views.invoices import search_bexio_invoices
+
+    with (
+        app.test_request_context("/"),
+        patch("nx_lib.views.invoices.requests.post", return_value=fake_resp),
+    ):
+        open_invoices = search_bexio_invoices([1], "2026-01-01", "2026-12-31", status="Open")
+
+    ids = {inv["id"] for inv in open_invoices}
+    assert ids == {
+        2,
+        3,
+    }, f"expected non-Paid invoices (8 and 3) in Open filter, got {open_invoices!r}"
+    assert all(inv["status_info"]["text"] for inv in open_invoices)
+
+
+def test_search_bexio_invoices_open_filter_excludes_paid(monkeypatch, app):
+    """Paid (9) must never leak into the Open filter, and Paid must stay an
+    exact-match filter (Task 22 regression guard)."""
+    monkeypatch.setattr("nx_lib.views.invoices.BEXIO_PAT", "tok")
+    fake_resp = MagicMock()
+    fake_resp.json.return_value = [
+        {"id": 1, "document_nr": "A", "total": "1", "kb_item_status_id": 9},
+        {"id": 2, "document_nr": "B", "total": "2", "kb_item_status_id": 8},
+    ]
+    fake_resp.raise_for_status.return_value = None
+    from nx_lib.views.invoices import search_bexio_invoices
+
+    with (
+        app.test_request_context("/"),
+        patch("nx_lib.views.invoices.requests.post", return_value=fake_resp),
+    ):
+        open_invoices = search_bexio_invoices([1], "2026-01-01", "2026-12-31", status="Open")
+        paid_invoices = search_bexio_invoices([1], "2026-01-01", "2026-12-31", status="Paid")
+
+    assert {inv["id"] for inv in open_invoices} == {2}
+    assert {inv["id"] for inv in paid_invoices} == {1}
+
+
 def test_search_bexio_invoices_total_format_bad_value(monkeypatch, app):
     monkeypatch.setattr("nx_lib.views.invoices.BEXIO_PAT", "tok")
     fake_resp = MagicMock()
@@ -104,6 +164,73 @@ def test_search_bexio_invoices_http_error_returns_empty(monkeypatch, app):
     ):
         out = search_bexio_invoices([1], "2026-01-01", "2026-12-31")
     assert out == []
+
+
+def test_search_bexio_invoices_partial_results_on_client_failure(monkeypatch, app):
+    """A failure on one client's request must not discard invoices already
+    gathered from other clients in the same search (Task 16)."""
+    import requests as _requests
+
+    monkeypatch.setattr("nx_lib.views.invoices.BEXIO_PAT", "tok")
+    from nx_lib.views.invoices import search_bexio_invoices
+
+    resp1 = MagicMock()
+    resp1.json.return_value = [
+        {"id": 1, "document_nr": "A", "total": "10.00", "kb_item_status_id": 9}
+    ]
+    resp1.raise_for_status.return_value = None
+
+    resp3 = MagicMock()
+    resp3.json.return_value = [
+        {"id": 3, "document_nr": "C", "total": "30.00", "kb_item_status_id": 9}
+    ]
+    resp3.raise_for_status.return_value = None
+
+    with (
+        app.test_request_context("/"),
+        patch(
+            "nx_lib.views.invoices.requests.post",
+            side_effect=[resp1, _requests.exceptions.ConnectionError("network"), resp3],
+        ),
+    ):
+        out = search_bexio_invoices([1, 2, 3], "2026-01-01", "2026-12-31")
+
+    ids = {inv["id"] for inv in out}
+    assert ids == {1, 3}, f"expected partial results from clients 1 and 3, got {out!r}"
+
+
+def test_search_bexio_invoices_partial_results_on_bad_json(monkeypatch, app):
+    """Same partial-results contract for the JSONDecodeError branch."""
+    monkeypatch.setattr("nx_lib.views.invoices.BEXIO_PAT", "tok")
+    from nx_lib.views.invoices import search_bexio_invoices
+
+    resp1 = MagicMock()
+    resp1.json.return_value = [
+        {"id": 1, "document_nr": "A", "total": "10.00", "kb_item_status_id": 9}
+    ]
+    resp1.raise_for_status.return_value = None
+
+    resp2 = MagicMock()
+    resp2.raise_for_status.return_value = None
+    resp2.json.side_effect = json.JSONDecodeError("bad json", "doc", 0)
+
+    resp3 = MagicMock()
+    resp3.json.return_value = [
+        {"id": 3, "document_nr": "C", "total": "30.00", "kb_item_status_id": 9}
+    ]
+    resp3.raise_for_status.return_value = None
+
+    with (
+        app.test_request_context("/"),
+        patch(
+            "nx_lib.views.invoices.requests.post",
+            side_effect=[resp1, resp2, resp3],
+        ),
+    ):
+        out = search_bexio_invoices([1, 2, 3], "2026-01-01", "2026-12-31")
+
+    ids = {inv["id"] for inv in out}
+    assert ids == {1, 3}, f"expected partial results from clients 1 and 3, got {out!r}"
 
 
 def test_get_bexio_invoice_pdf_no_pat(monkeypatch, app):
@@ -149,6 +276,41 @@ def test_get_bexio_invoice_pdf_missing_fields(monkeypatch, app):
     ):
         content, name = get_bexio_invoice_pdf(1)
     assert content is None and name is None
+
+
+def test_get_allowed_client_details_db_failure_returns_empty(monkeypatch, app):
+    """If raw_connection() raises before conn/cursor are assigned, the
+    finally block must not crash with UnboundLocalError - it should degrade
+    to [] like the function's except branch intends (Task 18)."""
+    from nx_lib.views.invoices import get_allowed_client_details
+
+    with (
+        app.test_request_context("/"),
+        patch(
+            "nx_lib.views.invoices.engine_nexora_db.raw_connection",
+            side_effect=RuntimeError("db down"),
+        ),
+    ):
+        out = get_allowed_client_details()
+    assert out == []
+
+
+def test_get_bexio_client_ids_db_failure_returns_empty(monkeypatch, app):
+    """If raw_connection() raises before conn/cursor are assigned, the function
+    must degrade to [] (a list), not the implicit None a bare `except: print(e)`
+    would return - downstream `sel_id in allowed_ids` raises TypeError on None
+    (Task 19)."""
+    from nx_lib.views.invoices import get_bexio_client_ids
+
+    with (
+        app.test_request_context("/"),
+        patch(
+            "nx_lib.views.invoices.engine_nexora_db.raw_connection",
+            side_effect=RuntimeError("db down"),
+        ),
+    ):
+        out = get_bexio_client_ids()
+    assert out == []
 
 
 def test_get_bexio_invoice_pdf_http_error(monkeypatch, app):

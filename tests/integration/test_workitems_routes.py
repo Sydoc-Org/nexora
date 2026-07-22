@@ -32,6 +32,9 @@ Routes covered (19 endpoints):
 - /api/workitem/<id>/tags/<tag_id>           DELETE
 """
 
+import csv
+import io
+
 import pytest
 
 
@@ -326,6 +329,131 @@ def test_get_workitems_data_skips_sensitive_docfield_search(
     assert captured["filt"].ms02_docfield_ids is None
 
 
+def test_docfield_search_absent_ms02_engine_fails_closed(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Cross-source bleed regression (observed on STAGING, 2026-07-20): with the
+    MS02 doc-field engine unset (env vars missing) but the MS02 runtime client
+    registered, a doc-field search skipped the MS02 pre-resolution entirely and
+    left ms02_docfield_ids = None -- "no constraint" -- so the Postgres source
+    returned its ENTIRE corpus into the filtered list. An active doc-field
+    search must fail CLOSED: a source that cannot be checked contributes zero
+    rows, never all of them."""
+    import nx_lib.hooks as hooks
+    import nx_lib.views.workitems as wv
+
+    monkeypatch.setattr(
+        hooks,
+        "load_permissions_for_user",
+        lambda uid: [
+            "workitems.view",
+            "workitems.filter.documentfields",
+            "workitems.filter.process.sydoc.test_proc",
+        ],
+    )
+
+    sql_log = []
+    monkeypatch.setattr(wv, "engine_nexora_db", _SqlLogEngine(sql_log))
+    monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", None)
+
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["col_docbarcode"])
+    monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: set())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+
+    captured = {}
+
+    def _fake_fetch_merged_page(filt, offset, per_page):
+        captured["filt"] = filt
+        return [], 0, []
+
+    monkeypatch.setattr(wv, "fetch_merged_page", _fake_fetch_merged_page)
+
+    resp = user_client.get(
+        "/api/workitems",
+        query_string={"prcfW": "all", "docfield": "docbarcode", "docvalue": "M629648"},
+    )
+
+    assert resp.status_code == 200
+    assert captured["filt"].ms02_docfield_ids == set()
+
+
+def test_docfield_search_ms02_resolver_error_fails_closed(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Sibling to the absent-engine test: the engine exists and the ms02
+    SearchConfig mapping row is found, but resolve_ms02_docfield_ids errors
+    (its contract returns None on any failure). That None must be coerced to
+    an empty allow-set -- zero MS02 rows -- not treated as "no constraint"."""
+    import nx_lib.hooks as hooks
+    import nx_lib.views.workitems as wv
+
+    monkeypatch.setattr(
+        hooks,
+        "load_permissions_for_user",
+        lambda uid: [
+            "workitems.view",
+            "workitems.filter.documentfields",
+            "workitems.filter.process.sydoc.test_proc",
+        ],
+    )
+
+    class _Ms02ConfigCursor(_SqlLogCursor):
+        """Returns one usable ms02 SearchConfig mapping row for the MS02 leg's
+        lookup; every other query still returns no rows."""
+
+        def execute(self, sql, params=None):
+            self._last_sql = sql
+            return super().execute(sql, params)
+
+        def fetchall(self):
+            if "ClientCode = 'ms02'" in getattr(self, "_last_sql", ""):
+                return [
+                    (
+                        'public."DossierStatistik"',
+                        "d",
+                        "d.WorkItemID = twi.id",
+                        None,
+                        "DossierBarcode",
+                    )
+                ]
+            return []
+
+    class _Ms02ConfigConn(_SqlLogConn):
+        def cursor(self):
+            return _Ms02ConfigCursor(self._log)
+
+    class _Ms02ConfigEngine(_SqlLogEngine):
+        def raw_connection(self):
+            return _Ms02ConfigConn(self._log)
+
+    sql_log = []
+    monkeypatch.setattr(wv, "engine_nexora_db", _Ms02ConfigEngine(sql_log))
+    monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["col_docbarcode"])
+    monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: set())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    monkeypatch.setattr(wv, "resolve_ms02_docfield_ids", lambda *a, **k: None)
+
+    captured = {}
+
+    def _fake_fetch_merged_page(filt, offset, per_page):
+        captured["filt"] = filt
+        return [], 0, []
+
+    monkeypatch.setattr(wv, "fetch_merged_page", _fake_fetch_merged_page)
+
+    resp = user_client.get(
+        "/api/workitems",
+        query_string={"prcfW": "all", "docfield": "docbarcode", "docvalue": "M629648"},
+    )
+
+    assert resp.status_code == 200
+    assert captured["filt"].ms02_docfield_ids == set()
+
+
 def test_get_workitems_data_queries_nonsensitive_docfield_search(
     user_client, workitems_all_perms, monkeypatch
 ):
@@ -440,6 +568,162 @@ def test_export_workitems_csv_with_perms(user_client, workitems_all_perms):
         assert "text/csv" in resp.headers.get("Content-Type", "")
 
 
+# --- colliding-id export rows must not mix client fields (D9) --------------- #
+# Workitem ids are not globally unique across clients (1216 collides between
+# the default Octo client and MS02, see docs/design/ms02-multisource.md). The
+# export builds `domains`/`details_map`/media+audit cache entries per row; if
+# any of those are keyed by the bare id, the second row processed for a
+# colliding id silently answers for (or overwrites the cache entry of) the
+# first, so one CSV row ends up carrying the OTHER client's field values.
+
+
+def test_export_workitems_csv_keys_by_client_not_bare_id(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Two rows share workitemid=1216 but belong to different clients. Each
+    exported row must carry ITS OWN client's field value, never the other
+    client's cached/fetched copy of the same bare id."""
+    import nx_lib.views.workitems as wv
+
+    fake_cache = _FakeCache()
+    monkeypatch.setattr(wv, "cache", fake_cache)
+    # workitems_all_perms only patches nx_lib.security.has_permission, which
+    # covers the @require_permission route gate (looked up inside security.py
+    # at call time) but NOT the `include_fields = ... and has_permission(...)`
+    # check inside this module -- that name was bound at import time and needs
+    # patching directly on the view module, same as test_api_config_fields_
+    # perm_state_in_cache_key above.
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+
+    rows = [
+        {
+            "workitemid": 1216,
+            "client": "default",
+            "status": "Open",
+            "current_stage": "Stage A",
+            "priority": 2,
+            "tags": [],
+            "modifiedat": None,
+        },
+        {
+            "workitemid": 1216,
+            "client": "ms02",
+            "status": "Closed",
+            "current_stage": "Stage B",
+            "priority": 1,
+            "tags": [],
+            "modifiedat": None,
+        },
+    ]
+
+    monkeypatch.setattr(
+        wv,
+        "_get_workitems_data",
+        lambda args, export_all=False: {
+            "workitems": rows,
+            "pagination": {"totalItems": len(rows)},
+        },
+    )
+
+    def fake_get_domain(wid, client_hint=None):
+        return (
+            "default-domain.example.com" if client_hint == "default" else "ms02-domain.example.com"
+        )
+
+    monkeypatch.setattr(wv, "get_domain_for_workitem", fake_get_domain)
+    monkeypatch.setattr(
+        wv, "get_workitemdata_param", lambda wid, domain: (f"wdata-{domain}", f"doc-{domain}")
+    )
+
+    def fake_get_extensions_urls_fields(workitemdata, document_id, domain, with_tables=False):
+        fields = (
+            {"Amount": "100-default"}
+            if domain == "default-domain.example.com"
+            else {"Amount": "999-ms02"}
+        )
+        return [], [], fields, {}, {}
+
+    monkeypatch.setattr(wv, "get_extensions_urls_fields", fake_get_extensions_urls_fields)
+
+    resp = user_client.get("/api/export/workitems/csv?include=fields")
+    assert resp.status_code == 200
+    body = resp.get_data(as_text=True)
+    csv_rows = list(csv.reader(io.StringIO(body)))
+    header, data_rows = csv_rows[0], csv_rows[1:]
+    assert len(data_rows) == 2, f"expected 2 data rows, got {data_rows!r}"
+    amount_idx = header.index("Amount")
+    values = {r[amount_idx] for r in data_rows}
+    assert values == {"100-default", "999-ms02"}, (
+        f"expected each row to carry its own client's Amount, got {values!r} "
+        f"(cross-contamination: a bare-id cache/dict key let one client's "
+        f"fetched value answer for the other's)"
+    )
+
+
+# --- "export selected" must filter by (client, id), not bare id ------------ #
+# The bulk-select checkboxes / `ids` query param used to carry a bare
+# workitemid. Selecting only the default-client row of a colliding id (1216
+# collides between the default Octo client and MS02) also exported the MS02
+# row, because `specific_ids` membership was checked against the bare id
+# alone. The UI now sends compound `client-id` pairs (matching renderTable's
+# `rowKey = `${client}-${workitemid}`` in _workitems_overview_js.html) and the
+# backend must filter on that compound key.
+
+
+def test_export_workitems_csv_selected_ids_are_client_aware(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Two rows share workitemid=1216 but belong to different clients. Passing
+    ids=default-1216 must export only the default row, never the ms02 row
+    that also matches the base filter."""
+    import nx_lib.views.workitems as wv
+
+    rows = [
+        {
+            "workitemid": 1216,
+            "client": "default",
+            "status": "Open",
+            "current_stage": "Stage A",
+            "priority": 2,
+            "tags": [],
+            "modifiedat": None,
+        },
+        {
+            "workitemid": 1216,
+            "client": "ms02",
+            "status": "Closed",
+            "current_stage": "Stage B",
+            "priority": 1,
+            "tags": [],
+            "modifiedat": None,
+        },
+    ]
+
+    monkeypatch.setattr(
+        wv,
+        "_get_workitems_data",
+        lambda args, export_all=False: {
+            "workitems": rows,
+            "pagination": {"totalItems": len(rows)},
+        },
+    )
+
+    resp = user_client.get("/api/export/workitems/csv?ids=default-1216")
+    assert resp.status_code == 200
+    body = resp.get_data(as_text=True)
+    csv_rows = list(csv.reader(io.StringIO(body)))
+    header, data_rows = csv_rows[0], csv_rows[1:]
+    assert len(data_rows) == 1, (
+        f"expected exactly 1 row (the default-client row) for ids=default-1216, "
+        f"got {data_rows!r} (bare-id filtering also matched the colliding ms02 row)"
+    )
+    status_idx = header.index("Status")
+    assert data_rows[0][status_idx] == "Open", (
+        f"expected the default-client row (Status=Open), got {data_rows[0]!r} "
+        f"-- wrong client's row was exported"
+    )
+
+
 def test_strip_export_fields_removes_sensitive_columns():
     from nx_lib.views.workitems import _strip_export_fields
 
@@ -472,7 +756,29 @@ def test_get_single_workitem_anonymous(client):
     assert resp.status_code in (200, 302, 401, 500)
 
 
-def test_get_single_workitem_authed_unknown_id(user_client):
+@pytest.mark.parametrize(
+    ("method", "path", "payload"),
+    [
+        ("get", "/api/workitem/999999", None),
+        ("get", "/api/workitem/999999/interactions", None),
+        ("post", "/api/workitem/999999/comment", {"comment": "x"}),
+        ("post", "/api/workitem/999999/assign", {"assignedUserID": 1001}),
+        ("post", "/api/workitem/999999/priority", {"priority": 2}),
+        ("post", "/api/workitem/999999/tags", {"tagName": "x", "tagColor": "#fff"}),
+        ("delete", "/api/workitem/999999/tags/999", None),
+    ],
+)
+def test_workitem_metadata_endpoints_require_permission(noperm_client, method, path, payload):
+    """These seven endpoints checked only `"username" in session`, so ANY logged-in
+    user could read and mutate any workitem's tags/priority/assignment/comments --
+    verified live on INT with a user who gets 403 on the workitems page itself yet
+    successfully tagged, prioritized and re-assigned workitem 18319."""
+    kwargs = {"json": payload} if payload is not None else {}
+    resp = getattr(noperm_client, method)(path, **kwargs)
+    assert resp.status_code == 403, f"{method.upper()} {path} -> {resp.status_code}"
+
+
+def test_get_single_workitem_authed_unknown_id(user_client, workitems_all_perms):
     resp = user_client.get("/api/workitem/999999")
     assert resp.status_code in (200, 404, 500)
 
@@ -531,7 +837,7 @@ def test_get_users_for_mentions_authed(user_client):
     assert resp.status_code in (200, 401, 500)
 
 
-def test_get_workitem_interactions_authed(user_client):
+def test_get_workitem_interactions_authed(user_client, workitems_all_perms):
     resp = user_client.get("/api/workitem/999999/interactions")
     assert resp.status_code in (200, 404, 500)
 
@@ -541,17 +847,17 @@ def test_add_workitem_comment_anonymous_returns_unauth(client):
     assert resp.status_code in (200, 302, 401, 500)
 
 
-def test_add_workitem_comment_authed_unknown(user_client):
+def test_add_workitem_comment_authed_unknown(user_client, workitems_all_perms):
     resp = user_client.post("/api/workitem/999999/comment", json={"comment": "x"})
     assert resp.status_code in (200, 400, 404, 500)
 
 
-def test_assign_workitem_authed_unknown(user_client):
+def test_assign_workitem_authed_unknown(user_client, workitems_all_perms):
     resp = user_client.post("/api/workitem/999999/assign", json={"userId": 1001})
     assert resp.status_code in (200, 400, 404, 500)
 
 
-def test_set_workitem_priority_authed_unknown(user_client):
+def test_set_workitem_priority_authed_unknown(user_client, workitems_all_perms):
     resp = user_client.post("/api/workitem/999999/priority", json={"priority": "high"})
     assert resp.status_code in (200, 400, 404, 500)
 
@@ -570,7 +876,7 @@ def test_api_workitems_page_init_authed(user_client):
     assert resp.status_code in (200, 500)
 
 
-def test_add_tag_to_workitem_authed_unknown(user_client):
+def test_add_tag_to_workitem_authed_unknown(user_client, workitems_all_perms):
     resp = user_client.post("/api/workitem/999999/tags", json={"tag_id": 1})
     assert resp.status_code in (200, 400, 404, 500)
 
@@ -626,7 +932,7 @@ def test_api_docfield_values_allows_sensitive_with_perm(
     assert resp.status_code in (200, 500)
 
 
-def test_remove_tag_from_workitem_authed_unknown(user_client):
+def test_remove_tag_from_workitem_authed_unknown(user_client, workitems_all_perms):
     resp = user_client.delete("/api/workitem/999999/tags/999")
     assert resp.status_code in (200, 404, 500)
 
@@ -946,6 +1252,65 @@ def test_prepared_documents_page_octo_resolve_failure_degrades(
     assert resp.status_code == 200
 
 
+def test_prepared_documents_octo_status_false_when_stage_not_found(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """A wid MAPPING existing is not enough: resolve_octo_wid_stage returning
+    {"status": None, "current_stage": None} (nothing found in Octo) must yield
+    in_octo=False, so the Preview / "Open in Workitems" buttons -- which would
+    otherwise be dead links for a wid that isn't actually in Octo -- are not
+    rendered."""
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None: 1)
+    monkeypatch.setattr(
+        wv,
+        "fetch_prepared_documents_page",
+        lambda offset, limit, pid=None: [
+            {
+                "id": 1,
+                "pid": "100",
+                "collected": True,
+                "collected_by": "A",
+                "prepared": False,
+                "prepared_by": "",
+                "uploaded_by": 7,
+                "uploaded_at": None,
+                "updated_at": None,
+            }
+        ],
+    )
+    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: ["sydoc.05_PDBS"])
+    monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [("t", "id", "pid", None)])
+    monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: {"100": [42]})
+    monkeypatch.setattr(
+        wv,
+        "resolve_octo_wid_stage",
+        lambda e, w: {"status": None, "current_stage": None},
+    )
+
+    captured = {}
+    real_render_template = wv.render_template
+
+    def _capture(template_name, **kwargs):
+        captured.update(kwargs)
+        return real_render_template(template_name, **kwargs)
+
+    monkeypatch.setattr(wv, "render_template", _capture)
+
+    resp = user_client.get("/prepared_documents")
+    assert resp.status_code == 200
+    assert captured["octo_status"]["100"]["in_octo"] is False
+    # The row must fall back to the dash placeholder, not render the (dead) Preview
+    # button / "Open in Workitems" link for a wid that Octo doesn't actually have.
+    assert b'data-wid="42"' not in resp.data
+    assert b'data-testid="prepared-docs-octo-link"' not in resp.data
+
+
 def test_prepared_documents_clear_gated(noperm_client):
     resp = noperm_client.post("/prepared_documents/clear")
     assert resp.status_code in (403, 302)
@@ -1000,6 +1365,11 @@ def test_prepared_documents_preview_button_requires_details_view(
     monkeypatch.setattr(wv, "_ms02_target_processes", lambda: ["sydoc.05_PDBS"])
     monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [("t", "id", "pid", None)])
     monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: {"100": [42]})
+    monkeypatch.setattr(
+        wv,
+        "resolve_octo_wid_stage",
+        lambda e, w: {"status": "Ready", "current_stage": "Import"},
+    )
 
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
     resp = user_client.get("/prepared_documents")
@@ -1163,10 +1533,60 @@ def test_stamp_in_register_marks_rows(monkeypatch):
     monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [("t", "id", "pid", None)])
     monkeypatch.setattr(wv, "resolve_ms02_wids_to_pids", lambda e, s, w: {42: "100", 43: "200"})
     monkeypatch.setattr(wv, "pids_in_register", lambda pids: {"100"})
-    rows = [{"workitemid": 42}, {"workitemid": 43}]
+    monkeypatch.setattr(wv, "sensitive_blocked_keys", set)
+    rows = [
+        {"workitemid": 42, "client": "ms02"},
+        {"workitemid": 43, "client": "ms02"},
+    ]
     wv._stamp_in_register(rows)
     assert rows[0]["pid"] == "100" and rows[0]["in_register"] is True
     assert rows[1]["pid"] == "200" and rows[1]["in_register"] is False
+
+
+def test_stamp_in_register_skips_non_ms02_rows(monkeypatch):
+    """Workitem ids collide across clients, so a default-client row must never
+    be resolved against MS02's PID table — it would be stamped with (and link
+    to) an unrelated person's PID."""
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: ["sydoc.05_PDBS"])
+    monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [("t", "id", "pid", None)])
+    monkeypatch.setattr(wv, "sensitive_blocked_keys", set)
+    seen = {}
+
+    def _resolve(engine, specs, wids):
+        seen["wids"] = list(wids)
+        return {42: "100"}
+
+    monkeypatch.setattr(wv, "resolve_ms02_wids_to_pids", _resolve)
+    monkeypatch.setattr(wv, "pids_in_register", lambda pids: {"100"})
+    rows = [{"workitemid": 42, "client": "default"}, {"workitemid": 42, "client": "ms02"}]
+    wv._stamp_in_register(rows)
+    assert seen["wids"] == [42], "only the MS02 row's id may be resolved"
+    assert "pid" not in rows[0] and "in_register" not in rows[0]
+    assert rows[1]["pid"] == "100" and rows[1]["in_register"] is True
+
+
+def test_stamp_in_register_respects_sensitive_pid_gate(monkeypatch):
+    """PID is a personal identifying number: when it is flagged sensitive and
+    the caller lacks the perm, it must not be stamped onto list rows."""
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "sensitive_blocked_keys", lambda: {"pid"})
+
+    def _must_not_run(*a, **k):
+        raise AssertionError("PID resolution must not run when the field is blocked")
+
+    monkeypatch.setattr(wv, "resolve_ms02_wids_to_pids", _must_not_run)
+    rows = [{"workitemid": 42, "client": "ms02"}]
+    wv._stamp_in_register(rows)
+    assert "pid" not in rows[0]
 
 
 def test_stamp_in_register_noop_when_not_ms02(monkeypatch):
@@ -1197,12 +1617,14 @@ def test_api_workitems_carries_pid_in_register(user_client, workitems_all_perms,
                     "priority": 0,
                     "tags": [],
                     "modifiedat": None,
+                    "client": "ms02",
                 }
             ],
             1,
             [],
         ),
     )
+    monkeypatch.setattr(wv, "sensitive_blocked_keys", set)
     monkeypatch.setattr(wv, "_ms02_target_processes", lambda: ["sydoc.05_PDBS"])
     monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [("t", "id", "pid", None)])
     monkeypatch.setattr(wv, "resolve_ms02_wids_to_pids", lambda e, s, w: {42: "100"})

@@ -169,3 +169,31 @@ def test_multi_level_container_table_page_offset():
     batch = {"DocumentType": "MobScnBatch", "ChildDocuments": [dossier]}
     cell = extract_table_locations(batch)[0]["rows"][0][0]
     assert cell["locations"][0]["page"] == 1
+
+
+# --- PDF-expanded page offset (mixed PDF + image container) ----------------
+# Mirrors test_field_locations.py: octo.get_extensions_urls_fields expands each
+# PDF medium into N page slots (real I/O) before calling this module, and
+# passes the pre-computed per-item counts in as ``pdf_page_counts``.
+
+
+def test_pdf_media_counted_in_table_page_offset_when_supplied():
+    # child0 (a PDF, pre-counted upstream as 2 pages) has no table of its own;
+    # child1's cell PageIndex 0 must map to global page 2 (not 0).
+    child0 = {"Media": [{"Extension": ".pdf", "Url": "u0"}], "Tables": []}
+    child1 = _table("T", [[_cell("A", "v", R, page_index=0)]])
+    child1["Media"] = []
+    doc = {"DocumentType": "Batch", "ChildDocuments": [child0, child1]}
+    cell = extract_table_locations(doc, pdf_page_counts=[2, 0])[0]["rows"][0][0]
+    assert cell["locations"][0]["page"] == 2
+
+
+def test_pdf_media_defaults_to_zero_pages_without_pdf_page_counts():
+    # Backward compatibility: no pdf_page_counts -> pre-fix behaviour (PDF
+    # contributes 0 to the offset).
+    child0 = {"Media": [{"Extension": ".pdf", "Url": "u0"}], "Tables": []}
+    child1 = _table("T", [[_cell("A", "v", R, page_index=0)]])
+    child1["Media"] = []
+    doc = {"DocumentType": "Batch", "ChildDocuments": [child0, child1]}
+    cell = extract_table_locations(doc)[0]["rows"][0][0]
+    assert cell["locations"][0]["page"] == 0

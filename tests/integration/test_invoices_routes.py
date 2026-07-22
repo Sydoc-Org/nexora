@@ -3,7 +3,9 @@
 Routes:
 - GET /invoices                page (invoices.view)
 - GET /api/invoices            list (invoices.view) — calls Bexio search API
-- GET /invoice/<id>/pdf        download (invoices.download) — calls Bexio PDF API
+- GET /invoice/<id>/pdf        download (invoices.download) — calls Bexio PDF API,
+                                also scoped to the caller's allowed clients (IDOR guard):
+                                the invoice's contact_id must be in get_bexio_client_ids()
 
 Seed users have no invoices.* perms. Tests:
 - 302/403 gate paths use real seed
@@ -119,18 +121,46 @@ def test_download_invoice_pdf_without_perm_returns_403(noperm_client):
 
 
 def test_download_invoice_pdf_with_perms_bexio_error(user_client, invoices_all_perms):
-    """No BEXIO_PAT in TEST env or network error → flash + redirect."""
+    """No BEXIO_PAT in TEST env → contact_id lookup and get_bexio_client_ids
+    both resolve to nothing, so the client-scope check fails closed (403)
+    before ever reaching the PDF fetch / flash+redirect path. A network error
+    on the (now unreachable) PDF fetch would otherwise flash + redirect."""
     resp = user_client.get("/invoice/1/pdf", follow_redirects=False)
-    assert resp.status_code in (200, 302, 500)
+    assert resp.status_code in (200, 302, 403, 500)
 
 
 def test_download_invoice_pdf_with_perms_mocked_pdf(user_client, invoices_all_perms):
-    """Patch get_bexio_invoice_pdf to return bytes + filename."""
-    with patch(
-        "nx_lib.views.invoices.get_bexio_invoice_pdf",
-        return_value=(b"%PDF-1.4 fake", "INV-001.pdf"),
+    """Legitimate same-client request: caller is scoped to bexio client id 42
+    and the invoice's contact_id is also 42 — PDF must be served."""
+    with (
+        patch("nx_lib.views.invoices.get_bexio_client_ids", return_value=[42]),
+        patch("nx_lib.views.invoices.get_bexio_invoice_contact_id", return_value=42),
+        patch(
+            "nx_lib.views.invoices.get_bexio_invoice_pdf",
+            return_value=(b"%PDF-1.4 fake", "INV-001.pdf"),
+        ),
     ):
         resp = user_client.get("/invoice/1/pdf")
     assert resp.status_code == 200
     assert resp.headers.get("Content-Type") == "application/pdf"
     assert "INV-001.pdf" in resp.headers.get("Content-Disposition", "")
+
+
+def test_download_invoice_pdf_wrong_client_denied(user_client, invoices_all_perms):
+    """IDOR guard: caller has invoices.download and is scoped only to ClientX
+    (bexio client id 42), but the requested invoice_id belongs to ClientY
+    (contact_id 999, not in the caller's allowed set). Must be denied — not
+    served the PDF — even though the blanket invoices.download perm is granted.
+    """
+    with (
+        patch("nx_lib.views.invoices.get_bexio_client_ids", return_value=[42]),
+        patch("nx_lib.views.invoices.get_bexio_invoice_contact_id", return_value=999),
+        patch(
+            "nx_lib.views.invoices.get_bexio_invoice_pdf",
+            return_value=(b"%PDF-1.4 fake", "INV-999.pdf"),
+        ) as mock_pdf,
+    ):
+        resp = user_client.get("/invoice/1/pdf")
+    assert resp.status_code in (403, 404)
+    assert resp.headers.get("Content-Type") != "application/pdf"
+    mock_pdf.assert_not_called()

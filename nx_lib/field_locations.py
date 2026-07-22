@@ -102,13 +102,29 @@ def _items(doc_json):
     return [doc_json]
 
 
-def _count_image_media(item):
-    return sum(
-        1 for m in (item.get("Media") or []) if str(m.get("Extension", "")).lower() in IMG_EXTS
+def _pdf_pages_for(pdf_page_counts, idx):
+    """Look up the pre-computed PDF page count for leaf item ``idx`` in
+    ``pdf_page_counts`` (see ``extract_field_locations``), or 0 when absent /
+    out of range (no PDF data supplied, or a shorter sequence than expected)."""
+    if pdf_page_counts is None or idx >= len(pdf_page_counts):
+        return 0
+    return pdf_page_counts[idx]
+
+
+def _count_image_media(item, pdf_pages=0):
+    """Media-slot count for one leaf item: 1 slot per whitelisted image
+    extension, plus ``pdf_pages`` slots for any PDF media in this item that
+    were already expanded to per-page images upstream (see
+    ``extract_field_locations``'s ``pdf_page_counts`` parameter). Defaults to
+    the old IMG_EXTS-only behaviour (PDFs contribute 0) when the caller
+    doesn't supply a PDF page count."""
+    return (
+        sum(1 for m in (item.get("Media") or []) if str(m.get("Extension", "")).lower() in IMG_EXTS)
+        + pdf_pages
     )
 
 
-def extract_field_locations(doc_json, field_mapping):
+def extract_field_locations(doc_json, field_mapping, pdf_page_counts=None):
     """Build the field_sources list from an Octopus thin-document response.
 
     Returns ``[{key, label, value, locations:[{page, rect}], confidence?}]`` —
@@ -118,11 +134,19 @@ def extract_field_locations(doc_json, field_mapping):
     ``rect`` is in image pixels; ``page`` is the 0-based media index (matching
     api_get_media_raw). ``confidence`` (optional, 0..1) is present only when
     Octopus reports an extraction confidence; the UI colours boxes by it.
+
+    ``pdf_page_counts`` (optional): a sequence of ints, one per leaf item in the
+    same order as ``_items(doc_json)`` produces them, giving the number of
+    PDF-expanded page slots that item's PDF media occupy (real page counting is
+    I/O — pypdfium2 over a fetched PDF — so it's computed once by the caller,
+    typically octo.get_extensions_urls_fields, and threaded in here rather than
+    done in this I/O-free module). Omit (or pass None) to keep the pre-fix
+    behaviour where PDF media contribute 0 to the page offset.
     """
     out = []
     seen = set()
-    media_offset = 0  # image media in prior child items (Batch page alignment)
-    for item in _items(doc_json):
+    media_offset = 0  # image (+ PDF-expanded) media in prior child items
+    for idx, item in enumerate(_items(doc_json)):
         for fobj in item.get("IndexFields") or []:
             name = fobj.get("Name")
             if name not in field_mapping:
@@ -147,7 +171,7 @@ def extract_field_locations(doc_json, field_mapping):
             if conf is not None:
                 entry["confidence"] = conf  # optional: 0..1, drives box colour in the UI
             out.append(entry)
-        media_offset += _count_image_media(item)
+        media_offset += _count_image_media(item, _pdf_pages_for(pdf_page_counts, idx))
     return out
 
 
@@ -160,3 +184,4 @@ rect_from_octo = _rect_from_octo
 confidence_of = _confidence
 items_of = _items
 count_image_media = _count_image_media
+pdf_pages_for = _pdf_pages_for

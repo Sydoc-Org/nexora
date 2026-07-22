@@ -6,98 +6,171 @@
    window.ReportingTabs. Advanced (the full builder) is untouched.
    ============================================================ #}
 <section class="reporting-simple nx-rise" data-testid="reporting-simple">
-  <div class="reporting-simple-top">
-    <button id="rsNewReport" class="nx-btn nx-btn--primary" data-testid="rs-new-report">
-      <i class="fas fa-plus" aria-hidden="true"></i>{{ _("New report") }}</button>
+  <div id="rsHero" class="reporting-hero nx-rise" data-testid="rs-hero">
+    <h2 class="reporting-hero__title">{{ _("Build a report in seconds") }}</h2>
+    <p class="reporting-hero__sub">{{ _("Ask in plain language, or step through the guided builder.") }}</p>
     {% if ai_enabled %}
-    <div class="reporting-simple-aibar" id="rsAiBar" data-testid="rs-ai-bar">
-      <input id="rsAiPrompt" class="reporting-input"
-             placeholder="{{ _('Ask AI — e.g. “documents per month this year”') }}"
-             data-testid="rs-ai-prompt">
-      <button id="rsAiAsk" class="nx-btn nx-btn--secondary" data-testid="rs-ai-ask">
-        <i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>{{ _("Ask AI") }}</button>
+    <div class="reporting-hero__aiwrap">
+      <div class="reporting-simple-aibar" id="rsAiBar" data-testid="rs-ai-bar">
+        <i class="fas fa-wand-magic-sparkles reporting-hero__wand" aria-hidden="true"></i>
+        <input id="rsAiPrompt" class="reporting-hero__aiinput"
+               placeholder="{{ _('Ask AI — e.g. “documents per month this year”') }}"
+               data-testid="rs-ai-prompt">
+        <button id="rsAiAsk" class="reporting-hero__aibtn" data-testid="rs-ai-ask">{{ _("Ask AI") }}</button>
+      </div>
+    </div>
+    <div class="reporting-hero__chips">
+      <button type="button" class="rs-suggestion" data-testid="rs-suggestion">{{ _("documents per month this year") }}</button>
+      <button type="button" class="rs-suggestion" data-testid="rs-suggestion">{{ _("invoices by process, last 3 months") }}</button>
+      <button type="button" class="rs-suggestion" data-testid="rs-suggestion">{{ _("pages processed per week") }}</button>
     </div>
     <p class="reporting-simple-hint" id="rsAiGone" hidden data-testid="rs-ai-gone">{{ _("The AI assistant is unavailable right now — you can still build reports with “New report”.") }}</p>
     {% endif %}
-    <input id="rsSearch" class="reporting-input reporting-simple-search"
-           placeholder="{{ _('Search reports…') }}" data-testid="rs-search">
+    <div class="reporting-hero__actions">
+      <button id="rsNewReport" class="nx-btn nx-btn--secondary" data-testid="rs-new-report">
+        <i class="fas fa-plus" aria-hidden="true"></i>{{ _("New report — guided builder") }}</button>
+      <button id="rsNewDashboard" class="nx-btn nx-btn--secondary reporting-hero__dashbtn" data-testid="rs-new-dashboard">
+        <i class="fas fa-table-cells-large" aria-hidden="true"></i>{{ _("New dashboard") }}</button>
+    </div>
   </div>
 
   <div id="rsLibrary" data-testid="rs-library">
-    <h3 class="reporting-simple-h">{{ _("Library") }}</h3>
-    <div id="rsGroupShared" class="reporting-simple-grid" data-testid="rs-group-shared"></div>
-    <h3 class="reporting-simple-h">{{ _("My reports") }}</h3>
+    <div class="rs-group-head">
+      <h3 class="reporting-simple-h">{{ _("My reports") }}</h3>
+      <span class="rs-count-pill" id="rsCountMine"></span>
+      <span class="rs-group-spacer"></span>
+      <span class="rs-search-wrap"><i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+        <input id="rsSearch" class="reporting-input reporting-simple-search"
+               placeholder="{{ _('Search reports…') }}" data-testid="rs-search"></span>
+    </div>
     <div id="rsGroupMine" class="reporting-simple-grid" data-testid="rs-group-mine"></div>
-    <h3 class="reporting-simple-h">{{ _("Shared with me") }}</h3>
+    <div class="rs-group-head">
+      <h3 class="reporting-simple-h">{{ _("Library") }}</h3>
+      <span class="rs-count-pill" id="rsCountShared"></span>
+    </div>
+    <div id="rsGroupShared" class="reporting-simple-grid" data-testid="rs-group-shared"></div>
+    <div class="rs-group-head">
+      <h3 class="reporting-simple-h">{{ _("Shared with me") }}</h3>
+      <span class="rs-count-pill" id="rsCountDirect"></span>
+    </div>
     <div id="rsGroupDirect" class="reporting-simple-grid" data-testid="rs-group-direct"></div>
   </div>
 
   <div id="rsWizard" class="reporting-simple-wizard" hidden data-testid="rs-wizard">
-    <div class="reporting-simple-wizbar">
-      <button id="rsWizardBack" class="reporting-link" data-testid="rs-wizard-back">&larr; {{ _("Back") }}</button>
+    <div class="rs-wizard-head">
+      <button id="rsWizardClose2" class="nx-btn nx-btn--secondary rs-wizard-backlib" data-testid="rs-wizard-backlib">
+        <i class="fas fa-arrow-left" aria-hidden="true"></i>{{ _("Library") }}</button>
+      <h2 class="rs-wizard-title">{{ _("New report") }}</h2>
+      <span class="rs-wizard-spacer"></span>
+      <span id="rsWizardStepNo" class="rs-wizard-stepno"></span>
       <button id="rsWizardClose" class="reporting-link reporting-simple-close" data-testid="rs-wizard-close"
               title="{{ _('Back to library') }}" aria-label="{{ _('Back to library') }}">&times;</button>
     </div>
-    <div class="reporting-simple-step" id="rsStepMeasure">
-      <h3 class="reporting-simple-h">{{ _("What do you want to measure?") }}</h3>
-      <div id="rsMeasureList" class="reporting-simple-choices" data-testid="rs-measure-list"></div>
-      <p class="reporting-simple-hint">{{ _("Pick one or more — combined measures must come from the same source.") }}</p>
-      <button type="button" id="rsMeasureNext" class="nx-btn nx-btn--primary" hidden data-testid="rs-measure-next">{{ _("Continue") }}</button>
-    </div>
-    <div class="reporting-simple-step" id="rsStepScope" hidden>
-      <h3 class="reporting-simple-h">{{ _("Which processes?") }}</h3>
-      <div id="rsScopeList" class="reporting-simple-scopestep" data-testid="rs-scope-list"></div>
-      <p class="reporting-simple-hint">{{ _("The next step only offers fields these processes provide.") }}</p>
-      <button type="button" id="rsScopeNext" class="nx-btn nx-btn--primary" data-testid="rs-scope-next">{{ _("Continue") }}</button>
-    </div>
-    <div class="reporting-simple-step" id="rsStepBreakdown" hidden>
-      <h3 class="reporting-simple-h">{{ _("Break it down by…") }}</h3>
-      <div id="rsBreakdownList" class="reporting-simple-choices" data-testid="rs-breakdown-list"></div>
-      <label id="rsGrainWrap" class="reporting-simple-inline" hidden>{{ _("Granularity") }}
-        <select id="rsGrain" class="reporting-input">
-          <option value="day">{{ _("Day") }}</option>
-          <option value="week">{{ _("Week") }}</option>
-          <option value="month" selected>{{ _("Month") }}</option>
-          <option value="quarter">{{ _("Quarter") }}</option>
-          <option value="year">{{ _("Year") }}</option>
-        </select></label>
-      <p class="reporting-simple-hint">{{ _("Pick up to three — the first is the chart axis, the second becomes the colored series.") }}</p>
-      <button type="button" id="rsBreakdownNext" class="nx-btn nx-btn--primary" data-testid="rs-breakdown-next">{{ _("Continue") }}</button>
-    </div>
-    <div class="reporting-simple-step" id="rsStepTime" hidden>
-      <h3 class="reporting-simple-h">{{ _("Time range") }}</h3>
-      <div class="reporting-simple-choices" id="rsTimeList" data-testid="rs-time-list"></div>
-      <div id="rsTimeCustom" hidden>
-        <input id="rsTimeRange" class="reporting-input" placeholder="{{ _('Pick a date range') }}">
+    <div class="rs-wizard-grid">
+      <div id="rsWizardRail" class="rs-wizard-rail" data-testid="rs-wizard-rail"></div>
+      <div class="rs-wizard-stepcard">
+        <div class="reporting-simple-step" id="rsStepMeasure">
+          <h3 class="reporting-simple-h">{{ _("What do you want to measure?") }}</h3>
+          <div id="rsMeasureList" class="reporting-simple-choices" data-testid="rs-measure-list"></div>
+          <p class="reporting-simple-hint">{{ _("Pick one or more — combined measures must come from the same source.") }}</p>
+        </div>
+        <div class="reporting-simple-step" id="rsStepScope" hidden>
+          <h3 class="reporting-simple-h">{{ _("Which processes?") }}</h3>
+          <div id="rsScopeList" class="reporting-simple-scopestep" data-testid="rs-scope-list"></div>
+          <p class="reporting-simple-hint">{{ _("The next step only offers fields these processes provide.") }}</p>
+        </div>
+        <div class="reporting-simple-step" id="rsStepBreakdown" hidden>
+          <h3 class="reporting-simple-h">{{ _("Break it down by…") }}</h3>
+          <div id="rsBreakdownList" class="reporting-simple-choices" data-testid="rs-breakdown-list"></div>
+          <label id="rsGrainWrap" class="reporting-simple-inline" hidden>{{ _("Granularity") }}
+            <select id="rsGrain" class="reporting-input">
+              <option value="day">{{ _("Day") }}</option>
+              <option value="week">{{ _("Week") }}</option>
+              <option value="month" selected>{{ _("Month") }}</option>
+              <option value="quarter">{{ _("Quarter") }}</option>
+              <option value="year">{{ _("Year") }}</option>
+            </select></label>
+          <p class="reporting-simple-hint">{{ _("Pick up to three — the first is the chart axis, the second becomes the colored series.") }}</p>
+        </div>
+        <div class="reporting-simple-step" id="rsStepTime" hidden>
+          <h3 class="reporting-simple-h">{{ _("Time range") }}</h3>
+          <div class="reporting-simple-choices" id="rsTimeList" data-testid="rs-time-list"></div>
+          <div id="rsTimeCustom" hidden>
+            <input id="rsTimeRange" class="reporting-input" placeholder="{{ _('Pick a date range') }}">
+          </div>
+          <p class="reporting-simple-hint" id="rsAllTimeHint" hidden data-testid="rs-alltime-hint">{{ _("“All time” scans the whole history — pick a shorter range for faster results.") }}</p>
+          <label id="rsTimeFieldWrap" class="reporting-simple-inline" hidden>{{ _("Date field") }}
+            <select id="rsTimeField" class="reporting-input"></select></label>
+        </div>
+        {# Task 6: shared footer for all four steps -- the accordion never
+           re-hides an earlier step (see the JS partial), so more than one of
+           these Continue-style buttons can legitimately be visible at once;
+           each keeps the exact hidden-flag logic it already had. rsPickedCount
+           and rsScopeNext/rsBreakdownNext are gated to their own step purely
+           via the CSS :has() shim in reporting.css (they have no independent
+           `hidden` toggle of their own, unlike rsMeasureNext/rsWizardRun). #}
+        <div class="rs-wizard-footer">
+          <button id="rsWizardBack" class="nx-btn nx-btn--ghost" data-testid="rs-wizard-back">&larr; {{ _("Back") }}</button>
+          <span class="rs-wizard-footer-spacer"></span>
+          <span id="rsPickedCount" class="rs-picked-count" data-testid="rs-picked-count"></span>
+          <button type="button" id="rsMeasureNext" class="nx-btn nx-btn--primary" hidden data-testid="rs-measure-next">{{ _("Continue") }}</button>
+          <button type="button" id="rsScopeNext" class="nx-btn nx-btn--primary" data-testid="rs-scope-next">{{ _("Continue") }}</button>
+          <button type="button" id="rsBreakdownNext" class="nx-btn nx-btn--primary" data-testid="rs-breakdown-next">{{ _("Continue") }}</button>
+          <button id="rsWizardRun" class="nx-btn nx-btn--primary" hidden
+                  data-testid="rs-wizard-run">{{ _("Show result") }}</button>
+        </div>
       </div>
-      <p class="reporting-simple-hint" id="rsAllTimeHint" hidden data-testid="rs-alltime-hint">{{ _("“All time” scans the whole history — pick a shorter range for faster results.") }}</p>
-      <label id="rsTimeFieldWrap" class="reporting-simple-inline" hidden>{{ _("Date field") }}
-        <select id="rsTimeField" class="reporting-input"></select></label>
-      <button id="rsWizardRun" class="nx-btn nx-btn--primary reporting-simple-runbtn" hidden
-              data-testid="rs-wizard-run">{{ _("Show result") }}</button>
     </div>
   </div>
 
   <div id="rsResult" class="reporting-simple-result" hidden data-testid="rs-result">
+    {# Task 7 -- result header regroup: back + inline-editable title (pencil
+       swaps in the existing rsSaveName input -- same rename/save-name flow,
+       see the JS partial) + meta line + spacer + Adjust + unified Export
+       group + primary Save + the new ⋯ overflow menu hosting the unchanged
+       rsOpenAdvanced/rsShowSql buttons + Exit. Every existing id/testid stays
+       in the DOM -- only placement and visual treatment change (D6). #}
     <div class="reporting-simple-resultbar">
-      <button id="rsBack" class="reporting-link" data-testid="rs-back">&larr; {{ _("Back") }}</button>
-      <h3 id="rsResultTitle" class="reporting-simple-rtitle" data-testid="rs-result-title"></h3>
+      <button id="rsBack" class="nx-btn nx-btn--secondary rs-wizard-backlib" data-testid="rs-back">&larr; {{ _("Back") }}</button>
+      <div class="rs-result-titleblock">
+        <div class="rs-result-titlerow">
+          <h3 id="rsResultTitle" class="reporting-simple-rtitle" data-testid="rs-result-title"></h3>
+          <button type="button" id="rsRenamePencil" class="rs-rename-pencil" data-testid="rs-rename-pencil"
+                  title="{{ _('Rename') }}" aria-label="{{ _('Rename') }}">
+            <i class="fas fa-pencil" aria-hidden="true"></i>
+          </button>
+          <input id="rsSaveName" class="reporting-input rs-rename-input" hidden data-testid="rs-save-name"
+                 aria-label="{{ _('Report name') }}">
+        </div>
+        <p id="rsResultMeta" class="rs-result-meta" data-testid="rs-result-meta"></p>
+      </div>
+      <span class="rs-result-spacer"></span>
       <span class="reporting-simple-ractions">
-        <input id="rsSaveName" class="reporting-input" hidden data-testid="rs-save-name"
-               aria-label="{{ _('Report name') }}">
         <button id="rsAdjustWizard" class="reporting-btn nx-btn nx-btn--secondary" hidden
-                data-testid="rs-adjust-wizard">{{ _("Adjust in wizard") }}</button>
-        <button id="rsSave" class="reporting-btn nx-btn nx-btn--secondary" data-testid="rs-save">{{ _("Save") }}</button>
-        <button id="rsOpenAdvanced" class="reporting-btn nx-btn nx-btn--secondary" data-testid="rs-open-advanced">{{ _("Open in Advanced") }}</button>
+                data-testid="rs-adjust-wizard">{{ _("Adjust") }}</button>
         {% if has_permission('reporting.export') %}
-        <select id="rsExportFormat" class="reporting-export-format" data-testid="rs-export-format" title="{{ _('Export format') }}">
-          <option value="xlsx">{{ _("Excel") }}</option>
-          <option value="csv">CSV</option>
-        </select>
-        <button id="rsExport" class="reporting-btn nx-btn nx-btn--secondary" data-testid="rs-export">{{ _("Export") }}</button>
+        <span class="rs-export-group">
+          <select id="rsExportFormat" class="reporting-export-format" data-testid="rs-export-format" title="{{ _('Export format') }}">
+            <option value="xlsx">{{ _("Excel") }}</option>
+            <option value="csv">CSV</option>
+          </select>
+          <button id="rsExport" class="reporting-btn nx-btn nx-btn--secondary" data-testid="rs-export">{{ _("Export") }}</button>
+        </span>
         {% endif %}
-        <button type="button" id="rsShowSql" class="reporting-link nx-btn nx-btn--ghost nx-btn--sm" hidden
-                data-testid="rs-show-sql">{{ _("Show query") }}</button>
+        <button id="rsSave" class="reporting-btn nx-btn nx-btn--primary" data-testid="rs-save">{{ _("Save") }}</button>
+        <div id="rsMoreWrap" class="rs-more-wrap" data-testid="rs-more-wrap">
+          <button type="button" id="rsMore" class="nx-btn nx-btn--ghost nx-btn--sm rs-more-btn"
+                  data-testid="rs-more" aria-haspopup="true" aria-expanded="false" aria-controls="rsMoreMenu"
+                  title="{{ _('More actions') }}" aria-label="{{ _('More actions') }}">
+            <i class="fas fa-ellipsis" aria-hidden="true"></i>
+          </button>
+          <div id="rsMoreMenu" class="rs-more-menu" hidden role="menu" aria-labelledby="rsMore" data-testid="rs-more-menu">
+            <button id="rsOpenAdvanced" type="button" class="rs-more-row" role="menuitem"
+                    data-testid="rs-open-advanced">{{ _("Open in Advanced") }}</button>
+            <button type="button" id="rsShowSql" class="rs-more-row" hidden role="menuitem"
+                    data-testid="rs-show-sql">{{ _("Show query") }}</button>
+          </div>
+        </div>
         <button id="rsExit" class="reporting-link reporting-simple-close nx-btn nx-btn--ghost nx-btn--sm" data-testid="rs-exit"
                 title="{{ _('Back to library') }}" aria-label="{{ _('Back to library') }}">&times;</button>
       </span>
@@ -122,32 +195,43 @@
     <p id="rsMsg" class="reporting-ai-explain" hidden data-testid="rs-msg"></p>
     <div id="rsChips" class="reporting-simple-chips" hidden data-testid="rs-chips"></div>
     <p id="rsError" class="reporting-ai-error" hidden data-testid="rs-error"></p>
-    <div id="rsKpiBand" class="reporting-ledger-kpis" hidden data-testid="rs-kpi-band"></div>
-    <div class="reporting-simple-cards">
-      <div class="nx-card nx-card--pad nx-stat reporting-simple-stat" id="rsStatCard" hidden data-testid="rs-stat-card">
-        <div id="rsStatBody">
-          <p class="nx-stat__label" id="rsStatLabel"></p>
-          <div class="nx-stat__value" id="rsStatValue"></div>
+    <div class="rs-result-grid">
+      <div class="rs-result-left">
+        <div class="nx-card nx-card--pad nx-stat reporting-simple-stat" id="rsStatCard" hidden data-testid="rs-stat-card">
+          <div id="rsStatBody">
+            <p class="nx-stat__label" id="rsStatLabel"></p>
+            <div class="nx-stat__value" id="rsStatValue"></div>
+          </div>
+          <i class="fas fa-chart-simple nx-stat__icon" aria-hidden="true"></i>
         </div>
-        <i class="fas fa-chart-simple nx-stat__icon" aria-hidden="true"></i>
+        <div id="rsKpiBand" class="reporting-ledger-kpis" hidden data-testid="rs-kpi-band"></div>
       </div>
       <div class="nx-card nx-card--pad reporting-simple-chartcard" id="rsChartCard" hidden data-testid="rs-chart-card">
         <div class="reporting-simple-charttools" id="rsChartTools" hidden data-testid="rs-chart-tools">
-          <button type="button" class="reporting-chartbtn" data-type="bar" title="{{ _('Bar chart') }}" aria-label="{{ _('Bar chart') }}" data-testid="rs-chart-bar"><i class="fas fa-chart-column" aria-hidden="true"></i></button>
-          <button type="button" class="reporting-chartbtn" data-type="line" title="{{ _('Line chart') }}" aria-label="{{ _('Line chart') }}" data-testid="rs-chart-line"><i class="fas fa-chart-line" aria-hidden="true"></i></button>
-          <button type="button" class="reporting-chartbtn" data-type="stacked" hidden title="{{ _('Stacked bar chart') }}" aria-label="{{ _('Stacked bar chart') }}" data-testid="rs-chart-stacked"><i class="fas fa-layer-group" aria-hidden="true"></i></button>
+          <div class="rs-chart-track">
+            <button type="button" class="reporting-chartbtn" data-type="bar" title="{{ _('Bar chart') }}" aria-label="{{ _('Bar chart') }}" data-testid="rs-chart-bar"><i class="fas fa-chart-column" aria-hidden="true"></i></button>
+            <button type="button" class="reporting-chartbtn" data-type="line" title="{{ _('Line chart') }}" aria-label="{{ _('Line chart') }}" data-testid="rs-chart-line"><i class="fas fa-chart-line" aria-hidden="true"></i></button>
+            <button type="button" class="reporting-chartbtn" data-type="stacked" hidden title="{{ _('Stacked bar chart') }}" aria-label="{{ _('Stacked bar chart') }}" data-testid="rs-chart-stacked"><i class="fas fa-layer-group" aria-hidden="true"></i></button>
+            <button type="button" class="reporting-chartbtn" data-type="pie" title="{{ _('Pie chart') }}" aria-label="{{ _('Pie chart') }}" data-testid="rs-chart-pie"><i class="fas fa-chart-pie" aria-hidden="true"></i></button>
+            <button type="button" class="reporting-chartbtn" data-type="doughnut" title="{{ _('Doughnut chart') }}" aria-label="{{ _('Doughnut chart') }}" data-testid="rs-chart-doughnut"><i class="fas fa-circle-notch" aria-hidden="true"></i></button>
+          </div>
           <button type="button" class="reporting-chartbtn" id="rsChartPng" title="{{ _('Download chart as image') }}" aria-label="{{ _('Download chart as image') }}" data-testid="rs-chart-png"><i class="fas fa-download" aria-hidden="true"></i></button>
-          <button type="button" class="reporting-chartbtn" data-type="pie" title="{{ _('Pie chart') }}" aria-label="{{ _('Pie chart') }}" data-testid="rs-chart-pie"><i class="fas fa-chart-pie" aria-hidden="true"></i></button>
-          <button type="button" class="reporting-chartbtn" data-type="doughnut" title="{{ _('Doughnut chart') }}" aria-label="{{ _('Doughnut chart') }}" data-testid="rs-chart-doughnut"><i class="fas fa-circle-notch" aria-hidden="true"></i></button>
         </div>
         <p id="rsChartNote" class="reporting-simple-chartnote" hidden data-testid="rs-chart-note"></p>
         <canvas id="rsChartCanvas"></canvas>
       </div>
     </div>
-    <button id="rsTableToggle" class="reporting-link" hidden data-testid="rs-table-toggle">{{ _("Show table") }}</button>
-    <div id="rsTableWrap" class="reporting-table-wrap reporting-simple-table" hidden data-testid="rs-table"></div>
-    <button type="button" id="rsSqlPeek" class="reporting-ledger-sqlpeek" hidden data-testid="rs-sql-peek"></button>
-    <p class="reporting-simple-hint" id="rsDrillHint" hidden data-testid="rs-drill-hint">{{ _("Click a row or chart element to see the documents behind it.") }}</p>
+    <div class="nx-card nx-card--pad rs-table-card" id="rsTableCard" hidden data-testid="rs-table-card">
+      <div class="rs-table-card__head">
+        <span class="rs-table-card__titlewrap">
+          <span class="rs-table-card__title">{{ _("Table") }}<span id="rsTableRowCount" class="rs-table-card__count"></span></span>
+          <button id="rsTableToggle" class="reporting-link" hidden data-testid="rs-table-toggle">{{ _("Show table") }}</button>
+        </span>
+        <p class="reporting-simple-hint rs-table-card__hint" id="rsDrillHint" hidden data-testid="rs-drill-hint">{{ _("Click a row or chart element to see the documents behind it.") }}</p>
+      </div>
+      <div id="rsTableWrap" class="reporting-table-wrap reporting-simple-table" hidden data-testid="rs-table"></div>
+      <button type="button" id="rsSqlPeek" class="reporting-ledger-sqlpeek" hidden data-testid="rs-sql-peek"></button>
+    </div>
       <div class="nx-card nx-card--pad reporting-sqlview" id="rsSqlView" hidden data-testid="rs-sql-view">
         <div class="reporting-sqlview-bar">
           <span><i class="fas fa-database" aria-hidden="true"></i>{{ _("Query sent to the database") }}</span>
@@ -156,5 +240,12 @@
         <pre id="rsSqlText"></pre>
       </div>
   </div>
+
+  {# Task 11 -- dashboard builder view (kind:'dashboard' saved reports). Empty
+     by design: window.ReportingDashboard (js/_reporting_dashboard_js.html)
+     owns rendering its header/filter-bar/grid into this container. #}
+  <div id="rsDashboard" class="reporting-dashboard" hidden data-testid="rs-dashboard"
+       data-can-export="{{ 1 if has_permission('reporting.export') else 0 }}"></div>
 </section>
 {% include 'js/_reporting_simple_js.html' %}
+{% include 'js/_reporting_dashboard_js.html' %}

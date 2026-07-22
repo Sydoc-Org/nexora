@@ -21,6 +21,7 @@ from .field_locations import (
     count_image_media,
     items_of,
     num,
+    pdf_pages_for,
     rect_from_octo,
 )
 
@@ -54,7 +55,7 @@ def _cell_locations(cell, media_offset):
     return out
 
 
-def extract_table_locations(doc_json):
+def extract_table_locations(doc_json, pdf_page_counts=None):
     """Build the ``table_sources`` list from an Octopus thin-document response.
 
     Returns ``[{title, columns, rows:[[{col, value, locations:[{page, rect}],
@@ -64,10 +65,16 @@ def extract_table_locations(doc_json):
     dropped (so an unpopulated table schema never reaches the UI). ``rect`` is in
     image pixels; ``page`` is the 0-based media index (matching
     ``api_get_media_raw``). ``confidence`` (0..1) is present only when reported.
+
+    ``pdf_page_counts`` (optional): same shape and purpose as in
+    ``extract_field_locations`` — a sequence of ints, one per leaf item in
+    ``items_of(doc_json)`` order, giving how many PDF-expanded page slots that
+    item's PDF media occupy. Omit to keep the pre-fix behaviour (PDFs
+    contribute 0 to the page offset).
     """
     out = []
     media_offset = 0
-    for item in items_of(doc_json):
+    for idx, item in enumerate(items_of(doc_json)):
         for tbl in item.get("Tables") or []:
             columns = []
             seen_cols = set()
@@ -95,5 +102,5 @@ def extract_table_locations(doc_json):
                     rows_out.append(cells_out)
             if rows_out:
                 out.append({"title": tbl.get("Name"), "columns": columns, "rows": rows_out})
-        media_offset += count_image_media(item)
+        media_offset += count_image_media(item, pdf_pages_for(pdf_page_counts, idx))
     return out

@@ -961,8 +961,12 @@ body.nx-app {
   .reporting-title-input { flex-basis: 100%; order: -1; }
 }
 
-/* --- Simple/Advanced tabs (Spec 2) --- */
-.reporting-tabs { margin: 0 24px 12px; }
+/* Masthead segmented control (Indigo Studio) */
+.reporting-head-actions { display: flex; align-items: center; gap: 10px; }
+.reporting-tabs { display: flex; gap: 2px; padding: 3px; background: var(--nx-divider); border: 1px solid var(--nx-border); border-radius: 8px; margin: 0; }
+.reporting-tabs .nx-tab { border: none; margin: 0; background: transparent; border-radius: 6px; padding: 6px 14px; font: 500 12.5px var(--nx-font); color: var(--nx-text-sec); cursor: pointer; }
+.reporting-tabs .nx-tab:hover { color: var(--nx-text); }
+.reporting-tabs .nx-tab[aria-selected="true"] { background: var(--nx-card); color: var(--nx-accent); font-weight: 600; box-shadow: 0 1px 2px rgba(16, 24, 40, .06); }
 
 /* --- Simple pane (Spec 2) --- */
 .reporting-simple { padding: 0 24px 32px; max-width: 1100px; margin: 0 auto; }
@@ -971,16 +975,27 @@ body.nx-app {
 .reporting-simple-aibar .reporting-input { flex: 1; }
 .reporting-simple-search { max-width: 220px; margin-left: auto; }
 .reporting-simple-h { font-size: 13px; font-weight: 600; color: var(--nx-text-sec); text-transform: uppercase; letter-spacing: .04em; margin: 18px 0 10px; }
-.reporting-simple-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
-.reporting-simple-card { text-align: left; cursor: pointer; border: 1px solid var(--nx-border); border-radius: 8px; padding: 12px 14px; background: var(--nx-card); color: var(--nx-text); font-family: inherit; }
-.reporting-simple-card:hover { border-color: var(--nx-accent); box-shadow: 0 2px 8px var(--nx-accent-soft); }
-.reporting-simple-card .rs-card-name { font-weight: 600; font-size: 14px; margin: 0 0 4px; }
-.reporting-simple-card .rs-card-meta { font-size: 12px; color: var(--nx-text-meta); margin: 0; }
+.reporting-simple-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
 .reporting-simple-empty { font-size: 13px; color: var(--nx-text-sec); padding: 8px 0 4px; }
 .reporting-simple-step { margin: 18px 0; }
 .reporting-simple-choices { display: flex; flex-wrap: wrap; gap: 8px; }
-.reporting-simple-choice { border: 1px solid var(--nx-border); border-radius: 999px; background: var(--nx-card); color: var(--nx-text); padding: 7px 14px; font-size: 13px; cursor: pointer; font-family: inherit; }
-.reporting-simple-choice.is-selected { border-color: var(--nx-accent); background: var(--nx-accent-tint); font-weight: 600; }
+.reporting-simple-choice { border: 1px solid var(--nx-border); border-radius: 999px; background: var(--nx-card); color: var(--nx-text); padding: 8px 16px; font-size: 13px; cursor: pointer; font-family: inherit; }
+.reporting-simple-choice.is-selected {
+  border: 1.5px solid var(--nx-accent); background: var(--nx-accent-tint);
+  color: #4338ca; font-weight: 600;
+}
+.reporting-simple-choice.is-selected::before { content: "\2713"; margin-right: 6px; font-weight: 700; }
+/* "None -- just the total": dashed outline sets it apart from the real
+   breakdown choices above it (selected state still gets the accent border
+   color + check from .is-selected -- only the dash pattern is added here). */
+.reporting-simple-choice.rs-choice-none { border-style: dashed; }
+/* Uppercase group captions above each breakdown cluster (Time / Document
+   fields / Or); a full-width flex item forces the wrap onto its own row. */
+.rs-choice-group-label {
+  flex: 1 0 100%; font: 700 10.5px var(--nx-font); text-transform: uppercase;
+  letter-spacing: .06em; color: var(--nx-text-meta); margin: 12px 0 2px;
+}
+.rs-choice-group-label:first-child { margin-top: 0; }
 .reporting-simple-inline { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 13px; font-weight: 600; color: var(--nx-text-sec); }
 .reporting-simple-scopestep { margin-bottom: 10px; font-size: 14px; border: 1px solid var(--nx-border); border-radius: 8px; background: var(--nx-card); max-width: 520px; max-height: 260px; overflow: auto; padding: 10px 12px; }
 .reporting-simple-scopestep label { display: block; padding: 3px 0; }
@@ -993,22 +1008,193 @@ body.nx-app {
 }
 /* Measure chips of a non-pinned source (multi-measure is single-source). */
 .reporting-simple-choice:disabled { opacity: .45; cursor: not-allowed; }
-.reporting-simple-runbtn { margin-top: 14px; }
-.reporting-simple-resultbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
-.reporting-simple-rtitle { margin: 0; font-size: 16px; flex: 1; }
+.reporting-simple-resultbar {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  background: var(--nx-card); border: 1px solid var(--nx-border); border-radius: 12px;
+  padding: 14px 20px; margin-bottom: 14px;
+}
+.reporting-simple-rtitle { margin: 0; font-size: 16px; font-weight: 700; }
 .reporting-simple-ractions { display: flex; gap: 8px; align-items: center; }
-.reporting-simple-cards { display: grid; grid-template-columns: 260px 1fr; gap: 14px; align-items: start; }
-.reporting-simple-cards:has(#rsChartCard[hidden]) { grid-template-columns: 260px; }
-.reporting-simple-chartcard { min-height: 260px; position: relative; }
+/* Task 8 retires .reporting-simple-cards (260px sidebar) in favor of
+   .rs-result-grid (250px) -- rsStatCard/rsKpiBand share the left rail via
+   the new .rs-result-left wrapper, rsChartCard is the sole right item. */
+.rs-result-grid { display: grid; grid-template-columns: 250px 1fr; gap: 14px; align-items: start; }
+.rs-result-grid:has(#rsChartCard[hidden]) { grid-template-columns: 250px; }
+.rs-result-left { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.reporting-simple-chartcard { min-height: 260px; position: relative; border-radius: 14px; }
 .reporting-simple-chartcard canvas { max-height: 320px; }
 .reporting-simple-table { margin-top: 12px; }
 .reporting-simple-chartnote { font-size: 13px; color: var(--nx-text-meta); margin: 0 0 8px; }
-.reporting-simple-wizbar { display: flex; justify-content: space-between; align-items: center; }
 .reporting-simple-close { font-size: 20px; line-height: 1; padding: 2px 8px; }
-.reporting-simple-charttools { position: absolute; top: 10px; right: 10px; display: flex; gap: 4px; z-index: 1; }
-.reporting-chartbtn { border: 1px solid var(--nx-border); background: var(--nx-card); border-radius: 6px; padding: 4px 8px; font-size: 12px; color: var(--nx-text-meta); cursor: pointer; }
-.reporting-chartbtn.is-selected { border-color: var(--nx-accent); color: var(--nx-accent); background: var(--nx-accent-tint); }
-@media (max-width: 800px) { .reporting-simple-cards { grid-template-columns: 1fr; } }
+/* Chart segmented control: same visual language as Task 1's masthead
+   .reporting-tabs/.nx-tab pattern (~L966, untouched) -- padding/border/
+   radius/active-segment repeated here at .reporting-simple-charttools
+   specificity rather than shared. The PNG-download button (no data-type,
+   so it never gets .is-selected) sits outside .rs-chart-track as its own
+   bordered button, right end of the toolbar. */
+.reporting-simple-charttools { position: absolute; top: 10px; right: 10px; z-index: 1; display: flex; align-items: center; gap: 8px; }
+.rs-chart-track { display: flex; gap: 2px; padding: 3px; background: var(--nx-divider); border: 1px solid var(--nx-border); border-radius: 8px; }
+.reporting-chartbtn { border: none; margin: 0; background: transparent; border-radius: 6px; padding: 6px 10px; font-size: 13px; color: var(--nx-text-sec); cursor: pointer; }
+.reporting-chartbtn:hover { color: var(--nx-text); }
+.reporting-chartbtn.is-selected { background: var(--nx-card); color: var(--nx-accent); font-weight: 600; box-shadow: 0 1px 2px rgba(16, 24, 40, .06); }
+#rsChartPng { border: 1px solid var(--nx-border); border-radius: 6px; background: var(--nx-card); color: var(--nx-text-meta); }
+#rsChartPng:hover { color: var(--nx-accent); border-color: var(--nx-border-strong); }
+@media (max-width: 800px) { .rs-result-grid { grid-template-columns: 1fr; } }
+
+/* ============================================================
+   Task 5 — wizard header bar, two-column layout, progress rail.
+   The four .reporting-simple-step divs + their renderers are untouched;
+   this is presentation scaffolding around them plus a rail that reads
+   existing wiz/state.wiz state (see renderWizardRail in the JS partial).
+   ============================================================ */
+.rs-wizard-head {
+  display: flex; align-items: center; gap: 16px;
+  background: var(--nx-card); border-bottom: 1px solid var(--nx-border);
+  padding: 16px 40px; margin: -1px -1px 24px;
+}
+.rs-wizard-title { margin: 0; font-size: 16px; font-weight: 700; color: var(--nx-text); }
+.rs-wizard-spacer { flex: 1; }
+.rs-wizard-stepno { font-size: 13px; font-weight: 600; color: var(--nx-text-sec); }
+.rs-wizard-backlib { font-size: 13px; padding: 6px 12px; }
+.rs-wizard-backlib i { margin-right: 6px; }
+
+.rs-wizard-grid {
+  display: grid; grid-template-columns: 280px 1fr; gap: 40px;
+  max-width: 1120px; margin: 0 auto; align-items: start; padding: 0 40px 40px;
+}
+@media (max-width: 760px) { .rs-wizard-grid { grid-template-columns: 1fr; } }
+
+.rs-wizard-rail { display: flex; flex-direction: column; }
+.rs-rail-step { display: flex; gap: 14px; }
+.rs-rail-step > div:first-child { display: flex; flex-direction: column; align-items: center; }
+.rs-rail-step > div:last-child { padding-bottom: 28px; min-width: 0; }
+.rs-rail-step:last-child > div:last-child { padding-bottom: 0; }
+.rs-rail-dot {
+  flex: none; width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font: 700 12px var(--nx-font); background: #fff; color: #9ca3af;
+  border: 1.5px solid #e5e7eb;
+}
+.rs-rail-line { flex: 1; width: 2px; min-height: 16px; margin: 4px 0; background: #e5e7eb; }
+.rs-rail-step:last-child .rs-rail-line { display: none; }
+.rs-rail-step.is-done .rs-rail-dot { background: #eef2ff; border-color: #c7d2fe; color: #4338ca; }
+.rs-rail-step.is-done .rs-rail-line { background: #c7d2fe; }
+.rs-rail-step.is-active .rs-rail-dot { background: var(--nx-brand-grad); border-color: transparent; color: #fff; }
+.rs-rail-title { font: 600 13px var(--nx-font); color: var(--nx-text); padding-top: 4px; }
+.rs-rail-step.is-active .rs-rail-title { color: var(--nx-accent); }
+.rs-rail-sum { display: block; font-size: 12px; color: var(--nx-text-sec); margin-top: 3px; }
+.rs-wizard-preview {
+  margin-top: 8px; background: #eef2ff; border: 1px solid #e0e7ff; border-radius: 10px;
+  padding: 12px 14px; font-size: 12.5px; color: var(--nx-text); line-height: 1.5;
+}
+
+.rs-wizard-stepcard {
+  background: var(--nx-card); border: 1px solid var(--nx-border);
+  border-radius: 14px; padding: 28px 32px;
+}
+
+/* ============================================================
+   Task 6 -- step footer: Back / spacer / picked-counter / Continue,
+   shared across all four .reporting-simple-step divs (the accordion
+   never re-hides an earlier step, so rsMeasureNext/rsScopeNext/
+   rsBreakdownNext/rsWizardRun can legitimately sit side by side here;
+   each keeps its own pre-existing hidden-flag logic -- see the JS
+   partial). Ids/handlers unchanged; this is placement + CSS only.
+   ============================================================ */
+.rs-wizard-footer {
+  display: flex; align-items: center; gap: 12px;
+  border-top: 1px solid var(--nx-divider); padding-top: 20px; margin-top: 30px;
+}
+.rs-wizard-footer-spacer { flex: 1; }
+.rs-picked-count { font-size: 13px; font-weight: 600; color: var(--nx-text-sec); }
+.rs-wizard-footer .nx-btn--primary::after { content: "\2192"; margin-left: 8px; }
+/* rsScopeNext/rsBreakdownNext have no JS-driven hidden flag of their own --
+   before this task they inherited visibility from their parent
+   .reporting-simple-step div; now that they live in the shared footer
+   (outside that div), :has() reinstates the same gating purely in CSS so
+   moving them doesn't make an unreached step's Continue button clickable
+   early (rsMeasureNext and rsWizardRun already toggle their own `hidden`
+   in the JS partial and need no shim). rsPickedCount piggybacks on the
+   same mechanism to stay breakdown-step-only. */
+.rs-wizard-stepcard:has(#rsStepScope[hidden]) #rsScopeNext { display: none; }
+.rs-wizard-stepcard:has(#rsStepBreakdown[hidden]) #rsBreakdownNext,
+.rs-wizard-stepcard:has(#rsStepBreakdown[hidden]) #rsPickedCount { display: none; }
+/* The accordion keeps every answered step's own Continue button "live" (see
+   above) -- with all four stacked in one footer that reads as 2-3 identical
+   "Continue" pills at once. Once a later step is revealed its earlier
+   sibling's Continue is redundant (the user already acted on it), so hide
+   it here too: display-only, no id/handler/flow change -- Back still steps
+   through exactly as before and nothing here is asserted on by a test. */
+.rs-wizard-stepcard:has(#rsStepScope:not([hidden])) #rsMeasureNext,
+.rs-wizard-stepcard:has(#rsStepBreakdown:not([hidden])) #rsMeasureNext,
+.rs-wizard-stepcard:has(#rsStepTime:not([hidden])) #rsMeasureNext,
+.rs-wizard-stepcard:has(#rsStepBreakdown:not([hidden])) #rsScopeNext,
+.rs-wizard-stepcard:has(#rsStepTime:not([hidden])) #rsScopeNext,
+.rs-wizard-stepcard:has(#rsStepTime:not([hidden])) #rsBreakdownNext,
+.rs-wizard-stepcard:has(#rsStepTime:not([hidden])) #rsPickedCount { display: none; }
+
+/* Step transition: 200ms fade/slide, guarded the same way as .nx-rise
+   (`backwards`, never `both` -- see nexora-ui.css for why `both` traps
+   overflowing popovers under later elements via a held stacking context). */
+@keyframes rs-step-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.reporting-simple-step:not([hidden]) { animation: rs-step-in 0.2s var(--nx-ease) backwards; }
+@media (prefers-reduced-motion: reduce) {
+  .reporting-simple-step:not([hidden]) { animation: none; }
+}
+
+/* ============================================================
+   Task 7 -- result header regroup: inline-editable title + meta line,
+   unified Export group, gradient Save (reuses .nx-btn--primary as-is --
+   its existing box-shadow already matches spec), and the new ⋯ overflow
+   menu hosting the unchanged rsOpenAdvanced/rsShowSql buttons. The bar
+   itself becomes a white band (background/border/radius added above on
+   .reporting-simple-resultbar); this block covers everything new.
+   ============================================================ */
+.rs-result-titleblock { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rs-result-titlerow { display: flex; align-items: center; gap: 6px; }
+.rs-result-spacer { flex: 1; }
+.rs-result-meta { margin: 0; font-size: 11px; color: var(--nx-text-meta); }
+.rs-rename-pencil {
+  background: none; border: none; padding: 2px 4px; margin: 0;
+  font-size: 12px; line-height: 1; color: var(--nx-text-meta); cursor: pointer;
+}
+.rs-rename-pencil:hover { color: var(--nx-accent); }
+.rs-rename-input { font-size: 16px; font-weight: 700; padding: 4px 8px; max-width: 320px; }
+/* Renaming swaps the input in for the title + pencil, in place -- no second
+   rename path, just CSS keyed on the existing rsSaveName hidden flag. */
+.rs-result-titlerow:has(#rsSaveName:not([hidden])) #rsResultTitle,
+.rs-result-titlerow:has(#rsSaveName:not([hidden])) .rs-rename-pencil { display: none; }
+
+/* Export group: format select + Export button rendered as one bordered
+   control (⌄ appended via ::after, same idiom as .rs-wizard-footer's → on
+   Continue -- no new translated string needed for the caret). */
+.rs-export-group {
+  display: flex; align-items: stretch;
+  border: 1px solid var(--nx-border-strong); border-radius: var(--nx-radius-sm);
+  overflow: hidden;
+}
+.rs-export-group #rsExportFormat { border: none; border-radius: 0; border-right: 1px solid var(--nx-border); }
+.rs-export-group #rsExport { border: none; border-radius: 0; }
+.rs-export-group #rsExport::after { content: "\25BE"; margin-left: 6px; font-size: 10px; }
+
+/* ⋯ overflow menu -- same open/close idiom as the Advanced tab's process
+   scope dropdown (toggleScopeMenu/#rpScopeMenu in _reporting_js.html):
+   absolutely-positioned card, aria-expanded on the trigger, outside-click
+   + Escape close (see the JS partial). */
+.rs-more-wrap { position: relative; }
+.rs-more-menu {
+  position: absolute; z-index: 30; top: 100%; right: 0; margin-top: 6px;
+  min-width: 180px; padding: 6px;
+  background: var(--nx-card); border: 1px solid var(--nx-border);
+  border-radius: 10px; box-shadow: var(--nx-shadow-pop);
+}
+.rs-more-row {
+  display: block; width: 100%; text-align: left;
+  background: none; border: none; border-radius: 6px;
+  padding: 8px 10px; font: 500 13px var(--nx-font); color: var(--nx-text);
+  cursor: pointer;
+}
+.rs-more-row:hover { background: var(--nx-accent-tint); }
 
 /* AI thinking indicator (Simple pane) */
 .reporting-ai-loading {
@@ -1077,26 +1263,61 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
 
 /* --- Drill-through drawer (slide-over from the right; shared by Simple and
    Advanced). Tokenised to match the nexora-ui harmonization above. Behaviour
-   (open/close/fetch) is wired in Task 3; this is the shell only. --- */
+   (open/close/fetch) is wired in Task 3; Task 9 restyles the shell (width,
+   backdrop, shadow, icon-chip header, slide-in) and adds the #rdChips
+   context-chip row + info callout -- see reporting.md §Drill / the
+   2026-07-20 redesign plan Task 9. --- */
 .reporting-drill-backdrop {
-  position: fixed; inset: 0; background: rgba(0, 0, 0, .45); z-index: 60;
+  position: fixed; inset: 0; background: rgba(15, 23, 42, .28); z-index: 60;
 }
 .reporting-drill-backdrop[hidden] { display: none; }
 .reporting-drill-panel {
   position: fixed; top: 0; right: 0; bottom: 0; z-index: 61;
-  width: 45vw; min-width: 420px; max-width: 720px;
+  width: 640px; max-width: 640px;
   display: flex; flex-direction: column;
   background: var(--nx-card); color: var(--nx-text);
   border-left: 1px solid var(--nx-border);
-  box-shadow: var(--nx-shadow-pop);
+  box-shadow: -24px 0 64px -24px rgba(15, 23, 42, .35);
 }
 .reporting-drill-panel[hidden] { display: none; }
+/* Slide-in, 250ms (spec §Drill). `backwards` only (never `both` -- see
+   nexora-ui.css's .nx-rise comment): the "from" state paints for the instant
+   before/at the JS-driven [hidden] flip, and the effect fully ends once the
+   animation completes -- no lingering held transform/stacking context. */
+@keyframes rd-slide-in { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+.reporting-drill-panel:not([hidden]) { animation: rd-slide-in .25s var(--nx-ease) backwards; }
+@media (prefers-reduced-motion: reduce) {
+  .reporting-drill-panel:not([hidden]) { animation: none; }
+}
 .reporting-drill-head {
   display: flex; justify-content: space-between; align-items: flex-start;
   padding: 16px; border-bottom: 1px solid var(--nx-border);
 }
-.reporting-drill-head h3 { margin: 0; font-size: 15px; color: var(--nx-text); }
-.reporting-drill-subtitle { margin: 4px 0 0; font-size: 12px; color: var(--nx-text-meta); }
+.reporting-drill-head__main { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
+.reporting-drill-icon {
+  flex: 0 0 auto; width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--nx-accent-tint); color: var(--nx-accent); font-size: 15px;
+}
+.reporting-drill-head h3 { margin: 0; font-size: 16px; font-weight: 600; color: var(--nx-text); }
+.reporting-drill-subtitle { margin: 4px 0 0; font-size: 11.5px; color: var(--nx-text-meta); }
+/* Context chip row (#rdChips, testid reporting-drill-chips): indigo chips for
+   filters already on the definition, violet chips for the clicked-cell
+   filters. General surface -- reused verbatim by dashboard-card drills
+   (Task 15). Empty (no filters at all) collapses to zero height. */
+.reporting-drill-chips {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding: 0 16px; margin-top: 10px;
+}
+.reporting-drill-chips:empty { margin-top: 0; }
+.reporting-drill-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 999px; border: 1px solid transparent;
+  font-size: 11.5px; font-weight: 600; white-space: nowrap;
+}
+.reporting-drill-chip i { font-size: 10px; }
+.reporting-drill-chip--indigo { background: var(--nx-accent-tint); border-color: #e0e7ff; color: #4338ca; }
+.reporting-drill-chip--violet { background: var(--nx-violet-tint); border-color: var(--nx-violet-border); color: var(--nx-violet); }
 .reporting-drill-body { flex: 1; overflow: auto; padding: 0 16px; }
 .reporting-drill-body table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .reporting-drill-body th,
@@ -1104,7 +1325,24 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
   padding: 6px 8px; border-bottom: 1px solid var(--nx-border);
   text-align: left; white-space: nowrap;
 }
-.reporting-drill-body th { background: var(--nx-alt); color: var(--nx-text); }
+.reporting-drill-body th {
+  background: var(--nx-alt); color: var(--nx-text-meta);
+  font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+}
+/* Type pill (doctype column, when present in the drilled columns). */
+.reporting-drill-type-pill {
+  display: inline-block; padding: 2px 8px; border-radius: 999px;
+  background: var(--nx-accent-tint); color: #4338ca; font-size: 11px; font-weight: 600;
+}
+/* Info callout, built by ensureCallout() in _reporting_drill_js.html, only
+   when the workitem-preview modal is on the page -- sits above the foot. */
+.reporting-drill-callout {
+  display: flex; align-items: flex-start; gap: 8px;
+  margin: 10px 16px; padding: 10px 12px;
+  border: 1px solid #e0e7ff; background: #fafaff; border-radius: 10px;
+  font-size: 12px; color: var(--nx-text-meta);
+}
+.reporting-drill-callout i { color: var(--nx-accent); margin-top: 1px; }
 .reporting-drill-foot {
   display: flex; justify-content: space-between; align-items: center;
   padding: 10px 16px; border-top: 1px solid var(--nx-border);
@@ -1116,7 +1354,7 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
 .reporting-drill-wi-link { color: var(--nx-accent); text-decoration: underline; }
 .reporting-drill-wi-link:hover { color: var(--nx-accent-hover); }
 @media (max-width: 900px) {
-  .reporting-drill-panel { width: 100vw; min-width: 0; }
+  .reporting-drill-panel { width: 100vw; max-width: 100vw; }
 }
 
 /* --- Workitem detail panel modal, opened from a .reporting-drill-wi-link
@@ -1163,14 +1401,27 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
 .reporting-toast--error { border-color: var(--nx-danger); }
 .reporting-toast.is-gone { opacity: 0; }
 
-/* Process-coverage badge on wizard chips/measure cards: "n/m" processes
-   provide this field (tooltip on the chip names them). */
-.reporting-simple-chip-cov { margin-left: 6px; font-size: 11px; font-weight: 600; background: var(--nx-accent-tint); color: var(--nx-accent); border-radius: 999px; padding: 1px 7px; }
-/* Coverage tiers: amber = partial, muted = low (≤ 1/3 of the selected scope). */
-.reporting-simple-chip-cov.is-cov-mid { background: rgba(217, 119, 6, .14); color: #b45309; }
-.reporting-simple-chip-cov.is-cov-low { background: var(--nx-alt, #f1f5f9); color: var(--nx-text-meta, #94a3b8); }
+/* Process-coverage badge on wizard chips/measure cards: an in-chip 26x4px
+   bar + "n/m" (tooltip on the chip names the providing processes -- kept
+   verbatim, see the JS partial's covBadge()/applyCoverageBadge()). Tiers:
+   >=80% accent, 33-80% amber (partial), <=1/3 muted (low). */
+.reporting-simple-chip-cov {
+  display: inline-flex; align-items: center; gap: 5px; margin-left: 6px;
+  font-size: 11px; font-weight: 600; color: var(--nx-text-meta, #94a3b8);
+}
+.rs-cov-bar {
+  display: inline-block; width: 26px; height: 4px; border-radius: 2px;
+  background: var(--nx-border); overflow: hidden;
+}
+.rs-cov-fill { display: block; height: 100%; border-radius: 2px; background: var(--nx-text-meta, #94a3b8); }
+.reporting-simple-chip-cov.is-cov-high { color: var(--nx-accent); }
+.reporting-simple-chip-cov.is-cov-high .rs-cov-fill { background: var(--nx-accent); }
+.reporting-simple-chip-cov.is-cov-mid { color: #b45309; }
+.reporting-simple-chip-cov.is-cov-mid .rs-cov-fill { background: #b45309; }
+.reporting-simple-chip-cov.is-cov-low { color: var(--nx-text-meta, #94a3b8); }
+.reporting-simple-chip-cov.is-cov-low .rs-cov-fill { background: var(--nx-text-meta, #94a3b8); }
 
-/* ============ Editorial Ledger (2026-07-15 reskin) ============ */
+/* ============ body.reporting-ledger — flat surface chrome (Editorial Ledger typography retired 2026-07-20) ============ */
 
 /* Local palette for the reporting page only; redefined below for dark
    mode. Light values are the locked spec palette; dark values are
@@ -1198,41 +1449,22 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   background: var(--rl-band);
   border-bottom: 1px solid var(--rl-hairline);
 }
-.reporting-ledger .nx-title {
-  font-family: Georgia, 'Charter', 'Times New Roman', serif;
-}
+/* Task 2: .nx-title serif override retired — falls back to the page's
+   Inter (var(--nx-font)). */
 
 /* Data typography: numeric cells are tagged reporting-ledger-num at render
    time in both panes' table builders (renderTable in
    _reporting_simple_js.html, renderResults in _reporting_js.html — both key
    off the same Number(v)/isNaN check as fmtNumber). */
 .reporting-ledger-num {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
 
-/* Hairline ledger table: 1px --rl-hairline row rules and a flat, muted
-   uppercase tracked-cap header replace the calmer card-table borders
-   (.reporting-table-wrap above) while the ledger skin is active. No zebra
-   striping — rows stay flat, separated only by the hairline. */
-.reporting-ledger .reporting-table-wrap .reporting-table th,
-.reporting-ledger .reporting-table-wrap .reporting-table td {
-  border: none;
-  border-bottom: 1px solid var(--rl-hairline);
-  background: transparent;
-}
-.reporting-ledger .reporting-table-wrap .reporting-table thead th {
-  border-bottom: 1px solid var(--rl-ink);
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  color: var(--nx-text-meta);
-}
-.reporting-ledger .reporting-table-wrap .reporting-table tbody tr:last-child td {
-  border-bottom: none;
-}
+/* Task 2: the ledger's hairline table (flat row rules, no zebra, tracked
+   uppercase header) is retired — .reporting-table th/td and .reporting-table
+   thead th (base rules ~L905, ~L911) already give the calmer GitHub-style
+   borders; nothing left to layer here. */
 
 .reporting-ledger-caption {
   font-size: .68rem;
@@ -1252,7 +1484,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 }
 .reporting-ledger-timing {
   margin-left: auto;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
   font-size: .75rem;
   color: var(--nx-text-meta);
 }
@@ -1273,29 +1505,90 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   gap: .2rem;
 }
 .reporting-ledger-kpi-value {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-variant-numeric: tabular-nums;
   font-size: 1.6rem;
   font-weight: 600;
   color: var(--rl-ink);
 }
 
+/* Task 8 -- result body left rail: rsStatCard (zero-dimension total) sits
+   at the same 14px radius as the other studio cards. #rsKpiBand itself
+   (breakdown case) is restyled by ID rather than editing the shared
+   .reporting-ledger-kpis/-kpi/-kpi-value rules above, so the Advanced
+   pane's rpKpiBand keeps its flat flex-row band untouched. renderKpiBand
+   (JS partial) nests a gradient total card and a stacked secondary card
+   (Buckets/Avg/Peak) inside #rsKpiBand; those two inner cards are new. */
+.reporting-simple-stat { border-radius: 14px; }
+#rsKpiBand { display: flex; flex-direction: column; gap: 10px; padding: 0; }
+.rs-kpi-total-card {
+  background: var(--nx-brand-grad);
+  color: #fff;
+  border-radius: 14px;
+  box-shadow: 0 12px 28px -10px rgba(79, 70, 229, .5);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.rs-kpi-total-card .reporting-ledger-caption { color: rgba(255, 255, 255, .8); }
+.rs-kpi-total-card .reporting-ledger-kpi-value { color: #fff; font-size: 38px; letter-spacing: -1.5px; }
+.rs-kpi-stats-card {
+  background: var(--nx-card);
+  border: 1px solid var(--nx-border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rs-kpi-stats-card .reporting-ledger-kpi {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 8px;
+}
+.rs-kpi-stats-card .reporting-ledger-kpi-value { font-size: 1rem; }
+/* Peak's bucket label (e.g. the winning breakdown value) -- wraps onto its
+   own row under the caption/value pair, right-aligned to match the value. */
+.reporting-ledger-kpi-sub { flex: 1 0 100%; font-size: .72rem; color: var(--nx-text-meta); text-align: right; }
+
+/* Table card: head row ("Table" + row count + right-aligned drill hint),
+   the table itself, and rsSqlPeek as the card's flush footer (Task 2
+   already restyled .reporting-ledger-sqlpeek's colors/font above -- it is
+   already full-width/border-top/left-aligned/ellipsis, so nothing to
+   duplicate here beyond the card chrome around it). */
+.rs-table-card { margin-top: 14px; border-radius: 14px; }
+.rs-table-card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: 10px;
+}
+.rs-table-card__titlewrap { display: flex; align-items: baseline; gap: 12px; }
+.rs-table-card__title { font-size: 13px; font-weight: 700; color: var(--nx-text); }
+.rs-table-card__count { font-weight: 400; color: var(--nx-text-meta); }
+.rs-table-card__hint { margin: 0; font-size: 12px; color: var(--nx-text-meta); }
+
 /* Persistent query footer (Task 6, L9): one always-rendered element per pane
    (#rsSqlPeek, #rpSqlPeek) under the results, showing the first line of
    sqlDisplay. Hidden whenever sqlDisplay is absent (inliner degrade path).
    Clicking it delegates to the existing Show-query reveal handler — this
-   button owns no panel-fill logic of its own. */
+   button owns no panel-fill logic of its own. Task 2: SQL keeps a mono face
+   (it's code) — restyled per the Result query-peek footer spec instead of
+   the old ledger palette. */
 .reporting-ledger-sqlpeek {
   display: block;
   width: 100%;
   margin-top: .5rem;
   padding: .5rem .1rem;
   border: none;
-  border-top: 1px solid var(--rl-hairline);
-  background: var(--rl-band);
+  border-top: 1px solid var(--nx-divider);
+  background: #fcfcfd;
   color: var(--nx-text-meta);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: .75rem;
+  font: 11px var(--nx-mono);
   text-align: left;
   white-space: nowrap;
   overflow: hidden;
@@ -1303,39 +1596,17 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   cursor: pointer;
 }
 .reporting-ledger-sqlpeek:hover {
-  color: var(--rl-ink);
+  color: var(--nx-accent);
 }
 .reporting-ledger-sqlpeek:focus-visible {
   outline: 2px solid var(--rl-navy);
   outline-offset: -2px;
 }
 
-/* Task 7: Simple library tiles flatten to hairline-separated ledger rows —
-   card chrome (border/radius/shadow) is dropped in favor of a bottom
-   hairline; report names take the serif masthead face, the owner/updated
-   line goes mono to read as a ledger metadata stamp. */
-.reporting-ledger .reporting-simple-card {
-  border: none;
-  border-bottom: 1px solid var(--rl-hairline);
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-  padding: 10px 2px;
-}
-.reporting-ledger .reporting-simple-card:hover {
-  border-color: var(--rl-hairline);
-  background: var(--rl-band);
-  box-shadow: none;
-}
-.reporting-ledger .reporting-simple-card .rs-card-name {
-  font-family: Georgia, 'Charter', 'Times New Roman', serif;
-  font-weight: 400;
-  font-size: 15px;
-}
-.reporting-ledger .reporting-simple-card .rs-card-meta {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 11px;
-}
+/* Task 4 retired the .reporting-simple-card tile in favor of the two-band
+   .rs-card (chrome + typography now live with the rest of Task 4's CSS,
+   ~L1443) — the old ledger-scoped name/meta override that used to sit here
+   has no selector left to attach to. */
 
 /* Task 7: Wizard step headings ("1. What do you want to measure?" etc.) take
    the same uppercase tracked-caption treatment as .reporting-ledger-caption
@@ -1352,41 +1623,35 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   color: var(--nx-text-meta);
 }
 
-/* Task 7: Process-coverage "n/m" badge (base rule above, ~L1131) goes mono
-   ink-navy on a hairline pill under the ledger skin instead of the stock
-   accent-tint chip, on both the measure-step chips (renderMeasureStep) and
-   the breakdown-step chips (renderBreakdownStep) — same class, no JS change. */
-.reporting-ledger .reporting-simple-chip-cov {
-  background: transparent;
-  color: var(--rl-navy);
-  border: 1px solid var(--rl-hairline);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-}
-/* Coverage tiers keep their hue under the ledger skin's transparent pill. */
-.reporting-ledger .reporting-simple-chip-cov.is-cov-mid { background: transparent; color: #b45309; border-color: rgba(180, 83, 9, .5); }
-.reporting-ledger .reporting-simple-chip-cov.is-cov-low { background: transparent; color: var(--nx-text-meta, #94a3b8); }
+/* Task 7/6: Process-coverage badge, ledger skin. Task 6 replaced the old
+   pill (base rule above, ~L1229) with an in-chip bar, so there's no more
+   pill/border to reskin here -- just tabular-nums for the "n/m" digits.
+   The three tiers are repeated at matching specificity (not left to
+   source-order tie-breaking against the base rule) purely so the colour
+   is unambiguous regardless of which rule the cascade would otherwise
+   prefer; the hex values are identical to the base tiers either way. */
+.reporting-ledger .reporting-simple-chip-cov { font-variant-numeric: tabular-nums; }
+.reporting-ledger .reporting-simple-chip-cov.is-cov-high { color: var(--nx-accent); }
+.reporting-ledger .reporting-simple-chip-cov.is-cov-high .rs-cov-fill { background: var(--nx-accent); }
+.reporting-ledger .reporting-simple-chip-cov.is-cov-mid { color: #b45309; }
+.reporting-ledger .reporting-simple-chip-cov.is-cov-mid .rs-cov-fill { background: #b45309; }
+.reporting-ledger .reporting-simple-chip-cov.is-cov-low { color: var(--nx-text-meta, #94a3b8); }
+.reporting-ledger .reporting-simple-chip-cov.is-cov-low .rs-cov-fill { background: var(--nx-text-meta, #94a3b8); }
 
-/* Task 7: 2px ink rule over the chart block, Simple and Advanced panes. */
-.reporting-ledger .reporting-simple-chartcard { border-top: 2px solid var(--rl-ink); }
-.reporting-ledger .reporting-viz { border-top: 2px solid var(--rl-ink); }
+/* Task 2: the ledger's 2px ink rule over the chart block (Simple + Advanced)
+   is retired — .reporting-simple-chartcard already carries nx-card/
+   nx-card--pad chrome, and .reporting-viz sits inside the already-bordered
+   .reporting-results card. Nothing left to layer here. */
 
-/* Task 8: Advanced builder — panels lose the card shadow in favor of a
-   flat band + hairline border (same move as the masthead in Task 1).
-   Layout/grid untouched. */
-.reporting-ledger .reporting-fields,
-.reporting-ledger .reporting-wells,
-.reporting-ledger .reporting-results {
-  background: var(--rl-band);
-  border: 1px solid var(--rl-hairline);
-  border-radius: 0;
-  box-shadow: none;
-}
+/* Task 2: Advanced builder panel shadow/radius flattening is retired —
+   .reporting-fields/.reporting-wells/.reporting-results (base rule ~L505)
+   keep their card border, radius and shadow again. */
 
 /* Task 8: Toolbar selects (saved-report picker, export format) and the
    .reporting-input controls (field search, subtitle, share/schedule/name
    modal fields — the class is shared by both <input> and <select> in the
-   markup) read as flat chips: pill radius, hairline border, mono value
-   text. Overrides the "Toolbar" (~L741) and "Inputs / selects / textareas"
+   markup) read as flat chips: pill radius, hairline border, tabular-nums
+   value text. Overrides the "Toolbar" (~L741) and "Inputs / selects / textareas"
    (~L573) sections above without editing either. */
 .reporting-ledger .reporting-input,
 .reporting-ledger .reporting-saved select,
@@ -1394,7 +1659,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   border-radius: 999px;
   border-color: var(--rl-hairline);
   background: var(--rl-band);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
   font-size: 12.5px;
 }
 .reporting-ledger .reporting-input:focus,
@@ -1403,13 +1668,14 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   border-color: var(--rl-navy);
 }
 
-/* --- Drill-through drawer: ledger canvas + hairlines, mono metadata on
-   the subtitle/note/column-headers (reads like a ledger stamp). Shell
+/* --- Drill-through drawer: studio canvas + hairlines (Task 9 restyle --
+   width/backdrop/shadow/slide-in/chips/callout live on the base
+   .reporting-drill-* rules above; this section only layers the
+   --rl-band/--rl-hairline canvas tokens + tabular-nums metadata). Shell
    structure and all data-testids (Task 3) are untouched. --- */
 .reporting-ledger .reporting-drill-panel {
   background: var(--rl-band);
   border-left: 1px solid var(--rl-hairline);
-  box-shadow: none;
 }
 .reporting-ledger .reporting-drill-head,
 .reporting-ledger .reporting-drill-foot {
@@ -1417,8 +1683,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 }
 .reporting-ledger .reporting-drill-subtitle,
 .reporting-ledger .reporting-drill-note {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 11px;
+  font-variant-numeric: tabular-nums;
 }
 .reporting-ledger .reporting-drill-body th,
 .reporting-ledger .reporting-drill-body td {
@@ -1426,19 +1691,15 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 }
 .reporting-ledger .reporting-drill-body th {
   background: var(--rl-band);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 10.5px;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: var(--nx-text-meta);
+  font-variant-numeric: tabular-nums;
 }
 .reporting-ledger .reporting-drill-clickable tbody tr:hover {
   background: var(--nx-accent-tint);
 }
 
 /* --- AI panels (Ask-AI bar, Agent thread trace, SQL draft): same canvas
-   + hairline treatment, mono metadata on badges/step labels. Chrome only
-   — submode buttons, prompt bar and result wiring keep their structure
+   + hairline treatment, tabular-nums metadata on badges/step labels. Chrome
+   only — submode buttons, prompt bar and result wiring keep their structure
    and testids. --- */
 .reporting-ledger .reporting-ai-panel {
   background: var(--rl-band);
@@ -1455,9 +1716,543 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 .reporting-ledger .reporting-ai-step-name,
 .reporting-ledger .reporting-ai-step-meta,
 .reporting-ledger .reporting-ai-q-badge {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
 }
 .reporting-ledger .reporting-ai-panel,
 .reporting-ledger .reporting-ai-turn {
   border-radius: 0;
 }
+
+/* ---- Landing hero (spec §Landing) ---- */
+.reporting-hero { border-radius: var(--nx-radius-hero); border: 1px solid #e0e7ff; background: radial-gradient(1200px 320px at 50% -80px, var(--nx-accent-tint) 0%, var(--nx-card) 70%); padding: 44px 48px 36px; text-align: center; }
+.reporting-hero__title { margin: 0 0 8px; font: 600 28px var(--nx-font); letter-spacing: -.6px; color: var(--nx-text); }
+.reporting-hero__sub { margin: 0 0 24px; font-size: 14px; color: var(--nx-text-sec); }
+.reporting-hero__aiwrap { max-width: 660px; margin: 0 auto; border-radius: 14px; background: var(--nx-brand-grad); padding: 1.5px; box-shadow: 0 12px 32px -12px rgba(79, 70, 229, .4); }
+.reporting-hero__aiwrap .reporting-simple-aibar { display: flex; align-items: center; border-radius: 12.5px; background: var(--nx-card); padding: 5px 5px 5px 18px; }
+.reporting-hero__wand { color: var(--nx-violet); font-size: 15px; }
+.reporting-hero__aiinput { flex: 1; border: none; outline: none; background: transparent; padding: 11px 14px; font: 13.5px var(--nx-font); color: var(--nx-text); }
+.reporting-hero__aibtn { border: none; border-radius: 9px; background: var(--nx-brand-grad); color: #fff; font: 600 13px var(--nx-font); padding: 11px 20px; cursor: pointer; }
+.reporting-hero__aibtn:hover { filter: brightness(1.08); }
+.reporting-hero__chips { display: flex; justify-content: center; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+.rs-suggestion { border: 1px solid #e0e7ff; border-radius: 999px; background: var(--nx-card); color: var(--nx-accent); font: 500 12px var(--nx-font); padding: 6px 14px; cursor: pointer; }
+.rs-suggestion:hover { background: var(--nx-accent-tint); }
+.reporting-hero__actions { margin-top: 24px; display: flex; justify-content: center; gap: 10px; }
+
+/* ---- Library group headers + report cards (spec §Landing "Report cards") ---- */
+.rs-group-head { display: flex; align-items: center; gap: 10px; margin: 18px 0 10px; }
+.rs-group-head .reporting-simple-h { margin: 0; }
+.rs-group-spacer { flex: 1; }
+.rs-count-pill { display: inline-block; border: 1px solid var(--nx-border); border-radius: 999px; font: 600 11.5px var(--nx-font); color: var(--nx-accent); padding: 1px 9px; min-width: 8px; text-align: center; }
+.rs-search-wrap { position: relative; width: 200px; }
+.rs-search-wrap i { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--nx-text-meta); font-size: 12px; pointer-events: none; }
+.rs-search-wrap .reporting-simple-search { width: 100%; max-width: none; margin-left: 0; border-radius: 8px; padding: 7px 10px 7px 28px; }
+
+.rs-card {
+  display: block; text-align: left; cursor: pointer; padding: 0; overflow: hidden;
+  border: 1px solid var(--nx-border); border-radius: var(--nx-radius-lg);
+  background: var(--nx-card); color: var(--nx-text); font-family: inherit;
+  transition: border-color 150ms cubic-bezier(.4, 0, .2, 1), box-shadow 150ms cubic-bezier(.4, 0, .2, 1),
+              transform 150ms cubic-bezier(.4, 0, .2, 1);
+}
+.rs-card:hover {
+  border-color: var(--nx-card-hover-border); box-shadow: var(--nx-card-hover-shadow);
+  transform: translateY(-2px);
+}
+.rs-card-preview {
+  position: relative; height: 78px; padding: 14px 14px 0;
+  background: linear-gradient(180deg, #fafaff, var(--nx-card));
+  border-bottom: 1px solid var(--nx-divider);
+  display: flex; align-items: flex-end;
+}
+.rs-card-svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.rs-card-badge {
+  position: absolute; top: 8px; right: 8px; display: inline-flex; align-items: center; gap: 4px;
+  background: var(--nx-card); border-radius: 999px; padding: 2px 8px;
+  font: 600 10px var(--nx-font); text-transform: uppercase; letter-spacing: .02em; color: var(--nx-violet);
+  box-shadow: 0 1px 3px rgba(16, 24, 40, .08);
+}
+.rs-card-badge i { font-size: 9px; }
+.rs-card-total { width: 100%; padding-bottom: 10px; font: 600 30px var(--nx-font); color: var(--nx-accent); }
+.rs-card-total-label { font-size: 13px; font-weight: 500; color: var(--nx-text-sec); }
+.rs-card-body { padding: 12px 14px; }
+.rs-card-name {
+  margin: 0 0 6px; font: 600 13.5px/1.35 var(--nx-font); color: var(--nx-text);
+  min-height: 36px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.rs-card-meta { display: flex; align-items: center; gap: 6px; }
+.rs-card-avatar {
+  flex: none; width: 16px; height: 16px; border-radius: 50%; background: var(--nx-brand-grad);
+  color: #fff; font: 600 8px var(--nx-font); display: flex; align-items: center; justify-content: center;
+}
+.rs-card-metatext { font-size: 11.5px; color: var(--nx-text-meta); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.rs-group-empty { border: 1px dashed var(--nx-border); border-radius: var(--nx-radius-lg); padding: 22px; text-align: center; grid-column: 1 / -1; }
+.rs-group-empty-name { margin: 0 0 4px; font: 600 13px var(--nx-font); color: var(--nx-text); }
+.rs-group-empty-hint { margin: 0; font-size: 12.5px; color: var(--nx-text-meta); }
+
+/* ============================================================
+   Task 10 — Advanced builder skin (mock 3b). Layout (260/1fr/300 grid,
+   toolbar flex structure, wells stack) is untouched -- chrome only: panel
+   radius, mode/view toggle brought to Task 1's exact masthead-tab chrome,
+   field-row type icons, and metric/filter/column wells as chips.
+   ============================================================ */
+
+/* Panels: Task 2 retired the ledger's flatness override (~L1646), so
+   .reporting-fields/.reporting-wells/.reporting-results fell back to the
+   base card radius (--nx-radius, ~L505/L511) -- bump to the studio's
+   larger panel radius, matching .rs-card/.rs-group-empty above. */
+.reporting-fields,
+.reporting-wells,
+.reporting-results {
+  border-radius: var(--nx-radius-lg);
+}
+
+/* Mode (Table/SQL/Ask-AI) + view (Grid/Chart/Pivot) toggles are already a
+   segmented track (structural flex/padding/gap set by the REDESIGN layer,
+   ~L751/~L841) -- this layers the exact chrome values Task 1 used for the
+   masthead .reporting-tabs/.nx-tab segmented control (~L966) so both read
+   as the same component. Structural properties (display, flex-shrink,
+   margin) are left untouched. */
+.reporting-mode-toggle,
+.reporting-view-toggle {
+  background: var(--nx-divider);
+  border-radius: 8px;
+}
+.reporting-mode-toggle button,
+.reporting-view-toggle button {
+  border-radius: 6px;
+  font: 500 12.5px var(--nx-font);
+}
+.reporting-mode-toggle button.active,
+.reporting-view-toggle button.active {
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, .06);
+}
+
+/* Field-list rows: leading type icon (built in renderFields,
+   _reporting_js.html) -- fa-calendar/fa-hashtag/fa-font per field.type.
+   Fixed tint colour (same hex as --nx-accent-hover's dark-mode value, so
+   it reads the same muted-indigo in both themes) rather than a token, per
+   spec. The trailing "+" affordance + accent-tint hover bg already exist
+   (~L724-739); this just gives the new icon a lane + vertical centering. */
+.reporting-field-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.reporting-field-icon {
+  color: #a5b4fc;
+  font-size: 12px;
+  width: 14px;
+  flex: none;
+  text-align: center;
+}
+
+/* Wells: metric rows -> indigo chip, filter rows -> violet chip (scoped to
+   #rpWellFilters so #rpWellSort, which reuses .reporting-filter-row,
+   keeps its plain row -- Sort isn't part of the spec's chip set), column
+   rows -> bordered "draggable" row + a display-only grip icon (columns
+   have no reorder logic today -- add/remove/rename/grain only, see
+   renderWells in _reporting_js.html; the grip is visual-only). */
+.reporting-well ul li.reporting-metric-row {
+  background: var(--nx-accent-tint);
+  border: 1px solid var(--nx-accent-soft);
+  border-radius: 999px;
+  padding: 4px 6px 4px 12px;
+}
+#rpWellFilters .reporting-filter-row {
+  background: var(--nx-violet-tint);
+  border: 1px solid var(--nx-violet-border);
+  border-radius: 999px;
+  padding: 4px 6px 4px 12px;
+}
+.reporting-col-row {
+  background: var(--nx-alt);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  padding: 4px 6px;
+}
+.reporting-col-grip {
+  color: var(--nx-text-meta);
+  font-size: 11px;
+  cursor: grab;
+  flex: none;
+}
+
+/* ============================================================
+   Task 11 — Dashboard builder skeleton (mock 2b; prototype file is the
+   spec for state/handlers). Header band, global-filter bar and the
+   12-column grid container. Card bodies, per-card/global filter chips,
+   drag-reorder and export are Tasks 12-15, layered into #rdbGrid/
+   #rdbFilterChips by templates/js/_reporting_dashboard_js.html.
+   ============================================================ */
+.reporting-dashboard { max-width: 1240px; margin: 0 auto; padding: 20px 40px 80px; box-sizing: border-box; }
+@keyframes rdb-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.reporting-dashboard:not([hidden]) { animation: rdb-in .32s var(--nx-ease) backwards; }
+@media (prefers-reduced-motion: reduce) {
+  .reporting-dashboard:not([hidden]) { animation: none; }
+}
+
+.rdb-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
+.rdb-titleblock { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rdb-titlerow { display: flex; align-items: center; gap: 6px; }
+.rdb-title { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -.4px; color: var(--nx-text); }
+.rdb-title-input { font-size: 18px; font-weight: 600; padding: 4px 8px; max-width: 360px; }
+.rdb-meta { margin: 0; font-size: 11px; color: var(--nx-text-meta); }
+.rdb-spacer { flex: 1; }
+.rdb-editing-pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 6px 13px; border-radius: var(--nx-radius-pill);
+  background: var(--nx-accent-tint); border: 1px solid #c7d2fe;
+  font: 600 12px var(--nx-font); color: #4338ca;
+}
+.rdb-editing-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--nx-accent); }
+.rdb-addcard-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: var(--nx-radius-sm);
+  font: 600 12.5px var(--nx-font); border: 1px solid #c7d2fe;
+  background: var(--nx-accent-tint); color: #4338ca; cursor: pointer;
+  transition: background-color var(--nx-dur) var(--nx-ease);
+}
+.rdb-addcard-btn:hover { background: #e0e7ff; }
+
+.rdb-filterbar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: var(--nx-card); border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-lg); padding: 12px 18px; margin-bottom: 18px;
+  position: relative;  /* anchors the filter popover (Task 13) */
+}
+.rdb-filterbar-label {
+  display: inline-flex; align-items: center; gap: 6px;
+  font: 600 10px var(--nx-font); letter-spacing: .8px; text-transform: uppercase;
+  color: var(--nx-text-meta);
+}
+.rdb-filterbar-label i { color: var(--nx-violet); font-size: 9px; }
+.rdb-filterbar-divider { width: 1px; height: 18px; background: var(--nx-border); }
+.rdb-filterchips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.rdb-filterbar-hint { font-size: 11px; color: var(--nx-text-meta); }
+
+/* Global filter chips (indigo, reuses .reporting-drill-chip) + the dashed
+   add-filter chip (Task 13). */
+.rdb-gfilter { cursor: pointer; user-select: none; }
+.rdb-gfilter-x { margin-left: 1px; opacity: .55; cursor: pointer; padding: 1px; }
+.rdb-gfilter-x:hover { opacity: 1; }
+.rdb-add-filter {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px dashed var(--nx-border-strong); border-radius: 999px;
+  background: transparent; color: var(--nx-text-meta);
+  font: 500 12px var(--nx-font); padding: 5px 13px; cursor: pointer;
+  transition: color var(--nx-dur) var(--nx-ease), border-color var(--nx-dur) var(--nx-ease);
+}
+.rdb-add-filter i { font-size: 9px; }
+.rdb-add-filter:hover { color: var(--nx-accent); border-color: #c7d2fe; }
+
+/* Filter popover (#rdbFilterPop): field/op/value + Apply/Cancel, positioned
+   under the clicked chip via JS-computed top/left off .rdb-filterbar's
+   getBoundingClientRect(). z-index only needs to clear the (unpositioned,
+   z-index:auto) card grid below it -- no ancestor here uses
+   animation-fill-mode:both (see nexora-ui.css's .nx-rise comment: that's
+   what buried a popover once before), so there's no stacking-context trap
+   to route around beyond this. */
+.rdb-filter-pop {
+  position: absolute; z-index: 40;
+  display: flex; flex-direction: column; gap: 6px;
+  min-width: 220px; padding: 14px;
+  background: var(--nx-card); border: 1px solid var(--nx-border);
+  border-radius: 10px; box-shadow: var(--nx-shadow-pop);
+}
+.rdb-filter-pop label { font: 600 10.5px var(--nx-font); color: var(--nx-text-meta); }
+.rdb-filter-pop select,
+.rdb-filter-pop input { width: 100%; box-sizing: border-box; }
+.rdb-filter-pop-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+
+.rdb-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px; }
+.rdb-card {
+  background: var(--nx-card); border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-lg); padding: 14px 18px; box-sizing: border-box;
+  min-width: 0; position: relative;  /* anchors the edit-mode control cluster */
+}
+.rdb-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.rdb-card-title { font: 600 13.5px var(--nx-font); letter-spacing: -.1px; color: var(--nx-text); }
+@media (max-width: 900px) {
+  .rdb-grid { grid-template-columns: repeat(6, 1fr); }
+  .rdb-card { grid-column: span 6 !important; }
+}
+
+/* Per-card override chip (violet, reuses .reporting-drill-chip) + the
+   "inherits global filters" note (Task 13). */
+.rdb-card-filter-chip { cursor: default; }
+.rdb-card-filter-x { margin-left: 1px; opacity: .6; cursor: pointer; padding: 1px; }
+.rdb-card-filter-x:hover { opacity: 1; }
+.rdb-card-inherit { font-size: 10.5px; color: var(--nx-text-meta); }
+
+/* ============================================================
+   Task 12 — Card rendering + per-card runs. Hover affordance only in
+   view mode (renderGrid toggles .rdb-grid--editing on #rdbGrid); edit mode
+   surfaces drag/duplicate/remove controls instead (Task 14).
+   ============================================================ */
+.rdb-grid:not(.rdb-grid--editing) .rdb-card {
+  transition: border-color var(--nx-dur) var(--nx-ease), box-shadow var(--nx-dur) var(--nx-ease);
+}
+.rdb-grid:not(.rdb-grid--editing) .rdb-card:hover {
+  border-color: var(--nx-card-hover-border); box-shadow: var(--nx-card-hover-shadow);
+}
+
+/* KPI cards get the muted uppercase eyebrow title from the spec; other
+   types keep the default .rdb-card-title look. */
+.rdb-card[data-type="kpi"] .rdb-card-head { margin-bottom: 8px; }
+.rdb-card[data-type="kpi"] .rdb-card-title {
+  font-size: 10.5px; font-weight: 600; letter-spacing: .7px;
+  text-transform: uppercase; color: var(--nx-text-meta);
+}
+
+.rdb-card-body { min-width: 0; }
+
+/* ---- Loading shimmer -------------------------------------------------- */
+.rdb-skeleton {
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--nx-divider) 25%, var(--nx-border) 50%, var(--nx-divider) 75%);
+  background-size: 200% 100%;
+  animation: rdb-shimmer 1.4s infinite linear;
+}
+@keyframes rdb-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .rdb-skeleton { animation: none; }
+}
+.rdb-skeleton--kpi { height: 30px; width: 60%; }
+.rdb-skeleton--chart { height: 190px; width: 100%; }
+.rdb-skeleton--donut { height: 150px; width: 150px; border-radius: 50%; flex: none; }
+.rdb-skeleton--legend { height: 90px; flex: 1; min-width: 100px; }
+.rdb-skeleton--row { height: 14px; width: 100%; margin-bottom: 10px; }
+.rdb-card-body--loading .rdb-donut-wrap { align-items: center; }
+
+/* ---- Error state ------------------------------------------------------- */
+.rdb-card-body--error { display: flex; align-items: center; justify-content: center; min-height: 80px; }
+.rdb-card-error { margin: 0; font: 12.5px var(--nx-font); color: var(--nx-text-meta); text-align: center; }
+
+/* ---- KPI ---------------------------------------------------------------- */
+.rdb-kpi-value {
+  margin: 0; font: 600 30px var(--nx-font); letter-spacing: -1px;
+  font-variant-numeric: tabular-nums; color: var(--nx-text);
+}
+
+/* KPI trend (Task 15/D8): "+x.y% vs previous period", only rendered when a
+   comparison is actually possible (see maybeRenderKpiTrend) -- no empty
+   placeholder for the "no trend" case, per D8's honest-numbers-or-nothing. */
+.rdb-kpi-trend { margin: 4px 0 0; font: 600 11px var(--nx-font); }
+.rdb-kpi-trend--up { color: var(--nx-success); }
+.rdb-kpi-trend--down { color: var(--nx-danger); }
+.rdb-kpi-trend i { font-size: 9px; }
+
+/* ---- Line / bar (Chart.js canvas) --------------------------------------- */
+.rdb-chart-wrap { position: relative; height: 190px; }
+
+/* ---- Donut: HTML center overlay (not a Chart.js plugin) + DOM legend ---- */
+.rdb-donut-wrap { display: flex; align-items: center; gap: 18px; padding: 8px 0; flex-wrap: wrap; }
+.rdb-donut-ring { position: relative; width: 150px; height: 150px; flex: none; }
+.rdb-donut-center {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; pointer-events: none;
+}
+.rdb-donut-total-value {
+  font: 600 22px var(--nx-font); letter-spacing: -.5px; color: var(--nx-text);
+  font-variant-numeric: tabular-nums;
+}
+.rdb-donut-total-label { font: 600 9px var(--nx-font); letter-spacing: .8px; text-transform: uppercase; color: var(--nx-text-meta); }
+.rdb-donut-legend { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 120px; }
+.rdb-donut-legend-row { display: flex; align-items: center; gap: 8px; }
+.rdb-donut-swatch { width: 9px; height: 9px; border-radius: 3px; flex: none; }
+.rdb-donut-legend-label { font: 12px var(--nx-font); color: var(--nx-text-sec); flex: 1; min-width: 60px; }
+.rdb-donut-legend-value { font: 600 12px var(--nx-font); color: var(--nx-text-sec); font-variant-numeric: tabular-nums; }
+
+/* ---- Table: 2-col grid rows ---------------------------------------------- */
+.rdb-table-rows { display: grid; grid-template-columns: 1fr auto; border-top: 1px solid var(--nx-divider); }
+.rdb-table-k { padding: 9px 4px; border-bottom: 1px solid var(--nx-divider); font: 12.5px var(--nx-font); color: var(--nx-text-sec); }
+.rdb-table-v {
+  padding: 9px 4px; border-bottom: 1px solid var(--nx-divider); font: 600 12.5px var(--nx-font);
+  color: var(--nx-text); text-align: right; font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   Task 14 -- Edit mode: drag-to-reorder, hover control cluster, add-card
+   tile. Mechanics ported 1:1 from the prototype's onDragStart/onDragOver/
+   onDrop/onDragEnd + remove/duplicate handlers (D10) -- the dashed
+   drop-slot + tilted drag-image from the mock are explicitly skipped
+   (nice-to-have only, per the plan).
+   ============================================================ */
+.rdb-card-grip { color: #d3d9f8; font-size: 11px; cursor: grab; }
+.rdb-card--dragging { opacity: .35; }
+.rdb-card--over { border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79, 70, 229, .15); }
+
+/* Hover control cluster: 22px squares, top:-11px;right:10px per D10. */
+.rdb-card-controls { position: absolute; top: -11px; right: 10px; z-index: 3; display: flex; gap: 4px; }
+.rdb-card-ctrl-btn {
+  width: 22px; height: 22px; border-radius: 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--nx-border); background: var(--nx-card); color: var(--nx-text-sec);
+  font-size: 9px; cursor: pointer; box-shadow: 0 2px 6px rgba(16, 24, 40, .1);
+  transition: color var(--nx-dur) var(--nx-ease), border-color var(--nx-dur) var(--nx-ease),
+              background-color var(--nx-dur) var(--nx-ease);
+}
+.rdb-card-ctrl-btn:hover { color: var(--nx-accent); border-color: #c7d2fe; }
+.rdb-card-ctrl-btn--danger { border-color: #fecaca; color: #dc2626; }
+.rdb-card-ctrl-btn--danger:hover { background: #fef2f2; color: #dc2626; }
+
+/* ---- Empty-card "configure this card" placeholder ---------------------- */
+.rdb-card-configure {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; width: 100%; min-height: 90px; padding: 12px; box-sizing: border-box;
+  border: 1px dashed var(--nx-border-strong); border-radius: var(--nx-radius-sm);
+  background: transparent; color: var(--nx-text-meta); font: 500 12.5px var(--nx-font);
+  cursor: pointer;
+  transition: border-color var(--nx-dur) var(--nx-ease), color var(--nx-dur) var(--nx-ease);
+}
+.rdb-card-configure:hover { border-color: #c7d2fe; color: var(--nx-accent); }
+.rdb-card-configure i { font-size: 14px; }
+.rdb-card-unconfigured { margin: 0; padding: 24px 0; text-align: center; font: 12.5px var(--nx-font); color: var(--nx-text-meta); }
+
+/* ---- Add-card tile (last grid item, edit mode only) --------------------- */
+.rdb-add-tile {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; min-height: 180px; padding: 24px; box-sizing: border-box;
+  border: 2px dashed var(--nx-border-strong); border-radius: var(--nx-radius-lg);
+  transition: border-color var(--nx-dur) var(--nx-ease), background-color var(--nx-dur) var(--nx-ease);
+}
+.rdb-add-tile:hover { border-color: #a5b4fc; background: rgba(238, 242, 255, .4); }
+.rdb-add-tile-icon {
+  width: 40px; height: 40px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center; font-size: 15px;
+  background: var(--nx-accent-tint); color: var(--nx-accent);
+}
+.rdb-add-tile-label { font: 600 13px var(--nx-font); color: var(--nx-text-sec); }
+.rdb-add-tile-pills { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.rdb-add-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--nx-border); border-radius: 999px;
+  background: var(--nx-card); color: var(--nx-text-sec); font: 500 12px var(--nx-font);
+  padding: 6px 14px; cursor: pointer;
+  transition: border-color var(--nx-dur) var(--nx-ease), color var(--nx-dur) var(--nx-ease);
+}
+.rdb-add-pill i { font-size: 10px; color: var(--nx-violet); }
+.rdb-add-pill:hover { border-color: #c7d2fe; color: var(--nx-accent); }
+.rdb-add-tile-hint { font: 11px var(--nx-font); color: var(--nx-text-meta); }
+
+/* ---- Saved-report picker modal (D14 v1 card configuration) ------------- */
+.rdb-modal-overlay {
+  position: fixed; inset: 0; z-index: 60; background: rgba(16, 24, 40, .45);
+  display: flex; align-items: center; justify-content: center;
+}
+.rdb-modal {
+  width: 100%; max-width: 380px; max-height: 70vh; box-sizing: border-box;
+  background: var(--nx-card); border-radius: var(--nx-radius-lg); box-shadow: var(--nx-shadow-pop);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.rdb-modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid var(--nx-divider);
+}
+.rdb-modal-title { font: 600 13.5px var(--nx-font); color: var(--nx-text); }
+.rdb-modal-close { border: none; background: transparent; color: var(--nx-text-meta); cursor: pointer; font-size: 13px; padding: 4px; }
+.rdb-modal-close:hover { color: var(--nx-text); }
+.rdb-modal-body { padding: 8px; overflow-y: auto; }
+.rdb-modal-loading, .rdb-modal-empty { margin: 0; padding: 20px; text-align: center; font: 12.5px var(--nx-font); color: var(--nx-text-meta); }
+.rdb-report-list { list-style: none; margin: 0; padding: 0; }
+.rdb-report-item {
+  display: block; width: 100%; box-sizing: border-box; text-align: left;
+  padding: 10px 12px; border: none; border-radius: var(--nx-radius-sm);
+  background: transparent; color: var(--nx-text); font: 500 12.5px var(--nx-font); cursor: pointer;
+}
+.rdb-report-item:hover { background: var(--nx-accent-tint); color: var(--nx-accent); }
+
+/* ---- Export menu (D9 -- #rdbExport, card-title list) -------------------- */
+.rdb-export-menu {
+  z-index: 60; min-width: 200px; max-width: 280px; padding: 6px;
+  background: var(--nx-card); border: 1px solid var(--nx-border);
+  border-radius: 10px; box-shadow: var(--nx-shadow-pop);
+}
+.rdb-export-item {
+  display: block; width: 100%; box-sizing: border-box; text-align: left;
+  padding: 9px 10px; border: none; border-radius: var(--nx-radius-sm);
+  background: transparent; color: var(--nx-text); font: 500 12.5px var(--nx-font); cursor: pointer;
+}
+.rdb-export-item:hover { background: var(--nx-accent-tint); color: var(--nx-accent); }
+
+/* ---- Drill-through affordance (Task 15) --------------------------------- */
+.rdb-card[data-type="line"] canvas,
+.rdb-card[data-type="bar"] canvas { cursor: pointer; }
+.rdb-table-rows { cursor: pointer; }
+
+/* ============================================================
+   DARK MODE -- Indigo Studio redesign (Task 16)
+   Every literal hex the redesign (Tasks 1-15) introduced that wasn't
+   already riding a dark-aware --nx-* token (nexora-ui.css's html.dark
+   block already recolors --nx-page/--nx-card/--nx-border/--nx-text/
+   --nx-accent/--nx-violet/--nx-accent-tint/--nx-divider etc., so any
+   rule below that only used those needed no entry here). One section,
+   grouped in the order the light-mode rules appear above. Spec §Dark
+   (mock 3c) values used verbatim where it names one; elsewhere this
+   reuses the existing dark tokens for the matching semantic color
+   (indigo accent -> --nx-accent, danger -> --nx-danger, warning ->
+   --nx-warning, subtle dark surface -> --nx-alt, subtle indigo border
+   -> --nx-card-hover-border) rather than inventing new literals.
+   ============================================================ */
+
+/* Wizard breakdown chip (indigo chip: #312e81 bg via --nx-accent-tint,
+   already dark-aware -- only the text needs the dark chip fg). */
+html.dark .reporting-simple-choice.is-selected { color: #c7d2fe; }
+
+/* Wizard progress rail (Task 5/7). */
+html.dark .rs-rail-dot { background: var(--nx-card); color: var(--nx-text-meta); border-color: var(--nx-border); }
+html.dark .rs-rail-line { background: var(--nx-border); }
+html.dark .rs-rail-step.is-done .rs-rail-dot { border-color: var(--nx-card-hover-border); color: #c7d2fe; }
+html.dark .rs-rail-step.is-done .rs-rail-line { background: var(--nx-accent); }
+/* Active dot sits on --nx-brand-grad, which dark-remaps to the lighter
+   #818cf8->#a78bfa gradient (spec's "gradient buttons"); white text loses
+   contrast there, so it flips to dark text per the mock. */
+html.dark .rs-rail-step.is-active .rs-rail-dot { color: var(--nx-page); }
+html.dark .rs-wizard-preview { background: var(--nx-accent-soft); border-color: var(--nx-card-hover-border); }
+
+/* Drill drawer indigo chips + callout (Task 9). */
+html.dark .reporting-drill-chip--indigo { border-color: var(--nx-card-hover-border); color: #c7d2fe; }
+html.dark .reporting-drill-type-pill { color: #c7d2fe; }
+html.dark .reporting-drill-callout { border-color: var(--nx-card-hover-border); background: var(--nx-alt); }
+
+/* Process-coverage badge, mid tier (amber) -- base + ledger-scoped repeat. */
+html.dark .reporting-simple-chip-cov.is-cov-mid,
+html.dark .reporting-ledger .reporting-simple-chip-cov.is-cov-mid { color: var(--nx-warning); }
+html.dark .reporting-simple-chip-cov.is-cov-mid .rs-cov-fill,
+html.dark .reporting-ledger .reporting-simple-chip-cov.is-cov-mid .rs-cov-fill { background: var(--nx-warning); }
+
+/* Result KPI band: gradient total card (Task 8) -- same "dark text on the
+   dark-remapped gradient" treatment as the rail's active dot above. */
+html.dark .rs-kpi-total-card { color: var(--nx-page); }
+html.dark .rs-kpi-total-card .reporting-ledger-caption { color: rgba(15, 23, 42, .65); }
+html.dark .rs-kpi-total-card .reporting-ledger-kpi-value { color: var(--nx-page); }
+html.dark .reporting-ledger-sqlpeek { background: var(--nx-alt); }
+
+/* Landing hero (spec §Landing) -- radial stops + border, and the gradient
+   AI button's text (same dark-text-on-gradient treatment). */
+html.dark .reporting-hero {
+  border-color: var(--nx-card-hover-border);
+  background: radial-gradient(1200px 320px at 50% -80px, rgba(49, 46, 129, .55) 0%, #1e293b 70%);
+}
+html.dark .reporting-hero__aibtn { color: var(--nx-page); }
+html.dark .rs-suggestion { border-color: var(--nx-card-hover-border); }
+html.dark .rs-card-preview { background: linear-gradient(180deg, var(--nx-alt), var(--nx-card)); }
+html.dark .rs-card-avatar { color: var(--nx-page); }
+
+/* Dashboard builder: editing pill + add-card button (indigo chips). */
+html.dark .rdb-editing-pill { border-color: var(--nx-card-hover-border); color: #c7d2fe; }
+html.dark .rdb-addcard-btn { border-color: var(--nx-card-hover-border); color: #c7d2fe; }
+html.dark .rdb-addcard-btn:hover { background: var(--nx-accent-soft); }
+html.dark .rdb-add-filter:hover { border-color: var(--nx-accent); }
+
+/* Dashboard builder: edit-mode drag/hover chrome (Task 14). */
+html.dark .rdb-card-grip { color: var(--nx-text-meta); }
+html.dark .rdb-card--over { border-color: var(--nx-accent); box-shadow: 0 0 0 3px rgba(129, 140, 248, .25); }
+html.dark .rdb-card-ctrl-btn:hover { border-color: var(--nx-accent); }
+html.dark .rdb-card-ctrl-btn--danger { border-color: rgba(248, 113, 113, .4); color: var(--nx-danger); }
+html.dark .rdb-card-ctrl-btn--danger:hover { background: rgba(248, 113, 113, .15); color: var(--nx-danger); }
+html.dark .rdb-card-configure:hover { border-color: var(--nx-accent); }
+html.dark .rdb-add-tile:hover { background: var(--nx-accent-soft); }
+html.dark .rdb-add-pill:hover { border-color: var(--nx-accent); }

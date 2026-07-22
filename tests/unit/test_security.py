@@ -12,6 +12,7 @@ from nx_lib.db import engine_nexora_db
 from nx_lib.security import (
     PermissionDenied,
     _check_add_deadline,
+    _check_generali_record_org,
     _get_add_min_date,
     _revoke_session_by_id,
     has_permission,
@@ -465,3 +466,105 @@ def test_page_visibility_includes_reporting(app):
         session["permissions"] = ["reporting.view"]
         pv = page_visibility()
         assert pv["reportingPagePerm"] is True
+
+
+# ---------------------------------------------------------------------------
+# Task 20: _check_generali_record_org — own-record fast path (id-type coercion)
+# ---------------------------------------------------------------------------
+# session["userid"] is always a str (set that way on every login path), while
+# the record's user-id column comes back as an int from the SQL row. The
+# "this is my own record" fast path must fire on value regardless of the
+# int/str type mismatch — otherwise re-organizing a still-logged-in user
+# locks them out of editing/deleting their own records until they re-login.
+
+
+class _FakeCursor:
+    """Minimal cursor stub: execute() is a no-op, fetchone() returns a fixed row."""
+
+    def __init__(self, row):
+        self._row = row
+
+    def execute(self, *args, **kwargs):
+        pass
+
+    def fetchone(self):
+        return self._row
+
+
+class _FakeNxCursor:
+    def __init__(self, row):
+        self._row = row
+
+    def execute(self, *args, **kwargs):
+        pass
+
+    def fetchone(self):
+        return self._row
+
+    def close(self):
+        pass
+
+
+class _FakeNxConn:
+    def __init__(self, row):
+        self._row = row
+
+    def cursor(self):
+        return _FakeNxCursor(self._row)
+
+    def close(self):
+        pass
+
+
+class _FakeEngine:
+    """Stand-in for engine_nexora_db — only raw_connection() is exercised here."""
+
+    def __init__(self, org_row):
+        self._org_row = org_row
+
+    def raw_connection(self):
+        return _FakeNxConn(self._org_row)
+
+
+def test_check_generali_record_org_allows_own_record_despite_org_mismatch(fake_session):
+    # Session userid is a str, as set by every real login path; the record's
+    # user-id column comes back as an int from SQL (the only column the
+    # function's own SELECT fetches). The own-record fast path must fire on
+    # value even though the (hypothetical) record's org would differ from the
+    # session's — and it must do so without ever touching engine_nexora_db
+    # (not patched here, so any attempt to reach it for an org lookup would
+    # raise AttributeError/ConnectionError).
+    fake_session["userid"] = "42"
+    fake_session["organizationcode"] = "ORG-A"
+    cursor = _FakeCursor((42,))  # int uid matching the session's own (str) userid
+    assert _check_generali_record_org(cursor, "SomeTable", "UserID", 1) is None
+
+
+def test_check_generali_record_org_denies_other_users_record_in_different_org(fake_session):
+    # Regression guard: a record that is NOT the caller's own, and belongs to
+    # a user in a different org, must still be denied.
+    fake_session["userid"] = "42"
+    fake_session["organizationcode"] = "ORG-A"
+    cursor = _FakeCursor((99,))  # someone else's record
+    with patch("nx_lib.security.engine_nexora_db", _FakeEngine(("ORG-B",))):
+        try:
+            _check_generali_record_org(cursor, "SomeTable", "UserID", 1)
+        except PermissionDenied:
+            return
+        raise AssertionError("expected PermissionDenied to be raised")
+
+
+def test_check_generali_record_org_allows_other_users_record_in_same_org(fake_session):
+    # Not the caller's own record, but same org — still allowed.
+    fake_session["userid"] = "42"
+    fake_session["organizationcode"] = "ORG-A"
+    cursor = _FakeCursor((99,))
+    with patch("nx_lib.security.engine_nexora_db", _FakeEngine(("ORG-A",))):
+        assert _check_generali_record_org(cursor, "SomeTable", "UserID", 1) is None
+
+
+def test_check_generali_record_org_returns_when_record_not_found(fake_session):
+    fake_session["userid"] = "42"
+    fake_session["organizationcode"] = "ORG-A"
+    cursor = _FakeCursor(None)
+    assert _check_generali_record_org(cursor, "SomeTable", "UserID", 1) is None

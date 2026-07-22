@@ -37,6 +37,29 @@ def test_login_get_renders_form(client):
     assert b"<form" in resp.data.lower()
 
 
+def test_login_post_db_failure_renders_graceful_503(client):
+    """auth.py login(): raw_connection() is the first statement in the try
+    block. If it raises before conn/cursor are assigned, the finally block's
+    unconditional `if cursor:` / `if conn:` must not crash with
+    UnboundLocalError - it should degrade to the except branch's graceful
+    render_template("index.html", error="Login temporarily unavailable"), 503
+    (same bug/fix shape as Task 18's get_allowed_client_details and the
+    init_2fa fix above)."""
+    with patch(
+        "nx_lib.views.auth.engine_nexora_db.raw_connection",
+        side_effect=RuntimeError("db down"),
+    ):
+        resp = client.post(
+            "/login",
+            data={"username": "user@test.local", "password": "Test1234!"},
+            follow_redirects=False,
+        )
+    assert resp.status_code == 503
+    assert b"login temporarily unavailable" in resp.data.lower()
+    with client.session_transaction() as sess:
+        assert "userid" not in sess
+
+
 def test_logout_clears_session(user_client):
     resp = user_client.get("/logout", follow_redirects=False)
     assert resp.status_code == 302
@@ -110,6 +133,31 @@ def test_init_2fa_post_missing_session_redirects(client):
         sess["pre_2fa_username"] = "admin@test.local"
     resp = client.post("/init_2FA", data={"code": "123456"}, follow_redirects=False)
     assert resp.status_code == 302
+
+
+def test_init_2fa_post_db_failure_renders_graceful_error(client, totp_for):
+    """auth.py init_2fa: a VALID code takes the DB-write branch. If
+    raw_connection() raises before conn/cursor are assigned, the finally
+    block must not crash with UnboundLocalError - it should degrade to the
+    except branch's render_template("init_2FA.html", error="Database error")
+    (same bug/fix shape as Task 18's get_allowed_client_details)."""
+    with client.session_transaction() as sess:
+        sess["pre_2fa_userid"] = "1001"
+        sess["pre_2fa_username"] = "admin@test.local"
+        sess["temp_2fa_secret"] = "JBSWY3DPEHPK3PXP"
+    code = totp_for("admin@test.local")
+    with patch(
+        "nx_lib.views.auth.engine_nexora_db.raw_connection",
+        side_effect=RuntimeError("db down"),
+    ):
+        resp = client.post("/init_2FA", data={"code": code}, follow_redirects=False)
+    # Graceful degrade: re-renders init_2FA.html (200), not a 500 crash. The
+    # error path doesn't pass qr_code, so the template's "no QR" branch is a
+    # cheap, precise signal that we hit the except/render, not the success path.
+    assert resp.status_code == 200
+    assert b"error generating qr code" in resp.data.lower()
+    with client.session_transaction() as sess:
+        assert "userid" not in sess
 
 
 def test_verify_2fa_get_without_pre_2fa_redirects_to_login(client):
@@ -198,7 +246,8 @@ def test_set_new_password_too_short(client):
 
 
 def test_request_password_reset_unknown_email(client):
-    """Unknown email → re-render forgot_password.html with error."""
+    """Unknown email → re-render forgot_password.html with the neutral message
+    (D8: no "Invalid Email Address" — that would leak account existence)."""
     resp = client.post("/request-password-reset", data={"email": "nobody@nowhere.local"})
     assert resp.status_code == 200
     assert b"forgot" in resp.data.lower() or b"email" in resp.data.lower()
@@ -214,6 +263,31 @@ def test_request_password_reset_known_email_send_mocked(client):
     with patch("nx_lib.views.auth.requests.post", fake_post):
         resp = client.post("/request-password-reset", data={"email": "admin@test.local"})
     assert resp.status_code == 200
+
+
+def test_request_password_reset_known_and_unknown_email_same_response(client):
+    """D8/Task 9 (user enumeration): the response must not reveal whether the
+    submitted email belongs to a registered account. Known and unknown emails
+    must get byte-identical status + body; only send_reset_email() may still
+    branch on the row actually existing."""
+    fake_post = MagicMock()
+    fake_post.return_value.json.return_value = {"access_token": "fake"}
+    fake_post.return_value.text = ""
+    fake_post.return_value.ok = True
+    fake_post.return_value.status_code = 200
+    with patch("nx_lib.views.auth.requests.post", fake_post) as mock_post:
+        known_resp = client.post("/request-password-reset", data={"email": "admin@test.local"})
+        known_call_count = mock_post.call_count
+        unknown_resp = client.post(
+            "/request-password-reset", data={"email": "nobody@nowhere.local"}
+        )
+        unknown_call_count = mock_post.call_count - known_call_count
+
+    assert known_resp.status_code == unknown_resp.status_code == 200
+    assert known_resp.data == unknown_resp.data
+    # Mail must still only be attempted for the real account.
+    assert known_call_count > 0
+    assert unknown_call_count == 0
 
 
 def test_login_rate_limit_eventually_429(client, reset_limiter):
@@ -243,3 +317,23 @@ def test_request_password_reset_rate_limit_eventually_429(client, reset_limiter)
         if last_status == 429:
             break
     assert last_status in (200, 429)
+
+
+def test_verify_2fa_rate_limit_eventually_429(client, reset_limiter):
+    """auth.py:309 — @limiter.limit('30 per hour'), added to close a TOTP
+    brute-force gap (a valid pre_2fa_userid session let a caller try all
+    1,000,000 6-digit codes with no throttling). 30 bad-code attempts are
+    allowed (each 401); the 31st within the hour must be 429. Unlike the
+    login/reset-password rate-limit tests above, this asserts the 31st
+    status strictly rather than accepting a bare 401 fallback — 401 on every
+    attempt is exactly the pre-fix defect this test exists to catch, so
+    tolerating it here would make the test pass whether or not the limit is
+    applied."""
+    with client.session_transaction() as sess:
+        sess["pre_2fa_userid"] = "1001"
+    statuses = []
+    for _ in range(31):
+        resp = client.post("/verify_2fa", data={"code": "000000"}, follow_redirects=False)
+        statuses.append(resp.status_code)
+    assert statuses[:30] == [401] * 30, statuses
+    assert statuses[30] == 429, statuses

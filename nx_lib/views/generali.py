@@ -1866,7 +1866,7 @@ def api_generali_baseservices_list():
             conn.close()
 
 
-VALID_BASE_CATEGORIES = {"Physical Mailroom, AVOR & Scanning", "Nk1 & NK2", "POE / PPR"}
+VALID_BASE_CATEGORIES = {"Physical Mailroom, AVOR & Scanning", "Nk1 & NK2", "POE", "PPR"}
 
 
 @require_permission("generali.baseservices.add")
@@ -2559,20 +2559,29 @@ def generali_pdqm_monthreport():
         is_current_month = year == today.year and month == today.month
         month_label = first_day.strftime("%B %Y")
 
+        where_clauses = ["ForDate >= ?", "ForDate <= ?"]
+        params = [str(first_day), str(last_day)]
+        if not has_permission("generali.pdqm.edit.organizational") and not has_permission(
+            "generali.pdqm.edit.transorganizational"
+        ):
+            where_clauses.append("UserID = ?")
+            params.append(session.get("userid"))
+        where_sql = "WHERE " + " AND ".join(where_clauses)
+
         conn = None
         conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
-            """
+            f"""
             SELECT ParentCategory,
                    COUNT(*) AS entries,
                    ISNULL(SUM(Quantity), 0) AS total_quantity
             FROM [Generali].[dbo].[PDQMReport]
-            WHERE ForDate >= ? AND ForDate <= ?
+            {where_sql}
             GROUP BY ParentCategory
             ORDER BY ParentCategory
         """,
-            [str(first_day), str(last_day)],
+            params,
         )
         rows_raw = cursor.fetchall()
         cursor.close()
@@ -2700,11 +2709,20 @@ def api_generali_pdqm_categories():
 def api_generali_pdqm_organizations():
     conn = None
     try:
+        restrict_to_self = not has_permission(
+            "generali.pdqm.edit.organizational"
+        ) and not has_permission("generali.pdqm.edit.transorganizational")
         conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
-        cursor.execute(
-            "SELECT DISTINCT UserID FROM [Generali].[dbo].[PDQMReport] WHERE UserID IS NOT NULL"
-        )
+        if restrict_to_self:
+            cursor.execute(
+                "SELECT DISTINCT UserID FROM [Generali].[dbo].[PDQMReport] WHERE UserID IS NOT NULL AND UserID = ?",
+                [session.get("userid")],
+            )
+        else:
+            cursor.execute(
+                "SELECT DISTINCT UserID FROM [Generali].[dbo].[PDQMReport] WHERE UserID IS NOT NULL"
+            )
         user_ids = [r[0] for r in cursor.fetchall()]
         cursor.close()
         return jsonify({"success": True, "organizations": _generali_orgs_for_userids(user_ids)})
@@ -2794,6 +2812,13 @@ def api_generali_pdqm_list():
         if sub_cat:
             where_clauses.append("SubCategory = ?")
             params.append(sub_cat)
+
+        if not has_permission("generali.pdqm.edit.organizational") and not has_permission(
+            "generali.pdqm.edit.transorganizational"
+        ):
+            where_clauses.append("UserID = ?")
+            params.append(session.get("userid"))
+
         if org_code:
             org_user_ids = _generali_userids_in_org(org_code)
             if not org_user_ids:

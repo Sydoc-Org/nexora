@@ -30,6 +30,7 @@ Routes covered:
 - GET  /api/dashboard/recent_activity        early-empty (returns [])
 """
 
+from datetime import datetime
 from unittest.mock import MagicMock
 
 import nx_lib.hooks
@@ -202,6 +203,110 @@ def test_recent_activity_authed_returns_empty_list(user_client):
     assert resp.get_json() == []
 
 
+# --------------------- colliding-id rows must carry their client (D9) ------- #
+# recent_activity_rows() (nx_lib/workitem_sources.py) already puts `client` on
+# every row it returns. A colliding id (e.g. 1216 exists in both the default
+# Octo client and MS02) is only resolvable to the RIGHT client if that hint is
+# forwarded to get_domain_for_workitem — discarding it re-probes/defaults and
+# can surface the wrong client's fields. cache.clear() first: SimpleCache is
+# process-global and keyed by (userid, process_name_dashboard), same trap the
+# section below documents.
+
+
+def test_recent_activity_forwards_row_client_as_hint(user_client, monkeypatch):
+    """A row for a colliding id carries client='ms02' — that must reach
+    get_domain_for_workitem as client_hint, not be silently dropped."""
+    cache.clear()
+    monkeypatch.setattr(
+        nx_lib.hooks,
+        "load_permissions_for_user",
+        lambda uid: ["dashboard.view", "dashboard.filter.process.ms02.TestProc"],
+    )
+    monkeypatch.setattr(dv, "get_activity_instances_to_ignore", lambda: "")
+
+    row = {
+        "id": 1216,
+        "modifiedat": datetime(2026, 7, 20, 9, 30),
+        "process": "TestProc",
+        "client": "ms02",
+    }
+    monkeypatch.setattr(dv, "recent_activity_rows", lambda *a, **k: [row])
+
+    calls = []
+
+    def fake_get_domain(workitem_id, client_hint=None):
+        calls.append((workitem_id, client_hint))
+        return "ms02-domain.example.com"
+
+    monkeypatch.setattr(dv, "get_domain_for_workitem", fake_get_domain)
+    monkeypatch.setattr(dv, "get_workitemdata_param", lambda wid, domain: ("wdata", "docid"))
+    monkeypatch.setattr(
+        dv,
+        "get_extensions_urls_fields",
+        lambda workitemdata, document_id, domain: (None, None, {}, None, None),
+    )
+
+    resp = user_client.get("/api/dashboard/recent_activity")
+    assert resp.status_code == 200
+    assert calls == [(1216, "ms02")]
+
+
+# --------------------- one bad row must not blank the whole feed (gap left --
+# --------------------- by Task 24, b65078f) --------------------------------- #
+# get_workitemdata_param (nx_lib/octo.py) now returns None on an Octo API
+# failure instead of raising (Task 24). api_recent_activity's per-row loop
+# unconditionally unpacked its result (`workitemdata, doc_id = ...`), so a
+# None return raised TypeError instead — still propagating to the route's
+# outer except and still blanking the entire (2-min-cached) activity feed for
+# every row, not just the one that hiccupped.
+
+
+def test_recent_activity_skips_row_when_workitemdata_lookup_fails(user_client, monkeypatch):
+    """One row's get_workitemdata_param returning None (Octo hiccup) must be
+    skipped, not blank the whole feed for the other, healthy rows."""
+    cache.clear()
+    monkeypatch.setattr(
+        nx_lib.hooks,
+        "load_permissions_for_user",
+        lambda uid: ["dashboard.view", "dashboard.filter.process.sydoc.TestProc"],
+    )
+    monkeypatch.setattr(dv, "get_activity_instances_to_ignore", lambda: "")
+
+    good_row = {
+        "id": 111,
+        "modifiedat": datetime(2026, 7, 20, 9, 30),
+        "process": "TestProc",
+        "client": "sydoc",
+    }
+    bad_row = {
+        "id": 222,
+        "modifiedat": datetime(2026, 7, 20, 9, 35),
+        "process": "TestProc",
+        "client": "sydoc",
+    }
+    monkeypatch.setattr(dv, "recent_activity_rows", lambda *a, **k: [good_row, bad_row])
+    monkeypatch.setattr(
+        dv, "get_domain_for_workitem", lambda wid, client_hint=None: "domain.example.com"
+    )
+
+    def fake_get_workitemdata_param(wid, domain):
+        if wid == bad_row["id"]:
+            return None  # simulated Octo hiccup for this one row
+        return "wdata", "docid"
+
+    monkeypatch.setattr(dv, "get_workitemdata_param", fake_get_workitemdata_param)
+    monkeypatch.setattr(
+        dv,
+        "get_extensions_urls_fields",
+        lambda workitemdata, document_id, domain: (None, None, {"f": "v"}, None, None),
+    )
+
+    resp = user_client.get("/api/dashboard/recent_activity")
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert [row["id"] for row in body] == [good_row["id"]]
+
+
 # --------------------- error responses must not be cached ------------------- #
 # TEST has no Statistics DB, so engines are mocked on the VIEW module (it
 # does `from ..db import ...` at load time). Session permissions are
@@ -224,6 +329,38 @@ def _fake_nexora_engine(rows):
     eng = MagicMock()
     eng.raw_connection.return_value = conn
     return eng
+
+
+# --------------------- dashboard.view required on the four legacy KPI endpoints -----------
+# Defect: these endpoints only checked "username" in session, missing the
+# @require_permission("dashboard.view") gate present on every sibling dashboard
+# route (see test_dashboard_without_perm_returns_403 above for the page route's
+# equivalent). A user holding just a grantable dashboard.filter.process.*
+# permission (but not the base dashboard.view) could curl real KPI data.
+# noperm_client (no permissions at all, incl. no filter.process.* grants) is
+# the strictest case of "missing dashboard.view" and — same as the page route
+# — must 403 before any Statconfig/DB work happens, matching this module's own
+# "deterministic, no DB-write needed" precedent noted above.
+
+
+def test_processed_over_time_without_dashboard_view_returns_403(noperm_client):
+    resp = noperm_client.get("/api/dashboard/processed_over_time")
+    assert resp.status_code == 403
+
+
+def test_kpi_stats_without_dashboard_view_returns_403(noperm_client):
+    resp = noperm_client.get("/api/dashboard/kpi_stats")
+    assert resp.status_code == 403
+
+
+def test_hourly_stats_without_dashboard_view_returns_403(noperm_client):
+    resp = noperm_client.get("/api/dashboard/hourly_stats")
+    assert resp.status_code == 403
+
+
+def test_avg_processing_time_without_dashboard_view_returns_403(noperm_client):
+    resp = noperm_client.get("/api/dashboard/avg_processing_time")
+    assert resp.status_code == 403
 
 
 def test_processed_over_time_error_response_is_not_cached(user_client, monkeypatch):

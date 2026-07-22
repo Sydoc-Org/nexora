@@ -23,8 +23,11 @@
     const BASE_CATEGORIES = [
         "Physical Mailroom, AVOR & Scanning",
         "Nk1 & NK2",
-        "POE / PPR"
+        "POE",
+        "PPR"
     ];
+    // ponytail: legacy combined category still on old rows — filterable, not addable
+    const LEGACY_CATEGORIES = ["POE / PPR"];
 
     let currentPage = 1;
     let _currentRecords = [];
@@ -42,7 +45,7 @@
 
     function populateFilterCategorySelect() {
         const sel = document.getElementById('filterCategory');
-        BASE_CATEGORIES.forEach(cat => {
+        [...BASE_CATEGORIES, ...LEGACY_CATEGORIES].forEach(cat => {
             const opt = document.createElement('option');
             opt.value = cat;
             opt.textContent = cat;

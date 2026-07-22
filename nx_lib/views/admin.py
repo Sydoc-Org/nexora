@@ -959,50 +959,71 @@ def admin_delete_user(user_id):
     try:
         conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
-        cursor.execute("delete from tags where createdbyuserid = ?", (user_id,))
-        cursor.commit()
 
+        # Every child-row delete and the final Users delete run in ONE
+        # transaction committed exactly once at the end. NexoraDB's FKs to
+        # dbo.Users are all NO ACTION (no DB-level cascade), so the child rows
+        # must be removed first. The previous code committed each child delete
+        # individually, so any later failure — including the Users delete
+        # itself — left a half-deleted, undeletable user. Ordering only
+        # requires that every child delete precede `delete from users`.
+        cursor.execute("delete from tags where createdbyuserid = ?", (user_id,))
         cursor.execute(
             "delete from workitem_metadata where assigneduserid = ? or lastupdatedbyuserid = ?",
             (user_id, user_id),
         )
-        cursor.commit()
-
         cursor.execute("delete from userpermissionoverride where userid = ?", (user_id,))
-        cursor.commit()
-
         cursor.execute("delete from notifications where userid = ?", (user_id,))
-        cursor.commit()
-
         cursor.execute("delete from comment_mentions where mentioneduserid = ?", (user_id,))
-        cursor.commit()
-
         cursor.execute("delete from workitem_comments where userid = ?", (user_id,))
-        cursor.commit()
-
         cursor.execute("delete from Chat_Messages where senderid = ?", (user_id,))
-        cursor.commit()
-
         cursor.execute("delete from Chat_Participants where UserID = ?", (user_id,))
-        cursor.commit()
+
+        # Reporting artifacts. FK_Reports_Users / FK_ReportSchedules_Users /
+        # FK_ReportShares_Users are all NO ACTION and were previously omitted,
+        # so deleting a report-owning user failed outright on the Users delete.
+        # Remove, in FK-safe order: the shares the user holds and the schedules
+        # they own; then any shares/schedules that reference reports the user
+        # OWNS (regardless of who holds/owns them); then the reports; then the
+        # Users row. Deleting the shares and schedules explicitly keeps this
+        # correct even though FK_ReportShares_Reports / FK_ReportSchedules_
+        # Reports are ON DELETE CASCADE — it does not rely on the DB cascade.
+        cursor.execute("delete from ReportShares where SharedWithUserID = ?", (user_id,))
+        cursor.execute(
+            "delete from ReportShares where ReportID in "
+            "(select ReportID from Reports where OwnerUserID = ?)",
+            (user_id,),
+        )
+        cursor.execute("delete from ReportSchedules where OwnerUserID = ?", (user_id,))
+        cursor.execute(
+            "delete from ReportSchedules where ReportID in "
+            "(select ReportID from Reports where OwnerUserID = ?)",
+            (user_id,),
+        )
+        cursor.execute("delete from Reports where OwnerUserID = ?", (user_id,))
 
         cursor.execute("delete from users where userid = ?", (user_id,))
-        cursor.commit()
+        deleted = cursor.rowcount
 
         conn.commit()
 
-        if cursor.rowcount == 0:
+        if deleted == 0:
             return jsonify({"success": False, "message": _("User not found.")}), 404
 
         return jsonify({"success": True, "message": _("User deleted successfully.")})
     except Exception as e:
+        if conn is not None:
+            with suppress(Exception):
+                conn.rollback()
         current_app.logger.error(f"Error deleting user {user_id}: {e}")
         return jsonify({"success": False, "message": _("An error occurred.")}), 500
     finally:
         if cursor:
-            cursor.close()
+            with suppress(Exception):
+                cursor.close()
         if conn:
-            conn.close()
+            with suppress(Exception):
+                conn.close()
 
 
 @require_permission("admin.edit.user.override")

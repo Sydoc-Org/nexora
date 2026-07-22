@@ -18,6 +18,9 @@
     emptyMine: {{ _("You haven't saved any reports yet — click “New report” to build your first one.")|tojson }},
     emptyShared: {{ _("No reports have been shared with everyone yet.")|tojson }},
     emptyDirect: {{ _("No reports have been shared with you yet.")|tojson }},
+    groupNameMine: {{ _("My reports")|tojson }},
+    groupNameShared: {{ _("Library")|tojson }},
+    groupNameDirect: {{ _("Shared with me")|tojson }},
     couldNotLoad: {{ _("Could not load this report.")|tojson }},
     couldNotRun: {{ _("Could not run this report.")|tojson }},
     couldNotSave: {{ _("Could not save.")|tojson }},
@@ -79,9 +82,24 @@
     chipCoverage: {{ _("Only {n} of {m} selected processes provide this field — documents from the other processes show an empty value here. Provided by:")|tojson }},
     measureCoverage: {{ _("Only {n} of {m} processes provide this field — the measure only counts documents from these processes:")|tojson }},
     timingBadge: {{ _("{rows} rows · {ms} ms")|tojson }},
+    resultMeta: {{ _("{rows} rows · {ms} ms · {when}")|tojson }},
+    runJustNow: {{ _("run just now")|tojson }},
     kpiTotal: {{ _("Total")|tojson }},
     kpiBuckets: {{ _("Buckets")|tojson }},
-    kpiAvg: {{ _("Avg per bucket")|tojson }}
+    kpiAvg: {{ _("Avg per bucket")|tojson }},
+    kpiPeak: {{ _("Peak")|tojson }},
+    tableRowCount: {{ _("{n} rows")|tojson }},
+    stepNof4: {{ _("Step {n} of 4")|tojson }},
+    wizMeasure: {{ _("Measure")|tojson }},
+    wizScope: {{ _("Processes")|tojson }},
+    wizBreakdown: {{ _("Breakdown")|tojson }},
+    wizTime: {{ _("Time range")|tojson }},
+    wizPreviewTitle: {{ _("So far")|tojson }},
+    wizScopeCount: {{ _("{n} of {m} selected")|tojson }},
+    groupTime: {{ _("Time")|tojson }},
+    groupFields: {{ _("Document fields")|tojson }},
+    groupOr: {{ _("Or")|tojson }},
+    pickedCount: {{ _("{n} of 3 picked")|tojson }}
   };
 
   // Wizard category-dimension curation (docprocessing only). Process first
@@ -140,18 +158,20 @@
 
   function setView(view) {
     state.view = view;
-    el('rsLibrary').hidden = view !== 'library';
-    el('rsSearch').hidden = view !== 'library';
+    el('rsLibrary').hidden = view !== 'library';  // #rsSearch nests under it now
     el('rsNewReport').hidden = view !== 'library';
+    el('rsNewDashboard').hidden = view !== 'library';
     var aiBar = el('rsAiBar');
     if (aiBar && !aiBar.dataset.gone) aiBar.hidden = view !== 'library';
     var aiGone = el('rsAiGone');
     if (aiGone && aiBar && aiBar.dataset.gone) aiGone.hidden = view !== 'library';
     el('rsWizard').hidden = view !== 'wizard';
     el('rsResult').hidden = view !== 'result';
+    el('rsDashboard').hidden = view !== 'dashboard';
     if (view !== 'result') {
       destroyChart();
       hideTimingBadge();
+      toggleMoreMenu(false);
     }
   }
 
@@ -164,35 +184,197 @@
     if (timing) timing.hidden = true;
   }
 
+  // Result-header ⋯ overflow menu (Task 7) — same open/close idiom as the
+  // Advanced tab's process-scope dropdown (toggleScopeMenu/#rpScopeMenu in
+  // _reporting_js.html): hidden flag on the menu, aria-expanded on the
+  // trigger. Click-to-toggle, outside-click and Escape wiring live at the
+  // bottom of this file, next to the other header button bindings.
+  function toggleMoreMenu(open) {
+    var menu = el('rsMoreMenu');
+    var btn = el('rsMore');
+    if (!menu || !btn) return;
+    var willOpen = (open === undefined) ? menu.hidden : open;
+    menu.hidden = !willOpen;
+    btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+  }
+
   function destroyChart() {
     if (state.chart) { state.chart.destroy(); state.chart = null; }
   }
 
   // ---------- Library ----------
+  // Preview cache (D5 contract): 'nx.reporting.preview.<reportId>' =
+  // {t:'line'|'bar'|'donut'|'total', v:number[]|number, ts}. Written after a
+  // successful run of a SAVED report (writePreviewCache, below); read here to
+  // feed the card's inline-SVG thumbnail with real numbers when available.
+  function previewCacheGet(id) {
+    try { return JSON.parse(localStorage.getItem('nx.reporting.preview.' + id) || 'null'); }
+    catch (e) { return null; }
+  }
+
+  // Badge/thumbnail kind. The list endpoint computes this server-side
+  // (previewKind, derived from DefinitionJSON) so the client just consumes it.
+  function previewKindOf(r) {
+    if (r.kind === 'dashboard') return 'dash';
+    return r.previewKind || 'bar';
+  }
+
+  // Shared by the line preview: polyline point list, pure. (h-4)/(h-10) keep
+  // a 4px top margin and a few px of headroom above the peak.
+  function sparkPath(vals, w, h) {
+    var max = Math.max.apply(null, vals) || 1;
+    return vals.map(function (v, i) {
+      return (i / (vals.length - 1) * w).toFixed(1) + ',' + (h - 4 - (v / max) * (h - 10)).toFixed(1);
+    }).join(' ');
+  }
+
+  // Deterministic decorative fallback (D5) for reports with no run-cache yet
+  // — same id always draws the same shape instead of jittering on refresh.
+  // Ids are ints in prod but strings in tests, so fold to an int first.
+  function seededVals(id, n) {
+    var s = String(id), h = 0, i;
+    for (i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+    var vals = [], x = (h * 2654435761) % 977;
+    for (i = 0; i < n; i++) { x = (x * 48271) % 2147483647; vals.push(40 + (x % 60)); }
+    return vals;
+  }
+
+  var PREVIEW_BADGE = {
+    line: { icon: 'fa-chart-line', label: 'LINE' },
+    bar: { icon: 'fa-chart-column', label: 'BAR' },
+    donut: { icon: 'fa-chart-pie', label: 'DONUT' },
+    total: { icon: 'fa-hashtag', label: 'TOTAL' },
+    dash: { icon: 'fa-table-cells-large', label: 'DASHBOARD' }
+  };
+
+  function previewSvgLine(vals) {
+    var w = 200, h = 60;
+    var pts = sparkPath(vals, w, h).split(' ');
+    var last = pts[pts.length - 1].split(',');
+    var area = pts.join(' ') + ' ' + w.toFixed(1) + ',' + h + ' 0,' + h;
+    return '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" class="rs-card-svg">' +
+      '<polygon points="' + area + '" fill="#4f46e5" opacity=".12"></polygon>' +
+      '<polyline points="' + pts.join(' ') + '" fill="none" stroke="#4f46e5" stroke-width="2"></polyline>' +
+      '<circle cx="' + last[0] + '" cy="' + last[1] + '" r="3" fill="#4f46e5"></circle>' +
+      '</svg>';
+  }
+
+  function previewSvgBar(vals) {
+    var w = 200, h = 60, n = vals.length, gap = 6;
+    var bw = (w - gap * (n - 1)) / n;
+    var max = Math.max.apply(null, vals) || 1;
+    var maxIdx = 0;
+    vals.forEach(function (v, i) { if (v > vals[maxIdx]) maxIdx = i; });
+    var bars = vals.map(function (v, i) {
+      var bh = Math.max(4, (v / max) * (h - 8));
+      var x = i * (bw + gap);
+      return '<rect x="' + x.toFixed(1) + '" y="' + (h - bh).toFixed(1) + '" width="' + bw.toFixed(1) +
+        '" height="' + bh.toFixed(1) + '" rx="2.5" fill="' + (i === maxIdx ? '#7c3aed' : '#a5b4fc') + '"></rect>';
+    }).join('');
+    return '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" class="rs-card-svg">' + bars + '</svg>';
+  }
+
+  function previewSvgDonut(vals) {
+    var cx = 30, cy = 30, r = 22, circ = 2 * Math.PI * r;
+    var total = (Number(vals[0]) || 0) + (Number(vals[1]) || 0) || 1;
+    var seg1 = (Number(vals[0]) || 0) / total * circ;
+    return '<svg viewBox="0 0 60 60" class="rs-card-svg rs-card-svg-donut">' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#e0e7ff" stroke-width="8"></circle>' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#4f46e5" stroke-width="8" ' +
+      'stroke-dasharray="' + seg1.toFixed(1) + ' ' + circ.toFixed(1) + '" ' +
+      'transform="rotate(-90 ' + cx + ' ' + cy + ')"></circle></svg>';
+  }
+
+  function previewSvgDash() {
+    var s = 22, gap = 6, x0 = 5, y0 = 5, cells = '';
+    [[0, 0], [1, 0], [0, 1], [1, 1]].forEach(function (p) {
+      cells += '<rect x="' + (x0 + p[0] * (s + gap)) + '" y="' + (y0 + p[1] * (s + gap)) +
+        '" width="' + s + '" height="' + s + '" rx="4" fill="#eef2ff" stroke="#c7d2fe"></rect>';
+    });
+    return '<svg viewBox="0 0 60 60" class="rs-card-svg">' + cells + '</svg>';
+  }
+
+  // Preview band: thumbnail (real cache values when the kind matches, else
+  // the seeded decorative fallback) + the type badge pinned top-right.
+  function previewBandHtml(r) {
+    var kind = previewKindOf(r);
+    var cache = previewCacheGet(r.id);
+    var real = cache && cache.t === kind;
+    var body;
+    if (kind === 'total') {
+      var metricLabel = (r.definition && r.definition.metrics && r.definition.metrics[0]
+        && r.definition.metrics[0].label) || '—';
+      body = real
+        ? '<div class="rs-card-total">' + esc(fmtNumber(cache.v)) + '</div>'
+        : '<div class="rs-card-total rs-card-total-label">' + esc(metricLabel) + '</div>';
+    } else if (kind === 'dash') {
+      body = previewSvgDash();
+    } else {
+      var n = kind === 'donut' ? 2 : 8;
+      var vals = real ? (Array.isArray(cache.v) ? cache.v : [cache.v]) : seededVals(r.id, n);
+      body = kind === 'line' ? previewSvgLine(vals)
+        : kind === 'bar' ? previewSvgBar(vals) : previewSvgDonut(vals);
+    }
+    var badge = PREVIEW_BADGE[kind] || PREVIEW_BADGE.bar;
+    return '<div class="rs-card-preview" data-kind="' + kind + '">' + body +
+      '<span class="rs-card-badge"><i class="fas ' + badge.icon + '" aria-hidden="true"></i>' +
+      badge.label + '</span></div>';
+  }
+
+  function initialsOf(name) {
+    var parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '?';
+    return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+  }
+
   function card(r) {
     var b = document.createElement('button');
     b.type = 'button';
-    b.className = 'reporting-simple-card';
+    b.className = 'rs-card';
     b.setAttribute('data-testid', 'rs-card');
-    b.innerHTML = '<p class="rs-card-name">' + esc(r.name) + '</p>' +
-      '<p class="rs-card-meta">' + esc(r.ownerName || '') + ' · ' + esc(relTime(r.updatedAt)) + '</p>';
-    b.addEventListener('click', function () { openReport(r); });
+    b.innerHTML = previewBandHtml(r) +
+      '<div class="rs-card-body">' +
+        '<p class="rs-card-name">' + esc(r.name) + '</p>' +
+        '<div class="rs-card-meta">' +
+          '<span class="rs-card-avatar">' + esc(initialsOf(r.ownerName)) + '</span>' +
+          '<span class="rs-card-metatext">' + esc(r.ownerName || '') + ' · ' + esc(relTime(r.updatedAt)) + '</span>' +
+        '</div>' +
+      '</div>';
+    b.addEventListener('click', function () {
+      // D17: a dashboard-kind report routes to the builder view instead of
+      // the normal single-report result view.
+      if (r.kind === 'dashboard') { openDashboard(r); return; }
+      openReport(r);
+    });
     return b;
   }
 
   function renderLibrary() {
     var q = (el('rsSearch').value || '').toLowerCase();
     var groups = { shared: el('rsGroupShared'), mine: el('rsGroupMine'), direct: el('rsGroupDirect') };
+    var counts = { shared: 0, mine: 0, direct: 0 };
     Object.keys(groups).forEach(function (k) { groups[k].innerHTML = ''; });
     state.reports.forEach(function (r) {
       if (q && r.name.toLowerCase().indexOf(q) === -1) return;
       var g = r.visibility === 'shared' ? 'shared' : (r.owned ? 'mine' : 'direct');
       groups[g].appendChild(card(r));
+      counts[g]++;
     });
-    var groupEmptyText = { mine: I18N.emptyMine, shared: I18N.emptyShared, direct: I18N.emptyDirect };
+    var pills = { mine: el('rsCountMine'), shared: el('rsCountShared'), direct: el('rsCountDirect') };
+    // The empty-state name line reuses the group's own header string (already
+    // translated above the grid); the hint line reuses the existing
+    // emptyMine/emptyShared/emptyDirect copy — no new translated sentences.
+    var groupEmpty = {
+      mine: { name: I18N.groupNameMine, hint: I18N.emptyMine },
+      shared: { name: I18N.groupNameShared, hint: I18N.emptyShared },
+      direct: { name: I18N.groupNameDirect, hint: I18N.emptyDirect }
+    };
     Object.keys(groups).forEach(function (k) {
-      if (!groups[k].children.length) {
-        groups[k].innerHTML = '<p class="reporting-simple-empty">' + esc(groupEmptyText[k]) + '</p>';
+      if (pills[k]) pills[k].textContent = String(counts[k]);
+      if (!counts[k]) {
+        groups[k].innerHTML = '<div class="rs-group-empty">' +
+          '<p class="rs-group-empty-name">' + esc(groupEmpty[k].name) + '</p>' +
+          '<p class="rs-group-empty-hint">' + esc(groupEmpty[k].hint) + '</p></div>';
       }
     });
   }
@@ -219,6 +401,20 @@
       origin: 'library'
     };
     runCurrent();
+  }
+
+  // D3/D17: a dashboard-kind library card opens the builder view (a fourth
+  // Simple-pane view, window.ReportingDashboard) instead of the normal
+  // single-report result view -- same GET-by-id endpoint as openReport, the
+  // response payload IS the {id, name, definition, owned, canEdit} shape
+  // window.ReportingDashboard.open() expects.
+  async function openDashboard(r) {
+    var res = await api('/api/reporting/reports/' + r.id);
+    if (!res.ok || !res.data || !res.data.definition) {
+      showResultError(I18N.couldNotLoad); return;
+    }
+    setView('dashboard');
+    window.ReportingDashboard.open(res.data);
   }
 
   async function loadMetricsCatalog() {
@@ -260,7 +456,10 @@
     if (el('rsChips')) el('rsChips').hidden = true;
     setView('result');
     hideTimingBadge();
+    toggleMoreMenu(false);
     el('rsResultTitle').textContent = (opts && opts.title) || '';
+    el('rsResultMeta').textContent = '';
+    el('rsTableRowCount').textContent = '';
     el('rsMsg').hidden = true;
     el('rsSaveName').hidden = true;
     el('rsError').textContent = msg;
@@ -269,6 +468,7 @@
     setHeaderActionsEnabled(false);
     el('rsStatCard').hidden = true;
     el('rsChartCard').hidden = true;
+    el('rsTableCard').hidden = true;
     el('rsChartNote').hidden = true;
     el('rsChartTools').hidden = true;
     el('rsTableToggle').hidden = true;
@@ -302,14 +502,25 @@
 
   // Masthead timing badge, shared with _reporting_js.html's own showTiming
   // (same #reportingTiming element, same "N rows · M ms" shape). Hidden until
-  // the first successful run in either pane.
+  // the first successful run in either pane. #rsResultMeta (Task 7) renders
+  // the same rowCount/ms values inline under the result title, and the
+  // table card's head row (Task 8) renders the row count a third time —
+  // no separate computation, just further formats of the same rowsTxt.
   function showTiming(rows, elapsedMs) {
+    var rowsTxt = String(rows == null ? 0 : rows);
+    var msTxt = String(Math.round(elapsedMs));
     var badge = document.getElementById('reportingTiming');
-    if (!badge) return;
-    badge.textContent = I18N.timingBadge
-      .replace('{rows}', String(rows == null ? 0 : rows))
-      .replace('{ms}', String(Math.round(elapsedMs)));
-    badge.hidden = false;
+    if (badge) {
+      badge.textContent = I18N.timingBadge.replace('{rows}', rowsTxt).replace('{ms}', msTxt);
+      badge.hidden = false;
+    }
+    var meta = el('rsResultMeta');
+    if (meta) {
+      meta.textContent = I18N.resultMeta
+        .replace('{rows}', rowsTxt).replace('{ms}', msTxt).replace('{when}', I18N.runJustNow);
+    }
+    var tableCount = el('rsTableRowCount');
+    if (tableCount) tableCount.textContent = ' · ' + I18N.tableRowCount.replace('{n}', rowsTxt);
   }
 
   // Same numeric check fmtNumber uses (Number(v) + isNaN), guarded against
@@ -328,6 +539,10 @@
   // treated as the measure (every row's value must be finite); hidden when
   // there are no rows or no such column. Mirrored in _reporting_js.html's
   // own computeKpiBand/renderKpiBand for the Advanced grid.
+  // Peak: the single row with the largest metric value -- its leading
+  // dimension column(s) become the label (e.g. "bob" for a per-user
+  // breakdown). Zero-dimension runs (dims === 0, the grand-total-only
+  // case) have no bucket to label, so peakLabel is just left blank.
   function computeKpiBand(dims, rows) {
     if (!rows.length) return null;
     var idx = -1;
@@ -335,10 +550,16 @@
       if (rows.every(function (r) { return isNumericCell(r[i]); })) { idx = i; break; }
     }
     if (idx === -1) return null;
-    var total = 0;
-    rows.forEach(function (r) { total += Number(r[idx]); });
+    var total = 0, peak = -Infinity, peakRow = rows[0];
+    rows.forEach(function (r) {
+      var v = Number(r[idx]);
+      total += v;
+      if (v > peak) { peak = v; peakRow = r; }
+    });
     var buckets = rows.length;
-    return { total: total, buckets: buckets, avg: buckets ? total / buckets : 0 };
+    var peakLabel = dims ? Array.prototype.slice.call(peakRow, 0, dims).map(String).join(' · ') : '';
+    return { total: total, buckets: buckets, avg: buckets ? total / buckets : 0,
+             peak: peak, peakLabel: peakLabel };
   }
 
   function kpiBlock(testid, caption, value) {
@@ -347,14 +568,40 @@
       '<span class="reporting-ledger-kpi-value">' + fmtNumber(value) + '</span></div>';
   }
 
+  // Peak row additionally carries the winning bucket's label under the
+  // value (omitted for the zero-dimension case, where there is none).
+  function kpiPeakBlock(testid, caption, label, value) {
+    return '<div class="reporting-ledger-kpi" id="rsKpiPeak" data-testid="' + testid + '">' +
+      '<span class="reporting-ledger-caption">' + esc(caption) + '</span>' +
+      '<span class="reporting-ledger-kpi-value">' + fmtNumber(value) + '</span>' +
+      (label ? '<span class="reporting-ledger-kpi-sub">' + esc(label) + '</span>' : '') +
+      '</div>';
+  }
+
+  // Left-rail layout (studio result body): the primary total renders into
+  // its own gradient card, the secondary Buckets/Avg/Peak rows stack into a
+  // second card below it -- both inside the one #rsKpiBand container that
+  // computeKpiBand already owned (see the CSS for the ID-scoped override
+  // that turns the Advanced pane's shared flat .reporting-ledger-kpis row
+  // into this stacked pair for Simple only). A breakdown run also keeps
+  // showing the legacy rsStatCard (filled by runCurrent's separate
+  // grand-total clone query, untouched here) alongside this band --
+  // existing, tested behavior (test_wizard_category_breakdown_to_result_cards)
+  // that this task's regroup does not change.
   function renderKpiBand(dims, rows) {
     var band = el('rsKpiBand');
     var kpi = computeKpiBand(dims, rows);
     if (!kpi) { band.hidden = true; band.innerHTML = ''; return; }
     band.innerHTML =
-      kpiBlock('rs-kpi-total', I18N.kpiTotal, kpi.total) +
-      kpiBlock('rs-kpi-buckets', I18N.kpiBuckets, kpi.buckets) +
-      kpiBlock('rs-kpi-avg', I18N.kpiAvg, kpi.avg);
+      '<div class="rs-kpi-total-card" data-testid="rs-kpi-total">' +
+        '<span class="reporting-ledger-caption">' + esc(I18N.kpiTotal) + '</span>' +
+        '<span class="reporting-ledger-kpi-value">' + fmtNumber(kpi.total) + '</span>' +
+      '</div>' +
+      '<div class="rs-kpi-stats-card">' +
+        kpiBlock('rs-kpi-buckets', I18N.kpiBuckets, kpi.buckets) +
+        kpiBlock('rs-kpi-avg', I18N.kpiAvg, kpi.avg) +
+        kpiPeakBlock('rs-kpi-peak', I18N.kpiPeak, kpi.peakLabel, kpi.peak) +
+      '</div>';
     band.hidden = false;
   }
 
@@ -703,11 +950,14 @@
             tension: .25
           };
         }),
-        multiSeries: true
+        multiSeries: true,
+        // Preview cache (Step 5) reads this back to tag the cached series —
+        // must match whatever renderChart() below actually draws.
+        type: def.chartType || (isDate ? 'line' : 'bar')
       };
       el('rsChartCard').hidden = false;
       el('rsChartTools').hidden = false;
-      renderChart(def.chartType || (isDate ? 'line' : 'bar'));
+      renderChart(state.chartData.type);
       return true;
     }
     var metricIdx = columns.length - (def.metrics || []).length;
@@ -734,10 +984,13 @@
         tension: .25
       };
     });
-    state.chartData = { labels: labels, rawX: rawX, datasets: datasets, multiSeries: false };
+    state.chartData = {
+      labels: labels, rawX: rawX, datasets: datasets, multiSeries: false,
+      type: def.chartType || (isDate ? 'line' : 'bar')
+    };
     el('rsChartCard').hidden = false;
     el('rsChartTools').hidden = false;
-    renderChart(def.chartType || (isDate ? 'line' : 'bar'));
+    renderChart(state.chartData.type);
     return true;
   }
 
@@ -951,13 +1204,16 @@
   function showAiLoading() {
     setView('result');
     el('rsResultTitle').textContent = '';
+    el('rsResultMeta').textContent = '';
     el('rsError').hidden = true;
     renderErrorOpenAdvanced(false);
+    toggleMoreMenu(false);
     setHeaderActionsEnabled(false);
     el('rsMsg').hidden = true;
     el('rsSaveName').hidden = true;
     el('rsStatCard').hidden = true;
     el('rsChartCard').hidden = true;
+    el('rsTableCard').hidden = true;
     el('rsTableToggle').hidden = true;
     el('rsTableWrap').hidden = true;
     el('rsRunLoading').hidden = true;
@@ -1003,6 +1259,7 @@
     setView('result');
     el('rsError').hidden = true;
     renderErrorOpenAdvanced(false);
+    toggleMoreMenu(false);
     el('rsMsg').hidden = true;
     el('rsResultTitle').textContent = cur.name || cur.def.title || '';
     if (cur.aiExplanation !== undefined) {
@@ -1022,6 +1279,7 @@
     el('rsSaveName').hidden = true;
     el('rsStatCard').hidden = true;
     el('rsChartCard').hidden = true;
+    el('rsTableCard').hidden = true;
     el('rsTableToggle').hidden = true;
     el('rsTableWrap').hidden = true;
     el('rsRunLoading').hidden = false;
@@ -1062,6 +1320,7 @@
       return;
     }
     setHeaderActionsEnabled(true);
+    el('rsTableCard').hidden = false;
     showTiming(res.data.rowCount, performance.now() - runT0);
     state.current.sql = res.data.sql || null;
     state.current.sqlPretty = res.data.sqlPretty || null;
@@ -1126,6 +1385,33 @@
     } else {
       el('rsTableWrap').hidden = false;   // plain table reports: grid directly
     }
+    writePreviewCache(dims, hasMetrics, rows);
+  }
+
+  // Step 5 — refresh the library card's preview thumbnail from the result
+  // that's actually on screen. Only for a SAVED report (state.current.reportId
+  // set) — an unsaved ad-hoc result has no card to feed. Wrapped in try/catch:
+  // a localStorage quota error (or a browser with storage disabled) must
+  // never break a run.
+  function writePreviewCache(dims, hasMetrics, rows) {
+    var reportId = state.current && state.current.reportId;
+    if (!reportId) return;
+    try {
+      var payload;
+      if (hasMetrics && !dims && rows.length) {
+        payload = { t: 'total', v: Number(rows[0][0]) || 0, ts: Date.now() };
+      } else if (hasMetrics && dims && state.chartData) {
+        var series = (state.chartData.datasets[0] || {}).data || [];
+        payload = {
+          t: state.chartData.type === 'line' ? 'line' : 'bar',
+          v: series.slice(0, 16),
+          ts: Date.now()
+        };
+      } else {
+        return;
+      }
+      localStorage.setItem('nx.reporting.preview.' + reportId, JSON.stringify(payload));
+    } catch (e) { /* quota or storage disabled — never break a run */ }
   }
 
   el('rsTableToggle').addEventListener('click', function () {
@@ -1174,16 +1460,23 @@
     }).catch(function () { /* clipboard unavailable (non-HTTPS / unfocused) */ });
   });
 
+  // Reveal the inline rename/save-name input (Task 7's pencil icon and the
+  // first click of Save both land here — one rename path, two entry points).
+  function revealSaveNameInput() {
+    if (!state.current) return;  // error view without a loaded report
+    var nameInput = el('rsSaveName');
+    nameInput.hidden = false;
+    nameInput.value = state.current.name || state.current.def.title || '';
+    nameInput.focus();
+  }
+
+  el('rsRenamePencil').addEventListener('click', revealSaveNameInput);
+
   // Save: always a NEW row (inline name input, no window.prompt).
   el('rsSave').addEventListener('click', async function () {
     if (!state.current) return;  // error view without a loaded report
     var nameInput = el('rsSaveName');
-    if (nameInput.hidden) {
-      nameInput.hidden = false;
-      nameInput.value = state.current.name || state.current.def.title || '';
-      nameInput.focus();
-      return;
-    }
+    if (nameInput.hidden) { revealSaveNameInput(); return; }
     var name = nameInput.value.trim();
     if (!name) return;
     var res = await api('/api/reporting/reports', {
@@ -1204,6 +1497,21 @@
   // shares mutate shared reports in place; a null id makes Advanced's Save
   // default to create-a-copy.
   el('rsAdjustWizard').addEventListener('click', adjustInWizard);
+
+  // ⋯ overflow menu: toggle on the button, close on Escape or an outside
+  // click — same idiom as the Advanced tab's process-scope dropdown
+  // (rpScopeBtn/#rpScopeWrap wiring at the bottom of _reporting_js.html).
+  var rsMoreBtn = el('rsMore');
+  if (rsMoreBtn) {
+    rsMoreBtn.addEventListener('click', function (e) { e.stopPropagation(); toggleMoreMenu(); });
+    document.addEventListener('click', function (e) {
+      var wrap = el('rsMoreWrap');
+      if (wrap && !wrap.contains(e.target)) toggleMoreMenu(false);
+    });
+    el('rsMoreWrap').addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { toggleMoreMenu(false); rsMoreBtn.focus(); }
+    });
+  }
 
   el('rsOpenAdvanced').addEventListener('click', function () {
     var cur = state.current;
@@ -1265,6 +1573,119 @@
   }
 
   // ---------- Wizard ----------
+  // Progress rail (Task 5): a fixed 4-row list mirroring the 4 step divs.
+  // Rows are presentational only -- they read state.wiz + the steps' own
+  // `hidden` flags, never drive the click flow (renderMeasureStep and co.
+  // are untouched and remain the single source of truth for what's shown).
+  var WIZ_STEPS = [
+    { id: 'rsStepMeasure', label: I18N.wizMeasure },
+    { id: 'rsStepScope', label: I18N.wizScope },
+    { id: 'rsStepBreakdown', label: I18N.wizBreakdown },
+    { id: 'rsStepTime', label: I18N.wizTime }
+  ];
+  var WIZ_TIME_TOKEN_LABELS = {
+    this_week: I18N.thisWeek, this_month: I18N.thisMonth, last_month: I18N.lastMonth,
+    this_quarter: I18N.thisQuarter, last_quarter: I18N.lastQuarter,
+    last_3_months: I18N.last3Months, this_year: I18N.thisYear, last_year: I18N.lastYear
+  };
+
+  // The accordion never re-hides an earlier step once shown (only cascades
+  // hidden=true onto LATER steps when an earlier answer changes), so the
+  // "current" step is the deepest (highest-index) visible row -- scan from
+  // the end. A source with no processes skips rsStepScope entirely, which
+  // still yields the right "of 4" position (jumps straight to Breakdown).
+  function wizStepIndex() {
+    var i;
+    for (i = WIZ_STEPS.length - 1; i >= 0; i--) {
+      var stepEl = el(WIZ_STEPS[i].id);
+      if (stepEl && !stepEl.hidden) return i;
+    }
+    return 0;
+  }
+
+  function wizTimeLabel(token) {
+    return WIZ_TIME_TOKEN_LABELS[token] || token;
+  }
+
+  // One short summary string per WIZ_STEPS row, in order, from the exact
+  // fields the step renderers themselves read/write on state.wiz. Blank
+  // until that part of the state is meaningful (no source picked yet, or
+  // this source has no processes to scope).
+  function wizSummaries() {
+    var w = state.wiz || {};
+    var out = ['', '', '', ''];
+    if ((w.measures || []).length) {
+      out[0] = w.measures.map(function (m) { return m.label; }).join(' + ');
+    }
+    var allProcs = (w.source && w.source.processes) || [];
+    if (allProcs.length) {
+      var chosen = (w.scopeProcs || []).length || allProcs.length;
+      out[1] = (chosen === allProcs.length) ? I18N.allProcesses
+        : I18N.wizScopeCount.replace('{n}', chosen).replace('{m}', allProcs.length);
+    }
+    if (w.source) {
+      if ((w.breakdowns || []).length) {
+        var grainSel = el('rsGrain');
+        var grainTxt = grainSel ? grainSel.options[grainSel.selectedIndex].text : '';
+        out[2] = w.breakdowns.map(function (b) {
+          if (!b.field) return I18N.justTotal;
+          return b.kind === 'date' ? (b.field.label + ' (' + grainTxt + ')') : b.field.label;
+        }).join(', ');
+      } else {
+        out[2] = I18N.justTotal;
+      }
+      if (Array.isArray(w.range)) out[3] = I18N.custom;
+      else if (w.range && w.range.token) out[3] = wizTimeLabel(w.range.token);
+      else out[3] = I18N.allTime;
+    }
+    return out;
+  }
+
+  // Called from every point that shows/hides a wizard step (renderMeasureStep,
+  // renderScopeStep, renderBreakdownStep, renderTimeStep and the Back button
+  // handler) so the header step counter + rail always match the visible step.
+  function renderWizardRail() {
+    var idx = wizStepIndex();
+    el('rsWizardStepNo').textContent = I18N.stepNof4.replace('{n}', idx + 1);
+    var sums = wizSummaries();
+    var html = '';
+    var previewParts = [];
+    WIZ_STEPS.forEach(function (step, i) {
+      var cls = i < idx ? 'is-done' : (i === idx ? 'is-active' : '');
+      var dot = i < idx ? '<i class="fas fa-check" aria-hidden="true"></i>' : String(i + 1);
+      var sum = (i <= idx && sums[i]) ? '<div class="rs-rail-sum">' + esc(sums[i]) + '</div>' : '';
+      if (i <= idx && sums[i]) previewParts.push(sums[i]);
+      html += '<div class="rs-rail-step ' + cls + '">'
+        + '<div><span class="rs-rail-dot">' + dot + '</span><span class="rs-rail-line"></span></div>'
+        + '<div><div class="rs-rail-title">' + esc(step.label) + '</div>' + sum + '</div>'
+        + '</div>';
+    });
+    html += '<div id="rsWizardPreview" class="rs-wizard-preview">'
+      + '<strong>' + esc(I18N.wizPreviewTitle) + ':</strong> ' + esc(previewParts.join(' · '))
+      + '</div>';
+    el('rsWizardRail').innerHTML = html;
+  }
+
+  // In-chip coverage bar: n of m allowed/selected processes provide this
+  // field or metric's base field. Same three colour tiers everywhere it's
+  // used (renderMeasureStep, applyCoverageBadge in renderBreakdownStep);
+  // the caller is still responsible for the (unchanged) tooltip text.
+  function covBadge(n, m) {
+    var frac = n / m;
+    var tier = frac <= 1 / 3 ? 'is-cov-low' : (frac >= 0.8 ? 'is-cov-high' : 'is-cov-mid');
+    var b = document.createElement('span');
+    b.className = 'reporting-simple-chip-cov ' + tier;
+    var bar = document.createElement('span');
+    bar.className = 'rs-cov-bar';
+    var fill = document.createElement('span');
+    fill.className = 'rs-cov-fill';
+    fill.style.width = Math.round(frac * 100) + '%';
+    bar.appendChild(fill);
+    b.appendChild(bar);
+    b.appendChild(document.createTextNode(n + '/' + m));
+    return b;
+  }
+
   function choiceBtn(label, onpick, selected) {
     var b = document.createElement('button');
     b.type = 'button';
@@ -1360,11 +1781,7 @@
         // this step): same badge as the breakdown chips.
         if (fld && fld.processes && fld.processes.length && srcProcs.length
             && fld.processes.length < srcProcs.length) {
-          var cov = document.createElement('span');
-          cov.className = 'reporting-simple-chip-cov '
-            + (fld.processes.length / srcProcs.length <= 1 / 3 ? 'is-cov-low' : 'is-cov-mid');
-          cov.textContent = fld.processes.length + '/' + srcProcs.length;
-          btn.appendChild(cov);
+          btn.appendChild(covBadge(fld.processes.length, srcProcs.length));
           btn.title = I18N.measureCoverage.replace('{n}', fld.processes.length)
             .replace('{m}', srcProcs.length) + '\n' + fld.processes.join('\n');
         }
@@ -1375,6 +1792,7 @@
       list.innerHTML = '<p class="reporting-simple-empty">' + esc(I18N.noMeasures) + '</p>';
     }
     el('rsMeasureNext').hidden = !w.measures.length;
+    renderWizardRail();
   }
 
   // Own wizard step between measure and breakdown: sources without processes
@@ -1410,6 +1828,7 @@
       box.appendChild(lbl);
     });
     if (!prior.length) w.scopeProcs = procs.slice();
+    renderWizardRail();
   }
 
   function renderBreakdownStep() {
@@ -1446,6 +1865,7 @@
         if (w.breakdowns[ci].kind === 'date') { hasDate = true; break; }
       }
       el('rsGrainWrap').hidden = !hasDate;
+      updatePickedCount();
     }
 
     function toggleBreakdown(bd) {
@@ -1490,13 +1910,23 @@
     function applyCoverageBadge(btn, f) {
       var cov = coveredBy(f);
       if (cov === null || cov.length >= scopeSel().length) return;
-      var b = document.createElement('span');
-      b.className = 'reporting-simple-chip-cov '
-        + (cov.length / scopeSel().length <= 1 / 3 ? 'is-cov-low' : 'is-cov-mid');
-      b.textContent = cov.length + '/' + scopeSel().length;
-      btn.appendChild(b);
+      btn.appendChild(covBadge(cov.length, scopeSel().length));
       btn.title = I18N.chipCoverage.replace('{n}', cov.length).replace('{m}', scopeSel().length)
         + '\n' + cov.join('\n');
+    }
+
+    // Task 6: "{n} of 3 picked" footer counter, breakdown step only (the
+    // footer itself is shared across all four steps -- visibility is a pure
+    // CSS :has() shim keyed on #rsStepBreakdown[hidden], see reporting.css).
+    function updatePickedCount() {
+      el('rsPickedCount').textContent = I18N.pickedCount.replace('{n}', String(w.breakdowns.length));
+    }
+
+    function groupLabel(text) {
+      var l = document.createElement('div');
+      l.className = 'rs-choice-group-label';
+      l.textContent = text;
+      return l;
     }
 
     // The chip list is re-rendered whenever the process scope changes: a chip
@@ -1533,6 +1963,7 @@
       // Scope narrowing can strand a selected breakdown on a hidden field.
       w.breakdowns = w.breakdowns.filter(function (b) { return !b.field || inScope(b.field); });
 
+      if (dateFields.length) list.appendChild(groupLabel(I18N.groupTime));
       dateFields.forEach(function (f) {
         var bd = { kind: 'date', field: f };
         var btn = choiceBtn(I18N.overTime + ' (' + f.label + ')', function () {
@@ -1546,6 +1977,7 @@
       // No cap: everything the Advanced tab offers is available here — the
       // coverage sort keeps rarely-provided fields at the bottom, and the
       // hide-list still filters the noise.
+      if (catFields.length) list.appendChild(groupLabel(I18N.groupFields));
       catFields.forEach(function (f) {
         var bd = { kind: 'category', field: f };
         var btn = choiceBtn(f.label, function () {
@@ -1556,20 +1988,24 @@
         applyCoverageBadge(btn, f);
         list.appendChild(btn);
       });
+      list.appendChild(groupLabel(I18N.groupOr));
       var noneBtn = choiceBtn(I18N.justTotal, function () {
         toggleBreakdown({ kind: 'none' });
       }, w.breakdowns.length === 0);
       noneBtn.dataset.bdKind = 'none';
+      noneBtn.classList.add('rs-choice-none');
       list.appendChild(noneBtn);
     }
 
     renderChipList();
+    updatePickedCount();
 
     // Wire Continue button
     var nextBtn = el('rsBreakdownNext');
     if (nextBtn) {
       nextBtn.onclick = function () { renderTimeStep(); };
     }
+    renderWizardRail();
   }
 
   function isoDate(d) {
@@ -1616,6 +2052,7 @@
       el('rsTimeFieldWrap').hidden = true;
       state.wiz.range = null;
       el('rsAllTimeHint').hidden = true;
+      renderWizardRail();
       return;
     }
     // Date field defaults to import_date, switchable to export_date.
@@ -1666,6 +2103,7 @@
     // Only default to all-time if no prior choice is being restored.
     if (!state.wiz.range) state.wiz.range = null;
     el('rsAllTimeHint').hidden = state.wiz.range !== null;
+    renderWizardRail();
   }
 
   // Wizard invariants (validator-enforced server-side): sort fields are among
@@ -1811,6 +2249,10 @@
   }
 
   el('rsNewReport').addEventListener('click', startWizard);
+  el('rsNewDashboard').addEventListener('click', function () {
+    setView('dashboard');
+    window.ReportingDashboard.openNew();
+  });
   el('rsMeasureNext').addEventListener('click', function () { renderScopeStep(); });
   el('rsScopeNext').addEventListener('click', function () { renderBreakdownStep(); });
   // Back steps one wizard step backwards (picks are preserved in state.wiz);
@@ -1819,18 +2261,21 @@
     if (!el('rsStepTime').hidden) {           // time -> breakdown
       el('rsStepTime').hidden = true;
       el('rsWizardRun').hidden = true;
+      renderWizardRail();
       return;
     }
     if (!el('rsStepBreakdown').hidden) {      // breakdown -> scope (or measure)
       el('rsStepBreakdown').hidden = true;
-      if (!el('rsStepScope').hidden) return;  // scope step stays visible above
+      if (!el('rsStepScope').hidden) { renderWizardRail(); return; }  // scope step stays visible above
       // no scope step for this source: renderScopeStep would have skipped it
       var procs = (state.wiz && state.wiz.source && state.wiz.source.processes) || [];
       if (procs.length) el('rsStepScope').hidden = false;
+      renderWizardRail();
       return;
     }
     if (!el('rsStepScope').hidden) {          // scope -> measure
       el('rsStepScope').hidden = true;
+      renderWizardRail();
       return;
     }
     setView('library');                       // measure -> out
@@ -1865,6 +2310,13 @@
       });
     }
   }
+
+  document.querySelectorAll('.rs-suggestion').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var p = el('rsAiPrompt'); if (!p) return;
+      p.value = b.textContent.trim(); p.focus();
+    });
+  });
 
   async function askAi(refineQuestion) {
     var fromRefine = refineQuestion !== undefined;
@@ -1940,6 +2392,12 @@
   });
   el('rsExit').addEventListener('click', exitToLibrary);
   el('rsWizardClose').addEventListener('click', exitToLibrary);
+  el('rsWizardClose2').addEventListener('click', exitToLibrary);
+
+  // The dashboard builder module is self-contained and never calls setView
+  // itself -- it announces intent via a custom event instead of reaching
+  // into this module's functions (D3).
+  document.addEventListener('rs:dashboard-closed', exitToLibrary);
 
   document.addEventListener('rp:tabshown', function (e) {
     if (e.detail.tab === 'simple') initOnce();

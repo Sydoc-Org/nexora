@@ -20,12 +20,14 @@ from flask_babel import gettext as _
 
 from ..config import BEXIO_PAT
 from ..db import engine_nexora_db
-from ..security import has_permission, page_visibility, require_permission
+from ..security import PermissionDenied, has_permission, page_visibility, require_permission
 
 # --------------------------------- bexio ---------------------------------- #
 
 
 def get_allowed_client_details():
+    conn = None
+    cursor = None
     try:
         perms = session.get("permissions", [])
         prefix = "invoices.view."
@@ -55,8 +57,17 @@ def get_allowed_client_details():
             conn.close()
 
 
+def _is_paid_status(status_id):
+    """Single source of truth for what counts as 'Paid' in Bexio's
+    kb_item_status_id. Any other status (draft, cancelled, or any other
+    Bexio code) is 'Open' - both map_invoice_status (the label) and
+    search_bexio_invoices (the filter) must derive from this same rule so
+    they never drift apart (Task 22)."""
+    return status_id == 9
+
+
 def map_invoice_status(status_id):
-    if status_id == 9:
+    if _is_paid_status(status_id):
         return {"text": _("Paid"), "color": "green"}
     return {"text": _("Open"), "color": "blue"}
 
@@ -89,12 +100,17 @@ def search_bexio_invoices(client_ids, date_from, date_to, search_nr=None, status
             invoices = response.json()
 
             if status:
-                status_map = {"Paid": [9], "Open": [8]}
-                target_status_ids = status_map.get(status, [])
-                if target_status_ids:
-                    invoices = [
-                        inv for inv in invoices if inv.get("kb_item_status_id") in target_status_ids
-                    ]
+                # "Paid" is the exact-match id 9; "Open" is everything else
+                # that map_invoice_status would label "Open" - derived from
+                # the same _is_paid_status predicate so the filter can never
+                # disagree with the label (Task 22).
+                status_predicates = {
+                    "Paid": _is_paid_status,
+                    "Open": lambda sid: not _is_paid_status(sid),
+                }
+                predicate = status_predicates.get(status)
+                if predicate:
+                    invoices = [inv for inv in invoices if predicate(inv.get("kb_item_status_id"))]
 
             for inv in invoices:
                 inv["status_info"] = map_invoice_status(inv.get("kb_item_status_id"))
@@ -105,11 +121,11 @@ def search_bexio_invoices(client_ids, date_from, date_to, search_nr=None, status
             all_invoices.extend(invoices)
 
         except requests.exceptions.RequestException as e:
-            current_app.logger.error(f"Bexio API search failed: {e}")
-            return []
+            current_app.logger.error(f"Bexio API search failed for client {client_id}: {e}")
+            continue
         except json.JSONDecodeError:
-            current_app.logger.error("Bexio API returned invalid JSON.")
-            return []
+            current_app.logger.error(f"Bexio API returned invalid JSON for client {client_id}.")
+            continue
     return all_invoices
 
 
@@ -145,6 +161,37 @@ def get_bexio_invoice_pdf(invoice_id):
         return None, None
 
 
+def get_bexio_invoice_contact_id(invoice_id):
+    """Fetch just the owning contact_id for an invoice.
+
+    Used by download_invoice_pdf to verify the caller is scoped to the client
+    that owns the invoice before releasing the PDF (the kb_invoice/<id>/pdf
+    endpoint response has no contact_id, so this is a separate lookup).
+    """
+    url = f"https://api.bexio.com/2.0/kb_invoice/{invoice_id}"
+    access_token = BEXIO_PAT
+    if not access_token:
+        current_app.logger.error("BEXIO_PAT is not set.")
+        return None
+
+    headers = {
+        "Accept": "application/json",
+        "Authorization": f"Bearer {access_token}",
+    }
+
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        return data.get("contact_id")
+    except requests.exceptions.RequestException as e:
+        current_app.logger.error(f"Bexio API invoice fetch failed for {invoice_id}: {e}")
+        return None
+    except json.JSONDecodeError:
+        current_app.logger.error("Bexio API returned invalid JSON.")
+        return None
+
+
 def get_bexio_client_ids():
     conn = None
     cursor = None
@@ -168,7 +215,8 @@ def get_bexio_client_ids():
                 client_ids.append(row[0])
         return client_ids
     except Exception as e:
-        print(e)
+        current_app.logger.error(f"Error fetching Bexio client ids: {e}")
+        return []
     finally:
         if cursor:
             cursor.close()
@@ -285,6 +333,14 @@ def api_invoices():
 def download_invoice_pdf(invoice_id):
     if "username" not in session:
         return redirect(url_for("login"))
+
+    # IDOR guard: invoices.download is a blanket permission, so scope the
+    # actual download to the invoices the caller is allowed to see — same
+    # trust boundary api_invoices already enforces via get_bexio_client_ids().
+    contact_id = get_bexio_invoice_contact_id(invoice_id)
+    allowed_ids = set(get_bexio_client_ids() or [])
+    if contact_id is None or contact_id not in allowed_ids:
+        raise PermissionDenied()
 
     try:
         pdf_content, pdf_name = get_bexio_invoice_pdf(invoice_id)

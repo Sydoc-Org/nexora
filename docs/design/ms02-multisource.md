@@ -20,6 +20,37 @@ this is the authoritative reference for the facts below.
   `public."DossierStatistik"`); stays `None` until `MS02_DOCFIELDS_DB_*` are set (defaults reuse
   the MS02 runtime host/login; only the dbname differs). Doc-field search pre-resolves matches
   against it into a workitem-id allow-set — no ETL, never joined in-query to the runtime DB.
+  **Degrade contract (fail closed):** while this engine is `None` — or any resolution step
+  errors — an active doc-field search excludes MS02 rows entirely (empty allow-set), it never
+  runs the Postgres source unconstrained. An env with the MS02 runtime configured but no
+  `MS02_DOCFIELDS_DB_NAME` (STAGING, 2026-07-20) used to flood every doc-field search with the
+  full MS02 corpus.
+
+## Workitem identity is compound (client + id)
+
+Workitem ids are unique only **within** a client: on INT 1216 ids exist in both the Octo
+runtime and the MS02 runtime (96 of them visible in a single unfiltered list). Anything keyed
+on a bare workitem id is therefore ambiguous, and the following rules are load-bearing:
+
+- **Detail requests carry the row's client** — `/api/get_media_info/<id>`,
+  `/api/get_media_raw/<id>/<idx>` and `/api/get_audithistory/<id>` accept `?client=<code>`,
+  which the list row supplies (`data-client`). `get_source_for_workitem(id, client_hint=…)`
+  trusts that hint over probing, because probing cannot distinguish two identically numbered
+  workitems.
+- **The probe includes the default source.** It previously probed only non-default clients, so
+  a default/MS02 collision looked like a single MS02 claim and was cached permanently in
+  `dbo.WorkitemSourceCache`. Ambiguous ids are now logged and never cached.
+- **Per-workitem caches are keyed per client** (`_wi_cache_key`), or one client's document
+  answers for the other's identically numbered workitem.
+- **Front-end element ids are keyed `client-id`**, not the bare id — two rows otherwise shared
+  one DOM id. At most one detail panel per id is open at a time, since the shared panel
+  partial's internal ids are still id-keyed.
+- **NexoraDB metadata (tags, priority, assignment, PID register) is keyed on the bare id** and
+  has no client column, so it is inherently shared between colliding ids. MS02-only resolution
+  (`_stamp_in_register`) is restricted to rows whose `client == "ms02"`. Note `Workitem_Metadata`
+  / `Workitem_Tags` store `WorkitemId` as **NVARCHAR** while the Postgres runtime's `"ID"` is an
+  integer — normalize ids at that seam (an unnormalized allow-set errored the whole MS02 source
+  out of every tag/priority/assigned filter).
 
 ## Multi-source workitems
 

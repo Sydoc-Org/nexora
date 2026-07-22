@@ -431,6 +431,7 @@ def validate_dashboard_layout(layout, allowed_processes, valid_field_keys, aggre
 # ----------------------------- legacy KPI endpoints (still used by the templates) ----- #
 
 
+@require_permission("dashboard.view")
 @cache.cached(timeout=300, key_prefix=make_cache_key, response_filter=_cacheable_response)
 def dashboard_processed_over_time():
     if "username" not in session:
@@ -536,6 +537,7 @@ def dashboard_processed_over_time():
             conn.close()
 
 
+@require_permission("dashboard.view")
 @cache.cached(
     timeout=60,
     key_prefix=lambda: f"kpi_stats_{session.get('userid')}_{session.get('process_name_dashboard','all')}",
@@ -585,6 +587,7 @@ def dashboard_kpi_stats():
         return jsonify({"error": str(e)}), 500
 
 
+@require_permission("dashboard.view")
 @cache.cached(
     timeout=120,
     key_prefix=lambda: f"hourly_stats_{session.get('userid')}_{session.get('process_name_dashboard','all')}",
@@ -676,6 +679,7 @@ def dashboard_hourly_stats():
             conn_nex.close()
 
 
+@require_permission("dashboard.view")
 @cache.cached(
     timeout=300,
     key_prefix=lambda: f"avg_proc_time_{session.get('userid')}_{session.get('process_name_dashboard','all')}",
@@ -1099,6 +1103,20 @@ def _build_kpi_sql(widget, filters, configs):
     )
     status = filters.get("status")
 
+    # "Current backlog" (status:"Ready") means the LIVE Octo-runtime count of
+    # workitems currently on activity type 'C+A' -- exactly what the legacy
+    # total_backlog_count()/backlog_count() (workitem_sources.py) compute against
+    # the runtime DB. build_widget_query already routes the one shape that
+    # function can honestly answer -- a plain count with no doc-field filter --
+    # to it directly. Anything that still reaches this builder with
+    # status:"Ready" (an avg/sum/min/max metric, or a doc-field filter) cannot be
+    # expressed from the Statistics-DB stat tables at all: Statconfig carries no
+    # activity-type/stage column, so there is no honest predicate for "currently
+    # on C+A". Return an explicit empty query and let _run_widget_queries surface
+    # the no_data_in_scope warning rather than approximate a wrong headline number.
+    if status == "Ready":
+        return "", []
+
     if not configs:
         return "", []
     sub_qs = []
@@ -1122,10 +1140,10 @@ def _build_kpi_sql(widget, filters, configs):
             continue
 
         where = []
-        if start_date is not None and status != "Ready":
+        if start_date is not None:
             where.append(f"CAST({export_col} AS DATE) >= ?")
             params.append(start_date.isoformat())
-        if end_date is not None and status != "Ready":
+        if end_date is not None:
             where.append(f"CAST({export_col} AS DATE) <= ?")
             params.append(end_date.isoformat())
         for f in filters.get("docFilters") or []:
@@ -1321,6 +1339,28 @@ def build_widget_query(widget, global_filters, allowed_processes):
     target_processes = _process_scope(filters, allowed_processes)
     if not target_processes:
         return []
+
+    # "Current backlog" (status:"Ready") is defined as the workitems currently on
+    # activity type 'C+A' -- a live Octo-runtime fact that the Statistics-DB stat
+    # tables this widget engine queries cannot express (Statconfig has no
+    # activity-type/stage column). Route the one shape that the already-correct
+    # total_backlog_count() can honestly answer -- a plain count with no doc-field
+    # filter -- to that Octo-backed function, matching the exact proc/cli split
+    # the legacy dashboard_kpi_stats call site uses, and feed the result through
+    # the unchanged _run_widget_queries path as a parameterized literal select.
+    # Every other status:"Ready" shape falls through to _build_kpi_sql, which
+    # returns an honest empty (no_data_in_scope) rather than a wrong number.
+    metric_kind = ((widget.get("config") or {}).get("metric") or {}).get("kind")
+    if (
+        widget.get("type") == "kpi"
+        and filters.get("status") == "Ready"
+        and metric_kind == "count"
+        and not filters.get("docFilters")
+    ):
+        proc_params = sorted({p.split(".")[-1] for p in target_processes if "." in p})
+        cli_params = sorted({p.split(".")[0] for p in target_processes if "." in p})
+        value = total_backlog_count(proc_params, cli_params)
+        return [(engine_nexora_db, "SELECT ?", [value])]
 
     conn = engine_nexora_db.raw_connection()
     try:
@@ -1590,8 +1630,14 @@ def api_recent_activity():
 
         activity = []
         for row in raw_rows:
-            domain = get_domain_for_workitem(row["id"])
-            workitemdata, doc_id = get_workitemdata_param(row["id"], domain)
+            domain = get_domain_for_workitem(row["id"], client_hint=row.get("client"))
+            returndata = get_workitemdata_param(row["id"], domain)
+            if not returndata:
+                current_app.logger.warning(
+                    f"Activity feed: skipping workitem {row['id']} (Octo lookup failed)"
+                )
+                continue
+            workitemdata, doc_id = returndata
             _ext, _urls, fields, _fs, _ts = get_extensions_urls_fields(workitemdata, doc_id, domain)
             fields = {k: v for k, v in fields.items() if v}
             activity.append(

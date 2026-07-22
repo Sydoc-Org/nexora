@@ -1717,13 +1717,35 @@ def api_export_grid():
     )
 
 
+def _preview_kind(defn):
+    """Derive the library card badge/preview kind from a report definition.
+
+    Mirrors the frontend's previewKindOf (templates/js/_reporting_simple_js.html)
+    exactly: no breakdown columns -> 'total'; a grain or a date-ish field name
+    on the first column -> 'line'; a pie/donut visualization -> 'donut';
+    otherwise -> 'bar'.
+    """
+    cols = defn.get("columns") or []
+    if not cols:
+        return "total"
+    first = cols[0] or {}
+    field = first.get("field") or ""
+    if first.get("grain") or re.search(r"date", field, re.I):
+        return "line"
+    if defn.get("visualization") in ("pie", "donut"):
+        return "donut"
+    return "bar"
+
+
 @require_permission("reporting.view")
 def api_reports_list():
     """List reports the caller owns, plus any shared with them.
 
     A report is visible when the caller owns it, its Visibility is 'shared'
     (everyone with reporting.view), or it is explicitly shared with the caller.
-    Each row is tagged owned / canEdit and carries the owner's name.
+    Each row is tagged owned / canEdit and carries the owner's name, plus a
+    server-computed previewKind for the library card badge/thumbnail (derived
+    from DefinitionJSON — the raw definition itself is never sent here).
     """
     userid = session.get("userid")
     conn = engine_nexora_db.raw_connection()
@@ -1733,6 +1755,7 @@ def api_reports_list():
             "SELECT r.ReportID, r.Name, r.UpdatedAt, r.Visibility, r.OwnerUserID, "
             "       u.username AS OwnerName, "
             "       JSON_VALUE(r.DefinitionJSON, '$.kind') AS Kind, "
+            "       r.DefinitionJSON, "
             "       CASE WHEN r.OwnerUserID = ? THEN 1 ELSE 0 END AS Owned, "
             "       CASE WHEN r.OwnerUserID = ? THEN 1 "
             "            WHEN s.CanEdit = 1 THEN 1 ELSE 0 END AS CanEdit "
@@ -1744,8 +1767,13 @@ def api_reports_list():
             "ORDER BY Owned DESC, r.UpdatedAt DESC",
             (userid, userid, userid, userid, userid),
         )
-        return jsonify(
-            [
+        rows = []
+        for r in cur.fetchall():
+            try:
+                defn = json.loads(r.DefinitionJSON or "{}")
+            except (TypeError, ValueError):
+                defn = {}
+            rows.append(
                 {
                     "id": r.ReportID,
                     "name": r.Name,
@@ -1755,10 +1783,10 @@ def api_reports_list():
                     "owned": bool(r.Owned),
                     "canEdit": bool(r.CanEdit),
                     "ownerName": r.OwnerName,
+                    "previewKind": _preview_kind(defn),
                 }
-                for r in cur.fetchall()
-            ]
-        )
+            )
+        return jsonify(rows)
     except Exception as e:
         current_app.logger.error(f"/api/reporting/reports list error: {e}")
         return jsonify({"error": _("Could not list reports")}), 500

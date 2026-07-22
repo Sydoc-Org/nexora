@@ -197,10 +197,30 @@
           try {
             const button = event.currentTarget;
             const workitemid = button.dataset.workitemid;
-            const detailsRow = document.getElementById(`details-row-${workitemid}`);
+            const rowKey = button.dataset.rowkey || workitemid;
+            const detailsRow = document.getElementById(`details-row-${rowKey}`);
             if (!detailsRow) return;
             const chevron = button.querySelector('.indicator');
             const isOpening = detailsRow.hasAttribute('hidden');
+
+            // The detail panel's internal element ids and its client lookup are
+            // keyed on the bare workitem id, which two clients can share. Rather
+            // than re-key the whole shared panel, keep at most ONE panel open per
+            // id: opening the other client's row collapses the first.
+            if (isOpening) {
+              document.querySelectorAll('tr.details-row:not([hidden])').forEach(other => {
+                if (other === detailsRow) return;
+                const otherKey = other.id.replace('details-row-', '');
+                if (!otherKey.endsWith(`-${workitemid}`)) return;
+                other.classList.remove('open');
+                other.setAttribute('hidden', '');
+                other.dataset.initialized = '';
+                const otherTd = other.querySelector('td');
+                if (otherTd) otherTd.innerHTML = '';
+                const otherBtn = document.querySelector(`button[data-rowkey="${otherKey}"] .indicator`);
+                if (otherBtn) otherBtn.classList.remove('open');
+              });
+            }
 
             if (isOpening && detailsRow.dataset.initialized !== 'true') {
               const td = detailsRow.querySelector('td');
@@ -209,6 +229,8 @@
               NexoraWorkitemDetail.render(workitemid, td, {
                 readOnly: false,
                 perms: window.__workitemDetailPerms,
+                client: detailsRow.dataset.client || '',   // disambiguates colliding ids
+
                 inRegisterPid: _inRegisterByWid[String(workitemid)] || null,  // P3 (defaults null; map seeded in 3.4)
               });
               detailsRow.dataset.initialized = 'true';
@@ -1095,30 +1117,37 @@ async function uploadBatchFiles(files, processName) {
                     if (workitem.priority === 2) priorityIcon = `<span title="{{ _('Medium Priority') }}"><i class="fas fa-flag text-yellow-500"></i></span>`;
                     if (workitem.priority === 1) priorityIcon = `<span title="{{ _('Low Priority') }}"><i class="fas fa-flag text-blue-500"></i></span>`;
 
+                    // Workitem ids are only unique WITHIN a client, so every DOM id
+                    // is keyed on client+id -- two rows sharing a bare id produced
+                    // duplicate element ids, and getElementById then resolved both
+                    // rows' toggles to whichever came first.
+                    const rowKey = `${workitem.client || 'default'}-${workitem.workitemid}`;
                     const rowHtml = `
-                     <tr class="hover:bg-gray-50 transition-colors duration-200 workitem-row" data-status="${workitem.status}" id="row-${workitem.workitemid}">
+                     <tr class="hover:bg-gray-50 transition-colors duration-200 workitem-row" data-status="${workitem.status}" id="row-${rowKey}">
                         <td class="px-4 py-4 text-center w-10">
                             <input type="checkbox" class="row-checkbox h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                                data-id="${workitem.workitemid}" data-testid="workitems-row-checkbox-${workitem.workitemid}">
+                                data-id="${rowKey}" data-testid="workitems-row-checkbox-${workitem.workitemid}">
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-center"><div class="nx-mono font-medium">${workitem.workitemid}</div></td>
                         <td class="px-6 py-4 whitespace-nowrap text-center">${statusBadge}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-center"><div class="nx-mono" style="color:var(--nx-text-sec)">${workitem.modifiedat ? new Date(workitem.modifiedat).toISOString().slice(0, 19).replace('T', ' ') : ''}</div></td>
-                        <td class="px-6 py-4 whitespace-nowrap text-center" id="priority-indicator-${workitem.workitemid}">${priorityIcon}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-center" id="tags-preview-${workitem.workitemid}">
+                        <td class="px-6 py-4 whitespace-nowrap text-center" id="priority-indicator-${rowKey}">${priorityIcon}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center" id="tags-preview-${rowKey}">
                             ${workitem.tags.map(tag => `<span class="text-xs font-semibold px-2 py-0.5 rounded-full" style="background-color:${tag.color}20; color:${tag.color};">${tag.name}</span>`).join('')}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
                             <button class="details-toggle-button text-indigo-600 hover:text-indigo-900"
-                                data-workitemid="${workitem.workitemid}" data-testid="workitems-details-toggle-${workitem.workitemid}">
+                                data-workitemid="${workitem.workitemid}" data-rowkey="${rowKey}"
+                                data-testid="workitems-details-toggle-${workitem.workitemid}">
                                 <i class="indicator fas fa-chevron-down"></i>
                             </button>
                         </td>
                     </tr>
-                    <tr id="details-row-${workitem.workitemid}" class="details-row" hidden
+                    <tr id="details-row-${rowKey}" class="details-row" hidden
                         data-status="${workitem.status}"
                         data-current-stage="${workitem.current_stage || ''}"
                         data-pid="${workitem.pid || ''}"
+                        data-client="${workitem.client || ''}"
                         data-in-register="${workitem.in_register ? '1' : '0'}"><td colspan="7"></td></tr>
                 `;
                     tbody.insertAdjacentHTML('beforeend', rowHtml);

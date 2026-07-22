@@ -8,6 +8,11 @@
     let detailCache = {};
     let _searchDebounce;
 
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
     // ----------------------------- NK badge ----------------------------- //
     function nkBadge(val) {
         if (!val) return '<span class="nx-label nx-label--gray">—</span>';
@@ -15,13 +20,13 @@
             return '<span class="nx-label nx-label--green">&#10003; keine NK</span>';
         if (val === 'inNachkontrolleverarbeitet')
             return '<span class="nx-label nx-label--amber">&#9679; NK</span>';
-        return `<span class="nx-label nx-label--gray">${val}</span>`;
+        return `<span class="nx-label nx-label--gray">${escapeHtml(val)}</span>`;
     }
 
     function channelBadge(val) {
         if (!val) return '—';
         const tone = val.includes('EARLY') ? 'blue' : 'indigo';
-        return `<span class="nx-label nx-label--${tone}">${val}</span>`;
+        return `<span class="nx-label nx-label--${tone}">${escapeHtml(val)}</span>`;
     }
 
     // ----------------------------- fetch helpers ----------------------------- //
@@ -98,7 +103,7 @@
                     groupRow.style.background = 'var(--nx-accent-soft)';
                     groupRow.innerHTML = `<td colspan="9" class="px-4 py-2" style="box-shadow: inset 3px 0 0 0 var(--nx-accent);">
                         <span class="text-xs font-bold uppercase tracking-wider" style="color:var(--nx-accent)">
-                            <i class="fas fa-layer-group mr-2"></i>${groupVal}
+                            <i class="fas fa-layer-group mr-2"></i>${escapeHtml(groupVal)}
                         </span>
                     </td>`;
                     tbody.appendChild(groupRow);
@@ -113,17 +118,17 @@
             docRow.className = 'gen-doc-row';
             docRow.id = `gen-row-${doc.doc_id}`;
             docRow.innerHTML = `
-                <td class="px-4 py-3 whitespace-nowrap text-center"><span class="nx-mono">${dateStr}</span></td>
+                <td class="px-4 py-3 whitespace-nowrap text-center"><span class="nx-mono">${escapeHtml(dateStr)}</span></td>
                 <td class="px-4 py-3 whitespace-nowrap text-center">
-                    <span class="nx-label nx-label--indigo">${doc.doc_dokumententyp || '—'}</span>
+                    <span class="nx-label nx-label--indigo">${escapeHtml(doc.doc_dokumententyp || '—')}</span>
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap text-center">
-                    <span class="nx-label nx-label--gray">${doc.doc_empfaenger || '—'}</span>
+                    <span class="nx-label nx-label--gray">${escapeHtml(doc.doc_empfaenger || '—')}</span>
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap text-center">${channelBadge(doc.doc_eingangskanal)}</td>
-                <td class="px-4 py-3 whitespace-nowrap text-center text-sm" style="color:var(--nx-text-sec)">${doc.doc_sprache || '—'}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-center text-sm" style="color:var(--nx-text-sec)">${escapeHtml(doc.doc_sprache || '—')}</td>
                 <td class="px-4 py-3 whitespace-nowrap text-center text-sm font-medium">
-                    <span class="nx-mono">${doc.doc_betrag ? doc.doc_betrag + ' ' + (doc.doc_waehrung || '') : '—'}</span>
+                    <span class="nx-mono">${escapeHtml(doc.doc_betrag ? doc.doc_betrag + ' ' + (doc.doc_waehrung || '') : '—')}</span>
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap text-center">${nkBadge(doc.doc_nk1)}</td>
                 <td class="px-4 py-3 whitespace-nowrap text-center">${nkBadge(doc.doc_nk2)}</td>
@@ -196,7 +201,7 @@
                     let val = doc[f];
                     if (f === 'DOC_NK1' || f === 'DOC_NK2') val = nkBadge(val);
                     else if (f === 'DOC_EINGANGSKANAL') val = channelBadge(val);
-                    else val = `<span style="color:var(--nx-text)">${val}</span>`;
+                    else val = `<span style="color:var(--nx-text)">${escapeHtml(val)}</span>`;
                     return `<div class="flex justify-between items-start gap-2 py-1.5 last:border-0" style="border-bottom:1px solid var(--nx-divider)">
                         <dt class="text-xs shrink-0 max-w-[45%] truncate" style="color:var(--nx-text-meta)" title="${f}">${f.replace('DOC_', '')}</dt>
                         <dd class="text-xs font-medium text-right break-all">${val}</dd>

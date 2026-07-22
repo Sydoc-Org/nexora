@@ -133,8 +133,11 @@ MS02_STATS_DB_PORT = os.environ.get("MS02_STATS_DB_PORT", MS02_DB_PORT)
 # the MS02 runtime DB, but a DIFFERENT database name). A PG connection is bound
 # to one database, so the doc-field index needs its own engine. Defaults reuse
 # the MS02_DB_* server/login/port/TLS; ONLY the dbname differs and has NO safe
-# default -- the owner supplies MS02_DOCFIELDS_DB_NAME, so until it is set the
-# engine (Task 2) degrades to None and MS02 doc-field search stays a no-op.
+# default -- the owner supplies MS02_DOCFIELDS_DB_NAME. Until it is set the
+# engine degrades to None and doc-field searches FAIL CLOSED for MS02: the
+# Postgres source contributes zero rows to any doc-field-filtered list (an
+# unset engine must never mean "unconstrained" -- that flooded STAGING
+# search results with the entire MS02 corpus, 2026-07-20).
 MS02_DOCFIELDS_DB_HOST = os.environ.get("MS02_DOCFIELDS_DB_HOST", MS02_DB_HOST)
 MS02_DOCFIELDS_DB_NAME = os.environ.get("MS02_DOCFIELDS_DB_NAME")
 MS02_DOCFIELDS_DB_USER = os.environ.get("MS02_DOCFIELDS_DB_USER", MS02_DB_USER)

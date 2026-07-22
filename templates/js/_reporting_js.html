@@ -296,6 +296,19 @@
     URL.revokeObjectURL(a.href);
   }
 
+  // Leading field-type icon for the source-field list (Task 10). The
+  // catalog's `type` is a free-form string (nx_lib/reporting/catalog.py:
+  // FieldMetadata.DataType when present, else "date"/"string") rather than a
+  // fixed enum, so this is a best-effort classifier -- same /date/i +
+  // grainable idiom renderFilters() below (and _reporting_simple_js.html)
+  // already use to detect date fields.
+  function fieldTypeIconClass(f) {
+    var t = String(f.type || '');
+    if (f.grainable || /date/i.test(t)) return 'fa-calendar';
+    if (/int|decimal|float|numeric|money|double|real|bit/i.test(t)) return 'fa-hashtag';
+    return 'fa-font';
+  }
+
   function renderFields() {
     var q = document.getElementById('rpFieldSearch').value.toLowerCase();
     var ul = document.getElementById('rpFieldList');
@@ -304,7 +317,13 @@
       return isFieldAvailable(f) && f.label.toLowerCase().indexOf(q) !== -1;
     }).forEach(function (f) {
       var li = document.createElement('li');
-      li.textContent = f.label;
+      var icon = document.createElement('i');
+      icon.className = 'fas ' + fieldTypeIconClass(f) + ' reporting-field-icon';
+      icon.setAttribute('aria-hidden', 'true');
+      var label = document.createElement('span');
+      label.textContent = f.label;
+      li.appendChild(icon);
+      li.appendChild(label);
       li.onclick = function () {
         if (!state.columns.find(function (c) { return c.field === f.field; })) {
           state.columns.push(Object.assign({}, f, {
@@ -323,6 +342,13 @@
     cols.innerHTML = '';
     state.columns.forEach(function (c, i) {
       var li = document.createElement('li');
+      li.className = 'reporting-col-row';
+      // Display-only drag-handle glyph (Task 10) -- columns have no
+      // reorder logic today (add/remove/rename/grain only), so this adds
+      // no dragstart/dragover wiring, just the visual affordance.
+      var grip = document.createElement('i');
+      grip.className = 'fas fa-grip-vertical reporting-col-grip';
+      grip.setAttribute('aria-hidden', 'true');
       var inp = document.createElement('input');
       inp.value = c.header;
       inp.oninput = function (e) { c.header = e.target.value; };
@@ -343,6 +369,7 @@
       var rm = document.createElement('button');
       rm.textContent = '×';
       rm.onclick = function () { state.columns.splice(i, 1); renderWells(); };
+      li.appendChild(grip);
       li.appendChild(inp);
       if (grainSel) li.appendChild(grainSel);
       li.appendChild(rm);
@@ -1242,8 +1269,12 @@
           opt.dataset.canEdit = r.canEdit ? '1' : '0';
           group.appendChild(opt);
         }
-        var mine = (reports || []).filter(function (r) { return r.owned; });
-        var shared = (reports || []).filter(function (r) { return !r.owned; });
+        // D17: dashboards can't be represented by the Advanced builder's
+        // definition shape (unlike sql-kind reports, which just get an
+        // ' (SQL)' suffix above and stay pickable) -- drop the row entirely.
+        var buildable = (reports || []).filter(function (r) { return r.kind !== 'dashboard'; });
+        var mine = buildable.filter(function (r) { return r.owned; });
+        var shared = buildable.filter(function (r) { return !r.owned; });
         if (mine.length) {
           var g1 = document.createElement('optgroup');
           g1.label = '{{ _("My reports") }}';
