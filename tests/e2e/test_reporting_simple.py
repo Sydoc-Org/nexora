@@ -208,6 +208,105 @@ def test_library_card_shows_preview_band_and_type_badge(nexora_server, page):
     expect(card.locator(".rs-card-badge")).to_contain_text("LINE")
 
 
+def test_library_card_preview_cache_round_trips_real_values(nexora_server, page):
+    """D5 contract, end-to-end: running a saved report once must write its
+    real result into the preview cache (writePreviewCache, keyed off
+    state.current.reportId), and the NEXT library render must surface that
+    real value in the card's thumbnail -- not the deterministic seeded
+    fallback used before any cache exists. Uses the zero-dim (metrics-only,
+    no columns) shape so fillResult takes the 'total' cache branch:
+    payload = {t: 'total', v: Number(rows[0][0])}. previewBandHtml renders
+    the cached value via fmtNumber in a bare '.rs-card-total' div, versus the
+    '.rs-card-total.rs-card-total-label' fallback shown pre-cache -- so the
+    class list itself distinguishes real-cache from seeded-fallback."""
+    _login(page, nexora_server)
+
+    def _row(rid, name):
+        return {
+            "id": rid,
+            "name": name,
+            "ownerName": "Admin",
+            "updatedAt": "2026-07-01T00:00:00Z",
+            "visibility": "private",
+            "owned": True,
+            "kind": "table",
+            "previewKind": "total",
+        }
+
+    definition = {
+        "schemaVersion": 1,
+        "source": "docprocessing",
+        "visualization": "table",
+        "title": "e2e preview cache report",
+        "columns": [],
+        "metrics": [{"metric": "workitem_count", "label": "Total Widgets"}],
+        "filters": [],
+        "sort": [],
+        "scope": {"clients": [], "processes": []},
+        "rowLimit": 100,
+    }
+
+    # Register stubs BEFORE goto -- the library load fires as soon as the
+    # Simple pane mounts.
+    page.route(
+        "**/api/reporting/reports",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps([_row("e2e-preview-cache", "e2e preview cache report")]),
+        ),
+    )
+    page.route(
+        "**/api/reporting/reports/*",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "name": definition["title"],
+                    "definition": definition,
+                    "owned": True,
+                    "canEdit": True,
+                }
+            ),
+        ),
+    )
+    page.route(
+        "**/api/reporting/run",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [{"field": "workitem_count", "header": "Total"}],
+                    "rows": [[777]],
+                    "rowCount": 1,
+                    "truncated": False,
+                    "sql": None,
+                    "params": [],
+                    "resolvedDates": [],
+                }
+            ),
+        ),
+    )
+
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    total_before = page.get_by_test_id("rs-card").first.locator(".rs-card-total")
+    # No cache yet -- the seeded/label fallback renders, not a real number.
+    expect(total_before).to_have_class(re.compile(r"\brs-card-total-label\b"))
+
+    page.get_by_test_id("rs-group-mine").get_by_text("e2e preview cache report").click()
+    expect(page.get_by_test_id("rs-result")).to_be_visible()
+
+    # Exit re-fetches the list and re-renders every card from scratch --
+    # this is where a just-cached run's real value must now surface.
+    page.get_by_test_id("rs-exit").click()
+    expect(page.get_by_test_id("rs-library")).to_be_visible()
+    total_after = page.get_by_test_id("rs-card").first.locator(".rs-card-total")
+    expect(total_after).to_have_text("777")
+    expect(total_after).not_to_have_class(re.compile(r"\brs-card-total-label\b"))
+
+
 def test_wizard_opens_and_lists_measures_or_empty_state(nexora_server, page):
     _login(page, nexora_server)
     page.goto(f"{nexora_server}/reporting")

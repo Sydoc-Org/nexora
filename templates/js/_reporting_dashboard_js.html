@@ -1134,7 +1134,7 @@
   }
 
   function cardShellHtml(c) {
-    var span = c.span || DEFAULT_SPAN[c.type] || 6;
+    var span = parseInt(c.span, 10) || DEFAULT_SPAN[c.type] || 6;
     var empty = isEmptyCardDef(c);
     var bodyClass = 'rdb-card-body' + (empty ? '' : ' rdb-card-body--loading');
     return '<div class="rdb-card" data-testid="rdb-card" data-card-id="' + esc(c.id) + '" ' +

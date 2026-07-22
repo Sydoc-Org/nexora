@@ -130,3 +130,64 @@ def test_advanced_date_filter_token_preset_round_trips(nexora_server, page):
             method: 'DELETE', headers: {{'X-CSRFToken': csrf}}
           }});
         }}""")
+
+
+@pytest.mark.flaky_e2e
+def test_advanced_saved_reports_select_excludes_dashboards(nexora_server, page):
+    """D17: a dashboard-kind report can't be represented by the Advanced
+    builder's definition shape (unlike a sql-kind report, which stays
+    pickable with an ' (SQL)' suffix) -- loadReports() must drop it from
+    #rpSavedReports entirely. Already covered for the Simple library's
+    click-to-open path (test_reporting_simple.py); this covers the other
+    half of D17, the Advanced tab's saved-reports select."""
+    _login(page, nexora_server)
+    ids = page.evaluate(
+        """async () => {
+          const csrf = document.querySelector('meta[name="csrf-token"]').content;
+          const mk = (name, definition) => fetch('/api/reporting/reports', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify({name, definition})
+          }).then(r => r.json());
+          const dash = await mk('e2e adv dash excluded', {
+            kind: 'dashboard', title: 'e2e adv dash excluded', cards: []
+          });
+          const normal = await mk('e2e adv normal included', {
+            schemaVersion: 1, source: 'generali_pdqm', visualization: 'table',
+            title: 'e2e adv normal included',
+            columns: [{field: 'ForDate'}], filters: [], sort: [],
+            scope: {clients: [], processes: []}, rowLimit: 100});
+          return {dash: dash.id, normal: normal.id};
+        }"""
+    )
+    try:
+        # Reload so loadReports() re-fetches the list and repopulates
+        # #rpSavedReports with both newly-created reports.
+        page.reload()
+        page.wait_for_load_state("domcontentloaded")
+        page.wait_for_function(
+            """() => {
+              var sel = document.getElementById('rpSavedReports');
+              if (!sel) return false;
+              for (var i = 0; i < sel.options.length; i++) {
+                if (sel.options[i].text.indexOf('e2e adv normal included') !== -1) return true;
+              }
+              return false;
+            }""",
+            timeout=8000,
+        )
+        option_texts = page.eval_on_selector_all(
+            "#rpSavedReports option", "opts => opts.map(o => o.textContent)"
+        )
+        assert any("e2e adv normal included" in t for t in option_texts)
+        assert not any("e2e adv dash excluded" in t for t in option_texts)
+    finally:
+        page.evaluate(f"""async () => {{
+          const csrf = document.querySelector('meta[name="csrf-token"]').content;
+          await fetch('/api/reporting/reports/{ids["dash"]}', {{
+            method: 'DELETE', headers: {{'X-CSRFToken': csrf}}
+          }});
+          await fetch('/api/reporting/reports/{ids["normal"]}', {{
+            method: 'DELETE', headers: {{'X-CSRFToken': csrf}}
+          }});
+        }}""")
