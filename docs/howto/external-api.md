@@ -17,6 +17,27 @@ PROD serves the app under the `/nexora` prefix via `PrefixMiddleware`; the
 Flask routes themselves are registered unprefixed, so no code is
 prefix-aware. The dev server binds port 8000 (`FLASK_RUN_PORT`).
 
+## Quick start
+
+One header, one GET — with a key in hand (see "Issuing a key" below) this
+is the whole integration:
+
+    curl -H "Authorization: Bearer TfNbeGaVwZUwSITZq0eDo5wRbXHnPTGyBg95Y5C8AAc" \
+        https://nexora.sydoc.ch/nexora/api/v1/stats/today
+
+    {
+      "date": "2026-07-22",
+      "imported_today": 123,
+      "exported_today": 117,
+      "processes": ["sydoc.05_PDBS"]
+    }
+
+Same against a local dev server: `curl -H "Authorization: Bearer <key>"
+http://127.0.0.1:8000/api/v1/stats/today`. In PowerShell use `curl.exe` —
+bare `curl` is an alias for `Invoke-WebRequest`, which spells the header
+differently. No key or a wrong key returns
+`401 {"error": "Invalid API key"}`.
+
 ## Authentication
 
 Send the key as a Bearer token on every request:
