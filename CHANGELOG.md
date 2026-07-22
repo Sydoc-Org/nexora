@@ -8,6 +8,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward 2.5.65.
 
+### Removed
+
+- `db-standard/` — the standardised statistics-DB schema proposal (shipped
+  dev-side in 2.5.64) is withdrawn; its deploy-exclude and `.gitignore`
+  entries go with it.
+
 ## [2.5.64] - 2026-07-22
 
 ### Added
