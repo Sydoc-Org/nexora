@@ -106,6 +106,11 @@ Work toward 2.5.64.
   of the raw message; the agent prompt now forbids resubmitting SQL that just
   failed unchanged. The SQL editor's generic 500 also carries a humanized
   detail.
+- Reporting: multi-card dashboards — a new `kind:'dashboard'` saved-report type
+  built in the Simple pane: KPI / line / bar / donut / table cards over the
+  existing run endpoint, global filters with per-card overrides, drag-to-
+  rearrange, add/duplicate/remove, Edit/Done with autosave, per-card export
+  and drill-through. No schema change.
 
 ### Changed
 
@@ -149,6 +154,17 @@ Work toward 2.5.64.
   treatment. Single-series bar/line charts now render in ink-navy with a
   brand-indigo accent on the peak value; multi-series palettes are unchanged.
   Design spec: `docs/superpowers/specs/2026-07-15-reporting-editorial-ledger-design.md`.
+  **Superseded below by the "Indigo Studio" redesign** (retired before this
+  cycle shipped; kept here for the historical record).
+- Reporting: full "Indigo Studio" redesign — landing hero with AI command bar
+  and live-preview report cards, progress-rail wizard, refined result view
+  with overflow menu, restyled drill drawer and Advanced builder, dark mode.
+  The Editorial Ledger serif/mono skin is retired; all ids and testids kept.
+  The only backend change the redesign needed: `api_reports_list`
+  (`GET /api/reporting/reports`) now computes a `previewKind` per report
+  server-side (new `_preview_kind()` helper in `nx_lib/views/reporting.py`)
+  so library card badges/thumbnails match the report's real definition
+  instead of guessing client-side.
 
 ### Security
 

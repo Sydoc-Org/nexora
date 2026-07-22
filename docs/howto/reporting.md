@@ -10,20 +10,47 @@ custom-header, save/load, and Excel-export support.
 `/reporting` opens as two tabs (one route, two client-side panes;
 `templates/js/_reporting_tabs_js.html` is the controller):
 
-### Editorial Ledger identity
+### Indigo Studio identity
 
-The page carries its own visual identity, distinct from the rest of the app: a
-serif masthead title and section headings on a cool-neutral canvas, mono
-(tabular) numerals for KPI figures, table cells, and metadata, and a single
-2px ink rule topping the chart block. It's a restyle in place — every
-`.reporting-*` class and every `id`/`name`/`data-testid` is unchanged, so
-existing e2e selectors keep working. Three elements ride on it, shared by
-both tabs:
+The page carries its own visual identity, distinct from the rest of the app —
+codenamed **"Indigo Studio"**: a landing hero with an AI command bar and
+live-preview report cards, a progress-rail wizard, a refined result view, a
+restyled drill drawer and Advanced builder, and full dark mode. It's a
+restyle in place over the short-lived "Editorial Ledger" serif/mono skin
+(retired, see `CHANGELOG.md`) — every `.reporting-*` class and every
+`id`/`name`/`data-testid` is unchanged, so existing e2e selectors keep
+working. Design spec: `docs/superpowers/specs/2026-07-20-reporting-redesign-handoff.md`
+(token table, type scale, per-screen specs) + the working prototype
+`docs/superpowers/specs/2026-07-20-reporting-dashboard-prototype.dc.html`
+(the dashboard JS state model — see **Dashboards** below).
 
+- **Landing hero** (`#rsHero`) — shown above the library before any report is
+  open: a title/subtitle, an **AI command bar** (`#rsAiBar` — hidden
+  entirely when the AI assistant is unconfigured, per the existing
+  `ai_enabled` guard) with three static **suggestion chips** that prefill
+  the prompt (i18n strings only, no backend registry), and two actions —
+  **New report — guided builder** and **New dashboard** (`#rsNewDashboard`,
+  see **Dashboards** below).
+- **Report cards with live-preview thumbnails** — every card in the Library/
+  My reports/Shared-with-me groups renders a small preview (a chart curve,
+  a big-number total, or a mini table) from the report's last cached run
+  result (`nx.reporting.preview.<id>` in `localStorage`, written on every
+  successful run) rather than from re-running the report on landing load; a
+  card with no cache yet shows a deterministic decorative placeholder seeded
+  from the report id. A definition edit without a re-run keeps showing the
+  previous shape until the next run.
+- **Wizard progress rail** (`#rsWizardRail`) — a left-hand rail lists the
+  wizard's steps with a running "Step N of 4" indicator; the step
+  renderers, ids, testids and flow are unchanged from Phase 1 — only the
+  chrome around them changed. Coverage badges on measure/breakdown chips
+  render as a small colour-tiered progress bar (same amber/muted
+  convention).
 - **KPI stat band** above the results — total, bucket count, and average per
   bucket, computed client-side from the rows already returned (no extra
   query); hidden for zero-row or non-numeric results, with no "vs prior
-  period" delta in v1 (deferred — it would need a second query).
+  period" delta in v1 for this single-report view (deferred — it would need
+  a second query; a dashboard's KPI cards do get a trend, see
+  **Dashboards** below).
 - **Timing badge** in the masthead — "N rows · M ms", the row count from the
   run response and the elapsed time measured client-side around the fetch;
   appears after the first successful run.
@@ -31,20 +58,30 @@ both tabs:
   SQL under the results; click it to expand the existing Show-query panel.
   Hidden whenever `sqlDisplay` is absent (the WS1 inliner-degrade fallback
   keeps working).
+- **Result header** — `Open in Advanced` and `Show query` live behind a `⋯`
+  overflow menu (`#rsMoreMenu`); **Save** is the gradient primary action;
+  the format select + **Export** read as one visual unit. The error-state
+  "Open in Advanced" escape hatch stays a visible inline button.
 
 Single-series bar/line charts render in ink-navy with a brand-indigo accent
 on the peak value; multi-series charts keep the existing categorical
-palette. Dark mode gets a minimal adaptation of each new element rather than
-a separately designed "ink edition". Full design spec:
-`docs/superpowers/specs/2026-07-15-reporting-editorial-ledger-design.md`.
+palette. Dark mode lifts the single-series ink-navy family to a lighter
+indigo (`#818cf8`/`#c7d2fe`) rather than reusing the locked light-mode hex
+values, and re-themes every new hero/card/chip/dashboard colour plus the
+Chart.js grid/tick colours at chart-build time — toggling dark mode with a
+chart already on screen re-themes on the next render, not live.
 
 - **Simple** — the default; built for report *viewers* and non-data-science
   stakeholders. It is purely a presentation layer over the existing REST
   endpoints (`templates/_reporting_simple.html` +
-  `templates/js/_reporting_simple_js.html`):
+  `templates/js/_reporting_simple_js.html`). It opens on the **landing hero**
+  (AI command bar + suggestion chips + "New report"/"New dashboard" —
+  see **Indigo Studio identity** above), then the library below it:
   - **Library** — every report you can see, grouped into *Library*
     (org-shared, `Visibility='shared'`, any owner), *My reports*, and *Shared
-    with me*. Click a card to run it (lazy — nothing runs until opened).
+    with me*, each card showing a live-preview thumbnail. Click a card to
+    run it (lazy — nothing runs until opened); a `kind:'dashboard'` card
+    instead opens the **dashboard** view (see **Dashboards** below).
     Live-SQL (`kind:'sql'`) reports are hidden here (viewers can't run them);
     they stay fully usable in Advanced.
   - **+ New report (wizard)** — measures (from the metrics registry;
@@ -126,6 +163,97 @@ parameter the last-used tab is restored per browser (`localStorage`).
 > grants (`reporting.scope.process.*`, per-source perms) — different users can
 > legitimately see different numbers, or a friendly "you don't have access"
 > message. This is existing run-path behavior, surfaced honestly in the UI.
+
+## Dashboards
+
+A **dashboard** is a saved report whose definition has
+`kind: 'dashboard'` instead of the usual curated/SQL shape — no schema
+change, no new endpoint, no new permission. It lives entirely in the Simple
+pane (`templates/js/_reporting_dashboard_js.html`, exposing
+`window.ReportingDashboard = {openNew, open, close}`) as a fourth pane view
+alongside library/wizard/result, and is built out of multiple **cards**
+(KPI / line / bar / donut / table), each running the existing curated-source
+`POST /api/reporting/run` path independently.
+
+**Definition shape (`schemaVersion: 1`):**
+
+```json
+{
+  "kind": "dashboard",
+  "schemaVersion": 1,
+  "title": "My Dashboard",
+  "globalFilters": [
+    { "field": "import_date", "op": "between", "value": { "token": "this_month" } }
+  ],
+  "cards": [
+    {
+      "id": "n100",
+      "type": "kpi",
+      "span": 3,
+      "title": "Documents this month",
+      "definition": { "source": "docprocessing", "columns": [], "metrics": [{ "metric": "doc_count" }], "filters": [] },
+      "filterOverrides": []
+    }
+  ]
+}
+```
+
+`type` is one of `kpi` / `line` / `bar` / `donut` / `table`; `span` is the
+card's grid width; `definition` is a normal report-definition fragment
+(same shape as **Report-definition v1 JSON** below) run through the same
+validator and query builder as any other report; `filterOverrides` are
+per-card filters that layer on top of the dashboard's `globalFilters`.
+
+- **Access model** — identical to any other saved report: the dashboard row
+  lives in `dbo.Reports` like every other `kind`, gated by `Visibility`
+  (private/shared) and `dbo.ReportShares` (per-user, optional edit grant).
+  There is no separate dashboard permission or sharing mechanism — Save,
+  Save as, Rename, Delete and the Share dialog all work exactly as
+  documented in **Save & load** / **Sharing & the shared library** above.
+- **Per-card runs** — each card runs independently against
+  `POST /api/reporting/run` using its **effective filters**: the card's own
+  `definition.filters`, merged with the dashboard's `globalFilters`, merged
+  with the card's `filterOverrides` — keyed by field, later sources winning
+  on a collision. Concretely: a `filterOverrides` entry on a field beats a
+  `globalFilters` entry on the same field, which beats the card's own base
+  `definition.filters` entry on that field; fields that appear in only one
+  source are simply included. This means edits to the global filter bar
+  propagate to every card *except* the fields a card has explicitly
+  overridden (shown with a small "This card overrides the global filters"
+  chip), and a card with no override at all shows "inherits global
+  filters".
+- **Edit mode** — an Edit/Done toggle exposes drag-to-rearrange (native
+  HTML5 drag-and-drop), add/duplicate/remove-card, and the global-filter
+  popover (field/op/value, from the same run catalog the card definitions
+  use); every change autosaves through the normal report CRUD — `POST
+  /api/reporting/reports` (`api_reports_create`) the first time, `PUT
+  /api/reporting/reports/<id>` (`api_reports_update`) on every save after —
+  there is no separate "dashboard save" endpoint.
+- **KPI trend** — a KPI card shows a "vs previous period" delta only when
+  its **effective filters contain exactly one `between` date-range filter**;
+  the client re-runs the card with that range shifted back one period
+  (`this_month` → `last_month`, `this_quarter` → `last_quarter`, `this_week`
+  → `last_week`, `this_year` → `last_year`) and computes the percentage
+  change. Any other shape (no date filter, a literal date-range pair without
+  a shiftable token, more than one date filter) hides the trend rather than
+  guessing.
+- **Export** is **per-card only, v1** — the dashboard header's Export menu
+  lists every card; picking one POSTs that card's effective definition to
+  the existing `/api/reporting/export` (gated by `reporting.export`, same
+  as everywhere else). A whole-workbook (one sheet per card) export is not
+  built yet.
+- **Drill-through** works per card exactly as it does on a normal aggregate
+  result (see **Drill-through** below) — clicking a chart element or table
+  row on an eligible card opens the same slide-over drawer; donut cards are
+  excluded from click-drill (their >8-category "Other" rollup breaks the
+  1:1 index-to-row mapping the drawer needs).
+
+Migration history: the dashboard builder **supersedes**
+`docs/superpowers/plans/2026-07-15-reporting-pin-to-dashboard.md` (a
+different, never-executed design that would have added a `dbo.ReportingPins`
+table and a "pin a report to the dashboard" affordance) — that plan is
+stamped superseded; this multi-card dashboard covers the same underlying
+need ("my saved reports as live tiles") without any new table.
 
 ## What the page does
 
@@ -907,7 +1035,9 @@ live schema grounding and scheduled-report delivery.
 - `nx_lib/views/reporting.py` — Flask routes.
 - `templates/js/_reporting_js.html` — builder UI; `templates/js/_reporting_viz_js.html`
   — chart + drag-and-drop pivot (`window.ReportingViz`);
-  `templates/js/_reporting_ai_js.html` — Ask AI panel.
+  `templates/js/_reporting_ai_js.html` — Ask AI panel;
+  `templates/js/_reporting_dashboard_js.html` — dashboard builder
+  (`window.ReportingDashboard`).
 - `sql/_migrations/NexoraDB/0004_create_reports_table.sql` — `dbo.Reports` DDL.
 - `sql/_migrations/NexoraDB/0005_seed_reporting_permissions.sql` — permission seed.
 - `sql/_migrations/NexoraDB/0006_create_reporting_sql_tables.sql` —
@@ -923,4 +1053,13 @@ live schema grounding and scheduled-report delivery.
   design spec (decisions, architecture, endpoint list, security model).
 - `docs/superpowers/specs/2026-07-15-reporting-editorial-ledger-design.md` —
   "Editorial Ledger" visual identity design spec (masthead, KPI band, timing
-  badge, query footer, single-series chart colors).
+  badge, query footer, single-series chart colors) — **superseded** by the
+  Indigo Studio redesign below; kept for the historical record.
+- `docs/superpowers/specs/2026-07-20-reporting-redesign-handoff.md` — the
+  "Indigo Studio" design handoff (token table, type scale, per-screen specs)
+  + `docs/superpowers/specs/2026-07-20-reporting-dashboard-prototype.dc.html`
+  — the dashboard JS state-model prototype (its logic class is the literal
+  spec for `_reporting_dashboard_js.html`).
+- `docs/superpowers/plans/2026-07-20-reporting-redesign-dashboard-builder.md` —
+  the redesign + dashboard-builder implementation plan; supersedes
+  `docs/superpowers/plans/2026-07-15-reporting-pin-to-dashboard.md`.
