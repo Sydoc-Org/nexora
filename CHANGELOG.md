@@ -6,7 +6,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-Work toward 2.5.64.
+Work toward 2.5.65.
+
+## [2.5.64] - 2026-07-22
 
 ### Added
 
