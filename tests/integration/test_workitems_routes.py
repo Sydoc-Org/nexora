@@ -1,4 +1,4 @@
-"""Integration tests for nx_lib.views.workitems — 19 routes.
+"""Integration tests for nx_lib.views.workitems — 10 routes.
 
 Seed users only have dashboard.view, so all workitems.* gates return 403.
 Tests that exercise route bodies use the workitems_all_perms fixture
@@ -10,26 +10,22 @@ WorkitemTags, WorkitemComments) that are absent from the TEST schema. They
 fall through except branches and return 500 JSON. Tuple matches in
 assertions allow for that.
 
-Routes covered (19 endpoints):
+The collaboration API (single-workitem tags, interactions, comments, assign,
+priority, tags CRUD, mention-autocomplete users) was removed in Task 4 of the
+chat-collab-removal-bug-fixes plan; get_audithistory (Octo processing trail)
+is a separate feature and stays.
+
+Routes covered (10 endpoints):
 - /api/config/fields                         GET
 - /api/docfield_values                       GET
 - /api/workitems                             GET
 - /api/export/workitems/csv                  GET
 - /workitems                                 page
 - /import_workitems                          POST
-- /api/workitem/<id>                         GET
 - /api/get_media_info/<id>                   GET
 - /api/get_media_raw/<id>/<idx>              GET
 - /api/get_audithistory/<id>                 GET
-- /api/users                                 GET
-- /api/workitem/<id>/interactions            GET
-- /api/workitem/<id>/comment                 POST
-- /api/workitem/<id>/assign                  POST
-- /api/workitem/<id>/priority                POST
-- /api/tags                                  GET
 - /api/workitems_page_init                   GET
-- /api/workitem/<id>/tags                    POST
-- /api/workitem/<id>/tags/<tag_id>           DELETE
 """
 
 import csv
@@ -747,40 +743,7 @@ def test_import_workitems_with_perms_empty_body(user_client, workitems_all_perms
     assert resp.status_code in (200, 302, 400, 500)
 
 
-# ============================ single workitem detail =========================
-
-
-def test_get_single_workitem_anonymous(client):
-    resp = client.get("/api/workitem/1", follow_redirects=False)
-    # Function checks `if 'username' not in session` first → 401 JSON
-    assert resp.status_code in (200, 302, 401, 500)
-
-
-@pytest.mark.parametrize(
-    ("method", "path", "payload"),
-    [
-        ("get", "/api/workitem/999999", None),
-        ("get", "/api/workitem/999999/interactions", None),
-        ("post", "/api/workitem/999999/comment", {"comment": "x"}),
-        ("post", "/api/workitem/999999/assign", {"assignedUserID": 1001}),
-        ("post", "/api/workitem/999999/priority", {"priority": 2}),
-        ("post", "/api/workitem/999999/tags", {"tagName": "x", "tagColor": "#fff"}),
-        ("delete", "/api/workitem/999999/tags/999", None),
-    ],
-)
-def test_workitem_metadata_endpoints_require_permission(noperm_client, method, path, payload):
-    """These seven endpoints checked only `"username" in session`, so ANY logged-in
-    user could read and mutate any workitem's tags/priority/assignment/comments --
-    verified live on INT with a user who gets 403 on the workitems page itself yet
-    successfully tagged, prioritized and re-assigned workitem 18319."""
-    kwargs = {"json": payload} if payload is not None else {}
-    resp = getattr(noperm_client, method)(path, **kwargs)
-    assert resp.status_code == 403, f"{method.upper()} {path} -> {resp.status_code}"
-
-
-def test_get_single_workitem_authed_unknown_id(user_client, workitems_all_perms):
-    resp = user_client.get("/api/workitem/999999")
-    assert resp.status_code in (200, 404, 500)
+# ============================ media + audit history ===========================
 
 
 def test_api_get_media_info_authed_unknown_id(user_client):
@@ -828,57 +791,12 @@ def test_get_audithistory_with_perms(user_client, workitems_all_perms):
     assert resp.status_code in (200, 404, 500)
 
 
-# ============================ users + interactions ===========================
-
-
-def test_get_users_for_mentions_authed(user_client):
-    """No permission gate — returns users matching a session-org filter."""
-    resp = user_client.get("/api/users")
-    assert resp.status_code in (200, 401, 500)
-
-
-def test_get_workitem_interactions_authed(user_client, workitems_all_perms):
-    resp = user_client.get("/api/workitem/999999/interactions")
-    assert resp.status_code in (200, 404, 500)
-
-
-def test_add_workitem_comment_anonymous_returns_unauth(client):
-    resp = client.post("/api/workitem/1/comment", json={"comment": "x"})
-    assert resp.status_code in (200, 302, 401, 500)
-
-
-def test_add_workitem_comment_authed_unknown(user_client, workitems_all_perms):
-    resp = user_client.post("/api/workitem/999999/comment", json={"comment": "x"})
-    assert resp.status_code in (200, 400, 404, 500)
-
-
-def test_assign_workitem_authed_unknown(user_client, workitems_all_perms):
-    resp = user_client.post("/api/workitem/999999/assign", json={"userId": 1001})
-    assert resp.status_code in (200, 400, 404, 500)
-
-
-def test_set_workitem_priority_authed_unknown(user_client, workitems_all_perms):
-    resp = user_client.post("/api/workitem/999999/priority", json={"priority": "high"})
-    assert resp.status_code in (200, 400, 404, 500)
-
-
 # ============================ tags + page init ===============================
-
-
-def test_get_all_tags_authed(user_client):
-    """No permission gate — returns tags from WorkitemTags (absent → 500)."""
-    resp = user_client.get("/api/tags")
-    assert resp.status_code in (200, 500)
 
 
 def test_api_workitems_page_init_authed(user_client):
     resp = user_client.get("/api/workitems_page_init")
     assert resp.status_code in (200, 500)
-
-
-def test_add_tag_to_workitem_authed_unknown(user_client, workitems_all_perms):
-    resp = user_client.post("/api/workitem/999999/tags", json={"tag_id": 1})
-    assert resp.status_code in (200, 400, 404, 500)
 
 
 # ============================ MS02 autocomplete ==============================
@@ -930,11 +848,6 @@ def test_api_docfield_values_allows_sensitive_with_perm(
     # did NOT short-circuit. Accept both to stay DB-independent.
     resp = user_client.get("/api/docfield_values?field=validationuser&process=all")
     assert resp.status_code in (200, 500)
-
-
-def test_remove_tag_from_workitem_authed_unknown(user_client, workitems_all_perms):
-    resp = user_client.delete("/api/workitem/999999/tags/999")
-    assert resp.status_code in (200, 404, 500)
 
 
 # ============================ /import_prepared_audit =========================

@@ -34,7 +34,6 @@ from ..db import engine_ms02_docfields_pg, engine_nexora_db, engine_statistics_d
 from ..extensions import cache
 from ..files import is_file_allowed
 from ..i18n import get_locale
-from ..notifications import create_notification
 from ..octo import (
     get_access_token,
     get_activity_type_name,
@@ -61,7 +60,7 @@ from ..security import (
     page_visibility,
     require_permission,
 )
-from ..users import get_all_portal_users, resolve_user_icon_url
+from ..users import get_all_portal_users
 from ..workitem_sources import (
     _MS02_IDENT,
     WorkitemFilter,
@@ -73,7 +72,6 @@ from ..workitem_sources import (
     resolve_ms02_pid_to_wids,
     resolve_ms02_wids_to_pids,
     resolve_octo_wid_stage,
-    single_workitem_tags,
 )
 
 # ---------------------------- field/config helpers ---------------------------- #
@@ -1404,19 +1402,6 @@ def import_prepared_audit():
     return jsonify(result), 200
 
 
-@require_permission("workitems.details.view")
-def get_single_workitem(workitemid):
-    if "username" not in session:
-        return jsonify({"error": _("Not authorized")}), 401
-
-    try:
-        tags = single_workitem_tags(workitemid)
-        return jsonify({"workitemid": workitemid, "tags": tags})
-    except Exception as e:
-        current_app.logger.error(f"Failed to fetch single workitem {workitemid}: {e}")
-        return jsonify({"error": _("Could not fetch workitem data")}), 500
-
-
 def api_get_media_info(workitem_id):
     if not has_permission("workitems.details.view"):
         return jsonify({"error": _("Not authorized")}), 403
@@ -1671,339 +1656,6 @@ def get_audithistory(workitem_id):
         return jsonify({"error": f"{_('An unexpected error occurred')}: {e}"}), 500
 
 
-# ---------------------------- collaboration apis ---------------------------- #
-
-
-def get_users_for_mentions():
-    if "username" not in session:
-        return jsonify({"error": _("Not authorized")}), 401
-
-    _all_users = has_permission("admin.interact.users.all")
-    _org = session.get("organizationcode", "")
-    # The comment permission decides whether any users are returned at all, so
-    # it must be part of the key: otherwise a permitted user's cached list was
-    # served to unpermitted callers in the same org.
-    _can_mention = has_permission("workitems.details.add.comment")
-    _cache_key = f"users_mentions_{'all' if _all_users else _org}_c{int(_can_mention)}"
-    cached = cache.get(_cache_key)
-    if cached is not None:
-        return jsonify(cached)
-
-    if not _can_mention:
-        cache.set(_cache_key, [], timeout=900)
-        return jsonify([])
-
-    conn = None
-    cursor = None
-    try:
-        conn = engine_nexora_db.raw_connection()
-        cursor = conn.cursor()
-        if _all_users:
-            cursor.execute("SELECT userID, username, fullname FROM Users")
-        else:
-            cursor.execute(
-                """
-                SELECT userID, username, fullname FROM Users
-                WHERE organizationcode IN ('SYDC', ?) AND accessid not in (1,2)
-                """,
-                _org,
-            )
-        users = [
-            dict(zip([column[0] for column in cursor.description], row, strict=False))
-            for row in cursor.fetchall()
-        ]
-        cache.set(_cache_key, users, timeout=900)
-        return jsonify(users)
-    except Exception as e:
-        current_app.logger.error(f"Failed to fetch users for mentions: {e}")
-        return jsonify({"error": _("Could not fetch users")}), 500
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-
-
-@require_permission("workitems.details.view")
-def get_workitem_interactions(workitemid):
-    if "username" not in session:
-        return jsonify({"error": _("Not authorized")}), 401
-
-    _cache_key = f"interactions_{workitemid}"
-    cached = cache.get(_cache_key)
-    if cached is not None:
-        return jsonify(cached)
-
-    conn = None
-    cursor = None
-    try:
-        conn = engine_nexora_db.raw_connection()
-        cursor = conn.cursor()
-
-        sql_query = """
-            SELECT c.CommentText, c.Timestamp, u.username, u.userID
-            FROM Workitem_Comments c
-            JOIN Users u ON c.UserID = u.userID
-            WHERE c.WorkItemID = ?
-            ORDER BY c.Timestamp ASC
-        """
-        cursor.execute(sql_query, [workitemid])
-        comments_data = cursor.fetchall()
-
-        cursor.execute(
-            """
-            SELECT t.TagID, t.TagName, t.TagColor
-            FROM Workitem_Tags wt
-            JOIN Tags t ON wt.TagID = t.TagID
-            WHERE wt.workitemid = ?
-            """,
-            (workitemid,),
-        )
-        tags_data = cursor.fetchall()
-
-        cursor.execute(
-            "SELECT Priority, AssignedUserID FROM Workitem_Metadata WHERE WorkItemID = ?",
-            (workitemid,),
-        )
-        meta_row = cursor.fetchone()
-
-        if meta_row is None and not comments_data and not tags_data:
-            return jsonify(
-                {
-                    "priority": 0,
-                    "assigneduserid": "None",
-                    "comments": [],
-                    "tags": [],
-                    "message": _("No data found for this workitem."),
-                }
-            ), 200
-
-        priority = meta_row[0] if (meta_row and meta_row[0] is not None) else 0
-        assigneduserid = meta_row[1] if (meta_row and meta_row[1] is not None) else "None"
-        tags = (
-            [{"id": trow.TagID, "name": trow.TagName, "color": trow.TagColor} for trow in tags_data]
-            if tags_data
-            else []
-        )
-
-        comments = []
-        if comments_data:
-            for crow in comments_data:
-                comments.append(
-                    {
-                        "CommentText": crow.CommentText,
-                        "Timestamp": crow.Timestamp.isoformat(),
-                        "username": crow.username,
-                        "userID": crow.userID,
-                        "userIcon": resolve_user_icon_url(crow.userID),
-                    }
-                )
-        result = {
-            "priority": priority,
-            "assigneduserid": assigneduserid,
-            "comments": comments,
-            "tags": tags,
-        }
-        cache.set(_cache_key, result, timeout=600)
-        return jsonify(result)
-    except Exception as e:
-        current_app.logger.error(f"Failed to fetch interactions for workitem {workitemid}: {e}")
-        return jsonify({"error": _("Could not fetch interactions")}), 500
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-
-
-@require_permission("workitems.details.add.comment")
-def add_workitem_comment(workitemid):
-    if "username" not in session:
-        return jsonify({"error": _("Not authorized")}), 401
-
-    data = request.get_json()
-    comment_text = data.get("commentText")
-    if not comment_text:
-        return jsonify({"success": False, "message": _("Comment cannot be empty.")}), 400
-
-    conn = None
-    cursor = None
-    try:
-        conn = engine_nexora_db.raw_connection()
-        cursor = conn.cursor()
-
-        cursor.execute(
-            """
-            INSERT INTO Workitem_Comments (WorkItemID, UserID, CommentText)
-            VALUES (?, ?, ?)
-            """,
-            (workitemid, session["userid"], comment_text),
-        )
-        conn.commit()
-
-        cursor.execute("SELECT TOP 1 CommentID FROM Workitem_Comments ORDER BY CommentID DESC")
-        comment_id = cursor.fetchone()[0]
-
-        mentions = re.findall(r"@(\w+\.\w+)", comment_text)
-        if mentions:
-            placeholders = ",".join("?" for _m in mentions)
-            cursor.execute(
-                f"SELECT userID, username FROM Users WHERE username IN ({placeholders})",
-                mentions,
-            )
-            mentioned_users = cursor.fetchall()
-            for user in mentioned_users:
-                cursor.execute(
-                    "INSERT INTO Comment_Mentions (CommentID, MentionedUserID) VALUES (?, ?)",
-                    (comment_id, user.userID),
-                )
-                notification_link = url_for(
-                    "workitems_overview", search=workitemid, _external=False
-                )
-                create_notification(
-                    user.userID,
-                    f"{session['username']} mentioned you on workitem {workitemid}",
-                    link=notification_link,
-                    icon="fa-at",
-                )
-        conn.commit()
-        cache.delete(f"interactions_{workitemid}")
-        return jsonify({"success": True, "message": _("Comment added.")})
-    except Exception as e:
-        current_app.logger.error(f"Error adding comment for workitem {workitemid}: {e}")
-        return jsonify({"success": False, "message": _("An unexpected error occurred.")}), 500
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-
-
-@require_permission("workitems.details.assign.users")
-def assign_workitem(workitemid):
-    if "username" not in session:
-        return jsonify({"error": _("Not authorized")}), 401
-
-    data = request.get_json()
-    assigned_user_id = data.get("assignedUserID")
-    if assigned_user_id is None:
-        return jsonify({"success": False, "message": _("Invalid assignment.")}), 400
-    elif assigned_user_id == "None":
-        assigned_user_id = None
-    conn = None
-    cursor = None
-    try:
-        conn = engine_nexora_db.raw_connection()
-        cursor = conn.cursor()
-
-        cursor.execute(
-            """
-            MERGE Workitem_Metadata AS target
-            USING (VALUES (?, ?, ?, GETDATE())) AS source (WorkItemID, AssignedUserID, UserID, UpdateTime)
-            ON target.WorkItemID = source.WorkItemID
-            WHEN MATCHED THEN
-                UPDATE SET AssignedUserID = source.AssignedUserID, LastUpdatedByUserID = source.UserID, LastUpdatedAt = source.UpdateTime
-            WHEN NOT MATCHED THEN
-                INSERT (WorkItemID, AssignedUserID, LastUpdatedByUserID, LastUpdatedAt)
-                VALUES (source.WorkItemID, source.AssignedUserID, source.UserID, source.UpdateTime);
-            """,
-            (workitemid, assigned_user_id, session["userid"]),
-        )
-
-        conn.commit()
-        cache.delete(f"interactions_{workitemid}")
-        if assigned_user_id is not None and assigned_user_id != session["userid"]:
-            notification_link = url_for("workitems_overview", search=workitemid, _external=False)
-            create_notification(
-                assigned_user_id,
-                f"{session['username']} {_('assigned you on workitem')} {workitemid}",
-                link=notification_link,
-                icon="fa-people-carry-box",
-            )
-        return jsonify({"success": True, "message": _("Assignment updated.")})
-    except Exception as e:
-        current_app.logger.error(f"Error setting assignment for workitem {workitemid}: {e}")
-        return jsonify({"success": False, "message": _("An unexpected error occurred.")}), 500
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-
-
-@require_permission("workitems.details.set.priority")
-def set_workitem_priority(workitemid):
-    if "username" not in session:
-        return jsonify({"error": _("Not authorized")}), 401
-
-    data = request.get_json()
-    priority = data.get("priority")
-    if priority is None or priority not in [0, 1, 2, 3]:
-        return jsonify({"success": False, "message": _("Invalid priority level.")}), 400
-
-    conn = None
-    cursor = None
-    try:
-        conn = engine_nexora_db.raw_connection()
-        cursor = conn.cursor()
-
-        cursor.execute(
-            """
-            MERGE Workitem_Metadata AS target
-            USING (VALUES (?, ?, ?, GETDATE())) AS source (WorkItemID, Priority, UserID, UpdateTime)
-            ON target.WorkItemID = source.WorkItemID
-            WHEN MATCHED THEN
-                UPDATE SET Priority = source.Priority, LastUpdatedByUserID = source.UserID, LastUpdatedAt = source.UpdateTime
-            WHEN NOT MATCHED THEN
-                INSERT (WorkItemID, Priority, LastUpdatedByUserID, LastUpdatedAt)
-                VALUES (source.WorkItemID, source.Priority, source.UserID, source.UpdateTime);
-            """,
-            (workitemid, priority, session["userid"]),
-        )
-
-        conn.commit()
-        cache.delete(f"interactions_{workitemid}")
-        return jsonify({"success": True, "message": _("Priority updated.")})
-    except Exception as e:
-        current_app.logger.error(f"Error setting priority for workitem {workitemid}: {e}")
-        return jsonify({"success": False, "message": _("An unexpected error occurred.")}), 500
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-
-
-def get_all_tags():
-    if "username" not in session:
-        return jsonify({"error": _("Not authorized")}), 401
-
-    cached = cache.get("all_tags")
-    if cached is not None:
-        return jsonify(cached)
-
-    conn = None
-    cursor = None
-    try:
-        conn = engine_nexora_db.raw_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT TagID, TagName, TagColor FROM Tags ORDER BY TagName")
-        tags = [
-            dict(zip([column[0] for column in cursor.description], row, strict=False))
-            for row in cursor.fetchall()
-        ]
-        cache.set("all_tags", tags, timeout=1800)
-        return jsonify(tags)
-    except Exception as e:
-        current_app.logger.error(f"Failed to fetch all tags: {e}")
-        return jsonify({"error": _("Could not fetch tags")}), 500
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-
-
 def api_workitems_page_init():
     if "username" not in session:
         return jsonify({}), 401
@@ -2128,100 +1780,6 @@ def api_workitems_page_init():
         cache.set(_fields_key, field_config, timeout=3600)
 
     return jsonify({"tags": tags, "users": users, "field_config": field_config})
-
-
-@require_permission("workitems.details.add.tag")
-def add_tag_to_workitem(workitemid):
-    if "username" not in session:
-        return jsonify({"error": _("Not authorized")}), 401
-
-    data = request.get_json()
-    tag_name = data.get("tagName", "").strip()
-    tag_color = data.get("tagColor", "#6B7280")
-
-    if not tag_name:
-        return jsonify({"success": False, "message": _("Tag name cannot be empty.")}), 400
-
-    conn = None
-    cursor = None
-    try:
-        conn = engine_nexora_db.raw_connection()
-        cursor = conn.cursor()
-
-        cursor.execute("SELECT TagID FROM Tags WHERE TagName = ?", (tag_name,))
-        tag = cursor.fetchone()
-
-        if tag:
-            tag_id = tag.TagID
-        else:
-            cursor.execute(
-                "INSERT INTO Tags (TagName, TagColor, CreatedByUserID) OUTPUT INSERTED.TagID VALUES (?, ?, ?)",
-                (tag_name, tag_color, session["userid"]),
-            )
-            tag_id = cursor.fetchone().TagID
-
-        cursor.execute(
-            "SELECT 1 FROM Workitem_Tags WHERE WorkItemID = ? AND TagID = ?", (workitemid, tag_id)
-        )
-        if cursor.fetchone():
-            return jsonify({"success": False, "message": _("Workitem already has this tag.")}), 409
-
-        cursor.execute(
-            "INSERT INTO Workitem_Tags (WorkItemID, TagID) VALUES (?, ?)", (workitemid, tag_id)
-        )
-        conn.commit()
-        cache.delete(f"interactions_{workitemid}")
-        cache.delete("all_tags")
-
-        return jsonify(
-            {
-                "success": True,
-                "message": _("Tag added successfully."),
-                "tag": {"TagID": tag_id, "TagName": tag_name, "TagColor": tag_color},
-            }
-        )
-
-    except Exception as e:
-        current_app.logger.error(f"Error adding tag to workitem {workitemid}: {e}")
-        return jsonify({"success": False, "message": _("An unexpected error occurred.")}), 500
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-
-
-@require_permission("workitems.details.add.tag")
-def remove_tag_from_workitem(workitemid, tag_id):
-    if "username" not in session:
-        return jsonify({"error": _("Not authorized")}), 401
-
-    conn = None
-    cursor = None
-    try:
-        conn = engine_nexora_db.raw_connection()
-        cursor = conn.cursor()
-
-        cursor.execute(
-            "DELETE FROM Workitem_Tags WHERE WorkItemID = ? AND TagID = ?",
-            (workitemid, tag_id),
-        )
-        conn.commit()
-
-        if cursor.rowcount == 0:
-            return jsonify({"success": False, "message": _("Tag association not found.")}), 404
-
-        cache.delete(f"interactions_{workitemid}")
-        cache.delete("all_tags")
-        return jsonify({"success": True, "message": _("Tag removed successfully.")})
-    except Exception as e:
-        current_app.logger.error(f"Error removing tag {tag_id} from workitem {workitemid}: {e}")
-        return jsonify({"success": False, "message": _("An unexpected error occurred.")}), 500
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
 
 
 @require_permission("workitems.import.preparedaudit")
@@ -2361,11 +1919,6 @@ def register_routes(app):
         methods=["POST"],
     )
     app.add_url_rule(
-        "/api/workitem/<int:workitemid>",
-        endpoint="get_single_workitem",
-        view_func=get_single_workitem,
-    )
-    app.add_url_rule(
         "/api/get_media_info/<int:workitem_id>",
         endpoint="api_get_media_info",
         view_func=api_get_media_info,
@@ -2381,46 +1934,7 @@ def register_routes(app):
         view_func=get_audithistory,
     )
     app.add_url_rule(
-        "/api/users", endpoint="get_users_for_mentions", view_func=get_users_for_mentions
-    )
-    app.add_url_rule(
-        "/api/workitem/<int:workitemid>/interactions",
-        endpoint="get_workitem_interactions",
-        view_func=get_workitem_interactions,
-    )
-    app.add_url_rule(
-        "/api/workitem/<int:workitemid>/comment",
-        endpoint="add_workitem_comment",
-        view_func=add_workitem_comment,
-        methods=["POST"],
-    )
-    app.add_url_rule(
-        "/api/workitem/<int:workitemid>/assign",
-        endpoint="assign_workitem",
-        view_func=assign_workitem,
-        methods=["POST"],
-    )
-    app.add_url_rule(
-        "/api/workitem/<int:workitemid>/priority",
-        endpoint="set_workitem_priority",
-        view_func=set_workitem_priority,
-        methods=["POST"],
-    )
-    app.add_url_rule("/api/tags", endpoint="get_all_tags", view_func=get_all_tags)
-    app.add_url_rule(
         "/api/workitems_page_init",
         endpoint="api_workitems_page_init",
         view_func=api_workitems_page_init,
-    )
-    app.add_url_rule(
-        "/api/workitem/<int:workitemid>/tags",
-        endpoint="add_tag_to_workitem",
-        view_func=add_tag_to_workitem,
-        methods=["POST"],
-    )
-    app.add_url_rule(
-        "/api/workitem/<int:workitemid>/tags/<int:tag_id>",
-        endpoint="remove_tag_from_workitem",
-        view_func=remove_tag_from_workitem,
-        methods=["DELETE"],
     )
