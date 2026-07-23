@@ -456,13 +456,10 @@ def _get_workitems_data(args, export_all=False):
     page = args.get("page", 1, type=int)
     search_term = args.get("search", "").strip()
     status = args.get("status", "")
-    tag_filter = args.get("tag", "").strip()
     start_date_str = args.get("startDate", "")
     end_date_str = args.get("endDate", "")
     start_date = datetime.fromisoformat(start_date_str) if start_date_str else None
     end_date = datetime.fromisoformat(end_date_str) if end_date_str else None
-    priority = args.get("priority", "")
-    assigned_user = args.get("assignedUser", "")
     if export_all:
         per_page = EXPORT_MAX_ROWS
         offset = 0
@@ -724,11 +721,6 @@ def _get_workitems_data(args, export_all=False):
         if (start_date and has_permission("workitems.filter.datetime"))
         else None,
         end_date=end_date if (end_date and has_permission("workitems.filter.datetime")) else None,
-        priority=priority if (priority and has_permission("workitems.filter.priority")) else None,
-        assigned_user=assigned_user
-        if (assigned_user and has_permission("workitems.filter.assignedUser"))
-        else None,
-        tag=tag_filter if (tag_filter and has_permission("workitems.filter.tag")) else None,
         docfields=docfields or [],  # raw pairs kept for autocomplete only
         docvalues=docvalues or [],
         docfield_ids=docfield_ids,  # StatisticsDB-resolved -> SqlServerSource only

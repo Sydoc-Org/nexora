@@ -10,19 +10,14 @@ import octo (document fetching stays in the views).
 
 import contextlib
 import io
-import json
 import re
 from dataclasses import dataclass, field
 
 import psycopg2.extras
 from flask import current_app
 
-from . import config as cfg
 from .clients import CLIENTS, non_default_clients
 from .db import engine_nexora_db
-
-DB_NEXORA = cfg.DB_NEXORA
-
 
 # Status code the UI's "In Progress" option maps to. It is a BUCKET, not a
 # single code: the display CASE renders every status that is not 0 (Ready) or
@@ -41,9 +36,6 @@ class WorkitemFilter:
     search_id: str | None = None  # exact workitem id to match
     start_date: object = None
     end_date: object = None
-    priority: str | None = None
-    assigned_user: str | None = None
-    tag: str | None = None
     # Raw doc-field search pairs, kept for the autocomplete endpoint only. The
     # ACTUAL search is now ALWAYS pre-resolved by the orchestrator into a per-
     # source id allow-set:
@@ -123,18 +115,6 @@ class SqlServerSource:
             else:
                 where_clauses.append("twi.Status = ?")
                 params.append(filt.status_code)
-        if filt.tag:
-            where_clauses.append(
-                f"""
-                EXISTS (
-                    SELECT 1
-                    FROM [{DB_NEXORA}].dbo.Workitem_Tags wt
-                    JOIN [{DB_NEXORA}].dbo.Tags t ON wt.TagID = t.TagID
-                    WHERE wt.workitemid = twi.id AND t.TagName like ?
-                )
-            """
-            )
-            params.append(f"%{filt.tag}%")
         if filt.search_id:
             # Exact match: searching 371 must not also return 1371/3716/16371.
             where_clauses.append("CAST(twi.id AS NVARCHAR(50)) = ?")
@@ -145,15 +125,6 @@ class SqlServerSource:
         if filt.end_date:
             where_clauses.append("twi.ModifiedAt < ?")
             params.append(filt.end_date)
-        if filt.priority:
-            where_clauses.append("ISNULL(wim.Priority, 0) = ?")
-            params.append(filt.priority)
-        if filt.assigned_user:
-            if filt.assigned_user in ("None", "Unassigned"):
-                where_clauses.append("(wim.AssignedUserID IS NULL)")
-            else:
-                where_clauses.append("wim.AssignedUserID = ?")
-                params.append(filt.assigned_user)
 
         extra_clauses = []
         temp_tables = []
@@ -188,7 +159,6 @@ class SqlServerSource:
                 FROM t_WorkItems twi
                 INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
                 INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
-                LEFT JOIN [{DB_NEXORA}].dbo.Workitem_Metadata wim ON twi.id = wim.workitemid
                 WHERE {full_where}
             """,
                 params,
@@ -212,22 +182,13 @@ class SqlServerSource:
                             WHEN tai.ActivityInstanceName LIKE '%Pause%' or tai.ActivityInstanceName like '%Deletion%' or tai.ActivityInstanceName like '%Lieferung%' THEN 'Delivery'
                             ELSE 'Extraction'
                         END AS CurrentStage,
-                        wim.Priority,
-                        (
-                            SELECT t.TagID AS id, t.TagName AS name, t.TagColor AS color
-                            FROM [{DB_NEXORA}].dbo.Workitem_Tags wt
-                            JOIN [{DB_NEXORA}].dbo.Tags t ON wt.TagID = t.TagID
-                            WHERE wt.WorkItemID = twi.ID
-                            FOR JSON PATH
-                        ) AS TagsJSON,
                         ROW_NUMBER() OVER(PARTITION BY twi.ID ORDER BY twi.ModifiedAt DESC) as rn
                     FROM t_WorkItems twi
                     INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
                     INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
-                    LEFT JOIN [{DB_NEXORA}].dbo.Workitem_Metadata wim ON twi.id = wim.WorkItemID
                     WHERE {full_where}
                 )
-                SELECT ModifiedAt, WorkItemID, Status, CurrentStage, Priority, TagsJSON
+                SELECT ModifiedAt, WorkItemID, Status, CurrentStage
                 FROM WorkitemCTE WHERE rn = 1
                 ORDER BY ModifiedAt DESC
                 OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
@@ -240,8 +201,6 @@ class SqlServerSource:
                     "workitemid": r.WorkItemID,
                     "status": r.Status,
                     "current_stage": r.CurrentStage,
-                    "priority": r.Priority or 0,
-                    "tags": json.loads(r.TagsJSON) if r.TagsJSON else [],
                     "client": "default",
                 }
                 for r in cur.fetchall()
@@ -312,72 +271,6 @@ class SqlServerSource:
 
 def _qmarks(seq):
     return ", ".join(["?"] * len(seq))
-
-
-def _chunked(seq, n=1000):
-    seq = list(seq)
-    for i in range(0, len(seq), n):
-        yield seq[i : i + n]
-
-
-def resolve_nexora_filter_ids(filt):
-    """Resolve tag/priority/assigned filters to a set of matching workitem ids
-    from NexoraDB. Returns None when no NexoraDB-backed filter is active (i.e.
-    no id constraint); returns a (possibly empty) set otherwise.
-
-    Used by sources whose runtime DB cannot join NexoraDB in-query (Postgres).
-    """
-    active = []
-    if filt.tag:
-        active.append(("tag", filt.tag))
-    if filt.priority:
-        active.append(("priority", filt.priority))
-    if filt.assigned_user:
-        active.append(("assigned", filt.assigned_user))
-    if not active:
-        return None
-
-    result = None
-    conn = engine_nexora_db.raw_connection()
-    try:
-        cur = conn.cursor()
-        for kind, val in active:
-            ids = set()
-            if kind == "tag":
-                cur.execute(
-                    "SELECT DISTINCT wt.WorkItemID "
-                    "FROM Workitem_Tags wt JOIN Tags t ON wt.TagID = t.TagID "
-                    "WHERE t.TagName LIKE ?",
-                    f"%{val}%",
-                )
-            elif kind == "priority":
-                cur.execute(
-                    "SELECT WorkItemID FROM Workitem_Metadata WHERE ISNULL(Priority, 0) = ?",
-                    val,
-                )
-            else:  # assigned
-                if val in ("None", "Unassigned"):
-                    cur.execute(
-                        "SELECT WorkItemID FROM Workitem_Metadata WHERE AssignedUserID IS NULL"
-                    )
-                else:
-                    cur.execute(
-                        "SELECT WorkItemID FROM Workitem_Metadata WHERE AssignedUserID = ?",
-                        val,
-                    )
-            # NexoraDB stores WorkitemId as NVARCHAR -> pyodbc yields str, but
-            # this allow-set is bound against Postgres' INTEGER "ID" column
-            # (int = ANY(text[]) is a hard error there, which degraded the whole
-            # MS02 source and silently dropped its rows from every tag/priority/
-            # assigned filter). Normalize to int, dropping non-numeric ids.
-            ids = _as_workitem_ids((r.WorkItemID,) for r in cur.fetchall())
-            result = ids if result is None else (result & ids)
-        return result if result is not None else set()
-    except Exception as e:
-        current_app.logger.error(f"resolve_nexora_filter_ids: {e}")
-        return set()
-    finally:
-        conn.close()
 
 
 # OWNER-CONFIRMED doc-field index identifiers (see the plan's Owner-actions).
@@ -892,15 +785,6 @@ class PostgresSource:
             clauses.append('twi."ModifiedAt" < %s')
             params.append(filt.end_date)
 
-        # NexoraDB-backed filters (tag/priority/assigned) -> id allow-set; those
-        # metadata rows live in NexoraDB for workitems of every client.
-        allow = resolve_nexora_filter_ids(filt)
-        if allow is not None:
-            if not allow:
-                clauses.append("1=0")
-            else:
-                clauses.append('twi."ID" = ANY(%s)')
-                params.append(list(allow))
         # Doc-field search -> pre-resolved id allow-set against the SEPARATE MS02
         # doc-field DB (engine_ms02_docfields_pg). The orchestrator resolves the
         # SearchConfig-mapped EAV match into filt.ms02_docfield_ids BEFORE this
@@ -974,8 +858,6 @@ class PostgresSource:
                     "workitemid": r.workitemid,
                     "status": r.status,
                     "current_stage": r.currentstage,
-                    "priority": 0,
-                    "tags": [],
                     "client": self.code,
                 }
                 for r in cur.fetchall()
@@ -983,7 +865,6 @@ class PostgresSource:
         finally:
             conn.close()
 
-        enrich_rows_from_nexora(rows)
         return rows, total
 
     def recent_rows(self, process_names, client_names, activity_ignore_csv, top=3):
@@ -1041,51 +922,6 @@ class PostgresSource:
             return 0
         finally:
             conn.close()
-
-
-def enrich_rows_from_nexora(rows):
-    """Attach priority + tags to base rows from NexoraDB, keyed by workitemid.
-    Mutates and returns ``rows``. Safe on an empty list."""
-    ids = [r["workitemid"] for r in rows]
-    if not ids:
-        return rows
-    # Key on str: NexoraDB's WorkitemId is NVARCHAR (pyodbc -> str) while the
-    # Postgres source's workitemid is an int, so an int-keyed map never matched
-    # and MS02 rows silently rendered with no tags and priority 0.
-    by_id = {str(r["workitemid"]): r for r in rows}
-
-    conn = engine_nexora_db.raw_connection()
-    try:
-        cur = conn.cursor()
-        for chunk in _chunked(ids):
-            ph = ", ".join(["?"] * len(chunk))
-            cur.execute(
-                f"SELECT WorkItemID, Priority FROM Workitem_Metadata WHERE WorkItemID IN ({ph})",
-                list(chunk),
-            )
-            for r in cur.fetchall():
-                row = by_id.get(str(r.WorkItemID))
-                if row is not None:
-                    row["priority"] = r.Priority or 0
-        for chunk in _chunked(ids):
-            ph = ", ".join(["?"] * len(chunk))
-            cur.execute(
-                f"""
-                SELECT wt.WorkItemID, t.TagID, t.TagName, t.TagColor
-                FROM Workitem_Tags wt JOIN Tags t ON wt.TagID = t.TagID
-                WHERE wt.WorkItemID IN ({ph})
-                """,
-                list(chunk),
-            )
-            for r in cur.fetchall():
-                row = by_id.get(str(r.WorkItemID))
-                if row is not None:
-                    row["tags"].append({"id": r.TagID, "name": r.TagName, "color": r.TagColor})
-    except Exception as e:
-        current_app.logger.error(f"enrich_rows_from_nexora: {e}")
-    finally:
-        conn.close()
-    return rows
 
 
 def active_sources():
@@ -1186,26 +1022,6 @@ def get_source_for_workitem(workitem_id, client_hint=None):
             "to UI-carried client tags (compound identity) to disambiguate."
         )
     return "default"
-
-
-def single_workitem_tags(workitem_id):
-    conn = engine_nexora_db.raw_connection()
-    try:
-        cur = conn.cursor()
-        cur.execute(
-            """
-            SELECT t.TagID, t.TagName, t.TagColor
-            FROM Workitem_Tags wt JOIN Tags t ON wt.TagID = t.TagID
-            WHERE wt.WorkItemID = ?
-            """,
-            str(workitem_id),
-        )
-        return [{"id": r.TagID, "name": r.TagName, "color": r.TagColor} for r in cur.fetchall()]
-    except Exception as e:
-        current_app.logger.error(f"single_workitem_tags({workitem_id}): {e}")
-        return []
-    finally:
-        conn.close()
 
 
 def get_domain_for_workitem(workitem_id, client_hint=None):

@@ -8,9 +8,7 @@ from nx_lib.workitem_sources import (
     PostgresSource,
     SqlServerSource,
     WorkitemFilter,
-    enrich_rows_from_nexora,
     merge_sorted_rows,
-    resolve_nexora_filter_ids,
 )
 
 
@@ -20,8 +18,6 @@ def _row(wid, mins, client="default"):
         "workitemid": wid,
         "status": "Ready",
         "current_stage": "Extraction",
-        "priority": 0,
-        "tags": [],
         "client": client,
     }
 
@@ -59,8 +55,6 @@ def test_sqlserver_source_normalizes_rows(app):
         WorkItemID=7,
         Status="Ready",
         CurrentStage="Extraction",
-        Priority=None,
-        TagsJSON='[{"id":1,"name":"urgent","color":"#f00"}]',
     )
     fake_cur = MagicMock()
     fake_cur.fetchone.return_value = count_row
@@ -75,36 +69,12 @@ def test_sqlserver_source_normalizes_rows(app):
 
     assert total == 3
     assert rows[0]["workitemid"] == 7
-    assert rows[0]["priority"] == 0  # None -> 0
-    assert rows[0]["tags"][0]["name"] == "urgent"
     assert rows[0]["client"] == "default"
+    assert "priority" not in rows[0]
+    assert "tags" not in rows[0]
 
 
-def test_resolve_nexora_filter_ids_returns_none_when_no_filters(app):
-    f = _mk_filter()  # no tag/priority/assigned
-    with app.app_context():
-        assert resolve_nexora_filter_ids(f) is None
-
-
-def test_resolve_nexora_filter_ids_intersects_active_filters(app):
-    f = _mk_filter()
-    f.tag = "urgent"
-    f.priority = "2"
-    # tag query -> {1001, 1002}; priority query -> {1002, 1003}; intersect -> {1002}
-    fake_cur = MagicMock()
-    fake_cur.fetchall.side_effect = [
-        [MagicMock(WorkItemID=1001), MagicMock(WorkItemID=1002)],
-        [MagicMock(WorkItemID=1002), MagicMock(WorkItemID=1003)],
-    ]
-    fake_conn = MagicMock()
-    fake_conn.cursor.return_value = fake_cur
-    with patch("nx_lib.workitem_sources.engine_nexora_db") as eng, app.app_context():
-        eng.raw_connection.return_value = fake_conn
-        ids = resolve_nexora_filter_ids(f)
-    assert ids == {1002}
-
-
-def test_postgres_source_builds_pg_sql_and_enriches(app):
+def test_postgres_source_builds_pg_sql(app):
     # psycopg2 cursor returns namedtuple-ish rows; we normalize by attribute.
     count_row = [2]
     data_rows = [
@@ -122,106 +92,31 @@ def test_postgres_source_builds_pg_sql_and_enriches(app):
     fake_conn.cursor.return_value = fake_cur
 
     src = PostgresSource(CLIENTS_code="ms02")
-    with (
-        patch.object(src, "engine") as eng,
-        patch("nx_lib.workitem_sources.enrich_rows_from_nexora", side_effect=lambda r: r),
-        patch("nx_lib.workitem_sources.resolve_nexora_filter_ids", return_value=None),
-        app.app_context(),
-    ):
+    with patch.object(src, "engine") as eng, app.app_context():
         eng.raw_connection.return_value = fake_conn
         rows, total = src.list_workitems(_mk_filter(), offset=0, limit=40)
 
     assert total == 2
     assert rows[0]["workitemid"] == 1001
     assert rows[0]["client"] == "ms02"
+    assert "priority" not in rows[0]
+    assert "tags" not in rows[0]
     # Verify the executed SQL used %s placeholders (psycopg2), not ?.
     executed_sql = " ".join(str(c.args[0]) for c in fake_cur.execute.call_args_list)
     assert "%s" in executed_sql
     assert "?" not in executed_sql
 
 
-def test_enrich_rows_from_nexora_attaches_priority_and_tags(app):
-    rows = [
-        {"workitemid": 1001, "priority": 0, "tags": []},
-        {"workitemid": 1002, "priority": 0, "tags": []},
-    ]
-    fake_cur = MagicMock()
-    fake_cur.fetchall.side_effect = [
-        # priority rows
-        [MagicMock(WorkItemID=1001, Priority=3)],
-        # tag rows
-        [MagicMock(WorkItemID=1002, TagID=9, TagName="vip", TagColor="#0f0")],
-    ]
-    fake_conn = MagicMock()
-    fake_conn.cursor.return_value = fake_cur
-    with patch("nx_lib.workitem_sources.engine_nexora_db") as eng, app.app_context():
-        eng.raw_connection.return_value = fake_conn
-        out = enrich_rows_from_nexora(rows)
-    by_id = {r["workitemid"]: r for r in out}
-    assert by_id[1001]["priority"] == 3
-    assert by_id[1002]["tags"] == [{"id": 9, "name": "vip", "color": "#0f0"}]
-
-
-def test_resolve_nexora_filter_ids_coerces_nvarchar_ids_to_int(app):
-    """NexoraDB stores WorkitemId as NVARCHAR, so pyodbc yields str. The
-    Postgres source binds this allow-set against an INTEGER "ID" column
-    (`twi."ID" = ANY(%s)`), which errors on a text[] -- observed live: every
-    tag/priority/assigned filter degraded the whole MS02 source, silently
-    dropping its rows from the result. The resolver must hand back ints."""
-    f = _mk_filter()
-    f.tag = "urgent"
-    fake_cur = MagicMock()
-    fake_cur.fetchall.side_effect = [
-        [MagicMock(WorkItemID="1001"), MagicMock(WorkItemID="1002")],
-    ]
-    fake_conn = MagicMock()
-    fake_conn.cursor.return_value = fake_cur
-    with patch("nx_lib.workitem_sources.engine_nexora_db") as eng, app.app_context():
-        eng.raw_connection.return_value = fake_conn
-        ids = resolve_nexora_filter_ids(f)
-    assert ids == {1001, 1002}
-    assert all(isinstance(i, int) for i in ids)
-
-
-def test_enrich_rows_from_nexora_matches_nvarchar_ids(app):
-    """Same NVARCHAR-vs-int seam on the display side: the Postgres source's
-    workitemid is an int while NexoraDB returns str, so tags/priority set on an
-    MS02 workitem never rendered in the list."""
-    rows = [{"workitemid": 3413, "priority": 0, "tags": []}]
-    fake_cur = MagicMock()
-    fake_cur.fetchall.side_effect = [
-        [MagicMock(WorkItemID="3413", Priority=3)],
-        [MagicMock(WorkItemID="3413", TagID=56, TagName="nxsweep", TagColor="#8b5cf6")],
-    ]
-    fake_conn = MagicMock()
-    fake_conn.cursor.return_value = fake_cur
-    with patch("nx_lib.workitem_sources.engine_nexora_db") as eng, app.app_context():
-        eng.raw_connection.return_value = fake_conn
-        out = enrich_rows_from_nexora(rows)
-    assert out[0]["priority"] == 3
-    assert out[0]["tags"] == [{"id": 56, "name": "nxsweep", "color": "#8b5cf6"}]
-
-
-def _captured_sql(src, filt, is_pg=False):
+def _captured_sql(src, filt):
     """Run list_workitems against a mock cursor and return all executed SQL."""
     fake_cur = MagicMock()
     fake_cur.fetchone.return_value = [0]
     fake_cur.fetchall.return_value = []
     fake_conn = MagicMock()
     fake_conn.cursor.return_value = fake_cur
-    patches = [patch.object(src, "engine")]
-    if is_pg:
-        patches.append(patch("nx_lib.workitem_sources.enrich_rows_from_nexora", lambda r: r))
-        patches.append(patch("nx_lib.workitem_sources.resolve_nexora_filter_ids", lambda f: None))
-    with patches[0] as eng:
-        for p in patches[1:]:
-            p.start()
-        try:
-            eng.raw_connection.return_value = fake_conn
-            src.list_workitems(filt, offset=0, limit=40)
-        finally:
-            for p in patches[1:]:
-                p.stop()
+    with patch.object(src, "engine") as eng:
+        eng.raw_connection.return_value = fake_conn
+        src.list_workitems(filt, offset=0, limit=40)
     return " ".join(str(c.args[0]) for c in fake_cur.execute.call_args_list), fake_cur
 
 
@@ -230,22 +125,22 @@ def test_status_in_progress_filter_covers_all_non_terminal_codes(app):
     (live INT has codes 3 and 4 in real use), but the status filter compared
     `Status = 1`, so 96 rows shown as 'In Progress' could not be found by
     filtering for it. Both sources must filter the whole bucket."""
-    for src, is_pg in ((SqlServerSource(), False), (PostgresSource(CLIENTS_code="ms02"), True)):
+    for src in (SqlServerSource(), PostgresSource(CLIENTS_code="ms02")):
         f = _mk_filter()
         f.status_code = 1
         with app.app_context():
-            sql, _ = _captured_sql(src, f, is_pg=is_pg)
+            sql, _ = _captured_sql(src, f)
         norm = sql.replace('"', "").replace(" ", "").lower()
         assert "statusnotin(0,5)" in norm, f"{type(src).__name__}: {sql}"
 
 
 def test_search_id_is_exact_match_not_substring(app):
     """Searching workitem 371 must not also return 1371/3716/16371."""
-    for src, is_pg in ((SqlServerSource(), False), (PostgresSource(CLIENTS_code="ms02"), True)):
+    for src in (SqlServerSource(), PostgresSource(CLIENTS_code="ms02")):
         f = _mk_filter()
         f.search_id = "371"
         with app.app_context():
-            sql, cur = _captured_sql(src, f, is_pg=is_pg)
+            sql, cur = _captured_sql(src, f)
         params = [c.args[1] for c in cur.execute.call_args_list if len(c.args) > 1]
         flat = [p for group in params for p in (group if isinstance(group, list) else [group])]
         assert "%371%" not in flat, f"{type(src).__name__} still binds a LIKE pattern: {flat}"
@@ -390,17 +285,6 @@ def test_fetch_merged_page_merges_and_slices(app, monkeypatch):
         rows, total, degraded = ws.fetch_merged_page(_mk_filter(), offset=0, limit=2)
     assert total == 3
     assert [r["workitemid"] for r in rows] == [2, 1001]  # top 2 of merged desc
-
-
-def test_single_workitem_tags_uses_nexora(app, monkeypatch):
-    fake_cur = MagicMock()
-    fake_cur.fetchall.return_value = [MagicMock(TagID=3, TagName="x", TagColor="#111")]
-    fake_conn = MagicMock()
-    fake_conn.cursor.return_value = fake_cur
-    with patch("nx_lib.workitem_sources.engine_nexora_db") as eng, app.app_context():
-        eng.raw_connection.return_value = fake_conn
-        tags = ws.single_workitem_tags(42)
-    assert tags == [{"id": 3, "name": "x", "color": "#111"}]
 
 
 def test_fetch_merged_page_degrades_on_source_error(app, monkeypatch):
@@ -701,7 +585,7 @@ def test_build_where_emits_any_for_populated_ms02_docfield_ids(app):
         activity_ignore_csv="",
         ms02_docfield_ids={10, 20},
     )
-    with app.app_context(), patch.object(ws, "resolve_nexora_filter_ids", return_value=None):
+    with app.app_context():
         where, params = src._build_where(filt)
     assert 'twi."ID" = ANY(%s)' in where
     assert "t_DocumentIndexes" not in where
@@ -719,7 +603,7 @@ def test_build_where_empty_ms02_docfield_ids_forces_no_rows(app):
         activity_ignore_csv="",
         ms02_docfield_ids=set(),
     )
-    with app.app_context(), patch.object(ws, "resolve_nexora_filter_ids", return_value=None):
+    with app.app_context():
         where, _ = src._build_where(filt)
     assert "1=0" in where
     assert "t_DocumentIndexes" not in where
@@ -735,7 +619,7 @@ def test_build_where_none_ms02_docfield_ids_adds_no_clause(app):
         activity_ignore_csv="",
         ms02_docfield_ids=None,
     )
-    with app.app_context(), patch.object(ws, "resolve_nexora_filter_ids", return_value=None):
+    with app.app_context():
         where, _ = src._build_where(filt)
     assert "t_DocumentIndexes" not in where
     assert "ANY(%s)" not in where
@@ -753,7 +637,7 @@ def test_build_where_ignores_raw_docfields_for_ms02(app):
         docfields=["barcode"],
         docvalues=["123"],
     )
-    with app.app_context(), patch.object(ws, "resolve_nexora_filter_ids", return_value=None):
+    with app.app_context():
         where, _ = src._build_where(filt)
     assert "t_DocumentIndexes" not in where
     assert "EXISTS" not in where
