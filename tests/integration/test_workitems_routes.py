@@ -795,8 +795,15 @@ def test_get_audithistory_with_perms(user_client, workitems_all_perms):
 
 
 def test_api_workitems_page_init_authed(user_client):
+    """Collaboration was removed (Task 6 of the chat-collab-removal-bug-fixes
+    plan): the response now carries only the surviving doc-field search
+    config, no tags/users blocks."""
     resp = user_client.get("/api/workitems_page_init")
-    assert resp.status_code in (200, 500)
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert "field_config" in body
+    assert "tags" not in body
+    assert "users" not in body
 
 
 # ============================ MS02 autocomplete ==============================

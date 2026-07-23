@@ -60,7 +60,6 @@ from ..security import (
     page_visibility,
     require_permission,
 )
-from ..users import get_all_portal_users
 from ..workitem_sources import (
     _MS02_IDENT,
     WorkitemFilter,
@@ -1105,8 +1104,7 @@ def export_workitems_csv():
                 len(details_map.get((w.get("client"), w["workitemid"]), {}).get("images", [])),
             )
 
-    priority_label = {3: "High", 2: "Medium", 1: "Low"}
-    headers = ["Workitem ID", "Status", "Stage", "Last Movement At", "Priority", "Tags"]
+    headers = ["Workitem ID", "Status", "Stage", "Last Movement At"]
     if include_fields:
         headers.extend(all_field_keys)
     if include_history:
@@ -1133,8 +1131,6 @@ def export_workitems_csv():
             w.get("status", ""),
             w.get("current_stage", ""),
             date_str,
-            priority_label.get(w.get("priority", 0), ""),
-            "; ".join(t["name"] for t in (w.get("tags") or [])),
         ]
         if include_fields:
             fields = detail["fields"]
@@ -1182,20 +1178,11 @@ def workitems_overview():
         status_perm = has_permission("workitems.filter.status")
         status = request.args.get("status", "") if status_perm else None
 
-        tag_filter_perm = has_permission("workitems.filter.tag")
-        tag_filter = request.args.get("tag", "").strip() if tag_filter_perm else None
-
         datetime_perm = has_permission("workitems.filter.datetime")
         start_date_str = request.args.get("startDate", "") if datetime_perm else None
         end_date_str = request.args.get("endDate", "") if datetime_perm else None
         start_date = datetime.fromisoformat(start_date_str) if start_date_str else None
         end_date = datetime.fromisoformat(end_date_str) if end_date_str else None
-
-        priority_perm = has_permission("workitems.filter.priority")
-        priority = request.args.get("priority", "") if priority_perm else None
-
-        assigned_user_perm = has_permission("workitems.filter.assignedUser")
-        assigned_user = request.args.get("assignedUser", "") if assigned_user_perm else None
 
         perms = session.get("permissions", [])
         prefix = "workitems.filter.process."
@@ -1220,11 +1207,6 @@ def workitems_overview():
         details_audit_perm = has_permission("workitems.details.view.audit")
         details_fields_perm = has_permission("workitems.details.view.fields")
 
-        details_set_priority_perm = has_permission("workitems.details.set.priority")
-        details_add_tag_perm = has_permission("workitems.details.add.tag")
-        details_assign_users_perm = has_permission("workitems.details.assign.users")
-        details_add_comment_perm = has_permission("workitems.details.add.comment")
-
         prepared_import_perm = has_permission("workitems.import.preparedaudit")
         ms02_active = "ms02" in CLIENTS and engine_ms02_docfields_pg is not None
 
@@ -1238,7 +1220,6 @@ def workitems_overview():
         )
         prepared_docs_process_match = process_name in ms02_pdoc_processes
 
-        portal_assigned_users_filter = get_all_portal_users("workitems", "filter.assignedUser")
         return render_template(
             "workitems_overview.html",
             logged_in_user=logged_in_user,
@@ -1246,31 +1227,20 @@ def workitems_overview():
             process_name=process_name,
             search=search_term,
             status=status,
-            tag=tag_filter,
             startDate=start_date,
             endDate=end_date,
-            priority=priority,
-            assignedUser=assigned_user,
-            portal_assignedUsers_filter=portal_assigned_users_filter,
             docfield=docfields[0] if docfields else "",
             docvalue=docvalues[0] if docvalues else "",
             pageV=page_visibility(),
             allowed_processes=allowed_processes,
             search_term_perm=search_term_perm,
             status_perm=status_perm,
-            tag_filter_perm=tag_filter_perm,
             datetime_perm=datetime_perm,
-            priority_perm=priority_perm,
-            assigned_user_perm=assigned_user_perm,
             doc_fields_values_perm=doc_fields_values_perm,
             details_view_perm=details_view_perm,
             details_images_perm=details_images_perm,
             details_audit_perm=details_audit_perm,
             details_fields_perm=details_fields_perm,
-            details_set_priority_perm=details_set_priority_perm,
-            details_add_tag_perm=details_add_tag_perm,
-            details_assign_users_perm=details_assign_users_perm,
-            details_add_comment_perm=details_add_comment_perm,
             prepared_import_perm=prepared_import_perm,
             ms02_active=ms02_active,
             prepared_docs_process_match=prepared_docs_process_match,
@@ -1652,61 +1622,6 @@ def api_workitems_page_init():
     if "username" not in session:
         return jsonify({}), 401
 
-    # Tags
-    tags = cache.get("all_tags")
-    if tags is None:
-        conn = None
-        try:
-            conn = engine_nexora_db.raw_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT TagID, TagName, TagColor FROM Tags ORDER BY TagName")
-            tags = [
-                dict(zip([column[0] for column in cursor.description], row, strict=False))
-                for row in cursor.fetchall()
-            ]
-            cache.set("all_tags", tags, timeout=1800)
-        except Exception as e:
-            current_app.logger.error(f"page_init: failed to fetch tags: {e}")
-            tags = []
-        finally:
-            if conn:
-                conn.close()
-
-    # Users
-    _all_users = has_permission("admin.interact.users.all")
-    _org = session.get("organizationcode", "")
-    _users_key = f"users_mentions_{'all' if _all_users else _org}"
-    users = cache.get(_users_key)
-    if users is None:
-        conn = None
-        try:
-            conn = engine_nexora_db.raw_connection()
-            cursor = conn.cursor()
-            if has_permission("workitems.details.add.comment"):
-                if _all_users:
-                    cursor.execute("SELECT userID, username, fullname FROM Users")
-                else:
-                    cursor.execute(
-                        """
-                        SELECT userID, username, fullname FROM Users
-                        WHERE organizationcode IN ('SYDC', ?) AND accessid not in (1,2)
-                        """,
-                        _org,
-                    )
-                users = [
-                    dict(zip([column[0] for column in cursor.description], row, strict=False))
-                    for row in cursor.fetchall()
-                ]
-            else:
-                users = []
-            cache.set(_users_key, users, timeout=900)
-        except Exception as e:
-            current_app.logger.error(f"page_init: failed to fetch users: {e}")
-            users = []
-        finally:
-            if conn:
-                conn.close()
-
     perms = session.get("permissions", [])
     prefix = "workitems.filter.process."
     allowed_processes = {
@@ -1771,7 +1686,7 @@ def api_workitems_page_init():
         field_config = {"search_options": search_options, "labels": db_labels_map}
         cache.set(_fields_key, field_config, timeout=3600)
 
-    return jsonify({"tags": tags, "users": users, "field_config": field_config})
+    return jsonify({"field_config": field_config})
 
 
 @require_permission("workitems.import.preparedaudit")
@@ -1833,10 +1748,6 @@ def prepared_documents():
     details_images_perm = has_permission("workitems.details.view.images")
     details_audit_perm = has_permission("workitems.details.view.audit")
     details_fields_perm = has_permission("workitems.details.view.fields")
-    details_set_priority_perm = has_permission("workitems.details.set.priority")
-    details_add_tag_perm = has_permission("workitems.details.add.tag")
-    details_assign_users_perm = has_permission("workitems.details.assign.users")
-    details_add_comment_perm = has_permission("workitems.details.add.comment")
 
     return render_template(
         "prepared_documents.html",
@@ -1851,10 +1762,6 @@ def prepared_documents():
         details_images_perm=details_images_perm,
         details_audit_perm=details_audit_perm,
         details_fields_perm=details_fields_perm,
-        details_set_priority_perm=details_set_priority_perm,
-        details_add_tag_perm=details_add_tag_perm,
-        details_assign_users_perm=details_assign_users_perm,
-        details_add_comment_perm=details_add_comment_perm,
     )
 
 
