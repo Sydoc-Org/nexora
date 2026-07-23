@@ -177,12 +177,10 @@
       return Math.round(conf * 100) + '%';
     };
     window.fieldConfig = window.fieldConfig || { search_options: {}, labels: {} };
-    window.mentionableUsers = window.mentionableUsers || [];
     window.__rpDrillPerms = {
       images: {{ 'true' if details_images_perm else 'false' }},
       audit:  {{ 'true' if details_audit_perm else 'false' }},
       fields: {{ 'true' if details_fields_perm else 'false' }},
-      setPriority: false, addTag: false, assignUsers: false, addComment: false,
     };
   </script>
 

@@ -39,17 +39,13 @@
               buildSourceDetailsHtml = window.buildSourceDetailsHtml,
               renderThumbOverlay = window.renderThumbOverlay, refreshThumbOverlays = window.refreshThumbOverlays,
               loadImage = window.loadImage, loadImagesInBatch = window.loadImagesInBatch,
-              loadHistory = window.loadHistory, loadCollaborationData = window.loadCollaborationData,
-              renderWorkitemTimeline = window.renderWorkitemTimeline, renderTagsInDetails = window.renderTagsInDetails;
+              loadHistory = window.loadHistory,
+              renderWorkitemTimeline = window.renderWorkitemTimeline;
 
         window.__workitemDetailPerms = {
           images:      {{ 'true' if details_images_perm else 'false' }},
           audit:       {{ 'true' if details_audit_perm else 'false' }},
           fields:      {{ 'true' if details_fields_perm else 'false' }},
-          setPriority: {{ 'true' if details_set_priority_perm else 'false' }},
-          addTag:      {{ 'true' if details_add_tag_perm else 'false' }},
-          assignUsers: {{ 'true' if details_assign_users_perm else 'false' }},
-          addComment:  {{ 'true' if details_add_comment_perm else 'false' }},
         };
         let _inRegisterByWid = {};
 

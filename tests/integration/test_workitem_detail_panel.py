@@ -36,12 +36,13 @@ def test_detail_panel_exposes_lightbox_attach(user_client, workitems_all_perms):
     assert b"attachLightbox" in resp.data
 
 
-def test_detail_panel_readonly_branch_present(user_client, workitems_all_perms):
-    """The shared partial carries a read-only branch that omits write controls and a
-    writable branch that includes them; render() switches on readOnly. Asserted on the
-    rendered partial source (the panel is built client-side)."""
+def test_detail_panel_collaboration_removed(user_client, workitems_all_perms):
+    """Collaboration (comments/tags/priority/assignment) was pruned from the shared
+    panel partial in both the editable and read-only rendering branches. Asserted on
+    the rendered partial source (the panel is built client-side)."""
     resp = user_client.get("/workitems")
     body = resp.data
-    assert b"buildReadonlyCommentsMarkup" in body
-    assert b"buildCollaborationMarkup" in body
-    assert b"readOnly" in body
+    assert b"buildCollaborationMarkup" not in body
+    assert b"buildReadonlyCommentsMarkup" not in body
+    assert b"attachLightbox" in body
+    assert b"loadHistory" in body

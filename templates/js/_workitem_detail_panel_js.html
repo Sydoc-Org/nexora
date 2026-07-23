@@ -5,64 +5,6 @@
       const csrfToken = document.getElementById("csrfToken")?.value || "";
 
       window.fieldConfig = window.fieldConfig || { search_options: {}, labels: {} };
-      window.mentionableUsers = window.mentionableUsers || [];
-
-      function buildCollaborationMarkup(workitemid, perms) {
-        const prioDis = perms.setPriority ? '' : 'disabled';
-        const assignDis = perms.assignUsers ? '' : 'disabled';
-        const tagDis = perms.addTag ? '' : 'disabled';
-        const commentDis = perms.addComment ? '' : 'disabled';
-        return `
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="flex flex-col">
-              <div id="comments-container-${workitemid}" class="flex-grow space-y-3 overflow-y-auto mb-4 p-2 bg-gray-50 rounded h-60"><p class="text-gray-500 italic">{{ _("Loading comments...") }}</p></div>
-            </div>
-            <div id="collaboration-tools-${workitemid}" class="flex flex-col">
-              <div class="mb-4">
-                <label for="priority-select-${workitemid}" class="text-sm font-medium text-gray-700">{{ _("Set Priority:") }}</label>
-                <select id="priority-select-${workitemid}" data-workitemid="${workitemid}" ${prioDis} class="priority-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500" data-testid="workitems-priority-${workitemid}">
-                  <option value="0">{{ _("None") }}</option><option value="1">{{ _("Low") }}</option><option value="2">{{ _("Medium") }}</option><option value="3">{{ _("High") }}</option>
-                </select>
-              </div>
-              <div class="mb-4">
-                <label for="assign-select-${workitemid}" class="text-sm font-medium text-gray-700">{{ _("Assigned to:") }}</label>
-                <select id="assign-select-${workitemid}" data-workitemid="${workitemid}" ${assignDis} class="assign-selector mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500" data-testid="workitems-assign-${workitemid}"><option value="None">{{ _("None") }}</option></select>
-              </div>
-              <div class="mb-4">
-                <label class="text-sm font-medium text-gray-700">{{ _("Tags:") }}</label>
-                <div class="flex items-center gap-2">
-                  <input type="text" id="tag-input-${workitemid}" list="taglist" ${tagDis} class="flex-grow p-2 border rounded-md" placeholder="{{ _('Add a tag...') }}" data-testid="workitems-tag-input-${workitemid}">
-                  <input type="color" id="tag-color-${workitemid}" ${tagDis} class="h-10 w-12 p-1 border rounded-md" value="#6B7280" data-testid="workitems-tag-color-${workitemid}">
-                  <button type="button" ${tagDis} class="add-tag-btn bg-indigo-600 text-white px-3 py-2 rounded-lg hover:bg-indigo-700 transition" data-workitemid="${workitemid}" data-testid="workitems-add-tag-${workitemid}"><i class="fas fa-plus"></i></button>
-                </div>
-                <div id="tags-container-${workitemid}" class="flex flex-wrap items-center gap-2 mt-4 p-2 bg-gray-50 rounded min-h-[40px]"></div>
-              </div>
-              <div class="relative mt-auto pt-8" id="comment-form-wrapper-${workitemid}">
-                <form class="comment-form" data-workitemid="${workitemid}" data-testid="workitems-comment-form-${workitemid}">
-                  <label for="comment-text-${workitemid}" class="text-sm font-medium text-gray-700">{{ _("Add Comment:") }}</label>
-                  <textarea name="commentText" id="comment-text-${workitemid}" ${commentDis} class="mt-1 w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500" placeholder="{{ _('Add a comment... Tag with @username') }}" rows="3" required autocomplete="off" data-testid="workitems-comment-text-${workitemid}"></textarea>
-                  <button type="submit" ${commentDis} class="mt-2 w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition" data-testid="workitems-comment-submit-${workitemid}">{{ _("Post Comment") }}</button>
-                </form>
-                <div class="mention-autocomplete-list hidden absolute bottom-full mb-1 w-full bg-white border rounded-lg shadow-lg z-10 max-h-40 overflow-y-auto"></div>
-              </div>
-            </div>
-          </div>`;
-      }
-
-      function buildReadonlyCommentsMarkup(workitemid) {
-        // Read-only: comments are read content (kept); the priority/assign selectors,
-        // the tag input and the comment form are OMITTED entirely (decision 5).
-        return `
-          <div class="grid grid-cols-1 gap-6">
-            <div class="flex flex-col">
-              <div id="comments-container-${workitemid}" class="flex-grow space-y-3 overflow-y-auto p-2 bg-gray-50 rounded"><p class="text-gray-500 italic">{{ _("Loading comments...") }}</p></div>
-            </div>
-            <div class="flex flex-col">
-              <label class="text-sm font-medium text-gray-700">{{ _("Tags:") }}</label>
-              <div id="tags-container-${workitemid}" class="flex flex-wrap items-center gap-2 mt-2 p-2 bg-gray-50 rounded min-h-[40px]"></div>
-            </div>
-          </div>`;
-      }
 
       function buildPanelMarkup(workitemid, status, currentStage, perms, readOnly) {
         const imagesBlock = perms.images
@@ -74,7 +16,6 @@
         const fieldsBlock = perms.fields
           ? `<div id="fields-container-${workitemid}" class="flex-grow pr-2"><p class="text-gray-500 italic">{{ _("Loading details...") }}</p></div>`
           : `<div class="flex-grow flex items-center justify-center bg-gray-50 rounded"><p class="text-gray-400 italic"><i class="fas fa-lock mr-2"></i>{{ _("Document fields restricted") }}</p></div>`;
-        const collaboration = readOnly ? buildReadonlyCommentsMarkup(workitemid) : buildCollaborationMarkup(workitemid, perms);
         return `
           <div class="details-content-wrapper p-4 bg-gray-100 flex flex-col gap-6">
             <div id="detail-panel-header-${workitemid}" class="detail-panel-header"></div>
@@ -100,10 +41,6 @@
                 <h4 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-100 pb-3">{{ _('Document Details') }}</h4>
                 ${fieldsBlock}
               </div>
-            </div>
-            <div class="flex-1 flex flex-col bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-              <h4 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-100 pb-3">{{ _('Collaboration') }}</h4>
-              ${collaboration}
             </div>
           </div>`;
       }
@@ -177,71 +114,6 @@
                 historyContainer.innerHTML = `<p class="text-red-500">{{ _("Could not load history") }}</p>`;
             }
         }
-
-      function renderTagsInDetails(workitemId, tags) {
-            const container = document.getElementById(`tags-container-${workitemId}`);
-            if (!container) return;
-            container.innerHTML = tags.map(tag => `
-                <span class="flex items-center text-sm font-semibold px-3 py-1 rounded-full" style="background-color:${tag.color}20; color:${tag.color};">
-                    ${tag.name}
-                    <button class="remove-tag-btn ml-2 text-xs" data-tag-id="${tag.id}" data-workitemid="${workitemId}" data-testid="workitems-remove-tag-${tag.id}">
-                        <i class="fas fa-times-circle opacity-50 hover:opacity-100"></i>
-                    </button>
-                </span>
-            `).join('');
-        }
-
-      async function loadCollaborationData(workitemId, mentionableUsers) {
-          mentionableUsers = mentionableUsers || [];
-          const commentsContainer = document.getElementById(`comments-container-${workitemId}`);
-          const prioritySelector = document.getElementById(`priority-select-${workitemId}`);
-          const assignSelector = document.getElementById(`assign-select-${workitemId}`);
-          const tagsContainer = document.getElementById(`tags-container-${workitemId}`);
-          if (assignSelector) {
-            mentionableUsers.forEach(user => {
-                let option = document.createElement('option');
-                option.text = user.fullname;
-                option.value = user.userID;
-                assignSelector.add(option);
-            });
-          }
-          if (!commentsContainer || commentsContainer.dataset.loaded === 'true') return;
-          try {
-              const response = await fetch(`${API_PREFIX}api/workitem/${workitemId}/interactions`, {headers: {
-              'Content-Type': 'application/json',
-              'X-CSRFToken': csrfToken
-              }});
-              if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-              const data = await response.json();
-              if (prioritySelector) prioritySelector.value = data.priority;
-              if (assignSelector) assignSelector.value = data.assigneduserid;
-              if (tagsContainer) renderTagsInDetails(workitemId, data.tags);
-              commentsContainer.innerHTML = '';
-              if (data.comments.length === 0) {
-                  commentsContainer.innerHTML = `<p class="text-gray-500 text-sm p-2">{{ _("No comments yet.") }}</p>`;
-              } else {
-                  data.comments.forEach(comment => {
-                      const commentEl = document.createElement('div');
-                      commentEl.className = 'flex items-start gap-2.5';
-                      const commentDate = new Date(comment.Timestamp).toLocaleString();
-                      commentEl.innerHTML = `
-                          <img class="w-8 h-8 rounded-full" src=${comment.userIcon} alt=" {{ _('Profile Picture') }}">
-                          <div class="flex flex-col w-full max-w-[320px] leading-1.5 p-3 border-gray-200 bg-gray-100 rounded-e-xl rounded-es-xl">
-                              <div class="flex items-center space-x-2 rtl:space-x-reverse">
-                                  <span class="text-sm font-semibold text-gray-900">${comment.username}</span>
-                                  <span class="text-sm font-normal text-gray-500">${commentDate}</span>
-                              </div>
-                              <p class="text-sm font-normal py-2 text-gray-900">${comment.CommentText.replace(/@(\w+\.\w+)/g, '<strong class="text-indigo-600">@$1</strong>')}</p>
-                          </div>`;
-                      commentsContainer.appendChild(commentEl);
-                  });
-              }
-              commentsContainer.dataset.loaded = 'true';
-          } catch (error) {
-              console.error('Failed to load collaboration data:', error);
-              commentsContainer.innerHTML = `<p class="text-red-500">{{ _("Could not load comments.") }}</p>`;
-          }
-      }
 
       function renderWorkitemTimeline(container) {
             if (!container || container.dataset.rendered === 'true') return;
@@ -586,7 +458,6 @@
         renderWorkitemTimeline(containerEl.querySelector('[id^="timeline-container-"]'));
         _renderHeaderChip(wid, opts);            // filled in Task 3.4; no-op until then
         loadDetailData(wid, perms);
-        loadCollaborationData(wid, readOnly ? [] : (window.mentionableUsers || []));
         return wid;
       };
       const _PREPARED_DOCS_URL = API_PREFIX + "prepared_documents";
@@ -876,8 +747,8 @@
       };
 
       Object.assign(window.NexoraWorkitemDetail, {
-        loadDetailData, loadHistory, loadCollaborationData, renderWorkitemTimeline,
-        renderTagsInDetails, loadImage, loadImagesInBatch, buildSourceDetailsHtml,
+        loadDetailData, loadHistory, renderWorkitemTimeline,
+        loadImage, loadImagesInBatch, buildSourceDetailsHtml,
         renderTableGrids, tableCellSources, allSources, srcEsc, renderThumbOverlay,
         refreshThumbOverlays,
       });
@@ -886,7 +757,7 @@
       window.buildSourceDetailsHtml = buildSourceDetailsHtml;
       window.renderThumbOverlay = renderThumbOverlay; window.refreshThumbOverlays = refreshThumbOverlays;
       window.loadImage = loadImage; window.loadImagesInBatch = loadImagesInBatch;
-      window.loadHistory = loadHistory; window.loadCollaborationData = loadCollaborationData;
-      window.renderWorkitemTimeline = renderWorkitemTimeline; window.renderTagsInDetails = renderTagsInDetails;
+      window.loadHistory = loadHistory;
+      window.renderWorkitemTimeline = renderWorkitemTimeline;
     })();
   </script>
