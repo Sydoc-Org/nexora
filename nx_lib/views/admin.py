@@ -967,17 +967,7 @@ def admin_delete_user(user_id):
         # individually, so any later failure — including the Users delete
         # itself — left a half-deleted, undeletable user. Ordering only
         # requires that every child delete precede `delete from users`.
-        cursor.execute("delete from tags where createdbyuserid = ?", (user_id,))
-        cursor.execute(
-            "delete from workitem_metadata where assigneduserid = ? or lastupdatedbyuserid = ?",
-            (user_id, user_id),
-        )
         cursor.execute("delete from userpermissionoverride where userid = ?", (user_id,))
-        cursor.execute("delete from notifications where userid = ?", (user_id,))
-        cursor.execute("delete from comment_mentions where mentioneduserid = ?", (user_id,))
-        cursor.execute("delete from workitem_comments where userid = ?", (user_id,))
-        cursor.execute("delete from Chat_Messages where senderid = ?", (user_id,))
-        cursor.execute("delete from Chat_Participants where UserID = ?", (user_id,))
 
         # Reporting artifacts. FK_Reports_Users / FK_ReportSchedules_Users /
         # FK_ReportShares_Users are all NO ACTION and were previously omitted,

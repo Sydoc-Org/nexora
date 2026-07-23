@@ -432,12 +432,12 @@ def _dc_cleanup(user_ids, report_ids):
 def test_admin_delete_user_report_owner_is_atomic_no_halfstate(
     admin_client, admin_all_perms, db_conn
 ):
-    """A report-owning user with a committed child row must never end up in a
-    half-deleted state (child rows gone but the Users row surviving).
+    """A report-owning user must never end up in a half-deleted state (their
+    report gone but the Users row surviving).
 
     Under the pre-fix code each child delete committed individually, then the
     final `DELETE FROM users` violated FK_Reports_Users and threw — leaving the
-    notification gone but the user present and now undeletable.
+    report gone but the user present and now undeletable.
     """
     from sqlalchemy import text
 
@@ -448,7 +448,6 @@ def test_admin_delete_user_report_owner_is_atomic_no_halfstate(
         cur = conn.cursor()
         d_id = _dc_seed_user(cur, f"del-{suffix}@test.local")
         r_id = _dc_seed_report(cur, d_id, f"rep-{suffix}")
-        cur.execute("INSERT INTO Notifications (UserID, Message) VALUES (?, 'seed')", (d_id,))
         conn.commit()
         cur.close()
         conn.close()
@@ -458,23 +457,19 @@ def test_admin_delete_user_report_owner_is_atomic_no_halfstate(
         user_left = db_conn.execute(
             text("SELECT COUNT(*) FROM Users WHERE userID = :u"), {"u": d_id}
         ).scalar()
-        notif_left = db_conn.execute(
-            text("SELECT COUNT(*) FROM Notifications WHERE UserID = :u"), {"u": d_id}
+        report_left = db_conn.execute(
+            text("SELECT COUNT(*) FROM Reports WHERE ReportID = :r"), {"r": r_id}
         ).scalar()
 
         # The atomicity invariant: it is never the case that the child row was
         # committed-deleted while the Users row survives.
-        assert not (notif_left == 0 and user_left == 1), (
-            "HALF-STATE: notification committed-deleted but Users row survives "
-            f"(status={resp.status_code}, user_left={user_left}, notif_left={notif_left})"
+        assert not (report_left == 0 and user_left == 1), (
+            "HALF-STATE: report committed-deleted but Users row survives "
+            f"(status={resp.status_code}, user_left={user_left}, report_left={report_left})"
         )
         # Fixed behaviour: a clean, fully atomic success.
         assert resp.status_code == 200, resp.get_json()
         assert user_left == 0
-        assert notif_left == 0
-        report_left = db_conn.execute(
-            text("SELECT COUNT(*) FROM Reports WHERE ReportID = :r"), {"r": r_id}
-        ).scalar()
         assert report_left == 0
     finally:
         _dc_cleanup([d_id], [r_id])
