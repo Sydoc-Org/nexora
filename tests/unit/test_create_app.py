@@ -58,12 +58,6 @@ def test_create_app_registers_invoices_endpoint():
     assert "invoices" in endpoints
 
 
-def test_create_app_registers_chat_endpoint():
-    app = create_app()
-    endpoints = {r.endpoint for r in app.url_map.iter_rules()}
-    assert "chat_page" in endpoints
-
-
 def test_create_app_registers_profile_endpoint():
     app = create_app()
     endpoints = {r.endpoint for r in app.url_map.iter_rules()}
@@ -117,7 +111,6 @@ def test_create_app_endpoint_set_includes_expected_critical_set():
         "get_all_tags",
         "invoices",
         "api_invoices",
-        "chat_page",
         "jdvance",
         "maintenance_page",
     }
@@ -232,13 +225,6 @@ EXPECTED_NON_GENERALI_ENDPOINTS = {
     # views/notifications.py
     "get_notifications",
     "mark_notifications_as_read",
-    # views/chat.py
-    "chat_page",
-    "get_conversations",
-    "start_conversation",
-    "get_chat_messages",
-    "send_chat_message",
-    "upload_chat_file",
 }
 
 

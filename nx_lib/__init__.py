@@ -54,7 +54,6 @@ def create_app():
         admin,
         api_external,
         auth,
-        chat,
         core,
         dashboard,
         generali,
@@ -75,7 +74,6 @@ def create_app():
     generali.register_routes(app)
     notifications.register_routes(app)
     invoices.register_routes(app)
-    chat.register_routes(app)
     api_external.register_routes(app)  # machine-to-machine API (Bearer key, no session)
 
     if cfg.IS_PROD:

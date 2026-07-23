@@ -304,7 +304,6 @@ def _all_false_page_v():
         "generaliBaseServicesPerm": False,
         "generaliProjectManagementPerm": False,
         "generaliPDQMPerm": False,
-        "chatPagePerm": False,
         "adminPagePerm": False,
     }
 
@@ -335,11 +334,11 @@ def test_startpage_redirect_to_returns_login_when_no_perms():
 
 
 # ---------------------------------------------------------------------------
-# page_visibility — all 18 keys
+# page_visibility — all 17 keys
 # ---------------------------------------------------------------------------
 
 
-def test_page_visibility_returns_all_18_keys_with_no_perms(fake_session):
+def test_page_visibility_returns_all_17_keys_with_no_perms(fake_session):
     fake_session["permissions"] = []
     pv = page_visibility()
     expected_keys = {
@@ -349,7 +348,6 @@ def test_page_visibility_returns_all_18_keys_with_no_perms(fake_session):
         "workitemsPagePerm",
         "preparedDocsPagePerm",
         "invoicesPagePerm",
-        "chatPagePerm",
         "generaliPagePerm",
         "generaliDocumentsPerm",
         "generaliReportingPerm",
@@ -381,7 +379,6 @@ def test_page_visibility_reflects_selected_perms(fake_session):
     # Spot-check that unselected perms are still False.
     assert pv["workitemsPagePerm"] is False
     assert pv["invoicesPagePerm"] is False
-    assert pv["chatPagePerm"] is False
     assert pv["adminMaintenanceEditPerm"] is False
 
 

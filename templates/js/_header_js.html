@@ -78,9 +78,6 @@
                 {% if pageV.invoicesPagePerm %}
                 { section: "{{ _('Workspace') }}", label: "{{ _('Invoices') }}",   icon: 'fa-file-invoice', url: "{{ url_for('invoices') }}" },
                 {% endif %}
-                {% if pageV.chatPagePerm %}
-                { section: "{{ _('Workspace') }}", label: "{{ _('Chat') }}",       icon: 'fa-comment',    url: "{{ url_for('chat_page') }}" },
-                {% endif %}
                 {% if pageV.generaliPagePerm %}
                 { section: "Generali", label: "{{ _('Dashboard') }}",            icon: 'fa-chart-line',      url: "{{ url_for('generali_evaluation') }}" },
                 {% endif %}
