@@ -24,7 +24,6 @@
             return Math.round(conf * 100) + '%';
         };
         let animationTimeouts = [];
-        let mentionableUsers = [];
         let docValuesCache = [];
         let fieldConfig = {
             search_options: {},
@@ -162,33 +161,6 @@
             };
         }
 
-        async function refreshWorkitemUI(workitemId) {
-        try {
-            const response = await fetch(`${API_PREFIX}api/workitem/${workitemId}`, {headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
-                }});
-            if (!response.ok) throw new Error('Failed to fetch updated workitem data.');
-            const workitem = await response.json();
-            const tags = workitem.tags || [];
-
-            const previewContainer = document.getElementById(`tags-preview-${workitem.workitemid}`);
-            if (previewContainer) {
-                previewContainer.innerHTML = tags.map(tag =>
-                    `<span class="text-xs font-semibold px-2 py-0.5 rounded-full" style="background-color:${tag.color}20; color:${tag.color};">${tag.name}</span>`
-                ).join('');
-            }
-
-            const detailsContainer = document.getElementById(`tags-container-${workitemId}`);
-            if (detailsContainer) {
-                renderTagsInDetails(workitemId, tags);
-            }
-
-        } catch (error) {
-            console.error("Failed to refresh workitem UI:", error);
-        }
-    }
-
         async function toggleDetailsAndLoadImages(event) {
           try {
             const button = event.currentTarget;
@@ -243,151 +215,6 @@
             chevron.classList.toggle('glyphicon-chevron-up-custom');
             chevron.classList.toggle('glyphicon-chevron-down-custom');
           } catch (error) { /* pass */ }
-        }
-
-        async function handlePostComment(event) {
-            event.preventDefault();
-            const form = event.target;
-            const workitemid = form.dataset.workitemid;
-            const textarea = form.querySelector('textarea');
-            const commentText = textarea.value.trim();
-            if (!commentText) return;
-
-            try {
-                const response = await fetch(`${API_PREFIX}api/workitem/${workitemid}/comment`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                        ,'X-CSRFToken': csrfToken
-                    },
-                    body: JSON.stringify({
-                        commentText
-                    })
-                });
-                if (!response.ok) throw new Error('Failed to post comment.');
-
-                textarea.value = '';
-                const commentsContainer = document.getElementById(`comments-container-${workitemid}`);
-                commentsContainer.dataset.loaded = 'false';
-                loadCollaborationData(workitemid, mentionableUsers);
-
-            } catch (error) {
-                console.error("Comment post error:", error);
-            }
-        }
-
-        async function fetchMentionableUsers() {
-            try {
-                const response = await fetch(`${API_PREFIX}api/users`, {headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
-                }});
-                if (!response.ok) throw new Error('Could not fetch users');
-                mentionableUsers = await response.json();
-                window.mentionableUsers = mentionableUsers;
-            } catch (error) {
-                console.error("Failed to fetch users for mentions:", error);
-            }
-        }
-
-        function insertMention(username, textarea) {
-            const text = textarea.value;
-            const cursorPos = textarea.selectionStart;
-            const textToCursor = text.substring(0, cursorPos);
-            const mentionMatch = textToCursor.match(/@(\w*)$/);
-            if (mentionMatch) {
-                const startIndex = mentionMatch.index;
-                const newText = text.substring(0, startIndex) + `@${username} ` + text.substring(cursorPos);
-                textarea.value = newText;
-                textarea.focus();
-                const newCursorPos = startIndex + username.length + 2;
-                textarea.setSelectionRange(newCursorPos, newCursorPos);
-            }
-        }
-
-        function renderAutocompleteList(users, listElement, textarea) {
-            listElement.innerHTML = '';
-            if (users.length === 0) {
-                listElement.classList.add('hidden');
-                return;
-            }
-            users.forEach(user => {
-                const item = document.createElement('div');
-                item.className = 'p-2 hover:bg-indigo-100 cursor-pointer text-sm border-b';
-                item.textContent = `${user.fullname} (@${user.username})`;
-                item.addEventListener('mousedown', (e) => {
-                    e.preventDefault();
-                    insertMention(user.username, textarea);
-                    listElement.classList.add('hidden');
-                });
-                listElement.appendChild(item);
-            });
-            listElement.classList.remove('hidden');
-        }
-
-        function handleMentionInput(event) {
-            const textarea = event.target;
-            const wrapper = textarea.closest('[id^="comment-form-wrapper-"]');
-            const autocompleteList = wrapper.querySelector('.mention-autocomplete-list');
-            const text = textarea.value;
-            const cursorPos = textarea.selectionStart;
-            const textToCursor = text.substring(0, cursorPos);
-            const mentionMatch = textToCursor.match(/@(\w*)$/);
-            if (mentionMatch) {
-                const searchTerm = mentionMatch[1].toLowerCase();
-                const filteredUsers = mentionableUsers.filter(user => user.username.toLowerCase().startsWith(searchTerm));
-                renderAutocompleteList(filteredUsers, autocompleteList, textarea);
-            } else {
-                autocompleteList.classList.add('hidden');
-            }
-        }
-
-        async function handleSetPriority(event) {
-            const selector = event.target;
-            const workitemid = selector.dataset.workitemid;
-            const priority = parseInt(selector.value, 10);
-            try {
-                const response = await fetch(`${API_PREFIX}api/workitem/${workitemid}/priority`, {
-                    method: 'POST',
-                     headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken
-                        },
-                    body: JSON.stringify({
-                        priority
-                    })
-                });
-                if (!response.ok) throw new Error('Failed to set priority.');
-                const indicatorCell = document.getElementById(`priority-indicator-${workitemid}`);
-                let iconHtml = '';
-                if (priority === 3) iconHtml = `<span title="{{ _('High Priority') }}"><i class="fas fa-flag text-red-500"></i></span>`;
-                else if (priority === 2) iconHtml = `<span title="{{ _('Medium Priority') }}"><i class="fas fa-flag text-yellow-500"></i></span>`;
-                else if (priority === 1) iconHtml = `<span title="{{ _('Low Priority') }}"><i class="fas fa-flag text-blue-500"></i></span>`;
-                indicatorCell.innerHTML = iconHtml;
-            } catch (error) {
-                console.error("Set priority error:", error);
-            }
-        }
-
-        async function handleAssigning(event) {
-            const selector = event.target;
-            const workitemid = selector.dataset.workitemid;
-            const assignedUserID = selector.value;
-            try {
-                const response = await fetch(`${API_PREFIX}api/workitem/${workitemid}/assign`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken
-                    },
-                    body: JSON.stringify({
-                        assignedUserID
-                    })
-                });
-                if (!response.ok) throw new Error('Failed to assign.');
-            } catch (error) {
-                console.error("Assigment error:", error);
-            }
         }
 
         function openImportModal(files) {
@@ -484,21 +311,8 @@ async function uploadBatchFiles(files, processName) {
                 if (!res.ok) throw new Error('page init failed');
                 const data = await res.json();
 
-                mentionableUsers = data.users || [];
-                window.mentionableUsers = mentionableUsers;
                 fieldConfig = data.field_config || { search_options: {}, labels: {} };
                 window.fieldConfig = fieldConfig;
-
-                const allTags = data.tags || [];
-                const datalist = document.getElementById('taglist');
-                if (datalist) {
-                    datalist.innerHTML = '';
-                    allTags.forEach(tag => {
-                        const option = document.createElement('option');
-                        option.value = tag.TagName;
-                        datalist.appendChild(option);
-                    });
-                }
 
             } catch (e) {
                 console.error('Failed to fetch page init data:', e);
@@ -938,7 +752,7 @@ async function uploadBatchFiles(files, processName) {
 
                 const loaderHtml = `
             <tr>
-                <td colspan="6" class="text-center py-20">
+                <td colspan="5" class="text-center py-20">
                     <div class="flex items-center justify-center space-x-3 text-gray-700">
                         <i class="fas fa-spinner fa-spin text-3xl text-indigo-600"></i>
                         <span class="text-xl font-medium">{{ _("Loading workitems...") }}</span>
@@ -966,7 +780,7 @@ async function uploadBatchFiles(files, processName) {
                 } catch (error) {
                     console.error("Failed to fetch or render workitems:", error);
                     if (tbody) {
-                        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-red-500">{{ _("Failed to load data. Please try again.") }}</td></tr>`;
+                        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-red-500">{{ _("Failed to load data. Please try again.") }}</td></tr>`;
                     }
                 }
             }
@@ -1089,7 +903,7 @@ async function uploadBatchFiles(files, processName) {
                 updateBulkBar();
 
                 if (workitems.length === 0) {
-                    const emptyColspan = 7;
+                    const emptyColspan = 5;
                     tbody.innerHTML = `
                         <tr><td colspan="${emptyColspan}">
                             <div class="nx-empty">
@@ -1108,11 +922,6 @@ async function uploadBatchFiles(files, processName) {
                         'Done':        '<span class="nx-label nx-label--green">Done</span>',
                     }[workitem.status] || `<span class="nx-label nx-label--gray">${workitem.status}</span>`;
 
-                    let priorityIcon = '';
-                    if (workitem.priority === 3) priorityIcon = `<span title="{{ _('High Priority') }}"><i class="fas fa-flag text-red-500"></i></span>`;
-                    if (workitem.priority === 2) priorityIcon = `<span title="{{ _('Medium Priority') }}"><i class="fas fa-flag text-yellow-500"></i></span>`;
-                    if (workitem.priority === 1) priorityIcon = `<span title="{{ _('Low Priority') }}"><i class="fas fa-flag text-blue-500"></i></span>`;
-
                     // Workitem ids are only unique WITHIN a client, so every DOM id
                     // is keyed on client+id -- two rows sharing a bare id produced
                     // duplicate element ids, and getElementById then resolved both
@@ -1127,10 +936,6 @@ async function uploadBatchFiles(files, processName) {
                         <td class="px-6 py-4 whitespace-nowrap text-center"><div class="nx-mono font-medium">${workitem.workitemid}</div></td>
                         <td class="px-6 py-4 whitespace-nowrap text-center">${statusBadge}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-center"><div class="nx-mono" style="color:var(--nx-text-sec)">${workitem.modifiedat ? new Date(workitem.modifiedat).toISOString().slice(0, 19).replace('T', ' ') : ''}</div></td>
-                        <td class="px-6 py-4 whitespace-nowrap text-center" id="priority-indicator-${rowKey}">${priorityIcon}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-center" id="tags-preview-${rowKey}">
-                            ${workitem.tags.map(tag => `<span class="text-xs font-semibold px-2 py-0.5 rounded-full" style="background-color:${tag.color}20; color:${tag.color};">${tag.name}</span>`).join('')}
-                        </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
                             <button class="details-toggle-button text-indigo-600 hover:text-indigo-900"
                                 data-workitemid="${workitem.workitemid}" data-rowkey="${rowKey}"
@@ -1144,7 +949,7 @@ async function uploadBatchFiles(files, processName) {
                         data-current-stage="${workitem.current_stage || ''}"
                         data-pid="${workitem.pid || ''}"
                         data-client="${workitem.client || ''}"
-                        data-in-register="${workitem.in_register ? '1' : '0'}"><td colspan="7"></td></tr>
+                        data-in-register="${workitem.in_register ? '1' : '0'}"><td colspan="5"></td></tr>
                 `;
                     tbody.insertAdjacentHTML('beforeend', rowHtml);
                     if (workitem.in_register && workitem.pid) {
@@ -1160,82 +965,6 @@ async function uploadBatchFiles(files, processName) {
                         updateBulkBar();
                     });
                 });
-            }
-
-            let allTags = [];
-
-            async function fetchAllTags() {
-                try {
-                    const response = await fetch(`${API_PREFIX}api/tags`, {headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
-                }});
-                    if (!response.ok) throw new Error('Could not fetch tags');
-                    allTags = await response.json();
-
-                    const datalist = document.getElementById('taglist');
-                    datalist.innerHTML = '';
-                    allTags.forEach(tag => {
-                        const option = document.createElement('option');
-                        option.value = tag.TagName;
-                        datalist.appendChild(option);
-                    });
-                } catch (error) {
-                    console.error("Failed to fetch tags:", error);
-                }
-            }
-
-
-            async function handleAddTag(event) {
-                const button = event.currentTarget;
-                const workitemId = button.dataset.workitemid;
-                const tagName = document.getElementById(`tag-input-${workitemId}`).value.trim();
-                const tagColor = document.getElementById(`tag-color-${workitemId}`).value;
-
-                if (!tagName) return;
-
-                try {
-                    const response = await fetch(`${API_PREFIX}api/workitem/${workitemId}/tags`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': csrfToken
-                        },
-                        body: JSON.stringify({
-                            tagName,
-                            tagColor
-                        })
-                    });
-                    const result = await response.json();
-                    if (!response.ok) throw new Error(result.message || 'Failed to add tag.');
-
-                    document.getElementById(`tag-input-${workitemId}`).value = '';
-                    refreshWorkitemUI(workitemId);
-
-                } catch (error) {
-                    console.error("Add tag error:", error);
-                }
-            }
-
-            async function handleRemoveTag(event) {
-                const button = event.currentTarget;
-                const workitemid = button.dataset.workitemid;
-                const tagId = button.dataset.tagId;
-
-                try {
-                    const response = await fetch(`${API_PREFIX}api/workitem/${workitemid}/tags/${tagId}`, {
-                        method: 'DELETE'
-                        ,headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken
-                        }
-                    });
-                    if (!response.ok) throw new Error('Failed to remove tag.');
-
-                    refreshWorkitemUI(workitemid);
-                } catch (error) {
-                    console.error("Remove tag error:", error);
-                }
             }
 
             function renderPagination(pagination) {
@@ -1358,15 +1087,12 @@ async function uploadBatchFiles(files, processName) {
                 fetchAndUpdateWorkitems();
             });
 
-            ['prcfW', 'statusFilter', 'startDate', 'endDate', 'priorityFilter', 'assignedUserFilter', 'filterPerPage'].forEach(id => {
+            ['prcfW', 'statusFilter', 'startDate', 'endDate', 'filterPerPage'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.addEventListener('change', () => fetchAndUpdateWorkitems());
             });
             const searchInput = document.getElementById('searchInput');
             if (searchInput) searchInput.addEventListener('input', () => debounceSearch(() => fetchAndUpdateWorkitems()));
-
-            const tagFilterInput = document.getElementById('tagFilterInput');
-            if (tagFilterInput) tagFilterInput.addEventListener('input', () => debounceSearch(() => fetchAndUpdateWorkitems()));
 
             const paginationContainer = document.getElementById('paginationContainer');
             if (paginationContainer) {
@@ -1393,19 +1119,6 @@ async function uploadBatchFiles(files, processName) {
                     return;
                 }
 
-                const addTagButton = event.target.closest('.add-tag-btn');
-                if (addTagButton) {
-                    handleAddTag({
-                        currentTarget: addTagButton
-                    });
-                }
-                const removeTagButton = event.target.closest('.remove-tag-btn');
-                if (removeTagButton) {
-                    handleRemoveTag({
-                        currentTarget: removeTagButton
-                    });
-                }
-
                 const loadMoreButton = event.target.closest('.load-more-btn');
                 if (loadMoreButton) {
                     const workitemid = loadMoreButton.dataset.workitemid;
@@ -1414,32 +1127,6 @@ async function uploadBatchFiles(files, processName) {
                     if (imageContainer) {
                         loadImagesInBatch(imageContainer, workitemid, totalImages);
                     }
-                }
-            });
-
-            tbody.addEventListener('submit', (event) => {
-                if (event.target.classList.contains('comment-form')) {
-                    handlePostComment(event);
-                }
-            });
-            tbody.addEventListener('change', (event) => {
-                if (event.target.classList.contains('priority-selector')) {
-                    handleSetPriority(event);
-                }
-                if (event.target.classList.contains('assign-selector')) {
-                    handleAssigning(event);
-                }
-            });
-            tbody.addEventListener('input', (event) => {
-                if (event.target.tagName === 'TEXTAREA' && event.target.closest('.comment-form')) {
-                    handleMentionInput(event);
-                }
-            });
-            tbody.addEventListener('focusout', (event) => {
-                if (event.target.tagName === 'TEXTAREA' && event.target.closest('.comment-form')) {
-                    const wrapper = event.target.closest('[id^="comment-form-wrapper-"]');
-                    const autocompleteList = wrapper.querySelector('.mention-autocomplete-list');
-                    setTimeout(() => autocompleteList.classList.add('hidden'), 200);
                 }
             });
 
