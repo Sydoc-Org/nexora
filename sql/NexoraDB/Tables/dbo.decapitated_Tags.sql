@@ -1,18 +1,16 @@
 ﻿USE [nexora]
 GO
-ALTER TABLE [dbo].[Tags] DROP CONSTRAINT [FK_Tags_Users]
+ALTER TABLE [dbo].[decapitated_Tags] DROP CONSTRAINT [DF__Tags__CreatedAt__3E1D39E1]
 GO
-ALTER TABLE [dbo].[Tags] DROP CONSTRAINT [DF__Tags__CreatedAt__3E1D39E1]
+ALTER TABLE [dbo].[decapitated_Tags] DROP CONSTRAINT [DF__Tags__TagColor__619B8048]
 GO
-ALTER TABLE [dbo].[Tags] DROP CONSTRAINT [DF__Tags__TagColor__619B8048]
-GO
-DROP TABLE [dbo].[Tags]
+DROP TABLE [dbo].[decapitated_Tags]
 GO
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE TABLE [dbo].[Tags](
+CREATE TABLE [dbo].[decapitated_Tags](
 	[TagID] [int] IDENTITY(1,1) NOT NULL,
 	[TagName] [nvarchar](50) NOT NULL,
 	[TagColor] [nvarchar](7) NOT NULL,
@@ -28,13 +26,7 @@ CREATE TABLE [dbo].[Tags](
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[Tags] ADD  DEFAULT ('#6B7280') FOR [TagColor]
+ALTER TABLE [dbo].[decapitated_Tags] ADD  DEFAULT ('#6B7280') FOR [TagColor]
 GO
-ALTER TABLE [dbo].[Tags] ADD  DEFAULT (getdate()) FOR [CreatedAt]
-GO
-ALTER TABLE [dbo].[Tags]  WITH CHECK ADD  CONSTRAINT [FK_Tags_Users] FOREIGN KEY([CreatedByUserID])
-REFERENCES [dbo].[Users] ([userID])
-ON DELETE SET NULL
-GO
-ALTER TABLE [dbo].[Tags] CHECK CONSTRAINT [FK_Tags_Users]
+ALTER TABLE [dbo].[decapitated_Tags] ADD  DEFAULT (getdate()) FOR [CreatedAt]
 GO

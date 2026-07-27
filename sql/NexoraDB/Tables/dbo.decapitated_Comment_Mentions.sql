@@ -1,14 +1,12 @@
 ﻿USE [nexora]
 GO
-ALTER TABLE [dbo].[Comment_Mentions] DROP CONSTRAINT [FK__Comment_M__Menti__3C69FB99]
-GO
-DROP TABLE [dbo].[Comment_Mentions]
+DROP TABLE [dbo].[decapitated_Comment_Mentions]
 GO
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE TABLE [dbo].[Comment_Mentions](
+CREATE TABLE [dbo].[decapitated_Comment_Mentions](
 	[MentionID] [int] IDENTITY(1,1) NOT NULL,
 	[CommentID] [int] NULL,
 	[MentionedUserID] [int] NULL,
@@ -17,7 +15,4 @@ PRIMARY KEY CLUSTERED
 	[MentionID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
 ) ON [PRIMARY]
-GO
-ALTER TABLE [dbo].[Comment_Mentions]  WITH CHECK ADD FOREIGN KEY([MentionedUserID])
-REFERENCES [dbo].[Users] ([userID])
 GO

@@ -1,16 +1,16 @@
 ﻿USE [nexora]
 GO
-ALTER TABLE [dbo].[Workitem_Tags] DROP CONSTRAINT [FK_Workitem_Tags_Tags]
+ALTER TABLE [dbo].[decapitated_Workitem_Tags] DROP CONSTRAINT [FK_Workitem_Tags_Tags]
 GO
-DROP INDEX [IX_Workitem_Tags_Barcode] ON [dbo].[Workitem_Tags]
+DROP INDEX [IX_Workitem_Tags_Barcode] ON [dbo].[decapitated_Workitem_Tags]
 GO
-DROP TABLE [dbo].[Workitem_Tags]
+DROP TABLE [dbo].[decapitated_Workitem_Tags]
 GO
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE TABLE [dbo].[Workitem_Tags](
+CREATE TABLE [dbo].[decapitated_Workitem_Tags](
 	[WorkitemTagID] [int] IDENTITY(1,1) NOT NULL,
 	[WorkitemId] [nvarchar](50) NOT NULL,
 	[TagID] [int] NOT NULL,
@@ -27,14 +27,14 @@ CREATE TABLE [dbo].[Workitem_Tags](
 GO
 SET ANSI_PADDING ON
 GO
-CREATE NONCLUSTERED INDEX [IX_Workitem_Tags_Barcode] ON [dbo].[Workitem_Tags]
+CREATE NONCLUSTERED INDEX [IX_Workitem_Tags_Barcode] ON [dbo].[decapitated_Workitem_Tags]
 (
 	[WorkitemId] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[Workitem_Tags]  WITH CHECK ADD  CONSTRAINT [FK_Workitem_Tags_Tags] FOREIGN KEY([TagID])
-REFERENCES [dbo].[Tags] ([TagID])
+ALTER TABLE [dbo].[decapitated_Workitem_Tags]  WITH CHECK ADD  CONSTRAINT [FK_Workitem_Tags_Tags] FOREIGN KEY([TagID])
+REFERENCES [dbo].[decapitated_Tags] ([TagID])
 ON DELETE CASCADE
 GO
-ALTER TABLE [dbo].[Workitem_Tags] CHECK CONSTRAINT [FK_Workitem_Tags_Tags]
+ALTER TABLE [dbo].[decapitated_Workitem_Tags] CHECK CONSTRAINT [FK_Workitem_Tags_Tags]
 GO
