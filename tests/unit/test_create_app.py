@@ -212,9 +212,6 @@ EXPECTED_NON_GENERALI_ENDPOINTS = {
     "invoices",
     "api_invoices",
     "download_invoice_pdf",
-    # views/notifications.py
-    "get_notifications",
-    "mark_notifications_as_read",
 }
 
 

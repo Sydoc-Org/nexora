@@ -73,15 +73,6 @@ def test_header_admin_nav_hidden_for_plain_user(nexora_server, page):
 
 
 @pytest.mark.flaky_e2e
-def test_header_notifications_toggle_opens_panel(nexora_server, page):
-    _login(page, nexora_server)
-    page.click('[data-testid="header-notifications-toggle"]')
-    # Panel is toggled client-side; the Notifications table is absent in TEST so
-    # the fetch may fail, but the panel element should still reveal.
-    expect(page.locator("#notification-panel")).to_be_visible()
-
-
-@pytest.mark.flaky_e2e
 def test_header_burger_toggles_sidebar_on_mobile(nexora_server, page):
     page.set_viewport_size({"width": 390, "height": 844})
     _login(page, nexora_server)

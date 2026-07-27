@@ -34,7 +34,6 @@ MIN_COVERAGE = {
     "maintenance.py": 100,
     "middleware.py": 100,
     "hooks.py": 100,
-    "notifications.py": 100,
     "octo.py": 95,
     "process_helpers.py": 100,
     "extensions.py": 100,
@@ -48,7 +47,6 @@ MIN_COVERAGE = {
     "views/admin.py": 65,
     "views/workitems.py": 35,
     "views/invoices.py": 80,
-    "views/notifications.py": 100,
     # views/generali.py intentionally excluded — covered by the Generali
     # phase-2 plan.
 }

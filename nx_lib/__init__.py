@@ -58,7 +58,6 @@ def create_app():
         dashboard,
         generali,
         invoices,
-        notifications,
         profile,
         reporting,
         workitems,
@@ -72,7 +71,6 @@ def create_app():
     reporting.register_routes(app)
     workitems.register_routes(app)
     generali.register_routes(app)
-    notifications.register_routes(app)
     invoices.register_routes(app)
     api_external.register_routes(app)  # machine-to-machine API (Bearer key, no session)
 
