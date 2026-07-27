@@ -761,17 +761,38 @@ def api_docfield_values():
         return jsonify([])
     if field in sensitive_blocked_keys():
         return jsonify([])
+
+    # Fail-closed process gating: `process` is a caller-supplied arg and must
+    # not be trusted as-is -- a caller holding only the blanket
+    # workitems.filter.documentfields perm could otherwise pull value
+    # suggestions from any process, including ones they hold no
+    # workitems.filter.process.<p> grant for. Reuse _ms02_target_processes(),
+    # the existing workitems.filter.process.* allow-list helper, rather than
+    # re-deriving it; "all" narrows to the caller's own allowed set rather
+    # than every process configured in SearchConfig.
+    allowed_processes_set = set(_ms02_target_processes())
+
+    target_processes = []
+    if process == "all":
+        target_processes = list(allowed_processes_set)
+    elif process in allowed_processes_set:
+        target_processes = [process]
+
+    if not target_processes:
+        return jsonify([])
+
     conn = None
     cur = None
     try:
         conn = engine_nexora_db.raw_connection()
         cur = conn.cursor()
 
-        query = f"SELECT * FROM SearchConfig WHERE {target_col_name} IS NOT NULL"
-        db_params = []
-        if process != "all":
-            query += " AND ProcessName = ?"
-            db_params.append(process)
+        placeholders = ",".join("?" for _ in target_processes)
+        query = (
+            f"SELECT * FROM SearchConfig WHERE {target_col_name} IS NOT NULL "
+            f"AND ProcessName IN ({placeholders})"
+        )
+        db_params = list(target_processes)
 
         configs = cur.execute(query, db_params).fetchall()
 
@@ -792,7 +813,7 @@ def api_docfield_values():
         if ms02_configs:
             if engine_ms02_docfields_pg is None:
                 return jsonify([])
-            ms02_cache_key = f"docfield_vals_ms02_{process}_{field}"
+            ms02_cache_key = f"docfield_vals_ms02_{'_'.join(sorted(target_processes))}_{field}"
             all_vals = cache.get(ms02_cache_key)
             if all_vals is None:
                 df_conn = None
@@ -826,7 +847,7 @@ def api_docfield_values():
             q_lower = q.lower()
             return jsonify([v for v in all_vals if not q or q_lower in v.lower()][:15])
 
-        cache_key = f"docfield_vals_{process}_{field}"
+        cache_key = f"docfield_vals_{'_'.join(sorted(target_processes))}_{field}"
         all_vals = cache.get(cache_key)
 
         if all_vals is None:

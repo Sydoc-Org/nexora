@@ -986,6 +986,55 @@ def test_api_docfield_values_allows_sensitive_with_perm(
     assert resp.status_code in (200, 500)
 
 
+def test_api_docfield_values_process_not_allowed_returns_empty(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """A caller holding the blanket workitems.filter.documentfields perm but
+    NOT workitems.filter.process.<p> for the specific process requested must
+    not get value suggestions leaked from that process -- fail closed to []
+    (never a leak, never an error that confirms/denies existence)."""
+    import nx_lib.views.workitems as wv
+
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["col_doctype"])
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)  # sensitivity gate open
+
+    with user_client.session_transaction() as sess:
+        sess["permissions"] = [
+            "workitems.filter.documentfields",
+            "workitems.filter.process.sydoc.allowedprocess",
+        ]
+
+    resp = user_client.get(
+        "/api/docfield_values",
+        query_string={"field": "doctype", "process": "sydoc.otherprocess"},
+    )
+    assert resp.status_code == 200
+    assert resp.get_json() == []
+
+
+def test_api_docfield_values_all_scopes_to_allowed_processes(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """`process=all` (the JS default when no process filter is selected) must
+    not be an unfiltered escape hatch: it narrows to the caller's own
+    workitems.filter.process.* grants, not every process in SearchConfig.
+    With zero process grants, "all" fails closed to []."""
+    import nx_lib.views.workitems as wv
+
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["col_doctype"])
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+
+    with user_client.session_transaction() as sess:
+        sess["permissions"] = ["workitems.filter.documentfields"]  # no process grants
+
+    resp = user_client.get(
+        "/api/docfield_values",
+        query_string={"field": "doctype", "process": "all"},
+    )
+    assert resp.status_code == 200
+    assert resp.get_json() == []
+
+
 # ============================ /import_prepared_audit =========================
 
 
