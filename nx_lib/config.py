@@ -1,43 +1,69 @@
 """Environment-driven configuration for nexora.
 
-Loaded once at import time. Reads ``.env`` then ``env/{ENVIRONMENT}.env`` so
-secrets in env/INT.env / env/PROD.env override anything in the default .env
-file. Falls back to a root-level ``{ENVIRONMENT}.env`` with a
-``DeprecationWarning`` for one release while operators move files into
-``env/`` on shared hosts.
+Loaded once at import time. Reads ``env/{ENVIRONMENT}.env`` (falling back,
+with a ``DeprecationWarning``, to a root-level ``{ENVIRONMENT}.env`` for one
+release while operators move files into ``env/`` on shared hosts) *before*
+the default root ``.env``, so secrets in env/INT.env / env/PROD.env take
+precedence over the root .env fallback. A value already present in the
+process environment always wins over both files, since ``load_dotenv``
+never overrides an existing OS env var (``override=False`` throughout):
+OS env > env-specific file > root .env.
 """
 
 import os
 import warnings
 from pathlib import Path
 
-from dotenv import load_dotenv
+from dotenv import dotenv_values, load_dotenv
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-# Step 1: root .env (environment-selector; sets ENVIRONMENT=INT|PROD|... so
-# the second load_dotenv knows which secrets file to read).
-load_dotenv()
 
-# Step 2: env-specific secrets. Prefer env/{ENV}.env (PR 8 layout); fall
-# back to the legacy root-level {ENV}.env for one release while shared
-# hosts (SYAPP01) catch up. The fallback emits a DeprecationWarning so the
-# warning shows up in app logs and reminds operators to move the file.
-_env_name = os.environ.get("ENVIRONMENT", "")
-_primary_env_file = REPO_ROOT / "env" / f"{_env_name}.env"
-_legacy_env_file = REPO_ROOT / f"{_env_name}.env"
+def _load_env_files(repo_root: Path, env_name: str) -> None:
+    """Load dotenv files in OS-env > env-specific-file > root-.env order.
 
-if _primary_env_file.exists():
-    load_dotenv(dotenv_path=_primary_env_file)
-elif _legacy_env_file.exists():
-    load_dotenv(dotenv_path=_legacy_env_file)
-    warnings.warn(
-        f"Loaded env from legacy root location {_legacy_env_file}. "
-        f"Move to {_primary_env_file} (PR 8 of dev-env upgrade); the "
-        f"fallback will be removed after one release.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
+    ``load_dotenv`` defaults to ``override=False``, so a key already set in
+    the process environment is never touched by either file; between the
+    two files, whichever loads first wins for a given key — hence the
+    env-specific file loads before the root .env fallback. Extracted so
+    tests/unit/test_config_dotenv.py can exercise the precedence against
+    tmp files instead of the real repo tree.
+    """
+    primary_env_file = repo_root / "env" / f"{env_name}.env"
+    legacy_env_file = repo_root / f"{env_name}.env"
+    root_env_file = repo_root / ".env"
+
+    # Env-specific secrets. Prefer env/{ENV}.env (PR 8 layout); fall back to
+    # the legacy root-level {ENV}.env for one release while shared hosts
+    # (SYAPP01) catch up. The fallback emits a DeprecationWarning so it
+    # shows up in app logs and reminds operators to move the file.
+    if primary_env_file.exists():
+        load_dotenv(dotenv_path=primary_env_file)
+    elif legacy_env_file.exists():
+        load_dotenv(dotenv_path=legacy_env_file)
+        warnings.warn(
+            f"Loaded env from legacy root location {legacy_env_file}. "
+            f"Move to {primary_env_file} (PR 8 of dev-env upgrade); the "
+            f"fallback will be removed after one release.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
+    # Root .env loads last: lowest precedence, never overrides a value
+    # already set by the OS environment or the env-specific file above.
+    load_dotenv(dotenv_path=root_env_file)
+
+
+# ENVIRONMENT itself has to be known before we can pick which env/{ENV}.env
+# file to load. Prefer the real process environment; else peek at the root
+# .env without mutating os.environ (dotenv_values just parses the file), so
+# local setups that only set ENVIRONMENT via the root .env still resolve the
+# right per-environment file instead of silently loading none of it.
+_env_name = os.environ.get("ENVIRONMENT") or dotenv_values(REPO_ROOT / ".env").get(
+    "ENVIRONMENT", ""
+)
+
+_load_env_files(REPO_ROOT, _env_name)
 
 IS_PROD = os.environ.get("ENVIRONMENT") == "PROD"
 
