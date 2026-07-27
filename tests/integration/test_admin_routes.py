@@ -342,6 +342,106 @@ def test_admin_edit_user_nonexistent(admin_client, admin_all_perms):
     assert resp.status_code in (200, 400, 403, 500)
 
 
+# ---- Task 20: silent access-profile reassignment on save ------------------
+#
+# The admin_user_detail template only lists options from assignable_profiles
+# (the *editing* admin's own assignable set). If the edited user's CURRENT
+# profile is outside that set (e.g. a lesser admin viewing a user who holds a
+# super-admin-only profile), no <option> is `selected`, the browser defaults
+# to submitting the first option, and saving any unrelated field silently
+# reassigns the profile. These tests patch nx_lib.views.admin.has_permission
+# (the module-level binding the inline gate in admin_edit_user actually
+# resolves — see test_admin_add_user_without_assign_permission_returns_403's
+# docstring above) to simulate an admin who cannot assign 'TestUser' or
+# 'TestNoPerm', while editing user@test.local whose current profile IS
+# 'TestUser'.
+
+
+def test_admin_edit_user_unchanged_unassignable_profile_roundtrips(
+    admin_client, monkeypatch, db_conn
+):
+    """Echoing the user's current (unassignable-to-this-admin) profile back
+    unchanged must succeed — an untouched <select> round-trips the current
+    value even when it isn't in this admin's assignable set."""
+    from sqlalchemy import text
+
+    monkeypatch.setattr(
+        "nx_lib.views.admin.has_permission",
+        lambda code: code
+        not in (
+            "admin.assign.user.accessprofile.testuser",
+            "admin.assign.user.accessprofile.testnoperm",
+        ),
+    )
+    uid = db_conn.execute(
+        text("SELECT userID FROM Users WHERE username = 'user@test.local'")
+    ).scalar()
+
+    resp = admin_client.post(
+        f"/admin/users/edit/{uid}",
+        json={
+            "username": "user@test.local",
+            "fullname": "Test User",
+            "email": "user@test.local",
+            "organization": "Test Organization",
+            "accessprofile": "TestUser",
+        },
+    )
+    assert resp.status_code == 200
+    assert resp.get_json()["success"] is True
+
+    profile = db_conn.execute(
+        text(
+            "SELECT ap.Name FROM Users u JOIN AccessProfile ap ON u.accessid = ap.AccessID "
+            "WHERE u.userID = :uid"
+        ),
+        {"uid": uid},
+    ).scalar()
+    assert profile == "TestUser"
+
+
+def test_admin_edit_user_changed_to_unassignable_profile_returns_403(
+    admin_client, monkeypatch, db_conn
+):
+    """Switching to a DIFFERENT profile the admin cannot assign must be
+    rejected, even though the user's current profile was already outside
+    this admin's assignable set."""
+    from sqlalchemy import text
+
+    monkeypatch.setattr(
+        "nx_lib.views.admin.has_permission",
+        lambda code: code
+        not in (
+            "admin.assign.user.accessprofile.testuser",
+            "admin.assign.user.accessprofile.testnoperm",
+        ),
+    )
+    uid = db_conn.execute(
+        text("SELECT userID FROM Users WHERE username = 'user@test.local'")
+    ).scalar()
+
+    resp = admin_client.post(
+        f"/admin/users/edit/{uid}",
+        json={
+            "username": "user@test.local",
+            "fullname": "Test User",
+            "email": "user@test.local",
+            "organization": "Test Organization",
+            "accessprofile": "TestNoPerm",
+        },
+    )
+    assert resp.status_code == 403
+
+    profile = db_conn.execute(
+        text(
+            "SELECT ap.Name FROM Users u JOIN AccessProfile ap ON u.accessid = ap.AccessID "
+            "WHERE u.userID = :uid"
+        ),
+        {"uid": uid},
+    ).scalar()
+    assert profile == "TestUser"
+
+
 def test_admin_user_detail_renders(admin_client, admin_all_perms, db_conn):
     """Use the seeded admin user-id (queried fresh because IDENTITY starts at 1001+)."""
     from sqlalchemy import text

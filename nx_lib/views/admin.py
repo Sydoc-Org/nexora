@@ -733,7 +733,23 @@ def admin_edit_user(user_id):
     try:
         conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
-        if not has_permission(f"admin.assign.user.accessprofile.{str(accessprofile).lower()}"):
+
+        # The <select> only ever lists this admin's own assignable profiles
+        # (see admin_user_detail). If the edited user's CURRENT profile isn't
+        # in that set, the template still renders it as a selected-but-
+        # unassignable option so an untouched form round-trips the same
+        # value. Only require the assign-permission when the value actually
+        # CHANGES — leaving it alone must never 403 or silently reassign it.
+        cursor.execute(
+            "select ap.name from users u left join accessprofile ap on u.accessid = ap.accessid where u.userid = ?",
+            user_id,
+        )
+        row = cursor.fetchone()
+        current_profile = row[0] if row else None
+
+        if accessprofile != current_profile and not has_permission(
+            f"admin.assign.user.accessprofile.{str(accessprofile).lower()}"
+        ):
             current_app.logger.error(
                 f"User does not have Permission: admin.assign.user.accessprofile.{str(accessprofile).lower()} for {user_id}"
             )
