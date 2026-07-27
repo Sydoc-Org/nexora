@@ -728,6 +728,13 @@ def api_generali_reporting_list():
             where_clauses.append("ontime = ?")
             params.append(1 if on_time_str == "true" else 0)
 
+        restrict_to_self = not has_permission(
+            "generali.reporting.edit.organizational"
+        ) and not has_permission("generali.reporting.edit.transorganizational")
+        if restrict_to_self:
+            where_clauses.append("ReportByUserID = ?")
+            params.append(session.get("userid"))
+
         where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
         conn = engine_generali_db.raw_connection()
