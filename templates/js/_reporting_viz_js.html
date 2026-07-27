@@ -208,13 +208,18 @@
       var rlNavy = isDark ? '#818cf8' : '#312e81';
       var rlPeak = isDark ? '#c7d2fe' : '#4f46e5';
       var rlLineFill = isDark ? 'rgba(129,140,248,.18)' : 'rgba(49,46,129,.12)';
+      // Pie/doughnut segment borders: a hardcoded '#fff' reads as a bright
+      // ring against the dark --nx-card canvas (#1e293b) that this chart
+      // sits on. Recede into the card background in dark mode instead of
+      // forcing white.
+      var rlSliceBorder = isDark ? '#1e293b' : '#fff';
       var ds = {
         label: colLabel(columns, yi),
         data: data,
         backgroundColor: single
           ? (type === 'line' ? rlLineFill : data.map(function (v, i) { return i === maxIdx ? rlPeak : rlNavy; }))
           : colors,
-        borderColor: single ? rlNavy : '#fff',
+        borderColor: single ? rlNavy : rlSliceBorder,
         borderWidth: type === 'line' ? 2 : 1,
         fill: type === 'line'
       };
