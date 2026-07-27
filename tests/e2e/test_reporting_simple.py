@@ -675,12 +675,106 @@ def test_delta_chip_avg_zero_fills_sparse_prior_period(nexora_server, page):
     page.get_by_test_id("rs-wizard-run").click()
 
     expect(page.get_by_test_id("rs-result")).to_be_visible()
-    assert captured and all(body.get("compare") is True for body in captured)
+    # Two requests fire for a metrics+breakdown run: the zero-column
+    # grand-total clone (index 0) and the breakdown run itself (index 1).
+    # Finding 1 (Phase 3 review): the clone never posts compare -- nothing
+    # reads its comparison payload, so adding it was a fully wasted extra
+    # query. Only the breakdown run, whose comparison feeds the delta chips
+    # below, carries compare: true.
+    assert len(captured) == 2
+    assert captured[0].get("compare") is not True
+    assert captured[1].get("compare") is True
 
     avg_chip = page.get_by_test_id("rs-kpi-avg").get_by_test_id("rp-delta")
     expect(avg_chip).to_be_visible()
     expect(avg_chip).to_have_class(re.compile(r"rp-delta--up"))
     expect(avg_chip).to_have_text("↑ 100%")
+
+
+def test_delta_chip_avg_suppressed_on_bucket_count_mismatch(nexora_server, page):
+    """Finding 2 (Phase 3 review): shifted_definition_for_comparison shifts
+    the prior window back by the CURRENT window's length in DAYS, not by an
+    integer number of grain periods. For a "this quarter" preset (3 calendar
+    months, day-length not a multiple of a month) the shifted priorStart can
+    land mid-month, so month-grain zero-fill produces a DIFFERENT bucket
+    count than the current period -- comparing per-bucket averages across
+    genuinely different-length periods (3 months vs. 4) would fabricate a
+    percentage.
+
+    Current period: 3 dense months (Jul/Aug/Sep 2026: 10, 20, 30 -> total 60,
+    3 buckets, avg 20, peak 30).
+    Prior period: 4 dense months (Mar-Jun 2026: 5, 15, 25, 5 -> total 50,
+    4 buckets, avg 12.5, peak 25) -- priorStart '2026-03-31' is mid-month,
+    the exact shape shifted_definition_for_comparison produces for a
+    quarter-length window shifted back by its own day count.
+
+    total (60 vs 50, +20%) and peak (30 vs 25, +20%) deltas must still
+    render -- only avg is suppressed, since kpi.buckets (3) != priorKpi.buckets
+    (4)."""
+    _login(page, nexora_server)
+    _stub_catalogs(page)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+
+    payload = {
+        "columns": [
+            {"field": "import_date", "header": "Import date"},
+            {"field": "stub_count", "header": "Stub count"},
+        ],
+        "rows": [["2026-07-01", 10], ["2026-08-01", 20], ["2026-09-01", 30]],
+        "truncated": False,
+        "rowCount": 3,
+        "sql": None,
+        "params": [],
+        "resolvedDates": [{"field": "import_date", "start": "2026-07-01", "end": "2026-09-30"}],
+        "comparison": {
+            "columns": [
+                {"field": "import_date", "header": "Import date"},
+                {"field": "stub_count", "header": "Stub count"},
+            ],
+            # Dense across all 4 calendar months touched by the mid-month
+            # priorStart -- isolates the bucket-COUNT mismatch from the
+            # separate sparse-row zero-fill case already covered above.
+            "rows": [
+                ["2026-03-01", 5],
+                ["2026-04-01", 15],
+                ["2026-05-01", 25],
+                ["2026-06-01", 5],
+            ],
+            "priorStart": "2026-03-31",
+            "priorEnd": "2026-06-30",
+        },
+    }
+    captured = []
+
+    def handler(route):
+        captured.append(route.request.post_data_json)
+        route.fulfill(status=200, content_type="application/json", body=json.dumps(payload))
+
+    # Stub registered BEFORE the Run click that fires the request.
+    page.route("**/api/reporting/run", handler)
+
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Stub count").click()
+    page.get_by_test_id("rs-measure-next").click()
+    page.get_by_test_id("rs-breakdown-list").locator('[data-bd-field="import_date"]').click()
+    page.get_by_test_id("rs-breakdown-next").click()
+    page.get_by_test_id("rs-time-list").get_by_text("This quarter", exact=True).click()
+    page.get_by_test_id("rs-wizard-run").click()
+
+    expect(page.get_by_test_id("rs-result")).to_be_visible()
+    assert len(captured) == 2 and captured[1].get("compare") is True
+
+    total_chip = page.get_by_test_id("rs-kpi-total").get_by_test_id("rp-delta")
+    expect(total_chip).to_be_visible()
+    expect(total_chip).to_have_class(re.compile(r"rp-delta--up"))
+    expect(total_chip).to_have_text("↑ 20%")
+
+    peak_chip = page.get_by_test_id("rs-kpi-peak").get_by_test_id("rp-delta")
+    expect(peak_chip).to_be_visible()
+    expect(peak_chip).to_have_class(re.compile(r"rp-delta--up"))
+    expect(peak_chip).to_have_text("↑ 20%")
+
+    expect(page.get_by_test_id("rs-kpi-avg").get_by_test_id("rp-delta")).to_have_count(0)
 
 
 STUB_AI_DEFINITION = {

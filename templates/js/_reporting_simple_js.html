@@ -692,7 +692,19 @@
     var totalDelta = '', avgDelta = '', peakDelta = '';
     if (priorKpi) {
       totalDelta = deltaChipHtml(kpi.total, priorKpi.total, comparison.priorStart, comparison.priorEnd);
-      avgDelta = deltaChipHtml(kpi.avg, priorKpi.avg, comparison.priorStart, comparison.priorEnd);
+      // Bucket-count mismatch guard: shifted_definition_for_comparison shifts
+      // the prior window back by the CURRENT window's length in DAYS, not by
+      // an integer number of grain periods -- for a window whose day-length
+      // isn't grain-aligned (e.g. a calendar-quarter preset against a month
+      // grain), the shifted priorStart can land mid-month and zero-fill to a
+      // different number of buckets than the current period (see Finding 2,
+      // Phase 3 review). Averaging total/bucket-count across two genuinely
+      // different-length periods would fabricate a percentage, so only the
+      // avg chip is suppressed here -- total/peak are unaffected (an extra
+      // all-zero bucket contributes 0 to both) and keep rendering normally.
+      if (kpi.buckets === priorKpi.buckets) {
+        avgDelta = deltaChipHtml(kpi.avg, priorKpi.avg, comparison.priorStart, comparison.priorEnd);
+      }
       peakDelta = deltaChipHtml(kpi.peak, priorKpi.peak, comparison.priorStart, comparison.priorEnd);
     }
     var sparkHtml = def ? sparklineHtml(def, rows, kpi) : '';
@@ -1407,7 +1419,11 @@
       var totalDef = JSON.parse(JSON.stringify(def));
       totalDef.columns = [];
       totalDef.sort = [];
-      totalDef.compare = true;
+      // No compare: true here -- this run only feeds fillStatCard, which
+      // never reads a comparison payload. The breakdown def below is the
+      // one whose comparison drives renderKpiBand's delta chips; asking
+      // the backend to also diff THIS zero-column clone's own prior period
+      // would be a fully wasted extra query.
       var t = await api('/api/reporting/run', { method: 'POST', body: JSON.stringify(totalDef) });
       if (seq !== runSeq) return;
       if (t.ok && t.data && t.data.rows && t.data.rows.length) {
