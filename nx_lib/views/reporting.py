@@ -98,6 +98,7 @@ from ..reporting.tokens import (
     date_fields_from_catalog,
     resolve_definition_tokens,
     resolve_token,
+    shifted_definition_for_comparison,
 )
 from ..security import has_permission, page_visibility, require_permission
 
@@ -1046,6 +1047,24 @@ def api_run():
         "sqlDisplay": inline_sql_params(pretty, params),
         "params": [_json_safe(p) for p in params],
     }
+    if rd.get("compare"):
+        shifted = shifted_definition_for_comparison(rd)
+        if shifted is not None:
+            shifted_rd, prior_start, prior_end = shifted
+            try:
+                c_columns, c_sql, c_params, c_engine = _prepare_run(shifted_rd)
+                c_rows = _execute(c_engine, c_sql, c_params)
+                payload["comparison"] = {
+                    "columns": [
+                        {"field": c["field"], "header": c.get("header") or c["field"]}
+                        for c in c_columns
+                    ],
+                    "rows": _rows_json_safe(c_rows),
+                    "priorStart": prior_start.isoformat(),
+                    "priorEnd": prior_end.isoformat(),
+                }
+            except Exception as e:
+                current_app.logger.warning(f"/api/reporting/run comparison skipped: {e}")
     # rd is the original request body (tokens intact) — _prepare_run resolves
     # its own local copy. _resolved_dates_meta needs the tokens to produce labels.
     resolved_dates = _resolved_dates_meta(rd)
