@@ -396,6 +396,14 @@ def _ms02_prepared_docs_processes():
 # outgrow this ceiling.
 EXPORT_MAX_ROWS = 100_000
 
+# D-CSVLIM: include=fields|history|images are all per-row Octo fetches. The
+# UI only ever offers them once <=10 rows are selected (see
+# selectedIds.size <= 10 in _workitems_overview_js.html), but that gate is
+# client-side only -- a direct API call could request a heavy include with no
+# `ids` (or an arbitrarily large one) and walk up to EXPORT_MAX_ROWS rows
+# doing per-row Octo fetches. Enforced server-side in export_workitems_csv.
+EXPORT_HEAVY_INCLUDE_MAX_IDS = 10
+
 
 def _client_hint():
     """Client code the front-end row carried (``?client=ms02``), or None.
@@ -942,6 +950,25 @@ def export_workitems_csv():
             client_part, sep, wid_part = part.rpartition("-")
             if sep and client_part and wid_part.isdigit():
                 specific_ids.add((client_part, int(wid_part)))
+
+    # D-CSVLIM: server-side enforcement of the heavy-include selection cap
+    # (see EXPORT_HEAVY_INCLUDE_MAX_IDS above) -- an include= request must
+    # name a selection of at most that many compound ids, never an absent or
+    # oversized one.
+    if (include_set & {"fields", "history", "images"}) and (
+        not specific_ids or len(specific_ids) > EXPORT_HEAVY_INCLUDE_MAX_IDS
+    ):
+        return (
+            jsonify(
+                {
+                    "error": _(
+                        "Exporting fields, history, or images requires selecting "
+                        "10 or fewer workitems."
+                    )
+                }
+            ),
+            400,
+        )
 
     try:
         result = _get_workitems_data(request.args, export_all=True)

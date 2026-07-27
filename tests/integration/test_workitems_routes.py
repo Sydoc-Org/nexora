@@ -641,7 +641,10 @@ def test_export_workitems_csv_keys_by_client_not_bare_id(
 
     monkeypatch.setattr(wv, "get_extensions_urls_fields", fake_get_extensions_urls_fields)
 
-    resp = user_client.get("/api/export/workitems/csv?include=fields")
+    # D-CSVLIM: include=fields now requires an explicit (<=10) ids selection
+    # server-side; name both colliding rows so this test's actual concern
+    # (per-client field values, not the selection cap) is unaffected.
+    resp = user_client.get("/api/export/workitems/csv?include=fields&ids=default-1216,ms02-1216")
     assert resp.status_code == 200
     body = resp.get_data(as_text=True)
     csv_rows = list(csv.reader(io.StringIO(body)))
@@ -718,6 +721,109 @@ def test_export_workitems_csv_selected_ids_are_client_aware(
         f"expected the default-client row (Status=Open), got {data_rows[0]!r} "
         f"-- wrong client's row was exported"
     )
+
+
+# --- D-CSVLIM: heavy-include cap is enforced server-side, not just in JS --- #
+# fields/history/images are all per-row Octo fetches; the ≤10-selection rule
+# used to live only in the JS control (isSelection = selectedIds.size > 0 &&
+# selectedIds.size <= 10). A direct API call bypassing that control could
+# request include=fields|history|images with no ids (or an arbitrarily large
+# ids list) and walk up to EXPORT_MAX_ROWS rows doing per-row Octo fetches.
+
+
+def test_export_workitems_csv_include_without_ids_returns_400(user_client, workitems_all_perms):
+    resp = user_client.get("/api/export/workitems/csv?include=fields")
+    assert resp.status_code == 400
+    body = resp.get_json()
+    assert body and "error" in body
+
+
+def test_export_workitems_csv_include_with_over_10_ids_returns_400(
+    user_client, workitems_all_perms
+):
+    ids_param = ",".join(f"default-{i}" for i in range(1, 12))  # 11 compound ids
+    resp = user_client.get(f"/api/export/workitems/csv?include=history&ids={ids_param}")
+    assert resp.status_code == 400
+    body = resp.get_json()
+    assert body and "error" in body
+
+
+def test_export_workitems_csv_include_with_le_10_ids_is_honored(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """3 selected ids (<= the cap) must still get the requested include=fields
+    treatment -- the cap must not also block legitimate small selections."""
+    import nx_lib.views.workitems as wv
+
+    fake_cache = _FakeCache()
+    monkeypatch.setattr(wv, "cache", fake_cache)
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+
+    rows = [
+        {
+            "workitemid": wid,
+            "client": "default",
+            "status": "Open",
+            "current_stage": "Stage A",
+            "priority": 1,
+            "tags": [],
+            "modifiedat": None,
+        }
+        for wid in (91001, 91002, 91003)
+    ]
+
+    monkeypatch.setattr(
+        wv,
+        "_get_workitems_data",
+        lambda args, export_all=False: {
+            "workitems": rows,
+            "pagination": {"totalItems": len(rows)},
+        },
+    )
+    monkeypatch.setattr(
+        wv, "get_domain_for_workitem", lambda wid, client_hint=None: "d.example.com"
+    )
+    monkeypatch.setattr(
+        wv, "get_workitemdata_param", lambda wid, domain: (f"wdata-{wid}", f"doc-{wid}")
+    )
+    monkeypatch.setattr(
+        wv,
+        "get_extensions_urls_fields",
+        lambda workitemdata, document_id, domain, with_tables=False: (
+            [],
+            [],
+            {"Amount": "42"},
+            {},
+            {},
+        ),
+    )
+
+    ids_param = "default-91001,default-91002,default-91003"
+    resp = user_client.get(f"/api/export/workitems/csv?include=fields&ids={ids_param}")
+    assert resp.status_code == 200
+    body = resp.get_data(as_text=True)
+    csv_rows = list(csv.reader(io.StringIO(body)))
+    header, data_rows = csv_rows[0], csv_rows[1:]
+    assert "Amount" in header, f"expected include=fields honored, got header={header!r}"
+    assert len(data_rows) == 3
+
+
+def test_export_workitems_csv_no_include_no_ids_still_200(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Regression: the new heavy-include cap must not affect the light default
+    export path (no include=, no ids=) -- it stays a plain 200 CSV."""
+    import nx_lib.views.workitems as wv
+
+    monkeypatch.setattr(
+        wv,
+        "_get_workitems_data",
+        lambda args, export_all=False: {"workitems": [], "pagination": {"totalItems": 0}},
+    )
+
+    resp = user_client.get("/api/export/workitems/csv")
+    assert resp.status_code == 200
+    assert "text/csv" in resp.headers.get("Content-Type", "")
 
 
 def test_strip_export_fields_removes_sensitive_columns():
