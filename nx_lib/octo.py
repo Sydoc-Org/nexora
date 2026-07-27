@@ -203,6 +203,7 @@ def get_media(url, domain=None):
         "Content-Type": "application/json",
     }
     response = requests.get(url=url, headers=headers, timeout=10)
+    response.raise_for_status()
     return response.content
 
 

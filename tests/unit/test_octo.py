@@ -4,9 +4,11 @@ External HTTP and the IndexFieldMappings table aren't reachable in the
 test environment; tests mock requests + the cache + engine_nexora_db.
 """
 
+import hashlib
 from unittest.mock import MagicMock, patch
 
 import pytest
+import requests
 
 from nx_lib import octo as octo_mod
 from nx_lib.octo import (
@@ -16,6 +18,7 @@ from nx_lib.octo import (
     get_index_field_mappings,
     get_media,
     get_workitemdata_param,
+    pdf_src_bytes,
 )
 
 
@@ -491,6 +494,48 @@ def test_get_media_returns_bytes(app):
     # Auth header was attached
     headers = mock_get.call_args.kwargs["headers"]
     assert headers["Authorization"] == "Bearer tok"
+
+
+def test_get_media_raises_on_http_error(app):
+    """A 502/error body must not be handed back as if it were valid media
+    bytes -- get_media has to check the response status so a transient Octo
+    outage can't be mistaken for a real document."""
+    fake_resp = MagicMock(content=b"<html>502 Bad Gateway</html>")
+    fake_resp.raise_for_status.side_effect = requests.HTTPError("502 Server Error")
+    with (
+        patch.object(octo_mod, "get_access_token", return_value="tok"),
+        patch.object(octo_mod.requests, "get", return_value=fake_resp),
+        app.app_context(),
+        pytest.raises(requests.HTTPError),
+    ):
+        get_media("https://cdn/x.png")
+
+
+def test_pdf_src_bytes_does_not_cache_on_http_error(app):
+    """pdf_src_bytes caches get_media's result for an hour -- if get_media
+    raises instead of silently returning an error body, the cache.set below
+    it must never execute, so a transient 502 doesn't poison the slot for
+    every request in the next 3600s."""
+    from nx_lib.extensions import cache
+
+    url = "https://cdn/doc.pdf"
+    key = "pdf_src_" + hashlib.sha1(url.encode("utf-8")).hexdigest()
+
+    fake_resp = MagicMock(content=b"<html>502 Bad Gateway</html>")
+    fake_resp.raise_for_status.side_effect = requests.HTTPError("502 Server Error")
+    with (
+        patch.object(octo_mod, "get_access_token", return_value="tok"),
+        patch.object(octo_mod.requests, "get", return_value=fake_resp),
+        app.app_context(),
+        pytest.raises(requests.HTTPError),
+    ):
+        pdf_src_bytes(url)
+
+    with app.app_context():
+        assert cache.get(key) is None, (
+            "pdf_src_bytes cached an error response -- the next request for this "
+            "PDF will be served garbage bytes for up to an hour"
+        )
 
 
 # ---------- get_activity_type_name ----------

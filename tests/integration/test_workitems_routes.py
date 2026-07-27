@@ -32,6 +32,7 @@ import csv
 import io
 
 import pytest
+import requests
 
 
 @pytest.fixture()
@@ -1014,6 +1015,48 @@ def test_api_get_media_raw_pdf_cache_is_client_scoped(
         "media_raw_pdfpage_ cache key omitted the client domain"
     )
     assert resp_default.data != resp_ms02.data
+
+
+def test_api_get_media_raw_pdf_error_does_not_cache(user_client, workitems_all_perms, monkeypatch):
+    """When the PDF source stream errors (e.g. Octo 502s), pdf_src_bytes must
+    raise instead of handing back the error body as if it were page bytes.
+    The route has to degrade to an error status without ever writing the
+    rendered-page cache slot -- caching the error would poison that slot
+    with garbage for every request in the next hour."""
+    import nx_lib.views.workitems as wv
+
+    fake_cache = _FakeCache()
+    monkeypatch.setattr(wv, "cache", fake_cache)
+
+    monkeypatch.setattr(
+        wv, "get_domain_for_workitem", lambda wid, client_hint=None: "default-domain.example.com"
+    )
+    monkeypatch.setattr(wv, "get_workitemdata_param", lambda wid, domain: ("wdata", "doc-1"))
+    monkeypatch.setattr(
+        wv,
+        "get_extensions_urls_fields",
+        lambda workitemdata, document_id, domain: (
+            [".pdf"],
+            ["http://media/doc.pdf#page=0"],
+            {},
+            {},
+            {},
+        ),
+    )
+
+    def _raise_http_error(url, domain):
+        raise requests.HTTPError("502 Server Error")
+
+    monkeypatch.setattr(wv, "pdf_src_bytes", _raise_http_error)
+
+    resp = user_client.get("/api/get_media_raw/1216/0?client=default")
+
+    assert resp.status_code == 500
+    pdf_cache_key = "media_raw_pdfpage_0_default-domain.example.com_1216"
+    assert pdf_cache_key not in fake_cache.store, (
+        "an error response must not populate the rendered-page cache slot -- "
+        "that would poison media_raw_pdfpage_ for the next hour"
+    )
 
 
 def test_get_audithistory_gated(noperm_client):
