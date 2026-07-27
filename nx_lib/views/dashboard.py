@@ -30,6 +30,7 @@ from ..workitem_sources import (
     recent_activity_rows,
     total_backlog_count,
 )
+from .workitems import sensitive_blocked_tokens, strip_sensitive_fields
 
 
 def make_cache_key(*args, **kwargs):
@@ -1628,6 +1629,11 @@ def api_recent_activity():
             proc_params, cli_params, activity_instances_to_ignore, top=3
         )
 
+        # Same sensitive-doc-field gate enforced at every other surface that
+        # shows doc-fields (workitems.filter.documentfields.sensitive) --
+        # this feed was reading raw Octo fields straight through.
+        blocked_tokens = sensitive_blocked_tokens()
+
         activity = []
         for row in raw_rows:
             domain = get_domain_for_workitem(row["id"], client_hint=row.get("client"))
@@ -1640,11 +1646,13 @@ def api_recent_activity():
             workitemdata, doc_id = returndata
             _ext, _urls, fields, _fs, _ts = get_extensions_urls_fields(workitemdata, doc_id, domain)
             fields = {k: v for k, v in fields.items() if v}
+            fields = strip_sensitive_fields(fields, blocked_tokens)
             activity.append(
                 {
                     "id": row["id"],
                     "time": row["modifiedat"].strftime("%H:%M"),
                     "process": row["process"],
+                    "client": row.get("client"),
                     "fields": fields,
                 }
             )

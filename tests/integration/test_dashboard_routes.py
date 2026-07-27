@@ -35,6 +35,7 @@ from unittest.mock import MagicMock
 
 import nx_lib.hooks
 import nx_lib.views.dashboard as dv
+import nx_lib.views.workitems as wv
 from nx_lib.extensions import cache
 
 
@@ -305,6 +306,94 @@ def test_recent_activity_skips_row_when_workitemdata_lookup_fails(user_client, m
     assert resp.status_code == 200
     body = resp.get_json()
     assert [row["id"] for row in body] == [good_row["id"]]
+
+
+# --------------------- sensitive doc-fields must not leak (Task 16) --------- #
+# The activity feed read raw Octo `fields` straight through with no strip,
+# unlike every other surface that shows doc-fields (workitems.filter.
+# documentfields.sensitive). Caller without the perm must not see a
+# sensitive-configured field's value.
+
+
+def test_recent_activity_strips_sensitive_fields_without_perm(user_client, monkeypatch):
+    """Caller WITHOUT workitems.filter.documentfields.sensitive: a sensitive-
+    configured field must be absent from the row's fields, not leaked."""
+    cache.clear()
+    monkeypatch.setattr(
+        nx_lib.hooks,
+        "load_permissions_for_user",
+        lambda uid: ["dashboard.view", "dashboard.filter.process.sydoc.TestProc"],
+    )
+    monkeypatch.setattr(dv, "get_activity_instances_to_ignore", lambda: "")
+    monkeypatch.setattr(wv, "get_sensitive_field_tokens", lambda: {"pid"})
+
+    row = {
+        "id": 444,
+        "modifiedat": datetime(2026, 7, 20, 9, 30),
+        "process": "TestProc",
+        "client": "sydoc",
+    }
+    monkeypatch.setattr(dv, "recent_activity_rows", lambda *a, **k: [row])
+    monkeypatch.setattr(
+        dv, "get_domain_for_workitem", lambda wid, client_hint=None: "domain.example.com"
+    )
+    monkeypatch.setattr(dv, "get_workitemdata_param", lambda wid, domain: ("wdata", "docid"))
+    monkeypatch.setattr(
+        dv,
+        "get_extensions_urls_fields",
+        lambda workitemdata, document_id, domain: (
+            None,
+            None,
+            {"PID": "12345", "Notes": "hello"},
+            None,
+            None,
+        ),
+    )
+
+    resp = user_client.get("/api/dashboard/recent_activity")
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body[0]["fields"] == {"Notes": "hello"}
+
+
+# --------------------- every row must carry its client (Task 16) ------------ #
+# Rows carried no `client` key in the JSON response, so a colliding-id
+# click-through (see D9 tests above, which cover the server-side hint
+# forwarding) could not disambiguate on the front end either.
+
+
+def test_recent_activity_rows_include_client_key(user_client, monkeypatch):
+    """Every emitted row carries its source client, not just internally for
+    the domain-hint lookup -- the front-end deep link needs it too."""
+    cache.clear()
+    monkeypatch.setattr(
+        nx_lib.hooks,
+        "load_permissions_for_user",
+        lambda uid: ["dashboard.view", "dashboard.filter.process.ms02.TestProc"],
+    )
+    monkeypatch.setattr(dv, "get_activity_instances_to_ignore", lambda: "")
+
+    row = {
+        "id": 1216,
+        "modifiedat": datetime(2026, 7, 20, 9, 30),
+        "process": "TestProc",
+        "client": "ms02",
+    }
+    monkeypatch.setattr(dv, "recent_activity_rows", lambda *a, **k: [row])
+    monkeypatch.setattr(
+        dv, "get_domain_for_workitem", lambda wid, client_hint=None: "ms02-domain.example.com"
+    )
+    monkeypatch.setattr(dv, "get_workitemdata_param", lambda wid, domain: ("wdata", "docid"))
+    monkeypatch.setattr(
+        dv,
+        "get_extensions_urls_fields",
+        lambda workitemdata, document_id, domain: (None, None, {}, None, None),
+    )
+
+    resp = user_client.get("/api/dashboard/recent_activity")
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body[0]["client"] == "ms02"
 
 
 # --------------------- error responses must not be cached ------------------- #

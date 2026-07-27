@@ -51,11 +51,16 @@
 
     // Delegated click handler for activity-feed rows: reads the workitem id
     // from data-wid (never re-parsed as HTML) instead of an inline onclick
-    // built from server-derived text.
+    // built from server-derived text. data-client disambiguates colliding
+    // ids across sources (e.g. 1216 exists on both the default and MS02
+    // clients) -- without it the deep link can land on the wrong client's
+    // workitem.
     function onActivityFeedClick(e) {
         const row = e.target.closest('[data-wid]');
         if (!row) return;
-        window.location.href = `${API_PREFIX}workitems?search=${encodeURIComponent(row.dataset.wid)}`;
+        const client = row.dataset.client || '';
+        const clientQs = client ? `&client=${encodeURIComponent(client)}` : '';
+        window.location.href = `${API_PREFIX}workitems?search=${encodeURIComponent(row.dataset.wid)}${clientQs}`;
     }
 
     async function updateActivityFeed() {
@@ -84,7 +89,7 @@
                 const widStr = String(act.id);
                 return `
                     <div class="p-3 rounded-xl border border-gray-50 bg-gray-50/50 hover:bg-white hover:shadow-md transition-all cursor-pointer"
-                        data-wid="${escapeHtml(widStr)}">
+                        data-wid="${escapeHtml(widStr)}" data-client="${escapeHtml(String(act.client || ''))}">
                         <div class="flex justify-between items-start mb-1">
                             <span class="text-xs font-bold text-indigo-600">ID: ${escapeHtml(widStr)}</span>
                             <span class="text-[10px] text-gray-400">${escapeHtml(String(act.time))}</span>
