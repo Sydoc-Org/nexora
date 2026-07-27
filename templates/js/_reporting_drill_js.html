@@ -15,10 +15,29 @@ window.ReportingDrill = (function () {
     loadError: {{ _("Could not load the rows behind this number.")|tojson }},
     close: {{ _("Close")|tojson }},
     couldNotExport: {{ _("Could not export this report.")|tojson }},
-    calloutText: {{ _("Click a workitem to open its read-only preview.")|tojson }}
+    calloutText: {{ _("Click a workitem to open its read-only preview.")|tojson }},
+    cannotFilter: {{ _("Could not filter this selection — drill cancelled.")|tojson }}
   };
 
   var SMART_FIELDS = ['workitem_id', 'processname', 'import_date', 'export_date'];
+
+  // In-page toast -- same DOM/CSS contract as the Advanced tab's private
+  // toast() (.reporting-toast / data-testid="reporting-toast", defined in
+  // _reporting_js.html): this module is self-contained (like the dashboard
+  // builder's own toast()) so it draws its own, reusing the shared CSS class
+  // rather than a new one. Used when a drill can't be safely opened (Task 35:
+  // an unparseable grain bucket with no raw value to fall back on) -- the
+  // drawer must never proceed unfiltered, so we tell the user instead.
+  function toast(msg, isError) {
+    var t = document.createElement('div');
+    t.className = 'reporting-toast' + (isError ? ' reporting-toast--error' : '');
+    t.setAttribute('role', 'status');
+    t.setAttribute('data-testid', 'reporting-toast');
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(function () { t.classList.add('is-gone'); }, 2600);
+    setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 3000);
+  }
 
   function addGrainUpper(startStr, grain) {
     var s = String(startStr).slice(0, 10);
@@ -50,18 +69,29 @@ window.ReportingDrill = (function () {
     var filters = (def.filters || []).map(function (x) {
       return JSON.parse(JSON.stringify(x));
     });
+    var unfilterable = false;
     clicked.forEach(function (c) {
       if (c.grain) {
         var upper = addGrainUpper(c.value, c.grain);
-        if (!upper) return;
-        filters.push({ field: c.field, op: 'gte', value: String(c.value).slice(0, 10) });
-        filters.push({ field: c.field, op: 'lt', value: upper });
+        if (upper) {
+          filters.push({ field: c.field, op: 'gte', value: String(c.value).slice(0, 10) });
+          filters.push({ field: c.field, op: 'lt', value: upper });
+        } else if (c.value !== null && c.value !== undefined && c.value !== '') {
+          // addGrainUpper couldn't read the bucket label as a date (e.g. a
+          // "N/A"/malformed group key) -- fall back to an equality filter on
+          // the raw value rather than silently dropping the constraint. An
+          // unfiltered drill must never masquerade as a filtered one (Task 35).
+          filters.push({ field: c.field, op: 'eq', value: c.value });
+        } else {
+          unfilterable = true;   // no date range AND no raw value to match on
+        }
       } else if (c.value === null || c.value === undefined || c.value === '') {
         filters.push({ field: c.field, op: 'is_null' });
       } else {
         filters.push({ field: c.field, op: 'eq', value: c.value });
       }
     });
+    if (unfilterable) return null;
     var cols = [];
     SMART_FIELDS.concat(clicked.map(function (c) { return c.field; }))
       .forEach(function (fd) {
@@ -201,7 +231,7 @@ window.ReportingDrill = (function () {
   /* opts: {definition, fields, clicked, header, isDistinct} */
   function open(opts) {
     var dd = buildDrillDefinition(opts.definition, opts.fields, opts.clicked);
-    if (!dd) return;
+    if (!dd) { toast(I18N.cannotFilter, true); return; }
     current = { definition: dd };
     var token = current;                          // guards against a stale response
                                                     // from an earlier open() call winning

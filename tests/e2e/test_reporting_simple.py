@@ -2494,6 +2494,70 @@ def test_advanced_sql_sandbox_not_drillable(nexora_server, page):
     expect(page.get_by_test_id("reporting-drill-panel")).to_be_hidden()
 
 
+# Task 35: an unparseable grain-bucket label (addGrainUpper returns null) must
+# never let the drill open unfiltered. Both drive ReportingDrill.open()
+# directly -- the same call renderTable's row-click handler and the chart
+# onClick handlers make (templates/js/_reporting_simple_js.html openDrill /
+# templates/js/_reporting_js.html openDrill) -- with _stub_run_ok's capture
+# list recording exactly what reaches /api/reporting/run, so the assertion is
+# on the real outgoing request body, not just the pure buildDrillDefinition
+# transform (see test_drill_transform_month_grain_bounds above for that).
+def test_drill_unparseable_grain_bucket_falls_back_to_eq_filter(nexora_server, page):
+    """A grain bucket whose raw label can't be parsed as a date (e.g. a
+    "N/A"/malformed group key) must still constrain the drill on that raw
+    value -- never drop the filter and show every row. RED before the fix:
+    buildDrillDefinition's clicked.forEach did a bare `return` on `!upper`,
+    skipping the field's filters entirely, so the outgoing request carried
+    zero constraints on exportdate."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting")
+
+    captured = []
+    _stub_run_ok(page, capture=captured)
+
+    page.evaluate("""() => {
+      ReportingDrill.open({
+        definition: {source: 's1', columns: [{field: 'exportdate', grain: 'month'}], filters: []},
+        fields: [{field: 'exportdate', filterable: true, grainable: true}],
+        clicked: [{field: 'exportdate', grain: 'month', value: 'N/A'}],
+        header: 'test'
+      });
+    }""")
+
+    expect(page.get_by_test_id("reporting-drill-panel")).to_be_visible()
+    assert len(captured) == 1
+    exportdate_filters = [f for f in captured[0]["filters"] if f["field"] == "exportdate"]
+    assert exportdate_filters == [{"field": "exportdate", "op": "eq", "value": "N/A"}], (
+        "unparseable grain bucket must fall back to an equality filter on the "
+        "raw bucket value, never drop the constraint entirely"
+    )
+
+
+def test_drill_unparseable_grain_bucket_with_no_raw_value_aborts_with_toast(nexora_server, page):
+    """When the grain is unparseable AND there's no raw value to fall back to
+    (empty bucket label) an equality filter can't be constructed either --
+    the drawer must abort opening entirely (never proceed unfiltered) and
+    tell the user via toast instead of silently doing nothing."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting")
+
+    captured = []
+    _stub_run_ok(page, capture=captured)
+
+    page.evaluate("""() => {
+      ReportingDrill.open({
+        definition: {source: 's1', columns: [{field: 'exportdate', grain: 'month'}], filters: []},
+        fields: [{field: 'exportdate', filterable: true, grainable: true}],
+        clicked: [{field: 'exportdate', grain: 'month', value: ''}],
+        header: 'test'
+      });
+    }""")
+
+    expect(page.get_by_test_id("reporting-toast")).to_be_visible()
+    expect(page.get_by_test_id("reporting-drill-panel")).to_be_hidden()
+    assert captured == [], "no unfiltered (or any) request may reach /api/reporting/run"
+
+
 # ---------------------------------------------------------------------------
 # Per-process (per-client) breakdown chip -- docprocessing wizard curation.
 # TEST env has no Statistics DB, so the docprocessing catalog is stubbed
