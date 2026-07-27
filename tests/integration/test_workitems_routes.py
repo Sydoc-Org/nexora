@@ -1720,6 +1720,9 @@ def test_prepared_documents_preview_button_requires_details_view(
     assert resp.status_code == 200
     assert b'data-testid="prepared-docs-preview"' in resp.data
     assert b'data-wid="42"' in resp.data
+    # Register is MS02-only: the preview button must carry the owning client
+    # so the shared detail panel's media/audit fetches disambiguate colliding ids.
+    assert b'data-client="ms02"' in resp.data
     assert b"NexoraWorkitemDetail" in resp.data
 
     monkeypatch.setattr(wv, "has_permission", lambda code: code != "workitems.details.view")
@@ -1747,6 +1750,11 @@ def test_prepared_documents_modal_wires_shared_renderer(
     assert b"NexoraWorkitemDetail.render" in resp.data
     assert b"attachLightbox" in resp.data
     assert b"api/config/fields" in resp.data
+    # The click handler must thread the button's data-client through to
+    # openPreview, which must forward it into the render() options (mirrors
+    # toggleDetailsAndLoadImages's `client: detailsRow.dataset.client` convention).
+    assert b"btn.dataset.client" in resp.data
+    assert b"client: client" in resp.data
 
 
 def test_prepared_documents_preview_present_when_media_degrades(
