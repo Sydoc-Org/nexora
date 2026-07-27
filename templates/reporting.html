@@ -250,9 +250,6 @@
         <div class="reporting-mode-toggle" role="tablist" aria-label="{{ _('Report mode') }}">
           <button id="rpModeTable" class="active" data-testid="reporting-mode-table">{{ _("Table") }}</button>
           <button id="rpModeSql" disabled title="{{ _('Requires the reporting.sql.run permission') }}" data-testid="reporting-mode-sql">{{ _("SQL") }}</button>
-          {% if ai_enabled %}
-          <button id="rpModeAi" data-testid="reporting-mode-ai">{{ _("Ask AI") }}</button>
-          {% endif %}
         </div>
         <input id="rpTitle" class="reporting-title-input" placeholder="{{ _('Untitled report') }}" data-testid="reporting-title"
                aria-label="{{ _('Report title') }}">
@@ -296,62 +293,6 @@
         <textarea id="rpSqlEditor" class="reporting-sql-editor" spellcheck="false"
                   placeholder="SELECT TOP (100) * FROM ..." data-testid="reporting-sql-editor"></textarea>
       </div>
-      {% if ai_enabled %}
-      <div id="rpAiPanel" class="reporting-ai-panel rp-anim-ai" hidden data-testid="reporting-ai-panel">
-        <div class="reporting-ai-submode" data-testid="reporting-ai-submode">
-          <button id="rpAiModeBuild" class="active" data-testid="reporting-ai-mode-build">{{ _("Build a report") }}</button>
-          {% if ai_sql_enabled %}
-          <button id="rpAiModeSql" data-testid="reporting-ai-mode-sql">{{ _("Write SQL") }}</button>
-          {% endif %}
-          <button id="rpAiModeAgent" data-testid="reporting-ai-mode-agent">{{ _("Agent") }}</button>
-        </div>
-        <div class="reporting-ai-bar">
-          <input id="rpAiPrompt" class="reporting-ai-prompt"
-                 placeholder="{{ _('Ask in plain language — e.g. “top 10 processes by volume this month”') }}"
-                 data-testid="reporting-ai-prompt">
-          <button id="rpAiAsk" class="reporting-btn reporting-btn-primary nx-btn nx-btn--primary"
-                  data-testid="reporting-ai-ask">{{ _("Ask") }}</button>
-        </div>
-        <p id="rpAiHintBuild" class="reporting-ai-hint">{{ _("The assistant drafts a report definition from the sources you can access — it never sees result data. Review it, then open it in the builder and run it yourself.") }}</p>
-        <p id="rpAiHintSql" class="reporting-ai-hint" hidden>{{ _("The assistant drafts read-only SQL from the database schema. It never sees result data. Review the SQL, then run it yourself.") }}</p>
-        <p id="rpAiHintAgent" class="reporting-ai-hint" hidden>{% if ai_explain_enabled %}{{ _("The agent works step by step, showing each tool it uses. It can run read-only queries and report the actual numbers from the data it fetched.") }}{% else %}{{ _("The agent works step by step, showing each tool it uses to validate and draft — grounded only in the schema you can access. It never sees result data.") }}{% endif %}</p>
-        <div id="rpAiLoading" class="reporting-ai-loading" hidden data-testid="reporting-ai-loading">
-          <span class="reporting-ai-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-          <span id="rpAiLoadingText" role="status"></span>
-        </div>
-        <div id="rpAiResult" class="reporting-ai-result" hidden data-testid="reporting-ai-result">
-          <pre id="rpAiSql" class="reporting-ai-sql" data-testid="reporting-ai-sql"></pre>
-          <p id="rpAiExplain" class="reporting-ai-explain"></p>
-          <p id="rpAiInvalid" class="reporting-ai-invalid" hidden>{{ _("⚠ The drafted SQL did not pass the read-only check — review it before running.") }}</p>
-          <div class="reporting-ai-actions">
-            <button id="rpAiInsert" class="reporting-btn nx-btn nx-btn--secondary" data-testid="reporting-ai-insert">{{ _("Insert into SQL editor") }}</button>
-            <button id="rpAiCopy" class="reporting-link nx-btn nx-btn--ghost nx-btn--sm" data-testid="reporting-ai-copy">{{ _("Copy") }}</button>
-          </div>
-        </div>
-        <div id="rpAiDefResult" class="reporting-ai-result" hidden data-testid="reporting-ai-def-result">
-          <p id="rpAiDefSummary" class="reporting-ai-explain" data-testid="reporting-ai-def-summary"></p>
-          <p id="rpAiDefInvalid" class="reporting-ai-invalid" hidden>{{ _("⚠ The drafted report could not be validated — try rephrasing.") }}</p>
-          <div class="reporting-ai-actions">
-            <button id="rpAiOpenBuilder" class="reporting-btn nx-btn nx-btn--secondary" data-testid="reporting-ai-open-builder">{{ _("Open in builder") }}</button>
-            <button id="rpAiMakeChart" class="reporting-btn nx-btn nx-btn--secondary" hidden data-testid="reporting-ai-make-chart">{{ _("Make a chart") }}</button>
-          </div>
-        </div>
-        <div id="rpAiAgentResult" class="reporting-ai-result" hidden data-testid="reporting-ai-agent-result">
-          <div id="rpAiAgentThread" class="reporting-ai-thread" data-testid="reporting-ai-agent-thread"></div>
-          <details id="rpAiAgentTraceWrap" class="reporting-ai-trace-wrap" hidden>
-            <summary class="reporting-ai-trace-summary">{{ _("How the agent worked") }} · <span id="rpAiAgentTurns"></span></summary>
-            <ol id="rpAiAgentTrace" class="reporting-ai-trace" data-testid="reporting-ai-agent-trace"></ol>
-          </details>
-          <p id="rpAiAgentInvalid" class="reporting-ai-invalid" hidden>{{ _("⚠ The agent stopped before producing a validated result — try rephrasing.") }}</p>
-          <div class="reporting-ai-actions">
-            <button id="rpAiAgentOpenBuilder" class="reporting-btn nx-btn nx-btn--secondary" hidden data-testid="reporting-ai-agent-open-builder">{{ _("Open in builder") }}</button>
-            <button id="rpAiAgentInsertSql" class="reporting-btn nx-btn nx-btn--secondary" hidden data-testid="reporting-ai-agent-insert-sql">{{ _("Insert into SQL editor") }}</button>
-            <button id="rpAiAgentRetry" class="reporting-btn nx-btn nx-btn--secondary" hidden data-testid="reporting-ai-retry">{{ _("Try again") }}</button>
-          </div>
-        </div>
-        <p id="rpAiError" class="reporting-ai-error" hidden data-testid="reporting-ai-error"></p>
-      </div>
-      {% endif %}
       <div id="rpViewToggle" class="reporting-view-toggle" hidden data-testid="reporting-view-toggle">
         <button id="rpViewGrid" class="active" data-testid="reporting-view-grid">{{ _("Grid") }}</button>
         <button id="rpViewChart" data-testid="reporting-view-chart">{{ _("Chart") }}</button>
@@ -362,7 +303,7 @@
         <div class="nx-empty reporting-empty-state" data-testid="reporting-empty-state">
           <div class="nx-empty__art"><i class="fas fa-chart-column" aria-hidden="true"></i></div>
           <p class="nx-empty__title">{{ _("Build a report to see results") }}</p>
-          <p class="nx-empty__sub">{{ _("Choose a source on the left, add columns and filters, then press Run — or switch to Ask AI to draft one in plain language.") }}</p>
+          <p class="nx-empty__sub">{{ _("Choose a source on the left, add columns and filters, then press Run — or open the AI chat to draft one in plain language.") }}</p>
         </div>
       </div>
       <div id="rpChart" class="reporting-viz" hidden data-testid="reporting-chart"></div>

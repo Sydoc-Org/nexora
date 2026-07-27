@@ -23,6 +23,16 @@ def test_reporting_without_perm_returns_403(user_client):
     assert resp.status_code == 403
 
 
+def test_reporting_page_renders_chat_panel_when_ai_enabled(admin_client):
+    # TestAdmin holds reporting.ai.use (seed) -- the chat panel renders, and the
+    # old Ask-AI mode button + inline panel it replaces are gone.
+    resp = admin_client.get("/reporting")
+    assert resp.status_code == 200
+    assert b"rpChatPanel" in resp.data
+    assert b"rpAiPanel" not in resp.data
+    assert b"rpModeAi" not in resp.data
+
+
 def test_sources_without_perm_returns_403(user_client):
     resp = user_client.get("/api/reporting/sources")
     assert resp.status_code == 403
