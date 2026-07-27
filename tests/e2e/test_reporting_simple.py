@@ -613,6 +613,76 @@ def test_delta_chip_absent_without_comparison(nexora_server, page):
     expect(page.get_by_test_id("rp-delta")).to_have_count(0)
 
 
+def test_delta_chip_avg_zero_fills_sparse_prior_period(nexora_server, page):
+    """Task 11 follow-up fix: comparison.rows must get the SAME zero-fill
+    treatment the current run's rows already get before computeKpiBand --
+    otherwise the two periods' `buckets` counts disagree whenever either
+    has an empty date bucket (the normal case for a multi-month breakdown),
+    which skews the avg delta chip specifically (total/peak are unaffected
+    since a missing bucket contributes 0 to those either way).
+
+    Current period: 3 dense months (10, 20, 30 -> total 60, avg 20).
+    Prior period: same 3-month span, but only the middle month has a row
+    (30) -- the other two buckets are the sparse GROUP BY omission this
+    zero-fill exists to correct. Zero-filled, that's total 30 over 3
+    buckets = avg 10, an UP delta of +100%. Pre-fix (no zero-fill on the
+    prior side), priorKpi.buckets would be 1 -> avg 30, a DOWN delta of
+    -33% -- the wrong direction, which makes a regression here impossible
+    to miss even without reading the percentage closely."""
+    _login(page, nexora_server)
+    _stub_catalogs(page)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+
+    payload = {
+        "columns": [
+            {"field": "import_date", "header": "Import date"},
+            {"field": "stub_count", "header": "Stub count"},
+        ],
+        "rows": [["2026-01-01", 10], ["2026-02-01", 20], ["2026-03-01", 30]],
+        "truncated": False,
+        "rowCount": 3,
+        "sql": None,
+        "params": [],
+        "resolvedDates": [{"field": "import_date", "start": "2026-01-01", "end": "2026-03-31"}],
+        "comparison": {
+            "columns": [
+                {"field": "import_date", "header": "Import date"},
+                {"field": "stub_count", "header": "Stub count"},
+            ],
+            # Sparse: only the middle month of the 3-month prior window has
+            # a row -- the other two buckets never existed in the backend's
+            # GROUP BY, same as any empty bucket.
+            "rows": [["2025-11-01", 30]],
+            "priorStart": "2025-10-01",
+            "priorEnd": "2025-12-31",
+        },
+    }
+    captured = []
+
+    def handler(route):
+        captured.append(route.request.post_data_json)
+        route.fulfill(status=200, content_type="application/json", body=json.dumps(payload))
+
+    # Stub registered BEFORE the Run click that fires the request.
+    page.route("**/api/reporting/run", handler)
+
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Stub count").click()
+    page.get_by_test_id("rs-measure-next").click()
+    page.get_by_test_id("rs-breakdown-list").locator('[data-bd-field="import_date"]').click()
+    page.get_by_test_id("rs-breakdown-next").click()
+    page.get_by_test_id("rs-time-list").get_by_text("Last 3 months", exact=True).click()
+    page.get_by_test_id("rs-wizard-run").click()
+
+    expect(page.get_by_test_id("rs-result")).to_be_visible()
+    assert captured and all(body.get("compare") is True for body in captured)
+
+    avg_chip = page.get_by_test_id("rs-kpi-avg").get_by_test_id("rp-delta")
+    expect(avg_chip).to_be_visible()
+    expect(avg_chip).to_have_class(re.compile(r"rp-delta--up"))
+    expect(avg_chip).to_have_text("↑ 100%")
+
+
 STUB_AI_DEFINITION = {
     "schemaVersion": 1,
     "source": "docprocessing",

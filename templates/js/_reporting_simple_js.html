@@ -674,9 +674,21 @@
     var band = el('rsKpiBand');
     var kpi = computeKpiBand(dims, rows);
     if (!kpi) { band.hidden = true; band.innerHTML = ''; return; }
-    // Prior-period KPIs via the SAME computeKpiBand, just fed the
-    // comparison run's rows -- no separate delta math to keep in sync.
-    var priorKpi = (comparison && comparison.rows) ? computeKpiBand(dims, comparison.rows) : null;
+    // Prior-period KPIs via the SAME computeKpiBand, fed comparison.rows --
+    // no separate delta math to keep in sync. comparison.rows comes straight
+    // off the backend's GROUP BY and omits empty date buckets exactly like
+    // the current run's raw rows do, so it needs the SAME zero-fill the
+    // current run's rows already got (see the call in runCurrent) before
+    // `buckets` (and therefore `avg`) is computed -- otherwise the two
+    // periods' bucket counts can disagree whenever either has a sparse
+    // bucket, which skews the avg delta chip (Task 11 follow-up fix). The
+    // prior window is a length-based shift, not calendar-aligned (see the
+    // comment above computeDelta), so priorStart/priorEnd -- not def's own
+    // date range -- are the correct fill bounds here.
+    var priorRows = (comparison && comparison.rows && def)
+      ? zeroFillDateBuckets(def, comparison.rows, [], [comparison.priorStart, comparison.priorEnd])
+      : (comparison ? comparison.rows : null);
+    var priorKpi = priorRows ? computeKpiBand(dims, priorRows) : null;
     var totalDelta = '', avgDelta = '', peakDelta = '';
     if (priorKpi) {
       totalDelta = deltaChipHtml(kpi.total, priorKpi.total, comparison.priorStart, comparison.priorEnd);
@@ -961,20 +973,27 @@
     return out;
   }
 
-  function zeroFillDateBuckets(def, rows, resolvedDates) {
+  // explicitRange, when given, is a [start, end] ISO-date pair used as-is
+  // instead of derived from def's own filters/resolvedDates -- needed for
+  // the prior-comparison period, whose [priorStart, priorEnd] window (a
+  // length-based shift of def's range, not the same absolute dates) has no
+  // filter or resolvedDates entry of its own to derive from.
+  function zeroFillDateBuckets(def, rows, resolvedDates, explicitRange) {
     var cols = def.columns || [];
     var grain = cols.length === 1 ? cols[0].grain : null;
     if (!grain || !(def.metrics || []).length) return rows;
-    var f = (def.filters || []).find(function (x) {
-      return x.field === cols[0].field && x.op === 'between';
-    });
-    if (!f) return rows;
-    var range = null;
-    if (Array.isArray(f.value) && f.value.length === 2) {
-      range = [String(f.value[0]), String(f.value[1])];
-    } else if (f.value && typeof f.value === 'object') {
-      var rd = resolvedDates.find(function (x) { return x.field === cols[0].field; });
-      if (rd) range = [rd.start, rd.end];
+    var range = explicitRange || null;
+    if (!range) {
+      var f = (def.filters || []).find(function (x) {
+        return x.field === cols[0].field && x.op === 'between';
+      });
+      if (!f) return rows;
+      if (Array.isArray(f.value) && f.value.length === 2) {
+        range = [String(f.value[0]), String(f.value[1])];
+      } else if (f.value && typeof f.value === 'object') {
+        var rd = resolvedDates.find(function (x) { return x.field === cols[0].field; });
+        if (rd) range = [rd.start, rd.end];
+      }
     }
     if (!range) return rows;
     var seq = bucketSeq(range[0], range[1], grain);
