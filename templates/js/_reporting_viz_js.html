@@ -5,10 +5,16 @@
 // switches the result view. Fields are tracked by column INDEX (not name) so
 // duplicate SQL column names never collide.
 (function () {
-  var PALETTE = [
-    '#4338ca', '#2563eb', '#0891b2', '#059669', '#65a30d', '#ca8a04',
-    '#dc2626', '#db2777', '#7c3aed', '#0d9488', '#ea580c', '#4f46e5'
-  ];
+  // Shared palette for multi-category series (pie/doughnut segments etc.) --
+  // the only hardcoded color set outside the locked ink-navy/indigo-peak
+  // single-series spec below (see mountChart's rlNavy/rlPeak).
+  var NX_PALETTE = ['#4f46e5', '#7c3aed', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#64748b'];
+  // Chart grid-line color, derived from the theme's border token at draw
+  // time so it tracks light/dark mode without a second hardcoded value.
+  function gridColor() {
+    var v = getComputedStyle(document.documentElement).getPropertyValue('--nx-border').trim();
+    return v || 'rgba(100,116,139,.18)';
+  }
   var MAX_CHART_CATEGORIES = 50;
 
   // Export models for the result views, kept so the toolbar's Export button can
@@ -191,7 +197,7 @@
       lastChartXIndex = xi;
       lastChartLabels = labels;
       var single = (type === 'bar' || type === 'line');
-      var colors = labels.map(function (_, i) { return PALETTE[i % PALETTE.length]; });
+      var colors = labels.map(function (_, i) { return NX_PALETTE[i % NX_PALETTE.length]; });
       var maxIdx = 0;
       for (var mi = 1; mi < data.length; mi++) { if (data[mi] > data[maxIdx]) maxIdx = mi; }
       // Ink-navy (#312e81) sits at ~1.3:1 contrast against the dark --nx-card
@@ -212,6 +218,14 @@
         borderWidth: type === 'line' ? 2 : 1,
         fill: type === 'line'
       };
+      if (type === 'bar') {
+        ds.borderRadius = 6;
+        ds.maxBarThickness = 48;
+      }
+      // Only hide non-integer axis ticks when every plotted value actually is
+      // an integer (e.g. a COUNT/GROUP BY report) -- a fractional measure
+      // (avg/sum of decimals) keeps Chart.js's normal tick spacing.
+      var allInts = data.every(function (v) { return Number.isInteger(v); });
       destroyChart();
       chartInstance = new Chart(canvas.getContext('2d'), {
         type: type,
@@ -220,8 +234,34 @@
           responsive: true,
           maintainAspectRatio: false,
           // White background so an exported PNG isn't transparent.
-          plugins: { legend: { display: !single } },
-          scales: single ? { y: { beginAtZero: true } } : {},
+          plugins: {
+            legend: { display: !single },
+            tooltip: {
+              callbacks: {
+                // Reuse the module's existing number formatter (fmt) instead
+                // of Chart.js's raw float, so aggregated sums/averages don't
+                // show floating-point noise in the tooltip.
+                label: function (ctx) {
+                  var raw = ctx.parsed;
+                  var v = (raw && typeof raw === 'object') ? raw.y : raw;
+                  var name = single ? (ctx.dataset.label || '') : (ctx.label || '');
+                  return (name ? name + ': ' : '') + fmt(v);
+                }
+              }
+            }
+          },
+          scales: single ? {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                maxTicksLimit: 6,
+                callback: function (value) {
+                  return (allInts && !Number.isInteger(value)) ? undefined : value;
+                }
+              },
+              grid: { color: gridColor() }
+            }
+          } : {},
           onClick: opts.onElementClick ? function (evt) {
             var els = this.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, false);
             if (els.length) opts.onElementClick(els[0].index, els[0].datasetIndex);
