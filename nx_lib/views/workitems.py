@@ -488,9 +488,7 @@ def _get_workitems_data(args, export_all=False):
     elif process_name in allowed_processes_set:
         target_processes = [process_name]
 
-    process_params, client_params = prepare_process_selection_lists(
-        prefix=prefix, process_name=process_name
-    )
+    client_process_pairs = prepare_process_selection_lists(prefix=prefix, process_name=process_name)
 
     docfields = args.getlist("docfield")
     docvalues = args.getlist("docvalue")
@@ -707,8 +705,7 @@ def _get_workitems_data(args, export_all=False):
 
     status_map = {"Ready": 0, "In Progress": 1, "Done": 5}
     filt = WorkitemFilter(
-        process_names=process_params,
-        client_names=client_params,
+        client_process_pairs=client_process_pairs,
         activity_ignore_csv=activity_instances_to_ignore,
         status_code=status_map.get(status)
         if (status and has_permission("workitems.filter.status"))

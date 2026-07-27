@@ -29,8 +29,12 @@ _STATUS_IN_PROGRESS = 1
 class WorkitemFilter:
     """Dialect-neutral bag of the list filters. Each source renders its own SQL."""
 
-    process_names: list  # tp.Name allow-list (from permissions)
-    client_names: list  # tp.ClientName allow-list (from permissions)
+    # [(client, process), ...] allow-list (from permissions), rendered as an
+    # OR-joined (client = ? AND process = ?) pair predicate by each source.
+    # NEVER split into independent client/process IN-lists -- ANDing two
+    # independent IN-lists authorizes their full cross product (a caller
+    # granted only (A, P1) and (B, P2) would also read (A, P2) and (B, P1)).
+    client_process_pairs: list
     activity_ignore_csv: str  # "'A','B'" string from ActivityInstancesToIgnore
     status_code: int | None = None
     search_id: str | None = None  # exact workitem id to match
@@ -92,18 +96,22 @@ class SqlServerSource:
     def list_workitems(self, filt, offset, limit):
         """Return (rows, total_count). Builds the same WHERE + SQL the original
         _get_workitems_data ran against engine_octo_db."""
-        # Zero permitted processes -> `IN ()`, a syntax error that surfaced as a
-        # degraded-source banner instead of a clean empty list.
-        if not (filt.process_names and filt.client_names):
+        # Zero permitted pairs -> `1=0`, an always-false predicate that keeps
+        # the query syntactically valid (an empty `IN ()` was a syntax error
+        # that surfaced as a degraded-source banner instead of a clean empty
+        # list).
+        if not filt.client_process_pairs:
             return [], 0
+        pair_sql, pair_params = _pair_predicate(
+            filt.client_process_pairs, "tp.ClientName", "tp.Name", "?"
+        )
         where_clauses = [
-            f"tp.Name IN ({_qmarks(filt.process_names)})",
-            f"tp.ClientName IN ({_qmarks(filt.client_names)})",
+            f"({pair_sql})",
             "twi.Status <> 2",
         ]
         if filt.activity_ignore_csv:
             where_clauses.append(f"tai.ActivityInstanceName not in ({filt.activity_ignore_csv})")
-        params = list(filt.process_names) + list(filt.client_names)
+        params = list(pair_params)
 
         if filt.status_code is not None:
             # The display CASE maps 0 -> Ready, 5 -> Done and EVERYTHING ELSE to
@@ -271,6 +279,22 @@ class SqlServerSource:
 
 def _qmarks(seq):
     return ", ".join(["?"] * len(seq))
+
+
+def _pair_predicate(pairs, client_expr, process_expr, marker):
+    """Build an OR-joined parameterized (client, process) pair predicate --
+    e.g. "(tp.ClientName = ? AND tp.Name = ?) OR (...)" -- from a list of
+    (client, process) tuples, instead of two independent client/process
+    IN-lists (ANDed together, those authorize the full cross product: a
+    caller granted only (A, P1) and (B, P2) would also match (A, P2) and
+    (B, P1)). Returns (sql, params); sql is the always-false "1=0" for an
+    empty pairs list so callers get a syntactically valid clause instead of
+    an `IN ()` error."""
+    if not pairs:
+        return "1=0", []
+    sql = " OR ".join(f"({client_expr} = {marker} AND {process_expr} = {marker})" for _ in pairs)
+    params = [value for pair in pairs for value in pair]
+    return sql, params
 
 
 # OWNER-CONFIRMED doc-field index identifiers (see the plan's Owner-actions).
@@ -759,12 +783,14 @@ class PostgresSource:
             conn.close()
 
     def _build_where(self, filt):
+        pair_sql, pair_params = _pair_predicate(
+            filt.client_process_pairs, 'tp."ClientName"', 'tp."Name"', "%s"
+        )
         clauses = [
-            f'tp."Name" IN ({_pgmarks(filt.process_names)})',
-            f'tp."ClientName" IN ({_pgmarks(filt.client_names)})',
+            f"({pair_sql})",
             'twi."Status" <> 2',
         ]
-        params = list(filt.process_names) + list(filt.client_names)
+        params = list(pair_params)
         # activity_ignore_csv is a literal "'A','B'" list (already escaped upstream).
         if filt.activity_ignore_csv:
             clauses.append(f'tai."ActivityInstanceName" NOT IN ({filt.activity_ignore_csv})')
@@ -801,7 +827,7 @@ class PostgresSource:
 
     def list_workitems(self, filt, offset, limit):
         # Same empty-scope guard as the SQL Server source (see there).
-        if not (filt.process_names and filt.client_names):
+        if not filt.client_process_pairs:
             return [], 0
         where, params = self._build_where(filt)
         conn = self.engine.raw_connection()

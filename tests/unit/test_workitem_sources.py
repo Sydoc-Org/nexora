@@ -42,8 +42,7 @@ def test_merge_sorted_rows_handles_empty_sources():
 
 def _mk_filter():
     return WorkitemFilter(
-        process_names=["Invoices"],
-        client_names=["Privera"],
+        client_process_pairs=[("Privera", "Invoices")],
         activity_ignore_csv="'Ignore'",
     )
 
@@ -152,7 +151,7 @@ def test_empty_process_scope_yields_no_rows_without_sql_error(app):
     in both dialects -- so both sources errored and the page showed a degraded
     banner instead of a clean empty state."""
     for src in (SqlServerSource(), PostgresSource(CLIENTS_code="ms02")):
-        f = WorkitemFilter(process_names=[], client_names=[], activity_ignore_csv="'Ignore'")
+        f = WorkitemFilter(client_process_pairs=[], activity_ignore_csv="'Ignore'")
         with app.app_context():
             rows, total = (None, None)
             fake_cur = MagicMock()
@@ -166,6 +165,32 @@ def test_empty_process_scope_yields_no_rows_without_sql_error(app):
             sql = " ".join(str(c.args[0]) for c in fake_cur.execute.call_args_list)
         assert rows == [] and total == 0, f"{type(src).__name__}: {rows}, {total}"
         assert "in ()" not in sql.lower().replace("in  (", "in ("), sql
+
+
+def test_pair_scope_authorizes_granted_pairs_only_not_cross_product(app):
+    """A filter granted only (A, P1) and (B, P2) must build a WHERE whose
+    params can only ever reconstruct those two pairs -- never the
+    cross-product pairs (A, P2) / (B, P1) that two independent client/process
+    IN-lists (ANDed together) would have authorized."""
+    for src in (SqlServerSource(), PostgresSource(CLIENTS_code="ms02")):
+        f = WorkitemFilter(
+            client_process_pairs=[("A", "P1"), ("B", "P2")],
+            activity_ignore_csv="'Ignore'",
+        )
+        with app.app_context():
+            sql, cur = _captured_sql(src, f)
+
+        assert (
+            " or " in sql.lower()
+        ), f"{type(src).__name__}: expected an OR-joined predicate: {sql}"
+
+        count_call = cur.execute.call_args_list[0]
+        count_params = count_call.args[1]
+        pair_params = list(count_params[:4])
+        built_pairs = list(zip(pair_params[0::2], pair_params[1::2], strict=True))
+        assert built_pairs == [("A", "P1"), ("B", "P2")], f"{type(src).__name__}: {built_pairs}"
+        assert ("A", "P2") not in built_pairs, f"{type(src).__name__} authorizes an ungranted pair"
+        assert ("B", "P1") not in built_pairs, f"{type(src).__name__} authorizes an ungranted pair"
 
 
 def test_get_source_for_workitem_cache_hit(app, monkeypatch):
@@ -580,8 +605,7 @@ def test_build_where_emits_any_for_populated_ms02_docfield_ids(app):
     src.code = "ms02"
     src.engine = None
     filt = ws.WorkitemFilter(
-        process_names=["p"],
-        client_names=["c"],
+        client_process_pairs=[("c", "p")],
         activity_ignore_csv="",
         ms02_docfield_ids={10, 20},
     )
@@ -598,8 +622,7 @@ def test_build_where_empty_ms02_docfield_ids_forces_no_rows(app):
     src.code = "ms02"
     src.engine = None
     filt = ws.WorkitemFilter(
-        process_names=["p"],
-        client_names=["c"],
+        client_process_pairs=[("c", "p")],
         activity_ignore_csv="",
         ms02_docfield_ids=set(),
     )
@@ -614,8 +637,7 @@ def test_build_where_none_ms02_docfield_ids_adds_no_clause(app):
     src.code = "ms02"
     src.engine = None
     filt = ws.WorkitemFilter(
-        process_names=["p"],
-        client_names=["c"],
+        client_process_pairs=[("c", "p")],
         activity_ignore_csv="",
         ms02_docfield_ids=None,
     )
@@ -631,8 +653,7 @@ def test_build_where_ignores_raw_docfields_for_ms02(app):
     src.code = "ms02"
     src.engine = None
     filt = ws.WorkitemFilter(
-        process_names=["p"],
-        client_names=["c"],
+        client_process_pairs=[("c", "p")],
         activity_ignore_csv="",
         docfields=["barcode"],
         docvalues=["123"],

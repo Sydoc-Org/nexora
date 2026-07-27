@@ -12,62 +12,68 @@ from .security import has_permission
 
 
 def prepare_process_selection_sql(prefix, process_name):
+    """Build an OR-joined parameterized (client, process) pair predicate --
+    e.g. "(client = ? AND process = ?) OR (client = ? AND process = ?)" --
+    plus its flat params list, from the caller's granted
+    "<prefix><client>.<process>" permissions.
+
+    Building two INDEPENDENT client/process IN-lists (the previous shape of
+    this function) authorizes their full cross product once spliced into a
+    query: a caller granted only (A, P1) and (B, P2) would also be
+    authorized for (A, P2) and (B, P1), neither of which was ever granted.
+    """
     try:
         perms = session.get("permissions", [])
-        process_params = []
-        client_params = []
+        pairs = []
         if process_name == "all":
-            unique_processes = set()
-            unique_clients = set()
+            unique_pairs = set()
             for perm in perms:
                 if perm.startswith(prefix):
                     parts = perm.split(".")
                     client = parts[-2]
                     proc = parts[-1]
-
-                    unique_clients.add(client)
-                    unique_processes.add(proc)
-            process_params = sorted(list(unique_processes))
-            client_params = sorted(list(unique_clients))
+                    unique_pairs.add((client, proc))
+            pairs = sorted(unique_pairs)
         else:
             if has_permission(f"{prefix}{process_name}"):
                 parts = process_name.split(".")
                 if len(parts) >= 2:
-                    client_params = [parts[0]]
-                    process_params = [parts[1]]
-        process_placeholders = ", ".join(["?"] * len(process_params))
-        client_placeholders = ", ".join(["?"] * len(client_params))
-        params = process_params + client_params
-        return params, process_placeholders, client_placeholders
+                    pairs = [(parts[0], parts[1])]
+        predicate = " OR ".join("(client = ? AND process = ?)" for _ in pairs)
+        params = [value for pair in pairs for value in pair]
+        return params, predicate
     except Exception as e:
         current_app.logger.error(f"Failed to prepare process selection: {e}")
         raise
 
 
 def prepare_process_selection_lists(prefix, process_name):
-    """Like prepare_process_selection_sql but returns (process_params, client_params)
-    as separate lists (no placeholder strings) — for the multi-source WorkitemFilter."""
+    """Like prepare_process_selection_sql but returns the granted (client,
+    process) pairs as a plain list of tuples (no placeholder strings, no SQL
+    text) — for the multi-source WorkitemFilter, which builds its own
+    per-dialect OR-joined pair predicate from them.
+
+    Returning independently-uniqued client and process lists (the previous
+    shape) let a caller granted only (A, P1) and (B, P2) also read (A, P2)
+    and (B, P1) -- the full client x process cross product -- once those two
+    lists were spliced into independent IN-lists downstream.
+    """
     try:
         perms = session.get("permissions", [])
-        process_params = []
-        client_params = []
+        pairs = []
         if process_name == "all":
-            unique_processes = set()
-            unique_clients = set()
+            unique_pairs = set()
             for perm in perms:
                 if perm.startswith(prefix):
                     parts = perm.split(".")
-                    unique_clients.add(parts[-2])
-                    unique_processes.add(parts[-1])
-            process_params = sorted(unique_processes)
-            client_params = sorted(unique_clients)
+                    unique_pairs.add((parts[-2], parts[-1]))
+            pairs = sorted(unique_pairs)
         else:
             if has_permission(f"{prefix}{process_name}"):
                 parts = process_name.split(".")
                 if len(parts) >= 2:
-                    client_params = [parts[0]]
-                    process_params = [parts[1]]
-        return process_params, client_params
+                    pairs = [(parts[0], parts[1])]
+        return pairs
     except Exception as e:
         current_app.logger.error(f"Failed to prepare process selection lists: {e}")
         raise
