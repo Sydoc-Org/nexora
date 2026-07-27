@@ -1451,6 +1451,22 @@ def api_ai_agent():
     if not question:
         return jsonify({"error": _("A question is required")}), 400
 
+    raw_history = body.get("history")
+    if raw_history is not None and not isinstance(raw_history, list):
+        return jsonify({"error": _("Invalid history")}), 400
+    history = []
+    for h in raw_history or []:
+        if (
+            isinstance(h, dict)
+            and h.get("role") in ("user", "assistant")
+            and isinstance(h.get("content"), str)
+            and h["content"].strip()
+        ):
+            history.append({"role": h["role"], "content": h["content"]})
+    history = history[-8:]
+    while history and sum(len(h["content"]) for h in history) > 4000:
+        history.pop(0)
+
     cfg = _ai_config()
     if cfg.get("provider") == "none" or not cfg.get("api_key"):
         return jsonify({"error": _("The AI assistant is not configured")}), 503
@@ -1562,7 +1578,7 @@ def api_ai_agent():
             api_version=cfg.get("api_version", "2024-10-21"),
             url=cfg.get("url"),
         )
-        result = ask_agentic(initial, registry=registry, agent_step=step)
+        result = ask_agentic(initial, registry=registry, agent_step=step, history=history)
     except AiError as e:
         current_app.logger.warning(f"/api/reporting/ai/agent config error: {e}")
         _audit_ai(

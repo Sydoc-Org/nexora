@@ -553,19 +553,24 @@ class AiAgenticResult:
     tokens_out: int
 
 
-def ask_agentic(question, *, registry, agent_step, max_turns=DEFAULT_MAX_TURNS):
+def ask_agentic(question, *, registry, agent_step, max_turns=DEFAULT_MAX_TURNS, history=None):
     """Drive the model->tool->model loop until a final answer or the turn cap.
 
     `agent_step(messages) -> AssistantTurn` is the injected provider round-trip
     (scripted in tests, built by `_make_agent_step` in production). `registry` is
     a ToolRegistry. Returns AiAgenticResult. No network/provider code lives here.
 
+    `history` is an optional pre-validated list of prior `{"role": "user"|
+    "assistant", "content": str}` turns, seeded ahead of the new question so a
+    chat-style caller can carry conversation context into the loop. The caller
+    is responsible for sanitizing/capping it; this function trusts it as-is.
+
     `messages` is the neutral conversation: user/assistant strings, an assistant
     turn carrying `tool_calls`, and a `tool` turn whose content is the list of
     `{tool_call_id, name, result}` envelopes. `_make_agent_step` translates this
     into each provider's wire format.
     """
-    messages = [{"role": "user", "content": question}]
+    messages = [*(history or []), {"role": "user", "content": question}]
     trace, tin, tout, turns, stopped = [], 0, 0, 0, "max_turns"
     while turns < max_turns:
         turns += 1

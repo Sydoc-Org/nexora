@@ -432,6 +432,73 @@ def test_ai_agent_happy_path_returns_answer_and_audits(user_client):
     assert audit.call_args.args[-2] == "ok"  # Status
 
 
+def test_ai_agent_caps_history_to_8_turns_and_4000_chars(user_client):
+    history = [
+        {"role": "user" if i % 2 == 0 else "assistant", "content": "x" * 600} for i in range(10)
+    ]
+    with ExitStack() as es:
+        for p in _agent_patches():
+            es.enter_context(p)
+        loop = es.enter_context(
+            patch("nx_lib.views.reporting.ask_agentic", return_value=_agentic_result())
+        )
+        es.enter_context(
+            patch("nx_lib.views.reporting._validate_definition_for_user", return_value=(True, None))
+        )
+        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post(
+            "/api/reporting/ai/agent",
+            json={"question": "report by outcome", "history": history},
+        )
+    assert resp.status_code == 200
+    sent = loop.call_args.kwargs["history"]
+    assert len(sent) <= 8
+    assert sum(len(h["content"]) for h in sent) <= 4000
+    # oldest turns dropped first: survivors are the tail of the original list
+    assert sent == history[-len(sent) :]
+
+
+def test_ai_agent_rejects_non_list_history(user_client):
+    with (
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch(
+            "nx_lib.views.reporting._ai_config",
+            return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
+        ),
+    ):
+        resp = user_client.post(
+            "/api/reporting/ai/agent",
+            json={"question": "hi", "history": "not-a-list"},
+        )
+    assert resp.status_code == 400
+
+
+def test_ai_agent_drops_invalid_history_entries(user_client):
+    history = [
+        {"role": "tool", "content": "ignored"},
+        {"role": "user", "content": 123},
+        {"role": "assistant", "content": "kept"},
+    ]
+    with ExitStack() as es:
+        for p in _agent_patches():
+            es.enter_context(p)
+        loop = es.enter_context(
+            patch("nx_lib.views.reporting.ask_agentic", return_value=_agentic_result())
+        )
+        es.enter_context(
+            patch("nx_lib.views.reporting._validate_definition_for_user", return_value=(True, None))
+        )
+        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post(
+            "/api/reporting/ai/agent",
+            json={"question": "report by outcome", "history": history},
+        )
+    assert resp.status_code == 200
+    sent = loop.call_args.kwargs["history"]
+    assert sent == [{"role": "assistant", "content": "kept"}]
+
+
 def test_ai_agent_429_when_daily_limit_reached(user_client):
     with (
         patch("nx_lib.views.reporting.has_permission", return_value=True),
@@ -1119,7 +1186,7 @@ def test_agent_grounding_names_run_sql_targets(user_client):
 
     captured = {}
 
-    def _fake_agentic(initial, *, registry, agent_step):
+    def _fake_agentic(initial, *, registry, agent_step, **kw):
         captured["initial"] = initial
         return SimpleNamespace(
             answer="ok",
