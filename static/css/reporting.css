@@ -745,6 +745,12 @@ body.nx-app {
   padding-bottom: 14px;
   margin-bottom: 16px;
   border-bottom: 1px solid var(--nx-divider);
+  /* Task 7: stays in view while a long grid scrolls underneath it — Run/
+     Save/Export/mode-toggle are always reachable without scrolling back up. */
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--nx-card);
 }
 
 /* Mode toggle → segmented control (was shrinking + wrapping vertically) */
@@ -1216,6 +1222,27 @@ body.nx-app {
   .reporting-ai-dots i { animation: none; }
 }
 
+/* Result skeleton (Task 7): a KPI-band-shaped + table-shaped placeholder
+   shown in the results area while a run is in flight (both panes) —
+   replaces the old dots+text spinner (still used elsewhere, e.g. the drill
+   drawer) so the real content doesn't cause a layout jump on arrival. Same
+   shimmer technique/tokens as .rdb-skeleton (dashboard cards); static under
+   reduced-motion like every other animation on this page. */
+.rp-skeleton {
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--nx-border) 25%, var(--nx-divider) 50%, var(--nx-border) 75%);
+  background-size: 200% 100%;
+  animation: rp-shimmer 1.4s infinite linear;
+}
+@keyframes rp-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .rp-skeleton { animation: none; }
+}
+.rp-skeleton-band { display: flex; gap: 12px; margin-bottom: 16px; }
+.rp-skeleton-kpi { height: 64px; flex: 1; }
+.rp-skeleton-table { display: flex; flex-direction: column; gap: 10px; padding: 4px 0; }
+.rp-skeleton-row { height: 14px; width: 100%; }
+
 /* Refine bar (Simple pane, F2-T4) */
 .reporting-simple-refine { display: flex; gap: .5rem; margin: .4rem 0 .6rem; }
 .reporting-simple-refine .reporting-input { flex: 1; }
@@ -1575,6 +1602,26 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
    uppercase header) is retired — .reporting-table th/td and .reporting-table
    thead th (base rules ~L905, ~L911) already give the calmer GitHub-style
    borders; nothing left to layer here. */
+
+/* Data bars (Task 7): a relative-width tint bar behind numeric cells, scaled
+   to that column's max value — computed once per render in both panes'
+   table builders (renderResults in _reporting_js.html, renderTable in
+   _reporting_simple_js.html), same colMax-over-isNumericCell idiom as the
+   KPI band's own numeric detection. `z-index: 0` on the cell itself is
+   load-bearing, not decorative: it gives the <td> its own stacking context
+   so the ::before's z-index:-1 stays scoped there (painting under the
+   cell's own text, above the row/table background). Without it, a
+   position:relative + z-index:auto ancestor does NOT create a stacking
+   context, so the negative z-index escapes to the nearest ancestor that
+   does — in practice behind .reporting-results' opaque white background,
+   i.e. invisible (caught by screenshotting + pixel-sampling the rendered
+   cell during verification, not just trusting the DOM/computed style). */
+.rp-cell-num { position: relative; z-index: 0; font-variant-numeric: tabular-nums; }
+.rp-cell-num::before {
+  content: ""; position: absolute; inset: 4px auto 4px 0;
+  width: var(--bar, 0%); background: var(--nx-accent-soft, #eef2ff);
+  border-radius: 3px; z-index: -1;
+}
 
 .reporting-ledger-caption {
   font-size: .68rem;

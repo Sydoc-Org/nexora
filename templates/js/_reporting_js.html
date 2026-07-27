@@ -656,12 +656,32 @@
     thead.appendChild(headRow);
     table.appendChild(thead);
 
+    // Data bars (Task 7): one column max per column index, computed once
+    // over cells the same isNumericCell check already accepts — a mixed/
+    // text column just never gets a bar rather than being skewed by a stray
+    // numeric-looking cell.
+    var colMax = data.columns.map(function (_, i) {
+      var max = 0;
+      data.rows.forEach(function (r) {
+        if (isNumericCell(r[i])) {
+          var n = Math.abs(Number(r[i]));
+          if (n > max) max = n;
+        }
+      });
+      return max;
+    });
+
     var tbody = document.createElement('tbody');
     data.rows.forEach(function (r) {
       var tr = document.createElement('tr');
-      r.forEach(function (v) {
+      r.forEach(function (v, i) {
         var td = document.createElement('td');
-        if (isNumericCell(v)) td.className = 'reporting-ledger-num';
+        if (isNumericCell(v)) {
+          td.className = 'reporting-ledger-num rp-cell-num';
+          var max = colMax[i];
+          var pct = max > 0 ? (Math.abs(Number(v)) / max * 100) : 0;
+          td.style.setProperty('--bar', pct + '%');
+        }
         td.textContent = (v == null ? '' : String(v));
         tr.appendChild(td);
       });
@@ -720,9 +740,14 @@
   // to grid because #rpResults is hidden whenever state.view !== 'grid' —
   // without this, a re-run from Chart/Pivot would show nothing. Run is
   // disabled so a double-click can't fire two parallel requests (rpRun is the
-  // only run trigger on this tab). DOM-built so the translated label needs no
-  // escaping. The Motion observer ignores non-TABLE/.reporting-empty/
-  // .reporting-error nodes, so this block is animation-inert.
+  // only run trigger on this tab). The Motion observer ignores non-TABLE/
+  // .reporting-empty/.reporting-error nodes, so this block is
+  // animation-inert there — its own shimmer is pure CSS (.rp-skeleton),
+  // reduced-motion safe via reporting.css's own query. Task 7: a KPI-band-
+  // shaped + table-shaped skeleton replaces the old dots+text spinner (still
+  // used elsewhere, e.g. the drill drawer) so the real result doesn't cause a
+  // layout jump on arrival; role=status + aria-label keeps the same
+  // "Running…" screen-reader announcement the old visible label gave.
   function showRunLoading() {
     document.getElementById('rpRun').disabled = true;
     document.getElementById('rpViewToggle').hidden = true;
@@ -730,17 +755,25 @@
     var wrap = document.getElementById('rpResults');
     wrap.innerHTML = '';
     var box = document.createElement('div');
-    box.className = 'reporting-ai-loading';
     box.setAttribute('data-testid', 'reporting-run-loading');
-    var dots = document.createElement('span');
-    dots.className = 'reporting-ai-dots';
-    dots.setAttribute('aria-hidden', 'true');
-    dots.innerHTML = '<i></i><i></i><i></i>';
-    var label = document.createElement('span');
-    label.setAttribute('role', 'status');
-    label.textContent = I18N_RUNNING;
-    box.appendChild(dots);
-    box.appendChild(label);
+    box.setAttribute('role', 'status');
+    box.setAttribute('aria-label', I18N_RUNNING);
+    var band = document.createElement('div');
+    band.className = 'rp-skeleton-band';
+    for (var i = 0; i < 3; i++) {
+      var kpi = document.createElement('div');
+      kpi.className = 'rp-skeleton rp-skeleton-kpi';
+      band.appendChild(kpi);
+    }
+    var table = document.createElement('div');
+    table.className = 'rp-skeleton-table';
+    for (var j = 0; j < 6; j++) {
+      var row = document.createElement('div');
+      row.className = 'rp-skeleton rp-skeleton-row';
+      table.appendChild(row);
+    }
+    box.appendChild(band);
+    box.appendChild(table);
     wrap.appendChild(box);
   }
   function endRunLoading() {

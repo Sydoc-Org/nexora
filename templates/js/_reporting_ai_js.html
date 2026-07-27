@@ -105,7 +105,10 @@
   function pushMsg(role, html) {
     if (emptyEl) emptyEl.hidden = true;
     var div = document.createElement("div");
-    div.className = "rp-chat-msg rp-chat-msg--" + role;
+    // Task 7: nx-rise entrance (fill-mode backwards, never both -- see
+    // nexora-ui.css) -- a freshly created node every call, so no
+    // hidden-toggle trick is needed to replay it.
+    div.className = "rp-chat-msg rp-chat-msg--" + role + " nx-rise";
     div.setAttribute("data-testid", "rp-chat-msg-" + role);
     div.innerHTML = html;
     thread.appendChild(div);
