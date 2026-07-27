@@ -1734,6 +1734,84 @@ def api_workitems_page_init():
     return jsonify({"field_config": field_config})
 
 
+def _resolve_octo_wid_stage_pg(engine, wid):
+    """Postgres-dialect twin of workitem_sources.resolve_octo_wid_stage, for
+    the MS02 client's Azure Postgres runtime DB (same Octo schema, different
+    dialect + case-preserved quoted identifiers -- see workitem_sources.
+    PostgresSource). Same {"status": None, "current_stage": None} degrade
+    contract; never raises."""
+    empty = {"status": None, "current_stage": None}
+    if engine is None or wid in (None, ""):
+        return empty
+    try:
+        wid_int = int(wid)
+    except (TypeError, ValueError):
+        return empty
+    conn = None
+    try:
+        conn = engine.raw_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            WITH WorkitemCTE AS (
+                SELECT
+                    CASE
+                        WHEN twi."Status" = 0 THEN 'Ready' WHEN twi."Status" = 5 THEN 'Done' ELSE 'In Progress'
+                    END AS status,
+                    CASE
+                        WHEN twi."Status" = 5 THEN 'Delivery'
+                        WHEN tai."ActivityInstanceName" LIKE '%%C+A%%' THEN 'Validation'
+                        WHEN tai."ActivityInstanceName" LIKE '%%Export%%' OR tai."ActivityInstanceName" LIKE '%%Exp%%' THEN 'Delivery'
+                        WHEN tai."ActivityInstanceName" LIKE '%%Import%%' OR tai."ActivityInstanceName" LIKE '%%Imp%%' THEN 'Import'
+                        WHEN tai."ActivityInstanceName" LIKE '%%Extract%%' OR tai."ActivityInstanceName" LIKE '%%OCR%%' THEN 'Extraction'
+                        WHEN tai."ActivityInstanceName" LIKE '%%Pause%%' OR tai."ActivityInstanceName" LIKE '%%Deletion%%' OR tai."ActivityInstanceName" LIKE '%%Lieferung%%' THEN 'Delivery'
+                        ELSE 'Extraction'
+                    END AS current_stage,
+                    ROW_NUMBER() OVER (PARTITION BY twi."ID" ORDER BY twi."ModifiedAt" DESC) AS rn
+                FROM "t_WorkItems" twi
+                JOIN "t_ActivityInstances" tai ON twi."ActivityInstanceID" = tai."ID"
+                WHERE twi."ID" = %s
+            )
+            SELECT status, current_stage FROM WorkitemCTE WHERE rn = 1
+            """,
+            [wid_int],
+        )
+        row = cur.fetchone()
+        if not row:
+            return empty
+        return {"status": row[0], "current_stage": row[1]}
+    except Exception as e:
+        current_app.logger.error(f"_resolve_octo_wid_stage_pg({wid}): {e}")
+        return empty
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+def _resolve_prepared_doc_wid_stage(wid):
+    """dbo.PreparedDocuments is an MS02-only register (see prepared_documents's
+    ms02_active gate), so every visible wid is owned by the 'ms02' client's
+    runtime -- never the default one. Workitem identity is (client, id) and
+    ids collide across runtimes (docs/design/ms02-multisource.md): resolving
+    against CLIENTS['default'] can silently surface a DIFFERENT client's
+    status/stage for a colliding id. Dialect-safe: resolve_octo_wid_stage is
+    SQL-Server-shaped, so route through the Postgres-side twin when the
+    owning client's dialect says so. Fails closed (empty stage -> in_octo=
+    False) on any lookup/resolution error -- a bad wid or malformed CLIENTS
+    entry must never raise and 500 the register page."""
+    empty = {"status": None, "current_stage": None}
+    try:
+        client = CLIENTS.get("ms02")
+        if client is None:
+            return empty
+        if client.dialect == "postgres":
+            return _resolve_octo_wid_stage_pg(client.runtime_engine, wid)
+        return resolve_octo_wid_stage(client.runtime_engine, wid)
+    except Exception as e:
+        current_app.logger.error(f"_resolve_prepared_doc_wid_stage({wid}): {e}")
+        return empty
+
+
 @require_permission("workitems.import.preparedaudit")
 def prepared_documents():
     """MS02-only standalone 'prepared documents' register page. Reads a real
@@ -1774,7 +1852,7 @@ def prepared_documents():
             for pid, wids in pid_to_wids.items():
                 if wids:
                     wid = wids[0]
-                    stage = resolve_octo_wid_stage(CLIENTS["default"].runtime_engine, wid)
+                    stage = _resolve_prepared_doc_wid_stage(wid)
                     octo_status[pid] = {
                         "in_octo": bool(stage and stage.get("status")),
                         "wid": wid,

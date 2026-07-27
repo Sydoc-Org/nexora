@@ -1493,8 +1493,8 @@ def test_prepared_documents_octo_status_false_when_stage_not_found(
     monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: {"100": [42]})
     monkeypatch.setattr(
         wv,
-        "resolve_octo_wid_stage",
-        lambda e, w: {"status": None, "current_stage": None},
+        "_resolve_prepared_doc_wid_stage",
+        lambda w: {"status": None, "current_stage": None},
     )
 
     captured = {}
@@ -1513,6 +1513,146 @@ def test_prepared_documents_octo_status_false_when_stage_not_found(
     # button / "Open in Workitems" link for a wid that Octo doesn't actually have.
     assert b'data-wid="42"' not in resp.data
     assert b'data-testid="prepared-docs-octo-link"' not in resp.data
+
+
+def test_prepared_documents_resolves_stage_against_owning_client_engine(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Compound identity (client + id): dbo.PreparedDocuments is an MS02-only
+    register, so a register wid must be resolved against CLIENTS['ms02']'s
+    runtime engine, never CLIENTS['default'] -- ids collide across client
+    runtimes (docs/design/ms02-multisource.md), so resolving against the
+    default engine can silently surface a DIFFERENT client's status/stage for
+    a colliding id. Two distinct engines return two distinct stages; the
+    MS02 stage must win and the default engine must never be consulted."""
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS, ClientConfig
+
+    default_engine = object()
+    ms02_engine = object()
+    default_client = ClientConfig(
+        code="default",
+        runtime_engine=default_engine,
+        dialect="tsql",
+        octo_domain="default.example",
+        octo_client_id="id",
+        octo_secret="secret",
+        octo_grant_type="client_credentials",
+    )
+    ms02_client = ClientConfig(
+        code="ms02",
+        runtime_engine=ms02_engine,
+        dialect="postgres",
+        octo_domain="ms02.example",
+        octo_client_id="id",
+        octo_secret="secret",
+        octo_grant_type="client_credentials",
+    )
+    monkeypatch.setitem(CLIENTS, "default", default_client)
+    monkeypatch.setitem(CLIENTS, "ms02", ms02_client)
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None: 1)
+    monkeypatch.setattr(
+        wv,
+        "fetch_prepared_documents_page",
+        lambda offset, limit, pid=None: [
+            {
+                "id": 1,
+                "pid": "100",
+                "collected": True,
+                "collected_by": "A",
+                "prepared": False,
+                "prepared_by": "",
+                "uploaded_by": 7,
+                "uploaded_at": None,
+                "updated_at": None,
+            }
+        ],
+    )
+    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: ["sydoc.05_PDBS"])
+    monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [("t", "id", "pid", None)])
+    monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: {"100": [42]})
+
+    calls = []
+
+    def fake_default_resolve(engine, wid):
+        calls.append(("default", engine))
+        return {"status": "Ready", "current_stage": "Extraction"}
+
+    def fake_pg_resolve(engine, wid):
+        calls.append(("ms02", engine))
+        return {"status": "Done", "current_stage": "Delivery"}
+
+    monkeypatch.setattr(wv, "resolve_octo_wid_stage", fake_default_resolve)
+    monkeypatch.setattr(wv, "_resolve_octo_wid_stage_pg", fake_pg_resolve)
+
+    captured = {}
+    real_render_template = wv.render_template
+
+    def _capture(template_name, **kwargs):
+        captured.update(kwargs)
+        return real_render_template(template_name, **kwargs)
+
+    monkeypatch.setattr(wv, "render_template", _capture)
+
+    resp = user_client.get("/prepared_documents")
+    assert resp.status_code == 200
+    # The MS02 (owning-client) engine must have been used, and ONLY it --
+    # never the default engine, even though both are registered.
+    assert calls == [("ms02", ms02_engine)]
+    assert captured["octo_status"]["100"]["status"] == "Done"
+    assert captured["octo_status"]["100"]["current_stage"] == "Delivery"
+    assert captured["octo_status"]["100"]["in_octo"] is True
+
+
+def test_prepared_documents_stage_resolve_fails_closed_on_error(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """A resolution error (bad CLIENTS shape, DB error, etc.) must degrade to
+    in_octo=False, never raise and 500 the register page."""
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    # A malformed/partial CLIENTS['ms02'] entry (e.g. missing .dialect) must
+    # not blow up the route -- it must fail closed instead.
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None: 1)
+    monkeypatch.setattr(
+        wv,
+        "fetch_prepared_documents_page",
+        lambda offset, limit, pid=None: [
+            {
+                "id": 1,
+                "pid": "100",
+                "collected": True,
+                "collected_by": "A",
+                "prepared": False,
+                "prepared_by": "",
+                "uploaded_by": 7,
+                "uploaded_at": None,
+                "updated_at": None,
+            }
+        ],
+    )
+    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: ["sydoc.05_PDBS"])
+    monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [("t", "id", "pid", None)])
+    monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: {"100": [42]})
+
+    captured = {}
+    real_render_template = wv.render_template
+
+    def _capture(template_name, **kwargs):
+        captured.update(kwargs)
+        return real_render_template(template_name, **kwargs)
+
+    monkeypatch.setattr(wv, "render_template", _capture)
+
+    resp = user_client.get("/prepared_documents")
+    assert resp.status_code == 200
+    assert captured["octo_status"]["100"]["in_octo"] is False
 
 
 def test_prepared_documents_clear_gated(noperm_client):
@@ -1571,8 +1711,8 @@ def test_prepared_documents_preview_button_requires_details_view(
     monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: {"100": [42]})
     monkeypatch.setattr(
         wv,
-        "resolve_octo_wid_stage",
-        lambda e, w: {"status": "Ready", "current_stage": "Import"},
+        "_resolve_prepared_doc_wid_stage",
+        lambda w: {"status": "Ready", "current_stage": "Import"},
     )
 
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
@@ -1870,8 +2010,8 @@ def test_prepared_docs_preview_button_carries_stage(user_client, workitems_all_p
     monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: {"100": [42]})
     monkeypatch.setattr(
         wv,
-        "resolve_octo_wid_stage",
-        lambda e, w: {"status": "In Progress", "current_stage": "Validation"},
+        "_resolve_prepared_doc_wid_stage",
+        lambda w: {"status": "In Progress", "current_stage": "Validation"},
     )
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
     resp = user_client.get("/prepared_documents")
