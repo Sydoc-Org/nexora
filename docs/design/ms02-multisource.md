@@ -45,12 +45,14 @@ on a bare workitem id is therefore ambiguous, and the following rules are load-b
 - **Front-end element ids are keyed `client-id`**, not the bare id — two rows otherwise shared
   one DOM id. At most one detail panel per id is open at a time, since the shared panel
   partial's internal ids are still id-keyed.
-- **NexoraDB metadata (tags, priority, assignment, PID register) is keyed on the bare id** and
-  has no client column, so it is inherently shared between colliding ids. MS02-only resolution
-  (`_stamp_in_register`) is restricted to rows whose `client == "ms02"`. Note `Workitem_Metadata`
-  / `Workitem_Tags` store `WorkitemId` as **NVARCHAR** while the Postgres runtime's `"ID"` is an
-  integer — normalize ids at that seam (an unnormalized allow-set errored the whole MS02 source
-  out of every tag/priority/assigned filter).
+- **The PID-register cross-reference (`_stamp_in_register` → `dbo.PreparedDocuments`) is
+  MS02-only.** Ids collide across clients, so it resolves rows to PIDs (via
+  `resolve_ms02_wids_to_pids`) only for rows whose `client == "ms02"` — an unfiltered lookup would
+  stamp a default-client row with an unrelated MS02 person's PID. `resolve_ms02_pid_to_wids` /
+  `resolve_ms02_wids_to_pids` still normalize ids at the NVARCHAR/string-vs-Postgres-integer seam
+  (`_as_workitem_ids`, `int()` coercion) before matching — an unnormalized id silently drops out
+  of the PID map, the same failure mode that used to break every tag/priority/assigned filter
+  before collaboration was removed.
 
 ## Multi-source workitems
 

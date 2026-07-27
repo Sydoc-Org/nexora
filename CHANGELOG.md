@@ -13,6 +13,29 @@ Work toward 2.5.65.
 - `db-standard/` — the standardised statistics-DB schema proposal (shipped
   dev-side in 2.5.64) is withdrawn; its deploy-exclude and `.gitignore`
   entries go with it.
+- Chat: the 1-on-1 chat page and all `/api/chat/*` routes (conversations,
+  messages, send, upload). `chat.html` / `_chat_js.html` are moved to
+  `templates/archive/` / `templates/js/archive/` rather than deleted.
+- Workitem collaboration: tags, priority, assignment, and comments with
+  `@mention` autocomplete, including the API routes
+  `/api/workitem/<id>/comment`, `/api/workitem/<id>/assign`,
+  `/api/workitem/<id>/priority`, `/api/workitem/<id>/tags`, `/api/tags`,
+  `/api/users` and `/api/workitem/<id>/interactions`, and the tag /
+  priority / assigned-to filters (and their header cells) on the workitems
+  overview.
+- The notification bell end to end: both routes (`/api/notifications`,
+  `/api/notifications/mark_as_read`) and the header bell UI (icon, panel,
+  60s poll).
+- Eight now-dead permission codes, deleted by migration `0043`:
+  `chat.view`, `workitems.details.add.tag`,
+  `workitems.details.set.priority`, `workitems.details.assign.users`,
+  `workitems.details.add.comment`, `workitems.filter.tag`,
+  `workitems.filter.priority`, `workitems.filter.assignedUser`.
+- The nine now-dead chat/collaboration/notification tables — renamed with a
+  `decapitated_` prefix by migration `0042`, data preserved and reversible:
+  `Chat_Conversations`, `Chat_Messages`, `Chat_Participants`, `Tags`,
+  `Workitem_Tags`, `Workitem_Comments`, `Comment_Mentions`,
+  `Workitem_Metadata`, `Notifications`.
 
 ## [2.5.64] - 2026-07-22
 

@@ -1,6 +1,6 @@
 # nexora
 
-Internal Sydoc portal: workitems, invoices, chat, admin, tenant-specific pages.
+Internal Sydoc portal: workitems, invoices, admin, tenant-specific pages.
 Flask 3 / Python 3.13 / SQL Server / IIS (PROD).
 
 ## Quick start
