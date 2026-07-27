@@ -7,6 +7,7 @@ etc.) by registering rules with explicit ``endpoint=`` rather than via Blueprint
 import base64
 import io
 import re
+import threading
 import uuid
 
 import bcrypt
@@ -81,10 +82,131 @@ def _record_active_session(user_id):
         current_app.logger.warning(f"Failed to record active session for user {user_id}: {e}")
 
 
-def send_reset_email(email):
+def _build_reset_email_message(email):
+    """Build the Graph sendMail payload (reset link + translated subject/
+    body) for a password-reset email to ``email``.
+
+    Uses ``url_for(_external=True)`` and gettext (``_()``), both bound to
+    the live Flask request/app context. Call this synchronously, before
+    send_reset_email() is dispatched onto a background thread -- request/g/
+    current_app are not valid once the triggering request has returned.
+    """
+
     def get_link():
         token = s.dumps(email, salt="password-reset-salt")
         return url_for("reset_password", token=token, _external=True)
+
+    link = get_link()
+    font_family = "font-family: 'Inter', Helvetica, Arial, sans-serif;"
+    container_style = "max-width: 600px; margin: 0 auto; background-color: #fefdfb; padding: 20px;"
+    button_style = (
+        "background-color: #2563eb; color: #fefdfb; padding: 12px 24px; "
+        "text-decoration: none; border-radius: 8px; font-weight: bold; "
+        "display: inline-block; mso-padding-alt: 12px 24px;"
+    )
+    link_style = "color: #4b5563; text-decoration: none; margin-right: 15px; font-size: 14px;"
+    text_style = "color: #4b5563; line-height: 1.6; font-size: 16px;"
+
+    logo_url = "https://nexora.sydoc.ch/nexora/static/images/nexora-logo.gif"
+    logo_banner_url = "https://nexora.sydoc.ch/nexora/static/images/sydoc-logo-banner.png"
+
+    body = {
+        "message": {
+            "subject": _("nexora Password Reset Request"),
+            "body": {
+                "contentType": "HTML",
+                "content": f"""
+                        <!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Nexora Update</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f3f4f6; {font_family}">
+
+    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f3f4f6; padding: 20px;">
+        <tr>
+            <td align="center">
+
+                <table width="600" border="0" cellspacing="0" cellpadding="0" style="{container_style} border-radius: 8px;">
+
+                    <tr>
+                        <td align="center" style="padding-bottom: 20px;">
+                            <a href="https://sydoc.ch"><img src="{logo_url}" alt="Sydoc Logo" width="600" style="display: block;"></a>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td align="center" style="padding-bottom: 60px;">
+                            <a href="https://sydoc.ch/ueber-sydoc/news/" style="{link_style}">News</a>
+                            <a href="https://sydoc.ch/ueber-sydoc/kundenmagazin/" style="{link_style}">Magazin</a>
+                            <a href="https://sydoc.ch/ueber-sydoc/team/" style="{link_style}">Team</a>
+                            <a href="mailto:support.helpdesk@sydoc.ch" style="{link_style}">Support</a>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding: 0 10px;">
+                            <h2 style="color: #374151; margin-top: 0;">{_("Hello,")}</h2>
+                            <p style="{text_style}">
+                                {_("We received a request to reset the password for your account. You can reset your password by clicking the button below.")}
+                               {_("If you did not request a password reset, please ignore this email. This link is valid for 15 minutes.")}
+                            </p>
+                            <p style="{text_style}">
+                                {_("Thanks,<br>The Sydoc Team")}
+                            </p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td align="left" style="padding: 10px 10px 30px;">
+                            <a href="{link}" style="{button_style}">
+                                {_("Reset Your Password")}
+                            </a>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td align="center" style="padding-top: 30px; border-top: 1px solid #e5e7eb;">
+                            <a href="https://sydoc.ch"><img src="{logo_banner_url}" alt="Sydoc Logo" width="600" style="display: block;"></a>                            </td>
+                    </tr>
+
+                    <tr>
+                        <td align="center" style="padding-top: 15px;">
+                            <p style="font-size: 12px; color: #9ca3af;">
+                                © 2026 Alle Rechte vorbehalten
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+                """,
+            },
+            "toRecipients": [{"emailAddress": {"address": email}}],
+        },
+        "saveToSentItems": True,
+    }
+    return body
+
+
+def send_reset_email(email, message=None):
+    """Send a password-reset email via Microsoft Graph.
+
+    D-RESET: request_password_reset() dispatches this call on a daemon
+    thread so a registered address does not take measurably longer to
+    answer than an unregistered one (the previous timing oracle). Pass a
+    pre-built ``message`` (see _build_reset_email_message) so nothing here
+    touches Flask request/app context -- only plain data and network I/O,
+    which is safe to run off the request thread.
+    """
+    if message is None:
+        message = _build_reset_email_message(email)
 
     def get_access_token():
         uri = f"https://login.microsoftonline.com/{GRAPH_TENANT_ID}/oauth2/v2.0/token"
@@ -106,107 +228,8 @@ def send_reset_email(email):
     uri = "https://graph.microsoft.com/v1.0/me/sendMail"
     access_token = get_access_token()
     headers = {"Authorization": f"Bearer {access_token}"}
-    link = get_link()
     try:
-        font_family = "font-family: 'Inter', Helvetica, Arial, sans-serif;"
-        container_style = (
-            "max-width: 600px; margin: 0 auto; background-color: #fefdfb; padding: 20px;"
-        )
-        button_style = (
-            "background-color: #2563eb; color: #fefdfb; padding: 12px 24px; "
-            "text-decoration: none; border-radius: 8px; font-weight: bold; "
-            "display: inline-block; mso-padding-alt: 12px 24px;"
-        )
-        link_style = "color: #4b5563; text-decoration: none; margin-right: 15px; font-size: 14px;"
-        text_style = "color: #4b5563; line-height: 1.6; font-size: 16px;"
-
-        logo_url = "https://nexora.sydoc.ch/nexora/static/images/nexora-logo.gif"
-        logo_banner_url = "https://nexora.sydoc.ch/nexora/static/images/sydoc-logo-banner.png"
-
-        body = {
-            "message": {
-                "subject": _("nexora Password Reset Request"),
-                "body": {
-                    "contentType": "HTML",
-                    "content": f"""
-                            <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="UTF-8">
-        <title>Nexora Update</title>
-    </head>
-    <body style="margin: 0; padding: 0; background-color: #f3f4f6; {font_family}">
-
-        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f3f4f6; padding: 20px;">
-            <tr>
-                <td align="center">
-
-                    <table width="600" border="0" cellspacing="0" cellpadding="0" style="{container_style} border-radius: 8px;">
-
-                        <tr>
-                            <td align="center" style="padding-bottom: 20px;">
-                                <a href="https://sydoc.ch"><img src="{logo_url}" alt="Sydoc Logo" width="600" style="display: block;"></a>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td align="center" style="padding-bottom: 60px;">
-                                <a href="https://sydoc.ch/ueber-sydoc/news/" style="{link_style}">News</a>
-                                <a href="https://sydoc.ch/ueber-sydoc/kundenmagazin/" style="{link_style}">Magazin</a>
-                                <a href="https://sydoc.ch/ueber-sydoc/team/" style="{link_style}">Team</a>
-                                <a href="mailto:support.helpdesk@sydoc.ch" style="{link_style}">Support</a>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td style="padding: 0 10px;">
-                                <h2 style="color: #374151; margin-top: 0;">{_("Hello,")}</h2>
-                                <p style="{text_style}">
-                                    {_("We received a request to reset the password for your account. You can reset your password by clicking the button below.")}
-                                   {_("If you did not request a password reset, please ignore this email. This link is valid for 15 minutes.")}
-                                </p>
-                                <p style="{text_style}">
-                                    {_("Thanks,<br>The Sydoc Team")}
-                                </p>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td align="left" style="padding: 10px 10px 30px;">
-                                <a href="{link}" style="{button_style}">
-                                    {_("Reset Your Password")}
-                                </a>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td align="center" style="padding-top: 30px; border-top: 1px solid #e5e7eb;">
-                                <a href="https://sydoc.ch"><img src="{logo_banner_url}" alt="Sydoc Logo" width="600" style="display: block;"></a>                            </td>
-                        </tr>
-
-                        <tr>
-                            <td align="center" style="padding-top: 15px;">
-                                <p style="font-size: 12px; color: #9ca3af;">
-                                    © 2026 Alle Rechte vorbehalten
-                                </p>
-                            </td>
-                        </tr>
-
-                    </table>
-
-                </td>
-            </tr>
-        </table>
-    </body>
-    </html>
-                    """,
-                },
-                "toRecipients": [{"emailAddress": {"address": email}}],
-            },
-            "saveToSentItems": True,
-        }
-
-        response = requests.post(uri, headers=headers, json=body, timeout=10)
+        response = requests.post(uri, headers=headers, json=message, timeout=10)
         response.raise_for_status()
         return True
     except requests.exceptions.HTTPError as http_err:
@@ -623,8 +646,35 @@ def request_password_reset():
         # caller enumerate valid accounts. send_reset_email() itself stays
         # gated on the row actually existing, so mail is only ever sent to a
         # real, registered address.
+        #
+        # D-RESET: the send itself must not be awaited here either — the
+        # synchronous Graph mail call used to run only on this branch, so a
+        # registered address took measurably longer to answer than an
+        # unregistered one (a timing oracle even with the response body now
+        # unified). Build the message now, while the request context is
+        # still live (send_reset_email()/_build_reset_email_message() use
+        # url_for() and gettext(), which need it), then hand the network
+        # call off to a daemon thread so both branches return immediately.
+        # The thread catches/logs its own exceptions -- nothing may escape
+        # unhandled onto a background thread under IIS/wfastcgi -- and it
+        # touches no Flask request/app-context object, since those are not
+        # valid once this request has returned.
         if rows:
-            send_reset_email(request_email)
+            try:
+                reset_message = _build_reset_email_message(request_email)
+            except Exception as e:
+                reset_message = None
+                print(f"Failed to build password reset email: {e}")
+
+            if reset_message is not None:
+
+                def _send_reset_email_background():
+                    try:
+                        send_reset_email(request_email, message=reset_message)
+                    except Exception as e:
+                        print(f"Failed to send password reset email: {e}")
+
+                threading.Thread(target=_send_reset_email_background, daemon=True).start()
         return render_template(
             "forgot_password.html",
             message=_("If that email is registered, a reset link has been sent."),

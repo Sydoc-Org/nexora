@@ -16,6 +16,8 @@ Covers:
 - rate-limit hooks (best-effort — Flask-Limiter is in-memory per worker)
 """
 
+import threading
+import time
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -245,6 +247,22 @@ def test_set_new_password_too_short(client):
     assert resp.status_code == 200
 
 
+def _wait_until(predicate, timeout=2.0, interval=0.02):
+    """Poll ``predicate`` until it's truthy or ``timeout`` elapses.
+
+    D-RESET dispatches send_reset_email() on a background daemon thread, so
+    a mocked call it makes (e.g. requests.post) is no longer guaranteed to
+    have landed by the time client.post() returns -- tests that assert on
+    it need to wait for it instead of checking immediately.
+    """
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if predicate():
+            return True
+        time.sleep(interval)
+    return predicate()
+
+
 def test_request_password_reset_unknown_email(client):
     """Unknown email → re-render forgot_password.html with the neutral message
     (D8: no "Invalid Email Address" — that would leak account existence)."""
@@ -254,22 +272,37 @@ def test_request_password_reset_unknown_email(client):
 
 
 def test_request_password_reset_known_email_send_mocked(client):
-    """Known email → send_reset_email path. Mock the Graph token call."""
+    """Known email → send_reset_email path. Mock the Graph token call.
+
+    D-RESET dispatches send_reset_email() on a background daemon thread, so
+    the mock must still be live when the thread gets to use it -- wait for
+    it inside the patch context rather than tearing the patch down the
+    instant client.post() returns, or the thread could fall through to a
+    real network call once the patch is undone."""
     fake_post = MagicMock()
     fake_post.return_value.json.return_value = {"access_token": "fake"}
     fake_post.return_value.text = ""
     fake_post.return_value.ok = True
     fake_post.return_value.status_code = 200
-    with patch("nx_lib.views.auth.requests.post", fake_post):
+    with patch("nx_lib.views.auth.requests.post", fake_post) as mock_post:
         resp = client.post("/request-password-reset", data={"email": "admin@test.local"})
-    assert resp.status_code == 200
+        assert resp.status_code == 200
+        assert _wait_until(
+            lambda: mock_post.call_count >= 2
+        ), "background password-reset send never used the mocked requests.post"
 
 
 def test_request_password_reset_known_and_unknown_email_same_response(client):
     """D8/Task 9 (user enumeration): the response must not reveal whether the
     submitted email belongs to a registered account. Known and unknown emails
     must get byte-identical status + body; only send_reset_email() may still
-    branch on the row actually existing."""
+    branch on the row actually existing.
+
+    D-RESET dispatches send_reset_email() on a background thread so the
+    known-email response no longer waits on it either; poll for the mocked
+    calls (token fetch + sendMail = 2) instead of asserting immediately, and
+    keep the patch alive until the background work has settled so it never
+    falls through to a real network call."""
     fake_post = MagicMock()
     fake_post.return_value.json.return_value = {"access_token": "fake"}
     fake_post.return_value.text = ""
@@ -277,10 +310,17 @@ def test_request_password_reset_known_and_unknown_email_same_response(client):
     fake_post.return_value.status_code = 200
     with patch("nx_lib.views.auth.requests.post", fake_post) as mock_post:
         known_resp = client.post("/request-password-reset", data={"email": "admin@test.local"})
+        assert _wait_until(
+            lambda: mock_post.call_count >= 2
+        ), "background password-reset send never used the mocked requests.post"
         known_call_count = mock_post.call_count
+
         unknown_resp = client.post(
             "/request-password-reset", data={"email": "nobody@nowhere.local"}
         )
+        # No background send should fire for an unregistered email; give any
+        # (incorrect) dispatch a moment to land before checking.
+        time.sleep(0.2)
         unknown_call_count = mock_post.call_count - known_call_count
 
     assert known_resp.status_code == unknown_resp.status_code == 200
@@ -288,6 +328,46 @@ def test_request_password_reset_known_and_unknown_email_same_response(client):
     # Mail must still only be attempted for the real account.
     assert known_call_count > 0
     assert unknown_call_count == 0
+
+
+def test_request_password_reset_returns_before_send_completes(client):
+    """D-RESET: request_password_reset() must not block on send_reset_email().
+    The synchronous Graph mail call used to run only for a registered email,
+    so its latency alone told an attacker whether an address existed even
+    after the response body was unified (D8). Simulate a slow/hanging send
+    and confirm the route answers immediately -- and identically for a
+    registered and an unregistered email."""
+    release = threading.Event()
+    started = threading.Event()
+
+    def blocking_send(*args, **kwargs):
+        started.set()
+        release.wait(timeout=5)
+        return True
+
+    with patch("nx_lib.views.auth.send_reset_email", side_effect=blocking_send):
+        start = time.monotonic()
+        known_resp = client.post("/request-password-reset", data={"email": "admin@test.local"})
+        known_elapsed = time.monotonic() - start
+
+        # Confirm the background thread really did fire (it did NOT delay
+        # the response above), then release it so it finishes cleanly
+        # before the patch context exits.
+        assert started.wait(timeout=2), "send_reset_email was never dispatched"
+        release.set()
+
+        start = time.monotonic()
+        unknown_resp = client.post(
+            "/request-password-reset", data={"email": "nobody@nowhere.local"}
+        )
+        unknown_elapsed = time.monotonic() - start
+
+    assert known_resp.status_code == unknown_resp.status_code == 200
+    assert known_resp.data == unknown_resp.data
+    # The route must return well before the blocking send is released --
+    # i.e. it did not wait on send_reset_email() (the closed timing oracle).
+    assert known_elapsed < 1.0
+    assert unknown_elapsed < 1.0
 
 
 def test_login_rate_limit_eventually_429(client, reset_limiter):
