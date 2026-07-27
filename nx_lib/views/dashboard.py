@@ -1314,10 +1314,15 @@ def _build_categorical_sql(widget, filters, configs):
         where += _doc_filter_clauses(filters, row.ProcessName, params)
         where_sql = (" WHERE " + " AND ".join(where) + cond) if where else (" WHERE 1=1" + cond)
 
-        group_by = dim_sql if dim_sql != "?" else "1"
+        # A dim bound as "?" is a constant label, not a real column -- T-SQL
+        # GROUP BY 1 groups by the literal constant 1 (not by ordinal
+        # position, unlike some other dialects), which is a syntax/semantic
+        # error here. A bound constant label + aggregate needs no GROUP BY at
+        # all: omit the clause entirely rather than emit "GROUP BY 1".
+        group_by_sql = f" GROUP BY {dim_sql}" if dim_sql != "?" else ""
         sub_qs.append(
             f"SELECT {dim_sql} AS dim, {metric_sql} AS v "
-            f"FROM [{DB_STATISTICS}].{tbl}{where_sql} GROUP BY {group_by}"
+            f"FROM [{DB_STATISTICS}].{tbl}{where_sql}{group_by_sql}"
         )
     if not sub_qs:
         return "", []

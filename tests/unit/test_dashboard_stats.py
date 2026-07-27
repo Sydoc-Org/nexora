@@ -530,3 +530,72 @@ def test_kpi_status_done_unaffected_by_backlog_predicate():
     assert "ExportDate IS NULL" not in sql
     assert "CAST(ExportDate AS DATE) >= ?" in sql
     assert "CAST(ExportDate AS DATE) <= ?" in sql
+
+
+# --------------------- _build_categorical_sql GROUP BY --------------------- #
+# Regression guard for a T-SQL correctness bug: when the widget's dimension
+# resolves to the "?" bound-parameter sentinel (a constant label, e.g.
+# dim=="processname"), the per-config subquery must NOT emit "GROUP BY 1" --
+# in T-SQL that groups by the literal constant 1, not by ordinal position
+# (unlike MySQL/Postgres/SQLite), so it 500s. A single-row aggregate with a
+# bound constant label needs no GROUP BY at all. Real-column dimensions must
+# keep grouping by the resolved column.
+
+
+def _categorical_widget(dimension, kind="count", top_n=5, sort="desc"):
+    return {
+        "type": "categorical",
+        "config": {"dimension": dimension, "metric": {"kind": kind}, "topN": top_n, "sort": sort},
+    }
+
+
+def _inner_subquery(sql):
+    """Pull out the parenthesized UNION-ALL body `_build_categorical_sql` wraps
+    as `t`, i.e. the part actually built by the buggy `group_by` line -- as
+    opposed to the outer `GROUP BY dim` (grouping by a real column alias,
+    always correct, untouched by this fix)."""
+    return sql.split("FROM (", 1)[1].rsplit(") t", 1)[0]
+
+
+def test_categorical_constant_dim_omits_group_by():
+    widget = _categorical_widget("processname")
+    filters = {}
+    configs = [_cfg_row("default", "sydoc.Alpha", "dbo.tblAlpha", "ExportDate", "ImportDate")]
+    sql, params = dv._build_categorical_sql(widget, filters, configs)
+    inner = _inner_subquery(sql)
+    assert "GROUP BY" not in inner
+    assert "GROUP BY 1" not in sql
+    # the constant label is still bound as a param, not inlined.
+    assert "SELECT ? AS dim" in inner
+    assert params == ["sydoc.Alpha"]
+
+
+def test_categorical_real_column_dim_keeps_group_by(monkeypatch):
+    monkeypatch.setattr(dv, "_resolve_aggregation_column", lambda p, f: "DocTypeCol")
+    widget = _categorical_widget("doctype")
+    filters = {}
+    configs = [_cfg_row("default", "sydoc.Alpha", "dbo.tblAlpha", "ExportDate", "ImportDate")]
+    sql, params = dv._build_categorical_sql(widget, filters, configs)
+    inner = _inner_subquery(sql)
+    assert "GROUP BY DocTypeCol" in inner
+    assert "SELECT DocTypeCol AS dim" in inner
+
+
+def test_categorical_dim_never_used_as_raw_sql_only_whitelisted_columns(monkeypatch):
+    # `dim` is only ever (a) compared against the two fixed literals
+    # "processname"/"status", or (b) passed to `_resolve_aggregation_column`,
+    # which looks the field up in the DB-backed SearchConfig column map --
+    # never string-formatted into the query itself. Simulate an
+    # attacker-controlled/unmapped dimension string (not in the whitelist) and
+    # confirm it never reaches the generated SQL: the resolver reports "no
+    # mapping" (None), so the row is skipped and the query comes back honestly
+    # empty, exactly as it would for any other unmapped field key.
+    monkeypatch.setattr(dv, "_resolve_aggregation_column", lambda p, f: None)
+    malicious_dim = "1; DROP TABLE dbo.Statconfig--"
+    widget = _categorical_widget(malicious_dim)
+    filters = {}
+    configs = [_cfg_row("default", "sydoc.Alpha", "dbo.tblAlpha", "ExportDate", "ImportDate")]
+    sql, params = dv._build_categorical_sql(widget, filters, configs)
+    assert sql == ""
+    assert params == []
+    assert malicious_dim not in sql
