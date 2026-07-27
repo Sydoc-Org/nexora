@@ -5,6 +5,7 @@ etc.) by registering rules with explicit ``endpoint=`` rather than via Blueprint
 """
 
 import base64
+import hashlib
 import io
 import re
 import threading
@@ -35,7 +36,7 @@ from ..config import (
     IS_PROD,
 )
 from ..db import engine_nexora_db
-from ..extensions import limiter, s
+from ..extensions import cache, limiter, s
 from ..hooks import get_ip
 from ..maintenance import _maintenance_blocks_user
 from ..security import (
@@ -614,17 +615,52 @@ def set_new_password():
     except Exception:
         return
     finally:
+        # D-RESET: the "I may set a new password for this email" capability
+        # must not outlive a single attempt at this route -- pop it on
+        # EVERY exit (success, validation-error render, or the except
+        # above), not just the happy path. Without this a session that once
+        # visited a valid reset link could call this route again at any
+        # later point for the rest of the session.
+        session.pop("email_for_password_reset", None)
         if cursor:
             cursor.close()
         if conn:
             conn.close()
 
 
+# Must match the max_age passed to s.loads() below -- also doubles as the
+# cache TTL for the single-use marker, so a consumed-token record never
+# outlives the token it guards.
+RESET_TOKEN_MAX_AGE = 900
+
+
+def _reset_token_cache_key(token):
+    """Cache key for single-use tracking. Hash the raw token rather than
+    using it verbatim as a key -- the token is a bearer credential and
+    should not be persisted (even in an in-memory cache, even as a dict key
+    that could surface in a debugger/log dump) in recoverable form."""
+    return "reset-token-used:" + hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
 def reset_password(token):
     try:
-        session["email_for_password_reset"] = s.loads(
-            token, salt="password-reset-salt", max_age=900
-        )
+        email = s.loads(token, salt="password-reset-salt", max_age=RESET_TOKEN_MAX_AGE)
+
+        # Single-use enforcement: a signed token is otherwise replayable for
+        # its entire max_age window, so completing (or abandoning) a reset
+        # never invalidates the link. NOTE: `cache` (Flask-Caching
+        # SimpleCache) is an in-process dict -- under wfastcgi's
+        # multi-worker deployment each worker process has its own cache, so
+        # a token consumed on worker A is still unseen as "used" by worker
+        # B. This makes single-use best-effort ACROSS WORKERS, not
+        # perfectly atomic. Accepted per the plan's D-RESET decision -- not
+        # a gap to fix further here.
+        cache_key = _reset_token_cache_key(token)
+        if cache.get(cache_key):
+            return redirect(url_for("index"))
+        cache.set(cache_key, True, timeout=RESET_TOKEN_MAX_AGE)
+
+        session["email_for_password_reset"] = email
         return render_template("reset_password.html")
     except Exception:
         return redirect(url_for("index"))

@@ -399,6 +399,79 @@ def test_request_password_reset_rate_limit_eventually_429(client, reset_limiter)
     assert last_status in (200, 429)
 
 
+def test_reset_password_token_single_use_and_session_dropped(client):
+    """D-RESET: complete a full reset with a valid token, then replay the
+    SAME token URL -> it must be rejected, not silently accepted again.
+    Also confirms the session capability (email_for_password_reset) does
+    not survive set_new_password completing successfully."""
+    from nx_lib.db import engine_nexora_db
+    from nx_lib.extensions import s
+
+    email = "admin@test.local"
+    token = s.dumps(email, salt="password-reset-salt")
+
+    # Capture the real seeded password hash so it can be restored -- other
+    # fixtures (login/user_client/admin_client) log in as this user with
+    # TEST_PASSWORD for the rest of the suite.
+    conn = engine_nexora_db.raw_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT password FROM Users WHERE Email = ?", email)
+    original_hash = cursor.fetchone()[0]
+    cursor.close()
+    conn.close()
+
+    try:
+        first_get = client.get(f"/reset_password/{token}")
+        assert first_get.status_code == 200
+        with client.session_transaction() as sess:
+            assert sess.get("email_for_password_reset") == email
+
+        post_resp = client.post(
+            "/set_new_password",
+            data={"new-password": "ReplayGuard1!", "confirm-password": "ReplayGuard1!"},
+        )
+        assert post_resp.status_code == 200
+        assert b"password changed" in post_resp.data.lower()
+
+        # Session capability must be gone once set_new_password has run.
+        with client.session_transaction() as sess:
+            assert "email_for_password_reset" not in sess
+
+        # Replay of the exact same token URL must now be rejected (redirect
+        # home, same as an invalid/expired token) rather than re-rendering
+        # the reset form for reuse.
+        replay_resp = client.get(f"/reset_password/{token}", follow_redirects=False)
+        assert replay_resp.status_code == 302
+        assert replay_resp.headers.get("Location", "").endswith("/")
+        with client.session_transaction() as sess:
+            assert "email_for_password_reset" not in sess
+    finally:
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE Users SET password = ? WHERE Email = ?", (original_hash, email))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+
+def test_set_new_password_session_dropped_on_forced_failure(client):
+    """D-RESET: the session capability must be dropped on a FAILURE exit
+    too, not just the success path -- otherwise one bad submission (e.g. a
+    typo'd confirmation field) leaves "set a new password for this email"
+    usable for the rest of the session."""
+    with client.session_transaction() as sess:
+        sess["email_for_password_reset"] = "admin@test.local"
+
+    resp = client.post(
+        "/set_new_password",
+        data={"new-password": "Mismatch12!", "confirm-password": "Different12!"},
+    )
+    assert resp.status_code == 200
+    assert b"do not match" in resp.data.lower()
+    with client.session_transaction() as sess:
+        assert "email_for_password_reset" not in sess
+
+
 def test_verify_2fa_rate_limit_eventually_429(client, reset_limiter):
     """auth.py:309 — @limiter.limit('30 per hour'), added to close a TOTP
     brute-force gap (a valid pre_2fa_userid session let a caller try all
