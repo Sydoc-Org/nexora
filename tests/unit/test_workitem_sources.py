@@ -193,6 +193,86 @@ def test_pair_scope_authorizes_granted_pairs_only_not_cross_product(app):
         assert ("B", "P1") not in built_pairs, f"{type(src).__name__} authorizes an ungranted pair"
 
 
+# ---- Phase-review fix: recent_rows/backlog_count had the SAME cross-product
+# bug as list_workitems (fixed above by cc167e1), but independently -- these
+# are different functions the dashboard's recent-activity feed and backlog
+# KPI call directly, and were not touched by that commit. -----------------
+
+
+def test_recent_rows_authorizes_granted_pairs_only_not_cross_product(app):
+    """A caller granted only (A, P1) and (B, P2) must build a WHERE whose
+    params can only ever reconstruct those two pairs -- never the
+    cross-product pairs (A, P2) / (B, P1)."""
+    pairs = [("A", "P1"), ("B", "P2")]
+    for src in (SqlServerSource(), PostgresSource(CLIENTS_code="ms02")):
+        fake_cur = MagicMock()
+        fake_cur.fetchall.return_value = []
+        fake_conn = MagicMock()
+        fake_conn.cursor.return_value = fake_cur
+        with patch.object(src, "engine") as eng, app.app_context():
+            eng.raw_connection.return_value = fake_conn
+            src.recent_rows(pairs, "'Ignore'", top=3)
+
+        call = fake_cur.execute.call_args_list[0]
+        sql = str(call.args[0])
+        params = list(call.args[1])
+        assert " or " in sql.lower(), f"{type(src).__name__}: expected OR-joined predicate: {sql}"
+        built_pairs = list(zip(params[0::2], params[1::2], strict=True))
+        assert built_pairs == pairs, f"{type(src).__name__}: {built_pairs}"
+        assert ("A", "P2") not in built_pairs, f"{type(src).__name__} authorizes an ungranted pair"
+        assert ("B", "P1") not in built_pairs, f"{type(src).__name__} authorizes an ungranted pair"
+
+
+def test_backlog_count_authorizes_granted_pairs_only_not_cross_product(app):
+    """Same guarantee as above, for backlog_count -- the dashboard backlog
+    KPI's query builder."""
+    pairs = [("A", "P1"), ("B", "P2")]
+    for src in (SqlServerSource(), PostgresSource(CLIENTS_code="ms02")):
+        fake_cur = MagicMock()
+        fake_cur.fetchone.return_value = [0]
+        fake_conn = MagicMock()
+        fake_conn.cursor.return_value = fake_cur
+        with patch.object(src, "engine") as eng, app.app_context():
+            eng.raw_connection.return_value = fake_conn
+            src.backlog_count(pairs)
+
+        call = fake_cur.execute.call_args_list[0]
+        sql = str(call.args[0])
+        params = list(call.args[1])
+        assert " or " in sql.lower(), f"{type(src).__name__}: expected OR-joined predicate: {sql}"
+        built_pairs = list(zip(params[0::2], params[1::2], strict=True))
+        assert built_pairs == pairs, f"{type(src).__name__}: {built_pairs}"
+        assert ("A", "P2") not in built_pairs, f"{type(src).__name__} authorizes an ungranted pair"
+        assert ("B", "P1") not in built_pairs, f"{type(src).__name__} authorizes an ungranted pair"
+
+
+def test_recent_activity_rows_and_total_backlog_count_pass_pairs_through(app, monkeypatch):
+    """The module-level merge/sum wrappers must forward the pairs shape
+    verbatim to each source -- not re-split them back into independent
+    client/process lists."""
+    captured = {}
+
+    class Fake:
+        code = "default"
+
+        def recent_rows(self, pairs, activity_ignore_csv, top=3):
+            captured["recent_rows_pairs"] = pairs
+            return []
+
+        def backlog_count(self, pairs):
+            captured["backlog_count_pairs"] = pairs
+            return 0
+
+    monkeypatch.setattr(ws, "active_sources", lambda: [Fake()])
+    pairs = [("A", "P1"), ("B", "P2")]
+    with app.app_context():
+        ws.recent_activity_rows(pairs, "'Ignore'", top=3)
+        ws.total_backlog_count(pairs)
+
+    assert captured["recent_rows_pairs"] == pairs
+    assert captured["backlog_count_pairs"] == pairs
+
+
 def test_get_source_for_workitem_cache_hit(app, monkeypatch):
     monkeypatch.setattr(ws, "_cache_lookup", lambda wid: "ms02")
     with app.app_context():
@@ -346,7 +426,7 @@ def test_sqlserver_recent_rows_normalizes(app):
     src = SqlServerSource()
     with patch.object(src, "engine") as eng, app.app_context():
         eng.raw_connection.return_value = fake_conn
-        rows = src.recent_rows(["Invoices"], ["Privera"], "'Ignore'", top=3)
+        rows = src.recent_rows([("Privera", "Invoices")], "'Ignore'", top=3)
 
     assert rows == [
         {
@@ -373,7 +453,7 @@ def test_sqlserver_recent_rows_omits_not_in_when_ignore_csv_empty(app):
     src = SqlServerSource()
     with patch.object(src, "engine") as eng, app.app_context():
         eng.raw_connection.return_value = fake_conn
-        rows = src.recent_rows(["Invoices"], ["Privera"], "", top=3)
+        rows = src.recent_rows([("Privera", "Invoices")], "", top=3)
 
     assert rows == []
     executed_sql = " ".join(str(c.args[0]) for c in fake_cur.execute.call_args_list)
@@ -389,7 +469,7 @@ def test_sqlserver_recent_rows_omits_not_in_when_ignore_csv_none(app):
     src = SqlServerSource()
     with patch.object(src, "engine") as eng, app.app_context():
         eng.raw_connection.return_value = fake_conn
-        rows = src.recent_rows(["Invoices"], ["Privera"], None, top=3)
+        rows = src.recent_rows([("Privera", "Invoices")], None, top=3)
 
     assert rows == []
     executed_sql = " ".join(str(c.args[0]) for c in fake_cur.execute.call_args_list)
@@ -405,7 +485,7 @@ def test_sqlserver_backlog_count(app):
     src = SqlServerSource()
     with patch.object(src, "engine") as eng, app.app_context():
         eng.raw_connection.return_value = fake_conn
-        count = src.backlog_count(["Invoices"], ["Privera"])
+        count = src.backlog_count([("Privera", "Invoices")])
 
     assert count == 12
     executed_sql = " ".join(str(c.args[0]) for c in fake_cur.execute.call_args_list)
@@ -426,7 +506,7 @@ def test_postgres_recent_rows_uses_pg_sql(app):
     src = PostgresSource(CLIENTS_code="ms02")
     with patch.object(src, "engine") as eng, app.app_context():
         eng.raw_connection.return_value = fake_conn
-        rows = src.recent_rows(["Invoices"], ["Privera"], "'Ignore'", top=3)
+        rows = src.recent_rows([("Privera", "Invoices")], "'Ignore'", top=3)
 
     assert rows[0]["id"] == 1001
     assert rows[0]["client"] == "ms02"
@@ -446,7 +526,7 @@ def test_postgres_backlog_count(app):
     src = PostgresSource(CLIENTS_code="ms02")
     with patch.object(src, "engine") as eng, app.app_context():
         eng.raw_connection.return_value = fake_conn
-        count = src.backlog_count(["Invoices"], ["Privera"])
+        count = src.backlog_count([("Privera", "Invoices")])
 
     assert count == 4
     executed_sql = " ".join(str(c.args[0]) for c in fake_cur.execute.call_args_list)
@@ -461,7 +541,7 @@ def test_recent_activity_rows_merges_and_caps(app, monkeypatch):
             self.code = code
             self._rows = rows
 
-        def recent_rows(self, process_names, client_names, activity_ignore_csv, top=3):
+        def recent_rows(self, pairs, activity_ignore_csv, top=3):
             return self._rows
 
     f1 = Fake(
@@ -494,7 +574,7 @@ def test_recent_activity_rows_merges_and_caps(app, monkeypatch):
     )
     monkeypatch.setattr(ws, "active_sources", lambda: [f1, f2])
     with app.app_context():
-        out = ws.recent_activity_rows(["P"], ["C"], "'Ignore'", top=2)
+        out = ws.recent_activity_rows([("C", "P")], "'Ignore'", top=2)
     assert [r["id"] for r in out] == [2, 1001]  # newest first, capped to 2
 
 
@@ -504,12 +584,12 @@ def test_total_backlog_count_sums(app, monkeypatch):
             self.code = code
             self._n = n
 
-        def backlog_count(self, process_names, client_names):
+        def backlog_count(self, pairs):
             return self._n
 
     monkeypatch.setattr(ws, "active_sources", lambda: [Fake("default", 3), Fake("ms02", 4)])
     with app.app_context():
-        assert ws.total_backlog_count(["P"], ["C"]) == 7
+        assert ws.total_backlog_count([("C", "P")]) == 7
 
 
 # ---------------- MS02 doc-field resolver (columnar) ---------------- #

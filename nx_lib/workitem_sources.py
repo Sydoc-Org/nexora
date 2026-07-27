@@ -217,14 +217,14 @@ class SqlServerSource:
         finally:
             conn.close()
 
-    def recent_rows(self, process_names, client_names, activity_ignore_csv, top=3):
+    def recent_rows(self, pairs, activity_ignore_csv, top=3):
         conn = self.engine.raw_connection()
         try:
             cur = conn.cursor()
+            pair_sql, pair_params = _pair_predicate(pairs, "tp.ClientName", "tp.Name", "?")
             where_clauses = [
                 "twi.Status <> 2",
-                f"tp.Name IN ({_qmarks(process_names)})",
-                f"tp.ClientName IN ({_qmarks(client_names)})",
+                f"({pair_sql})",
             ]
             if activity_ignore_csv:
                 where_clauses.append(f"tai.ActivityInstanceName NOT IN ({activity_ignore_csv})")
@@ -238,7 +238,7 @@ class SqlServerSource:
                 WHERE {where}
                 ORDER BY twi.ModifiedAt DESC
                 """,
-                list(process_names) + list(client_names),
+                pair_params,
             )
             return [
                 {
@@ -255,19 +255,20 @@ class SqlServerSource:
         finally:
             conn.close()
 
-    def backlog_count(self, process_names, client_names):
+    def backlog_count(self, pairs):
         conn = self.engine.raw_connection()
         try:
             cur = conn.cursor()
+            pair_sql, pair_params = _pair_predicate(pairs, "p.ClientName", "p.Name", "?")
             cur.execute(
                 f"""
                 SELECT COUNT(*) FROM t_WorkItems w
                 LEFT JOIN t_ActivityInstances a ON a.id = w.ActivityInstanceID
                 LEFT JOIN t_Processes p ON p.id = a.ProcessID
                 LEFT JOIN t_ActivityTypes act ON act.id = a.ActivityTypeID
-                WHERE p.Name IN ({_qmarks(process_names)}) AND p.ClientName IN ({_qmarks(client_names)}) AND act.Name = 'C+A'
+                WHERE ({pair_sql}) AND act.Name = 'C+A'
                 """,
-                list(process_names) + list(client_names),
+                pair_params,
             )
             return cur.fetchone()[0] or 0
         except Exception as e:
@@ -755,10 +756,6 @@ def resolve_ms02_wids_to_pids(engine, specs, wids):
             conn.close()
 
 
-def _pgmarks(seq):
-    return ", ".join(["%s"] * len(seq))
-
-
 class PostgresSource:
     """MS02 client: Azure Postgres runtime DB. Same Octo schema, PG dialect.
     NexoraDB-backed filters are pre-resolved to an id allow-set; tags/priority
@@ -893,16 +890,16 @@ class PostgresSource:
 
         return rows, total
 
-    def recent_rows(self, process_names, client_names, activity_ignore_csv, top=3):
+    def recent_rows(self, pairs, activity_ignore_csv, top=3):
         conn = self.engine.raw_connection()
         try:
             cur = conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor)
+            pair_sql, pair_params = _pair_predicate(pairs, 'tp."ClientName"', 'tp."Name"', "%s")
             clauses = [
                 'twi."Status" <> 2',
-                f'tp."Name" IN ({_pgmarks(process_names)})',
-                f'tp."ClientName" IN ({_pgmarks(client_names)})',
+                f"({pair_sql})",
             ]
-            params = list(process_names) + list(client_names)
+            params = list(pair_params)
             if activity_ignore_csv:
                 clauses.append(f'tai."ActivityInstanceName" NOT IN ({activity_ignore_csv})')
             where = " AND ".join(clauses)
@@ -928,19 +925,20 @@ class PostgresSource:
         finally:
             conn.close()
 
-    def backlog_count(self, process_names, client_names):
+    def backlog_count(self, pairs):
         conn = self.engine.raw_connection()
         try:
             cur = conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor)
+            pair_sql, pair_params = _pair_predicate(pairs, 'p."ClientName"', 'p."Name"', "%s")
             cur.execute(
                 f"""
                 SELECT COUNT(*) FROM "t_WorkItems" w
                 LEFT JOIN "t_ActivityInstances" a ON a."ID" = w."ActivityInstanceID"
                 LEFT JOIN "t_Processes" p ON p."ID" = a."ProcessID"
                 LEFT JOIN "t_ActivityTypes" act ON act."ID" = a."ActivityTypeID"
-                WHERE p."Name" IN ({_pgmarks(process_names)}) AND p."ClientName" IN ({_pgmarks(client_names)}) AND act."Name" = 'C+A'
+                WHERE ({pair_sql}) AND act."Name" = 'C+A'
                 """,
-                list(process_names) + list(client_names),
+                pair_params,
             )
             return cur.fetchone()[0] or 0
         except Exception as e:
@@ -1106,25 +1104,33 @@ def fetch_merged_page(filt, offset, limit):
     return page, total, degraded
 
 
-def recent_activity_rows(process_names, client_names, activity_ignore_csv, top=3):
+def recent_activity_rows(pairs, activity_ignore_csv, top=3):
     """Top-N most recently modified workitems across all sources, merged.
-    Each row: {id, modifiedat, process, client}."""
+    Each row: {id, modifiedat, process, client}.
+
+    ``pairs``: granted [(client, process), ...] -- see WorkitemFilter.
+    client_process_pairs for why this must never be split into independent
+    client/process lists."""
     out = []
     for src in active_sources():
         try:
-            out.extend(src.recent_rows(process_names, client_names, activity_ignore_csv, top))
+            out.extend(src.recent_rows(pairs, activity_ignore_csv, top))
         except Exception as e:
             current_app.logger.error(f"recent_activity_rows {src.code}: {e}")
     out.sort(key=lambda r: r["modifiedat"], reverse=True)
     return out[:top]
 
 
-def total_backlog_count(process_names, client_names):
-    """Sum the C+A backlog count across all active sources (resilient)."""
+def total_backlog_count(pairs):
+    """Sum the C+A backlog count across all active sources (resilient).
+
+    ``pairs``: granted [(client, process), ...] -- see WorkitemFilter.
+    client_process_pairs for why this must never be split into independent
+    client/process lists."""
     total = 0
     for src in active_sources():
         try:
-            total += src.backlog_count(process_names, client_names)
+            total += src.backlog_count(pairs)
         except Exception as e:
             current_app.logger.error(f"total_backlog_count {src.code}: {e}")
     return total

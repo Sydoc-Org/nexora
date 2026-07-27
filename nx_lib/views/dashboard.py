@@ -571,9 +571,14 @@ def dashboard_kpi_stats():
 
         current_backlog = 0
         if target_processes:
-            proc_params = sorted({p.split(".")[-1] for p in target_processes if "." in p})
-            cli_params = sorted({p.split(".")[0] for p in target_processes if "." in p})
-            current_backlog += total_backlog_count(proc_params, cli_params)
+            # (client, process) pairs, NOT two independent client/process
+            # IN-lists -- see _pair_predicate's docstring in workitem_sources.py
+            # for why that shape authorizes the full cross product instead of
+            # only the granted pairs.
+            pairs = sorted(
+                {(p.split(".")[0], p.split(".")[-1]) for p in target_processes if "." in p}
+            )
+            current_backlog += total_backlog_count(pairs)
 
         return jsonify(
             {
@@ -1346,9 +1351,10 @@ def build_widget_query(widget, global_filters, allowed_processes):
     # tables this widget engine queries cannot express (Statconfig has no
     # activity-type/stage column). Route the one shape that the already-correct
     # total_backlog_count() can honestly answer -- a plain count with no doc-field
-    # filter -- to that Octo-backed function, matching the exact proc/cli split
-    # the legacy dashboard_kpi_stats call site uses, and feed the result through
-    # the unchanged _run_widget_queries path as a parameterized literal select.
+    # filter -- to that Octo-backed function, matching the exact (client,
+    # process) pair derivation the legacy dashboard_kpi_stats call site uses,
+    # and feed the result through the unchanged _run_widget_queries path as a
+    # parameterized literal select.
     # Every other status:"Ready" shape falls through to _build_kpi_sql, which
     # returns an honest empty (no_data_in_scope) rather than a wrong number.
     metric_kind = ((widget.get("config") or {}).get("metric") or {}).get("kind")
@@ -1358,9 +1364,10 @@ def build_widget_query(widget, global_filters, allowed_processes):
         and metric_kind == "count"
         and not filters.get("docFilters")
     ):
-        proc_params = sorted({p.split(".")[-1] for p in target_processes if "." in p})
-        cli_params = sorted({p.split(".")[0] for p in target_processes if "." in p})
-        value = total_backlog_count(proc_params, cli_params)
+        # (client, process) pairs, NOT two independent client/process
+        # IN-lists -- see _pair_predicate's docstring in workitem_sources.py.
+        pairs = sorted({(p.split(".")[0], p.split(".")[-1]) for p in target_processes if "." in p})
+        value = total_backlog_count(pairs)
         return [(engine_nexora_db, "SELECT ?", [value])]
 
     conn = engine_nexora_db.raw_connection()
@@ -1622,12 +1629,11 @@ def api_recent_activity():
         if not target_processes:
             return jsonify([])
 
-        proc_params = sorted({p.split(".")[-1] for p in target_processes if "." in p})
-        cli_params = sorted({p.split(".")[0] for p in target_processes if "." in p})
+        # (client, process) pairs, NOT two independent client/process
+        # IN-lists -- see _pair_predicate's docstring in workitem_sources.py.
+        pairs = sorted({(p.split(".")[0], p.split(".")[-1]) for p in target_processes if "." in p})
         activity_instances_to_ignore = get_activity_instances_to_ignore()
-        raw_rows = recent_activity_rows(
-            proc_params, cli_params, activity_instances_to_ignore, top=3
-        )
+        raw_rows = recent_activity_rows(pairs, activity_instances_to_ignore, top=3)
 
         # Same sensitive-doc-field gate enforced at every other surface that
         # shows doc-fields (workitems.filter.documentfields.sensitive) --

@@ -253,7 +253,7 @@ def test_kpi_stats_serves_ms02_and_backlog_when_statistics_db_dead(app, monkeypa
     monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning(_CONFIGS))
     monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine())
     monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [(5, 2)])
-    monkeypatch.setattr(dv, "total_backlog_count", lambda procs, clients: 3)
+    monkeypatch.setattr(dv, "total_backlog_count", lambda pairs: 3)
 
     with app.test_request_context("/api/dashboard/kpi_stats"):
         session["username"] = "u"
@@ -265,6 +265,46 @@ def test_kpi_stats_serves_ms02_and_backlog_when_statistics_db_dead(app, monkeypa
     resp, status = rv if isinstance(rv, tuple) else (rv, rv.status_code)
     assert status == 200
     assert resp.get_json() == {"processed_today": 5, "imported_today": 2, "current_backlog": 3}
+
+
+# ---- Phase-review fix: dashboard_kpi_stats had the SAME cross-product bug
+# Task 14 fixed for the workitems list (cc167e1), independently -- it built
+# two separately-uniqued proc/client lists instead of granted (client,
+# process) pairs. _PERMS above only ever grants one client ("sydoc"), which
+# can't expose the bug (no second client to cross with); this test grants two
+# DIFFERENT clients to prove only the granted pairs reach total_backlog_count.
+
+
+def test_kpi_stats_backlog_derives_granted_pairs_not_cross_product(app, monkeypatch):
+    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning([]))
+    monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine())
+    monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [])
+
+    calls = []
+
+    def _fake_total_backlog(pairs):
+        calls.append(pairs)
+        return 0
+
+    monkeypatch.setattr(dv, "total_backlog_count", _fake_total_backlog)
+
+    with app.test_request_context("/api/dashboard/kpi_stats"):
+        session["username"] = "u"
+        session["userid"] = 990010
+        session["permissions"] = [
+            "dashboard.filter.process.A.P1",
+            "dashboard.filter.process.B.P2",
+        ]
+        session["process_name_dashboard"] = "all"
+        rv = dv.dashboard_kpi_stats.uncached()
+
+    resp, status = rv if isinstance(rv, tuple) else (rv, rv.status_code)
+    assert status == 200
+    assert len(calls) == 1
+    built_pairs = calls[0]
+    assert sorted(built_pairs) == [("A", "P1"), ("B", "P2")]
+    assert ("A", "P2") not in built_pairs
+    assert ("B", "P1") not in built_pairs
 
 
 def test_hourly_stats_serves_ms02_when_statistics_db_dead(app, monkeypatch):
@@ -378,13 +418,15 @@ def _kpi_widget(kind="count"):
 def test_backlog_kpi_routes_to_total_backlog_count(monkeypatch):
     # count + status:"Ready" + no docFilters is the ONLY shape total_backlog_count
     # can answer. build_widget_query must intercept it BEFORE touching Statconfig,
-    # split the target processes exactly like the legacy dashboard_kpi_stats call
-    # site (client = segment before the dot, process = segment after), and feed
-    # the C+A count through the normal execution path as a literal select.
+    # derive granted (client, process) pairs exactly like the legacy
+    # dashboard_kpi_stats call site (client = segment before the dot, process =
+    # segment after -- NEVER split into independent client/process lists, which
+    # would authorize the cross product), and feed the C+A count through the
+    # normal execution path as a literal select.
     calls = []
 
-    def _fake_total_backlog(procs, clients):
-        calls.append((procs, clients))
+    def _fake_total_backlog(pairs):
+        calls.append(pairs)
         return 7
 
     monkeypatch.setattr(dv, "total_backlog_count", _fake_total_backlog)
@@ -402,15 +444,17 @@ def test_backlog_kpi_routes_to_total_backlog_count(monkeypatch):
     assert "1=1" not in sql
     assert "IS NULL" not in sql
     assert "IS NOT NULL" not in sql
-    # Same proc/cli derivation as the existing correct dashboard_kpi_stats site.
-    assert calls == [(["AlphaProc", "BetaProc"], ["zzztest"])]
+    # Same (client, process) pair derivation as the existing correct
+    # dashboard_kpi_stats site -- a plain list of tuples, not two independent
+    # client/process lists.
+    assert calls == [[("zzztest", "AlphaProc"), ("zzztest", "BetaProc")]]
 
 
 def test_backlog_kpi_value_executes_via_run_widget_queries(app, monkeypatch):
     # The literal-select mechanism (`SELECT ?`) must actually execute through the
     # UNCHANGED _run_widget_queries KPI branch (engine_nexora_db.raw_connection()
     # + pyodbc) and yield exactly the C+A count -- not the old predicate, not 0.
-    monkeypatch.setattr(dv, "total_backlog_count", lambda procs, clients: 7)
+    monkeypatch.setattr(dv, "total_backlog_count", lambda pairs: 7)
     widget = _kpi_widget("count")
     filters = {"status": "Ready"}
     allowed = ["zzztest.AlphaProc"]

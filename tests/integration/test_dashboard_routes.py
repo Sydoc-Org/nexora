@@ -396,6 +396,45 @@ def test_recent_activity_rows_include_client_key(user_client, monkeypatch):
     assert body[0]["client"] == "ms02"
 
 
+# --------------------- phase-review fix: cross-product pair derivation ------ #
+# api_recent_activity() built two separately-uniqued proc/client lists from
+# target_processes -- the SAME cross-product bug Task 14 (cc167e1) fixed for
+# the workitems list, but independently, since this call site feeds
+# recent_activity_rows()/backlog_count(), not list_workitems(). A caller
+# granted only (A, P1) and (B, P2) must never let (A, P2)/(B, P1) reach the
+# source layer.
+
+
+def test_recent_activity_route_derives_granted_pairs_not_cross_product(user_client, monkeypatch):
+    cache.clear()
+    monkeypatch.setattr(
+        nx_lib.hooks,
+        "load_permissions_for_user",
+        lambda uid: [
+            "dashboard.view",
+            "dashboard.filter.process.A.P1",
+            "dashboard.filter.process.B.P2",
+        ],
+    )
+    monkeypatch.setattr(dv, "get_activity_instances_to_ignore", lambda: "")
+
+    calls = []
+
+    def _fake_recent_activity_rows(pairs, activity_ignore_csv, top=3):
+        calls.append(pairs)
+        return []
+
+    monkeypatch.setattr(dv, "recent_activity_rows", _fake_recent_activity_rows)
+
+    resp = user_client.get("/api/dashboard/recent_activity")
+    assert resp.status_code == 200
+    assert len(calls) == 1
+    built_pairs = calls[0]
+    assert sorted(built_pairs) == [("A", "P1"), ("B", "P2")]
+    assert ("A", "P2") not in built_pairs
+    assert ("B", "P1") not in built_pairs
+
+
 # --------------------- error responses must not be cached ------------------- #
 # TEST has no Statistics DB, so engines are mocked on the VIEW module (it
 # does `from ..db import ...` at load time). Session permissions are
