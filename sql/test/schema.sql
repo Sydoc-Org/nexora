@@ -30,15 +30,6 @@ IF OBJECT_ID('dbo.ApiKeys', 'U') IS NOT NULL DROP TABLE dbo.ApiKeys;
 IF OBJECT_ID('dbo.UserPermissionOverride', 'U') IS NOT NULL DROP TABLE dbo.UserPermissionOverride;
 IF OBJECT_ID('dbo.AccessProfilePermission', 'U') IS NOT NULL DROP TABLE dbo.AccessProfilePermission;
 IF OBJECT_ID('dbo.ActiveSessions', 'U') IS NOT NULL DROP TABLE dbo.ActiveSessions;
--- User-referencing child tables that admin_delete_user cascades through (dropped
--- before Users because each carries an FK to dbo.Users).
-IF OBJECT_ID('dbo.Comment_Mentions', 'U') IS NOT NULL DROP TABLE dbo.Comment_Mentions;
-IF OBJECT_ID('dbo.Workitem_Comments', 'U') IS NOT NULL DROP TABLE dbo.Workitem_Comments;
-IF OBJECT_ID('dbo.Workitem_Metadata', 'U') IS NOT NULL DROP TABLE dbo.Workitem_Metadata;
-IF OBJECT_ID('dbo.Notifications', 'U') IS NOT NULL DROP TABLE dbo.Notifications;
-IF OBJECT_ID('dbo.Chat_Messages', 'U') IS NOT NULL DROP TABLE dbo.Chat_Messages;
-IF OBJECT_ID('dbo.Chat_Participants', 'U') IS NOT NULL DROP TABLE dbo.Chat_Participants;
-IF OBJECT_ID('dbo.Tags', 'U') IS NOT NULL DROP TABLE dbo.Tags;
 IF OBJECT_ID('dbo.Users', 'U') IS NOT NULL DROP TABLE dbo.Users;
 IF OBJECT_ID('dbo.Permission', 'U') IS NOT NULL DROP TABLE dbo.Permission;
 IF OBJECT_ID('dbo.AccessProfile', 'U') IS NOT NULL DROP TABLE dbo.AccessProfile;
@@ -331,107 +322,6 @@ BEGIN
         Enabled     BIT NOT NULL CONSTRAINT DF_ApiKeys_Enabled DEFAULT (1),
         CreatedAt   DATETIME2 NOT NULL CONSTRAINT DF_ApiKeys_CreatedAt DEFAULT (SYSUTCDATETIME()),
         LastUsedAt  DATETIME2 NULL
-    );
-END;
-GO
-
--- ---------------------------------------------------------------------------
--- User-referencing child tables cascaded by admin_delete_user
--- (nx_lib/views/admin.py). Mirrors sql/NexoraDB/Tables/*.sql: only the columns
--- the delete statements + the delete-user integration tests touch are modelled,
--- and the Chat_Conversations FK on the Chat_* tables is omitted (that table is
--- out of scope for TEST). Users-FK ON DELETE actions mirror production so the
--- reset stays faithful. Without these tables the route dies on its first
--- `delete from tags` and never reaches the Users/reporting deletes under test.
--- ---------------------------------------------------------------------------
-IF OBJECT_ID(N'dbo.Tags', N'U') IS NULL
-BEGIN
-    CREATE TABLE dbo.Tags (
-        TagID           INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Tags PRIMARY KEY,
-        TagName         NVARCHAR(50) NOT NULL CONSTRAINT UQ_TagName UNIQUE,
-        TagColor        NVARCHAR(7) NOT NULL CONSTRAINT DF_Tags_TagColor DEFAULT '#6B7280',
-        CreatedByUserID INT NULL CONSTRAINT FK_Tags_Users
-                        FOREIGN KEY REFERENCES dbo.Users(userID) ON DELETE SET NULL,
-        CreatedAt       DATETIME2 NOT NULL CONSTRAINT DF_Tags_CreatedAt DEFAULT SYSUTCDATETIME()
-    );
-END;
-GO
-
-IF OBJECT_ID(N'dbo.Workitem_Metadata', N'U') IS NULL
-BEGIN
-    CREATE TABLE dbo.Workitem_Metadata (
-        MetadataID          INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Workitem_Metadata PRIMARY KEY,
-        WorkitemId          NVARCHAR(255) NOT NULL CONSTRAINT UQ_Workitem_Metadata_WorkitemId UNIQUE,
-        Priority            INT NULL,
-        LastUpdatedByUserID INT NULL CONSTRAINT FK_Workitem_Metadata_Users_LastUpd
-                            FOREIGN KEY REFERENCES dbo.Users(userID),
-        LastUpdatedAt       DATETIME NULL,
-        AssignedUserID      INT NULL CONSTRAINT FK_Workitem_Metadata_Users_Assigned
-                            FOREIGN KEY REFERENCES dbo.Users(userID)
-    );
-END;
-GO
-
-IF OBJECT_ID(N'dbo.Workitem_Comments', N'U') IS NULL
-BEGIN
-    CREATE TABLE dbo.Workitem_Comments (
-        CommentID   INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Workitem_Comments PRIMARY KEY,
-        WorkitemId  NVARCHAR(255) NOT NULL,
-        UserID      INT NULL CONSTRAINT FK_Workitem_Comments_Users
-                    FOREIGN KEY REFERENCES dbo.Users(userID),
-        CommentText NVARCHAR(MAX) NOT NULL,
-        Timestamp   DATETIME NULL
-    );
-END;
-GO
-
-IF OBJECT_ID(N'dbo.Comment_Mentions', N'U') IS NULL
-BEGIN
-    CREATE TABLE dbo.Comment_Mentions (
-        MentionID       INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Comment_Mentions PRIMARY KEY,
-        CommentID       INT NULL,
-        MentionedUserID INT NULL CONSTRAINT FK_Comment_Mentions_Users
-                        FOREIGN KEY REFERENCES dbo.Users(userID)
-    );
-END;
-GO
-
-IF OBJECT_ID(N'dbo.Notifications', N'U') IS NULL
-BEGIN
-    CREATE TABLE dbo.Notifications (
-        NotificationID INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Notifications PRIMARY KEY,
-        UserID         INT NOT NULL CONSTRAINT FK_Notifications_Users
-                       FOREIGN KEY REFERENCES dbo.Users(userID) ON DELETE CASCADE,
-        Message        NVARCHAR(512) NOT NULL,
-        Link           NVARCHAR(255) NULL,
-        Icon           NVARCHAR(50) NULL,
-        IsRead         BIT NOT NULL CONSTRAINT DF_Notifications_IsRead DEFAULT 0,
-        Timestamp      DATETIME2 NOT NULL CONSTRAINT DF_Notifications_Timestamp DEFAULT SYSUTCDATETIME()
-    );
-END;
-GO
-
-IF OBJECT_ID(N'dbo.Chat_Messages', N'U') IS NULL
-BEGIN
-    CREATE TABLE dbo.Chat_Messages (
-        MessageID      INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Chat_Messages PRIMARY KEY,
-        ConversationID INT NULL,
-        SenderID       INT NULL CONSTRAINT FK_Chat_Messages_Users
-                       FOREIGN KEY REFERENCES dbo.Users(userID),
-        MessageText    NVARCHAR(MAX) NULL,
-        Timestamp      DATETIME NULL,
-        IsRead         BIT NULL
-    );
-END;
-GO
-
-IF OBJECT_ID(N'dbo.Chat_Participants', N'U') IS NULL
-BEGIN
-    CREATE TABLE dbo.Chat_Participants (
-        ConversationID INT NOT NULL,
-        UserID         INT NOT NULL CONSTRAINT FK_Chat_Participants_Users
-                       FOREIGN KEY REFERENCES dbo.Users(userID),
-        CONSTRAINT PK_Chat_Participants PRIMARY KEY (ConversationID, UserID)
     );
 END;
 GO

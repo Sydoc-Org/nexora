@@ -421,7 +421,6 @@ def _dc_cleanup(user_ids, report_ids):
         if rids:
             cur.execute(f"DELETE FROM Reports WHERE ReportID IN ({rmarks})", rids)
         if uids:
-            cur.execute(f"DELETE FROM Notifications WHERE UserID IN ({umarks})", uids)
             cur.execute(f"DELETE FROM Users WHERE userID IN ({umarks})", uids)
         conn.commit()
         cur.close()
