@@ -171,8 +171,10 @@ def validate_select(sql):
 # forbids WITH inside a derived-table subquery — `SELECT ... FROM ( WITH ... )
 # AS _q` is a syntax error — so wrap_with_cap() below passes these through
 # unwrapped instead of wrapping them; fetch_capped() enforces the row cap
-# fetch-side for that path (D-CTE).
-_LEADING_WITH_RE = re.compile(r"^\s*WITH\b", re.IGNORECASE)
+# fetch-side for that path (D-CTE). WITH may also be preceded by a bare `;`
+# (idiomatic T-SQL style, since WITH must start a batch or follow a
+# semicolon-terminated statement) — tolerate that too.
+_LEADING_WITH_RE = re.compile(r"^\s*;?\s*WITH\b", re.IGNORECASE)
 
 
 def wrap_with_cap(sql, cap):

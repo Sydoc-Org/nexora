@@ -118,6 +118,18 @@ def test_wrap_with_cap_detects_with_after_mixed_comments():
     assert out == sql
 
 
+def test_wrap_with_cap_detects_with_after_leading_semicolon():
+    # `;WITH ...` is idiomatic T-SQL style (WITH must start a batch or
+    # follow a semicolon-terminated statement) — sqlglot parses it as a
+    # single valid Select, so it reaches wrap_with_cap() with the `;`
+    # still attached. Must be passed through unwrapped, same as bare WITH.
+    sql = ";WITH q AS (SELECT 1 AS a) SELECT * FROM q"
+    assert validate_select(sql) == sql
+    out = wrap_with_cap(sql, 10)
+    assert out == sql
+    assert re.search(r"FROM\s*\(\s*;?\s*WITH", out, re.IGNORECASE) is None
+
+
 class _FakeCursor:
     """Duck-typed pyodbc-style cursor for exercising fetch_capped() DB-free."""
 
