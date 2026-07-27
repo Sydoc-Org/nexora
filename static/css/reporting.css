@@ -1710,6 +1710,31 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
    own row under the caption/value pair, right-aligned to match the value. */
 .reporting-ledger-kpi-sub { flex: 1 0 100%; font-size: .72rem; color: var(--nx-text-meta); text-align: right; }
 
+/* Task 11: delta chips vs the prior period (compare: true) + inline
+   sparkline on the Simple KPI band. .rs-kpi-value-wrap bundles a value with
+   its chip into one flex item so the stats-card row's caption/value
+   space-between layout still only sees two top-level children. Chip color
+   is the same green/red the dashboard's .rdb-kpi-trend already uses for
+   "vs previous period" -- flat (no/negligible change) gets the muted meta
+   color instead, since flat isn't bad news. */
+.rs-kpi-value-wrap { display: inline-flex; align-items: baseline; gap: 6px; }
+.rp-delta {
+  display: inline-block;
+  font-size: .72rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  cursor: default;
+}
+.rp-delta--up { color: var(--nx-success); }
+.rp-delta--down { color: var(--nx-danger); }
+.rp-delta--flat { color: var(--nx-text-meta); }
+
+/* Hand-rolled SVG polyline (no Chart.js instance) -- inherits the total
+   card's own text color (#fff light / var(--nx-page) dark, set above) so it
+   never needs its own dark-mode override. */
+.rp-sparkline { display: block; width: 100%; height: 28px; margin-top: 4px; opacity: .9; }
+
 /* Table card: head row ("Table" + row count + right-aligned drill hint),
    the table itself, and rsSqlPeek as the card's flush footer (Task 2
    already restyled .reporting-ledger-sqlpeek's colors/font above -- it is

@@ -520,6 +520,99 @@ def test_kpi_band_shows_total_buckets_avg(nexora_server, page):
         )
 
 
+# ---------------------------------------------------------------------------
+# Task 11: delta chips vs the prior period (compare: true) on the Simple KPI
+# band. Uses the same _stub_catalogs/WIZ_STUB_* fixtures as the Task 7 wizard
+# tests further down this file (module-level names resolve at call time, so
+# the forward reference is fine).
+# ---------------------------------------------------------------------------
+
+
+def test_delta_chip_renders_vs_prior_period(nexora_server, page):
+    """A wizard run with a time preset posts compare: true, and a response
+    carrying a `comparison` block renders an up/down/flat delta chip next to
+    the KPI band's total/avg/peak values. The tooltip is the literal prior
+    date range, never a calendar name -- shifted_definition_for_comparison
+    shifts back by the CURRENT window's own length, which is not always the
+    previous calendar period (e.g. a 31-day month vs. a 30-day one)."""
+    _login(page, nexora_server)
+    _stub_catalogs(page)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+
+    payload = {
+        "columns": [{"field": "stub_count", "header": "Stub count"}],
+        "rows": [[42]],
+        "truncated": False,
+        "rowCount": 1,
+        "sql": None,
+        "params": [],
+        "resolvedDates": [],
+        "comparison": {
+            "columns": [{"field": "stub_count", "header": "Stub count"}],
+            "rows": [[30]],
+            "priorStart": "2026-05-01",
+            "priorEnd": "2026-05-31",
+        },
+    }
+    captured = []
+
+    def handler(route):
+        captured.append(route.request.post_data_json)
+        route.fulfill(status=200, content_type="application/json", body=json.dumps(payload))
+
+    # Stub registered BEFORE the Run click that fires the request.
+    page.route("**/api/reporting/run", handler)
+
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Stub count").click()
+    page.get_by_test_id("rs-measure-next").click()
+    page.get_by_test_id("rs-breakdown-next").click()
+    page.get_by_test_id("rs-time-list").get_by_text("This month", exact=True).click()
+    page.get_by_test_id("rs-wizard-run").click()
+
+    expect(page.get_by_test_id("rs-result")).to_be_visible()
+    assert captured and all(body.get("compare") is True for body in captured)
+
+    chip = page.get_by_test_id("rs-kpi-total").get_by_test_id("rp-delta")
+    expect(chip).to_be_visible()
+    expect(chip).to_have_class(re.compile(r"rp-delta--up"))
+    expect(chip).to_have_text("↑ 40%")
+    expect(chip).to_have_attribute("title", "vs 2026-05-01 – 2026-05-31")  # noqa: RUF001 -- literal en dash, matches the brief's copy pattern
+
+
+def test_delta_chip_absent_without_comparison(nexora_server, page):
+    """Same wizard flow, response has no `comparison` key -- no delta chip
+    renders anywhere in the KPI band (not an empty/zero chip)."""
+    _login(page, nexora_server)
+    _stub_catalogs(page)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+
+    payload = {
+        "columns": [{"field": "stub_count", "header": "Stub count"}],
+        "rows": [[42]],
+        "truncated": False,
+        "rowCount": 1,
+        "sql": None,
+        "params": [],
+        "resolvedDates": [],
+    }
+    page.route(
+        "**/api/reporting/run",
+        lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps(payload)),
+    )
+
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Stub count").click()
+    page.get_by_test_id("rs-measure-next").click()
+    page.get_by_test_id("rs-breakdown-next").click()
+    page.get_by_test_id("rs-time-list").get_by_text("This month", exact=True).click()
+    page.get_by_test_id("rs-wizard-run").click()
+
+    expect(page.get_by_test_id("rs-result")).to_be_visible()
+    expect(page.get_by_test_id("rs-kpi-total")).to_contain_text("42")
+    expect(page.get_by_test_id("rp-delta")).to_have_count(0)
+
+
 STUB_AI_DEFINITION = {
     "schemaVersion": 1,
     "source": "docprocessing",

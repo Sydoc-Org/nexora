@@ -88,6 +88,7 @@
     kpiBuckets: {{ _("Buckets")|tojson }},
     kpiAvg: {{ _("Avg per bucket")|tojson }},
     kpiPeak: {{ _("Peak")|tojson }},
+    deltaVs: {{ _("vs")|tojson }},
     tableRowCount: {{ _("{n} rows")|tojson }},
     stepNof4: {{ _("Step {n} of 4")|tojson }},
     wizMeasure: {{ _("Measure")|tojson }},
@@ -555,7 +556,60 @@
     var buckets = rows.length;
     var peakLabel = dims ? Array.prototype.slice.call(peakRow, 0, dims).map(String).join(' · ') : '';
     return { total: total, buckets: buckets, avg: buckets ? total / buckets : 0,
-             peak: peak, peakLabel: peakLabel };
+             peak: peak, peakLabel: peakLabel, idx: idx };
+  }
+
+  // Delta chips vs the prior period (Task 11 / D-COMPARE). The backend's
+  // `comparison` block (compare: true) reruns the SAME definition over a
+  // window shifted back by the CURRENT window's own length -- not
+  // necessarily the previous *calendar* period (a 31-day month shifted back
+  // 31 days lands one day short of the 1st of a 30-day prior month). So the
+  // chip's only honest claim is the literal priorStart-priorEnd range, never
+  // a calendar name like "last month" -- see shifted_definition_for_comparison.
+  // Flat when the prior value is 0 (no percentage is meaningful) or the
+  // magnitude of change is under 0.5%.
+  function computeDelta(current, prior) {
+    if (!prior || !isFinite(prior)) return { dir: 'flat', pct: 0 };
+    var pct = ((current - prior) / Math.abs(prior)) * 100;
+    if (Math.abs(pct) < 0.5) return { dir: 'flat', pct: 0 };
+    return { dir: pct > 0 ? 'up' : 'down', pct: Math.abs(pct) };
+  }
+
+  function deltaChipHtml(current, prior, priorStart, priorEnd) {
+    if (prior == null || !isFinite(current)) return '';
+    var d = computeDelta(current, prior);
+    var arrow = d.dir === 'up' ? '↑' : d.dir === 'down' ? '↓' : '—';
+    var title = I18N.deltaVs + ' ' + priorStart + ' – ' + priorEnd;
+    return '<span class="rp-delta rp-delta--' + d.dir + '" data-testid="rp-delta"' +
+      ' title="' + esc(title) + '" aria-label="' + esc(title) + '">' +
+      arrow + ' ' + Math.round(d.pct) + '%</span>';
+  }
+
+  // Inline sparkline (Task 11): a hand-rolled SVG polyline of the metric
+  // series into the total tile -- no second Chart.js instance just for a KPI
+  // accent. Gated to the same single-dimension date-grain case bucketSeq/
+  // zeroFillDateBuckets already special-case (see the ponytail note there);
+  // `rows` here has already been through that zero-fill, so gaps read as
+  // real zeros rather than a misleadingly straight line.
+  function sparklineHtml(def, rows, kpi) {
+    var cols = def.columns || [];
+    if (cols.length !== 1 || !cols[0].grain) return '';
+    if (!kpi || kpi.idx == null || rows.length < 2) return '';
+    var series = rows.map(function (r) { return Number(r[kpi.idx]); });
+    if (series.some(function (v) { return isNaN(v); })) return '';
+    var w = 120, h = 32, pad = 2;
+    var min = Math.min.apply(null, series), max = Math.max.apply(null, series);
+    var span = (max - min) || 1;
+    var step = (w - pad * 2) / (series.length - 1);
+    var pts = series.map(function (v, i) {
+      var x = pad + i * step;
+      var y = h - pad - ((v - min) / span) * (h - pad * 2);
+      return x.toFixed(1) + ',' + y.toFixed(1);
+    }).join(' ');
+    return '<svg class="rp-sparkline" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none"' +
+      ' aria-hidden="true" data-testid="rp-sparkline">' +
+      '<polyline points="' + pts + '" fill="none" stroke="currentColor" stroke-width="2"' +
+      ' stroke-linecap="round" stroke-linejoin="round"/></svg>';
   }
 
   // Count-up (Task 7): 0 -> value over ~500ms via requestAnimationFrame
@@ -580,18 +634,28 @@
   // Every value span below carries its real target in data-count-target and
   // starts at "0" text -- renderKpiBand animates them all in one pass once
   // the whole band is in the DOM (see the querySelectorAll loop there).
-  function kpiBlock(testid, caption, value) {
+  // Value + delta chip share one flex item (.rs-kpi-value-wrap) so the row's
+  // caption/value space-between layout still sees exactly two top-level
+  // children -- a bare 3rd sibling would split away from the value under
+  // flex-wrap instead of hugging it.
+  function kpiBlock(testid, caption, value, deltaHtml) {
     return '<div class="reporting-ledger-kpi" data-testid="' + testid + '">' +
       '<span class="reporting-ledger-caption">' + esc(caption) + '</span>' +
-      '<span class="reporting-ledger-kpi-value" data-count-target="' + Number(value) + '">0</span></div>';
+      '<span class="rs-kpi-value-wrap">' +
+        '<span class="reporting-ledger-kpi-value" data-count-target="' + Number(value) + '">0</span>' +
+        (deltaHtml || '') +
+      '</span></div>';
   }
 
   // Peak row additionally carries the winning bucket's label under the
   // value (omitted for the zero-dimension case, where there is none).
-  function kpiPeakBlock(testid, caption, label, value) {
+  function kpiPeakBlock(testid, caption, label, value, deltaHtml) {
     return '<div class="reporting-ledger-kpi" id="rsKpiPeak" data-testid="' + testid + '">' +
       '<span class="reporting-ledger-caption">' + esc(caption) + '</span>' +
-      '<span class="reporting-ledger-kpi-value" data-count-target="' + Number(value) + '">0</span>' +
+      '<span class="rs-kpi-value-wrap">' +
+        '<span class="reporting-ledger-kpi-value" data-count-target="' + Number(value) + '">0</span>' +
+        (deltaHtml || '') +
+      '</span>' +
       (label ? '<span class="reporting-ledger-kpi-sub">' + esc(label) + '</span>' : '') +
       '</div>';
   }
@@ -606,19 +670,30 @@
   // grand-total clone query, untouched here) alongside this band --
   // existing, tested behavior (test_wizard_category_breakdown_to_result_cards)
   // that this task's regroup does not change.
-  function renderKpiBand(dims, rows) {
+  function renderKpiBand(dims, rows, comparison, def) {
     var band = el('rsKpiBand');
     var kpi = computeKpiBand(dims, rows);
     if (!kpi) { band.hidden = true; band.innerHTML = ''; return; }
+    // Prior-period KPIs via the SAME computeKpiBand, just fed the
+    // comparison run's rows -- no separate delta math to keep in sync.
+    var priorKpi = (comparison && comparison.rows) ? computeKpiBand(dims, comparison.rows) : null;
+    var totalDelta = '', avgDelta = '', peakDelta = '';
+    if (priorKpi) {
+      totalDelta = deltaChipHtml(kpi.total, priorKpi.total, comparison.priorStart, comparison.priorEnd);
+      avgDelta = deltaChipHtml(kpi.avg, priorKpi.avg, comparison.priorStart, comparison.priorEnd);
+      peakDelta = deltaChipHtml(kpi.peak, priorKpi.peak, comparison.priorStart, comparison.priorEnd);
+    }
+    var sparkHtml = def ? sparklineHtml(def, rows, kpi) : '';
     band.innerHTML =
       '<div class="rs-kpi-total-card" data-testid="rs-kpi-total">' +
         '<span class="reporting-ledger-caption">' + esc(I18N.kpiTotal) + '</span>' +
         '<span class="reporting-ledger-kpi-value" data-count-target="' + Number(kpi.total) + '">0</span>' +
+        totalDelta + sparkHtml +
       '</div>' +
       '<div class="rs-kpi-stats-card">' +
         kpiBlock('rs-kpi-buckets', I18N.kpiBuckets, kpi.buckets) +
-        kpiBlock('rs-kpi-avg', I18N.kpiAvg, kpi.avg) +
-        kpiPeakBlock('rs-kpi-peak', I18N.kpiPeak, kpi.peakLabel, kpi.peak) +
+        kpiBlock('rs-kpi-avg', I18N.kpiAvg, kpi.avg, avgDelta) +
+        kpiPeakBlock('rs-kpi-peak', I18N.kpiPeak, kpi.peakLabel, kpi.peak, peakDelta) +
       '</div>';
     band.hidden = false;
     Array.prototype.forEach.call(band.querySelectorAll('[data-count-target]'), function (span) {
@@ -1313,6 +1388,7 @@
       var totalDef = JSON.parse(JSON.stringify(def));
       totalDef.columns = [];
       totalDef.sort = [];
+      totalDef.compare = true;
       var t = await api('/api/reporting/run', { method: 'POST', body: JSON.stringify(totalDef) });
       if (seq !== runSeq) return;
       if (t.ok && t.data && t.data.rows && t.data.rows.length) {
@@ -1321,7 +1397,13 @@
     }
 
     // Breakdown run (or the plain grid run for non-metric definitions).
-    var res = await api('/api/reporting/run', { method: 'POST', body: JSON.stringify(def) });
+    // compare: true is added to a shallow copy of the posted body only --
+    // `def` (== cur.def) must stay exactly what the wizard/library built,
+    // since it's reused for Save/Adjust-in-wizard/export.
+    var res = await api('/api/reporting/run', {
+      method: 'POST',
+      body: JSON.stringify(Object.assign({}, def, { compare: true }))
+    });
     if (seq !== runSeq) return;
     // Hide only after the staleness guard: a slow stale response must never
     // hide the indicator a newer run just showed.
@@ -1350,7 +1432,7 @@
     }
     var columns = res.data.columns || [], rows = res.data.rows || [];
     rows = zeroFillDateBuckets(def, rows, res.data.resolvedDates || []);
-    renderKpiBand(dims, rows);
+    renderKpiBand(dims, rows, res.data.comparison || null, def);
     var rdates = res.data.resolvedDates || [];
     if (rdates.length) {
       var resolvedTxt = rdates.map(function (d) {
