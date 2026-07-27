@@ -8,7 +8,10 @@ and aggregate exactly like an interactive run) with the view internals faked.
 
 import datetime
 
+import pytest
+
 import nx_lib.reporting.runner as runner_mod
+from nx_lib.reporting.query import QueryBuildError
 
 FAKE_CATALOG = [
     {
@@ -235,3 +238,80 @@ def test_scheduled_definition_with_relative_token_resolves_at_run_time(monkeypat
     assert captured["params"] == [start.isoformat(), end_excl.isoformat()]
     # The caller's saved definition object still carries the token.
     assert definition["filters"][0]["value"] == {"token": "last_month"}
+
+
+def test_scheduled_definition_scoped_to_client_only_queries_that_clients_processes(monkeypatch):
+    # The owner is granted both acme.inv and other.inv, but the schedule's
+    # scope.clients narrows the run to acme only -- other.inv must never be
+    # passed to the config/col-map loaders.
+    captured = {}
+    _patch_view_internals(monkeypatch, captured)
+    from nx_lib.views import reporting as rv
+
+    def capture_configs(scope):
+        captured["config_scope"] = list(scope)
+        return [
+            {
+                "process": "acme.inv",
+                "table": "dbo.StatA",
+                "export_col": None,
+                "import_col": None,
+                "condition": "",
+                "workitem_col": "WorkItem",
+            }
+        ]
+
+    def capture_col_maps(scope):
+        captured["colmap_scope"] = list(scope)
+        return {"acme.inv": {"doctype": "DocType"}}
+
+    monkeypatch.setattr(rv, "_load_process_configs", capture_configs)
+    monkeypatch.setattr(rv, "_load_field_col_maps", capture_col_maps)
+
+    owner_perms = OWNER_PERMS | {"reporting.scope.process.other.inv"}
+    definition = _definition(scope={"clients": ["acme"], "processes": []})
+
+    runner_mod.execute_definition(definition, owner_perms, 1, "tester", "en")
+
+    assert captured["config_scope"] == ["acme.inv"]
+    assert captured["colmap_scope"] == ["acme.inv"]
+
+
+def test_scheduled_empty_scope_intersection_never_widens_to_all_allowed(monkeypatch):
+    # A schedule scoped to a client the owner is no longer granted must run
+    # against an empty process set -- never silently fall back to every
+    # process the owner happens to be allowed (that would leak other.inv's
+    # data into a report the schedule never asked for).
+    captured = {}
+    _patch_view_internals(monkeypatch, captured)
+    from nx_lib.views import reporting as rv
+
+    def load_configs(scope):
+        captured["config_scope"] = list(scope)
+        if not scope:
+            return []
+        return [
+            {
+                "process": "acme.inv",
+                "table": "dbo.StatA",
+                "export_col": None,
+                "import_col": None,
+                "condition": "",
+                "workitem_col": "WorkItem",
+            }
+        ]
+
+    def load_col_maps(scope):
+        return {"acme.inv": {"doctype": "DocType"}} if scope else {}
+
+    monkeypatch.setattr(rv, "_load_process_configs", load_configs)
+    monkeypatch.setattr(rv, "_load_field_col_maps", load_col_maps)
+
+    owner_perms = OWNER_PERMS | {"reporting.scope.process.other.inv"}
+    definition = _definition(scope={"clients": ["nope"], "processes": []})
+
+    with pytest.raises(QueryBuildError):
+        runner_mod.execute_definition(definition, owner_perms, 1, "tester", "en")
+
+    # The critical assertion: never widened to list(allowed) (["acme.inv", "other.inv"]).
+    assert captured["config_scope"] == []

@@ -106,9 +106,15 @@ def execute_definition(definition, owner_perms, owner_id, owner_username, locale
             if definition.get("metrics")
             else None
         )
-        requested = (definition.get("scope") or {}).get("processes") or []
-        allowed_set = set(allowed)
-        scope = [p for p in requested if p in allowed_set] or list(allowed)
+        # Same scope semantics as the interactive run (rv._effective_scope):
+        # scope.clients UNION scope.processes, narrowed to what the owner is
+        # granted. An empty scope means "all allowed"; a *non-empty* scope
+        # that matches nothing must resolve to an empty selection, never
+        # widen back to every allowed process -- that would silently email
+        # data the schedule was never scoped to. build_table_query raises
+        # QueryBuildError("no processes in scope") on an empty selection, so
+        # the failure surfaces as a failed/errored run, not a silent leak.
+        scope = rv._effective_scope(definition, allowed)
         configs = rv._load_process_configs(scope)
         col_maps = rv._load_field_col_maps(scope)
         sql, params = build_table_query(
