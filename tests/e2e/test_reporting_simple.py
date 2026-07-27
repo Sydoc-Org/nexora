@@ -2129,6 +2129,42 @@ def test_drill_transform_unfilterable_dim_returns_null(nexora_server, page):
     assert dd is None
 
 
+# Task 35's guard (`if (!dd) { toast(...); return; }` in ReportingDrill.open(),
+# _reporting_drill_js.html) is what actually keeps a null drill definition
+# from ever opening the drawer unfiltered -- test_drill_transform_unfilterable_
+# dim_returns_null above only proves buildDrillDefinition() itself returns
+# null for an unfilterable clicked field. This drives the real open() call
+# (the same one row-click handlers and chart onClick handlers make) with the
+# same unfilterable-dim shape, and asserts the full contract: a toast fires,
+# the panel stays hidden, and _stub_run_ok's capture list shows zero requests
+# reached /api/reporting/run. A regression that made open() proceed despite a
+# null definition -- reopening the "drill opens unfiltered" bug Task 35 was
+# fixing -- would pass the pure-transform test above but fail this one.
+def test_drill_open_refuses_null_definition_with_toast(nexora_server, page):
+    """open() must honor buildDrillDefinition returning null and refuse to
+    proceed: no toast-then-silent-open, no panel, no outgoing request."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting")
+
+    captured = []
+    _stub_run_ok(page, capture=captured)
+
+    page.evaluate("""() => {
+      ReportingDrill.open({
+        definition: {source: 's1', columns: [{field: 'doctype'}], filters: []},
+        fields: [{field: 'doctype', filterable: false}],
+        clicked: [{field: 'doctype', value: 'x'}],
+        header: 'test'
+      });
+    }""")
+
+    expect(page.get_by_test_id("reporting-toast")).to_be_visible()
+    expect(page.get_by_test_id("reporting-drill-panel")).to_be_hidden()
+    assert (
+        captured == []
+    ), "no request may reach /api/reporting/run when the drill definition is null"
+
+
 def test_drill_row_opens_panel(nexora_server, page):
     """Clicking an aggregate result row opens the drill drawer with rows."""
     _login(page, nexora_server)
