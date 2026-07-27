@@ -713,7 +713,7 @@ def resolve_ms02_wids_to_pids(engine, specs, wids):
     ids = []
     for w in wids:
         try:
-            ids.append(int(w))
+            ids.append(str(int(w)))
         except (TypeError, ValueError):
             continue
     if not ids:
@@ -734,7 +734,7 @@ def resolve_ms02_wids_to_pids(engine, specs, wids):
             sql = (
                 f'SELECT DISTINCT "{id_col}", "{pid_col}"::text'
                 f" FROM {table}"
-                f' WHERE "{id_col}" = ANY(%s)'
+                f' WHERE "{id_col}"::text = ANY(%s)'
             )
             if time_filter:
                 sql += f" AND {time_filter}"

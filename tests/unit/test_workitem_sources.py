@@ -917,6 +917,35 @@ def test_resolve_ms02_wids_to_pids_maps_first_pid(app):
     assert result[43] == "222"
 
 
+def test_resolve_ms02_wids_to_pids_casts_id_column_to_text(app):
+    """Regression: the WHERE clause must cast the varchar id column ::text and
+    bind a string-typed param list, mirroring resolve_ms02_pid_to_wids's
+    WHERE-side cast convention -- otherwise Postgres raises an operator-type
+    mismatch (varchar = ANY(int[])) on every call, silently killing the
+    reverse 'In register' chip."""
+    from unittest.mock import MagicMock
+
+    from nx_lib.workitem_sources import resolve_ms02_wids_to_pids
+
+    cur = MagicMock()
+    cur.fetchall.return_value = []
+    conn = MagicMock()
+    conn.cursor.return_value = cur
+    engine = MagicMock()
+    engine.raw_connection.return_value = conn
+    with app.app_context():
+        resolve_ms02_wids_to_pids(
+            engine, [("DossierStatistik", "WorkItemID", "DossierNummer", None)], [42, 43]
+        )
+
+    assert cur.execute.call_count == 1
+    sql, params = cur.execute.call_args[0]
+    assert 'WHERE "WorkItemID"::text = ANY(%s)' in sql
+    bound_list = params[0]
+    assert bound_list == ["42", "43"]
+    assert all(isinstance(v, str) for v in bound_list)
+
+
 def test_resolve_ms02_wids_to_pids_none_contract(app):
     from unittest.mock import MagicMock
 
