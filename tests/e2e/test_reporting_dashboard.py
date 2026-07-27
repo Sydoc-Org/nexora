@@ -1238,6 +1238,74 @@ def test_kpi_card_without_single_date_filter_shows_no_trend(nexora_server, page)
     assert len(run_calls) == 1
 
 
+def test_kpi_card_run_request_omits_breakdown_dims_and_shows_total(nexora_server, page):
+    """D-KPI: a KPI card whose own definition carries a breakdown dimension
+    (e.g. cloned/adapted from a chart card) must still request an
+    undimensioned total -- the run payload strips `columns` down to []
+    before POSTing, so the backend returns a single zero-dim total row
+    instead of an arbitrary first bucket. renderKpi itself is untouched
+    (it still reads rows[0]); the fix is entirely in what gets requested.
+    """
+    _login(page, nexora_server)
+    dash_definition = {
+        "kind": "dashboard",
+        "schemaVersion": 1,
+        "title": "e2e kpi breakdown dashboard",
+        "globalFilters": [],
+        "cards": [
+            {
+                "id": "k1",
+                "type": "kpi",
+                "span": 3,
+                "title": "Document count",
+                "definition": {
+                    "source": "workitems",
+                    "metrics": [{"field": "id", "agg": "count"}],
+                    "columns": [{"field": "status"}],
+                    "filters": [],
+                },
+                "filterOverrides": [],
+            }
+        ],
+    }
+    _stub_dashboard_report(page, "e2e-dash-kpi-breakdown", dash_definition)
+
+    run_calls = []
+
+    def fulfill_run(route):
+        posted = route.request.post_data_json or {}
+        run_calls.append(posted)
+        if posted.get("columns"):
+            # The bug: a breakdown dim slipped through. Return per-bucket
+            # rows so a regression (reading rows[0]) shows an arbitrary
+            # first-bucket value instead of the stubbed total below.
+            payload = {
+                "columns": [
+                    {"field": "status", "header": "Status"},
+                    {"field": "id", "header": "Count"},
+                ],
+                "rows": [["open", 42], ["closed", 7735]],
+                "rowCount": 2,
+            }
+        else:
+            payload = {
+                "columns": [{"field": "id", "header": "Count"}],
+                "rows": [[7777]],
+                "rowCount": 1,
+            }
+        route.fulfill(status=200, content_type="application/json", body=json.dumps(payload))
+
+    page.route("**/api/reporting/run", fulfill_run)
+
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-card").first.click()
+    expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
+    expect(page.get_by_test_id("rdb-kpi-value")).to_have_text("7,777")
+
+    assert len(run_calls) == 1
+    assert run_calls[0]["columns"] == []
+
+
 # ---------------------------------------------------------------------------
 # Phase 7 review-finding regressions:
 #  1) handleCardChartClick/handleCardTableRowClick sourced grain from the

@@ -1004,11 +1004,24 @@
                      // re-rendered (edit toggled, cards changed) while an
                      // older fetch for the same card id is still in flight.
 
+  // D-KPI: a KPI card's run payload must never carry a breakdown dimension.
+  // renderKpi (and the trend calc below) read rows[0] as THE total -- with a
+  // dimension present that's just the first bucket, not a sum (and summing
+  // client-side is explicitly wrong for avg/min/max metrics). The card's own
+  // definition.columns can still hold a breakdown dim (e.g. adapted from a
+  // chart card), so clear it here before POSTing, same zero-column-clone
+  // idea as _reporting_simple_js.html's runCurrent grand-total call.
+  function cardRunDef(card, filters) {
+    var def = Object.assign({}, card.definition || {});
+    def.filters = filters;
+    if (card.type === 'kpi') { def.columns = []; def.sort = []; }
+    return def;
+  }
+
   async function runCard(card, cardEl) {
     if (!cardEl) return;
     var gen = (runGen[card.id] = (runGen[card.id] || 0) + 1);
-    var def = Object.assign({}, card.definition || {});
-    def.filters = effectiveFilters(card);
+    var def = cardRunDef(card, effectiveFilters(card));
     var res = await api('/api/reporting/run', { method: 'POST', body: JSON.stringify(def) });
     if (runGen[card.id] !== gen) return;  // superseded by a newer render/run
     var body = cardEl.querySelector('[data-testid="rdb-card-body"]');
@@ -1042,8 +1055,7 @@
     var filters2 = effectiveFilters(card).map(function (f) {
       return f === dateFilters[0] ? shifted : f;
     });
-    var def2 = Object.assign({}, card.definition || {});
-    def2.filters = filters2;
+    var def2 = cardRunDef(card, filters2);
     var res2 = await api('/api/reporting/run', { method: 'POST', body: JSON.stringify(def2) });
     if (runGen[card.id] !== gen) return;  // superseded meanwhile
     if (!res2.ok || !res2.data || !Array.isArray(res2.data.rows)) return;
