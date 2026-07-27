@@ -54,6 +54,7 @@ from ..reporting.ai import _AGENT_EXPLAIN_SUFFIX, _AGENT_SYSTEM, AiError, ask_ag
 from ..reporting.ai import _make_agent_step as make_agent_step
 from ..reporting.ai import ask as ai_ask
 from ..reporting.ai import ask_definition as ai_ask_definition
+from ..reporting.ai import caption as ai_caption
 from ..reporting.ai_schema import serialize_schema, serialize_sources_catalog
 from ..reporting.ai_tools import TOOL_SPECS, ToolRegistry
 from ..reporting.catalog import fetch_docprocessing_catalog
@@ -1668,6 +1669,142 @@ def api_ai_agent():
     )
 
 
+def _caption_columns(raw):
+    """Normalize a client-supplied column list to [{field, header}] dicts.
+
+    Mirrors api_export_grid's column normalization: bare strings are accepted
+    too (field == header == str(c)) so a caller need not always ship the full
+    {field, header} shape.
+    """
+    out = []
+    for c in raw:
+        if isinstance(c, dict):
+            header = c.get("header") or c.get("field") or ""
+            out.append({"field": c.get("field") or header, "header": header})
+        else:
+            out.append({"field": str(c), "header": str(c)})
+    return out
+
+
+@require_permission("reporting.ai.explain_data")
+@limiter.limit("10 per minute")
+def api_ai_caption():
+    """Surface D — a 1-2 sentence auto-caption over a result grid (Task 12).
+
+    Unlike ask/build/agent, this surface's egress is NOT schema-only: `rows`
+    are the actual values a Simple/Advanced result is displaying, so it is
+    gated by reporting.ai.explain_data (the data-egress grant) rather than the
+    weaker reporting.ai.use. It still counts toward the shared daily AI cap and
+    is rate limited like the other AI endpoints. Rows are capped at 50 before
+    ever reaching the model — a caption summarizes a glance, not a full export.
+    No UI wiring yet (Task 13 fires this after a run and renders the result).
+    """
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return jsonify({"error": _("Invalid JSON body")}), 400
+    raw_columns = body.get("columns")
+    rows = body.get("rows")
+    if not isinstance(raw_columns, list) or not raw_columns or not isinstance(rows, list):
+        return jsonify({"error": _("columns and rows are required")}), 400
+    columns = _caption_columns(raw_columns)
+    rows = [list(r) if isinstance(r, list | tuple) else [r] for r in rows[:50]]
+    title = (body.get("title") or "").strip() or None
+    date_label = (body.get("dateLabel") or "").strip() or None
+
+    cfg = _ai_config()
+    if cfg.get("provider") == "none" or not cfg.get("api_key"):
+        return jsonify({"error": _("The AI assistant is not configured")}), 503
+
+    userid, username = session.get("userid"), session.get("username")
+    limit = _ai_daily_limit()
+    if limit > 0 and _ai_asks_today(userid) >= limit:
+        _audit_ai(
+            userid,
+            username,
+            title or "",
+            "caption",
+            None,
+            cfg.get("provider"),
+            cfg.get("model"),
+            None,
+            None,
+            "na",
+            "blocked",
+            0,
+        )
+        return jsonify(
+            {
+                "error": _(
+                    "You have reached the daily AI request limit (%(limit)s). "
+                    "Please try again tomorrow.",
+                    limit=limit,
+                )
+            }
+        ), 429
+
+    start = time.monotonic()
+    try:
+        result = ai_caption(
+            columns,
+            rows,
+            title,
+            date_label,
+            locale=str(get_locale()),
+            cfg=cfg,
+        )
+    except AiError as e:
+        current_app.logger.warning(f"/api/reporting/ai/caption config error: {e}")
+        _audit_ai(
+            userid,
+            username,
+            title or "",
+            "caption",
+            None,
+            cfg.get("provider"),
+            cfg.get("model"),
+            None,
+            None,
+            "na",
+            "misconfig",
+            int((time.monotonic() - start) * 1000),
+        )
+        return jsonify({"error": _("The AI assistant is not configured")}), 503
+    except Exception as e:
+        current_app.logger.error(f"/api/reporting/ai/caption provider error: {e}")
+        _audit_ai(
+            userid,
+            username,
+            title or "",
+            "caption",
+            None,
+            cfg.get("provider"),
+            cfg.get("model"),
+            None,
+            None,
+            "na",
+            "error",
+            int((time.monotonic() - start) * 1000),
+        )
+        return jsonify({"error": _("The AI assistant could not answer right now")}), 502
+
+    duration_ms = int((time.monotonic() - start) * 1000)
+    _audit_ai(
+        userid,
+        username,
+        title or "",
+        "caption",
+        None,
+        result.provider,
+        result.model,
+        result.tokens_in,
+        result.tokens_out,
+        "na",
+        "ok",
+        duration_ms,
+    )
+    return jsonify({"caption": result.caption})
+
+
 @require_permission("reporting.export")
 @limiter.limit("30 per minute")
 def api_export():
@@ -2746,6 +2883,12 @@ def register_routes(app):
         "/api/reporting/ai/agent",
         endpoint="reporting_ai_agent",
         view_func=api_ai_agent,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/api/reporting/ai/caption",
+        endpoint="reporting_ai_caption",
+        view_func=api_ai_caption,
         methods=["POST"],
     )
     app.add_url_rule(

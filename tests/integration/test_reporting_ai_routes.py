@@ -4,7 +4,13 @@ import datetime
 from contextlib import ExitStack
 from unittest.mock import patch
 
-from nx_lib.reporting.ai import AiAgenticResult, AiDefinitionResult, AiError, AiResult
+from nx_lib.reporting.ai import (
+    AiAgenticResult,
+    AiCaptionResult,
+    AiDefinitionResult,
+    AiError,
+    AiResult,
+)
 
 # The @require_permission decorator calls has_permission from nx_lib.security;
 # inline calls inside api_ai_ask use the imported name in nx_lib.views.reporting.
@@ -1214,3 +1220,95 @@ def test_agent_grounding_names_run_sql_targets(user_client):
     assert resp.status_code == 200
     assert "statistics" in captured["initial"] and "octopus" in captured["initial"]
     assert "target" in captured["initial"]
+
+
+# ---- POST /api/reporting/ai/caption (Task 12 — auto AI captions) ---------
+
+
+def _caption_result(text="Sales rose sharply in Q2 across all regions."):
+    return AiCaptionResult(
+        caption=text,
+        model="m",
+        provider="anthropic",
+        tokens_in=18,
+        tokens_out=9,
+    )
+
+
+_CAPTION_BODY = {
+    "columns": [{"field": "month", "header": "Month"}, {"field": "sales", "header": "Sales"}],
+    "rows": [["Jan", 100], ["Feb", 120]],
+    "title": "Monthly sales",
+    "dateLabel": "2026",
+}
+
+
+def test_ai_caption_requires_explain_data_permission(user_client):
+    # noperm@test.local (the user_client fixture) holds no reporting.* grants at
+    # all, so the decorator's real has_permission check already denies this —
+    # the explicit patch just matches the sibling ai/agent 403 test's shape.
+    with patch("nx_lib.views.reporting.has_permission", return_value=False):
+        resp = user_client.post("/api/reporting/ai/caption", json=_CAPTION_BODY)
+    assert resp.status_code == 403
+
+
+def test_ai_caption_happy_path_returns_caption_and_audits(user_client):
+    with (
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch(
+            "nx_lib.views.reporting._ai_config",
+            return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
+        ),
+        patch("nx_lib.views.reporting._ai_daily_limit", return_value=0),
+        patch("nx_lib.views.reporting.ai_caption", return_value=_caption_result()) as cap,
+        patch("nx_lib.views.reporting._audit_ai") as audit,
+    ):
+        resp = user_client.post("/api/reporting/ai/caption", json=_CAPTION_BODY)
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["caption"] == "Sales rose sharply in Q2 across all regions."
+    cap.assert_called_once()
+    audit.assert_called_once()
+    assert audit.call_args.args[3] == "caption"  # Surface positional arg
+    assert audit.call_args.args[-2] == "ok"  # Status
+
+
+def test_ai_caption_502_on_provider_error(user_client):
+    with (
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch(
+            "nx_lib.views.reporting._ai_config",
+            return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
+        ),
+        patch("nx_lib.views.reporting._ai_daily_limit", return_value=0),
+        patch("nx_lib.views.reporting.ai_caption", side_effect=RuntimeError("boom")),
+        patch("nx_lib.views.reporting._audit_ai") as audit,
+    ):
+        resp = user_client.post("/api/reporting/ai/caption", json=_CAPTION_BODY)
+    assert resp.status_code == 502
+    data = resp.get_json()
+    assert data["error"]  # translated error message present
+    audit.assert_called_once()
+    assert audit.call_args.args[-2] == "error"  # Status
+
+
+def test_ai_caption_429_when_daily_limit_reached(user_client):
+    with (
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch(
+            "nx_lib.views.reporting._ai_config",
+            return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
+        ),
+        patch("nx_lib.views.reporting._ai_daily_limit", return_value=5),
+        patch("nx_lib.views.reporting._ai_asks_today", return_value=5),
+        patch("nx_lib.views.reporting.ai_caption") as cap,
+        patch("nx_lib.views.reporting._audit_ai") as audit,
+    ):
+        resp = user_client.post("/api/reporting/ai/caption", json=_CAPTION_BODY)
+    assert resp.status_code == 429
+    cap.assert_not_called()  # never calls the provider -> no token cost
+    audit.assert_called_once()
+    assert audit.call_args.args[-2] == "blocked"  # Status

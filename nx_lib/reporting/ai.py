@@ -451,6 +451,95 @@ def ask(
 
 
 # ---------------------------------------------------------------------------
+# Surface D — auto AI captions over a result grid (Task 12). Unlike ask() /
+# ask_definition() (schema-only egress), `rows` here are the actual values a
+# Simple/Advanced result is displaying, so callers must gate this behind
+# reporting.ai.explain_data (the same data-egress grant used for run_sql /
+# compute_stats in the agentic loop).
+# ---------------------------------------------------------------------------
+
+CAPTION_MAX_ROWS = 50
+
+_CAPTION_SYSTEM = (
+    "You are a concise data analyst for an internal reporting tool. Given a "
+    "small table of report results, write ONE short caption that states the "
+    "most notable pattern, standout value, or takeaway. Rules: 1-2 sentences, "
+    'no preamble ("Here is...", "Looking at the data..."), no restating the '
+    "question, no code fences or markdown, plain prose only. Answer in {locale}."
+)
+
+
+@dataclass
+class AiCaptionResult:
+    caption: str
+    model: str
+    provider: str
+    tokens_in: int | None
+    tokens_out: int | None
+
+
+def _caption_user_prompt(columns, rows, title, date_label):
+    headers = [c.get("header") or c.get("field") or "" for c in (columns or [])]
+    lines = [", ".join(headers)] if headers else []
+    for row in rows:
+        cells = row if isinstance(row, list | tuple) else [row]
+        lines.append(", ".join("" if v is None else str(v) for v in cells))
+    table_text = "\n".join(lines)
+    prefix = ""
+    if title:
+        prefix += f"Report: {title}\n"
+    if date_label:
+        prefix += f"Period: {date_label}\n"
+    return f"{prefix}Data ({len(rows)} rows):\n{table_text}"
+
+
+def caption(
+    columns,
+    rows,
+    title=None,
+    date_label=None,
+    *,
+    locale="en",
+    cfg,
+    max_tokens=DEFAULT_MAX_TOKENS,
+    timeout=DEFAULT_TIMEOUT_S,
+    transport=_http_post,
+):
+    """Draft a 1-2 sentence caption over a small result grid.
+
+    `cfg` bundles the resolved provider settings the same way `_ai_config()` in
+    the view module produces them (provider/api_key/model/endpoint/deployment/
+    api_version/url) so the caller does not need to unpack it field-by-field.
+    Rows are truncated to CAPTION_MAX_ROWS before the prompt is built, so an
+    oversized grid never balloons the prompt or the bill — this is the single
+    source of truth for the 50-row cap; the caller does not need to pre-slice.
+    """
+    rows = list(rows)[:CAPTION_MAX_ROWS]
+    provider = (cfg.get("provider") or "").lower()
+    text, tin, tout = _dispatch(
+        _CAPTION_SYSTEM.format(locale=locale or "en"),
+        _caption_user_prompt(columns, rows, title, date_label),
+        provider=provider,
+        model=cfg.get("model"),
+        api_key=cfg.get("api_key"),
+        endpoint=cfg.get("endpoint"),
+        deployment=cfg.get("deployment"),
+        api_version=cfg.get("api_version", "2024-10-21"),
+        url=cfg.get("url"),
+        max_tokens=max_tokens,
+        timeout=timeout,
+        transport=transport,
+    )
+    return AiCaptionResult(
+        caption=(text or "").strip(),
+        model=cfg.get("model"),
+        provider=provider,
+        tokens_in=tin,
+        tokens_out=tout,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Phase 3 — agentic tool-loop (Tier 2). The loop (`ask_agentic`) is provider-
 # agnostic and drives model -> tool -> model until a final answer or a hard turn
 # cap. Provider tool-calling parsing lives in `_make_agent_step`; both layers are
