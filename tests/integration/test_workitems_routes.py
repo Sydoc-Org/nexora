@@ -781,6 +781,135 @@ def test_api_get_media_raw_with_perms_unknown(user_client, workitems_all_perms):
     assert resp.status_code in (200, 404, 500)
 
 
+# --- PDF/TIF page-image caches must be keyed by client domain -------------- #
+# Workitem ids collide across clients (e.g. 1216 exists in both the default
+# Octo runtime and MS02 on live INT, see docs/design/ms02-multisource.md).
+# media_raw_pdfpage_/media_raw_tif_ used to key their rendered-page cache on
+# the bare (workitem_id, media_index) pair, so the second client's request
+# for the "same" id was served the first client's already-cached page image
+# for up to an hour. Both tests substitute a throwaway fake cache (see
+# _FakeCache above) so they don't depend on the shared process-wide cache
+# being empty, and each mocks the client-domain resolution + media fetch to
+# return bytes that are distinguishable per domain.
+
+
+def test_api_get_media_raw_tif_cache_is_client_scoped(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Requesting the same colliding workitem id/media_index under two
+    different clients must render+cache each client's own TIFF bytes, never
+    reuse the other client's cached JPEG."""
+    import io as _io
+
+    from PIL import Image
+
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "cache", _FakeCache())
+
+    def _tif_bytes(color):
+        buf = _io.BytesIO()
+        Image.new("RGB", (4, 4), color=color).save(buf, format="TIFF")
+        return buf.getvalue()
+
+    domains = {"default": "default-domain.example.com", "ms02": "ms02-domain.example.com"}
+    media_bytes = {
+        domains["default"]: _tif_bytes((255, 0, 0)),
+        domains["ms02"]: _tif_bytes((0, 0, 255)),
+    }
+
+    monkeypatch.setattr(
+        wv, "get_domain_for_workitem", lambda wid, client_hint=None: domains[client_hint]
+    )
+    monkeypatch.setattr(
+        wv, "get_workitemdata_param", lambda wid, domain: (f"wdata-{domain}", f"doc-{domain}")
+    )
+    monkeypatch.setattr(
+        wv,
+        "get_extensions_urls_fields",
+        lambda workitemdata, document_id, domain: (
+            [".tif"],
+            [f"http://media/{domain}"],
+            {},
+            {},
+            {},
+        ),
+    )
+    monkeypatch.setattr(wv, "get_media", lambda url, domain: media_bytes[domain])
+
+    resp_default = user_client.get("/api/get_media_raw/1216/0?client=default")
+    resp_ms02 = user_client.get("/api/get_media_raw/1216/0?client=ms02")
+
+    assert resp_default.status_code == 200
+    assert resp_ms02.status_code == 200
+
+    img_default = Image.open(io.BytesIO(resp_default.data))
+    img_ms02 = Image.open(io.BytesIO(resp_ms02.data))
+    r_default, _g, b_default = img_default.convert("RGB").getpixel((0, 0))
+    r_ms02, _g, b_ms02 = img_ms02.convert("RGB").getpixel((0, 0))
+
+    assert r_default > b_default, "default-client response should be the red TIFF it fetched"
+    assert b_ms02 > r_ms02, (
+        "ms02-client response came back red (the default client's cached bytes) instead of "
+        "blue -- media_raw_tif_ cache key omitted the client domain"
+    )
+    assert resp_default.data != resp_ms02.data, (
+        "second client's response returned the first client's cached bytes -- "
+        "media_raw_tif_ cache key omitted the client domain"
+    )
+
+
+def test_api_get_media_raw_pdf_cache_is_client_scoped(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Same leak for the PDF-page-render cache: media_raw_pdfpage_{id}_{idx}
+    used to omit the domain, so the second client's request served back the
+    first client's rendered PDF page."""
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "cache", _FakeCache())
+
+    domains = {"default": "default-domain.example.com", "ms02": "ms02-domain.example.com"}
+
+    monkeypatch.setattr(
+        wv, "get_domain_for_workitem", lambda wid, client_hint=None: domains[client_hint]
+    )
+    monkeypatch.setattr(
+        wv, "get_workitemdata_param", lambda wid, domain: (f"wdata-{domain}", f"doc-{domain}")
+    )
+    monkeypatch.setattr(
+        wv,
+        "get_extensions_urls_fields",
+        lambda workitemdata, document_id, domain: (
+            [".pdf"],
+            [f"http://media/{domain}#page=0"],
+            {},
+            {},
+            {},
+        ),
+    )
+    monkeypatch.setattr(wv, "pdf_src_bytes", lambda url, domain: f"pdfbytes-{domain}".encode())
+    monkeypatch.setattr(
+        wv, "render_pdf_page_jpeg", lambda pdf_bytes, page_index: pdf_bytes + b"-rendered"
+    )
+
+    resp_default = user_client.get("/api/get_media_raw/1216/0?client=default")
+    resp_ms02 = user_client.get("/api/get_media_raw/1216/0?client=ms02")
+
+    assert resp_default.status_code == 200
+    assert resp_ms02.status_code == 200
+    assert resp_default.data == b"pdfbytes-default-domain.example.com-rendered"
+    assert resp_ms02.data == b"pdfbytes-ms02-domain.example.com-rendered", (
+        "second client's response returned the first client's cached PDF-page bytes -- "
+        "media_raw_pdfpage_ cache key omitted the client domain"
+    )
+    assert resp_default.data != resp_ms02.data
+
+
 def test_get_audithistory_gated(noperm_client):
     resp = noperm_client.get("/api/get_audithistory/1")
     assert resp.status_code == 403

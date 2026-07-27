@@ -1503,7 +1503,7 @@ def api_get_media_raw(workitem_id, media_index):
         if target_extension == ".pdf":
             # PDF media is expanded one slot per page (page in the URL fragment).
             # Rasterise the requested page to JPEG, cached per (workitem, slot).
-            _pdf_cache_key = f"media_raw_pdfpage_{workitem_id}_{media_index}"
+            _pdf_cache_key = _wi_cache_key(f"media_raw_pdfpage_{media_index}", workitem_id, domain)
             cached_jpeg = cache.get(_pdf_cache_key)
             if cached_jpeg is not None:
                 return send_file(
@@ -1526,7 +1526,7 @@ def api_get_media_raw(workitem_id, media_index):
             return send_file(io.BytesIO(jpeg_bytes), mimetype="image/jpeg", as_attachment=False)
 
         if target_extension == ".tif":
-            _tif_cache_key = f"media_raw_tif_{workitem_id}_{media_index}"
+            _tif_cache_key = _wi_cache_key(f"media_raw_tif_{media_index}", workitem_id, domain)
             cached_jpeg = cache.get(_tif_cache_key)
             if cached_jpeg is not None:
                 return send_file(
