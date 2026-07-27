@@ -30,6 +30,18 @@ IF OBJECT_ID('dbo.ApiKeys', 'U') IS NOT NULL DROP TABLE dbo.ApiKeys;
 IF OBJECT_ID('dbo.UserPermissionOverride', 'U') IS NOT NULL DROP TABLE dbo.UserPermissionOverride;
 IF OBJECT_ID('dbo.AccessProfilePermission', 'U') IS NOT NULL DROP TABLE dbo.AccessProfilePermission;
 IF OBJECT_ID('dbo.ActiveSessions', 'U') IS NOT NULL DROP TABLE dbo.ActiveSessions;
+-- Legacy collaboration tables (chat/workitem-collaboration/notifications, removed from
+-- the app): CREATE TABLE + seed rows are gone for good, but these DROP-only guards stay
+-- so a TEST database created before commit 1d4a02a self-heals on the next reset instead
+-- of failing to drop dbo.Users on its now-orphaned FK. No-op once a machine's stale
+-- tables are gone.
+IF OBJECT_ID('dbo.Comment_Mentions', 'U') IS NOT NULL DROP TABLE dbo.Comment_Mentions;
+IF OBJECT_ID('dbo.Workitem_Comments', 'U') IS NOT NULL DROP TABLE dbo.Workitem_Comments;
+IF OBJECT_ID('dbo.Workitem_Metadata', 'U') IS NOT NULL DROP TABLE dbo.Workitem_Metadata;
+IF OBJECT_ID('dbo.Notifications', 'U') IS NOT NULL DROP TABLE dbo.Notifications;
+IF OBJECT_ID('dbo.Chat_Messages', 'U') IS NOT NULL DROP TABLE dbo.Chat_Messages;
+IF OBJECT_ID('dbo.Chat_Participants', 'U') IS NOT NULL DROP TABLE dbo.Chat_Participants;
+IF OBJECT_ID('dbo.Tags', 'U') IS NOT NULL DROP TABLE dbo.Tags;
 IF OBJECT_ID('dbo.Users', 'U') IS NOT NULL DROP TABLE dbo.Users;
 IF OBJECT_ID('dbo.Permission', 'U') IS NOT NULL DROP TABLE dbo.Permission;
 IF OBJECT_ID('dbo.AccessProfile', 'U') IS NOT NULL DROP TABLE dbo.AccessProfile;
