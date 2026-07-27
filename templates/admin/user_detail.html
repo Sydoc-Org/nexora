@@ -49,7 +49,11 @@
                     <select id="fld-profile" name="accessprofile" class="nx-select" {% if not can_edit_user %}disabled{% endif %} data-testid="admin-userdetail-accessprofile">
                         {% set assignable_names = assignable_profiles | map(attribute='profile') | list %}
                         {% if user.AccessProfileName and user.AccessProfileName not in assignable_names %}
-                        <option value="{{ user.AccessProfileName }}" selected disabled data-testid="admin-userdetail-accessprofile-current">{{ user.AccessProfileName }} ({{ _('current, not assignable') }})</option>
+                        {# NOT disabled: a <select> option that is both selected AND disabled is
+                           excluded from FormData on submit in real browsers (Chromium, Firefox),
+                           so an untouched form would silently drop the accessprofile key entirely.
+                           `selected` alone is enough to round-trip the current value unchanged. #}
+                        <option value="{{ user.AccessProfileName }}" selected data-testid="admin-userdetail-accessprofile-current">{{ user.AccessProfileName }} ({{ _('current, not assignable') }})</option>
                         {% endif %}
                         {% for p in assignable_profiles %}
                         <option value="{{ p.profile }}" {% if p.profile == user.AccessProfileName %}selected{% endif %}>{{ p.profile }}</option>

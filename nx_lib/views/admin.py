@@ -747,6 +747,16 @@ def admin_edit_user(user_id):
         row = cursor.fetchone()
         current_profile = row[0] if row else None
 
+        # Defense-in-depth: the template always submits SOME accessprofile
+        # value now (the current one, if the admin never touched the
+        # dropdown -- see user_detail.html). A client that still omits the
+        # key entirely (JSON body with no "accessprofile", not the normal
+        # browser path) must be treated as "leave it unchanged", not as
+        # "clear the profile" -- the latter would 403 an admin trying to
+        # save an unrelated field.
+        if accessprofile is None:
+            accessprofile = current_profile
+
         if accessprofile != current_profile and not has_permission(
             f"admin.assign.user.accessprofile.{str(accessprofile).lower()}"
         ):

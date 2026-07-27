@@ -442,6 +442,100 @@ def test_admin_edit_user_changed_to_unassignable_profile_returns_403(
     assert profile == "TestUser"
 
 
+# ---- Phase-review fix: disabled+selected <option> is dropped from FormData -
+#
+# A code-review finding (post-26e6a3c) established that a <select> option
+# that is both `selected` AND `disabled` is EXCLUDED from FormData on submit
+# in real browsers (Playwright-verified on Chromium and Firefox). Since the
+# JS builds its POST body via `new FormData(form)`, the disabled-but-selected
+# current-profile option meant an untouched form silently omitted
+# "accessprofile" from the request entirely -- and the server treated a
+# missing/None value as "trying to clear the profile", 403ing the WHOLE
+# request (not just the profile change) for any user whose current profile
+# fell outside the editing admin's assignable set. The fix removes `disabled`
+# from the template option (kept `selected`), plus a server-side
+# defense-in-depth: an absent accessprofile key is now treated as "unchanged".
+
+
+def test_admin_edit_user_missing_accessprofile_key_saves_other_fields(
+    admin_client, monkeypatch, db_conn
+):
+    """Reproduces the finding directly: a request body with NO "accessprofile"
+    key at all (what the pre-fix disabled+selected option produced via
+    FormData) must still let the admin save an unrelated field (fullname)
+    successfully -- 200, not 403 -- and must leave the profile untouched."""
+    from sqlalchemy import text
+
+    monkeypatch.setattr(
+        "nx_lib.views.admin.has_permission",
+        lambda code: code
+        not in (
+            "admin.assign.user.accessprofile.testuser",
+            "admin.assign.user.accessprofile.testnoperm",
+        ),
+    )
+    uid = db_conn.execute(
+        text("SELECT userID FROM Users WHERE username = 'user@test.local'")
+    ).scalar()
+
+    resp = admin_client.post(
+        f"/admin/users/edit/{uid}",
+        json={
+            "username": "user@test.local",
+            "fullname": "Renamed Via Test",
+            "email": "user@test.local",
+            "organization": "Test Organization",
+            # "accessprofile" intentionally omitted -- simulates the dropped
+            # FormData key from a selected+disabled <option>.
+        },
+    )
+    assert resp.status_code == 200
+    assert resp.get_json()["success"] is True
+
+    row = db_conn.execute(
+        text(
+            "SELECT u.fullname, ap.Name FROM Users u JOIN AccessProfile ap ON u.accessid = ap.AccessID "
+            "WHERE u.userID = :uid"
+        ),
+        {"uid": uid},
+    ).one()
+    assert row[0] == "Renamed Via Test"
+    assert row[1] == "TestUser"
+
+
+def test_admin_user_detail_current_unassignable_option_not_disabled(
+    admin_client, monkeypatch, db_conn
+):
+    """Regression test for the literal template defect: the rendered
+    current-but-unassignable <option> must be `selected` but must NOT be
+    `disabled` -- the combination is what real browsers drop from FormData."""
+    import re
+
+    from sqlalchemy import text
+
+    monkeypatch.setattr(
+        "nx_lib.views.admin.has_permission",
+        lambda code: code
+        not in (
+            "admin.assign.user.accessprofile.testuser",
+            "admin.assign.user.accessprofile.testnoperm",
+        ),
+    )
+    uid = db_conn.execute(
+        text("SELECT userID FROM Users WHERE username = 'user@test.local'")
+    ).scalar()
+
+    resp = admin_client.get(f"/admin/users/{uid}")
+    assert resp.status_code == 200
+    html = resp.get_data(as_text=True)
+
+    m = re.search(r'<option[^>]*data-testid="admin-userdetail-accessprofile-current"[^>]*>', html)
+    assert m, "expected the current-but-unassignable <option> to be rendered"
+    option_tag = m.group(0)
+    assert "selected" in option_tag
+    assert "disabled" not in option_tag
+
+
 def test_admin_user_detail_renders(admin_client, admin_all_perms, db_conn):
     """Use the seeded admin user-id (queried fresh because IDENTITY starts at 1001+)."""
     from sqlalchemy import text
