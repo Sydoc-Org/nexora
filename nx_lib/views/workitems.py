@@ -1119,6 +1119,7 @@ def export_workitems_csv():
         return (client, wid), detail
 
     details_map = {}
+    any_timed_out = False
     if include_fields or include_history or include_images:
         max_workers = min(10, len(workitems))
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -1152,6 +1153,7 @@ def export_workitems_csv():
                     f"Export: as_completed timed out after 120s with "
                     f"{len(pending)} workitem(s) still pending: {pending}"
                 )
+                any_timed_out = True
                 for future, key in futures.items():
                     if key not in details_map:
                         future.cancel()
@@ -1181,6 +1183,21 @@ def export_workitems_csv():
                 max_images,
                 len(details_map.get((w.get("client"), w["workitemid"]), {}).get("images", [])),
             )
+
+    # D-CSVTIMEOUT: all_field_keys/max_images are derived from whichever rows
+    # actually completed before the as_completed() timeout above. If the 120s
+    # budget elapsed before ANY future completed (a real Octo-outage shape --
+    # EXPORT_HEAVY_INCLUDE_MAX_IDS caps heavy exports to <=10 rows, so "nothing
+    # finished in time" is plausible, not just theoretical), both end up
+    # empty/zero and the CSV carries no include= columns at all -- the
+    # per-row EXPORT_TIMEOUT_MARKER has nowhere to go, since there are no
+    # columns to put it in. That makes a timeout-degraded export
+    # indistinguishable from a legitimate "these workitems have no
+    # fields/images" result. Flag it so it can be surfaced the same way
+    # row-truncation already is, below.
+    timeout_degraded_headers = any_timed_out and (
+        (include_fields and not all_field_keys) or (include_images and max_images == 0)
+    )
 
     headers = ["Workitem ID", "Status", "Stage", "Last Movement At"]
     if include_fields:
@@ -1247,10 +1264,19 @@ def export_workitems_csv():
             f"\r\n# {_('TRUNCATED')}: "
             f"{_('exported')} {len(workitems)} / {matched_total} {_('matching workitems')}\r\n"
         )
+    if timeout_degraded_headers:
+        # Never let a timeout-degraded export (zero completed rows) look like
+        # a legitimate zero-fields/zero-images result.
+        csv_content += (
+            f"\r\n# {_('EXPORT TIMED OUT')}: "
+            f"{_('no fields or images completed before the time limit; this is not a zero-result export')}\r\n"
+        )
     response = make_response(csv_content)
     response.headers["Content-Type"] = "text/csv; charset=utf-8"
     if truncated:
         response.headers["X-Export-Truncated"] = f"{len(workitems)}/{matched_total}"
+    if timeout_degraded_headers:
+        response.headers["X-Export-Timeout"] = "true"
     filename = f'workitems_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
     response.headers["Content-Disposition"] = f"attachment; filename={filename}"
     return response

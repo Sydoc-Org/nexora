@@ -923,6 +923,99 @@ def test_export_workitems_csv_survives_as_completed_timeout(
     )
 
 
+# D-CSVTIMEOUT: when the 120s budget elapses before ANY future completes --
+# the realistic Octo-outage shape, since EXPORT_HEAVY_INCLUDE_MAX_IDS caps
+# heavy exports to <=10 rows -- all_field_keys/max_images derive from zero
+# completed rows and end up empty. That used to leave the CSV with no
+# include= columns at all, indistinguishable from a legitimate "these
+# workitems have no fields" result. Must instead be signalled via the same
+# trailer-line + header pattern the row-truncation path already uses.
+
+
+def test_export_workitems_csv_all_rows_timeout_signals_degraded_export(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Zero completed rows before the as_completed() timeout must still
+    yield a 200 CSV, but flagged as timeout-degraded rather than looking
+    like a legitimate zero-fields export."""
+    import nx_lib.views.workitems as wv
+
+    fake_cache = _FakeCache()
+    monkeypatch.setattr(wv, "cache", fake_cache)
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+
+    rows = [
+        {
+            "workitemid": wid,
+            "client": "default",
+            "status": "Open",
+            "current_stage": "Stage A",
+            "priority": 1,
+            "tags": [],
+            "modifiedat": None,
+        }
+        for wid in (83001, 83002)
+    ]
+
+    monkeypatch.setattr(
+        wv,
+        "_get_workitems_data",
+        lambda args, export_all=False: {
+            "workitems": rows,
+            "pagination": {"totalItems": len(rows)},
+        },
+    )
+    monkeypatch.setattr(
+        wv, "get_domain_for_workitem", lambda wid, client_hint=None: "d.example.com"
+    )
+    monkeypatch.setattr(
+        wv, "get_workitemdata_param", lambda wid, domain: (f"wdata-{wid}", f"doc-{wid}")
+    )
+    monkeypatch.setattr(
+        wv,
+        "get_extensions_urls_fields",
+        lambda workitemdata, document_id, domain, with_tables=False: (
+            [],
+            [],
+            {"Amount": "42"},
+            {},
+            {},
+        ),
+    )
+
+    def fake_as_completed(futures, timeout=None):
+        # Simulate the 120s budget elapsing before a single future completes
+        # -- exactly what as_completed() itself raises in that shape.
+        raise concurrent.futures.TimeoutError()
+
+    monkeypatch.setattr(wv, "as_completed", fake_as_completed)
+
+    ids_param = "default-83001,default-83002"
+    resp = user_client.get(f"/api/export/workitems/csv?include=fields&ids={ids_param}")
+    assert resp.status_code == 200, (
+        f"all rows timing out must still degrade gracefully, not 500; "
+        f"got {resp.status_code}: {resp.get_data(as_text=True)!r}"
+    )
+    body = resp.get_data(as_text=True)
+    csv_rows = list(csv.reader(io.StringIO(body)))
+    header, data_rows = csv_rows[0], csv_rows[1:]
+
+    # The bug: with zero completed rows, all_field_keys was empty, so the
+    # header carried no include= columns at all -- exactly the silently
+    # misleading shape this fix must prevent.
+    assert (
+        "Amount" not in header
+    ), f"sanity check: no row completed, so no field header should appear; got {header!r}"
+    assert resp.headers.get("X-Export-Timeout") == "true", (
+        f"expected the timeout to be signalled via X-Export-Timeout header, "
+        f"got headers={dict(resp.headers)!r}"
+    )
+    assert (
+        "EXPORT TIMED OUT" in body
+    ), f"expected a trailer line flagging the timeout-degraded export, got body={body!r}"
+    assert len(data_rows) >= 2, f"expected both rows still present, got {data_rows!r}"
+
+
 def test_strip_export_fields_removes_sensitive_columns():
     from nx_lib.views.workitems import _strip_export_fields
 
