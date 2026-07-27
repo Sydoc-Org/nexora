@@ -1,10 +1,15 @@
 """Live read-only SQL sandbox for Reporting Phase 2 (security boundary).
 
 Pure and DB-free: validates that a user-supplied string is a single read-only
-SELECT (or WITH ... / set-operation) and wraps it with a row cap. The view layer
-runs the result on a dedicated db_datareader-only engine with a statement timeout
-and audits every execution. The sqlglot AST gate is the authority; the keyword
-blocklist is a backup.
+SELECT (or WITH ... / set-operation) and wraps it with a row cap — plain SELECTs
+get a `SELECT TOP (n) * FROM (...) AS _q` wrap; WITH-rooted queries pass through
+unwrapped, since WITH cannot appear inside that derived-table subquery, and
+fetch_capped() enforces the cap fetch-side instead (D-CTE). fetch_capped() itself
+only calls .fetchmany() on whatever cursor-like object it is given, so it stays
+unit-testable without a real DB connection. The view layer runs the result on a
+dedicated db_datareader-only engine with a statement timeout and audits every
+execution. The sqlglot AST gate is the authority; the keyword blocklist is a
+backup.
 """
 
 import re
@@ -162,7 +167,40 @@ def validate_select(sql):
     return sql
 
 
+# A leading WITH (after stripping comments) marks a CTE-rooted query. T-SQL
+# forbids WITH inside a derived-table subquery — `SELECT ... FROM ( WITH ... )
+# AS _q` is a syntax error — so wrap_with_cap() below passes these through
+# unwrapped instead of wrapping them; fetch_capped() enforces the row cap
+# fetch-side for that path (D-CTE).
+_LEADING_WITH_RE = re.compile(r"^\s*WITH\b", re.IGNORECASE)
+
+
 def wrap_with_cap(sql, cap):
-    """Wrap a validated query as a capped derived table. `cap` is server-supplied."""
+    """Wrap a validated query as a capped derived table. `cap` is server-supplied.
+
+    A CTE-rooted query (`WITH ... SELECT ...`) is returned unwrapped: WITH
+    cannot legally appear inside a derived-table subquery, so wrapping it as
+    `SELECT TOP (n) * FROM ( WITH ... ) AS _q` is invalid T-SQL. The caller
+    must cap such queries fetch-side instead, via fetch_capped() below,
+    applied the same way on every path (wrapped or not).
+    """
     cap = int(cap)
+    if _LEADING_WITH_RE.match(_strip_comments(sql)):
+        return sql
     return f"SELECT TOP ({cap}) * FROM (\n{sql}\n) AS _q"
+
+
+def fetch_capped(cursor, cap):
+    """Fetch at most `cap` rows from `cursor`. Returns (rows, truncated).
+
+    Uniform fetch-side cap enforcement for every wrap_with_cap() output
+    (D-CTE): a plain SELECT's TOP-wrapped result set is already <= cap rows,
+    so this just drains it; a WITH-rooted query is passed through unwrapped
+    and has no SQL-side cap at all, so this fetch is the only enforcement for
+    that path. Requests cap + 1 rows so getting a full extra row means "there
+    was more" without a second COUNT query.
+    """
+    cap = int(cap)
+    fetched = cursor.fetchmany(cap + 1)
+    truncated = len(fetched) > cap
+    return [list(r) for r in fetched[:cap]], truncated

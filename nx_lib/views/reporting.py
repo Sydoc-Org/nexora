@@ -62,6 +62,7 @@ from ..reporting.query import QueryBuildError, build_table_query
 from ..reporting.sandbox import (
     MAX_SQL_LEN,
     SqlSandboxError,
+    fetch_capped,
     humanize_sql_error,
     validate_select,
     wrap_with_cap,
@@ -606,7 +607,12 @@ def _run_sql(target, sql, *, userid, username):
         cur = conn.cursor()
         cur.execute(wrapped)
         col_names = [d[0] for d in cur.description] if cur.description else []
-        rows = [list(r) for r in cur.fetchall()]
+        # Fetch-side cap, uniform on every path (D-CTE): a plain SELECT's TOP
+        # wrap already limits the driver's result set, but a WITH-rooted query
+        # is passed through unwrapped by wrap_with_cap() (WITH cannot appear
+        # inside a derived-table subquery) — this fetchmany(cap + 1) is the
+        # only row-count enforcement for that path.
+        rows, _truncated = fetch_capped(cur, SQL_ROW_CAP)
     except Exception:
         _audit_sql(
             userid,

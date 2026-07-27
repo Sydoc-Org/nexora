@@ -1,9 +1,12 @@
 """Unit tests for the Reporting live-SQL sandbox (security boundary)."""
 
+import re
+
 import pytest
 
 from nx_lib.reporting.sandbox import (
     SqlSandboxError,
+    fetch_capped,
     humanize_sql_error,
     validate_select,
     wrap_with_cap,
@@ -73,6 +76,86 @@ def test_wrap_with_cap_shape():
 
 def test_wrap_with_cap_coerces_int():
     assert "TOP (10)" in wrap_with_cap("SELECT 1", "10")
+
+
+# ---- Task 30 (D-CTE): WITH-rooted queries can't be wrapped as a derived table --
+# `SELECT TOP (n) * FROM ( WITH ... ) AS _q` is invalid T-SQL — WITH cannot appear
+# inside a derived-table subquery. wrap_with_cap() must pass CTE queries through
+# unwrapped; the executor caps them fetch-side instead via fetch_capped().
+
+
+def test_wrap_with_cap_passes_with_query_through_unwrapped():
+    sql = "WITH q AS (SELECT 1 AS a) SELECT * FROM q"
+    out = wrap_with_cap(sql, 100)
+    assert out == sql
+    assert "FROM ( WITH" not in out
+    assert re.search(r"FROM\s*\(\s*WITH", out, re.IGNORECASE) is None
+
+
+def test_wrap_with_cap_plain_select_still_gets_top_wrap():
+    # (b) plain SELECTs are unaffected — same shape as before this fix.
+    out = wrap_with_cap("SELECT 1", 25)
+    assert out.startswith("SELECT TOP (25) * FROM (")
+    assert out.rstrip().endswith(") AS _q")
+    assert "SELECT 1" in out
+
+
+def test_wrap_with_cap_detects_with_after_line_comment():
+    sql = "-- note\nWITH q AS (SELECT 1 AS a) SELECT * FROM q"
+    out = wrap_with_cap(sql, 10)
+    assert out == sql
+
+
+def test_wrap_with_cap_detects_with_after_block_comment():
+    sql = "/* note */\nWITH q AS (SELECT 1 AS a) SELECT * FROM q"
+    out = wrap_with_cap(sql, 10)
+    assert out == sql
+
+
+def test_wrap_with_cap_detects_with_after_mixed_comments():
+    sql = "/* a */ -- b\n  WITH q AS (SELECT 1 AS a) SELECT * FROM q"
+    out = wrap_with_cap(sql, 10)
+    assert out == sql
+
+
+class _FakeCursor:
+    """Duck-typed pyodbc-style cursor for exercising fetch_capped() DB-free."""
+
+    def __init__(self, rows):
+        self._rows = list(rows)
+
+    def fetchmany(self, n):
+        batch, self._rows = self._rows[:n], self._rows[n:]
+        return batch
+
+
+def test_fetch_capped_flags_truncation_for_unwrapped_with_query():
+    # (c) Executor-level: a WITH query has no SQL-side TOP cap once wrap_with_cap
+    # passes it through unwrapped, so fetch_capped() is the only enforcement —
+    # it must still return at most `cap` rows and flag the truncation.
+    sql = "WITH q AS (SELECT n FROM t) SELECT n FROM q"
+    assert wrap_with_cap(sql, 5) == sql
+    cur = _FakeCursor([(i,) for i in range(12)])
+    rows, truncated = fetch_capped(cur, 5)
+    assert len(rows) == 5
+    assert truncated is True
+
+
+def test_fetch_capped_no_truncation_when_under_cap():
+    cur = _FakeCursor([(1,), (2,)])
+    rows, truncated = fetch_capped(cur, 5)
+    assert rows == [[1], [2]]
+    assert truncated is False
+
+
+def test_fetch_capped_exact_cap_count_is_not_flagged_truncated():
+    # The precise +1-row probe must NOT false-positive when the real result
+    # set is exactly `cap` rows (no more) — unlike the old len(rows) >= cap
+    # heuristic this replaces.
+    cur = _FakeCursor([(1,), (2,), (3,)])
+    rows, truncated = fetch_capped(cur, 3)
+    assert len(rows) == 3
+    assert truncated is False
 
 
 def test_sandbox_error_token_carries_dynamic_part():
