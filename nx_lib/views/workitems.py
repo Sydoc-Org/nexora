@@ -64,6 +64,7 @@ from ..workitem_sources import (
     _MS02_IDENT,
     WorkitemFilter,
     _ms02_id_column,
+    _resolve_octo_wid_stage_pg,
     fetch_merged_page,
     get_domain_for_workitem,
     parse_prepared_xlsx,
@@ -1732,60 +1733,6 @@ def api_workitems_page_init():
         cache.set(_fields_key, field_config, timeout=3600)
 
     return jsonify({"field_config": field_config})
-
-
-def _resolve_octo_wid_stage_pg(engine, wid):
-    """Postgres-dialect twin of workitem_sources.resolve_octo_wid_stage, for
-    the MS02 client's Azure Postgres runtime DB (same Octo schema, different
-    dialect + case-preserved quoted identifiers -- see workitem_sources.
-    PostgresSource). Same {"status": None, "current_stage": None} degrade
-    contract; never raises."""
-    empty = {"status": None, "current_stage": None}
-    if engine is None or wid in (None, ""):
-        return empty
-    try:
-        wid_int = int(wid)
-    except (TypeError, ValueError):
-        return empty
-    conn = None
-    try:
-        conn = engine.raw_connection()
-        cur = conn.cursor()
-        cur.execute(
-            """
-            WITH WorkitemCTE AS (
-                SELECT
-                    CASE
-                        WHEN twi."Status" = 0 THEN 'Ready' WHEN twi."Status" = 5 THEN 'Done' ELSE 'In Progress'
-                    END AS status,
-                    CASE
-                        WHEN twi."Status" = 5 THEN 'Delivery'
-                        WHEN tai."ActivityInstanceName" LIKE '%%C+A%%' THEN 'Validation'
-                        WHEN tai."ActivityInstanceName" LIKE '%%Export%%' OR tai."ActivityInstanceName" LIKE '%%Exp%%' THEN 'Delivery'
-                        WHEN tai."ActivityInstanceName" LIKE '%%Import%%' OR tai."ActivityInstanceName" LIKE '%%Imp%%' THEN 'Import'
-                        WHEN tai."ActivityInstanceName" LIKE '%%Extract%%' OR tai."ActivityInstanceName" LIKE '%%OCR%%' THEN 'Extraction'
-                        WHEN tai."ActivityInstanceName" LIKE '%%Pause%%' OR tai."ActivityInstanceName" LIKE '%%Deletion%%' OR tai."ActivityInstanceName" LIKE '%%Lieferung%%' THEN 'Delivery'
-                        ELSE 'Extraction'
-                    END AS current_stage,
-                    ROW_NUMBER() OVER (PARTITION BY twi."ID" ORDER BY twi."ModifiedAt" DESC) AS rn
-                FROM "t_WorkItems" twi
-                JOIN "t_ActivityInstances" tai ON twi."ActivityInstanceID" = tai."ID"
-                WHERE twi."ID" = %s
-            )
-            SELECT status, current_stage FROM WorkitemCTE WHERE rn = 1
-            """,
-            [wid_int],
-        )
-        row = cur.fetchone()
-        if not row:
-            return empty
-        return {"status": row[0], "current_stage": row[1]}
-    except Exception as e:
-        current_app.logger.error(f"_resolve_octo_wid_stage_pg({wid}): {e}")
-        return empty
-    finally:
-        if conn is not None:
-            conn.close()
 
 
 def _resolve_prepared_doc_wid_stage(wid):

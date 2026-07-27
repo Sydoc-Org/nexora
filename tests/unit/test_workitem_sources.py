@@ -992,3 +992,65 @@ def test_resolve_octo_wid_stage_maps_status_and_stage(app):
             "status": "In Progress",
             "current_stage": "Validation",
         }
+
+
+def test_resolve_octo_wid_stage_pg_returns_none_without_engine(app):
+    with app.app_context():
+        assert ws._resolve_octo_wid_stage_pg(None, 42) == {
+            "status": None,
+            "current_stage": None,
+        }
+
+
+def test_resolve_octo_wid_stage_pg_degrades_to_none_on_error(app):
+    class Boom:
+        def raw_connection(self):
+            raise RuntimeError("pg down")
+
+    with app.app_context():
+        assert ws._resolve_octo_wid_stage_pg(Boom(), 42) == {
+            "status": None,
+            "current_stage": None,
+        }
+
+
+def test_resolve_octo_wid_stage_pg_maps_status_and_stage(app):
+    """Fake-cursor proof of the Postgres-dialect twin's own SQL + row mapping
+    (the T-SQL twin's coverage above does not exercise this query at all --
+    every existing prepared_documents test monkeypatches this function out).
+    Postgres rows come back as plain tuples (no NamedTupleCursor), unlike
+    resolve_octo_wid_stage's pyodbc .Status/.CurrentStage attribute access."""
+    from unittest.mock import MagicMock
+
+    fake_cur = MagicMock()
+    fake_cur.fetchone.return_value = ("In Progress", "Validation")
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cur
+    eng = MagicMock()
+    eng.raw_connection.return_value = fake_conn
+    with app.app_context():
+        assert ws._resolve_octo_wid_stage_pg(eng, 42) == {
+            "status": "In Progress",
+            "current_stage": "Validation",
+        }
+    sql, params = fake_cur.execute.call_args[0]
+    assert '"t_WorkItems"' in sql
+    assert '"t_ActivityInstances"' in sql
+    assert 'twi."ID" = %s' in sql
+    assert params == [42]
+
+
+def test_resolve_octo_wid_stage_pg_returns_empty_when_not_found(app):
+    from unittest.mock import MagicMock
+
+    fake_cur = MagicMock()
+    fake_cur.fetchone.return_value = None
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cur
+    eng = MagicMock()
+    eng.raw_connection.return_value = fake_conn
+    with app.app_context():
+        assert ws._resolve_octo_wid_stage_pg(eng, 42) == {
+            "status": None,
+            "current_stage": None,
+        }

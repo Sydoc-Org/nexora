@@ -701,6 +701,59 @@ def resolve_octo_wid_stage(engine, wid):
             conn.close()
 
 
+def _resolve_octo_wid_stage_pg(engine, wid):
+    """Postgres-dialect twin of resolve_octo_wid_stage, for the MS02 client's
+    Azure Postgres runtime DB (same Octo schema, different dialect + case-
+    preserved quoted identifiers -- see PostgresSource). Same {"status": None,
+    "current_stage": None} degrade contract; never raises."""
+    empty = {"status": None, "current_stage": None}
+    if engine is None or wid in (None, ""):
+        return empty
+    try:
+        wid_int = int(wid)
+    except (TypeError, ValueError):
+        return empty
+    conn = None
+    try:
+        conn = engine.raw_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            WITH WorkitemCTE AS (
+                SELECT
+                    CASE
+                        WHEN twi."Status" = 0 THEN 'Ready' WHEN twi."Status" = 5 THEN 'Done' ELSE 'In Progress'
+                    END AS status,
+                    CASE
+                        WHEN twi."Status" = 5 THEN 'Delivery'
+                        WHEN tai."ActivityInstanceName" LIKE '%%C+A%%' THEN 'Validation'
+                        WHEN tai."ActivityInstanceName" LIKE '%%Export%%' OR tai."ActivityInstanceName" LIKE '%%Exp%%' THEN 'Delivery'
+                        WHEN tai."ActivityInstanceName" LIKE '%%Import%%' OR tai."ActivityInstanceName" LIKE '%%Imp%%' THEN 'Import'
+                        WHEN tai."ActivityInstanceName" LIKE '%%Extract%%' OR tai."ActivityInstanceName" LIKE '%%OCR%%' THEN 'Extraction'
+                        WHEN tai."ActivityInstanceName" LIKE '%%Pause%%' OR tai."ActivityInstanceName" LIKE '%%Deletion%%' OR tai."ActivityInstanceName" LIKE '%%Lieferung%%' THEN 'Delivery'
+                        ELSE 'Extraction'
+                    END AS current_stage,
+                    ROW_NUMBER() OVER (PARTITION BY twi."ID" ORDER BY twi."ModifiedAt" DESC) AS rn
+                FROM "t_WorkItems" twi
+                JOIN "t_ActivityInstances" tai ON twi."ActivityInstanceID" = tai."ID"
+                WHERE twi."ID" = %s
+            )
+            SELECT status, current_stage FROM WorkitemCTE WHERE rn = 1
+            """,
+            [wid_int],
+        )
+        row = cur.fetchone()
+        if not row:
+            return empty
+        return {"status": row[0], "current_stage": row[1]}
+    except Exception as e:
+        current_app.logger.error(f"_resolve_octo_wid_stage_pg({wid}): {e}")
+        return empty
+    finally:
+        if conn is not None:
+            conn.close()
+
+
 def resolve_ms02_wids_to_pids(engine, specs, wids):
     """Inverse of resolve_ms02_pid_to_wids: map workitem ids -> their PID (col_pid)
     value, columnar. Used by the reverse 'In register' chip to learn each visible
