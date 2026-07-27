@@ -9,6 +9,7 @@ import time
 import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeoutError
+from concurrent.futures import wait as futures_wait
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine import URL
@@ -279,31 +280,44 @@ def ping_db(engine, label, timeout_s=2.0):
 def ping_dbs_parallel(targets, timeout_s=2.0):
     """Ping several engines concurrently. ``targets`` is ``[(engine, label), ...]``.
 
-    Total wall time is bounded by ~timeout_s regardless of how many are down.
+    Total wall time is bounded by ~timeout_s regardless of how many are down:
+    all probes are submitted up front, then awaited with a single shared
+    deadline (``concurrent.futures.wait``) instead of waiting on each future's
+    own ``timeout_s`` one at a time — the previous approach could take up to
+    N * timeout_s wall time when several engines were unreachable.
     """
-    futures = [
-        (label, _db_ping_executor.submit(_ping_db_probe, engine), time.monotonic())
-        for engine, label in targets
+    started = time.monotonic()
+    entries = [
+        (label, _db_ping_executor.submit(_ping_db_probe, engine)) for engine, label in targets
     ]
+    _done, not_done = futures_wait([fut for _label, fut in entries], timeout=timeout_s)
+
     results = []
-    for label, fut, started in futures:
-        try:
-            fut.result(timeout=timeout_s)
-            results.append(
-                {
-                    "label": label,
-                    "ok": True,
-                    "error": None,
-                    "latency_ms": int((time.monotonic() - started) * 1000),
-                }
-            )
-        except FuturesTimeoutError:
+    for label, fut in entries:
+        if fut in not_done:
+            # cancel() is best-effort: it only takes effect if the probe
+            # hasn't started running yet (frees up a worker slot). A probe
+            # already in flight keeps running in the background until it
+            # finishes on its own -- we just stop waiting on it here and
+            # report it as timed out regardless.
+            fut.cancel()
             results.append(
                 {
                     "label": label,
                     "ok": False,
                     "error": "timeout",
                     "latency_ms": int(timeout_s * 1000),
+                }
+            )
+            continue
+        try:
+            fut.result()
+            results.append(
+                {
+                    "label": label,
+                    "ok": True,
+                    "error": None,
+                    "latency_ms": int((time.monotonic() - started) * 1000),
                 }
             )
         except Exception as e:
