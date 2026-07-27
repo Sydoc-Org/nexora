@@ -1096,10 +1096,14 @@ def fetch_merged_page(filt, offset, limit):
     merged = merge_sorted_rows(per_source_rows)
     page = merged[offset : offset + limit]
 
-    # Warm the routing cache for non-default rows on this page.
+    # Warm the routing cache for non-default rows on this page. Routed through
+    # get_source_for_workitem's collision fail-safe (not a direct _cache_store)
+    # so a colliding id -- claimed by more than one source -- is left uncached
+    # instead of being pinned to whichever client's page happened to list it
+    # first during this warm pass.
     for r in page:
         if r["client"] != "default":
-            _cache_store(r["workitemid"], r["client"])
+            get_source_for_workitem(r["workitemid"])
 
     return page, total, degraded
 
