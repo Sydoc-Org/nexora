@@ -69,6 +69,11 @@
   // ----- Panel open/close -----
 
   function openPanel(prefill) {
+    // Opening the chat supersedes any open drill-through drawer -- both are
+    // fixed right-edge slide-overs sharing the same z-index/position, so
+    // showing both at once would visually collide (see
+    // .reporting-drill-panel / .reporting-chat-panel in reporting.css).
+    if (window.ReportingDrill) ReportingDrill.close();
     panel.hidden = false;
     backdrop.hidden = false;
     toggleBtn.setAttribute("aria-expanded", "true");

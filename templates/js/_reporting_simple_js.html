@@ -162,9 +162,7 @@
     el('rsNewReport').hidden = view !== 'library';
     el('rsNewDashboard').hidden = view !== 'library';
     var aiBar = el('rsAiBar');
-    if (aiBar && !aiBar.dataset.gone) aiBar.hidden = view !== 'library';
-    var aiGone = el('rsAiGone');
-    if (aiGone && aiBar && aiBar.dataset.gone) aiGone.hidden = view !== 'library';
+    if (aiBar) aiBar.hidden = view !== 'library';
     el('rsWizard').hidden = view !== 'wizard';
     el('rsResult').hidden = view !== 'result';
     el('rsDashboard').hidden = view !== 'dashboard';
