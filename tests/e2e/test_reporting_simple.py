@@ -561,11 +561,12 @@ def _stub_ai_build(page, definition=None, delay_s=0.0):
 def _stub_run_ok(page, capture=None):
     """Stub /api/reporting/run with a deterministic success.
 
-    AI-flow tests fire an async runCurrent() whose real /api/reporting/run can
-    error intermittently on the test DB (stale NEXORA_TEST state). The error
-    path, showResultError(), hides the chips/refine bar mid-test, racing later
-    clicks. Stubbing the response keeps the result UI up regardless of the
-    backend. Pass `capture` (a list) to record each run payload for assertions.
+    Library/wizard-flow tests fire an async runCurrent() whose real
+    /api/reporting/run can error intermittently on the test DB (stale
+    NEXORA_TEST state). The error path, showResultError(), hides the chips
+    mid-test, racing later clicks. Stubbing the response keeps the result UI
+    up regardless of the backend. Pass `capture` (a list) to record each run
+    payload for assertions.
     """
 
     def _handler(route):
@@ -590,60 +591,44 @@ def _stub_run_ok(page, capture=None):
     page.route("**/api/reporting/run", _handler)
 
 
-def test_ai_ask_shows_loading_then_result(nexora_server, page):
-    """Loading indicator appears while AI request is in-flight and hides once
-    the result is ready.  We verify appearance by injecting a JS latch that
-    records whether rsAiLoading was ever un-hidden, then assert on end-state.
-    """
+def _stub_agent_ok(page, answer="Here is your report."):
+    """Stub /api/reporting/ai/agent with a deterministic success (same shape
+    as tests/e2e/test_reporting_agent.py's _stub_agent, but fulfilling the
+    shared chat panel's endpoint instead of the Advanced-tab Agent submode)."""
+    body = json.dumps(
+        {
+            "answer": answer,
+            "toolTrace": [],
+            "turns": 1,
+            "stoppedReason": "final",
+            "definition": None,
+            "sql": None,
+        }
+    )
+    page.route(
+        "**/api/reporting/ai/agent",
+        lambda r: r.fulfill(status=200, content_type="application/json", body=body),
+    )
+
+
+def test_hero_ask_routes_into_chat_panel(nexora_server, page):
+    """Task 4: the hero's Ask AI no longer builds/runs its own report -- it
+    opens the shared chat panel and forwards the question there."""
     _login(page, nexora_server)
     page.goto(f"{nexora_server}/reporting?tab=simple")
 
-    # Inject a MutationObserver that sets window.__aiLoadingWasSeen = true
-    # the first time rsAiLoading.hidden flips to false — and records whether
-    # the header Save button was disabled at that same moment (an out-of-page
-    # expect() can't observe the in-flight window: the stub's blocking sleep
-    # stalls the Playwright dispatcher until fulfillment).
-    page.evaluate("""() => {
-        window.__aiLoadingWasSeen = false;
-        window.__saveDisabledDuringLoading = false;
-        const el = document.getElementById('rsAiLoading');
-        if (!el) return;
-        const record = () => {
-            window.__aiLoadingWasSeen = true;
-            const save = document.getElementById('rsSave');
-            window.__saveDisabledDuringLoading = !!(save && save.disabled);
-        };
-        if (!el.hidden) { record(); return; }
-        const obs = new MutationObserver(() => {
-            if (!el.hidden) {
-                record();
-                obs.disconnect();
-            }
-        });
-        obs.observe(el, { attributes: true, attributeFilter: ['hidden'] });
-    }""")
-
-    _stub_ai_build(page, delay_s=0.8)
-    _stub_run_ok(page)  # async runCurrent() run must not error and tear down the result
+    # Stub BEFORE clicking — ReportingChat.send() fires the request the
+    # instant the hero handler calls it, right after open().
+    _stub_agent_ok(page)
     page.get_by_test_id("rs-ai-prompt").fill("docs by process")
     page.get_by_test_id("rs-ai-ask").click()
 
-    # Wait for the result to finish loading (explanation text appears).
-    expect(page.get_by_test_id("rs-result")).to_be_visible()
-    expect(page.get_by_test_id("rs-msg")).to_contain_text("stubbed explanation")
-
-    # Loading indicator must be hidden again now that the result is rendered.
-    expect(page.get_by_test_id("rs-ai-loading")).to_be_hidden()
-
-    # MutationObserver must have recorded that rsAiLoading was shown during
-    # the in-flight period.
-    was_seen = page.evaluate("() => window.__aiLoadingWasSeen")
-    assert was_seen, "rsAiLoading was never made visible during the AI request"
-
-    # …and that Save was disabled at that in-flight moment, so a mid-draft
-    # click can't save the previous result under a blank header.
-    save_disabled = page.evaluate("() => window.__saveDisabledDuringLoading")
-    assert save_disabled, "rsSave stayed enabled while the AI draft was in flight"
+    expect(page.get_by_test_id("reporting-chat-panel")).to_be_visible()
+    expect(page.get_by_test_id("rp-chat-msg-user")).to_contain_text("docs by process")
+    expect(page.get_by_test_id("rp-chat-msg-ai")).to_contain_text("Here is your report.")
+    expect(page.get_by_test_id("reporting-chat-input")).to_have_value("")
+    # The hero's own prompt input is cleared once the question is forwarded.
+    expect(page.get_by_test_id("rs-ai-prompt")).to_have_value("")
 
 
 def test_saved_token_report_shows_resolved_range(nexora_server, page):
@@ -706,55 +691,53 @@ def test_saved_token_report_shows_resolved_range(nexora_server, page):
         )
 
 
-def test_refine_sends_prior_context_and_replaces_result(nexora_server, page):
-    _login(page, nexora_server)
-    page.goto(f"{nexora_server}/reporting?tab=simple")
-    seen = []
-
-    def handler(route):
-        payload = route.request.post_data_json
-        seen.append(payload)
-        # First call: return the base stub definition so it gets stored as the
-        # prior; second call: return the refined title so the result updates.
-        if len(seen) == 1:
-            defn = STUB_AI_DEFINITION
-            expl = "stubbed explanation"
-        else:
-            defn = dict(STUB_AI_DEFINITION, title="refined report")
-            expl = "refined expl"
-        body = json.dumps({"definition": defn, "explanation": expl, "valid": True, "error": None})
-        route.fulfill(status=200, content_type="application/json", body=body)
-
-    page.route("**/api/reporting/ai/build", handler)
-    # Both the ask and the refine fire an async runCurrent(); a real run error
-    # would hide the refine bar (showResultError) before the refine click below.
-    _stub_run_ok(page)
-    page.get_by_test_id("rs-ai-prompt").fill("docs by process")
-    page.get_by_test_id("rs-ai-ask").click()
-    expect(page.get_by_test_id("rs-refine-bar")).to_be_visible()
-    # The bar is pre-filled with the asked question.
-    expect(page.get_by_test_id("rs-refine-input")).to_have_value("docs by process")
-
-    page.get_by_test_id("rs-refine-input").fill("only acme please")
-    page.get_by_test_id("rs-refine").click()
-    expect(page.get_by_test_id("rs-result-title")).to_contain_text("refined report")
-    assert seen[0].get("priorQuestion") is None
-    assert seen[1]["priorQuestion"] == "docs by process"
-    assert seen[1]["priorDefinition"]["title"] == "stub ai report"
-    assert seen[1]["question"] == "only acme please"
-
-
 def test_chips_edit_and_remove_rerun_without_ai(nexora_server, page):
+    """Chip edit/remove is definition-driven, not AI-specific -- reach the
+    result via a library report (the AI can no longer land a definition in
+    Simple's own result view; that now only happens through the chat panel's
+    'Open in builder' into Advanced)."""
     _login(page, nexora_server)
-    page.goto(f"{nexora_server}/reporting?tab=simple")
-    _stub_ai_build(page)
-    # "Ask AI" fires an async runCurrent() -> real /api/reporting/run; a backend
-    # error there hits showResultError(), hiding rs-chips mid-test. Stub it (and
-    # capture run payloads) so the chips stay up regardless of the backend.
+
+    def _row(rid, name):
+        return {
+            "id": rid,
+            "name": name,
+            "ownerName": "Admin",
+            "updatedAt": "2026-07-01T00:00:00Z",
+            "visibility": "private",
+            "owned": True,
+            "kind": "table",
+        }
+
+    # Register stubs BEFORE goto -- the library load fires as soon as the
+    # Simple pane mounts.
+    page.route(
+        "**/api/reporting/reports",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps([_row("e2e-chip-edit", STUB_AI_DEFINITION["title"])]),
+        ),
+    )
+    page.route(
+        "**/api/reporting/reports/*",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "name": STUB_AI_DEFINITION["title"],
+                    "definition": STUB_AI_DEFINITION,
+                    "owned": True,
+                    "canEdit": True,
+                }
+            ),
+        ),
+    )
     run_payloads = []
     _stub_run_ok(page, capture=run_payloads)
-    page.get_by_test_id("rs-ai-prompt").fill("docs by process")
-    page.get_by_test_id("rs-ai-ask").click()
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-group-mine").get_by_text(STUB_AI_DEFINITION["title"]).click()
     chips = page.get_by_test_id("rs-chips")
     expect(chips).to_be_visible()
     # STUB_AI_DEFINITION has filters: [{field: "processname", op: "eq", value: "acme.inv"}].
@@ -805,18 +788,51 @@ def test_chip_labels_resolve_field_and_op(nexora_server, page):
             ),
         ),
     )
-    _stub_ai_build(page)
+    page.route(
+        "**/api/reporting/reports",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                [
+                    {
+                        "id": "e2e-chip-labels",
+                        "name": STUB_AI_DEFINITION["title"],
+                        "ownerName": "Admin",
+                        "updatedAt": "2026-07-01T00:00:00Z",
+                        "visibility": "private",
+                        "owned": True,
+                        "kind": "table",
+                    }
+                ]
+            ),
+        ),
+    )
+    page.route(
+        "**/api/reporting/reports/*",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "name": STUB_AI_DEFINITION["title"],
+                    "definition": STUB_AI_DEFINITION,
+                    "owned": True,
+                    "canEdit": True,
+                }
+            ),
+        ),
+    )
     _stub_run_ok(page)
     page.goto(f"{nexora_server}/reporting?tab=simple")
-    page.get_by_test_id("rs-ai-prompt").fill("docs by process")
-    page.get_by_test_id("rs-ai-ask").click()
+    page.get_by_test_id("rs-group-mine").get_by_text(STUB_AI_DEFINITION["title"]).click()
     chips = page.get_by_test_id("rs-chips")
     # First paint may show the raw key; the catalog-resolve re-render fixes it.
     expect(chips.get_by_test_id("rs-chip").first).to_contain_text("Process = acme.inv")
 
 
-def test_wizard_result_shows_chips_and_refine_bar(nexora_server, page):
-    """After a wizard run, chips and refine bar appear (not just for AI-built results)."""
+def test_wizard_result_shows_chips(nexora_server, page):
+    """After a wizard run, chips appear (not just for AI-built results)."""
     _login(page, nexora_server)
     page.goto(f"{nexora_server}/reporting?tab=advanced")
     ids = page.evaluate(
@@ -850,50 +866,12 @@ def test_wizard_result_shows_chips_and_refine_bar(nexora_server, page):
         page.get_by_test_id("rs-wizard-run").click()
         expect(page.get_by_test_id("rs-result")).to_be_visible()
 
-        # Chips and refine bar are now visible for wizard results too.
+        # Chips are now visible for wizard results too.
         chips = page.locator("#rsChips")
         expect(chips).to_be_visible()
-        expect(page.get_by_test_id("rs-refine-input")).to_be_visible()
 
         # The wizard adds no filters, so the "no filters" placeholder chip renders.
         expect(chips).to_contain_text("no filters")
-
-        # The refine input starts empty for a wizard result (no aiQuestion).
-        expect(page.get_by_test_id("rs-refine-input")).to_have_value("")
-
-        # Stub the AI build endpoint so refine works without a live AI key.
-        refined_def = dict(STUB_AI_DEFINITION, title="wizard refined report", source="wiz_chips")
-        seen_payloads = []
-
-        def _ai_handler(route):
-            seen_payloads.append(route.request.post_data_json)
-            route.fulfill(
-                status=200,
-                content_type="application/json",
-                body=json.dumps(
-                    {
-                        "definition": refined_def,
-                        "explanation": "refined from wizard",
-                        "valid": True,
-                        "error": None,
-                    }
-                ),
-            )
-
-        page.route("**/api/reporting/ai/build", _ai_handler)
-
-        # Refine: fill the input and submit — must send priorDefinition but NO priorQuestion.
-        page.get_by_test_id("rs-refine-input").fill("only compass")
-        page.get_by_test_id("rs-refine").click()
-        expect(page.get_by_test_id("rs-result-title")).to_contain_text("wizard refined report")
-
-        assert len(seen_payloads) == 1
-        payload = seen_payloads[0]
-        assert payload.get("priorDefinition") is not None, "priorDefinition must be sent"
-        assert (
-            "priorQuestion" not in payload or payload.get("priorQuestion") is None
-        ), "priorQuestion must be absent for wizard result refine"
-        assert payload["question"] == "only compass"
     finally:
         page.evaluate(
             """async (ids) => {
@@ -1747,14 +1725,66 @@ def test_wizard_time_step_offers_week_and_quarter(nexora_server, page):
 
 
 def test_adjust_in_wizard_maps_this_quarter(nexora_server, page):
-    """A non-wizard def filtered on {token: this_quarter} keeps 'Adjust' visible."""
+    """A non-wizard def filtered on {token: this_quarter} keeps 'Adjust' visible.
+
+    Reached via a library report (not AI) -- the AI can no longer land a
+    definition in Simple's own result view directly; that path now goes
+    through the chat panel's 'Open in builder' into Advanced instead.
+    """
     _login(page, nexora_server)
+
+    definition = {
+        "schemaVersion": 1,
+        "source": "stub_src",
+        "visualization": "table",
+        "title": "quarter stub",
+        "subtitle": None,
+        "columns": [],
+        "metrics": [{"metric": "stub_count"}],
+        "filters": [{"field": "import_date", "op": "between", "value": {"token": "this_quarter"}}],
+        "sort": [],
+        "scope": {"clients": [], "processes": []},
+        "rowLimit": 5000,
+    }
+
+    # Register stubs BEFORE goto -- the library list + catalogs fetch as soon
+    # as the Simple pane mounts.
+    page.route(
+        "**/api/reporting/reports",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                [
+                    {
+                        "id": "e2e-quarter-stub",
+                        "name": "quarter stub",
+                        "ownerName": "Admin",
+                        "updatedAt": "2026-07-01T00:00:00Z",
+                        "visibility": "private",
+                        "owned": True,
+                        "kind": "table",
+                    }
+                ]
+            ),
+        ),
+    )
+    page.route(
+        "**/api/reporting/reports/*",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "name": definition["title"],
+                    "definition": definition,
+                    "owned": True,
+                    "canEdit": True,
+                }
+            ),
+        ),
+    )
     _stub_catalogs(page)
-    page.goto(f"{nexora_server}/reporting?tab=simple")
-    # Warm the sources cache (fetched lazily at first wizard open; the adjust
-    # check reads state.sources/state.metricsBySource).
-    page.get_by_test_id("rs-new-report").click()
-    page.get_by_test_id("rs-wizard-close").click()
     page.route(
         "**/api/reporting/run",
         lambda r: r.fulfill(
@@ -1772,26 +1802,9 @@ def test_adjust_in_wizard_maps_this_quarter(nexora_server, page):
             ),
         ),
     )
-    _stub_ai_build(
-        page,
-        definition={
-            "schemaVersion": 1,
-            "source": "stub_src",
-            "visualization": "table",
-            "title": "quarter stub",
-            "subtitle": None,
-            "columns": [],
-            "metrics": [{"metric": "stub_count"}],
-            "filters": [
-                {"field": "import_date", "op": "between", "value": {"token": "this_quarter"}}
-            ],
-            "sort": [],
-            "scope": {"clients": [], "processes": []},
-            "rowLimit": 5000,
-        },
-    )
-    page.get_by_test_id("rs-ai-prompt").fill("total this quarter")
-    page.get_by_test_id("rs-ai-ask").click()
+
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-group-mine").get_by_text("quarter stub").click()
     expect(page.get_by_test_id("rs-result")).to_be_visible()
     expect(page.get_by_test_id("rs-adjust-wizard")).to_be_visible()
 
@@ -2838,25 +2851,6 @@ def test_library_empty_groups_show_calls_to_action(nexora_server, page):
     )
 
 
-def test_ai_unavailable_shows_notice_not_silent_vanish(nexora_server, page):
-    """A 503 from the AI hides the bar AND tells the user why (previously the
-    bar just disappeared, eating the typed question without a word)."""
-    _login(page, nexora_server)
-    page.goto(f"{nexora_server}/reporting?tab=simple")
-    page.route(
-        "**/api/reporting/ai/build",
-        lambda r: r.fulfill(
-            status=503, content_type="application/json", body='{"error": "AI is not configured"}'
-        ),
-    )
-    page.get_by_test_id("rs-ai-prompt").fill("anything")
-    page.get_by_test_id("rs-ai-ask").click()
-    expect(page.get_by_test_id("rs-ai-bar")).to_be_hidden()
-    notice = page.get_by_test_id("rs-ai-gone")
-    expect(notice).to_be_visible()
-    expect(notice).to_contain_text("AI assistant is unavailable")
-
-
 def test_advanced_no_rows_shows_designed_empty_state(nexora_server, page):
     """A zero-row Advanced run renders the nx-empty pattern, not a bare 'No rows.'"""
     _login(page, nexora_server)
@@ -3209,11 +3203,14 @@ def test_sql_peek_footer_reveals_query_on_click(nexora_server, page):
     expect(page.locator("#rsSqlText")).to_contain_text("GROUP BY")
 
 
-def test_landing_hero_suggestion_fills_prompt(nexora_server, page):
-    """Task 3: the landing hero holds the AI command bar + suggestion chips.
-    Clicking a chip fills rsAiPrompt with the chip's own text (no wizard or
-    catalog interaction needed to reach this — the hero is static markup)."""
+def test_landing_hero_suggestion_opens_chat_and_sends(nexora_server, page):
+    """Task 4: the landing hero holds the AI command bar + suggestion chips.
+    Clicking a chip now routes straight into the shared chat panel (open +
+    send its own text) instead of just prefilling the prompt input."""
     _login(page, nexora_server)
+    # Stub BEFORE goto/click — the chip click fires ReportingChat.send()
+    # immediately.
+    _stub_agent_ok(page)
     page.goto(f"{nexora_server}/reporting?tab=simple")
     hero = page.get_by_test_id("rs-hero")
     expect(hero).to_be_visible()
@@ -3221,7 +3218,10 @@ def test_landing_hero_suggestion_fills_prompt(nexora_server, page):
     chip = page.get_by_test_id("rs-suggestion").first
     chip_text = chip.inner_text()
     chip.click()
-    expect(page.get_by_test_id("rs-ai-prompt")).to_have_value(chip_text)
+    expect(page.get_by_test_id("reporting-chat-panel")).to_be_visible()
+    expect(page.get_by_test_id("rp-chat-msg-user")).to_contain_text(chip_text)
+    expect(page.get_by_test_id("rp-chat-msg-ai")).to_contain_text("Here is your report.")
+    expect(page.get_by_test_id("rs-ai-prompt")).to_have_value("")
 
 
 def test_wizard_rail_tracks_progress(nexora_server, page):

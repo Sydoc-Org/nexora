@@ -450,9 +450,7 @@
   }
 
   function showResultError(msg, opts) {
-    hideAiLoading();
     el('rsRunLoading').hidden = true;
-    if (el('rsRefineBar')) el('rsRefineBar').hidden = true;
     if (el('rsChips')) el('rsChips').hidden = true;
     setView('result');
     hideTimingBadge();
@@ -1197,54 +1195,19 @@
   // report's title (and a double-click renders only once).
   var runSeq = 0;
 
-  // AI in-flight state: shared by ask + refine. The indicator owns the result
-  // area while waiting; the rotating line is purely cosmetic.
-  var aiBusy = false;
-  var aiLoadingTimer = null;
-  function showAiLoading() {
-    setView('result');
-    el('rsResultTitle').textContent = '';
-    el('rsResultMeta').textContent = '';
-    el('rsError').hidden = true;
-    renderErrorOpenAdvanced(false);
-    toggleMoreMenu(false);
-    setHeaderActionsEnabled(false);
-    el('rsMsg').hidden = true;
-    el('rsSaveName').hidden = true;
-    el('rsStatCard').hidden = true;
-    el('rsChartCard').hidden = true;
-    el('rsTableCard').hidden = true;
-    el('rsTableToggle').hidden = true;
-    el('rsTableWrap').hidden = true;
-    el('rsRunLoading').hidden = true;
-    el('rsDrillHint').hidden = true;
-    var lines = [I18N.aiThinking, I18N.aiDrafting, I18N.aiChecking];
-    var i = 0;
-    el('rsAiLoadingText').textContent = lines[0];
-    el('rsAiLoading').hidden = false;
-    aiLoadingTimer = setInterval(function () {
-      i = (i + 1) % lines.length;
-      el('rsAiLoadingText').textContent = lines[i];
-    }, 3000);
-  }
-  function hideAiLoading() {
-    var box = el('rsAiLoading');
-    if (box) box.hidden = true;
-    if (aiLoadingTimer) { clearInterval(aiLoadingTimer); aiLoadingTimer = null; }
-  }
-
   async function runCurrent() {
     var cur = state.current;
     var seq = ++runSeq;
     setHeaderActionsEnabled(false);
     // A new run supersedes any open drill drawer — it shows rows behind the
-    // PREVIOUS result and would sit stale over the new one (e.g. after Refine).
+    // PREVIOUS result and would sit stale over the new one (e.g. after a
+    // chip edit).
     if (window.ReportingDrill) ReportingDrill.close();
-    // Fire-and-forget: every runCurrent() caller except askAi already awaits
-    // loadSourcesCatalog() first, but Ask-AI results need it too for the drill
+    // Fire-and-forget: not every runCurrent() caller already awaits
+    // loadSourcesCatalog() first, so warm it here too for the drill
     // affordance (openDrill/renderTable read state.sources). Idempotent — a
     // cache hit resolves immediately, and drill just stays unavailable until
-    // this settles on a cold Ask-AI-first session.
+    // this settles on a cold session.
     loadSourcesCatalog().then(function () {
       // Chip labels resolve field keys against the catalog — re-render once it
       // lands (the first paint may fall back to raw keys on a cold session).
@@ -1262,16 +1225,7 @@
     toggleMoreMenu(false);
     el('rsMsg').hidden = true;
     el('rsResultTitle').textContent = cur.name || cur.def.title || '';
-    if (cur.aiExplanation !== undefined) {
-      el('rsMsg').textContent = cur.aiExplanation || '';
-      el('rsMsg').hidden = !cur.aiExplanation;
-    }
     renderAiChips(cur);
-    var refineBar = el('rsRefineBar');
-    if (refineBar) {
-      refineBar.hidden = false;
-      el('rsRefineInput').value = cur.aiQuestion || '';
-    }
     var adjustBtn = el('rsAdjustWizard');
     if (adjustBtn) {
       adjustBtn.hidden = cur.builtBy !== 'wizard' && !wizardStateFromDefinition(cur.def);
@@ -2289,86 +2243,34 @@
     runCurrent();
   });
 
-  // ---------- Ask-AI helper ----------
+  // ---------- Hero "Ask AI" -> shared chat panel ----------
+  // The hero bar is now just a shortcut into window.ReportingChat (Task 3):
+  // it never builds or runs a report itself. ai_enabled-off keeps its
+  // existing behavior -- #rsAiBar (and therefore #rsAiPrompt/.rs-suggestion)
+  // simply isn't in the DOM in that case, so nothing below wires up.
+  function askViaChat(text) {
+    var q = String(text || '').trim();
+    if (!q || !window.ReportingChat) return;
+    window.ReportingChat.open();
+    window.ReportingChat.send(q);
+    el('rsAiPrompt').value = '';
+  }
+
   var aiBar = el('rsAiBar');  // only in the DOM when ai_enabled
   if (aiBar) {
-    el('rsAiAsk').addEventListener('click', function () { askAi(); });
+    el('rsAiAsk').addEventListener('click', function () {
+      askViaChat(el('rsAiPrompt').value);
+    });
     el('rsAiPrompt').addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') askAi();
+      if (e.key === 'Enter') askViaChat(el('rsAiPrompt').value);
     });
-    var refineBtn = el('rsRefine');
-    if (refineBtn) {
-      refineBtn.addEventListener('click', function () {
-        var q = el('rsRefineInput').value.trim();
-        if (q) askAi(q);
-      });
-      el('rsRefineInput').addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') {
-          var q = el('rsRefineInput').value.trim();
-          if (q) askAi(q);
-        }
-      });
-    }
   }
 
+  // Suggestion chips route through the same open+send path -- they used to
+  // only prefill the prompt input.
   document.querySelectorAll('.rs-suggestion').forEach(function (b) {
-    b.addEventListener('click', function () {
-      var p = el('rsAiPrompt'); if (!p) return;
-      p.value = b.textContent.trim(); p.focus();
-    });
+    b.addEventListener('click', function () { askViaChat(b.textContent); });
   });
-
-  async function askAi(refineQuestion) {
-    var fromRefine = refineQuestion !== undefined;
-    var q = fromRefine ? refineQuestion : el('rsAiPrompt').value.trim();
-    if (!q || aiBusy) return;
-    var payload = { question: q };
-    var prior = state.current;
-    if (fromRefine && prior && prior.def) {
-      if (prior.aiQuestion) payload.priorQuestion = prior.aiQuestion;
-      payload.priorDefinition = prior.def;
-    }
-    aiBusy = true;
-    el('rsAiAsk').disabled = true;
-    var refineBtn = el('rsRefine');
-    if (refineBtn) refineBtn.disabled = true;
-    showAiLoading();
-    var res = await api('/api/reporting/ai/build', {
-      method: 'POST', body: JSON.stringify(payload)
-    });
-    aiBusy = false;
-    el('rsAiAsk').disabled = false;
-    if (refineBtn) refineBtn.disabled = false;
-    hideAiLoading();
-    if (res.status === 503) {
-      aiBar.hidden = true;
-      aiBar.dataset.gone = '1';
-      var gone = el('rsAiGone');
-      if (gone) gone.hidden = false;
-      setView('library');
-      return;
-    }
-    if (res.status === 429) { showResultError(I18N.aiLimit); return; }
-    if (!res.ok || !res.data || !res.data.valid || !res.data.definition) {
-      var why = (res.data && (res.data.error || res.data.explanation)) || '';
-      if (fromRefine && prior) {
-        // Failed refine: re-render the previous result and surface the error
-        // above it instead of discarding the user's working report.
-        state.current = prior;
-        await runCurrent();
-        el('rsError').textContent = I18N.aiInvalid + (why ? ' (' + why + ')' : '');
-        el('rsError').hidden = false;
-      } else {
-        showResultError(I18N.aiInvalid + (why ? ' (' + why + ')' : ''));
-      }
-      return;
-    }
-    state.current = { def: res.data.definition, name: res.data.definition.title,
-                      reportId: null, owned: true, canEdit: true, fromWizard: true,
-                      aiExplanation: res.data.explanation || '',
-                      aiQuestion: q, origin: 'ask' };
-    runCurrent();
-  }
 
   // ---------- init ----------
   function initOnce() {
