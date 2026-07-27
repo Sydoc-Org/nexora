@@ -1357,6 +1357,116 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
   .reporting-drill-panel { width: 100vw; max-width: 100vw; }
 }
 
+/* ---- AI chat panel ----
+   Docked chat slide-over: same shell pattern as the drill-through drawer
+   above (fixed right-side backdrop + panel, translateX slide-in). Markup:
+   templates/reporting.html (Task 2 -- rendered hidden/inert; Task 3 wires
+   open/close, message rendering and send behaviour). Bubbles, starter chips
+   and the thinking ticker reuse the existing AI-panel/hero visual language
+   (.reporting-ai-dots, .rs-suggestion) rather than inventing new ones. */
+.reporting-chat-backdrop {
+  position: fixed; inset: 0; background: rgba(15, 23, 42, .28); z-index: 60;
+}
+.reporting-chat-backdrop[hidden] { display: none; }
+.reporting-chat-panel {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 61;
+  width: 420px; max-width: 420px; height: 100dvh;
+  display: flex; flex-direction: column;
+  background: var(--nx-card); color: var(--nx-text);
+  border-left: 1px solid var(--nx-border);
+  box-shadow: -24px 0 64px -24px rgba(15, 23, 42, .35);
+}
+.reporting-chat-panel[hidden] { display: none; }
+/* Slide-in, 250ms -- `backwards` only (never `both`; see
+   .reporting-drill-panel above / nexora-ui.css's .nx-rise comment): the
+   "from" state paints for the instant before the JS-driven [hidden] flip,
+   and the effect fully ends once the animation completes -- no lingering
+   held transform/stacking context. */
+@keyframes rc-slide-in { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+.reporting-chat-panel:not([hidden]) { animation: rc-slide-in .25s var(--nx-ease) backwards; }
+@media (prefers-reduced-motion: reduce) {
+  .reporting-chat-panel:not([hidden]) { animation: none; }
+}
+@media (max-width: 900px) {
+  .reporting-chat-panel { width: 100vw; max-width: 100vw; }
+}
+
+.reporting-chat-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px; border-bottom: 1px solid var(--nx-border);
+}
+.reporting-chat-title { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; color: var(--nx-text); }
+.reporting-chat-title i { color: var(--nx-violet); }
+
+.reporting-chat-thread {
+  flex: 1; overflow-y: auto; padding: 16px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.reporting-chat-empty { text-align: center; padding: 24px 8px; color: var(--nx-text-sec); }
+.reporting-chat-empty p { margin: 0 0 16px; font-size: 13px; line-height: 1.5; }
+
+/* Starter suggestion chips -- same pill look as the landing hero's
+   .rs-suggestion (border + accent text, tint background on hover). */
+.rp-chat-starter {
+  display: inline-block; margin: 4px; border: 1px solid #e0e7ff; border-radius: 999px;
+  background: var(--nx-card); color: var(--nx-accent); font: 500 12px var(--nx-font);
+  padding: 6px 14px; cursor: pointer;
+}
+.rp-chat-starter:hover { background: var(--nx-accent-tint); }
+html.dark .rp-chat-starter { border-color: var(--nx-card-hover-border); }
+
+/* Message bubbles */
+.rp-chat-msg { max-width: 88%; padding: 10px 14px; border-radius: 14px; font-size: 13px; line-height: 1.5; }
+.rp-chat-msg--user {
+  align-self: flex-end; background: var(--nx-accent-soft); color: var(--nx-text);
+  border-bottom-right-radius: 4px;
+}
+.rp-chat-msg--ai {
+  align-self: flex-start; background: var(--nx-card); color: var(--nx-text);
+  border: 1px solid var(--nx-border); border-bottom-left-radius: 4px;
+}
+
+/* Action chip row under an AI turn (e.g. "Open in builder", "Run query"). */
+.rp-chat-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; align-self: flex-start; }
+
+/* Mini result table under an AI turn -- capped height, scrolls internally. */
+.rp-chat-result {
+  align-self: stretch; margin-top: 8px; max-height: 220px; overflow: auto;
+  border: 1px solid var(--nx-border); border-radius: 10px; background: var(--nx-card);
+}
+.rp-chat-result table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.rp-chat-result th,
+.rp-chat-result td {
+  padding: 6px 8px; border-bottom: 1px solid var(--nx-border);
+  text-align: left; white-space: nowrap;
+}
+.rp-chat-result th {
+  background: var(--nx-alt); color: var(--nx-text-meta);
+  font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+}
+
+/* Thinking ticker -- same three-dot pulse as .reporting-ai-dots. */
+.rp-chat-ticker { display: flex; align-items: center; gap: .6rem; align-self: flex-start; color: var(--nx-text-sec); }
+.rp-chat-ticker i {
+  display: inline-block; width: 8px; height: 8px; margin: 0 2px;
+  border-radius: 50%; background: currentColor;
+  animation: rs-ai-pulse 1.2s infinite ease-in-out;
+}
+.rp-chat-ticker i:nth-child(2) { animation-delay: .2s; }
+.rp-chat-ticker i:nth-child(3) { animation-delay: .4s; }
+@media (prefers-reduced-motion: reduce) {
+  .rp-chat-ticker i { animation: none; }
+}
+
+.reporting-chat-form { display: flex; align-items: flex-end; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--nx-border); }
+.reporting-chat-input {
+  flex: 1; resize: none; max-height: 120px; padding: 9px 12px;
+  background: var(--nx-card); color: var(--nx-text);
+  border: 1px solid var(--nx-border); border-radius: var(--nx-radius-sm);
+  font: 13px var(--nx-font);
+}
+.reporting-chat-input:focus { outline: none; border-color: var(--nx-accent); box-shadow: 0 0 0 3px var(--nx-accent-tint); }
+
 /* --- Workitem detail panel modal, opened from a .reporting-drill-wi-link
    row in the drill drawer (templates/js/_reporting_drill_js.html
    openWorkitemPanel). Plain-CSS shell (ids/behaviour mirror
