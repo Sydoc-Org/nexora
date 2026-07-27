@@ -2502,6 +2502,15 @@ def test_advanced_sql_sandbox_not_drillable(nexora_server, page):
 # list recording exactly what reaches /api/reporting/run, so the assertion is
 # on the real outgoing request body, not just the pure buildDrillDefinition
 # transform (see test_drill_transform_month_grain_bounds above for that).
+#
+# Phase-9 follow-up fix: Task 35's own fallback conflated "no raw value" with
+# "unparseable" and toast-aborted a genuinely NULL date bucket (the grained
+# chart's own "(empty)"/nullLabel bucket -- a real, valid case, not a parse
+# failure) instead of reusing the is_null handling the non-grained branch
+# already had. test_drill_null_grain_bucket_opens_with_is_null_filter below
+# covers the corrected behavior; the eq-fallback test below it is unchanged
+# regression coverage proving the genuinely-garbled non-null case Task 35
+# fixed still works.
 def test_drill_unparseable_grain_bucket_falls_back_to_eq_filter(nexora_server, page):
     """A grain bucket whose raw label can't be parsed as a date (e.g. a
     "N/A"/malformed group key) must still constrain the drill on that raw
@@ -2533,11 +2542,33 @@ def test_drill_unparseable_grain_bucket_falls_back_to_eq_filter(nexora_server, p
     )
 
 
-def test_drill_unparseable_grain_bucket_with_no_raw_value_aborts_with_toast(nexora_server, page):
-    """When the grain is unparseable AND there's no raw value to fall back to
-    (empty bucket label) an equality filter can't be constructed either --
-    the drawer must abort opening entirely (never proceed unfiltered) and
-    tell the user via toast instead of silently doing nothing."""
+def test_drill_transform_month_grain_null_bucket_uses_is_null(nexora_server, page):
+    """A NULL date bucket on a grained chart (rawX[i] is the raw SQL NULL,
+    surfaced client-side via I18N.nullLabel) is a real, valid case -- not an
+    unparseable label. buildDrillDefinition must emit the same is_null shape
+    the non-grained branch already uses (see
+    test_drill_transform_null_group_uses_is_null above), and must NOT also
+    carry a stray date-range filter."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting")
+    dd = page.evaluate("""() => ReportingDrill.buildDrillDefinition(
+        {source: 's1', columns: [{field: 'exportdate', grain: 'month'}], filters: []},
+        [{field: 'exportdate', filterable: true, grainable: true}],
+        [{field: 'exportdate', grain: 'month', value: null}])""")
+    assert dd is not None
+    assert {"field": "exportdate", "op": "is_null"} in dd["filters"]
+    range_filters = [f for f in dd["filters"] if f["op"] in ("gte", "lt", "eq")]
+    assert (
+        range_filters == []
+    ), f"a NULL grain bucket must carry only is_null, no stray range/eq filter: {range_filters}"
+
+
+def test_drill_null_grain_bucket_opens_with_is_null_filter(nexora_server, page):
+    """RED before the fix: a NULL date bucket on a grained chart hit the same
+    fallback as a genuinely unparseable label and toast-aborted instead of
+    drilling in. It must open the drawer (no toast) with the same is_null
+    filter the non-grained branch already produces for a NULL group -- never
+    an unfiltered request, and never a silent no-op."""
     _login(page, nexora_server)
     page.goto(f"{nexora_server}/reporting")
 
@@ -2548,14 +2579,18 @@ def test_drill_unparseable_grain_bucket_with_no_raw_value_aborts_with_toast(nexo
       ReportingDrill.open({
         definition: {source: 's1', columns: [{field: 'exportdate', grain: 'month'}], filters: []},
         fields: [{field: 'exportdate', filterable: true, grainable: true}],
-        clicked: [{field: 'exportdate', grain: 'month', value: ''}],
+        clicked: [{field: 'exportdate', grain: 'month', value: null}],
         header: 'test'
       });
     }""")
 
-    expect(page.get_by_test_id("reporting-toast")).to_be_visible()
-    expect(page.get_by_test_id("reporting-drill-panel")).to_be_hidden()
-    assert captured == [], "no unfiltered (or any) request may reach /api/reporting/run"
+    expect(page.get_by_test_id("reporting-drill-panel")).to_be_visible()
+    expect(page.get_by_test_id("reporting-toast")).to_have_count(0)
+    assert len(captured) == 1
+    exportdate_filters = [f for f in captured[0]["filters"] if f["field"] == "exportdate"]
+    assert exportdate_filters == [
+        {"field": "exportdate", "op": "is_null"}
+    ], "a NULL grain bucket must drill in with an is_null filter, not abort or go unfiltered"
 
 
 # ---------------------------------------------------------------------------

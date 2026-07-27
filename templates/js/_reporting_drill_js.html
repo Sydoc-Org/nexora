@@ -72,18 +72,26 @@ window.ReportingDrill = (function () {
     var unfilterable = false;
     clicked.forEach(function (c) {
       if (c.grain) {
+        if (c.value === null || c.value === undefined || c.value === '') {
+          // A genuinely NULL date bucket (the grained chart's own
+          // "(empty)"/nullLabel bucket, see I18N.nullLabel above) is a real,
+          // valid case -- not a parse failure. It's the same case the
+          // non-grained branch below already handles correctly; handle it
+          // identically here instead of falling through to the
+          // unparseable-bucket toast-abort further down.
+          filters.push({ field: c.field, op: 'is_null' });
+          return;
+        }
         var upper = addGrainUpper(c.value, c.grain);
         if (upper) {
           filters.push({ field: c.field, op: 'gte', value: String(c.value).slice(0, 10) });
           filters.push({ field: c.field, op: 'lt', value: upper });
-        } else if (c.value !== null && c.value !== undefined && c.value !== '') {
+        } else {
           // addGrainUpper couldn't read the bucket label as a date (e.g. a
           // "N/A"/malformed group key) -- fall back to an equality filter on
           // the raw value rather than silently dropping the constraint. An
           // unfiltered drill must never masquerade as a filtered one (Task 35).
           filters.push({ field: c.field, op: 'eq', value: c.value });
-        } else {
-          unfilterable = true;   // no date range AND no raw value to match on
         }
       } else if (c.value === null || c.value === undefined || c.value === '') {
         filters.push({ field: c.field, op: 'is_null' });
