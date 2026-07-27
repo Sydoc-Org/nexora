@@ -1517,6 +1517,27 @@ def api_ai_agent():
     if explain:
 
         def run_sql_bound(target, sql):
+            """Enforce the same gates api_sql_run applies before touching _run_sql.
+
+            Mirrors api_sql_run's exact composition/order: ack check first, then
+            per-target authorization (_authorize_sql_target). D-RUNSQL: binding
+            run_sql on reporting.ai.explain_data + reporting.sql.run is not itself
+            proof the caller may use THIS target, nor that they've acked the
+            sandbox terms — those are checked here, same as the HTTP route.
+            Both failures raise (audited with a distinct status first);
+            ToolRegistry.call() catches any tool exception and turns it into a
+            {"ok": False, "error": ...} result, so this never raises through to a
+            500 on /api/reporting/ai/agent — the agent gets a relayable error.
+            """
+            sql_text = sql if isinstance(sql, str) else ""
+            if not _has_acked(userid):
+                _audit_sql(userid, username, target, sql_text, None, "refused_ack", None)
+                raise PermissionError("Acknowledgment required before running SQL")
+            try:
+                _authorize_sql_target(target)
+            except PermissionError as e:
+                _audit_sql(userid, username, target, sql_text, None, "refused_auth", None)
+                raise PermissionError(f"Not authorized for SQL target {target!r}") from e
             return _run_sql(target, sql, userid=userid, username=username)
 
     registry = ToolRegistry(

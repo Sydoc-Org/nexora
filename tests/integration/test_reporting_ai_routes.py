@@ -1102,6 +1102,9 @@ def test_ai_agent_tool_trace_error_is_humanized(user_client):
         es.enter_context(
             patch("nx_lib.views.reporting.make_agent_step", return_value=lambda m: next(turns))
         )
+        # Clears the auth/ack gates so this test stays focused on humanization,
+        # not D-RUNSQL's gate behavior (covered separately below).
+        es.enter_context(patch("nx_lib.views.reporting._has_acked", return_value=True))
         es.enter_context(patch("nx_lib.views.reporting._run_sql", side_effect=Exception(odbc_text)))
         es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
         resp = user_client.post("/api/reporting/ai/agent", json={"question": "how many?"})
@@ -1112,6 +1115,118 @@ def test_ai_agent_tool_trace_error_is_humanized(user_client):
     assert "SQLExecDirectW" not in run_sql_result["error"]
     assert "[Microsoft]" not in run_sql_result["error"]
     assert "Hint:" in run_sql_result["error"]
+
+
+# ---- Task 18 (D-RUNSQL): run_sql_bound must enforce the HTTP run view's exact
+# auth + ack gates before touching _run_sql -------------------------------
+
+
+def test_ai_agent_run_sql_blocks_without_target_permission(user_client):
+    """A user who holds the general reporting.ai.explain_data + reporting.sql.run
+    grants (enough to get the run_sql tool bound) but NOT the Octopus target's own
+    permission must get a graceful tool-result error — no SQL executes, and the
+    refusal is audited with a distinct status. No raised exception reaches Flask."""
+    from nx_lib.reporting.ai import AssistantTurn
+
+    def _has(code):
+        # explain_data, sql.run, ai.use, ai.sql, etc all granted; only the
+        # Octopus target's own permission is withheld.
+        return code != "reporting.sql.target.octopus"
+
+    turns = iter(
+        [
+            AssistantTurn(
+                text="",
+                tool_calls=[
+                    {
+                        "id": "t1",
+                        "name": "run_sql",
+                        "args": {"target": "octopus", "sql": "SELECT 1"},
+                    }
+                ],
+            ),
+            AssistantTurn(text="Could not run the query."),
+        ]
+    )
+
+    with ExitStack() as es:
+        es.enter_context(patch("nx_lib.security.has_permission", side_effect=_has))
+        es.enter_context(patch("nx_lib.views.reporting.has_permission", side_effect=_has))
+        es.enter_context(
+            patch(
+                "nx_lib.views.reporting._ai_config",
+                return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
+            )
+        )
+        es.enter_context(patch("nx_lib.views.reporting._ai_daily_limit", return_value=0))
+        es.enter_context(
+            patch("nx_lib.views.reporting._ai_catalog_text", return_value="SOURCE gen_pdqm ...")
+        )
+        es.enter_context(
+            patch("nx_lib.views.reporting._ai_schema_text", return_value="TABLE dbo.Foo(Id int)")
+        )
+        es.enter_context(patch("nx_lib.views.reporting._has_acked", return_value=True))
+        es.enter_context(
+            patch("nx_lib.views.reporting.make_agent_step", return_value=lambda m: next(turns))
+        )
+        run_sql_spy = es.enter_context(patch("nx_lib.views.reporting._run_sql"))
+        audit_spy = es.enter_context(patch("nx_lib.views.reporting._audit_sql"))
+        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post("/api/reporting/ai/agent", json={"question": "octopus events?"})
+
+    assert resp.status_code == 200  # never a raise-through 500
+    trace = resp.get_json()["toolTrace"]
+    run_sql_result = next(t["result"] for t in trace if t["name"] == "run_sql")
+    assert run_sql_result["ok"] is False
+    assert "not authorized" in run_sql_result["error"].lower()
+    run_sql_spy.assert_not_called()  # no SQL executed
+    audit_spy.assert_called_once()
+    assert audit_spy.call_args.args[-2] == "refused_auth"  # distinct status
+
+
+def test_ai_agent_run_sql_blocks_without_ack(user_client):
+    """A user who holds run_sql-tool-binding permissions but has NOT acknowledged
+    the sandbox terms must get a graceful tool-result error — no SQL executes, and
+    the refusal is audited with a distinct status. No raised exception reaches
+    Flask."""
+    from nx_lib.reporting.ai import AssistantTurn
+
+    turns = iter(
+        [
+            AssistantTurn(
+                text="",
+                tool_calls=[
+                    {
+                        "id": "t1",
+                        "name": "run_sql",
+                        "args": {"target": "statistics", "sql": "SELECT 1"},
+                    }
+                ],
+            ),
+            AssistantTurn(text="Could not run the query."),
+        ]
+    )
+
+    with ExitStack() as es:
+        for p in _agent_patches(explain_perm=True, run_perm=True):
+            es.enter_context(p)
+        es.enter_context(patch("nx_lib.views.reporting._has_acked", return_value=False))
+        es.enter_context(
+            patch("nx_lib.views.reporting.make_agent_step", return_value=lambda m: next(turns))
+        )
+        run_sql_spy = es.enter_context(patch("nx_lib.views.reporting._run_sql"))
+        audit_spy = es.enter_context(patch("nx_lib.views.reporting._audit_sql"))
+        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post("/api/reporting/ai/agent", json={"question": "how many?"})
+
+    assert resp.status_code == 200  # never a raise-through 500
+    trace = resp.get_json()["toolTrace"]
+    run_sql_result = next(t["result"] for t in trace if t["name"] == "run_sql")
+    assert run_sql_result["ok"] is False
+    assert "acknowledg" in run_sql_result["error"].lower()
+    run_sql_spy.assert_not_called()  # no SQL executed
+    audit_spy.assert_called_once()
+    assert audit_spy.call_args.args[-2] == "refused_ack"  # distinct status
 
 
 def test_agent_grounding_names_run_sql_targets(user_client):
