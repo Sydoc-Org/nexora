@@ -199,7 +199,7 @@
                 perms: window.__workitemDetailPerms,
                 client: detailsRow.dataset.client || '',   // disambiguates colliding ids
 
-                inRegisterPid: _inRegisterByWid[String(workitemid)] || null,  // P3 (defaults null; map seeded in 3.4)
+                inRegisterPid: _inRegisterByWid[rowKey] || null,  // P3 (defaults null; keyed by client+id, not bare wid)
               });
               detailsRow.dataset.initialized = 'true';
             }
@@ -953,7 +953,7 @@ async function uploadBatchFiles(files, processName) {
                 `;
                     tbody.insertAdjacentHTML('beforeend', rowHtml);
                     if (workitem.in_register && workitem.pid) {
-                        _inRegisterByWid[String(workitem.workitemid)] = workitem.pid;
+                        _inRegisterByWid[rowKey] = workitem.pid;
                     }
                 });
 
