@@ -2027,6 +2027,10 @@ def test_prepared_docs_preview_button_carries_stage(user_client, workitems_all_p
     assert b'data-wid="42"' in resp.data
     assert b'data-status="In Progress"' in resp.data
     assert b'data-current-stage="Validation"' in resp.data
+    # openPreview is called with 4 args -- status/stage plus the client, so a
+    # colliding id (compound identity: client + id) resolves against the
+    # right runtime instead of whichever client happens to own the id.
     assert (
-        b"openPreview(btn.dataset.wid, btn.dataset.status, btn.dataset.currentStage)" in resp.data
+        b"openPreview(btn.dataset.wid, btn.dataset.status, btn.dataset.currentStage, "
+        b"btn.dataset.client)" in resp.data
     )
