@@ -28,6 +28,7 @@ Routes covered (10 endpoints):
 - /api/workitems_page_init                   GET
 """
 
+import concurrent.futures
 import csv
 import io
 
@@ -825,6 +826,101 @@ def test_export_workitems_csv_no_include_no_ids_still_200(
     resp = user_client.get("/api/export/workitems/csv")
     assert resp.status_code == 200
     assert "text/csv" in resp.headers.get("Content-Type", "")
+
+
+# --- as_completed() timing out mid-iteration must degrade, not 500 -------- #
+# Per-row Octo fetches (fields/history/images) run on a thread pool; the
+# `for future in as_completed(futures, timeout=120):` loop's own iteration
+# protocol -- not just future.result() inside the loop body -- can raise
+# concurrent.futures.TimeoutError once the budget elapses with futures still
+# pending. That used to be uncaught and 500'd the entire export.
+
+
+def test_export_workitems_csv_survives_as_completed_timeout(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """as_completed() raising TimeoutError at the loop boundary must still
+    yield a 200 CSV: rows that finished before the timeout keep their data,
+    rows that didn't get an explicit timed-out marker instead of a 500."""
+    import nx_lib.views.workitems as wv
+
+    fake_cache = _FakeCache()
+    monkeypatch.setattr(wv, "cache", fake_cache)
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+
+    rows = [
+        {
+            "workitemid": wid,
+            "client": "default",
+            "status": "Open",
+            "current_stage": "Stage A",
+            "priority": 1,
+            "tags": [],
+            "modifiedat": None,
+        }
+        for wid in (82001, 82002)
+    ]
+
+    monkeypatch.setattr(
+        wv,
+        "_get_workitems_data",
+        lambda args, export_all=False: {
+            "workitems": rows,
+            "pagination": {"totalItems": len(rows)},
+        },
+    )
+    monkeypatch.setattr(
+        wv, "get_domain_for_workitem", lambda wid, client_hint=None: "d.example.com"
+    )
+    monkeypatch.setattr(
+        wv, "get_workitemdata_param", lambda wid, domain: (f"wdata-{wid}", f"doc-{wid}")
+    )
+    monkeypatch.setattr(
+        wv,
+        "get_extensions_urls_fields",
+        lambda workitemdata, document_id, domain, with_tables=False: (
+            [],
+            [],
+            {"Amount": "42"},
+            {},
+            {},
+        ),
+    )
+
+    real_as_completed = wv.as_completed
+
+    def fake_as_completed(futures, timeout=None):
+        # Simulate the 120s budget elapsing mid-iteration: let the
+        # first-completed future come through normally (so the export has
+        # at least one real row), then raise instead of yielding the rest
+        # -- exactly what the real as_completed() does when its timeout
+        # fires with futures still outstanding.
+        it = real_as_completed(futures, timeout=timeout)
+        yield next(it)
+        raise concurrent.futures.TimeoutError()
+
+    monkeypatch.setattr(wv, "as_completed", fake_as_completed)
+
+    ids_param = "default-82001,default-82002"
+    resp = user_client.get(f"/api/export/workitems/csv?include=fields&ids={ids_param}")
+    assert resp.status_code == 200, (
+        f"as_completed() timing out mid-iteration must degrade gracefully, not "
+        f"500 the export; got {resp.status_code}: {resp.get_data(as_text=True)!r}"
+    )
+    body = resp.get_data(as_text=True)
+    csv_rows = list(csv.reader(io.StringIO(body)))
+    header, data_rows = csv_rows[0], csv_rows[1:]
+    assert len(data_rows) == 2, f"expected both rows still present, got {data_rows!r}"
+    amount_idx = header.index("Amount")
+    values = {r[amount_idx] for r in data_rows}
+    assert "42" in values, (
+        f"expected the row that finished before the timeout to keep its "
+        f"fetched data, got {values!r}"
+    )
+    assert wv.EXPORT_TIMEOUT_MARKER in values, (
+        f"expected the row that never finished before the timeout to carry "
+        f"an explicit timed-out marker, got {values!r}"
+    )
 
 
 def test_strip_export_fields_removes_sensitive_columns():

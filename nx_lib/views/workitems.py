@@ -2,6 +2,7 @@
 plus the CSV exporter."""
 
 import base64
+import concurrent.futures
 import csv
 import io
 import math
@@ -404,6 +405,13 @@ EXPORT_MAX_ROWS = 100_000
 # `ids` (or an arbitrarily large one) and walk up to EXPORT_MAX_ROWS rows
 # doing per-row Octo fetches. Enforced server-side in export_workitems_csv.
 EXPORT_HEAVY_INCLUDE_MAX_IDS = 10
+
+# Per-row Octo fetches (fields/history/images) run on a bounded thread pool
+# with an overall as_completed() wait budget (see export_workitems_csv). If
+# that budget is exhausted while rows are still pending, those rows get this
+# marker in place of whatever include= columns they would have carried,
+# rather than either silently showing blank data or 500ing the whole export.
+EXPORT_TIMEOUT_MARKER = "(export timed out)"
 
 
 def _client_hint():
@@ -1121,14 +1129,38 @@ def export_workitems_csv():
                 )
                 for w in workitems
             }
-            for future in as_completed(futures, timeout=120):
-                try:
-                    key, detail = future.result()
-                    details_map[key] = detail
-                except Exception as e:
-                    key = futures[future]
-                    _app.logger.error(f"Export: future error for {key}: {e}")
-                    details_map[key] = {"fields": {}, "history": [], "images": []}
+            try:
+                for future in as_completed(futures, timeout=120):
+                    try:
+                        key, detail = future.result()
+                        details_map[key] = detail
+                    except Exception as e:
+                        key = futures[future]
+                        _app.logger.error(f"Export: future error for {key}: {e}")
+                        details_map[key] = {"fields": {}, "history": [], "images": []}
+            except concurrent.futures.TimeoutError:
+                # as_completed() itself raises this at the loop's iteration
+                # boundary once the 120s budget elapses with futures still
+                # pending -- distinct from a per-future error, which is
+                # already handled above. Cancelling is best-effort (threads
+                # already running won't actually stop); we don't wait for it.
+                # Whatever finished stays in details_map; the rest get an
+                # explicit timed-out marker so the export still degrades to
+                # a valid, honest CSV instead of a 500.
+                pending = [key for key in futures.values() if key not in details_map]
+                _app.logger.error(
+                    f"Export: as_completed timed out after 120s with "
+                    f"{len(pending)} workitem(s) still pending: {pending}"
+                )
+                for future, key in futures.items():
+                    if key not in details_map:
+                        future.cancel()
+                        details_map[key] = {
+                            "fields": {},
+                            "history": [],
+                            "images": [],
+                            "timed_out": True,
+                        }
 
     if include_fields:
         _strip_export_fields(details_map, sensitive_blocked_tokens())
@@ -1178,19 +1210,34 @@ def export_workitems_csv():
             w.get("current_stage", ""),
             date_str,
         ]
+        # Rows still pending when as_completed() hit its timeout carry an
+        # explicit marker in every include= column rather than blank data
+        # that would be indistinguishable from "no data found".
+        timed_out = detail.get("timed_out", False)
         if include_fields:
-            fields = detail["fields"]
-            row.extend(fields.get(k, "") for k in all_field_keys)
+            if timed_out:
+                row.extend(EXPORT_TIMEOUT_MARKER for _ in all_field_keys)
+            else:
+                fields = detail["fields"]
+                row.extend(fields.get(k, "") for k in all_field_keys)
         if include_history:
-            history = sorted(
-                detail.get("history", []), key=lambda h: h.get("Step", 0), reverse=True
-            )
-            row.append(
-                "; ".join(f"Step {h['Step']}: {h['Activity']} @ {h['DateTime']}" for h in history)
-            )
+            if timed_out:
+                row.append(EXPORT_TIMEOUT_MARKER)
+            else:
+                history = sorted(
+                    detail.get("history", []), key=lambda h: h.get("Step", 0), reverse=True
+                )
+                row.append(
+                    "; ".join(
+                        f"Step {h['Step']}: {h['Activity']} @ {h['DateTime']}" for h in history
+                    )
+                )
         if include_images:
-            images = detail.get("images", [])
-            row.extend(images[i] if i < len(images) else "" for i in range(max_images))
+            if timed_out:
+                row.extend(EXPORT_TIMEOUT_MARKER for _ in range(max_images))
+            else:
+                images = detail.get("images", [])
+                row.extend(images[i] if i < len(images) else "" for i in range(max_images))
         writer.writerow(row)
 
     csv_content = output.getvalue()
