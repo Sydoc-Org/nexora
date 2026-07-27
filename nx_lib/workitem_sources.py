@@ -1058,7 +1058,7 @@ def _cache_store(workitem_id, client_code):
         conn.close()
 
 
-def get_source_for_workitem(workitem_id, client_hint=None):
+def get_source_for_workitem(workitem_id, client_hint=None, sources=None):
     """Resolve which client owns ``workitem_id``.
 
     Order of trust (collision fail-safe):
@@ -1073,6 +1073,12 @@ def get_source_for_workitem(workitem_id, client_hint=None):
     The default source used to be excluded from the probe, so a default/MS02
     collision (1216 such ids on INT) looked like a single MS02 claim and was
     cached permanently — serving the other client's document for that id.
+
+    ``sources``: optional pre-built ``active_sources()`` list. Callers that
+    already hold one (e.g. fetch_merged_page's warm-cache loop, probing every
+    non-default row on the page) should pass it through instead of paying for
+    a fresh set of source instances per probed row. Defaults to a fresh
+    ``active_sources()`` call when omitted, unchanged from before.
     """
     if client_hint and client_hint in CLIENTS:
         return client_hint
@@ -1082,7 +1088,7 @@ def get_source_for_workitem(workitem_id, client_hint=None):
         return cached
 
     claimers = []
-    for src in active_sources():
+    for src in sources if sources is not None else active_sources():
         try:
             if src.has_workitem(workitem_id):
                 claimers.append(src.code)
@@ -1153,10 +1159,18 @@ def fetch_merged_page(filt, offset, limit):
     # get_source_for_workitem's collision fail-safe (not a direct _cache_store)
     # so a colliding id -- claimed by more than one source -- is left uncached
     # instead of being pinned to whichever client's page happened to list it
-    # first during this warm pass.
+    # first during this warm pass. Pass the ``sources`` list this function
+    # already built above -- avoids get_source_for_workitem constructing a
+    # second fresh set of source instances (2 extra objects) for every
+    # non-default row on the page; the live has_workitem probes themselves
+    # are unchanged, since list_workitems' permission/date/status-filtered,
+    # offset+limit-capped rows are not proof of exclusive ownership the way
+    # an unscoped has_workitem check is -- skipping the probe based on this
+    # page's own row shape would risk under-detecting a real collision whose
+    # twin row didn't happen to surface in this particular filtered fetch.
     for r in page:
         if r["client"] != "default":
-            get_source_for_workitem(r["workitemid"])
+            get_source_for_workitem(r["workitemid"], sources=sources)
 
     return page, total, degraded
 

@@ -438,6 +438,50 @@ def test_fetch_merged_page_warm_loop_does_not_blind_cache_colliding_id(app, monk
     assert stored == [], "colliding id must not be blind-cached by the warm loop"
 
 
+def test_fetch_merged_page_warm_loop_caches_a_single_claimant_id(app, monkeypatch):
+    """Companion to the collision test above: an unambiguous, non-colliding id
+    (claimed by exactly one source) must still get warmed into the routing
+    cache. Without this positive-path proof, a silently-broken warm loop (a
+    swallowed exception, a bad refactor that no-ops the whole pass) would
+    slip through -- the negative test alone can't distinguish "correctly
+    refused to cache an ambiguous id" from "stopped caching anything at
+    all". Also proves the fix for the N+1 warm-loop cost: get_source_for_workitem
+    must reuse fetch_merged_page's already-built ``sources`` list (passed via
+    its ``sources=`` param) rather than calling active_sources() again itself."""
+    s1, s2 = SqlServerSource(), SqlServerSource()
+    s2.code = "ms02"
+    active_sources_calls = []
+
+    def _active_sources():
+        active_sources_calls.append(1)
+        return [s1, s2]
+
+    monkeypatch.setattr(ws, "active_sources", _active_sources)
+    # id 5 is default-only, id 1001 is ms02-only -- neither collides.
+    monkeypatch.setattr(
+        s1, "list_workitems", lambda filt, offset, limit: ([_row(5, 30, client="default")], 1)
+    )
+    monkeypatch.setattr(
+        s2, "list_workitems", lambda filt, offset, limit: ([_row(1001, 20, client="ms02")], 1)
+    )
+    monkeypatch.setattr(s1, "has_workitem", lambda wid: False)
+    monkeypatch.setattr(s2, "has_workitem", lambda wid: wid == 1001)
+    monkeypatch.setattr(ws, "_cache_lookup", lambda wid: None)
+    stored = []
+    monkeypatch.setattr(ws, "_cache_store", lambda wid, code: stored.append((wid, code)))
+
+    with app.app_context():
+        rows, total, degraded = ws.fetch_merged_page(_mk_filter(), offset=0, limit=40)
+
+    assert [r["workitemid"] for r in rows] == [5, 1001]
+    assert degraded == []
+    assert stored == [(1001, "ms02")], "unambiguous id must be warmed into the cache"
+    # Exactly one active_sources() call total (fetch_merged_page's own, at the
+    # top of the function) -- get_source_for_workitem must not construct a
+    # second fresh set of source instances per probed row.
+    assert active_sources_calls == [1]
+
+
 # ---------------- dashboard source-awareness (Task 14) ---------------- #
 
 
