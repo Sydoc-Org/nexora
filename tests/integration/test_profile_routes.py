@@ -81,6 +81,13 @@ def test_change_password_anonymous_redirects_to_login(client):
     assert "/login" in resp.headers.get("Location", "")
 
 
+def test_change_password_get_redirects_to_profile(user_client):
+    """GET must not fall through to a bare 500 — it should redirect."""
+    resp = user_client.get("/change_password", follow_redirects=False)
+    assert resp.status_code == 302
+    assert "/profile" in resp.headers.get("Location", "")
+
+
 def test_change_password_mismatch_flashes(user_client):
     resp = user_client.post(
         "/change_password",

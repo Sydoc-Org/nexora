@@ -187,6 +187,8 @@ def change_password():
             else:
                 flash(_("Current password is incorrect"), "failure_changePW")
                 return redirect(url_for("profile"))
+
+        return redirect(url_for("profile"))
     except Exception:
         flash(_("Unexpected Error"), "failure_changePW")
         return redirect(url_for("profile"))
