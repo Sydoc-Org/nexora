@@ -372,6 +372,81 @@ def test_global_filter_popover_adds_chip_and_reruns_affected_card(nexora_server,
     assert run_calls[-1]["filters"] == [{"field": "status", "op": "contains", "value": "Open"}]
 
 
+def test_global_filter_popover_stays_open_on_cached_catalog_reopen(nexora_server, page):
+    """Task 34: ensureCatalog()'s promise is cached after the first open.
+    On the first open the real fetch is slow enough that the popover opens
+    well after the triggering click has finished bubbling to the
+    document-level outside-click closer. On every later open the cached
+    promise resolves in a microtask that runs BEFORE the same click finishes
+    bubbling -- the closer then sees filterPop.open just turned true and the
+    click target outside the popover, and self-closes it immediately.
+    Open, close, reopen (catalog now cached) -- it must stay open, and a
+    genuine outside click afterward must still close it.
+    """
+    _login(page, nexora_server)
+    dash_definition = {
+        "kind": "dashboard",
+        "schemaVersion": 1,
+        "title": "e2e cached-reopen dashboard",
+        "globalFilters": [],
+        "cards": [
+            {
+                "id": "k1",
+                "type": "kpi",
+                "span": 3,
+                "title": "Document count",
+                "definition": {
+                    "source": "workitems",
+                    "metrics": [{"field": "id", "agg": "count"}],
+                    "columns": [],
+                    "filters": [],
+                },
+                "filterOverrides": [],
+            }
+        ],
+    }
+    _stub_dashboard_report(page, "e2e-dash-cachedreopen", dash_definition)
+    _stub_gfilter_catalog(page)
+    page.route(
+        "**/api/reporting/run",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {"columns": [{"field": "id", "header": "Count"}], "rows": [[1]], "rowCount": 1}
+            ),
+        ),
+    )
+
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-card").first.click()
+    expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
+
+    popover = page.locator("#rdbFilterPop")
+
+    # First open: real (uncached) catalog fetch -- already worked before the
+    # fix. Close it via Cancel so the second open below is the one exercising
+    # the cached-promise race.
+    page.get_by_test_id("rdb-add-filter").click()
+    expect(popover).to_be_visible()
+    popover.get_by_test_id("rdb-filter-cancel").click()
+    expect(popover).to_be_hidden()
+
+    # Second open: ensureCatalog()'s promise is now cached -- this is the
+    # regression case. Before the fix, the popover opened and immediately
+    # self-closed on this very click.
+    page.get_by_test_id("rdb-add-filter").click()
+    expect(popover).to_be_visible()
+    # Give any stray close handler a moment to fire before asserting it
+    # *stays* visible, not just that it existed for one frame.
+    page.wait_for_timeout(300)
+    expect(popover).to_be_visible()
+
+    # The fix must not break genuine outside-click-to-close behaviour.
+    page.get_by_test_id("rdb-title").click()
+    expect(popover).to_be_hidden()
+
+
 def test_card_override_chip_removal_clears_filter_and_reruns_card(nexora_server, page):
     """Task 13: the x on a card's violet override chip clears filterOverrides
     entirely for that card and re-runs it -- the run stub is hit again with

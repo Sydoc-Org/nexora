@@ -564,82 +564,97 @@
   // becomes "open popover pre-filled" per D11 -- no more fixed value lists).
   async function openFilterPopover(anchorEl, existing, index) {
     await ensureCatalog();
-    if (!anchorEl.isConnected) return;  // bar re-rendered while fetching
-    closeFilterPopover();
-    var fields = filterableFieldCatalog();
-    if (!fields.length) return;  // nothing filterable to offer
-    var f = existing || { field: fields[0].field, op: 'eq', value: '' };
+    // Task 34: defer the actual open past this click's bubble phase.
+    // ensureCatalog()'s promise is cached after the first call, so on every
+    // later open the `await` above resolves in a microtask -- and browsers
+    // run queued microtasks between bubble-phase listeners of the SAME
+    // event, i.e. before this click finishes bubbling to the document-level
+    // outside-click closer wired in build(). That closer would then see
+    // filterPop.open just flipped true and the click target outside the
+    // (brand new) popover, and close it immediately -- the popover would
+    // only ever survive the first, slow, uncached open. setTimeout(fn, 0)
+    // pushes the popover-creation into its own task, strictly after the
+    // triggering click's synchronous dispatch (and the closer's check
+    // against it) has already completed, so there is nothing left for the
+    // closer to mistake for an outside click.
+    setTimeout(function () {
+      if (!anchorEl.isConnected) return;  // bar re-rendered while fetching
+      closeFilterPopover();
+      var fields = filterableFieldCatalog();
+      if (!fields.length) return;  // nothing filterable to offer
+      var f = existing || { field: fields[0].field, op: 'eq', value: '' };
 
-    var pop = document.createElement('div');
-    pop.id = 'rdbFilterPop';
-    pop.className = 'rdb-filter-pop';
-    pop.setAttribute('data-testid', 'rdb-filter-pop');
-    pop.setAttribute('role', 'dialog');
-    pop.setAttribute('aria-label', I18N.globalFilters);
+      var pop = document.createElement('div');
+      pop.id = 'rdbFilterPop';
+      pop.className = 'rdb-filter-pop';
+      pop.setAttribute('data-testid', 'rdb-filter-pop');
+      pop.setAttribute('role', 'dialog');
+      pop.setAttribute('aria-label', I18N.globalFilters);
 
-    var fieldLabelEl = document.createElement('label');
-    fieldLabelEl.textContent = I18N.filterField;
-    var fieldSel = document.createElement('select');
-    fieldSel.setAttribute('data-testid', 'rdb-filter-field');
-    fields.forEach(function (fm) {
-      var o = document.createElement('option');
-      o.value = fm.field; o.textContent = fm.label || fm.field;
-      fieldSel.appendChild(o);
-    });
-    fieldSel.value = f.field;
+      var fieldLabelEl = document.createElement('label');
+      fieldLabelEl.textContent = I18N.filterField;
+      var fieldSel = document.createElement('select');
+      fieldSel.setAttribute('data-testid', 'rdb-filter-field');
+      fields.forEach(function (fm) {
+        var o = document.createElement('option');
+        o.value = fm.field; o.textContent = fm.label || fm.field;
+        fieldSel.appendChild(o);
+      });
+      fieldSel.value = f.field;
 
-    var opLabelEl = document.createElement('label');
-    opLabelEl.textContent = I18N.filterOperator;
-    var opSel = document.createElement('select');
-    opSel.setAttribute('data-testid', 'rdb-filter-op');
-    FILTER_OPS.forEach(function (o) {
-      var opt = document.createElement('option');
-      opt.value = o; opt.textContent = OP_LABELS[o] || o;
-      opSel.appendChild(opt);
-    });
-    opSel.value = f.op || 'eq';
+      var opLabelEl = document.createElement('label');
+      opLabelEl.textContent = I18N.filterOperator;
+      var opSel = document.createElement('select');
+      opSel.setAttribute('data-testid', 'rdb-filter-op');
+      FILTER_OPS.forEach(function (o) {
+        var opt = document.createElement('option');
+        opt.value = o; opt.textContent = OP_LABELS[o] || o;
+        opSel.appendChild(opt);
+      });
+      opSel.value = f.op || 'eq';
 
-    var valLabelEl = document.createElement('label');
-    valLabelEl.textContent = I18N.filterValue;
-    var valInput = document.createElement('input');
-    valInput.className = 'reporting-input';
-    valInput.setAttribute('data-testid', 'rdb-filter-value');
-    valInput.value = f.value == null ? '' : f.value;
+      var valLabelEl = document.createElement('label');
+      valLabelEl.textContent = I18N.filterValue;
+      var valInput = document.createElement('input');
+      valInput.className = 'reporting-input';
+      valInput.setAttribute('data-testid', 'rdb-filter-value');
+      valInput.value = f.value == null ? '' : f.value;
 
-    var actions = document.createElement('div');
-    actions.className = 'rdb-filter-pop-actions';
-    var cancelBtn = document.createElement('button');
-    cancelBtn.type = 'button';
-    cancelBtn.className = 'nx-btn nx-btn--secondary';
-    cancelBtn.setAttribute('data-testid', 'rdb-filter-cancel');
-    cancelBtn.textContent = I18N.cancel;
-    cancelBtn.addEventListener('click', closeFilterPopover);
-    var applyBtn = document.createElement('button');
-    applyBtn.type = 'button';
-    applyBtn.className = 'nx-btn nx-btn--primary';
-    applyBtn.setAttribute('data-testid', 'rdb-filter-apply');
-    applyBtn.textContent = I18N.apply;
-    applyBtn.addEventListener('click', function () {
-      var isNullOp = opSel.value === 'is_null' || opSel.value === 'is_not_null';
-      applyGlobalFilter(index, fieldSel.value, opSel.value, isNullOp ? null : valInput.value);
-    });
-    actions.appendChild(cancelBtn);
-    actions.appendChild(applyBtn);
+      var actions = document.createElement('div');
+      actions.className = 'rdb-filter-pop-actions';
+      var cancelBtn = document.createElement('button');
+      cancelBtn.type = 'button';
+      cancelBtn.className = 'nx-btn nx-btn--secondary';
+      cancelBtn.setAttribute('data-testid', 'rdb-filter-cancel');
+      cancelBtn.textContent = I18N.cancel;
+      cancelBtn.addEventListener('click', closeFilterPopover);
+      var applyBtn = document.createElement('button');
+      applyBtn.type = 'button';
+      applyBtn.className = 'nx-btn nx-btn--primary';
+      applyBtn.setAttribute('data-testid', 'rdb-filter-apply');
+      applyBtn.textContent = I18N.apply;
+      applyBtn.addEventListener('click', function () {
+        var isNullOp = opSel.value === 'is_null' || opSel.value === 'is_not_null';
+        applyGlobalFilter(index, fieldSel.value, opSel.value, isNullOp ? null : valInput.value);
+      });
+      actions.appendChild(cancelBtn);
+      actions.appendChild(applyBtn);
 
-    pop.appendChild(fieldLabelEl); pop.appendChild(fieldSel);
-    pop.appendChild(opLabelEl); pop.appendChild(opSel);
-    pop.appendChild(valLabelEl); pop.appendChild(valInput);
-    pop.appendChild(actions);
+      pop.appendChild(fieldLabelEl); pop.appendChild(fieldSel);
+      pop.appendChild(opLabelEl); pop.appendChild(opSel);
+      pop.appendChild(valLabelEl); pop.appendChild(valInput);
+      pop.appendChild(actions);
 
-    fieldSel.addEventListener('change', function () { refreshFilterPopoverValueField(pop); });
-    opSel.addEventListener('change', function () { refreshFilterPopoverValueField(pop); });
+      fieldSel.addEventListener('change', function () { refreshFilterPopoverValueField(pop); });
+      opSel.addEventListener('change', function () { refreshFilterPopoverValueField(pop); });
 
-    el('rdbFilterBar').appendChild(pop);
-    refreshFilterPopoverValueField(pop);
-    positionFilterPopover(pop, anchorEl);
-    filterPop.open = true;
-    filterPop.index = (index === undefined || index === null) ? -1 : index;
-    valInput.focus();
+      el('rdbFilterBar').appendChild(pop);
+      refreshFilterPopoverValueField(pop);
+      positionFilterPopover(pop, anchorEl);
+      filterPop.open = true;
+      filterPop.index = (index === undefined || index === null) ? -1 : index;
+      valInput.focus();
+    }, 0);
   }
 
   // ---- Selective re-run (only cards whose effectiveFilters() changed) ----
