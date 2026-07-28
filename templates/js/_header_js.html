@@ -316,6 +316,66 @@
             });
         })();
 
+        /* ---- Switch user (dev-only) ---- */
+        (function() {
+            const btn = document.getElementById('switchUserBtn');
+            const overlay = document.getElementById('switchUserOverlay');
+            const input = document.getElementById('switchUserInput');
+            const list = document.getElementById('switchUserList');
+            if (!btn || !overlay || !input || !list) return;
+
+            let usernames = [];
+
+            function render(filter) {
+                const q = (filter || '').trim().toLowerCase();
+                const filtered = q ? usernames.filter(u => u.toLowerCase().includes(q)) : usernames;
+                list.innerHTML = '';
+                if (!filtered.length) {
+                    const empty = document.createElement('li');
+                    empty.className = 'cmdk-empty';
+                    empty.textContent = '{{ _("No matching users.") }}';
+                    list.appendChild(empty);
+                    return;
+                }
+                filtered.forEach(u => {
+                    const li = document.createElement('li');
+                    li.className = 'cmdk-item';
+                    li.setAttribute('role', 'option');
+                    li.textContent = u;
+                    li.addEventListener('click', () => {
+                        window.location.href = '/dev/login/' + encodeURIComponent(u);
+                    });
+                    list.appendChild(li);
+                });
+            }
+
+            async function open() {
+                overlay.hidden = false;
+                input.value = '';
+                setTimeout(() => input.focus(), 10);
+                if (!usernames.length) {
+                    const r = await fetch('/dev/users', { credentials: 'same-origin' });
+                    usernames = r.ok ? await r.json() : [];
+                }
+                render('');
+            }
+            function close() {
+                overlay.hidden = true;
+                input.blur();
+            }
+
+            btn.addEventListener('click', open);
+            input.addEventListener('input', e => render(e.target.value));
+            input.addEventListener('keydown', e => {
+                if (e.key === 'Escape') { e.preventDefault(); close(); }
+                else if (e.key === 'Enter') {
+                    const first = list.querySelector('.cmdk-item');
+                    if (first) first.click();
+                }
+            });
+            overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+        })();
+
         /* ---- Mobile sidebar drawer toggle ---- */
         document.addEventListener('DOMContentLoaded', function () {
             const toggle   = document.getElementById('sidebar-toggle');

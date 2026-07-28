@@ -188,6 +188,13 @@
                         class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50 hover:text-indigo-600 transition-colors" data-testid="header-profile-link">
                         <i class="fas fa-user-circle w-4"></i> {{ _("Your profile") }}
                     </a>
+                    {% if not is_prod %}
+                    <div class="my-1 border-t border-gray-100"></div>
+                    <button type="button" id="switchUserBtn"
+                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50 hover:text-indigo-600 transition-colors w-full text-left" data-testid="header-switch-user">
+                        <i class="fas fa-user-friends w-4"></i> {{ _("Switch user") }}
+                    </button>
+                    {% endif %}
                     <div class="my-1 border-t border-gray-100"></div>
                     <a href="{{ url_for('logout') }}"
                         class="flex items-center gap-2 px-3 py-2 text-sm text-red-600 rounded-md hover:bg-red-50 transition-colors" data-testid="header-logout-link">
@@ -217,6 +224,21 @@
             </div>
         </div>
     </div>
+
+    {% if not is_prod %}
+    <!-- ========== SWITCH USER (dev-only) ========== -->
+    <div id="switchUserOverlay" class="cmdk-overlay" hidden>
+        <div class="cmdk-panel" role="dialog" aria-modal="true" aria-label="{{ _('Switch user') }}">
+            <div class="cmdk-input-row">
+                <i class="fas fa-user-friends cmdk-input-icon"></i>
+                <input id="switchUserInput" class="cmdk-input" type="text"
+                       placeholder="{{ _('Switch to user...') }}" autocomplete="off" data-testid="switch-user-input">
+                <kbd class="cmdk-kbd">ESC</kbd>
+            </div>
+            <ul id="switchUserList" class="cmdk-list" role="listbox"></ul>
+        </div>
+    </div>
+    {% endif %}
 
     {% include 'js/_header_js.html' %}
 </body>

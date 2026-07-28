@@ -17,7 +17,7 @@ from flask import (
     url_for,
 )
 
-from .config import PATHS
+from .config import IS_PROD, PATHS
 from .db import engine_nexora_db
 from .i18n import get_locale
 from .maintenance import (
@@ -31,7 +31,7 @@ from .security import (
     load_permissions_for_user,
 )
 from .users import resolve_user_icon_url
-from .version import __version__
+from .version import BUILD_STAMP, __version__
 
 _SESSION_ENFORCE_SKIP_PATHS = (
     "/static",
@@ -44,6 +44,7 @@ _SESSION_ENFORCE_SKIP_PATHS = (
     "/verify_2fa",
     "/reset_password",
     "/dev/login",
+    "/dev/users",
 )
 
 
@@ -209,11 +210,13 @@ def _inject_current_lang():
 
 
 def _utility_processor():
-    return dict(get_user_icon_url=resolve_user_icon_url, has_permission=has_permission)
+    return dict(
+        get_user_icon_url=resolve_user_icon_url, has_permission=has_permission, is_prod=IS_PROD
+    )
 
 
 def _inject_app_version():
-    return {"nexora_version": __version__}
+    return {"nexora_version": __version__, "nexora_build": BUILD_STAMP}
 
 
 def init_app(app):

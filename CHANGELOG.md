@@ -10,6 +10,32 @@ Work toward 2.5.65.
 
 ### Added
 
+- Header: **switch user** button (dev-only, #118), GitHub-style. The profile
+  dropdown gains a "Switch user" item that opens a searchable list of INT
+  usernames (new `/dev/users` JSON endpoint) and switches the session via the
+  existing `/dev/login/<username>` bypass on click — no more dropping to the
+  terminal to `nx --loginas:` mid-session. Hidden in PROD (`is_prod` template
+  global, same guard as `/dev/login`).
+
+- Workitems: **see deleted workitems** with the new internal-only permission
+  `workitems.filter.status.deleted` (#125, migration `0044`). Soft-deleted
+  workitems (Octo/MS02 `Status = 2`) were hard-excluded from every list with no
+  way to reach them; holders now get a "Deleted" option in the status filter,
+  which drops that exclusion for that one query and badges the rows red. Both
+  sources honour it (default Octo + MS02 Postgres) and the CSV export follows
+  the filter. Opt-in only: "All statuses" still hides deleted rows, and without
+  the permission the value is not mapped at all, so the query keeps its
+  `Status <> 2`. The dashboard's recent-workitems tiles stay filtered.
+
+- Footer: a **deploy build stamp** next to the version (#113) — the footer read
+  `nexora 2.5.65` whether or not a deploy had actually landed, so a mirror that
+  silently failed looked identical to a successful one. `.github/workflows/deploy.yml`
+  now writes `nx_lib/_build.py` (`BUILD_STAMP = "<short-sha>, <UTC date>"`) right
+  after the robocopy mirror, `nx_lib/version.py` imports it with an `ImportError`
+  fallback to `""`, and the `nexora_build` context variable renders as
+  `nexora 2.5.65 · a1b2c3d, 2026-07-28`. The file is gitignored and absent in
+  dev/INT, which keeps those footers version-only and unchanged.
+
 - Admin: **email invite for new users** (#117). The Add User modal has a
   "Email the user a link to set their own password" checkbox, ticked by
   default, which hides the password field: `POST /admin/users/add` then
@@ -112,12 +138,14 @@ Work toward 2.5.65.
 ### Fixed
 
 - Workitems: the line-item table grids in the detail panel's "Show sources"
-  view (e.g. Octo `TABVAT`/`TABORDER`) overflowed the panel with no scrollbar
-  on wide tables, and column headers showed raw Octo field codes
-  (`TabNetAmount`, `OrdPk`) instead of friendly labels. `renderTableGrids`
-  now wraps each grid in a scrolling container and maps headers through the
-  same `fieldConfig.labels` lookup the scalar fields already use — columns
-  without a `Search_Field_Labels` row still fall back to the raw code.
+  view (e.g. Octo `TABVAT`/`TABORDER`) overflowed the panel on wide tables
+  and showed raw Octo field codes (`TabNetAmount`, `OrdPk`) as headers.
+  `renderTableGrids` no longer renders an HTML `<table>` at all — each grid
+  is now a collapsed-by-default `<details>` ("TABVAT (2 rows)") that opens
+  into the same `dt`/`dd` field-row list already used for scalar fields,
+  one group per row, with labels routed through the same `fieldConfig.labels`
+  lookup (falling back to a camelCase-split version of the raw code, e.g.
+  "Tab Net Amount", when no `Search_Field_Labels` row exists).
 - Profile: `GET /update_profile` returned 500 — the view only returned inside
   its `POST` branch, so a GET fell through to `None`. It now redirects to
   `/profile`, matching the same fix applied to `change_password`.

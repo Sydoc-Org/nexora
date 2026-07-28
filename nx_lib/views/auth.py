@@ -19,6 +19,7 @@ from flask import (
     abort,
     current_app,
     flash,
+    jsonify,
     redirect,
     render_template,
     request,
@@ -509,6 +510,20 @@ def dev_login(username):
     return redirect(url_for(startpage_redirect_to(page_v)))
 
 
+def dev_users():
+    if IS_PROD:
+        abort(404)
+    conn = engine_nexora_db.raw_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT username FROM Users WHERE username IS NOT NULL ORDER BY username")
+        usernames = [row[0] for row in cursor.fetchall()]
+    finally:
+        cursor.close()
+        conn.close()
+    return jsonify(usernames)
+
+
 @limiter.limit("10 per minute")
 def login():
     if request.method == "POST":
@@ -833,6 +848,7 @@ def register_routes(app):
         methods=["POST", "GET"],
     )
     app.add_url_rule("/dev/login/<username>", endpoint="dev_login", view_func=dev_login)
+    app.add_url_rule("/dev/users", endpoint="dev_users", view_func=dev_users)
     app.add_url_rule("/login", endpoint="login", view_func=login, methods=["GET", "POST"])
     app.add_url_rule("/logout", endpoint="logout", view_func=logout)
     app.add_url_rule("/forgot_password", endpoint="forgot_password", view_func=forgot_password)
