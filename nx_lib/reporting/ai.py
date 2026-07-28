@@ -17,7 +17,9 @@ from .sandbox import SqlSandboxError, validate_select
 
 ANTHROPIC_VERSION = "2023-06-01"
 DEFAULT_ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
-DEFAULT_MAX_TOKENS = 1024
+# Reasoning models (GPT-5 family) spend hidden reasoning tokens inside this
+# budget before emitting output — 1024 truncates them to empty replies.
+DEFAULT_MAX_TOKENS = 4096
 DEFAULT_TIMEOUT_S = 30
 
 _SQL_FENCE = re.compile(r"```(?:sql|json)?\s*(.+?)```", re.IGNORECASE | re.DOTALL)
