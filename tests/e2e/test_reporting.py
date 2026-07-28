@@ -6,6 +6,8 @@ reporting.source.docprocessing). The page chrome and source select are asserted;
 data rows are not checked because the statistics DB is absent in TEST.
 """
 
+import json
+
 import pytest
 from playwright.sync_api import expect
 
@@ -191,3 +193,65 @@ def test_advanced_saved_reports_select_excludes_dashboards(nexora_server, page):
             method: 'DELETE', headers: {{'X-CSRFToken': csrf}}
           }});
         }}""")
+
+
+@pytest.mark.flaky_e2e
+def test_switching_source_clears_stale_filters(nexora_server, page):
+    """Task 62: pick() (Advanced tab's #rpSource onchange handler) used to
+    reset state.columns/scope/metrics on a source switch but never
+    state.filters -- the previous source's filter chips (referencing fields
+    that may not exist on the new source) survived and 400'd every
+    subsequent Run until cleared by hand. pick() now also clears
+    state.filters and re-renders #rpWellFilters, so no stale chip -- and no
+    stale field name in the run payload -- can survive a source switch."""
+    _login(page, nexora_server)
+
+    # Both curated (non-SQL) sources are seeded in sql/test/seed.sql and
+    # granted to TestAdmin; wait for both to be present in #rpSource before
+    # driving the select.
+    page.wait_for_function(
+        """() => {
+          var sel = document.getElementById('rpSource');
+          if (!sel) return false;
+          var vals = Array.from(sel.options).map(o => o.value);
+          return vals.indexOf('generali_pdqm') !== -1 && vals.indexOf('workitems') !== -1;
+        }""",
+        timeout=8000,
+    )
+
+    # loadSources() auto-picks the first curated source (generali_pdqm,
+    # SortOrder 20) on load. Add a filter chip on it.
+    page.select_option("#rpSource", "generali_pdqm")
+    page.click("#rpAddFilter")
+    expect(page.locator(".reporting-filter-row")).to_have_count(1)
+
+    # Switch to the other curated source (workitems, disjoint field set) --
+    # the generali_pdqm-scoped filter chip must not survive the switch.
+    page.select_option("#rpSource", "workitems")
+    expect(page.locator(".reporting-filter-row")).to_have_count(0)
+
+    # Stub the run endpoint before the click (per project convention -- the
+    # curated sources need live Generali/Octopus DBs the TEST env doesn't
+    # have) and capture the posted payload to assert no stale filter field
+    # leaked into the request that would 400 the real endpoint.
+    captured = []
+
+    def _run(route):
+        captured.append(route.request.post_data_json)
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"columns": [], "rows": [], "rowCount": 0}),
+        )
+
+    page.route("**/api/reporting/run", _run)
+    page.click('[data-testid="reporting-run"]')
+
+    # Run completed via the 200 stub, not the .catch(showError) path.
+    expect(page.locator(".reporting-error")).to_have_count(0)
+    expect(page.locator('[data-testid="reporting-no-rows"]')).to_be_visible()
+    assert len(captured) == 1
+    assert captured[0]["filters"] == []
+    assert captured[0]["source"] == "workitems"
+    # No stale chip re-appeared once the run completed either.
+    expect(page.locator(".reporting-filter-row")).to_have_count(0)

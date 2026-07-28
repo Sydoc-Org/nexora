@@ -963,8 +963,13 @@
         state.fields = s.fields || [];
         setProcessScope(s.processes || [], null);
         state.columns = [];
+        // The previous source's filters reference fields that may not exist
+        // on the new source (or mean something different) — drop them so a
+        // source switch can't leave stale chips that 400 every subsequent Run.
+        state.filters = [];
         renderFields();
         renderWells();
+        renderFilters();
         // Re-derive the per-source metric list (prunes now-unavailable picks).
         refreshAvailableMetrics();
       }
