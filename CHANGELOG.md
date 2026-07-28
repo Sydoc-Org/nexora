@@ -81,6 +81,22 @@ Work toward 2.5.65.
 
 ### Fixed
 
+- Reporting AI: hard questions failed with *"The AI assistant could not answer
+  right now"* on reasoning deployments (GPT-5 family). The per-call HTTP read
+  timeout was hard-coded to 30 s while such a model routinely spends 30–60 s on
+  one turn, so the request died mid-loop. The timeout is now `AI_TIMEOUT_S`
+  (default **120 s**), and a whole agentic run is bounded by `AI_AGENT_BUDGET_S`
+  (default **180 s**, checked between turns) so the longer per-call timeout
+  cannot pin a worker for `max_turns × AI_TIMEOUT_S`.
+- Reporting AI: the chat agent gave up on questions needing two
+  differently-filtered measures side by side (e.g. *"month, imported documents,
+  exported documents"*), splitting them into two separate reports — a
+  definition's filters apply to the whole report, and the prompt also told the
+  agent to stop as soon as *any* tool returned `ok:true`. It now falls back to
+  one live-SQL draft with conditional aggregation for that shape, stops only on
+  the artifact that answers the whole question, and names the per-process
+  table(s) its numbers come from.
+
 The following are the 57-finding 2026-07-23 bug-hunt's Part B fixes (Tasks
 13-64), landed alongside the Part A removal above.
 

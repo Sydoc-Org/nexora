@@ -1009,6 +1009,8 @@ Set these in `env/INT.env` and `env/PROD.env`:
 | `AZURE_OPENAI_DEPLOYMENT` | Deployment name (required when `AI_PROVIDER=azure`). |
 | `AZURE_OPENAI_API_VERSION` | API version (optional; defaults to `2024-10-21`). GPT-5-family deployments need a newer one, e.g. `2025-01-01-preview`. |
 | `AI_DAILY_LIMIT` | Per-user/day cap on AI asks (cost/abuse control). `0` (default) = unlimited. When the cap is hit the route returns **429** before any provider call, and the throttle is recorded in `dbo.ReportingAiAudit` with `Status='blocked'`. |
+| `AI_TIMEOUT_S` | HTTP read timeout for a single model round-trip (default `120`). Reasoning deployments (GPT-5 family) regularly spend 30–60 s on one hard question; too tight a value surfaces as *"The AI assistant could not answer right now"* (502) with a `Read timed out` line in `var/logs/system/app.log`. |
+| `AI_AGENT_BUDGET_S` | Wall-clock ceiling for a whole agentic (chat) run (default `180`). Checked between turns, so a slow model can't hold a worker for `max_turns × AI_TIMEOUT_S`; a run that hits it returns what it has with `stoppedReason: "budget"`. |
 
 Until `AI_PROVIDER` is set (or is `none`) the route returns **503** and the tab
 does not render. Sanitised key names are committed in `env/*.env.example`.

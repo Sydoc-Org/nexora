@@ -8,7 +8,9 @@ the prompt carries the user's question + schema metadata, never result rows.
 """
 
 import json
+import os
 import re
+import time
 from dataclasses import dataclass
 
 import requests
@@ -20,7 +22,13 @@ DEFAULT_ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 # Reasoning models (GPT-5 family) spend hidden reasoning tokens inside this
 # budget before emitting output — 1024 truncates them to empty replies.
 DEFAULT_MAX_TOKENS = 4096
-DEFAULT_TIMEOUT_S = 30
+# Per-turn HTTP read timeout. Reasoning models (GPT-5 family) routinely spend
+# 30s+ on a single hard question, so a tight timeout turns a good answer into a
+# generic 502. Override with AI_TIMEOUT_S when a deployment is slower still.
+DEFAULT_TIMEOUT_S = int(os.environ.get("AI_TIMEOUT_S") or 120)
+# Wall-clock ceiling for a whole agentic loop, so a slow model can't pin a
+# worker for max_turns * DEFAULT_TIMEOUT_S.
+DEFAULT_BUDGET_S = int(os.environ.get("AI_AGENT_BUDGET_S") or 180)
 
 _SQL_FENCE = re.compile(r"```(?:sql|json)?\s*(.+?)```", re.IGNORECASE | re.DOTALL)
 
@@ -580,11 +588,18 @@ _AGENT_SYSTEM = (
     "counting/summing/averaging question use a source that lists metrics — a "
     'source marked "metrics: none" cannot aggregate at all. '
     "If validate_sql is available, draft ONE read-only SELECT and "
-    "validate it before presenting. When a tool returns an error, fix your input "
+    "validate it before presenting. A definition's filters apply to the WHOLE "
+    "report, so the builder CANNOT put two differently-filtered measures side by "
+    'side (e.g. "imported documents and exported documents per month"). For such '
+    "a question do NOT split it into two reports and do NOT give up: draft ONE "
+    "T-SQL SELECT that groups by the period and uses conditional aggregation "
+    "(SUM(CASE WHEN <condition> THEN 1 ELSE 0 END)) — one column per measure — "
+    "and validate_sql it instead. When a tool returns an error, fix your input "
     "and try again — but after 2 failed attempts on the same tool stop calling it "
     "and write your final answer explaining what you could and could not do. "
-    "Once any tool returns ok:true, stop calling tools immediately and give a "
-    "one- or two-sentence plain-language answer. Do not ask the user questions."
+    "Once a tool returns ok:true for the artifact that actually answers the whole "
+    "question, stop calling tools immediately and give a one- or two-sentence "
+    "plain-language answer. Do not ask the user questions."
     " The grounding states today's date; resolve relative time expressions"
     ' ("last month", "this year") against it, never against your training data.'
     ' For "list the distinct values of X" build a definition with X in'
@@ -594,6 +609,8 @@ _AGENT_SYSTEM = (
     " itself — that forces every count to 1."
     " Match process words against whole process ids and their"
     " humanized labels; include all matches, or none rather than a guess."
+    " When you draft SQL over per-process tables and the question names no"
+    " process, name in your answer which table(s) the numbers come from."
     " When a question groups by a time period (per day/week/month/quarter/"
     "year), the date column in the definition MUST carry the matching"
     ' "grain" (e.g. {"field": "<date key>", "grain": "month"}).'
@@ -655,12 +672,20 @@ class AiAgenticResult:
     answer: str
     turns: int
     tool_trace: list  # [{"name", "args", "result"}]
-    stopped_reason: str  # "final" | "max_turns"
+    stopped_reason: str  # "final" | "max_turns" | "budget"
     tokens_in: int
     tokens_out: int
 
 
-def ask_agentic(question, *, registry, agent_step, max_turns=DEFAULT_MAX_TURNS, history=None):
+def ask_agentic(
+    question,
+    *,
+    registry,
+    agent_step,
+    max_turns=DEFAULT_MAX_TURNS,
+    history=None,
+    budget_s=DEFAULT_BUDGET_S,
+):
     """Drive the model->tool->model loop until a final answer or the turn cap.
 
     `agent_step(messages) -> AssistantTurn` is the injected provider round-trip
@@ -679,7 +704,11 @@ def ask_agentic(question, *, registry, agent_step, max_turns=DEFAULT_MAX_TURNS, 
     """
     messages = [*(history or []), {"role": "user", "content": question}]
     trace, tin, tout, turns, stopped = [], 0, 0, 0, "max_turns"
+    deadline = time.monotonic() + budget_s if budget_s else None
     while turns < max_turns:
+        if deadline and turns and time.monotonic() > deadline:
+            stopped = "budget"
+            break
         turns += 1
         turn = agent_step(messages)
         tin += turn.tokens_in or 0

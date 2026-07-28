@@ -6,6 +6,8 @@ callable directly (Task 4) and, for the real provider round-trip, inject a fake
 HTTP ``transport`` (Task 5). No network.
 """
 
+import time
+
 from nx_lib.reporting.ai import AssistantTurn, _make_agent_step, ask_agentic
 from nx_lib.reporting.ai_tools import TOOL_SPECS, ToolRegistry
 
@@ -69,6 +71,22 @@ def test_turn_cap_stops_runaway_loop():
     assert res.turns == 3
     assert res.stopped_reason == "max_turns"
     assert res.answer == ""
+
+
+def test_wall_clock_budget_stops_a_slow_loop():
+    """A model slow enough to blow the budget stops between turns, not mid-turn."""
+    reg = ToolRegistry()
+    forever = AssistantTurn(
+        tool_calls=[{"id": "x", "name": "validate_sql", "args": {"sql": "SELECT 1"}}]
+    )
+
+    def slow(messages):
+        time.sleep(0.02)
+        return forever
+
+    res = ask_agentic("q", registry=reg, agent_step=slow, max_turns=50, budget_s=0.01)
+    assert res.stopped_reason == "budget"
+    assert res.turns == 1  # one turn always runs; the budget is checked before the next
 
 
 def test_loop_passes_tool_results_into_next_messages():
