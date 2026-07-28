@@ -175,6 +175,64 @@ def test_api_admin_logs_search_missing_table(admin_client, admin_all_perms):
     assert resp.status_code in (200, 500)
 
 
+def test_api_admin_logs_search_returns_iso_timestamp(admin_client, admin_all_perms, monkeypatch):
+    """Timestamp must serialize as ISO-8601, not Flask's default RFC-1123
+    JSON repr for raw datetime objects (e.g. "Mon, 27 Jul 2026 13:45:30 GMT"),
+    which the client reads as UTC and which shifts the displayed time by the
+    server's UTC offset. The Logs table doesn't exist in NEXORA_TEST, so the
+    DB layer is faked here to exercise the route's serialization in isolation.
+    """
+    import re
+    from datetime import datetime
+    from types import SimpleNamespace
+
+    import nx_lib.views.admin as admin_module
+
+    ts = datetime(2026, 7, 27, 13, 45, 30)
+
+    class _FakeCursor:
+        def execute(self, sql, params=None):
+            pass
+
+        def fetchone(self):
+            return (1,)
+
+        def fetchall(self):
+            return [
+                SimpleNamespace(
+                    LogID=1,
+                    Timestamp=ts,
+                    Username="admin@test.local",
+                    HttpRequestMethod="GET",
+                    Path="/admin",
+                    HttpResponseCode=200,
+                    Args=None,
+                    RequestIpAddress="127.0.0.1",
+                    durationSeconds=0.1,
+                )
+            ]
+
+        def close(self):
+            pass
+
+    class _FakeConn:
+        def cursor(self):
+            return _FakeCursor()
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(admin_module.engine_nexora_db, "raw_connection", lambda: _FakeConn())
+
+    resp = admin_client.get("/api/admin/logs/search")
+    assert resp.status_code == 200
+    raw_ts = resp.get_json()["logs"][0]["Timestamp"]
+
+    assert raw_ts == ts.isoformat()
+    assert "GMT" not in raw_ts
+    assert re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}", raw_ts)
+
+
 def test_api_admin_logs_export_missing_table(admin_client, admin_all_perms):
     resp = admin_client.get("/api/admin/logs/export.csv")
     assert resp.status_code in (200, 500)

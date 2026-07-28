@@ -540,7 +540,10 @@ def api_admin_logs_search():
             logs.append(
                 {
                     "LogID": row.LogID,
-                    "Timestamp": row.Timestamp,
+                    # Emit ISO-8601 explicitly so the client can pass it straight
+                    # to `new Date(...)`. Flask's default JSON encoder uses RFC 1123
+                    # which doesn't survive the +'Z' timezone-suffix hack.
+                    "Timestamp": row.Timestamp.isoformat() if row.Timestamp else None,
                     "Username": row.Username,
                     "HttpRequestMethod": row.HttpRequestMethod,
                     "Path": row.Path,
