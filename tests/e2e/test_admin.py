@@ -9,6 +9,10 @@ Route paths come from admin.register_routes: overview is /admin, user detail is
 /admin/users/<id>.
 """
 
+import json
+import re
+from urllib.parse import parse_qs, urlparse
+
 import pytest
 from playwright.sync_api import expect
 from sqlalchemy import text
@@ -229,3 +233,49 @@ class TestAdminLogs:
         _login_admin(page, nexora_server)
         page.goto(f"{nexora_server}/admin/logs")
         expect(page.locator('[data-testid="admin-logs-preset-24h"]')).to_be_visible()
+
+    def test_manual_date_edit_after_preset_wins_on_first_change(self, nexora_server, page):
+        """Regression: clicking "Last hour" sets a sub-day presetRangeOverride
+        that fetchLogs() prefers over the visible date inputs. A prior bug had
+        the override-clearing listener registered in a separate
+        DOMContentLoaded handler that fired AFTER wireLiveFilters()'s own
+        change listener already re-fetched with the stale override — so the
+        user's first manual date edit was silently discarded. Both must now
+        live in the same handler so the very first edit wins."""
+        _login_admin(page, nexora_server)
+
+        captured = []
+
+        def _capture(route):
+            qs = parse_qs(urlparse(route.request.url).query)
+            captured.append(qs)
+            route.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps({"logs": [], "page": 1, "pages": 1, "total": 0}),
+            )
+
+        page.route("**/api/admin/logs/search*", _capture)
+        page.goto(f"{nexora_server}/admin/logs")
+        expect(page.locator('[data-testid="admin-logs-filter-path"]')).to_be_visible()
+
+        before = len(captured)
+        preset_1h = page.locator('[data-testid="admin-logs-preset-1h"]')
+        preset_1h.click()
+        expect(preset_1h).to_have_class(re.compile(r"\bis-active\b"))
+        assert len(captured) > before
+        # The "Last hour" preset must have sent a precise datetime override,
+        # not a bare date, confirming it actually engaged presetRangeOverride.
+        assert " " in captured[-1]["start_date"][0]
+
+        before = len(captured)
+        start_input = page.locator('[data-testid="admin-logs-filter-start"]')
+        # fill() on a native <input type="date"> already dispatches its own
+        # change event — no need to dispatch one manually.
+        start_input.fill("2020-06-15")
+
+        assert len(captured) == before + 1, "manual date edit must trigger exactly one refetch"
+        assert captured[-1]["start_date"][0] == "2020-06-15", (
+            "the FIRST manual date edit after a preset must be honored immediately, "
+            "not silently discarded in favor of the stale preset override"
+        )

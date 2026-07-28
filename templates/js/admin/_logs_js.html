@@ -319,7 +319,7 @@
             textTimer = setTimeout(() => fetchLogs(1), 300);
         };
         const textIds = ['filterUser', 'filterPath'];
-        const instantIds = ['filterMethod', 'filterStatus', 'filterOrg', 'filterStart', 'filterEnd'];
+        const instantIds = ['filterMethod', 'filterStatus', 'filterOrg'];
         textIds.forEach(id => {
             const el = document.getElementById(id);
             if (el) el.addEventListener('input', debouncedFetch);
@@ -327,6 +327,20 @@
         instantIds.forEach(id => {
             const el = document.getElementById(id);
             if (el) el.addEventListener('change', () => fetchLogs(1));
+        });
+        // filterStart/filterEnd need the stale sub-day presetRangeOverride
+        // cleared in THIS SAME handler, before fetchLogs(1) reads it — a
+        // separate listener registered later (e.g. on DOMContentLoaded) would
+        // still fire after this one already fetched with the stale override,
+        // so the user's first manual date edit after a "Last hour" click
+        // would silently be discarded.
+        ['filterStart', 'filterEnd'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('change', () => {
+                document.querySelectorAll('.log-preset.is-active').forEach(b => b.classList.remove('is-active'));
+                presetRangeOverride = null;
+                fetchLogs(1);
+            });
         });
     })();
 
@@ -382,10 +396,7 @@
                 fetchLogs(1);
             });
         });
-
-        [startEl, endEl].forEach(el => el.addEventListener('change', () => {
-            presets.forEach(b => b.classList.remove('is-active'));
-            presetRangeOverride = null;
-        }));
+        // Manual-edit clearing of presetRangeOverride lives in wireLiveFilters()
+        // now, in the same handler that triggers the refetch — see comment there.
     });
 </script>
