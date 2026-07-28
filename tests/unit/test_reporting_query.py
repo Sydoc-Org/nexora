@@ -591,7 +591,8 @@ def test_avg_metric_base_projected_with_try_cast():
 
 
 def test_count_distinct_base_is_not_cast():
-    # Only sum/avg need numbers; count_distinct/min/max keep the raw column.
+    # count_distinct doesn't need numbers (sum/avg/min/max do); it keeps the
+    # raw column.
     rd = _rd(columns=[{"field": "doctype"}], filters=[], sort=[])
     resolved = [{"code": "d_status", "aggregation": "count_distinct", "base_field": "status"}]
     sql, _params = build_table_query(
@@ -599,3 +600,25 @@ def test_count_distinct_base_is_not_cast():
     )
     assert "TRY_CAST" not in sql
     assert "COUNT(DISTINCT [status]) AS [d_status]" in sql
+
+
+def test_min_metric_base_projected_with_try_cast():
+    # Without the cast, MIN/MAX on a varchar stat column compare
+    # lexicographically ("9" > "10" as strings) instead of numerically.
+    rd = _rd(columns=[], filters=[], sort=[])
+    resolved = [{"code": "min_pages", "aggregation": "min", "base_field": "pages"}]
+    sql, _params = build_table_query(
+        rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100, resolved_metrics=resolved
+    )
+    assert "TRY_CAST(PageCount AS float) AS [pages]" in sql
+    assert "MIN([pages]) AS [min_pages]" in sql
+
+
+def test_max_metric_base_projected_with_try_cast():
+    rd = _rd(columns=[], filters=[], sort=[])
+    resolved = [{"code": "max_pages", "aggregation": "max", "base_field": "pages"}]
+    sql, _params = build_table_query(
+        rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100, resolved_metrics=resolved
+    )
+    assert "TRY_CAST(PageCount AS float) AS [pages]" in sql
+    assert "MAX([pages]) AS [max_pages]" in sql
