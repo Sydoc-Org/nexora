@@ -208,10 +208,17 @@ def test_init_reset_password_too_short_renders_error(client):
     assert resp.status_code == 200
 
 
-def test_init_reset_password_db_failure_redirects_to_login(client):
+def test_init_reset_password_db_failure_renders_visible_error(client):
     """Task 41: init_reset_password's `except Exception: return` used to
     hand Flask a bare None -> 500. A DB error mid-request must now degrade
-    to a real redirect response instead of crashing."""
+    to a real response instead of crashing.
+
+    Phase-10 finding fix: Task 41 originally flash()ed the error and
+    redirected to /login, but index.html never renders flashed messages —
+    the user saw nothing there and the stale message resurfaced later on an
+    unrelated page. It must now render index.html directly with the error
+    visible in the response the user actually receives (login()'s own
+    error idiom)."""
     with client.session_transaction() as sess:
         sess["pre_auth_userid"] = "1001"
     with patch(
@@ -223,8 +230,10 @@ def test_init_reset_password_db_failure_redirects_to_login(client):
             data={"new-password": "NewPass1234!", "confirm-password": "NewPass1234!"},
             follow_redirects=False,
         )
-    assert resp.status_code == 302
-    assert "/login" in resp.headers.get("Location", "")
+    assert resp.status_code == 200
+    assert b"something went wrong" in resp.data.lower()
+    with client.session_transaction() as sess:
+        assert "_flashes" not in sess
 
 
 def test_reset_password_bad_token_redirects_home(client):
@@ -281,10 +290,18 @@ def test_set_new_password_no_session_redirects_to_login(client):
     assert "/login" in resp.headers.get("Location", "")
 
 
-def test_set_new_password_db_failure_redirects_to_login(client):
+def test_set_new_password_db_failure_renders_visible_error(client):
     """Task 41: set_new_password's `except Exception: return` used to hand
     Flask a bare None -> 500. A DB error mid-request must now degrade to a
-    real redirect response instead of crashing."""
+    real response instead of crashing.
+
+    Phase-10 finding fix: Task 41 originally flash()ed the error and
+    redirected to /login, but index.html never renders flashed messages --
+    the user saw nothing there and the stale message resurfaced later on an
+    unrelated page. It must now render index.html directly with the error
+    visible in the response the user actually receives. A DB failure is a
+    genuinely terminal exit (not a retry-able mistake), so the reset-session
+    capability is still dropped here -- unlike a validation-error retry."""
     with client.session_transaction() as sess:
         sess["email_for_password_reset"] = "admin@test.local"
     with patch(
@@ -296,10 +313,11 @@ def test_set_new_password_db_failure_redirects_to_login(client):
             data={"new-password": "NewPass1234!", "confirm-password": "NewPass1234!"},
             follow_redirects=False,
         )
-    assert resp.status_code == 302
-    assert "/login" in resp.headers.get("Location", "")
-    # The D-RESET capability must still be dropped on this failure exit too.
+    assert resp.status_code == 200
+    assert b"something went wrong" in resp.data.lower()
     with client.session_transaction() as sess:
+        assert "_flashes" not in sess
+        # The D-RESET capability must still be dropped on this failure exit.
         assert "email_for_password_reset" not in sess
 
 
@@ -455,11 +473,15 @@ def test_request_password_reset_rate_limit_eventually_429(client, reset_limiter)
     assert last_status in (200, 429)
 
 
-def test_reset_password_token_single_use_and_session_dropped(client):
-    """D-RESET: complete a full reset with a valid token, then replay the
-    SAME token URL -> it must be rejected, not silently accepted again.
-    Also confirms the session capability (email_for_password_reset) does
-    not survive set_new_password completing successfully."""
+def test_reset_password_get_twice_then_write_consumes_token(client):
+    """Phase-10 finding fix: rendering the reset-password GET link -- a
+    plain browser refresh/tab-restore/back-forward, or a link-scanning mail
+    gateway (Defender Safe Links, Proofpoint, Mimecast, ...) prefetching the
+    URL before the user ever clicks it -- must NOT consume the token; only a
+    SUCCESSFUL set_new_password() write does. GET the same link twice
+    (simulating that refresh/prefetch) and confirm it's still valid both
+    times, complete the reset, then confirm the token IS rejected on replay
+    only after that write, and the session capability is gone."""
     from nx_lib.db import engine_nexora_db
     from nx_lib.extensions import s
 
@@ -482,6 +504,15 @@ def test_reset_password_token_single_use_and_session_dropped(client):
         with client.session_transaction() as sess:
             assert sess.get("email_for_password_reset") == email
 
+        # Simulated refresh / tab-restore / mail-gateway prefetch: GET the
+        # exact same link again. It must still succeed -- not yet consumed
+        # just from being rendered -- rather than being rejected as an
+        # already-used token.
+        second_get = client.get(f"/reset_password/{token}")
+        assert second_get.status_code == 200
+        with client.session_transaction() as sess:
+            assert sess.get("email_for_password_reset") == email
+
         post_resp = client.post(
             "/set_new_password",
             data={"new-password": "ReplayGuard1!", "confirm-password": "ReplayGuard1!"},
@@ -494,8 +525,8 @@ def test_reset_password_token_single_use_and_session_dropped(client):
             assert "email_for_password_reset" not in sess
 
         # Replay of the exact same token URL must now be rejected (redirect
-        # home, same as an invalid/expired token) rather than re-rendering
-        # the reset form for reuse.
+        # home, same as an invalid/expired token) -- the successful WRITE is
+        # what consumed it, not either of the earlier renders.
         replay_resp = client.get(f"/reset_password/{token}", follow_redirects=False)
         assert replay_resp.status_code == 302
         assert replay_resp.headers.get("Location", "").endswith("/")
@@ -510,11 +541,13 @@ def test_reset_password_token_single_use_and_session_dropped(client):
         conn.close()
 
 
-def test_set_new_password_session_dropped_on_forced_failure(client):
-    """D-RESET: the session capability must be dropped on a FAILURE exit
-    too, not just the success path -- otherwise one bad submission (e.g. a
-    typo'd confirmation field) leaves "set a new password for this email"
-    usable for the rest of the session."""
+def test_set_new_password_mismatch_does_not_drop_session(client):
+    """Phase-10 finding fix: a validation-error re-render (mismatch, empty,
+    too short, password reuse) must NOT drop the session capability -- only
+    a terminal exit (success, or a hard failure) does. Popping it on every
+    render-with-error left a user who simply mistypes their confirmation
+    with no recovery path, forcing them to request an entirely new reset
+    email for a one-character typo."""
     with client.session_transaction() as sess:
         sess["email_for_password_reset"] = "admin@test.local"
 
@@ -525,7 +558,55 @@ def test_set_new_password_session_dropped_on_forced_failure(client):
     assert resp.status_code == 200
     assert b"do not match" in resp.data.lower()
     with client.session_transaction() as sess:
-        assert "email_for_password_reset" not in sess
+        assert sess.get("email_for_password_reset") == "admin@test.local"
+
+
+def test_set_new_password_mismatch_then_retry_with_same_token_succeeds(client):
+    """Phase-10 finding fix: prove the retry path actually works end to end
+    -- submit a mismatched confirmation (re-renders with an error), then
+    submit a correct confirmation using the SAME reset token/session, and
+    it succeeds. Only then is the session capability dropped."""
+    from nx_lib.db import engine_nexora_db
+    from nx_lib.extensions import s
+
+    email = "admin@test.local"
+    token = s.dumps(email, salt="password-reset-salt")
+
+    conn = engine_nexora_db.raw_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT password FROM Users WHERE Email = ?", email)
+    original_hash = cursor.fetchone()[0]
+    cursor.close()
+    conn.close()
+
+    try:
+        get_resp = client.get(f"/reset_password/{token}")
+        assert get_resp.status_code == 200
+
+        mismatch_resp = client.post(
+            "/set_new_password",
+            data={"new-password": "Mismatch123!", "confirm-password": "Different123!"},
+        )
+        assert mismatch_resp.status_code == 200
+        assert b"do not match" in mismatch_resp.data.lower()
+        with client.session_transaction() as sess:
+            assert sess.get("email_for_password_reset") == email
+
+        retry_resp = client.post(
+            "/set_new_password",
+            data={"new-password": "RetryWorks1!", "confirm-password": "RetryWorks1!"},
+        )
+        assert retry_resp.status_code == 200
+        assert b"password changed" in retry_resp.data.lower()
+        with client.session_transaction() as sess:
+            assert "email_for_password_reset" not in sess
+    finally:
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE Users SET password = ? WHERE Email = ?", (original_hash, email))
+        conn.commit()
+        cursor.close()
+        conn.close()
 
 
 def test_verify_2fa_rate_limit_eventually_429(client, reset_limiter):

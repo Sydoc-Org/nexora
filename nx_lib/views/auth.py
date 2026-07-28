@@ -444,8 +444,13 @@ def init_reset_password():
         return redirect(url_for("login"))
     except Exception as e:
         current_app.logger.error(f"Password reset (init) failed: {e}")
-        flash(_("Something went wrong, please try again"), "error")
-        return redirect(url_for("login"))
+        # Task 41 originally flash()ed this and redirected to /login, but
+        # index.html (the login template) never renders flashed messages --
+        # the user saw nothing here and the message resurfaced later on an
+        # unrelated page that does render flashes. login()'s own error path
+        # uses render_template("index.html", error=...); match that idiom so
+        # the message is visible on the page the user actually lands on.
+        return render_template("index.html", error=_("Something went wrong, please try again"))
 
 
 def dev_login(username):
@@ -573,6 +578,12 @@ def set_new_password():
         email_for_password_reset = session["email_for_password_reset"]
         new_password = request.form["new-password"]
         confirm_password = request.form["confirm-password"]
+        # D-RESET / retry fix: these are validation-error branches (typo'd
+        # confirmation, empty fields, too short, password reuse) -- re-render
+        # the form with an error and fall straight through WITHOUT popping
+        # the session capability below, so the user can correct the mistake
+        # and resubmit with the same still-valid token. Only a terminal exit
+        # (success, or the except branch's hard failure) pops it.
         if new_password != confirm_password:
             return render_template("reset_password.html", error=_("Passwords do not match"))
         if not new_password or not confirm_password:
@@ -615,19 +626,31 @@ def set_new_password():
         )
         conn.commit()
 
+        # D-RESET: the reset token is only marked single-use-spent -- and the
+        # "I may set a new password for this email" session capability only
+        # dropped -- on a genuinely successful write. Rendering the GET link
+        # (reset_password()) no longer consumes it (a refresh, tab-restore,
+        # or a mail-gateway link scanner prefetching the URL must not burn
+        # it), and a validation-error retry above leaves both intact too.
+        token_cache_key = session.get("password_reset_token_key")
+        if token_cache_key:
+            cache.set(token_cache_key, True, timeout=RESET_TOKEN_MAX_AGE)
+        session.pop("email_for_password_reset", None)
+        session.pop("password_reset_token_key", None)
+
         return render_template("reset_password.html", message=_("Password changed"))
     except Exception as e:
         current_app.logger.error(f"Password reset (set new password) failed: {e}")
-        flash(_("Something went wrong, please try again"), "error")
-        return redirect(url_for("login"))
-    finally:
-        # D-RESET: the "I may set a new password for this email" capability
-        # must not outlive a single attempt at this route -- pop it on
-        # EVERY exit (success, validation-error render, or the except
-        # above), not just the happy path. Without this a session that once
-        # visited a valid reset link could call this route again at any
-        # later point for the rest of the session.
+        # Terminal failure (DB error, missing/garbled user row, ...) -- not a
+        # simple retry-able mistake, so the capability is dropped and the
+        # user must request a fresh reset link.
         session.pop("email_for_password_reset", None)
+        session.pop("password_reset_token_key", None)
+        # Task 41 originally flash()ed this and redirected to /login, but
+        # index.html never renders flashed messages -- see the matching note
+        # in init_reset_password's except branch above.
+        return render_template("index.html", error=_("Something went wrong, please try again"))
+    finally:
         if cursor:
             cursor.close()
         if conn:
@@ -652,21 +675,31 @@ def reset_password(token):
     try:
         email = s.loads(token, salt="password-reset-salt", max_age=RESET_TOKEN_MAX_AGE)
 
-        # Single-use enforcement: a signed token is otherwise replayable for
-        # its entire max_age window, so completing (or abandoning) a reset
-        # never invalidates the link. NOTE: `cache` (Flask-Caching
-        # SimpleCache) is an in-process dict -- under wfastcgi's
-        # multi-worker deployment each worker process has its own cache, so
-        # a token consumed on worker A is still unseen as "used" by worker
-        # B. This makes single-use best-effort ACROSS WORKERS, not
+        # Single-use enforcement: reject a token already spent by a prior
+        # SUCCESSFUL password write (set_new_password() is what actually
+        # marks the cache key -- see there). Rendering this GET route itself
+        # must stay side-effect-free w.r.t. the token: a plain browser
+        # refresh/tab-restore/back-forward, or a link-scanning mail gateway
+        # (Defender Safe Links, Proofpoint, Mimecast, ...) prefetching the
+        # URL before the user ever clicks it, would otherwise burn the link
+        # pre-emptively and strand the user with no explanation. NOTE:
+        # `cache` (Flask-Caching SimpleCache) is an in-process dict -- under
+        # wfastcgi's multi-worker deployment each worker process has its own
+        # cache, so a token consumed on worker A is still unseen as "used"
+        # by worker B. This makes single-use best-effort ACROSS WORKERS, not
         # perfectly atomic. Accepted per the plan's D-RESET decision -- not
         # a gap to fix further here.
         cache_key = _reset_token_cache_key(token)
         if cache.get(cache_key):
             return redirect(url_for("index"))
-        cache.set(cache_key, True, timeout=RESET_TOKEN_MAX_AGE)
 
         session["email_for_password_reset"] = email
+        # Carried through to set_new_password() so a successful write can
+        # mark this exact token consumed -- see the cache.set() call there.
+        # This is the SHA-256 cache key, not the raw bearer token, so it's
+        # safe to persist (matches _reset_token_cache_key()'s non-reversible
+        # intent).
+        session["password_reset_token_key"] = cache_key
         return render_template("reset_password.html")
     except Exception:
         return redirect(url_for("index"))
