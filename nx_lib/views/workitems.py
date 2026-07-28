@@ -1033,6 +1033,14 @@ def export_workitems_csv():
             if _include_fields or _include_images:
                 try:
                     urls, extensions = [], []
+                    # Read-through only: this path never fetches with
+                    # with_tables=True (see get_extensions_urls_fields), so its
+                    # payload lacks field_sources/table_sources. Writing that
+                    # reduced shape under the media_info key would poison the
+                    # next api_get_media_info request for this workitem --
+                    # the source-highlight overlay would go silently empty. A
+                    # cache hit (populated by the detail panel) still short-
+                    # circuits the Octo call; a miss is simply not cached here.
                     cached = cache.get(_wi_cache_key("media_info", wid, domain))
                     if cached:
                         detail["fields"] = cached.get("fields", {})
@@ -1044,10 +1052,6 @@ def export_workitems_csv():
                                 workitemdata, document_id, domain
                             )
                             detail["fields"] = fields
-                            cache.set(
-                                _wi_cache_key("media_info", wid, domain),
-                                {"fields": fields, "media_count": len(urls)},
-                            )
                             if urls:
                                 cache.set(
                                     _wi_cache_key("media_data", wid, domain),

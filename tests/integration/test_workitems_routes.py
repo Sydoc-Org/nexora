@@ -1050,6 +1050,82 @@ def test_api_get_media_info_authed_unknown_id(user_client):
     assert resp.status_code in (200, 401, 403, 404, 500)
 
 
+def test_csv_export_does_not_poison_media_info_cache(user_client, workitems_all_perms, monkeypatch):
+    """Task 60 regression: the export _fetch helper used to cache
+    {"fields": ..., "media_count": ...} under the SAME media_info cache key
+    api_get_media_info serves, but built without with_tables=True -- so the
+    very next detail-panel request for that workitem got served the export's
+    reduced payload and the source-highlight overlay (field_sources/
+    table_sources) went silently empty. The export path must be read-through
+    only: it may reuse an existing media_info cache entry, but must never
+    write a reduced one itself."""
+    import nx_lib.views.workitems as wv
+
+    fake_cache = _FakeCache()
+    monkeypatch.setattr(wv, "cache", fake_cache)
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+
+    wid = 92001
+    rows = [
+        {
+            "workitemid": wid,
+            "client": "default",
+            "status": "Open",
+            "current_stage": "Stage A",
+            "priority": 1,
+            "tags": [],
+            "modifiedat": None,
+        }
+    ]
+    monkeypatch.setattr(
+        wv,
+        "_get_workitems_data",
+        lambda args, export_all=False: {
+            "workitems": rows,
+            "pagination": {"totalItems": len(rows)},
+        },
+    )
+    monkeypatch.setattr(
+        wv, "get_domain_for_workitem", lambda wid, client_hint=None: "d.example.com"
+    )
+    monkeypatch.setattr(
+        wv, "get_workitemdata_param", lambda wid, domain: (f"wdata-{wid}", f"doc-{wid}")
+    )
+
+    def fake_get_extensions_urls_fields(workitemdata, document_id, domain, with_tables=False):
+        # Mirrors real Octo behavior (nx_lib/octo.py get_extensions_urls_fields):
+        # field_sources are always computed; table_sources only when
+        # with_tables=True. The export path never passes with_tables=True.
+        field_sources = [{"key": "Amount", "value": "42", "locations": []}]
+        table_sources = [{"rows": []}] if with_tables else []
+        return [], [], {"Amount": "42"}, field_sources, table_sources
+
+    monkeypatch.setattr(wv, "get_extensions_urls_fields", fake_get_extensions_urls_fields)
+
+    export_resp = user_client.get(f"/api/export/workitems/csv?include=fields&ids=default-{wid}")
+    assert export_resp.status_code == 200
+    body = export_resp.get_data(as_text=True)
+    assert "Amount" in body, f"sanity check: export should have fetched fields; got {body!r}"
+
+    # The export must not have written anything to the shared media_info slot.
+    ck = wv._wi_cache_key("media_info", wid, "d.example.com")
+    assert fake_cache.get(ck) is None, (
+        "export path wrote to the shared media_info cache key -- it must be " "read-through only"
+    )
+
+    detail_resp = user_client.get(f"/api/get_media_info/{wid}?client=default")
+    assert detail_resp.status_code == 200
+    payload = detail_resp.get_json()
+    assert payload.get("field_sources"), (
+        f"detail panel lost field_sources after an export ran first for the same "
+        f"workitem; got payload={payload!r}"
+    )
+    assert payload.get("table_sources") == [{"rows": []}], (
+        f"detail panel should compute its own full with_tables=True payload, "
+        f"not reuse anything the export cached; got payload={payload!r}"
+    )
+
+
 def test_strip_sensitive_from_detail_removes_fields_and_sources():
     from nx_lib.views.workitems import strip_sensitive_from_detail
 
