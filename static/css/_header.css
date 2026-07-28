@@ -353,6 +353,12 @@ html.dark .text-gray-600    { color: #94a3b8 !important; }
 html.dark .text-gray-500    { color: #64748b !important; }
 html.dark .text-gray-400    { color: #475569 !important; }
 
+/* The ramp above keeps dim text dim, which is right for most of it but leaves
+   the build stamp at 3.06:1 on the #1e293b menu -- under the 4.5:1 AA floor for
+   12px text. Higher specificity than `html.dark .text-gray-500` so it wins
+   regardless of source order. */
+html.dark p[data-testid="header-version"] { color: #94a3b8 !important; }
+
 /* Borders */
 html.dark .border-gray-100  { border-color: #334155 !important; }
 html.dark .border-gray-200  { border-color: #334155 !important; }

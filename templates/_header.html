@@ -200,6 +200,12 @@
                         class="flex items-center gap-2 px-3 py-2 text-sm text-red-600 rounded-md hover:bg-red-50 transition-colors" data-testid="header-logout-link">
                         <i class="fas fa-sign-out-alt w-4"></i> {{ _("Sign out") }}
                     </a>
+                    {# Reporting, admin and prepared-documents have no footer, so this
+                       is the only place the running build is visible on those pages. #}
+                    <div class="my-1 border-t border-gray-100"></div>
+                    <p class="px-3 py-1 text-xs leading-tight text-gray-500" data-testid="header-version">
+                        nexora {{ nexora_version }}{% if nexora_build %}<br>{{ nexora_build }}{% endif %}
+                    </p>
                 </el-menu>
             </el-dropdown>
 

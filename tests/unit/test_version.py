@@ -47,6 +47,14 @@ def test_build_stamp_is_empty_without_generated_module():
     assert BUILD_STAMP == ""
 
 
+def test_header_renders_version_on_footerless_pages():
+    # reporting/, admin/ and prepared_documents never include _small_footer.html,
+    # so the profile dropdown is the only place the build shows on those pages.
+    tpl = (REPO_ROOT / "templates" / "_header.html").read_text(encoding="utf-8")
+    assert "{{ nexora_version }}" in tpl
+    assert "{% if nexora_build %}" in tpl
+
+
 def test_footer_renders_build_stamp_only_when_present():
     tpl = (REPO_ROOT / "templates" / "_nexora_version.html").read_text(encoding="utf-8")
     assert "{% if nexora_build %}" in tpl

@@ -27,6 +27,16 @@ Work toward 2.5.65.
   the permission the value is not mapped at all, so the query keeps its
   `Status <> 2`. The dashboard's recent-workitems tiles stay filtered.
 
+- Header: the **version and build stamp in the profile dropdown** (#113). The
+  footer partial is the only place either was rendered, and 12 page templates
+  never include it — reporting (3), all 7 admin pages, `prepared_documents`,
+  `maintenance` and `jd/jdvance` — so the newest and most-used surfaces showed
+  no version at all. `templates/_header.html` now closes the profile menu with
+  it, covering every page that has a sidebar. `_header.css` opts the stamp out
+  of the dark-mode gray ramp: `text-gray-400` remaps to `#475569`, which is
+  1.95:1 on the `#1e293b` menu, so 12px text was effectively invisible. Now
+  4.83:1 in light and 5.71:1 in dark, both above the 4.5:1 AA floor.
+
 - Footer: a **deploy build stamp** next to the version (#113) — the footer read
   `nexora 2.5.65` whether or not a deploy had actually landed, so a mirror that
   silently failed looked identical to a successful one. `.github/workflows/deploy.yml`
