@@ -100,7 +100,8 @@
     groupTime: {{ _("Time")|tojson }},
     groupFields: {{ _("Document fields")|tojson }},
     groupOr: {{ _("Or")|tojson }},
-    pickedCount: {{ _("{n} of 3 picked")|tojson }}
+    pickedCount: {{ _("{n} of 3 picked")|tojson }},
+    aiChip: {{ _("AI")|tojson }}
   };
 
   // Wizard category-dimension curation (docprocessing only). Process first
@@ -1391,7 +1392,7 @@
       box.classList.remove('rp-caption--loading');
       var chip = document.createElement('span');
       chip.className = 'rp-caption-chip';
-      chip.textContent = 'AI';
+      chip.textContent = I18N.aiChip;
       box.appendChild(chip);
       box.appendChild(document.createTextNode(' ' + data.caption));
     }).catch(function () {

@@ -421,7 +421,7 @@
       box.classList.remove('rp-caption--loading');
       var chip = document.createElement('span');
       chip.className = 'rp-caption-chip';
-      chip.textContent = 'AI';
+      chip.textContent = I18N_AI_CHIP;
       box.appendChild(chip);
       box.appendChild(document.createTextNode(' ' + data.caption));
     }).catch(function () {
@@ -497,6 +497,7 @@
   var I18N_KPI_TOTAL = {{ _("Total")|tojson }};
   var I18N_KPI_BUCKETS = {{ _("Buckets")|tojson }};
   var I18N_KPI_AVG = {{ _("Avg per bucket")|tojson }};
+  var I18N_AI_CHIP = {{ _("AI")|tojson }};
 
   // ----- Drill-through (Advanced: chart clicks + grid rows) -----
   // Mirrors _reporting_simple_js.html's metricAggFor/clickedFor/openDrill/
