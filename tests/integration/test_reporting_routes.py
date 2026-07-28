@@ -288,6 +288,70 @@ def test_share_with_self_400(admin_client):
         admin_client.delete(f"/api/reporting/reports/{rid}")
 
 
+# --- Task 57: one malformed saved definition must not 500 the whole library ---
+
+
+def test_reports_list_survives_malformed_columns_row(admin_client):
+    """A saved definition with a non-dict first column (cols[0]) must not
+    500 the whole library listing for every user - _preview_kind falls back
+    to a safe default kind for that row instead of raising.
+    """
+    good_rid = _create_report(admin_client, name="Good Def")
+    bad_resp = admin_client.post(
+        "/api/reporting/reports",
+        json={
+            "name": "Corrupt Def",
+            "definition": {"kind": "table", "columns": ["not-a-dict"]},
+        },
+    )
+    assert bad_resp.status_code == 200, bad_resp.data
+    bad_rid = bad_resp.get_json()["id"]
+    try:
+        resp = admin_client.get("/api/reporting/reports")
+        assert resp.status_code == 200
+        by_id = {row["id"]: row for row in resp.get_json()}
+        assert good_rid in by_id
+        # The corrupt row survives with a safe fallback previewKind rather
+        # than raising and taking the whole listing down with it.
+        assert bad_rid in by_id
+        assert by_id[bad_rid]["previewKind"] == "bar"
+    finally:
+        admin_client.delete(f"/api/reporting/reports/{good_rid}")
+        admin_client.delete(f"/api/reporting/reports/{bad_rid}")
+
+
+def test_reports_list_skips_row_when_preview_kind_still_raises(admin_client):
+    """Defense-in-depth: even if some other unexpected shape slips past
+    _preview_kind's internal guard, the per-row loop in api_reports_list
+    must skip just that row (and log it) rather than 500 the whole library.
+    """
+    good_rid = _create_report(admin_client, name="Good Def 2")
+    boom_resp = admin_client.post(
+        "/api/reporting/reports",
+        json={"name": "Boom Def", "definition": {"kind": "table", "marker": "boom"}},
+    )
+    assert boom_resp.status_code == 200, boom_resp.data
+    boom_rid = boom_resp.get_json()["id"]
+
+    from nx_lib.views.reporting import _preview_kind as real_preview_kind
+
+    def _boom_preview_kind(defn):
+        if isinstance(defn, dict) and defn.get("marker") == "boom":
+            raise RuntimeError("simulated unexpected shape")
+        return real_preview_kind(defn)
+
+    try:
+        with patch("nx_lib.views.reporting._preview_kind", side_effect=_boom_preview_kind):
+            resp = admin_client.get("/api/reporting/reports")
+        assert resp.status_code == 200
+        ids = {row["id"] for row in resp.get_json()}
+        assert good_rid in ids
+        assert boom_rid not in ids
+    finally:
+        admin_client.delete(f"/api/reporting/reports/{good_rid}")
+        admin_client.delete(f"/api/reporting/reports/{boom_rid}")
+
+
 def test_shares_endpoints_without_perm_403(user_client):
     assert user_client.get("/api/reporting/reports/1/shares").status_code == 403
     assert (

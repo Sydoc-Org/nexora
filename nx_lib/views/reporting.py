@@ -1751,12 +1751,25 @@ def _preview_kind(defn):
     exactly: no breakdown columns -> 'total'; a grain or a date-ish field name
     on the first column -> 'line'; a pie/donut visualization -> 'donut';
     otherwise -> 'bar'.
+
+    Saved definitions come from a JSON blob a caller wrote through the report
+    editor API, which only checks the top level is a dict (see
+    api_reports_create). Anything under 'columns' can be malformed (a corrupt
+    row, a hand-edited DB value, a future schema change) so every access below
+    is type-guarded — malformed shape falls back to a sensible default kind
+    instead of raising and taking the whole library listing down with it.
     """
+    if not isinstance(defn, dict):
+        return "bar"
     cols = defn.get("columns") or []
-    if not cols:
+    if not isinstance(cols, list) or not cols:
         return "total"
-    first = cols[0] or {}
+    first = cols[0]
+    if not isinstance(first, dict):
+        return "bar"
     field = first.get("field") or ""
+    if not isinstance(field, str):
+        field = ""
     if first.get("grain") or re.search(r"date", field, re.I):
         return "line"
     if defn.get("visualization") in ("pie", "donut"):
@@ -1800,19 +1813,30 @@ def api_reports_list():
                 defn = json.loads(r.DefinitionJSON or "{}")
             except (TypeError, ValueError):
                 defn = {}
-            rows.append(
-                {
-                    "id": r.ReportID,
-                    "name": r.Name,
-                    "updatedAt": str(r.UpdatedAt),
-                    "kind": r.Kind or "table",
-                    "visibility": r.Visibility,
-                    "owned": bool(r.Owned),
-                    "canEdit": bool(r.CanEdit),
-                    "ownerName": r.OwnerName,
-                    "previewKind": _preview_kind(defn),
-                }
-            )
+            # Defense-in-depth: _preview_kind type-guards known malformed
+            # shapes internally, but one corrupt saved definition must never
+            # be able to 500 the whole library for every user, so a row that
+            # still fails to serialize for any other reason is skipped and
+            # logged rather than propagating up to the route-level except.
+            try:
+                rows.append(
+                    {
+                        "id": r.ReportID,
+                        "name": r.Name,
+                        "updatedAt": str(r.UpdatedAt),
+                        "kind": r.Kind or "table",
+                        "visibility": r.Visibility,
+                        "owned": bool(r.Owned),
+                        "canEdit": bool(r.CanEdit),
+                        "ownerName": r.OwnerName,
+                        "previewKind": _preview_kind(defn),
+                    }
+                )
+            except Exception as row_err:
+                current_app.logger.warning(
+                    f"/api/reporting/reports list: skipping malformed report "
+                    f"{r.ReportID}: {row_err}"
+                )
         return jsonify(rows)
     except Exception as e:
         current_app.logger.error(f"/api/reporting/reports list error: {e}")
