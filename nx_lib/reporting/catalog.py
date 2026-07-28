@@ -184,7 +184,17 @@ def fetch_docprocessing_catalog(allowed_processes, locale_str):
         if not cols:
             return build_catalog(meta_rows, label_rows, {}, lang_col=lang_col_for(locale_str))
         select_cols = ", ".join(cols)
-        cur.execute(f"SELECT ProcessName, {select_cols} FROM SearchConfig")
+        # Scope to the 'default' client only (same convention as the workitems
+        # doc-field search path, e.g. get_workitems_data's default docfield
+        # pre-fetch: `ClientCode = 'default'`). Without this filter, an 'ms02'
+        # SearchConfig row for a process that ALSO has a 'default' row (e.g.
+        # 'sydoc.05_PDBS') would contribute its columnar col_* mappings into
+        # this catalog too -- a field that only exists for MS02 would show up
+        # as "available" in the default docprocessing source's catalog, even
+        # though the default runner (StatisticsDB) can't resolve it.
+        cur.execute(
+            f"SELECT ProcessName, {select_cols} FROM SearchConfig WHERE ClientCode = 'default'"
+        )
         availability = {}
         allowed = set(allowed_processes)
         for row in cur.fetchall():
