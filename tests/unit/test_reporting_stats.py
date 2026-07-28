@@ -96,3 +96,11 @@ def test_top_n_descending():
 def test_missing_required_arg_raises():
     with pytest.raises(StatsError):
         compute_stats(COLS, ROWS, {"op": "percentiles"})  # no 'column'
+
+
+def test_group_by_numeric_key_with_nulls_sorts_without_typeerror():
+    cols = ["qty", "amount"]
+    rows = [[None, 1], [3, 2], [1, 3]]
+    out = compute_stats(cols, rows, {"op": "group_by", "by": ["qty"], "agg": {"amount": ["sum"]}})
+    groups = [r["group"][0] for r in out["result"]]
+    assert groups == [1, 3, None]
