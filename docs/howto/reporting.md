@@ -893,10 +893,19 @@ on `reporting.ai.explain_data` **and** `reporting.sql.run` together — see
 
 ### Auto captions
 
-After **any** successful run on either tab, the result view fires
-`POST /api/reporting/ai/caption` in the background with the columns and (up to
-50) rows just rendered, and — if it returns a caption — shows a small "shimmer
-in" 1–2 sentence narration under the chart/KPI band, prefixed with an **AI**
+Route: `POST /api/reporting/ai/caption` — accepts
+`{"columns": [...], "rows": [...], "title": "...", "dateLabel": "..."}` and
+returns `{"caption": "..."}`.
+
+The **trigger point differs per tab**: the Simple tab fires this after
+**every** successful run render; the Advanced tab fires it only on **chart
+mount** (switching to the Chart view) — not on every grid run — so re-running
+a report while sitting in Grid view does not itself request a new caption
+(see `resetViews()`/`fireCaption()` in `_reporting_js.html` vs. the end of
+`runCurrent()` in `_reporting_simple_js.html`). Either way, the request goes
+out in the background with the columns and (up to 50) rows just rendered,
+and — if it returns a caption — the result view shows a small "shimmer in"
+1–2 sentence narration under the chart/KPI band, prefixed with an **AI**
 chip. Unlike the chat panel's schema-only default, this endpoint's whole
 purpose is to send the rows already on screen to the model, so it is gated by
 `reporting.ai.explain_data` **alone** — deliberately **not** also requiring

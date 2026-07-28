@@ -435,6 +435,12 @@
     state._chartMounted = false;
     state._pivotMounted = false;
     document.getElementById('rpViewToggle').hidden = !hasData;
+    // A prior run's caption only ever fires on chart mount, but it must not
+    // linger once a NEW run lands — whether that run's grid has data, is
+    // empty, or the user never revisits the Chart view. Guarded: the box
+    // only exists in the DOM for a reporting.ai.explain_data holder.
+    var rpCaptionBox = document.getElementById('rpCaption');
+    if (rpCaptionBox) { rpCaptionBox.hidden = true; rpCaptionBox.textContent = ''; }
     setView('grid');
   }
 

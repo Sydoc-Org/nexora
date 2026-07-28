@@ -458,24 +458,13 @@
 }
 
 /* --- AI assistant panel (Phase 1) --- */
-.reporting-ai-panel { padding: .75rem; border: 1px solid var(--nx-border); border-radius: 6px; margin-bottom: .5rem; }
-.reporting-ai-bar { display: flex; gap: .5rem; }
-.reporting-ai-prompt { flex: 1; padding: .4rem .6rem; }
 .reporting-ai-hint { font-size: .8rem; color: var(--nx-text-sec); margin: .4rem 0 0; }
-.reporting-ai-result { margin-top: .6rem; }
 .reporting-ai-sql { background: var(--nx-sunken); padding: .6rem; border-radius: 6px; white-space: pre-wrap; overflow-x: auto; }
 .reporting-ai-explain { font-size: .85rem; color: var(--nx-text); }
-.reporting-ai-invalid { color: var(--nx-warning); font-size: .85rem; }
 .reporting-ai-error { color: var(--nx-danger); font-size: .85rem; }
-.reporting-ai-actions { display: flex; gap: .5rem; align-items: center; margin-top: .4rem; }
 /* Motion entrance hook: hidden only when animations are on (mirrors .rp-anim cols) */
 .rp-anim .rp-anim-ai:not([hidden]) { opacity: 0; }
 @media (prefers-reduced-motion: reduce) { .rp-anim .rp-anim-ai:not([hidden]) { opacity: 1; } }
-
-/* --- AI assistant: Surface-A sub-mode (Phase 2) --- */
-.reporting-ai-submode { display: flex; gap: .25rem; margin-bottom: .5rem; }
-.reporting-ai-submode button { padding: .25rem .6rem; border: 1px solid var(--nx-border); background: var(--nx-card); border-radius: 6px; cursor: pointer; }
-.reporting-ai-submode button.active { background: #eef2ff; border-color: #c7d2fe; font-weight: 600; }
 
 /* ============================================================
    nexora-ui HARMONIZATION (appended last → overrides the page's
@@ -543,10 +532,9 @@ body.nx-app {
 .reporting-link { color: var(--nx-accent); }
 .reporting-link:hover { color: var(--nx-accent-hover); text-decoration: underline; }
 
-/* Mode + view + sub-mode toggles share the active brand gradient */
+/* Mode + view toggles share the active brand gradient */
 .reporting-mode-toggle button,
-.reporting-view-toggle button,
-.reporting-ai-submode button {
+.reporting-view-toggle button {
   background: var(--nx-card);
   color: var(--nx-text-sec);
   border: 1px solid var(--nx-border);
@@ -555,19 +543,12 @@ body.nx-app {
   transition: background var(--nx-dur) var(--nx-ease), color var(--nx-dur) var(--nx-ease);
 }
 .reporting-mode-toggle button:hover:not([disabled]):not(.active),
-.reporting-view-toggle button:hover:not(.active),
-.reporting-ai-submode button:hover:not(.active) { background: var(--nx-accent-tint); }
+.reporting-view-toggle button:hover:not(.active) { background: var(--nx-accent-tint); }
 .reporting-mode-toggle button.active,
 .reporting-view-toggle button.active {
   background: var(--nx-brand-grad);
   color: #fff;
   border-color: transparent;
-}
-.reporting-ai-submode button.active {
-  background: var(--nx-accent-tint);
-  border-color: var(--nx-accent-soft);
-  color: var(--nx-accent);
-  font-weight: 600;
 }
 
 /* Inputs / selects / textareas */
@@ -580,8 +561,7 @@ body.nx-app {
 .reporting-filter-row select,
 .reporting-filter-row input,
 .reporting-viz-bar select,
-.reporting-sql-editor,
-.reporting-ai-prompt {
+.reporting-sql-editor {
   background: var(--nx-card);
   color: var(--nx-text);
   border: 1px solid var(--nx-border);
@@ -591,7 +571,6 @@ body.nx-app {
 .reporting-title-input:focus,
 #rpSource:focus,
 .reporting-sql-editor:focus,
-.reporting-ai-prompt:focus,
 .reporting-saved select:focus,
 .reporting-viz-bar select:focus {
   outline: none;
@@ -649,31 +628,12 @@ body.nx-app {
 }
 
 /* AI panel chrome */
-.reporting-ai-panel {
-  border: 1px solid var(--nx-border);
-  border-radius: var(--nx-radius);
-  background: var(--nx-alt);
-}
 .reporting-ai-hint { color: var(--nx-text-sec); }
 .reporting-ai-sql { background: var(--nx-sunken); color: var(--nx-text); border: 1px solid var(--nx-border); }
 .reporting-ai-explain { color: var(--nx-text); }
-.reporting-ai-invalid { color: var(--nx-warning); }
 .reporting-ai-error { color: var(--nx-danger); }
 
 /* --- Agent (Surface C) thread + tool-step trace --- */
-.reporting-ai-thread { display: flex; flex-direction: column; gap: .5rem; }
-.reporting-ai-turn {
-  border: 1px solid var(--nx-border);
-  border-radius: var(--nx-radius-sm);
-  padding: .5rem .6rem;
-  background: var(--nx-card);
-}
-.reporting-ai-q { margin: 0 0 .25rem; font-size: .85rem; color: var(--nx-text-sec); }
-.reporting-ai-q-badge {
-  display: inline-block; margin-right: .4rem; padding: 0 .4rem;
-  border-radius: var(--nx-radius-pill); font-size: .7rem; font-weight: 600;
-  background: var(--nx-accent-tint); color: var(--nx-accent);
-}
 .reporting-ai-a { margin: 0; font-size: .9rem; color: var(--nx-text); white-space: pre-wrap; }
 .reporting-ai-trace-wrap { margin-top: .5rem; }
 .reporting-ai-trace-summary {
@@ -924,43 +884,10 @@ body.nx-app {
 .reporting-table tbody tr:hover { background: var(--nx-alt); }
 .reporting-table tbody tr:last-child td { border-bottom: none; }
 
-/* --- AI panel: a touch more padding so it doesn't feel cramped --- */
-.reporting-ai-panel { padding: 14px 16px; }
-.reporting-ai-bar { gap: 8px; }
-.reporting-ai-prompt { padding: 8px 12px; }
-
 /* SQL / Ask-AI modes hide both sidebars (JS adds .reporting-main--single):
    collapse to one full-width column so the editor/assistant gets the room
    instead of being squeezed into the 260px builder track. */
 .reporting-main--single { grid-template-columns: 1fr; }
-
-/* AI sub-mode switch (Build a report / Write SQL / Agent) → segmented control,
-   matching the main mode toggle (was wrapping into a broken vertical stack). */
-.reporting-ai-submode {
-  display: inline-flex;
-  gap: 3px; padding: 3px;
-  background: var(--nx-sunken);
-  border: 1px solid var(--nx-border);
-  border-radius: var(--nx-radius-sm);
-  margin-bottom: 12px;
-}
-.reporting-ai-submode button {
-  border: 1px solid transparent;
-  background: transparent;
-  border-radius: calc(var(--nx-radius-sm) - 2px);
-  padding: 6px 14px;
-  font-size: 13px; font-weight: 500;
-  white-space: nowrap;
-  color: var(--nx-text-sec);
-}
-.reporting-ai-submode button.active {
-  background: var(--nx-card);
-  color: var(--nx-accent);
-  border-color: transparent;
-  box-shadow: var(--nx-shadow);
-  font-weight: 600;
-}
-.reporting-ai-result { max-width: 760px; }
 
 @media (max-width: 1100px) {
   .reporting-actions { margin-left: 0; }
@@ -1286,10 +1213,6 @@ body.nx-app {
   background: var(--nx-accent);
   color: #fff;
 }
-
-/* Refine bar (Simple pane, F2-T4) */
-.reporting-simple-refine { display: flex; gap: .5rem; margin: .4rem 0 .6rem; }
-.reporting-simple-refine .reporting-input { flex: 1; }
 
 /* Editable AI filter/process chips (Simple pane, F2-T5) */
 .reporting-simple-chips { display: flex; flex-wrap: wrap; gap: .4rem; margin: .2rem 0 .6rem; }
@@ -1923,30 +1846,16 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   background: var(--nx-accent-tint);
 }
 
-/* --- AI panels (Ask-AI bar, Agent thread trace, SQL draft): same canvas
-   + hairline treatment, tabular-nums metadata on badges/step labels. Chrome
-   only — submode buttons, prompt bar and result wiring keep their structure
-   and testids. --- */
-.reporting-ledger .reporting-ai-panel {
-  background: var(--rl-band);
-  border-color: var(--rl-hairline);
-}
-.reporting-ledger .reporting-ai-turn {
-  background: var(--rl-band);
-  border-color: var(--rl-hairline);
-}
+/* --- AI panels (Agent thread trace, SQL draft): same canvas + hairline
+   treatment, tabular-nums metadata on badges/step labels. Chrome only —
+   result wiring keeps its structure and testids. --- */
 .reporting-ledger .reporting-ai-sql {
   background: var(--rl-canvas);
   border-color: var(--rl-hairline);
 }
 .reporting-ledger .reporting-ai-step-name,
-.reporting-ledger .reporting-ai-step-meta,
-.reporting-ledger .reporting-ai-q-badge {
+.reporting-ledger .reporting-ai-step-meta {
   font-variant-numeric: tabular-nums;
-}
-.reporting-ledger .reporting-ai-panel,
-.reporting-ledger .reporting-ai-turn {
-  border-radius: 0;
 }
 
 /* ---- Landing hero (spec §Landing) ---- */

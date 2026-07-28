@@ -267,3 +267,52 @@ def test_advanced_caption_absent_without_explain_data_permission(nexora_server, 
     page.get_by_test_id("reporting-view-chart").click()
     expect(page.locator('[data-testid="reporting-chart"] canvas')).to_be_visible()
     expect(page.locator("#rpCaption")).to_have_count(0)
+
+
+@pytest.mark.flaky_e2e
+def test_advanced_caption_does_not_survive_a_new_run(nexora_server, page):
+    """A caption from report A's chart-mount must not linger visible once
+    report B's grid renders. Before the fix, resetViews() (called by every
+    renderResults()) reset the chart/pivot mount flags and the view-toggle
+    visibility but never touched #rpCaption -- only fireCaption() itself ever
+    cleared it, and that only fires again on a NEW chart mount. So a plain
+    re-run left the previous report's caption sentence sitting under the new
+    report's numbers until the user happened to revisit the Chart view."""
+    _login(page, nexora_server)
+    _stub_advanced_run_and_caption(page, caption="Client A drives most of the totals.")
+    page.get_by_test_id("reporting-run").click()
+    expect(page.get_by_test_id("reporting-view-chart")).to_be_visible()
+    page.get_by_test_id("reporting-view-chart").click()
+    caption = page.locator("#rpCaption")
+    expect(caption).to_be_visible()
+    expect(caption).to_contain_text("Client A drives most of the totals.")
+
+    # Re-stub /api/reporting/run for a second, different run (report B) --
+    # the route stub must exist before the click that triggers the request
+    # (the established e2e flake trap in this codebase).
+    def _run_handler_b(route):
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [
+                        {"field": "client", "header": "Client"},
+                        {"field": "pages", "header": "Pages"},
+                    ],
+                    "rows": [["C", 1]],
+                    "truncated": False,
+                    "rowCount": 1,
+                    "sql": None,
+                    "params": [],
+                    "resolvedDates": [],
+                }
+            ),
+        )
+
+    page.route("**/api/reporting/run", _run_handler_b)
+    page.get_by_test_id("reporting-run").click()
+    expect(page.get_by_test_id("reporting-view-grid")).to_be_visible()
+    # Report B's grid is showing -- A's stale caption must not still be
+    # visible, even though B hasn't been switched to Chart view (yet).
+    expect(page.locator("#rpCaption")).to_be_hidden()

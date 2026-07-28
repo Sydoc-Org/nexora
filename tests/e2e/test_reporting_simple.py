@@ -794,27 +794,6 @@ STUB_AI_DEFINITION = {
 }
 
 
-def _stub_ai_build(page, definition=None, delay_s=0.0):
-    import json
-    import time
-
-    body = json.dumps(
-        {
-            "definition": definition or STUB_AI_DEFINITION,
-            "explanation": "stubbed explanation",
-            "valid": True,
-            "error": None,
-        }
-    )
-
-    def handler(route):
-        if delay_s:
-            time.sleep(delay_s)
-        route.fulfill(status=200, content_type="application/json", body=body)
-
-    page.route("**/api/reporting/ai/build", handler)
-
-
 def _stub_run_ok(page, capture=None):
     """Stub /api/reporting/run with a deterministic success.
 

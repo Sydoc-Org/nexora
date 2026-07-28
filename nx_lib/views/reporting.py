@@ -50,7 +50,13 @@ from ..db import (
 )
 from ..extensions import limiter
 from ..i18n import get_locale
-from ..reporting.ai import _AGENT_EXPLAIN_SUFFIX, _AGENT_SYSTEM, AiError, ask_agentic
+from ..reporting.ai import (
+    _AGENT_EXPLAIN_SUFFIX,
+    _AGENT_SYSTEM,
+    CAPTION_MAX_ROWS,
+    AiError,
+    ask_agentic,
+)
 from ..reporting.ai import _make_agent_step as make_agent_step
 from ..reporting.ai import ask as ai_ask
 from ..reporting.ai import ask_definition as ai_ask_definition
@@ -977,9 +983,6 @@ def reporting():
         fullname=session.get("fullname"),
         pageV=page_visibility(),
         ai_enabled=has_permission("reporting.ai.use"),
-        ai_sql_enabled=has_permission("reporting.ai.sql"),
-        ai_explain_enabled=has_permission("reporting.ai.explain_data")
-        and has_permission("reporting.sql.run"),
         ai_caption_enabled=has_permission("reporting.ai.explain_data"),
         details_images_perm=has_permission("workitems.details.view.images"),
         details_audit_perm=has_permission("workitems.details.view.audit"),
@@ -1696,9 +1699,10 @@ def api_ai_caption():
     are the actual values a Simple/Advanced result is displaying, so it is
     gated by reporting.ai.explain_data (the data-egress grant) rather than the
     weaker reporting.ai.use. It still counts toward the shared daily AI cap and
-    is rate limited like the other AI endpoints. Rows are capped at 50 before
-    ever reaching the model — a caption summarizes a glance, not a full export.
-    No UI wiring yet (Task 13 fires this after a run and renders the result).
+    is rate limited like the other AI endpoints. Rows are capped at
+    CAPTION_MAX_ROWS before ever reaching the model — a caption summarizes a
+    glance, not a full export. Fired by fireCaption() (Task 13): the Simple
+    tab after every successful run render, the Advanced tab on chart mount.
     """
     body = request.get_json(silent=True)
     if not isinstance(body, dict):
@@ -1708,7 +1712,7 @@ def api_ai_caption():
     if not isinstance(raw_columns, list) or not raw_columns or not isinstance(rows, list):
         return jsonify({"error": _("columns and rows are required")}), 400
     columns = _caption_columns(raw_columns)
-    rows = [list(r) if isinstance(r, list | tuple) else [r] for r in rows[:50]]
+    rows = [list(r) if isinstance(r, list | tuple) else [r] for r in rows[:CAPTION_MAX_ROWS]]
     title = (body.get("title") or "").strip() or None
     date_label = (body.get("dateLabel") or "").strip() or None
 
