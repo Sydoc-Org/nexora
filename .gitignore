@@ -259,3 +259,6 @@ ruvector.db
 /docs/superpowers/plans/2026-05-27-dev-env-upgrade.md
 mockups/
 var/autopilot/
+
+# Deploy-generated build stamp (see .github/workflows/deploy.yml) -- never committed
+nx_lib/_build.py

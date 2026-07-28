@@ -7,3 +7,11 @@ enforces that they match.
 """
 
 __version__ = "2.5.65"
+
+try:
+    # ponytail: nx_lib/_build.py is written by .github/workflows/deploy.yml right
+    # after the robocopy mirror ("<short-sha> · <UTC date>"). It never exists in
+    # git, so dev/INT/tests fall through to "" and render version-only.
+    from ._build import BUILD_STAMP
+except ImportError:
+    BUILD_STAMP = ""

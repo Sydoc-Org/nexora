@@ -301,6 +301,15 @@ jobs:
               Remove-Item -LiteralPath $p -Force
             }
           }
+          # Build stamp: the footer otherwise shows the source version only, so a
+          # deploy that silently failed to land looks identical to one that did.
+          # Written AFTER robocopy because /MIR purges anything not in git.
+          # ASCII only -- `shell: powershell` is 5.1, whose default file encoding
+          # is ANSI, and a mojibake separator would land in every page footer.
+          $sha = "${{ github.sha }}".Substring(0, 7)
+          $built = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd')
+          Set-Content -Path "D:\sydoc\nexora\nx_lib\_build.py" -Encoding ASCII `
+            -Value "BUILD_STAMP = `"$sha, $built`""
           exit 0
 
       - name: Start app pool and service
