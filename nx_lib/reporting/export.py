@@ -1,22 +1,47 @@
 """Export report rows to an .xlsx workbook (openpyxl) or a .csv file."""
 
 import csv
+import decimal
 import io
 import re
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, time
 
 from openpyxl import Workbook
+from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils import get_column_letter
 
 # Leading characters that spreadsheet apps may interpret as a live formula.
 _FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r", "\n")
 
+# Types openpyxl/csv already know how to render — everything else gets str()'d.
+# (date covers datetime too, since datetime is a date subclass.)
+_PRIMITIVE_CELL_TYPES = (str, int, float, bool, decimal.Decimal, date, time)
+
 
 def _safe_cell(v):
-    """Neutralize spreadsheet formula injection: prefix risky leading chars with '."""
-    if isinstance(v, str) and v and v[0] in _FORMULA_PREFIXES:
-        return "'" + v
+    """Coerce a raw DB cell into something openpyxl/csv can write, then
+    neutralize spreadsheet formula injection.
+
+    - bytes/bytearray/memoryview (varbinary, rowversion, image columns) are
+      decoded best-effort to text — openpyxl raises TypeError on raw bytes,
+      and the csv path would otherwise write the Python b'...' repr literally.
+    - Control characters outside the small set XML allows (tab/CR/LF) are
+      stripped with openpyxl's own ILLEGAL_CHARACTERS_RE — the same pattern
+      openpyxl uses internally to reject a cell value.
+    - Any other non-primitive type (UUID, etc.) is stringified as a last
+      resort; a cell must never 500 the export.
+    - Finally, a leading formula-trigger character is prefixed with ' so
+      spreadsheet apps don't evaluate it as a live formula.
+    """
+    if isinstance(v, bytes | bytearray | memoryview):
+        v = bytes(v).decode("utf-8", "replace")
+    elif v is not None and not isinstance(v, _PRIMITIVE_CELL_TYPES):
+        v = str(v)
+    if isinstance(v, str):
+        v = ILLEGAL_CHARACTERS_RE.sub("", v)
+        if v and v[0] in _FORMULA_PREFIXES:
+            return "'" + v
     return v
 
 

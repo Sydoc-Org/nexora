@@ -6,8 +6,11 @@ TEST schema are asserted as (200, 500) to stay forward-compatible, mirroring the
 dashboard route tests.
 """
 
+import io
 from datetime import datetime, time
 from unittest.mock import patch
+
+from openpyxl import load_workbook
 
 from nx_lib.db import engine_nexora_db
 
@@ -92,6 +95,35 @@ def test_sql_run_serializes_binary_and_time_cells(user_client):
     assert data["rows"][0][1] == "13:45:00"
 
 
+def test_export_sql_target_coerces_bytes_and_control_char_cells(user_client):
+    """A SQL-target export row with a raw bytes cell (varbinary) and a control
+    character must download as xlsx, not 500 (Task 52 regression: openpyxl
+    raises on both, and _safe_cell used to pass them through unchanged)."""
+    columns = [{"field": "Data", "header": "Data"}, {"field": "Note", "header": "Note"}]
+    rows = [[b"caf\xc3\xa9", "bell\x07ringer"]]
+    with (
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting._has_acked", return_value=True),
+        patch("nx_lib.views.reporting._authorize_sql_target"),
+        patch("nx_lib.views.reporting._run_sql", return_value=(columns, rows)),
+    ):
+        resp = user_client.post(
+            "/api/reporting/export",
+            json={
+                "kind": "sql",
+                "target": "statistics",
+                "sql": "SELECT 1",
+                "title": "Bytes Test",
+                "format": "xlsx",
+            },
+        )
+    assert resp.status_code == 200
+    ws = load_workbook(io.BytesIO(resp.data)).active
+    assert ws["A5"].value == "café"  # decoded from bytes, not the b'...' repr
+    assert ws["B5"].value == "bellringer"  # control char stripped
+
+
 # --- /api/reporting/export/grid (client-supplied grid; no DB access) ---
 
 
@@ -148,6 +180,23 @@ def test_export_grid_csv_ok_has_bom(admin_client):
 def test_export_grid_bad_body_400(admin_client):
     resp = admin_client.post("/api/reporting/export/grid", json={"columns": "nope"})
     assert resp.status_code == 400
+
+
+def test_export_grid_csv_strips_control_char_cell(admin_client):
+    """A client-supplied grid cell with a control character must download as
+    csv, not leak the raw byte into the file (Task 52 regression)."""
+    resp = admin_client.post(
+        "/api/reporting/export/grid",
+        json={
+            "columns": [{"header": "Note"}],
+            "rows": [["bell\x07ringer"]],
+            "title": "Notes",
+            "format": "csv",
+        },
+    )
+    assert resp.status_code == 200
+    assert b"\x07" not in resp.data
+    assert b"bellringer" in resp.data
 
 
 # --- Cross-user sharing (A2). TestAdmin owns the reports it creates. ---
