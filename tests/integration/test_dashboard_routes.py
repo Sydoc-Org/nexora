@@ -1,18 +1,11 @@
-"""Integration tests for nx_lib.views.dashboard — page + 11 widget APIs +
-recent activity.
+"""Integration tests for nx_lib.views.dashboard — page + KPI APIs + recent
+activity.
 
 Seed test users (user@test.local, admin@test.local) have only the
 `dashboard.view` permission, not the per-process `dashboard.filter.process.*`
 codes. That means most KPI endpoints short-circuit at the
 `if not target_processes` guard and return an empty/zero response — which is
 ideal for an integration test (deterministic, no DB-write needed).
-
-For endpoints whose first DB hit is unconditional (field_metadata,
-get_layout, put_layout, reset_layout), the missing tables in TEST schema
-(FieldMetadata, SearchConfig, Search_Field_Labels, DashboardLayouts) push
-the request through the except branch → JSON error with 500. We assert
-tuple-match `(200, 500)` to stay forward-compatible if the test schema is
-later extended.
 
 Routes covered:
 - GET  /dashboard                            page (dashboard.view-gated)
@@ -21,12 +14,6 @@ Routes covered:
 - GET  /api/dashboard/hourly_stats           cached empty path
 - GET  /api/dashboard/avg_processing_time    cached empty path
 - POST /api/dashboard/set_filter             session mutation
-- GET  /api/dashboard/field_metadata         expects 200/500
-- GET  /api/dashboard/layout                 expects 200/500
-- PUT  /api/dashboard/layout                 invalid JSON 400 + 200/500
-- POST /api/dashboard/layout/reset           expects 200/500
-- POST /api/dashboard/widget_data            invalid widget 400 + 200/500
-- POST /api/dashboard/widget_compare         no-date-range path returns warning
 - GET  /api/dashboard/recent_activity        early-empty (returns [])
 """
 
@@ -126,75 +113,6 @@ def test_set_filter_unknown_process_falls_back_to_all(user_client):
     )
     assert resp.status_code == 200
     assert resp.get_json()["process_name"] == "all"
-
-
-def test_field_metadata_authed_returns_json(user_client):
-    """FieldMetadata table is missing from TEST → 500 via except branch."""
-    resp = user_client.get("/api/dashboard/field_metadata")
-    assert resp.status_code in (200, 500)
-    assert resp.is_json
-
-
-def test_get_layout_no_table_returns_500_or_default(user_client):
-    """DashboardLayouts table is missing in TEST → 500."""
-    resp = user_client.get("/api/dashboard/layout")
-    assert resp.status_code in (200, 500)
-
-
-def test_put_layout_invalid_json_returns_400(user_client):
-    resp = user_client.put("/api/dashboard/layout", data="not-json")
-    assert resp.status_code == 400
-
-
-def test_put_layout_valid_payload_attempts_save(user_client):
-    """Valid empty layout payload — DB tables missing, expect 500 from except."""
-    resp = user_client.put("/api/dashboard/layout", json={"widgets": []})
-    assert resp.status_code in (200, 400, 500)
-
-
-def test_reset_layout_500_when_table_missing(user_client):
-    resp = user_client.post("/api/dashboard/layout/reset")
-    assert resp.status_code in (200, 500)
-
-
-def test_widget_data_anonymous_returns_redirect(client):
-    """@require_permission with no session redirects to /login."""
-    resp = client.post(
-        "/api/dashboard/widget_data",
-        json={"widget": {"type": "kpi"}},
-        follow_redirects=False,
-    )
-    assert resp.status_code in (302, 401)
-
-
-def test_widget_data_invalid_widget_returns_400(user_client):
-    resp = user_client.post("/api/dashboard/widget_data", json={"widget": {}})
-    assert resp.status_code == 400
-
-
-def test_widget_data_valid_payload_attempts_query(user_client):
-    """Valid widget type but no allowed_processes → query returns empty/error."""
-    resp = user_client.post(
-        "/api/dashboard/widget_data",
-        json={"widget": {"type": "kpi", "metric": "count"}},
-    )
-    assert resp.status_code in (200, 400, 500)
-
-
-def test_widget_compare_no_date_range_returns_warning(user_client):
-    """No date filter → returns warning rather than running queries."""
-    resp = user_client.post(
-        "/api/dashboard/widget_compare",
-        json={"widget": {"type": "categorical"}},
-    )
-    assert resp.status_code == 200
-    body = resp.get_json()
-    assert "compare_unavailable_no_date_range" in body.get("warnings", [])
-
-
-def test_widget_compare_invalid_widget_returns_400(user_client):
-    resp = user_client.post("/api/dashboard/widget_compare", json={"widget": {}})
-    assert resp.status_code == 400
 
 
 def test_recent_activity_authed_returns_empty_list(user_client):

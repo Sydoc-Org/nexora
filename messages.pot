@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-07-28 19:13+0200\n"
+"POT-Creation-Date: 2026-07-28 20:05+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -113,12 +113,9 @@ msgstr ""
 #: nx_lib/views/admin.py:1304 nx_lib/views/admin.py:1614
 #: nx_lib/views/admin.py:1656 nx_lib/views/admin.py:1701
 #: nx_lib/views/admin.py:1740 nx_lib/views/admin.py:1778
-#: nx_lib/views/admin.py:1811 nx_lib/views/dashboard.py:471
-#: nx_lib/views/dashboard.py:581 nx_lib/views/dashboard.py:636
-#: nx_lib/views/dashboard.py:728 nx_lib/views/dashboard.py:910
-#: nx_lib/views/dashboard.py:969 nx_lib/views/dashboard.py:991
-#: nx_lib/views/dashboard.py:1042 nx_lib/views/dashboard.py:1553
-#: nx_lib/views/dashboard.py:1597 nx_lib/views/invoices.py:280
+#: nx_lib/views/admin.py:1811 nx_lib/views/dashboard.py:251
+#: nx_lib/views/dashboard.py:361 nx_lib/views/dashboard.py:416
+#: nx_lib/views/dashboard.py:508 nx_lib/views/invoices.py:280
 #: nx_lib/views/workitems.py:765 nx_lib/views/workitems.py:1492
 msgid "Not authorized"
 msgstr ""
@@ -253,74 +250,6 @@ msgstr ""
 msgid "Unexpected error occurred"
 msgstr ""
 
-#: nx_lib/views/dashboard.py:283
-msgid "Imported today"
-msgstr ""
-
-#: nx_lib/views/dashboard.py:296
-msgid "Processed today"
-msgstr ""
-
-#: nx_lib/views/dashboard.py:309
-msgid "Current backlog"
-msgstr ""
-
-#: nx_lib/views/dashboard.py:322
-msgid "Avg processing time"
-msgstr ""
-
-#: nx_lib/views/dashboard.py:335 templates/dashboard.html:80
-msgid "Documents Processed Over Time"
-msgstr ""
-
-#: nx_lib/views/dashboard.py:357
-msgid "Top doctypes today"
-msgstr ""
-
-#: nx_lib/views/dashboard.py:960
-msgid "Could not fetch field metadata"
-msgstr ""
-
-#: nx_lib/views/dashboard.py:982
-msgid "Could not load layout"
-msgstr ""
-
-#: nx_lib/views/dashboard.py:1001 nx_lib/views/reporting.py:1033
-#: nx_lib/views/reporting.py:1115 nx_lib/views/reporting.py:1176
-#: nx_lib/views/reporting.py:1304 nx_lib/views/reporting.py:1481
-#: nx_lib/views/reporting.py:1773 nx_lib/views/reporting.py:1882
-#: nx_lib/views/reporting.py:1941
-msgid "Invalid JSON body"
-msgstr ""
-
-#: nx_lib/views/dashboard.py:1033
-msgid "Could not save layout"
-msgstr ""
-
-#: nx_lib/views/dashboard.py:1053
-msgid "Could not reset layout"
-msgstr ""
-
-#: nx_lib/views/dashboard.py:1565 nx_lib/views/dashboard.py:1602
-msgid "Invalid widget"
-msgstr ""
-
-#: nx_lib/views/dashboard.py:1581
-msgid "Could not build query"
-msgstr ""
-
-#: nx_lib/views/dashboard.py:1587 nx_lib/views/reporting.py:1136
-msgid "Could not run query"
-msgstr ""
-
-#: nx_lib/views/dashboard.py:1629
-msgid "Previous period"
-msgstr ""
-
-#: nx_lib/views/dashboard.py:1632
-msgid "Could not build comparison"
-msgstr ""
-
 #: nx_lib/views/generali.py:73
 msgid "startDate and endDate are required"
 msgstr ""
@@ -384,6 +313,13 @@ msgstr ""
 
 #: nx_lib/views/profile.py:217
 msgid "Language changed successfully!"
+msgstr ""
+
+#: nx_lib/views/reporting.py:1033 nx_lib/views/reporting.py:1115
+#: nx_lib/views/reporting.py:1176 nx_lib/views/reporting.py:1304
+#: nx_lib/views/reporting.py:1481 nx_lib/views/reporting.py:1773
+#: nx_lib/views/reporting.py:1882 nx_lib/views/reporting.py:1941
+msgid "Invalid JSON body"
 msgstr ""
 
 #: nx_lib/views/reporting.py:1037 nx_lib/views/reporting.py:1917
@@ -455,6 +391,10 @@ msgstr ""
 
 #: nx_lib/views/reporting.py:1132 nx_lib/views/reporting.py:1906
 msgid "SQL source is not configured"
+msgstr ""
+
+#: nx_lib/views/reporting.py:1136
+msgid "Could not run query"
 msgstr ""
 
 #: nx_lib/views/reporting.py:1166
@@ -1230,6 +1170,10 @@ msgstr ""
 
 #: templates/dashboard.html:68
 msgid "Avg. Processing Time"
+msgstr ""
+
+#: templates/dashboard.html:80
+msgid "Documents Processed Over Time"
 msgstr ""
 
 #: templates/dashboard.html:90

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-07-28 19:13+0200\n"
+"POT-Creation-Date: 2026-07-28 20:05+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -110,12 +110,9 @@ msgstr "Impossible de récupérer les sessions"
 #: nx_lib/views/admin.py:1304 nx_lib/views/admin.py:1614
 #: nx_lib/views/admin.py:1656 nx_lib/views/admin.py:1701
 #: nx_lib/views/admin.py:1740 nx_lib/views/admin.py:1778
-#: nx_lib/views/admin.py:1811 nx_lib/views/dashboard.py:471
-#: nx_lib/views/dashboard.py:581 nx_lib/views/dashboard.py:636
-#: nx_lib/views/dashboard.py:728 nx_lib/views/dashboard.py:910
-#: nx_lib/views/dashboard.py:969 nx_lib/views/dashboard.py:991
-#: nx_lib/views/dashboard.py:1042 nx_lib/views/dashboard.py:1553
-#: nx_lib/views/dashboard.py:1597 nx_lib/views/invoices.py:280
+#: nx_lib/views/admin.py:1811 nx_lib/views/dashboard.py:251
+#: nx_lib/views/dashboard.py:361 nx_lib/views/dashboard.py:416
+#: nx_lib/views/dashboard.py:508 nx_lib/views/invoices.py:280
 #: nx_lib/views/workitems.py:765 nx_lib/views/workitems.py:1492
 msgid "Not authorized"
 msgstr "Non autorisé"
@@ -259,74 +256,6 @@ msgstr ""
 msgid "Unexpected error occurred"
 msgstr "Une erreur inattendue s'est produite"
 
-#: nx_lib/views/dashboard.py:283
-msgid "Imported today"
-msgstr "Importés aujourd'hui"
-
-#: nx_lib/views/dashboard.py:296
-msgid "Processed today"
-msgstr "Traités aujourd'hui"
-
-#: nx_lib/views/dashboard.py:309
-msgid "Current backlog"
-msgstr "Backlog actuel"
-
-#: nx_lib/views/dashboard.py:322
-msgid "Avg processing time"
-msgstr "Temps de traitement moyen"
-
-#: nx_lib/views/dashboard.py:335 templates/dashboard.html:80
-msgid "Documents Processed Over Time"
-msgstr "Documents traités au fil du temps"
-
-#: nx_lib/views/dashboard.py:357
-msgid "Top doctypes today"
-msgstr "Principaux types de documents aujourd'hui"
-
-#: nx_lib/views/dashboard.py:960
-msgid "Could not fetch field metadata"
-msgstr "Impossible de récupérer les métadonnées des champs"
-
-#: nx_lib/views/dashboard.py:982
-msgid "Could not load layout"
-msgstr "Impossible de charger la disposition"
-
-#: nx_lib/views/dashboard.py:1001 nx_lib/views/reporting.py:1033
-#: nx_lib/views/reporting.py:1115 nx_lib/views/reporting.py:1176
-#: nx_lib/views/reporting.py:1304 nx_lib/views/reporting.py:1481
-#: nx_lib/views/reporting.py:1773 nx_lib/views/reporting.py:1882
-#: nx_lib/views/reporting.py:1941
-msgid "Invalid JSON body"
-msgstr "Corps JSON invalide"
-
-#: nx_lib/views/dashboard.py:1033
-msgid "Could not save layout"
-msgstr "Impossible d'enregistrer la disposition"
-
-#: nx_lib/views/dashboard.py:1053
-msgid "Could not reset layout"
-msgstr "Impossible de réinitialiser la disposition"
-
-#: nx_lib/views/dashboard.py:1565 nx_lib/views/dashboard.py:1602
-msgid "Invalid widget"
-msgstr "Widget invalide"
-
-#: nx_lib/views/dashboard.py:1581
-msgid "Could not build query"
-msgstr "Impossible de générer la requête"
-
-#: nx_lib/views/dashboard.py:1587 nx_lib/views/reporting.py:1136
-msgid "Could not run query"
-msgstr "Impossible d'exécuter la requête"
-
-#: nx_lib/views/dashboard.py:1629
-msgid "Previous period"
-msgstr "Période précédente"
-
-#: nx_lib/views/dashboard.py:1632
-msgid "Could not build comparison"
-msgstr "Impossible de générer la comparaison"
-
 #: nx_lib/views/generali.py:73
 msgid "startDate and endDate are required"
 msgstr "startDate et endDate sont obligatoires."
@@ -391,6 +320,13 @@ msgstr "Erreur inattendue"
 #: nx_lib/views/profile.py:217
 msgid "Language changed successfully!"
 msgstr "Langue modifiée avec succès !"
+
+#: nx_lib/views/reporting.py:1033 nx_lib/views/reporting.py:1115
+#: nx_lib/views/reporting.py:1176 nx_lib/views/reporting.py:1304
+#: nx_lib/views/reporting.py:1481 nx_lib/views/reporting.py:1773
+#: nx_lib/views/reporting.py:1882 nx_lib/views/reporting.py:1941
+msgid "Invalid JSON body"
+msgstr "Corps JSON invalide"
 
 #: nx_lib/views/reporting.py:1037 nx_lib/views/reporting.py:1917
 msgid "Not authorized for this source"
@@ -462,6 +398,10 @@ msgstr "Requête SQL invalide."
 #: nx_lib/views/reporting.py:1132 nx_lib/views/reporting.py:1906
 msgid "SQL source is not configured"
 msgstr "La source SQL n'est pas configurée"
+
+#: nx_lib/views/reporting.py:1136
+msgid "Could not run query"
+msgstr "Impossible d'exécuter la requête"
 
 #: nx_lib/views/reporting.py:1166
 msgid "Could not record acknowledgment"
@@ -1257,6 +1197,10 @@ msgstr "File d'attente actuelle"
 #: templates/dashboard.html:68
 msgid "Avg. Processing Time"
 msgstr "Temps de traitement moyen"
+
+#: templates/dashboard.html:80
+msgid "Documents Processed Over Time"
+msgstr "Documents traités au fil du temps"
 
 #: templates/dashboard.html:90
 msgid "Recent Validations"
@@ -6301,4 +6245,43 @@ msgstr ""
 
 #~ msgid "The agent is working step by step — this can take a minute…"
 #~ msgstr "L'agent travaille étape par étape — cela peut prendre une minute…"
+
+#~ msgid "Imported today"
+#~ msgstr "Importés aujourd'hui"
+
+#~ msgid "Processed today"
+#~ msgstr "Traités aujourd'hui"
+
+#~ msgid "Current backlog"
+#~ msgstr "Backlog actuel"
+
+#~ msgid "Avg processing time"
+#~ msgstr "Temps de traitement moyen"
+
+#~ msgid "Top doctypes today"
+#~ msgstr "Principaux types de documents aujourd'hui"
+
+#~ msgid "Could not fetch field metadata"
+#~ msgstr "Impossible de récupérer les métadonnées des champs"
+
+#~ msgid "Could not load layout"
+#~ msgstr "Impossible de charger la disposition"
+
+#~ msgid "Could not save layout"
+#~ msgstr "Impossible d'enregistrer la disposition"
+
+#~ msgid "Could not reset layout"
+#~ msgstr "Impossible de réinitialiser la disposition"
+
+#~ msgid "Invalid widget"
+#~ msgstr "Widget invalide"
+
+#~ msgid "Could not build query"
+#~ msgstr "Impossible de générer la requête"
+
+#~ msgid "Previous period"
+#~ msgstr "Période précédente"
+
+#~ msgid "Could not build comparison"
+#~ msgstr "Impossible de générer la comparaison"
 

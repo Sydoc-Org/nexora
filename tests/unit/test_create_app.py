@@ -151,12 +151,6 @@ EXPECTED_NON_GENERALI_ENDPOINTS = {
     "dashboard_avg_processing_time",
     "dashboard",
     "dashboard_set_filter",
-    "dashboard_field_metadata",
-    "dashboard_get_layout",
-    "dashboard_put_layout",
-    "dashboard_reset_layout",
-    "dashboard_widget_data",
-    "dashboard_widget_compare",
     "api_recent_activity",
     # views/admin.py
     "admin_dashboard",

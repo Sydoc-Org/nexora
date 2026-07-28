@@ -756,7 +756,7 @@ Simple tab's number card and works identically in Advanced and the AI surfaces.
 
 3. **Implement the query builder** in `nx_lib/reporting/query.py` (or extend
    `build_table_query` to handle the new source). Column names must come from
-   `SearchConfig` / `FieldMetadata` mappings, never from user input.
+   the `SearchConfig` mappings, never from user input.
 
 4. **Wire the catalog + query into the view** (`nx_lib/views/reporting.py`).
    The `/api/reporting/sources` endpoint returns the catalog for each source
@@ -772,12 +772,14 @@ Simple tab's number card and works identically in Advanced and the AI surfaces.
    GO
    ```
 
-6. **FieldMetadata / SearchConfig coverage** for curated sources: each
-   `field` key the catalog exposes must have a corresponding row in
-   `dbo.FieldMetadata` (data type, sortable/aggregable flags) and entries in
-   `dbo.SearchConfig` for each process that maps `col_<field>` to the actual
-   data column name in that process's statistics table. Labels come from
-   `dbo.Search_Field_Labels`.
+6. **SearchConfig coverage** for curated sources: `dbo.SearchConfig` is what
+   defines the field set — each process needs a row mapping `col_<field>` to
+   the actual data column name in that process's statistics table. Labels come
+   from `dbo.Search_Field_Labels`. `dbo.FieldMetadata` (data type,
+   sortable/aggregable flags) is *optional* enrichment that
+   `nx_lib/reporting/catalog.py` merges in when present — it exists on no
+   environment today, so every field falls back to
+   `type=string, aggregable=False, sortable=True`.
 
 ## Scheduled & emailed reports
 
