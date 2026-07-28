@@ -13,6 +13,7 @@ from flask import (
     session,
     url_for,
 )
+from flask_babel import gettext as _
 
 from ..db import engine_generali_db, engine_nexora_db
 from ..i18n import get_locale
@@ -65,8 +66,15 @@ def generali_documents():
 def api_generali_stats():
     conn = None
     try:
-        start_date = (request.args.get("startDate")).replace("T", " ")
-        end_date = (request.args.get("endDate")).replace("T", " ")
+        raw_start_date = request.args.get("startDate")
+        raw_end_date = request.args.get("endDate")
+        if not raw_start_date or not raw_end_date:
+            return (
+                jsonify({"success": False, "error": _("startDate and endDate are required")}),
+                400,
+            )
+        start_date = raw_start_date.replace("T", " ")
+        end_date = raw_end_date.replace("T", " ")
 
         date_filter = ""
         date_params = []
