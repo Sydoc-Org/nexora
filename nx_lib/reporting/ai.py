@@ -104,7 +104,9 @@ def _call_azure(
         f"/chat/completions?api-version={api_version}"
     )
     body = {
-        "max_tokens": max_tokens,
+        # GPT-5-family deployments reject `max_tokens`; `max_completion_tokens`
+        # is accepted by every model from api-version 2024-10-21 on.
+        "max_completion_tokens": max_tokens,
         "messages": [
             {"role": "system", "content": system},
             {"role": "user", "content": user},
@@ -755,7 +757,7 @@ def _make_agent_step(
 
         def step(messages):
             body = {
-                "max_tokens": max_tokens,
+                "max_completion_tokens": max_tokens,
                 "messages": _to_azure_messages(system, messages),
                 "tools": azure_tools,
             }

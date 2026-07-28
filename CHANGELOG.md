@@ -8,6 +8,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward 2.5.65.
 
+### Changed
+
+- Reporting AI: the Azure request body now sends `max_completion_tokens`
+  instead of the deprecated `max_tokens`, so GPT-5-family deployments
+  (e.g. `gpt-5-mini`) work; older chat models keep working unchanged.
+  Set `AZURE_OPENAI_API_VERSION` to a GPT-5-capable version (e.g.
+  `2025-01-01-preview`) when pointing `AZURE_OPENAI_DEPLOYMENT` at one.
+
 ### Removed
 
 - `db-standard/` — the standardised statistics-DB schema proposal (shipped

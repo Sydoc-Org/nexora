@@ -929,7 +929,7 @@ Set these in `env/INT.env` and `env/PROD.env`:
 | `AZURE_OPENAI_ENDPOINT` | Azure OpenAI resource endpoint (required when `AI_PROVIDER=azure`). |
 | `AZURE_OPENAI_KEY` | Azure OpenAI API key (required when `AI_PROVIDER=azure`). |
 | `AZURE_OPENAI_DEPLOYMENT` | Deployment name (required when `AI_PROVIDER=azure`). |
-| `AZURE_OPENAI_API_VERSION` | API version (optional; defaults to `2024-10-21`). |
+| `AZURE_OPENAI_API_VERSION` | API version (optional; defaults to `2024-10-21`). GPT-5-family deployments need a newer one, e.g. `2025-01-01-preview`. |
 | `AI_DAILY_LIMIT` | Per-user/day cap on AI asks (cost/abuse control). `0` (default) = unlimited. When the cap is hit the route returns **429** before any provider call, and the throttle is recorded in `dbo.ReportingAiAudit` with `Status='blocked'`. |
 
 Until `AI_PROVIDER` is set (or is `none`) the route returns **503** and the tab
