@@ -12,15 +12,15 @@
 
 .reporting-fields,
 .reporting-wells {
-  background: #fff;
-  border: 1px solid #eef;
+  background: var(--nx-card);
+  border: 1px solid var(--nx-border);
   border-radius: 14px;
   padding: 14px;
 }
 
 .reporting-results {
-  background: #fff;
-  border: 1px solid #eef;
+  background: var(--nx-card);
+  border: 1px solid var(--nx-border);
   border-radius: 14px;
   padding: 14px;
   min-height: 60vh;
@@ -36,7 +36,7 @@
 .reporting-mode-toggle button {
   padding: 4px 10px;
   border-radius: 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--nx-border);
 }
 
 .reporting-saved {
@@ -47,7 +47,7 @@
 
 .reporting-saved select {
   padding: 6px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--nx-border);
   border-radius: 8px;
   font-family: inherit;
   font-size: 13px;
@@ -56,11 +56,11 @@
 
 .reporting-export-format {
   padding: 6px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--nx-border);
   border-radius: 8px;
   font-family: inherit;
   font-size: 13px;
-  background: #fff;
+  background: var(--nx-card);
 }
 
 .reporting-mode-toggle button.active {
@@ -101,7 +101,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: .05em;
-  color: #888;
+  color: var(--nx-text-meta);
   margin-bottom: 4px;
 }
 
@@ -110,7 +110,7 @@
 #rpSource {
   width: 100%;
   padding: 6px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--nx-border);
   border-radius: 8px;
   margin: 6px 0;
   font-family: inherit;
@@ -149,17 +149,17 @@
   justify-content: space-between;
   gap: 8px;
   padding: 6px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--nx-border);
   border-radius: 8px;
-  background: #fff;
+  background: var(--nx-card);
   font-family: inherit;
   font-size: 13px;
   color: inherit;
   cursor: pointer;
   box-sizing: border-box;
 }
-.reporting-scope-btn:hover { border-color: #c7c7c7; }
-.reporting-scope-btn .fa-chevron-down { font-size: 11px; color: #888; }
+.reporting-scope-btn:hover { border-color: var(--nx-border-strong); }
+.reporting-scope-btn .fa-chevron-down { font-size: 11px; color: var(--nx-text-meta); }
 .reporting-scope-btn[aria-expanded="true"] .fa-chevron-down { transform: rotate(180deg); }
 .reporting-scope-menu {
   position: absolute;
@@ -170,8 +170,8 @@
   max-height: 50vh;
   overflow: auto;
   padding: 4px;
-  background: #fff;
-  border: 1px solid #ddd;
+  background: var(--nx-card);
+  border: 1px solid var(--nx-border);
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
 }
@@ -188,9 +188,9 @@
 .reporting-scope-row input { margin: 0; cursor: pointer; }
 .reporting-scope-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .reporting-scope-all { font-weight: 600; }
-.reporting-scope-all + .reporting-scope-client { border-top: 1px solid #eee; }
+.reporting-scope-all + .reporting-scope-client { border-top: 1px solid var(--nx-border); }
 .reporting-scope-client { font-weight: 600; }
-.reporting-scope-proc { padding-left: 26px; color: #444; }
+.reporting-scope-proc { padding-left: 26px; color: var(--nx-text-sec); }
 
 /* Grain selector on a date column in the Columns well */
 .reporting-grain {
@@ -210,7 +210,7 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: .05em;
-  color: #888;
+  color: var(--nx-text-meta);
   margin-bottom: 6px;
   margin-top: 0;
 }
@@ -231,7 +231,7 @@
 .reporting-well ul li input {
   flex: 1;
   padding: 4px 6px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--nx-border);
   border-radius: 6px;
   font-size: 12px;
 }
@@ -239,7 +239,7 @@
 .reporting-well ul li button {
   background: none;
   border: none;
-  color: #999;
+  color: var(--nx-text-meta);
   cursor: pointer;
   font-size: 14px;
   line-height: 1;
@@ -252,7 +252,7 @@
   flex: 1;
   min-width: 0;
   padding: 4px 6px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--nx-border);
   border-radius: 6px;
   font-size: 12px;
 }
@@ -267,7 +267,7 @@
 .reporting-filter-row input {
   flex: 1;
   padding: 4px 6px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--nx-border);
   border-radius: 6px;
   font-size: 12px;
   min-width: 0;
@@ -276,7 +276,7 @@
 .reporting-filter-row button {
   background: none;
   border: none;
-  color: #999;
+  color: var(--nx-text-meta);
   cursor: pointer;
   font-size: 14px;
   padding: 0 4px;
@@ -294,25 +294,25 @@
 
 .reporting-table th,
 .reporting-table td {
-  border: 1px solid #eee;
+  border: 1px solid var(--nx-border);
   padding: 6px 8px;
   text-align: left;
 }
 
 .reporting-table th {
-  background: #f8f8ff;
+  background: var(--nx-alt);
   font-weight: 600;
 }
 
 .reporting-empty,
 .reporting-error {
-  color: #888;
+  color: var(--nx-text-sec);
   padding: 20px;
   margin: 0;
 }
 
 .reporting-error {
-  color: #c0392b;
+  color: var(--nx-danger);
 }
 
 @media (max-width: 1100px) {
@@ -327,7 +327,7 @@
 .reporting-sql-editor {
   width: 100%; min-height: 180px; resize: vertical;
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
-  font-size: 13px; line-height: 1.5; padding: 10px; border: 1px solid #d1d5db;
+  font-size: 13px; line-height: 1.5; padding: 10px; border: 1px solid var(--nx-border-strong);
   border-radius: 6px; tab-size: 2;
 }
 .reporting-modal {
@@ -336,24 +336,24 @@
 }
 .reporting-modal[hidden] { display: none; }
 .reporting-modal-box {
-  background: #fff; border-radius: 10px; padding: 22px; max-width: 460px;
+  background: var(--nx-card); border-radius: 10px; padding: 22px; max-width: 460px;
   box-shadow: 0 10px 40px rgba(0,0,0,.25);
 }
 .reporting-modal-box h3 { margin: 0 0 8px; }
 .reporting-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
-.reporting-btn-primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+.reporting-btn-primary { background: var(--nx-accent); color: #fff; border-color: var(--nx-accent); }
 
 /* Share modal */
 .reporting-share-vis { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
 .reporting-share-vis label { font-size: 14px; display: flex; gap: 8px; align-items: flex-start; }
 .reporting-share-h { margin: 12px 0 6px; font-size: 12px; text-transform: uppercase;
-  letter-spacing: .05em; color: #888; }
+  letter-spacing: .05em; color: var(--nx-text-meta); }
 .reporting-share-list { list-style: none; padding: 0; margin: 0 0 10px; max-height: 180px; overflow: auto; }
 .reporting-share-list li {
   display: flex; align-items: center; justify-content: space-between;
-  gap: 8px; padding: 5px 0; border-bottom: 1px solid #f1f5f9; font-size: 13px;
+  gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--nx-divider); font-size: 13px;
 }
-.reporting-share-empty { color: #888; border-bottom: none !important; }
+.reporting-share-empty { color: var(--nx-text-sec); border-bottom: none !important; }
 .reporting-share-add { display: flex; align-items: center; gap: 8px; }
 .reporting-share-add .reporting-input { margin: 0; flex: 1; }
 .reporting-share-canedit { font-size: 13px; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
@@ -362,8 +362,8 @@
 .reporting-view-toggle { display: flex; gap: 6px; margin-bottom: 10px; }
 .reporting-view-toggle[hidden] { display: none; }
 .reporting-view-toggle button {
-  padding: 4px 12px; border-radius: 8px; border: 1px solid #ddd;
-  background: #fff; cursor: pointer; font-size: 13px;
+  padding: 4px 12px; border-radius: 8px; border: 1px solid var(--nx-border);
+  background: var(--nx-card); cursor: pointer; font-size: 13px;
 }
 .reporting-view-toggle button.active { background: #4338ca; color: #fff; border-color: #4338ca; }
 
@@ -372,27 +372,27 @@
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px;
 }
 .reporting-viz-bar select {
-  padding: 5px 8px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px;
+  padding: 5px 8px; border: 1px solid var(--nx-border); border-radius: 8px; font-size: 13px;
 }
 .reporting-viz-lbl {
   font-size: 11px; font-weight: 600; text-transform: uppercase;
-  letter-spacing: .05em; color: #888;
+  letter-spacing: .05em; color: var(--nx-text-meta);
 }
 .reporting-chart-canvas { position: relative; height: 60vh; min-height: 360px; }
-.reporting-viz-note { color: #888; font-size: 12px; margin: 8px 0 0; }
+.reporting-viz-note { color: var(--nx-text-sec); font-size: 12px; margin: 8px 0 0; }
 
 /* Pivot drag-and-drop shelf + matrix */
 .reporting-pivot-shelf {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px;
 }
 .reporting-pivot-zone {
-  border: 1px dashed #cbd5e1; border-radius: 10px; padding: 8px; min-height: 90px;
-  background: #fafbff;
+  border: 1px dashed var(--nx-border); border-radius: 10px; padding: 8px; min-height: 90px;
+  background: var(--nx-alt);
 }
 .reporting-pivot-zone.drop-hover { border-color: #4338ca; background: #eef2ff; }
 .reporting-pivot-zone h5 {
   margin: 0 0 6px; font-size: 11px; text-transform: uppercase;
-  letter-spacing: .05em; color: #64748b;
+  letter-spacing: .05em; color: var(--nx-text-meta);
 }
 .reporting-pivot-list { display: flex; flex-wrap: wrap; gap: 6px; min-height: 40px; }
 .reporting-pivot-chip {
@@ -402,7 +402,7 @@
 }
 .reporting-pivot-chip select {
   border: 1px solid #c7d2fe; border-radius: 6px; font-size: 11px; padding: 1px 2px;
-  background: #fff;
+  background: var(--nx-card);
 }
 .reporting-pivot-rm {
   background: none; border: none; color: #6366f1; cursor: pointer;
@@ -411,13 +411,13 @@
 /* Nested (multi-level) pivot column headers: center grouped cells, keep
    borders crisp across the spanned rows. */
 .reporting-pivot-table thead th {
-  text-align: center; vertical-align: middle; background: #f8f8ff;
-  border: 1px solid #e5e7eb;
+  text-align: center; vertical-align: middle; background: var(--nx-alt);
+  border: 1px solid var(--nx-border);
 }
-.reporting-pivot-corner { background: #f1f5f9; }
-.reporting-pivot-rowhdr { font-weight: 600; background: #f8f8ff; }
-.reporting-pivot-total { background: #f1f5f9; font-weight: 600; }
-.reporting-pivot-totalrow td { border-top: 2px solid #cbd5e1; }
+.reporting-pivot-corner { background: var(--nx-sunken); }
+.reporting-pivot-rowhdr { font-weight: 600; background: var(--nx-alt); }
+.reporting-pivot-total { background: var(--nx-sunken); font-weight: 600; }
+.reporting-pivot-totalrow td { border-top: 2px solid var(--nx-border); }
 
 @media (max-width: 900px) {
   .reporting-pivot-shelf { grid-template-columns: 1fr 1fr; }
@@ -425,21 +425,21 @@
 
 /* --- A3: source-registry admin page --- */
 .reporting-admin { padding: 20px; max-width: 1100px; margin: 0 auto; }
-.reporting-admin-note { color: #64748b; font-size: 13px; margin: 4px 0 16px; }
+.reporting-admin-note { color: var(--nx-text-sec); font-size: 13px; margin: 4px 0 16px; }
 .reporting-admin section {
-  background: #fff; border: 1px solid #eef; border-radius: 14px; padding: 14px; margin-bottom: 16px;
+  background: var(--nx-card); border: 1px solid var(--nx-border); border-radius: 14px; padding: 14px; margin-bottom: 16px;
 }
 .reporting-admin section h3 { margin-top: 0; }
 .reporting-admin-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 16px; }
 .reporting-admin-grid label,
 .reporting-admin-cols {
-  display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: #555;
+  display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--nx-text-sec);
 }
 .reporting-admin-check { flex-direction: row !important; align-items: center; gap: 6px; }
 .reporting-admin-cols { margin-top: 10px; }
 .reporting-admin-cols .reporting-sql-editor { min-height: 110px; }
 .reporting-admin-actions { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
-.reporting-admin-msg { font-size: 13px; color: #059669; }
+.reporting-admin-msg { font-size: 13px; color: var(--nx-success); }
 @media (max-width: 700px) { .reporting-admin-grid { grid-template-columns: 1fr; } }
 
 /* --- Animation layer (Motion). The entrance pre-hide is applied only when
@@ -458,24 +458,13 @@
 }
 
 /* --- AI assistant panel (Phase 1) --- */
-.reporting-ai-panel { padding: .75rem; border: 1px solid var(--rp-border, #d0d7de); border-radius: 6px; margin-bottom: .5rem; }
-.reporting-ai-bar { display: flex; gap: .5rem; }
-.reporting-ai-prompt { flex: 1; padding: .4rem .6rem; }
-.reporting-ai-hint { font-size: .8rem; color: #57606a; margin: .4rem 0 0; }
-.reporting-ai-result { margin-top: .6rem; }
-.reporting-ai-sql { background: #f6f8fa; padding: .6rem; border-radius: 6px; white-space: pre-wrap; overflow-x: auto; }
-.reporting-ai-explain { font-size: .85rem; color: #24292f; }
-.reporting-ai-invalid { color: #9a6700; font-size: .85rem; }
-.reporting-ai-error { color: #cf222e; font-size: .85rem; }
-.reporting-ai-actions { display: flex; gap: .5rem; align-items: center; margin-top: .4rem; }
+.reporting-ai-hint { font-size: .8rem; color: var(--nx-text-sec); margin: .4rem 0 0; }
+.reporting-ai-sql { background: var(--nx-sunken); padding: .6rem; border-radius: 6px; white-space: pre-wrap; overflow-x: auto; }
+.reporting-ai-explain { font-size: .85rem; color: var(--nx-text); }
+.reporting-ai-error { color: var(--nx-danger); font-size: .85rem; }
 /* Motion entrance hook: hidden only when animations are on (mirrors .rp-anim cols) */
 .rp-anim .rp-anim-ai:not([hidden]) { opacity: 0; }
 @media (prefers-reduced-motion: reduce) { .rp-anim .rp-anim-ai:not([hidden]) { opacity: 1; } }
-
-/* --- AI assistant: Surface-A sub-mode (Phase 2) --- */
-.reporting-ai-submode { display: flex; gap: .25rem; margin-bottom: .5rem; }
-.reporting-ai-submode button { padding: .25rem .6rem; border: 1px solid var(--rp-border, #d0d7de); background: #fff; border-radius: 6px; cursor: pointer; }
-.reporting-ai-submode button.active { background: #eef2ff; border-color: #c7d2fe; font-weight: 600; }
 
 /* ============================================================
    nexora-ui HARMONIZATION (appended last → overrides the page's
@@ -543,10 +532,9 @@ body.nx-app {
 .reporting-link { color: var(--nx-accent); }
 .reporting-link:hover { color: var(--nx-accent-hover); text-decoration: underline; }
 
-/* Mode + view + sub-mode toggles share the active brand gradient */
+/* Mode + view toggles share the active brand gradient */
 .reporting-mode-toggle button,
-.reporting-view-toggle button,
-.reporting-ai-submode button {
+.reporting-view-toggle button {
   background: var(--nx-card);
   color: var(--nx-text-sec);
   border: 1px solid var(--nx-border);
@@ -555,19 +543,12 @@ body.nx-app {
   transition: background var(--nx-dur) var(--nx-ease), color var(--nx-dur) var(--nx-ease);
 }
 .reporting-mode-toggle button:hover:not([disabled]):not(.active),
-.reporting-view-toggle button:hover:not(.active),
-.reporting-ai-submode button:hover:not(.active) { background: var(--nx-accent-tint); }
+.reporting-view-toggle button:hover:not(.active) { background: var(--nx-accent-tint); }
 .reporting-mode-toggle button.active,
 .reporting-view-toggle button.active {
   background: var(--nx-brand-grad);
   color: #fff;
   border-color: transparent;
-}
-.reporting-ai-submode button.active {
-  background: var(--nx-accent-tint);
-  border-color: var(--nx-accent-soft);
-  color: var(--nx-accent);
-  font-weight: 600;
 }
 
 /* Inputs / selects / textareas */
@@ -580,8 +561,7 @@ body.nx-app {
 .reporting-filter-row select,
 .reporting-filter-row input,
 .reporting-viz-bar select,
-.reporting-sql-editor,
-.reporting-ai-prompt {
+.reporting-sql-editor {
   background: var(--nx-card);
   color: var(--nx-text);
   border: 1px solid var(--nx-border);
@@ -591,7 +571,6 @@ body.nx-app {
 .reporting-title-input:focus,
 #rpSource:focus,
 .reporting-sql-editor:focus,
-.reporting-ai-prompt:focus,
 .reporting-saved select:focus,
 .reporting-viz-bar select:focus {
   outline: none;
@@ -649,31 +628,12 @@ body.nx-app {
 }
 
 /* AI panel chrome */
-.reporting-ai-panel {
-  border: 1px solid var(--nx-border);
-  border-radius: var(--nx-radius);
-  background: var(--nx-alt);
-}
 .reporting-ai-hint { color: var(--nx-text-sec); }
 .reporting-ai-sql { background: var(--nx-sunken); color: var(--nx-text); border: 1px solid var(--nx-border); }
 .reporting-ai-explain { color: var(--nx-text); }
-.reporting-ai-invalid { color: var(--nx-warning); }
 .reporting-ai-error { color: var(--nx-danger); }
 
 /* --- Agent (Surface C) thread + tool-step trace --- */
-.reporting-ai-thread { display: flex; flex-direction: column; gap: .5rem; }
-.reporting-ai-turn {
-  border: 1px solid var(--nx-border);
-  border-radius: var(--nx-radius-sm);
-  padding: .5rem .6rem;
-  background: var(--nx-card);
-}
-.reporting-ai-q { margin: 0 0 .25rem; font-size: .85rem; color: var(--nx-text-sec); }
-.reporting-ai-q-badge {
-  display: inline-block; margin-right: .4rem; padding: 0 .4rem;
-  border-radius: var(--nx-radius-pill); font-size: .7rem; font-weight: 600;
-  background: var(--nx-accent-tint); color: var(--nx-accent);
-}
 .reporting-ai-a { margin: 0; font-size: .9rem; color: var(--nx-text); white-space: pre-wrap; }
 .reporting-ai-trace-wrap { margin-top: .5rem; }
 .reporting-ai-trace-summary {
@@ -745,6 +705,12 @@ body.nx-app {
   padding-bottom: 14px;
   margin-bottom: 16px;
   border-bottom: 1px solid var(--nx-divider);
+  /* Task 7: stays in view while a long grid scrolls underneath it — Run/
+     Save/Export/mode-toggle are always reachable without scrolling back up. */
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--nx-card);
 }
 
 /* Mode toggle → segmented control (was shrinking + wrapping vertically) */
@@ -918,43 +884,10 @@ body.nx-app {
 .reporting-table tbody tr:hover { background: var(--nx-alt); }
 .reporting-table tbody tr:last-child td { border-bottom: none; }
 
-/* --- AI panel: a touch more padding so it doesn't feel cramped --- */
-.reporting-ai-panel { padding: 14px 16px; }
-.reporting-ai-bar { gap: 8px; }
-.reporting-ai-prompt { padding: 8px 12px; }
-
 /* SQL / Ask-AI modes hide both sidebars (JS adds .reporting-main--single):
    collapse to one full-width column so the editor/assistant gets the room
    instead of being squeezed into the 260px builder track. */
 .reporting-main--single { grid-template-columns: 1fr; }
-
-/* AI sub-mode switch (Build a report / Write SQL / Agent) → segmented control,
-   matching the main mode toggle (was wrapping into a broken vertical stack). */
-.reporting-ai-submode {
-  display: inline-flex;
-  gap: 3px; padding: 3px;
-  background: var(--nx-sunken);
-  border: 1px solid var(--nx-border);
-  border-radius: var(--nx-radius-sm);
-  margin-bottom: 12px;
-}
-.reporting-ai-submode button {
-  border: 1px solid transparent;
-  background: transparent;
-  border-radius: calc(var(--nx-radius-sm) - 2px);
-  padding: 6px 14px;
-  font-size: 13px; font-weight: 500;
-  white-space: nowrap;
-  color: var(--nx-text-sec);
-}
-.reporting-ai-submode button.active {
-  background: var(--nx-card);
-  color: var(--nx-accent);
-  border-color: transparent;
-  box-shadow: var(--nx-shadow);
-  font-weight: 600;
-}
-.reporting-ai-result { max-width: 760px; }
 
 @media (max-width: 1100px) {
   .reporting-actions { margin-left: 0; }
@@ -1072,10 +1005,10 @@ body.nx-app {
 .rs-rail-dot {
   flex: none; width: 28px; height: 28px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font: 700 12px var(--nx-font); background: #fff; color: #9ca3af;
-  border: 1.5px solid #e5e7eb;
+  font: 700 12px var(--nx-font); background: var(--nx-card); color: var(--nx-text-meta);
+  border: 1.5px solid var(--nx-border);
 }
-.rs-rail-line { flex: 1; width: 2px; min-height: 16px; margin: 4px 0; background: #e5e7eb; }
+.rs-rail-line { flex: 1; width: 2px; min-height: 16px; margin: 4px 0; background: var(--nx-border); }
 .rs-rail-step:last-child .rs-rail-line { display: none; }
 .rs-rail-step.is-done .rs-rail-dot { background: #eef2ff; border-color: #c7d2fe; color: #4338ca; }
 .rs-rail-step.is-done .rs-rail-line { background: #c7d2fe; }
@@ -1216,9 +1149,70 @@ body.nx-app {
   .reporting-ai-dots i { animation: none; }
 }
 
-/* Refine bar (Simple pane, F2-T4) */
-.reporting-simple-refine { display: flex; gap: .5rem; margin: .4rem 0 .6rem; }
-.reporting-simple-refine .reporting-input { flex: 1; }
+/* Result skeleton (Task 7): a KPI-band-shaped + table-shaped placeholder
+   shown in the results area while a run is in flight (both panes) —
+   replaces the old dots+text spinner (still used elsewhere, e.g. the drill
+   drawer) so the real content doesn't cause a layout jump on arrival. Same
+   shimmer technique/tokens as .rdb-skeleton (dashboard cards); static under
+   reduced-motion like every other animation on this page. */
+.rp-skeleton {
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--nx-border) 25%, var(--nx-divider) 50%, var(--nx-border) 75%);
+  background-size: 200% 100%;
+  animation: rp-shimmer 1.4s infinite linear;
+}
+@keyframes rp-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .rp-skeleton { animation: none; }
+}
+.rp-skeleton-band { display: flex; gap: 12px; margin-bottom: 16px; }
+.rp-skeleton-kpi { height: 64px; flex: 1; }
+.rp-skeleton-table { display: flex; flex-direction: column; gap: 10px; padding: 4px 0; }
+.rp-skeleton-row { height: 14px; width: 100%; }
+
+/* Auto AI captions (Task 13): a one-line insight under the Simple result
+   (#rsCaption) and the Advanced chart (#rpCaption), fired automatically by
+   fireCaption() in the two JS partials. Shimmers (reusing the .rp-skeleton
+   tokens/keyframe above) while the request is in flight; on error the JS
+   just re-hides the div -- no error styling exists here on purpose (Task
+   13's silent-fail contract, unlike the chat panel's error bubbles). */
+.rp-caption {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin: .5rem 0;
+  padding: .5rem .75rem;
+  border-radius: 8px;
+  background: var(--nx-accent-tint);
+  border: 1px solid var(--nx-accent-soft);
+  color: var(--nx-text);
+  font-size: .9em;
+  line-height: 1.4;
+  min-height: 1.6em;
+}
+.rp-caption--loading {
+  color: transparent;
+  background: linear-gradient(90deg, var(--nx-border) 25%, var(--nx-divider) 50%, var(--nx-border) 75%);
+  background-size: 200% 100%;
+  border-color: var(--nx-border);
+  animation: rp-shimmer 1.4s infinite linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rp-caption--loading { animation: none; }
+}
+.rp-caption-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: .1rem .45rem;
+  border-radius: 999px;
+  font-size: .7em;
+  font-weight: 700;
+  letter-spacing: .02em;
+  background: var(--nx-accent);
+  color: #fff;
+}
 
 /* Editable AI filter/process chips (Simple pane, F2-T5) */
 .reporting-simple-chips { display: flex; flex-wrap: wrap; gap: .4rem; margin: .2rem 0 .6rem; }
@@ -1268,7 +1262,7 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
    context-chip row + info callout -- see reporting.md §Drill / the
    2026-07-20 redesign plan Task 9. --- */
 .reporting-drill-backdrop {
-  position: fixed; inset: 0; background: rgba(15, 23, 42, .28); z-index: 60;
+  position: fixed; inset: 0; background: rgba(0, 0, 0, .28); z-index: 60;
 }
 .reporting-drill-backdrop[hidden] { display: none; }
 .reporting-drill-panel {
@@ -1277,7 +1271,7 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
   display: flex; flex-direction: column;
   background: var(--nx-card); color: var(--nx-text);
   border-left: 1px solid var(--nx-border);
-  box-shadow: -24px 0 64px -24px rgba(15, 23, 42, .35);
+  box-shadow: -24px 0 64px -24px rgba(0, 0, 0, .35);
 }
 .reporting-drill-panel[hidden] { display: none; }
 /* Slide-in, 250ms (spec §Drill). `backwards` only (never `both` -- see
@@ -1356,6 +1350,116 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
 @media (max-width: 900px) {
   .reporting-drill-panel { width: 100vw; max-width: 100vw; }
 }
+
+/* ---- AI chat panel ----
+   Docked chat slide-over: same shell pattern as the drill-through drawer
+   above (fixed right-side backdrop + panel, translateX slide-in). Markup:
+   templates/reporting.html (Task 2 -- rendered hidden/inert; Task 3 wires
+   open/close, message rendering and send behaviour). Bubbles, starter chips
+   and the thinking ticker reuse the existing AI-panel/hero visual language
+   (.reporting-ai-dots, .rs-suggestion) rather than inventing new ones. */
+.reporting-chat-backdrop {
+  position: fixed; inset: 0; background: rgba(0, 0, 0, .28); z-index: 60;
+}
+.reporting-chat-backdrop[hidden] { display: none; }
+.reporting-chat-panel {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 61;
+  width: 420px; max-width: 420px; height: 100dvh;
+  display: flex; flex-direction: column;
+  background: var(--nx-card); color: var(--nx-text);
+  border-left: 1px solid var(--nx-border);
+  box-shadow: -24px 0 64px -24px rgba(0, 0, 0, .35);
+}
+.reporting-chat-panel[hidden] { display: none; }
+/* Slide-in, 250ms -- `backwards` only (never `both`; see
+   .reporting-drill-panel above / nexora-ui.css's .nx-rise comment): the
+   "from" state paints for the instant before the JS-driven [hidden] flip,
+   and the effect fully ends once the animation completes -- no lingering
+   held transform/stacking context. */
+@keyframes rc-slide-in { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+.reporting-chat-panel:not([hidden]) { animation: rc-slide-in .25s var(--nx-ease) backwards; }
+@media (prefers-reduced-motion: reduce) {
+  .reporting-chat-panel:not([hidden]) { animation: none; }
+}
+@media (max-width: 900px) {
+  .reporting-chat-panel { width: 100vw; max-width: 100vw; }
+}
+
+.reporting-chat-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px; border-bottom: 1px solid var(--nx-border);
+}
+.reporting-chat-title { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; color: var(--nx-text); }
+.reporting-chat-title i { color: var(--nx-violet); }
+
+.reporting-chat-thread {
+  flex: 1; overflow-y: auto; padding: 16px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.reporting-chat-empty { text-align: center; padding: 24px 8px; color: var(--nx-text-sec); }
+.reporting-chat-empty p { margin: 0 0 16px; font-size: 13px; line-height: 1.5; }
+
+/* Starter suggestion chips -- same pill look as the landing hero's
+   .rs-suggestion (border + accent text, tint background on hover). */
+.rp-chat-starter {
+  display: inline-block; margin: 4px; border: 1px solid #e0e7ff; border-radius: 999px;
+  background: var(--nx-card); color: var(--nx-accent); font: 500 12px var(--nx-font);
+  padding: 6px 14px; cursor: pointer;
+}
+.rp-chat-starter:hover { background: var(--nx-accent-tint); }
+html.dark .rp-chat-starter { border-color: var(--nx-card-hover-border); }
+
+/* Message bubbles */
+.rp-chat-msg { max-width: 88%; padding: 10px 14px; border-radius: 14px; font-size: 13px; line-height: 1.5; }
+.rp-chat-msg--user {
+  align-self: flex-end; background: var(--nx-accent-soft); color: var(--nx-text);
+  border-bottom-right-radius: 4px;
+}
+.rp-chat-msg--ai {
+  align-self: flex-start; background: var(--nx-card); color: var(--nx-text);
+  border: 1px solid var(--nx-border); border-bottom-left-radius: 4px;
+}
+
+/* Action chip row under an AI turn (e.g. "Open in builder", "Run query"). */
+.rp-chat-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; align-self: flex-start; }
+
+/* Mini result table under an AI turn -- capped height, scrolls internally. */
+.rp-chat-result {
+  align-self: stretch; margin-top: 8px; max-height: 220px; overflow: auto;
+  border: 1px solid var(--nx-border); border-radius: 10px; background: var(--nx-card);
+}
+.rp-chat-result table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.rp-chat-result th,
+.rp-chat-result td {
+  padding: 6px 8px; border-bottom: 1px solid var(--nx-border);
+  text-align: left; white-space: nowrap;
+}
+.rp-chat-result th {
+  background: var(--nx-alt); color: var(--nx-text-meta);
+  font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+}
+
+/* Thinking ticker -- same three-dot pulse as .reporting-ai-dots. */
+.rp-chat-ticker { display: flex; align-items: center; gap: .6rem; align-self: flex-start; color: var(--nx-text-sec); }
+.rp-chat-ticker i {
+  display: inline-block; width: 8px; height: 8px; margin: 0 2px;
+  border-radius: 50%; background: currentColor;
+  animation: rs-ai-pulse 1.2s infinite ease-in-out;
+}
+.rp-chat-ticker i:nth-child(2) { animation-delay: .2s; }
+.rp-chat-ticker i:nth-child(3) { animation-delay: .4s; }
+@media (prefers-reduced-motion: reduce) {
+  .rp-chat-ticker i { animation: none; }
+}
+
+.reporting-chat-form { display: flex; align-items: flex-end; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--nx-border); }
+.reporting-chat-input {
+  flex: 1; resize: none; max-height: 120px; padding: 9px 12px;
+  background: var(--nx-card); color: var(--nx-text);
+  border: 1px solid var(--nx-border); border-radius: var(--nx-radius-sm);
+  font: 13px var(--nx-font);
+}
+.reporting-chat-input:focus { outline: none; border-color: var(--nx-accent); box-shadow: 0 0 0 3px var(--nx-accent-tint); }
 
 /* --- Workitem detail panel modal, opened from a .reporting-drill-wi-link
    row in the drill drawer (templates/js/_reporting_drill_js.html
@@ -1466,6 +1570,26 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
    thead th (base rules ~L905, ~L911) already give the calmer GitHub-style
    borders; nothing left to layer here. */
 
+/* Data bars (Task 7): a relative-width tint bar behind numeric cells, scaled
+   to that column's max value — computed once per render in both panes'
+   table builders (renderResults in _reporting_js.html, renderTable in
+   _reporting_simple_js.html), same colMax-over-isNumericCell idiom as the
+   KPI band's own numeric detection. `z-index: 0` on the cell itself is
+   load-bearing, not decorative: it gives the <td> its own stacking context
+   so the ::before's z-index:-1 stays scoped there (painting under the
+   cell's own text, above the row/table background). Without it, a
+   position:relative + z-index:auto ancestor does NOT create a stacking
+   context, so the negative z-index escapes to the nearest ancestor that
+   does — in practice behind .reporting-results' opaque white background,
+   i.e. invisible (caught by screenshotting + pixel-sampling the rendered
+   cell during verification, not just trusting the DOM/computed style). */
+.rp-cell-num { position: relative; z-index: 0; font-variant-numeric: tabular-nums; }
+.rp-cell-num::before {
+  content: ""; position: absolute; inset: 4px auto 4px 0;
+  width: var(--bar, 0%); background: var(--nx-accent-soft, #eef2ff);
+  border-radius: 3px; z-index: -1;
+}
+
 .reporting-ledger-caption {
   font-size: .68rem;
   letter-spacing: .1em;
@@ -1552,6 +1676,31 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 /* Peak's bucket label (e.g. the winning breakdown value) -- wraps onto its
    own row under the caption/value pair, right-aligned to match the value. */
 .reporting-ledger-kpi-sub { flex: 1 0 100%; font-size: .72rem; color: var(--nx-text-meta); text-align: right; }
+
+/* Task 11: delta chips vs the prior period (compare: true) + inline
+   sparkline on the Simple KPI band. .rs-kpi-value-wrap bundles a value with
+   its chip into one flex item so the stats-card row's caption/value
+   space-between layout still only sees two top-level children. Chip color
+   is the same green/red the dashboard's .rdb-kpi-trend already uses for
+   "vs previous period" -- flat (no/negligible change) gets the muted meta
+   color instead, since flat isn't bad news. */
+.rs-kpi-value-wrap { display: inline-flex; align-items: baseline; gap: 6px; }
+.rp-delta {
+  display: inline-block;
+  font-size: .72rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  cursor: default;
+}
+.rp-delta--up { color: var(--nx-success); }
+.rp-delta--down { color: var(--nx-danger); }
+.rp-delta--flat { color: var(--nx-text-meta); }
+
+/* Hand-rolled SVG polyline (no Chart.js instance) -- inherits the total
+   card's own text color (#fff light / var(--nx-page) dark, set above) so it
+   never needs its own dark-mode override. */
+.rp-sparkline { display: block; width: 100%; height: 28px; margin-top: 4px; opacity: .9; }
 
 /* Table card: head row ("Table" + row count + right-aligned drill hint),
    the table itself, and rsSqlPeek as the card's flush footer (Task 2
@@ -1697,30 +1846,16 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   background: var(--nx-accent-tint);
 }
 
-/* --- AI panels (Ask-AI bar, Agent thread trace, SQL draft): same canvas
-   + hairline treatment, tabular-nums metadata on badges/step labels. Chrome
-   only — submode buttons, prompt bar and result wiring keep their structure
-   and testids. --- */
-.reporting-ledger .reporting-ai-panel {
-  background: var(--rl-band);
-  border-color: var(--rl-hairline);
-}
-.reporting-ledger .reporting-ai-turn {
-  background: var(--rl-band);
-  border-color: var(--rl-hairline);
-}
+/* --- AI panels (Agent thread trace, SQL draft): same canvas + hairline
+   treatment, tabular-nums metadata on badges/step labels. Chrome only —
+   result wiring keeps its structure and testids. --- */
 .reporting-ledger .reporting-ai-sql {
   background: var(--rl-canvas);
   border-color: var(--rl-hairline);
 }
 .reporting-ledger .reporting-ai-step-name,
-.reporting-ledger .reporting-ai-step-meta,
-.reporting-ledger .reporting-ai-q-badge {
+.reporting-ledger .reporting-ai-step-meta {
   font-variant-numeric: tabular-nums;
-}
-.reporting-ledger .reporting-ai-panel,
-.reporting-ledger .reporting-ai-turn {
-  border-radius: 0;
 }
 
 /* ---- Landing hero (spec §Landing) ---- */
@@ -2095,8 +2230,8 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
               background-color var(--nx-dur) var(--nx-ease);
 }
 .rdb-card-ctrl-btn:hover { color: var(--nx-accent); border-color: #c7d2fe; }
-.rdb-card-ctrl-btn--danger { border-color: #fecaca; color: #dc2626; }
-.rdb-card-ctrl-btn--danger:hover { background: #fef2f2; color: #dc2626; }
+.rdb-card-ctrl-btn--danger { border-color: #fecaca; color: var(--nx-danger); }
+.rdb-card-ctrl-btn--danger:hover { background: #fef2f2; color: var(--nx-danger); }
 
 /* ---- Empty-card "configure this card" placeholder ---------------------- */
 .rdb-card-configure {
@@ -2139,7 +2274,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 
 /* ---- Saved-report picker modal (D14 v1 card configuration) ------------- */
 .rdb-modal-overlay {
-  position: fixed; inset: 0; z-index: 60; background: rgba(16, 24, 40, .45);
+  position: fixed; inset: 0; z-index: 60; background: rgba(0, 0, 0, .45);
   display: flex; align-items: center; justify-content: center;
 }
 .rdb-modal {

@@ -125,9 +125,17 @@ def humanize_sql_error(msg):
     return text
 
 
+# Comment-only strip, quote-UNAWARE. Used solely by wrap_with_cap() below to
+# sniff a leading WITH/`;WITH` on ALREADY-validated SQL (validate_select() has
+# always run first at every call site) -- it is a shape check, not a security
+# scan, so a `--`/`/* */` marker hidden inside a quoted construct near the
+# very start of the query (before the point wrap_with_cap() even looks) isn't
+# a real concern here the way it is for the blocklist scan. Do not reuse this
+# for anything that scans untrusted SQL for blocklisted content -- use
+# _strip_for_scan() below for that.
 def _strip_comments(sql):
     no_block = re.sub(r"/\*.*?\*/", " ", sql, flags=re.DOTALL)
-    return re.sub(r"--[^\n]*", " ", no_block)
+    return re.sub(r"--[^\n\r]*", " ", no_block)
 
 
 # T-SQL string literals escape an embedded quote by doubling it: 'it''s here'
@@ -137,29 +145,98 @@ def _strip_comments(sql):
 # (aliases) are attacker-chosen -- so an apostrophe-blind literal stripper
 # can be tricked into treating everything from that apostrophe to some LATER
 # unrelated apostrophe as one "literal" and blanking real SQL out of the
-# blocklist scan, including a keyword. This pattern therefore matches
-# bracket/double-quoted identifiers FIRST (leftmost-first alternation), so
-# those are consumed and left completely untouched before any '...' literal
-# is considered; only the '...' alternative gets blanked. A construct that
-# never closes (malformed/truncated input) simply fails to match, so nothing
-# is stripped for it and the raw text -- including any real keyword inside
-# it -- still reaches the blocklist scan. Fail safe (under-strip), never
-# fail open (over-strip and hide a real keyword).
-_SCAN_TOKEN_RE = re.compile(r"""\[[^\]]*\]|"(?:[^"]|"")*"|'(?:[^']|'')*'""")
+# blocklist scan, including a keyword.
+#
+# Round 1 of this fix ran comment-stripping and literal-stripping as two
+# SEPARATE blind passes (_strip_comments() then a literal-only regex here).
+# That split is itself exploitable, two ways:
+#   - A bracket-quoted identifier can legally contain a doubled `]]` (T-SQL's
+#     escape for a literal `]`), e.g. [a]]b] is the single identifier a]b.
+#     The round-1 bracket alternative `\[[^\]]*\]` didn't know that and
+#     stopped at the FIRST `]`, leaving a stray quote character outside its
+#     consumed span to open a phantom literal that swallowed real SQL --
+#     including a keyword -- following it.
+#   - `--`/`/* */` inside a string literal or a quoted identifier is not a
+#     real comment in T-SQL, but blind comment-stripping ran BEFORE any
+#     quote-awareness and deleted from `--` to end-of-line (or matched
+#     `/* ... */`) regardless of what quoted construct it was sitting
+#     inside, corrupting what the later literal-stripping pass saw.
+# Either way a real keyword (OPENROWSET and friends -- see below) could end
+# up erased from the scan along with the fake "literal"/"comment" around it.
+#
+# Fixed by doing comment-stripping and quote-stripping in ONE left-to-right
+# alternation instead of two independent ones, so a comment marker that is
+# actually inside a quoted construct is never treated as a real comment (and
+# a quote/dash genuinely inside a real comment can't confuse the scan
+# either). Bracket/double-quoted identifiers are matched leftmost-first
+# (before the '...' alternative) and passed through completely unchanged --
+# never blanked -- so a quote character inside one can't be mistaken for the
+# start of a string literal and swallow real SQL that follows. The bracket
+# alternative honors the `]]` escape so a doubled `]]` can't be mistaken for
+# the identifier's closing bracket. A construct that never closes
+# (malformed/truncated input) simply fails to match, so nothing is stripped
+# for it and the raw text -- including any real keyword inside it -- still
+# reaches the blocklist scan. Fail safe (under-strip), never fail open
+# (over-strip and hide a real keyword).
+#
+# Round 3 closed two more gaps in this same tokenizer, found by a third
+# review pass:
+#   - The comment alternative stopped only at LF (`--[^\n]*`), but real T-SQL
+#     also ends a `--` line comment at a bare CR. A payload using `\r`
+#     instead of `\n` after `--` kept everything past it OUT of the scan
+#     while SQL Server itself would treat the CR as ending the comment and
+#     execute what followed -- hiding OPENROWSET the same way bypasses A/B
+#     above did. Fixed by stopping at either terminator: `--[^\n\r]*`. The
+#     same `[^\n]` -> `[^\n\r]` fix was applied to the separate, quote-unaware
+#     _strip_comments() below for consistency (its impact there is a
+#     correctness bug -- a CTE query with a CR before a leading WITH could be
+#     mis-wrapped -- not a security bypass, since _strip_comments() only
+#     feeds wrap_with_cap()'s shape check on already-validated SQL).
+#   - The round-2 bracket alternative `\[(?:[^\]]|\]\])*\]`, while a correct
+#     grouped alternation, backtracks catastrophically on adversarial input
+#     (e.g. a long run of `[` or `['` characters): ~20-30 seconds of pure
+#     CPU for a ~20KB payload, with no DB call involved so SQL_TIMEOUT_S
+#     never applies. Any authenticated user with reporting.sql.run + a
+#     target grant + the ack could stall a worker process this way,
+#     independent of Flask-Limiter's per-worker (not shared) rate limiting.
+#     Fixed with an atomic group -- `\[(?>[^\]]*(?:\]\][^\]]*)*)\]` --  which
+#     preserves identical matching semantics (same `]]`-escape handling)
+#     while eliminating the backtracking, since the atomic group commits to
+#     its match of "run of non-`]` chars, then `]]`-escaped run, repeat" and
+#     never re-explores it token-by-token on failure. Requires Python's `re`
+#     atomic-group support (native since 3.11; this project requires >=3.13).
+_SCAN_TOKEN_RE = re.compile(
+    r"""/\*.*?\*/|--[^\n\r]*|\[(?>[^\]]*(?:\]\][^\]]*)*)\]|"(?:[^"]|"")*"|'(?:[^']|'')*'""",
+    re.DOTALL,
+)
 
 
-def _strip_string_literals(sql):
-    """Blank literal CONTENTS for the blocklist scan; keep identifiers intact.
+def _strip_for_scan(sql):
+    """Blank comments and literal CONTENTS for the blocklist/LIMIT scan.
 
-    'update log' -> '' so the scan sees an inert empty literal rather than
-    the word "update" (a false-positive DML match against the blocklist) or
-    nothing at all (which would risk merging the tokens on either side of
-    the literal into something the blocklist misreads). Bracket- or
-    double-quoted identifiers ([a'b], "a""b") are matched but left as-is --
-    never blanked -- so a quote character inside one can't be mistaken for
-    the start of a string literal and swallow real SQL that follows.
+    Comments (`/* */`, `--...`) collapse to a single space each, matching
+    the old _strip_comments() replacement -- enough separation that tokens
+    on either side can't merge into a new word. String literal contents
+    blank to '' (e.g. 'update log' -> '') so the scan sees an inert empty
+    literal rather than the word "update" (a false-positive DML match) or a
+    token merge. Bracket- and double-quoted identifiers ([a'b], "a""b") are
+    matched but left completely as-is -- never blanked -- so a quote
+    character (or a `--`/`/* */` marker) inside one can't be mistaken for
+    the start/end of some other construct and swallow real SQL that
+    follows. This is the sole stripping pass feeding the blocklist and
+    LIMIT scans; every other validate_select() check runs against the raw,
+    unmodified `sql`.
     """
-    return _SCAN_TOKEN_RE.sub(lambda m: m.group(0) if m.group(0)[0] in '["' else "''", sql)
+
+    def repl(m):
+        tok = m.group(0)
+        if tok.startswith("/*") or tok.startswith("--"):
+            return " "
+        if tok[0] in '["':
+            return tok
+        return "''"
+
+    return _SCAN_TOKEN_RE.sub(repl, sql)
 
 
 def validate_select(sql):
@@ -170,12 +247,15 @@ def validate_select(sql):
     if len(sql) > MAX_SQL_LEN:
         raise SqlSandboxError("too_long", f"SQL exceeds {MAX_SQL_LEN} characters")
 
-    scan = _strip_comments(sql)
-    # The blocklist scans literal-stripped text so a keyword sitting inside a
-    # string value (WHERE note = 'update log') doesn't false-positive; every
-    # other check below -- LIMIT, statement-shape, forbidden-node -- still
-    # runs against `scan` (comment-stripped only) or the raw `sql`, unchanged.
-    m = _BLOCKED_RE.search(_strip_string_literals(scan))
+    # The blocklist and LIMIT checks below scan comment- AND literal-stripped
+    # text (single tokenizer pass, see _strip_for_scan) so a keyword sitting
+    # inside a string value (WHERE note = 'update log') doesn't
+    # false-positive, and a comment marker or quote hidden inside a quoted
+    # construct can't hide a real keyword either; every other check --
+    # statement-shape, forbidden-node -- still runs against the raw `sql`,
+    # unchanged.
+    scan = _strip_for_scan(sql)
+    m = _BLOCKED_RE.search(scan)
     if m:
         kw = m.group(0).strip()
         raise SqlSandboxError("blocked_keyword", f"disallowed keyword: {kw}", token=kw)

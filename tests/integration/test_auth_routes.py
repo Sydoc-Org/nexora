@@ -20,6 +20,7 @@ import threading
 import time
 from unittest.mock import MagicMock, patch
 
+import bcrypt
 import pytest
 
 
@@ -256,8 +257,15 @@ def test_reset_password_good_token_renders(client):
 
 def test_set_new_password_password_mismatch(client):
     """Mismatched passwords → re-render reset_password.html with error."""
+    from nx_lib.views.auth import _reset_token_cache_key
+
     with client.session_transaction() as sess:
         sess["email_for_password_reset"] = "admin@test.local"
+        # Phase-10 finding fix: set_new_password() now also requires a live
+        # (present, not-yet-consumed) password_reset_token_key -- give it
+        # one so this test still exercises the mismatch validation path
+        # rather than the new not-consumed guard.
+        sess["password_reset_token_key"] = _reset_token_cache_key("test-mismatch-token")
     resp = client.post(
         "/set_new_password",
         data={"new-password": "NewPass1234!", "confirm-password": "Different1!"},
@@ -266,8 +274,11 @@ def test_set_new_password_password_mismatch(client):
 
 
 def test_set_new_password_too_short(client):
+    from nx_lib.views.auth import _reset_token_cache_key
+
     with client.session_transaction() as sess:
         sess["email_for_password_reset"] = "admin@test.local"
+        sess["password_reset_token_key"] = _reset_token_cache_key("test-too-short-token")
     resp = client.post(
         "/set_new_password",
         data={"new-password": "short", "confirm-password": "short"},
@@ -302,8 +313,11 @@ def test_set_new_password_db_failure_renders_visible_error(client):
     visible in the response the user actually receives. A DB failure is a
     genuinely terminal exit (not a retry-able mistake), so the reset-session
     capability is still dropped here -- unlike a validation-error retry."""
+    from nx_lib.views.auth import _reset_token_cache_key
+
     with client.session_transaction() as sess:
         sess["email_for_password_reset"] = "admin@test.local"
+        sess["password_reset_token_key"] = _reset_token_cache_key("test-db-failure-token")
     with patch(
         "nx_lib.views.auth.engine_nexora_db.raw_connection",
         side_effect=RuntimeError("db down"),
@@ -548,8 +562,13 @@ def test_set_new_password_mismatch_does_not_drop_session(client):
     render-with-error left a user who simply mistypes their confirmation
     with no recovery path, forcing them to request an entirely new reset
     email for a one-character typo."""
+    from nx_lib.views.auth import _reset_token_cache_key
+
     with client.session_transaction() as sess:
         sess["email_for_password_reset"] = "admin@test.local"
+        sess["password_reset_token_key"] = _reset_token_cache_key(
+            "test-mismatch-does-not-drop-session-token"
+        )
 
     resp = client.post(
         "/set_new_password",
@@ -600,6 +619,109 @@ def test_set_new_password_mismatch_then_retry_with_same_token_succeeds(client):
         assert b"password changed" in retry_resp.data.lower()
         with client.session_transaction() as sess:
             assert "email_for_password_reset" not in sess
+    finally:
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE Users SET password = ? WHERE Email = ?", (original_hash, email))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+
+def test_set_new_password_missing_token_key_rejected(client):
+    """Phase-10 finding fix: a session carrying the "may set a new password"
+    capability but missing password_reset_token_key (e.g. seeded directly,
+    or a pre-338e55f session that predates the key being stashed by
+    reset_password()) must be rejected cleanly -- redirected to /login, not
+    allowed to write silently and not a crash. Before this fix the
+    `if token_cache_key:` guard around the cache.set() call let the write
+    through while quietly skipping consumption, leaving the underlying
+    signed token replayable via GET for its full max_age window."""
+    with client.session_transaction() as sess:
+        sess["email_for_password_reset"] = "admin@test.local"
+        # Deliberately no password_reset_token_key.
+    resp = client.post(
+        "/set_new_password",
+        data={"new-password": "ShouldNotWork1!", "confirm-password": "ShouldNotWork1!"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 302
+    assert "/login" in resp.headers.get("Location", "")
+    with client.session_transaction() as sess:
+        assert "email_for_password_reset" not in sess
+        assert "password_reset_token_key" not in sess
+
+
+def test_set_new_password_cross_session_replay_rejected_after_first_write(client):
+    """Phase-10 finding fix (the core gap): two sessions holding the SAME
+    reset-token capability (e.g. a mail-gateway prescan or shared-inbox
+    viewer fetched the link before the real user did) -- the first to POST
+    a successful write burns the token; the second's subsequent POST must
+    be REJECTED (redirected to /login), not silently allowed to overwrite
+    the password the legitimate user just set. Before this fix,
+    authorization was purely `"email_for_password_reset" in session`, which
+    stayed true in session B regardless of what session A had already
+    consumed."""
+    from nx_lib.db import engine_nexora_db
+    from nx_lib.extensions import s
+
+    email = "admin@test.local"
+    token = s.dumps(email, salt="password-reset-salt")
+
+    conn = engine_nexora_db.raw_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT password FROM Users WHERE Email = ?", email)
+    original_hash = cursor.fetchone()[0]
+    cursor.close()
+    conn.close()
+
+    session_a = client
+    session_b = client.application.test_client()
+
+    try:
+        # Both sessions fetch the same link -- GET is side-effect-free, so
+        # both legitimately end up holding the capability + token key.
+        get_a = session_a.get(f"/reset_password/{token}")
+        assert get_a.status_code == 200
+        get_b = session_b.get(f"/reset_password/{token}")
+        assert get_b.status_code == 200
+
+        # Session A (the real user) completes the reset first.
+        resp_a = session_a.post(
+            "/set_new_password",
+            data={"new-password": "FirstWriter1!", "confirm-password": "FirstWriter1!"},
+        )
+        assert resp_a.status_code == 200
+        assert b"password changed" in resp_a.data.lower()
+
+        # Session B attempts to reuse the same (now-consumed) token key --
+        # must be rejected, not allowed to overwrite session A's write.
+        resp_b = session_b.post(
+            "/set_new_password",
+            data={
+                "new-password": "SecondWriterHijack1!",
+                "confirm-password": "SecondWriterHijack1!",
+            },
+            follow_redirects=False,
+        )
+        assert resp_b.status_code == 302
+        assert "/login" in resp_b.headers.get("Location", "")
+        with session_b.session_transaction() as sess:
+            assert "email_for_password_reset" not in sess
+            assert "password_reset_token_key" not in sess
+
+        # The password on record must still be session A's, never session
+        # B's hijack attempt.
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT password FROM Users WHERE Email = ?", email)
+        current_hash = cursor.fetchone()[0]
+        cursor.close()
+        conn.close()
+        if isinstance(current_hash, str):
+            current_hash = current_hash.encode("utf-8")
+        assert bcrypt.checkpw(b"FirstWriter1!", current_hash)
+        assert not bcrypt.checkpw(b"SecondWriterHijack1!", current_hash)
     finally:
         conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()

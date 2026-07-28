@@ -1,6 +1,6 @@
 """chart_render renders report rows to PNG bytes for mails/exports."""
 
-from nx_lib.reporting.chart_render import render_chart_png
+from nx_lib.reporting.chart_render import _PALETTE, MAX_SERIES, render_chart_png
 
 _PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
 
@@ -83,3 +83,12 @@ def test_empty_rows_returns_none():
         )
         is None
     )
+
+
+def test_palette_covers_the_full_series_cap_with_no_repeats():
+    # Finding B: a >7-series breakdown must not silently repeat a color
+    # before hitting MAX_SERIES=12 -- _PALETTE (the server-side twin of the
+    # web charts' shared NX_PALETTE) must have at least MAX_SERIES distinct
+    # entries, so `_PALETTE[i % len(_PALETTE)]` never wraps within one chart.
+    assert len(_PALETTE) >= MAX_SERIES
+    assert len(set(_PALETTE)) == len(_PALETTE)

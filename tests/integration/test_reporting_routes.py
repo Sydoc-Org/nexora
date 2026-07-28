@@ -26,6 +26,37 @@ def test_reporting_without_perm_returns_403(user_client):
     assert resp.status_code == 403
 
 
+def test_reporting_page_renders_chat_panel_when_ai_enabled(admin_client):
+    # TestAdmin holds reporting.ai.use (seed) -- the chat panel renders, and the
+    # old Ask-AI mode button + inline panel it replaces are gone.
+    resp = admin_client.get("/reporting")
+    assert resp.status_code == 200
+    assert b"rpChatPanel" in resp.data
+    assert b"rpAiPanel" not in resp.data
+    assert b"rpModeAi" not in resp.data
+
+
+def test_reporting_page_caption_slots_need_only_explain_data(admin_client):
+    """Regression for the Phase 4 review finding: the caption <div>s must be
+    gated on reporting.ai.explain_data alone (D-CAPTION), not on the
+    ai_explain_enabled AND-combo (which also requires reporting.sql.run --
+    that extra requirement is for Surface C's live-SQL tool binding, an
+    unrelated concern). A caller with explain_data but NOT sql.run must still
+    see both #rpCaption (Advanced) and #rsCaption (Simple)."""
+
+    def _perm(code):
+        return code in ("reporting.view", "reporting.ai.explain_data")
+
+    with (
+        patch("nx_lib.security.has_permission", side_effect=_perm),
+        patch("nx_lib.views.reporting.has_permission", side_effect=_perm),
+    ):
+        resp = admin_client.get("/reporting")
+    assert resp.status_code == 200
+    assert b'id="rpCaption"' in resp.data
+    assert b'id="rsCaption"' in resp.data
+
+
 def test_sources_without_perm_returns_403(user_client):
     resp = user_client.get("/api/reporting/sources")
     assert resp.status_code == 403
@@ -901,6 +932,121 @@ def test_run_response_includes_inlined_display_sql(admin_client):
     assert "'2026-07-01'" in body["sqlDisplay"]
     assert "'2026-08-01'" in body["sqlDisplay"]
     assert "\n" in body["sqlDisplay"]  # pretty-printed
+
+
+# --- compare: true (Phase 3 comparison deltas) ---
+
+
+def test_run_compare_true_with_token_filter_returns_comparison(admin_client):
+    """compare: true + a single token filter runs the definition a second time
+    over the prior window and surfaces it as a `comparison` key."""
+    fake_cols = [{"field": "n", "header": "N"}]
+    fake_sql = "SELECT COUNT(*) AS [n] FROM [dbo].[T]"
+    main_rows = [[10]]
+    comparison_rows = [[7]]
+    body = {
+        "source": "x",
+        "filters": [{"field": "CreatedDate", "op": "between", "value": {"token": "last_month"}}],
+        "compare": True,
+    }
+    with (
+        patch(
+            "nx_lib.views.reporting._prepare_run",
+            return_value=(fake_cols, fake_sql, [], None),
+        ),
+        patch("nx_lib.views.reporting._execute", side_effect=[main_rows, comparison_rows]),
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting._resolved_dates_meta", return_value=None),
+    ):
+        resp = admin_client.post("/api/reporting/run", json=body)
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert "comparison" in data
+    comp = data["comparison"]
+    assert comp["columns"] == [{"field": "n", "header": "N"}]
+    assert comp["rows"] == comparison_rows
+    assert isinstance(comp["priorStart"], str)
+    assert isinstance(comp["priorEnd"], str)
+
+
+def test_run_compare_true_without_token_filter_omits_comparison(admin_client):
+    """compare: true with no (or an ambiguous) token filter can't be shifted —
+    the response stays 200 with no `comparison` key."""
+    fake_cols = [{"field": "n", "header": "N"}]
+    fake_sql = "SELECT COUNT(*) AS [n] FROM [dbo].[T]"
+    fake_rows = [[10]]
+    body = {"source": "x", "filters": [], "compare": True}
+    with (
+        patch(
+            "nx_lib.views.reporting._prepare_run",
+            return_value=(fake_cols, fake_sql, [], None),
+        ),
+        patch("nx_lib.views.reporting._execute", return_value=fake_rows) as mock_execute,
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting._resolved_dates_meta", return_value=None),
+    ):
+        resp = admin_client.post("/api/reporting/run", json=body)
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert "comparison" not in data
+    assert mock_execute.call_count == 1
+
+
+def test_run_compare_execute_error_degrades_without_failing_main_run(admin_client):
+    """A failure while running the comparison query must never fail the main
+    run — it just logs and omits the `comparison` key."""
+    fake_cols = [{"field": "n", "header": "N"}]
+    fake_sql = "SELECT COUNT(*) AS [n] FROM [dbo].[T]"
+    main_rows = [[10]]
+    body = {
+        "source": "x",
+        "filters": [{"field": "CreatedDate", "op": "between", "value": {"token": "last_month"}}],
+        "compare": True,
+    }
+    with (
+        patch(
+            "nx_lib.views.reporting._prepare_run",
+            return_value=(fake_cols, fake_sql, [], None),
+        ),
+        patch(
+            "nx_lib.views.reporting._execute",
+            side_effect=[main_rows, RuntimeError("comparison boom")],
+        ),
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting._resolved_dates_meta", return_value=None),
+    ):
+        resp = admin_client.post("/api/reporting/run", json=body)
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert "comparison" not in data
+    assert data["rowCount"] == 1
+    assert data["rows"] == main_rows
+
+
+def test_run_without_compare_key_calls_execute_exactly_once(admin_client):
+    """No `compare` key at all: single query, no comparison branch touched."""
+    fake_cols = [{"field": "n", "header": "N"}]
+    fake_sql = "SELECT COUNT(*) AS [n] FROM [dbo].[T]"
+    fake_rows = [[10]]
+    body = {"source": "x"}
+    with (
+        patch(
+            "nx_lib.views.reporting._prepare_run",
+            return_value=(fake_cols, fake_sql, [], None),
+        ),
+        patch("nx_lib.views.reporting._execute", return_value=fake_rows) as mock_execute,
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting._resolved_dates_meta", return_value=None),
+    ):
+        resp = admin_client.post("/api/reporting/run", json=body)
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert "comparison" not in data
+    assert mock_execute.call_count == 1
 
 
 _TINY_PNG_B64 = (

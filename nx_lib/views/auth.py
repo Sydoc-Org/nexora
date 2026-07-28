@@ -572,6 +572,20 @@ def forgot_password():
 def set_new_password():
     if "email_for_password_reset" not in session:
         return redirect(url_for("login"))
+    # Phase-10 finding fix: authorizing purely on session membership let a
+    # third party who fetched the reset link earlier (mail-gateway prescan,
+    # shared inbox, proxy log) retain an unbounded write capability in THEIR
+    # OWN session -- even after the legitimate user's own successful write
+    # burned the token (338e55f moved consumption here). Also covers a
+    # session carrying the capability but predating password_reset_token_key
+    # (pre-338e55f), which used to write successfully while silently never
+    # marking the token consumed. Check this BEFORE any validation below --
+    # if the token is already spent, no other validation result matters.
+    key = session.get("password_reset_token_key")
+    if not key or cache.get(key):
+        session.pop("email_for_password_reset", None)
+        session.pop("password_reset_token_key", None)
+        return redirect(url_for("login"))
     conn = None
     cursor = None
     try:

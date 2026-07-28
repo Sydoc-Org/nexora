@@ -8,13 +8,44 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward 2.5.65.
 
+### Added
+
+- Reporting: a multi-turn **AI chat panel** (`#rpChatToggle`, both Simple and
+  Advanced tabs) replaces the old single-shot "Ask AI" surface — a docked
+  slide-over with a conversation thread, a per-turn collapsible tool-step
+  trace, and follow-up suggestion chips. `POST /api/reporting/ai/agent` gains
+  a `history` param (last 8 turns / 4000 chars, text-only) so follow-ups carry
+  real conversational context instead of starting over each time.
+- Reporting: an opt-in **comparison** — `compare: true` on
+  `POST /api/reporting/run` reruns a definition with its single relative-date
+  token filter shifted back by the window's own length and returns a
+  `comparison` block (`columns`, `rows`, `priorStart`, `priorEnd`); the Simple
+  tab's KPI band renders **delta chips** (↑/↓/flat + percentage) and an inline
+  sparkline off it.
+- Reporting: `POST /api/reporting/ai/caption` and **auto captions** — a
+  `reporting.ai.explain_data`-gated 1–2 sentence AI narration that appears
+  under a result's chart/KPI band after every successful run, silently
+  no-opping on any failure.
+- Reporting: chart/table formatting polish — integer axis ticks, rounded bars,
+  a redesigned tooltip and categorical palette, data bars in the grid, KPI
+  count-up animation, loading skeletons, entrance animation, and a sticky
+  result toolbar.
+
 ### Changed
 
+- Reporting: the Simple tab's "Ask AI" bar/chips and the Advanced tab's
+  "Ask AI" mode now both route into the shared AI chat panel above, instead of
+  each running its own one-shot ask/refine flow.
+- Reporting: the page's dark-mode support is repaired end to end (design
+  tokens instead of hard-coded light-mode hex, dark-mode-aware chart
+  segment borders).
 - Reporting AI: the Azure request body now sends `max_completion_tokens`
   instead of the deprecated `max_tokens`, so GPT-5-family deployments
   (e.g. `gpt-5-mini`) work; older chat models keep working unchanged.
   Set `AZURE_OPENAI_API_VERSION` to a GPT-5-capable version (e.g.
   `2025-01-01-preview`) when pointing `AZURE_OPENAI_DEPLOYMENT` at one.
+  The SQL and report-builder prompts also stop the model AND-merging
+  multi-count questions ("imported today and exported today").
 
 ### Removed
 
@@ -44,6 +75,9 @@ Work toward 2.5.65.
   `Chat_Conversations`, `Chat_Messages`, `Chat_Participants`, `Tags`,
   `Workitem_Tags`, `Workitem_Comments`, `Comment_Mentions`,
   `Workitem_Metadata`, `Notifications`.
+- Reporting: the inline "Ask AI" panel (`rpAiPanel`, its Build/Write SQL/Agent
+  sub-modes) and the Simple tab's dedicated AI **Refine** bar are removed,
+  superseded by the AI chat panel above.
 
 ## [2.5.64] - 2026-07-22
 

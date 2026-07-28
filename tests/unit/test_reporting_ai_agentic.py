@@ -88,6 +88,36 @@ def test_loop_passes_tool_results_into_next_messages():
     assert seen[1] == ["user", "assistant", "tool"]
 
 
+def test_ask_agentic_seeds_history_before_question():
+    seen = {}
+
+    def step(messages):
+        seen["messages"] = list(messages)
+        return AssistantTurn(text="done", tool_calls=[])
+
+    result = ask_agentic(
+        "follow-up?",
+        registry=ToolRegistry(),
+        agent_step=step,
+        history=[
+            {"role": "user", "content": "first"},
+            {"role": "assistant", "content": "answer"},
+        ],
+    )
+    assert seen["messages"][0] == {"role": "user", "content": "first"}
+    assert seen["messages"][1] == {"role": "assistant", "content": "answer"}
+    assert seen["messages"][2] == {"role": "user", "content": "follow-up?"}
+    assert result.answer == "done"
+
+
+def test_ask_agentic_no_history_unchanged():
+    def step(messages):
+        assert messages == [{"role": "user", "content": "q"}]
+        return AssistantTurn(text="ok", tool_calls=[])
+
+    assert ask_agentic("q", registry=ToolRegistry(), agent_step=step).answer == "ok"
+
+
 # ---- Task 5: provider tool-calling round-trip ----------------------------
 
 
