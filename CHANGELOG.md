@@ -16,6 +16,15 @@ Work toward 2.5.65.
   trace, and follow-up suggestion chips. `POST /api/reporting/ai/agent` gains
   a `history` param (last 8 turns / 4000 chars, text-only) so follow-ups carry
   real conversational context instead of starting over each time.
+- Reporting AI: **live progress in the chat panel**. `POST /api/reporting/ai/agent`
+  accepts `"stream": true` and answers NDJSON — a `{"phase": ...}` line for each
+  real step of the agent loop (`thinking` / the model's own `note` / the `tool`
+  about to run), closed by exactly one `{"done": true, ...}` line carrying the
+  usual payload. The panel's ticker now shows what the agent is actually doing
+  ("Running the query…", "Checking the query…") instead of cycling three
+  hardcoded strings on a timer. Callers that don't ask for the stream still get
+  plain JSON unchanged, so a mid-stream failure rides the final line instead of
+  an HTTP status.
 - Reporting: an opt-in **comparison** — `compare: true` on
   `POST /api/reporting/run` reruns a definition with its single relative-date
   token filter shifted back by the window's own length and returns a

@@ -45,15 +45,21 @@
       {{ _("Show it as a chart")|tojson }}
     ]
   };
-  var AGENT_LINES = [
-    {{ _("Asking the AI…")|tojson }},
-    {{ _("The agent is working step by step — this can take a minute…")|tojson }},
-    {{ _("Checking the result…")|tojson }}
-  ];
+  // Live progress labels. The server streams what the agent is actually doing
+  // (see the NDJSON branch of /api/reporting/ai/agent); these name each phase.
+  var STEP_START = {{ _("Asking the AI…")|tojson }};
+  var STEP_THINKING = {{ _("Thinking…")|tojson }};
+  var STEP_WORKING = {{ _("Working…")|tojson }};
+  var STEP_LABELS = {
+    build_definition: {{ _("Building the report…")|tojson }},
+    validate_sql: {{ _("Checking the query…")|tojson }},
+    run_sql: {{ _("Running the query…")|tojson }},
+    compute_stats: {{ _("Crunching the numbers…")|tojson }}
+  };
 
   var chat = { history: [], busy: false };   // history: [{role, content}]
   var tickerEl = null;
-  var tickerTimer = null;
+  var tickerTextEl = null;
 
   function escapeHtml(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -117,26 +123,61 @@
   }
 
   function startTicker() {
-    var i = 0;
     tickerEl = document.createElement("div");
     tickerEl.className = "rp-chat-ticker";
     tickerEl.setAttribute("role", "status");
     tickerEl.setAttribute("data-testid", "rp-chat-ticker");
     tickerEl.innerHTML = "<i></i><i></i><i></i><span></span>";
-    var textEl = tickerEl.querySelector("span");
-    textEl.textContent = AGENT_LINES[0];
+    tickerTextEl = tickerEl.querySelector("span");
+    tickerTextEl.textContent = STEP_START;
     thread.appendChild(tickerEl);
     thread.scrollTop = thread.scrollHeight;
-    tickerTimer = setInterval(function () {
-      i = (i + 1) % AGENT_LINES.length;
-      textEl.textContent = AGENT_LINES[i];
-    }, 3000);
+  }
+
+  function setTicker(text) {
+    if (!tickerTextEl || !text) return;
+    tickerTextEl.textContent = text;
+    thread.scrollTop = thread.scrollHeight;
   }
 
   function stopTicker() {
-    if (tickerTimer) { clearInterval(tickerTimer); tickerTimer = null; }
     if (tickerEl && tickerEl.parentNode) tickerEl.parentNode.removeChild(tickerEl);
-    tickerEl = null;
+    tickerEl = null; tickerTextEl = null;
+  }
+
+  // A progress event -> the line shown in the ticker. The model's own preamble
+  // ("note") beats our canned labels when it wrote one; it is untrusted text so
+  // it only ever lands in textContent, never innerHTML.
+  function stepLabel(ev) {
+    if (ev.phase === "note" && ev.text) {
+      var t = String(ev.text).replace(/\s+/g, " ").trim();
+      return t.length > 120 ? t.slice(0, 119) + "…" : t;
+    }
+    if (ev.phase === "tool") return STEP_LABELS[ev.name] || STEP_WORKING;
+    if (ev.phase === "thinking") {
+      return ev.turn > 1 ? STEP_THINKING + " (" + ev.turn + ")" : STEP_THINKING;
+    }
+    return STEP_WORKING;
+  }
+
+  // Read an NDJSON body, handing each parsed line to onEvent as it arrives.
+  function readNdjson(resp, onEvent) {
+    var reader = resp.body.getReader();
+    var decoder = new TextDecoder();
+    var buf = "";
+    function pump() {
+      return reader.read().then(function (chunk) {
+        if (chunk.value) buf += decoder.decode(chunk.value, { stream: true });
+        var lines = buf.split("\n");
+        buf = lines.pop();          // keep the trailing partial line
+        for (var i = 0; i < lines.length; i++) {
+          if (!lines[i].trim()) continue;
+          try { onEvent(JSON.parse(lines[i])); } catch (e) { /* skip a bad line */ }
+        }
+        return chunk.done ? undefined : pump();
+      });
+    }
+    return pump();
   }
 
   function errorBubble(msg) {
@@ -255,10 +296,25 @@
       body: JSON.stringify({
         question: text,
         history: chat.history,
+        // Ask for the NDJSON progress stream. The server still answers plain
+        // JSON to anything that does not (and stubbed tests do not), so the
+        // content-type below decides how to read the body.
+        stream: true,
         // Active source lets the server gate run_sql to sources it can reach.
         source: (document.getElementById("rpSource") || {}).value || null
       })
     }).then(function (r) {
+      var ct = r.headers.get("content-type") || "";
+      if (r.ok && ct.indexOf("x-ndjson") !== -1 && r.body && r.body.getReader) {
+        var last = null;
+        return readNdjson(r, function (ev) {
+          if (ev.done) { last = ev; return; }
+          setTicker(stepLabel(ev));
+        }).then(function () {
+          // A stream that ends without its `done` line died in transit.
+          return { ok: !!last && !last.error, data: last || {} };
+        });
+      }
       return r.json().then(function (data) { return { ok: r.ok, data: data }; });
     }).then(function (res) {
       stopTicker(); chat.busy = false; sendBtn.disabled = false;

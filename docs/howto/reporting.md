@@ -935,11 +935,34 @@ separately from this section because no model call is involved.
 ### Agent endpoint contract
 
 Route: `POST /api/reporting/ai/agent` — accepts
-`{"question": "...", "history": [...], "source": "<sourceId>|null"}` and returns
+`{"question": "...", "history": [...], "source": "<sourceId>|null", "stream": bool}`
+and returns
 `{"answer", "definition", "sql", "toolTrace", "turns", "stoppedReason", "explainData"}`.
 This runs a **Tier-2 agentic tool-loop** (`nx_lib/reporting/ai.py: ask_agentic`):
 the model calls tools, sees their results, and **self-repairs** until it has a
 validated artifact or hits a hard turn cap.
+
+**Live progress (`"stream": true`).** A loop turn can take a minute on a
+reasoning model, so the chat panel asks the server to narrate it. With the flag
+the response is **NDJSON** (`application/x-ndjson`), one object per line:
+
+```
+{"phase": "thinking", "turn": 1}
+{"phase": "note", "text": "Let me check the schema."}
+{"phase": "tool", "name": "run_sql"}
+{"done": true, "answer": "...", "definition": {...}, "sql": "...", "toolTrace": [...], ...}
+```
+
+`phase` events come straight out of the loop (`ask_agentic_iter`, the generator
+`ask_agentic` drains) — `thinking` before each provider round-trip, `note` for
+the model's own preamble on a tool turn, `tool` before each tool call. Exactly
+one `done` line closes the stream, carrying the same payload the plain-JSON mode
+returns. **Headers are already sent by then**, so a mid-stream failure arrives as
+`{"done": true, "error": "..."}` on that last line rather than a 502 — a client
+must treat a stream that ends *without* a `done` line as a failure too. Without
+the flag (or from any other caller) the route answers plain JSON exactly as
+before. The chat panel picks its reader off the response `Content-Type`, so
+stubbed tests that answer `application/json` keep working unchanged.
 
 **Tool binding follows permissions:** `build_definition` is always bound
 (data-free — the same whitelist validator `/api/reporting/run` uses).

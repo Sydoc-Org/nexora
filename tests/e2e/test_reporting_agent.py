@@ -191,3 +191,71 @@ def test_chat_panel_recovers_after_max_turns_with_no_artifact(nexora_server, pag
     expect(send_btn).to_be_enabled()
     expect(page.get_by_test_id("rp-chat-open-builder")).to_be_visible()
     page.screenshot(path="var/screenshots/reporting_chat_panel_recovers_after_max_turns.png")
+
+
+def test_chat_panel_reads_the_ndjson_progress_stream(nexora_server, page):
+    """The panel asks for the stream and renders its final `done` line.
+
+    Progress events drive the ticker while the agent works (the point of the
+    stream); the `done` line carries the same payload plain JSON would have
+    returned, so the finished turn must look identical either way.
+    """
+    question = "documents per month"
+    answer = "Here are your documents per month."
+    lines = [
+        {"phase": "thinking", "turn": 1},
+        {"phase": "note", "text": "Let me check the schema."},
+        {"phase": "tool", "name": "run_sql"},
+        {
+            "done": True,
+            "answer": answer,
+            "toolTrace": [],
+            "turns": 2,
+            "stoppedReason": "final",
+            "definition": AGENT_DEFINITION,
+            "sql": None,
+        },
+    ]
+    sent = []
+
+    def handler(route):
+        sent.append(json.loads(route.request.post_data or "{}"))
+        route.fulfill(
+            status=200,
+            content_type="application/x-ndjson",
+            body="".join(json.dumps(x) + "\n" for x in lines),
+        )
+
+    _login(page, nexora_server)
+    page.route("**/api/reporting/ai/agent", handler)
+    _open_chat_from_advanced(page, nexora_server)
+    page.get_by_test_id("reporting-chat-input").fill(question)
+    page.get_by_test_id("reporting-chat-send").click()
+
+    expect(page.get_by_test_id("rp-chat-msg-ai")).to_contain_text(answer)
+    expect(page.get_by_test_id("rp-chat-open-builder")).to_be_visible()
+    assert sent and sent[0]["stream"] is True, "the panel did not request the stream"
+    page.screenshot(path="var/screenshots/reporting_chat_stream.png")
+
+
+def test_chat_panel_surfaces_a_mid_stream_failure(nexora_server, page):
+    """A stream that fails after headers reports it in the `done` line, not a
+    status code -- the panel must still show an error bubble, not a blank turn."""
+    _login(page, nexora_server)
+    page.route(
+        "**/api/reporting/ai/agent",
+        lambda route: route.fulfill(
+            status=200,
+            content_type="application/x-ndjson",
+            body=json.dumps({"phase": "thinking", "turn": 1})
+            + "\n"
+            + json.dumps({"done": True, "error": "The AI assistant could not answer right now"})
+            + "\n",
+        ),
+    )
+    _open_chat_from_advanced(page, nexora_server)
+    page.get_by_test_id("reporting-chat-input").fill("boom")
+    page.get_by_test_id("reporting-chat-send").click()
+
+    expect(page.get_by_test_id("rp-chat-msg-ai")).to_contain_text("could not answer")
+    expect(page.get_by_test_id("reporting-chat-send")).to_be_enabled()

@@ -8,7 +8,12 @@ HTTP ``transport`` (Task 5). No network.
 
 import time
 
-from nx_lib.reporting.ai import AssistantTurn, _make_agent_step, ask_agentic
+from nx_lib.reporting.ai import (
+    AssistantTurn,
+    _make_agent_step,
+    ask_agentic,
+    ask_agentic_iter,
+)
 from nx_lib.reporting.ai_tools import TOOL_SPECS, ToolRegistry
 
 
@@ -71,6 +76,23 @@ def test_turn_cap_stops_runaway_loop():
     assert res.turns == 3
     assert res.stopped_reason == "max_turns"
     assert res.answer == ""
+
+
+def test_iter_yields_progress_events_then_exactly_one_result():
+    """ask_agentic_iter narrates the same loop ask_agentic drains silently."""
+    step = _script(
+        AssistantTurn(
+            text="Let me check that.",
+            tool_calls=[{"id": "1", "name": "validate_sql", "args": {"sql": "SELECT 1"}}],
+        ),
+        AssistantTurn(text="It is valid."),
+    )
+    events = list(ask_agentic_iter("q", registry=ToolRegistry(), agent_step=step))
+    assert [e.get("phase") for e in events[:-1]] == ["thinking", "note", "tool", "thinking"]
+    assert events[1]["text"] == "Let me check that."
+    assert events[2]["name"] == "validate_sql"
+    assert [("result" in e) for e in events].count(True) == 1
+    assert events[-1]["result"].answer == "It is valid."
 
 
 def test_wall_clock_budget_stops_a_slow_loop():

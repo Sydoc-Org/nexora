@@ -37,6 +37,7 @@ from flask import (
     render_template,
     request,
     session,
+    stream_with_context,
 )
 from flask_babel import gettext as _
 
@@ -56,6 +57,7 @@ from ..reporting.ai import (
     CAPTION_MAX_ROWS,
     AiError,
     ask_agentic,
+    ask_agentic_iter,
 )
 from ..reporting.ai import _make_agent_step as make_agent_step
 from ..reporting.ai import ask as ai_ask
@@ -1617,6 +1619,61 @@ def api_ai_agent():
     system_prompt = _AGENT_SYSTEM + (_AGENT_EXPLAIN_SUFFIX if explain else "")
 
     start = time.monotonic()
+
+    def _finish(result):
+        """Audit a completed loop and shape its response payload.
+
+        Shared by both delivery modes: the plain JSON response and the NDJSON
+        progress stream's final `done` line.
+        """
+        duration_ms = int((time.monotonic() - start) * 1000)
+        definition, sql = _extract_agent_artifacts(result.tool_trace)
+        _audit_ai(
+            userid,
+            username,
+            question,
+            "agent",
+            json.dumps(
+                {
+                    "answer": result.answer,
+                    "tools": [t["name"] for t in result.tool_trace],
+                    "explainData": explain,
+                }
+            )[:4000],
+            cfg.get("provider"),
+            cfg.get("model"),
+            result.tokens_in,
+            result.tokens_out,
+            result.stopped_reason,
+            "ok",
+            duration_ms,
+        )
+        return {
+            "answer": result.answer,
+            "definition": definition,
+            "sql": sql,
+            "toolTrace": result.tool_trace,
+            "turns": result.turns,
+            "stoppedReason": result.stopped_reason,
+            "explainData": explain,
+        }
+
+    def _audit_failure(status):
+        _audit_ai(
+            userid,
+            username,
+            question,
+            "agent",
+            None,
+            cfg.get("provider"),
+            cfg.get("model"),
+            None,
+            None,
+            "na",
+            status,
+            int((time.monotonic() - start) * 1000),
+        )
+
     try:
         step = make_agent_step(
             system=system_prompt,
@@ -1629,75 +1686,55 @@ def api_ai_agent():
             api_version=cfg.get("api_version", "2024-10-21"),
             url=cfg.get("url"),
         )
+        # Streaming mode: the client asked to watch the loop work. NDJSON, one
+        # object per line — {"phase": ...} progress events as they happen, then
+        # exactly one {"done": true, ...} line carrying the same payload the
+        # plain-JSON mode returns. Headers are already sent by then, so a
+        # mid-stream failure rides in that final line instead of an HTTP status.
+        if body.get("stream"):
+
+            def emit():
+                result = None
+                try:
+                    for event in ask_agentic_iter(
+                        initial, registry=registry, agent_step=step, history=history
+                    ):
+                        if "result" in event:
+                            result = event["result"]
+                            break
+                        yield json.dumps(event) + "\n"
+                except Exception as e:
+                    current_app.logger.error(f"/api/reporting/ai/agent provider error: {e}")
+                    _audit_failure("error")
+                    yield (
+                        json.dumps(
+                            {
+                                "done": True,
+                                "error": _("The AI assistant could not answer right now"),
+                            }
+                        )
+                        + "\n"
+                    )
+                    return
+                yield json.dumps({"done": True, **_finish(result)}) + "\n"
+
+            return Response(
+                stream_with_context(emit()),
+                mimetype="application/x-ndjson",
+                headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
+            )
+
         result = ask_agentic(initial, registry=registry, agent_step=step, history=history)
     except AiError as e:
         current_app.logger.warning(f"/api/reporting/ai/agent config error: {e}")
-        _audit_ai(
-            userid,
-            username,
-            question,
-            "agent",
-            None,
-            cfg.get("provider"),
-            cfg.get("model"),
-            None,
-            None,
-            "na",
-            "misconfig",
-            int((time.monotonic() - start) * 1000),
-        )
+        _audit_failure("misconfig")
         return jsonify({"error": _("The AI assistant is not configured")}), 503
     except Exception as e:
         current_app.logger.error(f"/api/reporting/ai/agent provider error: {e}")
-        _audit_ai(
-            userid,
-            username,
-            question,
-            "agent",
-            None,
-            cfg.get("provider"),
-            cfg.get("model"),
-            None,
-            None,
-            "na",
-            "error",
-            int((time.monotonic() - start) * 1000),
-        )
+        _audit_failure("error")
         return jsonify({"error": _("The AI assistant could not answer right now")}), 502
 
-    duration_ms = int((time.monotonic() - start) * 1000)
-    definition, sql = _extract_agent_artifacts(result.tool_trace)
-    _audit_ai(
-        userid,
-        username,
-        question,
-        "agent",
-        json.dumps(
-            {
-                "answer": result.answer,
-                "tools": [t["name"] for t in result.tool_trace],
-                "explainData": explain,
-            }
-        )[:4000],
-        cfg.get("provider"),
-        cfg.get("model"),
-        result.tokens_in,
-        result.tokens_out,
-        result.stopped_reason,
-        "ok",
-        duration_ms,
-    )
-    return jsonify(
-        {
-            "answer": result.answer,
-            "definition": definition,
-            "sql": sql,
-            "toolTrace": result.tool_trace,
-            "turns": result.turns,
-            "stoppedReason": result.stopped_reason,
-            "explainData": explain,
-        }
-    )
+    return jsonify(_finish(result))
 
 
 def _caption_columns(raw):

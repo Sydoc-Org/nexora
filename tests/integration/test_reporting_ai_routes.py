@@ -1,6 +1,7 @@
 """Integration tests for POST /api/reporting/ai/ask (perm gating + happy path)."""
 
 import datetime
+import json
 from contextlib import ExitStack
 from unittest.mock import patch
 
@@ -1427,3 +1428,88 @@ def test_ai_caption_429_when_daily_limit_reached(user_client):
     cap.assert_not_called()  # never calls the provider -> no token cost
     audit.assert_called_once()
     assert audit.call_args.args[-2] == "blocked"  # Status
+
+
+# ---- POST /api/reporting/ai/agent — NDJSON progress stream ---------------
+
+
+def test_ai_agent_streams_progress_then_done(user_client):
+    """`stream: true` yields the loop's real steps, then one `done` payload."""
+    events = [
+        {"phase": "thinking", "turn": 1},
+        {"phase": "note", "text": "Let me check the schema."},
+        {"phase": "tool", "name": "build_definition"},
+        {"result": _agentic_result()},
+    ]
+    with ExitStack() as es:
+        for p in _agent_patches():
+            es.enter_context(p)
+        es.enter_context(
+            patch("nx_lib.views.reporting.ask_agentic_iter", return_value=iter(events))
+        )
+        es.enter_context(
+            patch(
+                "nx_lib.views.reporting._validate_definition_for_user",
+                return_value=(True, None),
+            )
+        )
+        audit = es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post(
+            "/api/reporting/ai/agent", json={"question": "docs last month", "stream": True}
+        )
+        assert resp.mimetype == "application/x-ndjson"
+        lines = [json.loads(x) for x in resp.get_data(as_text=True).splitlines() if x.strip()]
+
+    assert [e.get("phase") for e in lines[:3]] == ["thinking", "note", "tool"]
+    assert lines[2]["name"] == "build_definition"
+    final = lines[-1]
+    assert final["done"] is True
+    assert final["answer"] == "Built a report by outcome."
+    assert final["stoppedReason"] == "final"
+    assert final["definition"]["title"] == "By outcome"
+    audit.assert_called_once()
+    assert audit.call_args.args[-2] == "ok"  # Status
+
+
+def test_ai_agent_stream_reports_provider_failure_in_the_done_line(user_client):
+    """Headers are already sent, so a mid-stream failure rides the last line."""
+
+    def blow_up(*a, **kw):
+        yield {"phase": "thinking", "turn": 1}
+        raise RuntimeError("provider exploded")
+
+    with ExitStack() as es:
+        for p in _agent_patches():
+            es.enter_context(p)
+        es.enter_context(patch("nx_lib.views.reporting.ask_agentic_iter", side_effect=blow_up))
+        audit = es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post(
+            "/api/reporting/ai/agent", json={"question": "boom", "stream": True}
+        )
+        assert resp.status_code == 200  # status was committed before the failure
+        lines = [json.loads(x) for x in resp.get_data(as_text=True).splitlines() if x.strip()]
+
+    assert lines[0] == {"phase": "thinking", "turn": 1}
+    assert lines[-1]["done"] is True
+    assert lines[-1]["error"]
+    audit.assert_called_once()
+    assert audit.call_args.args[-2] == "error"  # Status
+
+
+def test_ai_agent_without_stream_flag_still_returns_plain_json(user_client):
+    with ExitStack() as es:
+        for p in _agent_patches():
+            es.enter_context(p)
+        es.enter_context(
+            patch("nx_lib.views.reporting.ask_agentic", return_value=_agentic_result())
+        )
+        es.enter_context(
+            patch(
+                "nx_lib.views.reporting._validate_definition_for_user",
+                return_value=(True, None),
+            )
+        )
+        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post("/api/reporting/ai/agent", json={"question": "docs"})
+    assert resp.mimetype == "application/json"
+    assert resp.get_json()["answer"] == "Built a report by outcome."

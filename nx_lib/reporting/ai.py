@@ -677,7 +677,7 @@ class AiAgenticResult:
     tokens_out: int
 
 
-def ask_agentic(
+def ask_agentic_iter(
     question,
     *,
     registry,
@@ -686,11 +686,52 @@ def ask_agentic(
     history=None,
     budget_s=DEFAULT_BUDGET_S,
 ):
+    """Same loop as `ask_agentic`, yielded step by step so a caller can stream it.
+
+    Yields progress events as plain dicts while the loop runs — `{"phase":
+    "thinking", "turn": n}` before each provider round-trip, `{"phase": "note",
+    "text": ...}` for the model's own preamble on a tool turn, and `{"phase":
+    "tool", "name": ...}` before each tool call — and finally exactly one
+    `{"result": AiAgenticResult}`. The final event is always yielded, so a
+    consumer can just read until it sees `"result"`.
+    """
+    messages = [*(history or []), {"role": "user", "content": question}]
+    trace, tin, tout, turns, stopped = [], 0, 0, 0, "max_turns"
+    deadline = time.monotonic() + budget_s if budget_s else None
+    while turns < max_turns:
+        if deadline and turns and time.monotonic() > deadline:
+            stopped = "budget"
+            break
+        turns += 1
+        yield {"phase": "thinking", "turn": turns}
+        turn = agent_step(messages)
+        tin += turn.tokens_in or 0
+        tout += turn.tokens_out or 0
+        if not turn.tool_calls:
+            stopped = "final"
+            messages.append({"role": "assistant", "content": turn.text})
+            yield {"result": AiAgenticResult(turn.text, turns, trace, stopped, tin, tout)}
+            return
+        messages.append({"role": "assistant", "content": turn.text, "tool_calls": turn.tool_calls})
+        if (turn.text or "").strip():
+            yield {"phase": "note", "text": turn.text.strip()}
+        results = []
+        for call in turn.tool_calls:
+            yield {"phase": "tool", "name": call["name"]}
+            result = registry.call(call["name"], call.get("args"))
+            trace.append({"name": call["name"], "args": call.get("args"), "result": result})
+            results.append({"tool_call_id": call.get("id"), "name": call["name"], "result": result})
+        messages.append({"role": "tool", "content": results})
+    yield {"result": AiAgenticResult("", turns, trace, stopped, tin, tout)}
+
+
+def ask_agentic(question, **kwargs):
     """Drive the model->tool->model loop until a final answer or the turn cap.
 
     `agent_step(messages) -> AssistantTurn` is the injected provider round-trip
     (scripted in tests, built by `_make_agent_step` in production). `registry` is
     a ToolRegistry. Returns AiAgenticResult. No network/provider code lives here.
+    Progress-reporting callers want `ask_agentic_iter` instead; this drains it.
 
     `history` is an optional pre-validated list of prior `{"role": "user"|
     "assistant", "content": str}` turns, seeded ahead of the new question so a
@@ -702,29 +743,10 @@ def ask_agentic(
     `{tool_call_id, name, result}` envelopes. `_make_agent_step` translates this
     into each provider's wire format.
     """
-    messages = [*(history or []), {"role": "user", "content": question}]
-    trace, tin, tout, turns, stopped = [], 0, 0, 0, "max_turns"
-    deadline = time.monotonic() + budget_s if budget_s else None
-    while turns < max_turns:
-        if deadline and turns and time.monotonic() > deadline:
-            stopped = "budget"
-            break
-        turns += 1
-        turn = agent_step(messages)
-        tin += turn.tokens_in or 0
-        tout += turn.tokens_out or 0
-        if not turn.tool_calls:
-            stopped = "final"
-            messages.append({"role": "assistant", "content": turn.text})
-            return AiAgenticResult(turn.text, turns, trace, stopped, tin, tout)
-        messages.append({"role": "assistant", "content": turn.text, "tool_calls": turn.tool_calls})
-        results = []
-        for call in turn.tool_calls:
-            result = registry.call(call["name"], call.get("args"))
-            trace.append({"name": call["name"], "args": call.get("args"), "result": result})
-            results.append({"tool_call_id": call.get("id"), "name": call["name"], "result": result})
-        messages.append({"role": "tool", "content": results})
-    return AiAgenticResult("", turns, trace, stopped, tin, tout)
+    for event in ask_agentic_iter(question, **kwargs):
+        if "result" in event:
+            return event["result"]
+    raise AssertionError("agentic loop ended without a result")  # unreachable
 
 
 def _azure_tools(tools):
