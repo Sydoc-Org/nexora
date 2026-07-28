@@ -255,6 +255,36 @@ def test_reset_password_good_token_renders(client):
         assert sess.get("email_for_password_reset") == "admin@test.local"
 
 
+def test_reset_password_invite_token_renders_welcome_page(client):
+    """An invite token gets the welcome page, not the reset page.
+
+    Same URL, same form, same POST target -- only the copy differs, because
+    an invited user has no previous password to reset. The error re-render
+    has to stay on the welcome page too, or a typo'd confirmation would bump
+    them onto reset wording mid-flow.
+    """
+    from nx_lib.extensions import s
+    from nx_lib.views.auth import _reset_token_cache_key
+
+    token = s.dumps("admin@test.local", salt="user-invite-salt")
+    resp = client.get(f"/reset_password/{token}")
+    assert resp.status_code == 200
+    body = resp.get_data(as_text=True)
+    assert "set-password-form" in body
+    assert "reset-password-form" not in body
+    with client.session_transaction() as sess:
+        assert sess.get("email_for_password_reset") == "admin@test.local"
+        assert sess.get("password_set_is_invite") is True
+        sess["password_reset_token_key"] = _reset_token_cache_key("test-invite-mismatch")
+
+    resp = client.post(
+        "/set_new_password",
+        data={"new-password": "NewPass1234!", "confirm-password": "Different1!"},
+    )
+    assert resp.status_code == 200
+    assert "set-password-form" in resp.get_data(as_text=True)
+
+
 def test_set_new_password_password_mismatch(client):
     """Mismatched passwords → re-render reset_password.html with error."""
     from nx_lib.views.auth import _reset_token_cache_key

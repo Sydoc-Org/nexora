@@ -639,12 +639,12 @@ def set_new_password():
         # and resubmit with the same still-valid token. Only a terminal exit
         # (success, or the except branch's hard failure) pops it.
         if new_password != confirm_password:
-            return render_template("reset_password.html", error=_("Passwords do not match"))
+            return render_template(_set_password_template(), error=_("Passwords do not match"))
         if not new_password or not confirm_password:
-            return render_template("reset_password.html", error=_("All Fields must be filled"))
+            return render_template(_set_password_template(), error=_("All Fields must be filled"))
         if not re.search(r"^\S{8,200}$", new_password):
             return render_template(
-                "reset_password.html",
+                _set_password_template(),
                 error=_("New password has to be atleast 8 characters long, with no whitespaces"),
             )
 
@@ -663,7 +663,7 @@ def set_new_password():
 
         if bcrypt.checkpw(new_password.encode("utf-8"), stored_hash):
             return render_template(
-                "reset_password.html", error=_("New Password musn't be previously used password")
+                _set_password_template(), error=_("New Password musn't be previously used password")
             )
 
         salt = bcrypt.gensalt()
@@ -692,7 +692,14 @@ def set_new_password():
         session.pop("email_for_password_reset", None)
         session.pop("password_reset_token_key", None)
 
-        return render_template("reset_password.html", message=_("Password changed"))
+        return render_template(
+            _set_password_template(),
+            message=(
+                _("Password set. You can now sign in.")
+                if session.get("password_set_is_invite")
+                else _("Password changed")
+            ),
+        )
     except Exception as e:
         current_app.logger.error(f"Password reset (set new password) failed: {e}")
         # Terminal failure (DB error, missing/garbled user row, ...) -- not a
@@ -722,16 +729,27 @@ INVITE_TOKEN_MAX_AGE = 7 * 24 * 3600
 
 
 def _load_reset_token(token):
-    """Unseal a set-password token, whichever kind it is.
+    """Unseal a set-password token, whichever kind it is. -> (email, is_invite)
 
     Two salts, two lifetimes: self-service reset (15 min) and admin invite
     (7 days). Both are verified signatures -- an expired or forged token
     raises out of here and the caller bounces to /.
     """
     try:
-        return s.loads(token, salt="password-reset-salt", max_age=RESET_TOKEN_MAX_AGE)
+        return s.loads(token, salt="password-reset-salt", max_age=RESET_TOKEN_MAX_AGE), False
     except Exception:
-        return s.loads(token, salt="user-invite-salt", max_age=INVITE_TOKEN_MAX_AGE)
+        return s.loads(token, salt="user-invite-salt", max_age=INVITE_TOKEN_MAX_AGE), True
+
+
+def _set_password_template():
+    """Which page the set-a-password form lives on for this visitor.
+
+    An invited user has no previous password, so the reset page's copy ("your
+    new password must be different from your previous one", "Reset password")
+    is nonsense to them -- they get the welcome page instead. Same form, same
+    POST target, same validation; only the wording differs.
+    """
+    return "set_password.html" if session.get("password_set_is_invite") else "reset_password.html"
 
 
 def _reset_token_cache_key(token):
@@ -744,7 +762,7 @@ def _reset_token_cache_key(token):
 
 def reset_password(token):
     try:
-        email = _load_reset_token(token)
+        email, is_invite = _load_reset_token(token)
 
         # Single-use enforcement: reject a token already spent by a prior
         # SUCCESSFUL password write (set_new_password() is what actually
@@ -771,7 +789,8 @@ def reset_password(token):
         # safe to persist (matches _reset_token_cache_key()'s non-reversible
         # intent).
         session["password_reset_token_key"] = cache_key
-        return render_template("reset_password.html")
+        session["password_set_is_invite"] = is_invite
+        return render_template(_set_password_template())
     except Exception:
         return redirect(url_for("index"))
 

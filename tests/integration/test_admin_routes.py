@@ -441,7 +441,7 @@ def test_admin_add_user_invite_generates_password_and_mails_link(
         assert sent["email"] == username
         html = sent["message"]["message"]["body"]["content"]
         token = re.search(r"/reset_password/([\w.\-]+)", html).group(1)
-        assert _load_reset_token(token) == username
+        assert _load_reset_token(token) == (username, True)  # (email, is_invite)
     finally:
         # Same rationale as test_admin_add_user_with_assign_permission_returns_200:
         # only a separately-committed connection actually removes the row.

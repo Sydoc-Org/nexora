@@ -43,7 +43,11 @@ Work toward 2.5.65.
   never shown to anyone), stores it hashed, pre-sets `InitReset` and mails the
   user a set-password link. The link reuses the existing `/reset_password/…`
   flow under its own `user-invite-salt`, valid for 7 days rather than the
-  15 minutes a self-service reset link gets. Untick the box and the old
+  15 minutes a self-service reset link gets. The invited user lands on a
+  dedicated welcome page (`templates/set_password.html`) rather than the reset
+  page, whose copy ("your new password must be different from your previously
+  used password") is nonsense to someone who never had one — same form, same
+  validation, different wording. Untick the box and the old
   admin-types-a-password behaviour is unchanged.
 
 - Reporting: a multi-turn **AI chat panel** (`#rpChatToggle`, both Simple and
