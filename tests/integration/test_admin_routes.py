@@ -815,6 +815,77 @@ def test_admin_recent_logs_missing_table(admin_client, admin_all_perms):
     assert resp.status_code in (200, 500)
 
 
+def test_admin_recent_logs_coerces_string_status_codes(admin_client, admin_all_perms, monkeypatch):
+    """HttpResponseCode is NVARCHAR in the DB, so the route's `200 <= code < 300`
+    comparison TypeErrors on every real row and the route 500s unconditionally.
+    Also covers the sibling raw-datetime bug: Timestamp must serialize as
+    ISO-8601, not Flask's default RFC-1123 JSON repr. The Logs table doesn't
+    exist in NEXORA_TEST, so the DB layer is faked here to exercise the
+    route's coercion + serialization in isolation.
+    """
+    import re
+    from datetime import datetime
+    from types import SimpleNamespace
+
+    import nx_lib.views.admin as admin_module
+
+    ts = datetime(2026, 7, 27, 13, 45, 30)
+
+    rows = [
+        SimpleNamespace(
+            Timestamp=ts,
+            Username="admin@test.local",
+            HttpRequestMethod="GET",
+            Path="/admin",
+            HttpResponseCode="200",
+        ),
+        SimpleNamespace(
+            Timestamp=ts,
+            Username="admin@test.local",
+            HttpRequestMethod="POST",
+            Path="/admin/users/1",
+            HttpResponseCode="500",
+        ),
+        SimpleNamespace(
+            Timestamp=ts,
+            Username="admin@test.local",
+            HttpRequestMethod="GET",
+            Path="/admin/broken",
+            HttpResponseCode="ERR",
+        ),
+    ]
+
+    class _FakeCursor:
+        def execute(self, sql, params=None):
+            pass
+
+        def fetchall(self):
+            return rows
+
+        def close(self):
+            pass
+
+    class _FakeConn:
+        def cursor(self):
+            return _FakeCursor()
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(admin_module.engine_nexora_db, "raw_connection", lambda: _FakeConn())
+
+    resp = admin_client.get("/api/admin/recent_logs")
+    assert resp.status_code == 200
+
+    logs = resp.get_json()
+    assert [entry["ActionStatus"] for entry in logs] == ["SUCCESS", "FAILURE", "FAILURE"]
+
+    for entry in logs:
+        assert entry["Timestamp"] == ts.isoformat()
+        assert "GMT" not in entry["Timestamp"]
+        assert re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}", entry["Timestamp"])
+
+
 def test_admin_active_sessions(admin_client, admin_all_perms):
     resp = admin_client.get("/api/admin/active_sessions")
     assert resp.status_code in (200, 500)

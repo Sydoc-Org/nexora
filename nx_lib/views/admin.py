@@ -1134,12 +1134,23 @@ def admin_recent_logs():
         """)
         logs = []
         for row in cursor.fetchall():
+            # HttpResponseCode is NVARCHAR in the DB; coerce defensively rather
+            # than compare a string against int bounds (guaranteed TypeError).
+            try:
+                status_code = int(row.HttpResponseCode)
+            except (TypeError, ValueError):
+                status_code = None
             logs.append(
                 {
-                    "Timestamp": row.Timestamp,
+                    # Emit ISO-8601 explicitly so the client can pass it straight
+                    # to `new Date(...)`. Flask's default JSON encoder uses RFC 1123
+                    # which doesn't survive the +'Z' timezone-suffix hack.
+                    "Timestamp": row.Timestamp.isoformat() if row.Timestamp else None,
                     "Username": row.Username,
                     "ActionType": f"{row.HttpRequestMethod} {row.Path}",
-                    "ActionStatus": "SUCCESS" if 200 <= row.HttpResponseCode < 300 else "FAILURE",
+                    "ActionStatus": "SUCCESS"
+                    if status_code is not None and 200 <= status_code < 300
+                    else "FAILURE",
                 }
             )
         return jsonify(logs)
