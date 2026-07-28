@@ -80,13 +80,19 @@ def _ms02_source(ms02_rows):
     return r.TableName, q(r.ExportColumn), q(r.ImportColumn)
 
 
-def _ms02_stat_rows(sql):
+def _ms02_stat_rows(sql, *, strict=False):
     """Run a read-only query on the MS02 stats engine; return rows, or [] if the
     engine is unconfigured/unreachable or the query errors. Centralises the
     connection handling + error swallowing for the dashboard's MS02 branches: a
-    failure here must never break the default-client numbers, so it logs and
-    yields no rows. MS02 Statconfig conditions (additionalCondition) are
+    failure here must never break the default-client numbers, so by default it
+    logs and yields no rows. MS02 Statconfig conditions (additionalCondition) are
     Postgres-syntax and currently NULL, so they are not applied here.
+
+    strict: the external API's opt-in (compute_today_stats(..., strict=True))
+    -- a genuine query failure is re-raised instead of swallowed, so an outage
+    surfaces as a 500 rather than silent zeros. An unconfigured engine
+    (engine_ms02_stats_pg is None) is NOT a failure either way -- MS02 simply
+    not being wired up for this deployment still yields [].
     # ponytail: no per-call additionalCondition; add when an MS02 row needs one."""
     if engine_ms02_stats_pg is None:
         return []
@@ -100,15 +106,21 @@ def _ms02_stat_rows(sql):
             mconn.close()
     except Exception as e:
         current_app.logger.error(f"ms02 dashboard stats query failed: {e}")
+        if strict:
+            raise
         return []
 
 
-def _default_stat_rows(sql):
+def _default_stat_rows(sql, *, strict=False):
     """Run a read-only query on the default StatisticsDB engine; return rows,
     or [] if the server is unreachable or the query errors (e.g. a stale
     Statconfig row pointing at a dropped table). Mirror of _ms02_stat_rows for
-    the T-SQL leg: a default-leg failure must never blank the MS02 numbers —
-    log and yield no rows so each leg degrades independently."""
+    the T-SQL leg: by default a leg failure must never blank the other leg's
+    numbers -- log and yield no rows so each leg degrades independently.
+
+    strict: see _ms02_stat_rows -- re-raise instead of swallowing so
+    compute_today_stats(..., strict=True) (the external API) turns a genuine
+    outage into a 500 instead of reporting a quiet day."""
     try:
         conn = engine_statistics_db.raw_connection()
         try:
@@ -119,10 +131,12 @@ def _default_stat_rows(sql):
             conn.close()
     except Exception as e:
         current_app.logger.error(f"default dashboard stats query failed: {e}")
+        if strict:
+            raise
         return []
 
 
-def compute_today_stats(target_processes):
+def compute_today_stats(target_processes, *, strict=False):
     """Session-free 'today' KPI computation shared by the dashboard KPI card
     (dashboard_kpi_stats) and the external API v1 (nx_lib/views/api_external.py).
 
@@ -135,12 +149,20 @@ def compute_today_stats(target_processes):
     leg counts export-today unconditionally. 'Today' is server-local --
     GETDATE() on the T-SQL leg, CURRENT_DATE on the MS02 Postgres leg.
 
-    The Statconfig read (NexoraDB) RAISES on failure -- callers own the error
-    surface (the dashboard's except->500 stays uncached via
-    _cacheable_response; the API returns a JSON 500). The two stat-row legs
+    The Statconfig read (NexoraDB) always RAISES on failure -- callers own the
+    error surface (the dashboard's except->500 stays uncached via
+    _cacheable_response; the API returns a JSON 500).
+
+    strict (default False, the dashboard's setting): the two stat-row legs
     keep their swallow-and-degrade contract (_default_stat_rows /
     _ms02_stat_rows return [] on failure), so a dead Statistics DB still
-    yields the healthy leg's numbers. Deliberately NOT cached here -- the
+    yields the healthy leg's numbers -- a genuine outage is indistinguishable
+    from a quiet day with no matching rows (both legs' aggregate queries
+    return one row of NULLs, not []). The external API passes strict=True: a
+    stat-row leg failure then RAISES instead of degrading to zeros, so an
+    outage surfaces as the documented 500 rather than a false "all quiet"
+    200. An unconfigured MS02 engine still yields [] either way -- that's
+    "not applicable", not a failure. Deliberately NOT cached here -- the
     dashboard view's @cache.cached (session-keyed) stays on the view.
     Deliberately lives in THIS module: it must resolve engine_nexora_db /
     engine_statistics_db / _ms02_stat_rows as nx_lib.views.dashboard
@@ -188,7 +210,15 @@ def compute_today_stats(target_processes):
                 SELECT SUM(TodayCountExport), SUM(TodayCountExportImport)
                 FROM ({' UNION ALL '.join(sub_queries)}) as combined
             """
-            srows = _default_stat_rows(full_stat_query)
+            # strict is only ever forwarded as a kwarg when True -- existing
+            # (and test) call sites that replace these legs with a
+            # single-argument callable (sql) keep working unchanged in the
+            # strict=False (dashboard) case.
+            srows = (
+                _default_stat_rows(full_stat_query, strict=True)
+                if strict
+                else _default_stat_rows(full_stat_query)
+            )
             if srows:
                 processed_today += srows[0][0] or 0
                 imported_today += srows[0][1] or 0
@@ -196,12 +226,13 @@ def compute_today_stats(target_processes):
     ms02_src = _ms02_source(ms02_rows)
     if ms02_src:
         tbl, exp, imp = ms02_src
-        mrows = _ms02_stat_rows(
+        ms02_sql = (
             f"SELECT "
             f"COUNT(*) FILTER (WHERE {exp}::date = CURRENT_DATE), "
             f"COUNT(*) FILTER (WHERE {imp}::date = CURRENT_DATE) "
             f"FROM {tbl}"
         )
+        mrows = _ms02_stat_rows(ms02_sql, strict=True) if strict else _ms02_stat_rows(ms02_sql)
         if mrows:
             processed_today += mrows[0][0] or 0
             imported_today += mrows[0][1] or 0

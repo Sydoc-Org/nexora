@@ -267,6 +267,28 @@ def test_kpi_stats_serves_ms02_and_backlog_when_statistics_db_dead(app, monkeypa
     assert resp.get_json() == {"processed_today": 5, "imported_today": 2, "current_backlog": 3}
 
 
+def test_kpi_stats_route_still_200s_on_genuinely_quiet_day(app, monkeypatch):
+    # Task 58 regression check: the dashboard route's graceful degrade must
+    # be untouched by the external API's new strict=True contract -- both a
+    # dead Statistics DB (above) and a healthy-but-empty one (here) still
+    # 200 through dashboard_kpi_stats (it calls compute_today_stats with no
+    # strict kwarg, i.e. strict=False).
+    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning([_CONFIGS[0]]))
+    monkeypatch.setattr(dv, "engine_statistics_db", _engine_returning([(None, None)]))
+    monkeypatch.setattr(dv, "total_backlog_count", lambda pairs: 0)
+
+    with app.test_request_context("/api/dashboard/kpi_stats"):
+        session["username"] = "u"
+        session["userid"] = 990011
+        session["permissions"] = _PERMS
+        session["process_name_dashboard"] = "all"
+        rv = dv.dashboard_kpi_stats.uncached()
+
+    resp, status = rv if isinstance(rv, tuple) else (rv, rv.status_code)
+    assert status == 200
+    assert resp.get_json() == {"processed_today": 0, "imported_today": 0, "current_backlog": 0}
+
+
 # ---- Phase-review fix: dashboard_kpi_stats had the SAME cross-product bug
 # Task 14 fixed for the workitems list (cc167e1), independently -- it built
 # two separately-uniqued proc/client lists instead of granted (client,
@@ -389,6 +411,74 @@ def test_compute_today_stats_raises_when_nexora_db_down(app, monkeypatch):
     monkeypatch.setattr(dv, "engine_nexora_db", _dead_engine("NexoraDB down"))
     with app.app_context(), pytest.raises(Exception):  # noqa: B017 -- any exception must propagate
         dv.compute_today_stats(["sydoc.Alpha"])
+
+
+# --------------------- compute_today_stats(strict=...) (Task 58) -------------- #
+# Task 58: a Statistics-DB outage must not be indistinguishable from a
+# genuinely quiet day. Both stat-row legs' aggregate queries return exactly
+# one row (of NULLs) even when zero rows match, so [] from a leg already
+# meant "the query itself failed" -- the bug was that failure was always
+# swallowed. strict=True (the external API's setting) re-raises instead;
+# strict=False (the default, the dashboard's setting) keeps degrading.
+
+
+def test_default_stat_rows_strict_reraises_on_failure(app, monkeypatch):
+    monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine())
+    with app.app_context(), pytest.raises(Exception):  # noqa: B017
+        dv._default_stat_rows("SELECT 1", strict=True)
+
+
+def test_default_stat_rows_non_strict_still_swallows(app, monkeypatch):
+    # Regression pin: omitting strict (the dashboard's call shape) must keep
+    # the pre-existing degrade-to-[] contract.
+    monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine())
+    with app.app_context():
+        assert dv._default_stat_rows("SELECT 1") == []
+
+
+def test_ms02_stat_rows_strict_reraises_on_failure(app, monkeypatch):
+    eng = MagicMock()
+    eng.raw_connection.side_effect = RuntimeError("ms02 down")
+    monkeypatch.setattr(dv, "engine_ms02_stats_pg", eng)
+    with app.app_context(), pytest.raises(Exception):  # noqa: B017
+        dv._ms02_stat_rows("SELECT 1", strict=True)
+
+
+def test_ms02_stat_rows_strict_still_empty_when_unconfigured(app, monkeypatch):
+    # An unconfigured MS02 engine is "not applicable", never a failure --
+    # strict must not turn that into a raise.
+    monkeypatch.setattr(dv, "engine_ms02_stats_pg", None)
+    with app.app_context():
+        assert dv._ms02_stat_rows("SELECT 1", strict=True) == []
+
+
+def test_compute_today_stats_strict_raises_on_dead_statistics_db(app, monkeypatch):
+    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning([_CONFIGS[0]]))
+    monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine("Statistics DB down"))
+    with app.app_context(), pytest.raises(Exception):  # noqa: B017
+        dv.compute_today_stats(["sydoc.Alpha"], strict=True)
+
+
+def test_compute_today_stats_strict_still_zeros_on_genuinely_quiet_day(app, monkeypatch):
+    # A healthy engine with no matching rows today -- the aggregate query
+    # still returns one row of NULLs (not []) -- must stay 200 zeros even
+    # under strict=True. This is the case that proves the fix isn't just
+    # "always 500 now".
+    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning([_CONFIGS[0]]))
+    monkeypatch.setattr(dv, "engine_statistics_db", _engine_returning([(None, None)]))
+    with app.app_context():
+        assert dv.compute_today_stats(["sydoc.Alpha"], strict=True) == (0, 0)
+
+
+def test_compute_today_stats_non_strict_default_still_degrades(app, monkeypatch):
+    # Regression pin: the dashboard's call site (no strict kwarg) must keep
+    # serving the healthy leg's numbers when Statistics DB is dead -- Task 58
+    # only changes the external API's contract.
+    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning(_CONFIGS))
+    monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine())
+    monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [(5, 2)])
+    with app.app_context():
+        assert dv.compute_today_stats(["sydoc.Alpha", "sydoc.05_PDBS"]) == (2, 5)
 
 
 # ------------------------- backlog KPI: real C+A count ----------------------- #

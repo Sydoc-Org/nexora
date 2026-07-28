@@ -38,7 +38,11 @@ def api_v1_stats_today():
         imported_today, processed_today = 0, 0
     else:
         try:
-            imported_today, processed_today = compute_today_stats(processes)
+            # strict=True: a stat-row leg failure (Statistics DB outage) must
+            # RAISE here instead of degrading to zeros like the dashboard --
+            # see compute_today_stats' docstring. Without this, an outage
+            # produced a 200 of all-zeros indistinguishable from a quiet day.
+            imported_today, processed_today = compute_today_stats(processes, strict=True)
         except Exception as e:
             current_app.logger.error(f"external api stats/today failed: {e}")
             return jsonify({"error": "Stats backend unavailable"}), 500

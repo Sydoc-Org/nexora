@@ -14,9 +14,12 @@ No login fixtures: this API never touches the session.
 
 import hashlib
 import secrets
+import types
 from datetime import date
+from unittest.mock import MagicMock
 
 import nx_lib.views.api_external as ax
+import nx_lib.views.dashboard as dv
 from nx_lib.db import engine_nexora_db
 
 URL = "/api/v1/stats/today"
@@ -104,8 +107,9 @@ def test_good_key_returns_scoped_stats_and_stamps_last_used(client, monkeypatch)
     key_hash = _insert_key(raw, processes="sydoc.TestProc, sydoc.Other")
     seen = {}
 
-    def _fake_compute(target_processes):
+    def _fake_compute(target_processes, *, strict=False):
         seen["processes"] = target_processes
+        seen["strict"] = strict
         return (12, 8)  # (imported_today, processed_today)
 
     monkeypatch.setattr(ax, "compute_today_stats", _fake_compute)
@@ -120,6 +124,9 @@ def test_good_key_returns_scoped_stats_and_stamps_last_used(client, monkeypatch)
         }
         # Scope comes from the ApiKeys row, whitespace-tolerant.
         assert seen["processes"] == ["sydoc.TestProc", "sydoc.Other"]
+        # Task 58: the external API must always request the strict contract
+        # so a Statistics-DB outage raises instead of degrading to zeros.
+        assert seen["strict"] is True
         assert _last_used(key_hash) is not None
     finally:
         _delete_key(key_hash)
@@ -148,7 +155,7 @@ def test_stats_backend_error_returns_500_json(client, monkeypatch):
     raw = secrets.token_urlsafe(32)
     key_hash = _insert_key(raw)
 
-    def _boom(target_processes):
+    def _boom(target_processes, *, strict=False):
         raise RuntimeError("StatisticsDB exploded")
 
     monkeypatch.setattr(ax, "compute_today_stats", _boom)
@@ -156,6 +163,77 @@ def test_stats_backend_error_returns_500_json(client, monkeypatch):
         resp = client.get(URL, headers={"Authorization": f"Bearer {raw}"})
         assert resp.status_code == 500
         assert resp.get_json() == {"error": "Stats backend unavailable"}
+    finally:
+        _delete_key(key_hash)
+
+
+# ------------- Task 58: Statistics-DB outage vs a genuinely quiet day ------- #
+# The two tests above (`test_stats_backend_error_returns_500_json` /
+# `test_good_key_returns_scoped_stats_and_stamps_last_used`) monkeypatch
+# compute_today_stats itself, which only proves the view's try/except wiring.
+# These exercise compute_today_stats FOR REAL (only its DB engines faked) to
+# prove the underlying stat-row legs actually distinguish "outage" from
+# "healthy query, no rows today" -- the bug this task fixes was that both
+# looked identical ([] from the leg) and always produced 200 zeros.
+
+
+def _engine_returning(rows):
+    """Fake engine: raw_connection().cursor().fetchall() -> rows."""
+    cur = MagicMock()
+    cur.fetchall.return_value = rows
+    conn = MagicMock()
+    conn.cursor.return_value = cur
+    eng = MagicMock()
+    eng.raw_connection.return_value = conn
+    return eng
+
+
+def _dead_engine(msg="StatisticsDB down"):
+    eng = MagicMock()
+    eng.raw_connection.side_effect = RuntimeError(msg)
+    return eng
+
+
+def _cfg_row(client_code, name, table, exp, imp):
+    return types.SimpleNamespace(
+        ClientCode=client_code,
+        ProcessName=name,
+        TableName=table,
+        ExportColumn=exp,
+        ImportColumn=imp,
+        additionalCondition=None,
+    )
+
+
+def test_statistics_db_outage_returns_500_not_zeros(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw, processes="sydoc.TestProc")
+    cfg = _cfg_row("default", "sydoc.TestProc", "dbo.tblTest", "ExportDate", "ImportDate")
+    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning([cfg]))
+    monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine("Statistics DB down"))
+    try:
+        resp = client.get(URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 500
+        assert resp.get_json() == {"error": "Stats backend unavailable"}
+    finally:
+        _delete_key(key_hash)
+
+
+def test_genuinely_quiet_day_still_returns_200_zeros(client, monkeypatch):
+    # Healthy engine, zero matching rows today: SUM(...) with no GROUP BY
+    # still returns exactly one row of NULLs -- must NOT be treated as an
+    # outage. Proves the fix isn't just "always 500 now".
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw, processes="sydoc.TestProc")
+    cfg = _cfg_row("default", "sydoc.TestProc", "dbo.tblTest", "ExportDate", "ImportDate")
+    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning([cfg]))
+    monkeypatch.setattr(dv, "engine_statistics_db", _engine_returning([(None, None)]))
+    try:
+        resp = client.get(URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert body["imported_today"] == 0
+        assert body["exported_today"] == 0
     finally:
         _delete_key(key_hash)
 
