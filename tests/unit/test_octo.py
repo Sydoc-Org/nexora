@@ -183,6 +183,23 @@ def test_get_workitemdata_param_returns_none_on_bad_status(app):
     assert not returndata
 
 
+def test_get_workitemdata_param_returns_none_on_missing_document_id(app):
+    """A payload with no `DocumentID` key (e.g. `{}`) must return the same
+    falsy sentinel as any other failure, not raise KeyError past the
+    request-only except clause and kill callers like the activity feed."""
+    fake_resp = MagicMock()
+    fake_resp.json.return_value = {}
+
+    with (
+        patch.object(octo_mod, "get_access_token", return_value="tok"),
+        patch.object(octo_mod.requests, "get", return_value=fake_resp),
+        app.app_context(),
+    ):
+        returndata = get_workitemdata_param("workitem-1", domain="octo.example")
+
+    assert not returndata
+
+
 # ---------- get_index_field_mappings ----------
 
 
