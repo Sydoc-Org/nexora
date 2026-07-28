@@ -81,6 +81,21 @@ Work toward 2.5.65.
 
 ### Fixed
 
+- Dashboard: `GET /api/dashboard/field_metadata` returned 500 on every
+  environment. It queried `dbo.FieldMetadata`, a table the 2026-04-27
+  customizable-dashboard plan left as a manual SSMS step that was never run —
+  it exists on neither INT, PROD nor TEST. `FieldMetadata` and
+  `Search_Field_Labels` are now *optional* enrichment (missing → defaults),
+  with `SearchConfig` availability defining the field set, reusing
+  `nx_lib/reporting/catalog.py`'s `build_catalog()` — the same contract the
+  reporting catalog has always used for these tables. No new table: the widget
+  engine behind the endpoint stays dormant (see
+  `docs/superpowers/plans/2026-07-15-reporting-pin-to-dashboard.md`); the
+  sibling `/api/dashboard/layout` endpoints still need the equally unmigrated
+  `DashboardLayouts` and are untouched.
+- Profile: `GET /update_profile` returned 500 — the view only returned inside
+  its `POST` branch, so a GET fell through to `None`. It now redirects to
+  `/profile`, matching the same fix applied to `change_password`.
 - Reporting AI: hard questions failed with *"The AI assistant could not answer
   right now"* on reasoning deployments (GPT-5 family). The per-call HTTP read
   timeout was hard-coded to 30 s while such a model routinely spends 30–60 s on

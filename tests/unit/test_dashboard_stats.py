@@ -689,3 +689,64 @@ def test_categorical_dim_never_used_as_raw_sql_only_whitelisted_columns(monkeypa
     assert sql == ""
     assert params == []
     assert malicious_dim not in sql
+
+
+# ----------------------- field metadata with FieldMetadata absent ----------------------- #
+
+
+class _FieldMetaCursor:
+    """Cursor for a NexoraDB without FieldMetadata / Search_Field_Labels (INT,
+    PROD and TEST all lack them -- they were never migrated). SearchConfig, the
+    table that actually defines the field set, is present."""
+
+    def __init__(self):
+        self.description = None
+        self._rows = []
+
+    def execute(self, sql, *params):
+        if "FROM FieldMetadata" in sql or "FROM Search_Field_Labels" in sql:
+            raise Exception("Invalid object name 'FieldMetadata'.")  # pyodbc ProgrammingError
+        if "TOP 0 * FROM SearchConfig" in sql:
+            self.description = [("ProcessName",), ("ClientCode",), ("col_doctype",)]
+            self._rows = []
+        elif "FROM SearchConfig" in sql:
+            self._rows = [_SearchConfigRow("sydoc.Alpha", ("DocTypeCol",))]
+
+    def fetchall(self):
+        return self._rows
+
+
+class _SearchConfigRow:
+    """SearchConfig row: attribute access for ProcessName, positional for col_*."""
+
+    def __init__(self, process_name, col_values):
+        self.ProcessName = process_name
+        self._row = (process_name, *col_values)
+
+    def __getitem__(self, idx):
+        return self._row[idx]
+
+
+def test_field_metadata_survives_missing_fieldmetadata_table(app, monkeypatch):
+    # Regression: the endpoint used to SELECT FROM FieldMetadata unconditionally
+    # and 500 on every environment (the table was never migrated). It is optional
+    # enrichment now -- SearchConfig availability drives the field set.
+    cur = _FieldMetaCursor()
+    conn = MagicMock()
+    conn.cursor.return_value = cur
+    engine = MagicMock()
+    engine.raw_connection.return_value = conn
+    monkeypatch.setattr(dv, "engine_nexora_db", engine)
+
+    with app.test_request_context("/api/dashboard/field_metadata"):
+        session["username"] = "u"
+        session["userid"] = 990010
+        session["permissions"] = _PERMS
+        rv = dv.dashboard_field_metadata.uncached()
+
+    resp, status = rv if isinstance(rv, tuple) else (rv, rv.status_code)
+    assert status == 200
+    by_key = {e["field"]: e for e in resp.get_json()}
+    assert by_key["doctype"]["processes"] == ["sydoc.Alpha"]  # from SearchConfig
+    assert by_key["doctype"]["type"] == "string"  # default, no FieldMetadata row
+    assert "processname" in by_key and "status" in by_key

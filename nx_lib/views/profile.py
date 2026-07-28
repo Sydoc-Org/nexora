@@ -119,6 +119,8 @@ def update_profile():
                     return redirect(url_for("profile"))
             flash(_("Profile updated successfully!"), "success_updateProfile")
             return redirect(url_for("profile"))
+
+        return redirect(url_for("profile"))
     except Exception:
         flash(_("Unexpected error"), "failure_updateProfile")
         return redirect(url_for("profile"))

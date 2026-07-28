@@ -24,6 +24,7 @@ from ..octo import get_extensions_urls_fields, get_workitemdata_param
 from ..process_helpers import (
     get_activity_instances_to_ignore,
 )
+from ..reporting.catalog import build_catalog, lang_col_for
 from ..security import page_visibility, require_permission
 from ..workitem_sources import (
     get_domain_for_workitem,
@@ -886,6 +887,20 @@ def dashboard_set_filter():
 # ----------------------------- field metadata / layout ----------------------------- #
 
 
+def _optional_rows(cur, sql):
+    """Rows of an optional table -- [] instead of raising when it is absent.
+
+    ponytail: broad except (pyodbc surfaces a missing table as a generic
+    ProgrammingError); the caller only needs "no rows" either way.
+    """
+    try:
+        cur.execute(sql)
+        return cur.fetchall()
+    except Exception as e:
+        current_app.logger.warning(f"dashboard field metadata: optional query skipped ({e})")
+        return []
+
+
 @require_permission("dashboard.view")
 @cache.cached(
     timeout=3600, key_prefix=lambda: f"dash_fieldmeta_{session.get('userid')}_{get_locale()!s}"
@@ -900,34 +915,23 @@ def dashboard_field_metadata():
         {(p.split(".")[-2] + "." + p.split(".")[-1]) for p in perms if p.startswith(prefix)}
     )
 
-    current_lang = str(get_locale())
-    lang_col = {"de": "GermanLabel", "fr": "FrenchLabel", "it": "ItalianLabel"}.get(
-        current_lang, "EnglishLabel"
-    )
-
     conn = None
     try:
         conn = engine_nexora_db.raw_connection()
         cur = conn.cursor()
 
-        cur.execute("SELECT FieldKey, DataType, Aggregable, Sortable FROM FieldMetadata")
-        meta_rows = cur.fetchall()
-        meta_by_key = {
-            r.FieldKey: {
-                "field": r.FieldKey,
-                "type": r.DataType,
-                "aggregable": bool(r.Aggregable),
-                "sortable": bool(r.Sortable),
-            }
-            for r in meta_rows
-        }
-
-        cur.execute(
-            "SELECT FieldKey, EnglishLabel, GermanLabel, FrenchLabel, ItalianLabel FROM Search_Field_Labels"
+        # Optional enrichment -- FieldMetadata and Search_Field_Labels do not exist
+        # on every environment (INT has neither), same contract as the reporting
+        # catalog whose build_catalog() merges them below. SearchConfig
+        # availability is what defines the field set.
+        meta_rows = _optional_rows(
+            cur, "SELECT FieldKey, DataType, Aggregable, Sortable FROM FieldMetadata"
         )
-        for r in cur.fetchall():
-            if r.FieldKey in meta_by_key:
-                meta_by_key[r.FieldKey]["label"] = getattr(r, lang_col) or r.EnglishLabel
+        label_rows = _optional_rows(
+            cur,
+            "SELECT FieldKey, EnglishLabel, GermanLabel, FrenchLabel, ItalianLabel "
+            "FROM Search_Field_Labels",
+        )
 
         cur.execute("SELECT TOP 0 * FROM SearchConfig")
         cols = [c[0] for c in cur.description if c[0].startswith("col_")]
@@ -945,17 +949,11 @@ def dashboard_field_metadata():
         for fk in ("processname", "status"):
             availability[fk] = allowed_processes[:]
 
-        out = []
-        for fk, meta in meta_by_key.items():
-            if fk not in availability:
-                continue
-            entry = dict(meta)
-            entry.setdefault("label", fk.replace("_", " ").title())
-            entry["processes"] = sorted(availability[fk])
-            out.append(entry)
-
-        out.sort(key=lambda e: e["label"])
-        return jsonify(out)
+        return jsonify(
+            build_catalog(
+                meta_rows, label_rows, availability, lang_col=lang_col_for(str(get_locale()))
+            )
+        )
 
     except Exception as e:
         current_app.logger.error(f"/api/dashboard/field_metadata error: {e}")
