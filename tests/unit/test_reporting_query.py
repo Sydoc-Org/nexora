@@ -2,6 +2,7 @@
 """Unit tests for nx_lib.reporting.query.build_table_query (pure)."""
 
 import pytest
+import sqlglot
 
 from nx_lib.reporting.query import (
     QueryBuildError,
@@ -622,3 +623,48 @@ def test_max_metric_base_projected_with_try_cast():
     )
     assert "TRY_CAST(PageCount AS float) AS [pages]" in sql
     assert "MAX([pages]) AS [max_pages]" in sql
+
+
+def test_max_metric_on_date_field_is_not_numeric_wrapped():
+    # numeric_bases (sum/avg/min/max) must gate the TRY_CAST(... AS float) wrap
+    # onto genuine varchar stat columns (colmap) only. export_date is a
+    # synthetic field from _date_exprs_for, already a DATE-typed expression —
+    # wrapping it in TRY_CAST(... AS float) is not merely wrong, it's a hard
+    # SQL Server error: date -> float is not an allowed TRY_CAST conversion
+    # pair (unlike varchar -> float, which just degrades to NULL).
+    rd = _rd(columns=[], filters=[], sort=[])
+    resolved = [{"code": "latest_export", "aggregation": "max", "base_field": "export_date"}]
+    sql, _params = build_table_query(
+        rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100, resolved_metrics=resolved
+    )
+    assert "TRY_CAST" not in sql
+    assert "CAST(ExportDate AS date) AS [export_date]" in sql  # acme.inv
+    assert "CAST(ExpD AS date) AS [export_date]" in sql  # acme.hr
+    assert "MAX([export_date]) AS [latest_export]" in sql
+    # Confirm it's not just string-matching: the generated SQL must actually
+    # parse as valid T-SQL (a date -> float TRY_CAST would still contain no
+    # obvious "broken" marker string, but sqlglot would still parse it fine
+    # too — this instead pins the exact shape sqlglot would choke on if the
+    # wrap ever crept back in wrapped around a non-castable expression: run
+    # it through the real dialect parser as a syntax sanity check).
+    sqlglot.transpile(sql, read="tsql")
+
+
+def test_max_metric_on_workitem_id_is_not_numeric_wrapped():
+    # workitem_id is a synthetic field from _workitem_exprs_for, already
+    # projected as CAST(col AS nvarchar(100)) — not a colmap entry. It must
+    # not pick up the extra TRY_CAST(... AS float) wrap: MIN/MAX over an
+    # id column is meaningful as a plain (string) comparison; forcing it
+    # through a float cast would silently reinterpret non-numeric ids as
+    # NULL instead of comparing them, which is worse than the existing
+    # nvarchar-comparison behavior, not better.
+    rd = _rd(columns=[], filters=[], sort=[], scope={"clients": [], "processes": []})
+    resolved = [{"code": "max_wid", "aggregation": "max", "base_field": "workitem_id"}]
+    sql, _params = build_table_query(
+        rd, WI_CONFIGS, WI_FIELD_COL_MAPS, row_cap=100, resolved_metrics=resolved
+    )
+    assert "TRY_CAST" not in sql
+    assert "CAST(WorkItem AS nvarchar(100)) AS [workitem_id]" in sql
+    assert "CAST(WID AS nvarchar(100)) AS [workitem_id]" in sql
+    assert "MAX([workitem_id]) AS [max_wid]" in sql
+    sqlglot.transpile(sql, read="tsql")
