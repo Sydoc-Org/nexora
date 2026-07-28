@@ -19,7 +19,8 @@ from sqlglot import exp
 
 MAX_SQL_LEN = 20000
 
-# Backup keyword blocklist (word-boundary, case-insensitive, comment-stripped).
+# Backup keyword blocklist (word-boundary, case-insensitive, comment- and
+# literal-stripped).
 _BLOCKED_WORDS = (
     "INSERT",
     "UPDATE",
@@ -129,6 +130,29 @@ def _strip_comments(sql):
     return re.sub(r"--[^\n]*", " ", no_block)
 
 
+# T-SQL string literals escape an embedded quote by doubling it: 'it''s here'
+# is the 8-character value it's here, and that doubled quote is NOT the end
+# of the literal. This pattern walks a well-formed '...' literal the same
+# way: its content is any run of non-quote characters or doubled-quote
+# pairs, closed by a single unescaped quote. A literal that never closes
+# (malformed/truncated input) simply fails to match, so nothing is stripped
+# for it and the raw text -- including any real keyword inside it -- still
+# reaches the blocklist scan. Fail safe (under-strip), never fail open
+# (over-strip and hide a real keyword).
+_STRING_LITERAL_RE = re.compile(r"'(?:[^']|'')*'")
+
+
+def _strip_string_literals(sql):
+    """Blank literal CONTENTS for the blocklist scan; keep the delimiters.
+
+    'update log' -> '' so the scan sees an inert empty literal rather than
+    the word "update" (a false-positive DML match against the blocklist) or
+    nothing at all (which would risk merging the tokens on either side of
+    the literal into something the blocklist misreads).
+    """
+    return _STRING_LITERAL_RE.sub("''", sql)
+
+
 def validate_select(sql):
     """Return trimmed `sql` if it is one read-only query, else raise SqlSandboxError."""
     if not isinstance(sql, str) or not sql.strip():
@@ -138,7 +162,11 @@ def validate_select(sql):
         raise SqlSandboxError("too_long", f"SQL exceeds {MAX_SQL_LEN} characters")
 
     scan = _strip_comments(sql)
-    m = _BLOCKED_RE.search(scan)
+    # The blocklist scans literal-stripped text so a keyword sitting inside a
+    # string value (WHERE note = 'update log') doesn't false-positive; every
+    # other check below -- LIMIT, statement-shape, forbidden-node -- still
+    # runs against `scan` (comment-stripped only) or the raw `sql`, unchanged.
+    m = _BLOCKED_RE.search(_strip_string_literals(scan))
     if m:
         kw = m.group(0).strip()
         raise SqlSandboxError("blocked_keyword", f"disallowed keyword: {kw}", token=kw)

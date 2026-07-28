@@ -170,6 +170,52 @@ def test_fetch_capped_exact_cap_count_is_not_flagged_truncated():
     assert truncated is False
 
 
+# ---- Task 54: blocklist scan ignores string-literal contents -------------
+# `_BLOCKED_RE` used to scan comment-stripped text only, so a blocked word
+# sitting inside a string value (WHERE note = 'update log') tripped it as a
+# false positive. The literal-stripper blanks literal contents (keeping the
+# quote delimiters) before the blocklist scan runs, honoring T-SQL's
+# doubled-quote ('') escape so an embedded quote isn't mistaken for the
+# literal's end.
+
+
+def test_accepts_blocked_keyword_inside_string_literal():
+    sql = "SELECT * FROM t WHERE note = 'update log'"
+    assert validate_select(sql) == sql
+
+
+def test_rejects_real_update_even_alongside_a_literal():
+    # Non-negotiable regression check: a real DML keyword outside any
+    # literal must still be caught, even when a literal (containing an
+    # unrelated word) is also present in the statement.
+    sql = "UPDATE t SET note = 'select this' WHERE id = 1"
+    with pytest.raises(SqlSandboxError) as ei:
+        validate_select(sql)
+    assert ei.value.rule == "blocked_keyword"
+    assert ei.value.token.upper() == "UPDATE"
+
+
+def test_literal_doubled_quote_escape_is_not_mistaken_for_terminator():
+    # 'it''s here...' -- the doubled quote is an escaped literal quote
+    # character, not the end of the string. If the stripper mishandled it,
+    # the text after the doubled quote would fall OUTSIDE the literal and
+    # the word "update" below would trip the blocklist.
+    sql = "SELECT * FROM t WHERE note = 'it''s here, update noted'"
+    assert validate_select(sql) == sql
+
+
+def test_unterminated_literal_does_not_hide_a_real_keyword():
+    # Fail-safe check: a stray unclosed quote must not swallow the rest of
+    # the query into a "literal" that gets blanked out. The stripper only
+    # touches well-formed '...' spans, so a real keyword after an
+    # unterminated quote still reaches the blocklist raw.
+    sql = "SELECT * FROM t WHERE note = 'oops UPDATE t SET a = 1"
+    with pytest.raises(SqlSandboxError) as ei:
+        validate_select(sql)
+    assert ei.value.rule == "blocked_keyword"
+    assert ei.value.token.upper() == "UPDATE"
+
+
 def test_sandbox_error_token_carries_dynamic_part():
     # The view boundary translates rule-keyed messages; the dynamic bit
     # (keyword/construct name) must ride on the exception, not be regexed
