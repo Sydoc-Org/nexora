@@ -275,6 +275,15 @@ _SYSTEM_DEF = (
     " when the question says imported/received/arrived. Content dates such as"
     ' "Document Date" (the date printed on the document) are correct ONLY'
     " when the user names that field explicitly."
+    " A definition has ONE shared filter set, so it CANNOT express several"
+    ' numbers under DIFFERENT conditions (e.g. "how many imported today and'
+    ' how many exported today" needs one count filtered on import_date and'
+    " another filtered on export_date). NEVER AND-combine such conditions"
+    " into filters — that counts only rows matching ALL of them, which"
+    " answers a different question. Instead build the definition for the"
+    " FIRST number only and use the explanation to tell the user this report"
+    " answers that number and each remaining number needs its own report"
+    " (one question per number)."
 )
 
 
