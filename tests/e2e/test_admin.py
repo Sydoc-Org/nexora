@@ -194,6 +194,62 @@ class TestAdminAccessControl:
         finally:
             _delete_test_profile(profile_name)
 
+    def test_profile_drawer_neutral_state_reachable_after_allow(self, nexora_server, page):
+        """Task 46 regression: dd724a3 made the drawer default to neutral/None
+        instead of implicit Deny, but profile mode hid the entire "None"
+        radio column (nth-child(2) of each row), so an admin who explicitly
+        set a permission to Allow had no way to click it back to neutral —
+        recreating the "writes an explicit row for an unset permission"
+        problem, just harder to trigger. The None column must be visible and
+        clickable in profile mode too, and clicking Allow then back to None
+        must save zero rows for that permission."""
+        profile_name = "Task46NeutralProfile"
+        _delete_test_profile(profile_name)
+        try:
+            self._open(page, nexora_server)
+            page.click('[data-testid="admin-ac-tab-profiles"]')
+            page.click('[data-testid="admin-ac-add-profile"]')
+            expect(page.locator('[data-testid="admin-ac-drawer-close"]')).to_be_visible()
+            page.fill('[data-testid="admin-ac-profile-name"]', profile_name)
+
+            perm_id = page.locator(".permission-row").first.get_attribute("data-perm-id")
+            none_radio = page.locator(f'[data-testid="admin-ac-perm-{perm_id}-none"]')
+            allow_radio = page.locator(f'[data-testid="admin-ac-perm-{perm_id}-allow"]')
+
+            # The neutral option must be visible/clickable in profile mode,
+            # not hidden the way the pre-fix column was.
+            expect(none_radio).to_be_visible()
+            expect(none_radio).to_be_checked()
+
+            allow_radio.click()
+            expect(allow_radio).to_be_checked()
+
+            none_radio.click()
+            expect(none_radio).to_be_checked()
+
+            with page.expect_response(
+                lambda r: "/api/admin/access_profile/save" in r.url
+            ) as resp_info:
+                page.click('[data-testid="admin-ac-drawer-save"]')
+            assert resp_info.value.ok
+
+            with engine_nexora_db.connect() as conn:
+                access_id = conn.execute(
+                    text("SELECT AccessID FROM AccessProfile WHERE Name = :n"),
+                    {"n": profile_name},
+                ).scalar()
+                assert access_id is not None, "profile was not created"
+                row_count = conn.execute(
+                    text("SELECT COUNT(*) FROM AccessProfilePermission WHERE AccessID = :a"),
+                    {"a": access_id},
+                ).scalar()
+                assert row_count == 0, (
+                    "clicking a permission back to None must save zero rows, "
+                    "the same as never having touched it"
+                )
+        finally:
+            _delete_test_profile(profile_name)
+
 
 @pytest.mark.flaky_e2e
 class TestAdminUserDetail:

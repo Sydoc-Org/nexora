@@ -106,13 +106,17 @@
         // absent row the same as an explicit Deny — so pre-checking Deny here
         // only added noise rows that then blocked Permission deletion.
         document.querySelectorAll('#permissionDrawer input[type=radio][value="None"]').forEach(r => r.checked = true);
+        // The "None" column is the only way to click a permission back to the
+        // neutral/unset state (see the default-checked block above) — it must
+        // stay visible in every mode, profile included, or an admin who wants
+        // to explicitly clear a permission they'd set to Allow/Deny has no way
+        // back to neutral, re-creating the noise-row problem this was meant
+        // to fix.
+        if (inheritHeader) inheritHeader.style.display = '';
+        inheritCells.forEach(td => td.style.display = '');
         if (mode === 'profile') {
-            if (inheritHeader) inheritHeader.style.display = 'none';
-            inheritCells.forEach(td => td.style.display = 'none');
             document.getElementById('drawerProfileMeta').classList.remove('hidden');
         } else {
-            if (inheritHeader) inheritHeader.style.display = '';
-            inheritCells.forEach(td => td.style.display = '');
             document.getElementById('drawerProfileMeta').classList.add('hidden');
         }
 
