@@ -81,7 +81,7 @@ def get_workitemdata_param(workitem_id, domain=None):
         return None
 
 
-@cache.cached(timeout=3600, key_prefix="index_field_mappings")
+@cache.cached(timeout=3600, key_prefix="index_field_mappings", response_filter=lambda v: bool(v))
 def get_index_field_mappings():
     mapping = {}
     conn = None

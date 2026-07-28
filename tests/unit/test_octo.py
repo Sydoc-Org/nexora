@@ -215,6 +215,41 @@ def test_get_index_field_mappings_returns_empty_on_db_error(app):
     assert mappings == {}
 
 
+def test_get_index_field_mappings_does_not_cache_empty_result(app):
+    """A transient DB failure must not poison the 1h cache with `{}` --
+    the very next call has to re-query rather than replaying the empty
+    result for an hour (the bug: @cache.cached cached the failure)."""
+    row = MagicMock(SourceFieldName="Invoice_Date", TargetKey="invoice_date")
+    fake_cursor = MagicMock()
+    fake_cursor.fetchall.return_value = [row]
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cursor
+
+    with (
+        patch.object(octo_mod, "engine_nexora_db") as mock_engine,
+        app.app_context(),
+    ):
+        # 1st call: DB read fails -> {} must NOT be cached.
+        mock_engine.raw_connection.side_effect = RuntimeError("DB down")
+        first = get_index_field_mappings()
+        assert first == {}
+
+        # 2nd call: DB recovers -> must re-query (not replay the cached {})
+        # and the real result must get cached this time.
+        mock_engine.raw_connection.side_effect = None
+        mock_engine.raw_connection.return_value = fake_conn
+        second = get_index_field_mappings()
+        assert second == {"Invoice_Date": "invoice_date"}
+        assert mock_engine.raw_connection.call_count == 2
+
+        # 3rd call: DB would fail again, but the non-empty result from the
+        # 2nd call must have been cached, so no DB access happens at all.
+        mock_engine.raw_connection.side_effect = RuntimeError("DB down again")
+        third = get_index_field_mappings()
+        assert third == {"Invoice_Date": "invoice_date"}
+        assert mock_engine.raw_connection.call_count == 2
+
+
 # ---------- get_extensions_urls_fields ----------
 
 
