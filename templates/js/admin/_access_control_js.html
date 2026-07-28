@@ -99,15 +99,20 @@
         const inheritHeader = document.getElementById('drawerInheritHeader');
         const inheritCells  = document.querySelectorAll('#permissionDrawer tbody td:nth-child(2)');
 
+        // Every permission defaults to the neutral/inherit state (no explicit
+        // row) until the admin actively picks Allow or Deny. An absent
+        // AccessProfilePermission row is already read back as "not set" (see
+        // get_profile_details), and fnUserHasPermission already treats an
+        // absent row the same as an explicit Deny — so pre-checking Deny here
+        // only added noise rows that then blocked Permission deletion.
+        document.querySelectorAll('#permissionDrawer input[type=radio][value="None"]').forEach(r => r.checked = true);
         if (mode === 'profile') {
             if (inheritHeader) inheritHeader.style.display = 'none';
             inheritCells.forEach(td => td.style.display = 'none');
-            document.querySelectorAll('#permissionDrawer input[type=radio][value="D"]').forEach(r => r.checked = true);
             document.getElementById('drawerProfileMeta').classList.remove('hidden');
         } else {
             if (inheritHeader) inheritHeader.style.display = '';
             inheritCells.forEach(td => td.style.display = '');
-            document.querySelectorAll('#permissionDrawer input[type=radio][value="None"]').forEach(r => r.checked = true);
             document.getElementById('drawerProfileMeta').classList.add('hidden');
         }
 

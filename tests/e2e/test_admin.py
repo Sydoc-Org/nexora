@@ -11,11 +11,32 @@ Route paths come from admin.register_routes: overview is /admin, user detail is
 
 import pytest
 from playwright.sync_api import expect
+from sqlalchemy import text
+
+from nx_lib.db import engine_nexora_db
 
 
 def _login_admin(page, base):
     page.goto(f"{base}/dev/login/admin@test.local")
     page.wait_for_url("**/dashboard")
+
+
+def _delete_test_profile(name):
+    """Remove a profile (and any permission rows on it) created by a test.
+
+    Runs in the pytest process (ENVIRONMENT=TEST), which shares the database
+    with the browser subprocess started by the nexora_server fixture.
+    """
+    with engine_nexora_db.begin() as conn:
+        access_id = conn.execute(
+            text("SELECT AccessID FROM AccessProfile WHERE Name = :n"), {"n": name}
+        ).scalar()
+        if access_id is not None:
+            conn.execute(
+                text("DELETE FROM AccessProfilePermission WHERE AccessID = :a"),
+                {"a": access_id},
+            )
+            conn.execute(text("DELETE FROM AccessProfile WHERE AccessID = :a"), {"a": access_id})
 
 
 @pytest.mark.flaky_e2e
@@ -135,6 +156,39 @@ class TestAdminAccessControl:
         page.click('[data-testid="admin-ac-tab-profiles"]')
         page.click('[data-testid="admin-ac-add-profile"]')
         expect(page.locator('[data-testid="admin-ac-drawer-close"]')).to_be_visible()
+
+    def test_untouched_profile_drawer_saves_no_permission_rows(self, nexora_server, page):
+        """Task 45 regression: every permission radio defaults to the neutral
+        (unset/inherit) state, not Deny, so saving a drawer the admin never
+        touched must create zero AccessProfilePermission rows."""
+        profile_name = "Task45UntouchedProfile"
+        _delete_test_profile(profile_name)
+        try:
+            self._open(page, nexora_server)
+            page.click('[data-testid="admin-ac-tab-profiles"]')
+            page.click('[data-testid="admin-ac-add-profile"]')
+            expect(page.locator('[data-testid="admin-ac-drawer-close"]')).to_be_visible()
+            page.fill('[data-testid="admin-ac-profile-name"]', profile_name)
+
+            with page.expect_response(
+                lambda r: "/api/admin/access_profile/save" in r.url
+            ) as resp_info:
+                page.click('[data-testid="admin-ac-drawer-save"]')
+            assert resp_info.value.ok
+
+            with engine_nexora_db.connect() as conn:
+                access_id = conn.execute(
+                    text("SELECT AccessID FROM AccessProfile WHERE Name = :n"),
+                    {"n": profile_name},
+                ).scalar()
+                assert access_id is not None, "profile was not created"
+                row_count = conn.execute(
+                    text("SELECT COUNT(*) FROM AccessProfilePermission WHERE AccessID = :a"),
+                    {"a": access_id},
+                ).scalar()
+                assert row_count == 0
+        finally:
+            _delete_test_profile(profile_name)
 
 
 @pytest.mark.flaky_e2e
