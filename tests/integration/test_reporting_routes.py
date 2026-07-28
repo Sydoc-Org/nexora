@@ -33,6 +33,27 @@ def test_reporting_page_renders_chat_panel_when_ai_enabled(admin_client):
     assert b"rpModeAi" not in resp.data
 
 
+def test_reporting_page_caption_slots_need_only_explain_data(admin_client):
+    """Regression for the Phase 4 review finding: the caption <div>s must be
+    gated on reporting.ai.explain_data alone (D-CAPTION), not on the
+    ai_explain_enabled AND-combo (which also requires reporting.sql.run --
+    that extra requirement is for Surface C's live-SQL tool binding, an
+    unrelated concern). A caller with explain_data but NOT sql.run must still
+    see both #rpCaption (Advanced) and #rsCaption (Simple)."""
+
+    def _perm(code):
+        return code in ("reporting.view", "reporting.ai.explain_data")
+
+    with (
+        patch("nx_lib.security.has_permission", side_effect=_perm),
+        patch("nx_lib.views.reporting.has_permission", side_effect=_perm),
+    ):
+        resp = admin_client.get("/reporting")
+    assert resp.status_code == 200
+    assert b'id="rpCaption"' in resp.data
+    assert b'id="rsCaption"' in resp.data
+
+
 def test_sources_without_perm_returns_403(user_client):
     resp = user_client.get("/api/reporting/sources")
     assert resp.status_code == 403

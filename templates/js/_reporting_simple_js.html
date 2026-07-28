@@ -1356,7 +1356,7 @@
   // ----- Auto AI caption (Task 13) -------------------------------------------
   // Fires after every successful run render when the caption slot exists in
   // the DOM -- it only exists when the page was rendered for a
-  // reporting.ai.explain_data holder (Jinja `ai_explain_enabled` gate in
+  // reporting.ai.explain_data holder (Jinja `ai_caption_enabled` gate in
   // _reporting_simple.html), so a caller with no permission is a silent
   // no-op. Shimmers while the request is in flight, then shows the caption
   // with its AI chip -- or hides silently on ANY error (network failure,

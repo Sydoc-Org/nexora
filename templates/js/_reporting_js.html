@@ -386,7 +386,7 @@
   // ----- Auto AI caption (Task 13) -------------------------------------------
   // Fires on chart mount (below) when the caption slot exists in the DOM --
   // it only exists when the page was rendered for a reporting.ai.explain_data
-  // holder (Jinja `ai_explain_enabled` gate in reporting.html), so a caller
+  // holder (Jinja `ai_caption_enabled` gate in reporting.html), so a caller
   // with no permission is a silent no-op. Shimmers while the request is in
   // flight, then shows the caption with its AI chip -- or hides silently on
   // ANY error (network failure, non-200, bad JSON): unlike the chat panel,
