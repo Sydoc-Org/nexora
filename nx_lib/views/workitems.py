@@ -721,6 +721,12 @@ def _get_workitems_data(args, export_all=False):
                 ms02_docfield_ids = set()
 
     status_map = {"Ready": 0, "In Progress": 1, "Done": 5}
+    # Soft-deleted workitems are hidden from every other view; asking for them by
+    # name is the ONLY way to see them, and only for holders of the internal
+    # permission. Without it "Deleted" maps to None -> the unfiltered query, which
+    # still carries `Status <> 2`, so an unauthorized caller cannot reach them.
+    if has_permission("workitems.filter.status.deleted"):
+        status_map["Deleted"] = 2
     filt = WorkitemFilter(
         client_process_pairs=client_process_pairs,
         activity_ignore_csv=activity_instances_to_ignore,
@@ -1300,6 +1306,7 @@ def workitems_overview():
 
         status_perm = has_permission("workitems.filter.status")
         status = request.args.get("status", "") if status_perm else None
+        deleted_status_perm = status_perm and has_permission("workitems.filter.status.deleted")
 
         datetime_perm = has_permission("workitems.filter.datetime")
         start_date_str = request.args.get("startDate", "") if datetime_perm else None
@@ -1358,6 +1365,7 @@ def workitems_overview():
             allowed_processes=allowed_processes,
             search_term_perm=search_term_perm,
             status_perm=status_perm,
+            deleted_status_perm=deleted_status_perm,
             datetime_perm=datetime_perm,
             doc_fields_values_perm=doc_fields_values_perm,
             details_view_perm=details_view_perm,

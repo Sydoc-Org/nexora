@@ -112,6 +112,9 @@
                 <option value="Ready" {% if status=='Ready' %}selected{% endif %}>Ready</option>
                 <option value="In Progress" {% if status=='In Progress' %}selected{% endif %}>In Progress</option>
                 <option value="Done" {% if status=='Done' %}selected{% endif %}>Done</option>
+                {% if deleted_status_perm %}
+                <option value="Deleted" {% if status=='Deleted' %}selected{% endif %}>Deleted</option>
+                {% endif %}
               </select>
               <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
                 <i class="fa-solid fa-chevron-down text-xs"></i>

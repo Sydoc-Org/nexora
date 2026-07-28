@@ -133,6 +133,29 @@ def test_status_in_progress_filter_covers_all_non_terminal_codes(app):
         assert "statusnotin(0,5)" in norm, f"{type(src).__name__}: {sql}"
 
 
+def test_deleted_workitems_hidden_unless_explicitly_filtered_for(app):
+    """Status 2 (deleted) is hard-excluded from every default list. Asking for it
+    by status code -- which the view only maps for holders of
+    workitems.filter.status.deleted -- must DROP that exclusion, otherwise the
+    two clauses contradict and the filter returns nothing."""
+    for src in (SqlServerSource(), PostgresSource(CLIENTS_code="ms02")):
+        name = type(src).__name__
+        f = _mk_filter()
+        with app.app_context():
+            sql, _ = _captured_sql(src, f)
+        norm = sql.replace('"', "").replace(" ", "").lower()
+        assert "status<>2" in norm, f"{name} stopped hiding deleted workitems: {sql}"
+
+        f.status_code = 2
+        with app.app_context():
+            sql, cur = _captured_sql(src, f)
+        norm = sql.replace('"', "").replace(" ", "").lower()
+        assert "status<>2" not in norm, f"{name} contradicts the Deleted filter: {sql}"
+        params = [c.args[1] for c in cur.execute.call_args_list if len(c.args) > 1]
+        flat = [p for group in params for p in (group if isinstance(group, list) else [group])]
+        assert 2 in flat, f"{name} lost the Deleted status code: {flat}"
+
+
 def test_search_id_is_exact_match_not_substring(app):
     """Searching workitem 371 must not also return 1371/3716/16371."""
     for src in (SqlServerSource(), PostgresSource(CLIENTS_code="ms02")):

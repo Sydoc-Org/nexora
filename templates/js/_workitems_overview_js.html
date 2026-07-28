@@ -920,6 +920,7 @@ async function uploadBatchFiles(files, processName) {
                         'Ready':       '<span class="nx-label nx-label--blue">Ready</span>',
                         'In Progress': '<span class="nx-label nx-label--amber">In Progress</span>',
                         'Done':        '<span class="nx-label nx-label--green">Done</span>',
+                        'Deleted':     '<span class="nx-label nx-label--red">Deleted</span>',
                     }[workitem.status] || `<span class="nx-label nx-label--gray">${workitem.status}</span>`;
 
                     // Workitem ids are only unique WITHIN a client, so every DOM id

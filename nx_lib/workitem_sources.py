@@ -24,6 +24,11 @@ from .db import engine_nexora_db
 # 5 (Done) as "In Progress", so both sources filter it as `NOT IN (0, 5)`.
 _STATUS_IN_PROGRESS = 1
 
+# Soft-deleted workitems. Hidden from every list unless the caller explicitly
+# filtered FOR them, which the view only allows for holders of
+# workitems.filter.status.deleted (internal-only permission, issue #125).
+_STATUS_DELETED = 2
+
 
 @dataclass
 class WorkitemFilter:
@@ -105,10 +110,9 @@ class SqlServerSource:
         pair_sql, pair_params = _pair_predicate(
             filt.client_process_pairs, "tp.ClientName", "tp.Name", "?"
         )
-        where_clauses = [
-            f"({pair_sql})",
-            "twi.Status <> 2",
-        ]
+        where_clauses = [f"({pair_sql})"]
+        if filt.status_code != _STATUS_DELETED:
+            where_clauses.append("twi.Status <> 2")
         if filt.activity_ignore_csv:
             where_clauses.append(f"tai.ActivityInstanceName not in ({filt.activity_ignore_csv})")
         params = list(pair_params)
@@ -179,7 +183,8 @@ class SqlServerSource:
                     SELECT
                         twi.ModifiedAt, twi.ID AS WorkItemID,
                         CASE
-                            WHEN twi.Status = 0 THEN 'Ready' WHEN twi.Status = 5 THEN 'Done' ELSE 'In Progress'
+                            WHEN twi.Status = 0 THEN 'Ready' WHEN twi.Status = 5 THEN 'Done'
+                            WHEN twi.Status = 2 THEN 'Deleted' ELSE 'In Progress'
                         END AS Status,
                         CASE
                             WHEN twi.Status = 5 THEN 'Delivery'
@@ -836,10 +841,9 @@ class PostgresSource:
         pair_sql, pair_params = _pair_predicate(
             filt.client_process_pairs, 'tp."ClientName"', 'tp."Name"', "%s"
         )
-        clauses = [
-            f"({pair_sql})",
-            'twi."Status" <> 2',
-        ]
+        clauses = [f"({pair_sql})"]
+        if filt.status_code != _STATUS_DELETED:
+            clauses.append('twi."Status" <> 2')
         params = list(pair_params)
         # activity_ignore_csv is a literal "'A','B'" list (already escaped upstream).
         if filt.activity_ignore_csv:
@@ -904,6 +908,7 @@ class PostgresSource:
                         CASE
                             WHEN twi."Status" = 0 THEN 'Ready'
                             WHEN twi."Status" = 5 THEN 'Done'
+                            WHEN twi."Status" = 2 THEN 'Deleted'
                             ELSE 'In Progress'
                         END AS status,
                         CASE
