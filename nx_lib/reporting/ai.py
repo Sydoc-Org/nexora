@@ -29,7 +29,12 @@ _SYSTEM = (
     "reporting tool. Given a database schema and a question, return ONE read-only "
     "SELECT query that answers it. Rules: SELECT/WITH only; never INSERT, UPDATE, "
     "DELETE, MERGE, EXEC, or DDL; use only tables/columns present in the schema; "
-    "prefer TOP (n) to bound large results. Respond with STRICT JSON: "
+    "prefer TOP (n) to bound large results. When the question asks for several "
+    "counts/totals under DIFFERENT conditions (e.g. imported today and exported "
+    "today), return one row with one column per number using conditional "
+    "aggregation (SUM(CASE WHEN <condition> THEN 1 ELSE 0 END)) or scalar "
+    "subqueries - NEVER combine the conditions with AND in a shared WHERE "
+    "clause. Respond with STRICT JSON: "
     '{"sql": "<the query>", "explanation": "<one sentence>"}. No prose outside JSON.'
 )
 
