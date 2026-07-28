@@ -307,6 +307,13 @@
         </div>
       </div>
       <div id="rpChart" class="reporting-viz" hidden data-testid="reporting-chart"></div>
+      {# Task 13 -- auto AI caption, fired on chart mount (fireCaption() in the
+         JS partial). Only present for a reporting.ai.explain_data holder --
+         the div's mere absence is how a user without the permission never
+         sees the feature at all. #}
+      {% if ai_explain_enabled %}
+      <div id="rpCaption" class="rp-caption" hidden data-testid="reporting-caption"></div>
+      {% endif %}
       <button type="button" id="rpSqlPeek" class="reporting-ledger-sqlpeek" hidden data-testid="reporting-sql-peek"></button>
       <div id="rpPivot" class="reporting-viz" hidden data-testid="reporting-pivot"></div>
       <div class="nx-card nx-card--pad reporting-sqlview" id="rpSqlView" hidden data-testid="reporting-sql-view">

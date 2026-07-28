@@ -1353,6 +1353,54 @@
            '<div class="rp-skeleton-table">' + rows + '</div>';
   }
 
+  // ----- Auto AI caption (Task 13) -------------------------------------------
+  // Fires after every successful run render when the caption slot exists in
+  // the DOM -- it only exists when the page was rendered for a
+  // reporting.ai.explain_data holder (Jinja `ai_explain_enabled` gate in
+  // _reporting_simple.html), so a caller with no permission is a silent
+  // no-op. Shimmers while the request is in flight, then shows the caption
+  // with its AI chip -- or hides silently on ANY error (network failure,
+  // non-200, bad JSON): unlike the chat panel, this surface never shows an
+  // error state or logs to the console. `captionSeq` is a monotonically-
+  // increasing token (same idiom as runSeq below): a slow response from an
+  // old run is discarded once a newer run has fired its own caption, so a
+  // fast filter change/re-run can never show a stale caption over the new
+  // result. Duplicated (not shared) in _reporting_js.html for the Advanced
+  // pane -- see that file for why.
+  var captionSeq = 0;
+  function fireCaption(boxId, columns, rows, title, dateLabel) {
+    var box = el(boxId);
+    if (!box) return;
+    var seq = ++captionSeq;
+    box.hidden = false;
+    box.classList.add('rp-caption--loading');
+    box.textContent = '';
+    fetch(API_PREFIX + 'api/reporting/ai/caption', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+      body: JSON.stringify({
+        columns: columns, rows: rows.slice(0, 50),
+        title: title || undefined, dateLabel: dateLabel || undefined
+      })
+    }).then(function (res) {
+      if (!res.ok) throw new Error('caption http ' + res.status);
+      return res.json();
+    }).then(function (data) {
+      if (seq !== captionSeq) return;   // a newer run superseded this one
+      if (!data || !data.caption) { box.hidden = true; box.classList.remove('rp-caption--loading'); return; }
+      box.classList.remove('rp-caption--loading');
+      var chip = document.createElement('span');
+      chip.className = 'rp-caption-chip';
+      chip.textContent = 'AI';
+      box.appendChild(chip);
+      box.appendChild(document.createTextNode(' ' + data.caption));
+    }).catch(function () {
+      if (seq !== captionSeq) return;
+      box.hidden = true;
+      box.classList.remove('rp-caption--loading');
+    });
+  }
+
   // Monotonic run token: a newer runCurrent invalidates every pending older
   // one, so a slow report's late responses can't render under a newer
   // report's title (and a double-click renders only once).
@@ -1469,8 +1517,12 @@
     rows = zeroFillDateBuckets(def, rows, res.data.resolvedDates || []);
     renderKpiBand(dims, rows, res.data.comparison || null, def);
     var rdates = res.data.resolvedDates || [];
+    // Hoisted out of the `if` below (Task 13): fireCaption() at the end of
+    // this function needs the same resolved-dates label the message line
+    // shows, or null when there's nothing to resolve.
+    var resolvedTxt = null;
     if (rdates.length) {
-      var resolvedTxt = rdates.map(function (d) {
+      resolvedTxt = rdates.map(function (d) {
         return tokenLabel(d) + ' (' + d.start + ' → ' + d.end + ')';
       }).join(' · ');
       var msg = el('rsMsg');
@@ -1515,6 +1567,10 @@
       el('rsTableWrap').hidden = false;   // plain table reports: grid directly
     }
     writePreviewCache(dims, hasMetrics, rows);
+    // Task 13: auto AI caption over the result that just rendered. Placed
+    // after the `!rows.length` early return above, so an empty result never
+    // fires one (nothing to caption).
+    fireCaption('rsCaption', columns, rows, cur.name || cur.def.title || '', resolvedTxt);
   }
 
   // Step 5 — refresh the library card's preview thumbnail from the result

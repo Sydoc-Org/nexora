@@ -92,7 +92,10 @@ INSERT INTO dbo.Permission (Code, Description) VALUES
     ('reporting.schedule', 'Reporting: schedule a report to run and be emailed'),
     ('reporting.ai.use', 'Reporting: use the AI assistant (NL questions)'),
     ('reporting.ai.sql', 'Reporting: AI may emit live SQL (advanced)'),
-    ('reporting.ai.explain', 'Reporting: see AI explanation on results');
+    ('reporting.ai.explain', 'Reporting: see AI explanation on results'),
+    -- Mirrors sql/_migrations/NexoraDB/0015_seed_reporting_ai_explain_data.sql
+    -- (the data-egress grant for the agentic tool loop / Task 13 captions).
+    ('reporting.ai.explain_data', 'Reporting: let the AI assistant run read-only queries and explain the actual result numbers (data egress to the model; needs reporting.sql.run)');
 GO
 
 -- Access profiles
@@ -142,7 +145,29 @@ VALUES
      'Test NoPerm',
      'noperm@test.local',
      (SELECT AccessID FROM dbo.AccessProfile WHERE Name = 'TestNoPerm'),
-     'TEST', 1, 1, 'MFRGGZDFMZTWQ2LK', 'en');
+     'TEST', 1, 1, 'MFRGGZDFMZTWQ2LK', 'en'),
+
+    -- TestAdmin profile (every permission) minus reporting.ai.explain_data via
+    -- the per-user override below -- lets Task 13's e2e "unaffected without
+    -- the perm" spot-check exercise a fully-working reporting page/Advanced
+    -- tab that simply never shows the caption slot. Same password hash as
+    -- admin@test.local (same Test1234! plaintext -- bcrypt hashes just don't
+    -- match across independent generations).
+    ('noai@test.local',
+     '$2b$12$yMKpG3tUGtM6/fmd36giJ.VY5DHY5zRU4twHKfjQ5TsR.3kn7UxW.',
+     'Test NoAI',
+     'noai@test.local',
+     (SELECT AccessID FROM dbo.AccessProfile WHERE Name = 'TestAdmin'),
+     'TEST', 1, 1, 'GEZDGNBVGY3TQOJQ', 'en');
+GO
+
+-- Deny reporting.ai.explain_data for noai@test.local only (a per-user
+-- override beats the TestAdmin access-profile grant -- see
+-- dbo.fnUserHasPermission). Every other TestAdmin permission stays intact.
+INSERT INTO dbo.UserPermissionOverride (UserID, PermissionID, Effect)
+SELECT u.userID, p.PermissionID, 'D'
+FROM dbo.Users u, dbo.Permission p
+WHERE u.username = 'noai@test.local' AND p.Code = 'reporting.ai.explain_data';
 GO
 
 -- Curated 'table' reporting sources (mirrors 0011_seed_generali_workitems_sources.sql)

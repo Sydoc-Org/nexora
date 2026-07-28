@@ -6,6 +6,8 @@ reporting.source.docprocessing). The page chrome and source select are asserted;
 data rows are not checked because the statistics DB is absent in TEST.
 """
 
+import json
+
 import pytest
 from playwright.sync_api import expect
 
@@ -191,3 +193,77 @@ def test_advanced_saved_reports_select_excludes_dashboards(nexora_server, page):
             method: 'DELETE', headers: {{'X-CSRFToken': csrf}}
           }});
         }}""")
+
+
+# ---- Auto AI captions (Task 13) -------------------------------------------
+# Advanced fires a caption request on CHART MOUNT (not on every grid render),
+# so these stub /api/reporting/run with an aggregate-shaped 2-column result
+# (mirrors test_reporting_viz.py's synthetic ReportingViz.mountChart shape)
+# and switch to the Chart view before asserting on #rpCaption. The route stub
+# is always registered before the click that triggers the request (the known
+# e2e flake trap in this codebase).
+
+
+def _stub_advanced_run_and_caption(page, caption="Client A drives most of the totals."):
+    def _run_handler(route):
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [
+                        {"field": "client", "header": "Client"},
+                        {"field": "pages", "header": "Pages"},
+                    ],
+                    "rows": [["A", 10], ["A", 5], ["B", 3]],
+                    "truncated": False,
+                    "rowCount": 3,
+                    "sql": None,
+                    "params": [],
+                    "resolvedDates": [],
+                }
+            ),
+        )
+
+    page.route("**/api/reporting/run", _run_handler)
+    page.route(
+        "**/api/reporting/ai/caption",
+        lambda route: route.fulfill(
+            status=200, content_type="application/json", body=json.dumps({"caption": caption})
+        ),
+    )
+
+
+@pytest.mark.flaky_e2e
+def test_advanced_chart_mount_fires_caption_for_explain_data_holder(nexora_server, page):
+    """admin@test.local holds reporting.ai.explain_data (sql/test/seed.sql
+    grants every permission to TestAdmin) -- switching to the Chart view
+    mounts the chart and fires an auto caption that renders with its AI chip."""
+    _login(page, nexora_server)
+    _stub_advanced_run_and_caption(page)
+    page.get_by_test_id("reporting-run").click()
+    expect(page.get_by_test_id("reporting-view-chart")).to_be_visible()
+    page.get_by_test_id("reporting-view-chart").click()
+    expect(page.locator('[data-testid="reporting-chart"] canvas')).to_be_visible()
+    caption = page.locator("#rpCaption")
+    expect(caption).to_be_visible()
+    expect(caption).to_contain_text("Client A drives most of the totals.")
+    expect(caption.locator(".rp-caption-chip")).to_have_text("AI")
+    page.screenshot(path="var/screenshots/reporting_caption.png")
+
+
+@pytest.mark.flaky_e2e
+def test_advanced_caption_absent_without_explain_data_permission(nexora_server, page):
+    """noai@test.local has every TestAdmin permission EXCEPT
+    reporting.ai.explain_data (per-user deny override, sql/test/seed.sql) --
+    the caption slot must not exist in the DOM at all, and the rest of the
+    Advanced pane (run, chart) must work exactly as it does for an
+    explain_data holder (Task 13's 'unaffected without the perm' spot-check)."""
+    _login(page, nexora_server, who="noai@test.local")
+    _stub_advanced_run_and_caption(page)
+    expect(page.locator("#rpCaption")).to_have_count(0)
+    page.get_by_test_id("reporting-run").click()
+    expect(page.get_by_test_id("reporting-view-chart")).to_be_visible()
+    page.get_by_test_id("reporting-view-chart").click()
+    expect(page.locator('[data-testid="reporting-chart"] canvas')).to_be_visible()
+    expect(page.locator("#rpCaption")).to_have_count(0)

@@ -1243,6 +1243,50 @@ body.nx-app {
 .rp-skeleton-table { display: flex; flex-direction: column; gap: 10px; padding: 4px 0; }
 .rp-skeleton-row { height: 14px; width: 100%; }
 
+/* Auto AI captions (Task 13): a one-line insight under the Simple result
+   (#rsCaption) and the Advanced chart (#rpCaption), fired automatically by
+   fireCaption() in the two JS partials. Shimmers (reusing the .rp-skeleton
+   tokens/keyframe above) while the request is in flight; on error the JS
+   just re-hides the div -- no error styling exists here on purpose (Task
+   13's silent-fail contract, unlike the chat panel's error bubbles). */
+.rp-caption {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin: .5rem 0;
+  padding: .5rem .75rem;
+  border-radius: 8px;
+  background: var(--nx-accent-tint);
+  border: 1px solid var(--nx-accent-soft);
+  color: var(--nx-text);
+  font-size: .9em;
+  line-height: 1.4;
+  min-height: 1.6em;
+}
+.rp-caption--loading {
+  color: transparent;
+  background: linear-gradient(90deg, var(--nx-border) 25%, var(--nx-divider) 50%, var(--nx-border) 75%);
+  background-size: 200% 100%;
+  border-color: var(--nx-border);
+  animation: rp-shimmer 1.4s infinite linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rp-caption--loading { animation: none; }
+}
+.rp-caption-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: .1rem .45rem;
+  border-radius: 999px;
+  font-size: .7em;
+  font-weight: 700;
+  letter-spacing: .02em;
+  background: var(--nx-accent);
+  color: #fff;
+}
+
 /* Refine bar (Simple pane, F2-T4) */
 .reporting-simple-refine { display: flex; gap: .5rem; margin: .4rem 0 .6rem; }
 .reporting-simple-refine .reporting-input { flex: 1; }

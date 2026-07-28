@@ -868,6 +868,100 @@ def _stub_agent_ok(page, answer="Here is your report."):
     )
 
 
+# ---- Auto AI captions (Task 13) -------------------------------------------
+
+
+def _stub_caption(page, caption="Most requests come from acme.inv.", status=200, delay_s=0.0):
+    """Stub /api/reporting/ai/caption. status=200 -> {caption}; anything else
+    -> a generic {error} body, matching how api_ai_caption degrades (502/503/
+    429/403 all just mean "no caption" to the frontend)."""
+    import time as _time
+
+    def handler(route):
+        if delay_s:
+            _time.sleep(delay_s)
+        if status == 200:
+            route.fulfill(
+                status=200, content_type="application/json", body=json.dumps({"caption": caption})
+            )
+        else:
+            route.fulfill(
+                status=status, content_type="application/json", body=json.dumps({"error": "boom"})
+            )
+
+    page.route("**/api/reporting/ai/caption", handler)
+
+
+def _create_caption_source_and_metric(page, nexora_server):
+    """Create a real curated source + count metric (same recipe as
+    test_timing_badge_shows_rows_and_elapsed_ms), via the Advanced tab's admin
+    API. Returns the {src, met} ids for cleanup."""
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    return page.evaluate(
+        """async () => {
+          const csrf = document.querySelector('meta[name="csrf-token"]').content;
+          const post = (url, body) => fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify(body)
+          }).then(r => r.json());
+          const src = await post('/api/reporting/admin/sources', {
+            code: 'caption_users', kind: 'curated', label: 'Caption Users',
+            permission: 'reporting.source.docprocessing', provider: 'table',
+            engine: 'nexora', baseObject: 'dbo.Users',
+            columns: [{field: 'username', label: 'Username', type: 'string',
+                       filterable: true, sortable: true}],
+            enabled: true, sortOrder: 41});
+          const met = await post('/api/reporting/admin/metrics', {
+            code: 'caption_user_count', sourceId: 'caption_users', label: 'Caption user count',
+            aggregation: 'count', format: 'int'});
+          return {src: src.id, met: met.id};
+        }"""
+    )
+
+
+def _wizard_measure_breakdown_run(page):
+    """Click through the Simple wizard's measure -> breakdown -> Run steps for
+    the 'Caption user count' / 'Username' pair _create_caption_source_and_metric
+    creates. Caller must already be on ?tab=simple with /api/reporting/run
+    (and any AI stub) already registered -- the wizard's Run button calls
+    runCurrent() synchronously on click, so this is the single trigger for the
+    run+caption round trip the shimmer-timing assertions below need."""
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Caption user count").click()
+    page.get_by_test_id("rs-measure-next").click()
+    page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
+    page.get_by_test_id("rs-breakdown-next").click()
+    page.get_by_test_id("rs-wizard-run").click()
+
+
+def _run_caption_wizard(page, nexora_server):
+    """Create the source/metric, stub a successful run, and drive the wizard
+    straight to Run. Unlike opening a saved report (openReport() awaits
+    loadSourcesCatalog()/loadMetricsCatalog() -- real, uncached, multi-second
+    calls -- BEFORE calling runCurrent()), this reaches runCurrent() with
+    catalogs already warm from building the wizard. Caller registers
+    /api/reporting/ai/caption BEFORE calling this (route stubs must exist
+    before the triggering click). Returns the {src, met} ids for cleanup."""
+    ids = _create_caption_source_and_metric(page, nexora_server)
+    _stub_run_ok(page)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    _wizard_measure_breakdown_run(page)
+    return ids
+
+
+def _cleanup_caption_wizard(page, ids):
+    page.evaluate(
+        """async (ids) => {
+          const csrf = document.querySelector('meta[name="csrf-token"]').content;
+          const del = url => fetch(url, {method: 'DELETE', headers: {'X-CSRFToken': csrf}});
+          await del('/api/reporting/admin/metrics/' + ids.met);
+          await del('/api/reporting/admin/sources/' + ids.src);
+        }""",
+        ids,
+    )
+
+
 def test_hero_ask_routes_into_chat_panel(nexora_server, page):
     """Task 4: the hero's Ask AI no longer builds/runs its own report -- it
     opens the shared chat panel and forwards the question there."""
@@ -3564,3 +3658,66 @@ def test_result_more_menu_holds_advanced_and_sql(nexora_server, page):
     expect(page.get_by_test_id("rs-open-advanced")).to_be_visible()
     page.get_by_test_id("rs-result-title").click()
     expect(page.get_by_test_id("rs-open-advanced")).to_be_hidden()
+
+
+@pytest.mark.flaky_e2e
+def test_caption_fires_after_run_shows_shimmer_then_ai_chip(nexora_server, page):
+    """After a Simple result renders, an auto caption request fires; the
+    caption slot shimmers while in flight, then shows the AI chip + caption
+    text once the (stubbed) response lands (Task 13)."""
+    _login(page, nexora_server)
+    _stub_caption(page, caption="Most requests come from acme.inv.", delay_s=0.3)
+    ids = _run_caption_wizard(page, nexora_server)
+    try:
+        loading = page.locator("#rsCaption.rp-caption--loading")
+        expect(loading).to_be_visible()
+
+        settled = page.locator("#rsCaption:not(.rp-caption--loading)")
+        expect(settled).to_contain_text("Most requests come from acme.inv.")
+        expect(settled.locator(".rp-caption-chip")).to_have_text("AI")
+        page.screenshot(path="var/screenshots/reporting_simple_caption.png")
+    finally:
+        _cleanup_caption_wizard(page, ids)
+
+
+@pytest.mark.flaky_e2e
+def test_caption_hides_silently_on_error_no_console_noise(nexora_server, page):
+    """A caption request that errors must never surface an error state or log
+    to the console -- the slot shimmers briefly then goes back to hidden
+    (Task 13's silent-fail contract, deliberately unlike the chat panel's
+    error bubbles)."""
+    _login(page, nexora_server)
+    ids = _create_caption_source_and_metric(page, nexora_server)
+    try:
+        _stub_run_ok(page)
+        _stub_caption(page, status=502, delay_s=0.2)
+        page.goto(f"{nexora_server}/reporting?tab=simple")
+        page.wait_for_load_state("domcontentloaded")
+        # Listeners are registered only now -- after login's redirect through
+        # the dashboard page (which fires its own unrelated fetch-failure
+        # console errors, unstubbed here and irrelevant to this feature) has
+        # fully resolved and we've landed on a quiet, not-yet-run Simple tab.
+        console_errors = []
+        page_errors = []
+        page.on(
+            "console",
+            lambda msg: console_errors.append(msg.text) if msg.type == "error" else None,
+        )
+        page.on("pageerror", lambda exc: page_errors.append(str(exc)))
+
+        _wizard_measure_breakdown_run(page)
+
+        expect(page.locator("#rsCaption.rp-caption--loading")).to_be_visible()
+        expect(page.locator("#rsCaption")).to_be_hidden()
+        # Chrome itself logs one "Failed to load resource: ... 502" line for
+        # ANY fetch that resolves with a non-2xx status -- a browser-level
+        # network diagnostic no application JS can suppress, unrelated to how
+        # gracefully the page's own code then handles the rejection. The bar
+        # this test actually holds fireCaption() to is the one within its
+        # control: no uncaught exception, and no application-level
+        # console.error of its own (nothing beyond that one expected line).
+        unexpected = [m for m in console_errors if "Failed to load resource" not in m]
+        assert unexpected == [], f"unexpected console errors: {unexpected}"
+        assert page_errors == [], f"unexpected uncaught exceptions: {page_errors}"
+    finally:
+        _cleanup_caption_wizard(page, ids)
