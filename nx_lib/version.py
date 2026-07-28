@@ -1,9 +1,13 @@
 """Single source of truth for the nexora application version.
 
 Kept dependency-free so it can be imported from anywhere (the dev CLI, the Flask
-context processor that feeds the footer, tests) without side effects. Keep this in
-sync with ``pyproject.toml`` ``[project].version`` — ``tests/unit/test_version.py``
-enforces that they match.
+context processor that feeds the footer, tests) without side effects.
+
+Bumping a release means editing this file and ``pyproject.toml``, then running
+``uv lock``. The duplication is forced, not sloppiness: uv rejects a ``[project]``
+table whose version is neither static nor supplied by a build backend, and nexora
+is a virtual project that is never built or installed. ``tests/unit/test_version.py``
+enforces that all three copies agree.
 """
 
 __version__ = "2.5.65"

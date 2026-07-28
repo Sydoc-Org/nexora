@@ -141,6 +141,15 @@ Work toward 2.5.65.
 
 ### Fixed
 
+- Version: `uv.lock` had silently rotted to `2.5.63` while `nx_lib/version.py`
+  and `pyproject.toml` were on `2.5.65` — a third copy of the version that no
+  test covered. Refreshed via `uv lock`, and `tests/unit/test_version.py` now
+  asserts all three agree. The `pyproject.toml` duplicate itself stays: uv
+  rejects a `[project]` table whose version is neither static nor supplied by a
+  build backend, and nexora is a virtual project that is never built, so the
+  only way to remove it would be to add a build backend. Both copies now carry
+  a comment saying so.
+
 - Workitems: the line-item table grids in the detail panel's "Show sources"
   view (e.g. Octo `TABVAT`/`TABORDER`) overflowed the panel on wide tables
   and showed raw Octo field codes (`TabNetAmount`, `OrdPk`) as headers.

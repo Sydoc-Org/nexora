@@ -595,7 +595,7 @@ wheels = [
 
 [[package]]
 name = "nexora"
-version = "2.5.63"
+version = "2.5.65"
 source = { virtual = "." }
 dependencies = [
     { name = "bcrypt" },
