@@ -3,6 +3,15 @@
     let fetchedLogsData = [];
     const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
 
+    // Sub-day presets (e.g. "Last hour") need minute-level precision, but
+    // filterStart/filterEnd are native <input type="date"> fields that can
+    // only hold date-only values. When a sub-day preset is active, this
+    // carries the precise "YYYY-MM-DD HH:MM:SS" bounds actually sent to the
+    // backend; the date inputs still show a same-day approximation for
+    // display. Cleared whenever a day-granularity preset or manual date
+    // edit takes over.
+    let presetRangeOverride = null;
+
     function escapeHtml(str) {
         if (str == null) return '';
         return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
@@ -15,8 +24,8 @@
         const path = document.getElementById('filterPath').value;
 
         const status = document.getElementById('filterStatus').value;
-        const start = document.getElementById('filterStart').value;
-        const end = document.getElementById('filterEnd').value;
+        const start = presetRangeOverride ? presetRangeOverride.start : document.getElementById('filterStart').value;
+        const end = presetRangeOverride ? presetRangeOverride.end : document.getElementById('filterEnd').value;
         const org = document.getElementById('filterOrg')?.value || '';
 
         const tbody = document.getElementById('logsTableBody');
@@ -137,8 +146,11 @@
             const el = document.getElementById(elId);
             if (el) el.value = filters[param] || '';
         }
-        // The static time-range presets shouldn't look "active" anymore.
+        // The static time-range presets shouldn't look "active" anymore, and
+        // any sub-day precision override from a previous "Last hour" click
+        // no longer applies — the saved preset's own (date-only) values win.
         document.querySelectorAll('.log-preset.is-active').forEach(b => b.classList.remove('is-active'));
+        presetRangeOverride = null;
         fetchLogs(1);
     }
     function renderSavedPresets() {
@@ -197,8 +209,8 @@
             method:   document.getElementById('filterMethod').value,
             path:     document.getElementById('filterPath').value,
             status:   document.getElementById('filterStatus').value,
-            start_date: document.getElementById('filterStart').value,
-            end_date:   document.getElementById('filterEnd').value,
+            start_date: presetRangeOverride ? presetRangeOverride.start : document.getElementById('filterStart').value,
+            end_date:   presetRangeOverride ? presetRangeOverride.end : document.getElementById('filterEnd').value,
             organization: document.getElementById('filterOrg')?.value || '',
         });
         window.location.href = `${API_PREFIX}api/admin/logs/export.csv?${params}`;
@@ -331,6 +343,17 @@
             return `${y}-${m}-${day}`;
         }
 
+        // Same as toDateInput but keeps time-of-day, for sub-day presets.
+        // Format matches what the backend already expects for its end_date
+        // end-of-day suffix ("YYYY-MM-DD HH:MM:SS"), so it round-trips
+        // through the same SQL parameter without extra parsing.
+        function toDateTimeInput(d) {
+            const hh = String(d.getHours()).padStart(2, '0');
+            const mi = String(d.getMinutes()).padStart(2, '0');
+            const ss = String(d.getSeconds()).padStart(2, '0');
+            return `${toDateInput(d)} ${hh}:${mi}:${ss}`;
+        }
+
         presets.forEach(btn => {
             btn.addEventListener('click', () => {
                 presets.forEach(b => b.classList.remove('is-active'));
@@ -338,12 +361,22 @@
 
                 const now = new Date();
                 let start = new Date(now);
+                presetRangeOverride = null;
                 switch (btn.dataset.preset) {
-                    case '1h':  start.setHours(now.getHours() - 1); break;
+                    case '1h':
+                        start.setHours(now.getHours() - 1);
+                        // A date-only bound would round this out to the whole
+                        // current day (see toDateInput below) — send exact
+                        // datetime bounds instead so "last hour" means one hour.
+                        presetRangeOverride = { start: toDateTimeInput(start), end: toDateTimeInput(now) };
+                        break;
                     case '24h': start.setHours(0, 0, 0, 0); break;
                     case '7d':  start.setDate(now.getDate() - 7); break;
                     case '30d': start.setDate(now.getDate() - 30); break;
                 }
+                // The visible date inputs stay date-only (that's all
+                // <input type="date"> can hold); presetRangeOverride, when
+                // set, is what actually gets sent to the backend.
                 startEl.value = toDateInput(start);
                 endEl.value   = toDateInput(now);
                 fetchLogs(1);
@@ -352,6 +385,7 @@
 
         [startEl, endEl].forEach(el => el.addEventListener('change', () => {
             presets.forEach(b => b.classList.remove('is-active'));
+            presetRangeOverride = null;
         }));
     });
 </script>

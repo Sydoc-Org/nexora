@@ -500,7 +500,12 @@ def _build_logs_where_clause():
         params.append(start_date)
     if end_date:
         parts.append("Timestamp <= ?")
-        params.append(f"{end_date} 23:59:59")
+        # Day-granularity filters (e.g. "Today", "Last 7 days") send a bare
+        # "YYYY-MM-DD" date and rely on us rounding up to end-of-day. Sub-day
+        # presets (e.g. "Last hour") send a full "YYYY-MM-DD HH:MM:SS"
+        # timestamp already — don't append another time onto it.
+        end_bound = end_date if " " in end_date else f"{end_date} 23:59:59"
+        params.append(end_bound)
     if organization:
         parts.append("Username IN (SELECT username FROM Users WHERE organizationcode = ?)")
         params.append(organization)
