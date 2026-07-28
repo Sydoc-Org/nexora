@@ -216,6 +216,26 @@ def test_unterminated_literal_does_not_hide_a_real_keyword():
     assert ei.value.token.upper() == "UPDATE"
 
 
+def test_bracket_quoted_alias_cannot_hide_a_blocklisted_keyword():
+    # Regression for the 7325afd bypass: a bracket-quoted identifier legally
+    # contains a bare apostrophe (T-SQL allows it in [...] aliases, and
+    # aliases are attacker-chosen). An apostrophe-blind literal stripper
+    # pairs that lone quote with some LATER unrelated quote and blanks
+    # everything in between -- including a real OPENROWSET call -- out of
+    # the blocklist scan. sqlglot's AST gate does not independently reject
+    # OPENROWSET/OPENQUERY/OPENDATASOURCE (they parse as a plain exp.Select
+    # with an Anonymous function, no forbidden node), so the blocklist is
+    # the sole defense for this keyword family and must not be bypassable.
+    sql = (
+        "SELECT * FROM sys.objects AS [a'b], "
+        "OPENROWSET('SQLNCLI11','Server=evil;','SELECT 1') AS q"
+    )
+    with pytest.raises(SqlSandboxError) as ei:
+        validate_select(sql)
+    assert ei.value.rule == "blocked_keyword"
+    assert ei.value.token.upper() == "OPENROWSET"
+
+
 def test_sandbox_error_token_carries_dynamic_part():
     # The view boundary translates rule-keyed messages; the dynamic bit
     # (keyword/construct name) must ride on the exception, not be regexed

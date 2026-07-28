@@ -132,25 +132,34 @@ def _strip_comments(sql):
 
 # T-SQL string literals escape an embedded quote by doubling it: 'it''s here'
 # is the 8-character value it's here, and that doubled quote is NOT the end
-# of the literal. This pattern walks a well-formed '...' literal the same
-# way: its content is any run of non-quote characters or doubled-quote
-# pairs, closed by a single unescaped quote. A literal that never closes
-# (malformed/truncated input) simply fails to match, so nothing is stripped
-# for it and the raw text -- including any real keyword inside it -- still
-# reaches the blocklist scan. Fail safe (under-strip), never fail open
-# (over-strip and hide a real keyword).
-_STRING_LITERAL_RE = re.compile(r"'(?:[^']|'')*'")
+# of the literal. Bracket-quoted ([a'b]) and double-quoted ("a""b") T-SQL
+# identifiers can also legally contain a bare apostrophe -- and identifiers
+# (aliases) are attacker-chosen -- so an apostrophe-blind literal stripper
+# can be tricked into treating everything from that apostrophe to some LATER
+# unrelated apostrophe as one "literal" and blanking real SQL out of the
+# blocklist scan, including a keyword. This pattern therefore matches
+# bracket/double-quoted identifiers FIRST (leftmost-first alternation), so
+# those are consumed and left completely untouched before any '...' literal
+# is considered; only the '...' alternative gets blanked. A construct that
+# never closes (malformed/truncated input) simply fails to match, so nothing
+# is stripped for it and the raw text -- including any real keyword inside
+# it -- still reaches the blocklist scan. Fail safe (under-strip), never
+# fail open (over-strip and hide a real keyword).
+_SCAN_TOKEN_RE = re.compile(r"""\[[^\]]*\]|"(?:[^"]|"")*"|'(?:[^']|'')*'""")
 
 
 def _strip_string_literals(sql):
-    """Blank literal CONTENTS for the blocklist scan; keep the delimiters.
+    """Blank literal CONTENTS for the blocklist scan; keep identifiers intact.
 
     'update log' -> '' so the scan sees an inert empty literal rather than
     the word "update" (a false-positive DML match against the blocklist) or
     nothing at all (which would risk merging the tokens on either side of
-    the literal into something the blocklist misreads).
+    the literal into something the blocklist misreads). Bracket- or
+    double-quoted identifiers ([a'b], "a""b") are matched but left as-is --
+    never blanked -- so a quote character inside one can't be mistaken for
+    the start of a string literal and swallow real SQL that follows.
     """
-    return _STRING_LITERAL_RE.sub("''", sql)
+    return _SCAN_TOKEN_RE.sub(lambda m: m.group(0) if m.group(0)[0] in '["' else "''", sql)
 
 
 def validate_select(sql):
