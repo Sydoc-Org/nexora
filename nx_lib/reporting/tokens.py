@@ -143,6 +143,36 @@ def resolve_definition_tokens(rd, today=None):
     return out
 
 
+def shifted_definition_for_comparison(rd, today=None):
+    """Same definition with its single relative-date window shifted back by
+    the window's own length: [start - len, start). Returns (shifted_rd,
+    prior_start, prior_end) with inclusive display dates, or None when the
+    definition has no token filter or more than one (ambiguous).
+
+    # ponytail: token filters only — literal date ranges get no comparison;
+    # extend via date_fields_from_catalog if that ceiling ever hurts.
+    """
+    filters = (rd or {}).get("filters") or []
+    token_filters = [
+        f
+        for f in filters
+        if isinstance(f, dict) and isinstance(f.get("value"), dict) and "token" in f["value"]
+    ]
+    if len(token_filters) != 1:
+        return None
+    f = token_filters[0]
+    start, end = resolve_token(f["value"], today)
+    end_excl = end + datetime.timedelta(days=1)
+    length = end_excl - start
+    prior_start, prior_end_excl = start - length, start
+    new_filters = [x for x in filters if x is not f]
+    new_filters.append({"field": f["field"], "op": "gte", "value": prior_start.isoformat()})
+    new_filters.append({"field": f["field"], "op": "lt", "value": prior_end_excl.isoformat()})
+    out = dict(rd)
+    out["filters"] = new_filters
+    return out, prior_start, prior_end_excl - datetime.timedelta(days=1)
+
+
 def date_fields_from_catalog(catalog):
     """Field keys that may carry a relative-date token: grainable (the
     docprocessing date fields) or date/datetime-typed (table sources)."""

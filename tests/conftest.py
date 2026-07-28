@@ -21,6 +21,7 @@ TOTP_SECRETS = {
     "admin@test.local": "JBSWY3DPEHPK3PXP",
     "user@test.local": "KRSXG5CTMVRXEZLU",
     "noperm@test.local": "MFRGGZDFMZTWQ2LK",
+    "noai@test.local": "GEZDGNBVGY3TQOJQ",
 }
 
 TEST_PASSWORD = "Test1234!"

@@ -163,3 +163,48 @@ def test_dispatch_passes_system_and_user_through():
     # Anthropic body carries system top-level and the user message verbatim.
     assert captured["body"]["system"] == "SYS"
     assert captured["body"]["messages"][0]["content"] == "USR"
+
+
+# ---- caption() (Task 12 — auto AI captions over a result grid) -----------
+
+
+def test_caption_returns_stripped_text():
+    body = {
+        "content": [{"type": "text", "text": "  Sales rose sharply in Q2.  "}],
+        "usage": {"input_tokens": 40, "output_tokens": 12},
+    }
+    res = ai.caption(
+        columns=[{"field": "month", "header": "Month"}, {"field": "sales", "header": "Sales"}],
+        rows=[["Jan", 100], ["Feb", 120]],
+        title="Monthly sales",
+        date_label="2026",
+        locale="en",
+        cfg={"provider": "anthropic", "model": "m", "api_key": "k"},
+        transport=_fake_transport(body),
+    )
+    assert res.caption == "Sales rose sharply in Q2."
+    assert res.tokens_in == 40
+    assert res.tokens_out == 12
+
+
+def test_caption_truncates_rows_to_50_before_building_prompt():
+    captured = {}
+
+    def transport(url, headers, body, timeout):
+        captured["body"] = body
+        return {"content": [{"type": "text", "text": "ok"}], "usage": {}}
+
+    rows = [[i] for i in range(80)]  # 80 rows; only the first 50 may reach the prompt
+    ai.caption(
+        columns=[{"field": "n", "header": "N"}],
+        rows=rows,
+        title=None,
+        date_label=None,
+        locale="en",
+        cfg={"provider": "anthropic", "model": "m", "api_key": "k"},
+        transport=transport,
+    )
+    user_msg = captured["body"]["messages"][0]["content"]
+    assert "Data (50 rows)" in user_msg
+    assert "\n49" in user_msg  # last surviving row (0-indexed #49)
+    assert "\n50" not in user_msg  # row #50 (the 81-row list's 51st) truncated away

@@ -88,6 +88,7 @@
     kpiBuckets: {{ _("Buckets")|tojson }},
     kpiAvg: {{ _("Avg per bucket")|tojson }},
     kpiPeak: {{ _("Peak")|tojson }},
+    deltaVs: {{ _("vs")|tojson }},
     tableRowCount: {{ _("{n} rows")|tojson }},
     stepNof4: {{ _("Step {n} of 4")|tojson }},
     wizMeasure: {{ _("Measure")|tojson }},
@@ -99,7 +100,8 @@
     groupTime: {{ _("Time")|tojson }},
     groupFields: {{ _("Document fields")|tojson }},
     groupOr: {{ _("Or")|tojson }},
-    pickedCount: {{ _("{n} of 3 picked")|tojson }}
+    pickedCount: {{ _("{n} of 3 picked")|tojson }},
+    aiChip: {{ _("AI")|tojson }}
   };
 
   // Wizard category-dimension curation (docprocessing only). Process first
@@ -162,9 +164,7 @@
     el('rsNewReport').hidden = view !== 'library';
     el('rsNewDashboard').hidden = view !== 'library';
     var aiBar = el('rsAiBar');
-    if (aiBar && !aiBar.dataset.gone) aiBar.hidden = view !== 'library';
-    var aiGone = el('rsAiGone');
-    if (aiGone && aiBar && aiBar.dataset.gone) aiGone.hidden = view !== 'library';
+    if (aiBar) aiBar.hidden = view !== 'library';
     el('rsWizard').hidden = view !== 'wizard';
     el('rsResult').hidden = view !== 'result';
     el('rsDashboard').hidden = view !== 'dashboard';
@@ -450,9 +450,7 @@
   }
 
   function showResultError(msg, opts) {
-    hideAiLoading();
     el('rsRunLoading').hidden = true;
-    if (el('rsRefineBar')) el('rsRefineBar').hidden = true;
     if (el('rsChips')) el('rsChips').hidden = true;
     setView('result');
     hideTimingBadge();
@@ -476,6 +474,11 @@
     el('rsSqlView').hidden = true;
     el('rsShowSql').hidden = true;
     el('rsDrillHint').hidden = true;
+    // Same stale-caption guard as runCurrent()'s run-start block — a failed
+    // run must not leave the PREVIOUS run's caption sentence sitting under
+    // the error message.
+    var rsCaptionErrBox = el('rsCaption');
+    if (rsCaptionErrBox) { rsCaptionErrBox.hidden = true; rsCaptionErrBox.textContent = ''; }
   }
 
   // Prefers the server's own error + detail (e.g. "…invalid or outdated. —
@@ -559,21 +562,106 @@
     var buckets = rows.length;
     var peakLabel = dims ? Array.prototype.slice.call(peakRow, 0, dims).map(String).join(' · ') : '';
     return { total: total, buckets: buckets, avg: buckets ? total / buckets : 0,
-             peak: peak, peakLabel: peakLabel };
+             peak: peak, peakLabel: peakLabel, idx: idx };
   }
 
-  function kpiBlock(testid, caption, value) {
+  // Delta chips vs the prior period (Task 11 / D-COMPARE). The backend's
+  // `comparison` block (compare: true) reruns the SAME definition over a
+  // window shifted back by the CURRENT window's own length -- not
+  // necessarily the previous *calendar* period (a 31-day month shifted back
+  // 31 days lands one day short of the 1st of a 30-day prior month). So the
+  // chip's only honest claim is the literal priorStart-priorEnd range, never
+  // a calendar name like "last month" -- see shifted_definition_for_comparison.
+  // Flat when the prior value is 0 (no percentage is meaningful) or the
+  // magnitude of change is under 0.5%.
+  function computeDelta(current, prior) {
+    if (!prior || !isFinite(prior)) return { dir: 'flat', pct: 0 };
+    var pct = ((current - prior) / Math.abs(prior)) * 100;
+    if (Math.abs(pct) < 0.5) return { dir: 'flat', pct: 0 };
+    return { dir: pct > 0 ? 'up' : 'down', pct: Math.abs(pct) };
+  }
+
+  function deltaChipHtml(current, prior, priorStart, priorEnd) {
+    if (prior == null || !isFinite(current)) return '';
+    var d = computeDelta(current, prior);
+    var arrow = d.dir === 'up' ? '↑' : d.dir === 'down' ? '↓' : '—';
+    var title = I18N.deltaVs + ' ' + priorStart + ' – ' + priorEnd;
+    return '<span class="rp-delta rp-delta--' + d.dir + '" data-testid="rp-delta"' +
+      ' title="' + esc(title) + '" aria-label="' + esc(title) + '">' +
+      arrow + ' ' + Math.round(d.pct) + '%</span>';
+  }
+
+  // Inline sparkline (Task 11): a hand-rolled SVG polyline of the metric
+  // series into the total tile -- no second Chart.js instance just for a KPI
+  // accent. Gated to the same single-dimension date-grain case bucketSeq/
+  // zeroFillDateBuckets already special-case (see the ponytail note there);
+  // `rows` here has already been through that zero-fill, so gaps read as
+  // real zeros rather than a misleadingly straight line.
+  function sparklineHtml(def, rows, kpi) {
+    var cols = def.columns || [];
+    if (cols.length !== 1 || !cols[0].grain) return '';
+    if (!kpi || kpi.idx == null || rows.length < 2) return '';
+    var series = rows.map(function (r) { return Number(r[kpi.idx]); });
+    if (series.some(function (v) { return isNaN(v); })) return '';
+    var w = 120, h = 32, pad = 2;
+    var min = Math.min.apply(null, series), max = Math.max.apply(null, series);
+    var span = (max - min) || 1;
+    var step = (w - pad * 2) / (series.length - 1);
+    var pts = series.map(function (v, i) {
+      var x = pad + i * step;
+      var y = h - pad - ((v - min) / span) * (h - pad * 2);
+      return x.toFixed(1) + ',' + y.toFixed(1);
+    }).join(' ');
+    return '<svg class="rp-sparkline" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none"' +
+      ' aria-hidden="true" data-testid="rp-sparkline">' +
+      '<polyline points="' + pts + '" fill="none" stroke="currentColor" stroke-width="2"' +
+      ' stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+
+  // Count-up (Task 7): 0 -> value over ~500ms via requestAnimationFrame
+  // (stays in step with the browser's paint cycle, unlike setInterval).
+  // Skipped under prefers-reduced-motion -- the final value is written
+  // directly, same gate every other motion helper on this page uses.
+  var PREFERS_REDUCED_MOTION = !!(window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  function animateValue(el, target, fmt) {
+    var n = Number(target);
+    if (isNaN(n) || PREFERS_REDUCED_MOTION) { el.textContent = fmt(target); return; }
+    var t0 = null;
+    function tick(now) {
+      if (t0 === null) t0 = now;
+      var p = Math.min(1, (now - t0) / 500);
+      el.textContent = fmt(n * p);
+      if (p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  // Every value span below carries its real target in data-count-target and
+  // starts at "0" text -- renderKpiBand animates them all in one pass once
+  // the whole band is in the DOM (see the querySelectorAll loop there).
+  // Value + delta chip share one flex item (.rs-kpi-value-wrap) so the row's
+  // caption/value space-between layout still sees exactly two top-level
+  // children -- a bare 3rd sibling would split away from the value under
+  // flex-wrap instead of hugging it.
+  function kpiBlock(testid, caption, value, deltaHtml) {
     return '<div class="reporting-ledger-kpi" data-testid="' + testid + '">' +
       '<span class="reporting-ledger-caption">' + esc(caption) + '</span>' +
-      '<span class="reporting-ledger-kpi-value">' + fmtNumber(value) + '</span></div>';
+      '<span class="rs-kpi-value-wrap">' +
+        '<span class="reporting-ledger-kpi-value" data-count-target="' + Number(value) + '">0</span>' +
+        (deltaHtml || '') +
+      '</span></div>';
   }
 
   // Peak row additionally carries the winning bucket's label under the
   // value (omitted for the zero-dimension case, where there is none).
-  function kpiPeakBlock(testid, caption, label, value) {
+  function kpiPeakBlock(testid, caption, label, value, deltaHtml) {
     return '<div class="reporting-ledger-kpi" id="rsKpiPeak" data-testid="' + testid + '">' +
       '<span class="reporting-ledger-caption">' + esc(caption) + '</span>' +
-      '<span class="reporting-ledger-kpi-value">' + fmtNumber(value) + '</span>' +
+      '<span class="rs-kpi-value-wrap">' +
+        '<span class="reporting-ledger-kpi-value" data-count-target="' + Number(value) + '">0</span>' +
+        (deltaHtml || '') +
+      '</span>' +
       (label ? '<span class="reporting-ledger-kpi-sub">' + esc(label) + '</span>' : '') +
       '</div>';
   }
@@ -588,21 +676,59 @@
   // grand-total clone query, untouched here) alongside this band --
   // existing, tested behavior (test_wizard_category_breakdown_to_result_cards)
   // that this task's regroup does not change.
-  function renderKpiBand(dims, rows) {
+  function renderKpiBand(dims, rows, comparison, def) {
     var band = el('rsKpiBand');
     var kpi = computeKpiBand(dims, rows);
     if (!kpi) { band.hidden = true; band.innerHTML = ''; return; }
+    // Prior-period KPIs via the SAME computeKpiBand, fed comparison.rows --
+    // no separate delta math to keep in sync. comparison.rows comes straight
+    // off the backend's GROUP BY and omits empty date buckets exactly like
+    // the current run's raw rows do, so it needs the SAME zero-fill the
+    // current run's rows already got (see the call in runCurrent) before
+    // `buckets` (and therefore `avg`) is computed -- otherwise the two
+    // periods' bucket counts can disagree whenever either has a sparse
+    // bucket, which skews the avg delta chip (Task 11 follow-up fix). The
+    // prior window is a length-based shift, not calendar-aligned (see the
+    // comment above computeDelta), so priorStart/priorEnd -- not def's own
+    // date range -- are the correct fill bounds here.
+    var priorRows = (comparison && comparison.rows && def)
+      ? zeroFillDateBuckets(def, comparison.rows, [], [comparison.priorStart, comparison.priorEnd])
+      : (comparison ? comparison.rows : null);
+    var priorKpi = priorRows ? computeKpiBand(dims, priorRows) : null;
+    var totalDelta = '', avgDelta = '', peakDelta = '';
+    if (priorKpi) {
+      totalDelta = deltaChipHtml(kpi.total, priorKpi.total, comparison.priorStart, comparison.priorEnd);
+      // Bucket-count mismatch guard: shifted_definition_for_comparison shifts
+      // the prior window back by the CURRENT window's length in DAYS, not by
+      // an integer number of grain periods -- for a window whose day-length
+      // isn't grain-aligned (e.g. a calendar-quarter preset against a month
+      // grain), the shifted priorStart can land mid-month and zero-fill to a
+      // different number of buckets than the current period (see Finding 2,
+      // Phase 3 review). Averaging total/bucket-count across two genuinely
+      // different-length periods would fabricate a percentage, so only the
+      // avg chip is suppressed here -- total/peak are unaffected (an extra
+      // all-zero bucket contributes 0 to both) and keep rendering normally.
+      if (kpi.buckets === priorKpi.buckets) {
+        avgDelta = deltaChipHtml(kpi.avg, priorKpi.avg, comparison.priorStart, comparison.priorEnd);
+      }
+      peakDelta = deltaChipHtml(kpi.peak, priorKpi.peak, comparison.priorStart, comparison.priorEnd);
+    }
+    var sparkHtml = def ? sparklineHtml(def, rows, kpi) : '';
     band.innerHTML =
       '<div class="rs-kpi-total-card" data-testid="rs-kpi-total">' +
         '<span class="reporting-ledger-caption">' + esc(I18N.kpiTotal) + '</span>' +
-        '<span class="reporting-ledger-kpi-value">' + fmtNumber(kpi.total) + '</span>' +
+        '<span class="reporting-ledger-kpi-value" data-count-target="' + Number(kpi.total) + '">0</span>' +
+        totalDelta + sparkHtml +
       '</div>' +
       '<div class="rs-kpi-stats-card">' +
         kpiBlock('rs-kpi-buckets', I18N.kpiBuckets, kpi.buckets) +
-        kpiBlock('rs-kpi-avg', I18N.kpiAvg, kpi.avg) +
-        kpiPeakBlock('rs-kpi-peak', I18N.kpiPeak, kpi.peakLabel, kpi.peak) +
+        kpiBlock('rs-kpi-avg', I18N.kpiAvg, kpi.avg, avgDelta) +
+        kpiPeakBlock('rs-kpi-peak', I18N.kpiPeak, kpi.peakLabel, kpi.peak, peakDelta) +
       '</div>';
     band.hidden = false;
+    Array.prototype.forEach.call(band.querySelectorAll('[data-count-target]'), function (span) {
+      animateValue(span, Number(span.getAttribute('data-count-target')), fmtNumber);
+    });
   }
 
   function metricLabelsFor(def) {
@@ -706,11 +832,30 @@
       '"><thead><tr>';
     columns.forEach(function (c) { html += '<th>' + esc(c.header || c.field) + '</th>'; });
     html += '</tr></thead><tbody>';
+    // Data bars (Task 7): one column max per column index, computed once
+    // over cells the same isNumericCell check already accepts — mirrors
+    // _reporting_js.html's renderResults so both panes' grids get the same
+    // treatment.
+    var colMax = columns.map(function (_, i) {
+      var max = 0;
+      rows.forEach(function (r) {
+        if (isNumericCell(r[i])) {
+          var n = Math.abs(Number(r[i]));
+          if (n > max) max = n;
+        }
+      });
+      return max;
+    });
     rows.forEach(function (r) {
       html += '<tr>';
-      r.forEach(function (v) {
-        var numCls = isNumericCell(v) ? ' class="reporting-ledger-num"' : '';
-        html += '<td' + numCls + '>' + esc(v == null ? '' : v) + '</td>';
+      r.forEach(function (v, i) {
+        if (isNumericCell(v)) {
+          var max = colMax[i];
+          var pct = max > 0 ? (Math.abs(Number(v)) / max * 100) : 0;
+          html += '<td class="reporting-ledger-num rp-cell-num" style="--bar:' + pct + '%">' + esc(v) + '</td>';
+        } else {
+          html += '<td>' + esc(v == null ? '' : v) + '</td>';
+        }
       });
       html += '</tr>';
     });
@@ -741,11 +886,37 @@
     el('rsChartCard').hidden = false;
   }
 
-  // Mirrors ReportingViz's palette so Simple pies match Advanced ones.
-  var SIMPLE_PALETTE = [
-    '#4338ca', '#2563eb', '#0891b2', '#059669', '#65a30d', '#ca8a04',
-    '#dc2626', '#db2777', '#7c3aed', '#0d9488', '#ea580c', '#4f46e5'
+  // Same palette ReportingViz's mountChart() uses for pie/doughnut segments
+  // and multi-series bar/line. Duplicated here (not shared/imported) rather
+  // than reached for via window.ReportingViz -- see the comment above
+  // chartCardNote: that module is a singleton wired to the Advanced pane's
+  // own DOM/state, and Simple deliberately never touches it. Must stay in
+  // sync with _reporting_viz_js.html's own NX_PALETTE constant. 12 entries --
+  // this pane's own multi-breakdown chart path caps series at 12 (the
+  // `series.length > 12` cap below, mirroring render_chart_png's MAX_SERIES),
+  // so anything shorter would silently repeat a color starting at series 8.
+  var NX_PALETTE = [
+    '#4f46e5', '#7c3aed', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#64748b',
+    '#a78bfa', '#0891b2', '#f97316', '#be123c', '#94a3b8'
   ];
+
+  // Chart grid-line color, derived from the theme's border token at draw
+  // time so it tracks light/dark mode without a second hardcoded value.
+  // Duplicated from _reporting_viz_js.html's own gridColor() for the same
+  // isolation reason as NX_PALETTE above -- must stay in sync.
+  function gridColor() {
+    var v = getComputedStyle(document.documentElement).getPropertyValue('--nx-border').trim();
+    return v || 'rgba(100,116,139,.18)';
+  }
+
+  // Same number formatter as _reporting_viz_js.html's fmt() (tooltip values
+  // only): integers print bare, other numbers to 2 decimals, so aggregated
+  // sums/averages don't show floating-point noise in the tooltip.
+  function fmtChartTooltip(v) {
+    if (v === null || v === undefined) return '';
+    if (typeof v === 'number') return Number.isInteger(v) ? String(v) : v.toFixed(2);
+    return String(v);
+  }
 
   function renderChart(type) {
     var d = state.chartData;
@@ -766,19 +937,25 @@
       var vals0 = d.datasets[0].data;
       for (var mi = 1; mi < vals0.length; mi++) { if (vals0[mi] > vals0[maxIdx]) maxIdx = mi; }
     }
+    var isDark = document.documentElement.classList.contains('dark');
+    // Pie/doughnut segment borders (mirrors mountChart's rlSliceBorder, fixed
+    // in edf604f for the Advanced renderer): a hardcoded white border reads
+    // as a bright ring against the dark --nx-card canvas (#1e293b) this
+    // chart sits on -- recede into the card background in dark mode instead
+    // of forcing white.
+    var rlSliceBorder = isDark ? '#1e293b' : '#fff';
     var datasets = d.datasets.map(function (ds) {
       var out = Object.assign({}, ds);
       if (!multi && circular) {
         out.backgroundColor = d.labels.map(function (_, i) {
-          return SIMPLE_PALETTE[i % SIMPLE_PALETTE.length];
+          return NX_PALETTE[i % NX_PALETTE.length];
         });
-        out.borderColor = '#fff';
+        out.borderColor = rlSliceBorder;
       } else if (singleSeries) {
         // Ink-navy (#312e81) sits at ~1.3:1 contrast against the dark
         // --nx-card canvas (#1e293b) — effectively invisible. Lift to the
         // #818cf8 family (the existing --nx-accent dark token) only for
         // dark mode; light mode keeps the locked ink-navy/indigo-peak spec.
-        var isDark = document.documentElement.classList.contains('dark');
         var rlNavy = isDark ? '#818cf8' : '#312e81';
         var rlPeak = isDark ? '#c7d2fe' : '#4f46e5';
         if (chartJsType === 'bar') {
@@ -788,15 +965,49 @@
         }
         out.borderColor = rlNavy;
       }
+      // Rounded bars + a thickness cap (mirrors mountChart's ds.borderRadius/
+      // maxBarThickness) — every bar rendering, single-series or stacked.
+      if (chartJsType === 'bar') {
+        out.borderRadius = 6;
+        out.maxBarThickness = 48;
+      }
       return out;
+    });
+    // Integer-only y-axis ticks when every plotted value across every
+    // dataset actually is an integer (e.g. a COUNT/GROUP BY report) — a
+    // fractional measure (avg/sum of decimals) keeps Chart.js's normal tick
+    // spacing. Mirrors mountChart's allInts guard.
+    var allInts = !circular && datasets.every(function (ds) {
+      return (ds.data || []).every(function (v) { return Number.isInteger(v); });
     });
     state.chart = new Chart(el('rsChartCanvas'), {
       type: chartJsType,
       data: { labels: d.labels, datasets: datasets },
       options: { responsive: true, maintainAspectRatio: false,
                  scales: (circular) ? {}
-                   : { x: { stacked: stacked }, y: { stacked: stacked } },
-                 plugins: { legend: { display: multi || circular || (d.datasets && d.datasets.length > 1) } },
+                   : { x: { stacked: stacked },
+                       y: { stacked: stacked,
+                            beginAtZero: true,
+                            ticks: {
+                              maxTicksLimit: 6,
+                              callback: function (value) {
+                                return (allInts && !Number.isInteger(value)) ? undefined : value;
+                              }
+                            },
+                            grid: { color: gridColor() } } },
+                 plugins: { legend: { display: multi || circular || (d.datasets && d.datasets.length > 1) },
+                            tooltip: {
+                              callbacks: {
+                                // Reuse the module's own number formatter (fmtChartTooltip)
+                                // instead of Chart.js's raw float — mirrors mountChart's tooltip.
+                                label: function (ctx) {
+                                  var raw = ctx.parsed;
+                                  var v = (raw && typeof raw === 'object') ? raw.y : raw;
+                                  var name = circular ? (ctx.label || '') : (ctx.dataset.label || '');
+                                  return (name ? name + ': ' : '') + fmtChartTooltip(v);
+                                }
+                              }
+                            } },
                  onClick: function (evt) {
                    var els = this.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, false);
                    if (els.length) drillFromChart(els[0].index, els[0].datasetIndex);
@@ -846,20 +1057,27 @@
     return out;
   }
 
-  function zeroFillDateBuckets(def, rows, resolvedDates) {
+  // explicitRange, when given, is a [start, end] ISO-date pair used as-is
+  // instead of derived from def's own filters/resolvedDates -- needed for
+  // the prior-comparison period, whose [priorStart, priorEnd] window (a
+  // length-based shift of def's range, not the same absolute dates) has no
+  // filter or resolvedDates entry of its own to derive from.
+  function zeroFillDateBuckets(def, rows, resolvedDates, explicitRange) {
     var cols = def.columns || [];
     var grain = cols.length === 1 ? cols[0].grain : null;
     if (!grain || !(def.metrics || []).length) return rows;
-    var f = (def.filters || []).find(function (x) {
-      return x.field === cols[0].field && x.op === 'between';
-    });
-    if (!f) return rows;
-    var range = null;
-    if (Array.isArray(f.value) && f.value.length === 2) {
-      range = [String(f.value[0]), String(f.value[1])];
-    } else if (f.value && typeof f.value === 'object') {
-      var rd = resolvedDates.find(function (x) { return x.field === cols[0].field; });
-      if (rd) range = [rd.start, rd.end];
+    var range = explicitRange || null;
+    if (!range) {
+      var f = (def.filters || []).find(function (x) {
+        return x.field === cols[0].field && x.op === 'between';
+      });
+      if (!f) return rows;
+      if (Array.isArray(f.value) && f.value.length === 2) {
+        range = [String(f.value[0]), String(f.value[1])];
+      } else if (f.value && typeof f.value === 'object') {
+        var rd = resolvedDates.find(function (x) { return x.field === cols[0].field; });
+        if (rd) range = [rd.start, rd.end];
+      }
     }
     if (!range) return rows;
     var seq = bucketSeq(range[0], range[1], grain);
@@ -945,8 +1163,8 @@
           return {
             label: s,
             data: xOrder.map(function (x) { return cell[x][s] || 0; }),
-            borderColor: SIMPLE_PALETTE[i % SIMPLE_PALETTE.length],
-            backgroundColor: SIMPLE_PALETTE[i % SIMPLE_PALETTE.length],
+            borderColor: NX_PALETTE[i % NX_PALETTE.length],
+            backgroundColor: NX_PALETTE[i % NX_PALETTE.length],
             tension: .25
           };
         }),
@@ -978,9 +1196,9 @@
         data: rows.map(function (r) { return Number(r[metricIdx + i]); }),
         // First metric keeps the classic indigo; further metrics take the
         // series palette so a multi-measure report reads as distinct series.
-        borderColor: i === 0 ? '#4f46e5' : SIMPLE_PALETTE[i % SIMPLE_PALETTE.length],
+        borderColor: i === 0 ? '#4f46e5' : NX_PALETTE[i % NX_PALETTE.length],
         backgroundColor: i === 0 ? 'rgba(79,70,229,.45)'
-                                 : SIMPLE_PALETTE[i % SIMPLE_PALETTE.length],
+                                 : NX_PALETTE[i % NX_PALETTE.length],
         tension: .25
       };
     });
@@ -1192,59 +1410,87 @@
     ));
   }
 
+  // In-flight skeleton (Task 7): a KPI-band-shaped + table-shaped
+  // placeholder injected into #rsRunLoading while a run is in flight —
+  // replaces the old static dots+text markup so the real KPI band/table
+  // don't cause a layout jump on arrival. Pure CSS shimmer (.rp-skeleton),
+  // reduced-motion safe via reporting.css's own query; mirrors
+  // _reporting_js.html's showRunLoading skeleton for the Advanced pane.
+  function resultSkeletonHtml() {
+    var kpis = '';
+    for (var i = 0; i < 3; i++) kpis += '<div class="rp-skeleton rp-skeleton-kpi"></div>';
+    var rows = '';
+    for (var j = 0; j < 6; j++) rows += '<div class="rp-skeleton rp-skeleton-row"></div>';
+    return '<div class="rp-skeleton-band">' + kpis + '</div>' +
+           '<div class="rp-skeleton-table">' + rows + '</div>';
+  }
+
+  // ----- Auto AI caption (Task 13) -------------------------------------------
+  // Fires after every successful run render when the caption slot exists in
+  // the DOM -- it only exists when the page was rendered for a
+  // reporting.ai.explain_data holder (Jinja `ai_caption_enabled` gate in
+  // _reporting_simple.html), so a caller with no permission is a silent
+  // no-op. Shimmers while the request is in flight, then shows the caption
+  // with its AI chip -- or hides silently on ANY error (network failure,
+  // non-200, bad JSON): unlike the chat panel, this surface never shows an
+  // error state or logs to the console. `captionSeq` is a monotonically-
+  // increasing token (same idiom as runSeq below): a slow response from an
+  // old run is discarded once a newer run has fired its own caption, so a
+  // fast filter change/re-run can never show a stale caption over the new
+  // result. Duplicated (not shared) in _reporting_js.html for the Advanced
+  // pane -- see that file for why.
+  var captionSeq = 0;
+  function fireCaption(boxId, columns, rows, title, dateLabel) {
+    var box = el(boxId);
+    if (!box) return;
+    var seq = ++captionSeq;
+    box.hidden = false;
+    box.classList.add('rp-caption--loading');
+    box.textContent = '';
+    fetch(API_PREFIX + 'api/reporting/ai/caption', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+      body: JSON.stringify({
+        columns: columns, rows: rows.slice(0, 50),
+        title: title || undefined, dateLabel: dateLabel || undefined
+      })
+    }).then(function (res) {
+      if (!res.ok) throw new Error('caption http ' + res.status);
+      return res.json();
+    }).then(function (data) {
+      if (seq !== captionSeq) return;   // a newer run superseded this one
+      if (!data || !data.caption) { box.hidden = true; box.classList.remove('rp-caption--loading'); return; }
+      box.classList.remove('rp-caption--loading');
+      var chip = document.createElement('span');
+      chip.className = 'rp-caption-chip';
+      chip.textContent = I18N.aiChip;
+      box.appendChild(chip);
+      box.appendChild(document.createTextNode(' ' + data.caption));
+    }).catch(function () {
+      if (seq !== captionSeq) return;
+      box.hidden = true;
+      box.classList.remove('rp-caption--loading');
+    });
+  }
+
   // Monotonic run token: a newer runCurrent invalidates every pending older
   // one, so a slow report's late responses can't render under a newer
   // report's title (and a double-click renders only once).
   var runSeq = 0;
-
-  // AI in-flight state: shared by ask + refine. The indicator owns the result
-  // area while waiting; the rotating line is purely cosmetic.
-  var aiBusy = false;
-  var aiLoadingTimer = null;
-  function showAiLoading() {
-    setView('result');
-    el('rsResultTitle').textContent = '';
-    el('rsResultMeta').textContent = '';
-    el('rsError').hidden = true;
-    renderErrorOpenAdvanced(false);
-    toggleMoreMenu(false);
-    setHeaderActionsEnabled(false);
-    el('rsMsg').hidden = true;
-    el('rsSaveName').hidden = true;
-    el('rsStatCard').hidden = true;
-    el('rsChartCard').hidden = true;
-    el('rsTableCard').hidden = true;
-    el('rsTableToggle').hidden = true;
-    el('rsTableWrap').hidden = true;
-    el('rsRunLoading').hidden = true;
-    el('rsDrillHint').hidden = true;
-    var lines = [I18N.aiThinking, I18N.aiDrafting, I18N.aiChecking];
-    var i = 0;
-    el('rsAiLoadingText').textContent = lines[0];
-    el('rsAiLoading').hidden = false;
-    aiLoadingTimer = setInterval(function () {
-      i = (i + 1) % lines.length;
-      el('rsAiLoadingText').textContent = lines[i];
-    }, 3000);
-  }
-  function hideAiLoading() {
-    var box = el('rsAiLoading');
-    if (box) box.hidden = true;
-    if (aiLoadingTimer) { clearInterval(aiLoadingTimer); aiLoadingTimer = null; }
-  }
 
   async function runCurrent() {
     var cur = state.current;
     var seq = ++runSeq;
     setHeaderActionsEnabled(false);
     // A new run supersedes any open drill drawer — it shows rows behind the
-    // PREVIOUS result and would sit stale over the new one (e.g. after Refine).
+    // PREVIOUS result and would sit stale over the new one (e.g. after a
+    // chip edit).
     if (window.ReportingDrill) ReportingDrill.close();
-    // Fire-and-forget: every runCurrent() caller except askAi already awaits
-    // loadSourcesCatalog() first, but Ask-AI results need it too for the drill
+    // Fire-and-forget: not every runCurrent() caller already awaits
+    // loadSourcesCatalog() first, so warm it here too for the drill
     // affordance (openDrill/renderTable read state.sources). Idempotent — a
     // cache hit resolves immediately, and drill just stays unavailable until
-    // this settles on a cold Ask-AI-first session.
+    // this settles on a cold session.
     loadSourcesCatalog().then(function () {
       // Chip labels resolve field keys against the catalog — re-render once it
       // lands (the first paint may fall back to raw keys on a cold session).
@@ -1262,16 +1508,7 @@
     toggleMoreMenu(false);
     el('rsMsg').hidden = true;
     el('rsResultTitle').textContent = cur.name || cur.def.title || '';
-    if (cur.aiExplanation !== undefined) {
-      el('rsMsg').textContent = cur.aiExplanation || '';
-      el('rsMsg').hidden = !cur.aiExplanation;
-    }
     renderAiChips(cur);
-    var refineBar = el('rsRefineBar');
-    if (refineBar) {
-      refineBar.hidden = false;
-      el('rsRefineInput').value = cur.aiQuestion || '';
-    }
     var adjustBtn = el('rsAdjustWizard');
     if (adjustBtn) {
       adjustBtn.hidden = cur.builtBy !== 'wizard' && !wizardStateFromDefinition(cur.def);
@@ -1282,9 +1519,17 @@
     el('rsTableCard').hidden = true;
     el('rsTableToggle').hidden = true;
     el('rsTableWrap').hidden = true;
+    el('rsRunLoading').innerHTML = resultSkeletonHtml();
     el('rsRunLoading').hidden = false;
     el('rsDrillHint').hidden = true;
     el('rsKpiBand').hidden = true;
+    // A prior run's caption sentence must never linger over the new run's
+    // (still-loading, possibly failed or empty) result — hidden here just
+    // like every other result element above, cleared again by fireCaption()
+    // once (and if) the new run actually succeeds. Guarded: the box only
+    // exists in the DOM for a reporting.ai.explain_data holder.
+    var rsCaptionBox = el('rsCaption');
+    if (rsCaptionBox) { rsCaptionBox.hidden = true; rsCaptionBox.textContent = ''; }
 
     var def = cur.def;
     var hasMetrics = Array.isArray(def.metrics) && def.metrics.length > 0;
@@ -1301,6 +1546,11 @@
       var totalDef = JSON.parse(JSON.stringify(def));
       totalDef.columns = [];
       totalDef.sort = [];
+      // No compare: true here -- this run only feeds fillStatCard, which
+      // never reads a comparison payload. The breakdown def below is the
+      // one whose comparison drives renderKpiBand's delta chips; asking
+      // the backend to also diff THIS zero-column clone's own prior period
+      // would be a fully wasted extra query.
       var t = await api('/api/reporting/run', { method: 'POST', body: JSON.stringify(totalDef) });
       if (seq !== runSeq) return;
       if (t.ok && t.data && t.data.rows && t.data.rows.length) {
@@ -1309,7 +1559,13 @@
     }
 
     // Breakdown run (or the plain grid run for non-metric definitions).
-    var res = await api('/api/reporting/run', { method: 'POST', body: JSON.stringify(def) });
+    // compare: true is added to a shallow copy of the posted body only --
+    // `def` (== cur.def) must stay exactly what the wizard/library built,
+    // since it's reused for Save/Adjust-in-wizard/export.
+    var res = await api('/api/reporting/run', {
+      method: 'POST',
+      body: JSON.stringify(Object.assign({}, def, { compare: true }))
+    });
     if (seq !== runSeq) return;
     // Hide only after the staleness guard: a slow stale response must never
     // hide the indicator a newer run just showed.
@@ -1338,10 +1594,14 @@
     }
     var columns = res.data.columns || [], rows = res.data.rows || [];
     rows = zeroFillDateBuckets(def, rows, res.data.resolvedDates || []);
-    renderKpiBand(dims, rows);
+    renderKpiBand(dims, rows, res.data.comparison || null, def);
     var rdates = res.data.resolvedDates || [];
+    // Hoisted out of the `if` below (Task 13): fireCaption() at the end of
+    // this function needs the same resolved-dates label the message line
+    // shows, or null when there's nothing to resolve.
+    var resolvedTxt = null;
     if (rdates.length) {
-      var resolvedTxt = rdates.map(function (d) {
+      resolvedTxt = rdates.map(function (d) {
         return tokenLabel(d) + ' (' + d.start + ' → ' + d.end + ')';
       }).join(' · ');
       var msg = el('rsMsg');
@@ -1386,6 +1646,10 @@
       el('rsTableWrap').hidden = false;   // plain table reports: grid directly
     }
     writePreviewCache(dims, hasMetrics, rows);
+    // Task 13: auto AI caption over the result that just rendered. Placed
+    // after the `!rows.length` early return above, so an empty result never
+    // fires one (nothing to caption).
+    fireCaption('rsCaption', columns, rows, cur.name || cur.def.title || '', resolvedTxt);
   }
 
   // Step 5 — refresh the library card's preview thumbnail from the result
@@ -2289,86 +2553,34 @@
     runCurrent();
   });
 
-  // ---------- Ask-AI helper ----------
+  // ---------- Hero "Ask AI" -> shared chat panel ----------
+  // The hero bar is now just a shortcut into window.ReportingChat (Task 3):
+  // it never builds or runs a report itself. ai_enabled-off keeps its
+  // existing behavior -- #rsAiBar (and therefore #rsAiPrompt/.rs-suggestion)
+  // simply isn't in the DOM in that case, so nothing below wires up.
+  function askViaChat(text) {
+    var q = String(text || '').trim();
+    if (!q || !window.ReportingChat) return;
+    window.ReportingChat.open();
+    window.ReportingChat.send(q);
+    el('rsAiPrompt').value = '';
+  }
+
   var aiBar = el('rsAiBar');  // only in the DOM when ai_enabled
   if (aiBar) {
-    el('rsAiAsk').addEventListener('click', function () { askAi(); });
+    el('rsAiAsk').addEventListener('click', function () {
+      askViaChat(el('rsAiPrompt').value);
+    });
     el('rsAiPrompt').addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') askAi();
+      if (e.key === 'Enter') askViaChat(el('rsAiPrompt').value);
     });
-    var refineBtn = el('rsRefine');
-    if (refineBtn) {
-      refineBtn.addEventListener('click', function () {
-        var q = el('rsRefineInput').value.trim();
-        if (q) askAi(q);
-      });
-      el('rsRefineInput').addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') {
-          var q = el('rsRefineInput').value.trim();
-          if (q) askAi(q);
-        }
-      });
-    }
   }
 
+  // Suggestion chips route through the same open+send path -- they used to
+  // only prefill the prompt input.
   document.querySelectorAll('.rs-suggestion').forEach(function (b) {
-    b.addEventListener('click', function () {
-      var p = el('rsAiPrompt'); if (!p) return;
-      p.value = b.textContent.trim(); p.focus();
-    });
+    b.addEventListener('click', function () { askViaChat(b.textContent); });
   });
-
-  async function askAi(refineQuestion) {
-    var fromRefine = refineQuestion !== undefined;
-    var q = fromRefine ? refineQuestion : el('rsAiPrompt').value.trim();
-    if (!q || aiBusy) return;
-    var payload = { question: q };
-    var prior = state.current;
-    if (fromRefine && prior && prior.def) {
-      if (prior.aiQuestion) payload.priorQuestion = prior.aiQuestion;
-      payload.priorDefinition = prior.def;
-    }
-    aiBusy = true;
-    el('rsAiAsk').disabled = true;
-    var refineBtn = el('rsRefine');
-    if (refineBtn) refineBtn.disabled = true;
-    showAiLoading();
-    var res = await api('/api/reporting/ai/build', {
-      method: 'POST', body: JSON.stringify(payload)
-    });
-    aiBusy = false;
-    el('rsAiAsk').disabled = false;
-    if (refineBtn) refineBtn.disabled = false;
-    hideAiLoading();
-    if (res.status === 503) {
-      aiBar.hidden = true;
-      aiBar.dataset.gone = '1';
-      var gone = el('rsAiGone');
-      if (gone) gone.hidden = false;
-      setView('library');
-      return;
-    }
-    if (res.status === 429) { showResultError(I18N.aiLimit); return; }
-    if (!res.ok || !res.data || !res.data.valid || !res.data.definition) {
-      var why = (res.data && (res.data.error || res.data.explanation)) || '';
-      if (fromRefine && prior) {
-        // Failed refine: re-render the previous result and surface the error
-        // above it instead of discarding the user's working report.
-        state.current = prior;
-        await runCurrent();
-        el('rsError').textContent = I18N.aiInvalid + (why ? ' (' + why + ')' : '');
-        el('rsError').hidden = false;
-      } else {
-        showResultError(I18N.aiInvalid + (why ? ' (' + why + ')' : ''));
-      }
-      return;
-    }
-    state.current = { def: res.data.definition, name: res.data.definition.title,
-                      reportId: null, owned: true, canEdit: true, fromWizard: true,
-                      aiExplanation: res.data.explanation || '',
-                      aiQuestion: q, origin: 'ask' };
-    runCurrent();
-  }
 
   // ---------- init ----------
   function initOnce() {

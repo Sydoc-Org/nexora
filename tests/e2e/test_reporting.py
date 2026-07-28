@@ -255,3 +255,163 @@ def test_switching_source_clears_stale_filters(nexora_server, page):
     assert captured[0]["source"] == "workitems"
     # No stale chip re-appeared once the run completed either.
     expect(page.locator(".reporting-filter-row")).to_have_count(0)
+
+
+# ---- Auto AI captions (Task 13) -------------------------------------------
+# Advanced fires a caption request on CHART MOUNT (not on every grid render),
+# so these stub /api/reporting/run with an aggregate-shaped 2-column result
+# (mirrors test_reporting_viz.py's synthetic ReportingViz.mountChart shape)
+# and switch to the Chart view before asserting on #rpCaption. The route stub
+# is always registered before the click that triggers the request (the known
+# e2e flake trap in this codebase).
+
+
+def _stub_advanced_run_and_caption(page, caption="Client A drives most of the totals."):
+    def _run_handler(route):
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [
+                        {"field": "client", "header": "Client"},
+                        {"field": "pages", "header": "Pages"},
+                    ],
+                    "rows": [["A", 10], ["A", 5], ["B", 3]],
+                    "truncated": False,
+                    "rowCount": 3,
+                    "sql": None,
+                    "params": [],
+                    "resolvedDates": [],
+                }
+            ),
+        )
+
+    page.route("**/api/reporting/run", _run_handler)
+    page.route(
+        "**/api/reporting/ai/caption",
+        lambda route: route.fulfill(
+            status=200, content_type="application/json", body=json.dumps({"caption": caption})
+        ),
+    )
+
+
+@pytest.mark.flaky_e2e
+def test_advanced_chart_mount_fires_caption_for_explain_data_holder(nexora_server, page):
+    """admin@test.local holds reporting.ai.explain_data (sql/test/seed.sql
+    grants every permission to TestAdmin) -- switching to the Chart view
+    mounts the chart and fires an auto caption that renders with its AI chip."""
+    _login(page, nexora_server)
+    _stub_advanced_run_and_caption(page)
+    page.get_by_test_id("reporting-run").click()
+    expect(page.get_by_test_id("reporting-view-chart")).to_be_visible()
+    page.get_by_test_id("reporting-view-chart").click()
+    expect(page.locator('[data-testid="reporting-chart"] canvas')).to_be_visible()
+    caption = page.locator("#rpCaption")
+    expect(caption).to_be_visible()
+    expect(caption).to_contain_text("Client A drives most of the totals.")
+    expect(caption.locator(".rp-caption-chip")).to_have_text("AI")
+    page.screenshot(path="var/screenshots/reporting_caption.png")
+
+
+@pytest.mark.flaky_e2e
+def test_advanced_caption_absent_without_explain_data_permission(nexora_server, page):
+    """noai@test.local has every TestAdmin permission EXCEPT
+    reporting.ai.explain_data (per-user deny override, sql/test/seed.sql) --
+    the caption slot must not exist in the DOM at all, and the rest of the
+    Advanced pane (run, chart) must work exactly as it does for an
+    explain_data holder (Task 13's 'unaffected without the perm' spot-check)."""
+    _login(page, nexora_server, who="noai@test.local")
+    _stub_advanced_run_and_caption(page)
+    expect(page.locator("#rpCaption")).to_have_count(0)
+    page.get_by_test_id("reporting-run").click()
+    expect(page.get_by_test_id("reporting-view-chart")).to_be_visible()
+    page.get_by_test_id("reporting-view-chart").click()
+    expect(page.locator('[data-testid="reporting-chart"] canvas')).to_be_visible()
+    expect(page.locator("#rpCaption")).to_have_count(0)
+
+
+@pytest.mark.flaky_e2e
+def test_advanced_caption_does_not_survive_a_new_run(nexora_server, page):
+    """A caption from report A's chart-mount must not linger visible once
+    report B's grid renders. Before the fix, resetViews() (called by every
+    renderResults()) reset the chart/pivot mount flags and the view-toggle
+    visibility but never touched #rpCaption -- only fireCaption() itself ever
+    cleared it, and that only fires again on a NEW chart mount. So a plain
+    re-run left the previous report's caption sentence sitting under the new
+    report's numbers until the user happened to revisit the Chart view."""
+    _login(page, nexora_server)
+    _stub_advanced_run_and_caption(page, caption="Client A drives most of the totals.")
+    page.get_by_test_id("reporting-run").click()
+    expect(page.get_by_test_id("reporting-view-chart")).to_be_visible()
+    page.get_by_test_id("reporting-view-chart").click()
+    caption = page.locator("#rpCaption")
+    expect(caption).to_be_visible()
+    expect(caption).to_contain_text("Client A drives most of the totals.")
+
+    # Re-stub /api/reporting/run for a second, different run (report B) --
+    # the route stub must exist before the click that triggers the request
+    # (the established e2e flake trap in this codebase).
+    def _run_handler_b(route):
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [
+                        {"field": "client", "header": "Client"},
+                        {"field": "pages", "header": "Pages"},
+                    ],
+                    "rows": [["C", 1]],
+                    "truncated": False,
+                    "rowCount": 1,
+                    "sql": None,
+                    "params": [],
+                    "resolvedDates": [],
+                }
+            ),
+        )
+
+    page.route("**/api/reporting/run", _run_handler_b)
+    page.get_by_test_id("reporting-run").click()
+    expect(page.get_by_test_id("reporting-view-grid")).to_be_visible()
+    # Report B's grid is showing -- A's stale caption must not still be
+    # visible, even though B hasn't been switched to Chart view (yet).
+    expect(page.locator("#rpCaption")).to_be_hidden()
+
+
+@pytest.mark.flaky_e2e
+def test_advanced_caption_does_not_survive_a_failed_run(nexora_server, page):
+    """Same stale-caption bug as test_advanced_caption_does_not_survive_a_new_run,
+    but for the ERROR path rather than a second successful run. Before the fix,
+    showError() (fired when a re-run comes back 403/400/500/network) swapped
+    #rpResults' innerHTML for the error message but never touched #rpCaption --
+    only resetViews() (the success path) and fireCaption() itself cleared it --
+    so report A's AI sentence stayed sitting above the error, narrating data
+    that was no longer on screen."""
+    _login(page, nexora_server)
+    _stub_advanced_run_and_caption(page, caption="Client A drives most of the totals.")
+    page.get_by_test_id("reporting-run").click()
+    expect(page.get_by_test_id("reporting-view-chart")).to_be_visible()
+    page.get_by_test_id("reporting-view-chart").click()
+    caption = page.locator("#rpCaption")
+    expect(caption).to_be_visible()
+    expect(caption).to_contain_text("Client A drives most of the totals.")
+
+    # Re-stub /api/reporting/run for a second run that fails -- the route stub
+    # must exist before the click that triggers the request (the established
+    # e2e flake trap in this codebase).
+    def _run_handler_error(route):
+        route.fulfill(
+            status=500,
+            content_type="application/json",
+            body=json.dumps({"error": "Something went wrong."}),
+        )
+
+    page.route("**/api/reporting/run", _run_handler_error)
+    page.get_by_test_id("reporting-run").click()
+    expect(page.locator(".reporting-error")).to_be_visible()
+    # The failed run's error message is showing -- A's stale caption must not
+    # still be visible above it.
+    expect(page.locator("#rpCaption")).to_be_hidden()
+    page.screenshot(path="var/screenshots/reporting_caption_error.png")
