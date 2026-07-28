@@ -3457,6 +3457,64 @@ def test_three_breakdowns_nonadditive_charts_exact(nexora_server, page):
     assert sorted(chart) == [["Mail · P-1", 7], ["Mail · P-2", 3]]
 
 
+TEN_SERIES_RUN_BODY = json.dumps(
+    {
+        "columns": [
+            {"field": "doctype", "header": "Document Type"},
+            {"field": "docsource", "header": "Document Source"},
+            {"field": "doc_count", "header": "doc_count"},
+        ],
+        # One x-value ("Invoice") x ten distinct docsource values -> ten
+        # composite series, all sharing the same x-point -- exercises the
+        # palette at exactly the width Finding B's regression hit. With the
+        # old 7-color NX_PALETTE, series 8 (index 7) would silently draw in
+        # the same color as series 1 (index 0) via `i % NX_PALETTE.length`.
+        "rows": [["Invoice", "S%02d" % i, i + 1] for i in range(10)],
+        "truncated": False,
+        "rowCount": 10,
+        "sql": None,
+        "params": [],
+        "resolvedDates": [],
+    }
+)
+
+
+def test_ten_series_breakdown_chart_gets_distinct_colors(nexora_server, page):
+    """Finding B regression test: the shared NX_PALETTE must have enough
+    entries that a breakdown chart with more series than the old 7-color
+    palette (up to the 12-series cap) never repeats a color. Before the fix,
+    series 8 drew in the exact same color as series 1 (`i % 7` wrapping),
+    making two genuinely different breakdown values visually indistinguishable
+    on a legend-driven chart."""
+    _login(page, nexora_server)
+    _stub_wiz_catalogs(page, THREE_DIM_SOURCES, THREE_DIM_METRICS)
+    page.route(
+        "**/api/reporting/run",
+        lambda route: route.fulfill(
+            status=200, content_type="application/json", body=TEN_SERIES_RUN_BODY
+        ),
+    )
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Count stub").click()
+    page.get_by_test_id("rs-measure-next").click()
+    bklist = page.get_by_test_id("rs-breakdown-list")
+    bklist.locator('[data-bd-field="doctype"]').click()
+    bklist.locator('[data-bd-field="docsource"]').click()
+    page.get_by_test_id("rs-breakdown-next").click()
+    page.get_by_test_id("rs-wizard-run").click()
+    expect(page.locator("#rsChartCanvas")).to_be_visible()
+    colors = page.evaluate(
+        "() => window.Chart && (() => {"
+        "  const c = Chart.getChart(document.getElementById('rsChartCanvas'));"
+        "  return c ? c.data.datasets.map(d => d.borderColor) : null;"
+        "})()"
+    )
+    assert colors and len(colors) == 10
+    assert len(set(colors)) == 10, f"expected 10 distinct series colors, got {colors}"
+    page.screenshot(path="var/screenshots/reporting_simple_ten_series_chart.png")
+
+
 def test_sql_peek_footer_reveals_query_on_click(nexora_server, page):
     """Task 6: a persistent one-line query footer sits under the results,
     showing the first line of the inlined sqlDisplay. Clicking it opens the

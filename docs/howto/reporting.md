@@ -898,9 +898,11 @@ Route: `POST /api/reporting/ai/caption` — accepts
 returns `{"caption": "..."}`.
 
 The **trigger point differs per tab**: the Simple tab fires this after
-**every** successful run render; the Advanced tab fires it only on **chart
-mount** (switching to the Chart view) — not on every grid run — so re-running
-a report while sitting in Grid view does not itself request a new caption
+**every** successful run render that actually has rows — an empty (zero-row)
+result returns before reaching the caption call, so no request goes out and
+no caption box appears; the Advanced tab fires it only on **chart mount**
+(switching to the Chart view) — not on every grid run — so re-running a
+report while sitting in Grid view does not itself request a new caption
 (see `resetViews()`/`fireCaption()` in `_reporting_js.html` vs. the end of
 `runCurrent()` in `_reporting_simple_js.html`). Either way, the request goes
 out in the background with the columns and (up to 50) rows just rendered,

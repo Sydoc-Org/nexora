@@ -804,6 +804,10 @@
     p.className = 'reporting-error';
     p.textContent = msg;
     wrap.appendChild(p);
+    // Same stale-caption guard as resetViews() -- a failed run must not leave
+    // the PREVIOUS run's caption sentence sitting above the error message.
+    var rpCaptionErrBox = document.getElementById('rpCaption');
+    if (rpCaptionErrBox) { rpCaptionErrBox.hidden = true; rpCaptionErrBox.textContent = ''; }
   }
   // In-flight indicator for report runs. Lives inside #rpResults so the
   // renderResults/showError innerHTML swap self-cleans it. The view is forced
@@ -824,6 +828,13 @@
     setView('grid');
     var wrap = document.getElementById('rpResults');
     wrap.innerHTML = '';
+    // A prior run's caption sentence must never linger over the new run's
+    // (still-loading, possibly failed or empty) result -- hidden here just
+    // like Simple's runCurrent() does at run-start, cleared again by
+    // fireCaption() once (and if) the new run's chart gets mounted. Guarded:
+    // the box only exists in the DOM for a reporting.ai.explain_data holder.
+    var rpCaptionLoadBox = document.getElementById('rpCaption');
+    if (rpCaptionLoadBox) { rpCaptionLoadBox.hidden = true; rpCaptionLoadBox.textContent = ''; }
     var box = document.createElement('div');
     box.setAttribute('data-testid', 'reporting-run-loading');
     box.setAttribute('role', 'status');

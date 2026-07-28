@@ -7,8 +7,16 @@
 (function () {
   // Shared palette for multi-category series (pie/doughnut segments etc.) --
   // the only hardcoded color set outside the locked ink-navy/indigo-peak
-  // single-series spec below (see mountChart's rlNavy/rlPeak).
-  var NX_PALETTE = ['#4f46e5', '#7c3aed', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#64748b'];
+  // single-series spec below (see mountChart's rlNavy/rlPeak). 12 entries so
+  // Simple's up-to-12-series multi-breakdown charts (its own `series.length
+  // > 12` cap, mirroring render_chart_png's MAX_SERIES) never repeat a color
+  // within a single chart; entries 8-12 extend the original 7's indigo/
+  // violet/sky/emerald/amber/red/slate family with additional lightness/hue
+  // variants rather than introducing a new one.
+  var NX_PALETTE = [
+    '#4f46e5', '#7c3aed', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#64748b',
+    '#a78bfa', '#0891b2', '#f97316', '#be123c', '#334155'
+  ];
   // Chart grid-line color, derived from the theme's border token at draw
   // time so it tracks light/dark mode without a second hardcoded value.
   function gridColor() {

@@ -27,20 +27,24 @@ import matplotlib.pyplot as plt  # noqa: E402
 MAX_X = 50
 MAX_SERIES = 12
 
-# Same 12 colors as the web charts (SIMPLE_PALETTE / ReportingViz).
+# Same 12 colors as the web charts' shared NX_PALETTE (defined in
+# _reporting_viz_js.html, duplicated with a sync-comment into
+# _reporting_simple_js.html) -- kept byte-for-byte identical, same order, so a
+# scheduled/exported PNG never shows different series colors than the same
+# report viewed live on screen.
 _PALETTE = [
-    "#4338ca",
-    "#2563eb",
-    "#0891b2",
-    "#059669",
-    "#65a30d",
-    "#ca8a04",
-    "#dc2626",
-    "#db2777",
-    "#7c3aed",
-    "#0d9488",
-    "#ea580c",
     "#4f46e5",
+    "#7c3aed",
+    "#0ea5e9",
+    "#10b981",
+    "#f59e0b",
+    "#ef4444",
+    "#64748b",
+    "#a78bfa",
+    "#0891b2",
+    "#f97316",
+    "#be123c",
+    "#334155",
 ]
 
 

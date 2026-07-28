@@ -316,3 +316,40 @@ def test_advanced_caption_does_not_survive_a_new_run(nexora_server, page):
     # Report B's grid is showing -- A's stale caption must not still be
     # visible, even though B hasn't been switched to Chart view (yet).
     expect(page.locator("#rpCaption")).to_be_hidden()
+
+
+@pytest.mark.flaky_e2e
+def test_advanced_caption_does_not_survive_a_failed_run(nexora_server, page):
+    """Same stale-caption bug as test_advanced_caption_does_not_survive_a_new_run,
+    but for the ERROR path rather than a second successful run. Before the fix,
+    showError() (fired when a re-run comes back 403/400/500/network) swapped
+    #rpResults' innerHTML for the error message but never touched #rpCaption --
+    only resetViews() (the success path) and fireCaption() itself cleared it --
+    so report A's AI sentence stayed sitting above the error, narrating data
+    that was no longer on screen."""
+    _login(page, nexora_server)
+    _stub_advanced_run_and_caption(page, caption="Client A drives most of the totals.")
+    page.get_by_test_id("reporting-run").click()
+    expect(page.get_by_test_id("reporting-view-chart")).to_be_visible()
+    page.get_by_test_id("reporting-view-chart").click()
+    caption = page.locator("#rpCaption")
+    expect(caption).to_be_visible()
+    expect(caption).to_contain_text("Client A drives most of the totals.")
+
+    # Re-stub /api/reporting/run for a second run that fails -- the route stub
+    # must exist before the click that triggers the request (the established
+    # e2e flake trap in this codebase).
+    def _run_handler_error(route):
+        route.fulfill(
+            status=500,
+            content_type="application/json",
+            body=json.dumps({"error": "Something went wrong."}),
+        )
+
+    page.route("**/api/reporting/run", _run_handler_error)
+    page.get_by_test_id("reporting-run").click()
+    expect(page.locator(".reporting-error")).to_be_visible()
+    # The failed run's error message is showing -- A's stale caption must not
+    # still be visible above it.
+    expect(page.locator("#rpCaption")).to_be_hidden()
+    page.screenshot(path="var/screenshots/reporting_caption_error.png")
