@@ -79,6 +79,225 @@ Work toward 2.5.65.
   sub-modes) and the Simple tab's dedicated AI **Refine** bar are removed,
   superseded by the AI chat panel above.
 
+### Fixed
+
+The following are the 57-finding 2026-07-23 bug-hunt's Part B fixes (Tasks
+13-64), landed alongside the Part A removal above.
+
+- Workitems: PDF/TIF page-image caches were keyed without the client domain,
+  so colliding workitem ids across the Octo and MS02 clients could serve
+  each other's **rendered page images** for up to an hour. Both cache keys
+  now route through the existing `_wi_cache_key` helper, like the sibling
+  media/audit caches.
+- Process authorization: the "all" branch of `prepare_process_selection_sql`/
+  `_lists` built independent client and process IN-lists that, ANDed
+  together downstream, authorized the full client × process **cross
+  product** — a caller granted only (A, P1) and (B, P2) could also read
+  (A, P2) and (B, P1). Both twins, `WorkitemFilter`, and both workitem
+  sources now build an OR-joined `(client = ? AND process = ?)` predicate.
+  A follow-up found the dashboard's `recent_rows()`/`backlog_count()` had
+  the identical bug independently (two separately-uniqued IN-lists) and
+  applied the same fix.
+- Reporting: the scheduled runner read only `scope.processes` and fell back
+  to every allowed process whenever the requested/allowed intersection was
+  empty, so a client-scoped schedule could silently **widen** to every
+  client on that mail. It now reuses the interactive run's effective-scope
+  logic (never widens) and fails the run instead of leaking data.
+- Dashboard: the recent-activity feed skipped the canonical
+  sensitive-doc-field gate every other doc-field surface applies, and
+  omitted `client` on each row so its workitems deep-link couldn't
+  disambiguate colliding ids across clients. Both fixed together.
+- Generali: `api_generali_reporting_list` built its WHERE clause only from
+  request filters, so a `generali.reporting.view`-only caller saw **every
+  organization's rows**; it now applies the same self-scope gate as the
+  sibling Attendance/BaseServices/ProjectManagement/PDQM endpoints.
+- Reporting AI: the agent's internal `run_sql_bound` tool skipped the
+  per-target permission check and the sandbox-ack gate the HTTP
+  `/api/sql/run` view enforces; it now mirrors the exact gate order (ack,
+  then target auth) and returns a tool-result error instead of a 500.
+- Workitems: `api_docfield_values` let a caller pull value suggestions from
+  **any process**, gated only by the blanket
+  `workitems.filter.documentfields` permission; restricted to the caller's
+  granted `workitems.filter.process.<p>` set, failing closed to an empty
+  list.
+- Admin: the user-detail form only listed the editing admin's own
+  assignable access profiles, so editing a user whose current profile fell
+  outside that set silently **reassigned them** to the first listed option
+  on any unrelated save. The template now always shows and round-trips the
+  current profile; the server enforces the assign-permission check only
+  when the value actually changes. A browser-verified round-2 fix followed:
+  a `<select>` option that is both `selected` and `disabled` is dropped
+  from `FormData` by real browsers (Playwright-verified, not jsdom), so the
+  round-1 fix's own unassignable-profile option vanished from the submit
+  entirely — dropped `disabled`, kept `selected`, and treated a still-
+  missing field server-side as "unchanged".
+- Workitems: CSV export's ≤10-row cap on heavy includes (fields/history/
+  images, all per-row Octo fetches) lived only in the JS control; a direct
+  API call could send unbounded ids and walk up to `EXPORT_MAX_ROWS` rows
+  of per-row Octo fetches. Enforced server-side.
+- Workitems (MS02 compound identity, Prepared Documents register): a
+  cluster of colliding-id bugs — wids resolved their Octo stage against the
+  default client's engine instead of MS02's (added a Postgres-dialect twin
+  of `resolve_octo_wid_stage`, later relocated next to its T-SQL sibling in
+  `workitem_sources.py`); the preview button omitted `?client=`, risking
+  previewing the wrong client's document; `resolve_ms02_wids_to_pids`
+  compared a varchar column against an int list, raising a Postgres
+  operator-type mismatch on every call; the "In register" chip map was
+  keyed by bare id instead of `client-id`; and the page's cache-warm loop
+  bypassed the collision fail-safe, letting a colliding id get pinned to
+  whichever client's page listed it first. A follow-up removed the
+  fail-safe's own N+1 cost — it rebuilt a fresh source list per
+  non-default row instead of reusing the warm loop's own list.
+- `ping_dbs_parallel` awaited each future's result **serially**, so N down
+  engines took N × timeout wall time instead of the documented ~timeout;
+  replaced with one shared `concurrent.futures.wait(..., timeout=...)`
+  call.
+- Octo: `get_media` cached a non-2xx response (e.g. a 502/HTML error page)
+  as valid page bytes for an hour; added `raise_for_status()` so a bad
+  response is treated as a cache miss instead of poisoning the slot.
+- Reporting: `wrap_with_cap()` wrapped `WITH`-rooted queries into an
+  **invalid** `SELECT TOP (n) * FROM ( WITH ... ) AS _q`; CTE-rooted queries
+  now pass through unwrapped, with the row cap enforced fetch-side via a
+  new `fetch_capped()` helper. Two follow-ups: the leading-`WITH` detector
+  didn't recognize the idiomatic `;WITH` (leading-semicolon) form; and a
+  CSV export whose 120s budget elapsed before any per-row fetch completed
+  derived its include columns from zero completed rows, producing a
+  marker-free export indistinguishable from a legitimate empty result —
+  now flagged via the same `X-Export-Timeout` header/trailer pattern.
+- Dashboard: a categorical widget whose dimension resolved to the `?`
+  bound-param sentinel emitted `GROUP BY 1`, which in T-SQL groups by the
+  literal constant rather than ordinal position and 500s; the clause is
+  now omitted for that case.
+- Workitems: `as_completed()` itself (not just `future.result()`) can raise
+  `TimeoutError` at its own iteration boundary in large CSV exports; the
+  loop now cancels pending futures and marks unfinished rows instead of
+  500ing.
+- Reporting: KPI cards sent their own `definition.columns` verbatim, so a
+  breakdown-carrying definition showed the first bucket instead of the true
+  total; columns/sort are now cleared in the KPI run payload and its trend
+  clone so the backend returns a single zero-dim row.
+- Reporting: the global-filter popover's cached-catalog promise resolved in
+  a microtask that ran before the triggering click finished bubbling to the
+  outside-click closer, so every open after the first **self-closed
+  instantly**; popover creation is now deferred a tick.
+- Reporting: an unparseable drill grain-bucket label made the drawer
+  silently drop that field's filter while still opening — showing every
+  row unfiltered; it now falls back to an equality filter or aborts with a
+  toast. A follow-up fixed the opposite case: a genuinely NULL date bucket
+  (a valid "(empty)" grain bucket, not a parse failure) was being treated
+  the same as an unparseable one and aborted instead of drilling in with
+  the correct `is_null` filter.
+- Config: `env/{ENVIRONMENT}.env` loaded **after** the root `.env` instead
+  of before it, inverting the documented `OS env > env-specific file > root
+  .env` precedence.
+- Auth: the password-reset mail send ran synchronously, so a registered
+  email measurably answered slower than an unregistered one (a timing
+  oracle); dispatched to a daemon thread. Reset tokens are now marked
+  consumed (hashed, TTL-matched) so a token can't be replayed across
+  sessions. Two bare `except Exception: return` blocks handed Flask a
+  `None` response (a 500) instead of a neutral flash + redirect. Round-1
+  follow-up: the token was being consumed on GET render — burning it before
+  the user ever clicked — and the error branches rendered on a template
+  that never shows flashed messages; moved consumption to a successful
+  write and matched `login()`'s render idiom. Round-2 follow-up: round 1's
+  retry-friendliness re-opened a cross-session replay window, since the
+  write only checked the consumed-marker *after* writing — now checked
+  before.
+- Profile: `change_password`'s GET branch fell through with no return,
+  handing Flask `None` (a 500); now redirects to the profile page.
+- Admin: log-search and recent-logs timestamps were serialized as raw
+  datetimes — Flask renders those RFC-1123/GMT, shifting displayed times by
+  the server's UTC offset — both now emit `.isoformat()`. `HttpResponseCode`
+  is `NVARCHAR`, so the recent-logs int-range compare `TypeError`'d on every
+  row (a guaranteed 500); coerced before comparison. Seven admin templates
+  linked an `output.css` that was never built or shipped, 404ing on every
+  load. The permission drawer defaulted every radio to Deny, so an
+  untouched drawer wrote an explicit Deny row for every permission instead
+  of only the ones actually set — and, separately, the neutral/inherit
+  column was hidden entirely in profile mode, so an admin could set
+  Allow/Deny but never click back to unset. The "Last hour" log preset
+  truncated through a date-only formatter and actually filtered the whole
+  current day. A follow-up closed a registration-order race where the
+  first manual date edit right after clicking a preset was discarded.
+- Octo: `get_index_field_mappings` cached an empty `{}` result for the full
+  1h timeout on a transient DB failure, disabling index-field lookups
+  app-wide until the cache expired; only successful reads are cached now.
+  `get_workitemdata_param` raised `KeyError` instead of returning falsy on
+  a malformed payload, crashing the activity feed and other callers
+  expecting a falsy "not found" sentinel.
+- Workitems: `_count_image_media` counted every image-type media item, but
+  the page renderer skips URL-less media — source-overlay boxes landed on
+  the wrong page whenever a workitem had gaps in its media.
+- Process: the activity-ignore CSV's raw quote-concatenated fragment didn't
+  double embedded single-quotes, so a name like "O'Brien Review" broke the
+  spliced `NOT IN (...)` SQL.
+- Reporting: the docprocessing catalog read `SearchConfig` with no
+  `ClientCode` filter, letting MS02's columnar rows leak phantom field
+  availability into the default catalog.
+- Reporting: `_safe_cell` didn't decode `bytes`/`bytearray`/`memoryview` or
+  strip openpyxl's own illegal-character regex before the
+  formula-injection guard, and other non-primitive types (e.g. UUID)
+  weren't stringified; one fix covers both `export.py` and the view's own
+  export path.
+- Reporting: MIN/MAX over varchar stat columns compared **lexicographically**
+  ("9" > "10"); extended the existing `TRY_CAST(... AS float)` wrap (already
+  used for sum/avg) to min/max. A follow-up scoped the wrap to only genuine
+  varchar stat columns — it was also being applied to synthetic date/
+  workitem-id fields, where `date -> float` is a hard `TRY_CAST` error.
+- Reporting: the SQL sandbox's keyword-blocklist scan was hardened across
+  **three rounds**. Round 1 blanked string-literal contents before the
+  blocklist regex ran (a keyword inside a literal was false-positively
+  flagged as blocked DML/DDL). Round 2 closed a full sandbox-escape: the
+  round-1 stripper was apostrophe-blind to bracket/double-quoted
+  identifiers, so a crafted alias like `AS [a'b]` shifted the quote-pairing
+  and blanked real SQL — including `OPENROWSET`, which sqlglot's AST gate
+  does not independently catch — out of the scan. Round 3 closed two more
+  gaps: the bracket regex didn't honor T-SQL's `]]` escape for an embedded
+  `]`, and comment-stripping ran before any quote-awareness so a `--`/
+  `/* */` marker inside a literal was blindly deleted, corrupting
+  downstream stripping (unified into one left-to-right tokenizer pass); a
+  final pass in the same round fixed a bare-CR (not just LF) comment
+  terminator bypass and replaced the bracket regex with an atomic-group
+  form after it was found to backtrack catastrophically (~16-29s of CPU on
+  a ~20KB adversarial payload) — a DoS reachable by any authenticated user
+  with `reporting.sql.run` + a target grant + the ack.
+- Reporting: `validate_schedule` guarded `hour`/`minute` against
+  non-numeric input but not `weekday`/`dayOfMonth`, so a bad value raised
+  an uncaught `ValueError` (a 500) instead of a validation error.
+- Reporting: grouped stat keys mixing `int` and `None` raised `TypeError`
+  on comparison; now sorts NULLs last via a type-safe `(v is None, str(v))`
+  tuple key.
+- Reporting: a single malformed saved report definition 500'd the entire
+  report listing for every user; type-guarded the preview-kind resolver
+  and wrapped per-row serialization so only the offending row is skipped.
+- API: the stats helpers swallowed any Statistics-DB failure into an empty
+  result, so an outage was indistinguishable from a quiet day and the
+  documented external-API 500 never fired; both legs now take a `strict=`
+  flag, opted into by the external API only (the dashboard's graceful
+  degrade is unchanged).
+- Generali: `api_generali_stats` called `.replace("T", " ")` directly on a
+  possibly-missing query arg, raising an uncaught `AttributeError` (a 500)
+  instead of a 400 when `startDate`/`endDate` was absent.
+- Workitems: CSV export's internal fetch helper cached a reduced
+  `{fields, media_count}` shape under the same key the media-info API
+  serves, silently emptying the source overlay on the next detail-panel
+  request.
+- Reporting: the dashboard's filter merge keyed by field with
+  last-write-wins, so two different filters on the same field (e.g. a
+  range split across `gte`/`lte`) silently collapsed to just the last one,
+  widening the card's query.
+- Reporting: switching sources in the report builder reset columns/scope/
+  metrics but left the prior source's filter chips intact, referencing
+  fields that might not exist on the new source and 400ing every run until
+  cleared by hand.
+- Reporting: pivot row/column bucket keys joined dimension tuples into a
+  single string, colliding distinct tuples (e.g. `['ab','c']` vs
+  `['a','bc']`); now keyed with `JSON.stringify`.
+- Workitems: the last-movement column sorter expected a
+  `"d. m. yyyy - HH:MM"` date format while the table actually renders ISO
+  `YYYY-MM-DD HH:MM:SS`, so every comparison was `NaN` and clicking the
+  header was a silent no-op.
+
 ## [2.5.64] - 2026-07-22
 
 ### Added
