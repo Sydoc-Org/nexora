@@ -1571,3 +1571,68 @@ def test_reopen_dashboard_then_add_card_does_not_collide_with_persisted_id(nexor
     ids = [cards.nth(i).get_attribute("data-card-id") for i in range(2)]
     assert len(set(ids)) == 2, f"duplicate data-card-id after add: {ids}"
     assert "n100" in ids  # the originally persisted card is untouched
+
+
+def test_effective_filters_keeps_both_bounds_of_a_same_field_range(nexora_server, page):
+    """Task 61: effectiveFilters() used to merge card.definition.filters +
+    globalFilters + filterOverrides keyed by field with last-write-wins
+    (`byField[f.field] = f`) -- so two DIFFERENT filters on the SAME field
+    (e.g. a range split across two bound filters, gte + lte) silently
+    collapsed to just the last one applied, dropping the other bound and
+    widening the card's query. Both bounds must now survive into the
+    run payload posted to /api/reporting/run.
+    """
+    _login(page, nexora_server)
+    dash_definition = {
+        "kind": "dashboard",
+        "schemaVersion": 1,
+        "title": "e2e same-field range dashboard",
+        "globalFilters": [],
+        "cards": [
+            {
+                "id": "k1",
+                "type": "kpi",
+                "span": 3,
+                "title": "Documents in range",
+                "definition": {
+                    "source": "workitems",
+                    "metrics": [{"field": "id", "agg": "count"}],
+                    "columns": [],
+                    "filters": [
+                        {"field": "createdDate", "op": "gte", "value": "2026-01-01"},
+                        {"field": "createdDate", "op": "lte", "value": "2026-03-31"},
+                    ],
+                },
+                "filterOverrides": [],
+            }
+        ],
+    }
+    _stub_dashboard_report(page, "e2e-dash-samefield", dash_definition)
+
+    run_calls = []
+
+    def fulfill_run(route):
+        run_calls.append(route.request.post_data_json or {})
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {"columns": [{"field": "id", "header": "Count"}], "rows": [[42]], "rowCount": 1}
+            ),
+        )
+
+    page.route("**/api/reporting/run", fulfill_run)
+
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-card").first.click()
+    expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
+    # Sync point before inspecting the captured payload, same idiom as the
+    # global-filter-popover test above.
+    expect(page.get_by_test_id("rdb-kpi-value")).to_have_text("42")
+
+    assert len(run_calls) == 1
+    date_filters = [f for f in run_calls[0]["filters"] if f["field"] == "createdDate"]
+    assert {(f["op"], f["value"]) for f in date_filters} == {
+        ("gte", "2026-01-01"),
+        ("lte", "2026-03-31"),
+    }

@@ -394,25 +394,32 @@
   }
 
   // ---- D4 filter merge -------------------------------------------------
-  // card.definition.filters (base) <- state.def.globalFilters (dashboard-
-  // wide) <- card.filterOverrides (per-card, wins last), merged field-keyed
-  // so a later source replaces an earlier one on the SAME field. Exact
-  // semantics Tasks 13 (override editing UI) and 15 (KPI trend/drill) build
-  // on -- keep this shape if it's ever extended.
+  // card.definition.filters (base) + state.def.globalFilters (dashboard-
+  // wide) + card.filterOverrides (per-card), concatenated in that order.
+  // De-duping is by EXACT duplicate only (same field+op+value) -- two
+  // DIFFERENT filters on the same field (e.g. a "date >= X" + "date <= Y"
+  // range pair split across gte/lte) both survive as an AND. Previously
+  // this keyed by field with last-write-wins (`byField[f.field] = f`),
+  // which silently dropped the earlier of two same-field filters and
+  // widened the card's query (Task 61). Exact semantics Tasks 13 (override
+  // editing UI) and 15 (KPI trend/drill) build on -- keep this shape if
+  // it's ever extended.
   function effectiveFilters(card) {
-    var byField = {};
-    var order = [];
+    var result = [];
+    var seen = {};
     function apply(list) {
       (list || []).forEach(function (f) {
         if (!f || f.field == null) return;
-        if (!(f.field in byField)) order.push(f.field);
-        byField[f.field] = f;
+        var key = f.field + '|' + f.op + '|' + JSON.stringify(f.value);
+        if (seen[key]) return;
+        seen[key] = true;
+        result.push(f);
       });
     }
     apply(card.definition && card.definition.filters);
     apply(state.def && state.def.globalFilters);
     apply(card.filterOverrides);
-    return order.map(function (k) { return byField[k]; });
+    return result;
   }
 
   // ---- KPI trend period-shift (D8) ---------------------------------------
