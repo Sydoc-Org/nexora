@@ -137,6 +137,21 @@ Work toward 2.5.65.
 
 ### Fixed
 
+- Reporting SQL sandbox: a query with a top-level `ORDER BY` passed
+  `validate_select` but then failed at run time with SQL Server error 1033 —
+  `wrap_with_cap`'s `SELECT TOP (n) * FROM (…) AS _q` wrap made the trailing
+  `ORDER BY` illegal inside the derived table (#129). Such queries now pass
+  through unwrapped, exactly like the WITH-rooted path, with `fetch_capped`
+  enforcing the row cap fetch-side. Hit both the human sandbox and the AI
+  agent's `run_sql` tool, where the validate-ok/run-fail disagreement burned
+  self-repair turns (one eval case spent all 10 turns on it).
+- Reporting AI: the chat agent could return a completely **empty answer** —
+  either a silent model turn with no tool calls, or the turn cap exhausting
+  with no prose written (#127). The loop now nudges the model exactly once to
+  write the answer it owes (`ask_agentic_iter`), and if the answer is still
+  empty the response substitutes a localized, artifact-aware fallback (points
+  at the produced report draft / SQL, or admits the request failed) instead of
+  an empty string. The audit row keeps the raw empty answer.
 - Workitems: the line-item table grids in the detail panel's "Show sources"
   view (e.g. Octo `TABVAT`/`TABORDER`) overflowed the panel on wide tables
   and showed raw Octo field codes (`TabNetAmount`, `OrdPk`) as headers.

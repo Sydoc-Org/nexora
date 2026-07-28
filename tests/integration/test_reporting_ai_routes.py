@@ -439,6 +439,55 @@ def test_ai_agent_happy_path_returns_answer_and_audits(user_client):
     assert audit.call_args.args[-2] == "ok"  # Status
 
 
+# ---- Issue #127: an empty final answer must never reach the chat as-is ------
+
+
+def test_ai_agent_empty_answer_gets_artifact_aware_fallback(user_client):
+    # Loop produced a valid definition but no prose (post-nudge) — the payload
+    # must point at the artifact instead of shipping an empty string.
+    with ExitStack() as es:
+        for p in _agent_patches():
+            es.enter_context(p)
+        es.enter_context(
+            patch("nx_lib.views.reporting.ask_agentic", return_value=_agentic_result(answer=""))
+        )
+        es.enter_context(
+            patch("nx_lib.views.reporting._validate_definition_for_user", return_value=(True, None))
+        )
+        audit = es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post("/api/reporting/ai/agent", json={"question": "report by outcome"})
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["answer"].strip()
+    assert "builder" in data["answer"]
+    assert data["definition"]["source"] == "gen_pdqm"
+    # the audit keeps the raw (empty) answer — only the payload gets the fallback
+    audited = json.loads(audit.call_args.args[4])
+    assert audited["answer"] == ""
+
+
+def test_ai_agent_empty_answer_no_artifacts_gets_generic_fallback(user_client):
+    bare = AiAgenticResult(
+        answer="",
+        turns=1,
+        tool_trace=[],
+        stopped_reason="final",
+        tokens_in=5,
+        tokens_out=0,
+    )
+    with ExitStack() as es:
+        for p in _agent_patches():
+            es.enter_context(p)
+        es.enter_context(patch("nx_lib.views.reporting.ask_agentic", return_value=bare))
+        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post("/api/reporting/ai/agent", json={"question": "anything"})
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["answer"].strip()
+    assert data["definition"] is None
+    assert data["sql"] is None
+
+
 def test_ai_agent_caps_history_to_8_turns_and_4000_chars(user_client):
     history = [
         {"role": "user" if i % 2 == 0 else "assistant", "content": "x" * 600} for i in range(10)

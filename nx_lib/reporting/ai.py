@@ -579,6 +579,15 @@ def caption(
 # answer off exactly when the agent was doing its job.
 DEFAULT_MAX_TURNS = 10
 
+# Issue #127: sent once when the model ends its turn with neither tool calls
+# nor text. Model-facing, English by design (like the tool results).
+_EMPTY_FINAL_NUDGE = (
+    "You returned no answer text. Write your final answer for the user now, "
+    "based on the work above. If you could not complete the task, say so "
+    "briefly, describe what you tried, and mention any query or report "
+    "definition you produced."
+)
+
 _AGENT_SYSTEM = (
     "You are a careful analyst for an internal reporting tool. Use the provided "
     "TOOLS to answer the question, grounded ONLY in the data SOURCES/SCHEMA given "
@@ -697,6 +706,7 @@ def ask_agentic_iter(
     """
     messages = [*(history or []), {"role": "user", "content": question}]
     trace, tin, tout, turns, stopped = [], 0, 0, 0, "max_turns"
+    nudged = False
     deadline = time.monotonic() + budget_s if budget_s else None
     while turns < max_turns:
         if deadline and turns and time.monotonic() > deadline:
@@ -708,6 +718,17 @@ def ask_agentic_iter(
         tin += turn.tokens_in or 0
         tout += turn.tokens_out or 0
         if not turn.tool_calls:
+            # Issue #127: the model sometimes ends a turn with no tool calls
+            # AND no text — accepted as-is, that surfaces as a blank chat
+            # bubble. Nudge it exactly once to write the answer it owes;
+            # a second silent turn falls through to the normal final path
+            # (the view layer substitutes a fallback message for the empty
+            # answer).
+            if not (turn.text or "").strip() and not nudged and turns < max_turns:
+                nudged = True
+                messages.append({"role": "assistant", "content": turn.text or ""})
+                messages.append({"role": "user", "content": _EMPTY_FINAL_NUDGE})
+                continue
             stopped = "final"
             messages.append({"role": "assistant", "content": turn.text})
             yield {"result": AiAgenticResult(turn.text, turns, trace, stopped, tin, tout)}
