@@ -419,8 +419,8 @@
       var colKeys = [], colSeen = {}, colArr = {};
       var bucket = {};
       rows.forEach(function (r) {
-        var rk = tup(r, rowDims).join('');
-        var ck = tup(r, colDims).join('');
+        var rk = JSON.stringify(tup(r, rowDims));
+        var ck = JSON.stringify(tup(r, colDims));
         if (!(rk in rowSeen)) { rowSeen[rk] = 1; rowKeys.push(rk); rowArr[rk] = tup(r, rowDims); }
         if (!(ck in colSeen)) { colSeen[ck] = 1; colKeys.push(ck); colArr[ck] = tup(r, colDims); }
         if (!bucket[rk]) bucket[rk] = {};
@@ -483,10 +483,10 @@
         var rowEl = headRows[d];
         var i = 0;
         while (i < colKeys.length) {
-          var prefix = colArr[colKeys[i]].slice(0, d + 1).join('');
+          var prefix = JSON.stringify(colArr[colKeys[i]].slice(0, d + 1));
           var j = i;
           while (j < colKeys.length &&
-                 colArr[colKeys[j]].slice(0, d + 1).join('') === prefix) j++;
+                 JSON.stringify(colArr[colKeys[j]].slice(0, d + 1)) === prefix) j++;
           var th = document.createElement('th');
           th.textContent = colArr[colKeys[i]][d];
           th.colSpan = (j - i) * vals.length;
