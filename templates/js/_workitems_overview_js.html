@@ -1035,12 +1035,21 @@ async function uploadBatchFiles(files, processName) {
 
                     let comparison = 0;
                     if (columnIndex === 3) {
-                        const parseDate = (str) => {
-                            const [datePart, timePart] = str.split(' - ');
-                            const [day, month, year] = datePart.split('. ');
-                            return new Date(`${year}-${month}-${day}T${timePart}:00`);
-                        };
-                        comparison = parseDate(aText) - parseDate(bText);
+                        // renderTable writes ISO "YYYY-MM-DD HH:MM:SS" (see the
+                        // "Last movement at" cell). Parse that directly; fall back
+                        // to plain string comparison for this pair if either side
+                        // isn't a valid date, rather than letting NaN silently no-op
+                        // the whole sort.
+                        const parseDate = (str) => new Date(str.replace(' ', 'T'));
+                        const aDate = parseDate(aText);
+                        const bDate = parseDate(bText);
+                        if (isNaN(aDate) || isNaN(bDate)) {
+                            comparison = aText.localeCompare(bText, undefined, {
+                                numeric: true
+                            });
+                        } else {
+                            comparison = aDate - bDate;
+                        }
                     } else {
                         comparison = aText.localeCompare(bText, undefined, {
                             numeric: true

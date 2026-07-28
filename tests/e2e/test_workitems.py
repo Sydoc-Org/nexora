@@ -137,3 +137,76 @@ def test_workitems_in_register_chip_is_client_scoped(nexora_server, page):
     ms02_toggle.click()
     ms02_header = page.locator("#details-row-ms02-1216 .detail-panel-header")
     expect(ms02_header.locator('[data-testid="workitem-in-register"]')).to_be_visible()
+
+
+@pytest.mark.flaky_e2e
+def test_workitems_sort_last_movement_toggles_order(nexora_server, page):
+    """Regression: sortTable's parseDate expected 'd. m. yyyy - HH:MM' but
+    renderTable actually writes ISO 'YYYY-MM-DD HH:MM:SS' for the "Last
+    movement at" cell -- every comparison came back NaN, so clicking the
+    header silently did nothing. Stub three rows out of date order and
+    confirm the click both sorts ascending and flips to descending."""
+    _login(page, nexora_server)
+
+    def _fake_workitems(route):
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "workitems": [
+                        {
+                            "workitemid": 501,
+                            "client": "default",
+                            "status": "Open",
+                            "modifiedat": "2026-06-15T09:00:00Z",
+                            "current_stage": "A",
+                            "pid": None,
+                            "in_register": False,
+                        },
+                        {
+                            "workitemid": 502,
+                            "client": "default",
+                            "status": "Open",
+                            "modifiedat": "2026-01-01T09:00:00Z",
+                            "current_stage": "A",
+                            "pid": None,
+                            "in_register": False,
+                        },
+                        {
+                            "workitemid": 503,
+                            "client": "default",
+                            "status": "Open",
+                            "modifiedat": "2026-07-20T09:00:00Z",
+                            "current_stage": "A",
+                            "pid": None,
+                            "in_register": False,
+                        },
+                    ],
+                    "pagination": {
+                        "currentPage": 1,
+                        "totalPages": 1,
+                        "totalItems": 3,
+                        "perPage": 20,
+                    },
+                    "degradedSources": [],
+                }
+            ),
+        )
+
+    page.route("**/api/workitems?*", _fake_workitems)
+    page.goto(f"{nexora_server}/workitems")
+
+    rows = page.locator("#workitemsTbody tr.workitem-row")
+    expect(rows).to_have_count(3)
+
+    header = page.locator('#workitemsTable thead th[data-column-index="3"]')
+    header.click()
+    expect(rows.nth(0)).to_have_attribute("id", "row-default-502")
+    expect(rows.nth(1)).to_have_attribute("id", "row-default-501")
+    expect(rows.nth(2)).to_have_attribute("id", "row-default-503")
+
+    header.click()
+    expect(rows.nth(0)).to_have_attribute("id", "row-default-503")
+    expect(rows.nth(1)).to_have_attribute("id", "row-default-501")
+    expect(rows.nth(2)).to_have_attribute("id", "row-default-502")
