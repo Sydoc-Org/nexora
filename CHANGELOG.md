@@ -151,6 +151,10 @@ Work toward 2.5.65.
 
 ### Fixed
 
+- Auth: the 2FA challenge (`/verify_2fa`) now auto-submits once the code field
+  holds 6 digits, instead of requiring a manual click on "Verify Identity"
+  (#107). Non-digit input is stripped client-side as it's typed.
+
 - Version: `uv.lock` had silently rotted to `2.5.63` while `nx_lib/version.py`
   and `pyproject.toml` were on `2.5.65` — a third copy of the version that no
   test covered. Refreshed via `uv lock`, and `tests/unit/test_version.py` now

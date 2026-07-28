@@ -79,6 +79,15 @@
 
         {% include '_small_footer.html' %}
 
+    <script>
+        document.getElementById('code').addEventListener('input', function (e) {
+            const digits = e.target.value.replace(/\D/g, '').slice(0, 6);
+            e.target.value = digits;
+            if (digits.length === 6) {
+                e.target.form.requestSubmit();
+            }
+        });
+    </script>
 
 </body>
 </html>
