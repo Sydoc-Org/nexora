@@ -52,11 +52,19 @@ def validate_schedule(p):
         return "recipients must be one or more valid email addresses"
     if p.get("frequency") == "weekly":
         wd = p.get("weekday")
-        if wd is None or not 0 <= int(wd) <= 6:
+        try:
+            wd = int(wd)
+        except (TypeError, ValueError):
+            return "weekday must be 0-6 (Mon-Sun) for a weekly schedule"
+        if not 0 <= wd <= 6:
             return "weekday must be 0-6 (Mon-Sun) for a weekly schedule"
     if p.get("frequency") == "monthly":
         dom = p.get("dayOfMonth")
-        if dom is None or not 1 <= int(dom) <= 28:
+        try:
+            dom = int(dom)
+        except (TypeError, ValueError):
+            return "dayOfMonth must be 1-28 for a monthly schedule"
+        if not 1 <= dom <= 28:
             return "dayOfMonth must be 1-28 for a monthly schedule"
     alert_op = p.get("alertOp")
     if alert_op:  # absent/empty = always send
