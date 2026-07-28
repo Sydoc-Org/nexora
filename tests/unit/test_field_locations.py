@@ -7,7 +7,7 @@ Rectangle / Rectangles {Left,Top,Width,Height} in image pixels; page via
 Location.PageIndex; degenerate {0,0,0,0} rects are un-locatable.
 """
 
-from nx_lib.field_locations import _rect_from_octo, extract_field_locations
+from nx_lib.field_locations import _count_image_media, _rect_from_octo, extract_field_locations
 
 # --- _rect_from_octo -------------------------------------------------------
 
@@ -260,6 +260,50 @@ def test_empty_child_documents_treated_as_leaf():
         "IndexFields": [_field("DocNo", "X", _loc(0, [(1, 1, 5, 5)]))],
     }
     assert extract_field_locations(doc, MAPPING)[0]["value"] == "X"
+
+
+# --- image media without a URL (skipped by octo.get_extensions_urls_fields) -
+# get_extensions_urls_fields does `if not raw_url: continue` before a media
+# item ever becomes a rendered page -- a URL-less image is never rendered.
+# _count_image_media must apply the same skip, or the offset drifts ahead of
+# the pages octo actually renders for every item after it.
+
+
+def test_count_image_media_skips_media_without_url():
+    item = {
+        "Media": [
+            {"Extension": ".jpg", "Url": "u0"},
+            {"Extension": ".jpg", "Url": None},  # no URL -> never rendered, not counted
+            {"Extension": ".jpg", "Url": ""},  # falsy URL -> same
+        ]
+    }
+    assert _count_image_media(item) == 1
+
+
+def test_url_less_image_between_two_real_pages_does_not_shift_offset():
+    # item0: real image (rendered page 0) + field A.
+    # item1: URL-less image only -- octo skips it, so it never becomes a page.
+    # item2: real image (rendered page 1) + field B.
+    # A naive counter (pre-fix) would count item1's URL-less image too and put
+    # field B's PageIndex 0 at global page 2 -- but octo only ever renders
+    # item0's and item2's images, so field B's box must land on page 1, the
+    # page it is actually rendered on.
+    item0 = {
+        "Media": [{"Extension": ".jpg", "Url": "u0"}],
+        "IndexFields": [_field("DocNo", "A", _loc(0, [(1, 1, 5, 5)]))],
+    }
+    item1 = {
+        "Media": [{"Extension": ".jpg", "Url": None}],
+        "IndexFields": [],
+    }
+    item2 = {
+        "Media": [{"Extension": ".jpg", "Url": "u2"}],
+        "IndexFields": [_field("DocDate", "B", _loc(0, [(2, 2, 6, 6)]))],
+    }
+    doc = {"DocumentType": "Batch", "ChildDocuments": [item0, item1, item2]}
+    out = {o["key"]: o for o in extract_field_locations(doc, MAPPING)}
+    assert out["Doc number"]["locations"][0]["page"] == 0  # item0's real page
+    assert out["Doc date"]["locations"][0]["page"] == 1  # item2's real page, not 2
 
 
 # --- confidence (optional key) --------------------------------------------

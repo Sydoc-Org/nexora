@@ -113,13 +113,22 @@ def _pdf_pages_for(pdf_page_counts, idx):
 
 def _count_image_media(item, pdf_pages=0):
     """Media-slot count for one leaf item: 1 slot per whitelisted image
-    extension, plus ``pdf_pages`` slots for any PDF media in this item that
-    were already expanded to per-page images upstream (see
-    ``extract_field_locations``'s ``pdf_page_counts`` parameter). Defaults to
-    the old IMG_EXTS-only behaviour (PDFs contribute 0) when the caller
-    doesn't supply a PDF page count."""
+    extension that actually got rendered, plus ``pdf_pages`` slots for any PDF
+    media in this item that were already expanded to per-page images upstream
+    (see ``extract_field_locations``'s ``pdf_page_counts`` parameter).
+
+    Mirrors ``octo.get_extensions_urls_fields``'s ``if not raw_url: continue``
+    skip: a media item with no ``Url`` never becomes a rendered page there, so
+    it must not be counted here either, or the offset drifts ahead of the
+    actually-rendered pages for every item after it. Defaults to the old
+    IMG_EXTS-only behaviour (PDFs contribute 0) when the caller doesn't supply
+    a PDF page count."""
     return (
-        sum(1 for m in (item.get("Media") or []) if str(m.get("Extension", "")).lower() in IMG_EXTS)
+        sum(
+            1
+            for m in (item.get("Media") or [])
+            if m.get("Url") and str(m.get("Extension", "")).lower() in IMG_EXTS
+        )
         + pdf_pages
     )
 
