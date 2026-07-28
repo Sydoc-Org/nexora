@@ -1,6 +1,7 @@
 """Unit tests for the Reporting live-SQL sandbox (security boundary)."""
 
 import re
+import time
 
 import pytest
 
@@ -411,3 +412,58 @@ def test_humanize_sql_error_strips_noise_without_hint_for_unmapped_code():
 def test_humanize_sql_error_passes_through_non_odbc_message():
     msg = "unknown metric: 'x'"
     assert humanize_sql_error(msg) == msg
+
+
+# ---- Round 3: bare-CR comment terminator + bracket-regex ReDoS ------------
+# A third review pass found the round-1/round-2 tokenizer above still had two
+# gaps: (1) its comment alternative only stopped at LF, but real T-SQL also
+# ends a `--` comment at a bare CR, so a `\r`-terminated comment kept hiding
+# whatever followed (e.g. OPENROWSET) from the blocklist scan while SQL
+# Server itself would execute it; (2) round 2's `]]`-escape-aware bracket
+# alternative, while semantically correct, backtracks catastrophically on
+# adversarial input -- tens of seconds of pure CPU on a single request, with
+# no DB call involved so SQL_TIMEOUT_S never applies -- a DoS reachable by
+# any authenticated user with reporting.sql.run + a target grant + the ack.
+
+
+def test_bare_cr_after_line_comment_does_not_hide_openrowset():
+    # `\r` (not `\n`) after `--` must still end the comment for scan
+    # purposes, matching real T-SQL/SQL Server comment-termination rules --
+    # otherwise everything after the `\r`, including OPENROWSET, is hidden
+    # from the blocklist scan while the server would actually execute it.
+    sql = (
+        "SELECT 1 AS a -- harmless\r, * FROM "
+        "OPENROWSET('SQLNCLI11','Server=evil;','SELECT 1') AS q"
+    )
+    with pytest.raises(SqlSandboxError) as ei:
+        validate_select(sql)
+    assert ei.value.rule == "blocked_keyword"
+    assert ei.value.token.upper() == "OPENROWSET"
+
+
+def test_wrap_with_cap_detects_with_after_bare_cr_comment():
+    # Same CR-vs-LF comment-termination fix, applied to the separate
+    # quote-unaware _strip_comments() helper wrap_with_cap() uses for its
+    # leading-WITH shape check. Not a security bypass on its own (this only
+    # runs on already-validated SQL) -- but a CR before a leading WITH must
+    # still be recognized as a CTE-rooted query, or it gets incorrectly
+    # TOP-wrapped (invalid T-SQL: WITH can't appear inside a derived table).
+    sql = "-- note\rWITH q AS (SELECT 1 AS a) SELECT * FROM q"
+    out = wrap_with_cap(sql, 10)
+    assert out == sql
+
+
+def test_bracket_regex_does_not_catastrophically_backtrack():
+    # Regression guard for the round-2 ReDoS: a long run of adversarial
+    # bracket/quote characters must resolve quickly, not take tens of
+    # seconds of pure CPU. Threshold is intentionally generous (2s, ~10x the
+    # ~200ms worst-case measured on dev hardware) to avoid flaking on slow
+    # CI runners while still catching a regression back to catastrophic
+    # backtracking (which measured 16-29s on the same shape of payload).
+    payload = "SELECT 1 FROM t WHERE x=" + "['" * 9980
+    assert len(payload) <= 20000  # stay under MAX_SQL_LEN so parsing is reached
+    start = time.perf_counter()
+    with pytest.raises(SqlSandboxError):
+        validate_select(payload)
+    elapsed = time.perf_counter() - start
+    assert elapsed < 2.0, f"bracket regex took {elapsed:.2f}s -- possible ReDoS regression"

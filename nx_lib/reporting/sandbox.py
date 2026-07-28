@@ -135,7 +135,7 @@ def humanize_sql_error(msg):
 # _strip_for_scan() below for that.
 def _strip_comments(sql):
     no_block = re.sub(r"/\*.*?\*/", " ", sql, flags=re.DOTALL)
-    return re.sub(r"--[^\n]*", " ", no_block)
+    return re.sub(r"--[^\n\r]*", " ", no_block)
 
 
 # T-SQL string literals escape an embedded quote by doubling it: 'it''s here'
@@ -172,14 +172,41 @@ def _strip_comments(sql):
 # (before the '...' alternative) and passed through completely unchanged --
 # never blanked -- so a quote character inside one can't be mistaken for the
 # start of a string literal and swallow real SQL that follows. The bracket
-# alternative honors the `]]` escape (`\[(?:[^\]]|\]\])*\]`) so a doubled `]]`
-# can't be mistaken for the identifier's closing bracket. A construct that
-# never closes (malformed/truncated input) simply fails to match, so nothing
-# is stripped for it and the raw text -- including any real keyword inside
-# it -- still reaches the blocklist scan. Fail safe (under-strip), never
-# fail open (over-strip and hide a real keyword).
+# alternative honors the `]]` escape so a doubled `]]` can't be mistaken for
+# the identifier's closing bracket. A construct that never closes
+# (malformed/truncated input) simply fails to match, so nothing is stripped
+# for it and the raw text -- including any real keyword inside it -- still
+# reaches the blocklist scan. Fail safe (under-strip), never fail open
+# (over-strip and hide a real keyword).
+#
+# Round 3 closed two more gaps in this same tokenizer, found by a third
+# review pass:
+#   - The comment alternative stopped only at LF (`--[^\n]*`), but real T-SQL
+#     also ends a `--` line comment at a bare CR. A payload using `\r`
+#     instead of `\n` after `--` kept everything past it OUT of the scan
+#     while SQL Server itself would treat the CR as ending the comment and
+#     execute what followed -- hiding OPENROWSET the same way bypasses A/B
+#     above did. Fixed by stopping at either terminator: `--[^\n\r]*`. The
+#     same `[^\n]` -> `[^\n\r]` fix was applied to the separate, quote-unaware
+#     _strip_comments() below for consistency (its impact there is a
+#     correctness bug -- a CTE query with a CR before a leading WITH could be
+#     mis-wrapped -- not a security bypass, since _strip_comments() only
+#     feeds wrap_with_cap()'s shape check on already-validated SQL).
+#   - The round-2 bracket alternative `\[(?:[^\]]|\]\])*\]`, while a correct
+#     grouped alternation, backtracks catastrophically on adversarial input
+#     (e.g. a long run of `[` or `['` characters): ~20-30 seconds of pure
+#     CPU for a ~20KB payload, with no DB call involved so SQL_TIMEOUT_S
+#     never applies. Any authenticated user with reporting.sql.run + a
+#     target grant + the ack could stall a worker process this way,
+#     independent of Flask-Limiter's per-worker (not shared) rate limiting.
+#     Fixed with an atomic group -- `\[(?>[^\]]*(?:\]\][^\]]*)*)\]` --  which
+#     preserves identical matching semantics (same `]]`-escape handling)
+#     while eliminating the backtracking, since the atomic group commits to
+#     its match of "run of non-`]` chars, then `]]`-escaped run, repeat" and
+#     never re-explores it token-by-token on failure. Requires Python's `re`
+#     atomic-group support (native since 3.11; this project requires >=3.13).
 _SCAN_TOKEN_RE = re.compile(
-    r"""/\*.*?\*/|--[^\n]*|\[(?:[^\]]|\]\])*\]|"(?:[^"]|"")*"|'(?:[^']|'')*'""",
+    r"""/\*.*?\*/|--[^\n\r]*|\[(?>[^\]]*(?:\]\][^\]]*)*)\]|"(?:[^"]|"")*"|'(?:[^']|'')*'""",
     re.DOTALL,
 )
 
