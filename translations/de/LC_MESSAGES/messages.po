@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-07-28 20:05+0200\n"
+"POT-Creation-Date: 2026-07-28 20:51+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -38,119 +38,129 @@ msgstr "Exportdatum"
 msgid "Workitem ID"
 msgstr "Workitem-ID"
 
-#: nx_lib/views/admin.py:184 nx_lib/views/admin.py:688
+#: nx_lib/views/admin.py:185 nx_lib/views/admin.py:699
 msgid "All fields are required."
 msgstr "Alle Felder sind erforderlich."
 
-#: nx_lib/views/admin.py:199
+#: nx_lib/views/admin.py:200
 msgid "Organization created successfully."
 msgstr "Organisation erfolgreich erstellt."
 
-#: nx_lib/views/admin.py:201
+#: nx_lib/views/admin.py:202
 msgid "Organization already exists."
 msgstr "Organisation existiert bereits."
 
-#: nx_lib/views/admin.py:204 nx_lib/views/admin.py:721
+#: nx_lib/views/admin.py:205 nx_lib/views/admin.py:767
 msgid "An unexpected error occurred."
 msgstr "Ein unerwarteter Fehler ist aufgetreten."
 
-#: nx_lib/views/admin.py:228
+#: nx_lib/views/admin.py:229
 msgid "Organization updated successfully."
 msgstr "Organisation erfolgreich aktualisiert."
 
-#: nx_lib/views/admin.py:231 nx_lib/views/admin.py:255
-#: nx_lib/views/admin.py:803 nx_lib/views/admin.py:1043
+#: nx_lib/views/admin.py:232 nx_lib/views/admin.py:256
+#: nx_lib/views/admin.py:849 nx_lib/views/admin.py:1089
 msgid "An error occurred."
 msgstr "Ein Fehler ist aufgetreten."
 
-#: nx_lib/views/admin.py:250
+#: nx_lib/views/admin.py:251
 msgid "Organization not found."
 msgstr "Organisation nicht gefunden."
 
-#: nx_lib/views/admin.py:252
+#: nx_lib/views/admin.py:253
 msgid "Organization deleted successfully."
 msgstr "Organisation erfolgreich gelöscht."
 
-#: nx_lib/views/admin.py:696 nx_lib/views/admin.py:775
+#: nx_lib/views/admin.py:707 nx_lib/views/admin.py:821
 msgid "Permission Denied for this action."
 msgstr "Berechtigung für diese Aktion verweigert."
 
-#: nx_lib/views/admin.py:716 templates/js/admin/_access_control_js.html:551
+#: nx_lib/views/admin.py:755
+msgid ""
+"User created, but the email could not be sent. Ask them to use 'Forgot "
+"password'."
+msgstr "Benutzer erstellt, aber die E-Mail konnte nicht gesendet werden. Bitten Sie die Person, die Funktion 'Passwort vergessen' zu verwenden."
+
+#: nx_lib/views/admin.py:760
+msgid "User created and email sent."
+msgstr "Benutzer erstellt und E-Mail gesendet."
+
+#: nx_lib/views/admin.py:762 templates/js/admin/_access_control_js.html:564
 msgid "User created successfully."
 msgstr "Benutzer erfolgreich erstellt."
 
-#: nx_lib/views/admin.py:718
+#: nx_lib/views/admin.py:764
 msgid "Username or email already exists."
 msgstr "Benutzername oder E-Mail existiert bereits."
 
-#: nx_lib/views/admin.py:800
+#: nx_lib/views/admin.py:846
 msgid "User updated successfully."
 msgstr "Benutzer erfolgreich aktualisiert."
 
-#: nx_lib/views/admin.py:989
+#: nx_lib/views/admin.py:1035
 msgid "You cannot delete your own account."
 msgstr "Sie können Ihr eigenes Konto nicht löschen."
 
-#: nx_lib/views/admin.py:1035
+#: nx_lib/views/admin.py:1081
 msgid "User not found."
 msgstr "Benutzer nicht gefunden."
 
-#: nx_lib/views/admin.py:1037
+#: nx_lib/views/admin.py:1083
 msgid "User deleted successfully."
 msgstr "Benutzer erfolgreich gelöscht."
 
-#: nx_lib/views/admin.py:1164
+#: nx_lib/views/admin.py:1210
 msgid "Could not fetch logs"
 msgstr "Protokolle konnten nicht abgerufen werden"
 
-#: nx_lib/views/admin.py:1207
+#: nx_lib/views/admin.py:1253
 msgid "Could not fetch sessions"
 msgstr "Sitzungen konnten nicht abgerufen werden"
 
-#: nx_lib/views/admin.py:1304 nx_lib/views/admin.py:1614
-#: nx_lib/views/admin.py:1656 nx_lib/views/admin.py:1701
-#: nx_lib/views/admin.py:1740 nx_lib/views/admin.py:1778
-#: nx_lib/views/admin.py:1811 nx_lib/views/dashboard.py:251
+#: nx_lib/views/admin.py:1350 nx_lib/views/admin.py:1660
+#: nx_lib/views/admin.py:1702 nx_lib/views/admin.py:1747
+#: nx_lib/views/admin.py:1786 nx_lib/views/admin.py:1824
+#: nx_lib/views/admin.py:1857 nx_lib/views/dashboard.py:251
 #: nx_lib/views/dashboard.py:361 nx_lib/views/dashboard.py:416
 #: nx_lib/views/dashboard.py:508 nx_lib/views/invoices.py:280
 #: nx_lib/views/workitems.py:765 nx_lib/views/workitems.py:1492
 msgid "Not authorized"
 msgstr "Nicht autorisiert"
 
-#: nx_lib/views/admin.py:1347
+#: nx_lib/views/admin.py:1393
 msgid "Could not fetch users"
 msgstr "Benutzer konnten nicht abgerufen werden"
 
-#: nx_lib/views/admin.py:1393
+#: nx_lib/views/admin.py:1439
 msgid "Name is required"
 msgstr "Name ist erforderlich"
 
-#: nx_lib/views/admin.py:1421
+#: nx_lib/views/admin.py:1467
 msgid "Profile saved successfully"
 msgstr "Profil erfolgreich gespeichert"
 
-#: nx_lib/views/admin.py:1600
+#: nx_lib/views/admin.py:1646
 msgid "Overrides updated successfully"
 msgstr "Überschreibungen erfolgreich aktualisiert"
 
-#: nx_lib/views/admin.py:1665 nx_lib/views/admin.py:1795
-#: nx_lib/views/admin.py:1837
+#: nx_lib/views/admin.py:1711 nx_lib/views/admin.py:1841
+#: nx_lib/views/admin.py:1883
 msgid "Permission not found"
 msgstr "Berechtigung nicht gefunden"
 
-#: nx_lib/views/admin.py:1746 nx_lib/views/admin.py:1784
+#: nx_lib/views/admin.py:1792 nx_lib/views/admin.py:1830
 msgid "Code and description are required"
 msgstr "Code und Beschreibung sind erforderlich"
 
-#: nx_lib/views/admin.py:1761
+#: nx_lib/views/admin.py:1807
 msgid "Permission created successfully"
 msgstr "Berechtigung erfolgreich erstellt"
 
-#: nx_lib/views/admin.py:1797
+#: nx_lib/views/admin.py:1843
 msgid "Permission updated successfully"
 msgstr "Berechtigung erfolgreich aktualisiert"
 
-#: nx_lib/views/admin.py:1830
+#: nx_lib/views/admin.py:1876
 #, python-format
 msgid ""
 "Cannot delete: used in %(p)d profile(s) and %(o)d override(s). Remove all"
@@ -159,19 +169,34 @@ msgstr ""
 "Kann nicht gelöscht werden: Wird in %(p)d Profil(en) und %(o)d "
 "Override(s) verwendet. Bitte zuerst alle Zuweisungen entfernen."
 
-#: nx_lib/views/admin.py:1839
+#: nx_lib/views/admin.py:1885
 msgid "Permission deleted successfully"
 msgstr "Berechtigung erfolgreich gelöscht"
+
+#: nx_lib/views/auth.py:107
+msgid "Your nexora account is ready"
+msgstr "Ihr nexora-Konto ist bereit"
+
+#: nx_lib/views/auth.py:109
+msgid ""
+"An account has been created for you on nexora. Choose your own password "
+"by clicking the button below. You will then be asked to set up two-factor"
+" authentication."
+msgstr "Für Sie wurde ein Konto in nexora erstellt. Wählen Sie über die Schaltfläche unten Ihr eigenes Passwort. Anschließend werden Sie zur Einrichtung der Zwei-Faktor-Authentifizierung aufgefordert."
+
+#: nx_lib/views/auth.py:113
+msgid "This link is valid for 7 days."
+msgstr "Dieser Link ist 7 Tage gültig."
+
+#: nx_lib/views/auth.py:114
+msgid "Set Your Password"
+msgstr "Legen Sie Ihr Passwort fest"
 
 #: nx_lib/views/auth.py:116
 msgid "nexora Password Reset Request"
 msgstr "nexora Anfrage zum Zurücksetzen des Passworts"
 
-#: nx_lib/views/auth.py:151
-msgid "Hello,"
-msgstr "Hallo,"
-
-#: nx_lib/views/auth.py:153
+#: nx_lib/views/auth.py:118
 msgid ""
 "We received a request to reset the password for your account. You can "
 "reset your password by clicking the button below."
@@ -180,7 +205,7 @@ msgstr ""
 "zurückzusetzen. Sie können Ihr Passwort zurücksetzen, indem Sie auf die "
 "Schaltfläche unten klicken."
 
-#: nx_lib/views/auth.py:154
+#: nx_lib/views/auth.py:122
 msgid ""
 "If you did not request a password reset, please ignore this email. This "
 "link is valid for 15 minutes."
@@ -188,73 +213,77 @@ msgstr ""
 "Falls Sie keine Passwortzurücksetzung angefordert haben, ignorieren Sie "
 "diese E-Mail bitte. Dieser Link ist 15 Minuten gültig."
 
-#: nx_lib/views/auth.py:157
-msgid "Thanks,<br>The Sydoc Team"
-msgstr "Danke,<br>Das Sydoc-Team"
-
-#: nx_lib/views/auth.py:165
+#: nx_lib/views/auth.py:125
 msgid "Reset Your Password"
 msgstr "Setzen Sie Ihr Passwort zurück"
 
-#: nx_lib/views/auth.py:272
+#: nx_lib/views/auth.py:176
+msgid "Hello,"
+msgstr "Hallo,"
+
+#: nx_lib/views/auth.py:182
+msgid "Thanks,<br>The Sydoc Team"
+msgstr "Danke,<br>Das Sydoc-Team"
+
+#: nx_lib/views/auth.py:297
 msgid "Session expired, please try again"
 msgstr "Sitzung abgelaufen, bitte versuchen Sie es erneut"
 
-#: nx_lib/views/auth.py:323
+#: nx_lib/views/auth.py:348
 msgid "Database error"
 msgstr "Datenbankfehler"
 
-#: nx_lib/views/auth.py:331
+#: nx_lib/views/auth.py:356
 msgid "Invalid code. Please try again."
 msgstr "Ungültiger Code. Bitte versuchen Sie es erneut."
 
-#: nx_lib/views/auth.py:380
+#: nx_lib/views/auth.py:405
 msgid "Invalid code"
 msgstr "Ungültiger Code"
 
-#: nx_lib/views/auth.py:394 nx_lib/views/auth.py:602
+#: nx_lib/views/auth.py:419 nx_lib/views/auth.py:627
 #: templates/js/_profile_js.html:5
 msgid "Passwords do not match"
 msgstr "Passwörter stimmen nicht überein"
 
-#: nx_lib/views/auth.py:396 nx_lib/views/auth.py:604
+#: nx_lib/views/auth.py:421 nx_lib/views/auth.py:629
 msgid "All Fields must be filled"
 msgstr "Alle Felder müssen ausgefüllt werden"
 
-#: nx_lib/views/auth.py:400 nx_lib/views/auth.py:608
+#: nx_lib/views/auth.py:425 nx_lib/views/auth.py:633
 #: nx_lib/views/profile.py:157
 msgid "New password has to be atleast 8 characters long, with no whitespaces"
 msgstr ""
 "Das neue Passwort muss mindestens 8 Zeichen lang sein und darf keine "
 "Leerzeichen enthalten"
 
-#: nx_lib/views/auth.py:420 nx_lib/views/auth.py:626
+#: nx_lib/views/auth.py:445 nx_lib/views/auth.py:651
 msgid "New Password musn't be previously used password"
 msgstr "Das neue Passwort darf kein bereits verwendetes Passwort sein"
 
-#: nx_lib/views/auth.py:453 nx_lib/views/auth.py:666
+#: nx_lib/views/auth.py:478 nx_lib/views/auth.py:691
 msgid "Something went wrong, please try again"
 msgstr "Etwas ist schiefgelaufen, bitte versuchen Sie es erneut"
 
-#: nx_lib/views/auth.py:493 nx_lib/views/auth.py:536
+#: nx_lib/views/auth.py:518 nx_lib/views/auth.py:561
 msgid "Invalid credentials"
 msgstr "Ungültige Anmeldedaten"
 
-#: nx_lib/views/auth.py:540
+#: nx_lib/views/auth.py:565
 msgid "Login temporarily unavailable"
 msgstr "Anmeldung vorübergehend nicht verfügbar"
 
-#: nx_lib/views/auth.py:655
+#: nx_lib/views/auth.py:680
 msgid "Password changed"
 msgstr "Passwort geändert"
 
-#: nx_lib/views/auth.py:769
+#: nx_lib/views/auth.py:811
 msgid "If that email is registered, a reset link has been sent."
 msgstr ""
 "Falls diese E-Mail-Adresse registriert ist, wurde ein Link zum "
 "Zurücksetzen des Passworts gesendet."
 
-#: nx_lib/views/auth.py:773
+#: nx_lib/views/auth.py:815
 msgid "Unexpected error occurred"
 msgstr "Ein unerwarteter Fehler ist aufgetreten"
 
@@ -1070,7 +1099,7 @@ msgstr "Excel"
 msgid "Export"
 msgstr "Exportieren"
 
-#: templates/_reporting_simple.html:159 templates/admin/access_control.html:277
+#: templates/_reporting_simple.html:159 templates/admin/access_control.html:281
 #: templates/admin/maintenance.html:114
 #: templates/generali_additionalservices.html:326
 #: templates/generali_baseservices.html:275 templates/generali_pdqm.html:350
@@ -1492,7 +1521,7 @@ msgstr "Alle Organisationen"
 #: templates/generali_projectmanagement.html:126
 #: templates/generali_projectmanagement.html:174
 #: templates/generali_reporting.html:102 templates/generali_reporting.html:157
-#: templates/js/admin/_access_control_js.html:722
+#: templates/js/admin/_access_control_js.html:735
 msgid "User"
 msgstr "Benutzer"
 
@@ -1611,10 +1640,10 @@ msgstr "Zuerst übergeordnete Kategorie auswählen"
 msgid "Effort (hours)"
 msgstr "Aufwand (Stunden)"
 
-#: templates/admin/access_control.html:224
-#: templates/admin/access_control.html:241
-#: templates/admin/access_control.html:276
-#: templates/admin/access_control.html:398 templates/admin/maintenance.html:113
+#: templates/admin/access_control.html:228
+#: templates/admin/access_control.html:245
+#: templates/admin/access_control.html:280
+#: templates/admin/access_control.html:402 templates/admin/maintenance.html:113
 #: templates/admin/maintenance.html:129
 #: templates/admin/modals/_organizations_modals.html:13
 #: templates/admin/modals/_organizations_modals.html:41
@@ -1668,7 +1697,7 @@ msgstr "Eintrag löschen"
 msgid "This action cannot be undone."
 msgstr "Diese Aktion kann nicht rückgängig gemacht werden."
 
-#: templates/admin/access_control.html:242
+#: templates/admin/access_control.html:246
 #: templates/admin/archive/user_management.html:55
 #: templates/admin/maintenance.html:130 templates/admin/organizations.html:42
 #: templates/admin/user_detail.html:283
@@ -1688,7 +1717,7 @@ msgstr "Diese Aktion kann nicht rückgängig gemacht werden."
 #: templates/js/_generali_reporting_js.html:860
 #: templates/js/_reporting_metrics_js.html:62
 #: templates/js/_reporting_sources_js.html:50
-#: templates/js/admin/_access_control_js.html:648
+#: templates/js/admin/_access_control_js.html:661
 #: templates/js/admin/_maintenance_js.html:151
 #: templates/js/admin/_organizations_js.html:97
 #: templates/js/admin/_user_management_js.html:111 templates/reporting.html:263
@@ -2229,7 +2258,7 @@ msgstr "Benutzername"
 msgid "Your Username"
 msgstr "Ihr Benutzername"
 
-#: templates/admin/access_control.html:220
+#: templates/admin/access_control.html:224
 #: templates/admin/modals/_user_modals.html:72 templates/index.html:53
 #: templates/profile.html:64
 msgid "Password"
@@ -2473,7 +2502,7 @@ msgstr "Schließen"
 msgid "Show where extracted values were found on the document"
 msgstr "Anzeigen, wo die extrahierten Werte im Dokument gefunden wurden"
 
-#: templates/js/_workitem_detail_panel_js.html:531
+#: templates/js/_workitem_detail_panel_js.html:540
 #: templates/prepared_documents.html:189 templates/reporting.html:184
 #: templates/workitems_overview.html:509
 msgid "Show sources"
@@ -2506,7 +2535,7 @@ msgid "Settings sections"
 msgstr "Einstellungsbereiche"
 
 #: templates/admin/access_control.html:55 templates/admin/user_detail.html:27
-#: templates/js/admin/_access_control_js.html:723
+#: templates/js/admin/_access_control_js.html:736
 #: templates/js/admin/_user_detail_js.html:322 templates/profile.html:59
 msgid "Profile"
 msgstr "Profil"
@@ -2642,7 +2671,7 @@ msgid "Send"
 msgstr "Senden"
 
 #: templates/admin/user_detail.html:122
-#: templates/js/admin/_access_control_js.html:724 templates/reporting.html:232
+#: templates/js/admin/_access_control_js.html:737 templates/reporting.html:232
 #: templates/reporting_metrics.html:39 templates/reporting_metrics.html:51
 msgid "Source"
 msgstr "Quelle"
@@ -3041,7 +3070,7 @@ msgstr "Integrierte Standardquellen"
 msgid "Kind"
 msgstr "Art"
 
-#: templates/admin/access_control.html:336 templates/admin/user_detail.html:121
+#: templates/admin/access_control.html:340 templates/admin/user_detail.html:121
 #: templates/admin/user_detail.html:153 templates/reporting_sources.html:40
 #: templates/reporting_sources.html:51 templates/reporting_sources.html:65
 msgid "Permission"
@@ -3305,7 +3334,7 @@ msgstr "Überschreibungen"
 #: templates/admin/access_control.html:133 templates/admin/logs.html:104
 #: templates/admin/sessions.html:34 templates/admin/user_detail.html:126
 #: templates/admin/user_detail.html:230
-#: templates/js/admin/_access_control_js.html:682
+#: templates/js/admin/_access_control_js.html:695
 #: templates/js/admin/_sessions_js.html:39
 #: templates/js/admin/_user_detail_js.html:429
 #: templates/js/admin/_user_detail_js.html:542
@@ -3317,14 +3346,14 @@ msgid "Search permissions..."
 msgstr "Berechtigungen suchen..."
 
 #: templates/admin/access_control.html:116
-#: templates/admin/access_control.html:254
-#: templates/js/admin/_access_control_js.html:740
+#: templates/admin/access_control.html:258
+#: templates/js/admin/_access_control_js.html:753
 msgid "Add Permission"
 msgstr "Berechtigung hinzufügen"
 
 #: templates/admin/access_control.html:126
-#: templates/admin/access_control.html:266
-#: templates/admin/access_control.html:312
+#: templates/admin/access_control.html:270
+#: templates/admin/access_control.html:316
 msgid "Description"
 msgstr "Beschreibung"
 
@@ -3346,7 +3375,7 @@ msgstr "Profil hinzufügen"
 #: templates/js/_reporting_dashboard_js.html:64
 #: templates/js/_reporting_metrics_js.html:58
 #: templates/js/_reporting_sources_js.html:46
-#: templates/js/admin/_access_control_js.html:644
+#: templates/js/admin/_access_control_js.html:657
 #: templates/js/admin/_maintenance_js.html:145
 #: templates/js/admin/_organizations_js.html:96
 #: templates/js/admin/_user_management_js.html:110
@@ -3364,52 +3393,56 @@ msgstr "Benutzer"
 msgid "Email"
 msgstr "E-Mail"
 
-#: templates/admin/access_control.html:225
+#: templates/admin/access_control.html:221
+msgid "Email the user a link to set their own password"
+msgstr "Der Person einen Link zum Festlegen des eigenen Passworts senden"
+
+#: templates/admin/access_control.html:229
 msgid "Create"
 msgstr "Erstellen"
 
-#: templates/admin/access_control.html:238
+#: templates/admin/access_control.html:242
 msgid "Confirm Delete"
 msgstr "Löschen bestätigen"
 
-#: templates/admin/access_control.html:262
+#: templates/admin/access_control.html:266
 msgid "Permission Code"
 msgstr "Berechtigungscode"
 
-#: templates/admin/access_control.html:267
+#: templates/admin/access_control.html:271
 msgid "Short description"
 msgstr "Kurzbeschreibung"
 
-#: templates/admin/access_control.html:270
+#: templates/admin/access_control.html:274
 msgid "Sorting Code"
 msgstr "Sortiercode"
 
-#: templates/admin/access_control.html:272
+#: templates/admin/access_control.html:276
 msgid "Optional. Controls display order in the permission editor."
 msgstr "Optional. Steuert die Anzeigereihenfolge im Berechtigungseditor."
 
-#: templates/admin/access_control.html:308
+#: templates/admin/access_control.html:312
 msgid "Profile Name"
 msgstr "Profilname"
 
-#: templates/admin/access_control.html:324 templates/admin/user_detail.html:113
+#: templates/admin/access_control.html:328 templates/admin/user_detail.html:113
 #: templates/admin/user_detail.html:146
 msgid "Filter permissions..."
 msgstr "Berechtigungen filtern..."
 
-#: templates/admin/access_control.html:337 templates/admin/user_detail.html:154
+#: templates/admin/access_control.html:341 templates/admin/user_detail.html:154
 msgid "None"
 msgstr "Keine"
 
-#: templates/admin/access_control.html:338 templates/admin/user_detail.html:155
+#: templates/admin/access_control.html:342 templates/admin/user_detail.html:155
 msgid "Deny"
 msgstr "Verweigern"
 
-#: templates/admin/access_control.html:339 templates/admin/user_detail.html:156
+#: templates/admin/access_control.html:343 templates/admin/user_detail.html:156
 msgid "Allow"
 msgstr "Erlauben"
 
-#: templates/admin/access_control.html:399
+#: templates/admin/access_control.html:403
 msgid "Save Changes"
 msgstr "Änderungen speichern"
 
@@ -4324,9 +4357,9 @@ msgstr "SQL ausblenden"
 
 #: templates/js/_reporting_ai_js.html:40
 #: templates/js/admin/_access_control_js.html:316
-#: templates/js/admin/_access_control_js.html:557
-#: templates/js/admin/_access_control_js.html:784
-#: templates/js/admin/_access_control_js.html:800
+#: templates/js/admin/_access_control_js.html:570
+#: templates/js/admin/_access_control_js.html:797
+#: templates/js/admin/_access_control_js.html:813
 #: templates/js/admin/_user_detail_js.html:49
 #: templates/js/admin/_user_detail_js.html:153
 #: templates/js/admin/_user_detail_js.html:275
@@ -5118,52 +5151,52 @@ msgstr "Historie konnte nicht geladen werden"
 msgid "Load more"
 msgstr "Mehr laden"
 
-#: templates/js/_workitem_detail_panel_js.html:241
-#: templates/js/_workitem_detail_panel_js.html:278
+#: templates/js/_workitem_detail_panel_js.html:250
+#: templates/js/_workitem_detail_panel_js.html:287
 msgid "Click to locate on the document"
 msgstr "Zum Lokalisieren im Dokument klicken"
 
-#: templates/js/_workitem_detail_panel_js.html:276
+#: templates/js/_workitem_detail_panel_js.html:285
 msgid "no source location"
 msgstr "keine Fundstelle"
 
-#: templates/js/_workitem_detail_panel_js.html:281
+#: templates/js/_workitem_detail_panel_js.html:290
 msgid "Extraction confidence"
 msgstr "Extraktions-Konfidenz"
 
-#: templates/js/_workitem_detail_panel_js.html:362
+#: templates/js/_workitem_detail_panel_js.html:371
 msgid "Media"
 msgstr "Medien"
 
-#: templates/js/_workitem_detail_panel_js.html:362
+#: templates/js/_workitem_detail_panel_js.html:371
 msgid "for workitem "
 msgstr "für Workitem "
 
-#: templates/js/_workitem_detail_panel_js.html:385
+#: templates/js/_workitem_detail_panel_js.html:394
 msgid "Failed to load image "
 msgstr "Bild konnte nicht geladen werden "
 
-#: templates/js/_workitem_detail_panel_js.html:396
+#: templates/js/_workitem_detail_panel_js.html:405
 msgid "Checking for media..."
 msgstr "Medien werden gesucht..."
 
-#: templates/js/_workitem_detail_panel_js.html:418
+#: templates/js/_workitem_detail_panel_js.html:427
 msgid "No additional details found."
 msgstr "Keine weiteren Details gefunden."
 
-#: templates/js/_workitem_detail_panel_js.html:423
+#: templates/js/_workitem_detail_panel_js.html:432
 msgid "No media found for this workitem."
 msgstr "Keine Medien für dieses Workitem gefunden."
 
-#: templates/js/_workitem_detail_panel_js.html:434
+#: templates/js/_workitem_detail_panel_js.html:443
 msgid "Could not load media."
 msgstr "Medien konnten nicht geladen werden."
 
-#: templates/js/_workitem_detail_panel_js.html:471
+#: templates/js/_workitem_detail_panel_js.html:480
 msgid "In register"
 msgstr "Im Register"
 
-#: templates/js/_workitem_detail_panel_js.html:531
+#: templates/js/_workitem_detail_panel_js.html:540
 msgid "Hide sources"
 msgstr "Quellen ausblenden"
 
@@ -5272,8 +5305,8 @@ msgid "Auto-denied"
 msgstr "Automatisch verweigert"
 
 #: templates/js/admin/_access_control_js.html:455
-#: templates/js/admin/_access_control_js.html:572
-#: templates/js/admin/_access_control_js.html:733
+#: templates/js/admin/_access_control_js.html:585
+#: templates/js/admin/_access_control_js.html:746
 msgid "Error loading data."
 msgstr "Fehler beim Laden der Daten."
 
@@ -5289,11 +5322,11 @@ msgstr "Überschreibungen"
 msgid "default"
 msgstr "Standard"
 
-#: templates/js/admin/_access_control_js.html:545
+#: templates/js/admin/_access_control_js.html:558
 msgid "You do not have permission to create users."
 msgstr "Sie haben keine Berechtigung, Benutzer zu erstellen."
 
-#: templates/js/admin/_access_control_js.html:554
+#: templates/js/admin/_access_control_js.html:567
 #: templates/js/admin/_organizations_js.html:141
 #: templates/js/admin/_organizations_js.html:195
 #: templates/js/admin/_user_management_js.html:155
@@ -5301,64 +5334,64 @@ msgstr "Sie haben keine Berechtigung, Benutzer zu erstellen."
 msgid "Error:"
 msgstr "Fehler:"
 
-#: templates/js/admin/_access_control_js.html:597
+#: templates/js/admin/_access_control_js.html:610
 msgid "No permissions found."
 msgstr "Keine Berechtigungen gefunden."
 
-#: templates/js/admin/_access_control_js.html:698
+#: templates/js/admin/_access_control_js.html:711
 msgid "Yes"
 msgstr "Ja"
 
-#: templates/js/admin/_access_control_js.html:699
+#: templates/js/admin/_access_control_js.html:712
 #: templates/js/admin/_user_detail_js.html:382
 msgid "Denied"
 msgstr "Verweigert"
 
-#: templates/js/admin/_access_control_js.html:709
+#: templates/js/admin/_access_control_js.html:722
 msgid "No users have this permission assigned."
 msgstr "Keinem Benutzer ist diese Berechtigung zugewiesen."
 
-#: templates/js/admin/_access_control_js.html:714
+#: templates/js/admin/_access_control_js.html:727
 msgid "Users with this permission"
 msgstr "Benutzer mit dieser Berechtigung"
 
-#: templates/js/admin/_access_control_js.html:715
+#: templates/js/admin/_access_control_js.html:728
 msgid "explicitly denied"
 msgstr "ausdrücklich verweigert"
 
-#: templates/js/admin/_access_control_js.html:725
+#: templates/js/admin/_access_control_js.html:738
 msgid "Has Permission"
 msgstr "Hat Berechtigung"
 
-#: templates/js/admin/_access_control_js.html:750
+#: templates/js/admin/_access_control_js.html:763
 msgid "Edit Permission"
 msgstr "Berechtigung bearbeiten"
 
-#: templates/js/admin/_access_control_js.html:766
+#: templates/js/admin/_access_control_js.html:779
 msgid "Code and description are required."
 msgstr "Code und Beschreibung sind erforderlich."
 
-#: templates/js/admin/_access_control_js.html:791
+#: templates/js/admin/_access_control_js.html:804
 msgid "Are you sure you want to delete"
 msgstr "Sind Sie sicher, dass Sie Folgendes löschen möchten:"
 
-#: templates/js/admin/_access_control_js.html:810
+#: templates/js/admin/_access_control_js.html:823
 msgid "Override Allow"
 msgstr "Override · Erlauben"
 
-#: templates/js/admin/_access_control_js.html:811
+#: templates/js/admin/_access_control_js.html:824
 msgid "Override Deny"
 msgstr "Override · Verweigern"
 
-#: templates/js/admin/_access_control_js.html:812
+#: templates/js/admin/_access_control_js.html:825
 msgid "Profile Allow"
 msgstr "Profil · Erlauben"
 
-#: templates/js/admin/_access_control_js.html:813
+#: templates/js/admin/_access_control_js.html:826
 msgid "Profile Deny"
 msgstr "Profil · Verweigern"
 
-#: templates/js/admin/_access_control_js.html:814
+#: templates/js/admin/_access_control_js.html:827
 msgid "No assignment"
 msgstr "Keine Zuweisung"
 

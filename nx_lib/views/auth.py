@@ -83,9 +83,14 @@ def _record_active_session(user_id):
         current_app.logger.warning(f"Failed to record active session for user {user_id}: {e}")
 
 
-def _build_reset_email_message(email):
+def _build_reset_email_message(email, invite=False):
     """Build the Graph sendMail payload (reset link + translated subject/
     body) for a password-reset email to ``email``.
+
+    With ``invite=True`` the same markup carries the welcome copy sent when
+    an admin creates a user with "email a set-password link" ticked -- the
+    link is minted from the longer-lived invite salt (an onboarding mail may
+    sit unread for days; a 15-minute reset link would be dead on arrival).
 
     Uses ``url_for(_external=True)`` and gettext (``_()``), both bound to
     the live Flask request/app context. Call this synchronously, before
@@ -94,10 +99,30 @@ def _build_reset_email_message(email):
     """
 
     def get_link():
-        token = s.dumps(email, salt="password-reset-salt")
-        return url_for("reset_password", token=token, _external=True)
+        salt = "user-invite-salt" if invite else "password-reset-salt"
+        return url_for("reset_password", token=s.dumps(email, salt=salt), _external=True)
 
     link = get_link()
+    if invite:
+        subject = _("Your nexora account is ready")
+        intro = _(
+            "An account has been created for you on nexora. Choose your own password by "
+            "clicking the button below. You will then be asked to set up two-factor "
+            "authentication."
+        )
+        validity = _("This link is valid for 7 days.")
+        button_label = _("Set Your Password")
+    else:
+        subject = _("nexora Password Reset Request")
+        intro = _(
+            "We received a request to reset the password for your account. You can reset "
+            "your password by clicking the button below."
+        )
+        validity = _(
+            "If you did not request a password reset, please ignore this email. This link "
+            "is valid for 15 minutes."
+        )
+        button_label = _("Reset Your Password")
     font_family = "font-family: 'Inter', Helvetica, Arial, sans-serif;"
     container_style = "max-width: 600px; margin: 0 auto; background-color: #fefdfb; padding: 20px;"
     button_style = (
@@ -113,7 +138,7 @@ def _build_reset_email_message(email):
 
     body = {
         "message": {
-            "subject": _("nexora Password Reset Request"),
+            "subject": subject,
             "body": {
                 "contentType": "HTML",
                 "content": f"""
@@ -150,8 +175,8 @@ def _build_reset_email_message(email):
                         <td style="padding: 0 10px;">
                             <h2 style="color: #374151; margin-top: 0;">{_("Hello,")}</h2>
                             <p style="{text_style}">
-                                {_("We received a request to reset the password for your account. You can reset your password by clicking the button below.")}
-                               {_("If you did not request a password reset, please ignore this email. This link is valid for 15 minutes.")}
+                                {intro}
+                               {validity}
                             </p>
                             <p style="{text_style}">
                                 {_("Thanks,<br>The Sydoc Team")}
@@ -162,7 +187,7 @@ def _build_reset_email_message(email):
                     <tr>
                         <td align="left" style="padding: 10px 10px 30px;">
                             <a href="{link}" style="{button_style}">
-                                {_("Reset Your Password")}
+                                {button_label}
                             </a>
                         </td>
                     </tr>
@@ -648,7 +673,7 @@ def set_new_password():
         # it), and a validation-error retry above leaves both intact too.
         token_cache_key = session.get("password_reset_token_key")
         if token_cache_key:
-            cache.set(token_cache_key, True, timeout=RESET_TOKEN_MAX_AGE)
+            cache.set(token_cache_key, True, timeout=INVITE_TOKEN_MAX_AGE)
         session.pop("email_for_password_reset", None)
         session.pop("password_reset_token_key", None)
 
@@ -671,10 +696,27 @@ def set_new_password():
             conn.close()
 
 
-# Must match the max_age passed to s.loads() below -- also doubles as the
-# cache TTL for the single-use marker, so a consumed-token record never
-# outlives the token it guards.
+# Must match the max_age passed to s.loads() below.
 RESET_TOKEN_MAX_AGE = 900
+# Admin-issued welcome links (see _build_reset_email_message(invite=True)) --
+# an onboarding mail may sit unread over a weekend, so 15 minutes is useless
+# here. Also the TTL of every single-use marker: the marker must outlive the
+# longest-lived token it guards, or a spent invite link would go re-usable
+# once the marker expired.
+INVITE_TOKEN_MAX_AGE = 7 * 24 * 3600
+
+
+def _load_reset_token(token):
+    """Unseal a set-password token, whichever kind it is.
+
+    Two salts, two lifetimes: self-service reset (15 min) and admin invite
+    (7 days). Both are verified signatures -- an expired or forged token
+    raises out of here and the caller bounces to /.
+    """
+    try:
+        return s.loads(token, salt="password-reset-salt", max_age=RESET_TOKEN_MAX_AGE)
+    except Exception:
+        return s.loads(token, salt="user-invite-salt", max_age=INVITE_TOKEN_MAX_AGE)
 
 
 def _reset_token_cache_key(token):
@@ -687,7 +729,7 @@ def _reset_token_cache_key(token):
 
 def reset_password(token):
     try:
-        email = s.loads(token, salt="password-reset-salt", max_age=RESET_TOKEN_MAX_AGE)
+        email = _load_reset_token(token)
 
         # Single-use enforcement: reject a token already spent by a prior
         # SUCCESSFUL password write (set_new_password() is what actually

@@ -524,8 +524,21 @@
     }
 
     // ── USER CRUD ─────────────────────────────────────────────────────
+    // Ticked (the default) = the backend generates the password and mails a
+    // set-password link, so the field is neither shown nor required.
+    function syncInviteToggle() {
+        const invite = document.getElementById('send_invite').checked;
+        document.getElementById('passwordField').classList.toggle('hidden', invite);
+        const pw = document.getElementById('password');
+        pw.required = !invite;
+        if (invite) pw.value = '';
+    }
+
+    document.getElementById('send_invite')?.addEventListener('change', syncInviteToggle);
+
     function openAddUserModal() {
         document.getElementById('userForm').reset();
+        syncInviteToggle();
         openCenterModal(userModal);
     }
 

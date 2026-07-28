@@ -10,6 +10,16 @@ Work toward 2.5.65.
 
 ### Added
 
+- Admin: **email invite for new users** (#117). The Add User modal has a
+  "Email the user a link to set their own password" checkbox, ticked by
+  default, which hides the password field: `POST /admin/users/add` then
+  generates a strong random placeholder password (`secrets.token_urlsafe`,
+  never shown to anyone), stores it hashed, pre-sets `InitReset` and mails the
+  user a set-password link. The link reuses the existing `/reset_password/…`
+  flow under its own `user-invite-salt`, valid for 7 days rather than the
+  15 minutes a self-service reset link gets. Untick the box and the old
+  admin-types-a-password behaviour is unchanged.
+
 - Reporting: a multi-turn **AI chat panel** (`#rpChatToggle`, both Simple and
   Advanced tabs) replaces the old single-shot "Ask AI" surface — a docked
   slide-over with a conversation thread, a per-turn collapsible tool-step
@@ -101,6 +111,13 @@ Work toward 2.5.65.
 
 ### Fixed
 
+- Workitems: the line-item table grids in the detail panel's "Show sources"
+  view (e.g. Octo `TABVAT`/`TABORDER`) overflowed the panel with no scrollbar
+  on wide tables, and column headers showed raw Octo field codes
+  (`TabNetAmount`, `OrdPk`) instead of friendly labels. `renderTableGrids`
+  now wraps each grid in a scrolling container and maps headers through the
+  same `fieldConfig.labels` lookup the scalar fields already use — columns
+  without a `Search_Field_Labels` row still fall back to the raw code.
 - Profile: `GET /update_profile` returned 500 — the view only returned inside
   its `POST` branch, so a GET fell through to `None`. It now redirects to
   `/profile`, matching the same fix applied to `change_password`.

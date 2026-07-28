@@ -385,6 +385,77 @@ def test_admin_add_user_with_assign_permission_returns_200(admin_client, monkeyp
             assert remaining == 0
 
 
+def test_admin_add_user_invite_generates_password_and_mails_link(
+    admin_client, monkeypatch, db_conn
+):
+    """send_invite=on: no admin-typed password, a mailed set-password link.
+
+    Covers the whole invite branch — the generated placeholder password is
+    stored hashed, InitReset is pre-set (the emailed link IS the password
+    choice, so no forced change on top of it), and the mailed token round-
+    trips back to the user's address through the invite salt.
+    """
+    import re
+
+    from sqlalchemy import text
+
+    from nx_lib.db import engine_nexora_db
+    from nx_lib.views.auth import _load_reset_token
+
+    monkeypatch.setattr("nx_lib.views.admin.has_permission", lambda code: True)
+
+    sent = {}
+
+    def _fake_send(email, message=None):
+        sent["email"] = email
+        sent["message"] = message
+        return True
+
+    monkeypatch.setattr("nx_lib.views.auth.send_reset_email", _fake_send)
+
+    username = f"invite-{uuid.uuid4().hex[:8]}@test.local"
+    user_id = None
+    try:
+        resp = admin_client.post(
+            "/admin/users/add",
+            json={
+                "username": username,
+                "fullname": "Y",
+                "email": username,
+                "organization": "Test Organization",
+                "accessprofile": "TestUser",
+                "send_invite": "on",
+            },
+        )
+        assert resp.status_code == 200, resp.get_data(as_text=True)
+
+        row = db_conn.execute(
+            text("SELECT userID, password, InitReset FROM Users WHERE username = :u"),
+            {"u": username},
+        ).fetchone()
+        assert row is not None
+        user_id, stored_hash, init_reset = row
+        assert stored_hash.startswith("$2")  # bcrypt, not the raw placeholder
+        assert init_reset == 1
+
+        assert sent["email"] == username
+        html = sent["message"]["message"]["body"]["content"]
+        token = re.search(r"/reset_password/([\w.\-]+)", html).group(1)
+        assert _load_reset_token(token) == username
+    finally:
+        # Same rationale as test_admin_add_user_with_assign_permission_returns_200:
+        # only a separately-committed connection actually removes the row.
+        if user_id is not None:
+            conn = engine_nexora_db.raw_connection()
+            try:
+                cur = conn.cursor()
+                cur.execute("DELETE FROM Users WHERE userID = ?", [user_id])
+                conn.commit()
+                cur.close()
+            finally:
+                conn.close()
+
+
 def test_admin_edit_user_nonexistent(admin_client, admin_all_perms):
     """Editing a missing user — accept any non-200 since seed user-id is 1001+."""
     resp = admin_client.post(

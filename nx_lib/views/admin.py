@@ -3,6 +3,7 @@ user CRUD, access control, permissions."""
 
 import csv
 import math
+import secrets
 from contextlib import suppress
 from datetime import datetime
 
@@ -676,6 +677,8 @@ def admin_sessions_view():
 
 @require_permission("admin.create.user")
 def admin_add_user():
+    from .auth import _build_reset_email_message, send_reset_email
+
     data = request.get_json()
     username = data.get("username")
     password = data.get("password")
@@ -683,6 +686,14 @@ def admin_add_user():
     email = data.get("email")
     organization = data.get("organization")
     accessprofile = data.get("accessprofile")
+    # Checkbox: an unticked box is simply absent from the posted form.
+    send_invite = bool(data.get("send_invite"))
+
+    if send_invite:
+        # Nobody -- not the admin, not the mail -- ever sees this one. It is a
+        # placeholder that keeps the account unusable until the invited user
+        # sets their own password through the emailed link.
+        password = secrets.token_urlsafe(32)
 
     if not all([username, password, fullname, email, organization, accessprofile]):
         return jsonify({"success": False, "message": _("All fields are required.")}), 400
@@ -709,10 +720,45 @@ def admin_add_user():
         )
         organizationcode = cursor.fetchone()[0]
         cursor.execute(
-            "INSERT INTO Users (username, password, fullname, email, organizationcode, accessid) VALUES (?, ?, ?, ?, ?, ?)",
-            (username, hashed_password, fullname, email, organizationcode, accessid),
+            "INSERT INTO Users (username, password, fullname, email, organizationcode, accessid, InitReset) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (
+                username,
+                hashed_password,
+                fullname,
+                email,
+                organizationcode,
+                accessid,
+                # An invited user picks their own password through the emailed
+                # link, so the forced first-login change (InitReset NULL) would
+                # only make them do it twice. They still land on 2FA enrolment.
+                1 if send_invite else None,
+            ),
         )
         conn.commit()
+
+        if send_invite:
+            # Synchronous on purpose: the admin needs to know whether the mail
+            # actually went out. No timing oracle to dodge here (unlike the
+            # self-service reset), and Graph is capped at 10s per call.
+            try:
+                sent = send_reset_email(
+                    email, message=_build_reset_email_message(email, invite=True)
+                )
+            except Exception as e:
+                current_app.logger.error(f"Failed to send invite email to {email}: {e}")
+                sent = False
+            if not sent:
+                return jsonify(
+                    {
+                        "success": True,
+                        "message": _(
+                            "User created, but the email could not be sent. "
+                            "Ask them to use 'Forgot password'."
+                        ),
+                    }
+                )
+            return jsonify({"success": True, "message": _("User created and email sent.")})
+
         return jsonify({"success": True, "message": _("User created successfully.")})
     except pyodbc.IntegrityError:
         return jsonify({"success": False, "message": _("Username or email already exists.")}), 409

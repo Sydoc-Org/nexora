@@ -216,9 +216,13 @@
                     </select>
                 </div>
             </div>
-            <div>
+            <label class="flex items-start gap-2 text-sm cursor-pointer" style="color:var(--nx-text-meta)">
+                <input type="checkbox" id="send_invite" name="send_invite" checked class="mt-0.5" data-testid="admin-ac-user-send-invite">
+                <span>{{ _("Email the user a link to set their own password") }}</span>
+            </label>
+            <div id="passwordField" class="hidden">
                 <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)">{{ _("Password") }}</label>
-                <input type="password" id="password" name="password" required class="nx-input" data-testid="admin-ac-user-password">
+                <input type="password" id="password" name="password" class="nx-input" data-testid="admin-ac-user-password">
             </div>
             <div class="flex justify-end space-x-3 pt-2">
                 <button type="button" onclick="closeUserModal()" class="nx-btn nx-btn--secondary" data-testid="admin-ac-user-modal-cancel">{{ _("Cancel") }}</button>
