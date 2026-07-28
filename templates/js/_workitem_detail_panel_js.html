@@ -221,32 +221,50 @@
             return fields.concat(tableCellSources(workitemid));
         }
 
+      // No DB label for a raw Octo column code (e.g. "TabNetAmount", "OrdPk")?
+      // Split it into words instead of showing it shouting in one block.
+      function splitCode(s) {
+            return String(s)
+                .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+                .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
+        }
+
       function renderTableGrids(workitemid) {
             const tables = (window.__tableByWorkitem && window.__tableByWorkitem[workitemid]) || [];
+            const locVisible = !(window.__srcLocVisibleByWorkitem
+                && window.__srcLocVisibleByWorkitem[workitemid] === false);
             let html = '';
+            const labels = window.fieldConfig.labels || {};
             tables.forEach((t, ti) => {
-                const cols = (t.columns && t.columns.length) ? t.columns : [];
-                const title = t.title ? `<div class="src-table-title">${srcEsc(t.title)}</div>` : '';
-                const head = cols.map(c => `<th>${srcEsc(c)}</th>`).join('');
-                const body = (t.rows || []).map((row, ri) => {
-                    const byCol = {};
-                    row.forEach((c, ci) => { byCol[c.col] = { c, ci }; });
-                    const tds = cols.map(col => {
-                        const entry = byCol[col];
-                        if (!entry) return '<td class="src-table-cell"></td>';
-                        const { c, ci } = entry;
+                const rows = t.rows || [];
+                const title = srcEsc(t.title || 'Table')
+                    + ` <span class="src-table-count">(${rows.length} ${rows.length === 1 ? '{{ _("row") }}' : '{{ _("rows") }}'})</span>`;
+                const body = rows.map((row, ri) => {
+                    const rowLabel = rows.length > 1
+                        ? `<div class="src-table-row-label">{{ _("Row") }} ${ri + 1}</div>` : '';
+                    const cellRows = row.map((c, ci) => {
+                        const label = labels[c.col.toLowerCase()] || splitCode(c.col);
                         const hasLoc = !!(c.locations && c.locations.length);
                         const page = hasLoc ? c.locations[0].page : '';
+                        const rowCls = 'src-field-row py-2 flex justify-between items-center gap-4'
+                            + (hasLoc ? ' is-locatable' : '');
+                        const badge = (locVisible && !hasLoc)
+                            ? ` <span class="src-no-loc-badge">{{ _("no source location") }}</span>` : '';
                         const titleAttr = hasLoc
                             ? ` title="{{ _('Click to locate on the document') }}"` : '';
-                        const cls = 'src-table-cell' + (hasLoc ? ' src-cell-loc' : '');
-                        const val = srcEsc(c.value);
-                        return `<td class="${cls}" data-key="t${ti}r${ri}c${ci}" data-page="${page}"${titleAttr}>${val}</td>`;
+                        const confCls = window.srcConfClass(c.confidence);
+                        const confBadge = confCls
+                            ? ` <span class="src-conf-badge ${confCls}" title="{{ _('Extraction confidence') }}">${window.srcConfPct(c.confidence)}</span>`
+                            : '';
+                        return `
+                            <div class="${rowCls}" data-key="t${ti}r${ri}c${ci}" data-page="${page}"${titleAttr}>
+                                <dt class="text-gray-500 truncate">${srcEsc(label)}${badge}</dt>
+                                <dd class="font-semibold text-gray-900 text-right">${srcEsc(c.value)}${confBadge}</dd>
+                            </div>`;
                     }).join('');
-                    return `<tr>${tds}</tr>`;
+                    return rowLabel + `<dl class="divide-y divide-gray-200">${cellRows}</dl>`;
                 }).join('');
-                html += `<div class="src-table-grid">${title}`
-                    + `<table>${head ? `<thead><tr>${head}</tr></thead>` : ''}<tbody>${body}</tbody></table></div>`;
+                html += `<details class="src-table-grid"><summary class="src-table-title">${title}</summary>${body}</details>`;
             });
             return html;
         }
@@ -680,22 +698,12 @@
             openModalForWorkitem(workitemid, parseInt(row.dataset.page || '0', 10), row.dataset.key);
         });
 
-        // Click a located line-item cell -> open its page + pulse its cell box.
-        document.addEventListener('click', (event) => {
-            const td = event.target.closest('td.src-cell-loc');
-            if (!td) return;
-            const fc = td.closest('[id^="fields-container-"]');
-            if (!fc) return;
-            const workitemid = fc.id.replace('fields-container-', '');
-            openModalForWorkitem(workitemid, parseInt(td.dataset.page || '0', 10), td.dataset.key);
-        });
-
         // Click a value/cell in the in-lightbox review panel -> the modal is already
         // open, so just navigate to that field's page and pulse its box.
         document.addEventListener('click', (event) => {
             const panel = document.getElementById(cfg.reviewPanel);
             if (!panel) return;
-            const row = event.target.closest('.src-field-row.is-locatable, td.src-cell-loc');
+            const row = event.target.closest('.src-field-row.is-locatable');
             if (!row || !panel.contains(row)) return;
             ensureSourcesOn();   // clicking a value turns boxes on (toggle -> "Hide sources")
             srcHl.pendingPulse = row.dataset.key;

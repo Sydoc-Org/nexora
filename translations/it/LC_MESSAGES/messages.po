@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-07-28 20:51+0200\n"
+"POT-Creation-Date: 2026-07-28 21:36+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -79,7 +79,9 @@ msgstr "Autorizzazione negata per questa azione."
 msgid ""
 "User created, but the email could not be sent. Ask them to use 'Forgot "
 "password'."
-msgstr "Utente creato, ma non è stato possibile inviare l'e-mail. Chiedigli di usare la funzione 'Password dimenticata'."
+msgstr ""
+"Utente creato, ma non è stato possibile inviare l'e-mail. Chiedigli di "
+"usare la funzione 'Password dimenticata'."
 
 #: nx_lib/views/admin.py:760
 msgid "User created and email sent."
@@ -123,7 +125,7 @@ msgstr "Impossibile recuperare le sessioni"
 #: nx_lib/views/admin.py:1857 nx_lib/views/dashboard.py:251
 #: nx_lib/views/dashboard.py:361 nx_lib/views/dashboard.py:416
 #: nx_lib/views/dashboard.py:508 nx_lib/views/invoices.py:280
-#: nx_lib/views/workitems.py:765 nx_lib/views/workitems.py:1492
+#: nx_lib/views/workitems.py:771 nx_lib/views/workitems.py:1500
 msgid "Not authorized"
 msgstr "Non autorizzato"
 
@@ -173,30 +175,33 @@ msgstr ""
 msgid "Permission deleted successfully"
 msgstr "Autorizzazione eliminata con successo"
 
-#: nx_lib/views/auth.py:107
+#: nx_lib/views/auth.py:108
 msgid "Your nexora account is ready"
 msgstr "Il tuo account nexora è pronto"
 
-#: nx_lib/views/auth.py:109
+#: nx_lib/views/auth.py:110
 msgid ""
 "An account has been created for you on nexora. Choose your own password "
 "by clicking the button below. You will then be asked to set up two-factor"
 " authentication."
-msgstr "È stato creato un account per te su nexora. Scegli la tua password facendo clic sul pulsante qui sotto. Ti verrà poi chiesto di configurare l'autenticazione a due fattori."
+msgstr ""
+"È stato creato un account per te su nexora. Scegli la tua password "
+"facendo clic sul pulsante qui sotto. Ti verrà poi chiesto di configurare "
+"l'autenticazione a due fattori."
 
-#: nx_lib/views/auth.py:113
+#: nx_lib/views/auth.py:114
 msgid "This link is valid for 7 days."
 msgstr "Questo link è valido per 7 giorni."
 
-#: nx_lib/views/auth.py:114
+#: nx_lib/views/auth.py:115
 msgid "Set Your Password"
 msgstr "Imposta la tua password"
 
-#: nx_lib/views/auth.py:116
+#: nx_lib/views/auth.py:117
 msgid "nexora Password Reset Request"
 msgstr "nexora Richiesta di reimpostazione della password"
 
-#: nx_lib/views/auth.py:118
+#: nx_lib/views/auth.py:119
 msgid ""
 "We received a request to reset the password for your account. You can "
 "reset your password by clicking the button below."
@@ -205,7 +210,7 @@ msgstr ""
 "suo account. Può reimpostare la password facendo clic sul pulsante qui "
 "sotto."
 
-#: nx_lib/views/auth.py:122
+#: nx_lib/views/auth.py:123
 msgid ""
 "If you did not request a password reset, please ignore this email. This "
 "link is valid for 15 minutes."
@@ -213,75 +218,79 @@ msgstr ""
 "Se non ha richiesto una reimpostazione della password, ignori questa "
 "e-mail. Il link è valido per 15 minuti."
 
-#: nx_lib/views/auth.py:125
+#: nx_lib/views/auth.py:126
 msgid "Reset Your Password"
 msgstr "Reimposta la tua password"
 
-#: nx_lib/views/auth.py:176
+#: nx_lib/views/auth.py:177
 msgid "Hello,"
 msgstr "Salve,"
 
-#: nx_lib/views/auth.py:182
+#: nx_lib/views/auth.py:183
 msgid "Thanks,<br>The Sydoc Team"
 msgstr "Grazie,<br>Il team Sydoc"
 
-#: nx_lib/views/auth.py:297
+#: nx_lib/views/auth.py:298
 msgid "Session expired, please try again"
 msgstr "Sessione scaduta, riprova"
 
-#: nx_lib/views/auth.py:348
+#: nx_lib/views/auth.py:349
 msgid "Database error"
 msgstr "Errore del database"
 
-#: nx_lib/views/auth.py:356
+#: nx_lib/views/auth.py:357
 msgid "Invalid code. Please try again."
 msgstr "Codice non valido. Riprova."
 
-#: nx_lib/views/auth.py:405
+#: nx_lib/views/auth.py:406
 msgid "Invalid code"
 msgstr "Codice non valido"
 
-#: nx_lib/views/auth.py:419 nx_lib/views/auth.py:627
+#: nx_lib/views/auth.py:420 nx_lib/views/auth.py:642
 #: templates/js/_profile_js.html:5
 msgid "Passwords do not match"
 msgstr "Le password non corrispondono"
 
-#: nx_lib/views/auth.py:421 nx_lib/views/auth.py:629
+#: nx_lib/views/auth.py:422 nx_lib/views/auth.py:644
 msgid "All Fields must be filled"
 msgstr "Tutti i campi devono essere compilati"
 
-#: nx_lib/views/auth.py:425 nx_lib/views/auth.py:633
+#: nx_lib/views/auth.py:426 nx_lib/views/auth.py:648
 #: nx_lib/views/profile.py:157
 msgid "New password has to be atleast 8 characters long, with no whitespaces"
 msgstr "La nuova password deve contenere almeno 8 caratteri, senza spazi"
 
-#: nx_lib/views/auth.py:445 nx_lib/views/auth.py:651
+#: nx_lib/views/auth.py:446 nx_lib/views/auth.py:666
 msgid "New Password musn't be previously used password"
 msgstr "La nuova password non deve essere una password già utilizzata"
 
-#: nx_lib/views/auth.py:478 nx_lib/views/auth.py:691
+#: nx_lib/views/auth.py:479 nx_lib/views/auth.py:713
 msgid "Something went wrong, please try again"
 msgstr "Qualcosa è andato storto, riprova"
 
-#: nx_lib/views/auth.py:518 nx_lib/views/auth.py:561
+#: nx_lib/views/auth.py:533 nx_lib/views/auth.py:576
 msgid "Invalid credentials"
 msgstr "Credenziali non valide"
 
-#: nx_lib/views/auth.py:565
+#: nx_lib/views/auth.py:580
 msgid "Login temporarily unavailable"
 msgstr "Accesso temporaneamente non disponibile"
 
-#: nx_lib/views/auth.py:680
+#: nx_lib/views/auth.py:698
+msgid "Password set. You can now sign in."
+msgstr "Password impostata. Ora puoi accedere."
+
+#: nx_lib/views/auth.py:700
 msgid "Password changed"
 msgstr "Password modificata"
 
-#: nx_lib/views/auth.py:811
+#: nx_lib/views/auth.py:845
 msgid "If that email is registered, a reset link has been sent."
 msgstr ""
 "Se questo indirizzo e-mail è registrato, è stato inviato un link per "
 "reimpostare la password."
 
-#: nx_lib/views/auth.py:815
+#: nx_lib/views/auth.py:849
 msgid "Unexpected error occurred"
 msgstr "Si è verificato un errore imprevisto"
 
@@ -646,11 +655,11 @@ msgstr "Impossibile aggiornare la metrica"
 msgid "Could not delete metric"
 msgstr "Impossibile eliminare la metrica"
 
-#: nx_lib/views/workitems.py:913
+#: nx_lib/views/workitems.py:919
 msgid "Could not fetch values"
 msgstr "Impossibile recuperare i valori"
 
-#: nx_lib/views/workitems.py:974
+#: nx_lib/views/workitems.py:980
 msgid ""
 "Exporting fields, history, or images requires selecting 10 or fewer "
 "workitems."
@@ -658,23 +667,23 @@ msgstr ""
 "L'esportazione di campi, cronologia o immagini richiede di selezionare 10"
 " workitem o meno."
 
-#: nx_lib/views/workitems.py:1268
+#: nx_lib/views/workitems.py:1274
 msgid "TRUNCATED"
 msgstr "TRONCATO"
 
-#: nx_lib/views/workitems.py:1269
+#: nx_lib/views/workitems.py:1275
 msgid "exported"
 msgstr "esportati"
 
-#: nx_lib/views/workitems.py:1269
+#: nx_lib/views/workitems.py:1275
 msgid "matching workitems"
 msgstr "workitem corrispondenti"
 
-#: nx_lib/views/workitems.py:1275
+#: nx_lib/views/workitems.py:1281
 msgid "EXPORT TIMED OUT"
 msgstr "ESPORTAZIONE SCADUTA"
 
-#: nx_lib/views/workitems.py:1276
+#: nx_lib/views/workitems.py:1282
 msgid ""
 "no fields or images completed before the time limit; this is not a zero-"
 "result export"
@@ -682,86 +691,86 @@ msgstr ""
 "nessun campo o immagine è stato completato prima del limite di tempo; non"
 " si tratta di un'esportazione a zero risultati"
 
-#: nx_lib/views/workitems.py:1382 nx_lib/views/workitems.py:1453
+#: nx_lib/views/workitems.py:1390 nx_lib/views/workitems.py:1461
 msgid "No file part in the request."
 msgstr "Nessuna parte di file nella richiesta."
 
-#: nx_lib/views/workitems.py:1389 nx_lib/views/workitems.py:1456
+#: nx_lib/views/workitems.py:1397 nx_lib/views/workitems.py:1464
 msgid "No file selected for uploading."
 msgstr "Nessun file selezionato per il caricamento."
 
-#: nx_lib/views/workitems.py:1393
+#: nx_lib/views/workitems.py:1401
 msgid "No target process selected."
 msgstr "Nessun processo di destinazione selezionato."
 
-#: nx_lib/views/workitems.py:1405
+#: nx_lib/views/workitems.py:1413
 msgid "You do not have permission to import to this process."
 msgstr "Non hai l'autorizzazione per importare in questo processo."
 
-#: nx_lib/views/workitems.py:1420
+#: nx_lib/views/workitems.py:1428
 #, python-brace-format
 msgid "File '{}' successfully imported into {}."
 msgstr "File '{}' importato con successo in {}."
 
-#: nx_lib/views/workitems.py:1425
+#: nx_lib/views/workitems.py:1433
 msgid "An error occurred while saving the file."
 msgstr "Si è verificato un errore durante il salvataggio del file."
 
-#: nx_lib/views/workitems.py:1427
+#: nx_lib/views/workitems.py:1435
 msgid "Invalid file type. Please upload a valid PDF."
 msgstr "Tipo di file non valido. Carica un PDF valido."
 
-#: nx_lib/views/workitems.py:1450 nx_lib/views/workitems.py:1920
+#: nx_lib/views/workitems.py:1458 nx_lib/views/workitems.py:1928
 msgid "This import is only available for the MS02 client."
 msgstr "Questa importazione è disponibile solo per il cliente MS02."
 
-#: nx_lib/views/workitems.py:1460
+#: nx_lib/views/workitems.py:1468
 msgid "Invalid file type. Please upload a valid Excel (.xlsx) file."
 msgstr ""
 "Tipo di file non valido. Si prega di caricare un file Excel valido "
 "(.xlsx)."
 
-#: nx_lib/views/workitems.py:1468
+#: nx_lib/views/workitems.py:1476
 msgid "The Excel file has no usable rows."
 msgstr "Il file Excel non contiene righe utilizzabili."
 
-#: nx_lib/views/workitems.py:1485
+#: nx_lib/views/workitems.py:1493
 msgid "Could not save the prepared documents. Please try again."
 msgstr "Impossibile salvare i documenti preparati. Riprova."
 
-#: nx_lib/views/workitems.py:1568 nx_lib/views/workitems.py:1608
+#: nx_lib/views/workitems.py:1576 nx_lib/views/workitems.py:1616
 msgid "Workitem not found"
 msgstr "Workitem non trovato"
 
-#: nx_lib/views/workitems.py:1596 nx_lib/views/workitems.py:1690
+#: nx_lib/views/workitems.py:1604 nx_lib/views/workitems.py:1698
 msgid "Internal Server Error"
 msgstr "Errore interno del server"
 
-#: nx_lib/views/workitems.py:1621
+#: nx_lib/views/workitems.py:1629
 msgid "Media index out of bounds"
 msgstr "Indice del media fuori dai limiti"
 
-#: nx_lib/views/workitems.py:1647
+#: nx_lib/views/workitems.py:1655
 msgid "Failed to render PDF page"
 msgstr "Rendering della pagina PDF non riuscito"
 
-#: nx_lib/views/workitems.py:1674
+#: nx_lib/views/workitems.py:1682
 msgid "Failed to process TIFF image"
 msgstr "Elaborazione dell'immagine TIFF non riuscita"
 
-#: nx_lib/views/workitems.py:1739
+#: nx_lib/views/workitems.py:1747
 msgid "Failed to fetch audit history"
 msgstr "Recupero della cronologia di audit non riuscito"
 
-#: nx_lib/views/workitems.py:1741
+#: nx_lib/views/workitems.py:1749
 msgid "An unexpected error occurred"
 msgstr "Si è verificato un errore imprevisto"
 
-#: nx_lib/views/workitems.py:1847
+#: nx_lib/views/workitems.py:1855
 msgid "This page is only available for the MS02 client."
 msgstr "Questa pagina è disponibile solo per il cliente MS02."
 
-#: nx_lib/views/workitems.py:1926
+#: nx_lib/views/workitems.py:1934
 msgid "Could not clear the prepared documents. Please try again."
 msgstr "Impossibile cancellare i documenti preparati. Riprova."
 
@@ -866,30 +875,38 @@ msgstr "Foto profilo"
 msgid "Your profile"
 msgstr "Il tuo profilo"
 
-#: templates/_header.html:194 templates/js/_header_js.html:103
+#: templates/_header.html:195 templates/_header.html:231
+msgid "Switch user"
+msgstr "Cambia utente"
+
+#: templates/_header.html:201 templates/js/_header_js.html:103
 #: templates/profile.html:76
 msgid "Sign out"
 msgstr "Disconnetti"
 
-#: templates/_header.html:205
+#: templates/_header.html:212
 msgid "Command palette"
 msgstr "Tavolozza dei comandi"
 
-#: templates/_header.html:209
+#: templates/_header.html:216
 msgid "Type a command or search..."
 msgstr "Digita un comando o cerca..."
 
-#: templates/_header.html:214
+#: templates/_header.html:221
 msgid "navigate"
 msgstr "naviga"
 
-#: templates/_header.html:215
+#: templates/_header.html:222
 msgid "open"
 msgstr "apri"
 
-#: templates/_header.html:216
+#: templates/_header.html:223
 msgid "close"
 msgstr "chiudi"
+
+#: templates/_header.html:235
+msgid "Switch to user..."
+msgstr "Passa all'utente ..."
 
 #: templates/_maintenance_banner.html:99
 msgid "Maintenance in"
@@ -1305,7 +1322,7 @@ msgstr "Applica"
 #: templates/generali_importstatus.html:74 templates/generali_pdqm.html:131
 #: templates/generali_projectmanagement.html:99
 #: templates/generali_reporting.html:134 templates/invoices.html:97
-#: templates/workitems_overview.html:240
+#: templates/workitems_overview.html:243
 msgid "Reset"
 msgstr "Reimposta"
 
@@ -1355,7 +1372,7 @@ msgstr "Previsto"
 msgid "Kommunikation"
 msgstr "Comunicazione"
 
-#: templates/generali-dashboard.html:155 templates/workitems_overview.html:290
+#: templates/generali-dashboard.html:155 templates/workitems_overview.html:293
 msgid "Select all"
 msgstr "Seleziona tutto"
 
@@ -1422,7 +1439,7 @@ msgstr "Rapporto mensile"
 #: templates/generali_importstatus.html:38 templates/generali_pdqm.html:55
 #: templates/generali_projectmanagement.html:59
 #: templates/generali_reporting.html:63 templates/invoices.html:60
-#: templates/workitems_overview.html:130
+#: templates/workitems_overview.html:133
 msgid "From Date"
 msgstr "Data inizio"
 
@@ -1432,7 +1449,7 @@ msgstr "Data inizio"
 #: templates/generali_importstatus.html:43 templates/generali_pdqm.html:60
 #: templates/generali_projectmanagement.html:64
 #: templates/generali_reporting.html:68 templates/invoices.html:70
-#: templates/workitems_overview.html:140
+#: templates/workitems_overview.html:143
 msgid "To Date"
 msgstr "Data fine"
 
@@ -1572,7 +1589,7 @@ msgstr "Azioni"
 #: templates/generali_documents.html:278
 #: templates/generali_importstatus.html:126 templates/generali_pdqm.html:185
 #: templates/generali_projectmanagement.html:148
-#: templates/generali_reporting.html:189 templates/workitems_overview.html:350
+#: templates/generali_reporting.html:189 templates/workitems_overview.html:353
 msgid "Showing"
 msgstr "Visualizzazione"
 
@@ -1583,7 +1600,7 @@ msgstr "Visualizzazione"
 #: templates/generali_projectmanagement.html:150
 #: templates/generali_reporting.html:191 templates/js/admin/_logs_js.html:108
 #: templates/js/admin/_user_detail_js.html:609
-#: templates/workitems_overview.html:352
+#: templates/workitems_overview.html:355
 msgid "of"
 msgstr "di"
 
@@ -1592,7 +1609,7 @@ msgstr "di"
 #: templates/generali_documents.html:282
 #: templates/generali_importstatus.html:130 templates/generali_pdqm.html:189
 #: templates/generali_projectmanagement.html:152
-#: templates/generali_reporting.html:193 templates/workitems_overview.html:354
+#: templates/generali_reporting.html:193 templates/workitems_overview.html:357
 msgid "results"
 msgstr "risultati"
 
@@ -1654,8 +1671,8 @@ msgstr "Sforzo (ore)"
 #: templates/generali_reporting.html:231 templates/generali_reporting.html:318
 #: templates/generali_reporting.html:343
 #: templates/js/_reporting_dashboard_js.html:80 templates/reporting.html:350
-#: templates/reporting.html:419 templates/workitems_overview.html:391
-#: templates/workitems_overview.html:487
+#: templates/reporting.html:419 templates/workitems_overview.html:394
+#: templates/workitems_overview.html:490
 msgid "Cancel"
 msgstr "Annulla"
 
@@ -1818,7 +1835,7 @@ msgid "Search by ID, policy, damage number…"
 msgstr "Cerca per ID, polizza, numero sinistro…"
 
 #: templates/generali_documents.html:203 templates/reporting.html:73
-#: templates/workitems_overview.html:236
+#: templates/workitems_overview.html:239
 msgid "Advanced"
 msgstr "Avanzato"
 
@@ -1848,7 +1865,7 @@ msgstr "Importazioni CSV nel database dei documenti"
 #: templates/generali_importstatus.html:108
 #: templates/generali_reporting.html:114 templates/invoices.html:79
 #: templates/invoices.html:124 templates/workitems_overview.html:108
-#: templates/workitems_overview.html:304
+#: templates/workitems_overview.html:307
 msgid "Status"
 msgstr "Stato"
 
@@ -2167,7 +2184,7 @@ msgstr ""
 "sicurezza. Segua in tempo reale l'elaborazione di un documento."
 
 #: templates/hero.html:134 templates/js/_workitems_overview_js.html:327
-#: templates/workitems_overview.html:264
+#: templates/workitems_overview.html:267
 msgid "Import"
 msgstr "Importazione"
 
@@ -2249,7 +2266,7 @@ msgstr "Il tuo nome utente"
 
 #: templates/admin/access_control.html:224
 #: templates/admin/modals/_user_modals.html:72 templates/index.html:53
-#: templates/profile.html:64
+#: templates/profile.html:64 templates/set_password.html:49
 msgid "Password"
 msgstr "Password"
 
@@ -2358,8 +2375,8 @@ msgid "All Statuses"
 msgstr "Tutti gli stati"
 
 #: templates/admin/logs.html:20 templates/invoices.html:100
-#: templates/workitems_overview.html:257 templates/workitems_overview.html:340
-#: templates/workitems_overview.html:493
+#: templates/workitems_overview.html:260 templates/workitems_overview.html:343
+#: templates/workitems_overview.html:496
 msgid "Export CSV"
 msgstr "Esporta CSV"
 
@@ -2453,7 +2470,7 @@ msgstr "Nessun documento preparato ancora. Carica un file Excel per iniziare."
 
 #: templates/admin/logs.html:106 templates/admin/user_detail.html:236
 #: templates/js/_generali_documents_js.html:275
-#: templates/js/_workitems_overview_js.html:992
+#: templates/js/_workitems_overview_js.html:993
 #: templates/prepared_documents.html:150
 msgid "Previous"
 msgstr "Precedente"
@@ -2461,7 +2478,7 @@ msgstr "Precedente"
 #: templates/admin/logs.html:107 templates/admin/user_detail.html:237
 #: templates/js/_generali_documents_js.html:279
 #: templates/js/_generali_reporting_js.html:268
-#: templates/js/_workitems_overview_js.html:998
+#: templates/js/_workitems_overview_js.html:999
 #: templates/js/archive/_tour_js.html:17 templates/prepared_documents.html:156
 msgid "Next"
 msgstr "Successivo"
@@ -2475,24 +2492,24 @@ msgstr "Anteprima workitem"
 #: templates/reporting.html:108 templates/reporting.html:136
 #: templates/reporting.html:166 templates/reporting.html:176
 #: templates/reporting.html:373 templates/reporting.html:409
-#: templates/workitems_overview.html:500
+#: templates/workitems_overview.html:503
 msgid "Close"
 msgstr "Chiudi"
 
 #: templates/prepared_documents.html:187 templates/reporting.html:182
-#: templates/workitems_overview.html:506
+#: templates/workitems_overview.html:509
 msgid "Show where extracted values were found on the document"
 msgstr "Mostra dove sono stati trovati i valori estratti nel documento"
 
-#: templates/js/_workitem_detail_panel_js.html:540
+#: templates/js/_workitem_detail_panel_js.html:549
 #: templates/prepared_documents.html:189 templates/reporting.html:184
-#: templates/workitems_overview.html:509
+#: templates/workitems_overview.html:512
 msgid "Show sources"
 msgstr "Mostra origini"
 
 #: templates/prepared_documents.html:196 templates/prepared_documents.html:197
 #: templates/reporting.html:191 templates/reporting.html:192
-#: templates/workitems_overview.html:517 templates/workitems_overview.html:518
+#: templates/workitems_overview.html:520 templates/workitems_overview.html:521
 msgid "Extracted values"
 msgstr "Valori estratti"
 
@@ -2776,7 +2793,7 @@ msgid "Filters"
 msgstr "Filtri"
 
 #: templates/js/_reporting_dashboard_js.html:73 templates/reporting.html:336
-#: templates/workitems_overview.html:226
+#: templates/workitems_overview.html:229
 msgid "Add filter"
 msgstr "Aggiungi filtro"
 
@@ -3093,6 +3110,42 @@ msgstr "Reimposta password - nexora"
 msgid "Reset password"
 msgstr "Reimposta password"
 
+#: templates/set_password.html:8
+msgid "Set password - nexora"
+msgstr "Imposta la password - nexora"
+
+#: templates/set_password.html:37
+msgid "Welcome to nexora"
+msgstr "Benvenuto su nexora"
+
+#: templates/set_password.html:38
+msgid ""
+"Choose a password for your account. You will be asked to set up two-"
+"factor authentication right after."
+msgstr ""
+"Scegli una password per il tuo account. Subito dopo ti verrà chiesto di "
+"configurare l'autenticazione a due fattori."
+
+#: templates/set_password.html:56
+msgid "At least 8 characters, no spaces"
+msgstr "Almeno 8 caratteri, senza spazi"
+
+#: templates/set_password.html:60
+msgid "Confirm password"
+msgstr "Conferma la password"
+
+#: templates/set_password.html:67
+msgid "Repeat your password"
+msgstr "Ripeti la tua password"
+
+#: templates/set_password.html:74
+msgid "Set password"
+msgstr "Imposta password"
+
+#: templates/set_password.html:79
+msgid "Go to login"
+msgstr "Vai al login"
+
 #: templates/verify_2fa.html:8
 msgid "Two-Factor Authentication - nexora"
 msgstr "Autenticazione a due fattori - nexora"
@@ -3125,7 +3178,7 @@ msgstr "Panoramica Workitems"
 msgid "List of all workitems"
 msgstr "Elenco di tutti i Workitems"
 
-#: templates/workitems_overview.html:95 templates/workitems_overview.html:296
+#: templates/workitems_overview.html:95 templates/workitems_overview.html:299
 msgid "Workitem"
 msgstr "Workitem"
 
@@ -3133,7 +3186,7 @@ msgstr "Workitem"
 msgid "All statuses"
 msgstr "Tutti gli stati"
 
-#: templates/workitems_overview.html:150
+#: templates/workitems_overview.html:153
 msgid ""
 "Document\n"
 "                  fields"
@@ -3141,84 +3194,84 @@ msgstr ""
 "Campi del\n"
 "documento"
 
-#: templates/workitems_overview.html:162 templates/workitems_overview.html:194
+#: templates/workitems_overview.html:165 templates/workitems_overview.html:197
 msgid "Search field…"
 msgstr "Cerca campo…"
 
-#: templates/workitems_overview.html:178 templates/workitems_overview.html:209
+#: templates/workitems_overview.html:181 templates/workitems_overview.html:212
 msgid "Type to search…"
 msgstr "Digita per cercare…"
 
-#: templates/workitems_overview.html:272
+#: templates/workitems_overview.html:275
 msgid "Prepared documents"
 msgstr "Documenti preparati"
 
-#: templates/workitems_overview.html:312
+#: templates/workitems_overview.html:315
 msgid "Last movement at"
 msgstr "Ultimo movimento il"
 
 #: templates/js/_workitems_overview_js.html:798
-#: templates/workitems_overview.html:336
+#: templates/workitems_overview.html:339
 msgid "selected"
 msgstr "selezionato"
 
-#: templates/workitems_overview.html:344
+#: templates/workitems_overview.html:347
 msgid "Deselect"
 msgstr "Deseleziona"
 
-#: templates/workitems_overview.html:365
+#: templates/workitems_overview.html:368
 msgid "Batch Import"
 msgstr "Importazione in batch"
 
-#: templates/workitems_overview.html:371
+#: templates/workitems_overview.html:374
 msgid "Destination Process"
 msgstr "Processo di destinazione"
 
-#: templates/workitems_overview.html:376
+#: templates/workitems_overview.html:379
 msgid "Choose a process..."
 msgstr "Scegli un processo..."
 
-#: templates/workitems_overview.html:385
+#: templates/workitems_overview.html:388
 msgid "Please select a valid process."
 msgstr "Seleziona un processo valido."
 
 #: templates/js/_workitems_overview_js.html:331
-#: templates/workitems_overview.html:395
+#: templates/workitems_overview.html:398
 msgid "Import File"
 msgstr "Importa file"
 
-#: templates/workitems_overview.html:407
+#: templates/workitems_overview.html:410
 msgid "Export Workitems"
 msgstr "Esporta Workitems"
 
-#: templates/workitems_overview.html:418
+#: templates/workitems_overview.html:421
 msgid "Always included"
 msgstr "Sempre incluso"
 
-#: templates/workitems_overview.html:421
+#: templates/workitems_overview.html:424
 msgid "Workitem ID, Status, Stage, Last Movement"
 msgstr "ID Workitem, Stato, Fase, Ultimo movimento"
 
-#: templates/workitems_overview.html:427
+#: templates/workitems_overview.html:430
 msgid "Optional extras"
 msgstr "Extra opzionali"
 
 #: templates/js/_reporting_simple_js.html:101
-#: templates/workitems_overview.html:432
+#: templates/workitems_overview.html:435
 msgid "Document fields"
 msgstr ""
 "Campi del\n"
 "documento"
 
-#: templates/workitems_overview.html:433
+#: templates/workitems_overview.html:436
 msgid "Index fields — only available for selections of up to 10 workitems"
 msgstr "Campi indice — disponibili solo per selezioni di massimo 10 Workitems"
 
-#: templates/workitems_overview.html:439
+#: templates/workitems_overview.html:442
 msgid "Audit history"
 msgstr "Cronologia di audit"
 
-#: templates/workitems_overview.html:440
+#: templates/workitems_overview.html:443
 msgid ""
 "Full timeline of all stages — only available for selections of up to 10 "
 "workitems"
@@ -3226,11 +3279,11 @@ msgstr ""
 "Cronologia completa di tutte le fasi — disponibile solo per selezioni "
 "fino a 10 workitem"
 
-#: templates/workitems_overview.html:446
+#: templates/workitems_overview.html:449
 msgid "Images as base64"
 msgstr "Immagini come base64"
 
-#: templates/workitems_overview.html:447
+#: templates/workitems_overview.html:450
 msgid ""
 "Up to 5 images per workitem — only available for selections of up to 10 "
 "workitems"
@@ -3238,7 +3291,7 @@ msgstr ""
 "Fino a 5 immagini per workitem — disponibile solo per selezioni fino a 10"
 " workitem"
 
-#: templates/workitems_overview.html:451
+#: templates/workitems_overview.html:454
 msgid ""
 "Use this PowerShell script to extract images from the exported CSV. "
 "Requires execution policy"
@@ -3246,11 +3299,11 @@ msgstr ""
 "Usa questo script PowerShell per estrarre immagini dal CSV esportato. "
 "Richiede criteri di esecuzione."
 
-#: templates/workitems_overview.html:451
+#: templates/workitems_overview.html:454
 msgid "or higher."
 msgstr "o superiore."
 
-#: templates/workitems_overview.html:480
+#: templates/workitems_overview.html:483
 msgid ""
 "All workitems matching the current filters will be exported (not just the"
 " current page)."
@@ -4252,6 +4305,10 @@ msgstr "Account"
 msgid "No matching commands."
 msgstr "Nessun comando corrispondente."
 
+#: templates/js/_header_js.html:336
+msgid "No matching users."
+msgstr "Nessun utente corrispondente."
+
 #: templates/js/_hero_js.html:118
 msgid "Waiting for new document..."
 msgstr "In attesa di un nuovo documento..."
@@ -4318,6 +4375,7 @@ msgid "steps"
 msgstr "passaggi"
 
 #: templates/js/_reporting_ai_js.html:35
+#: templates/js/_workitem_detail_panel_js.html:241
 msgid "rows"
 msgstr "righe"
 
@@ -5124,52 +5182,62 @@ msgstr "Impossibile caricare la cronologia"
 msgid "Load more"
 msgstr "Carica altri"
 
-#: templates/js/_workitem_detail_panel_js.html:250
-#: templates/js/_workitem_detail_panel_js.html:287
-msgid "Click to locate on the document"
-msgstr "Fai clic per individuare nel documento"
+#: templates/js/_workitem_detail_panel_js.html:241
+msgid "row"
+msgstr "riga"
 
-#: templates/js/_workitem_detail_panel_js.html:285
+#: templates/js/_workitem_detail_panel_js.html:244
+msgid "Row"
+msgstr "Riga"
+
+#: templates/js/_workitem_detail_panel_js.html:252
+#: templates/js/_workitem_detail_panel_js.html:294
 msgid "no source location"
 msgstr "nessuna posizione di origine"
 
-#: templates/js/_workitem_detail_panel_js.html:290
+#: templates/js/_workitem_detail_panel_js.html:254
+#: templates/js/_workitem_detail_panel_js.html:296
+msgid "Click to locate on the document"
+msgstr "Fai clic per individuare nel documento"
+
+#: templates/js/_workitem_detail_panel_js.html:257
+#: templates/js/_workitem_detail_panel_js.html:299
 msgid "Extraction confidence"
 msgstr "Affidabilità di estrazione"
 
-#: templates/js/_workitem_detail_panel_js.html:371
+#: templates/js/_workitem_detail_panel_js.html:380
 msgid "Media"
 msgstr "Media"
 
-#: templates/js/_workitem_detail_panel_js.html:371
+#: templates/js/_workitem_detail_panel_js.html:380
 msgid "for workitem "
 msgstr "per il Workitem "
 
-#: templates/js/_workitem_detail_panel_js.html:394
+#: templates/js/_workitem_detail_panel_js.html:403
 msgid "Failed to load image "
 msgstr "Impossibile caricare l'immagine "
 
-#: templates/js/_workitem_detail_panel_js.html:405
+#: templates/js/_workitem_detail_panel_js.html:414
 msgid "Checking for media..."
 msgstr "Verifica media in corso..."
 
-#: templates/js/_workitem_detail_panel_js.html:427
+#: templates/js/_workitem_detail_panel_js.html:436
 msgid "No additional details found."
 msgstr "Nessun dettaglio aggiuntivo trovato."
 
-#: templates/js/_workitem_detail_panel_js.html:432
+#: templates/js/_workitem_detail_panel_js.html:441
 msgid "No media found for this workitem."
 msgstr "Nessun media trovato per questo Workitem."
 
-#: templates/js/_workitem_detail_panel_js.html:443
+#: templates/js/_workitem_detail_panel_js.html:452
 msgid "Could not load media."
 msgstr "Impossibile caricare i media."
 
-#: templates/js/_workitem_detail_panel_js.html:480
+#: templates/js/_workitem_detail_panel_js.html:489
 msgid "In register"
 msgstr "Nel registro"
 
-#: templates/js/_workitem_detail_panel_js.html:540
+#: templates/js/_workitem_detail_panel_js.html:549
 msgid "Hide sources"
 msgstr "Nascondi origini"
 
