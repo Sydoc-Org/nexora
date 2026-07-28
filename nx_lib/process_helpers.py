@@ -90,7 +90,7 @@ def get_activity_instances_to_ignore():
         cursor = conn.cursor()
         cursor.execute("SELECT ProcessName, ActivityInstanceName FROM ActivityInstancesToIgnore")
         rows = cursor.fetchall()
-        result = ", ".join("'" + row.ActivityInstanceName + "'" for row in rows)
+        result = ", ".join("'" + row.ActivityInstanceName.replace("'", "''") + "'" for row in rows)
         cache.set("activity_instances_ignore", result, timeout=3600)
         return result
     except Exception as e:

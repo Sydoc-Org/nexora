@@ -181,6 +181,31 @@ def test_get_activity_instances_to_ignore_returns_joined_quoted(app):
     assert result == "'Approval', 'Index'"
 
 
+def test_get_activity_instances_to_ignore_escapes_embedded_quotes(app):
+    """A name containing a literal single quote (e.g. "O'Brien"-style) must
+    have it doubled per SQL string-literal escaping, so the raw-spliced
+    `NOT IN ({csv})` fragment stays syntactically valid instead of breaking
+    (or injecting) on the unescaped quote."""
+    fake_cursor = MagicMock()
+    fake_cursor.fetchall.return_value = [
+        MagicMock(ActivityInstanceName="O'Brien Review"),
+    ]
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cursor
+
+    with (
+        patch.object(ph_mod, "engine_nexora_db") as mock_engine,
+        app.app_context(),
+    ):
+        mock_engine.raw_connection.return_value = fake_conn
+        result = get_activity_instances_to_ignore()
+
+    assert result == "'O''Brien Review'"
+    # A naive split on "'" around an unescaped quote would leave an odd
+    # number of quotes (unbalanced literal); doubling keeps it even/paired.
+    assert result.count("'") % 2 == 0
+
+
 def test_get_activity_instances_to_ignore_returns_empty_string_on_db_error(app):
     """If raw_connection raises, the function logs and returns "" explicitly
     (not None) -- callers treat the ignore-csv as a string, and an implicit
