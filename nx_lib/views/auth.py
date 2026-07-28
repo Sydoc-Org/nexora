@@ -442,8 +442,10 @@ def init_reset_password():
             session["pre_2fa_username"] = stored_username
             return redirect(url_for("init_2FA"))
         return redirect(url_for("login"))
-    except Exception:
-        return
+    except Exception as e:
+        current_app.logger.error(f"Password reset (init) failed: {e}")
+        flash(_("Something went wrong, please try again"), "error")
+        return redirect(url_for("login"))
 
 
 def dev_login(username):
@@ -563,6 +565,8 @@ def forgot_password():
 
 
 def set_new_password():
+    if "email_for_password_reset" not in session:
+        return redirect(url_for("login"))
     conn = None
     cursor = None
     try:
@@ -612,8 +616,10 @@ def set_new_password():
         conn.commit()
 
         return render_template("reset_password.html", message=_("Password changed"))
-    except Exception:
-        return
+    except Exception as e:
+        current_app.logger.error(f"Password reset (set new password) failed: {e}")
+        flash(_("Something went wrong, please try again"), "error")
+        return redirect(url_for("login"))
     finally:
         # D-RESET: the "I may set a new password for this email" capability
         # must not outlive a single attempt at this route -- pop it on

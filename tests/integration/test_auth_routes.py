@@ -208,6 +208,25 @@ def test_init_reset_password_too_short_renders_error(client):
     assert resp.status_code == 200
 
 
+def test_init_reset_password_db_failure_redirects_to_login(client):
+    """Task 41: init_reset_password's `except Exception: return` used to
+    hand Flask a bare None -> 500. A DB error mid-request must now degrade
+    to a real redirect response instead of crashing."""
+    with client.session_transaction() as sess:
+        sess["pre_auth_userid"] = "1001"
+    with patch(
+        "nx_lib.views.auth.engine_nexora_db.raw_connection",
+        side_effect=RuntimeError("db down"),
+    ):
+        resp = client.post(
+            "/init_reset_password",
+            data={"new-password": "NewPass1234!", "confirm-password": "NewPass1234!"},
+            follow_redirects=False,
+        )
+    assert resp.status_code == 302
+    assert "/login" in resp.headers.get("Location", "")
+
+
 def test_reset_password_bad_token_redirects_home(client):
     resp = client.get("/reset_password/not-a-valid-token", follow_redirects=False)
     assert resp.status_code == 302
@@ -245,6 +264,43 @@ def test_set_new_password_too_short(client):
         data={"new-password": "short", "confirm-password": "short"},
     )
     assert resp.status_code == 200
+
+
+def test_set_new_password_no_session_redirects_to_login(client):
+    """GET/POST with no active reset session (no email_for_password_reset in
+    session, e.g. navigating straight to the URL) used to fall through to
+    session["email_for_password_reset"] raising KeyError, caught by the bare
+    `except Exception: return` -> None -> Flask 500. Task 41: must redirect,
+    not crash."""
+    resp = client.post(
+        "/set_new_password",
+        data={"new-password": "NewPass1234!", "confirm-password": "NewPass1234!"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 302
+    assert "/login" in resp.headers.get("Location", "")
+
+
+def test_set_new_password_db_failure_redirects_to_login(client):
+    """Task 41: set_new_password's `except Exception: return` used to hand
+    Flask a bare None -> 500. A DB error mid-request must now degrade to a
+    real redirect response instead of crashing."""
+    with client.session_transaction() as sess:
+        sess["email_for_password_reset"] = "admin@test.local"
+    with patch(
+        "nx_lib.views.auth.engine_nexora_db.raw_connection",
+        side_effect=RuntimeError("db down"),
+    ):
+        resp = client.post(
+            "/set_new_password",
+            data={"new-password": "NewPass1234!", "confirm-password": "NewPass1234!"},
+            follow_redirects=False,
+        )
+    assert resp.status_code == 302
+    assert "/login" in resp.headers.get("Location", "")
+    # The D-RESET capability must still be dropped on this failure exit too.
+    with client.session_transaction() as sess:
+        assert "email_for_password_reset" not in sess
 
 
 def _wait_until(predicate, timeout=2.0, interval=0.02):
