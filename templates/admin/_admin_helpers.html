@@ -40,7 +40,7 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
     {% for f in filters %}
       <div>
-        <label for="{{ f.id }}" class="block text-xs font-bold uppercase tracking-widest mb-1" style="color: var(--nx-text-meta)">{{ f.label }}</label>
+        <label for="{{ f.id }}" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ f.label }}</label>
         {% if f.type == 'search' %}
           <div class="nx-input-icon">
             <i class="fas fa-search"></i>

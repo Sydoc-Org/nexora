@@ -32,19 +32,19 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)" for="fld-username">{{ _('Username') }}</label>
+                    <label class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta" for="fld-username">{{ _('Username') }}</label>
                     <input type="text" id="fld-username" name="username" value="{{ user.username }}" required class="nx-input" data-testid="admin-userdetail-username">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)" for="fld-fullname">{{ _('Full name') }}</label>
+                    <label class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta" for="fld-fullname">{{ _('Full name') }}</label>
                     <input type="text" id="fld-fullname" name="fullname" value="{{ user.fullname }}" required class="nx-input" data-testid="admin-userdetail-fullname">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)" for="fld-email">{{ _('Email') }}</label>
+                    <label class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta" for="fld-email">{{ _('Email') }}</label>
                     <input type="email" id="fld-email" name="email" value="{{ user.email or '' }}" required class="nx-input" data-testid="admin-userdetail-email">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)" for="fld-profile">{{ _('Access profile') }}</label>
+                    <label class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta" for="fld-profile">{{ _('Access profile') }}</label>
                     <select id="fld-profile" name="accessprofile" class="nx-select" {% if not can_edit_user %}disabled{% endif %} data-testid="admin-userdetail-accessprofile">
                         {% set assignable_names = assignable_profiles | map(attribute='profile') | list %}
                         {% if user.AccessProfileName and user.AccessProfileName not in assignable_names %}
@@ -60,7 +60,7 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)" for="fld-org">{{ _('Organization') }}</label>
+                    <label class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta" for="fld-org">{{ _('Organization') }}</label>
                     <select id="fld-org" name="organization" class="nx-select" {% if not can_edit_user %}disabled{% endif %} data-testid="admin-userdetail-organization">
                         {% for o in organizations %}
                         <option value="{{ o.organization }}" {% if o.organizationcode == user.organizationcode %}selected{% endif %}>{{ o.organization }}</option>
@@ -68,7 +68,7 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)" for="fld-password">{{ _('New password') }}</label>
+                    <label class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta" for="fld-password">{{ _('New password') }}</label>
                     <input type="password" id="fld-password" name="password" class="nx-input" placeholder="{{ _('Leave blank to keep current') }}" data-testid="admin-userdetail-password">
                 </div>
 
@@ -245,7 +245,7 @@
     <div class="nx-card" style="border-color:var(--nx-danger)">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
             <div>
-                <div class="nx-section" style="color:var(--nx-danger)">{{ _('Danger zone') }}</div>
+                <div class="nx-section nx-c-danger">{{ _('Danger zone') }}</div>
                 <p style="font-size:12px;color:var(--nx-text-sec);margin:4px 0 0">
                     {{ _('Deleting this user is irreversible. Their access is revoked immediately.') }}
                 </p>

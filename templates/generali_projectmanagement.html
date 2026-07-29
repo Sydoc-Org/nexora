@@ -77,7 +77,7 @@
             </div>
           </div>
         </div>
-        <div class="col-span-2 sm:col-span-1 w-full sm:w-auto" id="filterUserWrapper" style="display:none">
+        <div class="col-span-2 sm:col-span-1 w-full sm:w-auto [display:none]!" id="filterUserWrapper">
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("User") }}</label>
           <div class="relative">
             <select id="filterUserId"
@@ -159,7 +159,7 @@
   {% if can_add %}
   <div id="addModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4">
     <div class="nx-card w-full max-w-sm flex flex-col max-h-[90vh] p-0">
-      <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b flex-shrink-0" style="border-color:var(--nx-border)">
+      <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b flex-shrink-0 [border-color:var(--nx-border)]!">
         <h3 class="nx-section">{{ _("Add Entry") }}</h3>
         <button id="closeAddModalBtn" class="nx-btn nx-btn--ghost nx-btn--sm" data-testid="generali-project-management-add-close">
           <i class="fas fa-times text-lg"></i>
@@ -211,7 +211,7 @@
             class="nx-input resize-none" data-testid="generali-project-management-add-comment"></textarea>
         </div>
       </div>
-      <div class="flex justify-end gap-3 px-6 py-4 border-t flex-shrink-0" style="border-color:var(--nx-border)">
+      <div class="flex justify-end gap-3 px-6 py-4 border-t flex-shrink-0 [border-color:var(--nx-border)]!">
         <button id="cancelAddModalBtn"
           class="nx-btn nx-btn--secondary" data-testid="generali-project-management-add-cancel">
           {{ _("Cancel") }}
@@ -227,7 +227,7 @@
 
   <div id="editModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4">
     <div class="nx-card w-full max-w-sm flex flex-col max-h-[90vh] p-0">
-      <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b flex-shrink-0" style="border-color:var(--nx-border)">
+      <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b flex-shrink-0 [border-color:var(--nx-border)]!">
         <h3 class="nx-section">{{ _("Edit Entry") }}</h3>
         <button id="closeEditBtn" class="nx-btn nx-btn--ghost nx-btn--sm" data-testid="generali-project-management-edit-close">
           <i class="fas fa-times text-lg"></i>
@@ -249,9 +249,9 @@
           <textarea id="editComment" placeholder="{{ _('Enter comment…') }}" rows="3"
             class="nx-input resize-none" data-testid="generali-project-management-edit-comment"></textarea>
         </div>
-        <p id="editError" class="hidden text-xs font-medium" style="color:var(--nx-danger)"></p>
+        <p id="editError" class="hidden text-xs font-medium [color:var(--nx-danger)]!"></p>
       </div>
-      <div class="flex gap-3 px-6 py-4 border-t flex-shrink-0" style="border-color:var(--nx-border)">
+      <div class="flex gap-3 px-6 py-4 border-t flex-shrink-0 [border-color:var(--nx-border)]!">
         <button id="cancelEditBtn"
           class="nx-btn nx-btn--secondary flex-1 justify-center" data-testid="generali-project-management-edit-cancel">
           {{ _("Cancel") }}
@@ -268,12 +268,12 @@
   <div id="deleteModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4">
     <div class="nx-card w-full max-w-xs flex flex-col overflow-hidden p-0">
       <div class="flex items-center gap-3 px-6 pt-6 pb-4">
-        <div class="flex-shrink-0 nx-stat__chip" style="border-radius:9999px;background:var(--nx-l-red);color:var(--nx-l-red-fg)">
+        <div class="flex-shrink-0 nx-stat__chip [border-radius:9999px]! [background:var(--nx-l-red)]! [color:var(--nx-l-red-fg)]!">
           <i class="fas fa-trash"></i>
         </div>
         <div>
           <h3 class="nx-section">{{ _("Delete record") }}</h3>
-          <p class="text-sm mt-0.5" style="color:var(--nx-text-sec)">{{ _("This action cannot be undone.") }}</p>
+          <p class="text-sm mt-0.5 [color:var(--nx-text-sec)]!">{{ _("This action cannot be undone.") }}</p>
         </div>
       </div>
       <div class="flex gap-3 px-6 pb-5 pt-2">

@@ -39,13 +39,13 @@
         <div class="nx-filter mb-6">
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
-                <label for="filterUser" class="block text-xs font-bold uppercase tracking-widest mb-1" style="color: var(--nx-text-meta)">{{ _('Username') }}</label>
+                <label for="filterUser" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _('Username') }}</label>
                 <div class="nx-input-icon"><i class="fas fa-user"></i>
                     <input type="text" id="filterUser" class="nx-input" data-testid="admin-logs-filter-user">
                 </div>
             </div>
             <div>
-                <label for="filterMethod" class="block text-xs font-bold uppercase tracking-widest mb-1" style="color: var(--nx-text-meta)">{{ _('Method') }}</label>
+                <label for="filterMethod" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _('Method') }}</label>
                 <select id="filterMethod" class="nx-select" data-testid="admin-logs-filter-method">
                     <option value="">{{ _('All') }}</option>
                     <option value="GET">GET</option>
@@ -55,13 +55,13 @@
                 </select>
             </div>
             <div>
-                <label for="filterPath" class="block text-xs font-bold uppercase tracking-widest mb-1" style="color: var(--nx-text-meta)">{{ _('Path') }}</label>
+                <label for="filterPath" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _('Path') }}</label>
                 <div class="nx-input-icon"><i class="fas fa-link"></i>
                     <input type="text" id="filterPath" class="nx-input" placeholder="/api/..." data-testid="admin-logs-filter-path">
                 </div>
             </div>
             <div>
-                <label for="filterStatus" class="block text-xs font-bold uppercase tracking-widest mb-1" style="color: var(--nx-text-meta)">{{ _('Status') }}</label>
+                <label for="filterStatus" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _('Status') }}</label>
                 <select id="filterStatus" class="nx-select" data-testid="admin-logs-filter-status">
                     <option value="">{{ _('All') }}</option>
                     <option value="SUCCESS">{{ _('Success (2xx)') }}</option>
@@ -69,7 +69,7 @@
                 </select>
             </div>
             <div>
-                <label for="filterOrg" class="block text-xs font-bold uppercase tracking-widest mb-1" style="color: var(--nx-text-meta)">{{ _('Organization') }}</label>
+                <label for="filterOrg" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _('Organization') }}</label>
                 <select id="filterOrg" class="nx-select" data-testid="admin-logs-filter-org">
                     <option value="">{{ _('All') }}</option>
                     {% for org in organizations %}
@@ -78,11 +78,11 @@
                 </select>
             </div>
             <div>
-                <label for="filterStart" class="block text-xs font-bold uppercase tracking-widest mb-1" style="color: var(--nx-text-meta)">{{ _('Start date') }}</label>
+                <label for="filterStart" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _('Start date') }}</label>
                 <input type="date" id="filterStart" class="nx-input" data-testid="admin-logs-filter-start">
             </div>
             <div>
-                <label for="filterEnd" class="block text-xs font-bold uppercase tracking-widest mb-1" style="color: var(--nx-text-meta)">{{ _('End date') }}</label>
+                <label for="filterEnd" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _('End date') }}</label>
                 <input type="date" id="filterEnd" class="nx-input" data-testid="admin-logs-filter-end">
             </div>
             </div>
@@ -115,18 +115,18 @@
         <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity opacity-0" id="modalBackdrop"></div>
         <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
             <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-                <div class="relative transform overflow-hidden rounded-xl text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-2xl opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" id="modalPanel" style="background:var(--nx-card)">
+                <div class="relative transform overflow-hidden rounded-xl text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-2xl opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95 nx-bg-card" id="modalPanel">
                     <div class="px-4 py-3 sm:px-6 flex justify-between items-center" style="background:var(--nx-alt);border-bottom:1px solid var(--nx-divider)">
-                        <h3 class="text-base font-semibold leading-6" id="modal-title" style="color:var(--nx-text)">
-                            <i class="fas fa-terminal mr-2" style="color:var(--nx-accent)"></i> {{ _('Log Details Payload') }}
+                        <h3 class="text-base font-semibold leading-6 nx-c-text" id="modal-title">
+                            <i class="fas fa-terminal mr-2 nx-c-accent"></i> {{ _('Log Details Payload') }}
                         </h3>
-                        <button onclick="closeLogModal()" class="transition" style="color:var(--nx-text-meta)" data-testid="admin-logs-modal-close"><i class="fas fa-times text-lg"></i></button>
+                        <button onclick="closeLogModal()" class="transition nx-c-meta" data-testid="admin-logs-modal-close"><i class="fas fa-times text-lg"></i></button>
                     </div>
-                    <div class="px-4 py-5 sm:p-6" style="background:var(--nx-card)">
+                    <div class="px-4 py-5 sm:p-6 nx-bg-card">
                         <div class="grid grid-cols-3 gap-4 mb-4 text-sm pb-4" style="color:var(--nx-text-sec);border-bottom:1px solid var(--nx-divider)">
-                            <div><span class="block text-xs font-bold uppercase" style="color:var(--nx-text-meta)">{{ _('User') }}</span> <span id="modalUser" class="font-medium" style="color:var(--nx-text)"></span></div>
-                            <div><span class="block text-xs font-bold uppercase" style="color:var(--nx-text-meta)">{{ _('Action') }}</span> <span id="modalAction" class="font-medium" style="color:var(--nx-text)"></span></div>
-                            <div><span class="block text-xs font-bold uppercase" style="color:var(--nx-text-meta)">{{ _('Time') }}</span> <span id="modalTime" class="font-medium" style="color:var(--nx-text)"></span></div>
+                            <div><span class="block text-xs font-bold uppercase nx-c-meta">{{ _('User') }}</span> <span id="modalUser" class="font-medium nx-c-text"></span></div>
+                            <div><span class="block text-xs font-bold uppercase nx-c-meta">{{ _('Action') }}</span> <span id="modalAction" class="font-medium nx-c-text"></span></div>
+                            <div><span class="block text-xs font-bold uppercase nx-c-meta">{{ _('Time') }}</span> <span id="modalTime" class="font-medium nx-c-text"></span></div>
                         </div>
                         <div class="relative">
                             <button onclick="copyToClipboard()" class="absolute top-2 right-2 text-xs bg-gray-700/80 hover:bg-gray-600 text-gray-200 px-2 py-1 rounded transition border border-gray-600 z-10" data-testid="admin-logs-modal-copy">

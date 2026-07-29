@@ -51,7 +51,7 @@
       <!-- Row 1 -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <div>
-          <label class="block text-xs font-bold uppercase tracking-widest mb-2" style="color:var(--nx-text-meta)">{{ _("Document Type") }}</label>
+          <label class="block text-xs font-bold uppercase tracking-widest mb-2 [color:var(--nx-text-meta)]!">{{ _("Document Type") }}</label>
           <div class="relative">
             <select id="filterDocType" name="docType"
               class="nx-select h-11 appearance-none pr-10" data-testid="generali-documents-doctype-filter">
@@ -63,7 +63,7 @@
           </div>
         </div>
         <div>
-          <label class="block text-xs font-bold uppercase tracking-widest mb-2" style="color:var(--nx-text-meta)">{{ _("Recipient") }}</label>
+          <label class="block text-xs font-bold uppercase tracking-widest mb-2 [color:var(--nx-text-meta)]!">{{ _("Recipient") }}</label>
           <div class="relative">
             <select id="filterEmpfaenger" name="empfaenger"
               class="nx-select h-11 appearance-none pr-10" data-testid="generali-documents-recipient-filter">
@@ -75,7 +75,7 @@
           </div>
         </div>
         <div>
-          <label class="block text-xs font-bold uppercase tracking-widest mb-2" style="color:var(--nx-text-meta)">{{ _("Language") }}</label>
+          <label class="block text-xs font-bold uppercase tracking-widest mb-2 [color:var(--nx-text-meta)]!">{{ _("Language") }}</label>
           <div class="relative">
             <select id="filterSprache" name="sprache"
               class="nx-select h-11 appearance-none pr-10" data-testid="generali-documents-language-filter">
@@ -87,7 +87,7 @@
           </div>
         </div>
         <div>
-            <label class="block text-xs font-bold uppercase tracking-widest mb-2" style="color:var(--nx-text-meta)">{{ _("Channel") }}</label>
+            <label class="block text-xs font-bold uppercase tracking-widest mb-2 [color:var(--nx-text-meta)]!">{{ _("Channel") }}</label>
             <div class="relative">
               <select id="filterKanal" name="eingangskanal"
                 class="nx-select h-11 appearance-none pr-10" data-testid="generali-documents-channel-filter">
@@ -101,10 +101,10 @@
       </div>
 
       <!-- Advanced row (hidden by default) -->
-      <div id="advancedFilterContainer" class="hidden mt-0 pt-4 border-t" style="border-color:var(--nx-divider)">
+      <div id="advancedFilterContainer" class="hidden mt-0 pt-4 border-t [border-color:var(--nx-divider)]!">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           <div>
-          <label class="block text-xs font-bold uppercase tracking-widest mb-2" style="color:var(--nx-text-meta)">NK1</label>
+          <label class="block text-xs font-bold uppercase tracking-widest mb-2 [color:var(--nx-text-meta)]!">NK1</label>
           <div class="relative">
             <select id="filterNK1" name="nk1"
               class="nx-select h-11 appearance-none pr-10" data-testid="generali-documents-nk1-filter">
@@ -117,7 +117,7 @@
         </div>
 
           <div>
-            <label class="block text-xs font-bold uppercase tracking-widest mb-2" style="color:var(--nx-text-meta)">NK2</label>
+            <label class="block text-xs font-bold uppercase tracking-widest mb-2 [color:var(--nx-text-meta)]!">NK2</label>
             <div class="relative">
               <select id="filterNK2" name="nk2"
                 class="nx-select h-11 appearance-none pr-10" data-testid="generali-documents-nk2-filter">
@@ -130,7 +130,7 @@
           </div>
 
           <div>
-            <label class="block text-xs font-bold uppercase tracking-widest mb-2" style="color:var(--nx-text-meta)">{{ _("Communication") }}</label>
+            <label class="block text-xs font-bold uppercase tracking-widest mb-2 [color:var(--nx-text-meta)]!">{{ _("Communication") }}</label>
             <div class="relative">
               <select id="filterKomm" name="kommunikation"
                 class="nx-select h-11 appearance-none pr-10" data-testid="generali-documents-komm-filter">
@@ -142,7 +142,7 @@
             </div>
           </div>
           <div>
-            <label class="block text-xs font-bold uppercase tracking-widest mb-2" style="color:var(--nx-text-meta)">{{ _("Group By") }}</label>
+            <label class="block text-xs font-bold uppercase tracking-widest mb-2 [color:var(--nx-text-meta)]!">{{ _("Group By") }}</label>
             <div class="relative">
               <select id="filterGroupBy" name="groupBy"
                 class="nx-select h-11 appearance-none pr-10" data-testid="generali-documents-groupby-filter">
@@ -161,12 +161,12 @@
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label class="block text-xs font-bold uppercase tracking-widest mb-2" style="color:var(--nx-text-meta)">{{ _("From Date") }}</label>
+            <label class="block text-xs font-bold uppercase tracking-widest mb-2 [color:var(--nx-text-meta)]!">{{ _("From Date") }}</label>
             <input type="text" id="filterStartDate" name="startDate" placeholder="yyyy-mm-dd hh:mm:ss"
               class="nx-input h-11" data-testid="generali-documents-start-date" />
           </div>
           <div>
-            <label class="block text-xs font-bold uppercase tracking-widest mb-2" style="color:var(--nx-text-meta)">{{ _("To Date") }}</label>
+            <label class="block text-xs font-bold uppercase tracking-widest mb-2 [color:var(--nx-text-meta)]!">{{ _("To Date") }}</label>
             <input type="text" id="filterEndDate" name="endDate" placeholder="yyyy-mm-dd hh:mm:ss"
               class="nx-input h-11" data-testid="generali-documents-end-date" />
           </div>
@@ -174,7 +174,7 @@
       </div>
 
       <!-- Search + Actions row -->
-      <div class="flex flex-wrap items-center justify-between gap-3 mt-5 pt-5 border-t" style="border-color:var(--nx-divider)">
+      <div class="flex flex-wrap items-center justify-between gap-3 mt-5 pt-5 border-t [border-color:var(--nx-divider)]!">
         <div class="relative flex-1 min-w-0">
           <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
             <i class="fas fa-search text-xs"></i>
@@ -273,7 +273,7 @@
 
     <!-- Pagination -->
     <div id="paginationContainer" class="mt-6 flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3">
-      <div class="text-sm font-medium" style="color:var(--nx-text-sec)">
+      <div class="text-sm font-medium [color:var(--nx-text-sec)]!">
         {{ _("Showing") }}
         <span class="font-semibold nx-mono" id="showingCount">—</span>
         {{ _("of") }}

@@ -54,33 +54,33 @@
                 <input type="hidden" id="maintID" />
                 <div class="space-y-3">
                     <div>
-                        <label for="maintTitle" class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)">{{ _("Title") }} <span style="color:var(--nx-text-meta);font-weight:normal">({{ _("optional") }})</span></label>
+                        <label for="maintTitle" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Title") }} <span style="color:var(--nx-text-meta);font-weight:normal">({{ _("optional") }})</span></label>
                         <input type="text" id="maintTitle" maxlength="200" class="nx-input" data-testid="admin-maintenance-title" />
                     </div>
                     <div>
-                        <label for="maintMessage" class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)">{{ _("Message") }} <span style="color:var(--nx-danger)">*</span></label>
+                        <label for="maintMessage" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Message") }} <span class="nx-c-danger">*</span></label>
                         <textarea id="maintMessage" rows="3" maxlength="2000" required class="nx-input" data-testid="admin-maintenance-message"></textarea>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label for="maintStartAt" class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)">{{ _("Start") }} <span style="color:var(--nx-danger)">*</span></label>
+                            <label for="maintStartAt" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Start") }} <span class="nx-c-danger">*</span></label>
                             <input type="text" id="maintStartAt" placeholder="yyyy-mm-dd hh:mm" required class="nx-input" data-testid="admin-maintenance-start-at" />
                         </div>
                         <div>
-                            <label for="maintEndAt" class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)">{{ _("End") }} <span style="color:var(--nx-danger)">*</span></label>
+                            <label for="maintEndAt" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("End") }} <span class="nx-c-danger">*</span></label>
                             <input type="text" id="maintEndAt" placeholder="yyyy-mm-dd hh:mm" required class="nx-input" data-testid="admin-maintenance-end-at" />
                         </div>
                     </div>
                     <div>
-                        <label for="maintAnnounce" class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)">{{ _("Announce users") }}</label>
+                        <label for="maintAnnounce" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Announce users") }}</label>
                         <div class="flex items-center gap-2">
                             <input type="number" id="maintAnnounce" min="0" max="1440" step="1" value="0" class="nx-input w-24" data-testid="admin-maintenance-announce" />
-                            <span class="text-sm" style="color:var(--nx-text-sec)">{{ _("minutes before start (0 = no announcement)") }}</span>
+                            <span class="text-sm nx-c-sec">{{ _("minutes before start (0 = no announcement)") }}</span>
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-3 items-end">
                         <div>
-                            <label for="maintSeverity" class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)">{{ _("Severity") }}</label>
+                            <label for="maintSeverity" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Severity") }}</label>
                             <select id="maintSeverity" class="nx-select" data-testid="admin-maintenance-severity">
                                 <option value="info">{{ _("Info") }}</option>
                                 <option value="warning">{{ _("Warning") }}</option>
@@ -102,13 +102,13 @@
                                 <span class="ml-toggle-slider"></span>
                             </label>
                             <div class="flex-1">
-                                <div class="text-sm font-semibold" style="color:var(--nx-danger)">{{ _("Block access during window") }}</div>
-                                <p class="text-xs mt-1" style="color:var(--nx-text-sec)">{{ _("When enabled and the window is active, users without admin.maintenance.bypass are logged out and shown a maintenance page. Make sure you have the bypass permission before turning this on.") }}</p>
+                                <div class="text-sm font-semibold nx-c-danger">{{ _("Block access during window") }}</div>
+                                <p class="text-xs mt-1 nx-c-sec">{{ _("When enabled and the window is active, users without admin.maintenance.bypass are logged out and shown a maintenance page. Make sure you have the bypass permission before turning this on.") }}</p>
                             </div>
                         </div>
                     </div>
                 </div>
-                <p id="maintError" class="text-xs mt-3 hidden" style="color:var(--nx-danger)"></p>
+                <p id="maintError" class="text-xs mt-3 hidden nx-c-danger"></p>
                 <div class="flex justify-end mt-6 gap-2">
                     <button type="button" onclick="closeMaintModal()" class="nx-btn nx-btn--secondary" data-testid="admin-maintenance-cancel">{{ _("Cancel") }}</button>
                     <button type="submit" class="nx-btn nx-btn--primary" data-testid="admin-maintenance-save">{{ _("Save") }}</button>
@@ -120,11 +120,11 @@
     <!-- Delete confirmation -->
     <div id="maintDeleteModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 hidden">
         <div class="nx-card w-full max-w-sm p-6 text-center">
-            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full" style="background:var(--nx-l-red)">
-                <i class="fas fa-exclamation-triangle text-lg" style="color:var(--nx-danger)"></i>
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full nx-bg-lred">
+                <i class="fas fa-exclamation-triangle text-lg nx-c-danger"></i>
             </div>
             <h3 class="nx-section mt-4">{{ _("Delete banner") }}</h3>
-            <p class="text-sm mt-2" style="color:var(--nx-text-sec)">{{ _("This action cannot be undone.") }}</p>
+            <p class="text-sm mt-2 nx-c-sec">{{ _("This action cannot be undone.") }}</p>
             <div class="mt-6 flex justify-center gap-3">
                 <button type="button" onclick="closeMaintDeleteModal()" class="nx-btn nx-btn--secondary" data-testid="admin-maintenance-delete-cancel">{{ _("Cancel") }}</button>
                 <button type="button" id="maintDeleteConfirm" class="nx-btn nx-btn--danger" data-testid="admin-maintenance-delete-confirm">{{ _("Delete") }}</button>

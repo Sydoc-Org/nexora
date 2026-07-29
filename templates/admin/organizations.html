@@ -39,7 +39,7 @@
                         <td>{{ organization.organization }}</td>
                         <td class="align-right">
                             <button data-organization='{{ organization|tojson|safe }}' class="edit-organization-btn nx-btn nx-btn--ghost nx-btn--sm" type="button" data-testid="admin-org-edit-{{ organization.organizationcode }}">{{ _("Edit") }}</button>
-                            <button onclick="deleteorganization('{{ organization.organizationcode }}')" class="nx-btn nx-btn--ghost nx-btn--sm" style="color:var(--nx-danger)" type="button" data-testid="admin-org-delete-{{ organization.organizationcode }}">{{ _("Delete") }}</button>
+                            <button onclick="deleteorganization('{{ organization.organizationcode }}')" class="nx-btn nx-btn--ghost nx-btn--sm nx-c-danger" type="button" data-testid="admin-org-delete-{{ organization.organizationcode }}">{{ _("Delete") }}</button>
                         </td>
                     </tr>
                     {% endfor %}

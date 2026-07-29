@@ -163,7 +163,7 @@
 .reporting-scope-btn[aria-expanded="true"] .fa-chevron-down { transform: rotate(180deg); }
 .reporting-scope-menu {
   position: absolute;
-  z-index: 30;
+  z-index: var(--z-raised);
   left: 0;
   right: 0;
   margin-top: 4px;
@@ -332,7 +332,7 @@
 }
 .reporting-modal {
   position: fixed; inset: 0; background: rgba(0,0,0,.45);
-  display: flex; align-items: center; justify-content: center; z-index: 50;
+  display: flex; align-items: center; justify-content: center; z-index: var(--z-overlay-center);
 }
 .reporting-modal[hidden] { display: none; }
 .reporting-modal-box {
@@ -1118,7 +1118,7 @@ body.nx-app {
    + Escape close (see the JS partial). */
 .rs-more-wrap { position: relative; }
 .rs-more-menu {
-  position: absolute; z-index: 30; top: 100%; right: 0; margin-top: 6px;
+  position: absolute; z-index: var(--z-raised); top: 100%; right: 0; margin-top: 6px;
   min-width: 180px; padding: 6px;
   background: var(--nx-card); border: 1px solid var(--nx-border);
   border-radius: 10px; box-shadow: var(--nx-shadow-pop);
@@ -1264,11 +1264,11 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
    context-chip row + info callout -- see reporting.md §Drill / the
    2026-07-20 redesign plan Task 9. --- */
 .reporting-drill-backdrop {
-  position: fixed; inset: 0; background: rgba(0, 0, 0, .28); z-index: 60;
+  position: fixed; inset: 0; background: rgba(0, 0, 0, .28); z-index: var(--z-modal-backdrop);
 }
 .reporting-drill-backdrop[hidden] { display: none; }
 .reporting-drill-panel {
-  position: fixed; top: 0; right: 0; bottom: 0; z-index: 61;
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: var(--z-modal);
   width: 640px; max-width: 640px;
   display: flex; flex-direction: column;
   background: var(--nx-card); color: var(--nx-text);
@@ -1361,11 +1361,11 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
    and the thinking ticker reuse the existing AI-panel/hero visual language
    (.reporting-ai-dots, .rs-suggestion) rather than inventing new ones. */
 .reporting-chat-backdrop {
-  position: fixed; inset: 0; background: rgba(0, 0, 0, .28); z-index: 60;
+  position: fixed; inset: 0; background: rgba(0, 0, 0, .28); z-index: var(--z-modal-backdrop);
 }
 .reporting-chat-backdrop[hidden] { display: none; }
 .reporting-chat-panel {
-  position: fixed; top: 0; right: 0; bottom: 0; z-index: 61;
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: var(--z-modal);
   width: 420px; max-width: 420px; height: 100dvh;
   display: flex; flex-direction: column;
   background: var(--nx-card); color: var(--nx-text);
@@ -1470,7 +1470,7 @@ html.dark .rp-chat-starter { border-color: var(--nx-card-hover-border); }
    _workitem_detail_panel_js.html markup inside #rdWiBody is itself styled
    with Tailwind utility classes, loaded gated in templates/reporting.html. */
 .reporting-drill-wi-modal {
-  position: fixed; inset: 0; z-index: 210;
+  position: fixed; inset: 0; z-index: var(--z-top-2);
   display: flex; align-items: center; justify-content: center;
   background: rgba(0, 0, 0, .5); padding: 16px;
 }
@@ -1500,7 +1500,7 @@ html.dark .rp-chat-starter { border-color: var(--nx-card-hover-border); }
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
   background: var(--nx-card); color: var(--nx-text);
   border: 1px solid var(--nx-border); border-radius: 8px;
-  padding: 10px 16px; font-size: 13px; z-index: 100; /* above the drill drawer */
+  padding: 10px 16px; font-size: 13px; z-index: var(--z-popover); /* above the drill drawer */
   box-shadow: 0 6px 24px rgba(0, 0, 0, .18);
   transition: opacity .3s ease;
 }
@@ -2276,7 +2276,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 
 /* ---- Saved-report picker modal (D14 v1 card configuration) ------------- */
 .rdb-modal-overlay {
-  position: fixed; inset: 0; z-index: 60; background: rgba(0, 0, 0, .45);
+  position: fixed; inset: 0; z-index: var(--z-modal-backdrop); background: rgba(0, 0, 0, .45);
   display: flex; align-items: center; justify-content: center;
 }
 .rdb-modal {
@@ -2303,7 +2303,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 
 /* ---- Export menu (D9 -- #rdbExport, card-title list) -------------------- */
 .rdb-export-menu {
-  z-index: 60; min-width: 200px; max-width: 280px; padding: 6px;
+  z-index: var(--z-popover-menu); min-width: 200px; max-width: 280px; padding: 6px;
   background: var(--nx-card); border: 1px solid var(--nx-border);
   border-radius: 10px; box-shadow: var(--nx-shadow-pop);
 }
