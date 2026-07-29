@@ -35,7 +35,6 @@
         const fd = new FormData(form);
         const p = new URLSearchParams();
         for (const [k, v] of fd.entries()) {
-            if (k === 'csrf_token') continue;
             if (v) p.set(k, v);
         }
         p.set('page', page);

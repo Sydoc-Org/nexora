@@ -169,6 +169,16 @@ Work toward 2.5.65.
 
 ### Fixed
 
+- Invoices/Generali Documents: the filter forms on both pages submit as GET
+  but shipped a hidden `csrf_token` field anyway (#139). Flask-WTF doesn't
+  validate CSRF on GET requests, so the field was dead weight that leaked
+  the session-bound token into the URL/browser history on submit — most
+  visibly on Invoices, whose JS builds the query string from the full
+  `FormData` (including hidden fields) and pushes it into
+  `window.history`. Dropped the hidden field from both forms; both already
+  send the real CSRF token via the `X-CSRFToken` header on their AJAX
+  calls.
+
 - Admin: the "Active Sessions" page and the overview's active-sessions count
   now actually reflect recent activity (#109). Both previously filtered on
   `ActiveSessions.CreatedAt` — set once at login and never updated — so a
