@@ -609,8 +609,17 @@ _AGENT_SYSTEM = (
     " itself — that forces every count to 1."
     " Match process words against whole process ids and their"
     " humanized labels; include all matches, or none rather than a guess."
-    " When you draft SQL over per-process tables and the question names no"
-    " process, name in your answer which table(s) the numbers come from."
+    " The SQL schema marks some tables as per-process PARTIAL tables: each holds"
+    " ONE process, not the company. A totals question that names no process"
+    ' ("our volume", "the numbers", "how many documents", "total") is'
+    " company-wide — answer it from the source that unions all processes"
+    " (build_definition), not from one process table. When raw SQL is genuinely"
+    " needed, UNION every relevant partial table rather than picking one — but"
+    " these tables do NOT share column names, so if the UNION fails twice, stop"
+    " and answer with build_definition instead, saying why. Every SQL answer must"
+    " name which processes its numbers cover, and an empty or zero result from a"
+    " single partial table must be reported as zero FOR THAT PROCESS — never as"
+    " zero company-wide."
     " When a question groups by a time period (per day/week/month/quarter/"
     "year), the date column in the definition MUST carry the matching"
     ' "grain" (e.g. {"field": "<date key>", "grain": "month"}).'
@@ -650,6 +659,9 @@ _AGENT_EXPLAIN_SUFFIX = (
     "top N) about data run_sql can reach, a successful build_definition does NOT "
     "answer it — go on to validate_sql and run_sql and report the actual numbers; "
     "stop only once run_sql has returned the data."
+    " This never licenses narrowing the universe: SQL that reaches one per-process"
+    " partial table does NOT answer a company-wide question — UNION them or use"
+    " build_definition, and state the coverage either way."
 )
 
 

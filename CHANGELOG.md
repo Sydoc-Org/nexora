@@ -169,6 +169,32 @@ Work toward 2.5.65.
 
 ### Fixed
 
+- Auth: **nobody could stay logged in** — migration `0045` made
+  `ActiveSessions.LastSeenAt` `NOT NULL` without a default, but neither INSERT
+  in `_record_active_session` supplies it, so every login failed to record its
+  session; the next request then hit `_enforce_active_session`, found no row,
+  and cleared the session. Migration `0047` gives `LastSeenAt` the same
+  `DEFAULT (getdate())` that `CreatedAt` already had, fixing every INSERT site
+  at once. Found while verifying #128 against a running INT instance.
+
+- Reporting AI: the agent answered **company-wide questions from a single
+  process table** and presented the result as the whole company (#128). The SQL
+  grounding is a flat `INFORMATION_SCHEMA` dump, so `dbo.Compass_Invoice` looked
+  exactly like a company-wide fact table; the agent picked whichever one its
+  schema inspection surfaced first. Worst case was a confident **zero** for "the
+  numbers for the last quarter" — correct SQL, correct dates, wrong universe.
+  The schema block now opens with the `Statconfig` table→process map marked as
+  per-process **partial** tables (`serialize_partial_tables`) — with each table's
+  import/export date columns, which differ per table — naming the curated source
+  that unions them and declaring itself complete, so the unregistered tables the
+  agent liked most (`dbo.BFH_Statistic`, `dbo.DPSLicenseCounter`) are marked as
+  outside the reporting universe. `_AGENT_SYSTEM` turns the old advisory
+  "name which table(s)" line into a hard rule: totals questions naming no
+  process are company-wide, raw SQL must UNION the partial tables, every SQL
+  answer states its coverage, and a zero from one partial table is reported as
+  zero *for that process*. The explain-data suffix no longer reads as licence to
+  narrow the universe to reach `run_sql`.
+
 - Auth: the 2FA challenge (`/verify_2fa`) now auto-submits once the code field
   holds 6 digits, instead of requiring a manual click on "Verify Identity"
   (#107). Non-digit input is stripped client-side as it's typed.

@@ -374,7 +374,32 @@ def _ai_schema_text():
                 {"label": s.get("label"), "fields": table_source_catalog(s.get("columns"))}
             )
     metrics = _accessible_metrics()
-    text, truncated = serialize_schema(targets=targets, curated=curated, metrics=metrics or None)
+    # Mark the Statconfig tables as per-process partial views, so the agent stops
+    # answering company-wide questions from whichever single one it found in the
+    # flat INFORMATION_SCHEMA dump (issue #128). Statconfig being unavailable just
+    # drops the block — never a 500.
+    partial_tables = {}
+    try:
+        for cfg in _load_process_configs(_allowed_processes()):
+            if not cfg.get("table"):
+                continue
+            entry = partial_tables.setdefault(
+                cfg["table"],
+                {
+                    "processes": [],
+                    "import_col": cfg.get("import_col"),
+                    "export_col": cfg.get("export_col"),
+                },
+            )
+            entry["processes"].append(cfg["process"])
+    except Exception as e:
+        current_app.logger.warning(f"reporting.ai schema: Statconfig unavailable: {e}")
+    text, truncated = serialize_schema(
+        targets=targets,
+        curated=curated,
+        metrics=metrics or None,
+        partial_tables=partial_tables,
+    )
     if truncated:
         current_app.logger.info("reporting.ai schema truncated for user=%s", session.get("userid"))
     return text

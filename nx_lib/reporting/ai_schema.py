@@ -148,6 +148,64 @@ def serialize_sources_catalog(sources, *, char_budget=DEFAULT_CHAR_BUDGET):
     return text, False
 
 
+def serialize_partial_tables(table_processes, union_source_id):
+    """Text block marking the per-process statistics tables as PARTIAL views.
+
+    The RO-target dump (`serialize_target`) is a flat INFORMATION_SCHEMA listing,
+    so `dbo.Compass_Invoice` looks exactly like a company-wide fact table. It is
+    not: each Statconfig table holds exactly ONE process. Without this block the
+    agent answers "our volume" from whichever single table it found first and
+    reports the number as the whole company (issue #128) — worst case a confident
+    zero from a table that simply had no rows in the window.
+
+    This list is also exhaustive in the other direction: the statistics DB holds
+    plenty of tables Statconfig never registered (dbo.BFH_Statistic,
+    dbo.DPSLicenseCounter, …) which the curated source does not read at all. The
+    agent reached for exactly those, so the block says so explicitly rather than
+    leaving "not listed here" to be inferred.
+
+    `table_processes`: {table_name: {"processes": [...], "import_col": str|None,
+    "export_col": str|None}} from Statconfig. The date columns are included
+    because the tables do NOT share column names (`ExportDate` vs `ExportEM_dt`
+    vs …) — telling the agent to UNION them without saying which column is which
+    just moves the failure from "wrong universe" to "invalid column name".
+    `union_source_id`: the curated source that UNIONs them all (docprocessing).
+    Returns "" when there is nothing to mark, so the caller can skip the block.
+    """
+    if not table_processes:
+        return ""
+    lines = ["# Per-process PARTIAL tables — each covers ONE process, never the whole company"]
+    for tbl in sorted(table_processes):
+        cfg = table_processes[tbl]
+        line = f"{tbl} = process {', '.join(sorted(cfg.get('processes') or []))}"
+        cols = [
+            f"{name}: {cfg[key]}"
+            for key, name in (("import_col", "import date"), ("export_col", "export date"))
+            if cfg.get(key)
+        ]
+        if cols:
+            line += f" ({'; '.join(cols)})"
+        lines.append(line)
+    lines.append(
+        "Their date columns differ per table — use the ones named above, never"
+        " assume a shared column name."
+        " Querying one of these answers for that process ALONE. A question about"
+        ' totals that names no process ("our volume", "the numbers", "how many'
+        ' documents") is COMPANY-WIDE: answer it with build_definition on source'
+        f" {union_source_id}, which unions every process. If raw SQL is genuinely"
+        " needed (percentiles, window functions), UNION every relevant table"
+        " above. Either way, name in your answer which processes the numbers"
+        " cover. Zero rows from ONE of these tables is NOT evidence of zero"
+        " company-wide activity — say which process it was."
+        " The list above is COMPLETE: every OTHER table in the target below is"
+        f" unregistered and is NOT part of source {union_source_id}. Do not answer"
+        " a company-wide question from one of those at all — use"
+        " build_definition, or if the user asked for that specific table, say"
+        " plainly that it sits outside the reporting universe."
+    )
+    return "\n".join(lines)
+
+
 def serialize_metrics_catalog(metrics):
     """One line per blessed metric: `METRIC <code> "<label>" = <agg>(<col|*>) on <source>`.
 
@@ -164,18 +222,32 @@ def serialize_metrics_catalog(metrics):
     return "\n".join(lines)
 
 
-def serialize_schema(*, targets, curated, metrics=None, char_budget=DEFAULT_CHAR_BUDGET):
+def serialize_schema(
+    *,
+    targets,
+    curated,
+    metrics=None,
+    partial_tables=None,
+    union_source_id="docprocessing",
+    char_budget=DEFAULT_CHAR_BUDGET,
+):
     """Combine RO targets + curated catalogs + canonical metrics into a budgeted text block.
 
     `targets`: {name: conn_factory}. `curated`: list of {label, fields:[{field,type}]}.
     `metrics`: optional list of {code, label, aggregation, base_field, source_id} blessed
     metrics to append under a `# Canonical metrics` header.
+    `partial_tables`: optional {table: [process, ...]} marking per-process tables as
+    partial views of the whole (see `serialize_partial_tables`); rendered FIRST so the
+    coverage rule is read before the table listing it qualifies.
     Returns (text, truncated_bool). truncated_bool is True if the char budget cut the
     text *or* any per-target table cap dropped tables — both are coverage limits the
     caller surfaces to the user. On char overflow the text is cut and a visible marker
     appended; truncation is logged.
     """
     blocks = []
+    partial_block = serialize_partial_tables(partial_tables, union_source_id)
+    if partial_block:
+        blocks.append(partial_block)
     target_capped = False
     for name, factory in (targets or {}).items():
         try:

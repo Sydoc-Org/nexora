@@ -82,6 +82,24 @@ The model emits the **v1 report-definition JSON** (`source`, `columns`,
   the right field and as a column `header`. This stops docprocessing — whose keys are
   internal Statconfig codes, not the human labels the model would otherwise guess —
   from drafting label-named fields the validator rejects.
+- **Coverage grounding (#128):** the RO-target block is a flat `INFORMATION_SCHEMA`
+  dump, in which a per-process statistics table (`dbo.Compass_Invoice`) is
+  indistinguishable from a company-wide fact table — so the agent answered "our
+  volume" from whichever single table it found, worst case reporting a confident
+  zero as if it were company-wide. `serialize_partial_tables` now prepends the
+  `Statconfig` table→process map, marked as **partial** views and naming the
+  curated source that unions them; `_AGENT_SYSTEM` makes the consequences binding
+  (totals questions with no process named are company-wide ⇒ `build_definition`
+  or an explicit UNION; every SQL answer states its coverage; zero from one
+  partial table is zero *for that process*). Two details the eval proved
+  necessary: the block declares itself **complete**, because the statistics DB
+  also holds tables Statconfig never registered (`dbo.BFH_Statistic`,
+  `dbo.DPSLicenseCounter` — both of which the agent had been answering from) that
+  are outside the reporting universe entirely; and each line carries that table's
+  import/export date columns, since they differ per table (`ExportDate` vs
+  `ExportEM_dt`) and a UNION written without them fails on "invalid column name"
+  instead. Statconfig being unavailable drops the block rather than failing the
+  request.
 - **Date grounding:** today's date is injected into the user prompt and the agent
   grounding so relative time expressions ("last month", "this year") resolve to
   correct absolute date ranges, not training-data dates. The agent system prompt
