@@ -169,6 +169,14 @@ Work toward 2.5.65.
 
 ### Fixed
 
+- Reporting: the page masthead (Simple/Advanced tabs, Sources, AI chat) and
+  the Simple tab's "Ask AI" bar overflowed horizontally on phone widths
+  (#136) — the header didn't wrap, and the AI input had no `min-width: 0`
+  so it couldn't shrink below its default intrinsic width, pushing the Ask
+  AI button off-screen. The masthead now wraps onto a second row below
+  640px (matching the AI-chat button's icon-only collapse Sources already
+  had), and the input shrinks properly in its flex row.
+
 - Invoices/Generali Documents: the filter forms on both pages submit as GET
   but shipped a hidden `csrf_token` field anyway (#139). Flask-WTF doesn't
   validate CSRF on GET requests, so the field was dead weight that leaked
