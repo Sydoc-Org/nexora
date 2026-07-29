@@ -125,8 +125,37 @@
     m.className = 'reporting-admin-msg' + (isErr ? ' reporting-error' : '');
   }
 
+  function validateColumns() {
+    var el = document.getElementById('rpsColumns');
+    var err = document.getElementById('rpsColumnsError');
+    var v = el.value.trim();
+    if (!v) { err.textContent = ''; el.classList.remove('reporting-input-invalid'); return; }
+    try {
+      JSON.parse(v);
+      err.textContent = '';
+      el.classList.remove('reporting-input-invalid');
+    } catch (e) {
+      err.textContent = '{{ _("Invalid JSON") }}: ' + e.message;
+      el.classList.add('reporting-input-invalid');
+    }
+  }
+
+  function formatColumns() {
+    var el = document.getElementById('rpsColumns');
+    var v = el.value.trim();
+    if (!v) return;
+    try {
+      el.value = JSON.stringify(JSON.parse(v), null, 2);
+      validateColumns();
+    } catch (e) {
+      validateColumns();
+    }
+  }
+
   document.getElementById('rpsSave').addEventListener('click', save);
   document.getElementById('rpsReset').addEventListener('click', reset);
+  document.getElementById('rpsColumns').addEventListener('input', validateColumns);
+  document.getElementById('rpsColumnsFormat').addEventListener('click', formatColumns);
   load();
 }());
 </script>

@@ -77,6 +77,10 @@
       <label class="reporting-admin-cols">{{ _("Columns JSON (table provider)") }}
         <textarea id="rpsColumns" class="reporting-sql-editor" data-testid="rps-columns"
                   placeholder='[{"field":"col1","label":"Col 1","type":"string","filterable":true,"sortable":true}]'></textarea>
+        <div class="reporting-admin-cols-toolbar">
+          <button type="button" id="rpsColumnsFormat" class="reporting-link" data-testid="rps-columns-format">{{ _("Format JSON") }}</button>
+          <span id="rpsColumnsError" class="reporting-error" data-testid="rps-columns-error"></span>
+        </div>
       </label>
       <div class="reporting-admin-actions">
         <button id="rpsSave" class="reporting-btn" data-testid="rps-save">{{ _("Save") }}</button>
