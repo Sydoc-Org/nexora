@@ -1,5 +1,7 @@
 ﻿USE [nexora]
 GO
+ALTER TABLE [dbo].[ActiveSessions] DROP CONSTRAINT [DF_ActiveSessions_LastSeenAt]
+GO
 ALTER TABLE [dbo].[ActiveSessions] DROP CONSTRAINT [DF_ActiveSessions_CreatedAt]
 GO
 DROP INDEX [IX_ActiveSessions_UserID] ON [dbo].[ActiveSessions]
@@ -35,4 +37,6 @@ CREATE NONCLUSTERED INDEX [IX_ActiveSessions_UserID] ON [dbo].[ActiveSessions]
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
 GO
 ALTER TABLE [dbo].[ActiveSessions] ADD  CONSTRAINT [DF_ActiveSessions_CreatedAt]  DEFAULT (getdate()) FOR [CreatedAt]
+GO
+ALTER TABLE [dbo].[ActiveSessions] ADD  CONSTRAINT [DF_ActiveSessions_LastSeenAt]  DEFAULT (getdate()) FOR [LastSeenAt]
 GO

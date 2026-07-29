@@ -1032,7 +1032,6 @@ def test_api_admin_permission_users_seeded(admin_client, admin_all_perms, db_con
 
 
 def test_api_admin_user_all_permissions(admin_client, admin_all_perms, db_conn):
-    """Permission.SortingCode exists (Task 1) so this no longer 500s."""
     from sqlalchemy import text
 
     uid = db_conn.execute(
@@ -1062,17 +1061,16 @@ def test_api_admin_permission_delete_unknown(admin_client, admin_all_perms):
 
 
 def test_api_admin_permission_crud_roundtrip(admin_client, admin_all_perms, db_conn):
-    """Add -> edit -> verify Code/SortingCode round-trip with case preserved -> delete.
+    """Add -> edit -> verify Code round-trip with case preserved -> delete.
 
-    Exercises the SortingCode column end-to-end (Task 1 added it to Permission;
-    this proves add/edit persist it correctly and that Code/SortingCode are
-    never lowercased, since *.filter.process.* codes elsewhere are case-significant).
+    Proves add/edit persist Code correctly and it's never lowercased, since
+    *.filter.process.* codes elsewhere are case-significant.
     """
     from sqlalchemy import text
 
     add_resp = admin_client.post(
         "/api/admin/permissions/add",
-        json={"code": "Test.RoundTrip.Perm", "description": "d", "sortingCode": "Z9"},
+        json={"code": "Test.RoundTrip.Perm", "description": "d"},
     )
     assert add_resp.status_code == 200
     perm_id = add_resp.get_json()["permissionId"]
@@ -1084,17 +1082,15 @@ def test_api_admin_permission_crud_roundtrip(admin_client, admin_all_perms, db_c
             json={
                 "code": "Test.RoundTrip.Perm",
                 "description": "d-updated",
-                "sortingCode": "Z9",
             },
         )
         assert edit_resp.status_code == 200
 
         row = db_conn.execute(
-            text("SELECT Code, SortingCode, Description FROM Permission WHERE PermissionID = :pid"),
+            text("SELECT Code, Description FROM Permission WHERE PermissionID = :pid"),
             {"pid": perm_id},
         ).one()
         assert row.Code == "Test.RoundTrip.Perm"
-        assert row.SortingCode == "Z9"
         assert row.Description == "d-updated"
     finally:
         del_resp = admin_client.delete(f"/api/admin/permissions/delete/{perm_id}")

@@ -751,7 +751,7 @@
     function openAddPermissionModal() {
         permMetaMode = 'add';
         document.getElementById('permMetaModalTitle').innerText = {{ _("Add Permission") | tojson }};
-        ['permMetaId','permMetaCode','permMetaDescription','permMetaSortingCode'].forEach(id => {
+        ['permMetaId','permMetaCode','permMetaDescription'].forEach(id => {
             document.getElementById(id).value = '';
         });
         openCenterModal(permMetaModal);
@@ -764,7 +764,6 @@
         document.getElementById('permMetaId').value          = id;
         document.getElementById('permMetaCode').value        = p.Code;
         document.getElementById('permMetaDescription').value = p.Description;
-        document.getElementById('permMetaSortingCode').value = p.SortingCode || '';
         openCenterModal(permMetaModal);
     }
 
@@ -773,7 +772,6 @@
     async function savePermissionMeta() {
         const code        = document.getElementById('permMetaCode').value.trim();
         const description = document.getElementById('permMetaDescription').value.trim();
-        const sortingCode = document.getElementById('permMetaSortingCode').value.trim();
         const id          = document.getElementById('permMetaId').value;
         if (!code || !description) {
             showNotification({{ _("Code and description are required.") | tojson }}, 'error'); return;
@@ -785,7 +783,7 @@
             const res    = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                body: JSON.stringify({ code, description, sortingCode })
+                body: JSON.stringify({ code, description })
             });
             const result = await res.json();
             if (result.success) {

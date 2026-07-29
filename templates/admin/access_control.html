@@ -270,11 +270,6 @@
                 <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)">{{ _("Description") }} <span style="color:var(--nx-danger)">*</span></label>
                 <input type="text" id="permMetaDescription" placeholder="{{ _('Short description') }}" class="nx-input" data-testid="admin-ac-perm-description">
             </div>
-            <div>
-                <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)">{{ _("Sorting Code") }}</label>
-                <input type="text" id="permMetaSortingCode" placeholder="e.g. A1" class="nx-input" data-testid="admin-ac-perm-sorting-code">
-                <p class="mt-1 text-xs" style="color:var(--nx-text-meta)">{{ _("Optional. Controls display order in the permission editor.") }}</p>
-            </div>
         </div>
         <div class="p-6 flex justify-end space-x-3 rounded-b-xl" style="border-top:1px solid var(--nx-border);background:var(--nx-alt)">
             <button onclick="closePermMetaModal()" class="nx-btn nx-btn--secondary" data-testid="admin-ac-perm-modal-cancel">{{ _("Cancel") }}</button>
