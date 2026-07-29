@@ -77,7 +77,7 @@ def admin_dashboard():
 
         cursor.execute("""
             SELECT COUNT(*) FROM ActiveSessions
-            WHERE CreatedAt >= DATEADD(hour, -24, GETDATE())
+            WHERE LastSeenAt >= DATEADD(minute, -30, GETDATE())
         """)
         row = cursor.fetchone()
         if row:
@@ -1216,7 +1216,8 @@ def admin_recent_logs():
 @require_permission("admin.view.active.sessions")
 def admin_active_sessions():
     """Read currently-active sessions from ActiveSessions, joined to Users.
-    Filtered to the last 24 hours so abandoned rows fall off naturally."""
+    Filtered to LastSeenAt (bumped on every request by _enforce_active_session)
+    so this reflects actual recent activity, not just login time (issue #109)."""
     conn = None
     try:
         conn = engine_nexora_db.raw_connection()
@@ -1230,7 +1231,7 @@ def admin_active_sessions():
                 a.CreatedAt AS LoggedInAt
             FROM ActiveSessions a
             LEFT JOIN Users u ON u.userID = a.UserID
-            WHERE a.CreatedAt >= DATEADD(hour, -24, GETDATE())
+            WHERE a.LastSeenAt >= DATEADD(minute, -30, GETDATE())
             ORDER BY a.CreatedAt DESC
         """)
         sessions = []
@@ -1753,7 +1754,7 @@ def api_admin_user_all_permissions(user_id):
         cursor.execute(
             """
             SELECT
-                p.PermissionID, p.Code, p.Description, p.SortingCode,
+                p.PermissionID, p.Code, p.Description,
                 CAST(dbo.fnUserHasPermission(?, p.Code) AS INT) AS IsEffective,
                 upo.Effect AS OverrideEffect,
                 app.Effect AS ProfileEffect
@@ -1761,7 +1762,7 @@ def api_admin_user_all_permissions(user_id):
             LEFT JOIN Users u ON u.userID = ?
             LEFT JOIN UserPermissionOverride upo ON upo.UserID = ? AND upo.PermissionID = p.PermissionID
             LEFT JOIN AccessProfilePermission app ON app.AccessID = u.accessID AND app.PermissionID = p.PermissionID
-            ORDER BY p.SortingCode, p.Code
+            ORDER BY p.Code
         """,
             (user_id, user_id, user_id),
         )
@@ -1787,7 +1788,6 @@ def api_admin_permission_add():
     data = request.get_json()
     code = (data.get("code") or "").strip()
     description = (data.get("description") or "").strip()
-    sorting_code = (data.get("sortingCode") or "").strip() or None
     if not code or not description:
         return jsonify({"success": False, "message": _("Code and description are required")}), 400
     conn = None
@@ -1796,8 +1796,8 @@ def api_admin_permission_add():
         conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO Permission (Code, Description, SortingCode) OUTPUT INSERTED.PermissionID VALUES (?, ?, ?)",
-            (code, description, sorting_code),
+            "INSERT INTO Permission (Code, Description) OUTPUT INSERTED.PermissionID VALUES (?, ?)",
+            (code, description),
         )
         new_id = cursor.fetchone()[0]
         conn.commit()
@@ -1825,7 +1825,6 @@ def api_admin_permission_edit(perm_id):
     data = request.get_json()
     code = (data.get("code") or "").strip()
     description = (data.get("description") or "").strip()
-    sorting_code = (data.get("sortingCode") or "").strip() or None
     if not code or not description:
         return jsonify({"success": False, "message": _("Code and description are required")}), 400
     conn = None
@@ -1834,8 +1833,8 @@ def api_admin_permission_edit(perm_id):
         conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "UPDATE Permission SET Code=?, Description=?, SortingCode=? WHERE PermissionID=?",
-            (code, description, sorting_code, perm_id),
+            "UPDATE Permission SET Code=?, Description=? WHERE PermissionID=?",
+            (code, description, perm_id),
         )
         if cursor.rowcount == 0:
             return jsonify({"success": False, "message": _("Permission not found")}), 404

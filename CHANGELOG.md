@@ -169,6 +169,15 @@ Work toward 2.5.65.
 
 ### Fixed
 
+- Admin: the "Active Sessions" page and the overview's active-sessions count
+  now actually reflect recent activity (#109). Both previously filtered on
+  `ActiveSessions.CreatedAt` — set once at login and never updated — so a
+  session logged in 23 hours ago and never touched again still counted as
+  "active". Added `ActiveSessions.LastSeenAt` (migration `0045`), bumped on
+  every request by the existing per-request session-enforcement hook, and
+  changed both queries to a 30-minute `LastSeenAt` window, matching what the
+  page's subtitle already claimed.
+
 - Auth: the 2FA challenge (`/verify_2fa`) now auto-submits once the code field
   holds 6 digits, instead of requiring a manual click on "Verify Identity"
   (#107). Non-digit input is stripped client-side as it's typed.

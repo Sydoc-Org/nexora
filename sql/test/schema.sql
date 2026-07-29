@@ -67,8 +67,7 @@ GO
 CREATE TABLE dbo.Permission (
     PermissionID INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
     Code SYSNAME NOT NULL UNIQUE,
-    Description NVARCHAR(200) NOT NULL,
-    SortingCode nvarchar(50) NULL
+    Description NVARCHAR(200) NOT NULL
 );
 GO
 
@@ -111,7 +110,8 @@ CREATE TABLE dbo.ActiveSessions (
     SessionID NVARCHAR(64) NOT NULL PRIMARY KEY,
     UserID INT NOT NULL,
     CreatedAt DATETIME NOT NULL DEFAULT (GETDATE()),
-    IPAddress NVARCHAR(45) NULL
+    IPAddress NVARCHAR(45) NULL,
+    LastSeenAt DATETIME NOT NULL DEFAULT (GETDATE())
 );
 GO
 

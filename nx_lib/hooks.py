@@ -61,7 +61,10 @@ def _start_timer():
 def _enforce_active_session():
     """If a logged-in user's SID is no longer in ActiveSessions (e.g. an admin
     revoked it), clear the session and redirect/401. Backend-agnostic: this is
-    what makes force-logout actually take effect on the next request."""
+    what makes force-logout actually take effect on the next request.
+
+    Also bumps LastSeenAt on every request so the admin "active sessions" view
+    reflects actual recent activity rather than just login time (issue #109)."""
     if request.path.startswith(_SESSION_ENFORCE_SKIP_PATHS):
         return
     if "userid" not in session:
@@ -72,14 +75,18 @@ def _enforce_active_session():
     try:
         conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT 1 FROM ActiveSessions WHERE SessionID = ?", (str(sid),))
-        row = cursor.fetchone()
+        cursor.execute(
+            "UPDATE ActiveSessions SET LastSeenAt = GETDATE() WHERE SessionID = ?",
+            (str(sid),),
+        )
+        updated = cursor.rowcount
+        conn.commit()
         cursor.close()
         conn.close()
     except Exception as e:
         current_app.logger.warning(f"enforce_active_session check failed: {e}")
         return  # Fail open — never lock users out due to a transient DB blip
-    if row:
+    if updated:
         return
     session.clear()
     if request.path.startswith("/api/") or request.is_json:
