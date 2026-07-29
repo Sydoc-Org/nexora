@@ -188,6 +188,12 @@
                         class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50 hover:text-indigo-600 transition-colors" data-testid="header-profile-link">
                         <i class="fas fa-user-circle w-4"></i> {{ _("Your profile") }}
                     </a>
+                    {# Sidebar pages no longer render _small_footer.html, so this is
+                       the only support link a logged-in user can reach. #}
+                    <a href="mailto:support.helpdesk@sydoc.ch"
+                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50 hover:text-indigo-600 transition-colors" data-testid="header-help-link">
+                        <i class="fas fa-circle-question w-4"></i> {{ _("Help") }}
+                    </a>
                     {% if not is_prod %}
                     <div class="my-1 border-t border-gray-100"></div>
                     <button type="button" id="switchUserBtn"

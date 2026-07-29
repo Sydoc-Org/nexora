@@ -92,6 +92,24 @@ Work toward 2.5.65.
 
 ### Changed
 
+- Footer: `_small_footer.html` is now scoped to the **logged-out surfaces** and
+  removed from the 13 app pages that carry the sidebar (`dashboard`, `invoices`,
+  `profile`, `workitems_overview`, all nine `generali_*`). It is a marketing
+  footer — a 96px sydoc logo and six links to sydoc.ch public pages — and once
+  the version moved into the profile dropdown it had no functional content left
+  on an app page, while the sidebar already carried navigation. It stays on
+  `index`, `hero`, `forgot_password`, `reset_password`, `set_password`,
+  `init_reset`, `init_2FA`, `verify_2fa` and the error pages, which have no
+  sidebar. The support mailto (`support.helpdesk@sydoc.ch`) moves into the
+  profile dropdown so a logged-in user can still reach it. `Help` is an existing
+  msgid, so no new translations. The rule is enforced by
+  `tests/unit/test_template_layout.py`: no template may render both the shell
+  and the footer, and the footer must still reach login and the error pages —
+  it had already drifted once, present on 22 templates and missing from the 12
+  newest. This also retires the last dark-mode contrast failure in the footer
+  (the copyright line sat at 3.75:1); none of the remaining pages implement dark
+  mode, so the fix is the removal rather than a CSS override.
+
 - Reporting: the Simple tab's "Ask AI" bar/chips and the Advanced tab's
   "Ask AI" mode now both route into the shared AI chat panel above, instead of
   each running its own one-shot ask/refine flow.
