@@ -228,6 +228,15 @@
             const data = await response.json();
             const labels = data.labels.slice(6, 18);
             const chartData = data.data.slice(6, 18);
+
+            const isEmpty = !chartData.some(v => v > 0);
+            document.getElementById('hourlyChartWrap').style.display = isEmpty ? 'none' : '';
+            document.getElementById('hourlyChartEmpty').style.display = isEmpty ? '' : 'none';
+            if (isEmpty) {
+                if (hourlyChart) { hourlyChart.destroy(); hourlyChart = null; }
+                return;
+            }
+
             const ctx = document.getElementById('hourlyChart').getContext('2d');
 
             if (hourlyChart) {

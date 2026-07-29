@@ -104,7 +104,11 @@
         <i class="fa-solid fa-clock" style="color:var(--nx-success)"></i>
         {{ _("Documents Processed by Hour (Today)") }}
       </h3>
-      <div class="h-56"><canvas id="hourlyChart"></canvas></div>
+      <div class="h-56" id="hourlyChartWrap"><canvas id="hourlyChart"></canvas></div>
+      <div class="nx-empty" id="hourlyChartEmpty" style="display:none">
+        <div class="nx-empty__art"><i class="fa-solid fa-chart-column"></i></div>
+        <p class="nx-empty__title">{{ _("No documents processed yet today.") }}</p>
+      </div>
     </div>
   </main>
 

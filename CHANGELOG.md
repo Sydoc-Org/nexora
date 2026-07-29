@@ -178,6 +178,20 @@ Work toward 2.5.65.
   changed both queries to a 30-minute `LastSeenAt` window, matching what the
   page's subtitle already claimed.
 
+- Dashboard: the "Documents Processed by Hour (Today)" chart rendered an empty
+  grid with no explanation when there was nothing to show yet (#142). It now
+  hides the chart and shows a "No documents processed yet today." empty state,
+  matching the pattern already used on the Generali Month Report page.
+
+- Generali: Import Status no longer prefixes every filename with its raw
+  dedup GUID (#142) — e.g. `b76b9747-...-NewDocsOverall_Final_Mail.csv` now
+  displays as `NewDocsOverall_Final_Mail.csv`, with the original full name
+  still available via a tooltip.
+
+- Accessibility: added missing `alt` text to the document-preview `<img>`
+  used in the Workitems, Reporting, and Prepared Documents image lightboxes
+  (#142).
+
 - Auth: the 2FA challenge (`/verify_2fa`) now auto-submits once the code field
   holds 6 digits, instead of requiring a manual click on "Verify Identity"
   (#107). Non-digit input is stripped client-side as it's typed.

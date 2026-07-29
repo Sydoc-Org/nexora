@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-07-28 21:36+0200\n"
+"POT-Creation-Date: 2026-07-29 13:57+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -115,42 +115,42 @@ msgstr "Utilisateur supprimé avec succès."
 msgid "Could not fetch logs"
 msgstr "Impossible de récupérer les journaux"
 
-#: nx_lib/views/admin.py:1253
+#: nx_lib/views/admin.py:1254
 msgid "Could not fetch sessions"
 msgstr "Impossible de récupérer les sessions"
 
-#: nx_lib/views/admin.py:1350 nx_lib/views/admin.py:1660
-#: nx_lib/views/admin.py:1702 nx_lib/views/admin.py:1747
-#: nx_lib/views/admin.py:1786 nx_lib/views/admin.py:1824
-#: nx_lib/views/admin.py:1857 nx_lib/views/dashboard.py:251
+#: nx_lib/views/admin.py:1351 nx_lib/views/admin.py:1661
+#: nx_lib/views/admin.py:1703 nx_lib/views/admin.py:1748
+#: nx_lib/views/admin.py:1787 nx_lib/views/admin.py:1824
+#: nx_lib/views/admin.py:1856 nx_lib/views/dashboard.py:251
 #: nx_lib/views/dashboard.py:361 nx_lib/views/dashboard.py:416
 #: nx_lib/views/dashboard.py:508 nx_lib/views/invoices.py:280
 #: nx_lib/views/workitems.py:771 nx_lib/views/workitems.py:1500
 msgid "Not authorized"
 msgstr "Non autorisé"
 
-#: nx_lib/views/admin.py:1393
+#: nx_lib/views/admin.py:1394
 msgid "Could not fetch users"
 msgstr "Impossible de récupérer les utilisateurs"
 
-#: nx_lib/views/admin.py:1439
+#: nx_lib/views/admin.py:1440
 msgid "Name is required"
 msgstr "Le nom est obligatoire"
 
-#: nx_lib/views/admin.py:1467
+#: nx_lib/views/admin.py:1468
 msgid "Profile saved successfully"
 msgstr "Profil enregistré avec succès"
 
-#: nx_lib/views/admin.py:1646
+#: nx_lib/views/admin.py:1647
 msgid "Overrides updated successfully"
 msgstr "Dérogations mises à jour avec succès"
 
-#: nx_lib/views/admin.py:1711 nx_lib/views/admin.py:1841
-#: nx_lib/views/admin.py:1883
+#: nx_lib/views/admin.py:1712 nx_lib/views/admin.py:1840
+#: nx_lib/views/admin.py:1882
 msgid "Permission not found"
 msgstr "Autorisation introuvable"
 
-#: nx_lib/views/admin.py:1792 nx_lib/views/admin.py:1830
+#: nx_lib/views/admin.py:1792 nx_lib/views/admin.py:1829
 msgid "Code and description are required"
 msgstr "Le code et la description sont obligatoires"
 
@@ -158,11 +158,11 @@ msgstr "Le code et la description sont obligatoires"
 msgid "Permission created successfully"
 msgstr "Autorisation créée avec succès"
 
-#: nx_lib/views/admin.py:1843
+#: nx_lib/views/admin.py:1842
 msgid "Permission updated successfully"
 msgstr "Autorisation mise à jour avec succès"
 
-#: nx_lib/views/admin.py:1876
+#: nx_lib/views/admin.py:1875
 #, python-format
 msgid ""
 "Cannot delete: used in %(p)d profile(s) and %(o)d override(s). Remove all"
@@ -171,7 +171,7 @@ msgstr ""
 "Impossible de supprimer : utilisé dans %(p)d profil(s) et %(o)d "
 "substitution(s). Veuillez d'abord supprimer toutes les affectations."
 
-#: nx_lib/views/admin.py:1885
+#: nx_lib/views/admin.py:1884
 msgid "Permission deleted successfully"
 msgstr "Autorisation supprimée avec succès"
 
@@ -877,36 +877,40 @@ msgstr "Photo de profil"
 msgid "Your profile"
 msgstr "Votre profil"
 
-#: templates/_header.html:195 templates/_header.html:231
+#: templates/_header.html:195 templates/_small_footer.html:28
+msgid "Help"
+msgstr "Aide"
+
+#: templates/_header.html:201 templates/_header.html:243
 msgid "Switch user"
 msgstr "Changer d'utilisateur"
 
-#: templates/_header.html:201 templates/js/_header_js.html:103
+#: templates/_header.html:207 templates/js/_header_js.html:103
 #: templates/profile.html:76
 msgid "Sign out"
 msgstr "Se déconnecter"
 
-#: templates/_header.html:212
+#: templates/_header.html:224
 msgid "Command palette"
 msgstr "Palette de commandes"
 
-#: templates/_header.html:216
+#: templates/_header.html:228
 msgid "Type a command or search..."
 msgstr "Tapez une commande ou recherchez..."
 
-#: templates/_header.html:221
+#: templates/_header.html:233
 msgid "navigate"
 msgstr "naviguer"
 
-#: templates/_header.html:222
+#: templates/_header.html:234
 msgid "open"
 msgstr "ouvrir"
 
-#: templates/_header.html:223
+#: templates/_header.html:235
 msgid "close"
 msgstr "fermer"
 
-#: templates/_header.html:235
+#: templates/_header.html:247
 msgid "Switch to user..."
 msgstr "Passer à l'utilisateur ..."
 
@@ -1202,10 +1206,6 @@ msgstr "Actualités"
 msgid "Contact"
 msgstr "Contact"
 
-#: templates/_small_footer.html:28
-msgid "Help"
-msgstr "Aide"
-
 #: templates/dashboard.html:7
 msgid "Dashboard - nexora"
 msgstr "Tableau de bord - nexora"
@@ -1255,6 +1255,10 @@ msgstr "Validations récentes"
 #: templates/dashboard.html:105
 msgid "Documents Processed by Hour (Today)"
 msgstr "Documents traités par heure (aujourd'hui)"
+
+#: templates/dashboard.html:110
+msgid "No documents processed yet today."
+msgstr "Aucun document traité pour le moment aujourd'hui."
 
 #: templates/forgot_password.html:7
 msgid "Forgot password - nexora"
@@ -2269,7 +2273,7 @@ msgstr "Votre nom d'utilisateur"
 
 #: templates/admin/access_control.html:224
 #: templates/admin/modals/_user_modals.html:72 templates/index.html:53
-#: templates/profile.html:64 templates/set_password.html:49
+#: templates/profile.html:64 templates/set_password.html:52
 msgid "Password"
 msgstr "Mot de passe"
 
@@ -2513,6 +2517,11 @@ msgstr "Afficher où les valeurs extraites ont été trouvées dans le document"
 #: templates/workitems_overview.html:512
 msgid "Show sources"
 msgstr "Afficher les sources"
+
+#: templates/prepared_documents.html:191 templates/reporting.html:186
+#: templates/workitems_overview.html:514
+msgid "Document page preview"
+msgstr "Aperçu de la page du document"
 
 #: templates/prepared_documents.html:196 templates/prepared_documents.html:197
 #: templates/reporting.html:191 templates/reporting.html:192
@@ -3137,23 +3146,23 @@ msgstr ""
 "Choisissez un mot de passe pour votre compte. Vous serez ensuite invité à"
 " configurer l'authentification à deux facteurs."
 
-#: templates/set_password.html:56
+#: templates/set_password.html:59
 msgid "At least 8 characters, no spaces"
 msgstr "Au moins 8 caractères, sans espaces"
 
-#: templates/set_password.html:60
+#: templates/set_password.html:63
 msgid "Confirm password"
 msgstr "Confirmer le mot de passe"
 
-#: templates/set_password.html:67
+#: templates/set_password.html:70
 msgid "Repeat your password"
 msgstr "Répétez votre mot de passe"
 
-#: templates/set_password.html:74
+#: templates/set_password.html:77
 msgid "Set password"
 msgstr "Définir le mot de passe"
 
-#: templates/set_password.html:79
+#: templates/set_password.html:83
 msgid "Go to login"
 msgstr "Aller à la connexion"
 
@@ -4055,7 +4064,7 @@ msgstr "Discutez avec nous"
 msgid "Chat to our team"
 msgstr "Discutez avec notre équipe"
 
-#: templates/js/_dashboard_js.html:196 templates/js/_dashboard_js.html:243
+#: templates/js/_dashboard_js.html:196 templates/js/_dashboard_js.html:252
 msgid "Documents Processed"
 msgstr "Documents traités"
 
@@ -4202,12 +4211,12 @@ msgstr "SAP / ALF"
 msgid "Could not load details."
 msgstr "Impossible de charger les détails."
 
-#: templates/js/_generali_import_status_js.html:138
+#: templates/js/_generali_import_status_js.html:153
 #: templates/js/_invoices_js.html:44
 msgid "Try adjusting your filters or date range."
 msgstr "Essayez d'ajuster vos filtres ou votre plage de dates."
 
-#: templates/js/_generali_import_status_js.html:202
+#: templates/js/_generali_import_status_js.html:217
 msgid "No imports found"
 msgstr "Aucune importation trouvée"
 

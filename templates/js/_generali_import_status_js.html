@@ -37,6 +37,21 @@
         return td;
     }
 
+    // Import filenames are written as <GUID><original-name>.csv with no
+    // separator; the GUID is dedup/idempotency plumbing, not content a human
+    // reviewing import history needs to read. Strip it for display, keep the
+    // full name in `title` for anyone who does need it.
+    const GUID_PREFIX_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+
+    function makeFileNameCell(fileName, classes) {
+        const td = document.createElement('td');
+        td.className = classes;
+        const display = (fileName || '').replace(GUID_PREFIX_RE, '');
+        td.textContent = display || fileName;
+        if (fileName && display !== fileName) td.title = fileName;
+        return td;
+    }
+
     function makeCountBadgeCell(value, color) {
         const td = document.createElement('td');
         td.className = 'px-4 py-3 text-center whitespace-nowrap';
@@ -96,7 +111,7 @@
     function makeRow(r) {
         const tr = document.createElement('tr');
 
-        tr.appendChild(makeTextCell(r.fileName, 'px-4 py-3 text-left text-sm font-semibold break-all'));
+        tr.appendChild(makeFileNameCell(r.fileName, 'px-4 py-3 text-left text-sm font-semibold break-all'));
         tr.appendChild(makeTextCell(formatDateTime(r.startedAt),  'px-4 py-3 text-center whitespace-nowrap text-sm nx-mono'));
         const finishedTd = makeTextCell(formatDateTime(r.finishedAt), 'px-4 py-3 text-center whitespace-nowrap text-xs nx-mono');
         finishedTd.style.color = 'var(--nx-text-sec)';

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-07-28 21:36+0200\n"
+"POT-Creation-Date: 2026-07-29 13:57+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -116,42 +116,42 @@ msgstr ""
 msgid "Could not fetch logs"
 msgstr ""
 
-#: nx_lib/views/admin.py:1253
+#: nx_lib/views/admin.py:1254
 msgid "Could not fetch sessions"
 msgstr ""
 
-#: nx_lib/views/admin.py:1350 nx_lib/views/admin.py:1660
-#: nx_lib/views/admin.py:1702 nx_lib/views/admin.py:1747
-#: nx_lib/views/admin.py:1786 nx_lib/views/admin.py:1824
-#: nx_lib/views/admin.py:1857 nx_lib/views/dashboard.py:251
+#: nx_lib/views/admin.py:1351 nx_lib/views/admin.py:1661
+#: nx_lib/views/admin.py:1703 nx_lib/views/admin.py:1748
+#: nx_lib/views/admin.py:1787 nx_lib/views/admin.py:1824
+#: nx_lib/views/admin.py:1856 nx_lib/views/dashboard.py:251
 #: nx_lib/views/dashboard.py:361 nx_lib/views/dashboard.py:416
 #: nx_lib/views/dashboard.py:508 nx_lib/views/invoices.py:280
 #: nx_lib/views/workitems.py:771 nx_lib/views/workitems.py:1500
 msgid "Not authorized"
 msgstr ""
 
-#: nx_lib/views/admin.py:1393
+#: nx_lib/views/admin.py:1394
 msgid "Could not fetch users"
 msgstr ""
 
-#: nx_lib/views/admin.py:1439
+#: nx_lib/views/admin.py:1440
 msgid "Name is required"
 msgstr ""
 
-#: nx_lib/views/admin.py:1467
+#: nx_lib/views/admin.py:1468
 msgid "Profile saved successfully"
 msgstr ""
 
-#: nx_lib/views/admin.py:1646
+#: nx_lib/views/admin.py:1647
 msgid "Overrides updated successfully"
 msgstr ""
 
-#: nx_lib/views/admin.py:1711 nx_lib/views/admin.py:1841
-#: nx_lib/views/admin.py:1883
+#: nx_lib/views/admin.py:1712 nx_lib/views/admin.py:1840
+#: nx_lib/views/admin.py:1882
 msgid "Permission not found"
 msgstr ""
 
-#: nx_lib/views/admin.py:1792 nx_lib/views/admin.py:1830
+#: nx_lib/views/admin.py:1792 nx_lib/views/admin.py:1829
 msgid "Code and description are required"
 msgstr ""
 
@@ -159,18 +159,18 @@ msgstr ""
 msgid "Permission created successfully"
 msgstr ""
 
-#: nx_lib/views/admin.py:1843
+#: nx_lib/views/admin.py:1842
 msgid "Permission updated successfully"
 msgstr ""
 
-#: nx_lib/views/admin.py:1876
+#: nx_lib/views/admin.py:1875
 #, python-format
 msgid ""
 "Cannot delete: used in %(p)d profile(s) and %(o)d override(s). Remove all"
 " assignments first."
 msgstr ""
 
-#: nx_lib/views/admin.py:1885
+#: nx_lib/views/admin.py:1884
 msgid "Permission deleted successfully"
 msgstr ""
 
@@ -856,36 +856,40 @@ msgstr ""
 msgid "Your profile"
 msgstr ""
 
-#: templates/_header.html:195 templates/_header.html:231
+#: templates/_header.html:195 templates/_small_footer.html:28
+msgid "Help"
+msgstr ""
+
+#: templates/_header.html:201 templates/_header.html:243
 msgid "Switch user"
 msgstr ""
 
-#: templates/_header.html:201 templates/js/_header_js.html:103
+#: templates/_header.html:207 templates/js/_header_js.html:103
 #: templates/profile.html:76
 msgid "Sign out"
 msgstr ""
 
-#: templates/_header.html:212
+#: templates/_header.html:224
 msgid "Command palette"
 msgstr ""
 
-#: templates/_header.html:216
+#: templates/_header.html:228
 msgid "Type a command or search..."
 msgstr ""
 
-#: templates/_header.html:221
+#: templates/_header.html:233
 msgid "navigate"
 msgstr ""
 
-#: templates/_header.html:222
+#: templates/_header.html:234
 msgid "open"
 msgstr ""
 
-#: templates/_header.html:223
+#: templates/_header.html:235
 msgid "close"
 msgstr ""
 
-#: templates/_header.html:235
+#: templates/_header.html:247
 msgid "Switch to user..."
 msgstr ""
 
@@ -1173,10 +1177,6 @@ msgstr ""
 msgid "Contact"
 msgstr ""
 
-#: templates/_small_footer.html:28
-msgid "Help"
-msgstr ""
-
 #: templates/dashboard.html:7
 msgid "Dashboard - nexora"
 msgstr ""
@@ -1223,6 +1223,10 @@ msgstr ""
 
 #: templates/dashboard.html:105
 msgid "Documents Processed by Hour (Today)"
+msgstr ""
+
+#: templates/dashboard.html:110
+msgid "No documents processed yet today."
 msgstr ""
 
 #: templates/forgot_password.html:7
@@ -2222,7 +2226,7 @@ msgstr ""
 
 #: templates/admin/access_control.html:224
 #: templates/admin/modals/_user_modals.html:72 templates/index.html:53
-#: templates/profile.html:64 templates/set_password.html:49
+#: templates/profile.html:64 templates/set_password.html:52
 msgid "Password"
 msgstr ""
 
@@ -2457,6 +2461,11 @@ msgstr ""
 #: templates/prepared_documents.html:189 templates/reporting.html:184
 #: templates/workitems_overview.html:512
 msgid "Show sources"
+msgstr ""
+
+#: templates/prepared_documents.html:191 templates/reporting.html:186
+#: templates/workitems_overview.html:514
+msgid "Document page preview"
 msgstr ""
 
 #: templates/prepared_documents.html:196 templates/prepared_documents.html:197
@@ -3058,23 +3067,23 @@ msgid ""
 "factor authentication right after."
 msgstr ""
 
-#: templates/set_password.html:56
+#: templates/set_password.html:59
 msgid "At least 8 characters, no spaces"
 msgstr ""
 
-#: templates/set_password.html:60
+#: templates/set_password.html:63
 msgid "Confirm password"
 msgstr ""
 
-#: templates/set_password.html:67
+#: templates/set_password.html:70
 msgid "Repeat your password"
 msgstr ""
 
-#: templates/set_password.html:74
+#: templates/set_password.html:77
 msgid "Set password"
 msgstr ""
 
-#: templates/set_password.html:79
+#: templates/set_password.html:83
 msgid "Go to login"
 msgstr ""
 
@@ -3944,7 +3953,7 @@ msgstr ""
 msgid "Chat to our team"
 msgstr ""
 
-#: templates/js/_dashboard_js.html:196 templates/js/_dashboard_js.html:243
+#: templates/js/_dashboard_js.html:196 templates/js/_dashboard_js.html:252
 msgid "Documents Processed"
 msgstr ""
 
@@ -4091,12 +4100,12 @@ msgstr ""
 msgid "Could not load details."
 msgstr ""
 
-#: templates/js/_generali_import_status_js.html:138
+#: templates/js/_generali_import_status_js.html:153
 #: templates/js/_invoices_js.html:44
 msgid "Try adjusting your filters or date range."
 msgstr ""
 
-#: templates/js/_generali_import_status_js.html:202
+#: templates/js/_generali_import_status_js.html:217
 msgid "No imports found"
 msgstr ""
 
