@@ -4,6 +4,19 @@
    from nexora-ui.css; only admin-unique structures live here.
    ============================================================ */
 
+/* Minimal Tailwind-utility shims: these admin pages load admin.css only (no
+   Tailwind build), but templates use a handful of Tailwind class names for
+   tab-hiding and toast positioning. #137 */
+.hidden { display: none; }
+.fixed { position: fixed; }
+.top-4 { top: 1rem; }
+.right-4 { right: 1rem; }
+.z-\[100\] { z-index: 100; }
+.z-\[200\] { z-index: 200; }
+.w-full { width: 100%; }
+.max-w-xs { max-width: 20rem; }
+.space-y-3 > * + * { margin-top: 0.75rem; }
+
 /* Empty / loading table cells (JS partials inject class="admin-empty") */
 .admin-empty { padding: 32px 16px; text-align: center; color: var(--nx-text-meta); font-size: 13px; }
 
