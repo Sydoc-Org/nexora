@@ -92,10 +92,15 @@ enforced server-side at every surface (dropdown, values API, search, detail pane
 Since #148 the search is **value-first** ("Document Value Search"): a pair with a value but no
 field OR-matches the value across every permitted, non-sensitive `col_*` column on both paths
 (one widened UNION on the default leg; multi-column specs into `resolve_ms02_docfield_ids` on the
-MS02 leg — specs within a pair are OR'd, pairs still AND-intersect). The fail-closed contract is
-unchanged: a field-less pair counts as an active search, so unresolved paths still yield an empty
-allow-set, never "no constraint". `/api/docfield_values` with an empty `field` returns labeled
-`{value, field}` suggestions across the same permitted column set.
+MS02 leg — specs within a pair are OR'd). Each pair also carries an **operator** (`docop`:
+contains/eq/neq/startswith/endswith/ncontains, whitelisted keys — `DOCFIELD_OPS` on the default
+leg, `_MS02_DOCFIELD_OPS` on the MS02 leg where everything runs through ILIKE for CI parity and
+eq/neq escape LIKE metacharacters) and a **combinator** (`doccomb`: and/or) joining it to the
+pairs before it; both legs fold pairs left-to-right, so `A AND B OR C` = `(A AND B) OR C`. The
+fail-closed contract is unchanged: a field-less pair counts as an active search, unmapped/errored
+pairs contribute an empty set (never "no constraint"), and the old AND-only early-breaks are gone
+so OR-joined pairs are always evaluated. `/api/docfield_values` with an empty `field` returns
+labeled `{value, field}` suggestions across the same permitted column set.
 
 ## Personal-number (PID) import & prepared-documents register
 

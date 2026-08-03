@@ -109,8 +109,11 @@ Work toward 2.5.65.
   the value is OR-matched across every permitted, non-sensitive field (default
   SQL Server + MS02 columnar paths, fail-closed contract unchanged), and
   `/api/docfield_values` returns labeled `{value, field}` suggestions whose
-  pick locks the pair field-precise. Also fixes the bug where suggestions fell
-  back to `doctype`/the first field while the field box showed "no field
+  pick locks the pair field-precise. Every row carries an **operator**
+  (contains, `=`, `≠`, starts with, ends with, does not contain) and each
+  added row an **AND/OR** combinator — rows fold left-to-right, so
+  `A AND B OR C` reads `(A AND B) OR C`. Also fixes the bug where suggestions
+  fell back to `doctype`/the first field while the field box showed "no field
   selected" (the issue's screenshot).
 
 - Dashboard: the page title is now plain **"Dashboard"** instead of
