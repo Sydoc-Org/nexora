@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-03 07:57+0200\n"
+"POT-Creation-Date: 2026-08-03 09:09+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -125,7 +125,7 @@ msgstr "Impossible de récupérer les sessions"
 #: nx_lib/views/admin.py:1856 nx_lib/views/dashboard.py:251
 #: nx_lib/views/dashboard.py:361 nx_lib/views/dashboard.py:416
 #: nx_lib/views/dashboard.py:508 nx_lib/views/invoices.py:280
-#: nx_lib/views/workitems.py:771 nx_lib/views/workitems.py:1500
+#: nx_lib/views/workitems.py:890 nx_lib/views/workitems.py:1622
 msgid "Not authorized"
 msgstr "Non autorisé"
 
@@ -175,11 +175,11 @@ msgstr ""
 msgid "Permission deleted successfully"
 msgstr "Autorisation supprimée avec succès"
 
-#: nx_lib/views/auth.py:108
+#: nx_lib/views/auth.py:112
 msgid "Your nexora account is ready"
 msgstr "Votre compte nexora est prêt"
 
-#: nx_lib/views/auth.py:110
+#: nx_lib/views/auth.py:114
 msgid ""
 "An account has been created for you on nexora. Choose your own password "
 "by clicking the button below. You will then be asked to set up two-factor"
@@ -189,19 +189,19 @@ msgstr ""
 " passe en cliquant sur le bouton ci-dessous. Vous serez ensuite invité à "
 "configurer l'authentification à deux facteurs."
 
-#: nx_lib/views/auth.py:114
+#: nx_lib/views/auth.py:118
 msgid "This link is valid for 7 days."
 msgstr "Ce lien est valable 7 jours."
 
-#: nx_lib/views/auth.py:115
+#: nx_lib/views/auth.py:119
 msgid "Set Your Password"
 msgstr "Définissez votre mot de passe"
 
-#: nx_lib/views/auth.py:117
+#: nx_lib/views/auth.py:121
 msgid "nexora Password Reset Request"
 msgstr "nexora Demande de réinitialisation du mot de passe"
 
-#: nx_lib/views/auth.py:119
+#: nx_lib/views/auth.py:123
 msgid ""
 "We received a request to reset the password for your account. You can "
 "reset your password by clicking the button below."
@@ -210,7 +210,7 @@ msgstr ""
 "compte. Vous pouvez réinitialiser votre mot de passe en cliquant sur le "
 "bouton ci-dessous."
 
-#: nx_lib/views/auth.py:123
+#: nx_lib/views/auth.py:127
 msgid ""
 "If you did not request a password reset, please ignore this email. This "
 "link is valid for 15 minutes."
@@ -218,79 +218,79 @@ msgstr ""
 "Si vous n'avez pas demandé de réinitialisation de mot de passe, veuillez "
 "ignorer cet e-mail. Ce lien est valable 15 minutes."
 
-#: nx_lib/views/auth.py:126
+#: nx_lib/views/auth.py:130
 msgid "Reset Your Password"
 msgstr "Réinitialisez votre mot de passe"
 
-#: nx_lib/views/auth.py:177
+#: nx_lib/views/auth.py:181
 msgid "Hello,"
 msgstr "Bonjour,"
 
-#: nx_lib/views/auth.py:183
+#: nx_lib/views/auth.py:187
 msgid "Thanks,<br>The Sydoc Team"
 msgstr "Merci,<br>L'équipe Sydoc"
 
-#: nx_lib/views/auth.py:298
+#: nx_lib/views/auth.py:302
 msgid "Session expired, please try again"
 msgstr "Session expirée, veuillez réessayer"
 
-#: nx_lib/views/auth.py:349
+#: nx_lib/views/auth.py:353
 msgid "Database error"
 msgstr "Erreur de base de données"
 
-#: nx_lib/views/auth.py:357
+#: nx_lib/views/auth.py:361
 msgid "Invalid code. Please try again."
 msgstr "Code invalide. Veuillez réessayer."
 
-#: nx_lib/views/auth.py:406
+#: nx_lib/views/auth.py:410
 msgid "Invalid code"
 msgstr "Code invalide"
 
-#: nx_lib/views/auth.py:420 nx_lib/views/auth.py:642
+#: nx_lib/views/auth.py:424 nx_lib/views/auth.py:646
 #: templates/js/_profile_js.html:5
 msgid "Passwords do not match"
 msgstr "Les mots de passe ne correspondent pas"
 
-#: nx_lib/views/auth.py:422 nx_lib/views/auth.py:644
+#: nx_lib/views/auth.py:426 nx_lib/views/auth.py:648
 msgid "All Fields must be filled"
 msgstr "Tous les champs doivent être remplis"
 
-#: nx_lib/views/auth.py:426 nx_lib/views/auth.py:648
+#: nx_lib/views/auth.py:430 nx_lib/views/auth.py:652
 #: nx_lib/views/profile.py:157
 msgid "New password has to be atleast 8 characters long, with no whitespaces"
 msgstr "Le nouveau mot de passe doit comporter au moins 8 caractères, sans espaces"
 
-#: nx_lib/views/auth.py:446 nx_lib/views/auth.py:666
+#: nx_lib/views/auth.py:450 nx_lib/views/auth.py:670
 msgid "New Password musn't be previously used password"
 msgstr "Le nouveau mot de passe ne doit pas être un mot de passe déjà utilisé"
 
-#: nx_lib/views/auth.py:479 nx_lib/views/auth.py:713
+#: nx_lib/views/auth.py:483 nx_lib/views/auth.py:717
 msgid "Something went wrong, please try again"
 msgstr "Une erreur s'est produite, veuillez réessayer"
 
-#: nx_lib/views/auth.py:533 nx_lib/views/auth.py:576
+#: nx_lib/views/auth.py:537 nx_lib/views/auth.py:580
 msgid "Invalid credentials"
 msgstr "Identifiants invalides"
 
-#: nx_lib/views/auth.py:580
+#: nx_lib/views/auth.py:584
 msgid "Login temporarily unavailable"
 msgstr "Connexion temporairement indisponible"
 
-#: nx_lib/views/auth.py:698
+#: nx_lib/views/auth.py:702
 msgid "Password set. You can now sign in."
 msgstr "Mot de passe défini. Vous pouvez maintenant vous connecter."
 
-#: nx_lib/views/auth.py:700
+#: nx_lib/views/auth.py:704
 msgid "Password changed"
 msgstr "Mot de passe modifié"
 
-#: nx_lib/views/auth.py:845
+#: nx_lib/views/auth.py:849
 msgid "If that email is registered, a reset link has been sent."
 msgstr ""
 "Si cette adresse e-mail est enregistrée, un lien de réinitialisation du "
 "mot de passe a été envoyé."
 
-#: nx_lib/views/auth.py:849
+#: nx_lib/views/auth.py:853
 msgid "Unexpected error occurred"
 msgstr "Une erreur inattendue s'est produite"
 
@@ -691,11 +691,11 @@ msgstr "Impossible de mettre à jour la métrique"
 msgid "Could not delete metric"
 msgstr "Impossible de supprimer la métrique"
 
-#: nx_lib/views/workitems.py:919
+#: nx_lib/views/workitems.py:881 nx_lib/views/workitems.py:1041
 msgid "Could not fetch values"
 msgstr "Impossible de récupérer les valeurs"
 
-#: nx_lib/views/workitems.py:980
+#: nx_lib/views/workitems.py:1102
 msgid ""
 "Exporting fields, history, or images requires selecting 10 or fewer "
 "workitems."
@@ -703,23 +703,23 @@ msgstr ""
 "L'export des champs, de l'historique ou des images nécessite de "
 "sélectionner 10 workitems ou moins."
 
-#: nx_lib/views/workitems.py:1274
+#: nx_lib/views/workitems.py:1396
 msgid "TRUNCATED"
 msgstr "TRONQUÉ"
 
-#: nx_lib/views/workitems.py:1275
+#: nx_lib/views/workitems.py:1397
 msgid "exported"
 msgstr "exportés"
 
-#: nx_lib/views/workitems.py:1275
+#: nx_lib/views/workitems.py:1397
 msgid "matching workitems"
 msgstr "workitems correspondants"
 
-#: nx_lib/views/workitems.py:1281
+#: nx_lib/views/workitems.py:1403
 msgid "EXPORT TIMED OUT"
 msgstr "EXPORT EXPIRÉ"
 
-#: nx_lib/views/workitems.py:1282
+#: nx_lib/views/workitems.py:1404
 msgid ""
 "no fields or images completed before the time limit; this is not a zero-"
 "result export"
@@ -727,86 +727,86 @@ msgstr ""
 "aucun champ ni image n'a été terminé avant la limite de temps ; il ne "
 "s'agit pas d'un export sans résultat"
 
-#: nx_lib/views/workitems.py:1390 nx_lib/views/workitems.py:1461
+#: nx_lib/views/workitems.py:1512 nx_lib/views/workitems.py:1583
 msgid "No file part in the request."
 msgstr "Aucune partie de fichier dans la requête."
 
-#: nx_lib/views/workitems.py:1397 nx_lib/views/workitems.py:1464
+#: nx_lib/views/workitems.py:1519 nx_lib/views/workitems.py:1586
 msgid "No file selected for uploading."
 msgstr "Aucun fichier sélectionné pour le téléversement."
 
-#: nx_lib/views/workitems.py:1401
+#: nx_lib/views/workitems.py:1523
 msgid "No target process selected."
 msgstr "Aucun processus cible sélectionné."
 
-#: nx_lib/views/workitems.py:1413
+#: nx_lib/views/workitems.py:1535
 msgid "You do not have permission to import to this process."
 msgstr "Vous n'avez pas l'autorisation d'importer dans ce processus."
 
-#: nx_lib/views/workitems.py:1428
+#: nx_lib/views/workitems.py:1550
 #, python-brace-format
 msgid "File '{}' successfully imported into {}."
 msgstr "Fichier '{}' importé avec succès dans {}."
 
-#: nx_lib/views/workitems.py:1433
+#: nx_lib/views/workitems.py:1555
 msgid "An error occurred while saving the file."
 msgstr "Une erreur s'est produite lors de l'enregistrement du fichier."
 
-#: nx_lib/views/workitems.py:1435
+#: nx_lib/views/workitems.py:1557
 msgid "Invalid file type. Please upload a valid PDF."
 msgstr "Type de fichier invalide. Veuillez téléverser un PDF valide."
 
-#: nx_lib/views/workitems.py:1458 nx_lib/views/workitems.py:1929
+#: nx_lib/views/workitems.py:1580 nx_lib/views/workitems.py:2051
 msgid "This import is only available for the MS02 client."
 msgstr "Cet import est uniquement disponible pour le client MS02."
 
-#: nx_lib/views/workitems.py:1468
+#: nx_lib/views/workitems.py:1590
 msgid "Invalid file type. Please upload a valid Excel (.xlsx) file."
 msgstr ""
 "Type de fichier invalide. Veuillez téléverser un fichier Excel valide "
 "(.xlsx)."
 
-#: nx_lib/views/workitems.py:1476
+#: nx_lib/views/workitems.py:1598
 msgid "The Excel file has no usable rows."
 msgstr "Le fichier Excel ne contient aucune ligne exploitable."
 
-#: nx_lib/views/workitems.py:1493
+#: nx_lib/views/workitems.py:1615
 msgid "Could not save the prepared documents. Please try again."
 msgstr "Impossible de sauvegarder les documents préparés. Veuillez réessayer."
 
-#: nx_lib/views/workitems.py:1576 nx_lib/views/workitems.py:1616
+#: nx_lib/views/workitems.py:1698 nx_lib/views/workitems.py:1738
 msgid "Workitem not found"
 msgstr "Workitem introuvable"
 
-#: nx_lib/views/workitems.py:1604 nx_lib/views/workitems.py:1698
+#: nx_lib/views/workitems.py:1726 nx_lib/views/workitems.py:1820
 msgid "Internal Server Error"
 msgstr "Erreur interne du serveur"
 
-#: nx_lib/views/workitems.py:1629
+#: nx_lib/views/workitems.py:1751
 msgid "Media index out of bounds"
 msgstr "Index du média hors limites"
 
-#: nx_lib/views/workitems.py:1655
+#: nx_lib/views/workitems.py:1777
 msgid "Failed to render PDF page"
 msgstr "Échec du rendu de la page PDF"
 
-#: nx_lib/views/workitems.py:1682
+#: nx_lib/views/workitems.py:1804
 msgid "Failed to process TIFF image"
 msgstr "Échec du traitement de l'image TIFF"
 
-#: nx_lib/views/workitems.py:1747
+#: nx_lib/views/workitems.py:1869
 msgid "Failed to fetch audit history"
 msgstr "Échec de la récupération de l'historique d'audit"
 
-#: nx_lib/views/workitems.py:1749
+#: nx_lib/views/workitems.py:1871
 msgid "An unexpected error occurred"
 msgstr "Une erreur inattendue s'est produite"
 
-#: nx_lib/views/workitems.py:1855
+#: nx_lib/views/workitems.py:1977
 msgid "This page is only available for the MS02 client."
 msgstr "Cette page est uniquement disponible pour le client MS02."
 
-#: nx_lib/views/workitems.py:1935
+#: nx_lib/views/workitems.py:2057
 msgid "Could not clear the prepared documents. Please try again."
 msgstr "Impossible de supprimer les documents préparés. Veuillez réessayer."
 
@@ -847,8 +847,9 @@ msgid "Maintenance"
 msgstr "Maintenance"
 
 #: templates/_header.html:79 templates/_header.html:108
-#: templates/generali_documents.html:39 templates/generali_reporting.html:54
-#: templates/js/_header_js.html:73 templates/js/_header_js.html:82
+#: templates/dashboard.html:26 templates/generali_documents.html:39
+#: templates/generali_reporting.html:54 templates/js/_header_js.html:73
+#: templates/js/_header_js.html:82
 msgid "Dashboard"
 msgstr "Tableau de bord"
 
@@ -1244,53 +1245,54 @@ msgstr "Contact"
 msgid "Dashboard - nexora"
 msgstr "Tableau de bord - nexora"
 
-#: templates/dashboard.html:26
-msgid "Welcome back"
-msgstr "Bon retour"
-
 #: templates/dashboard.html:27
 msgid "Here's a real-time overview of your document processing activity."
 msgstr ""
 "Voici un aperçu en temps réel de votre activité de traitement de "
 "documents."
 
-#: templates/dashboard.html:34 templates/workitems_overview.html:77
+#: templates/dashboard.html:29
+#, python-format
+msgid "Signed in as %(name)s — %(when)s"
+msgstr "Connecté en tant que %(name)s — %(when)s"
+
+#: templates/dashboard.html:37 templates/workitems_overview.html:77
 msgid "Process"
 msgstr "Processus"
 
-#: templates/dashboard.html:36 templates/workitems_overview.html:80
+#: templates/dashboard.html:39 templates/workitems_overview.html:80
 msgid "All Processes"
 msgstr "Tous les processus"
 
-#: templates/dashboard.html:46
+#: templates/dashboard.html:49
 msgid "Imported Today"
 msgstr "Importés aujourd'hui"
 
-#: templates/dashboard.html:53
+#: templates/dashboard.html:56
 msgid "Processed Today"
 msgstr "Traités aujourd'hui"
 
-#: templates/dashboard.html:60
+#: templates/dashboard.html:63
 msgid "Current Backlog"
 msgstr "File d'attente actuelle"
 
-#: templates/dashboard.html:67
+#: templates/dashboard.html:70
 msgid "Avg. Processing Time"
 msgstr "Temps de traitement moyen"
 
-#: templates/dashboard.html:79
+#: templates/dashboard.html:82
 msgid "Documents Processed Over Time"
 msgstr "Documents traités au fil du temps"
 
-#: templates/dashboard.html:89
+#: templates/dashboard.html:92
 msgid "Recent Validations"
 msgstr "Validations récentes"
 
-#: templates/dashboard.html:104
+#: templates/dashboard.html:107
 msgid "Documents Processed by Hour (Today)"
 msgstr "Documents traités par heure (aujourd'hui)"
 
-#: templates/dashboard.html:109
+#: templates/dashboard.html:112
 msgid "No documents processed yet today."
 msgstr "Aucun document traité pour le moment aujourd'hui."
 
@@ -4365,7 +4367,7 @@ msgstr "Compte"
 msgid "No matching commands."
 msgstr "Aucune commande correspondante."
 
-#: templates/js/_header_js.html:336
+#: templates/js/_header_js.html:337
 msgid "No matching users."
 msgstr "Aucun utilisateur correspondant."
 
@@ -6440,4 +6442,7 @@ msgstr ""
 
 #~ msgid "Optional. Controls display order in the permission editor."
 #~ msgstr "Optionnel. Contrôle l'ordre d'affichage dans l'éditeur de permissions."
+
+#~ msgid "Welcome back"
+#~ msgstr "Bon retour"
 

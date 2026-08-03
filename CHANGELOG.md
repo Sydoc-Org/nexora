@@ -92,6 +92,13 @@ Work toward 2.5.65.
 
 ### Changed
 
+- Dashboard: the page title is now plain **"Dashboard"** instead of
+  `Welcome back, <name>! 👋` (#146). The emoji greeting repeated on every visit
+  and read as unprofessional; the personal touch moves to a quiet
+  `Signed in as <name> — <date, time>` meta line that renders **once**, on the
+  first dashboard load after login (session flag `show_login_note`, stamped in
+  `_record_active_session`), and disappears on any later visit or refresh.
+
 - Footer: `_small_footer.html` is now scoped to the **logged-out surfaces** and
   removed from the 13 app pages that carry the sidebar (`dashboard`, `invoices`,
   `profile`, `workitems_overview`, all nine `generali_*`). It is a marketing

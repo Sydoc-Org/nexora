@@ -10,6 +10,7 @@ import io
 import re
 import threading
 import uuid
+from datetime import datetime
 
 import bcrypt
 import pyotp
@@ -51,6 +52,9 @@ from ..security import (
 def _record_active_session(user_id):
     """Insert the current session's SID into ActiveSessions for admin force-logout.
     No-op on failure - session tracking is non-critical to login success."""
+    # Stamped on every login path; the dashboard shows it once (issue #146).
+    session["login_at"] = datetime.now()
+    session["show_login_note"] = True
     try:
         import uuid as _uuid
 

@@ -23,8 +23,11 @@
         <div class="nx-page-head__title">
           <span class="nx-page-icon"><i class="fas fa-gauge-high"></i></span>
           <div>
-            <h1 class="nx-title">{{ _("Welcome back") }}, {{ fullname }}! 👋</h1>
+            <h1 class="nx-title">{{ _("Dashboard") }}</h1>
             <p class="nx-subtitle">{{ _("Here's a real-time overview of your document processing activity.") }}</p>
+            {% if login_at %}
+            <p class="nx-meta" data-testid="dashboard-signin-note">{{ _("Signed in as %(name)s — %(when)s", name=fullname, when=login_at|datetimeformat('short')) }}</p>
+            {% endif %}
           </div>
         </div>
       </div>

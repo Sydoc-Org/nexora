@@ -615,6 +615,8 @@ def dashboard():
         userid = session.get("userid", "Unknown")
         perms = session.get("permissions", [])
         fullname = session.get("fullname")
+        # Sign-in note shows once, on the first dashboard render after login (issue #146).
+        login_at = session.get("login_at") if session.pop("show_login_note", False) else None
 
         prefix = "dashboard.filter.process."
         allowed_processes = sorted(
@@ -639,6 +641,7 @@ def dashboard():
             allowed_processes=allowed_processes,
             pageV=page_visibility(),
             fullname=fullname,
+            login_at=login_at,
         )
     except Exception:
         return render_template("500.html")
