@@ -553,6 +553,151 @@ def test_get_workitems_data_unmapped_docfield_zeroes_both_sources(
     assert captured["filt"].ms02_docfield_ids == set()
 
 
+def test_get_workitems_data_fieldless_pair_searches_all_columns(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Value-first search (#148): a docvalue with NO docfield must widen both
+    SearchConfig lookups to every permitted column (OR'd NOT-NULL filter) and
+    still count as an ACTIVE search for the fail-closed guard -- with no
+    mapping rows found anywhere, both allow-sets must come out set(), never
+    None (which would let a source run unconstrained)."""
+    import nx_lib.hooks as hooks
+    import nx_lib.views.workitems as wv
+
+    monkeypatch.setattr(
+        hooks,
+        "load_permissions_for_user",
+        lambda uid: [
+            "workitems.view",
+            "workitems.filter.documentfields",
+            "workitems.filter.process.sydoc.test_proc",
+        ],
+    )
+
+    sql_log = []
+    monkeypatch.setattr(wv, "engine_nexora_db", _SqlLogEngine(sql_log))
+    monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+
+    monkeypatch.setattr(
+        wv, "get_valid_search_columns", lambda: ["col_validationuser", "col_docbarcode"]
+    )
+    monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: set())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+
+    def _must_not_run(*a, **k):
+        raise AssertionError("resolve_ms02_docfield_ids must not run without mapping rows")
+
+    monkeypatch.setattr(wv, "resolve_ms02_docfield_ids", _must_not_run)
+
+    captured = {}
+
+    def _fake_fetch_merged_page(filt, offset, per_page):
+        captured["filt"] = filt
+        return [], 0, []
+
+    monkeypatch.setattr(wv, "fetch_merged_page", _fake_fetch_merged_page)
+
+    resp = user_client.get(
+        "/api/workitems",
+        query_string={"prcfW": "all", "docfield": "", "docvalue": "alice"},
+    )
+
+    assert resp.status_code == 200
+    widened = [q for q in sql_log if "col_validationuser" in q and "col_docbarcode" in q]
+    assert widened, sql_log
+    assert captured["filt"].docfield_ids == set()
+    assert captured["filt"].ms02_docfield_ids == set()
+
+
+def test_get_workitems_data_fieldless_pair_excludes_sensitive_columns(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Value-first search (#148): the widened any-field column set must drop
+    sensitive FieldKeys for callers without the sensitive-fields permission --
+    no SearchConfig lookup may even mention the blocked column."""
+    import nx_lib.hooks as hooks
+    import nx_lib.views.workitems as wv
+
+    monkeypatch.setattr(
+        hooks,
+        "load_permissions_for_user",
+        lambda uid: [
+            "workitems.view",
+            "workitems.filter.documentfields",
+            "workitems.filter.process.sydoc.test_proc",
+        ],
+    )
+
+    sql_log = []
+    monkeypatch.setattr(wv, "engine_nexora_db", _SqlLogEngine(sql_log))
+    monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+
+    monkeypatch.setattr(
+        wv, "get_valid_search_columns", lambda: ["col_validationuser", "col_secretfield"]
+    )
+    monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: {"secretfield"})
+    monkeypatch.setattr(
+        wv,
+        "has_permission",
+        lambda code: code != "workitems.filter.documentfields.sensitive",
+    )
+    monkeypatch.setattr(wv, "resolve_ms02_docfield_ids", lambda *a, **k: None)
+    monkeypatch.setattr(wv, "fetch_merged_page", lambda filt, offset, per_page: ([], 0, []))
+
+    resp = user_client.get(
+        "/api/workitems",
+        query_string={"prcfW": "all", "docfield": "", "docvalue": "alice"},
+    )
+
+    assert resp.status_code == 200
+    assert any("col_validationuser" in q for q in sql_log), sql_log
+    assert not any("col_secretfield" in q for q in sql_log), sql_log
+
+
+def test_api_docfield_values_no_field_widens_and_excludes_sensitive(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """/api/docfield_values with no field (value-first mode, #148) must answer
+    200 with a JSON list (labeled suggestions), widen its SearchConfig lookup
+    to all permitted columns, and never mention sensitive columns."""
+    import nx_lib.hooks as hooks
+    import nx_lib.views.workitems as wv
+
+    monkeypatch.setattr(
+        hooks,
+        "load_permissions_for_user",
+        lambda uid: [
+            "workitems.view",
+            "workitems.filter.documentfields",
+            "workitems.filter.process.sydoc.test_proc",
+        ],
+    )
+
+    sql_log = []
+    monkeypatch.setattr(wv, "engine_nexora_db", _SqlLogEngine(sql_log))
+    monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", None)
+
+    monkeypatch.setattr(
+        wv, "get_valid_search_columns", lambda: ["col_validationuser", "col_secretfield"]
+    )
+    monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: {"secretfield"})
+    monkeypatch.setattr(
+        wv,
+        "has_permission",
+        lambda code: code != "workitems.filter.documentfields.sensitive",
+    )
+
+    resp = user_client.get("/api/docfield_values", query_string={"process": "all", "q": ""})
+
+    assert resp.status_code == 200
+    assert resp.get_json() == []
+    assert any("col_validationuser" in q for q in sql_log), sql_log
+    assert not any("col_secretfield" in q for q in sql_log), sql_log
+
+
 def test_export_workitems_csv_gated(noperm_client):
     resp = noperm_client.get("/api/export/workitems/csv")
     assert resp.status_code == 403
