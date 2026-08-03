@@ -1097,7 +1097,7 @@ async function uploadBatchFiles(files, processName) {
                 fetchAndUpdateWorkitems();
             });
 
-            ['prcfW', 'statusFilter', 'startDate', 'endDate', 'filterPerPage'].forEach(id => {
+            ['prcfW', 'stageFilter', 'statusFilter', 'startDate', 'endDate', 'filterPerPage'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.addEventListener('change', () => fetchAndUpdateWorkitems());
             });

@@ -169,6 +169,45 @@ def test_search_id_is_exact_match_not_substring(app):
         assert "371" in flat, f"{type(src).__name__} lost the search term: {flat}"
 
 
+def test_stage_filter_applied_after_latest_activity_dedup(app):
+    """Stage is a derived value computed per activity row, but only the
+    workitem's LATEST activity row should decide its stage (issue #147) -- a
+    workitem with an earlier 'Extraction' row and a newer 'Validation' row
+    must match `stage=Validation`, not both. Filtering inside the base WHERE
+    (pre-dedup) would match on any row instead of just the latest, so the
+    clause must be applied against the deduped rn=1 result."""
+    for src in (SqlServerSource(), PostgresSource(CLIENTS_code="ms02")):
+        f = _mk_filter()
+        f.stage = "Validation"
+        with app.app_context():
+            sql, cur = _captured_sql(src, f)
+        norm = sql.replace('"', "").replace(" ", "").lower()
+        assert "currentstage=" in norm, f"{type(src).__name__}: stage clause missing: {sql}"
+        # The dedup CTE alias (LatestCTE / latest) must appear BEFORE the stage
+        # clause is applied, both in the count and list queries.
+        dedup_alias = "latestcte" if isinstance(src, SqlServerSource) else "latest"
+        for call_args in cur.execute.call_args_list:
+            stmt = str(call_args.args[0]).replace('"', "").replace(" ", "").lower()
+            if "currentstage=" in stmt:
+                assert (
+                    dedup_alias in stmt
+                ), f"{type(src).__name__}: stage filter not scoped to deduped rows: {stmt}"
+        params = [c.args[1] for c in cur.execute.call_args_list if len(c.args) > 1]
+        flat = [p for group in params for p in (group if isinstance(group, list) else [group])]
+        assert "Validation" in flat, f"{type(src).__name__} lost the stage value: {flat}"
+
+
+def test_no_stage_filter_omits_stage_clause(app):
+    """stage=None (the default / 'All stages' option) must not constrain the
+    query at all -- no WHERE CurrentStage clause, no extra bound param."""
+    for src in (SqlServerSource(), PostgresSource(CLIENTS_code="ms02")):
+        sql, cur = (None, None)
+        with app.app_context():
+            sql, cur = _captured_sql(src, _mk_filter())
+        norm = sql.replace('"', "").replace(" ", "").lower()
+        assert "currentstage=" not in norm, f"{type(src).__name__}: {sql}"
+
+
 def test_empty_process_scope_yields_no_rows_without_sql_error(app):
     """A user with zero process permissions produced `IN ()` -- a syntax error
     in both dialects -- so both sources errored and the page showed a degraded

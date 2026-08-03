@@ -45,6 +45,12 @@ class WorkitemFilter:
     search_id: str | None = None  # exact workitem id to match
     start_date: object = None
     end_date: object = None
+    # One of 'Import' | 'Extraction' | 'Validation' | 'Delivery' -- matched
+    # against the SAME derived-stage CASE the list query already computes
+    # (each source's CurrentStage/currentstage column), on the workitem's
+    # latest activity row only (rn = 1). Filtering pre-dedup would be wrong:
+    # a workitem can have earlier activity rows in other stages.
+    stage: str | None = None
     # Raw doc-field search pairs, kept for the autocomplete endpoint only. The
     # ACTUAL search is now ALWAYS pre-resolved by the orchestrator into a per-
     # source id allow-set:
@@ -165,20 +171,7 @@ class SqlServerSource:
                         batch,
                     )
 
-            cur.execute(
-                f"""
-                SELECT COUNT(DISTINCT twi.ID)
-                FROM t_WorkItems twi
-                INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
-                INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
-                WHERE {full_where}
-            """,
-                params,
-            )
-            total = cur.fetchone()[0] or 0
-
-            cur.execute(
-                f"""
+            cte_sql = f"""
                 WITH WorkitemCTE AS (
                     SELECT
                         twi.ModifiedAt, twi.ID AS WorkItemID,
@@ -200,13 +193,31 @@ class SqlServerSource:
                     INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
                     INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
                     WHERE {full_where}
+                ),
+                LatestCTE AS (
+                    SELECT * FROM WorkitemCTE WHERE rn = 1
                 )
+            """
+            # Stage is filtered post-dedup (on the workitem's latest activity
+            # row only), so it's applied against LatestCTE, not full_where.
+            stage_clause = "WHERE CurrentStage = ?" if filt.stage else ""
+            stage_params = [filt.stage] if filt.stage else []
+
+            cur.execute(
+                cte_sql + f"SELECT COUNT(*) FROM LatestCTE {stage_clause}",
+                [*params, *stage_params],
+            )
+            total = cur.fetchone()[0] or 0
+
+            cur.execute(
+                cte_sql
+                + f"""
                 SELECT ModifiedAt, WorkItemID, Status, CurrentStage
-                FROM WorkitemCTE WHERE rn = 1
+                FROM LatestCTE {stage_clause}
                 ORDER BY ModifiedAt DESC
                 OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
             """,
-                [*params, offset, limit],
+                [*params, *stage_params, offset, limit],
             )
             rows = [
                 {
@@ -887,20 +898,8 @@ class PostgresSource:
         conn = self.engine.raw_connection()
         try:
             cur = conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor)
-            cur.execute(
-                f"""
-                SELECT COUNT(DISTINCT twi."ID")
-                FROM "t_WorkItems" twi
-                JOIN "t_ActivityInstances" tai ON twi."ActivityInstanceID" = tai."ID"
-                JOIN "t_Processes" tp ON tp."ID" = tai."ProcessID"
-                WHERE {where}
-                """,
-                params,
-            )
-            total = cur.fetchone()[0] or 0
 
-            cur.execute(
-                f"""
+            cte_sql = f"""
                 WITH ranked AS (
                     SELECT
                         twi."ModifiedAt" AS modifiedat,
@@ -925,13 +924,31 @@ class PostgresSource:
                     JOIN "t_ActivityInstances" tai ON twi."ActivityInstanceID" = tai."ID"
                     JOIN "t_Processes" tp ON tp."ID" = tai."ProcessID"
                     WHERE {where}
+                ),
+                latest AS (
+                    SELECT * FROM ranked WHERE rn = 1
                 )
+            """
+            # Stage is filtered post-dedup (on the workitem's latest activity
+            # row only), so it's applied against `latest`, not `where`.
+            stage_clause = "WHERE currentstage = %s" if filt.stage else ""
+            stage_params = [filt.stage] if filt.stage else []
+
+            cur.execute(
+                cte_sql + f"SELECT COUNT(*) FROM latest {stage_clause}",
+                [*params, *stage_params],
+            )
+            total = cur.fetchone()[0] or 0
+
+            cur.execute(
+                cte_sql
+                + f"""
                 SELECT modifiedat, workitemid, status, currentstage
-                FROM ranked WHERE rn = 1
+                FROM latest {stage_clause}
                 ORDER BY modifiedat DESC
                 LIMIT %s OFFSET %s
                 """,
-                [*params, limit, offset],
+                [*params, *stage_params, limit, offset],
             )
             rows = [
                 {
