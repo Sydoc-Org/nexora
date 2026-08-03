@@ -15,14 +15,17 @@ Permission, AccessProfile, AccessProfilePermission, UserPermissionOverride,
 ActiveSessions. Routes touching these are asserted at 200.
 
 Tables ABSENT (assertions use 200/500 tuple-match):
-- MaintenanceBanner  (admin/maintenance endpoints)
 - Logs               (admin/logs and admin_dashboard counters)
 - DashboardLayouts   (dashboard widget routes — not in this file)
+
+MaintenanceBanner exists in sql/test/schema.sql (added in aea3998); the
+maintenance routes still use a 200/500 tuple-match since these tests don't
+seed banner rows.
 
 Sections:
 - /admin                    overview
 - /admin/organizations/*    CRUD + list
-- /admin/maintenance*       CRUD + list  (MaintenanceBanner absent)
+- /admin/maintenance*       CRUD + list
 - /admin/logs*              search + export  (Logs absent)
 - /admin/sessions + /admin/users/* CRUD + revoke
 - /admin/access_control + access profile + override
@@ -121,7 +124,7 @@ def test_admin_maintenance_view_gated(noperm_client):
 
 
 def test_admin_maintenance_view_with_perms(admin_client, admin_all_perms):
-    """MaintenanceBanner table absent → 200 or 500 from except branch."""
+    """200 with an empty list, or 500 if the query fails."""
     resp = admin_client.get("/admin/maintenance")
     assert resp.status_code in (200, 500)
 

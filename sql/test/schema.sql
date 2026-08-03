@@ -30,6 +30,7 @@ IF OBJECT_ID('dbo.ApiKeys', 'U') IS NOT NULL DROP TABLE dbo.ApiKeys;
 IF OBJECT_ID('dbo.UserPermissionOverride', 'U') IS NOT NULL DROP TABLE dbo.UserPermissionOverride;
 IF OBJECT_ID('dbo.AccessProfilePermission', 'U') IS NOT NULL DROP TABLE dbo.AccessProfilePermission;
 IF OBJECT_ID('dbo.ActiveSessions', 'U') IS NOT NULL DROP TABLE dbo.ActiveSessions;
+IF OBJECT_ID('dbo.MaintenanceBanner', 'U') IS NOT NULL DROP TABLE dbo.MaintenanceBanner;
 -- Legacy collaboration tables (chat/workitem-collaboration/notifications, removed from
 -- the app): CREATE TABLE + seed rows are gone for good, but these DROP-only guards stay
 -- so a TEST database created before commit 1d4a02a self-heals on the next reset instead

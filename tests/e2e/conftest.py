@@ -124,11 +124,10 @@ def nexora_server():
     env["NEXORA_DISABLE_RATELIMIT"] = "1"
 
     # Stream the server's stdout/stderr to a log file rather than an unread
-    # PIPE. The app logs an error on every request (the MaintenanceBanner table
-    # is absent in TEST), so an undrained PIPE fills its ~64KB OS buffer after a
-    # handful of requests and the server blocks on write — wedging every
-    # subsequent request. A file sink drains freely and keeps the log for
-    # post-mortem on startup failure.
+    # PIPE: a long E2E run's request volume fills an undrained PIPE's ~64KB OS
+    # buffer, and the server then blocks on write — wedging every subsequent
+    # request. A file sink drains freely and keeps the log for post-mortem on
+    # startup failure.
     log_dir = repo_root / "var" / "test-results"
     log_dir.mkdir(parents=True, exist_ok=True)
     log_path = log_dir / "e2e-server.log"

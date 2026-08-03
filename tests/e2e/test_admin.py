@@ -1,8 +1,7 @@
 """E2E tests for the /admin/* pages.
 
 admin@test.local holds every permission (test seed), so all admin pages render.
-Tables absent in TEST (Logs, MaintenanceBanner) make those pages render empty
-but not 500. Destructive controls (delete org/user) are only opened and then
+Tables absent in TEST (Logs) make those pages render empty but not 500. Destructive controls (delete org/user) are only opened and then
 cancelled — never confirmed against seed data.
 
 Route paths come from admin.register_routes: overview is /admin, user detail is
