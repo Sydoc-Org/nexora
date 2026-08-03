@@ -92,6 +92,16 @@ Work toward 2.5.65.
 
 ### Changed
 
+- Workitems: the doc-field filter is now **Document Value Search** (#148) — its
+  own always-visible section below the base filters instead of a row buried in
+  the Advanced toggle, and it searches **value-first**: with no field selected
+  the value is OR-matched across every permitted, non-sensitive field (default
+  SQL Server + MS02 columnar paths, fail-closed contract unchanged), and
+  `/api/docfield_values` returns labeled `{value, field}` suggestions whose
+  pick locks the pair field-precise. Also fixes the bug where suggestions fell
+  back to `doctype`/the first field while the field box showed "no field
+  selected" (the issue's screenshot).
+
 - Dashboard: the page title is now plain **"Dashboard"** instead of
   `Welcome back, <name>! 👋` (#146). The emoji greeting repeated on every visit
   and read as unprofessional; the personal touch moves to a quiet

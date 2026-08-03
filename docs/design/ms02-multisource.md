@@ -89,6 +89,14 @@ Doc-field visibility is permission-aware — `dbo.Search_Field_Labels.IsSensitiv
 `FieldKey`s, gated by the shared `workitems.filter.documentfields.sensitive` permission and
 enforced server-side at every surface (dropdown, values API, search, detail panel, CSV).
 
+Since #148 the search is **value-first** ("Document Value Search"): a pair with a value but no
+field OR-matches the value across every permitted, non-sensitive `col_*` column on both paths
+(one widened UNION on the default leg; multi-column specs into `resolve_ms02_docfield_ids` on the
+MS02 leg — specs within a pair are OR'd, pairs still AND-intersect). The fail-closed contract is
+unchanged: a field-less pair counts as an active search, so unresolved paths still yield an empty
+allow-set, never "no constraint". `/api/docfield_values` with an empty `field` returns labeled
+`{value, field}` suggestions across the same permitted column set.
+
 ## Personal-number (PID) import & prepared-documents register
 
 The same statistik table also backs an MS02-only **personal-number (PID) import**:
