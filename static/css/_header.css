@@ -2,6 +2,33 @@
    NEXORA – Shared header / sidebar styles
    ============================================================ */
 
+/* Shared z-index scale (issue #142). Loaded on every page that includes
+   _header.html — the vast majority of the app — so these tokens are visible
+   wherever a cross-cutting chrome/overlay layer needs to be ordered against
+   another one. Local decorative stacking inside a single component (e.g. a
+   card's own background/foreground layers, typically z-index 0-5) is left
+   as plain literals: it never competes with anything outside that component,
+   so tokenizing it would just be noise.
+   NOTE: --z-nav-toggle and --z-modal-backdrop are both 60 today (pre-existing,
+   unchanged by this pass) — a mobile nav toggle button and a reporting modal
+   backdrop happen to share a value. They've never been visible at the same
+   time in practice, but it's a real collision waiting to happen; worth a
+   dedicated look if that ever changes. */
+:root {
+  --z-raised: 30;          /* reporting: small in-flow dropdown */
+  --z-nav-backdrop: 38;    /* mobile nav dimming overlay */
+  --z-nav: 40;             /* persistent sidebar/nav rail */
+  --z-overlay-center: 50;  /* full-page centered overlay (e.g. workitems export modal) */
+  --z-nav-toggle: 60;      /* mobile nav floating toggle button */
+  --z-modal-backdrop: 60;  /* modal/drawer dimming backdrop */
+  --z-popover-menu: 60;    /* small dropdown/export menu (not a full backdrop) */
+  --z-modal: 61;           /* modal/drawer panel, above its own backdrop */
+  --z-popover: 100;        /* dropdown/popover panels (user menu, drill drawer, etc.) */
+  --z-top: 200;            /* admin utility layer, above popovers */
+  --z-top-2: 210;          /* topmost app chrome (above --z-top) */
+  --z-command-palette: 1000; /* Ctrl/Cmd+K command palette */
+}
+
 /* ---------- Base body ---------- */
 body {
     font-family: 'Inter', sans-serif;
@@ -27,7 +54,7 @@ footer {
     top: 0;
     height: 100vh;
     width: 64px;                 
-    z-index: 40;
+    z-index: var(--z-nav);
     display: flex;
     flex-direction: column;
     background: #ffffff;
@@ -234,7 +261,7 @@ html.dark .sidebar-nav-group-header:hover { background: #334155; color: #a5b4fc;
     background: #fff;
     box-shadow: 0 20px 50px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.05);
     overflow: hidden;
-    z-index: 100;
+    z-index: var(--z-popover);
 }
 .sidebar-notif-panel-header {
     display: flex;
@@ -401,7 +428,7 @@ html.dark .skeleton-shimmer {
     position: fixed;
     top: 12px;
     left: 12px;
-    z-index: 60;
+    z-index: var(--z-nav-toggle);
     width: 44px;
     height: 44px;
     border-radius: 10px;
@@ -426,7 +453,7 @@ html.dark .sidebar-toggle-btn {
     position: fixed;
     inset: 0;
     background: rgba(15, 23, 42, 0.45);
-    z-index: 38;
+    z-index: var(--z-nav-backdrop);
     opacity: 0;
     transition: opacity 0.2s ease;
 }
@@ -618,7 +645,7 @@ html.dark .sidebar-toggle-btn {
    COMMAND PALETTE (Ctrl/Cmd+K)
    ============================================================ */
 .cmdk-overlay {
-    position: fixed; inset: 0; z-index: 1000;
+    position: fixed; inset: 0; z-index: var(--z-command-palette);
     background: rgba(15,23,42,0.45);
     backdrop-filter: blur(2px);
     display: flex; align-items: flex-start; justify-content: center;

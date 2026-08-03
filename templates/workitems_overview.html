@@ -163,13 +163,13 @@
                       {% if docFieldsValues_perm==False %} disabled {% endif %}
                       class="{{ input_base }} pl-10 pr-10 doc-filter-field-search"
                       placeholder="{{ _('Search field…') }}" data-testid="workitems-doc-field-search" />
-                    <input type="text" id="docFieldFilter" name="docfield" class="doc-filter-field"
+                    <input type="text" id="docFieldFilter" name="docfield" class="doc-filter-field hidden"
                       {% if docFieldsValues_perm==False %} disabled {% endif %}
-                      value="{{ docfield or '' }}" style="display:none" readonly tabindex="-1" data-testid="workitems-doc-field" />
+                      value="{{ docfield or '' }}" readonly tabindex="-1" data-testid="workitems-doc-field" />
                     <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 pointer-events-none">
                       <i class="fa-solid fa-chevron-down text-xs"></i>
                     </span>
-                    <div class="hidden absolute z-20 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto doc-field-dropdown" style="top:100%; margin-top:2px;"></div>
+                    <div class="hidden absolute z-20 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto doc-field-dropdown [top:100%]! [margin-top:2px]!"></div>
                   </div>
 
                   <div class="relative">
@@ -195,12 +195,11 @@
                     <input type="text" autocomplete="off"
                       class="{{ input_base }} pl-10 pr-10 doc-filter-field-search"
                       placeholder="{{ _('Search field…') }}" />
-                    <input type="text" name="docfield" class="doc-filter-field"
-                      style="display:none" readonly tabindex="-1" />
+                    <input type="text" name="docfield" class="doc-filter-field [display:none]!" readonly tabindex="-1"/>
                     <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 pointer-events-none">
                       <i class="fa-solid fa-chevron-down text-xs"></i>
                     </span>
-                    <div class="hidden absolute z-20 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto doc-field-dropdown" style="top:100%; margin-top:2px;"></div>
+                    <div class="hidden absolute z-20 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto doc-field-dropdown [top:100%]! [margin-top:2px]!"></div>
                   </div>
 
                   <div class="relative flex items-center gap-2">
@@ -280,9 +279,7 @@
 
       <div class="nx-table-wrap nx-rise-3 relative">
         <div class="overflow-x-auto">
-          <div id="table-top-loader"
-            class="sticky top-0 z-10 hidden items-center justify-center p-4 bg-white bg-opacity-80 backdrop-blur-sm"
-            style="display: none;">
+          <div id="table-top-loader" class="sticky top-0 z-10 hidden items-center justify-center p-4 bg-white bg-opacity-80 backdrop-blur-sm [display:none]!">
           </div>
           <table class="nx-table" id="workitemsTable">
             <thead>
@@ -450,7 +447,7 @@
                   <p class="text-xs text-gray-400">{{ _("Up to 5 images per workitem — only available for selections of up to 10 workitems") }}</p>
                 </div>
               </label>
-              <div id="exportImagesHelperInfo" style="display:none" class="ml-7 mt-1 rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2">
+              <div id="exportImagesHelperInfo" class="ml-7 mt-1 rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2 [display:none]!">
                 <p class="text-xs text-gray-500">{{ _("Use this PowerShell script to extract images from the exported CSV. Requires execution policy") }} <code class="bg-gray-200 rounded px-1 font-mono text-gray-700">Bypass</code> {{ _("or higher.") }}</p>
                 <div class="relative">
                   <pre class="text-xs bg-white border border-gray-200 rounded p-2 overflow-x-auto m-0"><code id="exportHelperScript" class="language-powershell">$csvPath = (Read-Host "CSV Path").replace('"','').replace("'",'')
@@ -491,7 +488,7 @@ $data | ForEach-Object {
           </button>
           <button type="button" id="confirmExportModalBtn"
             class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium shadow-sm flex items-center gap-2" data-testid="workitems-confirm-export">
-            <i id="exportModalSpinner" class="fas fa-spinner fa-spin" style="display:none"></i>
+            <i id="exportModalSpinner" class="fas fa-spinner fa-spin [display:none]!"></i>
             <i id="exportModalIcon" class="fas fa-download"></i>
             {{ _("Export CSV") }}
           </button>

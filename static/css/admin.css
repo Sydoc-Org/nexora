@@ -11,11 +11,23 @@
 .fixed { position: fixed; }
 .top-4 { top: 1rem; }
 .right-4 { right: 1rem; }
-.z-\[100\] { z-index: 100; }
-.z-\[200\] { z-index: 200; }
+.z-\[100\] { z-index: var(--z-popover); }
+.z-\[200\] { z-index: var(--z-top); }
 .w-full { width: 100%; }
 .max-w-xs { max-width: 20rem; }
 .space-y-3 > * + * { margin-top: 0.75rem; }
+
+/* Text-color/background utilities (issue #142): these pages can't rely on
+   Tailwind's arbitrary-value bracket classes (see the #137 note above), so
+   the handful of repeated inline `style="color:var(--nx-*)"` values used
+   across admin templates get real classes instead. */
+.nx-c-meta    { color: var(--nx-text-meta) !important; }
+.nx-c-sec     { color: var(--nx-text-sec) !important; }
+.nx-c-danger  { color: var(--nx-danger) !important; }
+.nx-c-text    { color: var(--nx-text) !important; }
+.nx-c-accent  { color: var(--nx-accent) !important; }
+.nx-bg-card   { background: var(--nx-card) !important; }
+.nx-bg-lred   { background: var(--nx-l-red) !important; }
 
 /* Empty / loading table cells (JS partials inject class="admin-empty") */
 .admin-empty { padding: 32px 16px; text-align: center; color: var(--nx-text-meta); font-size: 13px; }

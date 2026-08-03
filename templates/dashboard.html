@@ -30,10 +30,9 @@
       </div>
     </div>
 
-    <div class="nx-filter mb-8" style="display:flex;flex-wrap:wrap;align-items:center;gap:16px;">
+    <div class="nx-filter mb-8 [display:flex]! [flex-wrap:wrap]! [align-items:center]! [gap:16px]!">
       <label for="prcfD" class="nx-meta">{{ _("Process") }}</label>
-      <select id="prcfD" name="prcfD" class="nx-select" style="width:auto;min-width:220px;"
-        onchange="setProcessFilter(this.value)" data-testid="dashboard-process-filter">
+      <select id="prcfD" name="prcfD" class="nx-select [width:auto]! [min-width:220px]!" onchange="setProcessFilter(this.value)" data-testid="dashboard-process-filter">
         <option value="all" {% if process_name=='all' %}selected{% endif %}>{{ _("All Processes") }}</option>
         {% for proc in allowed_processes %}
         <option value="{{ proc }}" {% if process_name==proc %}selected{% endif %}>{{ proc }}</option>
@@ -75,8 +74,8 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div class="lg:col-span-2 space-y-8">
         <div class="nx-card nx-card--pad h-full nx-rise-3">
-          <h3 class="nx-section" style="display:flex;align-items:center;gap:8px;margin-bottom:24px;">
-            <i class="fa-solid fa-chart-line" style="color:var(--nx-accent)"></i>
+          <h3 class="nx-section [display:flex]! [align-items:center]! [gap:8px]! [margin-bottom:24px]!">
+            <i class="fa-solid fa-chart-line [color:var(--nx-accent)]!"></i>
             {{ _("Documents Processed Over Time") }}
           </h3>
           <div class="h-85"><canvas id="processedOverTimeChart"></canvas></div>
@@ -85,8 +84,8 @@
 
       <div class="lg:col-span-1">
         <div class="nx-card nx-card--pad h-full nx-rise-3">
-          <h3 class="nx-section" style="display:flex;align-items:center;gap:8px;margin-bottom:24px;">
-            <i class="fa-solid fa-bolt" style="color:var(--nx-warning)"></i>
+          <h3 class="nx-section [display:flex]! [align-items:center]! [gap:8px]! [margin-bottom:24px]!">
+            <i class="fa-solid fa-bolt [color:var(--nx-warning)]!"></i>
             {{ _("Recent Validations") }}
           </h3>
           <div id="activity-feed" class="space-y-3">
@@ -100,12 +99,12 @@
     </div>
 
     <div class="nx-card nx-card--pad mt-8">
-      <h3 class="nx-section" style="display:flex;align-items:center;gap:8px;margin-bottom:24px;">
-        <i class="fa-solid fa-clock" style="color:var(--nx-success)"></i>
+      <h3 class="nx-section [display:flex]! [align-items:center]! [gap:8px]! [margin-bottom:24px]!">
+        <i class="fa-solid fa-clock [color:var(--nx-success)]!"></i>
         {{ _("Documents Processed by Hour (Today)") }}
       </h3>
       <div class="h-56" id="hourlyChartWrap"><canvas id="hourlyChart"></canvas></div>
-      <div class="nx-empty" id="hourlyChartEmpty" style="display:none">
+      <div class="nx-empty [display:none]!" id="hourlyChartEmpty">
         <div class="nx-empty__art"><i class="fa-solid fa-chart-column"></i></div>
         <p class="nx-empty__title">{{ _("No documents processed yet today.") }}</p>
       </div>
