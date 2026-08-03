@@ -398,6 +398,11 @@ def _ms02_prepared_docs_processes():
 # outgrow this ceiling.
 EXPORT_MAX_ROWS = 100_000
 
+# Fixed domain of the derived stage CASE both source adapters compute -- see
+# workitem_sources.py's WorkitemCTE/ranked CurrentStage column and the
+# timeline stepper in _workitem_detail_panel_js.html (`stages` array).
+WORKITEM_STAGES = ("Import", "Extraction", "Validation", "Delivery")
+
 # D-CSVLIM: include=fields|history|images are all per-row Octo fetches. The
 # UI only ever offers them once <=10 rows are selected (see
 # selectedIds.size <= 10 in _workitems_overview_js.html), but that gate is
@@ -472,6 +477,7 @@ def _get_workitems_data(args, export_all=False):
     page = args.get("page", 1, type=int)
     search_term = args.get("search", "").strip()
     status = args.get("status", "")
+    stage = args.get("stage", "")
     start_date_str = args.get("startDate", "")
     end_date_str = args.get("endDate", "")
     start_date = datetime.fromisoformat(start_date_str) if start_date_str else None
@@ -768,6 +774,9 @@ def _get_workitems_data(args, export_all=False):
         activity_ignore_csv=activity_instances_to_ignore,
         status_code=status_map.get(status)
         if (status and has_permission("workitems.filter.status"))
+        else None,
+        stage=stage
+        if (stage in WORKITEM_STAGES and has_permission("workitems.filter.stage"))
         else None,
         search_id=search_term
         if (search_term and has_permission("workitems.filter.workitemid"))
@@ -1458,6 +1467,9 @@ def workitems_overview():
         status = request.args.get("status", "") if status_perm else None
         deleted_status_perm = status_perm and has_permission("workitems.filter.status.deleted")
 
+        stage_perm = has_permission("workitems.filter.stage")
+        stage = request.args.get("stage", "") if stage_perm else None
+
         datetime_perm = has_permission("workitems.filter.datetime")
         start_date_str = request.args.get("startDate", "") if datetime_perm else None
         end_date_str = request.args.get("endDate", "") if datetime_perm else None
@@ -1507,6 +1519,7 @@ def workitems_overview():
             process_name=process_name,
             search=search_term,
             status=status,
+            stage=stage,
             startDate=start_date,
             endDate=end_date,
             docfield=docfields[0] if docfields else "",
@@ -1516,6 +1529,8 @@ def workitems_overview():
             search_term_perm=search_term_perm,
             status_perm=status_perm,
             deleted_status_perm=deleted_status_perm,
+            stage_perm=stage_perm,
+            workitem_stages=WORKITEM_STAGES,
             datetime_perm=datetime_perm,
             doc_fields_values_perm=doc_fields_values_perm,
             details_view_perm=details_view_perm,

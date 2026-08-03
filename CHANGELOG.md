@@ -10,6 +10,15 @@ Work toward 2.5.65.
 
 ### Added
 
+- Workitems: **Stage filter** in the top filter row (#147), between Workitem
+  and Status, gated on the new `workitems.filter.stage` permission (migration
+  `0048`, seeded to holders of `workitems.filter.status`). Filters on the
+  workitem's LATEST derived stage (Import/Extraction/Validation/Delivery,
+  same values as the detail-panel stepper) -- both source adapters (SQL
+  Server + MS02 Postgres) now dedup activity rows to the latest one before
+  applying the stage clause, reusing the existing rn=1 CTE for both the count
+  and the list query.
+
 - Header: **switch user** button (dev-only, #118), GitHub-style. The profile
   dropdown gains a "Switch user" item that opens a searchable list of INT
   usernames (new `/dev/users` JSON endpoint) and switches the session via the
