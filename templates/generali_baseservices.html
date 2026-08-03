@@ -54,22 +54,22 @@
 
     <!-- Filter Bar -->
     <div class="nx-filter mb-6">
-      <div class="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end sm:gap-4">
-        <div class="w-full sm:w-auto">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div>
           <label class="block text-xs font-bold uppercase tracking-widest mb-2 [color:var(--nx-text-meta)]!">{{ _("From Date") }}</label>
           <input type="text" id="filterStartDate" placeholder="yyyy-mm-dd"
-            class="nx-input h-11 w-full" data-testid="generali-base-services-start-date" />
+            class="nx-input h-11" data-testid="generali-base-services-start-date" />
         </div>
-        <div class="w-full sm:w-auto">
+        <div>
           <label class="block text-xs font-bold uppercase tracking-widest mb-2 [color:var(--nx-text-meta)]!">{{ _("To Date") }}</label>
           <input type="text" id="filterEndDate" placeholder="yyyy-mm-dd"
-            class="nx-input h-11 w-full" data-testid="generali-base-services-end-date" />
+            class="nx-input h-11" data-testid="generali-base-services-end-date" />
         </div>
-        <div class="col-span-2 sm:col-span-1 w-full sm:w-auto">
+        <div>
           <label class="block text-xs font-bold uppercase tracking-widest mb-2 [color:var(--nx-text-meta)]!">{{ _("Category") }}</label>
           <div class="relative">
             <select id="filterCategory"
-              class="nx-select h-11 w-full sm:min-w-56 appearance-none pr-10" data-testid="generali-base-services-category-filter">
+              class="nx-select h-11 appearance-none pr-10" data-testid="generali-base-services-category-filter">
               <option value="">{{ _("All") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -77,11 +77,11 @@
             </div>
           </div>
         </div>
-        <div class="col-span-2 sm:col-span-1 w-full sm:w-auto">
+        <div>
           <label class="block text-xs font-bold uppercase tracking-widest mb-2 [color:var(--nx-text-meta)]!">{{ _("Organization") }}</label>
           <div class="relative">
             <select id="filterOrganizationCode"
-              class="nx-select h-11 w-full sm:min-w-44 appearance-none pr-10" data-testid="generali-base-services-organization-filter">
+              class="nx-select h-11 appearance-none pr-10" data-testid="generali-base-services-organization-filter">
               <option value="">{{ _("All Organizations") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -89,11 +89,11 @@
             </div>
           </div>
         </div>
-        <div class="col-span-2 sm:col-span-1 w-full sm:w-auto [display:none]!" id="filterUserWrapper">
+        <div id="filterUserWrapper" class="[display:none]!">
           <label class="block text-xs font-bold uppercase tracking-widest mb-2 [color:var(--nx-text-meta)]!">{{ _("User") }}</label>
           <div class="relative">
             <select id="filterUserId"
-              class="nx-select h-11 w-full sm:min-w-44 appearance-none pr-10" data-testid="generali-base-services-user-filter">
+              class="nx-select h-11 appearance-none pr-10" data-testid="generali-base-services-user-filter">
               <option value="">{{ _("All Users") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -101,16 +101,16 @@
             </div>
           </div>
         </div>
-        <div class="col-span-2 sm:col-span-1 flex gap-3 sm:pb-0.5">
-          <button id="applyFilterBtn"
-            class="nx-btn nx-btn--primary flex-1 sm:flex-none h-11" data-testid="generali-base-services-apply-filter">
-            <i class="fas fa-filter mr-2"></i>{{ _("Apply") }}
-          </button>
-          <button id="resetFilterBtn"
-            class="nx-btn nx-btn--ghost flex-1 sm:flex-none h-11" data-testid="generali-base-services-reset-filter">
-            {{ _("Reset") }}
-          </button>
-        </div>
+      </div>
+      <div class="flex gap-3 mt-5 pt-5 border-t [border-color:var(--nx-divider)]!">
+        <button id="applyFilterBtn"
+          class="nx-btn nx-btn--primary h-11" data-testid="generali-base-services-apply-filter">
+          <i class="fas fa-filter mr-2"></i>{{ _("Apply") }}
+        </button>
+        <button id="resetFilterBtn"
+          class="nx-btn nx-btn--ghost h-11" data-testid="generali-base-services-reset-filter">
+          {{ _("Reset") }}
+        </button>
       </div>
     </div>
 
