@@ -177,6 +177,15 @@ Work toward 2.5.65.
   640px (matching the AI-chat button's icon-only collapse Sources already
   had), and the input shrinks properly in its flex row.
 
+- Admin (Access Control, Maintenance, Organizations, User Detail): these pages
+  load `admin.css` only, but their templates use Tailwind-style utility
+  classes (`hidden`, `fixed`, `top-4`, `z-[...]`, `w-full`, `max-w-xs`,
+  `space-y-3`) with no matching rules on the page — the classes were silent
+  no-ops (#137). Worst case: Access Control's tab-hiding, which uses
+  `class="hidden"`, didn't hide anything — the off-tab panel just got pushed
+  offscreen by layout while its inputs stayed focusable and screen-reader
+  visible. Added the handful of real rules actually used to `admin.css`.
+
 - Invoices/Generali Documents: the filter forms on both pages submit as GET
   but shipped a hidden `csrf_token` field anyway (#139). Flask-WTF doesn't
   validate CSRF on GET requests, so the field was dead weight that leaked
