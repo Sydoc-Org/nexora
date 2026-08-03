@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-03 11:43+0200\n"
+"POT-Creation-Date: 2026-08-03 11:55+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1212,7 +1212,7 @@ msgstr ""
 
 #: templates/dashboard.html:29
 #, python-format
-msgid "Signed in as %(name)s — %(when)s"
+msgid "Signed in as %(name)s"
 msgstr ""
 
 #: templates/dashboard.html:29
@@ -2465,7 +2465,7 @@ msgstr ""
 
 #: templates/admin/logs.html:106 templates/admin/user_detail.html:236
 #: templates/js/_generali_documents_js.html:274
-#: templates/js/_workitems_overview_js.html:1128
+#: templates/js/_workitems_overview_js.html:1134
 #: templates/prepared_documents.html:150
 msgid "Previous"
 msgstr ""
@@ -2473,7 +2473,7 @@ msgstr ""
 #: templates/admin/logs.html:107 templates/admin/user_detail.html:237
 #: templates/js/_generali_documents_js.html:278
 #: templates/js/_generali_reporting_js.html:268
-#: templates/js/_workitems_overview_js.html:1134
+#: templates/js/_workitems_overview_js.html:1140
 #: templates/js/archive/_tour_js.html:17 templates/prepared_documents.html:156
 msgid "Next"
 msgstr ""
@@ -3206,7 +3206,7 @@ msgstr ""
 msgid "Last movement at"
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:933
+#: templates/js/_workitems_overview_js.html:939
 #: templates/workitems_overview.html:386
 msgid "selected"
 msgstr ""
@@ -4022,7 +4022,7 @@ msgstr ""
 #: templates/js/_generali_pdqm_js.html:259
 #: templates/js/_generali_project_management_js.html:136
 #: templates/js/_generali_reporting_js.html:176
-#: templates/js/_workitems_overview_js.html:1047
+#: templates/js/_workitems_overview_js.html:1053
 msgid "Try adjusting your filters or resetting the search."
 msgstr ""
 
@@ -4095,7 +4095,7 @@ msgstr ""
 
 #: templates/js/_generali_documents_js.html:66
 #: templates/js/_generali_reporting_js.html:162
-#: templates/js/_workitems_overview_js.html:918
+#: templates/js/_workitems_overview_js.html:924
 msgid "Failed to load data. Please try again."
 msgstr ""
 
@@ -5207,23 +5207,23 @@ msgstr ""
 msgid "Some workitems are temporarily unavailable:"
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:893
+#: templates/js/_workitems_overview_js.html:897
 msgid "Loading workitems..."
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:961
+#: templates/js/_workitems_overview_js.html:967
 msgid "selected workitems will be exported"
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:962
+#: templates/js/_workitems_overview_js.html:968
 msgid "All workitems matching current filters will be exported"
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:1027
+#: templates/js/_workitems_overview_js.html:1033
 msgid "Export failed. Please try again."
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:1046
+#: templates/js/_workitems_overview_js.html:1052
 msgid "No workitems found"
 msgstr ""
 
