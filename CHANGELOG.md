@@ -10,6 +10,15 @@ Work toward 2.5.65.
 
 ### Added
 
+- Reporting AI: **committed the 22-prompt statistical eval suite** (#131) as
+  a repeatable harness under `tools/reporting_ai_eval/` (dev-side, excluded
+  from the deploy mirror) - `prompts.json` (22 hard stakeholder questions
+  grouped by trap, each with a pass criterion), `run_eval.py` (logs into a
+  running INT instance and collects full agent responses per prompt,
+  resumable), and `baseline_2026-07-28.md` (the original 6.1/10-average
+  scored run that surfaced issues #127-#130). Scoring stays manual/Claude-
+  assisted against the criteria; the runner only collects.
+
 - Workitems: **Stage filter** in the top filter row (#147), between Workitem
   and Status, gated on the new `workitems.filter.stage` permission (migration
   `0048`, seeded to holders of `workitems.filter.status`). Filters on the
