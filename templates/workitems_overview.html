@@ -68,9 +68,40 @@
       </div>
     </div>
 
+      {# Smart search hero (issue #148 follow-up): one box, value-first. Each
+         Enter/suggestion-pick becomes a chip = one (docfield, docvalue) pair
+         mirrored into #smartSearchPairs inside the filter form; pairs
+         AND-intersect server-side, field-less pairs match any permitted field. #}
+      <div class="nx-filter mb-6 nx-rise-2" data-testid="workitems-smart-search-card">
+        <label for="smartSearchInput"
+          class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{{ _("Smart search") }}</label>
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-indigo-400">
+            <i class="fas fa-wand-magic-sparkles"></i>
+          </span>
+          <input type="text" id="smartSearchInput" autocomplete="off"
+            {% if docFieldsValues_perm==False %} disabled {% endif %}
+            class="nx-input h-12 pl-11 pr-10 text-base"
+            placeholder="{{ _('Type a document value — Enter adds a search term…') }}"
+            data-testid="workitems-smart-search" />
+          <button type="button" id="smartSearchClear" title="{{ _('Clear search terms') }}"
+            class="absolute inset-y-0 right-0 hidden items-center pr-4 text-gray-400 hover:text-red-500"
+            data-testid="workitems-smart-search-clear">
+            <i class="fas fa-times"></i>
+          </button>
+          <div id="smartSearchSuggest"
+            class="hidden absolute z-30 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-72 overflow-y-auto">
+          </div>
+        </div>
+        <div id="smartSearchChips" class="hidden flex-wrap gap-2 mt-3"></div>
+      </div>
+
       <form id="filterForm" method="GET" action="{{ url_for('workitems_overview') }}"
         class="nx-filter mb-6 nx-rise-2" data-testid="workitems-filter-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        {# CSS-hidden text inputs (NOT type=hidden -- the list fetch skips those)
+           kept in sync with the smart-search chips above. #}
+        <div id="smartSearchPairs" class="hidden"></div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <label for="prcfW" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{{

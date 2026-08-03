@@ -10,6 +10,14 @@ Work toward 2.5.65.
 
 ### Added
 
+- Workitems: a **Smart search** hero box above the filters (#148 follow-up) —
+  one input, value-first: every Enter (or picked labeled suggestion) becomes a
+  removable chip, chips AND-intersect server-side, and each field-less chip
+  matches its value across all permitted document fields. Picking a suggestion
+  locks the chip to its field ("Archive-box No.: 040"). Backspace on the empty
+  input pops the last chip; the × clears all. Pure frontend — chips ride the
+  existing repeated `(docfield, docvalue)` pair mechanics of `/api/workitems`.
+
 - Workitems: **Stage filter** in the top filter row (#147), between Workitem
   and Status, gated on the new `workitems.filter.stage` permission (migration
   `0048`, seeded to holders of `workitems.filter.status`). Filters on the
@@ -99,6 +107,16 @@ Work toward 2.5.65.
   count-up animation, loading skeletons, entrance animation, and a sticky
   result toolbar.
 
+### Added
+
+- Workitems: a **Smart search** hero box above the filters (#148 follow-up) —
+  one input, value-first: every Enter (or picked labeled suggestion) becomes a
+  removable chip, chips AND-intersect server-side, and each field-less chip
+  matches its value across all permitted document fields. Picking a suggestion
+  locks the chip to its field ("Archive-box No.: 040"). Backspace on the empty
+  input pops the last chip; the × clears all. Pure frontend — chips ride the
+  existing repeated `(docfield, docvalue)` pair mechanics of `/api/workitems`.
+
 ### Changed
 
 - Workitems: the doc-field filter is now **Document Value Search** (#148) — its
@@ -116,7 +134,10 @@ Work toward 2.5.65.
   and read as unprofessional; the personal touch moves to a quiet
   `Signed in as <name> — <date, time>` meta line that renders **once**, on the
   first dashboard load after login (session flag `show_login_note`, stamped in
-  `_record_active_session`), and disappears on any later visit or refresh.
+  `_record_active_session`), and disappears on any later visit or refresh. The
+  note also carries `Last sign-in: <date, time>` — the previous login stamp,
+  kept on `dbo.Users.LastLoginAt` (migration `0049`) because `ActiveSessions`
+  rows are deleted on logout and cannot answer it. Absent on a first-ever login.
 
 - Footer: `_small_footer.html` is now scoped to the **logged-out surfaces** and
   removed from the 13 app pages that carry the sidebar (`dashboard`, `invoices`,
