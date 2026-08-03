@@ -871,6 +871,10 @@ async function uploadBatchFiles(files, processName) {
             }
 
             async function fetchAndUpdateWorkitems(page = 1) {
+                // Stale-response guard: rapid re-submits (e.g. two smart-search
+                // chips added back-to-back) race, and the FIRST response can land
+                // last, overwriting the newer result. Only the latest wins.
+                const seq = fetchAndUpdateWorkitems._seq = (fetchAndUpdateWorkitems._seq || 0) + 1;
                 const tbody = document.getElementById('workitemsTbody');
                 const filterForm = document.getElementById('filterForm');
                 const params = new URLSearchParams();
@@ -908,11 +912,13 @@ async function uploadBatchFiles(files, processName) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
                     const data = await response.json();
+                    if (seq !== fetchAndUpdateWorkitems._seq) return;  // superseded
                     try { renderDegradedBanner(data.degradedSources || []); } catch (bannerErr) { console.warn('renderDegradedBanner error:', bannerErr); }
                     renderTable(data.workitems);
                     renderPagination(data.pagination);
 
                 } catch (error) {
+                    if (seq !== fetchAndUpdateWorkitems._seq) return;
                     console.error("Failed to fetch or render workitems:", error);
                     if (tbody) {
                         tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-red-500">{{ _("Failed to load data. Please try again.") }}</td></tr>`;
