@@ -476,6 +476,18 @@ async function uploadBatchFiles(files, processName) {
                 });
             }
 
+            // A lone condition row sits flush left; the boolean rail + x slots
+            // only reserve space once a 2nd row exists.
+            function updateDocRowChrome() {
+                const container = document.getElementById('docFiltersContainer');
+                if (!container) return;
+                const multi = container.querySelectorAll('.doc-filter-row').length > 1;
+                container.querySelectorAll('.doc-rail-spacer, .doc-x-spacer')
+                    .forEach(el => el.classList.toggle('hidden', !multi));
+                const addWrap = document.getElementById('addDocFilterWrap');
+                if (addWrap) addWrap.classList.toggle('md:pl-[5.5rem]', multi);
+            }
+
             function addDocFilterRow() {
                 const tpl = document.getElementById('docFilterRowTemplate');
                 const container = document.getElementById('docFiltersContainer');
@@ -487,6 +499,7 @@ async function uploadBatchFiles(files, processName) {
                 const combo = node.querySelector('.doc-field-combobox');
                 if (combo) initDocFieldCombobox(combo);
                 container.appendChild(node);
+                updateDocRowChrome();
             }
 
 
@@ -544,6 +557,7 @@ async function uploadBatchFiles(files, processName) {
                     if (e.target.closest('.remove-doc-filter')) {
                         const row = e.target.closest('.doc-filter-row');
                         row.remove();
+                        updateDocRowChrome();
                         const form = document.getElementById('filterForm');
                         if (form?.requestSubmit) form.requestSubmit(); else fetchAndUpdateWorkitems();
                     }

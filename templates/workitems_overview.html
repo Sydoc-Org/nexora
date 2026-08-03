@@ -184,7 +184,9 @@
                      doccomb list index-aligned with docfield/docop/docvalue. #}
                   <input type="text" name="doccomb" value="and" class="hidden doc-filter-comb-fixed"
                     {% if docFieldsValues_perm==False %} disabled {% endif %} readonly tabindex="-1" />
-                  <div class="w-20 shrink-0" aria-hidden="true"></div>
+                  {# rail + x spacers only reserve space once a 2nd row exists
+                     (JS toggles them); a lone row sits flush left. #}
+                  <div class="doc-rail-spacer hidden w-20 shrink-0" aria-hidden="true"></div>
                   <div class="flex flex-1 min-w-0 items-stretch">
                     <div class="relative doc-field-combobox flex-[1.1] min-w-0 focus-within:z-10">
                       <input type="text" autocomplete="off" id="docFieldSearch"
@@ -222,7 +224,7 @@
                       </div>
                     </div>
                   </div>
-                  <div class="w-8 shrink-0" aria-hidden="true"></div>
+                  <div class="doc-x-spacer hidden w-8 shrink-0" aria-hidden="true"></div>
                 </div>
               </div>
 
@@ -281,7 +283,7 @@
 
             </div>
 
-            <div class="flex items-center gap-4 mt-3 md:pl-[5.5rem]">
+            <div id="addDocFilterWrap" class="flex items-center gap-4 mt-3">
               <button type="button" id="addDocFilterBtn"
                 class="text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors" data-testid="workitems-add-doc-filter">
                 <i class="fas fa-plus-circle mr-1"></i>{{ _("Add filter") }}
