@@ -63,9 +63,13 @@ footer {
     overflow: hidden;
     transition: width 0.28s cubic-bezier(.4,0,.2,1);
 }
-#nexora-sidebar:hover {
+#nexora-sidebar:is(:hover, .pinned) {
     width: 220px;
 }
+html.sidebar-pinned body {
+    padding-left: 220px;
+}
+.sidebar-pin-active { color: #4f46e5; transform: rotate(-45deg); }
 
 /* ---------- Sidebar label (hidden when collapsed) ---------- */
 .sidebar-label {
@@ -75,7 +79,7 @@ footer {
     pointer-events: none;
     overflow: hidden;
 }
-#nexora-sidebar:hover .sidebar-label {
+#nexora-sidebar:is(:hover, .pinned) .sidebar-label {
     opacity: 1;
     pointer-events: auto;
 }
@@ -121,7 +125,7 @@ footer {
     transition: opacity 0.18s ease;
     pointer-events: none;
 }
-#nexora-sidebar:hover .sidebar-logo-area .flex.flex-col {
+#nexora-sidebar:is(:hover, .pinned) .sidebar-logo-area .flex.flex-col {
     opacity: 1;
     pointer-events: auto;
 }
@@ -192,11 +196,11 @@ footer {
     max-height: 0;
     transition: max-height 0.25s ease;
 }
-#nexora-sidebar:hover #generaliNavGroup.generali-open .sidebar-nav-subitems {
+#nexora-sidebar:is(:hover, .pinned) #generaliNavGroup.generali-open .sidebar-nav-subitems {
     max-height: var(--generali-subitems-height, 9999px);
 }
 /* Admin group expand (mirrors generali rules) */
-#nexora-sidebar:hover #adminNavGroup.admin-open .sidebar-nav-subitems {
+#nexora-sidebar:is(:hover, .pinned) #adminNavGroup.admin-open .sidebar-nav-subitems {
     max-height: var(--admin-subitems-height, 9999px);
 }
 .sidebar-nav-subitem {

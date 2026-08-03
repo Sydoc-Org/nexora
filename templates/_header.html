@@ -165,6 +165,12 @@
         <!-- Bottom actions -->
         <div class="sidebar-bottom">
 
+            <!-- Pin sidebar open -->
+            <button id="sidebar-pin-toggle" class="sidebar-nav-item" title="{{ _('Keep sidebar open') }}" data-testid="header-sidebar-pin-toggle">
+                <i id="sidebar-pin-icon" class="fas fa-thumbtack sidebar-nav-icon"></i>
+                <span class="sidebar-label" id="sidebar-pin-label">{{ _("Keep sidebar open") }}</span>
+            </button>
+
             <!-- Dark mode toggle -->
             <button id="dark-mode-toggle" class="sidebar-nav-item" title="{{ _('Toggle dark mode') }}" data-testid="header-dark-mode-toggle">
                 <i id="dark-mode-icon" class="fas fa-moon sidebar-nav-icon"></i>

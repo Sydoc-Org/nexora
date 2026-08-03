@@ -10,6 +10,9 @@ Work toward 2.5.65.
 
 ### Added
 
+- Sidebar: **pin toggle** (#151) in the bottom actions -- keeps the nav rail
+  expanded (220px) instead of collapsing when the mouse leaves. State persists
+  per-browser via `localStorage`, same idiom as the dark-mode toggle.
 - Workitems: **Stage filter** in the top filter row (#147), between Workitem
   and Status, gated on the new `workitems.filter.stage` permission (migration
   `0048`, seeded to holders of `workitems.filter.status`). Filters on the
@@ -202,6 +205,15 @@ Work toward 2.5.65.
   `set_filter` and the recent-activity feed are untouched.
 
 ### Fixed
+
+- Reporting AI: the schema grounding for the per-process partial Statconfig
+  tables (`dbo.Compass_Invoice`, `dbo.EM_Invoice`, …) only named each table's
+  import/export date columns, so the agent guessed every other column (page
+  count, document type, user, barcode) when drafting a raw-SQL UNION across
+  them and hit `Invalid column name` in ~1 of 5 eval cases (#154). The block
+  now also lists each table's SearchConfig `col_*` columns, sourced from the
+  same per-process field map the `docprocessing` curated source already
+  builds from.
 
 - Reporting: Advanced tab overflowed horizontally at phone widths (375px,
   #143) — `document.documentElement.scrollWidth` measured 591-714px against a

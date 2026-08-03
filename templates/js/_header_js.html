@@ -20,6 +20,13 @@
             if (saved === 'dark') document.documentElement.classList.add('dark');
         })();
 
+        /* ---- Sidebar pin ---- */
+        (function() {
+            if (localStorage.getItem('nexora-sidebar-pinned') === 'true') {
+                document.documentElement.classList.add('sidebar-pinned');
+            }
+        })();
+
         /* ---- Session liveness poll ----
            Polls /api/session/heartbeat every 5s. If the admin force-logs us out,
            the before_request hook returns 401 and we bounce to /login. */
@@ -257,6 +264,28 @@
                     const nowDark = !document.documentElement.classList.contains('dark');
                     localStorage.setItem('nexora-theme', nowDark ? 'dark' : 'light');
                     applyTheme(nowDark);
+                });
+            }
+
+            const sidebar = document.getElementById('nexora-sidebar');
+            const pinToggle = document.getElementById('sidebar-pin-toggle');
+            const pinIcon = document.getElementById('sidebar-pin-icon');
+            const pinLabel = document.getElementById('sidebar-pin-label');
+
+            function applyPinned(isPinned) {
+                document.documentElement.classList.toggle('sidebar-pinned', isPinned);
+                if (sidebar) sidebar.classList.toggle('pinned', isPinned);
+                if (pinIcon) pinIcon.className = isPinned ? 'fas fa-thumbtack sidebar-nav-icon sidebar-pin-active' : 'fas fa-thumbtack sidebar-nav-icon';
+                if (pinLabel) pinLabel.textContent = isPinned ? "{{ _('Unpin sidebar') }}" : "{{ _('Keep sidebar open') }}";
+            }
+
+            applyPinned(document.documentElement.classList.contains('sidebar-pinned'));
+
+            if (pinToggle) {
+                pinToggle.addEventListener('click', () => {
+                    const nowPinned = !document.documentElement.classList.contains('sidebar-pinned');
+                    localStorage.setItem('nexora-sidebar-pinned', nowPinned ? 'true' : 'false');
+                    applyPinned(nowPinned);
                 });
             }
         });
