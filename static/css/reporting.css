@@ -898,6 +898,14 @@ body.nx-app {
 
 /* Masthead segmented control (Indigo Studio) */
 .reporting-head-actions { display: flex; align-items: center; gap: 10px; }
+
+/* Narrow viewports: masthead (title + tabs/Sources/AI-chat) was fixed-width
+   and non-wrapping, overflowing the page horizontally at phone widths. Let
+   it wrap onto a second row like the rest of the app's mobile pages. */
+@media (max-width: 640px) {
+  .reporting-page-head.nx-page-head { flex-wrap: wrap; }
+  .reporting-head-actions { flex-wrap: wrap; }
+}
 .reporting-tabs { display: flex; gap: 2px; padding: 3px; background: var(--nx-divider); border: 1px solid var(--nx-border); border-radius: 8px; margin: 0; }
 .reporting-tabs .nx-tab { border: none; margin: 0; background: transparent; border-radius: 6px; padding: 6px 14px; font: 500 12.5px var(--nx-font); color: var(--nx-text-sec); cursor: pointer; }
 .reporting-tabs .nx-tab:hover { color: var(--nx-text); }
@@ -1867,7 +1875,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 .reporting-hero__aiwrap { max-width: 660px; margin: 0 auto; border-radius: 14px; background: var(--nx-brand-grad); padding: 1.5px; box-shadow: 0 12px 32px -12px rgba(79, 70, 229, .4); }
 .reporting-hero__aiwrap .reporting-simple-aibar { display: flex; align-items: center; border-radius: 12.5px; background: var(--nx-card); padding: 5px 5px 5px 18px; }
 .reporting-hero__wand { color: var(--nx-violet); font-size: 15px; }
-.reporting-hero__aiinput { flex: 1; border: none; outline: none; background: transparent; padding: 11px 14px; font: 13.5px var(--nx-font); color: var(--nx-text); }
+.reporting-hero__aiinput { flex: 1; min-width: 0; border: none; outline: none; background: transparent; padding: 11px 14px; font: 13.5px var(--nx-font); color: var(--nx-text); }
 .reporting-hero__aibtn { border: none; border-radius: 9px; background: var(--nx-brand-grad); color: #fff; font: 600 13px var(--nx-font); padding: 11px 20px; cursor: pointer; }
 .reporting-hero__aibtn:hover { filter: brightness(1.08); }
 .reporting-hero__chips { display: flex; justify-content: center; gap: 8px; margin-top: 14px; flex-wrap: wrap; }

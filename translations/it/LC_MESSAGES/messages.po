@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-07-29 17:02+0200\n"
+"POT-Creation-Date: 2026-08-03 07:33+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -1113,7 +1113,7 @@ msgstr "Esporta"
 #: templates/generali_additionalservices.html:326
 #: templates/generali_baseservices.html:275 templates/generali_pdqm.html:350
 #: templates/generali_projectmanagement.html:261
-#: templates/generali_reporting.html:322
+#: templates/generali_reporting.html:318
 #: templates/js/_generali_reporting_js.html:803 templates/reporting.html:275
 #: templates/reporting.html:420 templates/reporting_metrics.html:75
 #: templates/reporting_sources.html:86
@@ -1222,39 +1222,39 @@ msgstr ""
 msgid "Process"
 msgstr "Processo"
 
-#: templates/dashboard.html:37 templates/workitems_overview.html:80
+#: templates/dashboard.html:36 templates/workitems_overview.html:80
 msgid "All Processes"
 msgstr "Tutti i processi"
 
-#: templates/dashboard.html:47
+#: templates/dashboard.html:46
 msgid "Imported Today"
 msgstr "Importati oggi"
 
-#: templates/dashboard.html:54
+#: templates/dashboard.html:53
 msgid "Processed Today"
 msgstr "Elaborati oggi"
 
-#: templates/dashboard.html:61
+#: templates/dashboard.html:60
 msgid "Current Backlog"
 msgstr "Arretrato attuale"
 
-#: templates/dashboard.html:68
+#: templates/dashboard.html:67
 msgid "Avg. Processing Time"
 msgstr "Tempo medio di elaborazione"
 
-#: templates/dashboard.html:80
+#: templates/dashboard.html:79
 msgid "Documents Processed Over Time"
 msgstr "Documenti elaborati nel tempo"
 
-#: templates/dashboard.html:90
+#: templates/dashboard.html:89
 msgid "Recent Validations"
 msgstr "Validazioni recenti"
 
-#: templates/dashboard.html:105
+#: templates/dashboard.html:104
 msgid "Documents Processed by Hour (Today)"
 msgstr "Documenti elaborati per ora (oggi)"
 
-#: templates/dashboard.html:110
+#: templates/dashboard.html:109
 msgid "No documents processed yet today."
 msgstr "Nessun documento elaborato ancora oggi."
 
@@ -1326,7 +1326,7 @@ msgstr "Applica"
 #: templates/generali_importstatus.html:74 templates/generali_pdqm.html:131
 #: templates/generali_projectmanagement.html:99
 #: templates/generali_reporting.html:134 templates/invoices.html:96
-#: templates/workitems_overview.html:243
+#: templates/workitems_overview.html:242
 msgid "Reset"
 msgstr "Reimposta"
 
@@ -1376,7 +1376,7 @@ msgstr "Previsto"
 msgid "Kommunikation"
 msgstr "Comunicazione"
 
-#: templates/generali-dashboard.html:155 templates/workitems_overview.html:293
+#: templates/generali-dashboard.html:155 templates/workitems_overview.html:290
 msgid "Select all"
 msgstr "Seleziona tutto"
 
@@ -1593,7 +1593,7 @@ msgstr "Azioni"
 #: templates/generali_documents.html:277
 #: templates/generali_importstatus.html:126 templates/generali_pdqm.html:185
 #: templates/generali_projectmanagement.html:148
-#: templates/generali_reporting.html:189 templates/workitems_overview.html:353
+#: templates/generali_reporting.html:189 templates/workitems_overview.html:350
 msgid "Showing"
 msgstr "Visualizzazione"
 
@@ -1604,7 +1604,7 @@ msgstr "Visualizzazione"
 #: templates/generali_projectmanagement.html:150
 #: templates/generali_reporting.html:191 templates/js/admin/_logs_js.html:108
 #: templates/js/admin/_user_detail_js.html:609
-#: templates/workitems_overview.html:355
+#: templates/workitems_overview.html:352
 msgid "of"
 msgstr "di"
 
@@ -1613,7 +1613,7 @@ msgstr "di"
 #: templates/generali_documents.html:281
 #: templates/generali_importstatus.html:130 templates/generali_pdqm.html:189
 #: templates/generali_projectmanagement.html:152
-#: templates/generali_reporting.html:193 templates/workitems_overview.html:357
+#: templates/generali_reporting.html:193 templates/workitems_overview.html:354
 msgid "results"
 msgstr "risultati"
 
@@ -1654,7 +1654,7 @@ msgstr "Sforzo (ore)"
 #: templates/admin/access_control.html:228
 #: templates/admin/access_control.html:245
 #: templates/admin/access_control.html:275
-#: templates/admin/access_control.html:397 templates/admin/maintenance.html:113
+#: templates/admin/access_control.html:395 templates/admin/maintenance.html:113
 #: templates/admin/maintenance.html:129
 #: templates/admin/modals/_organizations_modals.html:13
 #: templates/admin/modals/_organizations_modals.html:41
@@ -1672,11 +1672,11 @@ msgstr "Sforzo (ore)"
 #: templates/generali_projectmanagement.html:217
 #: templates/generali_projectmanagement.html:257
 #: templates/generali_projectmanagement.html:282
-#: templates/generali_reporting.html:231 templates/generali_reporting.html:318
-#: templates/generali_reporting.html:343
+#: templates/generali_reporting.html:231 templates/generali_reporting.html:314
+#: templates/generali_reporting.html:339
 #: templates/js/_reporting_dashboard_js.html:80 templates/reporting.html:350
-#: templates/reporting.html:419 templates/workitems_overview.html:394
-#: templates/workitems_overview.html:490
+#: templates/reporting.html:419 templates/workitems_overview.html:391
+#: templates/workitems_overview.html:487
 msgid "Cancel"
 msgstr "Annulla"
 
@@ -1695,7 +1695,7 @@ msgstr "Modifica presenze"
 #: templates/generali_additionalservices.html:340
 #: templates/generali_baseservices.html:289 templates/generali_pdqm.html:364
 #: templates/generali_projectmanagement.html:275
-#: templates/generali_reporting.html:336
+#: templates/generali_reporting.html:332
 msgid "Delete record"
 msgstr "Elimina voce"
 
@@ -1703,7 +1703,7 @@ msgstr "Elimina voce"
 #: templates/generali_additionalservices.html:341
 #: templates/generali_baseservices.html:290 templates/generali_pdqm.html:365
 #: templates/generali_projectmanagement.html:276
-#: templates/generali_reporting.html:337
+#: templates/generali_reporting.html:333
 #: templates/js/admin/_user_detail_js.html:254
 msgid "This action cannot be undone."
 msgstr "Questa azione non può essere annullata."
@@ -1715,7 +1715,7 @@ msgstr "Questa azione non può essere annullata."
 #: templates/generali_additionalservices.html:351
 #: templates/generali_baseservices.html:300 templates/generali_pdqm.html:375
 #: templates/generali_projectmanagement.html:286
-#: templates/generali_reporting.html:347
+#: templates/generali_reporting.html:343
 #: templates/js/_generali_additional_services_js.html:507
 #: templates/js/_generali_additional_services_js.html:517
 #: templates/js/_generali_base_services_js.html:434
@@ -1839,7 +1839,7 @@ msgid "Search by ID, policy, damage number…"
 msgstr "Cerca per ID, polizza, numero sinistro…"
 
 #: templates/generali_documents.html:202 templates/reporting.html:73
-#: templates/workitems_overview.html:239
+#: templates/workitems_overview.html:238
 msgid "Advanced"
 msgstr "Avanzato"
 
@@ -1869,7 +1869,7 @@ msgstr "Importazioni CSV nel database dei documenti"
 #: templates/generali_importstatus.html:108
 #: templates/generali_reporting.html:114 templates/invoices.html:78
 #: templates/invoices.html:123 templates/workitems_overview.html:108
-#: templates/workitems_overview.html:307
+#: templates/workitems_overview.html:304
 msgid "Status"
 msgstr "Stato"
 
@@ -1935,7 +1935,7 @@ msgstr "Totale voci"
 #: templates/generali_monthreport.html:71
 #: templates/generali_monthreport.html:128
 #: templates/generali_reporting.html:119 templates/generali_reporting.html:163
-#: templates/generali_reporting.html:290 templates/generali_reporting.html:294
+#: templates/generali_reporting.html:290 templates/generali_reporting.html:291
 #: templates/js/_generali_reporting_js.html:35
 #: templates/js/_generali_reporting_js.html:303
 #: templates/js/_generali_reporting_js.html:311
@@ -2107,7 +2107,7 @@ msgstr "Modifica rapporto"
 msgid "Report Date"
 msgstr "Data del rapporto"
 
-#: templates/generali_reporting.html:298
+#: templates/generali_reporting.html:295
 #: templates/js/_generali_reporting_js.html:350
 #: templates/js/_generali_reporting_js.html:387
 #: templates/js/_generali_reporting_js.html:651
@@ -2115,12 +2115,12 @@ msgstr "Data del rapporto"
 msgid "Email Received"
 msgstr "Email Ricevuta"
 
-#: templates/generali_reporting.html:303 templates/hero.html:155
+#: templates/generali_reporting.html:300 templates/hero.html:155
 #: templates/js/_generali_reporting_js.html:354
 msgid "Delivery"
 msgstr "Consegna"
 
-#: templates/generali_reporting.html:308
+#: templates/generali_reporting.html:305
 #: templates/js/_generali_reporting_js.html:359
 msgid "Latest Delivery"
 msgstr "Ultima consegna"
@@ -2188,7 +2188,7 @@ msgstr ""
 "sicurezza. Segua in tempo reale l'elaborazione di un documento."
 
 #: templates/hero.html:134 templates/js/_workitems_overview_js.html:327
-#: templates/workitems_overview.html:267
+#: templates/workitems_overview.html:266
 msgid "Import"
 msgstr "Importazione"
 
@@ -2387,8 +2387,8 @@ msgid "All Statuses"
 msgstr "Tutti gli stati"
 
 #: templates/admin/logs.html:20 templates/invoices.html:99
-#: templates/workitems_overview.html:260 templates/workitems_overview.html:343
-#: templates/workitems_overview.html:496
+#: templates/workitems_overview.html:259 templates/workitems_overview.html:340
+#: templates/workitems_overview.html:493
 msgid "Export CSV"
 msgstr "Esporta CSV"
 
@@ -2504,29 +2504,29 @@ msgstr "Anteprima workitem"
 #: templates/reporting.html:108 templates/reporting.html:136
 #: templates/reporting.html:166 templates/reporting.html:176
 #: templates/reporting.html:373 templates/reporting.html:409
-#: templates/workitems_overview.html:503
+#: templates/workitems_overview.html:500
 msgid "Close"
 msgstr "Chiudi"
 
 #: templates/prepared_documents.html:187 templates/reporting.html:182
-#: templates/workitems_overview.html:509
+#: templates/workitems_overview.html:506
 msgid "Show where extracted values were found on the document"
 msgstr "Mostra dove sono stati trovati i valori estratti nel documento"
 
 #: templates/js/_workitem_detail_panel_js.html:549
 #: templates/prepared_documents.html:189 templates/reporting.html:184
-#: templates/workitems_overview.html:512
+#: templates/workitems_overview.html:509
 msgid "Show sources"
 msgstr "Mostra origini"
 
 #: templates/prepared_documents.html:191 templates/reporting.html:186
-#: templates/workitems_overview.html:514
+#: templates/workitems_overview.html:511
 msgid "Document page preview"
 msgstr "Anteprima pagina documento"
 
 #: templates/prepared_documents.html:196 templates/prepared_documents.html:197
 #: templates/reporting.html:191 templates/reporting.html:192
-#: templates/workitems_overview.html:520 templates/workitems_overview.html:521
+#: templates/workitems_overview.html:517 templates/workitems_overview.html:518
 msgid "Extracted values"
 msgstr "Valori estratti"
 
@@ -2805,7 +2805,7 @@ msgid "Filters"
 msgstr "Filtri"
 
 #: templates/js/_reporting_dashboard_js.html:73 templates/reporting.html:336
-#: templates/workitems_overview.html:229
+#: templates/workitems_overview.html:228
 msgid "Add filter"
 msgstr "Aggiungi filtro"
 
@@ -3078,7 +3078,7 @@ msgstr "Predefinite integrate"
 msgid "Kind"
 msgstr "Tipo"
 
-#: templates/admin/access_control.html:335 templates/admin/user_detail.html:121
+#: templates/admin/access_control.html:333 templates/admin/user_detail.html:121
 #: templates/admin/user_detail.html:153 templates/reporting_sources.html:40
 #: templates/reporting_sources.html:51 templates/reporting_sources.html:65
 msgid "Permission"
@@ -3194,7 +3194,7 @@ msgstr "Panoramica Workitems"
 msgid "List of all workitems"
 msgstr "Elenco di tutti i Workitems"
 
-#: templates/workitems_overview.html:95 templates/workitems_overview.html:299
+#: templates/workitems_overview.html:95 templates/workitems_overview.html:296
 msgid "Workitem"
 msgstr "Workitem"
 
@@ -3214,80 +3214,80 @@ msgstr ""
 msgid "Search field…"
 msgstr "Cerca campo…"
 
-#: templates/workitems_overview.html:181 templates/workitems_overview.html:212
+#: templates/workitems_overview.html:181 templates/workitems_overview.html:211
 msgid "Type to search…"
 msgstr "Digita per cercare…"
 
-#: templates/workitems_overview.html:275
+#: templates/workitems_overview.html:274
 msgid "Prepared documents"
 msgstr "Documenti preparati"
 
-#: templates/workitems_overview.html:315
+#: templates/workitems_overview.html:312
 msgid "Last movement at"
 msgstr "Ultimo movimento il"
 
 #: templates/js/_workitems_overview_js.html:798
-#: templates/workitems_overview.html:339
+#: templates/workitems_overview.html:336
 msgid "selected"
 msgstr "selezionato"
 
-#: templates/workitems_overview.html:347
+#: templates/workitems_overview.html:344
 msgid "Deselect"
 msgstr "Deseleziona"
 
-#: templates/workitems_overview.html:368
+#: templates/workitems_overview.html:365
 msgid "Batch Import"
 msgstr "Importazione in batch"
 
-#: templates/workitems_overview.html:374
+#: templates/workitems_overview.html:371
 msgid "Destination Process"
 msgstr "Processo di destinazione"
 
-#: templates/workitems_overview.html:379
+#: templates/workitems_overview.html:376
 msgid "Choose a process..."
 msgstr "Scegli un processo..."
 
-#: templates/workitems_overview.html:388
+#: templates/workitems_overview.html:385
 msgid "Please select a valid process."
 msgstr "Seleziona un processo valido."
 
 #: templates/js/_workitems_overview_js.html:331
-#: templates/workitems_overview.html:398
+#: templates/workitems_overview.html:395
 msgid "Import File"
 msgstr "Importa file"
 
-#: templates/workitems_overview.html:410
+#: templates/workitems_overview.html:407
 msgid "Export Workitems"
 msgstr "Esporta Workitems"
 
-#: templates/workitems_overview.html:421
+#: templates/workitems_overview.html:418
 msgid "Always included"
 msgstr "Sempre incluso"
 
-#: templates/workitems_overview.html:424
+#: templates/workitems_overview.html:421
 msgid "Workitem ID, Status, Stage, Last Movement"
 msgstr "ID Workitem, Stato, Fase, Ultimo movimento"
 
-#: templates/workitems_overview.html:430
+#: templates/workitems_overview.html:427
 msgid "Optional extras"
 msgstr "Extra opzionali"
 
 #: templates/js/_reporting_simple_js.html:101
-#: templates/workitems_overview.html:435
+#: templates/workitems_overview.html:432
 msgid "Document fields"
 msgstr ""
 "Campi del\n"
 "documento"
 
-#: templates/workitems_overview.html:436
+#: templates/workitems_overview.html:433
 msgid "Index fields — only available for selections of up to 10 workitems"
 msgstr "Campi indice — disponibili solo per selezioni di massimo 10 Workitems"
 
-#: templates/workitems_overview.html:442
+#: templates/workitems_overview.html:439
 msgid "Audit history"
 msgstr "Cronologia di audit"
 
-#: templates/workitems_overview.html:443
+#: templates/workitems_overview.html:440
 msgid ""
 "Full timeline of all stages — only available for selections of up to 10 "
 "workitems"
@@ -3295,11 +3295,11 @@ msgstr ""
 "Cronologia completa di tutte le fasi — disponibile solo per selezioni "
 "fino a 10 workitem"
 
-#: templates/workitems_overview.html:449
+#: templates/workitems_overview.html:446
 msgid "Images as base64"
 msgstr "Immagini come base64"
 
-#: templates/workitems_overview.html:450
+#: templates/workitems_overview.html:447
 msgid ""
 "Up to 5 images per workitem — only available for selections of up to 10 "
 "workitems"
@@ -3307,7 +3307,7 @@ msgstr ""
 "Fino a 5 immagini per workitem — disponibile solo per selezioni fino a 10"
 " workitem"
 
-#: templates/workitems_overview.html:454
+#: templates/workitems_overview.html:451
 msgid ""
 "Use this PowerShell script to extract images from the exported CSV. "
 "Requires execution policy"
@@ -3315,11 +3315,11 @@ msgstr ""
 "Usa questo script PowerShell per estrarre immagini dal CSV esportato. "
 "Richiede criteri di esecuzione."
 
-#: templates/workitems_overview.html:454
+#: templates/workitems_overview.html:451
 msgid "or higher."
 msgstr "o superiore."
 
-#: templates/workitems_overview.html:483
+#: templates/workitems_overview.html:480
 msgid ""
 "All workitems matching the current filters will be exported (not just the"
 " current page)."
@@ -3401,7 +3401,7 @@ msgstr "Aggiungi permesso"
 
 #: templates/admin/access_control.html:126
 #: templates/admin/access_control.html:270
-#: templates/admin/access_control.html:311
+#: templates/admin/access_control.html:309
 msgid "Description"
 msgstr "Descrizione"
 
@@ -3461,28 +3461,28 @@ msgstr "Codice del permesso"
 msgid "Short description"
 msgstr "Descrizione breve"
 
-#: templates/admin/access_control.html:307
+#: templates/admin/access_control.html:305
 msgid "Profile Name"
 msgstr "Nome profilo"
 
-#: templates/admin/access_control.html:323 templates/admin/user_detail.html:113
+#: templates/admin/access_control.html:321 templates/admin/user_detail.html:113
 #: templates/admin/user_detail.html:146
 msgid "Filter permissions..."
 msgstr "Filtra permessi..."
 
-#: templates/admin/access_control.html:336 templates/admin/user_detail.html:154
+#: templates/admin/access_control.html:334 templates/admin/user_detail.html:154
 msgid "None"
 msgstr "Nessuno"
 
-#: templates/admin/access_control.html:337 templates/admin/user_detail.html:155
+#: templates/admin/access_control.html:335 templates/admin/user_detail.html:155
 msgid "Deny"
 msgstr "Nega"
 
-#: templates/admin/access_control.html:338 templates/admin/user_detail.html:156
+#: templates/admin/access_control.html:336 templates/admin/user_detail.html:156
 msgid "Allow"
 msgstr "Consenti"
 
-#: templates/admin/access_control.html:398
+#: templates/admin/access_control.html:396
 msgid "Save Changes"
 msgstr "Salva modifiche"
 
@@ -3531,10 +3531,9 @@ msgstr "organizzazioni"
 msgid "Tenant organizations and their codes"
 msgstr "Organizzazioni tenant e relativi codici"
 
-#: templates/admin/admin_overview.html:78 templates/admin/sessions.html:17
-#: templates/js/_header_js.html:63
-msgid "Active Sessions"
-msgstr "Sessioni attive"
+#: templates/admin/admin_overview.html:78
+msgid "Session Monitor"
+msgstr "Monitor sessioni"
 
 #: templates/admin/admin_overview.html:81
 msgid "Live"
@@ -3778,6 +3777,10 @@ msgstr "Nome"
 #: templates/admin/sessions.html:6
 msgid "Active Sessions - nexora"
 msgstr "Sessioni attive - nexora"
+
+#: templates/admin/sessions.html:17 templates/js/_header_js.html:63
+msgid "Active Sessions"
+msgstr "Sessioni attive"
 
 #: templates/admin/sessions.html:18
 msgid "Users active within the last 30 minutes"
