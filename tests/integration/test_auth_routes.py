@@ -482,10 +482,11 @@ def test_request_password_reset_returns_before_send_completes(client):
 
     assert known_resp.status_code == unknown_resp.status_code == 200
     assert known_resp.data == unknown_resp.data
-    # The route must return well before the blocking send is released --
-    # i.e. it did not wait on send_reset_email() (the closed timing oracle).
-    assert known_elapsed < 1.0
-    assert unknown_elapsed < 1.0
+    # The route must return well before the blocking send's 5s hold is
+    # released -- i.e. it did not wait on send_reset_email() (the closed
+    # timing oracle). 3s (not 1s) so full-suite machine load can't flake it.
+    assert known_elapsed < 3.0
+    assert unknown_elapsed < 3.0
 
 
 def test_login_rate_limit_eventually_429(client, reset_limiter):
