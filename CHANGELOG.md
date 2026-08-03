@@ -203,6 +203,16 @@ Work toward 2.5.65.
 
 ### Fixed
 
+- Admin: System Audit Logs search (`GET /api/admin/logs/search`) and the
+  recent-activity feed 500'd whenever `dbo.Logs.Timestamp` came back as a
+  `str` instead of a driver-native `datetime` (#134) — some rows are written
+  by the external `ops/cleanup/csvLogs_toDB.ps1` CSV-ingestion path, which
+  doesn't guarantee the same column type pyodbc returns for native writes.
+  Both call sites in `nx_lib/views/admin.py` now guard with
+  `hasattr(ts, "isoformat")` instead of assuming the type, matching the
+  pattern already used by the CSV-export and dashboard-widget log readers in
+  the same file.
+
 - Reporting: the page masthead (Simple/Advanced tabs, Sources, AI chat) and
   the Simple tab's "Ask AI" bar overflowed horizontally on phone widths
   (#136) — the header didn't wrap, and the AI input had no `min-width: 0`
