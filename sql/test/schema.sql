@@ -83,7 +83,25 @@ CREATE TABLE dbo.Users (
     InitReset BIT NULL,
     twoFA BIT NULL,
     twoFASecret NVARCHAR(100) NULL,
-    locale NVARCHAR(3) NULL
+    locale NVARCHAR(3) NULL,
+    LastLoginAt DATETIME NULL  -- migration 0049
+);
+GO
+
+-- Maintenance lockout/banner (read on every request; missing table fails the
+-- lockout lookup closed and 302s every login, breaking the whole suite).
+CREATE TABLE dbo.MaintenanceBanner (
+    ID INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    Title NVARCHAR(200) NULL,
+    Message NVARCHAR(2000) NOT NULL,
+    StartAt DATETIME2(7) NOT NULL,
+    EndAt DATETIME2(7) NOT NULL,
+    Severity VARCHAR(20) NOT NULL DEFAULT ('info'),
+    Active BIT NOT NULL DEFAULT ((1)),
+    BlockAccess BIT NOT NULL DEFAULT ((0)),
+    CreatedBy INT NULL,
+    CreatedAt DATETIME2(7) NOT NULL DEFAULT (getdate()),
+    AnnounceMinutesBefore INT NULL DEFAULT ((0))
 );
 GO
 
