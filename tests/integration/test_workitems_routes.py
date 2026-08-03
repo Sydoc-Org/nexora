@@ -656,6 +656,114 @@ def test_get_workitems_data_fieldless_pair_excludes_sensitive_columns(
     assert not any("col_secretfield" in q for q in sql_log), sql_log
 
 
+def _op_test_scaffold(monkeypatch, sql_log):
+    """Shared monkeypatching for the docop/doccomb view tests."""
+    import nx_lib.hooks as hooks
+    import nx_lib.views.workitems as wv
+
+    monkeypatch.setattr(
+        hooks,
+        "load_permissions_for_user",
+        lambda uid: [
+            "workitems.view",
+            "workitems.filter.documentfields",
+            "workitems.filter.process.sydoc.test_proc",
+        ],
+    )
+    monkeypatch.setattr(wv, "engine_nexora_db", _SqlLogEngine(sql_log))
+    monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["col_validationuser"])
+    monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: set())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    monkeypatch.setattr(wv, "resolve_ms02_docfield_ids", lambda *a, **k: None)
+    monkeypatch.setattr(wv, "fetch_merged_page", lambda filt, offset, per_page: ([], 0, []))
+
+
+def test_docfield_ops_map_shapes():
+    """(#148) the whitelisted operator map drives the SQL Server comparators
+    and LIKE-pattern params."""
+    from nx_lib.views.workitems import DOCFIELD_OPS, _docfield_comb, _docfield_op
+
+    assert DOCFIELD_OPS["eq"][0] == "="
+    assert DOCFIELD_OPS["neq"][0] == "<>"
+    assert DOCFIELD_OPS["contains"][0] == "LIKE"
+    assert DOCFIELD_OPS["ncontains"][0] == "NOT LIKE"
+    assert DOCFIELD_OPS["contains"][1]("v") == "%v%"
+    assert DOCFIELD_OPS["startswith"][1]("v") == "v%"
+    assert DOCFIELD_OPS["endswith"][1]("v") == "%v"
+    assert DOCFIELD_OPS["eq"][1]("v") == "v"
+    # normalizers: unknown/missing keys fall back to contains / and
+    assert _docfield_op(["EQ"], 0) == "eq"
+    assert _docfield_op(["bogus"], 0) == "contains"
+    assert _docfield_op([], 5) == "contains"
+    assert _docfield_comb(["OR"], 0) == "or"
+    assert _docfield_comb(["nand"], 0) == "and"
+    assert _docfield_comb([], 5) == "and"
+
+
+def test_docfield_unknown_op_and_comb_are_whitelisted(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """(#148) hostile docop/doccomb values must never be interpolated into
+    SQL -- unknown keys fall back to contains/and."""
+    sql_log = []
+    _op_test_scaffold(monkeypatch, sql_log)
+
+    resp = user_client.get(
+        "/api/workitems",
+        query_string={
+            "prcfW": "all",
+            "docfield": "validationuser",
+            "docvalue": "alice",
+            "docop": "1; DROP TABLE Users--",
+            "doccomb": "UNION SELECT",
+        },
+    )
+    assert resp.status_code == 200
+    assert not any("DROP TABLE" in q for q in sql_log)
+    assert not any("UNION SELECT" in q for q in sql_log)
+
+
+def test_docfield_or_pair_processed_without_early_break(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """(#148) with AND-only semantics the first no-mapping pair used to break
+    out of the loop; OR support requires every pair to be evaluated. Two
+    field-carrying pairs must produce TWO default-leg SearchConfig lookups even
+    though the first finds no mapping rows."""
+    sql_log = []
+    _op_test_scaffold(monkeypatch, sql_log)
+
+    captured = {}
+
+    def _fake_fetch_merged_page(filt, offset, per_page):
+        captured["filt"] = filt
+        return [], 0, []
+
+    import nx_lib.views.workitems as wv
+
+    monkeypatch.setattr(wv, "fetch_merged_page", _fake_fetch_merged_page)
+
+    resp = user_client.get(
+        "/api/workitems",
+        query_string=[
+            ("prcfW", "all"),
+            ("docfield", "validationuser"),
+            ("docvalue", "alice"),
+            ("doccomb", "and"),
+            ("docfield", "validationuser"),
+            ("docvalue", "bob"),
+            ("doccomb", "or"),
+        ],
+    )
+    assert resp.status_code == 200
+    default_lookups = [q for q in sql_log if "ClientCode = 'default'" in q]
+    assert len(default_lookups) == 2, sql_log
+    # both pairs unmapped -> OR-fold of two empty sets -> still fail-closed
+    assert captured["filt"].docfield_ids == set()
+
+
 def test_api_docfield_values_no_field_widens_and_excludes_sensitive(
     user_client, workitems_all_perms, monkeypatch
 ):

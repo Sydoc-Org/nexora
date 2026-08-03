@@ -556,6 +556,16 @@ async function uploadBatchFiles(files, processName) {
                     }
                 });
 
+                // Operator / AND-OR change -> re-run the search (the backend
+                // skips rows whose value is still empty, so this is safe).
+                container.addEventListener('change', (e) => {
+                    if (e.target.classList.contains('doc-filter-op') ||
+                        e.target.classList.contains('doc-filter-comb')) {
+                        const form = document.getElementById('filterForm');
+                        if (form?.requestSubmit) form.requestSubmit(); else fetchAndUpdateWorkitems();
+                    }
+                });
+
                 const procSel = document.getElementById('prcfW');
                 if (procSel) {
                     procSel.addEventListener('change', () => {

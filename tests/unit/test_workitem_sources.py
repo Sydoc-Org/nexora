@@ -815,6 +815,69 @@ def test_resolve_ms02_docfield_ids_query_error_returns_none(app):
         assert ws.resolve_ms02_docfield_ids(engine, [([_SPEC], "1")]) is None
 
 
+def test_resolve_ms02_docfield_ids_or_combinator_unions(app):
+    # (#148) 4-tuple entries carry (specs, value, op, comb); 'or' unions the
+    # pair into the fold instead of intersecting.
+    engine = MagicMock()
+    cur = engine.raw_connection.return_value.cursor.return_value
+    cur.fetchall.side_effect = [[(1,)], [(2,)]]
+    with app.app_context():
+        result = ws.resolve_ms02_docfield_ids(
+            engine,
+            [([_SPEC], "a", "contains", "and"), ([_SPEC], "b", "contains", "or")],
+        )
+    assert result == {1, 2}
+
+
+def test_resolve_ms02_docfield_ids_forced_empty_pair_ored_is_noop(app):
+    # An empty-specs entry (field unmapped) contributes set(); OR'd it must not
+    # shrink the result, AND'd it must zero it.
+    engine = MagicMock()
+    cur = engine.raw_connection.return_value.cursor.return_value
+    cur.fetchall.side_effect = [[(1,)]]
+    with app.app_context():
+        ored = ws.resolve_ms02_docfield_ids(
+            engine, [([_SPEC], "a", "contains", "and"), ([], "b", "contains", "or")]
+        )
+    assert ored == {1}
+    cur.fetchall.side_effect = [[(1,)]]
+    with app.app_context():
+        anded = ws.resolve_ms02_docfield_ids(
+            engine, [([_SPEC], "a", "contains", "and"), ([], "b", "contains", "and")]
+        )
+    assert anded == set()
+
+
+def test_resolve_ms02_docfield_ids_and_with_empty_pair_still_zeroes(app):
+    # Regression for the removed early-return: pure-AND semantics unchanged --
+    # a pair that matches nothing zeroes the whole result.
+    engine = MagicMock()
+    cur = engine.raw_connection.return_value.cursor.return_value
+    cur.fetchall.side_effect = [[(1,), (2,)], []]
+    with app.app_context():
+        result = ws.resolve_ms02_docfield_ids(engine, [([_SPEC], "a"), ([_SPEC], "b")])
+    assert result == set()
+
+
+def test_resolve_ms02_docfield_ids_eq_op_escapes_and_compares_literally(app):
+    # (#148) 'eq' runs through ILIKE on the ESCAPED value: wildcards in the
+    # user's value must compare literally, and 'neq' uses NOT ILIKE.
+    engine = MagicMock()
+    cur = engine.raw_connection.return_value.cursor.return_value
+    cur.fetchall.side_effect = [[(1,)], [(2,)]]
+    with app.app_context():
+        ws.resolve_ms02_docfield_ids(
+            engine,
+            [([_SPEC], "50%", "eq", "and"), ([_SPEC], "a_b", "neq", "and")],
+        )
+    (sql_eq, params_eq), _ = cur.execute.call_args_list[0]
+    (sql_neq, params_neq), _ = cur.execute.call_args_list[1]
+    assert "ILIKE %s" in sql_eq and "NOT ILIKE" not in sql_eq
+    assert params_eq == ["50\\%"]
+    assert "NOT ILIKE %s" in sql_neq
+    assert params_neq == ["a\\_b"]
+
+
 def test_build_where_emits_any_for_populated_ms02_docfield_ids(app):
     src = ws.PostgresSource.__new__(ws.PostgresSource)  # skip __init__
     src.code = "ms02"

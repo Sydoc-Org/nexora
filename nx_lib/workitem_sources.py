@@ -373,23 +373,46 @@ def _as_workitem_ids(rows):
     return out
 
 
+def _pg_like_escape(value):
+    """Escape LIKE metacharacters so an ILIKE comparison is a literal match."""
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+# Whitelisted doc-value operators on the MS02 (Postgres) leg (issue #148):
+# op key -> (comparator template, param builder). Everything runs through
+# ILIKE so case-insensitivity matches the default SQL Server path's CI
+# collation; eq/neq escape the value so they compare literally. The LIKE
+# family keeps the historical no-wildcard-escaping behavior.
+_MS02_DOCFIELD_OPS = {
+    "contains": ("ILIKE %s", lambda v: f"%{v}%"),
+    "ncontains": ("NOT ILIKE %s", lambda v: f"%{v}%"),
+    "eq": ("ILIKE %s", _pg_like_escape),
+    "neq": ("NOT ILIKE %s", _pg_like_escape),
+    "startswith": ("ILIKE %s", lambda v: f"{v}%"),
+    "endswith": ("ILIKE %s", lambda v: f"%{v}"),
+}
+
+
 def resolve_ms02_docfield_ids(engine, pairs):
     """Resolve MS02 doc-field search to a workitem-id allow-set (columnar).
 
-    ``pairs`` is ``[(specs, value), ...]`` -- one entry per searched docfield,
-    where ``specs`` is the list of ``(table, id_col, field_col, time_filter)``
-    config rows the docfield maps to (from the 'ms02' SearchConfig rows; usually
-    one). Within a docfield the rows are OR'd; docfields are AND-intersected. The
-    field-column match is case-insensitive (ILIKE), matching the default SQL
-    Server path's collation.
+    ``pairs`` is ``[(specs, value[, op[, comb]]), ...]`` -- one entry per
+    searched docfield, where ``specs`` is the list of
+    ``(table, id_col, field_col, time_filter)`` config rows the docfield maps
+    to (from the 'ms02' SearchConfig rows; usually one). An EMPTY specs list is
+    a forced-empty pair (field unmapped -> contributes set()). Within a pair
+    the spec rows are OR'd; pairs fold left-to-right joined by their ``comb``
+    ('and' intersects, 'or' unions; the first pair's comb is ignored). ``op``
+    is a _MS02_DOCFIELD_OPS key ('contains' fallback). Matching is
+    case-insensitive (ILIKE), matching the default SQL Server path's collation.
 
     Three-way contract (mirrors the DEFAULT docfield pre-fetch block):
       * None      -> unresolved (engine absent, no pairs, or any error). The
                      view coerces this to set() for an active doc-field search
                      (fail closed) -- None never reaches the source as
                      "no constraint" while a doc-field filter is in play.
-      * set()     -> a docfield matched nothing -> force zero MS02 rows.
-      * {ids...}  -> intersected allow-set -> twi."ID" = ANY(%s).
+      * set()     -> the folded pairs matched nothing -> force zero MS02 rows.
+      * {ids...}  -> folded allow-set -> twi."ID" = ANY(%s).
     Never raises: on error it logs and returns None (no constraint).
     """
     if engine is None or not pairs:
@@ -400,17 +423,24 @@ def resolve_ms02_docfield_ids(engine, pairs):
     try:
         conn = engine.raw_connection()
         cur = conn.cursor()
-        for specs, value in pairs:
+        for entry in pairs:
+            specs, value = entry[0], entry[1]
+            op = entry[2] if len(entry) > 2 else "contains"
+            comb = entry[3] if len(entry) > 3 else "and"
+            comparator, param_of = _MS02_DOCFIELD_OPS.get(op, _MS02_DOCFIELD_OPS["contains"])
             field_ids = set()
             for table, id_col, field_col, time_filter in specs:
-                sql = _ms02_columnar_sql(table, id_col, field_col, time_filter, "ILIKE %s")
+                sql = _ms02_columnar_sql(table, id_col, field_col, time_filter, comparator)
                 if sql is None:
                     continue
-                cur.execute(sql, [f"%{value}%"])
+                cur.execute(sql, [param_of(value)])
                 field_ids |= _as_workitem_ids(cur.fetchall())
-            if not field_ids:
-                return set()  # a docfield matched nothing -> whole result empty
-            result = field_ids if result is None else (result & field_ids)
+            if result is None:
+                result = field_ids
+            elif comb == "or":
+                result = result | field_ids
+            else:
+                result = result & field_ids
         return result
     except Exception as e:
         current_app.logger.error(f"resolve_ms02_docfield_ids: {e}")

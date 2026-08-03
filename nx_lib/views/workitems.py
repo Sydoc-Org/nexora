@@ -164,6 +164,33 @@ def api_config_fields():
     return jsonify(result)
 
 
+# Whitelisted doc-value search operators (issue #148): op key -> (SQL Server
+# comparator, param builder). `=`/`<>` are real comparisons (CI under the
+# DATABASE_DEFAULT collation); the LIKE family keeps the historical
+# no-wildcard-escaping behavior. Unknown/missing keys fall back to "contains".
+DOCFIELD_OPS = {
+    "contains": ("LIKE", lambda v: f"%{v}%"),
+    "ncontains": ("NOT LIKE", lambda v: f"%{v}%"),
+    "eq": ("=", lambda v: v),
+    "neq": ("<>", lambda v: v),
+    "startswith": ("LIKE", lambda v: f"{v}%"),
+    "endswith": ("LIKE", lambda v: f"%{v}"),
+}
+
+
+def _docfield_op(docops, i):
+    """The whitelisted operator key for pair ``i`` ('contains' fallback)."""
+    op = (docops[i] if i < len(docops) else "").lower().strip()
+    return op if op in DOCFIELD_OPS else "contains"
+
+
+def _docfield_comb(doccombs, i):
+    """The AND/OR combinator joining pair ``i`` to the pairs before it
+    ('and' fallback; the first pair's value is ignored by the fold)."""
+    comb = (doccombs[i] if i < len(doccombs) else "").lower().strip()
+    return comb if comb in ("and", "or") else "and"
+
+
 def get_valid_search_columns():
     """Whitelist of SearchConfig col_<field> columns. Cached for an hour, but
     ONLY on success: caching the empty error-fallback used to disable doc-field
@@ -515,6 +542,8 @@ def _get_workitems_data(args, export_all=False):
 
     docfields = args.getlist("docfield")
     docvalues = args.getlist("docvalue")
+    docops = args.getlist("docop")
+    doccombs = args.getlist("doccomb")
 
     # Doc-field search is pre-resolved (against SearchConfig -> StatisticsDB) into
     # a single intersected id allow-set for the SQL Server source. None = no
@@ -532,7 +561,9 @@ def _get_workitems_data(args, export_all=False):
             conn_nex = engine_nexora_db.raw_connection()
             cursor_nex = conn_nex.cursor()
 
-            for docfield, docvalue in zip(docfields, docvalues, strict=False):
+            for pair_idx, (docfield, docvalue) in enumerate(
+                zip(docfields, docvalues, strict=False)
+            ):
                 docfield = (docfield or "").lower().strip()
                 docvalue = (docvalue or "").strip()
 
@@ -558,6 +589,8 @@ def _get_workitems_data(args, export_all=False):
                     if not target_cols:
                         continue
 
+                op_sql, op_param = DOCFIELD_OPS[_docfield_op(docops, pair_idx)]
+
                 placeholders = ",".join(["?"] * len(target_processes))
                 # target_cols come from get_valid_search_columns() (whitelist) --
                 # safe to interpolate.
@@ -573,71 +606,71 @@ def _get_workitems_data(args, export_all=False):
 
                 if not configs:
                     # Field unmapped for every targeted default process -> this
-                    # source cannot match the filter -> force zero rows. None
-                    # here would let the SQL Server source run unconstrained
-                    # and bleed unfiltered rows into a cross-source search.
-                    docfield_ids = set()
-                    break
+                    # pair cannot match here -> force zero rows for THIS pair.
+                    # No early break (an OR-joined later pair may still widen
+                    # the result); the fold below preserves AND semantics.
+                    pair_ids = set()
+                else:
+                    id_parts = []
+                    id_params = []
+                    for config in configs:
+                        tbl = config.TableName
+                        alias = config.TableAlias
+                        time_filter = config.TimeFilter
 
-                id_parts = []
-                id_params = []
-                for config in configs:
-                    tbl = config.TableName
-                    alias = config.TableAlias
-                    time_filter = config.TimeFilter
+                        id_col = None
+                        for part in re.split(r"\s*=\s*", (config.JoinCondition or "").strip()):
+                            if re.match(rf"^{re.escape(alias)}\.\w+$", part.strip(), re.IGNORECASE):
+                                id_col = part.strip()
+                                break
 
-                    id_col = None
-                    for part in re.split(r"\s*=\s*", (config.JoinCondition or "").strip()):
-                        if re.match(rf"^{re.escape(alias)}\.\w+$", part.strip(), re.IGNORECASE):
-                            id_col = part.strip()
-                            break
-
-                    if not id_col:
-                        current_app.logger.warning(
-                            f"Could not extract ID col from JoinCondition: {config.JoinCondition}"
-                        )
-                        continue
-
-                    for target_config_col in target_cols:
-                        db_column = getattr(config, target_config_col)
-                        if not db_column:
+                        if not id_col:
+                            current_app.logger.warning(
+                                f"Could not extract ID col from JoinCondition: {config.JoinCondition}"
+                            )
                             continue
-                        safe_col = f"CAST({alias}.{db_column} AS NVARCHAR(MAX))"
-                        id_parts.append(f"""
-                            SELECT DISTINCT {id_col} AS id
-                            FROM {tbl} {alias}
-                            WHERE {safe_col} COLLATE DATABASE_DEFAULT LIKE ?
-                            AND {time_filter}
-                        """)
-                        id_params.append(f"%{docvalue}%")
 
-                if not id_parts:
-                    continue
+                        for target_config_col in target_cols:
+                            db_column = getattr(config, target_config_col)
+                            if not db_column:
+                                continue
+                            safe_col = f"CAST({alias}.{db_column} AS NVARCHAR(MAX))"
+                            id_parts.append(f"""
+                                SELECT DISTINCT {id_col} AS id
+                                FROM {tbl} {alias}
+                                WHERE {safe_col} COLLATE DATABASE_DEFAULT {op_sql} ?
+                                AND {time_filter}
+                            """)
+                            id_params.append(op_param(docvalue))
 
-                stat_conn = None
-                try:
-                    stat_conn = engine_statistics_db.raw_connection()
-                    stat_cur = stat_conn.cursor()
-                    union_sql = " UNION ALL ".join(id_parts)
-                    stat_cur.execute(f"SELECT DISTINCT id FROM ({union_sql}) t", id_params)
-                    matching_ids = [row[0] for row in stat_cur.fetchall()]
-                except Exception as e:
-                    current_app.logger.error(f"Error pre-fetching docfield IDs: {e}")
-                    matching_ids = None
-                finally:
-                    if stat_conn:
-                        stat_conn.close()
+                    if not id_parts:
+                        continue  # mapping rows exist but unusable -> tolerant skip
 
-                if matching_ids is None:
+                    stat_conn = None
+                    try:
+                        stat_conn = engine_statistics_db.raw_connection()
+                        stat_cur = stat_conn.cursor()
+                        union_sql = " UNION ALL ".join(id_parts)
+                        stat_cur.execute(f"SELECT DISTINCT id FROM ({union_sql}) t", id_params)
+                        matching_ids = [row[0] for row in stat_cur.fetchall()]
+                    except Exception as e:
+                        current_app.logger.error(f"Error pre-fetching docfield IDs: {e}")
+                        matching_ids = None
+                    finally:
+                        if stat_conn:
+                            stat_conn.close()
+
                     # StatisticsDB error -> this pair cannot be checked. Fail
-                    # CLOSED (zero SQL Server rows), never unconstrained.
-                    docfield_ids = set()
-                    break
-                if not matching_ids:
-                    docfield_ids = set()  # a pair matched nothing -> whole result empty
-                    break
-                pair_ids = set(matching_ids)
-                docfield_ids = pair_ids if docfield_ids is None else (docfield_ids & pair_ids)
+                    # CLOSED for the pair (empty set), never unconstrained.
+                    pair_ids = set() if matching_ids is None else set(matching_ids)
+
+                comb = _docfield_comb(doccombs, pair_idx)
+                if docfield_ids is None:
+                    docfield_ids = pair_ids
+                elif comb == "or":
+                    docfield_ids = docfield_ids | pair_ids
+                else:
+                    docfield_ids = docfield_ids & pair_ids
 
         except Exception as e:
             current_app.logger.error(f"Error in docfield pre-fetch block: {e}")
@@ -667,7 +700,9 @@ def _get_workitems_data(args, export_all=False):
             conn_nex2 = engine_nexora_db.raw_connection()
             cursor_nex2 = conn_nex2.cursor()
             pairs = []
-            for docfield, docvalue in zip(docfields, docvalues, strict=False):
+            for pair_idx, (docfield, docvalue) in enumerate(
+                zip(docfields, docvalues, strict=False)
+            ):
                 docfield = (docfield or "").lower().strip()
                 docvalue = (docvalue or "").strip()
                 if not docvalue:
@@ -707,13 +742,18 @@ def _get_workitems_data(args, export_all=False):
                 config_rows = cursor_nex2.fetchall()
                 if not config_rows:
                     # Field unmapped for every targeted ms02 process -> this
-                    # source cannot match the filter -> force zero MS02 rows
-                    # (mirrors the default leg above). None here let the
-                    # Postgres source run unconstrained and flood a cross-
-                    # source doc-field search with every MS02 workitem.
-                    ms02_docfield_ids = set()
-                    pairs = []
-                    break
+                    # pair cannot match here -> forced-empty pair (empty specs;
+                    # the resolver folds it as set()). No early break (mirrors
+                    # the default leg): an OR-joined later pair may still widen.
+                    pairs.append(
+                        (
+                            [],
+                            docvalue,
+                            _docfield_op(docops, pair_idx),
+                            _docfield_comb(doccombs, pair_idx),
+                        )
+                    )
+                    continue
                 specs = []
                 for r in config_rows:
                     if not r.TableName:
@@ -728,9 +768,22 @@ def _get_workitems_data(args, export_all=False):
                         specs.append((r.TableName, id_col, field_col, r.TimeFilter))
                 if not specs:
                     continue  # mapping rows exist but unusable -> tolerant no-constraint
-                pairs.append((specs, docvalue))
+                pairs.append(
+                    (
+                        specs,
+                        docvalue,
+                        _docfield_op(docops, pair_idx),
+                        _docfield_comb(doccombs, pair_idx),
+                    )
+                )
             if pairs:
-                ms02_docfield_ids = resolve_ms02_docfield_ids(engine_ms02_docfields_pg, pairs)
+                if any(entry[0] for entry in pairs):
+                    ms02_docfield_ids = resolve_ms02_docfield_ids(engine_ms02_docfields_pg, pairs)
+                else:
+                    # Every active pair is unmapped for ms02 -> zero MS02 rows
+                    # without a resolver round-trip (also keeps the "resolver
+                    # must not run without mapping rows" contract).
+                    ms02_docfield_ids = set()
         except Exception as e:
             current_app.logger.error(f"Error in MS02 docfield pre-fetch block: {e}")
             ms02_docfield_ids = None
@@ -1493,6 +1546,7 @@ def workitems_overview():
         doc_fields_values_perm = has_permission("workitems.filter.documentfields")
         docfields = request.args.getlist("docfield") if doc_fields_values_perm else None
         docvalues = request.args.getlist("docvalue") if doc_fields_values_perm else None
+        docops = request.args.getlist("docop") if doc_fields_values_perm else None
 
         details_view_perm = has_permission("workitems.details.view")
         details_images_perm = has_permission("workitems.details.view.images")
@@ -1524,6 +1578,7 @@ def workitems_overview():
             endDate=end_date,
             docfield=docfields[0] if docfields else "",
             docvalue=docvalues[0] if docvalues else "",
+            docop=docops[0] if docops else "contains",
             pageV=page_visibility(),
             allowed_processes=allowed_processes,
             search_term_perm=search_term_perm,

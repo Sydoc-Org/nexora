@@ -174,8 +174,12 @@
               <div class="flex items-center gap-4">
                 <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{{ _("Document Value Search") }}</label>
               </div>
-              <div id="docFiltersContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 items-start">
-                <div class="doc-filter-row grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div id="docFiltersContainer" class="grid grid-cols-1 gap-4 items-start">
+                <div class="doc-filter-row grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_10rem_minmax(0,1fr)] gap-4">
+                  {# Row 1 has no visible combinator; the hidden 'and' keeps the
+                     doccomb list index-aligned with docfield/docop/docvalue. #}
+                  <input type="text" name="doccomb" value="and" class="hidden doc-filter-comb-fixed"
+                    {% if docFieldsValues_perm==False %} disabled {% endif %} readonly tabindex="-1" />
                   <div class="relative doc-field-combobox">
                     <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 pointer-events-none z-[1]">
                       <i class="fa-regular fa-rectangle-list"></i>
@@ -194,6 +198,21 @@
                   </div>
 
                   <div class="relative">
+                    <select id="docOpFilter" name="docop" {% if docFieldsValues_perm==False %} disabled {% endif %}
+                      class="nx-select h-11 appearance-none pr-8 doc-filter-op" data-testid="workitems-doc-op">
+                      <option value="contains" {% if docop=='contains' %}selected{% endif %}>{{ _('contains') }}</option>
+                      <option value="eq" {% if docop=='eq' %}selected{% endif %}>=</option>
+                      <option value="neq" {% if docop=='neq' %}selected{% endif %}>&ne;</option>
+                      <option value="startswith" {% if docop=='startswith' %}selected{% endif %}>{{ _('starts with') }}</option>
+                      <option value="endswith" {% if docop=='endswith' %}selected{% endif %}>{{ _('ends with') }}</option>
+                      <option value="ncontains" {% if docop=='ncontains' %}selected{% endif %}>{{ _('does not contain') }}</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+                      <i class="fa-solid fa-chevron-down text-xs"></i>
+                    </div>
+                  </div>
+
+                  <div class="relative">
                     <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
                       <i class="fa-regular fa-keyboard"></i>
                     </span>
@@ -208,7 +227,17 @@
               </div>
 
               <template id="docFilterRowTemplate">
-                <div class="doc-filter-row grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="doc-filter-row grid grid-cols-1 md:grid-cols-[6.5rem_minmax(0,1fr)_10rem_minmax(0,1fr)] gap-4">
+                  <div class="relative">
+                    <select name="doccomb"
+                      class="nx-select h-11 appearance-none pr-8 doc-filter-comb" data-testid="workitems-doc-comb">
+                      <option value="and" selected>{{ _('AND') }}</option>
+                      <option value="or">{{ _('OR') }}</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+                      <i class="fa-solid fa-chevron-down text-xs"></i>
+                    </div>
+                  </div>
                   <div class="relative doc-field-combobox">
                     <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 pointer-events-none z-[1]">
                       <i class="fa-regular fa-rectangle-list"></i>
@@ -221,6 +250,21 @@
                       <i class="fa-solid fa-chevron-down text-xs"></i>
                     </span>
                     <div class="hidden absolute z-20 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto doc-field-dropdown [top:100%]! [margin-top:2px]!"></div>
+                  </div>
+
+                  <div class="relative">
+                    <select name="docop"
+                      class="nx-select h-11 appearance-none pr-8 doc-filter-op" data-testid="workitems-doc-op-row">
+                      <option value="contains" selected>{{ _('contains') }}</option>
+                      <option value="eq">=</option>
+                      <option value="neq">&ne;</option>
+                      <option value="startswith">{{ _('starts with') }}</option>
+                      <option value="endswith">{{ _('ends with') }}</option>
+                      <option value="ncontains">{{ _('does not contain') }}</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+                      <i class="fa-solid fa-chevron-down text-xs"></i>
+                    </div>
                   </div>
 
                   <div class="relative flex items-center gap-2">
