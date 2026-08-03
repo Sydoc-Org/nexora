@@ -100,6 +100,29 @@ The model emits the **v1 report-definition JSON** (`source`, `columns`,
   `ExportEM_dt`) and a UNION written without them fails on "invalid column name"
   instead. Statconfig being unavailable drops the block rather than failing the
   request.
+- **Workitem-count semantics (#132):** the same block states that one row in a
+  partial table **is** one workitem — `COUNT(*)`, `COUNT(WorkitemID)` and
+  `COUNT(DISTINCT WorkitemID)` were verified equal on PROD, which is why the
+  `workitem_count` metric is disabled (migration `0021`) and `doc_count`
+  already answers "how many workitems". It also states that workitem ids are
+  unique only *within* a process and collide across tables, so a cross-table
+  `COUNT(DISTINCT WorkitemID)` under-counts. Without both facts the agent
+  drafted exactly that query and reported its result as a company total.
+- **Ambiguity disclosure (#132):** the agent may not ask the user questions
+  (Surface C is single-shot), so when a question underdetermines the metric,
+  the period type (calendar vs rolling) or the scope, `_AGENT_SYSTEM` requires
+  it to open the answer with one sentence naming the reading it used and the
+  main alternative — instead of silently picking one and presenting it as
+  *the* numbers.
+- **Mandatory caveats (#132):** a four-item checklist in `_AGENT_SYSTEM`
+  (partial current period, small-n baselines, excluded/assumed rows, thin
+  evidence for a trend or seasonality claim), to be stated in one sentence
+  when any apply. Six eval cases produced technically-correct numbers that
+  were misleading without exactly these.
+- **No handing the question back (#132):** the agent must not present SQL it
+  never executed as though it produced numbers, and must not stop with turns
+  remaining to give the user instructions to run the query themselves — it
+  retries from a different angle instead.
 - **Date grounding:** today's date is injected into the user prompt and the agent
   grounding so relative time expressions ("last month", "this year") resolve to
   correct absolute date ranges, not training-data dates. The agent system prompt

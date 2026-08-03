@@ -212,6 +212,24 @@ Work toward 2.5.65.
 
 ### Fixed
 
+- Reporting AI: **four answer-quality gaps the #131 eval exposed** (#132),
+  all closed in the agent's grounding rather than in code. (1) Asked how many
+  unique workitems were processed, the agent drafted
+  `COUNT(DISTINCT WorkitemID)` across several per-process statistics tables
+  and reported the result as a company total — wrong twice over, since one row
+  in those tables already *is* one workitem (which is why the
+  `workitem_count` metric is disabled, migration `0021`) and the ids collide
+  across processes; the PARTIAL-tables block now states both facts. (2) Vague
+  questions ("show me the numbers for the last quarter") got a silently-picked
+  reading presented as the answer — the agent must now open with one sentence
+  naming the reading it used and the main alternative. (3) Answers omitted the
+  caveats a stakeholder needs: a still-running current period, percentages off
+  a near-zero baseline, silently excluded/assumed-NULL rows, "yes it's
+  seasonal" from a single row — a four-item checklist is now part of the
+  prompt. (4) The agent quit with turns left, telling the user to run the
+  comparison themselves, and presented unexecuted SQL as if it had produced
+  numbers — both now explicitly forbidden.
+
 - Reporting: the page masthead (Simple/Advanced tabs, Sources, AI chat) and
   the Simple tab's "Ask AI" bar overflowed horizontally on phone widths
   (#136) — the header didn't wrap, and the AI input had no `min-width: 0`

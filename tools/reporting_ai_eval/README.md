@@ -16,7 +16,12 @@ Full design context: `docs/design/reporting-ai-assistant.md`.
 - `run_eval.py` - the collector. Logs in via `/dev/login/<user>`, posts every
   prompt to the agent endpoint, saves the full JSON response per case.
 - `baseline_2026-07-28.md` - the original run's scored results (6.1/10
-  average) and the issues it surfaced (#127-#130).
+  average) and the issues it surfaced (#127-#130). Historical: it predates the
+  #127/#128/#129 fixes, so it is not a valid "before" for anything measured
+  today - collect a fresh before-run instead.
+- `run_2026-08-03_issue132.md` - before/after pair for the #132 grounding
+  fixes (5.41 -> 6.23), collected the same day on the same data so the prompt
+  change is the only difference.
 - `results/` (gitignored, created on run) - per-case raw JSON from your run.
 
 ## Running
