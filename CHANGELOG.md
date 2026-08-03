@@ -10,6 +10,20 @@ Work toward 2.5.65.
 
 ### Added
 
+- Profile: **Appearance settings** (#155) — a new profile section with per-user
+  UI preferences: theme (light/dark/**system**, the latter following
+  `prefers-color-scheme`), **accent color** (indigo/violet/emerald/amber/rose/sky,
+  re-tinting the `--nx-*`/`--a-*` brand tokens via `html[data-accent]`),
+  **animations** (full/reduced — an in-app reduced-motion switch that also
+  hard-guards legacy unguarded keyframes), **page entrance** style
+  (rise/fade/off), **density** (comfortable/compact for `.nx-*`/`.admin-*`
+  tables and cards), and the sidebar pin. Preferences persist cross-device in
+  `dbo.Users.ui_prefs` (JSON, migration `0050`) via the new
+  `POST /profile/ui_prefs` endpoint (`nx_lib/ui_prefs.py`, allowlist-validated),
+  hydrate into `session['ui_prefs']` once per session (same idiom as locale),
+  and apply pre-paint from a `_header.html` head script. The sidebar dark-mode
+  and pin toggles now write through to the server; localStorage keeps working
+  as the logged-out/legacy fallback.
 - Reporting AI chat: **Continue** button (#153) when the agent loop dead-ends
   on `max_turns`/`budget` without a final answer -- re-runs the same question
   with a raised turn/budget cap (double the default), capped at 2 attempts

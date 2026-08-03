@@ -30,6 +30,7 @@ from .security import (
     has_permission,
     load_permissions_for_user,
 )
+from .ui_prefs import load_ui_prefs
 from .users import resolve_user_icon_url
 from .version import BUILD_STAMP, __version__
 
@@ -117,6 +118,11 @@ def _load_user_locale():
                 session["locale"] = row[0]
         except Exception as e:
             current_app.logger.error(f"load_user_locale error: {e}")
+
+
+def _load_user_ui_prefs():
+    if "userid" in session and "ui_prefs" not in session:
+        session["ui_prefs"] = load_ui_prefs(session["userid"])
 
 
 def _enforce_maintenance_lockout():
@@ -216,6 +222,10 @@ def _inject_current_lang():
     return {"current_lang": str(get_locale())}
 
 
+def _inject_ui_prefs():
+    return {"ui_prefs": session.get("ui_prefs") or {}}
+
+
 def _utility_processor():
     return dict(
         get_user_icon_url=resolve_user_icon_url, has_permission=has_permission, is_prod=IS_PROD
@@ -231,6 +241,7 @@ def init_app(app):
     app.before_request(_enforce_active_session)
     app.before_request(_reload_user_permissions)
     app.before_request(_load_user_locale)
+    app.before_request(_load_user_ui_prefs)
     app.before_request(_enforce_maintenance_lockout)
     app.after_request(_log_every_request)
 
@@ -240,5 +251,6 @@ def init_app(app):
     app.register_error_handler(PermissionDenied, _handle_permission_denied)
 
     app.context_processor(_inject_current_lang)
+    app.context_processor(_inject_ui_prefs)
     app.context_processor(_utility_processor)
     app.context_processor(_inject_app_version)

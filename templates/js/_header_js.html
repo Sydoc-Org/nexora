@@ -14,18 +14,8 @@
             document.getElementById('profilePicture').src = "{{ url_for('static',filename='images/default-Icon.png') }}"
         }
 
-        /* ---- Dark mode ---- */
-        (function() {
-            const saved = localStorage.getItem('nexora-theme');
-            if (saved === 'dark') document.documentElement.classList.add('dark');
-        })();
-
-        /* ---- Sidebar pin ---- */
-        (function() {
-            if (localStorage.getItem('nexora-sidebar-pinned') === 'true') {
-                document.documentElement.classList.add('sidebar-pinned');
-            }
-        })();
+        /* Dark mode + sidebar pin are applied pre-paint by the UI-prefs
+           script in _header.html <head> (issue #155). */
 
         /* ---- Session liveness poll ----
            Polls /api/session/heartbeat every 5s. If the admin force-logs us out,
@@ -258,11 +248,15 @@
 
             // Apply on load
             applyTheme(document.documentElement.classList.contains('dark'));
+            // Exposed so the profile Appearance panel can re-sync the
+            // sidebar button after changing the theme pref (issue #155).
+            window.__nxApplyThemeUi = applyTheme;
 
             if (dmToggle) {
                 dmToggle.addEventListener('click', () => {
                     const nowDark = !document.documentElement.classList.contains('dark');
-                    localStorage.setItem('nexora-theme', nowDark ? 'dark' : 'light');
+                    if (window.nxSetUiPref) window.nxSetUiPref('theme', nowDark ? 'dark' : 'light');
+                    else localStorage.setItem('nexora-theme', nowDark ? 'dark' : 'light');
                     applyTheme(nowDark);
                 });
             }
@@ -284,7 +278,8 @@
             if (pinToggle) {
                 pinToggle.addEventListener('click', () => {
                     const nowPinned = !document.documentElement.classList.contains('sidebar-pinned');
-                    localStorage.setItem('nexora-sidebar-pinned', nowPinned ? 'true' : 'false');
+                    if (window.nxSetUiPref) window.nxSetUiPref('sidebar', nowPinned ? 'pinned' : 'auto');
+                    else localStorage.setItem('nexora-sidebar-pinned', nowPinned ? 'true' : 'false');
                     applyPinned(nowPinned);
                 });
             }

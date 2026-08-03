@@ -8,6 +8,7 @@ import bcrypt
 from flask import (
     current_app,
     flash,
+    jsonify,
     redirect,
     render_template,
     request,
@@ -20,6 +21,7 @@ from PIL import Image
 from ..db import engine_nexora_db
 from ..files import is_file_allowed
 from ..security import page_visibility
+from ..ui_prefs import sanitize_ui_prefs, save_ui_prefs
 
 
 def profile():
@@ -225,6 +227,21 @@ def set_language(lang=None):
             conn.close()
 
 
+def set_ui_prefs():
+    """AJAX endpoint: merge a partial prefs patch into the stored UI prefs."""
+    if "userid" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    patch = sanitize_ui_prefs(request.get_json(silent=True))
+    if not patch:
+        return jsonify({"error": "No valid preferences in request"}), 400
+    prefs = dict(session.get("ui_prefs") or {})
+    prefs.update(patch)
+    if not save_ui_prefs(session["userid"], prefs):
+        return jsonify({"error": "Could not save preferences"}), 500
+    session["ui_prefs"] = prefs
+    return jsonify({"ok": True, "prefs": prefs})
+
+
 def register_routes(app):
     app.add_url_rule("/profile", endpoint="profile", view_func=profile)
     app.add_url_rule(
@@ -240,3 +257,9 @@ def register_routes(app):
         methods=["POST", "GET"],
     )
     app.add_url_rule("/language/<lang>", endpoint="set_language", view_func=set_language)
+    app.add_url_rule(
+        "/profile/ui_prefs",
+        endpoint="set_ui_prefs",
+        view_func=set_ui_prefs,
+        methods=["POST"],
+    )

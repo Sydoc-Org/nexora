@@ -103,7 +103,7 @@
 
         // -------- Jump nav scroll-spy + smooth scroll --------
         const links = document.querySelectorAll('.profile-jumpnav-link');
-        const sectionIds = ['section-profile', 'section-password', 'section-language'];
+        const sectionIds = ['section-profile', 'section-password', 'section-language', 'section-appearance'];
         const setActive = function (id) {
             links.forEach(function (link) {
                 link.classList.toggle('is-active', link.getAttribute('href') === '#' + id);
@@ -141,6 +141,56 @@
         if (window.location.hash) {
             const id = window.location.hash.replace('#', '');
             if (sectionIds.indexOf(id) !== -1) setActive(id);
+        }
+
+        // -------- Appearance (UI prefs, issue #155) --------
+        const savedNote = document.getElementById('uiPrefsSaved');
+        let savedTimer = null;
+        function markSaved() {
+            if (!savedNote) return;
+            savedNote.hidden = false;
+            clearTimeout(savedTimer);
+            savedTimer = setTimeout(function () { savedNote.hidden = true; }, 2000);
+        }
+
+        function refreshPrefButtons() {
+            const prefs = window.__nxPrefs || {};
+            document.querySelectorAll('[data-uipref]').forEach(function (btn) {
+                const key = btn.getAttribute('data-uipref');
+                btn.classList.toggle('is-active', prefs[key] === btn.getAttribute('data-value'));
+            });
+        }
+
+        document.querySelectorAll('[data-uipref]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                if (!window.nxSetUiPref) return;
+                const key = btn.getAttribute('data-uipref');
+                window.nxSetUiPref(key, btn.getAttribute('data-value'));
+                refreshPrefButtons();
+                markSaved();
+                // Keep the sidebar dark-mode button's icon/label in sync.
+                if (key === 'theme' && window.__nxApplyThemeUi) {
+                    window.__nxApplyThemeUi(document.documentElement.classList.contains('dark'));
+                }
+            });
+        });
+        refreshPrefButtons();
+
+        // Sidebar pin switch: drive the real sidebar toggle so icon, label,
+        // localStorage and the server pref all stay consistent.
+        const pinSwitch = document.getElementById('appearanceSidebarPin');
+        if (pinSwitch) {
+            const syncPin = function () {
+                pinSwitch.setAttribute('aria-checked',
+                    document.documentElement.classList.contains('sidebar-pinned') ? 'true' : 'false');
+            };
+            syncPin();
+            pinSwitch.addEventListener('click', function () {
+                const sidebarBtn = document.getElementById('sidebar-pin-toggle');
+                if (sidebarBtn) sidebarBtn.click();
+                syncPin();
+                markSaved();
+            });
         }
     });
 })();

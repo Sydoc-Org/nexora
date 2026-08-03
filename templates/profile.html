@@ -69,6 +69,11 @@
                             <span>{{ _("Language") }}</span>
                             <i class="fas fa-chevron-right profile-jumpnav-chev"></i>
                         </a>
+                        <a href="#section-appearance" class="profile-jumpnav-link" data-testid="profile-jumpnav-appearance">
+                            <i class="fas fa-palette"></i>
+                            <span>{{ _("Appearance") }}</span>
+                            <i class="fas fa-chevron-right profile-jumpnav-chev"></i>
+                        </a>
                     </nav>
 
                     <a href="{{ url_for('logout') }}" class="profile-signout" data-testid="profile-signout">
@@ -303,6 +308,121 @@
                         <i class="fas fa-circle-info"></i>
                         <span>{{ _("Disclaimer: Translations may not be 100&#x25; correct") }}</span>
                     </p>
+                </section>
+
+                <section id="section-appearance" class="profile-card">
+                    <header class="profile-card-header">
+                        <div class="profile-card-icon"><i class="fas fa-palette"></i></div>
+                        <div>
+                            <h2 class="profile-card-title">{{ _("Appearance") }}</h2>
+                            <p class="profile-card-sub">{{ _("Theme, accent color, animations and density — saved to your account and applied on every device.") }}</p>
+                        </div>
+                        <span class="profile-appearance-saved" id="uiPrefsSaved" hidden>
+                            <i class="fas fa-circle-check"></i><span>{{ _("Saved") }}</span>
+                        </span>
+                    </header>
+
+                    <div class="profile-appearance">
+
+                        <div class="profile-appearance-row">
+                            <div class="profile-appearance-info">
+                                <span class="profile-appearance-label">{{ _("Theme") }}</span>
+                                <span class="profile-appearance-hint">{{ _("System follows your operating system setting.") }}</span>
+                            </div>
+                            <div class="profile-seg" role="group" aria-label="{{ _('Theme') }}">
+                                <button type="button" class="profile-seg-btn" data-uipref="theme" data-value="light" data-testid="appearance-theme-light">
+                                    <i class="fas fa-sun"></i><span>{{ _("Light") }}</span>
+                                </button>
+                                <button type="button" class="profile-seg-btn" data-uipref="theme" data-value="dark" data-testid="appearance-theme-dark">
+                                    <i class="fas fa-moon"></i><span>{{ _("Dark") }}</span>
+                                </button>
+                                <button type="button" class="profile-seg-btn" data-uipref="theme" data-value="system" data-testid="appearance-theme-system">
+                                    <i class="fas fa-desktop"></i><span>{{ _("System") }}</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="profile-appearance-row">
+                            <div class="profile-appearance-info">
+                                <span class="profile-appearance-label">{{ _("Accent color") }}</span>
+                                <span class="profile-appearance-hint">{{ _("Buttons, links and highlights across nexora.") }}</span>
+                            </div>
+                            <div class="profile-accents" role="group" aria-label="{{ _('Accent color') }}">
+                                <button type="button" class="profile-accent" data-uipref="accent" data-value="indigo"
+                                    style="--swatch: linear-gradient(135deg,#4f46e5,#7c3aed)" title="{{ _('Indigo') }}" aria-label="{{ _('Indigo') }}" data-testid="appearance-accent-indigo"></button>
+                                <button type="button" class="profile-accent" data-uipref="accent" data-value="violet"
+                                    style="--swatch: linear-gradient(135deg,#7c3aed,#c026d3)" title="{{ _('Violet') }}" aria-label="{{ _('Violet') }}" data-testid="appearance-accent-violet"></button>
+                                <button type="button" class="profile-accent" data-uipref="accent" data-value="emerald"
+                                    style="--swatch: linear-gradient(135deg,#059669,#0d9488)" title="{{ _('Emerald') }}" aria-label="{{ _('Emerald') }}" data-testid="appearance-accent-emerald"></button>
+                                <button type="button" class="profile-accent" data-uipref="accent" data-value="amber"
+                                    style="--swatch: linear-gradient(135deg,#d97706,#ea580c)" title="{{ _('Amber') }}" aria-label="{{ _('Amber') }}" data-testid="appearance-accent-amber"></button>
+                                <button type="button" class="profile-accent" data-uipref="accent" data-value="rose"
+                                    style="--swatch: linear-gradient(135deg,#e11d48,#db2777)" title="{{ _('Rose') }}" aria-label="{{ _('Rose') }}" data-testid="appearance-accent-rose"></button>
+                                <button type="button" class="profile-accent" data-uipref="accent" data-value="sky"
+                                    style="--swatch: linear-gradient(135deg,#0284c7,#0891b2)" title="{{ _('Sky') }}" aria-label="{{ _('Sky') }}" data-testid="appearance-accent-sky"></button>
+                            </div>
+                        </div>
+
+                        <div class="profile-appearance-row">
+                            <div class="profile-appearance-info">
+                                <span class="profile-appearance-label">{{ _("Animations") }}</span>
+                                <span class="profile-appearance-hint">{{ _("Reduced turns off decorative motion everywhere.") }}</span>
+                            </div>
+                            <div class="profile-seg" role="group" aria-label="{{ _('Animations') }}">
+                                <button type="button" class="profile-seg-btn" data-uipref="motion" data-value="full" data-testid="appearance-motion-full">
+                                    <i class="fas fa-wand-magic-sparkles"></i><span>{{ _("Full") }}</span>
+                                </button>
+                                <button type="button" class="profile-seg-btn" data-uipref="motion" data-value="reduced" data-testid="appearance-motion-reduced">
+                                    <i class="fas fa-minus"></i><span>{{ _("Reduced") }}</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="profile-appearance-row">
+                            <div class="profile-appearance-info">
+                                <span class="profile-appearance-label">{{ _("Page entrance") }}</span>
+                                <span class="profile-appearance-hint">{{ _("How cards appear when a page loads.") }}</span>
+                            </div>
+                            <div class="profile-seg" role="group" aria-label="{{ _('Page entrance') }}">
+                                <button type="button" class="profile-seg-btn" data-uipref="entrance" data-value="rise" data-testid="appearance-entrance-rise">
+                                    <i class="fas fa-arrow-up"></i><span>{{ _("Rise") }}</span>
+                                </button>
+                                <button type="button" class="profile-seg-btn" data-uipref="entrance" data-value="fade" data-testid="appearance-entrance-fade">
+                                    <i class="fas fa-circle-half-stroke"></i><span>{{ _("Fade") }}</span>
+                                </button>
+                                <button type="button" class="profile-seg-btn" data-uipref="entrance" data-value="none" data-testid="appearance-entrance-none">
+                                    <i class="fas fa-ban"></i><span>{{ _("Off") }}</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="profile-appearance-row">
+                            <div class="profile-appearance-info">
+                                <span class="profile-appearance-label">{{ _("Density") }}</span>
+                                <span class="profile-appearance-hint">{{ _("Compact fits more rows on screen.") }}</span>
+                            </div>
+                            <div class="profile-seg" role="group" aria-label="{{ _('Density') }}">
+                                <button type="button" class="profile-seg-btn" data-uipref="density" data-value="comfortable" data-testid="appearance-density-comfortable">
+                                    <i class="fas fa-table-cells-large"></i><span>{{ _("Comfortable") }}</span>
+                                </button>
+                                <button type="button" class="profile-seg-btn" data-uipref="density" data-value="compact" data-testid="appearance-density-compact">
+                                    <i class="fas fa-table-cells"></i><span>{{ _("Compact") }}</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="profile-appearance-row">
+                            <div class="profile-appearance-info">
+                                <span class="profile-appearance-label">{{ _("Keep sidebar open") }}</span>
+                                <span class="profile-appearance-hint">{{ _("Pin the navigation rail so it stays expanded.") }}</span>
+                            </div>
+                            <button type="button" class="profile-switch" id="appearanceSidebarPin" role="switch"
+                                aria-checked="false" aria-label="{{ _('Keep sidebar open') }}" data-testid="appearance-sidebar-pin">
+                                <span class="profile-switch-knob"></span>
+                            </button>
+                        </div>
+
+                    </div>
                 </section>
 
             </div>

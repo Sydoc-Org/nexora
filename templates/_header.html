@@ -14,6 +14,74 @@
     <link rel="stylesheet" href="{{ url_for('static',filename='css/nexora-ui.css') }}">
     <link rel="stylesheet" href="{{ url_for('static',filename='css/_header.css') }}">
     <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
+    <script>
+        /* ---- UI prefs (issue #155): apply server-stored prefs pre-paint ----
+           DB (Users.ui_prefs) is authoritative; keys the user never saved fall
+           back to the legacy localStorage keys, then to the defaults. */
+        (function () {
+            var stored = {{ ui_prefs | tojson }};
+            var d = document.documentElement;
+            var ls = function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } };
+            var eff = {
+                theme:    stored.theme    || (ls('nexora-theme') === 'dark' ? 'dark' : 'light'),
+                accent:   stored.accent   || 'indigo',
+                motion:   stored.motion   || 'full',
+                entrance: stored.entrance || 'rise',
+                density:  stored.density  || 'comfortable',
+                sidebar:  stored.sidebar  || (ls('nexora-sidebar-pinned') === 'true' ? 'pinned' : 'auto')
+            };
+            var sysDark = window.matchMedia('(prefers-color-scheme: dark)');
+
+            function apply() {
+                d.classList.toggle('dark', eff.theme === 'dark' || (eff.theme === 'system' && sysDark.matches));
+                if (eff.accent !== 'indigo') d.setAttribute('data-accent', eff.accent);
+                else d.removeAttribute('data-accent');
+                d.classList.toggle('nx-motion-reduced', eff.motion === 'reduced');
+                if (eff.entrance !== 'rise') d.setAttribute('data-entrance', eff.entrance);
+                else d.removeAttribute('data-entrance');
+                d.classList.toggle('nx-compact', eff.density === 'compact');
+                d.classList.toggle('sidebar-pinned', eff.sidebar === 'pinned');
+            }
+            apply();
+            sysDark.addEventListener('change', function () { if (eff.theme === 'system') apply(); });
+
+            window.__nxPrefs = eff;
+            /* Mirror for pages whose own <head> runs before this script
+               (e.g. the reporting rp-anim gate). */
+            try { localStorage.setItem('nexora-ui-prefs', JSON.stringify(eff)); } catch (e) {}
+
+            /* Shared setter: apply live, mirror legacy localStorage keys,
+               persist to the server (fire-and-forget). */
+            window.nxSetUiPref = function (key, value) {
+                eff[key] = value;
+                apply();
+                try {
+                    localStorage.setItem('nexora-ui-prefs', JSON.stringify(eff));
+                    if (key === 'theme') {
+                        localStorage.setItem('nexora-theme',
+                            d.classList.contains('dark') ? 'dark' : 'light');
+                    }
+                    if (key === 'sidebar') {
+                        localStorage.setItem('nexora-sidebar-pinned',
+                            value === 'pinned' ? 'true' : 'false');
+                    }
+                } catch (e) {}
+                var patch = {};
+                patch[key] = value;
+                var meta = document.querySelector('meta[name="csrf-token"]');
+                var API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+                fetch(API_PREFIX + 'profile/ui_prefs', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': meta ? meta.getAttribute('content') : ''
+                    },
+                    body: JSON.stringify(patch)
+                }).catch(function () {});
+            };
+        })();
+    </script>
 </head>
 
 <body>

@@ -39,7 +39,12 @@
         var tab = new URLSearchParams(window.location.search).get('tab')
           || localStorage.getItem('nx.reporting.tab') || 'simple';
         window.__rpInitialTab = tab === 'advanced' ? 'advanced' : 'simple';
+        // In-app motion pref (issue #155): the _header.html head script runs
+        // after this one, so read its localStorage mirror here.
+        var uiPrefs = {};
+        try { uiPrefs = JSON.parse(localStorage.getItem('nexora-ui-prefs')) || {}; } catch (e2) {}
         if (window.__rpInitialTab === 'advanced' &&
+            uiPrefs.motion !== 'reduced' &&
             (!window.matchMedia ||
              !window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
           document.documentElement.classList.add('rp-anim');
