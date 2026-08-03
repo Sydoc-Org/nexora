@@ -530,21 +530,36 @@ def _get_workitems_data(args, export_all=False):
                 docfield = (docfield or "").lower().strip()
                 docvalue = (docvalue or "").strip()
 
-                if not docvalue or not docfield:
+                if not docvalue:
                     continue
 
-                target_config_col = f"col_{docfield}"
-                if target_config_col not in valid_db_columns:
-                    continue
-
-                if docfield in blocked_docfields:
-                    continue
+                if docfield:
+                    target_cols = [f"col_{docfield}"]
+                    if target_cols[0] not in valid_db_columns:
+                        continue
+                    if docfield in blocked_docfields:
+                        continue
+                else:
+                    # Value-first search (issue #148): no field picked -> OR the
+                    # value across every permitted, non-sensitive field. The
+                    # UNION below already ORs across configs, so widening it to
+                    # multiple columns keeps the same shape.
+                    target_cols = [
+                        c
+                        for c in valid_db_columns
+                        if c.removeprefix("col_") not in blocked_docfields
+                    ]
+                    if not target_cols:
+                        continue
 
                 placeholders = ",".join(["?"] * len(target_processes))
+                # target_cols come from get_valid_search_columns() (whitelist) --
+                # safe to interpolate.
+                non_null = " OR ".join(f"{c} IS NOT NULL" for c in target_cols)
                 query = f"""
-                    SELECT ProcessName, TableName, TableAlias, JoinCondition, TimeFilter, {target_config_col}
+                    SELECT ProcessName, TableName, TableAlias, JoinCondition, TimeFilter, {", ".join(target_cols)}
                     FROM SearchConfig
-                    WHERE {target_config_col} IS NOT NULL
+                    WHERE ({non_null})
                     AND ClientCode = 'default'
                     AND ProcessName IN ({placeholders})
                 """
@@ -563,9 +578,7 @@ def _get_workitems_data(args, export_all=False):
                 for config in configs:
                     tbl = config.TableName
                     alias = config.TableAlias
-                    db_column = getattr(config, target_config_col)
                     time_filter = config.TimeFilter
-                    safe_col = f"CAST({alias}.{db_column} AS NVARCHAR(MAX))"
 
                     id_col = None
                     for part in re.split(r"\s*=\s*", (config.JoinCondition or "").strip()):
@@ -579,13 +592,18 @@ def _get_workitems_data(args, export_all=False):
                         )
                         continue
 
-                    id_parts.append(f"""
-                        SELECT DISTINCT {id_col} AS id
-                        FROM {tbl} {alias}
-                        WHERE {safe_col} COLLATE DATABASE_DEFAULT LIKE ?
-                        AND {time_filter}
-                    """)
-                    id_params.append(f"%{docvalue}%")
+                    for target_config_col in target_cols:
+                        db_column = getattr(config, target_config_col)
+                        if not db_column:
+                            continue
+                        safe_col = f"CAST({alias}.{db_column} AS NVARCHAR(MAX))"
+                        id_parts.append(f"""
+                            SELECT DISTINCT {id_col} AS id
+                            FROM {tbl} {alias}
+                            WHERE {safe_col} COLLATE DATABASE_DEFAULT LIKE ?
+                            AND {time_filter}
+                        """)
+                        id_params.append(f"%{docvalue}%")
 
                 if not id_parts:
                     continue
@@ -646,28 +664,40 @@ def _get_workitems_data(args, export_all=False):
             for docfield, docvalue in zip(docfields, docvalues, strict=False):
                 docfield = (docfield or "").lower().strip()
                 docvalue = (docvalue or "").strip()
-                if not docfield or not docvalue:
+                if not docvalue:
                     continue
-                target_config_col = f"col_{docfield}"
-                # Whitelist the column name (same guard the default path uses)
-                # before interpolating it -- blocks injection via `docfield`.
-                if target_config_col not in valid_db_columns:
-                    continue
-
-                if docfield in blocked_docfields:
-                    continue
+                if docfield:
+                    # Whitelist the column name (same guard the default path uses)
+                    # before interpolating it -- blocks injection via `docfield`.
+                    target_cols = [f"col_{docfield}"]
+                    if target_cols[0] not in valid_db_columns:
+                        continue
+                    if docfield in blocked_docfields:
+                        continue
+                else:
+                    # Value-first search (issue #148): no field picked -> specs
+                    # spanning every permitted column; the resolver ORs specs
+                    # within a pair, so this is OR-across-fields for free.
+                    target_cols = [
+                        c
+                        for c in valid_db_columns
+                        if c.removeprefix("col_") not in blocked_docfields
+                    ]
+                    if not target_cols:
+                        continue
                 placeholders = ",".join(["?"] * len(target_processes))
+                non_null = " OR ".join(f"{c} IS NOT NULL" for c in target_cols)
                 cursor_nex2.execute(
-                    f"SELECT TableName, TableAlias, JoinCondition, TimeFilter, {target_config_col} "
+                    f"SELECT TableName, TableAlias, JoinCondition, TimeFilter, {', '.join(target_cols)} "
                     f"FROM SearchConfig "
-                    f"WHERE {target_config_col} IS NOT NULL "
+                    f"WHERE ({non_null}) "
                     f"AND ClientCode = 'ms02' "
                     f"AND ProcessName IN ({placeholders})",
                     target_processes,
                 )
-                # Each ms02 row maps this docfield to a COLUMN in a wide statistik
+                # Each ms02 row maps a docfield to a COLUMN in a wide statistik
                 # table (col_<field> = the column name); build one columnar spec
-                # per row (rows for this docfield are OR'd in the resolver).
+                # per (row, column) (specs within a pair are OR'd in the resolver).
                 config_rows = cursor_nex2.fetchall()
                 if not config_rows:
                     # Field unmapped for every targeted ms02 process -> this
@@ -680,13 +710,16 @@ def _get_workitems_data(args, export_all=False):
                     break
                 specs = []
                 for r in config_rows:
-                    table_name, alias, join_cond, time_filter, field_col = r
-                    if not (table_name and field_col):
+                    if not r.TableName:
                         continue
-                    id_col = _ms02_id_column(join_cond, alias)
+                    id_col = _ms02_id_column(r.JoinCondition, r.TableAlias)
                     if not id_col:
                         continue
-                    specs.append((table_name, id_col, field_col, time_filter))
+                    for target_config_col in target_cols:
+                        field_col = getattr(r, target_config_col)
+                        if not field_col:
+                            continue
+                        specs.append((r.TableName, id_col, field_col, r.TimeFilter))
                 if not specs:
                     continue  # mapping rows exist but unusable -> tolerant no-constraint
                 pairs.append((specs, docvalue))
@@ -710,8 +743,11 @@ def _get_workitems_data(args, export_all=False):
     # designed "silently ignored" semantics and do not count as active.
     if has_permission("workitems.filter.documentfields") and target_processes:
         _blocked = sensitive_blocked_keys()
+        # A pair is active when it has a value and either no field (value-first
+        # any-field search) or a non-sensitive field.
         _active = any(
-            (f or "").strip() and (v or "").strip() and (f or "").lower().strip() not in _blocked
+            (v or "").strip()
+            and (not (f or "").strip() or (f or "").lower().strip() not in _blocked)
             for f, v in zip(docfields, docvalues, strict=False)
         )
         if _active:
@@ -762,6 +798,117 @@ def _get_workitems_data(args, export_all=False):
     }
 
 
+def _docfield_values_all_fields(target_processes, q):
+    """Value-first mode of /api/docfield_values (issue #148): no field picked ->
+    labeled suggestions ``[{value, field}]`` across every permitted,
+    non-sensitive field, so the UI can show which field a value lives in and
+    lock the pair on pick. The field-specific path keeps its flat string list."""
+    blocked = sensitive_blocked_keys()
+    target_cols = [c for c in get_valid_search_columns() if c.removeprefix("col_") not in blocked]
+    if not target_cols:
+        return jsonify([])
+
+    # Cache key includes the column set: users with/without the sensitive-fields
+    # perm must not share entries.
+    cache_key = (
+        f"docfield_vals_any_{'_'.join(sorted(target_processes))}_{'-'.join(sorted(target_cols))}"
+    )
+    try:
+        pairs = cache.get(cache_key)
+        if pairs is None:
+            conn = None
+            cur = None
+            try:
+                conn = engine_nexora_db.raw_connection()
+                cur = conn.cursor()
+                placeholders = ",".join("?" for _ in target_processes)
+                non_null = " OR ".join(f"{c} IS NOT NULL" for c in target_cols)
+                configs = cur.execute(
+                    f"SELECT * FROM SearchConfig WHERE ({non_null}) "
+                    f"AND ProcessName IN ({placeholders})",
+                    list(target_processes),
+                ).fetchall()
+            finally:
+                if cur:
+                    cur.close()
+                if conn:
+                    conn.close()
+
+            default_parts = []
+            ms02_specs = []  # (table, column, field_key, suggestion_time_filter)
+            for c in configs:
+                client = getattr(c, "ClientCode", "default") or "default"
+                for col in target_cols:
+                    col_val = getattr(c, col, None)
+                    if not col_val or not c.TableName:
+                        continue
+                    fkey = col.removeprefix("col_")
+                    if client == "ms02":
+                        if _MS02_IDENT.match(col_val):
+                            ms02_specs.append((c.TableName, col_val, fkey, c.SuggestionTimeFilter))
+                    else:
+                        safe_col = f"CAST({col_val} AS NVARCHAR(MAX))"
+                        # fkey derives from the whitelisted col_* names -- safe
+                        # to inline as a literal.
+                        default_parts.append(f"""
+                            SELECT {safe_col} COLLATE DATABASE_DEFAULT AS Val, '{fkey}' AS FieldKey
+                            FROM [{DB_STATISTICS}].{c.TableName}
+                            WHERE {col_val} IS NOT NULL
+                              AND {safe_col} <> ''
+                              AND {c.SuggestionTimeFilter}
+                        """)
+
+            vals = set()
+            if default_parts:
+                stat_conn = None
+                try:
+                    union_sql = " UNION ALL ".join(default_parts)
+                    stat_conn = engine_statistics_db.raw_connection()
+                    stat_cur = stat_conn.cursor()
+                    stat_cur.execute(
+                        f"SELECT DISTINCT TOP 500 Val, FieldKey FROM ({union_sql}) t ORDER BY Val"
+                    )
+                    vals.update((r[0], r[1]) for r in stat_cur.fetchall())
+                except Exception as e:
+                    current_app.logger.error(f"/api/docfield_values any-field default error: {e}")
+                finally:
+                    if stat_conn:
+                        stat_conn.close()
+
+            if ms02_specs and engine_ms02_docfields_pg is not None:
+                df_conn = None
+                try:
+                    df_conn = engine_ms02_docfields_pg.raw_connection()
+                    df_cur = df_conn.cursor()
+                    for table, col, fkey, stf in ms02_specs:
+                        sql = (
+                            f'SELECT DISTINCT "{col}"::text AS v FROM {table} '
+                            f'WHERE "{col}"::text IS NOT NULL AND "{col}"::text <> %s'
+                        )
+                        if stf:
+                            sql += f" AND {stf}"
+                        sql += " ORDER BY v LIMIT 500"
+                        df_cur.execute(sql, [""])
+                        vals.update((r[0], fkey) for r in df_cur.fetchall())
+                    df_cur.close()
+                except Exception as e:
+                    current_app.logger.error(f"/api/docfield_values any-field ms02 error: {e}")
+                finally:
+                    if df_conn:
+                        df_conn.close()
+
+            pairs = sorted(vals)
+            cache.set(cache_key, pairs, timeout=600)
+
+        q_lower = q.lower()
+        return jsonify(
+            [{"value": v, "field": f} for v, f in pairs if not q or q_lower in v.lower()][:15]
+        )
+    except Exception as e:
+        current_app.logger.error(f"/api/docfield_values any-field error: {e}")
+        return jsonify({"error": _("Could not fetch values")}), 500
+
+
 # ---------------------------- routes ---------------------------- #
 
 
@@ -773,17 +920,17 @@ def api_docfield_values():
     process = request.args.get("process", "all")
     field = (request.args.get("field", "") or "").lower().strip()
     q = (request.args.get("q", "") or "").strip()
-    if not field:
-        return jsonify([])
 
     target_col_name = f"col_{field}"
     # Whitelist the column name before interpolating it into the SearchConfig SQL
     # below (the same guard the workitems search path uses) -- `field` is a raw
     # request arg, so without this it is a SQL-injection vector against NexoraDB.
-    if target_col_name not in get_valid_search_columns():
-        return jsonify([])
-    if field in sensitive_blocked_keys():
-        return jsonify([])
+    # No field at all = value-first mode, handled after the process gating.
+    if field:
+        if target_col_name not in get_valid_search_columns():
+            return jsonify([])
+        if field in sensitive_blocked_keys():
+            return jsonify([])
 
     # Fail-closed process gating: `process` is a caller-supplied arg and must
     # not be trusted as-is -- a caller holding only the blanket
@@ -803,6 +950,9 @@ def api_docfield_values():
 
     if not target_processes:
         return jsonify([])
+
+    if not field:
+        return _docfield_values_all_fields(target_processes, q)
 
     conn = None
     cur = None

@@ -24,7 +24,6 @@
             return Math.round(conf * 100) + '%';
         };
         let animationTimeouts = [];
-        let docValuesCache = [];
         let fieldConfig = {
             search_options: {},
             labels: {}
@@ -77,56 +76,6 @@
                 }, 700);
             }, 5000);
         }
-
-        function renderCustomDatalist(values) {
-            const listContainer = document.getElementById('docValueCustomList');
-            const docValueInput = document.getElementById('docValueInput');
-            if (!listContainer || !docValueInput) return;
-
-            listContainer.innerHTML = '';
-            if (values.length === 0) {
-                listContainer.classList.add('hidden');
-                return;
-            }
-
-            values.forEach(value => {
-                const item = document.createElement('div');
-                item.className = 'cursor-pointer p-2 hover:bg-indigo-100 text-gray-700 text-sm';
-                item.textContent = value;
-                item.addEventListener('mousedown', (e) => {
-                    e.preventDefault();
-                    docValueInput.value = value;
-                    listContainer.classList.add('hidden');
-                    const filterForm = document.getElementById('filterForm');
-                    if (filterForm.requestSubmit) filterForm.requestSubmit();
-                    else fetchAndUpdateWorkitems();
-                });
-                listContainer.appendChild(item);
-            });
-
-            listContainer.classList.remove('hidden');
-        }
-
-        async function fetchDocFieldValues(q = '') {
-            try {
-                const process = document.getElementById('prcfW')?.value || 'all';
-                const field = document.getElementById('docFieldFilter')?.value;
-                const url = `${API_PREFIX}api/docfield_values?process=${encodeURIComponent(process)}&field=${encodeURIComponent(field)}&q=${encodeURIComponent(q)}`;
-                const res = await fetch(url, {headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
-                }});
-                if (!res.ok) throw new Error('Could not fetch field values');
-
-                docValuesCache = await res.json();
-                renderCustomDatalist(docValuesCache);
-            } catch (e) {
-                console.error('Failed to fetch field values:', e);
-                const listContainer = document.getElementById('docValueCustomList');
-                if (listContainer) listContainer.classList.add('hidden');
-            }
-        }
-
 
         function cancelAllAnimations() {
             animationTimeouts.forEach(clearTimeout);
@@ -340,7 +289,6 @@ async function uploadBatchFiles(files, processName) {
                 const process = document.getElementById('prcfW')?.value || 'all';
                 document.querySelectorAll('.doc-filter-field').forEach(hiddenInput => fillDocFieldSelect(hiddenInput, process));
             });
-            fetchDocFieldValues();
 
             // Load initial workitems client-side (read page from URL to support direct links)
             const _initPage = parseInt(new URLSearchParams(window.location.search).get('page') || '1', 10);
@@ -430,8 +378,17 @@ async function uploadBatchFiles(files, processName) {
                 }
 
                 const match = fields.find(f => f.value === selectedValue);
-                const selected = match || fields[0];
-                hiddenInput.value = selected.value;
+                if (match) {
+                    hiddenInput.value = match.value;
+                    hiddenInput._userSelected = true;
+                    if (searchInput) searchInput.value = match.label;
+                } else {
+                    // Value-first (issue #148): no silent auto-select -- empty
+                    // field means "search all fields".
+                    hiddenInput.value = '';
+                    hiddenInput._userSelected = false;
+                    if (searchInput) searchInput.value = '';
+                }
             }
 
             function initDocFieldCombobox(wrapper) {
@@ -447,6 +404,21 @@ async function uploadBatchFiles(files, processName) {
                         ? options.filter(f => f.label.toLowerCase().includes(q) || f.value.toLowerCase().includes(q))
                         : options;
                     dropdown.innerHTML = '';
+                    // "All fields" pseudo-option: clears the field -> value-first
+                    // search across every permitted field (issue #148).
+                    const allDiv = document.createElement('div');
+                    allDiv.className = 'px-4 py-2 text-sm cursor-pointer hover:bg-indigo-50 border-b border-gray-100' +
+                        (!hiddenInput.value ? ' bg-indigo-50 font-semibold text-indigo-700' : ' text-gray-500 italic');
+                    allDiv.textContent = "{{ _('All fields') }}";
+                    allDiv.addEventListener('mousedown', (e) => {
+                        e.preventDefault();
+                        hiddenInput.value = '';
+                        hiddenInput._userSelected = false;
+                        searchInput.value = '';
+                        dropdown.classList.add('hidden');
+                        hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+                    });
+                    dropdown.appendChild(allDiv);
                     if (filtered.length === 0) {
                         const div = document.createElement('div');
                         div.className = 'px-4 py-2 text-sm text-gray-500 italic';
@@ -553,7 +525,18 @@ async function uploadBatchFiles(files, processName) {
                     if (item) {
                         const row = item.closest('.doc-filter-row');
                         const input = row.querySelector('.doc-filter-value');
-                        input.value = item.textContent;
+                        input.value = item.dataset.value ?? item.textContent;
+                        // Labeled (value-first) suggestion: lock the field it came
+                        // from so the search runs field-precise from here on.
+                        if (item.dataset.field) {
+                            const hiddenInput = row.querySelector('.doc-filter-field');
+                            const fieldSearch = row.querySelector('.doc-filter-field-search');
+                            if (hiddenInput) {
+                                hiddenInput.value = item.dataset.field;
+                                hiddenInput._userSelected = true;
+                            }
+                            if (fieldSearch) fieldSearch.value = fieldLabelFor(item.dataset.field);
+                        }
                         hideRowList(row);
                         const form = document.getElementById('filterForm');
                         if (form?.requestSubmit) form.requestSubmit(); else fetchAndUpdateWorkitems();
@@ -585,6 +568,10 @@ async function uploadBatchFiles(files, processName) {
             function hideRowList(row) {
                 row.querySelector('.doc-filter-list')?.classList.add('hidden');
             }
+            function fieldLabelFor(key) {
+                const opts = Object.values(fieldConfig.search_options || {}).flat();
+                return (opts.find(f => f.value === key) || {}).label || key;
+            }
             function renderRowList(row, values) {
                 const list = row.querySelector('.doc-filter-list');
                 const input = row.querySelector('.doc-filter-value');
@@ -592,9 +579,24 @@ async function uploadBatchFiles(files, processName) {
                 list.innerHTML = '';
                 if (!values || values.length === 0) { list.classList.add('hidden'); return; }
                 values.forEach(v => {
+                    const isObj = typeof v === 'object' && v !== null;
+                    const value = isObj ? v.value : v;
                     const div = document.createElement('div');
-                    div.className = 'doc-row-suggestion cursor-pointer p-2 hover:bg-indigo-100 text-gray-700 text-sm';
-                    div.textContent = v;
+                    div.className = 'doc-row-suggestion cursor-pointer p-2 hover:bg-indigo-100 text-gray-700 text-sm flex items-center justify-between gap-2';
+                    div.dataset.value = value;
+                    const valSpan = document.createElement('span');
+                    valSpan.className = 'truncate';
+                    valSpan.textContent = value;
+                    div.appendChild(valSpan);
+                    if (isObj && v.field) {
+                        // Value-first suggestions are labeled with their field so
+                        // picking one can lock the pair (issue #148).
+                        div.dataset.field = v.field;
+                        const badge = document.createElement('span');
+                        badge.className = 'text-xs text-gray-400 shrink-0';
+                        badge.textContent = fieldLabelFor(v.field);
+                        div.appendChild(badge);
+                    }
                     list.appendChild(div);
                 });
                 list.classList.remove('hidden');
@@ -602,7 +604,9 @@ async function uploadBatchFiles(files, processName) {
             async function fetchRowSuggestions(row, q = '') {
                 try {
                     const process = document.getElementById('prcfW')?.value || 'all';
-                    const field = row.querySelector('.doc-filter-field')?.value || 'doctype';
+                    // Empty field = value-first mode: the backend returns labeled
+                    // {value, field} suggestions across all permitted fields.
+                    const field = row.querySelector('.doc-filter-field')?.value || '';
                     const res = await fetch(`${API_PREFIX}api/docfield_values?process=${encodeURIComponent(process)}&field=${encodeURIComponent(field)}&q=${encodeURIComponent(q)}`, {headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': csrfToken
@@ -688,12 +692,6 @@ async function uploadBatchFiles(files, processName) {
         uploadBatchFiles(pendingImportFiles, selectedProcess);
     });
 }
-            const processSel = document.getElementById('prcfW');
-            if (processSel) {
-                processSel.addEventListener('change', () => {
-                    fetchDocFieldValues(docValueInput?.value || '');
-                });
-            }
             function renderDegradedBanner(codes) {
                 const BANNER_ID = 'workitems-degraded-banner';
                 let banner = document.getElementById(BANNER_ID);
