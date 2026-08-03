@@ -579,6 +579,16 @@ def caption(
 # answer off exactly when the agent was doing its job.
 DEFAULT_MAX_TURNS = 10
 
+# Issue #153: raised caps for a user-initiated "Continue" retry after the loop
+# hit max_turns/budget the first time. Double the default rather than
+# unbounded — cross-process aggregate questions (post-#128) can legitimately
+# need more turns, but this still isn't a resume, just a fresh run with more
+# room, so it stays finite. MAX_CONTINUE_ATTEMPTS caps how many times a single
+# question can be retried this way.
+CONTINUE_MAX_TURNS = DEFAULT_MAX_TURNS * 2
+CONTINUE_BUDGET_S = DEFAULT_BUDGET_S * 2
+MAX_CONTINUE_ATTEMPTS = 2
+
 # Issue #127: sent once when the model ends its turn with neither tool calls
 # nor text. Model-facing, English by design (like the tool results).
 _EMPTY_FINAL_NUDGE = (

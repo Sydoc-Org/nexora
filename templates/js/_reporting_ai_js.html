@@ -38,6 +38,8 @@
     showQuery: {{ _("Show query")|tojson }},
     hideQuery: {{ _("Hide query")|tojson }},
     netError: {{ _("Network error")|tojson }},
+    continueBtn: {{ _("Continue")|tojson }},
+    continuing: {{ _("Continuing…")|tojson }},
     reportTitle: {{ _("AI report")|tojson }},
     followups: [
       {{ _("Only this quarter")|tojson }},
@@ -227,6 +229,14 @@
       chips += '<button type="button" class="nx-btn nx-btn--ghost nx-btn--sm rp-chat-show-sql" ' +
         'data-testid="rp-chat-show-sql">' + escapeHtml(I18N.showQuery) + "</button>";
     }
+    // Issue #153: offer a fresh run with raised turn/budget caps when the loop
+    // hit a cap without a final answer. Not a resume -- the server re-runs the
+    // question from scratch, so canContinue is false once MAX_CONTINUE_ATTEMPTS
+    // is reached (see api_ai_agent).
+    if (d.canContinue) {
+      chips += '<button type="button" class="nx-btn nx-btn--secondary nx-btn--sm rp-chat-continue" ' +
+        'data-testid="rp-chat-continue">' + escapeHtml(I18N.continueBtn) + "</button>";
+    }
     if (chips) html += '<div class="rp-chat-actions">' + chips + "</div>";
     if (d.sql) html += '<pre class="reporting-ai-sql rp-chat-sql-preview" hidden data-testid="rp-chat-sql-preview"></pre>';
 
@@ -239,7 +249,8 @@
 
   // Attaches listeners to the turn bubble just appended to the thread (node),
   // scoped to that node so multiple turns never share/duplicate handlers.
-  function wireTurnActions(node, d) {
+  // `question` is the text that produced `d`, needed to re-send on Continue.
+  function wireTurnActions(node, d, question) {
     if (!node) return;
 
     var openBtn = node.querySelector(".rp-chat-open-builder");
@@ -280,14 +291,26 @@
     for (var i = 0; i < followups.length; i++) {
       followups[i].addEventListener("click", function () { send(this.textContent.trim()); });
     }
+
+    var continueBtn = node.querySelector(".rp-chat-continue");
+    if (continueBtn) continueBtn.addEventListener("click", function () {
+      send(question, (d.continueAttempt || 0) + 1);
+    });
   }
 
   // ----- Send -----
 
-  function send(text) {
+  // `continueAttempt` is 0 for a normal question; > 0 when re-sent via the
+  // Continue chip after the loop hit max_turns/budget (issue #153) -- same
+  // question, threaded into history like any other follow-up, just with the
+  // server-side turn/budget cap raised.
+  function send(text, continueAttempt) {
     text = String(text == null ? "" : text).trim();
+    continueAttempt = continueAttempt || 0;
     if (chat.busy || !text) return;
-    pushMsg("user", escapeHtml(text).replace(/\n/g, "<br>"));
+    pushMsg("user", continueAttempt
+      ? "<em>" + escapeHtml(I18N.continuing) + "</em>"
+      : escapeHtml(text).replace(/\n/g, "<br>"));
     input.value = ""; input.style.height = "";
     chat.busy = true; sendBtn.disabled = true; startTicker();
     fetch(API_PREFIX + "api/reporting/ai/agent", {
@@ -301,7 +324,8 @@
         // content-type below decides how to read the body.
         stream: true,
         // Active source lets the server gate run_sql to sources it can reach.
-        source: (document.getElementById("rpSource") || {}).value || null
+        source: (document.getElementById("rpSource") || {}).value || null,
+        continueAttempt: continueAttempt
       })
     }).then(function (r) {
       var ct = r.headers.get("content-type") || "";
@@ -325,7 +349,7 @@
       chat.history.push({ role: "user", content: text });
       chat.history.push({ role: "assistant", content: res.data.answer || "" });
       var node = pushMsg("ai", aiTurnHtml(res.data));
-      wireTurnActions(node, res.data);
+      wireTurnActions(node, res.data, text);
     }).catch(function () {
       stopTicker(); chat.busy = false; sendBtn.disabled = false;
       pushMsg("ai", errorBubble(I18N.netError));

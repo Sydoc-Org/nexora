@@ -55,6 +55,9 @@ from ..reporting.ai import (
     _AGENT_EXPLAIN_SUFFIX,
     _AGENT_SYSTEM,
     CAPTION_MAX_ROWS,
+    CONTINUE_BUDGET_S,
+    CONTINUE_MAX_TURNS,
+    MAX_CONTINUE_ATTEMPTS,
     AiError,
     ask_agentic,
     ask_agentic_iter,
@@ -1528,6 +1531,19 @@ def api_ai_agent():
     while history and sum(len(h["content"]) for h in history) > 4000:
         history.pop(0)
 
+    # Issue #153: "Continue" past a max_turns/budget dead-end re-runs the same
+    # question with raised caps rather than resuming the loop mid-flight (the
+    # transcript isn't persisted). continueAttempt is clamped, not rejected
+    # out of range, so a stale/tampered client value can't grant more than the
+    # ceiling.
+    try:
+        continue_attempt = int(body.get("continueAttempt") or 0)
+    except (TypeError, ValueError):
+        continue_attempt = 0
+    continue_attempt = max(0, min(continue_attempt, MAX_CONTINUE_ATTEMPTS))
+    agent_max_turns = CONTINUE_MAX_TURNS if continue_attempt else None
+    agent_budget_s = CONTINUE_BUDGET_S if continue_attempt else None
+
     cfg = _ai_config()
     if cfg.get("provider") == "none" or not cfg.get("api_key"):
         return jsonify({"error": _("The AI assistant is not configured")}), 503
@@ -1647,6 +1663,12 @@ def api_ai_agent():
     initial = f"{grounding}\n\nQuestion: {question}"
     system_prompt = _AGENT_SYSTEM + (_AGENT_EXPLAIN_SUFFIX if explain else "")
 
+    loop_kwargs = {}
+    if agent_max_turns is not None:
+        loop_kwargs["max_turns"] = agent_max_turns
+    if agent_budget_s is not None:
+        loop_kwargs["budget_s"] = agent_budget_s
+
     start = time.monotonic()
 
     def _finish(result):
@@ -1713,6 +1735,11 @@ def api_ai_agent():
             "turns": result.turns,
             "stoppedReason": result.stopped_reason,
             "explainData": explain,
+            "continueAttempt": continue_attempt,
+            "canContinue": (
+                result.stopped_reason in ("max_turns", "budget")
+                and continue_attempt < MAX_CONTINUE_ATTEMPTS
+            ),
         }
 
     def _audit_failure(status):
@@ -1754,7 +1781,11 @@ def api_ai_agent():
                 result = None
                 try:
                     for event in ask_agentic_iter(
-                        initial, registry=registry, agent_step=step, history=history
+                        initial,
+                        registry=registry,
+                        agent_step=step,
+                        history=history,
+                        **loop_kwargs,
                     ):
                         if "result" in event:
                             result = event["result"]
@@ -1781,7 +1812,9 @@ def api_ai_agent():
                 headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
             )
 
-        result = ask_agentic(initial, registry=registry, agent_step=step, history=history)
+        result = ask_agentic(
+            initial, registry=registry, agent_step=step, history=history, **loop_kwargs
+        )
     except AiError as e:
         current_app.logger.warning(f"/api/reporting/ai/agent config error: {e}")
         _audit_failure("misconfig")

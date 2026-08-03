@@ -10,6 +10,10 @@ Work toward 2.5.65.
 
 ### Added
 
+- Reporting AI chat: **Continue** button (#153) when the agent loop dead-ends
+  on `max_turns`/`budget` without a final answer -- re-runs the same question
+  with a raised turn/budget cap (double the default), capped at 2 attempts
+  per question.
 - Sidebar: **pin toggle** (#151) in the bottom actions -- keeps the nav rail
   expanded (220px) instead of collapsing when the mouse leaves. State persists
   per-browser via `localStorage`, same idiom as the dark-mode toggle.

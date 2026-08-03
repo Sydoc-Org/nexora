@@ -1562,3 +1562,101 @@ def test_ai_agent_without_stream_flag_still_returns_plain_json(user_client):
         resp = user_client.post("/api/reporting/ai/agent", json={"question": "docs"})
     assert resp.mimetype == "application/json"
     assert resp.get_json()["answer"] == "Built a report by outcome."
+
+
+# ---- Issue #153: "Continue" past a max_turns/budget dead-end ---------------
+
+
+def _stopped_result(reason):
+    return AiAgenticResult(
+        answer="",
+        turns=10,
+        tool_trace=[],
+        stopped_reason=reason,
+        tokens_in=20,
+        tokens_out=12,
+    )
+
+
+def test_ai_agent_can_continue_when_stopped_on_max_turns(user_client):
+    with ExitStack() as es:
+        for p in _agent_patches():
+            es.enter_context(p)
+        es.enter_context(
+            patch(
+                "nx_lib.views.reporting.ask_agentic",
+                return_value=_stopped_result("max_turns"),
+            )
+        )
+        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post("/api/reporting/ai/agent", json={"question": "hard question"})
+    data = resp.get_json()
+    assert data["stoppedReason"] == "max_turns"
+    assert data["continueAttempt"] == 0
+    assert data["canContinue"] is True
+
+
+def test_ai_agent_cannot_continue_when_stopped_on_final(user_client):
+    with ExitStack() as es:
+        for p in _agent_patches():
+            es.enter_context(p)
+        es.enter_context(
+            patch("nx_lib.views.reporting.ask_agentic", return_value=_agentic_result())
+        )
+        es.enter_context(
+            patch(
+                "nx_lib.views.reporting._validate_definition_for_user",
+                return_value=(True, None),
+            )
+        )
+        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post("/api/reporting/ai/agent", json={"question": "easy question"})
+    data = resp.get_json()
+    assert data["stoppedReason"] == "final"
+    assert data["canContinue"] is False
+
+
+def test_ai_agent_continue_attempt_raises_turn_and_budget_caps(user_client):
+    from nx_lib.reporting.ai import CONTINUE_BUDGET_S, CONTINUE_MAX_TURNS
+
+    with ExitStack() as es:
+        for p in _agent_patches():
+            es.enter_context(p)
+        ask = es.enter_context(
+            patch(
+                "nx_lib.views.reporting.ask_agentic",
+                return_value=_stopped_result("budget"),
+            )
+        )
+        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post(
+            "/api/reporting/ai/agent",
+            json={"question": "hard question", "continueAttempt": 1},
+        )
+    data = resp.get_json()
+    assert data["continueAttempt"] == 1
+    ask.assert_called_once()
+    assert ask.call_args.kwargs["max_turns"] == CONTINUE_MAX_TURNS
+    assert ask.call_args.kwargs["budget_s"] == CONTINUE_BUDGET_S
+
+
+def test_ai_agent_continue_attempt_clamped_to_ceiling(user_client):
+    from nx_lib.reporting.ai import MAX_CONTINUE_ATTEMPTS
+
+    with ExitStack() as es:
+        for p in _agent_patches():
+            es.enter_context(p)
+        es.enter_context(
+            patch(
+                "nx_lib.views.reporting.ask_agentic",
+                return_value=_stopped_result("max_turns"),
+            )
+        )
+        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post(
+            "/api/reporting/ai/agent",
+            json={"question": "hard question", "continueAttempt": 999},
+        )
+    data = resp.get_json()
+    assert data["continueAttempt"] == MAX_CONTINUE_ATTEMPTS
+    assert data["canContinue"] is False  # already at the ceiling

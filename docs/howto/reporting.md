@@ -937,12 +937,23 @@ separately from this section because no model call is involved.
 ### Agent endpoint contract
 
 Route: `POST /api/reporting/ai/agent` — accepts
-`{"question": "...", "history": [...], "source": "<sourceId>|null", "stream": bool}`
+`{"question": "...", "history": [...], "source": "<sourceId>|null", "stream": bool, "continueAttempt": int}`
 and returns
-`{"answer", "definition", "sql", "toolTrace", "turns", "stoppedReason", "explainData"}`.
+`{"answer", "definition", "sql", "toolTrace", "turns", "stoppedReason", "explainData", "continueAttempt", "canContinue"}`.
 This runs a **Tier-2 agentic tool-loop** (`nx_lib/reporting/ai.py: ask_agentic`):
 the model calls tools, sees their results, and **self-repairs** until it has a
 validated artifact or hits a hard turn cap.
+
+**Continue past a dead-end (#153).** When the loop stops on `"max_turns"` or
+`"budget"` without a final answer, `canContinue` is `true` (while
+`continueAttempt < MAX_CONTINUE_ATTEMPTS`) and the chat panel renders a
+**Continue** chip. Clicking it re-sends the exact same question with
+`continueAttempt` incremented — not a mid-loop resume (the tool-call
+transcript isn't persisted), just a fresh run with the turn/budget caps
+doubled (`CONTINUE_MAX_TURNS` / `CONTINUE_BUDGET_S` in `nx_lib/reporting/ai.py`).
+`continueAttempt` is capped server-side at `MAX_CONTINUE_ATTEMPTS` (2) and
+clamped rather than rejected, so a stale/tampered client value can't grant
+more than the ceiling.
 
 **Live progress (`"stream": true`).** A loop turn can take a minute on a
 reasoning model, so the chat panel asks the server to narrate it. With the flag
