@@ -203,6 +203,17 @@ Work toward 2.5.65.
 
 ### Fixed
 
+- Shared logo partial (`templates/nexora_logo/_nexora_logo.html`) was a full
+  standalone HTML document (`<!DOCTYPE html><html><head>...`) `{% include %}`'d
+  as a fragment into `_header.html` (every logged-in page) plus the standalone
+  auth/hero pages (#140). Every logged-in page loaded Tailwind **twice**, at
+  two different major versions and from two different CDNs (`_header.html`'s
+  v4 `@tailwindcss/browser` plus the logo partial's own v3
+  `cdn.tailwindcss.com`), alongside invalid nested `<html>/<head>/<body>`
+  markup. The partial is now a plain fragment (just the logo `<a>` + its
+  scoped stylesheet link) — no DOCTYPE/html/head/body, no CDN script of its
+  own.
+
 - Admin: System Audit Logs search (`GET /api/admin/logs/search`) and the
   recent-activity feed 500'd whenever `dbo.Logs.Timestamp` came back as a
   `str` instead of a driver-native `datetime` (#134) — some rows are written
