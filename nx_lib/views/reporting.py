@@ -643,10 +643,11 @@ def _run_sql(target, sql, *, userid, username):
         cur.execute(wrapped)
         col_names = [d[0] for d in cur.description] if cur.description else []
         # Fetch-side cap, uniform on every path (D-CTE): a plain SELECT's TOP
-        # wrap already limits the driver's result set, but a WITH-rooted query
-        # is passed through unwrapped by wrap_with_cap() (WITH cannot appear
-        # inside a derived-table subquery) — this fetchmany(cap + 1) is the
-        # only row-count enforcement for that path.
+        # wrap already limits the driver's result set, but a WITH-rooted or
+        # top-level-ORDER-BY query is passed through unwrapped by
+        # wrap_with_cap() (neither construct is legal inside a derived-table
+        # subquery, see issue #129) — this fetchmany(cap + 1) is the only
+        # row-count enforcement for that path.
         rows, _truncated = fetch_capped(cur, SQL_ROW_CAP)
     except Exception:
         _audit_sql(
@@ -1673,8 +1674,36 @@ def api_ai_agent():
             "ok",
             duration_ms,
         )
+        # Issue #127: never ship an empty answer — the chat panel would render
+        # a blank bubble. The audit above keeps the raw (empty) answer; only
+        # the user-facing payload gets the fallback. The in-loop nudge
+        # (ask_agentic_iter) already retried once, so this is the last resort:
+        # point at whatever artifact the loop did produce, or admit defeat.
+        answer = (result.answer or "").strip()
+        if not answer:
+            if definition is not None and sql:
+                answer = _(
+                    "I couldn't write a summary this time, but I did produce a "
+                    "report draft and a validated SQL query — use the actions "
+                    "below to open them."
+                )
+            elif definition is not None:
+                answer = _(
+                    "I couldn't write a summary this time, but I did produce a "
+                    "report draft — use “Open in builder” below to run it."
+                )
+            elif sql:
+                answer = _(
+                    "I couldn't write a summary this time, but I did draft a SQL "
+                    "query — use the actions below to review it."
+                )
+            else:
+                answer = _(
+                    "I couldn't complete this request. Please try rephrasing the "
+                    "question or narrowing it down."
+                )
         return {
-            "answer": result.answer,
+            "answer": answer,
             "definition": definition,
             "sql": sql,
             "toolTrace": result.tool_trace,

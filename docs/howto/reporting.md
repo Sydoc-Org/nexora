@@ -1117,7 +1117,11 @@ not shown again on subsequent runs.
   login with no write permissions — `engine_statistics_ro` for Statistics,
   `engine_octo_ro` for Octopus. Each target requires the matching permission
   before its query runs.
-- **Row cap:** results are hard-limited to 50,000 rows.
+- **Row cap:** results are hard-limited to 50,000 rows. Plain `SELECT`s get a
+  SQL-side `SELECT TOP (n) * FROM (…) AS _q` wrap; `WITH`-rooted queries and
+  queries ending in a top-level `ORDER BY` run unwrapped (neither is legal
+  inside a derived table, #129) with the cap enforced fetch-side instead —
+  either way you never get more than the cap.
 - **Timeout:** a ~30-second statement timeout is enforced server-side.
 - **Audit:** every run (query text, user, row count, duration, status) is
   written to `dbo.ReportingSqlAudit` (NexoraDB).

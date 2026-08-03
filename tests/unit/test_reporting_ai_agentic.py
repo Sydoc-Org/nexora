@@ -78,6 +78,53 @@ def test_turn_cap_stops_runaway_loop():
     assert res.answer == ""
 
 
+# ---- Issue #127: a silent final turn (no tools, no text) must not surface
+# as an empty answer without a fight — the loop nudges the model exactly once
+# to write the answer it owes; a second silent turn ends the loop normally
+# (the view layer substitutes a user-facing fallback for the empty string).
+
+
+def test_empty_final_answer_gets_one_nudge_retry():
+    seen = []
+
+    def step(messages):
+        seen.append(list(messages))
+        if len(seen) == 1:
+            return AssistantTurn(text="")
+        return AssistantTurn(text="Here is the answer.")
+
+    res = ask_agentic("q", registry=ToolRegistry(), agent_step=step, max_turns=5)
+    assert res.answer == "Here is the answer."
+    assert res.turns == 2
+    assert res.stopped_reason == "final"
+    # the nudge rides in as a user message after the silent assistant turn
+    assert seen[1][-1]["role"] == "user"
+    assert "final answer" in seen[1][-1]["content"]
+
+
+def test_second_silent_turn_ends_final_without_second_nudge():
+    step = _script(AssistantTurn(text=""), AssistantTurn(text="   "))
+    res = ask_agentic("q", registry=ToolRegistry(), agent_step=step, max_turns=5)
+    assert res.turns == 2
+    assert res.stopped_reason == "final"
+    assert not res.answer.strip()
+
+
+def test_empty_final_at_turn_cap_returns_without_nudge():
+    step = _script(AssistantTurn(text=""))
+    res = ask_agentic("q", registry=ToolRegistry(), agent_step=step, max_turns=1)
+    assert res.turns == 1
+    assert res.stopped_reason == "final"
+    assert res.answer == ""
+
+
+def test_nonempty_final_answer_is_not_nudged():
+    step = _script(AssistantTurn(text="Direct answer."))
+    res = ask_agentic("q", registry=ToolRegistry(), agent_step=step, max_turns=5)
+    assert res.answer == "Direct answer."
+    assert res.turns == 1
+
+
 def test_iter_yields_progress_events_then_exactly_one_result():
     """ask_agentic_iter narrates the same loop ask_agentic drains silently."""
     step = _script(

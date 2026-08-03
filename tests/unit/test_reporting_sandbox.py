@@ -131,6 +131,67 @@ def test_wrap_with_cap_detects_with_after_leading_semicolon():
     assert re.search(r"FROM\s*\(\s*;?\s*WITH", out, re.IGNORECASE) is None
 
 
+# ---- Issue #129: top-level ORDER BY can't be wrapped as a derived table -----
+# `SELECT TOP (n) * FROM ( SELECT ... ORDER BY x ) AS _q` fails on SQL Server
+# (error 1033: ORDER BY invalid in derived tables without TOP/OFFSET/FOR XML),
+# yet validate_select() rightly accepts the statement — validate and run
+# disagreed. wrap_with_cap() must pass ORDER-BY-rooted queries through
+# unwrapped, same as the WITH path; fetch_capped() enforces the cap instead.
+
+
+def test_wrap_with_cap_passes_trailing_order_by_through_unwrapped():
+    sql = "SELECT Process, COUNT(*) AS cnt FROM dbo.T GROUP BY Process ORDER BY cnt DESC"
+    assert validate_select(sql) == sql
+    assert wrap_with_cap(sql, 100) == sql
+
+
+def test_wrap_with_cap_passes_union_trailing_order_by_through_unwrapped():
+    # sqlglot parks a set-operation's trailing ORDER BY on the rightmost
+    # branch, not the Union node — detection must look there.
+    sql = "SELECT a FROM t1 UNION ALL SELECT a FROM t2 ORDER BY a"
+    assert wrap_with_cap(sql, 100) == sql
+
+
+def test_wrap_with_cap_passes_parenthesized_order_by_through_unwrapped():
+    sql = "(SELECT a FROM t ORDER BY a)"
+    assert wrap_with_cap(sql, 10) == sql
+
+
+def test_wrap_with_cap_order_by_with_own_top_passes_unwrapped():
+    # Has its own TOP so the wrap used to be legal — but unwrapped is legal
+    # too and preserves the user's ordering in the visible result.
+    sql = "SELECT TOP 5 a FROM t ORDER BY a"
+    assert wrap_with_cap(sql, 10) == sql
+
+
+def test_wrap_with_cap_inner_order_by_still_wraps():
+    # ORDER BY confined to the user's own derived table (with TOP) is legal
+    # inside our wrapper — must still get the SQL-side cap.
+    sql = "SELECT * FROM (SELECT TOP 5 a FROM t ORDER BY a) AS s"
+    out = wrap_with_cap(sql, 25)
+    assert out.startswith("SELECT TOP (25) * FROM (")
+
+
+def test_wrap_with_cap_within_group_order_by_still_wraps():
+    # WITHIN GROUP (ORDER BY ...) is not a statement-level ORDER BY — the
+    # PERCENTILE_CONT shape from the eval must keep its SQL-side cap.
+    sql = (
+        "SELECT DISTINCT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY v) "
+        "OVER (PARTITION BY p) AS m FROM t"
+    )
+    out = wrap_with_cap(sql, 25)
+    assert out.startswith("SELECT TOP (25) * FROM (")
+
+
+def test_fetch_capped_flags_truncation_for_unwrapped_order_by_query():
+    sql = "SELECT a FROM t ORDER BY a"
+    assert wrap_with_cap(sql, 5) == sql
+    cur = _FakeCursor(rows=[[i] for i in range(9)])
+    rows, truncated = fetch_capped(cur, 5)
+    assert len(rows) == 5
+    assert truncated is True
+
+
 class _FakeCursor:
     """Duck-typed pyodbc-style cursor for exercising fetch_capped() DB-free."""
 

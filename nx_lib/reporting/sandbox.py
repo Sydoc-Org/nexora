@@ -2,8 +2,9 @@
 
 Pure and DB-free: validates that a user-supplied string is a single read-only
 SELECT (or WITH ... / set-operation) and wraps it with a row cap — plain SELECTs
-get a `SELECT TOP (n) * FROM (...) AS _q` wrap; WITH-rooted queries pass through
-unwrapped, since WITH cannot appear inside that derived-table subquery, and
+get a `SELECT TOP (n) * FROM (...) AS _q` wrap; WITH-rooted queries and queries
+with a top-level ORDER BY pass through unwrapped, since neither construct is
+legal inside that derived-table subquery (issue #129 for ORDER BY), and
 fetch_capped() enforces the cap fetch-side instead (D-CTE). fetch_capped() itself
 only calls .fetchmany() on whatever cursor-like object it is given, so it stays
 unit-testable without a real DB connection. The view layer runs the result on a
@@ -294,17 +295,46 @@ def validate_select(sql):
 _LEADING_WITH_RE = re.compile(r"^\s*;?\s*WITH\b", re.IGNORECASE)
 
 
+def _has_trailing_order_by(sql):
+    """True when the statement carries a top-level ORDER BY (issue #129).
+
+    Such a query is legal standalone but illegal inside the derived-table
+    wrap (SQL Server error 1033), so wrap_with_cap() must pass it through
+    unwrapped. Detection is AST-based: a WITHIN GROUP or window ORDER BY,
+    or one confined to the user's own TOP-capped derived table, does not
+    set the statement-level `order` arg and keeps the wrap. sqlglot parks a
+    set-operation's trailing ORDER BY on the rightmost branch, so recurse
+    there. Runs on already-validated SQL; an unparseable statement falls
+    back to wrapping (the pre-#129 behavior).
+    """
+    try:
+        node = sqlglot.parse_one(sql, dialect="tsql")
+    except Exception:
+        return False
+    while isinstance(node, exp.Subquery):
+        node = node.this
+    while isinstance(node, exp.SetOperation):
+        if node.args.get("order") is not None:
+            return True
+        node = node.expression
+        while isinstance(node, exp.Subquery):
+            node = node.this
+    return node is not None and node.args.get("order") is not None
+
+
 def wrap_with_cap(sql, cap):
     """Wrap a validated query as a capped derived table. `cap` is server-supplied.
 
     A CTE-rooted query (`WITH ... SELECT ...`) is returned unwrapped: WITH
     cannot legally appear inside a derived-table subquery, so wrapping it as
-    `SELECT TOP (n) * FROM ( WITH ... ) AS _q` is invalid T-SQL. The caller
-    must cap such queries fetch-side instead, via fetch_capped() below,
-    applied the same way on every path (wrapped or not).
+    `SELECT TOP (n) * FROM ( WITH ... ) AS _q` is invalid T-SQL. The same
+    applies to a query with a top-level ORDER BY — legal standalone, error
+    1033 inside the wrap (issue #129). The caller must cap such queries
+    fetch-side instead, via fetch_capped() below, applied the same way on
+    every path (wrapped or not).
     """
     cap = int(cap)
-    if _LEADING_WITH_RE.match(_strip_comments(sql)):
+    if _LEADING_WITH_RE.match(_strip_comments(sql)) or _has_trailing_order_by(sql):
         return sql
     return f"SELECT TOP ({cap}) * FROM (\n{sql}\n) AS _q"
 
@@ -314,10 +344,10 @@ def fetch_capped(cursor, cap):
 
     Uniform fetch-side cap enforcement for every wrap_with_cap() output
     (D-CTE): a plain SELECT's TOP-wrapped result set is already <= cap rows,
-    so this just drains it; a WITH-rooted query is passed through unwrapped
-    and has no SQL-side cap at all, so this fetch is the only enforcement for
-    that path. Requests cap + 1 rows so getting a full extra row means "there
-    was more" without a second COUNT query.
+    so this just drains it; a WITH-rooted or top-level-ORDER-BY query is
+    passed through unwrapped and has no SQL-side cap at all, so this fetch is
+    the only enforcement for that path. Requests cap + 1 rows so getting a
+    full extra row means "there was more" without a second COUNT query.
     """
     cap = int(cap)
     fetched = cursor.fetchmany(cap + 1)
