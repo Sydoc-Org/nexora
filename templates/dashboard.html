@@ -26,7 +26,7 @@
             <h1 class="nx-title">{{ _("Dashboard") }}</h1>
             <p class="nx-subtitle">{{ _("Here's a real-time overview of your document processing activity.") }}</p>
             {% if login_at %}
-            <p class="nx-meta" data-testid="dashboard-signin-note">{{ _("Signed in as %(name)s — %(when)s", name=fullname, when=login_at|datetimeformat('short')) }}</p>
+            <p class="nx-subtitle [font-size:12px]! [opacity:0.75]!" data-testid="dashboard-signin-note">{{ _("Signed in as %(name)s — %(when)s", name=fullname, when=login_at|datetimeformat('short')) }}</p>
             {% endif %}
           </div>
         </div>
