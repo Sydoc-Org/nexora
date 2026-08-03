@@ -531,6 +531,15 @@ def test_reset_password_get_twice_then_write_consumes_token(client):
 
     email = "admin@test.local"
     token = s.dumps(email, salt="password-reset-salt")
+    # itsdangerous timestamps have 1-second granularity: two of these tests
+    # minting a token for the same email within the same second get the SAME
+    # token string, so a predecessor's successful write leaves it marked
+    # consumed in the shared cache. Clear that marker so each test starts
+    # with a fresh capability.
+    from nx_lib.extensions import cache
+    from nx_lib.views.auth import _reset_token_cache_key
+
+    cache.delete(_reset_token_cache_key(token))
 
     # Capture the real seeded password hash so it can be restored -- other
     # fixtures (login/user_client/admin_client) log in as this user with
@@ -620,6 +629,15 @@ def test_set_new_password_mismatch_then_retry_with_same_token_succeeds(client):
 
     email = "admin@test.local"
     token = s.dumps(email, salt="password-reset-salt")
+    # itsdangerous timestamps have 1-second granularity: two of these tests
+    # minting a token for the same email within the same second get the SAME
+    # token string, so a predecessor's successful write leaves it marked
+    # consumed in the shared cache. Clear that marker so each test starts
+    # with a fresh capability.
+    from nx_lib.extensions import cache
+    from nx_lib.views.auth import _reset_token_cache_key
+
+    cache.delete(_reset_token_cache_key(token))
 
     conn = engine_nexora_db.raw_connection()
     cursor = conn.cursor()
@@ -697,6 +715,15 @@ def test_set_new_password_cross_session_replay_rejected_after_first_write(client
 
     email = "admin@test.local"
     token = s.dumps(email, salt="password-reset-salt")
+    # itsdangerous timestamps have 1-second granularity: two of these tests
+    # minting a token for the same email within the same second get the SAME
+    # token string, so a predecessor's successful write leaves it marked
+    # consumed in the shared cache. Clear that marker so each test starts
+    # with a fresh capability.
+    from nx_lib.extensions import cache
+    from nx_lib.views.auth import _reset_token_cache_key
+
+    cache.delete(_reset_token_cache_key(token))
 
     conn = engine_nexora_db.raw_connection()
     cursor = conn.cursor()
