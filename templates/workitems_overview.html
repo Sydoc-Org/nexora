@@ -174,20 +174,17 @@
               <div class="flex items-center gap-4">
                 <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{{ _("Document Value Search") }}</label>
               </div>
-              {# Query-builder rows: a fixed left rail carries the boolean logic
-                 (empty on row 1, AND/OR on added rows), then field|op|value fuse
-                 into ONE segmented control, then a fixed slot for the row's x --
-                 identical tracks on every row so the columns always align. #}
+              {# Query-builder rows: every row is a full-width segmented control
+                 (field|op|value[|x] with collapsed inner borders); the AND/OR
+                 combinator lives on a connector line BETWEEN rows, so rows all
+                 span edge to edge like the first one. #}
               <div id="docFiltersContainer" class="flex flex-col gap-2">
-                <div class="doc-filter-row flex flex-wrap md:flex-nowrap items-center gap-2">
+                <div class="doc-filter-row flex flex-col gap-2">
                   {# Row 1 has no visible combinator; the hidden 'and' keeps the
                      doccomb list index-aligned with docfield/docop/docvalue. #}
                   <input type="text" name="doccomb" value="and" class="hidden doc-filter-comb-fixed"
                     {% if docFieldsValues_perm==False %} disabled {% endif %} readonly tabindex="-1" />
-                  {# rail + x spacers only reserve space once a 2nd row exists
-                     (JS toggles them); a lone row sits flush left. #}
-                  <div class="doc-rail-spacer hidden w-20 shrink-0" aria-hidden="true"></div>
-                  <div class="flex flex-1 min-w-0 items-stretch">
+                  <div class="flex w-full items-stretch">
                     <div class="relative doc-field-combobox flex-[1.1] min-w-0 focus-within:z-10">
                       <input type="text" autocomplete="off" id="docFieldSearch"
                         {% if docFieldsValues_perm==False %} disabled {% endif %}
@@ -224,23 +221,25 @@
                       </div>
                     </div>
                   </div>
-                  <div class="doc-x-spacer hidden w-8 shrink-0" aria-hidden="true"></div>
                 </div>
               </div>
 
               <template id="docFilterRowTemplate">
-                <div class="doc-filter-row flex flex-wrap md:flex-nowrap items-center gap-2">
-                  <div class="relative w-20 shrink-0">
-                    <select name="doccomb"
-                      class="nx-select h-11 appearance-none pr-7 text-xs font-semibold tracking-wide text-gray-500 doc-filter-comb" data-testid="workitems-doc-comb">
-                      <option value="and" selected>{{ _('AND') }}</option>
-                      <option value="or">{{ _('OR') }}</option>
-                    </select>
-                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-gray-400">
-                      <i class="fa-solid fa-chevron-down text-xs"></i>
+                <div class="doc-filter-row flex flex-col gap-2">
+                  <div class="flex items-center gap-3">
+                    <div class="relative shrink-0">
+                      <select name="doccomb"
+                        class="nx-select h-8 w-[4.75rem] appearance-none pl-3 pr-7 py-0! text-xs font-semibold tracking-wide text-gray-500 rounded-full! doc-filter-comb" data-testid="workitems-doc-comb">
+                        <option value="and" selected>{{ _('AND') }}</option>
+                        <option value="or">{{ _('OR') }}</option>
+                      </select>
+                      <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-gray-400">
+                        <i class="fa-solid fa-chevron-down text-xs"></i>
+                      </div>
                     </div>
+                    <div class="h-px flex-1 bg-gray-200" aria-hidden="true"></div>
                   </div>
-                  <div class="flex flex-1 min-w-0 items-stretch">
+                  <div class="flex w-full items-stretch">
                     <div class="relative doc-field-combobox flex-[1.1] min-w-0 focus-within:z-10">
                       <input type="text" autocomplete="off"
                         class="{{ input_base }} pr-9 rounded-r-none! doc-filter-field-search"
@@ -267,14 +266,13 @@
                     </div>
                     <div class="relative flex-[1.4] min-w-0 -ml-px focus-within:z-10">
                       <input type="text" name="docvalue" autocomplete="off"
-                        class="{{ input_base }} px-3.5 rounded-l-none! doc-filter-value" placeholder="{{ _('Type to search…') }}" />
+                        class="{{ input_base }} px-3.5 rounded-none! doc-filter-value" placeholder="{{ _('Type to search…') }}" />
                       <div
                         class="hidden absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto doc-filter-list">
                       </div>
                     </div>
-                  </div>
-                  <div class="w-8 shrink-0 flex items-center justify-center">
-                    <button type="button" class="h-8 w-8 flex items-center justify-center rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors remove-doc-filter" data-testid="workitems-remove-doc-filter">
+                    <button type="button"
+                      class="h-11 w-11 shrink-0 -ml-px flex items-center justify-center border border-gray-300 rounded-r-lg bg-white text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors remove-doc-filter" data-testid="workitems-remove-doc-filter">
                       <i class="fas fa-times"></i>
                     </button>
                   </div>
