@@ -90,7 +90,7 @@ def test_enforce_active_session_skips_when_no_sid(app):
 
 def test_enforce_active_session_passes_when_row_present(app):
     fake_cursor = MagicMock()
-    fake_cursor.fetchone.return_value = (1,)
+    fake_cursor.rowcount = 1
     fake_conn = MagicMock()
     fake_conn.cursor.return_value = fake_cursor
 
@@ -106,7 +106,7 @@ def test_enforce_active_session_passes_when_row_present(app):
 
 def test_enforce_active_session_clears_and_redirects_html(app):
     fake_cursor = MagicMock()
-    fake_cursor.fetchone.return_value = None  # row missing → revoked
+    fake_cursor.rowcount = 0  # row missing → revoked
     fake_conn = MagicMock()
     fake_conn.cursor.return_value = fake_cursor
 
@@ -122,7 +122,7 @@ def test_enforce_active_session_clears_and_redirects_html(app):
 
 def test_enforce_active_session_returns_json_for_api(app):
     fake_cursor = MagicMock()
-    fake_cursor.fetchone.return_value = None
+    fake_cursor.rowcount = 0
     fake_conn = MagicMock()
     fake_conn.cursor.return_value = fake_cursor
 

@@ -323,6 +323,7 @@
             const input = document.getElementById('switchUserInput');
             const list = document.getElementById('switchUserList');
             if (!btn || !overlay || !input || !list) return;
+            const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
 
             let usernames = [];
 
@@ -343,7 +344,7 @@
                     li.setAttribute('role', 'option');
                     li.textContent = u;
                     li.addEventListener('click', () => {
-                        window.location.href = '/dev/login/' + encodeURIComponent(u);
+                        window.location.href = API_PREFIX + 'dev/login/' + encodeURIComponent(u);
                     });
                     list.appendChild(li);
                 });
@@ -354,7 +355,7 @@
                 input.value = '';
                 setTimeout(() => input.focus(), 10);
                 if (!usernames.length) {
-                    const r = await fetch('/dev/users', { credentials: 'same-origin' });
+                    const r = await fetch(API_PREFIX + 'dev/users', { credentials: 'same-origin' });
                     usernames = r.ok ? await r.json() : [];
                 }
                 render('');

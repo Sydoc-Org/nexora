@@ -278,7 +278,7 @@ msgstr "Accesso temporaneamente non disponibile"
 
 #: nx_lib/views/auth.py:698
 msgid "Password set. You can now sign in."
-msgstr ""
+msgstr "Password impostata. Ora puoi accedere."
 
 #: nx_lib/views/auth.py:700
 msgid "Password changed"

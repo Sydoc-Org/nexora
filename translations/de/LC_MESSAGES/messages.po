@@ -280,7 +280,7 @@ msgstr "Anmeldung vorübergehend nicht verfügbar"
 
 #: nx_lib/views/auth.py:698
 msgid "Password set. You can now sign in."
-msgstr ""
+msgstr "Passwort festgelegt. Sie können sich jetzt anmelden."
 
 #: nx_lib/views/auth.py:700
 msgid "Password changed"
