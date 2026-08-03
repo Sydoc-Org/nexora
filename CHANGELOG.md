@@ -10,14 +10,6 @@ Work toward 2.5.65.
 
 ### Added
 
-- Workitems: a **Smart search** hero box above the filters (#148 follow-up) —
-  one input, value-first: every Enter (or picked labeled suggestion) becomes a
-  removable chip, chips AND-intersect server-side, and each field-less chip
-  matches its value across all permitted document fields. Picking a suggestion
-  locks the chip to its field ("Archive-box No.: 040"). Backspace on the empty
-  input pops the last chip; the × clears all. Pure frontend — chips ride the
-  existing repeated `(docfield, docvalue)` pair mechanics of `/api/workitems`.
-
 - Workitems: **Stage filter** in the top filter row (#147), between Workitem
   and Status, gated on the new `workitems.filter.stage` permission (migration
   `0048`, seeded to holders of `workitems.filter.status`). Filters on the
@@ -108,14 +100,6 @@ Work toward 2.5.65.
   result toolbar.
 
 ### Added
-
-- Workitems: a **Smart search** hero box above the filters (#148 follow-up) —
-  one input, value-first: every Enter (or picked labeled suggestion) becomes a
-  removable chip, chips AND-intersect server-side, and each field-less chip
-  matches its value across all permitted document fields. Picking a suggestion
-  locks the chip to its field ("Archive-box No.: 040"). Backspace on the empty
-  input pops the last chip; the × clears all. Pure frontend — chips ride the
-  existing repeated `(docfield, docvalue)` pair mechanics of `/api/workitems`.
 
 ### Changed
 
