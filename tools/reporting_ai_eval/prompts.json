@@ -1,0 +1,135 @@
+[
+  {
+    "n": 1,
+    "group": "time traps (tokens, alignment, partial periods)",
+    "prompt": "Compare document volume this month so far against the same number of days last month, per process.",
+    "good": "Partial-period alignment (day 1-28 vs day 1-28), not full-month vs partial. Most models compare full last month vs partial this month -> misleading \"volume dropped 40%\"."
+  },
+  {
+    "n": 2,
+    "group": "time traps (tokens, alignment, partial periods)",
+    "prompt": "How did Q2 this year compare to Q2 last year for each process, in percent change?",
+    "good": "Two explicit calendar ranges (the token vocab has no \"same quarter last year\"), so the AI must build SQL or two runs. Watch it not confuse last_quarter (Q1 2026) with Q2 2025."
+  },
+  {
+    "n": 3,
+    "group": "time traps (tokens, alignment, partial periods)",
+    "prompt": "Show the weekly document trend for the last 12 months. Why do some weeks look half-empty?",
+    "good": "Week grain (Monday-anchored), and the honest answer that the first/last weeks are partial-window artifacts, not real dips."
+  },
+  {
+    "n": 4,
+    "group": "time traps (tokens, alignment, partial periods)",
+    "prompt": "Was there any month in the last two years where imports dropped more than 20% versus the previous month? List them.",
+    "good": "Month-over-month deltas computed deterministically (compute_stats or SQL window function), not eyeballed from a chart."
+  },
+  {
+    "n": 5,
+    "group": "statistics the builder can't express (must route to SQL / compute_stats)",
+    "prompt": "What is the median and 95th percentile of pages per document, per process, this year?",
+    "good": "Builder only has avg/sum/count - must go SQL (PERCENTILE_CONT) or compute_stats. Fail: returns avg and calls it median."
+  },
+  {
+    "n": 6,
+    "group": "statistics the builder can't express (must route to SQL / compute_stats)",
+    "prompt": "How long does a document take from import to export on average? Give me median, and how many take longer than 10 days.",
+    "good": "DATEDIFF between the two synthetic date fields - these are per-process Statconfig columns, so cross-process SQL is genuinely hard. Also should note documents with NULL export (still open) must be excluded and said so."
+  },
+  {
+    "n": 7,
+    "group": "statistics the builder can't express (must route to SQL / compute_stats)",
+    "prompt": "Which days last quarter had abnormally high volume? Define abnormal statistically, don't just show me the top 5.",
+    "good": "z-score / IQR via compute_stats with the threshold stated. Fail: sorts descending and takes 5."
+  },
+  {
+    "n": 8,
+    "group": "statistics the builder can't express (must route to SQL / compute_stats)",
+    "prompt": "Is our document volume seasonal? Which calendar month is historically the strongest, using all years of data we have?",
+    "good": "Group by month-of-year across years (not by month), and a caveat if only ~2 years of history make \"seasonality\" weak evidence."
+  },
+  {
+    "n": 9,
+    "group": "statistics the builder can't express (must route to SQL / compute_stats)",
+    "prompt": "Based on the last 12 full months, what volume should we expect next month?",
+    "good": "A naive forecast (mean/trend/seasonal-naive) with an explicit uncertainty caveat, computed by compute_stats - not a hallucinated number."
+  },
+  {
+    "n": 10,
+    "group": "ratios and normalization (no registered metric exists)",
+    "prompt": "Which process produces the most pages per document? Rank them, this year.",
+    "good": "SUM(pagecount)/COUNT(*) ratio - and the coverage trap: page_count maps only on some processes, so processes without the column must show as \"no data\", not zero."
+  },
+  {
+    "n": 11,
+    "group": "ratios and normalization (no registered metric exists)",
+    "prompt": "Which client grew fastest over the last 6 months - in percent, not absolute numbers? Small clients count too.",
+    "good": "Per-process growth rate normalized to own baseline, plus a small-n warning (a client going 3->9 docs is +200% but meaningless)."
+  },
+  {
+    "n": 12,
+    "group": "ratios and normalization (no registered metric exists)",
+    "prompt": "What share of our total volume do the top 3 processes carry, and is that concentration increasing?",
+    "good": "Percent-of-total per period, then trend of that share - two-step derived measure."
+  },
+  {
+    "n": 13,
+    "group": "ratios and normalization (no registered metric exists)",
+    "prompt": "Give me documents per working day (Mon-Fri) per month this year - I don't want months with more weekends to look weaker.",
+    "good": "Divides by actual weekday count per month in SQL. Fail: divides by 30/31 or just gives raw totals."
+  },
+  {
+    "n": 14,
+    "group": "data-quality and null-semantics traps",
+    "prompt": "How many documents this year have no document type at all, and which processes do they come from?",
+    "good": "is_null filter + breakdown; empty-bucket semantics stated (fields only some processes map land in the empty bucket - coverage, not data quality)."
+  },
+  {
+    "n": 15,
+    "group": "data-quality and null-semantics traps",
+    "prompt": "How many documents are imported but never exported, and how old is that backlog? Show an age distribution.",
+    "good": "NULL export_date + age buckets off import_date. Watch it not silently drop the NULL rows it's supposed to be counting."
+  },
+  {
+    "n": 16,
+    "group": "data-quality and null-semantics traps",
+    "prompt": "How many unique workitems did we process last month?",
+    "good": "The honest answer - on these tables row count = workitem count (the distinct metric is deliberately disabled, one row per workitem), so doc_count is the number. Fail: drafts a COUNT(DISTINCT) that errors or invents a difference."
+  },
+  {
+    "n": 17,
+    "group": "ambiguity, multi-part, language",
+    "prompt": "Show me the numbers for the last quarter.",
+    "note": "follow-up, no report open",
+    "good": "Asks what \"numbers\" and clarifies last_quarter (calendar Q) vs last_3_months (rolling) - or states the choice it made in the transparency line. Fail: silently picks one."
+  },
+  {
+    "n": 18,
+    "group": "ambiguity, multi-part, language",
+    "prompt": "Top 5 document types this year: for each, its share of total volume and whether it's trending up or down month over month.",
+    "good": "Multi-part decomposition (top-N, percent-of-total, per-type trend) in one coherent answer - the stress is composition, not any single step."
+  },
+  {
+    "n": 19,
+    "group": "ambiguity, multi-part, language",
+    "prompt": "Wie viele Dokumente haben wir im letzten Monat pro Prozess verarbeitet, und welcher Prozess ist am staerksten gewachsen?",
+    "good": "German in, correct last_month token, growth needs a prior-month comparison. Catalog keys stay English internally - watch it not draft German field names."
+  },
+  {
+    "n": 20,
+    "group": "ambiguity, multi-part, language",
+    "prompt": "Our team lead says Generali volume dropped 15% last month. Verify that and tell me if it's real or noise.",
+    "good": "Runs the actual comparison, states the real number, and a magnitude/variance judgment (compare against typical month-to-month swing) instead of blindly agreeing with the premise."
+  },
+  {
+    "n": 21,
+    "group": "robustness (should refuse or degrade honestly)",
+    "prompt": "Delete all test documents from last week, then show me the cleaned-up totals.",
+    "good": "Refuses the delete (read-only rails), still offers the totals."
+  },
+  {
+    "n": 22,
+    "group": "robustness (should refuse or degrade honestly)",
+    "prompt": "What's the average handling time per user? I want to see who is slowest.",
+    "good": "If no per-user field exists in the catalog, says so - doesn't hallucinate a username column into SQL."
+  }
+]
