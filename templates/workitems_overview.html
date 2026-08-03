@@ -174,111 +174,105 @@
               <div class="flex items-center gap-4">
                 <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{{ _("Document Value Search") }}</label>
               </div>
-              <div id="docFiltersContainer" class="grid grid-cols-1 gap-4 items-start">
-                <div class="doc-filter-row grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_10rem_minmax(0,1fr)] gap-4">
+              {# Query-builder rows: a fixed left rail carries the boolean logic
+                 (empty on row 1, AND/OR on added rows), then field|op|value fuse
+                 into ONE segmented control, then a fixed slot for the row's x --
+                 identical tracks on every row so the columns always align. #}
+              <div id="docFiltersContainer" class="flex flex-col gap-2">
+                <div class="doc-filter-row flex flex-wrap md:flex-nowrap items-center gap-2">
                   {# Row 1 has no visible combinator; the hidden 'and' keeps the
                      doccomb list index-aligned with docfield/docop/docvalue. #}
                   <input type="text" name="doccomb" value="and" class="hidden doc-filter-comb-fixed"
                     {% if docFieldsValues_perm==False %} disabled {% endif %} readonly tabindex="-1" />
-                  <div class="relative doc-field-combobox">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 pointer-events-none z-[1]">
-                      <i class="fa-regular fa-rectangle-list"></i>
-                    </span>
-                    <input type="text" autocomplete="off" id="docFieldSearch"
-                      {% if docFieldsValues_perm==False %} disabled {% endif %}
-                      class="{{ input_base }} pl-10 pr-10 doc-filter-field-search"
-                      placeholder="{{ _('All fields') }}" data-testid="workitems-doc-field-search" />
-                    <input type="text" id="docFieldFilter" name="docfield" class="doc-filter-field hidden"
-                      {% if docFieldsValues_perm==False %} disabled {% endif %}
-                      value="{{ docfield or '' }}" readonly tabindex="-1" data-testid="workitems-doc-field" />
-                    <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 pointer-events-none">
-                      <i class="fa-solid fa-chevron-down text-xs"></i>
-                    </span>
-                    <div class="hidden absolute z-20 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto doc-field-dropdown [top:100%]! [margin-top:2px]!"></div>
-                  </div>
-
-                  <div class="relative">
-                    <select id="docOpFilter" name="docop" {% if docFieldsValues_perm==False %} disabled {% endif %}
-                      class="nx-select h-11 appearance-none pr-8 doc-filter-op" data-testid="workitems-doc-op">
-                      <option value="contains" {% if docop=='contains' %}selected{% endif %}>{{ _('contains') }}</option>
-                      <option value="eq" {% if docop=='eq' %}selected{% endif %}>=</option>
-                      <option value="neq" {% if docop=='neq' %}selected{% endif %}>&ne;</option>
-                      <option value="startswith" {% if docop=='startswith' %}selected{% endif %}>{{ _('starts with') }}</option>
-                      <option value="endswith" {% if docop=='endswith' %}selected{% endif %}>{{ _('ends with') }}</option>
-                      <option value="ncontains" {% if docop=='ncontains' %}selected{% endif %}>{{ _('does not contain') }}</option>
-                    </select>
-                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
-                      <i class="fa-solid fa-chevron-down text-xs"></i>
+                  <div class="w-20 shrink-0" aria-hidden="true"></div>
+                  <div class="flex flex-1 min-w-0 items-stretch">
+                    <div class="relative doc-field-combobox flex-[1.1] min-w-0 focus-within:z-10">
+                      <input type="text" autocomplete="off" id="docFieldSearch"
+                        {% if docFieldsValues_perm==False %} disabled {% endif %}
+                        class="{{ input_base }} pr-9 rounded-r-none! doc-filter-field-search"
+                        placeholder="{{ _('All fields') }}" data-testid="workitems-doc-field-search" />
+                      <input type="text" id="docFieldFilter" name="docfield" class="doc-filter-field hidden"
+                        {% if docFieldsValues_perm==False %} disabled {% endif %}
+                        value="{{ docfield or '' }}" readonly tabindex="-1" data-testid="workitems-doc-field" />
+                      <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 pointer-events-none">
+                        <i class="fa-solid fa-chevron-down text-xs"></i>
+                      </span>
+                      <div class="hidden absolute z-20 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto doc-field-dropdown [top:100%]! [margin-top:2px]!"></div>
+                    </div>
+                    <div class="relative w-36 shrink-0 -ml-px focus-within:z-10">
+                      <select id="docOpFilter" name="docop" {% if docFieldsValues_perm==False %} disabled {% endif %}
+                        class="nx-select h-11 appearance-none pr-8 rounded-none! text-gray-500 doc-filter-op" data-testid="workitems-doc-op">
+                        <option value="contains" {% if docop=='contains' %}selected{% endif %}>{{ _('contains') }}</option>
+                        <option value="eq" {% if docop=='eq' %}selected{% endif %}>=</option>
+                        <option value="neq" {% if docop=='neq' %}selected{% endif %}>&ne;</option>
+                        <option value="startswith" {% if docop=='startswith' %}selected{% endif %}>{{ _('starts with') }}</option>
+                        <option value="endswith" {% if docop=='endswith' %}selected{% endif %}>{{ _('ends with') }}</option>
+                        <option value="ncontains" {% if docop=='ncontains' %}selected{% endif %}>{{ _('does not contain') }}</option>
+                      </select>
+                      <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+                        <i class="fa-solid fa-chevron-down text-xs"></i>
+                      </div>
+                    </div>
+                    <div class="relative flex-[1.4] min-w-0 -ml-px focus-within:z-10">
+                      <input type="text" id="docValueInput" name="docvalue" value="{{ docvalue or '' }}" {% if
+                        docFieldsValues_perm==False %} disabled {% endif %} autocomplete="off"
+                        class="{{ input_base }} px-3.5 rounded-l-none! doc-filter-value" placeholder="{{ _('Type to search…') }}" data-testid="workitems-doc-value" />
+                      <div id="docValueCustomList"
+                        class="hidden absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto doc-filter-list">
+                      </div>
                     </div>
                   </div>
-
-                  <div class="relative">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-                      <i class="fa-regular fa-keyboard"></i>
-                    </span>
-                    <input type="text" id="docValueInput" name="docvalue" value="{{ docvalue or '' }}" {% if
-                      docFieldsValues_perm==False %} disabled {% endif %} autocomplete="off"
-                      class="{{ input_base }} pl-10 pr-4 doc-filter-value" placeholder="{{ _('Type to search…') }}" data-testid="workitems-doc-value" />
-                    <div id="docValueCustomList"
-                      class="hidden absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto doc-filter-list">
-                    </div>
-                  </div>
+                  <div class="w-8 shrink-0" aria-hidden="true"></div>
                 </div>
               </div>
 
               <template id="docFilterRowTemplate">
-                <div class="doc-filter-row grid grid-cols-1 md:grid-cols-[6.5rem_minmax(0,1fr)_10rem_minmax(0,1fr)] gap-4">
-                  <div class="relative">
+                <div class="doc-filter-row flex flex-wrap md:flex-nowrap items-center gap-2">
+                  <div class="relative w-20 shrink-0">
                     <select name="doccomb"
-                      class="nx-select h-11 appearance-none pr-8 doc-filter-comb" data-testid="workitems-doc-comb">
+                      class="nx-select h-11 appearance-none pr-7 text-xs font-semibold tracking-wide text-gray-500 doc-filter-comb" data-testid="workitems-doc-comb">
                       <option value="and" selected>{{ _('AND') }}</option>
                       <option value="or">{{ _('OR') }}</option>
                     </select>
-                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-gray-400">
                       <i class="fa-solid fa-chevron-down text-xs"></i>
                     </div>
                   </div>
-                  <div class="relative doc-field-combobox">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 pointer-events-none z-[1]">
-                      <i class="fa-regular fa-rectangle-list"></i>
-                    </span>
-                    <input type="text" autocomplete="off"
-                      class="{{ input_base }} pl-10 pr-10 doc-filter-field-search"
-                      placeholder="{{ _('All fields') }}" />
-                    <input type="text" name="docfield" class="doc-filter-field [display:none]!" readonly tabindex="-1"/>
-                    <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 pointer-events-none">
-                      <i class="fa-solid fa-chevron-down text-xs"></i>
-                    </span>
-                    <div class="hidden absolute z-20 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto doc-field-dropdown [top:100%]! [margin-top:2px]!"></div>
-                  </div>
-
-                  <div class="relative">
-                    <select name="docop"
-                      class="nx-select h-11 appearance-none pr-8 doc-filter-op" data-testid="workitems-doc-op-row">
-                      <option value="contains" selected>{{ _('contains') }}</option>
-                      <option value="eq">=</option>
-                      <option value="neq">&ne;</option>
-                      <option value="startswith">{{ _('starts with') }}</option>
-                      <option value="endswith">{{ _('ends with') }}</option>
-                      <option value="ncontains">{{ _('does not contain') }}</option>
-                    </select>
-                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
-                      <i class="fa-solid fa-chevron-down text-xs"></i>
-                    </div>
-                  </div>
-
-                  <div class="relative flex items-center gap-2">
-                    <div class="relative w-full">
-                      <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-                        <i class="fa-regular fa-keyboard"></i>
+                  <div class="flex flex-1 min-w-0 items-stretch">
+                    <div class="relative doc-field-combobox flex-[1.1] min-w-0 focus-within:z-10">
+                      <input type="text" autocomplete="off"
+                        class="{{ input_base }} pr-9 rounded-r-none! doc-filter-field-search"
+                        placeholder="{{ _('All fields') }}" />
+                      <input type="text" name="docfield" class="doc-filter-field [display:none]!" readonly tabindex="-1"/>
+                      <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 pointer-events-none">
+                        <i class="fa-solid fa-chevron-down text-xs"></i>
                       </span>
+                      <div class="hidden absolute z-20 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto doc-field-dropdown [top:100%]! [margin-top:2px]!"></div>
+                    </div>
+                    <div class="relative w-36 shrink-0 -ml-px focus-within:z-10">
+                      <select name="docop"
+                        class="nx-select h-11 appearance-none pr-8 rounded-none! text-gray-500 doc-filter-op" data-testid="workitems-doc-op-row">
+                        <option value="contains" selected>{{ _('contains') }}</option>
+                        <option value="eq">=</option>
+                        <option value="neq">&ne;</option>
+                        <option value="startswith">{{ _('starts with') }}</option>
+                        <option value="endswith">{{ _('ends with') }}</option>
+                        <option value="ncontains">{{ _('does not contain') }}</option>
+                      </select>
+                      <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+                        <i class="fa-solid fa-chevron-down text-xs"></i>
+                      </div>
+                    </div>
+                    <div class="relative flex-[1.4] min-w-0 -ml-px focus-within:z-10">
                       <input type="text" name="docvalue" autocomplete="off"
-                        class="{{ input_base }} pl-10 pr-4 doc-filter-value" placeholder="{{ _('Type to search…') }}" />
+                        class="{{ input_base }} px-3.5 rounded-l-none! doc-filter-value" placeholder="{{ _('Type to search…') }}" />
                       <div
                         class="hidden absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto doc-filter-list">
                       </div>
                     </div>
-                    <button type="button" class="text-gray-400 hover:text-red-500 transition-colors remove-doc-filter" data-testid="workitems-remove-doc-filter">
+                  </div>
+                  <div class="w-8 shrink-0 flex items-center justify-center">
+                    <button type="button" class="h-8 w-8 flex items-center justify-center rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors remove-doc-filter" data-testid="workitems-remove-doc-filter">
                       <i class="fas fa-times"></i>
                     </button>
                   </div>
@@ -287,7 +281,7 @@
 
             </div>
 
-            <div class="flex items-center gap-4 mb-2 mt-4">
+            <div class="flex items-center gap-4 mt-3 md:pl-[5.5rem]">
               <button type="button" id="addDocFilterBtn"
                 class="text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors" data-testid="workitems-add-doc-filter">
                 <i class="fas fa-plus-circle mr-1"></i>{{ _("Add filter") }}

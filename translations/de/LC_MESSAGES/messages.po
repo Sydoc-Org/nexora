@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-03 12:26+0200\n"
+"POT-Creation-Date: 2026-08-03 13:31+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -1377,7 +1377,7 @@ msgstr "Anwenden"
 #: templates/generali_importstatus.html:74 templates/generali_pdqm.html:131
 #: templates/generali_projectmanagement.html:99
 #: templates/generali_reporting.html:134 templates/invoices.html:96
-#: templates/workitems_overview.html:305
+#: templates/workitems_overview.html:299
 msgid "Reset"
 msgstr "Zurücksetzen"
 
@@ -1427,7 +1427,7 @@ msgstr "Erwartet"
 msgid "Kommunikation"
 msgstr "Kommunikation"
 
-#: templates/generali-dashboard.html:155 templates/workitems_overview.html:353
+#: templates/generali-dashboard.html:155 templates/workitems_overview.html:347
 msgid "Select all"
 msgstr "Alle auswählen"
 
@@ -1644,7 +1644,7 @@ msgstr "Aktionen"
 #: templates/generali_documents.html:277
 #: templates/generali_importstatus.html:126 templates/generali_pdqm.html:185
 #: templates/generali_projectmanagement.html:148
-#: templates/generali_reporting.html:189 templates/workitems_overview.html:413
+#: templates/generali_reporting.html:189 templates/workitems_overview.html:407
 msgid "Showing"
 msgstr "Anzeige"
 
@@ -1655,7 +1655,7 @@ msgstr "Anzeige"
 #: templates/generali_projectmanagement.html:150
 #: templates/generali_reporting.html:191 templates/js/admin/_logs_js.html:108
 #: templates/js/admin/_user_detail_js.html:609
-#: templates/workitems_overview.html:415
+#: templates/workitems_overview.html:409
 msgid "of"
 msgstr "von"
 
@@ -1664,7 +1664,7 @@ msgstr "von"
 #: templates/generali_documents.html:281
 #: templates/generali_importstatus.html:130 templates/generali_pdqm.html:189
 #: templates/generali_projectmanagement.html:152
-#: templates/generali_reporting.html:193 templates/workitems_overview.html:417
+#: templates/generali_reporting.html:193 templates/workitems_overview.html:411
 msgid "results"
 msgstr "Ergebnissen"
 
@@ -1726,8 +1726,8 @@ msgstr "Aufwand (Stunden)"
 #: templates/generali_reporting.html:231 templates/generali_reporting.html:314
 #: templates/generali_reporting.html:339
 #: templates/js/_reporting_dashboard_js.html:80 templates/reporting.html:350
-#: templates/reporting.html:419 templates/workitems_overview.html:454
-#: templates/workitems_overview.html:550
+#: templates/reporting.html:419 templates/workitems_overview.html:448
+#: templates/workitems_overview.html:544
 msgid "Cancel"
 msgstr "Abbrechen"
 
@@ -1890,7 +1890,7 @@ msgid "Search by ID, policy, damage number…"
 msgstr "Suche nach ID, Police, Schadennummer…"
 
 #: templates/generali_documents.html:202 templates/reporting.html:73
-#: templates/workitems_overview.html:301
+#: templates/workitems_overview.html:295
 msgid "Advanced"
 msgstr "Erweitert"
 
@@ -1920,7 +1920,7 @@ msgstr "CSV-Importe in die Dokumentdatenbank"
 #: templates/generali_importstatus.html:108
 #: templates/generali_reporting.html:114 templates/invoices.html:78
 #: templates/invoices.html:123 templates/workitems_overview.html:124
-#: templates/workitems_overview.html:367
+#: templates/workitems_overview.html:361
 msgid "Status"
 msgstr "Status"
 
@@ -2240,7 +2240,7 @@ msgstr ""
 "sicher. Verfolgen Sie in Echtzeit, wie ein Dokument verarbeitet wird."
 
 #: templates/hero.html:134 templates/js/_workitems_overview_js.html:276
-#: templates/workitems_overview.html:329
+#: templates/workitems_overview.html:323
 msgid "Import"
 msgstr "Import"
 
@@ -2442,8 +2442,8 @@ msgstr "Alle Status"
 
 # Phase 3 — command palette, saved presets, CSV export
 #: templates/admin/logs.html:20 templates/invoices.html:99
-#: templates/workitems_overview.html:322 templates/workitems_overview.html:403
-#: templates/workitems_overview.html:556
+#: templates/workitems_overview.html:316 templates/workitems_overview.html:397
+#: templates/workitems_overview.html:550
 msgid "Export CSV"
 msgstr "CSV exportieren"
 
@@ -2563,29 +2563,29 @@ msgstr "Workitem-Vorschau"
 #: templates/reporting.html:108 templates/reporting.html:136
 #: templates/reporting.html:166 templates/reporting.html:176
 #: templates/reporting.html:373 templates/reporting.html:409
-#: templates/workitems_overview.html:563
+#: templates/workitems_overview.html:557
 msgid "Close"
 msgstr "Schließen"
 
 #: templates/prepared_documents.html:187 templates/reporting.html:182
-#: templates/workitems_overview.html:569
+#: templates/workitems_overview.html:563
 msgid "Show where extracted values were found on the document"
 msgstr "Anzeigen, wo die extrahierten Werte im Dokument gefunden wurden"
 
 #: templates/js/_workitem_detail_panel_js.html:549
 #: templates/prepared_documents.html:189 templates/reporting.html:184
-#: templates/workitems_overview.html:572
+#: templates/workitems_overview.html:566
 msgid "Show sources"
 msgstr "Quellen anzeigen"
 
 #: templates/prepared_documents.html:191 templates/reporting.html:186
-#: templates/workitems_overview.html:574
+#: templates/workitems_overview.html:568
 msgid "Document page preview"
 msgstr "Dokumentseiten-Vorschau"
 
 #: templates/prepared_documents.html:196 templates/prepared_documents.html:197
 #: templates/reporting.html:191 templates/reporting.html:192
-#: templates/workitems_overview.html:580 templates/workitems_overview.html:581
+#: templates/workitems_overview.html:574 templates/workitems_overview.html:575
 msgid "Extracted values"
 msgstr "Extrahierte Werte"
 
@@ -2867,7 +2867,7 @@ msgid "Filters"
 msgstr "Filter"
 
 #: templates/js/_reporting_dashboard_js.html:73 templates/reporting.html:336
-#: templates/workitems_overview.html:293
+#: templates/workitems_overview.html:287
 msgid "Add filter"
 msgstr "Filter hinzufügen"
 
@@ -3256,7 +3256,7 @@ msgstr "Workitems-Übersicht"
 msgid "List of all workitems"
 msgstr "Liste aller Workitems"
 
-#: templates/workitems_overview.html:95 templates/workitems_overview.html:359
+#: templates/workitems_overview.html:95 templates/workitems_overview.html:353
 msgid "Workitem"
 msgstr "Workitem"
 
@@ -3277,33 +3277,33 @@ msgid "Document Value Search"
 msgstr "Dokumentwert-Suche"
 
 #: templates/js/_workitems_overview_js.html:412
-#: templates/workitems_overview.html:190 templates/workitems_overview.html:247
+#: templates/workitems_overview.html:193 templates/workitems_overview.html:245
 msgid "All fields"
 msgstr "Alle Felder"
 
 #: templates/js/_reporting_dashboard_js.html:81
 #: templates/js/_reporting_js.html:494
 #: templates/js/_reporting_simple_js.html:77
-#: templates/workitems_overview.html:203 templates/workitems_overview.html:258
+#: templates/workitems_overview.html:205 templates/workitems_overview.html:255
 msgid "contains"
 msgstr "enthält"
 
 #: templates/js/_reporting_dashboard_js.html:82
 #: templates/js/_reporting_js.html:495
 #: templates/js/_reporting_simple_js.html:78
-#: templates/workitems_overview.html:206 templates/workitems_overview.html:261
+#: templates/workitems_overview.html:208 templates/workitems_overview.html:258
 msgid "starts with"
 msgstr "beginnt mit"
 
-#: templates/workitems_overview.html:207 templates/workitems_overview.html:262
+#: templates/workitems_overview.html:209 templates/workitems_overview.html:259
 msgid "ends with"
 msgstr "endet mit"
 
-#: templates/workitems_overview.html:208 templates/workitems_overview.html:263
+#: templates/workitems_overview.html:210 templates/workitems_overview.html:260
 msgid "does not contain"
 msgstr "enthält nicht"
 
-#: templates/workitems_overview.html:221 templates/workitems_overview.html:276
+#: templates/workitems_overview.html:219 templates/workitems_overview.html:268
 msgid "Type to search…"
 msgstr "Zum Suchen tippen…"
 
@@ -3315,76 +3315,76 @@ msgstr "UND"
 msgid "OR"
 msgstr "ODER"
 
-#: templates/workitems_overview.html:337
+#: templates/workitems_overview.html:331
 msgid "Prepared documents"
 msgstr "Vorbereitete Dokumente"
 
-#: templates/workitems_overview.html:375
+#: templates/workitems_overview.html:369
 msgid "Last movement at"
 msgstr "Letzte Bewegung am"
 
 #: templates/js/_workitems_overview_js.html:812
-#: templates/workitems_overview.html:399
+#: templates/workitems_overview.html:393
 msgid "selected"
 msgstr "ausgewählt"
 
-#: templates/workitems_overview.html:407
+#: templates/workitems_overview.html:401
 msgid "Deselect"
 msgstr "Auswahl aufheben"
 
-#: templates/workitems_overview.html:428
+#: templates/workitems_overview.html:422
 msgid "Batch Import"
 msgstr "Massenimport"
 
-#: templates/workitems_overview.html:434
+#: templates/workitems_overview.html:428
 msgid "Destination Process"
 msgstr "Zielprozess"
 
-#: templates/workitems_overview.html:439
+#: templates/workitems_overview.html:433
 msgid "Choose a process..."
 msgstr "Prozess auswählen..."
 
-#: templates/workitems_overview.html:448
+#: templates/workitems_overview.html:442
 msgid "Please select a valid process."
 msgstr "Bitte wählen Sie einen gültigen Prozess aus."
 
 #: templates/js/_workitems_overview_js.html:280
-#: templates/workitems_overview.html:458
+#: templates/workitems_overview.html:452
 msgid "Import File"
 msgstr "Datei importieren"
 
-#: templates/workitems_overview.html:470
+#: templates/workitems_overview.html:464
 msgid "Export Workitems"
 msgstr "Workitems exportieren"
 
-#: templates/workitems_overview.html:481
+#: templates/workitems_overview.html:475
 msgid "Always included"
 msgstr "Immer enthalten"
 
-#: templates/workitems_overview.html:484
+#: templates/workitems_overview.html:478
 msgid "Workitem ID, Status, Stage, Last Movement"
 msgstr "Workitem-ID, Status, Stufe, Letzte Bewegung"
 
-#: templates/workitems_overview.html:490
+#: templates/workitems_overview.html:484
 msgid "Optional extras"
 msgstr "Optionale Extras"
 
 #: templates/js/_reporting_simple_js.html:101
-#: templates/workitems_overview.html:495
+#: templates/workitems_overview.html:489
 msgid "Document fields"
 msgstr ""
 "Dokument-\n"
 "felder"
 
-#: templates/workitems_overview.html:496
+#: templates/workitems_overview.html:490
 msgid "Index fields — only available for selections of up to 10 workitems"
 msgstr "Indexfelder — nur für Auswahlen von bis zu 10 Workitems verfügbar"
 
-#: templates/workitems_overview.html:502
+#: templates/workitems_overview.html:496
 msgid "Audit history"
 msgstr "Prüfhistorie"
 
-#: templates/workitems_overview.html:503
+#: templates/workitems_overview.html:497
 msgid ""
 "Full timeline of all stages — only available for selections of up to 10 "
 "workitems"
@@ -3392,11 +3392,11 @@ msgstr ""
 "Vollständige Zeitleiste aller Phasen — nur für Auswahlen von bis zu 10 "
 "Workitems verfügbar"
 
-#: templates/workitems_overview.html:509
+#: templates/workitems_overview.html:503
 msgid "Images as base64"
 msgstr "Bilder als Base64"
 
-#: templates/workitems_overview.html:510
+#: templates/workitems_overview.html:504
 msgid ""
 "Up to 5 images per workitem — only available for selections of up to 10 "
 "workitems"
@@ -3404,7 +3404,7 @@ msgstr ""
 "Bis zu 5 Bilder pro Workitem — nur für Auswahlen von bis zu 10 Workitems "
 "verfügbar"
 
-#: templates/workitems_overview.html:514
+#: templates/workitems_overview.html:508
 msgid ""
 "Use this PowerShell script to extract images from the exported CSV. "
 "Requires execution policy"
@@ -3412,11 +3412,11 @@ msgstr ""
 "Verwenden Sie dieses PowerShell-Skript, um Bilder aus der exportierten "
 "CSV-Datei zu extrahieren. Erfordert Ausführungsrichtlinie."
 
-#: templates/workitems_overview.html:514
+#: templates/workitems_overview.html:508
 msgid "or higher."
 msgstr "oder höher."
 
-#: templates/workitems_overview.html:543
+#: templates/workitems_overview.html:537
 msgid ""
 "All workitems matching the current filters will be exported (not just the"
 " current page)."
