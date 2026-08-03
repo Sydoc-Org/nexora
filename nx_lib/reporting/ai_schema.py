@@ -165,10 +165,12 @@ def serialize_partial_tables(table_processes, union_source_id):
     leaving "not listed here" to be inferred.
 
     `table_processes`: {table_name: {"processes": [...], "import_col": str|None,
-    "export_col": str|None}} from Statconfig. The date columns are included
-    because the tables do NOT share column names (`ExportDate` vs `ExportEM_dt`
-    vs …) — telling the agent to UNION them without saying which column is which
-    just moves the failure from "wrong universe" to "invalid column name".
+    "export_col": str|None, "fields": {field_key: column_name, ...}}} from
+    Statconfig + SearchConfig. The date/field columns are included because the
+    tables do NOT share column names (`ExportDate` vs `ExportEM_dt`, `AnzImagesOut`
+    vs `PageCount`, …) — telling the agent to UNION them without saying which
+    column is which just moves the failure from "wrong universe" to "invalid
+    column name" (issue #154).
     `union_source_id`: the curated source that UNIONs them all (docprocessing).
     Returns "" when there is nothing to mark, so the caller can skip the block.
     """
@@ -183,12 +185,15 @@ def serialize_partial_tables(table_processes, union_source_id):
             for key, name in (("import_col", "import date"), ("export_col", "export date"))
             if cfg.get(key)
         ]
+        cols += [f"{fk}: {col}" for fk, col in sorted((cfg.get("fields") or {}).items())]
         if cols:
             line += f" ({'; '.join(cols)})"
         lines.append(line)
     lines.append(
-        "Their date columns differ per table — use the ones named above, never"
-        " assume a shared column name."
+        "Their date and field columns differ per table — use the ones named above,"
+        " never assume a shared column name or guess one against"
+        " INFORMATION_SCHEMA. A field with no column named for a table is not"
+        " available on that process."
         " Querying one of these answers for that process ALONE. A question about"
         ' totals that names no process ("our volume", "the numbers", "how many'
         ' documents") is COMPANY-WIDE: answer it with build_definition on source'

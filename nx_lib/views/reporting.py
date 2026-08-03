@@ -380,7 +380,9 @@ def _ai_schema_text():
     # drops the block — never a 500.
     partial_tables = {}
     try:
-        for cfg in _load_process_configs(_allowed_processes()):
+        allowed = _allowed_processes()
+        field_maps = _load_field_col_maps(allowed)
+        for cfg in _load_process_configs(allowed):
             if not cfg.get("table"):
                 continue
             entry = partial_tables.setdefault(
@@ -389,6 +391,7 @@ def _ai_schema_text():
                     "processes": [],
                     "import_col": cfg.get("import_col"),
                     "export_col": cfg.get("export_col"),
+                    "fields": field_maps.get(cfg["process"]) or {},
                 },
             )
             entry["processes"].append(cfg["process"])

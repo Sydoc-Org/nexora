@@ -364,6 +364,25 @@ def test_partial_tables_block_marks_per_process_tables_and_names_the_union_sourc
     assert "NOT evidence of zero" in text
 
 
+def test_partial_tables_block_lists_non_date_field_columns():
+    # issue #154: without these the agent guesses column names for page count /
+    # doc type / etc. and burns turns on "Invalid column name" instead of using
+    # the actual per-table column named here.
+    text = ai_schema.serialize_partial_tables(
+        {
+            "dbo.Compass_Invoice": {
+                "processes": ["privera.03_Invoice_New"],
+                "import_col": "ImportDate",
+                "export_col": "ExportDate",
+                "fields": {"pagecount": "AnzImagesOut", "documenttype": "DocType"},
+            },
+        },
+        "docprocessing",
+    )
+    assert "pagecount: AnzImagesOut" in text
+    assert "documenttype: DocType" in text
+
+
 def test_partial_tables_block_is_empty_when_statconfig_yields_nothing():
     assert ai_schema.serialize_partial_tables({}, "docprocessing") == ""
     assert ai_schema.serialize_partial_tables(None, "docprocessing") == ""

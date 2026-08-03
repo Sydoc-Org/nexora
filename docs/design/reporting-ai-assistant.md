@@ -100,6 +100,15 @@ The model emits the **v1 report-definition JSON** (`source`, `columns`,
   `ExportEM_dt`) and a UNION written without them fails on "invalid column name"
   instead. Statconfig being unavailable drops the block rather than failing the
   request.
+- **Per-process field-column grounding (#154):** the date columns alone weren't
+  enough — the agent still guessed the rest (page count, document type, user,
+  barcode, …) when it UNIONed the partial tables in raw SQL, hitting `Invalid
+  column name` in ~4 of 22 eval cases and often failing to recover. Each
+  `serialize_partial_tables` line now also lists that table's SearchConfig
+  `col_*` field columns — the same per-process `{field_key: column}` map
+  `_load_field_col_maps` already builds for the `docprocessing` curated
+  source — so raw SQL against these tables uses real column names instead of
+  probing `INFORMATION_SCHEMA` or guessing.
 - **Date grounding:** today's date is injected into the user prompt and the agent
   grounding so relative time expressions ("last month", "this year") resolve to
   correct absolute date ranges, not training-data dates. The agent system prompt
