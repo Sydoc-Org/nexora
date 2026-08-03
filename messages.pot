@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-03 10:03+0200\n"
+"POT-Creation-Date: 2026-08-03 11:43+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -174,112 +174,112 @@ msgstr ""
 msgid "Permission deleted successfully"
 msgstr ""
 
-#: nx_lib/views/auth.py:112
+#: nx_lib/views/auth.py:117
 msgid "Your nexora account is ready"
 msgstr ""
 
-#: nx_lib/views/auth.py:114
+#: nx_lib/views/auth.py:119
 msgid ""
 "An account has been created for you on nexora. Choose your own password "
 "by clicking the button below. You will then be asked to set up two-factor"
 " authentication."
 msgstr ""
 
-#: nx_lib/views/auth.py:118
+#: nx_lib/views/auth.py:123
 msgid "This link is valid for 7 days."
 msgstr ""
 
-#: nx_lib/views/auth.py:119
+#: nx_lib/views/auth.py:124
 msgid "Set Your Password"
 msgstr ""
 
-#: nx_lib/views/auth.py:121
+#: nx_lib/views/auth.py:126
 msgid "nexora Password Reset Request"
 msgstr ""
 
-#: nx_lib/views/auth.py:123
+#: nx_lib/views/auth.py:128
 msgid ""
 "We received a request to reset the password for your account. You can "
 "reset your password by clicking the button below."
 msgstr ""
 
-#: nx_lib/views/auth.py:127
+#: nx_lib/views/auth.py:132
 msgid ""
 "If you did not request a password reset, please ignore this email. This "
 "link is valid for 15 minutes."
 msgstr ""
 
-#: nx_lib/views/auth.py:130
+#: nx_lib/views/auth.py:135
 msgid "Reset Your Password"
 msgstr ""
 
-#: nx_lib/views/auth.py:181
+#: nx_lib/views/auth.py:186
 msgid "Hello,"
 msgstr ""
 
-#: nx_lib/views/auth.py:187
+#: nx_lib/views/auth.py:192
 msgid "Thanks,<br>The Sydoc Team"
 msgstr ""
 
-#: nx_lib/views/auth.py:302
+#: nx_lib/views/auth.py:307
 msgid "Session expired, please try again"
 msgstr ""
 
-#: nx_lib/views/auth.py:353
+#: nx_lib/views/auth.py:358
 msgid "Database error"
 msgstr ""
 
-#: nx_lib/views/auth.py:361
+#: nx_lib/views/auth.py:366
 msgid "Invalid code. Please try again."
 msgstr ""
 
-#: nx_lib/views/auth.py:410
+#: nx_lib/views/auth.py:415
 msgid "Invalid code"
 msgstr ""
 
-#: nx_lib/views/auth.py:424 nx_lib/views/auth.py:646
+#: nx_lib/views/auth.py:429 nx_lib/views/auth.py:651
 #: templates/js/_profile_js.html:5
 msgid "Passwords do not match"
 msgstr ""
 
-#: nx_lib/views/auth.py:426 nx_lib/views/auth.py:648
+#: nx_lib/views/auth.py:431 nx_lib/views/auth.py:653
 msgid "All Fields must be filled"
 msgstr ""
 
-#: nx_lib/views/auth.py:430 nx_lib/views/auth.py:652
+#: nx_lib/views/auth.py:435 nx_lib/views/auth.py:657
 #: nx_lib/views/profile.py:157
 msgid "New password has to be atleast 8 characters long, with no whitespaces"
 msgstr ""
 
-#: nx_lib/views/auth.py:450 nx_lib/views/auth.py:670
+#: nx_lib/views/auth.py:455 nx_lib/views/auth.py:675
 msgid "New Password musn't be previously used password"
 msgstr ""
 
-#: nx_lib/views/auth.py:483 nx_lib/views/auth.py:717
+#: nx_lib/views/auth.py:488 nx_lib/views/auth.py:722
 msgid "Something went wrong, please try again"
 msgstr ""
 
-#: nx_lib/views/auth.py:537 nx_lib/views/auth.py:580
+#: nx_lib/views/auth.py:542 nx_lib/views/auth.py:585
 msgid "Invalid credentials"
 msgstr ""
 
-#: nx_lib/views/auth.py:584
+#: nx_lib/views/auth.py:589
 msgid "Login temporarily unavailable"
 msgstr ""
 
-#: nx_lib/views/auth.py:702
+#: nx_lib/views/auth.py:707
 msgid "Password set. You can now sign in."
 msgstr ""
 
-#: nx_lib/views/auth.py:704
+#: nx_lib/views/auth.py:709
 msgid "Password changed"
 msgstr ""
 
-#: nx_lib/views/auth.py:849
+#: nx_lib/views/auth.py:854
 msgid "If that email is registered, a reset link has been sent."
 msgstr ""
 
-#: nx_lib/views/auth.py:853
+#: nx_lib/views/auth.py:858
 msgid "Unexpected error occurred"
 msgstr ""
 
@@ -1215,11 +1215,16 @@ msgstr ""
 msgid "Signed in as %(name)s — %(when)s"
 msgstr ""
 
-#: templates/dashboard.html:37 templates/workitems_overview.html:77
+#: templates/dashboard.html:29
+#, python-format
+msgid "Last sign-in: %(when)s"
+msgstr ""
+
+#: templates/dashboard.html:37 templates/workitems_overview.html:108
 msgid "Process"
 msgstr ""
 
-#: templates/dashboard.html:39 templates/workitems_overview.html:80
+#: templates/dashboard.html:39 templates/workitems_overview.html:111
 msgid "All Processes"
 msgstr ""
 
@@ -1321,7 +1326,7 @@ msgstr ""
 #: templates/generali_importstatus.html:74 templates/generali_pdqm.html:131
 #: templates/generali_projectmanagement.html:99
 #: templates/generali_reporting.html:134 templates/invoices.html:96
-#: templates/workitems_overview.html:261
+#: templates/workitems_overview.html:292
 msgid "Reset"
 msgstr ""
 
@@ -1371,7 +1376,7 @@ msgstr ""
 msgid "Kommunikation"
 msgstr ""
 
-#: templates/generali-dashboard.html:155 templates/workitems_overview.html:309
+#: templates/generali-dashboard.html:155 templates/workitems_overview.html:340
 msgid "Select all"
 msgstr ""
 
@@ -1438,7 +1443,7 @@ msgstr ""
 #: templates/generali_importstatus.html:38 templates/generali_pdqm.html:55
 #: templates/generali_projectmanagement.html:59
 #: templates/generali_reporting.html:63 templates/invoices.html:59
-#: templates/workitems_overview.html:149
+#: templates/workitems_overview.html:180
 msgid "From Date"
 msgstr ""
 
@@ -1448,7 +1453,7 @@ msgstr ""
 #: templates/generali_importstatus.html:43 templates/generali_pdqm.html:60
 #: templates/generali_projectmanagement.html:64
 #: templates/generali_reporting.html:68 templates/invoices.html:69
-#: templates/workitems_overview.html:159
+#: templates/workitems_overview.html:190
 msgid "To Date"
 msgstr ""
 
@@ -1588,7 +1593,7 @@ msgstr ""
 #: templates/generali_documents.html:277
 #: templates/generali_importstatus.html:126 templates/generali_pdqm.html:185
 #: templates/generali_projectmanagement.html:148
-#: templates/generali_reporting.html:189 templates/workitems_overview.html:369
+#: templates/generali_reporting.html:189 templates/workitems_overview.html:400
 msgid "Showing"
 msgstr ""
 
@@ -1599,7 +1604,7 @@ msgstr ""
 #: templates/generali_projectmanagement.html:150
 #: templates/generali_reporting.html:191 templates/js/admin/_logs_js.html:108
 #: templates/js/admin/_user_detail_js.html:609
-#: templates/workitems_overview.html:371
+#: templates/workitems_overview.html:402
 msgid "of"
 msgstr ""
 
@@ -1608,7 +1613,7 @@ msgstr ""
 #: templates/generali_documents.html:281
 #: templates/generali_importstatus.html:130 templates/generali_pdqm.html:189
 #: templates/generali_projectmanagement.html:152
-#: templates/generali_reporting.html:193 templates/workitems_overview.html:373
+#: templates/generali_reporting.html:193 templates/workitems_overview.html:404
 msgid "results"
 msgstr ""
 
@@ -1670,8 +1675,8 @@ msgstr ""
 #: templates/generali_reporting.html:231 templates/generali_reporting.html:314
 #: templates/generali_reporting.html:339
 #: templates/js/_reporting_dashboard_js.html:80 templates/reporting.html:350
-#: templates/reporting.html:419 templates/workitems_overview.html:410
-#: templates/workitems_overview.html:506
+#: templates/reporting.html:419 templates/workitems_overview.html:441
+#: templates/workitems_overview.html:537
 msgid "Cancel"
 msgstr ""
 
@@ -1834,7 +1839,7 @@ msgid "Search by ID, policy, damage number…"
 msgstr ""
 
 #: templates/generali_documents.html:202 templates/reporting.html:73
-#: templates/workitems_overview.html:257
+#: templates/workitems_overview.html:288
 msgid "Advanced"
 msgstr ""
 
@@ -1863,8 +1868,8 @@ msgstr ""
 #: templates/admin/user_detail.html:226 templates/generali_importstatus.html:48
 #: templates/generali_importstatus.html:108
 #: templates/generali_reporting.html:114 templates/invoices.html:78
-#: templates/invoices.html:123 templates/workitems_overview.html:124
-#: templates/workitems_overview.html:323
+#: templates/invoices.html:123 templates/workitems_overview.html:155
+#: templates/workitems_overview.html:354
 msgid "Status"
 msgstr ""
 
@@ -2178,7 +2183,7 @@ msgid ""
 msgstr ""
 
 #: templates/hero.html:134 templates/js/_workitems_overview_js.html:276
-#: templates/workitems_overview.html:285
+#: templates/workitems_overview.html:316
 msgid "Import"
 msgstr ""
 
@@ -2365,8 +2370,8 @@ msgid "All Statuses"
 msgstr ""
 
 #: templates/admin/logs.html:20 templates/invoices.html:99
-#: templates/workitems_overview.html:278 templates/workitems_overview.html:359
-#: templates/workitems_overview.html:512
+#: templates/workitems_overview.html:309 templates/workitems_overview.html:390
+#: templates/workitems_overview.html:543
 msgid "Export CSV"
 msgstr ""
 
@@ -2460,7 +2465,7 @@ msgstr ""
 
 #: templates/admin/logs.html:106 templates/admin/user_detail.html:236
 #: templates/js/_generali_documents_js.html:274
-#: templates/js/_workitems_overview_js.html:991
+#: templates/js/_workitems_overview_js.html:1128
 #: templates/prepared_documents.html:150
 msgid "Previous"
 msgstr ""
@@ -2468,7 +2473,7 @@ msgstr ""
 #: templates/admin/logs.html:107 templates/admin/user_detail.html:237
 #: templates/js/_generali_documents_js.html:278
 #: templates/js/_generali_reporting_js.html:268
-#: templates/js/_workitems_overview_js.html:997
+#: templates/js/_workitems_overview_js.html:1134
 #: templates/js/archive/_tour_js.html:17 templates/prepared_documents.html:156
 msgid "Next"
 msgstr ""
@@ -2482,29 +2487,29 @@ msgstr ""
 #: templates/reporting.html:108 templates/reporting.html:136
 #: templates/reporting.html:166 templates/reporting.html:176
 #: templates/reporting.html:373 templates/reporting.html:409
-#: templates/workitems_overview.html:519
+#: templates/workitems_overview.html:550
 msgid "Close"
 msgstr ""
 
 #: templates/prepared_documents.html:187 templates/reporting.html:182
-#: templates/workitems_overview.html:525
+#: templates/workitems_overview.html:556
 msgid "Show where extracted values were found on the document"
 msgstr ""
 
 #: templates/js/_workitem_detail_panel_js.html:549
 #: templates/prepared_documents.html:189 templates/reporting.html:184
-#: templates/workitems_overview.html:528
+#: templates/workitems_overview.html:559
 msgid "Show sources"
 msgstr ""
 
 #: templates/prepared_documents.html:191 templates/reporting.html:186
-#: templates/workitems_overview.html:530
+#: templates/workitems_overview.html:561
 msgid "Document page preview"
 msgstr ""
 
 #: templates/prepared_documents.html:196 templates/prepared_documents.html:197
 #: templates/reporting.html:191 templates/reporting.html:192
-#: templates/workitems_overview.html:536 templates/workitems_overview.html:537
+#: templates/workitems_overview.html:567 templates/workitems_overview.html:568
 msgid "Extracted values"
 msgstr ""
 
@@ -2778,7 +2783,7 @@ msgid "Filters"
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:73 templates/reporting.html:336
-#: templates/workitems_overview.html:249
+#: templates/workitems_overview.html:280
 msgid "Add filter"
 msgstr ""
 
@@ -3152,129 +3157,141 @@ msgstr ""
 msgid "List of all workitems"
 msgstr ""
 
-#: templates/workitems_overview.html:95 templates/workitems_overview.html:315
+#: templates/workitems_overview.html:77
+msgid "Smart search"
+msgstr ""
+
+#: templates/workitems_overview.html:85
+msgid "Type a document value — Enter adds a search term…"
+msgstr ""
+
+#: templates/workitems_overview.html:87
+msgid "Clear search terms"
+msgstr ""
+
+#: templates/workitems_overview.html:126 templates/workitems_overview.html:346
 msgid "Workitem"
 msgstr ""
 
-#: templates/workitems_overview.html:108
+#: templates/workitems_overview.html:139
 msgid "Stage"
 msgstr ""
 
-#: templates/workitems_overview.html:111
+#: templates/workitems_overview.html:142
 msgid "All stages"
 msgstr ""
 
-#: templates/workitems_overview.html:127
+#: templates/workitems_overview.html:158
 msgid "All statuses"
 msgstr ""
 
-#: templates/workitems_overview.html:175
+#: templates/workitems_overview.html:206
 msgid "Document Value Search"
 msgstr ""
 
 #: templates/js/_workitems_overview_js.html:412
-#: templates/workitems_overview.html:186 templates/workitems_overview.html:218
+#: templates/workitems_overview.html:217 templates/workitems_overview.html:249
 msgid "All fields"
 msgstr ""
 
-#: templates/workitems_overview.html:202 templates/workitems_overview.html:232
+#: templates/workitems_overview.html:233 templates/workitems_overview.html:263
 msgid "Type to search…"
 msgstr ""
 
-#: templates/workitems_overview.html:293
+#: templates/workitems_overview.html:324
 msgid "Prepared documents"
 msgstr ""
 
-#: templates/workitems_overview.html:331
+#: templates/workitems_overview.html:362
 msgid "Last movement at"
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:796
-#: templates/workitems_overview.html:355
+#: templates/js/_workitems_overview_js.html:933
+#: templates/workitems_overview.html:386
 msgid "selected"
 msgstr ""
 
-#: templates/workitems_overview.html:363
+#: templates/workitems_overview.html:394
 msgid "Deselect"
 msgstr ""
 
-#: templates/workitems_overview.html:384
+#: templates/workitems_overview.html:415
 msgid "Batch Import"
 msgstr ""
 
-#: templates/workitems_overview.html:390
+#: templates/workitems_overview.html:421
 msgid "Destination Process"
 msgstr ""
 
-#: templates/workitems_overview.html:395
+#: templates/workitems_overview.html:426
 msgid "Choose a process..."
 msgstr ""
 
-#: templates/workitems_overview.html:404
+#: templates/workitems_overview.html:435
 msgid "Please select a valid process."
 msgstr ""
 
 #: templates/js/_workitems_overview_js.html:280
-#: templates/workitems_overview.html:414
+#: templates/workitems_overview.html:445
 msgid "Import File"
 msgstr ""
 
-#: templates/workitems_overview.html:426
+#: templates/workitems_overview.html:457
 msgid "Export Workitems"
 msgstr ""
 
-#: templates/workitems_overview.html:437
+#: templates/workitems_overview.html:468
 msgid "Always included"
 msgstr ""
 
-#: templates/workitems_overview.html:440
+#: templates/workitems_overview.html:471
 msgid "Workitem ID, Status, Stage, Last Movement"
 msgstr ""
 
-#: templates/workitems_overview.html:446
+#: templates/workitems_overview.html:477
 msgid "Optional extras"
 msgstr ""
 
 #: templates/js/_reporting_simple_js.html:101
-#: templates/workitems_overview.html:451
+#: templates/workitems_overview.html:482
 msgid "Document fields"
 msgstr ""
 
-#: templates/workitems_overview.html:452
+#: templates/workitems_overview.html:483
 msgid "Index fields — only available for selections of up to 10 workitems"
 msgstr ""
 
-#: templates/workitems_overview.html:458
+#: templates/workitems_overview.html:489
 msgid "Audit history"
 msgstr ""
 
-#: templates/workitems_overview.html:459
+#: templates/workitems_overview.html:490
 msgid ""
 "Full timeline of all stages — only available for selections of up to 10 "
 "workitems"
 msgstr ""
 
-#: templates/workitems_overview.html:465
+#: templates/workitems_overview.html:496
 msgid "Images as base64"
 msgstr ""
 
-#: templates/workitems_overview.html:466
+#: templates/workitems_overview.html:497
 msgid ""
 "Up to 5 images per workitem — only available for selections of up to 10 "
 "workitems"
 msgstr ""
 
-#: templates/workitems_overview.html:470
+#: templates/workitems_overview.html:501
 msgid ""
 "Use this PowerShell script to extract images from the exported CSV. "
 "Requires execution policy"
 msgstr ""
 
-#: templates/workitems_overview.html:470
+#: templates/workitems_overview.html:501
 msgid "or higher."
 msgstr ""
 
-#: templates/workitems_overview.html:499
+#: templates/workitems_overview.html:530
 msgid ""
 "All workitems matching the current filters will be exported (not just the"
 " current page)."
@@ -4005,7 +4022,7 @@ msgstr ""
 #: templates/js/_generali_pdqm_js.html:259
 #: templates/js/_generali_project_management_js.html:136
 #: templates/js/_generali_reporting_js.html:176
-#: templates/js/_workitems_overview_js.html:910
+#: templates/js/_workitems_overview_js.html:1047
 msgid "Try adjusting your filters or resetting the search."
 msgstr ""
 
@@ -4078,7 +4095,7 @@ msgstr ""
 
 #: templates/js/_generali_documents_js.html:66
 #: templates/js/_generali_reporting_js.html:162
-#: templates/js/_workitems_overview_js.html:781
+#: templates/js/_workitems_overview_js.html:918
 msgid "Failed to load data. Please try again."
 msgstr ""
 
@@ -5182,31 +5199,31 @@ msgstr ""
 msgid "No fields available"
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:707
+#: templates/js/_workitems_overview_js.html:844
 msgid "primary"
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:709
+#: templates/js/_workitems_overview_js.html:846
 msgid "Some workitems are temporarily unavailable:"
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:756
+#: templates/js/_workitems_overview_js.html:893
 msgid "Loading workitems..."
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:824
+#: templates/js/_workitems_overview_js.html:961
 msgid "selected workitems will be exported"
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:825
+#: templates/js/_workitems_overview_js.html:962
 msgid "All workitems matching current filters will be exported"
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:890
+#: templates/js/_workitems_overview_js.html:1027
 msgid "Export failed. Please try again."
 msgstr ""
 
-#: templates/js/_workitems_overview_js.html:909
+#: templates/js/_workitems_overview_js.html:1046
 msgid "No workitems found"
 msgstr ""
 

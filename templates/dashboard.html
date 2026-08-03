@@ -26,7 +26,7 @@
             <h1 class="nx-title">{{ _("Dashboard") }}</h1>
             <p class="nx-subtitle">{{ _("Here's a real-time overview of your document processing activity.") }}</p>
             {% if login_at %}
-            <p class="nx-subtitle [font-size:12px]! [opacity:0.75]!" data-testid="dashboard-signin-note">{{ _("Signed in as %(name)s — %(when)s", name="<strong>"|safe ~ fullname ~ "</strong>"|safe, when=login_at|datetimeformat('dd.MM.yyyy HH:mm'))|safe }}</p>
+            <p class="nx-subtitle [font-size:12px]! [opacity:0.75]!" data-testid="dashboard-signin-note">{{ _("Signed in as %(name)s — %(when)s", name="<strong>"|safe ~ fullname ~ "</strong>"|safe, when=login_at|datetimeformat('dd.MM.yyyy HH:mm'))|safe }}{% if prev_login_at %} · {{ _("Last sign-in: %(when)s", when=prev_login_at|datetimeformat('dd.MM.yyyy HH:mm')) }}{% endif %}</p>
             {% endif %}
           </div>
         </div>

@@ -22,6 +22,7 @@ CREATE TABLE [dbo].[Users](
 	[twoFA] [bit] NULL,
 	[twoFASecret] [nvarchar](100) NULL,
 	[locale] [nvarchar](3) NULL,
+	[LastLoginAt] [datetime] NULL,
  CONSTRAINT [PK__Users__CB9A1CDF7F8A761C] PRIMARY KEY CLUSTERED 
 (
 	[userID] ASC

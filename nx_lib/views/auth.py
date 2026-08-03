@@ -81,6 +81,11 @@ def _record_active_session(user_id):
                 "INSERT INTO ActiveSessions (SessionID, UserID) VALUES (?, ?)",
                 (str(sid), int(user_id)),
             )
+        # Previous login stamp, read before it is overwritten (issue #146).
+        cursor.execute("SELECT LastLoginAt FROM Users WHERE userID = ?", (int(user_id),))
+        row = cursor.fetchone()
+        session["prev_login_at"] = row[0] if row else None
+        cursor.execute("UPDATE Users SET LastLoginAt = GETDATE() WHERE userID = ?", (int(user_id),))
         conn.commit()
         cursor.close()
         conn.close()
