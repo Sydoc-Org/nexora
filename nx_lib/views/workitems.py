@@ -1917,6 +1917,7 @@ def prepared_documents():
         details_images_perm=details_images_perm,
         details_audit_perm=details_audit_perm,
         details_fields_perm=details_fields_perm,
+        userid=session.get("userid"),
     )
 
 
