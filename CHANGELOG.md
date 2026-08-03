@@ -203,6 +203,19 @@ Work toward 2.5.65.
 
 ### Fixed
 
+- Reporting: Advanced tab overflowed horizontally at phone widths (375px,
+  #143) — `document.documentElement.scrollWidth` measured 591-714px against a
+  375px `innerWidth`. Two independent causes: (1) the 3-column builder grid
+  (`.reporting-main`) already collapsed to a single `1fr` track below 1100px,
+  but grid items default to `min-width: auto`, so the track still grew to
+  each child's max-content width instead of shrinking — fixed with
+  `min-width: 0` on `.reporting-fields`/`.reporting-results`/
+  `.reporting-wells`; (2) the saved-report cluster (select + rename/share/
+  delete links) and the Run/Save/Export action cluster are both
+  `flex-shrink: 0`, so `flex-wrap` on the parent toolbar couldn't help —
+  each now gets `flex-basis: 100%` + its own internal `flex-wrap: wrap`
+  below 480px so it drops to its own row and wraps instead of overflowing.
+
 - Shared logo partial (`templates/nexora_logo/_nexora_logo.html`) was a full
   standalone HTML document (`<!DOCTYPE html><html><head>...`) `{% include %}`'d
   as a fragment into `_header.html` (every logged-in page) plus the standalone

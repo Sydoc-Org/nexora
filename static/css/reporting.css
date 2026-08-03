@@ -319,6 +319,34 @@
   .reporting-main {
     grid-template-columns: 1fr;
   }
+  /* Grid items default to min-width: auto, so a single 1fr track still
+     grows to each child's max-content width — min-width: 0 lets them
+     actually shrink to the collapsed column instead of overflowing. */
+  .reporting-fields,
+  .reporting-results,
+  .reporting-wells {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Saved-report cluster (select + save button + rename/share/delete links)
+     and the Run/Save/Export action cluster are both flex-shrink: 0, which
+     fixes them at their full max-content width (~525px / ~414px) regardless
+     of flex-wrap — shrink has to be allowed before wrapping can help. Forcing
+     each cluster onto its own full-width row lets it wrap internally instead
+     of overflowing the page at phone widths. */
+  .reporting-saved,
+  .reporting-actions {
+    flex-wrap: wrap;
+    flex-shrink: 1;
+    flex-basis: 100%;
+  }
+  .reporting-saved select {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
+  }
 }
 
 /* --- Phase 2: live SQL --- */
