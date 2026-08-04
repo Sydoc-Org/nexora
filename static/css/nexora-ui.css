@@ -225,6 +225,13 @@ a.nx-card:hover, .nx-card--link:hover {
 .nx-btn--danger { background: var(--nx-danger); color: #fff; }
 .nx-btn--sm { padding: 5px 10px; font-size: 12px; }
 
+/* Pagination footer (table cards) */
+.nx-pagination {
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  padding: 14px 16px; border-top: 1px solid var(--nx-border);
+}
+.nx-pagination .nx-btn { padding: 6px 12px; }
+
 /* Inputs / selects */
 .nx-input, .nx-select {
   background: var(--nx-card);

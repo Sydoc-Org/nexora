@@ -91,16 +91,41 @@ def upsert_prepared_documents(rows, uploaded_by):
             conn.close()
 
 
-def count_prepared_documents(pid=None):
-    """Total row count of the register (for pagination). Optional exact PID filter."""
+# Columns a caller may filter/group by. Fixed allowlist -- never interpolate
+# caller-provided column names into SQL.
+GROUP_BY_COLUMNS = {
+    "collected_by": "CollectedBy",
+    "prepared_by": "PreparedBy",
+}
+
+
+def _filter_clause(pid, collected, prepared):
+    """Build a shared WHERE clause + params for count/fetch (kept in lockstep
+    so the pagination total always matches what fetch actually returns)."""
+    clauses = []
+    params = []
+    if pid:
+        clauses.append("PID = ?")
+        params.append(str(pid))
+    if collected is not None:
+        clauses.append("Collected = ?")
+        params.append(1 if collected else 0)
+    if prepared is not None:
+        clauses.append("Prepared = ?")
+        params.append(1 if prepared else 0)
+    where = f"WHERE {' AND '.join(clauses)} " if clauses else ""
+    return where, params
+
+
+def count_prepared_documents(pid=None, collected=None, prepared=None):
+    """Total row count of the register (for pagination). Optional exact PID
+    filter and Collected/Prepared boolean filters (None = don't filter)."""
+    where, params = _filter_clause(pid, collected, prepared)
     conn = None
     try:
         conn = engine_nexora_db.raw_connection()
         cur = conn.cursor()
-        if pid:
-            cur.execute("SELECT COUNT(*) FROM dbo.PreparedDocuments WHERE PID = ?", [str(pid)])
-        else:
-            cur.execute("SELECT COUNT(*) FROM dbo.PreparedDocuments")
+        cur.execute(f"SELECT COUNT(*) FROM dbo.PreparedDocuments {where}", params)
         row = cur.fetchone()
         return int(row[0]) if row else 0
     finally:
@@ -108,13 +133,21 @@ def count_prepared_documents(pid=None):
             conn.close()
 
 
-def fetch_prepared_documents_page(offset, limit, pid=None):
-    """Return one OFFSET/FETCH page of the register, newest id first.
-    Optional exact PID filter (for the reverse ?pid deep-link).
+def fetch_prepared_documents_page(
+    offset, limit, pid=None, collected=None, prepared=None, group_by=None
+):
+    """Return one OFFSET/FETCH page of the register.
+    Optional exact PID filter (for the reverse ?pid deep-link), Collected/
+    Prepared boolean filters, and group_by (a key of GROUP_BY_COLUMNS -- rows
+    are ordered by that column so same-valued rows cluster together, newest
+    first within each group). Default order is newest id first.
 
     Returns list[dict] with keys id/pid/collected/collected_by/prepared/
     prepared_by/uploaded_by/uploaded_at/updated_at.
     """
+    where, params = _filter_clause(pid, collected, prepared)
+    order_col = GROUP_BY_COLUMNS.get(group_by)
+    order_by = f"{order_col} ASC, ID DESC" if order_col else "ID DESC"
     conn = None
     try:
         conn = engine_nexora_db.raw_connection()
@@ -123,13 +156,10 @@ def fetch_prepared_documents_page(offset, limit, pid=None):
             "SELECT ID, PID, Collected, CollectedBy, Prepared, PreparedBy, "
             "       UploadedBy, UploadedAt, UpdatedAt "
             "FROM dbo.PreparedDocuments "
+            f"{where}"
+            f"ORDER BY {order_by} OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
         )
-        params = []
-        if pid:
-            base += "WHERE PID = ? "
-            params.append(str(pid))
-        base += "ORDER BY ID DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
-        params += [int(offset), int(limit)]
+        params = [*params, int(offset), int(limit)]
         cur.execute(base, params)
         out = []
         for r in cur.fetchall():

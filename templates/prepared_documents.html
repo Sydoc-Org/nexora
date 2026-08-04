@@ -58,7 +58,7 @@
           <i class="fas fa-upload mr-2"></i>{{ _("Upload Excel") }}
         </button>
         <button type="button" id="preparedDocsClearBtn"
-          class="nx-btn nx-btn--secondary" data-testid="prepared-docs-clear">
+          class="nx-btn nx-btn--danger" data-testid="prepared-docs-clear">
           <i class="fas fa-trash mr-2"></i>{{ _("Clear list") }}
         </button>
         {% endif %}
@@ -69,6 +69,35 @@
       class="hidden mt-3 rounded-lg border px-4 py-3 text-sm" data-testid="prepared-docs-notice">
       <span id="preparedDocsNoticeText"></span>
     </div>
+
+    <form method="get" class="flex flex-wrap items-center gap-3 mt-4" data-testid="prepared-docs-filters">
+      <input type="text" name="pid" value="{{ pid_filter or '' }}" placeholder="{{ _('Search PID') }}"
+             class="nx-input" style="max-width:160px" data-testid="prepared-docs-pid-input" />
+      <select name="collected" class="nx-select" onchange="this.form.submit()" data-testid="prepared-docs-collected-filter">
+        <option value="" {{ 'selected' if collected_filter is none }}>{{ _("Collected") }}: {{ _("Any") }}</option>
+        <option value="1" {{ 'selected' if collected_filter == True }}>{{ _("Collected") }}: {{ _("Yes") }}</option>
+        <option value="0" {{ 'selected' if collected_filter == False }}>{{ _("Collected") }}: {{ _("No") }}</option>
+      </select>
+      <select name="prepared" class="nx-select" onchange="this.form.submit()" data-testid="prepared-docs-prepared-filter">
+        <option value="" {{ 'selected' if prepared_filter is none }}>{{ _("Prepared") }}: {{ _("Any") }}</option>
+        <option value="1" {{ 'selected' if prepared_filter == True }}>{{ _("Prepared") }}: {{ _("Yes") }}</option>
+        <option value="0" {{ 'selected' if prepared_filter == False }}>{{ _("Prepared") }}: {{ _("No") }}</option>
+      </select>
+      <select name="group_by" class="nx-select" onchange="this.form.submit()" data-testid="prepared-docs-group-by">
+        <option value="" {{ 'selected' if not group_by }}>{{ _("Group by") }}: {{ _("None") }}</option>
+        <option value="collected_by" {{ 'selected' if group_by == 'collected_by' }}>{{ _("Group by") }}: {{ _("Collected by") }}</option>
+        <option value="prepared_by" {{ 'selected' if group_by == 'prepared_by' }}>{{ _("Group by") }}: {{ _("Prepared by") }}</option>
+      </select>
+      <select name="per_page" class="nx-select" onchange="this.form.submit()" data-testid="prepared-docs-per-page">
+        {% for n in (25, 40, 100, 200) %}
+        <option value="{{ n }}" {{ 'selected' if pagination.perPage == n }}>{{ n }} / {{ _("page") }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="nx-btn nx-btn--secondary">{{ _("Apply") }}</button>
+      {% if pid_filter or collected_filter is not none or prepared_filter is not none or group_by or pagination.perPage != 40 %}
+      <a href="{{ url_for('prepared_documents') }}" class="nx-btn nx-btn--ghost" data-testid="prepared-docs-reset-filters">{{ _("Reset") }}</a>
+      {% endif %}
+    </form>
 
     <div class="nx-table-wrap nx-rise-3 relative mt-6">
       <div class="overflow-x-auto">
@@ -146,13 +175,13 @@
         data-total-pages="{{ pagination.totalPages }}"
         data-per-page="{{ pagination.perPage }}">
         <a class="nx-btn nx-btn--secondary {% if pagination.currentPage <= 1 %}opacity-40 pointer-events-none{% endif %}"
-           href="?page={{ pagination.currentPage - 1 }}"
+           href="{{ url_for('prepared_documents', page=pagination.currentPage - 1, **filter_args) }}"
            data-testid="prepared-docs-prev">{{ _("Previous") }}</a>
         <span class="px-3 text-sm text-gray-600">
           {{ pagination.currentPage }} / {{ pagination.totalPages if pagination.totalPages else 1 }}
         </span>
         <a class="nx-btn nx-btn--secondary {% if pagination.currentPage >= pagination.totalPages %}opacity-40 pointer-events-none{% endif %}"
-           href="?page={{ pagination.currentPage + 1 }}"
+           href="{{ url_for('prepared_documents', page=pagination.currentPage + 1, **filter_args) }}"
            data-testid="prepared-docs-next">{{ _("Next") }}</a>
       </div>
     </div>

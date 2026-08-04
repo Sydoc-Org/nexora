@@ -45,6 +45,7 @@ from ..octo import (
     render_pdf_page_jpeg,
 )
 from ..prepared_documents import (
+    GROUP_BY_COLUMNS,
     clear_prepared_documents,
     count_prepared_documents,
     fetch_prepared_documents_page,
@@ -2074,7 +2075,12 @@ def prepared_documents():
     if not ms02_active:
         raise PermissionDenied(_("This page is only available for the MS02 client."))
 
-    per_page = 40
+    try:
+        per_page = int(request.args.get("per_page", 40))
+    except (TypeError, ValueError):
+        per_page = 40
+    if per_page not in (25, 40, 100, 200):
+        per_page = 40
     try:
         page = max(1, int(request.args.get("page", 1)))
     except (TypeError, ValueError):
@@ -2082,9 +2088,29 @@ def prepared_documents():
     offset = (page - 1) * per_page
 
     pid_filter = (request.args.get("pid") or "").strip() or None
+
+    def _bool_arg(name):
+        val = request.args.get(name)
+        return {"1": True, "0": False}.get(val)
+
+    collected_filter = _bool_arg("collected")
+    prepared_filter = _bool_arg("prepared")
+    group_by = request.args.get("group_by") or None
+    if group_by not in GROUP_BY_COLUMNS:
+        group_by = None
+
     try:
-        total_items = count_prepared_documents(pid=pid_filter)
-        rows = fetch_prepared_documents_page(offset, per_page, pid=pid_filter)
+        total_items = count_prepared_documents(
+            pid=pid_filter, collected=collected_filter, prepared=prepared_filter
+        )
+        rows = fetch_prepared_documents_page(
+            offset,
+            per_page,
+            pid=pid_filter,
+            collected=collected_filter,
+            prepared=prepared_filter,
+            group_by=group_by,
+        )
     except Exception as e:
         current_app.logger.error(f"prepared_documents read: {e}")
         total_items, rows = 0, []
@@ -2119,6 +2145,20 @@ def prepared_documents():
         "totalItems": total_items,
         "perPage": per_page,
     }
+    # Non-page filter/sort state, carried through the Previous/Next links so
+    # paging never silently drops the active filters.
+    filter_args = {}
+    if pid_filter:
+        filter_args["pid"] = pid_filter
+    if collected_filter is not None:
+        filter_args["collected"] = "1" if collected_filter else "0"
+    if prepared_filter is not None:
+        filter_args["prepared"] = "1" if prepared_filter else "0"
+    if group_by:
+        filter_args["group_by"] = group_by
+    if per_page != 40:
+        filter_args["per_page"] = str(per_page)
+
     details_view_perm = has_permission("workitems.details.view")
     details_images_perm = has_permission("workitems.details.view.images")
     details_audit_perm = has_permission("workitems.details.view.audit")
@@ -2130,6 +2170,10 @@ def prepared_documents():
         pagination=pagination,
         octo_status=octo_status,
         pid_filter=pid_filter,
+        collected_filter=collected_filter,
+        prepared_filter=prepared_filter,
+        group_by=group_by,
+        filter_args=filter_args,
         prepared_import_perm=has_permission("workitems.import.preparedaudit"),
         ms02_active=ms02_active,
         pageV=page_visibility(),
