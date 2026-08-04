@@ -494,6 +494,31 @@
                 localStorage.setItem('nexora-admin-nav', nowOpen ? 'true' : 'false');
             });
         });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const group    = document.getElementById('devNavGroup');
+            const header   = document.getElementById('devNavHeader');
+            const subitems = group && group.querySelector('.sidebar-nav-subitems');
+            if (!group || !header || !subitems) return;
+
+            function setSubitemsHeight() {
+                subitems.style.maxHeight = 'none';
+                const h = subitems.scrollHeight;
+                subitems.style.maxHeight = '';
+                group.style.setProperty('--dev-subitems-height', h + 'px');
+            }
+
+            setSubitemsHeight();
+
+            const isActive = group.dataset.active === 'true';
+            const savedOpen = localStorage.getItem('nexora-dev-nav') === 'true';
+            if (isActive || savedOpen) group.classList.add('dev-open');
+
+            header.addEventListener('click', () => {
+                const nowOpen = group.classList.toggle('dev-open');
+                localStorage.setItem('nexora-dev-nav', nowOpen ? 'true' : 'false');
+            });
+        });
     </script>
 </body>
 

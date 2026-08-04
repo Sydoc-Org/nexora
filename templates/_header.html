@@ -216,12 +216,29 @@
             </div>
             {% endif %}
 
+            {% if pageV.apiDocsPagePerm %}
+            {% set dev_active = active_page in ['api_docs'] %}
+            <div class="sidebar-nav-group" id="devNavGroup" data-active="{{ 'true' if dev_active else 'false' }}">
+                <button class="sidebar-nav-item sidebar-nav-group-header {{ 'sidebar-nav-item--active' if dev_active else '' }}" id="devNavHeader" type="button" data-testid="header-nav-dev-toggle">
+                    <i class="fas fa-code sidebar-nav-icon"></i>
+                    <span class="sidebar-label [flex:1]!">{{ _('Development') }}</span>
+                    <i class="fas fa-chevron-right sidebar-label sidebar-generali-chevron"></i>
+                </button>
+                <div class="sidebar-nav-subitems">
+                    <a href="{{ url_for('api_docs') }}"
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'api_docs' else '' }}" data-testid="header-nav-dev-api-docs">
+                        <i class="fas fa-plug sidebar-nav-icon sidebar-subitem-icon"></i>
+                        <span class="sidebar-label">{{ _('API Docs') }}</span>
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
             {% set nav_items = [
                 {'perm': pageV.dashboardPagePerm,  'url': url_for('dashboard'),           'icon': 'fa-gauge-high',          'label': _('Dashboard'),              'active': active_page == 'dashboard'},
                 {'perm': pageV.reportingPagePerm, 'url': url_for('reporting'),           'icon': 'fa-chart-column',        'label': _('Reporting'),              'active': active_page == 'reporting'},
 {'perm': pageV.workitemsPagePerm, 'url': url_for('workitems_overview'),  'icon': 'fa-layer-group',         'label': _('Workitems'),              'active': active_page == 'workitems_overview'},
                 {'perm': pageV.invoicesPagePerm,  'url': url_for('invoices'),            'icon': 'fa-file-invoice-dollar', 'label': _('Invoices'),               'active': active_page == 'invoices'},
-                {'perm': pageV.apiDocsPagePerm,   'url': url_for('api_docs'),            'icon': 'fa-plug',                'label': _('API Docs'),               'active': active_page == 'api_docs'},
             ] %}
 
             {% for item in nav_items %}

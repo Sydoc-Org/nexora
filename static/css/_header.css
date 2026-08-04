@@ -203,6 +203,10 @@ html.sidebar-pinned body {
 #nexora-sidebar:is(:hover, .pinned) #adminNavGroup.admin-open .sidebar-nav-subitems {
     max-height: var(--admin-subitems-height, 9999px);
 }
+/* Development group expand (mirrors generali/admin rules) */
+#nexora-sidebar:is(:hover, .pinned) #devNavGroup.dev-open .sidebar-nav-subitems {
+    max-height: var(--dev-subitems-height, 9999px);
+}
 .sidebar-nav-subitem {
     padding-left: 20px;
 }
@@ -219,6 +223,9 @@ html.sidebar-pinned body {
     transform: rotate(90deg);
 }
 #adminNavGroup.admin-open .sidebar-generali-chevron {
+    transform: rotate(90deg);
+}
+#devNavGroup.dev-open .sidebar-generali-chevron {
     transform: rotate(90deg);
 }
 html.dark .sidebar-nav-group-header:hover { background: #334155; color: #a5b4fc; }
@@ -507,6 +514,9 @@ html.dark .sidebar-toggle-btn {
     }
     #nexora-sidebar.open #adminNavGroup.admin-open .sidebar-nav-subitems {
         max-height: var(--admin-subitems-height, 9999px);
+    }
+    #nexora-sidebar.open #devNavGroup.dev-open .sidebar-nav-subitems {
+        max-height: var(--dev-subitems-height, 9999px);
     }
 
     .sidebar-backdrop.open {
