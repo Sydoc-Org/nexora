@@ -34,6 +34,14 @@ def test_every_choice_round_trips():
             assert sanitize_ui_prefs({key: value}) == {key: value}
 
 
+def test_sanitize_accent_hex():
+    assert sanitize_ui_prefs({"accentHex": "#1A2b3C"}) == {"accentHex": "#1a2b3c"}
+    assert sanitize_ui_prefs({"accentHex": "#12345"}) == {}
+    assert sanitize_ui_prefs({"accentHex": "1a2b3c"}) == {}
+    assert sanitize_ui_prefs({"accentHex": "#12345g"}) == {}
+    assert sanitize_ui_prefs({"accentHex": 123456}) == {}
+
+
 # ---------- /profile/ui_prefs endpoint ----------
 
 

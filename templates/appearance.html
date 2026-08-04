@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale }}">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ _('Appearance - nexora') }}</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.0" integrity="sha384-AIH1kL7JmmReCxSwiSyaRNwzSFO7h4Ir4F/PO28EKezqFza1LwIMgEPLd83KwmZ4" crossorigin="anonymous"></script>
+    <style type="text/tailwindcss">
+        @custom-variant dark (&:where(.dark, .dark *));
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1.0.22" integrity="sha384-E7dy6eN+cKffMM/2+QF5MMP1q8KS0AT4IlmT4v3mG2mNZ7ISeLRPdlHrlWJK/8yx" crossorigin="anonymous" type="module"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous">
+    <link rel="stylesheet" href="{{ url_for('static',filename='css/admin-tokens.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='css/profile.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='css/appearance.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
+</head>
+
+<body class="admin-page">
+
+    {% set active_page = 'appearance' %} {% include '_header.html' %}
+
+    <main>
+
+        <div class="appearance-pageheader">
+            <a href="{{ url_for('profile') }}" class="appearance-back" data-testid="appearance-back">
+                <i class="fas fa-arrow-left"></i>
+                <span>{{ _("Back to profile") }}</span>
+            </a>
+            <h1 class="profile-title">{{ _("Appearance") }}</h1>
+            <p class="profile-lede">{{ _("Choose how nexora looks for you. Changes apply instantly and follow your account on every device.") }}</p>
+            <span class="profile-appearance-saved" id="uiPrefsSaved" hidden>
+                <i class="fas fa-circle-check"></i><span>{{ _("Saved") }}</span>
+            </span>
+        </div>
+
+        <div class="appearance-grid">
+
+            <div class="appearance-controls">
+
+                <section class="profile-card" id="appearance-color">
+                    <header class="profile-card-header">
+                        <div class="profile-card-icon"><i class="fas fa-palette"></i></div>
+                        <div>
+                            <h2 class="profile-card-title">{{ _("Theme & color") }}</h2>
+                            <p class="profile-card-sub">{{ _("Buttons, links and highlights across nexora.") }}</p>
+                        </div>
+                    </header>
+
+                    <div class="profile-appearance">
+                        <div class="profile-appearance-row">
+                            <div class="profile-appearance-info">
+                                <span class="profile-appearance-label">{{ _("Theme") }}</span>
+                                <span class="profile-appearance-hint">{{ _("System follows your operating system setting.") }}</span>
+                            </div>
+                            <div class="profile-seg" role="group" aria-label="{{ _('Theme') }}">
+                                <button type="button" class="profile-seg-btn" data-uipref="theme" data-value="light" data-testid="appearance-theme-light">
+                                    <i class="fas fa-sun"></i><span>{{ _("Light") }}</span>
+                                </button>
+                                <button type="button" class="profile-seg-btn" data-uipref="theme" data-value="dark" data-testid="appearance-theme-dark">
+                                    <i class="fas fa-moon"></i><span>{{ _("Dark") }}</span>
+                                </button>
+                                <button type="button" class="profile-seg-btn" data-uipref="theme" data-value="system" data-testid="appearance-theme-system">
+                                    <i class="fas fa-desktop"></i><span>{{ _("System") }}</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="profile-appearance-row">
+                            <div class="profile-appearance-info">
+                                <span class="profile-appearance-label">{{ _("Accent color") }}</span>
+                                <span class="profile-appearance-hint">{{ _("Pick a preset or choose any color you like.") }}</span>
+                            </div>
+                            <div class="profile-accents" role="group" aria-label="{{ _('Accent color') }}">
+                                <button type="button" class="profile-accent" data-uipref="accent" data-value="indigo"
+                                    style="--swatch: linear-gradient(135deg,#4f46e5,#7c3aed)" title="{{ _('Indigo') }}" aria-label="{{ _('Indigo') }}" data-testid="appearance-accent-indigo"></button>
+                                <button type="button" class="profile-accent" data-uipref="accent" data-value="violet"
+                                    style="--swatch: linear-gradient(135deg,#7c3aed,#c026d3)" title="{{ _('Violet') }}" aria-label="{{ _('Violet') }}" data-testid="appearance-accent-violet"></button>
+                                <button type="button" class="profile-accent" data-uipref="accent" data-value="emerald"
+                                    style="--swatch: linear-gradient(135deg,#059669,#0d9488)" title="{{ _('Emerald') }}" aria-label="{{ _('Emerald') }}" data-testid="appearance-accent-emerald"></button>
+                                <button type="button" class="profile-accent" data-uipref="accent" data-value="amber"
+                                    style="--swatch: linear-gradient(135deg,#d97706,#ea580c)" title="{{ _('Amber') }}" aria-label="{{ _('Amber') }}" data-testid="appearance-accent-amber"></button>
+                                <button type="button" class="profile-accent" data-uipref="accent" data-value="rose"
+                                    style="--swatch: linear-gradient(135deg,#e11d48,#db2777)" title="{{ _('Rose') }}" aria-label="{{ _('Rose') }}" data-testid="appearance-accent-rose"></button>
+                                <button type="button" class="profile-accent" data-uipref="accent" data-value="sky"
+                                    style="--swatch: linear-gradient(135deg,#0284c7,#0891b2)" title="{{ _('Sky') }}" aria-label="{{ _('Sky') }}" data-testid="appearance-accent-sky"></button>
+                                <span class="appearance-custom-wrap" title="{{ _('Custom color') }}">
+                                    <input type="color" id="accentCustom" class="appearance-custom-input"
+                                        value="#4f46e5" aria-label="{{ _('Custom color') }}" data-testid="appearance-accent-custom">
+                                    <i class="fas fa-eye-dropper"></i>
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="profile-appearance-row">
+                            <div class="profile-appearance-info">
+                                <span class="profile-appearance-label">{{ _("Background") }}</span>
+                                <span class="profile-appearance-hint">{{ _("A subtle backdrop behind every page.") }}</span>
+                            </div>
+                            <div class="profile-seg" role="group" aria-label="{{ _('Background') }}">
+                                <button type="button" class="profile-seg-btn" data-uipref="background" data-value="plain" data-testid="appearance-bg-plain">
+                                    <i class="fas fa-square"></i><span>{{ _("Plain") }}</span>
+                                </button>
+                                <button type="button" class="profile-seg-btn" data-uipref="background" data-value="aurora" data-testid="appearance-bg-aurora">
+                                    <i class="fas fa-cloud-sun"></i><span>{{ _("Aurora") }}</span>
+                                </button>
+                                <button type="button" class="profile-seg-btn" data-uipref="background" data-value="grid" data-testid="appearance-bg-grid">
+                                    <i class="fas fa-border-all"></i><span>{{ _("Grid") }}</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="profile-card" id="appearance-layout">
+                    <header class="profile-card-header">
+                        <div class="profile-card-icon"><i class="fas fa-ruler-combined"></i></div>
+                        <div>
+                            <h2 class="profile-card-title">{{ _("Layout & type") }}</h2>
+                            <p class="profile-card-sub">{{ _("Size, spacing and shape of the interface.") }}</p>
+                        </div>
+                    </header>
+
+                    <div class="profile-appearance">
+                        <div class="profile-appearance-row">
+                            <div class="profile-appearance-info">
+                                <span class="profile-appearance-label">{{ _("Font size") }}</span>
+                                <span class="profile-appearance-hint">{{ _("Scales the whole interface.") }}</span>
+                            </div>
+                            <div class="profile-seg" role="group" aria-label="{{ _('Font size') }}">
+                                <button type="button" class="profile-seg-btn" data-uipref="fontscale" data-value="sm" data-testid="appearance-fontscale-sm">
+                                    <span class="appearance-fs-sm">A</span><span>{{ _("Small") }}</span>
+                                </button>
+                                <button type="button" class="profile-seg-btn" data-uipref="fontscale" data-value="md" data-testid="appearance-fontscale-md">
+                                    <span>A</span><span>{{ _("Default") }}</span>
+                                </button>
+                                <button type="button" class="profile-seg-btn" data-uipref="fontscale" data-value="lg" data-testid="appearance-fontscale-lg">
+                                    <span class="appearance-fs-lg">A</span><span>{{ _("Large") }}</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="profile-appearance-row">
+                            <div class="profile-appearance-info">
+                                <span class="profile-appearance-label">{{ _("Density") }}</span>
+                                <span class="profile-appearance-hint">{{ _("Compact fits more rows on screen.") }}</span>
+                            </div>
+                            <div class="profile-seg" role="group" aria-label="{{ _('Density') }}">
+                                <button type="button" class="profile-seg-btn" data-uipref="density" data-value="comfortable" data-testid="appearance-density-comfortable">
+                                    <i class="fas fa-table-cells-large"></i><span>{{ _("Comfortable") }}</span>
+                                </button>
+                                <button type="button" class="profile-seg-btn" data-uipref="density" data-value="compact" data-testid="appearance-density-compact">
+                                    <i class="fas fa-table-cells"></i><span>{{ _("Compact") }}</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="profile-appearance-row">
+                            <div class="profile-appearance-info">
+                                <span class="profile-appearance-label">{{ _("Corner style") }}</span>
+                                <span class="profile-appearance-hint">{{ _("How rounded cards, buttons and inputs are.") }}</span>
+                            </div>
+                            <div class="profile-seg" role="group" aria-label="{{ _('Corner style') }}">
+                                <button type="button" class="profile-seg-btn" data-uipref="radius" data-value="sharp" data-testid="appearance-radius-sharp">
+                                    <span class="appearance-corner appearance-corner--sharp"></span><span>{{ _("Sharp") }}</span>
+                                </button>
+                                <button type="button" class="profile-seg-btn" data-uipref="radius" data-value="default" data-testid="appearance-radius-default">
+                                    <span class="appearance-corner"></span><span>{{ _("Default") }}</span>
+                                </button>
+                                <button type="button" class="profile-seg-btn" data-uipref="radius" data-value="round" data-testid="appearance-radius-round">
+                                    <span class="appearance-corner appearance-corner--round"></span><span>{{ _("Round") }}</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="profile-appearance-row">
+                            <div class="profile-appearance-info">
+                                <span class="profile-appearance-label">{{ _("High contrast") }}</span>
+                                <span class="profile-appearance-hint">{{ _("Stronger borders and darker secondary text.") }}</span>
+                            </div>
+                            <button type="button" class="profile-switch" role="switch" aria-checked="false"
+                                data-uipref-toggle="contrast" data-on="high" data-off="normal"
+                                aria-label="{{ _('High contrast') }}" data-testid="appearance-contrast">
+                                <span class="profile-switch-knob"></span>
+                            </button>
+                        </div>
+
+                        <div class="profile-appearance-row">
+                            <div class="profile-appearance-info">
+                                <span class="profile-appearance-label">{{ _("Table stripes") }}</span>
+                                <span class="profile-appearance-hint">{{ _("Shade every other row in tables.") }}</span>
+                            </div>
+                            <button type="button" class="profile-switch" role="switch" aria-checked="false"
+                                data-uipref-toggle="stripes" data-on="on" data-off="off"
+                                aria-label="{{ _('Table stripes') }}" data-testid="appearance-stripes">
+                                <span class="profile-switch-knob"></span>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="profile-card" id="appearance-motion">
+                    <header class="profile-card-header">
+                        <div class="profile-card-icon"><i class="fas fa-wand-magic-sparkles"></i></div>
+                        <div>
+                            <h2 class="profile-card-title">{{ _("Motion") }}</h2>
+                            <p class="profile-card-sub">{{ _("Watch the preview replay to compare styles.") }}</p>
+                        </div>
+                    </header>
+
+                    <div class="profile-appearance">
+                        <div class="profile-appearance-row">
+                            <div class="profile-appearance-info">
+                                <span class="profile-appearance-label">{{ _("Animations") }}</span>
+                                <span class="profile-appearance-hint">{{ _("Reduced turns off decorative motion everywhere.") }}</span>
+                            </div>
+                            <div class="profile-seg" role="group" aria-label="{{ _('Animations') }}">
+                                <button type="button" class="profile-seg-btn" data-uipref="motion" data-value="full" data-testid="appearance-motion-full">
+                                    <i class="fas fa-wand-magic-sparkles"></i><span>{{ _("Full") }}</span>
+                                </button>
+                                <button type="button" class="profile-seg-btn" data-uipref="motion" data-value="reduced" data-testid="appearance-motion-reduced">
+                                    <i class="fas fa-minus"></i><span>{{ _("Reduced") }}</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="profile-appearance-row">
+                            <div class="profile-appearance-info">
+                                <span class="profile-appearance-label">{{ _("Page entrance") }}</span>
+                                <span class="profile-appearance-hint">{{ _("How cards appear when a page loads.") }}</span>
+                            </div>
+                            <div class="profile-seg" role="group" aria-label="{{ _('Page entrance') }}">
+                                <button type="button" class="profile-seg-btn" data-uipref="entrance" data-value="rise" data-testid="appearance-entrance-rise">
+                                    <i class="fas fa-arrow-up"></i><span>{{ _("Rise") }}</span>
+                                </button>
+                                <button type="button" class="profile-seg-btn" data-uipref="entrance" data-value="fade" data-testid="appearance-entrance-fade">
+                                    <i class="fas fa-circle-half-stroke"></i><span>{{ _("Fade") }}</span>
+                                </button>
+                                <button type="button" class="profile-seg-btn" data-uipref="entrance" data-value="none" data-testid="appearance-entrance-none">
+                                    <i class="fas fa-ban"></i><span>{{ _("Off") }}</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="profile-card" id="appearance-navigation">
+                    <header class="profile-card-header">
+                        <div class="profile-card-icon"><i class="fas fa-thumbtack"></i></div>
+                        <div>
+                            <h2 class="profile-card-title">{{ _("Navigation") }}</h2>
+                            <p class="profile-card-sub">{{ _("How the sidebar behaves.") }}</p>
+                        </div>
+                    </header>
+
+                    <div class="profile-appearance">
+                        <div class="profile-appearance-row">
+                            <div class="profile-appearance-info">
+                                <span class="profile-appearance-label">{{ _("Keep sidebar open") }}</span>
+                                <span class="profile-appearance-hint">{{ _("Pin the navigation rail so it stays expanded.") }}</span>
+                            </div>
+                            <button type="button" class="profile-switch" role="switch" aria-checked="false"
+                                data-uipref-toggle="sidebar" data-on="pinned" data-off="auto"
+                                aria-label="{{ _('Keep sidebar open') }}" data-testid="appearance-sidebar-pin">
+                                <span class="profile-switch-knob"></span>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="appearance-resetrow">
+                    <button type="button" class="profile-btn appearance-reset" id="appearanceReset" data-testid="appearance-reset">
+                        <i class="fas fa-rotate-left"></i>
+                        <span>{{ _("Reset to defaults") }}</span>
+                    </button>
+                </div>
+
+            </div>
+
+            <aside class="appearance-preview">
+                <div class="appearance-preview-card">
+                    <header class="appearance-preview-head">
+                        <span class="appearance-preview-title">{{ _("Live preview") }}</span>
+                        <button type="button" class="profile-btn appearance-replay" id="appearanceReplay" data-testid="appearance-replay">
+                            <i class="fas fa-rotate-right"></i>
+                            <span>{{ _("Replay") }}</span>
+                        </button>
+                    </header>
+
+                    <div class="appearance-canvas" id="appearanceCanvas">
+                        <div class="appearance-mock-head nx-rise">
+                            <div class="nx-page-head__title">
+                                <span class="nx-page-icon"><i class="fas fa-gauge-high"></i></span>
+                                <div>
+                                    <div class="appearance-mock-title">{{ _("Dashboard") }}</div>
+                                    <div class="appearance-mock-sub">{{ _("Today at a glance") }}</div>
+                                </div>
+                            </div>
+                            <button type="button" class="nx-btn nx-btn--primary nx-btn--sm" tabindex="-1">
+                                <i class="fas fa-plus"></i>{{ _("New report") }}
+                            </button>
+                        </div>
+
+                        <div class="appearance-mock-stats nx-rise-2">
+                            <div class="nx-card nx-stat">
+                                <div>
+                                    <p class="nx-stat__label">{{ _("Processed today") }}</p>
+                                    <span class="nx-stat__value">128</span>
+                                </div>
+                                <span class="nx-stat__chip nx-stat__chip--indigo"><i class="fas fa-file-circle-check"></i></span>
+                            </div>
+                            <div class="nx-card nx-stat">
+                                <div>
+                                    <p class="nx-stat__label">{{ _("Backlog") }}</p>
+                                    <span class="nx-stat__value">17</span>
+                                </div>
+                                <span class="nx-stat__chip nx-stat__chip--amber"><i class="fas fa-inbox"></i></span>
+                            </div>
+                        </div>
+
+                        <div class="nx-table-wrap nx-rise-3">
+                            <table class="nx-table">
+                                <thead>
+                                    <tr>
+                                        <th>{{ _("Workitem") }}</th>
+                                        <th>{{ _("Status") }}</th>
+                                        <th class="align-right">{{ _("Updated") }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td class="nx-mono">7822</td><td><span class="nx-label nx-label--green">{{ _("Ready") }}</span></td><td class="nx-mono align-right">09:14</td></tr>
+                                    <tr><td class="nx-mono">7815</td><td><span class="nx-label nx-label--indigo">{{ _("Validation") }}</span></td><td class="nx-mono align-right">09:02</td></tr>
+                                    <tr><td class="nx-mono">7809</td><td><span class="nx-label nx-label--amber">{{ _("Extraction") }}</span></td><td class="nx-mono align-right">08:47</td></tr>
+                                    <tr><td class="nx-mono">7791</td><td><span class="nx-label nx-label--red">{{ _("Failed") }}</span></td><td class="nx-mono align-right">08:31</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="appearance-mock-form nx-rise-3">
+                            <input type="text" class="nx-input" placeholder="{{ _('Search workitems...') }}" tabindex="-1">
+                            <button type="button" class="nx-btn nx-btn--secondary nx-btn--sm" tabindex="-1">{{ _("Filter") }}</button>
+                        </div>
+                    </div>
+
+                    <code class="appearance-spec" id="appearanceSpec" aria-hidden="true"></code>
+                </div>
+            </aside>
+
+        </div>
+    </main>
+
+    {% include 'js/_appearance_js.html' %}
+
+</body>
+
+</html>

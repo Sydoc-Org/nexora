@@ -97,6 +97,7 @@
                 { section: "Generali", label: "{{ _('PDQM') }}",                 icon: 'fa-file-lines',      url: "{{ url_for('generali_pdqm') }}" },
                 {% endif %}
                 { section: "{{ _('Quick action') }}", label: "{{ _('Toggle dark mode') }}", icon: 'fa-moon', action: 'toggle-dark' },
+                { section: "{{ _('Quick action') }}", label: "{{ _('Appearance') }}", icon: 'fa-palette', url: "{{ url_for('appearance') }}" },
                 { section: "{{ _('Account') }}", label: "{{ _('Sign out') }}", icon: 'fa-sign-out-alt', url: "{{ url_for('logout') }}" },
             ];
 
@@ -274,6 +275,9 @@
             }
 
             applyPinned(document.documentElement.classList.contains('sidebar-pinned'));
+            // Exposed so the appearance page's pin switch can re-sync the
+            // sidebar button + aside classes after changing the pref.
+            window.__nxApplyPinnedUi = applyPinned;
 
             if (pinToggle) {
                 pinToggle.addEventListener('click', () => {

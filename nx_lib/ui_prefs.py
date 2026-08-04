@@ -6,6 +6,7 @@ Values are allowlisted server-side; unknown keys or values are dropped.
 """
 
 import json
+import re
 
 from flask import current_app
 
@@ -16,11 +17,22 @@ from .db import engine_nexora_db
 # first value here).
 UI_PREF_CHOICES = {
     "theme": ("light", "dark", "system"),
-    "accent": ("indigo", "violet", "emerald", "amber", "rose", "sky"),
+    "accent": ("indigo", "violet", "emerald", "amber", "rose", "sky", "custom"),
     "motion": ("full", "reduced"),
     "entrance": ("rise", "fade", "none"),
     "density": ("comfortable", "compact"),
     "sidebar": ("auto", "pinned"),
+    "fontscale": ("md", "sm", "lg"),
+    "radius": ("default", "sharp", "round"),
+    "contrast": ("normal", "high"),
+    "stripes": ("off", "on"),
+    "background": ("plain", "aurora", "grid"),
+}
+
+# Free-form keys with their own validation (not enumerable).
+_HEX_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
+UI_PREF_PATTERNS = {
+    "accentHex": _HEX_RE,  # used when accent == 'custom'
 }
 
 
@@ -28,7 +40,13 @@ def sanitize_ui_prefs(raw):
     """Keep only known keys carrying allowed values."""
     if not isinstance(raw, dict):
         return {}
-    return {k: v for k, v in raw.items() if k in UI_PREF_CHOICES and v in UI_PREF_CHOICES[k]}
+    out = {}
+    for k, v in raw.items():
+        if k in UI_PREF_CHOICES and v in UI_PREF_CHOICES[k]:
+            out[k] = v
+        elif k in UI_PREF_PATTERNS and isinstance(v, str) and UI_PREF_PATTERNS[k].match(v):
+            out[k] = v.lower()
+    return out
 
 
 def load_ui_prefs(userid):

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-03 21:59+0200\n"
+"POT-Creation-Date: 2026-08-04 09:03+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -779,50 +779,50 @@ msgstr ""
 msgid "Could not clear the prepared documents. Please try again."
 msgstr ""
 
-#: templates/_header.html:89
+#: templates/_header.html:140
 msgid "Open navigation"
 msgstr ""
 
-#: templates/_header.html:106 templates/js/_header_js.html:57
+#: templates/_header.html:157 templates/js/_header_js.html:57
 #: templates/js/_header_js.html:58 templates/js/_header_js.html:59
 #: templates/js/_header_js.html:60 templates/js/_header_js.html:61
 msgid "Admin"
 msgstr ""
 
-#: templates/_header.html:113
+#: templates/_header.html:164
 msgid "Overview"
 msgstr ""
 
-#: templates/_header.html:118 templates/admin/access_control.html:19
+#: templates/_header.html:169 templates/admin/access_control.html:19
 #: templates/admin/admin_overview.html:58 templates/js/_header_js.html:58
 msgid "Access Control"
 msgstr ""
 
-#: templates/_header.html:123 templates/admin/admin_overview.html:68
+#: templates/_header.html:174 templates/admin/admin_overview.html:68
 #: templates/admin/organizations.html:19 templates/js/_header_js.html:59
 msgid "Organizations"
 msgstr ""
 
-#: templates/_header.html:128
+#: templates/_header.html:179
 msgid "Sessions"
 msgstr ""
 
-#: templates/_header.html:133
+#: templates/_header.html:184
 msgid "Logs"
 msgstr ""
 
-#: templates/_header.html:139
+#: templates/_header.html:190
 msgid "Maintenance"
 msgstr ""
 
-#: templates/_header.html:147 templates/_header.html:176
-#: templates/dashboard.html:26 templates/generali_documents.html:39
-#: templates/generali_reporting.html:54 templates/js/_header_js.html:70
-#: templates/js/_header_js.html:79
+#: templates/_header.html:198 templates/_header.html:227
+#: templates/appearance.html:297 templates/dashboard.html:26
+#: templates/generali_documents.html:39 templates/generali_reporting.html:54
+#: templates/js/_header_js.html:70 templates/js/_header_js.html:79
 msgid "Dashboard"
 msgstr ""
 
-#: templates/_header.html:148 templates/_header.html:190
+#: templates/_header.html:199 templates/_header.html:241
 #: templates/generali-dashboard.html:67
 #: templates/generali_additionalservices.html:50
 #: templates/generali_baseservices.html:50 templates/generali_documents.html:43
@@ -831,96 +831,102 @@ msgstr ""
 msgid "Reporting"
 msgstr ""
 
-#: templates/_header.html:149
+#: templates/_header.html:200
 msgid "Workitems"
 msgstr ""
 
-#: templates/_header.html:150 templates/js/_header_js.html:76
+#: templates/_header.html:201 templates/js/_header_js.html:76
 msgid "Invoices"
 msgstr ""
 
-#: templates/_header.html:183 templates/generali-dashboard.html:63
+#: templates/_header.html:234 templates/generali-dashboard.html:63
 #: templates/generali_reporting.html:46 templates/js/_header_js.html:82
 msgid "Document List"
 msgstr ""
 
-#: templates/_header.html:197 templates/js/_header_js.html:88
+#: templates/_header.html:248 templates/js/_header_js.html:88
 msgid "Additional Services"
 msgstr ""
 
-#: templates/_header.html:204 templates/js/_header_js.html:91
+#: templates/_header.html:255 templates/js/_header_js.html:91
 msgid "Base Services"
 msgstr ""
 
-#: templates/_header.html:211 templates/js/_header_js.html:94
+#: templates/_header.html:262 templates/js/_header_js.html:94
 msgid "Project Management"
 msgstr ""
 
-#: templates/_header.html:218 templates/js/_header_js.html:97
+#: templates/_header.html:269 templates/js/_header_js.html:97
 msgid "PDQM"
 msgstr ""
 
-#: templates/_header.html:225 templates/generali_importstatus.html:27
+#: templates/_header.html:276 templates/generali_importstatus.html:27
 msgid "Data Import Status"
 msgstr ""
 
-#: templates/_header.html:237 templates/_header.html:239
-#: templates/js/_header_js.html:273 templates/profile.html:416
-#: templates/profile.html:420
+#: templates/_header.html:288 templates/_header.html:290
+#: templates/appearance.html:261 templates/appearance.html:266
+#: templates/js/_header_js.html:274
 msgid "Keep sidebar open"
 msgstr ""
 
-#: templates/_header.html:243 templates/js/_header_js.html:99
+#: templates/_header.html:294 templates/js/_header_js.html:99
 msgid "Toggle dark mode"
 msgstr ""
 
-#: templates/_header.html:245
+#: templates/_header.html:296
 msgid "Dark Mode"
 msgstr ""
 
-#: templates/_header.html:253 templates/profile.html:42
+#: templates/_header.html:304 templates/profile.html:42
 #: templates/profile.html:122
 msgid "Profile Picture"
 msgstr ""
 
-#: templates/_header.html:263
+#: templates/_header.html:314
 msgid "Your profile"
 msgstr ""
 
-#: templates/_header.html:269 templates/_small_footer.html:28
+#: templates/_header.html:318 templates/appearance.html:32
+#: templates/js/_header_js.html:100 templates/profile.html:74
+#: templates/profile.html:317
+msgid "Appearance"
+msgstr ""
+
+#: templates/_header.html:324 templates/_small_footer.html:28
 msgid "Help"
 msgstr ""
 
-#: templates/_header.html:275 templates/_header.html:317
+#: templates/_header.html:330 templates/_header.html:372
 msgid "Switch user"
 msgstr ""
 
-#: templates/_header.html:281 templates/js/_header_js.html:100
+#: templates/_header.html:336 templates/js/_header_js.html:101
 #: templates/profile.html:81
 msgid "Sign out"
 msgstr ""
 
-#: templates/_header.html:298
+#: templates/_header.html:353
 msgid "Command palette"
 msgstr ""
 
-#: templates/_header.html:302
+#: templates/_header.html:357
 msgid "Type a command or search..."
 msgstr ""
 
-#: templates/_header.html:307
+#: templates/_header.html:362
 msgid "navigate"
 msgstr ""
 
-#: templates/_header.html:308
+#: templates/_header.html:363
 msgid "open"
 msgstr ""
 
-#: templates/_header.html:309
+#: templates/_header.html:364
 msgid "close"
 msgstr ""
 
-#: templates/_header.html:321
+#: templates/_header.html:376
 msgid "Switch to user..."
 msgstr ""
 
@@ -992,7 +998,7 @@ msgstr ""
 msgid "Shared with me"
 msgstr ""
 
-#: templates/_reporting_simple.html:62
+#: templates/_reporting_simple.html:62 templates/appearance.html:302
 msgid "New report"
 msgstr ""
 
@@ -1207,6 +1213,311 @@ msgstr ""
 
 #: templates/_small_footer.html:24
 msgid "Contact"
+msgstr ""
+
+#: templates/appearance.html:7
+msgid "Appearance - nexora"
+msgstr ""
+
+#: templates/appearance.html:30
+msgid "Back to profile"
+msgstr ""
+
+#: templates/appearance.html:33
+msgid ""
+"Choose how nexora looks for you. Changes apply instantly and follow your "
+"account on every device."
+msgstr ""
+
+#: templates/appearance.html:35 templates/js/_reporting_js.html:970
+#: templates/js/_reporting_js.html:982
+#: templates/js/_reporting_metrics_js.html:142
+#: templates/js/_reporting_sources_js.html:112
+msgid "Saved"
+msgstr ""
+
+#: templates/appearance.html:47
+msgid "Theme & color"
+msgstr ""
+
+#: templates/appearance.html:48
+msgid "Buttons, links and highlights across nexora."
+msgstr ""
+
+#: templates/appearance.html:55 templates/appearance.html:58
+msgid "Theme"
+msgstr ""
+
+#: templates/appearance.html:56
+msgid "System follows your operating system setting."
+msgstr ""
+
+#: templates/appearance.html:60
+msgid "Light"
+msgstr ""
+
+#: templates/appearance.html:63
+msgid "Dark"
+msgstr ""
+
+#: templates/appearance.html:66
+msgid "System"
+msgstr ""
+
+#: templates/appearance.html:73 templates/appearance.html:76
+msgid "Accent color"
+msgstr ""
+
+#: templates/appearance.html:74
+msgid "Pick a preset or choose any color you like."
+msgstr ""
+
+#: templates/appearance.html:78
+msgid "Indigo"
+msgstr ""
+
+#: templates/appearance.html:80
+msgid "Violet"
+msgstr ""
+
+#: templates/appearance.html:82
+msgid "Emerald"
+msgstr ""
+
+#: templates/appearance.html:84
+msgid "Amber"
+msgstr ""
+
+#: templates/appearance.html:86
+msgid "Rose"
+msgstr ""
+
+#: templates/appearance.html:88
+msgid "Sky"
+msgstr ""
+
+#: templates/appearance.html:89 templates/appearance.html:91
+msgid "Custom color"
+msgstr ""
+
+#: templates/appearance.html:99 templates/appearance.html:102
+msgid "Background"
+msgstr ""
+
+#: templates/appearance.html:100
+msgid "A subtle backdrop behind every page."
+msgstr ""
+
+#: templates/appearance.html:104
+msgid "Plain"
+msgstr ""
+
+#: templates/appearance.html:107
+msgid "Aurora"
+msgstr ""
+
+#: templates/appearance.html:110 templates/reporting.html:302
+msgid "Grid"
+msgstr ""
+
+#: templates/appearance.html:121
+msgid "Layout & type"
+msgstr ""
+
+#: templates/appearance.html:122
+msgid "Size, spacing and shape of the interface."
+msgstr ""
+
+#: templates/appearance.html:129 templates/appearance.html:132
+msgid "Font size"
+msgstr ""
+
+#: templates/appearance.html:130
+msgid "Scales the whole interface."
+msgstr ""
+
+#: templates/appearance.html:134
+msgid "Small"
+msgstr ""
+
+#: templates/appearance.html:137 templates/appearance.html:170
+msgid "Default"
+msgstr ""
+
+#: templates/appearance.html:140
+msgid "Large"
+msgstr ""
+
+#: templates/appearance.html:147 templates/appearance.html:150
+msgid "Density"
+msgstr ""
+
+#: templates/appearance.html:148
+msgid "Compact fits more rows on screen."
+msgstr ""
+
+#: templates/appearance.html:152
+msgid "Comfortable"
+msgstr ""
+
+#: templates/appearance.html:155
+msgid "Compact"
+msgstr ""
+
+#: templates/appearance.html:162 templates/appearance.html:165
+msgid "Corner style"
+msgstr ""
+
+#: templates/appearance.html:163
+msgid "How rounded cards, buttons and inputs are."
+msgstr ""
+
+#: templates/appearance.html:167
+msgid "Sharp"
+msgstr ""
+
+#: templates/appearance.html:173
+msgid "Round"
+msgstr ""
+
+#: templates/appearance.html:180 templates/appearance.html:185
+msgid "High contrast"
+msgstr ""
+
+#: templates/appearance.html:181
+msgid "Stronger borders and darker secondary text."
+msgstr ""
+
+#: templates/appearance.html:192 templates/appearance.html:197
+msgid "Table stripes"
+msgstr ""
+
+#: templates/appearance.html:193
+msgid "Shade every other row in tables."
+msgstr ""
+
+#: templates/appearance.html:208
+msgid "Motion"
+msgstr ""
+
+#: templates/appearance.html:209
+msgid "Watch the preview replay to compare styles."
+msgstr ""
+
+#: templates/appearance.html:216 templates/appearance.html:219
+msgid "Animations"
+msgstr ""
+
+#: templates/appearance.html:217
+msgid "Reduced turns off decorative motion everywhere."
+msgstr ""
+
+#: templates/appearance.html:221
+msgid "Full"
+msgstr ""
+
+#: templates/appearance.html:224
+msgid "Reduced"
+msgstr ""
+
+#: templates/appearance.html:231 templates/appearance.html:234
+msgid "Page entrance"
+msgstr ""
+
+#: templates/appearance.html:232
+msgid "How cards appear when a page loads."
+msgstr ""
+
+#: templates/appearance.html:236
+msgid "Rise"
+msgstr ""
+
+#: templates/appearance.html:239
+msgid "Fade"
+msgstr ""
+
+#: templates/appearance.html:242
+msgid "Off"
+msgstr ""
+
+#: templates/appearance.html:253
+msgid "Navigation"
+msgstr ""
+
+#: templates/appearance.html:254
+msgid "How the sidebar behaves."
+msgstr ""
+
+#: templates/appearance.html:262
+msgid "Pin the navigation rail so it stays expanded."
+msgstr ""
+
+#: templates/appearance.html:276
+msgid "Reset to defaults"
+msgstr ""
+
+#: templates/appearance.html:285
+msgid "Live preview"
+msgstr ""
+
+#: templates/appearance.html:288
+msgid "Replay"
+msgstr ""
+
+#: templates/appearance.html:298
+msgid "Today at a glance"
+msgstr ""
+
+#: templates/appearance.html:309
+msgid "Processed today"
+msgstr ""
+
+#: templates/appearance.html:316
+msgid "Backlog"
+msgstr ""
+
+#: templates/appearance.html:327 templates/workitems_overview.html:95
+#: templates/workitems_overview.html:355
+msgid "Workitem"
+msgstr ""
+
+#: templates/admin/logs.html:64 templates/admin/logs.html:97
+#: templates/admin/user_detail.html:226 templates/appearance.html:328
+#: templates/generali_importstatus.html:48
+#: templates/generali_importstatus.html:108
+#: templates/generali_reporting.html:114 templates/invoices.html:78
+#: templates/invoices.html:123 templates/workitems_overview.html:124
+#: templates/workitems_overview.html:363
+msgid "Status"
+msgstr ""
+
+#: templates/appearance.html:329 templates/generali_importstatus.html:105
+msgid "Updated"
+msgstr ""
+
+#: templates/appearance.html:333
+msgid "Ready"
+msgstr ""
+
+#: templates/appearance.html:334 templates/hero.html:148
+msgid "Validation"
+msgstr ""
+
+#: templates/appearance.html:335 templates/hero.html:141
+msgid "Extraction"
+msgstr ""
+
+#: templates/appearance.html:336 templates/generali_importstatus.html:55
+#: templates/js/_generali_import_status_js.html:19
+msgid "Failed"
+msgstr ""
+
+#: templates/appearance.html:342
+msgid "Search workitems..."
+msgstr ""
+
+#: templates/appearance.html:343
+msgid "Filter"
 msgstr ""
 
 #: templates/dashboard.html:7
@@ -1871,15 +2182,6 @@ msgstr ""
 msgid "CSV imports into the document database"
 msgstr ""
 
-#: templates/admin/logs.html:64 templates/admin/logs.html:97
-#: templates/admin/user_detail.html:226 templates/generali_importstatus.html:48
-#: templates/generali_importstatus.html:108
-#: templates/generali_reporting.html:114 templates/invoices.html:78
-#: templates/invoices.html:123 templates/workitems_overview.html:124
-#: templates/workitems_overview.html:363
-msgid "Status"
-msgstr ""
-
 #: templates/generali_importstatus.html:53
 #: templates/js/_generali_import_status_js.html:17
 #: templates/js/admin/_organizations_js.html:138
@@ -1892,11 +2194,6 @@ msgstr ""
 #: templates/generali_importstatus.html:54
 #: templates/js/_generali_import_status_js.html:18
 msgid "Running"
-msgstr ""
-
-#: templates/generali_importstatus.html:55
-#: templates/js/_generali_import_status_js.html:19
-msgid "Failed"
 msgstr ""
 
 #: templates/generali_importstatus.html:63
@@ -1929,10 +2226,6 @@ msgstr ""
 
 #: templates/generali_importstatus.html:102
 msgid "New"
-msgstr ""
-
-#: templates/generali_importstatus.html:105
-msgid "Updated"
 msgstr ""
 
 #: templates/generali_monthreport.html:62
@@ -2192,14 +2485,6 @@ msgstr ""
 #: templates/hero.html:134 templates/js/_workitems_overview_js.html:276
 #: templates/workitems_overview.html:325
 msgid "Import"
-msgstr ""
-
-#: templates/hero.html:141
-msgid "Extraction"
-msgstr ""
-
-#: templates/hero.html:148
-msgid "Validation"
 msgstr ""
 
 #: templates/hero.html:161
@@ -2546,10 +2831,6 @@ msgstr ""
 msgid "Profile"
 msgstr ""
 
-#: templates/profile.html:74 templates/profile.html:317
-msgid "Appearance"
-msgstr ""
-
 #: templates/profile.html:93
 msgid "Profile information"
 msgstr ""
@@ -2627,118 +2908,8 @@ msgid ""
 "applied on every device."
 msgstr ""
 
-#: templates/js/_reporting_js.html:970 templates/js/_reporting_js.html:982
-#: templates/js/_reporting_metrics_js.html:142
-#: templates/js/_reporting_sources_js.html:112 templates/profile.html:321
-msgid "Saved"
-msgstr ""
-
-#: templates/profile.html:329 templates/profile.html:332
-msgid "Theme"
-msgstr ""
-
-#: templates/profile.html:330
-msgid "System follows your operating system setting."
-msgstr ""
-
-#: templates/profile.html:334
-msgid "Light"
-msgstr ""
-
-#: templates/profile.html:337
-msgid "Dark"
-msgstr ""
-
-#: templates/profile.html:340
-msgid "System"
-msgstr ""
-
-#: templates/profile.html:347 templates/profile.html:350
-msgid "Accent color"
-msgstr ""
-
-#: templates/profile.html:348
-msgid "Buttons, links and highlights across nexora."
-msgstr ""
-
-#: templates/profile.html:352
-msgid "Indigo"
-msgstr ""
-
-#: templates/profile.html:354
-msgid "Violet"
-msgstr ""
-
-#: templates/profile.html:356
-msgid "Emerald"
-msgstr ""
-
-#: templates/profile.html:358
-msgid "Amber"
-msgstr ""
-
-#: templates/profile.html:360
-msgid "Rose"
-msgstr ""
-
-#: templates/profile.html:362
-msgid "Sky"
-msgstr ""
-
-#: templates/profile.html:368 templates/profile.html:371
-msgid "Animations"
-msgstr ""
-
-#: templates/profile.html:369
-msgid "Reduced turns off decorative motion everywhere."
-msgstr ""
-
-#: templates/profile.html:373
-msgid "Full"
-msgstr ""
-
-#: templates/profile.html:376
-msgid "Reduced"
-msgstr ""
-
-#: templates/profile.html:383 templates/profile.html:386
-msgid "Page entrance"
-msgstr ""
-
-#: templates/profile.html:384
-msgid "How cards appear when a page loads."
-msgstr ""
-
-#: templates/profile.html:388
-msgid "Rise"
-msgstr ""
-
-#: templates/profile.html:391
-msgid "Fade"
-msgstr ""
-
-#: templates/profile.html:394
-msgid "Off"
-msgstr ""
-
-#: templates/profile.html:401 templates/profile.html:404
-msgid "Density"
-msgstr ""
-
-#: templates/profile.html:402
-msgid "Compact fits more rows on screen."
-msgstr ""
-
-#: templates/profile.html:406
-msgid "Comfortable"
-msgstr ""
-
-#: templates/profile.html:409
-msgid "Compact"
-msgstr ""
-
-#: templates/profile.html:417
-msgid "Pin the navigation rail so it stays expanded."
+#: templates/profile.html:332
+msgid "Open appearance settings"
 msgstr ""
 
 #: templates/reporting.html:7
@@ -2868,10 +3039,6 @@ msgstr ""
 
 #: templates/reporting.html:295
 msgid "Target"
-msgstr ""
-
-#: templates/reporting.html:302
-msgid "Grid"
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:94 templates/reporting.html:303
@@ -3286,10 +3453,6 @@ msgstr ""
 
 #: templates/workitems_overview.html:59
 msgid "List of all workitems"
-msgstr ""
-
-#: templates/workitems_overview.html:95 templates/workitems_overview.html:355
-msgid "Workitem"
 msgstr ""
 
 #: templates/workitems_overview.html:108
@@ -4407,23 +4570,23 @@ msgstr ""
 msgid "Work items"
 msgstr ""
 
-#: templates/js/_header_js.html:99
+#: templates/js/_header_js.html:99 templates/js/_header_js.html:100
 msgid "Quick action"
 msgstr ""
 
-#: templates/js/_header_js.html:100
+#: templates/js/_header_js.html:101
 msgid "Account"
 msgstr ""
 
-#: templates/js/_header_js.html:144
+#: templates/js/_header_js.html:145
 msgid "No matching commands."
 msgstr ""
 
-#: templates/js/_header_js.html:273
+#: templates/js/_header_js.html:274
 msgid "Unpin sidebar"
 msgstr ""
 
-#: templates/js/_header_js.html:361
+#: templates/js/_header_js.html:365
 msgid "No matching users."
 msgstr ""
 

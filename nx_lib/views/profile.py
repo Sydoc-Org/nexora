@@ -227,6 +227,21 @@ def set_language(lang=None):
             conn.close()
 
 
+def appearance():
+    """Standalone appearance-settings page (linked from the profile)."""
+    try:
+        if "username" not in session:
+            return redirect(url_for("login"))
+        return render_template(
+            "appearance.html",
+            userid=session.get("userid", "Unknown"),
+            logged_in_user=session.get("username", "Unknown"),
+            pageV=page_visibility(),
+        )
+    except Exception:
+        return render_template("500.html")
+
+
 def set_ui_prefs():
     """AJAX endpoint: merge a partial prefs patch into the stored UI prefs."""
     if "userid" not in session:
@@ -257,6 +272,7 @@ def register_routes(app):
         methods=["POST", "GET"],
     )
     app.add_url_rule("/language/<lang>", endpoint="set_language", view_func=set_language)
+    app.add_url_rule("/appearance", endpoint="appearance", view_func=appearance)
     app.add_url_rule(
         "/profile/ui_prefs",
         endpoint="set_ui_prefs",

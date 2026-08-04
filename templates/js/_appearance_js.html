@@ -1,0 +1,132 @@
+<script>
+(function () {
+    document.addEventListener('DOMContentLoaded', function () {
+
+        const savedNote = document.getElementById('uiPrefsSaved');
+        let savedTimer = null;
+        function markSaved() {
+            if (!savedNote) return;
+            savedNote.hidden = false;
+            clearTimeout(savedTimer);
+            savedTimer = setTimeout(function () { savedNote.hidden = true; }, 2000);
+        }
+
+        function syncThemeButton() {
+            if (window.__nxApplyThemeUi) {
+                window.__nxApplyThemeUi(document.documentElement.classList.contains('dark'));
+            }
+        }
+
+        // -------- Segmented buttons + accent swatches --------
+        function refreshControls() {
+            const prefs = window.__nxPrefs || {};
+            document.querySelectorAll('[data-uipref]').forEach(function (btn) {
+                const key = btn.getAttribute('data-uipref');
+                btn.classList.toggle('is-active', prefs[key] === btn.getAttribute('data-value'));
+            });
+            document.querySelectorAll('[data-uipref-toggle]').forEach(function (sw) {
+                const key = sw.getAttribute('data-uipref-toggle');
+                sw.setAttribute('aria-checked',
+                    prefs[key] === sw.getAttribute('data-on') ? 'true' : 'false');
+            });
+            const picker = document.getElementById('accentCustom');
+            if (picker) {
+                if (prefs.accentHex) picker.value = prefs.accentHex;
+                picker.parentElement.classList.toggle('is-active', prefs.accent === 'custom');
+            }
+            updateSpec();
+        }
+
+        document.querySelectorAll('[data-uipref]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                if (!window.nxSetUiPref) return;
+                window.nxSetUiPref(btn.getAttribute('data-uipref'), btn.getAttribute('data-value'));
+                refreshControls();
+                markSaved();
+                if (btn.getAttribute('data-uipref') === 'theme') syncThemeButton();
+            });
+        });
+
+        // -------- Switches (contrast, stripes, sidebar pin) --------
+        document.querySelectorAll('[data-uipref-toggle]').forEach(function (sw) {
+            sw.addEventListener('click', function () {
+                if (!window.nxSetUiPref) return;
+                const key = sw.getAttribute('data-uipref-toggle');
+                const on = sw.getAttribute('aria-checked') !== 'true';
+                window.nxSetUiPref(key, on ? sw.getAttribute('data-on') : sw.getAttribute('data-off'));
+                refreshControls();
+                markSaved();
+                // Keep the sidebar button's icon/label + aside classes in sync.
+                if (key === 'sidebar' && window.__nxApplyPinnedUi) {
+                    window.__nxApplyPinnedUi(document.documentElement.classList.contains('sidebar-pinned'));
+                }
+            });
+        });
+
+        // -------- Custom accent color picker --------
+        const picker = document.getElementById('accentCustom');
+        if (picker) {
+            let pickerTimer = null;
+            picker.addEventListener('input', function () {
+                // Live-preview while dragging; persist debounced.
+                clearTimeout(pickerTimer);
+                const hex = picker.value;
+                pickerTimer = setTimeout(function () {
+                    if (!window.nxSetUiPref) return;
+                    window.nxSetUiPref({ accent: 'custom', accentHex: hex });
+                    refreshControls();
+                    markSaved();
+                }, 150);
+            });
+        }
+
+        // -------- Replay entrance animation in the preview --------
+        const replay = document.getElementById('appearanceReplay');
+        if (replay) {
+            replay.addEventListener('click', function () {
+                document.querySelectorAll('#appearanceCanvas .nx-rise, #appearanceCanvas .nx-rise-2, #appearanceCanvas .nx-rise-3')
+                    .forEach(function (el) {
+                        const cls = el.classList.contains('nx-rise-3') ? 'nx-rise-3'
+                            : el.classList.contains('nx-rise-2') ? 'nx-rise-2' : 'nx-rise';
+                        el.classList.remove(cls);
+                        void el.offsetWidth; // restart the animation
+                        el.classList.add(cls);
+                    });
+            });
+        }
+
+        // -------- Reset to defaults --------
+        const reset = document.getElementById('appearanceReset');
+        if (reset) {
+            reset.addEventListener('click', function () {
+                if (!window.nxSetUiPref) return;
+                window.nxSetUiPref({
+                    theme: 'light', accent: 'indigo', accentHex: '#4f46e5',
+                    motion: 'full', entrance: 'rise', density: 'comfortable',
+                    sidebar: 'auto', fontscale: 'md', radius: 'default',
+                    contrast: 'normal', stripes: 'off', background: 'plain'
+                });
+                refreshControls();
+                markSaved();
+                syncThemeButton();
+                if (window.__nxApplyPinnedUi) window.__nxApplyPinnedUi(false);
+            });
+        }
+
+        // -------- Spec readout (mono strip under the preview) --------
+        function updateSpec() {
+            const spec = document.getElementById('appearanceSpec');
+            if (!spec) return;
+            const prefs = window.__nxPrefs || {};
+            const cs = getComputedStyle(document.documentElement);
+            const accent = (cs.getPropertyValue('--nx-accent') || '').trim();
+            const radius = (cs.getPropertyValue('--nx-radius') || '').trim();
+            const zoom = prefs.fontscale === 'sm' ? '90%' : prefs.fontscale === 'lg' ? '110%' : '100%';
+            spec.textContent = 'accent ' + accent + ' · radius ' + radius + ' · zoom ' + zoom +
+                ' · ' + (prefs.entrance || 'rise') + (prefs.motion === 'reduced' ? ' · reduced' : '');
+        }
+
+        refreshControls();
+    });
+})();
+</script>

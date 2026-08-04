@@ -550,3 +550,62 @@ html.nx-compact .admin-card { padding: 12px; }
 html.nx-compact body.admin-page main { padding: 18px 28px; }
 html.nx-compact .nx-btn { padding: 6px 11px; }
 html.nx-compact .nx-input, html.nx-compact .nx-select { padding: 6px 10px; }
+
+/* ============================================================
+   8. APPEARANCE EXTRAS — corner style, font scale, contrast,
+   table stripes, page backdrop (all driven by UI prefs).
+   ============================================================ */
+
+/* Corner style */
+html[data-radius="sharp"] {
+  --nx-radius: 4px; --nx-radius-sm: 3px;
+  --nx-radius-lg: 5px; --nx-radius-hero: 6px;
+}
+html[data-radius="round"] {
+  --nx-radius: 16px; --nx-radius-sm: 10px;
+  --nx-radius-lg: 18px; --nx-radius-hero: 22px;
+}
+/* ponytail: admin-tokens hardcodes a few 7px/10px radii — presets cover
+   the .nx-* surfaces; tokenize admin-tokens.css if the gap ever matters. */
+
+/* Font scale — zoom scales px-based layouts too (Chromium + FF 126+). */
+html[data-fontscale="sm"] body { zoom: 0.9; }
+html[data-fontscale="lg"] body { zoom: 1.1; }
+
+/* High contrast: stronger borders + darker secondary text */
+html.nx-contrast {
+  --nx-border: #cbd5e1; --nx-border-strong: #94a3b8; --nx-divider: #e2e8f0;
+  --nx-text-sec: #4b5563; --nx-text-meta: #6b7280;
+  --a-border: #cbd5e1; --a-border-input: #94a3b8; --a-row-divider: #e2e8f0;
+  --a-text-sec: #4b5563; --a-text-meta: #6b7280;
+}
+html.nx-contrast.dark {
+  --nx-border: #475569; --nx-border-strong: #64748b; --nx-divider: #334155;
+  --nx-text-sec: #cbd5e1; --nx-text-meta: #94a3b8;
+  --a-border: #475569; --a-border-input: #64748b; --a-row-divider: #334155;
+  --a-text-sec: #cbd5e1; --a-text-meta: #94a3b8;
+}
+
+/* Table stripes */
+html.nx-stripes .nx-table tbody tr:not(.details-row):nth-child(even) td,
+html.nx-stripes .admin-table tbody tr:not(.details-row):nth-child(even) td {
+  background: color-mix(in srgb, var(--nx-alt) 55%, transparent);
+}
+
+/* Page backdrop */
+html[data-bg="aurora"] body.nx-app,
+html[data-bg="aurora"] body.admin-page {
+  background:
+    radial-gradient(60rem 40rem at 110% -10%, var(--nx-accent-soft), transparent 60%),
+    radial-gradient(50rem 36rem at -10% 110%,
+      color-mix(in srgb, var(--nx-violet) 9%, transparent), transparent 60%),
+    var(--nx-page);
+  background-attachment: fixed;
+}
+html[data-bg="grid"] body.nx-app,
+html[data-bg="grid"] body.admin-page {
+  background-color: var(--nx-page);
+  background-image: radial-gradient(
+    color-mix(in srgb, var(--nx-border) 70%, transparent) 1px, transparent 1px);
+  background-size: 22px 22px;
+}

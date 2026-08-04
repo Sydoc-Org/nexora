@@ -1,0 +1,168 @@
+/* ============================================================
+   APPEARANCE PAGE — layout + live preview canvas.
+   Control styles (cards, segments, swatches, switches) come
+   from profile.css; nexora-ui.css supplies the .nx-* preview
+   components and tokens.
+   ============================================================ */
+
+body.admin-page main { max-width: 1240px; }
+
+.appearance-pageheader { margin-bottom: 24px; position: relative; }
+.appearance-pageheader .profile-title { margin: 0 0 4px; }
+.appearance-pageheader .profile-appearance-saved {
+    position: absolute; right: 0; top: 6px;
+}
+
+.appearance-back {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 12.5px; font-weight: 500; color: var(--a-text-sec);
+    text-decoration: none; margin-bottom: 14px;
+    padding: 5px 10px; border-radius: 7px;
+}
+.appearance-back:hover { background: var(--a-alt); color: var(--a-text); }
+
+.profile-lede { font-size: 13.5px; color: var(--a-text-sec); margin: 0; }
+
+/* Two-column shell: controls left, sticky preview right */
+.appearance-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(330px, 400px);
+    gap: 24px;
+    align-items: start;
+}
+.appearance-controls .profile-seg { flex-wrap: wrap; max-width: 100%; }
+.appearance-controls { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+
+.appearance-resetrow { display: flex; justify-content: flex-end; }
+.appearance-reset {
+    background: transparent; border: 1px solid var(--a-border-input);
+    color: var(--a-text-sec);
+}
+.appearance-reset:hover { background: var(--a-alt); color: var(--a-text); }
+
+/* ---------- Preview ---------- */
+.appearance-preview { position: sticky; top: 24px; }
+.appearance-preview-card {
+    background: var(--a-card);
+    border: 1px solid var(--a-border);
+    border-radius: 14px;
+    padding: 16px;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+.appearance-preview-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+}
+.appearance-preview-title {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.8px;
+    text-transform: uppercase; color: var(--a-text-meta);
+}
+.appearance-replay {
+    padding: 5px 11px; font-size: 12px;
+    background: transparent; border: 1px solid var(--a-border-input);
+    color: var(--a-text-sec);
+}
+.appearance-replay:hover { background: var(--a-alt); color: var(--a-text); }
+
+/* The canvas is a miniature nexora page: it uses the real tokens, so
+   every preference change re-paints it exactly like the app. */
+.appearance-canvas {
+    background: var(--nx-page);
+    border: 1px solid var(--nx-border);
+    border-radius: var(--nx-radius);
+    padding: 16px;
+    display: flex; flex-direction: column; gap: 12px;
+    overflow: hidden;
+}
+html[data-bg="aurora"] .appearance-canvas {
+    background:
+        radial-gradient(24rem 16rem at 110% -10%, var(--nx-accent-soft), transparent 60%),
+        radial-gradient(20rem 14rem at -10% 110%,
+            color-mix(in srgb, var(--nx-violet) 9%, transparent), transparent 60%),
+        var(--nx-page);
+}
+html[data-bg="grid"] .appearance-canvas {
+    background-color: var(--nx-page);
+    background-image: radial-gradient(
+        color-mix(in srgb, var(--nx-border) 70%, transparent) 1px, transparent 1px);
+    background-size: 22px 22px;
+}
+
+.appearance-mock-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+.appearance-mock-head .nx-page-icon { width: 36px; height: 36px; font-size: 15px; border-radius: var(--nx-radius); }
+.appearance-mock-title { font-size: 15px; font-weight: 600; color: var(--nx-text); line-height: 1.2; }
+.appearance-mock-sub { font-size: 11.5px; color: var(--nx-text-sec); }
+
+.appearance-mock-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.appearance-mock-stats .nx-stat__value { font-size: 22px; }
+.appearance-mock-stats .nx-stat__chip { width: 34px; height: 34px; font-size: 14px; border-radius: var(--nx-radius-sm); }
+
+.appearance-canvas .nx-table thead th { padding: 8px 12px; }
+.appearance-canvas .nx-table tbody td { padding: 9px 12px; }
+html.nx-compact .appearance-canvas .nx-table thead th { padding: 5px 10px; }
+html.nx-compact .appearance-canvas .nx-table tbody td { padding: 6px 10px; }
+
+.appearance-mock-form { display: flex; gap: 8px; }
+.appearance-mock-form .nx-input { flex: 1; }
+
+/* Mono spec readout under the canvas */
+.appearance-spec {
+    display: block;
+    margin-top: 10px;
+    font-family: var(--nx-mono);
+    font-size: 11px;
+    color: var(--a-text-meta);
+    text-align: center;
+    letter-spacing: 0.2px;
+    word-break: break-all;
+}
+
+/* ---------- Controls extras ---------- */
+.appearance-custom-wrap {
+    position: relative;
+    width: 30px; height: 30px; border-radius: 50%;
+    border: 2px dashed var(--a-border-input);
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; overflow: hidden;
+    transition: transform 0.15s, border-color 0.15s;
+}
+.appearance-custom-wrap:hover { transform: scale(1.12); border-color: var(--a-indigo); }
+.appearance-custom-wrap.is-active {
+    border-style: solid;
+    box-shadow: 0 0 0 2px var(--a-card), 0 0 0 4px var(--a-indigo);
+}
+.appearance-custom-wrap i {
+    font-size: 11px; color: var(--a-text-sec); pointer-events: none;
+    position: relative; z-index: 1;
+    text-shadow: 0 0 3px var(--a-card);
+}
+.appearance-custom-input {
+    position: absolute; inset: -6px;
+    width: 42px; height: 42px;
+    border: none; padding: 0; cursor: pointer;
+    background: transparent;
+}
+
+.appearance-fs-sm { font-size: 10px; }
+.appearance-fs-lg { font-size: 15px; font-weight: 700; }
+
+.appearance-corner {
+    width: 12px; height: 12px; display: inline-block;
+    border-top: 2px solid currentColor; border-left: 2px solid currentColor;
+    border-top-left-radius: 5px;
+}
+.appearance-corner--sharp { border-top-left-radius: 0; }
+.appearance-corner--round { border-top-left-radius: 10px; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1100px) {
+    .appearance-grid { grid-template-columns: 1fr; }
+    .appearance-preview { position: static; order: -1; }
+}
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+    .appearance-custom-wrap, .profile-accent { transition: none; }
+}

@@ -769,6 +769,23 @@ body.admin-page main {
     box-shadow: 0 0 0 2px var(--a-card), 0 0 0 4px var(--a-indigo-soft);
 }
 
+/* Teaser card linking to the /appearance page */
+.profile-appearance-teaser {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.profile-appearance-teaser-swatches { display: inline-flex; }
+.profile-appearance-teaser-swatches span {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--swatch);
+    border: 2px solid var(--a-card);
+    margin-left: -8px;
+}
+.profile-appearance-teaser-swatches span:first-child { margin-left: 0; }
+
 /* Toggle switch (sidebar pin) */
 .profile-switch {
     width: 42px;

@@ -10,6 +10,19 @@ Work toward 2.5.65.
 
 ### Added
 
+- Appearance: **standalone `/appearance` page** (#155) replacing the in-profile
+  controls (the profile keeps a teaser card linking to it; also reachable from
+  the profile dropdown and the Ctrl/Cmd+K palette). Adds a **live preview
+  canvas** — a miniature nexora page (header, KPI cards, table, form) built
+  from the real `--nx-*` tokens so every change repaints it instantly — with a
+  **Replay** button for comparing entrance animations, plus a mono spec
+  readout of the active tokens. New preferences on top of the #155 set:
+  **custom accent** (any hex via a native color picker; hover/soft/tint/
+  gradient shades derived client-side, dark-aware), **font size**
+  (small/default/large, zoom-based), **corner style** (sharp/default/round via
+  the radius tokens), **high contrast** (stronger borders + darker secondary
+  text), **table stripes**, **page background** (plain/aurora/grid), and a
+  one-click **Reset to defaults**.
 - Profile: **Appearance settings** (#155) — a new profile section with per-user
   UI preferences: theme (light/dark/**system**, the latter following
   `prefers-color-scheme`), **accent color** (indigo/violet/emerald/amber/rose/sky,

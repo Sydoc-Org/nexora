@@ -23,24 +23,73 @@
             var d = document.documentElement;
             var ls = function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } };
             var eff = {
-                theme:    stored.theme    || (ls('nexora-theme') === 'dark' ? 'dark' : 'light'),
-                accent:   stored.accent   || 'indigo',
-                motion:   stored.motion   || 'full',
-                entrance: stored.entrance || 'rise',
-                density:  stored.density  || 'comfortable',
-                sidebar:  stored.sidebar  || (ls('nexora-sidebar-pinned') === 'true' ? 'pinned' : 'auto')
+                theme:      stored.theme      || (ls('nexora-theme') === 'dark' ? 'dark' : 'light'),
+                accent:     stored.accent     || 'indigo',
+                accentHex:  stored.accentHex  || '#4f46e5',
+                motion:     stored.motion     || 'full',
+                entrance:   stored.entrance   || 'rise',
+                density:    stored.density    || 'comfortable',
+                sidebar:    stored.sidebar    || (ls('nexora-sidebar-pinned') === 'true' ? 'pinned' : 'auto'),
+                fontscale:  stored.fontscale  || 'md',
+                radius:     stored.radius     || 'default',
+                contrast:   stored.contrast   || 'normal',
+                stripes:    stored.stripes    || 'off',
+                background: stored.background || 'plain'
             };
             var sysDark = window.matchMedia('(prefers-color-scheme: dark)');
 
+            /* Custom accent: derive the token family (hover/soft/tint/gradient)
+               from one hex, dark-aware, and pin it via inline style props. */
+            var ACCENT_PROPS = ['--nx-accent', '--nx-accent-hover', '--nx-accent-soft',
+                '--nx-accent-tint', '--nx-violet', '--nx-brand-grad',
+                '--a-ink', '--a-ink-hover', '--a-indigo', '--a-indigo-soft'];
+            function applyCustomAccent(dark) {
+                var m = /^#([0-9a-f]{6})$/i.exec(eff.accentHex || '');
+                if (!m) return false;
+                var n = parseInt(m[1], 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+                function mix(t, w) {
+                    return 'rgb(' + Math.round(r + (w - r) * t) + ',' +
+                        Math.round(g + (w - g) * t) + ',' + Math.round(b + (w - b) * t) + ')';
+                }
+                function mixc(t, wr, wg, wb) {
+                    return 'rgb(' + Math.round(r + (wr - r) * t) + ',' +
+                        Math.round(g + (wg - g) * t) + ',' + Math.round(b + (wb - b) * t) + ')';
+                }
+                var base  = dark ? mix(0.30, 255) : 'rgb(' + r + ',' + g + ',' + b + ')';
+                var hover = dark ? mix(0.45, 255) : mix(0.15, 0);
+                var soft  = 'rgba(' + r + ',' + g + ',' + b + (dark ? ',0.22)' : ',0.12)');
+                var tint  = dark ? mix(0.62, 0) : mix(0.90, 255);
+                var partner = dark ? mix(0.55, 255) : mixc(0.28, 124, 58, 237);
+                var vals = [base, hover, soft, tint, partner,
+                    'linear-gradient(135deg, ' + base + ' 0%, ' + partner + ' 100%)',
+                    base, hover, base, soft];
+                for (var i = 0; i < ACCENT_PROPS.length; i++) d.style.setProperty(ACCENT_PROPS[i], vals[i]);
+                return true;
+            }
+
             function apply() {
-                d.classList.toggle('dark', eff.theme === 'dark' || (eff.theme === 'system' && sysDark.matches));
-                if (eff.accent !== 'indigo') d.setAttribute('data-accent', eff.accent);
-                else d.removeAttribute('data-accent');
+                var dark = eff.theme === 'dark' || (eff.theme === 'system' && sysDark.matches);
+                d.classList.toggle('dark', dark);
+                d.removeAttribute('data-accent');
+                for (var i = 0; i < ACCENT_PROPS.length; i++) d.style.removeProperty(ACCENT_PROPS[i]);
+                if (eff.accent === 'custom') {
+                    if (!applyCustomAccent(dark)) d.removeAttribute('data-accent');
+                } else if (eff.accent !== 'indigo') {
+                    d.setAttribute('data-accent', eff.accent);
+                }
                 d.classList.toggle('nx-motion-reduced', eff.motion === 'reduced');
                 if (eff.entrance !== 'rise') d.setAttribute('data-entrance', eff.entrance);
                 else d.removeAttribute('data-entrance');
                 d.classList.toggle('nx-compact', eff.density === 'compact');
                 d.classList.toggle('sidebar-pinned', eff.sidebar === 'pinned');
+                if (eff.fontscale !== 'md') d.setAttribute('data-fontscale', eff.fontscale);
+                else d.removeAttribute('data-fontscale');
+                if (eff.radius !== 'default') d.setAttribute('data-radius', eff.radius);
+                else d.removeAttribute('data-radius');
+                d.classList.toggle('nx-contrast', eff.contrast === 'high');
+                d.classList.toggle('nx-stripes', eff.stripes === 'on');
+                if (eff.background !== 'plain') d.setAttribute('data-bg', eff.background);
+                else d.removeAttribute('data-bg');
             }
             apply();
             sysDark.addEventListener('change', function () { if (eff.theme === 'system') apply(); });
@@ -51,23 +100,16 @@
             try { localStorage.setItem('nexora-ui-prefs', JSON.stringify(eff)); } catch (e) {}
 
             /* Shared setter: apply live, mirror legacy localStorage keys,
-               persist to the server (fire-and-forget). */
-            window.nxSetUiPref = function (key, value) {
-                eff[key] = value;
-                apply();
-                try {
-                    localStorage.setItem('nexora-ui-prefs', JSON.stringify(eff));
-                    if (key === 'theme') {
-                        localStorage.setItem('nexora-theme',
-                            d.classList.contains('dark') ? 'dark' : 'light');
-                    }
-                    if (key === 'sidebar') {
-                        localStorage.setItem('nexora-sidebar-pinned',
-                            value === 'pinned' ? 'true' : 'false');
-                    }
-                } catch (e) {}
-                var patch = {};
-                patch[key] = value;
+               persist to the server. Accepts a single key/value or an object
+               patch: nxSetUiPref({theme:'dark',...}). Writes are coalesced
+               and sent one at a time — parallel PATCHes would race the
+               read-merge-write on the server (last writer wins). */
+            var pendingPatch = null, patchInflight = false;
+            function pushPatch() {
+                if (patchInflight || !pendingPatch) return;
+                var body = JSON.stringify(pendingPatch);
+                pendingPatch = null;
+                patchInflight = true;
                 var meta = document.querySelector('meta[name="csrf-token"]');
                 var API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
                 fetch(API_PREFIX + 'profile/ui_prefs', {
@@ -77,8 +119,31 @@
                         'Content-Type': 'application/json',
                         'X-CSRFToken': meta ? meta.getAttribute('content') : ''
                     },
-                    body: JSON.stringify(patch)
-                }).catch(function () {});
+                    body: body
+                }).catch(function () {}).finally(function () {
+                    patchInflight = false;
+                    pushPatch();
+                });
+            }
+            window.nxSetUiPref = function (key, value) {
+                var patch = typeof key === 'object' ? key : (function () {
+                    var p = {}; p[key] = value; return p;
+                })();
+                for (var k in patch) eff[k] = patch[k];
+                apply();
+                try {
+                    localStorage.setItem('nexora-ui-prefs', JSON.stringify(eff));
+                    if ('theme' in patch) {
+                        localStorage.setItem('nexora-theme',
+                            d.classList.contains('dark') ? 'dark' : 'light');
+                    }
+                    if ('sidebar' in patch) {
+                        localStorage.setItem('nexora-sidebar-pinned',
+                            patch.sidebar === 'pinned' ? 'true' : 'false');
+                    }
+                } catch (e) {}
+                pendingPatch = Object.assign(pendingPatch || {}, patch);
+                pushPatch();
             };
         })();
     </script>
@@ -261,6 +326,10 @@
                     <a href="{{ url_for('profile') }}"
                         class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50 hover:text-indigo-600 transition-colors" data-testid="header-profile-link">
                         <i class="fas fa-user-circle w-4"></i> {{ _("Your profile") }}
+                    </a>
+                    <a href="{{ url_for('appearance') }}"
+                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50 hover:text-indigo-600 transition-colors" data-testid="header-appearance-link">
+                        <i class="fas fa-palette w-4"></i> {{ _("Appearance") }}
                     </a>
                     {# Sidebar pages no longer render _small_footer.html, so this is
                        the only support link a logged-in user can reach. #}
