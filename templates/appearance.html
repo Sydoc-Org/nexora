@@ -330,10 +330,11 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr><td class="nx-mono">7822</td><td><span class="nx-label nx-label--green">{{ _("Ready") }}</span></td><td class="nx-mono align-right">09:14</td></tr>
-                                    <tr><td class="nx-mono">7815</td><td><span class="nx-label nx-label--indigo">{{ _("Validation") }}</span></td><td class="nx-mono align-right">09:02</td></tr>
-                                    <tr><td class="nx-mono">7809</td><td><span class="nx-label nx-label--amber">{{ _("Extraction") }}</span></td><td class="nx-mono align-right">08:47</td></tr>
-                                    <tr><td class="nx-mono">7791</td><td><span class="nx-label nx-label--red">{{ _("Failed") }}</span></td><td class="nx-mono align-right">08:31</td></tr>
+                                    {# Status labels mirror the real workitems table (untranslated, same color map). #}
+                                    <tr><td class="nx-mono">7822</td><td><span class="nx-label nx-label--blue">Ready</span></td><td class="nx-mono align-right">09:14</td></tr>
+                                    <tr><td class="nx-mono">7815</td><td><span class="nx-label nx-label--amber">In Progress</span></td><td class="nx-mono align-right">09:02</td></tr>
+                                    <tr><td class="nx-mono">7809</td><td><span class="nx-label nx-label--green">Done</span></td><td class="nx-mono align-right">08:47</td></tr>
+                                    <tr><td class="nx-mono">7791</td><td><span class="nx-label nx-label--red">Deleted</span></td><td class="nx-mono align-right">08:31</td></tr>
                                 </tbody>
                             </table>
                         </div>

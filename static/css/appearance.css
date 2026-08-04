@@ -28,7 +28,7 @@ body.admin-page main { max-width: 1240px; }
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(330px, 400px);
     gap: 24px;
-    align-items: stretch;
+    align-items: start;
 }
 .appearance-controls .profile-seg { flex-wrap: wrap; max-width: 100%; }
 .appearance-controls { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
@@ -40,17 +40,14 @@ body.admin-page main { max-width: 1240px; }
 }
 .appearance-reset:hover { background: var(--a-alt); color: var(--a-text); }
 
-/* ---------- Preview (stretches to the bottom of the controls column) ---------- */
-.appearance-preview { display: flex; }
+/* ---------- Preview (sticky, content-height) ---------- */
+.appearance-preview { position: sticky; top: 24px; }
 .appearance-preview-card {
     background: var(--a-card);
     border: 1px solid var(--a-border);
     border-radius: calc(var(--nx-radius-scale, 1) * 14px);
     padding: 16px;
     box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
-    display: flex;
-    flex-direction: column;
-    width: 100%;
 }
 .appearance-preview-head {
     display: flex; align-items: center; justify-content: space-between;
@@ -76,7 +73,6 @@ body.admin-page main { max-width: 1240px; }
     padding: 16px;
     display: flex; flex-direction: column; gap: 12px;
     overflow: hidden;
-    flex: 1;
 }
 html[data-bg="aurora"] .appearance-canvas {
     background:
@@ -163,7 +159,7 @@ html.nx-compact .appearance-canvas .nx-table tbody td { padding: 6px 10px; }
 /* ---------- Responsive ---------- */
 @media (max-width: 1100px) {
     .appearance-grid { grid-template-columns: 1fr; }
-    .appearance-preview { order: -1; }
+    .appearance-preview { position: static; order: -1; }
 }
 
 /* ---------- Reduced motion ---------- */

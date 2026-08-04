@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-04 09:03+0200\n"
+"POT-Creation-Date: 2026-08-04 09:34+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -779,50 +779,50 @@ msgstr ""
 msgid "Could not clear the prepared documents. Please try again."
 msgstr ""
 
-#: templates/_header.html:140
+#: templates/_header.html:154
 msgid "Open navigation"
 msgstr ""
 
-#: templates/_header.html:157 templates/js/_header_js.html:57
+#: templates/_header.html:171 templates/js/_header_js.html:57
 #: templates/js/_header_js.html:58 templates/js/_header_js.html:59
 #: templates/js/_header_js.html:60 templates/js/_header_js.html:61
 msgid "Admin"
 msgstr ""
 
-#: templates/_header.html:164
+#: templates/_header.html:178
 msgid "Overview"
 msgstr ""
 
-#: templates/_header.html:169 templates/admin/access_control.html:19
+#: templates/_header.html:183 templates/admin/access_control.html:19
 #: templates/admin/admin_overview.html:58 templates/js/_header_js.html:58
 msgid "Access Control"
 msgstr ""
 
-#: templates/_header.html:174 templates/admin/admin_overview.html:68
+#: templates/_header.html:188 templates/admin/admin_overview.html:68
 #: templates/admin/organizations.html:19 templates/js/_header_js.html:59
 msgid "Organizations"
 msgstr ""
 
-#: templates/_header.html:179
+#: templates/_header.html:193
 msgid "Sessions"
 msgstr ""
 
-#: templates/_header.html:184
+#: templates/_header.html:198
 msgid "Logs"
 msgstr ""
 
-#: templates/_header.html:190
+#: templates/_header.html:204
 msgid "Maintenance"
 msgstr ""
 
-#: templates/_header.html:198 templates/_header.html:227
+#: templates/_header.html:212 templates/_header.html:241
 #: templates/appearance.html:297 templates/dashboard.html:26
 #: templates/generali_documents.html:39 templates/generali_reporting.html:54
 #: templates/js/_header_js.html:70 templates/js/_header_js.html:79
 msgid "Dashboard"
 msgstr ""
 
-#: templates/_header.html:199 templates/_header.html:241
+#: templates/_header.html:213 templates/_header.html:255
 #: templates/generali-dashboard.html:67
 #: templates/generali_additionalservices.html:50
 #: templates/generali_baseservices.html:50 templates/generali_documents.html:43
@@ -831,102 +831,102 @@ msgstr ""
 msgid "Reporting"
 msgstr ""
 
-#: templates/_header.html:200
+#: templates/_header.html:214
 msgid "Workitems"
 msgstr ""
 
-#: templates/_header.html:201 templates/js/_header_js.html:76
+#: templates/_header.html:215 templates/js/_header_js.html:76
 msgid "Invoices"
 msgstr ""
 
-#: templates/_header.html:234 templates/generali-dashboard.html:63
+#: templates/_header.html:248 templates/generali-dashboard.html:63
 #: templates/generali_reporting.html:46 templates/js/_header_js.html:82
 msgid "Document List"
 msgstr ""
 
-#: templates/_header.html:248 templates/js/_header_js.html:88
+#: templates/_header.html:262 templates/js/_header_js.html:88
 msgid "Additional Services"
 msgstr ""
 
-#: templates/_header.html:255 templates/js/_header_js.html:91
+#: templates/_header.html:269 templates/js/_header_js.html:91
 msgid "Base Services"
 msgstr ""
 
-#: templates/_header.html:262 templates/js/_header_js.html:94
+#: templates/_header.html:276 templates/js/_header_js.html:94
 msgid "Project Management"
 msgstr ""
 
-#: templates/_header.html:269 templates/js/_header_js.html:97
+#: templates/_header.html:283 templates/js/_header_js.html:97
 msgid "PDQM"
 msgstr ""
 
-#: templates/_header.html:276 templates/generali_importstatus.html:27
+#: templates/_header.html:290 templates/generali_importstatus.html:27
 msgid "Data Import Status"
 msgstr ""
 
-#: templates/_header.html:288 templates/_header.html:290
+#: templates/_header.html:302 templates/_header.html:304
 #: templates/appearance.html:261 templates/appearance.html:266
 #: templates/js/_header_js.html:274
 msgid "Keep sidebar open"
 msgstr ""
 
-#: templates/_header.html:294 templates/js/_header_js.html:99
+#: templates/_header.html:308 templates/js/_header_js.html:99
 msgid "Toggle dark mode"
 msgstr ""
 
-#: templates/_header.html:296
+#: templates/_header.html:310
 msgid "Dark Mode"
 msgstr ""
 
-#: templates/_header.html:304 templates/profile.html:42
+#: templates/_header.html:318 templates/profile.html:42
 #: templates/profile.html:122
 msgid "Profile Picture"
 msgstr ""
 
-#: templates/_header.html:314
+#: templates/_header.html:328
 msgid "Your profile"
 msgstr ""
 
-#: templates/_header.html:318 templates/appearance.html:32
+#: templates/_header.html:332 templates/appearance.html:32
 #: templates/js/_header_js.html:100 templates/profile.html:74
 #: templates/profile.html:317
 msgid "Appearance"
 msgstr ""
 
-#: templates/_header.html:324 templates/_small_footer.html:28
+#: templates/_header.html:338 templates/_small_footer.html:28
 msgid "Help"
 msgstr ""
 
-#: templates/_header.html:330 templates/_header.html:372
+#: templates/_header.html:344 templates/_header.html:386
 msgid "Switch user"
 msgstr ""
 
-#: templates/_header.html:336 templates/js/_header_js.html:101
+#: templates/_header.html:350 templates/js/_header_js.html:101
 #: templates/profile.html:81
 msgid "Sign out"
 msgstr ""
 
-#: templates/_header.html:353
+#: templates/_header.html:367
 msgid "Command palette"
 msgstr ""
 
-#: templates/_header.html:357
+#: templates/_header.html:371
 msgid "Type a command or search..."
 msgstr ""
 
-#: templates/_header.html:362
+#: templates/_header.html:376
 msgid "navigate"
 msgstr ""
 
-#: templates/_header.html:363
+#: templates/_header.html:377
 msgid "open"
 msgstr ""
 
-#: templates/_header.html:364
+#: templates/_header.html:378
 msgid "close"
 msgstr ""
 
-#: templates/_header.html:376
+#: templates/_header.html:390
 msgid "Switch to user..."
 msgstr ""
 
@@ -1495,28 +1495,11 @@ msgstr ""
 msgid "Updated"
 msgstr ""
 
-#: templates/appearance.html:333
-msgid "Ready"
-msgstr ""
-
-#: templates/appearance.html:334 templates/hero.html:148
-msgid "Validation"
-msgstr ""
-
-#: templates/appearance.html:335 templates/hero.html:141
-msgid "Extraction"
-msgstr ""
-
-#: templates/appearance.html:336 templates/generali_importstatus.html:55
-#: templates/js/_generali_import_status_js.html:19
-msgid "Failed"
-msgstr ""
-
-#: templates/appearance.html:342
+#: templates/appearance.html:343
 msgid "Search workitems..."
 msgstr ""
 
-#: templates/appearance.html:343
+#: templates/appearance.html:344
 msgid "Filter"
 msgstr ""
 
@@ -2196,6 +2179,11 @@ msgstr ""
 msgid "Running"
 msgstr ""
 
+#: templates/generali_importstatus.html:55
+#: templates/js/_generali_import_status_js.html:19
+msgid "Failed"
+msgstr ""
+
 #: templates/generali_importstatus.html:63
 msgid "File name"
 msgstr ""
@@ -2485,6 +2473,14 @@ msgstr ""
 #: templates/hero.html:134 templates/js/_workitems_overview_js.html:276
 #: templates/workitems_overview.html:325
 msgid "Import"
+msgstr ""
+
+#: templates/hero.html:141
+msgid "Extraction"
+msgstr ""
+
+#: templates/hero.html:148
+msgid "Validation"
 msgstr ""
 
 #: templates/hero.html:161
