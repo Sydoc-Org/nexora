@@ -85,7 +85,8 @@ CREATE TABLE dbo.Users (
     twoFA BIT NULL,
     twoFASecret NVARCHAR(100) NULL,
     locale NVARCHAR(3) NULL,
-    LastLoginAt DATETIME NULL  -- migration 0049
+    LastLoginAt DATETIME NULL,  -- migration 0049
+    ui_prefs NVARCHAR(500) NULL  -- migration 0050
 );
 GO
 

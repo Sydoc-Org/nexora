@@ -62,8 +62,12 @@ def test_ui_prefs_endpoint_merges_and_persists(client):
     with client.session_transaction() as s:
         s["userid"] = 1
         s["username"] = "tester"
-        s["ui_prefs"] = {"accent": "sky"}
-    with patch("nx_lib.views.profile.save_ui_prefs", return_value=True) as save:
+    # The before_request hook re-hydrates session['ui_prefs'] from the DB on
+    # every request, so stub the load as well as the save.
+    with (
+        patch("nx_lib.hooks.load_ui_prefs", return_value={"accent": "sky"}),
+        patch("nx_lib.views.profile.save_ui_prefs", return_value=True) as save,
+    ):
         r = client.post("/profile/ui_prefs", json={"theme": "dark", "bogus": "x"})
     assert r.status_code == 200
     assert r.get_json()["prefs"] == {"accent": "sky", "theme": "dark"}
