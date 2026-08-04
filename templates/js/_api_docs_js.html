@@ -22,6 +22,10 @@
   items.forEach((b) => b.addEventListener("click", () => activate(b.dataset.section)));
   if (location.hash) activate(location.hash.slice(1));
 
+  // Syntax highlighting (highlight.js, github-dark theme; the panels are
+  // dark in both app themes so one code theme is enough).
+  if (window.hljs) hljs.highlightAll();
+
   // Copy buttons on code blocks.
   document.querySelectorAll(".apidocs-copy").forEach((btn) => {
     btn.addEventListener("click", () => {

@@ -21,7 +21,12 @@ def jdvance():
 
 @require_permission("api.docs.view")
 def api_docs():
-    return render_template("api_docs.html", pageV=page_visibility())
+    return render_template(
+        "api_docs.html",
+        pageV=page_visibility(),
+        logged_in_user=session.get("username", "Unknown"),
+        userid=session.get("userid", "Unknown"),
+    )
 
 
 def maintenance_page():
