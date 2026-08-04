@@ -293,6 +293,31 @@ class SqlServerSource:
         finally:
             conn.close()
 
+    def backlog_by_process(self):
+        """Full C+A backlog snapshot grouped by (client, process) — deliberately
+        unfiltered: the history collector records everything, consumers filter
+        by permission at read time."""
+        conn = self.engine.raw_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT p.ClientName, p.Name, COUNT(*)
+                FROM t_WorkItems w
+                LEFT JOIN t_ActivityInstances a ON a.id = w.ActivityInstanceID
+                LEFT JOIN t_Processes p ON p.id = a.ProcessID
+                LEFT JOIN t_ActivityTypes act ON act.id = a.ActivityTypeID
+                WHERE act.Name = 'C+A'
+                GROUP BY p.ClientName, p.Name
+                """
+            )
+            return [{"client": r[0], "process": r[1], "count": r[2] or 0} for r in cur.fetchall()]
+        except Exception as e:
+            current_app.logger.error(f"SqlServerSource.backlog_by_process: {e}")
+            return []
+        finally:
+            conn.close()
+
 
 def _qmarks(seq):
     return ", ".join(["?"] * len(seq))
@@ -1049,6 +1074,30 @@ class PostgresSource:
         except Exception as e:
             current_app.logger.error(f"PostgresSource.backlog_count: {e}")
             return 0
+        finally:
+            conn.close()
+
+    def backlog_by_process(self):
+        """Full C+A backlog snapshot grouped by (client, process) — same
+        contract as SqlServerSource.backlog_by_process."""
+        conn = self.engine.raw_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT p."ClientName", p."Name", COUNT(*)
+                FROM "t_WorkItems" w
+                LEFT JOIN "t_ActivityInstances" a ON a."ID" = w."ActivityInstanceID"
+                LEFT JOIN "t_Processes" p ON p."ID" = a."ProcessID"
+                LEFT JOIN "t_ActivityTypes" act ON act."ID" = a."ActivityTypeID"
+                WHERE act."Name" = 'C+A'
+                GROUP BY p."ClientName", p."Name"
+                """
+            )
+            return [{"client": r[0], "process": r[1], "count": r[2] or 0} for r in cur.fetchall()]
+        except Exception as e:
+            current_app.logger.error(f"PostgresSource.backlog_by_process: {e}")
+            return []
         finally:
             conn.close()
 

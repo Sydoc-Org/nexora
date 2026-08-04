@@ -10,6 +10,15 @@ Work toward 2.5.65.
 
 ### Added
 
+- **Backlog-history collector** (#161) — new `ops/backlog_history.py`
+  (Task Scheduler, every 30 minutes on PROD) snapshots the current C+A
+  backlog per (source, client, process) across all active workitem sources
+  (default Octo SQL Server + MS02 Postgres) into a new
+  `dbo.BacklogHistory` table on the Statistics DB (created idempotently by
+  the script — the Statistics DB is not under `sql/_migrations/`), so
+  backlog-over-time trends exist. Backed by the new
+  `backlog_by_process()` method on both workitem sources; `--dry-run`
+  prints the rows without writing.
 - **In-app API documentation page** (#157) — new `/api-docs` page (sidebar
   entry "API Docs") documenting the external `/api/v1/*` machine-to-machine
   API: getting-started guide, authentication, errors & rate limits, and a

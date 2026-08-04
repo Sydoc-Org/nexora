@@ -1223,3 +1223,38 @@ def test_resolve_octo_wid_stage_pg_returns_empty_when_not_found(app):
             "status": None,
             "current_stage": None,
         }
+
+
+# ---- Issue #161: per-process backlog snapshot (backlog-history collector) ----
+
+
+def test_backlog_by_process_groups_unfiltered(app):
+    """The history snapshot is deliberately unfiltered (no pair predicate) and
+    grouped by client+process; consumers filter by permission at read time."""
+    for src in (SqlServerSource(), PostgresSource(CLIENTS_code="ms02")):
+        fake_cur = MagicMock()
+        fake_cur.fetchall.return_value = [("GVL", "Rechnungen", 7), ("MS02", "Posteingang", 3)]
+        fake_conn = MagicMock()
+        fake_conn.cursor.return_value = fake_cur
+        with patch.object(src, "engine") as eng, app.app_context():
+            eng.raw_connection.return_value = fake_conn
+            rows = src.backlog_by_process()
+
+        sql = str(fake_cur.execute.call_args[0][0])
+        assert "group by" in sql.lower(), f"{type(src).__name__}: {sql}"
+        assert "C+A" in sql, f"{type(src).__name__}: {sql}"
+        assert len(fake_cur.execute.call_args[0]) == 1, f"{type(src).__name__}: unexpected params"
+        assert rows == [
+            {"client": "GVL", "process": "Rechnungen", "count": 7},
+            {"client": "MS02", "process": "Posteingang", "count": 3},
+        ]
+
+
+def test_backlog_by_process_returns_empty_on_error(app):
+    for src in (SqlServerSource(), PostgresSource(CLIENTS_code="ms02")):
+        fake_conn = MagicMock()
+        fake_conn.cursor.side_effect = RuntimeError("db down")
+        with patch.object(src, "engine") as eng, app.app_context():
+            eng.raw_connection.return_value = fake_conn
+            assert src.backlog_by_process() == []
+        fake_conn.close.assert_called_once()
