@@ -1,5 +1,9 @@
 # External API v1 (machine-to-machine)
 
+An in-app rendition of this reference lives at `/api-docs` (sidebar "API
+Docs", permission `api.docs.view`) for internal staff and API clients'
+portal accounts — this file stays the source of truth; keep both in sync.
+
 Read-only JSON API for external clients, authenticated with per-client API
 keys. Two endpoints in v1. Code: routes in `nx_lib/views/api_external.py`,
 auth in `nx_lib/api_auth.py`, KPI computation shared with the dashboard

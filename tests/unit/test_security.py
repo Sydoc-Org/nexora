@@ -305,6 +305,7 @@ def _all_false_page_v():
         "generaliProjectManagementPerm": False,
         "generaliPDQMPerm": False,
         "adminPagePerm": False,
+        "apiDocsPagePerm": False,
     }
 
 
@@ -333,12 +334,20 @@ def test_startpage_redirect_to_returns_login_when_no_perms():
     assert startpage_redirect_to(pv) == "login"
 
 
+def test_startpage_redirect_to_api_docs_only_lands_on_api_docs():
+    """An external API client's portal account may hold ONLY api.docs.view —
+    it must land on the docs page, not bounce back to login."""
+    pv = _all_false_page_v()
+    pv["apiDocsPagePerm"] = True
+    assert startpage_redirect_to(pv) == "api_docs"
+
+
 # ---------------------------------------------------------------------------
-# page_visibility — all 17 keys
+# page_visibility — all 18 keys
 # ---------------------------------------------------------------------------
 
 
-def test_page_visibility_returns_all_17_keys_with_no_perms(fake_session):
+def test_page_visibility_returns_all_18_keys_with_no_perms(fake_session):
     fake_session["permissions"] = []
     pv = page_visibility()
     expected_keys = {
@@ -348,6 +357,7 @@ def test_page_visibility_returns_all_17_keys_with_no_perms(fake_session):
         "workitemsPagePerm",
         "preparedDocsPagePerm",
         "invoicesPagePerm",
+        "apiDocsPagePerm",
         "generaliPagePerm",
         "generaliDocumentsPerm",
         "generaliReportingPerm",

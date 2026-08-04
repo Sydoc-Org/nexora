@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-04 09:49+0200\n"
+"POT-Creation-Date: 2026-08-04 11:15+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -846,14 +846,14 @@ msgstr "Journaux"
 msgid "Maintenance"
 msgstr "Maintenance"
 
-#: templates/_header.html:215 templates/_header.html:244
+#: templates/_header.html:215 templates/_header.html:245
 #: templates/appearance.html:324 templates/dashboard.html:26
 #: templates/generali_documents.html:39 templates/generali_reporting.html:54
 #: templates/js/_header_js.html:70 templates/js/_header_js.html:79
 msgid "Dashboard"
 msgstr "Tableau de bord"
 
-#: templates/_header.html:216 templates/_header.html:258
+#: templates/_header.html:216 templates/_header.html:259
 #: templates/generali-dashboard.html:67
 #: templates/generali_additionalservices.html:50
 #: templates/generali_baseservices.html:50 templates/generali_documents.html:43
@@ -870,94 +870,98 @@ msgstr "Workitems"
 msgid "Invoices"
 msgstr "Factures"
 
-#: templates/_header.html:251 templates/generali-dashboard.html:63
+#: templates/_header.html:219
+msgid "API Docs"
+msgstr "Docs API"
+
+#: templates/_header.html:252 templates/generali-dashboard.html:63
 #: templates/generali_reporting.html:46 templates/js/_header_js.html:82
 msgid "Document List"
 msgstr "Liste des documents"
 
-#: templates/_header.html:265 templates/js/_header_js.html:88
+#: templates/_header.html:266 templates/js/_header_js.html:88
 msgid "Additional Services"
 msgstr "Services supplémentaires"
 
-#: templates/_header.html:272 templates/js/_header_js.html:91
+#: templates/_header.html:273 templates/js/_header_js.html:91
 msgid "Base Services"
 msgstr "Services de base"
 
-#: templates/_header.html:279 templates/js/_header_js.html:94
+#: templates/_header.html:280 templates/js/_header_js.html:94
 msgid "Project Management"
 msgstr "Gestion de projet"
 
-#: templates/_header.html:286 templates/js/_header_js.html:97
+#: templates/_header.html:287 templates/js/_header_js.html:97
 msgid "PDQM"
 msgstr "PDQM"
 
-#: templates/_header.html:293 templates/generali_importstatus.html:27
+#: templates/_header.html:294 templates/generali_importstatus.html:27
 msgid "Data Import Status"
 msgstr "Statut d'importation"
 
-#: templates/_header.html:305 templates/_header.html:307
+#: templates/_header.html:306 templates/_header.html:308
 #: templates/appearance.html:288 templates/appearance.html:293
 #: templates/js/_header_js.html:274
 msgid "Keep sidebar open"
 msgstr "Garder la barre latérale ouverte"
 
-#: templates/_header.html:311 templates/js/_header_js.html:99
+#: templates/_header.html:312 templates/js/_header_js.html:99
 msgid "Toggle dark mode"
 msgstr "Activer/désactiver le mode sombre"
 
-#: templates/_header.html:313
+#: templates/_header.html:314
 msgid "Dark Mode"
 msgstr "Mode sombre"
 
-#: templates/_header.html:321 templates/profile.html:42
+#: templates/_header.html:322 templates/profile.html:42
 #: templates/profile.html:122
 msgid "Profile Picture"
 msgstr "Photo de profil"
 
-#: templates/_header.html:331
+#: templates/_header.html:332
 msgid "Your profile"
 msgstr "Votre profil"
 
-#: templates/_header.html:335 templates/appearance.html:32
+#: templates/_header.html:336 templates/appearance.html:32
 #: templates/js/_header_js.html:100 templates/profile.html:74
 #: templates/profile.html:317
 msgid "Appearance"
 msgstr "Apparence"
 
-#: templates/_header.html:341 templates/_small_footer.html:28
+#: templates/_header.html:342 templates/_small_footer.html:28
 msgid "Help"
 msgstr "Aide"
 
-#: templates/_header.html:347 templates/_header.html:389
+#: templates/_header.html:348 templates/_header.html:390
 msgid "Switch user"
 msgstr "Changer d'utilisateur"
 
-#: templates/_header.html:353 templates/js/_header_js.html:101
+#: templates/_header.html:354 templates/js/_header_js.html:101
 #: templates/profile.html:81
 msgid "Sign out"
 msgstr "Se déconnecter"
 
-#: templates/_header.html:370
+#: templates/_header.html:371
 msgid "Command palette"
 msgstr "Palette de commandes"
 
-#: templates/_header.html:374
+#: templates/_header.html:375
 msgid "Type a command or search..."
 msgstr "Tapez une commande ou recherchez..."
 
-#: templates/_header.html:379
+#: templates/_header.html:380
 msgid "navigate"
 msgstr "naviguer"
 
-#: templates/_header.html:380
+#: templates/_header.html:381
 msgid "open"
 msgstr "ouvrir"
 
-#: templates/_header.html:381
+#: templates/_header.html:382
 msgid "close"
 msgstr "fermer"
 
-#: templates/_header.html:393
+#: templates/_header.html:394
 msgid "Switch to user..."
 msgstr "Passer à l'utilisateur ..."
 
@@ -1230,7 +1234,10 @@ msgid "Query sent to the database"
 msgstr "Requête envoyée à la base de données"
 
 #: templates/_reporting_simple.html:237 templates/admin/logs.html:133
-#: templates/reporting.html:327
+#: templates/api_docs.html:105 templates/api_docs.html:111
+#: templates/api_docs.html:127 templates/api_docs.html:170
+#: templates/api_docs.html:176 templates/api_docs.html:205
+#: templates/api_docs.html:211 templates/reporting.html:327
 msgid "Copy"
 msgstr "Copier"
 
@@ -1253,6 +1260,303 @@ msgstr "Actualités"
 #: templates/_small_footer.html:24
 msgid "Contact"
 msgstr "Contact"
+
+#: templates/api_docs.html:7
+msgid "API Documentation - nexora"
+msgstr "Documentation API - nexora"
+
+#: templates/api_docs.html:53
+msgid "API Documentation"
+msgstr "Documentation API"
+
+#: templates/api_docs.html:54
+msgid "Reference for the nexora machine-to-machine API (v1)."
+msgstr "Référence de l'API machine à machine de nexora (v1)."
+
+#: templates/api_docs.html:62
+msgid "API documentation sections"
+msgstr "Sections de la documentation API"
+
+#: templates/api_docs.html:63
+msgid "Guide"
+msgstr "Guide"
+
+#: templates/api_docs.html:65 templates/api_docs.html:87
+msgid "Getting Started"
+msgstr "Premiers pas"
+
+#: templates/api_docs.html:68 templates/api_docs.html:124
+msgid "Authentication"
+msgstr "Authentification"
+
+#: templates/api_docs.html:71
+msgid "Errors & Rate Limits"
+msgstr "Erreurs & limites de débit"
+
+#: templates/api_docs.html:74
+msgid "Endpoints"
+msgstr "Points de terminaison"
+
+#: templates/api_docs.html:88
+msgid ""
+"The nexora external API is a read-only JSON API for machine-to-machine "
+"integrations, authenticated with per-client API keys. All endpoints live "
+"under the v1 base URL and answer to GET requests only."
+msgstr ""
+"L'API externe de nexora est une API JSON en lecture seule pour les "
+"intégrations machine à machine, authentifiée par des clés API par client."
+" Tous les points de terminaison se trouvent sous l'URL de base v1 et ne "
+"répondent qu'aux requêtes GET."
+
+#: templates/api_docs.html:90
+msgid "Base URLs"
+msgstr "URL de base"
+
+#: templates/api_docs.html:93
+msgid "Environment"
+msgstr "Environnement"
+
+#: templates/api_docs.html:93
+msgid "Base URL"
+msgstr "URL de base"
+
+#: templates/api_docs.html:96
+msgid "dev server"
+msgstr "serveur de dev"
+
+#: templates/api_docs.html:101
+msgid "Quick start"
+msgstr "Démarrage rapide"
+
+#: templates/api_docs.html:102
+msgid ""
+"One header, one GET — with an API key in hand, this is the whole "
+"integration:"
+msgstr "Un en-tête, un GET — avec une clé API en main, voici toute l'intégration :"
+
+#: templates/api_docs.html:105 templates/api_docs.html:111
+#: templates/api_docs.html:127 templates/api_docs.html:170
+#: templates/api_docs.html:176 templates/api_docs.html:205
+#: templates/api_docs.html:211
+msgid "Copy code"
+msgstr "Copier le code"
+
+#: templates/api_docs.html:110 templates/api_docs.html:175
+#: templates/api_docs.html:210
+msgid "response"
+msgstr "réponse"
+
+#: templates/api_docs.html:119
+msgid ""
+"In PowerShell use curl.exe — bare curl is an alias for Invoke-WebRequest,"
+" which spells the header differently. No key or a wrong key returns"
+msgstr ""
+"Dans PowerShell, utilisez curl.exe — curl seul est un alias d'Invoke-"
+"WebRequest, qui écrit l'en-tête différemment. Sans clé ou avec une "
+"mauvaise clé, la réponse est"
+
+#: templates/api_docs.html:125
+msgid "Send your API key as a Bearer token on every request:"
+msgstr "Envoyez votre clé API comme jeton Bearer à chaque requête :"
+
+#: templates/api_docs.html:131
+msgid ""
+"Keys are issued per client by the Sydoc team. Each key carries a process "
+"scope: it only ever sees the numbers of the processes it was issued for. "
+"The raw key is handed over once through a secure channel and is not "
+"recoverable afterwards — store it safely."
+msgstr ""
+"Les clés sont délivrées par client par l'équipe Sydoc. Chaque clé porte "
+"un périmètre de processus : elle ne voit que les chiffres des processus "
+"pour lesquels elle a été émise. La clé brute est remise une seule fois "
+"par un canal sécurisé et n'est pas récupérable ensuite — conservez-la en "
+"lieu sûr."
+
+#: templates/api_docs.html:132
+msgid "Key lifecycle"
+msgstr "Cycle de vie des clés"
+
+#: templates/api_docs.html:134
+msgid "Keys do not expire on their own; they stay valid until revoked."
+msgstr ""
+"Les clés n'expirent pas d'elles-mêmes ; elles restent valides jusqu'à "
+"révocation."
+
+#: templates/api_docs.html:135
+msgid "Revocation is effective immediately on the next request."
+msgstr "La révocation prend effet dès la requête suivante."
+
+#: templates/api_docs.html:136
+msgid ""
+"A revoked or unknown key answers a uniform 401 — deliberately "
+"indistinguishable, so a leaked key confirms nothing."
+msgstr ""
+"Une clé révoquée ou inconnue reçoit un 401 uniforme — volontairement "
+"indistinguable, une clé divulguée ne confirme donc rien."
+
+#: templates/api_docs.html:137
+msgid ""
+"Rotation: request a new key from the Sydoc team, switch your integration,"
+" then the old key is disabled."
+msgstr ""
+"Rotation : demandez une nouvelle clé à l'équipe Sydoc, basculez votre "
+"intégration, puis l'ancienne clé est désactivée."
+
+#: templates/api_docs.html:143
+msgid "Errors"
+msgstr "Erreurs"
+
+#: templates/api_docs.html:144
+msgid ""
+"Errors are JSON unless noted. The body always carries an English error "
+"string — the API is not localized."
+msgstr ""
+"Les erreurs sont en JSON sauf mention contraire. Le corps contient "
+"toujours un message d'erreur en anglais — l'API n'est pas localisée."
+
+#: templates/admin/logs.html:64 templates/admin/logs.html:97
+#: templates/admin/user_detail.html:226 templates/api_docs.html:147
+#: templates/appearance.html:355 templates/generali_importstatus.html:48
+#: templates/generali_importstatus.html:108
+#: templates/generali_reporting.html:114 templates/invoices.html:78
+#: templates/invoices.html:123 templates/workitems_overview.html:124
+#: templates/workitems_overview.html:383
+msgid "Status"
+msgstr "Statut"
+
+#: templates/api_docs.html:147
+msgid "Body"
+msgstr "Corps"
+
+#: templates/api_docs.html:147 templates/api_docs.html:187
+#: templates/api_docs.html:220
+msgid "Meaning"
+msgstr "Signification"
+
+#: templates/api_docs.html:149
+msgid "Missing or malformed Authorization: Bearer header"
+msgstr "En-tête Authorization: Bearer manquant ou malformé"
+
+#: templates/api_docs.html:150
+msgid "Unknown or disabled key (uniform on purpose)"
+msgstr "Clé inconnue ou désactivée (uniforme à dessein)"
+
+#: templates/api_docs.html:151
+msgid "Wrong path under"
+msgstr "Chemin incorrect sous"
+
+#: templates/api_docs.html:152 templates/api_docs.html:153
+msgid "HTML"
+msgstr "HTML"
+
+#: templates/api_docs.html:152
+msgid "Non-GET verb — the API is GET-only"
+msgstr "Verbe non-GET — l'API n'accepte que GET"
+
+#: templates/api_docs.html:153
+msgid "Over the rate limit"
+msgstr "Limite de débit dépassée"
+
+#: templates/api_docs.html:154
+msgid "Backend or server failure"
+msgstr "Défaillance du backend ou du serveur"
+
+#: templates/api_docs.html:155
+msgid "Auth database unreachable (fail closed)"
+msgstr "Base d'authentification injoignable (fail closed)"
+
+#: templates/api_docs.html:156
+msgid "Blocking maintenance window"
+msgstr "Fenêtre de maintenance bloquante"
+
+#: templates/api_docs.html:160
+msgid "Rate limit"
+msgstr "Limite de débit"
+
+#: templates/api_docs.html:161
+msgid ""
+"60 requests per minute per source IP, checked before authentication. "
+"Exceeding it returns HTTP 429; back off and retry after the minute "
+"window."
+msgstr ""
+"60 requêtes par minute et par IP source, vérifiées avant "
+"l'authentification. En cas de dépassement, HTTP 429 ; attendez la fin de "
+"la fenêtre d'une minute avant de réessayer."
+
+#: templates/api_docs.html:167
+msgid ""
+"Today's imported and exported document counts, scoped to your key's "
+"processes — the same numbers as the nexora dashboard's \"today\" KPI "
+"tiles."
+msgstr ""
+"Les nombres de documents importés et exportés aujourd'hui, limités aux "
+"processus de votre clé — les mêmes chiffres que les tuiles KPI "
+"\"aujourd'hui\" du tableau de bord nexora."
+
+#: templates/api_docs.html:184 templates/api_docs.html:217
+msgid "Response fields"
+msgstr "Champs de réponse"
+
+#: templates/api_docs.html:187 templates/api_docs.html:220
+#: templates/js/_reporting_dashboard_js.html:76
+msgid "Field"
+msgstr "Champ"
+
+#: templates/api_docs.html:187 templates/api_docs.html:220
+#: templates/generali_documents.html:226
+#: templates/js/_reporting_viz_js.html:166
+msgid "Type"
+msgstr "Type"
+
+#: templates/api_docs.html:189
+msgid "Server-local calendar date the counts refer to (ISO 8601)"
+msgstr ""
+"Date calendaire locale du serveur à laquelle les chiffres se rapportent "
+"(ISO 8601)"
+
+#: templates/api_docs.html:190
+msgid "Documents imported today"
+msgstr "Documents importés aujourd'hui"
+
+#: templates/api_docs.html:191
+msgid "Documents exported today"
+msgstr "Documents exportés aujourd'hui"
+
+#: templates/api_docs.html:192
+msgid ""
+"Your key's process scope, echoed for debugging. An empty scope returns "
+"zeros."
+msgstr ""
+"Le périmètre de processus de votre clé, renvoyé pour le débogage. Un "
+"périmètre vide renvoie des zéros."
+
+#: templates/api_docs.html:196
+msgid "Responses are computed fresh on every call — there is no cache."
+msgstr "Les réponses sont recalculées à chaque appel — il n'y a pas de cache."
+
+#: templates/api_docs.html:202
+msgid ""
+"The current backlog count for your key's processes — the same number as "
+"the nexora dashboard's \"Current Backlog\" KPI tile."
+msgstr ""
+"Le backlog actuel pour les processus de votre clé — le même chiffre que "
+"la tuile KPI \"Current Backlog\" du tableau de bord nexora."
+
+#: templates/api_docs.html:222
+msgid "Server-local timestamp of the count (YYYY-MM-DD HH:MM)"
+msgstr "Horodatage local du serveur du comptage (YYYY-MM-DD HH:MM)"
+
+#: templates/api_docs.html:223
+msgid "Workitems currently in the backlog across your key's processes"
+msgstr "Workitems actuellement dans le backlog des processus de votre clé"
+
+#: templates/api_docs.html:227
+msgid ""
+"Unlike stats/today, the response does not echo the process list — scoping"
+" happens at key issuance."
+msgstr ""
+"Contrairement à stats/today, la réponse ne renvoie pas la liste des "
+"processus — le périmètre est fixé à l'émission de la clé."
 
 #: templates/appearance.html:7
 msgid "Appearance - nexora"
@@ -1550,16 +1854,6 @@ msgstr "En attente"
 #: templates/workitems_overview.html:375
 msgid "Workitem"
 msgstr "Workitem"
-
-#: templates/admin/logs.html:64 templates/admin/logs.html:97
-#: templates/admin/user_detail.html:226 templates/appearance.html:355
-#: templates/generali_importstatus.html:48
-#: templates/generali_importstatus.html:108
-#: templates/generali_reporting.html:114 templates/invoices.html:78
-#: templates/invoices.html:123 templates/workitems_overview.html:124
-#: templates/workitems_overview.html:383
-msgid "Status"
-msgstr "Statut"
 
 #: templates/appearance.html:356 templates/generali_importstatus.html:105
 msgid "Updated"
@@ -2217,11 +2511,6 @@ msgstr "Rechercher par ID, police, numéro de sinistre…"
 #: templates/workitems_overview.html:317
 msgid "Advanced"
 msgstr "Avancé"
-
-#: templates/generali_documents.html:226
-#: templates/js/_reporting_viz_js.html:166
-msgid "Type"
-msgstr "Type"
 
 #: templates/generali_documents.html:240
 msgid "Lang"
@@ -4950,10 +5239,6 @@ msgstr "hérite des filtres globaux"
 msgid "This card overrides the global filters"
 msgstr "Cette carte remplace les filtres globaux"
 
-#: templates/js/_reporting_dashboard_js.html:76
-msgid "Field"
-msgstr "Champ"
-
 #: templates/js/_reporting_dashboard_js.html:77
 msgid "Operator"
 msgstr "Opérateur"
@@ -6829,4 +7114,10 @@ msgstr ""
 
 #~ msgid "Ready"
 #~ msgstr "Prêt"
+
+#~ msgid "No or malformed"
+#~ msgstr "Aucune ligne correspondante"
+
+#~ msgid "header"
+#~ msgstr "Année"
 

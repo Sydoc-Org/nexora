@@ -122,6 +122,7 @@ def startpage_redirect_to(page_v):
         "generaliProjectManagementPerm": "generali_projectManagement",
         "generaliPDQMPerm": "generali_pdqm",
         "adminPagePerm": "admin_dashboard",
+        "apiDocsPagePerm": "api_docs",
     }
     for perm_key in perm_to_function:
         if page_v[perm_key]:
@@ -137,6 +138,7 @@ def page_visibility():
         "workitemsPagePerm": has_permission("workitems.view"),
         "preparedDocsPagePerm": has_permission("workitems.import.preparedaudit"),
         "invoicesPagePerm": has_permission("invoices.view"),
+        "apiDocsPagePerm": has_permission("api.docs.view"),
         "generaliPagePerm": has_permission("generali.dashboard.view"),
         "generaliDocumentsPerm": has_permission("generali.documentlist.view"),
         "generaliReportingPerm": has_permission("generali.reporting.view"),
