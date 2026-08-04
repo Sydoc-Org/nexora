@@ -124,7 +124,10 @@
             const prefs = window.__nxPrefs || {};
             const cs = getComputedStyle(document.documentElement);
             const accent = (cs.getPropertyValue('--nx-accent') || '').trim();
-            const radius = (cs.getPropertyValue('--nx-radius') || '').trim();
+            // Custom props don't resolve calc() — read the radius off a
+            // rendered element instead.
+            const canvas = document.getElementById('appearanceCanvas');
+            const radius = canvas ? getComputedStyle(canvas).borderRadius : '';
             const zoom = prefs.fontscale === 'sm' ? '90%' : prefs.fontscale === 'lg' ? '110%' : '100%';
             spec.textContent = 'accent ' + accent + ' · radius ' + radius + ' · zoom ' + zoom +
                 ' · ' + (prefs.entrance || 'rise') +
