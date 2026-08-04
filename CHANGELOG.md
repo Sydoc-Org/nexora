@@ -10,6 +10,10 @@ Work toward 2.5.65.
 
 ### Added
 
+- **"Development" sidebar group** (#157) — the API Docs page moved from a
+  flat top-level sidebar item into a collapsible "Development" group
+  (matching the Admin/Generali group pattern), so future dev-facing pages
+  have a home without crowding the main nav.
 - **Backlog-history collector** (#161) — new standalone
   `ops/backlog_history/` folder (script + own `.env` + requirements; no
   nexora imports, copyable to any prod server) for a 30-minute Task
