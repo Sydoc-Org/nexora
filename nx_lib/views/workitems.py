@@ -1947,18 +1947,32 @@ def get_audithistory(workitem_id):
                     audit["TimeStamp"]
                 ).strftime("%Y-%m-%d %H:%M:%S")
 
-        complete_array = []
         total_steps = len(unique_activities)
+        activity_ids = list(unique_activities.keys())
+        # get_activity_type_name is memoized, but a cold cache (first time an
+        # activity is seen) still means one Octo round trip per step -- fetch
+        # cold misses concurrently instead of sum-of-latencies.
+        _app = current_app._get_current_object()
 
-        for i, (activity_id, time_stamp) in enumerate(unique_activities.items()):
-            activity_name = get_activity_type_name(activity_id, domain)
+        def _name_for(activity_id):
+            with _app.app_context():
+                return activity_id, get_activity_type_name(activity_id, domain)
 
-            step_info = {
-                "Activity": activity_name,
+        names = {}
+        if activity_ids:
+            with ThreadPoolExecutor(max_workers=min(10, len(activity_ids))) as executor:
+                for future in as_completed(executor.submit(_name_for, aid) for aid in activity_ids):
+                    aid, name = future.result()
+                    names[aid] = name
+
+        complete_array = [
+            {
+                "Activity": names.get(activity_id, "Unknown Activity"),
                 "DateTime": time_stamp,
                 "Step": total_steps - i,
             }
-            complete_array.append(step_info)
+            for i, (activity_id, time_stamp) in enumerate(unique_activities.items())
+        ]
 
         cache.set(_cache_key, complete_array, timeout=1800)
         return jsonify(complete_array)

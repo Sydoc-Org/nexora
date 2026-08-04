@@ -279,8 +279,13 @@ def render_pdf_page_jpeg(pdf_bytes, page_index, scale=2.0):
         doc.close()
 
 
-@cache.memoize()
+@cache.memoize(timeout=86400)
 def get_activity_type_name(activity_instance_id: str, domain: str | None = None) -> str:
+    # ActivityTypeName is process config, not per-workitem data -- the same
+    # activity_instance_id is looked up for every workitem that passed
+    # through it, so a day-long timeout (vs. the 5-minute app default) keeps
+    # audit-history loading warm instead of re-fetching from Octo repeatedly
+    # through the day.
     if domain is None:
         domain = OCTO_DOMAIN
     activity_instances_url = (
