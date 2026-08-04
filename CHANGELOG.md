@@ -10,6 +10,14 @@ Work toward 2.5.65.
 
 ### Added
 
+- **In-app API documentation page** (#157) — new `/api-docs` page (sidebar
+  entry "API Docs") documenting the external `/api/v1/*` machine-to-machine
+  API: getting-started guide, authentication, errors & rate limits, and a
+  per-endpoint reference (`GET /stats/today`, `GET /backlog`) with copyable
+  curl/JSON examples. Gated by the new grantable `api.docs.view` permission
+  (migration `0051`, seeded to admins), intended for both internal staff and
+  external API clients' portal accounts; an account holding only
+  `api.docs.view` lands on the docs page after login.
 - Workitems: **date-range presets** (#159) — a "Date Range" dropdown (Today,
   Yesterday, This week, Last 7 days, This month) in the Advanced filter panel
   that fills From/To Date and refetches; hand-editing a date flips it back to

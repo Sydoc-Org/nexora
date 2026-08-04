@@ -216,6 +216,7 @@
                 {'perm': pageV.reportingPagePerm, 'url': url_for('reporting'),           'icon': 'fa-chart-column',        'label': _('Reporting'),              'active': active_page == 'reporting'},
 {'perm': pageV.workitemsPagePerm, 'url': url_for('workitems_overview'),  'icon': 'fa-layer-group',         'label': _('Workitems'),              'active': active_page == 'workitems_overview'},
                 {'perm': pageV.invoicesPagePerm,  'url': url_for('invoices'),            'icon': 'fa-file-invoice-dollar', 'label': _('Invoices'),               'active': active_page == 'invoices'},
+                {'perm': pageV.apiDocsPagePerm,   'url': url_for('api_docs'),            'icon': 'fa-plug',                'label': _('API Docs'),               'active': active_page == 'api_docs'},
             ] %}
 
             {% for item in nav_items %}

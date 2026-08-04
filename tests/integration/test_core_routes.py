@@ -173,6 +173,28 @@ def test_api_maintenance_active_returns_null_banner_when_no_rows(client):
     assert body["banner"] is None
 
 
+def test_api_docs_anonymous_redirects_to_login(client):
+    resp = client.get("/api-docs", follow_redirects=False)
+    assert resp.status_code == 302
+    assert "/login" in resp.headers.get("Location", "")
+
+
+def test_api_docs_without_perm_returns_403(user_client, monkeypatch):
+    """api.docs.view is required; a user without it gets the 403 page."""
+    monkeypatch.setattr("nx_lib.security.has_permission", lambda code: code != "api.docs.view")
+    resp = user_client.get("/api-docs")
+    assert resp.status_code == 403
+
+
+def test_api_docs_with_perm_renders(user_client, monkeypatch):
+    monkeypatch.setattr("nx_lib.security.has_permission", lambda code: True)
+    resp = user_client.get("/api-docs")
+    assert resp.status_code == 200
+    body = resp.get_data(as_text=True)
+    assert "/api/v1/stats/today" in body
+    assert "/api/v1/backlog" in body
+
+
 def test_session_heartbeat_returns_401_when_anonymous(client):
     resp = client.get("/api/session/heartbeat")
     assert resp.status_code == 401
