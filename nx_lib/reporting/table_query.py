@@ -20,6 +20,22 @@ class TableQueryError(ValueError):
     """Raised when a generic table query cannot be built safely."""
 
 
+def _grain_sql(d, grain):
+    """Wrap a DATE/DATETIME expression `d` for the requested grain. None/'day' =
+    raw. Mirrors query.py's _grain_sql (T-SQL, DATEFIRST-independent week)."""
+    if grain in (None, "day"):
+        return d
+    if grain == "week":
+        return f"DATEADD(week, DATEDIFF(week, 0, {d}), 0)"
+    if grain == "month":
+        return f"DATEFROMPARTS(YEAR({d}), MONTH({d}), 1)"
+    if grain == "quarter":
+        return f"DATEFROMPARTS(YEAR({d}), (DATEPART(quarter, {d}) - 1) * 3 + 1, 1)"
+    if grain == "year":
+        return f"DATEFROMPARTS(YEAR({d}), 1, 1)"
+    raise TableQueryError(f"unsupported date grain: {grain!r}")
+
+
 def _quote_ident(name):
     if not _IDENT.match(name or ""):
         raise TableQueryError(f"unsafe identifier: {name!r}")
@@ -46,17 +62,18 @@ def table_source_catalog(columns):
         field = c.get("field") or c.get("column")
         if not field:
             continue
-        out.append(
-            {
-                "field": field,
-                "label": c.get("label") or field,
-                "type": c.get("type") or "string",
-                "filterable": bool(c.get("filterable", True)),
-                "sortable": bool(c.get("sortable", True)),
-                "aggregable": bool(c.get("aggregable", False)),
-                "processes": [],
-            }
-        )
+        entry = {
+            "field": field,
+            "label": c.get("label") or field,
+            "type": c.get("type") or "string",
+            "filterable": bool(c.get("filterable", True)),
+            "sortable": bool(c.get("sortable", True)),
+            "aggregable": bool(c.get("aggregable", False)),
+            "processes": [],
+        }
+        if c.get("grainable"):
+            entry["grainable"] = True
+        out.append(entry)
     return out
 
 
@@ -119,6 +136,13 @@ def build_generic_query(rd, base_object, columns, *, row_cap, resolved_metrics=N
     proj = [c.get("field") for c in rd.get("columns", [])]
     dim_fields = [f for f in proj if f in by_field]
 
+    grain_by_field = {c.get("field"): c.get("grain") for c in rd.get("columns") or []}
+    dim_exprs = {
+        f: _grain_sql(_quote_ident(f), grain_by_field.get(f))
+        for f in dim_fields
+        if by_field[f].get("grainable") and grain_by_field.get(f) not in (None, "day")
+    }
+
     conds, params = _build_conditions(rd, by_field)
 
     if resolved_metrics:
@@ -132,10 +156,14 @@ def build_generic_query(rd, base_object, columns, *, row_cap, resolved_metrics=N
             resolved_metrics=resolved_metrics,
             sort=rd.get("sort") or [],
             cap=row_cap,
+            dim_exprs=dim_exprs,
         )
         return sql, params
 
-    select_cols = [_quote_ident(f) for f in dim_fields]
+    select_cols = [
+        f"{dim_exprs[f]} AS {_quote_ident(f)}" if f in dim_exprs else _quote_ident(f)
+        for f in dim_fields
+    ]
     if not select_cols:
         raise TableQueryError("no valid columns selected")
 

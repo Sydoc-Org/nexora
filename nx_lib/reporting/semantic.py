@@ -98,7 +98,7 @@ def metric_select_expr(resolved, col_for_field):
     return f"{_AGG_SQL[agg].format(col_for_field(resolved['base_field']))} AS [{code}]"
 
 
-def build_aggregate_sql(*, inner_from, dim_fields, resolved_metrics, sort, cap):
+def build_aggregate_sql(*, inner_from, dim_fields, resolved_metrics, sort, cap, dim_exprs=None):
     """Assemble `SELECT TOP(cap) <dims>, <agg exprs> FROM <inner_from>
     GROUP BY <dims> [ORDER BY ...]`.
 
@@ -106,18 +106,26 @@ def build_aggregate_sql(*, inner_from, dim_fields, resolved_metrics, sort, cap):
     `(<union>) t` subquery). `dim_fields` are whitelisted field keys projected as
     `[field]`; the same alias names back the aggregate columns. Empty dim_fields
     yields a global aggregate with no GROUP BY (zero-dimension grand total).
-    Sort may target a dim or a metric code; anything else raises (defence in
-    depth)."""
+    `dim_exprs` optionally maps a dim field to a raw SQL expression (e.g. a date-
+    grain bucketing expression) to project/group by instead of the bare column;
+    the field's alias is preserved either way. Sort may target a dim or a metric
+    code; anything else raises (defence in depth)."""
+    dim_exprs = dim_exprs or {}
 
     def bracket(field):
         return f"[{field}]"
 
-    dim_select = ", ".join(bracket(d) for d in dim_fields)
+    def dim_expr(field):
+        return dim_exprs.get(field, bracket(field))
+
+    dim_select = ", ".join(
+        f"{dim_expr(d)} AS {bracket(d)}" if d in dim_exprs else bracket(d) for d in dim_fields
+    )
     metric_exprs = ", ".join(metric_select_expr(m, bracket) for m in resolved_metrics)
     select_list = ", ".join(p for p in (dim_select, metric_exprs) if p)
     sql = f"SELECT TOP ({int(cap)}) {select_list} FROM {inner_from}"
     if dim_fields:
-        sql += " GROUP BY " + ", ".join(bracket(d) for d in dim_fields)
+        sql += " GROUP BY " + ", ".join(dim_expr(d) for d in dim_fields)
 
     projected = set(dim_fields) | {m["code"] for m in resolved_metrics}
     order_parts = []
