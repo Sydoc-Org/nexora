@@ -121,7 +121,13 @@ def _load_user_locale():
 
 
 def _load_user_ui_prefs():
-    if "userid" in session and "ui_prefs" not in session:
+    """Refresh UI prefs from the DB on every request (same idiom as
+    permissions). A load-once session cache goes stale: concurrent requests
+    (e.g. the 5s heartbeat) race the session cookie and can resurrect the
+    old prefs, making saves look non-persistent (#155)."""
+    if request.path.startswith("/static"):
+        return
+    if "userid" in session:
         session["ui_prefs"] = load_ui_prefs(session["userid"])
 
 

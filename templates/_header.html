@@ -22,6 +22,11 @@
             var stored = {{ ui_prefs | tojson }};
             var d = document.documentElement;
             var ls = function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } };
+            /* Resilience: if a save never reached the server (offline, 401),
+               the last locally-applied prefs fill any keys the DB lacks. */
+            try {
+                stored = Object.assign({}, JSON.parse(ls('nexora-ui-prefs')) || {}, stored);
+            } catch (e) {}
             var eff = {
                 theme:      stored.theme      || (ls('nexora-theme') === 'dark' ? 'dark' : 'light'),
                 accent:     stored.accent     || 'indigo',
