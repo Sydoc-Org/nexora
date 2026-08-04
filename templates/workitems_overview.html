@@ -193,21 +193,21 @@
               <div class="flex items-center gap-4">
                 <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{{ _("Document Value Search") }}</label>
               </div>
-              {# Query-builder rows: every row is a full-width segmented control
-                 (field|op|value[|x] with collapsed inner borders); the AND/OR
-                 combinator lives on a connector line BETWEEN rows, so rows all
-                 span edge to edge like the first one. #}
-              <div id="docFiltersContainer" class="flex flex-col gap-2">
+              {# Query-builder rows: field | op | value as separate boxes on the
+                 same 3-column grid as the date row above, so the two sections
+                 share one rhythm (issue #159). The AND/OR combinator lives on a
+                 connector line BETWEEN rows. #}
+              <div id="docFiltersContainer" class="flex flex-col gap-3">
                 <div class="doc-filter-row flex flex-col gap-2">
                   {# Row 1 has no visible combinator; the hidden 'and' keeps the
                      doccomb list index-aligned with docfield/docop/docvalue. #}
                   <input type="text" name="doccomb" value="and" class="hidden doc-filter-comb-fixed"
                     {% if docFieldsValues_perm==False %} disabled {% endif %} readonly tabindex="-1" />
-                  <div class="flex w-full items-stretch">
-                    <div class="relative doc-field-combobox flex-[1.1] min-w-0 focus-within:z-10">
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+                    <div class="relative doc-field-combobox min-w-0">
                       <input type="text" autocomplete="off" id="docFieldSearch"
                         {% if docFieldsValues_perm==False %} disabled {% endif %}
-                        class="{{ input_base }} pr-9 rounded-r-none! doc-filter-field-search"
+                        class="{{ input_base }} pr-9 doc-filter-field-search"
                         placeholder="{{ _('All fields') }}" data-testid="workitems-doc-field-search" />
                       <input type="text" id="docFieldFilter" name="docfield" class="doc-filter-field hidden"
                         {% if docFieldsValues_perm==False %} disabled {% endif %}
@@ -217,9 +217,9 @@
                       </span>
                       <div class="hidden absolute z-20 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto doc-field-dropdown [top:100%]! [margin-top:2px]!"></div>
                     </div>
-                    <div class="relative w-36 shrink-0 -ml-px focus-within:z-10">
+                    <div class="relative min-w-0">
                       <select id="docOpFilter" name="docop" {% if docFieldsValues_perm==False %} disabled {% endif %}
-                        class="nx-select h-11 appearance-none pr-8 rounded-none! text-gray-500 doc-filter-op" data-testid="workitems-doc-op">
+                        class="nx-select h-11 appearance-none pr-8 text-gray-500 doc-filter-op" data-testid="workitems-doc-op">
                         <option value="contains" {% if docop=='contains' %}selected{% endif %}>{{ _('contains') }}</option>
                         <option value="eq" {% if docop=='eq' %}selected{% endif %}>=</option>
                         <option value="neq" {% if docop=='neq' %}selected{% endif %}>&ne;</option>
@@ -231,10 +231,10 @@
                         <i class="fa-solid fa-chevron-down text-xs"></i>
                       </div>
                     </div>
-                    <div class="relative flex-[1.4] min-w-0 -ml-px focus-within:z-10">
+                    <div class="relative min-w-0">
                       <input type="text" id="docValueInput" name="docvalue" value="{{ docvalue or '' }}" {% if
                         docFieldsValues_perm==False %} disabled {% endif %} autocomplete="off"
-                        class="{{ input_base }} px-3.5 rounded-l-none! doc-filter-value" placeholder="{{ _('Type to search…') }}" data-testid="workitems-doc-value" />
+                        class="{{ input_base }} px-3.5 doc-filter-value" placeholder="{{ _('Type to search…') }}" data-testid="workitems-doc-value" />
                       <div id="docValueCustomList"
                         class="hidden absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto doc-filter-list">
                       </div>
@@ -258,10 +258,10 @@
                     </div>
                     <div class="h-px flex-1 bg-gray-200" aria-hidden="true"></div>
                   </div>
-                  <div class="flex w-full items-stretch">
-                    <div class="relative doc-field-combobox flex-[1.1] min-w-0 focus-within:z-10">
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+                    <div class="relative doc-field-combobox min-w-0">
                       <input type="text" autocomplete="off"
-                        class="{{ input_base }} pr-9 rounded-r-none! doc-filter-field-search"
+                        class="{{ input_base }} pr-9 doc-filter-field-search"
                         placeholder="{{ _('All fields') }}" />
                       <input type="text" name="docfield" class="doc-filter-field [display:none]!" readonly tabindex="-1"/>
                       <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 pointer-events-none">
@@ -269,9 +269,9 @@
                       </span>
                       <div class="hidden absolute z-20 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto doc-field-dropdown [top:100%]! [margin-top:2px]!"></div>
                     </div>
-                    <div class="relative w-36 shrink-0 -ml-px focus-within:z-10">
+                    <div class="relative min-w-0">
                       <select name="docop"
-                        class="nx-select h-11 appearance-none pr-8 rounded-none! text-gray-500 doc-filter-op" data-testid="workitems-doc-op-row">
+                        class="nx-select h-11 appearance-none pr-8 text-gray-500 doc-filter-op" data-testid="workitems-doc-op-row">
                         <option value="contains" selected>{{ _('contains') }}</option>
                         <option value="eq">=</option>
                         <option value="neq">&ne;</option>
@@ -283,9 +283,9 @@
                         <i class="fa-solid fa-chevron-down text-xs"></i>
                       </div>
                     </div>
-                    <div class="relative flex-[1.4] min-w-0 -ml-px focus-within:z-10">
+                    <div class="relative min-w-0">
                       <input type="text" name="docvalue" autocomplete="off"
-                        class="{{ input_base }} pl-3.5 pr-10 rounded-l-none! doc-filter-value" placeholder="{{ _('Type to search…') }}" />
+                        class="{{ input_base }} pl-3.5 pr-10 doc-filter-value" placeholder="{{ _('Type to search…') }}" />
                       {# x lives INSIDE the value input so this row's segments
                          stay geometrically identical to row 1's. #}
                       <button type="button"

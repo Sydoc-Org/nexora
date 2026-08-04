@@ -95,6 +95,24 @@ the key's `ProcessList`:
   returns zeros with `"processes": []`. Not cached: every call computes
   fresh numbers.
 
+## GET /api/v1/backlog
+
+The dashboard's "Current Backlog" KPI number, scoped to the key's
+`ProcessList`:
+
+    {
+      "datetime": "2026-08-04 09:15",
+      "current_backlog": 154
+    }
+
+- `datetime` — **server-local** timestamp (`YYYY-MM-DD HH:MM`) the count was
+  computed at.
+- `current_backlog` — the summed C+A backlog count across all active
+  workitem sources for the key's `ProcessList`. Unlike `/stats/today`, the
+  response does **not** echo the process list — scoping happens once, at key
+  issuance, not per response. An empty scope returns `0`. Not cached: every
+  call computes fresh numbers.
+
 ## Errors (JSON unless noted)
 
 | Status | Body | Meaning |
@@ -104,7 +122,7 @@ the key's `ProcessList`:
 | 404 | `{"error": "Not found"}` | wrong path under `/api/v1` |
 | 405 | HTML (Flask default) | non-GET verb — the API is GET-only |
 | 429 | HTML (flask-limiter default) | over 60 requests/minute |
-| 500 | `{"error": "Stats backend unavailable"}` or `{"error": "Internal server error"}` | stats query / server failure |
+| 500 | `{"error": "Stats backend unavailable"}` (`/stats/today`) or `{"error": "Backlog backend unavailable"}` (`/backlog`) or `{"error": "Internal server error"}` | stats/backlog query or server failure |
 | 503 | `{"error": "Auth backend unavailable"}` | NexoraDB unreachable during auth (fail closed) |
 | 503 | `{"error": "Maintenance", "maintenance": {...}}` | blocking maintenance window (global lockout) |
 
