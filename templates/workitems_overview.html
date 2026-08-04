@@ -142,7 +142,27 @@
         {% set input_base = "nx-input h-11" %}
 
         <div id="advancedFilterContainer" class="hidden mt-8 pt-6 border-t border-gray-200">
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+
+            <div class="min-w-0">
+              <label for="datePreset" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
+                {{ _("Date Range") }}
+              </label>
+              <div class="relative mt-1">
+                <select id="datePreset" {% if datetime_perm==False %} disabled {% endif %}
+                  class="nx-select h-11 appearance-none pr-10" data-testid="workitems-date-preset">
+                  <option value="">{{ _("Custom") }}</option>
+                  <option value="today">{{ _("Today") }}</option>
+                  <option value="yesterday">{{ _("Yesterday") }}</option>
+                  <option value="this_week">{{ _("This week") }}</option>
+                  <option value="last_7_days">{{ _("Last 7 days") }}</option>
+                  <option value="this_month">{{ _("This month") }}</option>
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+                  <i class="fa-solid fa-chevron-down text-xs"></i>
+                </div>
+              </div>
+            </div>
 
             <div class="min-w-0">
               <label for="startDate" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
@@ -165,10 +185,9 @@
             </div>
 
           </div>
-        </div>
 
-        {# Document Value Search -- its own engine, deliberately OUTSIDE the
-           Advanced toggle (issue #148): always visible, value-first. #}
+        {# Document Value Search -- its own engine, tucked INSIDE the Advanced
+           toggle (issue #159; was always-visible per #148). #}
         <div class="mt-8 pt-6 border-t border-gray-200" data-testid="workitems-doc-value-search">
             <div class="min-w-0">
               <div class="flex items-center gap-4">
@@ -289,6 +308,7 @@
                 <i class="fas fa-plus-circle mr-1"></i>{{ _("Add filter") }}
               </button>
             </div>
+        </div>
         </div>
 
         <div class="flex items-center justify-end gap-3 mt-5 pt-5 border-t border-gray-200">

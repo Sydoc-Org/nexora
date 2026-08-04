@@ -331,6 +331,36 @@ async function uploadBatchFiles(files, processName) {
                 toggleBtn.addEventListener('click', () => {
                     advancedContainer.classList.toggle('hidden');
                 });
+                // Auto-open when the URL restored an advanced filter, so
+                // active-but-hidden filters can't silently narrow the list.
+                if (['startDate', 'endDate', 'docFieldFilter', 'docValueInput']
+                    .some(id => document.getElementById(id)?.value)) {
+                    advancedContainer.classList.remove('hidden');
+                }
+            }
+
+            const datePreset = document.getElementById('datePreset');
+            if (datePreset) {
+                const pad = n => String(n).padStart(2, '0');
+                const fmtDay = (d, end) =>
+                    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${end ? '23:59:59' : '00:00:00'}`;
+                datePreset.addEventListener('change', () => {
+                    if (!datePreset.value) return;
+                    const from = new Date(), to = new Date();
+                    switch (datePreset.value) {
+                        case 'yesterday': from.setDate(from.getDate() - 1); to.setDate(to.getDate() - 1); break;
+                        case 'this_week': from.setDate(from.getDate() - ((from.getDay() + 6) % 7)); break;
+                        case 'last_7_days': from.setDate(from.getDate() - 6); break;
+                        case 'this_month': from.setDate(1); break;
+                    }
+                    document.getElementById('startDate').value = fmtDay(from, false);
+                    document.getElementById('endDate').value = fmtDay(to, true);
+                    fetchAndUpdateWorkitems();
+                });
+                // Hand-editing a date means the range is custom again.
+                ['startDate', 'endDate'].forEach(id => {
+                    document.getElementById(id)?.addEventListener('input', () => { datePreset.value = ''; });
+                });
             }
 
             async function fetchFieldConfig() {
