@@ -10,6 +10,12 @@ Work toward 2.5.65.
 
 ### Added
 
+- Workitems: **date-range presets** (#159) — a "Date Range" dropdown (Today,
+  Yesterday, This week, Last 7 days, This month) in the Advanced filter panel
+  that fills From/To Date and refetches; hand-editing a date flips it back to
+  Custom. The Document Value Search block moved **inside** the Advanced toggle
+  (hidden by default; the panel auto-opens when a URL restores any advanced
+  filter so an active filter can't silently narrow the list).
 - Appearance: **standalone `/appearance` page** (#155) replacing the in-profile
   controls (the profile keeps a teaser card linking to it; also reachable from
   the profile dropdown and the Ctrl/Cmd+K palette). Adds a **live preview
