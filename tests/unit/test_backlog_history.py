@@ -19,7 +19,8 @@ def test_collect_snapshot_flattens_sources_and_drops_excluded():
         patch.object(bh, "fetch_octo", return_value=octo),
         patch.object(bh, "fetch_ms02", return_value=ms02),
     ):
-        rows = bh.collect_snapshot()
+        rows, failures = bh.collect_snapshot()
+    assert failures == []
     assert rows == [
         ("default", "Privera", "02_Posteingang", 462),
         ("default", "Compass", "01_Invoice_SAP", 17),
@@ -27,14 +28,14 @@ def test_collect_snapshot_flattens_sources_and_drops_excluded():
     ]
 
 
-def test_collect_snapshot_one_bad_source_does_not_block_the_other(capsys):
+def test_collect_snapshot_one_bad_source_does_not_block_the_other():
     with (
         patch.object(bh, "fetch_octo", side_effect=RuntimeError("db down")),
         patch.object(bh, "fetch_ms02", return_value=[("sydoc", "05_PDBS", 3)]),
     ):
-        rows = bh.collect_snapshot()
+        rows, failures = bh.collect_snapshot()
     assert rows == [("ms02", "sydoc", "05_PDBS", 3)]
-    assert "source default failed" in capsys.readouterr().err
+    assert failures == ["source default failed: db down"]
 
 
 def test_fetch_ms02_skips_gracefully_without_env(monkeypatch):
@@ -83,7 +84,7 @@ def test_write_snapshot_rolls_back_and_raises_on_error(monkeypatch):
 
 def test_run_once_dry_run_writes_nothing():
     with (
-        patch.object(bh, "collect_snapshot", return_value=[("default", "A", "P", 1)]),
+        patch.object(bh, "collect_snapshot", return_value=([("default", "A", "P", 1)], [])),
         patch.object(bh, "write_snapshot") as write,
     ):
         assert bh.run_once(dry_run=True) == 0
@@ -92,9 +93,100 @@ def test_run_once_dry_run_writes_nothing():
 
 def test_run_once_writes_local_naive_timestamp():
     with (
-        patch.object(bh, "collect_snapshot", return_value=[("default", "A", "P", 1)]),
+        patch.object(bh, "collect_snapshot", return_value=([("default", "A", "P", 1)], [])),
         patch.object(bh, "write_snapshot") as write,
     ):
         assert bh.run_once() == 0
     now = write.call_args.args[1]
     assert now.tzinfo is None and now.microsecond == 0
+
+
+def test_run_once_source_failure_opens_ticket_and_exits_nonzero():
+    with (
+        patch.object(
+            bh,
+            "collect_snapshot",
+            return_value=([("ms02", "A", "P", 1)], ["source default failed: x"]),
+        ),
+        patch.object(bh, "write_snapshot") as write,
+        patch.object(bh, "open_ticket") as ticket,
+    ):
+        assert bh.run_once() == 1
+    write.assert_called_once()  # the surviving source's rows still land
+    ticket.assert_called_once()
+    assert ticket.call_args.args[0] == ["source default failed: x"]
+
+
+def test_run_once_write_failure_opens_ticket_and_exits_nonzero():
+    with (
+        patch.object(bh, "collect_snapshot", return_value=([("default", "A", "P", 1)], [])),
+        patch.object(bh, "write_snapshot", side_effect=RuntimeError("stats db down")),
+        patch.object(bh, "open_ticket") as ticket,
+    ):
+        assert bh.run_once() == 1
+    assert "Statistics-DB write failed" in ticket.call_args.args[0][0]
+
+
+def test_open_ticket_skips_when_not_configured(monkeypatch):
+    for var in ("TICKET_TO", "GRAPH_TENANT_ID"):
+        monkeypatch.delenv(var, raising=False)
+    assert bh.open_ticket(["boom"], __import__("datetime").datetime.now()) is False
+
+
+def test_open_ticket_respects_cooldown(monkeypatch, tmp_path):
+    from datetime import datetime
+
+    monkeypatch.setenv("TICKET_TO", "helpdesk@example.com")
+    monkeypatch.setenv("GRAPH_TENANT_ID", "t")
+    stamp = tmp_path / "last_ticket.txt"
+    stamp.write_text(datetime.now().isoformat())
+    with (
+        patch.object(bh, "_COOLDOWN_STAMP", str(stamp)),
+        patch.object(bh, "_graph_token") as token,
+    ):
+        assert bh.open_ticket(["boom"], datetime.now()) is False
+    token.assert_not_called()
+
+
+def test_open_ticket_sends_mail_and_writes_stamp(monkeypatch, tmp_path):
+    from datetime import datetime
+
+    monkeypatch.setenv("TICKET_TO", "helpdesk@example.com")
+    monkeypatch.setenv("GRAPH_TENANT_ID", "t")
+    stamp = tmp_path / "last_ticket.txt"
+    sent = {}
+
+    class FakeResp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    def fake_urlopen(req, timeout=None):
+        sent["url"] = req.full_url
+        sent["body"] = req.data.decode()
+        return FakeResp()
+
+    now = datetime(2026, 8, 4, 14, 30)
+    with (
+        patch.object(bh, "_COOLDOWN_STAMP", str(stamp)),
+        patch.object(bh, "_graph_token", return_value="tok"),
+        patch.object(bh.urllib.request, "urlopen", fake_urlopen),
+    ):
+        assert bh.open_ticket(["source default failed: x"], now) is True
+    assert "sendMail" in sent["url"]
+    assert "source default failed: x" in sent["body"]
+    assert stamp.read_text() == now.isoformat()
+
+
+def test_open_ticket_never_raises(monkeypatch, tmp_path):
+    from datetime import datetime
+
+    monkeypatch.setenv("TICKET_TO", "helpdesk@example.com")
+    monkeypatch.setenv("GRAPH_TENANT_ID", "t")
+    with (
+        patch.object(bh, "_COOLDOWN_STAMP", str(tmp_path / "last_ticket.txt")),
+        patch.object(bh, "_graph_token", side_effect=RuntimeError("auth down")),
+    ):
+        assert bh.open_ticket(["boom"], datetime.now()) is False

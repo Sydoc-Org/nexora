@@ -20,3 +20,15 @@ Program: `D:\sydoc\tools\py\python.exe`
 Arguments: `D:\sydoc\tools\backlog_history\backlog_history.py --once`
 
 The `dbo.BacklogHistory` table is created automatically on first run.
+
+## Logging & failure tickets
+
+- Every run logs to `backlog_history.log` next to the script (rotating,
+  1 MB × 3 backups).
+- On failure (a source query or the Statistics-DB write) the run exits
+  non-zero and opens ONE consolidated helpdesk ticket by mailing
+  `TICKET_TO` (default `support.helpdesk@sydoc.ch`) via Microsoft Graph,
+  using the same `GRAPH_*` ROPC creds as nexora. `TICKET_COOLDOWN_HOURS`
+  (default 6, tracked in `last_ticket.txt`) stops a dead DB from raising a
+  new ticket every 30 minutes. Leave `TICKET_TO` empty to disable
+  ticketing — failures still log and still exit non-zero.

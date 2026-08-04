@@ -11,18 +11,33 @@ runtime DB (SQL Server) and, when the MS02_* vars are set, the MS02 Postgres
 runtime DB, then appends the rows to dbo.BacklogHistory on the Statistics DB
 (table created idempotently on first run). SnapshotAt is server-local time.
 
+Logs to backlog_history.log next to this file (rotating, 1 MB x 3). On any
+failure (a source query or the Statistics-DB write) it opens ONE consolidated
+helpdesk ticket by mailing TICKET_TO via Microsoft Graph (same ROPC flow as
+the ping monitor), throttled by TICKET_COOLDOWN_HOURS so a dead DB does not
+raise a new ticket every 30 minutes, and exits non-zero.
+
 Flags:
     --once       take one snapshot and exit (default)
     --dry-run    query the sources and print what *would* be written; no insert
 """
 
 import argparse
+import json
+import logging
+import logging.handlers
 import os
+import socket
 import sys
+import urllib.parse
+import urllib.request
 from datetime import datetime
 
 import pyodbc
 from dotenv import load_dotenv
+
+_HERE = os.path.dirname(os.path.abspath(__file__))
+log = logging.getLogger("backlog_history")
 
 # (ClientName, ProcessName) pairs that never make it into the history —
 # reporting-only / template / retired processes with no operational backlog.
@@ -129,9 +144,10 @@ def fetch_ms02():
 
 
 def collect_snapshot():
-    """[(source_code, client, process, count)] across both sources, minus the
-    EXCLUDED pairs. One failing source must not block the other."""
-    rows = []
+    """([(source_code, client, process, count)], [failure messages]) across
+    both sources, minus the EXCLUDED pairs. One failing source must not block
+    the other; its failure is reported instead."""
+    rows, failures = [], []
     for code, fetch in (("default", fetch_octo), ("ms02", fetch_ms02)):
         try:
             rows.extend(
@@ -140,8 +156,9 @@ def collect_snapshot():
                 if (client, process) not in EXCLUDED
             )
         except Exception as e:
-            print(f"[error] source {code} failed: {e}", file=sys.stderr)
-    return rows
+            log.error(f"source {code} failed: {e}")
+            failures.append(f"source {code} failed: {e}")
+    return rows, failures
 
 
 def write_snapshot(rows, now):
@@ -159,21 +176,125 @@ def write_snapshot(rows, now):
         conn.close()
 
 
+# ---- logging + helpdesk ticket on failure ----------------------------------
+
+_COOLDOWN_STAMP = os.path.join(_HERE, "last_ticket.txt")
+
+
+def setup_logging():
+    handler = logging.handlers.RotatingFileHandler(
+        os.path.join(_HERE, "backlog_history.log"),
+        maxBytes=1_000_000,
+        backupCount=3,
+        encoding="utf-8",
+    )
+    fmt = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
+    handler.setFormatter(fmt)
+    console = logging.StreamHandler()
+    console.setFormatter(fmt)
+    log.setLevel(logging.INFO)
+    log.addHandler(handler)
+    log.addHandler(console)
+
+
+def _graph_token():
+    body = urllib.parse.urlencode(
+        {
+            "client_id": os.environ["GRAPH_CLIENT_ID"],
+            "username": os.environ["GRAPH_USERNAME"],
+            "password": os.environ["GRAPH_PASSWORD"],
+            "client_secret": os.environ["GRAPH_CLIENT_SECRET"],
+            "grant_type": "password",
+            "scope": "Mail.Send",
+        }
+    ).encode()
+    url = f"https://login.microsoftonline.com/{os.environ['GRAPH_TENANT_ID']}/oauth2/v2.0/token"
+    with urllib.request.urlopen(urllib.request.Request(url, data=body), timeout=30) as resp:
+        return json.load(resp)["access_token"]
+
+
+def _ticket_cooldown_active(now):
+    hours = float(os.environ.get("TICKET_COOLDOWN_HOURS") or "6")
+    try:
+        with open(_COOLDOWN_STAMP, encoding="utf-8") as f:
+            last = datetime.fromisoformat(f.read().strip())
+    except (OSError, ValueError):
+        return False
+    return (now - last).total_seconds() < hours * 3600
+
+
+def open_ticket(failures, now):
+    """Mail ONE consolidated failure ticket to the helpdesk via Graph. Never
+    raises — a broken mailer must not mask the original failure — and skips
+    while a previous ticket's cooldown window is still open."""
+    to = os.environ.get("TICKET_TO")
+    if not (to and os.environ.get("GRAPH_TENANT_ID")):
+        log.warning("ticketing not configured (TICKET_TO / GRAPH_* unset), skipping ticket")
+        return False
+    if _ticket_cooldown_active(now):
+        log.info("ticket cooldown active, not opening another ticket")
+        return False
+    host = socket.gethostname()
+    lines = "".join(f"<li>{f}</li>" for f in failures)
+    payload = json.dumps(
+        {
+            "message": {
+                "subject": f"[backlog-history] collector failed on {host}",
+                "body": {
+                    "contentType": "HTML",
+                    "content": (
+                        f"<p>The backlog-history collector on <strong>{host}</strong> "
+                        f"failed at {now:%Y-%m-%d %H:%M}:</p><ul>{lines}</ul>"
+                        f"<p>Log: {os.path.join(_HERE, 'backlog_history.log')}</p>"
+                    ),
+                },
+                "toRecipients": [{"emailAddress": {"address": to}}],
+            },
+            "saveToSentItems": True,
+        }
+    ).encode()
+    try:
+        token = _graph_token()
+        req = urllib.request.Request(
+            "https://graph.microsoft.com/v1.0/me/sendMail",
+            data=payload,
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=30):
+            pass
+        with open(_COOLDOWN_STAMP, "w", encoding="utf-8") as f:
+            f.write(now.isoformat())
+        log.info(f"helpdesk ticket opened ({to})")
+        return True
+    except Exception as e:
+        log.error(f"could not open helpdesk ticket: {e}")
+        return False
+
+
 def run_once(dry_run=False):
     now = datetime.now().replace(microsecond=0)
-    rows = collect_snapshot()
+    rows, failures = collect_snapshot()
     if dry_run:
         for source_code, client, process, count in rows:
             print(f"[dry-run] {source_code} {client}.{process}: {count}")
         print(f"[dry-run] {len(rows)} rows, nothing written")
-        return 0
-    write_snapshot(rows, now)
-    print(f"backlog history: {len(rows)} rows written at {now:%Y-%m-%d %H:%M}")
+        return 1 if failures else 0
+    if rows:
+        try:
+            write_snapshot(rows, now)
+            log.info(f"{len(rows)} rows written at {now:%Y-%m-%d %H:%M}")
+        except Exception as e:
+            log.error(f"Statistics-DB write failed: {e}")
+            failures.append(f"Statistics-DB write failed: {e}")
+    if failures:
+        open_ticket(failures, now)
+        return 1
     return 0
 
 
 def main():
-    load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
+    load_dotenv(os.path.join(_HERE, ".env"))
+    setup_logging()
     ap = argparse.ArgumentParser(description="Snapshot the per-process C+A backlog.")
     ap.add_argument("--once", action="store_true", help="take one snapshot and exit (default)")
     ap.add_argument("--dry-run", action="store_true", help="print rows, do not write")
