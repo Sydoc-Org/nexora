@@ -267,6 +267,15 @@ Work toward 2.5.65.
 
 ### Fixed
 
+- Workitem details: the **MWST amount showed the wrong value** (reported on
+  PROD; INT had the same data). Two `dbo.IndexFieldMappings` rows carried
+  swapped TargetKeys — `RptCompCode → VatAmount` rendered the SAP company code
+  as "MWST. Betrag", and a duplicate `VatAmount → Client` row overrode the
+  correct `VatAmount → VatAmount` mapping (the mapping dict is keyed by
+  SourceFieldName, last row wins) so the real VAT amount surfaced as "Mandant".
+  Migration `0052` re-points `RptCompCode` to `Client` and deletes the
+  duplicate row.
+
 - Reporting AI: the schema grounding for the per-process partial Statconfig
   tables (`dbo.Compass_Invoice`, `dbo.EM_Invoice`, …) only named each table's
   import/export date columns, so the agent guessed every other column (page
