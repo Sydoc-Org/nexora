@@ -43,6 +43,7 @@ log = logging.getLogger("backlog_history")
 # reporting-only / template / retired processes with no operational backlog.
 EXCLUDED = {
     ("Privera", "01_Reporting"),
+    ("Privera", "02_InitialScan"),
     ("Privera", "02_Invoice"),
     ("Privera", "Zeus"),
     ("sydoc", "DPSI_Template"),

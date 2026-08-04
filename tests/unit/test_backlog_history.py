@@ -9,6 +9,7 @@ def test_collect_snapshot_flattens_sources_and_drops_excluded():
     octo = [
         ("Privera", "02_Posteingang", 462),
         ("Privera", "01_Reporting", 258),  # EXCLUDED
+        ("Privera", "02_InitialScan", 1),  # EXCLUDED
         ("Privera", "02_Invoice", 8),  # EXCLUDED
         ("Privera", "Zeus", 20),  # EXCLUDED
         ("sydoc", "DPSI_Template", 2),  # EXCLUDED
