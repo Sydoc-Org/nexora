@@ -192,3 +192,35 @@ def test_fetch_page_with_pid_filters(monkeypatch):
     assert rows[0]["pid"] == "100"
     sql_used = cur.execute.call_args.args[0]
     assert "WHERE PID = ?" in sql_used
+
+
+def test_count_with_collected_and_prepared_filters(monkeypatch):
+    cur = MagicMock()
+    cur.fetchone.return_value = (1,)
+    engine, _conn = _mock_engine(cur)
+    monkeypatch.setattr(pd, "engine_nexora_db", engine)
+    assert pd.count_prepared_documents(collected=True, prepared=False) == 1
+    sql_used = cur.execute.call_args.args[0]
+    assert "Collected = ?" in sql_used
+    assert "Prepared = ?" in sql_used
+    assert cur.execute.call_args.args[1] == [1, 0]
+
+
+def test_fetch_page_group_by_orders_by_column(monkeypatch):
+    cur = MagicMock()
+    cur.fetchall.return_value = []
+    engine, _conn = _mock_engine(cur)
+    monkeypatch.setattr(pd, "engine_nexora_db", engine)
+    pd.fetch_prepared_documents_page(0, 40, group_by="collected_by")
+    sql_used = cur.execute.call_args.args[0]
+    assert "ORDER BY CollectedBy ASC, ID DESC" in sql_used
+
+
+def test_fetch_page_unknown_group_by_falls_back_to_id_desc(monkeypatch):
+    cur = MagicMock()
+    cur.fetchall.return_value = []
+    engine, _conn = _mock_engine(cur)
+    monkeypatch.setattr(pd, "engine_nexora_db", engine)
+    pd.fetch_prepared_documents_page(0, 40, group_by="not_a_real_column")
+    sql_used = cur.execute.call_args.args[0]
+    assert "ORDER BY ID DESC" in sql_used

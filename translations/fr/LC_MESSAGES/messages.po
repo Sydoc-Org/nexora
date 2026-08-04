@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-04 15:28+0200\n"
+"POT-Creation-Date: 2026-08-04 15:46+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -125,7 +125,7 @@ msgstr "Impossible de récupérer les sessions"
 #: nx_lib/views/admin.py:1860 nx_lib/views/dashboard.py:251
 #: nx_lib/views/dashboard.py:361 nx_lib/views/dashboard.py:416
 #: nx_lib/views/dashboard.py:508 nx_lib/views/invoices.py:280
-#: nx_lib/views/workitems.py:980 nx_lib/views/workitems.py:1720
+#: nx_lib/views/workitems.py:981 nx_lib/views/workitems.py:1721
 msgid "Not authorized"
 msgstr "Non autorisé"
 
@@ -691,11 +691,11 @@ msgstr "Impossible de mettre à jour la métrique"
 msgid "Could not delete metric"
 msgstr "Impossible de supprimer la métrique"
 
-#: nx_lib/views/workitems.py:971 nx_lib/views/workitems.py:1131
+#: nx_lib/views/workitems.py:972 nx_lib/views/workitems.py:1132
 msgid "Could not fetch values"
 msgstr "Impossible de récupérer les valeurs"
 
-#: nx_lib/views/workitems.py:1192
+#: nx_lib/views/workitems.py:1193
 msgid ""
 "Exporting fields, history, or images requires selecting 10 or fewer "
 "workitems."
@@ -703,23 +703,23 @@ msgstr ""
 "L'export des champs, de l'historique ou des images nécessite de "
 "sélectionner 10 workitems ou moins."
 
-#: nx_lib/views/workitems.py:1486
+#: nx_lib/views/workitems.py:1487
 msgid "TRUNCATED"
 msgstr "TRONQUÉ"
 
-#: nx_lib/views/workitems.py:1487
+#: nx_lib/views/workitems.py:1488
 msgid "exported"
 msgstr "exportés"
 
-#: nx_lib/views/workitems.py:1487
+#: nx_lib/views/workitems.py:1488
 msgid "matching workitems"
 msgstr "workitems correspondants"
 
-#: nx_lib/views/workitems.py:1493
+#: nx_lib/views/workitems.py:1494
 msgid "EXPORT TIMED OUT"
 msgstr "EXPORT EXPIRÉ"
 
-#: nx_lib/views/workitems.py:1494
+#: nx_lib/views/workitems.py:1495
 msgid ""
 "no fields or images completed before the time limit; this is not a zero-"
 "result export"
@@ -727,86 +727,86 @@ msgstr ""
 "aucun champ ni image n'a été terminé avant la limite de temps ; il ne "
 "s'agit pas d'un export sans résultat"
 
-#: nx_lib/views/workitems.py:1610 nx_lib/views/workitems.py:1681
+#: nx_lib/views/workitems.py:1611 nx_lib/views/workitems.py:1682
 msgid "No file part in the request."
 msgstr "Aucune partie de fichier dans la requête."
 
-#: nx_lib/views/workitems.py:1617 nx_lib/views/workitems.py:1684
+#: nx_lib/views/workitems.py:1618 nx_lib/views/workitems.py:1685
 msgid "No file selected for uploading."
 msgstr "Aucun fichier sélectionné pour le téléversement."
 
-#: nx_lib/views/workitems.py:1621
+#: nx_lib/views/workitems.py:1622
 msgid "No target process selected."
 msgstr "Aucun processus cible sélectionné."
 
-#: nx_lib/views/workitems.py:1633
+#: nx_lib/views/workitems.py:1634
 msgid "You do not have permission to import to this process."
 msgstr "Vous n'avez pas l'autorisation d'importer dans ce processus."
 
-#: nx_lib/views/workitems.py:1648
+#: nx_lib/views/workitems.py:1649
 #, python-brace-format
 msgid "File '{}' successfully imported into {}."
 msgstr "Fichier '{}' importé avec succès dans {}."
 
-#: nx_lib/views/workitems.py:1653
+#: nx_lib/views/workitems.py:1654
 msgid "An error occurred while saving the file."
 msgstr "Une erreur s'est produite lors de l'enregistrement du fichier."
 
-#: nx_lib/views/workitems.py:1655
+#: nx_lib/views/workitems.py:1656
 msgid "Invalid file type. Please upload a valid PDF."
 msgstr "Type de fichier invalide. Veuillez téléverser un PDF valide."
 
-#: nx_lib/views/workitems.py:1678 nx_lib/views/workitems.py:2149
+#: nx_lib/views/workitems.py:1679 nx_lib/views/workitems.py:2193
 msgid "This import is only available for the MS02 client."
 msgstr "Cet import est uniquement disponible pour le client MS02."
 
-#: nx_lib/views/workitems.py:1688
+#: nx_lib/views/workitems.py:1689
 msgid "Invalid file type. Please upload a valid Excel (.xlsx) file."
 msgstr ""
 "Type de fichier invalide. Veuillez téléverser un fichier Excel valide "
 "(.xlsx)."
 
-#: nx_lib/views/workitems.py:1696
+#: nx_lib/views/workitems.py:1697
 msgid "The Excel file has no usable rows."
 msgstr "Le fichier Excel ne contient aucune ligne exploitable."
 
-#: nx_lib/views/workitems.py:1713
+#: nx_lib/views/workitems.py:1714
 msgid "Could not save the prepared documents. Please try again."
 msgstr "Impossible de sauvegarder les documents préparés. Veuillez réessayer."
 
-#: nx_lib/views/workitems.py:1796 nx_lib/views/workitems.py:1836
+#: nx_lib/views/workitems.py:1797 nx_lib/views/workitems.py:1837
 msgid "Workitem not found"
 msgstr "Workitem introuvable"
 
-#: nx_lib/views/workitems.py:1824 nx_lib/views/workitems.py:1918
+#: nx_lib/views/workitems.py:1825 nx_lib/views/workitems.py:1919
 msgid "Internal Server Error"
 msgstr "Erreur interne du serveur"
 
-#: nx_lib/views/workitems.py:1849
+#: nx_lib/views/workitems.py:1850
 msgid "Media index out of bounds"
 msgstr "Index du média hors limites"
 
-#: nx_lib/views/workitems.py:1875
+#: nx_lib/views/workitems.py:1876
 msgid "Failed to render PDF page"
 msgstr "Échec du rendu de la page PDF"
 
-#: nx_lib/views/workitems.py:1902
+#: nx_lib/views/workitems.py:1903
 msgid "Failed to process TIFF image"
 msgstr "Échec du traitement de l'image TIFF"
 
-#: nx_lib/views/workitems.py:1967
+#: nx_lib/views/workitems.py:1968
 msgid "Failed to fetch audit history"
 msgstr "Échec de la récupération de l'historique d'audit"
 
-#: nx_lib/views/workitems.py:1969
+#: nx_lib/views/workitems.py:1970
 msgid "An unexpected error occurred"
 msgstr "Une erreur inattendue s'est produite"
 
-#: nx_lib/views/workitems.py:2075
+#: nx_lib/views/workitems.py:2076
 msgid "This page is only available for the MS02 client."
 msgstr "Cette page est uniquement disponible pour le client MS02."
 
-#: nx_lib/views/workitems.py:2155
+#: nx_lib/views/workitems.py:2199
 msgid "Could not clear the prepared documents. Please try again."
 msgstr "Impossible de supprimer les documents préparés. Veuillez réessayer."
 
@@ -2023,7 +2023,7 @@ msgstr "Au"
 #: templates/generali_reporting.html:131
 #: templates/js/_reporting_dashboard_js.html:79
 #: templates/js/_reporting_simple_js.html:63
-#: templates/js/admin/_logs_js.html:171
+#: templates/js/admin/_logs_js.html:171 templates/prepared_documents.html:96
 msgid "Apply"
 msgstr "Appliquer"
 
@@ -2034,7 +2034,7 @@ msgstr "Appliquer"
 #: templates/generali_importstatus.html:75 templates/generali_pdqm.html:132
 #: templates/generali_projectmanagement.html:100
 #: templates/generali_reporting.html:135 templates/invoices.html:96
-#: templates/workitems_overview.html:321
+#: templates/prepared_documents.html:98 templates/workitems_overview.html:321
 msgid "Reset"
 msgstr "Réinitialiser"
 
@@ -3129,7 +3129,7 @@ msgstr "Registre d'entrée des documents collectés et préparés"
 msgid "Show all"
 msgstr "Tout afficher"
 
-#: templates/prepared_documents.html:46 templates/prepared_documents.html:79
+#: templates/prepared_documents.html:46 templates/prepared_documents.html:108
 msgid "PID"
 msgstr "Numéros de personne"
 
@@ -3141,35 +3141,68 @@ msgstr "Importer Excel"
 msgid "Clear list"
 msgstr "Vider la liste"
 
-#: templates/prepared_documents.html:82
+#: templates/prepared_documents.html:74
+msgid "Search PID"
+msgstr "Rechercher PID"
+
+#: templates/prepared_documents.html:77 templates/prepared_documents.html:78
+#: templates/prepared_documents.html:79 templates/prepared_documents.html:111
 msgid "Collected"
 msgstr "Collecté"
 
-#: templates/prepared_documents.html:85
-msgid "Collected by"
-msgstr "Collecté par"
+#: templates/prepared_documents.html:77 templates/prepared_documents.html:82
+msgid "Any"
+msgstr "Tous"
 
-#: templates/prepared_documents.html:88
+#: templates/js/admin/_access_control_js.html:711
+#: templates/prepared_documents.html:78 templates/prepared_documents.html:83
+msgid "Yes"
+msgstr "Oui"
+
+#: templates/prepared_documents.html:79 templates/prepared_documents.html:84
+msgid "No"
+msgstr "Non"
+
+#: templates/prepared_documents.html:82 templates/prepared_documents.html:83
+#: templates/prepared_documents.html:84 templates/prepared_documents.html:117
 msgid "Prepared"
 msgstr "Préparé"
 
-#: templates/prepared_documents.html:91
+#: templates/prepared_documents.html:87 templates/prepared_documents.html:88
+#: templates/prepared_documents.html:89
+msgid "Group by"
+msgstr "Regrouper par"
+
+#: templates/admin/access_control.html:334 templates/admin/user_detail.html:154
+#: templates/prepared_documents.html:87
+msgid "None"
+msgstr "Aucun"
+
+#: templates/prepared_documents.html:88 templates/prepared_documents.html:114
+msgid "Collected by"
+msgstr "Collecté par"
+
+#: templates/prepared_documents.html:89 templates/prepared_documents.html:120
 msgid "Prepared by"
 msgstr "Préparé par"
 
-#: templates/prepared_documents.html:94
+#: templates/prepared_documents.html:93
+msgid "page"
+msgstr "Page"
+
+#: templates/prepared_documents.html:123
 msgid "Octo status"
 msgstr "Statut Octo"
 
-#: templates/prepared_documents.html:120
+#: templates/prepared_documents.html:149
 msgid "Preview"
 msgstr "Aperçu"
 
-#: templates/prepared_documents.html:125
+#: templates/prepared_documents.html:154
 msgid "Open in Workitems"
 msgstr "Ouvrir dans Workitems"
 
-#: templates/prepared_documents.html:136
+#: templates/prepared_documents.html:165
 msgid "No prepared documents yet. Upload an Excel to get started."
 msgstr ""
 "Aucun document préparé pour l'instant. Importez un fichier Excel pour "
@@ -3178,7 +3211,7 @@ msgstr ""
 #: templates/admin/logs.html:106 templates/admin/user_detail.html:236
 #: templates/js/_generali_documents_js.html:274
 #: templates/js/_workitems_overview_js.html:1037
-#: templates/prepared_documents.html:150
+#: templates/prepared_documents.html:179
 msgid "Previous"
 msgstr "Précédent"
 
@@ -3186,16 +3219,16 @@ msgstr "Précédent"
 #: templates/js/_generali_documents_js.html:278
 #: templates/js/_generali_reporting_js.html:268
 #: templates/js/_workitems_overview_js.html:1043
-#: templates/js/archive/_tour_js.html:17 templates/prepared_documents.html:156
+#: templates/js/archive/_tour_js.html:17 templates/prepared_documents.html:185
 msgid "Next"
 msgstr "Suivant"
 
-#: templates/prepared_documents.html:167 templates/reporting.html:169
+#: templates/prepared_documents.html:196 templates/reporting.html:169
 msgid "Workitem preview"
 msgstr "Aperçu du workitem"
 
 #: templates/admin/logs.html:139 templates/js/_reporting_drill_js.html:16
-#: templates/prepared_documents.html:169 templates/prepared_documents.html:181
+#: templates/prepared_documents.html:198 templates/prepared_documents.html:210
 #: templates/reporting.html:113 templates/reporting.html:141
 #: templates/reporting.html:171 templates/reporting.html:181
 #: templates/reporting.html:378 templates/reporting.html:414
@@ -3203,23 +3236,23 @@ msgstr "Aperçu du workitem"
 msgid "Close"
 msgstr "Fermer"
 
-#: templates/prepared_documents.html:187 templates/reporting.html:187
+#: templates/prepared_documents.html:216 templates/reporting.html:187
 #: templates/workitems_overview.html:585
 msgid "Show where extracted values were found on the document"
 msgstr "Afficher où les valeurs extraites ont été trouvées dans le document"
 
 #: templates/js/_workitem_detail_panel_js.html:549
-#: templates/prepared_documents.html:189 templates/reporting.html:189
+#: templates/prepared_documents.html:218 templates/reporting.html:189
 #: templates/workitems_overview.html:588
 msgid "Show sources"
 msgstr "Afficher les sources"
 
-#: templates/prepared_documents.html:191 templates/reporting.html:191
+#: templates/prepared_documents.html:220 templates/reporting.html:191
 #: templates/workitems_overview.html:590
 msgid "Document page preview"
 msgstr "Aperçu de la page du document"
 
-#: templates/prepared_documents.html:196 templates/prepared_documents.html:197
+#: templates/prepared_documents.html:225 templates/prepared_documents.html:226
 #: templates/reporting.html:196 templates/reporting.html:197
 #: templates/workitems_overview.html:596 templates/workitems_overview.html:597
 msgid "Extracted values"
@@ -4245,10 +4278,6 @@ msgstr "Nom du profil"
 #: templates/admin/user_detail.html:146
 msgid "Filter permissions..."
 msgstr "Filtrer les permissions..."
-
-#: templates/admin/access_control.html:334 templates/admin/user_detail.html:154
-msgid "None"
-msgstr "Aucun"
 
 #: templates/admin/access_control.html:335 templates/admin/user_detail.html:155
 msgid "Deny"
@@ -6132,10 +6161,6 @@ msgstr "Erreur :"
 #: templates/js/admin/_access_control_js.html:610
 msgid "No permissions found."
 msgstr "Aucune permission trouvée."
-
-#: templates/js/admin/_access_control_js.html:711
-msgid "Yes"
-msgstr "Oui"
 
 #: templates/js/admin/_access_control_js.html:712
 #: templates/js/admin/_user_detail_js.html:382
