@@ -64,7 +64,9 @@
   --nx-shadow:      0 1px 2px rgba(16,24,40,0.04);
   --nx-shadow-pop:  0 12px 32px rgba(16,24,40,0.12), 0 0 0 1px rgba(16,24,40,0.04);
   --nx-ease:        cubic-bezier(.4, 0, .2, 1);
-  --nx-dur:         150ms;
+  /* --nx-anim-speed (set by html[data-animspeed]) scales transitions
+     and the entrance animations together. */
+  --nx-dur:         calc(var(--nx-anim-speed, 1) * 150ms);
 
   /* — Type — */
   --nx-font: 'Inter', system-ui, -apple-system, sans-serif;
@@ -356,16 +358,32 @@ a.nx-card:hover, .nx-card--link:hover {
    `both` holds the filled `to` as a resolved identity matrix, which still creates
    a stacking context -- that trapped overflowing popovers (e.g. the workitems
    doc-field dropdown) under the next .nx-rise card. */
-.nx-rise { animation: nx-rise 0.32s var(--nx-ease) backwards; }
-.nx-rise-2 { animation: nx-rise 0.32s var(--nx-ease) 0.05s backwards; }
-.nx-rise-3 { animation: nx-rise 0.32s var(--nx-ease) 0.10s backwards; }
+.nx-rise { animation: nx-rise calc(var(--nx-anim-speed, 1) * 0.32s) var(--nx-ease) backwards; }
+.nx-rise-2 { animation: nx-rise calc(var(--nx-anim-speed, 1) * 0.32s) var(--nx-ease) calc(var(--nx-anim-speed, 1) * 0.05s) backwards; }
+.nx-rise-3 { animation: nx-rise calc(var(--nx-anim-speed, 1) * 0.32s) var(--nx-ease) calc(var(--nx-anim-speed, 1) * 0.10s) backwards; }
+
+/* Animation speed preference */
+html[data-animspeed="relaxed"] { --nx-anim-speed: 1.8; }
+html[data-animspeed="snappy"]  { --nx-anim-speed: 0.55; }
 
 /* Entrance-style preference (html[data-entrance], profile "Appearance").
    Default (no attribute) keeps the signature rise. */
-@keyframes nx-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes nx-fade  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes nx-slide { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: none; } }
+@keyframes nx-pop   { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: none; } }
+@keyframes nx-blur  { from { opacity: 0; filter: blur(6px); } to { opacity: 1; filter: blur(0); } }
 html[data-entrance="fade"] .nx-rise,
 html[data-entrance="fade"] .nx-rise-2,
 html[data-entrance="fade"] .nx-rise-3 { animation-name: nx-fade; }
+html[data-entrance="slide"] .nx-rise,
+html[data-entrance="slide"] .nx-rise-2,
+html[data-entrance="slide"] .nx-rise-3 { animation-name: nx-slide; }
+html[data-entrance="pop"] .nx-rise,
+html[data-entrance="pop"] .nx-rise-2,
+html[data-entrance="pop"] .nx-rise-3 { animation-name: nx-pop; }
+html[data-entrance="blur"] .nx-rise,
+html[data-entrance="blur"] .nx-rise-2,
+html[data-entrance="blur"] .nx-rise-3 { animation-name: nx-blur; }
 html[data-entrance="none"] .nx-rise,
 html[data-entrance="none"] .nx-rise-2,
 html[data-entrance="none"] .nx-rise-3 { animation: none; }

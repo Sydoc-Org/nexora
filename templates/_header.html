@@ -28,6 +28,7 @@
                 accentHex:  stored.accentHex  || '#4f46e5',
                 motion:     stored.motion     || 'full',
                 entrance:   stored.entrance   || 'rise',
+                animspeed:  stored.animspeed  || 'normal',
                 density:    stored.density    || 'comfortable',
                 sidebar:    stored.sidebar    || (ls('nexora-sidebar-pinned') === 'true' ? 'pinned' : 'auto'),
                 fontscale:  stored.fontscale  || 'md',
@@ -80,6 +81,8 @@
                 d.classList.toggle('nx-motion-reduced', eff.motion === 'reduced');
                 if (eff.entrance !== 'rise') d.setAttribute('data-entrance', eff.entrance);
                 else d.removeAttribute('data-entrance');
+                if (eff.animspeed !== 'normal') d.setAttribute('data-animspeed', eff.animspeed);
+                else d.removeAttribute('data-animspeed');
                 d.classList.toggle('nx-compact', eff.density === 'compact');
                 d.classList.toggle('sidebar-pinned', eff.sidebar === 'pinned');
                 if (eff.fontscale !== 'md') d.setAttribute('data-fontscale', eff.fontscale);

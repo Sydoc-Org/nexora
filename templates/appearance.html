@@ -235,11 +235,38 @@
                                 <button type="button" class="profile-seg-btn" data-uipref="entrance" data-value="rise" data-testid="appearance-entrance-rise">
                                     <i class="fas fa-arrow-up"></i><span>{{ _("Rise") }}</span>
                                 </button>
+                                <button type="button" class="profile-seg-btn" data-uipref="entrance" data-value="slide" data-testid="appearance-entrance-slide">
+                                    <i class="fas fa-arrow-right-long"></i><span>{{ _("Slide") }}</span>
+                                </button>
+                                <button type="button" class="profile-seg-btn" data-uipref="entrance" data-value="pop" data-testid="appearance-entrance-pop">
+                                    <i class="fas fa-maximize"></i><span>{{ _("Pop") }}</span>
+                                </button>
                                 <button type="button" class="profile-seg-btn" data-uipref="entrance" data-value="fade" data-testid="appearance-entrance-fade">
                                     <i class="fas fa-circle-half-stroke"></i><span>{{ _("Fade") }}</span>
                                 </button>
+                                <button type="button" class="profile-seg-btn" data-uipref="entrance" data-value="blur" data-testid="appearance-entrance-blur">
+                                    <i class="fas fa-droplet"></i><span>{{ _("Blur") }}</span>
+                                </button>
                                 <button type="button" class="profile-seg-btn" data-uipref="entrance" data-value="none" data-testid="appearance-entrance-none">
                                     <i class="fas fa-ban"></i><span>{{ _("Off") }}</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="profile-appearance-row">
+                            <div class="profile-appearance-info">
+                                <span class="profile-appearance-label">{{ _("Speed") }}</span>
+                                <span class="profile-appearance-hint">{{ _("How fast entrances and transitions play.") }}</span>
+                            </div>
+                            <div class="profile-seg" role="group" aria-label="{{ _('Speed') }}">
+                                <button type="button" class="profile-seg-btn" data-uipref="animspeed" data-value="relaxed" data-testid="appearance-animspeed-relaxed">
+                                    <i class="fas fa-feather"></i><span>{{ _("Relaxed") }}</span>
+                                </button>
+                                <button type="button" class="profile-seg-btn" data-uipref="animspeed" data-value="normal" data-testid="appearance-animspeed-normal">
+                                    <i class="fas fa-gauge"></i><span>{{ _("Default") }}</span>
+                                </button>
+                                <button type="button" class="profile-seg-btn" data-uipref="animspeed" data-value="snappy" data-testid="appearance-animspeed-snappy">
+                                    <i class="fas fa-bolt"></i><span>{{ _("Snappy") }}</span>
                                 </button>
                             </div>
                         </div>

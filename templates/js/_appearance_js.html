@@ -37,13 +37,27 @@
             updateSpec();
         }
 
+        function replayPreview() {
+            document.querySelectorAll('#appearanceCanvas .nx-rise, #appearanceCanvas .nx-rise-2, #appearanceCanvas .nx-rise-3')
+                .forEach(function (el) {
+                    const cls = el.classList.contains('nx-rise-3') ? 'nx-rise-3'
+                        : el.classList.contains('nx-rise-2') ? 'nx-rise-2' : 'nx-rise';
+                    el.classList.remove(cls);
+                    void el.offsetWidth; // restart the animation
+                    el.classList.add(cls);
+                });
+        }
+
         document.querySelectorAll('[data-uipref]').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 if (!window.nxSetUiPref) return;
-                window.nxSetUiPref(btn.getAttribute('data-uipref'), btn.getAttribute('data-value'));
+                const key = btn.getAttribute('data-uipref');
+                window.nxSetUiPref(key, btn.getAttribute('data-value'));
                 refreshControls();
                 markSaved();
-                if (btn.getAttribute('data-uipref') === 'theme') syncThemeButton();
+                if (key === 'theme') syncThemeButton();
+                // Show the effect right away for motion-related prefs.
+                if (key === 'entrance' || key === 'animspeed' || key === 'motion') replayPreview();
             });
         });
 
@@ -82,18 +96,7 @@
 
         // -------- Replay entrance animation in the preview --------
         const replay = document.getElementById('appearanceReplay');
-        if (replay) {
-            replay.addEventListener('click', function () {
-                document.querySelectorAll('#appearanceCanvas .nx-rise, #appearanceCanvas .nx-rise-2, #appearanceCanvas .nx-rise-3')
-                    .forEach(function (el) {
-                        const cls = el.classList.contains('nx-rise-3') ? 'nx-rise-3'
-                            : el.classList.contains('nx-rise-2') ? 'nx-rise-2' : 'nx-rise';
-                        el.classList.remove(cls);
-                        void el.offsetWidth; // restart the animation
-                        el.classList.add(cls);
-                    });
-            });
-        }
+        if (replay) replay.addEventListener('click', replayPreview);
 
         // -------- Reset to defaults --------
         const reset = document.getElementById('appearanceReset');
@@ -102,9 +105,10 @@
                 if (!window.nxSetUiPref) return;
                 window.nxSetUiPref({
                     theme: 'light', accent: 'indigo', accentHex: '#4f46e5',
-                    motion: 'full', entrance: 'rise', density: 'comfortable',
-                    sidebar: 'auto', fontscale: 'md', radius: 'default',
-                    contrast: 'normal', stripes: 'off', background: 'plain'
+                    motion: 'full', entrance: 'rise', animspeed: 'normal',
+                    density: 'comfortable', sidebar: 'auto', fontscale: 'md',
+                    radius: 'default', contrast: 'normal', stripes: 'off',
+                    background: 'plain'
                 });
                 refreshControls();
                 markSaved();
@@ -123,7 +127,9 @@
             const radius = (cs.getPropertyValue('--nx-radius') || '').trim();
             const zoom = prefs.fontscale === 'sm' ? '90%' : prefs.fontscale === 'lg' ? '110%' : '100%';
             spec.textContent = 'accent ' + accent + ' · radius ' + radius + ' · zoom ' + zoom +
-                ' · ' + (prefs.entrance || 'rise') + (prefs.motion === 'reduced' ? ' · reduced' : '');
+                ' · ' + (prefs.entrance || 'rise') +
+                (prefs.animspeed && prefs.animspeed !== 'normal' ? ' · ' + prefs.animspeed : '') +
+                (prefs.motion === 'reduced' ? ' · reduced' : '');
         }
 
         refreshControls();
