@@ -99,6 +99,11 @@
         <button class="apidocs-nav-item" data-section="backlog" data-testid="apidocs-nav-backlog">
           <span class="apidocs-method">GET</span><span class="truncate">/backlog</span>
         </button>
+
+        <div class="apidocs-nav-group">{{ _("Test sandbox") }}</div>
+        <button class="apidocs-nav-item" data-section="test-sandbox" data-testid="apidocs-nav-test-sandbox">
+          <i class="fas fa-flask fa-fw"></i>{{ _("api/test/v1") }}
+        </button>
       </nav>
 
       <div>
@@ -246,6 +251,29 @@ Authorization: Bearer &lt;api key&gt;</code></pre>
             </table>
           </div>
           <p class="apidocs-p mt-2">{{ _("Unlike stats/today, the response does not echo the process list — scoping happens at key issuance.") }}</p>
+        </section>
+
+        <!-- ============ Test sandbox ============ -->
+        <section id="apidocs-test-sandbox" class="apidocs-section nx-card nx-card--pad" data-testid="apidocs-section-test-sandbox">
+          <h2 class="apidocs-h2 mt-0">{{ _("Test sandbox") }}</h2>
+          <p class="apidocs-p">{{ _("Every endpoint above has a /api/test/v1/... twin: same path suffix, same Bearer-key auth, same response shape — but the numbers are random, not real KPI values. No backend queries happen, so it's safe to hit repeatedly while building an integration.") }}</p>
+          <div class="apidocs-code">
+            <span class="apidocs-code-label">curl</span>
+            <button class="apidocs-copy" title="{{ _('Copy') }}" aria-label="{{ _('Copy code') }}"><i class="far fa-copy"></i></button>
+            <pre><code class="language-bash">curl -H "Authorization: Bearer &lt;api key&gt;" \
+    https://nexora.sydoc.ch/nexora/api/test/v1/stats/today</code></pre>
+          </div>
+          <div class="apidocs-code">
+            <span class="apidocs-code-label">{{ _("response") }} 200</span>
+            <button class="apidocs-copy" title="{{ _('Copy') }}" aria-label="{{ _('Copy code') }}"><i class="far fa-copy"></i></button>
+            <pre><code class="language-json">{
+  "date": "2026-08-04",
+  "imported_today": 143,
+  "exported_today": 87,
+  "processes": ["sydoc.05_PDBS"]
+}</code></pre>
+          </div>
+          <p class="apidocs-p mt-2">{{ _("Use a real (enabled) API key — the same auth errors (401/429) apply. Available for both") }} <code>/stats/today</code> {{ _("and") }} <code>/backlog</code>.</p>
         </section>
 
       </div>

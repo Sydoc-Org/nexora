@@ -10,6 +10,11 @@ Work toward 2.5.65.
 
 ### Added
 
+- **External API test sandbox** (#163) — every `/api/v1/...` route now has a
+  `/api/test/v1/...` twin (same path, auth, and response shape) that returns
+  random data instead of real KPI values, so clients can integrate without
+  touching production data. Convention going forward: new v1 routes ship
+  with their test twin.
 - **"Development" sidebar group** (#157) — the API Docs page moved from a
   flat top-level sidebar item into a collapsible "Development" group
   (matching the Admin/Generali group pattern), so future dev-facing pages

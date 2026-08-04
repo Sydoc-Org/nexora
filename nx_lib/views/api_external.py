@@ -9,6 +9,11 @@ Two endpoints in v1:
   kept as-is for compatibility).
 Both consumed by an external client's own dashboard.
 
+Each endpoint has a /api/test/v1/... twin (same path suffix, same auth, same
+response shape) that returns RANDOM numbers instead of real KPI values -- a
+stable sandbox clients can integrate against without touching production
+data. Convention (issue #163): every future /api/v1 route gets one of these.
+
 Auth is per-client API keys (require_api_key in nx_lib/api_auth.py) -- no
 session, no CSRF (GET-only; Flask-WTF checks only mutating verbs), and no
 i18n: machine-facing English error strings only (do NOT add _() here -- it
@@ -18,6 +23,7 @@ need one. PROD serves this under /nexora via PrefixMiddleware:
 https://nexora.sydoc.ch/nexora/api/v1/stats/today
 """
 
+import random
 from datetime import date, datetime
 
 from flask import current_app, g, jsonify
@@ -87,6 +93,34 @@ def api_v1_backlog():
     )
 
 
+@limiter.limit("60 per minute")
+@require_api_key
+def api_test_v1_stats_today():
+    # Real auth (same key a client uses against PROD) but no backend
+    # queries -- just plausible random numbers in the real response shape.
+    processes = g.api_client["processes"]
+    imported_today = random.randint(0, 200)
+    return jsonify(
+        {
+            "date": date.today().isoformat(),
+            "imported_today": imported_today,
+            "exported_today": random.randint(0, imported_today),
+            "processes": processes,
+        }
+    )
+
+
+@limiter.limit("60 per minute")
+@require_api_key
+def api_test_v1_backlog():
+    return jsonify(
+        {
+            "datetime": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "current_backlog": random.randint(0, 500),
+        }
+    )
+
+
 def register_routes(app):
     app.add_url_rule(
         "/api/v1/stats/today",
@@ -97,4 +131,14 @@ def register_routes(app):
         "/api/v1/backlog",
         endpoint="api_v1_backlog",
         view_func=api_v1_backlog,
+    )
+    app.add_url_rule(
+        "/api/test/v1/stats/today",
+        endpoint="api_test_v1_stats_today",
+        view_func=api_test_v1_stats_today,
+    )
+    app.add_url_rule(
+        "/api/test/v1/backlog",
+        endpoint="api_test_v1_backlog",
+        view_func=api_test_v1_backlog,
     )

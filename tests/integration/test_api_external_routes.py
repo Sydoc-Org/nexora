@@ -340,3 +340,68 @@ def test_non_api_404_still_renders_html(client):
     resp = client.get("/definitely-not-a-page")
     assert resp.status_code == 404
     assert "text/html" in resp.content_type
+
+
+# ------------------------- /api/test/v1 sandbox twins ---------------------- #
+# No compute_today_stats/total_backlog_count monkeypatching needed: these
+# routes never touch a data backend, only real auth against dbo.ApiKeys.
+
+TEST_STATS_URL = "/api/test/v1/stats/today"
+TEST_BACKLOG_URL = "/api/test/v1/backlog"
+
+
+def test_test_stats_no_auth_header_returns_401_json(client):
+    resp = client.get(TEST_STATS_URL)
+    assert resp.status_code == 401
+    assert resp.is_json
+    assert resp.headers.get("WWW-Authenticate") == "Bearer"
+
+
+def test_test_stats_good_key_returns_random_data_in_real_shape(client):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw, processes="sydoc.TestProc, sydoc.Other")
+    try:
+        resp = client.get(TEST_STATS_URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert body["date"] == date.today().isoformat()
+        assert isinstance(body["imported_today"], int)
+        assert isinstance(body["exported_today"], int)
+        assert 0 <= body["exported_today"] <= body["imported_today"]
+        assert body["processes"] == ["sydoc.TestProc", "sydoc.Other"]
+        assert _last_used(key_hash) is not None
+    finally:
+        _delete_key(key_hash)
+
+
+def test_test_backlog_no_auth_header_returns_401_json(client):
+    resp = client.get(TEST_BACKLOG_URL)
+    assert resp.status_code == 401
+    assert resp.is_json
+
+
+def test_test_backlog_good_key_returns_random_data_in_real_shape(client):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+    try:
+        resp = client.get(TEST_BACKLOG_URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert "datetime" in body
+        assert isinstance(body["current_backlog"], int)
+        assert "processes" not in body
+        assert _last_used(key_hash) is not None
+    finally:
+        _delete_key(key_hash)
+
+
+def test_test_stats_post_method_not_allowed(client):
+    resp = client.post(TEST_STATS_URL)
+    assert resp.status_code == 405
+
+
+def test_unknown_api_test_v1_path_returns_json_404(client):
+    resp = client.get("/api/test/v1/definitely/not/a/route")
+    assert resp.status_code == 404
+    assert resp.is_json
+    assert resp.get_json() == {"error": "Not found"}

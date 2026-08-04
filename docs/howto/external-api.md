@@ -117,6 +117,28 @@ The dashboard's "Current Backlog" KPI number, scoped to the key's
   issuance, not per response. An empty scope returns `0`. Not cached: every
   call computes fresh numbers.
 
+## Test sandbox (/api/test/v1)
+
+Every `/api/v1/...` route has a `/api/test/v1/...` twin: same path suffix,
+same Bearer-key auth, same response shape -- but the numbers are random, not
+real KPI values. No backend DB queries happen at all, so it's safe to hit
+repeatedly while building an integration. Use a real (enabled) API key, just
+point at `/api/test/v1` instead of `/api/v1`:
+
+    curl -H "Authorization: Bearer <key>" \
+        https://nexora.sydoc.ch/nexora/api/test/v1/stats/today
+
+    {
+      "date": "2026-08-04",
+      "imported_today": 143,
+      "exported_today": 87,
+      "processes": ["sydoc.05_PDBS"]
+    }
+
+Same auth errors (401/429) apply. This convention holds for future v1
+routes too -- a new `/api/v1/...` endpoint ships with its `/api/test/v1/...`
+counterpart in the same change.
+
 ## Errors (JSON unless noted)
 
 | Status | Body | Meaning |
