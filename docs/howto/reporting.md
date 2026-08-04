@@ -668,15 +668,26 @@ Each curated source binds to a **provider**:
   a **whitelist-built, parameterized `SELECT`** of the chosen columns over a
   single `BaseObject` (`Db.schema.object`) on the source's `Engine`
   (`nexora` / `statistics` / `generali` / `octopus`). Its field catalog is the
-  source's `ColumnsJSON` (`[{field,label,type,filterable,sortable}]`). Every
-  identifier (base object + columns) is validated against `^[A-Za-z_][A-Za-z0-9_]*$`
-  and bracket-quoted; users only choose among catalogued columns and supply
-  parameterized values — so a `table` source is safe to register from the UI.
+  source's `ColumnsJSON`
+  (`[{field,label,type,filterable,sortable,grainable}]` — `grainable` marks a
+  date/datetime column as eligible for the Simple wizard's "over time"
+  breakdown and AI date-token filters; `table_source_catalog()` and the run
+  path's `grainable_fields` both key off it, and `build_generic_query` applies
+  the actual `DATEFROMPARTS`/`DATEADD` bucketing expression per the column's
+  `grain`). Every identifier (base object + columns) is validated against
+  `^[A-Za-z_][A-Za-z0-9_]*$` and bracket-quoted; users only choose among
+  catalogued columns and supply parameterized values — so a `table` source is
+  safe to register from the UI.
 
 **Built-in registered sources.** Migration `0011` seeds two `table`-provider
 sources: **Generali — PDQM Report** (`generali_pdqm` over `dbo.PDQMReport`) and
-**Workitems (Octopus)** (`workitems` over `dbo.t_Documents`), each gated by its
-own permission (`reporting.source.generali.pdqm`, `reporting.source.workitems`).
+**Workitems (Octopus)** (`workitems` over `dbo.t_Documents`). Migrations `0053`
++ `0054` seed **Backlog History** (`backlog_history` over
+`StatisticsDB.dbo.BacklogHistory`, the #161 collector's 30-minute C+A backlog
+snapshots) with a canonical `backlog_total` metric (`SUM(BacklogCount)`) so it
+surfaces as a measure in the Simple wizard and AI grounding. Each is gated by
+its own permission (`reporting.source.generali.pdqm`,
+`reporting.source.workitems`, `reporting.source.backlog_history`).
 Unlike the docprocessing source, the `table` provider does **not** apply
 `reporting.scope.process.*` row scoping — the source permission is the whole
 gate, so grant it deliberately. Tune the exposed columns/object at

@@ -10,6 +10,16 @@ Work toward 2.5.65.
 
 ### Added
 
+- **Backlog History in Reporting** (#162) — the #161 collector's
+  `StatisticsDB.dbo.BacklogHistory` is now a registered reporting source
+  (`sql/_migrations/NexoraDB/0053`, `0054`) with a canonical `backlog_total`
+  metric, so it appears as a "Backlog" measure in the Simple wizard (with
+  "over time" grouped by month/week/etc. and breakdown by client/process) and
+  is grounded for the AI assistant. Fixed two provider-level gaps this
+  exposed in the generic `table` source provider: the `grainable` column flag
+  was silently dropped from the catalog, and date-grain requests either
+  400'd (missing `grainable_fields` in validation) or silently grouped by
+  the raw timestamp instead of the requested bucket (no grain SQL applied).
 - **External API test sandbox** (#163) — every `/api/v1/...` route now has a
   `/api/test/v1/...` twin (same path, auth, and response shape) that returns
   random data instead of real KPI values, so clients can integrate without
@@ -681,6 +691,12 @@ The following are the 57-finding 2026-07-23 bug-hunt's Part B fixes (Tasks
   `"d. m. yyyy - HH:MM"` date format while the table actually renders ISO
   `YYYY-MM-DD HH:MM:SS`, so every comparison was `NaN` and clicking the
   header was a silent no-op.
+- Workitems: detail-panel audit history (#156) — `get_activity_type_name`'s
+  memoize timeout was the app's 5-minute default, so process-config data
+  (the same for every workitem through a given step) kept re-fetching from
+  Octo all day; bumped to 24h. `get_audithistory` also fetches any cold
+  misses concurrently instead of one Octo call at a time (prod logs showed
+  p90 ~5.6s, worst-case ~34s for this endpoint).
 
 ## [2.5.64] - 2026-07-22
 
