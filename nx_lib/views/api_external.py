@@ -1,8 +1,13 @@
 """External machine-to-machine JSON API, version 1.
 
-One endpoint in v1: GET /api/v1/stats/today -- the dashboard's
-imported/processed "today" KPI numbers for the API key's process scope
-(dbo.ApiKeys.ProcessList), consumed by an external client's own dashboard.
+Two endpoints in v1:
+- GET /api/v1/stats/today -- the dashboard's imported/processed "today" KPI
+  numbers for the API key's process scope (dbo.ApiKeys.ProcessList).
+- GET /api/v1/backlog -- the dashboard's "Current Backlog" KPI number for the
+  same process scope. The response deliberately omits the process list --
+  scoping happens at key issuance, not in the payload (unlike stats/today,
+  kept as-is for compatibility).
+Both consumed by an external client's own dashboard.
 
 Auth is per-client API keys (require_api_key in nx_lib/api_auth.py) -- no
 session, no CSRF (GET-only; Flask-WTF checks only mutating verbs), and no
@@ -13,12 +18,13 @@ need one. PROD serves this under /nexora via PrefixMiddleware:
 https://nexora.sydoc.ch/nexora/api/v1/stats/today
 """
 
-from datetime import date
+from datetime import date, datetime
 
 from flask import current_app, g, jsonify
 
 from ..api_auth import require_api_key
 from ..extensions import limiter
+from ..workitem_sources import total_backlog_count
 from .dashboard import compute_today_stats
 
 
@@ -58,9 +64,37 @@ def api_v1_stats_today():
     )
 
 
+@limiter.limit("60 per minute")
+@require_api_key
+def api_v1_backlog():
+    processes = g.api_client["processes"]
+    if not processes:
+        current_backlog = 0
+    else:
+        try:
+            # (client, process) pairs -- see total_backlog_count's docstring
+            # for why this must never be split into independent IN-lists.
+            pairs = sorted({(p.split(".")[0], p.split(".")[-1]) for p in processes if "." in p})
+            current_backlog = total_backlog_count(pairs)
+        except Exception as e:
+            current_app.logger.error(f"external api backlog failed: {e}")
+            return jsonify({"error": "Backlog backend unavailable"}), 500
+    return jsonify(
+        {
+            "datetime": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "current_backlog": current_backlog,
+        }
+    )
+
+
 def register_routes(app):
     app.add_url_rule(
         "/api/v1/stats/today",
         endpoint="api_v1_stats_today",
         view_func=api_v1_stats_today,
+    )
+    app.add_url_rule(
+        "/api/v1/backlog",
+        endpoint="api_v1_backlog",
+        view_func=api_v1_backlog,
     )

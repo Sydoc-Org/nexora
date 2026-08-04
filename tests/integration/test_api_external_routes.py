@@ -257,6 +257,78 @@ def test_rate_limit_429_for_unauthenticated_requests(client):
 # --------------------------- JSON error handlers --------------------------- #
 
 
+# ------------------------------- /api/v1/backlog --------------------------- #
+
+BACKLOG_URL = "/api/v1/backlog"
+
+
+def test_backlog_no_auth_header_returns_401_json(client):
+    resp = client.get(BACKLOG_URL)
+    assert resp.status_code == 401
+    assert resp.is_json
+    assert resp.headers.get("WWW-Authenticate") == "Bearer"
+
+
+def test_backlog_good_key_returns_scoped_count_and_stamps_last_used(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw, processes="sydoc.TestProc, sydoc.Other")
+    seen = {}
+
+    def _fake_total(pairs):
+        seen["pairs"] = pairs
+        return 154
+
+    monkeypatch.setattr(ax, "total_backlog_count", _fake_total)
+    try:
+        resp = client.get(BACKLOG_URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert body["current_backlog"] == 154
+        assert "datetime" in body
+        assert "processes" not in body
+        assert seen["pairs"] == [("sydoc", "Other"), ("sydoc", "TestProc")]
+        assert _last_used(key_hash) is not None
+    finally:
+        _delete_key(key_hash)
+
+
+def test_backlog_empty_process_scope_returns_zero_without_compute(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw, processes="")
+
+    def _must_not_be_called(pairs):
+        raise AssertionError("total_backlog_count must not run for an empty scope")
+
+    monkeypatch.setattr(ax, "total_backlog_count", _must_not_be_called)
+    try:
+        resp = client.get(BACKLOG_URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 200
+        assert resp.get_json()["current_backlog"] == 0
+    finally:
+        _delete_key(key_hash)
+
+
+def test_backlog_backend_error_returns_500_json(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+
+    def _boom(pairs):
+        raise RuntimeError("backlog source exploded")
+
+    monkeypatch.setattr(ax, "total_backlog_count", _boom)
+    try:
+        resp = client.get(BACKLOG_URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 500
+        assert resp.get_json() == {"error": "Backlog backend unavailable"}
+    finally:
+        _delete_key(key_hash)
+
+
+def test_backlog_post_method_not_allowed(client):
+    resp = client.post(BACKLOG_URL)
+    assert resp.status_code == 405
+
+
 def test_unknown_api_v1_path_returns_json_404(client):
     resp = client.get("/api/v1/definitely/not/a/route")
     assert resp.status_code == 404

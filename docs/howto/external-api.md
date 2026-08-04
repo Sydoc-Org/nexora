@@ -1,9 +1,10 @@
 # External API v1 (machine-to-machine)
 
 Read-only JSON API for external clients, authenticated with per-client API
-keys. One endpoint in v1. Code: routes in `nx_lib/views/api_external.py`,
+keys. Two endpoints in v1. Code: routes in `nx_lib/views/api_external.py`,
 auth in `nx_lib/api_auth.py`, KPI computation shared with the dashboard
-(`compute_today_stats` in `nx_lib/views/dashboard.py`), table created by
+(`compute_today_stats` in `nx_lib/views/dashboard.py`, `total_backlog_count`
+in `nx_lib/workitem_sources.py`), table created by
 `sql/_migrations/NexoraDB/0038_create_api_keys.sql`.
 
 ## Base URLs
