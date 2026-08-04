@@ -264,7 +264,7 @@
         padding: 2px 6px;
         font-size: 12px;
         font-weight: 600;
-        border-radius: 12px;
+        border-radius: calc(var(--nx-radius-scale, 1) * 12px);
         user-select: none;
         margin-bottom: 50px;
         text-align: center;

@@ -55,8 +55,11 @@
   --nx-l-blue:      #dbeafe;  --nx-l-blue-fg:   #1e40af;
 
   /* — Geometry & motion — */
-  --nx-radius:      10px;
-  --nx-radius-sm:   7px;
+  /* Radii scale with the corner-style pref (html[data-radius] sets
+     --nx-radius-scale); hardcoded px radii across the CSS files are
+     wrapped in the same calc so the whole app follows. */
+  --nx-radius:      calc(var(--nx-radius-scale, 1) * 10px);
+  --nx-radius-sm:   calc(var(--nx-radius-scale, 1) * 7px);
   --nx-radius-pill: 999px;
   --nx-shadow:      0 1px 2px rgba(16,24,40,0.04);
   --nx-shadow-pop:  0 12px 32px rgba(16,24,40,0.12), 0 0 0 1px rgba(16,24,40,0.04);
@@ -70,8 +73,8 @@
   /* Indigo Studio (2026-07-20 reporting redesign) */
   --nx-violet-tint: #f5f3ff;
   --nx-violet-border: #ddd6fe;
-  --nx-radius-lg: 12px;
-  --nx-radius-hero: 16px;
+  --nx-radius-lg: calc(var(--nx-radius-scale, 1) * 12px);
+  --nx-radius-hero: calc(var(--nx-radius-scale, 1) * 16px);
   --nx-card-hover-border: #c7d2fe;
   --nx-card-hover-shadow: 0 8px 24px -8px rgba(79, 70, 229, .18);
 }
@@ -309,7 +312,7 @@ a.nx-card:hover, .nx-card--link:hover {
   text-align: center; padding: 56px 24px; color: var(--nx-text-meta);
 }
 .nx-empty__art {
-  width: 60px; height: 60px; border-radius: 18px;
+  width: 60px; height: 60px; border-radius: calc(var(--nx-radius-scale, 1) * 18px);
   display: flex; align-items: center; justify-content: center;
   font-size: 24px; color: #fff;
   background: var(--nx-brand-grad);
@@ -318,7 +321,7 @@ a.nx-card:hover, .nx-card--link:hover {
   position: relative;
 }
 .nx-empty__art::after {
-  content: ""; position: absolute; inset: -7px; border-radius: 22px;
+  content: ""; position: absolute; inset: -7px; border-radius: calc(var(--nx-radius-scale, 1) * 22px);
   border: 1px dashed var(--nx-accent); opacity: .35;
 }
 .nx-empty__title { font-size: 15px; font-weight: 600; color: var(--nx-text); margin: 0 0 4px; }
@@ -399,7 +402,7 @@ html.nx-motion-reduced *::after {
 /* Page-title icon chip */
 .nx-page-head__title { display: flex; align-items: center; gap: 14px; }
 .nx-page-icon {
-  width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+  width: 44px; height: 44px; border-radius: calc(var(--nx-radius-scale, 1) * 12px); flex-shrink: 0;
   display: inline-flex; align-items: center; justify-content: center;
   font-size: 18px; color: #fff; background: var(--nx-brand-grad);
   box-shadow: 0 8px 20px -6px rgba(79,70,229,0.55);
@@ -430,7 +433,7 @@ html.nx-motion-reduced *::after {
 }
 
 /* KPI stat icon chips (token-based so they adapt to dark mode) */
-.nx-stat__chip { width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
+.nx-stat__chip { width: 44px; height: 44px; border-radius: calc(var(--nx-radius-scale, 1) * 12px); flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
 .nx-stat__chip--indigo { background: var(--nx-l-indigo); color: var(--nx-l-indigo-fg); }
 .nx-stat__chip--blue   { background: var(--nx-l-blue);   color: var(--nx-l-blue-fg); }
 .nx-stat__chip--amber  { background: var(--nx-l-amber);  color: var(--nx-l-amber-fg); }
@@ -556,17 +559,10 @@ html.nx-compact .nx-input, html.nx-compact .nx-select { padding: 6px 10px; }
    table stripes, page backdrop (all driven by UI prefs).
    ============================================================ */
 
-/* Corner style */
-html[data-radius="sharp"] {
-  --nx-radius: 4px; --nx-radius-sm: 3px;
-  --nx-radius-lg: 5px; --nx-radius-hero: 6px;
-}
-html[data-radius="round"] {
-  --nx-radius: 16px; --nx-radius-sm: 10px;
-  --nx-radius-lg: 18px; --nx-radius-hero: 22px;
-}
-/* ponytail: admin-tokens hardcodes a few 7px/10px radii — presets cover
-   the .nx-* surfaces; tokenize admin-tokens.css if the gap ever matters. */
+/* Corner style: one scale factor drives the radius tokens AND every
+   swept hardcoded radius (calc(var(--nx-radius-scale,1) * Npx)). */
+html[data-radius="sharp"] { --nx-radius-scale: 0.35; }
+html[data-radius="round"] { --nx-radius-scale: 1.6; }
 
 /* Font scale — zoom scales px-based layouts too (Chromium + FF 126+). */
 html[data-fontscale="sm"] body { zoom: 0.9; }

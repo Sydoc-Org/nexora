@@ -14,14 +14,14 @@
 .reporting-wells {
   background: var(--nx-card);
   border: 1px solid var(--nx-border);
-  border-radius: 14px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 14px);
   padding: 14px;
 }
 
 .reporting-results {
   background: var(--nx-card);
   border: 1px solid var(--nx-border);
-  border-radius: 14px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 14px);
   padding: 14px;
   min-height: 60vh;
 }
@@ -35,7 +35,7 @@
 
 .reporting-mode-toggle button {
   padding: 4px 10px;
-  border-radius: 8px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 8px);
   border: 1px solid var(--nx-border);
 }
 
@@ -48,7 +48,7 @@
 .reporting-saved select {
   padding: 6px 8px;
   border: 1px solid var(--nx-border);
-  border-radius: 8px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 8px);
   font-family: inherit;
   font-size: 13px;
   max-width: 200px;
@@ -57,7 +57,7 @@
 .reporting-export-format {
   padding: 6px 8px;
   border: 1px solid var(--nx-border);
-  border-radius: 8px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 8px);
   font-family: inherit;
   font-size: 13px;
   background: var(--nx-card);
@@ -75,7 +75,7 @@
 
 .reporting-btn {
   padding: 6px 12px;
-  border-radius: 8px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 8px);
   background: #4338ca;
   color: #fff;
   border: none;
@@ -111,7 +111,7 @@
   width: 100%;
   padding: 6px 8px;
   border: 1px solid var(--nx-border);
-  border-radius: 8px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 8px);
   margin: 6px 0;
   font-family: inherit;
   font-size: 13px;
@@ -128,7 +128,7 @@
 
 .reporting-field-list li {
   padding: 6px 8px;
-  border-radius: 8px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 8px);
   cursor: pointer;
   font-size: 13px;
 }
@@ -150,7 +150,7 @@
   gap: 8px;
   padding: 6px 8px;
   border: 1px solid var(--nx-border);
-  border-radius: 8px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 8px);
   background: var(--nx-card);
   font-family: inherit;
   font-size: 13px;
@@ -172,7 +172,7 @@
   padding: 4px;
   background: var(--nx-card);
   border: 1px solid var(--nx-border);
-  border-radius: 8px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 8px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
 }
 .reporting-scope-row {
@@ -180,7 +180,7 @@
   align-items: center;
   gap: 8px;
   padding: 5px 8px;
-  border-radius: 6px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 6px);
   font-size: 13px;
   cursor: pointer;
 }
@@ -232,7 +232,7 @@
   flex: 1;
   padding: 4px 6px;
   border: 1px solid var(--nx-border);
-  border-radius: 6px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 6px);
   font-size: 12px;
 }
 
@@ -253,7 +253,7 @@
   min-width: 0;
   padding: 4px 6px;
   border: 1px solid var(--nx-border);
-  border-radius: 6px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 6px);
   font-size: 12px;
 }
 
@@ -268,7 +268,7 @@
   flex: 1;
   padding: 4px 6px;
   border: 1px solid var(--nx-border);
-  border-radius: 6px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 6px);
   font-size: 12px;
   min-width: 0;
 }
@@ -356,7 +356,7 @@
   width: 100%; min-height: 180px; resize: vertical;
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
   font-size: 13px; line-height: 1.5; padding: 10px; border: 1px solid var(--nx-border-strong);
-  border-radius: 6px; tab-size: 2;
+  border-radius: calc(var(--nx-radius-scale, 1) * 6px); tab-size: 2;
 }
 .reporting-modal {
   position: fixed; inset: 0; background: rgba(0,0,0,.45);
@@ -364,7 +364,7 @@
 }
 .reporting-modal[hidden] { display: none; }
 .reporting-modal-box {
-  background: var(--nx-card); border-radius: 10px; padding: 22px; max-width: 460px;
+  background: var(--nx-card); border-radius: calc(var(--nx-radius-scale, 1) * 10px); padding: 22px; max-width: 460px;
   box-shadow: 0 10px 40px rgba(0,0,0,.25);
 }
 .reporting-modal-box h3 { margin: 0 0 8px; }
@@ -390,7 +390,7 @@
 .reporting-view-toggle { display: flex; gap: 6px; margin-bottom: 10px; }
 .reporting-view-toggle[hidden] { display: none; }
 .reporting-view-toggle button {
-  padding: 4px 12px; border-radius: 8px; border: 1px solid var(--nx-border);
+  padding: 4px 12px; border-radius: calc(var(--nx-radius-scale, 1) * 8px); border: 1px solid var(--nx-border);
   background: var(--nx-card); cursor: pointer; font-size: 13px;
 }
 .reporting-view-toggle button.active { background: #4338ca; color: #fff; border-color: #4338ca; }
@@ -400,7 +400,7 @@
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px;
 }
 .reporting-viz-bar select {
-  padding: 5px 8px; border: 1px solid var(--nx-border); border-radius: 8px; font-size: 13px;
+  padding: 5px 8px; border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 8px); font-size: 13px;
 }
 .reporting-viz-lbl {
   font-size: 11px; font-weight: 600; text-transform: uppercase;
@@ -414,7 +414,7 @@
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px;
 }
 .reporting-pivot-zone {
-  border: 1px dashed var(--nx-border); border-radius: 10px; padding: 8px; min-height: 90px;
+  border: 1px dashed var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 10px); padding: 8px; min-height: 90px;
   background: var(--nx-alt);
 }
 .reporting-pivot-zone.drop-hover { border-color: #4338ca; background: #eef2ff; }
@@ -429,7 +429,7 @@
   padding: 3px 8px; font-size: 12px; user-select: none;
 }
 .reporting-pivot-chip select {
-  border: 1px solid #c7d2fe; border-radius: 6px; font-size: 11px; padding: 1px 2px;
+  border: 1px solid #c7d2fe; border-radius: calc(var(--nx-radius-scale, 1) * 6px); font-size: 11px; padding: 1px 2px;
   background: var(--nx-card);
 }
 .reporting-pivot-rm {
@@ -455,7 +455,7 @@
 .reporting-admin { padding: 20px; max-width: 1100px; margin: 0 auto; }
 .reporting-admin-note { color: var(--nx-text-sec); font-size: 13px; margin: 4px 0 16px; }
 .reporting-admin section {
-  background: var(--nx-card); border: 1px solid var(--nx-border); border-radius: 14px; padding: 14px; margin-bottom: 16px;
+  background: var(--nx-card); border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 14px); padding: 14px; margin-bottom: 16px;
 }
 .reporting-admin section h3 { margin-top: 0; }
 .reporting-admin-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 16px; }
@@ -489,7 +489,7 @@
 
 /* --- AI assistant panel (Phase 1) --- */
 .reporting-ai-hint { font-size: .8rem; color: var(--nx-text-sec); margin: .4rem 0 0; }
-.reporting-ai-sql { background: var(--nx-sunken); padding: .6rem; border-radius: 6px; white-space: pre-wrap; overflow-x: auto; }
+.reporting-ai-sql { background: var(--nx-sunken); padding: .6rem; border-radius: calc(var(--nx-radius-scale, 1) * 6px); white-space: pre-wrap; overflow-x: auto; }
 .reporting-ai-explain { font-size: .85rem; color: var(--nx-text); }
 .reporting-ai-error { color: var(--nx-danger); font-size: .85rem; }
 /* Motion entrance hook: hidden only when animations are on (mirrors .rp-anim cols) */
@@ -934,8 +934,8 @@ body.nx-app {
   .reporting-page-head.nx-page-head { flex-wrap: wrap; }
   .reporting-head-actions { flex-wrap: wrap; }
 }
-.reporting-tabs { display: flex; gap: 2px; padding: 3px; background: var(--nx-divider); border: 1px solid var(--nx-border); border-radius: 8px; margin: 0; }
-.reporting-tabs .nx-tab { border: none; margin: 0; background: transparent; border-radius: 6px; padding: 6px 14px; font: 500 12.5px var(--nx-font); color: var(--nx-text-sec); cursor: pointer; }
+.reporting-tabs { display: flex; gap: 2px; padding: 3px; background: var(--nx-divider); border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 8px); margin: 0; }
+.reporting-tabs .nx-tab { border: none; margin: 0; background: transparent; border-radius: calc(var(--nx-radius-scale, 1) * 6px); padding: 6px 14px; font: 500 12.5px var(--nx-font); color: var(--nx-text-sec); cursor: pointer; }
 .reporting-tabs .nx-tab:hover { color: var(--nx-text); }
 .reporting-tabs .nx-tab[aria-selected="true"] { background: var(--nx-card); color: var(--nx-accent); font-weight: 600; box-shadow: 0 1px 2px rgba(16, 24, 40, .06); }
 
@@ -968,7 +968,7 @@ body.nx-app {
 }
 .rs-choice-group-label:first-child { margin-top: 0; }
 .reporting-simple-inline { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 13px; font-weight: 600; color: var(--nx-text-sec); }
-.reporting-simple-scopestep { margin-bottom: 10px; font-size: 14px; border: 1px solid var(--nx-border); border-radius: 8px; background: var(--nx-card); max-width: 520px; max-height: 260px; overflow: auto; padding: 10px 12px; }
+.reporting-simple-scopestep { margin-bottom: 10px; font-size: 14px; border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 8px); background: var(--nx-card); max-width: 520px; max-height: 260px; overflow: auto; padding: 10px 12px; }
 .reporting-simple-scopestep label { display: block; padding: 3px 0; }
 /* Auto-numbered wizard steps: [hidden] steps generate no boxes, so a
    skipped step (e.g. no processes on the source) leaves no numbering gap. */
@@ -981,7 +981,7 @@ body.nx-app {
 .reporting-simple-choice:disabled { opacity: .45; cursor: not-allowed; }
 .reporting-simple-resultbar {
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-  background: var(--nx-card); border: 1px solid var(--nx-border); border-radius: 12px;
+  background: var(--nx-card); border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 12px);
   padding: 14px 20px; margin-bottom: 14px;
 }
 .reporting-simple-rtitle { margin: 0; font-size: 16px; font-weight: 700; }
@@ -992,7 +992,7 @@ body.nx-app {
 .rs-result-grid { display: grid; grid-template-columns: 250px 1fr; gap: 14px; align-items: start; }
 .rs-result-grid:has(#rsChartCard[hidden]) { grid-template-columns: 250px; }
 .rs-result-left { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-.reporting-simple-chartcard { min-height: 260px; position: relative; border-radius: 14px; }
+.reporting-simple-chartcard { min-height: 260px; position: relative; border-radius: calc(var(--nx-radius-scale, 1) * 14px); }
 .reporting-simple-chartcard canvas { max-height: 320px; }
 .reporting-simple-table { margin-top: 12px; }
 .reporting-simple-chartnote { font-size: 13px; color: var(--nx-text-meta); margin: 0 0 8px; }
@@ -1004,11 +1004,11 @@ body.nx-app {
    so it never gets .is-selected) sits outside .rs-chart-track as its own
    bordered button, right end of the toolbar. */
 .reporting-simple-charttools { position: absolute; top: 10px; right: 10px; z-index: 1; display: flex; align-items: center; gap: 8px; }
-.rs-chart-track { display: flex; gap: 2px; padding: 3px; background: var(--nx-divider); border: 1px solid var(--nx-border); border-radius: 8px; }
-.reporting-chartbtn { border: none; margin: 0; background: transparent; border-radius: 6px; padding: 6px 10px; font-size: 13px; color: var(--nx-text-sec); cursor: pointer; }
+.rs-chart-track { display: flex; gap: 2px; padding: 3px; background: var(--nx-divider); border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 8px); }
+.reporting-chartbtn { border: none; margin: 0; background: transparent; border-radius: calc(var(--nx-radius-scale, 1) * 6px); padding: 6px 10px; font-size: 13px; color: var(--nx-text-sec); cursor: pointer; }
 .reporting-chartbtn:hover { color: var(--nx-text); }
 .reporting-chartbtn.is-selected { background: var(--nx-card); color: var(--nx-accent); font-weight: 600; box-shadow: 0 1px 2px rgba(16, 24, 40, .06); }
-#rsChartPng { border: 1px solid var(--nx-border); border-radius: 6px; background: var(--nx-card); color: var(--nx-text-meta); }
+#rsChartPng { border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 6px); background: var(--nx-card); color: var(--nx-text-meta); }
 #rsChartPng:hover { color: var(--nx-accent); border-color: var(--nx-border-strong); }
 @media (max-width: 800px) { .rs-result-grid { grid-template-columns: 1fr; } }
 
@@ -1055,13 +1055,13 @@ body.nx-app {
 .rs-rail-step.is-active .rs-rail-title { color: var(--nx-accent); }
 .rs-rail-sum { display: block; font-size: 12px; color: var(--nx-text-sec); margin-top: 3px; }
 .rs-wizard-preview {
-  margin-top: 8px; background: #eef2ff; border: 1px solid #e0e7ff; border-radius: 10px;
+  margin-top: 8px; background: #eef2ff; border: 1px solid #e0e7ff; border-radius: calc(var(--nx-radius-scale, 1) * 10px);
   padding: 12px 14px; font-size: 12.5px; color: var(--nx-text); line-height: 1.5;
 }
 
 .rs-wizard-stepcard {
   background: var(--nx-card); border: 1px solid var(--nx-border);
-  border-radius: 14px; padding: 28px 32px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 14px); padding: 28px 32px;
 }
 
 /* ============================================================
@@ -1157,11 +1157,11 @@ body.nx-app {
   position: absolute; z-index: var(--z-raised); top: 100%; right: 0; margin-top: 6px;
   min-width: 180px; padding: 6px;
   background: var(--nx-card); border: 1px solid var(--nx-border);
-  border-radius: 10px; box-shadow: var(--nx-shadow-pop);
+  border-radius: calc(var(--nx-radius-scale, 1) * 10px); box-shadow: var(--nx-shadow-pop);
 }
 .rs-more-row {
   display: block; width: 100%; text-align: left;
-  background: none; border: none; border-radius: 6px;
+  background: none; border: none; border-radius: calc(var(--nx-radius-scale, 1) * 6px);
   padding: 8px 10px; font: 500 13px var(--nx-font); color: var(--nx-text);
   cursor: pointer;
 }
@@ -1194,7 +1194,7 @@ body.nx-app {
    shimmer technique/tokens as .rdb-skeleton (dashboard cards); static under
    reduced-motion like every other animation on this page. */
 .rp-skeleton {
-  border-radius: 6px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 6px);
   background: linear-gradient(90deg, var(--nx-border) 25%, var(--nx-divider) 50%, var(--nx-border) 75%);
   background-size: 200% 100%;
   animation: rp-shimmer 1.4s infinite linear;
@@ -1220,7 +1220,7 @@ body.nx-app {
   gap: .5rem;
   margin: .5rem 0;
   padding: .5rem .75rem;
-  border-radius: 8px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 8px);
   background: var(--nx-accent-tint);
   border: 1px solid var(--nx-accent-soft);
   color: var(--nx-text);
@@ -1269,7 +1269,7 @@ body.nx-app {
 .reporting-sqlview { margin-top: 12px; }
 .reporting-sqlview-bar { display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 13px; padding-bottom: 8px; border-bottom: 1px solid var(--nx-border); margin-bottom: 10px; }
 .reporting-sqlview-bar span i { color: var(--nx-text-meta); margin-inline-end: 6px; font-size: 12px; }
-.reporting-sqlview pre { font-family: ui-monospace, Consolas, monospace; font-size: 12px; white-space: pre-wrap; word-break: break-word; background: var(--nx-sunken); color: var(--nx-text); border: 1px solid var(--nx-border); border-radius: 6px; padding: 10px; max-height: 320px; overflow: auto; margin: 0; }
+.reporting-sqlview pre { font-family: ui-monospace, Consolas, monospace; font-size: 12px; white-space: pre-wrap; word-break: break-word; background: var(--nx-sunken); color: var(--nx-text); border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 6px); padding: 10px; max-height: 320px; overflow: auto; margin: 0; }
 
 /* SQL token highlighting (Show-query panels + AI SQL draft) */
 .reporting-sqlview pre .sql-kw, .reporting-ai-sql .sql-kw { color: #cf222e; font-weight: 600; }
@@ -1327,7 +1327,7 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
 }
 .reporting-drill-head__main { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
 .reporting-drill-icon {
-  flex: 0 0 auto; width: 36px; height: 36px; border-radius: 10px;
+  flex: 0 0 auto; width: 36px; height: 36px; border-radius: calc(var(--nx-radius-scale, 1) * 10px);
   display: flex; align-items: center; justify-content: center;
   background: var(--nx-accent-tint); color: var(--nx-accent); font-size: 15px;
 }
@@ -1371,7 +1371,7 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
 .reporting-drill-callout {
   display: flex; align-items: flex-start; gap: 8px;
   margin: 10px 16px; padding: 10px 12px;
-  border: 1px solid #e0e7ff; background: #fafaff; border-radius: 10px;
+  border: 1px solid #e0e7ff; background: #fafaff; border-radius: calc(var(--nx-radius-scale, 1) * 10px);
   font-size: 12px; color: var(--nx-text-meta);
 }
 .reporting-drill-callout i { color: var(--nx-accent); margin-top: 1px; }
@@ -1448,7 +1448,7 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
 html.dark .rp-chat-starter { border-color: var(--nx-card-hover-border); }
 
 /* Message bubbles */
-.rp-chat-msg { max-width: 88%; padding: 10px 14px; border-radius: 14px; font-size: 13px; line-height: 1.5; }
+.rp-chat-msg { max-width: 88%; padding: 10px 14px; border-radius: calc(var(--nx-radius-scale, 1) * 14px); font-size: 13px; line-height: 1.5; }
 .rp-chat-msg--user {
   align-self: flex-end; background: var(--nx-accent-soft); color: var(--nx-text);
   border-bottom-right-radius: 4px;
@@ -1464,7 +1464,7 @@ html.dark .rp-chat-starter { border-color: var(--nx-card-hover-border); }
 /* Mini result table under an AI turn -- capped height, scrolls internally. */
 .rp-chat-result {
   align-self: stretch; margin-top: 8px; max-height: 220px; overflow: auto;
-  border: 1px solid var(--nx-border); border-radius: 10px; background: var(--nx-card);
+  border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 10px); background: var(--nx-card);
 }
 .rp-chat-result table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .rp-chat-result th,
@@ -1512,7 +1512,7 @@ html.dark .rp-chat-starter { border-color: var(--nx-card-hover-border); }
 }
 .reporting-drill-wi-modal[hidden] { display: none; }
 .reporting-drill-wi-modal__dialog {
-  background: var(--nx-card); border-radius: 12px; box-shadow: var(--nx-shadow-pop);
+  background: var(--nx-card); border-radius: calc(var(--nx-radius-scale, 1) * 12px); box-shadow: var(--nx-shadow-pop);
   width: 100%; max-width: 1100px; max-height: 90vh; overflow-y: auto;
 }
 .reporting-drill-wi-modal__head {
@@ -1535,7 +1535,7 @@ html.dark .rp-chat-starter { border-color: var(--nx-card-hover-border); }
 .reporting-toast {
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
   background: var(--nx-card); color: var(--nx-text);
-  border: 1px solid var(--nx-border); border-radius: 8px;
+  border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 8px);
   padding: 10px 16px; font-size: 13px; z-index: var(--z-popover); /* above the drill drawer */
   box-shadow: 0 6px 24px rgba(0, 0, 0, .18);
   transition: opacity .3s ease;
@@ -1680,12 +1680,12 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
    pane's rpKpiBand keeps its flat flex-row band untouched. renderKpiBand
    (JS partial) nests a gradient total card and a stacked secondary card
    (Buckets/Avg/Peak) inside #rsKpiBand; those two inner cards are new. */
-.reporting-simple-stat { border-radius: 14px; }
+.reporting-simple-stat { border-radius: calc(var(--nx-radius-scale, 1) * 14px); }
 #rsKpiBand { display: flex; flex-direction: column; gap: 10px; padding: 0; }
 .rs-kpi-total-card {
   background: var(--nx-brand-grad);
   color: #fff;
-  border-radius: 14px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 14px);
   box-shadow: 0 12px 28px -10px rgba(79, 70, 229, .5);
   padding: 18px 20px;
   display: flex;
@@ -1697,7 +1697,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 .rs-kpi-stats-card {
   background: var(--nx-card);
   border: 1px solid var(--nx-border);
-  border-radius: 14px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 14px);
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
@@ -1745,7 +1745,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
    already restyled .reporting-ledger-sqlpeek's colors/font above -- it is
    already full-width/border-top/left-aligned/ellipsis, so nothing to
    duplicate here beyond the card chrome around it). */
-.rs-table-card { margin-top: 14px; border-radius: 14px; }
+.rs-table-card { margin-top: 14px; border-radius: calc(var(--nx-radius-scale, 1) * 14px); }
 .rs-table-card__head {
   display: flex;
   align-items: baseline;
@@ -1900,11 +1900,11 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 .reporting-hero { border-radius: var(--nx-radius-hero); border: 1px solid #e0e7ff; background: radial-gradient(1200px 320px at 50% -80px, var(--nx-accent-tint) 0%, var(--nx-card) 70%); padding: 44px 48px 36px; text-align: center; }
 .reporting-hero__title { margin: 0 0 8px; font: 600 28px var(--nx-font); letter-spacing: -.6px; color: var(--nx-text); }
 .reporting-hero__sub { margin: 0 0 24px; font-size: 14px; color: var(--nx-text-sec); }
-.reporting-hero__aiwrap { max-width: 660px; margin: 0 auto; border-radius: 14px; background: var(--nx-brand-grad); padding: 1.5px; box-shadow: 0 12px 32px -12px rgba(79, 70, 229, .4); }
+.reporting-hero__aiwrap { max-width: 660px; margin: 0 auto; border-radius: calc(var(--nx-radius-scale, 1) * 14px); background: var(--nx-brand-grad); padding: 1.5px; box-shadow: 0 12px 32px -12px rgba(79, 70, 229, .4); }
 .reporting-hero__aiwrap .reporting-simple-aibar { display: flex; align-items: center; border-radius: 12.5px; background: var(--nx-card); padding: 5px 5px 5px 18px; }
 .reporting-hero__wand { color: var(--nx-violet); font-size: 15px; }
 .reporting-hero__aiinput { flex: 1; min-width: 0; border: none; outline: none; background: transparent; padding: 11px 14px; font: 13.5px var(--nx-font); color: var(--nx-text); }
-.reporting-hero__aibtn { border: none; border-radius: 9px; background: var(--nx-brand-grad); color: #fff; font: 600 13px var(--nx-font); padding: 11px 20px; cursor: pointer; }
+.reporting-hero__aibtn { border: none; border-radius: calc(var(--nx-radius-scale, 1) * 9px); background: var(--nx-brand-grad); color: #fff; font: 600 13px var(--nx-font); padding: 11px 20px; cursor: pointer; }
 .reporting-hero__aibtn:hover { filter: brightness(1.08); }
 .reporting-hero__chips { display: flex; justify-content: center; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
 .rs-suggestion { border: 1px solid #e0e7ff; border-radius: 999px; background: var(--nx-card); color: var(--nx-accent); font: 500 12px var(--nx-font); padding: 6px 14px; cursor: pointer; }
@@ -1918,7 +1918,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 .rs-count-pill { display: inline-block; border: 1px solid var(--nx-border); border-radius: 999px; font: 600 11.5px var(--nx-font); color: var(--nx-accent); padding: 1px 9px; min-width: 8px; text-align: center; }
 .rs-search-wrap { position: relative; width: 200px; }
 .rs-search-wrap i { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--nx-text-meta); font-size: 12px; pointer-events: none; }
-.rs-search-wrap .reporting-simple-search { width: 100%; max-width: none; margin-left: 0; border-radius: 8px; padding: 7px 10px 7px 28px; }
+.rs-search-wrap .reporting-simple-search { width: 100%; max-width: none; margin-left: 0; border-radius: calc(var(--nx-radius-scale, 1) * 8px); padding: 7px 10px 7px 28px; }
 
 .rs-card {
   display: block; text-align: left; cursor: pointer; padding: 0; overflow: hidden;
@@ -1989,11 +1989,11 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 .reporting-mode-toggle,
 .reporting-view-toggle {
   background: var(--nx-divider);
-  border-radius: 8px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 8px);
 }
 .reporting-mode-toggle button,
 .reporting-view-toggle button {
-  border-radius: 6px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 6px);
   font: 500 12.5px var(--nx-font);
 }
 .reporting-mode-toggle button.active,
@@ -2132,7 +2132,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   display: flex; flex-direction: column; gap: 6px;
   min-width: 220px; padding: 14px;
   background: var(--nx-card); border: 1px solid var(--nx-border);
-  border-radius: 10px; box-shadow: var(--nx-shadow-pop);
+  border-radius: calc(var(--nx-radius-scale, 1) * 10px); box-shadow: var(--nx-shadow-pop);
 }
 .rdb-filter-pop label { font: 600 10.5px var(--nx-font); color: var(--nx-text-meta); }
 .rdb-filter-pop select,
@@ -2183,7 +2183,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 
 /* ---- Loading shimmer -------------------------------------------------- */
 .rdb-skeleton {
-  border-radius: 6px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 6px);
   background: linear-gradient(90deg, var(--nx-divider) 25%, var(--nx-border) 50%, var(--nx-divider) 75%);
   background-size: 200% 100%;
   animation: rdb-shimmer 1.4s infinite linear;
@@ -2260,7 +2260,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 /* Hover control cluster: 22px squares, top:-11px;right:10px per D10. */
 .rdb-card-controls { position: absolute; top: -11px; right: 10px; z-index: 3; display: flex; gap: 4px; }
 .rdb-card-ctrl-btn {
-  width: 22px; height: 22px; border-radius: 6px;
+  width: 22px; height: 22px; border-radius: calc(var(--nx-radius-scale, 1) * 6px);
   display: inline-flex; align-items: center; justify-content: center;
   border: 1px solid var(--nx-border); background: var(--nx-card); color: var(--nx-text-sec);
   font-size: 9px; cursor: pointer; box-shadow: 0 2px 6px rgba(16, 24, 40, .1);
@@ -2341,7 +2341,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 .rdb-export-menu {
   z-index: var(--z-popover-menu); min-width: 200px; max-width: 280px; padding: 6px;
   background: var(--nx-card); border: 1px solid var(--nx-border);
-  border-radius: 10px; box-shadow: var(--nx-shadow-pop);
+  border-radius: calc(var(--nx-radius-scale, 1) * 10px); box-shadow: var(--nx-shadow-pop);
 }
 .rdb-export-item {
   display: block; width: 100%; box-sizing: border-box; text-align: left;

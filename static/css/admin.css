@@ -84,18 +84,18 @@ html.dark .log-method--DELETE { color: #f87171; }
 
 /* Logs: time presets + saved filters (moved from logs.html inline styles) */
 .log-preset-row { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
-.log-preset { padding: 5px 10px; border-radius: 6px; background: var(--nx-card); border: 1px solid var(--nx-border-strong); font-size: 12px; color: var(--nx-text-sec); cursor: pointer; }
+.log-preset { padding: 5px 10px; border-radius: calc(var(--nx-radius-scale, 1) * 6px); background: var(--nx-card); border: 1px solid var(--nx-border-strong); font-size: 12px; color: var(--nx-text-sec); cursor: pointer; }
 .log-preset:hover { background: var(--nx-alt); color: var(--nx-text); }
 .log-preset.is-active { background: var(--nx-accent); color: #fff; border-color: var(--nx-accent); }
 .saved-preset-row { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; min-height: 30px; }
 .saved-preset-label { font-size: 11px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: var(--nx-text-meta); }
-.saved-preset { display: inline-flex; align-items: center; gap: 6px; padding: 4px 4px 4px 10px; border-radius: 14px; background: var(--nx-card); border: 1px solid var(--nx-border-strong); font-size: 12px; color: var(--nx-text); cursor: pointer; }
+.saved-preset { display: inline-flex; align-items: center; gap: 6px; padding: 4px 4px 4px 10px; border-radius: calc(var(--nx-radius-scale, 1) * 14px); background: var(--nx-card); border: 1px solid var(--nx-border-strong); font-size: 12px; color: var(--nx-text); cursor: pointer; }
 .saved-preset:hover { background: var(--nx-alt); }
 .saved-preset .name { line-height: 1; }
 .saved-preset .del { display: inline-flex; width: 18px; height: 18px; align-items: center; justify-content: center; border-radius: 50%; color: var(--nx-text-meta); font-size: 10px; }
 .saved-preset .del:hover { background: var(--nx-sunken); color: var(--nx-danger); }
 .saved-preset-empty { font-size: 12px; color: var(--nx-text-meta); font-style: italic; }
-.save-preset-btn { padding: 4px 10px; border-radius: 14px; background: transparent; border: 1px dashed var(--nx-border-strong); font-size: 12px; color: var(--nx-text-sec); cursor: pointer; }
+.save-preset-btn { padding: 4px 10px; border-radius: calc(var(--nx-radius-scale, 1) * 14px); background: transparent; border: 1px dashed var(--nx-border-strong); font-size: 12px; color: var(--nx-text-sec); cursor: pointer; }
 .save-preset-btn:hover { border-style: solid; color: var(--nx-text); }
 
 /* Logs: dark <pre> payload scrollbars (moved from logs.html inline styles) */

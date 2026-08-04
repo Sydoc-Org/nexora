@@ -22,7 +22,10 @@ Work toward 2.5.65.
   (small/default/large, zoom-based), **corner style** (sharp/default/round via
   the radius tokens), **high contrast** (stronger borders + darker secondary
   text), **table stripes**, **page background** (plain/aurora/grid), and a
-  one-click **Reset to defaults**.
+  one-click **Reset to defaults**. Corner style drives one `--nx-radius-scale`
+  factor: the radius tokens plus ~100 previously hardcoded `border-radius`
+  values across the CSS files are wrapped in `calc(scale × Npx)`, so
+  sharp/round reshapes the whole app while the default stays pixel-identical.
 - Profile: **Appearance settings** (#155) — a new profile section with per-user
   UI preferences: theme (light/dark/**system**, the latter following
   `prefers-color-scheme`), **accent color** (indigo/violet/emerald/amber/rose/sky,

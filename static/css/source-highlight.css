@@ -73,7 +73,7 @@
 .src-hl-layer-thumb .src-hl-box { border-width: 1.5px; }
 
 /* ---- Field list (click-to-locate + un-locatable badge) ---- */
-.src-field-row.is-locatable { cursor: pointer; border-radius: 6px; }
+.src-field-row.is-locatable { cursor: pointer; border-radius: calc(var(--nx-radius-scale, 1) * 6px); }
 .src-field-row.is-locatable:hover { background: rgba(234, 88, 12, 0.07); }
 .src-no-loc-badge {
   font-size: 0.62rem;
