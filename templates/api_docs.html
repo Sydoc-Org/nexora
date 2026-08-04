@@ -9,7 +9,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
   <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" integrity="sha384-wH75j6z1lH97ZOpMOInqhgKzFkAInZPPSPlZpYKYTOqsaizPvhQZmAtLcPKXpLyH" crossorigin="anonymous">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha384-F/bZzf7p3Joyp5psL90p/p89AZJsndkSoGwRpXcZhleCWhd8SnRuoYo4d0yirjJp" crossorigin="anonymous"></script>
   <style>
     /* Docs-page-local styles, token-driven so light/dark/accent/density all
@@ -30,15 +29,31 @@
 
     .apidocs-method { display: inline-block; font-family: var(--nx-mono); font-size: .625rem; font-weight: 700; letter-spacing: .05em; padding: .125rem .4375rem; border-radius: var(--nx-radius-sm); background: var(--nx-l-green); color: var(--nx-l-green-fg); }
 
-    /* Code panels stay dark in BOTH themes (Stripe-docs style) — the
-       github-dark highlight.js theme then reads correctly everywhere. */
-    .apidocs-code { position: relative; background: #0d1117; border: 1px solid #30363d; border-radius: var(--nx-radius); margin: .75rem 0; }
-    html.dark .apidocs-code { border-color: var(--nx-border); }
+    /* Code panels use the app's own surface tokens (not a hardcoded dark
+       theme), so they follow light/dark/accent like the rest of nexora.
+       Token colors below are hand-mapped to --nx-* instead of a bundled
+       highlight.js theme, for the same reason. */
+    .apidocs-code { position: relative; background: var(--nx-sunken); border: 1px solid var(--nx-border); border-radius: var(--nx-radius); margin: .75rem 0; }
     .apidocs-code pre { padding: .875rem 1rem; overflow-x: auto; font-size: .8125rem; line-height: 1.6; }
-    .apidocs-code pre code.hljs { padding: 0; background: transparent; font-family: var(--nx-mono); }
-    .apidocs-code-label { position: absolute; top: .5rem; right: 2.75rem; font-size: .625rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #8b949e; }
-    .apidocs-copy { position: absolute; top: .375rem; right: .375rem; width: 2rem; height: 2rem; display: flex; align-items: center; justify-content: center; border-radius: var(--nx-radius-sm); color: #8b949e; cursor: pointer; transition: background var(--nx-dur) var(--nx-ease), color var(--nx-dur) var(--nx-ease); }
-    .apidocs-copy:hover { background: rgba(177,186,196,0.12); color: #e6edf3; }
+    .apidocs-code pre code.hljs { padding: 0; background: transparent; font-family: var(--nx-mono); color: var(--nx-text); }
+    .apidocs-code-label { position: absolute; top: .5rem; right: 2.75rem; font-size: .625rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--nx-text-meta); }
+    .apidocs-copy { position: absolute; top: .375rem; right: .375rem; width: 2rem; height: 2rem; display: flex; align-items: center; justify-content: center; border-radius: var(--nx-radius-sm); color: var(--nx-text-meta); cursor: pointer; transition: background var(--nx-dur) var(--nx-ease), color var(--nx-dur) var(--nx-ease); }
+    .apidocs-copy:hover { background: var(--nx-alt); color: var(--nx-text); }
+
+    /* Syntax colors, mapped onto existing nx-* tokens instead of a
+       separate highlight.js color theme. */
+    .apidocs-code .hljs-string,
+    .apidocs-code .hljs-title  { color: var(--nx-success); }
+    .apidocs-code .hljs-number,
+    .apidocs-code .hljs-literal { color: var(--nx-violet); }
+    .apidocs-code .hljs-attr,
+    .apidocs-code .hljs-property,
+    .apidocs-code .hljs-attribute { color: var(--nx-accent); }
+    .apidocs-code .hljs-keyword,
+    .apidocs-code .hljs-built_in,
+    .apidocs-code .hljs-section { color: var(--nx-accent); font-weight: 600; }
+    .apidocs-code .hljs-comment { color: var(--nx-text-meta); font-style: italic; }
+    .apidocs-code .hljs-meta    { color: var(--nx-text-sec); }
 
     .apidocs-h2 { font-size: 1rem; font-weight: 600; color: var(--nx-text); margin: 1.5rem 0 .5rem; }
     .apidocs-p { font-size: .875rem; color: var(--nx-text-sec); line-height: 1.65; margin-bottom: .5rem; }
