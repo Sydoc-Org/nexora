@@ -9,13 +9,14 @@ def test_collect_snapshot_flattens_sources_and_drops_excluded():
     octo = [
         ("Privera", "02_Posteingang", 462),
         ("Privera", "01_Reporting", 258),  # EXCLUDED
-        ("Privera", "02_InitialScan", 1),  # EXCLUDED
+        ("Privera", "02_InitialScan", 0),  # zero-backlog process STAYS as a 0-row
         ("Privera", "02_Invoice", 8),  # EXCLUDED
         ("Privera", "Zeus", 20),  # EXCLUDED
+        ("System", "System", 0),  # EXCLUDED
         ("sydoc", "DPSI_Template", 2),  # EXCLUDED
         ("Compass", "01_Invoice_SAP", 17),
     ]
-    ms02 = [("sydoc", "05_PDBS", 478)]
+    ms02 = [("sydoc", "05_PDBS", 478), ("system", "system", 0)]  # latter EXCLUDED
     with (
         patch.object(bh, "fetch_octo", return_value=octo),
         patch.object(bh, "fetch_ms02", return_value=ms02),
@@ -24,6 +25,7 @@ def test_collect_snapshot_flattens_sources_and_drops_excluded():
     assert failures == []
     assert rows == [
         ("default", "Privera", "02_Posteingang", 462),
+        ("default", "Privera", "02_InitialScan", 0),
         ("default", "Compass", "01_Invoice_SAP", 17),
         ("ms02", "sydoc", "05_PDBS", 478),
     ]

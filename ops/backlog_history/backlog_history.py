@@ -42,30 +42,37 @@ log = logging.getLogger("backlog_history")
 # (ClientName, ProcessName) pairs that never make it into the history —
 # reporting-only / template / retired processes with no operational backlog.
 EXCLUDED = {
+    ("ELSY", "DigitalMailroom"),
+    ("ElektroMaterial", "01_Stammdaten"),
+    ("Geberit", "01_Garantiekarten"),
     ("Privera", "01_Reporting"),
-    ("Privera", "02_InitialScan"),
+    ("Privera", "01_Stammdaten"),
     ("Privera", "02_Invoice"),
+    ("Privera", "03_Stammdaten"),
     ("Privera", "Zeus"),
+    ("System", "System"),
+    ("system", "system"),
     ("sydoc", "DPSI_Template"),
 }
 
+# Counted from the PROCESSES side so every process yields a row each snapshot,
+# zero-backlog ones included — a process with nothing in C+A must still chart
+# as 0, not vanish from the series.
 _BACKLOG_SQL_MSSQL = """
-SELECT p.ClientName, p.Name, COUNT(*)
-FROM t_WorkItems w
-LEFT JOIN t_ActivityInstances a ON a.id = w.ActivityInstanceID
-LEFT JOIN t_Processes p ON p.id = a.ProcessID
+SELECT p.ClientName, p.Name, COUNT(w.id)
+FROM t_Processes p
+LEFT JOIN t_ActivityInstances a ON a.ProcessID = p.id
 LEFT JOIN t_ActivityTypes act ON act.id = a.ActivityTypeID
-WHERE act.Name = 'C+A'
+LEFT JOIN t_WorkItems w ON w.ActivityInstanceID = a.id AND act.Name = 'C+A'
 GROUP BY p.ClientName, p.Name
 """
 
 _BACKLOG_SQL_PG = """
-SELECT p."ClientName", p."Name", COUNT(*)
-FROM "t_WorkItems" w
-LEFT JOIN "t_ActivityInstances" a ON a."ID" = w."ActivityInstanceID"
-LEFT JOIN "t_Processes" p ON p."ID" = a."ProcessID"
+SELECT p."ClientName", p."Name", COUNT(w."ID")
+FROM "t_Processes" p
+LEFT JOIN "t_ActivityInstances" a ON a."ProcessID" = p."ID"
 LEFT JOIN "t_ActivityTypes" act ON act."ID" = a."ActivityTypeID"
-WHERE act."Name" = 'C+A'
+LEFT JOIN "t_WorkItems" w ON w."ActivityInstanceID" = a."ID" AND act."Name" = 'C+A'
 GROUP BY p."ClientName", p."Name"
 """
 
