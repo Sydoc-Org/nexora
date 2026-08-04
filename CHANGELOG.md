@@ -32,6 +32,10 @@ Work toward 2.5.65.
   factor: the radius tokens plus ~100 previously hardcoded `border-radius`
   values across the CSS files are wrapped in `calc(scale × Npx)`, so
   sharp/round reshapes the whole app while the default stays pixel-identical.
+  Page entrance gained three more styles — **slide**, **pop** and **blur** —
+  and a new **animation speed** pref (relaxed/default/snappy) scales the
+  entrance keyframes and every `--nx-dur` transition through one
+  `--nx-anim-speed` factor; motion-related clicks auto-replay the preview.
 - Profile: **Appearance settings** (#155) — a new profile section with per-user
   UI preferences: theme (light/dark/**system**, the latter following
   `prefers-color-scheme`), **accent color** (indigo/violet/emerald/amber/rose/sky,
