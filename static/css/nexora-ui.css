@@ -225,6 +225,13 @@ a.nx-card:hover, .nx-card--link:hover {
 .nx-btn--danger { background: var(--nx-danger); color: #fff; }
 .nx-btn--sm { padding: 5px 10px; font-size: 12px; }
 
+/* Pagination footer (table cards) */
+.nx-pagination {
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  padding: 14px 16px; border-top: 1px solid var(--nx-border);
+}
+.nx-pagination .nx-btn { padding: 6px 12px; }
+
 /* Inputs / selects */
 .nx-input, .nx-select {
   background: var(--nx-card);
@@ -623,3 +630,65 @@ html[data-bg="grid"] body.admin-page {
     color-mix(in srgb, var(--nx-border) 70%, transparent) 1px, transparent 1px);
   background-size: 22px 22px;
 }
+
+/* ------------------------------------------------------------------
+   Scope picker — checkbox dropdown for multi-select filters
+   (process filter on dashboard / workitems; also used by reporting).
+   ------------------------------------------------------------------ */
+.nx-scope { position: relative; margin: 6px 0; }
+.nx-scope--inline { margin: 0; min-width: 240px; }
+.nx-scope--tall .nx-scope-btn { min-height: 2.75rem; }
+.nx-scope-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--nx-border);
+  border-radius: calc(var(--nx-radius-scale, 1) * 8px);
+  background: var(--nx-card);
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--nx-text);
+  cursor: pointer;
+  box-sizing: border-box;
+}
+.nx-scope-btn:hover { border-color: var(--nx-accent-soft); }
+.nx-scope-btn:focus-visible {
+  outline: none;
+  border-color: var(--nx-accent);
+  box-shadow: 0 0 0 3px var(--nx-accent-tint);
+}
+.nx-scope-btn .fa-chevron-down { font-size: 11px; color: var(--nx-text-meta); }
+.nx-scope-btn[aria-expanded="true"] .fa-chevron-down { transform: rotate(180deg); }
+.nx-scope-menu {
+  position: absolute;
+  z-index: var(--z-raised);
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  max-height: 50vh;
+  overflow: auto;
+  padding: 4px;
+  background: var(--nx-card);
+  border: 1px solid var(--nx-border);
+  border-radius: calc(var(--nx-radius-scale, 1) * 8px);
+  box-shadow: var(--nx-shadow, 0 8px 24px rgba(0, 0, 0, .12));
+}
+.nx-scope-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 6px);
+  font-size: 13px;
+  cursor: pointer;
+}
+.nx-scope-row:hover { background: var(--nx-accent-tint); }
+.nx-scope-row input { margin: 0; cursor: pointer; }
+.nx-scope-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nx-scope-all { font-weight: 600; }
+.nx-scope-all + .nx-scope-client { border-top: 1px solid var(--nx-border); }
+.nx-scope-client { font-weight: 600; }
+.nx-scope-proc { padding-left: 26px; color: var(--nx-text-sec); }

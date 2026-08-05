@@ -149,6 +149,47 @@ def test_prepare_process_selection_lists_logs_and_raises_on_exception(app, ph_fa
         prepare_process_selection_lists("workitems.filter.process.", "all")
 
 
+def test_prepare_process_selection_lists_multiselect_keeps_only_granted(app, ph_fake_session):
+    """Comma-joined multi-selection (issue #150): every entry is checked on its
+    own, so an ungranted process smuggled into the list is dropped rather than
+    authorizing the whole selection."""
+    import nx_lib.security as sec_mod
+
+    ph_fake_session["permissions"] = [
+        "workitems.filter.process.A.P1",
+        "workitems.filter.process.B.P2",
+    ]
+    with patch.object(sec_mod, "session", ph_fake_session), app.app_context():
+        pairs = prepare_process_selection_lists("workitems.filter.process.", "A.P1,C.P3,B.P2")
+    assert pairs == [("A", "P1"), ("B", "P2")]
+
+
+# ---------- normalize_process_selection ----------
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("all", ("all", ["A.P1", "B.P2", "C.P3"])),
+        ("", ("all", ["A.P1", "B.P2", "C.P3"])),
+        (None, ("all", ["A.P1", "B.P2", "C.P3"])),
+        ("A.P1", ("A.P1", ["A.P1"])),
+        ("B.P2,A.P1", ("A.P1,B.P2", ["A.P1", "B.P2"])),  # sorted -> stable cache key
+        (" A.P1 , B.P2 ", ("A.P1,B.P2", ["A.P1", "B.P2"])),
+        ("A.P1,A.P1", ("A.P1", ["A.P1"])),
+        ("A.P1,ZZ.evil", ("A.P1", ["A.P1"])),  # ungranted entry dropped
+        ("ZZ.evil", ("all", ["A.P1", "B.P2", "C.P3"])),  # nothing left -> full allowed set
+        ("A.P1,B.P2,C.P3", ("all", ["A.P1", "B.P2", "C.P3"])),  # everything == all
+    ],
+)
+def test_normalize_process_selection(value, expected):
+    assert ph_mod.normalize_process_selection(value, {"C.P3", "A.P1", "B.P2"}) == expected
+
+
+def test_normalize_process_selection_empty_allowed_set():
+    assert ph_mod.normalize_process_selection("A.P1", []) == ("all", [])
+
+
 # ---------- get_activity_instances_to_ignore ----------
 
 

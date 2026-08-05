@@ -24,6 +24,7 @@ from ..extensions import cache
 from ..octo import get_extensions_urls_fields, get_workitemdata_param
 from ..process_helpers import (
     get_activity_instances_to_ignore,
+    normalize_process_selection,
 )
 from ..security import page_visibility, require_permission
 from ..workitem_sources import (
@@ -261,7 +262,7 @@ def dashboard_processed_over_time():
     )
     process_name = session.get("process_name_dashboard", "all")
 
-    target_processes = allowed_processes if process_name == "all" else [process_name]
+    target_processes = normalize_process_selection(process_name, allowed_processes)[1]
 
     if not target_processes:
         return jsonify({"labels": [], "data": []})
@@ -371,7 +372,7 @@ def dashboard_kpi_stats():
     )
     process_name = session.get("process_name_dashboard", "all")
 
-    target_processes = allowed_processes if process_name == "all" else [process_name]
+    target_processes = normalize_process_selection(process_name, allowed_processes)[1]
 
     if not target_processes:
         return jsonify(
@@ -425,7 +426,7 @@ def dashboard_hourly_stats():
         }
     )
     process_name = session.get("process_name_dashboard", "all")
-    target_processes = allowed_processes if process_name == "all" else [process_name]
+    target_processes = normalize_process_selection(process_name, allowed_processes)[1]
 
     if not target_processes:
         return jsonify({"labels": [f"{h:02d}:00" for h in range(24)], "data": [0] * 24})
@@ -517,7 +518,7 @@ def dashboard_avg_processing_time():
         }
     )
     process_name = session.get("process_name_dashboard", "all")
-    target_processes = allowed_processes if process_name == "all" else [process_name]
+    target_processes = normalize_process_selection(process_name, allowed_processes)[1]
 
     if not target_processes:
         return jsonify({"avg_minutes": None, "avg_display": "—"})
@@ -629,10 +630,9 @@ def dashboard():
             }
         )
 
-        process_name = request.args.get("prcfD", "all")
-        if process_name != "all" and process_name not in allowed_processes:
-            process_name = "all"
-
+        process_name = normalize_process_selection(
+            request.args.get("prcfD", "all"), allowed_processes
+        )[0]
         session["process_name_dashboard"] = process_name
 
         return render_template(
@@ -663,9 +663,9 @@ def dashboard_set_filter():
             if perm.startswith(prefix)
         }
     )
-    process_name = request.json.get("process_name", "all")
-    if process_name != "all" and process_name not in allowed_processes:
-        process_name = "all"
+    process_name = normalize_process_selection(
+        request.json.get("process_name", "all"), allowed_processes
+    )[0]
     session["process_name_dashboard"] = process_name
     return jsonify({"ok": True, "process_name": process_name})
 
@@ -691,11 +691,7 @@ def api_recent_activity():
                 if perm.startswith(prefix)
             }
         )
-        target_processes = (
-            allowed_processes
-            if process_name == "all"
-            else ([process_name] if process_name in allowed_processes else [])
-        )
+        target_processes = normalize_process_selection(process_name, allowed_processes)[1]
 
         if not target_processes:
             return jsonify([])

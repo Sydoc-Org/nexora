@@ -304,7 +304,10 @@ async function uploadBatchFiles(files, processName) {
                 let procs = [];
                 try { procs = JSON.parse(link.dataset.pdocProcesses || '[]'); } catch (e) { procs = []; }
                 const sel = document.getElementById('prcfW')?.value || 'all';
-                link.classList.toggle('hidden', !procs.includes(sel));
+                // Multi-select (issue #150): the register is reachable as soon as
+                // one selected process is a prepared-documents process.
+                const shown = sel !== 'all' && sel.split(',').some(p => procs.includes(p));
+                link.classList.toggle('hidden', !shown);
             };
             document.getElementById('prcfW')?.addEventListener('change', _updatePreparedDocsLink);
             _updatePreparedDocsLink();
@@ -386,15 +389,13 @@ async function uploadBatchFiles(files, processName) {
 
             function fillDocFieldSelect(hiddenInput, process) {
                 const selectedValue = hiddenInput.getAttribute('data-selected') || hiddenInput.value || '';
-                let fields = [];
-
-                if (process === 'all') {
-                    const allFieldsMap = new Map();
-                    Object.values(fieldConfig.search_options).flat().forEach(f => allFieldsMap.set(f.value, f));
-                    fields = Array.from(allFieldsMap.values()).sort((a, b) => a.label.localeCompare(b.label));
-                } else {
-                    fields = fieldConfig.search_options[process] || [];
-                }
+                // `process` is 'all' or a comma-joined multi-selection (issue #150):
+                // offer the union of the selected processes' fields.
+                const opts = fieldConfig.search_options || {};
+                const procs = (!process || process === 'all') ? Object.keys(opts) : process.split(',');
+                const fieldMap = new Map();
+                procs.forEach(p => (opts[p] || []).forEach(f => fieldMap.set(f.value, f)));
+                const fields = Array.from(fieldMap.values()).sort((a, b) => a.label.localeCompare(b.label));
 
                 hiddenInput._docFieldOptions = fields;
 

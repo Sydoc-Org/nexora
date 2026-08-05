@@ -178,7 +178,7 @@
   // toggles the box natively, firing `onToggle`.
   function scopeRow(labelText, checked, indeterminate, onToggle) {
     var row = document.createElement('label');
-    row.className = 'reporting-scope-row';
+    row.className = 'nx-scope-row';
     var box = document.createElement('input');
     box.type = 'checkbox';
     box.checked = checked;
@@ -209,20 +209,20 @@
 
     var allRow = scopeRow('{{ _("All processes") }}', selN >= total, selN > 0 && selN < total,
       function () { selectAllProcesses(); });
-    allRow.classList.add('reporting-scope-all');
+    allRow.classList.add('nx-scope-all');
     menu.appendChild(allRow);
 
     processGroups().forEach(function (g) {
       var sel = g.procs.filter(isSelected).length;
       var clientRow = scopeRow(g.client, sel === g.procs.length, sel > 0 && sel < g.procs.length,
         (function (c) { return function () { toggleClient(c); }; })(g.client));
-      clientRow.classList.add('reporting-scope-client');
+      clientRow.classList.add('nx-scope-client');
       menu.appendChild(clientRow);
       g.procs.forEach(function (p) {
         var label = p.slice(g.client.length + 1) || p; // process part after '<client>.'
         var row = scopeRow(label, isSelected(p), false,
           (function (proc) { return function () { toggleProcess(proc); }; })(p));
-        row.classList.add('reporting-scope-proc');
+        row.classList.add('nx-scope-proc');
         menu.appendChild(row);
       });
     });

@@ -10,6 +10,17 @@ Work toward 2.5.65.
 
 ### Added
 
+- **Multi-select process filter** (#150) — the process filter on Dashboard
+  and Workitems is no longer one-process-or-all: it is now the same
+  checkbox dropdown the Reporting page uses (All / per-client / per-process
+  rows), so two or three processes can be filtered at once. The filter value
+  on the wire is `all` or a comma-joined `client.process` list (`prcfD` /
+  `prcfW`, and `process` on `/api/docfield_values`); every entry is
+  permission-checked individually, and a selection that ends up empty falls
+  back to `all`. The picker lives in the shared partial
+  `templates/js/_process_multiselect_js.html`, its styling moved from
+  `reporting.css` into `nexora-ui.css` as the app-wide `.nx-scope*`
+  component.
 - **Backlog History in Reporting** (#162) — the #161 collector's
   `StatisticsDB.dbo.BacklogHistory` is now a registered reporting source
   (`sql/_migrations/NexoraDB/0053`, `0054`) with a canonical `backlog_total`

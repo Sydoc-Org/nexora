@@ -236,14 +236,14 @@
     <aside class="reporting-fields" data-testid="reporting-field-panel">
       <label class="reporting-label">{{ _("Source") }}</label>
       <select id="rpSource" data-testid="reporting-source-select"></select>
-      <div id="rpScopeWrap" class="reporting-scope" hidden data-testid="reporting-scope">
+      <div id="rpScopeWrap" class="nx-scope" hidden data-testid="reporting-scope">
         <label class="reporting-label">{{ _("Processes") }}</label>
-        <button type="button" id="rpScopeBtn" class="reporting-scope-btn"
+        <button type="button" id="rpScopeBtn" class="nx-scope-btn"
                 aria-controls="rpScopeMenu" aria-expanded="false" data-testid="reporting-scope-btn">
           <span id="rpScopeSummary">{{ _("All processes") }}</span>
           <i class="fas fa-chevron-down" aria-hidden="true"></i>
         </button>
-        <div id="rpScopeMenu" class="reporting-scope-menu" hidden role="group"
+        <div id="rpScopeMenu" class="nx-scope-menu" hidden role="group"
              aria-label="{{ _('Filter by client and process') }}" data-testid="reporting-scope-menu"></div>
       </div>
       <input id="rpFieldSearch" class="reporting-input" placeholder="{{ _('Search fields…') }}" data-testid="reporting-field-search">

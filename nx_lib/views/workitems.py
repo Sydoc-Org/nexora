@@ -53,6 +53,7 @@ from ..prepared_documents import (
 )
 from ..process_helpers import (
     get_activity_instances_to_ignore,
+    normalize_process_selection,
     prepare_process_selection_lists,
 )
 from ..security import (
@@ -519,9 +520,6 @@ def _get_workitems_data(args, export_all=False):
         offset = (page - 1) * per_page
     activity_instances_to_ignore = get_activity_instances_to_ignore()
 
-    process_name = args.get("prcfW", "all")
-    session["process_name_workitemOverview"] = process_name
-
     prefix = "workitems.filter.process."
     perms = session.get("permissions", [])
 
@@ -532,11 +530,11 @@ def _get_workitems_data(args, export_all=False):
             if len(parts) >= 2:
                 allowed_processes_set.add(f"{parts[-2]}.{parts[-1]}")
 
-    target_processes = []
-    if process_name == "all":
-        target_processes = list(allowed_processes_set)
-    elif process_name in allowed_processes_set:
-        target_processes = [process_name]
+    # "all" or a comma-joined selection (issue #150).
+    process_name, target_processes = normalize_process_selection(
+        args.get("prcfW", "all"), allowed_processes_set
+    )
+    session["process_name_workitemOverview"] = process_name
 
     client_process_pairs = prepare_process_selection_lists(prefix=prefix, process_name=process_name)
 
@@ -1004,11 +1002,9 @@ def api_docfield_values():
     # than every process configured in SearchConfig.
     allowed_processes_set = set(_ms02_target_processes())
 
-    target_processes = []
-    if process == "all":
-        target_processes = list(allowed_processes_set)
-    elif process in allowed_processes_set:
-        target_processes = [process]
+    # `process` is "all" or a comma-joined multi-selection (issue #150);
+    # unknown/ungranted entries are dropped by normalize_process_selection.
+    target_processes = normalize_process_selection(process, allowed_processes_set)[1]
 
     if not target_processes:
         return jsonify([])

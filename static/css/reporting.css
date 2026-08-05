@@ -137,61 +137,6 @@
   background: #eef2ff;
 }
 
-/* --- Process scope picker (client / process multi-select) ----------------- */
-.reporting-scope {
-  position: relative;
-  margin: 6px 0;
-}
-.reporting-scope-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 6px 8px;
-  border: 1px solid var(--nx-border);
-  border-radius: calc(var(--nx-radius-scale, 1) * 8px);
-  background: var(--nx-card);
-  font-family: inherit;
-  font-size: 13px;
-  color: inherit;
-  cursor: pointer;
-  box-sizing: border-box;
-}
-.reporting-scope-btn:hover { border-color: var(--nx-border-strong); }
-.reporting-scope-btn .fa-chevron-down { font-size: 11px; color: var(--nx-text-meta); }
-.reporting-scope-btn[aria-expanded="true"] .fa-chevron-down { transform: rotate(180deg); }
-.reporting-scope-menu {
-  position: absolute;
-  z-index: var(--z-raised);
-  left: 0;
-  right: 0;
-  margin-top: 4px;
-  max-height: 50vh;
-  overflow: auto;
-  padding: 4px;
-  background: var(--nx-card);
-  border: 1px solid var(--nx-border);
-  border-radius: calc(var(--nx-radius-scale, 1) * 8px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
-}
-.reporting-scope-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 8px;
-  border-radius: calc(var(--nx-radius-scale, 1) * 6px);
-  font-size: 13px;
-  cursor: pointer;
-}
-.reporting-scope-row:hover { background: #eef2ff; }
-.reporting-scope-row input { margin: 0; cursor: pointer; }
-.reporting-scope-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.reporting-scope-all { font-weight: 600; }
-.reporting-scope-all + .reporting-scope-client { border-top: 1px solid var(--nx-border); }
-.reporting-scope-client { font-weight: 600; }
-.reporting-scope-proc { padding-left: 26px; color: var(--nx-text-sec); }
-
 /* Grain selector on a date column in the Columns well */
 .reporting-grain {
   font-size: 12px;
@@ -611,24 +556,6 @@ body.nx-app {
 /* Field list + table */
 .reporting-field-list li:hover { background: var(--nx-accent-tint); }
 
-/* Process scope picker — tokenized for theme consistency */
-.reporting-scope-btn,
-.reporting-scope-menu {
-  background: var(--nx-card);
-  color: var(--nx-text);
-  border-color: var(--nx-border);
-}
-.reporting-scope-btn:hover { border-color: var(--nx-accent-soft); }
-.reporting-scope-btn:focus-visible {
-  outline: none;
-  border-color: var(--nx-accent);
-  box-shadow: 0 0 0 3px var(--nx-accent-tint);
-}
-.reporting-scope-menu { box-shadow: var(--nx-shadow); }
-.reporting-scope-btn .fa-chevron-down { color: var(--nx-text-meta); }
-.reporting-scope-row:hover { background: var(--nx-accent-tint); }
-.reporting-scope-all + .reporting-scope-client { border-color: var(--nx-border); }
-.reporting-scope-proc { color: var(--nx-text-sec); }
 .reporting-table th,
 .reporting-table td { border-color: var(--nx-border); }
 .reporting-table th,

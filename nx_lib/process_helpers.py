@@ -11,11 +11,43 @@ from .extensions import cache
 from .security import has_permission
 
 
+def _selected_pairs(prefix, process_name):
+    """Granted (client, process) pairs for a comma-joined selection."""
+    pairs = set()
+    for name in process_name.split(","):
+        name = name.strip()
+        parts = name.split(".")
+        if len(parts) >= 2 and has_permission(f"{prefix}{name}"):
+            pairs.add((parts[0], parts[1]))
+    return sorted(pairs)
+
+
+def normalize_process_selection(process_name, allowed_processes):
+    """Canonicalize a process-filter value against what the caller may see.
+
+    Accepts the multi-select wire format (issue #150): ``"all"`` or a
+    comma-joined ``"<client>.<process>"`` list. Returns
+    ``(canonical_value, target_processes)``. Entries the caller holds no grant
+    for are dropped, and a selection that ends up empty -- stale bookmark,
+    forged arg, every box unticked -- falls back to ``"all"``, the historical
+    single-select behaviour. Both halves are sorted so cache keys built from
+    the canonical value stay stable regardless of click order.
+    """
+    allowed = sorted(allowed_processes)
+    picked = sorted({p.strip() for p in (process_name or "").split(",")} & set(allowed))
+    if not picked or picked == allowed:
+        return "all", allowed
+    return ",".join(picked), picked
+
+
 def prepare_process_selection_sql(prefix, process_name):
     """Build an OR-joined parameterized (client, process) pair predicate --
     e.g. "(client = ? AND process = ?) OR (client = ? AND process = ?)" --
     plus its flat params list, from the caller's granted
     "<prefix><client>.<process>" permissions.
+
+    ``process_name`` is "all" or a comma-joined list of "<client>.<process>"
+    (issue #150); each entry is permission-checked on its own.
 
     Building two INDEPENDENT client/process IN-lists (the previous shape of
     this function) authorizes their full cross product once spliced into a
@@ -35,10 +67,7 @@ def prepare_process_selection_sql(prefix, process_name):
                     unique_pairs.add((client, proc))
             pairs = sorted(unique_pairs)
         else:
-            if has_permission(f"{prefix}{process_name}"):
-                parts = process_name.split(".")
-                if len(parts) >= 2:
-                    pairs = [(parts[0], parts[1])]
+            pairs = _selected_pairs(prefix, process_name)
         predicate = " OR ".join("(client = ? AND process = ?)" for _ in pairs)
         params = [value for pair in pairs for value in pair]
         return params, predicate
@@ -69,10 +98,7 @@ def prepare_process_selection_lists(prefix, process_name):
                     unique_pairs.add((parts[-2], parts[-1]))
             pairs = sorted(unique_pairs)
         else:
-            if has_permission(f"{prefix}{process_name}"):
-                parts = process_name.split(".")
-                if len(parts) >= 2:
-                    pairs = [(parts[0], parts[1])]
+            pairs = _selected_pairs(prefix, process_name)
         return pairs
     except Exception as e:
         current_app.logger.error(f"Failed to prepare process selection lists: {e}")
