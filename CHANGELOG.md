@@ -301,6 +301,15 @@ Work toward 2.5.65.
 
 ### Fixed
 
+- **Reporting: export date and import date can be broken down together**
+  (#164) — the Simple wizard's two "Over time" chips were mutually exclusive
+  (picking one silently dropped the other), even though the query builder has
+  always applied grain per column and the Advanced tab allowed both. Selecting
+  a second date is now a normal 2-dimension group-by (first date = chart X
+  axis, second = series), within the same 3-breakdown cap. Both dates share
+  the single grain select. Follow-ups this exposed: the chart legend printed
+  the second date as a raw ISO datetime, and chart drill-through filtered
+  non-leading dimensions on an equality instead of the bucket range.
 - **Mobile nav toggle / modal backdrop z-index collision** (#144, follow-up
   from #142) — `--z-nav-toggle` and `--z-modal-backdrop` both resolved to
   `60`, so an open reporting modal wasn't guaranteed to paint above the

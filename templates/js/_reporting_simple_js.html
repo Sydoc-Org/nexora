@@ -810,7 +810,10 @@
       // one filter per remaining breakdown.
       var parts = (cd.rawSeries || [])[datasetIndex] || [];
       for (var d = 1; d < dims.length; d++) {
-        clicked.push({ field: dims[d].field, grain: null, value: parts[d - 1] });
+        // Grain matters on non-leading dims too now that a second DATE
+        // breakdown is allowed (#164) — a bucket must drill to its range,
+        // not to an equality on the bucket-start value.
+        clicked.push({ field: dims[d].field, grain: dims[d].grain || null, value: parts[d - 1] });
       }
     }
     openDrill(clicked);
@@ -1133,9 +1136,16 @@
         // cell is one exact aggregate row — correct for any aggregation, not
         // just additive ones (the old third-dim collapse only held for
         // count/sum). The 12-series cap below bounds the cross-product.
-        var parts = [], d;
-        for (d = 1; d < dims; d++) parts.push(String(r[d] == null ? '' : r[d]));
-        var s = parts.join(' · ');
+        var parts = [], labelParts = [], d;
+        for (d = 1; d < dims; d++) {
+          var pv = String(r[d] == null ? '' : r[d]);
+          parts.push(pv);
+          // A non-leading DATE dim (#164) arrives as an ISO datetime — trim it
+          // for the legend the same way the x labels are trimmed. parts stays
+          // raw so drill-through still gets the full value.
+          labelParts.push(def.columns[d] && def.columns[d].grain ? pv.slice(0, 10) : pv);
+        }
+        var s = labelParts.join(' · ');
         var v = Number(r[metricIdx2]) || 0;
         if (!cell[x]) { xOrder.push(x); cell[x] = {}; }
         cell[x][s] = (cell[x][s] || 0) + v;
@@ -2146,9 +2156,10 @@
         }
       }
       if (idx !== -1) { w.breakdowns.splice(idx, 1); refreshChips(); return; }
-      if (bd.kind === 'date') {
-        w.breakdowns = w.breakdowns.filter(function (b) { return b.kind !== 'date'; });
-      }
+      // ponytail: date breakdowns are no longer mutually exclusive (#164) --
+      // export+import date together is a plain 2-dim group-by, which the query
+      // builder already supports (grain is per-column server-side). They share
+      // the single rsGrain select; per-date grains would need a second control.
       if (w.breakdowns.length >= 3) { refreshChips(); return; }
       w.breakdowns.push(bd);
       refreshChips();
@@ -2386,12 +2397,16 @@
     var grain = el('rsGrain').value || 'month';
     var titleParts = [];
     var hasDate = false;
+    var nDates = bds.filter(function (b) { return b.kind === 'date'; }).length;
     bds.slice(0, 3).forEach(function (b) {
       if (b.kind === 'date') {
         hasDate = true;
         columns.push({ field: b.field.field, header: b.field.label, grain: grain });
         sort.push({ field: b.field.field, dir: 'asc' });
-        titleParts.push(I18N.per + ' ' + el('rsGrain').options[el('rsGrain').selectedIndex].text.toLowerCase());
+        // With two date breakdowns "per month / per month" is meaningless —
+        // name the field so the two axes stay distinguishable (#164).
+        var per = I18N.per + ' ' + el('rsGrain').options[el('rsGrain').selectedIndex].text.toLowerCase();
+        titleParts.push(nDates > 1 ? (b.field.label + ' ' + per) : per);
       } else if (b.kind === 'category') {
         columns.push({ field: b.field.field, header: b.field.label });
         titleParts.push(b.field.label);
@@ -2446,14 +2461,15 @@
     if (!src) return null;
     var cols = def.columns || [];
     if (cols.length > 3) return null;
-    var breakdowns = [], grain = null, dateSeen = false;
+    var breakdowns = [], grain = null;
     var ci;
     for (ci = 0; ci < cols.length; ci++) {
       var f = (src.fields || []).find(function (x) { return x.field === cols[ci].field; });
       if (!f) return null;
       if (cols[ci].grain) {
-        if (!f.grainable || dateSeen) return null;
-        dateSeen = true;
+        // Several date columns are fine (#164), but the wizard has ONE grain
+        // select — a def whose date columns disagree can't be represented.
+        if (!f.grainable || (grain && cols[ci].grain !== grain)) return null;
         breakdowns.push({ kind: 'date', field: f });
         grain = cols[ci].grain;
       } else {

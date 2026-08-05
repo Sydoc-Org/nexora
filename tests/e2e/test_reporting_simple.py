@@ -2957,6 +2957,14 @@ DOCPROC_WIZ_FIELDS = [
         "grainable": True,
         "filterable": True,
     },
+    # Second date field: #164 -- both "Over time" chips must be selectable at once.
+    {
+        "field": "export_date",
+        "label": "Export date",
+        "type": "date",
+        "grainable": True,
+        "filterable": True,
+    },
 ] + [
     {"field": f, "label": lbl, "type": "string", "grainable": False, "filterable": True}
     for f, lbl in [
@@ -3072,6 +3080,37 @@ def test_wizard_process_breakdown_serializes_to_processname_column(nexora_server
     with_cols = [p for p in captured if p.get("columns")]
     assert with_cols, f"no run payload carried columns: {captured}"
     assert with_cols[0]["columns"][0]["field"] == "processname"
+
+
+def test_wizard_allows_both_date_breakdowns(nexora_server, page):
+    """#164: export date + import date are selectable together and BOTH reach the
+    run payload as grained columns (they used to be mutually exclusive)."""
+    _login(page, nexora_server)
+    _stub_wiz_catalogs(page, DOCPROC_WIZ_SOURCES, DOCPROC_WIZ_METRICS)
+    captured = []
+    _stub_run_ok(page, capture=captured)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Docproc count stub").click()
+    page.get_by_test_id("rs-measure-next").click()
+    page.get_by_test_id("rs-scope-next").click()
+    bklist = page.get_by_test_id("rs-breakdown-list")
+    exp = bklist.locator('[data-bd-field="export_date"]')
+    imp = bklist.locator('[data-bd-field="import_date"]')
+    exp.click()
+    imp.click()
+    # The second click must NOT deselect the first.
+    expect(exp).to_have_attribute("aria-pressed", "true")
+    expect(imp).to_have_attribute("aria-pressed", "true")
+    page.get_by_test_id("rs-breakdown-next").click()
+    page.get_by_test_id("rs-wizard-run").click()
+    expect(page.get_by_test_id("rs-result")).to_be_visible()
+    with_cols = [p for p in captured if p.get("columns")]
+    assert with_cols, f"no run payload carried columns: {captured}"
+    cols = with_cols[0]["columns"]
+    assert {c["field"] for c in cols} == {"export_date", "import_date"}, cols
+    # Both carry the wizard's single grain -- neither is emitted as a raw date.
+    assert all(c.get("grain") for c in cols), cols
 
 
 def test_wizard_shows_all_category_chips_uncapped(nexora_server, page):

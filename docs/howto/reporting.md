@@ -134,7 +134,9 @@ chart already on screen re-themes on the next render, not live.
     clone run, so it is correct for every aggregation — avg/count_distinct
     included), a **chart card** (line for date breakdowns, bar for categories by default,
     with a bar/line/pie/doughnut switcher; the chosen type is saved with the report).
-    The wizard supports **up to three breakdowns** (at most one date); the first breakdown is
+    The wizard supports **up to three breakdowns**, including more than one date
+    (export date *and* import date together, #164 — all dates share the one grain
+    select, so a per-date grain still needs the Advanced tab); the first breakdown is
     the chart axis and every remaining breakdown joins into the composite colored series
     ("Process · Source" — grouped bars or one line per series, with a stacked-bar option),
     exact for every aggregation since nothing collapses in the pivot. Charts cap
