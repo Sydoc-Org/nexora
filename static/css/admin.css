@@ -183,7 +183,8 @@ html.dark .log-method--DELETE { color: #f87171; }
 .status-cell { flex: 1 1 0; min-width: 3px; border-radius: 2px; background: var(--nx-border); transition: transform var(--nx-dur, .18s) var(--nx-ease, ease); }
 .status-cell--operational { background: var(--nx-l-green-fg); opacity: 0.8; }
 .status-cell--outage      { background: var(--nx-danger); }
-.status-cell--unknown     { background: transparent; box-shadow: inset 0 0 0 1px var(--nx-border); }
+/* Filled, not outlined: 30 outlined cells read as a row of empty checkboxes. */
+.status-cell--unknown     { background: var(--nx-border); opacity: 0.5; }
 .status-cell:hover { opacity: 1; transform: scaleY(1.18); }
 .status-legend { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-top: 14px; margin-top: 6px; border-top: 1px solid var(--nx-border); font-size: 11px; color: var(--nx-text-meta); flex-wrap: wrap; }
 .status-legend-keys { display: flex; align-items: center; gap: 6px; }
