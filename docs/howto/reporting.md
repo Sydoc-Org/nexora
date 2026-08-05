@@ -223,6 +223,83 @@ current value vs. the same stat over `comparison.rows`:
 > legitimately see different numbers, or a friendly "you don't have access"
 > message. This is existing run-path behavior, surfaced honestly in the UI.
 
+## Forecast
+
+Any result shaped like **exactly one date-grained breakdown plus one or more
+metrics** — the same D2 shape the zero-fill and comparison chips key off —
+can be projected forward. This is an **owner-locked single-dim rule**: two or
+three breakdowns, a dimension without a grain, or zero metrics all leave the
+Forecast control disabled (the Simple toggle button and the Advanced
+`rpForecastWrap` checkbox both call the same `forecastEligible(def)` check
+client-side; the server independently re-checks the shape in
+`compute_forecast` and never trusts the flag alone).
+
+**Persistence.** The toggle and horizon live in the report definition as an
+optional `forecast` block — `{ "enabled": true, "horizon": "auto" }` — so a
+saved or scheduled report remembers whether forecasting was on. `horizon` is
+`"auto"` or an integer number of buckets in `[1, 60]`; the Simple/Advanced UI
+only offers Auto/+7/+14/+30, but the schema accepts any value in range for
+forward compatibility. `compare` (delta chips) and `forecast` are independent
+blocks on the same payload and can both be set at once.
+
+**Method.** `nx_lib/reporting/forecast.py` fits an **OLS linear trend** over
+the zero-filled bucket series and, once there are at least two full seasonal
+cycles for the grain (7 buckets/period for `day`, 12 for `month`, 4 for
+`quarter` — `week`/`year` stay trend-only), layers on **additive seasonal
+indices** from classical decomposition (mean residual per calendar position,
+centered to net to zero). Each projected point carries a **95% prediction
+interval** from the residual standard error and the two-sided Student-t
+quantile at the fit's degrees of freedom (falling back to `1.96` past 30 df),
+widening with distance from the fitted window; an all-nonnegative history
+clamps projections and bounds at zero. A series needs at least 5 zero-filled
+buckets to fit at all, and seasonal decomposition only engages when it would
+leave at least 3 residual degrees of freedom — short or sparse series
+silently fall back to trend-only rather than fail. Deliberately stdlib-only
+(no numpy/scipy/statsmodels), matching the `stats.py` rule; see the
+`# ponytail:` note in `forecast.py` for swapping in a heavier library later.
+
+**`unavailable` reasons.** `compute_forecast` never raises on user data —
+a shape or data problem returns `{"unavailable": "<reason>"}` instead of a
+projection: `"shape"` (the D2 gate above isn't met — shouldn't normally reach
+the server since the UI disables the toggle first), `"bad_buckets"` (a bucket
+value doesn't parse as a date, or the filled range doesn't land on the last
+real bucket — a grain/data mismatch), and `"insufficient_history"` (fewer
+than 5 buckets after zero-fill, a degenerate all-identical-x series, or an
+absurd bucket count from a huge date range). The UI collapses all reasons
+into one user-facing message, *"Not enough history to forecast this
+series."*, shown as the chart note when the toggle is on but no dashed line
+appears.
+
+**Charting and table rows.** The chart extends past the last actual bucket
+with a dashed prediction line plus a shaded 95% band (`_forecast`/`_band`
+flagged Chart.js datasets, filtered out of the legend and excluded from
+`state.chartData.datasets` — the actual-only array the chart-type switcher
+and preview cache read). The results table appends the predicted buckets as
+extra rows carrying a small "Forecast" badge; the anchor bucket
+(`forecast.anchor`) is the last real data point, not the first predicted one.
+
+**Drill-through never fires on predicted points.** Both the chart's point
+`onClick` and the table's row click bail out before opening the drill drawer
+whenever the point/row is forecast-flagged — there is no underlying query to
+drill into for a number the server invented. This is enforced at the click
+sites, not inside the shared drill drawer module.
+
+**Exports.** `forecast_export_rows` appends a trailing **`Forecast` marker
+column** to CSV/XLSX exports — empty string on actual rows, `"forecast"` on
+projected rows — rather than a separate sheet or file, so a spreadsheet
+consumer can filter or highlight predicted rows without out-of-band
+knowledge. Only `yhat` is exported; the confidence bounds are chart/UI-only
+(D7). The XLSX export additionally styles forecast rows grey-italic as a
+visual cue matching the chart's dashed/shaded treatment.
+
+**Scheduled mails.** `ops/run_scheduled_reports.py` computes the forecast
+block the same way the interactive run does, whenever the saved definition's
+`forecast.enabled` is `true` — the emailed chart PNG carries the dashed
+line/band and the attached export carries the marker column, with no
+schedule-level opt-in beyond what's already saved in the definition. A
+forecast failure (bad data shape, an exception) degrades to no-forecast
+rather than blocking the mail.
+
 ## Dashboards
 
 A **dashboard** is a saved report whose definition has
@@ -598,6 +675,7 @@ This is the shape saved in `dbo.Reports.DefinitionJSON` and sent to
   "metrics": [
     { "metric": "doc_count" }
   ],
+  "forecast": { "enabled": true, "horizon": "auto" },
   "rowLimit": 5000
 }
 ```
@@ -611,6 +689,13 @@ against the source's enabled metrics and resolves it through
 `nx_lib/reporting/semantic.py` into a safe `AGG(col) AS [code]` expression
 (`MetricResolveError` → HTTP 400). Absent or empty `metrics` keeps today's
 row-projection behaviour, unchanged.
+
+**`forecast` (optional — see Forecast above).** `{ "enabled": bool, "horizon":
+"auto" | 1–60 }`. Both keys are optional and `horizon` defaults to `"auto"`;
+an unrecognized key or an out-of-range/non-integer `horizon` is a validation
+error. Only takes effect on the single-date-dim + metrics shape — set on any
+other definition it validates fine but `compute_forecast` returns
+`{"unavailable": "shape"}` at run time.
 
 **Filter ops (Phase 1):** `eq`, `ne`, `in`, `not_in`, `gt`, `gte`, `lt`,
 `lte`, `between` (value is a 2-element list), `contains`, `starts_with`,
