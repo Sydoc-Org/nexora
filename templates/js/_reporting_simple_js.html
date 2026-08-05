@@ -1059,7 +1059,11 @@
                             grid: { color: gridColor() } } },
                  plugins: { legend: { display: multi || circular || (d.datasets && d.datasets.length > 1) || fcActive,
                                       labels: { filter: function (item, data) {
-                                        return !(data.datasets[item.datasetIndex] || {})._band;
+                                        // D6: band + forecast-line datasets are excluded from
+                                        // the legend (and drill — see the _forecast/_band guard
+                                        // in the drill click-handler below).
+                                        var ds = data.datasets[item.datasetIndex] || {};
+                                        return !(ds._band || ds._forecast);
                                       } } },
                             tooltip: {
                               callbacks: {
@@ -1717,7 +1721,7 @@
     }
     var charted = (hasMetrics && dims)
       ? !!mountChart(def, columns, rows, res.data.forecast || null) : false;
-    syncForecastCtl(def, res.data.forecast || null);
+    syncForecastCtl(def, res.data.forecast || null, charted);
     renderTable(columns, rows, res.data.forecast || null);
     // Collapse the table behind the toggle only when a chart actually rendered
     // (or the stat card carries a dimensionless total). When mountChart bails
@@ -1786,7 +1790,7 @@
     return cols.length === 1 && !!cols[0].grain &&
       Array.isArray(def.metrics) && def.metrics.length > 0;
   }
-  function syncForecastCtl(def, forecast) {
+  function syncForecastCtl(def, forecast, charted) {
     var btn = el('rsForecastToggle'), sel = el('rsForecastHorizon');
     if (!btn) return;
     var eligible = forecastEligible(def);
@@ -1797,10 +1801,15 @@
     btn.classList.toggle('is-selected', on);
     sel.hidden = !on;
     if (on && def.forecast.horizon) sel.value = String(def.forecast.horizon);
-    if (on && forecast && forecast.unavailable) {
+    // Only disclose forecast state via the shared #rsChartNote when a chart
+    // actually mounted. When mountChart bailed (too many points, no Chart.js,
+    // three breakdowns) it already wrote a more important note via
+    // chartCardNote(...) — clobbering that here would silently destroy it,
+    // and there's nothing forecast-related to disclaim if there's no chart.
+    if (charted && on && forecast && forecast.unavailable) {
       el('rsChartNote').textContent = I18N.forecastUnavailable;
       el('rsChartNote').hidden = false;
-    } else if (on) {
+    } else if (charted && on) {
       el('rsChartNote').textContent = I18N.forecastNote;
       el('rsChartNote').hidden = false;
     }
