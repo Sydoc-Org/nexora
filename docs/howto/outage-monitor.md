@@ -98,14 +98,34 @@ it needs the same `GRAPH_*` credentials the scheduled reports already use.
 
 ## Wiring on SYAPP01
 
-A Task Scheduler task every 5 minutes (matching the hysteresis defaults):
+`ops/outage-monitor-task.xml` is a ready-to-import Task Scheduler definition
+(every 5 minutes, matching the hysteresis defaults). Import it in an elevated
+shell on SYAPP01:
 
+```powershell
+schtasks /create /xml "D:\sydoc\nexora\ops\outage-monitor-task.xml" /tn "\sydoc\nexora\Outage Monitor"
+
+# run it once immediately and read the result
+schtasks /run /tn "\sydoc\nexora\Outage Monitor"
+Get-Content D:\sydoc\nexora\var\logs\system\outage_monitor.log
 ```
-Program:   D:\sydoc\tools\py\python.exe
-Arguments: D:\sydoc\nexora\ops\outage_monitor.py
-Start in:  D:\sydoc\nexora
-Environment: ENVIRONMENT=PROD
-```
+
+Or: Task Scheduler → **Import Task…** → pick the XML.
+
+Three things in that XML are deliberate:
+
+- **Runs as `SYSTEM`** (`S-1-5-18`), not a named account, so there is no stored
+  password to expire. Nothing in the monitor uses Windows auth — the DB
+  connections use the SQL logins from `env/PROD.env` and Graph uses its own
+  credentials. To run it as a domain account instead, change `<UserId>` and add
+  `<LogonType>Password</LogonType>`.
+- **Launches via `cmd.exe`**, because Task Scheduler XML has no way to set an
+  environment variable and the app needs `ENVIRONMENT=PROD`. Note the missing
+  space in `set ENVIRONMENT=PROD&&` — `PROD &&` would set the value to `"PROD "`
+  with a trailing space, and `IS_PROD` would silently be false.
+- **Redirects to `var/logs/system/outage_monitor.log` with `>`, not `>>`**, so
+  the file only ever holds the last run and cannot grow unbounded. The durable
+  record of an incident is the mail plus `var/outage-state.json`, not this file.
 
 The script always exits 0, even with incidents open — the alert is the mail, and
 a non-zero exit would leave Task Scheduler showing a permanently failing task.
@@ -116,6 +136,7 @@ a non-zero exit would leave Task Scheduler showing a permanently failing task.
   hysteresis state machine, state persistence, mail rendering. Fully unit
   tested in `tests/unit/test_outage.py`.
 - `ops/outage_monitor.py` — the probes and the orchestration.
+- `ops/outage-monitor-task.xml` — importable Task Scheduler definition.
 
 Same split as `nx_lib/reporting/schedule.py` + `ops/run_scheduled_reports.py`:
 the decisions are testable without a live PROD, the I/O is not.

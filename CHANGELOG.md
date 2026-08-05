@@ -22,7 +22,8 @@ Work toward 2.5.65.
   fail-threshold, dedupe and a 30 minute min-hold in `nx_lib/outage.py` — means
   a flapping component sends one outage mail and one recovery mail rather than
   the ~200 the old `ping_prdsrv` monitor once produced; incident state persists
-  in `var/outage-state.json` so restarts do not re-alert. See
+  in `var/outage-state.json` so restarts do not re-alert. Ships with an
+  importable Task Scheduler definition (`ops/outage-monitor-task.xml`). See
   `docs/howto/outage-monitor.md`.
 - **Backlog History in Reporting** (#162) — the #161 collector's
   `StatisticsDB.dbo.BacklogHistory` is now a registered reporting source

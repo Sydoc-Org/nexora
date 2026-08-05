@@ -33,6 +33,13 @@ scripts/git-hooks/*   text eol=lf
 .mcp.json             text eol=lf
 .claude/settings.json text eol=lf
 
+# Task Scheduler task definitions. The Task Scheduler engine only accepts
+# UTF-16 XML (handing it UTF-8 fails with "unable to switch the encoding"), and
+# UTF-16 is half NUL bytes — any line-ending or end-of-file normalization
+# corrupts it into an odd byte count that no longer decodes. Treat as binary,
+# and see the matching excludes in .pre-commit-config.yaml.
+*.xml  binary
+
 # Treat these as binary so git never tries to normalize them.
 *.png  binary
 *.jpg  binary
