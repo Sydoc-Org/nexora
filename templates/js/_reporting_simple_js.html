@@ -1661,6 +1661,9 @@
     if (!res.ok) {
       showResultError(friendlyRunError(res.status, res.data),
         { title: cur.name || cur.def.title || '', openAdvanced: true });
+      // The toggle must not keep showing the PREVIOUS successful run's
+      // forecast-eligible/charted state once this run has errored out.
+      syncForecastCtl(def, null, false);
       return;
     }
     setHeaderActionsEnabled(true);
@@ -1717,7 +1720,24 @@
         '<p class="nx-empty__title">' + esc(I18N.noData) + '</p>' +
         '<p class="nx-empty__hint">' + esc(I18N.noDataHint) + '</p></div>';
       el('rsTableWrap').hidden = false;
+      syncForecastCtl(def, null, false);
       return;
+    }
+    // zeroFillDateBuckets pads `rows` out to the FILTER's display range (e.g.
+    // "This year" -> Jan-Dec), but compute_forecast anchors its forecast
+    // buckets at the last REAL data bucket (forecast.anchor). For any
+    // current-period token whose data doesn't reach the end of the period,
+    // the zero-fill above already produced trailing zero rows for the same
+    // calendar buckets the forecast is about to append -- duplicate rows/
+    // labels, and the dashed line would bridge from a fake zero instead of
+    // the last real point. Trim those fabricated trailing buckets back to
+    // the anchor before rows reaches either consumer below (mountChart,
+    // renderTable) so both see the same, correctly-truncated set.
+    var fcForTrim = res.data.forecast || null;
+    if (fcForTrim && !fcForTrim.unavailable && fcForTrim.anchor) {
+      rows = rows.filter(function (r) {
+        return String(r[0] == null ? '' : r[0]).slice(0, 10) <= fcForTrim.anchor;
+      });
     }
     var charted = (hasMetrics && dims)
       ? !!mountChart(def, columns, rows, res.data.forecast || null) : false;
@@ -1794,6 +1814,11 @@
     var btn = el('rsForecastToggle'), sel = el('rsForecastHorizon');
     if (!btn) return;
     var eligible = forecastEligible(def);
+    // Mirrors Advanced's syncForecastCtl (_reporting_js.html): a saved/shared
+    // definition must never persist a stale forecast block once the shape
+    // (e.g. a second breakdown added, or the date grain removed) makes it
+    // permanently unavailable.
+    if (!eligible) delete def.forecast;
     var on = eligible && !!(def.forecast && def.forecast.enabled);
     btn.disabled = !eligible;
     btn.title = eligible ? I18N.forecastLabel : I18N.forecastNeedsShape;
