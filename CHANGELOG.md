@@ -258,6 +258,11 @@ Work toward 2.5.65.
   a redesigned tooltip and categorical palette, data bars in the grid, KPI
   count-up animation, loading skeletons, entrance animation, and a sticky
   result toolbar.
+- Prepared Documents: **filters, group-by, and a per-page selector** (#149).
+  The register gained Collected/Prepared boolean filters, group-by (Collected
+  by / Prepared by, an ORDER BY so same-valued rows cluster together), and a
+  25/40/100/200 rows-per-page choice — all carried through the Previous/Next
+  pagination links so paging never drops the active filters.
 
 ### Added
 
@@ -380,6 +385,14 @@ Work toward 2.5.65.
   `templates/js/*` partials are triaged as accepted/permanent (single-use
   compound declarations, no dedup value as CSS classes) — see #144 for the
   decision record.
+- Prepared Documents: the **"Load more" button in the workitem preview modal
+  did nothing** (#149) — the shared detail panel creates a `.load-more-btn`
+  dynamically, but the click delegation for it only existed in the Workitems
+  overview page's JS, which `prepared_documents.html` never includes. Wired
+  the same handler into `_prepared_documents_js.html`. Also restyled **Clear
+  list** as a destructive (red) action and gave the previously-unstyled
+  pagination footer proper spacing/border.
+
 - Workitem details: the **MWST amount showed the wrong value** (reported on
   PROD; INT had the same data). Two `dbo.IndexFieldMappings` rows carried
   swapped TargetKeys — `RptCompCode → VatAmount` rendered the SAP company code

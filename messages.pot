@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-05 12:31+0200\n"
+"POT-Creation-Date: 2026-08-05 14:06+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -126,7 +126,7 @@ msgstr ""
 #: nx_lib/views/admin.py:1893 nx_lib/views/dashboard.py:252
 #: nx_lib/views/dashboard.py:362 nx_lib/views/dashboard.py:417
 #: nx_lib/views/dashboard.py:509 nx_lib/views/invoices.py:280
-#: nx_lib/views/workitems.py:978 nx_lib/views/workitems.py:1716
+#: nx_lib/views/workitems.py:979 nx_lib/views/workitems.py:1717
 msgid "Not authorized"
 msgstr ""
 
@@ -666,116 +666,116 @@ msgstr ""
 msgid "Could not delete metric"
 msgstr ""
 
-#: nx_lib/views/workitems.py:969 nx_lib/views/workitems.py:1127
+#: nx_lib/views/workitems.py:970 nx_lib/views/workitems.py:1128
 msgid "Could not fetch values"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1188
+#: nx_lib/views/workitems.py:1189
 msgid ""
 "Exporting fields, history, or images requires selecting 10 or fewer "
 "workitems."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1482
+#: nx_lib/views/workitems.py:1483
 msgid "TRUNCATED"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1483
+#: nx_lib/views/workitems.py:1484
 msgid "exported"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1483
+#: nx_lib/views/workitems.py:1484
 msgid "matching workitems"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1489
+#: nx_lib/views/workitems.py:1490
 msgid "EXPORT TIMED OUT"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1490
+#: nx_lib/views/workitems.py:1491
 msgid ""
 "no fields or images completed before the time limit; this is not a zero-"
 "result export"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1606 nx_lib/views/workitems.py:1677
+#: nx_lib/views/workitems.py:1607 nx_lib/views/workitems.py:1678
 msgid "No file part in the request."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1613 nx_lib/views/workitems.py:1680
+#: nx_lib/views/workitems.py:1614 nx_lib/views/workitems.py:1681
 msgid "No file selected for uploading."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1617
+#: nx_lib/views/workitems.py:1618
 msgid "No target process selected."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1629
+#: nx_lib/views/workitems.py:1630
 msgid "You do not have permission to import to this process."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1644
+#: nx_lib/views/workitems.py:1645
 #, python-brace-format
 msgid "File '{}' successfully imported into {}."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1649
+#: nx_lib/views/workitems.py:1650
 msgid "An error occurred while saving the file."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1651
+#: nx_lib/views/workitems.py:1652
 msgid "Invalid file type. Please upload a valid PDF."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1674 nx_lib/views/workitems.py:2167
+#: nx_lib/views/workitems.py:1675 nx_lib/views/workitems.py:2211
 msgid "This import is only available for the MS02 client."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1684
+#: nx_lib/views/workitems.py:1685
 msgid "Invalid file type. Please upload a valid Excel (.xlsx) file."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1692
+#: nx_lib/views/workitems.py:1693
 msgid "The Excel file has no usable rows."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1709
+#: nx_lib/views/workitems.py:1710
 msgid "Could not save the prepared documents. Please try again."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1792 nx_lib/views/workitems.py:1832
+#: nx_lib/views/workitems.py:1793 nx_lib/views/workitems.py:1833
 msgid "Workitem not found"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1820 nx_lib/views/workitems.py:1922
+#: nx_lib/views/workitems.py:1821 nx_lib/views/workitems.py:1923
 msgid "Internal Server Error"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1845
+#: nx_lib/views/workitems.py:1846
 msgid "Media index out of bounds"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1871
+#: nx_lib/views/workitems.py:1872
 msgid "Failed to render PDF page"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1898
+#: nx_lib/views/workitems.py:1899
 msgid "Failed to process TIFF image"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1985
+#: nx_lib/views/workitems.py:1986
 msgid "Failed to fetch audit history"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1987
+#: nx_lib/views/workitems.py:1988
 msgid "An unexpected error occurred"
 msgstr ""
 
-#: nx_lib/views/workitems.py:2093
+#: nx_lib/views/workitems.py:2094
 msgid "This page is only available for the MS02 client."
 msgstr ""
 
-#: nx_lib/views/workitems.py:2173
+#: nx_lib/views/workitems.py:2217
 msgid "Could not clear the prepared documents. Please try again."
 msgstr ""
 
@@ -1942,7 +1942,7 @@ msgstr ""
 #: templates/generali_reporting.html:131
 #: templates/js/_reporting_dashboard_js.html:79
 #: templates/js/_reporting_simple_js.html:63
-#: templates/js/admin/_logs_js.html:171 templates/prepared_documents.html:96
+#: templates/js/admin/_logs_js.html:171 templates/prepared_documents.html:147
 msgid "Apply"
 msgstr ""
 
@@ -1953,7 +1953,7 @@ msgstr ""
 #: templates/generali_importstatus.html:75 templates/generali_pdqm.html:132
 #: templates/generali_projectmanagement.html:100
 #: templates/generali_reporting.html:135 templates/invoices.html:96
-#: templates/prepared_documents.html:98 templates/workitems_overview.html:321
+#: templates/prepared_documents.html:149 templates/workitems_overview.html:321
 msgid "Reset"
 msgstr ""
 
@@ -3028,7 +3028,8 @@ msgstr ""
 msgid "Show all"
 msgstr ""
 
-#: templates/prepared_documents.html:46 templates/prepared_documents.html:108
+#: templates/prepared_documents.html:46 templates/prepared_documents.html:76
+#: templates/prepared_documents.html:161
 msgid "PID"
 msgstr ""
 
@@ -3040,75 +3041,72 @@ msgstr ""
 msgid "Clear list"
 msgstr ""
 
-#: templates/prepared_documents.html:74
+#: templates/prepared_documents.html:81
 msgid "Search PID"
 msgstr ""
 
-#: templates/prepared_documents.html:77 templates/prepared_documents.html:78
-#: templates/prepared_documents.html:79 templates/prepared_documents.html:111
+#: templates/prepared_documents.html:87 templates/prepared_documents.html:164
 msgid "Collected"
 msgstr ""
 
-#: templates/prepared_documents.html:77 templates/prepared_documents.html:82
+#: templates/prepared_documents.html:91 templates/prepared_documents.html:106
 msgid "Any"
 msgstr ""
 
 #: templates/js/admin/_access_control_js.html:711
-#: templates/prepared_documents.html:78 templates/prepared_documents.html:83
+#: templates/prepared_documents.html:92 templates/prepared_documents.html:107
 msgid "Yes"
 msgstr ""
 
-#: templates/prepared_documents.html:79 templates/prepared_documents.html:84
+#: templates/prepared_documents.html:93 templates/prepared_documents.html:108
 msgid "No"
 msgstr ""
 
-#: templates/prepared_documents.html:82 templates/prepared_documents.html:83
-#: templates/prepared_documents.html:84 templates/prepared_documents.html:117
+#: templates/prepared_documents.html:102 templates/prepared_documents.html:170
 msgid "Prepared"
 msgstr ""
 
-#: templates/prepared_documents.html:87 templates/prepared_documents.html:88
-#: templates/prepared_documents.html:89
+#: templates/prepared_documents.html:117
 msgid "Group by"
 msgstr ""
 
 #: templates/admin/access_control.html:334 templates/admin/user_detail.html:154
-#: templates/prepared_documents.html:87
+#: templates/prepared_documents.html:121
 msgid "None"
 msgstr ""
 
-#: templates/prepared_documents.html:88 templates/prepared_documents.html:114
+#: templates/prepared_documents.html:122 templates/prepared_documents.html:167
 msgid "Collected by"
 msgstr ""
 
-#: templates/prepared_documents.html:89 templates/prepared_documents.html:120
+#: templates/prepared_documents.html:123 templates/prepared_documents.html:173
 msgid "Prepared by"
 msgstr ""
 
-#: templates/prepared_documents.html:93
-msgid "page"
+#: templates/prepared_documents.html:132
+msgid "Per page"
 msgstr ""
 
-#: templates/prepared_documents.html:123
+#: templates/prepared_documents.html:176
 msgid "Octo status"
 msgstr ""
 
-#: templates/prepared_documents.html:149
+#: templates/prepared_documents.html:202
 msgid "Preview"
 msgstr ""
 
-#: templates/prepared_documents.html:154
+#: templates/prepared_documents.html:207
 msgid "Open in Workitems"
 msgstr ""
 
-#: templates/prepared_documents.html:165
+#: templates/prepared_documents.html:218
 msgid "No prepared documents yet. Upload an Excel to get started."
 msgstr ""
 
 #: templates/admin/logs.html:106 templates/admin/user_detail.html:236
 #: templates/js/_generali_documents_js.html:274
 #: templates/js/_workitems_overview_js.html:1038
-#: templates/prepared_documents.html:179
+#: templates/prepared_documents.html:232
 msgid "Previous"
 msgstr ""
 
@@ -3116,16 +3114,16 @@ msgstr ""
 #: templates/js/_generali_documents_js.html:278
 #: templates/js/_generali_reporting_js.html:268
 #: templates/js/_workitems_overview_js.html:1044
-#: templates/js/archive/_tour_js.html:17 templates/prepared_documents.html:185
+#: templates/js/archive/_tour_js.html:17 templates/prepared_documents.html:238
 msgid "Next"
 msgstr ""
 
-#: templates/prepared_documents.html:196 templates/reporting.html:169
+#: templates/prepared_documents.html:249 templates/reporting.html:169
 msgid "Workitem preview"
 msgstr ""
 
 #: templates/admin/logs.html:139 templates/js/_reporting_drill_js.html:16
-#: templates/prepared_documents.html:198 templates/prepared_documents.html:210
+#: templates/prepared_documents.html:251 templates/prepared_documents.html:263
 #: templates/reporting.html:113 templates/reporting.html:141
 #: templates/reporting.html:171 templates/reporting.html:181
 #: templates/reporting.html:378 templates/reporting.html:414
@@ -3133,23 +3131,23 @@ msgstr ""
 msgid "Close"
 msgstr ""
 
-#: templates/prepared_documents.html:216 templates/reporting.html:187
+#: templates/prepared_documents.html:269 templates/reporting.html:187
 #: templates/workitems_overview.html:585
 msgid "Show where extracted values were found on the document"
 msgstr ""
 
 #: templates/js/_workitem_detail_panel_js.html:549
-#: templates/prepared_documents.html:218 templates/reporting.html:189
+#: templates/prepared_documents.html:271 templates/reporting.html:189
 #: templates/workitems_overview.html:588
 msgid "Show sources"
 msgstr ""
 
-#: templates/prepared_documents.html:220 templates/reporting.html:191
+#: templates/prepared_documents.html:273 templates/reporting.html:191
 #: templates/workitems_overview.html:590
 msgid "Document page preview"
 msgstr ""
 
-#: templates/prepared_documents.html:225 templates/prepared_documents.html:226
+#: templates/prepared_documents.html:278 templates/prepared_documents.html:279
 #: templates/reporting.html:196 templates/reporting.html:197
 #: templates/workitems_overview.html:596 templates/workitems_overview.html:597
 msgid "Extracted values"
@@ -3822,7 +3820,7 @@ msgstr ""
 msgid "Custom"
 msgstr ""
 
-#: templates/admin/logs.html:26 templates/admin/status.html:122
+#: templates/admin/logs.html:26 templates/admin/status.html:161
 #: templates/js/_reporting_js.html:22 templates/js/_reporting_simple_js.html:55
 #: templates/workitems_overview.html:155
 msgid "Today"
@@ -4447,7 +4445,7 @@ msgstr ""
 msgid "System Status - nexora"
 msgstr ""
 
-#: templates/admin/status.html:18 templates/admin/status.html:118
+#: templates/admin/status.html:18 templates/admin/status.html:157
 msgid "Operational"
 msgstr ""
 
@@ -4455,8 +4453,7 @@ msgstr ""
 msgid "Degraded"
 msgstr ""
 
-#: templates/admin/status.html:20 templates/admin/status.html:78
-#: templates/admin/status.html:119
+#: templates/admin/status.html:20 templates/admin/status.html:158
 msgid "Outage"
 msgstr ""
 
@@ -4468,121 +4465,129 @@ msgstr ""
 msgid "Unknown"
 msgstr ""
 
-#: templates/admin/status.html:34
+#: templates/admin/status.html:37
+msgid "Application"
+msgstr ""
+
+#: templates/admin/status.html:38
+msgid "Databases"
+msgstr ""
+
+#: templates/admin/status.html:39
+msgid "Integrations"
+msgstr ""
+
+#: templates/admin/status.html:44
 msgid "System Status"
 msgstr ""
 
-#: templates/admin/status.html:35
+#: templates/admin/status.html:45
 msgid "Component health and incident history, recorded by the outage monitor"
 msgstr ""
 
-#: templates/admin/status.html:45
+#: templates/admin/status.html:55
 msgid "All systems operational"
 msgstr ""
 
-#: templates/admin/status.html:46
+#: templates/admin/status.html:56
 msgid "Degraded performance"
 msgstr ""
 
-#: templates/admin/status.html:47
+#: templates/admin/status.html:57
 msgid "Outage in progress"
 msgstr ""
 
-#: templates/admin/status.html:48
+#: templates/admin/status.html:58
 msgid "Maintenance window active"
 msgstr ""
 
-#: templates/admin/status.html:49
+#: templates/admin/status.html:59
 msgid "Status unknown"
 msgstr ""
 
-#: templates/admin/status.html:53
+#: templates/admin/status.html:63
 msgid ""
 "The outage monitor has never reported. Schedule ops/outage_monitor.py to "
 "populate this page."
 msgstr ""
 
-#: templates/admin/status.html:55
+#: templates/admin/status.html:65
 #, python-format
 msgid ""
 "Last check was more than %(min)s minutes ago — these values may be out of"
 " date."
 msgstr ""
 
-#: templates/admin/status.html:58
+#: templates/admin/status.html:68
 msgid "Last checked"
 msgstr ""
 
-#: templates/admin/status.html:67
+#: templates/admin/status.html:89
 msgid ""
 "Stale data: the monitor is not reporting. Check the scheduled task on the"
 " application server."
 msgstr ""
 
-#: templates/admin/status.html:73
+#: templates/admin/status.html:96
 msgid "Open incidents"
 msgstr ""
 
-#: templates/admin/status.html:81
-msgid "since"
-msgstr ""
-
-#: templates/admin/status.html:93
+#: templates/admin/status.html:121
 msgid "Components"
 msgstr ""
 
-#: templates/admin/status.html:103
-#, python-format
-msgid "Last %(n)s days"
-msgstr ""
-
-#: templates/admin/status.html:116
-#, python-format
-msgid "%(n)s days ago"
-msgstr ""
-
-#: templates/admin/status.html:120
-msgid "No data"
-msgstr ""
-
-#: templates/admin/status.html:127
-msgid "No component has been probed yet."
-msgstr ""
-
-#: templates/admin/status.html:132
-msgid "Incident history"
-msgstr ""
-
-#: templates/admin/status.html:132
+#: templates/admin/status.html:122 templates/admin/status.html:173
 #, python-format
 msgid "last %(n)s days"
 msgstr ""
 
-#: templates/admin/status.html:136
-msgid "Component"
-msgstr ""
-
-#: templates/admin/status.html:137
-msgid "Started"
-msgstr ""
-
-#: templates/admin/status.html:138
-msgid "Ended"
-msgstr ""
-
-#: templates/admin/status.html:139
-msgid "Duration"
-msgstr ""
-
 #: templates/admin/status.html:140
-msgid "Evidence"
-msgstr ""
-
-#: templates/admin/status.html:148
-msgid "Ongoing"
+#, python-format
+msgid "Last %(n)s days"
 msgstr ""
 
 #: templates/admin/status.html:155
+#, python-format
+msgid "%(n)s days ago"
+msgstr ""
+
+#: templates/admin/status.html:159
+msgid "No data"
+msgstr ""
+
+#: templates/admin/status.html:166
+msgid "No component has been probed yet."
+msgstr ""
+
+#: templates/admin/status.html:172
+msgid "Incident history"
+msgstr ""
+
+#: templates/admin/status.html:178
+msgid "Component"
+msgstr ""
+
+#: templates/admin/status.html:179
+msgid "Started"
+msgstr ""
+
+#: templates/admin/status.html:180
+msgid "Ended"
+msgstr ""
+
+#: templates/admin/status.html:181
+msgid "Duration"
+msgstr ""
+
+#: templates/admin/status.html:182
+msgid "Evidence"
+msgstr ""
+
+#: templates/admin/status.html:193
+msgid "Ongoing"
+msgstr ""
+
+#: templates/admin/status.html:200
 msgid "No incidents recorded."
 msgstr ""
 

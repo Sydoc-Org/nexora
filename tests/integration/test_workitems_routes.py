@@ -1954,11 +1954,11 @@ def test_prepared_documents_page_renders_when_ms02_active(
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
     monkeypatch.setitem(CLIENTS, "ms02", object())
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
-    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None: 1)
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None, **kw: 1)
     monkeypatch.setattr(
         wv,
         "fetch_prepared_documents_page",
-        lambda offset, limit, pid=None: [
+        lambda offset, limit, pid=None, **kw: [
             {
                 "id": 1,
                 "pid": "100",
@@ -1991,11 +1991,11 @@ def test_prepared_documents_page_octo_resolve_failure_degrades(
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
     monkeypatch.setitem(CLIENTS, "ms02", object())
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
-    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None: 1)
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None, **kw: 1)
     monkeypatch.setattr(
         wv,
         "fetch_prepared_documents_page",
-        lambda offset, limit, pid=None: [
+        lambda offset, limit, pid=None, **kw: [
             {
                 "id": 1,
                 "pid": "100",
@@ -2031,11 +2031,11 @@ def test_prepared_documents_octo_status_false_when_stage_not_found(
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
     monkeypatch.setitem(CLIENTS, "ms02", object())
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
-    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None: 1)
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None, **kw: 1)
     monkeypatch.setattr(
         wv,
         "fetch_prepared_documents_page",
-        lambda offset, limit, pid=None: [
+        lambda offset, limit, pid=None, **kw: [
             {
                 "id": 1,
                 "pid": "100",
@@ -2113,11 +2113,11 @@ def test_prepared_documents_resolves_stage_against_owning_client_engine(
     monkeypatch.setitem(CLIENTS, "ms02", ms02_client)
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
-    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None: 1)
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None, **kw: 1)
     monkeypatch.setattr(
         wv,
         "fetch_prepared_documents_page",
-        lambda offset, limit, pid=None: [
+        lambda offset, limit, pid=None, **kw: [
             {
                 "id": 1,
                 "pid": "100",
@@ -2180,11 +2180,11 @@ def test_prepared_documents_stage_resolve_fails_closed_on_error(
     # not blow up the route -- it must fail closed instead.
     monkeypatch.setitem(CLIENTS, "ms02", object())
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
-    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None: 1)
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None, **kw: 1)
     monkeypatch.setattr(
         wv,
         "fetch_prepared_documents_page",
-        lambda offset, limit, pid=None: [
+        lambda offset, limit, pid=None, **kw: [
             {
                 "id": 1,
                 "pid": "100",
@@ -2249,11 +2249,11 @@ def test_prepared_documents_preview_button_requires_details_view(
 
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
     monkeypatch.setitem(CLIENTS, "ms02", object())
-    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None: 1)
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None, **kw: 1)
     monkeypatch.setattr(
         wv,
         "fetch_prepared_documents_page",
-        lambda offset, limit, pid=None: [
+        lambda offset, limit, pid=None, **kw: [
             {
                 "id": 1,
                 "pid": "100",
@@ -2301,8 +2301,10 @@ def test_prepared_documents_modal_wires_shared_renderer(
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
     monkeypatch.setitem(CLIENTS, "ms02", object())
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
-    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None: 0)
-    monkeypatch.setattr(wv, "fetch_prepared_documents_page", lambda offset, limit, pid=None: [])
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None, **kw: 0)
+    monkeypatch.setattr(
+        wv, "fetch_prepared_documents_page", lambda offset, limit, pid=None, **kw: []
+    )
     monkeypatch.setattr(wv, "_ms02_target_processes", lambda: [])
     monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [])
     monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: None)
@@ -2329,11 +2331,11 @@ def test_prepared_documents_preview_present_when_media_degrades(
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
     monkeypatch.setitem(CLIENTS, "ms02", object())
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
-    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None: 1)
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None, **kw: 1)
     monkeypatch.setattr(
         wv,
         "fetch_prepared_documents_page",
-        lambda offset, limit, pid=None: [
+        lambda offset, limit, pid=None, **kw: [
             {
                 "id": 1,
                 "pid": "100",
@@ -2366,12 +2368,14 @@ def test_prepared_documents_pid_filter_passes_through(
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
     seen = {}
     monkeypatch.setattr(
-        wv, "count_prepared_documents", lambda pid=None: (seen.__setitem__("count_pid", pid) or 1)
+        wv,
+        "count_prepared_documents",
+        lambda pid=None, **kw: (seen.__setitem__("count_pid", pid) or 1),
     )
     monkeypatch.setattr(
         wv,
         "fetch_prepared_documents_page",
-        lambda offset, limit, pid=None: (
+        lambda offset, limit, pid=None, **kw: (
             seen.__setitem__("fetch_pid", pid)
             or [
                 {
@@ -2398,6 +2402,106 @@ def test_prepared_documents_pid_filter_passes_through(
     assert b'data-testid="prepared-docs-show-all"' in resp.data
 
 
+def test_prepared_documents_collected_prepared_group_by_per_page_pass_through(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Collected/Prepared/group_by/per_page query params must reach the
+    data-access calls unchanged, and per_page must round-trip so the
+    rendered select reflects what was actually requested."""
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    seen = {}
+    monkeypatch.setattr(
+        wv,
+        "count_prepared_documents",
+        lambda pid=None, collected=None, prepared=None, **kw: (
+            seen.__setitem__("count_kwargs", (pid, collected, prepared)) or 1
+        ),
+    )
+    monkeypatch.setattr(
+        wv,
+        "fetch_prepared_documents_page",
+        lambda offset, limit, pid=None, collected=None, prepared=None, group_by=None, **kw: (
+            seen.__setitem__("fetch_kwargs", (offset, limit, pid, collected, prepared, group_by))
+            or []
+        ),
+    )
+    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: [])
+    monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [])
+    monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: None)
+
+    resp = user_client.get(
+        "/prepared_documents?collected=1&prepared=0&group_by=collected_by&per_page=100"
+    )
+    assert resp.status_code == 200
+    assert seen["count_kwargs"] == (None, True, False)
+    assert seen["fetch_kwargs"] == (0, 100, None, True, False, "collected_by")
+    # The per-page select must reflect the requested value, not the default.
+    assert b'value="100" selected' in resp.data
+
+
+def test_prepared_documents_per_page_rejects_unknown_value(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """An out-of-allowlist per_page must fall back to the 40 default rather
+    than reaching the DB layer with an arbitrary page size."""
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    seen = {}
+    monkeypatch.setattr(
+        wv,
+        "count_prepared_documents",
+        lambda pid=None, **kw: 1,
+    )
+    monkeypatch.setattr(
+        wv,
+        "fetch_prepared_documents_page",
+        lambda offset, limit, **kw: (seen.__setitem__("limit", limit) or []),
+    )
+    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: [])
+    monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [])
+    monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: None)
+
+    resp = user_client.get("/prepared_documents?per_page=9999")
+    assert resp.status_code == 200
+    assert seen["limit"] == 40
+
+
+def test_prepared_documents_group_by_rejects_unknown_column(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """An unrecognized group_by value must not reach the ORDER BY builder --
+    it should be dropped rather than passed through as free text."""
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    seen = {}
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None, **kw: 1)
+    monkeypatch.setattr(
+        wv,
+        "fetch_prepared_documents_page",
+        lambda offset, limit, group_by=None, **kw: (seen.__setitem__("group_by", group_by) or []),
+    )
+    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: [])
+    monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [])
+    monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: None)
+
+    resp = user_client.get("/prepared_documents?group_by=DROP TABLE Users")
+    assert resp.status_code == 200
+    assert seen["group_by"] is None
+
+
 def test_prepared_documents_centered_headers_use_align_center(
     user_client, workitems_all_perms, monkeypatch
 ):
@@ -2406,11 +2510,11 @@ def test_prepared_documents_centered_headers_use_align_center(
 
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
     monkeypatch.setitem(CLIENTS, "ms02", object())
-    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None: 1)
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None, **kw: 1)
     monkeypatch.setattr(
         wv,
         "fetch_prepared_documents_page",
-        lambda offset, limit, pid=None: [
+        lambda offset, limit, pid=None, **kw: [
             {
                 "id": 1,
                 "pid": "100",
@@ -2556,11 +2660,11 @@ def test_prepared_docs_preview_button_carries_stage(user_client, workitems_all_p
 
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
     monkeypatch.setitem(CLIENTS, "ms02", object())
-    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None: 1)
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None, **kw: 1)
     monkeypatch.setattr(
         wv,
         "fetch_prepared_documents_page",
-        lambda offset, limit, pid=None: [
+        lambda offset, limit, pid=None, **kw: [
             {
                 "id": 1,
                 "pid": "100",
