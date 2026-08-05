@@ -10,6 +10,11 @@ Work toward 2.5.65.
 
 ### Added
 
+- **Pull-request template** (`.github/pull_request_template.md`) — checklist for
+  the things nothing else catches when merging to `main`, chiefly: env keys
+  added to `env/*.env.example` never reach SYAPP01 on their own, because
+  `deploy.yml` excludes `*.env` from the mirror. Migrations deploy themselves;
+  env keys do not.
 - **`scripts/env-sync.py`** — compares the gitignored env files in a checkout
   against the SYAPP01 copies (`\\syapp01\d$\sydoc\nexora\env`). Because
   `deploy.yml` excludes `*.env` from the robocopy mirror, a key added to the
