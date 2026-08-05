@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-04 15:46+0200\n"
+"POT-Creation-Date: 2026-08-05 08:41+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1937,7 +1937,7 @@ msgstr ""
 #: templates/generali_reporting.html:131
 #: templates/js/_reporting_dashboard_js.html:79
 #: templates/js/_reporting_simple_js.html:63
-#: templates/js/admin/_logs_js.html:171 templates/prepared_documents.html:96
+#: templates/js/admin/_logs_js.html:171 templates/prepared_documents.html:147
 msgid "Apply"
 msgstr ""
 
@@ -1948,7 +1948,7 @@ msgstr ""
 #: templates/generali_importstatus.html:75 templates/generali_pdqm.html:132
 #: templates/generali_projectmanagement.html:100
 #: templates/generali_reporting.html:135 templates/invoices.html:96
-#: templates/prepared_documents.html:98 templates/workitems_overview.html:321
+#: templates/prepared_documents.html:149 templates/workitems_overview.html:321
 msgid "Reset"
 msgstr ""
 
@@ -3023,7 +3023,8 @@ msgstr ""
 msgid "Show all"
 msgstr ""
 
-#: templates/prepared_documents.html:46 templates/prepared_documents.html:108
+#: templates/prepared_documents.html:46 templates/prepared_documents.html:76
+#: templates/prepared_documents.html:161
 msgid "PID"
 msgstr ""
 
@@ -3035,75 +3036,72 @@ msgstr ""
 msgid "Clear list"
 msgstr ""
 
-#: templates/prepared_documents.html:74
+#: templates/prepared_documents.html:81
 msgid "Search PID"
 msgstr ""
 
-#: templates/prepared_documents.html:77 templates/prepared_documents.html:78
-#: templates/prepared_documents.html:79 templates/prepared_documents.html:111
+#: templates/prepared_documents.html:87 templates/prepared_documents.html:164
 msgid "Collected"
 msgstr ""
 
-#: templates/prepared_documents.html:77 templates/prepared_documents.html:82
+#: templates/prepared_documents.html:91 templates/prepared_documents.html:106
 msgid "Any"
 msgstr ""
 
 #: templates/js/admin/_access_control_js.html:711
-#: templates/prepared_documents.html:78 templates/prepared_documents.html:83
+#: templates/prepared_documents.html:92 templates/prepared_documents.html:107
 msgid "Yes"
 msgstr ""
 
-#: templates/prepared_documents.html:79 templates/prepared_documents.html:84
+#: templates/prepared_documents.html:93 templates/prepared_documents.html:108
 msgid "No"
 msgstr ""
 
-#: templates/prepared_documents.html:82 templates/prepared_documents.html:83
-#: templates/prepared_documents.html:84 templates/prepared_documents.html:117
+#: templates/prepared_documents.html:102 templates/prepared_documents.html:170
 msgid "Prepared"
 msgstr ""
 
-#: templates/prepared_documents.html:87 templates/prepared_documents.html:88
-#: templates/prepared_documents.html:89
+#: templates/prepared_documents.html:117
 msgid "Group by"
 msgstr ""
 
 #: templates/admin/access_control.html:334 templates/admin/user_detail.html:154
-#: templates/prepared_documents.html:87
+#: templates/prepared_documents.html:121
 msgid "None"
 msgstr ""
 
-#: templates/prepared_documents.html:88 templates/prepared_documents.html:114
+#: templates/prepared_documents.html:122 templates/prepared_documents.html:167
 msgid "Collected by"
 msgstr ""
 
-#: templates/prepared_documents.html:89 templates/prepared_documents.html:120
+#: templates/prepared_documents.html:123 templates/prepared_documents.html:173
 msgid "Prepared by"
 msgstr ""
 
-#: templates/prepared_documents.html:93
-msgid "page"
+#: templates/prepared_documents.html:132
+msgid "Per page"
 msgstr ""
 
-#: templates/prepared_documents.html:123
+#: templates/prepared_documents.html:176
 msgid "Octo status"
 msgstr ""
 
-#: templates/prepared_documents.html:149
+#: templates/prepared_documents.html:202
 msgid "Preview"
 msgstr ""
 
-#: templates/prepared_documents.html:154
+#: templates/prepared_documents.html:207
 msgid "Open in Workitems"
 msgstr ""
 
-#: templates/prepared_documents.html:165
+#: templates/prepared_documents.html:218
 msgid "No prepared documents yet. Upload an Excel to get started."
 msgstr ""
 
 #: templates/admin/logs.html:106 templates/admin/user_detail.html:236
 #: templates/js/_generali_documents_js.html:274
 #: templates/js/_workitems_overview_js.html:1037
-#: templates/prepared_documents.html:179
+#: templates/prepared_documents.html:232
 msgid "Previous"
 msgstr ""
 
@@ -3111,16 +3109,16 @@ msgstr ""
 #: templates/js/_generali_documents_js.html:278
 #: templates/js/_generali_reporting_js.html:268
 #: templates/js/_workitems_overview_js.html:1043
-#: templates/js/archive/_tour_js.html:17 templates/prepared_documents.html:185
+#: templates/js/archive/_tour_js.html:17 templates/prepared_documents.html:238
 msgid "Next"
 msgstr ""
 
-#: templates/prepared_documents.html:196 templates/reporting.html:169
+#: templates/prepared_documents.html:249 templates/reporting.html:169
 msgid "Workitem preview"
 msgstr ""
 
 #: templates/admin/logs.html:139 templates/js/_reporting_drill_js.html:16
-#: templates/prepared_documents.html:198 templates/prepared_documents.html:210
+#: templates/prepared_documents.html:251 templates/prepared_documents.html:263
 #: templates/reporting.html:113 templates/reporting.html:141
 #: templates/reporting.html:171 templates/reporting.html:181
 #: templates/reporting.html:378 templates/reporting.html:414
@@ -3128,23 +3126,23 @@ msgstr ""
 msgid "Close"
 msgstr ""
 
-#: templates/prepared_documents.html:216 templates/reporting.html:187
+#: templates/prepared_documents.html:269 templates/reporting.html:187
 #: templates/workitems_overview.html:585
 msgid "Show where extracted values were found on the document"
 msgstr ""
 
 #: templates/js/_workitem_detail_panel_js.html:549
-#: templates/prepared_documents.html:218 templates/reporting.html:189
+#: templates/prepared_documents.html:271 templates/reporting.html:189
 #: templates/workitems_overview.html:588
 msgid "Show sources"
 msgstr ""
 
-#: templates/prepared_documents.html:220 templates/reporting.html:191
+#: templates/prepared_documents.html:273 templates/reporting.html:191
 #: templates/workitems_overview.html:590
 msgid "Document page preview"
 msgstr ""
 
-#: templates/prepared_documents.html:225 templates/prepared_documents.html:226
+#: templates/prepared_documents.html:278 templates/prepared_documents.html:279
 #: templates/reporting.html:196 templates/reporting.html:197
 #: templates/workitems_overview.html:596 templates/workitems_overview.html:597
 msgid "Extracted values"
