@@ -29,6 +29,7 @@ from nx_lib.db import engine_nexora_db
 from nx_lib.mail import send_mail
 from nx_lib.reporting.chart_render import render_chart_png
 from nx_lib.reporting.export import rows_to_csv, rows_to_xlsx
+from nx_lib.reporting.forecast import compute_forecast, forecast_export_rows
 from nx_lib.reporting.runner import execute_definition
 from nx_lib.reporting.schedule import (
     alert_trips,
@@ -106,16 +107,36 @@ def _process(conn, row, now, dry_run):
             _advance(conn, row, now)
             return False
     png = None
+    forecast = None
+    fdef = definition.get("forecast") if isinstance(definition, dict) else None
+    if isinstance(fdef, dict) and fdef.get("enabled"):
+        try:
+            fc = compute_forecast(definition, columns, rows)
+            if fc and not fc.get("unavailable"):
+                forecast = fc
+        except Exception as e:
+            app.logger.warning(f"schedule {row.ScheduleID}: forecast skipped: {e}")
     try:
-        png = render_chart_png(definition, columns, rows)
+        # The PNG must be rendered from the ORIGINAL columns/rows -- the
+        # marker column added below would shift metric_idx.
+        png = render_chart_png(definition, columns, rows, forecast=forecast)
     except Exception as e:  # the mail must go out even if the garnish fails
         app.logger.warning(f"schedule {row.ScheduleID}: chart render failed: {e}")
+    forecast_start = None
+    if forecast:
+        columns, rows, forecast_start = forecast_export_rows(columns, rows, forecast)
     fmt = (row.Format or "xlsx").lower()
     if fmt == "csv":
         data, mime, ext = rows_to_csv(columns, rows), "text/csv", ".csv"
     else:
         data, mime, ext = (
-            rows_to_xlsx(columns, rows, title=row.Name or "Report", chart_png=png),
+            rows_to_xlsx(
+                columns,
+                rows,
+                title=row.Name or "Report",
+                chart_png=png,
+                forecast_start=forecast_start,
+            ),
             _XLSX_MIME,
             ".xlsx",
         )

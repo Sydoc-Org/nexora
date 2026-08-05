@@ -92,3 +92,27 @@ def test_palette_covers_the_full_series_cap_with_no_repeats():
     # entries, so `_PALETTE[i % len(_PALETTE)]` never wraps within one chart.
     assert len(_PALETTE) >= MAX_SERIES
     assert len(set(_PALETTE)) == len(_PALETTE)
+
+
+def test_render_chart_png_with_forecast_band():
+    definition = {
+        "columns": [{"field": "d", "grain": "month"}],
+        "metrics": [{"metric": "n"}],
+        "chartType": "line",
+    }
+    columns = [{"field": "d"}, {"field": "n"}]
+    rows = [[f"2025-{m:02d}-01", 10 + m] for m in range(1, 7)]
+    forecast = {
+        "anchor": "2025-06-01",
+        "grain": "month",
+        "method": "trend",
+        "horizon": 2,
+        "buckets": ["2025-07-01", "2025-08-01"],
+        "series": [
+            {"field": "n", "values": [17.0, 18.0], "lower": [15.0, 15.5], "upper": [19.0, 20.5]}
+        ],
+    }
+    png = render_chart_png(definition, columns, rows, forecast=forecast)
+    assert png and png[:8] == _PNG_MAGIC
+    # the forecast must not crash the chartless fallback either
+    assert render_chart_png(definition, columns, [], forecast=forecast) is None
