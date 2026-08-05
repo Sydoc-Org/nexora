@@ -70,6 +70,7 @@ from ..reporting.ai_schema import serialize_schema, serialize_sources_catalog
 from ..reporting.ai_tools import TOOL_SPECS, ToolRegistry
 from ..reporting.catalog import fetch_docprocessing_catalog
 from ..reporting.export import rows_to_csv, rows_to_xlsx
+from ..reporting.forecast import compute_forecast
 from ..reporting.query import QueryBuildError, build_table_query
 from ..reporting.sandbox import (
     MAX_SQL_LEN,
@@ -1112,6 +1113,12 @@ def api_run():
                 }
             except Exception as e:
                 current_app.logger.warning(f"/api/reporting/run comparison skipped: {e}")
+    fc_req = rd.get("forecast")
+    if isinstance(fc_req, dict) and fc_req.get("enabled"):
+        try:
+            payload["forecast"] = compute_forecast(rd, columns, rows)
+        except Exception as e:  # a forecast must never take down the run
+            current_app.logger.warning(f"/api/reporting/run forecast skipped: {e}")
     # rd is the original request body (tokens intact) — _prepare_run resolves
     # its own local copy. _resolved_dates_meta needs the tokens to produce labels.
     resolved_dates = _resolved_dates_meta(rd)

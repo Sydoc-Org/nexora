@@ -1216,3 +1216,70 @@ def test_sql_run_generic_500_detail_is_humanized(admin_client):
     assert "SQLExecDirectW" not in body["detail"]
     assert "[Microsoft]" not in body["detail"]
     assert "Hint:" in body["detail"]
+
+
+# --- forecast: definition toggle (issue #168) ---
+
+_FC_DEF = {
+    "schemaVersion": 1,
+    "visualization": "table",
+    "source": "docprocessing",
+    "title": "Backlog over time",
+    "columns": [{"field": "export_date", "grain": "month"}],
+    "metrics": [{"metric": "doc_count"}],
+    "filters": [],
+    "sort": [],
+    "scope": {"clients": [], "processes": []},
+    "rowLimit": 5000,
+    "forecast": {"enabled": True, "horizon": 3},
+}
+
+_FC_COLS = [{"field": "export_date"}, {"field": "doc_count"}]
+_FC_ROWS = [[f"2025-{m:02d}-01", 10 + 2 * (m - 1)] for m in range(1, 9)]
+
+
+def test_run_forecast_enabled_returns_block(admin_client):
+    with (
+        patch(
+            "nx_lib.views.reporting._prepare_run",
+            return_value=(_FC_COLS, "SELECT 1", [], None),
+        ),
+        patch("nx_lib.views.reporting._execute", return_value=_FC_ROWS),
+    ):
+        resp = admin_client.post("/api/reporting/run", json=_FC_DEF)
+    assert resp.status_code == 200
+    fc = resp.get_json().get("forecast")
+    assert fc and "unavailable" not in fc
+    assert fc["horizon"] == 3 and len(fc["buckets"]) == 3
+    assert fc["series"][0]["field"] == "doc_count"
+    assert len(fc["series"][0]["values"]) == 3
+    assert (
+        fc["series"][0]["lower"][0] <= fc["series"][0]["values"][0] <= fc["series"][0]["upper"][0]
+    )
+
+
+def test_run_forecast_disabled_or_absent_omits_block(admin_client):
+    quiet = dict(_FC_DEF, forecast={"enabled": False, "horizon": 3})
+    with (
+        patch(
+            "nx_lib.views.reporting._prepare_run",
+            return_value=(_FC_COLS, "SELECT 1", [], None),
+        ),
+        patch("nx_lib.views.reporting._execute", return_value=_FC_ROWS),
+    ):
+        resp = admin_client.post("/api/reporting/run", json=quiet)
+    assert resp.status_code == 200
+    assert "forecast" not in resp.get_json()
+
+
+def test_run_forecast_short_history_reports_unavailable(admin_client):
+    with (
+        patch(
+            "nx_lib.views.reporting._prepare_run",
+            return_value=(_FC_COLS, "SELECT 1", [], None),
+        ),
+        patch("nx_lib.views.reporting._execute", return_value=_FC_ROWS[:3]),
+    ):
+        resp = admin_client.post("/api/reporting/run", json=_FC_DEF)
+    assert resp.status_code == 200
+    assert resp.get_json()["forecast"]["unavailable"] == "insufficient_history"
