@@ -6777,6 +6777,10 @@ msgstr ""
 "Ihre gefilterten Rechnungen werden hier angezeigt. Sie können Details, "
 "Beträge einsehen und PDF-Kopien aus der Aktionsspalte herunterladen."
 
+#: templates/js/_dashboard_js.html:48
+msgid "No data to display"
+msgstr "Keine Daten vorhanden"
+
 #~ msgid "Some PIDs matched no workitem."
 #~ msgstr "Einige Personalnummern wurden keinem Workitem zugeordnet."
 

@@ -33,6 +33,23 @@
     new MutationObserver(applyChartTheme).observe(
         document.documentElement, { attributes: true, attributeFilter: ['class'] });
 
+    // ponytail: one plugin, not a rewrite of every chart's empty-state markup
+    const noDataPlugin = {
+        id: 'noData',
+        afterDraw(chart) {
+            const hasData = chart.data.datasets.some(ds => ds.data.some(v => v > 0));
+            if (hasData) return;
+            const { ctx, chartArea: { left, top, right, bottom } } = chart;
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.font = "14px 'Inter', sans-serif";
+            ctx.fillStyle = nxAxis().text;
+            ctx.fillText({{ _("No data to display") | tojson }}, (left + right) / 2, (top + bottom) / 2);
+            ctx.restore();
+        }
+    };
+
     function shuffleObject(obj) {
         const entries = Object.entries(obj);
         for (let i = entries.length - 1; i > 0; i--) {
@@ -205,6 +222,7 @@
                             tension: 0.4,
                         }]
                     },
+                    plugins: [noDataPlugin],
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
@@ -253,6 +271,7 @@
                             borderSkipped: false,
                         }]
                     },
+                    plugins: [noDataPlugin],
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,

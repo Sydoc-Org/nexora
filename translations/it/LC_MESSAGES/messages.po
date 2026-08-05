@@ -6748,6 +6748,10 @@ msgstr ""
 "Le tue fatture filtrate appaiono qui. Puoi visualizzare i dettagli, gli "
 "importi e scaricare copie PDF dalla colonna Azioni."
 
+#: templates/js/_dashboard_js.html:48
+msgid "No data to display"
+msgstr "Nessun dato da visualizzare"
+
 #~ msgid "Some PIDs matched no workitem."
 #~ msgstr "Alcuni numeri di personale non corrispondono ad alcun workitem."
 

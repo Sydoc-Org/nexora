@@ -6767,6 +6767,10 @@ msgstr ""
 "détails, les montants et télécharger des copies PDF depuis la colonne "
 "Actions."
 
+#: templates/js/_dashboard_js.html:48
+msgid "No data to display"
+msgstr "Aucune donnée à afficher"
+
 #~ msgid "Some PIDs matched no workitem."
 #~ msgstr "Certains numéros de personne ne correspondent à aucun workitem."
 

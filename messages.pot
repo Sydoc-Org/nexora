@@ -6518,3 +6518,7 @@ msgid ""
 "download PDF copies from the Actions column."
 msgstr ""
 
+
+#: templates/js/_dashboard_js.html:48
+msgid "No data to display"
+msgstr ""
