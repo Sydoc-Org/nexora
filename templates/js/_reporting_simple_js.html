@@ -823,7 +823,7 @@
     openDrill(clicked);
   }
 
-  function renderTable(columns, rows) {
+  function renderTable(columns, rows, forecast) {
     var cur = state.current;
     var def = (cur && cur.def) || {};
     var hasMetrics = Array.isArray(def.metrics) && def.metrics.length > 0;
@@ -866,11 +866,32 @@
       });
       html += '</tr>';
     });
+    var fcRows = (forecast && !forecast.unavailable && (forecast.buckets || []).length)
+      ? forecast : null;
+    if (fcRows) {
+      var mStart = columns.length - fcRows.series.length;
+      fcRows.buckets.forEach(function (b, bi) {
+        html += '<tr class="is-forecast" data-testid="rs-forecast-row">';
+        for (var ci = 0; ci < columns.length; ci++) {
+          if (ci === 0) {
+            html += '<td>' + esc(String(b).slice(0, 10)) +
+              ' <span class="rp-forecast-badge">' + esc(I18N.forecastLabel) + '</span></td>';
+          } else if (ci >= mStart) {
+            var sv = fcRows.series[ci - mStart];
+            html += '<td class="reporting-ledger-num">' +
+              esc(fmtChartTooltip(sv.values[bi])) + '</td>';
+          } else {
+            html += '<td></td>';
+          }
+        }
+        html += '</tr>';
+      });
+    }
     html += '</tbody></table>';
     el('rsTableWrap').innerHTML = html;
     if (drillable) {
       Array.prototype.forEach.call(
-        el('rsTableWrap').querySelectorAll('tbody tr'), function (tr, i) {
+        el('rsTableWrap').querySelectorAll('tbody tr:not(.is-forecast)'), function (tr, i) {
           var rowValues = rows[i];
           tr.tabIndex = 0;
           tr.addEventListener('click', function () { openDrill(clickedFor(rowValues)); });
@@ -1697,7 +1718,7 @@
     var charted = (hasMetrics && dims)
       ? !!mountChart(def, columns, rows, res.data.forecast || null) : false;
     syncForecastCtl(def, res.data.forecast || null);
-    renderTable(columns, rows);
+    renderTable(columns, rows, res.data.forecast || null);
     // Collapse the table behind the toggle only when a chart actually rendered
     // (or the stat card carries a dimensionless total). When mountChart bails
     // — three breakdowns, too many points, no Chart.js — the table is the only
