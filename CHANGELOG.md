@@ -10,6 +10,20 @@ Work toward 2.5.65.
 
 ### Added
 
+- **PROD outage detection with support-ticket mail** (#166) — a new
+  `ops/outage_monitor.py`, run by Task Scheduler on SYAPP01 outside the Flask
+  process (an in-app scheduler cannot report the app being dead), probes every
+  DB engine, the public site over HTTP, the Octo token endpoint, and
+  `var/logs/system/app.log` for repeating `ERROR` signatures. On breach it mails
+  a ticket to `SUPPORT_MAIL` (new env var, alongside `OUTAGE_SITE_URL`) via the
+  existing Graph sender. The log-storm probe is the one that would have caught
+  the 2026-08-05 `0042` incident, where every connectivity check stayed green
+  while the workitems list was broken for half a day. Alert hygiene —
+  fail-threshold, dedupe and a 30 minute min-hold in `nx_lib/outage.py` — means
+  a flapping component sends one outage mail and one recovery mail rather than
+  the ~200 the old `ping_prdsrv` monitor once produced; incident state persists
+  in `var/outage-state.json` so restarts do not re-alert. See
+  `docs/howto/outage-monitor.md`.
 - **Backlog History in Reporting** (#162) — the #161 collector's
   `StatisticsDB.dbo.BacklogHistory` is now a registered reporting source
   (`sql/_migrations/NexoraDB/0053`, `0054`) with a canonical `backlog_total`

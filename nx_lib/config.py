@@ -110,6 +110,13 @@ DB_REPORTING_OCTO_RO_USER = os.environ.get("DB_REPORTING_OCTO_RO_USER")
 DB_REPORTING_OCTO_RO_PWD = os.environ.get("DB_REPORTING_OCTO_RO_PWD")
 DB_GENERALI = os.environ.get("DB_GENERALI", "Generali")
 
+# Support inbox the outage monitor (ops/outage_monitor.py) files tickets to.
+# Unset -> the monitor still probes and logs but sends no mail, so a dev box
+# never pages support.
+SUPPORT_MAIL = os.environ.get("SUPPORT_MAIL")
+# Public URL the outage monitor GETs to prove IIS + the app pool are alive.
+OUTAGE_SITE_URL = os.environ.get("OUTAGE_SITE_URL", "https://nexora.sydoc.ch/nexora/")
+
 GRAPH_TENANT_ID = os.environ.get("GRAPH_TENANT_ID")
 GRAPH_CLIENT_ID = os.environ.get("GRAPH_CLIENT_ID")
 GRAPH_USERNAME = os.environ.get("GRAPH_USERNAME")
