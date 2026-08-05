@@ -124,7 +124,11 @@ def _process(conn, row, now, dry_run):
         app.logger.warning(f"schedule {row.ScheduleID}: chart render failed: {e}")
     forecast_start = None
     if forecast:
-        columns, rows, forecast_start = forecast_export_rows(columns, rows, forecast)
+        try:
+            columns, rows, forecast_start = forecast_export_rows(columns, rows, forecast)
+        except Exception as e:
+            app.logger.warning(f"schedule {row.ScheduleID}: forecast marking failed: {e}")
+            forecast_start = None
     fmt = (row.Format or "xlsx").lower()
     if fmt == "csv":
         data, mime, ext = rows_to_csv(columns, rows), "text/csv", ".csv"
