@@ -164,3 +164,120 @@ def forecast_series(dates, values, grain, horizon):
         lower.append(lo)
         upper.append(hi)
     return future, yhat, lower, upper, method
+
+
+def _as_date(v):
+    """Coerce a bucket cell (date/datetime/ISO-ish string) to a date, else None."""
+    if isinstance(v, datetime.datetime):
+        return v.date()
+    if isinstance(v, datetime.date):
+        return v
+    s = str(v or "")[:10]
+    try:
+        return datetime.date.fromisoformat(s)
+    except ValueError:
+        return None
+
+
+def _resolve_horizon(raw, n):
+    if raw == "auto" or raw is None:
+        return min(AUTO_HORIZON_CAP, max(3, round(n / 4)))
+    try:
+        return max(1, min(MAX_HORIZON, int(raw)))
+    except (TypeError, ValueError):
+        return min(AUTO_HORIZON_CAP, max(3, round(n / 4)))
+
+
+def compute_forecast(definition, columns, rows):
+    """Forecast block for one run result, or {"unavailable": reason}.
+
+    Applies only to the single-date-dimension aggregate shape (D2): exactly
+    one column WITH a grain plus >=1 metric. The sparse SQL series is
+    zero-filled between its min and max bucket before fitting (GROUP BY
+    drops empty buckets; fitting the sparse series would corrupt the trend).
+    Never raises on user data.
+    """
+    dims = definition.get("columns") or []
+    metrics = definition.get("metrics") or []
+    grain = dims[0].get("grain") if len(dims) == 1 and isinstance(dims[0], dict) else None
+    if len(dims) != 1 or not grain or not metrics:
+        return {"unavailable": "shape"}
+
+    parsed = []
+    for r in rows:
+        d = _as_date(r[0])
+        if d is None:
+            return {"unavailable": "bad_buckets"}
+        parsed.append((d, r))
+    parsed.sort(key=lambda p: p[0])
+    if not parsed:
+        return {"unavailable": "insufficient_history"}
+
+    metric_start = len(columns) - len(metrics)
+    by_bucket = {d: r for d, r in parsed}
+    # ponytail: fill min..max of the data only — leading zeros before the
+    # first real bucket would fake a longer, flatter history.
+    dates, d = [], parsed[0][0]
+    last = parsed[-1][0]
+    while d <= last:
+        if len(dates) > 2000:  # absurd range guard (day grain over years)
+            return {"unavailable": "insufficient_history"}
+        dates.append(d)
+        d = _step(d, grain)
+    if dates[-1] != last:  # bucket starts not aligned to the grain steps
+        return {"unavailable": "bad_buckets"}
+
+    horizon = _resolve_horizon((definition.get("forecast") or {}).get("horizon"), len(dates))
+    series_out, future, method = [], None, None
+    for mi in range(len(metrics)):
+        values = []
+        for bucket in dates:
+            row = by_bucket.get(bucket)
+            cell = row[metric_start + mi] if row is not None else 0
+            try:
+                values.append(float(cell if cell is not None else 0))
+            except (TypeError, ValueError):
+                values.append(0.0)
+        fit = forecast_series(dates, values, grain, horizon)
+        if fit is None:
+            return {"unavailable": "insufficient_history"}
+        future, yhat, lower, upper, method = fit
+        field = (
+            columns[metric_start + mi].get("field")
+            if isinstance(columns[metric_start + mi], dict)
+            else str(columns[metric_start + mi])
+        )
+        series_out.append(
+            {
+                "field": field,
+                "values": [round(v, 4) for v in yhat],
+                "lower": [round(v, 4) for v in lower],
+                "upper": [round(v, 4) for v in upper],
+            }
+        )
+    return {
+        "anchor": dates[-1].isoformat(),
+        "grain": grain,
+        "method": method,
+        "horizon": horizon,
+        "buckets": [d.isoformat() for d in future],
+        "series": series_out,
+    }
+
+
+def forecast_export_rows(columns, rows, forecast, marker_header="Forecast"):
+    """(columns2, rows2, forecast_start): actual rows + predicted rows with a
+    trailing marker column ('' actual / 'forecast' predicted). The forecast
+    rows carry the bucket in the dim cell and yhat in each metric cell;
+    bounds are not exported (D7)."""
+    cols2 = [*columns, {"field": "__forecast", "header": marker_header}]
+    rows2 = [[*r, ""] for r in rows]
+    forecast_start = len(rows2)
+    metric_start = len(columns) - len(forecast["series"])
+    for bi, bucket in enumerate(forecast["buckets"]):
+        row = [None] * len(columns)
+        row[0] = bucket
+        for si, s in enumerate(forecast["series"]):
+            row[metric_start + si] = s["values"][bi]
+        rows2.append([*row, "forecast"])
+    return cols2, rows2, forecast_start
