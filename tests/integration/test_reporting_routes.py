@@ -1283,3 +1283,19 @@ def test_run_forecast_short_history_reports_unavailable(admin_client):
         resp = admin_client.post("/api/reporting/run", json=_FC_DEF)
     assert resp.status_code == 200
     assert resp.get_json()["forecast"]["unavailable"] == "insufficient_history"
+
+
+def test_export_forecast_appends_marker_rows(admin_client):
+    body = dict(_FC_DEF, format="csv")
+    with (
+        patch(
+            "nx_lib.views.reporting._prepare_run",
+            return_value=(_FC_COLS, "SELECT 1", [], None),
+        ),
+        patch("nx_lib.views.reporting._execute", return_value=_FC_ROWS),
+    ):
+        resp = admin_client.post("/api/reporting/export", json=body)
+    assert resp.status_code == 200
+    text = resp.data.decode("utf-8-sig")
+    assert text.splitlines()[0].endswith("Forecast")
+    assert text.count("forecast") == 3  # horizon 3 marker rows
