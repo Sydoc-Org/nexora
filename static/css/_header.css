@@ -8,18 +8,15 @@
    another one. Local decorative stacking inside a single component (e.g. a
    card's own background/foreground layers, typically z-index 0-5) is left
    as plain literals: it never competes with anything outside that component,
-   so tokenizing it would just be noise.
-   NOTE: --z-nav-toggle and --z-modal-backdrop are both 60 today (pre-existing,
-   unchanged by this pass) — a mobile nav toggle button and a reporting modal
-   backdrop happen to share a value. They've never been visible at the same
-   time in practice, but it's a real collision waiting to happen; worth a
-   dedicated look if that ever changes. */
+   so tokenizing it would just be noise. (#144: --z-nav-toggle sits below
+   --z-modal-backdrop so an open modal always covers the floating mobile nav
+   toggle, instead of the two tying at 60 and leaving paint order to decide.) */
 :root {
   --z-raised: 30;          /* reporting: small in-flow dropdown */
   --z-nav-backdrop: 38;    /* mobile nav dimming overlay */
   --z-nav: 40;             /* persistent sidebar/nav rail */
   --z-overlay-center: 50;  /* full-page centered overlay (e.g. workitems export modal) */
-  --z-nav-toggle: 60;      /* mobile nav floating toggle button */
+  --z-nav-toggle: 59;      /* mobile nav floating toggle button */
   --z-modal-backdrop: 60;  /* modal/drawer dimming backdrop */
   --z-popover-menu: 60;    /* small dropdown/export menu (not a full backdrop) */
   --z-modal: 61;           /* modal/drawer panel, above its own backdrop */

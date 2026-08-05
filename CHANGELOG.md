@@ -290,6 +290,14 @@ Work toward 2.5.65.
 
 ### Fixed
 
+- **Mobile nav toggle / modal backdrop z-index collision** (#144, follow-up
+  from #142) — `--z-nav-toggle` and `--z-modal-backdrop` both resolved to
+  `60`, so an open reporting modal wasn't guaranteed to paint above the
+  floating mobile nav toggle. `--z-nav-toggle` now sits at `59`. The
+  remaining ~105 one-off inline styles in `templates/admin/*` and ~46 in
+  `templates/js/*` partials are triaged as accepted/permanent (single-use
+  compound declarations, no dedup value as CSS classes) — see #144 for the
+  decision record.
 - Workitem details: the **MWST amount showed the wrong value** (reported on
   PROD; INT had the same data). Two `dbo.IndexFieldMappings` rows carried
   swapped TargetKeys — `RptCompCode → VatAmount` rendered the SAP company code
