@@ -48,6 +48,35 @@ def pretty_name(key, stored=None):
     return stored or key
 
 
+# Grouping is display-only: twelve flat rows all read the same, and the eye has
+# nothing to anchor on. "Which layer is broken" is the first question during an
+# incident, so the grid answers it structurally.
+GROUPS = ("Application", "Databases", "Integrations")
+
+
+def component_group(key):
+    if key.startswith("db:"):
+        return "Databases"
+    if key == "http:site":
+        return "Application"
+    return "Integrations"
+
+
+def component_group_order(components):
+    """``[(group, [component, ...]), ...]`` in GROUPS order, empty groups dropped.
+
+    Within a group the worst state sorts first: during an incident the broken row
+    must be the one you land on, not the ninth green row you scroll past.
+    """
+    ordered = []
+    for group in GROUPS:
+        members = [c for c in components if c["group"] == group]
+        if members:
+            members.sort(key=lambda c: (_SEVERITY.index(c["state"]), c["name"].lower()))
+            ordered.append((group, members))
+    return ordered
+
+
 def component_state(comp):
     """Map one ``nx_lib.outage`` component state dict to a display state.
 
@@ -311,6 +340,7 @@ def load_status(
             {
                 "key": key,
                 "name": pretty_name(key, name),
+                "group": component_group(key),
                 "state": state,
                 "detail": detail,
                 "last_checked_at": _iso_utc(last_checked),
@@ -337,8 +367,12 @@ def load_status(
 
     last_checked = max((r[5] for r in rows), default=None)
     stale = last_checked is None or (now - last_checked).total_seconds() > stale_after_s
+    counts = {level: sum(1 for c in components if c["state"] == level) for level in _SEVERITY}
     return {
         "components": components,
+        "groups": component_group_order(components),
+        "counts": counts,
+        "total": len(components),
         "history": history,
         "open_incidents": [h for h in history if h["open"]],
         "last_checked_at": _iso_utc(last_checked),

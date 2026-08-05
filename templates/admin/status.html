@@ -28,6 +28,16 @@
         'maintenance': 'fa-wrench',
         'unknown': 'fa-circle-question'
     } %}
+    {% set group_icons = {
+        'Application': 'fa-server',
+        'Databases': 'fa-database',
+        'Integrations': 'fa-plug'
+    } %}
+    {% set group_labels = {
+        'Application': _('Application'),
+        'Databases': _('Databases'),
+        'Integrations': _('Integrations')
+    } %}
 
     <main class="nx-main">
         {{ a.page_header(
@@ -37,10 +47,10 @@
             icon='fa-heart-pulse'
         ) }}
 
-        <!-- Headline state -->
+        <!-- Headline state + how-bad-is-it counts -->
         <div class="nx-card status-hero status-hero--{{ status.overall }} nx-rise">
             <span class="status-hero-icon"><i class="fas {{ state_icons[status.overall] }}"></i></span>
-            <div>
+            <div class="status-hero-main">
                 <div class="status-hero-title">
                     {% if status.overall == 'operational' %}{{ _('All systems operational') }}
                     {% elif status.overall == 'degraded' %}{{ _('Degraded performance') }}
@@ -59,57 +69,86 @@
                     {% endif %}
                 </div>
             </div>
+            {% if status.total %}
+            <div class="status-hero-counts">
+                {% for level in ['outage', 'degraded', 'operational'] %}
+                {% if status.counts[level] %}
+                <span class="status-count status-count--{{ level }}">
+                    <span class="status-count-num">{{ status.counts[level] }}</span>
+                    <span class="status-count-label">{{ state_labels[level] }}</span>
+                </span>
+                {% endif %}
+                {% endfor %}
+            </div>
+            {% endif %}
         </div>
 
         {% if status.stale and not status.never_ran %}
-        <div class="nx-card status-warn nx-rise">
+        <div class="status-warn nx-rise">
             <i class="fas fa-clock-rotate-left"></i>
             {{ _('Stale data: the monitor is not reporting. Check the scheduled task on the application server.') }}
         </div>
         {% endif %}
 
-        <!-- Open incidents -->
+        <!-- Open incidents: one line each, evidence behind a disclosure -->
         {% if status.open_incidents %}
-        <h2 class="nx-section status-h2">{{ _('Open incidents') }}</h2>
-        <div class="status-open-list nx-rise">
+        <h2 class="nx-section status-h2">
+            {{ _('Open incidents') }} <span class="status-h2-count">{{ status.open_incidents|length }}</span>
+        </h2>
+        <div class="nx-card status-open-list nx-rise">
             {% for inc in status.open_incidents %}
-            <div class="nx-card status-open">
-                <div class="status-open-head">
-                    <span class="nx-label nx-label--red">{{ _('Outage') }}</span>
-                    <strong>{{ inc.name }}</strong>
-                    <span class="status-open-since">
-                        {{ _('since') }} <span class="status-ago" data-ts="{{ inc.started_at }}"></span>
-                        &middot; {{ inc.duration }}
+            <details class="status-open"{% if loop.first %} open{% endif %}>
+                <summary class="status-open-head">
+                    <i class="fas fa-chevron-right status-open-chevron" aria-hidden="true"></i>
+                    <span class="status-dot status-dot--outage"></span>
+                    <span class="status-open-name">{{ inc.name }}</span>
+                    <span class="status-open-meta">
+                        <span class="status-ago" data-ts="{{ inc.started_at }}"></span>
+                        <span class="status-open-dur">{{ inc.duration }}</span>
                     </span>
+                </summary>
+                <div class="status-open-body">
+                    {% if inc.detail %}<div class="status-open-detail">{{ inc.detail }}</div>{% endif %}
+                    {% if inc.excerpt %}<pre class="status-excerpt code-scroll">{{ inc.excerpt }}</pre>{% endif %}
                 </div>
-                {% if inc.detail %}<div class="status-open-detail">{{ inc.detail }}</div>{% endif %}
-                {% if inc.excerpt %}<pre class="status-excerpt code-scroll">{{ inc.excerpt }}</pre>{% endif %}
-            </div>
+            </details>
             {% endfor %}
         </div>
         {% endif %}
 
-        <!-- Components -->
-        <h2 class="nx-section status-h2">{{ _('Components') }}</h2>
-        {% if status.components %}
-        <div class="status-components nx-card nx-rise">
-            {% for c in status.components %}
-            <div class="status-item">
-                <div class="status-row">
-                    <div class="status-row-name">
-                        <span class="status-dot status-dot--{{ c.state }}"></span>
-                        <span>{{ c.name }}</span>
-                    </div>
-                    <div class="status-strip" role="img" aria-label="{{ _('Last %(n)s days', n=status.history_days) }}">
-                        {% for cell in c.strip %}
-                        <span class="status-cell status-cell--{{ cell.state }}" title="{{ cell.date }} — {{ state_labels.get(cell.state, cell.state) }}"></span>
-                        {% endfor %}
-                    </div>
-                    <div class="status-row-state status-row-state--{{ c.state }}">
-                        {{ state_labels.get(c.state, c.state) }}
+        <!-- Components, grouped by layer, worst first -->
+        <h2 class="nx-section status-h2">
+            {{ _('Components') }}
+            <span class="status-h2-sub">{{ _('last %(n)s days', n=status.history_days) }}</span>
+        </h2>
+        {% if status.groups %}
+        <div class="nx-card status-components nx-rise">
+            {% for group, members in status.groups %}
+            <div class="status-group">
+                <div class="status-group-head">
+                    <i class="fas {{ group_icons.get(group, 'fa-cube') }}" aria-hidden="true"></i>
+                    {{ group_labels.get(group, group) }}
+                </div>
+                {% for c in members %}
+                <div class="status-item status-item--{{ c.state }}">
+                    <div class="status-row">
+                        <div class="status-row-name">
+                            <span class="status-dot status-dot--{{ c.state }}"></span>
+                            <span class="status-row-label">{{ c.name }}</span>
+                            {% if c.detail %}<span class="status-row-detail" title="{{ c.detail }}">{{ c.detail }}</span>{% endif %}
+                        </div>
+                        <div class="status-strip" role="img" aria-label="{{ _('Last %(n)s days', n=status.history_days) }}">
+                            {% for cell in c.strip %}
+                            <span class="status-cell status-cell--{{ cell.state }}" title="{{ cell.date }} — {{ state_labels.get(cell.state, cell.state) }}"></span>
+                            {% endfor %}
+                        </div>
+                        <div class="status-row-state status-row-state--{{ c.state }}">
+                            {% if c.state != 'operational' %}<i class="fas {{ state_icons[c.state] }}" aria-hidden="true"></i>{% endif %}
+                            {{ state_labels.get(c.state, c.state) }}
+                        </div>
                     </div>
                 </div>
-                {% if c.detail %}<div class="status-row-detail">{{ c.detail }}</div>{% endif %}
+                {% endfor %}
             </div>
             {% endfor %}
             <div class="status-legend">
@@ -129,27 +168,33 @@
         {% endif %}
 
         <!-- History -->
-        <h2 class="nx-section status-h2">{{ _('Incident history') }} <span class="status-h2-sub">{{ _('last %(n)s days', n=status.history_days) }}</span></h2>
+        <h2 class="nx-section status-h2">
+            {{ _('Incident history') }}
+            <span class="status-h2-sub">{{ _('last %(n)s days', n=status.history_days) }}</span>
+        </h2>
         <div class="nx-table-wrap">
-            <table class="nx-table">
+            <table class="nx-table status-history">
                 {{ a.table_header([
                     {'label': _('Component')},
-                    {'label': _('Started'), 'width': '190px'},
-                    {'label': _('Ended'), 'width': '190px'},
-                    {'label': _('Duration'), 'width': '120px'},
+                    {'label': _('Started'), 'width': '170px'},
+                    {'label': _('Ended'), 'width': '170px'},
+                    {'label': _('Duration'), 'width': '110px'},
                     {'label': _('Evidence')}
                 ]) }}
                 <tbody>
                 {% for inc in status.history %}
                     <tr>
-                        <td>{{ inc.name }}</td>
+                        <td>
+                            <span class="status-dot status-dot--{{ 'outage' if inc.open else 'operational' }}"></span>
+                            {{ inc.name }}
+                        </td>
                         <td class="status-time" data-ts="{{ inc.started_at }}">{{ inc.started_at }}</td>
                         <td>
                             {% if inc.open %}<span class="nx-label nx-label--red">{{ _('Ongoing') }}</span>
                             {% else %}<span class="status-time" data-ts="{{ inc.ended_at }}">{{ inc.ended_at }}</span>{% endif %}
                         </td>
-                        <td>{{ inc.duration }}</td>
-                        <td class="status-evidence">{{ inc.detail or '—' }}</td>
+                        <td class="status-dur">{{ inc.duration }}</td>
+                        <td class="status-evidence" title="{{ inc.detail or '' }}">{{ inc.detail or '—' }}</td>
                     </tr>
                 {% else %}
                     {{ a.empty_state('fa-circle-check', _('No incidents recorded.'), 5) }}

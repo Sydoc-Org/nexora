@@ -104,65 +104,102 @@ html.dark .log-method--DELETE { color: #f87171; }
 .code-scroll::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
 .code-scroll::-webkit-scrollbar-thumb:hover { background: #6b7280; }
 
-/* Status page (#167): headline card, component rows, 30-day uptime strip */
-.status-h2 { margin: 28px 0 12px; }
+/* Status page (#167): headline, grouped component grid, 30-day uptime strip.
+   Density is the point -- the page has to be scannable in one glance during an
+   incident, so rows are single-line and the broken ones are what stand out. */
+.status-h2 { margin: 26px 0 10px; display: flex; align-items: baseline; gap: 8px; }
 .status-h2-sub { font-size: 12px; font-weight: 400; color: var(--nx-text-meta); }
+.status-h2-count { font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: var(--nx-radius-pill); background: var(--nx-l-red); color: var(--nx-l-red-fg); }
 
-.status-hero { display: flex; align-items: center; gap: 16px; padding: 20px 22px; margin-bottom: 16px; border-left: 4px solid var(--nx-border-strong); }
+.status-hero { display: flex; align-items: center; gap: 18px; padding: 22px 24px; margin-bottom: 14px; border-left: 4px solid var(--nx-border-strong); }
 .status-hero--operational { border-left-color: var(--nx-l-green-fg); }
 .status-hero--degraded    { border-left-color: var(--nx-l-amber-fg); }
 .status-hero--outage      { border-left-color: var(--nx-danger); }
 .status-hero--maintenance { border-left-color: var(--nx-l-indigo-fg); }
-.status-hero-icon { font-size: 26px; color: var(--nx-text-meta); }
+.status-hero-main { flex: 1; min-width: 0; }
+.status-hero-icon { font-size: 30px; color: var(--nx-text-meta); flex: none; }
 .status-hero--operational .status-hero-icon { color: var(--nx-l-green-fg); }
 .status-hero--degraded    .status-hero-icon { color: var(--nx-l-amber-fg); }
 .status-hero--outage      .status-hero-icon { color: var(--nx-danger); }
 .status-hero--maintenance .status-hero-icon { color: var(--nx-l-indigo-fg); }
-.status-hero-title { font-size: 18px; font-weight: 600; color: var(--nx-text); letter-spacing: -0.2px; }
-.status-hero-sub { font-size: 12px; color: var(--nx-text-sec); margin-top: 3px; }
+.status-hero-title { font-size: 20px; font-weight: 600; color: var(--nx-text); letter-spacing: -0.3px; }
+.status-hero-sub { font-size: 12px; color: var(--nx-text-sec); margin-top: 4px; }
 
-.status-warn { display: flex; align-items: center; gap: 10px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; background: var(--nx-l-amber); color: var(--nx-l-amber-fg); }
+/* Count chips: the "how bad is it" answer without counting dots by hand. */
+.status-hero-counts { display: flex; gap: 20px; flex: none; }
+.status-count { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.15; }
+.status-count-num { font-size: 22px; font-weight: 600; font-family: var(--nx-mono); font-variant-numeric: tabular-nums; color: var(--nx-text-sec); }
+.status-count-label { font-size: 10px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: var(--nx-text-meta); }
+.status-count--operational .status-count-num { color: var(--nx-l-green-fg); }
+.status-count--degraded    .status-count-num { color: var(--nx-l-amber-fg); }
+.status-count--outage      .status-count-num { color: var(--nx-danger); }
 
-.status-open-list { display: flex; flex-direction: column; gap: 12px; }
-.status-open { padding: 14px 16px; border-left: 3px solid var(--nx-danger); }
-.status-open-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px; color: var(--nx-text); }
-.status-open-since { font-size: 12px; color: var(--nx-text-meta); }
-.status-open-detail { font-size: 12px; color: var(--nx-text-sec); margin-top: 6px; font-family: var(--nx-mono); }
-.status-excerpt { margin-top: 8px; padding: 8px 10px; max-height: 140px; overflow: auto; font-size: 11px; font-family: var(--nx-mono); background: var(--nx-sunken); color: var(--nx-text-sec); border-radius: calc(var(--nx-radius-scale, 1) * 6px); white-space: pre-wrap; }
+.status-warn { display: flex; align-items: center; gap: 10px; padding: 11px 16px; margin-bottom: 14px; font-size: 13px; background: var(--nx-l-amber); color: var(--nx-l-amber-fg); border-radius: calc(var(--nx-radius-scale, 1) * 8px); }
 
-.status-components { padding: 8px 18px 14px; }
-/* The border lives on the wrapper, not the row: with it on .status-row it drew
-   straight through the detail line underneath and read as a strikethrough. */
-.status-item { padding: 12px 0; border-bottom: 1px solid var(--nx-border); }
-.status-item:last-of-type { border-bottom: none; }
-.status-row { display: grid; grid-template-columns: minmax(150px, 1.2fr) minmax(160px, 2fr) 110px; align-items: center; gap: 16px; }
-.status-row-name { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--nx-text); }
-.status-row-detail { font-size: 11px; color: var(--nx-text-meta); font-family: var(--nx-mono); padding-left: 21px; margin-top: 6px; word-break: break-word; }
-.status-row-state { font-size: 12px; font-weight: 600; text-align: right; color: var(--nx-text-sec); }
-.status-row-state--operational { color: var(--nx-l-green-fg); }
-.status-row-state--degraded    { color: var(--nx-l-amber-fg); }
-.status-row-state--outage      { color: var(--nx-danger); }
-.status-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--nx-text-meta); }
+/* Open incidents collapse to one line each. Five stacked evidence blobs pushed
+   the component grid below the fold, which inverted the page's hierarchy. */
+.status-open-list { padding: 4px 18px; }
+.status-open { border-bottom: 1px solid var(--nx-border); }
+.status-open:last-child { border-bottom: none; }
+.status-open-head { display: flex; align-items: center; gap: 10px; padding: 11px 0; font-size: 13px; color: var(--nx-text); cursor: pointer; list-style: none; }
+.status-open-head::-webkit-details-marker { display: none; }
+.status-open-head:hover { color: var(--nx-accent); }
+.status-open-head:focus-visible { outline: 2px solid var(--nx-accent); outline-offset: 2px; border-radius: 4px; }
+.status-open-chevron { font-size: 10px; color: var(--nx-text-meta); flex: none; transition: transform var(--nx-dur, .18s) var(--nx-ease, ease); }
+.status-open[open] .status-open-chevron { transform: rotate(90deg); }
+.status-open-name { font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.status-open-meta { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--nx-text-meta); flex: none; }
+.status-open-dur { font-family: var(--nx-mono); font-variant-numeric: tabular-nums; color: var(--nx-danger); font-weight: 600; }
+.status-open-body { padding: 0 0 12px 28px; }
+.status-open-detail { font-size: 12px; color: var(--nx-text-sec); font-family: var(--nx-mono); word-break: break-word; }
+.status-excerpt { margin-top: 8px; padding: 8px 10px; max-height: 140px; overflow: auto; font-size: 12px; font-family: var(--nx-mono); background: var(--nx-sunken); color: var(--nx-text-sec); border-radius: calc(var(--nx-radius-scale, 1) * 6px); white-space: pre-wrap; }
+
+.status-components { padding: 6px 18px 14px; }
+.status-group + .status-group { margin-top: 6px; }
+.status-group-head { display: flex; align-items: center; gap: 7px; padding: 14px 0 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: var(--nx-text-meta); }
+.status-item { border-bottom: 1px solid var(--nx-border); }
+.status-group:last-of-type .status-item:last-child { border-bottom: none; }
+/* A broken row gets a tinted bed so it is findable without reading every label. */
+.status-item--outage   { background: color-mix(in srgb, var(--nx-l-red) 55%, transparent); }
+.status-item--degraded { background: color-mix(in srgb, var(--nx-l-amber) 45%, transparent); }
+.status-item--outage, .status-item--degraded { border-radius: calc(var(--nx-radius-scale, 1) * 6px); border-bottom-color: transparent; }
+.status-row { display: grid; grid-template-columns: minmax(180px, 1.4fr) minmax(140px, 1fr) 108px; align-items: center; gap: 18px; padding: 9px 8px; }
+.status-row-name { display: flex; align-items: baseline; gap: 9px; min-width: 0; font-size: 13px; color: var(--nx-text); }
+.status-row-label { font-weight: 500; flex: none; }
+/* Probe evidence is secondary: one truncated line, full text on hover. */
+.status-row-detail { font-size: 11px; color: var(--nx-text-meta); font-family: var(--nx-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.status-row-state { display: flex; align-items: center; justify-content: flex-end; gap: 6px; font-size: 12px; text-align: right; color: var(--nx-text-meta); }
+.status-row-state--operational { font-weight: 400; }
+.status-row-state--degraded { color: var(--nx-l-amber-fg); font-weight: 700; }
+.status-row-state--outage   { color: var(--nx-danger); font-weight: 700; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--nx-text-meta); align-self: center; }
 .status-dot--operational { background: var(--nx-l-green-fg); }
 .status-dot--degraded    { background: var(--nx-l-amber-fg); }
 .status-dot--outage      { background: var(--nx-danger); }
 
-/* One cell per day, oldest left. Flex so the strip shrinks with the viewport
-   instead of forcing the card to scroll. */
-.status-strip { display: flex; gap: 2px; align-items: stretch; height: 26px; }
-.status-cell { flex: 1 1 0; min-width: 3px; border-radius: 1px; background: var(--nx-border); }
-.status-cell--operational { background: var(--nx-l-green-fg); opacity: 0.75; }
+/* One cell per day, oldest left. Capped width: at full width the 30 grey
+   "no data" cells were the loudest thing on a page where they say nothing. */
+.status-strip { display: flex; gap: 2px; align-items: stretch; height: 20px; max-width: 340px; width: 100%; justify-self: end; }
+.status-cell { flex: 1 1 0; min-width: 3px; border-radius: 2px; background: var(--nx-border); transition: transform var(--nx-dur, .18s) var(--nx-ease, ease); }
+.status-cell--operational { background: var(--nx-l-green-fg); opacity: 0.8; }
 .status-cell--outage      { background: var(--nx-danger); }
-.status-cell--unknown     { background: var(--nx-border); }
-.status-cell:hover { opacity: 1; }
-.status-legend { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-top: 12px; font-size: 11px; color: var(--nx-text-meta); flex-wrap: wrap; }
+.status-cell--unknown     { background: transparent; box-shadow: inset 0 0 0 1px var(--nx-border); }
+.status-cell:hover { opacity: 1; transform: scaleY(1.18); }
+.status-legend { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-top: 14px; margin-top: 6px; border-top: 1px solid var(--nx-border); font-size: 11px; color: var(--nx-text-meta); flex-wrap: wrap; }
 .status-legend-keys { display: flex; align-items: center; gap: 6px; }
 .status-legend-keys .status-cell { flex: none; width: 10px; height: 10px; }
-.status-evidence { font-family: var(--nx-mono); font-size: 11px; color: var(--nx-text-sec); word-break: break-word; }
 
-@media (max-width: 720px) {
-    .status-row { grid-template-columns: 1fr 90px; }
-    .status-strip { grid-column: 1 / -1; }
+.status-history td { vertical-align: middle; }
+.status-dur { font-family: var(--nx-mono); font-variant-numeric: tabular-nums; }
+.status-time { font-variant-numeric: tabular-nums; }
+.status-evidence { font-family: var(--nx-mono); font-size: 11px; color: var(--nx-text-sec); max-width: 420px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (max-width: 860px) {
+    .status-hero { flex-wrap: wrap; }
+    .status-hero-counts { width: 100%; justify-content: flex-start; gap: 24px; }
+    .status-row { grid-template-columns: 1fr 100px; row-gap: 8px; }
+    .status-strip { grid-column: 1 / -1; max-width: none; justify-self: start; }
+    .status-evidence { max-width: 220px; }
 }
 
 /* Access control permission drawer: row hover (can't use nx-table here — drawer uses raw <table>) */
