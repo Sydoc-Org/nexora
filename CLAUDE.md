@@ -171,6 +171,8 @@ pybabel compile -d translations
 
 `env/INT.env`, `env/PROD.env`, `env/STAGING.env`, `env/TEST.env` contain live credentials (DB, Microsoft Graph, Octopus, Bexio PAT, Flask secret key). They are **gitignored** (`*.env` in `.gitignore` with `!env/*.env.example` exception) and live only on dev and prod machines — never committed. The sanitised `env/*.env.example` templates are committed for onboarding. Treat the real files as sensitive: do not paste their contents into chats, issues, or external tools, and never add new secret values to code or commit messages.
 
+Because they are gitignored, `deploy.yml` never copies them (`/XF *.env`) — **adding a key to `env/PROD.env.example` does nothing on the server until someone edits `\\syapp01\d$\sydoc\nexora\env\PROD.env` by hand**, and forgetting is silent. `scripts/env-sync.py` catches that: it compares the committed `.example` (the authoritative key list) against both the local and the SYAPP01 copy, masks values to fingerprints unless `--show-values`, exits non-zero on drift, and can `--push`/`--pull` a whole file (backing the destination up first). Run it as part of any deploy that added an env key.
+
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
