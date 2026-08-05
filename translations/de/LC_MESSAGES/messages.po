@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-04 15:28+0200\n"
+"POT-Creation-Date: 2026-08-04 16:04+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -14,7 +14,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: nx_lib/octo.py:300
+#: nx_lib/octo.py:305
 msgid "Error fetching activity instance"
 msgstr "Fehler beim Abrufen der Aktivitätsinstanz"
 
@@ -363,110 +363,110 @@ msgstr "Unerwarteter Fehler"
 msgid "Language changed successfully!"
 msgstr "Sprache erfolgreich geändert!"
 
-#: nx_lib/views/reporting.py:1065 nx_lib/views/reporting.py:1147
-#: nx_lib/views/reporting.py:1208 nx_lib/views/reporting.py:1336
-#: nx_lib/views/reporting.py:1513 nx_lib/views/reporting.py:1863
-#: nx_lib/views/reporting.py:1972 nx_lib/views/reporting.py:2031
+#: nx_lib/views/reporting.py:1067 nx_lib/views/reporting.py:1149
+#: nx_lib/views/reporting.py:1210 nx_lib/views/reporting.py:1338
+#: nx_lib/views/reporting.py:1515 nx_lib/views/reporting.py:1865
+#: nx_lib/views/reporting.py:1974 nx_lib/views/reporting.py:2033
 msgid "Invalid JSON body"
 msgstr "Ungültiger JSON-Body"
 
-#: nx_lib/views/reporting.py:1069 nx_lib/views/reporting.py:2007
+#: nx_lib/views/reporting.py:1071 nx_lib/views/reporting.py:2009
 msgid "Not authorized for this source"
 msgstr "Nicht für diese Quelle autorisiert"
 
-#: nx_lib/views/reporting.py:1072 nx_lib/views/reporting.py:2010
+#: nx_lib/views/reporting.py:1074 nx_lib/views/reporting.py:2012
 msgid "This report definition is invalid or outdated."
 msgstr "Diese Berichtsdefinition ist ungültig oder veraltet."
 
-#: nx_lib/views/reporting.py:1076
+#: nx_lib/views/reporting.py:1078
 msgid "Could not build report"
 msgstr "Bericht konnte nicht erstellt werden"
 
-#: nx_lib/views/reporting.py:1081
+#: nx_lib/views/reporting.py:1083
 msgid "Could not run report"
 msgstr "Bericht konnte nicht ausgeführt werden"
 
-#: nx_lib/views/reporting.py:1130
+#: nx_lib/views/reporting.py:1132
 msgid "SQL is required."
 msgstr "SQL ist erforderlich."
 
-#: nx_lib/views/reporting.py:1131
+#: nx_lib/views/reporting.py:1133
 #, python-brace-format
 msgid "The SQL exceeds {n} characters."
 msgstr "Das SQL überschreitet {n} Zeichen."
 
-#: nx_lib/views/reporting.py:1132
+#: nx_lib/views/reporting.py:1134
 #, python-brace-format
 msgid "Disallowed keyword: {kw}"
 msgstr "Nicht erlaubtes Schlüsselwort: {kw}"
 
-#: nx_lib/views/reporting.py:1133
+#: nx_lib/views/reporting.py:1135
 msgid "The SQL could not be parsed."
 msgstr "Das SQL konnte nicht geparst werden."
 
-#: nx_lib/views/reporting.py:1134
+#: nx_lib/views/reporting.py:1136
 msgid "Exactly one statement is allowed."
 msgstr "Es ist genau eine Anweisung erlaubt."
 
-#: nx_lib/views/reporting.py:1135
+#: nx_lib/views/reporting.py:1137
 msgid "Only SELECT / WITH / set operations are allowed."
 msgstr "Nur SELECT / WITH / Mengenoperationen sind erlaubt."
 
-#: nx_lib/views/reporting.py:1136
+#: nx_lib/views/reporting.py:1138
 #, python-brace-format
 msgid "Disallowed construct: {kw}"
 msgstr "Nicht erlaubtes Konstrukt: {kw}"
 
-#: nx_lib/views/reporting.py:1137
+#: nx_lib/views/reporting.py:1139
 msgid "T-SQL does not support LIMIT — use TOP (n) instead."
 msgstr "T-SQL unterstützt LIMIT nicht — verwenden Sie stattdessen TOP (n)."
 
-#: nx_lib/views/reporting.py:1151 nx_lib/views/reporting.py:1185
+#: nx_lib/views/reporting.py:1153 nx_lib/views/reporting.py:1187
 msgid "Not authenticated"
 msgstr "Nicht authentifiziert"
 
-#: nx_lib/views/reporting.py:1153 nx_lib/views/reporting.py:1980
+#: nx_lib/views/reporting.py:1155 nx_lib/views/reporting.py:1982
 msgid "Acknowledgment required"
 msgstr "Bestätigung erforderlich"
 
-#: nx_lib/views/reporting.py:1158 nx_lib/views/reporting.py:1988
+#: nx_lib/views/reporting.py:1160 nx_lib/views/reporting.py:1990
 msgid "Not authorized for this SQL target"
 msgstr "Nicht für dieses SQL-Ziel autorisiert"
 
-#: nx_lib/views/reporting.py:1162 nx_lib/views/reporting.py:1994
+#: nx_lib/views/reporting.py:1164 nx_lib/views/reporting.py:1996
 msgid "Invalid SQL request."
 msgstr "Ungültige SQL-Anfrage."
 
-#: nx_lib/views/reporting.py:1164 nx_lib/views/reporting.py:1996
+#: nx_lib/views/reporting.py:1166 nx_lib/views/reporting.py:1998
 msgid "SQL source is not configured"
 msgstr "SQL-Quelle ist nicht konfiguriert"
 
-#: nx_lib/views/reporting.py:1168
+#: nx_lib/views/reporting.py:1170
 msgid "Could not run query"
 msgstr "Abfrage konnte nicht ausgeführt werden"
 
-#: nx_lib/views/reporting.py:1198
+#: nx_lib/views/reporting.py:1200
 msgid "Could not record acknowledgment"
 msgstr "Bestätigung konnte nicht gespeichert werden"
 
-#: nx_lib/views/reporting.py:1211 nx_lib/views/reporting.py:1339
-#: nx_lib/views/reporting.py:1516
+#: nx_lib/views/reporting.py:1213 nx_lib/views/reporting.py:1341
+#: nx_lib/views/reporting.py:1518
 msgid "A question is required"
 msgstr "Eine Frage ist erforderlich"
 
-#: nx_lib/views/reporting.py:1214
+#: nx_lib/views/reporting.py:1216
 msgid "Not authorized to receive AI-drafted SQL"
 msgstr "Nicht berechtigt, KI-erstelltes SQL zu erhalten"
 
-#: nx_lib/views/reporting.py:1218 nx_lib/views/reporting.py:1286
-#: nx_lib/views/reporting.py:1343 nx_lib/views/reporting.py:1432
-#: nx_lib/views/reporting.py:1549 nx_lib/views/reporting.py:1821
-#: nx_lib/views/reporting.py:1875 nx_lib/views/reporting.py:1930
+#: nx_lib/views/reporting.py:1220 nx_lib/views/reporting.py:1288
+#: nx_lib/views/reporting.py:1345 nx_lib/views/reporting.py:1434
+#: nx_lib/views/reporting.py:1551 nx_lib/views/reporting.py:1823
+#: nx_lib/views/reporting.py:1877 nx_lib/views/reporting.py:1932
 msgid "The AI assistant is not configured"
 msgstr "Der KI-Assistent ist nicht konfiguriert"
 
-#: nx_lib/views/reporting.py:1246 nx_lib/views/reporting.py:1365
-#: nx_lib/views/reporting.py:1571 nx_lib/views/reporting.py:1897
+#: nx_lib/views/reporting.py:1248 nx_lib/views/reporting.py:1367
+#: nx_lib/views/reporting.py:1573 nx_lib/views/reporting.py:1899
 #, python-format
 msgid ""
 "You have reached the daily AI request limit (%(limit)s). Please try again"
@@ -475,26 +475,26 @@ msgstr ""
 "Sie haben das tägliche KI-Anfragelimit (%(limit)s) erreicht. Bitte "
 "versuchen Sie es morgen erneut."
 
-#: nx_lib/views/reporting.py:1303 nx_lib/views/reporting.py:1449
-#: nx_lib/views/reporting.py:1801 nx_lib/views/reporting.py:1825
-#: nx_lib/views/reporting.py:1947
+#: nx_lib/views/reporting.py:1305 nx_lib/views/reporting.py:1451
+#: nx_lib/views/reporting.py:1803 nx_lib/views/reporting.py:1827
+#: nx_lib/views/reporting.py:1949
 msgid "The AI assistant could not answer right now"
 msgstr "Der KI-Assistent konnte gerade nicht antworten"
 
-#: nx_lib/views/reporting.py:1381 nx_lib/views/reporting.py:1384
-#: nx_lib/views/reporting.py:1388 nx_lib/views/reporting.py:1390
+#: nx_lib/views/reporting.py:1383 nx_lib/views/reporting.py:1386
+#: nx_lib/views/reporting.py:1390 nx_lib/views/reporting.py:1392
 msgid "Invalid refine context"
 msgstr "Ungültiger Verfeinerungskontext"
 
-#: nx_lib/views/reporting.py:1475
+#: nx_lib/views/reporting.py:1477
 msgid "Could not build a valid report"
 msgstr "Es konnte kein gültiger Bericht erstellt werden"
 
-#: nx_lib/views/reporting.py:1520
+#: nx_lib/views/reporting.py:1522
 msgid "Invalid history"
 msgstr "Ungültiger Verlauf"
 
-#: nx_lib/views/reporting.py:1711
+#: nx_lib/views/reporting.py:1713
 msgid ""
 "I couldn't write a summary this time, but I did produce a report draft "
 "and a validated SQL query — use the actions below to open them."
@@ -503,7 +503,7 @@ msgstr ""
 "Berichtsentwurf und eine validierte SQL-Abfrage erstellt — öffnen Sie "
 "beides über die Aktionen unten."
 
-#: nx_lib/views/reporting.py:1717
+#: nx_lib/views/reporting.py:1719
 msgid ""
 "I couldn't write a summary this time, but I did produce a report draft — "
 "use “Open in builder” below to run it."
@@ -512,7 +512,7 @@ msgstr ""
 "Berichtsentwurf erstellt — führen Sie ihn über „Im Builder öffnen“ unten "
 "aus."
 
-#: nx_lib/views/reporting.py:1722
+#: nx_lib/views/reporting.py:1724
 msgid ""
 "I couldn't write a summary this time, but I did draft a SQL query — use "
 "the actions below to review it."
@@ -520,7 +520,7 @@ msgstr ""
 "Ich konnte diesmal keine Zusammenfassung schreiben, aber ich habe eine "
 "SQL-Abfrage entworfen — prüfen Sie sie über die Aktionen unten."
 
-#: nx_lib/views/reporting.py:1727
+#: nx_lib/views/reporting.py:1729
 msgid ""
 "I couldn't complete this request. Please try rephrasing the question or "
 "narrowing it down."
@@ -528,170 +528,170 @@ msgstr ""
 "Ich konnte diese Anfrage nicht abschließen. Bitte formulieren Sie die "
 "Frage um oder grenzen Sie sie ein."
 
-#: nx_lib/views/reporting.py:1867 nx_lib/views/reporting.py:2036
+#: nx_lib/views/reporting.py:1869 nx_lib/views/reporting.py:2038
 msgid "columns and rows are required"
 msgstr "Spalten und Zeilen sind erforderlich"
 
-#: nx_lib/views/reporting.py:1977
+#: nx_lib/views/reporting.py:1979
 msgid "Not authorized for live SQL"
 msgstr "Nicht für Live-SQL autorisiert"
 
-#: nx_lib/views/reporting.py:1999
+#: nx_lib/views/reporting.py:2001
 msgid "Could not export query"
 msgstr "Abfrage konnte nicht exportiert werden"
 
-#: nx_lib/views/reporting.py:2001 nx_lib/views/reporting.py:2016
-#: nx_lib/views/reporting.py:2047 templates/hero.html:96
+#: nx_lib/views/reporting.py:2003 nx_lib/views/reporting.py:2018
+#: nx_lib/views/reporting.py:2049 templates/hero.html:96
 #: templates/js/_reporting_js.html:483
 msgid "Report"
 msgstr "Bericht"
 
-#: nx_lib/views/reporting.py:2014
+#: nx_lib/views/reporting.py:2016
 msgid "Could not export report"
 msgstr "Bericht konnte nicht exportiert werden"
 
-#: nx_lib/views/reporting.py:2147
+#: nx_lib/views/reporting.py:2149
 msgid "Could not list reports"
 msgstr "Berichte konnten nicht aufgelistet werden"
 
-#: nx_lib/views/reporting.py:2172 nx_lib/views/reporting.py:2247
-#: nx_lib/views/reporting.py:2269 nx_lib/views/reporting.py:2345
-#: nx_lib/views/reporting.py:2355 nx_lib/views/reporting.py:2405
-#: nx_lib/views/reporting.py:2474 nx_lib/views/reporting.py:2498
-#: nx_lib/views/reporting.py:2545 nx_lib/views/reporting.py:2580
-#: nx_lib/views/reporting.py:2593 nx_lib/views/reporting.py:2604
-#: nx_lib/views/reporting.py:2794 nx_lib/views/reporting.py:2812
-#: nx_lib/views/reporting.py:2915 nx_lib/views/reporting.py:2933
+#: nx_lib/views/reporting.py:2174 nx_lib/views/reporting.py:2249
+#: nx_lib/views/reporting.py:2271 nx_lib/views/reporting.py:2347
+#: nx_lib/views/reporting.py:2357 nx_lib/views/reporting.py:2407
+#: nx_lib/views/reporting.py:2476 nx_lib/views/reporting.py:2500
+#: nx_lib/views/reporting.py:2547 nx_lib/views/reporting.py:2582
+#: nx_lib/views/reporting.py:2595 nx_lib/views/reporting.py:2606
+#: nx_lib/views/reporting.py:2796 nx_lib/views/reporting.py:2814
+#: nx_lib/views/reporting.py:2917 nx_lib/views/reporting.py:2935
 msgid "Not found"
 msgstr "Nicht gefunden"
 
-#: nx_lib/views/reporting.py:2185
+#: nx_lib/views/reporting.py:2187
 msgid "Could not load report"
 msgstr "Bericht konnte nicht geladen werden"
 
-#: nx_lib/views/reporting.py:2198 nx_lib/views/reporting.py:2227
+#: nx_lib/views/reporting.py:2200 nx_lib/views/reporting.py:2229
 msgid "name and definition are required"
 msgstr "Name und Definition sind erforderlich"
 
-#: nx_lib/views/reporting.py:2201 nx_lib/views/reporting.py:2230
+#: nx_lib/views/reporting.py:2203 nx_lib/views/reporting.py:2232
 msgid "Report definition too large"
 msgstr "Berichtsdefinition zu groß"
 
-#: nx_lib/views/reporting.py:2214
+#: nx_lib/views/reporting.py:2216
 msgid "Could not save report"
 msgstr "Bericht konnte nicht gespeichert werden"
 
-#: nx_lib/views/reporting.py:2251
+#: nx_lib/views/reporting.py:2253
 msgid "Could not update report"
 msgstr "Bericht konnte nicht aktualisiert werden"
 
-#: nx_lib/views/reporting.py:2273
+#: nx_lib/views/reporting.py:2275
 msgid "Could not delete report"
 msgstr "Bericht konnte nicht gelöscht werden"
 
-#: nx_lib/views/reporting.py:2363
+#: nx_lib/views/reporting.py:2365
 msgid "Invalid visibility"
 msgstr "Ungültige Sichtbarkeit"
 
-#: nx_lib/views/reporting.py:2372
+#: nx_lib/views/reporting.py:2374
 msgid "User not found"
 msgstr "Benutzer nicht gefunden"
 
-#: nx_lib/views/reporting.py:2374
+#: nx_lib/views/reporting.py:2376
 msgid "Cannot share a report with yourself"
 msgstr "Sie können einen Bericht nicht mit sich selbst teilen"
 
-#: nx_lib/views/reporting.py:2395 nx_lib/views/reporting.py:2416
+#: nx_lib/views/reporting.py:2397 nx_lib/views/reporting.py:2418
 msgid "Could not update sharing"
 msgstr "Freigabe konnte nicht aktualisiert werden"
 
-#: nx_lib/views/reporting.py:2488
+#: nx_lib/views/reporting.py:2490
 msgid "Could not list schedules"
 msgstr "Zeitpläne konnten nicht aufgelistet werden"
 
-#: nx_lib/views/reporting.py:2535
+#: nx_lib/views/reporting.py:2537
 msgid "Could not save schedule"
 msgstr "Zeitplan konnte nicht gespeichert werden"
 
-#: nx_lib/views/reporting.py:2584
+#: nx_lib/views/reporting.py:2586
 msgid "Could not update schedule"
 msgstr "Zeitplan konnte nicht aktualisiert werden"
 
-#: nx_lib/views/reporting.py:2608
+#: nx_lib/views/reporting.py:2610
 msgid "Could not delete schedule"
 msgstr "Zeitplan konnte nicht gelöscht werden"
 
-#: nx_lib/views/reporting.py:2621 nx_lib/views/reporting.py:2671
+#: nx_lib/views/reporting.py:2623 nx_lib/views/reporting.py:2673
 msgid "Invalid body"
 msgstr "Ungültiger Body"
 
-#: nx_lib/views/reporting.py:2623
+#: nx_lib/views/reporting.py:2625
 msgid "code must be 1-64 chars: letters, digits, . _ -"
 msgstr "Code muss 1-64 Zeichen lang sein: Buchstaben, Ziffern, . _ -"
 
-#: nx_lib/views/reporting.py:2625
+#: nx_lib/views/reporting.py:2627
 msgid "kind must be 'curated' or 'sql'"
 msgstr "kind muss 'curated' oder 'sql' sein"
 
-#: nx_lib/views/reporting.py:2627 nx_lib/views/reporting.py:2677
+#: nx_lib/views/reporting.py:2629 nx_lib/views/reporting.py:2679
 msgid "label is required"
 msgstr "Bezeichnung ist erforderlich"
 
-#: nx_lib/views/reporting.py:2629
+#: nx_lib/views/reporting.py:2631
 msgid "permission is required"
 msgstr "Berechtigung ist erforderlich"
 
-#: nx_lib/views/reporting.py:2635
+#: nx_lib/views/reporting.py:2637
 msgid "columns must be valid JSON"
 msgstr "Spalten müssen gültiges JSON sein"
 
-#: nx_lib/views/reporting.py:2673
+#: nx_lib/views/reporting.py:2675
 msgid "code must start with a letter/underscore: letters, digits, _"
 msgstr ""
 "code muss mit einem Buchstaben/Unterstrich beginnen: Buchstaben, Ziffern,"
 " _"
 
-#: nx_lib/views/reporting.py:2675
+#: nx_lib/views/reporting.py:2677
 msgid "sourceId is required"
 msgstr "sourceId ist erforderlich"
 
-#: nx_lib/views/reporting.py:2680
+#: nx_lib/views/reporting.py:2682
 msgid "aggregation must be one of: "
 msgstr "aggregation muss einer der folgenden Werte sein: "
 
-#: nx_lib/views/reporting.py:2682
+#: nx_lib/views/reporting.py:2684
 msgid "baseField is required unless aggregation is 'count'"
 msgstr "baseField ist erforderlich, außer wenn aggregation 'count' ist"
 
-#: nx_lib/views/reporting.py:2741
+#: nx_lib/views/reporting.py:2743
 msgid "Could not list sources"
 msgstr "Quellen konnten nicht aufgelistet werden"
 
-#: nx_lib/views/reporting.py:2769
+#: nx_lib/views/reporting.py:2771
 msgid "Could not save source (code already exists?)"
 msgstr "Quelle konnte nicht gespeichert werden (Code bereits vorhanden?)"
 
-#: nx_lib/views/reporting.py:2798
+#: nx_lib/views/reporting.py:2800
 msgid "Could not update source"
 msgstr "Quelle konnte nicht aktualisiert werden"
 
-#: nx_lib/views/reporting.py:2816
+#: nx_lib/views/reporting.py:2818
 msgid "Could not delete source"
 msgstr "Quelle konnte nicht gelöscht werden"
 
-#: nx_lib/views/reporting.py:2861
+#: nx_lib/views/reporting.py:2863
 msgid "Could not list metrics"
 msgstr "Metriken konnten nicht aufgelistet werden"
 
-#: nx_lib/views/reporting.py:2890
+#: nx_lib/views/reporting.py:2892
 msgid "Could not save metric (code already exists?)"
 msgstr "Metrik konnte nicht gespeichert werden (Code bereits vorhanden?)"
 
-#: nx_lib/views/reporting.py:2919
+#: nx_lib/views/reporting.py:2921
 msgid "Could not update metric"
 msgstr "Metrik konnte nicht aktualisiert werden"
 
-#: nx_lib/views/reporting.py:2937
+#: nx_lib/views/reporting.py:2939
 msgid "Could not delete metric"
 msgstr "Metrik konnte nicht gelöscht werden"
 
@@ -760,7 +760,7 @@ msgstr "Beim Speichern der Datei ist ein Fehler aufgetreten."
 msgid "Invalid file type. Please upload a valid PDF."
 msgstr "Ungültiger Dateityp. Bitte laden Sie ein gültiges PDF hoch."
 
-#: nx_lib/views/workitems.py:1678 nx_lib/views/workitems.py:2149
+#: nx_lib/views/workitems.py:1678 nx_lib/views/workitems.py:2163
 msgid "This import is only available for the MS02 client."
 msgstr "Dieser Import ist nur für den MS02-Mandanten verfügbar."
 
@@ -800,19 +800,19 @@ msgstr "PDF-Seite konnte nicht gerendert werden"
 msgid "Failed to process TIFF image"
 msgstr "TIFF-Bild konnte nicht verarbeitet werden"
 
-#: nx_lib/views/workitems.py:1967
+#: nx_lib/views/workitems.py:1981
 msgid "Failed to fetch audit history"
 msgstr "Audit-Verlauf konnte nicht abgerufen werden"
 
-#: nx_lib/views/workitems.py:1969
+#: nx_lib/views/workitems.py:1983
 msgid "An unexpected error occurred"
 msgstr "Ein unerwarteter Fehler ist aufgetreten"
 
-#: nx_lib/views/workitems.py:2075
+#: nx_lib/views/workitems.py:2089
 msgid "This page is only available for the MS02 client."
 msgstr "Diese Seite ist nur für den MS02-Mandanten verfügbar."
 
-#: nx_lib/views/workitems.py:2155
+#: nx_lib/views/workitems.py:2169
 msgid "Could not clear the prepared documents. Please try again."
 msgstr ""
 "Die vorbereiteten Dokumente konnten nicht gelöscht werden. Bitte "
@@ -1248,11 +1248,11 @@ msgid "Query sent to the database"
 msgstr "An die Datenbank gesendete Abfrage"
 
 #: templates/_reporting_simple.html:237 templates/admin/logs.html:133
-#: templates/api_docs.html:131 templates/api_docs.html:137
-#: templates/api_docs.html:153 templates/api_docs.html:196
-#: templates/api_docs.html:202 templates/api_docs.html:231
-#: templates/api_docs.html:237 templates/api_docs.html:262
-#: templates/api_docs.html:268 templates/reporting.html:327
+#: templates/api_docs.html:132 templates/api_docs.html:138
+#: templates/api_docs.html:154 templates/api_docs.html:197
+#: templates/api_docs.html:203 templates/api_docs.html:232
+#: templates/api_docs.html:238 templates/api_docs.html:263
+#: templates/api_docs.html:269 templates/reporting.html:327
 msgid "Copy"
 msgstr "Kopieren"
 
@@ -1300,7 +1300,7 @@ msgstr "Leitfaden"
 msgid "Getting Started"
 msgstr "Erste Schritte"
 
-#: templates/api_docs.html:89 templates/api_docs.html:150
+#: templates/api_docs.html:89 templates/api_docs.html:151
 msgid "Authentication"
 msgstr "Authentifizierung"
 
@@ -1312,7 +1312,7 @@ msgstr "Fehler & Rate-Limits"
 msgid "Endpoints"
 msgstr "Endpunkte"
 
-#: templates/api_docs.html:103 templates/api_docs.html:258
+#: templates/api_docs.html:103 templates/api_docs.html:259
 msgid "Test sandbox"
 msgstr "Test-Sandbox"
 
@@ -1343,15 +1343,23 @@ msgstr "Umgebung"
 msgid "Base URL"
 msgstr "Basis-URL"
 
-#: templates/api_docs.html:122
-msgid "dev server"
-msgstr "Dev-Server"
+#: templates/api_docs.html:126
+msgid ""
+"Keys are not shared across environments: INT and PROD each run their own "
+"NexoraDB, so a key issued on one gets a uniform 401 on the other — same "
+"as an unknown key. Issue a key separately for each environment you need."
+msgstr ""
+"Schlüssel werden nicht zwischen Umgebungen geteilt: INT und PROD "
+"betreiben jeweils eine eigene NexoraDB, daher erhält ein auf der einen "
+"Seite ausgestellter Schlüssel auf der anderen einen einheitlichen "
+"401-Fehler — wie ein unbekannter Schlüssel. Stellen Sie für jede "
+"benötigte Umgebung einen eigenen Schlüssel aus."
 
-#: templates/api_docs.html:127
+#: templates/api_docs.html:128
 msgid "Quick start"
 msgstr "Schnellstart"
 
-#: templates/api_docs.html:128
+#: templates/api_docs.html:129
 msgid ""
 "One header, one GET — with an API key in hand, this is the whole "
 "integration:"
@@ -1359,20 +1367,20 @@ msgstr ""
 "Ein Header, ein GET — mit einem API-Schlüssel ist das die ganze "
 "Integration:"
 
-#: templates/api_docs.html:131 templates/api_docs.html:137
-#: templates/api_docs.html:153 templates/api_docs.html:196
-#: templates/api_docs.html:202 templates/api_docs.html:231
-#: templates/api_docs.html:237 templates/api_docs.html:262
-#: templates/api_docs.html:268
+#: templates/api_docs.html:132 templates/api_docs.html:138
+#: templates/api_docs.html:154 templates/api_docs.html:197
+#: templates/api_docs.html:203 templates/api_docs.html:232
+#: templates/api_docs.html:238 templates/api_docs.html:263
+#: templates/api_docs.html:269
 msgid "Copy code"
 msgstr "Code kopieren"
 
-#: templates/api_docs.html:136 templates/api_docs.html:201
-#: templates/api_docs.html:236 templates/api_docs.html:267
+#: templates/api_docs.html:137 templates/api_docs.html:202
+#: templates/api_docs.html:237 templates/api_docs.html:268
 msgid "response"
 msgstr "Antwort"
 
-#: templates/api_docs.html:145
+#: templates/api_docs.html:146
 msgid ""
 "In PowerShell use curl.exe — bare curl is an alias for Invoke-WebRequest,"
 " which spells the header differently. No key or a wrong key returns"
@@ -1381,11 +1389,11 @@ msgstr ""
 "WebRequest, das den Header anders schreibt. Ohne oder mit falschem "
 "Schlüssel kommt"
 
-#: templates/api_docs.html:151
+#: templates/api_docs.html:152
 msgid "Send your API key as a Bearer token on every request:"
 msgstr "Den API-Schlüssel bei jeder Anfrage als Bearer-Token mitsenden:"
 
-#: templates/api_docs.html:157
+#: templates/api_docs.html:158
 msgid ""
 "Keys are issued per client by the Sydoc team. Each key carries a process "
 "scope: it only ever sees the numbers of the processes it was issued for. "
@@ -1398,19 +1406,19 @@ msgstr ""
 " Kanal übergeben und ist danach nicht wiederherstellbar — sicher "
 "aufbewahren."
 
-#: templates/api_docs.html:158
+#: templates/api_docs.html:159
 msgid "Key lifecycle"
 msgstr "Schlüssel-Lebenszyklus"
 
-#: templates/api_docs.html:160
+#: templates/api_docs.html:161
 msgid "Keys do not expire on their own; they stay valid until revoked."
 msgstr "Schlüssel laufen nicht von selbst ab; sie bleiben bis zum Widerruf gültig."
 
-#: templates/api_docs.html:161
+#: templates/api_docs.html:162
 msgid "Revocation is effective immediately on the next request."
 msgstr "Ein Widerruf wirkt sofort ab der nächsten Anfrage."
 
-#: templates/api_docs.html:162
+#: templates/api_docs.html:163
 msgid ""
 "A revoked or unknown key answers a uniform 401 — deliberately "
 "indistinguishable, so a leaked key confirms nothing."
@@ -1418,7 +1426,7 @@ msgstr ""
 "Ein widerrufener oder unbekannter Schlüssel erhält ein einheitliches 401 "
 "— bewusst ununterscheidbar, damit ein geleakter Schlüssel nichts verrät."
 
-#: templates/api_docs.html:163
+#: templates/api_docs.html:164
 msgid ""
 "Rotation: request a new key from the Sydoc team, switch your integration,"
 " then the old key is disabled."
@@ -1426,11 +1434,11 @@ msgstr ""
 "Rotation: neuen Schlüssel beim Sydoc-Team anfordern, Integration "
 "umstellen, dann wird der alte Schlüssel deaktiviert."
 
-#: templates/api_docs.html:169
+#: templates/api_docs.html:170
 msgid "Errors"
 msgstr "Fehler"
 
-#: templates/api_docs.html:170
+#: templates/api_docs.html:171
 msgid ""
 "Errors are JSON unless noted. The body always carries an English error "
 "string — the API is not localized."
@@ -1439,7 +1447,7 @@ msgstr ""
 "einen englischen Fehlertext — die API ist nicht lokalisiert."
 
 #: templates/admin/logs.html:64 templates/admin/logs.html:97
-#: templates/admin/user_detail.html:226 templates/api_docs.html:173
+#: templates/admin/user_detail.html:226 templates/api_docs.html:174
 #: templates/appearance.html:355 templates/generali_importstatus.html:48
 #: templates/generali_importstatus.html:108
 #: templates/generali_reporting.html:114 templates/invoices.html:78
@@ -1448,56 +1456,56 @@ msgstr ""
 msgid "Status"
 msgstr "Status"
 
-#: templates/api_docs.html:173
+#: templates/api_docs.html:174
 msgid "Body"
 msgstr "Body"
 
-#: templates/api_docs.html:173 templates/api_docs.html:213
-#: templates/api_docs.html:246
+#: templates/api_docs.html:174 templates/api_docs.html:214
+#: templates/api_docs.html:247
 msgid "Meaning"
 msgstr "Bedeutung"
 
-#: templates/api_docs.html:175
+#: templates/api_docs.html:176
 msgid "Missing or malformed Authorization: Bearer header"
 msgstr "Fehlender oder fehlerhafter Authorization: Bearer Header"
 
-#: templates/api_docs.html:176
+#: templates/api_docs.html:177
 msgid "Unknown or disabled key (uniform on purpose)"
 msgstr "Unbekannter oder deaktivierter Schlüssel (absichtlich einheitlich)"
 
-#: templates/api_docs.html:177
+#: templates/api_docs.html:178
 msgid "Wrong path under"
 msgstr "Falscher Pfad unter"
 
-#: templates/api_docs.html:178 templates/api_docs.html:179
+#: templates/api_docs.html:179 templates/api_docs.html:180
 msgid "HTML"
 msgstr "HTML"
 
-#: templates/api_docs.html:178
+#: templates/api_docs.html:179
 msgid "Non-GET verb — the API is GET-only"
 msgstr "Nicht-GET-Verb — die API ist GET-only"
 
-#: templates/api_docs.html:179
+#: templates/api_docs.html:180
 msgid "Over the rate limit"
 msgstr "Rate-Limit überschritten"
 
-#: templates/api_docs.html:180
+#: templates/api_docs.html:181
 msgid "Backend or server failure"
 msgstr "Backend- oder Serverfehler"
 
-#: templates/api_docs.html:181
+#: templates/api_docs.html:182
 msgid "Auth database unreachable (fail closed)"
 msgstr "Auth-Datenbank nicht erreichbar (fail closed)"
 
-#: templates/api_docs.html:182
+#: templates/api_docs.html:183
 msgid "Blocking maintenance window"
 msgstr "Blockierendes Wartungsfenster"
 
-#: templates/api_docs.html:186
+#: templates/api_docs.html:187
 msgid "Rate limit"
 msgstr "Rate-Limit"
 
-#: templates/api_docs.html:187
+#: templates/api_docs.html:188
 msgid ""
 "60 requests per minute per source IP, checked before authentication. "
 "Exceeding it returns HTTP 429; back off and retry after the minute "
@@ -1507,7 +1515,7 @@ msgstr ""
 "Bei Überschreitung kommt HTTP 429; warten und nach dem Minutenfenster "
 "erneut versuchen."
 
-#: templates/api_docs.html:193
+#: templates/api_docs.html:194
 msgid ""
 "Today's imported and exported document counts, scoped to your key's "
 "processes — the same numbers as the nexora dashboard's \"today\" KPI "
@@ -1517,34 +1525,34 @@ msgstr ""
 "die Prozesse des Schlüssels — dieselben Zahlen wie die \"Heute\"-KPI-"
 "Kacheln des nexora-Dashboards."
 
-#: templates/api_docs.html:210 templates/api_docs.html:243
+#: templates/api_docs.html:211 templates/api_docs.html:244
 msgid "Response fields"
 msgstr "Antwortfelder"
 
-#: templates/api_docs.html:213 templates/api_docs.html:246
+#: templates/api_docs.html:214 templates/api_docs.html:247
 #: templates/js/_reporting_dashboard_js.html:76
 msgid "Field"
 msgstr "Feld"
 
-#: templates/api_docs.html:213 templates/api_docs.html:246
+#: templates/api_docs.html:214 templates/api_docs.html:247
 #: templates/generali_documents.html:226
 #: templates/js/_reporting_viz_js.html:166
 msgid "Type"
 msgstr "Typ"
 
-#: templates/api_docs.html:215
+#: templates/api_docs.html:216
 msgid "Server-local calendar date the counts refer to (ISO 8601)"
 msgstr "Server-lokales Kalenderdatum, auf das sich die Zahlen beziehen (ISO 8601)"
 
-#: templates/api_docs.html:216
+#: templates/api_docs.html:217
 msgid "Documents imported today"
 msgstr "Heute importierte Dokumente"
 
-#: templates/api_docs.html:217
+#: templates/api_docs.html:218
 msgid "Documents exported today"
 msgstr "Heute exportierte Dokumente"
 
-#: templates/api_docs.html:218
+#: templates/api_docs.html:219
 msgid ""
 "Your key's process scope, echoed for debugging. An empty scope returns "
 "zeros."
@@ -1552,11 +1560,11 @@ msgstr ""
 "Der Prozess-Scope des Schlüssels, zur Fehlersuche zurückgegeben. Ein "
 "leerer Scope liefert Nullen."
 
-#: templates/api_docs.html:222
+#: templates/api_docs.html:223
 msgid "Responses are computed fresh on every call — there is no cache."
 msgstr "Antworten werden bei jedem Aufruf frisch berechnet — es gibt keinen Cache."
 
-#: templates/api_docs.html:228
+#: templates/api_docs.html:229
 msgid ""
 "The current backlog count for your key's processes — the same number as "
 "the nexora dashboard's \"Current Backlog\" KPI tile."
@@ -1564,15 +1572,15 @@ msgstr ""
 "Der aktuelle Backlog-Stand für die Prozesse des Schlüssels — dieselbe "
 "Zahl wie die \"Current Backlog\"-KPI-Kachel des nexora-Dashboards."
 
-#: templates/api_docs.html:248
+#: templates/api_docs.html:249
 msgid "Server-local timestamp of the count (YYYY-MM-DD HH:MM)"
 msgstr "Server-lokaler Zeitstempel der Zählung (YYYY-MM-DD HH:MM)"
 
-#: templates/api_docs.html:249
+#: templates/api_docs.html:250
 msgid "Workitems currently in the backlog across your key's processes"
 msgstr "Workitems, die aktuell im Backlog der Prozesse des Schlüssels liegen"
 
-#: templates/api_docs.html:253
+#: templates/api_docs.html:254
 msgid ""
 "Unlike stats/today, the response does not echo the process list — scoping"
 " happens at key issuance."
@@ -1580,7 +1588,7 @@ msgstr ""
 "Anders als stats/today gibt die Antwort die Prozessliste nicht zurück — "
 "der Scope wird bei der Schlüsselausgabe festgelegt."
 
-#: templates/api_docs.html:259
+#: templates/api_docs.html:260
 msgid ""
 "Every endpoint above has a /api/test/v1/... twin: same path suffix, same "
 "Bearer-key auth, same response shape — but the numbers are random, not "
@@ -1588,20 +1596,20 @@ msgid ""
 "repeatedly while building an integration."
 msgstr ""
 "Jeder Endpunkt oben hat ein /api/test/v1/...-Gegenstück: gleicher "
-"Pfadsuffix, gleiche Bearer-Key-Authentifizierung, gleiches "
-"Antwortformat — aber die Zahlen sind zufällig, keine echten KPI-Werte. "
-"Es finden keine Backend-Abfragen statt, daher lässt es sich beim Aufbau "
-"einer Integration beliebig oft aufrufen."
+"Pfadsuffix, gleiche Bearer-Key-Authentifizierung, gleiches Antwortformat "
+"— aber die Zahlen sind zufällig, keine echten KPI-Werte. Es finden keine "
+"Backend-Abfragen statt, daher lässt es sich beim Aufbau einer Integration"
+" beliebig oft aufrufen."
 
-#: templates/api_docs.html:276
+#: templates/api_docs.html:277
 msgid ""
 "Use a real (enabled) API key — the same auth errors (401/429) apply. "
 "Available for both"
 msgstr ""
-"Verwenden Sie einen echten (aktivierten) API-Schlüssel — dieselben "
-"Auth-Fehler (401/429) gelten. Verfügbar für beide"
+"Verwenden Sie einen echten (aktivierten) API-Schlüssel — dieselben Auth-"
+"Fehler (401/429) gelten. Verfügbar für beide"
 
-#: templates/api_docs.html:276
+#: templates/api_docs.html:277
 msgid "and"
 msgstr "und"
 
@@ -7169,4 +7177,22 @@ msgstr ""
 
 #~ msgid "header"
 #~ msgstr "Jahr"
+
+#~ msgid "dev server"
+#~ msgstr "Dev-Server"
+
+#~ msgid "Search PID"
+#~ msgstr "Felder suchen…"
+
+#~ msgid "Any"
+#~ msgstr "Tag"
+
+#~ msgid "No"
+#~ msgstr "Keine"
+
+#~ msgid "Group by"
+#~ msgstr "Gruppieren nach"
+
+#~ msgid "page"
+#~ msgstr "Seite"
 

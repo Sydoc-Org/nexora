@@ -16,11 +16,17 @@ in `nx_lib/workitem_sources.py`), table created by
 | Environment | Base URL |
 |---|---|
 | PROD | `https://nexora.sydoc.ch/nexora/api/v1` |
-| INT (dev server) | `http://127.0.0.1:8000/api/v1` |
+| INT | `http://127.0.0.1:8000/api/v1` |
 
 PROD serves the app under the `/nexora` prefix via `PrefixMiddleware`; the
 Flask routes themselves are registered unprefixed, so no code is
 prefix-aware. The dev server binds port 8000 (`FLASK_RUN_PORT`).
+
+Keys are **not** shared across environments: INT and PROD each run their own
+NexoraDB (`NexoraDB_INT` vs `NexoraDB`), so `dbo.ApiKeys` is a separate table
+per environment. A key issued on INT gets a uniform 401 against PROD, and
+vice versa — same as an unknown key (no existence oracle). Issue a key
+against each environment separately (see "Issuing a key" below).
 
 ## Quick start
 

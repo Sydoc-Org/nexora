@@ -119,10 +119,11 @@
               <thead><tr><th>{{ _("Environment") }}</th><th>{{ _("Base URL") }}</th></tr></thead>
               <tbody>
                 <tr><td>PROD</td><td class="apidocs-td"><code>https://nexora.sydoc.ch/nexora/api/v1</code></td></tr>
-                <tr><td>INT ({{ _("dev server") }})</td><td class="apidocs-td"><code>http://127.0.0.1:8000/api/v1</code></td></tr>
+                <tr><td>INT</td><td class="apidocs-td"><code>http://127.0.0.1:8000/api/v1</code></td></tr>
               </tbody>
             </table>
           </div>
+          <p class="apidocs-p">{{ _("Keys are not shared across environments: INT and PROD each run their own NexoraDB, so a key issued on one gets a uniform 401 on the other — same as an unknown key. Issue a key separately for each environment you need.") }}</p>
 
           <h2 class="apidocs-h2">{{ _("Quick start") }}</h2>
           <p class="apidocs-p">{{ _("One header, one GET — with an API key in hand, this is the whole integration:") }}</p>
