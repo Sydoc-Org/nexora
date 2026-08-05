@@ -7,6 +7,7 @@ import base64
 import hashlib
 import io
 import json
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.parse import urlsplit, urlunsplit
 
 import requests
@@ -158,27 +159,62 @@ def get_extensions_urls_fields(workitemdata, document_id, domain=None, with_tabl
     # depth. Single documents and one-level batches are unaffected.
     items_to_process = items_of(doc_json)
 
+    # First pass (no I/O): resolve each item's media list and collect every
+    # distinct PDF media URL that needs a page count.
+    item_media = []
+    pdf_urls_to_count = set()
     for item in items_to_process:
-        media_list = item.get("Media") or []
-        item_pdf_pages = 0
-        for media in media_list:
+        resolved_media = []
+        for media in item.get("Media") or []:
             ext = str(media.get("Extension", "")).lower()
             raw_url = media.get("Url")
             if not raw_url:
                 continue
             url = _media_url_for_gateway(raw_url, domain)
             if ext in (".jpg", ".jpeg", ".png", ".tif"):
-                urls.append(url)
-                extensions.append(ext)
+                resolved_media.append(("img", url, ext))
             elif ext == ".pdf":
-                # One PDF media = N page images. Expand into per-page slots so the
-                # viewer shows every page; each slot carries its 0-based page in
-                # the URL fragment and is rasterised on demand by api_get_media_raw.
+                resolved_media.append(("pdf", url, ext))
+                pdf_urls_to_count.add(url)
+        item_media.append(resolved_media)
+
+    # Counting a PDF's pages means downloading the whole document
+    # (pdf_src_bytes) and parsing it -- a container/batch workitem with
+    # several PDF media items paid for that sequentially, one at a time,
+    # which was the dominant cost behind get_media_info's worst-case latency.
+    # Resolve every distinct PDF concurrently instead.
+    pdf_page_count_by_url = {}
+    if pdf_urls_to_count:
+        _app = current_app._get_current_object()
+
+        def _count_pdf(pdf_url):
+            with _app.app_context():
                 try:
-                    n_pages = pdf_page_count(pdf_src_bytes(url, domain))
+                    return pdf_url, pdf_page_count(pdf_src_bytes(pdf_url, domain))
                 except Exception as e:
                     current_app.logger.error(f"pdf expand: {e}")
-                    n_pages = 0
+                    return pdf_url, 0
+
+        with ThreadPoolExecutor(max_workers=min(10, len(pdf_urls_to_count))) as executor:
+            futures = [executor.submit(_count_pdf, u) for u in pdf_urls_to_count]
+            for future in as_completed(futures):
+                pdf_url, n_pages = future.result()
+                pdf_page_count_by_url[pdf_url] = n_pages
+
+    # Second pass (no I/O): rebuild urls/extensions in original item/media
+    # order using the resolved PDF page counts, and extract fields.
+    for item, resolved_media in zip(items_to_process, item_media, strict=True):
+        item_pdf_pages = 0
+        for kind, url, ext in resolved_media:
+            if kind == "img":
+                urls.append(url)
+                extensions.append(ext)
+            else:
+                # One PDF media = N page images. Expand into per-page slots so
+                # the viewer shows every page; each slot carries its 0-based
+                # page in the URL fragment and is rasterised on demand by
+                # api_get_media_raw.
+                n_pages = pdf_page_count_by_url.get(url, 0)
                 for p in range(n_pages):
                     urls.append(f"{url}#page={p}")
                     extensions.append(".pdf")

@@ -1901,13 +1901,21 @@ def api_get_media_raw(workitem_id, media_index):
                 print(f"An error occurred during TIFF conversion: {e}")
                 return _("Failed to process TIFF image"), 500
 
-        raw_media_bytes = get_media(target_url, domain)
         if target_extension == ".jpg":
             mimetype = "image/jpeg"
         elif target_extension == ".png":
             mimetype = "image/png"
         else:
             mimetype = "application/octet-stream"
+
+        # JPG/PNG media streamed straight from Octo, same as the PDF/TIFF
+        # branches above -- cache the raw bytes server-side so a re-opened
+        # detail panel (or a second viewer) doesn't re-fetch from Octo.
+        _img_cache_key = _wi_cache_key(f"media_raw_img_{media_index}", workitem_id, domain)
+        raw_media_bytes = cache.get(_img_cache_key)
+        if raw_media_bytes is None:
+            raw_media_bytes = get_media(target_url, domain)
+            cache.set(_img_cache_key, raw_media_bytes, timeout=3600)
 
         response = make_response(raw_media_bytes)
         response.headers.set("Content-Type", mimetype)
