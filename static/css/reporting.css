@@ -2356,3 +2356,8 @@ html.dark .rdb-card-ctrl-btn--danger:hover { background: rgba(248, 113, 113, .15
 html.dark .rdb-card-configure:hover { border-color: var(--nx-accent); }
 html.dark .rdb-add-tile:hover { background: var(--nx-accent-soft); }
 html.dark .rdb-add-pill:hover { border-color: var(--nx-accent); }
+
+/* Forecast toggle + horizon (issue #168) */
+.rs-forecast-horizon { font-size: 12px; padding: 2px 6px; border-radius: 8px;
+  border: 1px solid var(--nx-border); background: var(--nx-card); color: inherit; }
+#rsForecastToggle[disabled] { opacity: .4; cursor: not-allowed; }

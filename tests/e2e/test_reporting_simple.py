@@ -3932,3 +3932,76 @@ def test_caption_hides_silently_on_error_no_console_noise(nexora_server, page):
         assert page_errors == [], f"unexpected uncaught exceptions: {page_errors}"
     finally:
         _cleanup_caption_wizard(page, ids)
+
+
+# ---------------------------------------------------------------------------
+# Task 5: Forecast toggle (Simple tab chart toolbar)
+# ---------------------------------------------------------------------------
+
+
+def test_forecast_toggle_requests_and_renders_forecast(nexora_server, page):
+    """Toggling Forecast re-runs with forecast.enabled and renders the
+    dashed-extension buckets as marked table rows."""
+    _login(page, nexora_server)
+    _stub_catalogs(page)
+    fc_block = {
+        "anchor": "2025-08-01",
+        "grain": "month",
+        "method": "trend",
+        "horizon": 3,
+        "buckets": ["2025-09-01", "2025-10-01", "2025-11-01"],
+        "series": [
+            {
+                "field": "doc_count",
+                "values": [26.0, 28.0, 30.0],
+                "lower": [24.0, 25.5, 27.0],
+                "upper": [28.0, 30.5, 33.0],
+            }
+        ],
+    }
+
+    def run_stub(route):
+        body = route.request.post_data_json or {}
+        payload = {
+            "columns": [{"field": "export_date"}, {"field": "doc_count"}],
+            "rows": [[f"2025-{m:02d}-01", 10 + 2 * (m - 1)] for m in range(1, 9)],
+            "rowCount": 8,
+            "truncated": False,
+            "resolvedDates": [],
+        }
+        if (body.get("forecast") or {}).get("enabled"):
+            payload["forecast"] = fc_block
+        route.fulfill(json=payload)
+
+    page.route("**/api/reporting/run", run_stub)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+
+    # Build/run a 1-date-dim + metric report the same way the neighbouring
+    # wizard e2e tests do (import_date breakdown + Last 3 months).
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Stub count").click()
+    page.get_by_test_id("rs-measure-next").click()
+    page.get_by_test_id("rs-breakdown-list").locator('[data-bd-field="import_date"]').click()
+    page.get_by_test_id("rs-breakdown-next").click()
+    page.get_by_test_id("rs-time-list").get_by_text("Last 3 months", exact=True).click()
+    page.get_by_test_id("rs-wizard-run").click()
+
+    expect(page.get_by_test_id("rs-result")).to_be_visible()
+
+    toggle = page.get_by_test_id("rs-forecast-toggle")
+    expect(toggle).to_be_visible()
+    expect(toggle).to_have_attribute("aria-pressed", "false")
+    toggle.click()
+    expect(toggle).to_have_attribute("aria-pressed", "true")
+    expect(page.get_by_test_id("rs-forecast-horizon")).to_be_visible()
+
+    # Predicted rows land in the table, marked
+    page.get_by_test_id("rs-table-toggle").click()
+    rows = page.get_by_test_id("rs-forecast-row")
+    expect(rows).to_have_count(3)
+    expect(rows.first).to_contain_text("2025-09-01")
+    expect(rows.first).to_contain_text("Forecast")
+
+    # Toggle off -> rows disappear
+    toggle.click()
+    expect(page.get_by_test_id("rs-forecast-row")).to_have_count(0)
