@@ -10,6 +10,16 @@ Work toward 2.5.65.
 
 ### Added
 
+- **`scripts/env-sync.py`** — compares the gitignored env files in a checkout
+  against the SYAPP01 copies (`\\syapp01\d$\sydoc\nexora\env`). Because
+  `deploy.yml` excludes `*.env` from the robocopy mirror, a key added to the
+  committed `env/PROD.env.example` never reaches the server on its own, and
+  forgetting is silent — `SUPPORT_MAIL` is the reference case. The check is
+  three-way (example vs local vs server), so a key the repo declares with a real
+  default but the server lacks is reported as the deploy-forgot bug, while
+  opt-in keys left blank in the example are collapsed to a count. Values are
+  masked to fingerprints unless `--show-values`; exits non-zero on drift;
+  `--push`/`--pull` copy a whole file after backing the destination up.
 - **PROD outage detection with support-ticket mail** (#166) — a new
   `ops/outage_monitor.py`, run by Task Scheduler on SYAPP01 outside the Flask
   process (an in-app scheduler cannot report the app being dead), probes every
