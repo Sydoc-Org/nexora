@@ -15,6 +15,18 @@ So the useful check is three-way:
 * **local** -- `env/PROD.env` in this checkout.
 * **server** -- `\\\\syapp01\\d$\\sydoc\\nexora\\env\\PROD.env`.
 
+Run it by hand once per deploy that touched an env key -- right before or right
+after. It is deliberately not automated and not a hook: it reports, you decide.
+
+What it will and will not complain about:
+
+* A key the example declares but the server lacks is **actionable** and sets the
+  exit code. That is a shape problem, and the answer is always "add the key".
+* A key set on both sides with **different values** is only ever informational.
+  Dev and PROD hold different credentials and endpoints, and PROD legitimately
+  lags dev until the matching deploy lands, so failing on that would cry wolf
+  every run. The script shows the difference; judging it is your call.
+
 Values are masked by default: this prints a short fingerprint per side, enough
 to see that two secrets differ without pasting credentials into a terminal
 (or an AI transcript). Pass --show-values when you actually need to read them.
@@ -137,14 +149,16 @@ def report(name, show_values, verbose=False):
 
     if f["missing_on_server"]:
         print(
-            f"  [!] {name}.example ships a value but the SERVER HAS NO SUCH KEY "
-            f"({len(f['missing_on_server'])}) -- the deploy-forgot bug:"
+            f"  [!] ACTION NEEDED -- {name}.example declares these but the server "
+            f"has no such key ({len(f['missing_on_server'])}).\n"
+            f"      Paste onto {REMOTE_ENV_DIR / name} (values are the committed "
+            f"defaults; edit if PROD differs):"
         )
         for k in f["missing_on_server"]:
             # The example is committed, so its defaults are never secret.
             ex_val = str((example or {}).get(k) or "")
-            shown = ex_val if len(ex_val) <= 48 else ex_val[:45] + "..."
-            print(f"        {k:<28} example default: {shown}")
+            shown = ex_val if len(ex_val) <= 60 else ex_val[:57] + "..."
+            print(f"        {k}={shown}")
     if f["missing_on_server_optional"] and verbose:
         print(
             f"  [ ] opt-in keys (blank in {name}.example) absent on server "
@@ -169,21 +183,27 @@ def report(name, show_values, verbose=False):
         for k in f["missing_locally_optional"]:
             print(f"        {k}")
     if f["value_differs"]:
-        print(f"  [~] value differs local vs server ({len(f['value_differs'])}):")
+        print(
+            f"  [~] FYI -- set on both sides with different values "
+            f"({len(f['value_differs'])}). Usually correct: dev and PROD hold "
+            f"different credentials and endpoints, and PROD legitimately lags\n"
+            f"      dev until the matching deploy lands. Judgement call:"
+        )
         for k in f["value_differs"]:
             print(f"        {k:<28} {_fmt_key(k, local, remote, show_values)}")
     if f["undeclared_on_server"]:
-        print(f"  [ ] on server but not in {name}.example " f"({len(f['undeclared_on_server'])}):")
+        print(f"  [ ] on server but not in {name}.example ({len(f['undeclared_on_server'])}):")
         for k in f["undeclared_on_server"]:
             print(f"        {k}")
 
-    # Only actionable findings count as drift (and drive the exit code). An
-    # opt-in key left unset, or a server-only key, is the normal state -- if
-    # those made the script exit 1 it would cry wolf on every run and stop
-    # being worth running.
-    drift = bool(f["missing_on_server"] or f["missing_locally"] or f["value_differs"])
+    # Only a key the server has never heard of drives the exit code. A differing
+    # *value* is the normal state -- dev and PROD hold different secrets, and
+    # PROD deliberately lags dev until its deploy lands -- so failing on that
+    # would cry wolf on every run and stop the script being worth running. The
+    # shape of the file is checkable; whether a value is right is a human call.
+    drift = bool(f["missing_on_server"])
     if not drift and local is not None and remote is not None:
-        print("  in sync")
+        print("  no missing keys")
     return drift
 
 
@@ -256,13 +276,15 @@ def main():
 
     print()
     if drift:
-        print("Drift found. Review above, then:")
+        print("Keys are missing on the server (see ACTION NEEDED above).")
+        print("Best fix is pasting those lines into the server file by hand: pushing")
+        print("the whole file also overwrites server-only values and any PROD setting")
+        print("that is deliberately different from dev. If you do want the whole file:")
         print("  python scripts/env-sync.py --push PROD.env   # local  -> server")
         print("  python scripts/env-sync.py --pull PROD.env   # server -> local")
-        print("A key listed as MISSING ON SERVER is usually best added by hand on")
-        print("SYAPP01 -- pushing the whole file also overwrites server-only values.")
         return 1
-    print("All managed env files in sync.")
+    print("No keys missing on the server. Any [~] value differences above are")
+    print("informational -- dev and PROD are expected to diverge.")
     return 0
 
 
