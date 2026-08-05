@@ -10,6 +10,25 @@ Work toward 2.5.65.
 
 ### Added
 
+- **Admin status page** (#167) — `/admin/status`, gated by the new
+  `admin.status.view` permission (migration `0055`, granted to every profile that
+  already has `admin.view`). Shows each component's state
+  (operational / degraded / outage, with an active maintenance window taking over
+  the headline), a 30-day uptime strip, any open incidents with their evidence,
+  and the incident history with durations. It renders only what the #166 outage
+  monitor persisted rather than probing on page load — the question it answers is
+  "what has been true since yesterday evening", which a request-scoped ping
+  cannot. When the monitor has not reported for more than 15 minutes the page
+  says so instead of rendering a reassuring all-green grid from stale rows.
+  `ops/outage_monitor.py` now also probes Microsoft Graph (token only — a probe
+  that sent mail would spam the mailbox every 5 minutes) and the Bexio API, and
+  mirrors every run into the new `dbo.StatusComponents` / `dbo.StatusIncidents`
+  tables. The mirror write is best-effort and wrapped: NexoraDB being down is one
+  of the things the monitor exists to report, so a failed write must never cost
+  the alert mail. Log-storm components stay out of the component grid (their keys
+  are content hashes) and surface as incidents only. The two tables are the data
+  model the eventual public status page — which has to live outside the app to
+  survive a full outage — will consume.
 - **Pull-request template** (`.github/pull_request_template.md`) — checklist for
   the things nothing else catches when merging to `main`, chiefly: env keys
   added to `env/*.env.example` never reach SYAPP01 on their own, because

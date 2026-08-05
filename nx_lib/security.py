@@ -147,6 +147,7 @@ def page_visibility():
         "generaliProjectManagementPerm": has_permission("generali.projectmanagement.view"),
         "generaliPDQMPerm": has_permission("generali.pdqm.view"),
         "generaliImportStatusPerm": has_permission("generali.importstatus.view"),
+        "adminStatusPagePerm": has_permission("admin.status.view"),
         "adminMaintenanceViewPerm": has_permission("admin.maintenance.view"),
         "adminMaintenanceEditPerm": has_permission("admin.maintenance.edit"),
         "adminMaintenanceBypassPerm": has_permission("admin.maintenance.bypass"),

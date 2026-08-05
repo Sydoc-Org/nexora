@@ -42,7 +42,15 @@ Scheduler on SYAPP01.
 | `db:<engine>` | `SELECT 1` via `ping_dbs_parallel`, 5s timeout | DB server down, credentials expired, network partition |
 | `http:site` | `GET` on `OUTAGE_SITE_URL` | IIS down, app pool crashed, WSGI import error |
 | `octo:<domain>` | `POST /auth/connect/token` | Octo vendor-side outage |
+| `graph:mail` | Graph ROPC token request | expired Graph credentials — which silently kill alert mail itself |
+| `bexio:api` | `GET /2.0/company_profile` | Bexio outage or an expired PAT, breaking invoices |
 | `log storm @ <site>` | repeated `ERROR` signature in `app.log` | logic-level breakage while every connectivity probe stays green |
+
+The Graph probe asks for a **token only**. Actually sending a message would be a
+truer end-to-end check but would also drop mail in the mailbox every 5 minutes,
+and a failing token is what kills alert mail anyway. Both the Graph and Bexio
+probes skip themselves when their credentials are not configured for the
+environment, the same way the MS02 engines do.
 
 The log-storm probe is the one that would have caught the `0042` incident. It
 reads the tail of `var/logs/system/app.log`, normalizes each `ERROR` message
@@ -83,6 +91,49 @@ All components breaching in the same run batch into **one** mail: a single root
 cause (a DB going down) trips every call site that touches it, and support wants
 one ticket for that, not twenty. The subject names the first three components
 and appends `(+N more)`; the body lists every one with its evidence.
+
+## The status page (`/admin/status`)
+
+Every run is also mirrored into two NexoraDB tables (migration `0055`), which is
+all the admin status page reads:
+
+| Table | Holds |
+|---|---|
+| `dbo.StatusComponents` | one row per fixed component — current state, detail, `FirstSeenAt`, `LastCheckedAt`, `LastOkAt`; overwritten each run |
+| `dbo.StatusIncidents` | append-only outage log; `EndedAt IS NULL` means still open |
+
+Log-storm components appear **only** in `StatusIncidents`. Their keys are content
+hashes of an error signature, so a permanent row per signature ever seen would
+turn the component grid into a junk drawer.
+
+The mirror write is best-effort and wrapped in `try/except`: NexoraDB being down
+is one of the things this monitor exists to report, so a failed write prints a
+warning and the alert mail still goes out. `var/outage-state.json` — not the DB —
+remains the working state for hysteresis, for the same reason.
+
+The page (`nx_lib/views/admin.py` → `admin_status_view`, permission
+`admin.status.view`) never probes on page load. The question it answers is "what
+has been true since yesterday evening", which a request-scoped ping cannot. The
+flip side is that it is only as fresh as the scheduled task: when nothing has
+been recorded for **15 minutes** the page reports the data as stale instead of
+rendering a reassuring all-green grid.
+
+Component states are `operational`, `degraded` (probes failing but not yet past
+the fail threshold — the window where the monitor is deliberately silent) and
+`outage`. An active `MaintenanceBanner` window takes over the headline only;
+component states stay factual, so real breakage during a maintenance window is
+still visible.
+
+On INT there is no scheduled task, so the page stays empty until you run the
+monitor by hand:
+
+```powershell
+$env:ENVIRONMENT = "INT"; python ops\outage_monitor.py
+```
+
+A future public status page for clients has to live outside the app to survive a
+full app outage. It should read these same two tables rather than growing a
+second data model.
 
 ## Configuration
 

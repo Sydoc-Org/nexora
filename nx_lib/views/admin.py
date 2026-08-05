@@ -23,6 +23,7 @@ from flask import (
 from flask_babel import gettext as _
 from werkzeug.exceptions import HTTPException
 
+from .. import status
 from ..db import (
     engine_generali_db,
     engine_ms02_docfields_pg,
@@ -35,6 +36,7 @@ from ..db import (
 )
 from ..maintenance import (
     _MAINTENANCE_BLOCK_CACHE,
+    _get_blocking_maintenance,
     _maintenance_parse_payload,
     _maintenance_row_to_dict,
 )
@@ -286,6 +288,37 @@ def api_admin_organizations_list():
             cursor.close()
         if conn:
             conn.close()
+
+
+# ----------------------------------- status page ---------------------------------- #
+
+
+@require_permission("admin.status.view")
+def admin_status_view():
+    """Component health + incident history, as recorded by ops/outage_monitor.py.
+
+    Deliberately reads only what the monitor persisted (issue #167) instead of
+    probing on page load: the point of the page is "what has been true since
+    yesterday evening", which a request-scoped ping cannot answer. When the
+    monitor has not reported recently the page says so rather than rendering a
+    reassuring all-green grid from stale rows.
+    """
+    try:
+        data = status.load_status(
+            engine_nexora_db,
+            maintenance=_get_blocking_maintenance() is not None,
+        )
+    except Exception as e:
+        current_app.logger.error(f"Failed to load status page data: {e}")
+        return render_template("handlers/500.html"), 500
+    return render_template(
+        "admin/status.html",
+        status=data,
+        stale_after_min=status.DEFAULT_STALE_AFTER_S // 60,
+        logged_in_user=session.get("username"),
+        userid=session.get("userid"),
+        pageV=page_visibility(),
+    )
 
 
 # ----------------------------------- maintenance banner ---------------------------------- #
@@ -1929,6 +1962,9 @@ def register_routes(app):
         endpoint="api_admin_organizations_list",
         view_func=api_admin_organizations_list,
     )
+
+    # status page
+    app.add_url_rule("/admin/status", endpoint="admin_status_view", view_func=admin_status_view)
 
     # maintenance banner
     app.add_url_rule(

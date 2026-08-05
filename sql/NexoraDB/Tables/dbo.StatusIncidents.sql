@@ -1,0 +1,44 @@
+﻿USE [nexora]
+GO
+DROP INDEX [UX_StatusIncidents_Open] ON [dbo].[StatusIncidents]
+GO
+DROP INDEX [IX_StatusIncidents_StartedAt] ON [dbo].[StatusIncidents]
+GO
+DROP TABLE [dbo].[StatusIncidents]
+GO
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[StatusIncidents](
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[ComponentKey] [nvarchar](200) NOT NULL,
+	[ComponentName] [nvarchar](200) NOT NULL,
+	[StartedAt] [datetime2](0) NOT NULL,
+	[EndedAt] [datetime2](0) NULL,
+	[Detail] [nvarchar](1000) NULL,
+	[Excerpt] [nvarchar](max) NULL,
+ CONSTRAINT [PK_StatusIncidents] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+SET ANSI_PADDING ON
+GO
+CREATE NONCLUSTERED INDEX [IX_StatusIncidents_StartedAt] ON [dbo].[StatusIncidents]
+(
+	[StartedAt] DESC
+)
+INCLUDE ( 	[ComponentKey],
+	[EndedAt]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+GO
+SET ANSI_PADDING ON
+GO
+CREATE UNIQUE NONCLUSTERED INDEX [UX_StatusIncidents_Open] ON [dbo].[StatusIncidents]
+(
+	[ComponentKey] ASC
+)
+WHERE ([EndedAt] IS NULL)
+WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+GO

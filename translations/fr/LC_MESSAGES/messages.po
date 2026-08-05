@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-05 10:01+0200\n"
+"POT-Creation-Date: 2026-08-05 12:31+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -38,44 +38,44 @@ msgstr "Date d'export"
 msgid "Workitem ID"
 msgstr "ID Workitem"
 
-#: nx_lib/views/admin.py:185 nx_lib/views/admin.py:701
+#: nx_lib/views/admin.py:187 nx_lib/views/admin.py:734
 msgid "All fields are required."
 msgstr "Tous les champs sont obligatoires."
 
-#: nx_lib/views/admin.py:200
+#: nx_lib/views/admin.py:202
 msgid "Organization created successfully."
 msgstr "Organisation créée avec succès."
 
-#: nx_lib/views/admin.py:202
+#: nx_lib/views/admin.py:204
 msgid "Organization already exists."
 msgstr "L'organisation existe déjà."
 
-#: nx_lib/views/admin.py:205 nx_lib/views/admin.py:769
+#: nx_lib/views/admin.py:207 nx_lib/views/admin.py:802
 msgid "An unexpected error occurred."
 msgstr "Une erreur inattendue s'est produite."
 
-#: nx_lib/views/admin.py:229
+#: nx_lib/views/admin.py:231
 msgid "Organization updated successfully."
 msgstr "Organisation mise à jour avec succès."
 
-#: nx_lib/views/admin.py:232 nx_lib/views/admin.py:256
-#: nx_lib/views/admin.py:851 nx_lib/views/admin.py:1091
+#: nx_lib/views/admin.py:234 nx_lib/views/admin.py:258
+#: nx_lib/views/admin.py:884 nx_lib/views/admin.py:1124
 msgid "An error occurred."
 msgstr "Une erreur s'est produite."
 
-#: nx_lib/views/admin.py:251
+#: nx_lib/views/admin.py:253
 msgid "Organization not found."
 msgstr "Organisation introuvable."
 
-#: nx_lib/views/admin.py:253
+#: nx_lib/views/admin.py:255
 msgid "Organization deleted successfully."
 msgstr "Organisation supprimée avec succès."
 
-#: nx_lib/views/admin.py:709 nx_lib/views/admin.py:823
+#: nx_lib/views/admin.py:742 nx_lib/views/admin.py:856
 msgid "Permission Denied for this action."
 msgstr "Autorisation refusée pour cette action."
 
-#: nx_lib/views/admin.py:757
+#: nx_lib/views/admin.py:790
 msgid ""
 "User created, but the email could not be sent. Ask them to use 'Forgot "
 "password'."
@@ -83,86 +83,86 @@ msgstr ""
 "Utilisateur créé, mais l'e-mail n'a pas pu être envoyé. Demandez-lui "
 "d'utiliser la fonction 'Mot de passe oublié'."
 
-#: nx_lib/views/admin.py:762
+#: nx_lib/views/admin.py:795
 msgid "User created and email sent."
 msgstr "Utilisateur créé et e-mail envoyé."
 
-#: nx_lib/views/admin.py:764 templates/js/admin/_access_control_js.html:564
+#: nx_lib/views/admin.py:797 templates/js/admin/_access_control_js.html:564
 msgid "User created successfully."
 msgstr "Utilisateur créé avec succès."
 
-#: nx_lib/views/admin.py:766
+#: nx_lib/views/admin.py:799
 msgid "Username or email already exists."
 msgstr "Le nom d'utilisateur ou l'e-mail existe déjà."
 
-#: nx_lib/views/admin.py:848
+#: nx_lib/views/admin.py:881
 msgid "User updated successfully."
 msgstr "Utilisateur mis à jour avec succès."
 
-#: nx_lib/views/admin.py:1037
+#: nx_lib/views/admin.py:1070
 msgid "You cannot delete your own account."
 msgstr "Vous ne pouvez pas supprimer votre propre compte."
 
-#: nx_lib/views/admin.py:1083
+#: nx_lib/views/admin.py:1116
 msgid "User not found."
 msgstr "Utilisateur introuvable."
 
-#: nx_lib/views/admin.py:1085
+#: nx_lib/views/admin.py:1118
 msgid "User deleted successfully."
 msgstr "Utilisateur supprimé avec succès."
 
-#: nx_lib/views/admin.py:1214
+#: nx_lib/views/admin.py:1247
 msgid "Could not fetch logs"
 msgstr "Impossible de récupérer les journaux"
 
-#: nx_lib/views/admin.py:1258
+#: nx_lib/views/admin.py:1291
 msgid "Could not fetch sessions"
 msgstr "Impossible de récupérer les sessions"
 
-#: nx_lib/views/admin.py:1355 nx_lib/views/admin.py:1665
-#: nx_lib/views/admin.py:1707 nx_lib/views/admin.py:1752
-#: nx_lib/views/admin.py:1791 nx_lib/views/admin.py:1828
-#: nx_lib/views/admin.py:1860 nx_lib/views/dashboard.py:252
+#: nx_lib/views/admin.py:1388 nx_lib/views/admin.py:1698
+#: nx_lib/views/admin.py:1740 nx_lib/views/admin.py:1785
+#: nx_lib/views/admin.py:1824 nx_lib/views/admin.py:1861
+#: nx_lib/views/admin.py:1893 nx_lib/views/dashboard.py:252
 #: nx_lib/views/dashboard.py:362 nx_lib/views/dashboard.py:417
 #: nx_lib/views/dashboard.py:509 nx_lib/views/invoices.py:280
 #: nx_lib/views/workitems.py:978 nx_lib/views/workitems.py:1716
 msgid "Not authorized"
 msgstr "Non autorisé"
 
-#: nx_lib/views/admin.py:1398
+#: nx_lib/views/admin.py:1431
 msgid "Could not fetch users"
 msgstr "Impossible de récupérer les utilisateurs"
 
-#: nx_lib/views/admin.py:1444
+#: nx_lib/views/admin.py:1477
 msgid "Name is required"
 msgstr "Le nom est obligatoire"
 
-#: nx_lib/views/admin.py:1472
+#: nx_lib/views/admin.py:1505
 msgid "Profile saved successfully"
 msgstr "Profil enregistré avec succès"
 
-#: nx_lib/views/admin.py:1651
+#: nx_lib/views/admin.py:1684
 msgid "Overrides updated successfully"
 msgstr "Dérogations mises à jour avec succès"
 
-#: nx_lib/views/admin.py:1716 nx_lib/views/admin.py:1844
-#: nx_lib/views/admin.py:1886
+#: nx_lib/views/admin.py:1749 nx_lib/views/admin.py:1877
+#: nx_lib/views/admin.py:1919
 msgid "Permission not found"
 msgstr "Autorisation introuvable"
 
-#: nx_lib/views/admin.py:1796 nx_lib/views/admin.py:1833
+#: nx_lib/views/admin.py:1829 nx_lib/views/admin.py:1866
 msgid "Code and description are required"
 msgstr "Le code et la description sont obligatoires"
 
-#: nx_lib/views/admin.py:1811
+#: nx_lib/views/admin.py:1844
 msgid "Permission created successfully"
 msgstr "Autorisation créée avec succès"
 
-#: nx_lib/views/admin.py:1846
+#: nx_lib/views/admin.py:1879
 msgid "Permission updated successfully"
 msgstr "Autorisation mise à jour avec succès"
 
-#: nx_lib/views/admin.py:1879
+#: nx_lib/views/admin.py:1912
 #, python-format
 msgid ""
 "Cannot delete: used in %(p)d profile(s) and %(o)d override(s). Remove all"
@@ -171,7 +171,7 @@ msgstr ""
 "Impossible de supprimer : utilisé dans %(p)d profil(s) et %(o)d "
 "substitution(s). Veuillez d'abord supprimer toutes les affectations."
 
-#: nx_lib/views/admin.py:1888
+#: nx_lib/views/admin.py:1921
 msgid "Permission deleted successfully"
 msgstr "Autorisation supprimée avec succès"
 
@@ -842,26 +842,37 @@ msgstr "Sessions"
 msgid "Logs"
 msgstr "Journaux"
 
-#: templates/_header.html:212
+#: templates/_header.html:212 templates/admin/logs.html:64
+#: templates/admin/logs.html:97 templates/admin/user_detail.html:226
+#: templates/api_docs.html:174 templates/appearance.html:355
+#: templates/generali_importstatus.html:48
+#: templates/generali_importstatus.html:108
+#: templates/generali_reporting.html:114 templates/invoices.html:78
+#: templates/invoices.html:123 templates/workitems_overview.html:124
+#: templates/workitems_overview.html:383
+msgid "Status"
+msgstr "Statut"
+
+#: templates/_header.html:219
 msgid "Maintenance"
 msgstr "Maintenance"
 
-#: templates/_header.html:224
+#: templates/_header.html:231
 msgid "Development"
 msgstr "Développement"
 
-#: templates/_header.html:231
+#: templates/_header.html:238
 msgid "API Docs"
 msgstr "Docs API"
 
-#: templates/_header.html:238 templates/_header.html:267
+#: templates/_header.html:245 templates/_header.html:274
 #: templates/appearance.html:324 templates/dashboard.html:26
 #: templates/generali_documents.html:39 templates/generali_reporting.html:54
 #: templates/js/_header_js.html:70 templates/js/_header_js.html:79
 msgid "Dashboard"
 msgstr "Tableau de bord"
 
-#: templates/_header.html:239 templates/_header.html:281
+#: templates/_header.html:246 templates/_header.html:288
 #: templates/generali-dashboard.html:67
 #: templates/generali_additionalservices.html:50
 #: templates/generali_baseservices.html:50 templates/generali_documents.html:43
@@ -870,102 +881,102 @@ msgstr "Tableau de bord"
 msgid "Reporting"
 msgstr "Rapports"
 
-#: templates/_header.html:240
+#: templates/_header.html:247
 msgid "Workitems"
 msgstr "Workitems"
 
-#: templates/_header.html:241 templates/js/_header_js.html:76
+#: templates/_header.html:248 templates/js/_header_js.html:76
 msgid "Invoices"
 msgstr "Factures"
 
-#: templates/_header.html:274 templates/generali-dashboard.html:63
+#: templates/_header.html:281 templates/generali-dashboard.html:63
 #: templates/generali_reporting.html:46 templates/js/_header_js.html:82
 msgid "Document List"
 msgstr "Liste des documents"
 
-#: templates/_header.html:288 templates/js/_header_js.html:88
+#: templates/_header.html:295 templates/js/_header_js.html:88
 msgid "Additional Services"
 msgstr "Services supplémentaires"
 
-#: templates/_header.html:295 templates/js/_header_js.html:91
+#: templates/_header.html:302 templates/js/_header_js.html:91
 msgid "Base Services"
 msgstr "Services de base"
 
-#: templates/_header.html:302 templates/js/_header_js.html:94
+#: templates/_header.html:309 templates/js/_header_js.html:94
 msgid "Project Management"
 msgstr "Gestion de projet"
 
-#: templates/_header.html:309 templates/js/_header_js.html:97
+#: templates/_header.html:316 templates/js/_header_js.html:97
 msgid "PDQM"
 msgstr "PDQM"
 
-#: templates/_header.html:316 templates/generali_importstatus.html:27
+#: templates/_header.html:323 templates/generali_importstatus.html:27
 msgid "Data Import Status"
 msgstr "Statut d'importation"
 
-#: templates/_header.html:328 templates/_header.html:330
+#: templates/_header.html:335 templates/_header.html:337
 #: templates/appearance.html:288 templates/appearance.html:293
 #: templates/js/_header_js.html:274
 msgid "Keep sidebar open"
 msgstr "Garder la barre latérale ouverte"
 
-#: templates/_header.html:334 templates/js/_header_js.html:99
+#: templates/_header.html:341 templates/js/_header_js.html:99
 msgid "Toggle dark mode"
 msgstr "Activer/désactiver le mode sombre"
 
-#: templates/_header.html:336
+#: templates/_header.html:343
 msgid "Dark Mode"
 msgstr "Mode sombre"
 
-#: templates/_header.html:344 templates/profile.html:42
+#: templates/_header.html:351 templates/profile.html:42
 #: templates/profile.html:122
 msgid "Profile Picture"
 msgstr "Photo de profil"
 
-#: templates/_header.html:354
+#: templates/_header.html:361
 msgid "Your profile"
 msgstr "Votre profil"
 
-#: templates/_header.html:358 templates/appearance.html:32
+#: templates/_header.html:365 templates/appearance.html:32
 #: templates/js/_header_js.html:100 templates/profile.html:74
 #: templates/profile.html:317
 msgid "Appearance"
 msgstr "Apparence"
 
-#: templates/_header.html:364 templates/_small_footer.html:28
+#: templates/_header.html:371 templates/_small_footer.html:28
 msgid "Help"
 msgstr "Aide"
 
-#: templates/_header.html:370 templates/_header.html:412
+#: templates/_header.html:377 templates/_header.html:419
 msgid "Switch user"
 msgstr "Changer d'utilisateur"
 
-#: templates/_header.html:376 templates/js/_header_js.html:101
+#: templates/_header.html:383 templates/js/_header_js.html:101
 #: templates/profile.html:81
 msgid "Sign out"
 msgstr "Se déconnecter"
 
-#: templates/_header.html:393
+#: templates/_header.html:400
 msgid "Command palette"
 msgstr "Palette de commandes"
 
-#: templates/_header.html:397
+#: templates/_header.html:404
 msgid "Type a command or search..."
 msgstr "Tapez une commande ou recherchez..."
 
-#: templates/_header.html:402
+#: templates/_header.html:409
 msgid "navigate"
 msgstr "naviguer"
 
-#: templates/_header.html:403
+#: templates/_header.html:410
 msgid "open"
 msgstr "ouvrir"
 
-#: templates/_header.html:404
+#: templates/_header.html:411
 msgid "close"
 msgstr "fermer"
 
-#: templates/_header.html:416
+#: templates/_header.html:423
 msgid "Switch to user..."
 msgstr "Passer à l'utilisateur ..."
 
@@ -1434,16 +1445,6 @@ msgid ""
 msgstr ""
 "Les erreurs sont en JSON sauf mention contraire. Le corps contient "
 "toujours un message d'erreur en anglais — l'API n'est pas localisée."
-
-#: templates/admin/logs.html:64 templates/admin/logs.html:97
-#: templates/admin/user_detail.html:226 templates/api_docs.html:174
-#: templates/appearance.html:355 templates/generali_importstatus.html:48
-#: templates/generali_importstatus.html:108
-#: templates/generali_reporting.html:114 templates/invoices.html:78
-#: templates/invoices.html:123 templates/workitems_overview.html:124
-#: templates/workitems_overview.html:383
-msgid "Status"
-msgstr "Statut"
 
 #: templates/api_docs.html:174
 msgid "Body"
@@ -3149,20 +3150,37 @@ msgstr "Importer Excel"
 msgid "Clear list"
 msgstr "Vider la liste"
 
+#: templates/prepared_documents.html:74
+msgid "Search PID"
+msgstr "Rechercher un PID"
+
 #: templates/prepared_documents.html:77 templates/prepared_documents.html:78
 #: templates/prepared_documents.html:79 templates/prepared_documents.html:111
 msgid "Collected"
 msgstr "Collecté"
+
+#: templates/prepared_documents.html:77 templates/prepared_documents.html:82
+msgid "Any"
+msgstr "Tous"
 
 #: templates/js/admin/_access_control_js.html:711
 #: templates/prepared_documents.html:78 templates/prepared_documents.html:83
 msgid "Yes"
 msgstr "Oui"
 
+#: templates/prepared_documents.html:79 templates/prepared_documents.html:84
+msgid "No"
+msgstr "Non"
+
 #: templates/prepared_documents.html:82 templates/prepared_documents.html:83
 #: templates/prepared_documents.html:84 templates/prepared_documents.html:117
 msgid "Prepared"
 msgstr "Préparé"
+
+#: templates/prepared_documents.html:87 templates/prepared_documents.html:88
+#: templates/prepared_documents.html:89
+msgid "Group by"
+msgstr "Grouper par"
 
 #: templates/admin/access_control.html:334 templates/admin/user_detail.html:154
 #: templates/prepared_documents.html:87
@@ -3176,6 +3194,10 @@ msgstr "Collecté par"
 #: templates/prepared_documents.html:89 templates/prepared_documents.html:120
 msgid "Prepared by"
 msgstr "Préparé par"
+
+#: templates/prepared_documents.html:93
+msgid "page"
+msgstr "page"
 
 #: templates/prepared_documents.html:123
 msgid "Octo status"
@@ -3940,8 +3962,8 @@ msgstr "Période"
 msgid "Custom"
 msgstr "Personnalisé"
 
-#: templates/admin/logs.html:26 templates/js/_reporting_js.html:22
-#: templates/js/_reporting_simple_js.html:55
+#: templates/admin/logs.html:26 templates/admin/status.html:122
+#: templates/js/_reporting_js.html:22 templates/js/_reporting_simple_js.html:55
 #: templates/workitems_overview.html:155
 msgid "Today"
 msgstr "Aujourd'hui"
@@ -4579,6 +4601,157 @@ msgstr "Adresse IP"
 msgid "Logged in"
 msgstr "Connecté"
 
+#: templates/admin/status.html:6
+msgid "System Status - nexora"
+msgstr "État du système - nexora"
+
+#: templates/admin/status.html:18 templates/admin/status.html:118
+msgid "Operational"
+msgstr "Opérationnel"
+
+#: templates/admin/status.html:19
+msgid "Degraded"
+msgstr "Dégradé"
+
+#: templates/admin/status.html:20 templates/admin/status.html:78
+#: templates/admin/status.html:119
+msgid "Outage"
+msgstr "Panne"
+
+#: templates/admin/status.html:21
+msgid "Under maintenance"
+msgstr "En maintenance"
+
+#: templates/admin/status.html:22 templates/js/_generali_dashboard_js.html:27
+msgid "Unknown"
+msgstr "Inconnu"
+
+#: templates/admin/status.html:34
+msgid "System Status"
+msgstr "État du système"
+
+#: templates/admin/status.html:35
+msgid "Component health and incident history, recorded by the outage monitor"
+msgstr ""
+"État des composants et historique des incidents, enregistrés par le "
+"moniteur de pannes"
+
+#: templates/admin/status.html:45
+msgid "All systems operational"
+msgstr "Tous les systèmes sont opérationnels"
+
+#: templates/admin/status.html:46
+msgid "Degraded performance"
+msgstr "Performances dégradées"
+
+#: templates/admin/status.html:47
+msgid "Outage in progress"
+msgstr "Panne en cours"
+
+#: templates/admin/status.html:48
+msgid "Maintenance window active"
+msgstr "Fenêtre de maintenance active"
+
+#: templates/admin/status.html:49
+msgid "Status unknown"
+msgstr "État inconnu"
+
+#: templates/admin/status.html:53
+msgid ""
+"The outage monitor has never reported. Schedule ops/outage_monitor.py to "
+"populate this page."
+msgstr ""
+"Le moniteur de pannes n'a jamais transmis de données. Planifiez "
+"ops/outage_monitor.py pour alimenter cette page."
+
+#: templates/admin/status.html:55
+#, python-format
+msgid ""
+"Last check was more than %(min)s minutes ago — these values may be out of"
+" date."
+msgstr ""
+"La dernière vérification remonte à plus de %(min)s minutes — ces valeurs "
+"peuvent être obsolètes."
+
+#: templates/admin/status.html:58
+msgid "Last checked"
+msgstr "Dernière vérification"
+
+#: templates/admin/status.html:67
+msgid ""
+"Stale data: the monitor is not reporting. Check the scheduled task on the"
+" application server."
+msgstr ""
+"Données périmées : le moniteur ne transmet plus rien. Vérifiez la tâche "
+"planifiée sur le serveur applicatif."
+
+#: templates/admin/status.html:73
+msgid "Open incidents"
+msgstr "Incidents ouverts"
+
+#: templates/admin/status.html:81
+msgid "since"
+msgstr "depuis"
+
+#: templates/admin/status.html:93
+msgid "Components"
+msgstr "Composants"
+
+#: templates/admin/status.html:103
+#, python-format
+msgid "Last %(n)s days"
+msgstr "%(n)s derniers jours"
+
+#: templates/admin/status.html:116
+#, python-format
+msgid "%(n)s days ago"
+msgstr "il y a %(n)s jours"
+
+#: templates/admin/status.html:120
+msgid "No data"
+msgstr "Aucune donnée"
+
+#: templates/admin/status.html:127
+msgid "No component has been probed yet."
+msgstr "Aucun composant n'a encore été sondé."
+
+#: templates/admin/status.html:132
+msgid "Incident history"
+msgstr "Historique des incidents"
+
+#: templates/admin/status.html:132
+#, python-format
+msgid "last %(n)s days"
+msgstr "%(n)s derniers jours"
+
+#: templates/admin/status.html:136
+msgid "Component"
+msgstr "Composant"
+
+#: templates/admin/status.html:137
+msgid "Started"
+msgstr "Début"
+
+#: templates/admin/status.html:138
+msgid "Ended"
+msgstr "Fin"
+
+#: templates/admin/status.html:139
+msgid "Duration"
+msgstr "Durée"
+
+#: templates/admin/status.html:140
+msgid "Evidence"
+msgstr "Preuve"
+
+#: templates/admin/status.html:148
+msgid "Ongoing"
+msgstr "En cours"
+
+#: templates/admin/status.html:155
+msgid "No incidents recorded."
+msgstr "Aucun incident enregistré."
+
 #: templates/admin/user_detail.html:6
 msgid "User detail"
 msgstr "Détails utilisateur"
@@ -4912,10 +5085,6 @@ msgstr "Erreur lors de la suppression."
 #: templates/js/_generali_reporting_js.html:943
 msgid "Export failed."
 msgstr "L'exportation a échoué."
-
-#: templates/js/_generali_dashboard_js.html:27
-msgid "Unknown"
-msgstr "Inconnu"
 
 #: templates/js/_generali_dashboard_js.html:138
 #: templates/js/_generali_dashboard_js.html:214
