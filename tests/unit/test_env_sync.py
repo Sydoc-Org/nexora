@@ -51,11 +51,14 @@ def test_whitespace_only_example_default_counts_as_opt_in(env_sync):
     assert f["missing_on_server_optional"] == ["K"]
 
 
-def test_differing_values_are_flagged(env_sync):
+def test_differing_values_are_reported_but_are_not_the_deploy_bug(env_sync):
+    """Dev and PROD legitimately hold different secrets, and PROD lags dev until
+    its deploy lands — so a value difference is shown, never treated as missing."""
     f = env_sync.diff_envs(
         example={"DB_PWD": ""}, local={"DB_PWD": "new"}, remote={"DB_PWD": "old"}
     )
     assert f["value_differs"] == ["DB_PWD"]
+    assert f["missing_on_server"] == []
 
 
 def test_identical_files_report_nothing(env_sync):

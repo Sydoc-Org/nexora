@@ -16,10 +16,14 @@ Work toward 2.5.65.
   committed `env/PROD.env.example` never reaches the server on its own, and
   forgetting is silent — `SUPPORT_MAIL` is the reference case. The check is
   three-way (example vs local vs server), so a key the repo declares with a real
-  default but the server lacks is reported as the deploy-forgot bug, while
-  opt-in keys left blank in the example are collapsed to a count. Values are
-  masked to fingerprints unless `--show-values`; exits non-zero on drift;
-  `--push`/`--pull` copy a whole file after backing the destination up.
+  default but the server lacks is reported as the deploy-forgot bug — printed as
+  copy-pasteable `KEY=value` lines — while opt-in keys left blank in the example
+  are collapsed to a count. Meant to be run by hand once per deploy that touched
+  an env key. Only a missing key sets the exit code; a key present on both sides
+  with a different value is informational, since dev and PROD hold different
+  credentials and PROD legitimately lags dev until its deploy lands. Values are
+  masked to fingerprints unless `--show-values`; `--push`/`--pull` copy a whole
+  file after backing the destination up.
 - **PROD outage detection with support-ticket mail** (#166) — a new
   `ops/outage_monitor.py`, run by Task Scheduler on SYAPP01 outside the Flask
   process (an in-app scheduler cannot report the app being dead), probes every
