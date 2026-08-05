@@ -415,3 +415,111 @@ def test_advanced_caption_does_not_survive_a_failed_run(nexora_server, page):
     # still be visible above it.
     expect(page.locator("#rpCaption")).to_be_hidden()
     page.screenshot(path="var/screenshots/reporting_caption_error.png")
+
+
+# ---- Forecast toggle (Task 7) -----------------------------------------------
+# Forecast eligibility needs a real single-grained-date-column + metric
+# definition (forecastEligibleDef), which the semantic-metrics registry has
+# nothing seeded for in TEST (sql/test/seed.sql carries no metric rows) --
+# so this stubs /api/reporting/sources + /api/reporting/metrics with a
+# minimal one-field/one-metric catalog (same WIZ_STUB_SOURCES/METRICS shape
+# test_reporting_simple.py uses for its own builder-catalog stubs), driving
+# the real field-picker + Add metric UI rather than faking builder state.
+
+ADV_FC_STUB_SOURCES = [
+    {
+        "id": "adv_fc_src",
+        "label": "Adv forecast stub source",
+        "kind": "curated",
+        "processes": [],
+        "fields": [
+            {
+                "field": "export_date",
+                "label": "Export date",
+                "type": "date",
+                "grainable": True,
+                "filterable": True,
+            },
+        ],
+    }
+]
+ADV_FC_STUB_METRICS = {
+    "adv_fc_src": [{"code": "doc_count_metric", "label": "Doc count", "aggregation": "count"}],
+}
+
+
+@pytest.mark.flaky_e2e
+def test_advanced_forecast_toggle_and_grid_rows(nexora_server, page):
+    """Task 7: the Advanced results toolbar's Forecast checkbox appears only
+    once the definition is forecast-eligible (single grained date column +
+    a metric), buildDefinition() emits state.forecast on toggle, and the
+    grid appends marked prediction rows echoed back on /run's forecast
+    block -- the Advanced-pane mirror of Task 6's Simple-tab renderTable
+    coverage, adapted to this pane's DOM-built (not string-built) grid."""
+    fc_block = {
+        "anchor": "2025-08-01",
+        "grain": "month",
+        "method": "trend",
+        "horizon": 3,
+        "buckets": ["2025-09-01", "2025-10-01", "2025-11-01"],
+        "series": [
+            {
+                "field": "doc_count",
+                "values": [26.0, 28.0, 30.0],
+                "lower": [24.0, 25.5, 27.0],
+                "upper": [28.0, 30.5, 33.0],
+            }
+        ],
+    }
+
+    def run_stub(route):
+        body = route.request.post_data_json or {}
+        payload = {
+            "columns": [
+                {"field": "export_date", "header": "Export date"},
+                {"field": "doc_count", "header": "Doc count"},
+            ],
+            "rows": [[f"2025-{m:02d}-01", 10 + 2 * (m - 1)] for m in range(1, 9)],
+            "rowCount": 8,
+            "truncated": False,
+            "resolvedDates": [],
+        }
+        if (body.get("forecast") or {}).get("enabled"):
+            payload["forecast"] = fc_block
+        route.fulfill(json=payload)
+
+    # MUST be registered before page.goto -- initOnce() fetches both catalogs
+    # at page load (same trap _stub_catalogs/_stub_wiz_catalogs guard against
+    # in test_reporting_simple.py).
+    page.route(
+        "**/api/reporting/sources",
+        lambda r: r.fulfill(
+            status=200, content_type="application/json", body=json.dumps(ADV_FC_STUB_SOURCES)
+        ),
+    )
+    page.route(
+        "**/api/reporting/metrics",
+        lambda r: r.fulfill(
+            status=200, content_type="application/json", body=json.dumps(ADV_FC_STUB_METRICS)
+        ),
+    )
+    _login(page, nexora_server)
+
+    # Build a 1-date-dim + 1-metric report in the Advanced builder: click the
+    # only (grainable) field into Columns -- renderFields()'s onclick sets
+    # grain: 'month' automatically for a grainable field -- then add the
+    # only available metric.
+    page.locator("#rpFieldList li").filter(has_text="Export date").click()
+    expect(page.locator(".reporting-grain")).to_have_count(1)
+    page.click("#rpAddMetric")
+    expect(page.locator('[data-testid="reporting-metric-select"]')).to_have_count(1)
+
+    page.route("**/api/reporting/run", run_stub)
+    page.get_by_test_id("reporting-run").click()
+
+    wrap = page.get_by_test_id("reporting-forecast-wrap")
+    expect(wrap).to_be_visible()
+    page.get_by_test_id("reporting-forecast-toggle").check()
+    rows = page.get_by_test_id("rp-forecast-row")
+    expect(rows).to_have_count(3)
+    expect(rows.first).to_contain_text("Forecast")

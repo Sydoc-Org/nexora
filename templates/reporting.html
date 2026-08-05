@@ -302,6 +302,16 @@
         <button id="rpViewGrid" class="active" data-testid="reporting-view-grid">{{ _("Grid") }}</button>
         <button id="rpViewChart" data-testid="reporting-view-chart">{{ _("Chart") }}</button>
         <button id="rpViewPivot" data-testid="reporting-view-pivot">{{ _("Pivot") }}</button>
+        <label class="reporting-forecast-ctl" id="rpForecastWrap" hidden data-testid="reporting-forecast-wrap">
+          <input type="checkbox" id="rpForecast" data-testid="reporting-forecast-toggle">
+          <span>{{ _("Forecast") }}</span>
+        </label>
+        <select id="rpForecastHorizon" class="rs-forecast-horizon" hidden aria-label="{{ _('Forecast horizon') }}" data-testid="reporting-forecast-horizon">
+          <option value="auto">{{ _("Auto") }}</option>
+          <option value="7">+7</option>
+          <option value="14">+14</option>
+          <option value="30">+30</option>
+        </select>
       </div>
       <div id="rpKpiBand" class="reporting-ledger-kpis" hidden data-testid="reporting-kpi-band"></div>
       <div id="rpResults" class="reporting-table-wrap" data-testid="reporting-results">

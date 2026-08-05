@@ -204,6 +204,29 @@
       // Simple), so labels[index] === the value a click at that index maps to.
       lastChartXIndex = xi;
       lastChartLabels = labels;
+      // Moved above the forecast block below (was declared further down,
+      // after the dataset build) since the overlay needs it for the band
+      // fill colors and must not duplicate the declaration.
+      var isDark = document.documentElement.classList.contains('dark');
+      // Forecast overlay (Task 7, Advanced mirror of _reporting_simple_js.html's
+      // mountChart forecast handling): only when the chart's X axis is column 0
+      // (the date dim forecastEligibleDef() requires), the result isn't
+      // truncated to the top-N categories, the chart type supports a trailing
+      // line, and the selected Y column matches a forecast series field.
+      var fcRaw = opts.forecast;
+      var fcSeries = null;
+      if (fcRaw && !fcRaw.unavailable && (fcRaw.buckets || []).length &&
+          xi === 0 && !truncated && (type === 'bar' || type === 'line')) {
+        for (var fsi = 0; fsi < (fcRaw.series || []).length; fsi++) {
+          var cYi = columns[yi];
+          if (cYi && fcRaw.series[fsi].field === cYi.field) { fcSeries = fcRaw.series[fsi]; break; }
+        }
+      }
+      var histN = labels.length;
+      if (fcSeries) {
+        labels = labels.concat(fcRaw.buckets.map(function (b) { return String(b).slice(0, 10); }));
+        lastChartLabels = labels;
+      }
       var single = (type === 'bar' || type === 'line');
       var colors = labels.map(function (_, i) { return NX_PALETTE[i % NX_PALETTE.length]; });
       var maxIdx = 0;
@@ -212,7 +235,6 @@
       // canvas (#1e293b) — effectively invisible. Lift to the #818cf8 family
       // (the existing --nx-accent dark token) only for dark mode; light mode
       // keeps the locked ink-navy/indigo-peak spec unchanged.
-      var isDark = document.documentElement.classList.contains('dark');
       var rlNavy = isDark ? '#818cf8' : '#312e81';
       var rlPeak = isDark ? '#c7d2fe' : '#4f46e5';
       var rlLineFill = isDark ? 'rgba(129,140,248,.18)' : 'rgba(49,46,129,.12)';
@@ -231,6 +253,27 @@
         borderWidth: type === 'line' ? 2 : 1,
         fill: type === 'line'
       };
+      var chartDatasets = [ds];
+      if (fcSeries) {
+        ds.data = data.concat(fcRaw.buckets.map(function () { return null; }));
+        var fcAccent2 = isDark ? '#818cf8' : '#4f46e5';
+        var lead2 = [];
+        for (var l2 = 0; l2 < histN - 1; l2++) lead2.push(null);
+        var bridge2 = data[histN - 1];
+        chartDatasets.push({
+          label: colLabel(columns, yi) + ' · {{ _("Forecast") }}',
+          data: lead2.concat([bridge2], fcSeries.values),
+          type: 'line', borderColor: fcAccent2, borderDash: [6, 4], borderWidth: 2,
+          backgroundColor: 'transparent', pointStyle: 'rectRot', fill: false, _forecast: true
+        });
+        chartDatasets.push({ label: '', data: lead2.concat([bridge2], fcSeries.upper),
+          type: 'line', borderWidth: 0, pointRadius: 0, backgroundColor: 'transparent',
+          fill: false, _band: true });
+        chartDatasets.push({ label: '', data: lead2.concat([bridge2], fcSeries.lower),
+          type: 'line', borderWidth: 0, pointRadius: 0,
+          backgroundColor: isDark ? 'rgba(129,140,248,.18)' : 'rgba(79,70,229,.12)',
+          fill: '-1', _band: true });
+      }
       if (type === 'bar') {
         ds.borderRadius = 6;
         ds.maxBarThickness = 48;
@@ -242,13 +285,21 @@
       destroyChart();
       chartInstance = new Chart(canvas.getContext('2d'), {
         type: type,
-        data: { labels: labels, datasets: [ds] },
+        data: { labels: labels, datasets: chartDatasets },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           // White background so an exported PNG isn't transparent.
           plugins: {
-            legend: { display: !single },
+            legend: { display: !single || !!fcSeries,
+                      labels: { filter: function (item, data) {
+                        // Same both-flags exclusion as _reporting_simple_js.html's
+                        // D6 legend filter: band + forecast-line datasets never
+                        // get their own legend entry (or drill — see the
+                        // _forecast/_band guard in onClick below).
+                        var ds = data.datasets[item.datasetIndex] || {};
+                        return !(ds._band || ds._forecast);
+                      } } },
             tooltip: {
               callbacks: {
                 // Reuse the module's existing number formatter (fmt) instead
@@ -277,7 +328,11 @@
           } : {},
           onClick: opts.onElementClick ? function (evt) {
             var els = this.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, false);
-            if (els.length) opts.onElementClick(els[0].index, els[0].datasetIndex);
+            if (!els.length) return;
+            var hit = (this.data.datasets || [])[els[0].datasetIndex] || {};
+            if (hit._forecast || hit._band) return;
+            if (fcSeries && els[0].index >= histN) return;
+            opts.onElementClick(els[0].index, els[0].datasetIndex);
           } : undefined,
           onHover: opts.onElementClick ? function (evt, elsH) {
             evt.native.target.style.cursor = elsH.length ? 'pointer' : 'default';

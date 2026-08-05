@@ -13,7 +13,11 @@
     currentReportOwned: true, currentReportCanEdit: true,
     // Semantic metrics: cached full map {sourceId: [{code,label,...}]} (null until
     // fetched), the per-source available list, and the selected metric codes.
-    metricsBySource: null, availableMetrics: [], metrics: []
+    metricsBySource: null, availableMetrics: [], metrics: [],
+    // Forecast toggle state: {enabled: true, horizon: 'auto'|number} or null.
+    // Mirrors the Simple tab's shape (see def.forecast in _reporting_simple_js.html)
+    // so buildDefinition()/applyDefinition() can pass it through verbatim.
+    forecast: null
   };
 
   // Relative-date token presets for date-typed filter fields. Token shape
@@ -247,7 +251,7 @@
   }
 
   function buildDefinition() {
-    return {
+    var d = {
       schemaVersion: 1,
       source: state.source,
       visualization: 'table',
@@ -269,6 +273,8 @@
       sql: null,
       sqlTarget: null,
     };
+    if (state.forecast && state.forecast.enabled) d.forecast = state.forecast;
+    return d;
   }
 
   // Definition for whichever mode is active (curated builder vs SQL editor).
@@ -460,6 +466,7 @@
       // grid, aggregate or not, so a raw non-aggregate chart must not show a
       // pointer cursor that leads nowhere.
       var chartOpts = canDrill(state.lastDef) ? { onElementClick: drillFromChart } : {};
+      chartOpts.forecast = state.lastResult.forecast || null;
       ReportingViz.mountChart(document.getElementById('rpChart'),
         state.lastResult.columns, state.lastResult.rows, chartOpts);
       state._chartMounted = true;
@@ -504,6 +511,7 @@
   var I18N_KPI_BUCKETS = {{ _("Buckets")|tojson }};
   var I18N_KPI_AVG = {{ _("Avg per bucket")|tojson }};
   var I18N_AI_CHIP = {{ _("AI")|tojson }};
+  var I18N_FORECAST = {{ _("Forecast")|tojson }};
 
   // ----- Drill-through (Advanced: chart clicks + grid rows) -----
   // Mirrors _reporting_simple_js.html's metricAggFor/clickedFor/openDrill/
@@ -644,8 +652,43 @@
     band.hidden = false;
   }
 
+  // Forecast toggle (mirrors _reporting_simple_js.html's forecastEligible/
+  // syncForecastCtl, adapted to the Advanced builder's def shape): eligible
+  // only for a single grained date column + at least one metric, same shape
+  // the server's /run forecast block requires.
+  function forecastEligibleDef(def) {
+    var cols = (def && def.columns) || [];
+    return !!(def && def.kind !== 'sql' && cols.length === 1 && cols[0].grain &&
+      Array.isArray(def.metrics) && def.metrics.length > 0);
+  }
+  function syncForecastCtl() {
+    var wrap = document.getElementById('rpForecastWrap');
+    var box = document.getElementById('rpForecast');
+    var sel = document.getElementById('rpForecastHorizon');
+    if (!wrap) return;
+    var eligible = forecastEligibleDef(state.lastDef);
+    wrap.hidden = !eligible;
+    var on = eligible && !!(state.forecast && state.forecast.enabled);
+    box.checked = on;
+    sel.hidden = !on;
+    if (!eligible) state.forecast = null;
+  }
+  document.getElementById('rpForecast').addEventListener('change', function () {
+    var h = document.getElementById('rpForecastHorizon').value;
+    state.forecast = this.checked
+      ? { enabled: true, horizon: h === 'auto' ? 'auto' : parseInt(h, 10) } : null;
+    run();
+  });
+  document.getElementById('rpForecastHorizon').addEventListener('change', function () {
+    if (!state.forecast) return;
+    var h = this.value;
+    state.forecast.horizon = h === 'auto' ? 'auto' : parseInt(h, 10);
+    run();
+  });
+
   function renderResults(data) {
-    state.lastResult = { columns: data.columns || [], rows: data.rows || [] };
+    state.lastResult = { columns: data.columns || [], rows: data.rows || [], forecast: data.forecast || null };
+    syncForecastCtl();
     // Resolved-dates label for fireCaption() on chart mount (Task 13) --
     // Advanced has no per-token i18n label map like Simple's tokenLabel(), so
     // this is just the field + the resolved start/end, e.g. "ForDate: 2026-06-01
@@ -764,6 +807,36 @@
       }
       tbody.appendChild(tr);
     });
+    // Forecast rows (Task 6's Simple-tab reference, adapted to this pane's
+    // DOM-built grid): appended after the real data rows, positionally
+    // matched to the trailing metric columns (mStart), never drillable.
+    var fcRows = (data.forecast && !data.forecast.unavailable && (data.forecast.buckets || []).length)
+      ? data.forecast : null;
+    if (fcRows) {
+      var mStart = data.columns.length - fcRows.series.length;
+      fcRows.buckets.forEach(function (b, bi) {
+        var ftr = document.createElement('tr');
+        ftr.className = 'is-forecast';
+        ftr.setAttribute('data-testid', 'rp-forecast-row');
+        for (var ci = 0; ci < data.columns.length; ci++) {
+          var ftd = document.createElement('td');
+          if (ci === 0) {
+            ftd.textContent = String(b).slice(0, 10) + ' ';
+            var badge = document.createElement('span');
+            badge.className = 'rp-forecast-badge';
+            badge.textContent = I18N_FORECAST;
+            ftd.appendChild(badge);
+          } else if (ci >= mStart) {
+            var sv = fcRows.series[ci - mStart];
+            var val = sv.values[bi];
+            ftd.className = 'reporting-ledger-num rp-cell-num';
+            ftd.textContent = (val == null ? '' : String(val));
+          }
+          ftr.appendChild(ftd);
+        }
+        tbody.appendChild(ftr);
+      });
+    }
     table.appendChild(tbody);
 
     wrap.appendChild(table);
@@ -1464,6 +1537,8 @@
     state.metrics = (def.metrics || [])
       .map(function (m) { return m && m.metric; })
       .filter(function (c) { return c && availCodes[c]; });
+    state.forecast = (def.forecast && def.forecast.enabled)
+      ? { enabled: true, horizon: def.forecast.horizon || 'auto' } : null;
     document.getElementById('rpSubtitle').value = def.subtitle || '';
     renderFields();
     renderWells();
