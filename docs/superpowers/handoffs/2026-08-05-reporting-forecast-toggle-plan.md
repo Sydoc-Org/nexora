@@ -1,3 +1,7 @@
+> **Superseded same-day:** execution finished — see
+> `docs/superpowers/handoffs/2026-08-05-reporting-forecast-toggle-execution-complete.md` for the
+> current state (all 10 tasks done, merged into `feature/2.5.65`, worktree removed).
+
 # Handoff — Reporting Forecast Toggle (#168): plan written, ready to execute
 
 **Date:** 2026-08-05 · **Branch:** `plan/reporting-forecast-toggle` (worktree
