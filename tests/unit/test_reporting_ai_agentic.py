@@ -435,3 +435,29 @@ def test_agent_system_prompt_defaults_time_filters_to_processing_dates():
 
     assert "processing-date" in _AGENT_SYSTEM
     assert "Document Date" in _AGENT_SYSTEM
+
+
+def test_agent_system_prompt_makes_ambiguous_readings_explicit():
+    # Issue #132 case 17: a vague question got a silently-picked interpretation.
+    from nx_lib.reporting.ai import _AGENT_SYSTEM
+
+    assert "underdetermines" in _AGENT_SYSTEM
+    assert "main alternative" in _AGENT_SYSTEM
+
+
+def test_agent_system_prompt_carries_the_caveat_checklist():
+    # Issue #132: partial periods, small-n percentages, silent assumptions and
+    # trend claims off one row all went unflagged across six eval cases.
+    from nx_lib.reporting.ai import _AGENT_SYSTEM
+
+    for marker in ("PARTIAL PERIOD", "SMALL", "ASSUMPTIONS", "THIN EVIDENCE"):
+        assert marker in _AGENT_SYSTEM
+
+
+def test_agent_system_prompt_forbids_quitting_and_unexecuted_sql():
+    # Issue #132 cases 9/18/20: quit with turns left, or passed off a query it
+    # never ran as the source of the numbers.
+    from nx_lib.reporting.ai import _AGENT_SYSTEM
+
+    assert "did not execute" in _AGENT_SYSTEM
+    assert "do not hand the question back" in _AGENT_SYSTEM

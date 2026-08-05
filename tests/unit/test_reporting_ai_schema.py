@@ -412,3 +412,15 @@ def test_partial_tables_block_declares_unregistered_tables_out_of_universe():
     )
     assert "COMPLETE" in text
     assert "NOT part of source docprocessing" in text
+
+
+def test_partial_tables_block_teaches_workitem_count_semantics():
+    # Issue #132 case 16: COUNT(DISTINCT WorkitemID) across these tables is wrong
+    # twice over - the row count already IS the workitem count, and the ids
+    # collide across processes.
+    text = ai_schema.serialize_partial_tables(
+        {"dbo.Compass_Invoice": {"processes": ["compass.01_Invoice_SAP"]}}, "docprocessing"
+    )
+    assert "ONE ROW = ONE WORKITEM" in text
+    assert "doc_count on source docprocessing" in text
+    assert "collide" in text

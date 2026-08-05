@@ -161,6 +161,15 @@ Work toward 2.5.65.
 - Sidebar: **pin toggle** (#151) in the bottom actions -- keeps the nav rail
   expanded (220px) instead of collapsing when the mouse leaves. State persists
   per-browser via `localStorage`, same idiom as the dark-mode toggle.
+- Reporting AI: **committed the 22-prompt statistical eval suite** (#131) as
+  a repeatable harness under `tools/reporting_ai_eval/` (dev-side, excluded
+  from the deploy mirror) - `prompts.json` (22 hard stakeholder questions
+  grouped by trap, each with a pass criterion), `run_eval.py` (logs into a
+  running INT instance and collects full agent responses per prompt,
+  resumable), and `baseline_2026-07-28.md` (the original 6.1/10-average
+  scored run that surfaced issues #127-#130). Scoring stays manual/Claude-
+  assisted against the criteria; the runner only collects.
+
 - Workitems: **Stage filter** in the top filter row (#147), between Workitem
   and Status, gated on the new `workitems.filter.stage` permission (migration
   `0048`, seeded to holders of `workitems.filter.status`). Filters on the
@@ -422,6 +431,23 @@ Work toward 2.5.65.
   `hasattr(ts, "isoformat")` instead of assuming the type, matching the
   pattern already used by the CSV-export and dashboard-widget log readers in
   the same file.
+- Reporting AI: **four answer-quality gaps the #131 eval exposed** (#132),
+  all closed in the agent's grounding rather than in code. (1) Asked how many
+  unique workitems were processed, the agent drafted
+  `COUNT(DISTINCT WorkitemID)` across several per-process statistics tables
+  and reported the result as a company total — wrong twice over, since one row
+  in those tables already *is* one workitem (which is why the
+  `workitem_count` metric is disabled, migration `0021`) and the ids collide
+  across processes; the PARTIAL-tables block now states both facts. (2) Vague
+  questions ("show me the numbers for the last quarter") got a silently-picked
+  reading presented as the answer — the agent must now open with one sentence
+  naming the reading it used and the main alternative. (3) Answers omitted the
+  caveats a stakeholder needs: a still-running current period, percentages off
+  a near-zero baseline, silently excluded/assumed-NULL rows, "yes it's
+  seasonal" from a single row — a four-item checklist is now part of the
+  prompt. (4) The agent quit with turns left, telling the user to run the
+  comparison themselves, and presented unexecuted SQL as if it had produced
+  numbers — both now explicitly forbidden.
 
 - Reporting: the page masthead (Simple/Advanced tabs, Sources, AI chat) and
   the Simple tab's "Ask AI" bar overflowed horizontally on phone widths

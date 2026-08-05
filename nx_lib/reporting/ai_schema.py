@@ -208,6 +208,20 @@ def serialize_partial_tables(table_processes, union_source_id):
         " build_definition, or if the user asked for that specific table, say"
         " plainly that it sits outside the reporting universe."
     )
+    # Issue #132 case 16: asked for "unique workitems" the agent drafted
+    # COUNT(DISTINCT WorkitemID) across several of these tables and reported the
+    # result as a company total. Both halves are wrong — the count is already the
+    # row count, and the id spaces are per-process, so a cross-table DISTINCT
+    # collapses colliding ids from different processes into one.
+    lines.append(
+        "ONE ROW = ONE WORKITEM in every table above (verified: COUNT(*),"
+        " COUNT(WorkitemID) and COUNT(DISTINCT WorkitemID) all return the same"
+        " number). So the count of workitems IS the document/row count — use"
+        f" doc_count on source {union_source_id}; there is deliberately no"
+        " distinct-workitem metric. Workitem ids are unique only WITHIN a"
+        " process and collide across these tables, so never COUNT(DISTINCT"
+        " WorkitemID) over more than one of them — it silently under-counts."
+    )
     return "\n".join(lines)
 
 

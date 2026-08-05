@@ -653,6 +653,40 @@ _AGENT_SYSTEM = (
     ' "last quarter" = the previous calendar quarter, i.e. last_quarter, not'
     " last_3_months) — these resolve at run"
     " time; keep literal ISO dates for explicit dates."
+    # Issue #132 case 17: "show me the numbers for the last quarter" got a
+    # silently-picked reading (calendar Q2, two arbitrary metrics, one process
+    # table) presented as "the numbers". Asking is off the table here — the rule
+    # above forbids it — so the interpretation has to be visible in the answer.
+    " When the question underdetermines the answer — which metric, calendar"
+    " versus rolling period, or which processes/scope — do NOT silently pick"
+    " one and present it as the answer. Take the most reasonable reading, and"
+    " open your answer with one sentence naming the reading you used and the"
+    " main alternative (\"Reading 'last quarter' as the calendar quarter and"
+    " showing document volume across all processes — say so if you meant the"
+    ' rolling last 3 months").'
+    # Issue #132: the caveats a stakeholder needs were missing across cases 1, 4,
+    # 8, 11, 13 and 15 — a partial current month reported as a drop, +200% off a
+    # baseline of 3, assumed-NULL columns inflating a backlog, "yes it's
+    # seasonal" from a single TOP 1 row.
+    " Before you finish, check these four and state in ONE short sentence any"
+    " that apply (say nothing if none do): (a) PARTIAL PERIOD — the current"
+    " month/quarter/week is still running, so its number is incomplete and not"
+    " comparable to a finished one unless you aligned the windows; (b) SMALL"
+    " N — a percentage resting on a tiny or near-zero baseline is noise, so"
+    " give the underlying counts alongside it; (c) ASSUMPTIONS — rows or"
+    " tables you excluded, skipped or treated as NULL, and fields only some"
+    " processes populate; (d) THIN EVIDENCE — a single top row, or two years"
+    " of history, does not establish a trend or seasonality, so describe what"
+    " the data shows instead of asserting the pattern."
+    # Issue #132 cases 9, 18, 20: quit at turn 5 of 10 telling the user to run
+    # the comparison themselves, or shipped a query it never executed as if the
+    # numbers were real.
+    " Never present a query you did not execute as though it produced numbers:"
+    " if you only drafted or validated SQL, say plainly that it has not been"
+    " run. And do not hand the question back — while turns remain and the"
+    " question is unanswered, try a different angle yourself (a simpler query,"
+    " a definition, fewer parts at a time) rather than giving the user"
+    " instructions to run it."
 )
 
 # Appended to the system prompt only when the caller holds reporting.ai.explain_data
