@@ -311,7 +311,12 @@
         </div>
         </div>
 
-        <div class="flex items-center justify-end gap-3 mt-5 pt-5 border-t border-gray-200">
+        <div class="flex flex-wrap items-center justify-end gap-3 mt-5 pt-5 border-t border-gray-200">
+          {# Saved filter views (issues #170/#186): per-user chips, rendered by
+             JS. mr-auto keeps them left while the action buttons stick right.
+             Hidden until the user has a view or is naming a new one. #}
+          <div id="savedViewsBar" class="hidden flex flex-wrap items-center gap-2 mr-auto"
+            data-testid="workitems-saved-views"></div>
           <button id="toggleAdvancedFilterBtn" type="button"
             class="nx-btn nx-btn--secondary" data-testid="workitems-toggle-advanced">
             <i class="fas fa-sliders-h mr-2"></i>{{ _("Advanced") }}
@@ -359,11 +364,6 @@
           {% endif %}
         </div>
       </form>
-
-      {# Saved filter views (issue #170): per-user chips, rendered by JS.
-         Hidden until the user has at least one view or is naming a new one. #}
-      <div id="savedViewsBar" class="hidden mb-6 flex flex-wrap items-center gap-2"
-        data-testid="workitems-saved-views"></div>
 
       <div class="nx-table-wrap nx-rise-3 relative">
         <div class="overflow-x-auto">

@@ -1401,10 +1401,12 @@ async function uploadBatchFiles(files, processName) {
             });
 
             // Inline editor shared by save + edit: view name + optional
-            // folder (#186, with existing folders as datalist suggestions).
-            // Enter commits, Escape or focusing elsewhere cancels. When
-            // editing an existing view (onDelete given), a trash button
-            // deletes it — deletion lives here, behind the pencil, on purpose.
+            // folder (#186). The folder input opens a dropdown of the folders
+            // that already exist — click to pick, or type a new name (a
+            // datalist was tried first and nobody found it). Enter commits,
+            // Escape or focusing elsewhere cancels. When editing an existing
+            // view (onDelete given), a trash button deletes it — deletion
+            // lives here, behind the pencil, on purpose.
             function viewEditor(initial, onCommit, onDelete) {
                 const wrap = document.createElement('span');
                 wrap.className = 'saved-view-editor inline-flex items-center gap-2';
@@ -1417,21 +1419,44 @@ async function uploadBatchFiles(files, processName) {
                 nameIn.className = 'nx-input h-9 w-48 text-sm';
                 nameIn.dataset.testid = 'workitems-view-name-input';
 
+                const folderWrap = document.createElement('span');
+                folderWrap.className = 'relative inline-flex';
                 const folderIn = document.createElement('input');
                 folderIn.type = 'text';
                 folderIn.maxLength = 100;
+                folderIn.autocomplete = 'off';
                 folderIn.value = initial.folder || '';
                 folderIn.placeholder = {{ _("Folder (optional)")|tojson }};
-                folderIn.className = 'nx-input h-9 w-40 text-sm';
+                folderIn.className = 'nx-input h-9 w-40 text-sm pr-7';
                 folderIn.dataset.testid = 'workitems-view-folder-input';
-                folderIn.setAttribute('list', 'savedViewFolderList');
-                const datalist = document.createElement('datalist');
-                datalist.id = 'savedViewFolderList';
-                [...new Set(savedViews.map(v => v.folder).filter(Boolean))].forEach(f => {
-                    const opt = document.createElement('option');
-                    opt.value = f;
-                    datalist.appendChild(opt);
-                });
+                const chev = document.createElement('span');
+                chev.className = 'pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 text-gray-400';
+                chev.innerHTML = '<i class="fa-solid fa-chevron-down text-xs"></i>';
+                const folderList = document.createElement('div');
+                folderList.className = 'hidden absolute z-30 top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto';
+                folderList.dataset.testid = 'workitems-view-folder-options';
+                const existingFolders = [...new Set(savedViews.map(v => v.folder).filter(Boolean))].sort();
+                const renderFolderList = q => {
+                    folderList.innerHTML = '';
+                    const ql = (q || '').toLowerCase();
+                    existingFolders.filter(f => !ql || f.toLowerCase().includes(ql)).forEach(f => {
+                        const opt = document.createElement('div');
+                        opt.className = 'px-3 py-1.5 text-sm cursor-pointer text-gray-700 hover:bg-indigo-50 truncate';
+                        opt.textContent = f;
+                        // mousedown, not click: keeps focus in the input so the
+                        // editor's focusout-cancel doesn't fire first.
+                        opt.addEventListener('mousedown', ev => {
+                            ev.preventDefault();
+                            folderIn.value = f;
+                            folderList.classList.add('hidden');
+                        });
+                        folderList.appendChild(opt);
+                    });
+                    folderList.classList.toggle('hidden', !folderList.children.length);
+                };
+                folderIn.addEventListener('focus', () => renderFolderList(folderIn.value));
+                folderIn.addEventListener('input', () => renderFolderList(folderIn.value));
+                folderWrap.append(folderIn, chev, folderList);
 
                 let done = false;
                 const finish = commit => {
@@ -1450,7 +1475,7 @@ async function uploadBatchFiles(files, processName) {
                 wrap.addEventListener('focusout', e => {
                     if (!wrap.contains(e.relatedTarget)) finish(false);
                 });
-                wrap.append(nameIn, folderIn, datalist);
+                wrap.append(nameIn, folderWrap);
                 if (onDelete) {
                     const del = document.createElement('button');
                     del.type = 'button';
@@ -1589,8 +1614,12 @@ async function uploadBatchFiles(files, processName) {
 
             // Editing any filter by hand means the chip no longer describes the
             // list — drop the highlight. applyView sets values without firing
-            // events, so applying itself doesn't clear it.
-            function clearActiveView() {
+            // events, so applying itself doesn't clear it. The bar lives inside
+            // the filter form's toolbar row, so ignore events bubbling out of
+            // the chips/editor themselves (typing a view name is not a filter
+            // edit).
+            function clearActiveView(e) {
+                if (e && savedViewsBar.contains(e.target)) return;
                 if (activeViewId === null) return;
                 activeViewId = null;
                 renderSavedViews();
