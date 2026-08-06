@@ -96,6 +96,7 @@
     resultMeta: {{ _("{rows} rows · {ms} ms · {when}")|tojson }},
     runJustNow: {{ _("run just now")|tojson }},
     kpiTotal: {{ _("Total")|tojson }},
+    kpiLatestSuffix: {{ _("latest snapshot")|tojson }},
     kpiBuckets: {{ _("Buckets")|tojson }},
     kpiAvg: {{ _("Avg per bucket")|tojson }},
     kpiPeak: {{ _("Peak")|tojson }},
@@ -719,6 +720,8 @@
       ? zeroFillDateBuckets(def, comparison.rows, [], [comparison.priorStart, comparison.priorEnd])
       : (comparison ? comparison.rows : null);
     var priorKpi = priorRows ? computeKpiBand(dims, priorRows) : null;
+    var latestKey = applyLatestTotal(def, kpi, rows);
+    if (priorKpi) applyLatestTotal(def, priorKpi, priorRows);
     var totalDelta = '', avgDelta = '', peakDelta = '';
     if (priorKpi) {
       totalDelta = deltaChipHtml(kpi.total, priorKpi.total, comparison.priorStart, comparison.priorEnd);
@@ -740,7 +743,8 @@
     var sparkHtml = def ? sparklineHtml(def, rows, kpi) : '';
     band.innerHTML =
       '<div class="rs-kpi-total-card" data-testid="rs-kpi-total">' +
-        '<span class="reporting-ledger-caption">' + esc(I18N.kpiTotal) + '</span>' +
+        '<span class="reporting-ledger-caption">' + esc(I18N.kpiTotal) +
+          (latestKey ? ' · ' + esc(I18N.kpiLatestSuffix) + ' ' + esc(String(latestKey).slice(0, 16)) : '') + '</span>' +
         '<span class="reporting-ledger-kpi-value" data-count-target="' + Number(kpi.total) + '">0</span>' +
         totalDelta + sparkHtml +
       '</div>' +
@@ -785,6 +789,40 @@
     var list = (state.metricsBySource || {})[def.source] || [];
     var hit = list.find(function (x) { return x.code === m.metric; });
     return hit ? hit.aggregation : '';
+  }
+
+  function metricTotalModeFor(def) {
+    var m = (def.metrics && def.metrics[0]) || null;
+    if (!m) return 'sum';
+    var list = (state.metricsBySource || {})[def.source] || [];
+    var hit = list.find(function (x) { return x.code === m.metric; });
+    return (hit && hit.totalMode) || 'sum';
+  }
+
+  // #178 C10: for a latest-mode metric the band total is the newest date
+  // bucket's sum, not the sum over all buckets. Returns the bucket label it
+  // used, or null when not applicable (no date dim / not latest mode).
+  function applyLatestTotal(def, kpi, rows) {
+    if (!kpi || metricTotalModeFor(def) !== 'latest') return null;
+    var cols = def.columns || [];
+    var dateIdx = -1;
+    for (var i = 0; i < cols.length; i++) {
+      var m = fieldMetaFor(def, cols[i].field);
+      if (cols[i].grain || (m && m.grainable)) { dateIdx = i; break; }
+    }
+    if (dateIdx === -1) return null;
+    var maxKey = null;
+    rows.forEach(function (r) {
+      var k = String(r[dateIdx]);
+      if (maxKey === null || k > maxKey) maxKey = k;
+    });
+    if (maxKey === null) return null;
+    var t = 0;
+    rows.forEach(function (r) {
+      if (String(r[dateIdx]) === maxKey) t += Number(r[kpi.idx]) || 0;
+    });
+    kpi.total = t;
+    return maxKey;
   }
 
   // ----- Drill-through (Simple: chart clicks + table rows) -----

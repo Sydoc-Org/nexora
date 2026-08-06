@@ -4138,3 +4138,63 @@ def test_granularity_chip_changes_grain_and_reruns(nexora_server, page):
     # completed, so the posted payload below is settled, not racing.
     expect(page.get_by_test_id("rs-chip").filter(has_text="Granularity")).to_contain_text("Week")
     assert any((p.get("columns") or [{}])[0].get("grain") == "week" for p in posted)
+
+
+def test_kpi_band_total_uses_latest_snapshot_for_latest_mode_metric(nexora_server, page):
+    """#178 C10: for a latest-mode metric (backlog_total) with a date
+    dimension, the orange GESAMT card totals only the newest date bucket's
+    row -- not the sum across every bucket in the result set.
+
+    Reduced-motion is emulated so the KPI value's count-up animation
+    (animateValue) writes the final total synchronously instead of counting
+    up through 0..N -- otherwise a mid-animation frame could transiently
+    contain "9" or omit "36" regardless of which value the band settles on,
+    making the assertions below meaningless.
+    """
+    _login(page, nexora_server)
+    page.emulate_media(reduced_motion="reduce")
+    page.route(
+        "**/api/reporting/metrics",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "backlog_history": [
+                        {
+                            "code": "backlog_total",
+                            "label": "Backlog total",
+                            "aggregation": "sum",
+                            "totalMode": "latest",
+                        }
+                    ]
+                }
+            ),
+        ),
+    )
+    page.route(
+        "**/api/reporting/run",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [{"field": "SnapshotAt"}, {"field": "backlog_total"}],
+                    "rows": [["2026-08-05", 27122], ["2026-08-06", 9755]],
+                    "rowCount": 2,
+                    "truncated": False,
+                    "resolvedDates": [],
+                }
+            ),
+        ),
+    )
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.evaluate("""() => window.ReportingSimple.openDefinition({
+      schemaVersion: 1, visualization: 'table', source: 'backlog_history',
+      title: 'backlog', columns: [{field: 'SnapshotAt', grain: 'day'}],
+      metrics: [{metric: 'backlog_total'}], filters: [], sort: [],
+      scope: {clients: [], processes: []}, rowLimit: 5000}, 'backlog')""")
+
+    total = page.get_by_test_id("rs-kpi-total")
+    expect(total).to_contain_text("9")  # 9,755 -- latest bucket only
+    expect(total).not_to_contain_text("36")  # never 36,877 (the sum)
