@@ -21,7 +21,8 @@
 
         {% if not is_prod and has_permission('admin.restart') %}
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
-            <select id="nx-restart-env" class="nx-input" data-testid="admin-overview-restart-env">
+            <select id="nx-restart-env" class="nx-select" style="width:auto"
+                    data-testid="admin-overview-restart-env">
                 <option value="INT" {% if current_env == 'INT' %}selected{% endif %}>INT</option>
                 <option value="STAGING" {% if current_env == 'STAGING' %}selected{% endif %}>STAGING</option>
             </select>

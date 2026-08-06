@@ -335,8 +335,8 @@ _SWITCHABLE_ENVS = {"INT", "STAGING"}
 def api_admin_restart():
     """Restart the local dev server process (issue #184). Dev-only — 404s on PROD
     since PROD is IIS-hosted and restarting there means recycling the app pool,
-    not killing a `python nx_main.py` process. Fires bin/nx.ps1 -r as a detached
-    process; it kills this process and starts a fresh one, so the response has
+    not killing a `python nx_main.py` process. Fires bin/nx.ps1 -r as a hidden
+    background process; it kills this process and starts a fresh one, so the response has
     to make it back to the browser before that happens (nx.ps1 sleeps ~1s first).
 
     Optional JSON body {"env": "INT"|"STAGING"} switches ENVIRONMENT on the way
@@ -353,7 +353,10 @@ def api_admin_restart():
     subprocess.Popen(
         args,
         cwd=str(REPO_ROOT),
-        creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP,
+        # CREATE_NO_WINDOW, not DETACHED_PROCESS: pwsh exits 0 without running
+        # the script when it has no console at all (#187); a hidden console
+        # works and still survives this process being killed by nx.ps1.
+        creationflags=subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP,
     )
     return jsonify({"success": True})
 

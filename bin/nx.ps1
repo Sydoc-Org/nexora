@@ -199,7 +199,16 @@ for ($i = 0; $i -lt $args.Count; $i++) {
         continue
     }
     if ($arg -match '^--env$') {
-        $action = 'env-show'
+        # pwsh -File splits '--env:X' into '--env' + 'X' (colon-token quirk),
+        # which is how the in-app restart API (issue #187) invokes us — accept
+        # the value from the next arg; bare --env stays env-show.
+        $next = if ($i + 1 -lt $args.Count) { $args[$i + 1] } else { $null }
+        if ($next -match '^(?i)(int|staging|prod)$') {
+            $envOverride = $next.ToUpper()
+            $i++
+        } else {
+            $action = 'env-show'
+        }
         continue
     }
     if ($arg -match '^--env:(.+)$') {
