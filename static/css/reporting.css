@@ -330,6 +330,8 @@
 .reporting-guide-article h3, .reporting-guide-article h4 { margin: 20px 0 8px; }
 .reporting-guide-article p, .reporting-guide-article ul, .reporting-guide-article ol { margin: 0 0 12px; }
 .reporting-guide-article ul, .reporting-guide-article ol { padding-left: 22px; }
+.reporting-guide-article ul { list-style: disc; }
+.reporting-guide-article ol { list-style: decimal; }
 .reporting-guide-article li { margin-bottom: 4px; }
 .reporting-guide-article blockquote { margin: 0 0 12px; padding: 8px 14px; border-left: 3px solid var(--nx-accent); background: var(--nx-bg-subtle, rgba(0,0,0,.03)); border-radius: 0 6px 6px 0; }
 .reporting-guide-article blockquote p:last-child { margin-bottom: 0; }
