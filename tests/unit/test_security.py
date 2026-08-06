@@ -296,7 +296,6 @@ def _all_false_page_v():
         "dashboardPagePerm": False,
         "reportingPagePerm": False,
         "workitemsPagePerm": False,
-        "invoicesPagePerm": False,
         "generaliPagePerm": False,
         "generaliDocumentsPerm": False,
         "generaliReportingPerm": False,
@@ -312,7 +311,7 @@ def _all_false_page_v():
 def test_startpage_redirect_to_picks_first_truthy_perm():
     pv = _all_false_page_v()
     pv["workitemsPagePerm"] = True
-    pv["invoicesPagePerm"] = True
+    pv["generaliPagePerm"] = True
     assert startpage_redirect_to(pv) == "workitems_overview"
 
 
@@ -347,7 +346,7 @@ def test_startpage_redirect_to_api_docs_only_lands_on_api_docs():
 # ---------------------------------------------------------------------------
 
 
-def test_page_visibility_returns_all_19_keys_with_no_perms(fake_session):
+def test_page_visibility_returns_all_18_keys_with_no_perms(fake_session):
     fake_session["permissions"] = []
     pv = page_visibility()
     expected_keys = {
@@ -356,7 +355,6 @@ def test_page_visibility_returns_all_19_keys_with_no_perms(fake_session):
         "reportingPagePerm",
         "workitemsPagePerm",
         "preparedDocsPagePerm",
-        "invoicesPagePerm",
         "apiDocsPagePerm",
         "generaliPagePerm",
         "generaliDocumentsPerm",
@@ -389,7 +387,6 @@ def test_page_visibility_reflects_selected_perms(fake_session):
     assert pv["adminMaintenanceBypassPerm"] is True
     # Spot-check that unselected perms are still False.
     assert pv["workitemsPagePerm"] is False
-    assert pv["invoicesPagePerm"] is False
     assert pv["adminMaintenanceEditPerm"] is False
 
 

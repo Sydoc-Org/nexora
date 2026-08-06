@@ -1,4 +1,16 @@
-"""Invoices and the Bexio API integration that backs them."""
+"""Invoices and the Bexio API integration that backs them.
+
+ARCHIVED (#177) — the page is retired. `register_routes()` is deliberately NOT
+called from `nx_lib/__init__.py`, so `/invoices`, `/api/invoices` and
+`/invoice/<id>/pdf` all 404; the sidebar entry and Ctrl+K command are gone and
+`page_visibility()` no longer exposes `invoicesPagePerm`. The `invoices.*`
+permission rows are left in place, and `dbo.ClientInvoices` was renamed to
+`dbo.decapitated_ClientInvoices` (migration 0056) — the two DB helpers below
+still name the old table, so reviving the page means all three: re-register the
+routes, restore `invoicesPagePerm` + the nav entries, and rename the table back.
+Kept in tree (with its helper tests) because the Bexio integration is the only
+copy of that code.
+"""
 
 import base64
 import json
@@ -256,7 +268,7 @@ def invoices():
         )
 
         return render_template(
-            "invoices.html",
+            "archive/invoices.html",
             logged_in_user=logged_in_user,
             userid=userid,
             search=search_nr,

@@ -113,7 +113,6 @@ def startpage_redirect_to(page_v):
         "dashboardPagePerm": "dashboard",
         "reportingPagePerm": "reporting",
         "workitemsPagePerm": "workitems_overview",
-        "invoicesPagePerm": "invoices",
         "generaliPagePerm": "generali_evaluation",
         "generaliDocumentsPerm": "generali_documents",
         "generaliReportingPerm": "generali_reporting",
@@ -137,7 +136,7 @@ def page_visibility():
         "reportingPagePerm": has_permission("reporting.view"),
         "workitemsPagePerm": has_permission("workitems.view"),
         "preparedDocsPagePerm": has_permission("workitems.import.preparedaudit"),
-        "invoicesPagePerm": has_permission("invoices.view"),
+        # invoicesPagePerm removed with the archived invoices page (#177).
         "apiDocsPagePerm": has_permission("api.docs.view"),
         "generaliPagePerm": has_permission("generali.dashboard.view"),
         "generaliDocumentsPerm": has_permission("generali.documentlist.view"),

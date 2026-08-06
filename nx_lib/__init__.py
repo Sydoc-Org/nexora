@@ -57,7 +57,6 @@ def create_app():
         core,
         dashboard,
         generali,
-        invoices,
         profile,
         reporting,
         workitems,
@@ -71,7 +70,8 @@ def create_app():
     reporting.register_routes(app)
     workitems.register_routes(app)
     generali.register_routes(app)
-    invoices.register_routes(app)
+    # views/invoices.py is ARCHIVED (#177) — deliberately not registered, so
+    # /invoices, /api/invoices and /invoice/<id>/pdf 404. See its docstring.
     api_external.register_routes(app)  # machine-to-machine API (Bearer key, no session)
 
     if cfg.IS_PROD:

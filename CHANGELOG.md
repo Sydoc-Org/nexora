@@ -19,6 +19,22 @@ Work toward the next release.
   final section so the guide can be handed to clients as-is. `reporting.md`
   stays the developer reference and now cross-links it.
 
+### Removed
+
+- Invoices page archived (#177). The Bexio-backed `/invoices` page is retired:
+  its three routes (`/invoices`, `/api/invoices`, `/invoice/<id>/pdf`) are no
+  longer registered and now 404, the sidebar entry and Ctrl+K command are gone,
+  and `page_visibility()` no longer returns `invoicesPagePerm`. Nothing is
+  deleted — `nx_lib/views/invoices.py` stays in tree (marked ARCHIVED in its
+  docstring, helper tests kept) and its templates moved to
+  `templates/archive/invoices.html` + `templates/js/archive/_invoices_js.html`,
+  matching the `archive/` convention used for the retired chat page. Migration
+  `0056` renames `dbo.ClientInvoices` to `dbo.decapitated_ClientInvoices`
+  (data preserved, one `sp_rename` to undo). The `invoices.*` permission rows
+  are deliberately left in `dbo.Permission`. Reviving the page means all three:
+  re-register the routes, restore `invoicesPagePerm` + the nav entries, and
+  rename the table back.
+
 ### Changed
 
 - Branch naming convention: release-cycle branches are now `v<x.y[.z]>` (e.g.

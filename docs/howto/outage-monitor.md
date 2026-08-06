@@ -43,7 +43,7 @@ Scheduler on SYAPP01.
 | `http:site` | `GET` on `OUTAGE_SITE_URL` | IIS down, app pool crashed, WSGI import error |
 | `octo:<domain>` | `POST /auth/connect/token` | Octo vendor-side outage |
 | `graph:mail` | Graph ROPC token request | expired Graph credentials — which silently kill alert mail itself |
-| `bexio:api` | `GET /2.0/company_profile` | Bexio outage or an expired PAT, breaking invoices |
+| `bexio:api` | `GET /2.0/company_profile` | Bexio outage or an expired PAT. Note: the invoices page it used to guard was archived (#177), so this probe currently has no in-app consumer — keep it only while the PAT is still worth watching |
 | `log storm @ <site>` | repeated `ERROR` signature in `app.log` | logic-level breakage while every connectivity probe stays green |
 
 The Graph probe asks for a **token only**. Actually sending a message would be a

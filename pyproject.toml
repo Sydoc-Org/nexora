@@ -5,7 +5,7 @@ name = "nexora"
 # version unless a build backend supplies one, and nexora is a virtual project
 # (never built or installed). tests/unit/test_version.py enforces the sync.
 version = "3.1"
-description = "Sydoc internal portal: workitems, invoices, chat, admin"
+description = "Sydoc internal portal: workitems, reporting, admin"
 requires-python = ">=3.13"
 readme = "README.md"
 license = { file = "LICENSE" }

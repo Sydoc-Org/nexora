@@ -72,9 +72,6 @@
 {% if pageV.workitemsPagePerm %}
                 { section: "{{ _('Workspace') }}", label: "{{ _('Work items') }}", icon: 'fa-list-check', url: "{{ url_for('workitems_overview') }}" },
                 {% endif %}
-                {% if pageV.invoicesPagePerm %}
-                { section: "{{ _('Workspace') }}", label: "{{ _('Invoices') }}",   icon: 'fa-file-invoice', url: "{{ url_for('invoices') }}" },
-                {% endif %}
                 {% if pageV.generaliPagePerm %}
                 { section: "Generali", label: "{{ _('Dashboard') }}",            icon: 'fa-chart-line',      url: "{{ url_for('generali_evaluation') }}" },
                 {% endif %}

@@ -1,12 +1,12 @@
 ﻿USE [nexora]
 GO
-DROP TABLE [dbo].[ClientInvoices]
+DROP TABLE [dbo].[decapitated_ClientInvoices]
 GO
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE TABLE [dbo].[ClientInvoices](
+CREATE TABLE [dbo].[decapitated_ClientInvoices](
 	[ClientName] [nvarchar](100) NOT NULL,
 	[bexioClientId] [int] NOT NULL,
  CONSTRAINT [UQ_bexioClientId] UNIQUE NONCLUSTERED 

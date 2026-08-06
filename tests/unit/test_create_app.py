@@ -52,10 +52,12 @@ def test_create_app_registers_workitems_endpoint():
     assert "workitems_overview" in endpoints
 
 
-def test_create_app_registers_invoices_endpoint():
+def test_create_app_does_not_register_archived_invoices_endpoints():
+    """The invoices page is archived (#177) — its routes must stay unregistered
+    so /invoices, /api/invoices and /invoice/<id>/pdf 404."""
     app = create_app()
     endpoints = {r.endpoint for r in app.url_map.iter_rules()}
-    assert "invoices" in endpoints
+    assert not endpoints & {"invoices", "api_invoices", "download_invoice_pdf"}
 
 
 def test_create_app_registers_profile_endpoint():
@@ -108,8 +110,6 @@ def test_create_app_endpoint_set_includes_expected_critical_set():
         "admin_dashboard",
         "workitems_overview",
         "api_workitems",
-        "invoices",
-        "api_invoices",
         "jdvance",
         "maintenance_page",
     }
@@ -202,10 +202,7 @@ EXPECTED_NON_GENERALI_ENDPOINTS = {
     "api_get_media_raw",
     "get_audithistory",
     "api_workitems_page_init",
-    # views/invoices.py
-    "invoices",
-    "api_invoices",
-    "download_invoice_pdf",
+    # views/invoices.py — archived (#177), routes deliberately not registered.
 }
 
 
