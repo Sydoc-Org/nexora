@@ -317,7 +317,8 @@
 .reporting-btn-primary { background: var(--nx-accent); color: #fff; border-color: var(--nx-accent); }
 
 /* In-app guide page (/reporting/guide) */
-.reporting-guide { max-width: 1100px; margin: 0 auto; padding: 0 24px 48px; }
+/* Container metrics come from .nx-main (28px 40px, compact-aware) so the
+   masthead aligns like every other page; only the inner grid lives here. */
 .reporting-guide-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 24px; align-items: start; }
 .reporting-guide-toc { position: sticky; top: 84px; font-size: 13px; }
 .reporting-guide-toc h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--nx-text-muted, #6b7280); margin: 0 0 8px; }
