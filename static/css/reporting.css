@@ -5,7 +5,7 @@
   display: grid;
   grid-template-columns: 260px 1fr 300px;
   gap: 20px;
-  padding: 20px 24px 32px;
+  padding-block: 20px 32px;
   align-items: start;
   font-family: var(--nx-font);
 }
@@ -458,12 +458,30 @@ body.nx-app {
   font-family: var(--nx-font);
 }
 
-/* Branded page header — sits above the builder grid (a sibling, not a grid
-   child) so its right-aligned actions stay on-screen even when the builder
-   grid overflows horizontally. Left padding matches the grid's 24px so the
-   title lines up with the Source panel; the grid's own padding-top supplies
-   the gap below. */
-.reporting-page-head { padding: 20px 24px 0; margin-bottom: 0; }
+/* Page container — same metrics as body.nx-app .nx-main (nexora-ui.css), which
+   every other page uses. The masthead, the view-switch rail and both panes all
+   run through it, so the Reporting title sits on the identical left edge as
+   Dashboard's and Workitems' (issue #175). Not literally .nx-main: the header
+   must stay a sibling of the builder grid so its actions remain on-screen when
+   that grid overflows horizontally. */
+.reporting-shell,
+.reporting-main,
+.reporting-simple {
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding-inline: 40px;
+  box-sizing: border-box;
+}
+.nx-page-head.reporting-page-head { padding: 28px 0 0; margin-bottom: 18px; }
+
+/* View switch: a page-level tab rail under the masthead (the app's standard
+   .nx-tabs underline bar), with the admin-only Sources link parked quietly at
+   its right end. Deliberately NOT the pill/segmented language used by the
+   in-pane Table/SQL and Grid/Chart toggles — primary navigation should not
+   look like a control inside the pane it navigates to. */
+.reporting-viewbar { display: flex; align-items: flex-end; gap: 16px; border-bottom: 1px solid var(--nx-border); }
+.reporting-viewbar__aside { margin: 0 0 6px auto; }
 
 /* Panels / surfaces */
 .reporting-fields,
@@ -861,13 +879,23 @@ body.nx-app {
   .reporting-page-head.nx-page-head { flex-wrap: wrap; }
   .reporting-head-actions { flex-wrap: wrap; }
 }
-.reporting-tabs { display: flex; gap: 2px; padding: 3px; background: var(--nx-divider); border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 8px); margin: 0; }
-.reporting-tabs .nx-tab { border: none; margin: 0; background: transparent; border-radius: calc(var(--nx-radius-scale, 1) * 6px); padding: 6px 14px; font: 500 12.5px var(--nx-font); color: var(--nx-text-sec); cursor: pointer; }
-.reporting-tabs .nx-tab:hover { color: var(--nx-text); }
-.reporting-tabs .nx-tab[aria-selected="true"] { background: var(--nx-card); color: var(--nx-accent); font-weight: 600; box-shadow: 0 1px 2px rgba(16, 24, 40, .06); }
+/* Base .nx-tabs (nexora-ui.css) already is the app's underline tab bar; the
+   rail's own hairline replaces the one on .nx-tabs so the Sources link at its
+   right end sits on the same rule. Two-class selector on purpose:
+   _header.html links nexora-ui.css from the <body>, i.e. after this file, so
+   an equal-specificity .reporting-tabs rule would lose to .nx-tabs. */
+.reporting-viewbar .reporting-tabs { margin: 0; border-bottom: none; }
 
 /* --- Simple pane (Spec 2) --- */
-.reporting-simple { padding: 0 24px 32px; max-width: 1100px; margin: 0 auto; }
+/* Width/inset come from the shared page-container rule (~L466) so Simple's
+   content edge matches the masthead; only the vertical rhythm is local. The
+   reading-width cap that used to live here now sits on the prose-ish blocks
+   (hero + wizard steps) instead of the whole pane, which also carries the
+   card grid. */
+.reporting-simple { padding-block: 20px 32px; }
+/* The hero spans the pane (its own inner AI bar is already capped at 660px and
+   centred); only the wizard's form rows need a reading-width cap. */
+.reporting-simple-step { max-width: 1100px; }
 .reporting-simple-top { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
 .reporting-simple-aibar { display: flex; gap: 8px; flex: 1; min-width: 260px; }
 .reporting-simple-aibar .reporting-input { flex: 1; }
@@ -1511,13 +1539,11 @@ html.dark body.reporting-ledger {
   --rl-navy:     var(--nx-accent);
 }
 
-/* Canvas + masthead: white band over the cool-neutral page canvas,
-   hairline rule where the card chrome used to be. */
+/* Canvas only. The masthead's full-bleed white band + hairline were retired
+   with issue #175: they made Reporting the one page whose header did not look
+   like every other page's (Dashboard, Workitems, ...), which is what the band
+   was flagged for. The view-switch rail below supplies the separating rule. */
 body.nx-app.reporting-ledger { background: var(--rl-canvas); }
-.reporting-ledger .reporting-page-head {
-  background: var(--rl-band);
-  border-bottom: 1px solid var(--rl-hairline);
-}
 /* Task 2: .nx-title serif override retired — falls back to the page's
    Inter (var(--nx-font)). */
 

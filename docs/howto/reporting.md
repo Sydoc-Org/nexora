@@ -10,6 +10,26 @@ custom-header, save/load, and Excel-export support.
 `/reporting` opens as two tabs (one route, two client-side panes;
 `templates/js/_reporting_tabs_js.html` is the controller):
 
+### Page layout
+
+Top to bottom: the masthead (title, subtitle, the run's `N rows · M ms` timing
+badge, and **AI chat** as its one action), then a full-width **tab rail** —
+Simple / Advanced on the left as the app's standard `.nx-tabs` underline bar,
+the admin-only **Sources** link parked quietly at its right end — then the
+active pane. All four run through `.reporting-shell` / `.reporting-main` /
+`.reporting-simple`, which share `body.nx-app .nx-main`'s 1600px max-width and
+40px inset, so the Reporting title sits on the same left edge as every other
+page's. Two rules worth knowing before restyling this area (both cost time
+once, see #175):
+
+- `_header.html` links `nexora-ui.css` from the `<body>`, i.e. *after*
+  `reporting.css`. An equal-specificity override here (`.reporting-tabs` vs
+  `.nx-tabs`) silently loses — use two classes.
+- The page-level tab rail is deliberately *not* the pill/segmented language
+  used by the in-pane Table/SQL and Grid/Chart toggles. Primary navigation that
+  looks like a control inside the pane it navigates to is what made the old
+  masthead read as three unrelated buttons.
+
 ### Indigo Studio identity
 
 The page carries its own visual identity, distinct from the rest of the app —
@@ -944,9 +964,10 @@ for what's left of the old surfaces server-side.
 
 ### AI chat panel
 
-**Toggle:** an **"AI chat"** button (`#rpChatToggle`, wand-sparkles icon) sits in
-the masthead next to **Sources**, on both tabs, whenever `reporting.ai.use` is
-held (`ai_enabled`). Clicking it — or, on Simple, typing into the landing hero's
+**Toggle:** an **"AI chat"** button (`#rpChatToggle`, wand-sparkles icon) is the
+masthead's action, on both tabs, whenever `reporting.ai.use` is held
+(`ai_enabled`). (**Sources** is not next to it — it sits at the right end of the
+Simple/Advanced tab rail below, see *Page layout*.) Clicking it — or, on Simple, typing into the landing hero's
 **Ask AI** bar or clicking one of its suggestion chips — opens a docked
 right-side slide-over (`#rpChatPanel`) with an empty state offering three
 example questions. It closes any open drill-through drawer first (the two

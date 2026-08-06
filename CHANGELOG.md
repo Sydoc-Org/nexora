@@ -8,6 +8,28 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Changed
+
+- Reporting page chrome now matches the rest of the app (#175) — the masthead
+  ran outside any page container, so it was full-bleed against a white band
+  while Dashboard and Workitems inset their titles in `.nx-main`. Header, view
+  switch and both panes now share one container with the same 1600px/40px
+  metrics, and the band + its hairline are gone. The Simple/Advanced switch
+  moved out of the header's action row (where it sat as a pill between
+  *Sources* and *AI chat*, reading as a third button) into a page-level tab rail
+  under the title, using the app's standard `.nx-tabs` underline bar — so
+  primary navigation no longer looks like the segmented toggles inside the pane
+  it navigates to. *Sources* is admin plumbing rather than a daily action and is
+  now a quiet ghost link at the right end of that rail.
+
+### Fixed
+
+- Reporting: date and datetime cells in results rendered as HTTP dates
+  (`Thu, 26 Mar 2026 08:56:28 GMT`) (#175). `_json_safe` passed them to Flask's
+  `DefaultJSONProvider`, whose date format that is; it now formats them as
+  `yyyy-MM-dd HH:mm:ss` / `yyyy-MM-dd` — sortable and locale-free. Exports are
+  unaffected: xlsx/csv serialize the raw rows, not the JSON payload.
+
 ## [3.1] - 2026-08-06
 
 ### Added
