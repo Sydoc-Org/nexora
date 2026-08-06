@@ -38,8 +38,9 @@
       {% endif %}
     </div>
     <div class="reporting-modal-actions reporting-help-actions">
+      {# New tab on purpose: the builder holds unsaved state. #}
       <a class="nx-btn nx-btn--ghost" data-testid="reporting-help-guide-link"
-         href="{{ url_for('reporting_guide') }}">
+         href="{{ url_for('reporting_guide') }}" target="_blank" rel="noopener">
         <i class="fas fa-book-open" aria-hidden="true"></i> {{ _("Full guide") }}</a>
       <button id="rpHelpClose" class="reporting-btn nx-btn nx-btn--secondary" data-testid="reporting-help-close">{{ _("Close") }}</button>
     </div>
