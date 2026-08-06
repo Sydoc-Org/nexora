@@ -1309,21 +1309,25 @@ async function uploadBatchFiles(files, processName) {
                 nameBtn.type = 'button';
                 nameBtn.className = 'pl-3 pr-1 py-1.5 cursor-pointer';
                 nameBtn.textContent = v.name;
-                nameBtn.title = {{ _("Apply view")|tojson }};
-                nameBtn.addEventListener('click', () => applyView(v));
+                nameBtn.title = active ? {{ _("Deselect view")|tojson }} : {{ _("Apply view")|tojson }};
+                nameBtn.addEventListener('click', () => active ? deselectView() : applyView(v));
                 chip.appendChild(nameBtn);
                 // A dedicated pencil, NOT dblclick-on-name: applying re-renders
                 // the chips, so the second click of a dblclick lands on a
-                // replaced node and the rename handler never fires.
-                chip.appendChild(makeActionBtn('fa-pen', {{ _("Rename view")|tojson }}, active,
-                    'hover:text-indigo-600', () => startRename(v)));
-                chip.appendChild(makeActionBtn('fa-times', {{ _("Delete view")|tojson }}, active,
-                    'hover:text-red-500', () => deleteView(v)));
+                // replaced node and the rename handler never fires. The editor
+                // it opens is also where DELETE lives — an always-visible x
+                // deleted views when people expected it to deselect them.
+                chip.appendChild(makeActionBtn('fa-pen', {{ _("Edit view")|tojson }}, active,
+                    'hover:text-indigo-600', () => startEdit(v)));
+                if (active) {
+                    chip.appendChild(makeActionBtn('fa-times', {{ _("Deselect view")|tojson }}, active,
+                        'hover:text-red-500', deselectView));
+                }
                 return chip;
             }
 
             // Folder chip (#186): one chip per folder, opening a dropdown that
-            // lists the folder's views with the same apply/rename/delete trio.
+            // lists the folder's views (click applies / toggles off, pencil edits).
             function makeFolderChip(folder, views) {
                 const wrap = document.createElement('span');
                 wrap.className = 'saved-view-folder relative inline-flex';
@@ -1354,14 +1358,12 @@ async function uploadBatchFiles(files, processName) {
                     applyBtn.className = 'flex-1 text-left px-2 py-1 text-sm rounded truncate ' +
                         (active ? 'bg-indigo-50 font-semibold text-indigo-700' : 'text-gray-700 hover:bg-indigo-50');
                     applyBtn.textContent = v.name;
-                    applyBtn.title = {{ _("Apply view")|tojson }};
+                    applyBtn.title = active ? {{ _("Deselect view")|tojson }} : {{ _("Apply view")|tojson }};
                     applyBtn.dataset.testid = 'workitems-view-menu-apply';
-                    applyBtn.addEventListener('click', () => applyView(v));
+                    applyBtn.addEventListener('click', () => active ? deselectView() : applyView(v));
                     row.appendChild(applyBtn);
-                    row.appendChild(makeActionBtn('fa-pen', {{ _("Rename view")|tojson }}, false,
-                        'hover:text-indigo-600', () => startRename(v)));
-                    row.appendChild(makeActionBtn('fa-times', {{ _("Delete view")|tojson }}, false,
-                        'hover:text-red-500', () => deleteView(v)));
+                    row.appendChild(makeActionBtn('fa-pen', {{ _("Edit view")|tojson }}, false,
+                        'hover:text-indigo-600', () => startEdit(v)));
                     menu.appendChild(row);
                 });
 
@@ -1398,10 +1400,12 @@ async function uploadBatchFiles(files, processName) {
                 }
             });
 
-            // Inline editor shared by save + rename: view name + optional
+            // Inline editor shared by save + edit: view name + optional
             // folder (#186, with existing folders as datalist suggestions).
-            // Enter commits, Escape or focusing elsewhere cancels.
-            function viewEditor(initial, onCommit) {
+            // Enter commits, Escape or focusing elsewhere cancels. When
+            // editing an existing view (onDelete given), a trash button
+            // deletes it — deletion lives here, behind the pencil, on purpose.
+            function viewEditor(initial, onCommit, onDelete) {
                 const wrap = document.createElement('span');
                 wrap.className = 'saved-view-editor inline-flex items-center gap-2';
 
@@ -1447,6 +1451,21 @@ async function uploadBatchFiles(files, processName) {
                     if (!wrap.contains(e.relatedTarget)) finish(false);
                 });
                 wrap.append(nameIn, folderIn, datalist);
+                if (onDelete) {
+                    const del = document.createElement('button');
+                    del.type = 'button';
+                    del.className = 'px-2 py-1.5 text-gray-400 hover:text-red-500 transition-colors';
+                    del.innerHTML = '<i class="fas fa-trash text-sm"></i>';
+                    del.title = {{ _("Delete view")|tojson }};
+                    del.setAttribute('aria-label', {{ _("Delete view")|tojson }});
+                    del.dataset.testid = 'workitems-view-delete';
+                    del.addEventListener('click', () => {
+                        done = true;
+                        wrap.remove();
+                        onDelete();
+                    });
+                    wrap.appendChild(del);
+                }
                 return wrap;
             }
 
@@ -1474,7 +1493,7 @@ async function uploadBatchFiles(files, processName) {
                 editor.querySelector('input').focus();
             }
 
-            function startRename(v) {
+            function startEdit(v) {
                 if (savedViewsBar.querySelector('input')) return;
                 savedViewsBar.querySelectorAll('.saved-view-folder-menu').forEach(m => m.classList.add('hidden'));
                 const editor = viewEditor({ name: v.name, folder: v.folder }, async (name, folder) => {
@@ -1492,11 +1511,17 @@ async function uploadBatchFiles(files, processName) {
                         }
                     }
                     renderSavedViews();
-                });
+                }, () => deleteView(v));
                 savedViewsBar.appendChild(editor);
                 const nameIn = editor.querySelector('input');
                 nameIn.focus();
                 nameIn.select();
+            }
+
+            // Deselect = back to the default, unfiltered list: applying an
+            // empty view resets every filter and clears the highlight.
+            function deselectView() {
+                applyView({ id: null, filters: [] });
             }
 
             async function deleteView(v) {

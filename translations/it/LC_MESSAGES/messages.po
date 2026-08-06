@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-06 12:58+0200\n"
+"POT-Creation-Date: 2026-08-06 13:56+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -6427,29 +6427,35 @@ msgid "No workitems found"
 msgstr "Nessun Workitem trovato"
 
 #: templates/js/_workitems_overview_js.html:1312
-#: templates/js/_workitems_overview_js.html:1357
+#: templates/js/_workitems_overview_js.html:1323
+#: templates/js/_workitems_overview_js.html:1361
+msgid "Deselect view"
+msgstr "Deseleziona vista"
+
+#: templates/js/_workitems_overview_js.html:1312
+#: templates/js/_workitems_overview_js.html:1361
 msgid "Apply view"
 msgstr "Applica vista"
 
-#: templates/js/_workitems_overview_js.html:1318
-#: templates/js/_workitems_overview_js.html:1361
-msgid "Rename view"
-msgstr "Rinomina vista"
-
 #: templates/js/_workitems_overview_js.html:1320
-#: templates/js/_workitems_overview_js.html:1363
-msgid "Delete view"
-msgstr "Elimina vista"
+#: templates/js/_workitems_overview_js.html:1365
+msgid "Edit view"
+msgstr "Modifica vista"
 
-#: templates/js/_workitems_overview_js.html:1412
+#: templates/js/_workitems_overview_js.html:1416
 msgid "View name…"
 msgstr "Nome della vista…"
 
-#: templates/js/_workitems_overview_js.html:1420
+#: templates/js/_workitems_overview_js.html:1424
 msgid "Folder (optional)"
 msgstr "Cartella (facoltativa)"
 
-#: templates/js/_workitems_overview_js.html:1466
+#: templates/js/_workitems_overview_js.html:1459
+#: templates/js/_workitems_overview_js.html:1460
+msgid "Delete view"
+msgstr "Elimina vista"
+
+#: templates/js/_workitems_overview_js.html:1485
 msgid "View saved."
 msgstr "Vista salvata."
 
@@ -7610,4 +7616,7 @@ msgstr ""
 
 #~ msgid "Apply view — double-click to rename"
 #~ msgstr "Applica vista — doppio clic per rinominare"
+
+#~ msgid "Rename view"
+#~ msgstr "Rinomina vista"
 

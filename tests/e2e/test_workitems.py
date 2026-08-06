@@ -254,7 +254,8 @@ def test_workitems_saved_filter_view_roundtrip(nexora_server, page):
     expect(page.locator('[data-testid="workitems-search"]')).to_have_value("4711")
     expect(page.locator('[data-testid="workitems-status-filter"]')).to_have_value("Done")
 
-    # Rename via the pencil (chip buttons: 0 = apply, 1 = pencil, 2 = x).
+    # Rename via the pencil (chip buttons: 0 = apply/deselect, 1 = pencil,
+    # 2 = deselect-x, shown on the active chip only).
     chip.locator("button").nth(1).click()
     name_input = page.locator('[data-testid="workitems-view-name-input"]')
     expect(name_input).to_be_visible()
@@ -263,8 +264,16 @@ def test_workitems_saved_filter_view_roundtrip(nexora_server, page):
     chip = page.locator('[data-testid="workitems-view-chip"]')
     expect(chip).to_contain_text("E2E renamed")
 
-    # Delete via the x: the chip disappears and stays gone after a reload.
+    # The x on the ACTIVE chip deselects — filters reset, nothing deleted
+    # (an always-delete x nuked views when people meant to unselect).
     chip.locator("button").nth(2).click()
+    expect(page.locator('[data-testid="workitems-search"]')).to_have_value("")
+    chip = page.locator('[data-testid="workitems-view-chip"]')
+    expect(chip).to_have_count(1)
+
+    # Delete lives in the pencil editor's trash button.
+    chip.locator("button").nth(1).click()
+    page.click('[data-testid="workitems-view-delete"]')
     expect(page.locator('[data-testid="workitems-view-chip"]')).to_have_count(0)
     page.goto(f"{nexora_server}/workitems")
     expect(page.locator('[data-testid="workitems-saved-views"]')).to_be_hidden()
@@ -312,7 +321,9 @@ def test_workitems_saved_view_folder_grouping(nexora_server, page):
     apply_btn.click()
     expect(page.locator('[data-testid="workitems-search"]')).to_have_value("555")
 
-    # Delete from the dropdown: the folder chip disappears with its last view.
+    # Delete via the dropdown row's pencil -> editor trash button: the folder
+    # chip disappears with its last view.
     folder_chip.click()
     page.locator(".saved-view-folder-menu button[aria-label]").last.click()
+    page.click('[data-testid="workitems-view-delete"]')
     expect(page.locator('[data-testid="workitems-view-folder"]')).to_have_count(0)
