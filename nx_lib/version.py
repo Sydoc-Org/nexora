@@ -10,7 +10,9 @@ is a virtual project that is never built or installed. ``tests/unit/test_version
 enforces that all three copies agree.
 """
 
-__version__ = "3.0.1"
+# ponytail: bare "3.1" here — PEP 440 strips a leading "v", so the display "v"
+# lives in the two templates that render it, not in the version string.
+__version__ = "3.1"
 
 try:
     # ponytail: nx_lib/_build.py is written by .github/workflows/deploy.yml right

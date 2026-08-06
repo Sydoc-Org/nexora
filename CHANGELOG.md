@@ -8,7 +8,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
-## [3.0.1] - 2026-08-06
+## [3.1] - 2026-08-06
 
 ### Added
 
