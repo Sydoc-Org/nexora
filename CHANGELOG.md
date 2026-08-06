@@ -37,7 +37,7 @@ Work toward the next release.
 - Bexio dropped from health monitoring (#177), following the archived invoices
   page it was the only consumer of. `nx --doctor` no longer runs the Bexio
   check or requires `BEXIO_PAT` in its env-key list, `ops/outage_monitor.py`
-  no longer emits the `bexio:api` probe, and migration `0057` deletes that
+  no longer emits the `bexio:api` probe, and migration `0058` deletes that
   component's `dbo.StatusComponents` row so it stops rendering on the admin
   status page (open incidents are closed, history kept). `BEXIO_PAT` stays in
   `nx_lib/config.py` and the `env/*.env.example` templates — the archived

@@ -43,8 +43,6 @@ def pretty_name(key, stored=None):
         return f"Octo runtime ({key[5:]})"
     if key == "graph:mail":
         return "Microsoft Graph (mail)"
-    if key == "bexio:api":
-        return "Bexio API"
     return stored or key
 
 

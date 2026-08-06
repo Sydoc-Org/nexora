@@ -6,7 +6,7 @@ Documentation is authored in git (`docs/`, `README.md`, `CONTRIBUTING.md`, `CHAN
 
 ## Project overview
 
-Nexora is a Flask web application (Python 3, WSGI) deployed on Windows/IIS via `wfastcgi`. It serves as an internal portal for Sydoc (workitems, reporting, admin, plus tenant-specific "generali" pages). It talks to multiple SQL Server databases, integrates with Microsoft Graph and Octopus-based runtime services, and uses Bexio for billing.
+Nexora is a Flask web application (Python 3, WSGI) deployed on Windows/IIS via `wfastcgi`. It serves as an internal portal for Sydoc (workitems, reporting, admin, plus tenant-specific "generali" pages). It talks to multiple SQL Server databases, integrates with Microsoft Graph and Octopus-based runtime services. (The Bexio billing integration is archived with the invoices page — see #177.)
 
 The entire backend is a single file: `nx_main.py` (a 119-line WSGI shim); routes live under `nx_lib/views/`. Templates live under `templates/` (Jinja2, split into page templates and paired JS partials under `templates/js/`). Static assets are in `static/`.
 

@@ -43,14 +43,18 @@ Scheduler on SYAPP01.
 | `http:site` | `GET` on `OUTAGE_SITE_URL` | IIS down, app pool crashed, WSGI import error |
 | `octo:<domain>` | `POST /auth/connect/token` | Octo vendor-side outage |
 | `graph:mail` | Graph ROPC token request | expired Graph credentials — which silently kill alert mail itself |
-| `bexio:api` | `GET /2.0/company_profile` | Bexio outage or an expired PAT. Note: the invoices page it used to guard was archived (#177), so this probe currently has no in-app consumer — keep it only while the PAT is still worth watching |
 | `log storm @ <site>` | repeated `ERROR` signature in `app.log` | logic-level breakage while every connectivity probe stays green |
 
 The Graph probe asks for a **token only**. Actually sending a message would be a
 truer end-to-end check but would also drop mail in the mailbox every 5 minutes,
-and a failing token is what kills alert mail anyway. Both the Graph and Bexio
-probes skip themselves when their credentials are not configured for the
-environment, the same way the MS02 engines do.
+and a failing token is what kills alert mail anyway. The Graph probe skips
+itself when its credentials are not configured for the environment, the same
+way the MS02 engines do.
+
+There used to be a `bexio:api` probe. It went with the archived invoices page
+(#177): nothing in the app calls Bexio any more, so an alert on it would have
+woken someone for a vendor no page depends on. Migration `0057` deletes its
+`dbo.StatusComponents` row so it also stops rendering on the admin status page.
 
 The log-storm probe is the one that would have caught the `0042` incident. It
 reads the tail of `var/logs/system/app.log`, normalizes each `ERROR` message

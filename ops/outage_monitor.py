@@ -163,24 +163,6 @@ def _probe_graph():
     return "graph:mail", ok, f"token: HTTP {resp.status_code}"
 
 
-def _probe_bexio():
-    """Read the Bexio company profile -- cheapest authenticated GET they expose."""
-    from nx_lib.config import BEXIO_PAT
-
-    if not BEXIO_PAT:
-        return None
-    url = "https://api.bexio.com/2.0/company_profile"
-    try:
-        resp = requests.get(
-            url,
-            headers={"Authorization": f"Bearer {BEXIO_PAT}", "Accept": "application/json"},
-            timeout=_HTTP_TIMEOUT_S,
-        )
-    except requests.RequestException as e:
-        return "bexio:api", False, f"{url}: {type(e).__name__}: {str(e)[:160]}"
-    return "bexio:api", resp.ok, f"{url}: HTTP {resp.status_code}"
-
-
 def _probe_log_storms(now_local):
     """Scan the app log for a repeating ERROR signature.
 
@@ -205,11 +187,13 @@ def _collect(config):
     if config["octo_domain"]:
         octo_key, octo_ok, octo_detail = _probe_octo(config["octo_domain"])
         results.append((octo_key, octo_key, octo_ok, octo_detail, None))
-    for probe in (_probe_graph, _probe_bexio):
-        probed = probe()  # None when that integration is not configured for this env
-        if probed:
-            key, ok, detail = probed
-            results.append((key, key, ok, detail, None))
+    # Graph only. The Bexio probe went with the archived invoices page (#177) --
+    # nothing in the app calls Bexio any more, so an alert on it woke someone for
+    # a vendor no page depends on.
+    probed = _probe_graph()  # None when Graph is not configured for this env
+    if probed:
+        key, ok, detail = probed
+        results.append((key, key, ok, detail, None))
 
     storms = _probe_log_storms(config["now_local"])
     for storm in storms:

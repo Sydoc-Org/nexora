@@ -166,7 +166,7 @@ layer the app depends on:
 - **Tooling** — `sqlcmd`, `mssql-scripter`, `git`, `pybabel`, `powershell` on PATH
 - **Git hooks** — `pre-commit`, `commit-msg`, `pre-push` installed
 - **Port** — whether 8000 is in use
-- **External services** — Microsoft Graph, Octopus, Bexio token/auth checks
+- **External services** — Microsoft Graph, Octo token/auth checks
 
 Failed checks print a `→ hint` line. Modifiers:
 

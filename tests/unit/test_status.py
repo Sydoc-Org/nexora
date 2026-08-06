@@ -28,7 +28,6 @@ def test_pretty_name_maps_each_monitor_key_prefix():
     assert status.pretty_name("http:site") == "Application (IIS)"
     assert status.pretty_name("octo:prd-dps.sydoc.ch") == "Octo runtime (prd-dps.sydoc.ch)"
     assert status.pretty_name("graph:mail") == "Microsoft Graph (mail)"
-    assert status.pretty_name("bexio:api") == "Bexio API"
 
 
 def test_pretty_name_falls_back_to_stored_label_for_log_storms():
