@@ -73,6 +73,15 @@ repos:
         pass_filenames: false
         stages: [pre-commit]
 
+      - id: reporting-help-sync
+        name: Reporting help/docs sync nudge (non-blocking)
+        entry: python scripts/check-reporting-help-sync.py
+        language: system
+        pass_filenames: false
+        files: '^(templates/(reporting\.html|_reporting_simple\.html|reporting_metrics\.html|reporting_sources\.html|js/_reporting_)|nx_lib/views/reporting\.py)'
+        verbose: true
+        stages: [pre-commit]
+
       - id: branch-name-guard
         name: Branch-name convention guard
         entry: powershell -ExecutionPolicy Bypass -File scripts/git-hooks/branch-name-guard.ps1

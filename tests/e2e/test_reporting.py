@@ -28,6 +28,18 @@ def test_reporting_page_loads(nexora_server, page):
 
 
 @pytest.mark.flaky_e2e
+def test_reporting_help_panel_opens_and_closes(nexora_server, page):
+    _login(page, nexora_server)
+    modal = page.locator('[data-testid="reporting-help-modal"]')
+    expect(modal).to_be_hidden()
+    page.locator('[data-testid="reporting-help-toggle"]').click()
+    expect(modal).to_be_visible()
+    expect(page.locator('[data-testid="reporting-help-guide-link"]')).to_be_visible()
+    page.locator('[data-testid="reporting-help-close"]').click()
+    expect(modal).to_be_hidden()
+
+
+@pytest.mark.flaky_e2e
 def test_reporting_source_select_present(nexora_server, page):
     _login(page, nexora_server)
     source_select = page.locator('[data-testid="reporting-source-select"]')

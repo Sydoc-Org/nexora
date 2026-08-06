@@ -1,0 +1,53 @@
+{# In-app "Get the best results" tips for the Reporting page. Opened by the
+   #rpHelpToggle button in reporting.html's page head.
+
+   CONTENT CONTRACT: this panel mirrors the "Tips — getting the best results"
+   section of docs/howto/reporting-guide.md. If you change user-visible
+   Reporting behaviour, update BOTH in the same commit (CLAUDE.md "Keeping
+   docs in sync"; scripts/check-reporting-help-sync.py nudges on commit). #}
+<div id="rpHelpModal" class="reporting-modal" hidden data-testid="reporting-help-modal">
+  <div class="reporting-modal-box reporting-help-box nx-card nx-card--pad" role="dialog" aria-modal="true" aria-labelledby="rpHelpTitle">
+    <h3 id="rpHelpTitle">{{ _("Get the best results") }}</h3>
+    <div class="reporting-help-body">
+      <h4>{{ _("Building a report") }}</h4>
+      <ul>
+        <li>{{ _("Watch the coverage badge (e.g. 2/5) on measures and categories: only that share of your selected processes provides the field, and documents from the others land in the empty bucket. If a number looks too low, check the badge first.") }}</li>
+        <li>{{ _("Everything in one empty bucket? The breakdown field is not filled in for the processes you selected.") }}</li>
+        <li>{{ _("Relative presets stay relative: a report saved with “This month” shows the current month on every run and in every scheduled mail. Schedule times are UTC.") }}</li>
+      </ul>
+      <h4>{{ _("Checking a number") }}</h4>
+      <ul>
+        <li>{{ _("Click a chart bar or a table row to open the documents behind that number; “Show query” reveals exactly how it was computed.") }}</li>
+        <li>{{ _("The ↑/↓ comparison chips compare a window shifted back by your range’s length in days — not the previous calendar period. Hover a chip for the exact dates.") }}</li>
+        <li>{{ _("Two people can see different totals on the same report: it always runs with the viewer’s own data access.") }}</li>
+        <li>{{ _("Charts cap at 50 values and 12 series — beyond that, use the table or an export.") }}</li>
+      </ul>
+      {% if ai_enabled %}
+      <h4>{{ _("Asking the AI") }}</h4>
+      <ul>
+        <li>{{ _("Name the measure, the time range and the processes: “invoices by process, last 3 months” beats “show me invoices”.") }}</li>
+        <li>{{ _("Read the line under an AI-built result — it lists the filters and processes the AI chose, so a wrong guess is visible immediately.") }}</li>
+        <li>{{ _("Follow-ups work: the chat remembers the conversation, so “now only this quarter” refines the last answer.") }}</li>
+        <li>{{ _("Use “Open in builder” to check and adjust what the AI built.") }}</li>
+      </ul>
+      {% endif %}
+    </div>
+    <div class="reporting-modal-actions reporting-help-actions">
+      <a class="nx-btn nx-btn--ghost" target="_blank" rel="noopener" data-testid="reporting-help-guide-link"
+         href="https://sydocteam.atlassian.net/wiki/display/nexora/Reporting+%E2%80%94+user+guide">
+        <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i> {{ _("Full guide") }}</a>
+      <button id="rpHelpClose" class="reporting-btn nx-btn nx-btn--secondary" data-testid="reporting-help-close">{{ _("Close") }}</button>
+    </div>
+  </div>
+</div>
+<script>
+  (function () {
+    var modal = document.getElementById('rpHelpModal');
+    var toggle = document.getElementById('rpHelpToggle');
+    if (!modal || !toggle) return;
+    toggle.addEventListener('click', function () { modal.hidden = false; });
+    document.getElementById('rpHelpClose').addEventListener('click', function () { modal.hidden = true; });
+    modal.addEventListener('click', function (e) { if (e.target === modal) modal.hidden = true; });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modal.hidden) modal.hidden = true; });
+  }());
+</script>

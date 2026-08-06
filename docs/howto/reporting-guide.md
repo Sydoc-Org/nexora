@@ -6,7 +6,9 @@ instead, read [`reporting.md`](reporting.md) — that one is for developers.
 
 > Keep this guide current. If you change how Reporting *behaves* for a user —
 > a renamed button, a new step in the wizard, a different default — update this
-> file in the same commit. See the "Keeping docs in sync" rule in `CLAUDE.md`.
+> file **and the in-app tips panel** (`templates/_reporting_help.html`, the
+> Help button on the page) in the same commit. See the "Keeping docs in sync"
+> rule in `CLAUDE.md`; the `reporting-help-sync` pre-commit hook reminds you.
 
 ---
 
@@ -20,6 +22,50 @@ instead, read [`reporting.md`](reporting.md) — that one is for developers.
 
 You now have a number, a chart and a table. Everything else in this guide is
 detail on top of those four steps.
+
+---
+
+## Tips — getting the best results
+
+The same tips live inside the app: the **Help** button in the Reporting page
+header opens them in a panel, with a link back to this guide.
+
+**Building a report**
+
+- Watch the **coverage badge** (e.g. `2/5`) on measures and categories: only
+  that share of your selected processes provides the field, and documents from
+  the others land in the empty bucket. If a number looks too low, check the
+  badge first.
+- Everything in one empty bucket? The breakdown field is not filled in for the
+  processes you selected.
+- Relative presets stay relative: a report saved with "This month" shows the
+  current month on every run and in every scheduled mail. Schedule times are
+  UTC.
+
+**Checking a number**
+
+- Click a chart bar or a table row to open the documents behind that number;
+  **Show query** reveals exactly how it was computed.
+- The ↑/↓ comparison chips compare a window shifted back by your range's
+  length in days — not the previous calendar period. Hover a chip for the
+  exact dates.
+- Two people can see different totals on the same report: it always runs with
+  the viewer's own data access.
+- Charts cap at 50 values and 12 series — beyond that, use the table or an
+  export.
+
+**Asking the AI**
+
+- Name the measure, the time range and the processes: *"invoices by process,
+  last 3 months"* beats *"show me invoices"*.
+- Read the line under an AI-built result — it lists the filters and processes
+  the AI chose, so a wrong guess is visible immediately.
+- Follow-ups work: the chat remembers the conversation, so *"now only this
+  quarter"* refines the last answer.
+- Use **Open in builder** to check and adjust what the AI built.
+
+> This section and the in-app panel (`templates/_reporting_help.html`) mirror
+> each other — change both together.
 
 ---
 

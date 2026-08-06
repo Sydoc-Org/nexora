@@ -316,6 +316,14 @@
 .reporting-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
 .reporting-btn-primary { background: var(--nx-accent); color: #fff; border-color: var(--nx-accent); }
 
+/* Tips & help modal */
+.reporting-help-box { max-width: 560px; }
+.reporting-help-body { max-height: min(60vh, 520px); overflow-y: auto; font-size: 14px; }
+.reporting-help-body h4 { margin: 14px 0 6px; }
+.reporting-help-body h4:first-child { margin-top: 0; }
+.reporting-help-body ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; list-style: disc; }
+.reporting-help-actions { justify-content: space-between; }
+
 /* Share modal */
 .reporting-share-vis { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
 .reporting-share-vis label { font-size: 14px; display: flex; gap: 8px; align-items: flex-start; }

@@ -83,6 +83,9 @@
                 aria-controls="rpChatPanel" aria-expanded="false" aria-label="{{ _('AI chat') }}">
           <i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i><span class="hidden sm:inline">{{ _("AI chat") }}</span></button>
         {% endif %}
+        <button id="rpHelpToggle" class="nx-btn nx-btn--ghost" data-testid="reporting-help-toggle"
+                aria-haspopup="dialog" aria-controls="rpHelpModal" aria-label="{{ _('Tips & help') }}" title="{{ _('Tips & help') }}">
+          <i class="fas fa-circle-question" aria-hidden="true"></i><span class="hidden sm:inline">{{ _("Help") }}</span></button>
       </div>
     </div>
 
@@ -452,6 +455,8 @@
       </div>
     </div>
   </div>
+
+  {% include '_reporting_help.html' %}
 
   {% include 'js/_reporting_viz_js.html' %}
   {% include 'js/_reporting_js.html' %}
