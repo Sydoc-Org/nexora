@@ -1636,3 +1636,164 @@ def test_effective_filters_keeps_both_bounds_of_a_same_field_range(nexora_server
         ("gte", "2026-01-01"),
         ("lte", "2026-03-31"),
     }
+
+
+# #174: a saved report with a SECOND dimension. Before the fix the card
+# renderers read a fixed column 1 as the value, so the breakdown column
+# ("Invoice"/"Contract") landed in the value lookup, every row collapsed onto
+# a repeated x-label and the card drew one flat zero line -- while the same
+# report charted correctly in the Simple result view.
+MULTI_SERIES_DASH = {
+    "kind": "dashboard",
+    "schemaVersion": 1,
+    "title": "e2e multi-series dashboard",
+    "globalFilters": [],
+    "cards": [
+        {
+            "id": "c1",
+            "type": "line",
+            "span": 6,
+            "title": "Documents per month / process",
+            "definition": {
+                "source": "workitems",
+                "metrics": [{"field": "id", "agg": "count"}],
+                "columns": [{"field": "createdDate", "grain": "month"}, {"field": "process"}],
+                "filters": [],
+            },
+            "filterOverrides": [],
+        }
+    ],
+}
+
+# 3 months x 2 processes -- the (dim1 x dim2) cross-product a two-dimension
+# run returns, in the column order [dim1, dim2, metric].
+MULTI_SERIES_ROWS = [
+    ["2026-01", "Invoice", 12],
+    ["2026-01", "Contract", 5],
+    ["2026-02", "Invoice", 18],
+    ["2026-02", "Contract", 3],
+    ["2026-03", "Invoice", 9],
+    ["2026-03", "Contract", 7],
+]
+
+
+def _stub_multi_series_run(page):
+    def fulfill_run(route):
+        posted = route.request.post_data_json or {}
+        if posted.get("rowLimit") == 100:  # the drill drawer's own detail-row request
+            payload = {
+                "columns": [{"field": "createdDate", "header": "Created"}],
+                "rows": [["2026-01"]],
+                "rowCount": 1,
+                "truncated": False,
+            }
+        else:  # the card's own aggregate run
+            payload = {
+                "columns": [
+                    {"field": "createdDate", "header": "Month"},
+                    {"field": "process", "header": "Process"},
+                    {"field": "id", "header": "Count"},
+                ],
+                "rows": MULTI_SERIES_ROWS,
+                "rowCount": len(MULTI_SERIES_ROWS),
+            }
+        route.fulfill(status=200, content_type="application/json", body=json.dumps(payload))
+
+    page.route("**/api/reporting/run", fulfill_run)
+
+
+def test_line_card_pivots_second_dimension_into_series(nexora_server, page):
+    """#174: a two-dimension report on a chart card renders one colored,
+    named series per second-dimension value -- the same pivot the Simple
+    result view does -- instead of a single flat zero line.
+    """
+    _login(page, nexora_server)
+    _stub_dashboard_report(page, "e2e-dash-multiseries", MULTI_SERIES_DASH)
+    _stub_multi_series_run(page)
+
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-card").first.click()
+    expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
+
+    canvas = page.locator('[data-testid="rdb-card"][data-card-id="c1"] canvas')
+    expect(canvas).to_be_visible()
+    chart = canvas.evaluate(
+        "(el) => { const c = Chart.getChart(el); return { labels: c.data.labels, "
+        "legend: c.options.plugins.legend.display, "
+        "sets: c.data.datasets.map(d => ({label: d.label, data: d.data, color: d.borderColor})) }; }"
+    )
+
+    assert chart["labels"] == ["2026-01", "2026-02", "2026-03"]
+    # Series ordered by total desc (Invoice 39 > Contract 15), one color each.
+    assert [s["label"] for s in chart["sets"]] == ["Invoice", "Contract"]
+    assert [s["data"] for s in chart["sets"]] == [[12, 18, 9], [5, 3, 7]]
+    assert chart["sets"][0]["color"] != chart["sets"][1]["color"]
+    # Named series need a key; single-series cards keep the legend off.
+    assert chart["legend"] is True
+
+
+def test_multi_series_card_click_drills_on_axis_and_series(nexora_server, page):
+    """#174 drill-through: clicking a point on a pivoted card must carry the
+    clicked SERIES as well as the x bucket -- two chips, not one -- otherwise
+    clicking one process's point drills into every process for that month.
+    """
+    _login(page, nexora_server)
+    _stub_dashboard_report(page, "e2e-dash-multiseries-drill", MULTI_SERIES_DASH)
+    page.route(
+        "**/api/reporting/sources",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                [
+                    {
+                        "id": "workitems",
+                        "label": "Workitems",
+                        "kind": "curated",
+                        "processes": [],
+                        "fields": [
+                            {
+                                "field": "createdDate",
+                                "label": "Created",
+                                "type": "date",
+                                "grainable": True,
+                                "filterable": True,
+                            },
+                            {
+                                "field": "process",
+                                "label": "Process",
+                                "type": "string",
+                                "grainable": False,
+                                "filterable": True,
+                            },
+                        ],
+                    }
+                ]
+            ),
+        ),
+    )
+    page.route(
+        "**/api/reporting/metrics",
+        lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps({})),
+    )
+    _stub_multi_series_run(page)
+
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-card").first.click()
+    expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
+
+    canvas = page.locator('[data-testid="rdb-card"][data-card-id="c1"] canvas')
+    expect(canvas).to_be_visible()
+    # Chart.js animates points in on mount -- same settle wait as
+    # test_line_card_chart_click_opens_drill_panel above.
+    page.wait_for_timeout(1200)
+    point = canvas.evaluate(
+        "(el) => { const c = Chart.getChart(el); const meta = c.getDatasetMeta(0); "
+        "const r = el.getBoundingClientRect(); "
+        "return { x: r.left + meta.data[0].x, y: r.top + meta.data[0].y }; }"
+    )
+    page.mouse.click(point["x"], point["y"])
+
+    expect(page.get_by_test_id("reporting-drill-panel")).to_be_visible()
+    chips = page.get_by_test_id("reporting-drill-chips").locator(".reporting-drill-chip")
+    expect(chips).to_have_count(2)
