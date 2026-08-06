@@ -12,7 +12,9 @@ from urllib.request import urlopen
 
 import pytest
 
-E2E_PORT = 8765
+# Overridable so parallel checkouts/worktrees (and a gate run next to a live
+# session) don't fight over one hardcoded port.
+E2E_PORT = int(os.environ.get("NEXORA_E2E_PORT", "8765"))
 E2E_BASE_URL = f"http://localhost:{E2E_PORT}"
 
 # Number of automatic retries for flaky browser tests. E2E flakes come from
