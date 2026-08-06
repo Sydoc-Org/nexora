@@ -26,7 +26,7 @@ from flask_babel import gettext as _
 from werkzeug.exceptions import HTTPException
 
 from .. import status
-from ..config import IS_PROD, REPO_ROOT
+from ..config import DOTENV_KEYS, IS_PROD, REPO_ROOT
 from ..db import (
     engine_generali_db,
     engine_ms02_docfields_pg,
@@ -353,6 +353,10 @@ def api_admin_restart():
     subprocess.Popen(
         args,
         cwd=str(REPO_ROOT),
+        # Strip the keys load_dotenv injected into this process: inherited,
+        # they'd win over the target env file in the new server (override=False)
+        # and it would run INT DB connections while claiming to be STAGING.
+        env={k: v for k, v in os.environ.items() if k not in DOTENV_KEYS},
         # CREATE_NO_WINDOW, not DETACHED_PROCESS: pwsh exits 0 without running
         # the script when it has no console at all (#187); a hidden console
         # works and still survives this process being killed by nx.ps1.

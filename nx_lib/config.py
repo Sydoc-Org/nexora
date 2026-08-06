@@ -63,7 +63,14 @@ _env_name = os.environ.get("ENVIRONMENT") or dotenv_values(REPO_ROOT / ".env").g
     "ENVIRONMENT", ""
 )
 
+_pre_dotenv_keys = frozenset(os.environ)
 _load_env_files(REPO_ROOT, _env_name)
+# Keys that came from the .env files rather than the real OS environment.
+# Child processes that must re-resolve their own env file (the dev-server
+# restart-with-env-switch, #187) strip these before spawning — otherwise the
+# inherited values win over the new env file (override=False) and the child
+# runs the old environment's connections under the new environment's name.
+DOTENV_KEYS = frozenset(os.environ) - _pre_dotenv_keys
 
 IS_PROD = os.environ.get("ENVIRONMENT") == "PROD"
 
