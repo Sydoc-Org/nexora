@@ -19,6 +19,13 @@
             icon='fa-shield-halved'
         ) }}
 
+        {% if not is_prod and has_permission('admin.restart') %}
+        <button type="button" id="nx-restart-btn" class="nx-btn" style="margin-bottom:20px"
+                data-testid="admin-overview-restart-btn">
+            <i class="fas fa-rotate-right"></i> {{ _('Restart nexora') }}
+        </button>
+        {% endif %}
+
         <div class="health-strip nx-rise-2">
 
             <a href="{{ url_for('admin_sessions_view') }}" class="nx-card nx-card--link health-card" data-testid="admin-overview-health-sessions">
@@ -113,5 +120,32 @@
             </div>
         </div>
     </main>
+
+    {% if not is_prod and has_permission('admin.restart') %}
+    <script>
+        const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+        document.getElementById("nx-restart-btn")?.addEventListener("click", async (e) => {
+            const btn = e.currentTarget;
+            if (!confirm("{{ _('Restart the dev server now? The page will reload once it is back.') }}")) return;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> {{ _("Restarting...") }}';
+            try {
+                await fetch(`${API_PREFIX}api/admin/restart`, {
+                    method: "POST",
+                    headers: { "X-CSRFToken": csrfToken },
+                });
+            } catch (e) {
+                // expected: the server dies mid-response once nx.ps1 kills it
+            }
+            // ponytail: poll-until-reachable, no websocket/SSE — simplest thing that works
+            const poll = setInterval(async () => {
+                try {
+                    const r = await fetch(window.location.href, { cache: "no-store" });
+                    if (r.ok) { clearInterval(poll); window.location.reload(); }
+                } catch (e) { /* still down, keep polling */ }
+            }, 1000);
+        });
+    </script>
+    {% endif %}
 </body>
 </html>

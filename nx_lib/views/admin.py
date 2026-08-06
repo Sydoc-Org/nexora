@@ -4,6 +4,7 @@ user CRUD, access control, permissions."""
 import csv
 import math
 import secrets
+import subprocess
 from contextlib import suppress
 from datetime import datetime
 
@@ -24,6 +25,7 @@ from flask_babel import gettext as _
 from werkzeug.exceptions import HTTPException
 
 from .. import status
+from ..config import IS_PROD, REPO_ROOT
 from ..db import (
     engine_generali_db,
     engine_ms02_docfields_pg,
@@ -319,6 +321,26 @@ def admin_status_view():
         userid=session.get("userid"),
         pageV=page_visibility(),
     )
+
+
+# ----------------------------------- dev server restart ---------------------------------- #
+
+
+@require_permission("admin.restart")
+def api_admin_restart():
+    """Restart the local dev server process (issue #184). Dev-only — 404s on PROD
+    since PROD is IIS-hosted and restarting there means recycling the app pool,
+    not killing a `python nx_main.py` process. Fires bin/nx.ps1 -r as a detached
+    process; it kills this process and starts a fresh one, so the response has
+    to make it back to the browser before that happens (nx.ps1 sleeps ~1s first)."""
+    if IS_PROD:
+        abort(404)
+    subprocess.Popen(
+        ["pwsh", "-File", str(REPO_ROOT / "bin" / "nx.ps1"), "-r"],
+        cwd=str(REPO_ROOT),
+        creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP,
+    )
+    return jsonify({"success": True})
 
 
 # ----------------------------------- maintenance banner ---------------------------------- #
@@ -1965,6 +1987,14 @@ def register_routes(app):
 
     # status page
     app.add_url_rule("/admin/status", endpoint="admin_status_view", view_func=admin_status_view)
+
+    # dev server restart
+    app.add_url_rule(
+        "/api/admin/restart",
+        endpoint="api_admin_restart",
+        view_func=api_admin_restart,
+        methods=["POST"],
+    )
 
     # maintenance banner
     app.add_url_rule(
