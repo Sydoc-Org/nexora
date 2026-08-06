@@ -120,7 +120,9 @@ def _build_conditions(rd, by_field):
     return conds, params
 
 
-def build_generic_query(rd, base_object, columns, *, row_cap, resolved_metrics=None):
+def build_generic_query(
+    rd, base_object, columns, *, row_cap, resolved_metrics=None, latest_of=None
+):
     """Build (sql, params) for a 'table' source.
 
     columns: the source field-catalog (table_source_catalog output). Projects
@@ -150,6 +152,17 @@ def build_generic_query(rd, base_object, columns, *, row_cap, resolved_metrics=N
         # yields a global aggregate with no GROUP BY.
         where = (" WHERE " + " AND ".join(conds)) if conds else ""
         inner_from = f"{_quote_object(base_object)}{where}"
+        # #178: a 'latest' total aggregates only the newest bucket of the
+        # snapshot date field — summing point-in-time snapshots across time
+        # is meaningless. Caller passes latest_of only for zero-dim runs.
+        if latest_of and not dim_fields:
+            if latest_of not in by_field:
+                raise TableQueryError(f"unknown latest_of field: {latest_of!r}")
+            col = _quote_ident(latest_of)
+            sub = f"(SELECT MAX({col}) FROM {_quote_object(base_object)}{where})"
+            glue = " AND " if conds else " WHERE "
+            inner_from = f"{inner_from}{glue}{col} = {sub}"
+            params = params + params  # outer WHERE params, then the subquery's
         sql = build_aggregate_sql(
             inner_from=inner_from,
             dim_fields=dim_fields,

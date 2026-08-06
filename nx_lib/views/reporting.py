@@ -920,12 +920,21 @@ def _prepare_run(rd):
             if rd.get("metrics")
             else None
         )
+        latest_of = None
+        if resolved and not (rd.get("columns") or []):
+            modes = {
+                (source_metrics.get(m["code"]) or {}).get("total_mode", "sum") for m in resolved
+            }
+            date_candidates = [f["field"] for f in catalog if f.get("grainable")]
+            if modes == {"latest"} and len(date_candidates) == 1:
+                latest_of = date_candidates[0]
         sql, params = build_generic_query(
             rd,
             source.get("baseObject"),
             catalog,
             row_cap=rd.get("rowLimit", DEFAULT_ROW_LIMIT),
             resolved_metrics=resolved,
+            latest_of=latest_of,
         )
         engine = _CURATED_ENGINES.get(source.get("engine"))
         if engine is None:

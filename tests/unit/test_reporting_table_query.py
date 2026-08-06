@@ -159,3 +159,59 @@ def test_generic_aggregate_three_dims():
         rd, "Db.dbo.SomeTable", _three_cols, row_cap=100, resolved_metrics=resolved
     )
     assert "GROUP BY [colA], [colB], [colC]" in sql
+
+
+def test_zero_dim_latest_of_constrains_to_max_bucket():
+    rd = {
+        "columns": [],
+        "filters": [
+            {"field": "SnapshotAt", "op": "between", "value": ["2026-08-01", "2026-08-31"]}
+        ],
+        "sort": [],
+    }
+    cols = [
+        {
+            "field": "SnapshotAt",
+            "type": "datetime",
+            "filterable": True,
+            "sortable": True,
+            "grainable": True,
+        },
+        {"field": "BacklogCount", "type": "number", "filterable": True, "sortable": True},
+    ]
+    metrics = [{"code": "backlog_total", "aggregation": "sum", "base_field": "BacklogCount"}]
+    sql, params = build_generic_query(
+        rd,
+        "dbo.BacklogHistory",
+        cols,
+        row_cap=5000,
+        resolved_metrics=metrics,
+        latest_of="SnapshotAt",
+    )
+    assert "[SnapshotAt] = (SELECT MAX([SnapshotAt]) FROM [dbo].[BacklogHistory]" in sql
+    # filter params appear twice: outer WHERE + the MAX() subquery's WHERE
+    assert params == ["2026-08-01", "2026-08-31", "2026-08-01", "2026-08-31"]
+
+
+def test_latest_of_ignored_with_dimensions():
+    rd = {"columns": [{"field": "SnapshotAt", "grain": "day"}], "filters": [], "sort": []}
+    cols = [
+        {
+            "field": "SnapshotAt",
+            "type": "datetime",
+            "filterable": True,
+            "sortable": True,
+            "grainable": True,
+        },
+        {"field": "BacklogCount", "type": "number", "filterable": True, "sortable": True},
+    ]
+    metrics = [{"code": "backlog_total", "aggregation": "sum", "base_field": "BacklogCount"}]
+    sql, _ = build_generic_query(
+        rd,
+        "dbo.BacklogHistory",
+        cols,
+        row_cap=5000,
+        resolved_metrics=metrics,
+        latest_of="SnapshotAt",
+    )
+    assert "SELECT MAX(" not in sql
