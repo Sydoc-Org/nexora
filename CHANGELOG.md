@@ -14,6 +14,14 @@ Work toward the next release.
   `v3.1`); the pre-push branch-name guard accepts both the new form and the
   legacy `feature/<x.y.z>` for in-flight branches.
 
+### Fixed
+
+- The two login e2e smokes clicked the 2FA submit button that the auto-submit
+  challenge (since `a749bda`) removes from under them — they now fill the code
+  and wait for the redirect. The e2e server port is overridable via the new
+  `NEXORA_E2E_PORT` env var (default `8765`) so parallel checkouts and gate
+  runs stop colliding on one hardcoded port.
+
 ## [3.1] - 2026-08-06
 
 ### Added
