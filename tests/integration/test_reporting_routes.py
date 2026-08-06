@@ -598,6 +598,91 @@ def test_runner_dry_run_processes_due_table_report(admin_client):
         admin_client.delete(f"/api/reporting/admin/sources/{src_id}")
 
 
+def test_zero_dim_latest_metric_run_constrains_to_latest_bucket(admin_client):
+    """#178 coverage gap: prove _prepare_run's decision logic (not just
+    build_generic_query directly) computes and passes latest_of end-to-end.
+    Mirrors backlog_history/backlog_total's shape (migrations 0053-0056):
+    one metric, TotalMode='latest', one grainable field, zero-dim run. The
+    admin metrics API has no TotalMode write path (Task 8 only wired the
+    read path + the 0056 seed for backlog_total), so TotalMode is flipped
+    via direct SQL after creating the metric, same idiom the runner test
+    above uses for ReportSchedules."""
+    src = admin_client.post(
+        "/api/reporting/admin/sources",
+        json={
+            "code": "latest_test_src",
+            "kind": "curated",
+            "label": "Latest Test Src",
+            "permission": "reporting.source.docprocessing",
+            "provider": "table",
+            "engine": "nexora",
+            "baseObject": "dbo.Users",
+            "columns": [
+                {
+                    "field": "LastLoginAt",
+                    "label": "Last Login",
+                    "type": "datetime",
+                    "filterable": True,
+                    "sortable": True,
+                    "grainable": True,
+                }
+            ],
+            "enabled": True,
+            "sortOrder": 17,
+        },
+    )
+    src_id = src.get_json()["id"]
+    met = admin_client.post(
+        "/api/reporting/admin/metrics",
+        json={
+            "code": "latest_test_metric",
+            "sourceId": "latest_test_src",
+            "label": "Latest Test Metric",
+            "aggregation": "count",
+            "enabled": True,
+            "sortOrder": 17,
+        },
+    )
+    mid = met.get_json()["id"]
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE dbo.ReportingMetrics SET TotalMode = 'latest' WHERE Code = ?",
+            ("latest_test_metric",),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    try:
+        resp = admin_client.post(
+            "/api/reporting/run",
+            json={
+                "schemaVersion": 1,
+                "source": "latest_test_src",
+                "visualization": "table",
+                "title": "Latest total",
+                "columns": [],
+                "filters": [],
+                "sort": [],
+                "scope": {},
+                "rowLimit": 10,
+                "metrics": [{"metric": "latest_test_metric"}],
+            },
+        )
+        assert resp.status_code == 200, resp.data
+        sql = resp.get_json()["sql"]
+        # The decisive proof: _prepare_run computed latest_of="LastLoginAt"
+        # (from the one grainable field + the all-'latest' modes set) and
+        # passed it through -- build_generic_query's MAX() subquery fired.
+        assert "SELECT MAX([LastLoginAt]) FROM [dbo].[Users]" in sql
+        assert "[LastLoginAt] = (SELECT MAX([LastLoginAt])" in sql
+    finally:
+        admin_client.delete(f"/api/reporting/admin/metrics/{mid}")
+        admin_client.delete(f"/api/reporting/admin/sources/{src_id}")
+
+
 def test_runner_alert_skips_mail_and_advances(admin_client):
     # Non-metric definition -> the alert value is the row count (>=1 seeded user).
     # 'gt 1e9' never trips: no mail, NextRunAt advances. 'gte 1' trips: mail sent.
