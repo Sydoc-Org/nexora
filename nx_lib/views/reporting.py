@@ -1073,7 +1073,14 @@ def reporting_guide():
     except OSError:
         current_app.logger.error("reporting guide source missing: %s", _GUIDE_MD)
         guide_html, guide_toc = None, []
-    return render_template("reporting_guide.html", guide_html=guide_html, guide_toc=guide_toc)
+    return render_template(
+        "reporting_guide.html",
+        guide_html=guide_html,
+        guide_toc=guide_toc,
+        logged_in_user=session.get("username", "Unknown"),
+        fullname=session.get("fullname"),
+        pageV=page_visibility(),
+    )
 
 
 @require_permission("reporting.view")
