@@ -1535,3 +1535,104 @@ def test_runner_forecast_export_rows_failure_still_sends_mail(admin_client):
         conn.close()
         admin_client.delete(f"/api/reporting/reports/{rid}")
         admin_client.delete(f"/api/reporting/admin/sources/{src_id}")
+
+
+def _create_field_values_source(admin_client):
+    """A 'backlog_history'-shaped table source (#178), created dynamically
+    since the TEST NexoraDB fixture doesn't seed the real migration-0053 row.
+    Reuses the already-granted reporting.source.docprocessing permission,
+    same idiom as test_zero_dim_latest_metric_run_constrains_to_latest_bucket."""
+    src = admin_client.post(
+        "/api/reporting/admin/sources",
+        json={
+            "code": "field_values_test_src",
+            "kind": "curated",
+            "label": "Field Values Test Src",
+            "permission": "reporting.source.docprocessing",
+            "provider": "table",
+            "engine": "nexora",
+            "baseObject": "dbo.Users",
+            "columns": [
+                {
+                    "field": "username",
+                    "label": "Username",
+                    "type": "string",
+                    "filterable": True,
+                    "sortable": True,
+                },
+                {
+                    "field": "locale",
+                    "label": "Locale",
+                    "type": "string",
+                    "filterable": False,
+                    "sortable": True,
+                },
+            ],
+            "enabled": True,
+            "sortOrder": 18,
+        },
+    )
+    return src.get_json()["id"]
+
+
+def test_field_values_returns_distinct_values(admin_client):
+    """#178: /api/reporting/field_values returns the distinct values (from
+    _execute) of a whitelisted filterable field of a table source, unwrapped
+    from row tuples into a flat list."""
+    src_id = _create_field_values_source(admin_client)
+    fake_rows = [["01_EasyTax"], ["03_Invoice_New"]]
+    try:
+        with patch("nx_lib.views.reporting._execute", return_value=fake_rows) as mock_execute:
+            resp = admin_client.post(
+                "/api/reporting/field_values",
+                json={"source": "field_values_test_src", "field": "username"},
+            )
+        assert resp.status_code == 200, resp.data
+        assert resp.get_json() == {"values": ["01_EasyTax", "03_Invoice_New"]}
+        mock_execute.assert_called_once()
+        sql = mock_execute.call_args[0][1]
+        assert "SELECT DISTINCT TOP (100) [username]" in sql
+        assert "[dbo].[Users]" in sql
+    finally:
+        admin_client.delete(f"/api/reporting/admin/sources/{src_id}")
+
+
+def test_field_values_unknown_field_returns_400(admin_client):
+    """An unwhitelisted (and a non-filterable) field is rejected with 400
+    before any query executes."""
+    src_id = _create_field_values_source(admin_client)
+    try:
+        with patch("nx_lib.views.reporting._execute") as mock_execute:
+            resp = admin_client.post(
+                "/api/reporting/field_values",
+                json={"source": "field_values_test_src", "field": "Nope"},
+            )
+        assert resp.status_code == 400
+        assert "error" in resp.get_json()
+        mock_execute.assert_not_called()
+
+        with patch("nx_lib.views.reporting._execute") as mock_execute:
+            resp = admin_client.post(
+                "/api/reporting/field_values",
+                json={"source": "field_values_test_src", "field": "locale"},
+            )
+        assert resp.status_code == 400
+        mock_execute.assert_not_called()
+    finally:
+        admin_client.delete(f"/api/reporting/admin/sources/{src_id}")
+
+
+def test_field_values_unknown_source_returns_400(admin_client):
+    resp = admin_client.post(
+        "/api/reporting/field_values",
+        json={"source": "does_not_exist", "field": "username"},
+    )
+    assert resp.status_code == 400
+
+
+def test_field_values_without_perm_403(user_client):
+    resp = user_client.post(
+        "/api/reporting/field_values",
+        json={"source": "field_values_test_src", "field": "username"},
+    )
+    assert resp.status_code == 403

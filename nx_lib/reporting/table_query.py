@@ -120,6 +120,21 @@ def _build_conditions(rd, by_field):
     return conds, params
 
 
+def build_distinct_query(field, base_object, columns, *, cap=100):
+    """SELECT DISTINCT TOP (cap) values of one whitelisted, filterable
+    column — feeds the wizard's field-scope step (#178). No params: field
+    and object are identifier-validated/quoted, cap is int-coerced."""
+    by_field = {c["field"]: c for c in columns}
+    meta = by_field.get(field)
+    if meta is None or not meta.get("filterable"):
+        raise TableQueryError(f"unknown or unfilterable field: {field!r}")
+    col = _quote_ident(field)
+    return (
+        f"SELECT DISTINCT TOP ({int(cap)}) {col} FROM {_quote_object(base_object)} "
+        f"WHERE {col} IS NOT NULL ORDER BY {col}"
+    )
+
+
 def build_generic_query(
     rd, base_object, columns, *, row_cap, resolved_metrics=None, latest_of=None
 ):

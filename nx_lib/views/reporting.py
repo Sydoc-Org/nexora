@@ -105,6 +105,7 @@ from ..reporting.sources import (
 from ..reporting.sqlformat import format_sql, inline_sql_params
 from ..reporting.table_query import (
     TableQueryError,
+    build_distinct_query,
     build_generic_query,
     table_source_catalog,
 )
@@ -3007,6 +3008,40 @@ def api_admin_metrics_delete(metric_id):
 
 
 @require_permission("reporting.view")
+@limiter.limit("30 per minute")
+def api_field_values():
+    """Distinct values of one whitelisted field of a table source (#178) —
+    powers the wizard's process-scope step for sources without a process
+    registry. Source-permission-gated; table provider only."""
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return jsonify({"error": _("Invalid JSON body")}), 400
+    source = _get_effective_source((body.get("source") or "").strip())
+    if (
+        source is None
+        or source.get("kind") != "curated"
+        or (source.get("provider") or "docprocessing") != "table"
+    ):
+        return jsonify({"error": _("Unknown or unsupported source")}), 400
+    if not has_permission(source["permission"]):
+        return jsonify({"error": _("Not authorized for this source")}), 403
+    engine = _CURATED_ENGINES.get(source.get("engine"))
+    if engine is None:
+        return jsonify({"error": _("Source engine is not configured")}), 503
+    catalog, _fields, _filterable, _sortable = _catalog_for_source(source)
+    try:
+        field = (body.get("field") or "").strip()
+        sql = build_distinct_query(field, source.get("baseObject"), catalog)
+        rows = _execute(engine, sql, [])
+    except TableQueryError as e:
+        return jsonify({"error": _("This request is invalid."), "detail": str(e)}), 400
+    except Exception as e:
+        current_app.logger.error(f"/api/reporting/field_values exec error: {e}")
+        return jsonify({"error": _("Could not load values")}), 500
+    return jsonify({"values": [r[0] for r in rows]})
+
+
+@require_permission("reporting.view")
 def api_metrics():
     """Accessible metrics grouped by source id -> [{code,label,aggregation,...}].
 
@@ -3098,6 +3133,12 @@ def register_routes(app):
         "/api/reporting/metrics",
         endpoint="reporting_metrics",
         view_func=api_metrics,
+    )
+    app.add_url_rule(
+        "/api/reporting/field_values",
+        endpoint="reporting_field_values",
+        view_func=api_field_values,
+        methods=["POST"],
     )
     app.add_url_rule("/api/reporting/sources", endpoint="reporting_sources", view_func=api_sources)
     app.add_url_rule(
