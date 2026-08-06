@@ -4082,3 +4082,15 @@ def test_forecast_trims_zero_filled_rows_past_anchor(nexora_server, page):
         page.locator("#rsTableWrap tbody tr:not(.is-forecast)", has_text="2025-07-01")
     ).to_have_count(0)
     expect(forecast_rows.first).to_contain_text("2025-07-01")
+
+
+def test_hero_hidden_outside_library_view(nexora_server, page):
+    """#178 B6: the 'Build a report in seconds' hero must vanish when a
+    wizard/result is open and come back in the library."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    expect(page.get_by_test_id("rs-hero")).to_be_visible()
+    page.get_by_test_id("rs-new-report").click()
+    expect(page.get_by_test_id("rs-hero")).to_be_hidden()
+    page.get_by_test_id("rs-wizard-backlib").first.click()
+    expect(page.get_by_test_id("rs-hero")).to_be_visible()

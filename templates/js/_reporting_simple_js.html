@@ -165,6 +165,7 @@
   function setView(view) {
     state.view = view;
     el('rsLibrary').hidden = view !== 'library';  // #rsSearch nests under it now
+    el('rsHero').hidden = view !== 'library';
     el('rsNewReport').hidden = view !== 'library';
     el('rsNewDashboard').hidden = view !== 'library';
     var aiBar = el('rsAiBar');
