@@ -4094,3 +4094,29 @@ def test_hero_hidden_outside_library_view(nexora_server, page):
     expect(page.get_by_test_id("rs-hero")).to_be_hidden()
     page.get_by_test_id("rs-wizard-backlib").first.click()
     expect(page.get_by_test_id("rs-hero")).to_be_visible()
+
+
+def test_granularity_chip_changes_grain_and_reruns(nexora_server, page):
+    """#178 B7: a date-grained definition shows a Granularity chip; picking a
+    different grain re-POSTs the definition with the new grain."""
+    posted = []
+    _stub_run_ok(page, capture=posted)
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    # Open a grained definition through the exposed test seam (Task 4 adds
+    # window.ReportingSimple.openDefinition; if Task 4 is not merged yet,
+    # drive the wizard like the neighbouring wizard tests instead).
+    page.evaluate("""() => window.ReportingSimple.openDefinition({
+      schemaVersion: 1, visualization: 'table', source: 'docprocessing',
+      title: 'per month', columns: [{field: 'export_date', grain: 'month'}],
+      metrics: [{metric: 'doc_count'}], filters: [], sort: [],
+      scope: {clients: [], processes: []}, rowLimit: 5000}, 'per month')""")
+    chip = page.get_by_test_id("rs-chip").filter(has_text="Granularity")
+    expect(chip).to_be_visible()
+    chip.click()
+    page.get_by_test_id("rs-chip-grain").locator("select").select_option("week")
+    page.get_by_test_id("rs-chip-grain-apply").click()
+    # The re-rendered chip reflecting the new grain proves runCurrent()
+    # completed, so the posted payload below is settled, not racing.
+    expect(page.get_by_test_id("rs-chip").filter(has_text="Granularity")).to_contain_text("Week")
+    assert any((p.get("columns") or [{}])[0].get("grain") == "week" for p in posted)

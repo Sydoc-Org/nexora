@@ -65,6 +65,12 @@
     aiDrafting: {{ _("Drafting your report…")|tojson }},
     aiChecking: {{ _("Checking the result…")|tojson }},
     chipApply: {{ _("Apply")|tojson }},
+    granularity: {{ _("Granularity")|tojson }},
+    grainDay: {{ _("Day")|tojson }},
+    grainWeek: {{ _("Week")|tojson }},
+    grainMonth: {{ _("Month")|tojson }},
+    grainQuarter: {{ _("Quarter")|tojson }},
+    grainYear: {{ _("Year")|tojson }},
     allProcesses: {{ _("All processes")|tojson }},
     noChartTotalOnly: {{ _("No chart — this report is a single total. Adjust it in the wizard and pick a breakdown to get one.")|tojson }},
     chartFirst50: {{ _("Chart shows the first 50 of {n} rows.")|tojson }},
@@ -1471,6 +1477,32 @@
     chipEl.replaceWith(box);
   }
 
+  function grainChipEditor(cur, col, chipEl) {
+    var box = document.createElement('span');
+    box.className = 'rs-chip rs-chip-editor';
+    box.setAttribute('data-testid', 'rs-chip-grain');
+    var sel = document.createElement('select');
+    sel.className = 'reporting-input';
+    [['day', I18N.grainDay], ['week', I18N.grainWeek], ['month', I18N.grainMonth],
+     ['quarter', I18N.grainQuarter], ['year', I18N.grainYear]].forEach(function (g) {
+      var o = document.createElement('option');
+      o.value = g[0]; o.textContent = g[1];
+      sel.appendChild(o);
+    });
+    if (col.grain) sel.value = col.grain;
+    var ok = document.createElement('button');
+    ok.className = 'reporting-btn';
+    ok.setAttribute('data-testid', 'rs-chip-grain-apply');
+    ok.textContent = I18N.chipApply;
+    ok.addEventListener('click', function () {
+      col.grain = sel.value;
+      runCurrent();
+    });
+    box.appendChild(sel);
+    box.appendChild(ok);
+    chipEl.replaceWith(box);
+  }
+
   function renderAiChips(cur) {
     var wrap = el('rsChips');
     if (!wrap) return;
@@ -1508,6 +1540,22 @@
       function (chipEl) { processChipEditor(cur, chipEl); },
       null
     ));
+    var grainedCol = (def.columns || []).find(function (c) { return c.grain; });
+    if (!grainedCol) {
+      grainedCol = (def.columns || []).find(function (c) {
+        var m = fieldMetaFor(def, c.field);
+        return m && m.grainable;
+      }) || null;
+    }
+    if (grainedCol) {
+      var GRAIN_LABELS = { day: I18N.grainDay, week: I18N.grainWeek, month: I18N.grainMonth,
+                           quarter: I18N.grainQuarter, year: I18N.grainYear };
+      wrap.appendChild(chip(
+        I18N.granularity + ': ' + (GRAIN_LABELS[grainedCol.grain] || I18N.grainDay),
+        function (chipEl) { grainChipEditor(cur, grainedCol, chipEl); },
+        null
+      ));
+    }
   }
 
   // In-flight skeleton (Task 7): a KPI-band-shaped + table-shaped
