@@ -14,7 +14,9 @@ Work toward the next release.
   next to the "Restart nexora" button and a dropdown to restart into a
   different one (INT/STAGING). `POST /api/admin/restart` accepts an optional
   `{"env": "INT"|"STAGING"}` body and passes it through to `nx.ps1 -r
-  --env:<value>` (#187).
+  --env:<value>`; after the restart the page logs itself back in via the
+  dev-only login (which now honours a relative `?next=` path) and returns
+  to where it was (#187).
 - In-app Reporting help — a **Help** button in the Reporting page header opens
   a "Get the best results" panel (coverage badges, drill-through, delta chip
   semantics, chart caps, AI prompting tips), and its **Full guide** link opens

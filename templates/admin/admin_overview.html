@@ -154,7 +154,14 @@
             const poll = setInterval(async () => {
                 try {
                     const r = await fetch(window.location.href, { cache: "no-store" });
-                    if (r.ok) { clearInterval(poll); window.location.reload(); }
+                    if (r.ok) {
+                        clearInterval(poll);
+                        // restart dropped the in-memory session — log back in via the
+                        // dev-only login and land where we were (this whole script is
+                        // inside the not-is_prod guard, so never rendered on PROD)
+                        window.location.href = `${API_PREFIX}dev/login/{{ logged_in_user }}?next=`
+                            + encodeURIComponent(window.location.pathname + window.location.search);
+                    }
                 } catch (e) { /* still down, keep polling */ }
             }, 1000);
         });

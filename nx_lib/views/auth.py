@@ -515,6 +515,9 @@ def dev_login(username):
     session["locale"] = locale
     session["permissions"] = load_permissions_for_user(str(uid))
     _record_active_session(str(uid))
+    nxt = request.args.get("next", "")
+    if nxt.startswith("/") and not nxt.startswith("//"):
+        return redirect(nxt)
     page_v = page_visibility()
     return redirect(url_for(startpage_redirect_to(page_v)))
 
