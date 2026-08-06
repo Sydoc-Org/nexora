@@ -1216,3 +1216,176 @@ def test_sql_run_generic_500_detail_is_humanized(admin_client):
     assert "SQLExecDirectW" not in body["detail"]
     assert "[Microsoft]" not in body["detail"]
     assert "Hint:" in body["detail"]
+
+
+# --- forecast: definition toggle (issue #168) ---
+
+_FC_DEF = {
+    "schemaVersion": 1,
+    "visualization": "table",
+    "source": "docprocessing",
+    "title": "Backlog over time",
+    "columns": [{"field": "export_date", "grain": "month"}],
+    "metrics": [{"metric": "doc_count"}],
+    "filters": [],
+    "sort": [],
+    "scope": {"clients": [], "processes": []},
+    "rowLimit": 5000,
+    "forecast": {"enabled": True, "horizon": 3},
+}
+
+_FC_COLS = [{"field": "export_date"}, {"field": "doc_count"}]
+_FC_ROWS = [[f"2025-{m:02d}-01", 10 + 2 * (m - 1)] for m in range(1, 9)]
+
+
+def test_run_forecast_enabled_returns_block(admin_client):
+    with (
+        patch(
+            "nx_lib.views.reporting._prepare_run",
+            return_value=(_FC_COLS, "SELECT 1", [], None),
+        ),
+        patch("nx_lib.views.reporting._execute", return_value=_FC_ROWS),
+    ):
+        resp = admin_client.post("/api/reporting/run", json=_FC_DEF)
+    assert resp.status_code == 200
+    fc = resp.get_json().get("forecast")
+    assert fc and "unavailable" not in fc
+    assert fc["horizon"] == 3 and len(fc["buckets"]) == 3
+    assert fc["series"][0]["field"] == "doc_count"
+    assert len(fc["series"][0]["values"]) == 3
+    assert (
+        fc["series"][0]["lower"][0] <= fc["series"][0]["values"][0] <= fc["series"][0]["upper"][0]
+    )
+
+
+def test_run_forecast_disabled_or_absent_omits_block(admin_client):
+    quiet = dict(_FC_DEF, forecast={"enabled": False, "horizon": 3})
+    with (
+        patch(
+            "nx_lib.views.reporting._prepare_run",
+            return_value=(_FC_COLS, "SELECT 1", [], None),
+        ),
+        patch("nx_lib.views.reporting._execute", return_value=_FC_ROWS),
+    ):
+        resp = admin_client.post("/api/reporting/run", json=quiet)
+    assert resp.status_code == 200
+    assert "forecast" not in resp.get_json()
+
+
+def test_run_forecast_short_history_reports_unavailable(admin_client):
+    with (
+        patch(
+            "nx_lib.views.reporting._prepare_run",
+            return_value=(_FC_COLS, "SELECT 1", [], None),
+        ),
+        patch("nx_lib.views.reporting._execute", return_value=_FC_ROWS[:3]),
+    ):
+        resp = admin_client.post("/api/reporting/run", json=_FC_DEF)
+    assert resp.status_code == 200
+    assert resp.get_json()["forecast"]["unavailable"] == "insufficient_history"
+
+
+def test_export_forecast_appends_marker_rows(admin_client):
+    body = dict(_FC_DEF, format="csv")
+    with (
+        patch(
+            "nx_lib.views.reporting._prepare_run",
+            return_value=(_FC_COLS, "SELECT 1", [], None),
+        ),
+        patch("nx_lib.views.reporting._execute", return_value=_FC_ROWS),
+    ):
+        resp = admin_client.post("/api/reporting/export", json=body)
+    assert resp.status_code == 200
+    text = resp.data.decode("utf-8-sig")
+    assert text.splitlines()[0].endswith("Forecast")
+    assert text.count("forecast") == 3  # horizon 3 marker rows
+
+
+def test_runner_forecast_export_rows_failure_still_sends_mail(admin_client):
+    # A forecast_export_rows failure must degrade to the unmarked attachment,
+    # not skip the mail or stall NextRunAt (#168).
+    from ops import run_scheduled_reports
+
+    src = admin_client.post(
+        "/api/reporting/admin/sources",
+        json={
+            "code": "sched_fc_users",
+            "kind": "curated",
+            "label": "Sched Forecast Users",
+            "permission": "reporting.source.docprocessing",
+            "provider": "table",
+            "engine": "nexora",
+            "baseObject": "dbo.Users",
+            "columns": [
+                {
+                    "field": "username",
+                    "label": "Username",
+                    "type": "string",
+                    "filterable": True,
+                    "sortable": True,
+                }
+            ],
+            "enabled": True,
+            "sortOrder": 17,
+        },
+    )
+    src_id = src.get_json()["id"]
+    rep = admin_client.post(
+        "/api/reporting/reports",
+        json={
+            "name": "Sched Forecast Users Report",
+            "definition": {
+                "schemaVersion": 1,
+                "source": "sched_fc_users",
+                "visualization": "table",
+                "title": "Sched Forecast Users Report",
+                "columns": [{"field": "username"}],
+                "filters": [],
+                "sort": [],
+                "scope": {},
+                "rowLimit": 10,
+                "forecast": {"enabled": True, "horizon": 3},
+            },
+        },
+    )
+    rid = rep.get_json()["id"]
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT userID FROM dbo.Users WHERE username = 'admin@test.local'")
+        owner = cur.fetchone()[0]
+        cur.execute(
+            "INSERT INTO dbo.ReportSchedules (ReportID, OwnerUserID, Recipients, Format, "
+            "Frequency, Hour, Minute, Enabled, NextRunAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (rid, owner, "a@x.com", "csv", "daily", 6, 0, 1, datetime(2000, 1, 1)),
+        )
+        conn.commit()
+
+        with (
+            patch(
+                "ops.run_scheduled_reports.compute_forecast",
+                return_value={"buckets": [1, 2, 3], "series": [{"field": "username"}]},
+            ),
+            patch(
+                "ops.run_scheduled_reports.forecast_export_rows",
+                side_effect=Exception("boom"),
+            ),
+            patch("ops.run_scheduled_reports.send_mail") as sm,
+        ):
+            assert run_scheduled_reports.run_once(dry_run=False) == 0
+        sm.assert_called_once()
+
+        cur.execute(
+            "SELECT NextRunAt, LastRunAt FROM dbo.ReportSchedules WHERE ReportID = ?", (rid,)
+        )
+        nxt, last = cur.fetchone()
+        if isinstance(nxt, str):
+            nxt = datetime.fromisoformat(nxt)
+        assert nxt > datetime(2020, 1, 1) and last is not None  # advanced, not stalled
+    finally:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM dbo.ReportSchedules WHERE ReportID = ?", (rid,))
+        conn.commit()
+        conn.close()
+        admin_client.delete(f"/api/reporting/reports/{rid}")
+        admin_client.delete(f"/api/reporting/admin/sources/{src_id}")

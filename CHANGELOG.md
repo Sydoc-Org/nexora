@@ -34,6 +34,13 @@ Work toward 2.5.65.
   added to `env/*.env.example` never reach SYAPP01 on their own, because
   `deploy.yml` excludes `*.env` from the mirror. Migrations deploy themselves;
   env keys do not.
+- Reporting: forecast toggle on time-series results (#168) — single-date-dim
+  reports gain a Forecast toggle + horizon control (Auto/+7/+14/+30) in Simple
+  and Advanced; the chart extends with a dashed prediction line and a 95 %
+  confidence band (stdlib trend + seasonality, `nx_lib/reporting/forecast.py`),
+  the table appends marked prediction rows, exports carry a Forecast marker
+  column, and scheduled mails include the forecast when the saved definition
+  has the toggle on. Drill-through is excluded on predicted points.
 - **`scripts/env-sync.py`** — compares the gitignored env files in a checkout
   against the SYAPP01 copies (`\\syapp01\d$\sydoc\nexora\env`). Because
   `deploy.yml` excludes `*.env` from the robocopy mirror, a key added to the
@@ -368,6 +375,8 @@ Work toward 2.5.65.
 
 ### Fixed
 
+- Reporting: scheduled table-source reports with a date grain no longer fail
+  validation in the runner (missing `grainable_fields`).
 - **Reporting: export date and import date can be broken down together**
   (#164) — the Simple wizard's two "Over time" chips were mutually exclusive
   (picking one silently dropped the other), even though the query builder has

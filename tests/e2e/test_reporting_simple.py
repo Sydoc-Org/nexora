@@ -3932,3 +3932,153 @@ def test_caption_hides_silently_on_error_no_console_noise(nexora_server, page):
         assert page_errors == [], f"unexpected uncaught exceptions: {page_errors}"
     finally:
         _cleanup_caption_wizard(page, ids)
+
+
+# ---------------------------------------------------------------------------
+# Task 5: Forecast toggle (Simple tab chart toolbar)
+# ---------------------------------------------------------------------------
+
+
+def test_forecast_toggle_requests_and_renders_forecast(nexora_server, page):
+    """Toggling Forecast re-runs with forecast.enabled and renders the
+    dashed-extension buckets as marked table rows."""
+    _login(page, nexora_server)
+    _stub_catalogs(page)
+    fc_block = {
+        "anchor": "2025-08-01",
+        "grain": "month",
+        "method": "trend",
+        "horizon": 3,
+        "buckets": ["2025-09-01", "2025-10-01", "2025-11-01"],
+        "series": [
+            {
+                "field": "doc_count",
+                "values": [26.0, 28.0, 30.0],
+                "lower": [24.0, 25.5, 27.0],
+                "upper": [28.0, 30.5, 33.0],
+            }
+        ],
+    }
+
+    def run_stub(route):
+        body = route.request.post_data_json or {}
+        payload = {
+            "columns": [{"field": "export_date"}, {"field": "doc_count"}],
+            "rows": [[f"2025-{m:02d}-01", 10 + 2 * (m - 1)] for m in range(1, 9)],
+            "rowCount": 8,
+            "truncated": False,
+            "resolvedDates": [],
+        }
+        if (body.get("forecast") or {}).get("enabled"):
+            payload["forecast"] = fc_block
+        route.fulfill(json=payload)
+
+    page.route("**/api/reporting/run", run_stub)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+
+    # Build/run a 1-date-dim + metric report the same way the neighbouring
+    # wizard e2e tests do (import_date breakdown + Last 3 months).
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Stub count").click()
+    page.get_by_test_id("rs-measure-next").click()
+    page.get_by_test_id("rs-breakdown-list").locator('[data-bd-field="import_date"]').click()
+    page.get_by_test_id("rs-breakdown-next").click()
+    page.get_by_test_id("rs-time-list").get_by_text("Last 3 months", exact=True).click()
+    page.get_by_test_id("rs-wizard-run").click()
+
+    expect(page.get_by_test_id("rs-result")).to_be_visible()
+
+    toggle = page.get_by_test_id("rs-forecast-toggle")
+    expect(toggle).to_be_visible()
+    expect(toggle).to_have_attribute("aria-pressed", "false")
+    toggle.click()
+    expect(toggle).to_have_attribute("aria-pressed", "true")
+    expect(page.get_by_test_id("rs-forecast-horizon")).to_be_visible()
+
+    # Predicted rows land in the table, marked
+    page.get_by_test_id("rs-table-toggle").click()
+    rows = page.get_by_test_id("rs-forecast-row")
+    expect(rows).to_have_count(3)
+    expect(rows.first).to_contain_text("2025-09-01")
+    expect(rows.first).to_contain_text("Forecast")
+
+    # Toggle off -> rows disappear
+    toggle.click()
+    expect(page.get_by_test_id("rs-forecast-row")).to_have_count(0)
+
+
+def test_forecast_trims_zero_filled_rows_past_anchor(nexora_server, page):
+    """Regression (#168 final review, Finding 1): Simple's display zero-fill
+    (a "This year" filter with data that stops mid-year) must not leave
+    trailing fake zero rows for the SAME calendar buckets compute_forecast
+    is about to append via forecast.anchor -- rows are trimmed back to the
+    anchor before the forecast rows land, so July-Sept show up exactly once
+    each, as forecast rows, not first as zero-filled real rows too."""
+    _login(page, nexora_server)
+    _stub_catalogs(page)
+    fc_block = {
+        "anchor": "2025-06-01",
+        "grain": "month",
+        "method": "trend",
+        "horizon": 3,
+        "buckets": ["2025-07-01", "2025-08-01", "2025-09-01"],
+        "series": [
+            {
+                "field": "doc_count",
+                "values": [26.0, 28.0, 30.0],
+                "lower": [24.0, 25.5, 27.0],
+                "upper": [28.0, 30.5, 33.0],
+            }
+        ],
+    }
+
+    def run_stub(route):
+        body = route.request.post_data_json or {}
+        payload = {
+            "columns": [{"field": "import_date"}, {"field": "doc_count"}],
+            # Real data covers only Jan-Jun 2025. The "This year" filter's
+            # resolved range runs through December, so zeroFillDateBuckets
+            # would (without the anchor trim) pad Jul-Dec with 6 fake zero
+            # rows -- landing right on top of the 3 forecast buckets below.
+            "rows": [[f"2025-{m:02d}-01", 10 + 2 * (m - 1)] for m in range(1, 7)],
+            "rowCount": 6,
+            "truncated": False,
+            "resolvedDates": [{"field": "import_date", "start": "2025-01-01", "end": "2025-12-31"}],
+        }
+        if (body.get("forecast") or {}).get("enabled"):
+            payload["forecast"] = fc_block
+        route.fulfill(json=payload)
+
+    page.route("**/api/reporting/run", run_stub)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Stub count").click()
+    page.get_by_test_id("rs-measure-next").click()
+    page.get_by_test_id("rs-breakdown-list").locator('[data-bd-field="import_date"]').click()
+    page.get_by_test_id("rs-breakdown-next").click()
+    page.get_by_test_id("rs-time-list").get_by_text("This year", exact=True).click()
+    page.get_by_test_id("rs-wizard-run").click()
+
+    expect(page.get_by_test_id("rs-result")).to_be_visible()
+
+    toggle = page.get_by_test_id("rs-forecast-toggle")
+    expect(toggle).to_be_visible()
+    toggle.click()
+    expect(toggle).to_have_attribute("aria-pressed", "true")
+
+    page.get_by_test_id("rs-table-toggle").click()
+
+    # 6 real rows (Jan-Jun) + 3 forecast rows (Jul-Sep) = 9. Without the
+    # anchor trim this would be 12 real/zero rows + 3 forecast rows, with
+    # Jul/Aug/Sep each appearing twice (once as a fake zero, once forecast).
+    plain_rows = page.locator("#rsTableWrap tbody tr:not(.is-forecast)")
+    expect(plain_rows).to_have_count(6)
+    forecast_rows = page.get_by_test_id("rs-forecast-row")
+    expect(forecast_rows).to_have_count(3)
+
+    expect(plain_rows.last).to_contain_text("2025-06-01")
+    expect(
+        page.locator("#rsTableWrap tbody tr:not(.is-forecast)", has_text="2025-07-01")
+    ).to_have_count(0)
+    expect(forecast_rows.first).to_contain_text("2025-07-01")

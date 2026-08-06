@@ -10,6 +10,10 @@
 
   // Translated strings (tojson-escaped — several translations carry quotes).
   var I18N = {
+    forecastLabel: {{ _("Forecast")|tojson }},
+    forecastNote: {{ _("Dotted line and shaded band are forecast values, not actuals.")|tojson }},
+    forecastUnavailable: {{ _("Not enough history to forecast this series.")|tojson }},
+    forecastNeedsShape: {{ _("Forecast requires one date breakdown with a metric.")|tojson }},
     today: {{ _("today")|tojson }},
     yesterday: {{ _("yesterday")|tojson }},
     daysAgo: {{ _("days ago")|tojson }},
@@ -819,7 +823,7 @@
     openDrill(clicked);
   }
 
-  function renderTable(columns, rows) {
+  function renderTable(columns, rows, forecast) {
     var cur = state.current;
     var def = (cur && cur.def) || {};
     var hasMetrics = Array.isArray(def.metrics) && def.metrics.length > 0;
@@ -862,11 +866,32 @@
       });
       html += '</tr>';
     });
+    var fcRows = (forecast && !forecast.unavailable && (forecast.buckets || []).length)
+      ? forecast : null;
+    if (fcRows) {
+      var mStart = columns.length - fcRows.series.length;
+      fcRows.buckets.forEach(function (b, bi) {
+        html += '<tr class="is-forecast" data-testid="rs-forecast-row">';
+        for (var ci = 0; ci < columns.length; ci++) {
+          if (ci === 0) {
+            html += '<td>' + esc(String(b).slice(0, 10)) +
+              ' <span class="rp-forecast-badge">' + esc(I18N.forecastLabel) + '</span></td>';
+          } else if (ci >= mStart) {
+            var sv = fcRows.series[ci - mStart];
+            html += '<td class="reporting-ledger-num">' +
+              esc(fmtChartTooltip(sv.values[bi])) + '</td>';
+          } else {
+            html += '<td></td>';
+          }
+        }
+        html += '</tr>';
+      });
+    }
     html += '</tbody></table>';
     el('rsTableWrap').innerHTML = html;
     if (drillable) {
       Array.prototype.forEach.call(
-        el('rsTableWrap').querySelectorAll('tbody tr'), function (tr, i) {
+        el('rsTableWrap').querySelectorAll('tbody tr:not(.is-forecast)'), function (tr, i) {
           var rowValues = rows[i];
           tr.tabIndex = 0;
           tr.addEventListener('click', function () { openDrill(clickedFor(rowValues)); });
@@ -976,6 +1001,40 @@
       }
       return out;
     });
+    var fcActive = !!(d.forecast && !multi && (chartJsType === 'line' || chartJsType === 'bar'));
+    if (fcActive) {
+      var fc = d.forecast;
+      var histN = d.forecastStart;
+      var pad = fc.buckets.map(function () { return null; });
+      datasets = datasets.map(function (ds) {
+        return Object.assign({}, ds, { data: ds.data.concat(pad) });
+      });
+      var fcAccent = isDark ? '#818cf8' : '#4f46e5';
+      var lead = [];
+      for (var li = 0; li < histN - 1; li++) lead.push(null);
+      fc.series.forEach(function (s, si) {
+        var base = d.datasets[si];
+        var bridge = base ? base.data[histN - 1] : null;
+        datasets.push({
+          label: (base ? base.label : s.field) + ' · ' + I18N.forecastLabel,
+          data: lead.concat([bridge], s.values),
+          type: 'line', borderColor: fcAccent, borderDash: [6, 4],
+          borderWidth: 2, backgroundColor: 'transparent',
+          pointStyle: 'rectRot', fill: false, tension: .25, _forecast: true
+        });
+      });
+      if (fc.series.length === 1) {
+        var s0 = fc.series[0];
+        var b0 = d.datasets[0] ? d.datasets[0].data[histN - 1] : null;
+        var bandFill = isDark ? 'rgba(129,140,248,.18)' : 'rgba(79,70,229,.12)';
+        datasets.push({ label: '', data: lead.concat([b0], s0.upper), type: 'line',
+          borderWidth: 0, pointRadius: 0, backgroundColor: 'transparent',
+          fill: false, _band: true });
+        datasets.push({ label: '', data: lead.concat([b0], s0.lower), type: 'line',
+          borderWidth: 0, pointRadius: 0, backgroundColor: bandFill,
+          fill: '-1', _band: true });
+      }
+    }
     // Integer-only y-axis ticks when every plotted value across every
     // dataset actually is an integer (e.g. a COUNT/GROUP BY report) — a
     // fractional measure (avg/sum of decimals) keeps Chart.js's normal tick
@@ -998,7 +1057,14 @@
                               }
                             },
                             grid: { color: gridColor() } } },
-                 plugins: { legend: { display: multi || circular || (d.datasets && d.datasets.length > 1) },
+                 plugins: { legend: { display: multi || circular || (d.datasets && d.datasets.length > 1) || fcActive,
+                                      labels: { filter: function (item, data) {
+                                        // D6: band + forecast-line datasets are excluded from
+                                        // the legend (and drill — see the _forecast/_band guard
+                                        // in the drill click-handler below).
+                                        var ds = data.datasets[item.datasetIndex] || {};
+                                        return !(ds._band || ds._forecast);
+                                      } } },
                             tooltip: {
                               callbacks: {
                                 // Reuse the module's own number formatter (fmtChartTooltip)
@@ -1013,7 +1079,11 @@
                             } },
                  onClick: function (evt) {
                    var els = this.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, false);
-                   if (els.length) drillFromChart(els[0].index, els[0].datasetIndex);
+                   if (!els.length) return;
+                   var dsHit = (state.chart.data.datasets || [])[els[0].datasetIndex] || {};
+                   if (dsHit._forecast || dsHit._band) return;
+                   if (d.forecastStart != null && d.forecast && els[0].index >= d.forecastStart) return;
+                   drillFromChart(els[0].index, els[0].datasetIndex);
                  },
                  onHover: function (evt, els) {
                    evt.native.target.style.cursor = els.length ? 'pointer' : 'default';
@@ -1103,7 +1173,7 @@
     return filled;
   }
 
-  function mountChart(def, columns, rows) {
+  function mountChart(def, columns, rows, forecast) {
     destroyChart();
     state.chartData = null;
     el('rsChartNote').hidden = true;
@@ -1212,8 +1282,15 @@
         tension: .25
       };
     });
+    var fc = (forecast && !forecast.unavailable &&
+              (forecast.buckets || []).length) ? forecast : null;
+    var histN = labels.length;
+    if (fc) {
+      labels = labels.concat(fc.buckets.map(function (b) { return String(b).slice(0, 10); }));
+    }
     state.chartData = {
       labels: labels, rawX: rawX, datasets: datasets, multiSeries: false,
+      forecast: fc, forecastStart: histN,
       type: def.chartType || (isDate ? 'line' : 'bar')
     };
     el('rsChartCard').hidden = false;
@@ -1556,6 +1633,7 @@
       var totalDef = JSON.parse(JSON.stringify(def));
       totalDef.columns = [];
       totalDef.sort = [];
+      delete totalDef.forecast;
       // No compare: true here -- this run only feeds fillStatCard, which
       // never reads a comparison payload. The breakdown def below is the
       // one whose comparison drives renderKpiBand's delta chips; asking
@@ -1583,6 +1661,9 @@
     if (!res.ok) {
       showResultError(friendlyRunError(res.status, res.data),
         { title: cur.name || cur.def.title || '', openAdvanced: true });
+      // The toggle must not keep showing the PREVIOUS successful run's
+      // forecast-eligible/charted state once this run has errored out.
+      syncForecastCtl(def, null, false);
       return;
     }
     setHeaderActionsEnabled(true);
@@ -1639,10 +1720,29 @@
         '<p class="nx-empty__title">' + esc(I18N.noData) + '</p>' +
         '<p class="nx-empty__hint">' + esc(I18N.noDataHint) + '</p></div>';
       el('rsTableWrap').hidden = false;
+      syncForecastCtl(def, null, false);
       return;
     }
-    var charted = (hasMetrics && dims) ? !!mountChart(def, columns, rows) : false;
-    renderTable(columns, rows);
+    // zeroFillDateBuckets pads `rows` out to the FILTER's display range (e.g.
+    // "This year" -> Jan-Dec), but compute_forecast anchors its forecast
+    // buckets at the last REAL data bucket (forecast.anchor). For any
+    // current-period token whose data doesn't reach the end of the period,
+    // the zero-fill above already produced trailing zero rows for the same
+    // calendar buckets the forecast is about to append -- duplicate rows/
+    // labels, and the dashed line would bridge from a fake zero instead of
+    // the last real point. Trim those fabricated trailing buckets back to
+    // the anchor before rows reaches either consumer below (mountChart,
+    // renderTable) so both see the same, correctly-truncated set.
+    var fcForTrim = res.data.forecast || null;
+    if (fcForTrim && !fcForTrim.unavailable && fcForTrim.anchor) {
+      rows = rows.filter(function (r) {
+        return String(r[0] == null ? '' : r[0]).slice(0, 10) <= fcForTrim.anchor;
+      });
+    }
+    var charted = (hasMetrics && dims)
+      ? !!mountChart(def, columns, rows, res.data.forecast || null) : false;
+    syncForecastCtl(def, res.data.forecast || null, charted);
+    renderTable(columns, rows, res.data.forecast || null);
     // Collapse the table behind the toggle only when a chart actually rendered
     // (or the stat card carries a dimensionless total). When mountChart bails
     // — three breakdowns, too many points, no Chart.js — the table is the only
@@ -1703,6 +1803,59 @@
       state.current.def.chartType = btn.dataset.type;
     }
     renderChart(btn.dataset.type);
+  });
+
+  function forecastEligible(def) {
+    var cols = (def && def.columns) || [];
+    return cols.length === 1 && !!cols[0].grain &&
+      Array.isArray(def.metrics) && def.metrics.length > 0;
+  }
+  function syncForecastCtl(def, forecast, charted) {
+    var btn = el('rsForecastToggle'), sel = el('rsForecastHorizon');
+    if (!btn) return;
+    var eligible = forecastEligible(def);
+    // Mirrors Advanced's syncForecastCtl (_reporting_js.html): a saved/shared
+    // definition must never persist a stale forecast block once the shape
+    // (e.g. a second breakdown added, or the date grain removed) makes it
+    // permanently unavailable.
+    if (!eligible) delete def.forecast;
+    var on = eligible && !!(def.forecast && def.forecast.enabled);
+    btn.disabled = !eligible;
+    btn.title = eligible ? I18N.forecastLabel : I18N.forecastNeedsShape;
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    btn.classList.toggle('is-selected', on);
+    sel.hidden = !on;
+    if (on && def.forecast.horizon) sel.value = String(def.forecast.horizon);
+    // Only disclose forecast state via the shared #rsChartNote when a chart
+    // actually mounted. When mountChart bailed (too many points, no Chart.js,
+    // three breakdowns) it already wrote a more important note via
+    // chartCardNote(...) — clobbering that here would silently destroy it,
+    // and there's nothing forecast-related to disclaim if there's no chart.
+    if (charted && on && forecast && forecast.unavailable) {
+      el('rsChartNote').textContent = I18N.forecastUnavailable;
+      el('rsChartNote').hidden = false;
+    } else if (charted && on) {
+      el('rsChartNote').textContent = I18N.forecastNote;
+      el('rsChartNote').hidden = false;
+    }
+  }
+  el('rsForecastToggle').addEventListener('click', function () {
+    var cur = state.current;
+    if (!cur || !cur.def || this.disabled) return;
+    if (cur.def.forecast && cur.def.forecast.enabled) {
+      delete cur.def.forecast;
+    } else {
+      var h = el('rsForecastHorizon').value;
+      cur.def.forecast = { enabled: true, horizon: h === 'auto' ? 'auto' : parseInt(h, 10) };
+    }
+    runCurrent();
+  });
+  el('rsForecastHorizon').addEventListener('change', function () {
+    var cur = state.current;
+    if (!cur || !cur.def || !cur.def.forecast) return;
+    var h = this.value;
+    cur.def.forecast.horizon = h === 'auto' ? 'auto' : parseInt(h, 10);
+    runCurrent();
   });
 
   el('rsShowSql').addEventListener('click', function () {

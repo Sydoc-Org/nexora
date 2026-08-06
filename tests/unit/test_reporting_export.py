@@ -201,3 +201,23 @@ def test_safe_cell_passes_decimal_and_date_through_unchanged():
     dt = date(2020, 1, 1)
     assert _safe_cell(d) == d
     assert _safe_cell(dt) == dt
+
+
+def test_xlsx_forecast_rows_styled_italic():
+    from openpyxl import load_workbook
+
+    columns = [
+        {"field": "d", "header": "Date"},
+        {"field": "n", "header": "Count"},
+        {"field": "__forecast", "header": "Forecast"},
+    ]
+    rows = [["2025-01-01", 10, ""], ["2025-02-01", 12, ""], ["2025-03-01", 14.0, "forecast"]]
+    data = rows_to_xlsx(columns, rows, title="T", forecast_start=2)
+    ws = load_workbook(io.BytesIO(data)).active
+    # header_row is 4 without a chart; data rows follow
+    # openpyxl round-trips an empty-string cell value as None, not "" — pinned
+    # via ws.iter_rows() against the actual saved/reloaded workbook.
+    assert ws.cell(row=5, column=3).value is None
+    fc_cell = ws.cell(row=7, column=1)
+    assert fc_cell.font.italic
+    assert ws.cell(row=7, column=3).value == "forecast"

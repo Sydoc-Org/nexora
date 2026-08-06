@@ -141,6 +141,7 @@ def execute_definition(definition, owner_perms, owner_id, owner_username, locale
             sortable,
             max_row_limit=MAX_ROW_LIMIT,
             metric_codes=set(source_metrics),
+            grainable_fields={f["field"] for f in catalog if f.get("grainable")},
             date_fields=date_fields_from_catalog(catalog),
         )
         try:

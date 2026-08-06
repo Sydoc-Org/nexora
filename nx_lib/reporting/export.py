@@ -45,7 +45,7 @@ def _safe_cell(v):
     return v
 
 
-def rows_to_xlsx(columns, rows, *, title, chart_png=None, generated_at=None):
+def rows_to_xlsx(columns, rows, *, title, chart_png=None, generated_at=None, forecast_start=None):
     """Return .xlsx bytes: bold title, meta line, optional chart image, then
     a styled header row and the data.
 
@@ -56,6 +56,8 @@ def rows_to_xlsx(columns, rows, *, title, chart_png=None, generated_at=None):
         truncated to Excel's 31-char limit).
     chart_png: optional PNG bytes rendered above the data table.
     generated_at: optional datetime for the meta line (defaults to utcnow).
+    forecast_start: optional 0-based index into `rows` — rows at/after this
+        index are predicted (not actual) and are styled grey-italic.
     """
     wb = Workbook()
     ws = wb.active
@@ -101,9 +103,13 @@ def rows_to_xlsx(columns, rows, *, title, chart_png=None, generated_at=None):
         ws.column_dimensions[get_column_letter(i)].width = 18
 
     # Data rows
+    fc_font = Font(italic=True, color="6B7280")
     for r_off, row in enumerate(row_list, start=1):
+        is_fc = forecast_start is not None and (r_off - 1) >= forecast_start
         for c_off, val in enumerate(row, start=1):
-            ws.cell(row=header_row + r_off, column=c_off, value=_safe_cell(val))
+            cell = ws.cell(row=header_row + r_off, column=c_off, value=_safe_cell(val))
+            if is_fc:
+                cell.font = fc_font
 
     ws.freeze_panes = ws.cell(row=header_row + 1, column=1)
 

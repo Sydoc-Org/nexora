@@ -190,6 +190,21 @@ def validate_report_definition(
                 raise ReportDefinitionError(f"duplicate metric: {code!r}")
             seen_metrics.add(code)
 
+    forecast = rd.get("forecast")
+    if forecast is not None:
+        if not isinstance(forecast, dict):
+            raise ReportDefinitionError("forecast must be an object")
+        extra = set(forecast) - {"enabled", "horizon"}
+        if extra:
+            raise ReportDefinitionError(f"unexpected keys in forecast: {sorted(extra)}")
+        if not isinstance(forecast.get("enabled", False), bool):
+            raise ReportDefinitionError("forecast.enabled must be a boolean")
+        horizon = forecast.get("horizon", "auto")
+        if horizon != "auto" and (
+            isinstance(horizon, bool) or not isinstance(horizon, int) or not 1 <= horizon <= 60
+        ):
+            raise ReportDefinitionError("forecast.horizon must be 'auto' or an int in [1, 60]")
+
     row_limit = rd.get("rowLimit")
     if (
         isinstance(row_limit, bool)

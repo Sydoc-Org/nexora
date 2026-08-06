@@ -53,7 +53,7 @@ def _label(v):
     return s[:10] if len(s) >= 10 and s[4:5] == "-" and s[7:8] == "-" else s
 
 
-def render_chart_png(definition, columns, rows, *, width=8.0, height=4.5, dpi=110):
+def render_chart_png(definition, columns, rows, *, width=8.0, height=4.5, dpi=110, forecast=None):
     """Render `rows` (aligned to `columns`) as a PNG per `definition`.
 
     Returns PNG bytes, or None when the result shape has no sensible chart.
@@ -78,6 +78,32 @@ def render_chart_png(definition, columns, rows, *, width=8.0, height=4.5, dpi=11
                 ax.plot(labels, values, color=_PALETTE[0], marker="o")
             else:
                 ax.bar(labels, values, color=_PALETTE[0])
+            if (
+                forecast
+                and not forecast.get("unavailable")
+                and forecast.get("buckets")
+                and chart_type in ("line", "bar")
+                and len(rows) <= MAX_X
+            ):
+                fx = [_label(b) for b in forecast["buckets"]]
+                s0 = forecast["series"][0]
+                bridge_x, bridge_y = [labels[-1]], [values[-1]]
+                ax.plot(
+                    bridge_x + fx,
+                    bridge_y + list(s0["values"]),
+                    color=_PALETTE[0],
+                    linestyle="--",
+                    marker="o",
+                    markersize=3,
+                )
+                ax.fill_between(
+                    bridge_x + fx,
+                    bridge_y + list(s0["lower"]),
+                    bridge_y + list(s0["upper"]),
+                    color=_PALETTE[0],
+                    alpha=0.15,
+                    linewidth=0,
+                )
         else:
             # Multi-dim: grouped bars or lines. Pie is intentionally unsupported here
             # (summing across the second dim would silently lie for distinct-count metrics).

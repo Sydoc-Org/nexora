@@ -188,6 +188,54 @@ def test_scheduled_table_source_metric_definition_resolves(monkeypatch):
     assert [c["field"] for c in cols] == ["status", "wi_count"]
 
 
+def test_scheduled_table_source_definition_with_grain_validates(monkeypatch):
+    # D9: the table-provider validate call was missing grainable_fields, so any
+    # scheduled table-source report grouping on a date grain bounced at validation.
+    from nx_lib.views import reporting as rv
+
+    monkeypatch.setattr(
+        rv,
+        "_get_effective_source",
+        lambda s: {
+            "id": "workitems",
+            "kind": "curated",
+            "provider": "table",
+            "permission": "reporting.source.workitems",
+            "baseObject": "dbo.Workitems",
+            "engine": "octo",
+            "columns": [
+                {"field": "status", "label": "Status", "type": "string"},
+                {"field": "created", "label": "Created", "type": "date", "grainable": True},
+            ],
+        },
+    )
+    monkeypatch.setattr(
+        rv,
+        "_metrics_for_source",
+        lambda sid: {"wi_count": {"aggregation": "count", "base_field": None}},
+    )
+    captured = {}
+
+    def fake_execute(engine, sql, params):
+        captured["sql"] = sql
+        return [("2026-01-01", 3)]
+
+    monkeypatch.setattr(rv, "_execute", fake_execute)
+    monkeypatch.setattr(rv, "_CURATED_ENGINES", {"octo": object()})
+
+    definition = _definition(
+        source="workitems",
+        columns=[{"field": "created", "grain": "month"}],
+        metrics=[{"metric": "wi_count"}],
+    )
+    cols, rows = runner_mod.execute_definition(
+        definition, {"reporting.view", "reporting.source.workitems"}, 1, "tester", "en"
+    )
+
+    assert rows == [("2026-01-01", 3)]
+    assert [c["field"] for c in cols] == ["created", "wi_count"]
+
+
 def test_scheduled_definition_with_relative_token_resolves_at_run_time(monkeypatch):
     from nx_lib.reporting.tokens import resolve_token
 

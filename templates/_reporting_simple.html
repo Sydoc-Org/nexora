@@ -208,6 +208,13 @@
             <button type="button" class="reporting-chartbtn" data-type="doughnut" title="{{ _('Doughnut chart') }}" aria-label="{{ _('Doughnut chart') }}" data-testid="rs-chart-doughnut"><i class="fas fa-circle-notch" aria-hidden="true"></i></button>
           </div>
           <button type="button" class="reporting-chartbtn" id="rsChartPng" title="{{ _('Download chart as image') }}" aria-label="{{ _('Download chart as image') }}" data-testid="rs-chart-png"><i class="fas fa-download" aria-hidden="true"></i></button>
+          <button type="button" class="reporting-chartbtn" id="rsForecastToggle" aria-pressed="false" title="{{ _('Forecast') }}" aria-label="{{ _('Forecast') }}" data-testid="rs-forecast-toggle"><i class="fas fa-arrow-trend-up" aria-hidden="true"></i></button>
+          <select id="rsForecastHorizon" class="rs-forecast-horizon" hidden aria-label="{{ _('Forecast horizon') }}" data-testid="rs-forecast-horizon">
+            <option value="auto">{{ _('Auto') }}</option>
+            <option value="7">+7</option>
+            <option value="14">+14</option>
+            <option value="30">+30</option>
+          </select>
         </div>
         <p id="rsChartNote" class="reporting-simple-chartnote" hidden data-testid="rs-chart-note"></p>
         <canvas id="rsChartCanvas"></canvas>

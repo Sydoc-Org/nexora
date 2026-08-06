@@ -70,6 +70,7 @@ from ..reporting.ai_schema import serialize_schema, serialize_sources_catalog
 from ..reporting.ai_tools import TOOL_SPECS, ToolRegistry
 from ..reporting.catalog import fetch_docprocessing_catalog
 from ..reporting.export import rows_to_csv, rows_to_xlsx
+from ..reporting.forecast import compute_forecast, forecast_export_rows
 from ..reporting.query import QueryBuildError, build_table_query
 from ..reporting.sandbox import (
     MAX_SQL_LEN,
@@ -1000,7 +1001,7 @@ def _parse_chart_image(value):
     return raw
 
 
-def _serialize_export(columns, rows, title, fmt, chart_png=None):
+def _serialize_export(columns, rows, title, fmt, chart_png=None, forecast_start=None):
     """Build a Flask download Response for `rows` in the requested format."""
     name = _safe_report_name(title)
     if fmt == "csv":
@@ -1010,7 +1011,13 @@ def _serialize_export(columns, rows, title, fmt, chart_png=None):
             headers={"Content-Disposition": f'attachment; filename="{name}.csv"'},
         )
     return Response(
-        rows_to_xlsx(columns, rows, title=title or "Report", chart_png=chart_png),
+        rows_to_xlsx(
+            columns,
+            rows,
+            title=title or "Report",
+            chart_png=chart_png,
+            forecast_start=forecast_start,
+        ),
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f'attachment; filename="{name}.xlsx"'},
     )
@@ -1112,6 +1119,12 @@ def api_run():
                 }
             except Exception as e:
                 current_app.logger.warning(f"/api/reporting/run comparison skipped: {e}")
+    fc_req = rd.get("forecast")
+    if isinstance(fc_req, dict) and fc_req.get("enabled"):
+        try:
+            payload["forecast"] = compute_forecast(rd, columns, rows)
+        except Exception as e:  # a forecast must never take down the run
+            current_app.logger.warning(f"/api/reporting/run forecast skipped: {e}")
     # rd is the original request body (tokens intact) — _prepare_run resolves
     # its own local copy. _resolved_dates_meta needs the tokens to produce labels.
     resolved_dates = _resolved_dates_meta(rd)
@@ -2014,8 +2027,24 @@ def api_export():
     except Exception as e:
         current_app.logger.error(f"/api/reporting/export error: {e}")
         return jsonify({"error": _("Could not export report")}), 500
+    forecast_start = None
+    fc_req = rd.get("forecast")
+    if isinstance(fc_req, dict) and fc_req.get("enabled"):
+        try:
+            fc = compute_forecast(rd, columns, rows)
+            if fc and not fc.get("unavailable"):
+                columns, rows, forecast_start = forecast_export_rows(
+                    columns, rows, fc, marker_header=_("Forecast")
+                )
+        except Exception as e:
+            current_app.logger.warning(f"/api/reporting/export forecast skipped: {e}")
     return _serialize_export(
-        columns, rows, rd.get("title") or _("Report"), fmt, chart_png=chart_png
+        columns,
+        rows,
+        rd.get("title") or _("Report"),
+        fmt,
+        chart_png=chart_png,
+        forecast_start=forecast_start,
     )
 
 
