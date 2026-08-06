@@ -102,12 +102,25 @@
     loading: {{ _("Loading…")|tojson }},
     vsPreviousPeriod: {{ _("vs previous period")|tojson }},
     couldNotExport: {{ _("Could not export this report.")|tojson }},
-    noExportableCards: {{ _("No cards to export yet.")|tojson }}
+    noExportableCards: {{ _("No cards to export yet.")|tojson }},
+    // Same msgid as the Simple pane's own series cap (already translated) --
+    // reused verbatim so a second breakdown on a card reports its overflow
+    // in the wording users already know.
+    chartSeriesCapped: {{ _("Showing the {shown} largest of {n} series.")|tojson }}
   };
 
   // Chart.js palette for bar/donut cards (spec §Dashboard "Cards") -- cycles
   // if a card has more categories than colors.
   var CARD_PALETTE = ['#4f46e5', '#6366f1', '#7c3aed', '#8b5cf6', '#a5b4fc'];
+
+  // Multi-series palette for two-dimension line/bar cards (#174) -- the first
+  // 8 of the Simple pane's NX_PALETTE, duplicated rather than shared for the
+  // same reason that pane duplicates it from _reporting_viz_js.html. Its
+  // length IS the per-card series cap: a 190px-tall card body cannot carry
+  // Simple's 12 legible lines, and every drawn series must own a color.
+  var SERIES_PALETTE = [
+    '#4f46e5', '#7c3aed', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#64748b', '#a78bfa'
+  ];
 
   // Filter-op set + labels for the global-filter popover (D11/Task 13) --
   // mirrors _reporting_js.html's OP_LABELS/op <select> (same msgids, so
@@ -778,12 +791,97 @@
 
   function fmtLabel(v) { return v == null ? '' : String(v); }
 
-  // First response column is the label/dimension; first metric is the
-  // value. A zero-dimension definition (KPI cards run a zero-column clone,
-  // same pattern as the Simple pane's grand-total call) returns just the
-  // metric column, so there's no dimension to read.
-  function dimValIdx(columns) {
-    return columns.length > 1 ? { dim: 0, val: 1 } : { dim: -1, val: 0 };
+  // Leading response columns are the definition's dimensions, the trailing
+  // ones its metrics; the first metric is the value a card draws. A
+  // zero-dimension definition (KPI cards run a zero-column clone, same
+  // pattern as the Simple pane's grand-total call) returns just the metric
+  // columns, so there's no dimension to read.
+  //
+  // `dims` is every dimension index: dims[0] is the axis, dims[1..] are the
+  // breakdown that renderLine/renderBar pivot into series (#174). Before
+  // that this returned a fixed val:1, so a two-dimension report read its
+  // SECOND DIMENSION as the value -- toNum('Invoice') === null -- and every
+  // such card drew a flat zero line while the same report charted correctly
+  // in the Simple result view.
+  function dimValIdx(columns, card) {
+    var nMetrics = ((card && card.definition && card.definition.metrics) || []).length || 1;
+    var val = Math.max(0, columns.length - nMetrics);
+    var dims = [];
+    for (var i = 0; i < val; i++) dims.push(i);
+    return { dim: dims.length ? 0 : -1, val: val, dims: dims };
+  }
+
+  // Display label for a row's dimensions: the axis value on its own for a
+  // single-dim card, all of them joined for a breakdown ("Jan · Invoice"),
+  // matching the Simple pane's series labels.
+  function dimLabel(row, idx) {
+    return idx.dims.map(function (d) { return fmtLabel(row[d]); }).join(' · ');
+  }
+
+  // Two-dimension pivot: first dim = axis, the remaining dims joined = one
+  // series each. Ported from the Simple pane's chart builder
+  // (_reporting_simple_js.html, its `dims >= 2` branch) per #174 -- the logic
+  // already existed, cards just never used it. Series are ordered by total
+  // desc and capped at SERIES_PALETTE.length; the overflow count comes back
+  // in `hidden` so the caller can say so rather than truncate silently.
+  function pivotCard(rows, idx) {
+    var xOrder = [], rawX = [], cell = {}, tot = {}, parts = {};
+    rows.forEach(function (r) {
+      var x = fmtLabel(r[idx.dims[0]]);
+      var pv = [], lbl = [];
+      for (var d = 1; d < idx.dims.length; d++) { pv.push(r[idx.dims[d]]); lbl.push(fmtLabel(r[idx.dims[d]])); }
+      var s = lbl.join(' · ');
+      var v = toNum(r[idx.val]) || 0;
+      if (!cell[x]) { xOrder.push(x); rawX.push(r[idx.dims[0]]); cell[x] = {}; }
+      // Every breakdown dim is in the series key, so a cell is one exact
+      // aggregate row -- nothing is summed across buckets, which keeps
+      // avg/min/max metrics honest (same reasoning as the Simple pane).
+      cell[x][s] = (cell[x][s] || 0) + v;
+      tot[s] = (tot[s] || 0) + v;
+      parts[s] = pv;
+    });
+    var keys = Object.keys(tot).sort(function (a, b) { return tot[b] - tot[a]; });
+    var shown = keys.slice(0, SERIES_PALETTE.length);
+    return {
+      labels: xOrder, rawX: rawX, hidden: keys.length - shown.length, total: keys.length,
+      series: shown.map(function (s, i) {
+        return {
+          label: s, parts: parts[s], color: SERIES_PALETTE[i],
+          data: xOrder.map(function (x) { return cell[x][s] || 0; })
+        };
+      })
+    };
+  }
+
+  // Note line above a chart body when the pivot dropped series (never a
+  // silent cap). Returns '' when everything fit.
+  function seriesCapNoteHtml(pv) {
+    if (!pv.hidden) return '';
+    return '<p class="rdb-card-note" data-testid="rdb-card-note">' + esc(
+      I18N.chartSeriesCapped.replace('{shown}', String(pv.series.length))
+                            .replace('{n}', String(pv.total))) + '</p>';
+  }
+
+  // Chart.js options shared by the multi-series line/bar branches: a legend
+  // (single-series cards keep it off -- one unnamed series needs no key) and
+  // the drill-through hit-test, which for a pivoted card must carry the
+  // clicked SERIES as well as the x bucket.
+  function multiSeriesOptions(card, pv) {
+    return {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, position: 'bottom',
+        labels: { boxWidth: 8, boxHeight: 8, usePointStyle: true, pointStyle: 'circle',
+                  font: { family: 'Inter', size: 10.5 }, color: tickColor(), padding: 10 } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 10.5 }, color: tickColor() } },
+        y: { grid: { color: dividerColor() },
+             ticks: { font: { family: 'Inter', size: 10.5 }, color: tickColor() } }
+      },
+      onClick: function (evt) {
+        var els = this.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, false);
+        if (els.length) handleCardSeriesClick(card, pv, els[0].datasetIndex, els[0].index);
+      }
+    };
   }
 
   function findCardEl(id) {
@@ -824,10 +922,11 @@
   // exactly (_reporting_simple_js.html's drillFromChart/openDrill): fields
   // come from this module's own lazily-fetched source catalog (D11, Task
   // 13's ensureCatalog), definition = the card definition with merged
-  // filters, clicked = one {field, grain, value} entry (dashboard cards
-  // never break down by more than one dimension -- see dimValIdx), header =
-  // the card's own title (simpler than Simple's per-value header, since a
-  // dashboard card's title already names what's being drilled into).
+  // filters, clicked = one {field, grain, value} entry per dimension the card
+  // breaks down by (see clickedFor -- a pivoted two-dim card drills on axis
+  // AND series), header = the card's own title (simpler than Simple's
+  // per-value header, since a dashboard card's title already names what's
+  // being drilled into).
   async function openCardDrill(card, clicked) {
     if (!card.definition || !card.definition.source) return;
     await ensureCatalog();
@@ -841,46 +940,67 @@
     });
   }
 
-  // index is the Chart.js element index from onClick (getElementsAtEventForMode).
-  // The dimension's field/grain come from the CARD'S OWN DEFINITION
+  // One {field, grain, value} entry per dimension, given that dimension's
+  // raw values. The field/grain come from the CARD'S OWN DEFINITION
   // (card.definition.columns) -- mirrors the Simple pane's own
   // clickedFor/drillFromChart in _reporting_simple_js.html, which reads
   // state.current.def.columns rather than the run result's columns. The run
   // result's columns are only {field, header} (api_reports_run never echoes
   // grain), so sourcing grain from there always drilled as an exact-value
   // match on the truncated bucket label instead of a date range.
+  function clickedFor(card, idx, values) {
+    var defCols = (card.definition && card.definition.columns) || [];
+    var out = [];
+    idx.dims.forEach(function (d, i) {
+      var col = defCols[d];
+      if (col) out.push({ field: col.field, grain: col.grain || null, value: values[i] });
+    });
+    return out;
+  }
+
+  // index is the Chart.js element index from onClick (getElementsAtEventForMode).
   function handleCardChartClick(card, index) {
     var data = cardRunData[card.id];
     if (!data) return;
-    var idx = dimValIdx(data.columns);
+    var idx = dimValIdx(data.columns, card);
     if (idx.dim < 0) return;  // no dimension column -- nothing to drill on
     var row = data.rows[index];
     if (!row) return;
-    var col = ((card.definition && card.definition.columns) || [])[idx.dim];
-    if (!col) return;
-    openCardDrill(card, [{ field: col.field, grain: col.grain || null, value: row[idx.dim] }]);
+    var clicked = clickedFor(card, idx, idx.dims.map(function (d) { return row[d]; }));
+    if (clicked.length) openCardDrill(card, clicked);
+  }
+
+  // Pivoted (multi-series) line/bar cards: the clicked element identifies a
+  // series AND an x bucket, and both must reach the drill -- otherwise
+  // clicking one process's point drills into every process for that month.
+  // The pivot keeps each series' raw per-dim values in `parts`, same as the
+  // Simple pane's chartData.rawSeries.
+  function handleCardSeriesClick(card, pv, datasetIndex, index) {
+    var idx = dimValIdx((cardRunData[card.id] || {}).columns || [], card);
+    var s = pv.series[datasetIndex];
+    if (!s || index >= pv.rawX.length) return;
+    var clicked = clickedFor(card, idx, [pv.rawX[index]].concat(s.parts));
+    if (clicked.length) openCardDrill(card, clicked);
   }
 
   // rowIndex is the table card's row position (0-based, matching the capped
-  // rows renderTable actually drew). Same card.definition.columns sourcing
-  // as handleCardChartClick above, for the same reason.
+  // rows renderTable actually drew).
   function handleCardTableRowClick(card, rowIndex) {
     var data = cardRunData[card.id];
     if (!data) return;
-    var idx = dimValIdx(data.columns);
+    var idx = dimValIdx(data.columns, card);
     if (idx.dim < 0) return;
     var row = data.rows[rowIndex];
     if (!row) return;
-    var col = ((card.definition && card.definition.columns) || [])[idx.dim];
-    if (!col) return;
-    openCardDrill(card, [{ field: col.field, grain: col.grain || null, value: row[idx.dim] }]);
+    var clicked = clickedFor(card, idx, idx.dims.map(function (d) { return row[d]; }));
+    if (clicked.length) openCardDrill(card, clicked);
   }
 
   // ---- Per-type card body renderers --------------------------------------
   // Each takes the already-cleared <body> element for the card plus the
   // {columns, rows} the run returned, and draws into it.
   function renderKpi(card, body, columns, rows) {
-    var idx = dimValIdx(columns);
+    var idx = dimValIdx(columns, card);
     var v = rows.length ? rows[0][idx.val] : null;
     body.innerHTML = '<p class="rdb-kpi-value" data-testid="rdb-kpi-value">' + esc(fmtNum(v)) + '</p>';
   }
@@ -888,9 +1008,10 @@
   function renderLine(card, body, columns, rows) {
     destroyCardChart(card.id);
     if (typeof Chart === 'undefined') { body.textContent = I18N.chartUnavailable; return; }
+    var idx = dimValIdx(columns, card);
+    if (idx.dims.length > 1) return renderMultiSeries(card, body, rows, idx, 'line');
     body.innerHTML = '<div class="rdb-chart-wrap"><canvas></canvas></div>';
     var canvas = body.querySelector('canvas');
-    var idx = dimValIdx(columns);
     var labels = rows.map(function (r) { return idx.dim >= 0 ? fmtLabel(r[idx.dim]) : ''; });
     var data = rows.map(function (r) { return toNum(r[idx.val]) || 0; });
     var ctx = canvas.getContext('2d');
@@ -925,9 +1046,10 @@
   function renderBar(card, body, columns, rows) {
     destroyCardChart(card.id);
     if (typeof Chart === 'undefined') { body.textContent = I18N.chartUnavailable; return; }
+    var idx = dimValIdx(columns, card);
+    if (idx.dims.length > 1) return renderMultiSeries(card, body, rows, idx, 'bar');
     body.innerHTML = '<div class="rdb-chart-wrap"><canvas></canvas></div>';
     var canvas = body.querySelector('canvas');
-    var idx = dimValIdx(columns);
     var labels = rows.map(function (r) { return idx.dim >= 0 ? fmtLabel(r[idx.dim]) : ''; });
     var data = rows.map(function (r) { return toNum(r[idx.val]) || 0; });
     var colors = labels.map(function (_, i) { return CARD_PALETTE[i % CARD_PALETTE.length]; });
@@ -950,13 +1072,41 @@
     });
   }
 
+  // Two-dimension line/bar cards (#174): axis = first dim, one colored,
+  // named series per remaining-dims combination -- what the Simple result
+  // view has always drawn for the same report. Legend on (a named series
+  // needs its key); single-series cards keep their locked indigo look above.
+  function renderMultiSeries(card, body, rows, idx, type) {
+    var pv = pivotCard(rows, idx);
+    body.innerHTML = seriesCapNoteHtml(pv) + '<div class="rdb-chart-wrap"><canvas></canvas></div>';
+    var canvas = body.querySelector('canvas');
+    charts[card.id] = new Chart(canvas.getContext('2d'), {
+      type: type,
+      data: {
+        labels: pv.labels,
+        datasets: pv.series.map(function (s) {
+          return type === 'line'
+            ? { label: s.label, data: s.data, borderColor: s.color, backgroundColor: s.color,
+                borderWidth: 2, tension: 0.4, pointRadius: 0, fill: false }
+            : { label: s.label, data: s.data, backgroundColor: s.color,
+                borderRadius: 5, maxBarThickness: 26 };
+        })
+      },
+      options: multiSeriesOptions(card, pv)
+    });
+  }
+
   // Donut/table cap at 8 rows; donuts additionally roll the remainder into
   // an 8th "Other" segment (tables just show the first 8, no roll-up row).
+  // A second dimension is not pivoted here -- a donut has no axis to pivot
+  // against -- but it IS named: the segment label joins every dimension
+  // ("Jan · Invoice"), so each segment stays one exact aggregate row rather
+  // than silently charting the breakdown column as if it were the value.
   function renderDonut(card, body, columns, rows) {
     destroyCardChart(card.id);
-    var idx = dimValIdx(columns);
+    var idx = dimValIdx(columns, card);
     var pairs = rows.map(function (r) {
-      return { label: idx.dim >= 0 ? fmtLabel(r[idx.dim]) : '', value: toNum(r[idx.val]) || 0 };
+      return { label: dimLabel(r, idx), value: toNum(r[idx.val]) || 0 };
     });
     if (pairs.length > 8) {
       var rest = pairs.slice(7).reduce(function (a, p) { return a + p.value; }, 0);
@@ -1001,11 +1151,11 @@
   // index from the hit span's position among rowsContainer.children.
   function renderTable(card, body, columns, rows) {
     destroyCardChart(card.id);
-    var idx = dimValIdx(columns);
+    var idx = dimValIdx(columns, card);
     var capped = rows.slice(0, 8);
     body.innerHTML = '<div class="rdb-table-rows" data-testid="rdb-table-rows">' +
       capped.map(function (r) {
-        return '<span class="rdb-table-k">' + esc(idx.dim >= 0 ? fmtLabel(r[idx.dim]) : '') + '</span>' +
+        return '<span class="rdb-table-k">' + esc(dimLabel(r, idx)) + '</span>' +
                '<span class="rdb-table-v">' + esc(fmtNum(r[idx.val])) + '</span>';
       }).join('') +
     '</div>';
@@ -1071,7 +1221,7 @@
     if (dateFilters.length !== 1) return;
     var shifted = shiftDateRangeFilter(dateFilters[0]);
     if (!shifted) return;
-    var idx = dimValIdx(columns);
+    var idx = dimValIdx(columns, card);
     var curVal = toNum(rows.length ? rows[0][idx.val] : null);
     if (curVal === null) return;
     var filters2 = effectiveFilters(card).map(function (f) {

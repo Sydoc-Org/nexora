@@ -398,11 +398,22 @@ per-card filters that layer on top of the dashboard's `globalFilters`.
   the existing `/api/reporting/export` (gated by `reporting.export`, same
   as everywhere else). A whole-workbook (one sheet per card) export is not
   built yet.
+- **Two-dimension reports** — a line or bar card whose report has a second
+  dimension ("per month **/ process**") pivots it exactly like the Simple
+  result view: first dimension on the axis, one named, colored series per
+  remaining-dimension combination, legend below the chart. Series are ordered
+  by total descending and capped at 8 (a 190 px card body cannot carry
+  Simple's 12 legibly); when more exist the card says how many it is showing.
+  Donut/table cards have no axis to pivot against, so they name the
+  combination instead — the label joins every dimension ("Jan · Invoice") and
+  each row stays one exact aggregate value. KPI cards never see a breakdown
+  at all: their run clears `definition.columns` (see **KPI trend** above).
 - **Drill-through** works per card exactly as it does on a normal aggregate
   result (see **Drill-through** below) — clicking a chart element or table
-  row on an eligible card opens the same slide-over drawer; donut cards are
-  excluded from click-drill (their >8-category "Other" rollup breaks the
-  1:1 index-to-row mapping the drawer needs).
+  row on an eligible card opens the same slide-over drawer, with one chip per
+  dimension (on a pivoted card, the clicked bucket **and** its series); donut
+  cards are excluded from click-drill (their >8-category "Other" rollup breaks
+  the 1:1 index-to-row mapping the drawer needs).
 
 Migration history: the dashboard builder **supersedes**
 `docs/superpowers/plans/2026-07-15-reporting-pin-to-dashboard.md` (a

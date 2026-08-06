@@ -2172,6 +2172,9 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 
 /* ---- Line / bar (Chart.js canvas) --------------------------------------- */
 .rdb-chart-wrap { position: relative; height: 190px; }
+/* Series-cap note above a pivoted two-dimension chart (#174) -- only present
+   when the pivot actually dropped series, so cards never grow otherwise. */
+.rdb-card-note { margin: 0 0 6px; font: 11.5px var(--nx-font); color: var(--nx-text-meta); }
 
 /* ---- Donut: HTML center overlay (not a Chart.js plugin) + DOM legend ---- */
 .rdb-donut-wrap { display: flex; align-items: center; gap: 18px; padding: 8px 0; flex-wrap: wrap; }

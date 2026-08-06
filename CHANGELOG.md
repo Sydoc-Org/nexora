@@ -407,6 +407,18 @@ Work toward the next release.
 
 ### Fixed
 
+- **Reporting: dashboard cards render two-dimension reports** (#174) — the card
+  renderers were single-series v1 and read a fixed column 1 as the value, so a
+  saved report with a second dimension ("per month / process") put the
+  breakdown column into the value lookup: every chart card drew one flat
+  zero line and KPI/donut/table cards showed the breakdown text where a number
+  belonged. Line and bar cards now pivot the second dimension into named,
+  colored series (the same pivot the Simple result view has always done, with
+  a legend and an 8-series cap that reports its overflow instead of truncating
+  silently); donut and table cards join the dimensions into one label
+  ("Jan · Invoice") rather than mis-reading one of them; and drill-through
+  carries one chip per dimension, so clicking a series point drills into that
+  series, not into every series for that bucket.
 - Reporting: scheduled table-source reports with a date grain no longer fail
   validation in the runner (missing `grainable_fields`).
 - **Reporting: export date and import date can be broken down together**
