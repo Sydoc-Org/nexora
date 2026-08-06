@@ -66,6 +66,7 @@
     aiChecking: {{ _("Checking the result…")|tojson }},
     chipApply: {{ _("Apply")|tojson }},
     granularity: {{ _("Granularity")|tojson }},
+    grainNeedsDate: {{ _("Pick a time breakdown first to choose its granularity.")|tojson }},
     grainDay: {{ _("Day")|tojson }},
     grainWeek: {{ _("Week")|tojson }},
     grainMonth: {{ _("Month")|tojson }},
@@ -2326,6 +2327,7 @@
     var w = state.wiz;
     if (!Array.isArray(w.breakdowns)) w.breakdowns = [];
     var allProcs = w.source.processes || [];
+    var sourceHasDates = (w.source.fields || []).some(function (f) { return f.grainable; });
 
     function isSelected(bd) {
       if (bd.kind === 'none') return w.breakdowns.length === 0;
@@ -2352,7 +2354,9 @@
       for (ci = 0; ci < w.breakdowns.length; ci++) {
         if (w.breakdowns[ci].kind === 'date') { hasDate = true; break; }
       }
-      el('rsGrainWrap').hidden = !hasDate;
+      el('rsGrainWrap').hidden = !sourceHasDates;
+      el('rsGrain').disabled = !hasDate;
+      el('rsGrainWrap').title = hasDate ? '' : I18N.grainNeedsDate;
       updatePickedCount();
     }
 
@@ -2487,7 +2491,7 @@
     }
 
     renderChipList();
-    updatePickedCount();
+    refreshChips();
 
     // Wire Continue button
     var nextBtn = el('rsBreakdownNext');

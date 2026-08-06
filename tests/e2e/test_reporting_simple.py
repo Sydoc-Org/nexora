@@ -3113,6 +3113,24 @@ def test_wizard_allows_both_date_breakdowns(nexora_server, page):
     assert all(c.get("grain") for c in cols), cols
 
 
+def test_wizard_grain_visible_before_date_pick(nexora_server, page):
+    """#178 B8: the Granularity select is visible (disabled) as soon as the
+    breakdown step opens for a source with date fields, enabled once a date
+    breakdown is picked."""
+    _login(page, nexora_server)
+    _stub_wiz_catalogs(page, DOCPROC_WIZ_SOURCES, DOCPROC_WIZ_METRICS)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Docproc count stub").click()
+    page.get_by_test_id("rs-measure-next").click()
+    page.get_by_test_id("rs-scope-next").click()
+    grain_wrap = page.locator("#rsGrainWrap")
+    expect(grain_wrap).to_be_visible()
+    expect(page.locator("#rsGrain")).to_be_disabled()
+    page.locator('[data-bd-kind="date"]').first.click()
+    expect(page.locator("#rsGrain")).to_be_enabled()
+
+
 def test_wizard_shows_all_category_chips_uncapped(nexora_server, page):
     """The category-chip cap is GONE: every filterable string field renders a
     chip (the coverage sort keeps rarely-provided fields at the bottom, the
