@@ -1,6 +1,10 @@
 ﻿USE [nexora]
 GO
+ALTER TABLE [dbo].[ReportingMetrics] DROP CONSTRAINT [CK_ReportingMetrics_TotalMode]
+GO
 ALTER TABLE [dbo].[ReportingMetrics] DROP CONSTRAINT [CK_ReportingMetrics_Aggregation]
+GO
+ALTER TABLE [dbo].[ReportingMetrics] DROP CONSTRAINT [DF_ReportingMetrics_TotalMode]
 GO
 ALTER TABLE [dbo].[ReportingMetrics] DROP CONSTRAINT [DF_ReportingMetrics_UpdatedAt]
 GO
@@ -33,6 +37,7 @@ CREATE TABLE [dbo].[ReportingMetrics](
 	[GermanLabel] [nvarchar](120) NULL,
 	[FrenchLabel] [nvarchar](120) NULL,
 	[ItalianLabel] [nvarchar](120) NULL,
+	[TotalMode] [nvarchar](16) NOT NULL,
  CONSTRAINT [PK_ReportingMetrics] PRIMARY KEY CLUSTERED 
 (
 	[MetricID] ASC
@@ -51,7 +56,13 @@ ALTER TABLE [dbo].[ReportingMetrics] ADD  CONSTRAINT [DF_ReportingMetrics_Create
 GO
 ALTER TABLE [dbo].[ReportingMetrics] ADD  CONSTRAINT [DF_ReportingMetrics_UpdatedAt]  DEFAULT (sysutcdatetime()) FOR [UpdatedAt]
 GO
+ALTER TABLE [dbo].[ReportingMetrics] ADD  CONSTRAINT [DF_ReportingMetrics_TotalMode]  DEFAULT ('sum') FOR [TotalMode]
+GO
 ALTER TABLE [dbo].[ReportingMetrics]  WITH CHECK ADD  CONSTRAINT [CK_ReportingMetrics_Aggregation] CHECK  (([Aggregation]='max' OR [Aggregation]='min' OR [Aggregation]='avg' OR [Aggregation]='sum' OR [Aggregation]='count_distinct' OR [Aggregation]='count'))
 GO
 ALTER TABLE [dbo].[ReportingMetrics] CHECK CONSTRAINT [CK_ReportingMetrics_Aggregation]
+GO
+ALTER TABLE [dbo].[ReportingMetrics]  WITH CHECK ADD  CONSTRAINT [CK_ReportingMetrics_TotalMode] CHECK  (([TotalMode]='latest' OR [TotalMode]='sum'))
+GO
+ALTER TABLE [dbo].[ReportingMetrics] CHECK CONSTRAINT [CK_ReportingMetrics_TotalMode]
 GO

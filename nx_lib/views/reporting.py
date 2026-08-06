@@ -217,7 +217,7 @@ def _load_db_metrics():
         cur = conn.cursor()
         cur.execute(
             "SELECT Code, SourceId, Label, GermanLabel, FrenchLabel, ItalianLabel, "
-            "Aggregation, BaseField, Description, Format, Enabled, SortOrder "
+            "Aggregation, BaseField, Description, Format, Enabled, SortOrder, TotalMode "
             "FROM dbo.ReportingMetrics WHERE Enabled = 1"
         )
         out = {}
@@ -234,6 +234,7 @@ def _load_db_metrics():
                 "description": r.Description,
                 "format": r.Format,
                 "sort_order": r.SortOrder,
+                "total_mode": (getattr(r, "TotalMode", None) or "sum"),
             }
         return out
     except Exception as e:
@@ -260,7 +261,11 @@ def _metric_label(m):
 def _metrics_for_source(source_id):
     """Enabled metrics bound to `source_id` as {code: {aggregation, base_field}}."""
     return {
-        code: {"aggregation": m["aggregation"], "base_field": m["base_field"]}
+        code: {
+            "aggregation": m["aggregation"],
+            "base_field": m["base_field"],
+            "total_mode": m.get("total_mode", "sum"),
+        }
         for code, m in _load_db_metrics().items()
         if m["source_id"] == source_id
     }
@@ -3005,6 +3010,7 @@ def api_metrics():
                 "aggregation": m["aggregation"],
                 "baseField": m["base_field"],
                 "format": m["format"],
+                "totalMode": m.get("total_mode", "sum"),
             }
         )
     return jsonify(out)
