@@ -3,6 +3,7 @@ user CRUD, access control, permissions."""
 
 import csv
 import math
+import os
 import secrets
 import subprocess
 from contextlib import suppress
@@ -139,6 +140,7 @@ def admin_dashboard():
         active_sessions_count=active_sessions_count,
         failed_logins_today=failed_logins_today,
         db_health=db_health,
+        current_env=os.environ.get("ENVIRONMENT", "?"),
         logged_in_user=session.get("username"),
         userid=session.get("userid"),
         pageV=page_visibility(),
@@ -326,17 +328,30 @@ def admin_status_view():
 # ----------------------------------- dev server restart ---------------------------------- #
 
 
+_SWITCHABLE_ENVS = {"INT", "STAGING"}
+
+
 @require_permission("admin.restart")
 def api_admin_restart():
     """Restart the local dev server process (issue #184). Dev-only — 404s on PROD
     since PROD is IIS-hosted and restarting there means recycling the app pool,
     not killing a `python nx_main.py` process. Fires bin/nx.ps1 -r as a detached
     process; it kills this process and starts a fresh one, so the response has
-    to make it back to the browser before that happens (nx.ps1 sleeps ~1s first)."""
+    to make it back to the browser before that happens (nx.ps1 sleeps ~1s first).
+
+    Optional JSON body {"env": "INT"|"STAGING"} switches ENVIRONMENT on the way
+    back up (issue #187) via nx.ps1's existing --env: flag — PROD is refused by
+    nx.ps1 itself, so no need to re-check it here."""
     if IS_PROD:
         abort(404)
+    target_env = (request.get_json(silent=True) or {}).get("env")
+    if target_env is not None and target_env not in _SWITCHABLE_ENVS:
+        return jsonify({"success": False, "message": _("Unknown environment.")}), 400
+    args = ["pwsh", "-File", str(REPO_ROOT / "bin" / "nx.ps1"), "-r"]
+    if target_env:
+        args.append(f"--env:{target_env}")
     subprocess.Popen(
-        ["pwsh", "-File", str(REPO_ROOT / "bin" / "nx.ps1"), "-r"],
+        args,
         cwd=str(REPO_ROOT),
         creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP,
     )

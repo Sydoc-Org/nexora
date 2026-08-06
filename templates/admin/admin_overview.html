@@ -20,10 +20,17 @@
         ) }}
 
         {% if not is_prod and has_permission('admin.restart') %}
-        <button type="button" id="nx-restart-btn" class="nx-btn" style="margin-bottom:20px"
-                data-testid="admin-overview-restart-btn">
-            <i class="fas fa-rotate-right"></i> {{ _('Restart nexora') }}
-        </button>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+            <select id="nx-restart-env" class="nx-input" data-testid="admin-overview-restart-env">
+                <option value="INT" {% if current_env == 'INT' %}selected{% endif %}>INT</option>
+                <option value="STAGING" {% if current_env == 'STAGING' %}selected{% endif %}>STAGING</option>
+            </select>
+            <button type="button" id="nx-restart-btn" class="nx-btn"
+                    data-testid="admin-overview-restart-btn">
+                <i class="fas fa-rotate-right"></i> {{ _('Restart nexora') }}
+            </button>
+            <span class="nx-meta">{{ _('Current env:') }} {{ current_env }}</span>
+        </div>
         {% endif %}
 
         <div class="health-strip nx-rise-2">
@@ -126,13 +133,18 @@
         const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
         document.getElementById("nx-restart-btn")?.addEventListener("click", async (e) => {
             const btn = e.currentTarget;
-            if (!confirm("{{ _('Restart the dev server now? The page will reload once it is back.') }}")) return;
+            const targetEnv = document.getElementById("nx-restart-env")?.value;
+            const msg = targetEnv === "{{ current_env }}"
+                ? "{{ _('Restart the dev server now? The page will reload once it is back.') }}"
+                : "{{ _('Restart and switch environment to') }} " + targetEnv + "? {{ _('The page will reload once it is back.') }}";
+            if (!confirm(msg)) return;
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> {{ _("Restarting...") }}';
             try {
                 await fetch(`${API_PREFIX}api/admin/restart`, {
                     method: "POST",
-                    headers: { "X-CSRFToken": csrfToken },
+                    headers: { "X-CSRFToken": csrfToken, "Content-Type": "application/json" },
+                    body: JSON.stringify({ env: targetEnv }),
                 });
             } catch (e) {
                 // expected: the server dies mid-response once nx.ps1 kills it
