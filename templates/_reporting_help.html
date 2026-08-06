@@ -38,9 +38,9 @@
       {% endif %}
     </div>
     <div class="reporting-modal-actions reporting-help-actions">
-      <a class="nx-btn nx-btn--ghost" target="_blank" rel="noopener" data-testid="reporting-help-guide-link"
-         href="https://sydocteam.atlassian.net/wiki/display/nexora/Reporting+%E2%80%94+user+guide">
-        <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i> {{ _("Full guide") }}</a>
+      <a class="nx-btn nx-btn--ghost" data-testid="reporting-help-guide-link"
+         href="{{ url_for('reporting_guide') }}">
+        <i class="fas fa-book-open" aria-hidden="true"></i> {{ _("Full guide") }}</a>
       <button id="rpHelpClose" class="reporting-btn nx-btn nx-btn--secondary" data-testid="reporting-help-close">{{ _("Close") }}</button>
     </div>
   </div>

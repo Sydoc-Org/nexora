@@ -2,6 +2,7 @@
 
 Routes:
   GET  /reporting                     builder page
+  GET  /reporting/guide               in-app user guide (docs/howto/reporting-guide.md rendered)
   GET  /reporting/sources             source-registry admin page (reporting.admin.sources)
   GET  /api/reporting/sources         sources + field catalog the caller may use
   GET/POST/PUT/DELETE /api/reporting/admin/sources[/<id>]  registry CRUD (admin)
@@ -29,6 +30,7 @@ import os
 import re
 import time
 import uuid
+from pathlib import Path
 
 from flask import (
     Response,
@@ -40,6 +42,7 @@ from flask import (
     stream_with_context,
 )
 from flask_babel import gettext as _
+from markdown_it import MarkdownIt
 
 from ..db import (
     engine_generali_db,
@@ -1032,6 +1035,45 @@ def _serialize_export(columns, rows, title, fmt, chart_png=None, forecast_start=
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f'attachment; filename="{name}.xlsx"'},
     )
+
+
+# The user guide is authored in git as docs/howto/reporting-guide.md and
+# served in-app here (English only; the Confluence mirror stays for the team).
+# The deploy workflow copies this one docs file onto the server — see the
+# "Sync to deploy folder" step in .github/workflows/deploy.yml.
+_GUIDE_MD = Path(__file__).resolve().parents[2] / "docs" / "howto" / "reporting-guide.md"
+
+
+def _guide_render(md_text):
+    """reporting-guide.md -> (html, toc list of {slug, title}). Pure.
+
+    Drops the H1 (the page chrome carries the title), unwraps links to other
+    .md files (their targets are not routable in-app), and stamps slug ids on
+    <h2> headings so the on-page TOC can anchor-link them.
+    """
+    lines = md_text.splitlines()
+    body = [ln for i, ln in enumerate(lines) if not (ln.startswith("# ") and i < 5)]
+    text = re.sub(r"\[([^\]]+)\]\([^)\s]*\.md\)", r"\1", "\n".join(body))
+    html = MarkdownIt("commonmark").enable(["table", "strikethrough"]).render(text)
+    toc = []
+
+    def _anchor(match):
+        title = re.sub(r"<[^>]+>", "", match.group(1))
+        slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")
+        toc.append({"slug": slug, "title": title})
+        return f'<h2 id="{slug}">{match.group(1)}</h2>'
+
+    return re.sub(r"<h2>(.*?)</h2>", _anchor, html), toc
+
+
+@require_permission("reporting.view")
+def reporting_guide():
+    try:
+        guide_html, guide_toc = _guide_render(_GUIDE_MD.read_text(encoding="utf-8"))
+    except OSError:
+        current_app.logger.error("reporting guide source missing: %s", _GUIDE_MD)
+        guide_html, guide_toc = None, []
+    return render_template("reporting_guide.html", guide_html=guide_html, guide_toc=guide_toc)
 
 
 @require_permission("reporting.view")
@@ -3012,6 +3054,7 @@ def api_metrics():
 
 def register_routes(app):
     app.add_url_rule("/reporting", endpoint="reporting", view_func=reporting)
+    app.add_url_rule("/reporting/guide", endpoint="reporting_guide", view_func=reporting_guide)
     app.add_url_rule(
         "/reporting/sources",
         endpoint="reporting_sources_admin",
