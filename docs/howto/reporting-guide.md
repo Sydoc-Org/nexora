@@ -4,11 +4,13 @@ This is the **how do I actually use it** guide for the Reporting page. No
 technical knowledge assumed. If you want to know how the thing is *built*
 instead, read [`reporting.md`](reporting.md) — that one is for developers.
 
-> Keep this guide current. If you change how Reporting *behaves* for a user —
-> a renamed button, a new step in the wizard, a different default — update this
-> file **and the in-app tips panel** (`templates/_reporting_help.html`, the
-> Help button on the page) in the same commit. See the "Keeping docs in sync"
-> rule in `CLAUDE.md`; the `reporting-help-sync` pre-commit hook reminds you.
+<!-- Maintainers: this file is END-USER-FACING at runtime — the app renders it
+  at /reporting/guide (nx_lib/views/reporting.py), and the deploy workflow
+  copies it to the server. Keep it current: if you change how Reporting
+  *behaves* for a user, update this file AND the in-app tips panel
+  (templates/_reporting_help.html, the Help button) in the same commit. See
+  "Keeping docs in sync" in CLAUDE.md; the reporting-help-sync pre-commit hook
+  reminds you. Keep the H1 unique (Confluence page title). -->
 
 ---
 
@@ -28,7 +30,8 @@ detail on top of those four steps.
 ## Tips — getting the best results
 
 The same tips live inside the app: the **Help** button in the Reporting page
-header opens them in a panel, with a link back to this guide.
+header opens them in a panel, and its **Full guide** link opens this whole
+guide as an app page.
 
 **Building a report**
 

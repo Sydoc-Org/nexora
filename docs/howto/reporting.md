@@ -3,10 +3,14 @@
 > **Looking for how to *use* the page?** This file is the developer /
 > architecture reference. The plain-language, task-shaped user guide is
 > [`reporting-guide.md`](reporting-guide.md) — keep it current whenever you
-> change user-visible behaviour here. The page's **Help** button opens an
-> in-app tips panel (`templates/_reporting_help.html`) mirroring the guide's
-> "Tips" section — update it in the same commit too (the `reporting-help-sync`
-> pre-commit hook nudges when forgotten).
+> change user-visible behaviour here. That guide is **served in-app** at
+> `/reporting/guide` (rendered server-side by `nx_lib/views/reporting.py`
+> with markdown-it-py; the deploy workflow copies the one docs file to the
+> server, and a guide-only push to `main` still triggers a deploy). The
+> page's **Help** button opens an in-app tips panel
+> (`templates/_reporting_help.html`) mirroring the guide's "Tips" section —
+> update it in the same commit too (the `reporting-help-sync` pre-commit hook
+> nudges when forgotten).
 
 The `/reporting` page is Nexora's self-service report builder — a PowerBI
 replacement for internal users. Phase 1 ships a **table/list** visualization

@@ -10,14 +10,22 @@ Work toward the next release.
 
 ### Added
 
-- In-app Reporting tips panel — a **Help** button in the Reporting page header
-  opens a "Get the best results" panel (coverage badges, drill-through, delta
-  chip semantics, chart caps, AI prompting tips) with a link to the full user
-  guide on Confluence. The panel (`templates/_reporting_help.html`) mirrors the
-  new "Tips — getting the best results" section of
-  `docs/howto/reporting-guide.md`; a non-blocking `reporting-help-sync`
-  pre-commit hook (`scripts/check-reporting-help-sync.py`) reminds when
-  reporting behaviour changes without touching either.
+- Admin overview page (dev-only) now shows the currently-running `ENVIRONMENT`
+  next to the "Restart nexora" button and a dropdown to restart into a
+  different one (INT/STAGING). `POST /api/admin/restart` accepts an optional
+  `{"env": "INT"|"STAGING"}` body and passes it through to `nx.ps1 -r
+  --env:<value>` (#187).
+- In-app Reporting help — a **Help** button in the Reporting page header opens
+  a "Get the best results" panel (coverage badges, drill-through, delta chip
+  semantics, chart caps, AI prompting tips), and its **Full guide** link opens
+  the complete user guide as an app page at `/reporting/guide`
+  (`docs/howto/reporting-guide.md` rendered server-side with markdown-it-py;
+  the deploy workflow now ships that one docs file and deploys on guide-only
+  pushes). The panel (`templates/_reporting_help.html`) mirrors the guide's
+  new "Tips — getting the best results" section; a non-blocking
+  `reporting-help-sync` pre-commit hook
+  (`scripts/check-reporting-help-sync.py`) reminds when reporting behaviour
+  changes without touching either.
 - "Restart nexora" button on the admin overview page (#184) — dev-only
   (404s on PROD), lets admins with the new `admin.restart` permission
   (migration `0059`) kill and respawn the local dev server (`POST
@@ -25,16 +33,17 @@ Work toward the next release.
   changes show up without dropping to a terminal; the button polls until the
   server answers again and reloads the page.
 - Saved-view folders (#186) — a saved workitems view can optionally live in a
-  folder ("Search Specific"): the save/edit editor gains a folder field with
-  existing folders as suggestions, and same-folder views render as one folder
+  folder ("Search Specific"): the save/edit editor gains a folder field whose
+  dropdown lists the existing folders, and same-folder views render as one folder
   chip (name + count) whose dropdown lists them. Un-foldered views stay plain
   chips; editing with a different folder moves the view. Nullable `Folder`
   column via migration `0060`; `GET`/`POST /api/workitem_filter_views` carry
   the optional `folder` field.
 - Workitems saved filter views (#170) — the whole filter state (process, search,
   stage, status, dates, doc-value rows, per-page) can be saved as a named
-  per-user view via the new "Save view" button; views render as chips between
-  the filter card and the list. Click applies the view (Advanced opens/closes to
+  per-user view via the new "Save view" button; views render as chips in the
+  filter card's toolbar row, left of the action buttons. Click applies the view
+  (Advanced opens/closes to
   match), the active chip is highlighted until a filter is hand-edited, and
   clicking it (or its ×) again deselects — resetting the filters. The pencil
   opens an inline editor for rename/move, and deletion lives there behind an

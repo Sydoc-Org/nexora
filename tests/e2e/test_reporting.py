@@ -40,6 +40,19 @@ def test_reporting_help_panel_opens_and_closes(nexora_server, page):
 
 
 @pytest.mark.flaky_e2e
+def test_reporting_guide_page_renders(nexora_server, page):
+    """/reporting/guide serves the rendered user guide with a TOC."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting/guide")
+    page.wait_for_load_state("domcontentloaded")
+    article = page.locator('[data-testid="reporting-guide-article"]')
+    expect(article).to_be_visible()
+    # A section heading from the guide, anchored for the TOC.
+    expect(article.locator("h2#the-60-second-version")).to_have_count(1)
+    expect(page.locator('[data-testid="reporting-guide-back"]')).to_be_visible()
+
+
+@pytest.mark.flaky_e2e
 def test_reporting_source_select_present(nexora_server, page):
     _login(page, nexora_server)
     source_select = page.locator('[data-testid="reporting-source-select"]')
