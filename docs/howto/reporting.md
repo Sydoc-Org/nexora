@@ -1,5 +1,10 @@
 # Reporting
 
+> **Looking for how to *use* the page?** This file is the developer /
+> architecture reference. The plain-language, task-shaped user guide is
+> [`reporting-guide.md`](reporting-guide.md) — keep it current whenever you
+> change user-visible behaviour here.
+
 The `/reporting` page is Nexora's self-service report builder — a PowerBI
 replacement for internal users. Phase 1 ships a **table/list** visualization
 over the curated **Document Processing** source with full filter, sort, combine,
@@ -1297,6 +1302,9 @@ live schema grounding and scheduled-report delivery.
 
 ## See also
 
+- [`reporting-guide.md`](reporting-guide.md) — the end-user guide (how to build,
+  read, share, export and schedule a report). Update it in the same commit
+  whenever user-visible behaviour changes here.
 - `nx_lib/reporting/` — engine package (`schema.py`, `catalog.py`, `sources.py`,
   `query.py`, `export.py`, `sandbox.py`, `ai.py`, `ai_schema.py`).
 - `nx_lib/views/reporting.py` — Flask routes.

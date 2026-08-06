@@ -8,6 +8,17 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Added
+
+- `docs/howto/reporting-guide.md` (#179) — a plain-language end-user guide to
+  the Reporting page: the four-question guided builder, Ask AI, the Advanced
+  builder, reading the stat band / delta chips / forecast, drill-through,
+  saving and sharing, exporting, scheduled and alert-only mails, dashboards,
+  plus a "why does my number look wrong?" table and a glossary. Admin-only
+  surfaces (source registry, metrics registry, SQL sandbox) are fenced into one
+  final section so the guide can be handed to clients as-is. `reporting.md`
+  stays the developer reference and now cross-links it.
+
 ### Changed
 
 - Branch naming convention: release-cycle branches are now `v<x.y[.z]>` (e.g.
