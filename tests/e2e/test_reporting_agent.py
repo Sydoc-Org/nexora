@@ -268,6 +268,91 @@ def test_chat_panel_reads_the_ndjson_progress_stream(nexora_server, page):
     page.screenshot(path="var/screenshots/reporting_chat_stream.png")
 
 
+def test_agent_stream_renders_build_steps(nexora_server, page):
+    """#178 A1: each streamed `tool` event appends a row to the "Building
+    your report..." card (rp-build-steps), flipping the previous running row
+    to done when the next one starts.
+
+    Playwright's route.fulfill() delivers the whole NDJSON body in one shot,
+    so the rows resolve (ticker removed) before an expect() polling from
+    outside the page could ever observe the transient running/done classes --
+    same race the earlier stream test's comment already calls out. A
+    MutationObserver registered in the page itself does not have that
+    problem: it records every DOM mutation as it happens, including ones
+    that only exist for a tick, so it can assert the live row-building/
+    flip logic in `tickerEvent()` directly rather than only the post-hoc
+    "ticker gone, answer present" outcome (which a broken tickerEvent would
+    also often produce, since a JS exception there aborts the read loop
+    before `done` and lands on the same generic error bubble either way).
+    """
+    question = "documents per month"
+    answer = "Here are your documents per month."
+    lines = [
+        {"phase": "thinking", "turn": 1},
+        {"phase": "tool", "name": "build_definition"},
+        {"phase": "tool", "name": "validate_sql"},
+        {"phase": "tool", "name": "run_sql"},
+        {
+            "done": True,
+            "answer": answer,
+            "toolTrace": [],
+            "turns": 2,
+            "stoppedReason": "final",
+            "definition": AGENT_DEFINITION,
+            "sql": None,
+        },
+    ]
+
+    def handler(route):
+        route.fulfill(
+            status=200,
+            content_type="application/x-ndjson",
+            body="".join(json.dumps(x) + "\n" for x in lines),
+        )
+
+    _login(page, nexora_server)
+    page.route("**/api/reporting/ai/agent", handler)
+    _open_chat_from_advanced(page, nexora_server)
+
+    # Observe from INSIDE the page (see docstring) -- registered before the
+    # send that triggers the stream.
+    page.evaluate("""() => {
+        window.__buildStats = { added: 0, sawRunning: false, sawDone: false };
+        const thread = document.getElementById('rpChatThread');
+        const obs = new MutationObserver((records) => {
+            records.forEach((rec) => {
+                rec.addedNodes.forEach((n) => {
+                    if (n.nodeType === 1 && n.classList && n.classList.contains('rp-build-step')) {
+                        window.__buildStats.added++;
+                        // className is set before appendChild, so the initial
+                        // is-running class arrives as part of this addedNodes
+                        // record, not a later attribute mutation.
+                        if (n.classList.contains('is-running')) window.__buildStats.sawRunning = true;
+                    }
+                });
+                if (rec.type === 'attributes' && rec.attributeName === 'class' &&
+                    rec.target.classList && rec.target.classList.contains('rp-build-step')) {
+                    if (rec.target.classList.contains('is-running')) window.__buildStats.sawRunning = true;
+                    if (rec.target.classList.contains('is-done')) window.__buildStats.sawDone = true;
+                }
+            });
+        });
+        obs.observe(thread, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    }""")
+
+    page.get_by_test_id("reporting-chat-input").fill(question)
+    page.get_by_test_id("reporting-chat-send").click()
+
+    expect(page.get_by_test_id("rp-chat-msg-ai")).to_contain_text(answer)
+    # The card is transient -- gone once the turn completes.
+    expect(page.get_by_test_id("rp-chat-ticker")).to_have_count(0)
+
+    stats = page.evaluate("() => window.__buildStats")
+    assert stats["added"] == 3, f"expected one row per tool event, got {stats}"
+    assert stats["sawRunning"], f"no row was ever marked running: {stats}"
+    assert stats["sawDone"], f"no row was ever flipped to done: {stats}"
+
+
 def test_chat_panel_surfaces_a_mid_stream_failure(nexora_server, page):
     """A stream that fails after headers reports it in the `done` line, not a
     status code -- the panel must still show an error bubble, not a blank turn."""

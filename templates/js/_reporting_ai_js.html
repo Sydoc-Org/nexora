@@ -52,6 +52,7 @@
   var STEP_START = {{ _("Asking the AI…")|tojson }};
   var STEP_THINKING = {{ _("Thinking…")|tojson }};
   var STEP_WORKING = {{ _("Working…")|tojson }};
+  var BUILD_TITLE = {{ _("Building your report…")|tojson }};
   var STEP_LABELS = {
     build_definition: {{ _("Building the report…")|tojson }},
     validate_sql: {{ _("Checking the query…")|tojson }},
@@ -62,6 +63,7 @@
   var chat = { history: [], busy: false };   // history: [{role, content}]
   var tickerEl = null;
   var tickerTextEl = null;
+  var tickerStepsEl = null;
 
   function escapeHtml(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -126,25 +128,41 @@
 
   function startTicker() {
     tickerEl = document.createElement("div");
-    tickerEl.className = "rp-chat-ticker";
+    tickerEl.className = "rp-chat-ticker rp-chat-build";
     tickerEl.setAttribute("role", "status");
     tickerEl.setAttribute("data-testid", "rp-chat-ticker");
-    tickerEl.innerHTML = "<i></i><i></i><i></i><span></span>";
-    tickerTextEl = tickerEl.querySelector("span");
+    tickerEl.innerHTML = '<div class="rp-build-title"><i></i><i></i><i></i><span></span></div>' +
+      '<ol class="rp-build-steps" data-testid="rp-build-steps"></ol>';
+    tickerTextEl = tickerEl.querySelector(".rp-build-title span");
+    tickerStepsEl = tickerEl.querySelector(".rp-build-steps");
     tickerTextEl.textContent = STEP_START;
     thread.appendChild(tickerEl);
     thread.scrollTop = thread.scrollHeight;
   }
 
-  function setTicker(text) {
-    if (!tickerTextEl || !text) return;
-    tickerTextEl.textContent = text;
+  // A progress event either updates the title (thinking/note) or appends a
+  // build-step row (tool). The previous running row flips to done -- the
+  // stream carries no per-tool completion event, so "the next thing started"
+  // is the completion signal.
+  function tickerEvent(ev) {
+    if (!tickerEl) return;
+    if (ev.phase === "tool") {
+      tickerTextEl.textContent = BUILD_TITLE;
+      var prev = tickerStepsEl.querySelector(".is-running");
+      if (prev) { prev.classList.remove("is-running"); prev.classList.add("is-done"); }
+      var li = document.createElement("li");
+      li.className = "rp-build-step is-running";
+      li.textContent = STEP_LABELS[ev.name] || STEP_WORKING;
+      tickerStepsEl.appendChild(li);
+    } else {
+      tickerTextEl.textContent = stepLabel(ev);
+    }
     thread.scrollTop = thread.scrollHeight;
   }
 
   function stopTicker() {
     if (tickerEl && tickerEl.parentNode) tickerEl.parentNode.removeChild(tickerEl);
-    tickerEl = null; tickerTextEl = null;
+    tickerEl = null; tickerTextEl = null; tickerStepsEl = null;
   }
 
   // A progress event -> the line shown in the ticker. The model's own preamble
@@ -340,7 +358,7 @@
         var last = null;
         return readNdjson(r, function (ev) {
           if (ev.done) { last = ev; return; }
-          setTicker(stepLabel(ev));
+          tickerEvent(ev);
         }).then(function () {
           // A stream that ends without its `done` line died in transit.
           return { ok: !!last && !last.error, data: last || {} };
