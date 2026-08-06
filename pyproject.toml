@@ -4,7 +4,7 @@ name = "nexora"
 # removed or made `dynamic`: uv refuses a [project] table without a static
 # version unless a build backend supplies one, and nexora is a virtual project
 # (never built or installed). tests/unit/test_version.py enforces the sync.
-version = "2.5.65"
+version = "3.0.1"
 description = "Sydoc internal portal: workitems, invoices, chat, admin"
 requires-python = ">=3.13"
 readme = "README.md"

@@ -10,7 +10,7 @@ is a virtual project that is never built or installed. ``tests/unit/test_version
 enforces that all three copies agree.
 """
 
-__version__ = "2.5.65"
+__version__ = "3.0.1"
 
 try:
     # ponytail: nx_lib/_build.py is written by .github/workflows/deploy.yml right
