@@ -1426,7 +1426,7 @@ async function uploadBatchFiles(files, processName) {
                 folderIn.maxLength = 100;
                 folderIn.autocomplete = 'off';
                 folderIn.value = initial.folder || '';
-                folderIn.placeholder = {{ _("Folder (optional)")|tojson }};
+                folderIn.placeholder = {{ _("optional")|tojson }};
                 folderIn.className = 'nx-input h-9 w-40 text-sm pr-7';
                 folderIn.dataset.testid = 'workitems-view-folder-input';
                 const chev = document.createElement('span');

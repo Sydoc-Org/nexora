@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-06 14:08+0200\n"
+"POT-Creation-Date: 2026-08-06 15:05+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -38,7 +38,7 @@ msgstr "Exportdatum"
 msgid "Workitem ID"
 msgstr "Workitem-ID"
 
-#: nx_lib/views/admin.py:191 nx_lib/views/admin.py:771
+#: nx_lib/views/admin.py:191 nx_lib/views/admin.py:774
 msgid "All fields are required."
 msgstr "Alle Felder sind erforderlich."
 
@@ -50,7 +50,7 @@ msgstr "Organisation erfolgreich erstellt."
 msgid "Organization already exists."
 msgstr "Organisation existiert bereits."
 
-#: nx_lib/views/admin.py:211 nx_lib/views/admin.py:839
+#: nx_lib/views/admin.py:211 nx_lib/views/admin.py:842
 msgid "An unexpected error occurred."
 msgstr "Ein unerwarteter Fehler ist aufgetreten."
 
@@ -59,7 +59,7 @@ msgid "Organization updated successfully."
 msgstr "Organisation erfolgreich aktualisiert."
 
 #: nx_lib/views/admin.py:238 nx_lib/views/admin.py:262
-#: nx_lib/views/admin.py:921 nx_lib/views/admin.py:1161
+#: nx_lib/views/admin.py:924 nx_lib/views/admin.py:1164
 msgid "An error occurred."
 msgstr "Ein Fehler ist aufgetreten."
 
@@ -75,11 +75,11 @@ msgstr "Organisation erfolgreich gelöscht."
 msgid "Unknown environment."
 msgstr "Unbekannte Umgebung."
 
-#: nx_lib/views/admin.py:779 nx_lib/views/admin.py:893
+#: nx_lib/views/admin.py:782 nx_lib/views/admin.py:896
 msgid "Permission Denied for this action."
 msgstr "Berechtigung für diese Aktion verweigert."
 
-#: nx_lib/views/admin.py:827
+#: nx_lib/views/admin.py:830
 msgid ""
 "User created, but the email could not be sent. Ask them to use 'Forgot "
 "password'."
@@ -87,86 +87,86 @@ msgstr ""
 "Benutzer erstellt, aber die E-Mail konnte nicht gesendet werden. Bitten "
 "Sie die Person, die Funktion 'Passwort vergessen' zu verwenden."
 
-#: nx_lib/views/admin.py:832
+#: nx_lib/views/admin.py:835
 msgid "User created and email sent."
 msgstr "Benutzer erstellt und E-Mail gesendet."
 
-#: nx_lib/views/admin.py:834 templates/js/admin/_access_control_js.html:564
+#: nx_lib/views/admin.py:837 templates/js/admin/_access_control_js.html:564
 msgid "User created successfully."
 msgstr "Benutzer erfolgreich erstellt."
 
-#: nx_lib/views/admin.py:836
+#: nx_lib/views/admin.py:839
 msgid "Username or email already exists."
 msgstr "Benutzername oder E-Mail existiert bereits."
 
-#: nx_lib/views/admin.py:918
+#: nx_lib/views/admin.py:921
 msgid "User updated successfully."
 msgstr "Benutzer erfolgreich aktualisiert."
 
-#: nx_lib/views/admin.py:1107
+#: nx_lib/views/admin.py:1110
 msgid "You cannot delete your own account."
 msgstr "Sie können Ihr eigenes Konto nicht löschen."
 
-#: nx_lib/views/admin.py:1153
+#: nx_lib/views/admin.py:1156
 msgid "User not found."
 msgstr "Benutzer nicht gefunden."
 
-#: nx_lib/views/admin.py:1155
+#: nx_lib/views/admin.py:1158
 msgid "User deleted successfully."
 msgstr "Benutzer erfolgreich gelöscht."
 
-#: nx_lib/views/admin.py:1284
+#: nx_lib/views/admin.py:1287
 msgid "Could not fetch logs"
 msgstr "Protokolle konnten nicht abgerufen werden"
 
-#: nx_lib/views/admin.py:1328
+#: nx_lib/views/admin.py:1331
 msgid "Could not fetch sessions"
 msgstr "Sitzungen konnten nicht abgerufen werden"
 
-#: nx_lib/views/admin.py:1425 nx_lib/views/admin.py:1735
-#: nx_lib/views/admin.py:1777 nx_lib/views/admin.py:1822
-#: nx_lib/views/admin.py:1861 nx_lib/views/admin.py:1898
-#: nx_lib/views/admin.py:1930 nx_lib/views/dashboard.py:252
+#: nx_lib/views/admin.py:1428 nx_lib/views/admin.py:1738
+#: nx_lib/views/admin.py:1780 nx_lib/views/admin.py:1825
+#: nx_lib/views/admin.py:1864 nx_lib/views/admin.py:1901
+#: nx_lib/views/admin.py:1933 nx_lib/views/dashboard.py:252
 #: nx_lib/views/dashboard.py:362 nx_lib/views/dashboard.py:417
 #: nx_lib/views/dashboard.py:509 nx_lib/views/invoices.py:292
 #: nx_lib/views/workitems.py:981 nx_lib/views/workitems.py:1719
 msgid "Not authorized"
 msgstr "Nicht autorisiert"
 
-#: nx_lib/views/admin.py:1468
+#: nx_lib/views/admin.py:1471
 msgid "Could not fetch users"
 msgstr "Benutzer konnten nicht abgerufen werden"
 
-#: nx_lib/views/admin.py:1514
+#: nx_lib/views/admin.py:1517
 msgid "Name is required"
 msgstr "Name ist erforderlich"
 
-#: nx_lib/views/admin.py:1542
+#: nx_lib/views/admin.py:1545
 msgid "Profile saved successfully"
 msgstr "Profil erfolgreich gespeichert"
 
-#: nx_lib/views/admin.py:1721
+#: nx_lib/views/admin.py:1724
 msgid "Overrides updated successfully"
 msgstr "Überschreibungen erfolgreich aktualisiert"
 
-#: nx_lib/views/admin.py:1786 nx_lib/views/admin.py:1914
-#: nx_lib/views/admin.py:1956
+#: nx_lib/views/admin.py:1789 nx_lib/views/admin.py:1917
+#: nx_lib/views/admin.py:1959
 msgid "Permission not found"
 msgstr "Berechtigung nicht gefunden"
 
-#: nx_lib/views/admin.py:1866 nx_lib/views/admin.py:1903
+#: nx_lib/views/admin.py:1869 nx_lib/views/admin.py:1906
 msgid "Code and description are required"
 msgstr "Code und Beschreibung sind erforderlich"
 
-#: nx_lib/views/admin.py:1881
+#: nx_lib/views/admin.py:1884
 msgid "Permission created successfully"
 msgstr "Berechtigung erfolgreich erstellt"
 
-#: nx_lib/views/admin.py:1916
+#: nx_lib/views/admin.py:1919
 msgid "Permission updated successfully"
 msgstr "Berechtigung erfolgreich aktualisiert"
 
-#: nx_lib/views/admin.py:1949
+#: nx_lib/views/admin.py:1952
 #, python-format
 msgid ""
 "Cannot delete: used in %(p)d profile(s) and %(o)d override(s). Remove all"
@@ -175,7 +175,7 @@ msgstr ""
 "Kann nicht gelöscht werden: Wird in %(p)d Profil(en) und %(o)d "
 "Override(s) verwendet. Bitte zuerst alle Zuweisungen entfernen."
 
-#: nx_lib/views/admin.py:1958
+#: nx_lib/views/admin.py:1961
 msgid "Permission deleted successfully"
 msgstr "Berechtigung erfolgreich gelöscht"
 
@@ -367,110 +367,110 @@ msgstr "Unerwarteter Fehler"
 msgid "Language changed successfully!"
 msgstr "Sprache erfolgreich geändert!"
 
-#: nx_lib/views/reporting.py:1127 nx_lib/views/reporting.py:1215
-#: nx_lib/views/reporting.py:1276 nx_lib/views/reporting.py:1404
-#: nx_lib/views/reporting.py:1581 nx_lib/views/reporting.py:1931
-#: nx_lib/views/reporting.py:2040 nx_lib/views/reporting.py:2115
+#: nx_lib/views/reporting.py:1134 nx_lib/views/reporting.py:1222
+#: nx_lib/views/reporting.py:1283 nx_lib/views/reporting.py:1411
+#: nx_lib/views/reporting.py:1588 nx_lib/views/reporting.py:1938
+#: nx_lib/views/reporting.py:2047 nx_lib/views/reporting.py:2122
 msgid "Invalid JSON body"
 msgstr "Ungültiger JSON-Body"
 
-#: nx_lib/views/reporting.py:1131 nx_lib/views/reporting.py:2075
+#: nx_lib/views/reporting.py:1138 nx_lib/views/reporting.py:2082
 msgid "Not authorized for this source"
 msgstr "Nicht für diese Quelle autorisiert"
 
-#: nx_lib/views/reporting.py:1134 nx_lib/views/reporting.py:2078
+#: nx_lib/views/reporting.py:1141 nx_lib/views/reporting.py:2085
 msgid "This report definition is invalid or outdated."
 msgstr "Diese Berichtsdefinition ist ungültig oder veraltet."
 
-#: nx_lib/views/reporting.py:1138
+#: nx_lib/views/reporting.py:1145
 msgid "Could not build report"
 msgstr "Bericht konnte nicht erstellt werden"
 
-#: nx_lib/views/reporting.py:1143
+#: nx_lib/views/reporting.py:1150
 msgid "Could not run report"
 msgstr "Bericht konnte nicht ausgeführt werden"
 
-#: nx_lib/views/reporting.py:1198
+#: nx_lib/views/reporting.py:1205
 msgid "SQL is required."
 msgstr "SQL ist erforderlich."
 
-#: nx_lib/views/reporting.py:1199
+#: nx_lib/views/reporting.py:1206
 #, python-brace-format
 msgid "The SQL exceeds {n} characters."
 msgstr "Das SQL überschreitet {n} Zeichen."
 
-#: nx_lib/views/reporting.py:1200
+#: nx_lib/views/reporting.py:1207
 #, python-brace-format
 msgid "Disallowed keyword: {kw}"
 msgstr "Nicht erlaubtes Schlüsselwort: {kw}"
 
-#: nx_lib/views/reporting.py:1201
+#: nx_lib/views/reporting.py:1208
 msgid "The SQL could not be parsed."
 msgstr "Das SQL konnte nicht geparst werden."
 
-#: nx_lib/views/reporting.py:1202
+#: nx_lib/views/reporting.py:1209
 msgid "Exactly one statement is allowed."
 msgstr "Es ist genau eine Anweisung erlaubt."
 
-#: nx_lib/views/reporting.py:1203
+#: nx_lib/views/reporting.py:1210
 msgid "Only SELECT / WITH / set operations are allowed."
 msgstr "Nur SELECT / WITH / Mengenoperationen sind erlaubt."
 
-#: nx_lib/views/reporting.py:1204
+#: nx_lib/views/reporting.py:1211
 #, python-brace-format
 msgid "Disallowed construct: {kw}"
 msgstr "Nicht erlaubtes Konstrukt: {kw}"
 
-#: nx_lib/views/reporting.py:1205
+#: nx_lib/views/reporting.py:1212
 msgid "T-SQL does not support LIMIT — use TOP (n) instead."
 msgstr "T-SQL unterstützt LIMIT nicht — verwenden Sie stattdessen TOP (n)."
 
-#: nx_lib/views/reporting.py:1219 nx_lib/views/reporting.py:1253
+#: nx_lib/views/reporting.py:1226 nx_lib/views/reporting.py:1260
 msgid "Not authenticated"
 msgstr "Nicht authentifiziert"
 
-#: nx_lib/views/reporting.py:1221 nx_lib/views/reporting.py:2048
+#: nx_lib/views/reporting.py:1228 nx_lib/views/reporting.py:2055
 msgid "Acknowledgment required"
 msgstr "Bestätigung erforderlich"
 
-#: nx_lib/views/reporting.py:1226 nx_lib/views/reporting.py:2056
+#: nx_lib/views/reporting.py:1233 nx_lib/views/reporting.py:2063
 msgid "Not authorized for this SQL target"
 msgstr "Nicht für dieses SQL-Ziel autorisiert"
 
-#: nx_lib/views/reporting.py:1230 nx_lib/views/reporting.py:2062
+#: nx_lib/views/reporting.py:1237 nx_lib/views/reporting.py:2069
 msgid "Invalid SQL request."
 msgstr "Ungültige SQL-Anfrage."
 
-#: nx_lib/views/reporting.py:1232 nx_lib/views/reporting.py:2064
+#: nx_lib/views/reporting.py:1239 nx_lib/views/reporting.py:2071
 msgid "SQL source is not configured"
 msgstr "SQL-Quelle ist nicht konfiguriert"
 
-#: nx_lib/views/reporting.py:1236
+#: nx_lib/views/reporting.py:1243
 msgid "Could not run query"
 msgstr "Abfrage konnte nicht ausgeführt werden"
 
-#: nx_lib/views/reporting.py:1266
+#: nx_lib/views/reporting.py:1273
 msgid "Could not record acknowledgment"
 msgstr "Bestätigung konnte nicht gespeichert werden"
 
-#: nx_lib/views/reporting.py:1279 nx_lib/views/reporting.py:1407
-#: nx_lib/views/reporting.py:1584
+#: nx_lib/views/reporting.py:1286 nx_lib/views/reporting.py:1414
+#: nx_lib/views/reporting.py:1591
 msgid "A question is required"
 msgstr "Eine Frage ist erforderlich"
 
-#: nx_lib/views/reporting.py:1282
+#: nx_lib/views/reporting.py:1289
 msgid "Not authorized to receive AI-drafted SQL"
 msgstr "Nicht berechtigt, KI-erstelltes SQL zu erhalten"
 
-#: nx_lib/views/reporting.py:1286 nx_lib/views/reporting.py:1354
-#: nx_lib/views/reporting.py:1411 nx_lib/views/reporting.py:1500
-#: nx_lib/views/reporting.py:1617 nx_lib/views/reporting.py:1889
-#: nx_lib/views/reporting.py:1943 nx_lib/views/reporting.py:1998
+#: nx_lib/views/reporting.py:1293 nx_lib/views/reporting.py:1361
+#: nx_lib/views/reporting.py:1418 nx_lib/views/reporting.py:1507
+#: nx_lib/views/reporting.py:1624 nx_lib/views/reporting.py:1896
+#: nx_lib/views/reporting.py:1950 nx_lib/views/reporting.py:2005
 msgid "The AI assistant is not configured"
 msgstr "Der KI-Assistent ist nicht konfiguriert"
 
-#: nx_lib/views/reporting.py:1314 nx_lib/views/reporting.py:1433
-#: nx_lib/views/reporting.py:1639 nx_lib/views/reporting.py:1965
+#: nx_lib/views/reporting.py:1321 nx_lib/views/reporting.py:1440
+#: nx_lib/views/reporting.py:1646 nx_lib/views/reporting.py:1972
 #, python-format
 msgid ""
 "You have reached the daily AI request limit (%(limit)s). Please try again"
@@ -479,26 +479,26 @@ msgstr ""
 "Sie haben das tägliche KI-Anfragelimit (%(limit)s) erreicht. Bitte "
 "versuchen Sie es morgen erneut."
 
-#: nx_lib/views/reporting.py:1371 nx_lib/views/reporting.py:1517
-#: nx_lib/views/reporting.py:1869 nx_lib/views/reporting.py:1893
-#: nx_lib/views/reporting.py:2015
+#: nx_lib/views/reporting.py:1378 nx_lib/views/reporting.py:1524
+#: nx_lib/views/reporting.py:1876 nx_lib/views/reporting.py:1900
+#: nx_lib/views/reporting.py:2022
 msgid "The AI assistant could not answer right now"
 msgstr "Der KI-Assistent konnte gerade nicht antworten"
 
-#: nx_lib/views/reporting.py:1449 nx_lib/views/reporting.py:1452
-#: nx_lib/views/reporting.py:1456 nx_lib/views/reporting.py:1458
+#: nx_lib/views/reporting.py:1456 nx_lib/views/reporting.py:1459
+#: nx_lib/views/reporting.py:1463 nx_lib/views/reporting.py:1465
 msgid "Invalid refine context"
 msgstr "Ungültiger Verfeinerungskontext"
 
-#: nx_lib/views/reporting.py:1543
+#: nx_lib/views/reporting.py:1550
 msgid "Could not build a valid report"
 msgstr "Es konnte kein gültiger Bericht erstellt werden"
 
-#: nx_lib/views/reporting.py:1588
+#: nx_lib/views/reporting.py:1595
 msgid "Invalid history"
 msgstr "Ungültiger Verlauf"
 
-#: nx_lib/views/reporting.py:1779
+#: nx_lib/views/reporting.py:1786
 msgid ""
 "I couldn't write a summary this time, but I did produce a report draft "
 "and a validated SQL query — use the actions below to open them."
@@ -507,7 +507,7 @@ msgstr ""
 "Berichtsentwurf und eine validierte SQL-Abfrage erstellt — öffnen Sie "
 "beides über die Aktionen unten."
 
-#: nx_lib/views/reporting.py:1785
+#: nx_lib/views/reporting.py:1792
 msgid ""
 "I couldn't write a summary this time, but I did produce a report draft — "
 "use “Open in builder” below to run it."
@@ -516,7 +516,7 @@ msgstr ""
 "Berichtsentwurf erstellt — führen Sie ihn über „Im Builder öffnen“ unten "
 "aus."
 
-#: nx_lib/views/reporting.py:1790
+#: nx_lib/views/reporting.py:1797
 msgid ""
 "I couldn't write a summary this time, but I did draft a SQL query — use "
 "the actions below to review it."
@@ -524,7 +524,7 @@ msgstr ""
 "Ich konnte diesmal keine Zusammenfassung schreiben, aber ich habe eine "
 "SQL-Abfrage entworfen — prüfen Sie sie über die Aktionen unten."
 
-#: nx_lib/views/reporting.py:1795
+#: nx_lib/views/reporting.py:1802
 msgid ""
 "I couldn't complete this request. Please try rephrasing the question or "
 "narrowing it down."
@@ -532,177 +532,177 @@ msgstr ""
 "Ich konnte diese Anfrage nicht abschließen. Bitte formulieren Sie die "
 "Frage um oder grenzen Sie sie ein."
 
-#: nx_lib/views/reporting.py:1935 nx_lib/views/reporting.py:2120
+#: nx_lib/views/reporting.py:1942 nx_lib/views/reporting.py:2127
 msgid "columns and rows are required"
 msgstr "Spalten und Zeilen sind erforderlich"
 
-#: nx_lib/views/reporting.py:2045
+#: nx_lib/views/reporting.py:2052
 msgid "Not authorized for live SQL"
 msgstr "Nicht für Live-SQL autorisiert"
 
-#: nx_lib/views/reporting.py:2067
+#: nx_lib/views/reporting.py:2074
 msgid "Could not export query"
 msgstr "Abfrage konnte nicht exportiert werden"
 
-#: nx_lib/views/reporting.py:2069 nx_lib/views/reporting.py:2097
-#: nx_lib/views/reporting.py:2131 templates/hero.html:96
+#: nx_lib/views/reporting.py:2076 nx_lib/views/reporting.py:2104
+#: nx_lib/views/reporting.py:2138 templates/hero.html:96
 #: templates/js/_reporting_js.html:490
 msgid "Report"
 msgstr "Bericht"
 
-#: nx_lib/views/reporting.py:2082
+#: nx_lib/views/reporting.py:2089
 msgid "Could not export report"
 msgstr "Bericht konnte nicht exportiert werden"
 
-#: nx_lib/views/reporting.py:2090 templates/_reporting_simple.html:211
+#: nx_lib/views/reporting.py:2097 templates/_reporting_simple.html:211
 #: templates/js/_reporting_js.html:514
 #: templates/js/_reporting_simple_js.html:13
 #: templates/js/_reporting_viz_js.html:264 templates/reporting.html:326
 msgid "Forecast"
 msgstr "Prognose"
 
-#: nx_lib/views/reporting.py:2231
+#: nx_lib/views/reporting.py:2238
 msgid "Could not list reports"
 msgstr "Berichte konnten nicht aufgelistet werden"
 
-#: nx_lib/views/reporting.py:2256 nx_lib/views/reporting.py:2331
-#: nx_lib/views/reporting.py:2353 nx_lib/views/reporting.py:2429
-#: nx_lib/views/reporting.py:2439 nx_lib/views/reporting.py:2489
-#: nx_lib/views/reporting.py:2558 nx_lib/views/reporting.py:2582
-#: nx_lib/views/reporting.py:2629 nx_lib/views/reporting.py:2664
-#: nx_lib/views/reporting.py:2677 nx_lib/views/reporting.py:2688
-#: nx_lib/views/reporting.py:2878 nx_lib/views/reporting.py:2896
-#: nx_lib/views/reporting.py:2999 nx_lib/views/reporting.py:3017
+#: nx_lib/views/reporting.py:2263 nx_lib/views/reporting.py:2338
+#: nx_lib/views/reporting.py:2360 nx_lib/views/reporting.py:2436
+#: nx_lib/views/reporting.py:2446 nx_lib/views/reporting.py:2496
+#: nx_lib/views/reporting.py:2565 nx_lib/views/reporting.py:2589
+#: nx_lib/views/reporting.py:2636 nx_lib/views/reporting.py:2671
+#: nx_lib/views/reporting.py:2684 nx_lib/views/reporting.py:2695
+#: nx_lib/views/reporting.py:2885 nx_lib/views/reporting.py:2903
+#: nx_lib/views/reporting.py:3006 nx_lib/views/reporting.py:3024
 msgid "Not found"
 msgstr "Nicht gefunden"
 
-#: nx_lib/views/reporting.py:2269
+#: nx_lib/views/reporting.py:2276
 msgid "Could not load report"
 msgstr "Bericht konnte nicht geladen werden"
 
-#: nx_lib/views/reporting.py:2282 nx_lib/views/reporting.py:2311
+#: nx_lib/views/reporting.py:2289 nx_lib/views/reporting.py:2318
 msgid "name and definition are required"
 msgstr "Name und Definition sind erforderlich"
 
-#: nx_lib/views/reporting.py:2285 nx_lib/views/reporting.py:2314
+#: nx_lib/views/reporting.py:2292 nx_lib/views/reporting.py:2321
 msgid "Report definition too large"
 msgstr "Berichtsdefinition zu groß"
 
-#: nx_lib/views/reporting.py:2298
+#: nx_lib/views/reporting.py:2305
 msgid "Could not save report"
 msgstr "Bericht konnte nicht gespeichert werden"
 
-#: nx_lib/views/reporting.py:2335
+#: nx_lib/views/reporting.py:2342
 msgid "Could not update report"
 msgstr "Bericht konnte nicht aktualisiert werden"
 
-#: nx_lib/views/reporting.py:2357
+#: nx_lib/views/reporting.py:2364
 msgid "Could not delete report"
 msgstr "Bericht konnte nicht gelöscht werden"
 
-#: nx_lib/views/reporting.py:2447
+#: nx_lib/views/reporting.py:2454
 msgid "Invalid visibility"
 msgstr "Ungültige Sichtbarkeit"
 
-#: nx_lib/views/reporting.py:2456
+#: nx_lib/views/reporting.py:2463
 msgid "User not found"
 msgstr "Benutzer nicht gefunden"
 
-#: nx_lib/views/reporting.py:2458
+#: nx_lib/views/reporting.py:2465
 msgid "Cannot share a report with yourself"
 msgstr "Sie können einen Bericht nicht mit sich selbst teilen"
 
-#: nx_lib/views/reporting.py:2479 nx_lib/views/reporting.py:2500
+#: nx_lib/views/reporting.py:2486 nx_lib/views/reporting.py:2507
 msgid "Could not update sharing"
 msgstr "Freigabe konnte nicht aktualisiert werden"
 
-#: nx_lib/views/reporting.py:2572
+#: nx_lib/views/reporting.py:2579
 msgid "Could not list schedules"
 msgstr "Zeitpläne konnten nicht aufgelistet werden"
 
-#: nx_lib/views/reporting.py:2619
+#: nx_lib/views/reporting.py:2626
 msgid "Could not save schedule"
 msgstr "Zeitplan konnte nicht gespeichert werden"
 
-#: nx_lib/views/reporting.py:2668
+#: nx_lib/views/reporting.py:2675
 msgid "Could not update schedule"
 msgstr "Zeitplan konnte nicht aktualisiert werden"
 
-#: nx_lib/views/reporting.py:2692
+#: nx_lib/views/reporting.py:2699
 msgid "Could not delete schedule"
 msgstr "Zeitplan konnte nicht gelöscht werden"
 
-#: nx_lib/views/reporting.py:2705 nx_lib/views/reporting.py:2755
+#: nx_lib/views/reporting.py:2712 nx_lib/views/reporting.py:2762
 msgid "Invalid body"
 msgstr "Ungültiger Body"
 
-#: nx_lib/views/reporting.py:2707
+#: nx_lib/views/reporting.py:2714
 msgid "code must be 1-64 chars: letters, digits, . _ -"
 msgstr "Code muss 1-64 Zeichen lang sein: Buchstaben, Ziffern, . _ -"
 
-#: nx_lib/views/reporting.py:2709
+#: nx_lib/views/reporting.py:2716
 msgid "kind must be 'curated' or 'sql'"
 msgstr "kind muss 'curated' oder 'sql' sein"
 
-#: nx_lib/views/reporting.py:2711 nx_lib/views/reporting.py:2761
+#: nx_lib/views/reporting.py:2718 nx_lib/views/reporting.py:2768
 msgid "label is required"
 msgstr "Bezeichnung ist erforderlich"
 
-#: nx_lib/views/reporting.py:2713
+#: nx_lib/views/reporting.py:2720
 msgid "permission is required"
 msgstr "Berechtigung ist erforderlich"
 
-#: nx_lib/views/reporting.py:2719
+#: nx_lib/views/reporting.py:2726
 msgid "columns must be valid JSON"
 msgstr "Spalten müssen gültiges JSON sein"
 
-#: nx_lib/views/reporting.py:2757
+#: nx_lib/views/reporting.py:2764
 msgid "code must start with a letter/underscore: letters, digits, _"
 msgstr ""
 "code muss mit einem Buchstaben/Unterstrich beginnen: Buchstaben, Ziffern,"
 " _"
 
-#: nx_lib/views/reporting.py:2759
+#: nx_lib/views/reporting.py:2766
 msgid "sourceId is required"
 msgstr "sourceId ist erforderlich"
 
-#: nx_lib/views/reporting.py:2764
+#: nx_lib/views/reporting.py:2771
 msgid "aggregation must be one of: "
 msgstr "aggregation muss einer der folgenden Werte sein: "
 
-#: nx_lib/views/reporting.py:2766
+#: nx_lib/views/reporting.py:2773
 msgid "baseField is required unless aggregation is 'count'"
 msgstr "baseField ist erforderlich, außer wenn aggregation 'count' ist"
 
-#: nx_lib/views/reporting.py:2825
+#: nx_lib/views/reporting.py:2832
 msgid "Could not list sources"
 msgstr "Quellen konnten nicht aufgelistet werden"
 
-#: nx_lib/views/reporting.py:2853
+#: nx_lib/views/reporting.py:2860
 msgid "Could not save source (code already exists?)"
 msgstr "Quelle konnte nicht gespeichert werden (Code bereits vorhanden?)"
 
-#: nx_lib/views/reporting.py:2882
+#: nx_lib/views/reporting.py:2889
 msgid "Could not update source"
 msgstr "Quelle konnte nicht aktualisiert werden"
 
-#: nx_lib/views/reporting.py:2900
+#: nx_lib/views/reporting.py:2907
 msgid "Could not delete source"
 msgstr "Quelle konnte nicht gelöscht werden"
 
-#: nx_lib/views/reporting.py:2945
+#: nx_lib/views/reporting.py:2952
 msgid "Could not list metrics"
 msgstr "Metriken konnten nicht aufgelistet werden"
 
-#: nx_lib/views/reporting.py:2974
+#: nx_lib/views/reporting.py:2981
 msgid "Could not save metric (code already exists?)"
 msgstr "Metrik konnte nicht gespeichert werden (Code bereits vorhanden?)"
 
-#: nx_lib/views/reporting.py:3003
+#: nx_lib/views/reporting.py:3010
 msgid "Could not update metric"
 msgstr "Metrik konnte nicht aktualisiert werden"
 
-#: nx_lib/views/reporting.py:3021
+#: nx_lib/views/reporting.py:3028
 msgid "Could not delete metric"
 msgstr "Metrik konnte nicht gelöscht werden"
 
@@ -872,11 +872,11 @@ msgid "Overview"
 msgstr "Übersicht"
 
 #: templates/_header.html:191 templates/admin/access_control.html:19
-#: templates/admin/admin_overview.html:72 templates/js/_header_js.html:58
+#: templates/admin/admin_overview.html:73 templates/js/_header_js.html:58
 msgid "Access Control"
 msgstr "Zugriffskontrolle"
 
-#: templates/_header.html:196 templates/admin/admin_overview.html:82
+#: templates/_header.html:196 templates/admin/admin_overview.html:83
 #: templates/admin/organizations.html:19 templates/js/_header_js.html:59
 msgid "Organizations"
 msgstr "Organisationen"
@@ -2249,7 +2249,7 @@ msgstr "Anwenden"
 #: templates/generali_importstatus.html:75 templates/generali_pdqm.html:132
 #: templates/generali_projectmanagement.html:100
 #: templates/generali_reporting.html:135 templates/prepared_documents.html:149
-#: templates/workitems_overview.html:325
+#: templates/workitems_overview.html:330
 msgid "Reset"
 msgstr "Zurücksetzen"
 
@@ -2763,7 +2763,7 @@ msgid "Search by ID, policy, damage number…"
 msgstr "Suche nach ID, Police, Schadennummer…"
 
 #: templates/generali_documents.html:202 templates/reporting.html:99
-#: templates/workitems_overview.html:317
+#: templates/workitems_overview.html:322
 msgid "Advanced"
 msgstr "Erweitert"
 
@@ -2938,6 +2938,7 @@ msgstr "Projektaufwand"
 #: templates/admin/maintenance.html:57
 #: templates/generali_projectmanagement.html:209
 #: templates/generali_projectmanagement.html:248
+#: templates/js/_workitems_overview_js.html:1429
 msgid "optional"
 msgstr "optional"
 
@@ -3095,7 +3096,7 @@ msgstr ""
 "sicher. Verfolgen Sie in Echtzeit, wie ein Dokument verarbeitet wird."
 
 #: templates/hero.html:134 templates/js/_workitems_overview_js.html:276
-#: templates/workitems_overview.html:349
+#: templates/workitems_overview.html:354
 msgid "Import"
 msgstr "Import"
 
@@ -4215,18 +4216,18 @@ msgstr "UND"
 msgid "OR"
 msgstr "ODER"
 
-#: templates/workitems_overview.html:321
+#: templates/workitems_overview.html:326
 msgid "Save view"
 msgstr "Ansicht speichern"
 
 # Phase 3 — command palette, saved presets, CSV export
 #: templates/admin/logs.html:20 templates/archive/invoices.html:99
-#: templates/workitems_overview.html:342 templates/workitems_overview.html:428
+#: templates/workitems_overview.html:347 templates/workitems_overview.html:428
 #: templates/workitems_overview.html:581
 msgid "Export CSV"
 msgstr "CSV exportieren"
 
-#: templates/workitems_overview.html:357
+#: templates/workitems_overview.html:362
 msgid "Prepared documents"
 msgstr "Vorbereitete Dokumente"
 
@@ -4340,7 +4341,7 @@ msgid "Access Control - nexora"
 msgstr "Zugriffskontrolle - nexora"
 
 #: templates/admin/access_control.html:20
-#: templates/admin/admin_overview.html:77
+#: templates/admin/admin_overview.html:78
 msgid "Users, permissions and access profiles"
 msgstr "Benutzer, Berechtigungen und Zugriffsprofile"
 
@@ -4502,106 +4503,106 @@ msgstr "Administration"
 msgid "Users, organizations, sessions and logs."
 msgstr "Benutzer, Organisationen, Sitzungen und Protokolle."
 
-#: templates/admin/admin_overview.html:30
+#: templates/admin/admin_overview.html:31
 msgid "Restart nexora"
 msgstr "Nexora neu starten"
 
-#: templates/admin/admin_overview.html:32
+#: templates/admin/admin_overview.html:33
 msgid "Current env:"
 msgstr "Aktuelle Umgebung:"
 
-#: templates/admin/admin_overview.html:39
+#: templates/admin/admin_overview.html:40
 msgid "Active sessions"
 msgstr "Aktive Sitzungen"
 
-#: templates/admin/admin_overview.html:43
+#: templates/admin/admin_overview.html:44
 msgid "Currently signed in"
 msgstr "Derzeit angemeldet"
 
-#: templates/admin/admin_overview.html:47
+#: templates/admin/admin_overview.html:48
 msgid "Failed logins today"
 msgstr "Fehlgeschlagene Anmeldungen heute"
 
-#: templates/admin/admin_overview.html:51
+#: templates/admin/admin_overview.html:52
 msgid "Since midnight"
 msgstr "Seit Mitternacht"
 
-#: templates/admin/admin_overview.html:55
+#: templates/admin/admin_overview.html:56
 msgid "Database health"
 msgstr "Datenbankstatus"
 
-#: templates/admin/admin_overview.html:76
+#: templates/admin/admin_overview.html:77
 #: templates/js/admin/_access_control_js.html:225
 msgid "users"
 msgstr "Benutzer"
 
-#: templates/admin/admin_overview.html:86
+#: templates/admin/admin_overview.html:87
 msgid "organizations"
 msgstr "Organisationen"
 
-#: templates/admin/admin_overview.html:87 templates/admin/organizations.html:20
+#: templates/admin/admin_overview.html:88 templates/admin/organizations.html:20
 msgid "Tenant organizations and their codes"
 msgstr "Mandanten-Organisationen und ihre Codes"
 
-#: templates/admin/admin_overview.html:92
+#: templates/admin/admin_overview.html:93
 msgid "Session Monitor"
 msgstr "Sitzungsmonitor"
 
-#: templates/admin/admin_overview.html:95
+#: templates/admin/admin_overview.html:96
 msgid "Live"
 msgstr "Live"
 
-#: templates/admin/admin_overview.html:96
+#: templates/admin/admin_overview.html:97
 msgid "users online now"
 msgstr "Benutzer online"
 
-#: templates/admin/admin_overview.html:97
+#: templates/admin/admin_overview.html:98
 msgid "Users active in the last 30 minutes"
 msgstr "In den letzten 30 Minuten aktive Benutzer"
 
-#: templates/admin/admin_overview.html:102 templates/js/_header_js.html:61
+#: templates/admin/admin_overview.html:103 templates/js/_header_js.html:61
 msgid "System Logs"
 msgstr "Systemprotokolle"
 
-#: templates/admin/admin_overview.html:105
+#: templates/admin/admin_overview.html:106
 msgid "Audit"
 msgstr "Audit"
 
-#: templates/admin/admin_overview.html:106
+#: templates/admin/admin_overview.html:107
 msgid "activity &amp; events"
 msgstr "Aktivität & Ereignisse"
 
-#: templates/admin/admin_overview.html:107
+#: templates/admin/admin_overview.html:108
 msgid "Filter by user, date, method or status"
 msgstr "Nach Benutzer, Datum, Methode oder Status filtern"
 
-#: templates/admin/admin_overview.html:113
+#: templates/admin/admin_overview.html:114
 msgid "Resources"
 msgstr "Ressourcen"
 
-#: templates/admin/admin_overview.html:118
+#: templates/admin/admin_overview.html:119
 msgid "Nexora documentation"
 msgstr "Nexora-Dokumentation"
 
-#: templates/admin/admin_overview.html:124
+#: templates/admin/admin_overview.html:125
 msgid "ngrok hosting"
 msgstr "ngrok-Hosting"
 
-#: templates/admin/admin_overview.html:138
+#: templates/admin/admin_overview.html:139
 msgid "Restart the dev server now? The page will reload once it is back."
 msgstr ""
 "Den Entwicklungsserver jetzt neu starten? Die Seite wird neu geladen, "
 "sobald er wieder erreichbar ist."
 
-#: templates/admin/admin_overview.html:139
+#: templates/admin/admin_overview.html:140
 msgid "Restart and switch environment to"
 msgstr "Neustarten und Umgebung wechseln zu"
 
-#: templates/admin/admin_overview.html:139
+#: templates/admin/admin_overview.html:140
 msgid "The page will reload once it is back."
 msgstr "Die Seite wird neu geladen, sobald der Server wieder da ist."
 
-#: templates/admin/admin_overview.html:142
+#: templates/admin/admin_overview.html:143
 msgid "Restarting..."
 msgstr "Wird neu gestartet …"
 
@@ -6511,20 +6512,16 @@ msgstr "Ansicht anwenden"
 msgid "Edit view"
 msgstr "Ansicht bearbeiten"
 
-#: templates/js/_workitems_overview_js.html:1416
+#: templates/js/_workitems_overview_js.html:1418
 msgid "View name…"
 msgstr "Name der Ansicht…"
 
-#: templates/js/_workitems_overview_js.html:1424
-msgid "Folder (optional)"
-msgstr "Ordner (optional)"
-
-#: templates/js/_workitems_overview_js.html:1459
-#: templates/js/_workitems_overview_js.html:1460
+#: templates/js/_workitems_overview_js.html:1484
+#: templates/js/_workitems_overview_js.html:1485
 msgid "Delete view"
 msgstr "Ansicht löschen"
 
-#: templates/js/_workitems_overview_js.html:1485
+#: templates/js/_workitems_overview_js.html:1510
 msgid "View saved."
 msgstr "Ansicht gespeichert."
 
@@ -7694,4 +7691,7 @@ msgstr ""
 
 #~ msgid "Rename view"
 #~ msgstr "Ansicht umbenennen"
+
+#~ msgid "Folder (optional)"
+#~ msgstr "Ordner (optional)"
 
