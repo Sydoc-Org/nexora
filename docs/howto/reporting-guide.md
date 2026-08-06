@@ -33,9 +33,9 @@ header opens them in a panel, with a link back to this guide.
 **Building a report**
 
 - Watch the **coverage badge** (e.g. `2/5`) on measures and categories: only
-  that share of your selected processes provides the field, and documents from
-  the others land in the empty bucket. If a number looks too low, check the
-  badge first.
+  part of the processes provide that field, and documents from the others land
+  in the empty bucket. Hover it to see which. If a number looks too low, check
+  the badge first.
 - Everything in one empty bucket? The breakdown field is not filled in for the
   processes you selected.
 - Relative presets stay relative: a report saved with "This month" shows the
@@ -51,18 +51,27 @@ header opens them in a panel, with a link back to this guide.
   exact dates.
 - Two people can see different totals on the same report: it always runs with
   the viewer's own data access.
-- Charts cap at 50 values and 12 series — beyond that, use the table or an
-  export.
+- Charts cap at 50 axis values and 12 series — past the cap you get a partial
+  chart or none at all; the table and exports always carry the full data.
+
+**Saving and sharing**
+
+- Save works differently per tab: on Simple, Save always creates a new report
+  under My reports; on Advanced, Save overwrites the open report — including a
+  shared one you can edit. Use **Save as** for a copy.
+- A scheduled email runs with the report owner's data access — recipients see
+  the owner's numbers, not their own.
 
 **Asking the AI**
 
 - Name the measure, the time range and the processes: *"invoices by process,
   last 3 months"* beats *"show me invoices"*.
-- Read the line under an AI-built result — it lists the filters and processes
-  the AI chose, so a wrong guess is visible immediately.
+- Check what the AI built with **Open in builder** — the filters and process
+  scope it chose are visible there before you trust the number.
 - Follow-ups work: the chat remembers the conversation, so *"now only this
   quarter"* refines the last answer.
-- Use **Open in builder** to check and adjust what the AI built.
+- When the AI used tools, unfold **How the agent worked** to see the steps; if
+  a **Continue** button appears, click it before rephrasing your question.
 
 > This section and the in-app panel (`templates/_reporting_help.html`) mirror
 > each other — change both together.
@@ -123,8 +132,11 @@ wizard reopens with all your answers still selected.
 #### About those "2/5" badges
 
 Some measures and categories carry a small **coverage badge** like `2/5`, with a
-progress bar. It means: *only 2 of the 5 processes you selected actually provide
-this field.*
+progress bar. It means: *only 2 of the 5 processes actually provide this field.*
+The two chip types count against different denominators: a **measure** badge
+counts all processes you may access (you pick the measure before the process
+step, and the badge does not recompute when you narrow the selection later); a
+**category** badge counts the processes currently selected.
 
 - Amber = partial coverage. Muted = low coverage (a third or less).
 - Hover it to see which processes do provide it.
@@ -141,15 +153,16 @@ month this year"*, *"invoices by process, last 3 months"* — and press Enter, o
 click one of the suggestion chips. This opens the **AI chat** panel on the right
 and answers there.
 
-- Every answer has a **How the agent worked** section you can unfold to see what
-  it actually did.
+- Answers where the agent used tools include a **How the agent worked** section
+  you can unfold to see each step it took. If a **Continue** button appears
+  under an answer, the agent ran out of budget mid-way — one click resumes it
+  with more room; try that before rephrasing.
 - If it built a report, an **Open in builder** chip drops it into the Advanced
-  builder so you can check and adjust it.
+  builder. **Use it.** The filters and process scope the AI chose are visible
+  there — a wrong guess (wrong date range, wrong process) shows up immediately,
+  and you can adjust before trusting the number.
 - It remembers the conversation, so "…now only this quarter" works as a
   follow-up. Three follow-up chips are offered for you.
-- Results the AI built show a **transparency line** under the title: the filters
-  and processes it chose. **Read it.** A wrong guess (wrong date range, wrong
-  process) is visible right there.
 
 The AI does not get to bypass anything: it can only build a report you were
 already allowed to run, and the report still runs through the normal path with
@@ -205,8 +218,12 @@ percentage, so it is dropped rather than shown wrong.
 **The chart** is a line for time breakdowns and bars for categories, with a
 bar / line / pie / doughnut switcher (your choice is saved with the report).
 There is a button to download the chart as a **PNG**. Charts show at most 50
-values along the axis and 12 series; beyond that the top 50 are charted with a
-note.
+values along the axis and 12 series (the 12 largest are kept). Past 50 axis
+values the two tabs differ: Advanced charts the top 50 by value with a note;
+Simple charts the first 50 for a category axis, and for a date axis (or a
+result with several breakdowns) shows no chart at all with a hint to pick a
+coarser granularity or a shorter range. The table and exports always carry the
+full data.
 
 **Show table** reveals the data rows. **Show query** reveals the actual database
 query behind the number, formatted and copyable — useful when you want to prove
@@ -214,8 +231,9 @@ where a figure came from.
 
 ### Forecast
 
-If your report is *one time breakdown plus a measure*, a **Forecast** toggle
-appears. It extends the chart with a dashed projection line and a shaded 95%
+If your report is *one time breakdown plus a measure*, the **Forecast** toggle
+becomes available. (On the Simple tab the toggle is always visible in the chart
+toolbar but greyed out until the report qualifies; Advanced hides it instead.) It extends the chart with a dashed projection line and a shaded 95%
 confidence band, and appends the predicted rows to the table with a *Forecast*
 badge.
 
@@ -234,8 +252,9 @@ On any report that has a measure *and* a breakdown, **clicking a chart bar/point
 or a table row** opens a drawer listing the actual documents that make up that
 number. A hint line tells you when this is available.
 
-- Shows up to **100 rows**; export from the drawer (CSV / Excel) for the full
-  set.
+- Shows up to **100 rows**. The drawer's CSV / Excel export is currently capped
+  at the same 100 rows — for the full set, narrow the bucket or run the
+  underlying rows as their own report.
 - Workitem numbers are links — click to open the document detail panel over the
   drawer, or Ctrl-click to open it in a new Workitems tab.
 - Not available on: plain row lists with no measure, the single big-number card,
@@ -247,9 +266,12 @@ number. A hint line tells you when this is available.
 
 ## Saving, sharing, finding again
 
-**Save** stores the report under **My reports**. With a report open, Save
-overwrites it; **Save as** always makes a copy. Editing the title and hitting
-Save also renames it.
+**Save** stores the report under **My reports** — but the two tabs treat it
+differently. On the **Simple** tab, Save always creates a *new* report, even
+when you opened one from the library. On the **Advanced** tab, Save overwrites
+the loaded report — including a shared report you have edit rights on, for
+everyone — and **Save as** makes a copy. Editing the title and hitting Save
+also renames it.
 
 The library on the Simple tab groups everything into three shelves:
 
@@ -257,8 +279,10 @@ The library on the Simple tab groups everything into three shelves:
 - **My reports** — yours.
 - **Shared with me** — reports someone shared with you by name.
 
-Cards show a small preview of the report's last result. Nothing runs until you
-click a card.
+Cards show a small preview chart. It only reflects your real numbers after you
+have opened and run that report in this browser — before that it is a
+decorative placeholder, so don't read trends off a card you haven't opened.
+Nothing runs until you click a card.
 
 **Share** (on a report you own) does two independent things:
 
@@ -343,6 +367,7 @@ A dashboard saves, shares and deletes exactly like any other report.
 | The saved report shows a different month than when I built it | Working as intended — relative presets re-resolve on every run. |
 | Scheduled mail arrives at an odd hour | Schedule times are **UTC**. |
 | Chart says it is showing the top 50 | Charts cap at 50 axis values and 12 series. Filter down, or use the table/export. |
+| The line chart shows no empty months | Zero-months only appear for a single date breakdown with a bounded time range. With a second breakdown or "All time", empty periods drop off the axis entirely. |
 | A button is missing entirely | It is permission-gated. See below. |
 
 ---

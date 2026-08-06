@@ -96,6 +96,12 @@ Work toward the next release.
 
 ### Fixed
 
+- Reporting user guide corrected against verified page behaviour: coverage-badge
+  denominators (measures count all accessible processes, categories the current
+  selection), per-pane chart caps, the drill-drawer export's 100-row cap, the
+  Simple tab's greyed-out (not hidden) Forecast toggle, per-tab Save semantics,
+  decorative library-card previews, and the retired AI "transparency line"
+  (checking an AI result now goes through "Open in builder").
 - The two login e2e smokes clicked the 2FA submit button that the auto-submit
   challenge (since `a749bda`) removes from under them — they now fill the code
   and wait for the redirect. The e2e server port is overridable via the new
