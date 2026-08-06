@@ -1636,3 +1636,100 @@ def test_effective_filters_keeps_both_bounds_of_a_same_field_range(nexora_server
         ("gte", "2026-01-01"),
         ("lte", "2026-03-31"),
     }
+
+
+def test_report_card_runs_definition_unmodified(nexora_server, page):
+    """#178 D11: a report card POSTs the adopted definition as-is (grain,
+    filters, sort intact) and renders total + chart."""
+    _login(page, nexora_server)
+
+    reports_list = [
+        {
+            "id": 601,
+            "name": "Documents per month",
+            "ownerName": "Admin",
+            "updatedAt": "2026-07-01T00:00:00Z",
+            "visibility": "private",
+            "owned": True,
+            "kind": "line",
+        },
+    ]
+    adopted_definition = {
+        "source": "workitems",
+        "metrics": [{"field": "id", "agg": "count"}],
+        "columns": [{"field": "createdDate", "grain": "month"}],
+        "filters": [{"field": "status", "op": "eq", "value": "open"}],
+        "sort": [{"field": "createdDate", "dir": "asc"}],
+        "chartType": "line",
+    }
+
+    def handle_reports(route):
+        if route.request.method == "POST":
+            route.fulfill(
+                status=200, content_type="application/json", body=json.dumps({"id": 9, "ok": True})
+            )
+        else:
+            route.fulfill(
+                status=200, content_type="application/json", body=json.dumps(reports_list)
+            )
+
+    page.route("**/api/reporting/reports", handle_reports)
+    page.route(
+        "**/api/reporting/reports/601",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "id": 601,
+                    "name": "Documents per month",
+                    "definition": adopted_definition,
+                    "visibility": "private",
+                    "owned": True,
+                    "canEdit": True,
+                }
+            ),
+        ),
+    )
+
+    posted = []
+
+    def fulfill_run(route):
+        posted.append(route.request.post_data_json or {})
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [
+                        {"field": "createdDate", "header": "Month"},
+                        {"field": "id", "header": "Count"},
+                    ],
+                    "rows": [["2026-01", 5], ["2026-02", 7]],
+                    "rowCount": 2,
+                }
+            ),
+        )
+
+    page.route("**/api/reporting/run", fulfill_run)
+
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-dashboard").click()
+    expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
+
+    page.get_by_test_id("rdb-add-report").click()
+    expect(page.get_by_test_id("rdb-card")).to_have_count(1)
+    expect(page.locator('[data-testid="rdb-card"][data-type="report"]')).to_have_count(1)
+
+    page.get_by_test_id("rdb-card-configure").click()
+    picker = page.get_by_test_id("rdb-report-picker")
+    expect(picker).to_be_visible()
+    page.get_by_test_id("rdb-report-pick").first.click()
+
+    body = page.get_by_test_id("rdb-report-total")
+    expect(body).to_be_visible()
+
+    grained = [b for b in posted if (b.get("columns") or [{}])[0].get("grain") == "month"]
+    assert grained, "definition lost its grain on the way to /run"
+    assert grained[0]["filters"] == adopted_definition["filters"]
+    assert grained[0]["sort"] == adopted_definition["sort"]

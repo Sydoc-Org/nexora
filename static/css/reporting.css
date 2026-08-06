@@ -2413,3 +2413,10 @@ html.dark .rdb-add-pill:hover { border-color: var(--nx-accent); }
 @media (prefers-reduced-motion: reduce) {
   .rp-build-step.is-running::before { animation: none; }
 }
+
+/* #178 D11 -- dashboard report card */
+.rdb-report-total { display: flex; align-items: baseline; gap: 8px; margin: 2px 0 8px; }
+.rdb-report-total-value { font-size: 24px; font-weight: 700; }
+.rdb-report-total-label { font-size: 11.5px; color: var(--nx-text-soft, #6b7280);
+  text-transform: uppercase; letter-spacing: .04em; }
+.rdb-report-chart { min-height: 180px; position: relative; }
