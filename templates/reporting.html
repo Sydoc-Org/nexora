@@ -57,18 +57,36 @@
 <body class="nx-app reporting-ledger">
   {% set active_page = 'reporting' %} {% include '_header.html' %}
 
-  <div class="nx-page-head nx-rise reporting-page-head">
-    <div class="nx-page-head__main">
-      <div class="nx-page-head__title">
-        <span class="nx-page-icon"><i class="fas fa-chart-column"></i></span>
-        <div>
-          <h1 class="nx-title">{{ _("Reporting") }}<span class="nx-label nx-label--indigo nx-label--nodot reporting-beta">{{ _("Beta") }}</span></h1>
-          <p class="nx-subtitle">{{ _("Build, explore, and share reports across your data sources") }}</p>
+  {# Page masthead + view switch share one container with the panes below
+     (.reporting-shell mirrors body.nx-app .nx-main's 1600px/40px metrics) so
+     the title lines up with the content edge exactly like Dashboard and
+     Workitems do. The Simple/Advanced switch is a page-level tab bar under
+     the head -- not an item in __actions -- so primary navigation reads
+     apart from the page actions next to it (issue #175). #}
+  <div class="reporting-shell">
+    <div class="nx-page-head nx-rise reporting-page-head">
+      <div class="nx-page-head__main">
+        <div class="nx-page-head__title">
+          <span class="nx-page-icon"><i class="fas fa-chart-column"></i></span>
+          <div>
+            <h1 class="nx-title">{{ _("Reporting") }}<span class="nx-label nx-label--indigo nx-label--nodot reporting-beta">{{ _("Beta") }}</span></h1>
+            <p class="nx-subtitle">{{ _("Build, explore, and share reports across your data sources") }}</p>
+          </div>
         </div>
+        <span id="reportingTiming" class="reporting-ledger-timing" hidden data-testid="reporting-timing"></span>
       </div>
-      <span id="reportingTiming" class="reporting-ledger-timing" hidden data-testid="reporting-timing"></span>
+      <div class="nx-page-head__actions reporting-head-actions">
+        {% if ai_enabled %}
+        {# aria-label, not just the visible span: that span is display:none below
+           the sm breakpoint, leaving an icon-only button with no name. #}
+        <button id="rpChatToggle" class="nx-btn nx-btn--secondary" data-testid="reporting-chat-toggle"
+                aria-controls="rpChatPanel" aria-expanded="false" aria-label="{{ _('AI chat') }}">
+          <i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i><span class="hidden sm:inline">{{ _("AI chat") }}</span></button>
+        {% endif %}
+      </div>
     </div>
-    <div class="nx-page-head__actions reporting-head-actions">
+
+    <div class="reporting-viewbar">
       <div class="nx-tabs reporting-tabs" role="tablist" aria-label="{{ _('Reporting view') }}" data-testid="reporting-tabs">
         <button id="rpTabSimple" class="nx-tab" role="tab" aria-selected="false"
                 aria-controls="rpPaneSimple" data-testid="reporting-tab-simple">
@@ -78,16 +96,14 @@
           <i class="fas fa-sliders" aria-hidden="true"></i>{{ _("Advanced") }}</button>
       </div>
       {% if has_permission('reporting.admin.sources') %}
+      {# Sources is admin plumbing, not a daily action: quiet link at the far
+         end of the tab rail rather than a filled button in the masthead.
+         Outside the tablist -- a tablist may only contain role="tab". #}
       <a href="{{ url_for('reporting_sources_admin') }}"
-         class="nx-btn nx-btn--secondary" data-testid="reporting-sources-link"
-         title="{{ _('Manage data sources') }}">
-        <i class="fas fa-database"></i><span class="hidden sm:inline">{{ _("Sources") }}</span>
+         class="reporting-viewbar__aside nx-btn nx-btn--ghost nx-btn--sm" data-testid="reporting-sources-link"
+         title="{{ _('Manage data sources') }}" aria-label="{{ _('Manage data sources') }}">
+        <i class="fas fa-database" aria-hidden="true"></i><span class="hidden sm:inline">{{ _("Sources") }}</span>
       </a>
-      {% endif %}
-      {% if ai_enabled %}
-      <button id="rpChatToggle" class="nx-btn nx-btn--secondary" data-testid="reporting-chat-toggle"
-              aria-controls="rpChatPanel" aria-expanded="false">
-        <i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i><span class="hidden sm:inline">{{ _("AI chat") }}</span></button>
       {% endif %}
     </div>
   </div>

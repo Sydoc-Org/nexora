@@ -953,6 +953,13 @@ def _json_safe(value):
     "Object of type X is not JSON serializable" and 500 the run. Map the crashy
     types to readable strings, pass the Flask-native ones through unchanged, and
     stringify anything else as a last resort (a result cell must never 500).
+
+    Dates are the exception to "pass Flask-native through": DefaultJSONProvider
+    emits the HTTP-date form ("Thu, 26 Mar 2026 08:56:28 GMT"), which is what
+    ended up in result tables (issue #175). Format them here instead —
+    yyyy-MM-dd HH:mm:ss / yyyy-MM-dd, sortable and locale-free. Nothing parses
+    these back: the front end renders result cells as text, and xlsx/csv export
+    serializes the raw rows, not these.
     """
     if value is None or isinstance(value, bool | int | float | str):
         return value
@@ -960,7 +967,11 @@ def _json_safe(value):
         return "0x" + bytes(value).hex()
     if isinstance(value, datetime.time):
         return value.isoformat()
-    if isinstance(value, datetime.date | decimal.Decimal | uuid.UUID):
+    if isinstance(value, datetime.datetime):  # before date — datetime subclasses it
+        return value.strftime("%Y-%m-%d %H:%M:%S")
+    if isinstance(value, datetime.date):
+        return value.strftime("%Y-%m-%d")
+    if isinstance(value, decimal.Decimal | uuid.UUID):
         return value  # Flask's DefaultJSONProvider serializes these
     return str(value)
 
