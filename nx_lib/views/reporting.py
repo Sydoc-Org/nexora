@@ -113,6 +113,7 @@ from ..reporting.tokens import (
     resolve_definition_tokens,
     resolve_token,
     shifted_definition_for_comparison,
+    widened_definition_for_forecast,
 )
 from ..security import has_permission, page_visibility, require_permission
 
@@ -1147,7 +1148,17 @@ def api_run():
     fc_req = rd.get("forecast")
     if isinstance(fc_req, dict) and fc_req.get("enabled"):
         try:
-            payload["forecast"] = compute_forecast(rd, columns, rows)
+            fit_columns, fit_rows = columns, rows
+            widened = widened_definition_for_forecast(rd)
+            if widened is not None:
+                # Fit on real history: rerun the widened window purely for the
+                # fit. Any failure falls back to the visible rows (#178).
+                try:
+                    w_columns, w_sql, w_params, w_engine = _prepare_run(widened)
+                    fit_columns, fit_rows = w_columns, _execute(w_engine, w_sql, w_params)
+                except Exception as e:
+                    current_app.logger.warning(f"/api/reporting/run forecast lookback skipped: {e}")
+            payload["forecast"] = compute_forecast(rd, fit_columns, fit_rows)
         except Exception as e:  # a forecast must never take down the run
             current_app.logger.warning(f"/api/reporting/run forecast skipped: {e}")
     # rd is the original request body (tokens intact) — _prepare_run resolves

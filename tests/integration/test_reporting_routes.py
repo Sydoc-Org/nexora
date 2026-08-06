@@ -7,7 +7,7 @@ dashboard route tests.
 """
 
 import io
-from datetime import datetime, time
+from datetime import date, datetime, time, timedelta
 from unittest.mock import patch
 
 from openpyxl import load_workbook
@@ -1384,6 +1384,67 @@ def test_export_forecast_appends_marker_rows(admin_client):
     text = resp.data.decode("utf-8-sig")
     assert text.splitlines()[0].endswith("Forecast")
     assert text.count("forecast") == 3  # horizon 3 marker rows
+
+
+# --- forecast: grain-dependent lookback widens the fit window (#178) ---
+
+_FC_WIDE_DEF = {
+    "schemaVersion": 1,
+    "visualization": "table",
+    "source": "docprocessing",
+    "title": "Imports by day",
+    "columns": [{"field": "import_date", "grain": "day"}],
+    "metrics": [{"metric": "doc_count"}],
+    "filters": [{"field": "import_date", "op": "between", "value": {"token": "this_month"}}],
+    "sort": [],
+    "scope": {"clients": [], "processes": []},
+    "rowLimit": 5000,
+    "forecast": {"enabled": True, "horizon": 3},
+}
+
+_FC_WIDE_COLS = [{"field": "import_date"}, {"field": "doc_count"}]
+# Visible chart window: only 6 daily buckets (a real "this month, day grain"
+# window) — nowhere near enough for a seasonal fit on its own.
+_FC_WIDE_VISIBLE_ROWS = [[f"2026-08-{d:02d}", 10 + d] for d in range(1, 7)]
+# Widened fit window: 60 contiguous daily buckets with a weekend dip, so
+# trend_seasonal can only have come from the widened rerun.
+_FC_WIDE_WIDE_START = date(2026, 6, 6)
+_FC_WIDE_WIDE_ROWS = [
+    [
+        (_FC_WIDE_WIDE_START + timedelta(days=d)).isoformat(),
+        4 if (_FC_WIDE_WIDE_START + timedelta(days=d)).weekday() >= 5 else 10,
+    ]
+    for d in range(60)
+]
+
+
+def test_run_forecast_fits_on_widened_history_not_visible_window(admin_client):
+    with (
+        patch(
+            "nx_lib.views.reporting._prepare_run",
+            side_effect=[
+                (_FC_WIDE_COLS, "SELECT 1", [], None),
+                (_FC_WIDE_COLS, "SELECT 2", [], None),
+            ],
+        ) as mock_prepare,
+        patch(
+            "nx_lib.views.reporting._execute",
+            side_effect=[_FC_WIDE_VISIBLE_ROWS, _FC_WIDE_WIDE_ROWS],
+        ),
+    ):
+        resp = admin_client.post("/api/reporting/run", json=_FC_WIDE_DEF)
+    assert resp.status_code == 200
+    body = resp.get_json()
+    # The visible chart response is unaffected by the wider fit window.
+    assert body["rows"] == _FC_WIDE_VISIBLE_ROWS
+    assert mock_prepare.call_count == 2
+    widened_rd = mock_prepare.call_args_list[1].args[0]
+    widened_filter = widened_rd["filters"][0]
+    assert widened_filter["op"] == "between"
+    assert isinstance(widened_filter["value"], list) and len(widened_filter["value"]) == 2
+    assert "compare" not in widened_rd
+    fc = body.get("forecast")
+    assert fc and fc.get("method") == "trend_seasonal"
 
 
 def test_runner_forecast_export_rows_failure_still_sends_mail(admin_client):
