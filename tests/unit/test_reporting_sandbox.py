@@ -475,6 +475,26 @@ def test_humanize_sql_error_passes_through_non_odbc_message():
     assert humanize_sql_error(msg) == msg
 
 
+def test_humanize_appends_union_order_by_hint():
+    msg = (
+        "('42000', \"[42000] [Microsoft][ODBC SQL Server Driver][SQL Server]"
+        "Incorrect syntax near the keyword 'UNION'. (156) (SQLExecDirectW)\")"
+    )
+    out = humanize_sql_error(msg)
+    assert "Incorrect syntax near the keyword 'UNION'." in out
+    assert "Hint:" in out and "last branch" in out
+
+
+def test_humanize_appends_ambiguous_column_hint():
+    msg = (
+        "('42000', \"[42000] [Microsoft][ODBC SQL Server Driver][SQL Server]"
+        "Ambiguous column name 'd'. (209) (SQLExecDirectW)\")"
+    )
+    out = humanize_sql_error(msg)
+    assert "Ambiguous column name 'd'." in out
+    assert "Hint:" in out and "alias" in out
+
+
 # ---- Round 3: bare-CR comment terminator + bracket-regex ReDoS ------------
 # A third review pass found the round-1/round-2 tokenizer above still had two
 # gaps: (1) its comment alternative only stopped at LF, but real T-SQL also

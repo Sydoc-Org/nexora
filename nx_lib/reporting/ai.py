@@ -721,6 +721,11 @@ _AGENT_EXPLAIN_SUFFIX = (
     " This never licenses narrowing the universe: SQL that reaches one per-process"
     " partial table does NOT answer a company-wide question — UNION them or use"
     " build_definition, and state the coverage either way."
+    " T-SQL discipline for drafted SQL: alias every table and derived table;"
+    " qualify every column that appears in more than one table, CTE or UNION"
+    " branch; give every computed column an explicit alias; in a set"
+    " operation put ORDER BY only after the LAST branch (never inside inner"
+    " branches or a derived table without TOP)."
 )
 
 

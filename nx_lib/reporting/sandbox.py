@@ -98,6 +98,21 @@ _SQL_ERROR_HINTS = {
         "ORDER BY inside a derived table needs TOP or OFFSET — or move "
         "ORDER BY to the outer SELECT."
     ),
+    "156": (
+        "In a set operation (UNION/EXCEPT/INTERSECT) ORDER BY may only follow "
+        "the last branch, and each branch must be a complete SELECT — remove "
+        "ORDER BY/extra clauses from inner branches or wrap the whole set "
+        "operation in an outer SELECT and order there."
+    ),
+    "205": (
+        "All branches of a set operation must project the same number of "
+        "columns in the same order."
+    ),
+    "209": (
+        "The column exists in more than one table/branch — qualify it with "
+        "its table or CTE alias (e.g. e.d instead of d) everywhere, "
+        "including GROUP BY and ORDER BY."
+    ),
 }
 
 
