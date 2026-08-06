@@ -10,6 +10,11 @@ Work toward the next release.
 
 ### Changed
 
+- Reporting AI chat: the "Open in builder" chip on an agent answer is now
+  "Open report" and lands the definition in the Simple result view instead
+  of the Advanced builder (#178). A new `window.ReportingSimple.openDefinition()`
+  seam (modeled on `openReport`) drives it; Advanced stays reachable via the
+  result bar's escape hatch.
 - Branch naming convention: release-cycle branches are now `v<x.y[.z]>` (e.g.
   `v3.1`); the pre-push branch-name guard accepts both the new form and the
   legacy `feature/<x.y.z>` for in-flight branches.

@@ -995,10 +995,13 @@ progress lines ("Asking the AI…", "The agent is working step by step…",
 - A collapsed **"How the agent worked"** `<details>` — one line per tool call,
   an ok/error chip, and a row count where applicable.
 - Action chips, shown only when the reply actually produced the artifact:
-  **Open in builder** (only if the reply carries a `definition` — switches to
-  the Advanced tab and fills the builder wells via `applyDefinition()`, then the
-  user runs it through the normal `/api/reporting/run` path, so row-scoping and
-  the field whitelist still apply), **Insert into SQL editor** / **Show query**
+  **Open report** (only if the reply carries a `definition` — switches to the
+  Simple tab and opens it straight into the result view via
+  `window.ReportingSimple.openDefinition()` (#178 A4), which runs it through
+  the normal `/api/reporting/run` path, so row-scoping and the field
+  whitelist still apply; falls back to the Advanced builder's
+  `applyDefinition()` if the Simple seam isn't loaded), **Insert into SQL
+  editor** / **Show query**
   (only if the reply carries `sql`, which in turn only happens when the caller
   holds `reporting.ai.sql` — see **Access** below).
 - Three canned **follow-up** suggestion chips ("Only this quarter", "Break down
@@ -1115,7 +1118,7 @@ metric` GROUP BY guidance apply the same way they did for the old Surface A/C
 prompts. `AI_DAILY_LIMIT` applies before any provider call; audited with
 `Surface='agent'` (`Status='misconfig'` if the provider is broken, `'blocked'`
 when the cap is hit). The last validated definition/SQL anywhere in the tool
-trace is what the chat panel's **Open in builder** / **Insert SQL** chips act
+trace is what the chat panel's **Open report** / **Insert SQL** chips act
 on.
 
 Tool and SQL-sandbox errors surfaced to the model (and to the visible tool-step
@@ -1183,7 +1186,7 @@ does not render. Sanitised key names are committed in `env/*.env.example`.
 - **No unmediated execution path:** the chat panel itself never runs anything —
   **Insert into SQL editor** only stages a draft for the user to review and run
   via the existing gated `POST /api/reporting/sql/run` path (same read-only
-  login, row cap, timeout, audit trail); **Open in builder** only stages a
+  login, row cap, timeout, audit trail); **Open report** only stages a
   definition for a normal, whitelisted `/api/reporting/run` call. The one path
   where the model itself triggers a read against real data is the opt-in
   `run_sql`/`compute_stats` tool binding (`reporting.ai.explain_data` +

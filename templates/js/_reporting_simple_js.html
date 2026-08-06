@@ -408,6 +408,18 @@
     runCurrent();
   }
 
+  // #178 A4: open a raw definition (from the AI chat) straight into the
+  // Simple result view -- openReport minus the saved-report id.
+  async function openDefinition(def, name) {
+    await loadSourcesCatalog();
+    if (!state.metricsBySource) await loadMetricsCatalog();
+    state.current = {
+      def: def, name: name || def.title || '', reportId: null,
+      owned: true, canEdit: true, fromWizard: false, origin: 'ai'
+    };
+    runCurrent();
+  }
+
   // D3/D17: a dashboard-kind library card opens the builder view (a fourth
   // Simple-pane view, window.ReportingDashboard) instead of the normal
   // single-report result view -- same GET-by-id endpoint as openReport, the
@@ -2780,6 +2792,8 @@
   // itself -- it announces intent via a custom event instead of reaching
   // into this module's functions (D3).
   document.addEventListener('rs:dashboard-closed', exitToLibrary);
+
+  window.ReportingSimple = { openDefinition: openDefinition };
 
   document.addEventListener('rp:tabshown', function (e) {
     if (e.detail.tab === 'simple') initOnce();

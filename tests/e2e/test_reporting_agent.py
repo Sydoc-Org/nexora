@@ -64,12 +64,40 @@ def _stub_agent_sequence(page, responses):
     return calls
 
 
-def test_chat_panel_open_send_followup_history_and_open_in_builder(nexora_server, page):
+def _stub_run_ok(page):
+    """Stub /api/reporting/run with a deterministic success (copied from
+    test_reporting_simple.py's helper of the same name) -- opening an agent
+    definition into the Simple result view fires a real runCurrent(), whose
+    /api/reporting/run can error intermittently on the test DB (stale
+    NEXORA_TEST state); stubbing keeps the result UI up regardless."""
+
+    def _handler(route):
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [{"field": "processname", "header": "Process"}],
+                    "rows": [["acme.inv"]],
+                    "truncated": False,
+                    "rowCount": 1,
+                    "sql": None,
+                    "params": [],
+                    "resolvedDates": [],
+                }
+            ),
+        )
+
+    page.route("**/api/reporting/run", _handler)
+
+
+def test_chat_panel_open_send_followup_history_and_report_opens_in_simple(nexora_server, page):
     """Full round trip against a stubbed agent endpoint: open the chat panel
     from Advanced, send a question, see the user + AI bubbles, cleared input
-    and an "Open in builder" chip, click a follow-up chip (asserting the
+    and an "Open report" chip, click a follow-up chip (asserting the
     SECOND stub call's request body carries the running history), then open
-    the definition in the builder (existing applyDefinition behavior)."""
+    the definition -- which now lands in the Simple result view (#178 A4),
+    not the Advanced builder."""
     _login(page, nexora_server)
     question = "documents per month"
     answer = "Here are your documents per month."
@@ -108,10 +136,12 @@ def test_chat_panel_open_send_followup_history_and_open_in_builder(nexora_server
         {"role": "assistant", "content": answer},
     ], calls[1]["history"]
 
-    # Open the definition in the builder.
+    # Open the definition -- lands in the Simple result view (#178 A4).
+    _stub_run_ok(page)
     open_builder.first.click()
     expect(page.get_by_test_id("reporting-chat-panel")).to_be_hidden()
-    expect(page.get_by_test_id("reporting-title")).to_have_value(AGENT_DEFINITION["title"])
+    expect(page.get_by_test_id("rs-result")).to_be_visible()
+    expect(page.get_by_test_id("rs-chips")).to_be_visible()
     page.screenshot(path="var/screenshots/reporting_chat_panel_smoke.png")
 
 
@@ -119,7 +149,7 @@ def test_chat_panel_recovers_after_max_turns_with_no_artifact(nexora_server, pag
     """The retired Advanced AI panel needed a dedicated "Try again" button
     because a max-turns/no-artifact answer locked the whole panel. The chat
     panel has no separate retry control at all: a failed/limit-reached turn
-    still renders (with its trace, no "Open in builder" chip) and the same
+    still renders (with its trace, no "Open report" chip) and the same
     plain input keeps working for the next question -- staying disabled only
     for the duration of that next in-flight request (the old double-submit
     guard, now on the ordinary send button)."""

@@ -454,13 +454,13 @@ the route 503s). Only `ok`/`error` count toward the daily cap, so `blocked` and
 
 ## 9. UX integration
 
-**As shipped (2026-07-27):** a single **"AI chat"** toggle in the masthead
+**As shipped (2026-08-06):** a single **"AI chat"** toggle in the masthead
 (gated by `reporting.ai.use`, both tabs) opens one docked slide-over chat panel
 — not the originally-envisioned third **Table / SQL / Ask AI** toggle with
 separate sub-modes. That richer per-surface chrome (a `Run`/`Copy SQL` button
 row, a distinct "Make a chart" action, a live `Explain this query` affordance)
 was never built as separate UI; the panel instead exposes one small, consistent
-action set per turn (**Open in builder**, **Insert into SQL editor**, **Show
+action set per turn (**Open report**, **Insert into SQL editor**, **Show
 query**, plus canned follow-up chips) — see `docs/howto/reporting.md` → **AI
 assistant → AI chat panel** for the exact behavior. What *did* ship as
 originally envisioned:
@@ -470,17 +470,20 @@ originally envisioned:
   per-message streaming UI (turns are request/response, not token-streamed).
 - **Visible tool steps for trust** — the collapsed "How the agent worked" trace
   per turn.
-- **Open in builder** (fills the wells from an agent-produced definition),
-  **Insert into SQL editor** (review then run via the existing sandbox).
+- **Open report** (opens an agent-produced definition straight into the
+  Simple result view via `window.ReportingSimple.openDefinition()`, #178
+  A4 — falls back to filling the Advanced builder wells if that seam isn't
+  loaded), **Insert into SQL editor** (review then run via the existing
+  sandbox).
 - Transparency first: the tool trace and any SQL are always inspectable before
   the user acts on them.
 - i18n: all new strings via `{{ _('…') }}` / `gettext`, de/fr/it (the
   `test_translations.py` gate enforces coverage).
 
 Not built: a dedicated **Make a chart** one-click action from a chat turn (the
-user reaches charting via **Open in builder** → the existing chart view), a
+user reaches charting via **Open report** → the existing chart view), a
 **Save as report** / **Schedule** action directly from the chat panel (same —
-via **Open in builder**), and streamed (token-by-token) responses.
+via **Open report**), and streamed (token-by-token) responses.
 
 ---
 

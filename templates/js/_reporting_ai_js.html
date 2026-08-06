@@ -33,7 +33,7 @@
     howWorked: {{ _("How the agent worked")|tojson }},
     steps: {{ _("steps")|tojson }},
     rows: {{ _("rows")|tojson }},
-    openBuilder: {{ _("Open in builder")|tojson }},
+    openBuilder: {{ _("Open report")|tojson }},
     insertSql: {{ _("Insert into SQL editor")|tojson }},
     showQuery: {{ _("Show query")|tojson }},
     hideQuery: {{ _("Hide query")|tojson }},
@@ -255,9 +255,16 @@
 
     var openBtn = node.querySelector(".rp-chat-open-builder");
     if (openBtn) openBtn.addEventListener("click", function () {
-      if (!d.definition || !window.Reporting || !window.Reporting.applyDefinition) return;
-      window.Reporting.applyDefinition(d.definition, d.definition.title || I18N.reportTitle, null);
-      if (window.ReportingTabs) window.ReportingTabs.show("advanced");
+      if (!d.definition) return;
+      var def = d.definition;
+      if (def.chartHint && def.chartHint.type && !def.chartType) def.chartType = def.chartHint.type;
+      if (window.ReportingSimple && window.ReportingSimple.openDefinition) {
+        if (window.ReportingTabs) window.ReportingTabs.show("simple");
+        window.ReportingSimple.openDefinition(def, def.title || I18N.reportTitle);
+      } else if (window.Reporting && window.Reporting.applyDefinition) {
+        window.Reporting.applyDefinition(def, def.title || I18N.reportTitle, null);
+        if (window.ReportingTabs) window.ReportingTabs.show("advanced");
+      }
       closePanel();
     });
 
