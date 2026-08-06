@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-06 11:42+0200\n"
+"POT-Creation-Date: 2026-08-06 13:00+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -502,10 +502,10 @@ msgstr ""
 #: nx_lib/views/reporting.py:1743
 msgid ""
 "I couldn't write a summary this time, but I did produce a report draft — "
-"use “Open in builder” below to run it."
+"use “Open report” below to run it."
 msgstr ""
 "Questa volta non sono riuscito a scrivere un riepilogo, ma ho creato una "
-"bozza di report — la esegua tramite “Apri nel generatore” qui sotto."
+"bozza di report — la esegua tramite “Apri report” qui sotto."
 
 #: nx_lib/views/reporting.py:1748
 msgid ""
@@ -1083,26 +1083,32 @@ msgid "Break it down by…"
 msgstr "Suddividi per…"
 
 #: templates/_reporting_simple.html:84
+#: templates/js/_reporting_simple_js.html:68
 msgid "Granularity"
 msgstr "Granularità"
 
 #: templates/_reporting_simple.html:86 templates/js/_reporting_js.html:366
+#: templates/js/_reporting_simple_js.html:70
 msgid "Day"
 msgstr "Giorno"
 
 #: templates/_reporting_simple.html:87 templates/js/_reporting_js.html:366
+#: templates/js/_reporting_simple_js.html:71
 msgid "Week"
 msgstr "Settimana"
 
 #: templates/_reporting_simple.html:88 templates/js/_reporting_js.html:366
+#: templates/js/_reporting_simple_js.html:72
 msgid "Month"
 msgstr "Mese"
 
 #: templates/_reporting_simple.html:89 templates/js/_reporting_js.html:367
+#: templates/js/_reporting_simple_js.html:73
 msgid "Quarter"
 msgstr "Trimestre"
 
 #: templates/_reporting_simple.html:90 templates/js/_reporting_js.html:367
+#: templates/js/_reporting_simple_js.html:74
 msgid "Year"
 msgstr "Anno"
 
@@ -1115,7 +1121,7 @@ msgstr ""
 "serie colorata."
 
 #: templates/_reporting_simple.html:95
-#: templates/js/_reporting_simple_js.html:101
+#: templates/js/_reporting_simple_js.html:108
 msgid "Time range"
 msgstr "Intervallo di tempo"
 
@@ -1198,13 +1204,13 @@ msgid "More actions"
 msgstr "Altre azioni"
 
 #: templates/_reporting_simple.html:168
-#: templates/js/_reporting_simple_js.html:74
+#: templates/js/_reporting_simple_js.html:81
 msgid "Open in Advanced"
 msgstr "Apri in Avanzato"
 
 #: templates/_reporting_simple.html:170 templates/js/_reporting_ai_js.html:38
 #: templates/js/_reporting_js.html:506
-#: templates/js/_reporting_simple_js.html:75 templates/reporting.html:299
+#: templates/js/_reporting_simple_js.html:82 templates/reporting.html:299
 msgid "Show query"
 msgstr "Mostra query"
 
@@ -2087,7 +2093,7 @@ msgstr "Volume di elaborazione giornaliero"
 #: templates/js/_generali_dashboard_js.html:25
 #: templates/js/_reporting_dashboard_js.html:90
 #: templates/js/_reporting_js.html:510
-#: templates/js/_reporting_simple_js.html:91
+#: templates/js/_reporting_simple_js.html:98
 #: templates/js/_reporting_viz_js.html:557
 #: templates/js/_reporting_viz_js.html:619
 #: templates/js/_reporting_viz_js.html:675
@@ -3440,12 +3446,12 @@ msgid "Source"
 msgstr "Origine"
 
 #: templates/js/_reporting_simple_js.html:57
-#: templates/js/_reporting_simple_js.html:99 templates/reporting.html:256
+#: templates/js/_reporting_simple_js.html:106 templates/reporting.html:256
 msgid "Processes"
 msgstr "Processi"
 
 #: templates/js/_reporting_js.html:214 templates/js/_reporting_js.html:241
-#: templates/js/_reporting_simple_js.html:68 templates/reporting.html:259
+#: templates/js/_reporting_simple_js.html:75 templates/reporting.html:259
 msgid "All processes"
 msgstr "Tutti i processi"
 
@@ -3997,14 +4003,14 @@ msgstr "Tutti i campi"
 
 #: templates/js/_reporting_dashboard_js.html:81
 #: templates/js/_reporting_js.html:501
-#: templates/js/_reporting_simple_js.html:81
+#: templates/js/_reporting_simple_js.html:88
 #: templates/workitems_overview.html:223 templates/workitems_overview.html:275
 msgid "contains"
 msgstr "contiene"
 
 #: templates/js/_reporting_dashboard_js.html:82
 #: templates/js/_reporting_js.html:502
-#: templates/js/_reporting_simple_js.html:82
+#: templates/js/_reporting_simple_js.html:89
 #: templates/workitems_overview.html:226 templates/workitems_overview.html:278
 msgid "starts with"
 msgstr "inizia con"
@@ -4083,7 +4089,7 @@ msgstr "ID Workitem, Stato, Fase, Ultimo movimento"
 msgid "Optional extras"
 msgstr "Extra opzionali"
 
-#: templates/js/_reporting_simple_js.html:105
+#: templates/js/_reporting_simple_js.html:112
 #: templates/workitems_overview.html:511
 msgid "Document fields"
 msgstr ""
@@ -4436,7 +4442,7 @@ msgstr "Data di fine"
 
 #: templates/admin/logs.html:94 templates/admin/logs.html:129
 #: templates/admin/user_detail.html:224
-#: templates/js/_reporting_simple_js.html:104
+#: templates/js/_reporting_simple_js.html:111
 msgid "Time"
 msgstr "Ora"
 
@@ -5366,7 +5372,7 @@ msgid "Insert into SQL editor"
 msgstr "Inserisci nell'editor SQL"
 
 #: templates/js/_reporting_ai_js.html:39 templates/js/_reporting_js.html:507
-#: templates/js/_reporting_simple_js.html:77
+#: templates/js/_reporting_simple_js.html:84
 msgid "Hide query"
 msgstr "Nascondi query"
 
@@ -5415,19 +5421,23 @@ msgstr "Riflessione…"
 msgid "Working…"
 msgstr "Elaborazione…"
 
-#: templates/js/_reporting_ai_js.html:56
+#: templates/js/_reporting_ai_js.html:55
+msgid "Building your report…"
+msgstr "Creazione del tuo report…"
+
+#: templates/js/_reporting_ai_js.html:57
 msgid "Building the report…"
 msgstr "Creazione del report…"
 
-#: templates/js/_reporting_ai_js.html:57
+#: templates/js/_reporting_ai_js.html:58
 msgid "Checking the query…"
 msgstr "Verifica della query…"
 
-#: templates/js/_reporting_ai_js.html:58
+#: templates/js/_reporting_ai_js.html:59
 msgid "Running the query…"
 msgstr "Esecuzione della query…"
 
-#: templates/js/_reporting_ai_js.html:59
+#: templates/js/_reporting_ai_js.html:60
 msgid "Crunching the numbers…"
 msgstr "Analisi dei numeri…"
 
@@ -5485,13 +5495,13 @@ msgstr "Valore"
 
 #: templates/js/_reporting_dashboard_js.html:83
 #: templates/js/_reporting_js.html:503
-#: templates/js/_reporting_simple_js.html:83
+#: templates/js/_reporting_simple_js.html:90
 msgid "is empty"
 msgstr "è vuoto"
 
 #: templates/js/_reporting_dashboard_js.html:84
 #: templates/js/_reporting_js.html:504
-#: templates/js/_reporting_simple_js.html:84
+#: templates/js/_reporting_simple_js.html:91
 msgid "is not empty"
 msgstr "non è vuoto"
 
@@ -5647,7 +5657,7 @@ msgid "Running your report…"
 msgstr "Esecuzione del report in corso…"
 
 #: templates/js/_reporting_js.html:488
-#: templates/js/_reporting_simple_js.html:88
+#: templates/js/_reporting_simple_js.html:95
 #, python-brace-format
 msgid "{rows} rows · {ms} ms"
 msgstr "{rows} righe · {ms} ms"
@@ -5661,27 +5671,27 @@ msgid "SQL report"
 msgstr "Report SQL"
 
 #: templates/js/_reporting_js.html:498
-#: templates/js/_reporting_simple_js.html:78
+#: templates/js/_reporting_simple_js.html:85
 msgid "between"
 msgstr "tra"
 
 #: templates/js/_reporting_js.html:499
-#: templates/js/_reporting_simple_js.html:79
+#: templates/js/_reporting_simple_js.html:86
 msgid "is one of"
 msgstr "è uno di"
 
 #: templates/js/_reporting_js.html:500
-#: templates/js/_reporting_simple_js.html:80
+#: templates/js/_reporting_simple_js.html:87
 msgid "is not one of"
 msgstr "non è uno di"
 
 #: templates/js/_reporting_js.html:508
-#: templates/js/_reporting_simple_js.html:85
+#: templates/js/_reporting_simple_js.html:92
 msgid "Copied"
 msgstr "Copiato"
 
 #: templates/js/_reporting_js.html:509
-#: templates/js/_reporting_simple_js.html:76
+#: templates/js/_reporting_simple_js.html:83
 #, python-brace-format
 msgid ""
 "Showing the first {n} rows — narrow the filters or time range to see the "
@@ -5691,17 +5701,17 @@ msgstr ""
 "di tempo per vedere il resto."
 
 #: templates/js/_reporting_js.html:511
-#: templates/js/_reporting_simple_js.html:92
+#: templates/js/_reporting_simple_js.html:99
 msgid "Buckets"
 msgstr "Gruppi"
 
 #: templates/js/_reporting_js.html:512
-#: templates/js/_reporting_simple_js.html:93
+#: templates/js/_reporting_simple_js.html:100
 msgid "Avg per bucket"
 msgstr "Media per gruppo"
 
 #: templates/js/_reporting_js.html:513
-#: templates/js/_reporting_simple_js.html:108
+#: templates/js/_reporting_simple_js.html:115
 msgid "AI"
 msgstr "IA"
 
@@ -5938,6 +5948,11 @@ msgid "Checking the result…"
 msgstr "Verifica del risultato…"
 
 #: templates/js/_reporting_simple_js.html:69
+msgid "Pick a time breakdown first to choose its granularity."
+msgstr ""
+"Scegli prima un raggruppamento temporale per impostarne la granularità."
+
+#: templates/js/_reporting_simple_js.html:76
 msgid ""
 "No chart — this report is a single total. Adjust it in the wizard and "
 "pick a breakdown to get one."
@@ -5945,12 +5960,12 @@ msgstr ""
 "Nessun grafico — questo report è un totale singolo. Modificalo nel wizard"
 " e scegli un raggruppamento per ottenerne uno."
 
-#: templates/js/_reporting_simple_js.html:70
+#: templates/js/_reporting_simple_js.html:77
 #, python-brace-format
 msgid "Chart shows the first 50 of {n} rows."
 msgstr "Il grafico mostra le prime 50 righe su {n}."
 
-#: templates/js/_reporting_simple_js.html:71
+#: templates/js/_reporting_simple_js.html:78
 msgid ""
 "Too many data points to chart — choose a coarser granularity or a shorter"
 " time range."
@@ -5958,16 +5973,16 @@ msgstr ""
 "Troppi punti dati per un grafico — scegli una granularità più grossolana "
 "o un intervallo di tempo più breve."
 
-#: templates/js/_reporting_simple_js.html:72
+#: templates/js/_reporting_simple_js.html:79
 #, python-brace-format
 msgid "Showing the {shown} largest of {n} series."
 msgstr "Mostrate le {shown} serie più grandi su {n}."
 
-#: templates/js/_reporting_simple_js.html:73
+#: templates/js/_reporting_simple_js.html:80
 msgid "The chart could not be drawn (chart library failed to load)."
 msgstr "Impossibile disegnare il grafico (libreria non caricata)."
 
-#: templates/js/_reporting_simple_js.html:86
+#: templates/js/_reporting_simple_js.html:93
 #, python-brace-format
 msgid ""
 "Only {n} of {m} selected processes provide this field — documents from "
@@ -5977,7 +5992,7 @@ msgstr ""
 "documenti degli altri processi appaiono qui con un valore vuoto. Fornito "
 "da:"
 
-#: templates/js/_reporting_simple_js.html:87
+#: templates/js/_reporting_simple_js.html:94
 #, python-brace-format
 msgid ""
 "Only {n} of {m} processes provide this field — the measure only counts "
@@ -5986,55 +6001,55 @@ msgstr ""
 "Solo {n} su {m} processi forniscono questo campo — la metrica conta solo "
 "i documenti di questi processi:"
 
-#: templates/js/_reporting_simple_js.html:89
+#: templates/js/_reporting_simple_js.html:96
 #, python-brace-format
 msgid "{rows} rows · {ms} ms · {when}"
 msgstr "{rows} righe · {ms} ms · {when}"
 
-#: templates/js/_reporting_simple_js.html:90
+#: templates/js/_reporting_simple_js.html:97
 msgid "run just now"
 msgstr "proprio ora"
 
-#: templates/js/_reporting_simple_js.html:94
+#: templates/js/_reporting_simple_js.html:101
 msgid "Peak"
 msgstr "Picco"
 
-#: templates/js/_reporting_simple_js.html:95
+#: templates/js/_reporting_simple_js.html:102
 msgid "vs"
 msgstr "vs"
 
-#: templates/js/_reporting_simple_js.html:96
+#: templates/js/_reporting_simple_js.html:103
 #, python-brace-format
 msgid "{n} rows"
 msgstr "{n} righe"
 
-#: templates/js/_reporting_simple_js.html:97
+#: templates/js/_reporting_simple_js.html:104
 #, python-brace-format
 msgid "Step {n} of 4"
 msgstr "Passo {n} di 4"
 
-#: templates/js/_reporting_simple_js.html:98
+#: templates/js/_reporting_simple_js.html:105
 msgid "Measure"
 msgstr "Misura"
 
-#: templates/js/_reporting_simple_js.html:100
+#: templates/js/_reporting_simple_js.html:107
 msgid "Breakdown"
 msgstr "Suddivisione"
 
-#: templates/js/_reporting_simple_js.html:102
+#: templates/js/_reporting_simple_js.html:109
 msgid "So far"
 msgstr "Finora"
 
-#: templates/js/_reporting_simple_js.html:103
+#: templates/js/_reporting_simple_js.html:110
 #, python-brace-format
 msgid "{n} of {m} selected"
 msgstr "{n} di {m} selezionati"
 
-#: templates/js/_reporting_simple_js.html:106
+#: templates/js/_reporting_simple_js.html:113
 msgid "Or"
 msgstr "O"
 
-#: templates/js/_reporting_simple_js.html:107
+#: templates/js/_reporting_simple_js.html:114
 #, python-brace-format
 msgid "{n} of 3 picked"
 msgstr "{n} di 3 selezionati"

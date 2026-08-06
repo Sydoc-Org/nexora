@@ -1741,7 +1741,7 @@ def api_ai_agent():
             elif definition is not None:
                 answer = _(
                     "I couldn't write a summary this time, but I did produce a "
-                    "report draft — use “Open in builder” below to run it."
+                    "report draft — use “Open report” below to run it."
                 )
             elif sql:
                 answer = _(
