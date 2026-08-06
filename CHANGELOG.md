@@ -10,12 +10,33 @@ Work toward the next release.
 
 ### Added
 
+- In-app Reporting tips panel — a **Help** button in the Reporting page header
+  opens a "Get the best results" panel (coverage badges, drill-through, delta
+  chip semantics, chart caps, AI prompting tips) with a link to the full user
+  guide on Confluence. The panel (`templates/_reporting_help.html`) mirrors the
+  new "Tips — getting the best results" section of
+  `docs/howto/reporting-guide.md`; a non-blocking `reporting-help-sync`
+  pre-commit hook (`scripts/check-reporting-help-sync.py`) reminds when
+  reporting behaviour changes without touching either.
+- "Restart nexora" button on the admin overview page (#184) — dev-only
+  (404s on PROD), lets admins with the new `admin.restart` permission
+  (migration `0059`) kill and respawn the local dev server (`POST
+  /api/admin/restart`, fires `bin/nx.ps1 -r` detached) so template/code
+  changes show up without dropping to a terminal; the button polls until the
+  server answers again and reloads the page.
+- Saved-view folders (#186) — a saved workitems view can optionally live in a
+  folder ("Search Specific"): the save/rename editor gains a folder field with
+  existing folders as suggestions, and same-folder views render as one folder
+  chip (name + count) whose dropdown applies/renames/deletes them. Un-foldered
+  views stay plain chips; renaming with a different folder moves the view.
+  Nullable `Folder` column via migration `0060`; `GET`/`POST
+  /api/workitem_filter_views` carry the optional `folder` field.
 - Workitems saved filter views (#170) — the whole filter state (process, search,
   stage, status, dates, doc-value rows, per-page) can be saved as a named
   per-user view via the new "Save view" button; views render as chips between
   the filter card and the list. Click applies the view (Advanced opens/closes to
-  match), the active chip is highlighted until a filter is hand-edited,
-  double-click renames inline, × deletes. Saving under an existing name
+  match), the active chip is highlighted until a filter is hand-edited, the
+  pencil renames inline, × deletes. Saving under an existing name
   overwrites it. Stored in `dbo.WorkitemFilterViews` (migration `0057`, private
   per user, capped at 50); new endpoints `GET`/`POST
   /api/workitem_filter_views` and `DELETE /api/workitem_filter_views/<id>`, all

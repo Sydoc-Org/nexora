@@ -2774,3 +2774,45 @@ def test_filter_views_scoped_to_owner(login, workitems_all_perms):
 
     user = login(username="user@test.local")
     assert user.delete(f"/api/workitem_filter_views/{vid}").status_code == 200
+
+
+def test_filter_views_folder_roundtrip(user_client, workitems_all_perms):
+    resp = user_client.post(
+        "/api/workitem_filter_views",
+        json={"name": "foldered", "folder": "Search Specific", "filters": []},
+    )
+    assert resp.status_code == 200
+    body = resp.get_json()
+    vid = body["id"]
+    assert body["folder"] == "Search Specific"
+
+    views = user_client.get("/api/workitem_filter_views").get_json()["views"]
+    assert [v["folder"] for v in views if v["id"] == vid] == ["Search Specific"]
+
+    # Move to another folder via id-update (id stays stable).
+    resp = user_client.post(
+        "/api/workitem_filter_views",
+        json={"id": vid, "name": "foldered", "folder": "Other", "filters": []},
+    )
+    assert resp.status_code == 200
+    views = user_client.get("/api/workitem_filter_views").get_json()["views"]
+    assert [v["folder"] for v in views if v["id"] == vid] == ["Other"]
+
+    # Blank folder clears it back to un-foldered (NULL -> JSON null).
+    resp = user_client.post(
+        "/api/workitem_filter_views",
+        json={"id": vid, "name": "foldered", "folder": "  ", "filters": []},
+    )
+    assert resp.status_code == 200
+    views = user_client.get("/api/workitem_filter_views").get_json()["views"]
+    assert [v["folder"] for v in views if v["id"] == vid] == [None]
+
+    assert user_client.delete(f"/api/workitem_filter_views/{vid}").status_code == 200
+
+
+def test_filter_views_folder_validation(user_client, workitems_all_perms):
+    def post(body):
+        return user_client.post("/api/workitem_filter_views", json=body)
+
+    assert post({"name": "x", "folder": "f" * 101, "filters": []}).status_code == 400
+    assert post({"name": "x", "folder": 5, "filters": []}).status_code == 400

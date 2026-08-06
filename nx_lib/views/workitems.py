@@ -2227,15 +2227,20 @@ MAX_FILTER_VIEWS = 50
 
 
 def _validate_filter_view(payload):
-    """Returns (name, filters_json). Raises ValueError on bad input.
+    """Returns (name, folder, filters_json). Raises ValueError on bad input.
 
     `filters` is the client's [name, value] pair list — the same serialization
     the page sends to /api/workitems. Stored opaquely; the server never applies
     it, so per-field permission gates keep working unchanged on replay.
+    `folder` is the optional grouping category (#186); empty/blank -> NULL.
     """
     name = (payload.get("name") or "").strip()
     if not name or len(name) > 100:
         raise ValueError("name")
+    folder = payload.get("folder") or ""
+    if not isinstance(folder, str) or len(folder) > 100:
+        raise ValueError("folder")
+    folder = folder.strip() or None
     filters = payload.get("filters")
     if not isinstance(filters, list) or len(filters) > 60:
         raise ValueError("filters")
@@ -2248,7 +2253,7 @@ def _validate_filter_view(payload):
             or len(pair[1]) > 1000
         ):
             raise ValueError("filters")
-    return name, json.dumps(filters)
+    return name, folder, json.dumps(filters)
 
 
 @require_permission("workitems.view")
@@ -2258,7 +2263,7 @@ def api_workitem_filter_views():
     try:
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT ID, Name, FilterJSON FROM WorkitemFilterViews"
+            "SELECT ID, Name, Folder, FilterJSON FROM WorkitemFilterViews"
             " WHERE UserID = ? ORDER BY SortOrder, Name",
             (session["userid"],),
         )
@@ -2268,7 +2273,7 @@ def api_workitem_filter_views():
                 filters = json.loads(row.FilterJSON)
             except ValueError:
                 filters = []
-            views.append({"id": row.ID, "name": row.Name, "filters": filters})
+            views.append({"id": row.ID, "name": row.Name, "folder": row.Folder, "filters": filters})
         return jsonify({"views": views})
     except Exception as e:
         current_app.logger.error(f"api_workitem_filter_views: {e}")
@@ -2280,11 +2285,11 @@ def api_workitem_filter_views():
 @require_permission("workitems.view")
 def save_workitem_filter_view():
     """Create or update a saved view. Without `id`, saving under an existing
-    name overwrites that view's filters; with `id`, updates name + filters
-    (rename keeps the id stable)."""
+    name overwrites that view's filters + folder; with `id`, updates name,
+    folder and filters (rename/move keeps the id stable)."""
     payload = request.get_json(silent=True) or {}
     try:
-        name, filters_json = _validate_filter_view(payload)
+        name, folder, filters_json = _validate_filter_view(payload)
     except ValueError:
         return jsonify({"error": _("Invalid view name or filters.")}), 400
     view_id = payload.get("id")
@@ -2297,17 +2302,18 @@ def save_workitem_filter_view():
         cursor = conn.cursor()
         if view_id is not None:
             cursor.execute(
-                "UPDATE WorkitemFilterViews SET Name = ?, FilterJSON = ?"
+                "UPDATE WorkitemFilterViews SET Name = ?, Folder = ?, FilterJSON = ?"
                 " WHERE ID = ? AND UserID = ?",
-                (name, filters_json, view_id, userid),
+                (name, folder, filters_json, view_id, userid),
             )
             if cursor.rowcount == 0:
                 conn.rollback()
                 return jsonify({"error": _("View not found.")}), 404
         else:
             cursor.execute(
-                "UPDATE WorkitemFilterViews SET FilterJSON = ? WHERE UserID = ? AND Name = ?",
-                (filters_json, userid, name),
+                "UPDATE WorkitemFilterViews SET Folder = ?, FilterJSON = ?"
+                " WHERE UserID = ? AND Name = ?",
+                (folder, filters_json, userid, name),
             )
             if cursor.rowcount == 0:
                 cursor.execute(
@@ -2317,9 +2323,9 @@ def save_workitem_filter_view():
                     conn.rollback()
                     return jsonify({"error": _("Too many saved views — delete one first.")}), 400
                 cursor.execute(
-                    "INSERT INTO WorkitemFilterViews (UserID, Name, FilterJSON)"
-                    " VALUES (?, ?, ?)",
-                    (userid, name, filters_json),
+                    "INSERT INTO WorkitemFilterViews (UserID, Name, Folder, FilterJSON)"
+                    " VALUES (?, ?, ?, ?)",
+                    (userid, name, folder, filters_json),
                 )
             cursor.execute(
                 "SELECT ID FROM WorkitemFilterViews WHERE UserID = ? AND Name = ?",
@@ -2327,7 +2333,7 @@ def save_workitem_filter_view():
             )
             view_id = cursor.fetchone()[0]
         conn.commit()
-        return jsonify({"id": view_id, "name": name})
+        return jsonify({"id": view_id, "name": name, "folder": folder})
     except pyodbc.IntegrityError:
         conn.rollback()
         return jsonify({"error": _("A view with this name already exists.")}), 400

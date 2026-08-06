@@ -268,3 +268,51 @@ def test_workitems_saved_filter_view_roundtrip(nexora_server, page):
     expect(page.locator('[data-testid="workitems-view-chip"]')).to_have_count(0)
     page.goto(f"{nexora_server}/workitems")
     expect(page.locator('[data-testid="workitems-saved-views"]')).to_be_hidden()
+
+
+@pytest.mark.flaky_e2e
+def test_workitems_saved_view_folder_grouping(nexora_server, page):
+    """Saved-view folders (#186): saving with a folder renders a folder chip
+    (name + count) instead of a plain chip; its dropdown lists the views with
+    apply/delete. Same pre-clean discipline as the roundtrip test."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/workitems")
+    page.evaluate(
+        """async () => {
+            const h = {'X-CSRFToken': csrfToken};
+            const r = await fetch('/api/workitem_filter_views', {headers: h});
+            for (const v of (await r.json()).views) {
+                await fetch(`/api/workitem_filter_views/${v.id}`, {method: 'DELETE', headers: h});
+            }
+        }"""
+    )
+    page.reload()
+
+    # Save a view into a folder.
+    page.fill('[data-testid="workitems-search"]', "555")
+    page.click('[data-testid="workitems-save-view"]')
+    page.fill('[data-testid="workitems-view-name-input"]', "Foldered view")
+    folder_input = page.locator('[data-testid="workitems-view-folder-input"]')
+    folder_input.fill("Search Specific")
+    folder_input.press("Enter")
+
+    # A folder chip renders (no plain chip for a foldered view).
+    folder_chip = page.locator('[data-testid="workitems-view-folder"]')
+    expect(folder_chip).to_be_visible()
+    expect(folder_chip).to_contain_text("Search Specific (1)")
+    expect(page.locator('[data-testid="workitems-view-chip"]')).to_have_count(0)
+
+    # Fresh load: open the folder dropdown and apply the view from it.
+    page.goto(f"{nexora_server}/workitems")
+    folder_chip = page.locator('[data-testid="workitems-view-folder"]')
+    expect(folder_chip).to_be_visible()
+    folder_chip.click()
+    apply_btn = page.locator('[data-testid="workitems-view-menu-apply"]')
+    expect(apply_btn).to_be_visible()
+    apply_btn.click()
+    expect(page.locator('[data-testid="workitems-search"]')).to_have_value("555")
+
+    # Delete from the dropdown: the folder chip disappears with its last view.
+    folder_chip.click()
+    page.locator(".saved-view-folder-menu button[aria-label]").last.click()
+    expect(page.locator('[data-testid="workitems-view-folder"]')).to_have_count(0)

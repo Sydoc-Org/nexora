@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-06 12:00+0200\n"
+"POT-Creation-Date: 2026-08-06 12:39+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -38,44 +38,44 @@ msgstr "Date d'export"
 msgid "Workitem ID"
 msgstr "ID Workitem"
 
-#: nx_lib/views/admin.py:187 nx_lib/views/admin.py:734
+#: nx_lib/views/admin.py:189 nx_lib/views/admin.py:756
 msgid "All fields are required."
 msgstr "Tous les champs sont obligatoires."
 
-#: nx_lib/views/admin.py:202
+#: nx_lib/views/admin.py:204
 msgid "Organization created successfully."
 msgstr "Organisation créée avec succès."
 
-#: nx_lib/views/admin.py:204
+#: nx_lib/views/admin.py:206
 msgid "Organization already exists."
 msgstr "L'organisation existe déjà."
 
-#: nx_lib/views/admin.py:207 nx_lib/views/admin.py:802
+#: nx_lib/views/admin.py:209 nx_lib/views/admin.py:824
 msgid "An unexpected error occurred."
 msgstr "Une erreur inattendue s'est produite."
 
-#: nx_lib/views/admin.py:231
+#: nx_lib/views/admin.py:233
 msgid "Organization updated successfully."
 msgstr "Organisation mise à jour avec succès."
 
-#: nx_lib/views/admin.py:234 nx_lib/views/admin.py:258
-#: nx_lib/views/admin.py:884 nx_lib/views/admin.py:1124
+#: nx_lib/views/admin.py:236 nx_lib/views/admin.py:260
+#: nx_lib/views/admin.py:906 nx_lib/views/admin.py:1146
 msgid "An error occurred."
 msgstr "Une erreur s'est produite."
 
-#: nx_lib/views/admin.py:253
+#: nx_lib/views/admin.py:255
 msgid "Organization not found."
 msgstr "Organisation introuvable."
 
-#: nx_lib/views/admin.py:255
+#: nx_lib/views/admin.py:257
 msgid "Organization deleted successfully."
 msgstr "Organisation supprimée avec succès."
 
-#: nx_lib/views/admin.py:742 nx_lib/views/admin.py:856
+#: nx_lib/views/admin.py:764 nx_lib/views/admin.py:878
 msgid "Permission Denied for this action."
 msgstr "Autorisation refusée pour cette action."
 
-#: nx_lib/views/admin.py:790
+#: nx_lib/views/admin.py:812
 msgid ""
 "User created, but the email could not be sent. Ask them to use 'Forgot "
 "password'."
@@ -83,86 +83,86 @@ msgstr ""
 "Utilisateur créé, mais l'e-mail n'a pas pu être envoyé. Demandez-lui "
 "d'utiliser la fonction 'Mot de passe oublié'."
 
-#: nx_lib/views/admin.py:795
+#: nx_lib/views/admin.py:817
 msgid "User created and email sent."
 msgstr "Utilisateur créé et e-mail envoyé."
 
-#: nx_lib/views/admin.py:797 templates/js/admin/_access_control_js.html:564
+#: nx_lib/views/admin.py:819 templates/js/admin/_access_control_js.html:564
 msgid "User created successfully."
 msgstr "Utilisateur créé avec succès."
 
-#: nx_lib/views/admin.py:799
+#: nx_lib/views/admin.py:821
 msgid "Username or email already exists."
 msgstr "Le nom d'utilisateur ou l'e-mail existe déjà."
 
-#: nx_lib/views/admin.py:881
+#: nx_lib/views/admin.py:903
 msgid "User updated successfully."
 msgstr "Utilisateur mis à jour avec succès."
 
-#: nx_lib/views/admin.py:1070
+#: nx_lib/views/admin.py:1092
 msgid "You cannot delete your own account."
 msgstr "Vous ne pouvez pas supprimer votre propre compte."
 
-#: nx_lib/views/admin.py:1116
+#: nx_lib/views/admin.py:1138
 msgid "User not found."
 msgstr "Utilisateur introuvable."
 
-#: nx_lib/views/admin.py:1118
+#: nx_lib/views/admin.py:1140
 msgid "User deleted successfully."
 msgstr "Utilisateur supprimé avec succès."
 
-#: nx_lib/views/admin.py:1247
+#: nx_lib/views/admin.py:1269
 msgid "Could not fetch logs"
 msgstr "Impossible de récupérer les journaux"
 
-#: nx_lib/views/admin.py:1291
+#: nx_lib/views/admin.py:1313
 msgid "Could not fetch sessions"
 msgstr "Impossible de récupérer les sessions"
 
-#: nx_lib/views/admin.py:1388 nx_lib/views/admin.py:1698
-#: nx_lib/views/admin.py:1740 nx_lib/views/admin.py:1785
-#: nx_lib/views/admin.py:1824 nx_lib/views/admin.py:1861
-#: nx_lib/views/admin.py:1893 nx_lib/views/dashboard.py:252
+#: nx_lib/views/admin.py:1410 nx_lib/views/admin.py:1720
+#: nx_lib/views/admin.py:1762 nx_lib/views/admin.py:1807
+#: nx_lib/views/admin.py:1846 nx_lib/views/admin.py:1883
+#: nx_lib/views/admin.py:1915 nx_lib/views/dashboard.py:252
 #: nx_lib/views/dashboard.py:362 nx_lib/views/dashboard.py:417
 #: nx_lib/views/dashboard.py:509 nx_lib/views/invoices.py:292
 #: nx_lib/views/workitems.py:981 nx_lib/views/workitems.py:1719
 msgid "Not authorized"
 msgstr "Non autorisé"
 
-#: nx_lib/views/admin.py:1431
+#: nx_lib/views/admin.py:1453
 msgid "Could not fetch users"
 msgstr "Impossible de récupérer les utilisateurs"
 
-#: nx_lib/views/admin.py:1477
+#: nx_lib/views/admin.py:1499
 msgid "Name is required"
 msgstr "Le nom est obligatoire"
 
-#: nx_lib/views/admin.py:1505
+#: nx_lib/views/admin.py:1527
 msgid "Profile saved successfully"
 msgstr "Profil enregistré avec succès"
 
-#: nx_lib/views/admin.py:1684
+#: nx_lib/views/admin.py:1706
 msgid "Overrides updated successfully"
 msgstr "Dérogations mises à jour avec succès"
 
-#: nx_lib/views/admin.py:1749 nx_lib/views/admin.py:1877
-#: nx_lib/views/admin.py:1919
+#: nx_lib/views/admin.py:1771 nx_lib/views/admin.py:1899
+#: nx_lib/views/admin.py:1941
 msgid "Permission not found"
 msgstr "Autorisation introuvable"
 
-#: nx_lib/views/admin.py:1829 nx_lib/views/admin.py:1866
+#: nx_lib/views/admin.py:1851 nx_lib/views/admin.py:1888
 msgid "Code and description are required"
 msgstr "Le code et la description sont obligatoires"
 
-#: nx_lib/views/admin.py:1844
+#: nx_lib/views/admin.py:1866
 msgid "Permission created successfully"
 msgstr "Autorisation créée avec succès"
 
-#: nx_lib/views/admin.py:1879
+#: nx_lib/views/admin.py:1901
 msgid "Permission updated successfully"
 msgstr "Autorisation mise à jour avec succès"
 
-#: nx_lib/views/admin.py:1912
+#: nx_lib/views/admin.py:1934
 #, python-format
 msgid ""
 "Cannot delete: used in %(p)d profile(s) and %(o)d override(s). Remove all"
@@ -171,7 +171,7 @@ msgstr ""
 "Impossible de supprimer : utilisé dans %(p)d profil(s) et %(o)d "
 "substitution(s). Veuillez d'abord supprimer toutes les affectations."
 
-#: nx_lib/views/admin.py:1921
+#: nx_lib/views/admin.py:1943
 msgid "Permission deleted successfully"
 msgstr "Autorisation supprimée avec succès"
 
@@ -817,31 +817,31 @@ msgstr "Cette page est uniquement disponible pour le client MS02."
 msgid "Could not clear the prepared documents. Please try again."
 msgstr "Impossible de supprimer les documents préparés. Veuillez réessayer."
 
-#: nx_lib/views/workitems.py:2275
+#: nx_lib/views/workitems.py:2280
 msgid "Could not load saved views."
 msgstr "Impossible de charger les vues enregistrées."
 
-#: nx_lib/views/workitems.py:2289 nx_lib/views/workitems.py:2292
+#: nx_lib/views/workitems.py:2294 nx_lib/views/workitems.py:2297
 msgid "Invalid view name or filters."
 msgstr "Nom de vue ou filtres invalides."
 
-#: nx_lib/views/workitems.py:2306 nx_lib/views/workitems.py:2356
+#: nx_lib/views/workitems.py:2311 nx_lib/views/workitems.py:2360
 msgid "View not found."
 msgstr "Vue introuvable."
 
-#: nx_lib/views/workitems.py:2319
+#: nx_lib/views/workitems.py:2324
 msgid "Too many saved views — delete one first."
 msgstr "Trop de vues enregistrées — supprimez-en d'abord une."
 
-#: nx_lib/views/workitems.py:2335
+#: nx_lib/views/workitems.py:2339
 msgid "A view with this name already exists."
 msgstr "Une vue portant ce nom existe déjà."
 
-#: nx_lib/views/workitems.py:2338
+#: nx_lib/views/workitems.py:2342
 msgid "Could not save the view."
 msgstr "Impossible d'enregistrer la vue."
 
-#: nx_lib/views/workitems.py:2360
+#: nx_lib/views/workitems.py:2364
 msgid "Could not delete the view."
 msgstr "Impossible de supprimer la vue."
 
@@ -860,11 +860,11 @@ msgid "Overview"
 msgstr "Vue d'ensemble"
 
 #: templates/_header.html:191 templates/admin/access_control.html:19
-#: templates/admin/admin_overview.html:58 templates/js/_header_js.html:58
+#: templates/admin/admin_overview.html:65 templates/js/_header_js.html:58
 msgid "Access Control"
 msgstr "Contrôle d'accès"
 
-#: templates/_header.html:196 templates/admin/admin_overview.html:68
+#: templates/_header.html:196 templates/admin/admin_overview.html:75
 #: templates/admin/organizations.html:19 templates/js/_header_js.html:59
 msgid "Organizations"
 msgstr "Organisations"
@@ -4156,7 +4156,7 @@ msgid "Access Control - nexora"
 msgstr "Contrôle d'accès - nexora"
 
 #: templates/admin/access_control.html:20
-#: templates/admin/admin_overview.html:63
+#: templates/admin/admin_overview.html:70
 msgid "Users, permissions and access profiles"
 msgstr "Utilisateurs, permissions et profils d'accès"
 
@@ -4319,81 +4319,95 @@ msgid "Users, organizations, sessions and logs."
 msgstr "Utilisateurs, organisations, sessions et journaux."
 
 #: templates/admin/admin_overview.html:25
+msgid "Restart nexora"
+msgstr "Redémarrer nexora"
+
+#: templates/admin/admin_overview.html:32
 msgid "Active sessions"
 msgstr "Sessions actives"
 
-#: templates/admin/admin_overview.html:29
+#: templates/admin/admin_overview.html:36
 msgid "Currently signed in"
 msgstr "Actuellement connectés"
 
-#: templates/admin/admin_overview.html:33
+#: templates/admin/admin_overview.html:40
 msgid "Failed logins today"
 msgstr "Connexions échouées aujourd'hui"
 
-#: templates/admin/admin_overview.html:37
+#: templates/admin/admin_overview.html:44
 msgid "Since midnight"
 msgstr "Depuis minuit"
 
-#: templates/admin/admin_overview.html:41
+#: templates/admin/admin_overview.html:48
 msgid "Database health"
 msgstr "Santé de la base de données"
 
-#: templates/admin/admin_overview.html:62
+#: templates/admin/admin_overview.html:69
 #: templates/js/admin/_access_control_js.html:225
 msgid "users"
 msgstr "utilisateurs"
 
-#: templates/admin/admin_overview.html:72
+#: templates/admin/admin_overview.html:79
 msgid "organizations"
 msgstr "organisations"
 
-#: templates/admin/admin_overview.html:73 templates/admin/organizations.html:20
+#: templates/admin/admin_overview.html:80 templates/admin/organizations.html:20
 msgid "Tenant organizations and their codes"
 msgstr "Organisations clientes et leurs codes"
 
-#: templates/admin/admin_overview.html:78
+#: templates/admin/admin_overview.html:85
 msgid "Session Monitor"
 msgstr "Moniteur de sessions"
 
-#: templates/admin/admin_overview.html:81
+#: templates/admin/admin_overview.html:88
 msgid "Live"
 msgstr "En direct"
 
-#: templates/admin/admin_overview.html:82
+#: templates/admin/admin_overview.html:89
 msgid "users online now"
 msgstr "utilisateurs en ligne"
 
-#: templates/admin/admin_overview.html:83
+#: templates/admin/admin_overview.html:90
 msgid "Users active in the last 30 minutes"
 msgstr "Utilisateurs actifs au cours des 30 dernières minutes"
 
-#: templates/admin/admin_overview.html:88 templates/js/_header_js.html:61
+#: templates/admin/admin_overview.html:95 templates/js/_header_js.html:61
 msgid "System Logs"
 msgstr "Journaux système"
 
-#: templates/admin/admin_overview.html:91
+#: templates/admin/admin_overview.html:98
 msgid "Audit"
 msgstr "Audit"
 
-#: templates/admin/admin_overview.html:92
+#: templates/admin/admin_overview.html:99
 msgid "activity &amp; events"
 msgstr "activité &amp; événements"
 
-#: templates/admin/admin_overview.html:93
+#: templates/admin/admin_overview.html:100
 msgid "Filter by user, date, method or status"
 msgstr "Filtrer par utilisateur, date, méthode ou statut"
 
-#: templates/admin/admin_overview.html:99
+#: templates/admin/admin_overview.html:106
 msgid "Resources"
 msgstr "Ressources"
 
-#: templates/admin/admin_overview.html:104
+#: templates/admin/admin_overview.html:111
 msgid "Nexora documentation"
 msgstr "Documentation Nexora"
 
-#: templates/admin/admin_overview.html:110
+#: templates/admin/admin_overview.html:117
 msgid "ngrok hosting"
 msgstr "Hébergement ngrok"
+
+#: templates/admin/admin_overview.html:129
+msgid "Restart the dev server now? The page will reload once it is back."
+msgstr ""
+"Redémarrer le serveur de développement maintenant ? La page se rechargera"
+" dès qu'il sera de nouveau disponible."
+
+#: templates/admin/admin_overview.html:131
+msgid "Restarting..."
+msgstr "Redémarrage…"
 
 #: templates/admin/logs.html:6
 msgid "System Logs - nexora"
@@ -6281,25 +6295,30 @@ msgstr "L'exportation a échoué. Veuillez réessayer."
 msgid "No workitems found"
 msgstr "Aucun Workitem trouvé"
 
-#: templates/js/_workitems_overview_js.html:1299
+#: templates/js/_workitems_overview_js.html:1312
+#: templates/js/_workitems_overview_js.html:1357
 msgid "Apply view"
 msgstr "Appliquer la vue"
 
-#: templates/js/_workitems_overview_js.html:1311
-#: templates/js/_workitems_overview_js.html:1312
+#: templates/js/_workitems_overview_js.html:1318
+#: templates/js/_workitems_overview_js.html:1361
 msgid "Rename view"
 msgstr "Renommer la vue"
 
-#: templates/js/_workitems_overview_js.html:1321
-#: templates/js/_workitems_overview_js.html:1322
+#: templates/js/_workitems_overview_js.html:1320
+#: templates/js/_workitems_overview_js.html:1363
 msgid "Delete view"
 msgstr "Supprimer la vue"
 
-#: templates/js/_workitems_overview_js.html:1339
+#: templates/js/_workitems_overview_js.html:1412
 msgid "View name…"
 msgstr "Nom de la vue…"
 
-#: templates/js/_workitems_overview_js.html:1372
+#: templates/js/_workitems_overview_js.html:1420
+msgid "Folder (optional)"
+msgstr "Dossier (facultatif)"
+
+#: templates/js/_workitems_overview_js.html:1466
 msgid "View saved."
 msgstr "Vue enregistrée."
 

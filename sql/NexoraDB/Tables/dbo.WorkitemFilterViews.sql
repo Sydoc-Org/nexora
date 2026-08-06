@@ -19,6 +19,7 @@ CREATE TABLE [dbo].[WorkitemFilterViews](
 	[FilterJSON] [nvarchar](max) NOT NULL,
 	[SortOrder] [int] NOT NULL,
 	[CreatedAt] [datetime2](7) NOT NULL,
+	[Folder] [nvarchar](100) NULL,
  CONSTRAINT [PK_WorkitemFilterViews] PRIMARY KEY CLUSTERED 
 (
 	[ID] ASC

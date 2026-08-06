@@ -366,6 +366,7 @@ BEGIN
         ID         INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_WorkitemFilterViews PRIMARY KEY,
         UserID     INT NOT NULL,
         Name       NVARCHAR(100) NOT NULL,
+        Folder     NVARCHAR(100) NULL,  -- migration 0059 (#186)
         FilterJSON NVARCHAR(MAX) NOT NULL,
         SortOrder  INT NOT NULL CONSTRAINT DF_WorkitemFilterViews_SortOrder DEFAULT 0,
         CreatedAt  DATETIME2 NOT NULL CONSTRAINT DF_WorkitemFilterViews_CreatedAt DEFAULT SYSUTCDATETIME(),
