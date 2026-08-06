@@ -2799,11 +2799,15 @@
       }
     }
     var filters = def.filters || [];
+    // Only a filter on the SAME field processFieldFor(src) would offer can be
+    // the wizard's field-scope pick — matching any string in-filter would
+    // silently swallow (registry-process sources) or misattribute
+    // (multi-string-field sources) an unrelated filter (#178 review finding).
+    var pf = processFieldFor(src);
     var fieldScopeFilter = null;
     var rest = [];
     filters.forEach(function (ft) {
-      var meta = (src.fields || []).find(function (x) { return x.field === ft.field; });
-      if (!fieldScopeFilter && ft.op === 'in' && meta && meta.type === 'string') {
+      if (!fieldScopeFilter && ft.op === 'in' && pf && ft.field === pf.field) {
         fieldScopeFilter = ft;
       } else {
         rest.push(ft);

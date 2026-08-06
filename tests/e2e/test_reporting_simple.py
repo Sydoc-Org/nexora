@@ -4272,3 +4272,54 @@ def test_wizard_field_scope_step_serializes_to_in_filter(nexora_server, page):
         )
         for b in posted
     )
+
+
+# Regression (Phase 5 batched review, #178): wizardStateFromDefinition must
+# only capture an in-filter as the wizard's field-scope pick when it targets
+# the SAME field processFieldFor(src) would offer -- not any string in-filter.
+# A source WITH a processes registry never has a process-like field to match,
+# so an unrelated string in-filter must keep bailing to Advanced (Adjust
+# button hidden), exactly like before Task 13, instead of being silently
+# swallowed (and dropped on the next wizard save).
+REGISTRY_SCOPE_WIZ_SOURCES = [
+    {
+        "id": "docprocessing_scope",
+        "label": "Document processing (scope regression)",
+        "kind": "curated",
+        "processes": ["acme.inv", "acme.hr"],
+        "fields": [
+            {
+                "field": "doctype",
+                "label": "Document Type",
+                "type": "string",
+                "grainable": False,
+                "filterable": True,
+            },
+        ],
+    }
+]
+REGISTRY_SCOPE_WIZ_METRICS = {
+    "docprocessing_scope": [
+        {"code": "docp_scope_count", "label": "Docp scope count", "aggregation": "count"},
+    ]
+}
+
+
+def test_wizard_state_from_definition_ignores_unrelated_in_filter(nexora_server, page):
+    """A registry-process source's unrelated string in-filter must not be
+    misattributed as a field-scope pick: Adjust-in-wizard stays unavailable
+    (bails to Advanced) rather than silently mapping and then dropping the
+    filter on save."""
+    _login(page, nexora_server)
+    _stub_wiz_catalogs(page, REGISTRY_SCOPE_WIZ_SOURCES, REGISTRY_SCOPE_WIZ_METRICS)
+    _stub_run_ok(page)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.evaluate("""() => window.ReportingSimple.openDefinition({
+      schemaVersion: 1, visualization: 'table', source: 'docprocessing_scope',
+      title: 'scope regression', columns: [],
+      metrics: [{metric: 'docp_scope_count'}],
+      filters: [{field: 'doctype', op: 'in', value: ['a', 'b']}],
+      sort: [], scope: {clients: [], processes: []}, rowLimit: 5000
+    }, 'scope regression')""")
+    expect(page.get_by_test_id("rs-result")).to_be_visible()
+    expect(page.get_by_test_id("rs-adjust-wizard")).to_be_hidden()
