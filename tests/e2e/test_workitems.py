@@ -210,3 +210,61 @@ def test_workitems_sort_last_movement_toggles_order(nexora_server, page):
     expect(rows.nth(0)).to_have_attribute("id", "row-default-503")
     expect(rows.nth(1)).to_have_attribute("id", "row-default-501")
     expect(rows.nth(2)).to_have_attribute("id", "row-default-502")
+
+
+@pytest.mark.flaky_e2e
+def test_workitems_saved_filter_view_roundtrip(nexora_server, page):
+    """Saved filter views (#170): save the current filter state as a named
+    chip, re-apply it on a fresh page load, rename via the pencil, delete via
+    the x. Runs against the real /api/workitem_filter_views endpoints (table
+    exists in TEST). Pre-cleans the user's views so a run that died mid-test
+    can't leave a stale chip behind for the next run."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/workitems")
+    page.evaluate(
+        """async () => {
+            const h = {'X-CSRFToken': csrfToken};
+            const r = await fetch('/api/workitem_filter_views', {headers: h});
+            for (const v of (await r.json()).views) {
+                await fetch(`/api/workitem_filter_views/${v.id}`, {method: 'DELETE', headers: h});
+            }
+        }"""
+    )
+    page.reload()
+
+    # Build a state and save it as a named view.
+    page.fill('[data-testid="workitems-search"]', "4711")
+    page.select_option('[data-testid="workitems-status-filter"]', "Done")
+    page.click('[data-testid="workitems-save-view"]')
+    name_input = page.locator('[data-testid="workitems-view-name-input"]')
+    expect(name_input).to_be_visible()
+    name_input.fill("E2E backlog")
+    name_input.press("Enter")
+
+    chip = page.locator('[data-testid="workitems-view-chip"]')
+    expect(chip).to_have_count(1)
+    expect(chip).to_contain_text("E2E backlog")
+
+    # Fresh load: the chip persists; clicking its name restores the state.
+    page.goto(f"{nexora_server}/workitems")
+    chip = page.locator('[data-testid="workitems-view-chip"]')
+    expect(chip).to_be_visible()
+    expect(page.locator('[data-testid="workitems-search"]')).to_have_value("")
+    chip.locator("button").first.click()
+    expect(page.locator('[data-testid="workitems-search"]')).to_have_value("4711")
+    expect(page.locator('[data-testid="workitems-status-filter"]')).to_have_value("Done")
+
+    # Rename via the pencil (chip buttons: 0 = apply, 1 = pencil, 2 = x).
+    chip.locator("button").nth(1).click()
+    name_input = page.locator('[data-testid="workitems-view-name-input"]')
+    expect(name_input).to_be_visible()
+    name_input.fill("E2E renamed")
+    name_input.press("Enter")
+    chip = page.locator('[data-testid="workitems-view-chip"]')
+    expect(chip).to_contain_text("E2E renamed")
+
+    # Delete via the x: the chip disappears and stays gone after a reload.
+    chip.locator("button").nth(2).click()
+    expect(page.locator('[data-testid="workitems-view-chip"]')).to_have_count(0)
+    page.goto(f"{nexora_server}/workitems")
+    expect(page.locator('[data-testid="workitems-saved-views"]')).to_be_hidden()
