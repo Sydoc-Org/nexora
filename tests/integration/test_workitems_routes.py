@@ -1,4 +1,4 @@
-"""Integration tests for nx_lib.views.workitems — 10 routes.
+"""Integration tests for nx_lib.views.workitems — 13 routes.
 
 Seed users only have dashboard.view, so all workitems.* gates return 403.
 Tests that exercise route bodies use the workitems_all_perms fixture
@@ -15,7 +15,7 @@ priority, tags CRUD, mention-autocomplete users) was removed in Task 4 of the
 chat-collab-removal-bug-fixes plan; get_audithistory (Octo processing trail)
 is a separate feature and stays.
 
-Routes covered (10 endpoints):
+Routes covered (13 endpoints):
 - /api/config/fields                         GET
 - /api/docfield_values                       GET
 - /api/workitems                             GET
@@ -26,6 +26,8 @@ Routes covered (10 endpoints):
 - /api/get_media_raw/<id>/<idx>              GET
 - /api/get_audithistory/<id>                 GET
 - /api/workitems_page_init                   GET
+- /api/workitem_filter_views                 GET + POST (saved views, #170)
+- /api/workitem_filter_views/<id>            DELETE
 """
 
 import concurrent.futures
@@ -2699,3 +2701,76 @@ def test_prepared_docs_preview_button_carries_stage(user_client, workitems_all_p
         b"openPreview(btn.dataset.wid, btn.dataset.status, btn.dataset.currentStage, "
         b"btn.dataset.client)" in resp.data
     )
+
+
+# ===================== API: saved filter views (#170) ========================
+
+
+def test_filter_views_anonymous(client):
+    resp = client.get("/api/workitem_filter_views", follow_redirects=False)
+    assert resp.status_code in (302, 401, 403)
+
+
+def test_filter_views_without_perm_returns_403(noperm_client):
+    assert noperm_client.get("/api/workitem_filter_views").status_code == 403
+
+
+def test_filter_views_crud_roundtrip(user_client, workitems_all_perms):
+    filters = [["prcfW", "all"], ["search", "1216"], ["status", "Done"]]
+
+    resp = user_client.post(
+        "/api/workitem_filter_views", json={"name": "My queue", "filters": filters}
+    )
+    assert resp.status_code == 200
+    vid = resp.get_json()["id"]
+
+    resp = user_client.get("/api/workitem_filter_views")
+    assert resp.status_code == 200
+    mine = [v for v in resp.get_json()["views"] if v["id"] == vid]
+    assert mine and mine[0]["name"] == "My queue" and mine[0]["filters"] == filters
+
+    # Saving under the same name overwrites, keeping one row (same id).
+    resp = user_client.post(
+        "/api/workitem_filter_views",
+        json={"name": "My queue", "filters": [["status", "Ready"]]},
+    )
+    assert resp.status_code == 200
+    assert resp.get_json()["id"] == vid
+
+    # Rename via id keeps the id stable.
+    resp = user_client.post(
+        "/api/workitem_filter_views",
+        json={"id": vid, "name": "Renamed queue", "filters": filters},
+    )
+    assert resp.status_code == 200
+    resp = user_client.get("/api/workitem_filter_views")
+    assert [v["name"] for v in resp.get_json()["views"] if v["id"] == vid] == ["Renamed queue"]
+
+    assert user_client.delete(f"/api/workitem_filter_views/{vid}").status_code == 200
+    assert user_client.delete(f"/api/workitem_filter_views/{vid}").status_code == 404
+
+
+def test_filter_views_validation(user_client, workitems_all_perms):
+    def post(body):
+        return user_client.post("/api/workitem_filter_views", json=body)
+
+    assert post({"name": "", "filters": []}).status_code == 400
+    assert post({"name": "x" * 101, "filters": []}).status_code == 400
+    assert post({"name": "x", "filters": "nope"}).status_code == 400
+    assert post({"name": "x", "filters": [["only-one-element"]]}).status_code == 400
+    assert post({"name": "x", "filters": [["k", 1]]}).status_code == 400
+    assert post({"name": "x", "filters": [["k", "v"]], "id": "nope"}).status_code == 400
+
+
+def test_filter_views_scoped_to_owner(login, workitems_all_perms):
+    user = login(username="user@test.local")
+    vid = user.post(
+        "/api/workitem_filter_views", json={"name": "scope check", "filters": []}
+    ).get_json()["id"]
+
+    admin = login(username="admin@test.local")
+    assert vid not in [v["id"] for v in admin.get("/api/workitem_filter_views").get_json()["views"]]
+    assert admin.delete(f"/api/workitem_filter_views/{vid}").status_code == 404
+
+    user = login(username="user@test.local")
+    assert user.delete(f"/api/workitem_filter_views/{vid}").status_code == 200

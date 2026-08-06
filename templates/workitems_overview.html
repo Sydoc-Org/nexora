@@ -316,6 +316,10 @@
             class="nx-btn nx-btn--secondary" data-testid="workitems-toggle-advanced">
             <i class="fas fa-sliders-h mr-2"></i>{{ _("Advanced") }}
           </button>
+          <button id="saveViewBtn" type="button"
+            class="nx-btn nx-btn--secondary" data-testid="workitems-save-view">
+            <i class="fas fa-bookmark mr-2"></i>{{ _("Save view") }}
+          </button>
           <a href="{{ url_for('workitems_overview', prcfW=process_name) }}"
             class="nx-btn nx-btn--secondary" data-testid="workitems-reset">{{
             _("Reset") }}</a>
@@ -355,6 +359,11 @@
           {% endif %}
         </div>
       </form>
+
+      {# Saved filter views (issue #170): per-user chips, rendered by JS.
+         Hidden until the user has at least one view or is naming a new one. #}
+      <div id="savedViewsBar" class="hidden mb-6 flex flex-wrap items-center gap-2"
+        data-testid="workitems-saved-views"></div>
 
       <div class="nx-table-wrap nx-rise-3 relative">
         <div class="overflow-x-auto">

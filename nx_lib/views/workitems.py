@@ -5,12 +5,14 @@ import base64
 import concurrent.futures
 import csv
 import io
+import json
 import math
 import re
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
+import pyodbc
 import requests
 from flask import (
     Response,
@@ -2219,6 +2221,145 @@ def clear_prepared_documents_route():
     return jsonify({"deleted": deleted}), 200
 
 
+# ------------------------- saved filter views (#170) ------------------------- #
+
+MAX_FILTER_VIEWS = 50
+
+
+def _validate_filter_view(payload):
+    """Returns (name, filters_json). Raises ValueError on bad input.
+
+    `filters` is the client's [name, value] pair list — the same serialization
+    the page sends to /api/workitems. Stored opaquely; the server never applies
+    it, so per-field permission gates keep working unchanged on replay.
+    """
+    name = (payload.get("name") or "").strip()
+    if not name or len(name) > 100:
+        raise ValueError("name")
+    filters = payload.get("filters")
+    if not isinstance(filters, list) or len(filters) > 60:
+        raise ValueError("filters")
+    for pair in filters:
+        if (
+            not isinstance(pair, list)
+            or len(pair) != 2
+            or not all(isinstance(x, str) for x in pair)
+            or len(pair[0]) > 100
+            or len(pair[1]) > 1000
+        ):
+            raise ValueError("filters")
+    return name, json.dumps(filters)
+
+
+@require_permission("workitems.view")
+def api_workitem_filter_views():
+    """List the current user's saved filter views."""
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT ID, Name, FilterJSON FROM WorkitemFilterViews"
+            " WHERE UserID = ? ORDER BY SortOrder, Name",
+            (session["userid"],),
+        )
+        views = []
+        for row in cursor.fetchall():
+            try:
+                filters = json.loads(row.FilterJSON)
+            except ValueError:
+                filters = []
+            views.append({"id": row.ID, "name": row.Name, "filters": filters})
+        return jsonify({"views": views})
+    except Exception as e:
+        current_app.logger.error(f"api_workitem_filter_views: {e}")
+        return jsonify({"error": _("Could not load saved views.")}), 500
+    finally:
+        conn.close()
+
+
+@require_permission("workitems.view")
+def save_workitem_filter_view():
+    """Create or update a saved view. Without `id`, saving under an existing
+    name overwrites that view's filters; with `id`, updates name + filters
+    (rename keeps the id stable)."""
+    payload = request.get_json(silent=True) or {}
+    try:
+        name, filters_json = _validate_filter_view(payload)
+    except ValueError:
+        return jsonify({"error": _("Invalid view name or filters.")}), 400
+    view_id = payload.get("id")
+    if view_id is not None and not isinstance(view_id, int):
+        return jsonify({"error": _("Invalid view name or filters.")}), 400
+
+    userid = session["userid"]
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cursor = conn.cursor()
+        if view_id is not None:
+            cursor.execute(
+                "UPDATE WorkitemFilterViews SET Name = ?, FilterJSON = ?"
+                " WHERE ID = ? AND UserID = ?",
+                (name, filters_json, view_id, userid),
+            )
+            if cursor.rowcount == 0:
+                conn.rollback()
+                return jsonify({"error": _("View not found.")}), 404
+        else:
+            cursor.execute(
+                "UPDATE WorkitemFilterViews SET FilterJSON = ? WHERE UserID = ? AND Name = ?",
+                (filters_json, userid, name),
+            )
+            if cursor.rowcount == 0:
+                cursor.execute(
+                    "SELECT COUNT(*) FROM WorkitemFilterViews WHERE UserID = ?", (userid,)
+                )
+                if cursor.fetchone()[0] >= MAX_FILTER_VIEWS:
+                    conn.rollback()
+                    return jsonify({"error": _("Too many saved views — delete one first.")}), 400
+                cursor.execute(
+                    "INSERT INTO WorkitemFilterViews (UserID, Name, FilterJSON)"
+                    " VALUES (?, ?, ?)",
+                    (userid, name, filters_json),
+                )
+            cursor.execute(
+                "SELECT ID FROM WorkitemFilterViews WHERE UserID = ? AND Name = ?",
+                (userid, name),
+            )
+            view_id = cursor.fetchone()[0]
+        conn.commit()
+        return jsonify({"id": view_id, "name": name})
+    except pyodbc.IntegrityError:
+        conn.rollback()
+        return jsonify({"error": _("A view with this name already exists.")}), 400
+    except Exception as e:
+        current_app.logger.error(f"save_workitem_filter_view: {e}")
+        return jsonify({"error": _("Could not save the view.")}), 500
+    finally:
+        conn.close()
+
+
+@require_permission("workitems.view")
+def delete_workitem_filter_view(view_id):
+    """Delete one of the current user's saved views."""
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            "DELETE FROM WorkitemFilterViews WHERE ID = ? AND UserID = ?",
+            (view_id, session["userid"]),
+        )
+        deleted = cursor.rowcount
+        conn.commit()
+        if not deleted:
+            return jsonify({"error": _("View not found.")}), 404
+        return jsonify({"deleted": deleted})
+    except Exception as e:
+        current_app.logger.error(f"delete_workitem_filter_view: {e}")
+        return jsonify({"error": _("Could not delete the view.")}), 500
+    finally:
+        conn.close()
+
+
 def register_routes(app):
     app.add_url_rule(
         "/api/config/fields", endpoint="api_config_fields", view_func=api_config_fields
@@ -2274,4 +2415,21 @@ def register_routes(app):
         "/api/workitems_page_init",
         endpoint="api_workitems_page_init",
         view_func=api_workitems_page_init,
+    )
+    app.add_url_rule(
+        "/api/workitem_filter_views",
+        endpoint="api_workitem_filter_views",
+        view_func=api_workitem_filter_views,
+    )
+    app.add_url_rule(
+        "/api/workitem_filter_views",
+        endpoint="save_workitem_filter_view",
+        view_func=save_workitem_filter_view,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/api/workitem_filter_views/<int:view_id>",
+        endpoint="delete_workitem_filter_view",
+        view_func=delete_workitem_filter_view,
+        methods=["DELETE"],
     )

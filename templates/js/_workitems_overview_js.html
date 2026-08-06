@@ -1252,6 +1252,235 @@ async function uploadBatchFiles(files, processName) {
                     setTimeout(() => { this.innerHTML = '<i class="fas fa-copy text-xs"></i>'; }, 1500);
                 });
             });
+
+            // ---- Saved filter views (issue #170) ----
+            // Per-user named presets of the whole filter form (incl. Advanced +
+            // doc-value rows), shown as chips between the filter card and the
+            // table. Persisted via /api/workitem_filter_views as the same
+            // [name, value] pair list the form serializer builds above.
+            const savedViewsBar = document.getElementById('savedViewsBar');
+            let savedViews = [];
+            let activeViewId = null;
+
+            function serializeFilters() {
+                const pairs = [];
+                for (const el of filterForm.elements) {
+                    if (!el.name || el.disabled || el.type === 'file' || el.type === 'hidden') continue;
+                    if ((el.type === 'checkbox' || el.type === 'radio') && !el.checked) continue;
+                    pairs.push([el.name, el.value]);
+                }
+                return pairs;
+            }
+
+            async function viewsApi(path, opts = {}) {
+                const res = await fetch(`${API_PREFIX}api/workitem_filter_views${path}`, {
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    ...opts,
+                });
+                const body = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
+                return body;
+            }
+
+            function renderSavedViews() {
+                savedViewsBar.querySelectorAll('.saved-view-chip').forEach(c => c.remove());
+                savedViews.forEach(v => {
+                    const active = v.id === activeViewId;
+                    const chip = document.createElement('span');
+                    chip.className = 'saved-view-chip inline-flex items-center rounded-full border text-sm font-medium transition-colors ' +
+                        (active ? 'bg-indigo-600 border-indigo-600 text-white'
+                                : 'bg-white border-gray-200 text-gray-600 hover:border-indigo-300 hover:text-indigo-700');
+                    chip.dataset.testid = 'workitems-view-chip';
+
+                    const nameBtn = document.createElement('button');
+                    nameBtn.type = 'button';
+                    nameBtn.className = 'pl-3 pr-1 py-1.5 cursor-pointer';
+                    nameBtn.textContent = v.name;
+                    nameBtn.title = {{ _("Apply view")|tojson }};
+                    nameBtn.addEventListener('click', () => applyView(v));
+                    chip.appendChild(nameBtn);
+
+                    // A dedicated pencil, NOT dblclick-on-name: applying re-renders
+                    // the chips, so the second click of a dblclick lands on a
+                    // replaced node and the rename handler never fires.
+                    const renameBtn = document.createElement('button');
+                    renameBtn.type = 'button';
+                    renameBtn.className = 'pl-1 pr-1 py-1.5 ' +
+                        (active ? 'text-indigo-200 hover:text-white' : 'text-gray-300 hover:text-indigo-600');
+                    renameBtn.innerHTML = '<i class="fas fa-pen text-xs"></i>';
+                    renameBtn.title = {{ _("Rename view")|tojson }};
+                    renameBtn.setAttribute('aria-label', {{ _("Rename view")|tojson }});
+                    renameBtn.addEventListener('click', () => startRename(chip, v));
+                    chip.appendChild(renameBtn);
+
+                    const delBtn = document.createElement('button');
+                    delBtn.type = 'button';
+                    delBtn.className = 'pl-1 pr-2 py-1.5 ' +
+                        (active ? 'text-indigo-200 hover:text-white' : 'text-gray-300 hover:text-red-500');
+                    delBtn.innerHTML = '<i class="fas fa-times text-xs"></i>';
+                    delBtn.title = {{ _("Delete view")|tojson }};
+                    delBtn.setAttribute('aria-label', {{ _("Delete view")|tojson }});
+                    delBtn.addEventListener('click', () => deleteView(v));
+                    chip.appendChild(delBtn);
+
+                    savedViewsBar.appendChild(chip);
+                });
+                savedViewsBar.classList.toggle('hidden',
+                    savedViews.length === 0 && !savedViewsBar.querySelector('input'));
+            }
+
+            // Inline name editor shared by save + rename: Enter commits,
+            // Escape or clicking elsewhere cancels.
+            function nameInput(initial, onCommit) {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.maxLength = 100;
+                input.value = initial;
+                input.placeholder = {{ _("View name…")|tojson }};
+                input.className = 'nx-input h-9 w-56 text-sm';
+                input.dataset.testid = 'workitems-view-name-input';
+                let done = false;
+                const finish = commit => {
+                    if (done) return;
+                    done = true;
+                    const name = input.value.trim();
+                    input.remove();
+                    renderSavedViews();
+                    if (commit && name) onCommit(name);
+                };
+                input.addEventListener('keydown', e => {
+                    if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+                    if (e.key === 'Escape') finish(false);
+                });
+                input.addEventListener('blur', () => finish(false));
+                return input;
+            }
+
+            function startSave() {
+                if (savedViewsBar.querySelector('input')) return;
+                const input = nameInput('', async name => {
+                    const filters = serializeFilters();
+                    try {
+                        const saved = await viewsApi('', {
+                            method: 'POST',
+                            body: JSON.stringify({ name, filters }),
+                        });
+                        savedViews = savedViews.filter(v => v.id !== saved.id);
+                        savedViews.push({ id: saved.id, name: saved.name, filters });
+                        savedViews.sort((a, b) => a.name.localeCompare(b.name));
+                        activeViewId = saved.id;
+                        showNotification({{ _("View saved.")|tojson }});
+                    } catch (e) {
+                        showNotification(e.message, 'error');
+                    }
+                    renderSavedViews();
+                });
+                savedViewsBar.classList.remove('hidden');
+                savedViewsBar.appendChild(input);
+                input.focus();
+            }
+
+            function startRename(chip, v) {
+                if (savedViewsBar.querySelector('input')) return;
+                const input = nameInput(v.name, async name => {
+                    if (name !== v.name) {
+                        try {
+                            await viewsApi('', {
+                                method: 'POST',
+                                body: JSON.stringify({ id: v.id, name, filters: v.filters }),
+                            });
+                            v.name = name;
+                            savedViews.sort((a, b) => a.name.localeCompare(b.name));
+                        } catch (e) {
+                            showNotification(e.message, 'error');
+                        }
+                    }
+                    renderSavedViews();
+                });
+                chip.replaceWith(input);
+                input.focus();
+                input.select();
+            }
+
+            async function deleteView(v) {
+                try {
+                    await viewsApi(`/${v.id}`, { method: 'DELETE' });
+                    savedViews = savedViews.filter(x => x.id !== v.id);
+                    if (activeViewId === v.id) activeViewId = null;
+                    renderSavedViews();
+                } catch (e) {
+                    showNotification(e.message, 'error');
+                }
+            }
+
+            function applyView(v) {
+                const byName = {};
+                v.filters.forEach(([k, val]) => { (byName[k] = byName[k] || []).push(val); });
+                const one = k => (byName[k] || [''])[0];
+
+                const prcfW = document.getElementById('prcfW');
+                prcfW.value = one('prcfW') || 'all';
+                if (prcfW._nxScopeSync) prcfW._nxScopeSync();
+                _updatePreparedDocsLink();
+
+                document.getElementById('searchInput').value = one('search');
+                document.getElementById('stageFilter').value = one('stage');
+                document.getElementById('statusFilter').value = one('status');
+                if (datePreset) datePreset.value = '';
+                ['startDate', 'endDate'].forEach(id => {
+                    const el = document.getElementById(id);
+                    el.value = one(id);
+                    if (el._flatpickr) el._flatpickr.setDate(el.value || null, false);
+                });
+                if (byName.perPage) document.getElementById('filterPerPage').value = one('perPage');
+
+                // Doc-value rows: prune to row 1, re-add as needed, fill
+                // index-aligned (doccomb/docfield/docop/docvalue).
+                const container = document.getElementById('docFiltersContainer');
+                container.querySelectorAll('.doc-filter-row').forEach((row, i) => { if (i > 0) row.remove(); });
+                const nRows = Math.max(1, (byName.docfield || []).length);
+                for (let i = 1; i < nRows; i++) addDocFilterRow();
+                const process = prcfW.value || 'all';
+                container.querySelectorAll('.doc-filter-row').forEach((row, i) => {
+                    const comb = row.querySelector('select[name="doccomb"]');
+                    if (comb) comb.value = (byName.doccomb || [])[i] || 'and';
+                    const hidden = row.querySelector('.doc-filter-field');
+                    hidden.value = (byName.docfield || [])[i] || '';
+                    hidden.setAttribute('data-selected', hidden.value);
+                    // Restores the visible label; a field the user can no longer
+                    // see simply resolves to "All fields" (permission drop).
+                    fillDocFieldSelect(hidden, process);
+                    row.querySelector('.doc-filter-op').value = (byName.docop || [])[i] || 'contains';
+                    row.querySelector('.doc-filter-value').value = (byName.docvalue || [])[i] || '';
+                });
+
+                // Open Advanced when the view actually uses it (mirrors the
+                // URL-restore auto-open above), close it otherwise.
+                const usesAdvanced = one('startDate') || one('endDate') ||
+                    (byName.docfield || []).some(x => x) || (byName.docvalue || []).some(x => x);
+                advancedContainer.classList.toggle('hidden', !usesAdvanced);
+
+                activeViewId = v.id;
+                renderSavedViews();
+                fetchAndUpdateWorkitems(1);
+            }
+
+            // Editing any filter by hand means the chip no longer describes the
+            // list — drop the highlight. applyView sets values without firing
+            // events, so applying itself doesn't clear it.
+            function clearActiveView() {
+                if (activeViewId === null) return;
+                activeViewId = null;
+                renderSavedViews();
+            }
+            filterForm.addEventListener('input', clearActiveView);
+            filterForm.addEventListener('change', clearActiveView);
+
+            document.getElementById('saveViewBtn')?.addEventListener('click', startSave);
+            viewsApi('').then(data => {
+                savedViews = data.views || [];
+                renderSavedViews();
+            }).catch(() => { /* bar just stays hidden */ });
         });
     </script>
 </body>

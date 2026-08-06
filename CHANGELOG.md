@@ -10,6 +10,19 @@ Work toward the next release.
 
 ### Added
 
+- Workitems saved filter views (#170) — the whole filter state (process, search,
+  stage, status, dates, doc-value rows, per-page) can be saved as a named
+  per-user view via the new "Save view" button; views render as chips between
+  the filter card and the list. Click applies the view (Advanced opens/closes to
+  match), the active chip is highlighted until a filter is hand-edited,
+  double-click renames inline, × deletes. Saving under an existing name
+  overwrites it. Stored in `dbo.WorkitemFilterViews` (migration `0057`, private
+  per user, capped at 50); new endpoints `GET`/`POST
+  /api/workitem_filter_views` and `DELETE /api/workitem_filter_views/<id>`, all
+  gated by `workitems.view`. Fields the user has since lost permission for are
+  dropped on apply (client resolves them to "All fields"; server-side gates
+  unchanged).
+
 - `docs/howto/reporting-guide.md` (#179) — a plain-language end-user guide to
   the Reporting page: the four-question guided builder, Ask AI, the Advanced
   builder, reading the stat band / delta chips / forecast, drill-through,
@@ -21,6 +34,14 @@ Work toward the next release.
 
 ### Removed
 
+- Bexio dropped from health monitoring (#177), following the archived invoices
+  page it was the only consumer of. `nx --doctor` no longer runs the Bexio
+  check or requires `BEXIO_PAT` in its env-key list, `ops/outage_monitor.py`
+  no longer emits the `bexio:api` probe, and migration `0057` deletes that
+  component's `dbo.StatusComponents` row so it stops rendering on the admin
+  status page (open incidents are closed, history kept). `BEXIO_PAT` stays in
+  `nx_lib/config.py` and the `env/*.env.example` templates — the archived
+  `nx_lib/views/invoices.py` still imports it.
 - Invoices page archived (#177). The Bexio-backed `/invoices` page is retired:
   its three routes (`/invoices`, `/api/invoices`, `/invoice/<id>/pdf`) are no
   longer registered and now 404, the sidebar entry and Ctrl+K command are gone,

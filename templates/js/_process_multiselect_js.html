@@ -118,6 +118,17 @@
         btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
       }
 
+      // Saved filter views (issue #170) set input.value programmatically;
+      // this re-derives the internal selection from it without re-init
+      // (re-running init would stack duplicate document-level listeners).
+      input._nxScopeSync = function () {
+        sel = (!input.value || input.value === 'all')
+          ? all.slice()
+          : all.filter(function (p) { return input.value.split(',').indexOf(p) !== -1; });
+        if (!sel.length) sel = all.slice();
+        render();
+      };
+
       if (btn) btn.addEventListener('click', function () { open(); });
       document.addEventListener('click', function (e) {
         if (menu && !menu.hidden && !wrap.contains(e.target)) open(false);
