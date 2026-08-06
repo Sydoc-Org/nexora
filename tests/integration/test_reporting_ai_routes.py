@@ -488,7 +488,7 @@ def test_ai_agent_empty_answer_no_artifacts_gets_generic_fallback(user_client):
     assert data["sql"] is None
 
 
-def test_ai_agent_caps_history_to_8_turns_and_4000_chars(user_client):
+def test_ai_agent_caps_history_to_8_turns_and_12000_chars(user_client):
     history = [
         {"role": "user" if i % 2 == 0 else "assistant", "content": "x" * 600} for i in range(10)
     ]
@@ -509,9 +509,42 @@ def test_ai_agent_caps_history_to_8_turns_and_4000_chars(user_client):
     assert resp.status_code == 200
     sent = loop.call_args.kwargs["history"]
     assert len(sent) <= 8
-    assert sum(len(h["content"]) for h in sent) <= 4000
+    assert sum(len(h["content"]) for h in sent) <= 12000
     # oldest turns dropped first: survivors are the tail of the original list
     assert sent == history[-len(sent) :]
+
+
+def test_agent_history_keeps_long_artifact_context(admin_client):
+    """#178 A3: an 11KB two-entry history must reach the loop intact (the old
+    4000-char cap silently dropped the artifact-bearing assistant turn)."""
+    from nx_lib.reporting.ai import AssistantTurn
+
+    big_sql = "SELECT " + ("x" * 5000)
+    history = [
+        {"role": "user", "content": "wie viele dokumente diesen monat"},
+        {"role": "assistant", "content": "Antwort…\n[sql from this answer]\n" + big_sql},
+    ]
+    seen = {}
+
+    def fake_step(messages):
+        seen["messages"] = messages
+        return AssistantTurn(text="ok")
+
+    with ExitStack() as es:
+        for p in _agent_patches():
+            es.enter_context(p)
+        es.enter_context(patch("nx_lib.views.reporting.make_agent_step", return_value=fake_step))
+        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = admin_client.post(
+            "/api/reporting/ai/agent",
+            json={"question": "show it as a chart", "history": history},
+        )
+    assert resp.status_code == 200
+    assert any(
+        "[sql from this answer]" in m.get("content", "")
+        for m in seen["messages"]
+        if m["role"] == "assistant"
+    )
 
 
 def test_ai_agent_rejects_non_list_history(user_client):

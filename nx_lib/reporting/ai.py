@@ -687,6 +687,12 @@ _AGENT_SYSTEM = (
     " question is unanswered, try a different angle yourself (a simpler query,"
     " a definition, fewer parts at a time) rather than giving the user"
     " instructions to run it."
+    " When a follow-up only changes HOW the previous answer is presented"
+    " (as a chart, as a table, a different breakdown of the SAME data), stay"
+    " on the same source and data as that answer — reuse the"
+    " [sql from this answer] / [report definition from this answer] context"
+    " carried in the conversation. Switching to a different source for a"
+    " presentation-only follow-up is wrong."
 )
 
 # Appended to the system prompt only when the caller holds reporting.ai.explain_data

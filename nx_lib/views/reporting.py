@@ -1554,7 +1554,7 @@ def api_ai_agent():
         ):
             history.append({"role": h["role"], "content": h["content"]})
     history = history[-8:]
-    while history and sum(len(h["content"]) for h in history) > 4000:
+    while history and sum(len(h["content"]) for h in history) > 12000:
         history.pop(0)
 
     # Issue #153: "Continue" past a max_turns/budget dead-end re-runs the same
