@@ -113,7 +113,8 @@
     groupFields: {{ _("Document fields")|tojson }},
     groupOr: {{ _("Or")|tojson }},
     pickedCount: {{ _("{n} of 3 picked")|tojson }},
-    aiChip: {{ _("AI")|tojson }}
+    aiChip: {{ _("AI")|tojson }},
+    loadingValues: {{ _("Loading values…")|tojson }}
   };
 
   // Wizard category-dimension curation (docprocessing only). Process first
@@ -2150,6 +2151,11 @@
       out[1] = (chosen === allProcs.length) ? I18N.allProcesses
         : I18N.wizScopeCount.replace('{n}', chosen).replace('{m}', allProcs.length);
     }
+    if (!allProcs.length && w.fieldScope) {
+      var n = w.fieldScope.picked.length, m = w.fieldScope.values.length;
+      out[1] = n === m ? I18N.allProcesses
+        : I18N.wizScopeCount.replace('{n}', n).replace('{m}', m);
+    }
     if (w.source) {
       if ((w.breakdowns || []).length) {
         var grainSel = el('rsGrain');
@@ -2243,7 +2249,8 @@
     await loadSourcesCatalog();
     if (!state.metricsBySource) await loadMetricsCatalog();
     state.wiz = { measures: [], source: null, breakdowns: [],
-                  scopeProcs: [], range: null, dateField: null, _fp: null };
+                  scopeProcs: [], range: null, dateField: null, _fp: null,
+                  fieldScope: null };
     setView('wizard');
     el('rsStepScope').hidden = true;
     el('rsStepBreakdown').hidden = true;
@@ -2326,11 +2333,25 @@
   // (table sources) skip straight to the breakdown step. Emits the same
   // scope serialisation as before; empty/full selection = all allowed (the
   // server clamps to grants either way).
+  // #178 B8: a table source without a process registry still gets a
+  // process step when it carries a filterable string field named like one
+  // (backlog_history.ProcessName). Selection serializes to a plain
+  // in-filter, not scope.processes.
+  function processFieldFor(src) {
+    if ((src.processes || []).length) return null;
+    return (src.fields || []).find(function (f) {
+      return f.type === 'string' && f.filterable &&
+        /process/i.test(f.field + ' ' + (f.label || ''));
+    }) || null;
+  }
+
   function renderScopeStep() {
     var w = state.wiz;
     var procs = w.source.processes || [];
     var step = el('rsStepScope');
-    if (!procs.length) { step.hidden = true; renderBreakdownStep(); return; }
+    var pf = processFieldFor(w.source);
+    if (!procs.length && !pf) { step.hidden = true; renderBreakdownStep(); return; }
+    if (!procs.length && pf) { renderFieldScopeStep(step, pf); return; }
     step.hidden = false;
     el('rsStepBreakdown').hidden = true;
     el('rsStepTime').hidden = true;
@@ -2355,6 +2376,47 @@
       box.appendChild(lbl);
     });
     if (!prior.length) w.scopeProcs = procs.slice();
+    renderWizardRail();
+  }
+
+  async function renderFieldScopeStep(step, pf) {
+    var w = state.wiz;
+    step.hidden = false;
+    el('rsStepBreakdown').hidden = true;
+    el('rsStepTime').hidden = true;
+    el('rsWizardRun').hidden = true;
+    var box = el('rsScopeList');
+    box.innerHTML = '<p class="reporting-simple-hint">' + esc(I18N.loadingValues) + '</p>';
+    renderWizardRail();
+    var res = await api('/api/reporting/field_values', {
+      method: 'POST',
+      body: JSON.stringify({ source: w.source.id, field: pf.field })
+    });
+    if (state.view !== 'wizard' || el('rsStepScope').hidden) return;
+    var values = (res.ok && res.data && res.data.values) || [];
+    if (!values.length) {  // endpoint down or empty column: skip the step
+      w.fieldScope = null;
+      step.hidden = true;
+      renderBreakdownStep();
+      return;
+    }
+    var prior = (w.fieldScope && w.fieldScope.picked) || [];
+    w.fieldScope = { field: pf.field, label: pf.label || pf.field,
+                     values: values, picked: prior.length ? prior : values.slice() };
+    box.innerHTML = '';
+    values.forEach(function (p) {
+      var lbl = document.createElement('label');
+      var cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.value = p;
+      cb.checked = w.fieldScope.picked.indexOf(p) !== -1;
+      cb.addEventListener('change', function () {
+        w.fieldScope.picked = Array.prototype.map.call(
+          box.querySelectorAll('input:checked'), function (c) { return c.value; });
+      });
+      lbl.appendChild(cb);
+      lbl.appendChild(document.createTextNode(' ' + p));
+      box.appendChild(lbl);
+    });
     renderWizardRail();
   }
 
@@ -2681,6 +2743,10 @@
     if (w.range && w.dateField) {
       filters.push({ field: w.dateField, op: 'between', value: w.range });
     }
+    if (w.fieldScope && w.fieldScope.picked.length &&
+        w.fieldScope.picked.length < w.fieldScope.values.length) {
+      filters.push({ field: w.fieldScope.field, op: 'in', value: w.fieldScope.picked.slice() });
+    }
     var scope = { clients: [], processes: [] };
     var allProcs = w.source.processes || [];
     if (allProcs.length && w.scopeProcs.length && w.scopeProcs.length < allProcs.length) {
@@ -2733,6 +2799,17 @@
       }
     }
     var filters = def.filters || [];
+    var fieldScopeFilter = null;
+    var rest = [];
+    filters.forEach(function (ft) {
+      var meta = (src.fields || []).find(function (x) { return x.field === ft.field; });
+      if (!fieldScopeFilter && ft.op === 'in' && meta && meta.type === 'string') {
+        fieldScopeFilter = ft;
+      } else {
+        rest.push(ft);
+      }
+    });
+    filters = rest;
     if (filters.length > 1) return null;
     var range = null, dateField = null;
     if (filters.length === 1) {
@@ -2754,7 +2831,11 @@
     if ((scope.clients || []).length) return null;
     return { wiz: { measures: measures, source: src, breakdowns: breakdowns,
                     scopeProcs: (scope.processes || []).slice(),
-                    range: range, dateField: dateField, _fp: null },
+                    range: range, dateField: dateField, _fp: null,
+                    fieldScope: fieldScopeFilter
+                      ? { field: fieldScopeFilter.field, label: fieldScopeFilter.field,
+                          values: fieldScopeFilter.value.slice(), picked: fieldScopeFilter.value.slice() }
+                      : null },
              grain: grain };
   }
 

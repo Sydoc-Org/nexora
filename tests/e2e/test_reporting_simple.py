@@ -4198,3 +4198,77 @@ def test_kpi_band_total_uses_latest_snapshot_for_latest_mode_metric(nexora_serve
     total = page.get_by_test_id("rs-kpi-total")
     expect(total).to_contain_text("9")  # 9,755 -- latest bucket only
     expect(total).not_to_contain_text("36")  # never 36,877 (the sum)
+
+
+# ---------------------------------------------------------------------------
+# #178 B8 (processes half): table sources have no `processes` registry, but a
+# filterable string field named/labelled like one still gets a wizard scope
+# step, backed by /api/reporting/field_values (Task 12).
+# ---------------------------------------------------------------------------
+
+FIELD_SCOPE_WIZ_SOURCES = [
+    {
+        "id": "backlog_history",
+        "label": "Backlog history",
+        "kind": "curated",
+        "processes": [],
+        "fields": [
+            {
+                "field": "ProcessName",
+                "label": "Process",
+                "type": "string",
+                "grainable": False,
+                "filterable": True,
+            },
+        ],
+    }
+]
+FIELD_SCOPE_WIZ_METRICS = {
+    "backlog_history": [
+        {"code": "backlog_total", "label": "Backlog measure", "aggregation": "sum"},
+    ]
+}
+
+
+def test_wizard_field_scope_step_serializes_to_in_filter(nexora_server, page):
+    """A source without a process registry but with a filterable ProcessName
+    field gets the scope step anyway, sourced from /api/reporting/field_values;
+    unticking one value narrows the wizard-built definition to a plain
+    in-filter on that field (editable later as an ordinary chip)."""
+    _login(page, nexora_server)
+    _stub_wiz_catalogs(page, FIELD_SCOPE_WIZ_SOURCES, FIELD_SCOPE_WIZ_METRICS)
+    page.route(
+        "**/api/reporting/field_values",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"values": ["01_EasyTax", "02_Invoice", "03_Invoice_New"]}),
+        ),
+    )
+    captured = []
+    _stub_run_ok(page, capture=captured)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Backlog measure").click()
+    page.get_by_test_id("rs-measure-next").click()
+    expect(page.locator("#rsStepScope")).to_be_visible()
+    boxes = page.locator("#rsScopeList input[type=checkbox]")
+    expect(boxes).to_have_count(3)
+    boxes.nth(0).uncheck()
+    page.get_by_test_id("rs-scope-next").click()
+    page.get_by_test_id("rs-breakdown-next").click()
+    run = page.get_by_test_id("rs-wizard-run")  # renderTimeStep() unhides it; All time default
+    expect(run).to_be_visible()
+    run.click()
+    expect(page.get_by_test_id("rs-result")).to_be_visible()
+    posted = [p for p in captured if p]
+    assert posted, f"no run payload captured: {captured}"
+    assert any(
+        any(
+            f.get("op") == "in"
+            and f.get("field") == "ProcessName"
+            and sorted(f.get("value") or []) == ["02_Invoice", "03_Invoice_New"]
+            for f in (b.get("filters") or [])
+        )
+        for b in posted
+    )
