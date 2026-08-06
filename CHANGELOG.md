@@ -8,6 +8,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Changed
+
+- Branch naming convention: release-cycle branches are now `v<x.y[.z]>` (e.g.
+  `v3.1`); the pre-push branch-name guard accepts both the new form and the
+  legacy `feature/<x.y.z>` for in-flight branches.
+
 ## [3.1] - 2026-08-06
 
 ### Added
