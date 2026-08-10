@@ -54,8 +54,15 @@ def update_profile():
         if request.method == "POST":
             userid = session["userid"]
             username = session["username"]
-            fullname = request.form["fullName"]
+            fullname = request.form["fullName"].strip()
             email = request.form["email"]
+
+            # Defence-in-depth against a stored-XSS payload in the display name
+            # (#193): the dashboard now HTML-escapes it, but bound its length
+            # here too so an absurd value can't be stored.
+            if not fullname or len(fullname) > 100:
+                flash(_("Name must be between 1 and 100 characters"), "failure_updateProfile")
+                return redirect(url_for("profile"))
 
             conn = engine_nexora_db.raw_connection()
             cursor = conn.cursor()
