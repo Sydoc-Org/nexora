@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" integrity="sha384-RkASv+6KfBMW9eknReJIJ6b3UnjKOKC5bOUaNgIY778NFbQ8MtWq9Lr/khUgqtTt" crossorigin="anonymous">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13" integrity="sha384-5JqMv4L/Xa0hfvtF06qboNdhvuYXUku9ZrhZh3bSk8VXF0A/RuSLHpLsSV9Zqhl6" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
-  <script>
+  <script nonce="{{ csp_nonce() }}">
     if (window.Chart) { Chart.defaults.font.family = "'Inter', sans-serif"; Chart.defaults.color = '#9ca3af'; }
   </script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -28,7 +28,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/workitems_overview.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/source-highlight.css') }}">
   {% endif %}
-  <script>
+  <script nonce="{{ csp_nonce() }}">
     // Resolve the initial tab synchronously (?tab= > localStorage > 'simple')
     // and enable the no-FOUC builder entrance only when landing on Advanced
     // with motion allowed (the .rp-anim class pre-hides the builder columns;
@@ -219,7 +219,7 @@
     </div>
   </div>
 
-  <script>
+  <script nonce="{{ csp_nonce() }}">
     // Source-highlight confidence helpers + an empty fieldConfig the shared
     // panel reads (same idiom as templates/prepared_documents.html; guarded
     // so a page that already defines these — none currently do on

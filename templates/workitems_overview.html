@@ -612,7 +612,7 @@ $data | ForEach-Object {
     {% include 'js/_workitem_detail_panel_js.html' %}
     {% include 'js/_workitems_overview_js.html' %}
     {% include 'js/_process_multiselect_js.html' %}
-    <script>
+    <script nonce="{{ csp_nonce() }}">
       NexoraProcessPicker.init({ inputId: 'prcfW', processes: {{ allowed_processes|tojson }} });
       const _fpDtOpts = { dateFormat: 'Y-m-d H:i:S', enableTime: true, enableSeconds: true, allowInput: true, time_24hr: true };
       flatpickr('#startDate', _fpDtOpts);

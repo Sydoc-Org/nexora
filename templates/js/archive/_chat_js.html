@@ -1,4 +1,4 @@
-<script>
+<script nonce="{{ csp_nonce() }}">
   let activeConversationId = null;
   let pollInterval = null;
   const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";

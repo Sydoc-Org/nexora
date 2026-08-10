@@ -110,7 +110,7 @@
                 </div>
                 <p id="maintError" class="text-xs mt-3 hidden nx-c-danger"></p>
                 <div class="flex justify-end mt-6 gap-2">
-                    <button type="button" onclick="closeMaintModal()" class="nx-btn nx-btn--secondary" data-testid="admin-maintenance-cancel">{{ _("Cancel") }}</button>
+                    <button type="button" id="maintCancelBtn" class="nx-btn nx-btn--secondary" data-testid="admin-maintenance-cancel">{{ _("Cancel") }}</button>
                     <button type="submit" class="nx-btn nx-btn--primary" data-testid="admin-maintenance-save">{{ _("Save") }}</button>
                 </div>
             </form>
@@ -126,13 +126,13 @@
             <h3 class="nx-section mt-4">{{ _("Delete banner") }}</h3>
             <p class="text-sm mt-2 nx-c-sec">{{ _("This action cannot be undone.") }}</p>
             <div class="mt-6 flex justify-center gap-3">
-                <button type="button" onclick="closeMaintDeleteModal()" class="nx-btn nx-btn--secondary" data-testid="admin-maintenance-delete-cancel">{{ _("Cancel") }}</button>
+                <button type="button" id="maintDeleteCancelBtn" class="nx-btn nx-btn--secondary" data-testid="admin-maintenance-delete-cancel">{{ _("Cancel") }}</button>
                 <button type="button" id="maintDeleteConfirm" class="nx-btn nx-btn--danger" data-testid="admin-maintenance-delete-confirm">{{ _("Delete") }}</button>
             </div>
         </div>
     </div>
 
-    <script>window.MAINTENANCE_CAN_EDIT = {{ pageV.adminMaintenanceEditPerm|tojson }};</script>
+    <script nonce="{{ csp_nonce() }}">window.MAINTENANCE_CAN_EDIT = {{ pageV.adminMaintenanceEditPerm|tojson }};</script>
     {% include 'js/admin/_maintenance_js.html' %}
 </body>
 </html>

@@ -10,7 +10,7 @@ import io
 import re
 import threading
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import bcrypt
 import pyotp
@@ -341,6 +341,7 @@ def init_2fa():
                 session.pop("temp_2fa_secret", None)
 
                 session.clear()
+                _rotate_session_id()
                 session["userid"] = user_id
                 session["username"] = username
                 session["fullname"] = fullname
@@ -399,6 +400,7 @@ def verify_2fa():
         # window roll-over between code generation and verification).
         if totp.verify(code, valid_window=1):
             session.clear()
+            _rotate_session_id()
             session["userid"] = user_id
             session["username"] = username
             session["fullname"] = fullname
@@ -495,6 +497,71 @@ def init_reset_password():
 _DUMMY_BCRYPT_HASH = bcrypt.hashpw(b"nexora-login-timing-equalizer", bcrypt.gensalt())
 
 
+# Durable per-account login lockout (#193 finding 7) -- flask_limiter's
+# per-worker in-memory IP rate limit has no account-level backstop, so a
+# password-spray spread across many source IPs / workers only ever faces the
+# per-worker-per-IP ceiling. dbo.LoginLockout (migration 0062) is a small
+# global counter keyed on userid, checked/updated on every login() attempt.
+_LOCKOUT_THRESHOLD = 5
+_LOCKOUT_MINUTES = 15
+
+
+def _login_locked_until(cursor, userid):
+    cursor.execute("SELECT locked_until FROM dbo.LoginLockout WHERE userid = ?", (str(userid),))
+    row = cursor.fetchone()
+    return row[0] if row and row[0] and row[0] > datetime.utcnow() else None
+
+
+def _record_login_failure(conn, cursor, userid):
+    # ponytail: read-then-write races under truly concurrent failed logins
+    # for the same account (two requests could both read count=4 and both
+    # write 5 instead of 5-then-6) -- widens the effective threshold by a
+    # couple of attempts under attack, doesn't defeat the lockout. Add an
+    # UPDLOCK hint / MERGE if that gap ever matters in practice.
+    cursor.execute("SELECT failed_count FROM dbo.LoginLockout WHERE userid = ?", (str(userid),))
+    row = cursor.fetchone()
+    count = (row[0] if row else 0) + 1
+    locked_until = (
+        datetime.utcnow() + timedelta(minutes=_LOCKOUT_MINUTES)
+        if count >= _LOCKOUT_THRESHOLD
+        else None
+    )
+    if row:
+        cursor.execute(
+            "UPDATE dbo.LoginLockout SET failed_count = ?, locked_until = ?, "
+            "updated_at = SYSUTCDATETIME() WHERE userid = ?",
+            (count, locked_until, str(userid)),
+        )
+    else:
+        cursor.execute(
+            "INSERT INTO dbo.LoginLockout (userid, failed_count, locked_until) VALUES (?, ?, ?)",
+            (str(userid), count, locked_until),
+        )
+    conn.commit()
+
+
+def _clear_login_lockout(conn, cursor, userid):
+    cursor.execute("DELETE FROM dbo.LoginLockout WHERE userid = ?", (str(userid),))
+    conn.commit()
+
+
+def _rotate_session_id():
+    """Mint a fresh server-side session id at authentication (#193 finding 6).
+
+    session.clear() only empties the dict -- under the prod filesystem
+    backend (flask-session) the cookie's session id is unchanged, so a SID
+    planted in a victim's browser before login would become authenticated
+    once they log in (session fixation). flask-session's ServerSideSession
+    backends expose session_interface.regenerate() for exactly this; the dev
+    default (client-side signed-cookie session, no server-side store) has no
+    such method -- there is no fixation risk there since the cookie content
+    itself is what's authenticated, so this is a no-op in that case.
+    """
+    regenerate = getattr(current_app.session_interface, "regenerate", None)
+    if regenerate is not None:
+        regenerate(session)
+
+
 def _dev_route_forbidden():
     """Guard for the passwordless /dev/* routes. 404 on PROD, and 404 for any
     non-loopback caller on non-PROD, so a network-reachable INT/STAGING/TEST
@@ -525,6 +592,7 @@ def dev_login(username):
         abort(404)
     uid, uname, fullname, email, org_code, locale = row
     session.clear()
+    _rotate_session_id()
     session["userid"] = str(uid)
     session["username"] = uname
     session["fullname"] = fullname
@@ -582,10 +650,25 @@ def login():
                 stored_init_reset = user_record[3]
                 stored_2fa = user_record[4]
 
+                locked_until = _login_locked_until(cursor, stored_userid)
+                if locked_until:
+                    wait_min = max(
+                        1, int((locked_until - datetime.utcnow()).total_seconds() // 60) + 1
+                    )
+                    return (
+                        render_template(
+                            "index.html",
+                            error=_("Too many failed attempts. Try again in %(minutes)d minute(s).")
+                            % {"minutes": wait_min},
+                        ),
+                        429,
+                    )
+
                 if isinstance(stored_hash, str):
                     stored_hash = stored_hash.encode("utf-8")
 
                 if bcrypt.checkpw(password_request.encode("utf-8"), stored_hash):
+                    _clear_login_lockout(conn, cursor, stored_userid)
                     blocking = _maintenance_blocks_user(stored_userid)
                     if blocking:
                         return render_template("maintenance.html", maintenance=blocking), 503
@@ -603,6 +686,8 @@ def login():
                         session["pre_2fa_userid"] = str(stored_userid)
                         session["pre_2fa_username"] = stored_username
                         return redirect(url_for("verify_2fa"))
+                else:
+                    _record_login_failure(conn, cursor, stored_userid)
             else:
                 # Unknown username: still run one bcrypt comparison against a
                 # fixed dummy hash so the response takes the same time as a

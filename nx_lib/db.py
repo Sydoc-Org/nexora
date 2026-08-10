@@ -16,15 +16,22 @@ from sqlalchemy.engine import URL
 
 from . import config as cfg
 
+# TLS suffix for the modern ODBC drivers (17/18) -- the legacy "{SQL Server}"
+# driver doesn't recognize Encrypt/TrustServerCertificate and errors on them,
+# so this is only appended when DB_ODBC_DRIVER opts into a modern driver
+# (see config.py DB_ODBC_ENCRYPT).
+_TLS_SUFFIX = "Encrypt=yes;TrustServerCertificate=yes;" if cfg.DB_ODBC_ENCRYPT else ""
+
 
 def get_db_url(d, s=None):
     server = s if s is not None else cfg.DB_SERVER_PRD
     params = urllib.parse.quote_plus(
-        f"DRIVER={{SQL Server}};"
+        f"DRIVER={{{cfg.DB_ODBC_DRIVER}}};"
         f"SERVER={server},1433;"
         f"DATABASE={d};"
         f"UID={cfg.DB_UID};"
         f"PWD={cfg.DB_PWD};"
+        f"{_TLS_SUFFIX}"
     )
     return f"mssql+pyodbc:///?odbc_connect={params}"
 
@@ -39,11 +46,12 @@ def get_ro_db_url(d, s=None, uid=None, pwd=None):
     uid = uid if uid is not None else cfg.DB_REPORTING_RO_USER
     pwd = pwd if pwd is not None else cfg.DB_REPORTING_RO_PWD
     params = urllib.parse.quote_plus(
-        f"DRIVER={{SQL Server}};"
+        f"DRIVER={{{cfg.DB_ODBC_DRIVER}}};"
         f"SERVER={server},1433;"
         f"DATABASE={d};"
         f"UID={uid};"
         f"PWD={pwd};"
+        f"{_TLS_SUFFIX}"
     )
     return f"mssql+pyodbc:///?odbc_connect={params}"
 

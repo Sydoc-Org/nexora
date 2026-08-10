@@ -1,4 +1,4 @@
-<script>
+<script nonce="{{ csp_nonce() }}">
 // Status page: the server renders every timestamp as UTC ISO (the monitor works
 // in UTC and the page may be read from another timezone), so the browser does
 // the localising. Server-rendered ISO stays visible if JS never runs.

@@ -103,8 +103,8 @@
             <div style="padding:12px 16px;border-top:1px solid var(--nx-border);display:flex;align-items:center;justify-content:space-between" id="paginationControls">
                 <span style="font-size:13px;color:var(--nx-text-sec)" id="pageInfo">{{ _('Loading...') }}</span>
                 <div style="display:flex;gap:8px">
-                    <button id="prevBtn" class="nx-btn nx-btn--secondary" onclick="changePage(-1)" disabled data-testid="admin-logs-prev-page">{{ _('Previous') }}</button>
-                    <button id="nextBtn" class="nx-btn nx-btn--secondary" onclick="changePage(1)" disabled data-testid="admin-logs-next-page">{{ _('Next') }}</button>
+                    <button id="prevBtn" class="nx-btn nx-btn--secondary" disabled data-testid="admin-logs-prev-page">{{ _('Previous') }}</button>
+                    <button id="nextBtn" class="nx-btn nx-btn--secondary" disabled data-testid="admin-logs-next-page">{{ _('Next') }}</button>
                 </div>
             </div>
         </div>
@@ -120,7 +120,7 @@
                         <h3 class="text-base font-semibold leading-6 nx-c-text" id="modal-title">
                             <i class="fas fa-terminal mr-2 nx-c-accent"></i> {{ _('Log Details Payload') }}
                         </h3>
-                        <button onclick="closeLogModal()" class="transition nx-c-meta" data-testid="admin-logs-modal-close"><i class="fas fa-times text-lg"></i></button>
+                        <button id="logsModalCloseTopBtn" class="transition nx-c-meta" data-testid="admin-logs-modal-close"><i class="fas fa-times text-lg"></i></button>
                     </div>
                     <div class="px-4 py-5 sm:p-6 nx-bg-card">
                         <div class="grid grid-cols-3 gap-4 mb-4 text-sm pb-4" style="color:var(--nx-text-sec);border-bottom:1px solid var(--nx-divider)">
@@ -129,14 +129,14 @@
                             <div><span class="block text-xs font-bold uppercase nx-c-meta">{{ _('Time') }}</span> <span id="modalTime" class="font-medium nx-c-text"></span></div>
                         </div>
                         <div class="relative">
-                            <button onclick="copyToClipboard()" class="absolute top-2 right-2 text-xs bg-gray-700/80 hover:bg-gray-600 text-gray-200 px-2 py-1 rounded transition border border-gray-600 z-10" data-testid="admin-logs-modal-copy">
+                            <button id="logsModalCopyBtn" class="absolute top-2 right-2 text-xs bg-gray-700/80 hover:bg-gray-600 text-gray-200 px-2 py-1 rounded transition border border-gray-600 z-10" data-testid="admin-logs-modal-copy">
                                 <i class="fas fa-copy mr-1"></i> {{ _('Copy') }}
                             </button>
                             <pre id="modalCodeContent" class="bg-gray-900 text-green-400 p-4 rounded-lg text-xs font-mono overflow-auto max-h-96 code-scroll whitespace-pre-wrap break-all shadow-inner"></pre>
                         </div>
                     </div>
                     <div class="px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6" style="background:var(--nx-alt);border-top:1px solid var(--nx-divider)">
-                        <button type="button" class="nx-btn nx-btn--secondary mt-3 sm:mt-0" onclick="closeLogModal()" data-testid="admin-logs-modal-close-bottom">{{ _('Close') }}</button>
+                        <button type="button" id="logsModalCloseBottomBtn" class="nx-btn nx-btn--secondary mt-3 sm:mt-0" data-testid="admin-logs-modal-close-bottom">{{ _('Close') }}</button>
                     </div>
                 </div>
             </div>

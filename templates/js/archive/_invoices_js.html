@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <body>
-  <script>
+  <script nonce="{{ csp_nonce() }}">
     document.addEventListener('DOMContentLoaded', () => {
       const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
 

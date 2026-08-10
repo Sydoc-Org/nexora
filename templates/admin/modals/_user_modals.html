@@ -20,8 +20,7 @@
 </div>
 
 <div id="userModal"
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden opacity-0 transition-opacity duration-300 ease-in-out"
-    onclick="closeModal(event)">
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden opacity-0 transition-opacity duration-300 ease-in-out">
     <div
         class="modal-content bg-white rounded-lg shadow-2xl w-full max-w-md p-6 transform scale-95 transition-transform duration-300 ease-in-out">
         <h3 id="modalTitle" class="text-2xl font-bold mb-4">{{ _("Add new user") }}</h3>
@@ -77,7 +76,7 @@
                 </div>
             </div>
             <div class="flex justify-end mt-6">
-                <button type="button" onclick="closeModal()"
+                <button type="button" id="userModalCancelBtn"
                     class="text-gray-700 bg-gray-200 hover:bg-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center mr-2" data-testid="admin-user-modal-cancel">{{ _("Cancel") }}</button>
                 <button type="submit"
                     class="text-white bg-indigo-600 hover:bg-indigo-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center" data-testid="admin-user-modal-save">{{ _("Save user") }}</button>

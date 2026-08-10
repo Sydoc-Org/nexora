@@ -6,7 +6,7 @@
     <title>Document</title>
 </head>
 <body>
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         function showContentImmediately() {
             const preloader = document.getElementById('preloader');
             const headerLogo = document.getElementById('header-logo-wrapper');

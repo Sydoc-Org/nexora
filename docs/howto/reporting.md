@@ -80,7 +80,19 @@ working. Design spec: `docs/superpowers/specs/2026-07-20-reporting-redesign-hand
 - **KPI stat band** above the results — total, bucket count, average per
   bucket, and peak, computed client-side from the rows already returned (no
   extra query); hidden for zero-row or non-numeric results. When the
-  definition carries a **single relative-date token filter**, the run request
+  **first** requested metric's registry row has **`TotalMode = 'latest'`**
+  (`metricTotalModeFor` in `_reporting_simple_js.html` only inspects
+  `def.metrics[0]` — a mixed-mode multi-metric request is judged by that one
+  metric alone, not "every" metric), the Total tile's caption adds a **"·
+  last bucket &lt;bucket&gt;"** suffix, naming the bucket the number
+  actually covers. This is the client's own zero-filled last bucket, not a
+  request for the server's single exact-snapshot latest row, so the wording
+  is deliberately bucket-honest rather than implying snapshot precision —
+  point-in-time metrics like backlog are wrong to sum across buckets, so the
+  band restricts the client total to the latest one, mirroring (but not
+  reading) the server's own zero-dim latest-bucket total described in
+  **Metrics registry** below (`kpiLatestSuffix` in `_reporting_simple_js.html`).
+  When the definition carries a **single relative-date token filter**, the run request
   sets `compare: true` and each stat renders a **delta chip** (↑/↓/— plus a
   percentage) against the immediately preceding period of the same length —
   see **Comparison & delta chips** below for the exact semantics (why it's
@@ -98,7 +110,11 @@ working. Design spec: `docs/superpowers/specs/2026-07-20-reporting-redesign-hand
 - **Result header** — `Open in Advanced` and `Show query` live behind a `⋯`
   overflow menu (`#rsMoreMenu`); **Save** is the gradient primary action;
   the format select + **Export** read as one visual unit. The error-state
-  "Open in Advanced" escape hatch stays a visible inline button.
+  "Open in Advanced" escape hatch stays a visible inline button. `Open in
+  Advanced` restores the current definition into the builder **and runs
+  it** (`window.Reporting.run()` right after `applyDefinition()`) — it used
+  to only pre-fill the wells, leaving Advanced showing no results and "Show
+  query" hidden/stale until the user pressed Run themselves (#178, Task 15).
 
 Single-series bar/line charts render in ink-navy with a brand-indigo accent
 on the peak value; multi-series charts keep the existing categorical
@@ -131,7 +147,24 @@ chart already on screen re-themes on the next render, not live.
     counters so no gap shows) → break down by *over time* (with a grain
     select, default month) / a category / *none — just the total* → time
     range (presets or a custom flatpickr range; emits a `between` filter on the
-    **raw** date field, defaulting to `import_date`). Time presets include **This
+    **raw** date field, defaulting to `import_date`). The grain select is
+    **always visible** once the source has any date field at all, not only
+    after a time breakdown is picked — it starts disabled with a
+    "Pick a time breakdown first to choose its granularity." tooltip, so the
+    control is discoverable up front instead of appearing to not exist (#178).
+    A **table** source with no process registry but a filterable string field
+    whose name/label matches `/process/i` (e.g. `backlog_history.ProcessName`)
+    gets the same "which processes?" step in spirit — a **field-scope step**:
+    it POSTs the field's up-to-100 distinct values from the new
+    `POST /api/reporting/field_values` endpoint (`reporting.view`-gated,
+    source-permission-checked, whitelisted-filterable-field only, `SELECT
+    DISTINCT TOP (100)`) and renders them as the same pre-checked checkbox
+    list. A partial pick serializes to a plain `{"op": "in"}` filter on that
+    field — not `scope.processes` — so on "Adjust in wizard" it round-trips as
+    a normal editable filter chip, not the process chip. If the endpoint is
+    unreachable or the field has no values, the step is silently skipped
+    (graceful degrade — the same behaviour production sees when StatisticsDB
+    is down). Time presets include **This
     week** and **This quarter** (both stored as tokens in `WIZ_TOKENS`, so saved
     and scheduled reports stay relative). Any wizard-shaped result shows an
     **"Adjust in wizard"** button that reopens the walkthrough with all prior
@@ -185,7 +218,8 @@ chart already on screen re-themes on the next render, not live.
     until the response lands), and the Advanced Ask-AI surfaces show the same indicator
     with rotating status lines.
     A **Show table** toggle, *Save* (always creates a new
-    row under My reports), *Open in Advanced* (pre-fills the builder), and *Export*
+    row under My reports), *Open in Advanced* (pre-fills the builder **and
+    runs it**, see **Result header** above), and *Export*
     (downloads Excel with a title block and — when a chart is on screen — the chart image
     embedded above the data; needs `reporting.export`). For AI-built results, a
     **transparency line** below the report title shows the AI's explanation
@@ -193,7 +227,12 @@ chart already on screen re-themes on the next render, not live.
     wrong process) is immediately visible.
     Every result (wizard-built or library-opened) shows **editable filter/process
     chips** — click one to edit its value inline, or × to remove it; each change
-    re-runs the report immediately, no AI involved. (The AI-specific **Refine**
+    re-runs the report immediately, no AI involved. Whenever the definition has a
+    date column that is (or *could be*) grain-broken-down, a **Granularity chip**
+    joins that row — `Granularity: Month` etc. — click it to change grain the same
+    way as any other chip, so the breakdown's time resolution is always visible
+    and editable on the result itself, not only back inside the wizard (#178).
+    (The AI-specific **Refine**
     bar that used to sit alongside these chips is gone — a follow-up question now
     just continues the conversation in the **AI chat panel**, see below.) When the
     server row limit is hit, both tabs show "Showing the first N rows — narrow the
@@ -290,6 +329,21 @@ silently fall back to trend-only rather than fail. Deliberately stdlib-only
 (no numpy/scipy/statsmodels), matching the `stats.py` rule; see the
 `# ponytail:` note in `forecast.py` for swapping in a heavier library later.
 
+**History window (lookback).** The fit does not only see the rows the visible
+result already returned — a **day-grain** report over "this month" would hand
+the seasonal fit under four weeks of daily buckets, nowhere near the two
+weekday cycles it needs. When the definition's single date filter is a
+**relative-date token** (the same token-only ceiling `compare` uses),
+`widened_definition_for_forecast` (`nx_lib/reporting/tokens.py`) reruns the
+query with that filter's start pushed back by a grain-dependent number of
+days — `day`: 56, `week`: 182, `month`: 730, `quarter`: 1460, `year`: 2190
+(`_FORECAST_LOOKBACK_DAYS`) — purely to fit on; the widened rerun is discarded
+and only its fitted trend/seasonality feed the chart, which still extends
+only from the original visible window. A literal (non-token) date range is
+left as-is — there's no "back" to extend a range the user typed explicitly —
+and a failed widened rerun falls back to fitting on the visible rows alone
+rather than failing the run (#178).
+
 **`unavailable` reasons.** `compute_forecast` never raises on user data —
 a shape or data problem returns `{"unavailable": "<reason>"}` instead of a
 projection: `"shape"` (the D2 gate above isn't met — shouldn't normally reach
@@ -340,8 +394,8 @@ change, no new endpoint, no new permission. It lives entirely in the Simple
 pane (`templates/js/_reporting_dashboard_js.html`, exposing
 `window.ReportingDashboard = {openNew, open, close}`) as a fourth pane view
 alongside library/wizard/result, and is built out of multiple **cards**
-(KPI / line / bar / donut / table), each running the existing curated-source
-`POST /api/reporting/run` path independently.
+(KPI / line / bar / donut / table / report), each running the existing
+curated-source `POST /api/reporting/run` path independently.
 
 **Definition shape (`schemaVersion: 1`):**
 
@@ -366,8 +420,8 @@ alongside library/wizard/result, and is built out of multiple **cards**
 }
 ```
 
-`type` is one of `kpi` / `line` / `bar` / `donut` / `table`; `span` is the
-card's grid width; `definition` is a normal report-definition fragment
+`type` is one of `kpi` / `line` / `bar` / `donut` / `table` / `report`; `span`
+is the card's grid width; `definition` is a normal report-definition fragment
 (same shape as **Report-definition v1 JSON** below) run through the same
 validator and query builder as any other report; `filterOverrides` are
 per-card filters that layer on top of the dashboard's `globalFilters`.
@@ -426,6 +480,26 @@ per-card filters that layer on top of the dashboard's `globalFilters`.
   dimension (on a pivoted card, the clicked bucket **and** its series); donut
   cards are excluded from click-drill (their >8-category "Other" rollup breaks
   the 1:1 index-to-row mapping the drawer needs).
+- **`report` card — adopt a saved report 1:1** (#178). In Edit mode, the "+
+  Report" add-pill opens a picker of the current user's own saved non-SQL,
+  non-dashboard reports (`GET /api/reporting/reports`, filtered client-side);
+  picking one copies that report's `definition` and name straight into the
+  card verbatim — the card is not a chart-type choice like `kpi`/`line`/
+  `bar`/`donut`, it renders using the **adopted report's own**
+  `definition.chartType` (pie/doughnut → donut chart, bar/stacked → bar
+  chart, anything else → line), with a total tile above the chart. Because
+  it carries the source report's full definition rather than a
+  dashboard-authored one, a `report` card still participates normally in
+  `filterOverrides`/`globalFilters` layering and drill-through like any other
+  card — only its own row-total metric and chart-type choice come from the
+  adopted report instead of being configured on the dashboard. A known v1
+  limitation: the card's headline total always **sums every returned row**
+  — it does not get the `TotalMode='latest'` treatment described in
+  **Metrics registry** below, so an adopted report built on a
+  `TotalMode='latest'` metric (e.g. `backlog_total`) shows a summed total on
+  the dashboard card even though the same report's Simple KPI band shows a
+  last-bucket-only total. Latest-mode awareness inside dashboard cards is
+  deferred to a later slice, not a bug.
 
 Migration history: the dashboard builder **supersedes**
 `docs/superpowers/plans/2026-07-15-reporting-pin-to-dashboard.md` (a
@@ -868,6 +942,25 @@ docprocessing union projects a constant `1 AS [_one]` per subquery when the
 metric set is count-only so the SELECT list is never empty). This powers the
 Simple tab's number card and works identically in Advanced and the AI surfaces.
 
+**`TotalMode`** (`sum` default / `latest`, migration `0056`, `table`-provider
+sources only) governs *how* that zero-dimension grand total is computed for a
+metric backed by a **point-in-time snapshot series** rather than an
+additive one — the seeded case is `backlog_total` on the `backlog_history`
+source (`dbo.BacklogHistory`, 30-minute backlog snapshots): summing every
+snapshot's `BacklogCount` across a time range is meaningless, the total
+should be the backlog **as of the latest snapshot**, not the sum of all of
+them. When a zero-column request's metrics are **all** `TotalMode = 'latest'`
+and the source has **exactly one** grainable date field, `_prepare_run`
+passes that field as `latest_of` into `build_generic_query`, which restricts
+the aggregate to rows at the latest bucket instead of the whole matched set;
+any mixed `sum`/`latest` metric set, or more than one date candidate, falls
+back to the safe default (`sum` over everything) rather than guessing which
+metric should win. The Simple KPI band shows a similarly-motivated "· last
+bucket &lt;bucket&gt;" caption on the Total tile, but it is a **separate,
+client-computed** number, not a read of this server total — see **Simple and
+Advanced tabs → KPI stat band** above for why the two can legitimately
+differ (e.g. snapshots finer-grained than the report's display grain).
+
 > Per-metric locked filters (`FilterJson`) are stored in the table but **not yet
 > applied** by the engine in Slice 1 (reserved for a later slice). Report-level
 > `filters` still apply pre-aggregation.
@@ -1004,24 +1097,44 @@ pairs, one entry per prior turn (the current question is sent separately as
 history in memory; the server (`nx_lib/views/reporting.py: api_ai_agent`)
 **caps what it actually uses** to the **last 8 entries**, then trims further
 from the front until the total character count of the kept entries is at most
-**4000** — so a long-running chat degrades to "recent context only" rather than
-growing the prompt without bound. History is **text-only** (`role`/`content`
-strings — anything else is dropped) and never carries schema/grounding text;
-that stays attached to the current turn's `question` only, so it isn't repeated
-once per history entry.
+**12000** — so a long-running chat degrades to "recent context only" rather
+than growing the prompt without bound. History is **text-only** (`role`/
+`content` strings — anything else is dropped) and never carries schema/
+grounding text; that stays attached to the current turn's `question` only, so
+it isn't repeated once per history entry. Each **assistant** turn the client
+records also appends its own produced artifact — `\n[sql from this
+answer]\n<sql, first 1500 chars>` and/or `\n[report definition from this
+answer]\n<definition JSON, first 1200 chars>` — so a presentation-only
+follow-up ("show it as a chart", "break that down by process") can be
+answered by re-shaping the **same** query/definition instead of the model
+re-deriving it (or silently switching source) from the English answer alone;
+see `docs/design/reporting-ai-assistant.md` for the full mechanism and why
+the cap went from 4000 to 12000 to fit these artifacts.
 
-While a request is in flight, a rotating status ticker cycles through staged
-progress lines ("Asking the AI…", "The agent is working step by step…",
-"Checking the result…"). Each reply renders as:
+While a request is in flight, a **live build-step list** narrates what the
+agent is actually doing turn by turn (a title line — "Asking the AI…", the
+model's own preamble when it wrote one, or "Thinking… (N)" on later turns —
+plus a growing list of steps such as "Building the report…", "Checking the
+query…", "Running the query…", "Crunching the numbers…", one per tool call,
+the previous one flipping to done as the next starts). See **Agent endpoint
+contract → Live progress** below for the underlying NDJSON stream this
+renders; `docs/design/reporting-ai-assistant.md` documents the exact
+phase-to-label mapping. Each reply renders as:
 
 - The **answer** text.
 - A collapsed **"How the agent worked"** `<details>` — one line per tool call,
   an ok/error chip, and a row count where applicable.
 - Action chips, shown only when the reply actually produced the artifact:
-  **Open in builder** (only if the reply carries a `definition` — switches to
-  the Advanced tab and fills the builder wells via `applyDefinition()`, then the
-  user runs it through the normal `/api/reporting/run` path, so row-scoping and
-  the field whitelist still apply), **Insert into SQL editor** / **Show query**
+  **Open report** (only if the reply carries a `definition` — switches to the
+  Simple tab and opens it straight into the result view via
+  `window.ReportingSimple.openDefinition()` (#178 A4), which runs it through
+  the normal `/api/reporting/run` path, so row-scoping and the field
+  whitelist still apply; falls back to the Advanced builder's
+  `applyDefinition()` **followed by `run()`** if the Simple seam isn't
+  loaded — the fallback used to stop at `applyDefinition()`, leaving
+  Advanced showing no results until Run was pressed by hand, fixed
+  alongside the equivalent Simple-side bug, #178 Task 15), **Insert into SQL
+  editor** / **Show query**
   (only if the reply carries `sql`, which in turn only happens when the caller
   holds `reporting.ai.sql` — see **Access** below).
 - Three canned **follow-up** suggestion chips ("Only this quarter", "Break down
@@ -1138,7 +1251,7 @@ metric` GROUP BY guidance apply the same way they did for the old Surface A/C
 prompts. `AI_DAILY_LIMIT` applies before any provider call; audited with
 `Surface='agent'` (`Status='misconfig'` if the provider is broken, `'blocked'`
 when the cap is hit). The last validated definition/SQL anywhere in the tool
-trace is what the chat panel's **Open in builder** / **Insert SQL** chips act
+trace is what the chat panel's **Open report** / **Insert SQL** chips act
 on.
 
 Tool and SQL-sandbox errors surfaced to the model (and to the visible tool-step
@@ -1206,7 +1319,7 @@ does not render. Sanitised key names are committed in `env/*.env.example`.
 - **No unmediated execution path:** the chat panel itself never runs anything —
   **Insert into SQL editor** only stages a draft for the user to review and run
   via the existing gated `POST /api/reporting/sql/run` path (same read-only
-  login, row cap, timeout, audit trail); **Open in builder** only stages a
+  login, row cap, timeout, audit trail); **Open report** only stages a
   definition for a normal, whitelisted `/api/reporting/run` call. The one path
   where the model itself triggers a read against real data is the opt-in
   `run_sql`/`compute_stats` tool binding (`reporting.ai.explain_data` +

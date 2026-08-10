@@ -1,4 +1,4 @@
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
     const DEFAULT_ICON = "{{ url_for('static', filename='images/default-Icon.png') }}";
     const I18N_MATCH    = "{{ _('Passwords match') }}";
@@ -13,6 +13,10 @@
         const el = document.getElementById('photoPreview');
         if (el) el.src = DEFAULT_ICON;
     };
+    // #193 finding 10: onerror="" attribute handlers aren't nonce-covered by CSP;
+    // bind in JS instead.
+    document.getElementById('profilePictureNonHeader')?.addEventListener('error', window.defaultIconNonHeader);
+    document.getElementById('photoPreview')?.addEventListener('error', window.defaultIconPreview);
 
     document.addEventListener('DOMContentLoaded', function () {
 

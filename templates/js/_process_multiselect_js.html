@@ -9,7 +9,7 @@
    ponytail: the reporting page keeps its own copy of this picker -- it is
    wired into the report-builder state machine (per-source field availability),
    not into a plain input. Merge the two if a third caller shows up. #}
-<script>
+<script nonce="{{ csp_nonce() }}">
   window.NexoraProcessPicker = (function () {
     var LBL = {
       all: {{ _("All Processes")|tojson }},

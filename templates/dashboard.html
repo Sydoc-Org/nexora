@@ -121,7 +121,7 @@
 
   {% include 'js/_dashboard_js.html' %}
   {% include 'js/_process_multiselect_js.html' %}
-  <script>
+  <script nonce="{{ csp_nonce() }}">
     NexoraProcessPicker.init({ inputId: 'prcfD', processes: {{ allowed_processes|tojson }} });
     document.getElementById('prcfD').addEventListener('change', function (e) {
       setProcessFilter(e.target.value);

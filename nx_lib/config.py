@@ -117,6 +117,16 @@ DB_REPORTING_OCTO_RO_USER = os.environ.get("DB_REPORTING_OCTO_RO_USER")
 DB_REPORTING_OCTO_RO_PWD = os.environ.get("DB_REPORTING_OCTO_RO_PWD")
 DB_GENERALI = os.environ.get("DB_GENERALI", "Generali")
 
+# SQL Server ODBC driver + TLS knobs (#193 finding 16). Defaults preserve
+# today's behavior (legacy unencrypted "{SQL Server}" driver) since flipping
+# the default blind could break connectivity on a box without the modern
+# driver installed -- set DB_ODBC_DRIVER to "ODBC Driver 17 for SQL Server"
+# (or 18) once it's confirmed installed on that box, which also turns on
+# Encrypt=yes/TrustServerCertificate=yes below (the legacy driver doesn't
+# understand those params).
+DB_ODBC_DRIVER = os.environ.get("DB_ODBC_DRIVER", "SQL Server")
+DB_ODBC_ENCRYPT = DB_ODBC_DRIVER != "SQL Server"
+
 # Support inbox the outage monitor (ops/outage_monitor.py) files tickets to.
 # Unset -> the monitor still probes and logs but sends no mail, so a dev box
 # never pages support.
@@ -192,7 +202,12 @@ CSP = {
     "object-src": "'none'",
     "script-src": [
         "'self'",
-        "'unsafe-inline'",
+        # No 'unsafe-inline' (#193 finding 10) -- every inline <script> is
+        # nonce-gated instead (content_security_policy_nonce_in in
+        # nx_lib/__init__.py, csp_nonce() in each template). Inline
+        # onclick/onchange/... attribute handlers are not covered by a
+        # script-src nonce, so those were converted to addEventListener
+        # bindings rather than allowed via 'unsafe-hashes'.
         "https://cdn.tailwindcss.com",
         "https://cdnjs.cloudflare.com",
         "https://cdn.jsdelivr.net",

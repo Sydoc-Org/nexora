@@ -1,4 +1,4 @@
-<script>
+<script nonce="{{ csp_nonce() }}">
     const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
 
     // Drawer & modal DOM refs
@@ -637,8 +637,7 @@
             tr.id = `perm-row-${p.PermissionID}`;
             tr.innerHTML = `
                 <td class="px-4 py-4">
-                    <button onclick="togglePermExpand(${p.PermissionID})"
-                            class="text-gray-400 hover:text-indigo-600 w-6 h-6 flex items-center justify-center" data-testid="admin-ac-perm-expand-${p.PermissionID}">
+                    <button class="perm-expand-btn text-gray-400 hover:text-indigo-600 w-6 h-6 flex items-center justify-center" data-permission-id="${p.PermissionID}" data-testid="admin-ac-perm-expand-${p.PermissionID}">
                         <i class="fas fa-chevron-right text-xs transition-transform duration-200" id="perm-expand-icon-${p.PermissionID}"></i>
                     </button>
                 </td>
@@ -653,12 +652,10 @@
                     <span class="px-2 py-0.5 text-xs rounded-full ${p.OverrideCount > 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-500'}">${p.OverrideCount}</span>
                 </td>
                 <td class="px-6 py-4 text-right space-x-3">
-                    <button onclick="openEditPermissionModal(${p.PermissionID})"
-                            class="text-indigo-400 hover:text-indigo-700 text-sm" title="{{ _('Edit') }}" data-testid="admin-ac-perm-edit-${p.PermissionID}">
+                    <button class="perm-edit-btn text-indigo-400 hover:text-indigo-700 text-sm" data-permission-id="${p.PermissionID}" title="{{ _('Edit') }}" data-testid="admin-ac-perm-edit-${p.PermissionID}">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button onclick="confirmDeletePermission(${p.PermissionID})"
-                            class="text-red-300 hover:text-red-600 text-sm" title="{{ _('Delete') }}" data-testid="admin-ac-perm-delete-${p.PermissionID}">
+                    <button class="perm-delete-btn text-red-300 hover:text-red-600 text-sm" data-permission-id="${p.PermissionID}" title="{{ _('Delete') }}" data-testid="admin-ac-perm-delete-${p.PermissionID}">
                         <i class="fas fa-trash-alt"></i>
                     </button>
                 </td>`;
@@ -827,6 +824,48 @@
 
     // ── INIT ──────────────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', () => {
+        // #193 finding 10: onclick/oninput="" attribute handlers aren't
+        // nonce-covered by CSP; bind them here instead.
+        document.getElementById('tab-users-btn')?.addEventListener('click', () => switchTab('users'));
+        document.getElementById('tab-permissions-btn')?.addEventListener('click', () => switchTab('permissions'));
+        document.getElementById('tab-profiles-btn')?.addEventListener('click', () => switchTab('profiles'));
+        document.getElementById('userSearchInput')?.addEventListener('input', () => {
+            filterUsersTable();
+            updateClearFilterVisibility();
+        });
+        document.getElementById('userClearFiltersBtn')?.addEventListener('click', clearUserFilters);
+        document.querySelector('[data-testid="admin-ac-add-user"]')?.addEventListener('click', openAddUserModal);
+        document.getElementById('permSearchInput')?.addEventListener('input', filterPermissionsTable);
+        document.querySelector('[data-testid="admin-ac-add-permission"]')?.addEventListener('click', openAddPermissionModal);
+        document.querySelector('[data-testid="admin-ac-add-profile"]')?.addEventListener('click', openProfileDrawer);
+        document.querySelector('[data-testid="admin-ac-user-modal-close"]')?.addEventListener('click', closeUserModal);
+        document.querySelector('[data-testid="admin-ac-user-modal-cancel"]')?.addEventListener('click', closeUserModal);
+        document.querySelector('[data-testid="admin-ac-confirm-delete-cancel"]')?.addEventListener('click', closeConfirmDeleteModal);
+        document.querySelector('[data-testid="admin-ac-perm-modal-close"]')?.addEventListener('click', closePermMetaModal);
+        document.querySelector('[data-testid="admin-ac-perm-modal-cancel"]')?.addEventListener('click', closePermMetaModal);
+        document.querySelector('[data-testid="admin-ac-perm-modal-save"]')?.addEventListener('click', savePermissionMeta);
+        document.getElementById('drawerOverlay')?.addEventListener('click', closeDrawer);
+        document.querySelector('[data-testid="admin-ac-drawer-close"]')?.addEventListener('click', closeDrawer);
+        document.getElementById('drawerPermSearch')?.addEventListener('input', filterDrawerPerms);
+        document.querySelector('[data-testid="admin-ac-drawer-cancel"]')?.addEventListener('click', closeDrawer);
+        document.querySelector('[data-testid="admin-ac-drawer-save"]')?.addEventListener('click', savePermissions);
+        document.getElementById('drawerPermsBody')?.addEventListener('click', (e) => {
+            const tr = e.target.closest('tr[data-perm-group], tr[data-perm-sub-group]');
+            if (tr) permGroupToggle(tr);
+        });
+        document.getElementById('permissionsTableBody')?.addEventListener('click', (e) => {
+            const expandBtn = e.target.closest('.perm-expand-btn');
+            if (expandBtn) return togglePermExpand(Number(expandBtn.dataset.permissionId));
+            const editBtn = e.target.closest('.perm-edit-btn');
+            if (editBtn) return openEditPermissionModal(Number(editBtn.dataset.permissionId));
+            const deleteBtn = e.target.closest('.perm-delete-btn');
+            if (deleteBtn) confirmDeletePermission(Number(deleteBtn.dataset.permissionId));
+        });
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('.edit-access-profile-btn');
+            if (btn) editProfile(Number(btn.dataset.accessId));
+        });
+
         fetchAllUsers();
         fetchAllPermissions();
 

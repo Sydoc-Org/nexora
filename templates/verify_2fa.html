@@ -79,7 +79,7 @@
 
         {% include '_small_footer.html' %}
 
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         document.getElementById('code').addEventListener('input', function (e) {
             const digits = e.target.value.replace(/\D/g, '').slice(0, 6);
             e.target.value = digits;

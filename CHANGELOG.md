@@ -23,6 +23,24 @@ Work toward the next release.
   allowlist drops `application/octet-stream`; the dashboard sign-in name is
   HTML-escaped; and JSON error handlers no longer return raw exception text.
   Findings + remediation status: `docs/security/2026-08-audit-193.md`.
+- **#193 remaining findings (4, 6, 7, 10, 16) closed out.** Reporting SQL
+  sandbox `validate_select()` now rejects cross-DB/linked-server and
+  `sys`/`INFORMATION_SCHEMA`/system-DB table references (finding 4). Login
+  mints a fresh server-side session id at every point a session becomes
+  authenticated, closing the session-fixation gap (finding 6). A durable,
+  cross-worker `dbo.LoginLockout` counter (migration `0062`) locks an account
+  for 15 minutes after 5 failed logins, independent of the still-per-worker
+  IP rate limit (finding 7 — the shared rate-limit-storage half needs Redis
+  provisioned, tracked separately). CSP `script-src` no longer carries
+  `'unsafe-inline'`; every inline `<script>` is nonce-gated
+  (`content_security_policy_nonce_in`) and all inline
+  `onclick`/`onchange`/`onerror`/`oninput` attribute handlers across the
+  admin, Generali, profile and prepared-documents pages were converted to
+  `addEventListener` bindings (finding 10). `DB_ODBC_DRIVER` /
+  `DB_ODBC_ENCRYPT` env knobs let a box opt into the modern encrypted ODBC
+  driver once it's confirmed installed; the legacy driver stays the default
+  until then (finding 16). Updated disposition table:
+  `docs/security/2026-08-audit-193.md`.
 
 ### Added
 
@@ -142,8 +160,43 @@ Work toward the next release.
   re-register the routes, restore `invoicesPagePerm` + the nav entries, and
   rename the table back.
 
+### Added
+
+- Reporting: live "building your report" step list in the AI chat while the
+  agent works (#178) — a title line plus a growing per-tool-call step list
+  (Building the report… / Checking the query… / Running the query… /
+  Crunching the numbers…) replaces the old generic rotating status line.
+- Reporting: granularity chip on Simple results, and the wizard's grain
+  select is now always visible (disabled with a tooltip until a time
+  breakdown is picked) rather than only appearing once one is chosen (#178).
+- Reporting: wizard process step for table sources via new
+  `POST /api/reporting/field_values` — a table source with no process
+  registry but a process-like filterable field now gets a field-scope step
+  in the wizard, sourced from the field's own distinct values (#178).
+- Reporting: `TotalMode` on the metrics registry (migration `0056`) —
+  snapshot metrics (backlog) total the latest bucket instead of summing
+  snapshots, both server-side (zero-dim grand total) and on the Simple KPI
+  band's "last bucket" caption (#178).
+- Reporting: dashboard card type "Report" that adopts a saved report 1:1,
+  including its own chart type (#178).
 ### Changed
 
+- Reporting AI chat: the "Open in builder" chip on an agent answer is now
+  "Open report" and lands the definition in the Simple result view instead
+  of the Advanced builder (#178). A new `window.ReportingSimple.openDefinition()`
+  seam (modeled on `openReport`) drives it; Advanced stays reachable via the
+  result bar's escape hatch. Chat follow-ups now also carry the prior
+  answer's produced SQL/definition forward as context in `history` (a
+  `[sql from this answer]` / `[report definition from this answer]`
+  convention, capped at 1500/1200 chars — raised the overall history cap
+  from 4000 to 12000 chars to fit it), so a presentation-only follow-up
+  ("show it as a chart") stays on the same query/data instead of the model
+  re-deriving — or silently switching source for — one from its own prose.
+- Reporting: forecasts fit on a widened history window (grain-dependent
+  lookback — 56/182/730/1460/2190 days for day/week/month/quarter/year — for
+  reports with a relative-date filter), so day-grain forecasts learn weekday
+  seasonality instead of fitting on however little history the visible
+  result happened to show (#178).
 - Branch naming convention: release-cycle branches are now `v<x.y[.z]>` (e.g.
   `v3.1`); the pre-push branch-name guard accepts both the new form and the
   legacy `feature/<x.y.z>` for in-flight branches.
@@ -166,7 +219,12 @@ Work toward the next release.
   selection), per-pane chart caps, the drill-drawer export's 100-row cap, the
   Simple tab's greyed-out (not hidden) Forecast toggle, per-tab Save semantics,
   decorative library-card previews, and the retired AI "transparency line"
-  (checking an AI result now goes through "Open in builder").
+  (checking an AI result now goes through "Open report").
+- Reporting: the Simple hero no longer overlays open reports (#178).
+- Reporting: clearer self-repair hints for AI SQL errors 156/205/209 (#178).
+- Reporting: `Open in Advanced` now actually runs the report — it used to
+  only pre-fill the builder's wells, leaving Advanced showing no results and
+  "Show query" hidden/stale until the user pressed Run themselves (#178).
 - The two login e2e smokes clicked the 2FA submit button that the auto-submit
   challenge (since `a749bda`) removes from under them — they now fill the code
   and wait for the redirect. The e2e server port is overridable via the new

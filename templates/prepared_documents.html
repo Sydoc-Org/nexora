@@ -87,7 +87,7 @@
           <label for="pdocCollected" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{{ _("Collected") }}</label>
           <div class="relative mt-1">
             <select id="pdocCollected" name="collected" class="nx-select h-11 appearance-none pr-10"
-                    onchange="this.form.submit()" data-testid="prepared-docs-collected-filter">
+                    data-testid="prepared-docs-collected-filter">
               <option value="" {{ 'selected' if collected_filter is none }}>{{ _("Any") }}</option>
               <option value="1" {{ 'selected' if collected_filter == True }}>{{ _("Yes") }}</option>
               <option value="0" {{ 'selected' if collected_filter == False }}>{{ _("No") }}</option>
@@ -102,7 +102,7 @@
           <label for="pdocPrepared" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{{ _("Prepared") }}</label>
           <div class="relative mt-1">
             <select id="pdocPrepared" name="prepared" class="nx-select h-11 appearance-none pr-10"
-                    onchange="this.form.submit()" data-testid="prepared-docs-prepared-filter">
+                    data-testid="prepared-docs-prepared-filter">
               <option value="" {{ 'selected' if prepared_filter is none }}>{{ _("Any") }}</option>
               <option value="1" {{ 'selected' if prepared_filter == True }}>{{ _("Yes") }}</option>
               <option value="0" {{ 'selected' if prepared_filter == False }}>{{ _("No") }}</option>
@@ -117,7 +117,7 @@
           <label for="pdocGroupBy" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{{ _("Group by") }}</label>
           <div class="relative mt-1">
             <select id="pdocGroupBy" name="group_by" class="nx-select h-11 appearance-none pr-10"
-                    onchange="this.form.submit()" data-testid="prepared-docs-group-by">
+                    data-testid="prepared-docs-group-by">
               <option value="" {{ 'selected' if not group_by }}>{{ _("None") }}</option>
               <option value="collected_by" {{ 'selected' if group_by == 'collected_by' }}>{{ _("Collected by") }}</option>
               <option value="prepared_by" {{ 'selected' if group_by == 'prepared_by' }}>{{ _("Prepared by") }}</option>
@@ -132,7 +132,7 @@
           <label for="pdocPerPage" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{{ _("Per page") }}</label>
           <div class="relative mt-1">
             <select id="pdocPerPage" name="per_page" class="nx-select h-11 appearance-none pr-10"
-                    onchange="this.form.submit()" data-testid="prepared-docs-per-page">
+                    data-testid="prepared-docs-per-page">
               {% for n in (25, 40, 100, 200) %}
               <option value="{{ n }}" {{ 'selected' if pagination.perPage == n }}>{{ n }}</option>
               {% endfor %}
@@ -282,7 +282,12 @@
     </div>
   </div>
 
-  <script>
+  <script nonce="{{ csp_nonce() }}">
+    // #193 finding 10: onchange="" attribute handlers aren't nonce-covered by CSP.
+    ['pdocCollected', 'pdocPrepared', 'pdocGroupBy', 'pdocPerPage'].forEach(function (id) {
+      document.getElementById(id)?.addEventListener('change', function () { this.form.submit(); });
+    });
+
     // Source-highlight confidence helpers + an empty fieldConfig the shared panel reads.
     window.srcConfClass = function (conf) {
       if (typeof conf !== 'number' || isNaN(conf)) return '';

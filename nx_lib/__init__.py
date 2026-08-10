@@ -53,6 +53,14 @@ def create_app():
     extensions.init_app(app)
     hooks.init_app(app)
 
+    # Nonce global for inline <script nonce="{{ csp_nonce() }}"> tags (#193
+    # finding 10). Talisman below overwrites this with the real per-request
+    # nonce generator, but only in PROD (where Talisman/CSP is active) --
+    # this no-op default keeps every template rendering the attribute
+    # harmlessly (empty nonce) in dev/INT/test, where there's no CSP to
+    # violate.
+    app.jinja_env.globals.setdefault("csp_nonce", lambda: "")
+
     @app.after_request
     def _baseline_security_headers(resp):
         # Clickjacking + MIME-sniff protection in EVERY environment (#193); PROD
@@ -63,7 +71,14 @@ def create_app():
         return resp
 
     if cfg.IS_PROD:
-        Talisman(app, content_security_policy=cfg.CSP)
+        # content_security_policy_nonce_in appends a fresh 'nonce-<random>'
+        # to script-src on every request and exposes it to templates via
+        # csp_nonce(); every inline <script> carries nonce="{{ csp_nonce() }}"
+        # so 'unsafe-inline' is no longer needed on script-src (#193 finding
+        # 10 -- CSP previously provided zero XSS mitigation).
+        Talisman(
+            app, content_security_policy=cfg.CSP, content_security_policy_nonce_in=["script-src"]
+        )
 
     # Routes are registered via add_url_rule() (rather than Blueprint) so the
     # original endpoint names ("login", "logout", "profile", ...) are preserved

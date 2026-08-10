@@ -7,7 +7,7 @@
 </head>
 
 <body>
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
         // Source-highlight confidence helpers (shared by the field list, thumbnails
         // and the lightbox overlay). field_sources entries may carry an optional

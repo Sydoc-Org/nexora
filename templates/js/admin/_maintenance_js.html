@@ -1,4 +1,4 @@
-<script>
+<script nonce="{{ csp_nonce() }}">
     const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
     const canEdit = !!window.MAINTENANCE_CAN_EDIT;
 
@@ -273,6 +273,10 @@
         maintDeleteModal.classList.add('hidden');
         _pendingDeleteId = null;
     }
+
+    // #193 finding 10: onclick="" attribute handlers aren't nonce-covered by CSP.
+    document.getElementById('maintCancelBtn')?.addEventListener('click', closeMaintModal);
+    document.getElementById('maintDeleteCancelBtn')?.addEventListener('click', closeMaintDeleteModal);
 
     document.getElementById('maintForm').addEventListener('submit', async (e) => {
         e.preventDefault();

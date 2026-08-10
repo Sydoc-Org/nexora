@@ -7,7 +7,7 @@
 </head>
 
 <body>
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         const userModal = document.getElementById('userModal');
         const modalTitle = document.getElementById('modalTitle');
         const userForm = document.getElementById('userForm');
@@ -76,6 +76,10 @@
             openModal();
         }
 
+        // #193 finding 10: onclick="" attribute handlers aren't nonce-covered by CSP.
+        userModal.addEventListener('click', closeModal);
+        document.getElementById('userModalCancelBtn')?.addEventListener('click', () => closeModal());
+
         function openEditUserModal(user) {
             userForm.reset();
             modalTitle.textContent = `{{ _("Edit user") }}`;
@@ -108,7 +112,7 @@
                 <td class="px-6 py-4">${escapeHtml(user.organization)}</td>
                 <td class="px-6 py-4 text-right">
                     <button data-user="${userJson}" class="edit-user-btn font-medium text-indigo-600 hover:text-indigo-800 mr-4" data-testid="admin-user-management-edit-${user.userID}">{{ _("Edit") }}</button>
-                    <button onclick="deleteUser(${user.userID})" class="font-medium text-red-600 hover:text-red-800" data-testid="admin-user-management-delete-${user.userID}">{{ _("Delete") }}</button>
+                    <button class="delete-user-btn font-medium text-red-600 hover:text-red-800" data-userid="${user.userID}" data-testid="admin-user-management-delete-${user.userID}">{{ _("Delete") }}</button>
                 </td>
             </tr>`;
         }
@@ -218,6 +222,12 @@
             if (editBtn) {
                 const userData = JSON.parse(editBtn.dataset.user);
                 openEditUserModal(userData);
+                return;
+            }
+            // #193 finding 10: onclick="" attribute handlers aren't nonce-covered by CSP.
+            const deleteBtn = e.target.closest('.delete-user-btn');
+            if (deleteBtn) {
+                deleteUser(Number(deleteBtn.dataset.userid));
             }
         });
 

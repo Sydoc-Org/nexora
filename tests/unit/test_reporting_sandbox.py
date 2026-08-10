@@ -435,6 +435,31 @@ def test_sandbox_error_token_carries_dynamic_part():
     assert ei.value.token.upper() == "DROP"
 
 
+# ---- #193 finding 4: object-scope gate (cross-DB / system schema) --------
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "SELECT * FROM Statistics.dbo.Foo",  # three-part = cross-DB
+        "SELECT * FROM Server1.DB1.dbo.Foo",  # four-part = linked server
+        "SELECT * FROM sys.databases",
+        "SELECT name FROM INFORMATION_SCHEMA.TABLES",
+        "SELECT * FROM master.dbo.spt_values",
+    ],
+)
+def test_cross_db_and_system_schema_refs_rejected(sql):
+    with pytest.raises(SqlSandboxError) as ei:
+        validate_select(sql)
+    assert ei.value.rule == "cross_db"
+
+
+def test_plain_schema_qualified_table_still_allowed():
+    # dbo.Foo has a schema (db=dbo) but no catalog -- same DB the RO
+    # connection is already pinned to, not a cross-DB reference.
+    assert validate_select("SELECT * FROM dbo.Foo") == "SELECT * FROM dbo.Foo"
+
+
 # ---- Task 6: humanize_sql_error (pyodbc/ODBC driver noise -> teaching text) --
 
 # The exact live-audit pyodbc str(exception) text for a derived-table ORDER BY
@@ -473,6 +498,26 @@ def test_humanize_sql_error_strips_noise_without_hint_for_unmapped_code():
 def test_humanize_sql_error_passes_through_non_odbc_message():
     msg = "unknown metric: 'x'"
     assert humanize_sql_error(msg) == msg
+
+
+def test_humanize_appends_union_order_by_hint():
+    msg = (
+        "('42000', \"[42000] [Microsoft][ODBC SQL Server Driver][SQL Server]"
+        "Incorrect syntax near the keyword 'UNION'. (156) (SQLExecDirectW)\")"
+    )
+    out = humanize_sql_error(msg)
+    assert "Incorrect syntax near the keyword 'UNION'." in out
+    assert "Hint:" in out and "last branch" in out
+
+
+def test_humanize_appends_ambiguous_column_hint():
+    msg = (
+        "('42000', \"[42000] [Microsoft][ODBC SQL Server Driver][SQL Server]"
+        "Ambiguous column name 'd'. (209) (SQLExecDirectW)\")"
+    )
+    out = humanize_sql_error(msg)
+    assert "Ambiguous column name 'd'." in out
+    assert "Hint:" in out and "alias" in out
 
 
 # ---- Round 3: bare-CR comment terminator + bracket-regex ReDoS ------------

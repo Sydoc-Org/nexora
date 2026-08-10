@@ -1,4 +1,4 @@
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
   const csrf = document.querySelector('meta[name="csrf-token"]').content;
   const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
@@ -1905,6 +1905,6 @@
   loadMetrics();
   loadSources();
   loadReports();
-  window.Reporting = Object.assign(window.Reporting || {}, { applyDefinition: applyDefinition, setMode: setMode, applyDefinitionAndChart: applyDefinitionAndChart });
+  window.Reporting = Object.assign(window.Reporting || {}, { applyDefinition: applyDefinition, setMode: setMode, applyDefinitionAndChart: applyDefinitionAndChart, run: run });
 }());
 </script>

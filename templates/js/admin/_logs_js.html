@@ -1,4 +1,4 @@
-<script>
+<script nonce="{{ csp_nonce() }}">
     let currentPage = 1;
     let fetchedLogsData = [];
     const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
@@ -88,7 +88,7 @@
                     <td><span class="log-status log-status--${statusTone}"><i class="fas ${statusIcon}" style="font-size:10px;margin-right:4px"></i>${escapeHtml(statusLabel)}</span></td>
                     <td><span class="nx-mono" style="font-size:11px">${escapeHtml(log.RequestIpAddress || '')}</span></td>
                     <td class="align-right">
-                        <button onclick="openLogModal(${index})" class="nx-btn nx-btn--ghost nx-btn--sm" style="color:var(--nx-accent)" type="button" data-testid="admin-logs-view-${index}">
+                        <button class="log-view-btn nx-btn nx-btn--ghost nx-btn--sm" style="color:var(--nx-accent)" type="button" data-index="${index}" data-testid="admin-logs-view-${index}">
                             {{ _("View") }} <i class="fas fa-expand-alt" style="font-size:10px;margin-left:4px"></i>
                         </button>
                     </td>
@@ -343,6 +343,17 @@
             });
         });
     })();
+
+    // #193 finding 10: onclick="" attribute handlers aren't nonce-covered by CSP.
+    document.getElementById('prevBtn')?.addEventListener('click', () => changePage(-1));
+    document.getElementById('nextBtn')?.addEventListener('click', () => changePage(1));
+    document.getElementById('logsModalCloseTopBtn')?.addEventListener('click', closeLogModal);
+    document.getElementById('logsModalCloseBottomBtn')?.addEventListener('click', closeLogModal);
+    document.getElementById('logsModalCopyBtn')?.addEventListener('click', copyToClipboard);
+    document.getElementById('logsTableBody')?.addEventListener('click', (e) => {
+        const btn = e.target.closest('.log-view-btn');
+        if (btn) openLogModal(Number(btn.dataset.index));
+    });
 
     document.addEventListener('DOMContentLoaded', function () {
         const presets = document.querySelectorAll('.log-preset');

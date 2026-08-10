@@ -1,4 +1,4 @@
-<script>
+<script nonce="{{ csp_nonce() }}">
     const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
     const canEdit         = document.getElementById('recordsTable').dataset.canEdit === 'true';
     const canEditTransOrg  = document.getElementById('recordsTable').dataset.canEditTransorg === 'true';
@@ -433,6 +433,8 @@
         document.body.appendChild(errDiv);
         setTimeout(() => errDiv.remove(), 4000);
     }
+    document.getElementById('exportExcelBtn')?.addEventListener('click', exportToExcel); // #193 finding 10
+
 
     async function exportToExcel() {
         const btn = document.getElementById('exportExcelBtn');

@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="{{ url_for('static',filename='css/nexora-ui.css') }}">
     <link rel="stylesheet" href="{{ url_for('static',filename='css/_header.css') }}">
     <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         /* ---- UI prefs (issue #155): apply server-stored prefs pre-paint ----
            DB (Users.ui_prefs) is authoritative; keys the user never saved fall
            back to the legacy localStorage keys, then to the defaults. */
@@ -347,8 +347,7 @@
                 <button class="sidebar-nav-item sidebar-profile-btn" data-testid="header-profile-toggle">
                     <div class="sidebar-nav-icon sidebar-avatar-wrap">
                         <img src="{{ get_user_icon_url(userid) }}" id="profilePicture"
-                            class="sidebar-avatar" alt="{{ _('Profile Picture') }}"
-                            onerror="defaultIcon()">
+                            class="sidebar-avatar" alt="{{ _('Profile Picture') }}">
                         <div class="sidebar-online-dot"></div>
                         {% if whats_new_unseen %}<div class="sidebar-news-dot" data-testid="header-news-dot"></div>{% endif %}
                     </div>

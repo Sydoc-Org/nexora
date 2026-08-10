@@ -130,7 +130,7 @@
     </main>
 
     {% if not is_prod and has_permission('admin.restart') %}
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
         document.getElementById("nx-restart-btn")?.addEventListener("click", async (e) => {
             const btn = e.currentTarget;

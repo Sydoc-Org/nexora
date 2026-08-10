@@ -141,7 +141,7 @@
 
 
   {% include 'js/archive/_invoices_js.html' %}
-  <script>
+  <script nonce="{{ csp_nonce() }}">
     flatpickr('#dateFrom', { dateFormat: 'Y-m-d', allowInput: true });
     flatpickr('#dateTo',   { dateFormat: 'Y-m-d', allowInput: true });
   </script>

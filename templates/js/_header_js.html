@@ -7,12 +7,15 @@
 </head>
 
 <body>
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
         function defaultIcon() {
             document.getElementById('profilePicture').src = "{{ url_for('static',filename='images/default-Icon.png') }}"
         }
+        // #193 finding 10: onerror="" attribute handlers aren't nonce-covered by CSP;
+        // bind in JS instead.
+        document.getElementById('profilePicture')?.addEventListener('error', defaultIcon);
 
         /* Dark mode + sidebar pin are applied pre-paint by the UI-prefs
            script in _header.html <head> (issue #155). */

@@ -68,6 +68,32 @@ _FORBIDDEN_NODES = (
 # Acceptable root expression types (read-only queries).
 _QUERY_ROOTS = (exp.Select, exp.Union, exp.Intersect, exp.Except, exp.Subquery)
 
+# Object-scope gate (#193 finding 4). validate_select() only checked
+# statement *shape* before this -- it placed no restriction on which
+# database/schema a table reference targets, so `SELECT * FROM
+# NexoraDB.dbo.Users` or `SELECT name FROM sys.databases` parsed as an
+# ordinary exp.Table and passed; the entire boundary was the server-side RO
+# login's db_datareader grant (out-of-band DBA convention, no code-level
+# backstop). A `catalog`-qualified table (three-/four-part name: any
+# `database.schema.table` or linked-server `server.database.schema.table`)
+# reaches into a different database than the one the RO connection is
+# already pinned to, so it's rejected outright regardless of which database
+# is named -- this sandbox has no legitimate cross-DB use case. `sys` /
+# `INFORMATION_SCHEMA` / the system databases are blocked even
+# unqualified-catalog since they're reachable within the connected DB too.
+_BLOCKED_SCHEMAS = {"sys", "information_schema", "master", "tempdb", "model", "msdb"}
+
+
+def _find_out_of_scope_table(root):
+    for t in root.find_all(exp.Table):
+        if t.args.get("catalog"):
+            return t
+        db = t.args.get("db")
+        db_name = db.name if hasattr(db, "name") else db
+        if db_name and str(db_name).strip('[]"').lower() in _BLOCKED_SCHEMAS:
+            return t
+    return None
+
 
 class SqlSandboxError(ValueError):
     """Raised when SQL fails sandbox validation. `.rule` names the failed layer."""
@@ -97,6 +123,21 @@ _SQL_ERROR_HINTS = {
     "1033": (
         "ORDER BY inside a derived table needs TOP or OFFSET — or move "
         "ORDER BY to the outer SELECT."
+    ),
+    "156": (
+        "In a set operation (UNION/EXCEPT/INTERSECT) ORDER BY may only follow "
+        "the last branch, and each branch must be a complete SELECT — remove "
+        "ORDER BY/extra clauses from inner branches or wrap the whole set "
+        "operation in an outer SELECT and order there."
+    ),
+    "205": (
+        "All branches of a set operation must project the same number of "
+        "columns in the same order."
+    ),
+    "209": (
+        "The column exists in more than one table/branch — qualify it with "
+        "its table or CTE alias (e.g. e.d instead of d) everywhere, "
+        "including GROUP BY and ORDER BY."
     ),
 }
 
@@ -282,6 +323,17 @@ def validate_select(sql):
     if forbidden is not None:
         name = type(forbidden).__name__
         raise SqlSandboxError("forbidden_node", f"disallowed construct: {name}", token=name)
+
+    out_of_scope = _find_out_of_scope_table(root)
+    if out_of_scope is not None:
+        ref = ".".join(
+            p.name if hasattr(p, "name") else str(p)
+            for p in (out_of_scope.args.get("catalog"), out_of_scope.args.get("db"))
+            if p
+        )
+        raise SqlSandboxError(
+            "cross_db", f"cross-database/system table reference not allowed: {ref}", token=ref
+        )
     return sql
 
 

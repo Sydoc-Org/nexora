@@ -3,8 +3,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-10 12:31+0200\n"
-"PO-Revision-Date: 2026-03-18 14:03+0100\n"
+"POT-Creation-Date: 2026-08-10 14:53+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
 "Language-Team: fr <LL@li.org>\n"
@@ -516,63 +516,68 @@ msgstr "Merci,<br>L'équipe Sydoc"
 msgid "Session expired, please try again"
 msgstr "Session expirée, veuillez réessayer"
 
-#: nx_lib/views/auth.py:358
+#: nx_lib/views/auth.py:359
 msgid "Database error"
 msgstr "Erreur de base de données"
 
-#: nx_lib/views/auth.py:366
+#: nx_lib/views/auth.py:367
 msgid "Invalid code. Please try again."
 msgstr "Code invalide. Veuillez réessayer."
 
-#: nx_lib/views/auth.py:415
+#: nx_lib/views/auth.py:417
 msgid "Invalid code"
 msgstr "Code invalide"
 
-#: nx_lib/views/auth.py:429 nx_lib/views/auth.py:679
+#: nx_lib/views/auth.py:431 nx_lib/views/auth.py:766
 #: templates/js/_profile_js.html:5
 msgid "Passwords do not match"
 msgstr "Les mots de passe ne correspondent pas"
 
-#: nx_lib/views/auth.py:431 nx_lib/views/auth.py:681
+#: nx_lib/views/auth.py:433 nx_lib/views/auth.py:768
 msgid "All Fields must be filled"
 msgstr "Tous les champs doivent être remplis"
 
-#: nx_lib/views/auth.py:435 nx_lib/views/auth.py:685
+#: nx_lib/views/auth.py:437 nx_lib/views/auth.py:772
 #: nx_lib/views/profile.py:164
 msgid "New password has to be atleast 8 characters long, with no whitespaces"
 msgstr "Le nouveau mot de passe doit comporter au moins 8 caractères, sans espaces"
 
-#: nx_lib/views/auth.py:455 nx_lib/views/auth.py:703
+#: nx_lib/views/auth.py:457 nx_lib/views/auth.py:790
 msgid "New Password musn't be previously used password"
 msgstr "Le nouveau mot de passe ne doit pas être un mot de passe déjà utilisé"
 
-#: nx_lib/views/auth.py:488 nx_lib/views/auth.py:750
+#: nx_lib/views/auth.py:490 nx_lib/views/auth.py:837
 msgid "Something went wrong, please try again"
 msgstr "Une erreur s'est produite, veuillez réessayer"
 
-#: nx_lib/views/auth.py:564 nx_lib/views/auth.py:613
+#: nx_lib/views/auth.py:634 nx_lib/views/auth.py:700
 msgid "Invalid credentials"
 msgstr "Identifiants invalides"
 
-#: nx_lib/views/auth.py:617
+#: nx_lib/views/auth.py:662
+#, python-format
+msgid "Too many failed attempts. Try again in %(minutes)d minute(s)."
+msgstr "Trop de tentatives échouées. Réessayez dans %(minutes)d minute(s)."
+
+#: nx_lib/views/auth.py:704
 msgid "Login temporarily unavailable"
 msgstr "Connexion temporairement indisponible"
 
-#: nx_lib/views/auth.py:735
+#: nx_lib/views/auth.py:822
 msgid "Password set. You can now sign in."
 msgstr "Mot de passe défini. Vous pouvez maintenant vous connecter."
 
-#: nx_lib/views/auth.py:737
+#: nx_lib/views/auth.py:824
 msgid "Password changed"
 msgstr "Mot de passe modifié"
 
-#: nx_lib/views/auth.py:882
+#: nx_lib/views/auth.py:969
 msgid "If that email is registered, a reset link has been sent."
 msgstr ""
 "Si cette adresse e-mail est enregistrée, un lien de réinitialisation du "
 "mot de passe a été envoyé."
 
-#: nx_lib/views/auth.py:886
+#: nx_lib/views/auth.py:973
 msgid "Unexpected error occurred"
 msgstr "Une erreur inattendue s'est produite"
 
@@ -782,13 +787,8 @@ msgstr ""
 "dessous pour les ouvrir."
 
 #: nx_lib/views/reporting.py:1792
-msgid ""
-"I couldn't write a summary this time, but I did produce a report draft — "
-"use “Open in builder” below to run it."
-msgstr ""
-"Je n'ai pas pu rédiger de résumé cette fois, mais j'ai produit une "
-"ébauche de rapport — utilisez « Ouvrir dans le générateur » ci-dessous "
-"pour l'exécuter."
+msgid "I couldn't write a summary this time, but I did produce a report draft — use “Open in builder” below to run it."
+msgstr "Je n'ai pas pu rédiger de résumé cette fois, mais j'ai produit une ébauche de rapport — utilisez « Ouvrir dans le générateur » ci-dessous pour l'exécuter."
 
 #: nx_lib/views/reporting.py:1797
 msgid ""
@@ -820,6 +820,7 @@ msgstr "Impossible d'exporter la requête"
 
 #: nx_lib/views/reporting.py:2076 nx_lib/views/reporting.py:2104
 #: nx_lib/views/reporting.py:2138 templates/hero.html:96
+#: templates/js/_reporting_dashboard_js.html:98
 #: templates/js/_reporting_js.html:490
 msgid "Report"
 msgstr "Rapport"
@@ -1127,9 +1128,9 @@ msgstr "Impossible de supprimer la vue."
 msgid "Open navigation"
 msgstr "Ouvrir le menu de navigation"
 
-#: templates/_header.html:179 templates/js/_header_js.html:57
-#: templates/js/_header_js.html:58 templates/js/_header_js.html:59
-#: templates/js/_header_js.html:60 templates/js/_header_js.html:61
+#: templates/_header.html:179 templates/js/_header_js.html:60
+#: templates/js/_header_js.html:61 templates/js/_header_js.html:62
+#: templates/js/_header_js.html:63 templates/js/_header_js.html:64
 msgid "Admin"
 msgstr "Admin"
 
@@ -1138,12 +1139,12 @@ msgid "Overview"
 msgstr "Vue d'ensemble"
 
 #: templates/_header.html:191 templates/admin/access_control.html:19
-#: templates/admin/admin_overview.html:73 templates/js/_header_js.html:58
+#: templates/admin/admin_overview.html:73 templates/js/_header_js.html:61
 msgid "Access Control"
 msgstr "Contrôle d'accès"
 
 #: templates/_header.html:196 templates/admin/admin_overview.html:83
-#: templates/admin/organizations.html:19 templates/js/_header_js.html:59
+#: templates/admin/organizations.html:19 templates/js/_header_js.html:62
 msgid "Organizations"
 msgstr "Organisations"
 
@@ -1181,7 +1182,7 @@ msgstr "Docs API"
 #: templates/_header.html:245 templates/_header.html:273
 #: templates/appearance.html:324 templates/dashboard.html:26
 #: templates/generali_documents.html:39 templates/generali_reporting.html:54
-#: templates/js/_header_js.html:70 templates/js/_header_js.html:76
+#: templates/js/_header_js.html:73 templates/js/_header_js.html:79
 msgid "Dashboard"
 msgstr "Tableau de bord"
 
@@ -1189,7 +1190,7 @@ msgstr "Tableau de bord"
 #: templates/generali-dashboard.html:67
 #: templates/generali_additionalservices.html:50
 #: templates/generali_baseservices.html:50 templates/generali_documents.html:43
-#: templates/generali_projectmanagement.html:50 templates/js/_header_js.html:82
+#: templates/generali_projectmanagement.html:50 templates/js/_header_js.html:85
 #: templates/reporting.html:72
 msgid "Reporting"
 msgstr "Rapports"
@@ -1199,23 +1200,23 @@ msgid "Workitems"
 msgstr "Workitems"
 
 #: templates/_header.html:280 templates/generali-dashboard.html:63
-#: templates/generali_reporting.html:46 templates/js/_header_js.html:79
+#: templates/generali_reporting.html:46 templates/js/_header_js.html:82
 msgid "Document List"
 msgstr "Liste des documents"
 
-#: templates/_header.html:294 templates/js/_header_js.html:85
+#: templates/_header.html:294 templates/js/_header_js.html:88
 msgid "Additional Services"
 msgstr "Services supplémentaires"
 
-#: templates/_header.html:301 templates/js/_header_js.html:88
+#: templates/_header.html:301 templates/js/_header_js.html:91
 msgid "Base Services"
 msgstr "Services de base"
 
-#: templates/_header.html:308 templates/js/_header_js.html:91
+#: templates/_header.html:308 templates/js/_header_js.html:94
 msgid "Project Management"
 msgstr "Gestion de projet"
 
-#: templates/_header.html:315 templates/js/_header_js.html:94
+#: templates/_header.html:315 templates/js/_header_js.html:97
 msgid "PDQM"
 msgstr "PDQM"
 
@@ -1225,11 +1226,11 @@ msgstr "Statut d'importation"
 
 #: templates/_header.html:334 templates/_header.html:336
 #: templates/appearance.html:288 templates/appearance.html:293
-#: templates/js/_header_js.html:272
+#: templates/js/_header_js.html:275
 msgid "Keep sidebar open"
 msgstr "Garder la barre latérale ouverte"
 
-#: templates/_header.html:340 templates/js/_header_js.html:96
+#: templates/_header.html:340 templates/js/_header_js.html:99
 msgid "Toggle dark mode"
 msgstr "Activer/désactiver le mode sombre"
 
@@ -1238,60 +1239,60 @@ msgid "Dark Mode"
 msgstr "Mode sombre"
 
 #: templates/_header.html:350 templates/profile.html:42
-#: templates/profile.html:122
+#: templates/profile.html:121
 msgid "Profile Picture"
 msgstr "Photo de profil"
 
-#: templates/_header.html:361
+#: templates/_header.html:360
 msgid "Your profile"
 msgstr "Votre profil"
 
-#: templates/_header.html:365 templates/appearance.html:32
-#: templates/js/_header_js.html:97 templates/profile.html:74
-#: templates/profile.html:317
+#: templates/_header.html:364 templates/appearance.html:32
+#: templates/js/_header_js.html:100 templates/profile.html:73
+#: templates/profile.html:315
 msgid "Appearance"
 msgstr "Apparence"
 
-#: templates/_header.html:369 templates/js/_header_js.html:98
+#: templates/_header.html:368 templates/js/_header_js.html:101
 #: templates/whats_new.html:76
 msgid "What's New"
 msgstr "Nouveautés"
 
-#: templates/_header.html:376 templates/_small_footer.html:28
+#: templates/_header.html:375 templates/_small_footer.html:28
 #: templates/reporting.html:88
 msgid "Help"
 msgstr "Aide"
 
-#: templates/_header.html:382 templates/_header.html:424
+#: templates/_header.html:381 templates/_header.html:423
 msgid "Switch user"
 msgstr "Changer d'utilisateur"
 
-#: templates/_header.html:388 templates/js/_header_js.html:99
-#: templates/profile.html:81
+#: templates/_header.html:387 templates/js/_header_js.html:102
+#: templates/profile.html:80
 msgid "Sign out"
 msgstr "Se déconnecter"
 
-#: templates/_header.html:405
+#: templates/_header.html:404
 msgid "Command palette"
 msgstr "Palette de commandes"
 
-#: templates/_header.html:409
+#: templates/_header.html:408
 msgid "Type a command or search..."
 msgstr "Tapez une commande ou recherchez..."
 
-#: templates/_header.html:414
+#: templates/_header.html:413
 msgid "navigate"
 msgstr "naviguer"
 
-#: templates/_header.html:415
+#: templates/_header.html:414
 msgid "open"
 msgstr "ouvrir"
 
-#: templates/_header.html:416
+#: templates/_header.html:415
 msgid "close"
 msgstr "fermer"
 
-#: templates/_header.html:428
+#: templates/_header.html:427
 msgid "Switch to user..."
 msgstr "Passer à l'utilisateur ..."
 
@@ -1422,13 +1423,8 @@ msgstr ""
 " les 3 derniers mois » vaut mieux que « montre-moi les factures »."
 
 #: templates/_reporting_help.html:34
-msgid ""
-"Check what the AI built with “Open in builder” — the filters and process "
-"scope it chose are visible there before you trust the number."
-msgstr ""
-"Vérifiez ce que l'IA a construit avec « Ouvrir dans le générateur » — les"
-" filtres et le périmètre de processus choisis y sont visibles avant de "
-"faire confiance au chiffre."
+msgid "Check what the AI built with “Open in builder” — the filters and process scope it chose are visible there before you trust the number."
+msgstr "Vérifiez ce que l'IA a construit avec « Ouvrir dans le générateur » — les filtres et le périmètre de processus choisis y sont visibles avant de faire confiance au chiffre."
 
 #: templates/_reporting_help.html:35
 msgid ""
@@ -1548,26 +1544,32 @@ msgid "Break it down by…"
 msgstr "Ventiler par…"
 
 #: templates/_reporting_simple.html:84
+#: templates/js/_reporting_simple_js.html:68
 msgid "Granularity"
 msgstr "Granularité"
 
 #: templates/_reporting_simple.html:86 templates/js/_reporting_js.html:366
+#: templates/js/_reporting_simple_js.html:70
 msgid "Day"
 msgstr "Jour"
 
 #: templates/_reporting_simple.html:87 templates/js/_reporting_js.html:366
+#: templates/js/_reporting_simple_js.html:71
 msgid "Week"
 msgstr "Semaine"
 
 #: templates/_reporting_simple.html:88 templates/js/_reporting_js.html:366
+#: templates/js/_reporting_simple_js.html:72
 msgid "Month"
 msgstr "Mois"
 
 #: templates/_reporting_simple.html:89 templates/js/_reporting_js.html:367
+#: templates/js/_reporting_simple_js.html:73
 msgid "Quarter"
 msgstr "Trimestre"
 
 #: templates/_reporting_simple.html:90 templates/js/_reporting_js.html:367
+#: templates/js/_reporting_simple_js.html:74
 msgid "Year"
 msgstr "Année"
 
@@ -1580,7 +1582,7 @@ msgstr ""
 " devient la série colorée."
 
 #: templates/_reporting_simple.html:95
-#: templates/js/_reporting_simple_js.html:101
+#: templates/js/_reporting_simple_js.html:112
 msgid "Time range"
 msgstr "Période"
 
@@ -1663,13 +1665,13 @@ msgid "More actions"
 msgstr "Autres actions"
 
 #: templates/_reporting_simple.html:168
-#: templates/js/_reporting_simple_js.html:74
+#: templates/js/_reporting_simple_js.html:81
 msgid "Open in Advanced"
 msgstr "Ouvrir dans Avancé"
 
 #: templates/_reporting_simple.html:170 templates/js/_reporting_ai_js.html:38
 #: templates/js/_reporting_js.html:506
-#: templates/js/_reporting_simple_js.html:75 templates/reporting.html:302
+#: templates/js/_reporting_simple_js.html:82 templates/reporting.html:302
 msgid "Show query"
 msgstr "Afficher la requête"
 
@@ -2536,7 +2538,7 @@ msgstr ""
 "Pas de problème. Saisissez l'adresse e-mail associée à votre compte et "
 "nous vous enverrons un lien pour réinitialiser votre mot de passe."
 
-#: templates/forgot_password.html:47 templates/profile.html:148
+#: templates/forgot_password.html:47 templates/profile.html:146
 msgid "Email address"
 msgstr "Adresse e-mail"
 
@@ -2620,7 +2622,7 @@ msgstr "Volume de traitement journalier"
 #: templates/js/_generali_dashboard_js.html:25
 #: templates/js/_reporting_dashboard_js.html:90
 #: templates/js/_reporting_js.html:510
-#: templates/js/_reporting_simple_js.html:91
+#: templates/js/_reporting_simple_js.html:98
 #: templates/js/_reporting_viz_js.html:557
 #: templates/js/_reporting_viz_js.html:619
 #: templates/js/_reporting_viz_js.html:675
@@ -2766,7 +2768,7 @@ msgstr "Sous-catégorie"
 #: templates/admin/access_control.html:95
 #: templates/admin/access_control.html:211
 #: templates/admin/archive/user_management.html:41 templates/admin/logs.html:72
-#: templates/admin/modals/_user_modals.html:62
+#: templates/admin/modals/_user_modals.html:61
 #: templates/admin/user_detail.html:63
 #: templates/generali_additionalservices.html:93
 #: templates/generali_baseservices.html:81 templates/generali_pdqm.html:101
@@ -2794,7 +2796,7 @@ msgstr "Toutes les organisations"
 #: templates/generali_projectmanagement.html:126
 #: templates/generali_projectmanagement.html:174
 #: templates/generali_reporting.html:102 templates/generali_reporting.html:157
-#: templates/js/admin/_access_control_js.html:735
+#: templates/js/admin/_access_control_js.html:732
 msgid "User"
 msgstr "Utilisateur"
 
@@ -2866,7 +2868,7 @@ msgstr "Affichage"
 #: templates/generali_importstatus.html:128 templates/generali_pdqm.html:187
 #: templates/generali_projectmanagement.html:150
 #: templates/generali_reporting.html:191 templates/js/admin/_logs_js.html:108
-#: templates/js/admin/_user_detail_js.html:609
+#: templates/js/admin/_user_detail_js.html:622
 #: templates/workitems_overview.html:440
 msgid "of"
 msgstr "sur"
@@ -2917,12 +2919,12 @@ msgstr "Effort (heures)"
 #: templates/admin/access_control.html:228
 #: templates/admin/access_control.html:245
 #: templates/admin/access_control.html:275
-#: templates/admin/access_control.html:395 templates/admin/maintenance.html:113
+#: templates/admin/access_control.html:394 templates/admin/maintenance.html:113
 #: templates/admin/maintenance.html:129
 #: templates/admin/modals/_organizations_modals.html:13
-#: templates/admin/modals/_organizations_modals.html:41
+#: templates/admin/modals/_organizations_modals.html:40
 #: templates/admin/modals/_user_modals.html:13
-#: templates/admin/modals/_user_modals.html:81
+#: templates/admin/modals/_user_modals.html:80
 #: templates/admin/user_detail.html:76 templates/admin/user_detail.html:280
 #: templates/archive/chat.html:90
 #: templates/generali_additionalservices.html:263
@@ -2967,7 +2969,7 @@ msgstr "Supprimer l'entrée"
 #: templates/generali_baseservices.html:290 templates/generali_pdqm.html:365
 #: templates/generali_projectmanagement.html:276
 #: templates/generali_reporting.html:333
-#: templates/js/admin/_user_detail_js.html:254
+#: templates/js/admin/_user_detail_js.html:267
 msgid "This action cannot be undone."
 msgstr "Cette action est irréversible."
 
@@ -2991,10 +2993,10 @@ msgstr "Cette action est irréversible."
 #: templates/js/_generali_reporting_js.html:860
 #: templates/js/_reporting_metrics_js.html:62
 #: templates/js/_reporting_sources_js.html:50
-#: templates/js/admin/_access_control_js.html:661
+#: templates/js/admin/_access_control_js.html:658
 #: templates/js/admin/_maintenance_js.html:151
-#: templates/js/admin/_organizations_js.html:97
-#: templates/js/admin/_user_management_js.html:111 templates/reporting.html:287
+#: templates/js/admin/_organizations_js.html:101
+#: templates/js/admin/_user_management_js.html:115 templates/reporting.html:287
 msgid "Delete"
 msgstr "Supprimer"
 
@@ -3060,7 +3062,7 @@ msgid "All Recipients"
 msgstr "Tous les destinataires"
 
 #: templates/generali_documents.html:78 templates/generali_documents.html:152
-#: templates/profile.html:69 templates/profile.html:247
+#: templates/profile.html:68 templates/profile.html:245
 msgid "Language"
 msgstr "Langue"
 
@@ -3124,10 +3126,10 @@ msgstr "Importations CSV dans la base de données des documents"
 
 #: templates/generali_importstatus.html:53
 #: templates/js/_generali_import_status_js.html:17
-#: templates/js/admin/_organizations_js.html:138
-#: templates/js/admin/_organizations_js.html:192
-#: templates/js/admin/_user_management_js.html:152
-#: templates/js/admin/_user_management_js.html:202
+#: templates/js/admin/_organizations_js.html:142
+#: templates/js/admin/_organizations_js.html:196
+#: templates/js/admin/_user_management_js.html:156
+#: templates/js/admin/_user_management_js.html:206
 msgid "Success"
 msgstr "Succès"
 
@@ -3279,7 +3281,7 @@ msgstr "Effort de projet"
 #: templates/generali_projectmanagement.html:248
 #: templates/js/_workitems_overview_js.html:1429
 msgid "optional"
-msgstr "facultatif"
+msgstr "optionnel"
 
 #: templates/generali_projectmanagement.html:210
 #: templates/generali_projectmanagement.html:249
@@ -3505,9 +3507,9 @@ msgstr "Connexion - nexora"
 
 #: templates/admin/access_control.html:189
 #: templates/admin/archive/user_management.html:37 templates/admin/logs.html:42
-#: templates/admin/modals/_user_modals.html:33 templates/admin/sessions.html:27
+#: templates/admin/modals/_user_modals.html:32 templates/admin/sessions.html:27
 #: templates/admin/user_detail.html:35 templates/index.html:42
-#: templates/profile.html:137
+#: templates/profile.html:135
 msgid "Username"
 msgstr "Nom d'utilisateur"
 
@@ -3516,14 +3518,14 @@ msgid "Your Username"
 msgstr "Votre nom d'utilisateur"
 
 #: templates/admin/access_control.html:224
-#: templates/admin/modals/_user_modals.html:72 templates/index.html:53
-#: templates/profile.html:64 templates/set_password.html:52
+#: templates/admin/modals/_user_modals.html:71 templates/index.html:53
+#: templates/profile.html:63 templates/set_password.html:52
 msgid "Password"
 msgstr "Mot de passe"
 
 #: templates/index.html:62 templates/init_reset.html:58
-#: templates/init_reset.html:73 templates/profile.html:198
-#: templates/profile.html:209 templates/profile.html:226
+#: templates/init_reset.html:73 templates/profile.html:196
+#: templates/profile.html:207 templates/profile.html:224
 #: templates/reset_password.html:58 templates/reset_password.html:73
 #: templates/set_password.html:61 templates/set_password.html:76
 msgid "Toggle password visibility"
@@ -3592,7 +3594,7 @@ msgstr ""
 "précédent."
 
 #: templates/admin/user_detail.html:71 templates/init_reset.html:49
-#: templates/profile.html:204 templates/reset_password.html:49
+#: templates/profile.html:202 templates/reset_password.html:49
 msgid "New password"
 msgstr "Nouveau mot de passe"
 
@@ -3600,7 +3602,7 @@ msgstr "Nouveau mot de passe"
 msgid "Enter your new password"
 msgstr "Saisissez votre nouveau mot de passe"
 
-#: templates/init_reset.html:64 templates/profile.html:221
+#: templates/init_reset.html:64 templates/profile.html:219
 #: templates/reset_password.html:64
 msgid "Confirm new password"
 msgstr "Confirmer le nouveau mot de passe"
@@ -3672,7 +3674,7 @@ msgstr "Collecté"
 msgid "Any"
 msgstr "Tous"
 
-#: templates/js/admin/_access_control_js.html:711
+#: templates/js/admin/_access_control_js.html:708
 #: templates/prepared_documents.html:92 templates/prepared_documents.html:107
 msgid "Yes"
 msgstr "Oui"
@@ -3689,7 +3691,7 @@ msgstr "Préparé"
 msgid "Group by"
 msgstr "Grouper par"
 
-#: templates/admin/access_control.html:334 templates/admin/user_detail.html:154
+#: templates/admin/access_control.html:333 templates/admin/user_detail.html:154
 #: templates/prepared_documents.html:121
 msgid "None"
 msgstr "Aucun"
@@ -3781,88 +3783,88 @@ msgstr "Paramètres du compte"
 msgid "Manage your profile, password and language preferences."
 msgstr "Gérez vos préférences de profil, de mot de passe et de langue."
 
-#: templates/profile.html:56
+#: templates/profile.html:55
 msgid "Settings sections"
 msgstr "Sections des paramètres"
 
 #: templates/admin/access_control.html:55 templates/admin/user_detail.html:27
-#: templates/js/admin/_access_control_js.html:736
-#: templates/js/admin/_user_detail_js.html:322 templates/profile.html:59
+#: templates/js/admin/_access_control_js.html:733
+#: templates/js/admin/_user_detail_js.html:335 templates/profile.html:58
 msgid "Profile"
 msgstr "Profil"
 
-#: templates/profile.html:93
+#: templates/profile.html:92
 msgid "Profile information"
 msgstr "Informations du profil"
 
-#: templates/profile.html:94
+#: templates/profile.html:93
 msgid "Your photo, name and email shown across nexora."
 msgstr "Votre photo, votre nom et votre e-mail affichés dans nexora."
 
-#: templates/profile.html:128
+#: templates/profile.html:126
 msgid "Upload new photo"
 msgstr "Téléverser une nouvelle photo"
 
-#: templates/profile.html:131
+#: templates/profile.html:129
 msgid "JPG or PNG · square images look best"
 msgstr "JPG ou PNG · les images carrées sont les plus adaptées"
 
-#: templates/profile.html:140
+#: templates/profile.html:138
 msgid "Your username cannot be changed."
 msgstr "Votre nom d'utilisateur ne peut pas être modifié."
 
 #: templates/admin/access_control.html:193
 #: templates/admin/archive/user_management.html:38
-#: templates/admin/modals/_user_modals.html:40
-#: templates/admin/user_detail.html:39 templates/profile.html:143
+#: templates/admin/modals/_user_modals.html:39
+#: templates/admin/user_detail.html:39 templates/profile.html:141
 msgid "Full name"
 msgstr "Nom complet"
 
-#: templates/admin/user_detail.html:78 templates/profile.html:157
+#: templates/admin/user_detail.html:78 templates/profile.html:155
 msgid "Save changes"
 msgstr "Enregistrer les modifications"
 
-#: templates/profile.html:167
+#: templates/profile.html:165
 msgid "Change password"
 msgstr "Modifier le mot de passe"
 
-#: templates/profile.html:168
+#: templates/profile.html:166
 msgid "At least 8 characters, no whitespace."
 msgstr "Au moins 8 caractères, sans espaces."
 
-#: templates/profile.html:193
+#: templates/profile.html:191
 msgid "Current password"
 msgstr "Mot de passe actuel"
 
-#: templates/profile.html:237
+#: templates/profile.html:235
 msgid "Update password"
 msgstr "Mettre à jour le mot de passe"
 
-#: templates/profile.html:248
+#: templates/profile.html:246
 msgid "Choose the language used across nexora."
 msgstr "Choisissez la langue utilisée dans nexora."
 
-#: templates/profile.html:273
+#: templates/profile.html:271
 msgid "English"
 msgstr "Anglais"
 
-#: templates/profile.html:282
+#: templates/profile.html:280
 msgid "German"
 msgstr "Allemand"
 
-#: templates/profile.html:291
+#: templates/profile.html:289
 msgid "French"
 msgstr "Français"
 
-#: templates/profile.html:300
+#: templates/profile.html:298
 msgid "Italian"
 msgstr "Italien"
 
-#: templates/profile.html:309
+#: templates/profile.html:307
 msgid "Disclaimer: Translations may not be 100&#x25; correct"
 msgstr "Avertissement : Les traductions peuvent ne pas être correctes à 100&#x25;"
 
-#: templates/profile.html:318
+#: templates/profile.html:316
 msgid ""
 "Theme, accent color, animations and density — saved to your account and "
 "applied on every device."
@@ -3870,7 +3872,7 @@ msgstr ""
 "Thème, couleur d'accent, animations et densité — enregistrés dans votre "
 "compte et appliqués sur tous vos appareils."
 
-#: templates/profile.html:332
+#: templates/profile.html:330
 msgid "Open appearance settings"
 msgstr "Ouvrir les réglages d'apparence"
 
@@ -3931,18 +3933,18 @@ msgid "Send"
 msgstr "Envoyer"
 
 #: templates/admin/user_detail.html:122
-#: templates/js/admin/_access_control_js.html:737 templates/reporting.html:256
+#: templates/js/admin/_access_control_js.html:734 templates/reporting.html:256
 #: templates/reporting_metrics.html:39 templates/reporting_metrics.html:51
 msgid "Source"
 msgstr "Source"
 
 #: templates/js/_reporting_simple_js.html:57
-#: templates/js/_reporting_simple_js.html:99 templates/reporting.html:259
+#: templates/js/_reporting_simple_js.html:110 templates/reporting.html:259
 msgid "Processes"
 msgstr "Processus"
 
 #: templates/js/_reporting_js.html:214 templates/js/_reporting_js.html:241
-#: templates/js/_reporting_simple_js.html:68 templates/reporting.html:262
+#: templates/js/_reporting_simple_js.html:75 templates/reporting.html:262
 msgid "All processes"
 msgstr "Tous les processus"
 
@@ -4351,7 +4353,7 @@ msgstr "Sources par défaut intégrées"
 msgid "Kind"
 msgstr "Type"
 
-#: templates/admin/access_control.html:333 templates/admin/user_detail.html:121
+#: templates/admin/access_control.html:332 templates/admin/user_detail.html:121
 #: templates/admin/user_detail.html:153 templates/reporting_sources.html:40
 #: templates/reporting_sources.html:51 templates/reporting_sources.html:65
 msgid "Permission"
@@ -4546,14 +4548,14 @@ msgstr "Tous les champs"
 
 #: templates/js/_reporting_dashboard_js.html:81
 #: templates/js/_reporting_js.html:501
-#: templates/js/_reporting_simple_js.html:81
+#: templates/js/_reporting_simple_js.html:88
 #: templates/workitems_overview.html:223 templates/workitems_overview.html:275
 msgid "contains"
 msgstr "contient"
 
 #: templates/js/_reporting_dashboard_js.html:82
 #: templates/js/_reporting_js.html:502
-#: templates/js/_reporting_simple_js.html:82
+#: templates/js/_reporting_simple_js.html:89
 #: templates/workitems_overview.html:226 templates/workitems_overview.html:278
 msgid "starts with"
 msgstr "commence par"
@@ -4642,7 +4644,7 @@ msgstr "ID Workitem, Statut, Étape, Dernier mouvement"
 msgid "Optional extras"
 msgstr "Extras optionnels"
 
-#: templates/js/_reporting_simple_js.html:105
+#: templates/js/_reporting_simple_js.html:116
 #: templates/workitems_overview.html:520
 msgid "Document fields"
 msgstr ""
@@ -4741,7 +4743,7 @@ msgstr "Ajouter un utilisateur"
 #: templates/admin/access_control.html:94
 #: templates/admin/access_control.html:203
 #: templates/admin/archive/user_management.html:40
-#: templates/admin/modals/_user_modals.html:52
+#: templates/admin/modals/_user_modals.html:51
 msgid "Access Profile"
 msgstr "Profil d'accès"
 
@@ -4754,10 +4756,10 @@ msgstr "Remplacements"
 #: templates/admin/access_control.html:133 templates/admin/logs.html:104
 #: templates/admin/sessions.html:34 templates/admin/user_detail.html:126
 #: templates/admin/user_detail.html:230
-#: templates/js/admin/_access_control_js.html:695
+#: templates/js/admin/_access_control_js.html:692
 #: templates/js/admin/_sessions_js.html:39
-#: templates/js/admin/_user_detail_js.html:429
-#: templates/js/admin/_user_detail_js.html:542
+#: templates/js/admin/_user_detail_js.html:442
+#: templates/js/admin/_user_detail_js.html:555
 msgid "Loading..."
 msgstr "Chargement..."
 
@@ -4767,13 +4769,13 @@ msgstr "Rechercher des permissions..."
 
 #: templates/admin/access_control.html:116
 #: templates/admin/access_control.html:258
-#: templates/js/admin/_access_control_js.html:753
+#: templates/js/admin/_access_control_js.html:750
 msgid "Add Permission"
 msgstr "Ajouter une permission"
 
 #: templates/admin/access_control.html:126
 #: templates/admin/access_control.html:270
-#: templates/admin/access_control.html:309
+#: templates/admin/access_control.html:308
 msgid "Description"
 msgstr "Description"
 
@@ -4795,10 +4797,10 @@ msgstr "Ajouter un profil"
 #: templates/js/_reporting_dashboard_js.html:64
 #: templates/js/_reporting_metrics_js.html:58
 #: templates/js/_reporting_sources_js.html:46
-#: templates/js/admin/_access_control_js.html:657
+#: templates/js/admin/_access_control_js.html:655
 #: templates/js/admin/_maintenance_js.html:145
-#: templates/js/admin/_organizations_js.html:96
-#: templates/js/admin/_user_management_js.html:110
+#: templates/js/admin/_organizations_js.html:100
+#: templates/js/admin/_user_management_js.html:114
 msgid "Edit"
 msgstr "Modifier"
 
@@ -4808,7 +4810,7 @@ msgstr "utilisateur(s)"
 
 #: templates/admin/access_control.html:198
 #: templates/admin/archive/user_management.html:39
-#: templates/admin/modals/_user_modals.html:46
+#: templates/admin/modals/_user_modals.html:45
 #: templates/admin/user_detail.html:43
 msgid "Email"
 msgstr "E-mail"
@@ -4833,24 +4835,24 @@ msgstr "Code de la permission"
 msgid "Short description"
 msgstr "Description courte"
 
-#: templates/admin/access_control.html:305
+#: templates/admin/access_control.html:304
 msgid "Profile Name"
 msgstr "Nom du profil"
 
-#: templates/admin/access_control.html:321 templates/admin/user_detail.html:113
+#: templates/admin/access_control.html:320 templates/admin/user_detail.html:113
 #: templates/admin/user_detail.html:146
 msgid "Filter permissions..."
 msgstr "Filtrer les permissions..."
 
-#: templates/admin/access_control.html:335 templates/admin/user_detail.html:155
+#: templates/admin/access_control.html:334 templates/admin/user_detail.html:155
 msgid "Deny"
 msgstr "Refuser"
 
-#: templates/admin/access_control.html:336 templates/admin/user_detail.html:156
+#: templates/admin/access_control.html:335 templates/admin/user_detail.html:156
 msgid "Allow"
 msgstr "Autoriser"
 
-#: templates/admin/access_control.html:396
+#: templates/admin/access_control.html:395
 msgid "Save Changes"
 msgstr "Enregistrer les modifications"
 
@@ -4923,7 +4925,7 @@ msgstr "utilisateurs en ligne"
 msgid "Users active in the last 30 minutes"
 msgstr "Utilisateurs actifs au cours des 30 dernières minutes"
 
-#: templates/admin/admin_overview.html:103 templates/js/_header_js.html:61
+#: templates/admin/admin_overview.html:103 templates/js/_header_js.html:64
 msgid "System Logs"
 msgstr "Journaux système"
 
@@ -5023,7 +5025,7 @@ msgstr "Date de fin"
 
 #: templates/admin/logs.html:94 templates/admin/logs.html:129
 #: templates/admin/user_detail.html:224
-#: templates/js/_reporting_simple_js.html:104
+#: templates/js/_reporting_simple_js.html:115
 msgid "Time"
 msgstr "Heure"
 
@@ -5149,7 +5151,7 @@ msgstr "Supprimer la bannière"
 msgid "Organization Management - nexora"
 msgstr "Gestion des organisations - nexora"
 
-#: templates/admin/organizations.html:22 templates/js/_header_js.html:67
+#: templates/admin/organizations.html:22 templates/js/_header_js.html:70
 msgid "Add organization"
 msgstr "Ajouter une organisation"
 
@@ -5165,7 +5167,7 @@ msgstr "Nom"
 msgid "Active Sessions - nexora"
 msgstr "Sessions actives - nexora"
 
-#: templates/admin/sessions.html:17 templates/js/_header_js.html:60
+#: templates/admin/sessions.html:17 templates/js/_header_js.html:63
 msgid "Active Sessions"
 msgstr "Sessions actives"
 
@@ -5431,7 +5433,7 @@ msgid "Manage user accounts."
 msgstr "Gérer les comptes utilisateurs."
 
 #: templates/admin/archive/user_management.html:28
-#: templates/admin/modals/_user_modals.html:27
+#: templates/admin/modals/_user_modals.html:26
 #: templates/js/admin/_user_management_js.html:72
 msgid "Add new user"
 msgstr "Ajouter un nouvel utilisateur"
@@ -5445,24 +5447,24 @@ msgstr "Supprimer l'organisation"
 msgid "Confirm"
 msgstr "Confirmer"
 
-#: templates/admin/modals/_organizations_modals.html:27
-#: templates/js/admin/_organizations_js.html:69
+#: templates/admin/modals/_organizations_modals.html:26
+#: templates/js/admin/_organizations_js.html:73
 msgid "Add a new Organization"
 msgstr "Ajouter une nouvelle organisation"
 
-#: templates/admin/modals/_organizations_modals.html:33
+#: templates/admin/modals/_organizations_modals.html:32
 msgid "Organization Name"
 msgstr "Nom de l'organisation"
 
-#: templates/admin/modals/_organizations_modals.html:43
+#: templates/admin/modals/_organizations_modals.html:42
 msgid "Save Organization"
 msgstr "Enregistrer l'organisation"
 
-#: templates/admin/modals/_user_modals.html:75
+#: templates/admin/modals/_user_modals.html:74
 msgid "Leave blank to keep password."
 msgstr "Laisser vide pour conserver le mot de passe."
 
-#: templates/admin/modals/_user_modals.html:83
+#: templates/admin/modals/_user_modals.html:82
 msgid "Save user"
 msgstr "Enregistrer l'utilisateur"
 
@@ -5702,11 +5704,11 @@ msgstr "Suppression…"
 msgid "Error deleting record."
 msgstr "Erreur lors de la suppression."
 
-#: templates/js/_generali_additional_services_js.html:570
-#: templates/js/_generali_base_services_js.html:495
-#: templates/js/_generali_pdqm_js.html:708
-#: templates/js/_generali_project_management_js.html:469
-#: templates/js/_generali_reporting_js.html:943
+#: templates/js/_generali_additional_services_js.html:572
+#: templates/js/_generali_base_services_js.html:497
+#: templates/js/_generali_pdqm_js.html:710
+#: templates/js/_generali_project_management_js.html:471
+#: templates/js/_generali_reporting_js.html:945
 msgid "Export failed."
 msgstr "L'exportation a échoué."
 
@@ -5730,7 +5732,7 @@ msgid "No documents found for the selected criteria."
 msgstr "Aucun document trouvé pour les critères sélectionnés."
 
 #: templates/js/_generali_documents_js.html:148
-#: templates/js/_reporting_dashboard_js.html:102
+#: templates/js/_reporting_dashboard_js.html:103
 msgid "Loading…"
 msgstr "Chargement…"
 
@@ -5789,7 +5791,7 @@ msgstr "Préc."
 
 #: templates/js/_generali_reporting_js.html:265
 #: templates/js/admin/_logs_js.html:108
-#: templates/js/admin/_user_detail_js.html:609
+#: templates/js/admin/_user_detail_js.html:622
 msgid "Page"
 msgstr "Page"
 
@@ -5859,44 +5861,44 @@ msgstr "Enregistrement…"
 msgid "Save failed. Please try again."
 msgstr "Échec de l'enregistrement. Veuillez réessayer."
 
-#: templates/js/_header_js.html:57
+#: templates/js/_header_js.html:60
 msgid "Admin Overview"
 msgstr "Vue d'ensemble Admin"
 
-#: templates/js/_header_js.html:64 templates/js/_header_js.html:67
+#: templates/js/_header_js.html:67 templates/js/_header_js.html:70
 msgid "Admin action"
 msgstr "Action admin"
 
-#: templates/js/_header_js.html:64
+#: templates/js/_header_js.html:67
 msgid "Add user"
 msgstr "Ajouter un utilisateur"
 
-#: templates/js/_header_js.html:70 templates/js/_header_js.html:73
+#: templates/js/_header_js.html:73 templates/js/_header_js.html:76
 msgid "Workspace"
 msgstr "Espace de travail"
 
-#: templates/js/_header_js.html:73
+#: templates/js/_header_js.html:76
 msgid "Work items"
 msgstr "Workitems"
 
-#: templates/js/_header_js.html:96 templates/js/_header_js.html:97
-#: templates/js/_header_js.html:98
+#: templates/js/_header_js.html:99 templates/js/_header_js.html:100
+#: templates/js/_header_js.html:101
 msgid "Quick action"
 msgstr "Action rapide"
 
-#: templates/js/_header_js.html:99
+#: templates/js/_header_js.html:102
 msgid "Account"
 msgstr "Compte"
 
-#: templates/js/_header_js.html:143
+#: templates/js/_header_js.html:146
 msgid "No matching commands."
 msgstr "Aucune commande correspondante."
 
-#: templates/js/_header_js.html:272
+#: templates/js/_header_js.html:275
 msgid "Unpin sidebar"
 msgstr "Désépingler la barre latérale"
 
-#: templates/js/_header_js.html:363
+#: templates/js/_header_js.html:366
 msgid "No matching users."
 msgstr "Aucun utilisateur correspondant."
 
@@ -5968,27 +5970,27 @@ msgid "rows"
 msgstr "lignes"
 
 #: templates/js/_reporting_ai_js.html:36
-msgid "Open in builder"
-msgstr "Ouvrir dans le générateur"
+msgid "Open report"
+msgstr "Ouvrir le rapport"
 
 #: templates/js/_reporting_ai_js.html:37
 msgid "Insert into SQL editor"
 msgstr "Insérer dans l'éditeur SQL"
 
 #: templates/js/_reporting_ai_js.html:39 templates/js/_reporting_js.html:507
-#: templates/js/_reporting_simple_js.html:77
+#: templates/js/_reporting_simple_js.html:84
 msgid "Hide query"
 msgstr "Masquer la requête"
 
 #: templates/js/_reporting_ai_js.html:40
 #: templates/js/admin/_access_control_js.html:316
 #: templates/js/admin/_access_control_js.html:570
-#: templates/js/admin/_access_control_js.html:795
-#: templates/js/admin/_access_control_js.html:811
-#: templates/js/admin/_user_detail_js.html:49
-#: templates/js/admin/_user_detail_js.html:153
-#: templates/js/admin/_user_detail_js.html:275
-#: templates/js/admin/_user_detail_js.html:303
+#: templates/js/admin/_access_control_js.html:792
+#: templates/js/admin/_access_control_js.html:808
+#: templates/js/admin/_user_detail_js.html:62
+#: templates/js/admin/_user_detail_js.html:166
+#: templates/js/admin/_user_detail_js.html:288
+#: templates/js/admin/_user_detail_js.html:316
 msgid "Network error"
 msgstr "Erreur réseau"
 
@@ -6025,19 +6027,23 @@ msgstr "Réflexion…"
 msgid "Working…"
 msgstr "Traitement…"
 
-#: templates/js/_reporting_ai_js.html:56
+#: templates/js/_reporting_ai_js.html:55
+msgid "Building your report…"
+msgstr "Création de votre rapport…"
+
+#: templates/js/_reporting_ai_js.html:57
 msgid "Building the report…"
 msgstr "Création du rapport…"
 
-#: templates/js/_reporting_ai_js.html:57
+#: templates/js/_reporting_ai_js.html:58
 msgid "Checking the query…"
 msgstr "Vérification de la requête…"
 
-#: templates/js/_reporting_ai_js.html:58
+#: templates/js/_reporting_ai_js.html:59
 msgid "Running the query…"
 msgstr "Exécution de la requête…"
 
-#: templates/js/_reporting_ai_js.html:59
+#: templates/js/_reporting_ai_js.html:60
 msgid "Crunching the numbers…"
 msgstr "Analyse des chiffres…"
 
@@ -6095,13 +6101,13 @@ msgstr "Valeur"
 
 #: templates/js/_reporting_dashboard_js.html:83
 #: templates/js/_reporting_js.html:503
-#: templates/js/_reporting_simple_js.html:83
+#: templates/js/_reporting_simple_js.html:90
 msgid "is empty"
 msgstr "est vide"
 
 #: templates/js/_reporting_dashboard_js.html:84
 #: templates/js/_reporting_js.html:504
-#: templates/js/_reporting_simple_js.html:84
+#: templates/js/_reporting_simple_js.html:91
 msgid "is not empty"
 msgstr "n'est pas vide"
 
@@ -6147,38 +6153,38 @@ msgstr "KPI"
 msgid "Donut"
 msgstr "Anneau"
 
-#: templates/js/_reporting_dashboard_js.html:98
+#: templates/js/_reporting_dashboard_js.html:99
 msgid "or drop a saved report here"
 msgstr "ou déposez un rapport enregistré ici"
 
-#: templates/js/_reporting_dashboard_js.html:99
+#: templates/js/_reporting_dashboard_js.html:100
 msgid "Click to configure this card"
 msgstr "Cliquez pour configurer cette carte"
 
-#: templates/js/_reporting_dashboard_js.html:100
+#: templates/js/_reporting_dashboard_js.html:101
 msgid "Choose a saved report"
 msgstr "Choisir un rapport enregistré"
 
-#: templates/js/_reporting_dashboard_js.html:101
+#: templates/js/_reporting_dashboard_js.html:102
 msgid "No saved reports yet"
 msgstr "Aucun rapport enregistré pour l'instant"
 
-#: templates/js/_reporting_dashboard_js.html:103
+#: templates/js/_reporting_dashboard_js.html:104
 msgid "vs previous period"
 msgstr "par rapport à la période précédente"
 
-#: templates/js/_reporting_dashboard_js.html:104
+#: templates/js/_reporting_dashboard_js.html:105
 #: templates/js/_reporting_drill_js.html:17
 #: templates/js/_reporting_simple_js.html:31
 msgid "Could not export this report."
 msgstr "Impossible d'exporter ce rapport."
 
-#: templates/js/_reporting_dashboard_js.html:105
+#: templates/js/_reporting_dashboard_js.html:106
 msgid "No cards to export yet."
 msgstr "Aucune carte à exporter pour le moment."
 
-#: templates/js/_reporting_dashboard_js.html:109
-#: templates/js/_reporting_simple_js.html:72
+#: templates/js/_reporting_dashboard_js.html:110
+#: templates/js/_reporting_simple_js.html:79
 #, python-brace-format
 msgid "Showing the {shown} largest of {n} series."
 msgstr "Affichage des {shown} plus grandes séries sur {n}."
@@ -6265,7 +6271,7 @@ msgid "Running your report…"
 msgstr "Exécution de votre rapport…"
 
 #: templates/js/_reporting_js.html:488
-#: templates/js/_reporting_simple_js.html:88
+#: templates/js/_reporting_simple_js.html:95
 #, python-brace-format
 msgid "{rows} rows · {ms} ms"
 msgstr "{rows} lignes · {ms} ms"
@@ -6279,27 +6285,27 @@ msgid "SQL report"
 msgstr "Rapport SQL"
 
 #: templates/js/_reporting_js.html:498
-#: templates/js/_reporting_simple_js.html:78
+#: templates/js/_reporting_simple_js.html:85
 msgid "between"
 msgstr "entre"
 
 #: templates/js/_reporting_js.html:499
-#: templates/js/_reporting_simple_js.html:79
+#: templates/js/_reporting_simple_js.html:86
 msgid "is one of"
 msgstr "est l'un de"
 
 #: templates/js/_reporting_js.html:500
-#: templates/js/_reporting_simple_js.html:80
+#: templates/js/_reporting_simple_js.html:87
 msgid "is not one of"
 msgstr "n'est pas l'un de"
 
 #: templates/js/_reporting_js.html:508
-#: templates/js/_reporting_simple_js.html:85
+#: templates/js/_reporting_simple_js.html:92
 msgid "Copied"
 msgstr "Copié"
 
 #: templates/js/_reporting_js.html:509
-#: templates/js/_reporting_simple_js.html:76
+#: templates/js/_reporting_simple_js.html:83
 #, python-brace-format
 msgid ""
 "Showing the first {n} rows — narrow the filters or time range to see the "
@@ -6309,17 +6315,17 @@ msgstr ""
 "temps pour voir la suite."
 
 #: templates/js/_reporting_js.html:511
-#: templates/js/_reporting_simple_js.html:92
+#: templates/js/_reporting_simple_js.html:103
 msgid "Buckets"
 msgstr "Groupes"
 
 #: templates/js/_reporting_js.html:512
-#: templates/js/_reporting_simple_js.html:93
+#: templates/js/_reporting_simple_js.html:104
 msgid "Avg per bucket"
 msgstr "Moy. par groupe"
 
 #: templates/js/_reporting_js.html:513
-#: templates/js/_reporting_simple_js.html:108
+#: templates/js/_reporting_simple_js.html:119
 msgid "AI"
 msgstr "IA"
 
@@ -6554,6 +6560,12 @@ msgid "Checking the result…"
 msgstr "Vérification du résultat…"
 
 #: templates/js/_reporting_simple_js.html:69
+msgid "Pick a time breakdown first to choose its granularity."
+msgstr ""
+"Choisissez d'abord une décomposition temporelle pour définir sa "
+"granularité."
+
+#: templates/js/_reporting_simple_js.html:76
 msgid ""
 "No chart — this report is a single total. Adjust it in the wizard and "
 "pick a breakdown to get one."
@@ -6561,12 +6573,12 @@ msgstr ""
 "Pas de graphique — ce rapport est un total unique. Ajustez-le dans "
 "l'assistant et choisissez une décomposition pour en obtenir un."
 
-#: templates/js/_reporting_simple_js.html:70
+#: templates/js/_reporting_simple_js.html:77
 #, python-brace-format
 msgid "Chart shows the first 50 of {n} rows."
 msgstr "Le graphique montre les 50 premières lignes sur {n}."
 
-#: templates/js/_reporting_simple_js.html:71
+#: templates/js/_reporting_simple_js.html:78
 msgid ""
 "Too many data points to chart — choose a coarser granularity or a shorter"
 " time range."
@@ -6574,13 +6586,13 @@ msgstr ""
 "Trop de points de données pour un graphique — choisissez une granularité "
 "plus grossière ou une plage de temps plus courte."
 
-#: templates/js/_reporting_simple_js.html:73
+#: templates/js/_reporting_simple_js.html:80
 msgid "The chart could not be drawn (chart library failed to load)."
 msgstr ""
 "Le graphique n'a pas pu être tracé (échec du chargement de la "
 "bibliothèque)."
 
-#: templates/js/_reporting_simple_js.html:86
+#: templates/js/_reporting_simple_js.html:93
 #, python-brace-format
 msgid ""
 "Only {n} of {m} selected processes provide this field — documents from "
@@ -6590,7 +6602,7 @@ msgstr ""
 "documents des autres processus apparaissent ici avec une valeur vide. "
 "Fourni par :"
 
-#: templates/js/_reporting_simple_js.html:87
+#: templates/js/_reporting_simple_js.html:94
 #, python-brace-format
 msgid ""
 "Only {n} of {m} processes provide this field — the measure only counts "
@@ -6599,58 +6611,66 @@ msgstr ""
 "Seuls {n} des {m} processus fournissent ce champ — l'indicateur ne compte"
 " que les documents de ces processus :"
 
-#: templates/js/_reporting_simple_js.html:89
+#: templates/js/_reporting_simple_js.html:96
 #, python-brace-format
 msgid "{rows} rows · {ms} ms · {when}"
 msgstr "{rows} lignes · {ms} ms · {when}"
 
-#: templates/js/_reporting_simple_js.html:90
+#: templates/js/_reporting_simple_js.html:97
 msgid "run just now"
 msgstr "à l'instant"
 
-#: templates/js/_reporting_simple_js.html:94
+#: templates/js/_reporting_simple_js.html:102
+msgid "last bucket"
+msgstr "dernier groupe"
+
+#: templates/js/_reporting_simple_js.html:105
 msgid "Peak"
 msgstr "Pic"
 
-#: templates/js/_reporting_simple_js.html:95
+#: templates/js/_reporting_simple_js.html:106
 msgid "vs"
 msgstr "vs"
 
-#: templates/js/_reporting_simple_js.html:96
+#: templates/js/_reporting_simple_js.html:107
 #, python-brace-format
 msgid "{n} rows"
 msgstr "{n} lignes"
 
-#: templates/js/_reporting_simple_js.html:97
+#: templates/js/_reporting_simple_js.html:108
 #, python-brace-format
 msgid "Step {n} of 4"
 msgstr "Étape {n} sur 4"
 
-#: templates/js/_reporting_simple_js.html:98
+#: templates/js/_reporting_simple_js.html:109
 msgid "Measure"
 msgstr "Mesure"
 
-#: templates/js/_reporting_simple_js.html:100
+#: templates/js/_reporting_simple_js.html:111
 msgid "Breakdown"
 msgstr "Ventilation"
 
-#: templates/js/_reporting_simple_js.html:102
+#: templates/js/_reporting_simple_js.html:113
 msgid "So far"
 msgstr "Jusqu'ici"
 
-#: templates/js/_reporting_simple_js.html:103
+#: templates/js/_reporting_simple_js.html:114
 #, python-brace-format
 msgid "{n} of {m} selected"
 msgstr "{n} sur {m} sélectionné(s)"
 
-#: templates/js/_reporting_simple_js.html:106
+#: templates/js/_reporting_simple_js.html:117
 msgid "Or"
 msgstr "Ou"
 
-#: templates/js/_reporting_simple_js.html:107
+#: templates/js/_reporting_simple_js.html:118
 #, python-brace-format
 msgid "{n} of 3 picked"
 msgstr "{n} sur 3 sélectionné(s)"
+
+#: templates/js/_reporting_simple_js.html:120
+msgid "Loading values…"
+msgstr "Chargement des valeurs…"
 
 #: templates/js/_reporting_sources_js.html:51
 msgid "Delete this source?"
@@ -6951,7 +6971,7 @@ msgstr "Refusé automatiquement"
 
 #: templates/js/admin/_access_control_js.html:455
 #: templates/js/admin/_access_control_js.html:585
-#: templates/js/admin/_access_control_js.html:746
+#: templates/js/admin/_access_control_js.html:743
 msgid "Error loading data."
 msgstr "Erreur lors du chargement des données."
 
@@ -6972,10 +6992,10 @@ msgid "You do not have permission to create users."
 msgstr "Vous n'avez pas la permission de créer des utilisateurs."
 
 #: templates/js/admin/_access_control_js.html:567
-#: templates/js/admin/_organizations_js.html:141
-#: templates/js/admin/_organizations_js.html:195
-#: templates/js/admin/_user_management_js.html:155
-#: templates/js/admin/_user_management_js.html:205
+#: templates/js/admin/_organizations_js.html:145
+#: templates/js/admin/_organizations_js.html:199
+#: templates/js/admin/_user_management_js.html:159
+#: templates/js/admin/_user_management_js.html:209
 msgid "Error:"
 msgstr "Erreur :"
 
@@ -6983,56 +7003,56 @@ msgstr "Erreur :"
 msgid "No permissions found."
 msgstr "Aucune permission trouvée."
 
-#: templates/js/admin/_access_control_js.html:712
-#: templates/js/admin/_user_detail_js.html:382
+#: templates/js/admin/_access_control_js.html:709
+#: templates/js/admin/_user_detail_js.html:395
 msgid "Denied"
 msgstr "Refusé"
 
-#: templates/js/admin/_access_control_js.html:722
+#: templates/js/admin/_access_control_js.html:719
 msgid "No users have this permission assigned."
 msgstr "Aucun utilisateur n'a cette permission attribuée."
 
-#: templates/js/admin/_access_control_js.html:727
+#: templates/js/admin/_access_control_js.html:724
 msgid "Users with this permission"
 msgstr "Utilisateurs avec cette permission"
 
-#: templates/js/admin/_access_control_js.html:728
+#: templates/js/admin/_access_control_js.html:725
 msgid "explicitly denied"
 msgstr "explicitement refusé"
 
-#: templates/js/admin/_access_control_js.html:738
+#: templates/js/admin/_access_control_js.html:735
 msgid "Has Permission"
 msgstr "A la permission"
 
-#: templates/js/admin/_access_control_js.html:763
+#: templates/js/admin/_access_control_js.html:760
 msgid "Edit Permission"
 msgstr "Modifier la permission"
 
-#: templates/js/admin/_access_control_js.html:777
+#: templates/js/admin/_access_control_js.html:774
 msgid "Code and description are required."
 msgstr "Le code et la description sont obligatoires."
 
-#: templates/js/admin/_access_control_js.html:802
+#: templates/js/admin/_access_control_js.html:799
 msgid "Are you sure you want to delete"
 msgstr "Êtes-vous sûr de vouloir supprimer"
 
-#: templates/js/admin/_access_control_js.html:821
+#: templates/js/admin/_access_control_js.html:818
 msgid "Override Allow"
 msgstr "Remplacement · Autoriser"
 
-#: templates/js/admin/_access_control_js.html:822
+#: templates/js/admin/_access_control_js.html:819
 msgid "Override Deny"
 msgstr "Remplacement · Refuser"
 
-#: templates/js/admin/_access_control_js.html:823
+#: templates/js/admin/_access_control_js.html:820
 msgid "Profile Allow"
 msgstr "Profil · Autoriser"
 
-#: templates/js/admin/_access_control_js.html:824
+#: templates/js/admin/_access_control_js.html:821
 msgid "Profile Deny"
 msgstr "Profil · Refuser"
 
-#: templates/js/admin/_access_control_js.html:825
+#: templates/js/admin/_access_control_js.html:822
 msgid "No assignment"
 msgstr "Aucune attribution"
 
@@ -7100,51 +7120,51 @@ msgstr "Aucune bannière trouvée."
 msgid "Edit banner"
 msgstr "Modifier la bannière"
 
-#: templates/js/admin/_maintenance_js.html:293
+#: templates/js/admin/_maintenance_js.html:297
 msgid "Message is required."
 msgstr "Le message est obligatoire."
 
-#: templates/js/admin/_maintenance_js.html:294
+#: templates/js/admin/_maintenance_js.html:298
 msgid "Start and end are required."
 msgstr "Le début et la fin sont obligatoires."
 
-#: templates/js/admin/_maintenance_js.html:295
+#: templates/js/admin/_maintenance_js.html:299
 msgid "End must be after start."
 msgstr "La fin doit être après le début."
 
-#: templates/js/admin/_maintenance_js.html:311
+#: templates/js/admin/_maintenance_js.html:315
 msgid "Banner updated."
 msgstr "Bannière mise à jour."
 
-#: templates/js/admin/_maintenance_js.html:311
+#: templates/js/admin/_maintenance_js.html:315
 msgid "Banner created."
 msgstr "Bannière créée."
 
-#: templates/js/admin/_maintenance_js.html:329
+#: templates/js/admin/_maintenance_js.html:333
 msgid "Banner deleted."
 msgstr "Bannière supprimée."
 
-#: templates/js/admin/_organizations_js.html:76
+#: templates/js/admin/_organizations_js.html:80
 msgid "Edit Organization"
 msgstr "Modifier l'organisation"
 
-#: templates/js/admin/_organizations_js.html:131
-#: templates/js/admin/_user_management_js.html:145
+#: templates/js/admin/_organizations_js.html:135
+#: templates/js/admin/_user_management_js.html:149
 msgid "You do not have permission to perform this action."
 msgstr "Vous n'avez pas la permission d'effectuer cette action."
 
-#: templates/js/admin/_organizations_js.html:145
-#: templates/js/admin/_organizations_js.html:199
-#: templates/js/admin/_user_management_js.html:159
-#: templates/js/admin/_user_management_js.html:209
+#: templates/js/admin/_organizations_js.html:149
+#: templates/js/admin/_organizations_js.html:203
+#: templates/js/admin/_user_management_js.html:163
+#: templates/js/admin/_user_management_js.html:213
 msgid "An unexpected network error occurred."
 msgstr "Une erreur réseau inattendue s'est produite."
 
-#: templates/js/admin/_organizations_js.html:186
+#: templates/js/admin/_organizations_js.html:190
 msgid "You do not have permission to delete this Organization."
 msgstr "Vous n'avez pas la permission de supprimer cette organisation."
 
-#: templates/js/admin/_organizations_js.html:202
+#: templates/js/admin/_organizations_js.html:206
 msgid ""
 "Are you sure you want to delete this Organization? This action cannot be "
 "undone."
@@ -7200,126 +7220,126 @@ msgstr "Révoquer la session active pour"
 msgid "Could not revoke session."
 msgstr "Impossible de révoquer la session."
 
-#: templates/js/admin/_user_detail_js.html:40
+#: templates/js/admin/_user_detail_js.html:53
 msgid "User saved."
 msgstr "Utilisateur enregistré."
 
-#: templates/js/admin/_user_detail_js.html:45
-#: templates/js/admin/_user_detail_js.html:149
+#: templates/js/admin/_user_detail_js.html:58
+#: templates/js/admin/_user_detail_js.html:162
 msgid "Save failed."
 msgstr "Échec de l'enregistrement."
 
-#: templates/js/admin/_user_detail_js.html:146
+#: templates/js/admin/_user_detail_js.html:159
 msgid "Overrides saved."
 msgstr "Remplacements enregistrés."
 
-#: templates/js/admin/_user_detail_js.html:198
+#: templates/js/admin/_user_detail_js.html:211
 msgid "allow"
 msgstr "autoriser"
 
-#: templates/js/admin/_user_detail_js.html:198
+#: templates/js/admin/_user_detail_js.html:211
 msgid "deny"
 msgstr "refuser"
 
-#: templates/js/admin/_user_detail_js.html:254
+#: templates/js/admin/_user_detail_js.html:267
 msgid "This will permanently delete"
 msgstr "Cela supprimera définitivement"
 
-#: templates/js/admin/_user_detail_js.html:270
+#: templates/js/admin/_user_detail_js.html:283
 msgid "Delete failed."
 msgstr "Échec de la suppression."
 
-#: templates/js/admin/_user_detail_js.html:289
+#: templates/js/admin/_user_detail_js.html:302
 msgid "Sign out ALL active sessions for"
 msgstr "Déconnecter TOUTES les sessions actives pour"
 
-#: templates/js/admin/_user_detail_js.html:289
+#: templates/js/admin/_user_detail_js.html:302
 msgid "They will be forced to log in again."
 msgstr "Ils devront se reconnecter."
 
-#: templates/js/admin/_user_detail_js.html:298
+#: templates/js/admin/_user_detail_js.html:311
 msgid "Revoked"
 msgstr "Révoqué"
 
-#: templates/js/admin/_user_detail_js.html:298
+#: templates/js/admin/_user_detail_js.html:311
 msgid "session(s)."
 msgstr "session(s)."
 
-#: templates/js/admin/_user_detail_js.html:300
+#: templates/js/admin/_user_detail_js.html:313
 msgid "Revoke failed."
 msgstr "Échec de la révocation."
 
-#: templates/js/admin/_user_detail_js.html:323
+#: templates/js/admin/_user_detail_js.html:336
 msgid "Override · Allow"
 msgstr "Remplacement · Autoriser"
 
-#: templates/js/admin/_user_detail_js.html:324
+#: templates/js/admin/_user_detail_js.html:337
 msgid "Override · Deny"
 msgstr "Remplacement · Refuser"
 
-#: templates/js/admin/_user_detail_js.html:325
+#: templates/js/admin/_user_detail_js.html:338
 msgid "Profile · Deny"
 msgstr "Profil · Refuser"
 
-#: templates/js/admin/_user_detail_js.html:446
-#: templates/js/admin/_user_detail_js.html:485
+#: templates/js/admin/_user_detail_js.html:459
+#: templates/js/admin/_user_detail_js.html:498
 msgid "Could not load effective permissions."
 msgstr "Impossible de charger les permissions effectives."
 
-#: templates/js/admin/_user_detail_js.html:460
+#: templates/js/admin/_user_detail_js.html:473
 msgid "This user has no permissions."
 msgstr "Cet utilisateur n'a aucune permission."
 
-#: templates/js/admin/_user_detail_js.html:472
+#: templates/js/admin/_user_detail_js.html:485
 msgid "granted"
 msgstr "accordée"
 
-#: templates/js/admin/_user_detail_js.html:473
+#: templates/js/admin/_user_detail_js.html:486
 msgid "profile"
 msgstr "profil"
 
-#: templates/js/admin/_user_detail_js.html:474
+#: templates/js/admin/_user_detail_js.html:487
 msgid "override"
 msgstr "remplacement"
 
-#: templates/js/admin/_user_detail_js.html:526
+#: templates/js/admin/_user_detail_js.html:539
 msgid "just now"
 msgstr "à l'instant"
 
-#: templates/js/admin/_user_detail_js.html:528
+#: templates/js/admin/_user_detail_js.html:541
 msgid "min ago"
 msgstr "min"
 
-#: templates/js/admin/_user_detail_js.html:530
+#: templates/js/admin/_user_detail_js.html:543
 msgid "h ago"
 msgstr "h"
 
-#: templates/js/admin/_user_detail_js.html:531
+#: templates/js/admin/_user_detail_js.html:544
 msgid "d ago"
 msgstr "j"
 
-#: templates/js/admin/_user_detail_js.html:557
-#: templates/js/admin/_user_detail_js.html:619
+#: templates/js/admin/_user_detail_js.html:570
+#: templates/js/admin/_user_detail_js.html:632
 msgid "Could not load activity."
 msgstr "Impossible de charger l'activité."
 
-#: templates/js/admin/_user_detail_js.html:567
+#: templates/js/admin/_user_detail_js.html:580
 msgid "No recorded activity in the last 7 days."
 msgstr "Aucune activité enregistrée au cours des 7 derniers jours."
 
-#: templates/js/admin/_user_detail_js.html:609
+#: templates/js/admin/_user_detail_js.html:622
 msgid "entries"
 msgstr "entrées"
 
-#: templates/js/admin/_user_management_js.html:81
+#: templates/js/admin/_user_management_js.html:85
 msgid "Edit user"
 msgstr "Modifier l'utilisateur"
 
-#: templates/js/admin/_user_management_js.html:196
+#: templates/js/admin/_user_management_js.html:200
 msgid "You do not have permission to delete this user."
 msgstr "Vous n'avez pas la permission de supprimer cet utilisateur."
 
-#: templates/js/admin/_user_management_js.html:212
+#: templates/js/admin/_user_management_js.html:216
 msgid "Are you sure you want to delete this user? This action cannot be undone."
 msgstr ""
 "Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action ne peut"
@@ -7618,474 +7638,23 @@ msgstr ""
 "détails, les montants et télécharger des copies PDF depuis la colonne "
 "Actions."
 
-#~ msgid "Some PIDs matched no workitem."
-#~ msgstr "Certains numéros de personne ne correspondent à aucun workitem."
-
-#~ msgid "The personal-number field is not configured for MS02."
-#~ msgstr "Le champ numéro de personne n'est pas configuré pour MS02."
-
-#~ msgid "Could not resolve personal numbers against the MS02 index."
-#~ msgstr "Impossible de résoudre les numéros de personne dans l'index MS02."
-
-#~ msgid "Matched"
-#~ msgstr "Correspondants"
-
-#~ msgid "unmatched — shown as synthetic rows."
-#~ msgstr "sans correspondance — affichés comme lignes synthétiques."
-
-#~ msgid "No match"
-#~ msgstr "Aucune correspondance"
-
-#~ msgid "In Octo"
-#~ msgstr "Dans Octo"
-
-#~ msgid "Parameters"
-#~ msgstr "Paramètres"
-
-#~ msgid "Nothing here yet."
-#~ msgstr "Rien ici pour l'instant."
-
-#~ msgid "Limit to specific processes"
-#~ msgstr "Limiter à certains processus"
-
-#~ msgid "Charts support up to two breakdowns — the table shows all of them."
-#~ msgstr ""
-#~ "Les graphiques prennent en charge "
-#~ "jusqu'à deux ventilations — le tableau"
-#~ " les montre toutes."
-
-#~ msgid "Invalid Email Address"
-#~ msgstr "Adresse e-mail invalide"
-
-#~ msgid "Adjust in wizard"
-#~ msgstr "Ajuster dans l'assistant"
-
-#~ msgid "No messages yet"
-#~ msgstr "Aucun message pour le moment"
-
-#~ msgid "Could not fetch workitem data"
-#~ msgstr "Impossible de récupérer les données du workitem"
-
-#~ msgid "No data found for this workitem."
-#~ msgstr "Aucune donnée trouvée pour ce workitem."
-
-#~ msgid "Could not fetch interactions"
-#~ msgstr "Impossible de récupérer les interactions"
-
-#~ msgid "Comment cannot be empty."
-#~ msgstr "Le commentaire ne peut pas être vide."
-
-#~ msgid "Comment added."
-#~ msgstr "Commentaire ajouté."
-
-#~ msgid "Invalid assignment."
-#~ msgstr "Affectation invalide."
-
-#~ msgid "assigned you on workitem"
-#~ msgstr "vous a affecté à un workitem"
-
-#~ msgid "Assignment updated."
-#~ msgstr "Affectation mise à jour."
-
-#~ msgid "Invalid priority level."
-#~ msgstr "Niveau de priorité invalide."
-
-#~ msgid "Priority updated."
-#~ msgstr "Priorité mise à jour."
-
-#~ msgid "Could not fetch tags"
-#~ msgstr "Impossible de récupérer les tags"
-
-#~ msgid "Tag name cannot be empty."
-#~ msgstr "Le nom du tag ne peut pas être vide."
-
-#~ msgid "Workitem already has this tag."
-#~ msgstr "Le workitem possède déjà ce tag."
-
-#~ msgid "Tag added successfully."
-#~ msgstr "Tag ajouté avec succès."
-
-#~ msgid "Tag association not found."
-#~ msgstr "Association de tag introuvable."
-
-#~ msgid "Tag removed successfully."
-#~ msgstr "Tag supprimé avec succès."
-
-#~ msgid "Chat"
-#~ msgstr "Chat"
-
 #~ msgid ""
-#~ "The AI assistant is unavailable right"
-#~ " now — you can still build "
-#~ "reports with “New report”."
+#~ "I couldn't write a summary this "
+#~ "time, but I did produce a report"
+#~ " draft — use “Open in builder” "
+#~ "below to run it."
 #~ msgstr ""
-#~ "L'assistant IA est indisponible pour le"
-#~ " moment — vous pouvez toujours créer"
-#~ " des rapports avec « Nouveau rapport"
-#~ " »."
-
-#~ msgid "Refine your question…"
-#~ msgstr "Affinez votre question…"
-
-#~ msgid "Refine"
-#~ msgstr "Affiner"
-
-#~ msgid "Build a report"
-#~ msgstr "Créer un rapport"
-
-#~ msgid "Write SQL"
-#~ msgstr "Écrire du SQL"
-
-#~ msgid "Agent"
-#~ msgstr "Agent"
-
-#~ msgid "Ask in plain language — e.g. “top 10 processes by volume this month”"
-#~ msgstr ""
-#~ "Posez votre question en langage courant"
-#~ " — p. ex. « top 10 des "
-#~ "processus par volume ce mois-ci »"
-
-#~ msgid "Ask"
-#~ msgstr "Demander"
-
-#~ msgid ""
-#~ "The assistant drafts a report definition"
-#~ " from the sources you can access "
-#~ "— it never sees result data. "
-#~ "Review it, then open it in the "
-#~ "builder and run it yourself."
-#~ msgstr ""
-#~ "L'assistant rédige une définition de "
-#~ "rapport à partir des sources auxquelles"
-#~ " vous avez accès — il ne voit"
-#~ " jamais les données de résultats. "
-#~ "Examinez-la, ouvrez-la dans le "
-#~ "générateur et exécutez-la vous-même."
-
-#~ msgid ""
-#~ "The assistant drafts read-only SQL "
-#~ "from the database schema. It never "
-#~ "sees result data. Review the SQL, "
-#~ "then run it yourself."
-#~ msgstr ""
-#~ "L'assistant rédige du SQL en lecture "
-#~ "seule à partir du schéma de base"
-#~ " de données. Il ne voit jamais "
-#~ "les données de résultats. Examinez le"
-#~ " SQL, puis exécutez-le vous-même."
-
-#~ msgid ""
-#~ "The agent works step by step, "
-#~ "showing each tool it uses. It can"
-#~ " run read-only queries and report "
-#~ "the actual numbers from the data "
-#~ "it fetched."
-#~ msgstr ""
-#~ "L'agent travaille étape par étape, "
-#~ "montrant chaque outil qu'il utilise. Il"
-#~ " peut exécuter des requêtes en "
-#~ "lecture seule et rapporter les chiffres"
-#~ " réels des données qu'il a "
-#~ "récupérées."
-
-#~ msgid ""
-#~ "The agent works step by step, "
-#~ "showing each tool it uses to "
-#~ "validate and draft — grounded only "
-#~ "in the schema you can access. It"
-#~ " never sees result data."
-#~ msgstr ""
-#~ "L'agent travaille étape par étape, "
-#~ "montrant chaque outil qu'il utilise pour"
-#~ " valider et rédiger — ancré "
-#~ "uniquement dans le schéma auquel vous"
-#~ " avez accès. Il ne voit jamais "
-#~ "les données de résultats."
-
-#~ msgid ""
-#~ "⚠ The drafted SQL did not pass "
-#~ "the read-only check — review it"
-#~ " before running."
-#~ msgstr ""
-#~ "⚠ Le SQL rédigé n'a pas passé "
-#~ "la vérification en lecture seule — "
-#~ "vérifiez-le avant de l'exécuter."
-
-#~ msgid "⚠ The drafted report could not be validated — try rephrasing."
-#~ msgstr "⚠ Le rapport proposé n'a pas pu être validé — veuillez reformuler."
-
-#~ msgid "Make a chart"
-#~ msgstr "Créer un graphique"
-
-#~ msgid ""
-#~ "⚠ The agent stopped before producing "
-#~ "a validated result — try rephrasing."
-#~ msgstr ""
-#~ "⚠ L'agent s'est arrêté avant de "
-#~ "produire un résultat validé — essayez"
-#~ " de reformuler."
-
-#~ msgid "Try again"
-#~ msgstr "Réessayer"
-
-#~ msgid "Priority"
-#~ msgstr "Priorité"
-
-#~ msgid "All Priorities"
-#~ msgstr "Toutes les priorités"
-
-#~ msgid "High"
-#~ msgstr "Haute"
-
-#~ msgid "Medium"
-#~ msgstr "Moyenne"
-
-#~ msgid "Low"
-#~ msgstr "Basse"
-
-#~ msgid "Assigned To"
-#~ msgstr "Assigné à"
-
-#~ msgid "Unassigned"
-#~ msgstr "Non assigné"
-
-#~ msgid "Tag"
-#~ msgstr "Étiquette"
-
-#~ msgid "Ask follow-up"
-#~ msgstr "Poser une question complémentaire"
-
-#~ msgid "report"
-#~ msgstr "rapport"
-
-#~ msgid "source"
-#~ msgstr "source"
-
-#~ msgid "columns"
-#~ msgstr "colonnes"
-
-#~ msgid "filter(s)"
-#~ msgstr "filtre(s)"
-
-#~ msgid "sorted"
-#~ msgstr "trié"
-
-#~ msgid "Error"
-#~ msgstr "Erreur"
-
-#~ msgid "You"
-#~ msgstr "Vous"
-
-#~ msgid "Loading comments..."
-#~ msgstr "Chargement des commentaires..."
-
-#~ msgid "Set Priority:"
-#~ msgstr "Définir la priorité :"
-
-#~ msgid "Assigned to:"
-#~ msgstr "Assigné à :"
-
-#~ msgid "Tags:"
-#~ msgstr "Étiquettes :"
-
-#~ msgid "Add a tag..."
-#~ msgstr "Ajouter une étiquette..."
-
-#~ msgid "Add Comment:"
-#~ msgstr "Ajouter un commentaire :"
-
-#~ msgid "Add a comment... Tag with @username"
-#~ msgstr "Ajouter un commentaire... Mentionner avec @nomd'utilisateur"
-
-#~ msgid "Post Comment"
-#~ msgstr "Publier le commentaire"
-
-#~ msgid "Collaboration"
-#~ msgstr "Collaboration"
-
-#~ msgid "No comments yet."
-#~ msgstr "Aucun commentaire pour l'instant."
-
-#~ msgid "Could not load comments."
-#~ msgstr "Impossible de charger les commentaires."
-
-#~ msgid "High Priority"
-#~ msgstr "Priorité haute"
-
-#~ msgid "Medium Priority"
-#~ msgstr "Priorité moyenne"
-
-#~ msgid "Low Priority"
-#~ msgstr "Priorité basse"
-
-#~ msgid "Could not fetch notifications"
-#~ msgstr "Impossible de récupérer les notifications"
-
-#~ msgid "Invalid payload"
-#~ msgstr "Charge utile invalide"
-
-#~ msgid "Notifications marked as read."
-#~ msgstr "Notifications marquées comme lues."
-
-#~ msgid "Could not update notifications"
-#~ msgstr "Impossible de mettre à jour les notifications"
-
-#~ msgid "Notifications"
-#~ msgstr "Notifications"
-
-#~ msgid "Could not load notifications."
-#~ msgstr "Impossible de charger les notifications."
-
-#~ msgid "No new notifications."
-#~ msgstr "Aucune nouvelle notification."
-
-#~ msgid "The agent is working step by step — this can take a minute…"
-#~ msgstr "L'agent travaille étape par étape — cela peut prendre une minute…"
-
-#~ msgid "Imported today"
-#~ msgstr "Importés aujourd'hui"
-
-#~ msgid "Processed today"
-#~ msgstr "Traités aujourd'hui"
-
-#~ msgid "Current backlog"
-#~ msgstr "Backlog actuel"
-
-#~ msgid "Avg processing time"
-#~ msgstr "Temps de traitement moyen"
-
-#~ msgid "Top doctypes today"
-#~ msgstr "Principaux types de documents aujourd'hui"
-
-#~ msgid "Could not fetch field metadata"
-#~ msgstr "Impossible de récupérer les métadonnées des champs"
-
-#~ msgid "Could not load layout"
-#~ msgstr "Impossible de charger la disposition"
-
-#~ msgid "Could not save layout"
-#~ msgstr "Impossible d'enregistrer la disposition"
-
-#~ msgid "Could not reset layout"
-#~ msgstr "Impossible de réinitialiser la disposition"
-
-#~ msgid "Invalid widget"
-#~ msgstr "Widget invalide"
-
-#~ msgid "Could not build query"
-#~ msgstr "Impossible de générer la requête"
-
-#~ msgid "Previous period"
-#~ msgstr "Période précédente"
-
-#~ msgid "Could not build comparison"
-#~ msgstr "Impossible de générer la comparaison"
-
-#~ msgid "Sorting Code"
-#~ msgstr "Code de tri"
-
-#~ msgid "Optional. Controls display order in the permission editor."
-#~ msgstr "Optionnel. Contrôle l'ordre d'affichage dans l'éditeur de permissions."
-
-#~ msgid "Welcome back"
-#~ msgstr "Bon retour"
-
-#~ msgid ""
-#~ "Document\n"
-#~ "                  fields"
-#~ msgstr ""
-#~ "Champs du\n"
-#~ "document"
-
-#~ msgid "Search field…"
-#~ msgstr "Rechercher un champ…"
-
-#~ msgid "Smart search"
-#~ msgstr "Recherche intelligente"
-
-#~ msgid "Type a document value — Enter adds a search term…"
-#~ msgstr "Saisir une valeur de document — Entrée ajoute un terme de recherche…"
-
-#~ msgid "Clear search terms"
-#~ msgstr "Effacer les termes de recherche"
-
-#~ msgid "Ready"
-#~ msgstr "Prêt"
-
-#~ msgid "No or malformed"
-#~ msgstr "Aucune ligne correspondante"
-
-#~ msgid "header"
-#~ msgstr "Année"
-
-#~ msgid "dev server"
-#~ msgstr "serveur de dev"
-
-#~ msgid "Search PID"
-#~ msgstr "Rechercher des champs…"
-
-#~ msgid "Any"
-#~ msgstr "Jour"
-
-#~ msgid "No"
-#~ msgstr "Aucun"
-
-#~ msgid "Group by"
-#~ msgstr "Regrouper par"
-
-#~ msgid "page"
-#~ msgstr "page"
-
-#~ msgid "since"
-#~ msgstr "depuis"
+#~ "Je n'ai pas pu rédiger de résumé"
+#~ " cette fois, mais j'ai produit une"
+#~ " ébauche de rapport — utilisez « "
+#~ "Ouvrir dans le générateur » ci-"
+#~ "dessous pour l'exécuter."
+
+#~ msgid "Open in builder"
+#~ msgstr "Ouvrir dans le générateur"
 
 #~ msgid "Invoices"
 #~ msgstr "Factures"
-
-#~ msgid "Apply view — double-click to rename"
-#~ msgstr "Appliquer la vue — double-cliquez pour renommer"
-
-#~ msgid "Rename view"
-#~ msgstr "Renommer la vue"
-
-#~ msgid "Folder (optional)"
-#~ msgstr "Dossier (facultatif)"
-
-#~ msgid ""
-#~ "Today's imported and exported document "
-#~ "counts, scoped to your key's processes"
-#~ " — the same numbers as the "
-#~ "nexora dashboard's \"today\" KPI tiles."
-#~ msgstr ""
-#~ "Les nombres de documents importés et "
-#~ "exportés aujourd'hui, limités aux processus"
-#~ " de votre clé — les mêmes "
-#~ "chiffres que les tuiles KPI "
-#~ "\"aujourd'hui\" du tableau de bord "
-#~ "nexora."
-
-#~ msgid "Server-local calendar date the counts refer to (ISO 8601)"
-#~ msgstr ""
-#~ "Date calendaire locale du serveur à "
-#~ "laquelle les chiffres se rapportent (ISO"
-#~ " 8601)"
-
-#~ msgid "Documents imported today"
-#~ msgstr "Documents importés aujourd'hui"
-
-#~ msgid "Documents exported today"
-#~ msgstr "Documents exportés aujourd'hui"
-
-#~ msgid ""
-#~ "Your key's process scope, echoed for "
-#~ "debugging. An empty scope returns zeros."
-#~ msgstr ""
-#~ "Le périmètre de processus de votre "
-#~ "clé, renvoyé pour le débogage. Un "
-#~ "périmètre vide renvoie des zéros."
-
-#~ msgid "Responses are computed fresh on every call — there is no cache."
-#~ msgstr "Les réponses sont recalculées à chaque appel — il n'y a pas de cache."
 
 #~ msgid ""
 #~ "Keys are not shared across environments:"
@@ -8105,4 +7674,52 @@ msgstr ""
 #~ "inconnue. Émettez une clé séparée pour"
 #~ " chaque environnement dont vous avez "
 #~ "besoin."
+
+#~ msgid ""
+#~ "Today's imported and exported document "
+#~ "counts, scoped to your key's processes"
+#~ " — the same numbers as the "
+#~ "nexora dashboard's \"today\" KPI tiles."
+#~ msgstr ""
+#~ "Les nombres de documents importés et "
+#~ "exportés aujourd'hui, limités aux processus"
+#~ " de votre clé — les mêmes "
+#~ "chiffres que les tuiles KPI "
+#~ "\"aujourd'hui\" du tableau de bord "
+#~ "nexora."
+
+#~ msgid "Documents imported today"
+#~ msgstr "Documents importés aujourd'hui"
+
+#~ msgid "Documents exported today"
+#~ msgstr "Documents exportés aujourd'hui"
+
+#~ msgid ""
+#~ "Your key's process scope, echoed for "
+#~ "debugging. An empty scope returns zeros."
+#~ msgstr ""
+#~ "Le périmètre de processus de votre "
+#~ "clé, renvoyé pour le débogage. Un "
+#~ "périmètre vide renvoie des zéros."
+
+#~ msgid ""
+#~ "Use a real (enabled) API key — "
+#~ "the same auth errors (401/429) apply."
+#~ " Available for both"
+#~ msgstr ""
+#~ "Utilisez une vraie clé API (activée) "
+#~ "— les mêmes erreurs d'authentification "
+#~ "(401/429) s'appliquent. Disponible pour"
+
+#~ msgid "Unknown or unsupported source"
+#~ msgstr "Source inconnue ou non prise en charge"
+
+#~ msgid "Source engine is not configured"
+#~ msgstr "Le moteur de la source n'est pas configuré"
+
+#~ msgid "This request is invalid."
+#~ msgstr "Cette requête n'est pas valide."
+
+#~ msgid "Could not load values"
+#~ msgstr "Impossible de charger les valeurs"
 

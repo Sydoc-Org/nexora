@@ -25,17 +25,17 @@
     <!-- Tabs -->
     <ul class="nx-tabs">
         <li>
-            <button id="tab-users-btn" onclick="switchTab('users')" type="button" class="nx-tab is-active" data-testid="admin-ac-tab-users">
+            <button id="tab-users-btn" type="button" class="nx-tab is-active" data-testid="admin-ac-tab-users">
                 <i class="fas fa-users"></i>{{ _("Users") }}
             </button>
         </li>
         <li>
-            <button id="tab-permissions-btn" onclick="switchTab('permissions')" type="button" class="nx-tab" data-testid="admin-ac-tab-permissions">
+            <button id="tab-permissions-btn" type="button" class="nx-tab" data-testid="admin-ac-tab-permissions">
                 <i class="fas fa-key"></i>{{ _("Permissions") }}
             </button>
         </li>
         <li>
-            <button id="tab-profiles-btn" onclick="switchTab('profiles')" type="button" class="nx-tab" data-testid="admin-ac-tab-profiles">
+            <button id="tab-profiles-btn" type="button" class="nx-tab" data-testid="admin-ac-tab-profiles">
                 <i class="fas fa-id-badge"></i>{{ _("Access Profiles") }}
             </button>
         </li>
@@ -48,7 +48,7 @@
             <div>
                 <label for="userSearchInput" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _('Search') }}</label>
                 <div class="nx-input-icon"><i class="fas fa-search"></i>
-                    <input type="text" id="userSearchInput" oninput="filterUsersTable(); updateClearFilterVisibility()" class="nx-input" placeholder="{{ _('Name, email...') }}" data-testid="admin-ac-user-search">
+                    <input type="text" id="userSearchInput" class="nx-input" placeholder="{{ _('Name, email...') }}" data-testid="admin-ac-user-search">
                 </div>
             </div>
             <div>
@@ -71,14 +71,14 @@
             </div>
             <div id="userClearFiltersWrap" class="hidden">
                 <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:transparent">&nbsp;</label>
-                <button id="userClearFiltersBtn" onclick="clearUserFilters()" class="nx-btn nx-btn--secondary" style="width:100%" type="button" data-testid="admin-ac-clear-user-filters">
+                <button id="userClearFiltersBtn" class="nx-btn nx-btn--secondary" style="width:100%" type="button" data-testid="admin-ac-clear-user-filters">
                     <i class="fas fa-xmark"></i>{{ _("Clear filters") }}
                 </button>
             </div>
             <div>
                 <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:transparent">&nbsp;</label>
                 {% if can_create_user %}
-                <button onclick="openAddUserModal()" class="nx-btn nx-btn--primary" style="width:100%" type="button" data-testid="admin-ac-add-user">
+                <button class="nx-btn nx-btn--primary" style="width:100%" type="button" data-testid="admin-ac-add-user">
                     <i class="fas fa-plus"></i>{{ _("Add User") }}
                 </button>
                 {% endif %}
@@ -109,10 +109,10 @@
         <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap">
             <div class="nx-input-icon" style="width:280px">
                 <i class="fas fa-search"></i>
-                <input type="text" id="permSearchInput" oninput="filterPermissionsTable()" class="nx-input" placeholder="{{ _('Search permissions...') }}" data-testid="admin-ac-perm-search">
+                <input type="text" id="permSearchInput" class="nx-input" placeholder="{{ _('Search permissions...') }}" data-testid="admin-ac-perm-search">
             </div>
             {% if can_edit_accessprofile %}
-            <button onclick="openAddPermissionModal()" class="nx-btn nx-btn--primary" type="button" data-testid="admin-ac-add-permission">
+            <button class="nx-btn nx-btn--primary" type="button" data-testid="admin-ac-add-permission">
                 <i class="fas fa-plus"></i>{{ _("Add Permission") }}
             </button>
             {% endif %}
@@ -141,7 +141,7 @@
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
             <p style="font-size:13px;color:var(--nx-text-sec);margin:0">{{ profiles | length }} {{ _("profiles") }}</p>
             {% if can_edit_accessprofile %}
-            <button onclick="openProfileDrawer()" class="nx-btn nx-btn--primary" type="button" data-testid="admin-ac-add-profile">
+            <button class="nx-btn nx-btn--primary" type="button" data-testid="admin-ac-add-profile">
                 <i class="fas fa-plus"></i>{{ _("Add Profile") }}
             </button>
             {% endif %}
@@ -155,7 +155,7 @@
                         <p style="font-size:12px;color:var(--nx-text-sec);margin:4px 0 0;line-height:1.5">{{ profile.Description or '' }}</p>
                     </div>
                     {% if can_edit_accessprofile %}
-                    <button onclick="editProfile({{ profile.AccessID }})" class="nx-btn nx-btn--ghost nx-btn--sm" style="padding:4px 8px" type="button" title="{{ _('Edit') }}" data-testid="admin-ac-edit-profile-{{ profile.AccessID }}">
+                    <button class="edit-access-profile-btn nx-btn nx-btn--ghost nx-btn--sm" style="padding:4px 8px" type="button" title="{{ _('Edit') }}" data-access-id="{{ profile.AccessID }}" data-testid="admin-ac-edit-profile-{{ profile.AccessID }}">
                         <i class="fas fa-edit" style="font-size:12px"></i>
                     </button>
                     {% endif %}
@@ -178,7 +178,7 @@
     <div class="modal-content nx-card w-full max-w-md p-6 transform scale-95 transition-transform duration-300">
         <div class="flex justify-between items-center mb-5">
             <h3 class="nx-section">{{ _("Add User") }}</h3>
-            <button onclick="closeUserModal()" data-testid="admin-ac-user-modal-close" class="nx-c-meta">
+            <button data-testid="admin-ac-user-modal-close" class="nx-c-meta">
                 <i class="fas fa-times"></i>
             </button>
         </div>
@@ -225,7 +225,7 @@
                 <input type="password" id="password" name="password" class="nx-input" data-testid="admin-ac-user-password">
             </div>
             <div class="flex justify-end space-x-3 pt-2">
-                <button type="button" onclick="closeUserModal()" class="nx-btn nx-btn--secondary" data-testid="admin-ac-user-modal-cancel">{{ _("Cancel") }}</button>
+                <button type="button" class="nx-btn nx-btn--secondary" data-testid="admin-ac-user-modal-cancel">{{ _("Cancel") }}</button>
                 <button type="submit" class="nx-btn nx-btn--primary" data-testid="admin-ac-user-modal-create">{{ _("Create") }}</button>
             </div>
         </form>
@@ -242,7 +242,7 @@
         <h3 class="nx-section mb-2">{{ _("Confirm Delete") }}</h3>
         <p id="confirmDeleteMessage" class="text-sm mb-6 nx-c-sec"></p>
         <div class="flex justify-center space-x-3">
-            <button onclick="closeConfirmDeleteModal()" class="nx-btn nx-btn--secondary" data-testid="admin-ac-confirm-delete-cancel">{{ _("Cancel") }}</button>
+            <button class="nx-btn nx-btn--secondary" data-testid="admin-ac-confirm-delete-cancel">{{ _("Cancel") }}</button>
             <button id="confirmDeleteBtn" class="nx-btn nx-btn--danger" data-testid="admin-ac-confirm-delete">{{ _("Delete") }}</button>
         </div>
     </div>
@@ -256,7 +256,7 @@
     <div class="modal-content nx-card w-full max-w-md transform scale-95 transition-transform duration-300">
         <div class="p-6 flex justify-between items-center" style="border-bottom:1px solid var(--nx-border)">
             <h3 id="permMetaModalTitle" class="nx-section">{{ _("Add Permission") }}</h3>
-            <button onclick="closePermMetaModal()" data-testid="admin-ac-perm-modal-close" class="nx-c-meta">
+            <button data-testid="admin-ac-perm-modal-close" class="nx-c-meta">
                 <i class="fas fa-times"></i>
             </button>
         </div>
@@ -272,8 +272,8 @@
             </div>
         </div>
         <div class="p-6 flex justify-end space-x-3 rounded-b-xl" style="border-top:1px solid var(--nx-border);background:var(--nx-alt)">
-            <button onclick="closePermMetaModal()" class="nx-btn nx-btn--secondary" data-testid="admin-ac-perm-modal-cancel">{{ _("Cancel") }}</button>
-            <button onclick="savePermissionMeta()" class="nx-btn nx-btn--primary" data-testid="admin-ac-perm-modal-save">{{ _("Save") }}</button>
+            <button class="nx-btn nx-btn--secondary" data-testid="admin-ac-perm-modal-cancel">{{ _("Cancel") }}</button>
+            <button class="nx-btn nx-btn--primary" data-testid="admin-ac-perm-modal-save">{{ _("Save") }}</button>
         </div>
     </div>
 </div>
@@ -282,8 +282,7 @@
 <!-- PERMISSION EDITOR DRAWER (slide-over from right)                    -->
 <!-- ================================================================== -->
 <div id="drawerOverlay"
-     class="fixed inset-0 z-40 bg-black/30 hidden opacity-0 transition-opacity duration-300"
-     onclick="closeDrawer()"></div>
+     class="fixed inset-0 z-40 bg-black/30 hidden opacity-0 transition-opacity duration-300"></div>
 
 <div id="permissionDrawer" class="fixed right-0 top-0 bottom-0 w-full sm:max-w-3xl z-50 shadow-2xl flex flex-col transform translate-x-full transition-transform duration-300 ease-in-out nx-bg-card">
 
@@ -293,7 +292,7 @@
             <h3 id="drawerTitle" class="nx-section"></h3>
             <p id="drawerSubtitle" class="text-sm mt-0.5 nx-c-sec"></p>
         </div>
-        <button onclick="closeDrawer()" class="ml-4 mt-0.5 nx-c-meta" data-testid="admin-ac-drawer-close">
+        <button class="ml-4 mt-0.5 nx-c-meta" data-testid="admin-ac-drawer-close">
             <i class="fas fa-times fa-lg"></i>
         </button>
     </div>
@@ -316,7 +315,7 @@
     <div class="px-6 py-3 flex-shrink-0" style="border-bottom:1px solid var(--nx-divider);background:var(--nx-card)">
         <div class="nx-input-icon">
             <i class="fas fa-search"></i>
-            <input type="text" id="drawerPermSearch" oninput="filterDrawerPerms()"
+            <input type="text" id="drawerPermSearch"
                    class="nx-input"
                    placeholder="{{ _('Filter permissions...') }}" data-testid="admin-ac-drawer-perm-search">
         </div>
@@ -336,7 +335,7 @@
                         <th class="px-4 py-3 text-center w-20">{{ _("Allow") }}</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="drawerPermsBody">
                     {% set ns = namespace(prev_group='', prev_sub='') %}
                     {% for perm in all_permissions %}
                     {% set parts = perm.Code.split('.') %}
@@ -346,7 +345,7 @@
                     {% if group != ns.prev_group %}
                     {% set ns.prev_group = group %}
                     {% set ns.prev_sub = '' %}
-                    <tr data-perm-group="{{ group }}" onclick="permGroupToggle(this)" style="cursor:pointer;user-select:none;background:var(--nx-alt);border-bottom:1px solid var(--nx-divider)">
+                    <tr data-perm-group="{{ group }}" style="cursor:pointer;user-select:none;background:var(--nx-alt);border-bottom:1px solid var(--nx-divider)">
                         <td colspan="4" class="px-4 py-1.5 text-xs font-bold uppercase tracking-wider nx-c-sec">
                             <span class="perm-chevron" style="display:inline-block;margin-right:5px;transition:transform 0.15s">▾</span>{{ group }}
                         </td>
@@ -354,7 +353,7 @@
                     {% endif %}
                     {% if action and sub != ns.prev_sub %}
                     {% set ns.prev_sub = sub %}
-                    <tr data-perm-sub-group="{{ sub }}" onclick="permGroupToggle(this)" style="cursor:pointer;user-select:none;background:var(--nx-bg);border-bottom:1px solid var(--nx-border)">
+                    <tr data-perm-sub-group="{{ sub }}" style="cursor:pointer;user-select:none;background:var(--nx-bg);border-bottom:1px solid var(--nx-border)">
                         <td colspan="4" class="px-8 py-1 text-xs font-semibold uppercase tracking-wide nx-c-meta">
                             <span class="perm-chevron" style="display:inline-block;margin-right:5px;transition:transform 0.15s;font-size:10px">▾</span>{{ action }}
                         </td>
@@ -392,14 +391,14 @@
             <span id="drawerImpactCount"></span>
         </span>
         <div class="flex space-x-3">
-            <button onclick="closeDrawer()" class="nx-btn nx-btn--secondary" data-testid="admin-ac-drawer-cancel">{{ _("Cancel") }}</button>
-            <button onclick="savePermissions()" class="nx-btn nx-btn--primary" data-testid="admin-ac-drawer-save">{{ _("Save Changes") }}</button>
+            <button class="nx-btn nx-btn--secondary" data-testid="admin-ac-drawer-cancel">{{ _("Cancel") }}</button>
+            <button class="nx-btn nx-btn--primary" data-testid="admin-ac-drawer-save">{{ _("Save Changes") }}</button>
         </div>
     </div>
 </div>
 
 <!-- Data injected server-side so JS never puts raw strings in onclick attributes -->
-<script>
+<script nonce="{{ csp_nonce() }}">
     const profilesMap = {
         {% for profile in profiles %}
         {{ profile.AccessID }}: { name: {{ profile.Name | tojson }}, desc: {{ (profile.Description or '') | tojson }}, userCount: {{ profile.UserCount }} }{% if not loop.last %},{% endif %}

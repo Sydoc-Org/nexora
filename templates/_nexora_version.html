@@ -1,6 +1,6 @@
 <p class="mt-6 text-sm text-gray-500 lg:mt-0">
     ©
-    <script>document.write(new Date().getFullYear())</script>
+    <script nonce="{{ csp_nonce() }}">document.write(new Date().getFullYear())</script>
     {{ _("All rights reserved.") }}
     nexora v{{ nexora_version }}{% if nexora_build %} · {{ nexora_build }}{% endif %}
 </p>
