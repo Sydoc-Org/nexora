@@ -15,7 +15,7 @@ No login fixtures: this API never touches the session.
 import hashlib
 import secrets
 import types
-from datetime import date
+from datetime import date, datetime
 from unittest.mock import MagicMock
 
 import nx_lib.views.api_external as ax
@@ -352,6 +352,125 @@ def test_backlog_post_method_not_allowed(client):
     assert resp.status_code == 405
 
 
+# ---------------------- /api/v1/invoice/import_datetime -------------------- #
+
+INVOICE_URL = "/api/v1/invoice/import_datetime"
+
+
+def test_invoice_no_auth_header_returns_401_json(client):
+    resp = client.get(INVOICE_URL, query_string={"invoice_nr": "INV-1"})
+    assert resp.status_code == 401
+    assert resp.is_json
+    assert resp.headers.get("WWW-Authenticate") == "Bearer"
+
+
+def test_invoice_missing_param_returns_400(client):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+    try:
+        resp = client.get(INVOICE_URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 400
+        assert resp.get_json() == {"error": "Missing required query param 'invoice_nr'"}
+    finally:
+        _delete_key(key_hash)
+
+
+def test_invoice_good_key_returns_scoped_datetime_and_stamps_last_used(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw, processes="sydoc.TestProc, sydoc.Other")
+    seen = {}
+
+    def _fake_resolve(invoice_nr, target_processes, *, strict=False):
+        seen["invoice_nr"] = invoice_nr
+        seen["processes"] = target_processes
+        seen["strict"] = strict
+        return datetime(2026, 8, 4, 9, 12, 31), "sydoc.TestProc"
+
+    monkeypatch.setattr(ax, "resolve_invoice_import_datetime", _fake_resolve)
+    try:
+        resp = client.get(
+            INVOICE_URL,
+            headers={"Authorization": f"Bearer {raw}"},
+            query_string={"invoice_nr": "INV-2026-1"},
+        )
+        assert resp.status_code == 200
+        assert resp.get_json() == {
+            "invoice_nr": "INV-2026-1",
+            "import_datetime": "2026-08-04 09:12:31",
+        }
+        assert seen["invoice_nr"] == "INV-2026-1"
+        assert seen["processes"] == ["sydoc.TestProc", "sydoc.Other"]
+        assert seen["strict"] is True
+        assert _last_used(key_hash) is not None
+    finally:
+        _delete_key(key_hash)
+
+
+def test_invoice_not_found_returns_404_null(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+
+    def _fake_resolve(invoice_nr, target_processes, *, strict=False):
+        return None, None
+
+    monkeypatch.setattr(ax, "resolve_invoice_import_datetime", _fake_resolve)
+    try:
+        resp = client.get(
+            INVOICE_URL,
+            headers={"Authorization": f"Bearer {raw}"},
+            query_string={"invoice_nr": "NOPE"},
+        )
+        assert resp.status_code == 404
+        assert resp.get_json() == {"invoice_nr": "NOPE", "import_datetime": None}
+    finally:
+        _delete_key(key_hash)
+
+
+def test_invoice_empty_process_scope_returns_404_without_resolve(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw, processes="")
+
+    def _must_not_be_called(invoice_nr, target_processes, *, strict=False):
+        raise AssertionError("resolve_invoice_import_datetime must not run for an empty scope")
+
+    monkeypatch.setattr(ax, "resolve_invoice_import_datetime", _must_not_be_called)
+    try:
+        resp = client.get(
+            INVOICE_URL,
+            headers={"Authorization": f"Bearer {raw}"},
+            query_string={"invoice_nr": "INV-1"},
+        )
+        assert resp.status_code == 404
+        assert resp.get_json() == {"invoice_nr": "INV-1", "import_datetime": None}
+    finally:
+        _delete_key(key_hash)
+
+
+def test_invoice_backend_error_returns_500_json(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+
+    def _boom(invoice_nr, target_processes, *, strict=False):
+        raise RuntimeError("StatisticsDB exploded")
+
+    monkeypatch.setattr(ax, "resolve_invoice_import_datetime", _boom)
+    try:
+        resp = client.get(
+            INVOICE_URL,
+            headers={"Authorization": f"Bearer {raw}"},
+            query_string={"invoice_nr": "INV-1"},
+        )
+        assert resp.status_code == 500
+        assert resp.get_json() == {"error": "Stats backend unavailable"}
+    finally:
+        _delete_key(key_hash)
+
+
+def test_invoice_post_method_not_allowed(client):
+    resp = client.post(INVOICE_URL)
+    assert resp.status_code == 405
+
+
 def test_unknown_api_v1_path_returns_json_404(client):
     resp = client.get("/api/v1/definitely/not/a/route")
     assert resp.status_code == 404
@@ -421,6 +540,44 @@ def test_test_backlog_good_key_returns_random_data_in_real_shape(client):
 def test_test_stats_post_method_not_allowed(client):
     resp = client.post(TEST_STATS_URL)
     assert resp.status_code == 405
+
+
+TEST_INVOICE_URL = "/api/test/v1/invoice/import_datetime"
+
+
+def test_test_invoice_no_auth_header_returns_401_json(client):
+    resp = client.get(TEST_INVOICE_URL, query_string={"invoice_nr": "INV-1"})
+    assert resp.status_code == 401
+    assert resp.is_json
+
+
+def test_test_invoice_missing_param_returns_400(client):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+    try:
+        resp = client.get(TEST_INVOICE_URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 400
+        assert resp.get_json() == {"error": "Missing required query param 'invoice_nr'"}
+    finally:
+        _delete_key(key_hash)
+
+
+def test_test_invoice_good_key_returns_random_data_in_real_shape(client):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+    try:
+        resp = client.get(
+            TEST_INVOICE_URL,
+            headers={"Authorization": f"Bearer {raw}"},
+            query_string={"invoice_nr": "INV-1"},
+        )
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert body["invoice_nr"] == "INV-1"
+        datetime.strptime(body["import_datetime"], "%Y-%m-%d %H:%M:%S")
+        assert _last_used(key_hash) is not None
+    finally:
+        _delete_key(key_hash)
 
 
 def test_unknown_api_test_v1_path_returns_json_404(client):

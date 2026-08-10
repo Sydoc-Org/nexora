@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-10 09:45+0200\n"
+"POT-Creation-Date: 2026-08-10 11:33+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -34,13 +34,12 @@ msgstr "Prognosen für Ihre Report-Trends"
 msgid ""
 "Reports charted over a single date breakdown (per week, month, …) gain a "
 "Forecast toggle: the chart extends with a dashed prediction line and a "
-"confidence band, and exports and scheduled mails include the forecast "
-"too."
+"confidence band, and exports and scheduled mails include the forecast too."
 msgstr ""
 "Reports mit genau einer Datums-Aufschlüsselung (pro Woche, Monat, …) "
 "erhalten einen Prognose-Schalter: Das Diagramm wird um eine gestrichelte "
-"Vorhersagelinie und ein Konfidenzband erweitert; Exporte und geplante "
-"Mails enthalten die Prognose ebenfalls."
+"Vorhersagelinie und ein Konfidenzband erweitert; Exporte und geplante Mails "
+"enthalten die Prognose ebenfalls."
 
 #: nx_lib/whats_new.py:40
 msgid "Compare with the prior period"
@@ -48,14 +47,13 @@ msgstr "Vergleich mit der Vorperiode"
 
 #: nx_lib/whats_new.py:42
 msgid ""
-"Simple-tab reports with a relative date range now show ↑/↓ change chips "
-"and a small trend sparkline against the equivalent prior period — see at "
-"a glance whether numbers went up or down."
+"Simple-tab reports with a relative date range now show ↑/↓ change chips and "
+"a small trend sparkline against the equivalent prior period — see at a "
+"glance whether numbers went up or down."
 msgstr ""
-"Reports im Tab „Einfach“ mit relativem Zeitraum zeigen jetzt "
-"↑/↓-Änderungs-Chips und eine kleine Trendlinie im Vergleich zur "
-"entsprechenden Vorperiode — sehen Sie auf einen Blick, ob die Zahlen "
-"gestiegen oder gefallen sind."
+"Reports im Tab „Einfach“ mit relativem Zeitraum zeigen jetzt ↑/↓-Änderungs-"
+"Chips und eine kleine Trendlinie im Vergleich zur entsprechenden Vorperiode "
+"— sehen Sie auf einen Blick, ob die Zahlen gestiegen oder gefallen sind."
 
 #: nx_lib/whats_new.py:52
 msgid "Backlog over time"
@@ -63,8 +61,8 @@ msgstr "Backlog im Zeitverlauf"
 
 #: nx_lib/whats_new.py:54
 msgid ""
-"Reporting has a new Backlog measure — track how the open backlog develops"
-" per client or process, week by week."
+"Reporting has a new Backlog measure — track how the open backlog develops "
+"per client or process, week by week."
 msgstr ""
 "Das Reporting hat eine neue Backlog-Kennzahl — verfolgen Sie Woche für "
 "Woche, wie sich der offene Backlog pro Kunde oder Prozess entwickelt."
@@ -75,14 +73,14 @@ msgstr "Mit der Reporting-KI chatten"
 
 #: nx_lib/whats_new.py:64
 msgid ""
-"The one-shot Ask AI is now a full chat panel on both Reporting tabs — ask"
-" follow-up questions in context, watch live progress while the agent "
-"works, and continue or retry a run that stopped early."
+"The one-shot Ask AI is now a full chat panel on both Reporting tabs — ask "
+"follow-up questions in context, watch live progress while the agent works, "
+"and continue or retry a run that stopped early."
 msgstr ""
-"Aus dem einmaligen „KI fragen“ ist ein vollwertiges Chat-Panel auf beiden"
-" Reporting-Tabs geworden — stellen Sie Rückfragen im Kontext, verfolgen "
-"Sie den Live-Fortschritt, und setzen Sie einen vorzeitig gestoppten Lauf "
-"fort oder starten ihn erneut."
+"Aus dem einmaligen „KI fragen“ ist ein vollwertiges Chat-Panel auf beiden "
+"Reporting-Tabs geworden — stellen Sie Rückfragen im Kontext, verfolgen Sie "
+"den Live-Fortschritt, und setzen Sie einen vorzeitig gestoppten Lauf fort "
+"oder starten ihn erneut."
 
 #: nx_lib/whats_new.py:74
 msgid "Filter several processes at once"
@@ -93,9 +91,8 @@ msgid ""
 "The process filter on Dashboard and Workitems is now a multi-select — "
 "combine two or three processes in one view."
 msgstr ""
-"Der Prozessfilter auf Dashboard und Workitems ist jetzt eine "
-"Mehrfachauswahl — kombinieren Sie zwei oder drei Prozesse in einer "
-"Ansicht."
+"Der Prozessfilter auf Dashboard und Workitems ist jetzt eine Mehrfachauswahl"
+" — kombinieren Sie zwei oder drei Prozesse in einer Ansicht."
 
 #: nx_lib/whats_new.py:84
 msgid "Smarter document value search"
@@ -103,15 +100,15 @@ msgstr "Intelligentere Dokumentwert-Suche"
 
 #: nx_lib/whats_new.py:86
 msgid ""
-"Search workitems by document value without picking a field first — "
-"matches are found across every field you may see. Each search row now has"
-" an operator (contains, =, ≠, starts with, ends with) and rows combine "
-"with AND/OR."
+"Search workitems by document value without picking a field first — matches "
+"are found across every field you may see. Each search row now has an "
+"operator (contains, =, ≠, starts with, ends with) and rows combine with "
+"AND/OR."
 msgstr ""
-"Suchen Sie Workitems nach einem Dokumentwert, ohne zuerst ein Feld zu "
-"wählen — Treffer werden in allen für Sie sichtbaren Feldern gefunden. "
-"Jede Suchzeile hat jetzt einen Operator (enthält, =, ≠, beginnt mit, "
-"endet mit), und Zeilen lassen sich mit UND/ODER kombinieren."
+"Suchen Sie Workitems nach einem Dokumentwert, ohne zuerst ein Feld zu wählen"
+" — Treffer werden in allen für Sie sichtbaren Feldern gefunden. Jede "
+"Suchzeile hat jetzt einen Operator (enthält, =, ≠, beginnt mit, endet mit), "
+"und Zeilen lassen sich mit UND/ODER kombinieren."
 
 #: nx_lib/whats_new.py:96
 msgid "Date-range presets"
@@ -131,12 +128,11 @@ msgstr "Workitems nach Phase filtern"
 
 #: nx_lib/whats_new.py:108
 msgid ""
-"A new Stage filter (Import, Extraction, Validation, Delivery) narrows the"
-" list to workitems currently in that step."
+"A new Stage filter (Import, Extraction, Validation, Delivery) narrows the "
+"list to workitems currently in that step."
 msgstr ""
-"Ein neuer Phasen-Filter (Import, Extraktion, Validierung, Zustellung) "
-"grenzt die Liste auf Workitems ein, die sich aktuell in diesem Schritt "
-"befinden."
+"Ein neuer Phasen-Filter (Import, Extraktion, Validierung, Zustellung) grenzt"
+" die Liste auf Workitems ein, die sich aktuell in diesem Schritt befinden."
 
 #: nx_lib/whats_new.py:116
 msgid "See deleted workitems"
@@ -148,8 +144,8 @@ msgid ""
 "previously hidden entirely, can now be shown on demand, badged red."
 msgstr ""
 "Der Statusfilter erhält die Option „Deleted“ — gelöschte Workitems, die "
-"bisher komplett verborgen waren, lassen sich jetzt bei Bedarf anzeigen "
-"und werden rot gekennzeichnet."
+"bisher komplett verborgen waren, lassen sich jetzt bei Bedarf anzeigen und "
+"werden rot gekennzeichnet."
 
 #: nx_lib/whats_new.py:127
 msgid "Make nexora look your way"
@@ -157,16 +153,16 @@ msgstr "Gestalten Sie nexora nach Ihrem Geschmack"
 
 #: nx_lib/whats_new.py:129
 msgid ""
-"The new Appearance page has a live preview and more choices: light, dark "
-"or system theme, custom accent color, font size, corner style, high "
-"contrast, table stripes, page backgrounds and animation speed. Your "
-"settings follow your account on every device."
+"The new Appearance page has a live preview and more choices: light, dark or "
+"system theme, custom accent color, font size, corner style, high contrast, "
+"table stripes, page backgrounds and animation speed. Your settings follow "
+"your account on every device."
 msgstr ""
 "Die neue Darstellungs-Seite bietet eine Live-Vorschau und mehr Auswahl: "
 "helles, dunkles oder System-Theme, eigene Akzentfarbe, Schriftgröße, "
 "Eckenstil, hoher Kontrast, Tabellenstreifen, Seitenhintergründe und "
-"Animationsgeschwindigkeit. Ihre Einstellungen folgen Ihrem Konto auf "
-"jedem Gerät."
+"Animationsgeschwindigkeit. Ihre Einstellungen folgen Ihrem Konto auf jedem "
+"Gerät."
 
 #: nx_lib/whats_new.py:140
 msgid "API documentation in the app"
@@ -180,9 +176,9 @@ msgid ""
 "integrate without touching production."
 msgstr ""
 "Die externe API ist jetzt auf der neuen Seite „API-Doku“ dokumentiert — "
-"inklusive Authentifizierung, Endpunkten und kopierbaren Beispielen. Jeder"
-" Endpunkt hat außerdem einen Test-Zwilling — gleiche Adresse und "
-"Struktur, Fake-Daten — für Integrationen ohne Produktionsdaten."
+"inklusive Authentifizierung, Endpunkten und kopierbaren Beispielen. Jeder "
+"Endpunkt hat außerdem einen Test-Zwilling — gleiche Adresse und Struktur, "
+"Fake-Daten — für Integrationen ohne Produktionsdaten."
 
 #: nx_lib/whats_new.py:152
 msgid "System status at a glance for admins"
@@ -190,14 +186,13 @@ msgstr "Systemstatus auf einen Blick für Admins"
 
 #: nx_lib/whats_new.py:154
 msgid ""
-"The new Status page shows each component's health, a 30-day uptime strip "
-"and the incident history — checked every few minutes by the outage "
-"monitor, with a clear warning if the data ever goes stale."
+"The new Status page shows each component's health, a 30-day uptime strip and"
+" the incident history — checked every few minutes by the outage monitor, "
+"with a clear warning if the data ever goes stale."
 msgstr ""
 "Die neue Status-Seite zeigt den Zustand jeder Komponente, eine 30-Tage-"
 "Verfügbarkeitsleiste und den Störungsverlauf — alle paar Minuten vom "
-"Ausfall-Monitor geprüft, mit deutlichem Hinweis, falls die Daten "
-"veralten."
+"Ausfall-Monitor geprüft, mit deutlichem Hinweis, falls die Daten veralten."
 
 #: nx_lib/whats_new.py:164
 msgid "Chat, notifications and workitem tags retired"
@@ -206,13 +201,12 @@ msgstr "Chat, Benachrichtigungen und Workitem-Tags eingestellt"
 #: nx_lib/whats_new.py:166
 msgid ""
 "The chat page, the notification bell, and workitem tags, priority, "
-"assignment and comments have been removed to keep nexora focused on "
-"document processing. Existing data is preserved."
+"assignment and comments have been removed to keep nexora focused on document"
+" processing. Existing data is preserved."
 msgstr ""
-"Die Chat-Seite, die Benachrichtigungsglocke sowie Tags, Priorität, "
-"Zuweisung und Kommentare bei Workitems wurden entfernt, damit sich nexora"
-" auf die Dokumentverarbeitung konzentriert. Bestehende Daten bleiben "
-"erhalten."
+"Die Chat-Seite, die Benachrichtigungsglocke sowie Tags, Priorität, Zuweisung"
+" und Kommentare bei Workitems wurden entfernt, damit sich nexora auf die "
+"Dokumentverarbeitung konzentriert. Bestehende Daten bleiben erhalten."
 
 #: nx_lib/whats_new.py:182
 msgid "Build multi-card dashboards"
@@ -220,14 +214,14 @@ msgstr "Dashboards aus mehreren Karten bauen"
 
 #: nx_lib/whats_new.py:184
 msgid ""
-"Save several reports as one dashboard: combine KPI, chart and table "
-"cards, drag to rearrange, set global filters with per-card overrides, and"
-" export or drill through from any card."
+"Save several reports as one dashboard: combine KPI, chart and table cards, "
+"drag to rearrange, set global filters with per-card overrides, and export or"
+" drill through from any card."
 msgstr ""
 "Speichern Sie mehrere Reports als ein Dashboard: Kombinieren Sie KPI-, "
-"Diagramm- und Tabellen-Karten, ordnen Sie sie per Drag & Drop, setzen Sie"
-" globale Filter mit Ausnahmen pro Karte, und exportieren Sie oder klicken"
-" Sie sich von jeder Karte zu den Details durch."
+"Diagramm- und Tabellen-Karten, ordnen Sie sie per Drag & Drop, setzen Sie "
+"globale Filter mit Ausnahmen pro Karte, und exportieren Sie oder klicken Sie"
+" sich von jeder Karte zu den Details durch."
 
 #: nx_lib/whats_new.py:193
 msgid "Drill through to the documents"
@@ -238,9 +232,9 @@ msgid ""
 "Click a chart element or result row in Reporting to open the underlying "
 "document rows, with workitem links and export."
 msgstr ""
-"Klicken Sie im Reporting auf ein Diagrammelement oder eine Ergebniszeile,"
-" um die zugrunde liegenden Dokumentzeilen zu öffnen — mit Workitem-Links "
-"und Export."
+"Klicken Sie im Reporting auf ein Diagrammelement oder eine Ergebniszeile, um"
+" die zugrunde liegenden Dokumentzeilen zu öffnen — mit Workitem-Links und "
+"Export."
 
 #: nx_lib/whats_new.py:203
 msgid "Combine measures in one report"
@@ -248,13 +242,13 @@ msgstr "Kennzahlen in einem Report kombinieren"
 
 #: nx_lib/whats_new.py:205
 msgid ""
-"The guided report builder now takes several measures at once (from the "
-"same source) and has its own process step, with coverage badges showing "
-"which processes provide each field."
+"The guided report builder now takes several measures at once (from the same "
+"source) and has its own process step, with coverage badges showing which "
+"processes provide each field."
 msgstr ""
-"Der geführte Report-Builder akzeptiert jetzt mehrere Kennzahlen "
-"gleichzeitig (aus derselben Quelle) und hat einen eigenen Prozess-Schritt"
-" — mit Abdeckungs-Badges, die zeigen, welche Prozesse jedes Feld liefern."
+"Der geführte Report-Builder akzeptiert jetzt mehrere Kennzahlen gleichzeitig"
+" (aus derselben Quelle) und hat einen eigenen Prozess-Schritt — mit "
+"Abdeckungs-Badges, die zeigen, welche Prozesse jedes Feld liefern."
 
 #: nx_lib/whats_new.py:214
 msgid "Machine-to-machine API"
@@ -262,12 +256,12 @@ msgstr "Machine-to-Machine-API"
 
 #: nx_lib/whats_new.py:216
 msgid ""
-"External clients can fetch KPI numbers — like today's imported and "
-"processed counts — over the new authenticated /api/v1 interface."
+"External clients can fetch KPI numbers — like today's imported and processed"
+" counts — over the new authenticated /api/v1 interface."
 msgstr ""
 "Externe Clients können KPI-Zahlen — etwa die heutigen Import- und "
-"Verarbeitungszahlen — über die neue authentifizierte "
-"/api/v1-Schnittstelle abrufen."
+"Verarbeitungszahlen — über die neue authentifizierte /api/v1-Schnittstelle "
+"abrufen."
 
 #: nx_lib/reporting/catalog.py:224
 msgid "Import date"
@@ -301,8 +295,8 @@ msgstr "Ein unerwarteter Fehler ist aufgetreten."
 msgid "Organization updated successfully."
 msgstr "Organisation erfolgreich aktualisiert."
 
-#: nx_lib/views/admin.py:238 nx_lib/views/admin.py:262
-#: nx_lib/views/admin.py:931 nx_lib/views/admin.py:1171
+#: nx_lib/views/admin.py:238 nx_lib/views/admin.py:262 nx_lib/views/admin.py:931
+#: nx_lib/views/admin.py:1179
 msgid "An error occurred."
 msgstr "Ein Fehler ist aufgetreten."
 
@@ -313,6 +307,36 @@ msgstr "Organisation nicht gefunden."
 #: nx_lib/views/admin.py:259
 msgid "Organization deleted successfully."
 msgstr "Organisation erfolgreich gelöscht."
+
+#: nx_lib/views/admin.py:289 nx_lib/views/admin.py:404 nx_lib/views/admin.py:445
+#: nx_lib/views/admin.py:488 nx_lib/views/admin.py:508 nx_lib/views/admin.py:655
+#: nx_lib/views/admin.py:1105 nx_lib/views/admin.py:1257
+#: nx_lib/views/admin.py:1784 nx_lib/views/dashboard.py:449
+#: nx_lib/views/dashboard.py:507 nx_lib/views/dashboard.py:594
+#: nx_lib/views/dashboard.py:699 nx_lib/views/generali.py:228
+#: nx_lib/views/generali.py:257 nx_lib/views/generali.py:426
+#: nx_lib/views/generali.py:455 nx_lib/views/generali.py:686
+#: nx_lib/views/generali.py:728 nx_lib/views/generali.py:852
+#: nx_lib/views/generali.py:928 nx_lib/views/generali.py:984
+#: nx_lib/views/generali.py:1006 nx_lib/views/generali.py:1175
+#: nx_lib/views/generali.py:1206 nx_lib/views/generali.py:1235
+#: nx_lib/views/generali.py:1277 nx_lib/views/generali.py:1402
+#: nx_lib/views/generali.py:1473 nx_lib/views/generali.py:1519
+#: nx_lib/views/generali.py:1542 nx_lib/views/generali.py:1696
+#: nx_lib/views/generali.py:1725 nx_lib/views/generali.py:1767
+#: nx_lib/views/generali.py:1887 nx_lib/views/generali.py:1961
+#: nx_lib/views/generali.py:2009 nx_lib/views/generali.py:2035
+#: nx_lib/views/generali.py:2182 nx_lib/views/generali.py:2211
+#: nx_lib/views/generali.py:2253 nx_lib/views/generali.py:2370
+#: nx_lib/views/generali.py:2442 nx_lib/views/generali.py:2490
+#: nx_lib/views/generali.py:2516 nx_lib/views/generali.py:2668
+#: nx_lib/views/generali.py:2718 nx_lib/views/generali.py:2747
+#: nx_lib/views/generali.py:2789 nx_lib/views/generali.py:2921
+#: nx_lib/views/generali.py:2995 nx_lib/views/generali.py:3044
+#: nx_lib/views/generali.py:3067 nx_lib/views/generali.py:3175
+#: nx_lib/views/workitems.py:2018
+msgid "An unexpected error occurred"
+msgstr "Ein unerwarteter Fehler ist aufgetreten"
 
 #: nx_lib/views/admin.py:349
 msgid "Unknown environment."
@@ -327,8 +351,8 @@ msgid ""
 "User created, but the email could not be sent. Ask them to use 'Forgot "
 "password'."
 msgstr ""
-"Benutzer erstellt, aber die E-Mail konnte nicht gesendet werden. Bitten "
-"Sie die Person, die Funktion 'Passwort vergessen' zu verwenden."
+"Benutzer erstellt, aber die E-Mail konnte nicht gesendet werden. Bitten Sie "
+"die Person, die Funktion 'Passwort vergessen' zu verwenden."
 
 #: nx_lib/views/admin.py:842
 msgid "User created and email sent."
@@ -346,79 +370,81 @@ msgstr "Benutzername oder E-Mail existiert bereits."
 msgid "User updated successfully."
 msgstr "Benutzer erfolgreich aktualisiert."
 
-#: nx_lib/views/admin.py:1117
+#: nx_lib/views/admin.py:1125
 msgid "You cannot delete your own account."
 msgstr "Sie können Ihr eigenes Konto nicht löschen."
 
-#: nx_lib/views/admin.py:1163
+#: nx_lib/views/admin.py:1171
 msgid "User not found."
 msgstr "Benutzer nicht gefunden."
 
-#: nx_lib/views/admin.py:1165
+#: nx_lib/views/admin.py:1173
 msgid "User deleted successfully."
 msgstr "Benutzer erfolgreich gelöscht."
 
-#: nx_lib/views/admin.py:1294
+#: nx_lib/views/admin.py:1302
 msgid "Could not fetch logs"
 msgstr "Protokolle konnten nicht abgerufen werden"
 
-#: nx_lib/views/admin.py:1338
+#: nx_lib/views/admin.py:1346
 msgid "Could not fetch sessions"
 msgstr "Sitzungen konnten nicht abgerufen werden"
 
-#: nx_lib/views/admin.py:1435 nx_lib/views/admin.py:1745
-#: nx_lib/views/admin.py:1787 nx_lib/views/admin.py:1832
-#: nx_lib/views/admin.py:1871 nx_lib/views/admin.py:1908
-#: nx_lib/views/admin.py:1940 nx_lib/views/dashboard.py:252
-#: nx_lib/views/dashboard.py:362 nx_lib/views/dashboard.py:417
-#: nx_lib/views/dashboard.py:509 nx_lib/views/invoices.py:292
-#: nx_lib/views/workitems.py:981 nx_lib/views/workitems.py:1719
+#: nx_lib/views/admin.py:1443 nx_lib/views/admin.py:1753
+#: nx_lib/views/admin.py:1795 nx_lib/views/admin.py:1840
+#: nx_lib/views/admin.py:1879 nx_lib/views/admin.py:1916
+#: nx_lib/views/admin.py:1948 nx_lib/views/dashboard.py:353
+#: nx_lib/views/dashboard.py:463 nx_lib/views/dashboard.py:518
+#: nx_lib/views/dashboard.py:610 nx_lib/views/invoices.py:292
+#: nx_lib/views/workitems.py:1003 nx_lib/views/workitems.py:1741
+#: nx_lib/views/workitems.py:1743 nx_lib/views/workitems.py:1853
+#: nx_lib/views/workitems.py:1957
 msgid "Not authorized"
 msgstr "Nicht autorisiert"
 
-#: nx_lib/views/admin.py:1478
+#: nx_lib/views/admin.py:1486
 msgid "Could not fetch users"
 msgstr "Benutzer konnten nicht abgerufen werden"
 
-#: nx_lib/views/admin.py:1524
+#: nx_lib/views/admin.py:1532
 msgid "Name is required"
 msgstr "Name ist erforderlich"
 
-#: nx_lib/views/admin.py:1552
+#: nx_lib/views/admin.py:1560
 msgid "Profile saved successfully"
 msgstr "Profil erfolgreich gespeichert"
 
-#: nx_lib/views/admin.py:1731
+#: nx_lib/views/admin.py:1739
 msgid "Overrides updated successfully"
 msgstr "Überschreibungen erfolgreich aktualisiert"
 
-#: nx_lib/views/admin.py:1796 nx_lib/views/admin.py:1924
-#: nx_lib/views/admin.py:1966
+#: nx_lib/views/admin.py:1804 nx_lib/views/admin.py:1932
+#: nx_lib/views/admin.py:1974
 msgid "Permission not found"
 msgstr "Berechtigung nicht gefunden"
 
-#: nx_lib/views/admin.py:1876 nx_lib/views/admin.py:1913
+#: nx_lib/views/admin.py:1884 nx_lib/views/admin.py:1921
 msgid "Code and description are required"
 msgstr "Code und Beschreibung sind erforderlich"
 
-#: nx_lib/views/admin.py:1891
+#: nx_lib/views/admin.py:1899
 msgid "Permission created successfully"
 msgstr "Berechtigung erfolgreich erstellt"
 
-#: nx_lib/views/admin.py:1926
+#: nx_lib/views/admin.py:1934
 msgid "Permission updated successfully"
 msgstr "Berechtigung erfolgreich aktualisiert"
 
-#: nx_lib/views/admin.py:1959
+#: nx_lib/views/admin.py:1967
 #, python-format
 msgid ""
-"Cannot delete: used in %(p)d profile(s) and %(o)d override(s). Remove all"
-" assignments first."
+"Cannot delete: used in %(p)d profile(s) and %(o)d override(s). Remove all "
+"assignments first."
 msgstr ""
-"Kann nicht gelöscht werden: Wird in %(p)d Profil(en) und %(o)d "
-"Override(s) verwendet. Bitte zuerst alle Zuweisungen entfernen."
+"Kann nicht gelöscht werden: Wird in %(p)d Profil(en) und %(o)d Override(s) "
+"verwendet. Bitte zuerst alle Zuweisungen entfernen."
 
-#: nx_lib/views/admin.py:1968
+#: nx_lib/views/admin.py:1976
 msgid "Permission deleted successfully"
 msgstr "Berechtigung erfolgreich gelöscht"
 
@@ -428,13 +454,13 @@ msgstr "Ihr nexora-Konto ist bereit"
 
 #: nx_lib/views/auth.py:119
 msgid ""
-"An account has been created for you on nexora. Choose your own password "
-"by clicking the button below. You will then be asked to set up two-factor"
-" authentication."
+"An account has been created for you on nexora. Choose your own password by "
+"clicking the button below. You will then be asked to set up two-factor "
+"authentication."
 msgstr ""
-"Für Sie wurde ein Konto in nexora erstellt. Wählen Sie über die "
-"Schaltfläche unten Ihr eigenes Passwort. Anschließend werden Sie zur "
-"Einrichtung der Zwei-Faktor-Authentifizierung aufgefordert."
+"Für Sie wurde ein Konto in nexora erstellt. Wählen Sie über die Schaltfläche"
+" unten Ihr eigenes Passwort. Anschließend werden Sie zur Einrichtung der "
+"Zwei-Faktor-Authentifizierung aufgefordert."
 
 #: nx_lib/views/auth.py:123
 msgid "This link is valid for 7 days."
@@ -450,17 +476,17 @@ msgstr "nexora Anfrage zum Zurücksetzen des Passworts"
 
 #: nx_lib/views/auth.py:128
 msgid ""
-"We received a request to reset the password for your account. You can "
-"reset your password by clicking the button below."
+"We received a request to reset the password for your account. You can reset "
+"your password by clicking the button below."
 msgstr ""
-"Wir haben eine Anfrage erhalten, das Passwort für Ihr Konto "
-"zurückzusetzen. Sie können Ihr Passwort zurücksetzen, indem Sie auf die "
-"Schaltfläche unten klicken."
+"Wir haben eine Anfrage erhalten, das Passwort für Ihr Konto zurückzusetzen. "
+"Sie können Ihr Passwort zurücksetzen, indem Sie auf die Schaltfläche unten "
+"klicken."
 
 #: nx_lib/views/auth.py:132
 msgid ""
-"If you did not request a password reset, please ignore this email. This "
-"link is valid for 15 minutes."
+"If you did not request a password reset, please ignore this email. This link"
+" is valid for 15 minutes."
 msgstr ""
 "Falls Sie keine Passwortzurücksetzung angefordert haben, ignorieren Sie "
 "diese E-Mail bitte. Dieser Link ist 15 Minuten gültig."
@@ -493,53 +519,52 @@ msgstr "Ungültiger Code. Bitte versuchen Sie es erneut."
 msgid "Invalid code"
 msgstr "Ungültiger Code"
 
-#: nx_lib/views/auth.py:429 nx_lib/views/auth.py:654
+#: nx_lib/views/auth.py:429 nx_lib/views/auth.py:679
 #: templates/js/_profile_js.html:5
 msgid "Passwords do not match"
 msgstr "Passwörter stimmen nicht überein"
 
-#: nx_lib/views/auth.py:431 nx_lib/views/auth.py:656
+#: nx_lib/views/auth.py:431 nx_lib/views/auth.py:681
 msgid "All Fields must be filled"
 msgstr "Alle Felder müssen ausgefüllt werden"
 
-#: nx_lib/views/auth.py:435 nx_lib/views/auth.py:660
-#: nx_lib/views/profile.py:160
+#: nx_lib/views/auth.py:435 nx_lib/views/auth.py:685 nx_lib/views/profile.py:164
 msgid "New password has to be atleast 8 characters long, with no whitespaces"
 msgstr ""
 "Das neue Passwort muss mindestens 8 Zeichen lang sein und darf keine "
 "Leerzeichen enthalten"
 
-#: nx_lib/views/auth.py:455 nx_lib/views/auth.py:678
+#: nx_lib/views/auth.py:455 nx_lib/views/auth.py:703
 msgid "New Password musn't be previously used password"
 msgstr "Das neue Passwort darf kein bereits verwendetes Passwort sein"
 
-#: nx_lib/views/auth.py:488 nx_lib/views/auth.py:725
+#: nx_lib/views/auth.py:488 nx_lib/views/auth.py:750
 msgid "Something went wrong, please try again"
 msgstr "Etwas ist schiefgelaufen, bitte versuchen Sie es erneut"
 
-#: nx_lib/views/auth.py:545 nx_lib/views/auth.py:588
+#: nx_lib/views/auth.py:564 nx_lib/views/auth.py:613
 msgid "Invalid credentials"
 msgstr "Ungültige Anmeldedaten"
 
-#: nx_lib/views/auth.py:592
+#: nx_lib/views/auth.py:617
 msgid "Login temporarily unavailable"
 msgstr "Anmeldung vorübergehend nicht verfügbar"
 
-#: nx_lib/views/auth.py:710
+#: nx_lib/views/auth.py:735
 msgid "Password set. You can now sign in."
 msgstr "Passwort festgelegt. Sie können sich jetzt anmelden."
 
-#: nx_lib/views/auth.py:712
+#: nx_lib/views/auth.py:737
 msgid "Password changed"
 msgstr "Passwort geändert"
 
-#: nx_lib/views/auth.py:857
+#: nx_lib/views/auth.py:882
 msgid "If that email is registered, a reset link has been sent."
 msgstr ""
-"Falls diese E-Mail-Adresse registriert ist, wurde ein Link zum "
-"Zurücksetzen des Passworts gesendet."
+"Falls diese E-Mail-Adresse registriert ist, wurde ein Link zum Zurücksetzen "
+"des Passworts gesendet."
 
-#: nx_lib/views/auth.py:861
+#: nx_lib/views/auth.py:886
 msgid "Unexpected error occurred"
 msgstr "Ein unerwarteter Fehler ist aufgetreten"
 
@@ -565,48 +590,48 @@ msgstr ""
 msgid "An unexpected error occurred while downloading the PDF."
 msgstr "Beim Herunterladen des PDFs ist ein unerwarteter Fehler aufgetreten."
 
-#: nx_lib/views/profile.py:67
+#: nx_lib/views/profile.py:71
 msgid "Email Adress is not valid"
 msgstr "E-Mail-Adresse ist ungültig"
 
-#: nx_lib/views/profile.py:74
+#: nx_lib/views/profile.py:78
 msgid "Email Adress is already in use"
 msgstr "E-Mail-Adresse wird bereits verwendet"
 
-#: nx_lib/views/profile.py:95 nx_lib/views/profile.py:119
+#: nx_lib/views/profile.py:99 nx_lib/views/profile.py:123
 msgid "Invalid file format. Please upload a valid image."
 msgstr "Ungültiges Dateiformat. Bitte laden Sie ein gültiges Bild hoch."
 
-#: nx_lib/views/profile.py:123
+#: nx_lib/views/profile.py:127
 msgid "Profile updated successfully!"
 msgstr "Profil erfolgreich aktualisiert!"
 
-#: nx_lib/views/profile.py:128
+#: nx_lib/views/profile.py:132
 msgid "Unexpected error"
 msgstr "Unerwarteter Fehler"
 
-#: nx_lib/views/profile.py:153
+#: nx_lib/views/profile.py:157
 msgid "New passwords do not match"
 msgstr "Die neuen Passwörter stimmen nicht überein"
 
-#: nx_lib/views/profile.py:156
+#: nx_lib/views/profile.py:160
 msgid "All fields must be filled"
 msgstr "Alle Felder müssen ausgefüllt werden"
 
-#: nx_lib/views/profile.py:190
+#: nx_lib/views/profile.py:194
 msgid "Password updated successfully!"
 msgstr "Passwort erfolgreich aktualisiert!"
 
-#: nx_lib/views/profile.py:193
+#: nx_lib/views/profile.py:197
 msgid "Current password is incorrect"
 msgstr "Aktuelles Passwort ist falsch"
 
-#: nx_lib/views/profile.py:198 nx_lib/views/profile.py:211
-#: nx_lib/views/profile.py:224
+#: nx_lib/views/profile.py:202 nx_lib/views/profile.py:215
+#: nx_lib/views/profile.py:228
 msgid "Unexpected Error"
 msgstr "Unerwarteter Fehler"
 
-#: nx_lib/views/profile.py:220
+#: nx_lib/views/profile.py:224
 msgid "Language changed successfully!"
 msgstr "Sprache erfolgreich geändert!"
 
@@ -716,11 +741,11 @@ msgstr "Der KI-Assistent ist nicht konfiguriert"
 #: nx_lib/views/reporting.py:1646 nx_lib/views/reporting.py:1972
 #, python-format
 msgid ""
-"You have reached the daily AI request limit (%(limit)s). Please try again"
-" tomorrow."
+"You have reached the daily AI request limit (%(limit)s). Please try again "
+"tomorrow."
 msgstr ""
-"Sie haben das tägliche KI-Anfragelimit (%(limit)s) erreicht. Bitte "
-"versuchen Sie es morgen erneut."
+"Sie haben das tägliche KI-Anfragelimit (%(limit)s) erreicht. Bitte versuchen"
+" Sie es morgen erneut."
 
 #: nx_lib/views/reporting.py:1378 nx_lib/views/reporting.py:1524
 #: nx_lib/views/reporting.py:1876 nx_lib/views/reporting.py:1900
@@ -743,17 +768,17 @@ msgstr "Ungültiger Verlauf"
 
 #: nx_lib/views/reporting.py:1786
 msgid ""
-"I couldn't write a summary this time, but I did produce a report draft "
-"and a validated SQL query — use the actions below to open them."
+"I couldn't write a summary this time, but I did produce a report draft and a"
+" validated SQL query — use the actions below to open them."
 msgstr ""
 "Ich konnte diesmal keine Zusammenfassung schreiben, aber ich habe einen "
-"Berichtsentwurf und eine validierte SQL-Abfrage erstellt — öffnen Sie "
-"beides über die Aktionen unten."
+"Berichtsentwurf und eine validierte SQL-Abfrage erstellt — öffnen Sie beides"
+" über die Aktionen unten."
 
 #: nx_lib/views/reporting.py:1792
 msgid ""
-"I couldn't write a summary this time, but I did produce a report draft — "
-"use “Open in builder” below to run it."
+"I couldn't write a summary this time, but I did produce a report draft — use"
+" “Open in builder” below to run it."
 msgstr ""
 "Ich konnte diesmal keine Zusammenfassung schreiben, aber ich habe einen "
 "Berichtsentwurf erstellt — führen Sie ihn über „Im Builder öffnen“ unten "
@@ -761,19 +786,19 @@ msgstr ""
 
 #: nx_lib/views/reporting.py:1797
 msgid ""
-"I couldn't write a summary this time, but I did draft a SQL query — use "
-"the actions below to review it."
+"I couldn't write a summary this time, but I did draft a SQL query — use the "
+"actions below to review it."
 msgstr ""
-"Ich konnte diesmal keine Zusammenfassung schreiben, aber ich habe eine "
-"SQL-Abfrage entworfen — prüfen Sie sie über die Aktionen unten."
+"Ich konnte diesmal keine Zusammenfassung schreiben, aber ich habe eine SQL-"
+"Abfrage entworfen — prüfen Sie sie über die Aktionen unten."
 
 #: nx_lib/views/reporting.py:1802
 msgid ""
 "I couldn't complete this request. Please try rephrasing the question or "
 "narrowing it down."
 msgstr ""
-"Ich konnte diese Anfrage nicht abschließen. Bitte formulieren Sie die "
-"Frage um oder grenzen Sie sie ein."
+"Ich konnte diese Anfrage nicht abschließen. Bitte formulieren Sie die Frage "
+"um oder grenzen Sie sie ein."
 
 #: nx_lib/views/reporting.py:1942 nx_lib/views/reporting.py:2127
 msgid "columns and rows are required"
@@ -798,8 +823,7 @@ msgid "Could not export report"
 msgstr "Bericht konnte nicht exportiert werden"
 
 #: nx_lib/views/reporting.py:2097 templates/_reporting_simple.html:211
-#: templates/js/_reporting_js.html:514
-#: templates/js/_reporting_simple_js.html:13
+#: templates/js/_reporting_js.html:514 templates/js/_reporting_simple_js.html:13
 #: templates/js/_reporting_viz_js.html:264 templates/reporting.html:326
 msgid "Forecast"
 msgstr "Prognose"
@@ -901,9 +925,7 @@ msgstr "Spalten müssen gültiges JSON sein"
 
 #: nx_lib/views/reporting.py:2764
 msgid "code must start with a letter/underscore: letters, digits, _"
-msgstr ""
-"code muss mit einem Buchstaben/Unterstrich beginnen: Buchstaben, Ziffern,"
-" _"
+msgstr "code muss mit einem Buchstaben/Unterstrich beginnen: Buchstaben, Ziffern, _"
 
 #: nx_lib/views/reporting.py:2766
 msgid "sourceId is required"
@@ -949,11 +971,11 @@ msgstr "Metrik konnte nicht aktualisiert werden"
 msgid "Could not delete metric"
 msgstr "Metrik konnte nicht gelöscht werden"
 
-#: nx_lib/views/workitems.py:972 nx_lib/views/workitems.py:1130
+#: nx_lib/views/workitems.py:994 nx_lib/views/workitems.py:1152
 msgid "Could not fetch values"
 msgstr "Werte konnten nicht abgerufen werden"
 
-#: nx_lib/views/workitems.py:1191
+#: nx_lib/views/workitems.py:1213
 msgid ""
 "Exporting fields, history, or images requires selecting 10 or fewer "
 "workitems."
@@ -961,142 +983,136 @@ msgstr ""
 "Der Export von Feldern, Verlauf oder Bildern erfordert die Auswahl von "
 "höchstens 10 Workitems."
 
-#: nx_lib/views/workitems.py:1485
+#: nx_lib/views/workitems.py:1507
 msgid "TRUNCATED"
 msgstr "GEKÜRZT"
 
-#: nx_lib/views/workitems.py:1486
+#: nx_lib/views/workitems.py:1508
 msgid "exported"
 msgstr "exportiert"
 
-#: nx_lib/views/workitems.py:1486
+#: nx_lib/views/workitems.py:1508
 msgid "matching workitems"
 msgstr "übereinstimmende Workitems"
 
-#: nx_lib/views/workitems.py:1492
+#: nx_lib/views/workitems.py:1514
 msgid "EXPORT TIMED OUT"
 msgstr "EXPORT ZEITÜBERSCHREITUNG"
 
-#: nx_lib/views/workitems.py:1493
+#: nx_lib/views/workitems.py:1515
 msgid ""
 "no fields or images completed before the time limit; this is not a zero-"
 "result export"
 msgstr ""
-"keine Felder oder Bilder wurden vor Ablauf der Zeitgrenze fertiggestellt;"
-" dies ist kein Export ohne Ergebnisse"
+"keine Felder oder Bilder wurden vor Ablauf der Zeitgrenze fertiggestellt; "
+"dies ist kein Export ohne Ergebnisse"
 
-#: nx_lib/views/workitems.py:1609 nx_lib/views/workitems.py:1680
+#: nx_lib/views/workitems.py:1631 nx_lib/views/workitems.py:1702
 msgid "No file part in the request."
 msgstr "Kein Dateiteil in der Anfrage."
 
-#: nx_lib/views/workitems.py:1616 nx_lib/views/workitems.py:1683
+#: nx_lib/views/workitems.py:1638 nx_lib/views/workitems.py:1705
 msgid "No file selected for uploading."
 msgstr "Keine Datei zum Hochladen ausgewählt."
 
-#: nx_lib/views/workitems.py:1620
+#: nx_lib/views/workitems.py:1642
 msgid "No target process selected."
 msgstr "Kein Zielprozess ausgewählt."
 
-#: nx_lib/views/workitems.py:1632
+#: nx_lib/views/workitems.py:1654
 msgid "You do not have permission to import to this process."
 msgstr "Sie haben keine Berechtigung, in diesen Prozess zu importieren."
 
-#: nx_lib/views/workitems.py:1647
+#: nx_lib/views/workitems.py:1669
 #, python-brace-format
 msgid "File '{}' successfully imported into {}."
 msgstr "Datei '{}' erfolgreich in {} importiert."
 
-#: nx_lib/views/workitems.py:1652
+#: nx_lib/views/workitems.py:1674
 msgid "An error occurred while saving the file."
 msgstr "Beim Speichern der Datei ist ein Fehler aufgetreten."
 
-#: nx_lib/views/workitems.py:1654
+#: nx_lib/views/workitems.py:1676
 msgid "Invalid file type. Please upload a valid PDF."
 msgstr "Ungültiger Dateityp. Bitte laden Sie ein gültiges PDF hoch."
 
-#: nx_lib/views/workitems.py:1677 nx_lib/views/workitems.py:2213
+#: nx_lib/views/workitems.py:1699 nx_lib/views/workitems.py:2241
 msgid "This import is only available for the MS02 client."
 msgstr "Dieser Import ist nur für den MS02-Mandanten verfügbar."
 
-#: nx_lib/views/workitems.py:1687
+#: nx_lib/views/workitems.py:1709
 msgid "Invalid file type. Please upload a valid Excel (.xlsx) file."
-msgstr ""
-"Ungültiger Dateityp. Bitte laden Sie eine gültige Excel-Datei (.xlsx) "
-"hoch."
+msgstr "Ungültiger Dateityp. Bitte laden Sie eine gültige Excel-Datei (.xlsx) hoch."
 
-#: nx_lib/views/workitems.py:1695
+#: nx_lib/views/workitems.py:1717
 msgid "The Excel file has no usable rows."
 msgstr "Die Excel-Datei enthält keine verwertbaren Zeilen."
 
-#: nx_lib/views/workitems.py:1712
+#: nx_lib/views/workitems.py:1734
 msgid "Could not save the prepared documents. Please try again."
 msgstr ""
 "Die vorbereiteten Dokumente konnten nicht gespeichert werden. Bitte "
 "versuchen Sie es erneut."
 
-#: nx_lib/views/workitems.py:1795 nx_lib/views/workitems.py:1835
+#: nx_lib/views/workitems.py:1819 nx_lib/views/workitems.py:1861
 msgid "Workitem not found"
 msgstr "Workitem nicht gefunden"
 
-#: nx_lib/views/workitems.py:1823 nx_lib/views/workitems.py:1925
+#: nx_lib/views/workitems.py:1847 nx_lib/views/workitems.py:1951
 msgid "Internal Server Error"
 msgstr "Interner Serverfehler"
 
-#: nx_lib/views/workitems.py:1848
+#: nx_lib/views/workitems.py:1874
 msgid "Media index out of bounds"
 msgstr "Medienindex außerhalb des gültigen Bereichs"
 
-#: nx_lib/views/workitems.py:1874
+#: nx_lib/views/workitems.py:1900
 msgid "Failed to render PDF page"
 msgstr "PDF-Seite konnte nicht gerendert werden"
 
-#: nx_lib/views/workitems.py:1901
+#: nx_lib/views/workitems.py:1927
 msgid "Failed to process TIFF image"
 msgstr "TIFF-Bild konnte nicht verarbeitet werden"
 
-#: nx_lib/views/workitems.py:1988
+#: nx_lib/views/workitems.py:2016
 msgid "Failed to fetch audit history"
 msgstr "Audit-Verlauf konnte nicht abgerufen werden"
 
-#: nx_lib/views/workitems.py:1990
-msgid "An unexpected error occurred"
-msgstr "Ein unerwarteter Fehler ist aufgetreten"
-
-#: nx_lib/views/workitems.py:2096
+#: nx_lib/views/workitems.py:2124
 msgid "This page is only available for the MS02 client."
 msgstr "Diese Seite ist nur für den MS02-Mandanten verfügbar."
 
-#: nx_lib/views/workitems.py:2219
+#: nx_lib/views/workitems.py:2247
 msgid "Could not clear the prepared documents. Please try again."
 msgstr ""
-"Die vorbereiteten Dokumente konnten nicht gelöscht werden. Bitte "
-"versuchen Sie es erneut."
+"Die vorbereiteten Dokumente konnten nicht gelöscht werden. Bitte versuchen "
+"Sie es erneut."
 
-#: nx_lib/views/workitems.py:2280
+#: nx_lib/views/workitems.py:2308
 msgid "Could not load saved views."
 msgstr "Gespeicherte Ansichten konnten nicht geladen werden."
 
-#: nx_lib/views/workitems.py:2294 nx_lib/views/workitems.py:2297
+#: nx_lib/views/workitems.py:2322 nx_lib/views/workitems.py:2325
 msgid "Invalid view name or filters."
 msgstr "Ungültiger Ansichtsname oder ungültige Filter."
 
-#: nx_lib/views/workitems.py:2311 nx_lib/views/workitems.py:2360
+#: nx_lib/views/workitems.py:2339 nx_lib/views/workitems.py:2388
 msgid "View not found."
 msgstr "Ansicht nicht gefunden."
 
-#: nx_lib/views/workitems.py:2324
+#: nx_lib/views/workitems.py:2352
 msgid "Too many saved views — delete one first."
 msgstr "Zu viele gespeicherte Ansichten — bitte zuerst eine löschen."
 
-#: nx_lib/views/workitems.py:2339
+#: nx_lib/views/workitems.py:2367
 msgid "A view with this name already exists."
 msgstr "Eine Ansicht mit diesem Namen existiert bereits."
 
-#: nx_lib/views/workitems.py:2342
+#: nx_lib/views/workitems.py:2370
 msgid "Could not save the view."
 msgstr "Die Ansicht konnte nicht gespeichert werden."
 
-#: nx_lib/views/workitems.py:2364
+#: nx_lib/views/workitems.py:2392
 msgid "Could not delete the view."
 msgstr "Die Ansicht konnte nicht gelöscht werden."
 
@@ -1134,12 +1150,11 @@ msgstr "Protokolle"
 
 #: templates/_header.html:212 templates/admin/logs.html:64
 #: templates/admin/logs.html:97 templates/admin/user_detail.html:226
-#: templates/api_docs.html:174 templates/appearance.html:355
+#: templates/api_docs.html:177 templates/appearance.html:355
 #: templates/archive/invoices.html:78 templates/archive/invoices.html:123
 #: templates/generali_importstatus.html:48
-#: templates/generali_importstatus.html:108
-#: templates/generali_reporting.html:114 templates/workitems_overview.html:124
-#: templates/workitems_overview.html:392
+#: templates/generali_importstatus.html:108 templates/generali_reporting.html:114
+#: templates/workitems_overview.html:124 templates/workitems_overview.html:392
 msgid "Status"
 msgstr "Status"
 
@@ -1214,8 +1229,7 @@ msgstr "Dunkelmodus umschalten"
 msgid "Dark Mode"
 msgstr "Dunkelmodus"
 
-#: templates/_header.html:350 templates/profile.html:42
-#: templates/profile.html:122
+#: templates/_header.html:350 templates/profile.html:42 templates/profile.html:122
 msgid "Profile Picture"
 msgstr "Profilbild"
 
@@ -1294,29 +1308,29 @@ msgstr "Einen Bericht erstellen"
 
 #: templates/_reporting_help.html:14
 msgid ""
-"Watch the coverage badge (e.g. 2/5) on measures and categories: only part"
-" of the processes provide that field, and documents from the others land "
-"in the empty bucket. Hover it to see which. If a number looks too low, "
-"check the badge first."
+"Watch the coverage badge (e.g. 2/5) on measures and categories: only part of"
+" the processes provide that field, and documents from the others land in the"
+" empty bucket. Hover it to see which. If a number looks too low, check the "
+"badge first."
 msgstr ""
 "Achten Sie auf das Abdeckungs-Badge (z. B. 2/5) bei Kennzahlen und "
 "Kategorien: Nur ein Teil der Prozesse liefert dieses Feld, Dokumente der "
-"übrigen landen in der leeren Gruppe. Beim Überfahren mit der Maus sehen "
-"Sie, welche. Wirkt eine Zahl zu niedrig, prüfen Sie zuerst das Badge."
+"übrigen landen in der leeren Gruppe. Beim Überfahren mit der Maus sehen Sie,"
+" welche. Wirkt eine Zahl zu niedrig, prüfen Sie zuerst das Badge."
 
 #: templates/_reporting_help.html:15
 msgid ""
-"Everything in one empty bucket? The breakdown field is not filled in for "
-"the processes you selected."
+"Everything in one empty bucket? The breakdown field is not filled in for the"
+" processes you selected."
 msgstr ""
-"Alles in einer einzigen leeren Gruppe? Das Aufschlüsselungsfeld ist für "
-"die gewählten Prozesse nicht befüllt."
+"Alles in einer einzigen leeren Gruppe? Das Aufschlüsselungsfeld ist für die "
+"gewählten Prozesse nicht befüllt."
 
 #: templates/_reporting_help.html:16
 msgid ""
-"Relative presets stay relative: a report saved with “This month” shows "
-"the current month on every run and in every scheduled mail. Schedule "
-"times are UTC."
+"Relative presets stay relative: a report saved with “This month” shows the "
+"current month on every run and in every scheduled mail. Schedule times are "
+"UTC."
 msgstr ""
 "Relative Zeiträume bleiben relativ: Ein mit „Dieser Monat“ gespeicherter "
 "Bericht zeigt bei jedem Aufruf und in jeder geplanten Mail den aktuellen "
@@ -1328,12 +1342,12 @@ msgstr "Eine Zahl prüfen"
 
 #: templates/_reporting_help.html:20
 msgid ""
-"Click a chart bar or a table row to open the documents behind that "
-"number; “Show query” reveals exactly how it was computed."
+"Click a chart bar or a table row to open the documents behind that number; "
+"“Show query” reveals exactly how it was computed."
 msgstr ""
 "Klicken Sie auf einen Balken oder eine Tabellenzeile, um die Dokumente "
-"hinter dieser Zahl zu öffnen; „SQL anzeigen“ zeigt, wie sie genau "
-"berechnet wurde."
+"hinter dieser Zahl zu öffnen; „SQL anzeigen“ zeigt, wie sie genau berechnet "
+"wurde."
 
 #: templates/_reporting_help.html:21
 msgid ""
@@ -1347,21 +1361,20 @@ msgstr ""
 
 #: templates/_reporting_help.html:22
 msgid ""
-"Two people can see different totals on the same report: it always runs "
-"with the viewer’s own data access."
+"Two people can see different totals on the same report: it always runs with "
+"the viewer’s own data access."
 msgstr ""
 "Zwei Personen können im selben Bericht unterschiedliche Summen sehen: Er "
 "läuft immer mit dem Datenzugriff der betrachtenden Person."
 
 #: templates/_reporting_help.html:23
 msgid ""
-"Charts cap at 50 axis values and 12 series — past the cap you get a "
-"partial chart or none at all; the table and exports always carry the full"
-" data."
+"Charts cap at 50 axis values and 12 series — past the cap you get a partial "
+"chart or none at all; the table and exports always carry the full data."
 msgstr ""
-"Diagramme sind auf 50 Achsenwerte und 12 Serien begrenzt — darüber gibt "
-"es ein unvollständiges oder gar kein Diagramm; Tabelle und Exporte "
-"enthalten immer alle Daten."
+"Diagramme sind auf 50 Achsenwerte und 12 Serien begrenzt — darüber gibt es "
+"ein unvollständiges oder gar kein Diagramm; Tabelle und Exporte enthalten "
+"immer alle Daten."
 
 #: templates/_reporting_help.html:25
 msgid "Saving and sharing"
@@ -1369,23 +1382,22 @@ msgstr "Speichern und Teilen"
 
 #: templates/_reporting_help.html:27
 msgid ""
-"Save works differently per tab: on Simple, Save always creates a new "
-"report under My reports; on Advanced, Save overwrites the open report — "
-"including a shared one you can edit. Use “Save as” for a copy."
+"Save works differently per tab: on Simple, Save always creates a new report "
+"under My reports; on Advanced, Save overwrites the open report — including a"
+" shared one you can edit. Use “Save as” for a copy."
 msgstr ""
 "Speichern funktioniert je Tab unterschiedlich: Unter „Einfach“ erstellt "
 "Speichern immer einen neuen Bericht unter „Meine Berichte“; unter "
-"„Erweitert“ überschreibt es den geöffneten Bericht — auch einen geteilten"
-" mit Bearbeitungsrecht. Für eine Kopie „Speichern unter“ verwenden."
+"„Erweitert“ überschreibt es den geöffneten Bericht — auch einen geteilten "
+"mit Bearbeitungsrecht. Für eine Kopie „Speichern unter“ verwenden."
 
 #: templates/_reporting_help.html:28
 msgid ""
-"A scheduled email runs with the report owner’s data access — recipients "
-"see the owner’s numbers, not their own."
+"A scheduled email runs with the report owner’s data access — recipients see "
+"the owner’s numbers, not their own."
 msgstr ""
-"Eine geplante E-Mail läuft mit dem Datenzugriff der Berichtsbesitzerin "
-"bzw. des Berichtsbesitzers — Empfänger sehen deren Zahlen, nicht ihre "
-"eigenen."
+"Eine geplante E-Mail läuft mit dem Datenzugriff der Berichtsbesitzerin bzw. "
+"des Berichtsbesitzers — Empfänger sehen deren Zahlen, nicht ihre eigenen."
 
 #: templates/_reporting_help.html:31
 msgid "Asking the AI"
@@ -1393,19 +1405,19 @@ msgstr "Die KI fragen"
 
 #: templates/_reporting_help.html:33
 msgid ""
-"Name the measure, the time range and the processes: “invoices by process,"
-" last 3 months” beats “show me invoices”."
+"Name the measure, the time range and the processes: “invoices by process, "
+"last 3 months” beats “show me invoices”."
 msgstr ""
-"Nennen Sie Kennzahl, Zeitraum und Prozesse: „Rechnungen nach Prozess, "
-"letzte 3 Monate“ schlägt „zeig mir Rechnungen“."
+"Nennen Sie Kennzahl, Zeitraum und Prozesse: „Rechnungen nach Prozess, letzte"
+" 3 Monate“ schlägt „zeig mir Rechnungen“."
 
 #: templates/_reporting_help.html:34
 msgid ""
 "Check what the AI built with “Open in builder” — the filters and process "
 "scope it chose are visible there before you trust the number."
 msgstr ""
-"Prüfen Sie mit „Im Builder öffnen“, was die KI gebaut hat — die gewählten"
-" Filter und der Prozessumfang sind dort sichtbar, bevor Sie der Zahl "
+"Prüfen Sie mit „Im Builder öffnen“, was die KI gebaut hat — die gewählten "
+"Filter und der Prozessumfang sind dort sichtbar, bevor Sie der Zahl "
 "vertrauen."
 
 #: templates/_reporting_help.html:35
@@ -1418,8 +1430,8 @@ msgstr ""
 
 #: templates/_reporting_help.html:36
 msgid ""
-"When the AI used tools, unfold “How the agent worked” to see the steps; "
-"if a “Continue” button appears, click it before rephrasing your question."
+"When the AI used tools, unfold “How the agent worked” to see the steps; if a"
+" “Continue” button appears, click it before rephrasing your question."
 msgstr ""
 "Hat die KI Werkzeuge genutzt, klappen Sie „So ist der Agent vorgegangen“ "
 "auf, um die Schritte zu sehen; erscheint ein „Weiter“-Knopf, klicken Sie "
@@ -1430,12 +1442,11 @@ msgid "Full guide"
 msgstr "Vollständige Anleitung"
 
 #: templates/_reporting_help.html:45 templates/admin/logs.html:139
-#: templates/js/_reporting_drill_js.html:16
-#: templates/prepared_documents.html:251 templates/prepared_documents.html:263
-#: templates/reporting.html:132 templates/reporting.html:160
-#: templates/reporting.html:190 templates/reporting.html:200
-#: templates/reporting.html:407 templates/reporting.html:443
-#: templates/workitems_overview.html:588
+#: templates/js/_reporting_drill_js.html:16 templates/prepared_documents.html:251
+#: templates/prepared_documents.html:263 templates/reporting.html:132
+#: templates/reporting.html:160 templates/reporting.html:190
+#: templates/reporting.html:200 templates/reporting.html:407
+#: templates/reporting.html:443 templates/workitems_overview.html:588
 msgid "Close"
 msgstr "Schließen"
 
@@ -1510,8 +1521,8 @@ msgstr "Was möchten Sie messen?"
 #: templates/_reporting_simple.html:74
 msgid "Pick one or more — combined measures must come from the same source."
 msgstr ""
-"Wählen Sie eine oder mehrere — kombinierte Kennzahlen müssen aus "
-"derselben Quelle stammen."
+"Wählen Sie eine oder mehrere — kombinierte Kennzahlen müssen aus derselben "
+"Quelle stammen."
 
 #: templates/_reporting_simple.html:77
 msgid "Which processes?"
@@ -1519,9 +1530,7 @@ msgstr "Welche Prozesse?"
 
 #: templates/_reporting_simple.html:79
 msgid "The next step only offers fields these processes provide."
-msgstr ""
-"Der nächste Schritt bietet nur Felder an, die diese Prozesse "
-"bereitstellen."
+msgstr "Der nächste Schritt bietet nur Felder an, die diese Prozesse bereitstellen."
 
 #: templates/_reporting_simple.html:82
 msgid "Break it down by…"
@@ -1556,11 +1565,10 @@ msgid ""
 "Pick up to three — the first is the chart axis, the second becomes the "
 "colored series."
 msgstr ""
-"Wählen Sie bis zu drei — die erste ist die Diagrammachse, die zweite wird"
-" zur farbigen Datenreihe."
+"Wählen Sie bis zu drei — die erste ist die Diagrammachse, die zweite wird "
+"zur farbigen Datenreihe."
 
-#: templates/_reporting_simple.html:95
-#: templates/js/_reporting_simple_js.html:101
+#: templates/_reporting_simple.html:95 templates/js/_reporting_simple_js.html:101
 msgid "Time range"
 msgstr "Zeitraum"
 
@@ -1569,9 +1577,7 @@ msgid "Pick a date range"
 msgstr "Zeitraum wählen"
 
 #: templates/_reporting_simple.html:100
-msgid ""
-"“All time” scans the whole history — pick a shorter range for faster "
-"results."
+msgid "“All time” scans the whole history — pick a shorter range for faster results."
 msgstr ""
 "„Gesamter Zeitraum“ durchsucht die komplette Historie — wählen Sie für "
 "schnellere Ergebnisse einen kürzeren Zeitraum."
@@ -1581,10 +1587,9 @@ msgid "Date field"
 msgstr "Datumsfeld"
 
 #: templates/_reporting_simple.html:112 templates/_reporting_simple.html:133
-#: templates/admin/_admin_helpers.html:12
-#: templates/generali_monthreport.html:33 templates/js/archive/_tour_js.html:16
-#: templates/js/archive/_tour_js.html:63 templates/js/archive/_tour_js.html:163
-#: templates/js/archive/_tour_js.html:213
+#: templates/admin/_admin_helpers.html:12 templates/generali_monthreport.html:33
+#: templates/js/archive/_tour_js.html:16 templates/js/archive/_tour_js.html:63
+#: templates/js/archive/_tour_js.html:163 templates/js/archive/_tour_js.html:213
 #: templates/js/archive/_tour_js.html:241
 msgid "Back"
 msgstr "Zurück"
@@ -1642,14 +1647,13 @@ msgstr "Speichern"
 msgid "More actions"
 msgstr "Weitere Aktionen"
 
-#: templates/_reporting_simple.html:168
-#: templates/js/_reporting_simple_js.html:74
+#: templates/_reporting_simple.html:168 templates/js/_reporting_simple_js.html:74
 msgid "Open in Advanced"
 msgstr "In Erweitert öffnen"
 
 #: templates/_reporting_simple.html:170 templates/js/_reporting_ai_js.html:38
-#: templates/js/_reporting_js.html:506
-#: templates/js/_reporting_simple_js.html:75 templates/reporting.html:302
+#: templates/js/_reporting_js.html:506 templates/js/_reporting_simple_js.html:75
+#: templates/reporting.html:302
 msgid "Show query"
 msgstr "SQL anzeigen"
 
@@ -1690,8 +1694,7 @@ msgstr "Automatisch"
 msgid "Table"
 msgstr "Tabelle"
 
-#: templates/_reporting_simple.html:234
-#: templates/js/_reporting_simple_js.html:37
+#: templates/_reporting_simple.html:234 templates/js/_reporting_simple_js.html:37
 msgid "Show table"
 msgstr "Tabelle anzeigen"
 
@@ -1706,11 +1709,12 @@ msgid "Query sent to the database"
 msgstr "An die Datenbank gesendete Abfrage"
 
 #: templates/_reporting_simple.html:244 templates/admin/logs.html:133
-#: templates/api_docs.html:132 templates/api_docs.html:138
-#: templates/api_docs.html:154 templates/api_docs.html:197
-#: templates/api_docs.html:203 templates/api_docs.html:232
-#: templates/api_docs.html:238 templates/api_docs.html:263
-#: templates/api_docs.html:269 templates/reporting.html:356
+#: templates/api_docs.html:135 templates/api_docs.html:141
+#: templates/api_docs.html:157 templates/api_docs.html:202
+#: templates/api_docs.html:208 templates/api_docs.html:237
+#: templates/api_docs.html:243 templates/api_docs.html:268
+#: templates/api_docs.html:274 templates/api_docs.html:299
+#: templates/api_docs.html:305 templates/reporting.html:356
 msgid "Copy"
 msgstr "Kopieren"
 
@@ -1754,11 +1758,11 @@ msgstr "Abschnitte der API-Dokumentation"
 msgid "Guide"
 msgstr "Leitfaden"
 
-#: templates/api_docs.html:86 templates/api_docs.html:113
+#: templates/api_docs.html:86 templates/api_docs.html:116
 msgid "Getting Started"
 msgstr "Erste Schritte"
 
-#: templates/api_docs.html:89 templates/api_docs.html:151
+#: templates/api_docs.html:89 templates/api_docs.html:154
 msgid "Authentication"
 msgstr "Authentifizierung"
 
@@ -1770,294 +1774,326 @@ msgstr "Fehler & Rate-Limits"
 msgid "Endpoints"
 msgstr "Endpunkte"
 
-#: templates/api_docs.html:103 templates/api_docs.html:259
+#: templates/api_docs.html:106 templates/api_docs.html:295
 msgid "Test sandbox"
 msgstr "Test-Sandbox"
 
-#: templates/api_docs.html:105
+#: templates/api_docs.html:108
 msgid "api/test/v1"
 msgstr "api/test/v1"
 
-#: templates/api_docs.html:114
+#: templates/api_docs.html:117
 msgid ""
 "The nexora external API is a read-only JSON API for machine-to-machine "
 "integrations, authenticated with per-client API keys. All endpoints live "
 "under the v1 base URL and answer to GET requests only."
 msgstr ""
-"Die externe nexora-API ist eine schreibgeschützte JSON-API für Machine-"
-"to-Machine-Integrationen, authentifiziert über API-Schlüssel pro Kunde. "
-"Alle Endpunkte liegen unter der v1-Basis-URL und beantworten "
-"ausschliesslich GET-Anfragen."
+"Die externe nexora-API ist eine schreibgeschützte JSON-API für Machine-to-"
+"Machine-Integrationen, authentifiziert über API-Schlüssel pro Kunde. Alle "
+"Endpunkte liegen unter der v1-Basis-URL und beantworten ausschliesslich GET-"
+"Anfragen."
 
-#: templates/api_docs.html:116
+#: templates/api_docs.html:119
 msgid "Base URLs"
 msgstr "Basis-URLs"
 
-#: templates/api_docs.html:119
+#: templates/api_docs.html:122
 msgid "Environment"
 msgstr "Umgebung"
 
-#: templates/api_docs.html:119
+#: templates/api_docs.html:122
 msgid "Base URL"
 msgstr "Basis-URL"
 
-#: templates/api_docs.html:126
+#: templates/api_docs.html:129
 msgid ""
 "Keys are not shared across environments: INT and PROD each run their own "
-"NexoraDB, so a key issued on one gets a uniform 401 on the other — same "
-"as an unknown key. Issue a key separately for each environment you need."
+"NexoraDB, so a key issued on one gets a uniform 401 on the other — same as "
+"an unknown key. Issue a key separately for each environment you need."
 msgstr ""
-"Schlüssel werden nicht zwischen Umgebungen geteilt: INT und PROD "
-"betreiben jeweils eine eigene NexoraDB, daher erhält ein auf der einen "
-"Seite ausgestellter Schlüssel auf der anderen einen einheitlichen "
-"401-Fehler — wie ein unbekannter Schlüssel. Stellen Sie für jede "
-"benötigte Umgebung einen eigenen Schlüssel aus."
+"Schlüssel werden nicht zwischen Umgebungen geteilt: INT und PROD betreiben "
+"jeweils eine eigene NexoraDB, daher erhält ein auf der einen Seite "
+"ausgestellter Schlüssel auf der anderen einen einheitlichen 401-Fehler — wie"
+" ein unbekannter Schlüssel. Stellen Sie für jede benötigte Umgebung einen "
+"eigenen Schlüssel aus."
 
-#: templates/api_docs.html:128
+#: templates/api_docs.html:131
 msgid "Quick start"
 msgstr "Schnellstart"
 
-#: templates/api_docs.html:129
-msgid ""
-"One header, one GET — with an API key in hand, this is the whole "
-"integration:"
-msgstr ""
-"Ein Header, ein GET — mit einem API-Schlüssel ist das die ganze "
-"Integration:"
+#: templates/api_docs.html:132
+msgid "One header, one GET — with an API key in hand, this is the whole integration:"
+msgstr "Ein Header, ein GET — mit einem API-Schlüssel ist das die ganze Integration:"
 
-#: templates/api_docs.html:132 templates/api_docs.html:138
-#: templates/api_docs.html:154 templates/api_docs.html:197
-#: templates/api_docs.html:203 templates/api_docs.html:232
-#: templates/api_docs.html:238 templates/api_docs.html:263
-#: templates/api_docs.html:269
+#: templates/api_docs.html:135 templates/api_docs.html:141
+#: templates/api_docs.html:157 templates/api_docs.html:202
+#: templates/api_docs.html:208 templates/api_docs.html:237
+#: templates/api_docs.html:243 templates/api_docs.html:268
+#: templates/api_docs.html:274 templates/api_docs.html:299
+#: templates/api_docs.html:305
 msgid "Copy code"
 msgstr "Code kopieren"
 
-#: templates/api_docs.html:137 templates/api_docs.html:202
-#: templates/api_docs.html:237 templates/api_docs.html:268
+#: templates/api_docs.html:140 templates/api_docs.html:207
+#: templates/api_docs.html:242 templates/api_docs.html:273
+#: templates/api_docs.html:304
 msgid "response"
 msgstr "Antwort"
 
-#: templates/api_docs.html:146
+#: templates/api_docs.html:149
 msgid ""
-"In PowerShell use curl.exe — bare curl is an alias for Invoke-WebRequest,"
-" which spells the header differently. No key or a wrong key returns"
+"In PowerShell use curl.exe — bare curl is an alias for Invoke-WebRequest, "
+"which spells the header differently. No key or a wrong key returns"
 msgstr ""
 "In PowerShell curl.exe verwenden — blosses curl ist ein Alias für Invoke-"
-"WebRequest, das den Header anders schreibt. Ohne oder mit falschem "
-"Schlüssel kommt"
+"WebRequest, das den Header anders schreibt. Ohne oder mit falschem Schlüssel"
+" kommt"
 
-#: templates/api_docs.html:152
+#: templates/api_docs.html:155
 msgid "Send your API key as a Bearer token on every request:"
 msgstr "Den API-Schlüssel bei jeder Anfrage als Bearer-Token mitsenden:"
 
-#: templates/api_docs.html:158
+#: templates/api_docs.html:161
 msgid ""
 "Keys are issued per client by the Sydoc team. Each key carries a process "
-"scope: it only ever sees the numbers of the processes it was issued for. "
-"The raw key is handed over once through a secure channel and is not "
-"recoverable afterwards — store it safely."
+"scope: it only ever sees the numbers of the processes it was issued for. The"
+" raw key is handed over once through a secure channel and is not recoverable"
+" afterwards — store it safely."
 msgstr ""
-"Schlüssel werden vom Sydoc-Team pro Kunde ausgestellt. Jeder Schlüssel "
-"trägt einen Prozess-Scope: Er sieht nur die Zahlen der Prozesse, für die "
-"er ausgestellt wurde. Der Roh-Schlüssel wird einmalig über einen sicheren"
-" Kanal übergeben und ist danach nicht wiederherstellbar — sicher "
-"aufbewahren."
+"Schlüssel werden vom Sydoc-Team pro Kunde ausgestellt. Jeder Schlüssel trägt"
+" einen Prozess-Scope: Er sieht nur die Zahlen der Prozesse, für die er "
+"ausgestellt wurde. Der Roh-Schlüssel wird einmalig über einen sicheren Kanal"
+" übergeben und ist danach nicht wiederherstellbar — sicher aufbewahren."
 
-#: templates/api_docs.html:159
+#: templates/api_docs.html:162
 msgid "Key lifecycle"
 msgstr "Schlüssel-Lebenszyklus"
 
-#: templates/api_docs.html:161
+#: templates/api_docs.html:164
 msgid "Keys do not expire on their own; they stay valid until revoked."
 msgstr "Schlüssel laufen nicht von selbst ab; sie bleiben bis zum Widerruf gültig."
 
-#: templates/api_docs.html:162
+#: templates/api_docs.html:165
 msgid "Revocation is effective immediately on the next request."
 msgstr "Ein Widerruf wirkt sofort ab der nächsten Anfrage."
 
-#: templates/api_docs.html:163
+#: templates/api_docs.html:166
 msgid ""
 "A revoked or unknown key answers a uniform 401 — deliberately "
 "indistinguishable, so a leaked key confirms nothing."
 msgstr ""
-"Ein widerrufener oder unbekannter Schlüssel erhält ein einheitliches 401 "
-"— bewusst ununterscheidbar, damit ein geleakter Schlüssel nichts verrät."
+"Ein widerrufener oder unbekannter Schlüssel erhält ein einheitliches 401 — "
+"bewusst ununterscheidbar, damit ein geleakter Schlüssel nichts verrät."
 
-#: templates/api_docs.html:164
+#: templates/api_docs.html:167
 msgid ""
-"Rotation: request a new key from the Sydoc team, switch your integration,"
-" then the old key is disabled."
+"Rotation: request a new key from the Sydoc team, switch your integration, "
+"then the old key is disabled."
 msgstr ""
-"Rotation: neuen Schlüssel beim Sydoc-Team anfordern, Integration "
-"umstellen, dann wird der alte Schlüssel deaktiviert."
+"Rotation: neuen Schlüssel beim Sydoc-Team anfordern, Integration umstellen, "
+"dann wird der alte Schlüssel deaktiviert."
 
-#: templates/api_docs.html:170
+#: templates/api_docs.html:173
 msgid "Errors"
 msgstr "Fehler"
 
-#: templates/api_docs.html:171
+#: templates/api_docs.html:174
 msgid ""
 "Errors are JSON unless noted. The body always carries an English error "
 "string — the API is not localized."
 msgstr ""
-"Fehler sind JSON, sofern nicht anders vermerkt. Der Body enthält immer "
-"einen englischen Fehlertext — die API ist nicht lokalisiert."
+"Fehler sind JSON, sofern nicht anders vermerkt. Der Body enthält immer einen"
+" englischen Fehlertext — die API ist nicht lokalisiert."
 
-#: templates/api_docs.html:174
+#: templates/api_docs.html:177
 msgid "Body"
 msgstr "Body"
 
-#: templates/api_docs.html:174 templates/api_docs.html:214
-#: templates/api_docs.html:247
+#: templates/api_docs.html:177 templates/api_docs.html:219
+#: templates/api_docs.html:252 templates/api_docs.html:283
 msgid "Meaning"
 msgstr "Bedeutung"
 
-#: templates/api_docs.html:176
+#: templates/api_docs.html:179
+msgid "invoice/import_datetime called without ?invoice_nr="
+msgstr "invoice/import_datetime ohne ?invoice_nr= aufgerufen"
+
+#: templates/api_docs.html:180
 msgid "Missing or malformed Authorization: Bearer header"
 msgstr "Fehlender oder fehlerhafter Authorization: Bearer Header"
 
-#: templates/api_docs.html:177
+#: templates/api_docs.html:181
 msgid "Unknown or disabled key (uniform on purpose)"
 msgstr "Unbekannter oder deaktivierter Schlüssel (absichtlich einheitlich)"
 
-#: templates/api_docs.html:178
+#: templates/api_docs.html:182
 msgid "Wrong path under"
 msgstr "Falscher Pfad unter"
 
-#: templates/api_docs.html:179 templates/api_docs.html:180
+#: templates/api_docs.html:183
+msgid "Invoice number not found among your key's scoped processes"
+msgstr "Rechnungsnummer in den zugeordneten Prozessen des Schlüssels nicht gefunden"
+
+#: templates/api_docs.html:184 templates/api_docs.html:185
 msgid "HTML"
 msgstr "HTML"
 
-#: templates/api_docs.html:179
+#: templates/api_docs.html:184
 msgid "Non-GET verb — the API is GET-only"
 msgstr "Nicht-GET-Verb — die API ist GET-only"
 
-#: templates/api_docs.html:180
+#: templates/api_docs.html:185
 msgid "Over the rate limit"
 msgstr "Rate-Limit überschritten"
 
-#: templates/api_docs.html:181
+#: templates/api_docs.html:186
 msgid "Backend or server failure"
 msgstr "Backend- oder Serverfehler"
 
-#: templates/api_docs.html:182
+#: templates/api_docs.html:187
 msgid "Auth database unreachable (fail closed)"
 msgstr "Auth-Datenbank nicht erreichbar (fail closed)"
 
-#: templates/api_docs.html:183
+#: templates/api_docs.html:188
 msgid "Blocking maintenance window"
 msgstr "Blockierendes Wartungsfenster"
 
-#: templates/api_docs.html:187
+#: templates/api_docs.html:192
 msgid "Rate limit"
 msgstr "Rate-Limit"
 
-#: templates/api_docs.html:188
+#: templates/api_docs.html:193
 msgid ""
 "60 requests per minute per source IP, checked before authentication. "
-"Exceeding it returns HTTP 429; back off and retry after the minute "
-"window."
+"Exceeding it returns HTTP 429; back off and retry after the minute window."
 msgstr ""
-"60 Anfragen pro Minute und Quell-IP, geprüft vor der Authentifizierung. "
-"Bei Überschreitung kommt HTTP 429; warten und nach dem Minutenfenster "
-"erneut versuchen."
+"60 Anfragen pro Minute und Quell-IP, geprüft vor der Authentifizierung. Bei "
+"Überschreitung kommt HTTP 429; warten und nach dem Minutenfenster erneut "
+"versuchen."
 
-#: templates/api_docs.html:194
+#: templates/api_docs.html:199
 msgid ""
 "Today's imported and exported document counts, scoped to your key's "
-"processes — the same numbers as the nexora dashboard's \"today\" KPI "
-"tiles."
+"processes — the same numbers as the nexora dashboard's \"today\" KPI tiles."
 msgstr ""
-"Die heute importierten und exportierten Dokumentzahlen, beschränkt auf "
-"die Prozesse des Schlüssels — dieselben Zahlen wie die \"Heute\"-KPI-"
-"Kacheln des nexora-Dashboards."
+"Die heute importierten und exportierten Dokumentzahlen, beschränkt auf die "
+"Prozesse des Schlüssels — dieselben Zahlen wie die \"Heute\"-KPI-Kacheln des"
+" nexora-Dashboards."
 
-#: templates/api_docs.html:211 templates/api_docs.html:244
+#: templates/api_docs.html:216 templates/api_docs.html:249
+#: templates/api_docs.html:280
 msgid "Response fields"
 msgstr "Antwortfelder"
 
-#: templates/api_docs.html:214 templates/api_docs.html:247
-#: templates/js/_reporting_dashboard_js.html:76
+#: templates/api_docs.html:219 templates/api_docs.html:252
+#: templates/api_docs.html:283 templates/js/_reporting_dashboard_js.html:76
 msgid "Field"
 msgstr "Feld"
 
-#: templates/api_docs.html:214 templates/api_docs.html:247
-#: templates/generali_documents.html:226
+#: templates/api_docs.html:219 templates/api_docs.html:252
+#: templates/api_docs.html:283 templates/generali_documents.html:226
 #: templates/js/_reporting_viz_js.html:166
 msgid "Type"
 msgstr "Typ"
 
-#: templates/api_docs.html:216
+#: templates/api_docs.html:221
 msgid "Server-local calendar date the counts refer to (ISO 8601)"
 msgstr "Server-lokales Kalenderdatum, auf das sich die Zahlen beziehen (ISO 8601)"
 
-#: templates/api_docs.html:217
+#: templates/api_docs.html:222
 msgid "Documents imported today"
 msgstr "Heute importierte Dokumente"
 
-#: templates/api_docs.html:218
+#: templates/api_docs.html:223
 msgid "Documents exported today"
 msgstr "Heute exportierte Dokumente"
 
-#: templates/api_docs.html:219
-msgid ""
-"Your key's process scope, echoed for debugging. An empty scope returns "
-"zeros."
+#: templates/api_docs.html:224
+msgid "Your key's process scope, echoed for debugging. An empty scope returns zeros."
 msgstr ""
-"Der Prozess-Scope des Schlüssels, zur Fehlersuche zurückgegeben. Ein "
-"leerer Scope liefert Nullen."
+"Der Prozess-Scope des Schlüssels, zur Fehlersuche zurückgegeben. Ein leerer "
+"Scope liefert Nullen."
 
-#: templates/api_docs.html:223
+#: templates/api_docs.html:228
 msgid "Responses are computed fresh on every call — there is no cache."
 msgstr "Antworten werden bei jedem Aufruf frisch berechnet — es gibt keinen Cache."
 
-#: templates/api_docs.html:229
+#: templates/api_docs.html:234
 msgid ""
-"The current backlog count for your key's processes — the same number as "
-"the nexora dashboard's \"Current Backlog\" KPI tile."
+"The current backlog count for your key's processes — the same number as the "
+"nexora dashboard's \"Current Backlog\" KPI tile."
 msgstr ""
-"Der aktuelle Backlog-Stand für die Prozesse des Schlüssels — dieselbe "
-"Zahl wie die \"Current Backlog\"-KPI-Kachel des nexora-Dashboards."
+"Der aktuelle Backlog-Stand für die Prozesse des Schlüssels — dieselbe Zahl "
+"wie die \"Current Backlog\"-KPI-Kachel des nexora-Dashboards."
 
-#: templates/api_docs.html:249
+#: templates/api_docs.html:254
 msgid "Server-local timestamp of the count (YYYY-MM-DD HH:MM)"
 msgstr "Server-lokaler Zeitstempel der Zählung (YYYY-MM-DD HH:MM)"
 
-#: templates/api_docs.html:250
+#: templates/api_docs.html:255
 msgid "Workitems currently in the backlog across your key's processes"
 msgstr "Workitems, die aktuell im Backlog der Prozesse des Schlüssels liegen"
 
-#: templates/api_docs.html:254
+#: templates/api_docs.html:259
 msgid ""
-"Unlike stats/today, the response does not echo the process list — scoping"
-" happens at key issuance."
+"Unlike stats/today, the response does not echo the process list — scoping "
+"happens at key issuance."
 msgstr ""
-"Anders als stats/today gibt die Antwort die Prozessliste nicht zurück — "
-"der Scope wird bei der Schlüsselausgabe festgelegt."
+"Anders als stats/today gibt die Antwort die Prozessliste nicht zurück — der "
+"Scope wird bei der Schlüsselausgabe festgelegt."
 
-#: templates/api_docs.html:260
+#: templates/api_docs.html:265
+msgid ""
+"The import datetime for a single invoice number, scoped to your key's "
+"processes. Default client only."
+msgstr ""
+"Der Importzeitpunkt für eine einzelne Rechnungsnummer, beschränkt auf die "
+"Prozesse des Schlüssels. Nur für den Standard-Client."
+
+#: templates/api_docs.html:285
+msgid "The invoice number you queried, echoed back"
+msgstr "Die abgefragte Rechnungsnummer, zur Bestätigung zurückgegeben"
+
+#: templates/api_docs.html:286
+msgid ""
+"Server-local timestamp the invoice was imported (YYYY-MM-DD HH:MM:SS), or "
+"null on a 404"
+msgstr ""
+"Server-lokaler Zeitstempel des Rechnungsimports (YYYY-MM-DD HH:MM:SS), oder "
+"null bei einem 404"
+
+#: templates/api_docs.html:290
+msgid ""
+"Requires the invoice_nr query parameter (400 if missing). Returns 404 with a"
+" null import_datetime if the invoice number isn't found among your key's "
+"scoped processes."
+msgstr ""
+"Erfordert den Query-Parameter invoice_nr (400 falls fehlend). Liefert 404 "
+"mit einem leeren import_datetime, wenn die Rechnungsnummer in den "
+"zugeordneten Prozessen des Schlüssels nicht gefunden wird."
+
+#: templates/api_docs.html:296
 msgid ""
 "Every endpoint above has a /api/test/v1/... twin: same path suffix, same "
-"Bearer-key auth, same response shape — but the numbers are random, not "
-"real KPI values. No backend queries happen, so it's safe to hit "
-"repeatedly while building an integration."
+"Bearer-key auth, same response shape — but the numbers are random, not real "
+"KPI values. No backend queries happen, so it's safe to hit repeatedly while "
+"building an integration."
 msgstr ""
 "Jeder Endpunkt oben hat ein /api/test/v1/...-Gegenstück: gleicher "
-"Pfadsuffix, gleiche Bearer-Key-Authentifizierung, gleiches Antwortformat "
-"— aber die Zahlen sind zufällig, keine echten KPI-Werte. Es finden keine "
-"Backend-Abfragen statt, daher lässt es sich beim Aufbau einer Integration"
-" beliebig oft aufrufen."
+"Pfadsuffix, gleiche Bearer-Key-Authentifizierung, gleiches Antwortformat — "
+"aber die Zahlen sind zufällig, keine echten KPI-Werte. Es finden keine "
+"Backend-Abfragen statt, daher lässt es sich beim Aufbau einer Integration "
+"beliebig oft aufrufen."
 
-#: templates/api_docs.html:277
+#: templates/api_docs.html:313
 msgid ""
 "Use a real (enabled) API key — the same auth errors (401/429) apply. "
-"Available for both"
+"Available for"
 msgstr ""
 "Verwenden Sie einen echten (aktivierten) API-Schlüssel — dieselben Auth-"
-"Fehler (401/429) gelten. Verfügbar für beide"
+"Fehler (401/429) gelten. Verfügbar für"
 
-#: templates/api_docs.html:277
+#: templates/api_docs.html:313
 msgid "and"
 msgstr "und"
 
@@ -2074,8 +2110,8 @@ msgid ""
 "Choose how nexora looks for you. Changes apply instantly and follow your "
 "account on every device."
 msgstr ""
-"Wählen Sie, wie nexora für Sie aussieht. Änderungen gelten sofort und "
-"folgen Ihrem Konto auf jedem Gerät."
+"Wählen Sie, wie nexora für Sie aussieht. Änderungen gelten sofort und folgen"
+" Ihrem Konto auf jedem Gerät."
 
 #: templates/appearance.html:35 templates/js/_reporting_js.html:1043
 #: templates/js/_reporting_js.html:1055
@@ -2439,11 +2475,11 @@ msgstr "Passwort vergessen"
 
 #: templates/forgot_password.html:36
 msgid ""
-"No problem. Enter the email address associated with your account and "
-"we'll send you a link to reset your password"
+"No problem. Enter the email address associated with your account and we'll "
+"send you a link to reset your password"
 msgstr ""
-"Kein Problem. Geben Sie die mit Ihrem Konto verknüpfte E-Mail-Adresse ein"
-" und wir senden Ihnen einen Link zum Zurücksetzen Ihres Passworts."
+"Kein Problem. Geben Sie die mit Ihrem Konto verknüpfte E-Mail-Adresse ein "
+"und wir senden Ihnen einen Link zum Zurücksetzen Ihres Passworts."
 
 #: templates/forgot_password.html:47 templates/profile.html:148
 msgid "Email address"
@@ -2485,15 +2521,14 @@ msgstr "Bis"
 #: templates/generali_projectmanagement.html:96
 #: templates/generali_reporting.html:131
 #: templates/js/_reporting_dashboard_js.html:79
-#: templates/js/_reporting_simple_js.html:67
-#: templates/js/admin/_logs_js.html:171 templates/prepared_documents.html:147
+#: templates/js/_reporting_simple_js.html:67 templates/js/admin/_logs_js.html:171
+#: templates/prepared_documents.html:147
 msgid "Apply"
 msgstr "Anwenden"
 
 #: templates/archive/invoices.html:96 templates/generali-dashboard.html:92
 #: templates/generali_additionalservices.html:124
-#: templates/generali_baseservices.html:112
-#: templates/generali_documents.html:206
+#: templates/generali_baseservices.html:112 templates/generali_documents.html:206
 #: templates/generali_importstatus.html:75 templates/generali_pdqm.html:132
 #: templates/generali_projectmanagement.html:100
 #: templates/generali_reporting.html:135 templates/prepared_documents.html:149
@@ -2528,13 +2563,10 @@ msgstr "Tägliches Verarbeitungsvolumen"
 #: templates/generali-dashboard.html:146 templates/generali_documents.html:34
 #: templates/js/_generali_dashboard_js.html:25
 #: templates/js/_reporting_dashboard_js.html:90
-#: templates/js/_reporting_js.html:510
-#: templates/js/_reporting_simple_js.html:91
-#: templates/js/_reporting_viz_js.html:557
-#: templates/js/_reporting_viz_js.html:619
-#: templates/js/_reporting_viz_js.html:675
-#: templates/js/_reporting_viz_js.html:677 templates/prepared_documents.html:49
-#: templates/workitems_overview.html:65
+#: templates/js/_reporting_js.html:510 templates/js/_reporting_simple_js.html:91
+#: templates/js/_reporting_viz_js.html:557 templates/js/_reporting_viz_js.html:619
+#: templates/js/_reporting_viz_js.html:675 templates/js/_reporting_viz_js.html:677
+#: templates/prepared_documents.html:49 templates/workitems_overview.html:65
 msgid "Total"
 msgstr "Gesamt"
 
@@ -2601,17 +2633,16 @@ msgid "Export Excel"
 msgstr "Excel exportieren"
 
 #: templates/generali_additionalservices.html:46
-#: templates/generali_baseservices.html:46
-#: templates/generali_monthreport.html:6 templates/generali_monthreport.html:25
-#: templates/generali_pdqm.html:46 templates/generali_projectmanagement.html:46
+#: templates/generali_baseservices.html:46 templates/generali_monthreport.html:6
+#: templates/generali_monthreport.html:25 templates/generali_pdqm.html:46
+#: templates/generali_projectmanagement.html:46
 #: templates/generali_reporting.html:50
 msgid "Month Report"
 msgstr "Monatsbericht"
 
 #: templates/archive/invoices.html:59
 #: templates/generali_additionalservices.html:59
-#: templates/generali_baseservices.html:59
-#: templates/generali_documents.html:164
+#: templates/generali_baseservices.html:59 templates/generali_documents.html:164
 #: templates/generali_importstatus.html:38 templates/generali_pdqm.html:55
 #: templates/generali_projectmanagement.html:59
 #: templates/generali_reporting.html:63 templates/workitems_overview.html:169
@@ -2620,8 +2651,7 @@ msgstr "Von Datum"
 
 #: templates/archive/invoices.html:69
 #: templates/generali_additionalservices.html:64
-#: templates/generali_baseservices.html:64
-#: templates/generali_documents.html:169
+#: templates/generali_baseservices.html:64 templates/generali_documents.html:169
 #: templates/generali_importstatus.html:43 templates/generali_pdqm.html:60
 #: templates/generali_projectmanagement.html:64
 #: templates/generali_reporting.html:68 templates/workitems_overview.html:179
@@ -2631,52 +2661,43 @@ msgstr "Bis Datum"
 #: templates/generali_additionalservices.html:69
 #: templates/generali_additionalservices.html:156
 #: templates/generali_additionalservices.html:231
-#: templates/generali_additionalservices.html:289
-#: templates/generali_pdqm.html:65 templates/generali_pdqm.html:161
-#: templates/generali_pdqm.html:230 templates/generali_pdqm.html:301
+#: templates/generali_additionalservices.html:289 templates/generali_pdqm.html:65
+#: templates/generali_pdqm.html:161 templates/generali_pdqm.html:230
+#: templates/generali_pdqm.html:301
 msgid "Parent Category"
 msgstr "Übergeordnete Kategorie"
 
-#: templates/admin/access_control.html:57
-#: templates/admin/access_control.html:66 templates/admin/logs.html:50
-#: templates/admin/logs.html:66 templates/admin/logs.html:74
-#: templates/generali_additionalservices.html:73
+#: templates/admin/access_control.html:57 templates/admin/access_control.html:66
+#: templates/admin/logs.html:50 templates/admin/logs.html:66
+#: templates/admin/logs.html:74 templates/generali_additionalservices.html:73
 #: templates/generali_additionalservices.html:85
-#: templates/generali_baseservices.html:73
-#: templates/generali_documents.html:137
+#: templates/generali_baseservices.html:73 templates/generali_documents.html:137
 #: templates/generali_importstatus.html:52 templates/generali_pdqm.html:69
 #: templates/generali_pdqm.html:81 templates/generali_pdqm.html:93
 #: templates/generali_reporting.html:118
 #: templates/js/_generali_additional_services_js.html:88
 #: templates/js/_generali_additional_services_js.html:297
-#: templates/js/_generali_pdqm_js.html:88
-#: templates/js/_generali_pdqm_js.html:101
-#: templates/js/_generali_pdqm_js.html:110
-#: templates/js/_generali_pdqm_js.html:130
-#: templates/js/_generali_pdqm_js.html:326
-#: templates/js/_generali_pdqm_js.html:366
-#: templates/js/_generali_pdqm_js.html:375
-#: templates/js/_generali_pdqm_js.html:387
-#: templates/js/_reporting_viz_js.html:639
-#: templates/js/_reporting_viz_js.html:641
+#: templates/js/_generali_pdqm_js.html:88 templates/js/_generali_pdqm_js.html:101
+#: templates/js/_generali_pdqm_js.html:110 templates/js/_generali_pdqm_js.html:130
+#: templates/js/_generali_pdqm_js.html:326 templates/js/_generali_pdqm_js.html:366
+#: templates/js/_generali_pdqm_js.html:375 templates/js/_generali_pdqm_js.html:387
+#: templates/js/_reporting_viz_js.html:639 templates/js/_reporting_viz_js.html:641
 msgid "All"
 msgstr "Alle"
 
 #: templates/generali_additionalservices.html:81
 #: templates/generali_additionalservices.html:159
 #: templates/generali_additionalservices.html:243
-#: templates/generali_additionalservices.html:301
-#: templates/generali_pdqm.html:89 templates/generali_pdqm.html:163
-#: templates/generali_pdqm.html:254 templates/generali_pdqm.html:325
+#: templates/generali_additionalservices.html:301 templates/generali_pdqm.html:89
+#: templates/generali_pdqm.html:163 templates/generali_pdqm.html:254
+#: templates/generali_pdqm.html:325
 msgid "Sub Category"
 msgstr "Unterkategorie"
 
-#: templates/admin/access_control.html:64
-#: templates/admin/access_control.html:95
+#: templates/admin/access_control.html:64 templates/admin/access_control.html:95
 #: templates/admin/access_control.html:211
 #: templates/admin/archive/user_management.html:41 templates/admin/logs.html:72
-#: templates/admin/modals/_user_modals.html:62
-#: templates/admin/user_detail.html:63
+#: templates/admin/modals/_user_modals.html:62 templates/admin/user_detail.html:63
 #: templates/generali_additionalservices.html:93
 #: templates/generali_baseservices.html:81 templates/generali_pdqm.html:101
 #: templates/generali_projectmanagement.html:69
@@ -2726,10 +2747,9 @@ msgstr "Gesamtstunden (gefiltert):"
 #: templates/generali_additionalservices.html:284
 #: templates/generali_baseservices.html:137
 #: templates/generali_baseservices.html:199
-#: templates/generali_baseservices.html:245
-#: templates/generali_documents.html:220 templates/generali_pdqm.html:159
-#: templates/generali_pdqm.html:225 templates/generali_pdqm.html:296
-#: templates/generali_projectmanagement.html:125
+#: templates/generali_baseservices.html:245 templates/generali_documents.html:220
+#: templates/generali_pdqm.html:159 templates/generali_pdqm.html:225
+#: templates/generali_pdqm.html:296 templates/generali_projectmanagement.html:125
 #: templates/generali_projectmanagement.html:187
 #: templates/generali_projectmanagement.html:238
 #: templates/generali_reporting.html:154
@@ -2748,8 +2768,7 @@ msgstr "Stunden"
 msgid "Recorded At"
 msgstr "Erfasst am"
 
-#: templates/admin/access_control.html:97
-#: templates/admin/access_control.html:129
+#: templates/admin/access_control.html:97 templates/admin/access_control.html:129
 #: templates/admin/archive/user_management.html:42
 #: templates/admin/maintenance.html:39 templates/admin/organizations.html:33
 #: templates/admin/sessions.html:31 templates/archive/invoices.html:124
@@ -2761,8 +2780,7 @@ msgid "Actions"
 msgstr "Aktionen"
 
 #: templates/generali_additionalservices.html:187
-#: templates/generali_baseservices.html:160
-#: templates/generali_documents.html:277
+#: templates/generali_baseservices.html:160 templates/generali_documents.html:277
 #: templates/generali_importstatus.html:126 templates/generali_pdqm.html:185
 #: templates/generali_projectmanagement.html:148
 #: templates/generali_reporting.html:189 templates/workitems_overview.html:438
@@ -2770,8 +2788,7 @@ msgid "Showing"
 msgstr "Anzeige"
 
 #: templates/generali_additionalservices.html:189
-#: templates/generali_baseservices.html:162
-#: templates/generali_documents.html:279
+#: templates/generali_baseservices.html:162 templates/generali_documents.html:279
 #: templates/generali_importstatus.html:128 templates/generali_pdqm.html:187
 #: templates/generali_projectmanagement.html:150
 #: templates/generali_reporting.html:191 templates/js/admin/_logs_js.html:108
@@ -2781,8 +2798,7 @@ msgid "of"
 msgstr "von"
 
 #: templates/generali_additionalservices.html:191
-#: templates/generali_baseservices.html:164
-#: templates/generali_documents.html:281
+#: templates/generali_baseservices.html:164 templates/generali_documents.html:281
 #: templates/generali_importstatus.html:130 templates/generali_pdqm.html:189
 #: templates/generali_projectmanagement.html:152
 #: templates/generali_reporting.html:193 templates/workitems_overview.html:442
@@ -2801,14 +2817,13 @@ msgstr "Ich selbst"
 #: templates/generali_baseservices.html:254 templates/generali_pdqm.html:234
 #: templates/generali_pdqm.html:305
 #: templates/js/_generali_additional_services_js.html:65
-#: templates/js/_generali_pdqm_js.html:52
-#: templates/js/_generali_pdqm_js.html:110
+#: templates/js/_generali_pdqm_js.html:52 templates/js/_generali_pdqm_js.html:110
 msgid "Select…"
 msgstr "Auswählen…"
 
 #: templates/generali_additionalservices.html:247
-#: templates/generali_additionalservices.html:305
-#: templates/generali_pdqm.html:246 templates/generali_pdqm.html:317
+#: templates/generali_additionalservices.html:305 templates/generali_pdqm.html:246
+#: templates/generali_pdqm.html:317
 #: templates/js/_generali_additional_services_js.html:46
 #: templates/js/_generali_pdqm_js.html:52
 msgid "Select parent first"
@@ -2823,17 +2838,14 @@ msgstr "Zuerst übergeordnete Kategorie auswählen"
 msgid "Effort (hours)"
 msgstr "Aufwand (Stunden)"
 
-#: templates/admin/access_control.html:228
-#: templates/admin/access_control.html:245
-#: templates/admin/access_control.html:275
-#: templates/admin/access_control.html:395 templates/admin/maintenance.html:113
-#: templates/admin/maintenance.html:129
+#: templates/admin/access_control.html:228 templates/admin/access_control.html:245
+#: templates/admin/access_control.html:275 templates/admin/access_control.html:395
+#: templates/admin/maintenance.html:113 templates/admin/maintenance.html:129
 #: templates/admin/modals/_organizations_modals.html:13
 #: templates/admin/modals/_organizations_modals.html:41
 #: templates/admin/modals/_user_modals.html:13
-#: templates/admin/modals/_user_modals.html:81
-#: templates/admin/user_detail.html:76 templates/admin/user_detail.html:280
-#: templates/archive/chat.html:90
+#: templates/admin/modals/_user_modals.html:81 templates/admin/user_detail.html:76
+#: templates/admin/user_detail.html:280 templates/archive/chat.html:90
 #: templates/generali_additionalservices.html:263
 #: templates/generali_additionalservices.html:322
 #: templates/generali_additionalservices.html:347
@@ -2892,8 +2904,7 @@ msgstr "Diese Aktion kann nicht rückgängig gemacht werden."
 #: templates/js/_generali_additional_services_js.html:517
 #: templates/js/_generali_base_services_js.html:434
 #: templates/js/_generali_base_services_js.html:447
-#: templates/js/_generali_pdqm_js.html:644
-#: templates/js/_generali_pdqm_js.html:659
+#: templates/js/_generali_pdqm_js.html:644 templates/js/_generali_pdqm_js.html:659
 #: templates/js/_generali_project_management_js.html:408
 #: templates/js/_generali_project_management_js.html:422
 #: templates/js/_generali_reporting_js.html:846
@@ -2917,8 +2928,7 @@ msgstr "Generali Basisleistungen"
 
 #: templates/generali_baseservices.html:37
 #: templates/generali_baseservices.html:175 templates/generali_pdqm.html:37
-#: templates/generali_pdqm.html:201
-#: templates/generali_projectmanagement.html:37
+#: templates/generali_pdqm.html:201 templates/generali_projectmanagement.html:37
 #: templates/generali_projectmanagement.html:163
 msgid "Add Entry"
 msgstr "Eintrag hinzufügen"
@@ -3086,8 +3096,7 @@ msgstr "Neu"
 msgid "Total Entries"
 msgstr "Einträge gesamt"
 
-#: templates/generali_monthreport.html:71
-#: templates/generali_monthreport.html:128
+#: templates/generali_monthreport.html:71 templates/generali_monthreport.html:128
 #: templates/generali_reporting.html:119 templates/generali_reporting.html:163
 #: templates/generali_reporting.html:290 templates/generali_reporting.html:291
 #: templates/js/_generali_reporting_js.html:35
@@ -3097,8 +3106,7 @@ msgstr "Einträge gesamt"
 msgid "On Time"
 msgstr "Pünktlich"
 
-#: templates/generali_monthreport.html:78
-#: templates/generali_monthreport.html:131
+#: templates/generali_monthreport.html:78 templates/generali_monthreport.html:131
 #: templates/generali_reporting.html:120
 #: templates/js/_generali_reporting_js.html:37
 #: templates/js/_generali_reporting_js.html:303
@@ -3107,18 +3115,15 @@ msgstr "Pünktlich"
 msgid "Late"
 msgstr "Verspätet"
 
-#: templates/generali_monthreport.html:85
-#: templates/generali_monthreport.html:134
+#: templates/generali_monthreport.html:85 templates/generali_monthreport.html:134
 msgid "On-Time Rate"
 msgstr "Pünktlichkeitsquote"
 
-#: templates/generali_monthreport.html:94
-#: templates/generali_monthreport.html:138
+#: templates/generali_monthreport.html:94 templates/generali_monthreport.html:138
 msgid "Total Quantity"
 msgstr "Menge gesamt"
 
-#: templates/generali_monthreport.html:103
-#: templates/generali_monthreport.html:142
+#: templates/generali_monthreport.html:103 templates/generali_monthreport.html:142
 msgid "Total Hours"
 msgstr "Stunden gesamt"
 
@@ -3294,14 +3299,14 @@ msgstr "Nahtlose Dokumentenverfolgung, vollständige Sorglosigkeit."
 
 #: templates/hero.html:49
 msgid ""
-"Welcome to nexora. Securely monitor your document's journey from import "
-"to validation and final delivery in real-time. Access a complete, "
-"auditable history 24/7."
+"Welcome to nexora. Securely monitor your document's journey from import to "
+"validation and final delivery in real-time. Access a complete, auditable "
+"history 24/7."
 msgstr ""
 "Willkommen bei nexora. Verfolgen Sie den Weg Ihres Dokuments von der "
-"Einlieferung bis zur Validierung und abschließenden Zustellung in "
-"Echtzeit. Greifen Sie rund um die Uhr auf eine vollständige, "
-"nachvollziehbare Historie zu."
+"Einlieferung bis zur Validierung und abschließenden Zustellung in Echtzeit. "
+"Greifen Sie rund um die Uhr auf eine vollständige, nachvollziehbare Historie"
+" zu."
 
 #: templates/hero.html:53
 msgid "Access Your Portal"
@@ -3337,11 +3342,11 @@ msgstr "Visualisieren Sie den Weg Ihres Dokuments"
 
 #: templates/hero.html:117
 msgid ""
-"Our automated system handles every step with precision and security. "
-"Follow along as a document is processed in real-time."
+"Our automated system handles every step with precision and security. Follow "
+"along as a document is processed in real-time."
 msgstr ""
-"Unser automatisiertes System verarbeitet jeden Schritt präzise und "
-"sicher. Verfolgen Sie in Echtzeit, wie ein Dokument verarbeitet wird."
+"Unser automatisiertes System verarbeitet jeden Schritt präzise und sicher. "
+"Verfolgen Sie in Echtzeit, wie ein Dokument verarbeitet wird."
 
 #: templates/hero.html:134 templates/js/_workitems_overview_js.html:276
 #: templates/workitems_overview.html:354
@@ -3381,16 +3386,16 @@ msgid ""
 "Access a complete, auditable history of all your processed documents "
 "available 24/7."
 msgstr ""
-"Greifen Sie rund um die Uhr auf eine vollständige, nachvollziehbare "
-"Historie aller verarbeiteten Dokumente zu."
+"Greifen Sie rund um die Uhr auf eine vollständige, nachvollziehbare Historie"
+" aller verarbeiteten Dokumente zu."
 
 #: templates/hero.html:194
 msgid ""
-"Your data is protected with industry-leading security protocols, ensuring"
-" complete confidentiality"
+"Your data is protected with industry-leading security protocols, ensuring "
+"complete confidentiality"
 msgstr ""
-"Ihre Daten sind mit branchenführenden Sicherheitsprotokollen geschützt "
-"und vollständige Vertraulichkeit ist gewährleistet."
+"Ihre Daten sind mit branchenführenden Sicherheitsprotokollen geschützt und "
+"vollständige Vertraulichkeit ist gewährleistet."
 
 #: templates/hero.html:203
 msgid "Ready to See Your Documents in Action?"
@@ -3398,11 +3403,11 @@ msgstr "Bereit, Ihre Dokumente in Aktion zu sehen?"
 
 #: templates/hero.html:206
 msgid ""
-"Log in to your portal to access real-time tracking, view your history, "
-"and manage your workflow with confidence."
+"Log in to your portal to access real-time tracking, view your history, and "
+"manage your workflow with confidence."
 msgstr ""
-"Melden Sie sich bei Ihrem Portal an, um Echtzeit-Verfolgung zu nutzen, "
-"Ihre Historie einzusehen und Ihren Workflow souverän zu verwalten."
+"Melden Sie sich bei Ihrem Portal an, um Echtzeit-Verfolgung zu nutzen, Ihre "
+"Historie einzusehen und Ihren Workflow souverän zu verwalten."
 
 #: templates/hero.html:209
 msgid "Access Your Portal Now"
@@ -3463,8 +3468,8 @@ msgid ""
 "Scan the QR code below with your Authenticator App (Microsoft or Google "
 "Authenticator)."
 msgstr ""
-"Scannen Sie den QR-Code unten mit Ihrer Authenticator-App (Microsoft oder"
-" Google Authenticator)."
+"Scannen Sie den QR-Code unten mit Ihrer Authenticator-App (Microsoft oder "
+"Google Authenticator)."
 
 #: templates/init_2FA.html:54
 msgid "Error generating QR code. Please refresh."
@@ -3529,8 +3534,8 @@ msgstr "Geplante Wartung"
 #: templates/maintenance.html:135
 msgid "The application is temporarily unavailable. Please check back shortly."
 msgstr ""
-"Die Anwendung ist vorübergehend nicht verfügbar. Bitte versuchen Sie es "
-"in Kürze erneut."
+"Die Anwendung ist vorübergehend nicht verfügbar. Bitte versuchen Sie es in "
+"Kürze erneut."
 
 #: templates/admin/sessions.html:20 templates/maintenance.html:154
 msgid "Refresh"
@@ -3630,8 +3635,8 @@ msgstr "In Workitems öffnen"
 #: templates/prepared_documents.html:218
 msgid "No prepared documents yet. Upload an Excel to get started."
 msgstr ""
-"Noch keine vorbereiteten Dokumente. Laden Sie eine Excel-Datei hoch, um "
-"zu beginnen."
+"Noch keine vorbereiteten Dokumente. Laden Sie eine Excel-Datei hoch, um zu "
+"beginnen."
 
 #: templates/admin/logs.html:106 templates/admin/user_detail.html:236
 #: templates/js/_generali_documents_js.html:274
@@ -3706,9 +3711,7 @@ msgstr "Profilinformationen"
 
 #: templates/profile.html:94
 msgid "Your photo, name and email shown across nexora."
-msgstr ""
-"Ihr Foto, Ihr Name und Ihre E-Mail-Adresse, die in nexora angezeigt "
-"werden."
+msgstr "Ihr Foto, Ihr Name und Ihre E-Mail-Adresse, die in nexora angezeigt werden."
 
 #: templates/profile.html:128
 msgid "Upload new photo"
@@ -3724,8 +3727,8 @@ msgstr "Ihr Benutzername kann nicht geändert werden."
 
 #: templates/admin/access_control.html:193
 #: templates/admin/archive/user_management.html:38
-#: templates/admin/modals/_user_modals.html:40
-#: templates/admin/user_detail.html:39 templates/profile.html:143
+#: templates/admin/modals/_user_modals.html:40 templates/admin/user_detail.html:39
+#: templates/profile.html:143
 msgid "Full name"
 msgstr "Vollständiger Name"
 
@@ -3778,8 +3781,8 @@ msgid ""
 "Theme, accent color, animations and density — saved to your account and "
 "applied on every device."
 msgstr ""
-"Design, Akzentfarbe, Animationen und Dichte — in Ihrem Konto gespeichert "
-"und auf jedem Gerät angewendet."
+"Design, Akzentfarbe, Animationen und Dichte — in Ihrem Konto gespeichert und"
+" auf jedem Gerät angewendet."
 
 #: templates/profile.html:332
 msgid "Open appearance settings"
@@ -3824,9 +3827,8 @@ msgstr "Quellen"
 
 #: templates/reporting.html:164
 msgid ""
-"Ask about your data in plain language. I can build reports, draft SQL, "
-"and — with the right permission — run read-only queries and report real "
-"numbers."
+"Ask about your data in plain language. I can build reports, draft SQL, and —"
+" with the right permission — run read-only queries and report real numbers."
 msgstr ""
 "Fragen Sie in einfacher Sprache nach Ihren Daten. Ich kann Berichte "
 "erstellen, SQL entwerfen und — mit der richtigen Berechtigung — "
@@ -3931,12 +3933,12 @@ msgstr "Erstellen Sie einen Bericht, um Ergebnisse zu sehen"
 
 #: templates/reporting.html:340
 msgid ""
-"Choose a source on the left, add columns and filters, then press Run — or"
-" open the AI chat to draft one in plain language."
+"Choose a source on the left, add columns and filters, then press Run — or "
+"open the AI chat to draft one in plain language."
 msgstr ""
 "Wählen Sie links eine Quelle aus, fügen Sie Spalten und Filter hinzu und "
-"drücken Sie dann Ausführen — oder öffnen Sie den KI-Chat, um einen "
-"Entwurf in einfacher Sprache zu erstellen."
+"drücken Sie dann Ausführen — oder öffnen Sie den KI-Chat, um einen Entwurf "
+"in einfacher Sprache zu erstellen."
 
 #: templates/reporting.html:363
 msgid "Metrics"
@@ -3988,12 +3990,12 @@ msgstr "Live-SQL — schreibgeschützt"
 #: templates/reporting.html:382
 msgid ""
 "You are about to run read-only SQL against a live reporting database. "
-"Queries cannot modify data, and every run is logged. Double-check your "
-"query before running."
+"Queries cannot modify data, and every run is logged. Double-check your query"
+" before running."
 msgstr ""
 "Sie sind dabei, schreibgeschütztes SQL gegen eine Live-Berichtsdatenbank "
-"auszuführen. Abfragen können keine Daten ändern, und jede Ausführung wird"
-" protokolliert. Überprüfen Sie Ihre Abfrage vor dem Ausführen sorgfältig."
+"auszuführen. Abfragen können keine Daten ändern, und jede Ausführung wird "
+"protokolliert. Überprüfen Sie Ihre Abfrage vor dem Ausführen sorgfältig."
 
 #: templates/reporting.html:385
 msgid "I understand"
@@ -4113,11 +4115,11 @@ msgstr "Schwellenwert"
 
 #: templates/reporting.html:438
 msgid ""
-"The threshold is checked against the report's grand total (or its row "
-"count when the report has no measure)."
+"The threshold is checked against the report's grand total (or its row count "
+"when the report has no measure)."
 msgstr ""
-"Der Schwellenwert wird mit dem Gesamtergebnis des Berichts verglichen "
-"(oder der Zeilenanzahl, wenn der Bericht kein Maß enthält)."
+"Der Schwellenwert wird mit dem Gesamtergebnis des Berichts verglichen (oder "
+"der Zeilenanzahl, wenn der Bericht kein Maß enthält)."
 
 #: templates/reporting.html:439
 msgid "Recipients (comma-separated)"
@@ -4150,12 +4152,12 @@ msgstr "Auf dieser Seite"
 
 #: templates/reporting_guide.html:55
 msgid ""
-"The guide file is not available on this server. Please tell an "
-"administrator — the deployment is missing docs/howto/reporting-guide.md."
+"The guide file is not available on this server. Please tell an administrator"
+" — the deployment is missing docs/howto/reporting-guide.md."
 msgstr ""
-"Die Anleitungsdatei ist auf diesem Server nicht verfügbar. Bitte "
-"informieren Sie eine Administratorin oder einen Administrator — im "
-"Deployment fehlt docs/howto/reporting-guide.md."
+"Die Anleitungsdatei ist auf diesem Server nicht verfügbar. Bitte informieren"
+" Sie eine Administratorin oder einen Administrator — im Deployment fehlt "
+"docs/howto/reporting-guide.md."
 
 #: templates/reporting_metrics.html:7
 msgid "Reporting metrics - nexora"
@@ -4167,22 +4169,22 @@ msgstr "Reporting-Metriken"
 
 #: templates/reporting_metrics.html:33
 msgid ""
-"Canonical metrics are named server-side aggregations bound to a source. A"
-" report's selected columns become the grouping; each metric adds an "
+"Canonical metrics are named server-side aggregations bound to a source. A "
+"report's selected columns become the grouping; each metric adds an "
 "aggregated column."
 msgstr ""
-"Kanonische Metriken sind benannte serverseitige Aggregationen, die an "
-"eine Quelle gebunden sind. Die ausgewählten Spalten eines Berichts werden"
-" zur Gruppierung; jede Metrik fügt eine aggregierte Spalte hinzu."
+"Kanonische Metriken sind benannte serverseitige Aggregationen, die an eine "
+"Quelle gebunden sind. Die ausgewählten Spalten eines Berichts werden zur "
+"Gruppierung; jede Metrik fügt eine aggregierte Spalte hinzu."
 
 #: templates/reporting_metrics.html:36
 msgid "Registered metrics"
 msgstr "Registrierte Metriken"
 
-#: templates/admin/access_control.html:125
-#: templates/admin/organizations.html:31 templates/reporting_metrics.html:39
-#: templates/reporting_metrics.html:50 templates/reporting_sources.html:39
-#: templates/reporting_sources.html:50 templates/reporting_sources.html:61
+#: templates/admin/access_control.html:125 templates/admin/organizations.html:31
+#: templates/reporting_metrics.html:39 templates/reporting_metrics.html:50
+#: templates/reporting_sources.html:39 templates/reporting_sources.html:50
+#: templates/reporting_sources.html:61
 msgid "Code"
 msgstr "Code"
 
@@ -4241,14 +4243,14 @@ msgstr "Reporting-Quellenregister"
 msgid ""
 "Registry rows augment or override the built-in sources — relabel, "
 "enable/disable, reorder, re-permission, or register new ones. Curated "
-"sources bind to a provider: 'docprocessing' (built-in) or 'table' "
-"(generic single-object, configured with a base object + columns)."
+"sources bind to a provider: 'docprocessing' (built-in) or 'table' (generic "
+"single-object, configured with a base object + columns)."
 msgstr ""
-"Registrierungszeilen ergänzen oder überschreiben die integrierten Quellen"
-" — umbenennen, aktivieren/deaktivieren, neu anordnen, Berechtigungen "
-"ändern oder neue registrieren. Kuratierte Quellen binden sich an einen "
-"Anbieter: 'docprocessing' (integriert) oder 'table' (generisches "
-"Einzelobjekt, konfiguriert mit einem Basisobjekt + Spalten)."
+"Registrierungszeilen ergänzen oder überschreiben die integrierten Quellen — "
+"umbenennen, aktivieren/deaktivieren, neu anordnen, Berechtigungen ändern "
+"oder neue registrieren. Kuratierte Quellen binden sich an einen Anbieter: "
+"'docprocessing' (integriert) oder 'table' (generisches Einzelobjekt, "
+"konfiguriert mit einem Basisobjekt + Spalten)."
 
 #: templates/reporting_sources.html:36
 msgid "Built-in defaults"
@@ -4278,8 +4280,7 @@ msgstr "Registrierte Quellen"
 msgid "Engine"
 msgstr "Engine"
 
-#: templates/js/_reporting_sources_js.html:86
-#: templates/reporting_sources.html:59
+#: templates/js/_reporting_sources_js.html:86 templates/reporting_sources.html:59
 msgid "Add source"
 msgstr "Quelle hinzufügen"
 
@@ -4317,8 +4318,8 @@ msgstr "Willkommen bei nexora"
 
 #: templates/set_password.html:38
 msgid ""
-"Choose a password for your account. You will be asked to set up two-"
-"factor authentication right after."
+"Choose a password for your account. You will be asked to set up two-factor "
+"authentication right after."
 msgstr ""
 "Wählen Sie ein Passwort für Ihr Konto. Direkt danach werden Sie zur "
 "Einrichtung der Zwei-Faktor-Authentifizierung aufgefordert."
@@ -4365,8 +4366,8 @@ msgstr "Neuigkeiten - nexora"
 
 #: templates/whats_new.html:77
 msgid ""
-"New features and improvements, release by release — showing only what "
-"your account can use."
+"New features and improvements, release by release — showing only what your "
+"account can use."
 msgstr ""
 "Neue Funktionen und Verbesserungen, Release für Release — es wird nur "
 "gezeigt, was Ihr Konto nutzen kann."
@@ -4377,9 +4378,7 @@ msgstr "Ausprobieren"
 
 #: templates/whats_new.html:103
 msgid "Nothing to show yet — check back after the next release."
-msgstr ""
-"Noch nichts anzuzeigen — schauen Sie nach dem nächsten Release wieder "
-"vorbei."
+msgstr "Noch nichts anzuzeigen — schauen Sie nach dem nächsten Release wieder vorbei."
 
 #: templates/workitems_overview.html:7
 msgid "Workitems overview - nexora"
@@ -4413,8 +4412,7 @@ msgstr "Alle Status"
 msgid "Date Range"
 msgstr "Zeitraum"
 
-#: templates/js/_reporting_simple_js.html:53
-#: templates/workitems_overview.html:154
+#: templates/js/_reporting_simple_js.html:53 templates/workitems_overview.html:154
 msgid "Custom"
 msgstr "Benutzerdefiniert"
 
@@ -4453,15 +4451,13 @@ msgid "All fields"
 msgstr "Alle Felder"
 
 #: templates/js/_reporting_dashboard_js.html:81
-#: templates/js/_reporting_js.html:501
-#: templates/js/_reporting_simple_js.html:81
+#: templates/js/_reporting_js.html:501 templates/js/_reporting_simple_js.html:81
 #: templates/workitems_overview.html:223 templates/workitems_overview.html:275
 msgid "contains"
 msgstr "enthält"
 
 #: templates/js/_reporting_dashboard_js.html:82
-#: templates/js/_reporting_js.html:502
-#: templates/js/_reporting_simple_js.html:82
+#: templates/js/_reporting_js.html:502 templates/js/_reporting_simple_js.html:82
 #: templates/workitems_overview.html:226 templates/workitems_overview.html:278
 msgid "starts with"
 msgstr "beginnt mit"
@@ -4588,11 +4584,11 @@ msgstr ""
 
 #: templates/workitems_overview.html:539
 msgid ""
-"Use this PowerShell script to extract images from the exported CSV. "
-"Requires execution policy"
+"Use this PowerShell script to extract images from the exported CSV. Requires"
+" execution policy"
 msgstr ""
-"Verwenden Sie dieses PowerShell-Skript, um Bilder aus der exportierten "
-"CSV-Datei zu extrahieren. Erfordert Ausführungsrichtlinie."
+"Verwenden Sie dieses PowerShell-Skript, um Bilder aus der exportierten CSV-"
+"Datei zu extrahieren. Erfordert Ausführungsrichtlinie."
 
 #: templates/workitems_overview.html:539
 msgid "or higher."
@@ -4600,8 +4596,8 @@ msgstr "oder höher."
 
 #: templates/workitems_overview.html:568
 msgid ""
-"All workitems matching the current filters will be exported (not just the"
-" current page)."
+"All workitems matching the current filters will be exported (not just the "
+"current page)."
 msgstr ""
 "Alle Workitems, die den aktuellen Filtern entsprechen, werden exportiert "
 "(nicht nur die aktuelle Seite)."
@@ -4610,8 +4606,7 @@ msgstr ""
 msgid "Access Control - nexora"
 msgstr "Zugriffskontrolle - nexora"
 
-#: templates/admin/access_control.html:20
-#: templates/admin/admin_overview.html:78
+#: templates/admin/access_control.html:20 templates/admin/admin_overview.html:78
 msgid "Users, permissions and access profiles"
 msgstr "Benutzer, Berechtigungen und Zugriffsprofile"
 
@@ -4640,27 +4635,24 @@ msgstr "Name, E-Mail..."
 msgid "Clear filters"
 msgstr "Filter zurücksetzen"
 
-#: templates/admin/access_control.html:82
-#: templates/admin/access_control.html:180
+#: templates/admin/access_control.html:82 templates/admin/access_control.html:180
 msgid "Add User"
 msgstr "Benutzer hinzufügen"
 
-#: templates/admin/access_control.html:94
-#: templates/admin/access_control.html:203
+#: templates/admin/access_control.html:94 templates/admin/access_control.html:203
 #: templates/admin/archive/user_management.html:40
 #: templates/admin/modals/_user_modals.html:52
 msgid "Access Profile"
 msgstr "Zugriffsprofil"
 
-#: templates/admin/access_control.html:96
-#: templates/admin/access_control.html:128 templates/admin/user_detail.html:96
+#: templates/admin/access_control.html:96 templates/admin/access_control.html:128
+#: templates/admin/user_detail.html:96
 msgid "Overrides"
 msgstr "Überschreibungen"
 
-#: templates/admin/access_control.html:101
-#: templates/admin/access_control.html:133 templates/admin/logs.html:104
-#: templates/admin/sessions.html:34 templates/admin/user_detail.html:126
-#: templates/admin/user_detail.html:230
+#: templates/admin/access_control.html:101 templates/admin/access_control.html:133
+#: templates/admin/logs.html:104 templates/admin/sessions.html:34
+#: templates/admin/user_detail.html:126 templates/admin/user_detail.html:230
 #: templates/js/admin/_access_control_js.html:695
 #: templates/js/admin/_sessions_js.html:39
 #: templates/js/admin/_user_detail_js.html:429
@@ -4672,14 +4664,12 @@ msgstr "Laden..."
 msgid "Search permissions..."
 msgstr "Berechtigungen suchen..."
 
-#: templates/admin/access_control.html:116
-#: templates/admin/access_control.html:258
+#: templates/admin/access_control.html:116 templates/admin/access_control.html:258
 #: templates/js/admin/_access_control_js.html:753
 msgid "Add Permission"
 msgstr "Berechtigung hinzufügen"
 
-#: templates/admin/access_control.html:126
-#: templates/admin/access_control.html:270
+#: templates/admin/access_control.html:126 templates/admin/access_control.html:270
 #: templates/admin/access_control.html:309
 msgid "Description"
 msgstr "Beschreibung"
@@ -4715,8 +4705,7 @@ msgstr "Benutzer"
 
 #: templates/admin/access_control.html:198
 #: templates/admin/archive/user_management.html:39
-#: templates/admin/modals/_user_modals.html:46
-#: templates/admin/user_detail.html:43
+#: templates/admin/modals/_user_modals.html:46 templates/admin/user_detail.html:43
 msgid "Email"
 msgstr "E-Mail"
 
@@ -4861,8 +4850,8 @@ msgstr "ngrok-Hosting"
 #: templates/admin/admin_overview.html:139
 msgid "Restart the dev server now? The page will reload once it is back."
 msgstr ""
-"Den Entwicklungsserver jetzt neu starten? Die Seite wird neu geladen, "
-"sobald er wieder erreichbar ist."
+"Den Entwicklungsserver jetzt neu starten? Die Seite wird neu geladen, sobald"
+" er wieder erreichbar ist."
 
 #: templates/admin/admin_overview.html:140
 msgid "Restart and switch environment to"
@@ -4929,8 +4918,7 @@ msgid "End date"
 msgstr "Enddatum"
 
 #: templates/admin/logs.html:94 templates/admin/logs.html:129
-#: templates/admin/user_detail.html:224
-#: templates/js/_reporting_simple_js.html:104
+#: templates/admin/user_detail.html:224 templates/js/_reporting_simple_js.html:104
 msgid "Time"
 msgstr "Zeit"
 
@@ -5016,18 +5004,15 @@ msgstr "Benutzer benachrichtigen"
 msgid "minutes before start (0 = no announcement)"
 msgstr "Minuten vor Beginn (0 = keine Ankündigung)"
 
-#: templates/admin/maintenance.html:85
-#: templates/js/admin/_maintenance_js.html:6
+#: templates/admin/maintenance.html:85 templates/js/admin/_maintenance_js.html:6
 msgid "Info"
 msgstr "Info"
 
-#: templates/admin/maintenance.html:86
-#: templates/js/admin/_maintenance_js.html:7
+#: templates/admin/maintenance.html:86 templates/js/admin/_maintenance_js.html:7
 msgid "Warning"
 msgstr "Warnung"
 
-#: templates/admin/maintenance.html:87
-#: templates/js/admin/_maintenance_js.html:8
+#: templates/admin/maintenance.html:87 templates/js/admin/_maintenance_js.html:8
 msgid "Critical"
 msgstr "Kritisch"
 
@@ -5038,8 +5023,8 @@ msgstr "Zugriff während des Wartungsfensters sperren"
 #: templates/admin/maintenance.html:106
 msgid ""
 "When enabled and the window is active, users without "
-"admin.maintenance.bypass are logged out and shown a maintenance page. "
-"Make sure you have the bypass permission before turning this on."
+"admin.maintenance.bypass are logged out and shown a maintenance page. Make "
+"sure you have the bypass permission before turning this on."
 msgstr ""
 "Wenn aktiviert und das Fenster aktiv ist, werden Benutzer ohne "
 "admin.maintenance.bypass abgemeldet und auf eine Wartungsseite "
@@ -5159,14 +5144,14 @@ msgid ""
 "The outage monitor has never reported. Schedule ops/outage_monitor.py to "
 "populate this page."
 msgstr ""
-"Der Ausfall-Monitor hat noch nie gemeldet. Planen Sie "
-"ops/outage_monitor.py ein, um diese Seite zu füllen."
+"Der Ausfall-Monitor hat noch nie gemeldet. Planen Sie ops/outage_monitor.py "
+"ein, um diese Seite zu füllen."
 
 #: templates/admin/status.html:65
 #, python-format
 msgid ""
-"Last check was more than %(min)s minutes ago — these values may be out of"
-" date."
+"Last check was more than %(min)s minutes ago — these values may be out of "
+"date."
 msgstr ""
 "Die letzte Prüfung liegt mehr als %(min)s Minuten zurück — diese Werte "
 "können veraltet sein."
@@ -5177,11 +5162,11 @@ msgstr "Zuletzt geprüft"
 
 #: templates/admin/status.html:89
 msgid ""
-"Stale data: the monitor is not reporting. Check the scheduled task on the"
-" application server."
+"Stale data: the monitor is not reporting. Check the scheduled task on the "
+"application server."
 msgstr ""
-"Veraltete Daten: Der Monitor meldet nicht. Prüfen Sie die geplante "
-"Aufgabe auf dem Anwendungsserver."
+"Veraltete Daten: Der Monitor meldet nicht. Prüfen Sie die geplante Aufgabe "
+"auf dem Anwendungsserver."
 
 #: templates/admin/status.html:96
 msgid "Open incidents"
@@ -5272,19 +5257,19 @@ msgstr "Effektive Berechtigungen"
 
 #: templates/admin/user_detail.html:105
 msgid ""
-"The actual permission set this user has — profile combined with any per-"
-"user overrides."
+"The actual permission set this user has — profile combined with any per-user"
+" overrides."
 msgstr ""
-"Der tatsächliche Berechtigungssatz dieses Benutzers — Profil kombiniert "
-"mit eventuellen benutzerspezifischen Überschreibungen."
+"Der tatsächliche Berechtigungssatz dieses Benutzers — Profil kombiniert mit "
+"eventuellen benutzerspezifischen Überschreibungen."
 
 #: templates/admin/user_detail.html:136
 msgid ""
 "Override the access profile on a per-permission basis. Leave as None to "
 "inherit from the profile."
 msgstr ""
-"Überschreiben Sie das Zugriffsprofil auf Berechtigungsebene. Lassen Sie "
-"es auf Keine, um vom Profil zu erben."
+"Überschreiben Sie das Zugriffsprofil auf Berechtigungsebene. Lassen Sie es "
+"auf Keine, um vom Profil zu erben."
 
 #: templates/admin/user_detail.html:198
 msgid "Save overrides"
@@ -5308,16 +5293,13 @@ msgstr "Gefahrenzone"
 
 #: templates/admin/user_detail.html:250
 msgid "Deleting this user is irreversible. Their access is revoked immediately."
-msgstr ""
-"Das Löschen dieses Benutzers ist endgültig. Der Zugriff wird sofort "
-"entzogen."
+msgstr "Das Löschen dieses Benutzers ist endgültig. Der Zugriff wird sofort entzogen."
 
 #: templates/admin/user_detail.html:258
 msgid "Sign out everywhere"
 msgstr "Überall abmelden"
 
-#: templates/admin/modals/_user_modals.html:6
-#: templates/admin/user_detail.html:264
+#: templates/admin/modals/_user_modals.html:6 templates/admin/user_detail.html:264
 msgid "Delete user"
 msgstr "Benutzer löschen"
 
@@ -5427,8 +5409,7 @@ msgstr "Alle Status"
 msgid "Invoice #"
 msgstr "Rechnung #"
 
-#: templates/archive/invoices.html:131
-#: templates/js/archive/_invoices_js.html:85
+#: templates/archive/invoices.html:131 templates/js/archive/_invoices_js.html:85
 msgid "Loading invoices..."
 msgstr "Rechnungen werden geladen..."
 
@@ -5462,11 +5443,11 @@ msgstr "Diese Seite wurde nicht gefunden"
 
 #: templates/handlers/404.html:4
 msgid ""
-"The page slipped beyond the event horizon. We searched the void but could"
-" not find what you are looking for."
+"The page slipped beyond the event horizon. We searched the void but could "
+"not find what you are looking for."
 msgstr ""
-"Die Seite ist über den Ereignishorizont hinaus verschwunden. Wir haben "
-"die Leere durchsucht, konnten aber nicht finden, was Sie suchen."
+"Die Seite ist über den Ereignishorizont hinaus verschwunden. Wir haben die "
+"Leere durchsucht, konnten aber nicht finden, was Sie suchen."
 
 #: templates/handlers/404.html:6
 msgid "What does an 404 Error mean?"
@@ -5486,8 +5467,8 @@ msgstr "Hoppla, etwas ist schiefgelaufen"
 
 #: templates/handlers/500.html:4
 msgid ""
-"A spacetime fracture occurred while processing your request. Our team has"
-" been notified."
+"A spacetime fracture occurred while processing your request. Our team has "
+"been notified."
 msgstr ""
 "Beim Verarbeiten Ihrer Anfrage ist ein Raum-Zeit-Riss aufgetreten. Unser "
 "Team wurde benachrichtigt."
@@ -5561,8 +5542,7 @@ msgstr "Versuchen Sie, Ihre Filter anzupassen oder die Suche zurückzusetzen."
 #: templates/js/_generali_additional_services_js.html:446
 #: templates/js/_generali_base_services_js.html:303
 #: templates/js/_generali_base_services_js.html:374
-#: templates/js/_generali_pdqm_js.html:471
-#: templates/js/_generali_pdqm_js.html:576
+#: templates/js/_generali_pdqm_js.html:471 templates/js/_generali_pdqm_js.html:576
 #: templates/js/_generali_project_management_js.html:277
 #: templates/js/_generali_project_management_js.html:348
 msgid "Please fill in all fields."
@@ -5572,8 +5552,7 @@ msgstr "Bitte alle Felder ausfüllen."
 #: templates/js/_generali_additional_services_js.html:464
 #: templates/js/_generali_base_services_js.html:327
 #: templates/js/_generali_base_services_js.html:392
-#: templates/js/_generali_pdqm_js.html:497
-#: templates/js/_generali_pdqm_js.html:600
+#: templates/js/_generali_pdqm_js.html:497 templates/js/_generali_pdqm_js.html:600
 #: templates/js/_generali_project_management_js.html:301
 #: templates/js/_generali_project_management_js.html:366
 msgid "Error saving record."
@@ -5583,8 +5562,7 @@ msgstr "Fehler beim Speichern des Eintrags."
 #: templates/js/_generali_additional_services_js.html:470
 #: templates/js/_generali_base_services_js.html:333
 #: templates/js/_generali_base_services_js.html:398
-#: templates/js/_generali_pdqm_js.html:503
-#: templates/js/_generali_pdqm_js.html:606
+#: templates/js/_generali_pdqm_js.html:503 templates/js/_generali_pdqm_js.html:606
 #: templates/js/_generali_project_management_js.html:307
 #: templates/js/_generali_project_management_js.html:372
 #: templates/js/admin/_sessions_js.html:132
@@ -5917,8 +5895,7 @@ msgstr "Aufschlüsseln nach Prozess"
 msgid "Show it as a chart"
 msgstr "Als Diagramm anzeigen"
 
-#: templates/js/_reporting_ai_js.html:52
-#: templates/js/_reporting_simple_js.html:64
+#: templates/js/_reporting_ai_js.html:52 templates/js/_reporting_simple_js.html:64
 msgid "Asking the AI…"
 msgstr "KI wird befragt…"
 
@@ -5970,8 +5947,8 @@ msgstr "Neue Karte"
 #, python-brace-format
 msgid "{n} cards · drag to rearrange · hover a card for controls"
 msgstr ""
-"{n} Karten · zum Umordnen ziehen · Steuerelemente erscheinen beim "
-"Überfahren einer Karte"
+"{n} Karten · zum Umordnen ziehen · Steuerelemente erscheinen beim Überfahren"
+" einer Karte"
 
 #: templates/js/_reporting_dashboard_js.html:71
 msgid "Global filters"
@@ -5999,14 +5976,12 @@ msgid "Value"
 msgstr "Wert"
 
 #: templates/js/_reporting_dashboard_js.html:83
-#: templates/js/_reporting_js.html:503
-#: templates/js/_reporting_simple_js.html:83
+#: templates/js/_reporting_js.html:503 templates/js/_reporting_simple_js.html:83
 msgid "is empty"
 msgstr "ist leer"
 
 #: templates/js/_reporting_dashboard_js.html:84
-#: templates/js/_reporting_js.html:504
-#: templates/js/_reporting_simple_js.html:84
+#: templates/js/_reporting_js.html:504 templates/js/_reporting_simple_js.html:84
 msgid "is not empty"
 msgstr "ist nicht leer"
 
@@ -6169,8 +6144,7 @@ msgstr "Benutzerdefinierte Daten…"
 msgid "Running your report…"
 msgstr "Ihr Bericht wird ausgeführt…"
 
-#: templates/js/_reporting_js.html:488
-#: templates/js/_reporting_simple_js.html:88
+#: templates/js/_reporting_js.html:488 templates/js/_reporting_simple_js.html:88
 #, python-brace-format
 msgid "{rows} rows · {ms} ms"
 msgstr "{rows} Zeilen · {ms} ms"
@@ -6183,48 +6157,40 @@ msgstr "Die Anfrage ist fehlgeschlagen"
 msgid "SQL report"
 msgstr "SQL-Bericht"
 
-#: templates/js/_reporting_js.html:498
-#: templates/js/_reporting_simple_js.html:78
+#: templates/js/_reporting_js.html:498 templates/js/_reporting_simple_js.html:78
 msgid "between"
 msgstr "zwischen"
 
-#: templates/js/_reporting_js.html:499
-#: templates/js/_reporting_simple_js.html:79
+#: templates/js/_reporting_js.html:499 templates/js/_reporting_simple_js.html:79
 msgid "is one of"
 msgstr "ist eines von"
 
-#: templates/js/_reporting_js.html:500
-#: templates/js/_reporting_simple_js.html:80
+#: templates/js/_reporting_js.html:500 templates/js/_reporting_simple_js.html:80
 msgid "is not one of"
 msgstr "ist keines von"
 
-#: templates/js/_reporting_js.html:508
-#: templates/js/_reporting_simple_js.html:85
+#: templates/js/_reporting_js.html:508 templates/js/_reporting_simple_js.html:85
 msgid "Copied"
 msgstr "Kopiert"
 
-#: templates/js/_reporting_js.html:509
-#: templates/js/_reporting_simple_js.html:76
+#: templates/js/_reporting_js.html:509 templates/js/_reporting_simple_js.html:76
 #, python-brace-format
 msgid ""
 "Showing the first {n} rows — narrow the filters or time range to see the "
 "rest."
 msgstr ""
-"Es werden die ersten {n} Zeilen angezeigt – schränken Sie die Filter oder"
-" den Zeitraum ein, um weitere zu sehen."
+"Es werden die ersten {n} Zeilen angezeigt – schränken Sie die Filter oder "
+"den Zeitraum ein, um weitere zu sehen."
 
-#: templates/js/_reporting_js.html:511
-#: templates/js/_reporting_simple_js.html:92
+#: templates/js/_reporting_js.html:511 templates/js/_reporting_simple_js.html:92
 msgid "Buckets"
 msgstr "Gruppen"
 
-#: templates/js/_reporting_js.html:512
-#: templates/js/_reporting_simple_js.html:93
+#: templates/js/_reporting_js.html:512 templates/js/_reporting_simple_js.html:93
 msgid "Avg per bucket"
 msgstr "Ø pro Gruppe"
 
-#: templates/js/_reporting_js.html:513
-#: templates/js/_reporting_simple_js.html:108
+#: templates/js/_reporting_js.html:513 templates/js/_reporting_simple_js.html:108
 msgid "AI"
 msgstr "KI"
 
@@ -6235,8 +6201,8 @@ msgstr "Keine passenden Zeilen"
 #: templates/js/_reporting_js.html:739
 msgid "Widen the time range or remove a filter, then run again."
 msgstr ""
-"Erweitern Sie den Zeitraum oder entfernen Sie einen Filter und führen Sie"
-" den Bericht erneut aus."
+"Erweitern Sie den Zeitraum oder entfernen Sie einen Filter und führen Sie "
+"den Bericht erneut aus."
 
 #: templates/js/_reporting_js.html:1044 templates/js/_reporting_js.html:1056
 msgid "Save failed"
@@ -6357,11 +6323,11 @@ msgstr "Wochen zuvor"
 
 #: templates/js/_reporting_simple_js.html:22
 msgid ""
-"You haven't saved any reports yet — click “New report” to build your "
-"first one."
+"You haven't saved any reports yet — click “New report” to build your first "
+"one."
 msgstr ""
-"Sie haben noch keine Berichte gespeichert — klicken Sie auf „Neuer "
-"Bericht“, um Ihren ersten zu erstellen."
+"Sie haben noch keine Berichte gespeichert — klicken Sie auf „Neuer Bericht“,"
+" um Ihren ersten zu erstellen."
 
 #: templates/js/_reporting_simple_js.html:23
 msgid "No reports have been shared with everyone yet."
@@ -6466,12 +6432,12 @@ msgstr "Ergebnis wird überprüft…"
 
 #: templates/js/_reporting_simple_js.html:69
 msgid ""
-"No chart — this report is a single total. Adjust it in the wizard and "
-"pick a breakdown to get one."
+"No chart — this report is a single total. Adjust it in the wizard and pick a"
+" breakdown to get one."
 msgstr ""
 "Kein Diagramm — dieser Bericht ist eine Einzelsumme. Passen Sie ihn im "
-"Assistenten an und wählen Sie eine Aufschlüsselung aus, um ein Diagramm "
-"zu erhalten."
+"Assistenten an und wählen Sie eine Aufschlüsselung aus, um ein Diagramm zu "
+"erhalten."
 
 #: templates/js/_reporting_simple_js.html:70
 #, python-brace-format
@@ -6480,11 +6446,11 @@ msgstr "Das Diagramm zeigt die ersten 50 von {n} Zeilen."
 
 #: templates/js/_reporting_simple_js.html:71
 msgid ""
-"Too many data points to chart — choose a coarser granularity or a shorter"
-" time range."
+"Too many data points to chart — choose a coarser granularity or a shorter "
+"time range."
 msgstr ""
-"Zu viele Datenpunkte für ein Diagramm — wählen Sie eine gröbere "
-"Granularität oder einen kürzeren Zeitraum."
+"Zu viele Datenpunkte für ein Diagramm — wählen Sie eine gröbere Granularität"
+" oder einen kürzeren Zeitraum."
 
 #: templates/js/_reporting_simple_js.html:73
 msgid "The chart could not be drawn (chart library failed to load)."
@@ -6495,11 +6461,11 @@ msgstr ""
 #: templates/js/_reporting_simple_js.html:86
 #, python-brace-format
 msgid ""
-"Only {n} of {m} selected processes provide this field — documents from "
-"the other processes show an empty value here. Provided by:"
+"Only {n} of {m} selected processes provide this field — documents from the "
+"other processes show an empty value here. Provided by:"
 msgstr ""
-"Nur {n} von {m} ausgewählten Prozessen liefern dieses Feld — Dokumente "
-"der übrigen Prozesse erscheinen hier mit leerem Wert. Geliefert von:"
+"Nur {n} von {m} ausgewählten Prozessen liefern dieses Feld — Dokumente der "
+"übrigen Prozesse erscheinen hier mit leerem Wert. Geliefert von:"
 
 #: templates/js/_reporting_simple_js.html:87
 #, python-brace-format
@@ -7060,8 +7026,8 @@ msgid ""
 "Are you sure you want to delete this Organization? This action cannot be "
 "undone."
 msgstr ""
-"Sind Sie sicher, dass Sie diese Organisation löschen möchten? Diese "
-"Aktion kann nicht rückgängig gemacht werden."
+"Sind Sie sicher, dass Sie diese Organisation löschen möchten? Diese Aktion "
+"kann nicht rückgängig gemacht werden."
 
 #: templates/js/admin/_sessions_js.html:18
 msgid "years ago"
@@ -7233,8 +7199,8 @@ msgstr "Sie haben keine Berechtigung, diesen Benutzer zu löschen."
 #: templates/js/admin/_user_management_js.html:212
 msgid "Are you sure you want to delete this user? This action cannot be undone."
 msgstr ""
-"Sind Sie sicher, dass Sie diesen Benutzer löschen möchten? Diese Aktion "
-"kann nicht rückgängig gemacht werden."
+"Sind Sie sicher, dass Sie diesen Benutzer löschen möchten? Diese Aktion kann"
+" nicht rückgängig gemacht werden."
 
 #: templates/js/archive/_invoices_js.html:43
 msgid "No invoices found"
@@ -7257,12 +7223,11 @@ msgstr "Willkommen im Dashboard!"
 #: templates/js/archive/_tour_js.html:31
 msgid "This is your central hub. Let's take a quick look at the key features."
 msgstr ""
-"Dies ist Ihr zentrales Steuerungszentrum. Lassen Sie uns einen kurzen "
-"Blick auf die wichtigsten Funktionen werfen."
+"Dies ist Ihr zentrales Steuerungszentrum. Lassen Sie uns einen kurzen Blick "
+"auf die wichtigsten Funktionen werfen."
 
 #: templates/js/archive/_tour_js.html:32 templates/js/archive/_tour_js.html:80
-#: templates/js/archive/_tour_js.html:187
-#: templates/js/archive/_tour_js.html:227
+#: templates/js/archive/_tour_js.html:187 templates/js/archive/_tour_js.html:227
 msgid "Start Tour"
 msgstr "Tour starten"
 
@@ -7272,8 +7237,8 @@ msgstr "Prozessfilter"
 
 #: templates/js/archive/_tour_js.html:37
 msgid ""
-"Use this dropdown to filter all the data on this page by a specific "
-"document process, like 'Inbox' or 'Invoice'."
+"Use this dropdown to filter all the data on this page by a specific document"
+" process, like 'Inbox' or 'Invoice'."
 msgstr ""
 "Verwenden Sie diese Dropdown-Liste, um alle Daten auf dieser Seite nach "
 "einem bestimmten Dokumentprozess zu filtern, z. B. 'Posteingang' oder "
@@ -7309,11 +7274,11 @@ msgstr "Aktive Dokumentzeitleiste"
 
 #: templates/js/archive/_tour_js.html:55
 msgid ""
-"This section provides a real-time view of the specific steps documents "
-"are actively going through right now."
+"This section provides a real-time view of the specific steps documents are "
+"actively going through right now."
 msgstr ""
-"Dieser Abschnitt bietet eine Echtzeit-Ansicht der spezifischen Schritte, "
-"die Dokumente gerade aktiv durchlaufen."
+"Dieser Abschnitt bietet eine Echtzeit-Ansicht der spezifischen Schritte, die"
+" Dokumente gerade aktiv durchlaufen."
 
 #: templates/js/archive/_tour_js.html:60
 msgid "Recent Activity"
@@ -7321,13 +7286,10 @@ msgstr "Aktuelle Aktivität"
 
 #: templates/js/archive/_tour_js.html:61
 msgid "Here you'll find a feed of the latest status changes for your documents."
-msgstr ""
-"Hier finden Sie einen Feed der neuesten Statusänderungen für Ihre "
-"Dokumente."
+msgstr "Hier finden Sie einen Feed der neuesten Statusänderungen für Ihre Dokumente."
 
 #: templates/js/archive/_tour_js.html:63 templates/js/archive/_tour_js.html:172
-#: templates/js/archive/_tour_js.html:214
-#: templates/js/archive/_tour_js.html:242
+#: templates/js/archive/_tour_js.html:214 templates/js/archive/_tour_js.html:242
 msgid "Finish"
 msgstr "Beenden"
 
@@ -7338,8 +7300,8 @@ msgstr "Workitems-Übersicht"
 #: templates/js/archive/_tour_js.html:79
 msgid "This page lets you search, view, and manage all your workitems in detail."
 msgstr ""
-"Auf dieser Seite können Sie alle Ihre Workitems detailliert suchen, "
-"anzeigen und verwalten."
+"Auf dieser Seite können Sie alle Ihre Workitems detailliert suchen, anzeigen"
+" und verwalten."
 
 #: templates/js/archive/_tour_js.html:84 templates/js/archive/_tour_js.html:231
 msgid "Search & Filter"
@@ -7347,11 +7309,11 @@ msgstr "Suchen & Filtern"
 
 #: templates/js/archive/_tour_js.html:85
 msgid ""
-"Use this powerful form to find specific workitems by process, search "
-"terms, or tags."
+"Use this powerful form to find specific workitems by process, search terms, "
+"or tags."
 msgstr ""
-"Verwenden Sie dieses leistungsstarke Formular, um bestimmte "
-"Arbeitselemente nach Prozess, Suchbegriffen oder Tags zu finden."
+"Verwenden Sie dieses leistungsstarke Formular, um bestimmte Arbeitselemente "
+"nach Prozess, Suchbegriffen oder Tags zu finden."
 
 #: templates/js/archive/_tour_js.html:90
 msgid "Advanced Filters"
@@ -7359,8 +7321,8 @@ msgstr "Erweiterte Filter"
 
 #: templates/js/archive/_tour_js.html:91
 msgid ""
-"Need more specific results? Click here to filter by date range, priority,"
-" assigned user, or specific document field values."
+"Need more specific results? Click here to filter by date range, priority, "
+"assigned user, or specific document field values."
 msgstr ""
 "Benötigen Sie spezifischere Ergebnisse? Klicken Sie hier, um nach "
 "Datumsbereich, Priorität, zugewiesenem Benutzer oder bestimmten "
@@ -7372,8 +7334,8 @@ msgstr "Workitems-Tabelle"
 
 #: templates/js/archive/_tour_js.html:97
 msgid ""
-"Your filtered results appear here. You can sort columns by clicking on "
-"their headers."
+"Your filtered results appear here. You can sort columns by clicking on their"
+" headers."
 msgstr ""
 "Ihre gefilterten Ergebnisse werden hier angezeigt. Sie können Spalten "
 "sortieren, indem Sie auf deren Überschriften klicken."
@@ -7387,9 +7349,8 @@ msgid ""
 "Click this arrow button to expand a workitem. The tour will do this "
 "automatically for the next step."
 msgstr ""
-"Klicken Sie auf diese Pfeilschaltfläche, um ein Arbeitselement zu "
-"erweitern. Die Tour führt dies automatisch für den nächsten Schritt "
-"durch."
+"Klicken Sie auf diese Pfeilschaltfläche, um ein Arbeitselement zu erweitern."
+" Die Tour führt dies automatisch für den nächsten Schritt durch."
 
 #: templates/js/archive/_tour_js.html:119
 msgid "Process Timeline"
@@ -7408,12 +7369,10 @@ msgid "Media Viewer"
 msgstr "Medien-Viewer"
 
 #: templates/js/archive/_tour_js.html:139
-msgid ""
-"View the document image here. If permitted, you can interact with the "
-"file."
+msgid "View the document image here. If permitted, you can interact with the file."
 msgstr ""
-"Sehen Sie sich das Dokumentbild hier an. Wenn erlaubt, können Sie mit der"
-" Datei interagieren."
+"Sehen Sie sich das Dokumentbild hier an. Wenn erlaubt, können Sie mit der "
+"Datei interagieren."
 
 #: templates/js/archive/_tour_js.html:145
 msgid "History & Audit"
@@ -7422,8 +7381,8 @@ msgstr "Historie & Prüfung"
 #: templates/js/archive/_tour_js.html:146
 msgid "See the complete audit trail and history of this specific document."
 msgstr ""
-"Sehen Sie den vollständigen Prüfpfad und die Historie dieses spezifischen"
-" Dokuments."
+"Sehen Sie den vollständigen Prüfpfad und die Historie dieses spezifischen "
+"Dokuments."
 
 #: templates/js/archive/_tour_js.html:153
 msgid "Review all extracted data fields and values associated with this document."
@@ -7437,12 +7396,11 @@ msgstr "Zusammenarbeitswerkzeuge"
 
 #: templates/js/archive/_tour_js.html:160
 msgid ""
-"Here you can set a priority level, assign the workitem to a colleague, "
-"add tags, and leave comments for your team."
+"Here you can set a priority level, assign the workitem to a colleague, add "
+"tags, and leave comments for your team."
 msgstr ""
 "Hier können Sie eine Prioritätsstufe festlegen, das Arbeitselement einem "
-"Kollegen zuweisen, Tags hinzufügen und Kommentare für Ihr Team "
-"hinterlassen."
+"Kollegen zuweisen, Tags hinzufügen und Kommentare für Ihr Team hinterlassen."
 
 #: templates/js/archive/_tour_js.html:185
 msgid "Welcome to the Team Board!"
@@ -7453,8 +7411,8 @@ msgid ""
 "This Kanban-style board helps you visualize the workload and task "
 "distribution across your entire team."
 msgstr ""
-"Dieses Kanban-Board hilft Ihnen, die Arbeitsbelastung und "
-"Aufgabenverteilung im gesamten Team zu visualisieren."
+"Dieses Kanban-Board hilft Ihnen, die Arbeitsbelastung und Aufgabenverteilung"
+" im gesamten Team zu visualisieren."
 
 #: templates/js/archive/_tour_js.html:191
 msgid "Filter Tasks"
@@ -7474,11 +7432,11 @@ msgstr "Benutzerspalten"
 
 #: templates/js/archive/_tour_js.html:198
 msgid ""
-"Each column represents a team member. All tasks assigned to them will "
-"appear here."
+"Each column represents a team member. All tasks assigned to them will appear"
+" here."
 msgstr ""
-"Jede Spalte repräsentiert ein Teammitglied. Alle ihnen zugewiesenen "
-"Aufgaben werden hier angezeigt."
+"Jede Spalte repräsentiert ein Teammitglied. Alle ihnen zugewiesenen Aufgaben"
+" werden hier angezeigt."
 
 #: templates/js/archive/_tour_js.html:203
 msgid "Workload at a Glance"
@@ -7489,8 +7447,8 @@ msgid ""
 "The header shows the team member's name and the total number of tasks "
 "currently assigned to them."
 msgstr ""
-"Die Überschrift zeigt den Namen des Teammitglieds und die Gesamtzahl der "
-"ihm aktuell zugewiesenen Aufgaben."
+"Die Überschrift zeigt den Namen des Teammitglieds und die Gesamtzahl der ihm"
+" aktuell zugewiesenen Aufgaben."
 
 #: templates/js/archive/_tour_js.html:209
 msgid "Task Cards"
@@ -7499,12 +7457,11 @@ msgstr "Aufgabenkarten"
 #: templates/js/archive/_tour_js.html:210
 msgid ""
 "Each card is a workitem. It shows key details like the barcode, last "
-"modification time, and priority. Click a card to jump to its detailed "
-"view."
+"modification time, and priority. Click a card to jump to its detailed view."
 msgstr ""
 "Jede Karte ist ein Arbeitselement. Sie zeigt wichtige Details wie den "
-"Barcode, die letzte Änderungszeit und die Priorität. Klicken Sie auf eine"
-" Karte, um zur Detailansicht zu springen."
+"Barcode, die letzte Änderungszeit und die Priorität. Klicken Sie auf eine "
+"Karte, um zur Detailansicht zu springen."
 
 #: templates/js/archive/_tour_js.html:226
 msgid "View your billing history and manage your past invoices."
@@ -7514,11 +7471,11 @@ msgstr ""
 
 #: templates/js/archive/_tour_js.html:232
 msgid ""
-"Locate specific invoices by searching for the invoice number, selecting a"
-" date range, or filtering by payment status."
+"Locate specific invoices by searching for the invoice number, selecting a "
+"date range, or filtering by payment status."
 msgstr ""
-"Suchen Sie nach bestimmten Rechnungen, indem Sie die Rechnungsnummer "
-"suchen, einen Datumsbereich auswählen oder nach Zahlungsstatus filtern."
+"Suchen Sie nach bestimmten Rechnungen, indem Sie die Rechnungsnummer suchen,"
+" einen Datumsbereich auswählen oder nach Zahlungsstatus filtern."
 
 #: templates/js/archive/_tour_js.html:237
 msgid "Invoices List"
@@ -7565,8 +7522,7 @@ msgstr ""
 #~ msgid "Charts support up to two breakdowns — the table shows all of them."
 #~ msgstr ""
 #~ "Diagramme unterstützen bis zu zwei "
-#~ "Aufschlüsselungen — die Tabelle zeigt "
-#~ "alle."
+#~ "Aufschlüsselungen — die Tabelle zeigt alle."
 
 #~ msgid "Invalid Email Address"
 #~ msgstr "Ungültige E-Mail-Adresse"
@@ -7629,13 +7585,13 @@ msgstr ""
 #~ msgstr "Chat"
 
 #~ msgid ""
-#~ "The AI assistant is unavailable right"
-#~ " now — you can still build "
-#~ "reports with “New report”."
+#~ "The AI assistant is unavailable right "
+#~ "now — you can still build reports "
+#~ "with “New report”."
 #~ msgstr ""
 #~ "Der KI-Assistent ist zurzeit nicht "
-#~ "verfügbar — Berichte können Sie "
-#~ "weiterhin über „Neuer Bericht“ erstellen."
+#~ "verfügbar — Berichte können Sie weiterhin"
+#~ " über „Neuer Bericht“ erstellen."
 
 #~ msgid "Refine your question…"
 #~ msgstr "Ihre Frage verfeinern…"
@@ -7655,25 +7611,25 @@ msgstr ""
 #~ msgid "Ask in plain language — e.g. “top 10 processes by volume this month”"
 #~ msgstr ""
 #~ "Stellen Sie Ihre Frage in normaler "
-#~ "Sprache — z. B. „Top 10 Prozesse"
-#~ " nach Volumen diesen Monat”"
+#~ "Sprache — z. B. „Top 10 Prozesse "
+#~ "nach Volumen diesen Monat”"
 
 #~ msgid "Ask"
 #~ msgstr "Fragen"
 
 #~ msgid ""
 #~ "The assistant drafts a report definition"
-#~ " from the sources you can access "
-#~ "— it never sees result data. "
-#~ "Review it, then open it in the "
-#~ "builder and run it yourself."
+#~ " from the sources you can access —"
+#~ " it never sees result data. Review "
+#~ "it, then open it in the builder "
+#~ "and run it yourself."
 #~ msgstr ""
-#~ "Der Assistent erstellt einen Berichtsentwurf"
-#~ " aus den Quellen, auf die Sie "
+#~ "Der Assistent erstellt einen Berichtsentwurf "
+#~ "aus den Quellen, auf die Sie "
 #~ "zugreifen können — er sieht niemals "
 #~ "Ergebnisdaten. Überprüfen Sie ihn, öffnen "
-#~ "Sie ihn im Builder und führen Sie"
-#~ " ihn selbst aus."
+#~ "Sie ihn im Builder und führen Sie "
+#~ "ihn selbst aus."
 
 #~ msgid ""
 #~ "The assistant drafts read-only SQL "
@@ -7681,64 +7637,60 @@ msgstr ""
 #~ "sees result data. Review the SQL, "
 #~ "then run it yourself."
 #~ msgstr ""
-#~ "Der Assistent erstellt schreibgeschütztes SQL"
-#~ " aus dem Datenbankschema. Er sieht "
-#~ "niemals Ergebnisdaten. Überprüfen Sie das "
-#~ "SQL und führen Sie es dann selbst"
-#~ " aus."
+#~ "Der Assistent erstellt schreibgeschütztes SQL "
+#~ "aus dem Datenbankschema. Er sieht niemals"
+#~ " Ergebnisdaten. Überprüfen Sie das SQL "
+#~ "und führen Sie es dann selbst aus."
 
 #~ msgid ""
-#~ "The agent works step by step, "
-#~ "showing each tool it uses. It can"
-#~ " run read-only queries and report "
-#~ "the actual numbers from the data "
-#~ "it fetched."
+#~ "The agent works step by step, showing"
+#~ " each tool it uses. It can run "
+#~ "read-only queries and report the "
+#~ "actual numbers from the data it "
+#~ "fetched."
 #~ msgstr ""
-#~ "Der Agent arbeitet Schritt für Schritt"
-#~ " und zeigt jedes verwendete Werkzeug. "
-#~ "Er kann schreibgeschützte Abfragen ausführen"
-#~ " und die tatsächlichen Zahlen aus den"
-#~ " abgerufenen Daten melden."
+#~ "Der Agent arbeitet Schritt für Schritt "
+#~ "und zeigt jedes verwendete Werkzeug. Er "
+#~ "kann schreibgeschützte Abfragen ausführen und "
+#~ "die tatsächlichen Zahlen aus den "
+#~ "abgerufenen Daten melden."
 
 #~ msgid ""
-#~ "The agent works step by step, "
-#~ "showing each tool it uses to "
-#~ "validate and draft — grounded only "
-#~ "in the schema you can access. It"
-#~ " never sees result data."
+#~ "The agent works step by step, showing"
+#~ " each tool it uses to validate and"
+#~ " draft — grounded only in the "
+#~ "schema you can access. It never sees"
+#~ " result data."
 #~ msgstr ""
-#~ "Der Agent arbeitet Schritt für Schritt"
-#~ " und zeigt jedes verwendete Werkzeug "
-#~ "zur Validierung und Entwurfserstellung — "
-#~ "nur auf Basis des Schemas, auf das"
-#~ " Sie zugreifen können. Er sieht "
-#~ "niemals Ergebnisdaten."
+#~ "Der Agent arbeitet Schritt für Schritt "
+#~ "und zeigt jedes verwendete Werkzeug zur "
+#~ "Validierung und Entwurfserstellung — nur "
+#~ "auf Basis des Schemas, auf das Sie"
+#~ " zugreifen können. Er sieht niemals "
+#~ "Ergebnisdaten."
 
 #~ msgid ""
 #~ "⚠ The drafted SQL did not pass "
-#~ "the read-only check — review it"
-#~ " before running."
+#~ "the read-only check — review it "
+#~ "before running."
 #~ msgstr ""
 #~ "⚠ Das entworfene SQL hat die "
-#~ "Schreibschutzprüfung nicht bestanden — bitte"
-#~ " überprüfen Sie es vor der "
-#~ "Ausführung."
+#~ "Schreibschutzprüfung nicht bestanden — bitte "
+#~ "überprüfen Sie es vor der Ausführung."
 
 #~ msgid "⚠ The drafted report could not be validated — try rephrasing."
 #~ msgstr ""
-#~ "⚠ Der entworfene Bericht konnte nicht"
-#~ " validiert werden — bitte umformulieren."
+#~ "⚠ Der entworfene Bericht konnte nicht "
+#~ "validiert werden — bitte umformulieren."
 
 #~ msgid "Make a chart"
 #~ msgstr "Diagramm erstellen"
 
-#~ msgid ""
-#~ "⚠ The agent stopped before producing "
-#~ "a validated result — try rephrasing."
+#~ msgid "⚠ The agent stopped before producing a validated result — try rephrasing."
 #~ msgstr ""
-#~ "⚠ Der Agent hat angehalten, bevor "
-#~ "ein validiertes Ergebnis vorlag – bitte"
-#~ " formulieren Sie die Frage um."
+#~ "⚠ Der Agent hat angehalten, bevor ein"
+#~ " validiertes Ergebnis vorlag – bitte "
+#~ "formulieren Sie die Frage um."
 
 #~ msgid "Try again"
 #~ msgstr "Erneut versuchen"

@@ -1,13 +1,19 @@
 """External machine-to-machine JSON API, version 1.
 
-Two endpoints in v1:
+Three endpoints in v1:
 - GET /api/v1/stats/today -- the dashboard's imported/processed "today" KPI
   numbers for the API key's process scope (dbo.ApiKeys.ProcessList).
 - GET /api/v1/backlog -- the dashboard's "Current Backlog" KPI number for the
   same process scope. The response deliberately omits the process list --
   scoping happens at key issuance, not in the payload (unlike stats/today,
   kept as-is for compatibility).
-Both consumed by an external client's own dashboard.
+- GET /api/v1/invoice/import_datetime?invoice_nr=<nr> -- the import datetime
+  for a single invoice number (issue #195), resolved via
+  resolve_invoice_import_datetime (nx_lib/views/dashboard.py). Default client
+  only (SearchConfig.col_invoicenr); scoped to the key's ProcessList same as
+  the other two. 404 if invoice_nr is unmapped/not found among the key's
+  processes.
+All consumed by an external client's own dashboard.
 
 Each endpoint has a /api/test/v1/... twin (same path suffix, same auth, same
 response shape) that returns RANDOM numbers instead of real KPI values -- a
@@ -24,14 +30,14 @@ https://nexora.sydoc.ch/nexora/api/v1/stats/today
 """
 
 import random
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
-from flask import current_app, g, jsonify
+from flask import current_app, g, jsonify, request
 
 from ..api_auth import require_api_key
 from ..extensions import limiter
 from ..workitem_sources import total_backlog_count
-from .dashboard import compute_today_stats
+from .dashboard import compute_today_stats, resolve_invoice_import_datetime
 
 
 # NOTE decorator order: @limiter.limit is OUTERMOST -- the deliberate
@@ -95,6 +101,32 @@ def api_v1_backlog():
 
 @limiter.limit("60 per minute")
 @require_api_key
+def api_v1_invoice_import_datetime():
+    invoice_nr = (request.args.get("invoice_nr") or "").strip()
+    if not invoice_nr:
+        return jsonify({"error": "Missing required query param 'invoice_nr'"}), 400
+    processes = g.api_client["processes"]
+    if not processes:
+        return jsonify({"invoice_nr": invoice_nr, "import_datetime": None}), 404
+    try:
+        # strict=True: same rationale as stats/today -- a StatisticsDB
+        # failure must surface as a 500, not a false "not found".
+        import_dt, _process = resolve_invoice_import_datetime(invoice_nr, processes, strict=True)
+    except Exception as e:
+        current_app.logger.error(f"external api invoice import_datetime failed: {e}")
+        return jsonify({"error": "Stats backend unavailable"}), 500
+    if import_dt is None:
+        return jsonify({"invoice_nr": invoice_nr, "import_datetime": None}), 404
+    return jsonify(
+        {
+            "invoice_nr": invoice_nr,
+            "import_datetime": import_dt.strftime("%Y-%m-%d %H:%M:%S"),
+        }
+    )
+
+
+@limiter.limit("60 per minute")
+@require_api_key
 def api_test_v1_stats_today():
     # Real auth (same key a client uses against PROD) but no backend
     # queries -- just plausible random numbers in the real response shape.
@@ -121,6 +153,25 @@ def api_test_v1_backlog():
     )
 
 
+@limiter.limit("60 per minute")
+@require_api_key
+def api_test_v1_invoice_import_datetime():
+    # Real auth, no backend query -- a plausible random datetime in the last
+    # 90 days, in the real response shape.
+    invoice_nr = (request.args.get("invoice_nr") or "").strip()
+    if not invoice_nr:
+        return jsonify({"error": "Missing required query param 'invoice_nr'"}), 400
+    fake_dt = datetime.now() - timedelta(
+        days=random.randint(0, 90), hours=random.randint(0, 23), minutes=random.randint(0, 59)
+    )
+    return jsonify(
+        {
+            "invoice_nr": invoice_nr,
+            "import_datetime": fake_dt.strftime("%Y-%m-%d %H:%M:%S"),
+        }
+    )
+
+
 def register_routes(app):
     app.add_url_rule(
         "/api/v1/stats/today",
@@ -133,6 +184,11 @@ def register_routes(app):
         view_func=api_v1_backlog,
     )
     app.add_url_rule(
+        "/api/v1/invoice/import_datetime",
+        endpoint="api_v1_invoice_import_datetime",
+        view_func=api_v1_invoice_import_datetime,
+    )
+    app.add_url_rule(
         "/api/test/v1/stats/today",
         endpoint="api_test_v1_stats_today",
         view_func=api_test_v1_stats_today,
@@ -141,4 +197,9 @@ def register_routes(app):
         "/api/test/v1/backlog",
         endpoint="api_test_v1_backlog",
         view_func=api_test_v1_backlog,
+    )
+    app.add_url_rule(
+        "/api/test/v1/invoice/import_datetime",
+        endpoint="api_test_v1_invoice_import_datetime",
+        view_func=api_test_v1_invoice_import_datetime,
     )
