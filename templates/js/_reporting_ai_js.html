@@ -281,6 +281,7 @@
         window.ReportingSimple.openDefinition(def, def.title || I18N.reportTitle);
       } else if (window.Reporting && window.Reporting.applyDefinition) {
         window.Reporting.applyDefinition(def, def.title || I18N.reportTitle, null);
+        if (window.Reporting.run) window.Reporting.run();
         if (window.ReportingTabs) window.ReportingTabs.show("advanced");
       }
       closePanel();

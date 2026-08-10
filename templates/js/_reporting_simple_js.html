@@ -2046,6 +2046,10 @@
     if (!cur || !window.Reporting || !window.Reporting.applyDefinition) return;
     var id = (cur.owned && cur.canEdit) ? cur.reportId : null;
     window.Reporting.applyDefinition(cur.def, cur.name || cur.def.title, id);
+    // Run before switching tabs: run() flips the Advanced pane straight into
+    // its loading state, so the tab lands already-loading instead of
+    // flashing the empty "Build a report to see results" placeholder first.
+    if (window.Reporting.run) window.Reporting.run();
     window.ReportingTabs.show('advanced');
   });
 

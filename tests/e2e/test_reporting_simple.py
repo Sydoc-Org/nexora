@@ -4323,3 +4323,92 @@ def test_wizard_state_from_definition_ignores_unrelated_in_filter(nexora_server,
     }, 'scope regression')""")
     expect(page.get_by_test_id("rs-result")).to_be_visible()
     expect(page.get_by_test_id("rs-adjust-wizard")).to_be_hidden()
+
+
+def test_open_in_advanced_runs_report_and_reveals_sql(nexora_server, page):
+    """#178 A5 ("Live SQL geht nicht"): Simple's "Open in Advanced" escape
+    hatch (rsOpenAdvanced) must actually run the restored definition, not
+    just call applyDefinition() and switch tabs. Before the fix, Advanced
+    landed on the loaded builder state with an empty results grid and
+    "Show query" (rpShowSql) still hidden -- reading as "Live SQL doesn't
+    work" to an owner who had just opened an AI-built report from Simple."""
+    _login(page, nexora_server)
+
+    def _row(rid, name):
+        return {
+            "id": rid,
+            "name": name,
+            "ownerName": "Admin",
+            "updatedAt": "2026-07-01T00:00:00Z",
+            "visibility": "private",
+            "owned": True,
+            "kind": "table",
+        }
+
+    definition = {
+        "schemaVersion": 1,
+        "source": "docprocessing",
+        "visualization": "table",
+        "title": "e2e open advanced report",
+        "columns": [{"field": "processname"}],
+        "filters": [],
+        "sort": [],
+        "scope": {"clients": [], "processes": []},
+        "rowLimit": 100,
+    }
+    page.route(
+        "**/api/reporting/reports",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps([_row("e2e-open-advanced", "e2e open advanced report")]),
+        ),
+    )
+    page.route(
+        "**/api/reporting/reports/*",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "name": "e2e open advanced report",
+                    "definition": definition,
+                    "owned": True,
+                    "canEdit": True,
+                }
+            ),
+        ),
+    )
+    page.route(
+        "**/api/reporting/run",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [{"field": "processname", "header": "Process"}],
+                    "rows": [["acme.inv"]],
+                    "truncated": False,
+                    "rowCount": 1,
+                    "sql": "SELECT [processname] FROM [dbo].[V]",
+                    "sqlPretty": "SELECT [processname] FROM [dbo].[V]",
+                    "sqlDisplay": "SELECT [processname] FROM [dbo].[V]",
+                    "params": [],
+                    "resolvedDates": [],
+                }
+            ),
+        ),
+    )
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-group-mine").get_by_text("e2e open advanced report").click()
+    expect(page.get_by_test_id("rs-result-title")).to_contain_text("e2e open advanced report")
+
+    page.get_by_test_id("rs-more").click()
+    page.get_by_test_id("rs-open-advanced").click()
+
+    # Landed on Advanced -- and it must have actually run the definition:
+    # the results grid holds the stubbed row, and "Show query" is revealed
+    # (not just an empty builder with rpShowSql still hidden).
+    expect(page.get_by_test_id("reporting-field-panel")).to_be_visible()
+    expect(page.get_by_test_id("reporting-results")).to_contain_text("acme.inv")
+    expect(page.get_by_test_id("reporting-show-sql")).to_be_visible()
