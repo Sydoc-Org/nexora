@@ -104,6 +104,30 @@ class SqlServerSource:
         finally:
             conn.close()
 
+    def process_of(self, workitem_id):
+        """(ClientName, ProcessName) for a workitem, or None if not found /
+        on error. Same namespace the list query authorizes against
+        (tp.ClientName / tp.Name) — the detail-access entitlement check (#193)
+        compares this pair to the caller's granted process pairs."""
+        conn = self.engine.raw_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT TOP 1 tp.ClientName, tp.Name "
+                "FROM t_WorkItems twi "
+                "JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID "
+                "JOIN t_Processes tp ON tp.ID = tai.ProcessID "
+                "WHERE twi.ID = ?",
+                workitem_id,
+            )
+            row = cur.fetchone()
+            return (row[0], row[1]) if row else None
+        except Exception as e:
+            current_app.logger.error(f"SqlServerSource.process_of({workitem_id}): {e}")
+            return None
+        finally:
+            conn.close()
+
     def list_workitems(self, filt, offset, limit):
         """Return (rows, total_count). Builds the same WHERE + SQL the original
         _get_workitems_data ran against engine_octo_db."""
@@ -878,6 +902,28 @@ class PostgresSource:
         finally:
             conn.close()
 
+    def process_of(self, workitem_id):
+        """(ClientName, ProcessName) for a workitem, or None. PG dialect of the
+        SqlServerSource.process_of entitlement lookup (#193)."""
+        conn = self.engine.raw_connection()
+        try:
+            cur = conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor)
+            cur.execute(
+                'SELECT tp."ClientName" AS clientname, tp."Name" AS name '
+                'FROM "t_WorkItems" twi '
+                'JOIN "t_ActivityInstances" tai ON twi."ActivityInstanceID" = tai."ID" '
+                'JOIN "t_Processes" tp ON tp."ID" = tai."ProcessID" '
+                'WHERE twi."ID" = %s LIMIT 1',
+                (workitem_id,),
+            )
+            row = cur.fetchone()
+            return (row.clientname, row.name) if row else None
+        except Exception as e:
+            current_app.logger.error(f"PostgresSource.process_of({workitem_id}): {e}")
+            return None
+        finally:
+            conn.close()
+
     def _build_where(self, filt):
         pair_sql, pair_params = _pair_predicate(
             filt.client_process_pairs, 'tp."ClientName"', 'tp."Name"', "%s"
@@ -1166,6 +1212,24 @@ def get_domain_for_workitem(workitem_id, client_hint=None):
     code = get_source_for_workitem(workitem_id, client_hint=client_hint)
     client = CLIENTS.get(code) or CLIENTS["default"]
     return client.octo_domain
+
+
+def source_for(code):
+    """Active source instance for a client code, or None."""
+    for src in active_sources():
+        if src.code == code:
+            return src
+    return None
+
+
+def process_pair_for_workitem(workitem_id, client_hint=None):
+    """(ClientName, ProcessName) of a workitem in the source a detail request
+    will actually read (same client_hint routing as get_domain_for_workitem),
+    or None if it can't be resolved. Feeds the detail-access entitlement check
+    (#193) — the caller must hold a grant for this exact pair."""
+    code = get_source_for_workitem(workitem_id, client_hint=client_hint)
+    src = source_for(code)
+    return src.process_of(workitem_id) if src else None
 
 
 def fetch_merged_page(filt, offset, limit):

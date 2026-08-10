@@ -91,6 +91,50 @@ def test_dev_login_unknown_user_404(client):
     assert resp.status_code == 404
 
 
+def test_dev_login_blocks_non_loopback_caller(client):
+    """Security #193: the passwordless dev-login must 404 for any non-loopback
+    caller even on a non-PROD env, so a network-reachable INT/STAGING/TEST
+    instance can't be used as a remote password+2FA bypass."""
+    resp = client.get(
+        "/dev/login/admin@test.local",
+        environ_overrides={"REMOTE_ADDR": "203.0.113.7"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 404
+    with client.session_transaction() as sess:
+        assert sess.get("username") is None  # no session was established
+
+
+def test_dev_users_blocks_non_loopback_caller(client):
+    """Security #193: the username-enumeration helper must 404 for a
+    non-loopback caller too."""
+    resp = client.get("/dev/users", environ_overrides={"REMOTE_ADDR": "203.0.113.7"})
+    assert resp.status_code == 404
+
+
+def test_dev_users_allows_loopback(client):
+    """Local dev (nx --loginas, Playwright on 127.0.0.1) must still work."""
+    resp = client.get("/dev/users")
+    assert resp.status_code == 200
+
+
+def test_login_unknown_user_runs_bcrypt_constant_time(client, monkeypatch):
+    """Security #193: an unknown username must still pay one bcrypt comparison
+    (against a dummy hash) so response latency can't distinguish real usernames
+    from invalid ones."""
+    import nx_lib.views.auth as auth
+
+    calls = []
+    monkeypatch.setattr(auth.bcrypt, "checkpw", lambda pw, h: calls.append((pw, h)) or False)
+
+    resp = client.post(
+        "/login",
+        data={"username": "definitely-not-a-real-user-xyz@nowhere.local", "password": "whatever"},
+    )
+    assert resp.status_code == 401
+    assert calls, "login must run bcrypt.checkpw even for an unknown username (constant-time)"
+
+
 def test_forgot_password_get_renders(client):
     resp = client.get("/forgot_password")
     assert resp.status_code == 200

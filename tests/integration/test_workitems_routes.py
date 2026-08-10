@@ -41,6 +41,12 @@ import requests
 @pytest.fixture()
 def workitems_all_perms(monkeypatch):
     monkeypatch.setattr("nx_lib.security.has_permission", lambda code: True)
+    # The detail endpoints (media_info/media_raw/audithistory) also enforce a
+    # per-workitem (client, process) entitlement gate (#193) that reads session
+    # grants + resolves the workitem's real pair -- orthogonal to these tests,
+    # which exercise caching/scoping/error behaviour. Grant it here so "all
+    # perms" keeps meaning all perms.
+    monkeypatch.setattr("nx_lib.views.workitems._may_view_workitem", lambda wid: True)
     yield
 
 

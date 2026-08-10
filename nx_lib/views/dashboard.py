@@ -345,7 +345,7 @@ def dashboard_processed_over_time():
 
     except Exception as e:
         current_app.logger.error(f"Failed to fetch processed_over_time report: {e}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -403,7 +403,7 @@ def dashboard_kpi_stats():
 
     except Exception as e:
         current_app.logger.error(f"Failed to fetch kpi_stats report: {e}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": _("An unexpected error occurred")}), 500
 
 
 @require_permission("dashboard.view")
@@ -490,7 +490,7 @@ def dashboard_hourly_stats():
 
     except Exception as e:
         current_app.logger.error(f"Failed to fetch hourly_stats: {e}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": _("An unexpected error occurred")}), 500
     finally:
         if cursor_nex:
             cursor_nex.close()
@@ -595,7 +595,7 @@ def dashboard_avg_processing_time():
 
     except Exception as e:
         current_app.logger.error(f"Failed to fetch avg_processing_time: {e}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": _("An unexpected error occurred")}), 500
     finally:
         if cursor_nex:
             cursor_nex.close()

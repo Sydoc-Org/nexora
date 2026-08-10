@@ -286,7 +286,7 @@ def api_admin_organizations_list():
         return jsonify(orgs)
     except Exception as e:
         current_app.logger.error(f"Failed to fetch organizations list: {e}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": _("An unexpected error occurred")}), 500
     finally:
         if cursor:
             cursor.close()
@@ -401,7 +401,7 @@ def api_admin_maintenance_list():
         return jsonify({"success": True, "records": records})
     except Exception as e:
         current_app.logger.error(f"Maintenance list error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -442,7 +442,7 @@ def api_admin_maintenance_add():
         return jsonify({"success": True, "id": int(new_id)})
     except Exception as e:
         current_app.logger.error(f"Maintenance add error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -485,7 +485,7 @@ def api_admin_maintenance_edit(banner_id):
         return jsonify({"success": True})
     except Exception as e:
         current_app.logger.error(f"Maintenance edit error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -505,7 +505,7 @@ def api_admin_maintenance_delete(banner_id):
         return jsonify({"success": True})
     except Exception as e:
         current_app.logger.error(f"Maintenance delete error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -652,7 +652,7 @@ def api_admin_logs_search():
         )
     except Exception as e:
         current_app.logger.error(f"Log search error: {e}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": _("An unexpected error occurred")}), 500
     finally:
         if cursor:
             cursor.close()
@@ -1100,7 +1100,15 @@ def api_admin_user_activity(user_id):
         )
     except Exception as e:
         current_app.logger.error(f"Failed to load activity for user {user_id}: {e}")
-        return jsonify({"error": str(e), "entries": [], "total": 0, "page": page, "pages": 0}), 500
+        return jsonify(
+            {
+                "error": _("An unexpected error occurred"),
+                "entries": [],
+                "total": 0,
+                "page": page,
+                "pages": 0,
+            }
+        ), 500
     finally:
         if cursor:
             with suppress(Exception):
@@ -1246,7 +1254,7 @@ def api_admin_users_list():
         return jsonify(users)
     except Exception as e:
         current_app.logger.error(f"Failed to fetch users list: {e}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": _("An unexpected error occurred")}), 500
     finally:
         if cursor:
             cursor.close()
@@ -1773,7 +1781,7 @@ def api_admin_permissions_list():
         return jsonify(perms)
     except Exception as e:
         current_app.logger.error(f"Error listing permissions: {e}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": _("An unexpected error occurred")}), 500
     finally:
         if cursor:
             cursor.close()

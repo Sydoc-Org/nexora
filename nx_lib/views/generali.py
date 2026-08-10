@@ -225,7 +225,7 @@ def api_generali_stats():
         )
     except Exception as e:
         current_app.logger.error(f"Generali Stats API Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -254,7 +254,7 @@ def api_generali_filter_options():
         return jsonify({"success": True, "options": result})
     except Exception as e:
         current_app.logger.error(f"Generali Filter Options Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -423,7 +423,7 @@ def api_generali_documents():
         )
     except Exception as e:
         current_app.logger.error(f"Generali Documents API Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -452,7 +452,7 @@ def api_generali_document_detail(doc_id):
         return jsonify({"success": True, "document": doc})
     except Exception as e:
         current_app.logger.error(f"Generali Document Detail Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -489,6 +489,39 @@ def _generali_userids_in_org(org_code):
         return [r[0] for r in nx_cur.fetchall()]
     finally:
         nx_conn.close()
+
+
+def _generali_scope_where(perm_prefix, user_column, requested_org_code):
+    """WHERE fragment enforcing a Generali list query's org/self visibility from
+    the caller's GRANTS -- never from a client-supplied organizationcode (#193
+    cross-org read). Returns (clauses, params):
+
+    - <perm>.edit.transorganizational: honour an optional requested org filter,
+      otherwise no constraint (all orgs).
+    - <perm>.edit.organizational only: clamp to the caller's SESSION org; any
+      requested organizationcode is ignored.
+    - neither grant: clamp to the caller's own user id.
+
+    Emits a fail-closed "1=0" clause when the target org resolves to no users,
+    so an empty/unknown org can never widen the result set.
+    """
+    if has_permission(f"{perm_prefix}.edit.transorganizational"):
+        if not requested_org_code:
+            return [], []
+        org_scope = requested_org_code
+    elif has_permission(f"{perm_prefix}.edit.organizational"):
+        org_scope = session.get("organizationcode")
+    else:
+        return [f"{user_column} = ?"], [session.get("userid")]
+
+    ids = _generali_userids_in_org(org_scope)
+    if not ids:
+        current_app.logger.info(
+            f"Generali scope: org {org_scope!r} resolved to no users; failing closed"
+        )
+        return ["1=0"], []
+    placeholders = ",".join(["?"] * len(ids))
+    return [f"{user_column} IN ({placeholders})"], list(ids)
 
 
 def _empty_paginated_response(extra=None):
@@ -650,7 +683,7 @@ def api_generali_reporting_organizations():
         return jsonify({"success": True, "organizations": _generali_orgs_for_userids(user_ids)})
     except Exception as e:
         current_app.logger.error(f"Generali Reporting Organizations Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -692,7 +725,7 @@ def api_generali_reporting_filter_users():
         return jsonify({"success": True, "users": users})
     except Exception as e:
         current_app.logger.error(f"Generali Reporting FilterUsers Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
 
 
 @require_permission("generali.reporting.view")
@@ -722,13 +755,6 @@ def api_generali_reporting_list():
         if category and category in REPORTING_CATEGORIES:
             where_clauses.append("category = ?")
             params.append(category)
-        if org_code:
-            org_user_ids = _generali_userids_in_org(org_code)
-            if not org_user_ids:
-                return _empty_paginated_response()
-            placeholders = ",".join(["?"] * len(org_user_ids))
-            where_clauses.append(f"ReportByUserID IN ({placeholders})")
-            params.extend(org_user_ids)
         if user_id:
             where_clauses.append("ReportByUserID = ?")
             params.append(user_id)
@@ -736,12 +762,11 @@ def api_generali_reporting_list():
             where_clauses.append("ontime = ?")
             params.append(1 if on_time_str == "true" else 0)
 
-        restrict_to_self = not has_permission(
-            "generali.reporting.edit.organizational"
-        ) and not has_permission("generali.reporting.edit.transorganizational")
-        if restrict_to_self:
-            where_clauses.append("ReportByUserID = ?")
-            params.append(session.get("userid"))
+        scope_clauses, scope_params = _generali_scope_where(
+            "generali.reporting", "ReportByUserID", org_code
+        )
+        where_clauses.extend(scope_clauses)
+        params.extend(scope_params)
 
         where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
@@ -824,7 +849,7 @@ def api_generali_reporting_list():
         )
     except Exception as e:
         current_app.logger.error(f"Generali Reporting List Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -900,7 +925,7 @@ def api_generali_reporting_add():
         return jsonify({"success": True})
     except Exception as e:
         current_app.logger.error(f"Generali Reporting Add Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -956,7 +981,7 @@ def api_generali_reporting_edit():
         return jsonify({"success": True})
     except Exception as e:
         current_app.logger.error(f"Generali Reporting Edit Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -978,7 +1003,7 @@ def api_generali_reporting_delete(record_id):
         return jsonify({"success": True})
     except Exception as e:
         current_app.logger.error(f"Generali Reporting Delete Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -1147,7 +1172,7 @@ def api_generali_attendance_categories():
         return jsonify({"success": True, "categories": grouped, "translations": translations})
     except Exception as e:
         current_app.logger.error(f"Generali Attendance Categories Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -1178,7 +1203,7 @@ def api_generali_attendance_org_users():
         return jsonify({"success": True, "users": users})
     except Exception as e:
         current_app.logger.error(f"Generali Attendance OrgUsers Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -1207,7 +1232,7 @@ def api_generali_attendance_organizations():
         return jsonify({"success": True, "organizations": _generali_orgs_for_userids(user_ids)})
     except Exception as e:
         current_app.logger.error(f"Generali Attendance Organizations Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -1249,7 +1274,7 @@ def api_generali_attendance_filter_users():
         return jsonify({"success": True, "users": users})
     except Exception as e:
         current_app.logger.error(f"Generali Attendance FilterUsers Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
 
 
 @require_permission("generali.additionalservices.view")
@@ -1283,19 +1308,11 @@ def api_generali_attendance_list():
             where_clauses.append("SubCategory = ?")
             params.append(sub_cat)
 
-        if not has_permission("generali.attendance.edit.organizational") and not has_permission(
-            "generali.attendance.edit.transorganizational"
-        ):
-            where_clauses.append("UserID = ?")
-            params.append(session.get("userid"))
-
-        if org_code:
-            org_user_ids = _generali_userids_in_org(org_code)
-            if not org_user_ids:
-                return _empty_paginated_response({"totalHours": 0.0})
-            placeholders = ",".join(["?"] * len(org_user_ids))
-            where_clauses.append(f"UserID IN ({placeholders})")
-            params.extend(org_user_ids)
+        scope_clauses, scope_params = _generali_scope_where(
+            "generali.attendance", "UserID", org_code
+        )
+        where_clauses.extend(scope_clauses)
+        params.extend(scope_params)
         if user_id:
             where_clauses.append("UserID = ?")
             params.append(user_id)
@@ -1382,7 +1399,7 @@ def api_generali_attendance_list():
         )
     except Exception as e:
         current_app.logger.error(f"Generali Attendance List Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -1453,7 +1470,7 @@ def api_generali_attendance_add():
         return jsonify({"success": True})
     except Exception as e:
         current_app.logger.error(f"Generali Attendance Add Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -1499,7 +1516,7 @@ def api_generali_attendance_edit(record_id):
         return jsonify({"success": True})
     except Exception as e:
         current_app.logger.error(f"Generali Attendance Edit Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -1522,7 +1539,7 @@ def api_generali_attendance_delete(record_id):
         return jsonify({"success": True})
     except Exception as e:
         current_app.logger.error(f"Generali Attendance Delete Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -1676,7 +1693,7 @@ def api_generali_baseservices_org_users():
         return jsonify({"success": True, "users": users})
     except Exception as e:
         current_app.logger.error(f"Generali Base Services OrgUsers Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -1705,7 +1722,7 @@ def api_generali_baseservices_organizations():
         return jsonify({"success": True, "organizations": _generali_orgs_for_userids(user_ids)})
     except Exception as e:
         current_app.logger.error(f"Generali Base Services Organizations Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -1747,7 +1764,7 @@ def api_generali_baseservices_filter_users():
         return jsonify({"success": True, "users": users})
     except Exception as e:
         current_app.logger.error(f"Generali BaseServices FilterUsers Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
 
 
 @require_permission("generali.baseservices.view")
@@ -1777,19 +1794,11 @@ def api_generali_baseservices_list():
             where_clauses.append("Category = ?")
             params.append(category)
 
-        if not has_permission("generali.baseservices.edit.organizational") and not has_permission(
-            "generali.baseservices.edit.transorganizational"
-        ):
-            where_clauses.append("UserID = ?")
-            params.append(session.get("userid"))
-
-        if org_code:
-            org_user_ids = _generali_userids_in_org(org_code)
-            if not org_user_ids:
-                return _empty_paginated_response({"totalHours": 0.0})
-            placeholders = ",".join(["?"] * len(org_user_ids))
-            where_clauses.append(f"UserID IN ({placeholders})")
-            params.extend(org_user_ids)
+        scope_clauses, scope_params = _generali_scope_where(
+            "generali.baseservices", "UserID", org_code
+        )
+        where_clauses.extend(scope_clauses)
+        params.extend(scope_params)
         if user_id:
             where_clauses.append("UserID = ?")
             params.append(user_id)
@@ -1875,7 +1884,7 @@ def api_generali_baseservices_list():
         )
     except Exception as e:
         current_app.logger.error(f"Generali Base Services List Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -1949,7 +1958,7 @@ def api_generali_baseservices_add():
         return jsonify({"success": True})
     except Exception as e:
         current_app.logger.error(f"Generali Base Services Add Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -1997,7 +2006,7 @@ def api_generali_baseservices_edit(record_id):
         return jsonify({"success": True})
     except Exception as e:
         current_app.logger.error(f"Generali Base Services Edit Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -2023,7 +2032,7 @@ def api_generali_baseservices_delete(record_id):
         return jsonify({"success": True})
     except Exception as e:
         current_app.logger.error(f"Generali Base Services Delete Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -2170,7 +2179,7 @@ def api_generali_projectmanagement_org_users():
         return jsonify({"success": True, "users": users})
     except Exception as e:
         current_app.logger.error(f"Generali Project Management OrgUsers Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -2199,7 +2208,7 @@ def api_generali_projectmanagement_organizations():
         return jsonify({"success": True, "organizations": _generali_orgs_for_userids(user_ids)})
     except Exception as e:
         current_app.logger.error(f"Generali Project Management Organizations Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -2241,7 +2250,7 @@ def api_generali_projectmanagement_filter_users():
         return jsonify({"success": True, "users": users})
     except Exception as e:
         current_app.logger.error(f"Generali ProjectManagement FilterUsers Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
 
 
 @require_permission("generali.projectmanagement.view")
@@ -2267,19 +2276,11 @@ def api_generali_projectmanagement_list():
             where_clauses.append("ForDate <= ?")
             params.append(end_date)
 
-        if not has_permission(
-            "generali.projectmanagement.edit.organizational"
-        ) and not has_permission("generali.projectmanagement.edit.transorganizational"):
-            where_clauses.append("UserID = ?")
-            params.append(session.get("userid"))
-
-        if org_code:
-            org_user_ids = _generali_userids_in_org(org_code)
-            if not org_user_ids:
-                return _empty_paginated_response({"totalHours": 0.0})
-            placeholders = ",".join(["?"] * len(org_user_ids))
-            where_clauses.append(f"UserID IN ({placeholders})")
-            params.extend(org_user_ids)
+        scope_clauses, scope_params = _generali_scope_where(
+            "generali.projectmanagement", "UserID", org_code
+        )
+        where_clauses.extend(scope_clauses)
+        params.extend(scope_params)
         if user_id:
             where_clauses.append("UserID = ?")
             params.append(user_id)
@@ -2366,7 +2367,7 @@ def api_generali_projectmanagement_list():
         )
     except Exception as e:
         current_app.logger.error(f"Generali Project Management List Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -2438,7 +2439,7 @@ def api_generali_projectmanagement_add():
         return jsonify({"success": True})
     except Exception as e:
         current_app.logger.error(f"Generali Project Management Add Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -2486,7 +2487,7 @@ def api_generali_projectmanagement_edit(record_id):
         return jsonify({"success": True})
     except Exception as e:
         current_app.logger.error(f"Generali Project Management Edit Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -2512,7 +2513,7 @@ def api_generali_projectmanagement_delete(record_id):
         return jsonify({"success": True})
     except Exception as e:
         current_app.logger.error(f"Generali Project Management Delete Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -2664,7 +2665,7 @@ def api_generali_pdqm_org_users():
         return jsonify({"success": True, "users": users})
     except Exception as e:
         current_app.logger.error(f"Generali PDQM OrgUsers Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -2714,7 +2715,7 @@ def api_generali_pdqm_categories():
         return jsonify({"success": True, "categories": grouped, "translations": translations})
     except Exception as e:
         current_app.logger.error(f"Generali PDQM Categories Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -2743,7 +2744,7 @@ def api_generali_pdqm_organizations():
         return jsonify({"success": True, "organizations": _generali_orgs_for_userids(user_ids)})
     except Exception as e:
         current_app.logger.error(f"Generali PDQM Organizations Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -2785,7 +2786,7 @@ def api_generali_pdqm_filter_users():
         return jsonify({"success": True, "users": users})
     except Exception as e:
         current_app.logger.error(f"Generali PDQM FilterUsers Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
 
 
 @require_permission("generali.pdqm.view")
@@ -2828,19 +2829,9 @@ def api_generali_pdqm_list():
             where_clauses.append("SubCategory = ?")
             params.append(sub_cat)
 
-        if not has_permission("generali.pdqm.edit.organizational") and not has_permission(
-            "generali.pdqm.edit.transorganizational"
-        ):
-            where_clauses.append("UserID = ?")
-            params.append(session.get("userid"))
-
-        if org_code:
-            org_user_ids = _generali_userids_in_org(org_code)
-            if not org_user_ids:
-                return _empty_paginated_response({"totalQuantity": 0})
-            placeholders = ",".join(["?"] * len(org_user_ids))
-            where_clauses.append(f"UserID IN ({placeholders})")
-            params.extend(org_user_ids)
+        scope_clauses, scope_params = _generali_scope_where("generali.pdqm", "UserID", org_code)
+        where_clauses.extend(scope_clauses)
+        params.extend(scope_params)
         if user_id:
             where_clauses.append("UserID = ?")
             params.append(user_id)
@@ -2927,7 +2918,7 @@ def api_generali_pdqm_list():
         )
     except Exception as e:
         current_app.logger.error(f"Generali PDQM List Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -3001,7 +2992,7 @@ def api_generali_pdqm_add():
         return jsonify({"success": True})
     except Exception as e:
         current_app.logger.error(f"Generali PDQM Add Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -3050,7 +3041,7 @@ def api_generali_pdqm_edit(record_id):
         return jsonify({"success": True})
     except Exception as e:
         current_app.logger.error(f"Generali PDQM Edit Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -3073,7 +3064,7 @@ def api_generali_pdqm_delete(record_id):
         return jsonify({"success": True})
     except Exception as e:
         current_app.logger.error(f"Generali PDQM Delete Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -3181,7 +3172,7 @@ def api_generali_importstatus_list():
         )
     except Exception as e:
         current_app.logger.error(f"Generali Import Status List Error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()

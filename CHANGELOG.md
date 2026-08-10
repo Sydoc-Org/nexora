@@ -8,6 +8,22 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Security
+
+- Hardened access control and input handling after an internal
+  unauthorized-access audit (#193). The by-id workitem detail/media/audit
+  endpoints now verify the caller is entitled to the workitem's
+  `(client, process)` pair (were reachable cross-tenant via a caller-supplied
+  `?client=`); the five Generali list routes derive org/self visibility from
+  grants instead of a client-supplied `organizationcode`; `/dev/login` and
+  `/dev/users` are now loopback-only (not merely non-PROD); login runs a
+  constant-time bcrypt comparison for unknown usernames; `SESSION_COOKIE_*`
+  (HttpOnly/SameSite) and `X-Frame-Options`/`X-Content-Type-Options` apply in
+  every environment; `MAX_CONTENT_LENGTH` caps upload bodies and the xlsx MIME
+  allowlist drops `application/octet-stream`; the dashboard sign-in name is
+  HTML-escaped; and JSON error handlers no longer return raw exception text.
+  Findings + remediation status: `docs/security/2026-08-audit-193.md`.
+
 ### Added
 
 - **What's New page** (#169) — `/whats_new` (profile dropdown and Ctrl+K),
