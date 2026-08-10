@@ -1,6 +1,6 @@
 """External machine-to-machine JSON API, version 1.
 
-Five endpoints in v1:
+Six endpoints in v1:
 - GET /api/v1/stats/today -- the dashboard's imported/processed "today" KPI
   numbers for the API key's process scope (dbo.ApiKeys.ProcessList).
 - GET /api/v1/backlog -- the dashboard's "Current Backlog" KPI number for the
@@ -17,13 +17,24 @@ Five endpoints in v1:
   ONLY 7 or 10 (400 otherwise) -- widen the allow-set here and in both docs
   surfaces if a client ever needs another window. Like /backlog, the
   response omits the process list.
-- GET /api/v1/invoice/import_datetime?invoice_nr=<nr> -- the import datetime
-  for a single invoice number (issue #195), resolved via
-  resolve_invoice_import_datetime (nx_lib/views/dashboard.py). Default client
-  only (SearchConfig.col_invoicenr); scoped to the key's ProcessList same as
-  the other two. 404 if invoice_nr is unmapped/not found among the key's
-  processes.
-All consumed by an external client's own dashboard.
+- GET /api/v1/workitems -- the QUERY endpoint (issue #197): the workitem
+  overview page's filters (workitem_id, status, stage, start_date/end_date,
+  process, repeated field/value/op/comb doc-field pairs -- incl. invoice
+  number) scoped to the key's ProcessList, via the same _get_workitems_data
+  path the overview uses (session-less `scope`). Rows carry id, client,
+  status, stage, modified_at and import_datetime (Statconfig lookup,
+  default client only) -- superseding issue #195's dedicated
+  /invoice/import_datetime endpoint, which never shipped.
+- GET /api/v1/workitems/<id> -- the DETAIL endpoint (issue #197): document
+  details (extracted fields + table values) for one workitem, the same data
+  the overview row-expand shows (no media/confidence/locations). ?client=
+  disambiguates colliding ids. Uniform 404 body for unknown AND
+  out-of-scope ids -- no existence oracle.
+All consumed by external clients' own integrations.
+
+Sensitive doc-fields (Search_Field_Labels.IsSensitive) are ALWAYS blocked on
+this surface -- dbo.ApiKeys has no sensitive grant; if a client ever needs
+one, add a column, don't widen the policy here.
 
 Each endpoint has a /api/test/v1/... twin (same path suffix, same auth, same
 response shape) that returns RANDOM numbers instead of real KPI values -- a
@@ -43,16 +54,34 @@ import random
 from datetime import date, datetime, timedelta
 
 from flask import current_app, g, jsonify, request
+from werkzeug.datastructures import MultiDict
 
 from ..api_auth import require_api_key
+from ..clients import CLIENTS
 from ..extensions import limiter
-from ..workitem_sources import total_backlog_count
+from ..workitem_sources import (
+    get_domain_for_workitem,
+    get_source_for_workitem,
+    process_pair_for_workitem,
+    total_backlog_count,
+)
 from .dashboard import (
     compute_avg_processing_time,
     compute_today_stats,
     compute_undelivered_count,
     format_avg_processing_display,
-    resolve_invoice_import_datetime,
+    resolve_import_datetimes,
+)
+from .workitems import (
+    DOCFIELD_OPS,
+    WORKITEM_STAGES,
+    _get_workitems_data,
+    _load_media_info,
+    _norm_field_token,
+    get_sensitive_field_keys,
+    get_sensitive_field_tokens,
+    get_valid_search_columns,
+    strip_sensitive_from_detail,
 )
 
 # The only accepted ?days= values (issue #196) -- validated as strings so no
@@ -170,30 +199,250 @@ def api_v1_undelivered():
     )
 
 
+# --------------------------- /api/v1/workitems ----------------------------- #
+
+# The query endpoint's exposed enums (issue #197). Deleted is internal-only
+# (workitems.filter.status.deleted) and deliberately not exposed to keys.
+WORKITEM_API_STATUSES = ("Ready", "In Progress", "Done")
+# Mirrors the overview's perPage whitelist -- validated as strings like ?days=.
+WORKITEM_API_PER_PAGE = ("40", "100", "200", "500", "1000")
+_DOCFIELD_COMBS = ("and", "or")
+
+
+def _parse_workitems_query(processes, *, validate_fields):
+    """Validate the external /workitems query params and translate them into
+    the internal MultiDict _get_workitems_data expects. Returns
+    (error_message, args); exactly one is None. The API 400s what the
+    overview UI silently coerces (unknown enums, bad ops, field-less values)
+    -- silent widening is fine UX in-session and an over-return trap on a
+    machine surface. validate_fields=False skips the DB-backed doc-field
+    whitelist (the /api/test twin must stay zero-backend-query)."""
+    a = request.args
+    items = []
+
+    workitem_id = (a.get("workitem_id") or "").strip()
+    if workitem_id:
+        items.append(("search", workitem_id))
+
+    status = (a.get("status") or "").strip()
+    if status:
+        if status not in WORKITEM_API_STATUSES:
+            return "status must be one of: " + ", ".join(WORKITEM_API_STATUSES), None
+        items.append(("status", status))
+
+    stage = (a.get("stage") or "").strip()
+    if stage:
+        if stage not in WORKITEM_STAGES:
+            return "stage must be one of: " + ", ".join(WORKITEM_STAGES), None
+        items.append(("stage", stage))
+
+    for param, internal in (("start_date", "startDate"), ("end_date", "endDate")):
+        raw = (a.get(param) or "").strip()
+        if raw:
+            try:
+                datetime.fromisoformat(raw)
+            except ValueError:
+                return (
+                    f"{param} must be an ISO datetime (e.g. 2026-08-10 or 2026-08-10T14:30:00)",
+                    None,
+                )
+            items.append((internal, raw))
+
+    process = (a.get("process") or "").strip()
+    if process:
+        scope = set(processes)
+        picked = [p.strip() for p in process.split(",") if p.strip()]
+        for p in picked:
+            if p not in scope:
+                return f"Unknown process '{p}'", None
+        items.append(("prcfW", ",".join(picked)))
+
+    fields = a.getlist("field")
+    values = a.getlist("value")
+    ops = a.getlist("op")
+    combs = a.getlist("comb")
+    if len(fields) != len(values):
+        return "field and value must be supplied in pairs", None
+    if len(ops) > len(fields) or len(combs) > len(fields):
+        return "more op/comb values than field/value pairs", None
+    if validate_fields and fields:
+        valid_columns = get_valid_search_columns()
+        blocked = get_sensitive_field_keys()
+    for i, (f, v) in enumerate(zip(fields, values, strict=True)):
+        f = (f or "").strip().lower()
+        v = (v or "").strip()
+        if not f or not v:
+            # No value-first (field-less) search on this surface: an explicit
+            # field key is required per pair.
+            return "field and value must both be non-empty", None
+        if validate_fields and (f"col_{f}" not in valid_columns or f in blocked):
+            # Sensitive fields answer identically to unknown ones -- no
+            # sensitivity-existence oracle on the external surface.
+            return f"Unknown field '{f}'", None
+        op = (ops[i] if i < len(ops) else "contains").strip().lower() or "contains"
+        if op not in DOCFIELD_OPS:
+            return "op must be one of: " + ", ".join(sorted(DOCFIELD_OPS)), None
+        comb = (combs[i] if i < len(combs) else "and").strip().lower() or "and"
+        if comb not in _DOCFIELD_COMBS:
+            return "comb must be 'and' or 'or'", None
+        items.extend((("docfield", f), ("docvalue", v), ("docop", op), ("doccomb", comb)))
+
+    page_raw = (a.get("page") or "1").strip()
+    if not page_raw.isdigit() or int(page_raw) < 1:
+        return "page must be a positive integer", None
+    items.append(("page", page_raw))
+
+    per_page = (a.get("per_page") or "40").strip()
+    if per_page not in WORKITEM_API_PER_PAGE:
+        return "per_page must be one of: " + ", ".join(WORKITEM_API_PER_PAGE), None
+    items.append(("perPage", per_page))
+
+    return None, MultiDict(items)
+
+
+def _api_workitems_scope(processes):
+    """The key's ProcessList as a _get_workitems_data scope -- the session-less
+    twin of workitems._session_scope. Sensitive doc-fields are always blocked
+    (module docstring); the internal-only Deleted status stays hidden."""
+    return {
+        "allowed": set(processes),
+        "can_docfields": True,
+        "sensitive_blocked": get_sensitive_field_keys(),
+        "can_status": True,
+        "can_deleted": False,
+        "can_stage": True,
+        "can_search_id": True,
+        "can_dates": True,
+        "persist_selection": False,
+        "stamp_register": False,
+    }
+
+
+def _fmt_dt(value):
+    return value.strftime("%Y-%m-%d %H:%M:%S") if value else None
+
+
+def _serialize_workitem_row(row, import_map):
+    wid = row["workitemid"]
+    # import_datetime only for default-client rows: an MS02 id can collide
+    # with a default stat row (compound identity), so a bare-id lookup would
+    # stamp another client's date onto it.
+    import_dt = import_map.get(str(wid)) if row.get("client") == "default" else None
+    return {
+        "id": wid,
+        "client": row.get("client"),
+        "status": row.get("status"),
+        "stage": row.get("current_stage"),
+        "modified_at": _fmt_dt(row.get("modifiedat")),
+        "import_datetime": _fmt_dt(import_dt),
+    }
+
+
 @limiter.limit("60 per minute")
 @require_api_key
-def api_v1_invoice_import_datetime():
-    invoice_nr = (request.args.get("invoice_nr") or "").strip()
-    if not invoice_nr:
-        return jsonify({"error": "Missing required query param 'invoice_nr'"}), 400
+def api_v1_workitems():
+    err, args = _parse_workitems_query(g.api_client["processes"], validate_fields=True)
+    if err:
+        return jsonify({"error": err}), 400
     processes = g.api_client["processes"]
     if not processes:
-        return jsonify({"invoice_nr": invoice_nr, "import_datetime": None}), 404
+        # Misconfigured key (empty ProcessList): deterministic empty page,
+        # no backend query -- same idiom as stats/today's zeros.
+        return jsonify(
+            {
+                "count": 0,
+                "page": 1,
+                "per_page": int(args.get("perPage")),
+                "total_pages": 0,
+                "workitems": [],
+            }
+        )
     try:
-        # strict=True: same rationale as stats/today -- a StatisticsDB
-        # failure must surface as a 500, not a false "not found".
-        import_dt, _process = resolve_invoice_import_datetime(invoice_nr, processes, strict=True)
+        data = _get_workitems_data(args, scope=_api_workitems_scope(processes))
+        if data["degradedSources"]:
+            # Strict contract (stats/today precedent): a dead source must not
+            # serve a silently partial page (the UI shows a banner instead).
+            raise RuntimeError(f"degraded sources: {data['degradedSources']}")
+        default_ids = [r["workitemid"] for r in data["workitems"] if r.get("client") == "default"]
+        import_map = resolve_import_datetimes(default_ids, processes, strict=True)
     except Exception as e:
-        current_app.logger.error(f"external api invoice import_datetime failed: {e}")
-        return jsonify({"error": "Stats backend unavailable"}), 500
-    if import_dt is None:
-        return jsonify({"invoice_nr": invoice_nr, "import_datetime": None}), 404
+        current_app.logger.error(f"external api workitems query failed: {e}")
+        return jsonify({"error": "Workitems backend unavailable"}), 500
+    pagination = data["pagination"]
     return jsonify(
         {
-            "invoice_nr": invoice_nr,
-            "import_datetime": import_dt.strftime("%Y-%m-%d %H:%M:%S"),
+            "count": pagination["totalItems"],
+            "page": pagination["currentPage"],
+            "per_page": pagination["perPage"],
+            "total_pages": pagination["totalPages"],
+            "workitems": [_serialize_workitem_row(r, import_map) for r in data["workitems"]],
         }
     )
+
+
+def _api_tables(table_sources, blocked_tokens):
+    """Reduce the detail panel's table_sources to plain value tables for the
+    external API: locations/confidence dropped, and any column whose
+    normalized name matches a sensitive doc-field token removed --
+    strip_sensitive_from_detail only covers fields/field_sources (no in-app
+    surface renders tables to unauthorized callers; the API's fixed
+    no-sensitive policy has to cover them itself)."""
+    out = []
+    for t in table_sources or []:
+        cols = [c for c in (t.get("columns") or []) if _norm_field_token(c) not in blocked_tokens]
+        rows = [
+            [
+                {"column": c.get("col"), "value": c.get("value")}
+                for c in row
+                if _norm_field_token(c.get("col")) not in blocked_tokens
+            ]
+            for row in (t.get("rows") or [])
+        ]
+        out.append({"title": t.get("title"), "columns": cols, "rows": rows})
+    return out
+
+
+@limiter.limit("60 per minute")
+@require_api_key
+def api_v1_workitem_detail(workitem_id):
+    client_hint = (request.args.get("client") or "").strip().lower()
+    if client_hint and client_hint not in CLIENTS:
+        return jsonify({"error": "client must be one of: " + ", ".join(sorted(CLIENTS))}), 400
+    processes = g.api_client["processes"]
+    if not processes:
+        return jsonify({"workitem_id": workitem_id, "detail": None}), 404
+    try:
+        code = get_source_for_workitem(workitem_id, client_hint=client_hint or None)
+        pair = process_pair_for_workitem(workitem_id, client_hint=code)
+        key_pairs = {
+            (p.split(".")[0].lower(), p.split(".")[-1].lower()) for p in processes if "." in p
+        }
+        # Uniform 404 body for unresolvable AND out-of-scope ids: the external
+        # surface must not be an existence oracle (the session twin
+        # _may_view_workitem 403s instead -- deliberate deviation).
+        if pair is None or (pair[0].lower(), pair[1].lower()) not in key_pairs:
+            return jsonify({"workitem_id": workitem_id, "detail": None}), 404
+        domain = get_domain_for_workitem(workitem_id, client_hint=code)
+        payload = _load_media_info(workitem_id, domain)
+        if payload is None:
+            # Unknown document OR runtime backend down -- indistinguishable
+            # at this layer (documented); same body as out-of-scope.
+            return jsonify({"workitem_id": workitem_id, "detail": None}), 404
+        blocked_tokens = get_sensitive_field_tokens()
+        stripped = strip_sensitive_from_detail(payload, blocked_tokens)
+        return jsonify(
+            {
+                "workitem_id": workitem_id,
+                "client": code,
+                "detail": {
+                    "fields": stripped.get("fields", {}),
+                    "tables": _api_tables(stripped.get("table_sources"), blocked_tokens),
+                },
+            }
+        )
+    except Exception as e:
+        current_app.logger.error(f"external api workitem detail failed: {e}")
+        return jsonify({"error": "Workitems backend unavailable"}), 500
 
 
 @limiter.limit("60 per minute")
@@ -252,19 +501,78 @@ def api_test_v1_undelivered():
 
 @limiter.limit("60 per minute")
 @require_api_key
-def api_test_v1_invoice_import_datetime():
-    # Real auth, no backend query -- a plausible random datetime in the last
-    # 90 days, in the real response shape.
-    invoice_nr = (request.args.get("invoice_nr") or "").strip()
-    if not invoice_nr:
-        return jsonify({"error": "Missing required query param 'invoice_nr'"}), 400
-    fake_dt = datetime.now() - timedelta(
-        days=random.randint(0, 90), hours=random.randint(0, 23), minutes=random.randint(0, 59)
-    )
+def api_test_v1_workitems():
+    # Same param validation as the real endpoint MINUS the DB-backed doc-field
+    # whitelist (the sandbox stays zero-backend-query -- any field name is
+    # accepted here); random rows in the real shape.
+    err, args = _parse_workitems_query(g.api_client["processes"], validate_fields=False)
+    if err:
+        return jsonify({"error": err}), 400
+    per_page = int(args.get("perPage"))
+    page = args.get("page", 1, type=int)
+    count = random.randint(1, 8)
+    now = datetime.now()
+    rows = []
+    for _i in range(count):
+        modified = now - timedelta(days=random.randint(0, 30), minutes=random.randint(0, 1439))
+        imported = modified - timedelta(hours=random.randint(1, 72))
+        rows.append(
+            {
+                "id": random.randint(1, 99999),
+                "client": "default",
+                "status": random.choice(WORKITEM_API_STATUSES),
+                "stage": random.choice(WORKITEM_STAGES),
+                "modified_at": modified.strftime("%Y-%m-%d %H:%M:%S"),
+                "import_datetime": imported.strftime("%Y-%m-%d %H:%M:%S"),
+            }
+        )
     return jsonify(
         {
-            "invoice_nr": invoice_nr,
-            "import_datetime": fake_dt.strftime("%Y-%m-%d %H:%M:%S"),
+            "count": count,
+            "page": page,
+            "per_page": per_page,
+            "total_pages": 1,
+            "workitems": rows,
+        }
+    )
+
+
+@limiter.limit("60 per minute")
+@require_api_key
+def api_test_v1_workitem_detail(workitem_id):
+    # Same ?client= validation as the real endpoint; a plausible fake document
+    # (fields + one table) in the real shape, no backend queries.
+    client_hint = (request.args.get("client") or "").strip().lower()
+    if client_hint and client_hint not in CLIENTS:
+        return jsonify({"error": "client must be one of: " + ", ".join(sorted(CLIENTS))}), 400
+    fake_nr = f"INV-{date.today().year}-{random.randint(10000, 99999)}"
+    return jsonify(
+        {
+            "workitem_id": workitem_id,
+            "client": client_hint or "default",
+            "detail": {
+                "fields": {
+                    "InvoiceNumber": fake_nr,
+                    "InvoiceDate": (
+                        date.today() - timedelta(days=random.randint(0, 90))
+                    ).isoformat(),
+                    "TotalAmount": f"{random.uniform(10, 5000):.2f}",
+                },
+                "tables": [
+                    {
+                        "title": "LineItems",
+                        "columns": ["Description", "Quantity", "Amount"],
+                        "rows": [
+                            [
+                                {"column": "Description", "value": f"Item {i + 1}"},
+                                {"column": "Quantity", "value": str(random.randint(1, 9))},
+                                {"column": "Amount", "value": f"{random.uniform(5, 500):.2f}"},
+                            ]
+                            for i in range(random.randint(1, 3))
+                        ],
+                    }
+                ],
+            },
         }
     )
 
@@ -291,9 +599,14 @@ def register_routes(app):
         view_func=api_v1_undelivered,
     )
     app.add_url_rule(
-        "/api/v1/invoice/import_datetime",
-        endpoint="api_v1_invoice_import_datetime",
-        view_func=api_v1_invoice_import_datetime,
+        "/api/v1/workitems",
+        endpoint="api_v1_workitems",
+        view_func=api_v1_workitems,
+    )
+    app.add_url_rule(
+        "/api/v1/workitems/<int:workitem_id>",
+        endpoint="api_v1_workitem_detail",
+        view_func=api_v1_workitem_detail,
     )
     app.add_url_rule(
         "/api/test/v1/stats/today",
@@ -316,7 +629,12 @@ def register_routes(app):
         view_func=api_test_v1_undelivered,
     )
     app.add_url_rule(
-        "/api/test/v1/invoice/import_datetime",
-        endpoint="api_test_v1_invoice_import_datetime",
-        view_func=api_test_v1_invoice_import_datetime,
+        "/api/test/v1/workitems",
+        endpoint="api_test_v1_workitems",
+        view_func=api_test_v1_workitems,
+    )
+    app.add_url_rule(
+        "/api/test/v1/workitems/<int:workitem_id>",
+        endpoint="api_test_v1_workitem_detail",
+        view_func=api_test_v1_workitem_detail,
     )

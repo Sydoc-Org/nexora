@@ -5,7 +5,6 @@ field metadata) was removed in 2.5.65: it never had a frontend and its
 FieldMetadata / DashboardLayouts tables were never migrated to any
 environment."""
 
-import re
 from datetime import date, datetime, timedelta
 
 from flask import (
@@ -114,12 +113,15 @@ def _ms02_stat_rows(sql, *, strict=False):
         return []
 
 
-def _default_stat_rows(sql, *, strict=False):
+def _default_stat_rows(sql, params=None, *, strict=False):
     """Run a read-only query on the default StatisticsDB engine; return rows,
     or [] if the server is unreachable or the query errors (e.g. a stale
     Statconfig row pointing at a dropped table). Mirror of _ms02_stat_rows for
     the T-SQL leg: by default a leg failure must never blank the other leg's
     numbers -- log and yield no rows so each leg degrades independently.
+
+    params: optional positional query parameters (resolve_import_datetimes
+    passes the id list; the KPI legs interpolate config-derived SQL only).
 
     strict: see _ms02_stat_rows -- re-raise instead of swallowing so
     compute_today_stats(..., strict=True) (the external API) turns a genuine
@@ -128,7 +130,10 @@ def _default_stat_rows(sql, *, strict=False):
         conn = engine_statistics_db.raw_connection()
         try:
             cur = conn.cursor()
-            cur.execute(sql)
+            if params:
+                cur.execute(sql, params)
+            else:
+                cur.execute(sql)
             return cur.fetchall()
         finally:
             conn.close()
@@ -341,26 +346,18 @@ def format_avg_processing_display(avg_sec):
     return round(avg_minutes, 1), display
 
 
-def resolve_invoice_import_datetime(invoice_nr, target_processes, *, strict=False):
-    """Look up the import datetime for a single invoice number (issue #195,
-    external API v1). Default client only -- MS02 is out of scope for now.
-
-    Two-hop resolution, mirroring the doc-field search in
-    nx_lib/views/workitems.py: SearchConfig.col_invoicenr identifies the
-    table/alias holding the invoice number and a JoinCondition whose
-    alias-qualified side is that row's workitem-id column; Statconfig's
-    WorkitemColumn/ImportColumn on the process's stat table is then joined to
-    it to read the import date. The two tables coincide for most processes,
-    but nothing here assumes that.
-
-    Returns (import_datetime, process_name), or (None, None) if unconfigured
-    or no row matches invoice_nr among target_processes. strict mirrors
-    compute_today_stats: a StatisticsDB query failure raises instead of
-    degrading to "no match", so the API's 500 stays distinguishable from a
-    genuine not-found.
-    """
-    if not target_processes:
-        return None, None
+def resolve_import_datetimes(workitem_ids, target_processes, *, strict=False):
+    """Batch import-datetime lookup for a page of workitem ids (issue #197,
+    external API v1 /workitems -- supersedes issue #195's single-invoice
+    helper). Default client only: each default-client Statconfig row names the
+    stat table plus its WorkitemColumn/ImportColumn; one UNION query over
+    those tables maps every id it can. Ids are compared and returned as
+    strings (stat tables mix int and NVARCHAR id columns). Ids without a
+    match are simply absent from the result -- MS02 rows and unmapped
+    processes never appear. strict mirrors compute_today_stats: a
+    StatisticsDB failure raises instead of degrading to "no data"."""
+    if not workitem_ids or not target_processes:
+        return {}
 
     conn_nex = None
     try:
@@ -368,19 +365,8 @@ def resolve_invoice_import_datetime(invoice_nr, target_processes, *, strict=Fals
         cur = conn_nex.cursor()
         placeholders = ",".join(["?"] * len(target_processes))
         cur.execute(
-            f"""
-            SELECT sc.ProcessName, sc.TableName, sc.TableAlias, sc.JoinCondition,
-                   sc.col_invoicenr, st.TableName AS StatTableName,
-                   st.WorkitemColumn, st.ImportColumn
-            FROM SearchConfig sc
-            JOIN Statconfig st ON st.ProcessName = sc.ProcessName
-                AND ISNULL(st.ClientCode, 'default') = 'default'
-            WHERE ISNULL(sc.ClientCode, 'default') = 'default'
-              AND sc.col_invoicenr IS NOT NULL
-              AND st.WorkitemColumn IS NOT NULL
-              AND st.ImportColumn IS NOT NULL
-              AND sc.ProcessName IN ({placeholders})
-            """,
+            f"SELECT ProcessName, TableName, WorkitemColumn, ImportColumn, ClientCode "
+            f"FROM Statconfig WHERE ProcessName IN ({placeholders})",
             target_processes,
         )
         configs = cur.fetchall()
@@ -388,57 +374,39 @@ def resolve_invoice_import_datetime(invoice_nr, target_processes, *, strict=Fals
         if conn_nex:
             conn_nex.close()
 
-    if not configs:
-        return None, None
+    default_configs, _ms02_rows = _split_stat_configs(configs)
 
-    id_parts, params = [], []
-    for cfg in configs:
-        alias = cfg.TableAlias
-        id_col = None
-        for part in re.split(r"\s*=\s*", (cfg.JoinCondition or "").strip()):
-            if re.match(rf"^{re.escape(alias)}\.\w+$", part.strip(), re.IGNORECASE):
-                id_col = part.strip()
-                break
-        if not id_col:
-            current_app.logger.warning(
-                f"invoice lookup: could not extract ID col from JoinCondition "
-                f"for {cfg.ProcessName}: {cfg.JoinCondition}"
-            )
+    id_placeholders = ",".join(["?"] * len(workitem_ids))
+    str_ids = [str(w) for w in workitem_ids]
+    sub_queries = []
+    params = []
+    for row in default_configs:
+        if not getattr(row, "WorkitemColumn", None) or not row.ImportColumn:
             continue
-        id_parts.append(f"""
-            SELECT TOP 1 ? AS process_name, s.{cfg.ImportColumn} AS import_dt
-            FROM {cfg.TableName} {alias}
-            INNER JOIN {cfg.StatTableName} s ON s.{cfg.WorkitemColumn} = {id_col}
-            WHERE CAST({alias}.{cfg.col_invoicenr} AS NVARCHAR(MAX)) COLLATE DATABASE_DEFAULT = ?
-        """)
-        params.extend([cfg.ProcessName, invoice_nr])
-
-    if not id_parts:
-        return None, None
-
-    union_sql = " UNION ALL ".join(id_parts)
-    conn_stat = None
-    try:
-        conn_stat = engine_statistics_db.raw_connection()
-        cur = conn_stat.cursor()
-        cur.execute(
-            f"SELECT TOP 1 process_name, import_dt FROM ({union_sql}) t "
-            f"WHERE import_dt IS NOT NULL",
-            params,
+        # CAST + COLLATE on the id column: the UNION legs span stat tables with
+        # mixed id types/collations (same reason the doc-field search casts).
+        wid_expr = f"CAST({row.WorkitemColumn} AS NVARCHAR(50)) COLLATE DATABASE_DEFAULT"
+        sub_queries.append(
+            f"SELECT {wid_expr} AS wid, {row.ImportColumn} AS import_dt "
+            f"FROM [{DB_STATISTICS}].{row.TableName} "
+            f"WHERE {wid_expr} IN ({id_placeholders})"
         )
-        row = cur.fetchone()
-    except Exception as e:
-        current_app.logger.error(f"invoice import_datetime lookup failed: {e}")
-        if strict:
-            raise
-        return None, None
-    finally:
-        if conn_stat:
-            conn_stat.close()
+        params.extend(str_ids)
 
-    if not row:
-        return None, None
-    return row.import_dt, row.process_name
+    if not sub_queries:
+        return {}
+
+    full_query = (
+        f"SELECT wid, MAX(import_dt) AS import_dt "
+        f"FROM ({' UNION ALL '.join(sub_queries)}) t "
+        f"WHERE import_dt IS NOT NULL GROUP BY wid"
+    )
+    rows = (
+        _default_stat_rows(full_query, params, strict=True)
+        if strict
+        else _default_stat_rows(full_query, params)
+    )
+    return {str(r[0]): r[1] for r in rows}
 
 
 def compute_undelivered_count(target_processes, days, *, strict=False):

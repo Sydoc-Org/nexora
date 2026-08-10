@@ -526,7 +526,40 @@ def _stamp_in_register(rows):
         current_app.logger.error(f"_stamp_in_register: {e}")
 
 
-def _get_workitems_data(args, export_all=False):
+def _session_scope():
+    """The interactive callers' filter scope for _get_workitems_data: every
+    session/permission read the list path needs, gathered in one place so the
+    query body itself stays session-free. The external API builds its own
+    scope from the key's ProcessList instead (nx_lib/views/api_external.py) --
+    same keys, no session."""
+    prefix = "workitems.filter.process."
+    perms = session.get("permissions", [])
+    allowed = set()
+    for perm in perms:
+        if perm.startswith(prefix):
+            parts = perm.split(".")
+            if len(parts) >= 2:
+                allowed.add(f"{parts[-2]}.{parts[-1]}")
+    return {
+        # compound '<client>.<process>' strings the caller may see
+        "allowed": allowed,
+        "can_docfields": has_permission("workitems.filter.documentfields"),
+        "sensitive_blocked": sensitive_blocked_keys(),
+        "can_status": has_permission("workitems.filter.status"),
+        "can_deleted": has_permission("workitems.filter.status.deleted"),
+        "can_stage": has_permission("workitems.filter.stage"),
+        "can_search_id": has_permission("workitems.filter.workitemid"),
+        "can_dates": has_permission("workitems.filter.datetime"),
+        # remember the process selection in the session (overview UI state)
+        "persist_selection": True,
+        # stamp MS02 pid/in_register onto rows (reads session twice internally)
+        "stamp_register": True,
+    }
+
+
+def _get_workitems_data(args, export_all=False, scope=None):
+    if scope is None:
+        scope = _session_scope()
     page = args.get("page", 1, type=int)
     search_term = args.get("search", "").strip()
     status = args.get("status", "")
@@ -545,23 +578,22 @@ def _get_workitems_data(args, export_all=False):
         offset = (page - 1) * per_page
     activity_instances_to_ignore = get_activity_instances_to_ignore()
 
-    prefix = "workitems.filter.process."
-    perms = session.get("permissions", [])
-
-    allowed_processes_set = set()
-    for perm in perms:
-        if perm.startswith(prefix):
-            parts = perm.split(".")
-            if len(parts) >= 2:
-                allowed_processes_set.add(f"{parts[-2]}.{parts[-1]}")
+    allowed_processes_set = scope["allowed"]
 
     # "all" or a comma-joined selection (issue #150).
     process_name, target_processes = normalize_process_selection(
         args.get("prcfW", "all"), allowed_processes_set
     )
-    session["process_name_workitemOverview"] = process_name
+    if scope["persist_selection"]:
+        session["process_name_workitemOverview"] = process_name
 
-    client_process_pairs = prepare_process_selection_lists(prefix=prefix, process_name=process_name)
+    # target_processes is already the selection intersected with the allowed
+    # set (normalize_process_selection), so the (client, process) pairs derive
+    # from it directly -- equivalent to the former session-reading
+    # prepare_process_selection_lists call, but scope-driven.
+    client_process_pairs = sorted(
+        {(p.split(".")[0], p.split(".")[-1]) for p in target_processes if "." in p}
+    )
 
     docfields = args.getlist("docfield")
     docvalues = args.getlist("docvalue")
@@ -574,9 +606,9 @@ def _get_workitems_data(args, export_all=False):
     docfield_ids = None
     ms02_docfield_ids = None
 
-    if has_permission("workitems.filter.documentfields") and target_processes:
+    if scope["can_docfields"] and target_processes:
         valid_db_columns = get_valid_search_columns()
-        blocked_docfields = sensitive_blocked_keys()
+        blocked_docfields = scope["sensitive_blocked"]
 
         conn_nex = None
         cursor_nex = None
@@ -710,13 +742,9 @@ def _get_workitems_data(args, export_all=False):
     # so a mixed default+MS02 request never cross-shrinks. Guarded by the same
     # permission + target_processes; when the engine is absent this block is
     # skipped and the fail-closed guard below forces zero MS02 rows.
-    if (
-        has_permission("workitems.filter.documentfields")
-        and target_processes
-        and engine_ms02_docfields_pg is not None
-    ):
+    if scope["can_docfields"] and target_processes and engine_ms02_docfields_pg is not None:
         valid_db_columns = get_valid_search_columns()
-        blocked_docfields = sensitive_blocked_keys()
+        blocked_docfields = scope["sensitive_blocked"]
         conn_nex2 = None
         cursor_nex2 = None
         try:
@@ -823,8 +851,8 @@ def _get_workitems_data(args, export_all=False):
     # constraint" (which floods the result with the source's entire corpus;
     # observed on STAGING 2026-07-20). Sensitive-blocked fields keep their
     # designed "silently ignored" semantics and do not count as active.
-    if has_permission("workitems.filter.documentfields") and target_processes:
-        _blocked = sensitive_blocked_keys()
+    if scope["can_docfields"] and target_processes:
+        _blocked = scope["sensitive_blocked"]
         # A pair is active when it has a value and either no field (value-first
         # any-field search) or a non-sensitive field.
         _active = any(
@@ -843,31 +871,24 @@ def _get_workitems_data(args, export_all=False):
     # name is the ONLY way to see them, and only for holders of the internal
     # permission. Without it "Deleted" maps to None -> the unfiltered query, which
     # still carries `Status <> 2`, so an unauthorized caller cannot reach them.
-    if has_permission("workitems.filter.status.deleted"):
+    if scope["can_deleted"]:
         status_map["Deleted"] = 2
     filt = WorkitemFilter(
         client_process_pairs=client_process_pairs,
         activity_ignore_csv=activity_instances_to_ignore,
-        status_code=status_map.get(status)
-        if (status and has_permission("workitems.filter.status"))
-        else None,
-        stage=stage
-        if (stage in WORKITEM_STAGES and has_permission("workitems.filter.stage"))
-        else None,
-        search_id=search_term
-        if (search_term and has_permission("workitems.filter.workitemid"))
-        else None,
-        start_date=start_date
-        if (start_date and has_permission("workitems.filter.datetime"))
-        else None,
-        end_date=end_date if (end_date and has_permission("workitems.filter.datetime")) else None,
+        status_code=status_map.get(status) if (status and scope["can_status"]) else None,
+        stage=stage if (stage in WORKITEM_STAGES and scope["can_stage"]) else None,
+        search_id=search_term if (search_term and scope["can_search_id"]) else None,
+        start_date=start_date if (start_date and scope["can_dates"]) else None,
+        end_date=end_date if (end_date and scope["can_dates"]) else None,
         docfields=docfields or [],  # raw pairs kept for autocomplete only
         docvalues=docvalues or [],
         docfield_ids=docfield_ids,  # StatisticsDB-resolved -> SqlServerSource only
         ms02_docfield_ids=ms02_docfield_ids,  # MS02 doc-field DB-resolved -> PostgresSource
     )
     rows, total_items, degraded = fetch_merged_page(filt, offset, per_page)
-    _stamp_in_register(rows)
+    if scope["stamp_register"]:
+        _stamp_in_register(rows)
     workitems_list = rows
 
     total_pages = math.ceil(total_items / per_page) if per_page else 0
@@ -1808,43 +1829,59 @@ def api_get_media_info(workitem_id):
         # then cached, for the other client's identically numbered workitem.
         client_hint = _client_hint()
         domain = get_domain_for_workitem(workitem_id, client_hint=client_hint)
-        _ck = _wi_cache_key("media_info", workitem_id, domain)
-
-        cached_info = cache.get(_ck)
-        if cached_info:
-            return jsonify(_suppress(cached_info))
-
-        returndata = get_workitemdata_param(workitem_id, domain)
-        if not returndata:
+        response_data = _load_media_info(workitem_id, domain)
+        if response_data is None:
             return jsonify({"error": _("Workitem not found")}), 404
-
-        workitemdata, document_id = returndata
-        extensions, urls, fields, field_sources, table_sources = get_extensions_urls_fields(
-            workitemdata, document_id, domain, with_tables=True
-        )
-
-        media_count = len(urls) if urls else 0
-
-        if media_count > 0:
-            cache.set(
-                _wi_cache_key("media_data", workitem_id, domain),
-                {"extensions": extensions, "urls": urls},
-            )
-
-        response_data = {
-            "workitem_id": workitem_id,
-            "media_count": media_count,
-            "fields": fields,
-            "field_sources": field_sources,
-            "table_sources": table_sources,
-        }
-
-        cache.set(_ck, response_data)
-
         return jsonify(_suppress(response_data))
     except Exception as e:
         print(f"An error occurred in get_media_info: {e}")
         return jsonify({"error": _("Internal Server Error")}), 500
+
+
+def _load_media_info(workitem_id, domain):
+    """Fetch-and-cache core of the detail panel: the FULL (pre-suppression)
+    media_info payload for (workitem_id, domain), from cache or live Octo.
+    Shared by the session UI (api_get_media_info, which applies its
+    per-permission _suppress on top) and the external API detail endpoint
+    (nx_lib/views/api_external.py, which applies its fixed no-sensitive
+    policy). Returns None when the workitem/document can't be loaded --
+    unknown id and runtime-backend failure are indistinguishable at this
+    layer (get_workitemdata_param collapses both to None). Only ever writes
+    the full with-tables shape under the media_info cache key (see the
+    cache-poison warning in export_workitems_csv)."""
+    _ck = _wi_cache_key("media_info", workitem_id, domain)
+
+    cached_info = cache.get(_ck)
+    if cached_info:
+        return cached_info
+
+    returndata = get_workitemdata_param(workitem_id, domain)
+    if not returndata:
+        return None
+
+    workitemdata, document_id = returndata
+    extensions, urls, fields, field_sources, table_sources = get_extensions_urls_fields(
+        workitemdata, document_id, domain, with_tables=True
+    )
+
+    media_count = len(urls) if urls else 0
+
+    if media_count > 0:
+        cache.set(
+            _wi_cache_key("media_data", workitem_id, domain),
+            {"extensions": extensions, "urls": urls},
+        )
+
+    response_data = {
+        "workitem_id": workitem_id,
+        "media_count": media_count,
+        "fields": fields,
+        "field_sources": field_sources,
+        "table_sources": table_sources,
+    }
+
+    cache.set(_ck, response_data)
+    return response_data
 
 
 @require_permission("workitems.details.view.images")

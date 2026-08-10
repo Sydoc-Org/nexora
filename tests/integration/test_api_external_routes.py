@@ -18,6 +18,8 @@ import types
 from datetime import date, datetime
 from unittest.mock import MagicMock
 
+import pytest
+
 import nx_lib.views.api_external as ax
 import nx_lib.views.dashboard as dv
 from nx_lib.db import engine_nexora_db
@@ -261,6 +263,51 @@ def test_genuinely_quiet_day_still_returns_200_zeros(client, monkeypatch):
         _delete_key(key_hash)
 
 
+# ------------------- resolve_import_datetimes (real legs) ------------------ #
+
+
+def _import_cfg_row(client_code, name, table, wid_col, imp_col):
+    return types.SimpleNamespace(
+        ClientCode=client_code,
+        ProcessName=name,
+        TableName=table,
+        WorkitemColumn=wid_col,
+        ImportColumn=imp_col,
+    )
+
+
+def test_resolve_import_datetimes_maps_ids_and_skips_unmapped(monkeypatch, auth_app_ctx):
+    cfgs = [
+        _import_cfg_row("default", "sydoc.TestProc", "dbo.tblTest", "WorkitemID", "ImportDate"),
+        # No WorkitemColumn -> this process can't answer and must be skipped.
+        _import_cfg_row("default", "sydoc.Other", "dbo.tblOther", None, "ImportDate"),
+        # MS02 rows never feed the default-leg UNION.
+        _import_cfg_row("ms02", "sydoc.MsProc", 'public."DossierStatistik"', "wid", "imp"),
+    ]
+    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning(cfgs))
+    monkeypatch.setattr(
+        dv, "engine_statistics_db", _engine_returning([("1216", datetime(2026, 8, 1, 8, 0, 0))])
+    )
+    result = dv.resolve_import_datetimes([1216, 999], ["sydoc.TestProc", "sydoc.Other"])
+    assert result == {"1216": datetime(2026, 8, 1, 8, 0, 0)}
+
+
+def test_resolve_import_datetimes_empty_inputs_short_circuit(monkeypatch, auth_app_ctx):
+    monkeypatch.setattr(dv, "engine_nexora_db", _dead_engine("must not be reached"))
+    assert dv.resolve_import_datetimes([], ["sydoc.TestProc"]) == {}
+    assert dv.resolve_import_datetimes([1], []) == {}
+
+
+def test_resolve_import_datetimes_strict_raises_on_outage(monkeypatch, auth_app_ctx):
+    cfg = _import_cfg_row("default", "sydoc.TestProc", "dbo.tblTest", "WorkitemID", "ImportDate")
+    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning([cfg]))
+    monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine("Statistics DB down"))
+    with pytest.raises(RuntimeError):
+        dv.resolve_import_datetimes([1216], ["sydoc.TestProc"], strict=True)
+    # non-strict degrades to "no data" like the KPI legs
+    assert dv.resolve_import_datetimes([1216], ["sydoc.TestProc"]) == {}
+
+
 def test_rate_limit_429_for_unauthenticated_requests(client):
     # SECURITY PIN for the decorator order (@limiter.limit OUTERMOST, D11):
     # the 60/min limit must throttle unauthenticated requests too -- they are
@@ -449,122 +496,408 @@ def test_avg_post_method_not_allowed(client):
     assert resp.status_code == 405
 
 
-# ---------------------- /api/v1/invoice/import_datetime -------------------- #
+# ---------------------------- /api/v1/workitems ---------------------------- #
 
-INVOICE_URL = "/api/v1/invoice/import_datetime"
+WORKITEMS_URL = "/api/v1/workitems"
+WORKITEM_DETAIL_URL = "/api/v1/workitems/1216"
 
 
-def test_invoice_no_auth_header_returns_401_json(client):
-    resp = client.get(INVOICE_URL, query_string={"invoice_nr": "INV-1"})
+def _patch_field_whitelist(monkeypatch, columns=("col_invoicenr",), sensitive=()):
+    """Doc-field whitelist without a NexoraDB round-trip."""
+    monkeypatch.setattr(ax, "get_valid_search_columns", lambda: list(columns))
+    monkeypatch.setattr(ax, "get_sensitive_field_keys", lambda: set(sensitive))
+
+
+def test_workitems_no_auth_header_returns_401_json(client):
+    resp = client.get(WORKITEMS_URL)
     assert resp.status_code == 401
     assert resp.is_json
     assert resp.headers.get("WWW-Authenticate") == "Bearer"
 
 
-def test_invoice_missing_param_returns_400(client):
+def test_workitems_bad_params_return_400_without_backend(client, monkeypatch):
     raw = secrets.token_urlsafe(32)
     key_hash = _insert_key(raw)
+
+    def _must_not_be_called(*a, **kw):
+        raise AssertionError("_get_workitems_data must not run for an invalid request")
+
+    monkeypatch.setattr(ax, "_get_workitems_data", _must_not_be_called)
+    _patch_field_whitelist(monkeypatch)
+    bad = [
+        {"status": "Nope"},
+        {"stage": "Nope"},
+        {"start_date": "not-a-date"},
+        {"end_date": "31.12.2026"},
+        {"process": "other.NotGranted"},
+        {"field": "invoicenr"},  # field without value
+        {"field": "", "value": "x"},  # empty field key (no value-first search)
+        {"field": "invoicenr", "value": "x", "op": "regex"},
+        {"field": "invoicenr", "value": "x", "comb": "xor"},
+        {"page": "0"},
+        {"page": "abc"},
+        {"per_page": "41"},
+    ]
     try:
-        resp = client.get(INVOICE_URL, headers={"Authorization": f"Bearer {raw}"})
-        assert resp.status_code == 400
-        assert resp.get_json() == {"error": "Missing required query param 'invoice_nr'"}
+        for qs in bad:
+            resp = client.get(
+                WORKITEMS_URL, headers={"Authorization": f"Bearer {raw}"}, query_string=qs
+            )
+            assert resp.status_code == 400, qs
+            assert "error" in resp.get_json(), qs
     finally:
         _delete_key(key_hash)
 
 
-def test_invoice_good_key_returns_scoped_datetime_and_stamps_last_used(client, monkeypatch):
+def test_workitems_unknown_and_sensitive_field_answer_identically(client, monkeypatch):
+    # A sensitive field key must 400 exactly like an unknown one -- no
+    # sensitivity-existence oracle on the external surface.
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+    _patch_field_whitelist(monkeypatch, columns=("col_invoicenr", "col_pid"), sensitive=("pid",))
+    try:
+        for field in ("nosuchfield", "pid"):
+            resp = client.get(
+                WORKITEMS_URL,
+                headers={"Authorization": f"Bearer {raw}"},
+                query_string={"field": field, "value": "x"},
+            )
+            assert resp.status_code == 400
+            assert resp.get_json() == {"error": f"Unknown field '{field}'"}
+    finally:
+        _delete_key(key_hash)
+
+
+def test_workitems_empty_process_scope_returns_empty_page(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw, processes="")
+
+    def _must_not_be_called(*a, **kw):
+        raise AssertionError("_get_workitems_data must not run for an empty scope")
+
+    monkeypatch.setattr(ax, "_get_workitems_data", _must_not_be_called)
+    try:
+        resp = client.get(WORKITEMS_URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 200
+        assert resp.get_json() == {
+            "count": 0,
+            "page": 1,
+            "per_page": 40,
+            "total_pages": 0,
+            "workitems": [],
+        }
+    finally:
+        _delete_key(key_hash)
+
+
+def test_workitems_good_key_scopes_remaps_and_serializes(client, monkeypatch):
     raw = secrets.token_urlsafe(32)
     key_hash = _insert_key(raw, processes="sydoc.TestProc, sydoc.Other")
     seen = {}
 
-    def _fake_resolve(invoice_nr, target_processes, *, strict=False):
-        seen["invoice_nr"] = invoice_nr
-        seen["processes"] = target_processes
-        seen["strict"] = strict
-        return datetime(2026, 8, 4, 9, 12, 31), "sydoc.TestProc"
+    def _fake_data(args, export_all=False, scope=None):
+        seen["args"] = args
+        seen["scope"] = scope
+        return {
+            "workitems": [
+                {
+                    "modifiedat": datetime(2026, 8, 9, 14, 30, 0),
+                    "workitemid": 1216,
+                    "status": "Done",
+                    "current_stage": "Delivery",
+                    "client": "default",
+                },
+                {
+                    # Colliding id from the OTHER client: must NOT get the
+                    # default row's import_datetime stamped onto it.
+                    "modifiedat": datetime(2026, 8, 9, 15, 0, 0),
+                    "workitemid": 1216,
+                    "status": "Ready",
+                    "current_stage": "Import",
+                    "client": "ms02",
+                },
+            ],
+            "pagination": {"currentPage": 1, "totalPages": 1, "totalItems": 2, "perPage": 40},
+            "degradedSources": [],
+        }
 
-    monkeypatch.setattr(ax, "resolve_invoice_import_datetime", _fake_resolve)
+    def _fake_import_map(ids, processes, *, strict=False):
+        seen["import_ids"] = ids
+        seen["import_processes"] = processes
+        seen["import_strict"] = strict
+        return {"1216": datetime(2026, 8, 1, 8, 0, 0)}
+
+    monkeypatch.setattr(ax, "_get_workitems_data", _fake_data)
+    monkeypatch.setattr(ax, "resolve_import_datetimes", _fake_import_map)
+    _patch_field_whitelist(monkeypatch)
     try:
         resp = client.get(
-            INVOICE_URL,
+            WORKITEMS_URL,
             headers={"Authorization": f"Bearer {raw}"},
-            query_string={"invoice_nr": "INV-2026-1"},
+            query_string=[
+                ("status", "Done"),
+                ("stage", "Delivery"),
+                ("start_date", "2026-08-01"),
+                ("end_date", "2026-08-10"),
+                ("process", "sydoc.TestProc"),
+                ("field", "invoicenr"),
+                ("value", "INV-2026-1"),
+                ("op", "eq"),
+            ],
         )
         assert resp.status_code == 200
-        assert resp.get_json() == {
-            "invoice_nr": "INV-2026-1",
-            "import_datetime": "2026-08-04 09:12:31",
-        }
-        assert seen["invoice_nr"] == "INV-2026-1"
-        assert seen["processes"] == ["sydoc.TestProc", "sydoc.Other"]
-        assert seen["strict"] is True
+        body = resp.get_json()
+        assert body["count"] == 2
+        assert body["page"] == 1
+        assert body["per_page"] == 40
+        assert body["total_pages"] == 1
+        assert body["workitems"] == [
+            {
+                "id": 1216,
+                "client": "default",
+                "status": "Done",
+                "stage": "Delivery",
+                "modified_at": "2026-08-09 14:30:00",
+                "import_datetime": "2026-08-01 08:00:00",
+            },
+            {
+                "id": 1216,
+                "client": "ms02",
+                "status": "Ready",
+                "stage": "Import",
+                "modified_at": "2026-08-09 15:00:00",
+                "import_datetime": None,
+            },
+        ]
+        # External -> internal arg remap
+        args = seen["args"]
+        assert args.get("status") == "Done"
+        assert args.get("stage") == "Delivery"
+        assert args.get("startDate") == "2026-08-01"
+        assert args.get("endDate") == "2026-08-10"
+        assert args.get("prcfW") == "sydoc.TestProc"
+        assert args.getlist("docfield") == ["invoicenr"]
+        assert args.getlist("docvalue") == ["INV-2026-1"]
+        assert args.getlist("docop") == ["eq"]
+        assert args.getlist("doccomb") == ["and"]
+        # Session-less scope from the key's ProcessList
+        scope = seen["scope"]
+        assert scope["allowed"] == {"sydoc.TestProc", "sydoc.Other"}
+        assert scope["can_docfields"] is True
+        assert scope["can_deleted"] is False
+        assert scope["persist_selection"] is False
+        assert scope["stamp_register"] is False
+        # Import-datetime enrichment: default-client ids only, strict
+        assert seen["import_ids"] == [1216]
+        assert seen["import_strict"] is True
         assert _last_used(key_hash) is not None
     finally:
         _delete_key(key_hash)
 
 
-def test_invoice_not_found_returns_404_null(client, monkeypatch):
+def test_workitems_degraded_source_returns_500(client, monkeypatch):
     raw = secrets.token_urlsafe(32)
     key_hash = _insert_key(raw)
 
-    def _fake_resolve(invoice_nr, target_processes, *, strict=False):
-        return None, None
+    def _fake_data(args, export_all=False, scope=None):
+        return {
+            "workitems": [],
+            "pagination": {"currentPage": 1, "totalPages": 0, "totalItems": 0, "perPage": 40},
+            "degradedSources": ["ms02"],
+        }
 
-    monkeypatch.setattr(ax, "resolve_invoice_import_datetime", _fake_resolve)
+    monkeypatch.setattr(ax, "_get_workitems_data", _fake_data)
     try:
-        resp = client.get(
-            INVOICE_URL,
-            headers={"Authorization": f"Bearer {raw}"},
-            query_string={"invoice_nr": "NOPE"},
-        )
-        assert resp.status_code == 404
-        assert resp.get_json() == {"invoice_nr": "NOPE", "import_datetime": None}
+        resp = client.get(WORKITEMS_URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 500
+        assert resp.get_json() == {"error": "Workitems backend unavailable"}
     finally:
         _delete_key(key_hash)
 
 
-def test_invoice_empty_process_scope_returns_404_without_resolve(client, monkeypatch):
+def test_workitems_backend_error_returns_500_json(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+
+    def _boom(args, export_all=False, scope=None):
+        raise RuntimeError("sources exploded")
+
+    monkeypatch.setattr(ax, "_get_workitems_data", _boom)
+    try:
+        resp = client.get(WORKITEMS_URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 500
+        assert resp.get_json() == {"error": "Workitems backend unavailable"}
+    finally:
+        _delete_key(key_hash)
+
+
+def test_workitems_post_method_not_allowed(client):
+    resp = client.post(WORKITEMS_URL)
+    assert resp.status_code == 405
+
+
+# ------------------------- /api/v1/workitems/<id> -------------------------- #
+
+
+def test_workitem_detail_no_auth_header_returns_401_json(client):
+    # The auth sweep skips parameterized rules ('<' in rule) -- this pins the
+    # detail route's @require_api_key explicitly.
+    resp = client.get(WORKITEM_DETAIL_URL)
+    assert resp.status_code == 401
+    assert resp.is_json
+    assert resp.headers.get("WWW-Authenticate") == "Bearer"
+
+
+def test_workitem_detail_bad_client_returns_400(client):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+    try:
+        resp = client.get(
+            WORKITEM_DETAIL_URL,
+            headers={"Authorization": f"Bearer {raw}"},
+            query_string={"client": "nope"},
+        )
+        assert resp.status_code == 400
+        assert "client must be one of" in resp.get_json()["error"]
+    finally:
+        _delete_key(key_hash)
+
+
+def test_workitem_detail_empty_scope_returns_404_null(client, monkeypatch):
     raw = secrets.token_urlsafe(32)
     key_hash = _insert_key(raw, processes="")
 
-    def _must_not_be_called(invoice_nr, target_processes, *, strict=False):
-        raise AssertionError("resolve_invoice_import_datetime must not run for an empty scope")
+    def _must_not_be_called(*a, **kw):
+        raise AssertionError("source resolution must not run for an empty scope")
 
-    monkeypatch.setattr(ax, "resolve_invoice_import_datetime", _must_not_be_called)
+    monkeypatch.setattr(ax, "get_source_for_workitem", _must_not_be_called)
     try:
-        resp = client.get(
-            INVOICE_URL,
-            headers={"Authorization": f"Bearer {raw}"},
-            query_string={"invoice_nr": "INV-1"},
-        )
+        resp = client.get(WORKITEM_DETAIL_URL, headers={"Authorization": f"Bearer {raw}"})
         assert resp.status_code == 404
-        assert resp.get_json() == {"invoice_nr": "INV-1", "import_datetime": None}
+        assert resp.get_json() == {"workitem_id": 1216, "detail": None}
     finally:
         _delete_key(key_hash)
 
 
-def test_invoice_backend_error_returns_500_json(client, monkeypatch):
+def test_workitem_detail_unresolvable_and_out_of_scope_answer_identically(client, monkeypatch):
+    # Unknown id and not-entitled id must be indistinguishable (uniform 404,
+    # no existence oracle) -- deliberate deviation from the UI's 403.
     raw = secrets.token_urlsafe(32)
-    key_hash = _insert_key(raw)
+    key_hash = _insert_key(raw, processes="sydoc.TestProc")
+    monkeypatch.setattr(ax, "get_source_for_workitem", lambda wid, client_hint=None: "default")
+    try:
+        for pair in (None, ("sydoc", "NotGranted")):
+            monkeypatch.setattr(
+                ax, "process_pair_for_workitem", lambda wid, client_hint=None, _p=pair: _p
+            )
+            resp = client.get(WORKITEM_DETAIL_URL, headers={"Authorization": f"Bearer {raw}"})
+            assert resp.status_code == 404
+            assert resp.get_json() == {"workitem_id": 1216, "detail": None}
+    finally:
+        _delete_key(key_hash)
 
-    def _boom(invoice_nr, target_processes, *, strict=False):
-        raise RuntimeError("StatisticsDB exploded")
 
-    monkeypatch.setattr(ax, "resolve_invoice_import_datetime", _boom)
+def test_workitem_detail_good_key_returns_stripped_fields_and_tables(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw, processes="sydoc.TestProc")
+    seen = {}
+
+    def _fake_source(wid, client_hint=None):
+        seen["hint"] = client_hint
+        return "default"
+
+    payload = {
+        "workitem_id": 1216,
+        "media_count": 3,
+        "fields": {"InvoiceNumber": "INV-2026-1", "Person ID": "756.1234"},
+        "field_sources": [
+            {"key": "InvoiceNumber", "label": "Invoice Number", "value": "INV-2026-1"},
+            {"key": "Person ID", "label": "Person ID", "value": "756.1234"},
+        ],
+        "table_sources": [
+            {
+                "title": "LineItems",
+                "columns": ["Amount", "PID"],
+                "rows": [
+                    [
+                        {"col": "Amount", "value": "10.00", "confidence": 0.93, "locations": []},
+                        {"col": "PID", "value": "756.1234"},
+                    ]
+                ],
+            }
+        ],
+    }
+    monkeypatch.setattr(ax, "get_source_for_workitem", _fake_source)
+    monkeypatch.setattr(
+        ax, "process_pair_for_workitem", lambda wid, client_hint=None: ("Sydoc", "testproc")
+    )
+    monkeypatch.setattr(ax, "get_domain_for_workitem", lambda wid, client_hint=None: "octo.test")
+    monkeypatch.setattr(ax, "_load_media_info", lambda wid, domain: payload)
+    monkeypatch.setattr(ax, "get_sensitive_field_tokens", lambda: {"personid", "pid"})
     try:
         resp = client.get(
-            INVOICE_URL,
+            WORKITEM_DETAIL_URL,
             headers={"Authorization": f"Bearer {raw}"},
-            query_string={"invoice_nr": "INV-1"},
+            query_string={"client": "default"},
         )
-        assert resp.status_code == 500
-        assert resp.get_json() == {"error": "Stats backend unavailable"}
+        assert resp.status_code == 200
+        # Entitlement compares case-insensitively; ?client= is forwarded as
+        # the routing hint.
+        assert seen["hint"] == "default"
+        assert resp.get_json() == {
+            "workitem_id": 1216,
+            "client": "default",
+            "detail": {
+                "fields": {"InvoiceNumber": "INV-2026-1"},
+                "tables": [
+                    {
+                        "title": "LineItems",
+                        "columns": ["Amount"],
+                        "rows": [[{"column": "Amount", "value": "10.00"}]],
+                    }
+                ],
+            },
+        }
+        assert _last_used(key_hash) is not None
     finally:
         _delete_key(key_hash)
 
 
-def test_invoice_post_method_not_allowed(client):
-    resp = client.post(INVOICE_URL)
+def test_workitem_detail_unloadable_document_returns_404_null(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw, processes="sydoc.TestProc")
+    monkeypatch.setattr(ax, "get_source_for_workitem", lambda wid, client_hint=None: "default")
+    monkeypatch.setattr(
+        ax, "process_pair_for_workitem", lambda wid, client_hint=None: ("sydoc", "TestProc")
+    )
+    monkeypatch.setattr(ax, "get_domain_for_workitem", lambda wid, client_hint=None: "octo.test")
+    monkeypatch.setattr(ax, "_load_media_info", lambda wid, domain: None)
+    try:
+        resp = client.get(WORKITEM_DETAIL_URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 404
+        assert resp.get_json() == {"workitem_id": 1216, "detail": None}
+    finally:
+        _delete_key(key_hash)
+
+
+def test_workitem_detail_backend_error_returns_500_json(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw, processes="sydoc.TestProc")
+
+    def _boom(wid, client_hint=None):
+        raise RuntimeError("NexoraDB exploded")
+
+    monkeypatch.setattr(ax, "get_source_for_workitem", _boom)
+    try:
+        resp = client.get(WORKITEM_DETAIL_URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 500
+        assert resp.get_json() == {"error": "Workitems backend unavailable"}
+    finally:
+        _delete_key(key_hash)
+
+
+def test_workitem_detail_post_method_not_allowed(client):
+    resp = client.post(WORKITEM_DETAIL_URL)
     assert resp.status_code == 405
 
 
@@ -661,39 +994,96 @@ def test_test_avg_good_key_returns_random_data_in_real_shape(client):
         _delete_key(key_hash)
 
 
-TEST_INVOICE_URL = "/api/test/v1/invoice/import_datetime"
+TEST_WORKITEMS_URL = "/api/test/v1/workitems"
+TEST_WORKITEM_DETAIL_URL = "/api/test/v1/workitems/1216"
 
 
-def test_test_invoice_no_auth_header_returns_401_json(client):
-    resp = client.get(TEST_INVOICE_URL, query_string={"invoice_nr": "INV-1"})
+def test_test_workitems_no_auth_header_returns_401_json(client):
+    resp = client.get(TEST_WORKITEMS_URL)
     assert resp.status_code == 401
     assert resp.is_json
 
 
-def test_test_invoice_missing_param_returns_400(client):
-    raw = secrets.token_urlsafe(32)
-    key_hash = _insert_key(raw)
-    try:
-        resp = client.get(TEST_INVOICE_URL, headers={"Authorization": f"Bearer {raw}"})
-        assert resp.status_code == 400
-        assert resp.get_json() == {"error": "Missing required query param 'invoice_nr'"}
-    finally:
-        _delete_key(key_hash)
-
-
-def test_test_invoice_good_key_returns_random_data_in_real_shape(client):
+def test_test_workitems_validates_params_like_the_real_endpoint(client):
     raw = secrets.token_urlsafe(32)
     key_hash = _insert_key(raw)
     try:
         resp = client.get(
-            TEST_INVOICE_URL,
+            TEST_WORKITEMS_URL,
             headers={"Authorization": f"Bearer {raw}"},
-            query_string={"invoice_nr": "INV-1"},
+            query_string={"status": "Nope"},
+        )
+        assert resp.status_code == 400
+        # ...but accepts ANY field name: the sandbox skips the DB-backed
+        # doc-field whitelist to stay zero-backend-query.
+        resp = client.get(
+            TEST_WORKITEMS_URL,
+            headers={"Authorization": f"Bearer {raw}"},
+            query_string={"field": "anything", "value": "x"},
+        )
+        assert resp.status_code == 200
+    finally:
+        _delete_key(key_hash)
+
+
+def test_test_workitems_good_key_returns_random_data_in_real_shape(client):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+    try:
+        resp = client.get(
+            TEST_WORKITEMS_URL,
+            headers={"Authorization": f"Bearer {raw}"},
+            query_string={"per_page": "100", "page": "2"},
         )
         assert resp.status_code == 200
         body = resp.get_json()
-        assert body["invoice_nr"] == "INV-1"
-        datetime.strptime(body["import_datetime"], "%Y-%m-%d %H:%M:%S")
+        assert set(body) == {"count", "page", "per_page", "total_pages", "workitems"}
+        assert body["page"] == 2
+        assert body["per_page"] == 100
+        assert body["count"] == len(body["workitems"])
+        for row in body["workitems"]:
+            assert set(row) == {
+                "id",
+                "client",
+                "status",
+                "stage",
+                "modified_at",
+                "import_datetime",
+            }
+            datetime.strptime(row["modified_at"], "%Y-%m-%d %H:%M:%S")
+            datetime.strptime(row["import_datetime"], "%Y-%m-%d %H:%M:%S")
+        assert _last_used(key_hash) is not None
+    finally:
+        _delete_key(key_hash)
+
+
+def test_test_workitem_detail_no_auth_header_returns_401_json(client):
+    resp = client.get(TEST_WORKITEM_DETAIL_URL)
+    assert resp.status_code == 401
+    assert resp.is_json
+
+
+def test_test_workitem_detail_good_key_returns_fake_document_in_real_shape(client):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+    try:
+        resp = client.get(
+            TEST_WORKITEM_DETAIL_URL,
+            headers={"Authorization": f"Bearer {raw}"},
+            query_string={"client": "nope"},
+        )
+        assert resp.status_code == 400
+        resp = client.get(TEST_WORKITEM_DETAIL_URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert body["workitem_id"] == 1216
+        assert body["client"] == "default"
+        assert body["detail"]["fields"]
+        table = body["detail"]["tables"][0]
+        assert set(table) == {"title", "columns", "rows"}
+        for row in table["rows"]:
+            for cell in row:
+                assert set(cell) == {"column", "value"}
         assert _last_used(key_hash) is not None
     finally:
         _delete_key(key_hash)
