@@ -5,11 +5,12 @@ Docs", permission `api.docs.view`) for internal staff and API clients'
 portal accounts — this file stays the source of truth; keep both in sync.
 
 Read-only JSON API for external clients, authenticated with per-client API
-keys. Two documented endpoints in v1. Code: routes in
+keys. Three documented endpoints in v1. Code: routes in
 `nx_lib/views/api_external.py`, auth in `nx_lib/api_auth.py`, KPI
 computation shared with the dashboard (`compute_today_stats` /
-`compute_avg_processing_time` in `nx_lib/views/dashboard.py`,
-`total_backlog_count` in `nx_lib/workitem_sources.py`), table created by
+`compute_avg_processing_time` / `resolve_invoice_import_datetime` in
+`nx_lib/views/dashboard.py`, `total_backlog_count` in
+`nx_lib/workitem_sources.py`), table created by
 `sql/_migrations/NexoraDB/0038_create_api_keys.sql`.
 
 `GET /api/v1/stats/today` also still exists in code (and its
@@ -136,6 +137,28 @@ with 2. The MS02 client contributes one more such average from its own
 table, folded into the same mean. Not cached: every call computes fresh
 numbers.
 
+## GET /api/v1/invoice/import_datetime
+
+The import datetime for a single invoice number, scoped to the key's
+`ProcessList` (default client only — MS02 is out of scope for now):
+
+    curl -H "Authorization: Bearer <key>" \
+        "https://nexora.sydoc.ch/nexora/api/v1/invoice/import_datetime?invoice_nr=INV-2026-00123"
+
+    {
+      "invoice_nr": "INV-2026-00123",
+      "import_datetime": "2026-08-04 09:12:31"
+    }
+
+- `invoice_nr` (query param, required) — matched against
+  `dbo.SearchConfig.col_invoicenr` for the key's processes; `400` if missing.
+- `import_datetime` — **server-local** timestamp (`YYYY-MM-DD HH:MM:SS`) the
+  invoice was imported. `404 {"invoice_nr": "...", "import_datetime": null}`
+  if the invoice number isn't found among the key's scoped processes (or the
+  scope is empty). If the same invoice number exists in more than one
+  scoped process, the first match wins — invoice numbers are expected to be
+  unique per client.
+
 ## Test sandbox (/api/test/v1)
 
 Every `/api/v1/...` route has a `/api/test/v1/...` twin: same path suffix,
@@ -160,12 +183,14 @@ counterpart in the same change.
 
 | Status | Body | Meaning |
 |---|---|---|
+| 400 | `{"error": "Missing required query param 'invoice_nr'"}` | `/invoice/import_datetime` called without `?invoice_nr=` |
 | 401 | `{"error": "Missing or malformed Authorization header"}` | no/bad `Authorization: Bearer` header (`WWW-Authenticate: Bearer` set) |
 | 401 | `{"error": "Invalid API key"}` | unknown **or disabled** key (uniform on purpose) |
 | 404 | `{"error": "Not found"}` | wrong path under `/api/v1` |
+| 404 | `{"invoice_nr": "...", "import_datetime": null}` | invoice number not found among the key's scoped processes |
 | 405 | HTML (Flask default) | non-GET verb — the API is GET-only |
 | 429 | HTML (flask-limiter default) | over 60 requests/minute |
-| 500 | `{"error": "Stats backend unavailable"}` (`/avg_processing_time`) or `{"error": "Backlog backend unavailable"}` (`/backlog`) or `{"error": "Internal server error"}` | stats/backlog query or server failure |
+| 500 | `{"error": "Stats backend unavailable"}` (`/avg_processing_time`, `/invoice/import_datetime`) or `{"error": "Backlog backend unavailable"}` (`/backlog`) or `{"error": "Internal server error"}` | stats/backlog/invoice query or server failure |
 | 503 | `{"error": "Auth backend unavailable"}` | NexoraDB unreachable during auth (fail closed) |
 | 503 | `{"error": "Maintenance", "maintenance": {...}}` | blocking maintenance window (global lockout) |
 

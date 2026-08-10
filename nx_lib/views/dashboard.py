@@ -5,6 +5,7 @@ field metadata) was removed in 2.5.65: it never had a frontend and its
 FieldMetadata / DashboardLayouts tables were never migrated to any
 environment."""
 
+import re
 from datetime import date, datetime, timedelta
 
 from flask import (
@@ -338,6 +339,106 @@ def format_avg_processing_display(avg_sec):
     else:
         display = f"{avg_minutes / 60:.1f}h"
     return round(avg_minutes, 1), display
+
+
+def resolve_invoice_import_datetime(invoice_nr, target_processes, *, strict=False):
+    """Look up the import datetime for a single invoice number (issue #195,
+    external API v1). Default client only -- MS02 is out of scope for now.
+
+    Two-hop resolution, mirroring the doc-field search in
+    nx_lib/views/workitems.py: SearchConfig.col_invoicenr identifies the
+    table/alias holding the invoice number and a JoinCondition whose
+    alias-qualified side is that row's workitem-id column; Statconfig's
+    WorkitemColumn/ImportColumn on the process's stat table is then joined to
+    it to read the import date. The two tables coincide for most processes,
+    but nothing here assumes that.
+
+    Returns (import_datetime, process_name), or (None, None) if unconfigured
+    or no row matches invoice_nr among target_processes. strict mirrors
+    compute_today_stats: a StatisticsDB query failure raises instead of
+    degrading to "no match", so the API's 500 stays distinguishable from a
+    genuine not-found.
+    """
+    if not target_processes:
+        return None, None
+
+    conn_nex = None
+    try:
+        conn_nex = engine_nexora_db.raw_connection()
+        cur = conn_nex.cursor()
+        placeholders = ",".join(["?"] * len(target_processes))
+        cur.execute(
+            f"""
+            SELECT sc.ProcessName, sc.TableName, sc.TableAlias, sc.JoinCondition,
+                   sc.col_invoicenr, st.TableName AS StatTableName,
+                   st.WorkitemColumn, st.ImportColumn
+            FROM SearchConfig sc
+            JOIN Statconfig st ON st.ProcessName = sc.ProcessName
+                AND ISNULL(st.ClientCode, 'default') = 'default'
+            WHERE ISNULL(sc.ClientCode, 'default') = 'default'
+              AND sc.col_invoicenr IS NOT NULL
+              AND st.WorkitemColumn IS NOT NULL
+              AND st.ImportColumn IS NOT NULL
+              AND sc.ProcessName IN ({placeholders})
+            """,
+            target_processes,
+        )
+        configs = cur.fetchall()
+    finally:
+        if conn_nex:
+            conn_nex.close()
+
+    if not configs:
+        return None, None
+
+    id_parts, params = [], []
+    for cfg in configs:
+        alias = cfg.TableAlias
+        id_col = None
+        for part in re.split(r"\s*=\s*", (cfg.JoinCondition or "").strip()):
+            if re.match(rf"^{re.escape(alias)}\.\w+$", part.strip(), re.IGNORECASE):
+                id_col = part.strip()
+                break
+        if not id_col:
+            current_app.logger.warning(
+                f"invoice lookup: could not extract ID col from JoinCondition "
+                f"for {cfg.ProcessName}: {cfg.JoinCondition}"
+            )
+            continue
+        id_parts.append(f"""
+            SELECT TOP 1 ? AS process_name, s.{cfg.ImportColumn} AS import_dt
+            FROM {cfg.TableName} {alias}
+            INNER JOIN {cfg.StatTableName} s ON s.{cfg.WorkitemColumn} = {id_col}
+            WHERE CAST({alias}.{cfg.col_invoicenr} AS NVARCHAR(MAX)) COLLATE DATABASE_DEFAULT = ?
+        """)
+        params.extend([cfg.ProcessName, invoice_nr])
+
+    if not id_parts:
+        return None, None
+
+    union_sql = " UNION ALL ".join(id_parts)
+    conn_stat = None
+    try:
+        conn_stat = engine_statistics_db.raw_connection()
+        cur = conn_stat.cursor()
+        cur.execute(
+            f"SELECT TOP 1 process_name, import_dt FROM ({union_sql}) t "
+            f"WHERE import_dt IS NOT NULL",
+            params,
+        )
+        row = cur.fetchone()
+    except Exception as e:
+        current_app.logger.error(f"invoice import_datetime lookup failed: {e}")
+        if strict:
+            raise
+        return None, None
+    finally:
+        if conn_stat:
+            conn_stat.close()
+
+    if not row:
+        return None, None
+    return row.import_dt, row.process_name
 
 
 # ----------------------------- legacy KPI endpoints (still used by the templates) ----- #

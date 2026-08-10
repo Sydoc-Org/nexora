@@ -35,6 +35,12 @@ Work toward the next release.
   `compute_avg_processing_time` helper (`nx_lib/views/dashboard.py`) so the
   dashboard and the API can never drift apart. Documented in
   `docs/howto/external-api.md` and the in-app `/api-docs` page.
+- External API v1: `GET /api/v1/invoice/import_datetime?invoice_nr=<nr>` (#195)
+  — returns the import datetime for a single invoice number, scoped to the
+  API key's process list (default client only). 404 with a null
+  `import_datetime` when unmapped/not found; `/api/test/v1/invoice/import_datetime`
+  sandbox twin added per convention. Docs: `docs/howto/external-api.md`,
+  in-app `/api-docs`.
 - **What's New page** (#169) — `/whats_new` (profile dropdown and Ctrl+K),
   showing curated, translated per-release feature notes authored in
   `nx_lib/whats_new.py` at release time (the raw `CHANGELOG.md` stays

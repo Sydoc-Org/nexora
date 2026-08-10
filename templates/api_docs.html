@@ -99,6 +99,9 @@
         <button class="apidocs-nav-item" data-section="avg-processing-time" data-testid="apidocs-nav-avg-processing-time">
           <span class="apidocs-method">GET</span><span class="truncate">/avg_processing_time</span>
         </button>
+        <button class="apidocs-nav-item" data-section="invoice-import-datetime" data-testid="apidocs-nav-invoice-import-datetime">
+          <span class="apidocs-method">GET</span><span class="truncate">/invoice/import_datetime</span>
+        </button>
 
         <div class="apidocs-nav-group">{{ _("Test sandbox") }}</div>
         <button class="apidocs-nav-item" data-section="test-sandbox" data-testid="apidocs-nav-test-sandbox">
@@ -171,9 +174,11 @@ Authorization: Bearer &lt;api key&gt;</code></pre>
             <table class="nx-table">
               <thead><tr><th>{{ _("Status") }}</th><th>{{ _("Body") }}</th><th>{{ _("Meaning") }}</th></tr></thead>
               <tbody>
+                <tr><td class="nx-mono">400</td><td class="apidocs-td"><code>{"error": "Missing required query param 'invoice_nr'"}</code></td><td class="apidocs-td">{{ _("invoice/import_datetime called without ?invoice_nr=") }}</td></tr>
                 <tr><td class="nx-mono">401</td><td class="apidocs-td"><code>{"error": "Missing or malformed Authorization header"}</code></td><td class="apidocs-td">{{ _("Missing or malformed Authorization: Bearer header") }}</td></tr>
                 <tr><td class="nx-mono">401</td><td class="apidocs-td"><code>{"error": "Invalid API key"}</code></td><td>{{ _("Unknown or disabled key (uniform on purpose)") }}</td></tr>
                 <tr><td class="nx-mono">404</td><td class="apidocs-td"><code>{"error": "Not found"}</code></td><td class="apidocs-td">{{ _("Wrong path under") }} <code>/api/v1</code></td></tr>
+                <tr><td class="nx-mono">404</td><td class="apidocs-td"><code>{"invoice_nr": "...", "import_datetime": null}</code></td><td class="apidocs-td">{{ _("Invoice number not found among your key's scoped processes") }}</td></tr>
                 <tr><td class="nx-mono">405</td><td>{{ _("HTML") }}</td><td>{{ _("Non-GET verb — the API is GET-only") }}</td></tr>
                 <tr><td class="nx-mono">429</td><td>{{ _("HTML") }}</td><td>{{ _("Over the rate limit") }}</td></tr>
                 <tr><td class="nx-mono">500</td><td class="apidocs-td"><code>{"error": "..."}</code></td><td>{{ _("Backend or server failure") }}</td></tr>
@@ -250,6 +255,37 @@ Authorization: Bearer &lt;api key&gt;</code></pre>
           <p class="apidocs-p mt-2">{{ _("Calculation: for each configured process/table, the average seconds between import and export among rows exported today; the per-source averages are then combined as a plain mean, not weighted by how many rows each source had. Responses are computed fresh on every call — there is no cache.") }}</p>
         </section>
 
+        <!-- ============ GET /invoice/import_datetime ============ -->
+        <section id="apidocs-invoice-import-datetime" class="apidocs-section nx-card nx-card--pad" data-testid="apidocs-section-invoice-import-datetime">
+          <h2 class="apidocs-h2 mt-0 flex items-center gap-2"><span class="apidocs-method">GET</span><span class="nx-mono">/api/v1/invoice/import_datetime</span></h2>
+          <p class="apidocs-p">{{ _("The import datetime for a single invoice number, scoped to your key's processes. Default client only.") }}</p>
+          <div class="apidocs-code">
+            <span class="apidocs-code-label">curl</span>
+            <button class="apidocs-copy" title="{{ _('Copy') }}" aria-label="{{ _('Copy code') }}"><i class="far fa-copy"></i></button>
+            <pre><code class="language-bash">curl -H "Authorization: Bearer &lt;api key&gt;" \
+    "https://nexora.sydoc.ch/nexora/api/v1/invoice/import_datetime?invoice_nr=INV-2026-00123"</code></pre>
+          </div>
+          <div class="apidocs-code">
+            <span class="apidocs-code-label">{{ _("response") }} 200</span>
+            <button class="apidocs-copy" title="{{ _('Copy') }}" aria-label="{{ _('Copy code') }}"><i class="far fa-copy"></i></button>
+            <pre><code class="language-json">{
+  "invoice_nr": "INV-2026-00123",
+  "import_datetime": "2026-08-04 09:12:31"
+}</code></pre>
+          </div>
+          <h2 class="apidocs-h2">{{ _("Response fields") }}</h2>
+          <div class="nx-table-wrap">
+            <table class="nx-table">
+              <thead><tr><th>{{ _("Field") }}</th><th>{{ _("Type") }}</th><th>{{ _("Meaning") }}</th></tr></thead>
+              <tbody>
+                <tr><td class="apidocs-td"><code>invoice_nr</code></td><td class="nx-mono">string</td><td>{{ _("The invoice number you queried, echoed back") }}</td></tr>
+                <tr><td class="apidocs-td"><code>import_datetime</code></td><td class="nx-mono">string | null</td><td>{{ _("Server-local timestamp the invoice was imported (YYYY-MM-DD HH:MM:SS), or null on a 404") }}</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="apidocs-p mt-2">{{ _("Requires the invoice_nr query parameter (400 if missing). Returns 404 with a null import_datetime if the invoice number isn't found among your key's scoped processes.") }}</p>
+        </section>
+
         <!-- ============ Test sandbox ============ -->
         <section id="apidocs-test-sandbox" class="apidocs-section nx-card nx-card--pad" data-testid="apidocs-section-test-sandbox">
           <h2 class="apidocs-h2 mt-0">{{ _("Test sandbox") }}</h2>
@@ -268,7 +304,7 @@ Authorization: Bearer &lt;api key&gt;</code></pre>
   "current_backlog": 289
 }</code></pre>
           </div>
-          <p class="apidocs-p mt-2">{{ _("Use a real (enabled) API key — the same auth errors (401/429) apply. Available for") }} <code>/backlog</code> {{ _("and") }} <code>/avg_processing_time</code>.</p>
+          <p class="apidocs-p mt-2">{{ _("Use a real (enabled) API key — the same auth errors (401/429) apply. Available for") }} <code>/backlog</code>, <code>/avg_processing_time</code> {{ _("and") }} <code>/invoice/import_datetime</code>.</p>
         </section>
 
       </div>
