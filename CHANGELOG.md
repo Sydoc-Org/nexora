@@ -16,7 +16,9 @@ Work toward the next release.
   `{"env": "INT"|"STAGING"}` body and passes it through to `nx.ps1 -r
   --env:<value>`; after the restart the page logs itself back in via the
   dev-only login (which now honours a relative `?next=` path) and returns
-  to where it was (#187).
+  to where it was. `nx.ps1` gained `--port:<n>` (with `-u`/`-r`/`-d`) and the
+  restart API passes its own port, so a `--no-conflict` instance restarts
+  itself instead of the port-8000 one (#187).
 - In-app Reporting help — a **Help** button in the Reporting page header opens
   a "Get the best results" panel (coverage badges, drill-through, delta chip
   semantics, chart caps, AI prompting tips), and its **Full guide** link opens

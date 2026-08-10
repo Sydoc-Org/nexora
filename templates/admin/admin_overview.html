@@ -150,11 +150,15 @@
             } catch (e) {
                 // expected: the server dies mid-response once nx.ps1 kills it
             }
-            // ponytail: poll-until-reachable, no websocket/SSE — simplest thing that works
+            // ponytail: poll-until-reachable, no websocket/SSE — simplest thing that works.
+            // Wait for the server to go DOWN before treating "up" as the new process:
+            // the old one stays alive ~1-2s after the POST, and navigating into its
+            // death shows the browser's "page unavailable" instead of re-logging in.
+            let wasDown = false;
             const poll = setInterval(async () => {
                 try {
                     const r = await fetch(window.location.href, { cache: "no-store" });
-                    if (r.ok) {
+                    if (r.ok && wasDown) {
                         clearInterval(poll);
                         // restart dropped the in-memory session — log back in via the
                         // dev-only login and land where we were (this whole script is
@@ -162,7 +166,7 @@
                         window.location.href = `${API_PREFIX}dev/login/{{ logged_in_user }}?next=`
                             + encodeURIComponent(window.location.pathname + window.location.search);
                     }
-                } catch (e) { /* still down, keep polling */ }
+                } catch (e) { wasDown = true; /* still down, keep polling */ }
             }, 1000);
         });
     </script>

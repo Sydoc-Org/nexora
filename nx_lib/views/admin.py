@@ -350,6 +350,9 @@ def api_admin_restart():
     args = ["pwsh", "-File", str(REPO_ROOT / "bin" / "nx.ps1"), "-r"]
     if target_env:
         args.append(f"--env:{target_env}")
+    # restart the instance we're actually serving from — without this a
+    # --no-conflict instance's restart button would kill the port-8000 one
+    args.append(f"--port:{request.environ.get('SERVER_PORT', '8000')}")
     subprocess.Popen(
         args,
         cwd=str(REPO_ROOT),

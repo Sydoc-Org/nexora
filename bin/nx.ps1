@@ -136,6 +136,7 @@ function Show-Help {
     Write-Host "(defaults to the title)" -ForegroundColor Gray
     Write-Host "    --no-conflict              Use the first free port from 8001 up  " -NoNewline
     Write-Host "(run alongside any already-running instances)" -ForegroundColor Gray
+    Write-Host "    --port:<n>                 Target a specific instance's port  (with -u / -r / -d)"
     Write-Host "    --env                      Print current env from .env"
     Write-Host "    --env:<int|staging>        Switch env file  " -NoNewline
     Write-Host "(requires -u / -r / --routes, prod not allowed)" -ForegroundColor Gray
@@ -180,6 +181,7 @@ $browserRoute  = $null
 $routesPattern = $null
 $loginAs       = $null
 $envOverride   = $null
+$portOverride  = $null
 $doctorFast    = $false
 $doctorFix     = $false
 $queueTitle    = $null
@@ -213,6 +215,18 @@ for ($i = 0; $i -lt $args.Count; $i++) {
     }
     if ($arg -match '^--env:(.+)$') {
         $envOverride = $Matches[1].ToUpper()
+        continue
+    }
+    # --port:<n>  target a specific instance's port (used by the in-app restart
+    # API so a --no-conflict instance restarts itself, not the port-8000 one).
+    # Accepts the next-arg form too (pwsh -File splits colon-tokens, see --env).
+    if ($arg -match '^--port$') {
+        $next = if ($i + 1 -lt $args.Count) { $args[$i + 1] } else { $null }
+        if ($next -match '^\d+$') { $portOverride = $next; $i++ } else { $unknown += $arg }
+        continue
+    }
+    if ($arg -match '^--port:(\d+)$') {
+        $portOverride = $Matches[1]
         continue
     }
     # -b / --browser[:route]  (colon-form only; bare -b opens root)
@@ -304,6 +318,22 @@ if ($noConflict) {
     $StderrLog    = "$LogDir\app_stderr.$Port.log"
     $StdoutLog    = "$LogDir\app_stdout.$Port.log"
     $EnvStateFile = "$LogDir\current_env.$Port"
+}
+if ($portOverride) {
+    if ($noConflict) {
+        Write-Fail "--port cannot be combined with --no-conflict"
+        exit 1
+    }
+    if ($action -notin @('start', 'restart', 'stop')) {
+        Write-Fail "--port:<n> only applies to -u / --up, -r / --restart or -d / --down"
+        exit 1
+    }
+    $Port = [int]$portOverride
+    if ($Port -ne 8000) {
+        $StderrLog    = "$LogDir\app_stderr.$Port.log"
+        $StdoutLog    = "$LogDir\app_stdout.$Port.log"
+        $EnvStateFile = "$LogDir\current_env.$Port"
+    }
 }
 
 if (-not $action) { $action = if ($browser) { 'browser' } else { 'status' } }
