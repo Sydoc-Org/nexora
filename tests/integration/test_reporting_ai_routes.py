@@ -459,7 +459,7 @@ def test_ai_agent_empty_answer_gets_artifact_aware_fallback(user_client):
     assert resp.status_code == 200
     data = resp.get_json()
     assert data["answer"].strip()
-    assert "builder" in data["answer"]
+    assert "Open report" in data["answer"]
     assert data["definition"]["source"] == "gen_pdqm"
     # the audit keeps the raw (empty) answer — only the payload gets the fallback
     audited = json.loads(audit.call_args.args[4])

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-06 13:00+0200\n"
+"POT-Creation-Date: 2026-08-10 08:42+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -348,329 +348,348 @@ msgstr ""
 msgid "Language changed successfully!"
 msgstr ""
 
-#: nx_lib/views/reporting.py:1085 nx_lib/views/reporting.py:1173
-#: nx_lib/views/reporting.py:1234 nx_lib/views/reporting.py:1362
-#: nx_lib/views/reporting.py:1539 nx_lib/views/reporting.py:1889
-#: nx_lib/views/reporting.py:1998 nx_lib/views/reporting.py:2073
+#: nx_lib/views/reporting.py:1101 nx_lib/views/reporting.py:1199
+#: nx_lib/views/reporting.py:1260 nx_lib/views/reporting.py:1388
+#: nx_lib/views/reporting.py:1565 nx_lib/views/reporting.py:1915
+#: nx_lib/views/reporting.py:2024 nx_lib/views/reporting.py:2099
+#: nx_lib/views/reporting.py:3018
 msgid "Invalid JSON body"
 msgstr ""
 
-#: nx_lib/views/reporting.py:1089 nx_lib/views/reporting.py:2033
+#: nx_lib/views/reporting.py:1105 nx_lib/views/reporting.py:2059
+#: nx_lib/views/reporting.py:3027
 msgid "Not authorized for this source"
 msgstr ""
 
-#: nx_lib/views/reporting.py:1092 nx_lib/views/reporting.py:2036
+#: nx_lib/views/reporting.py:1108 nx_lib/views/reporting.py:2062
 msgid "This report definition is invalid or outdated."
 msgstr ""
 
-#: nx_lib/views/reporting.py:1096
+#: nx_lib/views/reporting.py:1112
 msgid "Could not build report"
 msgstr ""
 
-#: nx_lib/views/reporting.py:1101
+#: nx_lib/views/reporting.py:1117
 msgid "Could not run report"
 msgstr ""
 
-#: nx_lib/views/reporting.py:1156
+#: nx_lib/views/reporting.py:1182
 msgid "SQL is required."
 msgstr ""
 
-#: nx_lib/views/reporting.py:1157
+#: nx_lib/views/reporting.py:1183
 #, python-brace-format
 msgid "The SQL exceeds {n} characters."
 msgstr ""
 
-#: nx_lib/views/reporting.py:1158
+#: nx_lib/views/reporting.py:1184
 #, python-brace-format
 msgid "Disallowed keyword: {kw}"
 msgstr ""
 
-#: nx_lib/views/reporting.py:1159
+#: nx_lib/views/reporting.py:1185
 msgid "The SQL could not be parsed."
 msgstr ""
 
-#: nx_lib/views/reporting.py:1160
+#: nx_lib/views/reporting.py:1186
 msgid "Exactly one statement is allowed."
 msgstr ""
 
-#: nx_lib/views/reporting.py:1161
+#: nx_lib/views/reporting.py:1187
 msgid "Only SELECT / WITH / set operations are allowed."
 msgstr ""
 
-#: nx_lib/views/reporting.py:1162
+#: nx_lib/views/reporting.py:1188
 #, python-brace-format
 msgid "Disallowed construct: {kw}"
 msgstr ""
 
-#: nx_lib/views/reporting.py:1163
+#: nx_lib/views/reporting.py:1189
 msgid "T-SQL does not support LIMIT — use TOP (n) instead."
 msgstr ""
 
-#: nx_lib/views/reporting.py:1177 nx_lib/views/reporting.py:1211
+#: nx_lib/views/reporting.py:1203 nx_lib/views/reporting.py:1237
 msgid "Not authenticated"
 msgstr ""
 
-#: nx_lib/views/reporting.py:1179 nx_lib/views/reporting.py:2006
+#: nx_lib/views/reporting.py:1205 nx_lib/views/reporting.py:2032
 msgid "Acknowledgment required"
 msgstr ""
 
-#: nx_lib/views/reporting.py:1184 nx_lib/views/reporting.py:2014
+#: nx_lib/views/reporting.py:1210 nx_lib/views/reporting.py:2040
 msgid "Not authorized for this SQL target"
 msgstr ""
 
-#: nx_lib/views/reporting.py:1188 nx_lib/views/reporting.py:2020
+#: nx_lib/views/reporting.py:1214 nx_lib/views/reporting.py:2046
 msgid "Invalid SQL request."
 msgstr ""
 
-#: nx_lib/views/reporting.py:1190 nx_lib/views/reporting.py:2022
+#: nx_lib/views/reporting.py:1216 nx_lib/views/reporting.py:2048
 msgid "SQL source is not configured"
 msgstr ""
 
-#: nx_lib/views/reporting.py:1194
+#: nx_lib/views/reporting.py:1220
 msgid "Could not run query"
 msgstr ""
 
-#: nx_lib/views/reporting.py:1224
+#: nx_lib/views/reporting.py:1250
 msgid "Could not record acknowledgment"
 msgstr ""
 
-#: nx_lib/views/reporting.py:1237 nx_lib/views/reporting.py:1365
-#: nx_lib/views/reporting.py:1542
+#: nx_lib/views/reporting.py:1263 nx_lib/views/reporting.py:1391
+#: nx_lib/views/reporting.py:1568
 msgid "A question is required"
 msgstr ""
 
-#: nx_lib/views/reporting.py:1240
+#: nx_lib/views/reporting.py:1266
 msgid "Not authorized to receive AI-drafted SQL"
 msgstr ""
 
-#: nx_lib/views/reporting.py:1244 nx_lib/views/reporting.py:1312
-#: nx_lib/views/reporting.py:1369 nx_lib/views/reporting.py:1458
-#: nx_lib/views/reporting.py:1575 nx_lib/views/reporting.py:1847
-#: nx_lib/views/reporting.py:1901 nx_lib/views/reporting.py:1956
+#: nx_lib/views/reporting.py:1270 nx_lib/views/reporting.py:1338
+#: nx_lib/views/reporting.py:1395 nx_lib/views/reporting.py:1484
+#: nx_lib/views/reporting.py:1601 nx_lib/views/reporting.py:1873
+#: nx_lib/views/reporting.py:1927 nx_lib/views/reporting.py:1982
 msgid "The AI assistant is not configured"
 msgstr ""
 
-#: nx_lib/views/reporting.py:1272 nx_lib/views/reporting.py:1391
-#: nx_lib/views/reporting.py:1597 nx_lib/views/reporting.py:1923
+#: nx_lib/views/reporting.py:1298 nx_lib/views/reporting.py:1417
+#: nx_lib/views/reporting.py:1623 nx_lib/views/reporting.py:1949
 #, python-format
 msgid ""
 "You have reached the daily AI request limit (%(limit)s). Please try again"
 " tomorrow."
 msgstr ""
 
-#: nx_lib/views/reporting.py:1329 nx_lib/views/reporting.py:1475
-#: nx_lib/views/reporting.py:1827 nx_lib/views/reporting.py:1851
-#: nx_lib/views/reporting.py:1973
+#: nx_lib/views/reporting.py:1355 nx_lib/views/reporting.py:1501
+#: nx_lib/views/reporting.py:1853 nx_lib/views/reporting.py:1877
+#: nx_lib/views/reporting.py:1999
 msgid "The AI assistant could not answer right now"
 msgstr ""
 
-#: nx_lib/views/reporting.py:1407 nx_lib/views/reporting.py:1410
-#: nx_lib/views/reporting.py:1414 nx_lib/views/reporting.py:1416
+#: nx_lib/views/reporting.py:1433 nx_lib/views/reporting.py:1436
+#: nx_lib/views/reporting.py:1440 nx_lib/views/reporting.py:1442
 msgid "Invalid refine context"
 msgstr ""
 
-#: nx_lib/views/reporting.py:1501
+#: nx_lib/views/reporting.py:1527
 msgid "Could not build a valid report"
 msgstr ""
 
-#: nx_lib/views/reporting.py:1546
+#: nx_lib/views/reporting.py:1572
 msgid "Invalid history"
 msgstr ""
 
-#: nx_lib/views/reporting.py:1737
+#: nx_lib/views/reporting.py:1763
 msgid ""
 "I couldn't write a summary this time, but I did produce a report draft "
 "and a validated SQL query — use the actions below to open them."
 msgstr ""
 
-#: nx_lib/views/reporting.py:1743
+#: nx_lib/views/reporting.py:1769
 msgid ""
 "I couldn't write a summary this time, but I did produce a report draft — "
 "use “Open report” below to run it."
 msgstr ""
 
-#: nx_lib/views/reporting.py:1748
+#: nx_lib/views/reporting.py:1774
 msgid ""
 "I couldn't write a summary this time, but I did draft a SQL query — use "
 "the actions below to review it."
 msgstr ""
 
-#: nx_lib/views/reporting.py:1753
+#: nx_lib/views/reporting.py:1779
 msgid ""
 "I couldn't complete this request. Please try rephrasing the question or "
 "narrowing it down."
 msgstr ""
 
-#: nx_lib/views/reporting.py:1893 nx_lib/views/reporting.py:2078
+#: nx_lib/views/reporting.py:1919 nx_lib/views/reporting.py:2104
 msgid "columns and rows are required"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2003
+#: nx_lib/views/reporting.py:2029
 msgid "Not authorized for live SQL"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2025
+#: nx_lib/views/reporting.py:2051
 msgid "Could not export query"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2027 nx_lib/views/reporting.py:2055
-#: nx_lib/views/reporting.py:2089 templates/hero.html:96
+#: nx_lib/views/reporting.py:2053 nx_lib/views/reporting.py:2081
+#: nx_lib/views/reporting.py:2115 templates/hero.html:96
+#: templates/js/_reporting_dashboard_js.html:98
 #: templates/js/_reporting_js.html:490
 msgid "Report"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2040
+#: nx_lib/views/reporting.py:2066
 msgid "Could not export report"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2048 templates/_reporting_simple.html:211
+#: nx_lib/views/reporting.py:2074 templates/_reporting_simple.html:211
 #: templates/js/_reporting_js.html:514
 #: templates/js/_reporting_simple_js.html:13
 #: templates/js/_reporting_viz_js.html:264 templates/reporting.html:323
 msgid "Forecast"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2189
+#: nx_lib/views/reporting.py:2215
 msgid "Could not list reports"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2214 nx_lib/views/reporting.py:2289
-#: nx_lib/views/reporting.py:2311 nx_lib/views/reporting.py:2387
-#: nx_lib/views/reporting.py:2397 nx_lib/views/reporting.py:2447
-#: nx_lib/views/reporting.py:2516 nx_lib/views/reporting.py:2540
-#: nx_lib/views/reporting.py:2587 nx_lib/views/reporting.py:2622
-#: nx_lib/views/reporting.py:2635 nx_lib/views/reporting.py:2646
-#: nx_lib/views/reporting.py:2836 nx_lib/views/reporting.py:2854
-#: nx_lib/views/reporting.py:2957 nx_lib/views/reporting.py:2975
+#: nx_lib/views/reporting.py:2240 nx_lib/views/reporting.py:2315
+#: nx_lib/views/reporting.py:2337 nx_lib/views/reporting.py:2413
+#: nx_lib/views/reporting.py:2423 nx_lib/views/reporting.py:2473
+#: nx_lib/views/reporting.py:2542 nx_lib/views/reporting.py:2566
+#: nx_lib/views/reporting.py:2613 nx_lib/views/reporting.py:2648
+#: nx_lib/views/reporting.py:2661 nx_lib/views/reporting.py:2672
+#: nx_lib/views/reporting.py:2862 nx_lib/views/reporting.py:2880
+#: nx_lib/views/reporting.py:2983 nx_lib/views/reporting.py:3001
 msgid "Not found"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2227
+#: nx_lib/views/reporting.py:2253
 msgid "Could not load report"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2240 nx_lib/views/reporting.py:2269
+#: nx_lib/views/reporting.py:2266 nx_lib/views/reporting.py:2295
 msgid "name and definition are required"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2243 nx_lib/views/reporting.py:2272
+#: nx_lib/views/reporting.py:2269 nx_lib/views/reporting.py:2298
 msgid "Report definition too large"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2256
+#: nx_lib/views/reporting.py:2282
 msgid "Could not save report"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2293
+#: nx_lib/views/reporting.py:2319
 msgid "Could not update report"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2315
+#: nx_lib/views/reporting.py:2341
 msgid "Could not delete report"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2405
+#: nx_lib/views/reporting.py:2431
 msgid "Invalid visibility"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2414
+#: nx_lib/views/reporting.py:2440
 msgid "User not found"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2416
+#: nx_lib/views/reporting.py:2442
 msgid "Cannot share a report with yourself"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2437 nx_lib/views/reporting.py:2458
+#: nx_lib/views/reporting.py:2463 nx_lib/views/reporting.py:2484
 msgid "Could not update sharing"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2530
+#: nx_lib/views/reporting.py:2556
 msgid "Could not list schedules"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2577
+#: nx_lib/views/reporting.py:2603
 msgid "Could not save schedule"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2626
+#: nx_lib/views/reporting.py:2652
 msgid "Could not update schedule"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2650
+#: nx_lib/views/reporting.py:2676
 msgid "Could not delete schedule"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2663 nx_lib/views/reporting.py:2713
+#: nx_lib/views/reporting.py:2689 nx_lib/views/reporting.py:2739
 msgid "Invalid body"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2665
+#: nx_lib/views/reporting.py:2691
 msgid "code must be 1-64 chars: letters, digits, . _ -"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2667
+#: nx_lib/views/reporting.py:2693
 msgid "kind must be 'curated' or 'sql'"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2669 nx_lib/views/reporting.py:2719
+#: nx_lib/views/reporting.py:2695 nx_lib/views/reporting.py:2745
 msgid "label is required"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2671
+#: nx_lib/views/reporting.py:2697
 msgid "permission is required"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2677
+#: nx_lib/views/reporting.py:2703
 msgid "columns must be valid JSON"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2715
+#: nx_lib/views/reporting.py:2741
 msgid "code must start with a letter/underscore: letters, digits, _"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2717
+#: nx_lib/views/reporting.py:2743
 msgid "sourceId is required"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2722
+#: nx_lib/views/reporting.py:2748
 msgid "aggregation must be one of: "
 msgstr ""
 
-#: nx_lib/views/reporting.py:2724
+#: nx_lib/views/reporting.py:2750
 msgid "baseField is required unless aggregation is 'count'"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2783
+#: nx_lib/views/reporting.py:2809
 msgid "Could not list sources"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2811
+#: nx_lib/views/reporting.py:2837
 msgid "Could not save source (code already exists?)"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2840
+#: nx_lib/views/reporting.py:2866
 msgid "Could not update source"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2858
+#: nx_lib/views/reporting.py:2884
 msgid "Could not delete source"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2903
+#: nx_lib/views/reporting.py:2929
 msgid "Could not list metrics"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2932
+#: nx_lib/views/reporting.py:2958
 msgid "Could not save metric (code already exists?)"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2961
+#: nx_lib/views/reporting.py:2987
 msgid "Could not update metric"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2979
+#: nx_lib/views/reporting.py:3005
 msgid "Could not delete metric"
+msgstr ""
+
+#: nx_lib/views/reporting.py:3025
+msgid "Unknown or unsupported source"
+msgstr ""
+
+#: nx_lib/views/reporting.py:3030
+msgid "Source engine is not configured"
+msgstr ""
+
+#: nx_lib/views/reporting.py:3037
+msgid "This request is invalid."
+msgstr ""
+
+#: nx_lib/views/reporting.py:3040
+msgid "Could not load values"
 msgstr ""
 
 #: nx_lib/views/workitems.py:970 nx_lib/views/workitems.py:1128
@@ -1089,7 +1108,7 @@ msgid ""
 msgstr ""
 
 #: templates/_reporting_simple.html:95
-#: templates/js/_reporting_simple_js.html:108
+#: templates/js/_reporting_simple_js.html:109
 msgid "Time range"
 msgstr ""
 
@@ -3337,7 +3356,7 @@ msgid "Source"
 msgstr ""
 
 #: templates/js/_reporting_simple_js.html:57
-#: templates/js/_reporting_simple_js.html:106 templates/reporting.html:256
+#: templates/js/_reporting_simple_js.html:107 templates/reporting.html:256
 msgid "Processes"
 msgstr ""
 
@@ -3963,7 +3982,7 @@ msgstr ""
 msgid "Optional extras"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:112
+#: templates/js/_reporting_simple_js.html:113
 #: templates/workitems_overview.html:511
 msgid "Document fields"
 msgstr ""
@@ -4306,7 +4325,7 @@ msgstr ""
 
 #: templates/admin/logs.html:94 templates/admin/logs.html:129
 #: templates/admin/user_detail.html:224
-#: templates/js/_reporting_simple_js.html:111
+#: templates/js/_reporting_simple_js.html:112
 msgid "Time"
 msgstr ""
 
@@ -4956,7 +4975,7 @@ msgid "No documents found for the selected criteria."
 msgstr ""
 
 #: templates/js/_generali_documents_js.html:148
-#: templates/js/_reporting_dashboard_js.html:102
+#: templates/js/_reporting_dashboard_js.html:103
 msgid "Loading…"
 msgstr ""
 
@@ -5385,33 +5404,33 @@ msgstr ""
 msgid "Donut"
 msgstr ""
 
-#: templates/js/_reporting_dashboard_js.html:98
+#: templates/js/_reporting_dashboard_js.html:99
 msgid "or drop a saved report here"
 msgstr ""
 
-#: templates/js/_reporting_dashboard_js.html:99
+#: templates/js/_reporting_dashboard_js.html:100
 msgid "Click to configure this card"
 msgstr ""
 
-#: templates/js/_reporting_dashboard_js.html:100
+#: templates/js/_reporting_dashboard_js.html:101
 msgid "Choose a saved report"
 msgstr ""
 
-#: templates/js/_reporting_dashboard_js.html:101
+#: templates/js/_reporting_dashboard_js.html:102
 msgid "No saved reports yet"
 msgstr ""
 
-#: templates/js/_reporting_dashboard_js.html:103
+#: templates/js/_reporting_dashboard_js.html:104
 msgid "vs previous period"
 msgstr ""
 
-#: templates/js/_reporting_dashboard_js.html:104
+#: templates/js/_reporting_dashboard_js.html:105
 #: templates/js/_reporting_drill_js.html:17
 #: templates/js/_reporting_simple_js.html:31
 msgid "Could not export this report."
 msgstr ""
 
-#: templates/js/_reporting_dashboard_js.html:105
+#: templates/js/_reporting_dashboard_js.html:106
 msgid "No cards to export yet."
 msgstr ""
 
@@ -5535,17 +5554,17 @@ msgid ""
 msgstr ""
 
 #: templates/js/_reporting_js.html:511
-#: templates/js/_reporting_simple_js.html:99
+#: templates/js/_reporting_simple_js.html:100
 msgid "Buckets"
 msgstr ""
 
 #: templates/js/_reporting_js.html:512
-#: templates/js/_reporting_simple_js.html:100
+#: templates/js/_reporting_simple_js.html:101
 msgid "Avg per bucket"
 msgstr ""
 
 #: templates/js/_reporting_js.html:513
-#: templates/js/_reporting_simple_js.html:115
+#: templates/js/_reporting_simple_js.html:116
 msgid "AI"
 msgstr ""
 
@@ -5826,48 +5845,56 @@ msgstr ""
 msgid "run just now"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:101
-msgid "Peak"
+#: templates/js/_reporting_simple_js.html:99
+msgid "latest snapshot"
 msgstr ""
 
 #: templates/js/_reporting_simple_js.html:102
-msgid "vs"
+msgid "Peak"
 msgstr ""
 
 #: templates/js/_reporting_simple_js.html:103
-#, python-brace-format
-msgid "{n} rows"
+msgid "vs"
 msgstr ""
 
 #: templates/js/_reporting_simple_js.html:104
 #, python-brace-format
-msgid "Step {n} of 4"
+msgid "{n} rows"
 msgstr ""
 
 #: templates/js/_reporting_simple_js.html:105
+#, python-brace-format
+msgid "Step {n} of 4"
+msgstr ""
+
+#: templates/js/_reporting_simple_js.html:106
 msgid "Measure"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:107
+#: templates/js/_reporting_simple_js.html:108
 msgid "Breakdown"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:109
+#: templates/js/_reporting_simple_js.html:110
 msgid "So far"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:110
+#: templates/js/_reporting_simple_js.html:111
 #, python-brace-format
 msgid "{n} of {m} selected"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:113
+#: templates/js/_reporting_simple_js.html:114
 msgid "Or"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:114
+#: templates/js/_reporting_simple_js.html:115
 #, python-brace-format
 msgid "{n} of 3 picked"
+msgstr ""
+
+#: templates/js/_reporting_simple_js.html:117
+msgid "Loading values…"
 msgstr ""
 
 #: templates/js/_reporting_sources_js.html:51

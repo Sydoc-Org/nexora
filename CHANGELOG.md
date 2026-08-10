@@ -8,13 +8,44 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Added
+
+- Reporting: live "building your report" step list in the AI chat while the
+  agent works (#178) — a title line plus a growing per-tool-call step list
+  (Building the report… / Checking the query… / Running the query… /
+  Crunching the numbers…) replaces the old generic rotating status line.
+- Reporting: granularity chip on Simple results, and the wizard's grain
+  select is now always visible (disabled with a tooltip until a time
+  breakdown is picked) rather than only appearing once one is chosen (#178).
+- Reporting: wizard process step for table sources via new
+  `POST /api/reporting/field_values` — a table source with no process
+  registry but a process-like filterable field now gets a field-scope step
+  in the wizard, sourced from the field's own distinct values (#178).
+- Reporting: `TotalMode` on the metrics registry (migration `0056`) —
+  snapshot metrics (backlog) total the latest bucket instead of summing
+  snapshots, both server-side (zero-dim grand total) and on the Simple KPI
+  band's "latest snapshot" caption (#178).
+- Reporting: dashboard card type "Report" that adopts a saved report 1:1,
+  including its own chart type (#178).
+
 ### Changed
 
 - Reporting AI chat: the "Open in builder" chip on an agent answer is now
   "Open report" and lands the definition in the Simple result view instead
   of the Advanced builder (#178). A new `window.ReportingSimple.openDefinition()`
   seam (modeled on `openReport`) drives it; Advanced stays reachable via the
-  result bar's escape hatch.
+  result bar's escape hatch. Chat follow-ups now also carry the prior
+  answer's produced SQL/definition forward as context in `history` (a
+  `[sql from this answer]` / `[report definition from this answer]`
+  convention, capped at 1500/1200 chars — raised the overall history cap
+  from 4000 to 12000 chars to fit it), so a presentation-only follow-up
+  ("show it as a chart") stays on the same query/data instead of the model
+  re-deriving — or silently switching source for — one from its own prose.
+- Reporting: forecasts fit on a widened history window (grain-dependent
+  lookback — 56/182/730/1460/2190 days for day/week/month/quarter/year — for
+  reports with a relative-date filter), so day-grain forecasts learn weekday
+  seasonality instead of fitting on however little history the visible
+  result happened to show (#178).
 - Branch naming convention: release-cycle branches are now `v<x.y[.z]>` (e.g.
   `v3.1`); the pre-push branch-name guard accepts both the new form and the
   legacy `feature/<x.y.z>` for in-flight branches.
@@ -32,6 +63,8 @@ Work toward the next release.
 
 ### Fixed
 
+- Reporting: the Simple hero no longer overlays open reports (#178).
+- Reporting: clearer self-repair hints for AI SQL errors 156/205/209 (#178).
 - The two login e2e smokes clicked the 2FA submit button that the auto-submit
   challenge (since `a749bda`) removes from under them — they now fill the code
   and wait for the redirect. The e2e server port is overridable via the new

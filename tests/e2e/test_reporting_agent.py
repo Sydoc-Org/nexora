@@ -128,12 +128,20 @@ def test_chat_panel_open_send_followup_history_and_report_opens_in_simple(nexora
 
     # Follow-up chip resends through the same endpoint, carrying the running
     # history -- assert the SECOND captured call's body has both prior turns.
+    # The assistant turn carries its produced artifact too (#178 A3): the
+    # client appends a "[report definition from this answer]" block (no SQL
+    # block here since the stub's "sql" is None) so a presentation-only
+    # follow-up stays on the same definition instead of re-deriving one.
     page.get_by_test_id("rp-chat-followup").first.click()
     expect(page.get_by_test_id("rp-chat-msg-user")).to_have_count(2)
     assert len(calls) == 2, "the follow-up chip did not fire a second /agent call"
+    definition_json = json.dumps(AGENT_DEFINITION, separators=(",", ":"))
     assert calls[1]["history"] == [
         {"role": "user", "content": question},
-        {"role": "assistant", "content": answer},
+        {
+            "role": "assistant",
+            "content": answer + "\n[report definition from this answer]\n" + definition_json,
+        },
     ], calls[1]["history"]
 
     # Open the definition -- lands in the Simple result view (#178 A4).
