@@ -1,13 +1,17 @@
 """External machine-to-machine JSON API, version 1.
 
-Two endpoints in v1:
+Three endpoints in v1:
 - GET /api/v1/stats/today -- the dashboard's imported/processed "today" KPI
   numbers for the API key's process scope (dbo.ApiKeys.ProcessList).
 - GET /api/v1/backlog -- the dashboard's "Current Backlog" KPI number for the
   same process scope. The response deliberately omits the process list --
   scoping happens at key issuance, not in the payload (unlike stats/today,
   kept as-is for compatibility).
-Both consumed by an external client's own dashboard.
+- GET /api/v1/undelivered?days=7|10 -- the number of workitems imported in
+  the last N days that have no export date yet (issue #196). `days` accepts
+  ONLY 7 or 10 (400 otherwise) -- widen the allow-set here and in both docs
+  surfaces if a client ever needs another window.
+All consumed by an external client's own dashboard.
 
 Each endpoint has a /api/test/v1/... twin (same path suffix, same auth, same
 response shape) that returns RANDOM numbers instead of real KPI values -- a
@@ -26,12 +30,22 @@ https://nexora.sydoc.ch/nexora/api/v1/stats/today
 import random
 from datetime import date, datetime
 
-from flask import current_app, g, jsonify
+from flask import current_app, g, jsonify, request
 
 from ..api_auth import require_api_key
 from ..extensions import limiter
 from ..workitem_sources import total_backlog_count
-from .dashboard import compute_today_stats
+from .dashboard import compute_today_stats, compute_undelivered_count
+
+# The only accepted ?days= values (issue #196) -- validated as strings so no
+# int() parsing of raw input is needed.
+UNDELIVERED_DAYS = ("7", "10")
+
+
+def _undelivered_days_or_none():
+    """Return the validated ?days= value as an int, or None if absent/invalid."""
+    raw = request.args.get("days")
+    return int(raw) if raw in UNDELIVERED_DAYS else None
 
 
 # NOTE decorator order: @limiter.limit is OUTERMOST -- the deliberate
@@ -95,6 +109,33 @@ def api_v1_backlog():
 
 @limiter.limit("60 per minute")
 @require_api_key
+def api_v1_undelivered():
+    days = _undelivered_days_or_none()
+    if days is None:
+        return jsonify({"error": "days must be 7 or 10"}), 400
+    processes = g.api_client["processes"]
+    if not processes:
+        undelivered = 0
+    else:
+        try:
+            # strict=True: same rationale as stats/today -- a stat-row leg
+            # failure must surface as a 500, not a false "nothing pending" zero.
+            undelivered = compute_undelivered_count(processes, days, strict=True)
+        except Exception as e:
+            current_app.logger.error(f"external api undelivered failed: {e}")
+            return jsonify({"error": "Stats backend unavailable"}), 500
+    return jsonify(
+        {
+            "date": date.today().isoformat(),
+            "days": days,
+            "undelivered": undelivered,
+            "processes": processes,
+        }
+    )
+
+
+@limiter.limit("60 per minute")
+@require_api_key
 def api_test_v1_stats_today():
     # Real auth (same key a client uses against PROD) but no backend
     # queries -- just plausible random numbers in the real response shape.
@@ -121,6 +162,23 @@ def api_test_v1_backlog():
     )
 
 
+@limiter.limit("60 per minute")
+@require_api_key
+def api_test_v1_undelivered():
+    # Same ?days= validation as the real endpoint so integrations exercise it.
+    days = _undelivered_days_or_none()
+    if days is None:
+        return jsonify({"error": "days must be 7 or 10"}), 400
+    return jsonify(
+        {
+            "date": date.today().isoformat(),
+            "days": days,
+            "undelivered": random.randint(0, 300),
+            "processes": g.api_client["processes"],
+        }
+    )
+
+
 def register_routes(app):
     app.add_url_rule(
         "/api/v1/stats/today",
@@ -133,6 +191,11 @@ def register_routes(app):
         view_func=api_v1_backlog,
     )
     app.add_url_rule(
+        "/api/v1/undelivered",
+        endpoint="api_v1_undelivered",
+        view_func=api_v1_undelivered,
+    )
+    app.add_url_rule(
         "/api/test/v1/stats/today",
         endpoint="api_test_v1_stats_today",
         view_func=api_test_v1_stats_today,
@@ -141,4 +204,9 @@ def register_routes(app):
         "/api/test/v1/backlog",
         endpoint="api_test_v1_backlog",
         view_func=api_test_v1_backlog,
+    )
+    app.add_url_rule(
+        "/api/test/v1/undelivered",
+        endpoint="api_test_v1_undelivered",
+        view_func=api_test_v1_undelivered,
     )

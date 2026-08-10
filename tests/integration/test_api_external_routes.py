@@ -423,6 +423,158 @@ def test_test_stats_post_method_not_allowed(client):
     assert resp.status_code == 405
 
 
+# --------------------- /api/v1/undelivered (issue #196) --------------------- #
+# Auth-required coverage comes for free from test_every_api_v1_route_requires_auth.
+
+UNDELIVERED_URL = "/api/v1/undelivered"
+TEST_UNDELIVERED_URL = "/api/test/v1/undelivered"
+
+
+def test_undelivered_good_key_returns_scoped_count(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw, processes="sydoc.TestProc, sydoc.Other")
+    seen = {}
+
+    def _fake_compute(target_processes, days, *, strict=False):
+        seen["processes"] = target_processes
+        seen["days"] = days
+        seen["strict"] = strict
+        return 42
+
+    monkeypatch.setattr(ax, "compute_undelivered_count", _fake_compute)
+    try:
+        resp = client.get(f"{UNDELIVERED_URL}?days=7", headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 200
+        assert resp.get_json() == {
+            "date": date.today().isoformat(),
+            "days": 7,
+            "undelivered": 42,
+            "processes": ["sydoc.TestProc", "sydoc.Other"],
+        }
+        assert seen["processes"] == ["sydoc.TestProc", "sydoc.Other"]
+        assert seen["days"] == 7
+        assert seen["strict"] is True
+        assert _last_used(key_hash) is not None
+    finally:
+        _delete_key(key_hash)
+
+
+def test_undelivered_days_10_is_accepted(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+    monkeypatch.setattr(ax, "compute_undelivered_count", lambda p, d, *, strict=False: 3)
+    try:
+        resp = client.get(f"{UNDELIVERED_URL}?days=10", headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 200
+        assert resp.get_json()["days"] == 10
+    finally:
+        _delete_key(key_hash)
+
+
+def test_undelivered_missing_or_invalid_days_returns_400(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+
+    def _must_not_be_called(*a, **kw):
+        raise AssertionError("compute_undelivered_count must not run for invalid days")
+
+    monkeypatch.setattr(ax, "compute_undelivered_count", _must_not_be_called)
+    try:
+        # Only the literal strings "7" and "10" pass -- no int coercion.
+        for qs in ("", "?days=9", "?days=07", "?days=7.0", "?days=abc"):
+            resp = client.get(UNDELIVERED_URL + qs, headers={"Authorization": f"Bearer {raw}"})
+            assert resp.status_code == 400, f"days qs {qs!r} was not rejected"
+            assert resp.get_json() == {"error": "days must be 7 or 10"}
+    finally:
+        _delete_key(key_hash)
+
+
+def test_undelivered_empty_process_scope_returns_zero_without_compute(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw, processes="")
+
+    def _must_not_be_called(*a, **kw):
+        raise AssertionError("compute_undelivered_count must not run for an empty scope")
+
+    monkeypatch.setattr(ax, "compute_undelivered_count", _must_not_be_called)
+    try:
+        resp = client.get(f"{UNDELIVERED_URL}?days=7", headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert body["undelivered"] == 0
+        assert body["processes"] == []
+    finally:
+        _delete_key(key_hash)
+
+
+def test_undelivered_backend_error_returns_500_json(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+
+    def _boom(target_processes, days, *, strict=False):
+        raise RuntimeError("StatisticsDB exploded")
+
+    monkeypatch.setattr(ax, "compute_undelivered_count", _boom)
+    try:
+        resp = client.get(f"{UNDELIVERED_URL}?days=7", headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 500
+        assert resp.get_json() == {"error": "Stats backend unavailable"}
+    finally:
+        _delete_key(key_hash)
+
+
+def test_test_undelivered_good_key_returns_random_data_in_real_shape(client):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw, processes="sydoc.TestProc")
+    try:
+        resp = client.get(
+            f"{TEST_UNDELIVERED_URL}?days=10", headers={"Authorization": f"Bearer {raw}"}
+        )
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert body["date"] == date.today().isoformat()
+        assert body["days"] == 10
+        assert isinstance(body["undelivered"], int)
+        assert body["processes"] == ["sydoc.TestProc"]
+        assert _last_used(key_hash) is not None
+    finally:
+        _delete_key(key_hash)
+
+
+def test_undelivered_compute_runs_real_sql_leg(client, monkeypatch):
+    # Exercise compute_undelivered_count FOR REAL (only engines faked): the
+    # T-SQL leg must window on the import column, require a NULL export
+    # column, and skip Statconfig rows without an ImportColumn.
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw, processes="sydoc.TestProc")
+    cfg_ok = _cfg_row("default", "sydoc.TestProc", "dbo.tblTest", "ExportDate", "ImportDate")
+    cfg_no_import = _cfg_row("default", "sydoc.TestProc", "dbo.tblOther", "ExportDate", None)
+    stats_engine = _engine_returning([(5,)])
+    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning([cfg_ok, cfg_no_import]))
+    monkeypatch.setattr(dv, "engine_statistics_db", stats_engine)
+    try:
+        resp = client.get(f"{UNDELIVERED_URL}?days=7", headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 200
+        assert resp.get_json()["undelivered"] == 5
+        sql = stats_engine.raw_connection().cursor().execute.call_args[0][0]
+        assert "DATEADD(day, -7, GETDATE())" in sql
+        assert "ExportDate IS NULL" in sql
+        assert "tblOther" not in sql  # no ImportColumn -> skipped
+    finally:
+        _delete_key(key_hash)
+
+
+def test_test_undelivered_validates_days_like_the_real_endpoint(client):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+    try:
+        resp = client.get(TEST_UNDELIVERED_URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 400
+        assert resp.get_json() == {"error": "days must be 7 or 10"}
+    finally:
+        _delete_key(key_hash)
+
+
 def test_unknown_api_test_v1_path_returns_json_404(client):
     resp = client.get("/api/test/v1/definitely/not/a/route")
     assert resp.status_code == 404

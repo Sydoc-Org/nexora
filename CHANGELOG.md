@@ -26,6 +26,11 @@ Work toward the next release.
 
 ### Added
 
+- **External API: `GET /api/v1/undelivered`** (#196) — the number of
+  workitems imported in the last `?days=7|10` calendar days that have no
+  export date yet, scoped to the API key's processes; ships with its
+  `/api/test/v1/undelivered` sandbox twin and is documented in
+  `docs/howto/external-api.md` and on the in-app `/api-docs` page.
 - **What's New page** (#169) — `/whats_new` (profile dropdown and Ctrl+K),
   showing curated, translated per-release feature notes authored in
   `nx_lib/whats_new.py` at release time (the raw `CHANGELOG.md` stays

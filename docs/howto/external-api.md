@@ -5,10 +5,11 @@ Docs", permission `api.docs.view`) for internal staff and API clients'
 portal accounts — this file stays the source of truth; keep both in sync.
 
 Read-only JSON API for external clients, authenticated with per-client API
-keys. Two endpoints in v1. Code: routes in `nx_lib/views/api_external.py`,
+keys. Three endpoints in v1. Code: routes in `nx_lib/views/api_external.py`,
 auth in `nx_lib/api_auth.py`, KPI computation shared with the dashboard
-(`compute_today_stats` in `nx_lib/views/dashboard.py`, `total_backlog_count`
-in `nx_lib/workitem_sources.py`), table created by
+(`compute_today_stats` and `compute_undelivered_count` in
+`nx_lib/views/dashboard.py`, `total_backlog_count` in
+`nx_lib/workitem_sources.py`), table created by
 `sql/_migrations/NexoraDB/0038_create_api_keys.sql`.
 
 ## Base URLs
@@ -123,6 +124,33 @@ The dashboard's "Current Backlog" KPI number, scoped to the key's
   issuance, not per response. An empty scope returns `0`. Not cached: every
   call computes fresh numbers.
 
+## GET /api/v1/undelivered
+
+The number of workitems **not delivered yet**: imported within the last
+`days` days but with no export date so far, scoped to the key's
+`ProcessList` (issue #196):
+
+    curl -H "Authorization: Bearer <api key>" \
+        "https://nexora.sydoc.ch/nexora/api/v1/undelivered?days=7"
+
+    {
+      "date": "2026-08-10",
+      "days": 7,
+      "undelivered": 42,
+      "processes": ["sydoc.05_PDBS"]
+    }
+
+- `days` (**required** query param) — the import window in calendar days,
+  counted back from today inclusive. Accepts **only `7` or `10`**; anything
+  else (including a missing param) returns
+  `400 {"error": "days must be 7 or 10"}`.
+- `date` — the **server-local** calendar date the count refers to.
+- `undelivered` — workitems whose import-date column falls within the window
+  and whose export-date column is still `NULL`. Statconfig rows without an
+  `ImportColumn` can't answer this metric and are skipped.
+- `processes` — the key's scope, echoed for debugging. An empty scope
+  returns `0`. Not cached: every call computes fresh numbers.
+
 ## Test sandbox (/api/test/v1)
 
 Every `/api/v1/...` route has a `/api/test/v1/...` twin: same path suffix,
@@ -149,12 +177,13 @@ counterpart in the same change.
 
 | Status | Body | Meaning |
 |---|---|---|
+| 400 | `{"error": "days must be 7 or 10"}` | `/undelivered` called with a missing or invalid `days` param |
 | 401 | `{"error": "Missing or malformed Authorization header"}` | no/bad `Authorization: Bearer` header (`WWW-Authenticate: Bearer` set) |
 | 401 | `{"error": "Invalid API key"}` | unknown **or disabled** key (uniform on purpose) |
 | 404 | `{"error": "Not found"}` | wrong path under `/api/v1` |
 | 405 | HTML (Flask default) | non-GET verb — the API is GET-only |
 | 429 | HTML (flask-limiter default) | over 60 requests/minute |
-| 500 | `{"error": "Stats backend unavailable"}` (`/stats/today`) or `{"error": "Backlog backend unavailable"}` (`/backlog`) or `{"error": "Internal server error"}` | stats/backlog query or server failure |
+| 500 | `{"error": "Stats backend unavailable"}` (`/stats/today`, `/undelivered`) or `{"error": "Backlog backend unavailable"}` (`/backlog`) or `{"error": "Internal server error"}` | stats/backlog query or server failure |
 | 503 | `{"error": "Auth backend unavailable"}` | NexoraDB unreachable during auth (fail closed) |
 | 503 | `{"error": "Maintenance", "maintenance": {...}}` | blocking maintenance window (global lockout) |
 
