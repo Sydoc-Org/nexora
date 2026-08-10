@@ -73,6 +73,7 @@ from ..workitem_sources import (
     fetch_merged_page,
     get_domain_for_workitem,
     parse_prepared_xlsx,
+    process_pair_for_workitem,
     resolve_ms02_docfield_ids,
     resolve_ms02_pid_to_wids,
     resolve_ms02_wids_to_pids,
@@ -458,6 +459,27 @@ def _client_hint():
     probe path in ``get_source_for_workitem``."""
     hint = (request.args.get("client") or "").strip().lower()
     return hint if hint in CLIENTS else None
+
+
+def _granted_process_pairs():
+    """(client, process) pairs the caller holds a workitems grant for, lowered
+    for case-insensitive comparison (the list query authorizes these via a
+    case-insensitive SQL `=`, so the entitlement check must match that)."""
+    pairs = prepare_process_selection_lists("workitems.filter.process.", "all")
+    return {(c.lower(), p.lower()) for c, p in pairs}
+
+
+def _may_view_workitem(workitem_id):
+    """Whether the caller is entitled to this workitem's (client, process).
+
+    Closes the cross-tenant / cross-process detail IDOR (#193): the by-id
+    detail endpoints resolved the tenant from a caller-supplied ?client= and
+    fetched an arbitrary id behind only a flat details.view* code, never an
+    ownership check. Fails closed when the pair can't be resolved."""
+    pair = process_pair_for_workitem(workitem_id, client_hint=_client_hint())
+    if pair is None:
+        return False
+    return (pair[0].lower(), pair[1].lower()) in _granted_process_pairs()
 
 
 def _wi_cache_key(prefix, workitem_id, domain):
@@ -1717,6 +1739,8 @@ def import_prepared_audit():
 def api_get_media_info(workitem_id):
     if not has_permission("workitems.details.view"):
         return jsonify({"error": _("Not authorized")}), 403
+    if not _may_view_workitem(workitem_id):
+        return jsonify({"error": _("Not authorized")}), 403
     try:
         can_view_images = has_permission("workitems.details.view.images")
         can_view_fields = has_permission("workitems.details.view.fields")
@@ -1825,6 +1849,8 @@ def api_get_media_info(workitem_id):
 
 @require_permission("workitems.details.view.images")
 def api_get_media_raw(workitem_id, media_index):
+    if not _may_view_workitem(workitem_id):
+        return Response(_("Not authorized"), status=403)
     try:
         domain = get_domain_for_workitem(workitem_id, client_hint=_client_hint())
         _ck = _wi_cache_key("media_data", workitem_id, domain)
@@ -1927,6 +1953,8 @@ def api_get_media_raw(workitem_id, media_index):
 
 @require_permission("workitems.details.view.audit")
 def get_audithistory(workitem_id):
+    if not _may_view_workitem(workitem_id):
+        return jsonify({"error": _("Not authorized")}), 403
     domain = get_domain_for_workitem(workitem_id, client_hint=_client_hint())
     _cache_key = _wi_cache_key("audithistory", workitem_id, domain)
     cached = cache.get(_cache_key)

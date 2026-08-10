@@ -488,8 +488,27 @@ def init_reset_password():
         return render_template("index.html", error=_("Something went wrong, please try again"))
 
 
-def dev_login(username):
+# Fixed dummy hash so login() pays the bcrypt cost even when the username
+# doesn't exist -- otherwise response latency reveals which usernames are real
+# (username enumeration, #193). Computed once at import at bcrypt's default
+# cost so it tracks the cost of real stored hashes.
+_DUMMY_BCRYPT_HASH = bcrypt.hashpw(b"nexora-login-timing-equalizer", bcrypt.gensalt())
+
+
+def _dev_route_forbidden():
+    """Guard for the passwordless /dev/* routes. 404 on PROD, and 404 for any
+    non-loopback caller on non-PROD, so a network-reachable INT/STAGING/TEST
+    instance (e.g. fronted by the SYAPP01 ngrok tunnel) can't use these as a
+    remote password+2FA bypass (#193). remote_addr is the real socket peer
+    (not the spoofable X-Forwarded-For), so local `nx --loginas` on 127.0.0.1
+    still works while remote callers are refused."""
     if IS_PROD:
+        return True
+    return request.remote_addr not in ("127.0.0.1", "::1")
+
+
+def dev_login(username):
+    if _dev_route_forbidden():
         abort(404)
     conn = engine_nexora_db.raw_connection()
     cursor = conn.cursor()
@@ -523,7 +542,7 @@ def dev_login(username):
 
 
 def dev_users():
-    if IS_PROD:
+    if _dev_route_forbidden():
         abort(404)
     conn = engine_nexora_db.raw_connection()
     cursor = conn.cursor()
@@ -584,6 +603,12 @@ def login():
                         session["pre_2fa_userid"] = str(stored_userid)
                         session["pre_2fa_username"] = stored_username
                         return redirect(url_for("verify_2fa"))
+            else:
+                # Unknown username: still run one bcrypt comparison against a
+                # fixed dummy hash so the response takes the same time as a
+                # wrong password for a real account -- latency can't be used to
+                # tell valid usernames from invalid ones (#193).
+                bcrypt.checkpw(password_request.encode("utf-8"), _DUMMY_BCRYPT_HASH)
 
             return render_template("index.html", error=_("Invalid credentials")), 401
 

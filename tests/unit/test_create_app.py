@@ -16,6 +16,25 @@ def test_create_app_has_secret_key():
     assert isinstance(app.config["SECRET_KEY"], str | bytes)
 
 
+def test_create_app_hardens_session_cookie_in_every_env():
+    """Security #193: HttpOnly + SameSite + a body cap must apply even in a
+    non-PROD (here: TEST) app -- a non-PROD instance is not guaranteed
+    unreachable."""
+    app = create_app()
+    assert app.config["SESSION_COOKIE_HTTPONLY"] is True
+    assert app.config["SESSION_COOKIE_SAMESITE"] == "Lax"
+    assert app.config["MAX_CONTENT_LENGTH"] == 25 * 1024 * 1024
+
+
+def test_create_app_sets_baseline_security_headers_in_every_env():
+    """Security #193: clickjacking + MIME-sniff headers on responses even in a
+    non-PROD app (PROD additionally layers the full Talisman CSP)."""
+    app = create_app()
+    resp = app.test_client().get("/login")
+    assert resp.headers.get("X-Frame-Options") == "SAMEORIGIN"
+    assert resp.headers.get("X-Content-Type-Options") == "nosniff"
+
+
 def test_create_app_registers_login_endpoint():
     app = create_app()
     endpoints = {r.endpoint for r in app.url_map.iter_rules()}

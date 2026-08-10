@@ -70,6 +70,29 @@ def test_no_auth_header_returns_401_json(client):
     assert resp.headers.get("WWW-Authenticate") == "Bearer"
 
 
+def test_every_api_v1_route_requires_auth(client):
+    """Security #193: the /api/v1 surface is exempt from session/CSRF and its
+    auth is applied per-view via @require_api_key -- so a future route added
+    without the decorator would ship fully unauthenticated. Enforce that EVERY
+    /api/v1 (and /api/test/v1) route rejects an unauthenticated caller with a
+    401, so that regression fails CI instead of shipping."""
+    app = client.application
+    api_rules = [
+        r
+        for r in app.url_map.iter_rules()
+        if (r.rule.startswith("/api/v1/") or r.rule.startswith("/api/test/v1/"))
+        and "<" not in r.rule
+    ]
+    assert api_rules, "expected at least one /api/v1 route to exist"
+    for r in api_rules:
+        method = "GET" if "GET" in r.methods else next(iter(r.methods - {"HEAD", "OPTIONS"}))
+        resp = client.open(r.rule, method=method)
+        assert resp.status_code == 401, (
+            f"{method} {r.rule} did not require auth (got {resp.status_code}); "
+            f"a new /api/v1 route may be missing @require_api_key"
+        )
+
+
 def test_non_bearer_scheme_returns_401_json(client):
     resp = client.get(URL, headers={"Authorization": "Basic Zm9vOmJhcg=="})
     assert resp.status_code == 401
