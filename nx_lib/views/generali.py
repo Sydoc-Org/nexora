@@ -491,6 +491,39 @@ def _generali_userids_in_org(org_code):
         nx_conn.close()
 
 
+def _generali_scope_where(perm_prefix, user_column, requested_org_code):
+    """WHERE fragment enforcing a Generali list query's org/self visibility from
+    the caller's GRANTS -- never from a client-supplied organizationcode (#193
+    cross-org read). Returns (clauses, params):
+
+    - <perm>.edit.transorganizational: honour an optional requested org filter,
+      otherwise no constraint (all orgs).
+    - <perm>.edit.organizational only: clamp to the caller's SESSION org; any
+      requested organizationcode is ignored.
+    - neither grant: clamp to the caller's own user id.
+
+    Emits a fail-closed "1=0" clause when the target org resolves to no users,
+    so an empty/unknown org can never widen the result set.
+    """
+    if has_permission(f"{perm_prefix}.edit.transorganizational"):
+        if not requested_org_code:
+            return [], []
+        org_scope = requested_org_code
+    elif has_permission(f"{perm_prefix}.edit.organizational"):
+        org_scope = session.get("organizationcode")
+    else:
+        return [f"{user_column} = ?"], [session.get("userid")]
+
+    ids = _generali_userids_in_org(org_scope)
+    if not ids:
+        current_app.logger.info(
+            f"Generali scope: org {org_scope!r} resolved to no users; failing closed"
+        )
+        return ["1=0"], []
+    placeholders = ",".join(["?"] * len(ids))
+    return [f"{user_column} IN ({placeholders})"], list(ids)
+
+
 def _empty_paginated_response(extra=None):
     payload = {
         "success": True,
@@ -722,13 +755,6 @@ def api_generali_reporting_list():
         if category and category in REPORTING_CATEGORIES:
             where_clauses.append("category = ?")
             params.append(category)
-        if org_code:
-            org_user_ids = _generali_userids_in_org(org_code)
-            if not org_user_ids:
-                return _empty_paginated_response()
-            placeholders = ",".join(["?"] * len(org_user_ids))
-            where_clauses.append(f"ReportByUserID IN ({placeholders})")
-            params.extend(org_user_ids)
         if user_id:
             where_clauses.append("ReportByUserID = ?")
             params.append(user_id)
@@ -736,12 +762,11 @@ def api_generali_reporting_list():
             where_clauses.append("ontime = ?")
             params.append(1 if on_time_str == "true" else 0)
 
-        restrict_to_self = not has_permission(
-            "generali.reporting.edit.organizational"
-        ) and not has_permission("generali.reporting.edit.transorganizational")
-        if restrict_to_self:
-            where_clauses.append("ReportByUserID = ?")
-            params.append(session.get("userid"))
+        scope_clauses, scope_params = _generali_scope_where(
+            "generali.reporting", "ReportByUserID", org_code
+        )
+        where_clauses.extend(scope_clauses)
+        params.extend(scope_params)
 
         where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
@@ -1283,19 +1308,11 @@ def api_generali_attendance_list():
             where_clauses.append("SubCategory = ?")
             params.append(sub_cat)
 
-        if not has_permission("generali.attendance.edit.organizational") and not has_permission(
-            "generali.attendance.edit.transorganizational"
-        ):
-            where_clauses.append("UserID = ?")
-            params.append(session.get("userid"))
-
-        if org_code:
-            org_user_ids = _generali_userids_in_org(org_code)
-            if not org_user_ids:
-                return _empty_paginated_response({"totalHours": 0.0})
-            placeholders = ",".join(["?"] * len(org_user_ids))
-            where_clauses.append(f"UserID IN ({placeholders})")
-            params.extend(org_user_ids)
+        scope_clauses, scope_params = _generali_scope_where(
+            "generali.attendance", "UserID", org_code
+        )
+        where_clauses.extend(scope_clauses)
+        params.extend(scope_params)
         if user_id:
             where_clauses.append("UserID = ?")
             params.append(user_id)
@@ -1777,19 +1794,11 @@ def api_generali_baseservices_list():
             where_clauses.append("Category = ?")
             params.append(category)
 
-        if not has_permission("generali.baseservices.edit.organizational") and not has_permission(
-            "generali.baseservices.edit.transorganizational"
-        ):
-            where_clauses.append("UserID = ?")
-            params.append(session.get("userid"))
-
-        if org_code:
-            org_user_ids = _generali_userids_in_org(org_code)
-            if not org_user_ids:
-                return _empty_paginated_response({"totalHours": 0.0})
-            placeholders = ",".join(["?"] * len(org_user_ids))
-            where_clauses.append(f"UserID IN ({placeholders})")
-            params.extend(org_user_ids)
+        scope_clauses, scope_params = _generali_scope_where(
+            "generali.baseservices", "UserID", org_code
+        )
+        where_clauses.extend(scope_clauses)
+        params.extend(scope_params)
         if user_id:
             where_clauses.append("UserID = ?")
             params.append(user_id)
@@ -2267,19 +2276,11 @@ def api_generali_projectmanagement_list():
             where_clauses.append("ForDate <= ?")
             params.append(end_date)
 
-        if not has_permission(
-            "generali.projectmanagement.edit.organizational"
-        ) and not has_permission("generali.projectmanagement.edit.transorganizational"):
-            where_clauses.append("UserID = ?")
-            params.append(session.get("userid"))
-
-        if org_code:
-            org_user_ids = _generali_userids_in_org(org_code)
-            if not org_user_ids:
-                return _empty_paginated_response({"totalHours": 0.0})
-            placeholders = ",".join(["?"] * len(org_user_ids))
-            where_clauses.append(f"UserID IN ({placeholders})")
-            params.extend(org_user_ids)
+        scope_clauses, scope_params = _generali_scope_where(
+            "generali.projectmanagement", "UserID", org_code
+        )
+        where_clauses.extend(scope_clauses)
+        params.extend(scope_params)
         if user_id:
             where_clauses.append("UserID = ?")
             params.append(user_id)
@@ -2828,19 +2829,9 @@ def api_generali_pdqm_list():
             where_clauses.append("SubCategory = ?")
             params.append(sub_cat)
 
-        if not has_permission("generali.pdqm.edit.organizational") and not has_permission(
-            "generali.pdqm.edit.transorganizational"
-        ):
-            where_clauses.append("UserID = ?")
-            params.append(session.get("userid"))
-
-        if org_code:
-            org_user_ids = _generali_userids_in_org(org_code)
-            if not org_user_ids:
-                return _empty_paginated_response({"totalQuantity": 0})
-            placeholders = ",".join(["?"] * len(org_user_ids))
-            where_clauses.append(f"UserID IN ({placeholders})")
-            params.extend(org_user_ids)
+        scope_clauses, scope_params = _generali_scope_where("generali.pdqm", "UserID", org_code)
+        where_clauses.extend(scope_clauses)
+        params.extend(scope_params)
         if user_id:
             where_clauses.append("UserID = ?")
             params.append(user_id)
