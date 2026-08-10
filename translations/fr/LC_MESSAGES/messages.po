@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-10 09:45+0200\n"
+"POT-Creation-Date: 2026-08-10 11:45+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -304,7 +304,7 @@ msgid "Organization updated successfully."
 msgstr "Organisation mise à jour avec succès."
 
 #: nx_lib/views/admin.py:238 nx_lib/views/admin.py:262
-#: nx_lib/views/admin.py:931 nx_lib/views/admin.py:1171
+#: nx_lib/views/admin.py:931 nx_lib/views/admin.py:1179
 msgid "An error occurred."
 msgstr "Une erreur s'est produite."
 
@@ -315,6 +315,37 @@ msgstr "Organisation introuvable."
 #: nx_lib/views/admin.py:259
 msgid "Organization deleted successfully."
 msgstr "Organisation supprimée avec succès."
+
+#: nx_lib/views/admin.py:289 nx_lib/views/admin.py:404
+#: nx_lib/views/admin.py:445 nx_lib/views/admin.py:488
+#: nx_lib/views/admin.py:508 nx_lib/views/admin.py:655
+#: nx_lib/views/admin.py:1105 nx_lib/views/admin.py:1257
+#: nx_lib/views/admin.py:1784 nx_lib/views/dashboard.py:444
+#: nx_lib/views/dashboard.py:502 nx_lib/views/dashboard.py:589
+#: nx_lib/views/dashboard.py:632 nx_lib/views/generali.py:228
+#: nx_lib/views/generali.py:257 nx_lib/views/generali.py:426
+#: nx_lib/views/generali.py:455 nx_lib/views/generali.py:686
+#: nx_lib/views/generali.py:728 nx_lib/views/generali.py:852
+#: nx_lib/views/generali.py:928 nx_lib/views/generali.py:984
+#: nx_lib/views/generali.py:1006 nx_lib/views/generali.py:1175
+#: nx_lib/views/generali.py:1206 nx_lib/views/generali.py:1235
+#: nx_lib/views/generali.py:1277 nx_lib/views/generali.py:1402
+#: nx_lib/views/generali.py:1473 nx_lib/views/generali.py:1519
+#: nx_lib/views/generali.py:1542 nx_lib/views/generali.py:1696
+#: nx_lib/views/generali.py:1725 nx_lib/views/generali.py:1767
+#: nx_lib/views/generali.py:1887 nx_lib/views/generali.py:1961
+#: nx_lib/views/generali.py:2009 nx_lib/views/generali.py:2035
+#: nx_lib/views/generali.py:2182 nx_lib/views/generali.py:2211
+#: nx_lib/views/generali.py:2253 nx_lib/views/generali.py:2370
+#: nx_lib/views/generali.py:2442 nx_lib/views/generali.py:2490
+#: nx_lib/views/generali.py:2516 nx_lib/views/generali.py:2668
+#: nx_lib/views/generali.py:2718 nx_lib/views/generali.py:2747
+#: nx_lib/views/generali.py:2789 nx_lib/views/generali.py:2921
+#: nx_lib/views/generali.py:2995 nx_lib/views/generali.py:3044
+#: nx_lib/views/generali.py:3067 nx_lib/views/generali.py:3175
+#: nx_lib/views/workitems.py:2018
+msgid "An unexpected error occurred"
+msgstr "Une erreur inattendue s'est produite"
 
 #: nx_lib/views/admin.py:349
 msgid "Unknown environment."
@@ -348,70 +379,72 @@ msgstr "Le nom d'utilisateur ou l'e-mail existe déjà."
 msgid "User updated successfully."
 msgstr "Utilisateur mis à jour avec succès."
 
-#: nx_lib/views/admin.py:1117
+#: nx_lib/views/admin.py:1125
 msgid "You cannot delete your own account."
 msgstr "Vous ne pouvez pas supprimer votre propre compte."
 
-#: nx_lib/views/admin.py:1163
+#: nx_lib/views/admin.py:1171
 msgid "User not found."
 msgstr "Utilisateur introuvable."
 
-#: nx_lib/views/admin.py:1165
+#: nx_lib/views/admin.py:1173
 msgid "User deleted successfully."
 msgstr "Utilisateur supprimé avec succès."
 
-#: nx_lib/views/admin.py:1294
+#: nx_lib/views/admin.py:1302
 msgid "Could not fetch logs"
 msgstr "Impossible de récupérer les journaux"
 
-#: nx_lib/views/admin.py:1338
+#: nx_lib/views/admin.py:1346
 msgid "Could not fetch sessions"
 msgstr "Impossible de récupérer les sessions"
 
-#: nx_lib/views/admin.py:1435 nx_lib/views/admin.py:1745
-#: nx_lib/views/admin.py:1787 nx_lib/views/admin.py:1832
-#: nx_lib/views/admin.py:1871 nx_lib/views/admin.py:1908
-#: nx_lib/views/admin.py:1940 nx_lib/views/dashboard.py:252
-#: nx_lib/views/dashboard.py:362 nx_lib/views/dashboard.py:417
-#: nx_lib/views/dashboard.py:509 nx_lib/views/invoices.py:292
-#: nx_lib/views/workitems.py:981 nx_lib/views/workitems.py:1719
+#: nx_lib/views/admin.py:1443 nx_lib/views/admin.py:1753
+#: nx_lib/views/admin.py:1795 nx_lib/views/admin.py:1840
+#: nx_lib/views/admin.py:1879 nx_lib/views/admin.py:1916
+#: nx_lib/views/admin.py:1948 nx_lib/views/dashboard.py:348
+#: nx_lib/views/dashboard.py:458 nx_lib/views/dashboard.py:513
+#: nx_lib/views/dashboard.py:605 nx_lib/views/invoices.py:292
+#: nx_lib/views/workitems.py:1003 nx_lib/views/workitems.py:1741
+#: nx_lib/views/workitems.py:1743 nx_lib/views/workitems.py:1853
+#: nx_lib/views/workitems.py:1957
 msgid "Not authorized"
 msgstr "Non autorisé"
 
-#: nx_lib/views/admin.py:1478
+#: nx_lib/views/admin.py:1486
 msgid "Could not fetch users"
 msgstr "Impossible de récupérer les utilisateurs"
 
-#: nx_lib/views/admin.py:1524
+#: nx_lib/views/admin.py:1532
 msgid "Name is required"
 msgstr "Le nom est obligatoire"
 
-#: nx_lib/views/admin.py:1552
+#: nx_lib/views/admin.py:1560
 msgid "Profile saved successfully"
 msgstr "Profil enregistré avec succès"
 
-#: nx_lib/views/admin.py:1731
+#: nx_lib/views/admin.py:1739
 msgid "Overrides updated successfully"
 msgstr "Dérogations mises à jour avec succès"
 
-#: nx_lib/views/admin.py:1796 nx_lib/views/admin.py:1924
-#: nx_lib/views/admin.py:1966
+#: nx_lib/views/admin.py:1804 nx_lib/views/admin.py:1932
+#: nx_lib/views/admin.py:1974
 msgid "Permission not found"
 msgstr "Autorisation introuvable"
 
-#: nx_lib/views/admin.py:1876 nx_lib/views/admin.py:1913
+#: nx_lib/views/admin.py:1884 nx_lib/views/admin.py:1921
 msgid "Code and description are required"
 msgstr "Le code et la description sont obligatoires"
 
-#: nx_lib/views/admin.py:1891
+#: nx_lib/views/admin.py:1899
 msgid "Permission created successfully"
 msgstr "Autorisation créée avec succès"
 
-#: nx_lib/views/admin.py:1926
+#: nx_lib/views/admin.py:1934
 msgid "Permission updated successfully"
 msgstr "Autorisation mise à jour avec succès"
 
-#: nx_lib/views/admin.py:1959
+#: nx_lib/views/admin.py:1967
 #, python-format
 msgid ""
 "Cannot delete: used in %(p)d profile(s) and %(o)d override(s). Remove all"
@@ -420,7 +453,7 @@ msgstr ""
 "Impossible de supprimer : utilisé dans %(p)d profil(s) et %(o)d "
 "substitution(s). Veuillez d'abord supprimer toutes les affectations."
 
-#: nx_lib/views/admin.py:1968
+#: nx_lib/views/admin.py:1976
 msgid "Permission deleted successfully"
 msgstr "Autorisation supprimée avec succès"
 
@@ -495,51 +528,51 @@ msgstr "Code invalide. Veuillez réessayer."
 msgid "Invalid code"
 msgstr "Code invalide"
 
-#: nx_lib/views/auth.py:429 nx_lib/views/auth.py:654
+#: nx_lib/views/auth.py:429 nx_lib/views/auth.py:679
 #: templates/js/_profile_js.html:5
 msgid "Passwords do not match"
 msgstr "Les mots de passe ne correspondent pas"
 
-#: nx_lib/views/auth.py:431 nx_lib/views/auth.py:656
+#: nx_lib/views/auth.py:431 nx_lib/views/auth.py:681
 msgid "All Fields must be filled"
 msgstr "Tous les champs doivent être remplis"
 
-#: nx_lib/views/auth.py:435 nx_lib/views/auth.py:660
-#: nx_lib/views/profile.py:160
+#: nx_lib/views/auth.py:435 nx_lib/views/auth.py:685
+#: nx_lib/views/profile.py:164
 msgid "New password has to be atleast 8 characters long, with no whitespaces"
 msgstr "Le nouveau mot de passe doit comporter au moins 8 caractères, sans espaces"
 
-#: nx_lib/views/auth.py:455 nx_lib/views/auth.py:678
+#: nx_lib/views/auth.py:455 nx_lib/views/auth.py:703
 msgid "New Password musn't be previously used password"
 msgstr "Le nouveau mot de passe ne doit pas être un mot de passe déjà utilisé"
 
-#: nx_lib/views/auth.py:488 nx_lib/views/auth.py:725
+#: nx_lib/views/auth.py:488 nx_lib/views/auth.py:750
 msgid "Something went wrong, please try again"
 msgstr "Une erreur s'est produite, veuillez réessayer"
 
-#: nx_lib/views/auth.py:545 nx_lib/views/auth.py:588
+#: nx_lib/views/auth.py:564 nx_lib/views/auth.py:613
 msgid "Invalid credentials"
 msgstr "Identifiants invalides"
 
-#: nx_lib/views/auth.py:592
+#: nx_lib/views/auth.py:617
 msgid "Login temporarily unavailable"
 msgstr "Connexion temporairement indisponible"
 
-#: nx_lib/views/auth.py:710
+#: nx_lib/views/auth.py:735
 msgid "Password set. You can now sign in."
 msgstr "Mot de passe défini. Vous pouvez maintenant vous connecter."
 
-#: nx_lib/views/auth.py:712
+#: nx_lib/views/auth.py:737
 msgid "Password changed"
 msgstr "Mot de passe modifié"
 
-#: nx_lib/views/auth.py:857
+#: nx_lib/views/auth.py:882
 msgid "If that email is registered, a reset link has been sent."
 msgstr ""
 "Si cette adresse e-mail est enregistrée, un lien de réinitialisation du "
 "mot de passe a été envoyé."
 
-#: nx_lib/views/auth.py:861
+#: nx_lib/views/auth.py:886
 msgid "Unexpected error occurred"
 msgstr "Une erreur inattendue s'est produite"
 
@@ -563,48 +596,48 @@ msgstr "Impossible de télécharger le PDF. Fichier introuvable ou erreur d'API.
 msgid "An unexpected error occurred while downloading the PDF."
 msgstr "Une erreur inattendue s'est produite lors du téléchargement du PDF."
 
-#: nx_lib/views/profile.py:67
+#: nx_lib/views/profile.py:71
 msgid "Email Adress is not valid"
 msgstr "L'adresse e-mail n'est pas valide"
 
-#: nx_lib/views/profile.py:74
+#: nx_lib/views/profile.py:78
 msgid "Email Adress is already in use"
 msgstr "L'adresse e-mail est déjà utilisée"
 
-#: nx_lib/views/profile.py:95 nx_lib/views/profile.py:119
+#: nx_lib/views/profile.py:99 nx_lib/views/profile.py:123
 msgid "Invalid file format. Please upload a valid image."
 msgstr "Format de fichier invalide. Veuillez téléverser une image valide."
 
-#: nx_lib/views/profile.py:123
+#: nx_lib/views/profile.py:127
 msgid "Profile updated successfully!"
 msgstr "Profil mis à jour avec succès !"
 
-#: nx_lib/views/profile.py:128
+#: nx_lib/views/profile.py:132
 msgid "Unexpected error"
 msgstr "Erreur inattendue"
 
-#: nx_lib/views/profile.py:153
+#: nx_lib/views/profile.py:157
 msgid "New passwords do not match"
 msgstr "Les nouveaux mots de passe ne correspondent pas"
 
-#: nx_lib/views/profile.py:156
+#: nx_lib/views/profile.py:160
 msgid "All fields must be filled"
 msgstr "Tous les champs doivent être remplis"
 
-#: nx_lib/views/profile.py:190
+#: nx_lib/views/profile.py:194
 msgid "Password updated successfully!"
 msgstr "Mot de passe mis à jour avec succès !"
 
-#: nx_lib/views/profile.py:193
+#: nx_lib/views/profile.py:197
 msgid "Current password is incorrect"
 msgstr "Le mot de passe actuel est incorrect"
 
-#: nx_lib/views/profile.py:198 nx_lib/views/profile.py:211
-#: nx_lib/views/profile.py:224
+#: nx_lib/views/profile.py:202 nx_lib/views/profile.py:215
+#: nx_lib/views/profile.py:228
 msgid "Unexpected Error"
 msgstr "Erreur inattendue"
 
-#: nx_lib/views/profile.py:220
+#: nx_lib/views/profile.py:224
 msgid "Language changed successfully!"
 msgstr "Langue modifiée avec succès !"
 
@@ -947,11 +980,11 @@ msgstr "Impossible de mettre à jour la métrique"
 msgid "Could not delete metric"
 msgstr "Impossible de supprimer la métrique"
 
-#: nx_lib/views/workitems.py:972 nx_lib/views/workitems.py:1130
+#: nx_lib/views/workitems.py:994 nx_lib/views/workitems.py:1152
 msgid "Could not fetch values"
 msgstr "Impossible de récupérer les valeurs"
 
-#: nx_lib/views/workitems.py:1191
+#: nx_lib/views/workitems.py:1213
 msgid ""
 "Exporting fields, history, or images requires selecting 10 or fewer "
 "workitems."
@@ -959,23 +992,23 @@ msgstr ""
 "L'export des champs, de l'historique ou des images nécessite de "
 "sélectionner 10 workitems ou moins."
 
-#: nx_lib/views/workitems.py:1485
+#: nx_lib/views/workitems.py:1507
 msgid "TRUNCATED"
 msgstr "TRONQUÉ"
 
-#: nx_lib/views/workitems.py:1486
+#: nx_lib/views/workitems.py:1508
 msgid "exported"
 msgstr "exportés"
 
-#: nx_lib/views/workitems.py:1486
+#: nx_lib/views/workitems.py:1508
 msgid "matching workitems"
 msgstr "workitems correspondants"
 
-#: nx_lib/views/workitems.py:1492
+#: nx_lib/views/workitems.py:1514
 msgid "EXPORT TIMED OUT"
 msgstr "EXPORT EXPIRÉ"
 
-#: nx_lib/views/workitems.py:1493
+#: nx_lib/views/workitems.py:1515
 msgid ""
 "no fields or images completed before the time limit; this is not a zero-"
 "result export"
@@ -983,114 +1016,110 @@ msgstr ""
 "aucun champ ni image n'a été terminé avant la limite de temps ; il ne "
 "s'agit pas d'un export sans résultat"
 
-#: nx_lib/views/workitems.py:1609 nx_lib/views/workitems.py:1680
+#: nx_lib/views/workitems.py:1631 nx_lib/views/workitems.py:1702
 msgid "No file part in the request."
 msgstr "Aucune partie de fichier dans la requête."
 
-#: nx_lib/views/workitems.py:1616 nx_lib/views/workitems.py:1683
+#: nx_lib/views/workitems.py:1638 nx_lib/views/workitems.py:1705
 msgid "No file selected for uploading."
 msgstr "Aucun fichier sélectionné pour le téléversement."
 
-#: nx_lib/views/workitems.py:1620
+#: nx_lib/views/workitems.py:1642
 msgid "No target process selected."
 msgstr "Aucun processus cible sélectionné."
 
-#: nx_lib/views/workitems.py:1632
+#: nx_lib/views/workitems.py:1654
 msgid "You do not have permission to import to this process."
 msgstr "Vous n'avez pas l'autorisation d'importer dans ce processus."
 
-#: nx_lib/views/workitems.py:1647
+#: nx_lib/views/workitems.py:1669
 #, python-brace-format
 msgid "File '{}' successfully imported into {}."
 msgstr "Fichier '{}' importé avec succès dans {}."
 
-#: nx_lib/views/workitems.py:1652
+#: nx_lib/views/workitems.py:1674
 msgid "An error occurred while saving the file."
 msgstr "Une erreur s'est produite lors de l'enregistrement du fichier."
 
-#: nx_lib/views/workitems.py:1654
+#: nx_lib/views/workitems.py:1676
 msgid "Invalid file type. Please upload a valid PDF."
 msgstr "Type de fichier invalide. Veuillez téléverser un PDF valide."
 
-#: nx_lib/views/workitems.py:1677 nx_lib/views/workitems.py:2213
+#: nx_lib/views/workitems.py:1699 nx_lib/views/workitems.py:2241
 msgid "This import is only available for the MS02 client."
 msgstr "Cet import est uniquement disponible pour le client MS02."
 
-#: nx_lib/views/workitems.py:1687
+#: nx_lib/views/workitems.py:1709
 msgid "Invalid file type. Please upload a valid Excel (.xlsx) file."
 msgstr ""
 "Type de fichier invalide. Veuillez téléverser un fichier Excel valide "
 "(.xlsx)."
 
-#: nx_lib/views/workitems.py:1695
+#: nx_lib/views/workitems.py:1717
 msgid "The Excel file has no usable rows."
 msgstr "Le fichier Excel ne contient aucune ligne exploitable."
 
-#: nx_lib/views/workitems.py:1712
+#: nx_lib/views/workitems.py:1734
 msgid "Could not save the prepared documents. Please try again."
 msgstr "Impossible de sauvegarder les documents préparés. Veuillez réessayer."
 
-#: nx_lib/views/workitems.py:1795 nx_lib/views/workitems.py:1835
+#: nx_lib/views/workitems.py:1819 nx_lib/views/workitems.py:1861
 msgid "Workitem not found"
 msgstr "Workitem introuvable"
 
-#: nx_lib/views/workitems.py:1823 nx_lib/views/workitems.py:1925
+#: nx_lib/views/workitems.py:1847 nx_lib/views/workitems.py:1951
 msgid "Internal Server Error"
 msgstr "Erreur interne du serveur"
 
-#: nx_lib/views/workitems.py:1848
+#: nx_lib/views/workitems.py:1874
 msgid "Media index out of bounds"
 msgstr "Index du média hors limites"
 
-#: nx_lib/views/workitems.py:1874
+#: nx_lib/views/workitems.py:1900
 msgid "Failed to render PDF page"
 msgstr "Échec du rendu de la page PDF"
 
-#: nx_lib/views/workitems.py:1901
+#: nx_lib/views/workitems.py:1927
 msgid "Failed to process TIFF image"
 msgstr "Échec du traitement de l'image TIFF"
 
-#: nx_lib/views/workitems.py:1988
+#: nx_lib/views/workitems.py:2016
 msgid "Failed to fetch audit history"
 msgstr "Échec de la récupération de l'historique d'audit"
 
-#: nx_lib/views/workitems.py:1990
-msgid "An unexpected error occurred"
-msgstr "Une erreur inattendue s'est produite"
-
-#: nx_lib/views/workitems.py:2096
+#: nx_lib/views/workitems.py:2124
 msgid "This page is only available for the MS02 client."
 msgstr "Cette page est uniquement disponible pour le client MS02."
 
-#: nx_lib/views/workitems.py:2219
+#: nx_lib/views/workitems.py:2247
 msgid "Could not clear the prepared documents. Please try again."
 msgstr "Impossible de supprimer les documents préparés. Veuillez réessayer."
 
-#: nx_lib/views/workitems.py:2280
+#: nx_lib/views/workitems.py:2308
 msgid "Could not load saved views."
 msgstr "Impossible de charger les vues enregistrées."
 
-#: nx_lib/views/workitems.py:2294 nx_lib/views/workitems.py:2297
+#: nx_lib/views/workitems.py:2322 nx_lib/views/workitems.py:2325
 msgid "Invalid view name or filters."
 msgstr "Nom de vue ou filtres invalides."
 
-#: nx_lib/views/workitems.py:2311 nx_lib/views/workitems.py:2360
+#: nx_lib/views/workitems.py:2339 nx_lib/views/workitems.py:2388
 msgid "View not found."
 msgstr "Vue introuvable."
 
-#: nx_lib/views/workitems.py:2324
+#: nx_lib/views/workitems.py:2352
 msgid "Too many saved views — delete one first."
 msgstr "Trop de vues enregistrées — supprimez-en d'abord une."
 
-#: nx_lib/views/workitems.py:2339
+#: nx_lib/views/workitems.py:2367
 msgid "A view with this name already exists."
 msgstr "Une vue portant ce nom existe déjà."
 
-#: nx_lib/views/workitems.py:2342
+#: nx_lib/views/workitems.py:2370
 msgid "Could not save the view."
 msgstr "Impossible d'enregistrer la vue."
 
-#: nx_lib/views/workitems.py:2364
+#: nx_lib/views/workitems.py:2392
 msgid "Could not delete the view."
 msgstr "Impossible de supprimer la vue."
 
@@ -1128,7 +1157,7 @@ msgstr "Journaux"
 
 #: templates/_header.html:212 templates/admin/logs.html:64
 #: templates/admin/logs.html:97 templates/admin/user_detail.html:226
-#: templates/api_docs.html:174 templates/appearance.html:355
+#: templates/api_docs.html:172 templates/appearance.html:355
 #: templates/archive/invoices.html:78 templates/archive/invoices.html:123
 #: templates/generali_importstatus.html:48
 #: templates/generali_importstatus.html:108
@@ -1698,10 +1727,10 @@ msgstr "Requête envoyée à la base de données"
 
 #: templates/_reporting_simple.html:244 templates/admin/logs.html:133
 #: templates/api_docs.html:132 templates/api_docs.html:138
-#: templates/api_docs.html:154 templates/api_docs.html:197
-#: templates/api_docs.html:203 templates/api_docs.html:232
-#: templates/api_docs.html:238 templates/api_docs.html:263
-#: templates/api_docs.html:269 templates/reporting.html:356
+#: templates/api_docs.html:152 templates/api_docs.html:195
+#: templates/api_docs.html:201 templates/api_docs.html:226
+#: templates/api_docs.html:232 templates/api_docs.html:259
+#: templates/api_docs.html:265 templates/reporting.html:356
 msgid "Copy"
 msgstr "Copier"
 
@@ -1749,7 +1778,7 @@ msgstr "Guide"
 msgid "Getting Started"
 msgstr "Premiers pas"
 
-#: templates/api_docs.html:89 templates/api_docs.html:151
+#: templates/api_docs.html:89 templates/api_docs.html:149
 msgid "Authentication"
 msgstr "Authentification"
 
@@ -1761,7 +1790,7 @@ msgstr "Erreurs & limites de débit"
 msgid "Endpoints"
 msgstr "Points de terminaison"
 
-#: templates/api_docs.html:103 templates/api_docs.html:259
+#: templates/api_docs.html:103 templates/api_docs.html:255
 msgid "Test sandbox"
 msgstr "Bac à sable de test"
 
@@ -1814,19 +1843,19 @@ msgid ""
 msgstr "Un en-tête, un GET — avec une clé API en main, voici toute l'intégration :"
 
 #: templates/api_docs.html:132 templates/api_docs.html:138
-#: templates/api_docs.html:154 templates/api_docs.html:197
-#: templates/api_docs.html:203 templates/api_docs.html:232
-#: templates/api_docs.html:238 templates/api_docs.html:263
-#: templates/api_docs.html:269
+#: templates/api_docs.html:152 templates/api_docs.html:195
+#: templates/api_docs.html:201 templates/api_docs.html:226
+#: templates/api_docs.html:232 templates/api_docs.html:259
+#: templates/api_docs.html:265
 msgid "Copy code"
 msgstr "Copier le code"
 
-#: templates/api_docs.html:137 templates/api_docs.html:202
-#: templates/api_docs.html:237 templates/api_docs.html:268
+#: templates/api_docs.html:137 templates/api_docs.html:200
+#: templates/api_docs.html:231 templates/api_docs.html:264
 msgid "response"
 msgstr "réponse"
 
-#: templates/api_docs.html:146
+#: templates/api_docs.html:144
 msgid ""
 "In PowerShell use curl.exe — bare curl is an alias for Invoke-WebRequest,"
 " which spells the header differently. No key or a wrong key returns"
@@ -1835,11 +1864,11 @@ msgstr ""
 "WebRequest, qui écrit l'en-tête différemment. Sans clé ou avec une "
 "mauvaise clé, la réponse est"
 
-#: templates/api_docs.html:152
+#: templates/api_docs.html:150
 msgid "Send your API key as a Bearer token on every request:"
 msgstr "Envoyez votre clé API comme jeton Bearer à chaque requête :"
 
-#: templates/api_docs.html:158
+#: templates/api_docs.html:156
 msgid ""
 "Keys are issued per client by the Sydoc team. Each key carries a process "
 "scope: it only ever sees the numbers of the processes it was issued for. "
@@ -1852,21 +1881,21 @@ msgstr ""
 "par un canal sécurisé et n'est pas récupérable ensuite — conservez-la en "
 "lieu sûr."
 
-#: templates/api_docs.html:159
+#: templates/api_docs.html:157
 msgid "Key lifecycle"
 msgstr "Cycle de vie des clés"
 
-#: templates/api_docs.html:161
+#: templates/api_docs.html:159
 msgid "Keys do not expire on their own; they stay valid until revoked."
 msgstr ""
 "Les clés n'expirent pas d'elles-mêmes ; elles restent valides jusqu'à "
 "révocation."
 
-#: templates/api_docs.html:162
+#: templates/api_docs.html:160
 msgid "Revocation is effective immediately on the next request."
 msgstr "La révocation prend effet dès la requête suivante."
 
-#: templates/api_docs.html:163
+#: templates/api_docs.html:161
 msgid ""
 "A revoked or unknown key answers a uniform 401 — deliberately "
 "indistinguishable, so a leaked key confirms nothing."
@@ -1874,7 +1903,7 @@ msgstr ""
 "Une clé révoquée ou inconnue reçoit un 401 uniforme — volontairement "
 "indistinguable, une clé divulguée ne confirme donc rien."
 
-#: templates/api_docs.html:164
+#: templates/api_docs.html:162
 msgid ""
 "Rotation: request a new key from the Sydoc team, switch your integration,"
 " then the old key is disabled."
@@ -1882,11 +1911,11 @@ msgstr ""
 "Rotation : demandez une nouvelle clé à l'équipe Sydoc, basculez votre "
 "intégration, puis l'ancienne clé est désactivée."
 
-#: templates/api_docs.html:170
+#: templates/api_docs.html:168
 msgid "Errors"
 msgstr "Erreurs"
 
-#: templates/api_docs.html:171
+#: templates/api_docs.html:169
 msgid ""
 "Errors are JSON unless noted. The body always carries an English error "
 "string — the API is not localized."
@@ -1894,56 +1923,56 @@ msgstr ""
 "Les erreurs sont en JSON sauf mention contraire. Le corps contient "
 "toujours un message d'erreur en anglais — l'API n'est pas localisée."
 
-#: templates/api_docs.html:174
+#: templates/api_docs.html:172
 msgid "Body"
 msgstr "Corps"
 
-#: templates/api_docs.html:174 templates/api_docs.html:214
-#: templates/api_docs.html:247
+#: templates/api_docs.html:172 templates/api_docs.html:210
+#: templates/api_docs.html:242
 msgid "Meaning"
 msgstr "Signification"
 
-#: templates/api_docs.html:176
+#: templates/api_docs.html:174
 msgid "Missing or malformed Authorization: Bearer header"
 msgstr "En-tête Authorization: Bearer manquant ou malformé"
 
-#: templates/api_docs.html:177
+#: templates/api_docs.html:175
 msgid "Unknown or disabled key (uniform on purpose)"
 msgstr "Clé inconnue ou désactivée (uniforme à dessein)"
 
-#: templates/api_docs.html:178
+#: templates/api_docs.html:176
 msgid "Wrong path under"
 msgstr "Chemin incorrect sous"
 
-#: templates/api_docs.html:179 templates/api_docs.html:180
+#: templates/api_docs.html:177 templates/api_docs.html:178
 msgid "HTML"
 msgstr "HTML"
 
-#: templates/api_docs.html:179
+#: templates/api_docs.html:177
 msgid "Non-GET verb — the API is GET-only"
 msgstr "Verbe non-GET — l'API n'accepte que GET"
 
-#: templates/api_docs.html:180
+#: templates/api_docs.html:178
 msgid "Over the rate limit"
 msgstr "Limite de débit dépassée"
 
-#: templates/api_docs.html:181
+#: templates/api_docs.html:179
 msgid "Backend or server failure"
 msgstr "Défaillance du backend ou du serveur"
 
-#: templates/api_docs.html:182
+#: templates/api_docs.html:180
 msgid "Auth database unreachable (fail closed)"
 msgstr "Base d'authentification injoignable (fail closed)"
 
-#: templates/api_docs.html:183
+#: templates/api_docs.html:181
 msgid "Blocking maintenance window"
 msgstr "Fenêtre de maintenance bloquante"
 
-#: templates/api_docs.html:187
+#: templates/api_docs.html:185
 msgid "Rate limit"
 msgstr "Limite de débit"
 
-#: templates/api_docs.html:188
+#: templates/api_docs.html:186
 msgid ""
 "60 requests per minute per source IP, checked before authentication. "
 "Exceeding it returns HTTP 429; back off and retry after the minute "
@@ -1953,58 +1982,7 @@ msgstr ""
 "l'authentification. En cas de dépassement, HTTP 429 ; attendez la fin de "
 "la fenêtre d'une minute avant de réessayer."
 
-#: templates/api_docs.html:194
-msgid ""
-"Today's imported and exported document counts, scoped to your key's "
-"processes — the same numbers as the nexora dashboard's \"today\" KPI "
-"tiles."
-msgstr ""
-"Les nombres de documents importés et exportés aujourd'hui, limités aux "
-"processus de votre clé — les mêmes chiffres que les tuiles KPI "
-"\"aujourd'hui\" du tableau de bord nexora."
-
-#: templates/api_docs.html:211 templates/api_docs.html:244
-msgid "Response fields"
-msgstr "Champs de réponse"
-
-#: templates/api_docs.html:214 templates/api_docs.html:247
-#: templates/js/_reporting_dashboard_js.html:76
-msgid "Field"
-msgstr "Champ"
-
-#: templates/api_docs.html:214 templates/api_docs.html:247
-#: templates/generali_documents.html:226
-#: templates/js/_reporting_viz_js.html:166
-msgid "Type"
-msgstr "Type"
-
-#: templates/api_docs.html:216
-msgid "Server-local calendar date the counts refer to (ISO 8601)"
-msgstr ""
-"Date calendaire locale du serveur à laquelle les chiffres se rapportent "
-"(ISO 8601)"
-
-#: templates/api_docs.html:217
-msgid "Documents imported today"
-msgstr "Documents importés aujourd'hui"
-
-#: templates/api_docs.html:218
-msgid "Documents exported today"
-msgstr "Documents exportés aujourd'hui"
-
-#: templates/api_docs.html:219
-msgid ""
-"Your key's process scope, echoed for debugging. An empty scope returns "
-"zeros."
-msgstr ""
-"Le périmètre de processus de votre clé, renvoyé pour le débogage. Un "
-"périmètre vide renvoie des zéros."
-
-#: templates/api_docs.html:223
-msgid "Responses are computed fresh on every call — there is no cache."
-msgstr "Les réponses sont recalculées à chaque appel — il n'y a pas de cache."
-
-#: templates/api_docs.html:229
+#: templates/api_docs.html:192
 msgid ""
 "The current backlog count for your key's processes — the same number as "
 "the nexora dashboard's \"Current Backlog\" KPI tile."
@@ -2012,15 +1990,30 @@ msgstr ""
 "Le backlog actuel pour les processus de votre clé — le même chiffre que "
 "la tuile KPI \"Current Backlog\" du tableau de bord nexora."
 
-#: templates/api_docs.html:249
+#: templates/api_docs.html:207 templates/api_docs.html:239
+msgid "Response fields"
+msgstr "Champs de réponse"
+
+#: templates/api_docs.html:210 templates/api_docs.html:242
+#: templates/js/_reporting_dashboard_js.html:76
+msgid "Field"
+msgstr "Champ"
+
+#: templates/api_docs.html:210 templates/api_docs.html:242
+#: templates/generali_documents.html:226
+#: templates/js/_reporting_viz_js.html:166
+msgid "Type"
+msgstr "Type"
+
+#: templates/api_docs.html:212
 msgid "Server-local timestamp of the count (YYYY-MM-DD HH:MM)"
 msgstr "Horodatage local du serveur du comptage (YYYY-MM-DD HH:MM)"
 
-#: templates/api_docs.html:250
+#: templates/api_docs.html:213
 msgid "Workitems currently in the backlog across your key's processes"
 msgstr "Workitems actuellement dans le backlog des processus de votre clé"
 
-#: templates/api_docs.html:254
+#: templates/api_docs.html:217
 msgid ""
 "Unlike stats/today, the response does not echo the process list — scoping"
 " happens at key issuance."
@@ -2028,7 +2021,55 @@ msgstr ""
 "Contrairement à stats/today, la réponse ne renvoie pas la liste des "
 "processus — le périmètre est fixé à l'émission de la clé."
 
-#: templates/api_docs.html:260
+#: templates/api_docs.html:223
+msgid ""
+"The average processing time for your key's processes — the same number as"
+" the nexora dashboard's \"Avg Processing Time\" KPI tile."
+msgstr ""
+"Le temps de traitement moyen pour les processus de votre clé — le même "
+"chiffre que la tuile KPI \"Avg Processing Time\" du tableau de bord "
+"nexora."
+
+#: templates/api_docs.html:244
+msgid ""
+"Average minutes between import and export among rows exported today, "
+"rounded to 1 decimal. null if no matching rows exist yet today."
+msgstr ""
+"Minutes moyennes entre l'import et l'export parmi les lignes exportées "
+"aujourd'hui, arrondies à 1 décimale. null si aucune ligne correspondante "
+"n'existe encore aujourd'hui."
+
+#: templates/api_docs.html:245
+msgid ""
+"Same figure pre-formatted: seconds under a minute, minutes under an hour,"
+" hours above — or \"—\" when null."
+msgstr ""
+"Le même chiffre préformaté : secondes en dessous d'une minute, minutes en"
+" dessous d'une heure, heures au-dessus — ou \"—\" si null."
+
+#: templates/api_docs.html:246
+msgid ""
+"Your key's process scope, echoed for debugging. An empty scope returns "
+"null/\"—\"."
+msgstr ""
+"Le périmètre de processus de votre clé, renvoyé pour le débogage. Un "
+"périmètre vide renvoie null/\"—\"."
+
+#: templates/api_docs.html:250
+msgid ""
+"Calculation: for each configured process/table, the average seconds "
+"between import and export among rows exported today; the per-source "
+"averages are then combined as a plain mean, not weighted by how many rows"
+" each source had. Responses are computed fresh on every call — there is "
+"no cache."
+msgstr ""
+"Calcul : pour chaque processus/table configuré, la moyenne en secondes "
+"entre l'import et l'export parmi les lignes exportées aujourd'hui ; les "
+"moyennes par source sont ensuite combinées en une simple moyenne, non "
+"pondérée par le nombre de lignes de chaque source. Les réponses sont "
+"calculées à chaque appel — il n'y a pas de cache."
+
+#: templates/api_docs.html:256
 msgid ""
 "Every endpoint above has a /api/test/v1/... twin: same path suffix, same "
 "Bearer-key auth, same response shape — but the numbers are random, not "
@@ -2041,15 +2082,15 @@ msgstr ""
 "requête backend n'a lieu, donc il est sûr de l'appeler à volonté pendant "
 "la construction d'une intégration."
 
-#: templates/api_docs.html:277
+#: templates/api_docs.html:271
 msgid ""
 "Use a real (enabled) API key — the same auth errors (401/429) apply. "
-"Available for both"
+"Available for"
 msgstr ""
 "Utilisez une vraie clé API (activée) — les mêmes erreurs "
 "d'authentification (401/429) s'appliquent. Disponible pour"
 
-#: templates/api_docs.html:277
+#: templates/api_docs.html:271
 msgid "and"
 msgstr "et"
 
@@ -7953,4 +7994,40 @@ msgstr ""
 
 #~ msgid "Folder (optional)"
 #~ msgstr "Dossier (facultatif)"
+
+#~ msgid ""
+#~ "Today's imported and exported document "
+#~ "counts, scoped to your key's processes"
+#~ " — the same numbers as the "
+#~ "nexora dashboard's \"today\" KPI tiles."
+#~ msgstr ""
+#~ "Les nombres de documents importés et "
+#~ "exportés aujourd'hui, limités aux processus"
+#~ " de votre clé — les mêmes "
+#~ "chiffres que les tuiles KPI "
+#~ "\"aujourd'hui\" du tableau de bord "
+#~ "nexora."
+
+#~ msgid "Server-local calendar date the counts refer to (ISO 8601)"
+#~ msgstr ""
+#~ "Date calendaire locale du serveur à "
+#~ "laquelle les chiffres se rapportent (ISO"
+#~ " 8601)"
+
+#~ msgid "Documents imported today"
+#~ msgstr "Documents importés aujourd'hui"
+
+#~ msgid "Documents exported today"
+#~ msgstr "Documents exportés aujourd'hui"
+
+#~ msgid ""
+#~ "Your key's process scope, echoed for "
+#~ "debugging. An empty scope returns zeros."
+#~ msgstr ""
+#~ "Le périmètre de processus de votre "
+#~ "clé, renvoyé pour le débogage. Un "
+#~ "périmètre vide renvoie des zéros."
+
+#~ msgid "Responses are computed fresh on every call — there is no cache."
+#~ msgstr "Les réponses sont recalculées à chaque appel — il n'y a pas de cache."
 

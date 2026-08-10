@@ -26,6 +26,15 @@ Work toward the next release.
 
 ### Added
 
+- **External API: Avg Processing Time** (#194) — `GET
+  /api/v1/avg_processing_time` (with its `/api/test/v1/...` sandbox
+  twin) returns the same "Avg Processing Time" number shown on the dashboard,
+  scoped to the key's `ProcessList`. The calculation itself (mean of
+  per-source `AVG(export - import)` seconds among rows exported today, not
+  weighted by row count) is unchanged — only extracted into a shared
+  `compute_avg_processing_time` helper (`nx_lib/views/dashboard.py`) so the
+  dashboard and the API can never drift apart. Documented in
+  `docs/howto/external-api.md` and the in-app `/api-docs` page.
 - **What's New page** (#169) — `/whats_new` (profile dropdown and Ctrl+K),
   showing curated, translated per-release feature notes authored in
   `nx_lib/whats_new.py` at release time (the raw `CHANGELOG.md` stays
@@ -96,6 +105,13 @@ Work toward the next release.
 
 ### Removed
 
+- `GET /api/v1/stats/today` removed from the external API documentation
+  (#181) — both `docs/howto/external-api.md` and the in-app `/api-docs` page
+  now start from `/backlog`. It was scaffolding built to prove out the
+  auth/routing structure before `/backlog` shipped as the actual first
+  client-facing endpoint (#158) and was never meant for clients to call. The
+  route itself (and its `/api/test/v1/...` twin) stays live in code —
+  undocumented, not deleted.
 - Bexio dropped from health monitoring (#177), following the archived invoices
   page it was the only consumer of. `nx --doctor` no longer runs the Bexio
   check or requires `BEXIO_PAT` in its env-key list, `ops/outage_monitor.py`

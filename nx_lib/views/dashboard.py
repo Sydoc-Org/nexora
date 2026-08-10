@@ -242,6 +242,104 @@ def compute_today_stats(target_processes, *, strict=False):
     return imported_today, processed_today
 
 
+def compute_avg_processing_time(target_processes, *, strict=False):
+    """Session-free average processing-time computation shared by the dashboard
+    KPI card (dashboard_avg_processing_time) and the external API v1
+    (nx_lib/views/api_external.py). Mirror of compute_today_stats -- see its
+    docstring for the strict/error-surface contract.
+
+    target_processes: NON-EMPTY list of full Statconfig ProcessName values;
+    both callers guard the empty case. Returns the average number of seconds
+    between import and export for rows exported "today" (server-local), or
+    None if no matching rows exist. Per source, AVG(export - import) is taken
+    across matching rows; the default-client and MS02 sources then contribute
+    one average each, combined as a plain mean-of-means (NOT weighted by row
+    count) -- a source with 2000 rows counts the same as one with 2."""
+    conn_nex = None
+    cursor_nex = None
+    try:
+        conn_nex = engine_nexora_db.raw_connection()
+        cursor_nex = conn_nex.cursor()
+        placeholders = ",".join(["?"] * len(target_processes))
+        cursor_nex.execute(
+            f"SELECT ProcessName, TableName, ExportColumn, ImportColumn, additionalCondition, ClientCode FROM Statconfig WHERE ProcessName IN ({placeholders})",
+            target_processes,
+        )
+        configs = cursor_nex.fetchall()
+    finally:
+        if cursor_nex:
+            cursor_nex.close()
+        if conn_nex:
+            conn_nex.close()
+
+    default_configs, ms02_rows = _split_stat_configs(configs)
+
+    sub_queries = []
+    for row in default_configs:
+        if not row.ImportColumn:
+            continue
+        condition = f" {row.additionalCondition}" if row.additionalCondition else ""
+        sub_queries.append(f"""
+            SELECT AVG(CAST(DATEDIFF(second, {row.ImportColumn}, {row.ExportColumn}) AS FLOAT)) as avg_sec
+            FROM [{DB_STATISTICS}].{row.TableName}
+            WHERE CAST({row.ExportColumn} AS DATE) = CAST(GETDATE() AS DATE)
+            AND {row.ImportColumn} IS NOT NULL
+            AND {row.ExportColumn} > {row.ImportColumn}
+            {condition}
+        """)
+
+    avg_values = []
+
+    if sub_queries:
+        full_query = f"""
+            SELECT AVG(avg_sec) as overall_avg
+            FROM ({' UNION ALL '.join(sub_queries)}) as combined
+            WHERE avg_sec IS NOT NULL
+        """
+        srows = (
+            _default_stat_rows(full_query, strict=True)
+            if strict
+            else _default_stat_rows(full_query)
+        )
+        if srows and srows[0][0] is not None:
+            avg_values.append(srows[0][0])
+
+    # MS02 contributes one client-level average (export - import seconds),
+    # weighted equally with the default bucket -- same mean-of-means the
+    # default path already applies across its processes.
+    ms02_src = _ms02_source(ms02_rows)
+    if ms02_src:
+        tbl, exp, imp = ms02_src
+        ms02_sql = (
+            f"SELECT AVG(EXTRACT(EPOCH FROM ({exp} - {imp}))) "
+            f"FROM {tbl} "
+            f"WHERE {exp}::date = CURRENT_DATE "
+            f"AND {imp} IS NOT NULL AND {exp} > {imp}"
+        )
+        mrows = _ms02_stat_rows(ms02_sql, strict=True) if strict else _ms02_stat_rows(ms02_sql)
+        if mrows and mrows[0][0] is not None:
+            avg_values.append(float(mrows[0][0]))
+
+    if not avg_values:
+        return None
+
+    return sum(avg_values) / len(avg_values)
+
+
+def format_avg_processing_display(avg_sec):
+    """Render compute_avg_processing_time's seconds figure the same way for
+    both the dashboard KPI card and the external API -- 's' under a minute,
+    'min' under an hour, 'h' above. Shared so the two never drift apart."""
+    avg_minutes = avg_sec / 60
+    if avg_minutes < 1:
+        display = f"{int(avg_sec)}s"
+    elif avg_minutes < 60:
+        display = f"{avg_minutes:.0f}min"
+    else:
+        display = f"{avg_minutes / 60:.1f}h"
+    return round(avg_minutes, 1), display
+
+
 # ----------------------------- legacy KPI endpoints (still used by the templates) ----- #
 
 
@@ -523,84 +621,17 @@ def dashboard_avg_processing_time():
     if not target_processes:
         return jsonify({"avg_minutes": None, "avg_display": "—"})
 
-    conn_nex = None
-    cursor_nex = None
     try:
-        conn_nex = engine_nexora_db.raw_connection()
-        cursor_nex = conn_nex.cursor()
-        placeholders = ",".join(["?"] * len(target_processes))
-        cursor_nex.execute(
-            f"SELECT ProcessName, TableName, ExportColumn, ImportColumn, additionalCondition, ClientCode FROM Statconfig WHERE ProcessName IN ({placeholders})",
-            target_processes,
-        )
-        configs = cursor_nex.fetchall()
-
-        default_configs, ms02_rows = _split_stat_configs(configs)
-
-        sub_queries = []
-        for row in default_configs:
-            if not row.ImportColumn:
-                continue
-            condition = f" {row.additionalCondition}" if row.additionalCondition else ""
-            sub_queries.append(f"""
-                SELECT AVG(CAST(DATEDIFF(second, {row.ImportColumn}, {row.ExportColumn}) AS FLOAT)) as avg_sec
-                FROM [{DB_STATISTICS}].{row.TableName}
-                WHERE CAST({row.ExportColumn} AS DATE) = CAST(GETDATE() AS DATE)
-                AND {row.ImportColumn} IS NOT NULL
-                AND {row.ExportColumn} > {row.ImportColumn}
-                {condition}
-            """)
-
-        avg_values = []
-
-        if sub_queries:
-            full_query = f"""
-                SELECT AVG(avg_sec) as overall_avg
-                FROM ({' UNION ALL '.join(sub_queries)}) as combined
-                WHERE avg_sec IS NOT NULL
-            """
-            srows = _default_stat_rows(full_query)
-            if srows and srows[0][0] is not None:
-                avg_values.append(srows[0][0])
-
-        # MS02 contributes one client-level average (export - import seconds),
-        # weighted equally with the default bucket — same mean-of-means the
-        # default path already applies across its processes.
-        ms02_src = _ms02_source(ms02_rows)
-        if ms02_src:
-            tbl, exp, imp = ms02_src
-            mrows = _ms02_stat_rows(
-                f"SELECT AVG(EXTRACT(EPOCH FROM ({exp} - {imp}))) "
-                f"FROM {tbl} "
-                f"WHERE {exp}::date = CURRENT_DATE "
-                f"AND {imp} IS NOT NULL AND {exp} > {imp}"
-            )
-            if mrows and mrows[0][0] is not None:
-                avg_values.append(float(mrows[0][0]))
-
-        if not avg_values:
+        avg_sec = compute_avg_processing_time(target_processes)
+        if avg_sec is None:
             return jsonify({"avg_minutes": None, "avg_display": "—"})
 
-        avg_sec = sum(avg_values) / len(avg_values)
-
-        avg_minutes = avg_sec / 60
-        if avg_minutes < 1:
-            display = f"{int(avg_sec)}s"
-        elif avg_minutes < 60:
-            display = f"{avg_minutes:.0f}min"
-        else:
-            display = f"{avg_minutes / 60:.1f}h"
-
-        return jsonify({"avg_minutes": round(avg_minutes, 1), "avg_display": display})
+        avg_minutes, display = format_avg_processing_display(avg_sec)
+        return jsonify({"avg_minutes": avg_minutes, "avg_display": display})
 
     except Exception as e:
         current_app.logger.error(f"Failed to fetch avg_processing_time: {e}")
         return jsonify({"error": _("An unexpected error occurred")}), 500
-    finally:
-        if cursor_nex:
-            cursor_nex.close()
-        if conn_nex:
-            conn_nex.close()
 
 
 # ----------------------------- dashboard page + filter ----------------------------- #

@@ -191,8 +191,11 @@ def test_api_docs_with_perm_renders(user_client, monkeypatch):
     resp = user_client.get("/api-docs")
     assert resp.status_code == 200
     body = resp.get_data(as_text=True)
-    assert "/api/v1/stats/today" in body
+    # #181: /stats/today was a scaffolding-only endpoint (never documented for
+    # clients), so it must NOT appear on the page.
+    assert "/api/v1/stats/today" not in body
     assert "/api/v1/backlog" in body
+    assert "/api/v1/avg_processing_time" in body
 
 
 def test_session_heartbeat_returns_401_when_anonymous(client):

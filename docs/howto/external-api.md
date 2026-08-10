@@ -5,11 +5,18 @@ Docs", permission `api.docs.view`) for internal staff and API clients'
 portal accounts — this file stays the source of truth; keep both in sync.
 
 Read-only JSON API for external clients, authenticated with per-client API
-keys. Two endpoints in v1. Code: routes in `nx_lib/views/api_external.py`,
-auth in `nx_lib/api_auth.py`, KPI computation shared with the dashboard
-(`compute_today_stats` in `nx_lib/views/dashboard.py`, `total_backlog_count`
-in `nx_lib/workitem_sources.py`), table created by
+keys. Two documented endpoints in v1. Code: routes in
+`nx_lib/views/api_external.py`, auth in `nx_lib/api_auth.py`, KPI
+computation shared with the dashboard (`compute_today_stats` /
+`compute_avg_processing_time` in `nx_lib/views/dashboard.py`,
+`total_backlog_count` in `nx_lib/workitem_sources.py`), table created by
 `sql/_migrations/NexoraDB/0038_create_api_keys.sql`.
+
+`GET /api/v1/stats/today` also still exists in code (and its
+`/api/test/v1/...` twin) but is undocumented on purpose (#181): it was the
+first endpoint, built to scaffold the auth/routing structure before
+`/backlog` shipped as the actual first client-facing endpoint (#158) — never
+meant for clients to call.
 
 ## Base URLs
 
@@ -34,17 +41,15 @@ One header, one GET — with a key in hand (see "Issuing a key" below) this
 is the whole integration:
 
     curl -H "Authorization: Bearer TfNbeGaVwZUwSITZq0eDo5wRbXHnPTGyBg95Y5C8AAc" \
-        https://nexora.sydoc.ch/nexora/api/v1/stats/today
+        https://nexora.sydoc.ch/nexora/api/v1/backlog
 
     {
-      "date": "2026-07-22",
-      "imported_today": 123,
-      "exported_today": 117,
-      "processes": ["sydoc.05_PDBS"]
+      "datetime": "2026-08-04 09:15",
+      "current_backlog": 154
     }
 
 Same against a local dev server: `curl -H "Authorization: Bearer <key>"
-http://127.0.0.1:8000/api/v1/stats/today`. In PowerShell use `curl.exe` —
+http://127.0.0.1:8000/api/v1/backlog`. In PowerShell use `curl.exe` —
 bare `curl` is an alias for `Invoke-WebRequest`, which spells the header
 differently. No key or a wrong key returns
 `401 {"error": "Invalid API key"}`.
@@ -53,7 +58,7 @@ differently. No key or a wrong key returns
 
 Send the key as a Bearer token on every request:
 
-    GET /api/v1/stats/today
+    GET /api/v1/backlog
     Authorization: Bearer <api key>
 
 Keys are per-client rows in `dbo.ApiKeys` (NexoraDB): only the SHA-256 hash
@@ -82,29 +87,6 @@ answers exactly like an unknown key (401 `Invalid API key`) — deliberately
 indistinguishable, so a leaked/revoked key confirms nothing. Rotation =
 issue a new key, then disable the old row.
 
-## GET /api/v1/stats/today
-
-The dashboard's "imported today" / "processed today" KPI numbers, scoped to
-the key's `ProcessList`:
-
-    {
-      "date": "2026-07-14",
-      "imported_today": 123,
-      "exported_today": 117,
-      "processes": ["sydoc.05_PDBS"]
-    }
-
-- `date` — the **server-local** calendar date the counts refer to (the
-  underlying SQL uses `GETDATE()` / `CURRENT_DATE`).
-- `imported_today` — documents whose import-date column is today.
-- `exported_today` — documents whose export-date column is today (the
-  dashboard's `processed_today` semantics, inherited verbatim — on the
-  default T-SQL leg this counts export-today among rows also imported
-  today).
-- `processes` — the key's scope, echoed for debugging. An empty scope
-  returns zeros with `"processes": []`. Not cached: every call computes
-  fresh numbers.
-
 ## GET /api/v1/backlog
 
 The dashboard's "Current Backlog" KPI number, scoped to the key's
@@ -118,10 +100,41 @@ The dashboard's "Current Backlog" KPI number, scoped to the key's
 - `datetime` — **server-local** timestamp (`YYYY-MM-DD HH:MM`) the count was
   computed at.
 - `current_backlog` — the summed C+A backlog count across all active
-  workitem sources for the key's `ProcessList`. Unlike `/stats/today`, the
-  response does **not** echo the process list — scoping happens once, at key
+  workitem sources for the key's `ProcessList`. The response deliberately
+  does **not** echo the process list — scoping happens once, at key
   issuance, not per response. An empty scope returns `0`. Not cached: every
   call computes fresh numbers.
+
+## GET /api/v1/avg_processing_time
+
+The dashboard's "Avg Processing Time" KPI number, scoped to the key's
+`ProcessList`:
+
+    {
+      "avg_minutes": 4.2,
+      "avg_display": "4min",
+      "processes": ["sydoc.05_PDBS"]
+    }
+
+- `avg_minutes` — average minutes between import and export among rows
+  exported **today** (server-local), rounded to 1 decimal; `null` if no
+  matching rows exist yet today.
+- `avg_display` — the same figure pre-formatted for display: `"<n>s"` under a
+  minute, `"<n>min"` under an hour, `"<n>h"` above (one decimal), or `"—"`
+  when `avg_minutes` is `null`.
+- `processes` — the key's scope, echoed for debugging. An empty scope
+  returns `null`/`"—"` with `"processes": []`.
+
+**Calculation**, verified against `compute_avg_processing_time` (the same
+function backing the dashboard card, so this is deliberately "the same
+number as on the Dashboard"): for each `Statconfig` row (each represents one
+process/table), take `AVG(export_column - import_column)` in seconds among
+rows whose export date is today and whose export is after its import; then
+average those per-row-source averages together as a **plain mean, not
+weighted by row count** — a source with 2000 rows counts the same as one
+with 2. The MS02 client contributes one more such average from its own
+table, folded into the same mean. Not cached: every call computes fresh
+numbers.
 
 ## Test sandbox (/api/test/v1)
 
@@ -132,13 +145,11 @@ repeatedly while building an integration. Use a real (enabled) API key, just
 point at `/api/test/v1` instead of `/api/v1`:
 
     curl -H "Authorization: Bearer <key>" \
-        https://nexora.sydoc.ch/nexora/api/test/v1/stats/today
+        https://nexora.sydoc.ch/nexora/api/test/v1/backlog
 
     {
-      "date": "2026-08-04",
-      "imported_today": 143,
-      "exported_today": 87,
-      "processes": ["sydoc.05_PDBS"]
+      "datetime": "2026-08-04 09:15",
+      "current_backlog": 289
     }
 
 Same auth errors (401/429) apply. This convention holds for future v1
@@ -154,7 +165,7 @@ counterpart in the same change.
 | 404 | `{"error": "Not found"}` | wrong path under `/api/v1` |
 | 405 | HTML (Flask default) | non-GET verb — the API is GET-only |
 | 429 | HTML (flask-limiter default) | over 60 requests/minute |
-| 500 | `{"error": "Stats backend unavailable"}` (`/stats/today`) or `{"error": "Backlog backend unavailable"}` (`/backlog`) or `{"error": "Internal server error"}` | stats/backlog query or server failure |
+| 500 | `{"error": "Stats backend unavailable"}` (`/avg_processing_time`) or `{"error": "Backlog backend unavailable"}` (`/backlog`) or `{"error": "Internal server error"}` | stats/backlog query or server failure |
 | 503 | `{"error": "Auth backend unavailable"}` | NexoraDB unreachable during auth (fail closed) |
 | 503 | `{"error": "Maintenance", "maintenance": {...}}` | blocking maintenance window (global lockout) |
 

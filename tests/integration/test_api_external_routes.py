@@ -352,6 +352,103 @@ def test_backlog_post_method_not_allowed(client):
     assert resp.status_code == 405
 
 
+#  ------------------------- /api/v1/avg_processing_time ------------- #
+
+AVG_URL = "/api/v1/avg_processing_time"
+
+
+def test_avg_no_auth_header_returns_401_json(client):
+    resp = client.get(AVG_URL)
+    assert resp.status_code == 401
+    assert resp.is_json
+    assert resp.headers.get("WWW-Authenticate") == "Bearer"
+
+
+def test_avg_good_key_returns_scoped_avg_and_stamps_last_used(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw, processes="sydoc.TestProc, sydoc.Other")
+    seen = {}
+
+    def _fake_avg(target_processes, *, strict=False):
+        seen["processes"] = target_processes
+        seen["strict"] = strict
+        return 252.0  # 4.2 minutes
+
+    monkeypatch.setattr(ax, "compute_avg_processing_time", _fake_avg)
+    try:
+        resp = client.get(AVG_URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 200
+        assert resp.get_json() == {
+            "avg_minutes": 4.2,
+            "avg_display": "4min",
+            "processes": ["sydoc.TestProc", "sydoc.Other"],
+        }
+        assert seen["processes"] == ["sydoc.TestProc", "sydoc.Other"]
+        # Same strict contract as stats/today -- an outage must raise, not
+        # silently report "no data today".
+        assert seen["strict"] is True
+        assert _last_used(key_hash) is not None
+    finally:
+        _delete_key(key_hash)
+
+
+def test_avg_no_matching_rows_returns_null(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw, processes="sydoc.TestProc")
+
+    monkeypatch.setattr(ax, "compute_avg_processing_time", lambda procs, *, strict=False: None)
+    try:
+        resp = client.get(AVG_URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 200
+        assert resp.get_json() == {
+            "avg_minutes": None,
+            "avg_display": "—",
+            "processes": ["sydoc.TestProc"],
+        }
+    finally:
+        _delete_key(key_hash)
+
+
+def test_avg_empty_process_scope_returns_null_without_compute(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw, processes="")
+
+    def _must_not_be_called(target_processes, *, strict=False):
+        raise AssertionError("compute_avg_processing_time must not run for an empty scope")
+
+    monkeypatch.setattr(ax, "compute_avg_processing_time", _must_not_be_called)
+    try:
+        resp = client.get(AVG_URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert body["avg_minutes"] is None
+        assert body["avg_display"] == "—"
+        assert body["processes"] == []
+    finally:
+        _delete_key(key_hash)
+
+
+def test_avg_backend_error_returns_500_json(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+
+    def _boom(target_processes, *, strict=False):
+        raise RuntimeError("StatisticsDB exploded")
+
+    monkeypatch.setattr(ax, "compute_avg_processing_time", _boom)
+    try:
+        resp = client.get(AVG_URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 500
+        assert resp.get_json() == {"error": "Stats backend unavailable"}
+    finally:
+        _delete_key(key_hash)
+
+
+def test_avg_post_method_not_allowed(client):
+    resp = client.post(AVG_URL)
+    assert resp.status_code == 405
+
+
 def test_unknown_api_v1_path_returns_json_404(client):
     resp = client.get("/api/v1/definitely/not/a/route")
     assert resp.status_code == 404
@@ -371,6 +468,7 @@ def test_non_api_404_still_renders_html(client):
 
 TEST_STATS_URL = "/api/test/v1/stats/today"
 TEST_BACKLOG_URL = "/api/test/v1/backlog"
+TEST_AVG_URL = "/api/test/v1/avg_processing_time"
 
 
 def test_test_stats_no_auth_header_returns_401_json(client):
@@ -421,6 +519,27 @@ def test_test_backlog_good_key_returns_random_data_in_real_shape(client):
 def test_test_stats_post_method_not_allowed(client):
     resp = client.post(TEST_STATS_URL)
     assert resp.status_code == 405
+
+
+def test_test_avg_no_auth_header_returns_401_json(client):
+    resp = client.get(TEST_AVG_URL)
+    assert resp.status_code == 401
+    assert resp.is_json
+
+
+def test_test_avg_good_key_returns_random_data_in_real_shape(client):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw, processes="sydoc.TestProc, sydoc.Other")
+    try:
+        resp = client.get(TEST_AVG_URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert isinstance(body["avg_minutes"], float)
+        assert isinstance(body["avg_display"], str)
+        assert body["processes"] == ["sydoc.TestProc", "sydoc.Other"]
+        assert _last_used(key_hash) is not None
+    finally:
+        _delete_key(key_hash)
 
 
 def test_unknown_api_test_v1_path_returns_json_404(client):

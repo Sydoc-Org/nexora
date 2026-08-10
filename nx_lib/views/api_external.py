@@ -1,13 +1,18 @@
 """External machine-to-machine JSON API, version 1.
 
-Two endpoints in v1:
+Three endpoints in v1:
 - GET /api/v1/stats/today -- the dashboard's imported/processed "today" KPI
   numbers for the API key's process scope (dbo.ApiKeys.ProcessList).
 - GET /api/v1/backlog -- the dashboard's "Current Backlog" KPI number for the
   same process scope. The response deliberately omits the process list --
   scoping happens at key issuance, not in the payload (unlike stats/today,
   kept as-is for compatibility).
-Both consumed by an external client's own dashboard.
+- GET /api/v1/avg_processing_time -- the dashboard's "Avg Processing
+  Time" KPI number for the API key's process scope. See
+  compute_avg_processing_time's docstring (nx_lib/views/dashboard.py) for the
+  exact calculation (mean of per-source AVG(export - import) seconds among
+  rows exported today, NOT weighted by row count).
+All consumed by an external client's own dashboard.
 
 Each endpoint has a /api/test/v1/... twin (same path suffix, same auth, same
 response shape) that returns RANDOM numbers instead of real KPI values -- a
@@ -31,7 +36,11 @@ from flask import current_app, g, jsonify
 from ..api_auth import require_api_key
 from ..extensions import limiter
 from ..workitem_sources import total_backlog_count
-from .dashboard import compute_today_stats
+from .dashboard import (
+    compute_avg_processing_time,
+    compute_today_stats,
+    format_avg_processing_display,
+)
 
 
 # NOTE decorator order: @limiter.limit is OUTERMOST -- the deliberate
@@ -95,6 +104,25 @@ def api_v1_backlog():
 
 @limiter.limit("60 per minute")
 @require_api_key
+def api_v1_avg_processing_time():
+    processes = g.api_client["processes"]
+    if not processes:
+        return jsonify({"avg_minutes": None, "avg_display": "—", "processes": processes})
+    try:
+        # strict=True: same rationale as stats/today -- a stat-row leg
+        # failure must surface as a 500, not a false "no data today" null.
+        avg_sec = compute_avg_processing_time(processes, strict=True)
+    except Exception as e:
+        current_app.logger.error(f"external api avg_processing_time failed: {e}")
+        return jsonify({"error": "Stats backend unavailable"}), 500
+    if avg_sec is None:
+        return jsonify({"avg_minutes": None, "avg_display": "—", "processes": processes})
+    avg_minutes, avg_display = format_avg_processing_display(avg_sec)
+    return jsonify({"avg_minutes": avg_minutes, "avg_display": avg_display, "processes": processes})
+
+
+@limiter.limit("60 per minute")
+@require_api_key
 def api_test_v1_stats_today():
     # Real auth (same key a client uses against PROD) but no backend
     # queries -- just plausible random numbers in the real response shape.
@@ -121,6 +149,16 @@ def api_test_v1_backlog():
     )
 
 
+@limiter.limit("60 per minute")
+@require_api_key
+def api_test_v1_avg_processing_time():
+    processes = g.api_client["processes"]
+    avg_minutes = round(random.uniform(0.5, 120), 1)
+    avg_sec = avg_minutes * 60
+    _, avg_display = format_avg_processing_display(avg_sec)
+    return jsonify({"avg_minutes": avg_minutes, "avg_display": avg_display, "processes": processes})
+
+
 def register_routes(app):
     app.add_url_rule(
         "/api/v1/stats/today",
@@ -133,6 +171,11 @@ def register_routes(app):
         view_func=api_v1_backlog,
     )
     app.add_url_rule(
+        "/api/v1/avg_processing_time",
+        endpoint="api_v1_avg_processing_time",
+        view_func=api_v1_avg_processing_time,
+    )
+    app.add_url_rule(
         "/api/test/v1/stats/today",
         endpoint="api_test_v1_stats_today",
         view_func=api_test_v1_stats_today,
@@ -141,4 +184,9 @@ def register_routes(app):
         "/api/test/v1/backlog",
         endpoint="api_test_v1_backlog",
         view_func=api_test_v1_backlog,
+    )
+    app.add_url_rule(
+        "/api/test/v1/avg_processing_time",
+        endpoint="api_test_v1_avg_processing_time",
+        view_func=api_test_v1_avg_processing_time,
     )
