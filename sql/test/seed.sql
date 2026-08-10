@@ -62,8 +62,11 @@ INSERT INTO dbo.Permission (Code, Description) VALUES
     ('workitems.details.view.source_location', 'Workitems: view where extracted values were found on the page (source-highlight boxes; needs workitems.details.view.images)'),
     ('workitems.filter.workitemid', 'Filter workitems by id'),
     ('workitems.filter.status', 'Filter workitems by status'),
+    ('workitems.filter.status.deleted', 'Workitems: show soft-deleted workitems in the status filter'),  -- migration 0044
+    ('workitems.filter.stage', 'Workitems: filter by latest derived stage'),  -- migration 0048
     ('workitems.filter.datetime', 'Filter workitems by datetime'),
     ('workitems.filter.documentfields', 'Filter workitems by document fields'),
+    ('workitems.filter.documentfields.sensitive', 'Workitems: see doc fields flagged sensitive'),  -- migration 0035
     ('workitems.import.workitem', 'Import workitems'),
     ('workitems.import.preparedaudit', 'Workitems: import an MS02 prepared-documents Excel (PID/Prepared) and display the matched workitems'' audit'),
     ('invoices.view', 'View invoices'),
@@ -72,7 +75,11 @@ INSERT INTO dbo.Permission (Code, Description) VALUES
     ('invoices.filter.status', 'Filter invoices by status'),
     ('invoices.filter.invoiceid', 'Filter invoices by id'),
     ('jd.view', 'View JD Vance page'),
+    ('api.docs.view', 'View the in-app API documentation page'),  -- migration 0051
+    ('admin.status.view', 'View the admin system-status page'),  -- migration 0055
+    ('admin.restart', 'Restart the dev server from the admin overview (dev-only)'),  -- migration 0059
     ('reporting.view', 'Access the Reporting page'),
+    ('reporting.source.backlog_history', 'Reporting: use the Backlog History source'),  -- migration 0053
     ('reporting.source.docprocessing', 'Reporting: use the Document Processing source'),
     ('reporting.export', 'Reporting: export reports to Excel'),
     ('reporting.sql.run', 'Reporting: run live read-only SQL (sandboxed)'),
