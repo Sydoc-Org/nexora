@@ -137,6 +137,12 @@ Work toward the next release.
   `DefaultJSONProvider`, whose date format that is; it now formats them as
   `yyyy-MM-dd HH:mm:ss` / `yyyy-MM-dd` — sortable and locale-free. Exports are
   unaffected: xlsx/csv serialize the raw rows, not the JSON payload.
+- Hero page's step-connector line (Import → Extraction → Validation →
+  Delivery) rendered invisible (#192). `hero.html` loads Tailwind via the v3
+  Play CDN, which uses a `!`-prefix for important (`!left-[2rem]`), not the
+  v4 `!`-suffix form (`[left:2rem]!`) the markup used — the CDN's JIT never
+  generated those rules, so the connector's positioning container collapsed
+  to zero width. Converted all 8 affected utilities to the v3 prefix form.
 
 ## [3.1] - 2026-08-06
 
