@@ -340,6 +340,80 @@ def format_avg_processing_display(avg_sec):
     return round(avg_minutes, 1), display
 
 
+def compute_undelivered_count(target_processes, days, *, strict=False):
+    """Session-free count of workitems imported in the last `days` days whose
+    export-date column is still NULL ("not delivered yet"), for the external
+    API v1 (nx_lib/views/api_external.py, issue #196). Mirror of
+    compute_today_stats -- see its docstring for the strict/error-surface
+    contract and why this lives in this module.
+
+    target_processes: NON-EMPTY list of full Statconfig ProcessName values;
+    the caller guards the empty case. days: a validated int (the API allows
+    only 7 or 10) -- inlined into the SQL, never raw request input. The
+    import window is calendar-day based and includes today (import date >=
+    today - days, server-local). Statconfig rows without an ImportColumn
+    cannot answer this metric and are skipped (same rule as the avg
+    processing-time KPI)."""
+    days = int(days)
+    total = 0
+
+    conn_nex = None
+    cursor_nex = None
+    try:
+        conn_nex = engine_nexora_db.raw_connection()
+        cursor_nex = conn_nex.cursor()
+        placeholders = ",".join(["?"] * len(target_processes))
+        cursor_nex.execute(
+            f"SELECT ProcessName, TableName, ExportColumn, ImportColumn, additionalCondition, ClientCode FROM Statconfig WHERE ProcessName IN ({placeholders})",
+            target_processes,
+        )
+        configs = cursor_nex.fetchall()
+    finally:
+        if cursor_nex:
+            cursor_nex.close()
+        if conn_nex:
+            conn_nex.close()
+
+    default_configs, ms02_rows = _split_stat_configs(configs)
+
+    sub_queries = []
+    for row in default_configs:
+        if not row.ImportColumn:
+            continue
+        condition = f" {row.additionalCondition}" if row.additionalCondition else ""
+        sub_queries.append(f"""
+            SELECT COUNT(*) as c
+            FROM [{DB_STATISTICS}].{row.TableName}
+            WHERE CAST({row.ImportColumn} AS DATE) >= CAST(DATEADD(day, -{days}, GETDATE()) AS DATE)
+            AND {row.ExportColumn} IS NULL
+            {condition}
+        """)
+
+    if sub_queries:
+        full_query = f"SELECT SUM(c) FROM ({' UNION ALL '.join(sub_queries)}) as combined"
+        srows = (
+            _default_stat_rows(full_query, strict=True)
+            if strict
+            else _default_stat_rows(full_query)
+        )
+        if srows:
+            total += srows[0][0] or 0
+
+    ms02_src = _ms02_source(ms02_rows)
+    if ms02_src:
+        tbl, exp, imp = ms02_src
+        ms02_sql = (
+            f"SELECT COUNT(*) FROM {tbl} "
+            f"WHERE {imp}::date >= CURRENT_DATE - {days} "
+            f"AND {exp} IS NULL"
+        )
+        mrows = _ms02_stat_rows(ms02_sql, strict=True) if strict else _ms02_stat_rows(ms02_sql)
+        if mrows:
+            total += mrows[0][0] or 0
+
+    return total
+
+
 # ----------------------------- legacy KPI endpoints (still used by the templates) ----- #
 
 
