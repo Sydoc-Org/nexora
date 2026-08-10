@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-10 11:25+0200\n"
+"POT-Creation-Date: 2026-08-10 11:47+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -1739,8 +1739,8 @@ msgstr "An die Datenbank gesendete Abfrage"
 #: templates/api_docs.html:157 templates/api_docs.html:201
 #: templates/api_docs.html:207 templates/api_docs.html:236
 #: templates/api_docs.html:242 templates/api_docs.html:267
-#: templates/api_docs.html:273 templates/api_docs.html:311
-#: templates/api_docs.html:317 templates/reporting.html:356
+#: templates/api_docs.html:273 templates/api_docs.html:309
+#: templates/api_docs.html:315 templates/reporting.html:356
 msgid "Copy"
 msgstr "Kopieren"
 
@@ -1800,7 +1800,8 @@ msgstr "Fehler & Rate-Limits"
 msgid "Endpoints"
 msgstr "Endpunkte"
 
-#: templates/api_docs.html:106 templates/api_docs.html:307
+#: templates/api_docs.html:106 templates/api_docs.html:125
+#: templates/api_docs.html:305
 msgid "Test sandbox"
 msgstr "Test-Sandbox"
 
@@ -1833,15 +1834,14 @@ msgstr "Basis-URL"
 
 #: templates/api_docs.html:129
 msgid ""
-"Keys are not shared across environments: INT and PROD each run their own "
-"NexoraDB, so a key issued on one gets a uniform 401 on the other — same "
-"as an unknown key. Issue a key separately for each environment you need."
+"The test sandbox accepts the same API key as the production base URL and "
+"answers in the same shape, but with random numbers — safe to hit while "
+"building your integration. See the api/test/v1 section for details."
 msgstr ""
-"Schlüssel werden nicht zwischen Umgebungen geteilt: INT und PROD "
-"betreiben jeweils eine eigene NexoraDB, daher erhält ein auf der einen "
-"Seite ausgestellter Schlüssel auf der anderen einen einheitlichen "
-"401-Fehler — wie ein unbekannter Schlüssel. Stellen Sie für jede "
-"benötigte Umgebung einen eigenen Schlüssel aus."
+"Der Test-Sandbox akzeptiert denselben API-Schlüssel wie die Produktions-"
+"Basis-URL und antwortet in derselben Struktur, aber mit Zufallszahlen — "
+"gefahrlos nutzbar, während Sie Ihre Integration aufbauen. Details im "
+"Abschnitt api/test/v1."
 
 #: templates/api_docs.html:131
 msgid "Quick start"
@@ -1859,14 +1859,14 @@ msgstr ""
 #: templates/api_docs.html:157 templates/api_docs.html:201
 #: templates/api_docs.html:207 templates/api_docs.html:236
 #: templates/api_docs.html:242 templates/api_docs.html:267
-#: templates/api_docs.html:273 templates/api_docs.html:311
-#: templates/api_docs.html:317
+#: templates/api_docs.html:273 templates/api_docs.html:309
+#: templates/api_docs.html:315
 msgid "Copy code"
 msgstr "Code kopieren"
 
 #: templates/api_docs.html:140 templates/api_docs.html:206
 #: templates/api_docs.html:241 templates/api_docs.html:272
-#: templates/api_docs.html:316
+#: templates/api_docs.html:314
 msgid "response"
 msgstr "Antwort"
 
@@ -1941,8 +1941,8 @@ msgid "Body"
 msgstr "Body"
 
 #: templates/api_docs.html:177 templates/api_docs.html:218
-#: templates/api_docs.html:251 templates/api_docs.html:284
-#: templates/api_docs.html:293
+#: templates/api_docs.html:251 templates/api_docs.html:283
+#: templates/api_docs.html:292
 msgid "Meaning"
 msgstr "Bedeutung"
 
@@ -2011,23 +2011,23 @@ msgstr ""
 "Kacheln des nexora-Dashboards."
 
 #: templates/api_docs.html:215 templates/api_docs.html:248
-#: templates/api_docs.html:290
+#: templates/api_docs.html:289
 msgid "Response fields"
 msgstr "Antwortfelder"
 
 #: templates/api_docs.html:218 templates/api_docs.html:251
-#: templates/api_docs.html:293 templates/js/_reporting_dashboard_js.html:76
+#: templates/api_docs.html:292 templates/js/_reporting_dashboard_js.html:76
 msgid "Field"
 msgstr "Feld"
 
 #: templates/api_docs.html:218 templates/api_docs.html:251
-#: templates/api_docs.html:284 templates/api_docs.html:293
+#: templates/api_docs.html:283 templates/api_docs.html:292
 #: templates/generali_documents.html:226
 #: templates/js/_reporting_viz_js.html:166
 msgid "Type"
 msgstr "Typ"
 
-#: templates/api_docs.html:220 templates/api_docs.html:295
+#: templates/api_docs.html:220 templates/api_docs.html:294
 msgid "Server-local calendar date the counts refer to (ISO 8601)"
 msgstr "Server-lokales Kalenderdatum, auf das sich die Zahlen beziehen (ISO 8601)"
 
@@ -2039,7 +2039,7 @@ msgstr "Heute importierte Dokumente"
 msgid "Documents exported today"
 msgstr "Heute exportierte Dokumente"
 
-#: templates/api_docs.html:223 templates/api_docs.html:298
+#: templates/api_docs.html:223
 msgid ""
 "Your key's process scope, echoed for debugging. An empty scope returns "
 "zeros."
@@ -2047,7 +2047,7 @@ msgstr ""
 "Der Prozess-Scope des Schlüssels, zur Fehlersuche zurückgegeben. Ein "
 "leerer Scope liefert Nullen."
 
-#: templates/api_docs.html:227 templates/api_docs.html:302
+#: templates/api_docs.html:227 templates/api_docs.html:300
 msgid "Responses are computed fresh on every call — there is no cache."
 msgstr "Antworten werden bei jedem Aufruf frisch berechnet — es gibt keinen Cache."
 
@@ -2067,7 +2067,7 @@ msgstr "Server-lokaler Zeitstempel der Zählung (YYYY-MM-DD HH:MM)"
 msgid "Workitems currently in the backlog across your key's processes"
 msgstr "Workitems, die aktuell im Backlog der Prozesse des Schlüssels liegen"
 
-#: templates/api_docs.html:258
+#: templates/api_docs.html:258 templates/api_docs.html:300
 msgid ""
 "Unlike stats/today, the response does not echo the process list — scoping"
 " happens at key issuance."
@@ -2085,15 +2085,15 @@ msgstr ""
 " days-Parameter-Tage importiert, aber bisher ohne Exportdatum, beschränkt"
 " auf die Prozesse Ihres Schlüssels."
 
-#: templates/api_docs.html:281
+#: templates/api_docs.html:280
 msgid "Query parameters"
 msgstr "Query-Parameter"
 
-#: templates/api_docs.html:284
+#: templates/api_docs.html:283
 msgid "Param"
 msgstr "Parameter"
 
-#: templates/api_docs.html:286
+#: templates/api_docs.html:285
 msgid ""
 "Required. The import window in calendar days, counted back from today "
 "inclusive. Only 7 or 10 is accepted — anything else returns a 400."
@@ -2102,15 +2102,15 @@ msgstr ""
 "gezählt (einschließlich). Nur 7 oder 10 wird akzeptiert — alles andere "
 "liefert einen 400."
 
-#: templates/api_docs.html:296
+#: templates/api_docs.html:295
 msgid "The window you asked for, echoed back"
 msgstr "Das angefragte Fenster, zur Kontrolle zurückgegeben"
 
-#: templates/api_docs.html:297
+#: templates/api_docs.html:296
 msgid "Workitems imported in the window that have no export date yet"
 msgstr "Im Fenster importierte Workitems, die noch kein Exportdatum haben"
 
-#: templates/api_docs.html:308
+#: templates/api_docs.html:306
 msgid ""
 "Every endpoint above has a /api/test/v1/... twin: same path suffix, same "
 "Bearer-key auth, same response shape — but the numbers are random, not "
@@ -2123,7 +2123,7 @@ msgstr ""
 "Backend-Abfragen statt, daher lässt es sich beim Aufbau einer Integration"
 " beliebig oft aufrufen."
 
-#: templates/api_docs.html:325
+#: templates/api_docs.html:323
 msgid ""
 "Use a real (enabled) API key — the same auth errors (401/429) apply. "
 "Available for"
@@ -2131,7 +2131,7 @@ msgstr ""
 "Verwenden Sie einen echten (aktivierten) API-Schlüssel — dieselben Auth-"
 "Fehler (401/429) gelten. Verfügbar für"
 
-#: templates/api_docs.html:325
+#: templates/api_docs.html:323
 msgid "and"
 msgstr "und"
 
@@ -8039,4 +8039,23 @@ msgstr ""
 
 #~ msgid "Folder (optional)"
 #~ msgstr "Ordner (optional)"
+
+#~ msgid ""
+#~ "Keys are not shared across environments:"
+#~ " INT and PROD each run their "
+#~ "own NexoraDB, so a key issued on"
+#~ " one gets a uniform 401 on the"
+#~ " other — same as an unknown "
+#~ "key. Issue a key separately for "
+#~ "each environment you need."
+#~ msgstr ""
+#~ "Schlüssel werden nicht zwischen Umgebungen "
+#~ "geteilt: INT und PROD betreiben jeweils"
+#~ " eine eigene NexoraDB, daher erhält "
+#~ "ein auf der einen Seite ausgestellter"
+#~ " Schlüssel auf der anderen einen "
+#~ "einheitlichen 401-Fehler — wie ein "
+#~ "unbekannter Schlüssel. Stellen Sie für "
+#~ "jede benötigte Umgebung einen eigenen "
+#~ "Schlüssel aus."
 

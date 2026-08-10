@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-10 11:25+0200\n"
+"POT-Creation-Date: 2026-08-10 11:47+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -1723,8 +1723,8 @@ msgstr "Query inviata al database"
 #: templates/api_docs.html:157 templates/api_docs.html:201
 #: templates/api_docs.html:207 templates/api_docs.html:236
 #: templates/api_docs.html:242 templates/api_docs.html:267
-#: templates/api_docs.html:273 templates/api_docs.html:311
-#: templates/api_docs.html:317 templates/reporting.html:356
+#: templates/api_docs.html:273 templates/api_docs.html:309
+#: templates/api_docs.html:315 templates/reporting.html:356
 msgid "Copy"
 msgstr "Copia"
 
@@ -1784,7 +1784,8 @@ msgstr "Errori e limiti di frequenza"
 msgid "Endpoints"
 msgstr "Endpoint"
 
-#: templates/api_docs.html:106 templates/api_docs.html:307
+#: templates/api_docs.html:106 templates/api_docs.html:125
+#: templates/api_docs.html:305
 msgid "Test sandbox"
 msgstr "Ambiente di test"
 
@@ -1817,14 +1818,14 @@ msgstr "URL di base"
 
 #: templates/api_docs.html:129
 msgid ""
-"Keys are not shared across environments: INT and PROD each run their own "
-"NexoraDB, so a key issued on one gets a uniform 401 on the other — same "
-"as an unknown key. Issue a key separately for each environment you need."
+"The test sandbox accepts the same API key as the production base URL and "
+"answers in the same shape, but with random numbers — safe to hit while "
+"building your integration. See the api/test/v1 section for details."
 msgstr ""
-"Le chiavi non sono condivise tra gli ambienti: INT e PROD eseguono "
-"ciascuno il proprio NexoraDB, quindi una chiave emessa su uno riceve un "
-"401 uniforme sull'altro — come una chiave sconosciuta. Emetti una chiave "
-"separata per ogni ambiente di cui hai bisogno."
+"La sandbox di test accetta la stessa chiave API dell'URL di base di "
+"produzione e risponde con la stessa struttura, ma con numeri casuali — "
+"sicura da usare mentre costruite la vostra integrazione. Vedere la "
+"sezione api/test/v1 per i dettagli."
 
 #: templates/api_docs.html:131
 msgid "Quick start"
@@ -1842,14 +1843,14 @@ msgstr ""
 #: templates/api_docs.html:157 templates/api_docs.html:201
 #: templates/api_docs.html:207 templates/api_docs.html:236
 #: templates/api_docs.html:242 templates/api_docs.html:267
-#: templates/api_docs.html:273 templates/api_docs.html:311
-#: templates/api_docs.html:317
+#: templates/api_docs.html:273 templates/api_docs.html:309
+#: templates/api_docs.html:315
 msgid "Copy code"
 msgstr "Copia codice"
 
 #: templates/api_docs.html:140 templates/api_docs.html:206
 #: templates/api_docs.html:241 templates/api_docs.html:272
-#: templates/api_docs.html:316
+#: templates/api_docs.html:314
 msgid "response"
 msgstr "risposta"
 
@@ -1924,8 +1925,8 @@ msgid "Body"
 msgstr "Corpo"
 
 #: templates/api_docs.html:177 templates/api_docs.html:218
-#: templates/api_docs.html:251 templates/api_docs.html:284
-#: templates/api_docs.html:293
+#: templates/api_docs.html:251 templates/api_docs.html:283
+#: templates/api_docs.html:292
 msgid "Meaning"
 msgstr "Significato"
 
@@ -1996,23 +1997,23 @@ msgstr ""
 "della dashboard di nexora."
 
 #: templates/api_docs.html:215 templates/api_docs.html:248
-#: templates/api_docs.html:290
+#: templates/api_docs.html:289
 msgid "Response fields"
 msgstr "Campi della risposta"
 
 #: templates/api_docs.html:218 templates/api_docs.html:251
-#: templates/api_docs.html:293 templates/js/_reporting_dashboard_js.html:76
+#: templates/api_docs.html:292 templates/js/_reporting_dashboard_js.html:76
 msgid "Field"
 msgstr "Campo"
 
 #: templates/api_docs.html:218 templates/api_docs.html:251
-#: templates/api_docs.html:284 templates/api_docs.html:293
+#: templates/api_docs.html:283 templates/api_docs.html:292
 #: templates/generali_documents.html:226
 #: templates/js/_reporting_viz_js.html:166
 msgid "Type"
 msgstr "Tipo"
 
-#: templates/api_docs.html:220 templates/api_docs.html:295
+#: templates/api_docs.html:220 templates/api_docs.html:294
 msgid "Server-local calendar date the counts refer to (ISO 8601)"
 msgstr ""
 "Data di calendario locale del server a cui si riferiscono i conteggi (ISO"
@@ -2026,7 +2027,7 @@ msgstr "Documenti importati oggi"
 msgid "Documents exported today"
 msgstr "Documenti esportati oggi"
 
-#: templates/api_docs.html:223 templates/api_docs.html:298
+#: templates/api_docs.html:223
 msgid ""
 "Your key's process scope, echoed for debugging. An empty scope returns "
 "zeros."
@@ -2034,7 +2035,7 @@ msgstr ""
 "L'ambito di processi della chiave, restituito per il debug. Un ambito "
 "vuoto restituisce zeri."
 
-#: templates/api_docs.html:227 templates/api_docs.html:302
+#: templates/api_docs.html:227 templates/api_docs.html:300
 msgid "Responses are computed fresh on every call — there is no cache."
 msgstr "Le risposte vengono ricalcolate a ogni chiamata — non c'è alcuna cache."
 
@@ -2054,7 +2055,7 @@ msgstr "Marca temporale locale del server del conteggio (YYYY-MM-DD HH:MM)"
 msgid "Workitems currently in the backlog across your key's processes"
 msgstr "Workitem attualmente nel backlog dei processi della chiave"
 
-#: templates/api_docs.html:258
+#: templates/api_docs.html:258 templates/api_docs.html:300
 msgid ""
 "Unlike stats/today, the response does not echo the process list — scoping"
 " happens at key issuance."
@@ -2072,15 +2073,15 @@ msgstr ""
 "giorni (parametro days) ma finora senza data di esportazione, limitato ai"
 " processi della vostra chiave."
 
-#: templates/api_docs.html:281
+#: templates/api_docs.html:280
 msgid "Query parameters"
 msgstr "Parametri di query"
 
-#: templates/api_docs.html:284
+#: templates/api_docs.html:283
 msgid "Param"
 msgstr "Parametro"
 
-#: templates/api_docs.html:286
+#: templates/api_docs.html:285
 msgid ""
 "Required. The import window in calendar days, counted back from today "
 "inclusive. Only 7 or 10 is accepted — anything else returns a 400."
@@ -2089,17 +2090,17 @@ msgstr ""
 "contata a ritroso da oggi incluso. Sono accettati solo 7 o 10 — qualsiasi"
 " altro valore restituisce un 400."
 
-#: templates/api_docs.html:296
+#: templates/api_docs.html:295
 msgid "The window you asked for, echoed back"
 msgstr "La finestra richiesta, restituita in eco"
 
-#: templates/api_docs.html:297
+#: templates/api_docs.html:296
 msgid "Workitems imported in the window that have no export date yet"
 msgstr ""
 "Workitem importati nella finestra che non hanno ancora una data di "
 "esportazione"
 
-#: templates/api_docs.html:308
+#: templates/api_docs.html:306
 msgid ""
 "Every endpoint above has a /api/test/v1/... twin: same path suffix, same "
 "Bearer-key auth, same response shape — but the numbers are random, not "
@@ -2112,7 +2113,7 @@ msgstr ""
 "nessuna query al backend, quindi è sicuro chiamarlo ripetutamente durante"
 " lo sviluppo di un'integrazione."
 
-#: templates/api_docs.html:325
+#: templates/api_docs.html:323
 msgid ""
 "Use a real (enabled) API key — the same auth errors (401/429) apply. "
 "Available for"
@@ -2120,7 +2121,7 @@ msgstr ""
 "Utilizzate una vera chiave API (abilitata) — valgono gli stessi errori di"
 " autenticazione (401/429). Disponibile per"
 
-#: templates/api_docs.html:325
+#: templates/api_docs.html:323
 msgid "and"
 msgstr "e"
 
@@ -8004,4 +8005,22 @@ msgstr ""
 
 #~ msgid "Folder (optional)"
 #~ msgstr "Cartella (facoltativa)"
+
+#~ msgid ""
+#~ "Keys are not shared across environments:"
+#~ " INT and PROD each run their "
+#~ "own NexoraDB, so a key issued on"
+#~ " one gets a uniform 401 on the"
+#~ " other — same as an unknown "
+#~ "key. Issue a key separately for "
+#~ "each environment you need."
+#~ msgstr ""
+#~ "Le chiavi non sono condivise tra "
+#~ "gli ambienti: INT e PROD eseguono "
+#~ "ciascuno il proprio NexoraDB, quindi una"
+#~ " chiave emessa su uno riceve un "
+#~ "401 uniforme sull'altro — come una "
+#~ "chiave sconosciuta. Emetti una chiave "
+#~ "separata per ogni ambiente di cui "
+#~ "hai bisogno."
 

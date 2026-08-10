@@ -445,11 +445,12 @@ def test_undelivered_good_key_returns_scoped_count(client, monkeypatch):
     try:
         resp = client.get(f"{UNDELIVERED_URL}?days=7", headers={"Authorization": f"Bearer {raw}"})
         assert resp.status_code == 200
+        # Like /backlog, the response deliberately omits the process list --
+        # scoping happens at key issuance, not in the payload.
         assert resp.get_json() == {
             "date": date.today().isoformat(),
             "days": 7,
             "undelivered": 42,
-            "processes": ["sydoc.TestProc", "sydoc.Other"],
         }
         assert seen["processes"] == ["sydoc.TestProc", "sydoc.Other"]
         assert seen["days"] == 7
@@ -502,7 +503,7 @@ def test_undelivered_empty_process_scope_returns_zero_without_compute(client, mo
         assert resp.status_code == 200
         body = resp.get_json()
         assert body["undelivered"] == 0
-        assert body["processes"] == []
+        assert "processes" not in body
     finally:
         _delete_key(key_hash)
 
@@ -535,7 +536,7 @@ def test_test_undelivered_good_key_returns_random_data_in_real_shape(client):
         assert body["date"] == date.today().isoformat()
         assert body["days"] == 10
         assert isinstance(body["undelivered"], int)
-        assert body["processes"] == ["sydoc.TestProc"]
+        assert "processes" not in body
         assert _last_used(key_hash) is not None
     finally:
         _delete_key(key_hash)

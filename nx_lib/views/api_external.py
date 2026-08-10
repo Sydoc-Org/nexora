@@ -10,7 +10,8 @@ Three endpoints in v1:
 - GET /api/v1/undelivered?days=7|10 -- the number of workitems imported in
   the last N days that have no export date yet (issue #196). `days` accepts
   ONLY 7 or 10 (400 otherwise) -- widen the allow-set here and in both docs
-  surfaces if a client ever needs another window.
+  surfaces if a client ever needs another window. Like /backlog, the
+  response omits the process list.
 All consumed by an external client's own dashboard.
 
 Each endpoint has a /api/test/v1/... twin (same path suffix, same auth, same
@@ -129,7 +130,6 @@ def api_v1_undelivered():
             "date": date.today().isoformat(),
             "days": days,
             "undelivered": undelivered,
-            "processes": processes,
         }
     )
 
@@ -174,7 +174,6 @@ def api_test_v1_undelivered():
             "date": date.today().isoformat(),
             "days": days,
             "undelivered": random.randint(0, 300),
-            "processes": g.api_client["processes"],
         }
     )
 

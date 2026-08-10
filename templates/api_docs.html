@@ -122,11 +122,11 @@
               <thead><tr><th>{{ _("Environment") }}</th><th>{{ _("Base URL") }}</th></tr></thead>
               <tbody>
                 <tr><td>PROD</td><td class="apidocs-td"><code>https://nexora.sydoc.ch/nexora/api/v1</code></td></tr>
-                <tr><td>INT</td><td class="apidocs-td"><code>http://127.0.0.1:8000/api/v1</code></td></tr>
+                <tr><td>{{ _("Test sandbox") }}</td><td class="apidocs-td"><code>https://nexora.sydoc.ch/nexora/api/test/v1</code></td></tr>
               </tbody>
             </table>
           </div>
-          <p class="apidocs-p">{{ _("Keys are not shared across environments: INT and PROD each run their own NexoraDB, so a key issued on one gets a uniform 401 on the other — same as an unknown key. Issue a key separately for each environment you need.") }}</p>
+          <p class="apidocs-p">{{ _("The test sandbox accepts the same API key as the production base URL and answers in the same shape, but with random numbers — safe to hit while building your integration. See the api/test/v1 section for details.") }}</p>
 
           <h2 class="apidocs-h2">{{ _("Quick start") }}</h2>
           <p class="apidocs-p">{{ _("One header, one GET — with an API key in hand, this is the whole integration:") }}</p>
@@ -274,8 +274,7 @@ Authorization: Bearer &lt;api key&gt;</code></pre>
             <pre><code class="language-json">{
   "date": "2026-08-10",
   "days": 7,
-  "undelivered": 42,
-  "processes": ["sydoc.05_PDBS"]
+  "undelivered": 42
 }</code></pre>
           </div>
           <h2 class="apidocs-h2">{{ _("Query parameters") }}</h2>
@@ -295,11 +294,10 @@ Authorization: Bearer &lt;api key&gt;</code></pre>
                 <tr><td class="apidocs-td"><code>date</code></td><td class="nx-mono">string</td><td>{{ _("Server-local calendar date the counts refer to (ISO 8601)") }}</td></tr>
                 <tr><td class="apidocs-td"><code>days</code></td><td class="nx-mono">int</td><td>{{ _("The window you asked for, echoed back") }}</td></tr>
                 <tr><td class="apidocs-td"><code>undelivered</code></td><td class="nx-mono">int</td><td>{{ _("Workitems imported in the window that have no export date yet") }}</td></tr>
-                <tr><td class="apidocs-td"><code>processes</code></td><td class="nx-mono">string[]</td><td>{{ _("Your key's process scope, echoed for debugging. An empty scope returns zeros.") }}</td></tr>
               </tbody>
             </table>
           </div>
-          <p class="apidocs-p mt-2">{{ _("Responses are computed fresh on every call — there is no cache.") }}</p>
+          <p class="apidocs-p mt-2">{{ _("Unlike stats/today, the response does not echo the process list — scoping happens at key issuance.") }} {{ _("Responses are computed fresh on every call — there is no cache.") }}</p>
         </section>
 
         <!-- ============ Test sandbox ============ -->

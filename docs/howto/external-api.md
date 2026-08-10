@@ -17,7 +17,12 @@ auth in `nx_lib/api_auth.py`, KPI computation shared with the dashboard
 | Environment | Base URL |
 |---|---|
 | PROD | `https://nexora.sydoc.ch/nexora/api/v1` |
-| INT | `http://127.0.0.1:8000/api/v1` |
+| Test sandbox | `https://nexora.sydoc.ch/nexora/api/test/v1` |
+| INT (dev) | `http://127.0.0.1:8000/api/v1` |
+
+The in-app `/api-docs` page shows only the PROD and test-sandbox rows —
+external clients have no use for a `127.0.0.1` dev URL; it stays documented
+here for staff.
 
 PROD serves the app under the `/nexora` prefix via `PrefixMiddleware`; the
 Flask routes themselves are registered unprefixed, so no code is
@@ -136,8 +141,7 @@ The number of workitems **not delivered yet**: imported within the last
     {
       "date": "2026-08-10",
       "days": 7,
-      "undelivered": 42,
-      "processes": ["sydoc.05_PDBS"]
+      "undelivered": 42
     }
 
 - `days` (**required** query param) — the import window in calendar days,
@@ -148,8 +152,10 @@ The number of workitems **not delivered yet**: imported within the last
 - `undelivered` — workitems whose import-date column falls within the window
   and whose export-date column is still `NULL`. Statconfig rows without an
   `ImportColumn` can't answer this metric and are skipped.
-- `processes` — the key's scope, echoed for debugging. An empty scope
-  returns `0`. Not cached: every call computes fresh numbers.
+
+Like `/backlog`, the response does **not** echo the process list — scoping
+happens once, at key issuance. An empty scope returns `0`. Not cached:
+every call computes fresh numbers.
 
 ## Test sandbox (/api/test/v1)
 
