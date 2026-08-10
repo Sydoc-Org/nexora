@@ -26,6 +26,14 @@ Work toward the next release.
 
 ### Added
 
+- **External API: `GET /api/v1/undelivered`** (#196) — the number of
+  workitems imported in the last `?days=7|10` calendar days that have no
+  export date yet, scoped to the API key's processes (not echoed in the
+  response, same idiom as `/backlog`); ships with its
+  `/api/test/v1/undelivered` sandbox twin and is documented in
+  `docs/howto/external-api.md` and on the in-app `/api-docs` page, whose
+  Base URLs table now lists the test-sandbox base instead of the INT
+  localhost URL.
 - **External API: Avg Processing Time** (#194) — `GET
   /api/v1/avg_processing_time` (with its `/api/test/v1/...` sandbox
   twin) returns the same "Avg Processing Time" number shown on the dashboard,
