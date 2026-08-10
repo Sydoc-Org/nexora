@@ -1447,6 +1447,36 @@ def test_run_forecast_fits_on_widened_history_not_visible_window(admin_client):
     assert fc and fc.get("method") == "trend_seasonal"
 
 
+def test_export_forecast_fits_on_widened_history_not_visible_window(admin_client):
+    # Same widen-refit-with-fallback as api_run (via the shared _forecast_for
+    # helper) — the export's forecast must not silently regress to a
+    # trend-only fit on the 6-row visible window (#178 finding 2).
+    body = dict(_FC_WIDE_DEF, format="csv")
+    with (
+        patch(
+            "nx_lib.views.reporting._prepare_run",
+            side_effect=[
+                (_FC_WIDE_COLS, "SELECT 1", [], None),
+                (_FC_WIDE_COLS, "SELECT 2", [], None),
+            ],
+        ) as mock_prepare,
+        patch(
+            "nx_lib.views.reporting._execute",
+            side_effect=[_FC_WIDE_VISIBLE_ROWS, _FC_WIDE_WIDE_ROWS],
+        ),
+    ):
+        resp = admin_client.post("/api/reporting/export", json=body)
+    assert resp.status_code == 200
+    assert mock_prepare.call_count == 2
+    widened_rd = mock_prepare.call_args_list[1].args[0]
+    assert widened_rd["filters"][0]["op"] == "between"
+    assert "compare" not in widened_rd
+    text = resp.data.decode("utf-8-sig")
+    # horizon 3 (explicit in _FC_WIDE_DEF) -> 3 marker rows; only reachable if
+    # the widened rerun actually produced a usable (non-unavailable) fit.
+    assert text.count("forecast") == 3
+
+
 def test_runner_forecast_export_rows_failure_still_sends_mail(admin_client):
     # A forecast_export_rows failure must degrade to the unmarked attachment,
     # not skip the mail or stall NextRunAt (#168).

@@ -67,14 +67,20 @@ working. Design spec: `docs/superpowers/specs/2026-07-20-reporting-redesign-hand
   convention).
 - **KPI stat band** above the results — total, bucket count, average per
   bucket, and peak, computed client-side from the rows already returned (no
-  extra query); hidden for zero-row or non-numeric results. When every
-  requested metric's registry row has **`TotalMode = 'latest'`** (see
-  **Metrics registry** below), the Total tile's caption adds a **"· latest
-  snapshot &lt;bucket&gt;"** suffix, naming the bucket the number actually
-  covers — point-in-time snapshot metrics like backlog are wrong to sum
-  across buckets, so the server itself restricted the total to the latest
-  one (`kpiLatestSuffix` in `_reporting_simple_js.html`). When the
-  definition carries a **single relative-date token filter**, the run request
+  extra query); hidden for zero-row or non-numeric results. When the
+  **first** requested metric's registry row has **`TotalMode = 'latest'`**
+  (`metricTotalModeFor` in `_reporting_simple_js.html` only inspects
+  `def.metrics[0]` — a mixed-mode multi-metric request is judged by that one
+  metric alone, not "every" metric), the Total tile's caption adds a **"·
+  last bucket &lt;bucket&gt;"** suffix, naming the bucket the number
+  actually covers. This is the client's own zero-filled last bucket, not a
+  request for the server's single exact-snapshot latest row, so the wording
+  is deliberately bucket-honest rather than implying snapshot precision —
+  point-in-time metrics like backlog are wrong to sum across buckets, so the
+  band restricts the client total to the latest one, mirroring (but not
+  reading) the server's own zero-dim latest-bucket total described in
+  **Metrics registry** below (`kpiLatestSuffix` in `_reporting_simple_js.html`).
+  When the definition carries a **single relative-date token filter**, the run request
   sets `compare: true` and each stat renders a **delta chip** (↑/↓/— plus a
   percentage) against the immediately preceding period of the same length —
   see **Comparison & delta chips** below for the exact semantics (why it's
@@ -463,7 +469,14 @@ per-card filters that layer on top of the dashboard's `globalFilters`.
   dashboard-authored one, a `report` card still participates normally in
   `filterOverrides`/`globalFilters` layering and drill-through like any other
   card — only its own row-total metric and chart-type choice come from the
-  adopted report instead of being configured on the dashboard.
+  adopted report instead of being configured on the dashboard. A known v1
+  limitation: the card's headline total always **sums every returned row**
+  — it does not get the `TotalMode='latest'` treatment described in
+  **Metrics registry** below, so an adopted report built on a
+  `TotalMode='latest'` metric (e.g. `backlog_total`) shows a summed total on
+  the dashboard card even though the same report's Simple KPI band shows a
+  last-bucket-only total. Latest-mode awareness inside dashboard cards is
+  deferred to a later slice, not a bug.
 
 Migration history: the dashboard builder **supersedes**
 `docs/superpowers/plans/2026-07-15-reporting-pin-to-dashboard.md` (a
@@ -919,9 +932,11 @@ passes that field as `latest_of` into `build_generic_query`, which restricts
 the aggregate to rows at the latest bucket instead of the whole matched set;
 any mixed `sum`/`latest` metric set, or more than one date candidate, falls
 back to the safe default (`sum` over everything) rather than guessing which
-metric should win. The Simple KPI band surfaces this with a "· latest
-snapshot &lt;bucket&gt;" caption on the Total tile — see **Simple and
-Advanced tabs → KPI stat band** above.
+metric should win. The Simple KPI band shows a similarly-motivated "· last
+bucket &lt;bucket&gt;" caption on the Total tile, but it is a **separate,
+client-computed** number, not a read of this server total — see **Simple and
+Advanced tabs → KPI stat band** above for why the two can legitimately
+differ (e.g. snapshots finer-grained than the report's display grain).
 
 > Per-metric locked filters (`FilterJson`) are stored in the table but **not yet
 > applied** by the engine in Slice 1 (reserved for a later slice). Report-level

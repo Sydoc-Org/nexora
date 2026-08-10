@@ -960,6 +960,27 @@ def _execute(engine, sql, params):
         conn.close()
 
 
+def _forecast_for(rd, columns, rows):
+    """Forecast block for one run result — shared by /api/reporting/run and
+    /api/reporting/export so both surfaces produce the same forecast (#178).
+
+    Refits on a widened lookback window when the definition qualifies (real
+    history beats the visible window for fit quality), falling back to the
+    visible rows on any failure. The auto horizon still resolves from the
+    VISIBLE `rows` (via compute_forecast's `visible_rows` param) so widening
+    the lookback changes fit quality only, never how many buckets project.
+    """
+    fit_columns, fit_rows = columns, rows
+    widened = widened_definition_for_forecast(rd)
+    if widened is not None:
+        try:
+            w_columns, w_sql, w_params, w_engine = _prepare_run(widened)
+            fit_columns, fit_rows = w_columns, _execute(w_engine, w_sql, w_params)
+        except Exception as e:
+            current_app.logger.warning(f"reporting forecast lookback skipped: {e}")
+    return compute_forecast(rd, fit_columns, fit_rows, visible_rows=rows)
+
+
 def _json_safe(value):
     """Coerce one DB result cell to a JSON-serializable value.
 
@@ -1149,17 +1170,7 @@ def api_run():
     fc_req = rd.get("forecast")
     if isinstance(fc_req, dict) and fc_req.get("enabled"):
         try:
-            fit_columns, fit_rows = columns, rows
-            widened = widened_definition_for_forecast(rd)
-            if widened is not None:
-                # Fit on real history: rerun the widened window purely for the
-                # fit. Any failure falls back to the visible rows (#178).
-                try:
-                    w_columns, w_sql, w_params, w_engine = _prepare_run(widened)
-                    fit_columns, fit_rows = w_columns, _execute(w_engine, w_sql, w_params)
-                except Exception as e:
-                    current_app.logger.warning(f"/api/reporting/run forecast lookback skipped: {e}")
-            payload["forecast"] = compute_forecast(rd, fit_columns, fit_rows)
+            payload["forecast"] = _forecast_for(rd, columns, rows)
         except Exception as e:  # a forecast must never take down the run
             current_app.logger.warning(f"/api/reporting/run forecast skipped: {e}")
     # rd is the original request body (tokens intact) — _prepare_run resolves
@@ -2068,7 +2079,7 @@ def api_export():
     fc_req = rd.get("forecast")
     if isinstance(fc_req, dict) and fc_req.get("enabled"):
         try:
-            fc = compute_forecast(rd, columns, rows)
+            fc = _forecast_for(rd, columns, rows)
             if fc and not fc.get("unavailable"):
                 columns, rows, forecast_start = forecast_export_rows(
                     columns, rows, fc, marker_header=_("Forecast")

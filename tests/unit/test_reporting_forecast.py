@@ -119,6 +119,19 @@ def test_compute_forecast_auto_horizon_scales_with_history():
     assert fc["horizon"] == 4  # max(3, round(16/4))
 
 
+def test_compute_forecast_auto_horizon_resolves_from_visible_rows():
+    # A widened lookback refit (#178) must change fit quality only — the
+    # auto horizon has to track what the user actually sees (`visible_rows`),
+    # not the wider series that only exists to improve the fit.
+    visible = _rows(16)  # -> horizon max(3, round(16/4)) == 4
+    widened = _rows(64)  # would resolve to max(3, round(64/4)) == 16 if unguarded
+    fc = compute_forecast(_definition(), _COLS, widened, visible_rows=visible)
+    assert fc["horizon"] == 4
+    # Sanity: without the visible_rows override, the widened series alone
+    # really would have produced a much larger horizon.
+    assert compute_forecast(_definition(), _COLS, widened)["horizon"] == 16
+
+
 def test_compute_forecast_rejects_wrong_shape():
     two_dims = _definition()
     two_dims["columns"].append({"field": "ProcessName"})

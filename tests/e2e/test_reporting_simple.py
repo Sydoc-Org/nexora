@@ -4274,6 +4274,38 @@ def test_wizard_field_scope_step_serializes_to_in_filter(nexora_server, page):
     )
 
 
+def test_filter_chip_editor_preserves_in_filter_on_apply(nexora_server, page):
+    """Final whole-branch review, Finding 1 (#178): editing (or just
+    re-Applying without changes) a 2-value `in`-filter chip must NOT coerce
+    it into `{op:'between', value:[v0, v1]}` -- filterChipEditor used to
+    branch on Array.isArray(f.value) alone, silently turning a field-scope
+    value LIST (Task 13) into a lexical range on Apply."""
+    _login(page, nexora_server)
+    _stub_wiz_catalogs(page, FIELD_SCOPE_WIZ_SOURCES, FIELD_SCOPE_WIZ_METRICS)
+    captured = []
+    _stub_run_ok(page, capture=captured)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.evaluate("""() => window.ReportingSimple.openDefinition({
+      schemaVersion: 1, visualization: 'table', source: 'backlog_history',
+      title: 'in-filter chip', columns: [], metrics: [{metric: 'backlog_total'}],
+      filters: [{field: 'ProcessName', op: 'in', value: ['02_Invoice', '03_Invoice_New']}],
+      sort: [], scope: {clients: [], processes: []}, rowLimit: 5000
+    }, 'in-filter chip')""")
+    chips = page.get_by_test_id("rs-chips")
+    chip = chips.get_by_test_id("rs-chip").first
+    expect(chip).to_contain_text("02_Invoice, 03_Invoice_New")  # comma, not '->' (not a range)
+    chip.click()
+    # Apply WITHOUT changing anything -- the corrupting bug fired even here.
+    page.get_by_test_id("rs-chip-apply").click()
+    expect(chips.get_by_test_id("rs-chip").first).to_contain_text("02_Invoice, 03_Invoice_New")
+    posted = [p for p in captured if p]
+    assert posted, f"no run payload captured: {captured}"
+    last_filters = posted[-1].get("filters") or []
+    assert len(last_filters) == 1
+    assert last_filters[0]["op"] == "in"
+    assert sorted(last_filters[0]["value"]) == ["02_Invoice", "03_Invoice_New"]
+
+
 # Regression (Phase 5 batched review, #178): wizardStateFromDefinition must
 # only capture an in-filter as the wizard's field-scope pick when it targets
 # the SAME field processFieldFor(src) would offer -- not any string in-filter.

@@ -96,7 +96,10 @@
     resultMeta: {{ _("{rows} rows · {ms} ms · {when}")|tojson }},
     runJustNow: {{ _("run just now")|tojson }},
     kpiTotal: {{ _("Total")|tojson }},
-    kpiLatestSuffix: {{ _("latest snapshot")|tojson }},
+    // Bucket-honest wording (#178 final review, Finding 5): this is the
+    // client's own zero-filled last bucket, not the server's single exact-
+    // snapshot latest row -- "latest snapshot" overclaimed the precision.
+    kpiLatestSuffix: {{ _("last bucket")|tojson }},
     kpiBuckets: {{ _("Buckets")|tojson }},
     kpiAvg: {{ _("Avg per bucket")|tojson }},
     kpiPeak: {{ _("Peak")|tojson }},
@@ -1387,9 +1390,11 @@
     return ((src && src.fields) || []).find(function (f) { return f.field === fieldKey; });
   }
 
-  function chipValueLabel(v) {
+  function chipValueLabel(v, op) {
     if (isTokenValue(v)) return tokenLabel(v);
-    if (Array.isArray(v)) return v.join(' → ');
+    // 'in'/'not_in' carry a value LIST, not a range — a comma reads honestly;
+    // '→' is reserved for an actual between-range so the two can't be confused.
+    if (Array.isArray(v)) return v.join(op === 'in' || op === 'not_in' ? ', ' : ' → ');
     return v === null || v === undefined ? '' : String(v);
   }
 
@@ -1447,8 +1452,8 @@
     var input = document.createElement('input');
     input.className = 'reporting-input';
     input.setAttribute('data-testid', 'rs-chip-input');
-    input.value = Array.isArray(f.value) ? f.value.join(' → ')
-      : isTokenValue(f.value) ? '' : chipValueLabel(f.value);
+    input.value = Array.isArray(f.value) ? chipValueLabel(f.value, f.op)
+      : isTokenValue(f.value) ? '' : chipValueLabel(f.value, f.op);
     input.hidden = !!(preset && preset.value);
     if (preset) {
       preset.onchange = function () { input.hidden = !!preset.value; };
@@ -1465,7 +1470,14 @@
         return;
       }
       var v = input.value.trim();
-      if (isTokenValue(f.value) || Array.isArray(f.value) || f.op === 'between') {
+      if (f.op === 'in' || f.op === 'not_in') {
+        // Value LIST, not a range — keep op as-is, split back into a list.
+        // Comma-separated (see chipValueLabel); tolerate a stray '→' too so
+        // re-editing an older arrow-joined display doesn't lose values.
+        var listParts = v.split(/[,→]/).map(function (s) { return s.trim(); }).filter(Boolean);
+        if (listParts.length) f.value = listParts;
+        // else empty input: leave value unchanged
+      } else if (isTokenValue(f.value) || Array.isArray(f.value) || f.op === 'between') {
         var parts = v.split('→').map(function (s) { return s.trim(); }).filter(Boolean);
         if (parts.length === 2) { f.op = 'between'; f.value = parts; }
         else if (parts.length === 1) { f.op = 'eq'; f.value = parts[0]; }
@@ -1556,7 +1568,7 @@
     (def.filters || []).forEach(function (f) {
       var meta = fieldMetaFor(def, f.field);
       var parts = [(meta && meta.label) || f.field, OP_LABELS[f.op] || f.op];
-      var vl = chipValueLabel(f.value);
+      var vl = chipValueLabel(f.value, f.op);
       if (vl) parts.push(vl);        // is_null/is_not_null carry no value
       var label = parts.join(' ');
       wrap.appendChild(chip(
@@ -2396,7 +2408,13 @@
       method: 'POST',
       body: JSON.stringify({ source: w.source.id, field: pf.field })
     });
-    if (state.view !== 'wizard' || el('rsStepScope').hidden) return;
+    if (state.view !== 'wizard' || el('rsStepScope').hidden) {
+      // User stepped away mid-fetch (e.g. back to the measure step) --
+      // clear the stale "Loading values..." hint so a later re-entry to this
+      // step doesn't show it frozen until the NEXT fetch resolves (#178).
+      box.innerHTML = '';
+      return;
+    }
     var values = (res.ok && res.data && res.data.values) || [];
     if (!values.length) {  // endpoint down or empty column: skip the step
       w.fieldScope = null;

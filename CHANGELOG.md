@@ -24,7 +24,7 @@ Work toward the next release.
 - Reporting: `TotalMode` on the metrics registry (migration `0056`) —
   snapshot metrics (backlog) total the latest bucket instead of summing
   snapshots, both server-side (zero-dim grand total) and on the Simple KPI
-  band's "latest snapshot" caption (#178).
+  band's "last bucket" caption (#178).
 - Reporting: dashboard card type "Report" that adopts a saved report 1:1,
   including its own chart type (#178).
 
@@ -65,6 +65,9 @@ Work toward the next release.
 
 - Reporting: the Simple hero no longer overlays open reports (#178).
 - Reporting: clearer self-repair hints for AI SQL errors 156/205/209 (#178).
+- Reporting: `Open in Advanced` now actually runs the report — it used to
+  only pre-fill the builder's wells, leaving Advanced showing no results and
+  "Show query" hidden/stale until the user pressed Run themselves (#178).
 - The two login e2e smokes clicked the 2FA submit button that the auto-submit
   challenge (since `a749bda`) removes from under them — they now fill the code
   and wait for the redirect. The e2e server port is overridable via the new
