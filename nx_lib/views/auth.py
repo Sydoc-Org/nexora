@@ -509,7 +509,17 @@ _LOCKOUT_MINUTES = 15
 def _login_locked_until(cursor, userid):
     cursor.execute("SELECT locked_until FROM dbo.LoginLockout WHERE userid = ?", (str(userid),))
     row = cursor.fetchone()
-    return row[0] if row and row[0] and row[0] > datetime.utcnow() else None
+    if not row or not row[0]:
+        return None
+    locked_until = row[0]
+    # pyodbc with the legacy "{SQL Server}" driver (still the default -- see
+    # DB_ODBC_DRIVER in config.py, #193 finding 16) returns DATETIME2 columns
+    # as str rather than datetime; the column is DATETIME as of migration
+    # 0063 specifically to avoid this, but parse defensively anyway in case a
+    # future driver/type change reintroduces it.
+    if isinstance(locked_until, str):
+        locked_until = datetime.fromisoformat(locked_until)
+    return locked_until if locked_until > datetime.utcnow() else None
 
 
 def _record_login_failure(conn, cursor, userid):

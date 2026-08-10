@@ -1,6 +1,6 @@
 ﻿USE [nexora]
 GO
-ALTER TABLE [dbo].[LoginLockout] DROP CONSTRAINT [DF__LoginLock__updat__21D600EE]
+ALTER TABLE [dbo].[LoginLockout] DROP CONSTRAINT [DF_LoginLockout_updated_at]
 GO
 ALTER TABLE [dbo].[LoginLockout] DROP CONSTRAINT [DF__LoginLock__faile__20E1DCB5]
 GO
@@ -13,8 +13,8 @@ GO
 CREATE TABLE [dbo].[LoginLockout](
 	[userid] [nvarchar](64) NOT NULL,
 	[failed_count] [int] NOT NULL,
-	[locked_until] [datetime2](7) NULL,
-	[updated_at] [datetime2](7) NOT NULL,
+	[locked_until] [datetime] NULL,
+	[updated_at] [datetime] NOT NULL,
 PRIMARY KEY CLUSTERED 
 (
 	[userid] ASC
@@ -23,5 +23,5 @@ PRIMARY KEY CLUSTERED
 GO
 ALTER TABLE [dbo].[LoginLockout] ADD  DEFAULT ((0)) FOR [failed_count]
 GO
-ALTER TABLE [dbo].[LoginLockout] ADD  DEFAULT (sysutcdatetime()) FOR [updated_at]
+ALTER TABLE [dbo].[LoginLockout] ADD  CONSTRAINT [DF_LoginLockout_updated_at]  DEFAULT (getutcdate()) FOR [updated_at]
 GO
