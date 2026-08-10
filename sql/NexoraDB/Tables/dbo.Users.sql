@@ -24,6 +24,7 @@ CREATE TABLE [dbo].[Users](
 	[locale] [nvarchar](3) NULL,
 	[LastLoginAt] [datetime] NULL,
 	[ui_prefs] [nvarchar](500) NULL,
+	[whats_new_seen_version] [nvarchar](32) NULL,
  CONSTRAINT [PK__Users__CB9A1CDF7F8A761C] PRIMARY KEY CLUSTERED 
 (
 	[userID] ASC

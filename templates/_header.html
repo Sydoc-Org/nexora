@@ -350,6 +350,7 @@
                             class="sidebar-avatar" alt="{{ _('Profile Picture') }}"
                             onerror="defaultIcon()">
                         <div class="sidebar-online-dot"></div>
+                        {% if whats_new_unseen %}<div class="sidebar-news-dot" data-testid="header-news-dot"></div>{% endif %}
                     </div>
                     <span class="sidebar-label sidebar-username">{{ logged_in_user }}</span>
                 </button>
@@ -362,6 +363,11 @@
                     <a href="{{ url_for('appearance') }}"
                         class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50 hover:text-indigo-600 transition-colors" data-testid="header-appearance-link">
                         <i class="fas fa-palette w-4"></i> {{ _("Appearance") }}
+                    </a>
+                    <a href="{{ url_for('whats_new') }}"
+                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50 hover:text-indigo-600 transition-colors" data-testid="header-whatsnew-link">
+                        <i class="fas fa-bullhorn w-4"></i> {{ _("What's New") }}
+                        {% if whats_new_unseen %}<span class="ml-auto w-2 h-2 rounded-full bg-rose-500" data-testid="header-whatsnew-dot"></span>{% endif %}
                     </a>
                     {# Sidebar pages no longer render _small_footer.html, so this is
                        the only support link a logged-in user can reach. #}

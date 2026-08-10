@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-06 15:05+0200\n"
+"POT-Creation-Date: 2026-08-10 09:00+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -26,6 +26,162 @@ msgstr "Data non valida"
 msgid "Date is outside the allowed entry window"
 msgstr "La data è al di fuori della finestra di inserimento consentita"
 
+#: nx_lib/whats_new.py:28
+msgid "Forecast your report trends"
+msgstr "Previsioni per i trend dei tuoi report"
+
+#: nx_lib/whats_new.py:30
+msgid ""
+"Time-based reports gain a Forecast toggle: the chart extends with a "
+"dashed prediction line and a confidence band, and exports and scheduled "
+"mails include the forecast too."
+msgstr ""
+"I report temporali ottengono un interruttore Previsione: il grafico si "
+"estende con una linea di previsione tratteggiata e una banda di "
+"confidenza; anche le esportazioni e le mail pianificate includono la "
+"previsione."
+
+#: nx_lib/whats_new.py:39
+msgid "Backlog over time"
+msgstr "Backlog nel tempo"
+
+#: nx_lib/whats_new.py:41
+msgid ""
+"Reporting has a new Backlog measure — track how the open backlog develops"
+" per client or process, week by week."
+msgstr ""
+"Il reporting ha una nuova misura Backlog — segui settimana per settimana "
+"come si sviluppa il backlog aperto per cliente o processo."
+
+#: nx_lib/whats_new.py:49
+msgid "Filter several processes at once"
+msgstr "Filtrare più processi contemporaneamente"
+
+#: nx_lib/whats_new.py:51
+msgid ""
+"The process filter on Dashboard and Workitems is now a multi-select — "
+"combine two or three processes in one view."
+msgstr ""
+"Il filtro processi su Dashboard e Workitems è ora a selezione multipla — "
+"combina due o tre processi in un'unica vista."
+
+#: nx_lib/whats_new.py:59
+msgid "Date-range presets"
+msgstr "Intervalli di date predefiniti"
+
+#: nx_lib/whats_new.py:61
+msgid ""
+"Today, Yesterday, This week, Last 7 days, This month — one click in the "
+"Workitems advanced filter instead of typing dates."
+msgstr ""
+"Oggi, Ieri, Questa settimana, Ultimi 7 giorni, Questo mese — un clic nel "
+"filtro avanzato dei workitems invece di digitare le date."
+
+#: nx_lib/whats_new.py:69
+msgid "Filter workitems by stage"
+msgstr "Filtrare i workitems per fase"
+
+#: nx_lib/whats_new.py:71
+msgid ""
+"A new Stage filter (Import, Extraction, Validation, Delivery) narrows the"
+" list to workitems currently in that step."
+msgstr ""
+"Un nuovo filtro Fase (Import, Estrazione, Validazione, Consegna) "
+"restringe l'elenco ai workitems attualmente in quel passaggio."
+
+#: nx_lib/whats_new.py:79
+msgid "See deleted workitems"
+msgstr "Vedere i workitems eliminati"
+
+#: nx_lib/whats_new.py:81
+msgid ""
+"The status filter gains a Deleted option — soft-deleted workitems become "
+"visible on demand, badged red."
+msgstr ""
+"Il filtro di stato ottiene un'opzione « Eliminati » — i workitems "
+"eliminati in modo soft diventano visibili su richiesta, contrassegnati in"
+" rosso."
+
+#: nx_lib/whats_new.py:89
+msgid "Make nexora look your way"
+msgstr "Dai a nexora il tuo stile"
+
+#: nx_lib/whats_new.py:91
+msgid ""
+"The new Appearance page has a live preview and more choices: custom "
+"accent color, font size, corner style, high contrast, table stripes, page"
+" backgrounds and animation speed."
+msgstr ""
+"La nuova pagina Aspetto offre un'anteprima dal vivo e più scelte: colore "
+"d'accento personalizzato, dimensione del carattere, stile degli angoli, "
+"contrasto elevato, righe alternate nelle tabelle, sfondi di pagina e "
+"velocità di animazione."
+
+#: nx_lib/whats_new.py:100
+msgid "API documentation in the app"
+msgstr "Documentazione API nell'app"
+
+#: nx_lib/whats_new.py:102
+msgid ""
+"The external API is now documented on the new API Docs page — "
+"authentication, endpoints and copyable examples included."
+msgstr ""
+"L'API esterna è ora documentata nella nuova pagina API Docs — "
+"autenticazione, endpoint ed esempi copiabili inclusi."
+
+#: nx_lib/whats_new.py:110
+msgid "Live system status for admins"
+msgstr "Stato del sistema in tempo reale per gli admin"
+
+#: nx_lib/whats_new.py:112
+msgid ""
+"The new Status page shows each component's health, a 30-day uptime strip "
+"and the incident history — fed by the standalone outage monitor."
+msgstr ""
+"La nuova pagina Stato mostra la salute di ogni componente, una striscia "
+"di disponibilità a 30 giorni e la cronologia degli incidenti — alimentata"
+" dal monitor guasti autonomo."
+
+#: nx_lib/whats_new.py:127
+msgid "Drill through to the documents"
+msgstr "Esplorare fino ai documenti"
+
+#: nx_lib/whats_new.py:129
+msgid ""
+"Click a chart element or result row in Reporting to open the underlying "
+"document rows, with workitem links and export."
+msgstr ""
+"Clicca su un elemento del grafico o una riga di risultato nel reporting "
+"per aprire le righe dei documenti sottostanti, con link ai workitems ed "
+"esportazione."
+
+#: nx_lib/whats_new.py:137
+msgid "Combine measures in one report"
+msgstr "Combinare misure in un report"
+
+#: nx_lib/whats_new.py:139
+msgid ""
+"The guided report builder now takes several measures at once and has its "
+"own process step, with coverage badges showing which processes provide "
+"each field."
+msgstr ""
+"Il generatore di report guidato accetta ora più misure contemporaneamente"
+" e ha un proprio passaggio dei processi, con badge di copertura che "
+"mostrano quali processi forniscono ciascun campo."
+
+#: nx_lib/whats_new.py:148
+msgid "Machine-to-machine API"
+msgstr "API machine-to-machine"
+
+#: nx_lib/whats_new.py:150
+msgid ""
+"External clients can fetch KPI numbers over the new authenticated /api/v1"
+" interface — including a test sandbox with the same shape but fake data."
+msgstr ""
+"I client esterni possono recuperare i numeri KPI tramite la nuova "
+"interfaccia autenticata /api/v1 — incluso un ambiente di test con la "
+"stessa struttura ma dati fittizi."
+
 #: nx_lib/reporting/catalog.py:224
 msgid "Import date"
 msgstr "Data di importazione"
@@ -38,7 +194,7 @@ msgstr "Data di esportazione"
 msgid "Workitem ID"
 msgstr "ID Workitem"
 
-#: nx_lib/views/admin.py:191 nx_lib/views/admin.py:774
+#: nx_lib/views/admin.py:191 nx_lib/views/admin.py:781
 msgid "All fields are required."
 msgstr "Tutti i campi sono obbligatori."
 
@@ -50,7 +206,7 @@ msgstr "Organizzazione creata con successo."
 msgid "Organization already exists."
 msgstr "L'organizzazione esiste già."
 
-#: nx_lib/views/admin.py:211 nx_lib/views/admin.py:842
+#: nx_lib/views/admin.py:211 nx_lib/views/admin.py:849
 msgid "An unexpected error occurred."
 msgstr "Si è verificato un errore imprevisto."
 
@@ -59,7 +215,7 @@ msgid "Organization updated successfully."
 msgstr "Organizzazione aggiornata con successo."
 
 #: nx_lib/views/admin.py:238 nx_lib/views/admin.py:262
-#: nx_lib/views/admin.py:924 nx_lib/views/admin.py:1164
+#: nx_lib/views/admin.py:931 nx_lib/views/admin.py:1171
 msgid "An error occurred."
 msgstr "Si è verificato un errore."
 
@@ -75,11 +231,11 @@ msgstr "Organizzazione eliminata con successo."
 msgid "Unknown environment."
 msgstr "Ambiente sconosciuto."
 
-#: nx_lib/views/admin.py:782 nx_lib/views/admin.py:896
+#: nx_lib/views/admin.py:789 nx_lib/views/admin.py:903
 msgid "Permission Denied for this action."
 msgstr "Autorizzazione negata per questa azione."
 
-#: nx_lib/views/admin.py:830
+#: nx_lib/views/admin.py:837
 msgid ""
 "User created, but the email could not be sent. Ask them to use 'Forgot "
 "password'."
@@ -87,86 +243,86 @@ msgstr ""
 "Utente creato, ma non è stato possibile inviare l'e-mail. Chiedigli di "
 "usare la funzione 'Password dimenticata'."
 
-#: nx_lib/views/admin.py:835
+#: nx_lib/views/admin.py:842
 msgid "User created and email sent."
 msgstr "Utente creato ed e-mail inviata."
 
-#: nx_lib/views/admin.py:837 templates/js/admin/_access_control_js.html:564
+#: nx_lib/views/admin.py:844 templates/js/admin/_access_control_js.html:564
 msgid "User created successfully."
 msgstr "Utente creato con successo."
 
-#: nx_lib/views/admin.py:839
+#: nx_lib/views/admin.py:846
 msgid "Username or email already exists."
 msgstr "Nome utente o e-mail già esistente."
 
-#: nx_lib/views/admin.py:921
+#: nx_lib/views/admin.py:928
 msgid "User updated successfully."
 msgstr "Utente aggiornato con successo."
 
-#: nx_lib/views/admin.py:1110
+#: nx_lib/views/admin.py:1117
 msgid "You cannot delete your own account."
 msgstr "Non puoi eliminare il tuo account."
 
-#: nx_lib/views/admin.py:1156
+#: nx_lib/views/admin.py:1163
 msgid "User not found."
 msgstr "Utente non trovato."
 
-#: nx_lib/views/admin.py:1158
+#: nx_lib/views/admin.py:1165
 msgid "User deleted successfully."
 msgstr "Utente eliminato con successo."
 
-#: nx_lib/views/admin.py:1287
+#: nx_lib/views/admin.py:1294
 msgid "Could not fetch logs"
 msgstr "Impossibile recuperare i log"
 
-#: nx_lib/views/admin.py:1331
+#: nx_lib/views/admin.py:1338
 msgid "Could not fetch sessions"
 msgstr "Impossibile recuperare le sessioni"
 
-#: nx_lib/views/admin.py:1428 nx_lib/views/admin.py:1738
-#: nx_lib/views/admin.py:1780 nx_lib/views/admin.py:1825
-#: nx_lib/views/admin.py:1864 nx_lib/views/admin.py:1901
-#: nx_lib/views/admin.py:1933 nx_lib/views/dashboard.py:252
+#: nx_lib/views/admin.py:1435 nx_lib/views/admin.py:1745
+#: nx_lib/views/admin.py:1787 nx_lib/views/admin.py:1832
+#: nx_lib/views/admin.py:1871 nx_lib/views/admin.py:1908
+#: nx_lib/views/admin.py:1940 nx_lib/views/dashboard.py:252
 #: nx_lib/views/dashboard.py:362 nx_lib/views/dashboard.py:417
 #: nx_lib/views/dashboard.py:509 nx_lib/views/invoices.py:292
 #: nx_lib/views/workitems.py:981 nx_lib/views/workitems.py:1719
 msgid "Not authorized"
 msgstr "Non autorizzato"
 
-#: nx_lib/views/admin.py:1471
+#: nx_lib/views/admin.py:1478
 msgid "Could not fetch users"
 msgstr "Impossibile recuperare gli utenti"
 
-#: nx_lib/views/admin.py:1517
+#: nx_lib/views/admin.py:1524
 msgid "Name is required"
 msgstr "Il nome è obbligatorio"
 
-#: nx_lib/views/admin.py:1545
+#: nx_lib/views/admin.py:1552
 msgid "Profile saved successfully"
 msgstr "Profilo salvato con successo"
 
-#: nx_lib/views/admin.py:1724
+#: nx_lib/views/admin.py:1731
 msgid "Overrides updated successfully"
 msgstr "Override aggiornati con successo"
 
-#: nx_lib/views/admin.py:1789 nx_lib/views/admin.py:1917
-#: nx_lib/views/admin.py:1959
+#: nx_lib/views/admin.py:1796 nx_lib/views/admin.py:1924
+#: nx_lib/views/admin.py:1966
 msgid "Permission not found"
 msgstr "Autorizzazione non trovata"
 
-#: nx_lib/views/admin.py:1869 nx_lib/views/admin.py:1906
+#: nx_lib/views/admin.py:1876 nx_lib/views/admin.py:1913
 msgid "Code and description are required"
 msgstr "Codice e descrizione sono obbligatori"
 
-#: nx_lib/views/admin.py:1884
+#: nx_lib/views/admin.py:1891
 msgid "Permission created successfully"
 msgstr "Autorizzazione creata con successo"
 
-#: nx_lib/views/admin.py:1919
+#: nx_lib/views/admin.py:1926
 msgid "Permission updated successfully"
 msgstr "Autorizzazione aggiornata con successo"
 
-#: nx_lib/views/admin.py:1952
+#: nx_lib/views/admin.py:1959
 #, python-format
 msgid ""
 "Cannot delete: used in %(p)d profile(s) and %(o)d override(s). Remove all"
@@ -175,7 +331,7 @@ msgstr ""
 "Impossibile eliminare: utilizzato in %(p)d profilo/i e %(o)d "
 "sostituzione/i. Rimuovere prima tutte le assegnazioni."
 
-#: nx_lib/views/admin.py:1961
+#: nx_lib/views/admin.py:1968
 msgid "Permission deleted successfully"
 msgstr "Autorizzazione eliminata con successo"
 
@@ -250,51 +406,51 @@ msgstr "Codice non valido. Riprova."
 msgid "Invalid code"
 msgstr "Codice non valido"
 
-#: nx_lib/views/auth.py:429 nx_lib/views/auth.py:651
+#: nx_lib/views/auth.py:429 nx_lib/views/auth.py:654
 #: templates/js/_profile_js.html:5
 msgid "Passwords do not match"
 msgstr "Le password non corrispondono"
 
-#: nx_lib/views/auth.py:431 nx_lib/views/auth.py:653
+#: nx_lib/views/auth.py:431 nx_lib/views/auth.py:656
 msgid "All Fields must be filled"
 msgstr "Tutti i campi devono essere compilati"
 
-#: nx_lib/views/auth.py:435 nx_lib/views/auth.py:657
-#: nx_lib/views/profile.py:159
+#: nx_lib/views/auth.py:435 nx_lib/views/auth.py:660
+#: nx_lib/views/profile.py:160
 msgid "New password has to be atleast 8 characters long, with no whitespaces"
 msgstr "La nuova password deve contenere almeno 8 caratteri, senza spazi"
 
-#: nx_lib/views/auth.py:455 nx_lib/views/auth.py:675
+#: nx_lib/views/auth.py:455 nx_lib/views/auth.py:678
 msgid "New Password musn't be previously used password"
 msgstr "La nuova password non deve essere una password già utilizzata"
 
-#: nx_lib/views/auth.py:488 nx_lib/views/auth.py:722
+#: nx_lib/views/auth.py:488 nx_lib/views/auth.py:725
 msgid "Something went wrong, please try again"
 msgstr "Qualcosa è andato storto, riprova"
 
-#: nx_lib/views/auth.py:542 nx_lib/views/auth.py:585
+#: nx_lib/views/auth.py:545 nx_lib/views/auth.py:588
 msgid "Invalid credentials"
 msgstr "Credenziali non valide"
 
-#: nx_lib/views/auth.py:589
+#: nx_lib/views/auth.py:592
 msgid "Login temporarily unavailable"
 msgstr "Accesso temporaneamente non disponibile"
 
-#: nx_lib/views/auth.py:707
+#: nx_lib/views/auth.py:710
 msgid "Password set. You can now sign in."
 msgstr "Password impostata. Ora puoi accedere."
 
-#: nx_lib/views/auth.py:709
+#: nx_lib/views/auth.py:712
 msgid "Password changed"
 msgstr "Password modificata"
 
-#: nx_lib/views/auth.py:854
+#: nx_lib/views/auth.py:857
 msgid "If that email is registered, a reset link has been sent."
 msgstr ""
 "Se questo indirizzo e-mail è registrato, è stato inviato un link per "
 "reimpostare la password."
 
-#: nx_lib/views/auth.py:858
+#: nx_lib/views/auth.py:861
 msgid "Unexpected error occurred"
 msgstr "Si è verificato un errore imprevisto"
 
@@ -318,48 +474,48 @@ msgstr "Impossibile scaricare il PDF. File non trovato o errore API."
 msgid "An unexpected error occurred while downloading the PDF."
 msgstr "Si è verificato un errore imprevisto durante il download del PDF."
 
-#: nx_lib/views/profile.py:66
+#: nx_lib/views/profile.py:67
 msgid "Email Adress is not valid"
 msgstr "L'indirizzo e-mail non è valido"
 
-#: nx_lib/views/profile.py:73
+#: nx_lib/views/profile.py:74
 msgid "Email Adress is already in use"
 msgstr "L'indirizzo e-mail è già in uso"
 
-#: nx_lib/views/profile.py:94 nx_lib/views/profile.py:118
+#: nx_lib/views/profile.py:95 nx_lib/views/profile.py:119
 msgid "Invalid file format. Please upload a valid image."
 msgstr "Formato file non valido. Carica un'immagine valida."
 
-#: nx_lib/views/profile.py:122
+#: nx_lib/views/profile.py:123
 msgid "Profile updated successfully!"
 msgstr "Profilo aggiornato con successo!"
 
-#: nx_lib/views/profile.py:127
+#: nx_lib/views/profile.py:128
 msgid "Unexpected error"
 msgstr "Errore imprevisto"
 
-#: nx_lib/views/profile.py:152
+#: nx_lib/views/profile.py:153
 msgid "New passwords do not match"
 msgstr "Le nuove password non corrispondono"
 
-#: nx_lib/views/profile.py:155
+#: nx_lib/views/profile.py:156
 msgid "All fields must be filled"
 msgstr "Tutti i campi devono essere compilati"
 
-#: nx_lib/views/profile.py:189
+#: nx_lib/views/profile.py:190
 msgid "Password updated successfully!"
 msgstr "Password aggiornata con successo!"
 
-#: nx_lib/views/profile.py:192
+#: nx_lib/views/profile.py:193
 msgid "Current password is incorrect"
 msgstr "La password attuale non è corretta"
 
-#: nx_lib/views/profile.py:197 nx_lib/views/profile.py:210
-#: nx_lib/views/profile.py:223
+#: nx_lib/views/profile.py:198 nx_lib/views/profile.py:211
+#: nx_lib/views/profile.py:224
 msgid "Unexpected Error"
 msgstr "Errore imprevisto"
 
-#: nx_lib/views/profile.py:219
+#: nx_lib/views/profile.py:220
 msgid "Language changed successfully!"
 msgstr "Lingua modificata con successo!"
 
@@ -948,7 +1104,7 @@ msgstr "Stato importazione dati"
 
 #: templates/_header.html:334 templates/_header.html:336
 #: templates/appearance.html:288 templates/appearance.html:293
-#: templates/js/_header_js.html:271
+#: templates/js/_header_js.html:272
 msgid "Keep sidebar open"
 msgstr "Mantieni la barra laterale aperta"
 
@@ -965,51 +1121,56 @@ msgstr "Modalità scura"
 msgid "Profile Picture"
 msgstr "Foto profilo"
 
-#: templates/_header.html:360
+#: templates/_header.html:361
 msgid "Your profile"
 msgstr "Il tuo profilo"
 
-#: templates/_header.html:364 templates/appearance.html:32
+#: templates/_header.html:365 templates/appearance.html:32
 #: templates/js/_header_js.html:97 templates/profile.html:74
 #: templates/profile.html:317
 msgid "Appearance"
 msgstr "Aspetto"
 
-#: templates/_header.html:370 templates/_small_footer.html:28
+#: templates/_header.html:369 templates/js/_header_js.html:98
+#: templates/whats_new.html:76
+msgid "What's New"
+msgstr "Novità"
+
+#: templates/_header.html:376 templates/_small_footer.html:28
 #: templates/reporting.html:88
 msgid "Help"
 msgstr "Aiuto"
 
-#: templates/_header.html:376 templates/_header.html:418
+#: templates/_header.html:382 templates/_header.html:424
 msgid "Switch user"
 msgstr "Cambia utente"
 
-#: templates/_header.html:382 templates/js/_header_js.html:98
+#: templates/_header.html:388 templates/js/_header_js.html:99
 #: templates/profile.html:81
 msgid "Sign out"
 msgstr "Disconnetti"
 
-#: templates/_header.html:399
+#: templates/_header.html:405
 msgid "Command palette"
 msgstr "Tavolozza dei comandi"
 
-#: templates/_header.html:403
+#: templates/_header.html:409
 msgid "Type a command or search..."
 msgstr "Digita un comando o cerca..."
 
-#: templates/_header.html:408
+#: templates/_header.html:414
 msgid "navigate"
 msgstr "naviga"
 
-#: templates/_header.html:409
+#: templates/_header.html:415
 msgid "open"
 msgstr "apri"
 
-#: templates/_header.html:410
+#: templates/_header.html:416
 msgid "close"
 msgstr "chiudi"
 
-#: templates/_header.html:422
+#: templates/_header.html:428
 msgid "Switch to user..."
 msgstr "Passa all'utente ..."
 
@@ -1166,11 +1327,11 @@ msgstr ""
 "vedere i passaggi; se compare un pulsante “Continua”, cliccalo prima di "
 "riformulare la domanda."
 
-#: templates/_reporting_help.html:43
+#: templates/_reporting_help.html:44
 msgid "Full guide"
 msgstr "Guida completa"
 
-#: templates/_reporting_help.html:44 templates/admin/logs.html:139
+#: templates/_reporting_help.html:45 templates/admin/logs.html:139
 #: templates/js/_reporting_drill_js.html:16
 #: templates/prepared_documents.html:251 templates/prepared_documents.html:263
 #: templates/reporting.html:132 templates/reporting.html:160
@@ -1805,7 +1966,7 @@ msgstr "e"
 msgid "Appearance - nexora"
 msgstr "Aspetto - nexora"
 
-#: templates/appearance.html:30
+#: templates/appearance.html:30 templates/whats_new.html:74
 msgid "Back to profile"
 msgstr "Torna al profilo"
 
@@ -4092,6 +4253,26 @@ msgstr "Inserisci il codice dalla tua app Authenticator per continuare."
 msgid "Verify Identity"
 msgstr "Verifica identità"
 
+#: templates/whats_new.html:7
+msgid "What's New - nexora"
+msgstr "Novità - nexora"
+
+#: templates/whats_new.html:77
+msgid ""
+"New features and improvements, release by release — showing only what "
+"your account can use."
+msgstr ""
+"Nuove funzionalità e miglioramenti, versione per versione — viene "
+"mostrato solo ciò che il tuo account può usare."
+
+#: templates/whats_new.html:94
+msgid "Try it"
+msgstr "Provalo"
+
+#: templates/whats_new.html:103
+msgid "Nothing to show yet — check back after the next release."
+msgstr "Niente da mostrare per ora — torna dopo la prossima versione."
+
 #: templates/workitems_overview.html:7
 msgid "Workitems overview - nexora"
 msgstr "Panoramica Workitems - nexora"
@@ -5495,22 +5676,23 @@ msgid "Work items"
 msgstr "Workitems"
 
 #: templates/js/_header_js.html:96 templates/js/_header_js.html:97
+#: templates/js/_header_js.html:98
 msgid "Quick action"
 msgstr "Azione rapida"
 
-#: templates/js/_header_js.html:98
+#: templates/js/_header_js.html:99
 msgid "Account"
 msgstr "Account"
 
-#: templates/js/_header_js.html:142
+#: templates/js/_header_js.html:143
 msgid "No matching commands."
 msgstr "Nessun comando corrispondente."
 
-#: templates/js/_header_js.html:271
+#: templates/js/_header_js.html:272
 msgid "Unpin sidebar"
 msgstr "Sblocca la barra laterale"
 
-#: templates/js/_header_js.html:362
+#: templates/js/_header_js.html:363
 msgid "No matching users."
 msgstr "Nessun utente corrispondente."
 

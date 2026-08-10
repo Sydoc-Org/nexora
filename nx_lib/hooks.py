@@ -33,6 +33,7 @@ from .security import (
 from .ui_prefs import load_ui_prefs
 from .users import resolve_user_icon_url
 from .version import BUILD_STAMP, __version__
+from .whats_new import has_unseen, load_seen_version
 
 _SESSION_ENFORCE_SKIP_PATHS = (
     "/static",
@@ -246,6 +247,16 @@ def _inject_app_version():
     return {"nexora_version": __version__, "nexora_build": BUILD_STAMP}
 
 
+def _inject_whats_new():
+    """Header badge: unseen curated release notes. Read fresh from the DB per
+    render (permissions/ui_prefs idiom — a session cache races the cookie and
+    resurrects the dot after it was cleared)."""
+    if "userid" not in session:
+        return {"whats_new_unseen": False}
+    seen = load_seen_version(session["userid"])
+    return {"whats_new_unseen": has_unseen(seen, has_permission)}
+
+
 def init_app(app):
     app.before_request(_start_timer)
     app.before_request(_enforce_active_session)
@@ -264,3 +275,4 @@ def init_app(app):
     app.context_processor(_inject_ui_prefs)
     app.context_processor(_utility_processor)
     app.context_processor(_inject_app_version)
+    app.context_processor(_inject_whats_new)

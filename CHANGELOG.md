@@ -10,6 +10,15 @@ Work toward the next release.
 
 ### Added
 
+- **What's New page** (#169) — `/whats_new` (profile dropdown and Ctrl+K),
+  showing curated, translated per-release feature notes authored in
+  `nx_lib/whats_new.py` at release time (the raw `CHANGELOG.md` stays
+  dev-facing; curation step documented in `docs/howto/whats-new.md`). Entries
+  are permission-filtered — users only see features their account can actually
+  use — and can link to their feature page. A red dot on the header avatar and
+  the dropdown item appears when a curated release is newer than the user's
+  seen-marker (`dbo.Users.whats_new_seen_version`, migration `0061`); opening
+  the page clears it. No modal, badge only.
 - Admin overview page (dev-only) now shows the currently-running `ENVIRONMENT`
   next to the "Restart nexora" button and a dropdown to restart into a
   different one (INT/STAGING). `POST /api/admin/restart` accepts an optional

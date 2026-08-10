@@ -321,6 +321,17 @@ html.dark .sidebar-nav-group-header:hover { background: #334155; color: #a5b4fc;
     background: #22c55e;
     border: 2px solid #fff;
 }
+/* Unseen What's-New badge (#169) — top-right counterpart of the online dot */
+.sidebar-news-dot {
+    position: absolute;
+    top: -1px;
+    right: -1px;
+    width: 9px;
+    height: 9px;
+    border-radius: 9999px;
+    background: #f43f5e;
+    border: 2px solid #fff;
+}
 .sidebar-username {
     font-size: 0.8125rem;
     font-weight: 600;
@@ -372,6 +383,7 @@ html.dark .sidebar-nav-item:hover { background: #334155; color: #a5b4fc; }
 html.dark .sidebar-nav-item--active { background: rgba(79,70,229,0.25); color: #a5b4fc; }
 html.dark .sidebar-username    { color: #e2e8f0; }
 html.dark .sidebar-online-dot  { border-color: #1e293b; }
+html.dark .sidebar-news-dot    { border-color: #1e293b; }
 html.dark .sidebar-notif-panel { background: #1e293b; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
 html.dark .sidebar-notif-panel-header { background: #0f172a; border-bottom-color: #334155; color: #64748b; }
 

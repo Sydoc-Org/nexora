@@ -20,8 +20,9 @@ from PIL import Image
 
 from ..db import engine_nexora_db
 from ..files import is_file_allowed
-from ..security import page_visibility
+from ..security import has_permission, page_visibility
 from ..ui_prefs import sanitize_ui_prefs, save_ui_prefs
+from ..whats_new import mark_seen, visible_releases
 
 
 def profile():
@@ -242,6 +243,25 @@ def appearance():
         return render_template("500.html")
 
 
+def whats_new():
+    """Curated per-release notes, filtered to what this user can actually use.
+    Opening the page stamps the seen-marker, clearing the header badge."""
+    try:
+        if "username" not in session:
+            return redirect(url_for("login"))
+        releases = visible_releases(has_permission)
+        mark_seen(session["userid"])
+        return render_template(
+            "whats_new.html",
+            releases=releases,
+            userid=session.get("userid", "Unknown"),
+            logged_in_user=session.get("username", "Unknown"),
+            pageV=page_visibility(),
+        )
+    except Exception:
+        return render_template("500.html")
+
+
 def set_ui_prefs():
     """AJAX endpoint: merge a partial prefs patch into the stored UI prefs."""
     if "userid" not in session:
@@ -273,6 +293,7 @@ def register_routes(app):
     )
     app.add_url_rule("/language/<lang>", endpoint="set_language", view_func=set_language)
     app.add_url_rule("/appearance", endpoint="appearance", view_func=appearance)
+    app.add_url_rule("/whats_new", endpoint="whats_new", view_func=whats_new)
     app.add_url_rule(
         "/profile/ui_prefs",
         endpoint="set_ui_prefs",
