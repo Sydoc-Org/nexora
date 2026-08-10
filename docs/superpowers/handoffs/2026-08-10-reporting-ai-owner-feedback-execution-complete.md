@@ -12,15 +12,22 @@
   executed the plan end to end, ran 7 phase-scoped combined reviews + 1 final whole-branch review,
   and fixed everything each review found (2 fix rounds at phase level, 1 fix wave at final
   review). All 22 commits are on `plan/reporting-ai-owner-feedback`, nothing uncommitted.
-- **The merge into `v3.1` was deliberately NOT attempted.** The plan's own "Context an engineer
-  needs" section and this session's remote-work policy both say "commit-only — owner pushes...
-  the owner reviews, merges the worktree branch back into v3.1, and pushes." This session
-  followed that literally rather than the `/execute-plan` skill's generic auto-merge default —
-  the worktree and branch are **intentionally left in place** for the owner. See "Owner actions"
-  below for the exact merge steps.
-- Issue #178 is **not yet closed** — that's an owner action after merge+push, per the plan.
+- **The merge into `v3.1` was attempted (with explicit owner sign-off via `/clean`) and BLOCKED —
+  not by a conflict, by safety.** `v3.1` moved 40 commits since this branch was cut (`4856eed`),
+  including several reporting-feature commits (`/reporting/guide`, tips panel, help-panel
+  changes) — a `git merge-tree` dry-run confirmed the committed history merges **cleanly, zero
+  conflict markers**. But the main checkout (`C:\dev\nexora`) has a **parallel session's
+  uncommitted, in-progress work** sitting on `v3.1` right now, touching `CHANGELOG.md`,
+  `messages.pot`, and all three `translations/*/LC_MESSAGES/messages.po` — files this branch's
+  merge would also write. `git merge` correctly refused
+  ("Your local changes... would be overwritten by merge") rather than clobbering that other
+  session's work. **Aborted cleanly, zero side effects** — confirmed via `git status` before and
+  after. The worktree and branch are still in place. See "Owner actions" below.
+- Issue #178 is **not yet closed** — blocked on the merge above.
 - Two items came out of the final whole-branch review that are **owner decisions, not code
-  defects**, and were deliberately left unfixed — see "Needs an owner decision" below.
+  defects**, and were deliberately left unfixed — see "Needs an owner decision" below. The owner
+  already chose "merge now, drift included" for Finding 4 — that decision stands, it's just
+  blocked on the parallel-session collision above, not on Finding 4 itself.
 
 ## This session's commits (oldest → newest, on `plan/reporting-ai-owner-feedback`)
 
@@ -171,14 +178,23 @@ table — `157286b` plan, `5d1567e` prior handoff — are from the planning sess
 
 - Nothing untracked — worktree is clean (`git status --short` empty).
 - **Owner actions, in order:**
-  1. **Decide Finding 4** (unrelated INT schema drift under Task 8's commit `878f477`) — see
-     above. This should be resolved before merge, one way or the other.
+  1. **Resolve the parallel-session collision blocking the merge.** As of `f6002a4a`, the main
+     checkout (`C:\dev\nexora`, on `v3.1`) has another session's uncommitted work on
+     `CHANGELOG.md`, `messages.pot`, and all three `translations/*/LC_MESSAGES/messages.po` — the
+     exact files this branch's merge also touches. `git merge --no-ff plan/reporting-ai-owner-feedback`
+     was attempted and safely refused by git itself (would-overwrite-local-changes error), aborted
+     clean, zero side effects. **The committed history merges with zero conflicts** (verified via
+     `git merge-tree $(git merge-base v3.1 plan/reporting-ai-owner-feedback) v3.1
+     plan/reporting-ai-owner-feedback` — no `<<<<<<<` markers) — this is purely a working-tree
+     collision, not a real merge conflict. Once that other session commits (or its work is
+     otherwise cleared from the working tree — not this session's call to make), the merge should
+     go through cleanly. Do not stash or discard that other session's changes without confirming
+     with whoever owns them.
   2. **Merge `plan/reporting-ai-owner-feedback` into `v3.1`** (from the base repo root,
-     `C:\dev\nexora`, on branch `v3.1`): `git merge --no-ff plan/reporting-ai-owner-feedback`.
-     No conflicts are expected — `v3.1` has not moved since this branch was cut at `4856eed`
-     (verify with `git log v3.1..plan/reporting-ai-owner-feedback` vs.
-     `git log plan/reporting-ai-owner-feedback..v3.1` before merging, in case another session
-     landed something on `v3.1` in the meantime).
+     `C:\dev\nexora`, on branch `v3.1`, once step 1 clears):
+     `git merge --no-ff plan/reporting-ai-owner-feedback`. **Finding 4** (unrelated INT schema
+     drift under Task 8's commit `878f477`) does NOT need a separate decision — the owner already
+     chose "merge now, drift included" for it.
   3. **Push `v3.1`** (this session never pushes).
   4. **Run `scripts/env-sync.py`** — no new env keys were added by this plan, so this should be a
      no-op, but it's cheap to confirm.
