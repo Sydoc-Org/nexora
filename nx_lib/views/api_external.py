@@ -34,7 +34,11 @@ All consumed by external clients' own integrations.
 
 Sensitive doc-fields (Search_Field_Labels.IsSensitive) are ALWAYS blocked on
 this surface -- dbo.ApiKeys has no sensitive grant; if a client ever needs
-one, add a column, don't widen the policy here.
+one, add a column, don't widen the policy here. Unlike the in-app surfaces
+(fail-open behind session permissions), a FAILED sensitive-list lookup fails
+CLOSED here: get_sensitive_field_keys/tokens return None on error (never
+cached) and the workitem endpoints answer 500 instead of serving unstripped
+data or accepting unchecked field filters.
 
 Each endpoint has a /api/test/v1/... twin (same path suffix, same auth, same
 response shape) that returns RANDOM numbers instead of real KPI values -- a
@@ -207,16 +211,22 @@ WORKITEM_API_STATUSES = ("Ready", "In Progress", "Done")
 # Mirrors the overview's perPage whitelist -- validated as strings like ?days=.
 WORKITEM_API_PER_PAGE = ("40", "100", "200", "500", "1000")
 _DOCFIELD_COMBS = ("and", "or")
+# Each doc-field pair fans out into per-SearchConfig-row StatisticsDB
+# subqueries; the UI has a practical handful, so bound the machine surface
+# too instead of letting one request multiply backend load arbitrarily.
+WORKITEM_API_MAX_DOCFIELD_PAIRS = 10
 
 
-def _parse_workitems_query(processes, *, validate_fields):
+def _parse_workitems_query(processes, *, validate_fields, blocked_keys=frozenset()):
     """Validate the external /workitems query params and translate them into
     the internal MultiDict _get_workitems_data expects. Returns
     (error_message, args); exactly one is None. The API 400s what the
     overview UI silently coerces (unknown enums, bad ops, field-less values)
     -- silent widening is fine UX in-session and an over-return trap on a
     machine surface. validate_fields=False skips the DB-backed doc-field
-    whitelist (the /api/test twin must stay zero-backend-query)."""
+    whitelist (the /api/test twin must stay zero-backend-query);
+    blocked_keys is the caller-resolved sensitive set (the caller has
+    already 500'd if that lookup failed -- fail closed, module docstring)."""
     a = request.args
     items = []
 
@@ -263,11 +273,12 @@ def _parse_workitems_query(processes, *, validate_fields):
     combs = a.getlist("comb")
     if len(fields) != len(values):
         return "field and value must be supplied in pairs", None
+    if len(fields) > WORKITEM_API_MAX_DOCFIELD_PAIRS:
+        return f"at most {WORKITEM_API_MAX_DOCFIELD_PAIRS} field/value pairs per request", None
     if len(ops) > len(fields) or len(combs) > len(fields):
         return "more op/comb values than field/value pairs", None
     if validate_fields and fields:
         valid_columns = get_valid_search_columns()
-        blocked = get_sensitive_field_keys()
     for i, (f, v) in enumerate(zip(fields, values, strict=True)):
         f = (f or "").strip().lower()
         v = (v or "").strip()
@@ -275,7 +286,7 @@ def _parse_workitems_query(processes, *, validate_fields):
             # No value-first (field-less) search on this surface: an explicit
             # field key is required per pair.
             return "field and value must both be non-empty", None
-        if validate_fields and (f"col_{f}" not in valid_columns or f in blocked):
+        if validate_fields and (f"col_{f}" not in valid_columns or f in blocked_keys):
             # Sensitive fields answer identically to unknown ones -- no
             # sensitivity-existence oracle on the external surface.
             return f"Unknown field '{f}'", None
@@ -300,14 +311,15 @@ def _parse_workitems_query(processes, *, validate_fields):
     return None, MultiDict(items)
 
 
-def _api_workitems_scope(processes):
+def _api_workitems_scope(processes, blocked_keys):
     """The key's ProcessList as a _get_workitems_data scope -- the session-less
     twin of workitems._session_scope. Sensitive doc-fields are always blocked
-    (module docstring); the internal-only Deleted status stays hidden."""
+    (module docstring; blocked_keys is caller-resolved so a failed lookup has
+    already 500'd); the internal-only Deleted status stays hidden."""
     return {
         "allowed": set(processes),
         "can_docfields": True,
-        "sensitive_blocked": get_sensitive_field_keys(),
+        "sensitive_blocked": blocked_keys,
         "can_status": True,
         "can_deleted": False,
         "can_stage": True,
@@ -341,7 +353,15 @@ def _serialize_workitem_row(row, import_map):
 @limiter.limit("60 per minute")
 @require_api_key
 def api_v1_workitems():
-    err, args = _parse_workitems_query(g.api_client["processes"], validate_fields=True)
+    # Sensitive-list lookup first, and FAIL CLOSED on None (module docstring):
+    # with no session-permission fallback on this surface, an unresolved
+    # sensitive set must never mean "nothing is sensitive".
+    blocked_keys = get_sensitive_field_keys()
+    if blocked_keys is None:
+        return jsonify({"error": "Workitems backend unavailable"}), 500
+    err, args = _parse_workitems_query(
+        g.api_client["processes"], validate_fields=True, blocked_keys=blocked_keys
+    )
     if err:
         return jsonify({"error": err}), 400
     processes = g.api_client["processes"]
@@ -358,7 +378,7 @@ def api_v1_workitems():
             }
         )
     try:
-        data = _get_workitems_data(args, scope=_api_workitems_scope(processes))
+        data = _get_workitems_data(args, scope=_api_workitems_scope(processes, blocked_keys))
         if data["degradedSources"]:
             # Strict contract (stats/today precedent): a dead source must not
             # serve a silently partial page (the UI shows a banner instead).
@@ -429,6 +449,10 @@ def api_v1_workitem_detail(workitem_id):
             # at this layer (documented); same body as out-of-scope.
             return jsonify({"workitem_id": workitem_id, "detail": None}), 404
         blocked_tokens = get_sensitive_field_tokens()
+        if blocked_tokens is None:
+            # Fail CLOSED (module docstring): never serve unstripped fields
+            # because the sensitive list couldn't be loaded.
+            return jsonify({"error": "Workitems backend unavailable"}), 500
         stripped = strip_sensitive_from_detail(payload, blocked_tokens)
         return jsonify(
             {

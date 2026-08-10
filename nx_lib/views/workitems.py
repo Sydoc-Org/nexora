@@ -247,29 +247,42 @@ def drop_sensitive_options(search_options, blocked_keys):
     }
 
 
-@cache.cached(timeout=3600, key_prefix="sensitive_field_keys")
 def get_sensitive_field_keys():
-    """Lowercased FieldKeys flagged IsSensitive=1 in Search_Field_Labels.
-    Empty set on any error (fail-open with log, like the other DB helpers)."""
+    """Lowercased FieldKeys flagged IsSensitive=1 in Search_Field_Labels, or
+    None when the lookup fails. Cached for an hour, but ONLY on success --
+    caching the error fallback used to pin a fail-open empty set for a full
+    hour (same trap get_valid_search_columns already avoids). Callers decide
+    the failure posture: the in-app wrappers below coerce None to set()
+    (fail-open behind session permissions, the historical behaviour); the
+    external API (nx_lib/views/api_external.py) fails CLOSED on None -- its
+    contract is unconditional blocking with no permission fallback."""
+    cached = cache.get("sensitive_field_keys")
+    if cached is not None:
+        return cached
     conn = None
     try:
         conn = engine_nexora_db.raw_connection()
         cur = conn.cursor()
         cur.execute("SELECT FieldKey FROM Search_Field_Labels WHERE IsSensitive = 1")
-        return {r[0].lower() for r in cur.fetchall() if r[0]}
+        keys = {r[0].lower() for r in cur.fetchall() if r[0]}
+        cache.set("sensitive_field_keys", keys, timeout=3600)
+        return keys
     except Exception as e:
         current_app.logger.error(f"get_sensitive_field_keys: {e}")
-        return set()
+        return None
     finally:
         if conn:
             conn.close()
 
 
-@cache.cached(timeout=3600, key_prefix="sensitive_field_tokens")
 def get_sensitive_field_tokens():
     """Normalized name-tokens (FieldKey + all four language labels) of sensitive
     fields, for matching against Octo extraction field names shown in the detail
-    panel / CSV export. Empty set on any error (fail-open with log)."""
+    panel / CSV export. None on any error -- cached only on success; see
+    get_sensitive_field_keys for the failure-posture contract."""
+    cached = cache.get("sensitive_field_tokens")
+    if cached is not None:
+        return cached
     conn = None
     try:
         conn = engine_nexora_db.raw_connection()
@@ -284,27 +297,30 @@ def get_sensitive_field_tokens():
                 t = _norm_field_token(val)
                 if t:
                     tokens.add(t)
+        cache.set("sensitive_field_tokens", tokens, timeout=3600)
         return tokens
     except Exception as e:
         current_app.logger.error(f"get_sensitive_field_tokens: {e}")
-        return set()
+        return None
     finally:
         if conn:
             conn.close()
 
 
 def sensitive_blocked_keys():
-    """FieldKeys the CURRENT user may not use (empty if they hold the perm)."""
+    """FieldKeys the CURRENT user may not use (empty if they hold the perm).
+    Coerces a failed lookup (None) to set() -- in-app fail-open, unchanged."""
     if has_permission("workitems.filter.documentfields.sensitive"):
         return set()
-    return get_sensitive_field_keys()
+    return get_sensitive_field_keys() or set()
 
 
 def sensitive_blocked_tokens():
-    """Octo name-tokens the CURRENT user may not see (empty if they hold perm)."""
+    """Octo name-tokens the CURRENT user may not see (empty if they hold perm).
+    Coerces a failed lookup (None) to set() -- in-app fail-open, unchanged."""
     if has_permission("workitems.filter.documentfields.sensitive"):
         return set()
-    return get_sensitive_field_tokens()
+    return get_sensitive_field_tokens() or set()
 
 
 def strip_sensitive_from_detail(data, blocked_tokens):

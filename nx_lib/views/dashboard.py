@@ -376,37 +376,47 @@ def resolve_import_datetimes(workitem_ids, target_processes, *, strict=False):
 
     default_configs, _ms02_rows = _split_stat_configs(configs)
 
-    id_placeholders = ",".join(["?"] * len(workitem_ids))
-    str_ids = [str(w) for w in workitem_ids]
-    sub_queries = []
-    params = []
+    legs = []
     for row in default_configs:
         if not getattr(row, "WorkitemColumn", None) or not row.ImportColumn:
             continue
         # CAST + COLLATE on the id column: the UNION legs span stat tables with
         # mixed id types/collations (same reason the doc-field search casts).
         wid_expr = f"CAST({row.WorkitemColumn} AS NVARCHAR(50)) COLLATE DATABASE_DEFAULT"
-        sub_queries.append(
-            f"SELECT {wid_expr} AS wid, {row.ImportColumn} AS import_dt "
-            f"FROM [{DB_STATISTICS}].{row.TableName} "
-            f"WHERE {wid_expr} IN ({id_placeholders})"
-        )
-        params.extend(str_ids)
+        legs.append((wid_expr, row.ImportColumn, row.TableName))
 
-    if not sub_queries:
+    if not legs:
         return {}
 
-    full_query = (
-        f"SELECT wid, MAX(import_dt) AS import_dt "
-        f"FROM ({' UNION ALL '.join(sub_queries)}) t "
-        f"WHERE import_dt IS NOT NULL GROUP BY wid"
-    )
-    rows = (
-        _default_stat_rows(full_query, params, strict=True)
-        if strict
-        else _default_stat_rows(full_query, params)
-    )
-    return {str(r[0]): r[1] for r in rows}
+    # Every leg repeats the full id list as parameters, so a statement carries
+    # len(legs) * chunk params -- chunk to stay under SQL Server's 2100-param
+    # cap (a 1000-row page over 3+ legs would otherwise blow it). Ids are
+    # partitioned across chunks, so per-chunk MAX-per-wid stays correct.
+    str_ids = [str(w) for w in workitem_ids]
+    chunk_size = max(1, 2000 // len(legs))
+    result = {}
+    for start in range(0, len(str_ids), chunk_size):
+        chunk = str_ids[start : start + chunk_size]
+        id_placeholders = ",".join(["?"] * len(chunk))
+        sub_queries = [
+            f"SELECT {wid_expr} AS wid, {import_col} AS import_dt "
+            f"FROM [{DB_STATISTICS}].{table} "
+            f"WHERE {wid_expr} IN ({id_placeholders})"
+            for wid_expr, import_col, table in legs
+        ]
+        params = chunk * len(legs)
+        full_query = (
+            f"SELECT wid, MAX(import_dt) AS import_dt "
+            f"FROM ({' UNION ALL '.join(sub_queries)}) t "
+            f"WHERE import_dt IS NOT NULL GROUP BY wid"
+        )
+        rows = (
+            _default_stat_rows(full_query, params, strict=True)
+            if strict
+            else _default_stat_rows(full_query, params)
+        )
+        result.update({str(r[0]): r[1] for r in rows})
+    return result
 
 
 def compute_undelivered_count(target_processes, days, *, strict=False):

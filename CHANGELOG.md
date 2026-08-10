@@ -51,7 +51,10 @@ Work toward the next release.
   `GET /api/v1/workitems/<id>?client=` returns the row-expand document
   details (extracted fields + table values, sensitive fields stripped, no
   media/confidence/locations) with a uniform 404 for unknown and
-  out-of-scope ids. Both ship with `/api/test/v1/...` sandbox twins and are
+  out-of-scope ids. Both endpoints fail **closed** (500) when the
+  sensitive-field list can't be loaded (the in-app fail-open stays in-app;
+  `get_sensitive_field_keys/tokens` now cache only on success and signal
+  failure as `None`), and doc-field pairs are capped at 10 per request. Both ship with `/api/test/v1/...` sandbox twins and are
   documented in `docs/howto/external-api.md` and on `/api-docs`. Internally
   the overview's `_get_workitems_data` gained a session-less `scope`
   parameter and the detail panel's fetch core moved to a shared

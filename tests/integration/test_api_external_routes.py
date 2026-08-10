@@ -298,6 +298,27 @@ def test_resolve_import_datetimes_empty_inputs_short_circuit(monkeypatch, auth_a
     assert dv.resolve_import_datetimes([1], []) == {}
 
 
+def test_resolve_import_datetimes_chunks_under_param_limit(monkeypatch, auth_app_ctx):
+    # 3 legs x 1000 ids naively = 3000 params > SQL Server's 2100 cap; the
+    # helper must partition ids so len(legs) * chunk <= 2000 per statement.
+    cfgs = [
+        _import_cfg_row("default", f"sydoc.P{i}", f"dbo.tbl{i}", "WorkitemID", "ImportDate")
+        for i in range(3)
+    ]
+    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning(cfgs))
+    calls = []
+
+    def _fake_rows(sql, params=None, *, strict=False):
+        calls.append(len(params))
+        return [(params[0], datetime(2026, 8, 1, 8, 0, 0))]
+
+    monkeypatch.setattr(dv, "_default_stat_rows", _fake_rows)
+    result = dv.resolve_import_datetimes(list(range(1000)), ["sydoc.P0"])
+    assert len(calls) >= 2
+    assert all(n <= 2000 for n in calls)
+    assert result["0"] == datetime(2026, 8, 1, 8, 0, 0)
+
+
 def test_resolve_import_datetimes_strict_raises_on_outage(monkeypatch, auth_app_ctx):
     cfg = _import_cfg_row("default", "sydoc.TestProc", "dbo.tblTest", "WorkitemID", "ImportDate")
     monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning([cfg]))
@@ -576,6 +597,10 @@ def test_workitems_empty_process_scope_returns_empty_page(client, monkeypatch):
         raise AssertionError("_get_workitems_data must not run for an empty scope")
 
     monkeypatch.setattr(ax, "_get_workitems_data", _must_not_be_called)
+    # TEST has no Search_Field_Labels table; the sensitive lookup would fail
+    # closed (500) before the empty-scope short-circuit -- not this test's
+    # subject, so give it a resolvable (empty) sensitive set.
+    _patch_field_whitelist(monkeypatch)
     try:
         resp = client.get(WORKITEMS_URL, headers={"Authorization": f"Bearer {raw}"})
         assert resp.status_code == 200
@@ -707,6 +732,7 @@ def test_workitems_degraded_source_returns_500(client, monkeypatch):
         }
 
     monkeypatch.setattr(ax, "_get_workitems_data", _fake_data)
+    _patch_field_whitelist(monkeypatch)
     try:
         resp = client.get(WORKITEMS_URL, headers={"Authorization": f"Bearer {raw}"})
         assert resp.status_code == 500
@@ -723,6 +749,7 @@ def test_workitems_backend_error_returns_500_json(client, monkeypatch):
         raise RuntimeError("sources exploded")
 
     monkeypatch.setattr(ax, "_get_workitems_data", _boom)
+    _patch_field_whitelist(monkeypatch)
     try:
         resp = client.get(WORKITEMS_URL, headers={"Authorization": f"Bearer {raw}"})
         assert resp.status_code == 500
@@ -734,6 +761,97 @@ def test_workitems_backend_error_returns_500_json(client, monkeypatch):
 def test_workitems_post_method_not_allowed(client):
     resp = client.post(WORKITEMS_URL)
     assert resp.status_code == 405
+
+
+def test_workitems_sensitive_lookup_failure_fails_closed_500(client, monkeypatch):
+    # SECURITY PIN: the sensitive-field list is the ONLY gate on this surface
+    # (no per-key sensitive grant) -- an unresolved list must 500, never mean
+    # "nothing is sensitive" (the in-app fail-open does not apply here).
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+    monkeypatch.setattr(ax, "get_sensitive_field_keys", lambda: None)
+
+    def _must_not_be_called(*a, **kw):
+        raise AssertionError("_get_workitems_data must not run when sensitive lookup failed")
+
+    monkeypatch.setattr(ax, "_get_workitems_data", _must_not_be_called)
+    try:
+        resp = client.get(WORKITEMS_URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 500
+        assert resp.get_json() == {"error": "Workitems backend unavailable"}
+    finally:
+        _delete_key(key_hash)
+
+
+def test_workitems_docfield_pair_cap_returns_400(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+    _patch_field_whitelist(monkeypatch)
+    qs = []
+    for i in range(11):
+        qs.append(("field", "invoicenr"))
+        qs.append(("value", f"x{i}"))
+    try:
+        resp = client.get(
+            WORKITEMS_URL, headers={"Authorization": f"Bearer {raw}"}, query_string=qs
+        )
+        assert resp.status_code == 400
+        assert "at most 10 field/value pairs" in resp.get_json()["error"]
+    finally:
+        _delete_key(key_hash)
+
+
+def test_workitems_real_data_path_and_docfield_fail_closed(client, monkeypatch):
+    # Drives the REAL _get_workitems_data (no seam monkeypatch) with the
+    # scope built from the key -- pins the stringly-typed scope-dict seam --
+    # and pins the documented fail-closed contract: an active doc-field pair
+    # that cannot be resolved (no SearchConfig mapping here) must force an
+    # EMPTY allow-set, never an unconstrained query.
+    import nx_lib.views.workitems as wi
+
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw, processes="sydoc.TestProc")
+    seen = {}
+
+    def _fake_fetch(filt, offset, limit):
+        seen["filt"] = filt
+        return [], 0, []
+
+    monkeypatch.setattr(wi, "fetch_merged_page", _fake_fetch)
+    monkeypatch.setattr(wi, "get_activity_instances_to_ignore", lambda: "")
+    monkeypatch.setattr(wi, "get_valid_search_columns", lambda: ["col_invoicenr"])
+    monkeypatch.setattr(wi, "engine_nexora_db", _engine_returning([]))  # no SearchConfig rows
+    _patch_field_whitelist(monkeypatch)  # view-level whitelist (ax namespace)
+    monkeypatch.setattr(ax, "resolve_import_datetimes", lambda ids, procs, *, strict=False: {})
+    try:
+        resp = client.get(
+            WORKITEMS_URL,
+            headers={"Authorization": f"Bearer {raw}"},
+            query_string={"status": "Done", "field": "invoicenr", "value": "INV-1", "op": "eq"},
+        )
+        assert resp.status_code == 200
+        assert resp.get_json()["count"] == 0
+        filt = seen["filt"]
+        assert filt.client_process_pairs == [("sydoc", "TestProc")]
+        assert filt.status_code == 5  # Done, via scope can_status
+        assert filt.docfield_ids == set()  # fail-closed, NOT None/unconstrained
+    finally:
+        _delete_key(key_hash)
+
+
+def test_api_scope_covers_every_session_scope_key(auth_app_ctx):
+    # The scope contract is a stringly-typed dict -- if _session_scope grows a
+    # key the API twin doesn't set, _get_workitems_data KeyErrors only on the
+    # API path (a CI-invisible 500). Pin the key sets to each other.
+    import nx_lib.views.workitems as wi
+
+    with auth_app_ctx.test_request_context("/"):
+        from flask import session
+
+        session["permissions"] = []
+        session_keys = set(wi._session_scope())
+    api_keys = set(ax._api_workitems_scope(["sydoc.TestProc"], set()))
+    assert api_keys == session_keys
 
 
 # ------------------------- /api/v1/workitems/<id> -------------------------- #
@@ -899,6 +1017,36 @@ def test_workitem_detail_backend_error_returns_500_json(client, monkeypatch):
 def test_workitem_detail_post_method_not_allowed(client):
     resp = client.post(WORKITEM_DETAIL_URL)
     assert resp.status_code == 405
+
+
+def test_workitem_detail_sensitive_lookup_failure_fails_closed_500(client, monkeypatch):
+    # SECURITY PIN (mirror of the query endpoint's): a failed sensitive-token
+    # lookup must never serve unstripped fields/tables.
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw, processes="sydoc.TestProc")
+    monkeypatch.setattr(ax, "get_source_for_workitem", lambda wid, client_hint=None: "default")
+    monkeypatch.setattr(
+        ax, "process_pair_for_workitem", lambda wid, client_hint=None: ("sydoc", "TestProc")
+    )
+    monkeypatch.setattr(ax, "get_domain_for_workitem", lambda wid, client_hint=None: "octo.test")
+    monkeypatch.setattr(
+        ax,
+        "_load_media_info",
+        lambda wid, domain: {
+            "workitem_id": wid,
+            "media_count": 0,
+            "fields": {"Secret": "x"},
+            "field_sources": [],
+            "table_sources": [],
+        },
+    )
+    monkeypatch.setattr(ax, "get_sensitive_field_tokens", lambda: None)
+    try:
+        resp = client.get(WORKITEM_DETAIL_URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 500
+        assert resp.get_json() == {"error": "Workitems backend unavailable"}
+    finally:
+        _delete_key(key_hash)
 
 
 def test_unknown_api_v1_path_returns_json_404(client):

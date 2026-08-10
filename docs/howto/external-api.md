@@ -188,10 +188,10 @@ English `error` string — nothing is silently coerced or ignored):
 Doc-field filters repeat in parallel: each `field`+`value` pair may carry an
 `op` (`contains` default, `ncontains`, `eq`, `neq`, `startswith`,
 `endswith`) and a `comb` (`and` default, `or`) joining it to the pairs
-before it. Field keys are the overview page's document-field names
-(`invoicenr`, …); an unknown — or sensitive — field key returns
-`400 {"error": "Unknown field '...'"}` (sensitive doc-fields are never
-queryable with an API key). The `LIKE`-family ops treat `%` and `_` in the
+before it — at most **10 pairs** per request (`400` beyond). Field keys are
+the overview page's document-field names (`invoicenr`, …); an unknown — or
+sensitive — field key returns `400 {"error": "Unknown field '...'"}`
+(sensitive doc-fields are never queryable with an API key). The `LIKE`-family ops treat `%` and `_` in the
 value as SQL wildcards (historical overview behaviour). Matches honour the
 same per-process time window (`SearchConfig.TimeFilter`) as the overview
 page's search — very old documents fall outside it.
@@ -205,7 +205,9 @@ unmapped processes). All timestamps are **server-local**
 backing source fails, the whole call returns
 `500 {"error": "Workitems backend unavailable"}` rather than a silently
 partial page; a failing doc-field resolution instead fails **closed** to
-zero matching rows (same guard as the overview). Not cached.
+zero matching rows (same guard as the overview), and a failed load of the
+sensitive-field list also answers `500` on both workitem endpoints — this
+surface never degrades to serving unfiltered data. Not cached.
 
 ## GET /api/v1/workitems/&lt;id&gt;
 

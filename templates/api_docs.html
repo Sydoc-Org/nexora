@@ -344,7 +344,7 @@ Authorization: Bearer &lt;api key&gt;</code></pre>
                 <tr><td class="apidocs-td"><code>stage</code></td><td class="nx-mono">Import | Extraction | Validation | Delivery</td></tr>
                 <tr><td class="apidocs-td"><code>start_date</code> / <code>end_date</code></td><td>{{ _("ISO datetime bounds on the last-modified timestamp; start inclusive, end exclusive") }}</td></tr>
                 <tr><td class="apidocs-td"><code>process</code></td><td>{{ _("Comma-joined subset of your key's process scope (default: all of it)") }}</td></tr>
-                <tr><td class="apidocs-td"><code>field</code> / <code>value</code> / <code>op</code> / <code>comb</code></td><td>{{ _("Repeated document-field filter pairs; op: contains (default), ncontains, eq, neq, startswith, endswith; comb joins a pair to the previous ones with and (default) / or") }}</td></tr>
+                <tr><td class="apidocs-td"><code>field</code> / <code>value</code> / <code>op</code> / <code>comb</code></td><td>{{ _("Repeated document-field filter pairs (max 10); op: contains (default), ncontains, eq, neq, startswith, endswith; comb joins a pair to the previous ones with and (default) / or") }}</td></tr>
                 <tr><td class="apidocs-td"><code>page</code> / <code>per_page</code></td><td>{{ _("Paging; per_page accepts only 40, 100, 200, 500 or 1000 (default 40)") }}</td></tr>
               </tbody>
             </table>

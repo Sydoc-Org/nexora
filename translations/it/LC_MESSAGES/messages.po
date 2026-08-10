@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-10 13:46+0200\n"
+"POT-Creation-Date: 2026-08-10 14:26+0200\n"
 "PO-Revision-Date: 2026-03-18 14:03+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -315,9 +315,9 @@ msgstr "Organizzazione eliminata con successo."
 #: nx_lib/views/admin.py:445 nx_lib/views/admin.py:488
 #: nx_lib/views/admin.py:508 nx_lib/views/admin.py:655
 #: nx_lib/views/admin.py:1105 nx_lib/views/admin.py:1257
-#: nx_lib/views/admin.py:1784 nx_lib/views/dashboard.py:589
-#: nx_lib/views/dashboard.py:647 nx_lib/views/dashboard.py:734
-#: nx_lib/views/dashboard.py:777 nx_lib/views/generali.py:228
+#: nx_lib/views/admin.py:1784 nx_lib/views/dashboard.py:599
+#: nx_lib/views/dashboard.py:657 nx_lib/views/dashboard.py:744
+#: nx_lib/views/dashboard.py:787 nx_lib/views/generali.py:228
 #: nx_lib/views/generali.py:257 nx_lib/views/generali.py:426
 #: nx_lib/views/generali.py:455 nx_lib/views/generali.py:686
 #: nx_lib/views/generali.py:728 nx_lib/views/generali.py:852
@@ -338,7 +338,7 @@ msgstr "Organizzazione eliminata con successo."
 #: nx_lib/views/generali.py:2789 nx_lib/views/generali.py:2921
 #: nx_lib/views/generali.py:2995 nx_lib/views/generali.py:3044
 #: nx_lib/views/generali.py:3067 nx_lib/views/generali.py:3175
-#: nx_lib/views/workitems.py:2055
+#: nx_lib/views/workitems.py:2071
 msgid "An unexpected error occurred"
 msgstr "Si è verificato un errore imprevisto"
 
@@ -397,12 +397,12 @@ msgstr "Impossibile recuperare le sessioni"
 #: nx_lib/views/admin.py:1443 nx_lib/views/admin.py:1753
 #: nx_lib/views/admin.py:1795 nx_lib/views/admin.py:1840
 #: nx_lib/views/admin.py:1879 nx_lib/views/admin.py:1916
-#: nx_lib/views/admin.py:1948 nx_lib/views/dashboard.py:493
-#: nx_lib/views/dashboard.py:603 nx_lib/views/dashboard.py:658
-#: nx_lib/views/dashboard.py:750 nx_lib/views/invoices.py:292
-#: nx_lib/views/workitems.py:1024 nx_lib/views/workitems.py:1762
-#: nx_lib/views/workitems.py:1764 nx_lib/views/workitems.py:1890
-#: nx_lib/views/workitems.py:1994
+#: nx_lib/views/admin.py:1948 nx_lib/views/dashboard.py:503
+#: nx_lib/views/dashboard.py:613 nx_lib/views/dashboard.py:668
+#: nx_lib/views/dashboard.py:760 nx_lib/views/invoices.py:292
+#: nx_lib/views/workitems.py:1040 nx_lib/views/workitems.py:1778
+#: nx_lib/views/workitems.py:1780 nx_lib/views/workitems.py:1906
+#: nx_lib/views/workitems.py:2010
 msgid "Not authorized"
 msgstr "Non autorizzato"
 
@@ -972,11 +972,11 @@ msgstr "Impossibile aggiornare la metrica"
 msgid "Could not delete metric"
 msgstr "Impossibile eliminare la metrica"
 
-#: nx_lib/views/workitems.py:1015 nx_lib/views/workitems.py:1173
+#: nx_lib/views/workitems.py:1031 nx_lib/views/workitems.py:1189
 msgid "Could not fetch values"
 msgstr "Impossibile recuperare i valori"
 
-#: nx_lib/views/workitems.py:1234
+#: nx_lib/views/workitems.py:1250
 msgid ""
 "Exporting fields, history, or images requires selecting 10 or fewer "
 "workitems."
@@ -984,23 +984,23 @@ msgstr ""
 "L'esportazione di campi, cronologia o immagini richiede di selezionare 10"
 " workitem o meno."
 
-#: nx_lib/views/workitems.py:1528
+#: nx_lib/views/workitems.py:1544
 msgid "TRUNCATED"
 msgstr "TRONCATO"
 
-#: nx_lib/views/workitems.py:1529
+#: nx_lib/views/workitems.py:1545
 msgid "exported"
 msgstr "esportati"
 
-#: nx_lib/views/workitems.py:1529
+#: nx_lib/views/workitems.py:1545
 msgid "matching workitems"
 msgstr "workitem corrispondenti"
 
-#: nx_lib/views/workitems.py:1535
+#: nx_lib/views/workitems.py:1551
 msgid "EXPORT TIMED OUT"
 msgstr "ESPORTAZIONE SCADUTA"
 
-#: nx_lib/views/workitems.py:1536
+#: nx_lib/views/workitems.py:1552
 msgid ""
 "no fields or images completed before the time limit; this is not a zero-"
 "result export"
@@ -1008,110 +1008,110 @@ msgstr ""
 "nessun campo o immagine è stato completato prima del limite di tempo; non"
 " si tratta di un'esportazione a zero risultati"
 
-#: nx_lib/views/workitems.py:1652 nx_lib/views/workitems.py:1723
+#: nx_lib/views/workitems.py:1668 nx_lib/views/workitems.py:1739
 msgid "No file part in the request."
 msgstr "Nessuna parte di file nella richiesta."
 
-#: nx_lib/views/workitems.py:1659 nx_lib/views/workitems.py:1726
+#: nx_lib/views/workitems.py:1675 nx_lib/views/workitems.py:1742
 msgid "No file selected for uploading."
 msgstr "Nessun file selezionato per il caricamento."
 
-#: nx_lib/views/workitems.py:1663
+#: nx_lib/views/workitems.py:1679
 msgid "No target process selected."
 msgstr "Nessun processo di destinazione selezionato."
 
-#: nx_lib/views/workitems.py:1675
+#: nx_lib/views/workitems.py:1691
 msgid "You do not have permission to import to this process."
 msgstr "Non hai l'autorizzazione per importare in questo processo."
 
-#: nx_lib/views/workitems.py:1690
+#: nx_lib/views/workitems.py:1706
 #, python-brace-format
 msgid "File '{}' successfully imported into {}."
 msgstr "File '{}' importato con successo in {}."
 
-#: nx_lib/views/workitems.py:1695
+#: nx_lib/views/workitems.py:1711
 msgid "An error occurred while saving the file."
 msgstr "Si è verificato un errore durante il salvataggio del file."
 
-#: nx_lib/views/workitems.py:1697
+#: nx_lib/views/workitems.py:1713
 msgid "Invalid file type. Please upload a valid PDF."
 msgstr "Tipo di file non valido. Carica un PDF valido."
 
-#: nx_lib/views/workitems.py:1720 nx_lib/views/workitems.py:2278
+#: nx_lib/views/workitems.py:1736 nx_lib/views/workitems.py:2294
 msgid "This import is only available for the MS02 client."
 msgstr "Questa importazione è disponibile solo per il cliente MS02."
 
-#: nx_lib/views/workitems.py:1730
+#: nx_lib/views/workitems.py:1746
 msgid "Invalid file type. Please upload a valid Excel (.xlsx) file."
 msgstr ""
 "Tipo di file non valido. Si prega di caricare un file Excel valido "
 "(.xlsx)."
 
-#: nx_lib/views/workitems.py:1738
+#: nx_lib/views/workitems.py:1754
 msgid "The Excel file has no usable rows."
 msgstr "Il file Excel non contiene righe utilizzabili."
 
-#: nx_lib/views/workitems.py:1755
+#: nx_lib/views/workitems.py:1771
 msgid "Could not save the prepared documents. Please try again."
 msgstr "Impossibile salvare i documenti preparati. Riprova."
 
-#: nx_lib/views/workitems.py:1834 nx_lib/views/workitems.py:1898
+#: nx_lib/views/workitems.py:1850 nx_lib/views/workitems.py:1914
 msgid "Workitem not found"
 msgstr "Workitem non trovato"
 
-#: nx_lib/views/workitems.py:1838 nx_lib/views/workitems.py:1988
+#: nx_lib/views/workitems.py:1854 nx_lib/views/workitems.py:2004
 msgid "Internal Server Error"
 msgstr "Errore interno del server"
 
-#: nx_lib/views/workitems.py:1911
+#: nx_lib/views/workitems.py:1927
 msgid "Media index out of bounds"
 msgstr "Indice del media fuori dai limiti"
 
-#: nx_lib/views/workitems.py:1937
+#: nx_lib/views/workitems.py:1953
 msgid "Failed to render PDF page"
 msgstr "Rendering della pagina PDF non riuscito"
 
-#: nx_lib/views/workitems.py:1964
+#: nx_lib/views/workitems.py:1980
 msgid "Failed to process TIFF image"
 msgstr "Elaborazione dell'immagine TIFF non riuscita"
 
-#: nx_lib/views/workitems.py:2053
+#: nx_lib/views/workitems.py:2069
 msgid "Failed to fetch audit history"
 msgstr "Recupero della cronologia di audit non riuscito"
 
-#: nx_lib/views/workitems.py:2161
+#: nx_lib/views/workitems.py:2177
 msgid "This page is only available for the MS02 client."
 msgstr "Questa pagina è disponibile solo per il cliente MS02."
 
-#: nx_lib/views/workitems.py:2284
+#: nx_lib/views/workitems.py:2300
 msgid "Could not clear the prepared documents. Please try again."
 msgstr "Impossibile cancellare i documenti preparati. Riprova."
 
-#: nx_lib/views/workitems.py:2345
+#: nx_lib/views/workitems.py:2361
 msgid "Could not load saved views."
 msgstr "Impossibile caricare le viste salvate."
 
-#: nx_lib/views/workitems.py:2359 nx_lib/views/workitems.py:2362
+#: nx_lib/views/workitems.py:2375 nx_lib/views/workitems.py:2378
 msgid "Invalid view name or filters."
 msgstr "Nome vista o filtri non validi."
 
-#: nx_lib/views/workitems.py:2376 nx_lib/views/workitems.py:2425
+#: nx_lib/views/workitems.py:2392 nx_lib/views/workitems.py:2441
 msgid "View not found."
 msgstr "Vista non trovata."
 
-#: nx_lib/views/workitems.py:2389
+#: nx_lib/views/workitems.py:2405
 msgid "Too many saved views — delete one first."
 msgstr "Troppe viste salvate — eliminane prima una."
 
-#: nx_lib/views/workitems.py:2404
+#: nx_lib/views/workitems.py:2420
 msgid "A view with this name already exists."
 msgstr "Esiste già una vista con questo nome."
 
-#: nx_lib/views/workitems.py:2407
+#: nx_lib/views/workitems.py:2423
 msgid "Could not save the view."
 msgstr "Impossibile salvare la vista."
 
-#: nx_lib/views/workitems.py:2429
+#: nx_lib/views/workitems.py:2445
 msgid "Could not delete the view."
 msgstr "Impossibile eliminare la vista."
 
@@ -2174,11 +2174,11 @@ msgstr ""
 
 #: templates/api_docs.html:347
 msgid ""
-"Repeated document-field filter pairs; op: contains (default), ncontains, "
-"eq, neq, startswith, endswith; comb joins a pair to the previous ones "
-"with and (default) / or"
+"Repeated document-field filter pairs (max 10); op: contains (default), "
+"ncontains, eq, neq, startswith, endswith; comb joins a pair to the "
+"previous ones with and (default) / or"
 msgstr ""
-"Coppie ripetute di filtri sui campi documento; op: contains "
+"Coppie ripetute di filtri sui campi documento (max 10); op: contains "
 "(predefinito), ncontains, eq, neq, startswith, endswith; comb collega una"
 " coppia alle precedenti con and (predefinito) / or"
 
