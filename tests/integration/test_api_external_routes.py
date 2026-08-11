@@ -449,7 +449,6 @@ def test_avg_good_key_returns_scoped_avg_and_stamps_last_used(client, monkeypatc
         assert resp.get_json() == {
             "avg_minutes": 4.2,
             "avg_display": "4min",
-            "processes": ["sydoc.TestProc", "sydoc.Other"],
         }
         assert seen["processes"] == ["sydoc.TestProc", "sydoc.Other"]
         # Same strict contract as stats/today -- an outage must raise, not
@@ -471,7 +470,6 @@ def test_avg_no_matching_rows_returns_null(client, monkeypatch):
         assert resp.get_json() == {
             "avg_minutes": None,
             "avg_display": "—",
-            "processes": ["sydoc.TestProc"],
         }
     finally:
         _delete_key(key_hash)
@@ -491,7 +489,7 @@ def test_avg_empty_process_scope_returns_null_without_compute(client, monkeypatc
         body = resp.get_json()
         assert body["avg_minutes"] is None
         assert body["avg_display"] == "—"
-        assert body["processes"] == []
+        assert "processes" not in body
     finally:
         _delete_key(key_hash)
 
@@ -1136,7 +1134,7 @@ def test_test_avg_good_key_returns_random_data_in_real_shape(client):
         body = resp.get_json()
         assert isinstance(body["avg_minutes"], float)
         assert isinstance(body["avg_display"], str)
-        assert body["processes"] == ["sydoc.TestProc", "sydoc.Other"]
+        assert "processes" not in body
         assert _last_used(key_hash) is not None
     finally:
         _delete_key(key_hash)

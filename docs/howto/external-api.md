@@ -121,8 +121,7 @@ The dashboard's "Avg Processing Time" KPI number, scoped to the key's
 
     {
       "avg_minutes": 4.2,
-      "avg_display": "4min",
-      "processes": ["sydoc.05_PDBS"]
+      "avg_display": "4min"
     }
 
 - `avg_minutes` — average minutes between import and export among rows
@@ -131,8 +130,9 @@ The dashboard's "Avg Processing Time" KPI number, scoped to the key's
 - `avg_display` — the same figure pre-formatted for display: `"<n>s"` under a
   minute, `"<n>min"` under an hour, `"<n>h"` above (one decimal), or `"—"`
   when `avg_minutes` is `null`.
-- `processes` — the key's scope, echoed for debugging. An empty scope
-  returns `null`/`"—"` with `"processes": []`.
+
+Like `/backlog`, the response does not echo the process list — scoping
+happens at key issuance. An empty scope returns `null`/`"—"`.
 
 **Calculation**, verified against `compute_avg_processing_time` (the same
 function backing the dashboard card, so this is deliberately "the same

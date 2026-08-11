@@ -163,7 +163,7 @@ def api_v1_backlog():
 def api_v1_avg_processing_time():
     processes = g.api_client["processes"]
     if not processes:
-        return jsonify({"avg_minutes": None, "avg_display": "—", "processes": processes})
+        return jsonify({"avg_minutes": None, "avg_display": "—"})
     try:
         # strict=True: same rationale as stats/today -- a stat-row leg
         # failure must surface as a 500, not a false "no data today" null.
@@ -172,9 +172,9 @@ def api_v1_avg_processing_time():
         current_app.logger.error(f"external api avg_processing_time failed: {e}")
         return jsonify({"error": "Stats backend unavailable"}), 500
     if avg_sec is None:
-        return jsonify({"avg_minutes": None, "avg_display": "—", "processes": processes})
+        return jsonify({"avg_minutes": None, "avg_display": "—"})
     avg_minutes, avg_display = format_avg_processing_display(avg_sec)
-    return jsonify({"avg_minutes": avg_minutes, "avg_display": avg_display, "processes": processes})
+    return jsonify({"avg_minutes": avg_minutes, "avg_display": avg_display})
 
 
 @limiter.limit("60 per minute")
@@ -500,11 +500,10 @@ def api_test_v1_backlog():
 @limiter.limit("60 per minute")
 @require_api_key
 def api_test_v1_avg_processing_time():
-    processes = g.api_client["processes"]
     avg_minutes = round(random.uniform(0.5, 120), 1)
     avg_sec = avg_minutes * 60
     _, avg_display = format_avg_processing_display(avg_sec)
-    return jsonify({"avg_minutes": avg_minutes, "avg_display": avg_display, "processes": processes})
+    return jsonify({"avg_minutes": avg_minutes, "avg_display": avg_display})
 
 
 @limiter.limit("60 per minute")

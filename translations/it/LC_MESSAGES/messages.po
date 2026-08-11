@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-11 09:24+0200\n"
+"POT-Creation-Date: 2026-08-11 12:12+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -1139,39 +1139,39 @@ msgstr "Impossibile salvare la vista."
 msgid "Could not delete the view."
 msgstr "Impossibile eliminare la vista."
 
-#: templates/_header.html:162
+#: templates/_header.html:173
 msgid "Open navigation"
 msgstr "Apri la barra di navigazione"
 
-#: templates/_header.html:179 templates/js/_header_js.html:60
+#: templates/_header.html:190 templates/js/_header_js.html:60
 #: templates/js/_header_js.html:61 templates/js/_header_js.html:62
 #: templates/js/_header_js.html:63 templates/js/_header_js.html:64
 msgid "Admin"
 msgstr "Admin"
 
-#: templates/_header.html:186
+#: templates/_header.html:197
 msgid "Overview"
 msgstr "Panoramica"
 
-#: templates/_header.html:191 templates/admin/access_control.html:19
+#: templates/_header.html:202 templates/admin/access_control.html:19
 #: templates/admin/admin_overview.html:73 templates/js/_header_js.html:61
 msgid "Access Control"
 msgstr "Controllo accessi"
 
-#: templates/_header.html:196 templates/admin/admin_overview.html:83
+#: templates/_header.html:207 templates/admin/admin_overview.html:83
 #: templates/admin/organizations.html:19 templates/js/_header_js.html:62
 msgid "Organizations"
 msgstr "Organizzazioni"
 
-#: templates/_header.html:201
+#: templates/_header.html:212
 msgid "Sessions"
 msgstr "Sessioni"
 
-#: templates/_header.html:206
+#: templates/_header.html:217
 msgid "Logs"
 msgstr "Registri"
 
-#: templates/_header.html:212 templates/admin/logs.html:64
+#: templates/_header.html:223 templates/admin/logs.html:64
 #: templates/admin/logs.html:97 templates/admin/user_detail.html:226
 #: templates/api_docs.html:181 templates/appearance.html:355
 #: templates/archive/invoices.html:78 templates/archive/invoices.html:123
@@ -1182,26 +1182,26 @@ msgstr "Registri"
 msgid "Status"
 msgstr "Stato"
 
-#: templates/_header.html:219
+#: templates/_header.html:230
 msgid "Maintenance"
 msgstr "Manutenzione"
 
-#: templates/_header.html:231
+#: templates/_header.html:242
 msgid "Development"
 msgstr "Sviluppo"
 
-#: templates/_header.html:238
+#: templates/_header.html:249
 msgid "API Docs"
 msgstr "Doc API"
 
-#: templates/_header.html:245 templates/_header.html:273
+#: templates/_header.html:256 templates/_header.html:284
 #: templates/appearance.html:324 templates/dashboard.html:26
 #: templates/generali_documents.html:39 templates/generali_reporting.html:54
 #: templates/js/_header_js.html:73 templates/js/_header_js.html:79
 msgid "Dashboard"
 msgstr "Dashboard"
 
-#: templates/_header.html:246 templates/_header.html:287
+#: templates/_header.html:257 templates/_header.html:298
 #: templates/generali-dashboard.html:67
 #: templates/generali_additionalservices.html:50
 #: templates/generali_baseservices.html:50 templates/generali_documents.html:43
@@ -1210,104 +1210,104 @@ msgstr "Dashboard"
 msgid "Reporting"
 msgstr "Reporting"
 
-#: templates/_header.html:247
+#: templates/_header.html:258
 msgid "Workitems"
 msgstr "Workitems"
 
-#: templates/_header.html:280 templates/generali-dashboard.html:63
+#: templates/_header.html:291 templates/generali-dashboard.html:63
 #: templates/generali_reporting.html:46 templates/js/_header_js.html:82
 msgid "Document List"
 msgstr "Elenco documenti"
 
-#: templates/_header.html:294 templates/js/_header_js.html:88
+#: templates/_header.html:305 templates/js/_header_js.html:88
 msgid "Additional Services"
 msgstr "Servizi aggiuntivi"
 
-#: templates/_header.html:301 templates/js/_header_js.html:91
+#: templates/_header.html:312 templates/js/_header_js.html:91
 msgid "Base Services"
 msgstr "Servizi di base"
 
-#: templates/_header.html:308 templates/js/_header_js.html:94
+#: templates/_header.html:319 templates/js/_header_js.html:94
 msgid "Project Management"
 msgstr "Gestione del progetto"
 
-#: templates/_header.html:315 templates/js/_header_js.html:97
+#: templates/_header.html:326 templates/js/_header_js.html:97
 msgid "PDQM"
 msgstr "PDQM"
 
-#: templates/_header.html:322 templates/generali_importstatus.html:27
+#: templates/_header.html:333 templates/generali_importstatus.html:27
 msgid "Data Import Status"
 msgstr "Stato importazione dati"
 
-#: templates/_header.html:334 templates/_header.html:336
+#: templates/_header.html:345 templates/_header.html:347
 #: templates/appearance.html:288 templates/appearance.html:293
 #: templates/js/_header_js.html:275
 msgid "Keep sidebar open"
 msgstr "Mantieni la barra laterale aperta"
 
-#: templates/_header.html:340 templates/js/_header_js.html:99
+#: templates/_header.html:351 templates/js/_header_js.html:99
 msgid "Toggle dark mode"
 msgstr "Attiva/disattiva modalità scura"
 
-#: templates/_header.html:342
+#: templates/_header.html:353
 msgid "Dark Mode"
 msgstr "Modalità scura"
 
-#: templates/_header.html:350 templates/profile.html:42
+#: templates/_header.html:361 templates/profile.html:42
 #: templates/profile.html:121
 msgid "Profile Picture"
 msgstr "Foto profilo"
 
-#: templates/_header.html:360
+#: templates/_header.html:371
 msgid "Your profile"
 msgstr "Il tuo profilo"
 
-#: templates/_header.html:364 templates/appearance.html:32
+#: templates/_header.html:375 templates/appearance.html:32
 #: templates/js/_header_js.html:100 templates/profile.html:73
 #: templates/profile.html:315
 msgid "Appearance"
 msgstr "Aspetto"
 
-#: templates/_header.html:368 templates/js/_header_js.html:101
+#: templates/_header.html:379 templates/js/_header_js.html:101
 #: templates/whats_new.html:76
 msgid "What's New"
 msgstr "Novità"
 
-#: templates/_header.html:375 templates/_small_footer.html:28
+#: templates/_header.html:386 templates/_small_footer.html:28
 #: templates/reporting.html:88
 msgid "Help"
 msgstr "Aiuto"
 
-#: templates/_header.html:381 templates/_header.html:423
+#: templates/_header.html:392 templates/_header.html:434
 msgid "Switch user"
 msgstr "Cambia utente"
 
-#: templates/_header.html:387 templates/js/_header_js.html:102
+#: templates/_header.html:398 templates/js/_header_js.html:102
 #: templates/profile.html:80
 msgid "Sign out"
 msgstr "Disconnetti"
 
-#: templates/_header.html:404
+#: templates/_header.html:415
 msgid "Command palette"
 msgstr "Tavolozza dei comandi"
 
-#: templates/_header.html:408
+#: templates/_header.html:419
 msgid "Type a command or search..."
 msgstr "Digita un comando o cerca..."
 
-#: templates/_header.html:413
+#: templates/_header.html:424
 msgid "navigate"
 msgstr "naviga"
 
-#: templates/_header.html:414
+#: templates/_header.html:425
 msgid "open"
 msgstr "apri"
 
-#: templates/_header.html:415
+#: templates/_header.html:426
 msgid "close"
 msgstr "chiudi"
 
-#: templates/_header.html:427
+#: templates/_header.html:438
 msgid "Switch to user..."
 msgstr "Passa all'utente ..."
 
@@ -1753,10 +1753,10 @@ msgstr "Query inviata al database"
 #: templates/api_docs.html:161 templates/api_docs.html:207
 #: templates/api_docs.html:213 templates/api_docs.html:238
 #: templates/api_docs.html:244 templates/api_docs.html:280
-#: templates/api_docs.html:286 templates/api_docs.html:313
-#: templates/api_docs.html:319 templates/api_docs.html:361
-#: templates/api_docs.html:367 templates/api_docs.html:413
-#: templates/api_docs.html:419 templates/reporting.html:356
+#: templates/api_docs.html:286 templates/api_docs.html:311
+#: templates/api_docs.html:317 templates/api_docs.html:359
+#: templates/api_docs.html:365 templates/api_docs.html:411
+#: templates/api_docs.html:417 templates/reporting.html:356
 msgid "Copy"
 msgstr "Copia"
 
@@ -1817,7 +1817,7 @@ msgid "Endpoints"
 msgstr "Endpoint"
 
 #: templates/api_docs.html:112 templates/api_docs.html:131
-#: templates/api_docs.html:409
+#: templates/api_docs.html:407
 msgid "Test sandbox"
 msgstr "Ambiente di test"
 
@@ -1875,17 +1875,17 @@ msgstr ""
 #: templates/api_docs.html:161 templates/api_docs.html:207
 #: templates/api_docs.html:213 templates/api_docs.html:238
 #: templates/api_docs.html:244 templates/api_docs.html:280
-#: templates/api_docs.html:286 templates/api_docs.html:313
-#: templates/api_docs.html:319 templates/api_docs.html:361
-#: templates/api_docs.html:367 templates/api_docs.html:413
-#: templates/api_docs.html:419
+#: templates/api_docs.html:286 templates/api_docs.html:311
+#: templates/api_docs.html:317 templates/api_docs.html:359
+#: templates/api_docs.html:365 templates/api_docs.html:411
+#: templates/api_docs.html:417
 msgid "Copy code"
 msgstr "Copia codice"
 
 #: templates/api_docs.html:146 templates/api_docs.html:212
 #: templates/api_docs.html:243 templates/api_docs.html:285
-#: templates/api_docs.html:318 templates/api_docs.html:366
-#: templates/api_docs.html:418
+#: templates/api_docs.html:316 templates/api_docs.html:364
+#: templates/api_docs.html:416
 msgid "response"
 msgstr "risposta"
 
@@ -1961,8 +1961,8 @@ msgstr "Corpo"
 
 #: templates/api_docs.html:181 templates/api_docs.html:222
 #: templates/api_docs.html:254 templates/api_docs.html:263
-#: templates/api_docs.html:296 templates/api_docs.html:340
-#: templates/api_docs.html:396
+#: templates/api_docs.html:295 templates/api_docs.html:338
+#: templates/api_docs.html:394
 msgid "Meaning"
 msgstr "Significato"
 
@@ -2045,19 +2045,19 @@ msgstr ""
 "tessera KPI \"Current Backlog\" della dashboard di nexora."
 
 #: templates/api_docs.html:219 templates/api_docs.html:260
-#: templates/api_docs.html:293 templates/api_docs.html:393
+#: templates/api_docs.html:292 templates/api_docs.html:391
 msgid "Response fields"
 msgstr "Campi della risposta"
 
 #: templates/api_docs.html:222 templates/api_docs.html:263
-#: templates/api_docs.html:296 templates/api_docs.html:396
+#: templates/api_docs.html:295 templates/api_docs.html:394
 #: templates/js/_reporting_dashboard_js.html:76
 msgid "Field"
 msgstr "Campo"
 
 #: templates/api_docs.html:222 templates/api_docs.html:254
-#: templates/api_docs.html:263 templates/api_docs.html:296
-#: templates/api_docs.html:396 templates/generali_documents.html:226
+#: templates/api_docs.html:263 templates/api_docs.html:295
+#: templates/api_docs.html:394 templates/generali_documents.html:226
 #: templates/js/_reporting_viz_js.html:166
 msgid "Type"
 msgstr "Tipo"
@@ -2071,6 +2071,7 @@ msgid "Workitems currently in the backlog across your key's processes"
 msgstr "Workitem attualmente nel backlog dei processi della chiave"
 
 #: templates/api_docs.html:229 templates/api_docs.html:271
+#: templates/api_docs.html:302
 msgid ""
 "Unlike stats/today, the response does not echo the process list — scoping"
 " happens at key issuance."
@@ -2088,11 +2089,11 @@ msgstr ""
 "giorni (parametro days) ma finora senza data di esportazione, limitato ai"
 " processi della vostra chiave."
 
-#: templates/api_docs.html:251 templates/api_docs.html:337
+#: templates/api_docs.html:251 templates/api_docs.html:335
 msgid "Query parameters"
 msgstr "Parametri di query"
 
-#: templates/api_docs.html:254 templates/api_docs.html:340
+#: templates/api_docs.html:254 templates/api_docs.html:338
 msgid "Param"
 msgstr "Parametro"
 
@@ -2134,7 +2135,7 @@ msgstr ""
 "numero della tessera KPI \"Avg Processing Time\" della dashboard di "
 "nexora."
 
-#: templates/api_docs.html:298
+#: templates/api_docs.html:297
 msgid ""
 "Average minutes between import and export among rows exported today, "
 "rounded to 1 decimal. null if no matching rows exist yet today."
@@ -2143,7 +2144,7 @@ msgstr ""
 " arrotondati a 1 decimale. null se oggi non esistono ancora righe "
 "corrispondenti."
 
-#: templates/api_docs.html:299
+#: templates/api_docs.html:298
 msgid ""
 "Same figure pre-formatted: seconds under a minute, minutes under an hour,"
 " hours above — or \"—\" when null."
@@ -2151,15 +2152,7 @@ msgstr ""
 "Lo stesso valore pre-formattato: secondi sotto un minuto, minuti sotto "
 "un'ora, ore sopra — o \"—\" quando è null."
 
-#: templates/api_docs.html:300
-msgid ""
-"Your key's process scope, echoed for debugging. An empty scope returns "
-"null/\"—\"."
-msgstr ""
-"L'ambito di processi della chiave, restituito per il debug. Un ambito "
-"vuoto restituisce null/\"—\"."
-
-#: templates/api_docs.html:304
+#: templates/api_docs.html:302
 msgid ""
 "Calculation: for each configured process/table, the average seconds "
 "between import and export among rows exported today; the per-source "
@@ -2173,7 +2166,7 @@ msgstr ""
 "base al numero di righe di ciascuna sorgente. Le risposte vengono "
 "calcolate ad ogni chiamata — non è previsto alcun cache."
 
-#: templates/api_docs.html:310
+#: templates/api_docs.html:308
 #, python-brace-format
 msgid ""
 "Query workitems with the Workitems overview page's filters, scoped to "
@@ -2184,11 +2177,11 @@ msgstr ""
 "limitati ai processi della tua chiave. Usa id (e client) di un risultato "
 "su /api/v1/workitems/{id} per i dettagli del documento."
 
-#: templates/api_docs.html:342
+#: templates/api_docs.html:340
 msgid "Exact workitem-id match"
 msgstr "Corrispondenza esatta dell'ID del workitem"
 
-#: templates/api_docs.html:345
+#: templates/api_docs.html:343
 msgid ""
 "ISO datetime bounds on the last-modified timestamp; start inclusive, end "
 "exclusive"
@@ -2196,13 +2189,13 @@ msgstr ""
 "Limiti datetime ISO sul timestamp di ultima modifica; inizio incluso, "
 "fine esclusa"
 
-#: templates/api_docs.html:346
+#: templates/api_docs.html:344
 msgid "Comma-joined subset of your key's process scope (default: all of it)"
 msgstr ""
 "Sottoinsieme, separato da virgole, dei processi della tua chiave "
 "(predefinito: tutti)"
 
-#: templates/api_docs.html:347
+#: templates/api_docs.html:345
 msgid ""
 "Repeated document-field filter pairs (max 10); op: contains (default), "
 "ncontains, eq, neq, startswith, endswith; comb joins a pair to the "
@@ -2212,13 +2205,13 @@ msgstr ""
 "(predefinito), ncontains, eq, neq, startswith, endswith; comb collega una"
 " coppia alle precedenti con and (predefinito) / or"
 
-#: templates/api_docs.html:348
+#: templates/api_docs.html:346
 msgid "Paging; per_page accepts only 40, 100, 200, 500 or 1000 (default 40)"
 msgstr ""
 "Paginazione; per_page accetta solo 40, 100, 200, 500 o 1000 (predefinito "
 "40)"
 
-#: templates/api_docs.html:352
+#: templates/api_docs.html:350
 msgid ""
 "Every invalid value returns a 400 with a plain-English error — nothing is"
 " silently coerced. Unknown and sensitive field keys answer identically "
@@ -2236,7 +2229,7 @@ msgstr ""
 "rispettano la stessa finestra temporale per processo della ricerca della "
 "pagina Panoramica."
 
-#: templates/api_docs.html:358
+#: templates/api_docs.html:356
 msgid ""
 "The document details the overview row-expand shows for one workitem: "
 "extracted field values and table values. No page images, confidence or "
@@ -2247,7 +2240,7 @@ msgstr ""
 "pagina, confidenza o posizione di origine; i campi sensibili vengono "
 "sempre rimossi."
 
-#: templates/api_docs.html:398
+#: templates/api_docs.html:396
 msgid ""
 "The client the workitem was resolved to; pass the query row's client as "
 "?client= — ids collide across clients"
@@ -2255,7 +2248,7 @@ msgstr ""
 "Il client a cui è stato risolto il workitem; passa il client della riga "
 "di risultato come ?client= — gli ID collidono tra client"
 
-#: templates/api_docs.html:399
+#: templates/api_docs.html:397
 msgid ""
 "Extracted field name → value, mapped through the same field-name mapping "
 "the overview uses"
@@ -2263,11 +2256,11 @@ msgstr ""
 "Nome del campo estratto → valore, mappato con la stessa mappatura dei "
 "nomi di campo della panoramica"
 
-#: templates/api_docs.html:400
+#: templates/api_docs.html:398
 msgid "Extracted tables: title, columns, and rows of column/value cells"
 msgstr "Tabelle estratte: titolo, colonne e righe di celle colonna/valore"
 
-#: templates/api_docs.html:404
+#: templates/api_docs.html:402
 msgid ""
 "404 with a null detail is returned uniformly for an unknown id, an id "
 "outside your key's scope, and a document the runtime backend can't load "
@@ -2280,7 +2273,7 @@ msgstr ""
 "a un workitem freddo carica in diretta dal servizio di runtime e può "
 "richiedere qualche secondo."
 
-#: templates/api_docs.html:410
+#: templates/api_docs.html:408
 msgid ""
 "Every endpoint above has a /api/test/v1/... twin: same path suffix, same "
 "Bearer-key auth, same response shape — but the numbers are random, not "
@@ -2293,7 +2286,7 @@ msgstr ""
 "nessuna query al backend, quindi è sicuro chiamarlo ripetutamente durante"
 " lo sviluppo di un'integrazione."
 
-#: templates/api_docs.html:425
+#: templates/api_docs.html:423
 msgid ""
 "Use a real (enabled) API key — the same auth errors (401/429) apply. "
 "Available for"
@@ -2301,7 +2294,7 @@ msgstr ""
 "Usa una vera chiave API (abilitata) — si applicano gli stessi errori di "
 "autenticazione (401/429). Disponibile per"
 
-#: templates/api_docs.html:425
+#: templates/api_docs.html:423
 msgid "and"
 msgstr "e"
 
@@ -2949,7 +2942,7 @@ msgstr "Tutte le organizzazioni"
 #: templates/generali_projectmanagement.html:126
 #: templates/generali_projectmanagement.html:174
 #: templates/generali_reporting.html:102 templates/generali_reporting.html:157
-#: templates/js/admin/_access_control_js.html:732
+#: templates/js/admin/_access_control_js.html:733
 msgid "User"
 msgstr "Utente"
 
@@ -3021,7 +3014,7 @@ msgstr "Visualizzazione"
 #: templates/generali_importstatus.html:128 templates/generali_pdqm.html:187
 #: templates/generali_projectmanagement.html:150
 #: templates/generali_reporting.html:191 templates/js/admin/_logs_js.html:108
-#: templates/js/admin/_user_detail_js.html:622
+#: templates/js/admin/_user_detail_js.html:623
 #: templates/workitems_overview.html:440
 msgid "of"
 msgstr "di"
@@ -3146,7 +3139,7 @@ msgstr "Questa azione non può essere annullata."
 #: templates/js/_generali_reporting_js.html:860
 #: templates/js/_reporting_metrics_js.html:62
 #: templates/js/_reporting_sources_js.html:50
-#: templates/js/admin/_access_control_js.html:658
+#: templates/js/admin/_access_control_js.html:659
 #: templates/js/admin/_maintenance_js.html:151
 #: templates/js/admin/_organizations_js.html:101
 #: templates/js/admin/_user_management_js.html:115 templates/reporting.html:287
@@ -3824,7 +3817,7 @@ msgstr "Raccolto"
 msgid "Any"
 msgstr "Qualsiasi"
 
-#: templates/js/admin/_access_control_js.html:708
+#: templates/js/admin/_access_control_js.html:709
 #: templates/prepared_documents.html:92 templates/prepared_documents.html:107
 msgid "Yes"
 msgstr "Sì"
@@ -3936,7 +3929,7 @@ msgid "Settings sections"
 msgstr "Sezioni delle impostazioni"
 
 #: templates/admin/access_control.html:55 templates/admin/user_detail.html:27
-#: templates/js/admin/_access_control_js.html:733
+#: templates/js/admin/_access_control_js.html:734
 #: templates/js/admin/_user_detail_js.html:335 templates/profile.html:58
 msgid "Profile"
 msgstr "Profilo"
@@ -4081,7 +4074,7 @@ msgid "Send"
 msgstr "Invia"
 
 #: templates/admin/user_detail.html:122
-#: templates/js/admin/_access_control_js.html:734 templates/reporting.html:256
+#: templates/js/admin/_access_control_js.html:735 templates/reporting.html:256
 #: templates/reporting_metrics.html:39 templates/reporting_metrics.html:51
 msgid "Source"
 msgstr "Origine"
@@ -4895,10 +4888,10 @@ msgstr "Override"
 #: templates/admin/access_control.html:133 templates/admin/logs.html:104
 #: templates/admin/sessions.html:34 templates/admin/user_detail.html:126
 #: templates/admin/user_detail.html:230
-#: templates/js/admin/_access_control_js.html:692
+#: templates/js/admin/_access_control_js.html:693
 #: templates/js/admin/_sessions_js.html:39
-#: templates/js/admin/_user_detail_js.html:442
-#: templates/js/admin/_user_detail_js.html:555
+#: templates/js/admin/_user_detail_js.html:443
+#: templates/js/admin/_user_detail_js.html:556
 msgid "Loading..."
 msgstr "Caricamento..."
 
@@ -4908,7 +4901,7 @@ msgstr "Cerca permessi..."
 
 #: templates/admin/access_control.html:116
 #: templates/admin/access_control.html:258
-#: templates/js/admin/_access_control_js.html:750
+#: templates/js/admin/_access_control_js.html:751
 msgid "Add Permission"
 msgstr "Aggiungi permesso"
 
@@ -4936,7 +4929,7 @@ msgstr "Aggiungi profilo"
 #: templates/js/_reporting_dashboard_js.html:64
 #: templates/js/_reporting_metrics_js.html:58
 #: templates/js/_reporting_sources_js.html:46
-#: templates/js/admin/_access_control_js.html:655
+#: templates/js/admin/_access_control_js.html:656
 #: templates/js/admin/_maintenance_js.html:145
 #: templates/js/admin/_organizations_js.html:100
 #: templates/js/admin/_user_management_js.html:114
@@ -5928,7 +5921,7 @@ msgstr "Prec."
 
 #: templates/js/_generali_reporting_js.html:265
 #: templates/js/admin/_logs_js.html:108
-#: templates/js/admin/_user_detail_js.html:622
+#: templates/js/admin/_user_detail_js.html:623
 msgid "Page"
 msgstr "Pagina"
 
@@ -6122,8 +6115,8 @@ msgstr "Nascondi query"
 #: templates/js/_reporting_ai_js.html:40
 #: templates/js/admin/_access_control_js.html:316
 #: templates/js/admin/_access_control_js.html:570
-#: templates/js/admin/_access_control_js.html:792
-#: templates/js/admin/_access_control_js.html:808
+#: templates/js/admin/_access_control_js.html:793
+#: templates/js/admin/_access_control_js.html:809
 #: templates/js/admin/_user_detail_js.html:62
 #: templates/js/admin/_user_detail_js.html:166
 #: templates/js/admin/_user_detail_js.html:288
@@ -7104,7 +7097,7 @@ msgstr "Negato automaticamente"
 
 #: templates/js/admin/_access_control_js.html:455
 #: templates/js/admin/_access_control_js.html:585
-#: templates/js/admin/_access_control_js.html:743
+#: templates/js/admin/_access_control_js.html:744
 msgid "Error loading data."
 msgstr "Errore nel caricamento dei dati."
 
@@ -7132,60 +7125,60 @@ msgstr "Non hai i permessi per creare utenti."
 msgid "Error:"
 msgstr "Errore:"
 
-#: templates/js/admin/_access_control_js.html:610
+#: templates/js/admin/_access_control_js.html:611
 msgid "No permissions found."
 msgstr "Nessun permesso trovato."
 
-#: templates/js/admin/_access_control_js.html:709
-#: templates/js/admin/_user_detail_js.html:395
+#: templates/js/admin/_access_control_js.html:710
+#: templates/js/admin/_user_detail_js.html:396
 msgid "Denied"
 msgstr "Negato"
 
-#: templates/js/admin/_access_control_js.html:719
+#: templates/js/admin/_access_control_js.html:720
 msgid "No users have this permission assigned."
 msgstr "A nessun utente è assegnato questo permesso."
 
-#: templates/js/admin/_access_control_js.html:724
+#: templates/js/admin/_access_control_js.html:725
 msgid "Users with this permission"
 msgstr "Utenti con questo permesso"
 
-#: templates/js/admin/_access_control_js.html:725
+#: templates/js/admin/_access_control_js.html:726
 msgid "explicitly denied"
 msgstr "esplicitamente negato"
 
-#: templates/js/admin/_access_control_js.html:735
+#: templates/js/admin/_access_control_js.html:736
 msgid "Has Permission"
 msgstr "Ha il permesso"
 
-#: templates/js/admin/_access_control_js.html:760
+#: templates/js/admin/_access_control_js.html:761
 msgid "Edit Permission"
 msgstr "Modifica permesso"
 
-#: templates/js/admin/_access_control_js.html:774
+#: templates/js/admin/_access_control_js.html:775
 msgid "Code and description are required."
 msgstr "Codice e descrizione sono obbligatori."
 
-#: templates/js/admin/_access_control_js.html:799
+#: templates/js/admin/_access_control_js.html:800
 msgid "Are you sure you want to delete"
 msgstr "Sei sicuro di voler eliminare"
 
-#: templates/js/admin/_access_control_js.html:818
+#: templates/js/admin/_access_control_js.html:819
 msgid "Override Allow"
 msgstr "Sostituzione · Consenti"
 
-#: templates/js/admin/_access_control_js.html:819
+#: templates/js/admin/_access_control_js.html:820
 msgid "Override Deny"
 msgstr "Sostituzione · Nega"
 
-#: templates/js/admin/_access_control_js.html:820
+#: templates/js/admin/_access_control_js.html:821
 msgid "Profile Allow"
 msgstr "Profilo · Consenti"
 
-#: templates/js/admin/_access_control_js.html:821
+#: templates/js/admin/_access_control_js.html:822
 msgid "Profile Deny"
 msgstr "Profilo · Nega"
 
-#: templates/js/admin/_access_control_js.html:822
+#: templates/js/admin/_access_control_js.html:823
 msgid "No assignment"
 msgstr "Nessuna assegnazione"
 
@@ -7414,53 +7407,53 @@ msgstr "Override · Nega"
 msgid "Profile · Deny"
 msgstr "Profilo · Nega"
 
-#: templates/js/admin/_user_detail_js.html:459
-#: templates/js/admin/_user_detail_js.html:498
+#: templates/js/admin/_user_detail_js.html:460
+#: templates/js/admin/_user_detail_js.html:499
 msgid "Could not load effective permissions."
 msgstr "Impossibile caricare i permessi effettivi."
 
-#: templates/js/admin/_user_detail_js.html:473
+#: templates/js/admin/_user_detail_js.html:474
 msgid "This user has no permissions."
 msgstr "Questo utente non ha alcun permesso."
 
-#: templates/js/admin/_user_detail_js.html:485
+#: templates/js/admin/_user_detail_js.html:486
 msgid "granted"
 msgstr "concesse"
 
-#: templates/js/admin/_user_detail_js.html:486
+#: templates/js/admin/_user_detail_js.html:487
 msgid "profile"
 msgstr "profilo"
 
-#: templates/js/admin/_user_detail_js.html:487
+#: templates/js/admin/_user_detail_js.html:488
 msgid "override"
 msgstr "override"
 
-#: templates/js/admin/_user_detail_js.html:539
+#: templates/js/admin/_user_detail_js.html:540
 msgid "just now"
 msgstr "proprio ora"
 
-#: templates/js/admin/_user_detail_js.html:541
+#: templates/js/admin/_user_detail_js.html:542
 msgid "min ago"
 msgstr "min fa"
 
-#: templates/js/admin/_user_detail_js.html:543
+#: templates/js/admin/_user_detail_js.html:544
 msgid "h ago"
 msgstr "h fa"
 
-#: templates/js/admin/_user_detail_js.html:544
+#: templates/js/admin/_user_detail_js.html:545
 msgid "d ago"
 msgstr "g fa"
 
-#: templates/js/admin/_user_detail_js.html:570
-#: templates/js/admin/_user_detail_js.html:632
+#: templates/js/admin/_user_detail_js.html:571
+#: templates/js/admin/_user_detail_js.html:633
 msgid "Could not load activity."
 msgstr "Impossibile caricare l'attività."
 
-#: templates/js/admin/_user_detail_js.html:580
+#: templates/js/admin/_user_detail_js.html:581
 msgid "No recorded activity in the last 7 days."
 msgstr "Nessuna attività registrata negli ultimi 7 giorni."
 
-#: templates/js/admin/_user_detail_js.html:622
+#: templates/js/admin/_user_detail_js.html:623
 msgid "entries"
 msgstr "voci"
 
@@ -7771,4 +7764,13 @@ msgid ""
 msgstr ""
 "Le tue fatture filtrate appaiono qui. Puoi visualizzare i dettagli, gli "
 "importi e scaricare copie PDF dalla colonna Azioni."
+
+#~ msgid ""
+#~ "Your key's process scope, echoed for "
+#~ "debugging. An empty scope returns "
+#~ "null/\"—\"."
+#~ msgstr ""
+#~ "L'ambito di processi della chiave, "
+#~ "restituito per il debug. Un ambito "
+#~ "vuoto restituisce null/\"—\"."
 

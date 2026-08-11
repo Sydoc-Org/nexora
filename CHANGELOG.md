@@ -8,6 +8,12 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Changed
+
+- `GET /api/v1/avg_processing_time` (and its `/api/test/v1` twin) no longer
+  echoes the key's `processes` list — like `/backlog` and `/undelivered`,
+  scoping happens at key issuance, not in the payload. Docs updated.
+
 ### Security
 
 - Hardened access control and input handling after an internal

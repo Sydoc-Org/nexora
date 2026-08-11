@@ -286,8 +286,7 @@ Authorization: Bearer &lt;api key&gt;</code></pre>
             <button class="apidocs-copy" title="{{ _('Copy') }}" aria-label="{{ _('Copy code') }}"><i class="far fa-copy"></i></button>
             <pre><code class="language-json">{
   "avg_minutes": 4.2,
-  "avg_display": "4min",
-  "processes": ["sydoc.05_PDBS"]
+  "avg_display": "4min"
 }</code></pre>
           </div>
           <h2 class="apidocs-h2">{{ _("Response fields") }}</h2>
@@ -297,11 +296,10 @@ Authorization: Bearer &lt;api key&gt;</code></pre>
               <tbody>
                 <tr><td class="apidocs-td"><code>avg_minutes</code></td><td class="nx-mono">float | null</td><td>{{ _("Average minutes between import and export among rows exported today, rounded to 1 decimal. null if no matching rows exist yet today.") }}</td></tr>
                 <tr><td class="apidocs-td"><code>avg_display</code></td><td class="nx-mono">string</td><td>{{ _("Same figure pre-formatted: seconds under a minute, minutes under an hour, hours above — or \"—\" when null.") }}</td></tr>
-                <tr><td class="apidocs-td"><code>processes</code></td><td class="nx-mono">string[]</td><td>{{ _("Your key's process scope, echoed for debugging. An empty scope returns null/\"—\".") }}</td></tr>
               </tbody>
             </table>
           </div>
-          <p class="apidocs-p mt-2">{{ _("Calculation: for each configured process/table, the average seconds between import and export among rows exported today; the per-source averages are then combined as a plain mean, not weighted by how many rows each source had. Responses are computed fresh on every call — there is no cache.") }}</p>
+          <p class="apidocs-p mt-2">{{ _("Unlike stats/today, the response does not echo the process list — scoping happens at key issuance.") }} {{ _("Calculation: for each configured process/table, the average seconds between import and export among rows exported today; the per-source averages are then combined as a plain mean, not weighted by how many rows each source had. Responses are computed fresh on every call — there is no cache.") }}</p>
         </section>
 
         <!-- ============ GET /workitems ============ -->
