@@ -113,12 +113,15 @@ def _ms02_stat_rows(sql, *, strict=False):
         return []
 
 
-def _default_stat_rows(sql, *, strict=False):
+def _default_stat_rows(sql, params=None, *, strict=False):
     """Run a read-only query on the default StatisticsDB engine; return rows,
     or [] if the server is unreachable or the query errors (e.g. a stale
     Statconfig row pointing at a dropped table). Mirror of _ms02_stat_rows for
     the T-SQL leg: by default a leg failure must never blank the other leg's
     numbers -- log and yield no rows so each leg degrades independently.
+
+    params: optional positional query parameters (resolve_import_datetimes
+    passes the id list; the KPI legs interpolate config-derived SQL only).
 
     strict: see _ms02_stat_rows -- re-raise instead of swallowing so
     compute_today_stats(..., strict=True) (the external API) turns a genuine
@@ -127,7 +130,10 @@ def _default_stat_rows(sql, *, strict=False):
         conn = engine_statistics_db.raw_connection()
         try:
             cur = conn.cursor()
-            cur.execute(sql)
+            if params:
+                cur.execute(sql, params)
+            else:
+                cur.execute(sql)
             return cur.fetchall()
         finally:
             conn.close()
@@ -338,6 +344,79 @@ def format_avg_processing_display(avg_sec):
     else:
         display = f"{avg_minutes / 60:.1f}h"
     return round(avg_minutes, 1), display
+
+
+def resolve_import_datetimes(workitem_ids, target_processes, *, strict=False):
+    """Batch import-datetime lookup for a page of workitem ids (issue #197,
+    external API v1 /workitems -- supersedes issue #195's single-invoice
+    helper). Default client only: each default-client Statconfig row names the
+    stat table plus its WorkitemColumn/ImportColumn; one UNION query over
+    those tables maps every id it can. Ids are compared and returned as
+    strings (stat tables mix int and NVARCHAR id columns). Ids without a
+    match are simply absent from the result -- MS02 rows and unmapped
+    processes never appear. strict mirrors compute_today_stats: a
+    StatisticsDB failure raises instead of degrading to "no data"."""
+    if not workitem_ids or not target_processes:
+        return {}
+
+    conn_nex = None
+    try:
+        conn_nex = engine_nexora_db.raw_connection()
+        cur = conn_nex.cursor()
+        placeholders = ",".join(["?"] * len(target_processes))
+        cur.execute(
+            f"SELECT ProcessName, TableName, WorkitemColumn, ImportColumn, ClientCode "
+            f"FROM Statconfig WHERE ProcessName IN ({placeholders})",
+            target_processes,
+        )
+        configs = cur.fetchall()
+    finally:
+        if conn_nex:
+            conn_nex.close()
+
+    default_configs, _ms02_rows = _split_stat_configs(configs)
+
+    legs = []
+    for row in default_configs:
+        if not getattr(row, "WorkitemColumn", None) or not row.ImportColumn:
+            continue
+        # CAST + COLLATE on the id column: the UNION legs span stat tables with
+        # mixed id types/collations (same reason the doc-field search casts).
+        wid_expr = f"CAST({row.WorkitemColumn} AS NVARCHAR(50)) COLLATE DATABASE_DEFAULT"
+        legs.append((wid_expr, row.ImportColumn, row.TableName))
+
+    if not legs:
+        return {}
+
+    # Every leg repeats the full id list as parameters, so a statement carries
+    # len(legs) * chunk params -- chunk to stay under SQL Server's 2100-param
+    # cap (a 1000-row page over 3+ legs would otherwise blow it). Ids are
+    # partitioned across chunks, so per-chunk MAX-per-wid stays correct.
+    str_ids = [str(w) for w in workitem_ids]
+    chunk_size = max(1, 2000 // len(legs))
+    result = {}
+    for start in range(0, len(str_ids), chunk_size):
+        chunk = str_ids[start : start + chunk_size]
+        id_placeholders = ",".join(["?"] * len(chunk))
+        sub_queries = [
+            f"SELECT {wid_expr} AS wid, {import_col} AS import_dt "
+            f"FROM [{DB_STATISTICS}].{table} "
+            f"WHERE {wid_expr} IN ({id_placeholders})"
+            for wid_expr, import_col, table in legs
+        ]
+        params = chunk * len(legs)
+        full_query = (
+            f"SELECT wid, MAX(import_dt) AS import_dt "
+            f"FROM ({' UNION ALL '.join(sub_queries)}) t "
+            f"WHERE import_dt IS NOT NULL GROUP BY wid"
+        )
+        rows = (
+            _default_stat_rows(full_query, params, strict=True)
+            if strict
+            else _default_stat_rows(full_query, params)
+        )
+        result.update({str(r[0]): r[1] for r in rows})
+    return result
 
 
 def compute_undelivered_count(target_processes, days, *, strict=False):
