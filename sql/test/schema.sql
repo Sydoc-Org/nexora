@@ -381,3 +381,16 @@ BEGIN
     );
 END;
 GO
+
+-- Durable per-account login lockout (mirrors 0062_login_lockout.sql) so the
+-- login flow can be exercised in TEST.
+IF OBJECT_ID(N'dbo.LoginLockout', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.LoginLockout (
+        userid NVARCHAR(64) NOT NULL PRIMARY KEY,
+        failed_count INT NOT NULL DEFAULT 0,
+        locked_until DATETIME2 NULL,
+        updated_at DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+    );
+END;
+GO
