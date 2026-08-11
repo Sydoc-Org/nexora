@@ -196,6 +196,17 @@ Work toward the next release.
 
 ### Fixed
 
+- Admin: the dev-server env switch works in both directions (#198). Restarting
+  into STAGING made the "Restart nexora" control disappear, stranding the
+  instance there: STAGING resolves *every* database — NexoraDB included — via
+  `DB_SERVER_PRD`, i.e. the prod server, where the `admin.restart` permission
+  row from migration `0059` does not exist. The control and `POST
+  /api/admin/restart` now also accept a loopback caller (the trust rule the
+  `/dev/*` routes already use), so a missing permission row in whichever
+  NexoraDB the current environment points at can no longer strand the dev
+  server. The template's guard also stopped depending on an `is_prod` variable
+  the route never passed (always undefined, so always truthy) and uses the
+  route-computed `can_restart` instead.
 - Reporting user guide corrected against verified page behaviour: coverage-badge
   denominators (measures count all accessible processes, categories the current
   selection), per-pane chart caps, the drill-drawer export's 100-row cap, the

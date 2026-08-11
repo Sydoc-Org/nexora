@@ -69,6 +69,32 @@ def test_admin_dashboard_with_perm_renders(admin_client):
     assert resp.status_code == 200
 
 
+@pytest.fixture()
+def no_restart_perm(monkeypatch):
+    """Drop admin.restart the way STAGING does (#198): it resolves NexoraDB to
+    the prod server, where migration 0059 never ran. Patches the binding inside
+    views.admin only, so the admin.view gate in security.require_permission —
+    which looks up its own module global — still lets the page render."""
+    monkeypatch.setattr("nx_lib.views.admin.has_permission", lambda code: False)
+    yield
+
+
+def test_restart_control_renders_for_loopback_without_perm(admin_client, no_restart_perm):
+    """#198: gating the control on the permission alone made the env switch a
+    one-way trip — you could reach STAGING but never get back."""
+    resp = admin_client.get("/admin")
+    assert b'id="nx-restart-env"' in resp.data
+
+
+def test_api_admin_restart_denied_for_remote_caller_without_perm(admin_client, no_restart_perm):
+    resp = admin_client.post(
+        "/api/admin/restart",
+        json={"env": "INT"},
+        environ_base={"REMOTE_ADDR": "10.9.9.9"},
+    )
+    assert resp.status_code == 403
+
+
 # ============================ organizations ==================================
 
 
