@@ -273,6 +273,11 @@ Work toward the next release.
   generated those rules, so the connector's positioning container collapsed
   to zero width. Converted all 8 affected utilities to the v3 prefix form.
 
+- Admin: every `page_header` action button was dead — the #193 CSP work
+  (finding 10) removed the macro's inline `onclick` attribute but never added
+  a replacement binding, so "Add banner", "Add organization", "Export CSV"
+  and "Refresh" did nothing. The macro now emits `data-nx-click` and
+  `_header.html` binds it through one delegated listener.
 - Workitems: `media_raw_pdfpage_`/`media_raw_tif_` page-image cache keys
   omitted the client domain, so colliding workitem ids across clients served
   each other's rendered page images for up to an hour. Routed through the

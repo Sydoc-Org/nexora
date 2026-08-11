@@ -15,6 +15,17 @@
     <link rel="stylesheet" href="{{ url_for('static',filename='css/_header.css') }}">
     <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
     <script nonce="{{ csp_nonce() }}">
+        /* Delegated click binding for `data-nx-click="someGlobalFn()"`. The
+           #193 CSP work dropped inline onclick attributes; the admin
+           page_header action buttons had no replacement binding and were dead
+           (Add banner / Add organization / Export CSV / Refresh). */
+        document.addEventListener('click', function (e) {
+            var el = e.target.closest('[data-nx-click]');
+            if (!el) return;
+            var fn = window[el.dataset.nxClick.replace(/\(\s*\)\s*$/, '')];
+            if (typeof fn === 'function') fn.call(el);
+        });
+
         /* ---- UI prefs (issue #155): apply server-stored prefs pre-paint ----
            DB (Users.ui_prefs) is authoritative; keys the user never saved fall
            back to the legacy localStorage keys, then to the defaults. */

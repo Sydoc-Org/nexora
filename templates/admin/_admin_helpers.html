@@ -23,7 +23,7 @@
     {% if actions %}
       <div class="nx-page-head__actions">
         {% for act in actions %}
-          <button type="button" class="nx-btn nx-btn--{{ act.variant|default('primary') }}" data-testid="admin-helpers-page-action-{{ act.testid|default(loop.index) }}">
+          <button type="button" class="nx-btn nx-btn--{{ act.variant|default('primary') }}"{% if act.onclick %} data-nx-click="{{ act.onclick }}"{% endif %} data-testid="admin-helpers-page-action-{{ act.testid|default(loop.index) }}">
             {% if act.icon %}<i class="fas {{ act.icon }}"></i>{% endif %}
             {{ act.label }}
           </button>
