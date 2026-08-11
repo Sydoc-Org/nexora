@@ -589,7 +589,8 @@
     function _makePermHeader(tag, colspan, cls, style, text) {
         const tr = document.createElement('tr');
         tr.setAttribute(tag, text);
-        tr.setAttribute('onclick', 'permGroupToggle(this)');
+        /* Toggling is bound by the delegated drawerPermsBody listener; an
+           inline onclick would be CSP-blocked (#193 finding 10) anyway. */
         tr.style.cssText = (style || '') + ';cursor:pointer;user-select:none';
         tr.className = cls;
         const td = document.createElement('td');

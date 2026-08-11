@@ -344,7 +344,8 @@
         function _makeEffHeader(tag, text) {
             const tr = document.createElement('tr');
             tr.setAttribute(tag, text);
-            tr.setAttribute('onclick', 'permGroupToggle(this)');
+            /* Toggling is bound by the delegated overridesTbody listener; an
+               inline onclick would be CSP-blocked (#193 finding 10) anyway. */
             tr.style.cssText = 'cursor:pointer;user-select:none;background:var(--nx-alt)';
             const td = document.createElement('td');
             td.setAttribute('colspan', '2');
