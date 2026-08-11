@@ -5,12 +5,15 @@ Docs", permission `api.docs.view`) for internal staff and API clients'
 portal accounts — this file stays the source of truth; keep both in sync.
 
 Read-only JSON API for external clients, authenticated with per-client API
-keys. Three documented endpoints in v1. Code: routes in
+keys. Five documented endpoints in v1. Code: routes in
 `nx_lib/views/api_external.py`, auth in `nx_lib/api_auth.py`, KPI
 computation shared with the dashboard (`compute_today_stats` /
-`compute_avg_processing_time` / `compute_undelivered_count` in
-`nx_lib/views/dashboard.py`, `total_backlog_count` in
-`nx_lib/workitem_sources.py`), table created by
+`compute_avg_processing_time` / `compute_undelivered_count` /
+`resolve_import_datetimes` in `nx_lib/views/dashboard.py`,
+`total_backlog_count` in `nx_lib/workitem_sources.py`), the workitem
+query/detail data shared with the Workitems overview page
+(`_get_workitems_data` with a session-less `scope` + `_load_media_info` in
+`nx_lib/views/workitems.py`), table created by
 `sql/_migrations/NexoraDB/0038_create_api_keys.sql`.
 
 `GET /api/v1/stats/today` also still exists in code (and its
@@ -142,6 +145,122 @@ with 2. The MS02 client contributes one more such average from its own
 table, folded into the same mean. Not cached: every call computes fresh
 numbers.
 
+## GET /api/v1/workitems
+
+The **query** endpoint (issue #197): find workitems with the same filters
+the Workitems overview page offers, scoped to the key's `ProcessList`. The
+typical flow is query → take an `id` → fetch its document details from
+`/api/v1/workitems/<id>` below. Example — look up an invoice number:
+
+    curl -H "Authorization: Bearer <key>" \
+        "https://nexora.sydoc.ch/nexora/api/v1/workitems?field=invoicenr&value=INV-2026-00123&op=eq"
+
+    {
+      "count": 1,
+      "page": 1,
+      "per_page": 40,
+      "total_pages": 1,
+      "workitems": [
+        {
+          "id": 78214,
+          "client": "default",
+          "status": "Done",
+          "stage": "Delivery",
+          "modified_at": "2026-08-04 10:02:11",
+          "import_datetime": "2026-08-04 09:12:31"
+        }
+      ]
+    }
+
+Query parameters (all optional; invalid values return a `400` with a plain
+English `error` string — nothing is silently coerced or ignored):
+
+| Param | Meaning |
+|---|---|
+| `workitem_id` | exact workitem-id match |
+| `status` | one of `Ready`, `In Progress`, `Done` |
+| `stage` | one of `Import`, `Extraction`, `Validation`, `Delivery` |
+| `start_date` / `end_date` | ISO datetime bounds on the last-modified timestamp; `start_date` is **inclusive**, `end_date` is **exclusive** |
+| `process` | comma-joined subset of the key's `ProcessList` (default: all of it) |
+| `field` / `value` / `op` / `comb` | repeated doc-field filter pairs, see below |
+| `page` / `per_page` | paging; `per_page` accepts only `40`, `100`, `200`, `500`, `1000` (default `40`) |
+
+Doc-field filters repeat in parallel: each `field`+`value` pair may carry an
+`op` (`contains` default, `ncontains`, `eq`, `neq`, `startswith`,
+`endswith`) and a `comb` (`and` default, `or`) joining it to the pairs
+before it — at most **10 pairs** per request (`400` beyond). Field keys are
+the overview page's document-field names (`invoicenr`, …); an unknown — or
+sensitive — field key returns `400 {"error": "Unknown field '...'"}`
+(sensitive doc-fields are never queryable with an API key). The `LIKE`-family ops treat `%` and `_` in the
+value as SQL wildcards (historical overview behaviour). Matches honour the
+same per-process time window (`SearchConfig.TimeFilter`) as the overview
+page's search — very old documents fall outside it.
+
+Response rows: `id` + `client` together identify a workitem (**ids are only
+unique per client** — always carry both into the detail call), `modified_at`
+is the runtime's last-touch timestamp, and `import_datetime` is looked up
+from the Statistics DB for default-client rows (`null` for MS02 rows and
+unmapped processes). All timestamps are **server-local**
+`YYYY-MM-DD HH:MM:SS`. An empty `ProcessList` returns an empty page. If any
+backing source fails, the whole call returns
+`500 {"error": "Workitems backend unavailable"}` rather than a silently
+partial page; a failing doc-field resolution instead fails **closed** to
+zero matching rows (same guard as the overview), and a failed load of the
+sensitive-field list also answers `500` on both workitem endpoints — this
+surface never degrades to serving unfiltered data. Not cached.
+
+## GET /api/v1/workitems/&lt;id&gt;
+
+The **detail** endpoint (issue #197): the document details the overview
+row-expand shows — extracted field values and table values, no page images,
+confidence or source locations:
+
+    curl -H "Authorization: Bearer <key>" \
+        "https://nexora.sydoc.ch/nexora/api/v1/workitems/78214?client=default"
+
+    {
+      "workitem_id": 78214,
+      "client": "default",
+      "detail": {
+        "fields": {
+          "InvoiceNumber": "INV-2026-00123",
+          "InvoiceDate": "2026-08-01",
+          "TotalAmount": "1234.50"
+        },
+        "tables": [
+          {
+            "title": "LineItems",
+            "columns": ["Description", "Quantity", "Amount"],
+            "rows": [
+              [
+                {"column": "Description", "value": "Widget"},
+                {"column": "Quantity", "value": "2"},
+                {"column": "Amount", "value": "617.25"}
+              ]
+            ]
+          }
+        ]
+      }
+    }
+
+- `client` (query param, recommended) — the `client` value from the query
+  endpoint's row. Workitem ids collide across clients, so omitting it on a
+  colliding id resolves to the default client. An unknown value returns
+  `400`.
+- `fields` — extracted field name → value, mapped through the same
+  field-name mapping the overview uses; sensitive fields are stripped.
+- `tables` — extracted table values; columns matching a sensitive field are
+  stripped too.
+- `404 {"workitem_id": ..., "detail": null}` — returned **uniformly** for an
+  unknown id, an id outside the key's process scope, and a document the
+  runtime backend can't load right now (no existence oracle; a transient
+  runtime outage is indistinguishable from a bad id on this surface).
+
+The workitem's entitlement is checked against the key's `ProcessList`
+before any document fetch. Detail payloads are served from the same
+short-lived cache the overview panel uses; the first hit on a cold workitem
+fetches live from the runtime service and can take a few seconds.
+
 ## GET /api/v1/undelivered
 
 The number of workitems **not delivered yet**: imported within the last
@@ -195,12 +314,14 @@ counterpart in the same change.
 | Status | Body | Meaning |
 |---|---|---|
 | 400 | `{"error": "days must be 7 or 10"}` | `/undelivered` called with a missing or invalid `days` param |
+| 400 | `{"error": "<plain-English validation message>"}` | `/workitems` called with an invalid filter param (unknown status/stage/op/comb/field, malformed date, bad paging, process outside the key's scope), or `/workitems/<id>` with an unknown `client` |
 | 401 | `{"error": "Missing or malformed Authorization header"}` | no/bad `Authorization: Bearer` header (`WWW-Authenticate: Bearer` set) |
 | 401 | `{"error": "Invalid API key"}` | unknown **or disabled** key (uniform on purpose) |
-| 404 | `{"error": "Not found"}` | wrong path under `/api/v1` |
+| 404 | `{"error": "Not found"}` | wrong path under `/api/v1` (including a non-numeric `/workitems/<id>`) |
+| 404 | `{"workitem_id": ..., "detail": null}` | `/workitems/<id>`: unknown id, id outside the key's scope, or the runtime backend can't load the document (uniform on purpose) |
 | 405 | HTML (Flask default) | non-GET verb — the API is GET-only |
 | 429 | HTML (flask-limiter default) | over 60 requests/minute |
-| 500 | `{"error": "Stats backend unavailable"}` (`/avg_processing_time`, `/undelivered`) or `{"error": "Backlog backend unavailable"}` (`/backlog`) or `{"error": "Internal server error"}` | stats/backlog query or server failure |
+| 500 | `{"error": "Stats backend unavailable"}` (`/avg_processing_time`, `/undelivered`) or `{"error": "Backlog backend unavailable"}` (`/backlog`) or `{"error": "Workitems backend unavailable"}` (`/workitems`, `/workitems/<id>`) or `{"error": "Internal server error"}` | backend query or server failure |
 | 503 | `{"error": "Auth backend unavailable"}` | NexoraDB unreachable during auth (fail closed) |
 | 503 | `{"error": "Maintenance", "maintenance": {...}}` | blocking maintenance window (global lockout) |
 

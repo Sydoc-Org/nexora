@@ -64,12 +64,40 @@ def _stub_agent_sequence(page, responses):
     return calls
 
 
-def test_chat_panel_open_send_followup_history_and_open_in_builder(nexora_server, page):
+def _stub_run_ok(page):
+    """Stub /api/reporting/run with a deterministic success (copied from
+    test_reporting_simple.py's helper of the same name) -- opening an agent
+    definition into the Simple result view fires a real runCurrent(), whose
+    /api/reporting/run can error intermittently on the test DB (stale
+    NEXORA_TEST state); stubbing keeps the result UI up regardless."""
+
+    def _handler(route):
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [{"field": "processname", "header": "Process"}],
+                    "rows": [["acme.inv"]],
+                    "truncated": False,
+                    "rowCount": 1,
+                    "sql": None,
+                    "params": [],
+                    "resolvedDates": [],
+                }
+            ),
+        )
+
+    page.route("**/api/reporting/run", _handler)
+
+
+def test_chat_panel_open_send_followup_history_and_report_opens_in_simple(nexora_server, page):
     """Full round trip against a stubbed agent endpoint: open the chat panel
     from Advanced, send a question, see the user + AI bubbles, cleared input
-    and an "Open in builder" chip, click a follow-up chip (asserting the
+    and an "Open report" chip, click a follow-up chip (asserting the
     SECOND stub call's request body carries the running history), then open
-    the definition in the builder (existing applyDefinition behavior)."""
+    the definition -- which now lands in the Simple result view (#178 A4),
+    not the Advanced builder."""
     _login(page, nexora_server)
     question = "documents per month"
     answer = "Here are your documents per month."
@@ -100,18 +128,28 @@ def test_chat_panel_open_send_followup_history_and_open_in_builder(nexora_server
 
     # Follow-up chip resends through the same endpoint, carrying the running
     # history -- assert the SECOND captured call's body has both prior turns.
+    # The assistant turn carries its produced artifact too (#178 A3): the
+    # client appends a "[report definition from this answer]" block (no SQL
+    # block here since the stub's "sql" is None) so a presentation-only
+    # follow-up stays on the same definition instead of re-deriving one.
     page.get_by_test_id("rp-chat-followup").first.click()
     expect(page.get_by_test_id("rp-chat-msg-user")).to_have_count(2)
     assert len(calls) == 2, "the follow-up chip did not fire a second /agent call"
+    definition_json = json.dumps(AGENT_DEFINITION, separators=(",", ":"))
     assert calls[1]["history"] == [
         {"role": "user", "content": question},
-        {"role": "assistant", "content": answer},
+        {
+            "role": "assistant",
+            "content": answer + "\n[report definition from this answer]\n" + definition_json,
+        },
     ], calls[1]["history"]
 
-    # Open the definition in the builder.
+    # Open the definition -- lands in the Simple result view (#178 A4).
+    _stub_run_ok(page)
     open_builder.first.click()
     expect(page.get_by_test_id("reporting-chat-panel")).to_be_hidden()
-    expect(page.get_by_test_id("reporting-title")).to_have_value(AGENT_DEFINITION["title"])
+    expect(page.get_by_test_id("rs-result")).to_be_visible()
+    expect(page.get_by_test_id("rs-chips")).to_be_visible()
     page.screenshot(path="var/screenshots/reporting_chat_panel_smoke.png")
 
 
@@ -119,7 +157,7 @@ def test_chat_panel_recovers_after_max_turns_with_no_artifact(nexora_server, pag
     """The retired Advanced AI panel needed a dedicated "Try again" button
     because a max-turns/no-artifact answer locked the whole panel. The chat
     panel has no separate retry control at all: a failed/limit-reached turn
-    still renders (with its trace, no "Open in builder" chip) and the same
+    still renders (with its trace, no "Open report" chip) and the same
     plain input keeps working for the next question -- staying disabled only
     for the duration of that next in-flight request (the old double-submit
     guard, now on the ordinary send button)."""
@@ -236,6 +274,91 @@ def test_chat_panel_reads_the_ndjson_progress_stream(nexora_server, page):
     expect(page.get_by_test_id("rp-chat-open-builder")).to_be_visible()
     assert sent and sent[0]["stream"] is True, "the panel did not request the stream"
     page.screenshot(path="var/screenshots/reporting_chat_stream.png")
+
+
+def test_agent_stream_renders_build_steps(nexora_server, page):
+    """#178 A1: each streamed `tool` event appends a row to the "Building
+    your report..." card (rp-build-steps), flipping the previous running row
+    to done when the next one starts.
+
+    Playwright's route.fulfill() delivers the whole NDJSON body in one shot,
+    so the rows resolve (ticker removed) before an expect() polling from
+    outside the page could ever observe the transient running/done classes --
+    same race the earlier stream test's comment already calls out. A
+    MutationObserver registered in the page itself does not have that
+    problem: it records every DOM mutation as it happens, including ones
+    that only exist for a tick, so it can assert the live row-building/
+    flip logic in `tickerEvent()` directly rather than only the post-hoc
+    "ticker gone, answer present" outcome (which a broken tickerEvent would
+    also often produce, since a JS exception there aborts the read loop
+    before `done` and lands on the same generic error bubble either way).
+    """
+    question = "documents per month"
+    answer = "Here are your documents per month."
+    lines = [
+        {"phase": "thinking", "turn": 1},
+        {"phase": "tool", "name": "build_definition"},
+        {"phase": "tool", "name": "validate_sql"},
+        {"phase": "tool", "name": "run_sql"},
+        {
+            "done": True,
+            "answer": answer,
+            "toolTrace": [],
+            "turns": 2,
+            "stoppedReason": "final",
+            "definition": AGENT_DEFINITION,
+            "sql": None,
+        },
+    ]
+
+    def handler(route):
+        route.fulfill(
+            status=200,
+            content_type="application/x-ndjson",
+            body="".join(json.dumps(x) + "\n" for x in lines),
+        )
+
+    _login(page, nexora_server)
+    page.route("**/api/reporting/ai/agent", handler)
+    _open_chat_from_advanced(page, nexora_server)
+
+    # Observe from INSIDE the page (see docstring) -- registered before the
+    # send that triggers the stream.
+    page.evaluate("""() => {
+        window.__buildStats = { added: 0, sawRunning: false, sawDone: false };
+        const thread = document.getElementById('rpChatThread');
+        const obs = new MutationObserver((records) => {
+            records.forEach((rec) => {
+                rec.addedNodes.forEach((n) => {
+                    if (n.nodeType === 1 && n.classList && n.classList.contains('rp-build-step')) {
+                        window.__buildStats.added++;
+                        // className is set before appendChild, so the initial
+                        // is-running class arrives as part of this addedNodes
+                        // record, not a later attribute mutation.
+                        if (n.classList.contains('is-running')) window.__buildStats.sawRunning = true;
+                    }
+                });
+                if (rec.type === 'attributes' && rec.attributeName === 'class' &&
+                    rec.target.classList && rec.target.classList.contains('rp-build-step')) {
+                    if (rec.target.classList.contains('is-running')) window.__buildStats.sawRunning = true;
+                    if (rec.target.classList.contains('is-done')) window.__buildStats.sawDone = true;
+                }
+            });
+        });
+        obs.observe(thread, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    }""")
+
+    page.get_by_test_id("reporting-chat-input").fill(question)
+    page.get_by_test_id("reporting-chat-send").click()
+
+    expect(page.get_by_test_id("rp-chat-msg-ai")).to_contain_text(answer)
+    # The card is transient -- gone once the turn completes.
+    expect(page.get_by_test_id("rp-chat-ticker")).to_have_count(0)
+
+    stats = page.evaluate("() => window.__buildStats")
+    assert stats["added"] == 3, f"expected one row per tool event, got {stats}"
+    assert stats["sawRunning"], f"no row was ever marked running: {stats}"
+    assert stats["sawDone"], f"no row was ever flipped to done: {stats}"
 
 
 def test_chat_panel_surfaces_a_mid_stream_failure(nexora_server, page):

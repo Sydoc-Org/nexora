@@ -237,9 +237,11 @@ per prior turn. Server-side (`api_ai_agent` in `nx_lib/views/reporting.py`):
 - Anything not shaped like `{role: "user"|"assistant", content: <non-empty str>}`
   is dropped outright (`Invalid history` → 400 if `history` isn't a list at all).
 - The kept entries are capped to the **last 8**, then trimmed further from the
-  front while their combined `content` length exceeds **4000 characters** — a
+  front while their combined `content` length exceeds **12000 characters** — a
   long conversation degrades to "recent turns only" rather than growing the
-  prompt unboundedly.
+  prompt unboundedly. (Raised from an original 4000 in #178 A3 — see
+  **artifact-carrying history** below for why plain answer text alone stopped
+  being enough room.)
 - History is **text-only**: no grounding, schema, or catalog text is ever
   threaded through it. The current turn's schema/date/process grounding is
   concatenated with the current `question` into a single `initial` message that
@@ -251,6 +253,58 @@ per prior turn. Server-side (`api_ai_agent` in `nx_lib/views/reporting.py`):
 - Tool binding (data-free vs. data-egress) is decided fresh per request from the
   caller's *current* permissions — a turn earlier in `history` cannot smuggle in
   access the caller doesn't hold right now.
+
+**Artifact-carrying history (#178 A3).** A follow-up that only changes *how*
+the previous answer is presented ("show it as a chart", "break that down by
+process", "only this quarter") needs to keep operating on the **same**
+source and query the previous turn actually produced — not have the model
+re-derive (and potentially mis-derive, or silently switch source for) a new
+one from its own prior English answer. So the client-side history entry it
+records for each assistant turn is not just the answer text: whenever the
+turn's response carried a `sql` and/or a `definition`, the client
+(`templates/js/_reporting_ai_js.html`) appends a fenced block to that turn's
+`content` before pushing it onto `history`:
+
+```
+<answer text>
+[sql from this answer]
+<sql, truncated to 1500 chars>
+[report definition from this answer]
+<definition JSON, truncated to 1200 chars>
+```
+
+Both markers are plain literal text inside an otherwise-ordinary history
+`content` string — there is no structured side-channel for artifacts, by
+design (§2b's "text-only" rule above still holds; this is *conversation*
+text, not grounding text). The system prompt (`nx_lib/reporting/ai.py`,
+English-only, model-facing — never gettext-wrap this) explicitly instructs
+the model: on a presentation-only follow-up, stay on the source/data behind
+the `[sql from this answer]` / `[report definition from this answer]`
+context carried in `history` rather than switching sources. Truncating each
+artifact (1500/1200 chars) rather than dropping it wholesale is why the
+overall history character cap had to move from 4000 to 12000 — a couple of
+turns' worth of SQL/definition text no longer fits in 4000 alongside the
+answer prose and the 8-entry window.
+
+**Live build-step ticker.** `POST /api/reporting/ai/agent` with `"stream": true` (see
+`docs/howto/reporting.md` → **Agent endpoint contract → Live progress** for
+the NDJSON wire format) emits `{"phase": "thinking"|"note"|"tool", ...}`
+lines as the loop runs; the chat panel (`_reporting_ai_js.html`) turns these
+into a two-part live status rather than a single rotating line (#178 A1):
+
+- A **title line** — `"Asking the AI…"` initially, the model's own tool-turn
+  preamble when `phase: "note"` carried one (truncated to 120 chars,
+  rendered via `textContent` only — it is untrusted model output), or
+  `"Thinking… (N)"` on `phase: "thinking"` turns after the first.
+- A **growing ordered list of build steps**, one appended per `phase: "tool"`
+  event, labeled from the tool name (`build_definition` → "Building the
+  report…", `validate_sql` → "Checking the query…", `run_sql` → "Running the
+  query…", `compute_stats` → "Crunching the numbers…", unknown tool names
+  fall back to a generic "Working…"). The stream carries no explicit
+  per-tool *completion* event, so the previous step is marked done the
+  moment the *next* one starts (or never, if it was the last tool call
+  before the final `done` line) — "the next thing starting" is the only
+  completion signal there is.
 
 **UI behavior:** see `docs/howto/reporting.md` → **AI assistant → AI chat
 panel** for the toggle, panel, action-chip, and follow-up-chip behavior — that
@@ -454,33 +508,40 @@ the route 503s). Only `ok`/`error` count toward the daily cap, so `blocked` and
 
 ## 9. UX integration
 
-**As shipped (2026-07-27):** a single **"AI chat"** toggle in the masthead
+**As shipped (2026-08-06):** a single **"AI chat"** toggle in the masthead
 (gated by `reporting.ai.use`, both tabs) opens one docked slide-over chat panel
 — not the originally-envisioned third **Table / SQL / Ask AI** toggle with
 separate sub-modes. That richer per-surface chrome (a `Run`/`Copy SQL` button
 row, a distinct "Make a chart" action, a live `Explain this query` affordance)
 was never built as separate UI; the panel instead exposes one small, consistent
-action set per turn (**Open in builder**, **Insert into SQL editor**, **Show
+action set per turn (**Open report**, **Insert into SQL editor**, **Show
 query**, plus canned follow-up chips) — see `docs/howto/reporting.md` → **AI
 assistant → AI chat panel** for the exact behavior. What *did* ship as
 originally envisioned:
 
 - **Conversational follow-ups** ("now break it down by month", "only Generali",
   "as a chart") — via the chat panel's `history` param (§2b), not a separate
-  per-message streaming UI (turns are request/response, not token-streamed).
+  per-message streaming UI (turns are request/response, not token-streamed);
+  each turn's produced SQL/definition rides along in `history` too (§2b
+  **artifact-carrying history**), so a presentation-only follow-up stays on
+  the same data instead of the model re-deriving it from its own prose.
 - **Visible tool steps for trust** — the collapsed "How the agent worked" trace
-  per turn.
-- **Open in builder** (fills the wells from an agent-produced definition),
-  **Insert into SQL editor** (review then run via the existing sandbox).
+  per turn, plus a **live build-step ticker** while a turn is in flight (§2b)
+  narrating which tool the agent is currently running.
+- **Open report** (opens an agent-produced definition straight into the
+  Simple result view via `window.ReportingSimple.openDefinition()`, #178
+  A4 — falls back to filling the Advanced builder wells if that seam isn't
+  loaded), **Insert into SQL editor** (review then run via the existing
+  sandbox).
 - Transparency first: the tool trace and any SQL are always inspectable before
   the user acts on them.
 - i18n: all new strings via `{{ _('…') }}` / `gettext`, de/fr/it (the
   `test_translations.py` gate enforces coverage).
 
 Not built: a dedicated **Make a chart** one-click action from a chat turn (the
-user reaches charting via **Open in builder** → the existing chart view), a
+user reaches charting via **Open report** → the existing chart view), a
 **Save as report** / **Schedule** action directly from the chat panel (same —
-via **Open in builder**), and streamed (token-by-token) responses.
+via **Open report**), and streamed (token-by-token) responses.
 
 ---
 

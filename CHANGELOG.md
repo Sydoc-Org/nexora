@@ -61,6 +61,26 @@ Work toward the next release.
   `compute_avg_processing_time` helper (`nx_lib/views/dashboard.py`) so the
   dashboard and the API can never drift apart. Documented in
   `docs/howto/external-api.md` and the in-app `/api-docs` page.
+- **External API: workitem query + detail** (#197) — `GET /api/v1/workitems`
+  filters workitems with the Workitems overview page's filter set (workitem
+  id, status, stage, modified-date range, process, repeated doc-field pairs
+  incl. invoice number) scoped to the key's `ProcessList`, returning
+  id/client/status/stage/modified_at/import_datetime rows;
+  `GET /api/v1/workitems/<id>?client=` returns the row-expand document
+  details (extracted fields + table values, sensitive fields stripped, no
+  media/confidence/locations) with a uniform 404 for unknown and
+  out-of-scope ids. Both endpoints fail **closed** (500) when the
+  sensitive-field list can't be loaded (the in-app fail-open stays in-app;
+  `get_sensitive_field_keys/tokens` now cache only on success and signal
+  failure as `None`), and doc-field pairs are capped at 10 per request. Both ship with `/api/test/v1/...` sandbox twins and are
+  documented in `docs/howto/external-api.md` and on `/api-docs`. Internally
+  the overview's `_get_workitems_data` gained a session-less `scope`
+  parameter and the detail panel's fetch core moved to a shared
+  `_load_media_info` — one code path for UI and API. Supersedes the
+  unreleased single-purpose `GET /api/v1/invoice/import_datetime` (#195):
+  the same lookup is now `?field=invoicenr&value=<nr>&op=eq`, with the
+  import datetime on the result row
+  (`resolve_import_datetimes`, `nx_lib/views/dashboard.py`).
 - **What's New page** (#169) — `/whats_new` (profile dropdown and Ctrl+K),
   showing curated, translated per-release feature notes authored in
   `nx_lib/whats_new.py` at release time (the raw `CHANGELOG.md` stays
@@ -214,6 +234,17 @@ Work toward the next release.
 
 ### Fixed
 
+- Admin: the dev-server env switch works in both directions (#198). Restarting
+  into STAGING made the "Restart nexora" control disappear, stranding the
+  instance there: STAGING resolves *every* database — NexoraDB included — via
+  `DB_SERVER_PRD`, i.e. the prod server, where the `admin.restart` permission
+  row from migration `0059` does not exist. The control and `POST
+  /api/admin/restart` now also accept a loopback caller (the trust rule the
+  `/dev/*` routes already use), so a missing permission row in whichever
+  NexoraDB the current environment points at can no longer strand the dev
+  server. The template's guard also stopped depending on an `is_prod` variable
+  the route never passed (always undefined, so always truthy) and uses the
+  route-computed `can_restart` instead.
 - Reporting user guide corrected against verified page behaviour: coverage-badge
   denominators (measures count all accessible processes, categories the current
   selection), per-pane chart caps, the drill-drawer export's 100-row cap, the

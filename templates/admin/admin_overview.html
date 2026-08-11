@@ -19,7 +19,7 @@
             icon='fa-shield-halved'
         ) }}
 
-        {% if not is_prod and has_permission('admin.restart') %}
+        {% if can_restart %}
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
             <select id="nx-restart-env" class="nx-select" style="width:auto"
                     data-testid="admin-overview-restart-env">
@@ -129,7 +129,7 @@
         </div>
     </main>
 
-    {% if not is_prod and has_permission('admin.restart') %}
+    {% if can_restart %}
     <script nonce="{{ csp_nonce() }}">
         const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
         document.getElementById("nx-restart-btn")?.addEventListener("click", async (e) => {
@@ -162,7 +162,7 @@
                         clearInterval(poll);
                         // restart dropped the in-memory session — log back in via the
                         // dev-only login and land where we were (this whole script is
-                        // inside the not-is_prod guard, so never rendered on PROD)
+                        // inside the can_restart guard, which is False on PROD)
                         window.location.href = `${API_PREFIX}dev/login/{{ logged_in_user }}?next=`
                             + encodeURIComponent(window.location.pathname + window.location.search);
                     }

@@ -141,6 +141,7 @@ def admin_dashboard():
         failed_logins_today=failed_logins_today,
         db_health=db_health,
         current_env=os.environ.get("ENVIRONMENT", "?"),
+        can_restart=_restart_allowed(),
         logged_in_user=session.get("username"),
         userid=session.get("userid"),
         pageV=page_visibility(),
@@ -331,7 +332,21 @@ def admin_status_view():
 _SWITCHABLE_ENVS = {"INT", "STAGING"}
 
 
-@require_permission("admin.restart")
+def _restart_allowed():
+    """May this caller restart / env-switch the dev server?
+
+    The ``admin.restart`` permission lives in NexoraDB, and STAGING resolves
+    NexoraDB to the prod server (DB_SERVER_PRD) where the row from migration
+    0059 doesn't exist — so on STAGING the control vanished and the env switch
+    was one-way (#198). Loopback callers are therefore allowed regardless of the
+    permission, the same trust rule the /dev/* routes use (#193). PROD is out
+    either way: it's IIS-hosted, where restarting means recycling the app pool.
+    """
+    if IS_PROD:
+        return False
+    return has_permission("admin.restart") or request.remote_addr in ("127.0.0.1", "::1")
+
+
 def api_admin_restart():
     """Restart the local dev server process (issue #184). Dev-only — 404s on PROD
     since PROD is IIS-hosted and restarting there means recycling the app pool,
@@ -344,6 +359,8 @@ def api_admin_restart():
     nx.ps1 itself, so no need to re-check it here."""
     if IS_PROD:
         abort(404)
+    if not _restart_allowed():
+        abort(403)
     target_env = (request.get_json(silent=True) or {}).get("env")
     if target_env is not None and target_env not in _SWITCHABLE_ENVS:
         return jsonify({"success": False, "message": _("Unknown environment.")}), 400

@@ -2436,3 +2436,29 @@ html.dark .rdb-add-pill:hover { border-color: var(--nx-accent); }
   font-size: 10px; font-style: normal; border-radius: 999px;
   background: color-mix(in srgb, var(--nx-accent) 14%, transparent);
   color: var(--nx-accent); vertical-align: 1px; }
+
+/* #178 A1 — live build-step list inside the chat ticker */
+.rp-chat-build { display: block; }
+.rp-chat-build .rp-build-title { display: flex; align-items: center; gap: 4px; }
+.rp-build-steps { margin: 6px 0 0; padding: 0 0 0 2px; list-style: none;
+  display: flex; flex-direction: column; gap: 3px; }
+.rp-build-step { font-size: 12px; color: var(--nx-text-soft, #6b7280);
+  display: flex; align-items: center; gap: 6px; }
+.rp-build-step::before { content: ""; width: 10px; height: 10px; flex: 0 0 10px;
+  border-radius: 50%; border: 2px solid currentColor; opacity: .45; }
+.rp-build-step.is-running::before { border-top-color: transparent;
+  animation: rp-build-spin .7s linear infinite; opacity: .9; }
+.rp-build-step.is-done { opacity: .75; }
+.rp-build-step.is-done::before { content: "✓"; border: 0; width: auto; height: auto;
+  font-size: 11px; line-height: 1; opacity: 1; color: var(--nx-accent, #4f46e5); }
+@keyframes rp-build-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .rp-build-step.is-running::before { animation: none; }
+}
+
+/* #178 D11 -- dashboard report card */
+.rdb-report-total { display: flex; align-items: baseline; gap: 8px; margin: 2px 0 8px; }
+.rdb-report-total-value { font-size: 24px; font-weight: 700; }
+.rdb-report-total-label { font-size: 11.5px; color: var(--nx-text-soft, #6b7280);
+  text-transform: uppercase; letter-spacing: .04em; }
+.rdb-report-chart { min-height: 180px; position: relative; }

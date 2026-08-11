@@ -188,7 +188,32 @@ def _resolve_horizon(raw, n):
         return min(AUTO_HORIZON_CAP, max(3, round(n / 4)))
 
 
-def compute_forecast(definition, columns, rows):
+def _bucket_count(rows, grain):
+    """Zero-filled bucket span for `rows`, mirroring compute_forecast's own
+    dates construction below. Returns None if the rows can't be parsed into
+    an aligned bucket series (caller then just skips the override)."""
+    ds = []
+    for r in rows:
+        d = _as_date(r[0])
+        if d is None:
+            return None
+        ds.append(d)
+    if not ds:
+        return None
+    ds.sort()
+    filled, d = [], ds[0]
+    last = ds[-1]
+    while d <= last:
+        if len(filled) > 2000:
+            return None
+        filled.append(d)
+        d = _step(d, grain)
+    if filled[-1] != last:
+        return None
+    return len(filled)
+
+
+def compute_forecast(definition, columns, rows, visible_rows=None):
     """Forecast block for one run result, or {"unavailable": reason}.
 
     Applies only to the single-date-dimension aggregate shape (D2): exactly
@@ -196,6 +221,13 @@ def compute_forecast(definition, columns, rows):
     zero-filled between its min and max bucket before fitting (GROUP BY
     drops empty buckets; fitting the sparse series would corrupt the trend).
     Never raises on user data.
+
+    `visible_rows`: when `rows` comes from a widened lookback refit (more
+    history than what the user actually sees, for fit quality only — #178),
+    pass the report's original, un-widened rows here so the auto horizon
+    still resolves from what's on screen, not from the wider fit window.
+    Omit (or pass the same rows) when there is no widening — the auto
+    horizon then resolves from `rows` itself, unchanged from before.
     """
     dims = definition.get("columns") or []
     metrics = definition.get("metrics") or []
@@ -227,7 +259,12 @@ def compute_forecast(definition, columns, rows):
     if dates[-1] != last:  # bucket starts not aligned to the grain steps
         return {"unavailable": "bad_buckets"}
 
-    horizon = _resolve_horizon((definition.get("forecast") or {}).get("horizon"), len(dates))
+    horizon_n = len(dates)
+    if visible_rows is not None:
+        visible_n = _bucket_count(visible_rows, grain)
+        if visible_n is not None:
+            horizon_n = visible_n
+    horizon = _resolve_horizon((definition.get("forecast") or {}).get("horizon"), horizon_n)
     series_out, future, method = [], None, None
     for mi in range(len(metrics)):
         values = []
