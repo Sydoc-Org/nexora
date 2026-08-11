@@ -7,7 +7,7 @@ dashboard route tests.
 """
 
 import io
-from datetime import datetime, time
+from datetime import date, datetime, time, timedelta
 from unittest.mock import patch
 
 from openpyxl import load_workbook
@@ -595,6 +595,91 @@ def test_runner_dry_run_processes_due_table_report(admin_client):
         conn.commit()
         conn.close()
         admin_client.delete(f"/api/reporting/reports/{rid}")
+        admin_client.delete(f"/api/reporting/admin/sources/{src_id}")
+
+
+def test_zero_dim_latest_metric_run_constrains_to_latest_bucket(admin_client):
+    """#178 coverage gap: prove _prepare_run's decision logic (not just
+    build_generic_query directly) computes and passes latest_of end-to-end.
+    Mirrors backlog_history/backlog_total's shape (migrations 0053-0056):
+    one metric, TotalMode='latest', one grainable field, zero-dim run. The
+    admin metrics API has no TotalMode write path (Task 8 only wired the
+    read path + the 0056 seed for backlog_total), so TotalMode is flipped
+    via direct SQL after creating the metric, same idiom the runner test
+    above uses for ReportSchedules."""
+    src = admin_client.post(
+        "/api/reporting/admin/sources",
+        json={
+            "code": "latest_test_src",
+            "kind": "curated",
+            "label": "Latest Test Src",
+            "permission": "reporting.source.docprocessing",
+            "provider": "table",
+            "engine": "nexora",
+            "baseObject": "dbo.Users",
+            "columns": [
+                {
+                    "field": "LastLoginAt",
+                    "label": "Last Login",
+                    "type": "datetime",
+                    "filterable": True,
+                    "sortable": True,
+                    "grainable": True,
+                }
+            ],
+            "enabled": True,
+            "sortOrder": 17,
+        },
+    )
+    src_id = src.get_json()["id"]
+    met = admin_client.post(
+        "/api/reporting/admin/metrics",
+        json={
+            "code": "latest_test_metric",
+            "sourceId": "latest_test_src",
+            "label": "Latest Test Metric",
+            "aggregation": "count",
+            "enabled": True,
+            "sortOrder": 17,
+        },
+    )
+    mid = met.get_json()["id"]
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE dbo.ReportingMetrics SET TotalMode = 'latest' WHERE Code = ?",
+            ("latest_test_metric",),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    try:
+        resp = admin_client.post(
+            "/api/reporting/run",
+            json={
+                "schemaVersion": 1,
+                "source": "latest_test_src",
+                "visualization": "table",
+                "title": "Latest total",
+                "columns": [],
+                "filters": [],
+                "sort": [],
+                "scope": {},
+                "rowLimit": 10,
+                "metrics": [{"metric": "latest_test_metric"}],
+            },
+        )
+        assert resp.status_code == 200, resp.data
+        sql = resp.get_json()["sql"]
+        # The decisive proof: _prepare_run computed latest_of="LastLoginAt"
+        # (from the one grainable field + the all-'latest' modes set) and
+        # passed it through -- build_generic_query's MAX() subquery fired.
+        assert "SELECT MAX([LastLoginAt]) FROM [dbo].[Users]" in sql
+        assert "[LastLoginAt] = (SELECT MAX([LastLoginAt])" in sql
+    finally:
+        admin_client.delete(f"/api/reporting/admin/metrics/{mid}")
         admin_client.delete(f"/api/reporting/admin/sources/{src_id}")
 
 
@@ -1301,6 +1386,97 @@ def test_export_forecast_appends_marker_rows(admin_client):
     assert text.count("forecast") == 3  # horizon 3 marker rows
 
 
+# --- forecast: grain-dependent lookback widens the fit window (#178) ---
+
+_FC_WIDE_DEF = {
+    "schemaVersion": 1,
+    "visualization": "table",
+    "source": "docprocessing",
+    "title": "Imports by day",
+    "columns": [{"field": "import_date", "grain": "day"}],
+    "metrics": [{"metric": "doc_count"}],
+    "filters": [{"field": "import_date", "op": "between", "value": {"token": "this_month"}}],
+    "sort": [],
+    "scope": {"clients": [], "processes": []},
+    "rowLimit": 5000,
+    "forecast": {"enabled": True, "horizon": 3},
+}
+
+_FC_WIDE_COLS = [{"field": "import_date"}, {"field": "doc_count"}]
+# Visible chart window: only 6 daily buckets (a real "this month, day grain"
+# window) — nowhere near enough for a seasonal fit on its own.
+_FC_WIDE_VISIBLE_ROWS = [[f"2026-08-{d:02d}", 10 + d] for d in range(1, 7)]
+# Widened fit window: 60 contiguous daily buckets with a weekend dip, so
+# trend_seasonal can only have come from the widened rerun.
+_FC_WIDE_WIDE_START = date(2026, 6, 6)
+_FC_WIDE_WIDE_ROWS = [
+    [
+        (_FC_WIDE_WIDE_START + timedelta(days=d)).isoformat(),
+        4 if (_FC_WIDE_WIDE_START + timedelta(days=d)).weekday() >= 5 else 10,
+    ]
+    for d in range(60)
+]
+
+
+def test_run_forecast_fits_on_widened_history_not_visible_window(admin_client):
+    with (
+        patch(
+            "nx_lib.views.reporting._prepare_run",
+            side_effect=[
+                (_FC_WIDE_COLS, "SELECT 1", [], None),
+                (_FC_WIDE_COLS, "SELECT 2", [], None),
+            ],
+        ) as mock_prepare,
+        patch(
+            "nx_lib.views.reporting._execute",
+            side_effect=[_FC_WIDE_VISIBLE_ROWS, _FC_WIDE_WIDE_ROWS],
+        ),
+    ):
+        resp = admin_client.post("/api/reporting/run", json=_FC_WIDE_DEF)
+    assert resp.status_code == 200
+    body = resp.get_json()
+    # The visible chart response is unaffected by the wider fit window.
+    assert body["rows"] == _FC_WIDE_VISIBLE_ROWS
+    assert mock_prepare.call_count == 2
+    widened_rd = mock_prepare.call_args_list[1].args[0]
+    widened_filter = widened_rd["filters"][0]
+    assert widened_filter["op"] == "between"
+    assert isinstance(widened_filter["value"], list) and len(widened_filter["value"]) == 2
+    assert "compare" not in widened_rd
+    fc = body.get("forecast")
+    assert fc and fc.get("method") == "trend_seasonal"
+
+
+def test_export_forecast_fits_on_widened_history_not_visible_window(admin_client):
+    # Same widen-refit-with-fallback as api_run (via the shared _forecast_for
+    # helper) — the export's forecast must not silently regress to a
+    # trend-only fit on the 6-row visible window (#178 finding 2).
+    body = dict(_FC_WIDE_DEF, format="csv")
+    with (
+        patch(
+            "nx_lib.views.reporting._prepare_run",
+            side_effect=[
+                (_FC_WIDE_COLS, "SELECT 1", [], None),
+                (_FC_WIDE_COLS, "SELECT 2", [], None),
+            ],
+        ) as mock_prepare,
+        patch(
+            "nx_lib.views.reporting._execute",
+            side_effect=[_FC_WIDE_VISIBLE_ROWS, _FC_WIDE_WIDE_ROWS],
+        ),
+    ):
+        resp = admin_client.post("/api/reporting/export", json=body)
+    assert resp.status_code == 200
+    assert mock_prepare.call_count == 2
+    widened_rd = mock_prepare.call_args_list[1].args[0]
+    assert widened_rd["filters"][0]["op"] == "between"
+    assert "compare" not in widened_rd
+    text = resp.data.decode("utf-8-sig")
+    # horizon 3 (explicit in _FC_WIDE_DEF) -> 3 marker rows; only reachable if
+    # the widened rerun actually produced a usable (non-unavailable) fit.
+    assert text.count("forecast") == 3
+
+
 def test_runner_forecast_export_rows_failure_still_sends_mail(admin_client):
     # A forecast_export_rows failure must degrade to the unmarked attachment,
     # not skip the mail or stall NextRunAt (#168).
@@ -1389,3 +1565,104 @@ def test_runner_forecast_export_rows_failure_still_sends_mail(admin_client):
         conn.close()
         admin_client.delete(f"/api/reporting/reports/{rid}")
         admin_client.delete(f"/api/reporting/admin/sources/{src_id}")
+
+
+def _create_field_values_source(admin_client):
+    """A 'backlog_history'-shaped table source (#178), created dynamically
+    since the TEST NexoraDB fixture doesn't seed the real migration-0053 row.
+    Reuses the already-granted reporting.source.docprocessing permission,
+    same idiom as test_zero_dim_latest_metric_run_constrains_to_latest_bucket."""
+    src = admin_client.post(
+        "/api/reporting/admin/sources",
+        json={
+            "code": "field_values_test_src",
+            "kind": "curated",
+            "label": "Field Values Test Src",
+            "permission": "reporting.source.docprocessing",
+            "provider": "table",
+            "engine": "nexora",
+            "baseObject": "dbo.Users",
+            "columns": [
+                {
+                    "field": "username",
+                    "label": "Username",
+                    "type": "string",
+                    "filterable": True,
+                    "sortable": True,
+                },
+                {
+                    "field": "locale",
+                    "label": "Locale",
+                    "type": "string",
+                    "filterable": False,
+                    "sortable": True,
+                },
+            ],
+            "enabled": True,
+            "sortOrder": 18,
+        },
+    )
+    return src.get_json()["id"]
+
+
+def test_field_values_returns_distinct_values(admin_client):
+    """#178: /api/reporting/field_values returns the distinct values (from
+    _execute) of a whitelisted filterable field of a table source, unwrapped
+    from row tuples into a flat list."""
+    src_id = _create_field_values_source(admin_client)
+    fake_rows = [["01_EasyTax"], ["03_Invoice_New"]]
+    try:
+        with patch("nx_lib.views.reporting._execute", return_value=fake_rows) as mock_execute:
+            resp = admin_client.post(
+                "/api/reporting/field_values",
+                json={"source": "field_values_test_src", "field": "username"},
+            )
+        assert resp.status_code == 200, resp.data
+        assert resp.get_json() == {"values": ["01_EasyTax", "03_Invoice_New"]}
+        mock_execute.assert_called_once()
+        sql = mock_execute.call_args[0][1]
+        assert "SELECT DISTINCT TOP (100) [username]" in sql
+        assert "[dbo].[Users]" in sql
+    finally:
+        admin_client.delete(f"/api/reporting/admin/sources/{src_id}")
+
+
+def test_field_values_unknown_field_returns_400(admin_client):
+    """An unwhitelisted (and a non-filterable) field is rejected with 400
+    before any query executes."""
+    src_id = _create_field_values_source(admin_client)
+    try:
+        with patch("nx_lib.views.reporting._execute") as mock_execute:
+            resp = admin_client.post(
+                "/api/reporting/field_values",
+                json={"source": "field_values_test_src", "field": "Nope"},
+            )
+        assert resp.status_code == 400
+        assert "error" in resp.get_json()
+        mock_execute.assert_not_called()
+
+        with patch("nx_lib.views.reporting._execute") as mock_execute:
+            resp = admin_client.post(
+                "/api/reporting/field_values",
+                json={"source": "field_values_test_src", "field": "locale"},
+            )
+        assert resp.status_code == 400
+        mock_execute.assert_not_called()
+    finally:
+        admin_client.delete(f"/api/reporting/admin/sources/{src_id}")
+
+
+def test_field_values_unknown_source_returns_400(admin_client):
+    resp = admin_client.post(
+        "/api/reporting/field_values",
+        json={"source": "does_not_exist", "field": "username"},
+    )
+    assert resp.status_code == 400
+
+
+def test_field_values_without_perm_403(user_client):
+    resp = user_client.post(
+        "/api/reporting/field_values",
+        json={"source": "field_values_test_src", "field": "username"},
+    )
+    assert resp.status_code == 403

@@ -120,7 +120,24 @@ def _build_conditions(rd, by_field):
     return conds, params
 
 
-def build_generic_query(rd, base_object, columns, *, row_cap, resolved_metrics=None):
+def build_distinct_query(field, base_object, columns, *, cap=100):
+    """SELECT DISTINCT TOP (cap) values of one whitelisted, filterable
+    column — feeds the wizard's field-scope step (#178). No params: field
+    and object are identifier-validated/quoted, cap is int-coerced."""
+    by_field = {c["field"]: c for c in columns}
+    meta = by_field.get(field)
+    if meta is None or not meta.get("filterable"):
+        raise TableQueryError(f"unknown or unfilterable field: {field!r}")
+    col = _quote_ident(field)
+    return (
+        f"SELECT DISTINCT TOP ({int(cap)}) {col} FROM {_quote_object(base_object)} "
+        f"WHERE {col} IS NOT NULL ORDER BY {col}"
+    )
+
+
+def build_generic_query(
+    rd, base_object, columns, *, row_cap, resolved_metrics=None, latest_of=None
+):
     """Build (sql, params) for a 'table' source.
 
     columns: the source field-catalog (table_source_catalog output). Projects
@@ -150,6 +167,17 @@ def build_generic_query(rd, base_object, columns, *, row_cap, resolved_metrics=N
         # yields a global aggregate with no GROUP BY.
         where = (" WHERE " + " AND ".join(conds)) if conds else ""
         inner_from = f"{_quote_object(base_object)}{where}"
+        # #178: a 'latest' total aggregates only the newest bucket of the
+        # snapshot date field — summing point-in-time snapshots across time
+        # is meaningless. Caller passes latest_of only for zero-dim runs.
+        if latest_of and not dim_fields:
+            if latest_of not in by_field:
+                raise TableQueryError(f"unknown latest_of field: {latest_of!r}")
+            col = _quote_ident(latest_of)
+            sub = f"(SELECT MAX({col}) FROM {_quote_object(base_object)}{where})"
+            glue = " AND " if conds else " WHERE "
+            inner_from = f"{inner_from}{glue}{col} = {sub}"
+            params = params + params  # outer WHERE params, then the subquery's
         sql = build_aggregate_sql(
             inner_from=inner_from,
             dim_fields=dim_fields,

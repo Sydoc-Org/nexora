@@ -156,6 +156,27 @@ def test_metrics_api_groups_by_accessible_source(admin_client):
         admin_client.delete(f"/api/reporting/admin/metrics/{mid}")
 
 
+def test_metrics_payload_carries_total_mode(admin_client):
+    create = admin_client.post(
+        "/api/reporting/admin/metrics",
+        json={
+            "code": "api_total_mode_probe",
+            "sourceId": "docprocessing",
+            "label": "Total mode probe",
+            "aggregation": "count",
+            "format": "int",
+        },
+    )
+    mid = create.get_json()["id"]
+    try:
+        resp = admin_client.get("/api/reporting/metrics")
+        assert resp.status_code == 200
+        items = [m for grp in resp.get_json().values() for m in grp]
+        assert items and all("totalMode" in m for m in items)
+    finally:
+        admin_client.delete(f"/api/reporting/admin/metrics/{mid}")
+
+
 # --- Metric resolution through /api/reporting/run --------------------------
 
 _DOCPROC_SOURCE = {

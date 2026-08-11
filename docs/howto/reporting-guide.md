@@ -69,7 +69,7 @@ guide as an app page.
 
 - Name the measure, the time range and the processes: *"invoices by process,
   last 3 months"* beats *"show me invoices"*.
-- Check what the AI built with **Open in builder** — the filters and process
+- Check what the AI built with **Open report** — the filters and process
   scope it chose are visible there before you trust the number.
 - Follow-ups work: the chat remembers the conversation, so *"now only this
   quarter"* refines the last answer.
@@ -93,7 +93,7 @@ all produce the same kind of report; pick whichever suits you.
 | **Advanced builder** | Advanced tab | You want exact control: pick individual columns, several filters, custom sort, custom headers. |
 
 You can start in one and move to another: any result has an **Open in Advanced**
-button, and the AI's answers have an **Open in builder** chip.
+button, and the AI's answers have an **Open report** chip.
 
 ### Way 1 — the guided builder
 
@@ -160,10 +160,11 @@ and answers there.
   you can unfold to see each step it took. If a **Continue** button appears
   under an answer, the agent ran out of budget mid-way — one click resumes it
   with more room; try that before rephrasing.
-- If it built a report, an **Open in builder** chip drops it into the Advanced
-  builder. **Use it.** The filters and process scope the AI chose are visible
-  there — a wrong guess (wrong date range, wrong process) shows up immediately,
-  and you can adjust before trusting the number.
+- If it built a report, an **Open report** chip opens it in the results view.
+  **Use it.** The filters and process scope the AI chose are visible there —
+  a wrong guess (wrong date range, wrong process) shows up immediately, and
+  you can adjust before trusting the number. From there, **Open in Advanced**
+  reaches the builder if you need it.
 - It remembers the conversation, so "…now only this quarter" works as a
   follow-up. Three follow-up chips are offered for you.
 

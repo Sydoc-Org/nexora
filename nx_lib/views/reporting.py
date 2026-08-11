@@ -108,6 +108,7 @@ from ..reporting.sources import (
 from ..reporting.sqlformat import format_sql, inline_sql_params
 from ..reporting.table_query import (
     TableQueryError,
+    build_distinct_query,
     build_generic_query,
     table_source_catalog,
 )
@@ -116,6 +117,7 @@ from ..reporting.tokens import (
     resolve_definition_tokens,
     resolve_token,
     shifted_definition_for_comparison,
+    widened_definition_for_forecast,
 )
 from ..security import has_permission, page_visibility, require_permission
 
@@ -220,7 +222,7 @@ def _load_db_metrics():
         cur = conn.cursor()
         cur.execute(
             "SELECT Code, SourceId, Label, GermanLabel, FrenchLabel, ItalianLabel, "
-            "Aggregation, BaseField, Description, Format, Enabled, SortOrder "
+            "Aggregation, BaseField, Description, Format, Enabled, SortOrder, TotalMode "
             "FROM dbo.ReportingMetrics WHERE Enabled = 1"
         )
         out = {}
@@ -237,6 +239,7 @@ def _load_db_metrics():
                 "description": r.Description,
                 "format": r.Format,
                 "sort_order": r.SortOrder,
+                "total_mode": (getattr(r, "TotalMode", None) or "sum"),
             }
         return out
     except Exception as e:
@@ -263,7 +266,11 @@ def _metric_label(m):
 def _metrics_for_source(source_id):
     """Enabled metrics bound to `source_id` as {code: {aggregation, base_field}}."""
     return {
-        code: {"aggregation": m["aggregation"], "base_field": m["base_field"]}
+        code: {
+            "aggregation": m["aggregation"],
+            "base_field": m["base_field"],
+            "total_mode": m.get("total_mode", "sum"),
+        }
         for code, m in _load_db_metrics().items()
         if m["source_id"] == source_id
     }
@@ -918,12 +925,21 @@ def _prepare_run(rd):
             if rd.get("metrics")
             else None
         )
+        latest_of = None
+        if resolved and not (rd.get("columns") or []):
+            modes = {
+                (source_metrics.get(m["code"]) or {}).get("total_mode", "sum") for m in resolved
+            }
+            date_candidates = [f["field"] for f in catalog if f.get("grainable")]
+            if modes == {"latest"} and len(date_candidates) == 1:
+                latest_of = date_candidates[0]
         sql, params = build_generic_query(
             rd,
             source.get("baseObject"),
             catalog,
             row_cap=rd.get("rowLimit", DEFAULT_ROW_LIMIT),
             resolved_metrics=resolved,
+            latest_of=latest_of,
         )
         engine = _CURATED_ENGINES.get(source.get("engine"))
         if engine is None:
@@ -945,6 +961,27 @@ def _execute(engine, sql, params):
         return [list(r) for r in cur.fetchall()]
     finally:
         conn.close()
+
+
+def _forecast_for(rd, columns, rows):
+    """Forecast block for one run result — shared by /api/reporting/run and
+    /api/reporting/export so both surfaces produce the same forecast (#178).
+
+    Refits on a widened lookback window when the definition qualifies (real
+    history beats the visible window for fit quality), falling back to the
+    visible rows on any failure. The auto horizon still resolves from the
+    VISIBLE `rows` (via compute_forecast's `visible_rows` param) so widening
+    the lookback changes fit quality only, never how many buckets project.
+    """
+    fit_columns, fit_rows = columns, rows
+    widened = widened_definition_for_forecast(rd)
+    if widened is not None:
+        try:
+            w_columns, w_sql, w_params, w_engine = _prepare_run(widened)
+            fit_columns, fit_rows = w_columns, _execute(w_engine, w_sql, w_params)
+        except Exception as e:
+            current_app.logger.warning(f"reporting forecast lookback skipped: {e}")
+    return compute_forecast(rd, fit_columns, fit_rows, visible_rows=rows)
 
 
 def _json_safe(value):
@@ -1182,7 +1219,7 @@ def api_run():
     fc_req = rd.get("forecast")
     if isinstance(fc_req, dict) and fc_req.get("enabled"):
         try:
-            payload["forecast"] = compute_forecast(rd, columns, rows)
+            payload["forecast"] = _forecast_for(rd, columns, rows)
         except Exception as e:  # a forecast must never take down the run
             current_app.logger.warning(f"/api/reporting/run forecast skipped: {e}")
     # rd is the original request body (tokens intact) — _prepare_run resolves
@@ -1603,7 +1640,7 @@ def api_ai_agent():
         ):
             history.append({"role": h["role"], "content": h["content"]})
     history = history[-8:]
-    while history and sum(len(h["content"]) for h in history) > 4000:
+    while history and sum(len(h["content"]) for h in history) > 12000:
         history.pop(0)
 
     # Issue #153: "Continue" past a max_turns/budget dead-end re-runs the same
@@ -1790,7 +1827,7 @@ def api_ai_agent():
             elif definition is not None:
                 answer = _(
                     "I couldn't write a summary this time, but I did produce a "
-                    "report draft — use “Open in builder” below to run it."
+                    "report draft — use “Open report” below to run it."
                 )
             elif sql:
                 answer = _(
@@ -2091,7 +2128,7 @@ def api_export():
     fc_req = rd.get("forecast")
     if isinstance(fc_req, dict) and fc_req.get("enabled"):
         try:
-            fc = compute_forecast(rd, columns, rows)
+            fc = _forecast_for(rd, columns, rows)
             if fc and not fc.get("unavailable"):
                 columns, rows, forecast_start = forecast_export_rows(
                     columns, rows, fc, marker_header=_("Forecast")
@@ -3031,6 +3068,40 @@ def api_admin_metrics_delete(metric_id):
 
 
 @require_permission("reporting.view")
+@limiter.limit("30 per minute")
+def api_field_values():
+    """Distinct values of one whitelisted field of a table source (#178) —
+    powers the wizard's process-scope step for sources without a process
+    registry. Source-permission-gated; table provider only."""
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return jsonify({"error": _("Invalid JSON body")}), 400
+    source = _get_effective_source((body.get("source") or "").strip())
+    if (
+        source is None
+        or source.get("kind") != "curated"
+        or (source.get("provider") or "docprocessing") != "table"
+    ):
+        return jsonify({"error": _("Unknown or unsupported source")}), 400
+    if not has_permission(source["permission"]):
+        return jsonify({"error": _("Not authorized for this source")}), 403
+    engine = _CURATED_ENGINES.get(source.get("engine"))
+    if engine is None:
+        return jsonify({"error": _("Source engine is not configured")}), 503
+    catalog, _fields, _filterable, _sortable = _catalog_for_source(source)
+    try:
+        field = (body.get("field") or "").strip()
+        sql = build_distinct_query(field, source.get("baseObject"), catalog)
+        rows = _execute(engine, sql, [])
+    except TableQueryError as e:
+        return jsonify({"error": _("This request is invalid."), "detail": str(e)}), 400
+    except Exception as e:
+        current_app.logger.error(f"/api/reporting/field_values exec error: {e}")
+        return jsonify({"error": _("Could not load values")}), 500
+    return jsonify({"values": [r[0] for r in rows]})
+
+
+@require_permission("reporting.view")
 def api_metrics():
     """Accessible metrics grouped by source id -> [{code,label,aggregation,...}].
 
@@ -3054,6 +3125,7 @@ def api_metrics():
                 "aggregation": m["aggregation"],
                 "baseField": m["base_field"],
                 "format": m["format"],
+                "totalMode": m.get("total_mode", "sum"),
             }
         )
     return jsonify(out)
@@ -3122,6 +3194,12 @@ def register_routes(app):
         "/api/reporting/metrics",
         endpoint="reporting_metrics",
         view_func=api_metrics,
+    )
+    app.add_url_rule(
+        "/api/reporting/field_values",
+        endpoint="reporting_field_values",
+        view_func=api_field_values,
+        methods=["POST"],
     )
     app.add_url_rule("/api/reporting/sources", endpoint="reporting_sources", view_func=api_sources)
     app.add_url_rule(

@@ -95,6 +95,7 @@
     pillKpi: {{ _("KPI")|tojson }},
     pillTable: {{ _("Table")|tojson }},
     pillDonut: {{ _("Donut")|tojson }},
+    pillReport: {{ _("Report")|tojson }},
     dropHint: {{ _("or drop a saved report here")|tojson }},
     configureCard: {{ _("Click to configure this card")|tojson }},
     pickReport: {{ _("Choose a saved report")|tojson }},
@@ -138,7 +139,7 @@
   var state = { editing: false, dirty: false, reportId: null, canEdit: true,
                 dragId: null, overId: null, seq: 100, def: null };
 
-  var DEFAULT_SPAN = { kpi: 3, line: 8, donut: 4, bar: 6, table: 6 };
+  var DEFAULT_SPAN = { kpi: 3, line: 8, donut: 4, bar: 6, table: 6, report: 12 };
 
   function blankDef() {
     return { kind: 'dashboard', schemaVersion: 1, title: I18N.untitled,
@@ -1161,12 +1162,33 @@
     '</div>';
   }
 
+  // #178 D11: the closest 1:1 of the Simple result a card can be -- headline
+  // total over the grouped rows + the definition's own chart type, with the
+  // definition (grain, filters, sort) POSTed verbatim by cardRunDef.
+  function renderReportCard(card, body, columns, rows) {
+    destroyCardChart(card.id);
+    var idx = dimValIdx(columns);
+    var total = rows.reduce(function (a, r) { return a + (toNum(r[idx.val]) || 0); }, 0);
+    var head = '<div class="rdb-report-total" data-testid="rdb-report-total">' +
+      '<span class="rdb-report-total-value">' + esc(fmtNum(total)) + '</span>' +
+      '<span class="rdb-report-total-label">' + esc(I18N.total) + '</span></div>';
+    var chartHost = document.createElement('div');
+    body.innerHTML = head;
+    body.appendChild(chartHost);
+    chartHost.className = 'rdb-report-chart';
+    var t = (card.definition && card.definition.chartType) || 'line';
+    if (t === 'pie' || t === 'doughnut') return renderDonut(card, chartHost, columns, rows);
+    if (t === 'bar' || t === 'stacked') return renderBar(card, chartHost, columns, rows);
+    return renderLine(card, chartHost, columns, rows);
+  }
+
   function renderCardContent(card, body, columns, rows) {
     if (card.type === 'kpi') return renderKpi(card, body, columns, rows);
     if (card.type === 'line') return renderLine(card, body, columns, rows);
     if (card.type === 'bar') return renderBar(card, body, columns, rows);
     if (card.type === 'donut') return renderDonut(card, body, columns, rows);
     if (card.type === 'table') return renderTable(card, body, columns, rows);
+    if (card.type === 'report') return renderReportCard(card, body, columns, rows);
     body.textContent = '';
   }
 
@@ -1370,6 +1392,8 @@
           '<i class="fas fa-table" aria-hidden="true"></i>' + esc(I18N.pillTable) + '</button>' +
         '<button type="button" class="rdb-add-pill" data-testid="rdb-add-donut" data-add-type="donut">' +
           '<i class="fas fa-chart-pie" aria-hidden="true"></i>' + esc(I18N.pillDonut) + '</button>' +
+        '<button type="button" class="rdb-add-pill" data-testid="rdb-add-report" data-add-type="report">' +
+          '<i class="fas fa-window-maximize" aria-hidden="true"></i>' + esc(I18N.pillReport) + '</button>' +
       '</div>' +
       '<span class="rdb-add-tile-hint">' + esc(I18N.dropHint) + '</span>' +
     '</div>';

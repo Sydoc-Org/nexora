@@ -173,6 +173,54 @@ def shifted_definition_for_comparison(rd, today=None):
     return out, prior_start, prior_end_excl - datetime.timedelta(days=1)
 
 
+# #178: how far back the forecast fit may reach beyond the visible window,
+# per grain — enough buckets for the seasonal fit (day needs >= 2 weekday
+# cycles; see forecast._SEASON_PERIODS) without scanning unbounded history.
+_FORECAST_LOOKBACK_DAYS = {"day": 56, "week": 182, "month": 730, "quarter": 1460, "year": 2190}
+
+
+def widened_definition_for_forecast(rd, today=None):
+    """Same definition with its single relative-date window extended
+    backwards by a grain-dependent lookback, so the forecast fit sees real
+    history (weekend dips need weeks of daily buckets, not six days).
+
+    Applies only to the forecastable shape: exactly one column WITH a grain,
+    and exactly one token date filter (mirrors
+    shifted_definition_for_comparison's token-only ceiling). Returns the
+    widened copy (compare stripped — the caller only fits on it) or None.
+    """
+    cols = (rd or {}).get("columns") or []
+    grain = cols[0].get("grain") if len(cols) == 1 and isinstance(cols[0], dict) else None
+    lookback = _FORECAST_LOOKBACK_DAYS.get(grain)
+    if lookback is None:
+        return None
+    filters = rd.get("filters") or []
+    token_filters = [
+        f
+        for f in filters
+        if isinstance(f, dict) and isinstance(f.get("value"), dict) and "token" in f["value"]
+    ]
+    if len(token_filters) != 1:
+        return None
+    f = token_filters[0]
+    start, end = resolve_token(f["value"], today)
+    new_filters = [x for x in filters if x is not f]
+    new_filters.append(
+        {
+            "field": f["field"],
+            "op": "between",
+            "value": [
+                (start - datetime.timedelta(days=lookback)).isoformat(),
+                end.isoformat(),
+            ],
+        }
+    )
+    out = dict(rd)
+    out["filters"] = new_filters
+    out.pop("compare", None)
+    return out
+
+
 def date_fields_from_catalog(catalog):
     """Field keys that may carry a relative-date token: grainable (the
     docprocessing date fields) or date/datetime-typed (table sources)."""

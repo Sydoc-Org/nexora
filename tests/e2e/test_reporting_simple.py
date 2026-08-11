@@ -3113,6 +3113,24 @@ def test_wizard_allows_both_date_breakdowns(nexora_server, page):
     assert all(c.get("grain") for c in cols), cols
 
 
+def test_wizard_grain_visible_before_date_pick(nexora_server, page):
+    """#178 B8: the Granularity select is visible (disabled) as soon as the
+    breakdown step opens for a source with date fields, enabled once a date
+    breakdown is picked."""
+    _login(page, nexora_server)
+    _stub_wiz_catalogs(page, DOCPROC_WIZ_SOURCES, DOCPROC_WIZ_METRICS)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Docproc count stub").click()
+    page.get_by_test_id("rs-measure-next").click()
+    page.get_by_test_id("rs-scope-next").click()
+    grain_wrap = page.locator("#rsGrainWrap")
+    expect(grain_wrap).to_be_visible()
+    expect(page.locator("#rsGrain")).to_be_disabled()
+    page.locator('[data-bd-kind="date"]').first.click()
+    expect(page.locator("#rsGrain")).to_be_enabled()
+
+
 def test_wizard_shows_all_category_chips_uncapped(nexora_server, page):
     """The category-chip cap is GONE: every filterable string field renders a
     chip (the coverage sort keeps rarely-provided fields at the bottom, the
@@ -4082,3 +4100,347 @@ def test_forecast_trims_zero_filled_rows_past_anchor(nexora_server, page):
         page.locator("#rsTableWrap tbody tr:not(.is-forecast)", has_text="2025-07-01")
     ).to_have_count(0)
     expect(forecast_rows.first).to_contain_text("2025-07-01")
+
+
+def test_hero_hidden_outside_library_view(nexora_server, page):
+    """#178 B6: the 'Build a report in seconds' hero must vanish when a
+    wizard/result is open and come back in the library."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    expect(page.get_by_test_id("rs-hero")).to_be_visible()
+    page.get_by_test_id("rs-new-report").click()
+    expect(page.get_by_test_id("rs-hero")).to_be_hidden()
+    page.get_by_test_id("rs-wizard-backlib").first.click()
+    expect(page.get_by_test_id("rs-hero")).to_be_visible()
+
+
+def test_granularity_chip_changes_grain_and_reruns(nexora_server, page):
+    """#178 B7: a date-grained definition shows a Granularity chip; picking a
+    different grain re-POSTs the definition with the new grain."""
+    posted = []
+    _stub_run_ok(page, capture=posted)
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    # Open a grained definition through the exposed test seam (Task 4 adds
+    # window.ReportingSimple.openDefinition; if Task 4 is not merged yet,
+    # drive the wizard like the neighbouring wizard tests instead).
+    page.evaluate("""() => window.ReportingSimple.openDefinition({
+      schemaVersion: 1, visualization: 'table', source: 'docprocessing',
+      title: 'per month', columns: [{field: 'export_date', grain: 'month'}],
+      metrics: [{metric: 'doc_count'}], filters: [], sort: [],
+      scope: {clients: [], processes: []}, rowLimit: 5000}, 'per month')""")
+    chip = page.get_by_test_id("rs-chip").filter(has_text="Granularity")
+    expect(chip).to_be_visible()
+    chip.click()
+    page.get_by_test_id("rs-chip-grain").locator("select").select_option("week")
+    page.get_by_test_id("rs-chip-grain-apply").click()
+    # The re-rendered chip reflecting the new grain proves runCurrent()
+    # completed, so the posted payload below is settled, not racing.
+    expect(page.get_by_test_id("rs-chip").filter(has_text="Granularity")).to_contain_text("Week")
+    assert any((p.get("columns") or [{}])[0].get("grain") == "week" for p in posted)
+
+
+def test_kpi_band_total_uses_latest_snapshot_for_latest_mode_metric(nexora_server, page):
+    """#178 C10: for a latest-mode metric (backlog_total) with a date
+    dimension, the orange GESAMT card totals only the newest date bucket's
+    row -- not the sum across every bucket in the result set.
+
+    Reduced-motion is emulated so the KPI value's count-up animation
+    (animateValue) writes the final total synchronously instead of counting
+    up through 0..N -- otherwise a mid-animation frame could transiently
+    contain "9" or omit "36" regardless of which value the band settles on,
+    making the assertions below meaningless.
+    """
+    _login(page, nexora_server)
+    page.emulate_media(reduced_motion="reduce")
+    page.route(
+        "**/api/reporting/metrics",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "backlog_history": [
+                        {
+                            "code": "backlog_total",
+                            "label": "Backlog total",
+                            "aggregation": "sum",
+                            "totalMode": "latest",
+                        }
+                    ]
+                }
+            ),
+        ),
+    )
+    page.route(
+        "**/api/reporting/run",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [{"field": "SnapshotAt"}, {"field": "backlog_total"}],
+                    "rows": [["2026-08-05", 27122], ["2026-08-06", 9755]],
+                    "rowCount": 2,
+                    "truncated": False,
+                    "resolvedDates": [],
+                }
+            ),
+        ),
+    )
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.evaluate("""() => window.ReportingSimple.openDefinition({
+      schemaVersion: 1, visualization: 'table', source: 'backlog_history',
+      title: 'backlog', columns: [{field: 'SnapshotAt', grain: 'day'}],
+      metrics: [{metric: 'backlog_total'}], filters: [], sort: [],
+      scope: {clients: [], processes: []}, rowLimit: 5000}, 'backlog')""")
+
+    total = page.get_by_test_id("rs-kpi-total")
+    expect(total).to_contain_text("9")  # 9,755 -- latest bucket only
+    expect(total).not_to_contain_text("36")  # never 36,877 (the sum)
+
+
+# ---------------------------------------------------------------------------
+# #178 B8 (processes half): table sources have no `processes` registry, but a
+# filterable string field named/labelled like one still gets a wizard scope
+# step, backed by /api/reporting/field_values (Task 12).
+# ---------------------------------------------------------------------------
+
+FIELD_SCOPE_WIZ_SOURCES = [
+    {
+        "id": "backlog_history",
+        "label": "Backlog history",
+        "kind": "curated",
+        "processes": [],
+        "fields": [
+            {
+                "field": "ProcessName",
+                "label": "Process",
+                "type": "string",
+                "grainable": False,
+                "filterable": True,
+            },
+        ],
+    }
+]
+FIELD_SCOPE_WIZ_METRICS = {
+    "backlog_history": [
+        {"code": "backlog_total", "label": "Backlog measure", "aggregation": "sum"},
+    ]
+}
+
+
+def test_wizard_field_scope_step_serializes_to_in_filter(nexora_server, page):
+    """A source without a process registry but with a filterable ProcessName
+    field gets the scope step anyway, sourced from /api/reporting/field_values;
+    unticking one value narrows the wizard-built definition to a plain
+    in-filter on that field (editable later as an ordinary chip)."""
+    _login(page, nexora_server)
+    _stub_wiz_catalogs(page, FIELD_SCOPE_WIZ_SOURCES, FIELD_SCOPE_WIZ_METRICS)
+    page.route(
+        "**/api/reporting/field_values",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"values": ["01_EasyTax", "02_Invoice", "03_Invoice_New"]}),
+        ),
+    )
+    captured = []
+    _stub_run_ok(page, capture=captured)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-report").click()
+    page.get_by_test_id("rs-measure-list").get_by_text("Backlog measure").click()
+    page.get_by_test_id("rs-measure-next").click()
+    expect(page.locator("#rsStepScope")).to_be_visible()
+    boxes = page.locator("#rsScopeList input[type=checkbox]")
+    expect(boxes).to_have_count(3)
+    boxes.nth(0).uncheck()
+    page.get_by_test_id("rs-scope-next").click()
+    page.get_by_test_id("rs-breakdown-next").click()
+    run = page.get_by_test_id("rs-wizard-run")  # renderTimeStep() unhides it; All time default
+    expect(run).to_be_visible()
+    run.click()
+    expect(page.get_by_test_id("rs-result")).to_be_visible()
+    posted = [p for p in captured if p]
+    assert posted, f"no run payload captured: {captured}"
+    assert any(
+        any(
+            f.get("op") == "in"
+            and f.get("field") == "ProcessName"
+            and sorted(f.get("value") or []) == ["02_Invoice", "03_Invoice_New"]
+            for f in (b.get("filters") or [])
+        )
+        for b in posted
+    )
+
+
+def test_filter_chip_editor_preserves_in_filter_on_apply(nexora_server, page):
+    """Final whole-branch review, Finding 1 (#178): editing (or just
+    re-Applying without changes) a 2-value `in`-filter chip must NOT coerce
+    it into `{op:'between', value:[v0, v1]}` -- filterChipEditor used to
+    branch on Array.isArray(f.value) alone, silently turning a field-scope
+    value LIST (Task 13) into a lexical range on Apply."""
+    _login(page, nexora_server)
+    _stub_wiz_catalogs(page, FIELD_SCOPE_WIZ_SOURCES, FIELD_SCOPE_WIZ_METRICS)
+    captured = []
+    _stub_run_ok(page, capture=captured)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.evaluate("""() => window.ReportingSimple.openDefinition({
+      schemaVersion: 1, visualization: 'table', source: 'backlog_history',
+      title: 'in-filter chip', columns: [], metrics: [{metric: 'backlog_total'}],
+      filters: [{field: 'ProcessName', op: 'in', value: ['02_Invoice', '03_Invoice_New']}],
+      sort: [], scope: {clients: [], processes: []}, rowLimit: 5000
+    }, 'in-filter chip')""")
+    chips = page.get_by_test_id("rs-chips")
+    chip = chips.get_by_test_id("rs-chip").first
+    expect(chip).to_contain_text("02_Invoice, 03_Invoice_New")  # comma, not '->' (not a range)
+    chip.click()
+    # Apply WITHOUT changing anything -- the corrupting bug fired even here.
+    page.get_by_test_id("rs-chip-apply").click()
+    expect(chips.get_by_test_id("rs-chip").first).to_contain_text("02_Invoice, 03_Invoice_New")
+    posted = [p for p in captured if p]
+    assert posted, f"no run payload captured: {captured}"
+    last_filters = posted[-1].get("filters") or []
+    assert len(last_filters) == 1
+    assert last_filters[0]["op"] == "in"
+    assert sorted(last_filters[0]["value"]) == ["02_Invoice", "03_Invoice_New"]
+
+
+# Regression (Phase 5 batched review, #178): wizardStateFromDefinition must
+# only capture an in-filter as the wizard's field-scope pick when it targets
+# the SAME field processFieldFor(src) would offer -- not any string in-filter.
+# A source WITH a processes registry never has a process-like field to match,
+# so an unrelated string in-filter must keep bailing to Advanced (Adjust
+# button hidden), exactly like before Task 13, instead of being silently
+# swallowed (and dropped on the next wizard save).
+REGISTRY_SCOPE_WIZ_SOURCES = [
+    {
+        "id": "docprocessing_scope",
+        "label": "Document processing (scope regression)",
+        "kind": "curated",
+        "processes": ["acme.inv", "acme.hr"],
+        "fields": [
+            {
+                "field": "doctype",
+                "label": "Document Type",
+                "type": "string",
+                "grainable": False,
+                "filterable": True,
+            },
+        ],
+    }
+]
+REGISTRY_SCOPE_WIZ_METRICS = {
+    "docprocessing_scope": [
+        {"code": "docp_scope_count", "label": "Docp scope count", "aggregation": "count"},
+    ]
+}
+
+
+def test_wizard_state_from_definition_ignores_unrelated_in_filter(nexora_server, page):
+    """A registry-process source's unrelated string in-filter must not be
+    misattributed as a field-scope pick: Adjust-in-wizard stays unavailable
+    (bails to Advanced) rather than silently mapping and then dropping the
+    filter on save."""
+    _login(page, nexora_server)
+    _stub_wiz_catalogs(page, REGISTRY_SCOPE_WIZ_SOURCES, REGISTRY_SCOPE_WIZ_METRICS)
+    _stub_run_ok(page)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.evaluate("""() => window.ReportingSimple.openDefinition({
+      schemaVersion: 1, visualization: 'table', source: 'docprocessing_scope',
+      title: 'scope regression', columns: [],
+      metrics: [{metric: 'docp_scope_count'}],
+      filters: [{field: 'doctype', op: 'in', value: ['a', 'b']}],
+      sort: [], scope: {clients: [], processes: []}, rowLimit: 5000
+    }, 'scope regression')""")
+    expect(page.get_by_test_id("rs-result")).to_be_visible()
+    expect(page.get_by_test_id("rs-adjust-wizard")).to_be_hidden()
+
+
+def test_open_in_advanced_runs_report_and_reveals_sql(nexora_server, page):
+    """#178 A5 ("Live SQL geht nicht"): Simple's "Open in Advanced" escape
+    hatch (rsOpenAdvanced) must actually run the restored definition, not
+    just call applyDefinition() and switch tabs. Before the fix, Advanced
+    landed on the loaded builder state with an empty results grid and
+    "Show query" (rpShowSql) still hidden -- reading as "Live SQL doesn't
+    work" to an owner who had just opened an AI-built report from Simple."""
+    _login(page, nexora_server)
+
+    def _row(rid, name):
+        return {
+            "id": rid,
+            "name": name,
+            "ownerName": "Admin",
+            "updatedAt": "2026-07-01T00:00:00Z",
+            "visibility": "private",
+            "owned": True,
+            "kind": "table",
+        }
+
+    definition = {
+        "schemaVersion": 1,
+        "source": "docprocessing",
+        "visualization": "table",
+        "title": "e2e open advanced report",
+        "columns": [{"field": "processname"}],
+        "filters": [],
+        "sort": [],
+        "scope": {"clients": [], "processes": []},
+        "rowLimit": 100,
+    }
+    page.route(
+        "**/api/reporting/reports",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps([_row("e2e-open-advanced", "e2e open advanced report")]),
+        ),
+    )
+    page.route(
+        "**/api/reporting/reports/*",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "name": "e2e open advanced report",
+                    "definition": definition,
+                    "owned": True,
+                    "canEdit": True,
+                }
+            ),
+        ),
+    )
+    page.route(
+        "**/api/reporting/run",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [{"field": "processname", "header": "Process"}],
+                    "rows": [["acme.inv"]],
+                    "truncated": False,
+                    "rowCount": 1,
+                    "sql": "SELECT [processname] FROM [dbo].[V]",
+                    "sqlPretty": "SELECT [processname] FROM [dbo].[V]",
+                    "sqlDisplay": "SELECT [processname] FROM [dbo].[V]",
+                    "params": [],
+                    "resolvedDates": [],
+                }
+            ),
+        ),
+    )
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-group-mine").get_by_text("e2e open advanced report").click()
+    expect(page.get_by_test_id("rs-result-title")).to_contain_text("e2e open advanced report")
+
+    page.get_by_test_id("rs-more").click()
+    page.get_by_test_id("rs-open-advanced").click()
+
+    # Landed on Advanced -- and it must have actually run the definition:
+    # the results grid holds the stubbed row, and "Show query" is revealed
+    # (not just an empty builder with rpShowSql still hidden).
+    expect(page.get_by_test_id("reporting-field-panel")).to_be_visible()
+    expect(page.get_by_test_id("reporting-results")).to_contain_text("acme.inv")
+    expect(page.get_by_test_id("reporting-show-sql")).to_be_visible()

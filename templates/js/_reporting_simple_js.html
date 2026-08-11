@@ -65,6 +65,13 @@
     aiDrafting: {{ _("Drafting your report…")|tojson }},
     aiChecking: {{ _("Checking the result…")|tojson }},
     chipApply: {{ _("Apply")|tojson }},
+    granularity: {{ _("Granularity")|tojson }},
+    grainNeedsDate: {{ _("Pick a time breakdown first to choose its granularity.")|tojson }},
+    grainDay: {{ _("Day")|tojson }},
+    grainWeek: {{ _("Week")|tojson }},
+    grainMonth: {{ _("Month")|tojson }},
+    grainQuarter: {{ _("Quarter")|tojson }},
+    grainYear: {{ _("Year")|tojson }},
     allProcesses: {{ _("All processes")|tojson }},
     noChartTotalOnly: {{ _("No chart — this report is a single total. Adjust it in the wizard and pick a breakdown to get one.")|tojson }},
     chartFirst50: {{ _("Chart shows the first 50 of {n} rows.")|tojson }},
@@ -89,6 +96,10 @@
     resultMeta: {{ _("{rows} rows · {ms} ms · {when}")|tojson }},
     runJustNow: {{ _("run just now")|tojson }},
     kpiTotal: {{ _("Total")|tojson }},
+    // Bucket-honest wording (#178 final review, Finding 5): this is the
+    // client's own zero-filled last bucket, not the server's single exact-
+    // snapshot latest row -- "latest snapshot" overclaimed the precision.
+    kpiLatestSuffix: {{ _("last bucket")|tojson }},
     kpiBuckets: {{ _("Buckets")|tojson }},
     kpiAvg: {{ _("Avg per bucket")|tojson }},
     kpiPeak: {{ _("Peak")|tojson }},
@@ -105,7 +116,8 @@
     groupFields: {{ _("Document fields")|tojson }},
     groupOr: {{ _("Or")|tojson }},
     pickedCount: {{ _("{n} of 3 picked")|tojson }},
-    aiChip: {{ _("AI")|tojson }}
+    aiChip: {{ _("AI")|tojson }},
+    loadingValues: {{ _("Loading values…")|tojson }}
   };
 
   // Wizard category-dimension curation (docprocessing only). Process first
@@ -165,6 +177,7 @@
   function setView(view) {
     state.view = view;
     el('rsLibrary').hidden = view !== 'library';  // #rsSearch nests under it now
+    el('rsHero').hidden = view !== 'library';
     el('rsNewReport').hidden = view !== 'library';
     el('rsNewDashboard').hidden = view !== 'library';
     var aiBar = el('rsAiBar');
@@ -403,6 +416,18 @@
       def: res.data.definition, name: res.data.name, reportId: r.id,
       owned: !!res.data.owned, canEdit: !!res.data.canEdit, fromWizard: false,
       origin: 'library'
+    };
+    runCurrent();
+  }
+
+  // #178 A4: open a raw definition (from the AI chat) straight into the
+  // Simple result view -- openReport minus the saved-report id.
+  async function openDefinition(def, name) {
+    await loadSourcesCatalog();
+    if (!state.metricsBySource) await loadMetricsCatalog();
+    state.current = {
+      def: def, name: name || def.title || '', reportId: null,
+      owned: true, canEdit: true, fromWizard: false, origin: 'ai'
     };
     runCurrent();
   }
@@ -699,6 +724,8 @@
       ? zeroFillDateBuckets(def, comparison.rows, [], [comparison.priorStart, comparison.priorEnd])
       : (comparison ? comparison.rows : null);
     var priorKpi = priorRows ? computeKpiBand(dims, priorRows) : null;
+    var latestKey = applyLatestTotal(def, kpi, rows);
+    if (priorKpi) applyLatestTotal(def, priorKpi, priorRows);
     var totalDelta = '', avgDelta = '', peakDelta = '';
     if (priorKpi) {
       totalDelta = deltaChipHtml(kpi.total, priorKpi.total, comparison.priorStart, comparison.priorEnd);
@@ -720,7 +747,8 @@
     var sparkHtml = def ? sparklineHtml(def, rows, kpi) : '';
     band.innerHTML =
       '<div class="rs-kpi-total-card" data-testid="rs-kpi-total">' +
-        '<span class="reporting-ledger-caption">' + esc(I18N.kpiTotal) + '</span>' +
+        '<span class="reporting-ledger-caption">' + esc(I18N.kpiTotal) +
+          (latestKey ? ' · ' + esc(I18N.kpiLatestSuffix) + ' ' + esc(String(latestKey).slice(0, 16)) : '') + '</span>' +
         '<span class="reporting-ledger-kpi-value" data-count-target="' + Number(kpi.total) + '">0</span>' +
         totalDelta + sparkHtml +
       '</div>' +
@@ -765,6 +793,40 @@
     var list = (state.metricsBySource || {})[def.source] || [];
     var hit = list.find(function (x) { return x.code === m.metric; });
     return hit ? hit.aggregation : '';
+  }
+
+  function metricTotalModeFor(def) {
+    var m = (def.metrics && def.metrics[0]) || null;
+    if (!m) return 'sum';
+    var list = (state.metricsBySource || {})[def.source] || [];
+    var hit = list.find(function (x) { return x.code === m.metric; });
+    return (hit && hit.totalMode) || 'sum';
+  }
+
+  // #178 C10: for a latest-mode metric the band total is the newest date
+  // bucket's sum, not the sum over all buckets. Returns the bucket label it
+  // used, or null when not applicable (no date dim / not latest mode).
+  function applyLatestTotal(def, kpi, rows) {
+    if (!kpi || metricTotalModeFor(def) !== 'latest') return null;
+    var cols = def.columns || [];
+    var dateIdx = -1;
+    for (var i = 0; i < cols.length; i++) {
+      var m = fieldMetaFor(def, cols[i].field);
+      if (cols[i].grain || (m && m.grainable)) { dateIdx = i; break; }
+    }
+    if (dateIdx === -1) return null;
+    var maxKey = null;
+    rows.forEach(function (r) {
+      var k = String(r[dateIdx]);
+      if (maxKey === null || k > maxKey) maxKey = k;
+    });
+    if (maxKey === null) return null;
+    var t = 0;
+    rows.forEach(function (r) {
+      if (String(r[dateIdx]) === maxKey) t += Number(r[kpi.idx]) || 0;
+    });
+    kpi.total = t;
+    return maxKey;
   }
 
   // ----- Drill-through (Simple: chart clicks + table rows) -----
@@ -1328,9 +1390,11 @@
     return ((src && src.fields) || []).find(function (f) { return f.field === fieldKey; });
   }
 
-  function chipValueLabel(v) {
+  function chipValueLabel(v, op) {
     if (isTokenValue(v)) return tokenLabel(v);
-    if (Array.isArray(v)) return v.join(' → ');
+    // 'in'/'not_in' carry a value LIST, not a range — a comma reads honestly;
+    // '→' is reserved for an actual between-range so the two can't be confused.
+    if (Array.isArray(v)) return v.join(op === 'in' || op === 'not_in' ? ', ' : ' → ');
     return v === null || v === undefined ? '' : String(v);
   }
 
@@ -1388,8 +1452,8 @@
     var input = document.createElement('input');
     input.className = 'reporting-input';
     input.setAttribute('data-testid', 'rs-chip-input');
-    input.value = Array.isArray(f.value) ? f.value.join(' → ')
-      : isTokenValue(f.value) ? '' : chipValueLabel(f.value);
+    input.value = Array.isArray(f.value) ? chipValueLabel(f.value, f.op)
+      : isTokenValue(f.value) ? '' : chipValueLabel(f.value, f.op);
     input.hidden = !!(preset && preset.value);
     if (preset) {
       preset.onchange = function () { input.hidden = !!preset.value; };
@@ -1406,7 +1470,14 @@
         return;
       }
       var v = input.value.trim();
-      if (isTokenValue(f.value) || Array.isArray(f.value) || f.op === 'between') {
+      if (f.op === 'in' || f.op === 'not_in') {
+        // Value LIST, not a range — keep op as-is, split back into a list.
+        // Comma-separated (see chipValueLabel); tolerate a stray '→' too so
+        // re-editing an older arrow-joined display doesn't lose values.
+        var listParts = v.split(/[,→]/).map(function (s) { return s.trim(); }).filter(Boolean);
+        if (listParts.length) f.value = listParts;
+        // else empty input: leave value unchanged
+      } else if (isTokenValue(f.value) || Array.isArray(f.value) || f.op === 'between') {
         var parts = v.split('→').map(function (s) { return s.trim(); }).filter(Boolean);
         if (parts.length === 2) { f.op = 'between'; f.value = parts; }
         else if (parts.length === 1) { f.op = 'eq'; f.value = parts[0]; }
@@ -1458,6 +1529,32 @@
     chipEl.replaceWith(box);
   }
 
+  function grainChipEditor(cur, col, chipEl) {
+    var box = document.createElement('span');
+    box.className = 'rs-chip rs-chip-editor';
+    box.setAttribute('data-testid', 'rs-chip-grain');
+    var sel = document.createElement('select');
+    sel.className = 'reporting-input';
+    [['day', I18N.grainDay], ['week', I18N.grainWeek], ['month', I18N.grainMonth],
+     ['quarter', I18N.grainQuarter], ['year', I18N.grainYear]].forEach(function (g) {
+      var o = document.createElement('option');
+      o.value = g[0]; o.textContent = g[1];
+      sel.appendChild(o);
+    });
+    if (col.grain) sel.value = col.grain;
+    var ok = document.createElement('button');
+    ok.className = 'reporting-btn';
+    ok.setAttribute('data-testid', 'rs-chip-grain-apply');
+    ok.textContent = I18N.chipApply;
+    ok.addEventListener('click', function () {
+      col.grain = sel.value;
+      runCurrent();
+    });
+    box.appendChild(sel);
+    box.appendChild(ok);
+    chipEl.replaceWith(box);
+  }
+
   function renderAiChips(cur) {
     var wrap = el('rsChips');
     if (!wrap) return;
@@ -1471,7 +1568,7 @@
     (def.filters || []).forEach(function (f) {
       var meta = fieldMetaFor(def, f.field);
       var parts = [(meta && meta.label) || f.field, OP_LABELS[f.op] || f.op];
-      var vl = chipValueLabel(f.value);
+      var vl = chipValueLabel(f.value, f.op);
       if (vl) parts.push(vl);        // is_null/is_not_null carry no value
       var label = parts.join(' ');
       wrap.appendChild(chip(
@@ -1495,6 +1592,22 @@
       function (chipEl) { processChipEditor(cur, chipEl); },
       null
     ));
+    var grainedCol = (def.columns || []).find(function (c) { return c.grain; });
+    if (!grainedCol) {
+      grainedCol = (def.columns || []).find(function (c) {
+        var m = fieldMetaFor(def, c.field);
+        return m && m.grainable;
+      }) || null;
+    }
+    if (grainedCol) {
+      var GRAIN_LABELS = { day: I18N.grainDay, week: I18N.grainWeek, month: I18N.grainMonth,
+                           quarter: I18N.grainQuarter, year: I18N.grainYear };
+      wrap.appendChild(chip(
+        I18N.granularity + ': ' + (GRAIN_LABELS[grainedCol.grain] || I18N.grainDay),
+        function (chipEl) { grainChipEditor(cur, grainedCol, chipEl); },
+        null
+      ));
+    }
   }
 
   // In-flight skeleton (Task 7): a KPI-band-shaped + table-shaped
@@ -1945,6 +2058,10 @@
     if (!cur || !window.Reporting || !window.Reporting.applyDefinition) return;
     var id = (cur.owned && cur.canEdit) ? cur.reportId : null;
     window.Reporting.applyDefinition(cur.def, cur.name || cur.def.title, id);
+    // Run before switching tabs: run() flips the Advanced pane straight into
+    // its loading state, so the tab lands already-loading instead of
+    // flashing the empty "Build a report to see results" placeholder first.
+    if (window.Reporting.run) window.Reporting.run();
     window.ReportingTabs.show('advanced');
   });
 
@@ -2050,6 +2167,11 @@
       out[1] = (chosen === allProcs.length) ? I18N.allProcesses
         : I18N.wizScopeCount.replace('{n}', chosen).replace('{m}', allProcs.length);
     }
+    if (!allProcs.length && w.fieldScope) {
+      var n = w.fieldScope.picked.length, m = w.fieldScope.values.length;
+      out[1] = n === m ? I18N.allProcesses
+        : I18N.wizScopeCount.replace('{n}', n).replace('{m}', m);
+    }
     if (w.source) {
       if ((w.breakdowns || []).length) {
         var grainSel = el('rsGrain');
@@ -2143,7 +2265,8 @@
     await loadSourcesCatalog();
     if (!state.metricsBySource) await loadMetricsCatalog();
     state.wiz = { measures: [], source: null, breakdowns: [],
-                  scopeProcs: [], range: null, dateField: null, _fp: null };
+                  scopeProcs: [], range: null, dateField: null, _fp: null,
+                  fieldScope: null };
     setView('wizard');
     el('rsStepScope').hidden = true;
     el('rsStepBreakdown').hidden = true;
@@ -2226,11 +2349,25 @@
   // (table sources) skip straight to the breakdown step. Emits the same
   // scope serialisation as before; empty/full selection = all allowed (the
   // server clamps to grants either way).
+  // #178 B8: a table source without a process registry still gets a
+  // process step when it carries a filterable string field named like one
+  // (backlog_history.ProcessName). Selection serializes to a plain
+  // in-filter, not scope.processes.
+  function processFieldFor(src) {
+    if ((src.processes || []).length) return null;
+    return (src.fields || []).find(function (f) {
+      return f.type === 'string' && f.filterable &&
+        /process/i.test(f.field + ' ' + (f.label || ''));
+    }) || null;
+  }
+
   function renderScopeStep() {
     var w = state.wiz;
     var procs = w.source.processes || [];
     var step = el('rsStepScope');
-    if (!procs.length) { step.hidden = true; renderBreakdownStep(); return; }
+    var pf = processFieldFor(w.source);
+    if (!procs.length && !pf) { step.hidden = true; renderBreakdownStep(); return; }
+    if (!procs.length && pf) { renderFieldScopeStep(step, pf); return; }
     step.hidden = false;
     el('rsStepBreakdown').hidden = true;
     el('rsStepTime').hidden = true;
@@ -2258,6 +2395,53 @@
     renderWizardRail();
   }
 
+  async function renderFieldScopeStep(step, pf) {
+    var w = state.wiz;
+    step.hidden = false;
+    el('rsStepBreakdown').hidden = true;
+    el('rsStepTime').hidden = true;
+    el('rsWizardRun').hidden = true;
+    var box = el('rsScopeList');
+    box.innerHTML = '<p class="reporting-simple-hint">' + esc(I18N.loadingValues) + '</p>';
+    renderWizardRail();
+    var res = await api('/api/reporting/field_values', {
+      method: 'POST',
+      body: JSON.stringify({ source: w.source.id, field: pf.field })
+    });
+    if (state.view !== 'wizard' || el('rsStepScope').hidden) {
+      // User stepped away mid-fetch (e.g. back to the measure step) --
+      // clear the stale "Loading values..." hint so a later re-entry to this
+      // step doesn't show it frozen until the NEXT fetch resolves (#178).
+      box.innerHTML = '';
+      return;
+    }
+    var values = (res.ok && res.data && res.data.values) || [];
+    if (!values.length) {  // endpoint down or empty column: skip the step
+      w.fieldScope = null;
+      step.hidden = true;
+      renderBreakdownStep();
+      return;
+    }
+    var prior = (w.fieldScope && w.fieldScope.picked) || [];
+    w.fieldScope = { field: pf.field, label: pf.label || pf.field,
+                     values: values, picked: prior.length ? prior : values.slice() };
+    box.innerHTML = '';
+    values.forEach(function (p) {
+      var lbl = document.createElement('label');
+      var cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.value = p;
+      cb.checked = w.fieldScope.picked.indexOf(p) !== -1;
+      cb.addEventListener('change', function () {
+        w.fieldScope.picked = Array.prototype.map.call(
+          box.querySelectorAll('input:checked'), function (c) { return c.value; });
+      });
+      lbl.appendChild(cb);
+      lbl.appendChild(document.createTextNode(' ' + p));
+      box.appendChild(lbl);
+    });
+    renderWizardRail();
+  }
+
   function renderBreakdownStep() {
     el('rsStepBreakdown').hidden = false;
     el('rsStepTime').hidden = true;
@@ -2265,6 +2449,7 @@
     var w = state.wiz;
     if (!Array.isArray(w.breakdowns)) w.breakdowns = [];
     var allProcs = w.source.processes || [];
+    var sourceHasDates = (w.source.fields || []).some(function (f) { return f.grainable; });
 
     function isSelected(bd) {
       if (bd.kind === 'none') return w.breakdowns.length === 0;
@@ -2291,7 +2476,9 @@
       for (ci = 0; ci < w.breakdowns.length; ci++) {
         if (w.breakdowns[ci].kind === 'date') { hasDate = true; break; }
       }
-      el('rsGrainWrap').hidden = !hasDate;
+      el('rsGrainWrap').hidden = !sourceHasDates;
+      el('rsGrain').disabled = !hasDate;
+      el('rsGrainWrap').title = hasDate ? '' : I18N.grainNeedsDate;
       updatePickedCount();
     }
 
@@ -2426,7 +2613,7 @@
     }
 
     renderChipList();
-    updatePickedCount();
+    refreshChips();
 
     // Wire Continue button
     var nextBtn = el('rsBreakdownNext');
@@ -2578,6 +2765,10 @@
     if (w.range && w.dateField) {
       filters.push({ field: w.dateField, op: 'between', value: w.range });
     }
+    if (w.fieldScope && w.fieldScope.picked.length &&
+        w.fieldScope.picked.length < w.fieldScope.values.length) {
+      filters.push({ field: w.fieldScope.field, op: 'in', value: w.fieldScope.picked.slice() });
+    }
     var scope = { clients: [], processes: [] };
     var allProcs = w.source.processes || [];
     if (allProcs.length && w.scopeProcs.length && w.scopeProcs.length < allProcs.length) {
@@ -2630,6 +2821,21 @@
       }
     }
     var filters = def.filters || [];
+    // Only a filter on the SAME field processFieldFor(src) would offer can be
+    // the wizard's field-scope pick — matching any string in-filter would
+    // silently swallow (registry-process sources) or misattribute
+    // (multi-string-field sources) an unrelated filter (#178 review finding).
+    var pf = processFieldFor(src);
+    var fieldScopeFilter = null;
+    var rest = [];
+    filters.forEach(function (ft) {
+      if (!fieldScopeFilter && ft.op === 'in' && pf && ft.field === pf.field) {
+        fieldScopeFilter = ft;
+      } else {
+        rest.push(ft);
+      }
+    });
+    filters = rest;
     if (filters.length > 1) return null;
     var range = null, dateField = null;
     if (filters.length === 1) {
@@ -2651,7 +2857,11 @@
     if ((scope.clients || []).length) return null;
     return { wiz: { measures: measures, source: src, breakdowns: breakdowns,
                     scopeProcs: (scope.processes || []).slice(),
-                    range: range, dateField: dateField, _fp: null },
+                    range: range, dateField: dateField, _fp: null,
+                    fieldScope: fieldScopeFilter
+                      ? { field: fieldScopeFilter.field, label: fieldScopeFilter.field,
+                          values: fieldScopeFilter.value.slice(), picked: fieldScopeFilter.value.slice() }
+                      : null },
              grain: grain };
   }
 
@@ -2779,6 +2989,8 @@
   // itself -- it announces intent via a custom event instead of reaching
   // into this module's functions (D3).
   document.addEventListener('rs:dashboard-closed', exitToLibrary);
+
+  window.ReportingSimple = { openDefinition: openDefinition };
 
   document.addEventListener('rp:tabshown', function (e) {
     if (e.detail.tab === 'simple') initOnce();

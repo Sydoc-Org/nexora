@@ -33,7 +33,7 @@
     howWorked: {{ _("How the agent worked")|tojson }},
     steps: {{ _("steps")|tojson }},
     rows: {{ _("rows")|tojson }},
-    openBuilder: {{ _("Open in builder")|tojson }},
+    openBuilder: {{ _("Open report")|tojson }},
     insertSql: {{ _("Insert into SQL editor")|tojson }},
     showQuery: {{ _("Show query")|tojson }},
     hideQuery: {{ _("Hide query")|tojson }},
@@ -52,6 +52,7 @@
   var STEP_START = {{ _("Asking the AI…")|tojson }};
   var STEP_THINKING = {{ _("Thinking…")|tojson }};
   var STEP_WORKING = {{ _("Working…")|tojson }};
+  var BUILD_TITLE = {{ _("Building your report…")|tojson }};
   var STEP_LABELS = {
     build_definition: {{ _("Building the report…")|tojson }},
     validate_sql: {{ _("Checking the query…")|tojson }},
@@ -62,6 +63,7 @@
   var chat = { history: [], busy: false };   // history: [{role, content}]
   var tickerEl = null;
   var tickerTextEl = null;
+  var tickerStepsEl = null;
 
   function escapeHtml(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -126,25 +128,41 @@
 
   function startTicker() {
     tickerEl = document.createElement("div");
-    tickerEl.className = "rp-chat-ticker";
+    tickerEl.className = "rp-chat-ticker rp-chat-build";
     tickerEl.setAttribute("role", "status");
     tickerEl.setAttribute("data-testid", "rp-chat-ticker");
-    tickerEl.innerHTML = "<i></i><i></i><i></i><span></span>";
-    tickerTextEl = tickerEl.querySelector("span");
+    tickerEl.innerHTML = '<div class="rp-build-title"><i></i><i></i><i></i><span></span></div>' +
+      '<ol class="rp-build-steps" data-testid="rp-build-steps"></ol>';
+    tickerTextEl = tickerEl.querySelector(".rp-build-title span");
+    tickerStepsEl = tickerEl.querySelector(".rp-build-steps");
     tickerTextEl.textContent = STEP_START;
     thread.appendChild(tickerEl);
     thread.scrollTop = thread.scrollHeight;
   }
 
-  function setTicker(text) {
-    if (!tickerTextEl || !text) return;
-    tickerTextEl.textContent = text;
+  // A progress event either updates the title (thinking/note) or appends a
+  // build-step row (tool). The previous running row flips to done -- the
+  // stream carries no per-tool completion event, so "the next thing started"
+  // is the completion signal.
+  function tickerEvent(ev) {
+    if (!tickerEl) return;
+    if (ev.phase === "tool") {
+      tickerTextEl.textContent = BUILD_TITLE;
+      var prev = tickerStepsEl.querySelector(".is-running");
+      if (prev) { prev.classList.remove("is-running"); prev.classList.add("is-done"); }
+      var li = document.createElement("li");
+      li.className = "rp-build-step is-running";
+      li.textContent = STEP_LABELS[ev.name] || STEP_WORKING;
+      tickerStepsEl.appendChild(li);
+    } else {
+      tickerTextEl.textContent = stepLabel(ev);
+    }
     thread.scrollTop = thread.scrollHeight;
   }
 
   function stopTicker() {
     if (tickerEl && tickerEl.parentNode) tickerEl.parentNode.removeChild(tickerEl);
-    tickerEl = null; tickerTextEl = null;
+    tickerEl = null; tickerTextEl = null; tickerStepsEl = null;
   }
 
   // A progress event -> the line shown in the ticker. The model's own preamble
@@ -255,9 +273,17 @@
 
     var openBtn = node.querySelector(".rp-chat-open-builder");
     if (openBtn) openBtn.addEventListener("click", function () {
-      if (!d.definition || !window.Reporting || !window.Reporting.applyDefinition) return;
-      window.Reporting.applyDefinition(d.definition, d.definition.title || I18N.reportTitle, null);
-      if (window.ReportingTabs) window.ReportingTabs.show("advanced");
+      if (!d.definition) return;
+      var def = d.definition;
+      if (def.chartHint && def.chartHint.type && !def.chartType) def.chartType = def.chartHint.type;
+      if (window.ReportingSimple && window.ReportingSimple.openDefinition) {
+        if (window.ReportingTabs) window.ReportingTabs.show("simple");
+        window.ReportingSimple.openDefinition(def, def.title || I18N.reportTitle);
+      } else if (window.Reporting && window.Reporting.applyDefinition) {
+        window.Reporting.applyDefinition(def, def.title || I18N.reportTitle, null);
+        if (window.Reporting.run) window.Reporting.run();
+        if (window.ReportingTabs) window.ReportingTabs.show("advanced");
+      }
       closePanel();
     });
 
@@ -333,7 +359,7 @@
         var last = null;
         return readNdjson(r, function (ev) {
           if (ev.done) { last = ev; return; }
-          setTicker(stepLabel(ev));
+          tickerEvent(ev);
         }).then(function () {
           // A stream that ends without its `done` line died in transit.
           return { ok: !!last && !last.error, data: last || {} };
@@ -347,7 +373,19 @@
         return;
       }
       chat.history.push({ role: "user", content: text });
-      chat.history.push({ role: "assistant", content: res.data.answer || "" });
+      // #178 A3: thread the produced artifacts back with the answer so a
+      // follow-up ("show it as a chart") keeps the same source and data.
+      var mem = res.data.answer || "";
+      if (res.data.sql) {
+        mem += "\n[sql from this answer]\n" + String(res.data.sql).slice(0, 1500);
+      }
+      if (res.data.definition) {
+        try {
+          mem += "\n[report definition from this answer]\n" +
+            JSON.stringify(res.data.definition).slice(0, 1200);
+        } catch (e) { /* non-serializable definition: skip the suffix */ }
+      }
+      chat.history.push({ role: "assistant", content: mem });
       var node = pushMsg("ai", aiTurnHtml(res.data));
       wireTurnActions(node, res.data, text);
     }).catch(function () {

@@ -4,6 +4,7 @@ import pytest
 
 from nx_lib.reporting.table_query import (
     TableQueryError,
+    build_distinct_query,
     build_generic_query,
     table_source_catalog,
 )
@@ -159,3 +160,76 @@ def test_generic_aggregate_three_dims():
         rd, "Db.dbo.SomeTable", _three_cols, row_cap=100, resolved_metrics=resolved
     )
     assert "GROUP BY [colA], [colB], [colC]" in sql
+
+
+def test_zero_dim_latest_of_constrains_to_max_bucket():
+    rd = {
+        "columns": [],
+        "filters": [
+            {"field": "SnapshotAt", "op": "between", "value": ["2026-08-01", "2026-08-31"]}
+        ],
+        "sort": [],
+    }
+    cols = [
+        {
+            "field": "SnapshotAt",
+            "type": "datetime",
+            "filterable": True,
+            "sortable": True,
+            "grainable": True,
+        },
+        {"field": "BacklogCount", "type": "number", "filterable": True, "sortable": True},
+    ]
+    metrics = [{"code": "backlog_total", "aggregation": "sum", "base_field": "BacklogCount"}]
+    sql, params = build_generic_query(
+        rd,
+        "dbo.BacklogHistory",
+        cols,
+        row_cap=5000,
+        resolved_metrics=metrics,
+        latest_of="SnapshotAt",
+    )
+    assert "[SnapshotAt] = (SELECT MAX([SnapshotAt]) FROM [dbo].[BacklogHistory]" in sql
+    # filter params appear twice: outer WHERE + the MAX() subquery's WHERE
+    assert params == ["2026-08-01", "2026-08-31", "2026-08-01", "2026-08-31"]
+
+
+def test_build_distinct_query_shape():
+    cols = [{"field": "ProcessName", "type": "string", "filterable": True, "sortable": True}]
+    sql = build_distinct_query("ProcessName", "dbo.BacklogHistory", cols)
+    assert sql == (
+        "SELECT DISTINCT TOP (100) [ProcessName] FROM [dbo].[BacklogHistory] "
+        "WHERE [ProcessName] IS NOT NULL ORDER BY [ProcessName]"
+    )
+
+
+def test_build_distinct_query_rejects_unknown_or_unfilterable():
+    cols = [{"field": "ProcessName", "type": "string", "filterable": False}]
+    with pytest.raises(TableQueryError):
+        build_distinct_query("ProcessName", "dbo.BacklogHistory", cols)
+    with pytest.raises(TableQueryError):
+        build_distinct_query("Nope", "dbo.BacklogHistory", cols)
+
+
+def test_latest_of_ignored_with_dimensions():
+    rd = {"columns": [{"field": "SnapshotAt", "grain": "day"}], "filters": [], "sort": []}
+    cols = [
+        {
+            "field": "SnapshotAt",
+            "type": "datetime",
+            "filterable": True,
+            "sortable": True,
+            "grainable": True,
+        },
+        {"field": "BacklogCount", "type": "number", "filterable": True, "sortable": True},
+    ]
+    metrics = [{"code": "backlog_total", "aggregation": "sum", "base_field": "BacklogCount"}]
+    sql, _ = build_generic_query(
+        rd,
+        "dbo.BacklogHistory",
+        cols,
+        row_cap=5000,
+        resolved_metrics=metrics,
+        latest_of="SnapshotAt",
+    )
+    assert "SELECT MAX(" not in sql
