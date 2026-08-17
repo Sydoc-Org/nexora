@@ -356,7 +356,7 @@ Authorization: Bearer &lt;api key&gt;</code></pre>
         <!-- ============ GET /workitems/fields ============ -->
         <section id="apidocs-workitems-fields" class="apidocs-section nx-card nx-card--pad" data-testid="apidocs-section-workitems-fields">
           <h2 class="apidocs-h2 mt-0 flex items-center gap-2"><span class="apidocs-method">GET</span><span class="nx-mono">/api/v1/workitems/fields</span></h2>
-          <p class="apidocs-p">{{ _("The field keys /workitems accepts in ?field=, as the server resolves them right now — the searchable columns of the Workitems overview minus sensitive fields. Prefer fetching this over hard-coding key names.") }}</p>
+          <p class="apidocs-p">{{ _("The field keys /workitems accepts in ?field= for your key's process scope, as the server resolves them right now — only fields mapped for at least one of your key's processes, minus sensitive fields. Prefer fetching this over hard-coding key names.") }}</p>
           <div class="apidocs-code">
             <span class="apidocs-code-label">curl</span>
             <button class="apidocs-copy" title="{{ _('Copy') }}" aria-label="{{ _('Copy code') }}"><i class="far fa-copy"></i></button>
@@ -370,7 +370,7 @@ Authorization: Bearer &lt;api key&gt;</code></pre>
   "fields": ["archiveboxno", "bankpk", "branch", "…", "invoicenr", "…"]
 }</code></pre>
           </div>
-          <p class="apidocs-p mt-2">{{ _("Keys are lowercase without separators. A key missing here answers 400 Unknown field on /workitems; a failed config lookup returns 500, never a partial list.") }}</p>
+          <p class="apidocs-p mt-2">{{ _("Keys are lowercase without separators. On /workitems an unknown key answers 400 Unknown field, and a real field outside your key's scope answers 400 Field not available for your process scope; a failed config lookup returns 500, never a partial list.") }}</p>
         </section>
 
         <!-- ============ GET /workitems/{id} ============ -->

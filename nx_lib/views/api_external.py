@@ -26,7 +26,8 @@ Seven endpoints in v1:
   default client only) -- superseding issue #195's dedicated
   /invoice/import_datetime endpoint, which never shipped.
 - GET /api/v1/workitems/fields -- DISCOVERY for the query endpoint: the
-  field keys /workitems accepts in ?field= (SearchConfig's col_* columns,
+  field keys /workitems accepts in ?field= for THIS key's process scope
+  (SearchConfig col_* columns mapped for >=1 of the key's processes,
   lowercased with the col_ prefix stripped), sensitive keys excluded. The
   live list, so integrators don't depend on a hand-maintained doc table.
 - GET /api/v1/workitems/<id> -- the DETAIL endpoint (issue #197): document
@@ -86,6 +87,7 @@ from .workitems import (
     _get_workitems_data,
     _load_media_info,
     _norm_field_token,
+    get_search_columns_for_processes,
     get_sensitive_field_keys,
     get_sensitive_field_tokens,
     get_valid_search_columns,
@@ -221,7 +223,9 @@ _DOCFIELD_COMBS = ("and", "or")
 WORKITEM_API_MAX_DOCFIELD_PAIRS = 10
 
 
-def _parse_workitems_query(processes, *, validate_fields, blocked_keys=frozenset()):
+def _parse_workitems_query(
+    processes, *, validate_fields, blocked_keys=frozenset(), scoped_columns=frozenset()
+):
     """Validate the external /workitems query params and translate them into
     the internal MultiDict _get_workitems_data expects. Returns
     (error_message, args); exactly one is None. The API 400s what the
@@ -229,8 +233,11 @@ def _parse_workitems_query(processes, *, validate_fields, blocked_keys=frozenset
     -- silent widening is fine UX in-session and an over-return trap on a
     machine surface. validate_fields=False skips the DB-backed doc-field
     whitelist (the /api/test twin must stay zero-backend-query);
-    blocked_keys is the caller-resolved sensitive set (the caller has
-    already 500'd if that lookup failed -- fail closed, module docstring)."""
+    blocked_keys is the caller-resolved sensitive set and scoped_columns the
+    caller-resolved per-process col_* set (the caller has already 500'd if
+    either lookup failed -- fail closed, module docstring). A field mapped
+    for NONE of the key's processes 400s instead of silently resolving to
+    zero rows -- the field-search trap hunt, 2026-08-17."""
     a = request.args
     items = []
 
@@ -294,6 +301,11 @@ def _parse_workitems_query(processes, *, validate_fields, blocked_keys=frozenset
             # Sensitive fields answer identically to unknown ones -- no
             # sensitivity-existence oracle on the external surface.
             return f"Unknown field '{f}'", None
+        if validate_fields and f"col_{f}" not in scoped_columns:
+            # Real column, but mapped for none of the key's processes: the
+            # resolution would fold to an empty allow-set and silently answer
+            # count=0 -- surface it instead.
+            return f"Field '{f}' is not available for your process scope", None
         op = (ops[i] if i < len(ops) else "contains").strip().lower() or "contains"
         if op not in DOCFIELD_OPS:
             return "op must be one of: " + ", ".join(sorted(DOCFIELD_OPS)), None
@@ -363,8 +375,18 @@ def api_v1_workitems():
     blocked_keys = get_sensitive_field_keys()
     if blocked_keys is None:
         return jsonify({"error": "Workitems backend unavailable"}), 500
+    scoped_columns = frozenset()
+    if request.args.getlist("field"):
+        # Only resolved when field pairs are present (one extra PK-range read);
+        # None = lookup failure -> fail closed like the sensitive set above.
+        scoped_columns = get_search_columns_for_processes(g.api_client["processes"])
+        if scoped_columns is None:
+            return jsonify({"error": "Workitems backend unavailable"}), 500
     err, args = _parse_workitems_query(
-        g.api_client["processes"], validate_fields=True, blocked_keys=blocked_keys
+        g.api_client["processes"],
+        validate_fields=True,
+        blocked_keys=blocked_keys,
+        scoped_columns=scoped_columns,
     )
     if err:
         return jsonify({"error": err}), 400
@@ -407,16 +429,19 @@ def api_v1_workitems():
 @limiter.limit("60 per minute")
 @require_api_key
 def api_v1_workitems_fields():
-    # Queryable field keys for /workitems: SearchConfig's col_* columns minus
-    # the sensitive set. Fail CLOSED on either lookup failing (module
-    # docstring) -- [] from get_valid_search_columns is its error fallback,
-    # never a real config state (the table always has col_* columns).
+    # Queryable field keys for /workitems, SCOPED to the key's processes:
+    # only columns mapped (non-NULL) in the SearchConfig row of at least one
+    # process in the key's ProcessList, minus the sensitive set -- the global
+    # column list would advertise fields that can never match this key's
+    # scope (the field-search trap hunt, 2026-08-17). Fail CLOSED on either
+    # lookup failing (module docstring); an empty ProcessList answers an
+    # empty list without a query (the /workitems empty-page idiom).
     blocked_keys = get_sensitive_field_keys()
-    valid_columns = get_valid_search_columns()
-    if blocked_keys is None or not valid_columns:
+    scoped_columns = get_search_columns_for_processes(g.api_client["processes"])
+    if blocked_keys is None or scoped_columns is None:
         return jsonify({"error": "Workitems backend unavailable"}), 500
     fields = sorted(
-        key for key in (c.removeprefix("col_") for c in valid_columns) if key not in blocked_keys
+        key for key in (c.removeprefix("col_") for c in scoped_columns) if key not in blocked_keys
     )
     return jsonify({"fields": fields})
 

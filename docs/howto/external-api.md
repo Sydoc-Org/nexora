@@ -184,10 +184,13 @@ Doc-field filters repeat in parallel: each `field`+`value` pair may carry an
 `endswith`) and a `comb` (`and` default, `or`) joining it to the pairs
 before it — at most **10 pairs** per request (`400` beyond). Field keys are
 written **lowercase with no separators** (`invoicenr`, `esrreference`,
-`grossamount`, `validationuser`, …) — fetch the full live list from
+`grossamount`, …) — fetch your key's live list from
 `GET /api/v1/workitems/fields` below; an unknown — or
 sensitive — field key returns `400 {"error": "Unknown field '...'"}`
-(sensitive doc-fields are never queryable with an API key). The `LIKE`-family ops treat `%` and `_` in the
+(sensitive doc-fields are never queryable with an API key), and a real
+field mapped for none of your key's processes returns
+`400 {"error": "Field '...' is not available for your process scope"}`
+instead of silently matching nothing. The `LIKE`-family ops treat `%` and `_` in the
 value as SQL wildcards (historical overview behaviour). Matches honour the
 same per-process time window (`SearchConfig.TimeFilter`) as the overview
 page's search — very old documents fall outside it.
@@ -208,7 +211,8 @@ surface never degrades to serving unfiltered data. Not cached.
 ## GET /api/v1/workitems/fields
 
 The **discovery** endpoint for the query above: the field keys `?field=`
-accepts, as the server resolves them right now. No parameters:
+accepts **for your key's process scope**, as the server resolves them right
+now. No parameters:
 
     curl -H "Authorization: Bearer <key>" \
         "https://nexora.sydoc.ch/nexora/api/v1/workitems/fields"
@@ -217,11 +221,14 @@ accepts, as the server resolves them right now. No parameters:
       "fields": ["archiveboxno", "bankpk", "branch", "…", "invoicenr", "…"]
     }
 
-Keys are lowercase with no separators. The list is config-driven (the
-searchable columns the Workitems overview offers, **minus sensitive
-fields**), so prefer fetching it over hard-coding — a key absent here
-answers `400 Unknown field` on `/workitems`. A failed config lookup returns
-`500` (fail closed), never a partial list. Not cached.
+Keys are lowercase with no separators. The list is config-driven and
+**scoped**: only fields mapped for at least one process in the key's
+`ProcessList` appear, **minus sensitive fields** — so prefer fetching it
+over hard-coding. On `/workitems`, a key absent from the global config
+answers `400 Unknown field`; a real field outside your scope answers
+`400 Field '...' is not available for your process scope`. A failed config
+lookup returns `500` (fail closed), never a partial list. An empty
+`ProcessList` returns an empty list. Not cached.
 
 ## GET /api/v1/workitems/&lt;id&gt;
 

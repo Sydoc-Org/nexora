@@ -521,10 +521,14 @@ WORKITEMS_URL = "/api/v1/workitems"
 WORKITEM_DETAIL_URL = "/api/v1/workitems/1216"
 
 
-def _patch_field_whitelist(monkeypatch, columns=("col_invoicenr",), sensitive=()):
-    """Doc-field whitelist without a NexoraDB round-trip."""
+def _patch_field_whitelist(monkeypatch, columns=("col_invoicenr",), sensitive=(), scoped=None):
+    """Doc-field whitelist without a NexoraDB round-trip. scoped defaults to
+    columns (every valid column mapped for the key's scope); pass a subset to
+    exercise the mapped-for-no-target-process 400."""
     monkeypatch.setattr(ax, "get_valid_search_columns", lambda: list(columns))
     monkeypatch.setattr(ax, "get_sensitive_field_keys", lambda: set(sensitive))
+    scoped_set = set(columns if scoped is None else scoped)
+    monkeypatch.setattr(ax, "get_search_columns_for_processes", lambda processes: scoped_set)
 
 
 def test_workitems_no_auth_header_returns_401_json(client):
@@ -1416,8 +1420,8 @@ def test_workitems_fields_lists_keys_minus_sensitive(client, monkeypatch):
 
 
 def test_workitems_fields_fails_closed_on_lookup_errors(client, monkeypatch):
-    # BOTH error fallbacks answer 500: sensitive-list None AND the [] error
-    # fallback of get_valid_search_columns -- never an empty/unstripped list.
+    # BOTH lookup failures answer 500: sensitive-list None AND the None error
+    # fallback of get_search_columns_for_processes -- never a partial list.
     raw = secrets.token_urlsafe(32)
     key_hash = _insert_key(raw)
     try:
@@ -1426,12 +1430,85 @@ def test_workitems_fields_fails_closed_on_lookup_errors(client, monkeypatch):
         resp = client.get(FIELDS_URL, headers={"Authorization": f"Bearer {raw}"})
         assert resp.status_code == 500
         assert resp.get_json() == {"error": "Workitems backend unavailable"}
-        _patch_field_whitelist(monkeypatch, columns=())
+        _patch_field_whitelist(monkeypatch, columns=("col_invoicenr",))
+        monkeypatch.setattr(ax, "get_search_columns_for_processes", lambda processes: None)
         resp = client.get(FIELDS_URL, headers={"Authorization": f"Bearer {raw}"})
         assert resp.status_code == 500
         assert resp.get_json() == {"error": "Workitems backend unavailable"}
     finally:
         _delete_key(key_hash)
+
+
+def test_workitems_fields_empty_scope_mapping_returns_empty_list(client, monkeypatch):
+    # No SearchConfig mapping for any of the key's processes is a truthful
+    # empty list (200), NOT an error -- distinct from the None failure above.
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+    _patch_field_whitelist(monkeypatch, scoped=())
+    try:
+        resp = client.get(FIELDS_URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 200
+        assert resp.get_json() == {"fields": []}
+    finally:
+        _delete_key(key_hash)
+
+
+def test_workitems_field_unmapped_for_scope_returns_400(client, monkeypatch):
+    # A globally valid column that is mapped for NONE of the key's processes
+    # must 400 (it would otherwise silently resolve to count=0), with a
+    # message distinct from the unknown/sensitive "Unknown field".
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+    _patch_field_whitelist(
+        monkeypatch, columns=("col_invoicenr", "col_doctype"), scoped=("col_invoicenr",)
+    )
+
+    def _must_not_be_called(*a, **kw):
+        raise AssertionError("_get_workitems_data must not run for an unmapped field")
+
+    monkeypatch.setattr(ax, "_get_workitems_data", _must_not_be_called)
+    try:
+        resp = client.get(
+            WORKITEMS_URL,
+            headers={"Authorization": f"Bearer {raw}"},
+            query_string={"field": "doctype", "value": "Invoice"},
+        )
+        assert resp.status_code == 400
+        assert resp.get_json() == {
+            "error": "Field 'doctype' is not available for your process scope"
+        }
+        # the mapped field on the same key still parses fine (hits the seam
+        # mock's 500 only if it got past validation -- so patch a benign body)
+        resp = client.get(
+            WORKITEMS_URL,
+            headers={"Authorization": f"Bearer {raw}"},
+            query_string={"field": "invoicenr", "value": "x", "op": "eq"},
+        )
+        assert resp.status_code == 500  # _must_not_be_called raised -> 500 path
+    finally:
+        _delete_key(key_hash)
+
+
+def test_get_search_columns_for_processes_maps_and_fails_closed(monkeypatch, auth_app_ctx):
+    # Unit-ish: non-NULL col_* cells across the scope's rows union up
+    # (lowercased); empty scope short-circuits; a dead engine returns None.
+    import nx_lib.views.workitems as wi
+
+    cur = MagicMock()
+    cur.description = [("ProcessName",), ("TableName",), ("col_InvoiceNr",), ("col_doctype",)]
+    cur.fetchall.return_value = [("p.a", "t1", "InvNo", None), ("p.b", "t2", None, "DocType")]
+    conn = MagicMock()
+    conn.cursor.return_value = cur
+    eng = MagicMock()
+    eng.raw_connection.return_value = conn
+    monkeypatch.setattr(wi, "engine_nexora_db", eng)
+    assert wi.get_search_columns_for_processes(["p.a", "p.b"]) == {
+        "col_invoicenr",
+        "col_doctype",
+    }
+    assert wi.get_search_columns_for_processes([]) == set()
+    monkeypatch.setattr(wi, "engine_nexora_db", _dead_engine("NexoraDB down"))
+    assert wi.get_search_columns_for_processes(["p.a"]) is None
 
 
 def test_test_workitems_fields_static_shape_no_backend(client, monkeypatch):

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-17 07:39+0200\n"
+"POT-Creation-Date: 2026-08-17 08:20+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -342,7 +342,7 @@ msgstr "Organisation erfolgreich gelöscht."
 #: nx_lib/views/generali.py:2789 nx_lib/views/generali.py:2921
 #: nx_lib/views/generali.py:2995 nx_lib/views/generali.py:3044
 #: nx_lib/views/generali.py:3067 nx_lib/views/generali.py:3175
-#: nx_lib/views/workitems.py:2071
+#: nx_lib/views/workitems.py:2104
 msgid "An unexpected error occurred"
 msgstr "Ein unerwarteter Fehler ist aufgetreten"
 
@@ -404,9 +404,9 @@ msgstr "Sitzungen konnten nicht abgerufen werden"
 #: nx_lib/views/admin.py:1965 nx_lib/views/dashboard.py:503
 #: nx_lib/views/dashboard.py:613 nx_lib/views/dashboard.py:668
 #: nx_lib/views/dashboard.py:760 nx_lib/views/invoices.py:292
-#: nx_lib/views/workitems.py:1040 nx_lib/views/workitems.py:1778
-#: nx_lib/views/workitems.py:1780 nx_lib/views/workitems.py:1906
-#: nx_lib/views/workitems.py:2010
+#: nx_lib/views/workitems.py:1073 nx_lib/views/workitems.py:1811
+#: nx_lib/views/workitems.py:1813 nx_lib/views/workitems.py:1939
+#: nx_lib/views/workitems.py:2043
 msgid "Not authorized"
 msgstr "Nicht autorisiert"
 
@@ -1009,11 +1009,11 @@ msgstr "Diese Anfrage ist ungültig."
 msgid "Could not load values"
 msgstr "Werte konnten nicht geladen werden"
 
-#: nx_lib/views/workitems.py:1031 nx_lib/views/workitems.py:1189
+#: nx_lib/views/workitems.py:1064 nx_lib/views/workitems.py:1222
 msgid "Could not fetch values"
 msgstr "Werte konnten nicht abgerufen werden"
 
-#: nx_lib/views/workitems.py:1250
+#: nx_lib/views/workitems.py:1283
 msgid ""
 "Exporting fields, history, or images requires selecting 10 or fewer "
 "workitems."
@@ -1021,23 +1021,23 @@ msgstr ""
 "Der Export von Feldern, Verlauf oder Bildern erfordert die Auswahl von "
 "höchstens 10 Workitems."
 
-#: nx_lib/views/workitems.py:1544
+#: nx_lib/views/workitems.py:1577
 msgid "TRUNCATED"
 msgstr "GEKÜRZT"
 
-#: nx_lib/views/workitems.py:1545
+#: nx_lib/views/workitems.py:1578
 msgid "exported"
 msgstr "exportiert"
 
-#: nx_lib/views/workitems.py:1545
+#: nx_lib/views/workitems.py:1578
 msgid "matching workitems"
 msgstr "übereinstimmende Workitems"
 
-#: nx_lib/views/workitems.py:1551
+#: nx_lib/views/workitems.py:1584
 msgid "EXPORT TIMED OUT"
 msgstr "EXPORT ZEITÜBERSCHREITUNG"
 
-#: nx_lib/views/workitems.py:1552
+#: nx_lib/views/workitems.py:1585
 msgid ""
 "no fields or images completed before the time limit; this is not a zero-"
 "result export"
@@ -1045,114 +1045,114 @@ msgstr ""
 "keine Felder oder Bilder wurden vor Ablauf der Zeitgrenze fertiggestellt;"
 " dies ist kein Export ohne Ergebnisse"
 
-#: nx_lib/views/workitems.py:1668 nx_lib/views/workitems.py:1739
+#: nx_lib/views/workitems.py:1701 nx_lib/views/workitems.py:1772
 msgid "No file part in the request."
 msgstr "Kein Dateiteil in der Anfrage."
 
-#: nx_lib/views/workitems.py:1675 nx_lib/views/workitems.py:1742
+#: nx_lib/views/workitems.py:1708 nx_lib/views/workitems.py:1775
 msgid "No file selected for uploading."
 msgstr "Keine Datei zum Hochladen ausgewählt."
 
-#: nx_lib/views/workitems.py:1679
+#: nx_lib/views/workitems.py:1712
 msgid "No target process selected."
 msgstr "Kein Zielprozess ausgewählt."
 
-#: nx_lib/views/workitems.py:1691
+#: nx_lib/views/workitems.py:1724
 msgid "You do not have permission to import to this process."
 msgstr "Sie haben keine Berechtigung, in diesen Prozess zu importieren."
 
-#: nx_lib/views/workitems.py:1706
+#: nx_lib/views/workitems.py:1739
 #, python-brace-format
 msgid "File '{}' successfully imported into {}."
 msgstr "Datei '{}' erfolgreich in {} importiert."
 
-#: nx_lib/views/workitems.py:1711
+#: nx_lib/views/workitems.py:1744
 msgid "An error occurred while saving the file."
 msgstr "Beim Speichern der Datei ist ein Fehler aufgetreten."
 
-#: nx_lib/views/workitems.py:1713
+#: nx_lib/views/workitems.py:1746
 msgid "Invalid file type. Please upload a valid PDF."
 msgstr "Ungültiger Dateityp. Bitte laden Sie ein gültiges PDF hoch."
 
-#: nx_lib/views/workitems.py:1736 nx_lib/views/workitems.py:2294
+#: nx_lib/views/workitems.py:1769 nx_lib/views/workitems.py:2327
 msgid "This import is only available for the MS02 client."
 msgstr "Dieser Import ist nur für den MS02-Mandanten verfügbar."
 
-#: nx_lib/views/workitems.py:1746
+#: nx_lib/views/workitems.py:1779
 msgid "Invalid file type. Please upload a valid Excel (.xlsx) file."
 msgstr ""
 "Ungültiger Dateityp. Bitte laden Sie eine gültige Excel-Datei (.xlsx) "
 "hoch."
 
-#: nx_lib/views/workitems.py:1754
+#: nx_lib/views/workitems.py:1787
 msgid "The Excel file has no usable rows."
 msgstr "Die Excel-Datei enthält keine verwertbaren Zeilen."
 
-#: nx_lib/views/workitems.py:1771
+#: nx_lib/views/workitems.py:1804
 msgid "Could not save the prepared documents. Please try again."
 msgstr ""
 "Die vorbereiteten Dokumente konnten nicht gespeichert werden. Bitte "
 "versuchen Sie es erneut."
 
-#: nx_lib/views/workitems.py:1850 nx_lib/views/workitems.py:1914
+#: nx_lib/views/workitems.py:1883 nx_lib/views/workitems.py:1947
 msgid "Workitem not found"
 msgstr "Workitem nicht gefunden"
 
-#: nx_lib/views/workitems.py:1854 nx_lib/views/workitems.py:2004
+#: nx_lib/views/workitems.py:1887 nx_lib/views/workitems.py:2037
 msgid "Internal Server Error"
 msgstr "Interner Serverfehler"
 
-#: nx_lib/views/workitems.py:1927
+#: nx_lib/views/workitems.py:1960
 msgid "Media index out of bounds"
 msgstr "Medienindex außerhalb des gültigen Bereichs"
 
-#: nx_lib/views/workitems.py:1953
+#: nx_lib/views/workitems.py:1986
 msgid "Failed to render PDF page"
 msgstr "PDF-Seite konnte nicht gerendert werden"
 
-#: nx_lib/views/workitems.py:1980
+#: nx_lib/views/workitems.py:2013
 msgid "Failed to process TIFF image"
 msgstr "TIFF-Bild konnte nicht verarbeitet werden"
 
-#: nx_lib/views/workitems.py:2069
+#: nx_lib/views/workitems.py:2102
 msgid "Failed to fetch audit history"
 msgstr "Audit-Verlauf konnte nicht abgerufen werden"
 
-#: nx_lib/views/workitems.py:2177
+#: nx_lib/views/workitems.py:2210
 msgid "This page is only available for the MS02 client."
 msgstr "Diese Seite ist nur für den MS02-Mandanten verfügbar."
 
-#: nx_lib/views/workitems.py:2300
+#: nx_lib/views/workitems.py:2333
 msgid "Could not clear the prepared documents. Please try again."
 msgstr ""
 "Die vorbereiteten Dokumente konnten nicht gelöscht werden. Bitte "
 "versuchen Sie es erneut."
 
-#: nx_lib/views/workitems.py:2361
+#: nx_lib/views/workitems.py:2394
 msgid "Could not load saved views."
 msgstr "Gespeicherte Ansichten konnten nicht geladen werden."
 
-#: nx_lib/views/workitems.py:2375 nx_lib/views/workitems.py:2378
+#: nx_lib/views/workitems.py:2408 nx_lib/views/workitems.py:2411
 msgid "Invalid view name or filters."
 msgstr "Ungültiger Ansichtsname oder ungültige Filter."
 
-#: nx_lib/views/workitems.py:2392 nx_lib/views/workitems.py:2441
+#: nx_lib/views/workitems.py:2425 nx_lib/views/workitems.py:2474
 msgid "View not found."
 msgstr "Ansicht nicht gefunden."
 
-#: nx_lib/views/workitems.py:2405
+#: nx_lib/views/workitems.py:2438
 msgid "Too many saved views — delete one first."
 msgstr "Zu viele gespeicherte Ansichten — bitte zuerst eine löschen."
 
-#: nx_lib/views/workitems.py:2420
+#: nx_lib/views/workitems.py:2453
 msgid "A view with this name already exists."
 msgstr "Eine Ansicht mit diesem Namen existiert bereits."
 
-#: nx_lib/views/workitems.py:2423
+#: nx_lib/views/workitems.py:2456
 msgid "Could not save the view."
 msgstr "Die Ansicht konnte nicht gespeichert werden."
 
-#: nx_lib/views/workitems.py:2445
+#: nx_lib/views/workitems.py:2478
 msgid "Could not delete the view."
 msgstr "Die Ansicht konnte nicht gelöscht werden."
 
@@ -2247,24 +2247,29 @@ msgstr ""
 
 #: templates/api_docs.html:359
 msgid ""
-"The field keys /workitems accepts in ?field=, as the server resolves them"
-" right now — the searchable columns of the Workitems overview minus "
-"sensitive fields. Prefer fetching this over hard-coding key names."
+"The field keys /workitems accepts in ?field= for your key's process "
+"scope, as the server resolves them right now — only fields mapped for at "
+"least one of your key's processes, minus sensitive fields. Prefer "
+"fetching this over hard-coding key names."
 msgstr ""
-"Die Feldschlüssel, die /workitems in ?field= akzeptiert, so wie der "
-"Server sie gerade auflöst — die durchsuchbaren Spalten der Workitems-"
-"Übersicht ohne sensible Felder. Rufen Sie diese Liste bevorzugt ab, statt"
-" Schlüsselnamen fest zu verdrahten."
+"Die Feldschlüssel, die /workitems in ?field= für den Prozessumfang Ihres "
+"Schlüssels akzeptiert, so wie der Server sie gerade auflöst — nur Felder, "
+"die für mindestens einen Prozess Ihres Schlüssels gemappt sind, ohne "
+"sensible Felder. Rufen Sie diese Liste bevorzugt ab, statt Schlüsselnamen "
+"fest zu verdrahten."
 
 #: templates/api_docs.html:373
 msgid ""
-"Keys are lowercase without separators. A key missing here answers 400 "
-"Unknown field on /workitems; a failed config lookup returns 500, never a "
-"partial list."
+"Keys are lowercase without separators. On /workitems an unknown key "
+"answers 400 Unknown field, and a real field outside your key's scope "
+"answers 400 Field not available for your process scope; a failed config "
+"lookup returns 500, never a partial list."
 msgstr ""
-"Schlüssel sind kleingeschrieben ohne Trennzeichen. Ein hier fehlender "
-"Schlüssel liefert auf /workitems 400 Unknown field; ein fehlgeschlagenes "
-"Laden der Konfiguration liefert 500, nie eine unvollständige Liste."
+"Schlüssel sind kleingeschrieben ohne Trennzeichen. Auf /workitems liefert "
+"ein unbekannter Schlüssel 400 Unknown field, und ein reales Feld außerhalb "
+"des Umfangs Ihres Schlüssels 400 Field not available for your process "
+"scope; ein fehlgeschlagenes Laden der Konfiguration liefert 500, nie eine "
+"unvollständige Liste."
 
 #: templates/api_docs.html:379
 msgid ""

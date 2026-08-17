@@ -11,10 +11,19 @@ Work toward the next release.
 ### Added
 
 - `GET /api/v1/workitems/fields` (and its `/api/test/v1` twin): discovery
-  endpoint listing the field keys `/api/v1/workitems` accepts in `?field=`
-  (the searchable overview columns minus sensitive fields). Docs and the
-  in-app API docs page now state the key-naming rule (lowercase, no
-  separators) and point at it.
+  endpoint listing the field keys `/api/v1/workitems` accepts in `?field=`,
+  scoped to the key's `ProcessList` (only fields mapped for at least one of
+  the key's processes, minus sensitive fields). Docs and the in-app API
+  docs page now state the key-naming rule (lowercase, no separators) and
+  point at it.
+
+### Fixed
+
+- `GET /api/v1/workitems` now answers
+  `400 Field '...' is not available for your process scope` when a doc-field
+  filter names a real field that is mapped for none of the key's processes —
+  previously the pair silently resolved to an empty allow-set and the call
+  returned `count=0` with no hint.
 
 ### Changed
 

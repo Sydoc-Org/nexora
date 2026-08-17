@@ -220,6 +220,39 @@ def get_valid_search_columns():
             conn.close()
 
 
+def get_search_columns_for_processes(processes):
+    """col_<field> SearchConfig columns mapped (non-NULL) for at least one of
+    the given ProcessNames, lowercased -- the per-scope companion to
+    get_valid_search_columns (which is table-wide). Returns None when the
+    lookup fails so callers can fail closed (external API contract); an empty
+    input short-circuits to an empty set without a query. Uncached: one
+    PK-range read per call on a rate-limited surface."""
+    if not processes:
+        return set()
+    conn = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+        placeholders = ",".join(["?"] * len(processes))
+        cursor.execute(
+            f"SELECT * FROM SearchConfig WHERE ProcessName IN ({placeholders})",
+            list(processes),
+        )
+        names = [d[0].lower() for d in cursor.description]
+        mapped = set()
+        for row in cursor.fetchall():
+            for name, val in zip(names, row, strict=True):
+                if val is not None and name.startswith("col_"):
+                    mapped.add(name)
+        return mapped
+    except Exception as e:
+        current_app.logger.error(f"Error fetching per-process search columns: {e}")
+        return None
+    finally:
+        if conn:
+            conn.close()
+
+
 def _norm_field_token(s):
     """Normalize a field name for cross-namespace matching: lowercase, strip
     everything but [a-z0-9] so 'Validation User' / 'validation_user' /
