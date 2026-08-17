@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-17 08:20+0200\n"
+"POT-Creation-Date: 2026-08-17 08:48+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -1773,10 +1773,10 @@ msgstr "An die Datenbank gesendete Abfrage"
 #: templates/api_docs.html:216 templates/api_docs.html:241
 #: templates/api_docs.html:247 templates/api_docs.html:283
 #: templates/api_docs.html:289 templates/api_docs.html:314
-#: templates/api_docs.html:320 templates/api_docs.html:362
-#: templates/api_docs.html:368 templates/api_docs.html:382
-#: templates/api_docs.html:388 templates/api_docs.html:434
-#: templates/api_docs.html:440 templates/reporting.html:356
+#: templates/api_docs.html:320 templates/api_docs.html:361
+#: templates/api_docs.html:367 templates/api_docs.html:381
+#: templates/api_docs.html:387 templates/api_docs.html:431
+#: templates/api_docs.html:437 templates/reporting.html:356
 msgid "Copy"
 msgstr "Kopieren"
 
@@ -1833,7 +1833,7 @@ msgid "Endpoints"
 msgstr "Endpunkte"
 
 #: templates/api_docs.html:115 templates/api_docs.html:134
-#: templates/api_docs.html:430
+#: templates/api_docs.html:427
 msgid "Test sandbox"
 msgstr "Test-Sandbox"
 
@@ -1892,17 +1892,17 @@ msgstr ""
 #: templates/api_docs.html:216 templates/api_docs.html:241
 #: templates/api_docs.html:247 templates/api_docs.html:283
 #: templates/api_docs.html:289 templates/api_docs.html:314
-#: templates/api_docs.html:320 templates/api_docs.html:362
-#: templates/api_docs.html:368 templates/api_docs.html:382
-#: templates/api_docs.html:388 templates/api_docs.html:434
-#: templates/api_docs.html:440
+#: templates/api_docs.html:320 templates/api_docs.html:361
+#: templates/api_docs.html:367 templates/api_docs.html:381
+#: templates/api_docs.html:387 templates/api_docs.html:431
+#: templates/api_docs.html:437
 msgid "Copy code"
 msgstr "Code kopieren"
 
 #: templates/api_docs.html:149 templates/api_docs.html:215
 #: templates/api_docs.html:246 templates/api_docs.html:288
-#: templates/api_docs.html:319 templates/api_docs.html:367
-#: templates/api_docs.html:387 templates/api_docs.html:439
+#: templates/api_docs.html:319 templates/api_docs.html:366
+#: templates/api_docs.html:386 templates/api_docs.html:436
 msgid "response"
 msgstr "Antwort"
 
@@ -1978,8 +1978,8 @@ msgstr "Body"
 
 #: templates/api_docs.html:184 templates/api_docs.html:225
 #: templates/api_docs.html:257 templates/api_docs.html:266
-#: templates/api_docs.html:298 templates/api_docs.html:341
-#: templates/api_docs.html:417
+#: templates/api_docs.html:298 templates/api_docs.html:340
+#: templates/api_docs.html:415
 msgid "Meaning"
 msgstr "Bedeutung"
 
@@ -2060,19 +2060,19 @@ msgstr ""
 "Zahl wie die \"Current Backlog\"-KPI-Kachel des nexora-Dashboards."
 
 #: templates/api_docs.html:222 templates/api_docs.html:263
-#: templates/api_docs.html:295 templates/api_docs.html:414
+#: templates/api_docs.html:295 templates/api_docs.html:412
 msgid "Response fields"
 msgstr "Antwortfelder"
 
 #: templates/api_docs.html:225 templates/api_docs.html:266
-#: templates/api_docs.html:298 templates/api_docs.html:417
+#: templates/api_docs.html:298 templates/api_docs.html:415
 #: templates/js/_reporting_dashboard_js.html:76
 msgid "Field"
 msgstr "Feld"
 
 #: templates/api_docs.html:225 templates/api_docs.html:257
 #: templates/api_docs.html:266 templates/api_docs.html:298
-#: templates/api_docs.html:417 templates/generali_documents.html:226
+#: templates/api_docs.html:415 templates/generali_documents.html:226
 #: templates/js/_reporting_viz_js.html:166
 msgid "Type"
 msgstr "Typ"
@@ -2104,11 +2104,11 @@ msgstr ""
 " days-Parameter-Tage importiert, aber bisher ohne Exportdatum, beschränkt"
 " auf die Prozesse Ihres Schlüssels."
 
-#: templates/api_docs.html:254 templates/api_docs.html:338
+#: templates/api_docs.html:254 templates/api_docs.html:337
 msgid "Query parameters"
 msgstr "Query-Parameter"
 
-#: templates/api_docs.html:257 templates/api_docs.html:341
+#: templates/api_docs.html:257 templates/api_docs.html:340
 msgid "Param"
 msgstr "Parameter"
 
@@ -2182,19 +2182,18 @@ msgstr ""
 #, python-brace-format
 msgid ""
 "Query workitems with the Workitems overview page's filters, scoped to "
-"your key's processes. Take a result's id (and client) to "
-"/api/v1/workitems/{id} for its document details."
+"your key's processes. Take a result's id to /api/v1/workitems/{id} for "
+"its document details."
 msgstr ""
 "Workitems mit den Filtern der Workitems-Übersichtsseite abfragen, "
-"beschränkt auf die Prozesse Ihres Schlüssels. Übernehmen Sie id (und "
-"client) eines Treffers in /api/v1/workitems/{id} für dessen "
-"Dokumentdetails."
+"beschränkt auf die Prozesse Ihres Schlüssels. Übernehmen Sie die id "
+"eines Treffers in /api/v1/workitems/{id} für dessen Dokumentdetails."
 
-#: templates/api_docs.html:343
+#: templates/api_docs.html:342
 msgid "Exact workitem-id match"
 msgstr "Exakte Übereinstimmung der Workitem-ID"
 
-#: templates/api_docs.html:346
+#: templates/api_docs.html:345
 msgid ""
 "ISO datetime bounds on the last-modified timestamp; start inclusive, end "
 "exclusive"
@@ -2202,13 +2201,13 @@ msgstr ""
 "ISO-Datumsgrenzen für den Zeitpunkt der letzten Änderung; Beginn "
 "inklusiv, Ende exklusiv"
 
-#: templates/api_docs.html:347
+#: templates/api_docs.html:346
 msgid "Comma-joined subset of your key's process scope (default: all of it)"
 msgstr ""
 "Kommagetrennte Teilmenge des Prozessumfangs Ihres Schlüssels (Standard: "
 "alle)"
 
-#: templates/api_docs.html:348
+#: templates/api_docs.html:347
 msgid ""
 "Repeated document-field filter pairs (max 10); field keys are lowercase "
 "without separators (invoicenr, esrreference, …) — fetch the live list "
@@ -2222,30 +2221,28 @@ msgstr ""
 "ncontains, eq, neq, startswith, endswith; comb verknüpft ein Paar mit den"
 " vorherigen per and (Standard) / or"
 
-#: templates/api_docs.html:349
+#: templates/api_docs.html:348
 msgid "Paging; per_page accepts only 40, 100, 200, 500 or 1000 (default 40)"
 msgstr ""
 "Seitenweise Ausgabe; per_page akzeptiert nur 40, 100, 200, 500 oder 1000 "
 "(Standard 40)"
 
-#: templates/api_docs.html:353
+#: templates/api_docs.html:352
 msgid ""
 "Every invalid value returns a 400 with a plain-English error — nothing is"
 " silently coerced. Unknown and sensitive field keys answer identically "
-"(400 Unknown field). id and client together identify a workitem — ids are"
-" only unique per client. import_datetime is filled for default-client "
-"rows and null otherwise. Doc-field matches honour the same per-process "
-"time window as the overview page's search."
+"(400 Unknown field). import_datetime is filled where the process is "
+"mapped in the statistics DB and null otherwise. Doc-field matches honour "
+"the same per-process time window as the overview page's search."
 msgstr ""
 "Jeder ungültige Wert liefert 400 mit einer klaren englischen "
 "Fehlermeldung — nichts wird stillschweigend umgedeutet. Unbekannte und "
-"sensible Feldschlüssel antworten identisch (400 Unknown field). id und "
-"client identifizieren ein Workitem gemeinsam — IDs sind nur pro Client "
-"eindeutig. import_datetime ist bei Default-Client-Zeilen gefüllt, sonst "
-"null. Dokumentfeld-Treffer unterliegen demselben Zeitfenster pro Prozess "
-"wie die Suche der Übersichtsseite."
+"sensible Feldschlüssel antworten identisch (400 Unknown field). "
+"import_datetime ist gefüllt, wo der Prozess in der Statistik-DB gemappt "
+"ist, sonst null. Dokumentfeld-Treffer unterliegen demselben Zeitfenster "
+"pro Prozess wie die Suche der Übersichtsseite."
 
-#: templates/api_docs.html:359
+#: templates/api_docs.html:358
 msgid ""
 "The field keys /workitems accepts in ?field= for your key's process "
 "scope, as the server resolves them right now — only fields mapped for at "
@@ -2253,25 +2250,25 @@ msgid ""
 "fetching this over hard-coding key names."
 msgstr ""
 "Die Feldschlüssel, die /workitems in ?field= für den Prozessumfang Ihres "
-"Schlüssels akzeptiert, so wie der Server sie gerade auflöst — nur Felder, "
-"die für mindestens einen Prozess Ihres Schlüssels gemappt sind, ohne "
-"sensible Felder. Rufen Sie diese Liste bevorzugt ab, statt Schlüsselnamen "
-"fest zu verdrahten."
+"Schlüssels akzeptiert, so wie der Server sie gerade auflöst — nur Felder,"
+" die für mindestens einen Prozess Ihres Schlüssels gemappt sind, ohne "
+"sensible Felder. Rufen Sie diese Liste bevorzugt ab, statt Schlüsselnamen"
+" fest zu verdrahten."
 
-#: templates/api_docs.html:373
+#: templates/api_docs.html:372
 msgid ""
 "Keys are lowercase without separators. On /workitems an unknown key "
 "answers 400 Unknown field, and a real field outside your key's scope "
 "answers 400 Field not available for your process scope; a failed config "
 "lookup returns 500, never a partial list."
 msgstr ""
-"Schlüssel sind kleingeschrieben ohne Trennzeichen. Auf /workitems liefert "
-"ein unbekannter Schlüssel 400 Unknown field, und ein reales Feld außerhalb "
-"des Umfangs Ihres Schlüssels 400 Field not available for your process "
-"scope; ein fehlgeschlagenes Laden der Konfiguration liefert 500, nie eine "
-"unvollständige Liste."
+"Schlüssel sind kleingeschrieben ohne Trennzeichen. Auf /workitems liefert"
+" ein unbekannter Schlüssel 400 Unknown field, und ein reales Feld "
+"außerhalb des Umfangs Ihres Schlüssels 400 Field not available for your "
+"process scope; ein fehlgeschlagenes Laden der Konfiguration liefert 500, "
+"nie eine unvollständige Liste."
 
-#: templates/api_docs.html:379
+#: templates/api_docs.html:378
 msgid ""
 "The document details the overview row-expand shows for one workitem: "
 "extracted field values and table values. No page images, confidence or "
@@ -2281,15 +2278,7 @@ msgstr ""
 " extrahierte Feldwerte und Tabellenwerte. Keine Seitenbilder, Konfidenzen"
 " oder Fundstellen; sensible Felder werden immer entfernt."
 
-#: templates/api_docs.html:419
-msgid ""
-"The client the workitem was resolved to; pass the query row's client as "
-"?client= — ids collide across clients"
-msgstr ""
-"Der Client, dem das Workitem zugeordnet wurde; geben Sie den client der "
-"Abfragezeile als ?client= mit — IDs kollidieren zwischen Clients"
-
-#: templates/api_docs.html:420
+#: templates/api_docs.html:417
 msgid ""
 "Extracted field name → value, mapped through the same field-name mapping "
 "the overview uses"
@@ -2297,11 +2286,11 @@ msgstr ""
 "Extrahierter Feldname → Wert, abgebildet über dieselbe Feldnamen-"
 "Zuordnung wie in der Übersicht"
 
-#: templates/api_docs.html:421
+#: templates/api_docs.html:418
 msgid "Extracted tables: title, columns, and rows of column/value cells"
 msgstr "Extrahierte Tabellen: Titel, Spalten und Zeilen aus Spalte/Wert-Zellen"
 
-#: templates/api_docs.html:425
+#: templates/api_docs.html:422
 msgid ""
 "404 with a null detail is returned uniformly for an unknown id, an id "
 "outside your key's scope, and a document the runtime backend can't load "
@@ -2314,7 +2303,7 @@ msgstr ""
 "kaltes Workitem lädt live vom Laufzeitdienst und kann einige Sekunden "
 "dauern."
 
-#: templates/api_docs.html:431
+#: templates/api_docs.html:428
 msgid ""
 "Every endpoint above has a /api/test/v1/... twin: same path suffix, same "
 "Bearer-key auth, same response shape — but the numbers are random, not "
@@ -2327,7 +2316,7 @@ msgstr ""
 "Backend-Abfragen statt, daher lässt es sich beim Aufbau einer Integration"
 " beliebig oft aufrufen."
 
-#: templates/api_docs.html:446
+#: templates/api_docs.html:443
 msgid ""
 "Use a real (enabled) API key — the same auth errors (401/429) apply. "
 "Available for"
@@ -2335,7 +2324,7 @@ msgstr ""
 "Verwenden Sie einen echten (aktivierten) API-Schlüssel — dieselben Auth-"
 "Fehler (401/429) gelten. Verfügbar für"
 
-#: templates/api_docs.html:446
+#: templates/api_docs.html:443
 msgid "and"
 msgstr "und"
 
@@ -7838,4 +7827,15 @@ msgstr ""
 
 #~ msgid "API Docs"
 #~ msgstr "API-Doku"
+
+#~ msgid ""
+#~ "The client the workitem was resolved "
+#~ "to; pass the query row's client as"
+#~ " ?client= — ids collide across "
+#~ "clients"
+#~ msgstr ""
+#~ "Der Client, dem das Workitem zugeordnet"
+#~ " wurde; geben Sie den client der "
+#~ "Abfragezeile als ?client= mit — IDs "
+#~ "kollidieren zwischen Clients"
 

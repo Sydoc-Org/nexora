@@ -22,6 +22,7 @@ import pytest
 
 import nx_lib.views.api_external as ax
 import nx_lib.views.dashboard as dv
+from nx_lib.clients import CLIENTS as CLIENTS_REGISTRY
 from nx_lib.db import engine_nexora_db
 
 URL = "/api/v1/stats/today"
@@ -678,10 +679,12 @@ def test_workitems_good_key_scopes_remaps_and_serializes(client, monkeypatch):
         assert body["page"] == 1
         assert body["per_page"] == 40
         assert body["total_pages"] == 1
+        # No client/source code in the response rows (owner decision
+        # 2026-08-17) -- the internal row's client only steers the
+        # import_datetime stamping.
         assert body["workitems"] == [
             {
                 "id": 1216,
-                "client": "default",
                 "status": "Done",
                 "stage": "Delivery",
                 "modified_at": "2026-08-09 14:30:00",
@@ -689,7 +692,6 @@ def test_workitems_good_key_scopes_remaps_and_serializes(client, monkeypatch):
             },
             {
                 "id": 1216,
-                "client": "ms02",
                 "status": "Ready",
                 "stage": "Import",
                 "modified_at": "2026-08-09 15:00:00",
@@ -868,17 +870,20 @@ def test_workitem_detail_no_auth_header_returns_401_json(client):
     assert resp.headers.get("WWW-Authenticate") == "Bearer"
 
 
-def test_workitem_detail_bad_client_returns_400(client):
+def test_workitem_detail_client_param_is_ignored(client, monkeypatch):
+    # ?client= no longer exists on this surface (owner decision 2026-08-17):
+    # any value is ignored like other unknown params, never a 400.
     raw = secrets.token_urlsafe(32)
-    key_hash = _insert_key(raw)
+    key_hash = _insert_key(raw, processes="sydoc.TestProc")
+    monkeypatch.setattr(ax, "process_pair_for_workitem", lambda wid, client_hint=None: None)
     try:
         resp = client.get(
             WORKITEM_DETAIL_URL,
             headers={"Authorization": f"Bearer {raw}"},
             query_string={"client": "nope"},
         )
-        assert resp.status_code == 400
-        assert "client must be one of" in resp.get_json()["error"]
+        assert resp.status_code == 404
+        assert resp.get_json() == {"workitem_id": 1216, "detail": None}
     finally:
         _delete_key(key_hash)
 
@@ -890,7 +895,7 @@ def test_workitem_detail_empty_scope_returns_404_null(client, monkeypatch):
     def _must_not_be_called(*a, **kw):
         raise AssertionError("source resolution must not run for an empty scope")
 
-    monkeypatch.setattr(ax, "get_source_for_workitem", _must_not_be_called)
+    monkeypatch.setattr(ax, "process_pair_for_workitem", _must_not_be_called)
     try:
         resp = client.get(WORKITEM_DETAIL_URL, headers={"Authorization": f"Bearer {raw}"})
         assert resp.status_code == 404
@@ -904,7 +909,6 @@ def test_workitem_detail_unresolvable_and_out_of_scope_answer_identically(client
     # no existence oracle) -- deliberate deviation from the UI's 403.
     raw = secrets.token_urlsafe(32)
     key_hash = _insert_key(raw, processes="sydoc.TestProc")
-    monkeypatch.setattr(ax, "get_source_for_workitem", lambda wid, client_hint=None: "default")
     try:
         for pair in (None, ("sydoc", "NotGranted")):
             monkeypatch.setattr(
@@ -921,11 +925,6 @@ def test_workitem_detail_good_key_returns_stripped_fields_and_tables(client, mon
     raw = secrets.token_urlsafe(32)
     key_hash = _insert_key(raw, processes="sydoc.TestProc")
     seen = {}
-
-    def _fake_source(wid, client_hint=None):
-        seen["hint"] = client_hint
-        return "default"
-
     payload = {
         "workitem_id": 1216,
         "media_count": 3,
@@ -947,26 +946,24 @@ def test_workitem_detail_good_key_returns_stripped_fields_and_tables(client, mon
             }
         ],
     }
-    monkeypatch.setattr(ax, "get_source_for_workitem", _fake_source)
-    monkeypatch.setattr(
-        ax, "process_pair_for_workitem", lambda wid, client_hint=None: ("Sydoc", "testproc")
-    )
+
+    def _fake_pair(wid, client_hint=None):
+        seen["hint"] = client_hint
+        return ("Sydoc", "testproc")
+
+    monkeypatch.setattr(ax, "process_pair_for_workitem", _fake_pair)
     monkeypatch.setattr(ax, "get_domain_for_workitem", lambda wid, client_hint=None: "octo.test")
     monkeypatch.setattr(ax, "_load_media_info", lambda wid, domain: payload)
     monkeypatch.setattr(ax, "get_sensitive_field_tokens", lambda: {"personid", "pid"})
     try:
-        resp = client.get(
-            WORKITEM_DETAIL_URL,
-            headers={"Authorization": f"Bearer {raw}"},
-            query_string={"client": "default"},
-        )
+        resp = client.get(WORKITEM_DETAIL_URL, headers={"Authorization": f"Bearer {raw}"})
         assert resp.status_code == 200
-        # Entitlement compares case-insensitively; ?client= is forwarded as
-        # the routing hint.
-        assert seen["hint"] == "default"
+        # Entitlement compares case-insensitively; the source is resolved
+        # from the key's scope (registered sources tried in order), never
+        # from a caller-supplied param, and never echoed back.
+        assert seen["hint"] in CLIENTS_REGISTRY
         assert resp.get_json() == {
             "workitem_id": 1216,
-            "client": "default",
             "detail": {
                 "fields": {"InvoiceNumber": "INV-2026-1"},
                 "tables": [
@@ -986,7 +983,6 @@ def test_workitem_detail_good_key_returns_stripped_fields_and_tables(client, mon
 def test_workitem_detail_unloadable_document_returns_404_null(client, monkeypatch):
     raw = secrets.token_urlsafe(32)
     key_hash = _insert_key(raw, processes="sydoc.TestProc")
-    monkeypatch.setattr(ax, "get_source_for_workitem", lambda wid, client_hint=None: "default")
     monkeypatch.setattr(
         ax, "process_pair_for_workitem", lambda wid, client_hint=None: ("sydoc", "TestProc")
     )
@@ -1007,7 +1003,7 @@ def test_workitem_detail_backend_error_returns_500_json(client, monkeypatch):
     def _boom(wid, client_hint=None):
         raise RuntimeError("NexoraDB exploded")
 
-    monkeypatch.setattr(ax, "get_source_for_workitem", _boom)
+    monkeypatch.setattr(ax, "process_pair_for_workitem", _boom)
     try:
         resp = client.get(WORKITEM_DETAIL_URL, headers={"Authorization": f"Bearer {raw}"})
         assert resp.status_code == 500
@@ -1026,7 +1022,6 @@ def test_workitem_detail_sensitive_lookup_failure_fails_closed_500(client, monke
     # lookup must never serve unstripped fields/tables.
     raw = secrets.token_urlsafe(32)
     key_hash = _insert_key(raw, processes="sydoc.TestProc")
-    monkeypatch.setattr(ax, "get_source_for_workitem", lambda wid, client_hint=None: "default")
     monkeypatch.setattr(
         ax, "process_pair_for_workitem", lambda wid, client_hint=None: ("sydoc", "TestProc")
     )
@@ -1194,7 +1189,6 @@ def test_test_workitems_good_key_returns_random_data_in_real_shape(client):
         for row in body["workitems"]:
             assert set(row) == {
                 "id",
-                "client",
                 "status",
                 "stage",
                 "modified_at",
@@ -1217,17 +1211,11 @@ def test_test_workitem_detail_good_key_returns_fake_document_in_real_shape(clien
     raw = secrets.token_urlsafe(32)
     key_hash = _insert_key(raw)
     try:
-        resp = client.get(
-            TEST_WORKITEM_DETAIL_URL,
-            headers={"Authorization": f"Bearer {raw}"},
-            query_string={"client": "nope"},
-        )
-        assert resp.status_code == 400
         resp = client.get(TEST_WORKITEM_DETAIL_URL, headers={"Authorization": f"Bearer {raw}"})
         assert resp.status_code == 200
         body = resp.get_json()
+        assert set(body) == {"workitem_id", "detail"}
         assert body["workitem_id"] == 1216
-        assert body["client"] == "default"
         assert body["detail"]["fields"]
         table = body["detail"]["tables"][0]
         assert set(table) == {"title", "columns", "rows"}

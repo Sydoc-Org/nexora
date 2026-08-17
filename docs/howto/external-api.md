@@ -157,7 +157,6 @@ typical flow is query → take an `id` → fetch its document details from
       "workitems": [
         {
           "id": 78214,
-          "client": "default",
           "status": "Done",
           "stage": "Delivery",
           "modified_at": "2026-08-04 10:02:11",
@@ -195,11 +194,10 @@ value as SQL wildcards (historical overview behaviour). Matches honour the
 same per-process time window (`SearchConfig.TimeFilter`) as the overview
 page's search — very old documents fall outside it.
 
-Response rows: `id` + `client` together identify a workitem (**ids are only
-unique per client** — always carry both into the detail call), `modified_at`
-is the runtime's last-touch timestamp, and `import_datetime` is looked up
-from the Statistics DB for default-client rows (`null` for MS02 rows and
-unmapped processes). All timestamps are **server-local**
+Response rows: `id` feeds the detail call below, `modified_at` is the
+runtime's last-touch timestamp, and `import_datetime` is looked up from the
+Statistics DB where a process is mapped there (`null` otherwise). All
+timestamps are **server-local**
 `YYYY-MM-DD HH:MM:SS`. An empty `ProcessList` returns an empty page. If any
 backing source fails, the whole call returns
 `500 {"error": "Workitems backend unavailable"}` rather than a silently
@@ -237,11 +235,10 @@ row-expand shows — extracted field values and table values, no page images,
 confidence or source locations:
 
     curl -H "Authorization: Bearer <key>" \
-        "https://nexora.sydoc.ch/nexora/api/v1/workitems/78214?client=default"
+        "https://nexora.sydoc.ch/nexora/api/v1/workitems/78214"
 
     {
       "workitem_id": 78214,
-      "client": "default",
       "detail": {
         "fields": {
           "InvoiceNumber": "INV-2026-00123",
@@ -264,10 +261,9 @@ confidence or source locations:
       }
     }
 
-- `client` (query param, recommended) — the `client` value from the query
-  endpoint's row. Workitem ids collide across clients, so omitting it on a
-  colliding id resolves to the default client. An unknown value returns
-  `400`.
+No query parameters — the workitem is located within the key's process
+scope automatically.
+
 - `fields` — extracted field name → value, mapped through the same
   field-name mapping the overview uses; sensitive fields are stripped.
 - `tables` — extracted table values; columns matching a sensitive field are
@@ -335,7 +331,7 @@ counterpart in the same change.
 | Status | Body | Meaning |
 |---|---|---|
 | 400 | `{"error": "days must be 7 or 10"}` | `/undelivered` called with a missing or invalid `days` param |
-| 400 | `{"error": "<plain-English validation message>"}` | `/workitems` called with an invalid filter param (unknown status/stage/op/comb/field, malformed date, bad paging, process outside the key's scope), or `/workitems/<id>` with an unknown `client` |
+| 400 | `{"error": "<plain-English validation message>"}` | `/workitems` called with an invalid filter param (unknown status/stage/op/comb/field, malformed date, bad paging, process outside the key's scope) |
 | 401 | `{"error": "Missing or malformed Authorization header"}` | no/bad `Authorization: Bearer` header (`WWW-Authenticate: Bearer` set) |
 | 401 | `{"error": "Invalid API key"}` | unknown **or disabled** key (uniform on purpose) |
 | 404 | `{"error": "Not found"}` | wrong path under `/api/v1` (including a non-numeric `/workitems/<id>`) |

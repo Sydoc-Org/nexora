@@ -27,6 +27,12 @@ Work toward the next release.
 
 ### Changed
 
+- External API: source/client codes no longer appear anywhere on the
+  surface — the `client` field is gone from `/api/v1/workitems` rows and
+  the `/workitems/<id>` response, and the `?client=` query parameter is
+  removed (now ignored). Detail lookups resolve the workitem's source from
+  the key's process scope instead (registered sources tried in order,
+  first in-scope match wins). Docs and the in-app API docs page updated.
 - `GET /api/v1/avg_processing_time` (and its `/api/test/v1` twin) no longer
   echoes the key's `processes` list — like `/backlog` and `/undelivered`,
   scoping happens at key issuance, not in the payload. Docs updated.

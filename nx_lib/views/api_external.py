@@ -21,10 +21,12 @@ Seven endpoints in v1:
   overview page's filters (workitem_id, status, stage, start_date/end_date,
   process, repeated field/value/op/comb doc-field pairs -- incl. invoice
   number) scoped to the key's ProcessList, via the same _get_workitems_data
-  path the overview uses (session-less `scope`). Rows carry id, client,
-  status, stage, modified_at and import_datetime (Statconfig lookup,
-  default client only) -- superseding issue #195's dedicated
-  /invoice/import_datetime endpoint, which never shipped.
+  path the overview uses (session-less `scope`). Rows carry id, status,
+  stage, modified_at and import_datetime (Statconfig lookup, default
+  client only) -- superseding issue #195's dedicated
+  /invoice/import_datetime endpoint, which never shipped. Source/client
+  codes are internal routing and never appear in responses (owner
+  decision 2026-08-17).
 - GET /api/v1/workitems/fields -- DISCOVERY for the query endpoint: the
   field keys /workitems accepts in ?field= for THIS key's process scope
   (SearchConfig col_* columns mapped for >=1 of the key's processes,
@@ -32,9 +34,10 @@ Seven endpoints in v1:
   live list, so integrators don't depend on a hand-maintained doc table.
 - GET /api/v1/workitems/<id> -- the DETAIL endpoint (issue #197): document
   details (extracted fields + table values) for one workitem, the same data
-  the overview row-expand shows (no media/confidence/locations). ?client=
-  disambiguates colliding ids. Uniform 404 body for unknown AND
-  out-of-scope ids -- no existence oracle.
+  the overview row-expand shows (no media/confidence/locations). No
+  parameters: colliding ids resolve against the key's process scope (each
+  registered source is tried, first in-scope pair wins). Uniform 404 body
+  for unknown AND out-of-scope ids -- no existence oracle.
 All consumed by external clients' own integrations.
 
 Sensitive doc-fields (Search_Field_Labels.IsSensitive) are ALWAYS blocked on
@@ -70,7 +73,6 @@ from ..clients import CLIENTS
 from ..extensions import limiter
 from ..workitem_sources import (
     get_domain_for_workitem,
-    get_source_for_workitem,
     process_pair_for_workitem,
     total_backlog_count,
 )
@@ -354,11 +356,11 @@ def _serialize_workitem_row(row, import_map):
     wid = row["workitemid"]
     # import_datetime only for default-client rows: an MS02 id can collide
     # with a default stat row (compound identity), so a bare-id lookup would
-    # stamp another client's date onto it.
+    # stamp another client's date onto it. The client code itself stays
+    # internal -- not part of the response (owner decision 2026-08-17).
     import_dt = import_map.get(str(wid)) if row.get("client") == "default" else None
     return {
         "id": wid,
-        "client": row.get("client"),
         "status": row.get("status"),
         "stage": row.get("current_stage"),
         "modified_at": _fmt_dt(row.get("modifiedat")),
@@ -471,22 +473,31 @@ def _api_tables(table_sources, blocked_tokens):
 @limiter.limit("60 per minute")
 @require_api_key
 def api_v1_workitem_detail(workitem_id):
-    client_hint = (request.args.get("client") or "").strip().lower()
-    if client_hint and client_hint not in CLIENTS:
-        return jsonify({"error": "client must be one of: " + ", ".join(sorted(CLIENTS))}), 400
     processes = g.api_client["processes"]
     if not processes:
         return jsonify({"workitem_id": workitem_id, "detail": None}), 404
     try:
-        code = get_source_for_workitem(workitem_id, client_hint=client_hint or None)
-        pair = process_pair_for_workitem(workitem_id, client_hint=code)
         key_pairs = {
             (p.split(".")[0].lower(), p.split(".")[-1].lower()) for p in processes if "." in p
         }
+        # No ?client= on this surface (owner decision 2026-08-17): source
+        # codes are an internal routing detail the key holder never sees.
+        # Instead, every registered source is asked for the id (registration
+        # order, default first) and the first whose (client, process) pair the
+        # key covers wins -- so a colliding id resolves within the key's own
+        # scope. A key spanning BOTH sources of a colliding id gets the
+        # default-source document (deterministic; such keys should be split).
+        code = None
+        pair = None
+        for candidate in CLIENTS:
+            p = process_pair_for_workitem(workitem_id, client_hint=candidate)
+            if p is not None and (p[0].lower(), p[1].lower()) in key_pairs:
+                code, pair = candidate, p
+                break
         # Uniform 404 body for unresolvable AND out-of-scope ids: the external
         # surface must not be an existence oracle (the session twin
         # _may_view_workitem 403s instead -- deliberate deviation).
-        if pair is None or (pair[0].lower(), pair[1].lower()) not in key_pairs:
+        if pair is None:
             return jsonify({"workitem_id": workitem_id, "detail": None}), 404
         domain = get_domain_for_workitem(workitem_id, client_hint=code)
         payload = _load_media_info(workitem_id, domain)
@@ -503,7 +514,6 @@ def api_v1_workitem_detail(workitem_id):
         return jsonify(
             {
                 "workitem_id": workitem_id,
-                "client": code,
                 "detail": {
                     "fields": stripped.get("fields", {}),
                     "tables": _api_tables(stripped.get("table_sources"), blocked_tokens),
@@ -588,7 +598,6 @@ def api_test_v1_workitems():
         rows.append(
             {
                 "id": random.randint(1, 99999),
-                "client": "default",
                 "status": random.choice(WORKITEM_API_STATUSES),
                 "stage": random.choice(WORKITEM_STAGES),
                 "modified_at": modified.strftime("%Y-%m-%d %H:%M:%S"),
@@ -619,16 +628,12 @@ def api_test_v1_workitems_fields():
 @limiter.limit("60 per minute")
 @require_api_key
 def api_test_v1_workitem_detail(workitem_id):
-    # Same ?client= validation as the real endpoint; a plausible fake document
-    # (fields + one table) in the real shape, no backend queries.
-    client_hint = (request.args.get("client") or "").strip().lower()
-    if client_hint and client_hint not in CLIENTS:
-        return jsonify({"error": "client must be one of: " + ", ".join(sorted(CLIENTS))}), 400
+    # A plausible fake document (fields + one table) in the real shape, no
+    # backend queries and no parameters (the real endpoint takes none either).
     fake_nr = f"INV-{date.today().year}-{random.randint(10000, 99999)}"
     return jsonify(
         {
             "workitem_id": workitem_id,
-            "client": client_hint or "default",
             "detail": {
                 "fields": {
                     "InvoiceNumber": fake_nr,
