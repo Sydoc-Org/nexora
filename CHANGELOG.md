@@ -8,6 +8,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+## [3.1] - 2026-08-17
+
 ### Added
 
 - `GET /api/v1/workitems/fields` (and its `/api/test/v1` twin): discovery
@@ -16,62 +18,6 @@ Work toward the next release.
   the key's processes, minus sensitive fields). Docs and the in-app API
   docs page now state the key-naming rule (lowercase, no separators) and
   point at it.
-
-### Fixed
-
-- `GET /api/v1/workitems` now answers
-  `400 Field '...' is not available for your process scope` when a doc-field
-  filter names a real field that is mapped for none of the key's processes —
-  previously the pair silently resolved to an empty allow-set and the call
-  returned `count=0` with no hint.
-
-### Changed
-
-- External API: source/client codes no longer appear anywhere on the
-  surface — the `client` field is gone from `/api/v1/workitems` rows and
-  the `/workitems/<id>` response, and the `?client=` query parameter is
-  removed (now ignored). Detail lookups resolve the workitem's source from
-  the key's process scope instead (registered sources tried in order,
-  first in-scope match wins). Docs and the in-app API docs page updated.
-- `GET /api/v1/avg_processing_time` (and its `/api/test/v1` twin) no longer
-  echoes the key's `processes` list — like `/backlog` and `/undelivered`,
-  scoping happens at key issuance, not in the payload. Docs updated.
-
-### Security
-
-- Hardened access control and input handling after an internal
-  unauthorized-access audit (#193). The by-id workitem detail/media/audit
-  endpoints now verify the caller is entitled to the workitem's
-  `(client, process)` pair (were reachable cross-tenant via a caller-supplied
-  `?client=`); the five Generali list routes derive org/self visibility from
-  grants instead of a client-supplied `organizationcode`; `/dev/login` and
-  `/dev/users` are now loopback-only (not merely non-PROD); login runs a
-  constant-time bcrypt comparison for unknown usernames; `SESSION_COOKIE_*`
-  (HttpOnly/SameSite) and `X-Frame-Options`/`X-Content-Type-Options` apply in
-  every environment; `MAX_CONTENT_LENGTH` caps upload bodies and the xlsx MIME
-  allowlist drops `application/octet-stream`; the dashboard sign-in name is
-  HTML-escaped; and JSON error handlers no longer return raw exception text.
-  Findings + remediation status: `docs/security/2026-08-audit-193.md`.
-- **#193 remaining findings (4, 6, 7, 10, 16) closed out.** Reporting SQL
-  sandbox `validate_select()` now rejects cross-DB/linked-server and
-  `sys`/`INFORMATION_SCHEMA`/system-DB table references (finding 4). Login
-  mints a fresh server-side session id at every point a session becomes
-  authenticated, closing the session-fixation gap (finding 6). A durable,
-  cross-worker `dbo.LoginLockout` counter (migration `0062`) locks an account
-  for 15 minutes after 5 failed logins, independent of the still-per-worker
-  IP rate limit (finding 7 — the shared rate-limit-storage half needs Redis
-  provisioned, tracked separately). CSP `script-src` no longer carries
-  `'unsafe-inline'`; every inline `<script>` is nonce-gated
-  (`content_security_policy_nonce_in`) and all inline
-  `onclick`/`onchange`/`onerror`/`oninput` attribute handlers across the
-  admin, Generali, profile and prepared-documents pages were converted to
-  `addEventListener` bindings (finding 10). `DB_ODBC_DRIVER` /
-  `DB_ODBC_ENCRYPT` env knobs let a box opt into the modern encrypted ODBC
-  driver once it's confirmed installed; the legacy driver stays the default
-  until then (finding 16). Updated disposition table:
-  `docs/security/2026-08-audit-193.md`.
-
-### Added
 
 - **External API: `GET /api/v1/undelivered`** (#196) — the number of
   workitems imported in the last `?days=7|10` calendar days that have no
@@ -178,39 +124,6 @@ Work toward the next release.
   final section so the guide can be handed to clients as-is. `reporting.md`
   stays the developer reference and now cross-links it.
 
-### Removed
-
-- `GET /api/v1/stats/today` removed from the external API documentation
-  (#181) — both `docs/howto/external-api.md` and the in-app `/api-docs` page
-  now start from `/backlog`. It was scaffolding built to prove out the
-  auth/routing structure before `/backlog` shipped as the actual first
-  client-facing endpoint (#158) and was never meant for clients to call. The
-  route itself (and its `/api/test/v1/...` twin) stays live in code —
-  undocumented, not deleted.
-- Bexio dropped from health monitoring (#177), following the archived invoices
-  page it was the only consumer of. `nx --doctor` no longer runs the Bexio
-  check or requires `BEXIO_PAT` in its env-key list, `ops/outage_monitor.py`
-  no longer emits the `bexio:api` probe, and migration `0058` deletes that
-  component's `dbo.StatusComponents` row so it stops rendering on the admin
-  status page (open incidents are closed, history kept). `BEXIO_PAT` stays in
-  `nx_lib/config.py` and the `env/*.env.example` templates — the archived
-  `nx_lib/views/invoices.py` still imports it.
-- Invoices page archived (#177). The Bexio-backed `/invoices` page is retired:
-  its three routes (`/invoices`, `/api/invoices`, `/invoice/<id>/pdf`) are no
-  longer registered and now 404, the sidebar entry and Ctrl+K command are gone,
-  and `page_visibility()` no longer returns `invoicesPagePerm`. Nothing is
-  deleted — `nx_lib/views/invoices.py` stays in tree (marked ARCHIVED in its
-  docstring, helper tests kept) and its templates moved to
-  `templates/archive/invoices.html` + `templates/js/archive/_invoices_js.html`,
-  matching the `archive/` convention used for the retired chat page. Migration
-  `0056` renames `dbo.ClientInvoices` to `dbo.decapitated_ClientInvoices`
-  (data preserved, one `sp_rename` to undo). The `invoices.*` permission rows
-  are deliberately left in `dbo.Permission`. Reviving the page means all three:
-  re-register the routes, restore `invoicesPagePerm` + the nav entries, and
-  rename the table back.
-
-### Added
-
 - Reporting: live "building your report" step list in the AI chat while the
   agent works (#178) — a title line plus a growing per-tool-call step list
   (Building the report… / Checking the query… / Running the query… /
@@ -228,7 +141,279 @@ Work toward the next release.
   band's "last bucket" caption (#178).
 - Reporting: dashboard card type "Report" that adopts a saved report 1:1,
   including its own chart type (#178).
+
+- **Admin status page** (#167) — `/admin/status`, gated by the new
+  `admin.status.view` permission (migration `0055`, granted to every profile that
+  already has `admin.view`). Shows each component's state
+  (operational / degraded / outage, with an active maintenance window taking over
+  the headline), a 30-day uptime strip, any open incidents with their evidence,
+  and the incident history with durations. It renders only what the #166 outage
+  monitor persisted rather than probing on page load — the question it answers is
+  "what has been true since yesterday evening", which a request-scoped ping
+  cannot. When the monitor has not reported for more than 15 minutes the page
+  says so instead of rendering a reassuring all-green grid from stale rows.
+  `ops/outage_monitor.py` now also probes Microsoft Graph (token only — a probe
+  that sent mail would spam the mailbox every 5 minutes) and the Bexio API, and
+  mirrors every run into the new `dbo.StatusComponents` / `dbo.StatusIncidents`
+  tables. The mirror write is best-effort and wrapped: NexoraDB being down is one
+  of the things the monitor exists to report, so a failed write must never cost
+  the alert mail. Log-storm components stay out of the component grid (their keys
+  are content hashes) and surface as incidents only. The two tables are the data
+  model the eventual public status page — which has to live outside the app to
+  survive a full outage — will consume.
+- **Pull-request template** (`.github/pull_request_template.md`) — checklist for
+  the things nothing else catches when merging to `main`, chiefly: env keys
+  added to `env/*.env.example` never reach SYAPP01 on their own, because
+  `deploy.yml` excludes `*.env` from the mirror. Migrations deploy themselves;
+  env keys do not.
+- Reporting: forecast toggle on time-series results (#168) — single-date-dim
+  reports gain a Forecast toggle + horizon control (Auto/+7/+14/+30) in Simple
+  and Advanced; the chart extends with a dashed prediction line and a 95 %
+  confidence band (stdlib trend + seasonality, `nx_lib/reporting/forecast.py`),
+  the table appends marked prediction rows, exports carry a Forecast marker
+  column, and scheduled mails include the forecast when the saved definition
+  has the toggle on. Drill-through is excluded on predicted points.
+- **`scripts/env-sync.py`** — compares the gitignored env files in a checkout
+  against the SYAPP01 copies (`\\syapp01\d$\sydoc\nexora\env`). Because
+  `deploy.yml` excludes `*.env` from the robocopy mirror, a key added to the
+  committed `env/PROD.env.example` never reaches the server on its own, and
+  forgetting is silent — `SUPPORT_MAIL` is the reference case. The check is
+  three-way (example vs local vs server), so a key the repo declares with a real
+  default but the server lacks is reported as the deploy-forgot bug — printed as
+  copy-pasteable `KEY=value` lines — while opt-in keys left blank in the example
+  are collapsed to a count. Meant to be run by hand once per deploy that touched
+  an env key. Only a missing key sets the exit code; a key present on both sides
+  with a different value is informational, since dev and PROD hold different
+  credentials and PROD legitimately lags dev until its deploy lands. Values are
+  masked to fingerprints unless `--show-values`; `--push`/`--pull` copy a whole
+  file after backing the destination up.
+- **PROD outage detection with support-ticket mail** (#166) — a new
+  `ops/outage_monitor.py`, run by Task Scheduler on SYAPP01 outside the Flask
+  process (an in-app scheduler cannot report the app being dead), probes every
+  DB engine, the public site over HTTP, the Octo token endpoint, and
+  `var/logs/system/app.log` for repeating `ERROR` signatures. On breach it mails
+  a ticket to `SUPPORT_MAIL` (new env var, alongside `OUTAGE_SITE_URL`) via the
+  existing Graph sender. The log-storm probe is the one that would have caught
+  the 2026-08-05 `0042` incident, where every connectivity check stayed green
+  while the workitems list was broken for half a day. Alert hygiene —
+  fail-threshold, dedupe and a 30 minute min-hold in `nx_lib/outage.py` — means
+  a flapping component sends one outage mail and one recovery mail rather than
+  the ~200 the old `ping_prdsrv` monitor once produced; incident state persists
+  in `var/outage-state.json` so restarts do not re-alert. Ships with an
+  importable Task Scheduler definition (`ops/outage-monitor-task.xml`). See
+  `docs/howto/outage-monitor.md`.
+- **Multi-select process filter** (#150) — the process filter on Dashboard
+  and Workitems is no longer one-process-or-all: it is now the same
+  checkbox dropdown the Reporting page uses (All / per-client / per-process
+  rows), so two or three processes can be filtered at once. The filter value
+  on the wire is `all` or a comma-joined `client.process` list (`prcfD` /
+  `prcfW`, and `process` on `/api/docfield_values`); every entry is
+  permission-checked individually, and a selection that ends up empty falls
+  back to `all`. The picker lives in the shared partial
+  `templates/js/_process_multiselect_js.html`, its styling moved from
+  `reporting.css` into `nexora-ui.css` as the app-wide `.nx-scope*`
+  component.
+- **Backlog History in Reporting** (#162) — the #161 collector's
+  `StatisticsDB.dbo.BacklogHistory` is now a registered reporting source
+  (`sql/_migrations/NexoraDB/0053`, `0054`) with a canonical `backlog_total`
+  metric, so it appears as a "Backlog" measure in the Simple wizard (with
+  "over time" grouped by month/week/etc. and breakdown by client/process) and
+  is grounded for the AI assistant. Fixed two provider-level gaps this
+  exposed in the generic `table` source provider: the `grainable` column flag
+  was silently dropped from the catalog, and date-grain requests either
+  400'd (missing `grainable_fields` in validation) or silently grouped by
+  the raw timestamp instead of the requested bucket (no grain SQL applied).
+- **External API test sandbox** (#163) — every `/api/v1/...` route now has a
+  `/api/test/v1/...` twin (same path, auth, and response shape) that returns
+  random data instead of real KPI values, so clients can integrate without
+  touching production data. Convention going forward: new v1 routes ship
+  with their test twin.
+- **"Development" sidebar group** (#157) — the API Docs page moved from a
+  flat top-level sidebar item into a collapsible "Development" group
+  (matching the Admin/Generali group pattern), so future dev-facing pages
+  have a home without crowding the main nav.
+- **Backlog-history collector** (#161) — new standalone
+  `ops/backlog_history/` folder (script + own `.env` + requirements; no
+  nexora imports, copyable to any prod server) for a 30-minute Task
+  Scheduler task that snapshots the current C+A backlog per (source,
+  client, process) from the Octo runtime DB + MS02 Postgres into a new
+  `dbo.BacklogHistory` table on the Statistics DB (created idempotently
+  by the script — the Statistics DB is not under `sql/_migrations/`), so
+  backlog-over-time trends exist. `SnapshotAt` is server-local time;
+  reporting-only/template processes are excluded via the `EXCLUDED` set;
+  `--dry-run` prints the rows without writing. Runs log to a rotating
+  `backlog_history.log` next to the script; on failure the run exits
+  non-zero and opens one consolidated helpdesk ticket (Graph mail to
+  `TICKET_TO`, throttled by `TICKET_COOLDOWN_HOURS`).
+- **In-app API documentation page** (#157) — new `/api-docs` page (sidebar
+  entry "API Docs") documenting the external `/api/v1/*` machine-to-machine
+  API: getting-started guide, authentication, errors & rate limits, and a
+  per-endpoint reference (`GET /stats/today`, `GET /backlog`) with copyable
+  curl/JSON examples. Gated by the new grantable `api.docs.view` permission
+  (migration `0051`, seeded to admins), intended for both internal staff and
+  external API clients' portal accounts; an account holding only
+  `api.docs.view` lands on the docs page after login.
+- Workitems: **date-range presets** (#159) — a "Date Range" dropdown (Today,
+  Yesterday, This week, Last 7 days, This month) in the Advanced filter panel
+  that fills From/To Date and refetches; hand-editing a date flips it back to
+  Custom. The Document Value Search block moved **inside** the Advanced toggle
+  (hidden by default; the panel auto-opens when a URL restores any advanced
+  filter so an active filter can't silently narrow the list).
+- Appearance: **standalone `/appearance` page** (#155) replacing the in-profile
+  controls (the profile keeps a teaser card linking to it; also reachable from
+  the profile dropdown and the Ctrl/Cmd+K palette). Adds a **live preview
+  canvas** — a miniature nexora page (header, KPI cards, table, form) built
+  from the real `--nx-*` tokens so every change repaints it instantly — with a
+  **Replay** button for comparing entrance animations, plus a mono spec
+  readout of the active tokens. New preferences on top of the #155 set:
+  **custom accent** (any hex via a native color picker; hover/soft/tint/
+  gradient shades derived client-side, dark-aware), **font size**
+  (small/default/large, zoom-based), **corner style** (sharp/default/round via
+  the radius tokens), **high contrast** (stronger borders + darker secondary
+  text), **table stripes**, **page background** (plain/aurora/grid), and a
+  one-click **Reset to defaults**. Corner style drives one `--nx-radius-scale`
+  factor: the radius tokens plus ~100 previously hardcoded `border-radius`
+  values across the CSS files are wrapped in `calc(scale × Npx)`, so
+  sharp/round reshapes the whole app while the default stays pixel-identical.
+  Page entrance gained three more styles — **slide**, **pop** and **blur** —
+  and a new **animation speed** pref (relaxed/default/snappy) scales the
+  entrance keyframes and every `--nx-dur` transition through one
+  `--nx-anim-speed` factor; motion-related clicks auto-replay the preview.
+- Profile: **Appearance settings** (#155) — a new profile section with per-user
+  UI preferences: theme (light/dark/**system**, the latter following
+  `prefers-color-scheme`), **accent color** (indigo/violet/emerald/amber/rose/sky,
+  re-tinting the `--nx-*`/`--a-*` brand tokens via `html[data-accent]`),
+  **animations** (full/reduced — an in-app reduced-motion switch that also
+  hard-guards legacy unguarded keyframes), **page entrance** style
+  (rise/fade/off), **density** (comfortable/compact for `.nx-*`/`.admin-*`
+  tables and cards), and the sidebar pin. Preferences persist cross-device in
+  `dbo.Users.ui_prefs` (JSON, migration `0050`) via the new
+  `POST /profile/ui_prefs` endpoint (`nx_lib/ui_prefs.py`, allowlist-validated),
+  hydrate into `session['ui_prefs']` once per session (same idiom as locale),
+  and apply pre-paint from a `_header.html` head script. The sidebar dark-mode
+  and pin toggles now write through to the server; localStorage keeps working
+  as the logged-out/legacy fallback.
+- Reporting AI chat: **Continue** button (#153) when the agent loop dead-ends
+  on `max_turns`/`budget` without a final answer -- re-runs the same question
+  with a raised turn/budget cap (double the default), capped at 2 attempts
+  per question.
+- Sidebar: **pin toggle** (#151) in the bottom actions -- keeps the nav rail
+  expanded (220px) instead of collapsing when the mouse leaves. State persists
+  per-browser via `localStorage`, same idiom as the dark-mode toggle.
+- Reporting AI: **committed the 22-prompt statistical eval suite** (#131) as
+  a repeatable harness under `tools/reporting_ai_eval/` (dev-side, excluded
+  from the deploy mirror) - `prompts.json` (22 hard stakeholder questions
+  grouped by trap, each with a pass criterion), `run_eval.py` (logs into a
+  running INT instance and collects full agent responses per prompt,
+  resumable), and `baseline_2026-07-28.md` (the original 6.1/10-average
+  scored run that surfaced issues #127-#130). Scoring stays manual/Claude-
+  assisted against the criteria; the runner only collects.
+
+- Workitems: **Stage filter** in the top filter row (#147), between Workitem
+  and Status, gated on the new `workitems.filter.stage` permission (migration
+  `0048`, seeded to holders of `workitems.filter.status`). Filters on the
+  workitem's LATEST derived stage (Import/Extraction/Validation/Delivery,
+  same values as the detail-panel stepper) -- both source adapters (SQL
+  Server + MS02 Postgres) now dedup activity rows to the latest one before
+  applying the stage clause, reusing the existing rn=1 CTE for both the count
+  and the list query.
+
+- Header: **switch user** button (dev-only, #118), GitHub-style. The profile
+  dropdown gains a "Switch user" item that opens a searchable list of INT
+  usernames (new `/dev/users` JSON endpoint) and switches the session via the
+  existing `/dev/login/<username>` bypass on click — no more dropping to the
+  terminal to `nx --loginas:` mid-session. Hidden in PROD (`is_prod` template
+  global, same guard as `/dev/login`).
+
+- Workitems: **see deleted workitems** with the new internal-only permission
+  `workitems.filter.status.deleted` (#125, migration `0044`). Soft-deleted
+  workitems (Octo/MS02 `Status = 2`) were hard-excluded from every list with no
+  way to reach them; holders now get a "Deleted" option in the status filter,
+  which drops that exclusion for that one query and badges the rows red. Both
+  sources honour it (default Octo + MS02 Postgres) and the CSV export follows
+  the filter. Opt-in only: "All statuses" still hides deleted rows, and without
+  the permission the value is not mapped at all, so the query keeps its
+  `Status <> 2`. The dashboard's recent-workitems tiles stay filtered.
+
+- Header: the **version and build stamp in the profile dropdown** (#113). The
+  footer partial is the only place either was rendered, and 12 page templates
+  never include it — reporting (3), all 7 admin pages, `prepared_documents`,
+  `maintenance` and `jd/jdvance` — so the newest and most-used surfaces showed
+  no version at all. `templates/_header.html` now closes the profile menu with
+  it, covering every page that has a sidebar. `_header.css` opts the stamp out
+  of the dark-mode gray ramp: `text-gray-400` remaps to `#475569`, which is
+  1.95:1 on the `#1e293b` menu, so 12px text was effectively invisible. Now
+  4.83:1 in light and 5.71:1 in dark, both above the 4.5:1 AA floor.
+
+- Footer: a **deploy build stamp** next to the version (#113) — the footer read
+  `nexora 2.5.65` whether or not a deploy had actually landed, so a mirror that
+  silently failed looked identical to a successful one. `.github/workflows/deploy.yml`
+  now writes `nx_lib/_build.py` (`BUILD_STAMP = "<short-sha>, <UTC date>"`) right
+  after the robocopy mirror, `nx_lib/version.py` imports it with an `ImportError`
+  fallback to `""`, and the `nexora_build` context variable renders as
+  `nexora 2.5.65 · a1b2c3d, 2026-07-28`. The file is gitignored and absent in
+  dev/INT, which keeps those footers version-only and unchanged.
+
+- Admin: **email invite for new users** (#117). The Add User modal has a
+  "Email the user a link to set their own password" checkbox, ticked by
+  default, which hides the password field: `POST /admin/users/add` then
+  generates a strong random placeholder password (`secrets.token_urlsafe`,
+  never shown to anyone), stores it hashed, pre-sets `InitReset` and mails the
+  user a set-password link. The link reuses the existing `/reset_password/…`
+  flow under its own `user-invite-salt`, valid for 7 days rather than the
+  15 minutes a self-service reset link gets. The invited user lands on a
+  dedicated welcome page (`templates/set_password.html`) rather than the reset
+  page, whose copy ("your new password must be different from your previously
+  used password") is nonsense to someone who never had one — same form, same
+  validation, different wording. Untick the box and the old
+  admin-types-a-password behaviour is unchanged.
+
+- Reporting: a multi-turn **AI chat panel** (`#rpChatToggle`, both Simple and
+  Advanced tabs) replaces the old single-shot "Ask AI" surface — a docked
+  slide-over with a conversation thread, a per-turn collapsible tool-step
+  trace, and follow-up suggestion chips. `POST /api/reporting/ai/agent` gains
+  a `history` param (last 8 turns / 4000 chars, text-only) so follow-ups carry
+  real conversational context instead of starting over each time.
+- Reporting AI: **live progress in the chat panel**. `POST /api/reporting/ai/agent`
+  accepts `"stream": true` and answers NDJSON — a `{"phase": ...}` line for each
+  real step of the agent loop (`thinking` / the model's own `note` / the `tool`
+  about to run), closed by exactly one `{"done": true, ...}` line carrying the
+  usual payload. The panel's ticker now shows what the agent is actually doing
+  ("Running the query…", "Checking the query…") instead of cycling three
+  hardcoded strings on a timer. Callers that don't ask for the stream still get
+  plain JSON unchanged, so a mid-stream failure rides the final line instead of
+  an HTTP status.
+- Reporting: an opt-in **comparison** — `compare: true` on
+  `POST /api/reporting/run` reruns a definition with its single relative-date
+  token filter shifted back by the window's own length and returns a
+  `comparison` block (`columns`, `rows`, `priorStart`, `priorEnd`); the Simple
+  tab's KPI band renders **delta chips** (↑/↓/flat + percentage) and an inline
+  sparkline off it.
+- Reporting: `POST /api/reporting/ai/caption` and **auto captions** — a
+  `reporting.ai.explain_data`-gated 1–2 sentence AI narration that appears
+  under a result's chart/KPI band after every successful run, silently
+  no-opping on any failure.
+- Reporting: chart/table formatting polish — integer axis ticks, rounded bars,
+  a redesigned tooltip and categorical palette, data bars in the grid, KPI
+  count-up animation, loading skeletons, entrance animation, and a sticky
+  result toolbar.
+- Prepared Documents: **filters, group-by, and a per-page selector** (#149).
+  The register gained Collected/Prepared boolean filters, group-by (Collected
+  by / Prepared by, an ORDER BY so same-valued rows cluster together), and a
+  25/40/100/200 rows-per-page choice — all carried through the Previous/Next
+  pagination links so paging never drops the active filters.
+
 ### Changed
+
+- External API: source/client codes no longer appear anywhere on the
+  surface — the `client` field is gone from `/api/v1/workitems` rows and
+  the `/workitems/<id>` response, and the `?client=` query parameter is
+  removed (now ignored). Detail lookups resolve the workitem's source from
+  the key's process scope instead (registered sources tried in order,
+  first in-scope match wins). Docs and the in-app API docs page updated.
+- `GET /api/v1/avg_processing_time` (and its `/api/test/v1` twin) no longer
+  echoes the key's `processes` list — like `/backlog` and `/undelivered`,
+  scoping happens at key issuance, not in the payload. Docs updated.
 
 - Reporting AI chat: the "Open in builder" chip on an agent answer is now
   "Open report" and lands the definition in the Simple result view instead
@@ -261,7 +446,140 @@ Work toward the next release.
   it navigates to. *Sources* is admin plumbing rather than a daily action and is
   now a quiet ghost link at the right end of that rail.
 
+- Workitems: the doc-field filter is now **Document Value Search** (#148) — its
+  own always-visible section below the base filters instead of a row buried in
+  the Advanced toggle, and it searches **value-first**: with no field selected
+  the value is OR-matched across every permitted, non-sensitive field (default
+  SQL Server + MS02 columnar paths, fail-closed contract unchanged), and
+  `/api/docfield_values` returns labeled `{value, field}` suggestions whose
+  pick locks the pair field-precise. Every row carries an **operator**
+  (contains, `=`, `≠`, starts with, ends with, does not contain) and each
+  added row an **AND/OR** combinator — rows fold left-to-right, so
+  `A AND B OR C` reads `(A AND B) OR C`. Also fixes the bug where suggestions
+  fell back to `doctype`/the first field while the field box showed "no field
+  selected" (the issue's screenshot).
+
+- Dashboard: the page title is now plain **"Dashboard"** instead of
+  `Welcome back, <name>! 👋` (#146). The emoji greeting repeated on every visit
+  and read as unprofessional; the personal touch moves to a quiet
+  `Signed in as <name> — <date, time>` meta line that renders **once**, on the
+  first dashboard load after login (session flag `show_login_note`, stamped in
+  `_record_active_session`), and disappears on any later visit or refresh. The
+  note also carries `Last sign-in: <date, time>` — the previous login stamp,
+  kept on `dbo.Users.LastLoginAt` (migration `0049`) because `ActiveSessions`
+  rows are deleted on logout and cannot answer it. Absent on a first-ever login.
+
+- Footer: `_small_footer.html` is now scoped to the **logged-out surfaces** and
+  removed from the 13 app pages that carry the sidebar (`dashboard`, `invoices`,
+  `profile`, `workitems_overview`, all nine `generali_*`). It is a marketing
+  footer — a 96px sydoc logo and six links to sydoc.ch public pages — and once
+  the version moved into the profile dropdown it had no functional content left
+  on an app page, while the sidebar already carried navigation. It stays on
+  `index`, `hero`, `forgot_password`, `reset_password`, `set_password`,
+  `init_reset`, `init_2FA`, `verify_2fa` and the error pages, which have no
+  sidebar. The support mailto (`support.helpdesk@sydoc.ch`) moves into the
+  profile dropdown so a logged-in user can still reach it. `Help` is an existing
+  msgid, so no new translations. The rule is enforced by
+  `tests/unit/test_template_layout.py`: no template may render both the shell
+  and the footer, and the footer must still reach login and the error pages —
+  it had already drifted once, present on 22 templates and missing from the 12
+  newest. This also retires the last dark-mode contrast failure in the footer
+  (the copyright line sat at 3.75:1); none of the remaining pages implement dark
+  mode, so the fix is the removal rather than a CSS override.
+
+- Reporting: the Simple tab's "Ask AI" bar/chips and the Advanced tab's
+  "Ask AI" mode now both route into the shared AI chat panel above, instead of
+  each running its own one-shot ask/refine flow.
+- Reporting: the page's dark-mode support is repaired end to end (design
+  tokens instead of hard-coded light-mode hex, dark-mode-aware chart
+  segment borders).
+- Reporting AI: the Azure request body now sends `max_completion_tokens`
+  instead of the deprecated `max_tokens`, so GPT-5-family deployments
+  (e.g. `gpt-5-mini`) work; older chat models keep working unchanged.
+  Set `AZURE_OPENAI_API_VERSION` to a GPT-5-capable version (e.g.
+  `2025-01-01-preview`) when pointing `AZURE_OPENAI_DEPLOYMENT` at one.
+  The SQL and report-builder prompts also stop the model AND-merging
+  multi-count questions ("imported today and exported today").
+
+### Removed
+
+- `GET /api/v1/stats/today` removed from the external API documentation
+  (#181) — both `docs/howto/external-api.md` and the in-app `/api-docs` page
+  now start from `/backlog`. It was scaffolding built to prove out the
+  auth/routing structure before `/backlog` shipped as the actual first
+  client-facing endpoint (#158) and was never meant for clients to call. The
+  route itself (and its `/api/test/v1/...` twin) stays live in code —
+  undocumented, not deleted.
+- Bexio dropped from health monitoring (#177), following the archived invoices
+  page it was the only consumer of. `nx --doctor` no longer runs the Bexio
+  check or requires `BEXIO_PAT` in its env-key list, `ops/outage_monitor.py`
+  no longer emits the `bexio:api` probe, and migration `0058` deletes that
+  component's `dbo.StatusComponents` row so it stops rendering on the admin
+  status page (open incidents are closed, history kept). `BEXIO_PAT` stays in
+  `nx_lib/config.py` and the `env/*.env.example` templates — the archived
+  `nx_lib/views/invoices.py` still imports it.
+- Invoices page archived (#177). The Bexio-backed `/invoices` page is retired:
+  its three routes (`/invoices`, `/api/invoices`, `/invoice/<id>/pdf`) are no
+  longer registered and now 404, the sidebar entry and Ctrl+K command are gone,
+  and `page_visibility()` no longer returns `invoicesPagePerm`. Nothing is
+  deleted — `nx_lib/views/invoices.py` stays in tree (marked ARCHIVED in its
+  docstring, helper tests kept) and its templates moved to
+  `templates/archive/invoices.html` + `templates/js/archive/_invoices_js.html`,
+  matching the `archive/` convention used for the retired chat page. Migration
+  `0056` renames `dbo.ClientInvoices` to `dbo.decapitated_ClientInvoices`
+  (data preserved, one `sp_rename` to undo). The `invoices.*` permission rows
+  are deliberately left in `dbo.Permission`. Reviving the page means all three:
+  re-register the routes, restore `invoicesPagePerm` + the nav entries, and
+  rename the table back.
+
+- `db-standard/` — the standardised statistics-DB schema proposal (shipped
+  dev-side in 2.5.64) is withdrawn; its deploy-exclude and `.gitignore`
+  entries go with it.
+- Chat: the 1-on-1 chat page and all `/api/chat/*` routes (conversations,
+  messages, send, upload). `chat.html` / `_chat_js.html` are moved to
+  `templates/archive/` / `templates/js/archive/` rather than deleted.
+- Workitem collaboration: tags, priority, assignment, and comments with
+  `@mention` autocomplete, including the API routes
+  `/api/workitem/<id>/comment`, `/api/workitem/<id>/assign`,
+  `/api/workitem/<id>/priority`, `/api/workitem/<id>/tags`, `/api/tags`,
+  `/api/users` and `/api/workitem/<id>/interactions`, and the tag /
+  priority / assigned-to filters (and their header cells) on the workitems
+  overview.
+- The notification bell end to end: both routes (`/api/notifications`,
+  `/api/notifications/mark_as_read`) and the header bell UI (icon, panel,
+  60s poll).
+- Eight now-dead permission codes, deleted by migration `0043`:
+  `chat.view`, `workitems.details.add.tag`,
+  `workitems.details.set.priority`, `workitems.details.assign.users`,
+  `workitems.details.add.comment`, `workitems.filter.tag`,
+  `workitems.filter.priority`, `workitems.filter.assignedUser`.
+- The nine now-dead chat/collaboration/notification tables — renamed with a
+  `decapitated_` prefix by migration `0042`, data preserved and reversible:
+  `Chat_Conversations`, `Chat_Messages`, `Chat_Participants`, `Tags`,
+  `Workitem_Tags`, `Workitem_Comments`, `Comment_Mentions`,
+  `Workitem_Metadata`, `Notifications`.
+- Reporting: the inline "Ask AI" panel (`rpAiPanel`, its Build/Write SQL/Agent
+  sub-modes) and the Simple tab's dedicated AI **Refine** bar are removed,
+  superseded by the AI chat panel above.
+- Dashboard: the customizable-widget engine — six routes
+  (`/api/dashboard/field_metadata`, `GET`/`PUT` `/api/dashboard/layout`,
+  `/api/dashboard/layout/reset`, `/api/dashboard/widget_data`,
+  `/api/dashboard/widget_compare`), the layout validator + default layout, and
+  the whole widget query builder (~970 lines of `nx_lib/views/dashboard.py`).
+  Backend-only since the 2026-04-27 customizable-dashboard plan: no template
+  ever called it, and its `dbo.FieldMetadata` / `dbo.DashboardLayouts` tables
+  were left as a manual SSMS step nobody ran, so every one of those endpoints
+  500'd on every environment. Nothing to drop in SQL — the tables exist on
+  neither INT, PROD nor TEST. The dashboard page, its four KPI/chart endpoints,
+  `set_filter` and the recent-activity feed are untouched.
+
 ### Fixed
+
+- `GET /api/v1/workitems` now answers
+  `400 Field '...' is not available for your process scope` when a doc-field
+  filter names a real field that is mapped for none of the key's processes —
+  previously the pair silently resolved to an empty allow-set and the call
+  returned `count=0` with no hint.
 
 - Admin: the dev-server env switch works in both directions (#198). Restarting
   into STAGING made the "Restart nexora" control disappear, stranding the
@@ -533,375 +851,6 @@ Work toward the next release.
 - Profile: the change-password GET handler fell through with no return,
   handing Flask `None` and a 500; now redirects to the profile page.
 
-## [3.1] - 2026-08-06
-
-### Added
-
-- **Admin status page** (#167) — `/admin/status`, gated by the new
-  `admin.status.view` permission (migration `0055`, granted to every profile that
-  already has `admin.view`). Shows each component's state
-  (operational / degraded / outage, with an active maintenance window taking over
-  the headline), a 30-day uptime strip, any open incidents with their evidence,
-  and the incident history with durations. It renders only what the #166 outage
-  monitor persisted rather than probing on page load — the question it answers is
-  "what has been true since yesterday evening", which a request-scoped ping
-  cannot. When the monitor has not reported for more than 15 minutes the page
-  says so instead of rendering a reassuring all-green grid from stale rows.
-  `ops/outage_monitor.py` now also probes Microsoft Graph (token only — a probe
-  that sent mail would spam the mailbox every 5 minutes) and the Bexio API, and
-  mirrors every run into the new `dbo.StatusComponents` / `dbo.StatusIncidents`
-  tables. The mirror write is best-effort and wrapped: NexoraDB being down is one
-  of the things the monitor exists to report, so a failed write must never cost
-  the alert mail. Log-storm components stay out of the component grid (their keys
-  are content hashes) and surface as incidents only. The two tables are the data
-  model the eventual public status page — which has to live outside the app to
-  survive a full outage — will consume.
-- **Pull-request template** (`.github/pull_request_template.md`) — checklist for
-  the things nothing else catches when merging to `main`, chiefly: env keys
-  added to `env/*.env.example` never reach SYAPP01 on their own, because
-  `deploy.yml` excludes `*.env` from the mirror. Migrations deploy themselves;
-  env keys do not.
-- Reporting: forecast toggle on time-series results (#168) — single-date-dim
-  reports gain a Forecast toggle + horizon control (Auto/+7/+14/+30) in Simple
-  and Advanced; the chart extends with a dashed prediction line and a 95 %
-  confidence band (stdlib trend + seasonality, `nx_lib/reporting/forecast.py`),
-  the table appends marked prediction rows, exports carry a Forecast marker
-  column, and scheduled mails include the forecast when the saved definition
-  has the toggle on. Drill-through is excluded on predicted points.
-- **`scripts/env-sync.py`** — compares the gitignored env files in a checkout
-  against the SYAPP01 copies (`\\syapp01\d$\sydoc\nexora\env`). Because
-  `deploy.yml` excludes `*.env` from the robocopy mirror, a key added to the
-  committed `env/PROD.env.example` never reaches the server on its own, and
-  forgetting is silent — `SUPPORT_MAIL` is the reference case. The check is
-  three-way (example vs local vs server), so a key the repo declares with a real
-  default but the server lacks is reported as the deploy-forgot bug — printed as
-  copy-pasteable `KEY=value` lines — while opt-in keys left blank in the example
-  are collapsed to a count. Meant to be run by hand once per deploy that touched
-  an env key. Only a missing key sets the exit code; a key present on both sides
-  with a different value is informational, since dev and PROD hold different
-  credentials and PROD legitimately lags dev until its deploy lands. Values are
-  masked to fingerprints unless `--show-values`; `--push`/`--pull` copy a whole
-  file after backing the destination up.
-- **PROD outage detection with support-ticket mail** (#166) — a new
-  `ops/outage_monitor.py`, run by Task Scheduler on SYAPP01 outside the Flask
-  process (an in-app scheduler cannot report the app being dead), probes every
-  DB engine, the public site over HTTP, the Octo token endpoint, and
-  `var/logs/system/app.log` for repeating `ERROR` signatures. On breach it mails
-  a ticket to `SUPPORT_MAIL` (new env var, alongside `OUTAGE_SITE_URL`) via the
-  existing Graph sender. The log-storm probe is the one that would have caught
-  the 2026-08-05 `0042` incident, where every connectivity check stayed green
-  while the workitems list was broken for half a day. Alert hygiene —
-  fail-threshold, dedupe and a 30 minute min-hold in `nx_lib/outage.py` — means
-  a flapping component sends one outage mail and one recovery mail rather than
-  the ~200 the old `ping_prdsrv` monitor once produced; incident state persists
-  in `var/outage-state.json` so restarts do not re-alert. Ships with an
-  importable Task Scheduler definition (`ops/outage-monitor-task.xml`). See
-  `docs/howto/outage-monitor.md`.
-- **Multi-select process filter** (#150) — the process filter on Dashboard
-  and Workitems is no longer one-process-or-all: it is now the same
-  checkbox dropdown the Reporting page uses (All / per-client / per-process
-  rows), so two or three processes can be filtered at once. The filter value
-  on the wire is `all` or a comma-joined `client.process` list (`prcfD` /
-  `prcfW`, and `process` on `/api/docfield_values`); every entry is
-  permission-checked individually, and a selection that ends up empty falls
-  back to `all`. The picker lives in the shared partial
-  `templates/js/_process_multiselect_js.html`, its styling moved from
-  `reporting.css` into `nexora-ui.css` as the app-wide `.nx-scope*`
-  component.
-- **Backlog History in Reporting** (#162) — the #161 collector's
-  `StatisticsDB.dbo.BacklogHistory` is now a registered reporting source
-  (`sql/_migrations/NexoraDB/0053`, `0054`) with a canonical `backlog_total`
-  metric, so it appears as a "Backlog" measure in the Simple wizard (with
-  "over time" grouped by month/week/etc. and breakdown by client/process) and
-  is grounded for the AI assistant. Fixed two provider-level gaps this
-  exposed in the generic `table` source provider: the `grainable` column flag
-  was silently dropped from the catalog, and date-grain requests either
-  400'd (missing `grainable_fields` in validation) or silently grouped by
-  the raw timestamp instead of the requested bucket (no grain SQL applied).
-- **External API test sandbox** (#163) — every `/api/v1/...` route now has a
-  `/api/test/v1/...` twin (same path, auth, and response shape) that returns
-  random data instead of real KPI values, so clients can integrate without
-  touching production data. Convention going forward: new v1 routes ship
-  with their test twin.
-- **"Development" sidebar group** (#157) — the API Docs page moved from a
-  flat top-level sidebar item into a collapsible "Development" group
-  (matching the Admin/Generali group pattern), so future dev-facing pages
-  have a home without crowding the main nav.
-- **Backlog-history collector** (#161) — new standalone
-  `ops/backlog_history/` folder (script + own `.env` + requirements; no
-  nexora imports, copyable to any prod server) for a 30-minute Task
-  Scheduler task that snapshots the current C+A backlog per (source,
-  client, process) from the Octo runtime DB + MS02 Postgres into a new
-  `dbo.BacklogHistory` table on the Statistics DB (created idempotently
-  by the script — the Statistics DB is not under `sql/_migrations/`), so
-  backlog-over-time trends exist. `SnapshotAt` is server-local time;
-  reporting-only/template processes are excluded via the `EXCLUDED` set;
-  `--dry-run` prints the rows without writing. Runs log to a rotating
-  `backlog_history.log` next to the script; on failure the run exits
-  non-zero and opens one consolidated helpdesk ticket (Graph mail to
-  `TICKET_TO`, throttled by `TICKET_COOLDOWN_HOURS`).
-- **In-app API documentation page** (#157) — new `/api-docs` page (sidebar
-  entry "API Docs") documenting the external `/api/v1/*` machine-to-machine
-  API: getting-started guide, authentication, errors & rate limits, and a
-  per-endpoint reference (`GET /stats/today`, `GET /backlog`) with copyable
-  curl/JSON examples. Gated by the new grantable `api.docs.view` permission
-  (migration `0051`, seeded to admins), intended for both internal staff and
-  external API clients' portal accounts; an account holding only
-  `api.docs.view` lands on the docs page after login.
-- Workitems: **date-range presets** (#159) — a "Date Range" dropdown (Today,
-  Yesterday, This week, Last 7 days, This month) in the Advanced filter panel
-  that fills From/To Date and refetches; hand-editing a date flips it back to
-  Custom. The Document Value Search block moved **inside** the Advanced toggle
-  (hidden by default; the panel auto-opens when a URL restores any advanced
-  filter so an active filter can't silently narrow the list).
-- Appearance: **standalone `/appearance` page** (#155) replacing the in-profile
-  controls (the profile keeps a teaser card linking to it; also reachable from
-  the profile dropdown and the Ctrl/Cmd+K palette). Adds a **live preview
-  canvas** — a miniature nexora page (header, KPI cards, table, form) built
-  from the real `--nx-*` tokens so every change repaints it instantly — with a
-  **Replay** button for comparing entrance animations, plus a mono spec
-  readout of the active tokens. New preferences on top of the #155 set:
-  **custom accent** (any hex via a native color picker; hover/soft/tint/
-  gradient shades derived client-side, dark-aware), **font size**
-  (small/default/large, zoom-based), **corner style** (sharp/default/round via
-  the radius tokens), **high contrast** (stronger borders + darker secondary
-  text), **table stripes**, **page background** (plain/aurora/grid), and a
-  one-click **Reset to defaults**. Corner style drives one `--nx-radius-scale`
-  factor: the radius tokens plus ~100 previously hardcoded `border-radius`
-  values across the CSS files are wrapped in `calc(scale × Npx)`, so
-  sharp/round reshapes the whole app while the default stays pixel-identical.
-  Page entrance gained three more styles — **slide**, **pop** and **blur** —
-  and a new **animation speed** pref (relaxed/default/snappy) scales the
-  entrance keyframes and every `--nx-dur` transition through one
-  `--nx-anim-speed` factor; motion-related clicks auto-replay the preview.
-- Profile: **Appearance settings** (#155) — a new profile section with per-user
-  UI preferences: theme (light/dark/**system**, the latter following
-  `prefers-color-scheme`), **accent color** (indigo/violet/emerald/amber/rose/sky,
-  re-tinting the `--nx-*`/`--a-*` brand tokens via `html[data-accent]`),
-  **animations** (full/reduced — an in-app reduced-motion switch that also
-  hard-guards legacy unguarded keyframes), **page entrance** style
-  (rise/fade/off), **density** (comfortable/compact for `.nx-*`/`.admin-*`
-  tables and cards), and the sidebar pin. Preferences persist cross-device in
-  `dbo.Users.ui_prefs` (JSON, migration `0050`) via the new
-  `POST /profile/ui_prefs` endpoint (`nx_lib/ui_prefs.py`, allowlist-validated),
-  hydrate into `session['ui_prefs']` once per session (same idiom as locale),
-  and apply pre-paint from a `_header.html` head script. The sidebar dark-mode
-  and pin toggles now write through to the server; localStorage keeps working
-  as the logged-out/legacy fallback.
-- Reporting AI chat: **Continue** button (#153) when the agent loop dead-ends
-  on `max_turns`/`budget` without a final answer -- re-runs the same question
-  with a raised turn/budget cap (double the default), capped at 2 attempts
-  per question.
-- Sidebar: **pin toggle** (#151) in the bottom actions -- keeps the nav rail
-  expanded (220px) instead of collapsing when the mouse leaves. State persists
-  per-browser via `localStorage`, same idiom as the dark-mode toggle.
-- Reporting AI: **committed the 22-prompt statistical eval suite** (#131) as
-  a repeatable harness under `tools/reporting_ai_eval/` (dev-side, excluded
-  from the deploy mirror) - `prompts.json` (22 hard stakeholder questions
-  grouped by trap, each with a pass criterion), `run_eval.py` (logs into a
-  running INT instance and collects full agent responses per prompt,
-  resumable), and `baseline_2026-07-28.md` (the original 6.1/10-average
-  scored run that surfaced issues #127-#130). Scoring stays manual/Claude-
-  assisted against the criteria; the runner only collects.
-
-- Workitems: **Stage filter** in the top filter row (#147), between Workitem
-  and Status, gated on the new `workitems.filter.stage` permission (migration
-  `0048`, seeded to holders of `workitems.filter.status`). Filters on the
-  workitem's LATEST derived stage (Import/Extraction/Validation/Delivery,
-  same values as the detail-panel stepper) -- both source adapters (SQL
-  Server + MS02 Postgres) now dedup activity rows to the latest one before
-  applying the stage clause, reusing the existing rn=1 CTE for both the count
-  and the list query.
-
-- Header: **switch user** button (dev-only, #118), GitHub-style. The profile
-  dropdown gains a "Switch user" item that opens a searchable list of INT
-  usernames (new `/dev/users` JSON endpoint) and switches the session via the
-  existing `/dev/login/<username>` bypass on click — no more dropping to the
-  terminal to `nx --loginas:` mid-session. Hidden in PROD (`is_prod` template
-  global, same guard as `/dev/login`).
-
-- Workitems: **see deleted workitems** with the new internal-only permission
-  `workitems.filter.status.deleted` (#125, migration `0044`). Soft-deleted
-  workitems (Octo/MS02 `Status = 2`) were hard-excluded from every list with no
-  way to reach them; holders now get a "Deleted" option in the status filter,
-  which drops that exclusion for that one query and badges the rows red. Both
-  sources honour it (default Octo + MS02 Postgres) and the CSV export follows
-  the filter. Opt-in only: "All statuses" still hides deleted rows, and without
-  the permission the value is not mapped at all, so the query keeps its
-  `Status <> 2`. The dashboard's recent-workitems tiles stay filtered.
-
-- Header: the **version and build stamp in the profile dropdown** (#113). The
-  footer partial is the only place either was rendered, and 12 page templates
-  never include it — reporting (3), all 7 admin pages, `prepared_documents`,
-  `maintenance` and `jd/jdvance` — so the newest and most-used surfaces showed
-  no version at all. `templates/_header.html` now closes the profile menu with
-  it, covering every page that has a sidebar. `_header.css` opts the stamp out
-  of the dark-mode gray ramp: `text-gray-400` remaps to `#475569`, which is
-  1.95:1 on the `#1e293b` menu, so 12px text was effectively invisible. Now
-  4.83:1 in light and 5.71:1 in dark, both above the 4.5:1 AA floor.
-
-- Footer: a **deploy build stamp** next to the version (#113) — the footer read
-  `nexora 2.5.65` whether or not a deploy had actually landed, so a mirror that
-  silently failed looked identical to a successful one. `.github/workflows/deploy.yml`
-  now writes `nx_lib/_build.py` (`BUILD_STAMP = "<short-sha>, <UTC date>"`) right
-  after the robocopy mirror, `nx_lib/version.py` imports it with an `ImportError`
-  fallback to `""`, and the `nexora_build` context variable renders as
-  `nexora 2.5.65 · a1b2c3d, 2026-07-28`. The file is gitignored and absent in
-  dev/INT, which keeps those footers version-only and unchanged.
-
-- Admin: **email invite for new users** (#117). The Add User modal has a
-  "Email the user a link to set their own password" checkbox, ticked by
-  default, which hides the password field: `POST /admin/users/add` then
-  generates a strong random placeholder password (`secrets.token_urlsafe`,
-  never shown to anyone), stores it hashed, pre-sets `InitReset` and mails the
-  user a set-password link. The link reuses the existing `/reset_password/…`
-  flow under its own `user-invite-salt`, valid for 7 days rather than the
-  15 minutes a self-service reset link gets. The invited user lands on a
-  dedicated welcome page (`templates/set_password.html`) rather than the reset
-  page, whose copy ("your new password must be different from your previously
-  used password") is nonsense to someone who never had one — same form, same
-  validation, different wording. Untick the box and the old
-  admin-types-a-password behaviour is unchanged.
-
-- Reporting: a multi-turn **AI chat panel** (`#rpChatToggle`, both Simple and
-  Advanced tabs) replaces the old single-shot "Ask AI" surface — a docked
-  slide-over with a conversation thread, a per-turn collapsible tool-step
-  trace, and follow-up suggestion chips. `POST /api/reporting/ai/agent` gains
-  a `history` param (last 8 turns / 4000 chars, text-only) so follow-ups carry
-  real conversational context instead of starting over each time.
-- Reporting AI: **live progress in the chat panel**. `POST /api/reporting/ai/agent`
-  accepts `"stream": true` and answers NDJSON — a `{"phase": ...}` line for each
-  real step of the agent loop (`thinking` / the model's own `note` / the `tool`
-  about to run), closed by exactly one `{"done": true, ...}` line carrying the
-  usual payload. The panel's ticker now shows what the agent is actually doing
-  ("Running the query…", "Checking the query…") instead of cycling three
-  hardcoded strings on a timer. Callers that don't ask for the stream still get
-  plain JSON unchanged, so a mid-stream failure rides the final line instead of
-  an HTTP status.
-- Reporting: an opt-in **comparison** — `compare: true` on
-  `POST /api/reporting/run` reruns a definition with its single relative-date
-  token filter shifted back by the window's own length and returns a
-  `comparison` block (`columns`, `rows`, `priorStart`, `priorEnd`); the Simple
-  tab's KPI band renders **delta chips** (↑/↓/flat + percentage) and an inline
-  sparkline off it.
-- Reporting: `POST /api/reporting/ai/caption` and **auto captions** — a
-  `reporting.ai.explain_data`-gated 1–2 sentence AI narration that appears
-  under a result's chart/KPI band after every successful run, silently
-  no-opping on any failure.
-- Reporting: chart/table formatting polish — integer axis ticks, rounded bars,
-  a redesigned tooltip and categorical palette, data bars in the grid, KPI
-  count-up animation, loading skeletons, entrance animation, and a sticky
-  result toolbar.
-- Prepared Documents: **filters, group-by, and a per-page selector** (#149).
-  The register gained Collected/Prepared boolean filters, group-by (Collected
-  by / Prepared by, an ORDER BY so same-valued rows cluster together), and a
-  25/40/100/200 rows-per-page choice — all carried through the Previous/Next
-  pagination links so paging never drops the active filters.
-
-### Added
-
-### Changed
-
-- Workitems: the doc-field filter is now **Document Value Search** (#148) — its
-  own always-visible section below the base filters instead of a row buried in
-  the Advanced toggle, and it searches **value-first**: with no field selected
-  the value is OR-matched across every permitted, non-sensitive field (default
-  SQL Server + MS02 columnar paths, fail-closed contract unchanged), and
-  `/api/docfield_values` returns labeled `{value, field}` suggestions whose
-  pick locks the pair field-precise. Every row carries an **operator**
-  (contains, `=`, `≠`, starts with, ends with, does not contain) and each
-  added row an **AND/OR** combinator — rows fold left-to-right, so
-  `A AND B OR C` reads `(A AND B) OR C`. Also fixes the bug where suggestions
-  fell back to `doctype`/the first field while the field box showed "no field
-  selected" (the issue's screenshot).
-
-- Dashboard: the page title is now plain **"Dashboard"** instead of
-  `Welcome back, <name>! 👋` (#146). The emoji greeting repeated on every visit
-  and read as unprofessional; the personal touch moves to a quiet
-  `Signed in as <name> — <date, time>` meta line that renders **once**, on the
-  first dashboard load after login (session flag `show_login_note`, stamped in
-  `_record_active_session`), and disappears on any later visit or refresh. The
-  note also carries `Last sign-in: <date, time>` — the previous login stamp,
-  kept on `dbo.Users.LastLoginAt` (migration `0049`) because `ActiveSessions`
-  rows are deleted on logout and cannot answer it. Absent on a first-ever login.
-
-- Footer: `_small_footer.html` is now scoped to the **logged-out surfaces** and
-  removed from the 13 app pages that carry the sidebar (`dashboard`, `invoices`,
-  `profile`, `workitems_overview`, all nine `generali_*`). It is a marketing
-  footer — a 96px sydoc logo and six links to sydoc.ch public pages — and once
-  the version moved into the profile dropdown it had no functional content left
-  on an app page, while the sidebar already carried navigation. It stays on
-  `index`, `hero`, `forgot_password`, `reset_password`, `set_password`,
-  `init_reset`, `init_2FA`, `verify_2fa` and the error pages, which have no
-  sidebar. The support mailto (`support.helpdesk@sydoc.ch`) moves into the
-  profile dropdown so a logged-in user can still reach it. `Help` is an existing
-  msgid, so no new translations. The rule is enforced by
-  `tests/unit/test_template_layout.py`: no template may render both the shell
-  and the footer, and the footer must still reach login and the error pages —
-  it had already drifted once, present on 22 templates and missing from the 12
-  newest. This also retires the last dark-mode contrast failure in the footer
-  (the copyright line sat at 3.75:1); none of the remaining pages implement dark
-  mode, so the fix is the removal rather than a CSS override.
-
-- Reporting: the Simple tab's "Ask AI" bar/chips and the Advanced tab's
-  "Ask AI" mode now both route into the shared AI chat panel above, instead of
-  each running its own one-shot ask/refine flow.
-- Reporting: the page's dark-mode support is repaired end to end (design
-  tokens instead of hard-coded light-mode hex, dark-mode-aware chart
-  segment borders).
-- Reporting AI: the Azure request body now sends `max_completion_tokens`
-  instead of the deprecated `max_tokens`, so GPT-5-family deployments
-  (e.g. `gpt-5-mini`) work; older chat models keep working unchanged.
-  Set `AZURE_OPENAI_API_VERSION` to a GPT-5-capable version (e.g.
-  `2025-01-01-preview`) when pointing `AZURE_OPENAI_DEPLOYMENT` at one.
-  The SQL and report-builder prompts also stop the model AND-merging
-  multi-count questions ("imported today and exported today").
-
-### Removed
-
-- `db-standard/` — the standardised statistics-DB schema proposal (shipped
-  dev-side in 2.5.64) is withdrawn; its deploy-exclude and `.gitignore`
-  entries go with it.
-- Chat: the 1-on-1 chat page and all `/api/chat/*` routes (conversations,
-  messages, send, upload). `chat.html` / `_chat_js.html` are moved to
-  `templates/archive/` / `templates/js/archive/` rather than deleted.
-- Workitem collaboration: tags, priority, assignment, and comments with
-  `@mention` autocomplete, including the API routes
-  `/api/workitem/<id>/comment`, `/api/workitem/<id>/assign`,
-  `/api/workitem/<id>/priority`, `/api/workitem/<id>/tags`, `/api/tags`,
-  `/api/users` and `/api/workitem/<id>/interactions`, and the tag /
-  priority / assigned-to filters (and their header cells) on the workitems
-  overview.
-- The notification bell end to end: both routes (`/api/notifications`,
-  `/api/notifications/mark_as_read`) and the header bell UI (icon, panel,
-  60s poll).
-- Eight now-dead permission codes, deleted by migration `0043`:
-  `chat.view`, `workitems.details.add.tag`,
-  `workitems.details.set.priority`, `workitems.details.assign.users`,
-  `workitems.details.add.comment`, `workitems.filter.tag`,
-  `workitems.filter.priority`, `workitems.filter.assignedUser`.
-- The nine now-dead chat/collaboration/notification tables — renamed with a
-  `decapitated_` prefix by migration `0042`, data preserved and reversible:
-  `Chat_Conversations`, `Chat_Messages`, `Chat_Participants`, `Tags`,
-  `Workitem_Tags`, `Workitem_Comments`, `Comment_Mentions`,
-  `Workitem_Metadata`, `Notifications`.
-- Reporting: the inline "Ask AI" panel (`rpAiPanel`, its Build/Write SQL/Agent
-  sub-modes) and the Simple tab's dedicated AI **Refine** bar are removed,
-  superseded by the AI chat panel above.
-- Dashboard: the customizable-widget engine — six routes
-  (`/api/dashboard/field_metadata`, `GET`/`PUT` `/api/dashboard/layout`,
-  `/api/dashboard/layout/reset`, `/api/dashboard/widget_data`,
-  `/api/dashboard/widget_compare`), the layout validator + default layout, and
-  the whole widget query builder (~970 lines of `nx_lib/views/dashboard.py`).
-  Backend-only since the 2026-04-27 customizable-dashboard plan: no template
-  ever called it, and its `dbo.FieldMetadata` / `dbo.DashboardLayouts` tables
-  were left as a manual SSMS step nobody ran, so every one of those endpoints
-  500'd on every environment. Nothing to drop in SQL — the tables exist on
-  neither INT, PROD nor TEST. The dashboard page, its four KPI/chart endpoints,
-  `set_filter` and the recent-activity feed are untouched.
-
-### Fixed
-
 - **Reporting: dashboard cards render two-dimension reports** (#174) — the card
   renderers were single-series v1 and read a fixed column 1 as the value, so a
   saved report with a second dimension ("per month / process") put the
@@ -1098,7 +1047,6 @@ Work toward the next release.
   build backend, and nexora is a virtual project that is never built, so the
   only way to remove it would be to add a build backend. Both copies now carry
   a comment saying so.
-
 
 - Reporting SQL sandbox: a query with a top-level `ORDER BY` passed
   `validate_select` but then failed at run time with SQL Server error 1033 —
@@ -1365,6 +1313,40 @@ The following are the 57-finding 2026-07-23 bug-hunt's Part B fixes (Tasks
   Octo all day; bumped to 24h. `get_audithistory` also fetches any cold
   misses concurrently instead of one Octo call at a time (prod logs showed
   p90 ~5.6s, worst-case ~34s for this endpoint).
+
+### Security
+
+- Hardened access control and input handling after an internal
+  unauthorized-access audit (#193). The by-id workitem detail/media/audit
+  endpoints now verify the caller is entitled to the workitem's
+  `(client, process)` pair (were reachable cross-tenant via a caller-supplied
+  `?client=`); the five Generali list routes derive org/self visibility from
+  grants instead of a client-supplied `organizationcode`; `/dev/login` and
+  `/dev/users` are now loopback-only (not merely non-PROD); login runs a
+  constant-time bcrypt comparison for unknown usernames; `SESSION_COOKIE_*`
+  (HttpOnly/SameSite) and `X-Frame-Options`/`X-Content-Type-Options` apply in
+  every environment; `MAX_CONTENT_LENGTH` caps upload bodies and the xlsx MIME
+  allowlist drops `application/octet-stream`; the dashboard sign-in name is
+  HTML-escaped; and JSON error handlers no longer return raw exception text.
+  Findings + remediation status: `docs/security/2026-08-audit-193.md`.
+- **#193 remaining findings (4, 6, 7, 10, 16) closed out.** Reporting SQL
+  sandbox `validate_select()` now rejects cross-DB/linked-server and
+  `sys`/`INFORMATION_SCHEMA`/system-DB table references (finding 4). Login
+  mints a fresh server-side session id at every point a session becomes
+  authenticated, closing the session-fixation gap (finding 6). A durable,
+  cross-worker `dbo.LoginLockout` counter (migration `0062`) locks an account
+  for 15 minutes after 5 failed logins, independent of the still-per-worker
+  IP rate limit (finding 7 — the shared rate-limit-storage half needs Redis
+  provisioned, tracked separately). CSP `script-src` no longer carries
+  `'unsafe-inline'`; every inline `<script>` is nonce-gated
+  (`content_security_policy_nonce_in`) and all inline
+  `onclick`/`onchange`/`onerror`/`oninput` attribute handlers across the
+  admin, Generali, profile and prepared-documents pages were converted to
+  `addEventListener` bindings (finding 10). `DB_ODBC_DRIVER` /
+  `DB_ODBC_ENCRYPT` env knobs let a box opt into the modern encrypted ODBC
+  driver once it's confirmed installed; the legacy driver stays the default
+  until then (finding 16). Updated disposition table:
+  `docs/security/2026-08-audit-193.md`.
 
 ## [2.5.64] - 2026-07-22
 
