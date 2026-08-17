@@ -40,6 +40,23 @@ copy env\TEST.env.example env\TEST.env
 
 The repo still ships `requirements.txt` and `requirements-dev.txt` (generated from `uv.lock`); they exist for the IIS/wfastcgi deploy path on SYAPP01. Locally, use `uv sync --extra dev`.
 
+**Adding a dependency.** `pyproject.toml` is the only source of truth. Never
+hand-edit `requirements*.txt` — they are regenerated from `uv.lock` and your
+edit is both silently discarded on the next export and invisible to `uv sync`,
+so every other checkout gets `ModuleNotFoundError` while your machine keeps
+working off an ad-hoc install. The correct sequence:
+
+```
+# 1. add to [project.dependencies] (runtime) or [project.optional-dependencies].dev
+uv lock
+uv sync --extra dev
+uv export --format requirements-txt --no-hashes --no-dev     -o requirements.txt
+uv export --format requirements-txt --no-hashes --all-extras -o requirements-dev.txt
+```
+
+`tests/unit/test_dependencies.py` fails if `nx_lib/`, `scripts/` or `ops/`
+imports a package that `pyproject.toml` does not declare.
+
 ## Naming conventions
 
 **Python:**

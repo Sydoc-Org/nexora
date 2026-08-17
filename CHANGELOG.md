@@ -8,6 +8,27 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Fixed
+
+- **A fresh clone could not run the app or the `nx` CLI** — `ModuleNotFoundError`
+  even after installing every `requirements*.txt`. Three causes, all fixed:
+  - `matplotlib`, `pypdfium2` and `markdown-it-py` are imported at module scope
+    by `nx_lib/` but were never declared in `pyproject.toml` (they had been
+    hand-added to `requirements.txt`, which `uv lock`/`uv sync` ignore, so only
+    machines with ad-hoc global installs worked). `tabulate` was likewise
+    undeclared for `scripts/new-process.py`. All are now real dependencies,
+    with `matplotlib`/`pypdfium2` pinned to the versions already in production
+    rather than the latest resolve (`pypdfium2` 5.x is an unexercised major).
+  - `bin/nx.ps1` hardcoded one developer's absolute interpreter path. It now
+    resolves the repo's `.venv`, then `$env:NEXORA_PYTHON`, then `python` from
+    `PATH`, and prints an actionable error instead of failing obscurely.
+  - `requirements-dev.txt` was a stale export missing `openpyxl`,
+    `psycopg2-binary`, `sqlglot` and `et-xmlfile`. Both requirements files are
+    regenerated from the refreshed lock.
+- `tests/unit/test_dependencies.py` (new) fails when `nx_lib/`, `scripts/` or
+  `ops/` imports a package `pyproject.toml` does not declare, so this class of
+  drift cannot silently return.
+
 ## [3.1] - 2026-08-17
 
 ### Added

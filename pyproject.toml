@@ -35,6 +35,14 @@ dependencies = [
     "prompt_toolkit==3.0.51",
     "openpyxl==3.1.5",
     "sqlglot>=30.8.0",
+    # Imported unguarded at module scope by nx_lib/, so they are hard runtime
+    # deps, not extras. Previously hand-added to requirements.txt only, which
+    # left `uv sync` environments broken — see tests/unit/test_dependencies.py.
+    # matplotlib/pypdfium2 pinned to the versions the working PROD + dev boxes
+    # already run; pypdfium2 5.x is a major bump nobody has exercised yet.
+    "matplotlib==3.10.5",       # nx_lib/reporting/chart_render.py
+    "pypdfium2==4.30.0",        # nx_lib/octo.py
+    "markdown-it-py==4.2.0",    # nx_lib/views/reporting.py
 ]
 
 [project.optional-dependencies]
@@ -51,6 +59,7 @@ dev = [
     "mypy==1.13.0",
     "pre-commit==4.0.1",
     "gitlint-core==0.19.1",
+    "tabulate>=0.10.0",   # scripts/new-process.py
 ]
 
 [tool.ruff]

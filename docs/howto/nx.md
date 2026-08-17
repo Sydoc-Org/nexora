@@ -35,9 +35,17 @@ handled by the function itself. Everything else is forwarded straight to
 `bin/nx.ps1`. Without the wrapper you can always call `.\bin\nx.ps1 <args>`
 directly — only `-md` won't move your shell.
 
-> **Per-clone setup:** `bin/nx.ps1` sets `$Python` to a specific interpreter
-> path near the top of the file. On a fresh clone, point it at your own venv or
-> system Python (`.venv\Scripts\python.exe` after `bootstrap.ps1`).
+> **Interpreter:** `bin/nx.ps1` resolves Python automatically — the repo's
+> `.venv\Scripts\python.exe` first (created by `bootstrap.ps1` / `uv sync`),
+> then `$env:NEXORA_PYTHON` if set, then `python` from `PATH`. No per-clone
+> edit needed; if it finds none it tells you to run `bootstrap.ps1`.
+>
+> If `nx` reports `ModuleNotFoundError`, it is running against an interpreter
+> that was never synced. Run `uv sync --extra dev` in the repo root — that
+> populates `.venv`, which `nx` prefers. Do **not** hand-add packages to
+> `requirements.txt`: it is generated from `uv.lock`, so `uv sync` ignores it.
+> Declare the dep in `pyproject.toml` instead (enforced by
+> `tests/unit/test_dependencies.py`).
 
 ## One-shot commands
 
