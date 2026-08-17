@@ -4,14 +4,14 @@ import sys
 import requests
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
-from nx_main import (
+from nx_lib.config import (
     GRAPH_CLIENT_ID,
     GRAPH_CLIENT_SECRET,
     GRAPH_PASSWORD,
     GRAPH_TENANT_ID,
     GRAPH_USERNAME,
-    engine_nexora_db,
 )
+from nx_lib.db import engine_nexora_db
 
 
 def send_release_notice(email, full_name):

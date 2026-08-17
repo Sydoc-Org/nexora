@@ -7,7 +7,7 @@
 </head>
 
 <body>
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         const organizationModal = document.getElementById('organizationModal');
         const modalTitle = document.getElementById('modalTitle');
         const organizationForm = document.getElementById('organizationForm');
@@ -64,6 +64,10 @@
             setTimeout(() => organizationModal.classList.add('hidden'), 300);
         }
 
+        // #193 finding 10: onclick="" attribute handlers aren't nonce-covered by CSP.
+        organizationModal.addEventListener('click', closeModal);
+        document.getElementById('organizationModalCancelBtn')?.addEventListener('click', () => closeModal());
+
         function openAddOrganizationModal() {
             organizationForm.reset();
             modalTitle.textContent = `{{ _("Add a new Organization") }}`;
@@ -94,7 +98,7 @@
                 <td>${escapeHtml(org.organization)}</td>
                 <td class="align-right">
                     <button data-organization="${orgJson}" class="edit-organization-btn nx-btn nx-btn--ghost nx-btn--sm" type="button" data-testid="admin-org-edit-${escapeHtml(org.organizationcode)}">{{ _("Edit") }}</button>
-                    <button onclick="deleteorganization('${escapeHtml(org.organizationcode)}')" class="nx-btn nx-btn--ghost nx-btn--sm" style="color:var(--nx-danger)" type="button" data-testid="admin-org-delete-${escapeHtml(org.organizationcode)}">{{ _("Delete") }}</button>
+                    <button class="delete-organization-btn nx-btn nx-btn--ghost nx-btn--sm" style="color:var(--nx-danger)" type="button" data-organizationcode="${escapeHtml(org.organizationcode)}" data-testid="admin-org-delete-${escapeHtml(org.organizationcode)}">{{ _("Delete") }}</button>
                 </td>
             </tr>`;
         }
@@ -232,6 +236,12 @@
             if (editBtn) {
                 const organizationdata = JSON.parse(editBtn.dataset.organization);
                 openEditOrganizationModal(organizationdata);
+                return;
+            }
+            // #193 finding 10: onclick="" attribute handlers aren't nonce-covered by CSP.
+            const deleteBtn = e.target.closest('.delete-organization-btn');
+            if (deleteBtn) {
+                deleteorganization(deleteBtn.dataset.organizationcode);
             }
         });
 

@@ -6,7 +6,7 @@ import re
 import tomllib
 from pathlib import Path
 
-from nx_lib.version import __version__
+from nx_lib.version import BUILD_STAMP, __version__
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -14,6 +14,14 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 def test_version_matches_pyproject():
     data = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     assert data["project"]["version"] == __version__
+
+
+def test_version_matches_uv_lock():
+    # Third copy, and the one that actually rotted (sat at 2.5.63 while the other
+    # two were on 2.5.65) because nothing checked it. `uv lock` refreshes it.
+    lock = tomllib.loads((REPO_ROOT / "uv.lock").read_text(encoding="utf-8"))
+    nexora = next(p for p in lock["package"] if p["name"] == "nexora")
+    assert nexora["version"] == __version__, "stale uv.lock — run `uv lock`"
 
 
 def test_footer_template_uses_injected_version_not_a_literal():
@@ -26,4 +34,28 @@ def test_footer_template_uses_injected_version_not_a_literal():
 def test_context_processor_injects_version():
     from nx_lib.hooks import _inject_app_version
 
-    assert _inject_app_version() == {"nexora_version": __version__}
+    assert _inject_app_version() == {
+        "nexora_version": __version__,
+        "nexora_build": BUILD_STAMP,
+    }
+
+
+def test_build_stamp_is_empty_without_generated_module():
+    # nx_lib/_build.py is deploy-generated and gitignored, so a checkout must
+    # degrade to version-only rather than raising at import.
+    assert not (REPO_ROOT / "nx_lib" / "_build.py").exists()
+    assert BUILD_STAMP == ""
+
+
+def test_header_renders_version_on_footerless_pages():
+    # reporting/, admin/ and prepared_documents never include _small_footer.html,
+    # so the profile dropdown is the only place the build shows on those pages.
+    tpl = (REPO_ROOT / "templates" / "_header.html").read_text(encoding="utf-8")
+    assert "{{ nexora_version }}" in tpl
+    assert "{% if nexora_build %}" in tpl
+
+
+def test_footer_renders_build_stamp_only_when_present():
+    tpl = (REPO_ROOT / "templates" / "_nexora_version.html").read_text(encoding="utf-8")
+    assert "{% if nexora_build %}" in tpl
+    assert "{{ nexora_build }}" in tpl

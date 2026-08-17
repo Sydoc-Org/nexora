@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="{{ url_for('static',filename='css/jdvance.css') }}">
 </head>
 <body>
-  <script>
+  <script nonce="{{ csp_nonce() }}">
   const images = [
       '../static/images/jdvance/jdvance.png',
       '../static/images/jdvance/jdvance2.png',

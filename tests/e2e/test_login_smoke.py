@@ -16,9 +16,9 @@ def test_login_smoke(nexora_server, page):
     page.wait_for_url("**/verify_2fa", timeout=10000)
 
     # TOTP secret here MUST match sql/test/seed.sql for user@test.local.
+    # Filling the 6th digit auto-submits the challenge (a749bda) — no click.
     code = pyotp.TOTP("KRSXG5CTMVRXEZLU").now()
     page.fill('input[name="code"]', code)
-    page.click('button[type="submit"]')
 
     # user@test.local has dashboard.view, so startpage_redirect_to lands on /dashboard.
     page.wait_for_url("**/dashboard", timeout=10000)

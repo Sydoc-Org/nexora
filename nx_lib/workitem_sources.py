@@ -10,40 +10,47 @@ import octo (document fetching stays in the views).
 
 import contextlib
 import io
-import json
 import re
 from dataclasses import dataclass, field
 
 import psycopg2.extras
 from flask import current_app
 
-from . import config as cfg
 from .clients import CLIENTS, non_default_clients
 from .db import engine_nexora_db
-
-DB_NEXORA = cfg.DB_NEXORA
-
 
 # Status code the UI's "In Progress" option maps to. It is a BUCKET, not a
 # single code: the display CASE renders every status that is not 0 (Ready) or
 # 5 (Done) as "In Progress", so both sources filter it as `NOT IN (0, 5)`.
 _STATUS_IN_PROGRESS = 1
 
+# Soft-deleted workitems. Hidden from every list unless the caller explicitly
+# filtered FOR them, which the view only allows for holders of
+# workitems.filter.status.deleted (internal-only permission, issue #125).
+_STATUS_DELETED = 2
+
 
 @dataclass
 class WorkitemFilter:
     """Dialect-neutral bag of the list filters. Each source renders its own SQL."""
 
-    process_names: list  # tp.Name allow-list (from permissions)
-    client_names: list  # tp.ClientName allow-list (from permissions)
+    # [(client, process), ...] allow-list (from permissions), rendered as an
+    # OR-joined (client = ? AND process = ?) pair predicate by each source.
+    # NEVER split into independent client/process IN-lists -- ANDing two
+    # independent IN-lists authorizes their full cross product (a caller
+    # granted only (A, P1) and (B, P2) would also read (A, P2) and (B, P1)).
+    client_process_pairs: list
     activity_ignore_csv: str  # "'A','B'" string from ActivityInstancesToIgnore
     status_code: int | None = None
     search_id: str | None = None  # exact workitem id to match
     start_date: object = None
     end_date: object = None
-    priority: str | None = None
-    assigned_user: str | None = None
-    tag: str | None = None
+    # One of 'Import' | 'Extraction' | 'Validation' | 'Delivery' -- matched
+    # against the SAME derived-stage CASE the list query already computes
+    # (each source's CurrentStage/currentstage column), on the workitem's
+    # latest activity row only (rn = 1). Filtering pre-dedup would be wrong:
+    # a workitem can have earlier activity rows in other stages.
+    stage: str | None = None
     # Raw doc-field search pairs, kept for the autocomplete endpoint only. The
     # ACTUAL search is now ALWAYS pre-resolved by the orchestrator into a per-
     # source id allow-set:
@@ -97,21 +104,48 @@ class SqlServerSource:
         finally:
             conn.close()
 
+    def process_of(self, workitem_id):
+        """(ClientName, ProcessName) for a workitem, or None if not found /
+        on error. Same namespace the list query authorizes against
+        (tp.ClientName / tp.Name) — the detail-access entitlement check (#193)
+        compares this pair to the caller's granted process pairs."""
+        conn = self.engine.raw_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT TOP 1 tp.ClientName, tp.Name "
+                "FROM t_WorkItems twi "
+                "JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID "
+                "JOIN t_Processes tp ON tp.ID = tai.ProcessID "
+                "WHERE twi.ID = ?",
+                workitem_id,
+            )
+            row = cur.fetchone()
+            return (row[0], row[1]) if row else None
+        except Exception as e:
+            current_app.logger.error(f"SqlServerSource.process_of({workitem_id}): {e}")
+            return None
+        finally:
+            conn.close()
+
     def list_workitems(self, filt, offset, limit):
         """Return (rows, total_count). Builds the same WHERE + SQL the original
         _get_workitems_data ran against engine_octo_db."""
-        # Zero permitted processes -> `IN ()`, a syntax error that surfaced as a
-        # degraded-source banner instead of a clean empty list.
-        if not (filt.process_names and filt.client_names):
+        # Zero permitted pairs -> `1=0`, an always-false predicate that keeps
+        # the query syntactically valid (an empty `IN ()` was a syntax error
+        # that surfaced as a degraded-source banner instead of a clean empty
+        # list).
+        if not filt.client_process_pairs:
             return [], 0
-        where_clauses = [
-            f"tp.Name IN ({_qmarks(filt.process_names)})",
-            f"tp.ClientName IN ({_qmarks(filt.client_names)})",
-            "twi.Status <> 2",
-        ]
+        pair_sql, pair_params = _pair_predicate(
+            filt.client_process_pairs, "tp.ClientName", "tp.Name", "?"
+        )
+        where_clauses = [f"({pair_sql})"]
+        if filt.status_code != _STATUS_DELETED:
+            where_clauses.append("twi.Status <> 2")
         if filt.activity_ignore_csv:
             where_clauses.append(f"tai.ActivityInstanceName not in ({filt.activity_ignore_csv})")
-        params = list(filt.process_names) + list(filt.client_names)
+        params = list(pair_params)
 
         if filt.status_code is not None:
             # The display CASE maps 0 -> Ready, 5 -> Done and EVERYTHING ELSE to
@@ -123,18 +157,6 @@ class SqlServerSource:
             else:
                 where_clauses.append("twi.Status = ?")
                 params.append(filt.status_code)
-        if filt.tag:
-            where_clauses.append(
-                f"""
-                EXISTS (
-                    SELECT 1
-                    FROM [{DB_NEXORA}].dbo.Workitem_Tags wt
-                    JOIN [{DB_NEXORA}].dbo.Tags t ON wt.TagID = t.TagID
-                    WHERE wt.workitemid = twi.id AND t.TagName like ?
-                )
-            """
-            )
-            params.append(f"%{filt.tag}%")
         if filt.search_id:
             # Exact match: searching 371 must not also return 1371/3716/16371.
             where_clauses.append("CAST(twi.id AS NVARCHAR(50)) = ?")
@@ -145,15 +167,6 @@ class SqlServerSource:
         if filt.end_date:
             where_clauses.append("twi.ModifiedAt < ?")
             params.append(filt.end_date)
-        if filt.priority:
-            where_clauses.append("ISNULL(wim.Priority, 0) = ?")
-            params.append(filt.priority)
-        if filt.assigned_user:
-            if filt.assigned_user in ("None", "Unassigned"):
-                where_clauses.append("(wim.AssignedUserID IS NULL)")
-            else:
-                where_clauses.append("wim.AssignedUserID = ?")
-                params.append(filt.assigned_user)
 
         extra_clauses = []
         temp_tables = []
@@ -182,26 +195,13 @@ class SqlServerSource:
                         batch,
                     )
 
-            cur.execute(
-                f"""
-                SELECT COUNT(DISTINCT twi.ID)
-                FROM t_WorkItems twi
-                INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
-                INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
-                LEFT JOIN [{DB_NEXORA}].dbo.Workitem_Metadata wim ON twi.id = wim.workitemid
-                WHERE {full_where}
-            """,
-                params,
-            )
-            total = cur.fetchone()[0] or 0
-
-            cur.execute(
-                f"""
+            cte_sql = f"""
                 WITH WorkitemCTE AS (
                     SELECT
                         twi.ModifiedAt, twi.ID AS WorkItemID,
                         CASE
-                            WHEN twi.Status = 0 THEN 'Ready' WHEN twi.Status = 5 THEN 'Done' ELSE 'In Progress'
+                            WHEN twi.Status = 0 THEN 'Ready' WHEN twi.Status = 5 THEN 'Done'
+                            WHEN twi.Status = 2 THEN 'Deleted' ELSE 'In Progress'
                         END AS Status,
                         CASE
                             WHEN twi.Status = 5 THEN 'Delivery'
@@ -212,27 +212,36 @@ class SqlServerSource:
                             WHEN tai.ActivityInstanceName LIKE '%Pause%' or tai.ActivityInstanceName like '%Deletion%' or tai.ActivityInstanceName like '%Lieferung%' THEN 'Delivery'
                             ELSE 'Extraction'
                         END AS CurrentStage,
-                        wim.Priority,
-                        (
-                            SELECT t.TagID AS id, t.TagName AS name, t.TagColor AS color
-                            FROM [{DB_NEXORA}].dbo.Workitem_Tags wt
-                            JOIN [{DB_NEXORA}].dbo.Tags t ON wt.TagID = t.TagID
-                            WHERE wt.WorkItemID = twi.ID
-                            FOR JSON PATH
-                        ) AS TagsJSON,
                         ROW_NUMBER() OVER(PARTITION BY twi.ID ORDER BY twi.ModifiedAt DESC) as rn
                     FROM t_WorkItems twi
                     INNER JOIN t_ActivityInstances tai ON twi.ActivityInstanceID = tai.ID
                     INNER JOIN t_Processes tp ON tp.ID = tai.ProcessID
-                    LEFT JOIN [{DB_NEXORA}].dbo.Workitem_Metadata wim ON twi.id = wim.WorkItemID
                     WHERE {full_where}
+                ),
+                LatestCTE AS (
+                    SELECT * FROM WorkitemCTE WHERE rn = 1
                 )
-                SELECT ModifiedAt, WorkItemID, Status, CurrentStage, Priority, TagsJSON
-                FROM WorkitemCTE WHERE rn = 1
+            """
+            # Stage is filtered post-dedup (on the workitem's latest activity
+            # row only), so it's applied against LatestCTE, not full_where.
+            stage_clause = "WHERE CurrentStage = ?" if filt.stage else ""
+            stage_params = [filt.stage] if filt.stage else []
+
+            cur.execute(
+                cte_sql + f"SELECT COUNT(*) FROM LatestCTE {stage_clause}",
+                [*params, *stage_params],
+            )
+            total = cur.fetchone()[0] or 0
+
+            cur.execute(
+                cte_sql
+                + f"""
+                SELECT ModifiedAt, WorkItemID, Status, CurrentStage
+                FROM LatestCTE {stage_clause}
                 ORDER BY ModifiedAt DESC
                 OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
             """,
-                [*params, offset, limit],
+                [*params, *stage_params, offset, limit],
             )
             rows = [
                 {
@@ -240,8 +249,6 @@ class SqlServerSource:
                     "workitemid": r.WorkItemID,
                     "status": r.Status,
                     "current_stage": r.CurrentStage,
-                    "priority": r.Priority or 0,
-                    "tags": json.loads(r.TagsJSON) if r.TagsJSON else [],
                     "client": "default",
                 }
                 for r in cur.fetchall()
@@ -250,14 +257,14 @@ class SqlServerSource:
         finally:
             conn.close()
 
-    def recent_rows(self, process_names, client_names, activity_ignore_csv, top=3):
+    def recent_rows(self, pairs, activity_ignore_csv, top=3):
         conn = self.engine.raw_connection()
         try:
             cur = conn.cursor()
+            pair_sql, pair_params = _pair_predicate(pairs, "tp.ClientName", "tp.Name", "?")
             where_clauses = [
                 "twi.Status <> 2",
-                f"tp.Name IN ({_qmarks(process_names)})",
-                f"tp.ClientName IN ({_qmarks(client_names)})",
+                f"({pair_sql})",
             ]
             if activity_ignore_csv:
                 where_clauses.append(f"tai.ActivityInstanceName NOT IN ({activity_ignore_csv})")
@@ -271,7 +278,7 @@ class SqlServerSource:
                 WHERE {where}
                 ORDER BY twi.ModifiedAt DESC
                 """,
-                list(process_names) + list(client_names),
+                pair_params,
             )
             return [
                 {
@@ -288,19 +295,20 @@ class SqlServerSource:
         finally:
             conn.close()
 
-    def backlog_count(self, process_names, client_names):
+    def backlog_count(self, pairs):
         conn = self.engine.raw_connection()
         try:
             cur = conn.cursor()
+            pair_sql, pair_params = _pair_predicate(pairs, "p.ClientName", "p.Name", "?")
             cur.execute(
                 f"""
                 SELECT COUNT(*) FROM t_WorkItems w
                 LEFT JOIN t_ActivityInstances a ON a.id = w.ActivityInstanceID
                 LEFT JOIN t_Processes p ON p.id = a.ProcessID
                 LEFT JOIN t_ActivityTypes act ON act.id = a.ActivityTypeID
-                WHERE p.Name IN ({_qmarks(process_names)}) AND p.ClientName IN ({_qmarks(client_names)}) AND act.Name = 'C+A'
+                WHERE ({pair_sql}) AND act.Name = 'C+A'
                 """,
-                list(process_names) + list(client_names),
+                pair_params,
             )
             return cur.fetchone()[0] or 0
         except Exception as e:
@@ -314,70 +322,20 @@ def _qmarks(seq):
     return ", ".join(["?"] * len(seq))
 
 
-def _chunked(seq, n=1000):
-    seq = list(seq)
-    for i in range(0, len(seq), n):
-        yield seq[i : i + n]
-
-
-def resolve_nexora_filter_ids(filt):
-    """Resolve tag/priority/assigned filters to a set of matching workitem ids
-    from NexoraDB. Returns None when no NexoraDB-backed filter is active (i.e.
-    no id constraint); returns a (possibly empty) set otherwise.
-
-    Used by sources whose runtime DB cannot join NexoraDB in-query (Postgres).
-    """
-    active = []
-    if filt.tag:
-        active.append(("tag", filt.tag))
-    if filt.priority:
-        active.append(("priority", filt.priority))
-    if filt.assigned_user:
-        active.append(("assigned", filt.assigned_user))
-    if not active:
-        return None
-
-    result = None
-    conn = engine_nexora_db.raw_connection()
-    try:
-        cur = conn.cursor()
-        for kind, val in active:
-            ids = set()
-            if kind == "tag":
-                cur.execute(
-                    "SELECT DISTINCT wt.WorkItemID "
-                    "FROM Workitem_Tags wt JOIN Tags t ON wt.TagID = t.TagID "
-                    "WHERE t.TagName LIKE ?",
-                    f"%{val}%",
-                )
-            elif kind == "priority":
-                cur.execute(
-                    "SELECT WorkItemID FROM Workitem_Metadata WHERE ISNULL(Priority, 0) = ?",
-                    val,
-                )
-            else:  # assigned
-                if val in ("None", "Unassigned"):
-                    cur.execute(
-                        "SELECT WorkItemID FROM Workitem_Metadata WHERE AssignedUserID IS NULL"
-                    )
-                else:
-                    cur.execute(
-                        "SELECT WorkItemID FROM Workitem_Metadata WHERE AssignedUserID = ?",
-                        val,
-                    )
-            # NexoraDB stores WorkitemId as NVARCHAR -> pyodbc yields str, but
-            # this allow-set is bound against Postgres' INTEGER "ID" column
-            # (int = ANY(text[]) is a hard error there, which degraded the whole
-            # MS02 source and silently dropped its rows from every tag/priority/
-            # assigned filter). Normalize to int, dropping non-numeric ids.
-            ids = _as_workitem_ids((r.WorkItemID,) for r in cur.fetchall())
-            result = ids if result is None else (result & ids)
-        return result if result is not None else set()
-    except Exception as e:
-        current_app.logger.error(f"resolve_nexora_filter_ids: {e}")
-        return set()
-    finally:
-        conn.close()
+def _pair_predicate(pairs, client_expr, process_expr, marker):
+    """Build an OR-joined parameterized (client, process) pair predicate --
+    e.g. "(tp.ClientName = ? AND tp.Name = ?) OR (...)" -- from a list of
+    (client, process) tuples, instead of two independent client/process
+    IN-lists (ANDed together, those authorize the full cross product: a
+    caller granted only (A, P1) and (B, P2) would also match (A, P2) and
+    (B, P1)). Returns (sql, params); sql is the always-false "1=0" for an
+    empty pairs list so callers get a syntactically valid clause instead of
+    an `IN ()` error."""
+    if not pairs:
+        return "1=0", []
+    sql = " OR ".join(f"({client_expr} = {marker} AND {process_expr} = {marker})" for _ in pairs)
+    params = [value for pair in pairs for value in pair]
+    return sql, params
 
 
 # OWNER-CONFIRMED doc-field index identifiers (see the plan's Owner-actions).
@@ -439,23 +397,46 @@ def _as_workitem_ids(rows):
     return out
 
 
+def _pg_like_escape(value):
+    """Escape LIKE metacharacters so an ILIKE comparison is a literal match."""
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+# Whitelisted doc-value operators on the MS02 (Postgres) leg (issue #148):
+# op key -> (comparator template, param builder). Everything runs through
+# ILIKE so case-insensitivity matches the default SQL Server path's CI
+# collation; eq/neq escape the value so they compare literally. The LIKE
+# family keeps the historical no-wildcard-escaping behavior.
+_MS02_DOCFIELD_OPS = {
+    "contains": ("ILIKE %s", lambda v: f"%{v}%"),
+    "ncontains": ("NOT ILIKE %s", lambda v: f"%{v}%"),
+    "eq": ("ILIKE %s", _pg_like_escape),
+    "neq": ("NOT ILIKE %s", _pg_like_escape),
+    "startswith": ("ILIKE %s", lambda v: f"{v}%"),
+    "endswith": ("ILIKE %s", lambda v: f"%{v}"),
+}
+
+
 def resolve_ms02_docfield_ids(engine, pairs):
     """Resolve MS02 doc-field search to a workitem-id allow-set (columnar).
 
-    ``pairs`` is ``[(specs, value), ...]`` -- one entry per searched docfield,
-    where ``specs`` is the list of ``(table, id_col, field_col, time_filter)``
-    config rows the docfield maps to (from the 'ms02' SearchConfig rows; usually
-    one). Within a docfield the rows are OR'd; docfields are AND-intersected. The
-    field-column match is case-insensitive (ILIKE), matching the default SQL
-    Server path's collation.
+    ``pairs`` is ``[(specs, value[, op[, comb]]), ...]`` -- one entry per
+    searched docfield, where ``specs`` is the list of
+    ``(table, id_col, field_col, time_filter)`` config rows the docfield maps
+    to (from the 'ms02' SearchConfig rows; usually one). An EMPTY specs list is
+    a forced-empty pair (field unmapped -> contributes set()). Within a pair
+    the spec rows are OR'd; pairs fold left-to-right joined by their ``comb``
+    ('and' intersects, 'or' unions; the first pair's comb is ignored). ``op``
+    is a _MS02_DOCFIELD_OPS key ('contains' fallback). Matching is
+    case-insensitive (ILIKE), matching the default SQL Server path's collation.
 
     Three-way contract (mirrors the DEFAULT docfield pre-fetch block):
       * None      -> unresolved (engine absent, no pairs, or any error). The
                      view coerces this to set() for an active doc-field search
                      (fail closed) -- None never reaches the source as
                      "no constraint" while a doc-field filter is in play.
-      * set()     -> a docfield matched nothing -> force zero MS02 rows.
-      * {ids...}  -> intersected allow-set -> twi."ID" = ANY(%s).
+      * set()     -> the folded pairs matched nothing -> force zero MS02 rows.
+      * {ids...}  -> folded allow-set -> twi."ID" = ANY(%s).
     Never raises: on error it logs and returns None (no constraint).
     """
     if engine is None or not pairs:
@@ -466,17 +447,24 @@ def resolve_ms02_docfield_ids(engine, pairs):
     try:
         conn = engine.raw_connection()
         cur = conn.cursor()
-        for specs, value in pairs:
+        for entry in pairs:
+            specs, value = entry[0], entry[1]
+            op = entry[2] if len(entry) > 2 else "contains"
+            comb = entry[3] if len(entry) > 3 else "and"
+            comparator, param_of = _MS02_DOCFIELD_OPS.get(op, _MS02_DOCFIELD_OPS["contains"])
             field_ids = set()
             for table, id_col, field_col, time_filter in specs:
-                sql = _ms02_columnar_sql(table, id_col, field_col, time_filter, "ILIKE %s")
+                sql = _ms02_columnar_sql(table, id_col, field_col, time_filter, comparator)
                 if sql is None:
                     continue
-                cur.execute(sql, [f"%{value}%"])
+                cur.execute(sql, [param_of(value)])
                 field_ids |= _as_workitem_ids(cur.fetchall())
-            if not field_ids:
-                return set()  # a docfield matched nothing -> whole result empty
-            result = field_ids if result is None else (result & field_ids)
+            if result is None:
+                result = field_ids
+            elif comb == "or":
+                result = result | field_ids
+            else:
+                result = result & field_ids
         return result
     except Exception as e:
         current_app.logger.error(f"resolve_ms02_docfield_ids: {e}")
@@ -783,6 +771,59 @@ def resolve_octo_wid_stage(engine, wid):
             conn.close()
 
 
+def _resolve_octo_wid_stage_pg(engine, wid):
+    """Postgres-dialect twin of resolve_octo_wid_stage, for the MS02 client's
+    Azure Postgres runtime DB (same Octo schema, different dialect + case-
+    preserved quoted identifiers -- see PostgresSource). Same {"status": None,
+    "current_stage": None} degrade contract; never raises."""
+    empty = {"status": None, "current_stage": None}
+    if engine is None or wid in (None, ""):
+        return empty
+    try:
+        wid_int = int(wid)
+    except (TypeError, ValueError):
+        return empty
+    conn = None
+    try:
+        conn = engine.raw_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            WITH WorkitemCTE AS (
+                SELECT
+                    CASE
+                        WHEN twi."Status" = 0 THEN 'Ready' WHEN twi."Status" = 5 THEN 'Done' ELSE 'In Progress'
+                    END AS status,
+                    CASE
+                        WHEN twi."Status" = 5 THEN 'Delivery'
+                        WHEN tai."ActivityInstanceName" LIKE '%%C+A%%' THEN 'Validation'
+                        WHEN tai."ActivityInstanceName" LIKE '%%Export%%' OR tai."ActivityInstanceName" LIKE '%%Exp%%' THEN 'Delivery'
+                        WHEN tai."ActivityInstanceName" LIKE '%%Import%%' OR tai."ActivityInstanceName" LIKE '%%Imp%%' THEN 'Import'
+                        WHEN tai."ActivityInstanceName" LIKE '%%Extract%%' OR tai."ActivityInstanceName" LIKE '%%OCR%%' THEN 'Extraction'
+                        WHEN tai."ActivityInstanceName" LIKE '%%Pause%%' OR tai."ActivityInstanceName" LIKE '%%Deletion%%' OR tai."ActivityInstanceName" LIKE '%%Lieferung%%' THEN 'Delivery'
+                        ELSE 'Extraction'
+                    END AS current_stage,
+                    ROW_NUMBER() OVER (PARTITION BY twi."ID" ORDER BY twi."ModifiedAt" DESC) AS rn
+                FROM "t_WorkItems" twi
+                JOIN "t_ActivityInstances" tai ON twi."ActivityInstanceID" = tai."ID"
+                WHERE twi."ID" = %s
+            )
+            SELECT status, current_stage FROM WorkitemCTE WHERE rn = 1
+            """,
+            [wid_int],
+        )
+        row = cur.fetchone()
+        if not row:
+            return empty
+        return {"status": row[0], "current_stage": row[1]}
+    except Exception as e:
+        current_app.logger.error(f"_resolve_octo_wid_stage_pg({wid}): {e}")
+        return empty
+    finally:
+        if conn is not None:
+            conn.close()
+
+
 def resolve_ms02_wids_to_pids(engine, specs, wids):
     """Inverse of resolve_ms02_pid_to_wids: map workitem ids -> their PID (col_pid)
     value, columnar. Used by the reverse 'In register' chip to learn each visible
@@ -795,7 +836,7 @@ def resolve_ms02_wids_to_pids(engine, specs, wids):
     ids = []
     for w in wids:
         try:
-            ids.append(int(w))
+            ids.append(str(int(w)))
         except (TypeError, ValueError):
             continue
     if not ids:
@@ -816,7 +857,7 @@ def resolve_ms02_wids_to_pids(engine, specs, wids):
             sql = (
                 f'SELECT DISTINCT "{id_col}", "{pid_col}"::text'
                 f" FROM {table}"
-                f' WHERE "{id_col}" = ANY(%s)'
+                f' WHERE "{id_col}"::text = ANY(%s)'
             )
             if time_filter:
                 sql += f" AND {time_filter}"
@@ -836,10 +877,6 @@ def resolve_ms02_wids_to_pids(engine, specs, wids):
     finally:
         if conn is not None:
             conn.close()
-
-
-def _pgmarks(seq):
-    return ", ".join(["%s"] * len(seq))
 
 
 class PostgresSource:
@@ -865,13 +902,36 @@ class PostgresSource:
         finally:
             conn.close()
 
+    def process_of(self, workitem_id):
+        """(ClientName, ProcessName) for a workitem, or None. PG dialect of the
+        SqlServerSource.process_of entitlement lookup (#193)."""
+        conn = self.engine.raw_connection()
+        try:
+            cur = conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor)
+            cur.execute(
+                'SELECT tp."ClientName" AS clientname, tp."Name" AS name '
+                'FROM "t_WorkItems" twi '
+                'JOIN "t_ActivityInstances" tai ON twi."ActivityInstanceID" = tai."ID" '
+                'JOIN "t_Processes" tp ON tp."ID" = tai."ProcessID" '
+                'WHERE twi."ID" = %s LIMIT 1',
+                (workitem_id,),
+            )
+            row = cur.fetchone()
+            return (row.clientname, row.name) if row else None
+        except Exception as e:
+            current_app.logger.error(f"PostgresSource.process_of({workitem_id}): {e}")
+            return None
+        finally:
+            conn.close()
+
     def _build_where(self, filt):
-        clauses = [
-            f'tp."Name" IN ({_pgmarks(filt.process_names)})',
-            f'tp."ClientName" IN ({_pgmarks(filt.client_names)})',
-            'twi."Status" <> 2',
-        ]
-        params = list(filt.process_names) + list(filt.client_names)
+        pair_sql, pair_params = _pair_predicate(
+            filt.client_process_pairs, 'tp."ClientName"', 'tp."Name"', "%s"
+        )
+        clauses = [f"({pair_sql})"]
+        if filt.status_code != _STATUS_DELETED:
+            clauses.append('twi."Status" <> 2')
+        params = list(pair_params)
         # activity_ignore_csv is a literal "'A','B'" list (already escaped upstream).
         if filt.activity_ignore_csv:
             clauses.append(f'tai."ActivityInstanceName" NOT IN ({filt.activity_ignore_csv})')
@@ -892,15 +952,6 @@ class PostgresSource:
             clauses.append('twi."ModifiedAt" < %s')
             params.append(filt.end_date)
 
-        # NexoraDB-backed filters (tag/priority/assigned) -> id allow-set; those
-        # metadata rows live in NexoraDB for workitems of every client.
-        allow = resolve_nexora_filter_ids(filt)
-        if allow is not None:
-            if not allow:
-                clauses.append("1=0")
-            else:
-                clauses.append('twi."ID" = ANY(%s)')
-                params.append(list(allow))
         # Doc-field search -> pre-resolved id allow-set against the SEPARATE MS02
         # doc-field DB (engine_ms02_docfields_pg). The orchestrator resolves the
         # SearchConfig-mapped EAV match into filt.ms02_docfield_ids BEFORE this
@@ -917,26 +968,14 @@ class PostgresSource:
 
     def list_workitems(self, filt, offset, limit):
         # Same empty-scope guard as the SQL Server source (see there).
-        if not (filt.process_names and filt.client_names):
+        if not filt.client_process_pairs:
             return [], 0
         where, params = self._build_where(filt)
         conn = self.engine.raw_connection()
         try:
             cur = conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor)
-            cur.execute(
-                f"""
-                SELECT COUNT(DISTINCT twi."ID")
-                FROM "t_WorkItems" twi
-                JOIN "t_ActivityInstances" tai ON twi."ActivityInstanceID" = tai."ID"
-                JOIN "t_Processes" tp ON tp."ID" = tai."ProcessID"
-                WHERE {where}
-                """,
-                params,
-            )
-            total = cur.fetchone()[0] or 0
 
-            cur.execute(
-                f"""
+            cte_sql = f"""
                 WITH ranked AS (
                     SELECT
                         twi."ModifiedAt" AS modifiedat,
@@ -944,6 +983,7 @@ class PostgresSource:
                         CASE
                             WHEN twi."Status" = 0 THEN 'Ready'
                             WHEN twi."Status" = 5 THEN 'Done'
+                            WHEN twi."Status" = 2 THEN 'Deleted'
                             ELSE 'In Progress'
                         END AS status,
                         CASE
@@ -960,13 +1000,31 @@ class PostgresSource:
                     JOIN "t_ActivityInstances" tai ON twi."ActivityInstanceID" = tai."ID"
                     JOIN "t_Processes" tp ON tp."ID" = tai."ProcessID"
                     WHERE {where}
+                ),
+                latest AS (
+                    SELECT * FROM ranked WHERE rn = 1
                 )
+            """
+            # Stage is filtered post-dedup (on the workitem's latest activity
+            # row only), so it's applied against `latest`, not `where`.
+            stage_clause = "WHERE currentstage = %s" if filt.stage else ""
+            stage_params = [filt.stage] if filt.stage else []
+
+            cur.execute(
+                cte_sql + f"SELECT COUNT(*) FROM latest {stage_clause}",
+                [*params, *stage_params],
+            )
+            total = cur.fetchone()[0] or 0
+
+            cur.execute(
+                cte_sql
+                + f"""
                 SELECT modifiedat, workitemid, status, currentstage
-                FROM ranked WHERE rn = 1
+                FROM latest {stage_clause}
                 ORDER BY modifiedat DESC
                 LIMIT %s OFFSET %s
                 """,
-                [*params, limit, offset],
+                [*params, *stage_params, limit, offset],
             )
             rows = [
                 {
@@ -974,8 +1032,6 @@ class PostgresSource:
                     "workitemid": r.workitemid,
                     "status": r.status,
                     "current_stage": r.currentstage,
-                    "priority": 0,
-                    "tags": [],
                     "client": self.code,
                 }
                 for r in cur.fetchall()
@@ -983,19 +1039,18 @@ class PostgresSource:
         finally:
             conn.close()
 
-        enrich_rows_from_nexora(rows)
         return rows, total
 
-    def recent_rows(self, process_names, client_names, activity_ignore_csv, top=3):
+    def recent_rows(self, pairs, activity_ignore_csv, top=3):
         conn = self.engine.raw_connection()
         try:
             cur = conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor)
+            pair_sql, pair_params = _pair_predicate(pairs, 'tp."ClientName"', 'tp."Name"', "%s")
             clauses = [
                 'twi."Status" <> 2',
-                f'tp."Name" IN ({_pgmarks(process_names)})',
-                f'tp."ClientName" IN ({_pgmarks(client_names)})',
+                f"({pair_sql})",
             ]
-            params = list(process_names) + list(client_names)
+            params = list(pair_params)
             if activity_ignore_csv:
                 clauses.append(f'tai."ActivityInstanceName" NOT IN ({activity_ignore_csv})')
             where = " AND ".join(clauses)
@@ -1021,19 +1076,20 @@ class PostgresSource:
         finally:
             conn.close()
 
-    def backlog_count(self, process_names, client_names):
+    def backlog_count(self, pairs):
         conn = self.engine.raw_connection()
         try:
             cur = conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor)
+            pair_sql, pair_params = _pair_predicate(pairs, 'p."ClientName"', 'p."Name"', "%s")
             cur.execute(
                 f"""
                 SELECT COUNT(*) FROM "t_WorkItems" w
                 LEFT JOIN "t_ActivityInstances" a ON a."ID" = w."ActivityInstanceID"
                 LEFT JOIN "t_Processes" p ON p."ID" = a."ProcessID"
                 LEFT JOIN "t_ActivityTypes" act ON act."ID" = a."ActivityTypeID"
-                WHERE p."Name" IN ({_pgmarks(process_names)}) AND p."ClientName" IN ({_pgmarks(client_names)}) AND act."Name" = 'C+A'
+                WHERE ({pair_sql}) AND act."Name" = 'C+A'
                 """,
-                list(process_names) + list(client_names),
+                pair_params,
             )
             return cur.fetchone()[0] or 0
         except Exception as e:
@@ -1041,51 +1097,6 @@ class PostgresSource:
             return 0
         finally:
             conn.close()
-
-
-def enrich_rows_from_nexora(rows):
-    """Attach priority + tags to base rows from NexoraDB, keyed by workitemid.
-    Mutates and returns ``rows``. Safe on an empty list."""
-    ids = [r["workitemid"] for r in rows]
-    if not ids:
-        return rows
-    # Key on str: NexoraDB's WorkitemId is NVARCHAR (pyodbc -> str) while the
-    # Postgres source's workitemid is an int, so an int-keyed map never matched
-    # and MS02 rows silently rendered with no tags and priority 0.
-    by_id = {str(r["workitemid"]): r for r in rows}
-
-    conn = engine_nexora_db.raw_connection()
-    try:
-        cur = conn.cursor()
-        for chunk in _chunked(ids):
-            ph = ", ".join(["?"] * len(chunk))
-            cur.execute(
-                f"SELECT WorkItemID, Priority FROM Workitem_Metadata WHERE WorkItemID IN ({ph})",
-                list(chunk),
-            )
-            for r in cur.fetchall():
-                row = by_id.get(str(r.WorkItemID))
-                if row is not None:
-                    row["priority"] = r.Priority or 0
-        for chunk in _chunked(ids):
-            ph = ", ".join(["?"] * len(chunk))
-            cur.execute(
-                f"""
-                SELECT wt.WorkItemID, t.TagID, t.TagName, t.TagColor
-                FROM Workitem_Tags wt JOIN Tags t ON wt.TagID = t.TagID
-                WHERE wt.WorkItemID IN ({ph})
-                """,
-                list(chunk),
-            )
-            for r in cur.fetchall():
-                row = by_id.get(str(r.WorkItemID))
-                if row is not None:
-                    row["tags"].append({"id": r.TagID, "name": r.TagName, "color": r.TagColor})
-    except Exception as e:
-        current_app.logger.error(f"enrich_rows_from_nexora: {e}")
-    finally:
-        conn.close()
-    return rows
 
 
 def active_sources():
@@ -1145,7 +1156,7 @@ def _cache_store(workitem_id, client_code):
         conn.close()
 
 
-def get_source_for_workitem(workitem_id, client_hint=None):
+def get_source_for_workitem(workitem_id, client_hint=None, sources=None):
     """Resolve which client owns ``workitem_id``.
 
     Order of trust (collision fail-safe):
@@ -1160,6 +1171,12 @@ def get_source_for_workitem(workitem_id, client_hint=None):
     The default source used to be excluded from the probe, so a default/MS02
     collision (1216 such ids on INT) looked like a single MS02 claim and was
     cached permanently — serving the other client's document for that id.
+
+    ``sources``: optional pre-built ``active_sources()`` list. Callers that
+    already hold one (e.g. fetch_merged_page's warm-cache loop, probing every
+    non-default row on the page) should pass it through instead of paying for
+    a fresh set of source instances per probed row. Defaults to a fresh
+    ``active_sources()`` call when omitted, unchanged from before.
     """
     if client_hint and client_hint in CLIENTS:
         return client_hint
@@ -1169,7 +1186,7 @@ def get_source_for_workitem(workitem_id, client_hint=None):
         return cached
 
     claimers = []
-    for src in active_sources():
+    for src in sources if sources is not None else active_sources():
         try:
             if src.has_workitem(workitem_id):
                 claimers.append(src.code)
@@ -1188,26 +1205,6 @@ def get_source_for_workitem(workitem_id, client_hint=None):
     return "default"
 
 
-def single_workitem_tags(workitem_id):
-    conn = engine_nexora_db.raw_connection()
-    try:
-        cur = conn.cursor()
-        cur.execute(
-            """
-            SELECT t.TagID, t.TagName, t.TagColor
-            FROM Workitem_Tags wt JOIN Tags t ON wt.TagID = t.TagID
-            WHERE wt.WorkItemID = ?
-            """,
-            str(workitem_id),
-        )
-        return [{"id": r.TagID, "name": r.TagName, "color": r.TagColor} for r in cur.fetchall()]
-    except Exception as e:
-        current_app.logger.error(f"single_workitem_tags({workitem_id}): {e}")
-        return []
-    finally:
-        conn.close()
-
-
 def get_domain_for_workitem(workitem_id, client_hint=None):
     """Octo domain for a workitem's owning client. Real replacement for the
     former octo.py stub. ``client_hint`` comes from the list row the user
@@ -1215,6 +1212,24 @@ def get_domain_for_workitem(workitem_id, client_hint=None):
     code = get_source_for_workitem(workitem_id, client_hint=client_hint)
     client = CLIENTS.get(code) or CLIENTS["default"]
     return client.octo_domain
+
+
+def source_for(code):
+    """Active source instance for a client code, or None."""
+    for src in active_sources():
+        if src.code == code:
+            return src
+    return None
+
+
+def process_pair_for_workitem(workitem_id, client_hint=None):
+    """(ClientName, ProcessName) of a workitem in the source a detail request
+    will actually read (same client_hint routing as get_domain_for_workitem),
+    or None if it can't be resolved. Feeds the detail-access entitlement check
+    (#193) — the caller must hold a grant for this exact pair."""
+    code = get_source_for_workitem(workitem_id, client_hint=client_hint)
+    src = source_for(code)
+    return src.process_of(workitem_id) if src else None
 
 
 def fetch_merged_page(filt, offset, limit):
@@ -1256,33 +1271,53 @@ def fetch_merged_page(filt, offset, limit):
     merged = merge_sorted_rows(per_source_rows)
     page = merged[offset : offset + limit]
 
-    # Warm the routing cache for non-default rows on this page.
+    # Warm the routing cache for non-default rows on this page. Routed through
+    # get_source_for_workitem's collision fail-safe (not a direct _cache_store)
+    # so a colliding id -- claimed by more than one source -- is left uncached
+    # instead of being pinned to whichever client's page happened to list it
+    # first during this warm pass. Pass the ``sources`` list this function
+    # already built above -- avoids get_source_for_workitem constructing a
+    # second fresh set of source instances (2 extra objects) for every
+    # non-default row on the page; the live has_workitem probes themselves
+    # are unchanged, since list_workitems' permission/date/status-filtered,
+    # offset+limit-capped rows are not proof of exclusive ownership the way
+    # an unscoped has_workitem check is -- skipping the probe based on this
+    # page's own row shape would risk under-detecting a real collision whose
+    # twin row didn't happen to surface in this particular filtered fetch.
     for r in page:
         if r["client"] != "default":
-            _cache_store(r["workitemid"], r["client"])
+            get_source_for_workitem(r["workitemid"], sources=sources)
 
     return page, total, degraded
 
 
-def recent_activity_rows(process_names, client_names, activity_ignore_csv, top=3):
+def recent_activity_rows(pairs, activity_ignore_csv, top=3):
     """Top-N most recently modified workitems across all sources, merged.
-    Each row: {id, modifiedat, process, client}."""
+    Each row: {id, modifiedat, process, client}.
+
+    ``pairs``: granted [(client, process), ...] -- see WorkitemFilter.
+    client_process_pairs for why this must never be split into independent
+    client/process lists."""
     out = []
     for src in active_sources():
         try:
-            out.extend(src.recent_rows(process_names, client_names, activity_ignore_csv, top))
+            out.extend(src.recent_rows(pairs, activity_ignore_csv, top))
         except Exception as e:
             current_app.logger.error(f"recent_activity_rows {src.code}: {e}")
     out.sort(key=lambda r: r["modifiedat"], reverse=True)
     return out[:top]
 
 
-def total_backlog_count(process_names, client_names):
-    """Sum the C+A backlog count across all active sources (resilient)."""
+def total_backlog_count(pairs):
+    """Sum the C+A backlog count across all active sources (resilient).
+
+    ``pairs``: granted [(client, process), ...] -- see WorkitemFilter.
+    client_process_pairs for why this must never be split into independent
+    client/process lists."""
     total = 0
     for src in active_sources():
         try:
-            total += src.backlog_count(process_names, client_names)
+            total += src.backlog_count(pairs)
         except Exception as e:
             current_app.logger.error(f"total_backlog_count {src.code}: {e}")
     return total

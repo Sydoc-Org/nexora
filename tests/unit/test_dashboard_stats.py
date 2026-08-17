@@ -253,7 +253,7 @@ def test_kpi_stats_serves_ms02_and_backlog_when_statistics_db_dead(app, monkeypa
     monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning(_CONFIGS))
     monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine())
     monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [(5, 2)])
-    monkeypatch.setattr(dv, "total_backlog_count", lambda procs, clients: 3)
+    monkeypatch.setattr(dv, "total_backlog_count", lambda pairs: 3)
 
     with app.test_request_context("/api/dashboard/kpi_stats"):
         session["username"] = "u"
@@ -265,6 +265,68 @@ def test_kpi_stats_serves_ms02_and_backlog_when_statistics_db_dead(app, monkeypa
     resp, status = rv if isinstance(rv, tuple) else (rv, rv.status_code)
     assert status == 200
     assert resp.get_json() == {"processed_today": 5, "imported_today": 2, "current_backlog": 3}
+
+
+def test_kpi_stats_route_still_200s_on_genuinely_quiet_day(app, monkeypatch):
+    # Task 58 regression check: the dashboard route's graceful degrade must
+    # be untouched by the external API's new strict=True contract -- both a
+    # dead Statistics DB (above) and a healthy-but-empty one (here) still
+    # 200 through dashboard_kpi_stats (it calls compute_today_stats with no
+    # strict kwarg, i.e. strict=False).
+    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning([_CONFIGS[0]]))
+    monkeypatch.setattr(dv, "engine_statistics_db", _engine_returning([(None, None)]))
+    monkeypatch.setattr(dv, "total_backlog_count", lambda pairs: 0)
+
+    with app.test_request_context("/api/dashboard/kpi_stats"):
+        session["username"] = "u"
+        session["userid"] = 990011
+        session["permissions"] = _PERMS
+        session["process_name_dashboard"] = "all"
+        rv = dv.dashboard_kpi_stats.uncached()
+
+    resp, status = rv if isinstance(rv, tuple) else (rv, rv.status_code)
+    assert status == 200
+    assert resp.get_json() == {"processed_today": 0, "imported_today": 0, "current_backlog": 0}
+
+
+# ---- Phase-review fix: dashboard_kpi_stats had the SAME cross-product bug
+# Task 14 fixed for the workitems list (cc167e1), independently -- it built
+# two separately-uniqued proc/client lists instead of granted (client,
+# process) pairs. _PERMS above only ever grants one client ("sydoc"), which
+# can't expose the bug (no second client to cross with); this test grants two
+# DIFFERENT clients to prove only the granted pairs reach total_backlog_count.
+
+
+def test_kpi_stats_backlog_derives_granted_pairs_not_cross_product(app, monkeypatch):
+    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning([]))
+    monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine())
+    monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [])
+
+    calls = []
+
+    def _fake_total_backlog(pairs):
+        calls.append(pairs)
+        return 0
+
+    monkeypatch.setattr(dv, "total_backlog_count", _fake_total_backlog)
+
+    with app.test_request_context("/api/dashboard/kpi_stats"):
+        session["username"] = "u"
+        session["userid"] = 990010
+        session["permissions"] = [
+            "dashboard.filter.process.A.P1",
+            "dashboard.filter.process.B.P2",
+        ]
+        session["process_name_dashboard"] = "all"
+        rv = dv.dashboard_kpi_stats.uncached()
+
+    resp, status = rv if isinstance(rv, tuple) else (rv, rv.status_code)
+    assert status == 200
+    assert len(calls) == 1
+    built_pairs = calls[0]
+    assert sorted(built_pairs) == [("A", "P1"), ("B", "P2")]
+    assert ("A", "P2") not in built_pairs
+    assert ("B", "P1") not in built_pairs
 
 
 def test_hourly_stats_serves_ms02_when_statistics_db_dead(app, monkeypatch):
@@ -351,138 +413,69 @@ def test_compute_today_stats_raises_when_nexora_db_down(app, monkeypatch):
         dv.compute_today_stats(["sydoc.Alpha"])
 
 
-# ------------------------- backlog KPI: real C+A count ----------------------- #
-# `status: "Ready"` means "current backlog" -- and the product owner defines the
-# backlog, unambiguously, as "the workitems currently on the activity type
-# 'C+A'". That is a LIVE Octo-runtime fact (the workitem's current
-# ActivityInstance's ActivityType.Name), already implemented correctly by
-# `total_backlog_count()` / `SqlServerSource.backlog_count` in
-# workitem_sources.py (a join to `t_ActivityTypes.Name = 'C+A'`).
-#
-# `Statconfig` -- the widget engine's own config table -- has NO activity-type /
-# stage column at all (only Import/Export "entered tracking"/"fully done"
-# timestamps), so the Statistics-DB-driven `_build_kpi_sql` structurally cannot
-# express "currently on C+A" for any process. An earlier fix approximated it as
-# "entered, not yet exported" (`Import IS NOT NULL AND Export IS NULL`); that was
-# based on a wrong assumption and is now removed. Instead `build_widget_query`
-# routes the one shape `total_backlog_count` can honestly answer -- a plain
-# count with no doc-field filter -- to that function, and `_build_kpi_sql`
-# returns an explicit empty (honest no_data) for every other status:"Ready"
-# shape rather than approximate a wrong headline number.
+# --------------------- compute_today_stats(strict=...) (Task 58) -------------- #
+# Task 58: a Statistics-DB outage must not be indistinguishable from a
+# genuinely quiet day. Both stat-row legs' aggregate queries return exactly
+# one row (of NULLs) even when zero rows match, so [] from a leg already
+# meant "the query itself failed" -- the bug was that failure was always
+# swallowed. strict=True (the external API's setting) re-raises instead;
+# strict=False (the default, the dashboard's setting) keeps degrading.
 
 
-def _kpi_widget(kind="count"):
-    return {"type": "kpi", "config": {"metric": {"kind": kind}}}
+def test_default_stat_rows_strict_reraises_on_failure(app, monkeypatch):
+    monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine())
+    with app.app_context(), pytest.raises(Exception):  # noqa: B017
+        dv._default_stat_rows("SELECT 1", strict=True)
 
 
-def test_backlog_kpi_routes_to_total_backlog_count(monkeypatch):
-    # count + status:"Ready" + no docFilters is the ONLY shape total_backlog_count
-    # can answer. build_widget_query must intercept it BEFORE touching Statconfig,
-    # split the target processes exactly like the legacy dashboard_kpi_stats call
-    # site (client = segment before the dot, process = segment after), and feed
-    # the C+A count through the normal execution path as a literal select.
-    calls = []
-
-    def _fake_total_backlog(procs, clients):
-        calls.append((procs, clients))
-        return 7
-
-    monkeypatch.setattr(dv, "total_backlog_count", _fake_total_backlog)
-    widget = _kpi_widget("count")
-    filters = {"status": "Ready"}
-    allowed = ["zzztest.AlphaProc", "zzztest.BetaProc"]
-    queries = dv.build_widget_query(widget, filters, allowed)
-
-    assert len(queries) == 1
-    engine, sql, params = queries[0]
-    assert engine is dv.engine_nexora_db
-    assert sql == "SELECT ?"
-    assert params == [7]
-    # Never the old wrong approximation, never an unconditional count.
-    assert "1=1" not in sql
-    assert "IS NULL" not in sql
-    assert "IS NOT NULL" not in sql
-    # Same proc/cli derivation as the existing correct dashboard_kpi_stats site.
-    assert calls == [(["AlphaProc", "BetaProc"], ["zzztest"])]
-
-
-def test_backlog_kpi_value_executes_via_run_widget_queries(app, monkeypatch):
-    # The literal-select mechanism (`SELECT ?`) must actually execute through the
-    # UNCHANGED _run_widget_queries KPI branch (engine_nexora_db.raw_connection()
-    # + pyodbc) and yield exactly the C+A count -- not the old predicate, not 0.
-    monkeypatch.setattr(dv, "total_backlog_count", lambda procs, clients: 7)
-    widget = _kpi_widget("count")
-    filters = {"status": "Ready"}
-    allowed = ["zzztest.AlphaProc"]
+def test_default_stat_rows_non_strict_still_swallows(app, monkeypatch):
+    # Regression pin: omitting strict (the dashboard's call shape) must keep
+    # the pre-existing degrade-to-[] contract.
+    monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine())
     with app.app_context():
-        queries = dv.build_widget_query(widget, filters, allowed)
-        result = dv._run_widget_queries(widget, queries)
-
-    assert result == {"value": 7.0, "unit": None}
+        assert dv._default_stat_rows("SELECT 1") == []
 
 
-def test_backlog_kpi_with_docfilters_does_not_call_total_backlog_count(monkeypatch):
-    # A doc-field filter is something total_backlog_count has no notion of, so the
-    # backlog shortcut must NOT fire; it falls through to Statconfig +
-    # _build_kpi_sql, which returns an honest empty (build_widget_query -> []).
-    called = MagicMock()
-    monkeypatch.setattr(dv, "total_backlog_count", called)
-    # A real Statconfig row is returned so the fall-through genuinely reaches
-    # _build_kpi_sql (rather than bailing at the empty-configs guard).
-    cfg = _cfg_row("default", "sydoc.Alpha", "dbo.tblAlpha", "ExportDate", "ImportDate")
-    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning([cfg]))
-
-    widget = _kpi_widget("count")
-    filters = {"status": "Ready", "docFilters": [{"field": "amount", "value": "5"}]}
-    allowed = ["sydoc.Alpha"]
-    queries = dv.build_widget_query(widget, filters, allowed)
-
-    assert queries == []
-    called.assert_not_called()
+def test_ms02_stat_rows_strict_reraises_on_failure(app, monkeypatch):
+    eng = MagicMock()
+    eng.raw_connection.side_effect = RuntimeError("ms02 down")
+    monkeypatch.setattr(dv, "engine_ms02_stats_pg", eng)
+    with app.app_context(), pytest.raises(Exception):  # noqa: B017
+        dv._ms02_stat_rows("SELECT 1", strict=True)
 
 
-def test_build_kpi_sql_status_ready_count_returns_honest_empty():
-    # A "Ready" count that still reaches _build_kpi_sql (i.e. was not intercepted
-    # by build_widget_query) must NOT emit the old "entered, not yet exported"
-    # predicate and must NOT emit WHERE 1=1 -- it returns an explicit empty.
-    widget = _kpi_widget("count")
-    filters = {"status": "Ready"}
-    configs = [_cfg_row("default", "sydoc.Alpha", "dbo.tblAlpha", "ExportDate", "ImportDate")]
-    assert dv._build_kpi_sql(widget, filters, configs) == ("", [])
+def test_ms02_stat_rows_strict_still_empty_when_unconfigured(app, monkeypatch):
+    # An unconfigured MS02 engine is "not applicable", never a failure --
+    # strict must not turn that into a raise.
+    monkeypatch.setattr(dv, "engine_ms02_stats_pg", None)
+    with app.app_context():
+        assert dv._ms02_stat_rows("SELECT 1", strict=True) == []
 
 
-def test_build_kpi_sql_status_ready_avg_returns_honest_empty(monkeypatch):
-    # avg/sum/min/max + "Ready" cannot be a C+A backlog count -- honest empty.
-    monkeypatch.setattr(dv, "_resolve_aggregation_column", lambda p, f: "AmountCol")
-    widget = {"type": "kpi", "config": {"metric": {"kind": "avg", "field": "amount"}}}
-    filters = {"status": "Ready"}
-    configs = [_cfg_row("default", "sydoc.Alpha", "dbo.tblAlpha", "ExportDate", "ImportDate")]
-    assert dv._build_kpi_sql(widget, filters, configs) == ("", [])
+def test_compute_today_stats_strict_raises_on_dead_statistics_db(app, monkeypatch):
+    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning([_CONFIGS[0]]))
+    monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine("Statistics DB down"))
+    with app.app_context(), pytest.raises(Exception):  # noqa: B017
+        dv.compute_today_stats(["sydoc.Alpha"], strict=True)
 
 
-def test_build_kpi_sql_status_ready_with_docfilters_returns_honest_empty(monkeypatch):
-    # docFilters + "Ready" -> honest empty (never the old backlog predicate).
-    monkeypatch.setattr(dv, "_resolve_aggregation_column", lambda p, f: "SomeCol")
-    widget = _kpi_widget("count")
-    filters = {"status": "Ready", "docFilters": [{"field": "x", "value": "y"}]}
-    configs = [_cfg_row("default", "sydoc.Alpha", "dbo.tblAlpha", "ExportDate", "ImportDate")]
-    assert dv._build_kpi_sql(widget, filters, configs) == ("", [])
+def test_compute_today_stats_strict_still_zeros_on_genuinely_quiet_day(app, monkeypatch):
+    # A healthy engine with no matching rows today -- the aggregate query
+    # still returns one row of NULLs (not []) -- must stay 200 zeros even
+    # under strict=True. This is the case that proves the fix isn't just
+    # "always 500 now".
+    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning([_CONFIGS[0]]))
+    monkeypatch.setattr(dv, "engine_statistics_db", _engine_returning([(None, None)]))
+    with app.app_context():
+        assert dv.compute_today_stats(["sydoc.Alpha"], strict=True) == (0, 0)
 
 
-def test_kpi_status_done_unaffected_by_backlog_predicate():
-    # Regression guard: only "Ready" gets the new backlog predicate. "Done"
-    # (and any other/no status) must keep behaving like a plain count, still
-    # respecting an explicit date range on the export column.
-    widget = _kpi_widget()
-    filters = {
-        "status": "Done",
-        "datePreset": "custom",
-        "dateFrom": "2026-01-01",
-        "dateTo": "2026-01-31",
-    }
-    configs = [_cfg_row("default", "sydoc.Alpha", "dbo.tblAlpha", "ExportDate", "ImportDate")]
-    sql, params = dv._build_kpi_sql(widget, filters, configs)
-    assert "ImportDate IS NOT NULL" not in sql
-    assert "ExportDate IS NULL" not in sql
-    assert "CAST(ExportDate AS DATE) >= ?" in sql
-    assert "CAST(ExportDate AS DATE) <= ?" in sql
+def test_compute_today_stats_non_strict_default_still_degrades(app, monkeypatch):
+    # Regression pin: the dashboard's call site (no strict kwarg) must keep
+    # serving the healthy leg's numbers when Statistics DB is dead -- Task 58
+    # only changes the external API's contract.
+    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning(_CONFIGS))
+    monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine())
+    monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [(5, 2)])
+    with app.app_context():
+        assert dv.compute_today_stats(["sydoc.Alpha", "sydoc.05_PDBS"]) == (2, 5)

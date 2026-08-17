@@ -4,7 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{{ _("Admin Overview - nexora") }}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
 </head>
@@ -19,6 +18,21 @@
             subtitle=_('Users, organizations, sessions and logs.'),
             icon='fa-shield-halved'
         ) }}
+
+        {% if can_restart %}
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+            <select id="nx-restart-env" class="nx-select" style="width:auto"
+                    data-testid="admin-overview-restart-env">
+                <option value="INT" {% if current_env == 'INT' %}selected{% endif %}>INT</option>
+                <option value="STAGING" {% if current_env == 'STAGING' %}selected{% endif %}>STAGING</option>
+            </select>
+            <button type="button" id="nx-restart-btn" class="nx-btn"
+                    data-testid="admin-overview-restart-btn">
+                <i class="fas fa-rotate-right"></i> {{ _('Restart nexora') }}
+            </button>
+            <span class="nx-meta">{{ _('Current env:') }} {{ current_env }}</span>
+        </div>
+        {% endif %}
 
         <div class="health-strip nx-rise-2">
 
@@ -76,7 +90,7 @@
 
             <a href="{{ url_for('admin_sessions_view') }}" class="nx-card nx-card--link admin-overview-card" data-testid="admin-overview-sessions">
                 <div class="admin-overview-card-top">
-                    <div class="nx-meta">{{ _('Active Sessions') }}</div>
+                    <div class="nx-meta">{{ _('Session Monitor') }}</div>
                     <i class="fas fa-signal admin-overview-card-icon"></i>
                 </div>
                 <div class="admin-overview-card-number admin-overview-card-number--text">{{ _('Live') }}</div>
@@ -114,5 +128,48 @@
             </div>
         </div>
     </main>
+
+    {% if can_restart %}
+    <script nonce="{{ csp_nonce() }}">
+        const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+        document.getElementById("nx-restart-btn")?.addEventListener("click", async (e) => {
+            const btn = e.currentTarget;
+            const targetEnv = document.getElementById("nx-restart-env")?.value;
+            const msg = targetEnv === "{{ current_env }}"
+                ? "{{ _('Restart the dev server now? The page will reload once it is back.') }}"
+                : "{{ _('Restart and switch environment to') }} " + targetEnv + "? {{ _('The page will reload once it is back.') }}";
+            if (!confirm(msg)) return;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> {{ _("Restarting...") }}';
+            try {
+                await fetch(`${API_PREFIX}api/admin/restart`, {
+                    method: "POST",
+                    headers: { "X-CSRFToken": csrfToken, "Content-Type": "application/json" },
+                    body: JSON.stringify({ env: targetEnv }),
+                });
+            } catch (e) {
+                // expected: the server dies mid-response once nx.ps1 kills it
+            }
+            // ponytail: poll-until-reachable, no websocket/SSE — simplest thing that works.
+            // Wait for the server to go DOWN before treating "up" as the new process:
+            // the old one stays alive ~1-2s after the POST, and navigating into its
+            // death shows the browser's "page unavailable" instead of re-logging in.
+            let wasDown = false;
+            const poll = setInterval(async () => {
+                try {
+                    const r = await fetch(window.location.href, { cache: "no-store" });
+                    if (r.ok && wasDown) {
+                        clearInterval(poll);
+                        // restart dropped the in-memory session — log back in via the
+                        // dev-only login and land where we were (this whole script is
+                        // inside the can_restart guard, which is False on PROD)
+                        window.location.href = `${API_PREFIX}dev/login/{{ logged_in_user }}?next=`
+                            + encodeURIComponent(window.location.pathname + window.location.search);
+                    }
+                } catch (e) { wasDown = true; /* still down, keep polling */ }
+            }, 1000);
+        });
+    </script>
+    {% endif %}
 </body>
 </html>

@@ -1,0 +1,145 @@
+{# Shared process multi-select (issue #150).
+
+   Renders a checkbox dropdown (All / per-client / per-process) into a
+   `.nx-scope` wrapper and keeps the wrapper's <input> holding the canonical
+   value the backend expects: "all", or a comma-joined "client.process" list.
+   Every edit fires a `change` event on that input, so a page only has to keep
+   its existing `change` listener to stay in sync.
+
+   ponytail: the reporting page keeps its own copy of this picker -- it is
+   wired into the report-builder state machine (per-source field availability),
+   not into a plain input. Merge the two if a third caller shows up. #}
+<script nonce="{{ csp_nonce() }}">
+  window.NexoraProcessPicker = (function () {
+    var LBL = {
+      all: {{ _("All Processes")|tojson }},
+      some: {{ _("{n} of {total} processes")|tojson }}
+    };
+
+    function row(labelText, checked, indeterminate, onToggle) {
+      var label = document.createElement('label');
+      label.className = 'nx-scope-row';
+      var box = document.createElement('input');
+      box.type = 'checkbox';
+      box.checked = checked;
+      box.indeterminate = !!indeterminate;
+      box.addEventListener('change', onToggle);
+      var span = document.createElement('span');
+      span.textContent = labelText;
+      label.appendChild(box);
+      label.appendChild(span);
+      return label;
+    }
+
+    function init(opts) {
+      var input = document.getElementById(opts.inputId);
+      if (!input) return;
+      var wrap = input.closest('.nx-scope');
+      if (!wrap) return;
+      var btn = wrap.querySelector('.nx-scope-btn');
+      var menu = wrap.querySelector('.nx-scope-menu');
+      var summary = wrap.querySelector('.nx-scope-summary');
+      var all = (opts.processes || []).slice();
+
+      // "all" and "nothing ticked" are the same selection -- the backend also
+      // falls back to the full allowed set for an empty/unknown value, and a
+      // zero-process filter would only ever render an empty page.
+      var sel = (!input.value || input.value === 'all')
+        ? all.slice()
+        : all.filter(function (p) { return input.value.split(',').indexOf(p) !== -1; });
+      if (!sel.length) sel = all.slice();
+
+      function isSelected(p) { return sel.indexOf(p) !== -1; }
+
+      function groups() {
+        var order = [], byClient = {};
+        all.forEach(function (p) {
+          var c = p.split('.')[0];
+          if (!byClient[c]) { byClient[c] = []; order.push(c); }
+          byClient[c].push(p);
+        });
+        return order.map(function (c) { return { client: c, procs: byClient[c] }; });
+      }
+
+      function commit() {
+        input.value = (sel.length === all.length || !sel.length) ? 'all' : sel.join(',');
+        render();
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+
+      function toggleProcess(p) {
+        if (isSelected(p)) sel = sel.filter(function (x) { return x !== p; });
+        else sel = all.filter(function (x) { return isSelected(x) || x === p; });
+        commit();
+      }
+
+      function toggleClient(c) {
+        var procs = all.filter(function (p) { return p.split('.')[0] === c; });
+        var allOn = procs.every(isSelected);
+        sel = allOn
+          ? sel.filter(function (p) { return p.split('.')[0] !== c; })
+          : all.filter(function (p) { return isSelected(p) || p.split('.')[0] === c; });
+        commit();
+      }
+
+      function render() {
+        var total = all.length, n = sel.length;
+        if (summary) {
+          summary.textContent = (n >= total || !n) ? LBL.all
+            : (n === 1 ? sel[0] : LBL.some.replace('{n}', n).replace('{total}', total));
+        }
+        if (!menu) return;
+        menu.innerHTML = '';
+        var allRow = row(LBL.all, n >= total, n > 0 && n < total, function () {
+          sel = (n >= total) ? [] : all.slice();
+          commit();
+        });
+        allRow.classList.add('nx-scope-all');
+        menu.appendChild(allRow);
+
+        groups().forEach(function (g) {
+          var on = g.procs.filter(isSelected).length;
+          var clientRow = row(g.client, on === g.procs.length, on > 0 && on < g.procs.length,
+            (function (c) { return function () { toggleClient(c); }; })(g.client));
+          clientRow.classList.add('nx-scope-client');
+          menu.appendChild(clientRow);
+          g.procs.forEach(function (p) {
+            var procRow = row(p.slice(g.client.length + 1) || p, isSelected(p), false,
+              (function (proc) { return function () { toggleProcess(proc); }; })(p));
+            procRow.classList.add('nx-scope-proc');
+            menu.appendChild(procRow);
+          });
+        });
+      }
+
+      function open(state) {
+        var willOpen = (state === undefined) ? menu.hidden : state;
+        menu.hidden = !willOpen;
+        btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+      }
+
+      // Saved filter views (issue #170) set input.value programmatically;
+      // this re-derives the internal selection from it without re-init
+      // (re-running init would stack duplicate document-level listeners).
+      input._nxScopeSync = function () {
+        sel = (!input.value || input.value === 'all')
+          ? all.slice()
+          : all.filter(function (p) { return input.value.split(',').indexOf(p) !== -1; });
+        if (!sel.length) sel = all.slice();
+        render();
+      };
+
+      if (btn) btn.addEventListener('click', function () { open(); });
+      document.addEventListener('click', function (e) {
+        if (menu && !menu.hidden && !wrap.contains(e.target)) open(false);
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && menu && !menu.hidden) open(false);
+      });
+
+      render();
+    }
+
+    return { init: init };
+  })();
+</script>

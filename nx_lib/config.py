@@ -1,43 +1,76 @@
 """Environment-driven configuration for nexora.
 
-Loaded once at import time. Reads ``.env`` then ``env/{ENVIRONMENT}.env`` so
-secrets in env/INT.env / env/PROD.env override anything in the default .env
-file. Falls back to a root-level ``{ENVIRONMENT}.env`` with a
-``DeprecationWarning`` for one release while operators move files into
-``env/`` on shared hosts.
+Loaded once at import time. Reads ``env/{ENVIRONMENT}.env`` (falling back,
+with a ``DeprecationWarning``, to a root-level ``{ENVIRONMENT}.env`` for one
+release while operators move files into ``env/`` on shared hosts) *before*
+the default root ``.env``, so secrets in env/INT.env / env/PROD.env take
+precedence over the root .env fallback. A value already present in the
+process environment always wins over both files, since ``load_dotenv``
+never overrides an existing OS env var (``override=False`` throughout):
+OS env > env-specific file > root .env.
 """
 
 import os
 import warnings
 from pathlib import Path
 
-from dotenv import load_dotenv
+from dotenv import dotenv_values, load_dotenv
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-# Step 1: root .env (environment-selector; sets ENVIRONMENT=INT|PROD|... so
-# the second load_dotenv knows which secrets file to read).
-load_dotenv()
 
-# Step 2: env-specific secrets. Prefer env/{ENV}.env (PR 8 layout); fall
-# back to the legacy root-level {ENV}.env for one release while shared
-# hosts (SYAPP01) catch up. The fallback emits a DeprecationWarning so the
-# warning shows up in app logs and reminds operators to move the file.
-_env_name = os.environ.get("ENVIRONMENT", "")
-_primary_env_file = REPO_ROOT / "env" / f"{_env_name}.env"
-_legacy_env_file = REPO_ROOT / f"{_env_name}.env"
+def _load_env_files(repo_root: Path, env_name: str) -> None:
+    """Load dotenv files in OS-env > env-specific-file > root-.env order.
 
-if _primary_env_file.exists():
-    load_dotenv(dotenv_path=_primary_env_file)
-elif _legacy_env_file.exists():
-    load_dotenv(dotenv_path=_legacy_env_file)
-    warnings.warn(
-        f"Loaded env from legacy root location {_legacy_env_file}. "
-        f"Move to {_primary_env_file} (PR 8 of dev-env upgrade); the "
-        f"fallback will be removed after one release.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
+    ``load_dotenv`` defaults to ``override=False``, so a key already set in
+    the process environment is never touched by either file; between the
+    two files, whichever loads first wins for a given key — hence the
+    env-specific file loads before the root .env fallback. Extracted so
+    tests/unit/test_config_dotenv.py can exercise the precedence against
+    tmp files instead of the real repo tree.
+    """
+    primary_env_file = repo_root / "env" / f"{env_name}.env"
+    legacy_env_file = repo_root / f"{env_name}.env"
+    root_env_file = repo_root / ".env"
+
+    # Env-specific secrets. Prefer env/{ENV}.env (PR 8 layout); fall back to
+    # the legacy root-level {ENV}.env for one release while shared hosts
+    # (SYAPP01) catch up. The fallback emits a DeprecationWarning so it
+    # shows up in app logs and reminds operators to move the file.
+    if primary_env_file.exists():
+        load_dotenv(dotenv_path=primary_env_file)
+    elif legacy_env_file.exists():
+        load_dotenv(dotenv_path=legacy_env_file)
+        warnings.warn(
+            f"Loaded env from legacy root location {legacy_env_file}. "
+            f"Move to {primary_env_file} (PR 8 of dev-env upgrade); the "
+            f"fallback will be removed after one release.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
+    # Root .env loads last: lowest precedence, never overrides a value
+    # already set by the OS environment or the env-specific file above.
+    load_dotenv(dotenv_path=root_env_file)
+
+
+# ENVIRONMENT itself has to be known before we can pick which env/{ENV}.env
+# file to load. Prefer the real process environment; else peek at the root
+# .env without mutating os.environ (dotenv_values just parses the file), so
+# local setups that only set ENVIRONMENT via the root .env still resolve the
+# right per-environment file instead of silently loading none of it.
+_env_name = os.environ.get("ENVIRONMENT") or dotenv_values(REPO_ROOT / ".env").get(
+    "ENVIRONMENT", ""
+)
+
+_pre_dotenv_keys = frozenset(os.environ)
+_load_env_files(REPO_ROOT, _env_name)
+# Keys that came from the .env files rather than the real OS environment.
+# Child processes that must re-resolve their own env file (the dev-server
+# restart-with-env-switch, #187) strip these before spawning — otherwise the
+# inherited values win over the new env file (override=False) and the child
+# runs the old environment's connections under the new environment's name.
+DOTENV_KEYS = frozenset(os.environ) - _pre_dotenv_keys
 
 IS_PROD = os.environ.get("ENVIRONMENT") == "PROD"
 
@@ -83,6 +116,23 @@ DB_REPORTING_RO_PWD = os.environ.get("DB_REPORTING_RO_PWD")
 DB_REPORTING_OCTO_RO_USER = os.environ.get("DB_REPORTING_OCTO_RO_USER")
 DB_REPORTING_OCTO_RO_PWD = os.environ.get("DB_REPORTING_OCTO_RO_PWD")
 DB_GENERALI = os.environ.get("DB_GENERALI", "Generali")
+
+# SQL Server ODBC driver + TLS knobs (#193 finding 16). Defaults preserve
+# today's behavior (legacy unencrypted "{SQL Server}" driver) since flipping
+# the default blind could break connectivity on a box without the modern
+# driver installed -- set DB_ODBC_DRIVER to "ODBC Driver 17 for SQL Server"
+# (or 18) once it's confirmed installed on that box, which also turns on
+# Encrypt=yes/TrustServerCertificate=yes below (the legacy driver doesn't
+# understand those params).
+DB_ODBC_DRIVER = os.environ.get("DB_ODBC_DRIVER", "SQL Server")
+DB_ODBC_ENCRYPT = DB_ODBC_DRIVER != "SQL Server"
+
+# Support inbox the outage monitor (ops/outage_monitor.py) files tickets to.
+# Unset -> the monitor still probes and logs but sends no mail, so a dev box
+# never pages support.
+SUPPORT_MAIL = os.environ.get("SUPPORT_MAIL")
+# Public URL the outage monitor GETs to prove IIS + the app pool are alive.
+OUTAGE_SITE_URL = os.environ.get("OUTAGE_SITE_URL", "https://nexora.sydoc.ch/nexora/")
 
 GRAPH_TENANT_ID = os.environ.get("GRAPH_TENANT_ID")
 GRAPH_CLIENT_ID = os.environ.get("GRAPH_CLIENT_ID")
@@ -152,7 +202,12 @@ CSP = {
     "object-src": "'none'",
     "script-src": [
         "'self'",
-        "'unsafe-inline'",
+        # No 'unsafe-inline' (#193 finding 10) -- every inline <script> is
+        # nonce-gated instead (content_security_policy_nonce_in in
+        # nx_lib/__init__.py, csp_nonce() in each template). Inline
+        # onclick/onchange/... attribute handlers are not covered by a
+        # script-src nonce, so those were converted to addEventListener
+        # bindings rather than allowed via 'unsafe-hashes'.
         "https://cdn.tailwindcss.com",
         "https://cdnjs.cloudflare.com",
         "https://cdn.jsdelivr.net",

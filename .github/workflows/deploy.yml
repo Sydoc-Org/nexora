@@ -5,18 +5,25 @@ on:
     # Inert-file changes skip the whole pipeline: docs/, *.md and .claude/
     # are all excluded from the robocopy mirror, so there is nothing to test
     # or deploy. Mixed pushes (code + docs) still run everything.
-    paths-ignore:
-      - "docs/**"
-      - "**.md"
-      - ".claude/**"
-      - ".claudeignore"
+    # Exception: docs/howto/reporting-guide.md IS runtime content (served
+    # in-app at /reporting/guide), so it is re-included after the negations
+    # (paths patterns: last match wins).
+    paths:
+      - "**"
+      - "!docs/**"
+      - "!**.md"
+      - "!.claude/**"
+      - "!.claudeignore"
+      - "docs/howto/reporting-guide.md"
   pull_request:
     branches: [main]
-    paths-ignore:
-      - "docs/**"
-      - "**.md"
-      - ".claude/**"
-      - ".claudeignore"
+    paths:
+      - "**"
+      - "!docs/**"
+      - "!**.md"
+      - "!.claude/**"
+      - "!.claudeignore"
+      - "docs/howto/reporting-guide.md"
 
 jobs:
   test:
@@ -280,7 +287,7 @@ jobs:
         shell: powershell
         run: |
           robocopy "${{ github.workspace }}" "D:\sydoc\nexora" /MIR /R:3 /W:2 `
-            /XD .git .github .claude .claude-flow .gitnexus .playwright-mcp .superpowers .swarm .vscode .idea __pycache__ var bin session logs uploads screenshots backups scripts sql tests test-results docs tools db-standard `
+            /XD .git .github .claude .claude-flow .gitnexus .playwright-mcp .superpowers .swarm .vscode .idea __pycache__ var bin session logs uploads screenshots backups scripts sql tests test-results docs tools `
             /XF *.env *.env.example ngrok.yaml .gitignore .claudeignore .mcp.json AGENTS.md CLAUDE.md nx.ps1 babel.cfg messages.pot requirements.txt requirements-dev.txt requirements-confluence.txt README.md pyproject.toml .editorconfig .gitattributes .gitlint .pre-commit-config.yaml .python-version bootstrap.ps1 CHANGELOG.md CONTRIBUTING.md LICENSE uv.lock
           if ($LASTEXITCODE -ge 8) { exit $LASTEXITCODE }
           # /XF excludes *.env.example from being copied AND from being purged,
@@ -292,6 +299,12 @@ jobs:
           foreach ($f in '.editorconfig','.gitattributes','.gitlint','.pre-commit-config.yaml','.python-version','bootstrap.ps1','CHANGELOG.md','CONTRIBUTING.md','LICENSE','uv.lock') {
             Remove-Item "D:\sydoc\nexora\$f" -Force -ErrorAction SilentlyContinue
           }
+          # The reporting user guide is runtime content: nx_lib/views/reporting.py
+          # reads it and serves it at /reporting/guide. docs/ stays excluded from
+          # the mirror above (and /XD dirs are never purged), so copy just this
+          # one file explicitly.
+          robocopy "${{ github.workspace }}\docs\howto" "D:\sydoc\nexora\docs\howto" reporting-guide.md /R:3 /W:2
+          if ($LASTEXITCODE -ge 8) { exit $LASTEXITCODE }
           # Sweep dev-only var/ subdirs left behind by older Flask startups
           # (nx_lib/config.py used to mkdir them unconditionally). Only delete
           # if empty so we never touch user data.
@@ -301,6 +314,15 @@ jobs:
               Remove-Item -LiteralPath $p -Force
             }
           }
+          # Build stamp: the footer otherwise shows the source version only, so a
+          # deploy that silently failed to land looks identical to one that did.
+          # Written AFTER robocopy because /MIR purges anything not in git.
+          # ASCII only -- `shell: powershell` is 5.1, whose default file encoding
+          # is ANSI, and a mojibake separator would land in every page footer.
+          $sha = "${{ github.sha }}".Substring(0, 7)
+          $built = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd')
+          Set-Content -Path "D:\sydoc\nexora\nx_lib\_build.py" -Encoding ASCII `
+            -Value "BUILD_STAMP = `"$sha, $built`""
           exit 0
 
       - name: Start app pool and service

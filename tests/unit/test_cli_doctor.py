@@ -216,22 +216,6 @@ def test_check_octo_fails_on_request_exception(monkeypatch):
     assert result.status == "fail"
 
 
-def test_check_bexio_skips_when_pat_not_set(monkeypatch):
-    monkeypatch.delenv("BEXIO_PAT", raising=False)
-    result = doctor._check_bexio()
-    assert result.status == "skip"
-
-
-def test_check_bexio_fails_on_request_exception(monkeypatch):
-    import requests
-
-    monkeypatch.setenv("BEXIO_PAT", "fake-token")
-    with patch("requests.get") as mock_get:
-        mock_get.side_effect = requests.exceptions.ConnectionError("no net")
-        result = doctor._check_bexio()
-    assert result.status == "fail"
-
-
 # ---------- _print_section ----------
 
 

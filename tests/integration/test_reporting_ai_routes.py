@@ -1,10 +1,17 @@
 """Integration tests for POST /api/reporting/ai/ask (perm gating + happy path)."""
 
 import datetime
+import json
 from contextlib import ExitStack
 from unittest.mock import patch
 
-from nx_lib.reporting.ai import AiAgenticResult, AiDefinitionResult, AiError, AiResult
+from nx_lib.reporting.ai import (
+    AiAgenticResult,
+    AiCaptionResult,
+    AiDefinitionResult,
+    AiError,
+    AiResult,
+)
 
 # The @require_permission decorator calls has_permission from nx_lib.security;
 # inline calls inside api_ai_ask use the imported name in nx_lib.views.reporting.
@@ -430,6 +437,155 @@ def test_ai_agent_happy_path_returns_answer_and_audits(user_client):
     audit.assert_called_once()
     assert audit.call_args.args[3] == "agent"  # Surface positional arg
     assert audit.call_args.args[-2] == "ok"  # Status
+
+
+# ---- Issue #127: an empty final answer must never reach the chat as-is ------
+
+
+def test_ai_agent_empty_answer_gets_artifact_aware_fallback(user_client):
+    # Loop produced a valid definition but no prose (post-nudge) — the payload
+    # must point at the artifact instead of shipping an empty string.
+    with ExitStack() as es:
+        for p in _agent_patches():
+            es.enter_context(p)
+        es.enter_context(
+            patch("nx_lib.views.reporting.ask_agentic", return_value=_agentic_result(answer=""))
+        )
+        es.enter_context(
+            patch("nx_lib.views.reporting._validate_definition_for_user", return_value=(True, None))
+        )
+        audit = es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post("/api/reporting/ai/agent", json={"question": "report by outcome"})
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["answer"].strip()
+    assert "Open report" in data["answer"]
+    assert data["definition"]["source"] == "gen_pdqm"
+    # the audit keeps the raw (empty) answer — only the payload gets the fallback
+    audited = json.loads(audit.call_args.args[4])
+    assert audited["answer"] == ""
+
+
+def test_ai_agent_empty_answer_no_artifacts_gets_generic_fallback(user_client):
+    bare = AiAgenticResult(
+        answer="",
+        turns=1,
+        tool_trace=[],
+        stopped_reason="final",
+        tokens_in=5,
+        tokens_out=0,
+    )
+    with ExitStack() as es:
+        for p in _agent_patches():
+            es.enter_context(p)
+        es.enter_context(patch("nx_lib.views.reporting.ask_agentic", return_value=bare))
+        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post("/api/reporting/ai/agent", json={"question": "anything"})
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["answer"].strip()
+    assert data["definition"] is None
+    assert data["sql"] is None
+
+
+def test_ai_agent_caps_history_to_8_turns_and_12000_chars(user_client):
+    history = [
+        {"role": "user" if i % 2 == 0 else "assistant", "content": "x" * 600} for i in range(10)
+    ]
+    with ExitStack() as es:
+        for p in _agent_patches():
+            es.enter_context(p)
+        loop = es.enter_context(
+            patch("nx_lib.views.reporting.ask_agentic", return_value=_agentic_result())
+        )
+        es.enter_context(
+            patch("nx_lib.views.reporting._validate_definition_for_user", return_value=(True, None))
+        )
+        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post(
+            "/api/reporting/ai/agent",
+            json={"question": "report by outcome", "history": history},
+        )
+    assert resp.status_code == 200
+    sent = loop.call_args.kwargs["history"]
+    assert len(sent) <= 8
+    assert sum(len(h["content"]) for h in sent) <= 12000
+    # oldest turns dropped first: survivors are the tail of the original list
+    assert sent == history[-len(sent) :]
+
+
+def test_agent_history_keeps_long_artifact_context(admin_client):
+    """#178 A3: an 11KB two-entry history must reach the loop intact (the old
+    4000-char cap silently dropped the artifact-bearing assistant turn)."""
+    from nx_lib.reporting.ai import AssistantTurn
+
+    big_sql = "SELECT " + ("x" * 5000)
+    history = [
+        {"role": "user", "content": "wie viele dokumente diesen monat"},
+        {"role": "assistant", "content": "Antwort…\n[sql from this answer]\n" + big_sql},
+    ]
+    seen = {}
+
+    def fake_step(messages):
+        seen["messages"] = messages
+        return AssistantTurn(text="ok")
+
+    with ExitStack() as es:
+        for p in _agent_patches():
+            es.enter_context(p)
+        es.enter_context(patch("nx_lib.views.reporting.make_agent_step", return_value=fake_step))
+        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = admin_client.post(
+            "/api/reporting/ai/agent",
+            json={"question": "show it as a chart", "history": history},
+        )
+    assert resp.status_code == 200
+    assert any(
+        "[sql from this answer]" in m.get("content", "")
+        for m in seen["messages"]
+        if m["role"] == "assistant"
+    )
+
+
+def test_ai_agent_rejects_non_list_history(user_client):
+    with (
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch(
+            "nx_lib.views.reporting._ai_config",
+            return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
+        ),
+    ):
+        resp = user_client.post(
+            "/api/reporting/ai/agent",
+            json={"question": "hi", "history": "not-a-list"},
+        )
+    assert resp.status_code == 400
+
+
+def test_ai_agent_drops_invalid_history_entries(user_client):
+    history = [
+        {"role": "tool", "content": "ignored"},
+        {"role": "user", "content": 123},
+        {"role": "assistant", "content": "kept"},
+    ]
+    with ExitStack() as es:
+        for p in _agent_patches():
+            es.enter_context(p)
+        loop = es.enter_context(
+            patch("nx_lib.views.reporting.ask_agentic", return_value=_agentic_result())
+        )
+        es.enter_context(
+            patch("nx_lib.views.reporting._validate_definition_for_user", return_value=(True, None))
+        )
+        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post(
+            "/api/reporting/ai/agent",
+            json={"question": "report by outcome", "history": history},
+        )
+    assert resp.status_code == 200
+    sent = loop.call_args.kwargs["history"]
+    assert sent == [{"role": "assistant", "content": "kept"}]
 
 
 def test_ai_agent_429_when_daily_limit_reached(user_client):
@@ -1102,6 +1258,9 @@ def test_ai_agent_tool_trace_error_is_humanized(user_client):
         es.enter_context(
             patch("nx_lib.views.reporting.make_agent_step", return_value=lambda m: next(turns))
         )
+        # Clears the auth/ack gates so this test stays focused on humanization,
+        # not D-RUNSQL's gate behavior (covered separately below).
+        es.enter_context(patch("nx_lib.views.reporting._has_acked", return_value=True))
         es.enter_context(patch("nx_lib.views.reporting._run_sql", side_effect=Exception(odbc_text)))
         es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
         resp = user_client.post("/api/reporting/ai/agent", json={"question": "how many?"})
@@ -1114,12 +1273,124 @@ def test_ai_agent_tool_trace_error_is_humanized(user_client):
     assert "Hint:" in run_sql_result["error"]
 
 
+# ---- Task 18 (D-RUNSQL): run_sql_bound must enforce the HTTP run view's exact
+# auth + ack gates before touching _run_sql -------------------------------
+
+
+def test_ai_agent_run_sql_blocks_without_target_permission(user_client):
+    """A user who holds the general reporting.ai.explain_data + reporting.sql.run
+    grants (enough to get the run_sql tool bound) but NOT the Octopus target's own
+    permission must get a graceful tool-result error — no SQL executes, and the
+    refusal is audited with a distinct status. No raised exception reaches Flask."""
+    from nx_lib.reporting.ai import AssistantTurn
+
+    def _has(code):
+        # explain_data, sql.run, ai.use, ai.sql, etc all granted; only the
+        # Octopus target's own permission is withheld.
+        return code != "reporting.sql.target.octopus"
+
+    turns = iter(
+        [
+            AssistantTurn(
+                text="",
+                tool_calls=[
+                    {
+                        "id": "t1",
+                        "name": "run_sql",
+                        "args": {"target": "octopus", "sql": "SELECT 1"},
+                    }
+                ],
+            ),
+            AssistantTurn(text="Could not run the query."),
+        ]
+    )
+
+    with ExitStack() as es:
+        es.enter_context(patch("nx_lib.security.has_permission", side_effect=_has))
+        es.enter_context(patch("nx_lib.views.reporting.has_permission", side_effect=_has))
+        es.enter_context(
+            patch(
+                "nx_lib.views.reporting._ai_config",
+                return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
+            )
+        )
+        es.enter_context(patch("nx_lib.views.reporting._ai_daily_limit", return_value=0))
+        es.enter_context(
+            patch("nx_lib.views.reporting._ai_catalog_text", return_value="SOURCE gen_pdqm ...")
+        )
+        es.enter_context(
+            patch("nx_lib.views.reporting._ai_schema_text", return_value="TABLE dbo.Foo(Id int)")
+        )
+        es.enter_context(patch("nx_lib.views.reporting._has_acked", return_value=True))
+        es.enter_context(
+            patch("nx_lib.views.reporting.make_agent_step", return_value=lambda m: next(turns))
+        )
+        run_sql_spy = es.enter_context(patch("nx_lib.views.reporting._run_sql"))
+        audit_spy = es.enter_context(patch("nx_lib.views.reporting._audit_sql"))
+        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post("/api/reporting/ai/agent", json={"question": "octopus events?"})
+
+    assert resp.status_code == 200  # never a raise-through 500
+    trace = resp.get_json()["toolTrace"]
+    run_sql_result = next(t["result"] for t in trace if t["name"] == "run_sql")
+    assert run_sql_result["ok"] is False
+    assert "not authorized" in run_sql_result["error"].lower()
+    run_sql_spy.assert_not_called()  # no SQL executed
+    audit_spy.assert_called_once()
+    assert audit_spy.call_args.args[-2] == "refused_auth"  # distinct status
+
+
+def test_ai_agent_run_sql_blocks_without_ack(user_client):
+    """A user who holds run_sql-tool-binding permissions but has NOT acknowledged
+    the sandbox terms must get a graceful tool-result error — no SQL executes, and
+    the refusal is audited with a distinct status. No raised exception reaches
+    Flask."""
+    from nx_lib.reporting.ai import AssistantTurn
+
+    turns = iter(
+        [
+            AssistantTurn(
+                text="",
+                tool_calls=[
+                    {
+                        "id": "t1",
+                        "name": "run_sql",
+                        "args": {"target": "statistics", "sql": "SELECT 1"},
+                    }
+                ],
+            ),
+            AssistantTurn(text="Could not run the query."),
+        ]
+    )
+
+    with ExitStack() as es:
+        for p in _agent_patches(explain_perm=True, run_perm=True):
+            es.enter_context(p)
+        es.enter_context(patch("nx_lib.views.reporting._has_acked", return_value=False))
+        es.enter_context(
+            patch("nx_lib.views.reporting.make_agent_step", return_value=lambda m: next(turns))
+        )
+        run_sql_spy = es.enter_context(patch("nx_lib.views.reporting._run_sql"))
+        audit_spy = es.enter_context(patch("nx_lib.views.reporting._audit_sql"))
+        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post("/api/reporting/ai/agent", json={"question": "how many?"})
+
+    assert resp.status_code == 200  # never a raise-through 500
+    trace = resp.get_json()["toolTrace"]
+    run_sql_result = next(t["result"] for t in trace if t["name"] == "run_sql")
+    assert run_sql_result["ok"] is False
+    assert "acknowledg" in run_sql_result["error"].lower()
+    run_sql_spy.assert_not_called()  # no SQL executed
+    audit_spy.assert_called_once()
+    assert audit_spy.call_args.args[-2] == "refused_ack"  # distinct status
+
+
 def test_agent_grounding_names_run_sql_targets(user_client):
     from types import SimpleNamespace
 
     captured = {}
 
-    def _fake_agentic(initial, *, registry, agent_step):
+    def _fake_agentic(initial, *, registry, agent_step, **kw):
         captured["initial"] = initial
         return SimpleNamespace(
             answer="ok",
@@ -1147,3 +1418,278 @@ def test_agent_grounding_names_run_sql_targets(user_client):
     assert resp.status_code == 200
     assert "statistics" in captured["initial"] and "octopus" in captured["initial"]
     assert "target" in captured["initial"]
+
+
+# ---- POST /api/reporting/ai/caption (Task 12 — auto AI captions) ---------
+
+
+def _caption_result(text="Sales rose sharply in Q2 across all regions."):
+    return AiCaptionResult(
+        caption=text,
+        model="m",
+        provider="anthropic",
+        tokens_in=18,
+        tokens_out=9,
+    )
+
+
+_CAPTION_BODY = {
+    "columns": [{"field": "month", "header": "Month"}, {"field": "sales", "header": "Sales"}],
+    "rows": [["Jan", 100], ["Feb", 120]],
+    "title": "Monthly sales",
+    "dateLabel": "2026",
+}
+
+
+def test_ai_caption_requires_explain_data_permission(user_client):
+    # noperm@test.local (the user_client fixture) holds no reporting.* grants at
+    # all, so the decorator's real has_permission check already denies this —
+    # the explicit patch just matches the sibling ai/agent 403 test's shape.
+    with patch("nx_lib.views.reporting.has_permission", return_value=False):
+        resp = user_client.post("/api/reporting/ai/caption", json=_CAPTION_BODY)
+    assert resp.status_code == 403
+
+
+def test_ai_caption_happy_path_returns_caption_and_audits(user_client):
+    with (
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch(
+            "nx_lib.views.reporting._ai_config",
+            return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
+        ),
+        patch("nx_lib.views.reporting._ai_daily_limit", return_value=0),
+        patch("nx_lib.views.reporting.ai_caption", return_value=_caption_result()) as cap,
+        patch("nx_lib.views.reporting._audit_ai") as audit,
+    ):
+        resp = user_client.post("/api/reporting/ai/caption", json=_CAPTION_BODY)
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["caption"] == "Sales rose sharply in Q2 across all regions."
+    cap.assert_called_once()
+    audit.assert_called_once()
+    assert audit.call_args.args[3] == "caption"  # Surface positional arg
+    assert audit.call_args.args[-2] == "ok"  # Status
+
+
+def test_ai_caption_502_on_provider_error(user_client):
+    with (
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch(
+            "nx_lib.views.reporting._ai_config",
+            return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
+        ),
+        patch("nx_lib.views.reporting._ai_daily_limit", return_value=0),
+        patch("nx_lib.views.reporting.ai_caption", side_effect=RuntimeError("boom")),
+        patch("nx_lib.views.reporting._audit_ai") as audit,
+    ):
+        resp = user_client.post("/api/reporting/ai/caption", json=_CAPTION_BODY)
+    assert resp.status_code == 502
+    data = resp.get_json()
+    assert data["error"]  # translated error message present
+    audit.assert_called_once()
+    assert audit.call_args.args[-2] == "error"  # Status
+
+
+def test_ai_caption_429_when_daily_limit_reached(user_client):
+    with (
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch(
+            "nx_lib.views.reporting._ai_config",
+            return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
+        ),
+        patch("nx_lib.views.reporting._ai_daily_limit", return_value=5),
+        patch("nx_lib.views.reporting._ai_asks_today", return_value=5),
+        patch("nx_lib.views.reporting.ai_caption") as cap,
+        patch("nx_lib.views.reporting._audit_ai") as audit,
+    ):
+        resp = user_client.post("/api/reporting/ai/caption", json=_CAPTION_BODY)
+    assert resp.status_code == 429
+    cap.assert_not_called()  # never calls the provider -> no token cost
+    audit.assert_called_once()
+    assert audit.call_args.args[-2] == "blocked"  # Status
+
+
+# ---- POST /api/reporting/ai/agent — NDJSON progress stream ---------------
+
+
+def test_ai_agent_streams_progress_then_done(user_client):
+    """`stream: true` yields the loop's real steps, then one `done` payload."""
+    events = [
+        {"phase": "thinking", "turn": 1},
+        {"phase": "note", "text": "Let me check the schema."},
+        {"phase": "tool", "name": "build_definition"},
+        {"result": _agentic_result()},
+    ]
+    with ExitStack() as es:
+        for p in _agent_patches():
+            es.enter_context(p)
+        es.enter_context(
+            patch("nx_lib.views.reporting.ask_agentic_iter", return_value=iter(events))
+        )
+        es.enter_context(
+            patch(
+                "nx_lib.views.reporting._validate_definition_for_user",
+                return_value=(True, None),
+            )
+        )
+        audit = es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post(
+            "/api/reporting/ai/agent", json={"question": "docs last month", "stream": True}
+        )
+        assert resp.mimetype == "application/x-ndjson"
+        lines = [json.loads(x) for x in resp.get_data(as_text=True).splitlines() if x.strip()]
+
+    assert [e.get("phase") for e in lines[:3]] == ["thinking", "note", "tool"]
+    assert lines[2]["name"] == "build_definition"
+    final = lines[-1]
+    assert final["done"] is True
+    assert final["answer"] == "Built a report by outcome."
+    assert final["stoppedReason"] == "final"
+    assert final["definition"]["title"] == "By outcome"
+    audit.assert_called_once()
+    assert audit.call_args.args[-2] == "ok"  # Status
+
+
+def test_ai_agent_stream_reports_provider_failure_in_the_done_line(user_client):
+    """Headers are already sent, so a mid-stream failure rides the last line."""
+
+    def blow_up(*a, **kw):
+        yield {"phase": "thinking", "turn": 1}
+        raise RuntimeError("provider exploded")
+
+    with ExitStack() as es:
+        for p in _agent_patches():
+            es.enter_context(p)
+        es.enter_context(patch("nx_lib.views.reporting.ask_agentic_iter", side_effect=blow_up))
+        audit = es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post(
+            "/api/reporting/ai/agent", json={"question": "boom", "stream": True}
+        )
+        assert resp.status_code == 200  # status was committed before the failure
+        lines = [json.loads(x) for x in resp.get_data(as_text=True).splitlines() if x.strip()]
+
+    assert lines[0] == {"phase": "thinking", "turn": 1}
+    assert lines[-1]["done"] is True
+    assert lines[-1]["error"]
+    audit.assert_called_once()
+    assert audit.call_args.args[-2] == "error"  # Status
+
+
+def test_ai_agent_without_stream_flag_still_returns_plain_json(user_client):
+    with ExitStack() as es:
+        for p in _agent_patches():
+            es.enter_context(p)
+        es.enter_context(
+            patch("nx_lib.views.reporting.ask_agentic", return_value=_agentic_result())
+        )
+        es.enter_context(
+            patch(
+                "nx_lib.views.reporting._validate_definition_for_user",
+                return_value=(True, None),
+            )
+        )
+        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post("/api/reporting/ai/agent", json={"question": "docs"})
+    assert resp.mimetype == "application/json"
+    assert resp.get_json()["answer"] == "Built a report by outcome."
+
+
+# ---- Issue #153: "Continue" past a max_turns/budget dead-end ---------------
+
+
+def _stopped_result(reason):
+    return AiAgenticResult(
+        answer="",
+        turns=10,
+        tool_trace=[],
+        stopped_reason=reason,
+        tokens_in=20,
+        tokens_out=12,
+    )
+
+
+def test_ai_agent_can_continue_when_stopped_on_max_turns(user_client):
+    with ExitStack() as es:
+        for p in _agent_patches():
+            es.enter_context(p)
+        es.enter_context(
+            patch(
+                "nx_lib.views.reporting.ask_agentic",
+                return_value=_stopped_result("max_turns"),
+            )
+        )
+        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post("/api/reporting/ai/agent", json={"question": "hard question"})
+    data = resp.get_json()
+    assert data["stoppedReason"] == "max_turns"
+    assert data["continueAttempt"] == 0
+    assert data["canContinue"] is True
+
+
+def test_ai_agent_cannot_continue_when_stopped_on_final(user_client):
+    with ExitStack() as es:
+        for p in _agent_patches():
+            es.enter_context(p)
+        es.enter_context(
+            patch("nx_lib.views.reporting.ask_agentic", return_value=_agentic_result())
+        )
+        es.enter_context(
+            patch(
+                "nx_lib.views.reporting._validate_definition_for_user",
+                return_value=(True, None),
+            )
+        )
+        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post("/api/reporting/ai/agent", json={"question": "easy question"})
+    data = resp.get_json()
+    assert data["stoppedReason"] == "final"
+    assert data["canContinue"] is False
+
+
+def test_ai_agent_continue_attempt_raises_turn_and_budget_caps(user_client):
+    from nx_lib.reporting.ai import CONTINUE_BUDGET_S, CONTINUE_MAX_TURNS
+
+    with ExitStack() as es:
+        for p in _agent_patches():
+            es.enter_context(p)
+        ask = es.enter_context(
+            patch(
+                "nx_lib.views.reporting.ask_agentic",
+                return_value=_stopped_result("budget"),
+            )
+        )
+        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post(
+            "/api/reporting/ai/agent",
+            json={"question": "hard question", "continueAttempt": 1},
+        )
+    data = resp.get_json()
+    assert data["continueAttempt"] == 1
+    ask.assert_called_once()
+    assert ask.call_args.kwargs["max_turns"] == CONTINUE_MAX_TURNS
+    assert ask.call_args.kwargs["budget_s"] == CONTINUE_BUDGET_S
+
+
+def test_ai_agent_continue_attempt_clamped_to_ceiling(user_client):
+    from nx_lib.reporting.ai import MAX_CONTINUE_ATTEMPTS
+
+    with ExitStack() as es:
+        for p in _agent_patches():
+            es.enter_context(p)
+        es.enter_context(
+            patch(
+                "nx_lib.views.reporting.ask_agentic",
+                return_value=_stopped_result("max_turns"),
+            )
+        )
+        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post(
+            "/api/reporting/ai/agent",
+            json={"question": "hard question", "continueAttempt": 999},
+        )
+    data = resp.get_json()
+    assert data["continueAttempt"] == MAX_CONTINUE_ATTEMPTS
+    assert data["canContinue"] is False  # already at the ceiling

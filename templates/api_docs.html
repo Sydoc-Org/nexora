@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale }}">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ _("API Documentation - nexora") }}</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.0" integrity="sha384-AIH1kL7JmmReCxSwiSyaRNwzSFO7h4Ir4F/PO28EKezqFza1LwIMgEPLd83KwmZ4" crossorigin="anonymous"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
+  <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha384-F/bZzf7p3Joyp5psL90p/p89AZJsndkSoGwRpXcZhleCWhd8SnRuoYo4d0yirjJp" crossorigin="anonymous"></script>
+  <style>
+    /* Docs-page-local styles, token-driven so light/dark/accent/density all
+       follow the app-wide appearance system automatically. */
+    .apidocs-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 1.5rem; align-items: start; }
+    @media (max-width: 900px) { .apidocs-layout { grid-template-columns: 1fr; } }
+
+    .apidocs-nav { position: sticky; top: 1rem; }
+    .apidocs-nav-group { font-size: .6875rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--nx-text-meta); margin: 1rem 0 .375rem .625rem; }
+    .apidocs-nav-group:first-child { margin-top: 0; }
+    .apidocs-nav-item { display: flex; align-items: center; gap: .5rem; width: 100%; text-align: left; padding: .4375rem .625rem; border-radius: var(--nx-radius-sm); font-size: .8125rem; color: var(--nx-text-sec); cursor: pointer; border: 1px solid transparent; transition: background var(--nx-dur) var(--nx-ease), color var(--nx-dur) var(--nx-ease); }
+    .apidocs-nav-item:hover { background: var(--nx-alt); color: var(--nx-text); }
+    .apidocs-nav-item.active { background: var(--nx-accent-soft); color: var(--nx-accent); font-weight: 600; }
+    .apidocs-nav-item .apidocs-method { flex: none; }
+
+    .apidocs-section { display: none; }
+    .apidocs-section.active { display: block; }
+
+    .apidocs-method { display: inline-block; font-family: var(--nx-mono); font-size: .625rem; font-weight: 700; letter-spacing: .05em; padding: .125rem .4375rem; border-radius: var(--nx-radius-sm); background: var(--nx-l-green); color: var(--nx-l-green-fg); }
+
+    /* Code panels use the app's own surface tokens (not a hardcoded dark
+       theme), so they follow light/dark/accent like the rest of nexora.
+       Token colors below are hand-mapped to --nx-* instead of a bundled
+       highlight.js theme, for the same reason. */
+    .apidocs-code { position: relative; background: var(--nx-sunken); border: 1px solid var(--nx-border); border-radius: var(--nx-radius); margin: .75rem 0; }
+    .apidocs-code pre { padding: .875rem 1rem; overflow-x: auto; font-size: .8125rem; line-height: 1.6; }
+    .apidocs-code pre code.hljs { padding: 0; background: transparent; font-family: var(--nx-mono); color: var(--nx-text); }
+    .apidocs-code-label { position: absolute; top: .5rem; right: 2.75rem; font-size: .625rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--nx-text-meta); }
+    .apidocs-copy { position: absolute; top: .375rem; right: .375rem; width: 2rem; height: 2rem; display: flex; align-items: center; justify-content: center; border-radius: var(--nx-radius-sm); color: var(--nx-text-meta); cursor: pointer; transition: background var(--nx-dur) var(--nx-ease), color var(--nx-dur) var(--nx-ease); }
+    .apidocs-copy:hover { background: var(--nx-alt); color: var(--nx-text); }
+
+    /* Syntax colors, mapped onto existing nx-* tokens instead of a
+       separate highlight.js color theme. */
+    .apidocs-code .hljs-string,
+    .apidocs-code .hljs-title  { color: var(--nx-success); }
+    .apidocs-code .hljs-number,
+    .apidocs-code .hljs-literal { color: var(--nx-violet); }
+    .apidocs-code .hljs-attr,
+    .apidocs-code .hljs-property,
+    .apidocs-code .hljs-attribute { color: var(--nx-accent); }
+    .apidocs-code .hljs-keyword,
+    .apidocs-code .hljs-built_in,
+    .apidocs-code .hljs-section { color: var(--nx-accent); font-weight: 600; }
+    .apidocs-code .hljs-comment { color: var(--nx-text-meta); font-style: italic; }
+    .apidocs-code .hljs-meta    { color: var(--nx-text-sec); }
+
+    .apidocs-h2 { font-size: 1rem; font-weight: 600; color: var(--nx-text); margin: 1.5rem 0 .5rem; }
+    .apidocs-p { font-size: .875rem; color: var(--nx-text-sec); line-height: 1.65; margin-bottom: .5rem; }
+    .apidocs-p code, .apidocs-td code { font-family: var(--nx-mono); font-size: .8125em; background: var(--nx-sunken); border: 1px solid var(--nx-border); border-radius: 4px; padding: .0625rem .3125rem; color: var(--nx-text); }
+  </style>
+</head>
+
+<body class="nx-app">
+  {% set active_page = 'api_docs' %}
+  {% include '_header.html' %}
+
+  <main class="nx-main">
+    <div class="nx-page-head nx-rise">
+      <div class="nx-page-head__main">
+        <div class="nx-page-head__title">
+          <span class="nx-page-icon"><i class="fas fa-plug"></i></span>
+          <div>
+            <h1 class="nx-title">{{ _("API Documentation") }}</h1>
+            <p class="nx-subtitle">{{ _("Reference for the nexora machine-to-machine API (v1).") }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="apidocs-layout nx-rise-2">
+
+      <nav class="apidocs-nav nx-card nx-card--pad" aria-label="{{ _('API documentation sections') }}" data-testid="apidocs-nav">
+        <div class="apidocs-nav-group">{{ _("Guide") }}</div>
+        <button class="apidocs-nav-item active" data-section="getting-started" data-testid="apidocs-nav-getting-started">
+          <i class="fas fa-rocket fa-fw"></i>{{ _("Getting Started") }}
+        </button>
+        <button class="apidocs-nav-item" data-section="authentication" data-testid="apidocs-nav-authentication">
+          <i class="fas fa-key fa-fw"></i>{{ _("Authentication") }}
+        </button>
+        <button class="apidocs-nav-item" data-section="errors" data-testid="apidocs-nav-errors">
+          <i class="fas fa-triangle-exclamation fa-fw"></i>{{ _("Errors & Rate Limits") }}
+        </button>
+
+        <div class="apidocs-nav-group">{{ _("Endpoints") }}</div>
+        <button class="apidocs-nav-item" data-section="backlog" data-testid="apidocs-nav-backlog">
+          <span class="apidocs-method">GET</span><span class="truncate">/backlog</span>
+        </button>
+        <button class="apidocs-nav-item" data-section="undelivered" data-testid="apidocs-nav-undelivered">
+          <span class="apidocs-method">GET</span><span class="truncate">/undelivered</span>
+        </button>
+        <button class="apidocs-nav-item" data-section="avg-processing-time" data-testid="apidocs-nav-avg-processing-time">
+          <span class="apidocs-method">GET</span><span class="truncate">/avg_processing_time</span>
+        </button>
+        <button class="apidocs-nav-item" data-section="workitems" data-testid="apidocs-nav-workitems">
+          <span class="apidocs-method">GET</span><span class="truncate">/workitems</span>
+        </button>
+        <button class="apidocs-nav-item" data-section="workitems-fields" data-testid="apidocs-nav-workitems-fields">
+          <span class="apidocs-method">GET</span><span class="truncate">/workitems/fields</span>
+        </button>
+        <button class="apidocs-nav-item" data-section="workitem-detail" data-testid="apidocs-nav-workitem-detail">
+          <span class="apidocs-method">GET</span><span class="truncate">/workitems/{id}</span>
+        </button>
+
+        <div class="apidocs-nav-group">{{ _("Test sandbox") }}</div>
+        <button class="apidocs-nav-item" data-section="test-sandbox" data-testid="apidocs-nav-test-sandbox">
+          <i class="fas fa-flask fa-fw"></i>{{ _("api/test/v1") }}
+        </button>
+      </nav>
+
+      <div>
+
+        <!-- ============ Getting Started ============ -->
+        <section id="apidocs-getting-started" class="apidocs-section active nx-card nx-card--pad" data-testid="apidocs-section-getting-started">
+          <h2 class="apidocs-h2 mt-0">{{ _("Getting Started") }}</h2>
+          <p class="apidocs-p">{{ _("The nexora external API is a read-only JSON API for machine-to-machine integrations, authenticated with per-client API keys. All endpoints live under the v1 base URL and answer to GET requests only.") }}</p>
+
+          <h2 class="apidocs-h2">{{ _("Base URLs") }}</h2>
+          <div class="nx-table-wrap">
+            <table class="nx-table">
+              <thead><tr><th>{{ _("Environment") }}</th><th>{{ _("Base URL") }}</th></tr></thead>
+              <tbody>
+                <tr><td>PROD</td><td class="apidocs-td"><code>https://nexora.sydoc.ch/nexora/api/v1</code></td></tr>
+                <tr><td>{{ _("Test sandbox") }}</td><td class="apidocs-td"><code>https://nexora.sydoc.ch/nexora/api/test/v1</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="apidocs-p">{{ _("The test sandbox accepts the same API key as the production base URL and answers in the same shape, but with random numbers — safe to hit while building your integration. See the api/test/v1 section for details.") }}</p>
+
+          <h2 class="apidocs-h2">{{ _("Quick start") }}</h2>
+          <p class="apidocs-p">{{ _("One header, one GET — with an API key in hand, this is the whole integration:") }}</p>
+          <div class="apidocs-code">
+            <span class="apidocs-code-label">curl</span>
+            <button class="apidocs-copy" title="{{ _('Copy') }}" aria-label="{{ _('Copy code') }}"><i class="far fa-copy"></i></button>
+            <pre><code class="language-bash">curl -H "Authorization: Bearer &lt;api key&gt;" \
+    https://nexora.sydoc.ch/nexora/api/v1/backlog</code></pre>
+          </div>
+          <div class="apidocs-code">
+            <span class="apidocs-code-label">{{ _("response") }}</span>
+            <button class="apidocs-copy" title="{{ _('Copy') }}" aria-label="{{ _('Copy code') }}"><i class="far fa-copy"></i></button>
+            <pre><code class="language-json">{
+  "datetime": "2026-08-04 09:15",
+  "current_backlog": 154
+}</code></pre>
+          </div>
+          <p class="apidocs-p">{{ _("In PowerShell use curl.exe — bare curl is an alias for Invoke-WebRequest, which spells the header differently. No key or a wrong key returns") }} <code>401 {"error": "Invalid API key"}</code>.</p>
+        </section>
+
+        <!-- ============ Authentication ============ -->
+        <section id="apidocs-authentication" class="apidocs-section nx-card nx-card--pad" data-testid="apidocs-section-authentication">
+          <h2 class="apidocs-h2 mt-0">{{ _("Authentication") }}</h2>
+          <p class="apidocs-p">{{ _("Send your API key as a Bearer token on every request:") }}</p>
+          <div class="apidocs-code">
+            <button class="apidocs-copy" title="{{ _('Copy') }}" aria-label="{{ _('Copy code') }}"><i class="far fa-copy"></i></button>
+            <pre><code class="language-http">GET /api/v1/backlog
+Authorization: Bearer &lt;api key&gt;</code></pre>
+          </div>
+          <p class="apidocs-p">{{ _("Keys are issued per client by the Sydoc team. Each key carries a process scope: it only ever sees the numbers of the processes it was issued for. The raw key is handed over once through a secure channel and is not recoverable afterwards — store it safely.") }}</p>
+          <h2 class="apidocs-h2">{{ _("Key lifecycle") }}</h2>
+          <ul class="apidocs-p list-disc pl-5">
+            <li>{{ _("Keys do not expire on their own; they stay valid until revoked.") }}</li>
+            <li>{{ _("Revocation is effective immediately on the next request.") }}</li>
+            <li>{{ _("A revoked or unknown key answers a uniform 401 — deliberately indistinguishable, so a leaked key confirms nothing.") }}</li>
+            <li>{{ _("Rotation: request a new key from the Sydoc team, switch your integration, then the old key is disabled.") }}</li>
+          </ul>
+        </section>
+
+        <!-- ============ Errors & Rate Limits ============ -->
+        <section id="apidocs-errors" class="apidocs-section nx-card nx-card--pad" data-testid="apidocs-section-errors">
+          <h2 class="apidocs-h2 mt-0">{{ _("Errors") }}</h2>
+          <p class="apidocs-p">{{ _("Errors are JSON unless noted. The body always carries an English error string — the API is not localized.") }}</p>
+          <div class="nx-table-wrap">
+            <table class="nx-table">
+              <thead><tr><th>{{ _("Status") }}</th><th>{{ _("Body") }}</th><th>{{ _("Meaning") }}</th></tr></thead>
+              <tbody>
+                <tr><td class="nx-mono">400</td><td class="apidocs-td"><code>{"error": "days must be 7 or 10"}</code></td><td class="apidocs-td">{{ _("/undelivered called with a missing or invalid days param") }}</td></tr>
+                <tr><td class="nx-mono">400</td><td class="apidocs-td"><code>{"error": "..."}</code></td><td class="apidocs-td">{{ _("/workitems called with an invalid filter param (the message names it)") }}</td></tr>
+                <tr><td class="nx-mono">401</td><td class="apidocs-td"><code>{"error": "Missing or malformed Authorization header"}</code></td><td class="apidocs-td">{{ _("Missing or malformed Authorization: Bearer header") }}</td></tr>
+                <tr><td class="nx-mono">401</td><td class="apidocs-td"><code>{"error": "Invalid API key"}</code></td><td>{{ _("Unknown or disabled key (uniform on purpose)") }}</td></tr>
+                <tr><td class="nx-mono">404</td><td class="apidocs-td"><code>{"error": "Not found"}</code></td><td class="apidocs-td">{{ _("Wrong path under") }} <code>/api/v1</code></td></tr>
+                <tr><td class="nx-mono">404</td><td class="apidocs-td"><code>{"workitem_id": ..., "detail": null}</code></td><td class="apidocs-td">{{ _("Workitem unknown, outside your key's scope, or its document is currently unloadable (uniform on purpose)") }}</td></tr>
+                <tr><td class="nx-mono">405</td><td>{{ _("HTML") }}</td><td>{{ _("Non-GET verb — the API is GET-only") }}</td></tr>
+                <tr><td class="nx-mono">429</td><td>{{ _("HTML") }}</td><td>{{ _("Over the rate limit") }}</td></tr>
+                <tr><td class="nx-mono">500</td><td class="apidocs-td"><code>{"error": "..."}</code></td><td>{{ _("Backend or server failure") }}</td></tr>
+                <tr><td class="nx-mono">503</td><td class="apidocs-td"><code>{"error": "Auth backend unavailable"}</code></td><td>{{ _("Auth database unreachable (fail closed)") }}</td></tr>
+                <tr><td class="nx-mono">503</td><td class="apidocs-td"><code>{"error": "Maintenance", ...}</code></td><td>{{ _("Blocking maintenance window") }}</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h2 class="apidocs-h2">{{ _("Rate limit") }}</h2>
+          <p class="apidocs-p">{{ _("60 requests per minute per source IP, checked before authentication. Exceeding it returns HTTP 429; back off and retry after the minute window.") }}</p>
+        </section>
+
+        <!-- ============ GET /backlog ============ -->
+        <section id="apidocs-backlog" class="apidocs-section nx-card nx-card--pad" data-testid="apidocs-section-backlog">
+          <h2 class="apidocs-h2 mt-0 flex items-center gap-2"><span class="apidocs-method">GET</span><span class="nx-mono">/api/v1/backlog</span></h2>
+          <p class="apidocs-p">{{ _("The current backlog count for your key's processes — the same number as the nexora dashboard's \"Current Backlog\" KPI tile.") }}</p>
+          <div class="apidocs-code">
+            <span class="apidocs-code-label">curl</span>
+            <button class="apidocs-copy" title="{{ _('Copy') }}" aria-label="{{ _('Copy code') }}"><i class="far fa-copy"></i></button>
+            <pre><code class="language-bash">curl -H "Authorization: Bearer &lt;api key&gt;" \
+    https://nexora.sydoc.ch/nexora/api/v1/backlog</code></pre>
+          </div>
+          <div class="apidocs-code">
+            <span class="apidocs-code-label">{{ _("response") }} 200</span>
+            <button class="apidocs-copy" title="{{ _('Copy') }}" aria-label="{{ _('Copy code') }}"><i class="far fa-copy"></i></button>
+            <pre><code class="language-json">{
+  "datetime": "2026-08-04 09:30",
+  "current_backlog": 42
+}</code></pre>
+          </div>
+          <h2 class="apidocs-h2">{{ _("Response fields") }}</h2>
+          <div class="nx-table-wrap">
+            <table class="nx-table">
+              <thead><tr><th>{{ _("Field") }}</th><th>{{ _("Type") }}</th><th>{{ _("Meaning") }}</th></tr></thead>
+              <tbody>
+                <tr><td class="apidocs-td"><code>datetime</code></td><td class="nx-mono">string</td><td>{{ _("Server-local timestamp of the count (YYYY-MM-DD HH:MM)") }}</td></tr>
+                <tr><td class="apidocs-td"><code>current_backlog</code></td><td class="nx-mono">int</td><td>{{ _("Workitems currently in the backlog across your key's processes") }}</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="apidocs-p mt-2">{{ _("The response does not echo the process list — scoping happens at key issuance.") }}</p>
+        </section>
+
+        <!-- ============ GET /undelivered ============ -->
+        <section id="apidocs-undelivered" class="apidocs-section nx-card nx-card--pad" data-testid="apidocs-section-undelivered">
+          <h2 class="apidocs-h2 mt-0 flex items-center gap-2"><span class="apidocs-method">GET</span><span class="nx-mono">/api/v1/undelivered</span></h2>
+          <p class="apidocs-p">{{ _("The number of workitems not delivered yet: imported within the last days-param days but with no export date so far, scoped to your key's processes.") }}</p>
+          <div class="apidocs-code">
+            <span class="apidocs-code-label">curl</span>
+            <button class="apidocs-copy" title="{{ _('Copy') }}" aria-label="{{ _('Copy code') }}"><i class="far fa-copy"></i></button>
+            <pre><code class="language-bash">curl -H "Authorization: Bearer &lt;api key&gt;" \
+    "https://nexora.sydoc.ch/nexora/api/v1/undelivered?days=7"</code></pre>
+          </div>
+          <div class="apidocs-code">
+            <span class="apidocs-code-label">{{ _("response") }} 200</span>
+            <button class="apidocs-copy" title="{{ _('Copy') }}" aria-label="{{ _('Copy code') }}"><i class="far fa-copy"></i></button>
+            <pre><code class="language-json">{
+  "date": "2026-08-10",
+  "days": 7,
+  "undelivered": 42
+}</code></pre>
+          </div>
+          <h2 class="apidocs-h2">{{ _("Query parameters") }}</h2>
+          <div class="nx-table-wrap">
+            <table class="nx-table">
+              <thead><tr><th>{{ _("Param") }}</th><th>{{ _("Type") }}</th><th>{{ _("Meaning") }}</th></tr></thead>
+              <tbody>
+                <tr><td class="apidocs-td"><code>days</code></td><td class="nx-mono">int</td><td>{{ _("Required. The import window in calendar days, counted back from today inclusive. Only 7 or 10 is accepted — anything else returns a 400.") }}</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h2 class="apidocs-h2">{{ _("Response fields") }}</h2>
+          <div class="nx-table-wrap">
+            <table class="nx-table">
+              <thead><tr><th>{{ _("Field") }}</th><th>{{ _("Type") }}</th><th>{{ _("Meaning") }}</th></tr></thead>
+              <tbody>
+                <tr><td class="apidocs-td"><code>date</code></td><td class="nx-mono">string</td><td>{{ _("Server-local calendar date the counts refer to (ISO 8601)") }}</td></tr>
+                <tr><td class="apidocs-td"><code>days</code></td><td class="nx-mono">int</td><td>{{ _("The window you asked for, echoed back") }}</td></tr>
+                <tr><td class="apidocs-td"><code>undelivered</code></td><td class="nx-mono">int</td><td>{{ _("Workitems imported in the window that have no export date yet") }}</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="apidocs-p mt-2">{{ _("The response does not echo the process list — scoping happens at key issuance.") }} {{ _("Responses are computed fresh on every call — there is no cache.") }}</p>
+        </section>
+
+        <!-- ============ GET /avg_processing_time ============ -->
+        <section id="apidocs-avg-processing-time" class="apidocs-section nx-card nx-card--pad" data-testid="apidocs-section-avg-processing-time">
+          <h2 class="apidocs-h2 mt-0 flex items-center gap-2"><span class="apidocs-method">GET</span><span class="nx-mono">/api/v1/avg_processing_time</span></h2>
+          <p class="apidocs-p">{{ _("The average processing time for your key's processes — the same number as the nexora dashboard's \"Avg Processing Time\" KPI tile.") }}</p>
+          <div class="apidocs-code">
+            <span class="apidocs-code-label">curl</span>
+            <button class="apidocs-copy" title="{{ _('Copy') }}" aria-label="{{ _('Copy code') }}"><i class="far fa-copy"></i></button>
+            <pre><code class="language-bash">curl -H "Authorization: Bearer &lt;api key&gt;" \
+    https://nexora.sydoc.ch/nexora/api/v1/avg_processing_time</code></pre>
+          </div>
+          <div class="apidocs-code">
+            <span class="apidocs-code-label">{{ _("response") }} 200</span>
+            <button class="apidocs-copy" title="{{ _('Copy') }}" aria-label="{{ _('Copy code') }}"><i class="far fa-copy"></i></button>
+            <pre><code class="language-json">{
+  "avg_minutes": 4.2,
+  "avg_display": "4min"
+}</code></pre>
+          </div>
+          <h2 class="apidocs-h2">{{ _("Response fields") }}</h2>
+          <div class="nx-table-wrap">
+            <table class="nx-table">
+              <thead><tr><th>{{ _("Field") }}</th><th>{{ _("Type") }}</th><th>{{ _("Meaning") }}</th></tr></thead>
+              <tbody>
+                <tr><td class="apidocs-td"><code>avg_minutes</code></td><td class="nx-mono">float | null</td><td>{{ _("Average minutes between import and export among rows exported today, rounded to 1 decimal. null if no matching rows exist yet today.") }}</td></tr>
+                <tr><td class="apidocs-td"><code>avg_display</code></td><td class="nx-mono">string</td><td>{{ _("Same figure pre-formatted: seconds under a minute, minutes under an hour, hours above — or \"—\" when null.") }}</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="apidocs-p mt-2">{{ _("The response does not echo the process list — scoping happens at key issuance.") }} {{ _("Calculation: for each configured process/table, the average seconds between import and export among rows exported today; the per-source averages are then combined as a plain mean, not weighted by how many rows each source had. Responses are computed fresh on every call — there is no cache.") }}</p>
+        </section>
+
+        <!-- ============ GET /workitems ============ -->
+        <section id="apidocs-workitems" class="apidocs-section nx-card nx-card--pad" data-testid="apidocs-section-workitems">
+          <h2 class="apidocs-h2 mt-0 flex items-center gap-2"><span class="apidocs-method">GET</span><span class="nx-mono">/api/v1/workitems</span></h2>
+          <p class="apidocs-p">{{ _("Query workitems with the Workitems overview page's filters, scoped to your key's processes. Take a result's id to /api/v1/workitems/{id} for its document details.") }}</p>
+          <div class="apidocs-code">
+            <span class="apidocs-code-label">curl</span>
+            <button class="apidocs-copy" title="{{ _('Copy') }}" aria-label="{{ _('Copy code') }}"><i class="far fa-copy"></i></button>
+            <pre><code class="language-bash">curl -H "Authorization: Bearer &lt;api key&gt;" \
+    "https://nexora.sydoc.ch/nexora/api/v1/workitems?field=invoicenr&amp;value=INV-2026-00123&amp;op=eq"</code></pre>
+          </div>
+          <div class="apidocs-code">
+            <span class="apidocs-code-label">{{ _("response") }} 200</span>
+            <button class="apidocs-copy" title="{{ _('Copy') }}" aria-label="{{ _('Copy code') }}"><i class="far fa-copy"></i></button>
+            <pre><code class="language-json">{
+  "count": 1,
+  "page": 1,
+  "per_page": 40,
+  "total_pages": 1,
+  "workitems": [
+    {
+      "id": 78214,
+      "status": "Done",
+      "stage": "Delivery",
+      "modified_at": "2026-08-04 10:02:11",
+      "import_datetime": "2026-08-04 09:12:31"
+    }
+  ]
+}</code></pre>
+          </div>
+          <h2 class="apidocs-h2">{{ _("Query parameters") }}</h2>
+          <div class="nx-table-wrap">
+            <table class="nx-table">
+              <thead><tr><th>{{ _("Param") }}</th><th>{{ _("Meaning") }}</th></tr></thead>
+              <tbody>
+                <tr><td class="apidocs-td"><code>workitem_id</code></td><td>{{ _("Exact workitem-id match") }}</td></tr>
+                <tr><td class="apidocs-td"><code>status</code></td><td class="nx-mono">Ready | In Progress | Done</td></tr>
+                <tr><td class="apidocs-td"><code>stage</code></td><td class="nx-mono">Import | Extraction | Validation | Delivery</td></tr>
+                <tr><td class="apidocs-td"><code>start_date</code> / <code>end_date</code></td><td>{{ _("ISO datetime bounds on the last-modified timestamp; start inclusive, end exclusive") }}</td></tr>
+                <tr><td class="apidocs-td"><code>process</code></td><td>{{ _("Comma-joined subset of your key's process scope (default: all of it)") }}</td></tr>
+                <tr><td class="apidocs-td"><code>field</code> / <code>value</code> / <code>op</code> / <code>comb</code></td><td>{{ _("Repeated document-field filter pairs (max 10); field keys are lowercase without separators (invoicenr, esrreference, …) — fetch the live list from /workitems/fields; op: contains (default), ncontains, eq, neq, startswith, endswith; comb joins a pair to the previous ones with and (default) / or") }}</td></tr>
+                <tr><td class="apidocs-td"><code>page</code> / <code>per_page</code></td><td>{{ _("Paging; per_page accepts only 40, 100, 200, 500 or 1000 (default 40)") }}</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="apidocs-p mt-2">{{ _("Every invalid value returns a 400 with a plain-English error — nothing is silently coerced. Unknown and sensitive field keys answer identically (400 Unknown field). import_datetime is filled where the process is mapped in the statistics DB and null otherwise. Doc-field matches honour the same per-process time window as the overview page's search.") }}</p>
+        </section>
+
+        <!-- ============ GET /workitems/fields ============ -->
+        <section id="apidocs-workitems-fields" class="apidocs-section nx-card nx-card--pad" data-testid="apidocs-section-workitems-fields">
+          <h2 class="apidocs-h2 mt-0 flex items-center gap-2"><span class="apidocs-method">GET</span><span class="nx-mono">/api/v1/workitems/fields</span></h2>
+          <p class="apidocs-p">{{ _("The field keys /workitems accepts in ?field= for your key's process scope, as the server resolves them right now — only fields mapped for at least one of your key's processes, minus sensitive fields. Prefer fetching this over hard-coding key names.") }}</p>
+          <div class="apidocs-code">
+            <span class="apidocs-code-label">curl</span>
+            <button class="apidocs-copy" title="{{ _('Copy') }}" aria-label="{{ _('Copy code') }}"><i class="far fa-copy"></i></button>
+            <pre><code class="language-bash">curl -H "Authorization: Bearer &lt;api key&gt;" \
+    "https://nexora.sydoc.ch/nexora/api/v1/workitems/fields"</code></pre>
+          </div>
+          <div class="apidocs-code">
+            <span class="apidocs-code-label">{{ _("response") }} 200</span>
+            <button class="apidocs-copy" title="{{ _('Copy') }}" aria-label="{{ _('Copy code') }}"><i class="far fa-copy"></i></button>
+            <pre><code class="language-json">{
+  "fields": ["archiveboxno", "bankpk", "branch", "…", "invoicenr", "…"]
+}</code></pre>
+          </div>
+          <p class="apidocs-p mt-2">{{ _("Keys are lowercase without separators. On /workitems an unknown key answers 400 Unknown field, and a real field outside your key's scope answers 400 Field not available for your process scope; a failed config lookup returns 500, never a partial list.") }}</p>
+        </section>
+
+        <!-- ============ GET /workitems/{id} ============ -->
+        <section id="apidocs-workitem-detail" class="apidocs-section nx-card nx-card--pad" data-testid="apidocs-section-workitem-detail">
+          <h2 class="apidocs-h2 mt-0 flex items-center gap-2"><span class="apidocs-method">GET</span><span class="nx-mono">/api/v1/workitems/{id}</span></h2>
+          <p class="apidocs-p">{{ _("The document details the overview row-expand shows for one workitem: extracted field values and table values. No page images, confidence or source locations; sensitive fields are always stripped.") }}</p>
+          <div class="apidocs-code">
+            <span class="apidocs-code-label">curl</span>
+            <button class="apidocs-copy" title="{{ _('Copy') }}" aria-label="{{ _('Copy code') }}"><i class="far fa-copy"></i></button>
+            <pre><code class="language-bash">curl -H "Authorization: Bearer &lt;api key&gt;" \
+    "https://nexora.sydoc.ch/nexora/api/v1/workitems/78214"</code></pre>
+          </div>
+          <div class="apidocs-code">
+            <span class="apidocs-code-label">{{ _("response") }} 200</span>
+            <button class="apidocs-copy" title="{{ _('Copy') }}" aria-label="{{ _('Copy code') }}"><i class="far fa-copy"></i></button>
+            <pre><code class="language-json">{
+  "workitem_id": 78214,
+  "detail": {
+    "fields": {
+      "InvoiceNumber": "INV-2026-00123",
+      "InvoiceDate": "2026-08-01",
+      "TotalAmount": "1234.50"
+    },
+    "tables": [
+      {
+        "title": "LineItems",
+        "columns": ["Description", "Quantity", "Amount"],
+        "rows": [
+          [
+            {"column": "Description", "value": "Widget"},
+            {"column": "Quantity", "value": "2"},
+            {"column": "Amount", "value": "617.25"}
+          ]
+        ]
+      }
+    ]
+  }
+}</code></pre>
+          </div>
+          <h2 class="apidocs-h2">{{ _("Response fields") }}</h2>
+          <div class="nx-table-wrap">
+            <table class="nx-table">
+              <thead><tr><th>{{ _("Field") }}</th><th>{{ _("Type") }}</th><th>{{ _("Meaning") }}</th></tr></thead>
+              <tbody>
+                <tr><td class="apidocs-td"><code>detail.fields</code></td><td class="nx-mono">object</td><td>{{ _("Extracted field name → value, mapped through the same field-name mapping the overview uses") }}</td></tr>
+                <tr><td class="apidocs-td"><code>detail.tables</code></td><td class="nx-mono">array</td><td>{{ _("Extracted tables: title, columns, and rows of column/value cells") }}</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="apidocs-p mt-2">{{ _("404 with a null detail is returned uniformly for an unknown id, an id outside your key's scope, and a document the runtime backend can't load right now. The first hit on a cold workitem fetches live from the runtime service and can take a few seconds.") }}</p>
+        </section>
+
+        <!-- ============ Test sandbox ============ -->
+        <section id="apidocs-test-sandbox" class="apidocs-section nx-card nx-card--pad" data-testid="apidocs-section-test-sandbox">
+          <h2 class="apidocs-h2 mt-0">{{ _("Test sandbox") }}</h2>
+          <p class="apidocs-p">{{ _("Every endpoint above has a /api/test/v1/... twin: same path suffix, same Bearer-key auth, same response shape — but the numbers are random, not real KPI values. No backend queries happen, so it's safe to hit repeatedly while building an integration.") }}</p>
+          <div class="apidocs-code">
+            <span class="apidocs-code-label">curl</span>
+            <button class="apidocs-copy" title="{{ _('Copy') }}" aria-label="{{ _('Copy code') }}"><i class="far fa-copy"></i></button>
+            <pre><code class="language-bash">curl -H "Authorization: Bearer &lt;api key&gt;" \
+    https://nexora.sydoc.ch/nexora/api/test/v1/backlog</code></pre>
+          </div>
+          <div class="apidocs-code">
+            <span class="apidocs-code-label">{{ _("response") }} 200</span>
+            <button class="apidocs-copy" title="{{ _('Copy') }}" aria-label="{{ _('Copy code') }}"><i class="far fa-copy"></i></button>
+            <pre><code class="language-json">{
+  "datetime": "2026-08-04 09:15",
+  "current_backlog": 289
+}</code></pre>
+          </div>
+          <p class="apidocs-p mt-2">{{ _("Use a real (enabled) API key — the same auth errors (401/429) apply. Available for") }} <code>/backlog</code>, <code>/undelivered</code>, <code>/avg_processing_time</code>, <code>/workitems</code> {{ _("and") }} <code>/workitems/{id}</code>.</p>
+        </section>
+
+      </div>
+    </div>
+  </main>
+
+  {% include 'js/_api_docs_js.html' %}
+
+</body>
+</html>

@@ -16,6 +16,25 @@ def test_create_app_has_secret_key():
     assert isinstance(app.config["SECRET_KEY"], str | bytes)
 
 
+def test_create_app_hardens_session_cookie_in_every_env():
+    """Security #193: HttpOnly + SameSite + a body cap must apply even in a
+    non-PROD (here: TEST) app -- a non-PROD instance is not guaranteed
+    unreachable."""
+    app = create_app()
+    assert app.config["SESSION_COOKIE_HTTPONLY"] is True
+    assert app.config["SESSION_COOKIE_SAMESITE"] == "Lax"
+    assert app.config["MAX_CONTENT_LENGTH"] == 25 * 1024 * 1024
+
+
+def test_create_app_sets_baseline_security_headers_in_every_env():
+    """Security #193: clickjacking + MIME-sniff headers on responses even in a
+    non-PROD app (PROD additionally layers the full Talisman CSP)."""
+    app = create_app()
+    resp = app.test_client().get("/login")
+    assert resp.headers.get("X-Frame-Options") == "SAMEORIGIN"
+    assert resp.headers.get("X-Content-Type-Options") == "nosniff"
+
+
 def test_create_app_registers_login_endpoint():
     app = create_app()
     endpoints = {r.endpoint for r in app.url_map.iter_rules()}
@@ -52,16 +71,12 @@ def test_create_app_registers_workitems_endpoint():
     assert "workitems_overview" in endpoints
 
 
-def test_create_app_registers_invoices_endpoint():
+def test_create_app_does_not_register_archived_invoices_endpoints():
+    """The invoices page is archived (#177) — its routes must stay unregistered
+    so /invoices, /api/invoices and /invoice/<id>/pdf 404."""
     app = create_app()
     endpoints = {r.endpoint for r in app.url_map.iter_rules()}
-    assert "invoices" in endpoints
-
-
-def test_create_app_registers_chat_endpoint():
-    app = create_app()
-    endpoints = {r.endpoint for r in app.url_map.iter_rules()}
-    assert "chat_page" in endpoints
+    assert not endpoints & {"invoices", "api_invoices", "download_invoice_pdf"}
 
 
 def test_create_app_registers_profile_endpoint():
@@ -114,10 +129,6 @@ def test_create_app_endpoint_set_includes_expected_critical_set():
         "admin_dashboard",
         "workitems_overview",
         "api_workitems",
-        "get_all_tags",
-        "invoices",
-        "api_invoices",
-        "chat_page",
         "jdvance",
         "maintenance_page",
     }
@@ -159,12 +170,6 @@ EXPECTED_NON_GENERALI_ENDPOINTS = {
     "dashboard_avg_processing_time",
     "dashboard",
     "dashboard_set_filter",
-    "dashboard_field_metadata",
-    "dashboard_get_layout",
-    "dashboard_put_layout",
-    "dashboard_reset_layout",
-    "dashboard_widget_data",
-    "dashboard_widget_compare",
     "api_recent_activity",
     # views/admin.py
     "admin_dashboard",
@@ -212,33 +217,11 @@ EXPECTED_NON_GENERALI_ENDPOINTS = {
     "export_workitems_csv",
     "workitems_overview",
     "import_workitems",
-    "get_single_workitem",
     "api_get_media_info",
     "api_get_media_raw",
     "get_audithistory",
-    "get_users_for_mentions",
-    "get_workitem_interactions",
-    "add_workitem_comment",
-    "assign_workitem",
-    "set_workitem_priority",
-    "get_all_tags",
     "api_workitems_page_init",
-    "add_tag_to_workitem",
-    "remove_tag_from_workitem",
-    # views/invoices.py
-    "invoices",
-    "api_invoices",
-    "download_invoice_pdf",
-    # views/notifications.py
-    "get_notifications",
-    "mark_notifications_as_read",
-    # views/chat.py
-    "chat_page",
-    "get_conversations",
-    "start_conversation",
-    "get_chat_messages",
-    "send_chat_message",
-    "upload_chat_file",
+    # views/invoices.py — archived (#177), routes deliberately not registered.
 }
 
 

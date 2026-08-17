@@ -64,6 +64,7 @@ With no command, `nx` defaults to `--status` (or opens the browser if `-b` /
 | `-v`, `--verbose` | Stream logs after start/restart *(only with `-u` / `-r`)* |
 | `-b`, `--browser[:<route>]` | Open the browser; bare `-b` opens `/`, `-b:/admin` opens that path |
 | `--loginas:<username>` | Open the browser logged in as an INT user *(implies `-b`)* |
+| `--port:<n>` | Target a specific instance's port *(only with `-u` / `-r` / `-d`; used by the in-app restart button so a `--no-conflict` instance restarts itself)* |
 | `--env` | Print the current env (running instance's env, else `.env` default) |
 | `--env:<int\|staging>` | Switch env file *(only with `-u` / `-r` / `--routes`; `prod` is rejected)* |
 | `--no-conflict` | Start on the **first free port from 8001 up**, with separate log/state files — an extra nexora runs without touching anything already listening (e.g. an instance a Claude session is testing against). Only valid with `-u` / `-r`; since the port is dynamic, stop extra instances with `--down-all` |
@@ -166,7 +167,7 @@ layer the app depends on:
 - **Tooling** — `sqlcmd`, `mssql-scripter`, `git`, `pybabel`, `powershell` on PATH
 - **Git hooks** — `pre-commit`, `commit-msg`, `pre-push` installed
 - **Port** — whether 8000 is in use
-- **External services** — Microsoft Graph, Octopus, Bexio token/auth checks
+- **External services** — Microsoft Graph, Octo token/auth checks
 
 Failed checks print a `→ hint` line. Modifiers:
 

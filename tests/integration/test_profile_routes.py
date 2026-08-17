@@ -71,6 +71,13 @@ def test_update_profile_duplicate_email_redirects_with_flash(user_client):
     assert resp.status_code == 302
 
 
+def test_update_profile_get_redirects_to_profile(user_client):
+    """GET must not fall through to a bare 500 — it should redirect."""
+    resp = user_client.get("/update_profile", follow_redirects=False)
+    assert resp.status_code == 302
+    assert "/profile" in resp.headers.get("Location", "")
+
+
 def test_change_password_anonymous_redirects_to_login(client):
     resp = client.post(
         "/change_password",
@@ -79,6 +86,13 @@ def test_change_password_anonymous_redirects_to_login(client):
     )
     assert resp.status_code == 302
     assert "/login" in resp.headers.get("Location", "")
+
+
+def test_change_password_get_redirects_to_profile(user_client):
+    """GET must not fall through to a bare 500 — it should redirect."""
+    resp = user_client.get("/change_password", follow_redirects=False)
+    assert resp.status_code == 302
+    assert "/profile" in resp.headers.get("Location", "")
 
 
 def test_change_password_mismatch_flashes(user_client):

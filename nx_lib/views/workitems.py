@@ -2,14 +2,17 @@
 plus the CSV exporter."""
 
 import base64
+import concurrent.futures
 import csv
 import io
+import json
 import math
 import re
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
+import pyodbc
 import requests
 from flask import (
     Response,
@@ -34,7 +37,6 @@ from ..db import engine_ms02_docfields_pg, engine_nexora_db, engine_statistics_d
 from ..extensions import cache
 from ..files import is_file_allowed
 from ..i18n import get_locale
-from ..notifications import create_notification
 from ..octo import (
     get_access_token,
     get_activity_type_name,
@@ -45,6 +47,7 @@ from ..octo import (
     render_pdf_page_jpeg,
 )
 from ..prepared_documents import (
+    GROUP_BY_COLUMNS,
     clear_prepared_documents,
     count_prepared_documents,
     fetch_prepared_documents_page,
@@ -53,6 +56,7 @@ from ..prepared_documents import (
 )
 from ..process_helpers import (
     get_activity_instances_to_ignore,
+    normalize_process_selection,
     prepare_process_selection_lists,
 )
 from ..security import (
@@ -61,19 +65,19 @@ from ..security import (
     page_visibility,
     require_permission,
 )
-from ..users import get_all_portal_users, resolve_user_icon_url
 from ..workitem_sources import (
     _MS02_IDENT,
     WorkitemFilter,
     _ms02_id_column,
+    _resolve_octo_wid_stage_pg,
     fetch_merged_page,
     get_domain_for_workitem,
     parse_prepared_xlsx,
+    process_pair_for_workitem,
     resolve_ms02_docfield_ids,
     resolve_ms02_pid_to_wids,
     resolve_ms02_wids_to_pids,
     resolve_octo_wid_stage,
-    single_workitem_tags,
 )
 
 # ---------------------------- field/config helpers ---------------------------- #
@@ -165,6 +169,33 @@ def api_config_fields():
     return jsonify(result)
 
 
+# Whitelisted doc-value search operators (issue #148): op key -> (SQL Server
+# comparator, param builder). `=`/`<>` are real comparisons (CI under the
+# DATABASE_DEFAULT collation); the LIKE family keeps the historical
+# no-wildcard-escaping behavior. Unknown/missing keys fall back to "contains".
+DOCFIELD_OPS = {
+    "contains": ("LIKE", lambda v: f"%{v}%"),
+    "ncontains": ("NOT LIKE", lambda v: f"%{v}%"),
+    "eq": ("=", lambda v: v),
+    "neq": ("<>", lambda v: v),
+    "startswith": ("LIKE", lambda v: f"{v}%"),
+    "endswith": ("LIKE", lambda v: f"%{v}"),
+}
+
+
+def _docfield_op(docops, i):
+    """The whitelisted operator key for pair ``i`` ('contains' fallback)."""
+    op = (docops[i] if i < len(docops) else "").lower().strip()
+    return op if op in DOCFIELD_OPS else "contains"
+
+
+def _docfield_comb(doccombs, i):
+    """The AND/OR combinator joining pair ``i`` to the pairs before it
+    ('and' fallback; the first pair's value is ignored by the fold)."""
+    comb = (doccombs[i] if i < len(doccombs) else "").lower().strip()
+    return comb if comb in ("and", "or") else "and"
+
+
 def get_valid_search_columns():
     """Whitelist of SearchConfig col_<field> columns. Cached for an hour, but
     ONLY on success: caching the empty error-fallback used to disable doc-field
@@ -184,6 +215,39 @@ def get_valid_search_columns():
     except Exception as e:
         current_app.logger.error(f"Error fetching search config columns: {e}")
         return []
+    finally:
+        if conn:
+            conn.close()
+
+
+def get_search_columns_for_processes(processes):
+    """col_<field> SearchConfig columns mapped (non-NULL) for at least one of
+    the given ProcessNames, lowercased -- the per-scope companion to
+    get_valid_search_columns (which is table-wide). Returns None when the
+    lookup fails so callers can fail closed (external API contract); an empty
+    input short-circuits to an empty set without a query. Uncached: one
+    PK-range read per call on a rate-limited surface."""
+    if not processes:
+        return set()
+    conn = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+        placeholders = ",".join(["?"] * len(processes))
+        cursor.execute(
+            f"SELECT * FROM SearchConfig WHERE ProcessName IN ({placeholders})",
+            list(processes),
+        )
+        names = [d[0].lower() for d in cursor.description]
+        mapped = set()
+        for row in cursor.fetchall():
+            for name, val in zip(names, row, strict=True):
+                if val is not None and name.startswith("col_"):
+                    mapped.add(name)
+        return mapped
+    except Exception as e:
+        current_app.logger.error(f"Error fetching per-process search columns: {e}")
+        return None
     finally:
         if conn:
             conn.close()
@@ -216,29 +280,42 @@ def drop_sensitive_options(search_options, blocked_keys):
     }
 
 
-@cache.cached(timeout=3600, key_prefix="sensitive_field_keys")
 def get_sensitive_field_keys():
-    """Lowercased FieldKeys flagged IsSensitive=1 in Search_Field_Labels.
-    Empty set on any error (fail-open with log, like the other DB helpers)."""
+    """Lowercased FieldKeys flagged IsSensitive=1 in Search_Field_Labels, or
+    None when the lookup fails. Cached for an hour, but ONLY on success --
+    caching the error fallback used to pin a fail-open empty set for a full
+    hour (same trap get_valid_search_columns already avoids). Callers decide
+    the failure posture: the in-app wrappers below coerce None to set()
+    (fail-open behind session permissions, the historical behaviour); the
+    external API (nx_lib/views/api_external.py) fails CLOSED on None -- its
+    contract is unconditional blocking with no permission fallback."""
+    cached = cache.get("sensitive_field_keys")
+    if cached is not None:
+        return cached
     conn = None
     try:
         conn = engine_nexora_db.raw_connection()
         cur = conn.cursor()
         cur.execute("SELECT FieldKey FROM Search_Field_Labels WHERE IsSensitive = 1")
-        return {r[0].lower() for r in cur.fetchall() if r[0]}
+        keys = {r[0].lower() for r in cur.fetchall() if r[0]}
+        cache.set("sensitive_field_keys", keys, timeout=3600)
+        return keys
     except Exception as e:
         current_app.logger.error(f"get_sensitive_field_keys: {e}")
-        return set()
+        return None
     finally:
         if conn:
             conn.close()
 
 
-@cache.cached(timeout=3600, key_prefix="sensitive_field_tokens")
 def get_sensitive_field_tokens():
     """Normalized name-tokens (FieldKey + all four language labels) of sensitive
     fields, for matching against Octo extraction field names shown in the detail
-    panel / CSV export. Empty set on any error (fail-open with log)."""
+    panel / CSV export. None on any error -- cached only on success; see
+    get_sensitive_field_keys for the failure-posture contract."""
+    cached = cache.get("sensitive_field_tokens")
+    if cached is not None:
+        return cached
     conn = None
     try:
         conn = engine_nexora_db.raw_connection()
@@ -253,27 +330,30 @@ def get_sensitive_field_tokens():
                 t = _norm_field_token(val)
                 if t:
                     tokens.add(t)
+        cache.set("sensitive_field_tokens", tokens, timeout=3600)
         return tokens
     except Exception as e:
         current_app.logger.error(f"get_sensitive_field_tokens: {e}")
-        return set()
+        return None
     finally:
         if conn:
             conn.close()
 
 
 def sensitive_blocked_keys():
-    """FieldKeys the CURRENT user may not use (empty if they hold the perm)."""
+    """FieldKeys the CURRENT user may not use (empty if they hold the perm).
+    Coerces a failed lookup (None) to set() -- in-app fail-open, unchanged."""
     if has_permission("workitems.filter.documentfields.sensitive"):
         return set()
-    return get_sensitive_field_keys()
+    return get_sensitive_field_keys() or set()
 
 
 def sensitive_blocked_tokens():
-    """Octo name-tokens the CURRENT user may not see (empty if they hold perm)."""
+    """Octo name-tokens the CURRENT user may not see (empty if they hold perm).
+    Coerces a failed lookup (None) to set() -- in-app fail-open, unchanged."""
     if has_permission("workitems.filter.documentfields.sensitive"):
         return set()
-    return get_sensitive_field_tokens()
+    return get_sensitive_field_tokens() or set()
 
 
 def strip_sensitive_from_detail(data, blocked_tokens):
@@ -399,6 +479,26 @@ def _ms02_prepared_docs_processes():
 # outgrow this ceiling.
 EXPORT_MAX_ROWS = 100_000
 
+# Fixed domain of the derived stage CASE both source adapters compute -- see
+# workitem_sources.py's WorkitemCTE/ranked CurrentStage column and the
+# timeline stepper in _workitem_detail_panel_js.html (`stages` array).
+WORKITEM_STAGES = ("Import", "Extraction", "Validation", "Delivery")
+
+# D-CSVLIM: include=fields|history|images are all per-row Octo fetches. The
+# UI only ever offers them once <=10 rows are selected (see
+# selectedIds.size <= 10 in _workitems_overview_js.html), but that gate is
+# client-side only -- a direct API call could request a heavy include with no
+# `ids` (or an arbitrarily large one) and walk up to EXPORT_MAX_ROWS rows
+# doing per-row Octo fetches. Enforced server-side in export_workitems_csv.
+EXPORT_HEAVY_INCLUDE_MAX_IDS = 10
+
+# Per-row Octo fetches (fields/history/images) run on a bounded thread pool
+# with an overall as_completed() wait budget (see export_workitems_csv). If
+# that budget is exhausted while rows are still pending, those rows get this
+# marker in place of whatever include= columns they would have carried,
+# rather than either silently showing blank data or 500ing the whole export.
+EXPORT_TIMEOUT_MARKER = "(export timed out)"
+
 
 def _client_hint():
     """Client code the front-end row carried (``?client=ms02``), or None.
@@ -408,6 +508,27 @@ def _client_hint():
     probe path in ``get_source_for_workitem``."""
     hint = (request.args.get("client") or "").strip().lower()
     return hint if hint in CLIENTS else None
+
+
+def _granted_process_pairs():
+    """(client, process) pairs the caller holds a workitems grant for, lowered
+    for case-insensitive comparison (the list query authorizes these via a
+    case-insensitive SQL `=`, so the entitlement check must match that)."""
+    pairs = prepare_process_selection_lists("workitems.filter.process.", "all")
+    return {(c.lower(), p.lower()) for c, p in pairs}
+
+
+def _may_view_workitem(workitem_id):
+    """Whether the caller is entitled to this workitem's (client, process).
+
+    Closes the cross-tenant / cross-process detail IDOR (#193): the by-id
+    detail endpoints resolved the tenant from a caller-supplied ?client= and
+    fetched an arbitrary id behind only a flat details.view* code, never an
+    ownership check. Fails closed when the pair can't be resolved."""
+    pair = process_pair_for_workitem(workitem_id, client_hint=_client_hint())
+    if pair is None:
+        return False
+    return (pair[0].lower(), pair[1].lower()) in _granted_process_pairs()
 
 
 def _wi_cache_key(prefix, workitem_id, domain):
@@ -454,17 +575,48 @@ def _stamp_in_register(rows):
         current_app.logger.error(f"_stamp_in_register: {e}")
 
 
-def _get_workitems_data(args, export_all=False):
+def _session_scope():
+    """The interactive callers' filter scope for _get_workitems_data: every
+    session/permission read the list path needs, gathered in one place so the
+    query body itself stays session-free. The external API builds its own
+    scope from the key's ProcessList instead (nx_lib/views/api_external.py) --
+    same keys, no session."""
+    prefix = "workitems.filter.process."
+    perms = session.get("permissions", [])
+    allowed = set()
+    for perm in perms:
+        if perm.startswith(prefix):
+            parts = perm.split(".")
+            if len(parts) >= 2:
+                allowed.add(f"{parts[-2]}.{parts[-1]}")
+    return {
+        # compound '<client>.<process>' strings the caller may see
+        "allowed": allowed,
+        "can_docfields": has_permission("workitems.filter.documentfields"),
+        "sensitive_blocked": sensitive_blocked_keys(),
+        "can_status": has_permission("workitems.filter.status"),
+        "can_deleted": has_permission("workitems.filter.status.deleted"),
+        "can_stage": has_permission("workitems.filter.stage"),
+        "can_search_id": has_permission("workitems.filter.workitemid"),
+        "can_dates": has_permission("workitems.filter.datetime"),
+        # remember the process selection in the session (overview UI state)
+        "persist_selection": True,
+        # stamp MS02 pid/in_register onto rows (reads session twice internally)
+        "stamp_register": True,
+    }
+
+
+def _get_workitems_data(args, export_all=False, scope=None):
+    if scope is None:
+        scope = _session_scope()
     page = args.get("page", 1, type=int)
     search_term = args.get("search", "").strip()
     status = args.get("status", "")
-    tag_filter = args.get("tag", "").strip()
+    stage = args.get("stage", "")
     start_date_str = args.get("startDate", "")
     end_date_str = args.get("endDate", "")
     start_date = datetime.fromisoformat(start_date_str) if start_date_str else None
     end_date = datetime.fromisoformat(end_date_str) if end_date_str else None
-    priority = args.get("priority", "")
-    assigned_user = args.get("assignedUser", "")
     if export_all:
         per_page = EXPORT_MAX_ROWS
         offset = 0
@@ -475,31 +627,27 @@ def _get_workitems_data(args, export_all=False):
         offset = (page - 1) * per_page
     activity_instances_to_ignore = get_activity_instances_to_ignore()
 
-    process_name = args.get("prcfW", "all")
-    session["process_name_workitemOverview"] = process_name
+    allowed_processes_set = scope["allowed"]
 
-    prefix = "workitems.filter.process."
-    perms = session.get("permissions", [])
+    # "all" or a comma-joined selection (issue #150).
+    process_name, target_processes = normalize_process_selection(
+        args.get("prcfW", "all"), allowed_processes_set
+    )
+    if scope["persist_selection"]:
+        session["process_name_workitemOverview"] = process_name
 
-    allowed_processes_set = set()
-    for perm in perms:
-        if perm.startswith(prefix):
-            parts = perm.split(".")
-            if len(parts) >= 2:
-                allowed_processes_set.add(f"{parts[-2]}.{parts[-1]}")
-
-    target_processes = []
-    if process_name == "all":
-        target_processes = list(allowed_processes_set)
-    elif process_name in allowed_processes_set:
-        target_processes = [process_name]
-
-    process_params, client_params = prepare_process_selection_lists(
-        prefix=prefix, process_name=process_name
+    # target_processes is already the selection intersected with the allowed
+    # set (normalize_process_selection), so the (client, process) pairs derive
+    # from it directly -- equivalent to the former session-reading
+    # prepare_process_selection_lists call, but scope-driven.
+    client_process_pairs = sorted(
+        {(p.split(".")[0], p.split(".")[-1]) for p in target_processes if "." in p}
     )
 
     docfields = args.getlist("docfield")
     docvalues = args.getlist("docvalue")
+    docops = args.getlist("docop")
+    doccombs = args.getlist("doccomb")
 
     # Doc-field search is pre-resolved (against SearchConfig -> StatisticsDB) into
     # a single intersected id allow-set for the SQL Server source. None = no
@@ -507,9 +655,9 @@ def _get_workitems_data(args, export_all=False):
     docfield_ids = None
     ms02_docfield_ids = None
 
-    if has_permission("workitems.filter.documentfields") and target_processes:
+    if scope["can_docfields"] and target_processes:
         valid_db_columns = get_valid_search_columns()
-        blocked_docfields = sensitive_blocked_keys()
+        blocked_docfields = scope["sensitive_blocked"]
 
         conn_nex = None
         cursor_nex = None
@@ -517,25 +665,44 @@ def _get_workitems_data(args, export_all=False):
             conn_nex = engine_nexora_db.raw_connection()
             cursor_nex = conn_nex.cursor()
 
-            for docfield, docvalue in zip(docfields, docvalues, strict=False):
+            for pair_idx, (docfield, docvalue) in enumerate(
+                zip(docfields, docvalues, strict=False)
+            ):
                 docfield = (docfield or "").lower().strip()
                 docvalue = (docvalue or "").strip()
 
-                if not docvalue or not docfield:
+                if not docvalue:
                     continue
 
-                target_config_col = f"col_{docfield}"
-                if target_config_col not in valid_db_columns:
-                    continue
+                if docfield:
+                    target_cols = [f"col_{docfield}"]
+                    if target_cols[0] not in valid_db_columns:
+                        continue
+                    if docfield in blocked_docfields:
+                        continue
+                else:
+                    # Value-first search (issue #148): no field picked -> OR the
+                    # value across every permitted, non-sensitive field. The
+                    # UNION below already ORs across configs, so widening it to
+                    # multiple columns keeps the same shape.
+                    target_cols = [
+                        c
+                        for c in valid_db_columns
+                        if c.removeprefix("col_") not in blocked_docfields
+                    ]
+                    if not target_cols:
+                        continue
 
-                if docfield in blocked_docfields:
-                    continue
+                op_sql, op_param = DOCFIELD_OPS[_docfield_op(docops, pair_idx)]
 
                 placeholders = ",".join(["?"] * len(target_processes))
+                # target_cols come from get_valid_search_columns() (whitelist) --
+                # safe to interpolate.
+                non_null = " OR ".join(f"{c} IS NOT NULL" for c in target_cols)
                 query = f"""
-                    SELECT ProcessName, TableName, TableAlias, JoinCondition, TimeFilter, {target_config_col}
+                    SELECT ProcessName, TableName, TableAlias, JoinCondition, TimeFilter, {", ".join(target_cols)}
                     FROM SearchConfig
-                    WHERE {target_config_col} IS NOT NULL
+                    WHERE ({non_null})
                     AND ClientCode = 'default'
                     AND ProcessName IN ({placeholders})
                 """
@@ -543,68 +710,71 @@ def _get_workitems_data(args, export_all=False):
 
                 if not configs:
                     # Field unmapped for every targeted default process -> this
-                    # source cannot match the filter -> force zero rows. None
-                    # here would let the SQL Server source run unconstrained
-                    # and bleed unfiltered rows into a cross-source search.
-                    docfield_ids = set()
-                    break
+                    # pair cannot match here -> force zero rows for THIS pair.
+                    # No early break (an OR-joined later pair may still widen
+                    # the result); the fold below preserves AND semantics.
+                    pair_ids = set()
+                else:
+                    id_parts = []
+                    id_params = []
+                    for config in configs:
+                        tbl = config.TableName
+                        alias = config.TableAlias
+                        time_filter = config.TimeFilter
 
-                id_parts = []
-                id_params = []
-                for config in configs:
-                    tbl = config.TableName
-                    alias = config.TableAlias
-                    db_column = getattr(config, target_config_col)
-                    time_filter = config.TimeFilter
-                    safe_col = f"CAST({alias}.{db_column} AS NVARCHAR(MAX))"
+                        id_col = None
+                        for part in re.split(r"\s*=\s*", (config.JoinCondition or "").strip()):
+                            if re.match(rf"^{re.escape(alias)}\.\w+$", part.strip(), re.IGNORECASE):
+                                id_col = part.strip()
+                                break
 
-                    id_col = None
-                    for part in re.split(r"\s*=\s*", (config.JoinCondition or "").strip()):
-                        if re.match(rf"^{re.escape(alias)}\.\w+$", part.strip(), re.IGNORECASE):
-                            id_col = part.strip()
-                            break
+                        if not id_col:
+                            current_app.logger.warning(
+                                f"Could not extract ID col from JoinCondition: {config.JoinCondition}"
+                            )
+                            continue
 
-                    if not id_col:
-                        current_app.logger.warning(
-                            f"Could not extract ID col from JoinCondition: {config.JoinCondition}"
-                        )
-                        continue
+                        for target_config_col in target_cols:
+                            db_column = getattr(config, target_config_col)
+                            if not db_column:
+                                continue
+                            safe_col = f"CAST({alias}.{db_column} AS NVARCHAR(MAX))"
+                            id_parts.append(f"""
+                                SELECT DISTINCT {id_col} AS id
+                                FROM {tbl} {alias}
+                                WHERE {safe_col} COLLATE DATABASE_DEFAULT {op_sql} ?
+                                AND {time_filter}
+                            """)
+                            id_params.append(op_param(docvalue))
 
-                    id_parts.append(f"""
-                        SELECT DISTINCT {id_col} AS id
-                        FROM {tbl} {alias}
-                        WHERE {safe_col} COLLATE DATABASE_DEFAULT LIKE ?
-                        AND {time_filter}
-                    """)
-                    id_params.append(f"%{docvalue}%")
+                    if not id_parts:
+                        continue  # mapping rows exist but unusable -> tolerant skip
 
-                if not id_parts:
-                    continue
+                    stat_conn = None
+                    try:
+                        stat_conn = engine_statistics_db.raw_connection()
+                        stat_cur = stat_conn.cursor()
+                        union_sql = " UNION ALL ".join(id_parts)
+                        stat_cur.execute(f"SELECT DISTINCT id FROM ({union_sql}) t", id_params)
+                        matching_ids = [row[0] for row in stat_cur.fetchall()]
+                    except Exception as e:
+                        current_app.logger.error(f"Error pre-fetching docfield IDs: {e}")
+                        matching_ids = None
+                    finally:
+                        if stat_conn:
+                            stat_conn.close()
 
-                stat_conn = None
-                try:
-                    stat_conn = engine_statistics_db.raw_connection()
-                    stat_cur = stat_conn.cursor()
-                    union_sql = " UNION ALL ".join(id_parts)
-                    stat_cur.execute(f"SELECT DISTINCT id FROM ({union_sql}) t", id_params)
-                    matching_ids = [row[0] for row in stat_cur.fetchall()]
-                except Exception as e:
-                    current_app.logger.error(f"Error pre-fetching docfield IDs: {e}")
-                    matching_ids = None
-                finally:
-                    if stat_conn:
-                        stat_conn.close()
-
-                if matching_ids is None:
                     # StatisticsDB error -> this pair cannot be checked. Fail
-                    # CLOSED (zero SQL Server rows), never unconstrained.
-                    docfield_ids = set()
-                    break
-                if not matching_ids:
-                    docfield_ids = set()  # a pair matched nothing -> whole result empty
-                    break
-                pair_ids = set(matching_ids)
-                docfield_ids = pair_ids if docfield_ids is None else (docfield_ids & pair_ids)
+                    # CLOSED for the pair (empty set), never unconstrained.
+                    pair_ids = set() if matching_ids is None else set(matching_ids)
+
+                comb = _docfield_comb(doccombs, pair_idx)
+                if docfield_ids is None:
+                    docfield_ids = pair_ids
+                elif comb == "or":
+                    docfield_ids = docfield_ids | pair_ids
+                else:
+                    docfield_ids = docfield_ids & pair_ids
 
         except Exception as e:
             current_app.logger.error(f"Error in docfield pre-fetch block: {e}")
@@ -621,68 +791,99 @@ def _get_workitems_data(args, export_all=False):
     # so a mixed default+MS02 request never cross-shrinks. Guarded by the same
     # permission + target_processes; when the engine is absent this block is
     # skipped and the fail-closed guard below forces zero MS02 rows.
-    if (
-        has_permission("workitems.filter.documentfields")
-        and target_processes
-        and engine_ms02_docfields_pg is not None
-    ):
+    if scope["can_docfields"] and target_processes and engine_ms02_docfields_pg is not None:
         valid_db_columns = get_valid_search_columns()
-        blocked_docfields = sensitive_blocked_keys()
+        blocked_docfields = scope["sensitive_blocked"]
         conn_nex2 = None
         cursor_nex2 = None
         try:
             conn_nex2 = engine_nexora_db.raw_connection()
             cursor_nex2 = conn_nex2.cursor()
             pairs = []
-            for docfield, docvalue in zip(docfields, docvalues, strict=False):
+            for pair_idx, (docfield, docvalue) in enumerate(
+                zip(docfields, docvalues, strict=False)
+            ):
                 docfield = (docfield or "").lower().strip()
                 docvalue = (docvalue or "").strip()
-                if not docfield or not docvalue:
+                if not docvalue:
                     continue
-                target_config_col = f"col_{docfield}"
-                # Whitelist the column name (same guard the default path uses)
-                # before interpolating it -- blocks injection via `docfield`.
-                if target_config_col not in valid_db_columns:
-                    continue
-
-                if docfield in blocked_docfields:
-                    continue
+                if docfield:
+                    # Whitelist the column name (same guard the default path uses)
+                    # before interpolating it -- blocks injection via `docfield`.
+                    target_cols = [f"col_{docfield}"]
+                    if target_cols[0] not in valid_db_columns:
+                        continue
+                    if docfield in blocked_docfields:
+                        continue
+                else:
+                    # Value-first search (issue #148): no field picked -> specs
+                    # spanning every permitted column; the resolver ORs specs
+                    # within a pair, so this is OR-across-fields for free.
+                    target_cols = [
+                        c
+                        for c in valid_db_columns
+                        if c.removeprefix("col_") not in blocked_docfields
+                    ]
+                    if not target_cols:
+                        continue
                 placeholders = ",".join(["?"] * len(target_processes))
+                non_null = " OR ".join(f"{c} IS NOT NULL" for c in target_cols)
                 cursor_nex2.execute(
-                    f"SELECT TableName, TableAlias, JoinCondition, TimeFilter, {target_config_col} "
+                    f"SELECT TableName, TableAlias, JoinCondition, TimeFilter, {', '.join(target_cols)} "
                     f"FROM SearchConfig "
-                    f"WHERE {target_config_col} IS NOT NULL "
+                    f"WHERE ({non_null}) "
                     f"AND ClientCode = 'ms02' "
                     f"AND ProcessName IN ({placeholders})",
                     target_processes,
                 )
-                # Each ms02 row maps this docfield to a COLUMN in a wide statistik
+                # Each ms02 row maps a docfield to a COLUMN in a wide statistik
                 # table (col_<field> = the column name); build one columnar spec
-                # per row (rows for this docfield are OR'd in the resolver).
+                # per (row, column) (specs within a pair are OR'd in the resolver).
                 config_rows = cursor_nex2.fetchall()
                 if not config_rows:
                     # Field unmapped for every targeted ms02 process -> this
-                    # source cannot match the filter -> force zero MS02 rows
-                    # (mirrors the default leg above). None here let the
-                    # Postgres source run unconstrained and flood a cross-
-                    # source doc-field search with every MS02 workitem.
-                    ms02_docfield_ids = set()
-                    pairs = []
-                    break
+                    # pair cannot match here -> forced-empty pair (empty specs;
+                    # the resolver folds it as set()). No early break (mirrors
+                    # the default leg): an OR-joined later pair may still widen.
+                    pairs.append(
+                        (
+                            [],
+                            docvalue,
+                            _docfield_op(docops, pair_idx),
+                            _docfield_comb(doccombs, pair_idx),
+                        )
+                    )
+                    continue
                 specs = []
                 for r in config_rows:
-                    table_name, alias, join_cond, time_filter, field_col = r
-                    if not (table_name and field_col):
+                    if not r.TableName:
                         continue
-                    id_col = _ms02_id_column(join_cond, alias)
+                    id_col = _ms02_id_column(r.JoinCondition, r.TableAlias)
                     if not id_col:
                         continue
-                    specs.append((table_name, id_col, field_col, time_filter))
+                    for target_config_col in target_cols:
+                        field_col = getattr(r, target_config_col)
+                        if not field_col:
+                            continue
+                        specs.append((r.TableName, id_col, field_col, r.TimeFilter))
                 if not specs:
                     continue  # mapping rows exist but unusable -> tolerant no-constraint
-                pairs.append((specs, docvalue))
+                pairs.append(
+                    (
+                        specs,
+                        docvalue,
+                        _docfield_op(docops, pair_idx),
+                        _docfield_comb(doccombs, pair_idx),
+                    )
+                )
             if pairs:
-                ms02_docfield_ids = resolve_ms02_docfield_ids(engine_ms02_docfields_pg, pairs)
+                if any(entry[0] for entry in pairs):
+                    ms02_docfield_ids = resolve_ms02_docfield_ids(engine_ms02_docfields_pg, pairs)
+                else:
+                    # Every active pair is unmapped for ms02 -> zero MS02 rows
+                    # without a resolver round-trip (also keeps the "resolver
+                    # must not run without mapping rows" contract).
+                    ms02_docfield_ids = set()
         except Exception as e:
             current_app.logger.error(f"Error in MS02 docfield pre-fetch block: {e}")
             ms02_docfield_ids = None
@@ -699,10 +900,13 @@ def _get_workitems_data(args, export_all=False):
     # constraint" (which floods the result with the source's entire corpus;
     # observed on STAGING 2026-07-20). Sensitive-blocked fields keep their
     # designed "silently ignored" semantics and do not count as active.
-    if has_permission("workitems.filter.documentfields") and target_processes:
-        _blocked = sensitive_blocked_keys()
+    if scope["can_docfields"] and target_processes:
+        _blocked = scope["sensitive_blocked"]
+        # A pair is active when it has a value and either no field (value-first
+        # any-field search) or a non-sensitive field.
         _active = any(
-            (f or "").strip() and (v or "").strip() and (f or "").lower().strip() not in _blocked
+            (v or "").strip()
+            and (not (f or "").strip() or (f or "").lower().strip() not in _blocked)
             for f, v in zip(docfields, docvalues, strict=False)
         )
         if _active:
@@ -712,32 +916,28 @@ def _get_workitems_data(args, export_all=False):
                 ms02_docfield_ids = set()
 
     status_map = {"Ready": 0, "In Progress": 1, "Done": 5}
+    # Soft-deleted workitems are hidden from every other view; asking for them by
+    # name is the ONLY way to see them, and only for holders of the internal
+    # permission. Without it "Deleted" maps to None -> the unfiltered query, which
+    # still carries `Status <> 2`, so an unauthorized caller cannot reach them.
+    if scope["can_deleted"]:
+        status_map["Deleted"] = 2
     filt = WorkitemFilter(
-        process_names=process_params,
-        client_names=client_params,
+        client_process_pairs=client_process_pairs,
         activity_ignore_csv=activity_instances_to_ignore,
-        status_code=status_map.get(status)
-        if (status and has_permission("workitems.filter.status"))
-        else None,
-        search_id=search_term
-        if (search_term and has_permission("workitems.filter.workitemid"))
-        else None,
-        start_date=start_date
-        if (start_date and has_permission("workitems.filter.datetime"))
-        else None,
-        end_date=end_date if (end_date and has_permission("workitems.filter.datetime")) else None,
-        priority=priority if (priority and has_permission("workitems.filter.priority")) else None,
-        assigned_user=assigned_user
-        if (assigned_user and has_permission("workitems.filter.assignedUser"))
-        else None,
-        tag=tag_filter if (tag_filter and has_permission("workitems.filter.tag")) else None,
+        status_code=status_map.get(status) if (status and scope["can_status"]) else None,
+        stage=stage if (stage in WORKITEM_STAGES and scope["can_stage"]) else None,
+        search_id=search_term if (search_term and scope["can_search_id"]) else None,
+        start_date=start_date if (start_date and scope["can_dates"]) else None,
+        end_date=end_date if (end_date and scope["can_dates"]) else None,
         docfields=docfields or [],  # raw pairs kept for autocomplete only
         docvalues=docvalues or [],
         docfield_ids=docfield_ids,  # StatisticsDB-resolved -> SqlServerSource only
         ms02_docfield_ids=ms02_docfield_ids,  # MS02 doc-field DB-resolved -> PostgresSource
     )
     rows, total_items, degraded = fetch_merged_page(filt, offset, per_page)
-    _stamp_in_register(rows)
+    if scope["stamp_register"]:
+        _stamp_in_register(rows)
     workitems_list = rows
 
     total_pages = math.ceil(total_items / per_page) if per_page else 0
@@ -753,6 +953,117 @@ def _get_workitems_data(args, export_all=False):
     }
 
 
+def _docfield_values_all_fields(target_processes, q):
+    """Value-first mode of /api/docfield_values (issue #148): no field picked ->
+    labeled suggestions ``[{value, field}]`` across every permitted,
+    non-sensitive field, so the UI can show which field a value lives in and
+    lock the pair on pick. The field-specific path keeps its flat string list."""
+    blocked = sensitive_blocked_keys()
+    target_cols = [c for c in get_valid_search_columns() if c.removeprefix("col_") not in blocked]
+    if not target_cols:
+        return jsonify([])
+
+    # Cache key includes the column set: users with/without the sensitive-fields
+    # perm must not share entries.
+    cache_key = (
+        f"docfield_vals_any_{'_'.join(sorted(target_processes))}_{'-'.join(sorted(target_cols))}"
+    )
+    try:
+        pairs = cache.get(cache_key)
+        if pairs is None:
+            conn = None
+            cur = None
+            try:
+                conn = engine_nexora_db.raw_connection()
+                cur = conn.cursor()
+                placeholders = ",".join("?" for _ in target_processes)
+                non_null = " OR ".join(f"{c} IS NOT NULL" for c in target_cols)
+                configs = cur.execute(
+                    f"SELECT * FROM SearchConfig WHERE ({non_null}) "
+                    f"AND ProcessName IN ({placeholders})",
+                    list(target_processes),
+                ).fetchall()
+            finally:
+                if cur:
+                    cur.close()
+                if conn:
+                    conn.close()
+
+            default_parts = []
+            ms02_specs = []  # (table, column, field_key, suggestion_time_filter)
+            for c in configs:
+                client = getattr(c, "ClientCode", "default") or "default"
+                for col in target_cols:
+                    col_val = getattr(c, col, None)
+                    if not col_val or not c.TableName:
+                        continue
+                    fkey = col.removeprefix("col_")
+                    if client == "ms02":
+                        if _MS02_IDENT.match(col_val):
+                            ms02_specs.append((c.TableName, col_val, fkey, c.SuggestionTimeFilter))
+                    else:
+                        safe_col = f"CAST({col_val} AS NVARCHAR(MAX))"
+                        # fkey derives from the whitelisted col_* names -- safe
+                        # to inline as a literal.
+                        default_parts.append(f"""
+                            SELECT {safe_col} COLLATE DATABASE_DEFAULT AS Val, '{fkey}' AS FieldKey
+                            FROM [{DB_STATISTICS}].{c.TableName}
+                            WHERE {col_val} IS NOT NULL
+                              AND {safe_col} <> ''
+                              AND {c.SuggestionTimeFilter}
+                        """)
+
+            vals = set()
+            if default_parts:
+                stat_conn = None
+                try:
+                    union_sql = " UNION ALL ".join(default_parts)
+                    stat_conn = engine_statistics_db.raw_connection()
+                    stat_cur = stat_conn.cursor()
+                    stat_cur.execute(
+                        f"SELECT DISTINCT TOP 500 Val, FieldKey FROM ({union_sql}) t ORDER BY Val"
+                    )
+                    vals.update((r[0], r[1]) for r in stat_cur.fetchall())
+                except Exception as e:
+                    current_app.logger.error(f"/api/docfield_values any-field default error: {e}")
+                finally:
+                    if stat_conn:
+                        stat_conn.close()
+
+            if ms02_specs and engine_ms02_docfields_pg is not None:
+                df_conn = None
+                try:
+                    df_conn = engine_ms02_docfields_pg.raw_connection()
+                    df_cur = df_conn.cursor()
+                    for table, col, fkey, stf in ms02_specs:
+                        sql = (
+                            f'SELECT DISTINCT "{col}"::text AS v FROM {table} '
+                            f'WHERE "{col}"::text IS NOT NULL AND "{col}"::text <> %s'
+                        )
+                        if stf:
+                            sql += f" AND {stf}"
+                        sql += " ORDER BY v LIMIT 500"
+                        df_cur.execute(sql, [""])
+                        vals.update((r[0], fkey) for r in df_cur.fetchall())
+                    df_cur.close()
+                except Exception as e:
+                    current_app.logger.error(f"/api/docfield_values any-field ms02 error: {e}")
+                finally:
+                    if df_conn:
+                        df_conn.close()
+
+            pairs = sorted(vals)
+            cache.set(cache_key, pairs, timeout=600)
+
+        q_lower = q.lower()
+        return jsonify(
+            [{"value": v, "field": f} for v, f in pairs if not q or q_lower in v.lower()][:15]
+        )
+    except Exception as e:
+        current_app.logger.error(f"/api/docfield_values any-field error: {e}")
+        return jsonify({"error": _("Could not fetch values")}), 500
+
+
 # ---------------------------- routes ---------------------------- #
 
 
@@ -764,28 +1075,50 @@ def api_docfield_values():
     process = request.args.get("process", "all")
     field = (request.args.get("field", "") or "").lower().strip()
     q = (request.args.get("q", "") or "").strip()
-    if not field:
-        return jsonify([])
 
     target_col_name = f"col_{field}"
     # Whitelist the column name before interpolating it into the SearchConfig SQL
     # below (the same guard the workitems search path uses) -- `field` is a raw
     # request arg, so without this it is a SQL-injection vector against NexoraDB.
-    if target_col_name not in get_valid_search_columns():
+    # No field at all = value-first mode, handled after the process gating.
+    if field:
+        if target_col_name not in get_valid_search_columns():
+            return jsonify([])
+        if field in sensitive_blocked_keys():
+            return jsonify([])
+
+    # Fail-closed process gating: `process` is a caller-supplied arg and must
+    # not be trusted as-is -- a caller holding only the blanket
+    # workitems.filter.documentfields perm could otherwise pull value
+    # suggestions from any process, including ones they hold no
+    # workitems.filter.process.<p> grant for. Reuse _ms02_target_processes(),
+    # the existing workitems.filter.process.* allow-list helper, rather than
+    # re-deriving it; "all" narrows to the caller's own allowed set rather
+    # than every process configured in SearchConfig.
+    allowed_processes_set = set(_ms02_target_processes())
+
+    # `process` is "all" or a comma-joined multi-selection (issue #150);
+    # unknown/ungranted entries are dropped by normalize_process_selection.
+    target_processes = normalize_process_selection(process, allowed_processes_set)[1]
+
+    if not target_processes:
         return jsonify([])
-    if field in sensitive_blocked_keys():
-        return jsonify([])
+
+    if not field:
+        return _docfield_values_all_fields(target_processes, q)
+
     conn = None
     cur = None
     try:
         conn = engine_nexora_db.raw_connection()
         cur = conn.cursor()
 
-        query = f"SELECT * FROM SearchConfig WHERE {target_col_name} IS NOT NULL"
-        db_params = []
-        if process != "all":
-            query += " AND ProcessName = ?"
-            db_params.append(process)
+        placeholders = ",".join("?" for _ in target_processes)
+        query = (
+            f"SELECT * FROM SearchConfig WHERE {target_col_name} IS NOT NULL "
+            f"AND ProcessName IN ({placeholders})"
+        )
+        db_params = list(target_processes)
 
         configs = cur.execute(query, db_params).fetchall()
 
@@ -806,7 +1139,7 @@ def api_docfield_values():
         if ms02_configs:
             if engine_ms02_docfields_pg is None:
                 return jsonify([])
-            ms02_cache_key = f"docfield_vals_ms02_{process}_{field}"
+            ms02_cache_key = f"docfield_vals_ms02_{'_'.join(sorted(target_processes))}_{field}"
             all_vals = cache.get(ms02_cache_key)
             if all_vals is None:
                 df_conn = None
@@ -840,7 +1173,7 @@ def api_docfield_values():
             q_lower = q.lower()
             return jsonify([v for v in all_vals if not q or q_lower in v.lower()][:15])
 
-        cache_key = f"docfield_vals_{process}_{field}"
+        cache_key = f"docfield_vals_{'_'.join(sorted(target_processes))}_{field}"
         all_vals = cache.get(cache_key)
 
         if all_vals is None:
@@ -936,6 +1269,25 @@ def export_workitems_csv():
             if sep and client_part and wid_part.isdigit():
                 specific_ids.add((client_part, int(wid_part)))
 
+    # D-CSVLIM: server-side enforcement of the heavy-include selection cap
+    # (see EXPORT_HEAVY_INCLUDE_MAX_IDS above) -- an include= request must
+    # name a selection of at most that many compound ids, never an absent or
+    # oversized one.
+    if (include_set & {"fields", "history", "images"}) and (
+        not specific_ids or len(specific_ids) > EXPORT_HEAVY_INCLUDE_MAX_IDS
+    ):
+        return (
+            jsonify(
+                {
+                    "error": _(
+                        "Exporting fields, history, or images requires selecting "
+                        "10 or fewer workitems."
+                    )
+                }
+            ),
+            400,
+        )
+
     try:
         result = _get_workitems_data(request.args, export_all=True)
         workitems = result.get("workitems", [])
@@ -990,6 +1342,14 @@ def export_workitems_csv():
             if _include_fields or _include_images:
                 try:
                     urls, extensions = [], []
+                    # Read-through only: this path never fetches with
+                    # with_tables=True (see get_extensions_urls_fields), so its
+                    # payload lacks field_sources/table_sources. Writing that
+                    # reduced shape under the media_info key would poison the
+                    # next api_get_media_info request for this workitem --
+                    # the source-highlight overlay would go silently empty. A
+                    # cache hit (populated by the detail panel) still short-
+                    # circuits the Octo call; a miss is simply not cached here.
                     cached = cache.get(_wi_cache_key("media_info", wid, domain))
                     if cached:
                         detail["fields"] = cached.get("fields", {})
@@ -1001,10 +1361,6 @@ def export_workitems_csv():
                                 workitemdata, document_id, domain
                             )
                             detail["fields"] = fields
-                            cache.set(
-                                _wi_cache_key("media_info", wid, domain),
-                                {"fields": fields, "media_count": len(urls)},
-                            )
                             if urls:
                                 cache.set(
                                     _wi_cache_key("media_data", wid, domain),
@@ -1076,6 +1432,7 @@ def export_workitems_csv():
         return (client, wid), detail
 
     details_map = {}
+    any_timed_out = False
     if include_fields or include_history or include_images:
         max_workers = min(10, len(workitems))
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -1086,14 +1443,39 @@ def export_workitems_csv():
                 )
                 for w in workitems
             }
-            for future in as_completed(futures, timeout=120):
-                try:
-                    key, detail = future.result()
-                    details_map[key] = detail
-                except Exception as e:
-                    key = futures[future]
-                    _app.logger.error(f"Export: future error for {key}: {e}")
-                    details_map[key] = {"fields": {}, "history": [], "images": []}
+            try:
+                for future in as_completed(futures, timeout=120):
+                    try:
+                        key, detail = future.result()
+                        details_map[key] = detail
+                    except Exception as e:
+                        key = futures[future]
+                        _app.logger.error(f"Export: future error for {key}: {e}")
+                        details_map[key] = {"fields": {}, "history": [], "images": []}
+            except concurrent.futures.TimeoutError:
+                # as_completed() itself raises this at the loop's iteration
+                # boundary once the 120s budget elapses with futures still
+                # pending -- distinct from a per-future error, which is
+                # already handled above. Cancelling is best-effort (threads
+                # already running won't actually stop); we don't wait for it.
+                # Whatever finished stays in details_map; the rest get an
+                # explicit timed-out marker so the export still degrades to
+                # a valid, honest CSV instead of a 500.
+                pending = [key for key in futures.values() if key not in details_map]
+                _app.logger.error(
+                    f"Export: as_completed timed out after 120s with "
+                    f"{len(pending)} workitem(s) still pending: {pending}"
+                )
+                any_timed_out = True
+                for future, key in futures.items():
+                    if key not in details_map:
+                        future.cancel()
+                        details_map[key] = {
+                            "fields": {},
+                            "history": [],
+                            "images": [],
+                            "timed_out": True,
+                        }
 
     if include_fields:
         _strip_export_fields(details_map, sensitive_blocked_tokens())
@@ -1115,8 +1497,22 @@ def export_workitems_csv():
                 len(details_map.get((w.get("client"), w["workitemid"]), {}).get("images", [])),
             )
 
-    priority_label = {3: "High", 2: "Medium", 1: "Low"}
-    headers = ["Workitem ID", "Status", "Stage", "Last Movement At", "Priority", "Tags"]
+    # D-CSVTIMEOUT: all_field_keys/max_images are derived from whichever rows
+    # actually completed before the as_completed() timeout above. If the 120s
+    # budget elapsed before ANY future completed (a real Octo-outage shape --
+    # EXPORT_HEAVY_INCLUDE_MAX_IDS caps heavy exports to <=10 rows, so "nothing
+    # finished in time" is plausible, not just theoretical), both end up
+    # empty/zero and the CSV carries no include= columns at all -- the
+    # per-row EXPORT_TIMEOUT_MARKER has nowhere to go, since there are no
+    # columns to put it in. That makes a timeout-degraded export
+    # indistinguishable from a legitimate "these workitems have no
+    # fields/images" result. Flag it so it can be surfaced the same way
+    # row-truncation already is, below.
+    timeout_degraded_headers = any_timed_out and (
+        (include_fields and not all_field_keys) or (include_images and max_images == 0)
+    )
+
+    headers = ["Workitem ID", "Status", "Stage", "Last Movement At"]
     if include_fields:
         headers.extend(all_field_keys)
     if include_history:
@@ -1143,22 +1539,35 @@ def export_workitems_csv():
             w.get("status", ""),
             w.get("current_stage", ""),
             date_str,
-            priority_label.get(w.get("priority", 0), ""),
-            "; ".join(t["name"] for t in (w.get("tags") or [])),
         ]
+        # Rows still pending when as_completed() hit its timeout carry an
+        # explicit marker in every include= column rather than blank data
+        # that would be indistinguishable from "no data found".
+        timed_out = detail.get("timed_out", False)
         if include_fields:
-            fields = detail["fields"]
-            row.extend(fields.get(k, "") for k in all_field_keys)
+            if timed_out:
+                row.extend(EXPORT_TIMEOUT_MARKER for _ in all_field_keys)
+            else:
+                fields = detail["fields"]
+                row.extend(fields.get(k, "") for k in all_field_keys)
         if include_history:
-            history = sorted(
-                detail.get("history", []), key=lambda h: h.get("Step", 0), reverse=True
-            )
-            row.append(
-                "; ".join(f"Step {h['Step']}: {h['Activity']} @ {h['DateTime']}" for h in history)
-            )
+            if timed_out:
+                row.append(EXPORT_TIMEOUT_MARKER)
+            else:
+                history = sorted(
+                    detail.get("history", []), key=lambda h: h.get("Step", 0), reverse=True
+                )
+                row.append(
+                    "; ".join(
+                        f"Step {h['Step']}: {h['Activity']} @ {h['DateTime']}" for h in history
+                    )
+                )
         if include_images:
-            images = detail.get("images", [])
-            row.extend(images[i] if i < len(images) else "" for i in range(max_images))
+            if timed_out:
+                row.extend(EXPORT_TIMEOUT_MARKER for _ in range(max_images))
+            else:
+                images = detail.get("images", [])
+                row.extend(images[i] if i < len(images) else "" for i in range(max_images))
         writer.writerow(row)
 
     csv_content = output.getvalue()
@@ -1168,10 +1577,19 @@ def export_workitems_csv():
             f"\r\n# {_('TRUNCATED')}: "
             f"{_('exported')} {len(workitems)} / {matched_total} {_('matching workitems')}\r\n"
         )
+    if timeout_degraded_headers:
+        # Never let a timeout-degraded export (zero completed rows) look like
+        # a legitimate zero-fields/zero-images result.
+        csv_content += (
+            f"\r\n# {_('EXPORT TIMED OUT')}: "
+            f"{_('no fields or images completed before the time limit; this is not a zero-result export')}\r\n"
+        )
     response = make_response(csv_content)
     response.headers["Content-Type"] = "text/csv; charset=utf-8"
     if truncated:
         response.headers["X-Export-Truncated"] = f"{len(workitems)}/{matched_total}"
+    if timeout_degraded_headers:
+        response.headers["X-Export-Timeout"] = "true"
     filename = f'workitems_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
     response.headers["Content-Disposition"] = f"attachment; filename={filename}"
     return response
@@ -1191,21 +1609,16 @@ def workitems_overview():
 
         status_perm = has_permission("workitems.filter.status")
         status = request.args.get("status", "") if status_perm else None
+        deleted_status_perm = status_perm and has_permission("workitems.filter.status.deleted")
 
-        tag_filter_perm = has_permission("workitems.filter.tag")
-        tag_filter = request.args.get("tag", "").strip() if tag_filter_perm else None
+        stage_perm = has_permission("workitems.filter.stage")
+        stage = request.args.get("stage", "") if stage_perm else None
 
         datetime_perm = has_permission("workitems.filter.datetime")
         start_date_str = request.args.get("startDate", "") if datetime_perm else None
         end_date_str = request.args.get("endDate", "") if datetime_perm else None
         start_date = datetime.fromisoformat(start_date_str) if start_date_str else None
         end_date = datetime.fromisoformat(end_date_str) if end_date_str else None
-
-        priority_perm = has_permission("workitems.filter.priority")
-        priority = request.args.get("priority", "") if priority_perm else None
-
-        assigned_user_perm = has_permission("workitems.filter.assignedUser")
-        assigned_user = request.args.get("assignedUser", "") if assigned_user_perm else None
 
         perms = session.get("permissions", [])
         prefix = "workitems.filter.process."
@@ -1224,16 +1637,12 @@ def workitems_overview():
         doc_fields_values_perm = has_permission("workitems.filter.documentfields")
         docfields = request.args.getlist("docfield") if doc_fields_values_perm else None
         docvalues = request.args.getlist("docvalue") if doc_fields_values_perm else None
+        docops = request.args.getlist("docop") if doc_fields_values_perm else None
 
         details_view_perm = has_permission("workitems.details.view")
         details_images_perm = has_permission("workitems.details.view.images")
         details_audit_perm = has_permission("workitems.details.view.audit")
         details_fields_perm = has_permission("workitems.details.view.fields")
-
-        details_set_priority_perm = has_permission("workitems.details.set.priority")
-        details_add_tag_perm = has_permission("workitems.details.add.tag")
-        details_assign_users_perm = has_permission("workitems.details.assign.users")
-        details_add_comment_perm = has_permission("workitems.details.add.comment")
 
         prepared_import_perm = has_permission("workitems.import.preparedaudit")
         ms02_active = "ms02" in CLIENTS and engine_ms02_docfields_pg is not None
@@ -1248,7 +1657,6 @@ def workitems_overview():
         )
         prepared_docs_process_match = process_name in ms02_pdoc_processes
 
-        portal_assigned_users_filter = get_all_portal_users("workitems", "filter.assignedUser")
         return render_template(
             "workitems_overview.html",
             logged_in_user=logged_in_user,
@@ -1256,31 +1664,25 @@ def workitems_overview():
             process_name=process_name,
             search=search_term,
             status=status,
-            tag=tag_filter,
+            stage=stage,
             startDate=start_date,
             endDate=end_date,
-            priority=priority,
-            assignedUser=assigned_user,
-            portal_assignedUsers_filter=portal_assigned_users_filter,
             docfield=docfields[0] if docfields else "",
             docvalue=docvalues[0] if docvalues else "",
+            docop=docops[0] if docops else "contains",
             pageV=page_visibility(),
             allowed_processes=allowed_processes,
             search_term_perm=search_term_perm,
             status_perm=status_perm,
-            tag_filter_perm=tag_filter_perm,
+            deleted_status_perm=deleted_status_perm,
+            stage_perm=stage_perm,
+            workitem_stages=WORKITEM_STAGES,
             datetime_perm=datetime_perm,
-            priority_perm=priority_perm,
-            assigned_user_perm=assigned_user_perm,
             doc_fields_values_perm=doc_fields_values_perm,
             details_view_perm=details_view_perm,
             details_images_perm=details_images_perm,
             details_audit_perm=details_audit_perm,
             details_fields_perm=details_fields_perm,
-            details_set_priority_perm=details_set_priority_perm,
-            details_add_tag_perm=details_add_tag_perm,
-            details_assign_users_perm=details_assign_users_perm,
-            details_add_comment_perm=details_add_comment_perm,
             prepared_import_perm=prepared_import_perm,
             ms02_active=ms02_active,
             prepared_docs_process_match=prepared_docs_process_match,
@@ -1404,21 +1806,10 @@ def import_prepared_audit():
     return jsonify(result), 200
 
 
-@require_permission("workitems.details.view")
-def get_single_workitem(workitemid):
-    if "username" not in session:
-        return jsonify({"error": _("Not authorized")}), 401
-
-    try:
-        tags = single_workitem_tags(workitemid)
-        return jsonify({"workitemid": workitemid, "tags": tags})
-    except Exception as e:
-        current_app.logger.error(f"Failed to fetch single workitem {workitemid}: {e}")
-        return jsonify({"error": _("Could not fetch workitem data")}), 500
-
-
 def api_get_media_info(workitem_id):
     if not has_permission("workitems.details.view"):
+        return jsonify({"error": _("Not authorized")}), 403
+    if not _may_view_workitem(workitem_id):
         return jsonify({"error": _("Not authorized")}), 403
     try:
         can_view_images = has_permission("workitems.details.view.images")
@@ -1487,47 +1878,65 @@ def api_get_media_info(workitem_id):
         # then cached, for the other client's identically numbered workitem.
         client_hint = _client_hint()
         domain = get_domain_for_workitem(workitem_id, client_hint=client_hint)
-        _ck = _wi_cache_key("media_info", workitem_id, domain)
-
-        cached_info = cache.get(_ck)
-        if cached_info:
-            return jsonify(_suppress(cached_info))
-
-        returndata = get_workitemdata_param(workitem_id, domain)
-        if not returndata:
+        response_data = _load_media_info(workitem_id, domain)
+        if response_data is None:
             return jsonify({"error": _("Workitem not found")}), 404
-
-        workitemdata, document_id = returndata
-        extensions, urls, fields, field_sources, table_sources = get_extensions_urls_fields(
-            workitemdata, document_id, domain, with_tables=True
-        )
-
-        media_count = len(urls) if urls else 0
-
-        if media_count > 0:
-            cache.set(
-                _wi_cache_key("media_data", workitem_id, domain),
-                {"extensions": extensions, "urls": urls},
-            )
-
-        response_data = {
-            "workitem_id": workitem_id,
-            "media_count": media_count,
-            "fields": fields,
-            "field_sources": field_sources,
-            "table_sources": table_sources,
-        }
-
-        cache.set(_ck, response_data)
-
         return jsonify(_suppress(response_data))
     except Exception as e:
         print(f"An error occurred in get_media_info: {e}")
         return jsonify({"error": _("Internal Server Error")}), 500
 
 
+def _load_media_info(workitem_id, domain):
+    """Fetch-and-cache core of the detail panel: the FULL (pre-suppression)
+    media_info payload for (workitem_id, domain), from cache or live Octo.
+    Shared by the session UI (api_get_media_info, which applies its
+    per-permission _suppress on top) and the external API detail endpoint
+    (nx_lib/views/api_external.py, which applies its fixed no-sensitive
+    policy). Returns None when the workitem/document can't be loaded --
+    unknown id and runtime-backend failure are indistinguishable at this
+    layer (get_workitemdata_param collapses both to None). Only ever writes
+    the full with-tables shape under the media_info cache key (see the
+    cache-poison warning in export_workitems_csv)."""
+    _ck = _wi_cache_key("media_info", workitem_id, domain)
+
+    cached_info = cache.get(_ck)
+    if cached_info:
+        return cached_info
+
+    returndata = get_workitemdata_param(workitem_id, domain)
+    if not returndata:
+        return None
+
+    workitemdata, document_id = returndata
+    extensions, urls, fields, field_sources, table_sources = get_extensions_urls_fields(
+        workitemdata, document_id, domain, with_tables=True
+    )
+
+    media_count = len(urls) if urls else 0
+
+    if media_count > 0:
+        cache.set(
+            _wi_cache_key("media_data", workitem_id, domain),
+            {"extensions": extensions, "urls": urls},
+        )
+
+    response_data = {
+        "workitem_id": workitem_id,
+        "media_count": media_count,
+        "fields": fields,
+        "field_sources": field_sources,
+        "table_sources": table_sources,
+    }
+
+    cache.set(_ck, response_data)
+    return response_data
+
+
 @require_permission("workitems.details.view.images")
 def api_get_media_raw(workitem_id, media_index):
+    if not _may_view_workitem(workitem_id):
+        return Response(_("Not authorized"), status=403)
     try:
         domain = get_domain_for_workitem(workitem_id, client_hint=_client_hint())
         _ck = _wi_cache_key("media_data", workitem_id, domain)
@@ -1556,7 +1965,7 @@ def api_get_media_raw(workitem_id, media_index):
         if target_extension == ".pdf":
             # PDF media is expanded one slot per page (page in the URL fragment).
             # Rasterise the requested page to JPEG, cached per (workitem, slot).
-            _pdf_cache_key = f"media_raw_pdfpage_{workitem_id}_{media_index}"
+            _pdf_cache_key = _wi_cache_key(f"media_raw_pdfpage_{media_index}", workitem_id, domain)
             cached_jpeg = cache.get(_pdf_cache_key)
             if cached_jpeg is not None:
                 return send_file(
@@ -1579,7 +1988,7 @@ def api_get_media_raw(workitem_id, media_index):
             return send_file(io.BytesIO(jpeg_bytes), mimetype="image/jpeg", as_attachment=False)
 
         if target_extension == ".tif":
-            _tif_cache_key = f"media_raw_tif_{workitem_id}_{media_index}"
+            _tif_cache_key = _wi_cache_key(f"media_raw_tif_{media_index}", workitem_id, domain)
             cached_jpeg = cache.get(_tif_cache_key)
             if cached_jpeg is not None:
                 return send_file(
@@ -1603,13 +2012,21 @@ def api_get_media_raw(workitem_id, media_index):
                 print(f"An error occurred during TIFF conversion: {e}")
                 return _("Failed to process TIFF image"), 500
 
-        raw_media_bytes = get_media(target_url, domain)
         if target_extension == ".jpg":
             mimetype = "image/jpeg"
         elif target_extension == ".png":
             mimetype = "image/png"
         else:
             mimetype = "application/octet-stream"
+
+        # JPG/PNG media streamed straight from Octo, same as the PDF/TIFF
+        # branches above -- cache the raw bytes server-side so a re-opened
+        # detail panel (or a second viewer) doesn't re-fetch from Octo.
+        _img_cache_key = _wi_cache_key(f"media_raw_img_{media_index}", workitem_id, domain)
+        raw_media_bytes = cache.get(_img_cache_key)
+        if raw_media_bytes is None:
+            raw_media_bytes = get_media(target_url, domain)
+            cache.set(_img_cache_key, raw_media_bytes, timeout=3600)
 
         response = make_response(raw_media_bytes)
         response.headers.set("Content-Type", mimetype)
@@ -1622,6 +2039,8 @@ def api_get_media_raw(workitem_id, media_index):
 
 @require_permission("workitems.details.view.audit")
 def get_audithistory(workitem_id):
+    if not _may_view_workitem(workitem_id):
+        return jsonify({"error": _("Not authorized")}), 403
     domain = get_domain_for_workitem(workitem_id, client_hint=_client_hint())
     _cache_key = _wi_cache_key("audithistory", workitem_id, domain)
     cached = cache.get(_cache_key)
@@ -1649,18 +2068,32 @@ def get_audithistory(workitem_id):
                     audit["TimeStamp"]
                 ).strftime("%Y-%m-%d %H:%M:%S")
 
-        complete_array = []
         total_steps = len(unique_activities)
+        activity_ids = list(unique_activities.keys())
+        # get_activity_type_name is memoized, but a cold cache (first time an
+        # activity is seen) still means one Octo round trip per step -- fetch
+        # cold misses concurrently instead of sum-of-latencies.
+        _app = current_app._get_current_object()
 
-        for i, (activity_id, time_stamp) in enumerate(unique_activities.items()):
-            activity_name = get_activity_type_name(activity_id, domain)
+        def _name_for(activity_id):
+            with _app.app_context():
+                return activity_id, get_activity_type_name(activity_id, domain)
 
-            step_info = {
-                "Activity": activity_name,
+        names = {}
+        if activity_ids:
+            with ThreadPoolExecutor(max_workers=min(10, len(activity_ids))) as executor:
+                for future in as_completed(executor.submit(_name_for, aid) for aid in activity_ids):
+                    aid, name = future.result()
+                    names[aid] = name
+
+        complete_array = [
+            {
+                "Activity": names.get(activity_id, "Unknown Activity"),
                 "DateTime": time_stamp,
                 "Step": total_steps - i,
             }
-            complete_array.append(step_info)
+            for i, (activity_id, time_stamp) in enumerate(unique_activities.items())
+        ]
 
         cache.set(_cache_key, complete_array, timeout=1800)
         return jsonify(complete_array)
@@ -1671,397 +2104,9 @@ def get_audithistory(workitem_id):
         return jsonify({"error": f"{_('An unexpected error occurred')}: {e}"}), 500
 
 
-# ---------------------------- collaboration apis ---------------------------- #
-
-
-def get_users_for_mentions():
-    if "username" not in session:
-        return jsonify({"error": _("Not authorized")}), 401
-
-    _all_users = has_permission("admin.interact.users.all")
-    _org = session.get("organizationcode", "")
-    # The comment permission decides whether any users are returned at all, so
-    # it must be part of the key: otherwise a permitted user's cached list was
-    # served to unpermitted callers in the same org.
-    _can_mention = has_permission("workitems.details.add.comment")
-    _cache_key = f"users_mentions_{'all' if _all_users else _org}_c{int(_can_mention)}"
-    cached = cache.get(_cache_key)
-    if cached is not None:
-        return jsonify(cached)
-
-    if not _can_mention:
-        cache.set(_cache_key, [], timeout=900)
-        return jsonify([])
-
-    conn = None
-    cursor = None
-    try:
-        conn = engine_nexora_db.raw_connection()
-        cursor = conn.cursor()
-        if _all_users:
-            cursor.execute("SELECT userID, username, fullname FROM Users")
-        else:
-            cursor.execute(
-                """
-                SELECT userID, username, fullname FROM Users
-                WHERE organizationcode IN ('SYDC', ?) AND accessid not in (1,2)
-                """,
-                _org,
-            )
-        users = [
-            dict(zip([column[0] for column in cursor.description], row, strict=False))
-            for row in cursor.fetchall()
-        ]
-        cache.set(_cache_key, users, timeout=900)
-        return jsonify(users)
-    except Exception as e:
-        current_app.logger.error(f"Failed to fetch users for mentions: {e}")
-        return jsonify({"error": _("Could not fetch users")}), 500
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-
-
-@require_permission("workitems.details.view")
-def get_workitem_interactions(workitemid):
-    if "username" not in session:
-        return jsonify({"error": _("Not authorized")}), 401
-
-    _cache_key = f"interactions_{workitemid}"
-    cached = cache.get(_cache_key)
-    if cached is not None:
-        return jsonify(cached)
-
-    conn = None
-    cursor = None
-    try:
-        conn = engine_nexora_db.raw_connection()
-        cursor = conn.cursor()
-
-        sql_query = """
-            SELECT c.CommentText, c.Timestamp, u.username, u.userID
-            FROM Workitem_Comments c
-            JOIN Users u ON c.UserID = u.userID
-            WHERE c.WorkItemID = ?
-            ORDER BY c.Timestamp ASC
-        """
-        cursor.execute(sql_query, [workitemid])
-        comments_data = cursor.fetchall()
-
-        cursor.execute(
-            """
-            SELECT t.TagID, t.TagName, t.TagColor
-            FROM Workitem_Tags wt
-            JOIN Tags t ON wt.TagID = t.TagID
-            WHERE wt.workitemid = ?
-            """,
-            (workitemid,),
-        )
-        tags_data = cursor.fetchall()
-
-        cursor.execute(
-            "SELECT Priority, AssignedUserID FROM Workitem_Metadata WHERE WorkItemID = ?",
-            (workitemid,),
-        )
-        meta_row = cursor.fetchone()
-
-        if meta_row is None and not comments_data and not tags_data:
-            return jsonify(
-                {
-                    "priority": 0,
-                    "assigneduserid": "None",
-                    "comments": [],
-                    "tags": [],
-                    "message": _("No data found for this workitem."),
-                }
-            ), 200
-
-        priority = meta_row[0] if (meta_row and meta_row[0] is not None) else 0
-        assigneduserid = meta_row[1] if (meta_row and meta_row[1] is not None) else "None"
-        tags = (
-            [{"id": trow.TagID, "name": trow.TagName, "color": trow.TagColor} for trow in tags_data]
-            if tags_data
-            else []
-        )
-
-        comments = []
-        if comments_data:
-            for crow in comments_data:
-                comments.append(
-                    {
-                        "CommentText": crow.CommentText,
-                        "Timestamp": crow.Timestamp.isoformat(),
-                        "username": crow.username,
-                        "userID": crow.userID,
-                        "userIcon": resolve_user_icon_url(crow.userID),
-                    }
-                )
-        result = {
-            "priority": priority,
-            "assigneduserid": assigneduserid,
-            "comments": comments,
-            "tags": tags,
-        }
-        cache.set(_cache_key, result, timeout=600)
-        return jsonify(result)
-    except Exception as e:
-        current_app.logger.error(f"Failed to fetch interactions for workitem {workitemid}: {e}")
-        return jsonify({"error": _("Could not fetch interactions")}), 500
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-
-
-@require_permission("workitems.details.add.comment")
-def add_workitem_comment(workitemid):
-    if "username" not in session:
-        return jsonify({"error": _("Not authorized")}), 401
-
-    data = request.get_json()
-    comment_text = data.get("commentText")
-    if not comment_text:
-        return jsonify({"success": False, "message": _("Comment cannot be empty.")}), 400
-
-    conn = None
-    cursor = None
-    try:
-        conn = engine_nexora_db.raw_connection()
-        cursor = conn.cursor()
-
-        cursor.execute(
-            """
-            INSERT INTO Workitem_Comments (WorkItemID, UserID, CommentText)
-            VALUES (?, ?, ?)
-            """,
-            (workitemid, session["userid"], comment_text),
-        )
-        conn.commit()
-
-        cursor.execute("SELECT TOP 1 CommentID FROM Workitem_Comments ORDER BY CommentID DESC")
-        comment_id = cursor.fetchone()[0]
-
-        mentions = re.findall(r"@(\w+\.\w+)", comment_text)
-        if mentions:
-            placeholders = ",".join("?" for _m in mentions)
-            cursor.execute(
-                f"SELECT userID, username FROM Users WHERE username IN ({placeholders})",
-                mentions,
-            )
-            mentioned_users = cursor.fetchall()
-            for user in mentioned_users:
-                cursor.execute(
-                    "INSERT INTO Comment_Mentions (CommentID, MentionedUserID) VALUES (?, ?)",
-                    (comment_id, user.userID),
-                )
-                notification_link = url_for(
-                    "workitems_overview", search=workitemid, _external=False
-                )
-                create_notification(
-                    user.userID,
-                    f"{session['username']} mentioned you on workitem {workitemid}",
-                    link=notification_link,
-                    icon="fa-at",
-                )
-        conn.commit()
-        cache.delete(f"interactions_{workitemid}")
-        return jsonify({"success": True, "message": _("Comment added.")})
-    except Exception as e:
-        current_app.logger.error(f"Error adding comment for workitem {workitemid}: {e}")
-        return jsonify({"success": False, "message": _("An unexpected error occurred.")}), 500
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-
-
-@require_permission("workitems.details.assign.users")
-def assign_workitem(workitemid):
-    if "username" not in session:
-        return jsonify({"error": _("Not authorized")}), 401
-
-    data = request.get_json()
-    assigned_user_id = data.get("assignedUserID")
-    if assigned_user_id is None:
-        return jsonify({"success": False, "message": _("Invalid assignment.")}), 400
-    elif assigned_user_id == "None":
-        assigned_user_id = None
-    conn = None
-    cursor = None
-    try:
-        conn = engine_nexora_db.raw_connection()
-        cursor = conn.cursor()
-
-        cursor.execute(
-            """
-            MERGE Workitem_Metadata AS target
-            USING (VALUES (?, ?, ?, GETDATE())) AS source (WorkItemID, AssignedUserID, UserID, UpdateTime)
-            ON target.WorkItemID = source.WorkItemID
-            WHEN MATCHED THEN
-                UPDATE SET AssignedUserID = source.AssignedUserID, LastUpdatedByUserID = source.UserID, LastUpdatedAt = source.UpdateTime
-            WHEN NOT MATCHED THEN
-                INSERT (WorkItemID, AssignedUserID, LastUpdatedByUserID, LastUpdatedAt)
-                VALUES (source.WorkItemID, source.AssignedUserID, source.UserID, source.UpdateTime);
-            """,
-            (workitemid, assigned_user_id, session["userid"]),
-        )
-
-        conn.commit()
-        cache.delete(f"interactions_{workitemid}")
-        if assigned_user_id is not None and assigned_user_id != session["userid"]:
-            notification_link = url_for("workitems_overview", search=workitemid, _external=False)
-            create_notification(
-                assigned_user_id,
-                f"{session['username']} {_('assigned you on workitem')} {workitemid}",
-                link=notification_link,
-                icon="fa-people-carry-box",
-            )
-        return jsonify({"success": True, "message": _("Assignment updated.")})
-    except Exception as e:
-        current_app.logger.error(f"Error setting assignment for workitem {workitemid}: {e}")
-        return jsonify({"success": False, "message": _("An unexpected error occurred.")}), 500
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-
-
-@require_permission("workitems.details.set.priority")
-def set_workitem_priority(workitemid):
-    if "username" not in session:
-        return jsonify({"error": _("Not authorized")}), 401
-
-    data = request.get_json()
-    priority = data.get("priority")
-    if priority is None or priority not in [0, 1, 2, 3]:
-        return jsonify({"success": False, "message": _("Invalid priority level.")}), 400
-
-    conn = None
-    cursor = None
-    try:
-        conn = engine_nexora_db.raw_connection()
-        cursor = conn.cursor()
-
-        cursor.execute(
-            """
-            MERGE Workitem_Metadata AS target
-            USING (VALUES (?, ?, ?, GETDATE())) AS source (WorkItemID, Priority, UserID, UpdateTime)
-            ON target.WorkItemID = source.WorkItemID
-            WHEN MATCHED THEN
-                UPDATE SET Priority = source.Priority, LastUpdatedByUserID = source.UserID, LastUpdatedAt = source.UpdateTime
-            WHEN NOT MATCHED THEN
-                INSERT (WorkItemID, Priority, LastUpdatedByUserID, LastUpdatedAt)
-                VALUES (source.WorkItemID, source.Priority, source.UserID, source.UpdateTime);
-            """,
-            (workitemid, priority, session["userid"]),
-        )
-
-        conn.commit()
-        cache.delete(f"interactions_{workitemid}")
-        return jsonify({"success": True, "message": _("Priority updated.")})
-    except Exception as e:
-        current_app.logger.error(f"Error setting priority for workitem {workitemid}: {e}")
-        return jsonify({"success": False, "message": _("An unexpected error occurred.")}), 500
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-
-
-def get_all_tags():
-    if "username" not in session:
-        return jsonify({"error": _("Not authorized")}), 401
-
-    cached = cache.get("all_tags")
-    if cached is not None:
-        return jsonify(cached)
-
-    conn = None
-    cursor = None
-    try:
-        conn = engine_nexora_db.raw_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT TagID, TagName, TagColor FROM Tags ORDER BY TagName")
-        tags = [
-            dict(zip([column[0] for column in cursor.description], row, strict=False))
-            for row in cursor.fetchall()
-        ]
-        cache.set("all_tags", tags, timeout=1800)
-        return jsonify(tags)
-    except Exception as e:
-        current_app.logger.error(f"Failed to fetch all tags: {e}")
-        return jsonify({"error": _("Could not fetch tags")}), 500
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-
-
 def api_workitems_page_init():
     if "username" not in session:
         return jsonify({}), 401
-
-    # Tags
-    tags = cache.get("all_tags")
-    if tags is None:
-        conn = None
-        try:
-            conn = engine_nexora_db.raw_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT TagID, TagName, TagColor FROM Tags ORDER BY TagName")
-            tags = [
-                dict(zip([column[0] for column in cursor.description], row, strict=False))
-                for row in cursor.fetchall()
-            ]
-            cache.set("all_tags", tags, timeout=1800)
-        except Exception as e:
-            current_app.logger.error(f"page_init: failed to fetch tags: {e}")
-            tags = []
-        finally:
-            if conn:
-                conn.close()
-
-    # Users
-    _all_users = has_permission("admin.interact.users.all")
-    _org = session.get("organizationcode", "")
-    _users_key = f"users_mentions_{'all' if _all_users else _org}"
-    users = cache.get(_users_key)
-    if users is None:
-        conn = None
-        try:
-            conn = engine_nexora_db.raw_connection()
-            cursor = conn.cursor()
-            if has_permission("workitems.details.add.comment"):
-                if _all_users:
-                    cursor.execute("SELECT userID, username, fullname FROM Users")
-                else:
-                    cursor.execute(
-                        """
-                        SELECT userID, username, fullname FROM Users
-                        WHERE organizationcode IN ('SYDC', ?) AND accessid not in (1,2)
-                        """,
-                        _org,
-                    )
-                users = [
-                    dict(zip([column[0] for column in cursor.description], row, strict=False))
-                    for row in cursor.fetchall()
-                ]
-            else:
-                users = []
-            cache.set(_users_key, users, timeout=900)
-        except Exception as e:
-            current_app.logger.error(f"page_init: failed to fetch users: {e}")
-            users = []
-        finally:
-            if conn:
-                conn.close()
 
     perms = session.get("permissions", [])
     prefix = "workitems.filter.process."
@@ -2127,101 +2172,31 @@ def api_workitems_page_init():
         field_config = {"search_options": search_options, "labels": db_labels_map}
         cache.set(_fields_key, field_config, timeout=3600)
 
-    return jsonify({"tags": tags, "users": users, "field_config": field_config})
+    return jsonify({"field_config": field_config})
 
 
-@require_permission("workitems.details.add.tag")
-def add_tag_to_workitem(workitemid):
-    if "username" not in session:
-        return jsonify({"error": _("Not authorized")}), 401
-
-    data = request.get_json()
-    tag_name = data.get("tagName", "").strip()
-    tag_color = data.get("tagColor", "#6B7280")
-
-    if not tag_name:
-        return jsonify({"success": False, "message": _("Tag name cannot be empty.")}), 400
-
-    conn = None
-    cursor = None
+def _resolve_prepared_doc_wid_stage(wid):
+    """dbo.PreparedDocuments is an MS02-only register (see prepared_documents's
+    ms02_active gate), so every visible wid is owned by the 'ms02' client's
+    runtime -- never the default one. Workitem identity is (client, id) and
+    ids collide across runtimes (docs/design/ms02-multisource.md): resolving
+    against CLIENTS['default'] can silently surface a DIFFERENT client's
+    status/stage for a colliding id. Dialect-safe: resolve_octo_wid_stage is
+    SQL-Server-shaped, so route through the Postgres-side twin when the
+    owning client's dialect says so. Fails closed (empty stage -> in_octo=
+    False) on any lookup/resolution error -- a bad wid or malformed CLIENTS
+    entry must never raise and 500 the register page."""
+    empty = {"status": None, "current_stage": None}
     try:
-        conn = engine_nexora_db.raw_connection()
-        cursor = conn.cursor()
-
-        cursor.execute("SELECT TagID FROM Tags WHERE TagName = ?", (tag_name,))
-        tag = cursor.fetchone()
-
-        if tag:
-            tag_id = tag.TagID
-        else:
-            cursor.execute(
-                "INSERT INTO Tags (TagName, TagColor, CreatedByUserID) OUTPUT INSERTED.TagID VALUES (?, ?, ?)",
-                (tag_name, tag_color, session["userid"]),
-            )
-            tag_id = cursor.fetchone().TagID
-
-        cursor.execute(
-            "SELECT 1 FROM Workitem_Tags WHERE WorkItemID = ? AND TagID = ?", (workitemid, tag_id)
-        )
-        if cursor.fetchone():
-            return jsonify({"success": False, "message": _("Workitem already has this tag.")}), 409
-
-        cursor.execute(
-            "INSERT INTO Workitem_Tags (WorkItemID, TagID) VALUES (?, ?)", (workitemid, tag_id)
-        )
-        conn.commit()
-        cache.delete(f"interactions_{workitemid}")
-        cache.delete("all_tags")
-
-        return jsonify(
-            {
-                "success": True,
-                "message": _("Tag added successfully."),
-                "tag": {"TagID": tag_id, "TagName": tag_name, "TagColor": tag_color},
-            }
-        )
-
+        client = CLIENTS.get("ms02")
+        if client is None:
+            return empty
+        if client.dialect == "postgres":
+            return _resolve_octo_wid_stage_pg(client.runtime_engine, wid)
+        return resolve_octo_wid_stage(client.runtime_engine, wid)
     except Exception as e:
-        current_app.logger.error(f"Error adding tag to workitem {workitemid}: {e}")
-        return jsonify({"success": False, "message": _("An unexpected error occurred.")}), 500
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-
-
-@require_permission("workitems.details.add.tag")
-def remove_tag_from_workitem(workitemid, tag_id):
-    if "username" not in session:
-        return jsonify({"error": _("Not authorized")}), 401
-
-    conn = None
-    cursor = None
-    try:
-        conn = engine_nexora_db.raw_connection()
-        cursor = conn.cursor()
-
-        cursor.execute(
-            "DELETE FROM Workitem_Tags WHERE WorkItemID = ? AND TagID = ?",
-            (workitemid, tag_id),
-        )
-        conn.commit()
-
-        if cursor.rowcount == 0:
-            return jsonify({"success": False, "message": _("Tag association not found.")}), 404
-
-        cache.delete(f"interactions_{workitemid}")
-        cache.delete("all_tags")
-        return jsonify({"success": True, "message": _("Tag removed successfully.")})
-    except Exception as e:
-        current_app.logger.error(f"Error removing tag {tag_id} from workitem {workitemid}: {e}")
-        return jsonify({"success": False, "message": _("An unexpected error occurred.")}), 500
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
+        current_app.logger.error(f"_resolve_prepared_doc_wid_stage({wid}): {e}")
+        return empty
 
 
 @require_permission("workitems.import.preparedaudit")
@@ -2234,7 +2209,12 @@ def prepared_documents():
     if not ms02_active:
         raise PermissionDenied(_("This page is only available for the MS02 client."))
 
-    per_page = 40
+    try:
+        per_page = int(request.args.get("per_page", 40))
+    except (TypeError, ValueError):
+        per_page = 40
+    if per_page not in (25, 40, 100, 200):
+        per_page = 40
     try:
         page = max(1, int(request.args.get("page", 1)))
     except (TypeError, ValueError):
@@ -2242,9 +2222,29 @@ def prepared_documents():
     offset = (page - 1) * per_page
 
     pid_filter = (request.args.get("pid") or "").strip() or None
+
+    def _bool_arg(name):
+        val = request.args.get(name)
+        return {"1": True, "0": False}.get(val)
+
+    collected_filter = _bool_arg("collected")
+    prepared_filter = _bool_arg("prepared")
+    group_by = request.args.get("group_by") or None
+    if group_by not in GROUP_BY_COLUMNS:
+        group_by = None
+
     try:
-        total_items = count_prepared_documents(pid=pid_filter)
-        rows = fetch_prepared_documents_page(offset, per_page, pid=pid_filter)
+        total_items = count_prepared_documents(
+            pid=pid_filter, collected=collected_filter, prepared=prepared_filter
+        )
+        rows = fetch_prepared_documents_page(
+            offset,
+            per_page,
+            pid=pid_filter,
+            collected=collected_filter,
+            prepared=prepared_filter,
+            group_by=group_by,
+        )
     except Exception as e:
         current_app.logger.error(f"prepared_documents read: {e}")
         total_items, rows = 0, []
@@ -2264,7 +2264,7 @@ def prepared_documents():
             for pid, wids in pid_to_wids.items():
                 if wids:
                     wid = wids[0]
-                    stage = resolve_octo_wid_stage(CLIENTS["default"].runtime_engine, wid)
+                    stage = _resolve_prepared_doc_wid_stage(wid)
                     octo_status[pid] = {
                         "in_octo": bool(stage and stage.get("status")),
                         "wid": wid,
@@ -2279,14 +2279,24 @@ def prepared_documents():
         "totalItems": total_items,
         "perPage": per_page,
     }
+    # Non-page filter/sort state, carried through the Previous/Next links so
+    # paging never silently drops the active filters.
+    filter_args = {}
+    if pid_filter:
+        filter_args["pid"] = pid_filter
+    if collected_filter is not None:
+        filter_args["collected"] = "1" if collected_filter else "0"
+    if prepared_filter is not None:
+        filter_args["prepared"] = "1" if prepared_filter else "0"
+    if group_by:
+        filter_args["group_by"] = group_by
+    if per_page != 40:
+        filter_args["per_page"] = str(per_page)
+
     details_view_perm = has_permission("workitems.details.view")
     details_images_perm = has_permission("workitems.details.view.images")
     details_audit_perm = has_permission("workitems.details.view.audit")
     details_fields_perm = has_permission("workitems.details.view.fields")
-    details_set_priority_perm = has_permission("workitems.details.set.priority")
-    details_add_tag_perm = has_permission("workitems.details.add.tag")
-    details_assign_users_perm = has_permission("workitems.details.assign.users")
-    details_add_comment_perm = has_permission("workitems.details.add.comment")
 
     return render_template(
         "prepared_documents.html",
@@ -2294,6 +2304,10 @@ def prepared_documents():
         pagination=pagination,
         octo_status=octo_status,
         pid_filter=pid_filter,
+        collected_filter=collected_filter,
+        prepared_filter=prepared_filter,
+        group_by=group_by,
+        filter_args=filter_args,
         prepared_import_perm=has_permission("workitems.import.preparedaudit"),
         ms02_active=ms02_active,
         pageV=page_visibility(),
@@ -2301,10 +2315,7 @@ def prepared_documents():
         details_images_perm=details_images_perm,
         details_audit_perm=details_audit_perm,
         details_fields_perm=details_fields_perm,
-        details_set_priority_perm=details_set_priority_perm,
-        details_add_tag_perm=details_add_tag_perm,
-        details_assign_users_perm=details_assign_users_perm,
-        details_add_comment_perm=details_add_comment_perm,
+        userid=session.get("userid"),
     )
 
 
@@ -2322,6 +2333,151 @@ def clear_prepared_documents_route():
             {"error": _("Could not clear the prepared documents. Please try again.")}
         ), 500
     return jsonify({"deleted": deleted}), 200
+
+
+# ------------------------- saved filter views (#170) ------------------------- #
+
+MAX_FILTER_VIEWS = 50
+
+
+def _validate_filter_view(payload):
+    """Returns (name, folder, filters_json). Raises ValueError on bad input.
+
+    `filters` is the client's [name, value] pair list — the same serialization
+    the page sends to /api/workitems. Stored opaquely; the server never applies
+    it, so per-field permission gates keep working unchanged on replay.
+    `folder` is the optional grouping category (#186); empty/blank -> NULL.
+    """
+    name = (payload.get("name") or "").strip()
+    if not name or len(name) > 100:
+        raise ValueError("name")
+    folder = payload.get("folder") or ""
+    if not isinstance(folder, str) or len(folder) > 100:
+        raise ValueError("folder")
+    folder = folder.strip() or None
+    filters = payload.get("filters")
+    if not isinstance(filters, list) or len(filters) > 60:
+        raise ValueError("filters")
+    for pair in filters:
+        if (
+            not isinstance(pair, list)
+            or len(pair) != 2
+            or not all(isinstance(x, str) for x in pair)
+            or len(pair[0]) > 100
+            or len(pair[1]) > 1000
+        ):
+            raise ValueError("filters")
+    return name, folder, json.dumps(filters)
+
+
+@require_permission("workitems.view")
+def api_workitem_filter_views():
+    """List the current user's saved filter views."""
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT ID, Name, Folder, FilterJSON FROM WorkitemFilterViews"
+            " WHERE UserID = ? ORDER BY SortOrder, Name",
+            (session["userid"],),
+        )
+        views = []
+        for row in cursor.fetchall():
+            try:
+                filters = json.loads(row.FilterJSON)
+            except ValueError:
+                filters = []
+            views.append({"id": row.ID, "name": row.Name, "folder": row.Folder, "filters": filters})
+        return jsonify({"views": views})
+    except Exception as e:
+        current_app.logger.error(f"api_workitem_filter_views: {e}")
+        return jsonify({"error": _("Could not load saved views.")}), 500
+    finally:
+        conn.close()
+
+
+@require_permission("workitems.view")
+def save_workitem_filter_view():
+    """Create or update a saved view. Without `id`, saving under an existing
+    name overwrites that view's filters + folder; with `id`, updates name,
+    folder and filters (rename/move keeps the id stable)."""
+    payload = request.get_json(silent=True) or {}
+    try:
+        name, folder, filters_json = _validate_filter_view(payload)
+    except ValueError:
+        return jsonify({"error": _("Invalid view name or filters.")}), 400
+    view_id = payload.get("id")
+    if view_id is not None and not isinstance(view_id, int):
+        return jsonify({"error": _("Invalid view name or filters.")}), 400
+
+    userid = session["userid"]
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cursor = conn.cursor()
+        if view_id is not None:
+            cursor.execute(
+                "UPDATE WorkitemFilterViews SET Name = ?, Folder = ?, FilterJSON = ?"
+                " WHERE ID = ? AND UserID = ?",
+                (name, folder, filters_json, view_id, userid),
+            )
+            if cursor.rowcount == 0:
+                conn.rollback()
+                return jsonify({"error": _("View not found.")}), 404
+        else:
+            cursor.execute(
+                "UPDATE WorkitemFilterViews SET Folder = ?, FilterJSON = ?"
+                " WHERE UserID = ? AND Name = ?",
+                (folder, filters_json, userid, name),
+            )
+            if cursor.rowcount == 0:
+                cursor.execute(
+                    "SELECT COUNT(*) FROM WorkitemFilterViews WHERE UserID = ?", (userid,)
+                )
+                if cursor.fetchone()[0] >= MAX_FILTER_VIEWS:
+                    conn.rollback()
+                    return jsonify({"error": _("Too many saved views — delete one first.")}), 400
+                cursor.execute(
+                    "INSERT INTO WorkitemFilterViews (UserID, Name, Folder, FilterJSON)"
+                    " VALUES (?, ?, ?, ?)",
+                    (userid, name, folder, filters_json),
+                )
+            cursor.execute(
+                "SELECT ID FROM WorkitemFilterViews WHERE UserID = ? AND Name = ?",
+                (userid, name),
+            )
+            view_id = cursor.fetchone()[0]
+        conn.commit()
+        return jsonify({"id": view_id, "name": name, "folder": folder})
+    except pyodbc.IntegrityError:
+        conn.rollback()
+        return jsonify({"error": _("A view with this name already exists.")}), 400
+    except Exception as e:
+        current_app.logger.error(f"save_workitem_filter_view: {e}")
+        return jsonify({"error": _("Could not save the view.")}), 500
+    finally:
+        conn.close()
+
+
+@require_permission("workitems.view")
+def delete_workitem_filter_view(view_id):
+    """Delete one of the current user's saved views."""
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            "DELETE FROM WorkitemFilterViews WHERE ID = ? AND UserID = ?",
+            (view_id, session["userid"]),
+        )
+        deleted = cursor.rowcount
+        conn.commit()
+        if not deleted:
+            return jsonify({"error": _("View not found.")}), 404
+        return jsonify({"deleted": deleted})
+    except Exception as e:
+        current_app.logger.error(f"delete_workitem_filter_view: {e}")
+        return jsonify({"error": _("Could not delete the view.")}), 500
+    finally:
+        conn.close()
 
 
 def register_routes(app):
@@ -2361,11 +2517,6 @@ def register_routes(app):
         methods=["POST"],
     )
     app.add_url_rule(
-        "/api/workitem/<int:workitemid>",
-        endpoint="get_single_workitem",
-        view_func=get_single_workitem,
-    )
-    app.add_url_rule(
         "/api/get_media_info/<int:workitem_id>",
         endpoint="api_get_media_info",
         view_func=api_get_media_info,
@@ -2381,46 +2532,24 @@ def register_routes(app):
         view_func=get_audithistory,
     )
     app.add_url_rule(
-        "/api/users", endpoint="get_users_for_mentions", view_func=get_users_for_mentions
-    )
-    app.add_url_rule(
-        "/api/workitem/<int:workitemid>/interactions",
-        endpoint="get_workitem_interactions",
-        view_func=get_workitem_interactions,
-    )
-    app.add_url_rule(
-        "/api/workitem/<int:workitemid>/comment",
-        endpoint="add_workitem_comment",
-        view_func=add_workitem_comment,
-        methods=["POST"],
-    )
-    app.add_url_rule(
-        "/api/workitem/<int:workitemid>/assign",
-        endpoint="assign_workitem",
-        view_func=assign_workitem,
-        methods=["POST"],
-    )
-    app.add_url_rule(
-        "/api/workitem/<int:workitemid>/priority",
-        endpoint="set_workitem_priority",
-        view_func=set_workitem_priority,
-        methods=["POST"],
-    )
-    app.add_url_rule("/api/tags", endpoint="get_all_tags", view_func=get_all_tags)
-    app.add_url_rule(
         "/api/workitems_page_init",
         endpoint="api_workitems_page_init",
         view_func=api_workitems_page_init,
     )
     app.add_url_rule(
-        "/api/workitem/<int:workitemid>/tags",
-        endpoint="add_tag_to_workitem",
-        view_func=add_tag_to_workitem,
+        "/api/workitem_filter_views",
+        endpoint="api_workitem_filter_views",
+        view_func=api_workitem_filter_views,
+    )
+    app.add_url_rule(
+        "/api/workitem_filter_views",
+        endpoint="save_workitem_filter_view",
+        view_func=save_workitem_filter_view,
         methods=["POST"],
     )
     app.add_url_rule(
-        "/api/workitem/<int:workitemid>/tags/<int:tag_id>",
-        endpoint="remove_tag_from_workitem",
-        view_func=remove_tag_from_workitem,
+        "/api/workitem_filter_views/<int:view_id>",
+        endpoint="delete_workitem_filter_view",
+        view_func=delete_workitem_filter_view,
         methods=["DELETE"],
     )

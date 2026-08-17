@@ -4,7 +4,7 @@ Reports the status of every layer the running app depends on: Python and
 its third-party packages, the .env files, filesystem dirs, all four SQL
 Server engines, the migrations table, schema drift, on-PATH tooling, git
 hooks, port 8000, and the external services nexora talks to (Microsoft
-Graph, Octopus, Bexio).
+Graph, Octopus).
 
 Invoked via the nx CLI:
     nx --doctor                  full check (incl. external services)
@@ -230,7 +230,6 @@ def _check_env() -> list[CheckResult]:
         "GRAPH_CLIENT_ID",
         "OCTO_CLIENT_ID",
         "OCTO_DOMAIN",
-        "BEXIO_PAT",
     ]
     missing = [k for k in required if not os.environ.get(k)]
     if missing:
@@ -668,26 +667,6 @@ def _check_octo() -> CheckResult:
     return CheckResult("Octopus", "fail", f"{r.status_code}: {r.text[:140]}")
 
 
-def _check_bexio() -> CheckResult:
-    import requests
-
-    pat = os.environ.get("BEXIO_PAT")
-    if not pat:
-        return CheckResult("Bexio", "skip", "BEXIO_PAT not set")
-    headers = {"Authorization": f"Bearer {pat}", "Accept": "application/json"}
-    try:
-        r = requests.get(
-            "https://api.bexio.com/2.0/company_profile",
-            headers=headers,
-            timeout=8,
-        )
-    except requests.RequestException as exc:
-        return CheckResult("Bexio", "fail", str(exc)[:140])
-    if r.ok:
-        return CheckResult("Bexio", "ok", "PAT valid")
-    return CheckResult("Bexio", "fail", f"{r.status_code}: {r.text[:140]}")
-
-
 # ── rendering + orchestration ──────────────────────────────────────────────
 
 _GLYPH = {
@@ -730,7 +709,7 @@ def _tally(results: list[CheckResult]) -> tuple[int, int, int, int]:
 def run(fast: bool = False, fix: bool = False) -> int:
     """Run all doctor checks and print a traffic-light report.
 
-    fast=True skips schema-drift dump and external services (Graph / Octo / Bexio).
+    fast=True skips schema-drift dump and external services (Graph / Octo).
     fix=True attempts safe auto-repairs on fixable warnings/failures after
     the report is printed.
 
@@ -774,14 +753,13 @@ def run(fast: bool = False, fix: bool = False) -> int:
     sections.append(("Port", _check_port()))
 
     if not fast:
-        with ThreadPoolExecutor(max_workers=3, thread_name_prefix="nx-doctor") as pool:
+        with ThreadPoolExecutor(max_workers=2, thread_name_prefix="nx-doctor") as pool:
             futures = [
                 pool.submit(_check_graph),
                 pool.submit(_check_octo),
-                pool.submit(_check_bexio),
             ]
             ext = [fut.result() for fut in as_completed(futures)]
-        order = {"Microsoft Graph": 0, "Octopus": 1, "Bexio": 2}
+        order = {"Microsoft Graph": 0, "Octopus": 1}
         ext.sort(key=lambda r: order.get(r.name, 99))
         sections.append(("External services", ext))
     else:
@@ -791,7 +769,6 @@ def run(fast: bool = False, fix: bool = False) -> int:
                 [
                     CheckResult("Microsoft Graph", "skip", "skipped (--fast)"),
                     CheckResult("Octopus", "skip", "skipped (--fast)"),
-                    CheckResult("Bexio", "skip", "skipped (--fast)"),
                 ],
             )
         )

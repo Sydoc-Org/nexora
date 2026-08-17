@@ -197,3 +197,23 @@ def test_pdf_media_defaults_to_zero_pages_without_pdf_page_counts():
     doc = {"DocumentType": "Batch", "ChildDocuments": [child0, child1]}
     cell = extract_table_locations(doc)[0]["rows"][0][0]
     assert cell["locations"][0]["page"] == 0
+
+
+# --- image media without a URL (skipped by octo.get_extensions_urls_fields) -
+# extract_table_locations shares field_locations._count_image_media for its
+# page offset, so a URL-less image between two real pages must not shift a
+# later table cell's page either.
+
+
+def test_url_less_image_between_two_real_pages_does_not_shift_table_offset():
+    # child0: real image (rendered page 0), no table.
+    # child1: URL-less image only -- octo skips it, never becomes a page.
+    # child2: real image (rendered page 1) + the table cell under test.
+    # A naive counter would put the cell's PageIndex 0 at global page 2.
+    child0 = {"Media": [{"Extension": ".jpg", "Url": "u0"}], "Tables": []}
+    child1 = {"Media": [{"Extension": ".jpg", "Url": None}], "Tables": []}
+    child2 = _table("T", [[_cell("A", "v", R, page_index=0)]])
+    child2["Media"] = [{"Extension": ".jpg", "Url": "u2"}]
+    doc = {"DocumentType": "Batch", "ChildDocuments": [child0, child1, child2]}
+    cell = extract_table_locations(doc)[0]["rows"][0][0]
+    assert cell["locations"][0]["page"] == 1

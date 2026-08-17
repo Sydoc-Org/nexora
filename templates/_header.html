@@ -14,6 +14,158 @@
     <link rel="stylesheet" href="{{ url_for('static',filename='css/nexora-ui.css') }}">
     <link rel="stylesheet" href="{{ url_for('static',filename='css/_header.css') }}">
     <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
+    <script nonce="{{ csp_nonce() }}">
+        /* Delegated click binding for `data-nx-click="someGlobalFn()"`. The
+           #193 CSP work dropped inline onclick attributes; the admin
+           page_header action buttons had no replacement binding and were dead
+           (Add banner / Add organization / Export CSV / Refresh). */
+        document.addEventListener('click', function (e) {
+            var el = e.target.closest('[data-nx-click]');
+            if (!el) return;
+            var fn = window[el.dataset.nxClick.replace(/\(\s*\)\s*$/, '')];
+            if (typeof fn === 'function') fn.call(el);
+        });
+
+        /* ---- UI prefs (issue #155): apply server-stored prefs pre-paint ----
+           DB (Users.ui_prefs) is authoritative; keys the user never saved fall
+           back to the legacy localStorage keys, then to the defaults. */
+        (function () {
+            var stored = {{ ui_prefs | tojson }};
+            var d = document.documentElement;
+            var ls = function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } };
+            /* Resilience: if a save never reached the server (offline, 401),
+               the last locally-applied prefs fill any keys the DB lacks. */
+            try {
+                stored = Object.assign({}, JSON.parse(ls('nexora-ui-prefs')) || {}, stored);
+            } catch (e) {}
+            var eff = {
+                theme:      stored.theme      || (ls('nexora-theme') === 'dark' ? 'dark' : 'light'),
+                accent:     stored.accent     || 'indigo',
+                accentHex:  stored.accentHex  || '#4f46e5',
+                motion:     stored.motion     || 'full',
+                entrance:   stored.entrance   || 'rise',
+                animspeed:  stored.animspeed  || 'normal',
+                density:    stored.density    || 'comfortable',
+                sidebar:    stored.sidebar    || (ls('nexora-sidebar-pinned') === 'true' ? 'pinned' : 'auto'),
+                fontscale:  stored.fontscale  || 'md',
+                radius:     stored.radius     || 'default',
+                contrast:   stored.contrast   || 'normal',
+                stripes:    stored.stripes    || 'off',
+                background: stored.background || 'plain'
+            };
+            var sysDark = window.matchMedia('(prefers-color-scheme: dark)');
+
+            /* Custom accent: derive the token family (hover/soft/tint/gradient)
+               from one hex, dark-aware, and pin it via inline style props. */
+            var ACCENT_PROPS = ['--nx-accent', '--nx-accent-hover', '--nx-accent-soft',
+                '--nx-accent-tint', '--nx-violet', '--nx-brand-grad',
+                '--a-ink', '--a-ink-hover', '--a-indigo', '--a-indigo-soft'];
+            function applyCustomAccent(dark) {
+                var m = /^#([0-9a-f]{6})$/i.exec(eff.accentHex || '');
+                if (!m) return false;
+                var n = parseInt(m[1], 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+                function mix(t, w) {
+                    return 'rgb(' + Math.round(r + (w - r) * t) + ',' +
+                        Math.round(g + (w - g) * t) + ',' + Math.round(b + (w - b) * t) + ')';
+                }
+                function mixc(t, wr, wg, wb) {
+                    return 'rgb(' + Math.round(r + (wr - r) * t) + ',' +
+                        Math.round(g + (wg - g) * t) + ',' + Math.round(b + (wb - b) * t) + ')';
+                }
+                var base  = dark ? mix(0.30, 255) : 'rgb(' + r + ',' + g + ',' + b + ')';
+                var hover = dark ? mix(0.45, 255) : mix(0.15, 0);
+                var soft  = 'rgba(' + r + ',' + g + ',' + b + (dark ? ',0.22)' : ',0.12)');
+                var tint  = dark ? mix(0.62, 0) : mix(0.90, 255);
+                var partner = dark ? mix(0.55, 255) : mixc(0.28, 124, 58, 237);
+                var vals = [base, hover, soft, tint, partner,
+                    'linear-gradient(135deg, ' + base + ' 0%, ' + partner + ' 100%)',
+                    base, hover, base, soft];
+                for (var i = 0; i < ACCENT_PROPS.length; i++) d.style.setProperty(ACCENT_PROPS[i], vals[i]);
+                return true;
+            }
+
+            function apply() {
+                var dark = eff.theme === 'dark' || (eff.theme === 'system' && sysDark.matches);
+                d.classList.toggle('dark', dark);
+                d.removeAttribute('data-accent');
+                for (var i = 0; i < ACCENT_PROPS.length; i++) d.style.removeProperty(ACCENT_PROPS[i]);
+                if (eff.accent === 'custom') {
+                    if (!applyCustomAccent(dark)) d.removeAttribute('data-accent');
+                } else if (eff.accent !== 'indigo') {
+                    d.setAttribute('data-accent', eff.accent);
+                }
+                d.classList.toggle('nx-motion-reduced', eff.motion === 'reduced');
+                if (eff.entrance !== 'rise') d.setAttribute('data-entrance', eff.entrance);
+                else d.removeAttribute('data-entrance');
+                if (eff.animspeed !== 'normal') d.setAttribute('data-animspeed', eff.animspeed);
+                else d.removeAttribute('data-animspeed');
+                d.classList.toggle('nx-compact', eff.density === 'compact');
+                d.classList.toggle('sidebar-pinned', eff.sidebar === 'pinned');
+                if (eff.fontscale !== 'md') d.setAttribute('data-fontscale', eff.fontscale);
+                else d.removeAttribute('data-fontscale');
+                if (eff.radius !== 'default') d.setAttribute('data-radius', eff.radius);
+                else d.removeAttribute('data-radius');
+                d.classList.toggle('nx-contrast', eff.contrast === 'high');
+                d.classList.toggle('nx-stripes', eff.stripes === 'on');
+                if (eff.background !== 'plain') d.setAttribute('data-bg', eff.background);
+                else d.removeAttribute('data-bg');
+            }
+            apply();
+            sysDark.addEventListener('change', function () { if (eff.theme === 'system') apply(); });
+
+            window.__nxPrefs = eff;
+            /* Mirror for pages whose own <head> runs before this script
+               (e.g. the reporting rp-anim gate). */
+            try { localStorage.setItem('nexora-ui-prefs', JSON.stringify(eff)); } catch (e) {}
+
+            /* Shared setter: apply live, mirror legacy localStorage keys,
+               persist to the server. Accepts a single key/value or an object
+               patch: nxSetUiPref({theme:'dark',...}). Writes are coalesced
+               and sent one at a time — parallel PATCHes would race the
+               read-merge-write on the server (last writer wins). */
+            var pendingPatch = null, patchInflight = false;
+            function pushPatch() {
+                if (patchInflight || !pendingPatch) return;
+                var body = JSON.stringify(pendingPatch);
+                pendingPatch = null;
+                patchInflight = true;
+                var meta = document.querySelector('meta[name="csrf-token"]');
+                var API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+                fetch(API_PREFIX + 'profile/ui_prefs', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': meta ? meta.getAttribute('content') : ''
+                    },
+                    body: body
+                }).catch(function () {}).finally(function () {
+                    patchInflight = false;
+                    pushPatch();
+                });
+            }
+            window.nxSetUiPref = function (key, value) {
+                var patch = typeof key === 'object' ? key : (function () {
+                    var p = {}; p[key] = value; return p;
+                })();
+                for (var k in patch) eff[k] = patch[k];
+                apply();
+                try {
+                    localStorage.setItem('nexora-ui-prefs', JSON.stringify(eff));
+                    if ('theme' in patch) {
+                        localStorage.setItem('nexora-theme',
+                            d.classList.contains('dark') ? 'dark' : 'light');
+                    }
+                    if ('sidebar' in patch) {
+                        localStorage.setItem('nexora-sidebar-pinned',
+                            patch.sidebar === 'pinned' ? 'true' : 'false');
+                    }
+                } catch (e) {}
+                pendingPatch = Object.assign(pendingPatch || {}, patch);
+                pushPatch();
+            };
+        })();
+    </script>
 </head>
 
 <body>
@@ -30,12 +182,12 @@
         </div>
 
         <nav class="sidebar-nav">
-            {% if pageV.adminPagePerm or pageV.adminMaintenanceViewPerm %}
-            {% set admin_active = active_page in ['adminOverview','organizations','admin_access','admin_logs','admin_sessions','admin_user_detail','maintenance'] %}
+            {% if pageV.adminPagePerm or pageV.adminMaintenanceViewPerm or pageV.adminStatusPagePerm %}
+            {% set admin_active = active_page in ['adminOverview','organizations','admin_access','admin_logs','admin_sessions','admin_user_detail','maintenance','admin_status'] %}
             <div class="sidebar-nav-group" id="adminNavGroup" data-active="{{ 'true' if admin_active else 'false' }}">
                 <button class="sidebar-nav-item sidebar-nav-group-header {{ 'sidebar-nav-item--active' if admin_active else '' }}" id="adminNavHeader" type="button" data-testid="header-nav-admin-toggle">
                     <i class="fas fa-shield-halved sidebar-nav-icon"></i>
-                    <span class="sidebar-label" style="flex:1">{{ _('Admin') }}</span>
+                    <span class="sidebar-label [flex:1]!">{{ _('Admin') }}</span>
                     <i class="fas fa-chevron-right sidebar-label sidebar-generali-chevron"></i>
                 </button>
                 <div class="sidebar-nav-subitems">
@@ -64,6 +216,13 @@
                         <i class="fas fa-clipboard-list sidebar-nav-icon sidebar-subitem-icon"></i>
                         <span class="sidebar-label">{{ _('Logs') }}</span>
                     </a>
+                    {% if pageV.adminStatusPagePerm %}
+                    <a href="{{ url_for('admin_status_view') }}"
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'admin_status' else '' }}" data-testid="header-nav-admin-status">
+                        <i class="fas fa-heart-pulse sidebar-nav-icon sidebar-subitem-icon"></i>
+                        <span class="sidebar-label">{{ _('Status') }}</span>
+                    </a>
+                    {% endif %}
                     {% if pageV.adminMaintenanceViewPerm %}
                     <a href="{{ url_for('admin_maintenance_view') }}"
                         class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'maintenance' else '' }}" data-testid="header-nav-admin-maintenance">
@@ -75,12 +234,28 @@
             </div>
             {% endif %}
 
+            {% if pageV.apiDocsPagePerm %}
+            {% set dev_active = active_page in ['api_docs'] %}
+            <div class="sidebar-nav-group" id="devNavGroup" data-active="{{ 'true' if dev_active else 'false' }}">
+                <button class="sidebar-nav-item sidebar-nav-group-header {{ 'sidebar-nav-item--active' if dev_active else '' }}" id="devNavHeader" type="button" data-testid="header-nav-dev-toggle">
+                    <i class="fas fa-code sidebar-nav-icon"></i>
+                    <span class="sidebar-label [flex:1]!">{{ _('Development') }}</span>
+                    <i class="fas fa-chevron-right sidebar-label sidebar-generali-chevron"></i>
+                </button>
+                <div class="sidebar-nav-subitems">
+                    <a href="{{ url_for('api_docs') }}"
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'api_docs' else '' }}" data-testid="header-nav-dev-api-docs">
+                        <i class="fas fa-plug sidebar-nav-icon sidebar-subitem-icon"></i>
+                        <span class="sidebar-label">{{ _('API Documentation') }}</span>
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
             {% set nav_items = [
-                {'perm': pageV.chatPagePerm,      'url': url_for('chat_page'),           'icon': 'fa-comments',            'label': _('Chat'),                   'active': active_page == 'chat'},
                 {'perm': pageV.dashboardPagePerm,  'url': url_for('dashboard'),           'icon': 'fa-gauge-high',          'label': _('Dashboard'),              'active': active_page == 'dashboard'},
                 {'perm': pageV.reportingPagePerm, 'url': url_for('reporting'),           'icon': 'fa-chart-column',        'label': _('Reporting'),              'active': active_page == 'reporting'},
 {'perm': pageV.workitemsPagePerm, 'url': url_for('workitems_overview'),  'icon': 'fa-layer-group',         'label': _('Workitems'),              'active': active_page == 'workitems_overview'},
-                {'perm': pageV.invoicesPagePerm,  'url': url_for('invoices'),            'icon': 'fa-file-invoice-dollar', 'label': _('Invoices'),               'active': active_page == 'invoices'},
             ] %}
 
             {% for item in nav_items %}
@@ -98,7 +273,7 @@
             <div class="sidebar-nav-group" id="generaliNavGroup" data-active="{{ 'true' if generali_active else 'false' }}">
                 <button class="sidebar-nav-item sidebar-nav-group-header {{ 'sidebar-nav-item--active' if generali_active else '' }}" id="generaliNavHeader" data-testid="header-nav-generali-toggle">
                     <i class="fas fa-building-columns sidebar-nav-icon"></i>
-                    <span class="sidebar-label" style="flex:1">Generali</span>
+                    <span class="sidebar-label [flex:1]!">Generali</span>
                     <i class="fas fa-chevron-right sidebar-label sidebar-generali-chevron"></i>
                 </button>
                 <div class="sidebar-nav-subitems">
@@ -166,25 +341,11 @@
         <!-- Bottom actions -->
         <div class="sidebar-bottom">
 
-            <!-- Notifications -->
-            <div class="sidebar-notif-wrapper" id="notification-dropdown-container">
-                <button id="bell-button" class="sidebar-nav-item" data-testid="header-notifications-toggle">
-                    <div class="sidebar-nav-icon sidebar-notif-icon-wrap">
-                        <i class="fas fa-bell"></i>
-                        <span id="notification-count" class="sidebar-notif-badge hidden"></span>
-                    </div>
-                    <span class="sidebar-label">{{ _("Notifications") }}</span>
-                </button>
-
-                <div id="notification-panel"
-                    class="sidebar-notif-panel hidden">
-                    <div class="sidebar-notif-panel-header">
-                        <span>{{ _("Notifications") }}</span>
-                        <span class="sidebar-notif-new-badge">NEW</span>
-                    </div>
-                    <div id="notification-list" class="sidebar-notif-list"></div>
-                </div>
-            </div>
+            <!-- Pin sidebar open -->
+            <button id="sidebar-pin-toggle" class="sidebar-nav-item" title="{{ _('Keep sidebar open') }}" data-testid="header-sidebar-pin-toggle">
+                <i id="sidebar-pin-icon" class="fas fa-thumbtack sidebar-nav-icon"></i>
+                <span class="sidebar-label" id="sidebar-pin-label">{{ _("Keep sidebar open") }}</span>
+            </button>
 
             <!-- Dark mode toggle -->
             <button id="dark-mode-toggle" class="sidebar-nav-item" title="{{ _('Toggle dark mode') }}" data-testid="header-dark-mode-toggle">
@@ -197,9 +358,9 @@
                 <button class="sidebar-nav-item sidebar-profile-btn" data-testid="header-profile-toggle">
                     <div class="sidebar-nav-icon sidebar-avatar-wrap">
                         <img src="{{ get_user_icon_url(userid) }}" id="profilePicture"
-                            class="sidebar-avatar" alt="{{ _('Profile Picture') }}"
-                            onerror="defaultIcon()">
+                            class="sidebar-avatar" alt="{{ _('Profile Picture') }}">
                         <div class="sidebar-online-dot"></div>
+                        {% if whats_new_unseen %}<div class="sidebar-news-dot" data-testid="header-news-dot"></div>{% endif %}
                     </div>
                     <span class="sidebar-label sidebar-username">{{ logged_in_user }}</span>
                 </button>
@@ -209,11 +370,39 @@
                         class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50 hover:text-indigo-600 transition-colors" data-testid="header-profile-link">
                         <i class="fas fa-user-circle w-4"></i> {{ _("Your profile") }}
                     </a>
+                    <a href="{{ url_for('appearance') }}"
+                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50 hover:text-indigo-600 transition-colors" data-testid="header-appearance-link">
+                        <i class="fas fa-palette w-4"></i> {{ _("Appearance") }}
+                    </a>
+                    <a href="{{ url_for('whats_new') }}"
+                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50 hover:text-indigo-600 transition-colors" data-testid="header-whatsnew-link">
+                        <i class="fas fa-bullhorn w-4"></i> {{ _("What's New") }}
+                        {% if whats_new_unseen %}<span class="ml-auto w-2 h-2 rounded-full bg-rose-500" data-testid="header-whatsnew-dot"></span>{% endif %}
+                    </a>
+                    {# Sidebar pages no longer render _small_footer.html, so this is
+                       the only support link a logged-in user can reach. #}
+                    <a href="mailto:support.helpdesk@sydoc.ch"
+                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50 hover:text-indigo-600 transition-colors" data-testid="header-help-link">
+                        <i class="fas fa-circle-question w-4"></i> {{ _("Help") }}
+                    </a>
+                    {% if not is_prod %}
+                    <div class="my-1 border-t border-gray-100"></div>
+                    <button type="button" id="switchUserBtn"
+                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50 hover:text-indigo-600 transition-colors w-full text-left" data-testid="header-switch-user">
+                        <i class="fas fa-user-friends w-4"></i> {{ _("Switch user") }}
+                    </button>
+                    {% endif %}
                     <div class="my-1 border-t border-gray-100"></div>
                     <a href="{{ url_for('logout') }}"
                         class="flex items-center gap-2 px-3 py-2 text-sm text-red-600 rounded-md hover:bg-red-50 transition-colors" data-testid="header-logout-link">
                         <i class="fas fa-sign-out-alt w-4"></i> {{ _("Sign out") }}
                     </a>
+                    {# Reporting, admin and prepared-documents have no footer, so this
+                       is the only place the running build is visible on those pages. #}
+                    <div class="my-1 border-t border-gray-100"></div>
+                    <p class="px-3 py-1 text-xs leading-tight text-gray-500" data-testid="header-version">
+                        nexora v{{ nexora_version }}{% if nexora_build %}<br>{{ nexora_build }}{% endif %}
+                    </p>
                 </el-menu>
             </el-dropdown>
 
@@ -238,6 +427,21 @@
             </div>
         </div>
     </div>
+
+    {% if not is_prod %}
+    <!-- ========== SWITCH USER (dev-only) ========== -->
+    <div id="switchUserOverlay" class="cmdk-overlay" hidden>
+        <div class="cmdk-panel" role="dialog" aria-modal="true" aria-label="{{ _('Switch user') }}">
+            <div class="cmdk-input-row">
+                <i class="fas fa-user-friends cmdk-input-icon"></i>
+                <input id="switchUserInput" class="cmdk-input" type="text"
+                       placeholder="{{ _('Switch to user...') }}" autocomplete="off" data-testid="switch-user-input">
+                <kbd class="cmdk-kbd">ESC</kbd>
+            </div>
+            <ul id="switchUserList" class="cmdk-list" role="listbox"></ul>
+        </div>
+    </div>
+    {% endif %}
 
     {% include 'js/_header_js.html' %}
 </body>

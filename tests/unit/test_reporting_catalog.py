@@ -1,10 +1,14 @@
 # tests/unit/test_reporting_catalog.py
 """Unit tests for nx_lib.reporting.catalog — pure row→catalog mapping."""
 
+from unittest.mock import MagicMock
+
+import nx_lib.reporting.catalog as catalog_mod
 from nx_lib.reporting.catalog import (
     build_catalog,
     date_availability,
     date_catalog_entries,
+    fetch_docprocessing_catalog,
     workitem_availability,
     workitem_catalog_entries,
 )
@@ -137,6 +141,86 @@ def test_build_catalog_uses_defaults_when_no_metadata():
     # No label row → titleized key.
     assert by_key["doctype"]["label"] == "Doctype"
     assert by_key["pages"]["label"] == "Pages"
+
+
+# --------------------- fetch_docprocessing_catalog (DB fetch) --------------------- #
+
+
+class _SCRow:
+    """Stand-in for a pyodbc SearchConfig row: attribute access for
+    ProcessName/ClientCode (as read by fetch_docprocessing_catalog directly),
+    plus positional index access for the col_* values (the query shape is
+    `SELECT ProcessName, {col_cols...} FROM SearchConfig ...` and the code
+    reads them by position, `row[i + 1]`)."""
+
+    def __init__(self, process_name, client_code, col_values):
+        self.ProcessName = process_name
+        self.ClientCode = client_code
+        self._row = (process_name, *col_values)
+
+    def __getitem__(self, idx):
+        return self._row[idx]
+
+
+class _FakeCatalogCursor:
+    """Fake cursor covering fetch_docprocessing_catalog's query sequence.
+
+    The SearchConfig `WHERE ClientCode = 'default'` branch actually inspects
+    the executed SQL text and filters `_searchconfig_rows` accordingly -- so
+    this fake only returns 'default' rows if the code under test really added
+    the filter, rather than always filtering regardless of the query shape.
+    """
+
+    def __init__(self, description, searchconfig_rows):
+        self._description = description
+        self._searchconfig_rows = searchconfig_rows
+        self.description = None
+        self._result = []
+
+    def execute(self, sql, *params):
+        if "FROM FieldMetadata" in sql or "FROM Search_Field_Labels" in sql:
+            self._result = []
+        elif "TOP 0 * FROM SearchConfig" in sql:
+            self.description = self._description
+            self._result = []
+        elif "FROM SearchConfig" in sql:
+            if "ClientCode = 'default'" in sql:
+                self._result = [r for r in self._searchconfig_rows if r.ClientCode == "default"]
+            else:
+                self._result = list(self._searchconfig_rows)
+        elif "FROM Statconfig" in sql:
+            self._result = []
+        else:
+            self._result = []
+
+    def fetchall(self):
+        return self._result
+
+
+def test_fetch_docprocessing_catalog_excludes_ms02_rows(app, monkeypatch):
+    # Task 51: an 'ms02'-coded SearchConfig row (col_pid, process
+    # 'sydoc.05_PDBS') must not contribute a phantom field to the default
+    # docprocessing catalog, even though 'sydoc.05_PDBS' is itself an allowed
+    # process. A sibling 'default' row (col_doctype, process 'acme.invoices')
+    # must still surface normally.
+    description = [("ProcessName",), ("ClientCode",), ("col_pid",), ("col_doctype",)]
+    rows = [
+        _SCRow("sydoc.05_PDBS", "ms02", ("PidCol", None)),
+        _SCRow("acme.invoices", "default", (None, "DocType")),
+    ]
+    cur = _FakeCatalogCursor(description, rows)
+    conn = MagicMock()
+    conn.cursor.return_value = cur
+    engine = MagicMock()
+    engine.raw_connection.return_value = conn
+    monkeypatch.setattr(catalog_mod, "engine_nexora_db", engine)
+
+    with app.test_request_context():
+        catalog = fetch_docprocessing_catalog(["sydoc.05_PDBS", "acme.invoices"], "en")
+
+    by_field = {c["field"]: c for c in catalog}
+    assert "pid" not in by_field
+    assert by_field["doctype"]["processes"] == ["acme.invoices"]
 
 
 def test_build_catalog_availability_is_source_of_truth():

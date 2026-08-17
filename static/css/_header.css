@@ -2,6 +2,30 @@
    NEXORA – Shared header / sidebar styles
    ============================================================ */
 
+/* Shared z-index scale (issue #142). Loaded on every page that includes
+   _header.html — the vast majority of the app — so these tokens are visible
+   wherever a cross-cutting chrome/overlay layer needs to be ordered against
+   another one. Local decorative stacking inside a single component (e.g. a
+   card's own background/foreground layers, typically z-index 0-5) is left
+   as plain literals: it never competes with anything outside that component,
+   so tokenizing it would just be noise. (#144: --z-nav-toggle sits below
+   --z-modal-backdrop so an open modal always covers the floating mobile nav
+   toggle, instead of the two tying at 60 and leaving paint order to decide.) */
+:root {
+  --z-raised: 30;          /* reporting: small in-flow dropdown */
+  --z-nav-backdrop: 38;    /* mobile nav dimming overlay */
+  --z-nav: 40;             /* persistent sidebar/nav rail */
+  --z-overlay-center: 50;  /* full-page centered overlay (e.g. workitems export modal) */
+  --z-nav-toggle: 59;      /* mobile nav floating toggle button */
+  --z-modal-backdrop: 60;  /* modal/drawer dimming backdrop */
+  --z-popover-menu: 60;    /* small dropdown/export menu (not a full backdrop) */
+  --z-modal: 61;           /* modal/drawer panel, above its own backdrop */
+  --z-popover: 100;        /* dropdown/popover panels (user menu, drill drawer, etc.) */
+  --z-top: 200;            /* admin utility layer, above popovers */
+  --z-top-2: 210;          /* topmost app chrome (above --z-top) */
+  --z-command-palette: 1000; /* Ctrl/Cmd+K command palette */
+}
+
 /* ---------- Base body ---------- */
 body {
     font-family: 'Inter', sans-serif;
@@ -27,7 +51,7 @@ footer {
     top: 0;
     height: 100vh;
     width: 64px;                 
-    z-index: 40;
+    z-index: var(--z-nav);
     display: flex;
     flex-direction: column;
     background: #ffffff;
@@ -36,9 +60,13 @@ footer {
     overflow: hidden;
     transition: width 0.28s cubic-bezier(.4,0,.2,1);
 }
-#nexora-sidebar:hover {
+#nexora-sidebar:is(:hover, .pinned) {
     width: 220px;
 }
+html.sidebar-pinned body {
+    padding-left: 220px;
+}
+.sidebar-pin-active { color: #4f46e5; transform: rotate(-45deg); }
 
 /* ---------- Sidebar label (hidden when collapsed) ---------- */
 .sidebar-label {
@@ -48,7 +76,7 @@ footer {
     pointer-events: none;
     overflow: hidden;
 }
-#nexora-sidebar:hover .sidebar-label {
+#nexora-sidebar:is(:hover, .pinned) .sidebar-label {
     opacity: 1;
     pointer-events: auto;
 }
@@ -94,7 +122,7 @@ footer {
     transition: opacity 0.18s ease;
     pointer-events: none;
 }
-#nexora-sidebar:hover .sidebar-logo-area .flex.flex-col {
+#nexora-sidebar:is(:hover, .pinned) .sidebar-logo-area .flex.flex-col {
     opacity: 1;
     pointer-events: auto;
 }
@@ -116,7 +144,7 @@ footer {
     align-items: center;
     gap: 12px;
     padding: 10px 8px;
-    border-radius: 10px;
+    border-radius: calc(var(--nx-radius-scale, 1) * 10px);
     color: #6b7280;
     font-size: 0.875rem;
     font-weight: 500;
@@ -165,12 +193,16 @@ footer {
     max-height: 0;
     transition: max-height 0.25s ease;
 }
-#nexora-sidebar:hover #generaliNavGroup.generali-open .sidebar-nav-subitems {
+#nexora-sidebar:is(:hover, .pinned) #generaliNavGroup.generali-open .sidebar-nav-subitems {
     max-height: var(--generali-subitems-height, 9999px);
 }
 /* Admin group expand (mirrors generali rules) */
-#nexora-sidebar:hover #adminNavGroup.admin-open .sidebar-nav-subitems {
+#nexora-sidebar:is(:hover, .pinned) #adminNavGroup.admin-open .sidebar-nav-subitems {
     max-height: var(--admin-subitems-height, 9999px);
+}
+/* Development group expand (mirrors generali/admin rules) */
+#nexora-sidebar:is(:hover, .pinned) #devNavGroup.dev-open .sidebar-nav-subitems {
+    max-height: var(--dev-subitems-height, 9999px);
 }
 .sidebar-nav-subitem {
     padding-left: 20px;
@@ -188,6 +220,9 @@ footer {
     transform: rotate(90deg);
 }
 #adminNavGroup.admin-open .sidebar-generali-chevron {
+    transform: rotate(90deg);
+}
+#devNavGroup.dev-open .sidebar-generali-chevron {
     transform: rotate(90deg);
 }
 html.dark .sidebar-nav-group-header:hover { background: #334155; color: #a5b4fc; }
@@ -230,11 +265,11 @@ html.dark .sidebar-nav-group-header:hover { background: #334155; color: #a5b4fc;
     left: 68px;
     bottom: 60px;
     width: 300px;
-    border-radius: 12px;
+    border-radius: calc(var(--nx-radius-scale, 1) * 12px);
     background: #fff;
     box-shadow: 0 20px 50px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.05);
     overflow: hidden;
-    z-index: 100;
+    z-index: var(--z-popover);
 }
 .sidebar-notif-panel-header {
     display: flex;
@@ -263,7 +298,7 @@ html.dark .sidebar-nav-group-header:hover { background: #334155; color: #a5b4fc;
 }
 .sidebar-notif-list::-webkit-scrollbar { width: 5px; }
 .sidebar-notif-list::-webkit-scrollbar-track { background: transparent; }
-.sidebar-notif-list::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
+.sidebar-notif-list::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: calc(var(--nx-radius-scale, 1) * 10px); }
 
 /* ---------- Profile / avatar ---------- */
 .sidebar-avatar-wrap {
@@ -284,6 +319,17 @@ html.dark .sidebar-nav-group-header:hover { background: #334155; color: #a5b4fc;
     height: 9px;
     border-radius: 9999px;
     background: #22c55e;
+    border: 2px solid #fff;
+}
+/* Unseen What's-New badge (#169) — top-right counterpart of the online dot */
+.sidebar-news-dot {
+    position: absolute;
+    top: -1px;
+    right: -1px;
+    width: 9px;
+    height: 9px;
+    border-radius: 9999px;
+    background: #f43f5e;
     border: 2px solid #fff;
 }
 .sidebar-username {
@@ -337,6 +383,7 @@ html.dark .sidebar-nav-item:hover { background: #334155; color: #a5b4fc; }
 html.dark .sidebar-nav-item--active { background: rgba(79,70,229,0.25); color: #a5b4fc; }
 html.dark .sidebar-username    { color: #e2e8f0; }
 html.dark .sidebar-online-dot  { border-color: #1e293b; }
+html.dark .sidebar-news-dot    { border-color: #1e293b; }
 html.dark .sidebar-notif-panel { background: #1e293b; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
 html.dark .sidebar-notif-panel-header { background: #0f172a; border-bottom-color: #334155; color: #64748b; }
 
@@ -352,6 +399,12 @@ html.dark .text-gray-700    { color: #cbd5e1 !important; }
 html.dark .text-gray-600    { color: #94a3b8 !important; }
 html.dark .text-gray-500    { color: #64748b !important; }
 html.dark .text-gray-400    { color: #475569 !important; }
+
+/* The ramp above keeps dim text dim, which is right for most of it but leaves
+   the build stamp at 3.06:1 on the #1e293b menu -- under the 4.5:1 AA floor for
+   12px text. Higher specificity than `html.dark .text-gray-500` so it wins
+   regardless of source order. */
+html.dark p[data-testid="header-version"] { color: #94a3b8 !important; }
 
 /* Borders */
 html.dark .border-gray-100  { border-color: #334155 !important; }
@@ -395,10 +448,10 @@ html.dark .skeleton-shimmer {
     position: fixed;
     top: 12px;
     left: 12px;
-    z-index: 60;
+    z-index: var(--z-nav-toggle);
     width: 44px;
     height: 44px;
-    border-radius: 10px;
+    border-radius: calc(var(--nx-radius-scale, 1) * 10px);
     background: #ffffff;
     border: 1px solid #e5e7eb;
     color: #4f46e5;
@@ -420,7 +473,7 @@ html.dark .sidebar-toggle-btn {
     position: fixed;
     inset: 0;
     background: rgba(15, 23, 42, 0.45);
-    z-index: 38;
+    z-index: var(--z-nav-backdrop);
     opacity: 0;
     transition: opacity 0.2s ease;
 }
@@ -470,6 +523,9 @@ html.dark .sidebar-toggle-btn {
     }
     #nexora-sidebar.open #adminNavGroup.admin-open .sidebar-nav-subitems {
         max-height: var(--admin-subitems-height, 9999px);
+    }
+    #nexora-sidebar.open #devNavGroup.dev-open .sidebar-nav-subitems {
+        max-height: var(--dev-subitems-height, 9999px);
     }
 
     .sidebar-backdrop.open {
@@ -612,7 +668,7 @@ html.dark .sidebar-toggle-btn {
    COMMAND PALETTE (Ctrl/Cmd+K)
    ============================================================ */
 .cmdk-overlay {
-    position: fixed; inset: 0; z-index: 1000;
+    position: fixed; inset: 0; z-index: var(--z-command-palette);
     background: rgba(15,23,42,0.45);
     backdrop-filter: blur(2px);
     display: flex; align-items: flex-start; justify-content: center;
@@ -624,7 +680,7 @@ html.dark .sidebar-toggle-btn {
     width: 100%; max-width: 580px;
     background: #ffffff;
     border: 1px solid #e5e7eb;
-    border-radius: 12px;
+    border-radius: calc(var(--nx-radius-scale, 1) * 12px);
     box-shadow: 0 20px 50px rgba(0,0,0,0.20);
     overflow: hidden;
     font-family: 'Inter', system-ui, sans-serif;
@@ -649,7 +705,7 @@ html.dark .sidebar-toggle-btn {
 }
 .cmdk-item {
     display: flex; align-items: center; gap: 12px;
-    padding: 9px 12px; border-radius: 7px;
+    padding: 9px 12px; border-radius: calc(var(--nx-radius-scale, 1) * 7px);
     cursor: pointer; color: #1f2937; font-size: 13px;
 }
 .cmdk-item .cmdk-item-icon {

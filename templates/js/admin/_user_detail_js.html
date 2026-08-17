@@ -1,4 +1,4 @@
-<script>
+<script nonce="{{ csp_nonce() }}">
     const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
 
     function userDetailToast(msg, tone) {
@@ -11,6 +11,19 @@
         container.appendChild(el);
         setTimeout(() => el.remove(), 3500);
     }
+
+    // #193 finding 10: onclick="" attribute handlers aren't nonce-covered by CSP.
+    document.addEventListener('DOMContentLoaded', function () {
+        document.getElementById('perm-tab-effective-btn')?.addEventListener('click', () => switchPermTab('effective'));
+        document.getElementById('perm-tab-overrides-btn')?.addEventListener('click', () => switchPermTab('overrides'));
+        document.getElementById('confirmDeleteCancelBtn')?.addEventListener('click', () => {
+            document.getElementById('confirmDeleteModal').style.display = 'none';
+        });
+        document.getElementById('overridesTbody')?.addEventListener('click', (e) => {
+            const tr = e.target.closest('tr[data-perm-group], tr[data-perm-sub-group]');
+            if (tr) permGroupToggle(tr);
+        });
+    });
 
     document.addEventListener('DOMContentLoaded', function () {
         const form = document.getElementById('userProfileForm');
@@ -331,7 +344,8 @@
         function _makeEffHeader(tag, text) {
             const tr = document.createElement('tr');
             tr.setAttribute(tag, text);
-            tr.setAttribute('onclick', 'permGroupToggle(this)');
+            /* Toggling is bound by the delegated overridesTbody listener; an
+               inline onclick would be CSP-blocked (#193 finding 10) anyway. */
             tr.style.cssText = 'cursor:pointer;user-select:none;background:var(--nx-alt)';
             const td = document.createElement('td');
             td.setAttribute('colspan', '2');

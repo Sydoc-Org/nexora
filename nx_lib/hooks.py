@@ -17,7 +17,7 @@ from flask import (
     url_for,
 )
 
-from .config import PATHS
+from .config import IS_PROD, PATHS
 from .db import engine_nexora_db
 from .i18n import get_locale
 from .maintenance import (
@@ -30,8 +30,10 @@ from .security import (
     has_permission,
     load_permissions_for_user,
 )
+from .ui_prefs import load_ui_prefs
 from .users import resolve_user_icon_url
-from .version import __version__
+from .version import BUILD_STAMP, __version__
+from .whats_new import has_unseen, load_seen_version
 
 _SESSION_ENFORCE_SKIP_PATHS = (
     "/static",
@@ -44,6 +46,7 @@ _SESSION_ENFORCE_SKIP_PATHS = (
     "/verify_2fa",
     "/reset_password",
     "/dev/login",
+    "/dev/users",
 )
 
 
@@ -60,7 +63,10 @@ def _start_timer():
 def _enforce_active_session():
     """If a logged-in user's SID is no longer in ActiveSessions (e.g. an admin
     revoked it), clear the session and redirect/401. Backend-agnostic: this is
-    what makes force-logout actually take effect on the next request."""
+    what makes force-logout actually take effect on the next request.
+
+    Also bumps LastSeenAt on every request so the admin "active sessions" view
+    reflects actual recent activity rather than just login time (issue #109)."""
     if request.path.startswith(_SESSION_ENFORCE_SKIP_PATHS):
         return
     if "userid" not in session:
@@ -71,14 +77,18 @@ def _enforce_active_session():
     try:
         conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT 1 FROM ActiveSessions WHERE SessionID = ?", (str(sid),))
-        row = cursor.fetchone()
+        cursor.execute(
+            "UPDATE ActiveSessions SET LastSeenAt = GETDATE() WHERE SessionID = ?",
+            (str(sid),),
+        )
+        updated = cursor.rowcount
+        conn.commit()
         cursor.close()
         conn.close()
     except Exception as e:
         current_app.logger.warning(f"enforce_active_session check failed: {e}")
         return  # Fail open — never lock users out due to a transient DB blip
-    if row:
+    if updated:
         return
     session.clear()
     if request.path.startswith("/api/") or request.is_json:
@@ -109,6 +119,17 @@ def _load_user_locale():
                 session["locale"] = row[0]
         except Exception as e:
             current_app.logger.error(f"load_user_locale error: {e}")
+
+
+def _load_user_ui_prefs():
+    """Refresh UI prefs from the DB on every request (same idiom as
+    permissions). A load-once session cache goes stale: concurrent requests
+    (e.g. the 5s heartbeat) race the session cookie and can resurrect the
+    old prefs, making saves look non-persistent (#155)."""
+    if request.path.startswith("/static"):
+        return
+    if "userid" in session:
+        session["ui_prefs"] = load_ui_prefs(session["userid"])
 
 
 def _enforce_maintenance_lockout():
@@ -176,30 +197,34 @@ def _log_every_request(response):
     return response
 
 
+def _is_external_api_path(path):
+    # The external machine-to-machine API (/api/v1 and its /api/test/v1
+    # sandbox twin) gets JSON error bodies (same idiom as the session-
+    # revoked/maintenance hooks above). NOT gated on /api/ broadly, so the
+    # legacy internal /api/* surfaces keep their current HTML behavior.
+    return path.startswith("/api/v1") or path.startswith("/api/test/v1")
+
+
 def _page_not_found(e):
-    # The external machine-to-machine API (/api/v1) gets JSON error bodies
-    # (same idiom as the session-revoked/maintenance hooks above). Gated on
-    # /api/v1 -- NOT /api/ -- so the legacy internal /api/* surfaces keep
-    # their current HTML behavior.
-    if request.path.startswith("/api/v1"):
+    if _is_external_api_path(request.path):
         return jsonify({"error": "Not found"}), 404
     return render_template("handlers/404.html"), 404
 
 
 def _internal_error(e):
-    if request.path.startswith("/api/v1"):
+    if _is_external_api_path(request.path):
         return jsonify({"error": "Internal server error"}), 500
     return render_template("handlers/500.html"), 500
 
 
 def _forbidden_page(e):
-    if request.path.startswith("/api/v1"):
+    if _is_external_api_path(request.path):
         return jsonify({"error": "Forbidden"}), 403
     return render_template("handlers/403.html"), 403
 
 
 def _handle_permission_denied(e):
-    if request.path.startswith("/api/v1"):
+    if _is_external_api_path(request.path):
         return jsonify({"error": "Forbidden"}), 403
     return render_template("handlers/403.html"), 403
 
@@ -208,12 +233,28 @@ def _inject_current_lang():
     return {"current_lang": str(get_locale())}
 
 
+def _inject_ui_prefs():
+    return {"ui_prefs": session.get("ui_prefs") or {}}
+
+
 def _utility_processor():
-    return dict(get_user_icon_url=resolve_user_icon_url, has_permission=has_permission)
+    return dict(
+        get_user_icon_url=resolve_user_icon_url, has_permission=has_permission, is_prod=IS_PROD
+    )
 
 
 def _inject_app_version():
-    return {"nexora_version": __version__}
+    return {"nexora_version": __version__, "nexora_build": BUILD_STAMP}
+
+
+def _inject_whats_new():
+    """Header badge: unseen curated release notes. Read fresh from the DB per
+    render (permissions/ui_prefs idiom — a session cache races the cookie and
+    resurrects the dot after it was cleared)."""
+    if "userid" not in session:
+        return {"whats_new_unseen": False}
+    seen = load_seen_version(session["userid"])
+    return {"whats_new_unseen": has_unseen(seen, has_permission)}
 
 
 def init_app(app):
@@ -221,6 +262,7 @@ def init_app(app):
     app.before_request(_enforce_active_session)
     app.before_request(_reload_user_permissions)
     app.before_request(_load_user_locale)
+    app.before_request(_load_user_ui_prefs)
     app.before_request(_enforce_maintenance_lockout)
     app.after_request(_log_every_request)
 
@@ -230,5 +272,7 @@ def init_app(app):
     app.register_error_handler(PermissionDenied, _handle_permission_denied)
 
     app.context_processor(_inject_current_lang)
+    app.context_processor(_inject_ui_prefs)
     app.context_processor(_utility_processor)
     app.context_processor(_inject_app_version)
+    app.context_processor(_inject_whats_new)

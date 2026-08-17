@@ -1,11 +1,23 @@
 # Design — AI assistant in the Reporting page
 
 > **Status:** Phase 1, Phase 2 and Phase 3 implemented — the agentic loop +
-> deterministic stats engine + drafter route (3a–3d), the **Agent** sub-mode UI
-> (3d Task 7), and **Phase 3e** data egress (the `reporting.ai.explain_data`
-> permission binds `run_sql` + `compute_stats` into the loop so the model narrates
-> real numbers; off by default → schema-only). Glossary RAG (the other 3e item)
-> remains planned (needs a curation owner). See §12 for phase status.
+> deterministic stats engine + drafter route (3a–3d), and **Phase 3e** data
+> egress (the `reporting.ai.explain_data` permission binds `run_sql` +
+> `compute_stats` into the loop so the model narrates real numbers; off by
+> default → schema-only). Glossary RAG (the other 3e item) remains planned
+> (needs a curation owner). **2026-07-27 (Phase 5, "chat glow-up"):** the
+> old three-sub-mode "Ask AI" tab (Build a report / Write SQL / Agent) and the
+> Simple tab's own one-shot ask + Refine bar are **retired** — a single
+> multi-turn **AI chat panel** (§2b) now fronts Surface C's agent endpoint on
+> both tabs, threading up to 8 turns / 4000 chars of conversation history.
+> The same release also shipped `reporting.ai.explain_data`-gated **auto
+> captions** (a 1–2 sentence narration under any result, `Surface='caption'`
+> in the audit table) as the actually-shipped Phase-3e narration surface for
+> a *single already-fetched result* (distinct from the agent's live `run_sql`
+> narration, which additionally needs `reporting.sql.run`), and a
+> non-AI **comparison** feature (`compare` flag on `/api/reporting/run`,
+> Simple-tab delta chips) — see `docs/howto/reporting.md` for both. See §12
+> for phase status.
 > **Author:** initial draft via Claude Code, 2026-06-03.
 > **Scope:** an in-page AI that turns natural language into *helpful, smart*
 > statistics — building reports for you, and writing SQL you can run or
@@ -70,6 +82,56 @@ The model emits the **v1 report-definition JSON** (`source`, `columns`,
   the right field and as a column `header`. This stops docprocessing — whose keys are
   internal Statconfig codes, not the human labels the model would otherwise guess —
   from drafting label-named fields the validator rejects.
+- **Coverage grounding (#128):** the RO-target block is a flat `INFORMATION_SCHEMA`
+  dump, in which a per-process statistics table (`dbo.Compass_Invoice`) is
+  indistinguishable from a company-wide fact table — so the agent answered "our
+  volume" from whichever single table it found, worst case reporting a confident
+  zero as if it were company-wide. `serialize_partial_tables` now prepends the
+  `Statconfig` table→process map, marked as **partial** views and naming the
+  curated source that unions them; `_AGENT_SYSTEM` makes the consequences binding
+  (totals questions with no process named are company-wide ⇒ `build_definition`
+  or an explicit UNION; every SQL answer states its coverage; zero from one
+  partial table is zero *for that process*). Two details the eval proved
+  necessary: the block declares itself **complete**, because the statistics DB
+  also holds tables Statconfig never registered (`dbo.BFH_Statistic`,
+  `dbo.DPSLicenseCounter` — both of which the agent had been answering from) that
+  are outside the reporting universe entirely; and each line carries that table's
+  import/export date columns, since they differ per table (`ExportDate` vs
+  `ExportEM_dt`) and a UNION written without them fails on "invalid column name"
+  instead. Statconfig being unavailable drops the block rather than failing the
+  request.
+- **Per-process field-column grounding (#154):** the date columns alone weren't
+  enough — the agent still guessed the rest (page count, document type, user,
+  barcode, …) when it UNIONed the partial tables in raw SQL, hitting `Invalid
+  column name` in ~4 of 22 eval cases and often failing to recover. Each
+  `serialize_partial_tables` line now also lists that table's SearchConfig
+  `col_*` field columns — the same per-process `{field_key: column}` map
+  `_load_field_col_maps` already builds for the `docprocessing` curated
+  source — so raw SQL against these tables uses real column names instead of
+  probing `INFORMATION_SCHEMA` or guessing.
+- **Workitem-count semantics (#132):** the same block states that one row in a
+  partial table **is** one workitem — `COUNT(*)`, `COUNT(WorkitemID)` and
+  `COUNT(DISTINCT WorkitemID)` were verified equal on PROD, which is why the
+  `workitem_count` metric is disabled (migration `0021`) and `doc_count`
+  already answers "how many workitems". It also states that workitem ids are
+  unique only *within* a process and collide across tables, so a cross-table
+  `COUNT(DISTINCT WorkitemID)` under-counts. Without both facts the agent
+  drafted exactly that query and reported its result as a company total.
+- **Ambiguity disclosure (#132):** the agent may not ask the user questions
+  (Surface C is single-shot), so when a question underdetermines the metric,
+  the period type (calendar vs rolling) or the scope, `_AGENT_SYSTEM` requires
+  it to open the answer with one sentence naming the reading it used and the
+  main alternative — instead of silently picking one and presenting it as
+  *the* numbers.
+- **Mandatory caveats (#132):** a four-item checklist in `_AGENT_SYSTEM`
+  (partial current period, small-n baselines, excluded/assumed rows, thin
+  evidence for a trend or seasonality claim), to be stated in one sentence
+  when any apply. Six eval cases produced technically-correct numbers that
+  were misleading without exactly these.
+- **No handing the question back (#132):** the agent must not present SQL it
+  never executed as though it produced numbers, and must not stop with turns
+  remaining to give the user instructions to run the query themselves — it
+  retries from a different angle instead.
 - **Date grounding:** today's date is injected into the user prompt and the agent
   grounding so relative time expressions ("last month", "this year") resolve to
   correct absolute date ranges, not training-data dates. The agent system prompt
@@ -122,22 +184,29 @@ The model emits the **v1 report-definition JSON** (`source`, `columns`,
 **Best for:** non-technical users, scoped sources (Generali / Octopus curated),
 "just build me the report." **Limit:** only what the builder can express.
 
-#### AI refine (Surface A)
+#### AI refine (Surface A) — superseded by chat history (see §2b)
 
-The Simple tab exposes conversational refinement: each `/api/reporting/ai-build`
-call can receive `priorQuestion` and `priorDefinition` in the request body. These
-are injected into the user-turn prompt so the model can apply targeted changes
-rather than rebuilding from scratch. The model output is still fully validated;
-`priorDefinition` is prompt context only and never executed directly.
+`POST /api/reporting/ai/build` can still receive `priorQuestion` and
+`priorDefinition` in the request body (injected into the user-turn prompt so the
+model can apply targeted changes rather than rebuilding from scratch; still fully
+validated, `priorDefinition` is prompt context only, never executed directly) —
+but as of the chat-panel glow-up (2026-07-27) no UI calls this endpoint or sends
+that context any more. The Simple tab's one-shot ask + its dedicated **Refine**
+bar are removed; conversational follow-ups on **any** surface now go through
+Surface C's chat panel and its `history` param instead (§2b). This paragraph
+documents `priorQuestion`/`priorDefinition` as a still-live but orphaned
+capability of the `/ai/build` route, not a current user-facing flow.
 
 ### Surface B — NL → **T-SQL** (powerful, for complex stats)
 
 The model emits T-SQL that flows through the *unchanged* `/api/reporting/sql/run`
 path: `validate_select` (sqlglot gate) → `wrap_with_cap` → RO engine → statement
-timeout → `ReportingSqlAudit`. The UI **always shows the SQL first**:
-
-- **Copy** (copy-paste), **Insert into SQL editor** (review then run via the
-  existing ack/gate/run), or **Run** (gated).
+timeout → `ReportingSqlAudit`. The design called for the UI to **always show the
+SQL first** with **Copy** / **Insert into SQL editor** / **Run** actions — that
+was true of the original standalone "Write SQL" sub-mode, which (like Surface A's
+own sub-mode) is retired as of the chat-panel glow-up; see §2b. `POST
+/api/reporting/ai/ask` is unchanged and still callable, just not called by any
+current template/JS.
 
 **Best for:** window functions, percentiles, cohort/retention, time-bucketing,
 anything beyond the builder. **Gate:** behind `reporting.sql.run`, which is
@@ -147,6 +216,99 @@ and must be granted as deliberately as SQL access is today.
 > **Design rule:** prefer Surface A whenever the question fits the builder;
 > fall back to Surface B for genuine analytics. A small classifier (or the
 > agent itself) decides which surface to use per question.
+
+### Surface C — Agentic tool-loop (the shipped chat panel) ✅ implemented, now the only UI surface
+
+`POST /api/reporting/ai/agent` is a Tier-2 agentic tool-loop (`ask_agentic` in
+`nx_lib/reporting/ai.py`; see §3's Tier 2 for the general architecture) that
+self-repairs across tool calls instead of drafting once. As of the 2026-07-27
+chat-panel glow-up (`docs/superpowers/plans/2026-07-23-reporting-ai-chat-glow-up.md`)
+this is not just "one of three surfaces" any more — it is the **only** AI
+surface either tab's UI can reach. The old three-sub-mode "Ask AI" tab (Build a
+report / Write SQL / Agent) and the Simple tab's separate one-shot ask + Refine
+bar are gone; a single **"AI chat"** toggle on both tabs opens one docked
+slide-over panel (`templates/js/_reporting_ai_js.html`, now the chat module,
+`window.ReportingChat`) that always talks to this one endpoint.
+
+**History contract (multi-turn conversation).** The request body gained a
+`history` field: an array of `{role: "user"|"assistant", content}` entries, one
+per prior turn. Server-side (`api_ai_agent` in `nx_lib/views/reporting.py`):
+
+- Anything not shaped like `{role: "user"|"assistant", content: <non-empty str>}`
+  is dropped outright (`Invalid history` → 400 if `history` isn't a list at all).
+- The kept entries are capped to the **last 8**, then trimmed further from the
+  front while their combined `content` length exceeds **12000 characters** — a
+  long conversation degrades to "recent turns only" rather than growing the
+  prompt unboundedly. (Raised from an original 4000 in #178 A3 — see
+  **artifact-carrying history** below for why plain answer text alone stopped
+  being enough room.)
+- History is **text-only**: no grounding, schema, or catalog text is ever
+  threaded through it. The current turn's schema/date/process grounding is
+  concatenated with the current `question` into a single `initial` message that
+  is **always the final message in the request**, never mixed into `history` —
+  so grounding text is sent once per turn, not once per turn *times* every prior
+  turn still in the window. This is a deliberate token/cost boundary as much as
+  a correctness one: multiplying a multi-KB catalog by 8 history entries would
+  make follow-ups the expensive part of the conversation, not the cheap part.
+- Tool binding (data-free vs. data-egress) is decided fresh per request from the
+  caller's *current* permissions — a turn earlier in `history` cannot smuggle in
+  access the caller doesn't hold right now.
+
+**Artifact-carrying history (#178 A3).** A follow-up that only changes *how*
+the previous answer is presented ("show it as a chart", "break that down by
+process", "only this quarter") needs to keep operating on the **same**
+source and query the previous turn actually produced — not have the model
+re-derive (and potentially mis-derive, or silently switch source for) a new
+one from its own prior English answer. So the client-side history entry it
+records for each assistant turn is not just the answer text: whenever the
+turn's response carried a `sql` and/or a `definition`, the client
+(`templates/js/_reporting_ai_js.html`) appends a fenced block to that turn's
+`content` before pushing it onto `history`:
+
+```
+<answer text>
+[sql from this answer]
+<sql, truncated to 1500 chars>
+[report definition from this answer]
+<definition JSON, truncated to 1200 chars>
+```
+
+Both markers are plain literal text inside an otherwise-ordinary history
+`content` string — there is no structured side-channel for artifacts, by
+design (§2b's "text-only" rule above still holds; this is *conversation*
+text, not grounding text). The system prompt (`nx_lib/reporting/ai.py`,
+English-only, model-facing — never gettext-wrap this) explicitly instructs
+the model: on a presentation-only follow-up, stay on the source/data behind
+the `[sql from this answer]` / `[report definition from this answer]`
+context carried in `history` rather than switching sources. Truncating each
+artifact (1500/1200 chars) rather than dropping it wholesale is why the
+overall history character cap had to move from 4000 to 12000 — a couple of
+turns' worth of SQL/definition text no longer fits in 4000 alongside the
+answer prose and the 8-entry window.
+
+**Live build-step ticker.** `POST /api/reporting/ai/agent` with `"stream": true` (see
+`docs/howto/reporting.md` → **Agent endpoint contract → Live progress** for
+the NDJSON wire format) emits `{"phase": "thinking"|"note"|"tool", ...}`
+lines as the loop runs; the chat panel (`_reporting_ai_js.html`) turns these
+into a two-part live status rather than a single rotating line (#178 A1):
+
+- A **title line** — `"Asking the AI…"` initially, the model's own tool-turn
+  preamble when `phase: "note"` carried one (truncated to 120 chars,
+  rendered via `textContent` only — it is untrusted model output), or
+  `"Thinking… (N)"` on `phase: "thinking"` turns after the first.
+- A **growing ordered list of build steps**, one appended per `phase: "tool"`
+  event, labeled from the tool name (`build_definition` → "Building the
+  report…", `validate_sql` → "Checking the query…", `run_sql` → "Running the
+  query…", `compute_stats` → "Crunching the numbers…", unknown tool names
+  fall back to a generic "Working…"). The stream carries no explicit
+  per-tool *completion* event, so the previous step is marked done the
+  moment the *next* one starts (or never, if it was the last tool call
+  before the final `done` line) — "the next thing starting" is the only
+  completion signal there is.
+
+**UI behavior:** see `docs/howto/reporting.md` → **AI assistant → AI chat
+panel** for the toggle, panel, action-chip, and follow-up-chip behavior — that
+is user-facing documentation and is not duplicated here.
 
 ---
 
@@ -263,6 +425,17 @@ env/*.env(.example)               AI_PROVIDER, ANTHROPIC_API_KEY |
                                   AI model id, max-tokens/turn caps
 ```
 
+> This is the original pre-build sketch. What actually shipped differs in two
+> ways worth knowing if you go looking for these names: there is no
+> `POST /api/reporting/ai/explain` route — the data-egress narration path that
+> shipped is (a) the agent's `run_sql`/`compute_stats` tool binding *inside*
+> `POST /api/reporting/ai/agent` (§2b) for live queries, and (b)
+> `POST /api/reporting/ai/caption` (Phase 5) for narrating an *already-fetched*
+> result's rows, both gated by `reporting.ai.explain_data`. And
+> `templates/js/_reporting_ai_js.html` is no longer an "Ask AI panel" with its
+> own sub-modes — it's the chat module (`window.ReportingChat`) behind the
+> single AI chat toggle (§2b).
+
 Nothing in the **runtime execution** path is new: `validate_select`,
 `wrap_with_cap`, the RO engines, `ReportingSqlAudit`, and the whitelist
 definition validator are all reused as-is. The AI module only *produces
@@ -279,7 +452,7 @@ family:
 |---|---|
 | `reporting.ai.use` | Ask the assistant; receive **Surface A** definitions + explanations (no SQL) |
 | `reporting.ai.sql` | Receive/run **Surface B** SQL — **implies** `reporting.sql.run` |
-| `reporting.ai.explain_data` | Allow result **rows** to be sent to the model (data egress) |
+| `reporting.ai.explain_data` | Allow result **rows** to be sent to the model (data egress). Gates two distinct things: **auto captions** on any result (alone — no live query, the rows already left the DB through the ordinary run) and, **combined with `reporting.sql.run`**, the chat agent's `run_sql`/`compute_stats` tools (the model's own live read-only queries). |
 
 New audit table `dbo.ReportingAiAudit` (or an `origin` + `prompt` column added to
 `ReportingSqlAudit`): `{user, prompt, surface, generated_sql_or_definition,
@@ -335,17 +508,40 @@ the route 503s). Only `ok`/`error` count toward the daily cap, so `blocked` and
 
 ## 9. UX integration
 
-- A third toggle next to **Table / SQL**: **Ask AI** (gated by `reporting.ai.use`).
-- A prompt box + conversational follow-ups ("now break it down by month", "only
-  Generali", "as a chart"). Streamed responses; visible tool steps for trust.
-- Result actions, one click each: **Run**, **Copy SQL**, **Insert into SQL
-  editor**, **Open in builder** (fills the wells from a Surface-A definition),
-  **Make a chart** (reuse Chart.js), **Save as report**, **Schedule** (reuse the
-  existing dialog).
-- Transparency first: SQL/definition shown *before* anything runs; "Explain this
-  query" / "Why these rows?" affordances.
+**As shipped (2026-08-06):** a single **"AI chat"** toggle in the masthead
+(gated by `reporting.ai.use`, both tabs) opens one docked slide-over chat panel
+— not the originally-envisioned third **Table / SQL / Ask AI** toggle with
+separate sub-modes. That richer per-surface chrome (a `Run`/`Copy SQL` button
+row, a distinct "Make a chart" action, a live `Explain this query` affordance)
+was never built as separate UI; the panel instead exposes one small, consistent
+action set per turn (**Open report**, **Insert into SQL editor**, **Show
+query**, plus canned follow-up chips) — see `docs/howto/reporting.md` → **AI
+assistant → AI chat panel** for the exact behavior. What *did* ship as
+originally envisioned:
+
+- **Conversational follow-ups** ("now break it down by month", "only Generali",
+  "as a chart") — via the chat panel's `history` param (§2b), not a separate
+  per-message streaming UI (turns are request/response, not token-streamed);
+  each turn's produced SQL/definition rides along in `history` too (§2b
+  **artifact-carrying history**), so a presentation-only follow-up stays on
+  the same data instead of the model re-deriving it from its own prose.
+- **Visible tool steps for trust** — the collapsed "How the agent worked" trace
+  per turn, plus a **live build-step ticker** while a turn is in flight (§2b)
+  narrating which tool the agent is currently running.
+- **Open report** (opens an agent-produced definition straight into the
+  Simple result view via `window.ReportingSimple.openDefinition()`, #178
+  A4 — falls back to filling the Advanced builder wells if that seam isn't
+  loaded), **Insert into SQL editor** (review then run via the existing
+  sandbox).
+- Transparency first: the tool trace and any SQL are always inspectable before
+  the user acts on them.
 - i18n: all new strings via `{{ _('…') }}` / `gettext`, de/fr/it (the
-  `test_translations.py` gate already enforces coverage).
+  `test_translations.py` gate enforces coverage).
+
+Not built: a dedicated **Make a chart** one-click action from a chat turn (the
+user reaches charting via **Open report** → the existing chart view), a
+**Save as report** / **Schedule** action directly from the chat panel (same —
+via **Open report**), and streamed (token-by-token) responses.
 
 ---
 
@@ -383,9 +579,10 @@ should be computed deterministically:
 | **1 — MVP** | "Ask AI" → SQL **into the editor only** (no auto-run) + 1-line explanation; server-side provider call; schema from RO `INFORMATION_SCHEMA` + catalogs; `reporting.ai.use/sql`; `ReportingAiAudit` | gate, ack, run, audit | ~days | ✅ done (2026-06-03) |
 | **2 — Builder + charts** | NL → report-definition (auto-fills wells; whitelist-safe; no SQL perm) + "suggest a chart" | `/run`, Chart.js | ~days | ✅ done (2026-06-03) |
 | **3a–3c — Agentic spine** | Tier-2 tool-loop (`ask_agentic`) with self-repair + turn cap; provider tool-calling (Azure + Anthropic); tool layer (`ai_tools.py`); deterministic stats engine (`stats.py`, stdlib) | gate, run, validator, audit | ~days | ✅ done (2026-06-03) |
-| **3d — Drafter route + Agent UI** | `POST /api/reporting/ai/agent` (Surface C): self-repairing drafter; binds data-free tools by default (`build_definition`, `validate_sql`); returns a validated artifact + tool trace; audits `Surface='agent'`. **Agent sub-mode** UI: visible tool-step trace + follow-up conversation | the spine | ~days | ✅ done (2026-06-04) |
+| **3d — Drafter route + Agent UI** | `POST /api/reporting/ai/agent` (Surface C): self-repairing drafter; binds data-free tools by default (`build_definition`, `validate_sql`); returns a validated artifact + tool trace; audits `Surface='agent'`. Original **Agent sub-mode** UI: visible tool-step trace + follow-up conversation, one of three sub-modes on an "Ask AI" tab — **retired by Phase 5** below, which replaces the whole three-sub-mode tab with one chat panel over this same endpoint | the spine | ~days | ✅ done (2026-06-04); UI superseded 2026-07-27 |
 | **3e — Data egress** | `run_sql` / `compute_stats` bound into the live loop behind **`reporting.ai.explain_data`** (migration `0015`; admins seeded; only effective with `reporting.sql.run`) so the model narrates real result numbers; off by default → schema-only. (Glossary RAG deferred — needs a curation owner) | new perm + migration | ~days | ✅ data egress done (2026-06-04); RAG planned |
 | **4 — Semantic layer (Slice 1 — metrics)** | Canonical **metrics** (named server-side aggregations) in `dbo.ReportingMetrics`; definition `metrics` list → GROUP BY by `columns`; aggregate branch in both query builders; `/reporting/metrics` admin (`reporting.semantic.admin`, migration `0017`); builder Metrics well; metric catalog injected into the AI schema | `query.py`, `table_query.py`, `schema.py`, `ai_schema.py` | strategic, larger | ✅ Slice 1 done (2026-06-08); dimensions + locked `FilterJson` planned |
+| **5 — Chat glow-up** | Retire the three-sub-mode "Ask AI" tab + Simple's one-shot ask/Refine bar in favor of one multi-turn **AI chat panel** (§2b) on both tabs, fronting Surface C via a new `history` param (8 turns / 4000 chars, text-only); **`POST /api/reporting/ai/caption`** — a `reporting.ai.explain_data`-gated 1–2 sentence auto-narration under any result (`Surface='caption'`); plus non-AI chart/table formatting polish, dark-mode repair, and a non-AI **comparison**/delta-chip feature on `/api/reporting/run` (Simple tab) | the spine, `/run` | ~days | ✅ done (2026-07-27) |
 
 **Phase-1 acceptance:** a user with `reporting.ai.sql` types a question, gets
 valid T-SQL in the editor that passes `validate_select`, can run it via the

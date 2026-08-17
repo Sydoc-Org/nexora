@@ -296,7 +296,6 @@ def _all_false_page_v():
         "dashboardPagePerm": False,
         "reportingPagePerm": False,
         "workitemsPagePerm": False,
-        "invoicesPagePerm": False,
         "generaliPagePerm": False,
         "generaliDocumentsPerm": False,
         "generaliReportingPerm": False,
@@ -304,15 +303,15 @@ def _all_false_page_v():
         "generaliBaseServicesPerm": False,
         "generaliProjectManagementPerm": False,
         "generaliPDQMPerm": False,
-        "chatPagePerm": False,
         "adminPagePerm": False,
+        "apiDocsPagePerm": False,
     }
 
 
 def test_startpage_redirect_to_picks_first_truthy_perm():
     pv = _all_false_page_v()
     pv["workitemsPagePerm"] = True
-    pv["invoicesPagePerm"] = True
+    pv["generaliPagePerm"] = True
     assert startpage_redirect_to(pv) == "workitems_overview"
 
 
@@ -334,6 +333,14 @@ def test_startpage_redirect_to_returns_login_when_no_perms():
     assert startpage_redirect_to(pv) == "login"
 
 
+def test_startpage_redirect_to_api_docs_only_lands_on_api_docs():
+    """An external API client's portal account may hold ONLY api.docs.view —
+    it must land on the docs page, not bounce back to login."""
+    pv = _all_false_page_v()
+    pv["apiDocsPagePerm"] = True
+    assert startpage_redirect_to(pv) == "api_docs"
+
+
 # ---------------------------------------------------------------------------
 # page_visibility — all 18 keys
 # ---------------------------------------------------------------------------
@@ -348,8 +355,7 @@ def test_page_visibility_returns_all_18_keys_with_no_perms(fake_session):
         "reportingPagePerm",
         "workitemsPagePerm",
         "preparedDocsPagePerm",
-        "invoicesPagePerm",
-        "chatPagePerm",
+        "apiDocsPagePerm",
         "generaliPagePerm",
         "generaliDocumentsPerm",
         "generaliReportingPerm",
@@ -358,6 +364,7 @@ def test_page_visibility_returns_all_18_keys_with_no_perms(fake_session):
         "generaliProjectManagementPerm",
         "generaliPDQMPerm",
         "generaliImportStatusPerm",
+        "adminStatusPagePerm",
         "adminMaintenanceViewPerm",
         "adminMaintenanceEditPerm",
         "adminMaintenanceBypassPerm",
@@ -380,8 +387,6 @@ def test_page_visibility_reflects_selected_perms(fake_session):
     assert pv["adminMaintenanceBypassPerm"] is True
     # Spot-check that unselected perms are still False.
     assert pv["workitemsPagePerm"] is False
-    assert pv["invoicesPagePerm"] is False
-    assert pv["chatPagePerm"] is False
     assert pv["adminMaintenanceEditPerm"] is False
 
 

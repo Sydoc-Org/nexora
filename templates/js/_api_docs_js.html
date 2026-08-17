@@ -1,0 +1,41 @@
+<script nonce="{{ csp_nonce() }}">
+(function () {
+  "use strict";
+
+  // Section switching: left-nav buttons toggle the matching .apidocs-section.
+  // Deep-linkable via location.hash (#authentication, #stats-today, ...).
+  const items = document.querySelectorAll(".apidocs-nav-item");
+  const sections = document.querySelectorAll(".apidocs-section");
+
+  function activate(name) {
+    let found = false;
+    sections.forEach((s) => {
+      const match = s.id === "apidocs-" + name;
+      s.classList.toggle("active", match);
+      found = found || match;
+    });
+    if (!found) return;
+    items.forEach((b) => b.classList.toggle("active", b.dataset.section === name));
+    history.replaceState(null, "", "#" + name);
+  }
+
+  items.forEach((b) => b.addEventListener("click", () => activate(b.dataset.section)));
+  if (location.hash) activate(location.hash.slice(1));
+
+  // Syntax highlighting (highlight.js, github-dark theme; the panels are
+  // dark in both app themes so one code theme is enough).
+  if (window.hljs) hljs.highlightAll();
+
+  // Copy buttons on code blocks.
+  document.querySelectorAll(".apidocs-copy").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const pre = btn.parentElement.querySelector("pre");
+      navigator.clipboard.writeText(pre.textContent).then(() => {
+        const icon = btn.querySelector("i");
+        icon.className = "fas fa-check";
+        setTimeout(() => { icon.className = "far fa-copy"; }, 1200);
+      });
+    });
+  });
+})();
+</script>

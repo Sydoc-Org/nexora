@@ -133,3 +133,42 @@ def test_ping_dbs_parallel_records_individual_errors():
     assert by_label["good"]["ok"] is True
     assert by_label["bad"]["ok"] is False
     assert by_label["bad"]["error"]
+
+
+def test_ping_dbs_parallel_bounded_by_single_shared_deadline():
+    """Regression for the serial-wait bug: the old code awaited
+    fut.result(timeout=timeout_s) one future at a time, so N down engines took
+    N x timeout_s wall time instead of the documented ~timeout_s. With 3
+    engines all blocking past the timeout, total elapsed must stay close to
+    ONE timeout_s (not three), and every result must report timed-out status.
+
+    Uses the same blocking-Event pattern as test_ping_db_timeout_when_probe_slow
+    (not a fixed sleep) so the probe is deterministically still running when
+    the shared deadline fires, regardless of scheduler noise.
+    """
+    release = threading.Event()
+
+    def blocking_probe(_engine):
+        release.wait(timeout=30)  # safety cap; test always releases first
+
+    targets = [
+        (engine_nexora_db, "a"),
+        (engine_nexora_db, "b"),
+        (engine_nexora_db, "c"),
+    ]
+    timeout_s = 0.2
+    try:
+        with patch("nx_lib.db._ping_db_probe", side_effect=blocking_probe):
+            t0 = time.perf_counter()
+            results = ping_dbs_parallel(targets, timeout_s=timeout_s)
+            elapsed = time.perf_counter() - t0
+    finally:
+        release.set()  # unblock the worker threads so they don't linger
+
+    assert len(results) == 3
+    assert all(r["ok"] is False and r["error"] == "timeout" for r in results)
+    # Bounded by ~one timeout (with slack for scheduling), not 3x serial waits.
+    assert elapsed < timeout_s * 2, (
+        f"parallel ping of 3 timed-out engines took {elapsed:.2f}s "
+        f"(timeout_s={timeout_s}) — looks like serial per-future waiting"
+    )

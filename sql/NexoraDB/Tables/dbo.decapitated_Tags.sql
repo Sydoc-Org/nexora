@@ -1,0 +1,32 @@
+﻿USE [nexora]
+GO
+ALTER TABLE [dbo].[decapitated_Tags] DROP CONSTRAINT [DF__Tags__CreatedAt__3E1D39E1]
+GO
+ALTER TABLE [dbo].[decapitated_Tags] DROP CONSTRAINT [DF__Tags__TagColor__619B8048]
+GO
+DROP TABLE [dbo].[decapitated_Tags]
+GO
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[decapitated_Tags](
+	[TagID] [int] IDENTITY(1,1) NOT NULL,
+	[TagName] [nvarchar](50) NOT NULL,
+	[TagColor] [nvarchar](7) NOT NULL,
+	[CreatedByUserID] [int] NULL,
+	[CreatedAt] [datetime2](7) NOT NULL,
+ CONSTRAINT [PK_Tags] PRIMARY KEY CLUSTERED 
+(
+	[TagID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY],
+ CONSTRAINT [UQ_TagName] UNIQUE NONCLUSTERED 
+(
+	[TagName] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[decapitated_Tags] ADD  DEFAULT ('#6B7280') FOR [TagColor]
+GO
+ALTER TABLE [dbo].[decapitated_Tags] ADD  DEFAULT (getdate()) FOR [CreatedAt]
+GO

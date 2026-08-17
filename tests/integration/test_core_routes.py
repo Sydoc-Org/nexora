@@ -1,11 +1,14 @@
 """Integration tests for nx_lib.views.core — root, jdvance, maintenance, heartbeat.
 
-The MaintenanceBanner table is intentionally absent from sql/test/schema.sql.
+MaintenanceBanner exists in sql/test/schema.sql (added in aea3998). Both the
+no-blocker and error paths are exercised by mocking rather than real table
+state:
 - maintenance_page() relies on _get_blocking_maintenance() which fails open
-  (returns None) when the table is missing, so the page still renders with HTTP 200.
+  (returns None) when the lookup fails, so the page still renders with HTTP 200.
 - api_maintenance_active() catches the SQL error and emits HTTP 500.
 
-The 200 path for api_maintenance_active is covered by mocking the connection.
+Both the 200 and 500 paths for api_maintenance_active are covered by mocking
+the connection.
 
 Routes covered:
 - GET /                       (index)
@@ -68,7 +71,7 @@ def test_jdvance_with_perm_renders(user_client, monkeypatch):
 
 
 def test_maintenance_page_renders_when_no_blocker(client, monkeypatch):
-    """MaintenanceBanner table missing → _get_blocking_maintenance returns None →
+    """_get_blocking_maintenance() returns None (no active/blocking banner) →
     page renders with 200."""
     monkeypatch.setattr("nx_lib.views.core._get_blocking_maintenance", lambda: None)
     resp = client.get("/maintenance")
@@ -92,9 +95,14 @@ def test_maintenance_page_returns_503_when_blocking(client, monkeypatch):
     assert resp.status_code == 503
 
 
-def test_api_maintenance_active_returns_500_when_table_missing(client):
-    """No MaintenanceBanner in TEST schema → except branch returns 500 JSON."""
-    resp = client.get("/api/maintenance/active")
+def test_api_maintenance_active_returns_500_on_query_failure(client):
+    """A failing query (e.g. a genuinely missing MaintenanceBanner table in a
+    not-yet-migrated environment) → except branch returns 500 JSON."""
+    with patch("nx_lib.views.core.engine_nexora_db") as fake_engine:
+        fake_engine.raw_connection.side_effect = RuntimeError(
+            "Invalid object name 'MaintenanceBanner'"
+        )
+        resp = client.get("/api/maintenance/active")
     assert resp.status_code == 500
     assert resp.is_json
     body = resp.get_json()
@@ -163,6 +171,31 @@ def test_api_maintenance_active_returns_null_banner_when_no_rows(client):
     body = resp.get_json()
     assert body["success"] is True
     assert body["banner"] is None
+
+
+def test_api_docs_anonymous_redirects_to_login(client):
+    resp = client.get("/api-docs", follow_redirects=False)
+    assert resp.status_code == 302
+    assert "/login" in resp.headers.get("Location", "")
+
+
+def test_api_docs_without_perm_returns_403(user_client, monkeypatch):
+    """api.docs.view is required; a user without it gets the 403 page."""
+    monkeypatch.setattr("nx_lib.security.has_permission", lambda code: code != "api.docs.view")
+    resp = user_client.get("/api-docs")
+    assert resp.status_code == 403
+
+
+def test_api_docs_with_perm_renders(user_client, monkeypatch):
+    monkeypatch.setattr("nx_lib.security.has_permission", lambda code: True)
+    resp = user_client.get("/api-docs")
+    assert resp.status_code == 200
+    body = resp.get_data(as_text=True)
+    # #181: /stats/today was a scaffolding-only endpoint (never documented for
+    # clients), so it must NOT appear on the page.
+    assert "/api/v1/stats/today" not in body
+    assert "/api/v1/backlog" in body
+    assert "/api/v1/avg_processing_time" in body
 
 
 def test_session_heartbeat_returns_401_when_anonymous(client):

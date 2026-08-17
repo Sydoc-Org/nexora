@@ -150,7 +150,7 @@
         {% endif %}
 
         <div class="actions">
-            <button type="button" class="btn btn-primary" onclick="window.location.reload()" data-testid="maintenance-refresh">
+            <button type="button" class="btn btn-primary" data-testid="maintenance-refresh">
                 <i class="fas fa-rotate-right"></i>{{ _("Refresh") }}
             </button>
             <a class="btn btn-ghost" href="{{ url_for('login') }}" data-testid="maintenance-login">
@@ -165,7 +165,11 @@
         </div>
     </div>
 
-    <script>
+    <script nonce="{{ csp_nonce() }}">
+        // #193 finding 10: onclick="" attribute handlers aren't nonce-covered by CSP.
+        document.querySelector('[data-testid="maintenance-refresh"]')
+            ?.addEventListener('click', () => window.location.reload());
+
         // Auto-refresh once the window is over (reload every 30s to detect end)
         (function() {
             const endIso = {{ (maintenance.endAt if maintenance else None) | tojson }};

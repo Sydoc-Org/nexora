@@ -8,6 +8,7 @@ import bcrypt
 from flask import (
     current_app,
     flash,
+    jsonify,
     redirect,
     render_template,
     request,
@@ -19,7 +20,9 @@ from PIL import Image
 
 from ..db import engine_nexora_db
 from ..files import is_file_allowed
-from ..security import page_visibility
+from ..security import has_permission, page_visibility
+from ..ui_prefs import sanitize_ui_prefs, save_ui_prefs
+from ..whats_new import mark_seen, visible_releases
 
 
 def profile():
@@ -51,7 +54,11 @@ def update_profile():
         if request.method == "POST":
             userid = session["userid"]
             username = session["username"]
-            fullname = request.form["fullName"]
+            # Defence-in-depth against a stored-XSS payload in the display name
+            # (#193): the dashboard HTML-escapes it now, but also bound its
+            # length here so an absurd value can't be stored. Silent cap (no new
+            # user-facing string) -- names past 100 chars aren't realistic.
+            fullname = request.form["fullName"].strip()[:100]
             email = request.form["email"]
 
             conn = engine_nexora_db.raw_connection()
@@ -119,6 +126,8 @@ def update_profile():
                     return redirect(url_for("profile"))
             flash(_("Profile updated successfully!"), "success_updateProfile")
             return redirect(url_for("profile"))
+
+        return redirect(url_for("profile"))
     except Exception:
         flash(_("Unexpected error"), "failure_updateProfile")
         return redirect(url_for("profile"))
@@ -187,6 +196,8 @@ def change_password():
             else:
                 flash(_("Current password is incorrect"), "failure_changePW")
                 return redirect(url_for("profile"))
+
+        return redirect(url_for("profile"))
     except Exception:
         flash(_("Unexpected Error"), "failure_changePW")
         return redirect(url_for("profile"))
@@ -221,6 +232,55 @@ def set_language(lang=None):
             conn.close()
 
 
+def appearance():
+    """Standalone appearance-settings page (linked from the profile)."""
+    try:
+        if "username" not in session:
+            return redirect(url_for("login"))
+        return render_template(
+            "appearance.html",
+            userid=session.get("userid", "Unknown"),
+            logged_in_user=session.get("username", "Unknown"),
+            pageV=page_visibility(),
+        )
+    except Exception:
+        return render_template("500.html")
+
+
+def whats_new():
+    """Curated per-release notes, filtered to what this user can actually use.
+    Opening the page stamps the seen-marker, clearing the header badge."""
+    try:
+        if "username" not in session:
+            return redirect(url_for("login"))
+        releases = visible_releases(has_permission)
+        mark_seen(session["userid"])
+        return render_template(
+            "whats_new.html",
+            releases=releases,
+            userid=session.get("userid", "Unknown"),
+            logged_in_user=session.get("username", "Unknown"),
+            pageV=page_visibility(),
+        )
+    except Exception:
+        return render_template("500.html")
+
+
+def set_ui_prefs():
+    """AJAX endpoint: merge a partial prefs patch into the stored UI prefs."""
+    if "userid" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    patch = sanitize_ui_prefs(request.get_json(silent=True))
+    if not patch:
+        return jsonify({"error": "No valid preferences in request"}), 400
+    prefs = dict(session.get("ui_prefs") or {})
+    prefs.update(patch)
+    if not save_ui_prefs(session["userid"], prefs):
+        return jsonify({"error": "Could not save preferences"}), 500
+    session["ui_prefs"] = prefs
+    return jsonify({"ok": True, "prefs": prefs})
+
+
 def register_routes(app):
     app.add_url_rule("/profile", endpoint="profile", view_func=profile)
     app.add_url_rule(
@@ -236,3 +296,11 @@ def register_routes(app):
         methods=["POST", "GET"],
     )
     app.add_url_rule("/language/<lang>", endpoint="set_language", view_func=set_language)
+    app.add_url_rule("/appearance", endpoint="appearance", view_func=appearance)
+    app.add_url_rule("/whats_new", endpoint="whats_new", view_func=whats_new)
+    app.add_url_rule(
+        "/profile/ui_prefs",
+        endpoint="set_ui_prefs",
+        view_func=set_ui_prefs,
+        methods=["POST"],
+    )

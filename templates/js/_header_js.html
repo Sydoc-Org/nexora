@@ -7,18 +7,18 @@
 </head>
 
 <body>
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
         function defaultIcon() {
             document.getElementById('profilePicture').src = "{{ url_for('static',filename='images/default-Icon.png') }}"
         }
+        // #193 finding 10: onerror="" attribute handlers aren't nonce-covered by CSP;
+        // bind in JS instead.
+        document.getElementById('profilePicture')?.addEventListener('error', defaultIcon);
 
-        /* ---- Dark mode ---- */
-        (function() {
-            const saved = localStorage.getItem('nexora-theme');
-            if (saved === 'dark') document.documentElement.classList.add('dark');
-        })();
+        /* Dark mode + sidebar pin are applied pre-paint by the UI-prefs
+           script in _header.html <head> (issue #155). */
 
         /* ---- Session liveness poll ----
            Polls /api/session/heartbeat every 5s. If the admin force-logs us out,
@@ -75,12 +75,6 @@
 {% if pageV.workitemsPagePerm %}
                 { section: "{{ _('Workspace') }}", label: "{{ _('Work items') }}", icon: 'fa-list-check', url: "{{ url_for('workitems_overview') }}" },
                 {% endif %}
-                {% if pageV.invoicesPagePerm %}
-                { section: "{{ _('Workspace') }}", label: "{{ _('Invoices') }}",   icon: 'fa-file-invoice', url: "{{ url_for('invoices') }}" },
-                {% endif %}
-                {% if pageV.chatPagePerm %}
-                { section: "{{ _('Workspace') }}", label: "{{ _('Chat') }}",       icon: 'fa-comment',    url: "{{ url_for('chat_page') }}" },
-                {% endif %}
                 {% if pageV.generaliPagePerm %}
                 { section: "Generali", label: "{{ _('Dashboard') }}",            icon: 'fa-chart-line',      url: "{{ url_for('generali_evaluation') }}" },
                 {% endif %}
@@ -103,6 +97,8 @@
                 { section: "Generali", label: "{{ _('PDQM') }}",                 icon: 'fa-file-lines',      url: "{{ url_for('generali_pdqm') }}" },
                 {% endif %}
                 { section: "{{ _('Quick action') }}", label: "{{ _('Toggle dark mode') }}", icon: 'fa-moon', action: 'toggle-dark' },
+                { section: "{{ _('Quick action') }}", label: "{{ _('Appearance') }}", icon: 'fa-palette', url: "{{ url_for('appearance') }}" },
+                { section: "{{ _('Quick action') }}", label: "{{ _("What's New") }}", icon: 'fa-bullhorn', url: "{{ url_for('whats_new') }}" },
                 { section: "{{ _('Account') }}", label: "{{ _('Sign out') }}", icon: 'fa-sign-out-alt', url: "{{ url_for('logout') }}" },
             ];
 
@@ -254,161 +250,44 @@
 
             // Apply on load
             applyTheme(document.documentElement.classList.contains('dark'));
+            // Exposed so the profile Appearance panel can re-sync the
+            // sidebar button after changing the theme pref (issue #155).
+            window.__nxApplyThemeUi = applyTheme;
 
             if (dmToggle) {
                 dmToggle.addEventListener('click', () => {
                     const nowDark = !document.documentElement.classList.contains('dark');
-                    localStorage.setItem('nexora-theme', nowDark ? 'dark' : 'light');
+                    if (window.nxSetUiPref) window.nxSetUiPref('theme', nowDark ? 'dark' : 'light');
+                    else localStorage.setItem('nexora-theme', nowDark ? 'dark' : 'light');
                     applyTheme(nowDark);
                 });
             }
-        });
 
-        document.addEventListener('DOMContentLoaded', function () {
-            const bellButton = document.getElementById('bell-button');
-            const notificationCountBadge = document.getElementById('notification-count');
-            const notificationPanel = document.getElementById('notification-panel');
-            const notificationList = document.getElementById('notification-list');
-            let unreadNotificationIds = [];
+            const sidebar = document.getElementById('nexora-sidebar');
+            const pinToggle = document.getElementById('sidebar-pin-toggle');
+            const pinIcon = document.getElementById('sidebar-pin-icon');
+            const pinLabel = document.getElementById('sidebar-pin-label');
 
-            function timeAgo(date) {
-                let seconds = Math.floor((new Date() - new Date(date)) / 1000);
-
-                if (seconds < 0) {
-                    seconds = 0;
-                }
-
-                let interval = seconds / 31536000;
-                if (interval > 1) return Math.floor(interval) + ` {{ _("years ago") }}`;
-
-                interval = seconds / 2592000;
-                if (interval > 1) return Math.floor(interval) + ` {{ _("months ago") }}`;
-
-                interval = seconds / 86400;
-                if (interval > 1) return Math.floor(interval) + ` {{ _("days ago") }}`;
-
-                interval = seconds / 3600;
-                if (interval > 1) return Math.floor(interval) + ` {{ _("hours ago") }}`;
-
-                interval = seconds / 60;
-                if (interval > 1) return Math.floor(interval) + ` {{ _("minutes ago") }}`;
-
-                if (seconds < 5) return `{{ _("Just now") }}`;
-
-                return Math.floor(seconds) + ` {{ _("seconds ago") }}`;
+            function applyPinned(isPinned) {
+                document.documentElement.classList.toggle('sidebar-pinned', isPinned);
+                if (sidebar) sidebar.classList.toggle('pinned', isPinned);
+                if (pinIcon) pinIcon.className = isPinned ? 'fas fa-thumbtack sidebar-nav-icon sidebar-pin-active' : 'fas fa-thumbtack sidebar-nav-icon';
+                if (pinLabel) pinLabel.textContent = isPinned ? "{{ _('Unpin sidebar') }}" : "{{ _('Keep sidebar open') }}";
             }
 
-            async function fetchNotifications() {
-                try {
-                    const response = await fetch("{{ url_for('get_notifications') }}", {headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
-                    }});
-                    if (!response.ok) return;
+            applyPinned(document.documentElement.classList.contains('sidebar-pinned'));
+            // Exposed so the appearance page's pin switch can re-sync the
+            // sidebar button + aside classes after changing the pref.
+            window.__nxApplyPinnedUi = applyPinned;
 
-                    const notifications = await response.json();
-                    updateNotificationUI(notifications);
-                } catch (error) {
-                    console.error('Failed to fetch notifications:', error);
-                    notificationList.innerHTML = `<p class="px-4 py-3 text-sm text-red-500">{{ _("Could not load notifications.") }}</p>`;
-                }
-            }
-
-            function escapeHtml(str) {
-                if (!str) return '';
-                return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-            }
-
-            // Notifications.Icon is always one of a small set of Font Awesome
-            // tokens the server itself picks (see nx_lib/notifications.py callers).
-            // It's interpolated as a CSS class, so escaping HTML entities wouldn't
-            // stop an attacker-chosen token from landing there (or breaking out of
-            // the class attribute via a stray quote) — validate against the known
-            // set instead and fall back to the default icon otherwise.
-            const ALLOWED_NOTIFICATION_ICONS = new Set([
-                'fa-info-circle', 'fa-at', 'fa-people-carry-box', 'fa-comments'
-            ]);
-
-            // Notifications.Link is always a server-built relative path (via
-            // Flask's url_for(), already prefix-correct under PROD's /nexora
-            // mount) or null — never assembled client-side from an id. Reject
-            // anything that isn't a same-origin relative path (absolute URLs,
-            // protocol-relative //host, javascript:/data: URIs) so a malformed
-            // or future notification feeder can't smuggle a dangerous href in.
-            function safeNotificationHref(raw) {
-                if (typeof raw !== 'string' || !raw.startsWith('/') || raw.startsWith('//')) return null;
-                return raw;
-            }
-
-            function updateNotificationUI(notifications) {
-                unreadNotificationIds = notifications.map(n => n.NotificationID);
-
-                if (notifications.length > 0) {
-                    notificationCountBadge.textContent = notifications.length;
-                    notificationCountBadge.classList.remove('hidden');
-                    notificationCountBadge.classList.add('flex');
-                } else {
-                    notificationCountBadge.classList.add('hidden');
-                    notificationCountBadge.classList.remove('flex');
-                }
-
-                notificationList.innerHTML = '';
-                if (notifications.length === 0) {
-                    notificationList.innerHTML = `<p class="px-4 py-3 text-sm text-gray-500">{{ _("No new notifications.") }}</p>`;
-                    return;
-                }
-
-                notifications.forEach(n => {
-                    const safeHref = safeNotificationHref(n.Link);
-                    const link = safeHref ? `href="${escapeHtml(safeHref)}"` : 'href="#"';
-                    const icon = ALLOWED_NOTIFICATION_ICONS.has(n.Icon) ? n.Icon : 'fa-info-circle';
-                    const timestamp = new Date(n.Timestamp + 'Z');
-
-                    const itemHTML = `
-                    <a ${link} class="flex items-start px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 transition">
-                        <i class="fas ${icon} text-indigo-500 mt-1 mr-3"></i>
-                        <div>
-                            <p class="font-medium">${escapeHtml(n.Message)}</p>
-                            <p class="text-xs text-gray-500">${timeAgo(timestamp)}</p>
-                        </div>
-                    </a>`;
-                    notificationList.insertAdjacentHTML('beforeend', itemHTML);
+            if (pinToggle) {
+                pinToggle.addEventListener('click', () => {
+                    const nowPinned = !document.documentElement.classList.contains('sidebar-pinned');
+                    if (window.nxSetUiPref) window.nxSetUiPref('sidebar', nowPinned ? 'pinned' : 'auto');
+                    else localStorage.setItem('nexora-sidebar-pinned', nowPinned ? 'true' : 'false');
+                    applyPinned(nowPinned);
                 });
             }
-
-            async function markAsRead() {
-                if (unreadNotificationIds.length === 0) return;
-
-                try {
-                    await fetch("{{ url_for('mark_notifications_as_read') }}", {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' , 'X-CSRFToken': csrfToken},
-                        body: JSON.stringify({ ids: unreadNotificationIds })
-                    });
-                    unreadNotificationIds = [];
-                    setTimeout(() => notificationCountBadge.classList.add('hidden'), 2000);
-                } catch (error) {
-                    console.error('Failed to mark notifications as read:', error);
-                }
-            }
-
-            bellButton.addEventListener('click', (event) => {
-                event.stopPropagation();
-                notificationPanel.classList.toggle('hidden');
-                if (!notificationPanel.classList.contains('hidden') && unreadNotificationIds.length > 0) {
-                    markAsRead();
-                }
-            });
-
-            document.addEventListener('click', (event) => {
-                const container = document.getElementById('notification-dropdown-container');
-                if (!container.contains(event.target)) {
-                    notificationPanel.classList.add('hidden');
-                }
-            });
-
-            fetchNotifications();
-            setInterval(fetchNotifications, 60000);
         });
 
         /* ---- Responsive table: auto-apply column labels so rows render as cards on mobile ---- */
@@ -464,6 +343,67 @@
                 });
                 observer.observe(document.body, { childList: true, subtree: true });
             });
+        })();
+
+        /* ---- Switch user (dev-only) ---- */
+        (function() {
+            const btn = document.getElementById('switchUserBtn');
+            const overlay = document.getElementById('switchUserOverlay');
+            const input = document.getElementById('switchUserInput');
+            const list = document.getElementById('switchUserList');
+            if (!btn || !overlay || !input || !list) return;
+            const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+
+            let usernames = [];
+
+            function render(filter) {
+                const q = (filter || '').trim().toLowerCase();
+                const filtered = q ? usernames.filter(u => u.toLowerCase().includes(q)) : usernames;
+                list.innerHTML = '';
+                if (!filtered.length) {
+                    const empty = document.createElement('li');
+                    empty.className = 'cmdk-empty';
+                    empty.textContent = '{{ _("No matching users.") }}';
+                    list.appendChild(empty);
+                    return;
+                }
+                filtered.forEach(u => {
+                    const li = document.createElement('li');
+                    li.className = 'cmdk-item';
+                    li.setAttribute('role', 'option');
+                    li.textContent = u;
+                    li.addEventListener('click', () => {
+                        window.location.href = API_PREFIX + 'dev/login/' + encodeURIComponent(u);
+                    });
+                    list.appendChild(li);
+                });
+            }
+
+            async function open() {
+                overlay.hidden = false;
+                input.value = '';
+                setTimeout(() => input.focus(), 10);
+                if (!usernames.length) {
+                    const r = await fetch(API_PREFIX + 'dev/users', { credentials: 'same-origin' });
+                    usernames = r.ok ? await r.json() : [];
+                }
+                render('');
+            }
+            function close() {
+                overlay.hidden = true;
+                input.blur();
+            }
+
+            btn.addEventListener('click', open);
+            input.addEventListener('input', e => render(e.target.value));
+            input.addEventListener('keydown', e => {
+                if (e.key === 'Escape') { e.preventDefault(); close(); }
+                else if (e.key === 'Enter') {
+                    const first = list.querySelector('.cmdk-item');
+                    if (first) first.click();
+                }
+            });
+            overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
         })();
 
         /* ---- Mobile sidebar drawer toggle ---- */
@@ -553,6 +493,31 @@
             header.addEventListener('click', () => {
                 const nowOpen = group.classList.toggle('admin-open');
                 localStorage.setItem('nexora-admin-nav', nowOpen ? 'true' : 'false');
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const group    = document.getElementById('devNavGroup');
+            const header   = document.getElementById('devNavHeader');
+            const subitems = group && group.querySelector('.sidebar-nav-subitems');
+            if (!group || !header || !subitems) return;
+
+            function setSubitemsHeight() {
+                subitems.style.maxHeight = 'none';
+                const h = subitems.scrollHeight;
+                subitems.style.maxHeight = '';
+                group.style.setProperty('--dev-subitems-height', h + 'px');
+            }
+
+            setSubitemsHeight();
+
+            const isActive = group.dataset.active === 'true';
+            const savedOpen = localStorage.getItem('nexora-dev-nav') === 'true';
+            if (isActive || savedOpen) group.classList.add('dev-open');
+
+            header.addEventListener('click', () => {
+                const nowOpen = group.classList.toggle('dev-open');
+                localStorage.setItem('nexora-dev-nav', nowOpen ? 'true' : 'false');
             });
         });
     </script>

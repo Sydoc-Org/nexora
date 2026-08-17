@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<body>
+  <script nonce="{{ csp_nonce() }}">
+    document.addEventListener('DOMContentLoaded', () => {
+      const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+
+      const filterForm = document.getElementById('filterForm');
+      const tableBody = document.getElementById('invoicesTbody');
+      let allLoadedInvoices = [];
+
+      function exportInvoicesCSV(invoices) {
+        if (!invoices || invoices.length === 0) return;
+        const headers = ['Invoice #', 'Date', 'Amount (CHF)', 'Status'];
+        const lines = invoices.map(inv => [
+          inv.document_nr,
+          inv.is_valid_from,
+          inv.total,
+          inv.status_info.text
+        ].map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(','));
+        const csv  = [headers.join(','), ...lines].join('\r\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url  = URL.createObjectURL(blob);
+        const a    = Object.assign(document.createElement('a'), {
+          href: url,
+          download: `invoices_${new Date().toISOString().slice(0,10)}.csv`
+        });
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 500);
+      }
+
+      const renderInvoiceTable = (invoices) => {
+        tableBody.innerHTML = '';
+        allLoadedInvoices = invoices || [];
+
+        if (!invoices || invoices.length === 0) {
+          tableBody.innerHTML = `
+            <tr>
+              <td colspan="5">
+                <div class="nx-empty">
+                  <div class="nx-empty__art"><i class="fas fa-file-invoice"></i></div>
+                  <p class="nx-empty__title">{{ _("No invoices found") }}</p>
+                  <p class="nx-empty__sub">{{ _("Try adjusting your filters or date range.") }}</p>
+                </div>
+              </td>
+            </tr>`;
+          return;
+        }
+
+        invoices.forEach(invoice => {
+          const statusColors = {
+            'green':  'nx-label--green',
+            'yellow': 'nx-label--amber',
+            'red':    'nx-label--red',
+            'blue':   'nx-label--blue',
+            'gray':   'nx-label--gray'
+          };
+          const badgeColor = statusColors[invoice.status_info.color] || statusColors['gray'];
+
+          const row = `
+            <tr class="hover:bg-gray-50 transition-colors duration-200">
+              <td class="px-6 py-4 whitespace-nowrap"><div class="nx-mono font-medium text-center">${invoice.document_nr}</div></td>
+              <td class="px-6 py-4 whitespace-nowrap"><div class="nx-mono text-center" style="color:var(--nx-text-sec)">${invoice.is_valid_from}</div></td>
+              <td class="px-6 py-4 whitespace-nowrap"><div class="nx-mono text-center">CHF ${invoice.total}</div></td>
+              <td class="px-6 py-4 whitespace-nowrap text-center">
+                <span class="nx-label ${badgeColor}">${invoice.status_info.text}</span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
+                <a href="${API_PREFIX}invoice/${invoice.id}/pdf" class="text-indigo-600 hover:text-indigo-900" title="{{ _('Download PDF') }}" data-testid="invoices-download-pdf-${invoice.id}">
+                  <i class="fas fa-download"></i>
+                </a>
+              </td>
+            </tr>`;
+          tableBody.insertAdjacentHTML('beforeend', row);
+        });
+      };
+
+
+      const fetchInvoices = async () => {
+        tableBody.innerHTML = `
+          <tr>
+            <td colspan="5" class="text-center py-10 text-gray-500">
+              <i class="fas fa-spinner fa-spin text-2xl"></i>
+              <p class="mt-2">{{ _("Loading invoices...") }}</p>
+            </td>
+          </tr>`;
+
+        const formData = new FormData(filterForm);
+        const params = new URLSearchParams(formData);
+
+        const newUrl = `${window.location.pathname}?${params.toString()}`;
+        window.history.pushState({path: newUrl}, '', newUrl);
+
+        try {
+          const response = await fetch(`${API_PREFIX}api/invoices?${params.toString()}`, {headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+                }});
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Network response was not ok');
+          }
+          const invoices = await response.json();
+          renderInvoiceTable(invoices);
+        } catch (error) {
+          console.error('Failed to fetch invoices:', error);
+          tableBody.innerHTML = `
+            <tr>
+              <td colspan="5" class="text-center py-10 text-red-500">
+                {{ _("Failed to load invoices. Please try again later.") }}
+                <p class="text-xs mt-1">${error.message}</p>
+              </td>
+            </tr>`;
+        }
+      };
+
+      filterForm.addEventListener('input', (e) => {
+        e.preventDefault();
+        fetchInvoices();
+      });
+
+      const exportBtn = document.getElementById('exportInvoicesCsvBtn');
+      if (exportBtn) {
+        exportBtn.addEventListener('click', () => exportInvoicesCSV(allLoadedInvoices));
+      }
+
+      fetchInvoices();
+    });
+  </script>
+</body>
+</html>

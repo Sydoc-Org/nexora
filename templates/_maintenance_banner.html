@@ -41,7 +41,7 @@
   }
 </style>
 <div id="maintenance-banner" role="alert" aria-live="polite" data-testid="maintenance-banner"></div>
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function() {
     if (window.__maintenanceBannerInit) return;
     window.__maintenanceBannerInit = true;

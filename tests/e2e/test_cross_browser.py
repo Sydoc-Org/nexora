@@ -22,8 +22,9 @@ def test_login_2fa_flow(nexora_server, page):
     page.wait_for_url("**/verify_2fa", timeout=15000)
 
     code = pyotp.TOTP(USER_TOTP_SECRET).now()
+    # Filling the 6th digit auto-submits the challenge (a749bda) — clicking the
+    # submit button afterwards races the navigation and times out.
     page.fill('[data-testid="verify-2fa-code"]', code)
-    page.click('[data-testid="verify-2fa-submit"]')
     page.wait_for_url("**/dashboard", timeout=15000)
     expect(page.locator('[data-testid="dashboard-process-filter"]')).to_be_visible()
 

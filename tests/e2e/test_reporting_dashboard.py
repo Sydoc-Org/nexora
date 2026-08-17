@@ -372,6 +372,81 @@ def test_global_filter_popover_adds_chip_and_reruns_affected_card(nexora_server,
     assert run_calls[-1]["filters"] == [{"field": "status", "op": "contains", "value": "Open"}]
 
 
+def test_global_filter_popover_stays_open_on_cached_catalog_reopen(nexora_server, page):
+    """Task 34: ensureCatalog()'s promise is cached after the first open.
+    On the first open the real fetch is slow enough that the popover opens
+    well after the triggering click has finished bubbling to the
+    document-level outside-click closer. On every later open the cached
+    promise resolves in a microtask that runs BEFORE the same click finishes
+    bubbling -- the closer then sees filterPop.open just turned true and the
+    click target outside the popover, and self-closes it immediately.
+    Open, close, reopen (catalog now cached) -- it must stay open, and a
+    genuine outside click afterward must still close it.
+    """
+    _login(page, nexora_server)
+    dash_definition = {
+        "kind": "dashboard",
+        "schemaVersion": 1,
+        "title": "e2e cached-reopen dashboard",
+        "globalFilters": [],
+        "cards": [
+            {
+                "id": "k1",
+                "type": "kpi",
+                "span": 3,
+                "title": "Document count",
+                "definition": {
+                    "source": "workitems",
+                    "metrics": [{"field": "id", "agg": "count"}],
+                    "columns": [],
+                    "filters": [],
+                },
+                "filterOverrides": [],
+            }
+        ],
+    }
+    _stub_dashboard_report(page, "e2e-dash-cachedreopen", dash_definition)
+    _stub_gfilter_catalog(page)
+    page.route(
+        "**/api/reporting/run",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {"columns": [{"field": "id", "header": "Count"}], "rows": [[1]], "rowCount": 1}
+            ),
+        ),
+    )
+
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-card").first.click()
+    expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
+
+    popover = page.locator("#rdbFilterPop")
+
+    # First open: real (uncached) catalog fetch -- already worked before the
+    # fix. Close it via Cancel so the second open below is the one exercising
+    # the cached-promise race.
+    page.get_by_test_id("rdb-add-filter").click()
+    expect(popover).to_be_visible()
+    popover.get_by_test_id("rdb-filter-cancel").click()
+    expect(popover).to_be_hidden()
+
+    # Second open: ensureCatalog()'s promise is now cached -- this is the
+    # regression case. Before the fix, the popover opened and immediately
+    # self-closed on this very click.
+    page.get_by_test_id("rdb-add-filter").click()
+    expect(popover).to_be_visible()
+    # Give any stray close handler a moment to fire before asserting it
+    # *stays* visible, not just that it existed for one frame.
+    page.wait_for_timeout(300)
+    expect(popover).to_be_visible()
+
+    # The fix must not break genuine outside-click-to-close behaviour.
+    page.get_by_test_id("rdb-title").click()
+    expect(popover).to_be_hidden()
+
+
 def test_card_override_chip_removal_clears_filter_and_reruns_card(nexora_server, page):
     """Task 13: the x on a card's violet override chip clears filterOverrides
     entirely for that card and re-runs it -- the run stub is hit again with
@@ -1238,6 +1313,74 @@ def test_kpi_card_without_single_date_filter_shows_no_trend(nexora_server, page)
     assert len(run_calls) == 1
 
 
+def test_kpi_card_run_request_omits_breakdown_dims_and_shows_total(nexora_server, page):
+    """D-KPI: a KPI card whose own definition carries a breakdown dimension
+    (e.g. cloned/adapted from a chart card) must still request an
+    undimensioned total -- the run payload strips `columns` down to []
+    before POSTing, so the backend returns a single zero-dim total row
+    instead of an arbitrary first bucket. renderKpi itself is untouched
+    (it still reads rows[0]); the fix is entirely in what gets requested.
+    """
+    _login(page, nexora_server)
+    dash_definition = {
+        "kind": "dashboard",
+        "schemaVersion": 1,
+        "title": "e2e kpi breakdown dashboard",
+        "globalFilters": [],
+        "cards": [
+            {
+                "id": "k1",
+                "type": "kpi",
+                "span": 3,
+                "title": "Document count",
+                "definition": {
+                    "source": "workitems",
+                    "metrics": [{"field": "id", "agg": "count"}],
+                    "columns": [{"field": "status"}],
+                    "filters": [],
+                },
+                "filterOverrides": [],
+            }
+        ],
+    }
+    _stub_dashboard_report(page, "e2e-dash-kpi-breakdown", dash_definition)
+
+    run_calls = []
+
+    def fulfill_run(route):
+        posted = route.request.post_data_json or {}
+        run_calls.append(posted)
+        if posted.get("columns"):
+            # The bug: a breakdown dim slipped through. Return per-bucket
+            # rows so a regression (reading rows[0]) shows an arbitrary
+            # first-bucket value instead of the stubbed total below.
+            payload = {
+                "columns": [
+                    {"field": "status", "header": "Status"},
+                    {"field": "id", "header": "Count"},
+                ],
+                "rows": [["open", 42], ["closed", 7735]],
+                "rowCount": 2,
+            }
+        else:
+            payload = {
+                "columns": [{"field": "id", "header": "Count"}],
+                "rows": [[7777]],
+                "rowCount": 1,
+            }
+        route.fulfill(status=200, content_type="application/json", body=json.dumps(payload))
+
+    page.route("**/api/reporting/run", fulfill_run)
+
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-card").first.click()
+    expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
+    expect(page.get_by_test_id("rdb-kpi-value")).to_have_text("7,777")
+
+    assert len(run_calls) == 1
+    assert run_calls[0]["columns"] == []
+
+
 # ---------------------------------------------------------------------------
 # Phase 7 review-finding regressions:
 #  1) handleCardChartClick/handleCardTableRowClick sourced grain from the
@@ -1428,3 +1571,326 @@ def test_reopen_dashboard_then_add_card_does_not_collide_with_persisted_id(nexor
     ids = [cards.nth(i).get_attribute("data-card-id") for i in range(2)]
     assert len(set(ids)) == 2, f"duplicate data-card-id after add: {ids}"
     assert "n100" in ids  # the originally persisted card is untouched
+
+
+def test_effective_filters_keeps_both_bounds_of_a_same_field_range(nexora_server, page):
+    """Task 61: effectiveFilters() used to merge card.definition.filters +
+    globalFilters + filterOverrides keyed by field with last-write-wins
+    (`byField[f.field] = f`) -- so two DIFFERENT filters on the SAME field
+    (e.g. a range split across two bound filters, gte + lte) silently
+    collapsed to just the last one applied, dropping the other bound and
+    widening the card's query. Both bounds must now survive into the
+    run payload posted to /api/reporting/run.
+    """
+    _login(page, nexora_server)
+    dash_definition = {
+        "kind": "dashboard",
+        "schemaVersion": 1,
+        "title": "e2e same-field range dashboard",
+        "globalFilters": [],
+        "cards": [
+            {
+                "id": "k1",
+                "type": "kpi",
+                "span": 3,
+                "title": "Documents in range",
+                "definition": {
+                    "source": "workitems",
+                    "metrics": [{"field": "id", "agg": "count"}],
+                    "columns": [],
+                    "filters": [
+                        {"field": "createdDate", "op": "gte", "value": "2026-01-01"},
+                        {"field": "createdDate", "op": "lte", "value": "2026-03-31"},
+                    ],
+                },
+                "filterOverrides": [],
+            }
+        ],
+    }
+    _stub_dashboard_report(page, "e2e-dash-samefield", dash_definition)
+
+    run_calls = []
+
+    def fulfill_run(route):
+        run_calls.append(route.request.post_data_json or {})
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {"columns": [{"field": "id", "header": "Count"}], "rows": [[42]], "rowCount": 1}
+            ),
+        )
+
+    page.route("**/api/reporting/run", fulfill_run)
+
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-card").first.click()
+    expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
+    # Sync point before inspecting the captured payload, same idiom as the
+    # global-filter-popover test above.
+    expect(page.get_by_test_id("rdb-kpi-value")).to_have_text("42")
+
+    assert len(run_calls) == 1
+    date_filters = [f for f in run_calls[0]["filters"] if f["field"] == "createdDate"]
+    assert {(f["op"], f["value"]) for f in date_filters} == {
+        ("gte", "2026-01-01"),
+        ("lte", "2026-03-31"),
+    }
+
+
+def test_report_card_runs_definition_unmodified(nexora_server, page):
+    """#178 D11: a report card POSTs the adopted definition as-is (grain,
+    filters, sort intact) and renders total + chart."""
+    _login(page, nexora_server)
+
+    reports_list = [
+        {
+            "id": 601,
+            "name": "Documents per month",
+            "ownerName": "Admin",
+            "updatedAt": "2026-07-01T00:00:00Z",
+            "visibility": "private",
+            "owned": True,
+            "kind": "line",
+        },
+    ]
+    adopted_definition = {
+        "source": "workitems",
+        "metrics": [{"field": "id", "agg": "count"}],
+        "columns": [{"field": "createdDate", "grain": "month"}],
+        "filters": [{"field": "status", "op": "eq", "value": "open"}],
+        "sort": [{"field": "createdDate", "dir": "asc"}],
+        "chartType": "line",
+    }
+
+    def handle_reports(route):
+        if route.request.method == "POST":
+            route.fulfill(
+                status=200, content_type="application/json", body=json.dumps({"id": 9, "ok": True})
+            )
+        else:
+            route.fulfill(
+                status=200, content_type="application/json", body=json.dumps(reports_list)
+            )
+
+    page.route("**/api/reporting/reports", handle_reports)
+    page.route(
+        "**/api/reporting/reports/601",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "id": 601,
+                    "name": "Documents per month",
+                    "definition": adopted_definition,
+                    "visibility": "private",
+                    "owned": True,
+                    "canEdit": True,
+                }
+            ),
+        ),
+    )
+
+    posted = []
+
+    def fulfill_run(route):
+        posted.append(route.request.post_data_json or {})
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [
+                        {"field": "createdDate", "header": "Month"},
+                        {"field": "id", "header": "Count"},
+                    ],
+                    "rows": [["2026-01", 5], ["2026-02", 7]],
+                    "rowCount": 2,
+                }
+            ),
+        )
+
+    page.route("**/api/reporting/run", fulfill_run)
+
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-dashboard").click()
+    expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
+
+    page.get_by_test_id("rdb-add-report").click()
+    expect(page.get_by_test_id("rdb-card")).to_have_count(1)
+    expect(page.locator('[data-testid="rdb-card"][data-type="report"]')).to_have_count(1)
+
+    page.get_by_test_id("rdb-card-configure").click()
+    picker = page.get_by_test_id("rdb-report-picker")
+    expect(picker).to_be_visible()
+    page.get_by_test_id("rdb-report-pick").first.click()
+
+    body = page.get_by_test_id("rdb-report-total")
+    expect(body).to_be_visible()
+
+    grained = [b for b in posted if (b.get("columns") or [{}])[0].get("grain") == "month"]
+    assert grained, "definition lost its grain on the way to /run"
+    assert grained[0]["filters"] == adopted_definition["filters"]
+    assert grained[0]["sort"] == adopted_definition["sort"]
+
+
+# #174: a saved report with a SECOND dimension. Before the fix the card
+# renderers read a fixed column 1 as the value, so the breakdown column
+# ("Invoice"/"Contract") landed in the value lookup, every row collapsed onto
+# a repeated x-label and the card drew one flat zero line -- while the same
+# report charted correctly in the Simple result view.
+MULTI_SERIES_DASH = {
+    "kind": "dashboard",
+    "schemaVersion": 1,
+    "title": "e2e multi-series dashboard",
+    "globalFilters": [],
+    "cards": [
+        {
+            "id": "c1",
+            "type": "line",
+            "span": 6,
+            "title": "Documents per month / process",
+            "definition": {
+                "source": "workitems",
+                "metrics": [{"field": "id", "agg": "count"}],
+                "columns": [{"field": "createdDate", "grain": "month"}, {"field": "process"}],
+                "filters": [],
+            },
+            "filterOverrides": [],
+        }
+    ],
+}
+
+# 3 months x 2 processes -- the (dim1 x dim2) cross-product a two-dimension
+# run returns, in the column order [dim1, dim2, metric].
+MULTI_SERIES_ROWS = [
+    ["2026-01", "Invoice", 12],
+    ["2026-01", "Contract", 5],
+    ["2026-02", "Invoice", 18],
+    ["2026-02", "Contract", 3],
+    ["2026-03", "Invoice", 9],
+    ["2026-03", "Contract", 7],
+]
+
+
+def _stub_multi_series_run(page):
+    def fulfill_run(route):
+        posted = route.request.post_data_json or {}
+        if posted.get("rowLimit") == 100:  # the drill drawer's own detail-row request
+            payload = {
+                "columns": [{"field": "createdDate", "header": "Created"}],
+                "rows": [["2026-01"]],
+                "rowCount": 1,
+                "truncated": False,
+            }
+        else:  # the card's own aggregate run
+            payload = {
+                "columns": [
+                    {"field": "createdDate", "header": "Month"},
+                    {"field": "process", "header": "Process"},
+                    {"field": "id", "header": "Count"},
+                ],
+                "rows": MULTI_SERIES_ROWS,
+                "rowCount": len(MULTI_SERIES_ROWS),
+            }
+        route.fulfill(status=200, content_type="application/json", body=json.dumps(payload))
+
+    page.route("**/api/reporting/run", fulfill_run)
+
+
+def test_line_card_pivots_second_dimension_into_series(nexora_server, page):
+    """#174: a two-dimension report on a chart card renders one colored,
+    named series per second-dimension value -- the same pivot the Simple
+    result view does -- instead of a single flat zero line.
+    """
+    _login(page, nexora_server)
+    _stub_dashboard_report(page, "e2e-dash-multiseries", MULTI_SERIES_DASH)
+    _stub_multi_series_run(page)
+
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-card").first.click()
+    expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
+
+    canvas = page.locator('[data-testid="rdb-card"][data-card-id="c1"] canvas')
+    expect(canvas).to_be_visible()
+    chart = canvas.evaluate(
+        "(el) => { const c = Chart.getChart(el); return { labels: c.data.labels, "
+        "legend: c.options.plugins.legend.display, "
+        "sets: c.data.datasets.map(d => ({label: d.label, data: d.data, color: d.borderColor})) }; }"
+    )
+
+    assert chart["labels"] == ["2026-01", "2026-02", "2026-03"]
+    # Series ordered by total desc (Invoice 39 > Contract 15), one color each.
+    assert [s["label"] for s in chart["sets"]] == ["Invoice", "Contract"]
+    assert [s["data"] for s in chart["sets"]] == [[12, 18, 9], [5, 3, 7]]
+    assert chart["sets"][0]["color"] != chart["sets"][1]["color"]
+    # Named series need a key; single-series cards keep the legend off.
+    assert chart["legend"] is True
+
+
+def test_multi_series_card_click_drills_on_axis_and_series(nexora_server, page):
+    """#174 drill-through: clicking a point on a pivoted card must carry the
+    clicked SERIES as well as the x bucket -- two chips, not one -- otherwise
+    clicking one process's point drills into every process for that month.
+    """
+    _login(page, nexora_server)
+    _stub_dashboard_report(page, "e2e-dash-multiseries-drill", MULTI_SERIES_DASH)
+    page.route(
+        "**/api/reporting/sources",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                [
+                    {
+                        "id": "workitems",
+                        "label": "Workitems",
+                        "kind": "curated",
+                        "processes": [],
+                        "fields": [
+                            {
+                                "field": "createdDate",
+                                "label": "Created",
+                                "type": "date",
+                                "grainable": True,
+                                "filterable": True,
+                            },
+                            {
+                                "field": "process",
+                                "label": "Process",
+                                "type": "string",
+                                "grainable": False,
+                                "filterable": True,
+                            },
+                        ],
+                    }
+                ]
+            ),
+        ),
+    )
+    page.route(
+        "**/api/reporting/metrics",
+        lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps({})),
+    )
+    _stub_multi_series_run(page)
+
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-card").first.click()
+    expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
+
+    canvas = page.locator('[data-testid="rdb-card"][data-card-id="c1"] canvas')
+    expect(canvas).to_be_visible()
+    # Chart.js animates points in on mount -- same settle wait as
+    # test_line_card_chart_click_opens_drill_panel above.
+    page.wait_for_timeout(1200)
+    point = canvas.evaluate(
+        "(el) => { const c = Chart.getChart(el); const meta = c.getDatasetMeta(0); "
+        "const r = el.getBoundingClientRect(); "
+        "return { x: r.left + meta.data[0].x, y: r.top + meta.data[0].y }; }"
+    )
+    page.mouse.click(point["x"], point["y"])
+
+    expect(page.get_by_test_id("reporting-drill-panel")).to_be_visible()
+    chips = page.get_by_test_id("reporting-drill-chips").locator(".reporting-drill-chip")
+    expect(chips).to_have_count(2)

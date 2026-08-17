@@ -43,7 +43,7 @@
       </a>
       <span class="text-lg font-bold min-w-36 text-center nx-mono">{{ month_label }}</span>
       {% if is_current_month %}
-      <span class="nx-btn nx-btn--secondary cursor-not-allowed select-none" style="opacity:.45" aria-disabled="true">
+      <span class="nx-btn nx-btn--secondary cursor-not-allowed select-none [opacity:.45]!" aria-disabled="true">
         <i class="fas fa-chevron-right"></i>
       </span>
       {% else %}
@@ -149,15 +149,15 @@
               <tr>
                 <td class="px-6 py-4 text-sm font-medium">{{ row.category }}</td>
                 {% if section == 'reporting' %}
-                <td class="px-6 py-4 text-center text-sm nx-mono" style="color:var(--nx-text-sec)">{{ row.entries }}</td>
-                <td class="px-6 py-4 text-center text-sm font-semibold nx-mono" style="color:var(--nx-success)">{{ row.on_time }}</td>
-                <td class="px-6 py-4 text-center text-sm font-semibold nx-mono" style="color:var(--nx-danger)">{{ row.late }}</td>
+                <td class="px-6 py-4 text-center text-sm nx-mono [color:var(--nx-text-sec)]!">{{ row.entries }}</td>
+                <td class="px-6 py-4 text-center text-sm font-semibold nx-mono [color:var(--nx-success)]!">{{ row.on_time }}</td>
+                <td class="px-6 py-4 text-center text-sm font-semibold nx-mono [color:var(--nx-danger)]!">{{ row.late }}</td>
                 <td class="px-6 py-4 text-center text-sm font-bold text-indigo-600 nx-mono">{{ row.pct }}%</td>
                 {% elif section == 'pdqm' %}
-                <td class="px-6 py-4 text-center text-sm nx-mono" style="color:var(--nx-text-sec)">{{ row.entries }}</td>
+                <td class="px-6 py-4 text-center text-sm nx-mono [color:var(--nx-text-sec)]!">{{ row.entries }}</td>
                 <td class="px-6 py-4 text-center text-sm font-bold text-indigo-600 nx-mono">{{ row.total_quantity }}</td>
                 {% else %}
-                <td class="px-6 py-4 text-center text-sm nx-mono" style="color:var(--nx-text-sec)">{{ row.entries }}</td>
+                <td class="px-6 py-4 text-center text-sm nx-mono [color:var(--nx-text-sec)]!">{{ row.entries }}</td>
                 <td class="px-6 py-4 text-center text-sm font-bold text-indigo-600 nx-mono">{{ row.total_hours }}</td>
                 {% endif %}
               </tr>
@@ -176,7 +176,6 @@
 
   </main>
 
-  {% include '_small_footer.html' %}
   {% include 'js/_generali_month_report_js.html' %}
 </body>
 </html>

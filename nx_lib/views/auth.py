@@ -5,9 +5,12 @@ etc.) by registering rules with explicit ``endpoint=`` rather than via Blueprint
 """
 
 import base64
+import hashlib
 import io
 import re
+import threading
 import uuid
+from datetime import datetime, timedelta
 
 import bcrypt
 import pyotp
@@ -17,6 +20,7 @@ from flask import (
     abort,
     current_app,
     flash,
+    jsonify,
     redirect,
     render_template,
     request,
@@ -34,7 +38,7 @@ from ..config import (
     IS_PROD,
 )
 from ..db import engine_nexora_db
-from ..extensions import limiter, s
+from ..extensions import cache, limiter, s
 from ..hooks import get_ip
 from ..maintenance import _maintenance_blocks_user
 from ..security import (
@@ -48,6 +52,9 @@ from ..security import (
 def _record_active_session(user_id):
     """Insert the current session's SID into ActiveSessions for admin force-logout.
     No-op on failure - session tracking is non-critical to login success."""
+    # Stamped on every login path; the dashboard shows it once (issue #146).
+    session["login_at"] = datetime.now()
+    session["show_login_note"] = True
     try:
         import uuid as _uuid
 
@@ -74,6 +81,11 @@ def _record_active_session(user_id):
                 "INSERT INTO ActiveSessions (SessionID, UserID) VALUES (?, ?)",
                 (str(sid), int(user_id)),
             )
+        # Previous login stamp, read before it is overwritten (issue #146).
+        cursor.execute("SELECT LastLoginAt FROM Users WHERE userID = ?", (int(user_id),))
+        row = cursor.fetchone()
+        session["prev_login_at"] = row[0] if row else None
+        cursor.execute("UPDATE Users SET LastLoginAt = GETDATE() WHERE userID = ?", (int(user_id),))
         conn.commit()
         cursor.close()
         conn.close()
@@ -81,10 +93,156 @@ def _record_active_session(user_id):
         current_app.logger.warning(f"Failed to record active session for user {user_id}: {e}")
 
 
-def send_reset_email(email):
+def _build_reset_email_message(email, invite=False):
+    """Build the Graph sendMail payload (reset link + translated subject/
+    body) for a password-reset email to ``email``.
+
+    With ``invite=True`` the same markup carries the welcome copy sent when
+    an admin creates a user with "email a set-password link" ticked -- the
+    link is minted from the longer-lived invite salt (an onboarding mail may
+    sit unread for days; a 15-minute reset link would be dead on arrival).
+
+    Uses ``url_for(_external=True)`` and gettext (``_()``), both bound to
+    the live Flask request/app context. Call this synchronously, before
+    send_reset_email() is dispatched onto a background thread -- request/g/
+    current_app are not valid once the triggering request has returned.
+    """
+
     def get_link():
-        token = s.dumps(email, salt="password-reset-salt")
-        return url_for("reset_password", token=token, _external=True)
+        salt = "user-invite-salt" if invite else "password-reset-salt"
+        return url_for("reset_password", token=s.dumps(email, salt=salt), _external=True)
+
+    link = get_link()
+    if invite:
+        subject = _("Your nexora account is ready")
+        intro = _(
+            "An account has been created for you on nexora. Choose your own password by "
+            "clicking the button below. You will then be asked to set up two-factor "
+            "authentication."
+        )
+        validity = _("This link is valid for 7 days.")
+        button_label = _("Set Your Password")
+    else:
+        subject = _("nexora Password Reset Request")
+        intro = _(
+            "We received a request to reset the password for your account. You can reset "
+            "your password by clicking the button below."
+        )
+        validity = _(
+            "If you did not request a password reset, please ignore this email. This link "
+            "is valid for 15 minutes."
+        )
+        button_label = _("Reset Your Password")
+    font_family = "font-family: 'Inter', Helvetica, Arial, sans-serif;"
+    container_style = "max-width: 600px; margin: 0 auto; background-color: #fefdfb; padding: 20px;"
+    button_style = (
+        "background-color: #2563eb; color: #fefdfb; padding: 12px 24px; "
+        "text-decoration: none; border-radius: 8px; font-weight: bold; "
+        "display: inline-block; mso-padding-alt: 12px 24px;"
+    )
+    link_style = "color: #4b5563; text-decoration: none; margin-right: 15px; font-size: 14px;"
+    text_style = "color: #4b5563; line-height: 1.6; font-size: 16px;"
+
+    logo_url = "https://nexora.sydoc.ch/nexora/static/images/nexora-logo.gif"
+    logo_banner_url = "https://nexora.sydoc.ch/nexora/static/images/sydoc-logo-banner.png"
+
+    body = {
+        "message": {
+            "subject": subject,
+            "body": {
+                "contentType": "HTML",
+                "content": f"""
+                        <!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Nexora Update</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f3f4f6; {font_family}">
+
+    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f3f4f6; padding: 20px;">
+        <tr>
+            <td align="center">
+
+                <table width="600" border="0" cellspacing="0" cellpadding="0" style="{container_style} border-radius: 8px;">
+
+                    <tr>
+                        <td align="center" style="padding-bottom: 20px;">
+                            <a href="https://sydoc.ch"><img src="{logo_url}" alt="Sydoc Logo" width="600" style="display: block;"></a>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td align="center" style="padding-bottom: 60px;">
+                            <a href="https://sydoc.ch/ueber-sydoc/news/" style="{link_style}">News</a>
+                            <a href="https://sydoc.ch/ueber-sydoc/kundenmagazin/" style="{link_style}">Magazin</a>
+                            <a href="https://sydoc.ch/ueber-sydoc/team/" style="{link_style}">Team</a>
+                            <a href="mailto:support.helpdesk@sydoc.ch" style="{link_style}">Support</a>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding: 0 10px;">
+                            <h2 style="color: #374151; margin-top: 0;">{_("Hello,")}</h2>
+                            <p style="{text_style}">
+                                {intro}
+                               {validity}
+                            </p>
+                            <p style="{text_style}">
+                                {_("Thanks,<br>The Sydoc Team")}
+                            </p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td align="left" style="padding: 10px 10px 30px;">
+                            <a href="{link}" style="{button_style}">
+                                {button_label}
+                            </a>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td align="center" style="padding-top: 30px; border-top: 1px solid #e5e7eb;">
+                            <a href="https://sydoc.ch"><img src="{logo_banner_url}" alt="Sydoc Logo" width="600" style="display: block;"></a>                            </td>
+                    </tr>
+
+                    <tr>
+                        <td align="center" style="padding-top: 15px;">
+                            <p style="font-size: 12px; color: #9ca3af;">
+                                © 2026 Alle Rechte vorbehalten
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+                """,
+            },
+            "toRecipients": [{"emailAddress": {"address": email}}],
+        },
+        "saveToSentItems": True,
+    }
+    return body
+
+
+def send_reset_email(email, message=None):
+    """Send a password-reset email via Microsoft Graph.
+
+    D-RESET: request_password_reset() dispatches this call on a daemon
+    thread so a registered address does not take measurably longer to
+    answer than an unregistered one (the previous timing oracle). Pass a
+    pre-built ``message`` (see _build_reset_email_message) so nothing here
+    touches Flask request/app context -- only plain data and network I/O,
+    which is safe to run off the request thread.
+    """
+    if message is None:
+        message = _build_reset_email_message(email)
 
     def get_access_token():
         uri = f"https://login.microsoftonline.com/{GRAPH_TENANT_ID}/oauth2/v2.0/token"
@@ -106,107 +264,8 @@ def send_reset_email(email):
     uri = "https://graph.microsoft.com/v1.0/me/sendMail"
     access_token = get_access_token()
     headers = {"Authorization": f"Bearer {access_token}"}
-    link = get_link()
     try:
-        font_family = "font-family: 'Inter', Helvetica, Arial, sans-serif;"
-        container_style = (
-            "max-width: 600px; margin: 0 auto; background-color: #fefdfb; padding: 20px;"
-        )
-        button_style = (
-            "background-color: #2563eb; color: #fefdfb; padding: 12px 24px; "
-            "text-decoration: none; border-radius: 8px; font-weight: bold; "
-            "display: inline-block; mso-padding-alt: 12px 24px;"
-        )
-        link_style = "color: #4b5563; text-decoration: none; margin-right: 15px; font-size: 14px;"
-        text_style = "color: #4b5563; line-height: 1.6; font-size: 16px;"
-
-        logo_url = "https://nexora.sydoc.ch/nexora/static/images/nexora-logo.gif"
-        logo_banner_url = "https://nexora.sydoc.ch/nexora/static/images/sydoc-logo-banner.png"
-
-        body = {
-            "message": {
-                "subject": _("nexora Password Reset Request"),
-                "body": {
-                    "contentType": "HTML",
-                    "content": f"""
-                            <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="UTF-8">
-        <title>Nexora Update</title>
-    </head>
-    <body style="margin: 0; padding: 0; background-color: #f3f4f6; {font_family}">
-
-        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f3f4f6; padding: 20px;">
-            <tr>
-                <td align="center">
-
-                    <table width="600" border="0" cellspacing="0" cellpadding="0" style="{container_style} border-radius: 8px;">
-
-                        <tr>
-                            <td align="center" style="padding-bottom: 20px;">
-                                <a href="https://sydoc.ch"><img src="{logo_url}" alt="Sydoc Logo" width="600" style="display: block;"></a>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td align="center" style="padding-bottom: 60px;">
-                                <a href="https://sydoc.ch/ueber-sydoc/news/" style="{link_style}">News</a>
-                                <a href="https://sydoc.ch/ueber-sydoc/kundenmagazin/" style="{link_style}">Magazin</a>
-                                <a href="https://sydoc.ch/ueber-sydoc/team/" style="{link_style}">Team</a>
-                                <a href="mailto:support.helpdesk@sydoc.ch" style="{link_style}">Support</a>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td style="padding: 0 10px;">
-                                <h2 style="color: #374151; margin-top: 0;">{_("Hello,")}</h2>
-                                <p style="{text_style}">
-                                    {_("We received a request to reset the password for your account. You can reset your password by clicking the button below.")}
-                                   {_("If you did not request a password reset, please ignore this email. This link is valid for 15 minutes.")}
-                                </p>
-                                <p style="{text_style}">
-                                    {_("Thanks,<br>The Sydoc Team")}
-                                </p>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td align="left" style="padding: 10px 10px 30px;">
-                                <a href="{link}" style="{button_style}">
-                                    {_("Reset Your Password")}
-                                </a>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td align="center" style="padding-top: 30px; border-top: 1px solid #e5e7eb;">
-                                <a href="https://sydoc.ch"><img src="{logo_banner_url}" alt="Sydoc Logo" width="600" style="display: block;"></a>                            </td>
-                        </tr>
-
-                        <tr>
-                            <td align="center" style="padding-top: 15px;">
-                                <p style="font-size: 12px; color: #9ca3af;">
-                                    © 2026 Alle Rechte vorbehalten
-                                </p>
-                            </td>
-                        </tr>
-
-                    </table>
-
-                </td>
-            </tr>
-        </table>
-    </body>
-    </html>
-                    """,
-                },
-                "toRecipients": [{"emailAddress": {"address": email}}],
-            },
-            "saveToSentItems": True,
-        }
-
-        response = requests.post(uri, headers=headers, json=body, timeout=10)
+        response = requests.post(uri, headers=headers, json=message, timeout=10)
         response.raise_for_status()
         return True
     except requests.exceptions.HTTPError as http_err:
@@ -282,6 +341,7 @@ def init_2fa():
                 session.pop("temp_2fa_secret", None)
 
                 session.clear()
+                _rotate_session_id()
                 session["userid"] = user_id
                 session["username"] = username
                 session["fullname"] = fullname
@@ -340,6 +400,7 @@ def verify_2fa():
         # window roll-over between code generation and verification).
         if totp.verify(code, valid_window=1):
             session.clear()
+            _rotate_session_id()
             session["userid"] = user_id
             session["username"] = username
             session["fullname"] = fullname
@@ -418,12 +479,113 @@ def init_reset_password():
             session["pre_2fa_username"] = stored_username
             return redirect(url_for("init_2FA"))
         return redirect(url_for("login"))
-    except Exception:
-        return
+    except Exception as e:
+        current_app.logger.error(f"Password reset (init) failed: {e}")
+        # Task 41 originally flash()ed this and redirected to /login, but
+        # index.html (the login template) never renders flashed messages --
+        # the user saw nothing here and the message resurfaced later on an
+        # unrelated page that does render flashes. login()'s own error path
+        # uses render_template("index.html", error=...); match that idiom so
+        # the message is visible on the page the user actually lands on.
+        return render_template("index.html", error=_("Something went wrong, please try again"))
+
+
+# Fixed dummy hash so login() pays the bcrypt cost even when the username
+# doesn't exist -- otherwise response latency reveals which usernames are real
+# (username enumeration, #193). Computed once at import at bcrypt's default
+# cost so it tracks the cost of real stored hashes.
+_DUMMY_BCRYPT_HASH = bcrypt.hashpw(b"nexora-login-timing-equalizer", bcrypt.gensalt())
+
+
+# Durable per-account login lockout (#193 finding 7) -- flask_limiter's
+# per-worker in-memory IP rate limit has no account-level backstop, so a
+# password-spray spread across many source IPs / workers only ever faces the
+# per-worker-per-IP ceiling. dbo.LoginLockout (migration 0062) is a small
+# global counter keyed on userid, checked/updated on every login() attempt.
+_LOCKOUT_THRESHOLD = 5
+_LOCKOUT_MINUTES = 15
+
+
+def _login_locked_until(cursor, userid):
+    cursor.execute("SELECT locked_until FROM dbo.LoginLockout WHERE userid = ?", (str(userid),))
+    row = cursor.fetchone()
+    if not row or not row[0]:
+        return None
+    locked_until = row[0]
+    # pyodbc with the legacy "{SQL Server}" driver (still the default -- see
+    # DB_ODBC_DRIVER in config.py, #193 finding 16) returns DATETIME2 columns
+    # as str rather than datetime; the column is DATETIME as of migration
+    # 0063 specifically to avoid this, but parse defensively anyway in case a
+    # future driver/type change reintroduces it.
+    if isinstance(locked_until, str):
+        locked_until = datetime.fromisoformat(locked_until)
+    return locked_until if locked_until > datetime.utcnow() else None
+
+
+def _record_login_failure(conn, cursor, userid):
+    # ponytail: read-then-write races under truly concurrent failed logins
+    # for the same account (two requests could both read count=4 and both
+    # write 5 instead of 5-then-6) -- widens the effective threshold by a
+    # couple of attempts under attack, doesn't defeat the lockout. Add an
+    # UPDLOCK hint / MERGE if that gap ever matters in practice.
+    cursor.execute("SELECT failed_count FROM dbo.LoginLockout WHERE userid = ?", (str(userid),))
+    row = cursor.fetchone()
+    count = (row[0] if row else 0) + 1
+    locked_until = (
+        datetime.utcnow() + timedelta(minutes=_LOCKOUT_MINUTES)
+        if count >= _LOCKOUT_THRESHOLD
+        else None
+    )
+    if row:
+        cursor.execute(
+            "UPDATE dbo.LoginLockout SET failed_count = ?, locked_until = ?, "
+            "updated_at = SYSUTCDATETIME() WHERE userid = ?",
+            (count, locked_until, str(userid)),
+        )
+    else:
+        cursor.execute(
+            "INSERT INTO dbo.LoginLockout (userid, failed_count, locked_until) VALUES (?, ?, ?)",
+            (str(userid), count, locked_until),
+        )
+    conn.commit()
+
+
+def _clear_login_lockout(conn, cursor, userid):
+    cursor.execute("DELETE FROM dbo.LoginLockout WHERE userid = ?", (str(userid),))
+    conn.commit()
+
+
+def _rotate_session_id():
+    """Mint a fresh server-side session id at authentication (#193 finding 6).
+
+    session.clear() only empties the dict -- under the prod filesystem
+    backend (flask-session) the cookie's session id is unchanged, so a SID
+    planted in a victim's browser before login would become authenticated
+    once they log in (session fixation). flask-session's ServerSideSession
+    backends expose session_interface.regenerate() for exactly this; the dev
+    default (client-side signed-cookie session, no server-side store) has no
+    such method -- there is no fixation risk there since the cookie content
+    itself is what's authenticated, so this is a no-op in that case.
+    """
+    regenerate = getattr(current_app.session_interface, "regenerate", None)
+    if regenerate is not None:
+        regenerate(session)
+
+
+def _dev_route_forbidden():
+    """Guard for the passwordless /dev/* routes. 404 on PROD, and 404 for any
+    non-loopback caller on non-PROD, so a network-reachable INT/STAGING/TEST
+    instance (e.g. fronted by the SYAPP01 ngrok tunnel) can't use these as a
+    remote password+2FA bypass (#193). remote_addr is the real socket peer
+    (not the spoofable X-Forwarded-For), so local `nx --loginas` on 127.0.0.1
+    still works while remote callers are refused."""
+    if IS_PROD:
+        return True
+    return request.remote_addr not in ("127.0.0.1", "::1")
 
 
 def dev_login(username):
-    if IS_PROD:
+    if _dev_route_forbidden():
         abort(404)
     conn = engine_nexora_db.raw_connection()
     cursor = conn.cursor()
@@ -440,6 +602,7 @@ def dev_login(username):
         abort(404)
     uid, uname, fullname, email, org_code, locale = row
     session.clear()
+    _rotate_session_id()
     session["userid"] = str(uid)
     session["username"] = uname
     session["fullname"] = fullname
@@ -449,8 +612,25 @@ def dev_login(username):
     session["locale"] = locale
     session["permissions"] = load_permissions_for_user(str(uid))
     _record_active_session(str(uid))
+    nxt = request.args.get("next", "")
+    if nxt.startswith("/") and not nxt.startswith("//"):
+        return redirect(nxt)
     page_v = page_visibility()
     return redirect(url_for(startpage_redirect_to(page_v)))
+
+
+def dev_users():
+    if _dev_route_forbidden():
+        abort(404)
+    conn = engine_nexora_db.raw_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT username FROM Users WHERE username IS NOT NULL ORDER BY username")
+        usernames = [row[0] for row in cursor.fetchall()]
+    finally:
+        cursor.close()
+        conn.close()
+    return jsonify(usernames)
 
 
 @limiter.limit("10 per minute")
@@ -480,10 +660,25 @@ def login():
                 stored_init_reset = user_record[3]
                 stored_2fa = user_record[4]
 
+                locked_until = _login_locked_until(cursor, stored_userid)
+                if locked_until:
+                    wait_min = max(
+                        1, int((locked_until - datetime.utcnow()).total_seconds() // 60) + 1
+                    )
+                    return (
+                        render_template(
+                            "index.html",
+                            error=_("Too many failed attempts. Try again in %(minutes)d minute(s).")
+                            % {"minutes": wait_min},
+                        ),
+                        429,
+                    )
+
                 if isinstance(stored_hash, str):
                     stored_hash = stored_hash.encode("utf-8")
 
                 if bcrypt.checkpw(password_request.encode("utf-8"), stored_hash):
+                    _clear_login_lockout(conn, cursor, stored_userid)
                     blocking = _maintenance_blocks_user(stored_userid)
                     if blocking:
                         return render_template("maintenance.html", maintenance=blocking), 503
@@ -501,6 +696,14 @@ def login():
                         session["pre_2fa_userid"] = str(stored_userid)
                         session["pre_2fa_username"] = stored_username
                         return redirect(url_for("verify_2fa"))
+                else:
+                    _record_login_failure(conn, cursor, stored_userid)
+            else:
+                # Unknown username: still run one bcrypt comparison against a
+                # fixed dummy hash so the response takes the same time as a
+                # wrong password for a real account -- latency can't be used to
+                # tell valid usernames from invalid ones (#193).
+                bcrypt.checkpw(password_request.encode("utf-8"), _DUMMY_BCRYPT_HASH)
 
             return render_template("index.html", error=_("Invalid credentials")), 401
 
@@ -539,19 +742,41 @@ def forgot_password():
 
 
 def set_new_password():
+    if "email_for_password_reset" not in session:
+        return redirect(url_for("login"))
+    # Phase-10 finding fix: authorizing purely on session membership let a
+    # third party who fetched the reset link earlier (mail-gateway prescan,
+    # shared inbox, proxy log) retain an unbounded write capability in THEIR
+    # OWN session -- even after the legitimate user's own successful write
+    # burned the token (338e55f moved consumption here). Also covers a
+    # session carrying the capability but predating password_reset_token_key
+    # (pre-338e55f), which used to write successfully while silently never
+    # marking the token consumed. Check this BEFORE any validation below --
+    # if the token is already spent, no other validation result matters.
+    key = session.get("password_reset_token_key")
+    if not key or cache.get(key):
+        session.pop("email_for_password_reset", None)
+        session.pop("password_reset_token_key", None)
+        return redirect(url_for("login"))
     conn = None
     cursor = None
     try:
         email_for_password_reset = session["email_for_password_reset"]
         new_password = request.form["new-password"]
         confirm_password = request.form["confirm-password"]
+        # D-RESET / retry fix: these are validation-error branches (typo'd
+        # confirmation, empty fields, too short, password reuse) -- re-render
+        # the form with an error and fall straight through WITHOUT popping
+        # the session capability below, so the user can correct the mistake
+        # and resubmit with the same still-valid token. Only a terminal exit
+        # (success, or the except branch's hard failure) pops it.
         if new_password != confirm_password:
-            return render_template("reset_password.html", error=_("Passwords do not match"))
+            return render_template(_set_password_template(), error=_("Passwords do not match"))
         if not new_password or not confirm_password:
-            return render_template("reset_password.html", error=_("All Fields must be filled"))
+            return render_template(_set_password_template(), error=_("All Fields must be filled"))
         if not re.search(r"^\S{8,200}$", new_password):
             return render_template(
-                "reset_password.html",
+                _set_password_template(),
                 error=_("New password has to be atleast 8 characters long, with no whitespaces"),
             )
 
@@ -570,7 +795,7 @@ def set_new_password():
 
         if bcrypt.checkpw(new_password.encode("utf-8"), stored_hash):
             return render_template(
-                "reset_password.html", error=_("New Password musn't be previously used password")
+                _set_password_template(), error=_("New Password musn't be previously used password")
             )
 
         salt = bcrypt.gensalt()
@@ -587,9 +812,37 @@ def set_new_password():
         )
         conn.commit()
 
-        return render_template("reset_password.html", message=_("Password changed"))
-    except Exception:
-        return
+        # D-RESET: the reset token is only marked single-use-spent -- and the
+        # "I may set a new password for this email" session capability only
+        # dropped -- on a genuinely successful write. Rendering the GET link
+        # (reset_password()) no longer consumes it (a refresh, tab-restore,
+        # or a mail-gateway link scanner prefetching the URL must not burn
+        # it), and a validation-error retry above leaves both intact too.
+        token_cache_key = session.get("password_reset_token_key")
+        if token_cache_key:
+            cache.set(token_cache_key, True, timeout=INVITE_TOKEN_MAX_AGE)
+        session.pop("email_for_password_reset", None)
+        session.pop("password_reset_token_key", None)
+
+        return render_template(
+            _set_password_template(),
+            message=(
+                _("Password set. You can now sign in.")
+                if session.get("password_set_is_invite")
+                else _("Password changed")
+            ),
+        )
+    except Exception as e:
+        current_app.logger.error(f"Password reset (set new password) failed: {e}")
+        # Terminal failure (DB error, missing/garbled user row, ...) -- not a
+        # simple retry-able mistake, so the capability is dropped and the
+        # user must request a fresh reset link.
+        session.pop("email_for_password_reset", None)
+        session.pop("password_reset_token_key", None)
+        # Task 41 originally flash()ed this and redirected to /login, but
+        # index.html never renders flashed messages -- see the matching note
+        # in init_reset_password's except branch above.
+        return render_template("index.html", error=_("Something went wrong, please try again"))
     finally:
         if cursor:
             cursor.close()
@@ -597,12 +850,79 @@ def set_new_password():
             conn.close()
 
 
+# Must match the max_age passed to s.loads() below.
+RESET_TOKEN_MAX_AGE = 900
+# Admin-issued welcome links (see _build_reset_email_message(invite=True)) --
+# an onboarding mail may sit unread over a weekend, so 15 minutes is useless
+# here. Also the TTL of every single-use marker: the marker must outlive the
+# longest-lived token it guards, or a spent invite link would go re-usable
+# once the marker expired.
+INVITE_TOKEN_MAX_AGE = 7 * 24 * 3600
+
+
+def _load_reset_token(token):
+    """Unseal a set-password token, whichever kind it is. -> (email, is_invite)
+
+    Two salts, two lifetimes: self-service reset (15 min) and admin invite
+    (7 days). Both are verified signatures -- an expired or forged token
+    raises out of here and the caller bounces to /.
+    """
+    try:
+        return s.loads(token, salt="password-reset-salt", max_age=RESET_TOKEN_MAX_AGE), False
+    except Exception:
+        return s.loads(token, salt="user-invite-salt", max_age=INVITE_TOKEN_MAX_AGE), True
+
+
+def _set_password_template():
+    """Which page the set-a-password form lives on for this visitor.
+
+    An invited user has no previous password, so the reset page's copy ("your
+    new password must be different from your previous one", "Reset password")
+    is nonsense to them -- they get the welcome page instead. Same form, same
+    POST target, same validation; only the wording differs.
+    """
+    return "set_password.html" if session.get("password_set_is_invite") else "reset_password.html"
+
+
+def _reset_token_cache_key(token):
+    """Cache key for single-use tracking. Hash the raw token rather than
+    using it verbatim as a key -- the token is a bearer credential and
+    should not be persisted (even in an in-memory cache, even as a dict key
+    that could surface in a debugger/log dump) in recoverable form."""
+    return "reset-token-used:" + hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
 def reset_password(token):
     try:
-        session["email_for_password_reset"] = s.loads(
-            token, salt="password-reset-salt", max_age=900
-        )
-        return render_template("reset_password.html")
+        email, is_invite = _load_reset_token(token)
+
+        # Single-use enforcement: reject a token already spent by a prior
+        # SUCCESSFUL password write (set_new_password() is what actually
+        # marks the cache key -- see there). Rendering this GET route itself
+        # must stay side-effect-free w.r.t. the token: a plain browser
+        # refresh/tab-restore/back-forward, or a link-scanning mail gateway
+        # (Defender Safe Links, Proofpoint, Mimecast, ...) prefetching the
+        # URL before the user ever clicks it, would otherwise burn the link
+        # pre-emptively and strand the user with no explanation. NOTE:
+        # `cache` (Flask-Caching SimpleCache) is an in-process dict -- under
+        # wfastcgi's multi-worker deployment each worker process has its own
+        # cache, so a token consumed on worker A is still unseen as "used"
+        # by worker B. This makes single-use best-effort ACROSS WORKERS, not
+        # perfectly atomic. Accepted per the plan's D-RESET decision -- not
+        # a gap to fix further here.
+        cache_key = _reset_token_cache_key(token)
+        if cache.get(cache_key):
+            return redirect(url_for("index"))
+
+        session["email_for_password_reset"] = email
+        # Carried through to set_new_password() so a successful write can
+        # mark this exact token consumed -- see the cache.set() call there.
+        # This is the SHA-256 cache key, not the raw bearer token, so it's
+        # safe to persist (matches _reset_token_cache_key()'s non-reversible
+        # intent).
+        session["password_reset_token_key"] = cache_key
+        session["password_set_is_invite"] = is_invite
+        return render_template(_set_password_template())
     except Exception:
         return redirect(url_for("index"))
 
@@ -623,8 +943,35 @@ def request_password_reset():
         # caller enumerate valid accounts. send_reset_email() itself stays
         # gated on the row actually existing, so mail is only ever sent to a
         # real, registered address.
+        #
+        # D-RESET: the send itself must not be awaited here either — the
+        # synchronous Graph mail call used to run only on this branch, so a
+        # registered address took measurably longer to answer than an
+        # unregistered one (a timing oracle even with the response body now
+        # unified). Build the message now, while the request context is
+        # still live (send_reset_email()/_build_reset_email_message() use
+        # url_for() and gettext(), which need it), then hand the network
+        # call off to a daemon thread so both branches return immediately.
+        # The thread catches/logs its own exceptions -- nothing may escape
+        # unhandled onto a background thread under IIS/wfastcgi -- and it
+        # touches no Flask request/app-context object, since those are not
+        # valid once this request has returned.
         if rows:
-            send_reset_email(request_email)
+            try:
+                reset_message = _build_reset_email_message(request_email)
+            except Exception as e:
+                reset_message = None
+                print(f"Failed to build password reset email: {e}")
+
+            if reset_message is not None:
+
+                def _send_reset_email_background():
+                    try:
+                        send_reset_email(request_email, message=reset_message)
+                    except Exception as e:
+                        print(f"Failed to send password reset email: {e}")
+
+                threading.Thread(target=_send_reset_email_background, daemon=True).start()
         return render_template(
             "forgot_password.html",
             message=_("If that email is registered, a reset link has been sent."),
@@ -652,6 +999,7 @@ def register_routes(app):
         methods=["POST", "GET"],
     )
     app.add_url_rule("/dev/login/<username>", endpoint="dev_login", view_func=dev_login)
+    app.add_url_rule("/dev/users", endpoint="dev_users", view_func=dev_users)
     app.add_url_rule("/login", endpoint="login", view_func=login, methods=["GET", "POST"])
     app.add_url_rule("/logout", endpoint="logout", view_func=logout)
     app.add_url_rule("/forgot_password", endpoint="forgot_password", view_func=forgot_password)

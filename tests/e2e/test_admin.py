@@ -1,21 +1,45 @@
 """E2E tests for the /admin/* pages.
 
 admin@test.local holds every permission (test seed), so all admin pages render.
-Tables absent in TEST (Logs, MaintenanceBanner) make those pages render empty
-but not 500. Destructive controls (delete org/user) are only opened and then
+Tables absent in TEST (Logs) make those pages render empty but not 500. Destructive controls (delete org/user) are only opened and then
 cancelled — never confirmed against seed data.
 
 Route paths come from admin.register_routes: overview is /admin, user detail is
 /admin/users/<id>.
 """
 
+import json
+import re
+from urllib.parse import parse_qs, urlparse
+
 import pytest
 from playwright.sync_api import expect
+from sqlalchemy import text
+
+from nx_lib.db import engine_nexora_db
 
 
 def _login_admin(page, base):
     page.goto(f"{base}/dev/login/admin@test.local")
     page.wait_for_url("**/dashboard")
+
+
+def _delete_test_profile(name):
+    """Remove a profile (and any permission rows on it) created by a test.
+
+    Runs in the pytest process (ENVIRONMENT=TEST), which shares the database
+    with the browser subprocess started by the nexora_server fixture.
+    """
+    with engine_nexora_db.begin() as conn:
+        access_id = conn.execute(
+            text("SELECT AccessID FROM AccessProfile WHERE Name = :n"), {"n": name}
+        ).scalar()
+        if access_id is not None:
+            conn.execute(
+                text("DELETE FROM AccessProfilePermission WHERE AccessID = :a"),
+                {"a": access_id},
+            )
+            conn.execute(text("DELETE FROM AccessProfile WHERE AccessID = :a"), {"a": access_id})
 
 
 @pytest.mark.flaky_e2e
@@ -136,6 +160,95 @@ class TestAdminAccessControl:
         page.click('[data-testid="admin-ac-add-profile"]')
         expect(page.locator('[data-testid="admin-ac-drawer-close"]')).to_be_visible()
 
+    def test_untouched_profile_drawer_saves_no_permission_rows(self, nexora_server, page):
+        """Task 45 regression: every permission radio defaults to the neutral
+        (unset/inherit) state, not Deny, so saving a drawer the admin never
+        touched must create zero AccessProfilePermission rows."""
+        profile_name = "Task45UntouchedProfile"
+        _delete_test_profile(profile_name)
+        try:
+            self._open(page, nexora_server)
+            page.click('[data-testid="admin-ac-tab-profiles"]')
+            page.click('[data-testid="admin-ac-add-profile"]')
+            expect(page.locator('[data-testid="admin-ac-drawer-close"]')).to_be_visible()
+            page.fill('[data-testid="admin-ac-profile-name"]', profile_name)
+
+            with page.expect_response(
+                lambda r: "/api/admin/access_profile/save" in r.url
+            ) as resp_info:
+                page.click('[data-testid="admin-ac-drawer-save"]')
+            assert resp_info.value.ok
+
+            with engine_nexora_db.connect() as conn:
+                access_id = conn.execute(
+                    text("SELECT AccessID FROM AccessProfile WHERE Name = :n"),
+                    {"n": profile_name},
+                ).scalar()
+                assert access_id is not None, "profile was not created"
+                row_count = conn.execute(
+                    text("SELECT COUNT(*) FROM AccessProfilePermission WHERE AccessID = :a"),
+                    {"a": access_id},
+                ).scalar()
+                assert row_count == 0
+        finally:
+            _delete_test_profile(profile_name)
+
+    def test_profile_drawer_neutral_state_reachable_after_allow(self, nexora_server, page):
+        """Task 46 regression: dd724a3 made the drawer default to neutral/None
+        instead of implicit Deny, but profile mode hid the entire "None"
+        radio column (nth-child(2) of each row), so an admin who explicitly
+        set a permission to Allow had no way to click it back to neutral —
+        recreating the "writes an explicit row for an unset permission"
+        problem, just harder to trigger. The None column must be visible and
+        clickable in profile mode too, and clicking Allow then back to None
+        must save zero rows for that permission."""
+        profile_name = "Task46NeutralProfile"
+        _delete_test_profile(profile_name)
+        try:
+            self._open(page, nexora_server)
+            page.click('[data-testid="admin-ac-tab-profiles"]')
+            page.click('[data-testid="admin-ac-add-profile"]')
+            expect(page.locator('[data-testid="admin-ac-drawer-close"]')).to_be_visible()
+            page.fill('[data-testid="admin-ac-profile-name"]', profile_name)
+
+            perm_id = page.locator(".permission-row").first.get_attribute("data-perm-id")
+            none_radio = page.locator(f'[data-testid="admin-ac-perm-{perm_id}-none"]')
+            allow_radio = page.locator(f'[data-testid="admin-ac-perm-{perm_id}-allow"]')
+
+            # The neutral option must be visible/clickable in profile mode,
+            # not hidden the way the pre-fix column was.
+            expect(none_radio).to_be_visible()
+            expect(none_radio).to_be_checked()
+
+            allow_radio.click()
+            expect(allow_radio).to_be_checked()
+
+            none_radio.click()
+            expect(none_radio).to_be_checked()
+
+            with page.expect_response(
+                lambda r: "/api/admin/access_profile/save" in r.url
+            ) as resp_info:
+                page.click('[data-testid="admin-ac-drawer-save"]')
+            assert resp_info.value.ok
+
+            with engine_nexora_db.connect() as conn:
+                access_id = conn.execute(
+                    text("SELECT AccessID FROM AccessProfile WHERE Name = :n"),
+                    {"n": profile_name},
+                ).scalar()
+                assert access_id is not None, "profile was not created"
+                row_count = conn.execute(
+                    text("SELECT COUNT(*) FROM AccessProfilePermission WHERE AccessID = :a"),
+                    {"a": access_id},
+                ).scalar()
+                assert row_count == 0, (
+                    "clicking a permission back to None must save zero rows, "
+                    "the same as never having touched it"
+                )
+        finally:
+            _delete_test_profile(profile_name)
+
 
 @pytest.mark.flaky_e2e
 class TestAdminUserDetail:
@@ -175,3 +288,49 @@ class TestAdminLogs:
         _login_admin(page, nexora_server)
         page.goto(f"{nexora_server}/admin/logs")
         expect(page.locator('[data-testid="admin-logs-preset-24h"]')).to_be_visible()
+
+    def test_manual_date_edit_after_preset_wins_on_first_change(self, nexora_server, page):
+        """Regression: clicking "Last hour" sets a sub-day presetRangeOverride
+        that fetchLogs() prefers over the visible date inputs. A prior bug had
+        the override-clearing listener registered in a separate
+        DOMContentLoaded handler that fired AFTER wireLiveFilters()'s own
+        change listener already re-fetched with the stale override — so the
+        user's first manual date edit was silently discarded. Both must now
+        live in the same handler so the very first edit wins."""
+        _login_admin(page, nexora_server)
+
+        captured = []
+
+        def _capture(route):
+            qs = parse_qs(urlparse(route.request.url).query)
+            captured.append(qs)
+            route.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps({"logs": [], "page": 1, "pages": 1, "total": 0}),
+            )
+
+        page.route("**/api/admin/logs/search*", _capture)
+        page.goto(f"{nexora_server}/admin/logs")
+        expect(page.locator('[data-testid="admin-logs-filter-path"]')).to_be_visible()
+
+        before = len(captured)
+        preset_1h = page.locator('[data-testid="admin-logs-preset-1h"]')
+        preset_1h.click()
+        expect(preset_1h).to_have_class(re.compile(r"\bis-active\b"))
+        assert len(captured) > before
+        # The "Last hour" preset must have sent a precise datetime override,
+        # not a bare date, confirming it actually engaged presetRangeOverride.
+        assert " " in captured[-1]["start_date"][0]
+
+        before = len(captured)
+        start_input = page.locator('[data-testid="admin-logs-filter-start"]')
+        # fill() on a native <input type="date"> already dispatches its own
+        # change event — no need to dispatch one manually.
+        start_input.fill("2020-06-15")
+
+        assert len(captured) == before + 1, "manual date edit must trigger exactly one refetch"
+        assert captured[-1]["start_date"][0] == "2020-06-15", (
+            "the FIRST manual date edit after a preset must be honored immediately, "
+            "not silently discarded in favor of the stale preset override"
+        )

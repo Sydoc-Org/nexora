@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale }}">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ _("What's New - nexora") }}</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.0" integrity="sha384-AIH1kL7JmmReCxSwiSyaRNwzSFO7h4Ir4F/PO28EKezqFza1LwIMgEPLd83KwmZ4" crossorigin="anonymous"></script>
+    <style type="text/tailwindcss">
+        @custom-variant dark (&:where(.dark, .dark *));
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1.0.22" integrity="sha384-E7dy6eN+cKffMM/2+QF5MMP1q8KS0AT4IlmT4v3mG2mNZ7ISeLRPdlHrlWJK/8yx" crossorigin="anonymous" type="module"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous">
+    <link rel="stylesheet" href="{{ url_for('static',filename='css/admin-tokens.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='css/profile.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
+    <style>
+        .whatsnew-wrap { max-width: 860px; margin: 0 auto; padding: 40px 24px 64px; }
+        .whatsnew-back {
+            display: inline-flex; align-items: center; gap: 8px; margin-bottom: 14px;
+            font-size: 0.8125rem; font-weight: 600; color: #6b7280; text-decoration: none;
+            padding: 6px 10px; margin-left: -10px;
+            border-radius: calc(var(--nx-radius-scale, 1) * 8px);
+        }
+        .whatsnew-back:hover { background: #f3f4f6; color: #111827; }
+        html.dark .whatsnew-back { color: #94a3b8; }
+        html.dark .whatsnew-back:hover { background: #334155; color: #e2e8f0; }
+        .whatsnew-release { margin-top: 36px; }
+        .whatsnew-release-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+        .whatsnew-version {
+            font-size: 0.8125rem; font-weight: 700; color: #4f46e5;
+            background: rgba(79, 70, 229, 0.1);
+            padding: 3px 10px; border-radius: calc(var(--nx-radius-scale, 1) * 9999px);
+        }
+        .whatsnew-date { font-size: 0.8125rem; color: #6b7280; }
+        .whatsnew-entries { display: grid; gap: 12px; }
+        .whatsnew-card {
+            display: flex; gap: 14px; align-items: flex-start;
+            background: #fff; border: 1px solid #e5e7eb;
+            border-radius: calc(var(--nx-radius-scale, 1) * 12px);
+            padding: 16px 18px;
+        }
+        .whatsnew-card-icon {
+            flex: none; width: 36px; height: 36px; display: grid; place-items: center;
+            color: #4f46e5; background: rgba(79, 70, 229, 0.08);
+            border-radius: calc(var(--nx-radius-scale, 1) * 10px);
+        }
+        .whatsnew-card h2 { font-size: 0.9375rem; font-weight: 600; color: #111827; margin: 2px 0 4px; }
+        .whatsnew-card p { font-size: 0.875rem; color: #4b5563; line-height: 1.55; margin: 0; }
+        .whatsnew-open {
+            display: inline-flex; align-items: center; gap: 6px; margin-top: 8px;
+            font-size: 0.8125rem; font-weight: 600; color: #4f46e5; text-decoration: none;
+        }
+        .whatsnew-open:hover { text-decoration: underline; }
+        html.dark .whatsnew-card { background: #1e293b; border-color: #334155; }
+        html.dark .whatsnew-card h2 { color: #e2e8f0; }
+        html.dark .whatsnew-card p { color: #94a3b8; }
+        html.dark .whatsnew-date { color: #64748b; }
+        html.dark .whatsnew-version { color: #a5b4fc; background: rgba(99, 102, 241, 0.2); }
+        html.dark .whatsnew-card-icon { color: #a5b4fc; background: rgba(99, 102, 241, 0.15); }
+    </style>
+</head>
+
+<body class="admin-page">
+
+    {% set active_page = 'whats_new' %} {% include '_header.html' %}
+
+    <main>
+        <div class="whatsnew-wrap">
+
+            <a href="{{ url_for('profile') }}" class="whatsnew-back" data-testid="whatsnew-back">
+                <i class="fas fa-arrow-left"></i>
+                <span>{{ _("Back to profile") }}</span>
+            </a>
+            <h1 class="profile-title">{{ _("What's New") }}</h1>
+            <p class="profile-lede">{{ _("New features and improvements, release by release — showing only what your account can use.") }}</p>
+
+            {% for rel in releases %}
+            <section class="whatsnew-release" data-testid="whatsnew-release-{{ rel.version }}">
+                <header class="whatsnew-release-header">
+                    <span class="whatsnew-version">v{{ rel.version }}</span>
+                    <span class="whatsnew-date">{{ rel.date }}</span>
+                </header>
+                <div class="whatsnew-entries">
+                    {% for e in rel.entries %}
+                    <article class="whatsnew-card">
+                        <div class="whatsnew-card-icon"><i class="fas fa-{{ e.icon }}"></i></div>
+                        <div>
+                            <h2>{{ e.title }}</h2>
+                            <p>{{ e.body }}</p>
+                            {% if e.endpoint %}
+                            <a class="whatsnew-open" href="{{ url_for(e.endpoint) }}">
+                                {{ _("Try it") }} <i class="fas fa-arrow-right"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </article>
+                    {% endfor %}
+                </div>
+            </section>
+            {% else %}
+            <p class="profile-lede">{{ _("Nothing to show yet — check back after the next release.") }}</p>
+            {% endfor %}
+
+        </div>
+    </main>
+
+</body>
+
+</html>

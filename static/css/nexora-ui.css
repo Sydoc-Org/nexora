@@ -55,13 +55,18 @@
   --nx-l-blue:      #dbeafe;  --nx-l-blue-fg:   #1e40af;
 
   /* — Geometry & motion — */
-  --nx-radius:      10px;
-  --nx-radius-sm:   7px;
+  /* Radii scale with the corner-style pref (html[data-radius] sets
+     --nx-radius-scale); hardcoded px radii across the CSS files are
+     wrapped in the same calc so the whole app follows. */
+  --nx-radius:      calc(var(--nx-radius-scale, 1) * 10px);
+  --nx-radius-sm:   calc(var(--nx-radius-scale, 1) * 7px);
   --nx-radius-pill: 999px;
   --nx-shadow:      0 1px 2px rgba(16,24,40,0.04);
   --nx-shadow-pop:  0 12px 32px rgba(16,24,40,0.12), 0 0 0 1px rgba(16,24,40,0.04);
   --nx-ease:        cubic-bezier(.4, 0, .2, 1);
-  --nx-dur:         150ms;
+  /* --nx-anim-speed (set by html[data-animspeed]) scales transitions
+     and the entrance animations together. */
+  --nx-dur:         calc(var(--nx-anim-speed, 1) * 150ms);
 
   /* — Type — */
   --nx-font: 'Inter', system-ui, -apple-system, sans-serif;
@@ -70,8 +75,8 @@
   /* Indigo Studio (2026-07-20 reporting redesign) */
   --nx-violet-tint: #f5f3ff;
   --nx-violet-border: #ddd6fe;
-  --nx-radius-lg: 12px;
-  --nx-radius-hero: 16px;
+  --nx-radius-lg: calc(var(--nx-radius-scale, 1) * 12px);
+  --nx-radius-hero: calc(var(--nx-radius-scale, 1) * 16px);
   --nx-card-hover-border: #c7d2fe;
   --nx-card-hover-shadow: 0 8px 24px -8px rgba(79, 70, 229, .18);
 }
@@ -220,6 +225,13 @@ a.nx-card:hover, .nx-card--link:hover {
 .nx-btn--danger { background: var(--nx-danger); color: #fff; }
 .nx-btn--sm { padding: 5px 10px; font-size: 12px; }
 
+/* Pagination footer (table cards) */
+.nx-pagination {
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  padding: 14px 16px; border-top: 1px solid var(--nx-border);
+}
+.nx-pagination .nx-btn { padding: 6px 12px; }
+
 /* Inputs / selects */
 .nx-input, .nx-select {
   background: var(--nx-card);
@@ -309,7 +321,7 @@ a.nx-card:hover, .nx-card--link:hover {
   text-align: center; padding: 56px 24px; color: var(--nx-text-meta);
 }
 .nx-empty__art {
-  width: 60px; height: 60px; border-radius: 18px;
+  width: 60px; height: 60px; border-radius: calc(var(--nx-radius-scale, 1) * 18px);
   display: flex; align-items: center; justify-content: center;
   font-size: 24px; color: #fff;
   background: var(--nx-brand-grad);
@@ -318,7 +330,7 @@ a.nx-card:hover, .nx-card--link:hover {
   position: relative;
 }
 .nx-empty__art::after {
-  content: ""; position: absolute; inset: -7px; border-radius: 22px;
+  content: ""; position: absolute; inset: -7px; border-radius: calc(var(--nx-radius-scale, 1) * 22px);
   border: 1px dashed var(--nx-accent); opacity: .35;
 }
 .nx-empty__title { font-size: 15px; font-weight: 600; color: var(--nx-text); margin: 0 0 4px; }
@@ -353,13 +365,57 @@ a.nx-card:hover, .nx-card--link:hover {
    `both` holds the filled `to` as a resolved identity matrix, which still creates
    a stacking context -- that trapped overflowing popovers (e.g. the workitems
    doc-field dropdown) under the next .nx-rise card. */
-.nx-rise { animation: nx-rise 0.32s var(--nx-ease) backwards; }
-.nx-rise-2 { animation: nx-rise 0.32s var(--nx-ease) 0.05s backwards; }
-.nx-rise-3 { animation: nx-rise 0.32s var(--nx-ease) 0.10s backwards; }
+.nx-rise { animation: nx-rise calc(var(--nx-anim-speed, 1) * 0.32s) var(--nx-ease) backwards; }
+.nx-rise-2 { animation: nx-rise calc(var(--nx-anim-speed, 1) * 0.32s) var(--nx-ease) calc(var(--nx-anim-speed, 1) * 0.05s) backwards; }
+.nx-rise-3 { animation: nx-rise calc(var(--nx-anim-speed, 1) * 0.32s) var(--nx-ease) calc(var(--nx-anim-speed, 1) * 0.10s) backwards; }
 
+/* Animation speed preference */
+html[data-animspeed="relaxed"] { --nx-anim-speed: 1.8; }
+html[data-animspeed="snappy"]  { --nx-anim-speed: 0.55; }
+
+/* Entrance-style preference (html[data-entrance], profile "Appearance").
+   Default (no attribute) keeps the signature rise. */
+@keyframes nx-fade  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes nx-slide { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: none; } }
+@keyframes nx-pop   { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: none; } }
+@keyframes nx-blur  { from { opacity: 0; filter: blur(6px); } to { opacity: 1; filter: blur(0); } }
+html[data-entrance="fade"] .nx-rise,
+html[data-entrance="fade"] .nx-rise-2,
+html[data-entrance="fade"] .nx-rise-3 { animation-name: nx-fade; }
+html[data-entrance="slide"] .nx-rise,
+html[data-entrance="slide"] .nx-rise-2,
+html[data-entrance="slide"] .nx-rise-3 { animation-name: nx-slide; }
+html[data-entrance="pop"] .nx-rise,
+html[data-entrance="pop"] .nx-rise-2,
+html[data-entrance="pop"] .nx-rise-3 { animation-name: nx-pop; }
+html[data-entrance="blur"] .nx-rise,
+html[data-entrance="blur"] .nx-rise-2,
+html[data-entrance="blur"] .nx-rise-3 { animation-name: nx-blur; }
+html[data-entrance="none"] .nx-rise,
+html[data-entrance="none"] .nx-rise-2,
+html[data-entrance="none"] .nx-rise-3 { animation: none; }
+
+/* Reduced motion — OS-level preference AND the in-app toggle
+   (html.nx-motion-reduced) share one global kill-switch, which also
+   covers legacy keyframes (dashboard shimmer, srcHlPulse, hero-pulse)
+   that never had their own guards. */
 @media (prefers-reduced-motion: reduce) {
   .nx-rise, .nx-rise-2, .nx-rise-3 { animation: none; }
-  body.nx-app *, body.nx-app *::after, body.nx-app *::before { transition-duration: 0.01ms !important; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+html.nx-motion-reduced .nx-rise,
+html.nx-motion-reduced .nx-rise-2,
+html.nx-motion-reduced .nx-rise-3 { animation: none; }
+html.nx-motion-reduced *,
+html.nx-motion-reduced *::before,
+html.nx-motion-reduced *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
 }
 
 /* ============================================================
@@ -371,7 +427,7 @@ a.nx-card:hover, .nx-card--link:hover {
 /* Page-title icon chip */
 .nx-page-head__title { display: flex; align-items: center; gap: 14px; }
 .nx-page-icon {
-  width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+  width: 44px; height: 44px; border-radius: calc(var(--nx-radius-scale, 1) * 12px); flex-shrink: 0;
   display: inline-flex; align-items: center; justify-content: center;
   font-size: 18px; color: #fff; background: var(--nx-brand-grad);
   box-shadow: 0 8px 20px -6px rgba(79,70,229,0.55);
@@ -402,7 +458,7 @@ a.nx-card:hover, .nx-card--link:hover {
 }
 
 /* KPI stat icon chips (token-based so they adapt to dark mode) */
-.nx-stat__chip { width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
+.nx-stat__chip { width: 44px; height: 44px; border-radius: calc(var(--nx-radius-scale, 1) * 12px); flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
 .nx-stat__chip--indigo { background: var(--nx-l-indigo); color: var(--nx-l-indigo-fg); }
 .nx-stat__chip--blue   { background: var(--nx-l-blue);   color: var(--nx-l-blue-fg); }
 .nx-stat__chip--amber  { background: var(--nx-l-amber);  color: var(--nx-l-amber-fg); }
@@ -413,3 +469,226 @@ a.nx-card:hover, .nx-card--link:hover {
 
 /* Chat: own-message bubble carries the brand gradient */
 .nx-bubble-me { background: var(--nx-brand-grad); }
+
+/* ============================================================
+   6. USER ACCENT THEMES — html[data-accent=...] re-tints the
+   brand tokens (--nx-*) and their admin twins (--a-*). Written
+   pre-paint from the stored UI prefs; profile "Appearance"
+   section switches it live. Default (indigo) = no attribute.
+   ponytail: only the accent family is re-tinted — label pastels
+   (--nx-l-*) and hardcoded legacy hexes stay indigo; tokenize
+   those files if full coverage ever matters.
+   ============================================================ */
+html[data-accent="violet"] {
+  --nx-accent: #7c3aed; --nx-accent-hover: #6d28d9;
+  --nx-accent-soft: rgba(124,58,237,0.12); --nx-accent-tint: #f5f3ff;
+  --nx-violet: #c026d3;
+  --nx-brand-grad: linear-gradient(135deg, #7c3aed 0%, #c026d3 100%);
+  --a-ink: #7c3aed; --a-ink-hover: #6d28d9;
+  --a-indigo: #7c3aed; --a-indigo-soft: rgba(124,58,237,0.12);
+}
+html.dark[data-accent="violet"] {
+  --nx-accent: #a78bfa; --nx-accent-hover: #c4b5fd;
+  --nx-accent-soft: rgba(167,139,250,0.20); --nx-accent-tint: #4c1d95;
+  --nx-violet: #e879f9;
+  --nx-brand-grad: linear-gradient(135deg, #a78bfa 0%, #e879f9 100%);
+  --a-ink: #8b5cf6; --a-ink-hover: #a78bfa;
+  --a-indigo: #a78bfa; --a-indigo-soft: rgba(167,139,250,0.20);
+}
+html[data-accent="emerald"] {
+  --nx-accent: #059669; --nx-accent-hover: #047857;
+  --nx-accent-soft: rgba(5,150,105,0.12); --nx-accent-tint: #ecfdf5;
+  --nx-violet: #0d9488;
+  --nx-brand-grad: linear-gradient(135deg, #059669 0%, #0d9488 100%);
+  --a-ink: #059669; --a-ink-hover: #047857;
+  --a-indigo: #059669; --a-indigo-soft: rgba(5,150,105,0.12);
+}
+html.dark[data-accent="emerald"] {
+  --nx-accent: #34d399; --nx-accent-hover: #6ee7b7;
+  --nx-accent-soft: rgba(52,211,153,0.20); --nx-accent-tint: #064e3b;
+  --nx-violet: #2dd4bf;
+  --nx-brand-grad: linear-gradient(135deg, #34d399 0%, #2dd4bf 100%);
+  --a-ink: #10b981; --a-ink-hover: #34d399;
+  --a-indigo: #34d399; --a-indigo-soft: rgba(52,211,153,0.20);
+}
+html[data-accent="amber"] {
+  --nx-accent: #d97706; --nx-accent-hover: #b45309;
+  --nx-accent-soft: rgba(217,119,6,0.12); --nx-accent-tint: #fffbeb;
+  --nx-violet: #ea580c;
+  --nx-brand-grad: linear-gradient(135deg, #d97706 0%, #ea580c 100%);
+  --a-ink: #d97706; --a-ink-hover: #b45309;
+  --a-indigo: #d97706; --a-indigo-soft: rgba(217,119,6,0.12);
+}
+html.dark[data-accent="amber"] {
+  --nx-accent: #fbbf24; --nx-accent-hover: #fcd34d;
+  --nx-accent-soft: rgba(251,191,36,0.20); --nx-accent-tint: #78350f;
+  --nx-violet: #fb923c;
+  --nx-brand-grad: linear-gradient(135deg, #fbbf24 0%, #fb923c 100%);
+  --a-ink: #f59e0b; --a-ink-hover: #fbbf24;
+  --a-indigo: #fbbf24; --a-indigo-soft: rgba(251,191,36,0.20);
+}
+html[data-accent="rose"] {
+  --nx-accent: #e11d48; --nx-accent-hover: #be123c;
+  --nx-accent-soft: rgba(225,29,72,0.12); --nx-accent-tint: #fff1f2;
+  --nx-violet: #db2777;
+  --nx-brand-grad: linear-gradient(135deg, #e11d48 0%, #db2777 100%);
+  --a-ink: #e11d48; --a-ink-hover: #be123c;
+  --a-indigo: #e11d48; --a-indigo-soft: rgba(225,29,72,0.12);
+}
+html.dark[data-accent="rose"] {
+  --nx-accent: #fb7185; --nx-accent-hover: #fda4af;
+  --nx-accent-soft: rgba(251,113,133,0.20); --nx-accent-tint: #881337;
+  --nx-violet: #f472b6;
+  --nx-brand-grad: linear-gradient(135deg, #fb7185 0%, #f472b6 100%);
+  --a-ink: #f43f5e; --a-ink-hover: #fb7185;
+  --a-indigo: #fb7185; --a-indigo-soft: rgba(251,113,133,0.20);
+}
+html[data-accent="sky"] {
+  --nx-accent: #0284c7; --nx-accent-hover: #0369a1;
+  --nx-accent-soft: rgba(2,132,199,0.12); --nx-accent-tint: #f0f9ff;
+  --nx-violet: #0891b2;
+  --nx-brand-grad: linear-gradient(135deg, #0284c7 0%, #0891b2 100%);
+  --a-ink: #0284c7; --a-ink-hover: #0369a1;
+  --a-indigo: #0284c7; --a-indigo-soft: rgba(2,132,199,0.12);
+}
+html.dark[data-accent="sky"] {
+  --nx-accent: #38bdf8; --nx-accent-hover: #7dd3fc;
+  --nx-accent-soft: rgba(56,189,248,0.20); --nx-accent-tint: #0c4a6e;
+  --nx-violet: #22d3ee;
+  --nx-brand-grad: linear-gradient(135deg, #38bdf8 0%, #22d3ee 100%);
+  --a-ink: #0ea5e9; --a-ink-hover: #38bdf8;
+  --a-indigo: #38bdf8; --a-indigo-soft: rgba(56,189,248,0.20);
+}
+
+/* ============================================================
+   7. DENSITY — html.nx-compact tightens the shared surfaces.
+   ponytail: covers the token-driven components (.nx-* + .admin-*);
+   page-specific hardcoded paddings keep their comfortable size.
+   ============================================================ */
+html.nx-compact .nx-table thead th { padding: 6px 12px; }
+html.nx-compact .nx-table tbody td { padding: 7px 12px; }
+html.nx-compact .nx-card { padding: 12px; }
+html.nx-compact .nx-card--pad { padding: 14px 16px; }
+html.nx-compact .nx-filter { padding: 10px 14px; margin-bottom: 14px; }
+html.nx-compact .nx-page-head { margin-bottom: 16px; }
+html.nx-compact body.nx-app .nx-main { padding: 18px 28px; }
+html.nx-compact .admin-table thead th { padding: 6px 12px; }
+html.nx-compact .admin-table tbody td { padding: 7px 12px; }
+html.nx-compact .admin-card { padding: 12px; }
+html.nx-compact body.admin-page main { padding: 18px 28px; }
+html.nx-compact .nx-btn { padding: 6px 11px; }
+html.nx-compact .nx-input, html.nx-compact .nx-select { padding: 6px 10px; }
+
+/* ============================================================
+   8. APPEARANCE EXTRAS — corner style, font scale, contrast,
+   table stripes, page backdrop (all driven by UI prefs).
+   ============================================================ */
+
+/* Corner style: one scale factor drives the radius tokens AND every
+   swept hardcoded radius (calc(var(--nx-radius-scale,1) * Npx)). */
+html[data-radius="sharp"] { --nx-radius-scale: 0.35; }
+html[data-radius="round"] { --nx-radius-scale: 1.6; }
+
+/* Font scale — zoom scales px-based layouts too (Chromium + FF 126+). */
+html[data-fontscale="sm"] body { zoom: 0.9; }
+html[data-fontscale="lg"] body { zoom: 1.1; }
+
+/* High contrast: stronger borders + darker secondary text */
+html.nx-contrast {
+  --nx-border: #cbd5e1; --nx-border-strong: #94a3b8; --nx-divider: #e2e8f0;
+  --nx-text-sec: #4b5563; --nx-text-meta: #6b7280;
+  --a-border: #cbd5e1; --a-border-input: #94a3b8; --a-row-divider: #e2e8f0;
+  --a-text-sec: #4b5563; --a-text-meta: #6b7280;
+}
+html.nx-contrast.dark {
+  --nx-border: #475569; --nx-border-strong: #64748b; --nx-divider: #334155;
+  --nx-text-sec: #cbd5e1; --nx-text-meta: #94a3b8;
+  --a-border: #475569; --a-border-input: #64748b; --a-row-divider: #334155;
+  --a-text-sec: #cbd5e1; --a-text-meta: #94a3b8;
+}
+
+/* Table stripes */
+html.nx-stripes .nx-table tbody tr:not(.details-row):nth-child(even) td,
+html.nx-stripes .admin-table tbody tr:not(.details-row):nth-child(even) td {
+  background: color-mix(in srgb, var(--nx-alt) 55%, transparent);
+}
+
+/* Page backdrop */
+html[data-bg="aurora"] body.nx-app,
+html[data-bg="aurora"] body.admin-page {
+  background:
+    radial-gradient(60rem 40rem at 110% -10%, var(--nx-accent-soft), transparent 60%),
+    radial-gradient(50rem 36rem at -10% 110%,
+      color-mix(in srgb, var(--nx-violet) 9%, transparent), transparent 60%),
+    var(--nx-page);
+  background-attachment: fixed;
+}
+html[data-bg="grid"] body.nx-app,
+html[data-bg="grid"] body.admin-page {
+  background-color: var(--nx-page);
+  background-image: radial-gradient(
+    color-mix(in srgb, var(--nx-border) 70%, transparent) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* ------------------------------------------------------------------
+   Scope picker — checkbox dropdown for multi-select filters
+   (process filter on dashboard / workitems; also used by reporting).
+   ------------------------------------------------------------------ */
+.nx-scope { position: relative; margin: 6px 0; }
+.nx-scope--inline { margin: 0; min-width: 240px; }
+.nx-scope--tall .nx-scope-btn { min-height: 2.75rem; }
+.nx-scope-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--nx-border);
+  border-radius: calc(var(--nx-radius-scale, 1) * 8px);
+  background: var(--nx-card);
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--nx-text);
+  cursor: pointer;
+  box-sizing: border-box;
+}
+.nx-scope-btn:hover { border-color: var(--nx-accent-soft); }
+.nx-scope-btn:focus-visible {
+  outline: none;
+  border-color: var(--nx-accent);
+  box-shadow: 0 0 0 3px var(--nx-accent-tint);
+}
+.nx-scope-btn .fa-chevron-down { font-size: 11px; color: var(--nx-text-meta); }
+.nx-scope-btn[aria-expanded="true"] .fa-chevron-down { transform: rotate(180deg); }
+.nx-scope-menu {
+  position: absolute;
+  z-index: var(--z-raised);
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  max-height: 50vh;
+  overflow: auto;
+  padding: 4px;
+  background: var(--nx-card);
+  border: 1px solid var(--nx-border);
+  border-radius: calc(var(--nx-radius-scale, 1) * 8px);
+  box-shadow: var(--nx-shadow, 0 8px 24px rgba(0, 0, 0, .12));
+}
+.nx-scope-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 6px);
+  font-size: 13px;
+  cursor: pointer;
+}
+.nx-scope-row:hover { background: var(--nx-accent-tint); }
+.nx-scope-row input { margin: 0; cursor: pointer; }
+.nx-scope-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nx-scope-all { font-weight: 600; }
+.nx-scope-all + .nx-scope-client { border-top: 1px solid var(--nx-border); }
+.nx-scope-client { font-weight: 600; }
+.nx-scope-proc { padding-left: 26px; color: var(--nx-text-sec); }

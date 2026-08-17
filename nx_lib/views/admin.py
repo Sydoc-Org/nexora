@@ -3,6 +3,9 @@ user CRUD, access control, permissions."""
 
 import csv
 import math
+import os
+import secrets
+import subprocess
 from contextlib import suppress
 from datetime import datetime
 
@@ -22,6 +25,8 @@ from flask import (
 from flask_babel import gettext as _
 from werkzeug.exceptions import HTTPException
 
+from .. import status
+from ..config import DOTENV_KEYS, IS_PROD, REPO_ROOT
 from ..db import (
     engine_generali_db,
     engine_ms02_docfields_pg,
@@ -34,6 +39,7 @@ from ..db import (
 )
 from ..maintenance import (
     _MAINTENANCE_BLOCK_CACHE,
+    _get_blocking_maintenance,
     _maintenance_parse_payload,
     _maintenance_row_to_dict,
 )
@@ -76,7 +82,7 @@ def admin_dashboard():
 
         cursor.execute("""
             SELECT COUNT(*) FROM ActiveSessions
-            WHERE CreatedAt >= DATEADD(hour, -24, GETDATE())
+            WHERE LastSeenAt >= DATEADD(minute, -30, GETDATE())
         """)
         row = cursor.fetchone()
         if row:
@@ -134,6 +140,8 @@ def admin_dashboard():
         active_sessions_count=active_sessions_count,
         failed_logins_today=failed_logins_today,
         db_health=db_health,
+        current_env=os.environ.get("ENVIRONMENT", "?"),
+        can_restart=_restart_allowed(),
         logged_in_user=session.get("username"),
         userid=session.get("userid"),
         pageV=page_visibility(),
@@ -279,12 +287,102 @@ def api_admin_organizations_list():
         return jsonify(orgs)
     except Exception as e:
         current_app.logger.error(f"Failed to fetch organizations list: {e}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": _("An unexpected error occurred")}), 500
     finally:
         if cursor:
             cursor.close()
         if conn:
             conn.close()
+
+
+# ----------------------------------- status page ---------------------------------- #
+
+
+@require_permission("admin.status.view")
+def admin_status_view():
+    """Component health + incident history, as recorded by ops/outage_monitor.py.
+
+    Deliberately reads only what the monitor persisted (issue #167) instead of
+    probing on page load: the point of the page is "what has been true since
+    yesterday evening", which a request-scoped ping cannot answer. When the
+    monitor has not reported recently the page says so rather than rendering a
+    reassuring all-green grid from stale rows.
+    """
+    try:
+        data = status.load_status(
+            engine_nexora_db,
+            maintenance=_get_blocking_maintenance() is not None,
+        )
+    except Exception as e:
+        current_app.logger.error(f"Failed to load status page data: {e}")
+        return render_template("handlers/500.html"), 500
+    return render_template(
+        "admin/status.html",
+        status=data,
+        stale_after_min=status.DEFAULT_STALE_AFTER_S // 60,
+        logged_in_user=session.get("username"),
+        userid=session.get("userid"),
+        pageV=page_visibility(),
+    )
+
+
+# ----------------------------------- dev server restart ---------------------------------- #
+
+
+_SWITCHABLE_ENVS = {"INT", "STAGING"}
+
+
+def _restart_allowed():
+    """May this caller restart / env-switch the dev server?
+
+    The ``admin.restart`` permission lives in NexoraDB, and STAGING resolves
+    NexoraDB to the prod server (DB_SERVER_PRD) where the row from migration
+    0059 doesn't exist — so on STAGING the control vanished and the env switch
+    was one-way (#198). Loopback callers are therefore allowed regardless of the
+    permission, the same trust rule the /dev/* routes use (#193). PROD is out
+    either way: it's IIS-hosted, where restarting means recycling the app pool.
+    """
+    if IS_PROD:
+        return False
+    return has_permission("admin.restart") or request.remote_addr in ("127.0.0.1", "::1")
+
+
+def api_admin_restart():
+    """Restart the local dev server process (issue #184). Dev-only — 404s on PROD
+    since PROD is IIS-hosted and restarting there means recycling the app pool,
+    not killing a `python nx_main.py` process. Fires bin/nx.ps1 -r as a hidden
+    background process; it kills this process and starts a fresh one, so the response has
+    to make it back to the browser before that happens (nx.ps1 sleeps ~1s first).
+
+    Optional JSON body {"env": "INT"|"STAGING"} switches ENVIRONMENT on the way
+    back up (issue #187) via nx.ps1's existing --env: flag — PROD is refused by
+    nx.ps1 itself, so no need to re-check it here."""
+    if IS_PROD:
+        abort(404)
+    if not _restart_allowed():
+        abort(403)
+    target_env = (request.get_json(silent=True) or {}).get("env")
+    if target_env is not None and target_env not in _SWITCHABLE_ENVS:
+        return jsonify({"success": False, "message": _("Unknown environment.")}), 400
+    args = ["pwsh", "-File", str(REPO_ROOT / "bin" / "nx.ps1"), "-r"]
+    if target_env:
+        args.append(f"--env:{target_env}")
+    # restart the instance we're actually serving from — without this a
+    # --no-conflict instance's restart button would kill the port-8000 one
+    args.append(f"--port:{request.environ.get('SERVER_PORT', '8000')}")
+    subprocess.Popen(
+        args,
+        cwd=str(REPO_ROOT),
+        # Strip the keys load_dotenv injected into this process: inherited,
+        # they'd win over the target env file in the new server (override=False)
+        # and it would run INT DB connections while claiming to be STAGING.
+        env={k: v for k, v in os.environ.items() if k not in DOTENV_KEYS},
+        # CREATE_NO_WINDOW, not DETACHED_PROCESS: pwsh exits 0 without running
+        # the script when it has no console at all (#187); a hidden console
+        # works and still survives this process being killed by nx.ps1.
+        creationflags=subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP,
+    )
+    return jsonify({"success": True})
 
 
 # ----------------------------------- maintenance banner ---------------------------------- #
@@ -320,7 +418,7 @@ def api_admin_maintenance_list():
         return jsonify({"success": True, "records": records})
     except Exception as e:
         current_app.logger.error(f"Maintenance list error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -361,7 +459,7 @@ def api_admin_maintenance_add():
         return jsonify({"success": True, "id": int(new_id)})
     except Exception as e:
         current_app.logger.error(f"Maintenance add error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -404,7 +502,7 @@ def api_admin_maintenance_edit(banner_id):
         return jsonify({"success": True})
     except Exception as e:
         current_app.logger.error(f"Maintenance edit error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -424,7 +522,7 @@ def api_admin_maintenance_delete(banner_id):
         return jsonify({"success": True})
     except Exception as e:
         current_app.logger.error(f"Maintenance delete error: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
     finally:
         if conn:
             conn.close()
@@ -500,7 +598,12 @@ def _build_logs_where_clause():
         params.append(start_date)
     if end_date:
         parts.append("Timestamp <= ?")
-        params.append(f"{end_date} 23:59:59")
+        # Day-granularity filters (e.g. "Today", "Last 7 days") send a bare
+        # "YYYY-MM-DD" date and rely on us rounding up to end-of-day. Sub-day
+        # presets (e.g. "Last hour") send a full "YYYY-MM-DD HH:MM:SS"
+        # timestamp already — don't append another time onto it.
+        end_bound = end_date if " " in end_date else f"{end_date} 23:59:59"
+        params.append(end_bound)
     if organization:
         parts.append("Username IN (SELECT username FROM Users WHERE organizationcode = ?)")
         params.append(organization)
@@ -540,7 +643,12 @@ def api_admin_logs_search():
             logs.append(
                 {
                     "LogID": row.LogID,
-                    "Timestamp": row.Timestamp,
+                    # Emit ISO-8601 explicitly so the client can pass it straight
+                    # to `new Date(...)`. Flask's default JSON encoder uses RFC 1123
+                    # which doesn't survive the +'Z' timezone-suffix hack.
+                    "Timestamp": row.Timestamp.isoformat()
+                    if hasattr(row.Timestamp, "isoformat")
+                    else row.Timestamp,
                     "Username": row.Username,
                     "HttpRequestMethod": row.HttpRequestMethod,
                     "Path": row.Path,
@@ -561,7 +669,7 @@ def api_admin_logs_search():
         )
     except Exception as e:
         current_app.logger.error(f"Log search error: {e}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": _("An unexpected error occurred")}), 500
     finally:
         if cursor:
             cursor.close()
@@ -668,6 +776,8 @@ def admin_sessions_view():
 
 @require_permission("admin.create.user")
 def admin_add_user():
+    from .auth import _build_reset_email_message, send_reset_email
+
     data = request.get_json()
     username = data.get("username")
     password = data.get("password")
@@ -675,6 +785,14 @@ def admin_add_user():
     email = data.get("email")
     organization = data.get("organization")
     accessprofile = data.get("accessprofile")
+    # Checkbox: an unticked box is simply absent from the posted form.
+    send_invite = bool(data.get("send_invite"))
+
+    if send_invite:
+        # Nobody -- not the admin, not the mail -- ever sees this one. It is a
+        # placeholder that keeps the account unusable until the invited user
+        # sets their own password through the emailed link.
+        password = secrets.token_urlsafe(32)
 
     if not all([username, password, fullname, email, organization, accessprofile]):
         return jsonify({"success": False, "message": _("All fields are required.")}), 400
@@ -701,10 +819,45 @@ def admin_add_user():
         )
         organizationcode = cursor.fetchone()[0]
         cursor.execute(
-            "INSERT INTO Users (username, password, fullname, email, organizationcode, accessid) VALUES (?, ?, ?, ?, ?, ?)",
-            (username, hashed_password, fullname, email, organizationcode, accessid),
+            "INSERT INTO Users (username, password, fullname, email, organizationcode, accessid, InitReset) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (
+                username,
+                hashed_password,
+                fullname,
+                email,
+                organizationcode,
+                accessid,
+                # An invited user picks their own password through the emailed
+                # link, so the forced first-login change (InitReset NULL) would
+                # only make them do it twice. They still land on 2FA enrolment.
+                1 if send_invite else None,
+            ),
         )
         conn.commit()
+
+        if send_invite:
+            # Synchronous on purpose: the admin needs to know whether the mail
+            # actually went out. No timing oracle to dodge here (unlike the
+            # self-service reset), and Graph is capped at 10s per call.
+            try:
+                sent = send_reset_email(
+                    email, message=_build_reset_email_message(email, invite=True)
+                )
+            except Exception as e:
+                current_app.logger.error(f"Failed to send invite email to {email}: {e}")
+                sent = False
+            if not sent:
+                return jsonify(
+                    {
+                        "success": True,
+                        "message": _(
+                            "User created, but the email could not be sent. "
+                            "Ask them to use 'Forgot password'."
+                        ),
+                    }
+                )
+            return jsonify({"success": True, "message": _("User created and email sent.")})
+
         return jsonify({"success": True, "message": _("User created successfully.")})
     except pyodbc.IntegrityError:
         return jsonify({"success": False, "message": _("Username or email already exists.")}), 409
@@ -733,7 +886,33 @@ def admin_edit_user(user_id):
     try:
         conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
-        if not has_permission(f"admin.assign.user.accessprofile.{str(accessprofile).lower()}"):
+
+        # The <select> only ever lists this admin's own assignable profiles
+        # (see admin_user_detail). If the edited user's CURRENT profile isn't
+        # in that set, the template still renders it as a selected-but-
+        # unassignable option so an untouched form round-trips the same
+        # value. Only require the assign-permission when the value actually
+        # CHANGES — leaving it alone must never 403 or silently reassign it.
+        cursor.execute(
+            "select ap.name from users u left join accessprofile ap on u.accessid = ap.accessid where u.userid = ?",
+            user_id,
+        )
+        row = cursor.fetchone()
+        current_profile = row[0] if row else None
+
+        # Defense-in-depth: the template always submits SOME accessprofile
+        # value now (the current one, if the admin never touched the
+        # dropdown -- see user_detail.html). A client that still omits the
+        # key entirely (JSON body with no "accessprofile", not the normal
+        # browser path) must be treated as "leave it unchanged", not as
+        # "clear the profile" -- the latter would 403 an admin trying to
+        # save an unrelated field.
+        if accessprofile is None:
+            accessprofile = current_profile
+
+        if accessprofile != current_profile and not has_permission(
+            f"admin.assign.user.accessprofile.{str(accessprofile).lower()}"
+        ):
             current_app.logger.error(
                 f"User does not have Permission: admin.assign.user.accessprofile.{str(accessprofile).lower()} for {user_id}"
             )
@@ -938,7 +1117,15 @@ def api_admin_user_activity(user_id):
         )
     except Exception as e:
         current_app.logger.error(f"Failed to load activity for user {user_id}: {e}")
-        return jsonify({"error": str(e), "entries": [], "total": 0, "page": page, "pages": 0}), 500
+        return jsonify(
+            {
+                "error": _("An unexpected error occurred"),
+                "entries": [],
+                "total": 0,
+                "page": page,
+                "pages": 0,
+            }
+        ), 500
     finally:
         if cursor:
             with suppress(Exception):
@@ -967,17 +1154,7 @@ def admin_delete_user(user_id):
         # individually, so any later failure — including the Users delete
         # itself — left a half-deleted, undeletable user. Ordering only
         # requires that every child delete precede `delete from users`.
-        cursor.execute("delete from tags where createdbyuserid = ?", (user_id,))
-        cursor.execute(
-            "delete from workitem_metadata where assigneduserid = ? or lastupdatedbyuserid = ?",
-            (user_id, user_id),
-        )
         cursor.execute("delete from userpermissionoverride where userid = ?", (user_id,))
-        cursor.execute("delete from notifications where userid = ?", (user_id,))
-        cursor.execute("delete from comment_mentions where mentioneduserid = ?", (user_id,))
-        cursor.execute("delete from workitem_comments where userid = ?", (user_id,))
-        cursor.execute("delete from Chat_Messages where senderid = ?", (user_id,))
-        cursor.execute("delete from Chat_Participants where UserID = ?", (user_id,))
 
         # Reporting artifacts. FK_Reports_Users / FK_ReportSchedules_Users /
         # FK_ReportShares_Users are all NO ACTION and were previously omitted,
@@ -1094,7 +1271,7 @@ def api_admin_users_list():
         return jsonify(users)
     except Exception as e:
         current_app.logger.error(f"Failed to fetch users list: {e}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": _("An unexpected error occurred")}), 500
     finally:
         if cursor:
             cursor.close()
@@ -1115,12 +1292,25 @@ def admin_recent_logs():
         """)
         logs = []
         for row in cursor.fetchall():
+            # HttpResponseCode is NVARCHAR in the DB; coerce defensively rather
+            # than compare a string against int bounds (guaranteed TypeError).
+            try:
+                status_code = int(row.HttpResponseCode)
+            except (TypeError, ValueError):
+                status_code = None
             logs.append(
                 {
-                    "Timestamp": row.Timestamp,
+                    # Emit ISO-8601 explicitly so the client can pass it straight
+                    # to `new Date(...)`. Flask's default JSON encoder uses RFC 1123
+                    # which doesn't survive the +'Z' timezone-suffix hack.
+                    "Timestamp": row.Timestamp.isoformat()
+                    if hasattr(row.Timestamp, "isoformat")
+                    else row.Timestamp,
                     "Username": row.Username,
                     "ActionType": f"{row.HttpRequestMethod} {row.Path}",
-                    "ActionStatus": "SUCCESS" if 200 <= row.HttpResponseCode < 300 else "FAILURE",
+                    "ActionStatus": "SUCCESS"
+                    if status_code is not None and 200 <= status_code < 300
+                    else "FAILURE",
                 }
             )
         return jsonify(logs)
@@ -1135,7 +1325,8 @@ def admin_recent_logs():
 @require_permission("admin.view.active.sessions")
 def admin_active_sessions():
     """Read currently-active sessions from ActiveSessions, joined to Users.
-    Filtered to the last 24 hours so abandoned rows fall off naturally."""
+    Filtered to LastSeenAt (bumped on every request by _enforce_active_session)
+    so this reflects actual recent activity, not just login time (issue #109)."""
     conn = None
     try:
         conn = engine_nexora_db.raw_connection()
@@ -1149,7 +1340,7 @@ def admin_active_sessions():
                 a.CreatedAt AS LoggedInAt
             FROM ActiveSessions a
             LEFT JOIN Users u ON u.userID = a.UserID
-            WHERE a.CreatedAt >= DATEADD(hour, -24, GETDATE())
+            WHERE a.LastSeenAt >= DATEADD(minute, -30, GETDATE())
             ORDER BY a.CreatedAt DESC
         """)
         sessions = []
@@ -1607,7 +1798,7 @@ def api_admin_permissions_list():
         return jsonify(perms)
     except Exception as e:
         current_app.logger.error(f"Error listing permissions: {e}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": _("An unexpected error occurred")}), 500
     finally:
         if cursor:
             cursor.close()
@@ -1672,7 +1863,7 @@ def api_admin_user_all_permissions(user_id):
         cursor.execute(
             """
             SELECT
-                p.PermissionID, p.Code, p.Description, p.SortingCode,
+                p.PermissionID, p.Code, p.Description,
                 CAST(dbo.fnUserHasPermission(?, p.Code) AS INT) AS IsEffective,
                 upo.Effect AS OverrideEffect,
                 app.Effect AS ProfileEffect
@@ -1680,7 +1871,7 @@ def api_admin_user_all_permissions(user_id):
             LEFT JOIN Users u ON u.userID = ?
             LEFT JOIN UserPermissionOverride upo ON upo.UserID = ? AND upo.PermissionID = p.PermissionID
             LEFT JOIN AccessProfilePermission app ON app.AccessID = u.accessID AND app.PermissionID = p.PermissionID
-            ORDER BY p.SortingCode, p.Code
+            ORDER BY p.Code
         """,
             (user_id, user_id, user_id),
         )
@@ -1706,7 +1897,6 @@ def api_admin_permission_add():
     data = request.get_json()
     code = (data.get("code") or "").strip()
     description = (data.get("description") or "").strip()
-    sorting_code = (data.get("sortingCode") or "").strip() or None
     if not code or not description:
         return jsonify({"success": False, "message": _("Code and description are required")}), 400
     conn = None
@@ -1715,8 +1905,8 @@ def api_admin_permission_add():
         conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO Permission (Code, Description, SortingCode) OUTPUT INSERTED.PermissionID VALUES (?, ?, ?)",
-            (code, description, sorting_code),
+            "INSERT INTO Permission (Code, Description) OUTPUT INSERTED.PermissionID VALUES (?, ?)",
+            (code, description),
         )
         new_id = cursor.fetchone()[0]
         conn.commit()
@@ -1744,7 +1934,6 @@ def api_admin_permission_edit(perm_id):
     data = request.get_json()
     code = (data.get("code") or "").strip()
     description = (data.get("description") or "").strip()
-    sorting_code = (data.get("sortingCode") or "").strip() or None
     if not code or not description:
         return jsonify({"success": False, "message": _("Code and description are required")}), 400
     conn = None
@@ -1753,8 +1942,8 @@ def api_admin_permission_edit(perm_id):
         conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "UPDATE Permission SET Code=?, Description=?, SortingCode=? WHERE PermissionID=?",
-            (code, description, sorting_code, perm_id),
+            "UPDATE Permission SET Code=?, Description=? WHERE PermissionID=?",
+            (code, description, perm_id),
         )
         if cursor.rowcount == 0:
             return jsonify({"success": False, "message": _("Permission not found")}), 404
@@ -1844,6 +2033,17 @@ def register_routes(app):
         "/api/admin/organizations/list",
         endpoint="api_admin_organizations_list",
         view_func=api_admin_organizations_list,
+    )
+
+    # status page
+    app.add_url_rule("/admin/status", endpoint="admin_status_view", view_func=admin_status_view)
+
+    # dev server restart
+    app.add_url_rule(
+        "/api/admin/restart",
+        endpoint="api_admin_restart",
+        view_func=api_admin_restart,
+        methods=["POST"],
     )
 
     # maintenance banner

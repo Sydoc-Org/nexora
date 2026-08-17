@@ -37,7 +37,7 @@
           <i class="fas fa-plus"></i><span class="hidden sm:inline">{{ _("Add Attendance") }}</span>
         </button>
         {% endif %}
-        <button id="exportExcelBtn" onclick="exportToExcel()"
+        <button id="exportExcelBtn"
           class="nx-btn nx-btn--secondary" data-testid="generali-additional-services-export-excel">
           <i class="fas fa-file-excel"></i><span class="hidden sm:inline">{{ _("Export Excel") }}</span>
         </button>
@@ -54,22 +54,22 @@
 
     <!-- Filter Bar -->
     <div class="nx-filter mb-6 nx-rise-2">
-      <div class="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end sm:gap-4">
-        <div class="w-full sm:w-auto">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div>
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("From Date") }}</label>
           <input type="text" id="filterStartDate" placeholder="yyyy-mm-dd"
-            class="nx-input w-full h-11" data-testid="generali-additional-services-start-date" />
+            class="nx-input h-11" data-testid="generali-additional-services-start-date" />
         </div>
-        <div class="w-full sm:w-auto">
+        <div>
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("To Date") }}</label>
           <input type="text" id="filterEndDate" placeholder="yyyy-mm-dd"
-            class="nx-input w-full h-11" data-testid="generali-additional-services-end-date" />
+            class="nx-input h-11" data-testid="generali-additional-services-end-date" />
         </div>
-        <div class="col-span-2 sm:col-span-1 w-full sm:w-auto">
+        <div>
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Parent Category") }}</label>
           <div class="relative">
             <select id="filterParentCategory"
-              class="nx-select block w-full sm:min-w-44 h-11 appearance-none pr-10" data-testid="generali-additional-services-parent-category-filter">
+              class="nx-select h-11 appearance-none pr-10" data-testid="generali-additional-services-parent-category-filter">
               <option value="">{{ _("All") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -77,11 +77,11 @@
             </div>
           </div>
         </div>
-        <div class="col-span-2 sm:col-span-1 w-full sm:w-auto">
+        <div>
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Sub Category") }}</label>
           <div class="relative">
             <select id="filterSubCategory"
-              class="nx-select block w-full sm:min-w-44 h-11 appearance-none pr-10" data-testid="generali-additional-services-sub-category-filter">
+              class="nx-select h-11 appearance-none pr-10" data-testid="generali-additional-services-sub-category-filter">
               <option value="">{{ _("All") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -89,11 +89,11 @@
             </div>
           </div>
         </div>
-        <div class="col-span-2 sm:col-span-1 w-full sm:w-auto">
+        <div>
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Organization") }}</label>
           <div class="relative">
             <select id="filterOrganizationCode"
-              class="nx-select block w-full sm:min-w-44 h-11 appearance-none pr-10" data-testid="generali-additional-services-organization-filter">
+              class="nx-select h-11 appearance-none pr-10" data-testid="generali-additional-services-organization-filter">
               <option value="">{{ _("All Organizations") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -101,11 +101,11 @@
             </div>
           </div>
         </div>
-        <div class="col-span-2 sm:col-span-1 w-full sm:w-auto" id="filterUserWrapper" style="display:none">
+        <div id="filterUserWrapper" class="[display:none]!">
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("User") }}</label>
           <div class="relative">
             <select id="filterUserId"
-              class="nx-select block w-full sm:min-w-44 h-11 appearance-none pr-10" data-testid="generali-additional-services-user-filter">
+              class="nx-select h-11 appearance-none pr-10" data-testid="generali-additional-services-user-filter">
               <option value="">{{ _("All Users") }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
@@ -113,21 +113,21 @@
             </div>
           </div>
         </div>
-        <div class="col-span-2 sm:col-span-1 flex gap-3 sm:pb-0.5">
-          <button id="applyFilterBtn"
-            class="nx-btn nx-btn--primary flex-1 sm:flex-none h-11" data-testid="generali-additional-services-apply-filter">
-            <i class="fas fa-filter mr-2"></i>{{ _("Apply") }}
-          </button>
-          <button id="resetFilterBtn"
-            class="nx-btn nx-btn--secondary flex-1 sm:flex-none h-11" data-testid="generali-additional-services-reset-filter">
-            {{ _("Reset") }}
-          </button>
-        </div>
+      </div>
+      <div class="flex gap-3 mt-5 pt-5 border-t [border-color:var(--nx-divider)]!">
+        <button id="applyFilterBtn"
+          class="nx-btn nx-btn--primary h-11" data-testid="generali-additional-services-apply-filter">
+          <i class="fas fa-filter mr-2"></i>{{ _("Apply") }}
+        </button>
+        <button id="resetFilterBtn"
+          class="nx-btn nx-btn--secondary h-11" data-testid="generali-additional-services-reset-filter">
+          {{ _("Reset") }}
+        </button>
       </div>
     </div>
 
     <div class="mb-4 flex items-center gap-2">
-      <span class="text-sm font-medium" style="color:var(--nx-text-sec)">{{ _("Total hours (filtered):") }}</span>
+      <span class="text-sm font-medium [color:var(--nx-text-sec)]!">{{ _("Total hours (filtered):") }}</span>
       <span id="totalHoursDisplay" class="text-sm font-bold text-indigo-600">—</span>
     </div>
 
@@ -198,9 +198,9 @@
   {% if can_add %}
   <div id="addModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4">
     <div class="nx-card w-full max-w-sm flex flex-col max-h-[90vh]">
-      <div class="flex items-center justify-between px-6 pt-5 pb-4 flex-shrink-0" style="border-bottom:1px solid var(--nx-divider)">
+      <div class="flex items-center justify-between px-6 pt-5 pb-4 flex-shrink-0 [border-bottom:1px_solid_var(--nx-divider)]!">
         <h3 class="nx-section">{{ _("Add Attendance") }}</h3>
-        <button id="closeAddModalBtn" class="transition" style="color:var(--nx-text-sec)" data-testid="generali-additional-services-add-close">
+        <button id="closeAddModalBtn" class="transition [color:var(--nx-text-sec)]!" data-testid="generali-additional-services-add-close">
           <i class="fas fa-times text-lg"></i>
         </button>
       </div>
@@ -257,7 +257,7 @@
             class="nx-input block w-full h-9" data-testid="generali-additional-services-add-effort" />
         </div>
       </div>
-      <div class="flex justify-end gap-3 px-6 py-4 flex-shrink-0" style="border-top:1px solid var(--nx-divider)">
+      <div class="flex justify-end gap-3 px-6 py-4 flex-shrink-0 [border-top:1px_solid_var(--nx-divider)]!">
         <button id="cancelAddModalBtn"
           class="nx-btn nx-btn--secondary" data-testid="generali-additional-services-add-cancel">
           {{ _("Cancel") }}
@@ -273,9 +273,9 @@
 
   <div id="editModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4">
     <div class="nx-card w-full max-w-sm flex flex-col max-h-[90vh]">
-      <div class="flex items-center justify-between px-6 pt-5 pb-4 flex-shrink-0" style="border-bottom:1px solid var(--nx-divider)">
+      <div class="flex items-center justify-between px-6 pt-5 pb-4 flex-shrink-0 [border-bottom:1px_solid_var(--nx-divider)]!">
         <h3 class="nx-section">{{ _("Edit Attendance") }}</h3>
-        <button id="closeEditBtn" class="transition" style="color:var(--nx-text-sec)" data-testid="generali-additional-services-edit-close">
+        <button id="closeEditBtn" class="transition [color:var(--nx-text-sec)]!" data-testid="generali-additional-services-edit-close">
           <i class="fas fa-times text-lg"></i>
         </button>
       </div>
@@ -316,7 +316,7 @@
         </div>
         <p id="editError" class="hidden text-xs text-red-600 font-medium"></p>
       </div>
-      <div class="flex gap-3 px-6 py-4 flex-shrink-0" style="border-top:1px solid var(--nx-divider)">
+      <div class="flex gap-3 px-6 py-4 flex-shrink-0 [border-top:1px_solid_var(--nx-divider)]!">
         <button id="cancelEditBtn"
           class="nx-btn nx-btn--secondary flex-1" data-testid="generali-additional-services-edit-cancel">
           {{ _("Cancel") }}
@@ -337,8 +337,8 @@
           <i class="fas fa-trash text-red-500"></i>
         </div>
         <div>
-          <h3 class="nx-section" style="margin-bottom:0">{{ _("Delete record") }}</h3>
-          <p class="text-sm mt-0.5" style="color:var(--nx-text-sec)">{{ _("This action cannot be undone.") }}</p>
+          <h3 class="nx-section [margin-bottom:0]!">{{ _("Delete record") }}</h3>
+          <p class="text-sm mt-0.5 [color:var(--nx-text-sec)]!">{{ _("This action cannot be undone.") }}</p>
         </div>
       </div>
       <div class="flex gap-3 px-6 pb-5 pt-2">
@@ -354,7 +354,6 @@
     </div>
   </div>
 
-  {% include '_small_footer.html' %}
   {% include 'js/_generali_additional_services_js.html' %}
 </body>
 </html>

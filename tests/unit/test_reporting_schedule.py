@@ -98,6 +98,16 @@ def test_validate_schedule_errors():
     )
 
 
+def test_validate_schedule_non_numeric_weekday_and_day_of_month():
+    # Non-numeric weekday/dayOfMonth must return an error string, not raise.
+    assert validate_schedule(
+        {"frequency": "weekly", "hour": 6, "recipients": "a@x.com", "weekday": "mon"}
+    )
+    assert validate_schedule(
+        {"frequency": "monthly", "hour": 6, "recipients": "a@x.com", "dayOfMonth": "first"}
+    )
+
+
 def test_validate_schedule_alert_pair():
     base = {"frequency": "daily", "hour": 6, "recipients": "a@x.com"}
     assert validate_schedule(base) is None  # no alert fields: always send

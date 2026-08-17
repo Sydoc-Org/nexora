@@ -113,7 +113,6 @@ def startpage_redirect_to(page_v):
         "dashboardPagePerm": "dashboard",
         "reportingPagePerm": "reporting",
         "workitemsPagePerm": "workitems_overview",
-        "invoicesPagePerm": "invoices",
         "generaliPagePerm": "generali_evaluation",
         "generaliDocumentsPerm": "generali_documents",
         "generaliReportingPerm": "generali_reporting",
@@ -121,8 +120,8 @@ def startpage_redirect_to(page_v):
         "generaliBaseServicesPerm": "generali_baseServices",
         "generaliProjectManagementPerm": "generali_projectManagement",
         "generaliPDQMPerm": "generali_pdqm",
-        "chatPagePerm": "chat_page",
         "adminPagePerm": "admin_dashboard",
+        "apiDocsPagePerm": "api_docs",
     }
     for perm_key in perm_to_function:
         if page_v[perm_key]:
@@ -137,8 +136,8 @@ def page_visibility():
         "reportingPagePerm": has_permission("reporting.view"),
         "workitemsPagePerm": has_permission("workitems.view"),
         "preparedDocsPagePerm": has_permission("workitems.import.preparedaudit"),
-        "invoicesPagePerm": has_permission("invoices.view"),
-        "chatPagePerm": has_permission("chat.view"),
+        # invoicesPagePerm removed with the archived invoices page (#177).
+        "apiDocsPagePerm": has_permission("api.docs.view"),
         "generaliPagePerm": has_permission("generali.dashboard.view"),
         "generaliDocumentsPerm": has_permission("generali.documentlist.view"),
         "generaliReportingPerm": has_permission("generali.reporting.view"),
@@ -147,6 +146,7 @@ def page_visibility():
         "generaliProjectManagementPerm": has_permission("generali.projectmanagement.view"),
         "generaliPDQMPerm": has_permission("generali.pdqm.view"),
         "generaliImportStatusPerm": has_permission("generali.importstatus.view"),
+        "adminStatusPagePerm": has_permission("admin.status.view"),
         "adminMaintenanceViewPerm": has_permission("admin.maintenance.view"),
         "adminMaintenanceEditPerm": has_permission("admin.maintenance.edit"),
         "adminMaintenanceBypassPerm": has_permission("admin.maintenance.bypass"),

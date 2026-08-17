@@ -58,7 +58,7 @@
           <i class="fas fa-upload mr-2"></i>{{ _("Upload Excel") }}
         </button>
         <button type="button" id="preparedDocsClearBtn"
-          class="nx-btn nx-btn--secondary" data-testid="prepared-docs-clear">
+          class="nx-btn nx-btn--danger" data-testid="prepared-docs-clear">
           <i class="fas fa-trash mr-2"></i>{{ _("Clear list") }}
         </button>
         {% endif %}
@@ -69,6 +69,88 @@
       class="hidden mt-3 rounded-lg border px-4 py-3 text-sm" data-testid="prepared-docs-notice">
       <span id="preparedDocsNoticeText"></span>
     </div>
+
+    <form method="get" class="nx-filter nx-rise-2" data-testid="prepared-docs-filters">
+      <div class="nx-filter__grid">
+        <div>
+          <label for="pdocPid" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{{ _("PID") }}</label>
+          <div class="relative mt-1">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+              <i class="fas fa-search"></i>
+            </span>
+            <input type="text" id="pdocPid" name="pid" value="{{ pid_filter or '' }}" placeholder="{{ _('Search PID') }}"
+                   class="nx-input h-11 pl-10" data-testid="prepared-docs-pid-input" />
+          </div>
+        </div>
+
+        <div>
+          <label for="pdocCollected" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{{ _("Collected") }}</label>
+          <div class="relative mt-1">
+            <select id="pdocCollected" name="collected" class="nx-select h-11 appearance-none pr-10"
+                    data-testid="prepared-docs-collected-filter">
+              <option value="" {{ 'selected' if collected_filter is none }}>{{ _("Any") }}</option>
+              <option value="1" {{ 'selected' if collected_filter == True }}>{{ _("Yes") }}</option>
+              <option value="0" {{ 'selected' if collected_filter == False }}>{{ _("No") }}</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+              <i class="fa-solid fa-chevron-down text-xs"></i>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label for="pdocPrepared" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{{ _("Prepared") }}</label>
+          <div class="relative mt-1">
+            <select id="pdocPrepared" name="prepared" class="nx-select h-11 appearance-none pr-10"
+                    data-testid="prepared-docs-prepared-filter">
+              <option value="" {{ 'selected' if prepared_filter is none }}>{{ _("Any") }}</option>
+              <option value="1" {{ 'selected' if prepared_filter == True }}>{{ _("Yes") }}</option>
+              <option value="0" {{ 'selected' if prepared_filter == False }}>{{ _("No") }}</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+              <i class="fa-solid fa-chevron-down text-xs"></i>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label for="pdocGroupBy" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{{ _("Group by") }}</label>
+          <div class="relative mt-1">
+            <select id="pdocGroupBy" name="group_by" class="nx-select h-11 appearance-none pr-10"
+                    data-testid="prepared-docs-group-by">
+              <option value="" {{ 'selected' if not group_by }}>{{ _("None") }}</option>
+              <option value="collected_by" {{ 'selected' if group_by == 'collected_by' }}>{{ _("Collected by") }}</option>
+              <option value="prepared_by" {{ 'selected' if group_by == 'prepared_by' }}>{{ _("Prepared by") }}</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+              <i class="fa-solid fa-chevron-down text-xs"></i>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label for="pdocPerPage" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{{ _("Per page") }}</label>
+          <div class="relative mt-1">
+            <select id="pdocPerPage" name="per_page" class="nx-select h-11 appearance-none pr-10"
+                    data-testid="prepared-docs-per-page">
+              {% for n in (25, 40, 100, 200) %}
+              <option value="{{ n }}" {{ 'selected' if pagination.perPage == n }}>{{ n }}</option>
+              {% endfor %}
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+              <i class="fa-solid fa-chevron-down text-xs"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-end gap-2">
+          <button type="submit" class="nx-btn nx-btn--primary h-11">{{ _("Apply") }}</button>
+          {% if pid_filter or collected_filter is not none or prepared_filter is not none or group_by or pagination.perPage != 40 %}
+          <a href="{{ url_for('prepared_documents') }}" class="nx-btn nx-btn--ghost h-11" data-testid="prepared-docs-reset-filters">{{ _("Reset") }}</a>
+          {% endif %}
+        </div>
+      </div>
+    </form>
 
     <div class="nx-table-wrap nx-rise-3 relative mt-6">
       <div class="overflow-x-auto">
@@ -115,7 +197,8 @@
                     <button type="button" class="text-indigo-600 underline"
                             data-testid="prepared-docs-preview"
                             data-wid="{{ st.wid }}" data-pid="{{ r.pid }}"
-                            data-status="{{ st.status }}" data-current-stage="{{ st.current_stage }}">
+                            data-status="{{ st.status }}" data-current-stage="{{ st.current_stage }}"
+                            data-client="ms02">
                       <i class="fas fa-eye mr-1"></i>{{ _("Preview") }}
                     </button>
                     {% endif %}
@@ -145,13 +228,13 @@
         data-total-pages="{{ pagination.totalPages }}"
         data-per-page="{{ pagination.perPage }}">
         <a class="nx-btn nx-btn--secondary {% if pagination.currentPage <= 1 %}opacity-40 pointer-events-none{% endif %}"
-           href="?page={{ pagination.currentPage - 1 }}"
+           href="{{ url_for('prepared_documents', page=pagination.currentPage - 1, **filter_args) }}"
            data-testid="prepared-docs-prev">{{ _("Previous") }}</a>
         <span class="px-3 text-sm text-gray-600">
           {{ pagination.currentPage }} / {{ pagination.totalPages if pagination.totalPages else 1 }}
         </span>
         <a class="nx-btn nx-btn--secondary {% if pagination.currentPage >= pagination.totalPages %}opacity-40 pointer-events-none{% endif %}"
-           href="?page={{ pagination.currentPage + 1 }}"
+           href="{{ url_for('prepared_documents', page=pagination.currentPage + 1, **filter_args) }}"
            data-testid="prepared-docs-next">{{ _("Next") }}</a>
       </div>
     </div>
@@ -187,7 +270,7 @@
           <i class="fas fa-magnifying-glass-location"></i>
           <span id="pdocPreviewHlToggleLabel">{{ _('Show sources') }}</span>
         </button>
-        <img class="modal-content" id="pdocPreviewImage">
+        <img class="modal-content" id="pdocPreviewImage" alt="{{ _('Document page preview') }}">
         <div id="pdocPreviewHlLayer" class="src-hl-layer-full"></div>
         <a class="modal-prev">&#10094;</a>
         <a class="modal-next">&#10095;</a>
@@ -199,7 +282,12 @@
     </div>
   </div>
 
-  <script>
+  <script nonce="{{ csp_nonce() }}">
+    // #193 finding 10: onchange="" attribute handlers aren't nonce-covered by CSP.
+    ['pdocCollected', 'pdocPrepared', 'pdocGroupBy', 'pdocPerPage'].forEach(function (id) {
+      document.getElementById(id)?.addEventListener('change', function () { this.form.submit(); });
+    });
+
     // Source-highlight confidence helpers + an empty fieldConfig the shared panel reads.
     window.srcConfClass = function (conf) {
       if (typeof conf !== 'number' || isNaN(conf)) return '';
@@ -212,12 +300,10 @@
       return Math.round(conf * 100) + '%';
     };
     window.fieldConfig = window.fieldConfig || { search_options: {}, labels: {} };
-    window.mentionableUsers = window.mentionableUsers || [];
     window.__pdocPreviewPerms = {
       images: {{ 'true' if details_images_perm else 'false' }},
       audit:  {{ 'true' if details_audit_perm else 'false' }},
       fields: {{ 'true' if details_fields_perm else 'false' }},
-      setPriority: false, addTag: false, assignUsers: false, addComment: false,
     };
   </script>
 

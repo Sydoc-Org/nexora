@@ -9,11 +9,16 @@ from nx_lib.reporting.tokens import (
     date_fields_from_catalog,
     resolve_definition_tokens,
     resolve_token,
+    shifted_definition_for_comparison,
     validate_token_value,
+    widened_definition_for_forecast,
 )
 
 # A Wednesday. ISO week = Mon 2026-06-08 .. Sun 2026-06-14.
 TODAY = datetime.date(2026, 6, 10)
+
+# A Thursday in Q3 2026, used for shifted_definition_for_comparison cases.
+COMPARISON_TODAY = datetime.date(2026, 7, 23)
 
 
 def _d(s):
@@ -186,3 +191,118 @@ def test_resolved_dates_meta_lists_token_filters_only():
     assert meta[0]["start"] == start.isoformat()
     assert meta[0]["end"] == end.isoformat()
     assert rv._resolved_dates_meta({"filters": []}) == []
+
+
+def test_shifted_definition_for_comparison_this_month():
+    rd = {
+        "filters": [
+            {"field": "import_date", "op": "between", "value": {"token": "this_month"}},
+            {"field": "doctype", "op": "eq", "value": "Invoice"},
+        ]
+    }
+    result = shifted_definition_for_comparison(rd, COMPARISON_TODAY)
+    assert result is not None
+    shifted_rd, prior_start, prior_end = result
+    # July 2026 is a 31-day window; the prior window is shifted back by that
+    # same length, i.e. [start - 31d, start) — NOT the naive "previous
+    # calendar month" (June is only 30 days, so the two diverge by a day).
+    assert prior_start == _d("2026-05-31")
+    assert prior_end == _d("2026-06-30")
+    assert shifted_rd["filters"] == [
+        {"field": "doctype", "op": "eq", "value": "Invoice"},
+        {"field": "import_date", "op": "gte", "value": "2026-05-31"},
+        {"field": "import_date", "op": "lt", "value": "2026-07-01"},
+    ]
+    # The input definition is untouched (same contract as resolve_definition_tokens).
+    assert rd["filters"][0]["value"] == {"token": "this_month"}
+
+
+def test_shifted_definition_for_comparison_last_n_days():
+    rd = {
+        "filters": [
+            {"field": "import_date", "op": "between", "value": {"token": "last_n_days", "n": 7}},
+        ]
+    }
+    result = shifted_definition_for_comparison(rd, COMPARISON_TODAY)
+    assert result is not None
+    shifted_rd, prior_start, prior_end = result
+    # Current window is 2026-07-17..2026-07-23 (7 days); prior window is the
+    # 7 days immediately before that.
+    assert prior_start == _d("2026-07-10")
+    assert prior_end == _d("2026-07-16")
+    assert shifted_rd["filters"] == [
+        {"field": "import_date", "op": "gte", "value": "2026-07-10"},
+        {"field": "import_date", "op": "lt", "value": "2026-07-17"},
+    ]
+
+
+def test_shifted_definition_for_comparison_this_quarter():
+    rd = {
+        "filters": [
+            {"field": "import_date", "op": "between", "value": {"token": "this_quarter"}},
+        ]
+    }
+    result = shifted_definition_for_comparison(rd, COMPARISON_TODAY)
+    assert result is not None
+    shifted_rd, prior_start, prior_end = result
+    # Q3 2026 (Jul-Sep) is a 92-day window; the prior window is the full
+    # 92-day length ending exactly at the quarter start (2026-07-01).
+    assert prior_start == _d("2026-03-31")
+    assert prior_end == _d("2026-06-30")
+    assert shifted_rd["filters"] == [
+        {"field": "import_date", "op": "gte", "value": "2026-03-31"},
+        {"field": "import_date", "op": "lt", "value": "2026-07-01"},
+    ]
+
+
+def test_shifted_definition_for_comparison_no_token_filter_is_none():
+    rd = {"filters": [{"field": "doctype", "op": "eq", "value": "Invoice"}]}
+    assert shifted_definition_for_comparison(rd, COMPARISON_TODAY) is None
+    assert shifted_definition_for_comparison({"filters": []}, COMPARISON_TODAY) is None
+    assert shifted_definition_for_comparison({}, COMPARISON_TODAY) is None
+
+
+def test_shifted_definition_for_comparison_two_token_filters_is_none():
+    rd = {
+        "filters": [
+            {"field": "import_date", "op": "between", "value": {"token": "this_month"}},
+            {"field": "other_date", "op": "between", "value": {"token": "last_week"}},
+        ]
+    }
+    assert shifted_definition_for_comparison(rd, COMPARISON_TODAY) is None
+
+
+def test_widened_definition_extends_day_grain_window():
+    rd = {
+        "columns": [{"field": "import_date", "grain": "day"}],
+        "metrics": [{"metric": "doc_count"}],
+        "filters": [{"field": "import_date", "op": "between", "value": {"token": "this_month"}}],
+        "compare": True,
+    }
+    today = datetime.date(2026, 8, 6)
+    out = widened_definition_for_forecast(rd, today=today)
+    assert out is not None and "compare" not in out
+    f = out["filters"][0]
+    assert f["op"] == "between"
+    # this_month resolves to [2026-08-01, 2026-08-31]; day lookback = 56 days
+    assert f["value"] == ["2026-06-06", "2026-08-31"]
+    # original untouched
+    assert rd["filters"][0]["value"] == {"token": "this_month"}
+
+
+def test_widened_definition_requires_single_grained_dim_and_token():
+    base = {
+        "columns": [{"field": "import_date", "grain": "day"}],
+        "filters": [{"field": "import_date", "op": "between", "value": {"token": "this_month"}}],
+    }
+    no_grain = {**base, "columns": [{"field": "import_date"}]}
+    assert widened_definition_for_forecast(no_grain) is None
+    literal = {
+        **base,
+        "filters": [
+            {"field": "import_date", "op": "between", "value": ["2026-08-01", "2026-08-31"]}
+        ],
+    }
+    assert widened_definition_for_forecast(literal) is None
+    two_dims = {**base, "columns": base["columns"] + [{"field": "process"}]}
+    assert widened_definition_for_forecast(two_dims) is None

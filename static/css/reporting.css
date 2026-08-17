@@ -5,23 +5,23 @@
   display: grid;
   grid-template-columns: 260px 1fr 300px;
   gap: 20px;
-  padding: 20px 24px 32px;
+  padding-block: 20px 32px;
   align-items: start;
   font-family: var(--nx-font);
 }
 
 .reporting-fields,
 .reporting-wells {
-  background: #fff;
-  border: 1px solid #eef;
-  border-radius: 14px;
+  background: var(--nx-card);
+  border: 1px solid var(--nx-border);
+  border-radius: calc(var(--nx-radius-scale, 1) * 14px);
   padding: 14px;
 }
 
 .reporting-results {
-  background: #fff;
-  border: 1px solid #eef;
-  border-radius: 14px;
+  background: var(--nx-card);
+  border: 1px solid var(--nx-border);
+  border-radius: calc(var(--nx-radius-scale, 1) * 14px);
   padding: 14px;
   min-height: 60vh;
 }
@@ -35,8 +35,8 @@
 
 .reporting-mode-toggle button {
   padding: 4px 10px;
-  border-radius: 8px;
-  border: 1px solid #ddd;
+  border-radius: calc(var(--nx-radius-scale, 1) * 8px);
+  border: 1px solid var(--nx-border);
 }
 
 .reporting-saved {
@@ -47,8 +47,8 @@
 
 .reporting-saved select {
   padding: 6px 8px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  border: 1px solid var(--nx-border);
+  border-radius: calc(var(--nx-radius-scale, 1) * 8px);
   font-family: inherit;
   font-size: 13px;
   max-width: 200px;
@@ -56,11 +56,11 @@
 
 .reporting-export-format {
   padding: 6px 8px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  border: 1px solid var(--nx-border);
+  border-radius: calc(var(--nx-radius-scale, 1) * 8px);
   font-family: inherit;
   font-size: 13px;
-  background: #fff;
+  background: var(--nx-card);
 }
 
 .reporting-mode-toggle button.active {
@@ -75,7 +75,7 @@
 
 .reporting-btn {
   padding: 6px 12px;
-  border-radius: 8px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 8px);
   background: #4338ca;
   color: #fff;
   border: none;
@@ -101,7 +101,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: .05em;
-  color: #888;
+  color: var(--nx-text-meta);
   margin-bottom: 4px;
 }
 
@@ -110,8 +110,8 @@
 #rpSource {
   width: 100%;
   padding: 6px 8px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  border: 1px solid var(--nx-border);
+  border-radius: calc(var(--nx-radius-scale, 1) * 8px);
   margin: 6px 0;
   font-family: inherit;
   font-size: 13px;
@@ -128,7 +128,7 @@
 
 .reporting-field-list li {
   padding: 6px 8px;
-  border-radius: 8px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 8px);
   cursor: pointer;
   font-size: 13px;
 }
@@ -136,61 +136,6 @@
 .reporting-field-list li:hover {
   background: #eef2ff;
 }
-
-/* --- Process scope picker (client / process multi-select) ----------------- */
-.reporting-scope {
-  position: relative;
-  margin: 6px 0;
-}
-.reporting-scope-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 6px 8px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  background: #fff;
-  font-family: inherit;
-  font-size: 13px;
-  color: inherit;
-  cursor: pointer;
-  box-sizing: border-box;
-}
-.reporting-scope-btn:hover { border-color: #c7c7c7; }
-.reporting-scope-btn .fa-chevron-down { font-size: 11px; color: #888; }
-.reporting-scope-btn[aria-expanded="true"] .fa-chevron-down { transform: rotate(180deg); }
-.reporting-scope-menu {
-  position: absolute;
-  z-index: 30;
-  left: 0;
-  right: 0;
-  margin-top: 4px;
-  max-height: 50vh;
-  overflow: auto;
-  padding: 4px;
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
-}
-.reporting-scope-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 8px;
-  border-radius: 6px;
-  font-size: 13px;
-  cursor: pointer;
-}
-.reporting-scope-row:hover { background: #eef2ff; }
-.reporting-scope-row input { margin: 0; cursor: pointer; }
-.reporting-scope-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.reporting-scope-all { font-weight: 600; }
-.reporting-scope-all + .reporting-scope-client { border-top: 1px solid #eee; }
-.reporting-scope-client { font-weight: 600; }
-.reporting-scope-proc { padding-left: 26px; color: #444; }
 
 /* Grain selector on a date column in the Columns well */
 .reporting-grain {
@@ -210,7 +155,7 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: .05em;
-  color: #888;
+  color: var(--nx-text-meta);
   margin-bottom: 6px;
   margin-top: 0;
 }
@@ -231,15 +176,15 @@
 .reporting-well ul li input {
   flex: 1;
   padding: 4px 6px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  border: 1px solid var(--nx-border);
+  border-radius: calc(var(--nx-radius-scale, 1) * 6px);
   font-size: 12px;
 }
 
 .reporting-well ul li button {
   background: none;
   border: none;
-  color: #999;
+  color: var(--nx-text-meta);
   cursor: pointer;
   font-size: 14px;
   line-height: 1;
@@ -252,8 +197,8 @@
   flex: 1;
   min-width: 0;
   padding: 4px 6px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  border: 1px solid var(--nx-border);
+  border-radius: calc(var(--nx-radius-scale, 1) * 6px);
   font-size: 12px;
 }
 
@@ -267,8 +212,8 @@
 .reporting-filter-row input {
   flex: 1;
   padding: 4px 6px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  border: 1px solid var(--nx-border);
+  border-radius: calc(var(--nx-radius-scale, 1) * 6px);
   font-size: 12px;
   min-width: 0;
 }
@@ -276,7 +221,7 @@
 .reporting-filter-row button {
   background: none;
   border: none;
-  color: #999;
+  color: var(--nx-text-meta);
   cursor: pointer;
   font-size: 14px;
   padding: 0 4px;
@@ -294,30 +239,58 @@
 
 .reporting-table th,
 .reporting-table td {
-  border: 1px solid #eee;
+  border: 1px solid var(--nx-border);
   padding: 6px 8px;
   text-align: left;
 }
 
 .reporting-table th {
-  background: #f8f8ff;
+  background: var(--nx-alt);
   font-weight: 600;
 }
 
 .reporting-empty,
 .reporting-error {
-  color: #888;
+  color: var(--nx-text-sec);
   padding: 20px;
   margin: 0;
 }
 
 .reporting-error {
-  color: #c0392b;
+  color: var(--nx-danger);
 }
 
 @media (max-width: 1100px) {
   .reporting-main {
     grid-template-columns: 1fr;
+  }
+  /* Grid items default to min-width: auto, so a single 1fr track still
+     grows to each child's max-content width — min-width: 0 lets them
+     actually shrink to the collapsed column instead of overflowing. */
+  .reporting-fields,
+  .reporting-results,
+  .reporting-wells {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Saved-report cluster (select + save button + rename/share/delete links)
+     and the Run/Save/Export action cluster are both flex-shrink: 0, which
+     fixes them at their full max-content width (~525px / ~414px) regardless
+     of flex-wrap — shrink has to be allowed before wrapping can help. Forcing
+     each cluster onto its own full-width row lets it wrap internally instead
+     of overflowing the page at phone widths. */
+  .reporting-saved,
+  .reporting-actions {
+    flex-wrap: wrap;
+    flex-shrink: 1;
+    flex-basis: 100%;
+  }
+  .reporting-saved select {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
   }
 }
 
@@ -327,33 +300,72 @@
 .reporting-sql-editor {
   width: 100%; min-height: 180px; resize: vertical;
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
-  font-size: 13px; line-height: 1.5; padding: 10px; border: 1px solid #d1d5db;
-  border-radius: 6px; tab-size: 2;
+  font-size: 13px; line-height: 1.5; padding: 10px; border: 1px solid var(--nx-border-strong);
+  border-radius: calc(var(--nx-radius-scale, 1) * 6px); tab-size: 2;
 }
 .reporting-modal {
   position: fixed; inset: 0; background: rgba(0,0,0,.45);
-  display: flex; align-items: center; justify-content: center; z-index: 50;
+  display: flex; align-items: center; justify-content: center; z-index: var(--z-overlay-center);
 }
 .reporting-modal[hidden] { display: none; }
 .reporting-modal-box {
-  background: #fff; border-radius: 10px; padding: 22px; max-width: 460px;
+  background: var(--nx-card); border-radius: calc(var(--nx-radius-scale, 1) * 10px); padding: 22px; max-width: 460px;
   box-shadow: 0 10px 40px rgba(0,0,0,.25);
 }
 .reporting-modal-box h3 { margin: 0 0 8px; }
 .reporting-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
-.reporting-btn-primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+.reporting-btn-primary { background: var(--nx-accent); color: #fff; border-color: var(--nx-accent); }
+
+/* In-app guide page (/reporting/guide) */
+/* Container metrics come from .nx-main (28px 40px, compact-aware) so the
+   masthead aligns like every other page; only the inner grid lives here. */
+.reporting-guide-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 24px; align-items: start; }
+.reporting-guide-toc { position: sticky; top: 84px; font-size: 13px; }
+.reporting-guide-toc h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--nx-text-muted, #6b7280); margin: 0 0 8px; }
+.reporting-guide-toc ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.reporting-guide-toc a { color: inherit; text-decoration: none; }
+.reporting-guide-toc a:hover, .reporting-guide-toc a:focus-visible { color: var(--nx-accent); text-decoration: underline; }
+.reporting-guide-article { font-size: 15px; line-height: 1.65; max-width: 76ch; }
+.reporting-guide-article h2 { font-size: 20px; margin: 28px 0 10px; padding-top: 8px; border-top: 1px solid var(--nx-border, #e5e7eb); }
+.reporting-guide-article h2:first-child { margin-top: 0; border-top: 0; padding-top: 0; }
+.reporting-guide-article h3, .reporting-guide-article h4 { margin: 20px 0 8px; }
+.reporting-guide-article p, .reporting-guide-article ul, .reporting-guide-article ol { margin: 0 0 12px; }
+.reporting-guide-article ul, .reporting-guide-article ol { padding-left: 22px; }
+.reporting-guide-article ul { list-style: disc; }
+.reporting-guide-article ol { list-style: decimal; }
+.reporting-guide-article li { margin-bottom: 4px; }
+.reporting-guide-article blockquote { margin: 0 0 12px; padding: 8px 14px; border-left: 3px solid var(--nx-accent); background: var(--nx-bg-subtle, rgba(0,0,0,.03)); border-radius: 0 6px 6px 0; }
+.reporting-guide-article blockquote p:last-child { margin-bottom: 0; }
+.reporting-guide-article code { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: .92em; background: var(--nx-bg-subtle, rgba(0,0,0,.05)); border-radius: 4px; padding: 1px 5px; }
+.reporting-guide-article table { display: block; overflow-x: auto; border-collapse: collapse; margin: 0 0 16px; font-size: 14px; }
+.reporting-guide-article th, .reporting-guide-article td { border: 1px solid var(--nx-border, #e5e7eb); padding: 6px 10px; text-align: left; vertical-align: top; }
+.reporting-guide-article th { background: var(--nx-bg-subtle, rgba(0,0,0,.03)); }
+.reporting-guide-article hr { border: 0; border-top: 1px solid var(--nx-border, #e5e7eb); margin: 24px 0; }
+html { scroll-padding-top: 84px; }
+@media (max-width: 900px) {
+  .reporting-guide-layout { grid-template-columns: 1fr; }
+  .reporting-guide-toc { position: static; }
+}
+
+/* Tips & help modal */
+.reporting-help-box { max-width: 560px; }
+.reporting-help-body { max-height: min(60vh, 520px); overflow-y: auto; font-size: 14px; }
+.reporting-help-body h4 { margin: 14px 0 6px; }
+.reporting-help-body h4:first-child { margin-top: 0; }
+.reporting-help-body ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; list-style: disc; }
+.reporting-help-actions { justify-content: space-between; }
 
 /* Share modal */
 .reporting-share-vis { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
 .reporting-share-vis label { font-size: 14px; display: flex; gap: 8px; align-items: flex-start; }
 .reporting-share-h { margin: 12px 0 6px; font-size: 12px; text-transform: uppercase;
-  letter-spacing: .05em; color: #888; }
+  letter-spacing: .05em; color: var(--nx-text-meta); }
 .reporting-share-list { list-style: none; padding: 0; margin: 0 0 10px; max-height: 180px; overflow: auto; }
 .reporting-share-list li {
   display: flex; align-items: center; justify-content: space-between;
-  gap: 8px; padding: 5px 0; border-bottom: 1px solid #f1f5f9; font-size: 13px;
+  gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--nx-divider); font-size: 13px;
 }
-.reporting-share-empty { color: #888; border-bottom: none !important; }
+.reporting-share-empty { color: var(--nx-text-sec); border-bottom: none !important; }
 .reporting-share-add { display: flex; align-items: center; gap: 8px; }
 .reporting-share-add .reporting-input { margin: 0; flex: 1; }
 .reporting-share-canedit { font-size: 13px; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
@@ -362,8 +374,8 @@
 .reporting-view-toggle { display: flex; gap: 6px; margin-bottom: 10px; }
 .reporting-view-toggle[hidden] { display: none; }
 .reporting-view-toggle button {
-  padding: 4px 12px; border-radius: 8px; border: 1px solid #ddd;
-  background: #fff; cursor: pointer; font-size: 13px;
+  padding: 4px 12px; border-radius: calc(var(--nx-radius-scale, 1) * 8px); border: 1px solid var(--nx-border);
+  background: var(--nx-card); cursor: pointer; font-size: 13px;
 }
 .reporting-view-toggle button.active { background: #4338ca; color: #fff; border-color: #4338ca; }
 
@@ -372,27 +384,27 @@
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px;
 }
 .reporting-viz-bar select {
-  padding: 5px 8px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px;
+  padding: 5px 8px; border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 8px); font-size: 13px;
 }
 .reporting-viz-lbl {
   font-size: 11px; font-weight: 600; text-transform: uppercase;
-  letter-spacing: .05em; color: #888;
+  letter-spacing: .05em; color: var(--nx-text-meta);
 }
 .reporting-chart-canvas { position: relative; height: 60vh; min-height: 360px; }
-.reporting-viz-note { color: #888; font-size: 12px; margin: 8px 0 0; }
+.reporting-viz-note { color: var(--nx-text-sec); font-size: 12px; margin: 8px 0 0; }
 
 /* Pivot drag-and-drop shelf + matrix */
 .reporting-pivot-shelf {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px;
 }
 .reporting-pivot-zone {
-  border: 1px dashed #cbd5e1; border-radius: 10px; padding: 8px; min-height: 90px;
-  background: #fafbff;
+  border: 1px dashed var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 10px); padding: 8px; min-height: 90px;
+  background: var(--nx-alt);
 }
 .reporting-pivot-zone.drop-hover { border-color: #4338ca; background: #eef2ff; }
 .reporting-pivot-zone h5 {
   margin: 0 0 6px; font-size: 11px; text-transform: uppercase;
-  letter-spacing: .05em; color: #64748b;
+  letter-spacing: .05em; color: var(--nx-text-meta);
 }
 .reporting-pivot-list { display: flex; flex-wrap: wrap; gap: 6px; min-height: 40px; }
 .reporting-pivot-chip {
@@ -401,8 +413,8 @@
   padding: 3px 8px; font-size: 12px; user-select: none;
 }
 .reporting-pivot-chip select {
-  border: 1px solid #c7d2fe; border-radius: 6px; font-size: 11px; padding: 1px 2px;
-  background: #fff;
+  border: 1px solid #c7d2fe; border-radius: calc(var(--nx-radius-scale, 1) * 6px); font-size: 11px; padding: 1px 2px;
+  background: var(--nx-card);
 }
 .reporting-pivot-rm {
   background: none; border: none; color: #6366f1; cursor: pointer;
@@ -411,13 +423,13 @@
 /* Nested (multi-level) pivot column headers: center grouped cells, keep
    borders crisp across the spanned rows. */
 .reporting-pivot-table thead th {
-  text-align: center; vertical-align: middle; background: #f8f8ff;
-  border: 1px solid #e5e7eb;
+  text-align: center; vertical-align: middle; background: var(--nx-alt);
+  border: 1px solid var(--nx-border);
 }
-.reporting-pivot-corner { background: #f1f5f9; }
-.reporting-pivot-rowhdr { font-weight: 600; background: #f8f8ff; }
-.reporting-pivot-total { background: #f1f5f9; font-weight: 600; }
-.reporting-pivot-totalrow td { border-top: 2px solid #cbd5e1; }
+.reporting-pivot-corner { background: var(--nx-sunken); }
+.reporting-pivot-rowhdr { font-weight: 600; background: var(--nx-alt); }
+.reporting-pivot-total { background: var(--nx-sunken); font-weight: 600; }
+.reporting-pivot-totalrow td { border-top: 2px solid var(--nx-border); }
 
 @media (max-width: 900px) {
   .reporting-pivot-shelf { grid-template-columns: 1fr 1fr; }
@@ -425,21 +437,23 @@
 
 /* --- A3: source-registry admin page --- */
 .reporting-admin { padding: 20px; max-width: 1100px; margin: 0 auto; }
-.reporting-admin-note { color: #64748b; font-size: 13px; margin: 4px 0 16px; }
+.reporting-admin-note { color: var(--nx-text-sec); font-size: 13px; margin: 4px 0 16px; }
 .reporting-admin section {
-  background: #fff; border: 1px solid #eef; border-radius: 14px; padding: 14px; margin-bottom: 16px;
+  background: var(--nx-card); border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 14px); padding: 14px; margin-bottom: 16px;
 }
 .reporting-admin section h3 { margin-top: 0; }
 .reporting-admin-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 16px; }
 .reporting-admin-grid label,
 .reporting-admin-cols {
-  display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: #555;
+  display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--nx-text-sec);
 }
 .reporting-admin-check { flex-direction: row !important; align-items: center; gap: 6px; }
 .reporting-admin-cols { margin-top: 10px; }
 .reporting-admin-cols .reporting-sql-editor { min-height: 110px; }
+.reporting-admin-cols-toolbar { display: flex; align-items: center; gap: 10px; }
+.reporting-input-invalid { border-color: var(--nx-danger) !important; }
 .reporting-admin-actions { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
-.reporting-admin-msg { font-size: 13px; color: #059669; }
+.reporting-admin-msg { font-size: 13px; color: var(--nx-success); }
 @media (max-width: 700px) { .reporting-admin-grid { grid-template-columns: 1fr; } }
 
 /* --- Animation layer (Motion). The entrance pre-hide is applied only when
@@ -458,24 +472,13 @@
 }
 
 /* --- AI assistant panel (Phase 1) --- */
-.reporting-ai-panel { padding: .75rem; border: 1px solid var(--rp-border, #d0d7de); border-radius: 6px; margin-bottom: .5rem; }
-.reporting-ai-bar { display: flex; gap: .5rem; }
-.reporting-ai-prompt { flex: 1; padding: .4rem .6rem; }
-.reporting-ai-hint { font-size: .8rem; color: #57606a; margin: .4rem 0 0; }
-.reporting-ai-result { margin-top: .6rem; }
-.reporting-ai-sql { background: #f6f8fa; padding: .6rem; border-radius: 6px; white-space: pre-wrap; overflow-x: auto; }
-.reporting-ai-explain { font-size: .85rem; color: #24292f; }
-.reporting-ai-invalid { color: #9a6700; font-size: .85rem; }
-.reporting-ai-error { color: #cf222e; font-size: .85rem; }
-.reporting-ai-actions { display: flex; gap: .5rem; align-items: center; margin-top: .4rem; }
+.reporting-ai-hint { font-size: .8rem; color: var(--nx-text-sec); margin: .4rem 0 0; }
+.reporting-ai-sql { background: var(--nx-sunken); padding: .6rem; border-radius: calc(var(--nx-radius-scale, 1) * 6px); white-space: pre-wrap; overflow-x: auto; }
+.reporting-ai-explain { font-size: .85rem; color: var(--nx-text); }
+.reporting-ai-error { color: var(--nx-danger); font-size: .85rem; }
 /* Motion entrance hook: hidden only when animations are on (mirrors .rp-anim cols) */
 .rp-anim .rp-anim-ai:not([hidden]) { opacity: 0; }
 @media (prefers-reduced-motion: reduce) { .rp-anim .rp-anim-ai:not([hidden]) { opacity: 1; } }
-
-/* --- AI assistant: Surface-A sub-mode (Phase 2) --- */
-.reporting-ai-submode { display: flex; gap: .25rem; margin-bottom: .5rem; }
-.reporting-ai-submode button { padding: .25rem .6rem; border: 1px solid var(--rp-border, #d0d7de); background: #fff; border-radius: 6px; cursor: pointer; }
-.reporting-ai-submode button.active { background: #eef2ff; border-color: #c7d2fe; font-weight: 600; }
 
 /* ============================================================
    nexora-ui HARMONIZATION (appended last → overrides the page's
@@ -494,12 +497,30 @@ body.nx-app {
   font-family: var(--nx-font);
 }
 
-/* Branded page header — sits above the builder grid (a sibling, not a grid
-   child) so its right-aligned actions stay on-screen even when the builder
-   grid overflows horizontally. Left padding matches the grid's 24px so the
-   title lines up with the Source panel; the grid's own padding-top supplies
-   the gap below. */
-.reporting-page-head { padding: 20px 24px 0; margin-bottom: 0; }
+/* Page container — same metrics as body.nx-app .nx-main (nexora-ui.css), which
+   every other page uses. The masthead, the view-switch rail and both panes all
+   run through it, so the Reporting title sits on the identical left edge as
+   Dashboard's and Workitems' (issue #175). Not literally .nx-main: the header
+   must stay a sibling of the builder grid so its actions remain on-screen when
+   that grid overflows horizontally. */
+.reporting-shell,
+.reporting-main,
+.reporting-simple {
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding-inline: 40px;
+  box-sizing: border-box;
+}
+.nx-page-head.reporting-page-head { padding: 28px 0 0; margin-bottom: 18px; }
+
+/* View switch: a page-level tab rail under the masthead (the app's standard
+   .nx-tabs underline bar), with the admin-only Sources link parked quietly at
+   its right end. Deliberately NOT the pill/segmented language used by the
+   in-pane Table/SQL and Grid/Chart toggles — primary navigation should not
+   look like a control inside the pane it navigates to. */
+.reporting-viewbar { display: flex; align-items: flex-end; gap: 16px; border-bottom: 1px solid var(--nx-border); }
+.reporting-viewbar__aside { margin: 0 0 6px auto; }
 
 /* Panels / surfaces */
 .reporting-fields,
@@ -543,10 +564,9 @@ body.nx-app {
 .reporting-link { color: var(--nx-accent); }
 .reporting-link:hover { color: var(--nx-accent-hover); text-decoration: underline; }
 
-/* Mode + view + sub-mode toggles share the active brand gradient */
+/* Mode + view toggles share the active brand gradient */
 .reporting-mode-toggle button,
-.reporting-view-toggle button,
-.reporting-ai-submode button {
+.reporting-view-toggle button {
   background: var(--nx-card);
   color: var(--nx-text-sec);
   border: 1px solid var(--nx-border);
@@ -555,19 +575,12 @@ body.nx-app {
   transition: background var(--nx-dur) var(--nx-ease), color var(--nx-dur) var(--nx-ease);
 }
 .reporting-mode-toggle button:hover:not([disabled]):not(.active),
-.reporting-view-toggle button:hover:not(.active),
-.reporting-ai-submode button:hover:not(.active) { background: var(--nx-accent-tint); }
+.reporting-view-toggle button:hover:not(.active) { background: var(--nx-accent-tint); }
 .reporting-mode-toggle button.active,
 .reporting-view-toggle button.active {
   background: var(--nx-brand-grad);
   color: #fff;
   border-color: transparent;
-}
-.reporting-ai-submode button.active {
-  background: var(--nx-accent-tint);
-  border-color: var(--nx-accent-soft);
-  color: var(--nx-accent);
-  font-weight: 600;
 }
 
 /* Inputs / selects / textareas */
@@ -580,8 +593,7 @@ body.nx-app {
 .reporting-filter-row select,
 .reporting-filter-row input,
 .reporting-viz-bar select,
-.reporting-sql-editor,
-.reporting-ai-prompt {
+.reporting-sql-editor {
   background: var(--nx-card);
   color: var(--nx-text);
   border: 1px solid var(--nx-border);
@@ -591,7 +603,6 @@ body.nx-app {
 .reporting-title-input:focus,
 #rpSource:focus,
 .reporting-sql-editor:focus,
-.reporting-ai-prompt:focus,
 .reporting-saved select:focus,
 .reporting-viz-bar select:focus {
   outline: none;
@@ -602,24 +613,6 @@ body.nx-app {
 /* Field list + table */
 .reporting-field-list li:hover { background: var(--nx-accent-tint); }
 
-/* Process scope picker — tokenized for theme consistency */
-.reporting-scope-btn,
-.reporting-scope-menu {
-  background: var(--nx-card);
-  color: var(--nx-text);
-  border-color: var(--nx-border);
-}
-.reporting-scope-btn:hover { border-color: var(--nx-accent-soft); }
-.reporting-scope-btn:focus-visible {
-  outline: none;
-  border-color: var(--nx-accent);
-  box-shadow: 0 0 0 3px var(--nx-accent-tint);
-}
-.reporting-scope-menu { box-shadow: var(--nx-shadow); }
-.reporting-scope-btn .fa-chevron-down { color: var(--nx-text-meta); }
-.reporting-scope-row:hover { background: var(--nx-accent-tint); }
-.reporting-scope-all + .reporting-scope-client { border-color: var(--nx-border); }
-.reporting-scope-proc { color: var(--nx-text-sec); }
 .reporting-table th,
 .reporting-table td { border-color: var(--nx-border); }
 .reporting-table th,
@@ -649,31 +642,12 @@ body.nx-app {
 }
 
 /* AI panel chrome */
-.reporting-ai-panel {
-  border: 1px solid var(--nx-border);
-  border-radius: var(--nx-radius);
-  background: var(--nx-alt);
-}
 .reporting-ai-hint { color: var(--nx-text-sec); }
 .reporting-ai-sql { background: var(--nx-sunken); color: var(--nx-text); border: 1px solid var(--nx-border); }
 .reporting-ai-explain { color: var(--nx-text); }
-.reporting-ai-invalid { color: var(--nx-warning); }
 .reporting-ai-error { color: var(--nx-danger); }
 
 /* --- Agent (Surface C) thread + tool-step trace --- */
-.reporting-ai-thread { display: flex; flex-direction: column; gap: .5rem; }
-.reporting-ai-turn {
-  border: 1px solid var(--nx-border);
-  border-radius: var(--nx-radius-sm);
-  padding: .5rem .6rem;
-  background: var(--nx-card);
-}
-.reporting-ai-q { margin: 0 0 .25rem; font-size: .85rem; color: var(--nx-text-sec); }
-.reporting-ai-q-badge {
-  display: inline-block; margin-right: .4rem; padding: 0 .4rem;
-  border-radius: var(--nx-radius-pill); font-size: .7rem; font-weight: 600;
-  background: var(--nx-accent-tint); color: var(--nx-accent);
-}
 .reporting-ai-a { margin: 0; font-size: .9rem; color: var(--nx-text); white-space: pre-wrap; }
 .reporting-ai-trace-wrap { margin-top: .5rem; }
 .reporting-ai-trace-summary {
@@ -745,6 +719,12 @@ body.nx-app {
   padding-bottom: 14px;
   margin-bottom: 16px;
   border-bottom: 1px solid var(--nx-divider);
+  /* Task 7: stays in view while a long grid scrolls underneath it — Run/
+     Save/Export/mode-toggle are always reachable without scrolling back up. */
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--nx-card);
 }
 
 /* Mode toggle → segmented control (was shrinking + wrapping vertically) */
@@ -918,43 +898,10 @@ body.nx-app {
 .reporting-table tbody tr:hover { background: var(--nx-alt); }
 .reporting-table tbody tr:last-child td { border-bottom: none; }
 
-/* --- AI panel: a touch more padding so it doesn't feel cramped --- */
-.reporting-ai-panel { padding: 14px 16px; }
-.reporting-ai-bar { gap: 8px; }
-.reporting-ai-prompt { padding: 8px 12px; }
-
 /* SQL / Ask-AI modes hide both sidebars (JS adds .reporting-main--single):
    collapse to one full-width column so the editor/assistant gets the room
    instead of being squeezed into the 260px builder track. */
 .reporting-main--single { grid-template-columns: 1fr; }
-
-/* AI sub-mode switch (Build a report / Write SQL / Agent) → segmented control,
-   matching the main mode toggle (was wrapping into a broken vertical stack). */
-.reporting-ai-submode {
-  display: inline-flex;
-  gap: 3px; padding: 3px;
-  background: var(--nx-sunken);
-  border: 1px solid var(--nx-border);
-  border-radius: var(--nx-radius-sm);
-  margin-bottom: 12px;
-}
-.reporting-ai-submode button {
-  border: 1px solid transparent;
-  background: transparent;
-  border-radius: calc(var(--nx-radius-sm) - 2px);
-  padding: 6px 14px;
-  font-size: 13px; font-weight: 500;
-  white-space: nowrap;
-  color: var(--nx-text-sec);
-}
-.reporting-ai-submode button.active {
-  background: var(--nx-card);
-  color: var(--nx-accent);
-  border-color: transparent;
-  box-shadow: var(--nx-shadow);
-  font-weight: 600;
-}
-.reporting-ai-result { max-width: 760px; }
 
 @media (max-width: 1100px) {
   .reporting-actions { margin-left: 0; }
@@ -963,13 +910,31 @@ body.nx-app {
 
 /* Masthead segmented control (Indigo Studio) */
 .reporting-head-actions { display: flex; align-items: center; gap: 10px; }
-.reporting-tabs { display: flex; gap: 2px; padding: 3px; background: var(--nx-divider); border: 1px solid var(--nx-border); border-radius: 8px; margin: 0; }
-.reporting-tabs .nx-tab { border: none; margin: 0; background: transparent; border-radius: 6px; padding: 6px 14px; font: 500 12.5px var(--nx-font); color: var(--nx-text-sec); cursor: pointer; }
-.reporting-tabs .nx-tab:hover { color: var(--nx-text); }
-.reporting-tabs .nx-tab[aria-selected="true"] { background: var(--nx-card); color: var(--nx-accent); font-weight: 600; box-shadow: 0 1px 2px rgba(16, 24, 40, .06); }
+
+/* Narrow viewports: masthead (title + tabs/Sources/AI-chat) was fixed-width
+   and non-wrapping, overflowing the page horizontally at phone widths. Let
+   it wrap onto a second row like the rest of the app's mobile pages. */
+@media (max-width: 640px) {
+  .reporting-page-head.nx-page-head { flex-wrap: wrap; }
+  .reporting-head-actions { flex-wrap: wrap; }
+}
+/* Base .nx-tabs (nexora-ui.css) already is the app's underline tab bar; the
+   rail's own hairline replaces the one on .nx-tabs so the Sources link at its
+   right end sits on the same rule. Two-class selector on purpose:
+   _header.html links nexora-ui.css from the <body>, i.e. after this file, so
+   an equal-specificity .reporting-tabs rule would lose to .nx-tabs. */
+.reporting-viewbar .reporting-tabs { margin: 0; border-bottom: none; }
 
 /* --- Simple pane (Spec 2) --- */
-.reporting-simple { padding: 0 24px 32px; max-width: 1100px; margin: 0 auto; }
+/* Width/inset come from the shared page-container rule (~L466) so Simple's
+   content edge matches the masthead; only the vertical rhythm is local. The
+   reading-width cap that used to live here now sits on the prose-ish blocks
+   (hero + wizard steps) instead of the whole pane, which also carries the
+   card grid. */
+.reporting-simple { padding-block: 20px 32px; }
+/* The hero spans the pane (its own inner AI bar is already capped at 660px and
+   centred); only the wizard's form rows need a reading-width cap. */
+.reporting-simple-step { max-width: 1100px; }
 .reporting-simple-top { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
 .reporting-simple-aibar { display: flex; gap: 8px; flex: 1; min-width: 260px; }
 .reporting-simple-aibar .reporting-input { flex: 1; }
@@ -997,7 +962,7 @@ body.nx-app {
 }
 .rs-choice-group-label:first-child { margin-top: 0; }
 .reporting-simple-inline { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 13px; font-weight: 600; color: var(--nx-text-sec); }
-.reporting-simple-scopestep { margin-bottom: 10px; font-size: 14px; border: 1px solid var(--nx-border); border-radius: 8px; background: var(--nx-card); max-width: 520px; max-height: 260px; overflow: auto; padding: 10px 12px; }
+.reporting-simple-scopestep { margin-bottom: 10px; font-size: 14px; border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 8px); background: var(--nx-card); max-width: 520px; max-height: 260px; overflow: auto; padding: 10px 12px; }
 .reporting-simple-scopestep label { display: block; padding: 3px 0; }
 /* Auto-numbered wizard steps: [hidden] steps generate no boxes, so a
    skipped step (e.g. no processes on the source) leaves no numbering gap. */
@@ -1010,7 +975,7 @@ body.nx-app {
 .reporting-simple-choice:disabled { opacity: .45; cursor: not-allowed; }
 .reporting-simple-resultbar {
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-  background: var(--nx-card); border: 1px solid var(--nx-border); border-radius: 12px;
+  background: var(--nx-card); border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 12px);
   padding: 14px 20px; margin-bottom: 14px;
 }
 .reporting-simple-rtitle { margin: 0; font-size: 16px; font-weight: 700; }
@@ -1021,7 +986,7 @@ body.nx-app {
 .rs-result-grid { display: grid; grid-template-columns: 250px 1fr; gap: 14px; align-items: start; }
 .rs-result-grid:has(#rsChartCard[hidden]) { grid-template-columns: 250px; }
 .rs-result-left { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-.reporting-simple-chartcard { min-height: 260px; position: relative; border-radius: 14px; }
+.reporting-simple-chartcard { min-height: 260px; position: relative; border-radius: calc(var(--nx-radius-scale, 1) * 14px); }
 .reporting-simple-chartcard canvas { max-height: 320px; }
 .reporting-simple-table { margin-top: 12px; }
 .reporting-simple-chartnote { font-size: 13px; color: var(--nx-text-meta); margin: 0 0 8px; }
@@ -1033,11 +998,11 @@ body.nx-app {
    so it never gets .is-selected) sits outside .rs-chart-track as its own
    bordered button, right end of the toolbar. */
 .reporting-simple-charttools { position: absolute; top: 10px; right: 10px; z-index: 1; display: flex; align-items: center; gap: 8px; }
-.rs-chart-track { display: flex; gap: 2px; padding: 3px; background: var(--nx-divider); border: 1px solid var(--nx-border); border-radius: 8px; }
-.reporting-chartbtn { border: none; margin: 0; background: transparent; border-radius: 6px; padding: 6px 10px; font-size: 13px; color: var(--nx-text-sec); cursor: pointer; }
+.rs-chart-track { display: flex; gap: 2px; padding: 3px; background: var(--nx-divider); border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 8px); }
+.reporting-chartbtn { border: none; margin: 0; background: transparent; border-radius: calc(var(--nx-radius-scale, 1) * 6px); padding: 6px 10px; font-size: 13px; color: var(--nx-text-sec); cursor: pointer; }
 .reporting-chartbtn:hover { color: var(--nx-text); }
 .reporting-chartbtn.is-selected { background: var(--nx-card); color: var(--nx-accent); font-weight: 600; box-shadow: 0 1px 2px rgba(16, 24, 40, .06); }
-#rsChartPng { border: 1px solid var(--nx-border); border-radius: 6px; background: var(--nx-card); color: var(--nx-text-meta); }
+#rsChartPng { border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 6px); background: var(--nx-card); color: var(--nx-text-meta); }
 #rsChartPng:hover { color: var(--nx-accent); border-color: var(--nx-border-strong); }
 @media (max-width: 800px) { .rs-result-grid { grid-template-columns: 1fr; } }
 
@@ -1072,10 +1037,10 @@ body.nx-app {
 .rs-rail-dot {
   flex: none; width: 28px; height: 28px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font: 700 12px var(--nx-font); background: #fff; color: #9ca3af;
-  border: 1.5px solid #e5e7eb;
+  font: 700 12px var(--nx-font); background: var(--nx-card); color: var(--nx-text-meta);
+  border: 1.5px solid var(--nx-border);
 }
-.rs-rail-line { flex: 1; width: 2px; min-height: 16px; margin: 4px 0; background: #e5e7eb; }
+.rs-rail-line { flex: 1; width: 2px; min-height: 16px; margin: 4px 0; background: var(--nx-border); }
 .rs-rail-step:last-child .rs-rail-line { display: none; }
 .rs-rail-step.is-done .rs-rail-dot { background: #eef2ff; border-color: #c7d2fe; color: #4338ca; }
 .rs-rail-step.is-done .rs-rail-line { background: #c7d2fe; }
@@ -1084,13 +1049,13 @@ body.nx-app {
 .rs-rail-step.is-active .rs-rail-title { color: var(--nx-accent); }
 .rs-rail-sum { display: block; font-size: 12px; color: var(--nx-text-sec); margin-top: 3px; }
 .rs-wizard-preview {
-  margin-top: 8px; background: #eef2ff; border: 1px solid #e0e7ff; border-radius: 10px;
+  margin-top: 8px; background: #eef2ff; border: 1px solid #e0e7ff; border-radius: calc(var(--nx-radius-scale, 1) * 10px);
   padding: 12px 14px; font-size: 12.5px; color: var(--nx-text); line-height: 1.5;
 }
 
 .rs-wizard-stepcard {
   background: var(--nx-card); border: 1px solid var(--nx-border);
-  border-radius: 14px; padding: 28px 32px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 14px); padding: 28px 32px;
 }
 
 /* ============================================================
@@ -1183,14 +1148,14 @@ body.nx-app {
    + Escape close (see the JS partial). */
 .rs-more-wrap { position: relative; }
 .rs-more-menu {
-  position: absolute; z-index: 30; top: 100%; right: 0; margin-top: 6px;
+  position: absolute; z-index: var(--z-raised); top: 100%; right: 0; margin-top: 6px;
   min-width: 180px; padding: 6px;
   background: var(--nx-card); border: 1px solid var(--nx-border);
-  border-radius: 10px; box-shadow: var(--nx-shadow-pop);
+  border-radius: calc(var(--nx-radius-scale, 1) * 10px); box-shadow: var(--nx-shadow-pop);
 }
 .rs-more-row {
   display: block; width: 100%; text-align: left;
-  background: none; border: none; border-radius: 6px;
+  background: none; border: none; border-radius: calc(var(--nx-radius-scale, 1) * 6px);
   padding: 8px 10px; font: 500 13px var(--nx-font); color: var(--nx-text);
   cursor: pointer;
 }
@@ -1216,9 +1181,70 @@ body.nx-app {
   .reporting-ai-dots i { animation: none; }
 }
 
-/* Refine bar (Simple pane, F2-T4) */
-.reporting-simple-refine { display: flex; gap: .5rem; margin: .4rem 0 .6rem; }
-.reporting-simple-refine .reporting-input { flex: 1; }
+/* Result skeleton (Task 7): a KPI-band-shaped + table-shaped placeholder
+   shown in the results area while a run is in flight (both panes) —
+   replaces the old dots+text spinner (still used elsewhere, e.g. the drill
+   drawer) so the real content doesn't cause a layout jump on arrival. Same
+   shimmer technique/tokens as .rdb-skeleton (dashboard cards); static under
+   reduced-motion like every other animation on this page. */
+.rp-skeleton {
+  border-radius: calc(var(--nx-radius-scale, 1) * 6px);
+  background: linear-gradient(90deg, var(--nx-border) 25%, var(--nx-divider) 50%, var(--nx-border) 75%);
+  background-size: 200% 100%;
+  animation: rp-shimmer 1.4s infinite linear;
+}
+@keyframes rp-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .rp-skeleton { animation: none; }
+}
+.rp-skeleton-band { display: flex; gap: 12px; margin-bottom: 16px; }
+.rp-skeleton-kpi { height: 64px; flex: 1; }
+.rp-skeleton-table { display: flex; flex-direction: column; gap: 10px; padding: 4px 0; }
+.rp-skeleton-row { height: 14px; width: 100%; }
+
+/* Auto AI captions (Task 13): a one-line insight under the Simple result
+   (#rsCaption) and the Advanced chart (#rpCaption), fired automatically by
+   fireCaption() in the two JS partials. Shimmers (reusing the .rp-skeleton
+   tokens/keyframe above) while the request is in flight; on error the JS
+   just re-hides the div -- no error styling exists here on purpose (Task
+   13's silent-fail contract, unlike the chat panel's error bubbles). */
+.rp-caption {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin: .5rem 0;
+  padding: .5rem .75rem;
+  border-radius: calc(var(--nx-radius-scale, 1) * 8px);
+  background: var(--nx-accent-tint);
+  border: 1px solid var(--nx-accent-soft);
+  color: var(--nx-text);
+  font-size: .9em;
+  line-height: 1.4;
+  min-height: 1.6em;
+}
+.rp-caption--loading {
+  color: transparent;
+  background: linear-gradient(90deg, var(--nx-border) 25%, var(--nx-divider) 50%, var(--nx-border) 75%);
+  background-size: 200% 100%;
+  border-color: var(--nx-border);
+  animation: rp-shimmer 1.4s infinite linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rp-caption--loading { animation: none; }
+}
+.rp-caption-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: .1rem .45rem;
+  border-radius: 999px;
+  font-size: .7em;
+  font-weight: 700;
+  letter-spacing: .02em;
+  background: var(--nx-accent);
+  color: #fff;
+}
 
 /* Editable AI filter/process chips (Simple pane, F2-T5) */
 .reporting-simple-chips { display: flex; flex-wrap: wrap; gap: .4rem; margin: .2rem 0 .6rem; }
@@ -1237,7 +1263,7 @@ body.nx-app {
 .reporting-sqlview { margin-top: 12px; }
 .reporting-sqlview-bar { display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 13px; padding-bottom: 8px; border-bottom: 1px solid var(--nx-border); margin-bottom: 10px; }
 .reporting-sqlview-bar span i { color: var(--nx-text-meta); margin-inline-end: 6px; font-size: 12px; }
-.reporting-sqlview pre { font-family: ui-monospace, Consolas, monospace; font-size: 12px; white-space: pre-wrap; word-break: break-word; background: var(--nx-sunken); color: var(--nx-text); border: 1px solid var(--nx-border); border-radius: 6px; padding: 10px; max-height: 320px; overflow: auto; margin: 0; }
+.reporting-sqlview pre { font-family: ui-monospace, Consolas, monospace; font-size: 12px; white-space: pre-wrap; word-break: break-word; background: var(--nx-sunken); color: var(--nx-text); border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 6px); padding: 10px; max-height: 320px; overflow: auto; margin: 0; }
 
 /* SQL token highlighting (Show-query panels + AI SQL draft) */
 .reporting-sqlview pre .sql-kw, .reporting-ai-sql .sql-kw { color: #cf222e; font-weight: 600; }
@@ -1268,16 +1294,16 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
    context-chip row + info callout -- see reporting.md §Drill / the
    2026-07-20 redesign plan Task 9. --- */
 .reporting-drill-backdrop {
-  position: fixed; inset: 0; background: rgba(15, 23, 42, .28); z-index: 60;
+  position: fixed; inset: 0; background: rgba(0, 0, 0, .28); z-index: var(--z-modal-backdrop);
 }
 .reporting-drill-backdrop[hidden] { display: none; }
 .reporting-drill-panel {
-  position: fixed; top: 0; right: 0; bottom: 0; z-index: 61;
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: var(--z-modal);
   width: 640px; max-width: 640px;
   display: flex; flex-direction: column;
   background: var(--nx-card); color: var(--nx-text);
   border-left: 1px solid var(--nx-border);
-  box-shadow: -24px 0 64px -24px rgba(15, 23, 42, .35);
+  box-shadow: -24px 0 64px -24px rgba(0, 0, 0, .35);
 }
 .reporting-drill-panel[hidden] { display: none; }
 /* Slide-in, 250ms (spec §Drill). `backwards` only (never `both` -- see
@@ -1295,7 +1321,7 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
 }
 .reporting-drill-head__main { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
 .reporting-drill-icon {
-  flex: 0 0 auto; width: 36px; height: 36px; border-radius: 10px;
+  flex: 0 0 auto; width: 36px; height: 36px; border-radius: calc(var(--nx-radius-scale, 1) * 10px);
   display: flex; align-items: center; justify-content: center;
   background: var(--nx-accent-tint); color: var(--nx-accent); font-size: 15px;
 }
@@ -1339,7 +1365,7 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
 .reporting-drill-callout {
   display: flex; align-items: flex-start; gap: 8px;
   margin: 10px 16px; padding: 10px 12px;
-  border: 1px solid #e0e7ff; background: #fafaff; border-radius: 10px;
+  border: 1px solid #e0e7ff; background: #fafaff; border-radius: calc(var(--nx-radius-scale, 1) * 10px);
   font-size: 12px; color: var(--nx-text-meta);
 }
 .reporting-drill-callout i { color: var(--nx-accent); margin-top: 1px; }
@@ -1357,6 +1383,116 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
   .reporting-drill-panel { width: 100vw; max-width: 100vw; }
 }
 
+/* ---- AI chat panel ----
+   Docked chat slide-over: same shell pattern as the drill-through drawer
+   above (fixed right-side backdrop + panel, translateX slide-in). Markup:
+   templates/reporting.html (Task 2 -- rendered hidden/inert; Task 3 wires
+   open/close, message rendering and send behaviour). Bubbles, starter chips
+   and the thinking ticker reuse the existing AI-panel/hero visual language
+   (.reporting-ai-dots, .rs-suggestion) rather than inventing new ones. */
+.reporting-chat-backdrop {
+  position: fixed; inset: 0; background: rgba(0, 0, 0, .28); z-index: var(--z-modal-backdrop);
+}
+.reporting-chat-backdrop[hidden] { display: none; }
+.reporting-chat-panel {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: var(--z-modal);
+  width: 420px; max-width: 420px; height: 100dvh;
+  display: flex; flex-direction: column;
+  background: var(--nx-card); color: var(--nx-text);
+  border-left: 1px solid var(--nx-border);
+  box-shadow: -24px 0 64px -24px rgba(0, 0, 0, .35);
+}
+.reporting-chat-panel[hidden] { display: none; }
+/* Slide-in, 250ms -- `backwards` only (never `both`; see
+   .reporting-drill-panel above / nexora-ui.css's .nx-rise comment): the
+   "from" state paints for the instant before the JS-driven [hidden] flip,
+   and the effect fully ends once the animation completes -- no lingering
+   held transform/stacking context. */
+@keyframes rc-slide-in { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+.reporting-chat-panel:not([hidden]) { animation: rc-slide-in .25s var(--nx-ease) backwards; }
+@media (prefers-reduced-motion: reduce) {
+  .reporting-chat-panel:not([hidden]) { animation: none; }
+}
+@media (max-width: 900px) {
+  .reporting-chat-panel { width: 100vw; max-width: 100vw; }
+}
+
+.reporting-chat-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px; border-bottom: 1px solid var(--nx-border);
+}
+.reporting-chat-title { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; color: var(--nx-text); }
+.reporting-chat-title i { color: var(--nx-violet); }
+
+.reporting-chat-thread {
+  flex: 1; overflow-y: auto; padding: 16px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.reporting-chat-empty { text-align: center; padding: 24px 8px; color: var(--nx-text-sec); }
+.reporting-chat-empty p { margin: 0 0 16px; font-size: 13px; line-height: 1.5; }
+
+/* Starter suggestion chips -- same pill look as the landing hero's
+   .rs-suggestion (border + accent text, tint background on hover). */
+.rp-chat-starter {
+  display: inline-block; margin: 4px; border: 1px solid #e0e7ff; border-radius: 999px;
+  background: var(--nx-card); color: var(--nx-accent); font: 500 12px var(--nx-font);
+  padding: 6px 14px; cursor: pointer;
+}
+.rp-chat-starter:hover { background: var(--nx-accent-tint); }
+html.dark .rp-chat-starter { border-color: var(--nx-card-hover-border); }
+
+/* Message bubbles */
+.rp-chat-msg { max-width: 88%; padding: 10px 14px; border-radius: calc(var(--nx-radius-scale, 1) * 14px); font-size: 13px; line-height: 1.5; }
+.rp-chat-msg--user {
+  align-self: flex-end; background: var(--nx-accent-soft); color: var(--nx-text);
+  border-bottom-right-radius: 4px;
+}
+.rp-chat-msg--ai {
+  align-self: flex-start; background: var(--nx-card); color: var(--nx-text);
+  border: 1px solid var(--nx-border); border-bottom-left-radius: 4px;
+}
+
+/* Action chip row under an AI turn (e.g. "Open in builder", "Run query"). */
+.rp-chat-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; align-self: flex-start; }
+
+/* Mini result table under an AI turn -- capped height, scrolls internally. */
+.rp-chat-result {
+  align-self: stretch; margin-top: 8px; max-height: 220px; overflow: auto;
+  border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 10px); background: var(--nx-card);
+}
+.rp-chat-result table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.rp-chat-result th,
+.rp-chat-result td {
+  padding: 6px 8px; border-bottom: 1px solid var(--nx-border);
+  text-align: left; white-space: nowrap;
+}
+.rp-chat-result th {
+  background: var(--nx-alt); color: var(--nx-text-meta);
+  font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+}
+
+/* Thinking ticker -- same three-dot pulse as .reporting-ai-dots. */
+.rp-chat-ticker { display: flex; align-items: center; gap: .6rem; align-self: flex-start; color: var(--nx-text-sec); }
+.rp-chat-ticker i {
+  display: inline-block; width: 8px; height: 8px; margin: 0 2px;
+  border-radius: 50%; background: currentColor;
+  animation: rs-ai-pulse 1.2s infinite ease-in-out;
+}
+.rp-chat-ticker i:nth-child(2) { animation-delay: .2s; }
+.rp-chat-ticker i:nth-child(3) { animation-delay: .4s; }
+@media (prefers-reduced-motion: reduce) {
+  .rp-chat-ticker i { animation: none; }
+}
+
+.reporting-chat-form { display: flex; align-items: flex-end; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--nx-border); }
+.reporting-chat-input {
+  flex: 1; resize: none; max-height: 120px; padding: 9px 12px;
+  background: var(--nx-card); color: var(--nx-text);
+  border: 1px solid var(--nx-border); border-radius: var(--nx-radius-sm);
+  font: 13px var(--nx-font);
+}
+.reporting-chat-input:focus { outline: none; border-color: var(--nx-accent); box-shadow: 0 0 0 3px var(--nx-accent-tint); }
+
 /* --- Workitem detail panel modal, opened from a .reporting-drill-wi-link
    row in the drill drawer (templates/js/_reporting_drill_js.html
    openWorkitemPanel). Plain-CSS shell (ids/behaviour mirror
@@ -1364,13 +1500,13 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
    _workitem_detail_panel_js.html markup inside #rdWiBody is itself styled
    with Tailwind utility classes, loaded gated in templates/reporting.html. */
 .reporting-drill-wi-modal {
-  position: fixed; inset: 0; z-index: 210;
+  position: fixed; inset: 0; z-index: var(--z-top-2);
   display: flex; align-items: center; justify-content: center;
   background: rgba(0, 0, 0, .5); padding: 16px;
 }
 .reporting-drill-wi-modal[hidden] { display: none; }
 .reporting-drill-wi-modal__dialog {
-  background: var(--nx-card); border-radius: 12px; box-shadow: var(--nx-shadow-pop);
+  background: var(--nx-card); border-radius: calc(var(--nx-radius-scale, 1) * 12px); box-shadow: var(--nx-shadow-pop);
   width: 100%; max-width: 1100px; max-height: 90vh; overflow-y: auto;
 }
 .reporting-drill-wi-modal__head {
@@ -1393,8 +1529,8 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
 .reporting-toast {
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
   background: var(--nx-card); color: var(--nx-text);
-  border: 1px solid var(--nx-border); border-radius: 8px;
-  padding: 10px 16px; font-size: 13px; z-index: 100; /* above the drill drawer */
+  border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 8px);
+  padding: 10px 16px; font-size: 13px; z-index: var(--z-popover); /* above the drill drawer */
   box-shadow: 0 6px 24px rgba(0, 0, 0, .18);
   transition: opacity .3s ease;
 }
@@ -1442,13 +1578,11 @@ html.dark body.reporting-ledger {
   --rl-navy:     var(--nx-accent);
 }
 
-/* Canvas + masthead: white band over the cool-neutral page canvas,
-   hairline rule where the card chrome used to be. */
+/* Canvas only. The masthead's full-bleed white band + hairline were retired
+   with issue #175: they made Reporting the one page whose header did not look
+   like every other page's (Dashboard, Workitems, ...), which is what the band
+   was flagged for. The view-switch rail below supplies the separating rule. */
 body.nx-app.reporting-ledger { background: var(--rl-canvas); }
-.reporting-ledger .reporting-page-head {
-  background: var(--rl-band);
-  border-bottom: 1px solid var(--rl-hairline);
-}
 /* Task 2: .nx-title serif override retired — falls back to the page's
    Inter (var(--nx-font)). */
 
@@ -1465,6 +1599,26 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
    uppercase header) is retired — .reporting-table th/td and .reporting-table
    thead th (base rules ~L905, ~L911) already give the calmer GitHub-style
    borders; nothing left to layer here. */
+
+/* Data bars (Task 7): a relative-width tint bar behind numeric cells, scaled
+   to that column's max value — computed once per render in both panes'
+   table builders (renderResults in _reporting_js.html, renderTable in
+   _reporting_simple_js.html), same colMax-over-isNumericCell idiom as the
+   KPI band's own numeric detection. `z-index: 0` on the cell itself is
+   load-bearing, not decorative: it gives the <td> its own stacking context
+   so the ::before's z-index:-1 stays scoped there (painting under the
+   cell's own text, above the row/table background). Without it, a
+   position:relative + z-index:auto ancestor does NOT create a stacking
+   context, so the negative z-index escapes to the nearest ancestor that
+   does — in practice behind .reporting-results' opaque white background,
+   i.e. invisible (caught by screenshotting + pixel-sampling the rendered
+   cell during verification, not just trusting the DOM/computed style). */
+.rp-cell-num { position: relative; z-index: 0; font-variant-numeric: tabular-nums; }
+.rp-cell-num::before {
+  content: ""; position: absolute; inset: 4px auto 4px 0;
+  width: var(--bar, 0%); background: var(--nx-accent-soft, #eef2ff);
+  border-radius: 3px; z-index: -1;
+}
 
 .reporting-ledger-caption {
   font-size: .68rem;
@@ -1518,12 +1672,12 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
    pane's rpKpiBand keeps its flat flex-row band untouched. renderKpiBand
    (JS partial) nests a gradient total card and a stacked secondary card
    (Buckets/Avg/Peak) inside #rsKpiBand; those two inner cards are new. */
-.reporting-simple-stat { border-radius: 14px; }
+.reporting-simple-stat { border-radius: calc(var(--nx-radius-scale, 1) * 14px); }
 #rsKpiBand { display: flex; flex-direction: column; gap: 10px; padding: 0; }
 .rs-kpi-total-card {
   background: var(--nx-brand-grad);
   color: #fff;
-  border-radius: 14px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 14px);
   box-shadow: 0 12px 28px -10px rgba(79, 70, 229, .5);
   padding: 18px 20px;
   display: flex;
@@ -1535,7 +1689,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 .rs-kpi-stats-card {
   background: var(--nx-card);
   border: 1px solid var(--nx-border);
-  border-radius: 14px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 14px);
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
@@ -1553,12 +1707,37 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
    own row under the caption/value pair, right-aligned to match the value. */
 .reporting-ledger-kpi-sub { flex: 1 0 100%; font-size: .72rem; color: var(--nx-text-meta); text-align: right; }
 
+/* Task 11: delta chips vs the prior period (compare: true) + inline
+   sparkline on the Simple KPI band. .rs-kpi-value-wrap bundles a value with
+   its chip into one flex item so the stats-card row's caption/value
+   space-between layout still only sees two top-level children. Chip color
+   is the same green/red the dashboard's .rdb-kpi-trend already uses for
+   "vs previous period" -- flat (no/negligible change) gets the muted meta
+   color instead, since flat isn't bad news. */
+.rs-kpi-value-wrap { display: inline-flex; align-items: baseline; gap: 6px; }
+.rp-delta {
+  display: inline-block;
+  font-size: .72rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  cursor: default;
+}
+.rp-delta--up { color: var(--nx-success); }
+.rp-delta--down { color: var(--nx-danger); }
+.rp-delta--flat { color: var(--nx-text-meta); }
+
+/* Hand-rolled SVG polyline (no Chart.js instance) -- inherits the total
+   card's own text color (#fff light / var(--nx-page) dark, set above) so it
+   never needs its own dark-mode override. */
+.rp-sparkline { display: block; width: 100%; height: 28px; margin-top: 4px; opacity: .9; }
+
 /* Table card: head row ("Table" + row count + right-aligned drill hint),
    the table itself, and rsSqlPeek as the card's flush footer (Task 2
    already restyled .reporting-ledger-sqlpeek's colors/font above -- it is
    already full-width/border-top/left-aligned/ellipsis, so nothing to
    duplicate here beyond the card chrome around it). */
-.rs-table-card { margin-top: 14px; border-radius: 14px; }
+.rs-table-card { margin-top: 14px; border-radius: calc(var(--nx-radius-scale, 1) * 14px); }
 .rs-table-card__head {
   display: flex;
   align-items: baseline;
@@ -1697,41 +1876,27 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   background: var(--nx-accent-tint);
 }
 
-/* --- AI panels (Ask-AI bar, Agent thread trace, SQL draft): same canvas
-   + hairline treatment, tabular-nums metadata on badges/step labels. Chrome
-   only — submode buttons, prompt bar and result wiring keep their structure
-   and testids. --- */
-.reporting-ledger .reporting-ai-panel {
-  background: var(--rl-band);
-  border-color: var(--rl-hairline);
-}
-.reporting-ledger .reporting-ai-turn {
-  background: var(--rl-band);
-  border-color: var(--rl-hairline);
-}
+/* --- AI panels (Agent thread trace, SQL draft): same canvas + hairline
+   treatment, tabular-nums metadata on badges/step labels. Chrome only —
+   result wiring keeps its structure and testids. --- */
 .reporting-ledger .reporting-ai-sql {
   background: var(--rl-canvas);
   border-color: var(--rl-hairline);
 }
 .reporting-ledger .reporting-ai-step-name,
-.reporting-ledger .reporting-ai-step-meta,
-.reporting-ledger .reporting-ai-q-badge {
+.reporting-ledger .reporting-ai-step-meta {
   font-variant-numeric: tabular-nums;
-}
-.reporting-ledger .reporting-ai-panel,
-.reporting-ledger .reporting-ai-turn {
-  border-radius: 0;
 }
 
 /* ---- Landing hero (spec §Landing) ---- */
 .reporting-hero { border-radius: var(--nx-radius-hero); border: 1px solid #e0e7ff; background: radial-gradient(1200px 320px at 50% -80px, var(--nx-accent-tint) 0%, var(--nx-card) 70%); padding: 44px 48px 36px; text-align: center; }
 .reporting-hero__title { margin: 0 0 8px; font: 600 28px var(--nx-font); letter-spacing: -.6px; color: var(--nx-text); }
 .reporting-hero__sub { margin: 0 0 24px; font-size: 14px; color: var(--nx-text-sec); }
-.reporting-hero__aiwrap { max-width: 660px; margin: 0 auto; border-radius: 14px; background: var(--nx-brand-grad); padding: 1.5px; box-shadow: 0 12px 32px -12px rgba(79, 70, 229, .4); }
+.reporting-hero__aiwrap { max-width: 660px; margin: 0 auto; border-radius: calc(var(--nx-radius-scale, 1) * 14px); background: var(--nx-brand-grad); padding: 1.5px; box-shadow: 0 12px 32px -12px rgba(79, 70, 229, .4); }
 .reporting-hero__aiwrap .reporting-simple-aibar { display: flex; align-items: center; border-radius: 12.5px; background: var(--nx-card); padding: 5px 5px 5px 18px; }
 .reporting-hero__wand { color: var(--nx-violet); font-size: 15px; }
-.reporting-hero__aiinput { flex: 1; border: none; outline: none; background: transparent; padding: 11px 14px; font: 13.5px var(--nx-font); color: var(--nx-text); }
-.reporting-hero__aibtn { border: none; border-radius: 9px; background: var(--nx-brand-grad); color: #fff; font: 600 13px var(--nx-font); padding: 11px 20px; cursor: pointer; }
+.reporting-hero__aiinput { flex: 1; min-width: 0; border: none; outline: none; background: transparent; padding: 11px 14px; font: 13.5px var(--nx-font); color: var(--nx-text); }
+.reporting-hero__aibtn { border: none; border-radius: calc(var(--nx-radius-scale, 1) * 9px); background: var(--nx-brand-grad); color: #fff; font: 600 13px var(--nx-font); padding: 11px 20px; cursor: pointer; }
 .reporting-hero__aibtn:hover { filter: brightness(1.08); }
 .reporting-hero__chips { display: flex; justify-content: center; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
 .rs-suggestion { border: 1px solid #e0e7ff; border-radius: 999px; background: var(--nx-card); color: var(--nx-accent); font: 500 12px var(--nx-font); padding: 6px 14px; cursor: pointer; }
@@ -1745,7 +1910,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 .rs-count-pill { display: inline-block; border: 1px solid var(--nx-border); border-radius: 999px; font: 600 11.5px var(--nx-font); color: var(--nx-accent); padding: 1px 9px; min-width: 8px; text-align: center; }
 .rs-search-wrap { position: relative; width: 200px; }
 .rs-search-wrap i { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--nx-text-meta); font-size: 12px; pointer-events: none; }
-.rs-search-wrap .reporting-simple-search { width: 100%; max-width: none; margin-left: 0; border-radius: 8px; padding: 7px 10px 7px 28px; }
+.rs-search-wrap .reporting-simple-search { width: 100%; max-width: none; margin-left: 0; border-radius: calc(var(--nx-radius-scale, 1) * 8px); padding: 7px 10px 7px 28px; }
 
 .rs-card {
   display: block; text-align: left; cursor: pointer; padding: 0; overflow: hidden;
@@ -1816,11 +1981,11 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 .reporting-mode-toggle,
 .reporting-view-toggle {
   background: var(--nx-divider);
-  border-radius: 8px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 8px);
 }
 .reporting-mode-toggle button,
 .reporting-view-toggle button {
-  border-radius: 6px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 6px);
   font: 500 12.5px var(--nx-font);
 }
 .reporting-mode-toggle button.active,
@@ -1959,7 +2124,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   display: flex; flex-direction: column; gap: 6px;
   min-width: 220px; padding: 14px;
   background: var(--nx-card); border: 1px solid var(--nx-border);
-  border-radius: 10px; box-shadow: var(--nx-shadow-pop);
+  border-radius: calc(var(--nx-radius-scale, 1) * 10px); box-shadow: var(--nx-shadow-pop);
 }
 .rdb-filter-pop label { font: 600 10.5px var(--nx-font); color: var(--nx-text-meta); }
 .rdb-filter-pop select,
@@ -2010,7 +2175,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 
 /* ---- Loading shimmer -------------------------------------------------- */
 .rdb-skeleton {
-  border-radius: 6px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 6px);
   background: linear-gradient(90deg, var(--nx-divider) 25%, var(--nx-border) 50%, var(--nx-divider) 75%);
   background-size: 200% 100%;
   animation: rdb-shimmer 1.4s infinite linear;
@@ -2046,6 +2211,9 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 
 /* ---- Line / bar (Chart.js canvas) --------------------------------------- */
 .rdb-chart-wrap { position: relative; height: 190px; }
+/* Series-cap note above a pivoted two-dimension chart (#174) -- only present
+   when the pivot actually dropped series, so cards never grow otherwise. */
+.rdb-card-note { margin: 0 0 6px; font: 11.5px var(--nx-font); color: var(--nx-text-meta); }
 
 /* ---- Donut: HTML center overlay (not a Chart.js plugin) + DOM legend ---- */
 .rdb-donut-wrap { display: flex; align-items: center; gap: 18px; padding: 8px 0; flex-wrap: wrap; }
@@ -2087,7 +2255,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 /* Hover control cluster: 22px squares, top:-11px;right:10px per D10. */
 .rdb-card-controls { position: absolute; top: -11px; right: 10px; z-index: 3; display: flex; gap: 4px; }
 .rdb-card-ctrl-btn {
-  width: 22px; height: 22px; border-radius: 6px;
+  width: 22px; height: 22px; border-radius: calc(var(--nx-radius-scale, 1) * 6px);
   display: inline-flex; align-items: center; justify-content: center;
   border: 1px solid var(--nx-border); background: var(--nx-card); color: var(--nx-text-sec);
   font-size: 9px; cursor: pointer; box-shadow: 0 2px 6px rgba(16, 24, 40, .1);
@@ -2095,8 +2263,8 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
               background-color var(--nx-dur) var(--nx-ease);
 }
 .rdb-card-ctrl-btn:hover { color: var(--nx-accent); border-color: #c7d2fe; }
-.rdb-card-ctrl-btn--danger { border-color: #fecaca; color: #dc2626; }
-.rdb-card-ctrl-btn--danger:hover { background: #fef2f2; color: #dc2626; }
+.rdb-card-ctrl-btn--danger { border-color: #fecaca; color: var(--nx-danger); }
+.rdb-card-ctrl-btn--danger:hover { background: #fef2f2; color: var(--nx-danger); }
 
 /* ---- Empty-card "configure this card" placeholder ---------------------- */
 .rdb-card-configure {
@@ -2139,7 +2307,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 
 /* ---- Saved-report picker modal (D14 v1 card configuration) ------------- */
 .rdb-modal-overlay {
-  position: fixed; inset: 0; z-index: 60; background: rgba(16, 24, 40, .45);
+  position: fixed; inset: 0; z-index: var(--z-modal-backdrop); background: rgba(0, 0, 0, .45);
   display: flex; align-items: center; justify-content: center;
 }
 .rdb-modal {
@@ -2166,9 +2334,9 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 
 /* ---- Export menu (D9 -- #rdbExport, card-title list) -------------------- */
 .rdb-export-menu {
-  z-index: 60; min-width: 200px; max-width: 280px; padding: 6px;
+  z-index: var(--z-popover-menu); min-width: 200px; max-width: 280px; padding: 6px;
   background: var(--nx-card); border: 1px solid var(--nx-border);
-  border-radius: 10px; box-shadow: var(--nx-shadow-pop);
+  border-radius: calc(var(--nx-radius-scale, 1) * 10px); box-shadow: var(--nx-shadow-pop);
 }
 .rdb-export-item {
   display: block; width: 100%; box-sizing: border-box; text-align: left;
@@ -2256,3 +2424,41 @@ html.dark .rdb-card-ctrl-btn--danger:hover { background: rgba(248, 113, 113, .15
 html.dark .rdb-card-configure:hover { border-color: var(--nx-accent); }
 html.dark .rdb-add-tile:hover { background: var(--nx-accent-soft); }
 html.dark .rdb-add-pill:hover { border-color: var(--nx-accent); }
+
+/* Forecast toggle + horizon (issue #168) */
+.rs-forecast-horizon { font-size: 12px; padding: 2px 6px; border-radius: 8px;
+  border: 1px solid var(--nx-border); background: var(--nx-card); color: inherit; }
+#rsForecastToggle[disabled] { opacity: .4; cursor: not-allowed; }
+
+/* Forecast table rows: marked buckets excluded from drill-through (issue #168) */
+.reporting-table tr.is-forecast td { font-style: italic; color: var(--nx-muted, #64748b); }
+.rp-forecast-badge { display: inline-block; margin-left: 6px; padding: 1px 6px;
+  font-size: 10px; font-style: normal; border-radius: 999px;
+  background: color-mix(in srgb, var(--nx-accent) 14%, transparent);
+  color: var(--nx-accent); vertical-align: 1px; }
+
+/* #178 A1 — live build-step list inside the chat ticker */
+.rp-chat-build { display: block; }
+.rp-chat-build .rp-build-title { display: flex; align-items: center; gap: 4px; }
+.rp-build-steps { margin: 6px 0 0; padding: 0 0 0 2px; list-style: none;
+  display: flex; flex-direction: column; gap: 3px; }
+.rp-build-step { font-size: 12px; color: var(--nx-text-soft, #6b7280);
+  display: flex; align-items: center; gap: 6px; }
+.rp-build-step::before { content: ""; width: 10px; height: 10px; flex: 0 0 10px;
+  border-radius: 50%; border: 2px solid currentColor; opacity: .45; }
+.rp-build-step.is-running::before { border-top-color: transparent;
+  animation: rp-build-spin .7s linear infinite; opacity: .9; }
+.rp-build-step.is-done { opacity: .75; }
+.rp-build-step.is-done::before { content: "✓"; border: 0; width: auto; height: auto;
+  font-size: 11px; line-height: 1; opacity: 1; color: var(--nx-accent, #4f46e5); }
+@keyframes rp-build-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .rp-build-step.is-running::before { animation: none; }
+}
+
+/* #178 D11 -- dashboard report card */
+.rdb-report-total { display: flex; align-items: baseline; gap: 8px; margin: 2px 0 8px; }
+.rdb-report-total-value { font-size: 24px; font-weight: 700; }
+.rdb-report-total-label { font-size: 11.5px; color: var(--nx-text-soft, #6b7280);
+  text-transform: uppercase; letter-spacing: .04em; }
+.rdb-report-chart { min-height: 180px; position: relative; }

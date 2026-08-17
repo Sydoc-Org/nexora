@@ -340,3 +340,87 @@ def test_source_with_metrics_keeps_its_metrics_line():
     text, _ = ai_schema.serialize_sources_catalog(sources)
     assert "workitem_count" in text
     assert "metrics: none" not in text
+
+
+def test_partial_tables_block_marks_per_process_tables_and_names_the_union_source():
+    text = ai_schema.serialize_partial_tables(
+        {
+            "dbo.Compass_Invoice": {
+                "processes": ["privera.03_Invoice_New"],
+                "import_col": "ImportDate",
+                "export_col": "ExportDate",
+            },
+            "dbo.BFH_Statistic": {"processes": ["bfh.01_Mail"]},
+        },
+        "docprocessing",
+    )
+    assert "dbo.Compass_Invoice = process privera.03_Invoice_New" in text
+    # the per-table date columns: without them the UNION the prompt demands
+    # fails on "Invalid column name" instead of on coverage
+    assert "export date: ExportDate" in text
+    assert "dbo.BFH_Statistic = process bfh.01_Mail" in text
+    # the two rules the agent kept breaking (issue #128)
+    assert "docprocessing" in text
+    assert "NOT evidence of zero" in text
+
+
+def test_partial_tables_block_lists_non_date_field_columns():
+    # issue #154: without these the agent guesses column names for page count /
+    # doc type / etc. and burns turns on "Invalid column name" instead of using
+    # the actual per-table column named here.
+    text = ai_schema.serialize_partial_tables(
+        {
+            "dbo.Compass_Invoice": {
+                "processes": ["privera.03_Invoice_New"],
+                "import_col": "ImportDate",
+                "export_col": "ExportDate",
+                "fields": {"pagecount": "AnzImagesOut", "documenttype": "DocType"},
+            },
+        },
+        "docprocessing",
+    )
+    assert "pagecount: AnzImagesOut" in text
+    assert "documenttype: DocType" in text
+
+
+def test_partial_tables_block_is_empty_when_statconfig_yields_nothing():
+    assert ai_schema.serialize_partial_tables({}, "docprocessing") == ""
+    assert ai_schema.serialize_partial_tables(None, "docprocessing") == ""
+
+
+def test_serialize_schema_puts_the_partial_warning_before_the_table_dump():
+    conn = _FakeConn(_rows(("dbo", "Compass_Invoice", "Id", "int")))
+    text, _ = ai_schema.serialize_schema(
+        targets={"statistics": (lambda: conn)},
+        curated=[],
+        partial_tables={"dbo.Compass_Invoice": {"processes": ["privera.03_Invoice_New"]}},
+    )
+    assert text.index("PARTIAL") < text.index("# Target: statistics")
+
+
+def test_serialize_schema_without_partial_tables_is_unchanged():
+    conn = _FakeConn(_rows(("dbo", "Workitems", "Id", "int")))
+    text, _ = ai_schema.serialize_schema(targets={"statistics": (lambda: conn)}, curated=[])
+    assert text.startswith("# Target: statistics")
+
+
+def test_partial_tables_block_declares_unregistered_tables_out_of_universe():
+    # dbo.BFH_Statistic / dbo.DPSLicenseCounter exist in the statistics DB but are
+    # not in Statconfig — the agent answered company-wide questions from them (#128).
+    text = ai_schema.serialize_partial_tables(
+        {"dbo.Compass_Invoice": {"processes": ["compass.01_Invoice_SAP"]}}, "docprocessing"
+    )
+    assert "COMPLETE" in text
+    assert "NOT part of source docprocessing" in text
+
+
+def test_partial_tables_block_teaches_workitem_count_semantics():
+    # Issue #132 case 16: COUNT(DISTINCT WorkitemID) across these tables is wrong
+    # twice over - the row count already IS the workitem count, and the ids
+    # collide across processes.
+    text = ai_schema.serialize_partial_tables(
+        {"dbo.Compass_Invoice": {"processes": ["compass.01_Invoice_SAP"]}}, "docprocessing"
+    )
+    assert "ONE ROW = ONE WORKITEM" in text
+    assert "doc_count on source docprocessing" in text
+    assert "collide" in text

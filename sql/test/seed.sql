@@ -60,17 +60,13 @@ INSERT INTO dbo.Permission (Code, Description) VALUES
     ('workitems.details.view.audit', 'View workitem audit history'),
     ('workitems.details.view.confidence', 'Workitems: view extraction confidence scores in the document viewer'),
     ('workitems.details.view.source_location', 'Workitems: view where extracted values were found on the page (source-highlight boxes; needs workitems.details.view.images)'),
-    ('workitems.details.add.comment', 'Add workitem comment'),
-    ('workitems.details.add.tag', 'Add workitem tag'),
-    ('workitems.details.assign.users', 'Assign workitem users'),
-    ('workitems.details.set.priority', 'Set workitem priority'),
     ('workitems.filter.workitemid', 'Filter workitems by id'),
     ('workitems.filter.status', 'Filter workitems by status'),
-    ('workitems.filter.priority', 'Filter workitems by priority'),
-    ('workitems.filter.tag', 'Filter workitems by tag'),
+    ('workitems.filter.status.deleted', 'Workitems: show soft-deleted workitems in the status filter'),  -- migration 0044
+    ('workitems.filter.stage', 'Workitems: filter by latest derived stage'),  -- migration 0048
     ('workitems.filter.datetime', 'Filter workitems by datetime'),
-    ('workitems.filter.assignedUser', 'Filter workitems by assigned user'),
     ('workitems.filter.documentfields', 'Filter workitems by document fields'),
+    ('workitems.filter.documentfields.sensitive', 'Workitems: see doc fields flagged sensitive'),  -- migration 0035
     ('workitems.import.workitem', 'Import workitems'),
     ('workitems.import.preparedaudit', 'Workitems: import an MS02 prepared-documents Excel (PID/Prepared) and display the matched workitems'' audit'),
     ('invoices.view', 'View invoices'),
@@ -78,9 +74,12 @@ INSERT INTO dbo.Permission (Code, Description) VALUES
     ('invoices.filter.date', 'Filter invoices by date'),
     ('invoices.filter.status', 'Filter invoices by status'),
     ('invoices.filter.invoiceid', 'Filter invoices by id'),
-    ('chat.view', 'View chat'),
     ('jd.view', 'View JD Vance page'),
+    ('api.docs.view', 'View the in-app API documentation page'),  -- migration 0051
+    ('admin.status.view', 'View the admin system-status page'),  -- migration 0055
+    ('admin.restart', 'Restart the dev server from the admin overview (dev-only)'),  -- migration 0059
     ('reporting.view', 'Access the Reporting page'),
+    ('reporting.source.backlog_history', 'Reporting: use the Backlog History source'),  -- migration 0053
     ('reporting.source.docprocessing', 'Reporting: use the Document Processing source'),
     ('reporting.export', 'Reporting: export reports to Excel'),
     ('reporting.sql.run', 'Reporting: run live read-only SQL (sandboxed)'),
@@ -92,7 +91,10 @@ INSERT INTO dbo.Permission (Code, Description) VALUES
     ('reporting.schedule', 'Reporting: schedule a report to run and be emailed'),
     ('reporting.ai.use', 'Reporting: use the AI assistant (NL questions)'),
     ('reporting.ai.sql', 'Reporting: AI may emit live SQL (advanced)'),
-    ('reporting.ai.explain', 'Reporting: see AI explanation on results');
+    ('reporting.ai.explain', 'Reporting: see AI explanation on results'),
+    -- Mirrors sql/_migrations/NexoraDB/0015_seed_reporting_ai_explain_data.sql
+    -- (the data-egress grant for the agentic tool loop / Task 13 captions).
+    ('reporting.ai.explain_data', 'Reporting: let the AI assistant run read-only queries and explain the actual result numbers (data egress to the model; needs reporting.sql.run)');
 GO
 
 -- Access profiles
@@ -142,7 +144,29 @@ VALUES
      'Test NoPerm',
      'noperm@test.local',
      (SELECT AccessID FROM dbo.AccessProfile WHERE Name = 'TestNoPerm'),
-     'TEST', 1, 1, 'MFRGGZDFMZTWQ2LK', 'en');
+     'TEST', 1, 1, 'MFRGGZDFMZTWQ2LK', 'en'),
+
+    -- TestAdmin profile (every permission) minus reporting.ai.explain_data via
+    -- the per-user override below -- lets Task 13's e2e "unaffected without
+    -- the perm" spot-check exercise a fully-working reporting page/Advanced
+    -- tab that simply never shows the caption slot. Same password hash as
+    -- admin@test.local (same Test1234! plaintext -- bcrypt hashes just don't
+    -- match across independent generations).
+    ('noai@test.local',
+     '$2b$12$yMKpG3tUGtM6/fmd36giJ.VY5DHY5zRU4twHKfjQ5TsR.3kn7UxW.',
+     'Test NoAI',
+     'noai@test.local',
+     (SELECT AccessID FROM dbo.AccessProfile WHERE Name = 'TestAdmin'),
+     'TEST', 1, 1, 'GEZDGNBVGY3TQOJQ', 'en');
+GO
+
+-- Deny reporting.ai.explain_data for noai@test.local only (a per-user
+-- override beats the TestAdmin access-profile grant -- see
+-- dbo.fnUserHasPermission). Every other TestAdmin permission stays intact.
+INSERT INTO dbo.UserPermissionOverride (UserID, PermissionID, Effect)
+SELECT u.userID, p.PermissionID, 'D'
+FROM dbo.Users u, dbo.Permission p
+WHERE u.username = 'noai@test.local' AND p.Code = 'reporting.ai.explain_data';
 GO
 
 -- Curated 'table' reporting sources (mirrors 0011_seed_generali_workitems_sources.sql)

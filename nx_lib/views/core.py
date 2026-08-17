@@ -1,5 +1,5 @@
 """Core routes that don't fit a larger domain: landing page, jdvance,
-public maintenance view, session liveness probe."""
+public maintenance view, session liveness probe, API documentation page."""
 
 from flask import current_app, jsonify, redirect, render_template, session, url_for
 
@@ -17,6 +17,16 @@ def index():
 @require_permission("jd.view")
 def jdvance():
     return render_template("jd/jdvance.html")
+
+
+@require_permission("api.docs.view")
+def api_docs():
+    return render_template(
+        "api_docs.html",
+        pageV=page_visibility(),
+        logged_in_user=session.get("username", "Unknown"),
+        userid=session.get("userid", "Unknown"),
+    )
 
 
 def maintenance_page():
@@ -113,6 +123,7 @@ def session_heartbeat():
 def register_routes(app):
     app.add_url_rule("/", endpoint="index", view_func=index)
     app.add_url_rule("/jdvance", endpoint="jdvance", view_func=jdvance)
+    app.add_url_rule("/api-docs", endpoint="api_docs", view_func=api_docs)
     app.add_url_rule("/maintenance", endpoint="maintenance_page", view_func=maintenance_page)
     app.add_url_rule(
         "/api/maintenance/active",

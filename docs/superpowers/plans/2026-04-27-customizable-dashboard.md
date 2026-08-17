@@ -1,5 +1,13 @@
 # Customizable Per-User Dashboard — Implementation Plan
 
+> **STATUS (2026-07-28): ABANDONED — do not execute.** Only the backend half
+> ever landed, and its Task 1/2 DDL (`DashboardLayouts`, `FieldMetadata`) was a
+> manual SSMS step nobody ran, so every endpoint 500'd on every environment.
+> The frontend (Gridstack grid, widget editor) was never built and nothing
+> called the routes. All six endpoints and the widget query builder were
+> deleted in 2.5.65. Reviving this means starting from the spec, frontend
+> first, with the DDL as real migrations under `sql/_migrations/NexoraDB/`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Spec:** `docs/superpowers/specs/2026-04-27-customizable-dashboard-design.md`

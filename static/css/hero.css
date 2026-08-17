@@ -170,7 +170,7 @@ body.hero-body {
     z-index: 1;
     background: var(--nx-card, #ffffff);
     border: 1px solid var(--nx-border, #e5e7eb);
-    border-radius: 16px;
+    border-radius: calc(var(--nx-radius-scale, 1) * 16px);
     box-shadow: var(--nx-shadow-pop, 0 24px 50px -12px rgba(17, 24, 39, 0.18));
     overflow: hidden;
 }
@@ -186,7 +186,7 @@ body.hero-body {
 .hero-window__icon {
     width: 40px;
     height: 40px;
-    border-radius: 11px;
+    border-radius: calc(var(--nx-radius-scale, 1) * 11px);
     flex-shrink: 0;
     display: inline-flex;
     align-items: center;

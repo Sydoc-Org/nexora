@@ -1,4 +1,4 @@
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
   const csrf = document.querySelector('meta[name="csrf-token"]').content;
   const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";

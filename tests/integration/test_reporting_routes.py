@@ -6,8 +6,11 @@ TEST schema are asserted as (200, 500) to stay forward-compatible, mirroring the
 dashboard route tests.
 """
 
-from datetime import datetime, time
+import io
+from datetime import date, datetime, time, timedelta
 from unittest.mock import patch
+
+from openpyxl import load_workbook
 
 from nx_lib.db import engine_nexora_db
 
@@ -21,6 +24,37 @@ def test_reporting_anonymous_redirects_to_login(client):
 def test_reporting_without_perm_returns_403(user_client):
     resp = user_client.get("/reporting")
     assert resp.status_code == 403
+
+
+def test_reporting_page_renders_chat_panel_when_ai_enabled(admin_client):
+    # TestAdmin holds reporting.ai.use (seed) -- the chat panel renders, and the
+    # old Ask-AI mode button + inline panel it replaces are gone.
+    resp = admin_client.get("/reporting")
+    assert resp.status_code == 200
+    assert b"rpChatPanel" in resp.data
+    assert b"rpAiPanel" not in resp.data
+    assert b"rpModeAi" not in resp.data
+
+
+def test_reporting_page_caption_slots_need_only_explain_data(admin_client):
+    """Regression for the Phase 4 review finding: the caption <div>s must be
+    gated on reporting.ai.explain_data alone (D-CAPTION), not on the
+    ai_explain_enabled AND-combo (which also requires reporting.sql.run --
+    that extra requirement is for Surface C's live-SQL tool binding, an
+    unrelated concern). A caller with explain_data but NOT sql.run must still
+    see both #rpCaption (Advanced) and #rsCaption (Simple)."""
+
+    def _perm(code):
+        return code in ("reporting.view", "reporting.ai.explain_data")
+
+    with (
+        patch("nx_lib.security.has_permission", side_effect=_perm),
+        patch("nx_lib.views.reporting.has_permission", side_effect=_perm),
+    ):
+        resp = admin_client.get("/reporting")
+    assert resp.status_code == 200
+    assert b'id="rpCaption"' in resp.data
+    assert b'id="rsCaption"' in resp.data
 
 
 def test_sources_without_perm_returns_403(user_client):
@@ -92,6 +126,35 @@ def test_sql_run_serializes_binary_and_time_cells(user_client):
     assert data["rows"][0][1] == "13:45:00"
 
 
+def test_export_sql_target_coerces_bytes_and_control_char_cells(user_client):
+    """A SQL-target export row with a raw bytes cell (varbinary) and a control
+    character must download as xlsx, not 500 (Task 52 regression: openpyxl
+    raises on both, and _safe_cell used to pass them through unchanged)."""
+    columns = [{"field": "Data", "header": "Data"}, {"field": "Note", "header": "Note"}]
+    rows = [[b"caf\xc3\xa9", "bell\x07ringer"]]
+    with (
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting._has_acked", return_value=True),
+        patch("nx_lib.views.reporting._authorize_sql_target"),
+        patch("nx_lib.views.reporting._run_sql", return_value=(columns, rows)),
+    ):
+        resp = user_client.post(
+            "/api/reporting/export",
+            json={
+                "kind": "sql",
+                "target": "statistics",
+                "sql": "SELECT 1",
+                "title": "Bytes Test",
+                "format": "xlsx",
+            },
+        )
+    assert resp.status_code == 200
+    ws = load_workbook(io.BytesIO(resp.data)).active
+    assert ws["A5"].value == "café"  # decoded from bytes, not the b'...' repr
+    assert ws["B5"].value == "bellringer"  # control char stripped
+
+
 # --- /api/reporting/export/grid (client-supplied grid; no DB access) ---
 
 
@@ -148,6 +211,23 @@ def test_export_grid_csv_ok_has_bom(admin_client):
 def test_export_grid_bad_body_400(admin_client):
     resp = admin_client.post("/api/reporting/export/grid", json={"columns": "nope"})
     assert resp.status_code == 400
+
+
+def test_export_grid_csv_strips_control_char_cell(admin_client):
+    """A client-supplied grid cell with a control character must download as
+    csv, not leak the raw byte into the file (Task 52 regression)."""
+    resp = admin_client.post(
+        "/api/reporting/export/grid",
+        json={
+            "columns": [{"header": "Note"}],
+            "rows": [["bell\x07ringer"]],
+            "title": "Notes",
+            "format": "csv",
+        },
+    )
+    assert resp.status_code == 200
+    assert b"\x07" not in resp.data
+    assert b"bellringer" in resp.data
 
 
 # --- Cross-user sharing (A2). TestAdmin owns the reports it creates. ---
@@ -237,6 +317,70 @@ def test_share_with_self_400(admin_client):
         assert resp.status_code == 400
     finally:
         admin_client.delete(f"/api/reporting/reports/{rid}")
+
+
+# --- Task 57: one malformed saved definition must not 500 the whole library ---
+
+
+def test_reports_list_survives_malformed_columns_row(admin_client):
+    """A saved definition with a non-dict first column (cols[0]) must not
+    500 the whole library listing for every user - _preview_kind falls back
+    to a safe default kind for that row instead of raising.
+    """
+    good_rid = _create_report(admin_client, name="Good Def")
+    bad_resp = admin_client.post(
+        "/api/reporting/reports",
+        json={
+            "name": "Corrupt Def",
+            "definition": {"kind": "table", "columns": ["not-a-dict"]},
+        },
+    )
+    assert bad_resp.status_code == 200, bad_resp.data
+    bad_rid = bad_resp.get_json()["id"]
+    try:
+        resp = admin_client.get("/api/reporting/reports")
+        assert resp.status_code == 200
+        by_id = {row["id"]: row for row in resp.get_json()}
+        assert good_rid in by_id
+        # The corrupt row survives with a safe fallback previewKind rather
+        # than raising and taking the whole listing down with it.
+        assert bad_rid in by_id
+        assert by_id[bad_rid]["previewKind"] == "bar"
+    finally:
+        admin_client.delete(f"/api/reporting/reports/{good_rid}")
+        admin_client.delete(f"/api/reporting/reports/{bad_rid}")
+
+
+def test_reports_list_skips_row_when_preview_kind_still_raises(admin_client):
+    """Defense-in-depth: even if some other unexpected shape slips past
+    _preview_kind's internal guard, the per-row loop in api_reports_list
+    must skip just that row (and log it) rather than 500 the whole library.
+    """
+    good_rid = _create_report(admin_client, name="Good Def 2")
+    boom_resp = admin_client.post(
+        "/api/reporting/reports",
+        json={"name": "Boom Def", "definition": {"kind": "table", "marker": "boom"}},
+    )
+    assert boom_resp.status_code == 200, boom_resp.data
+    boom_rid = boom_resp.get_json()["id"]
+
+    from nx_lib.views.reporting import _preview_kind as real_preview_kind
+
+    def _boom_preview_kind(defn):
+        if isinstance(defn, dict) and defn.get("marker") == "boom":
+            raise RuntimeError("simulated unexpected shape")
+        return real_preview_kind(defn)
+
+    try:
+        with patch("nx_lib.views.reporting._preview_kind", side_effect=_boom_preview_kind):
+            resp = admin_client.get("/api/reporting/reports")
+        assert resp.status_code == 200
+        ids = {row["id"] for row in resp.get_json()}
+        assert good_rid in ids
+        assert boom_rid not in ids
+    finally:
+        admin_client.delete(f"/api/reporting/reports/{good_rid}")
+        admin_client.delete(f"/api/reporting/reports/{boom_rid}")
 
 
 def test_shares_endpoints_without_perm_403(user_client):
@@ -451,6 +595,91 @@ def test_runner_dry_run_processes_due_table_report(admin_client):
         conn.commit()
         conn.close()
         admin_client.delete(f"/api/reporting/reports/{rid}")
+        admin_client.delete(f"/api/reporting/admin/sources/{src_id}")
+
+
+def test_zero_dim_latest_metric_run_constrains_to_latest_bucket(admin_client):
+    """#178 coverage gap: prove _prepare_run's decision logic (not just
+    build_generic_query directly) computes and passes latest_of end-to-end.
+    Mirrors backlog_history/backlog_total's shape (migrations 0053-0056):
+    one metric, TotalMode='latest', one grainable field, zero-dim run. The
+    admin metrics API has no TotalMode write path (Task 8 only wired the
+    read path + the 0056 seed for backlog_total), so TotalMode is flipped
+    via direct SQL after creating the metric, same idiom the runner test
+    above uses for ReportSchedules."""
+    src = admin_client.post(
+        "/api/reporting/admin/sources",
+        json={
+            "code": "latest_test_src",
+            "kind": "curated",
+            "label": "Latest Test Src",
+            "permission": "reporting.source.docprocessing",
+            "provider": "table",
+            "engine": "nexora",
+            "baseObject": "dbo.Users",
+            "columns": [
+                {
+                    "field": "LastLoginAt",
+                    "label": "Last Login",
+                    "type": "datetime",
+                    "filterable": True,
+                    "sortable": True,
+                    "grainable": True,
+                }
+            ],
+            "enabled": True,
+            "sortOrder": 17,
+        },
+    )
+    src_id = src.get_json()["id"]
+    met = admin_client.post(
+        "/api/reporting/admin/metrics",
+        json={
+            "code": "latest_test_metric",
+            "sourceId": "latest_test_src",
+            "label": "Latest Test Metric",
+            "aggregation": "count",
+            "enabled": True,
+            "sortOrder": 17,
+        },
+    )
+    mid = met.get_json()["id"]
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE dbo.ReportingMetrics SET TotalMode = 'latest' WHERE Code = ?",
+            ("latest_test_metric",),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    try:
+        resp = admin_client.post(
+            "/api/reporting/run",
+            json={
+                "schemaVersion": 1,
+                "source": "latest_test_src",
+                "visualization": "table",
+                "title": "Latest total",
+                "columns": [],
+                "filters": [],
+                "sort": [],
+                "scope": {},
+                "rowLimit": 10,
+                "metrics": [{"metric": "latest_test_metric"}],
+            },
+        )
+        assert resp.status_code == 200, resp.data
+        sql = resp.get_json()["sql"]
+        # The decisive proof: _prepare_run computed latest_of="LastLoginAt"
+        # (from the one grainable field + the all-'latest' modes set) and
+        # passed it through -- build_generic_query's MAX() subquery fired.
+        assert "SELECT MAX([LastLoginAt]) FROM [dbo].[Users]" in sql
+        assert "[LastLoginAt] = (SELECT MAX([LastLoginAt])" in sql
+    finally:
+        admin_client.delete(f"/api/reporting/admin/metrics/{mid}")
         admin_client.delete(f"/api/reporting/admin/sources/{src_id}")
 
 
@@ -790,6 +1019,121 @@ def test_run_response_includes_inlined_display_sql(admin_client):
     assert "\n" in body["sqlDisplay"]  # pretty-printed
 
 
+# --- compare: true (Phase 3 comparison deltas) ---
+
+
+def test_run_compare_true_with_token_filter_returns_comparison(admin_client):
+    """compare: true + a single token filter runs the definition a second time
+    over the prior window and surfaces it as a `comparison` key."""
+    fake_cols = [{"field": "n", "header": "N"}]
+    fake_sql = "SELECT COUNT(*) AS [n] FROM [dbo].[T]"
+    main_rows = [[10]]
+    comparison_rows = [[7]]
+    body = {
+        "source": "x",
+        "filters": [{"field": "CreatedDate", "op": "between", "value": {"token": "last_month"}}],
+        "compare": True,
+    }
+    with (
+        patch(
+            "nx_lib.views.reporting._prepare_run",
+            return_value=(fake_cols, fake_sql, [], None),
+        ),
+        patch("nx_lib.views.reporting._execute", side_effect=[main_rows, comparison_rows]),
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting._resolved_dates_meta", return_value=None),
+    ):
+        resp = admin_client.post("/api/reporting/run", json=body)
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert "comparison" in data
+    comp = data["comparison"]
+    assert comp["columns"] == [{"field": "n", "header": "N"}]
+    assert comp["rows"] == comparison_rows
+    assert isinstance(comp["priorStart"], str)
+    assert isinstance(comp["priorEnd"], str)
+
+
+def test_run_compare_true_without_token_filter_omits_comparison(admin_client):
+    """compare: true with no (or an ambiguous) token filter can't be shifted —
+    the response stays 200 with no `comparison` key."""
+    fake_cols = [{"field": "n", "header": "N"}]
+    fake_sql = "SELECT COUNT(*) AS [n] FROM [dbo].[T]"
+    fake_rows = [[10]]
+    body = {"source": "x", "filters": [], "compare": True}
+    with (
+        patch(
+            "nx_lib.views.reporting._prepare_run",
+            return_value=(fake_cols, fake_sql, [], None),
+        ),
+        patch("nx_lib.views.reporting._execute", return_value=fake_rows) as mock_execute,
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting._resolved_dates_meta", return_value=None),
+    ):
+        resp = admin_client.post("/api/reporting/run", json=body)
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert "comparison" not in data
+    assert mock_execute.call_count == 1
+
+
+def test_run_compare_execute_error_degrades_without_failing_main_run(admin_client):
+    """A failure while running the comparison query must never fail the main
+    run — it just logs and omits the `comparison` key."""
+    fake_cols = [{"field": "n", "header": "N"}]
+    fake_sql = "SELECT COUNT(*) AS [n] FROM [dbo].[T]"
+    main_rows = [[10]]
+    body = {
+        "source": "x",
+        "filters": [{"field": "CreatedDate", "op": "between", "value": {"token": "last_month"}}],
+        "compare": True,
+    }
+    with (
+        patch(
+            "nx_lib.views.reporting._prepare_run",
+            return_value=(fake_cols, fake_sql, [], None),
+        ),
+        patch(
+            "nx_lib.views.reporting._execute",
+            side_effect=[main_rows, RuntimeError("comparison boom")],
+        ),
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting._resolved_dates_meta", return_value=None),
+    ):
+        resp = admin_client.post("/api/reporting/run", json=body)
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert "comparison" not in data
+    assert data["rowCount"] == 1
+    assert data["rows"] == main_rows
+
+
+def test_run_without_compare_key_calls_execute_exactly_once(admin_client):
+    """No `compare` key at all: single query, no comparison branch touched."""
+    fake_cols = [{"field": "n", "header": "N"}]
+    fake_sql = "SELECT COUNT(*) AS [n] FROM [dbo].[T]"
+    fake_rows = [[10]]
+    body = {"source": "x"}
+    with (
+        patch(
+            "nx_lib.views.reporting._prepare_run",
+            return_value=(fake_cols, fake_sql, [], None),
+        ),
+        patch("nx_lib.views.reporting._execute", return_value=fake_rows) as mock_execute,
+        patch("nx_lib.security.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting._resolved_dates_meta", return_value=None),
+    ):
+        resp = admin_client.post("/api/reporting/run", json=body)
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert "comparison" not in data
+    assert mock_execute.call_count == 1
+
+
 _TINY_PNG_B64 = (
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4"
     "2mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
@@ -957,3 +1301,368 @@ def test_sql_run_generic_500_detail_is_humanized(admin_client):
     assert "SQLExecDirectW" not in body["detail"]
     assert "[Microsoft]" not in body["detail"]
     assert "Hint:" in body["detail"]
+
+
+# --- forecast: definition toggle (issue #168) ---
+
+_FC_DEF = {
+    "schemaVersion": 1,
+    "visualization": "table",
+    "source": "docprocessing",
+    "title": "Backlog over time",
+    "columns": [{"field": "export_date", "grain": "month"}],
+    "metrics": [{"metric": "doc_count"}],
+    "filters": [],
+    "sort": [],
+    "scope": {"clients": [], "processes": []},
+    "rowLimit": 5000,
+    "forecast": {"enabled": True, "horizon": 3},
+}
+
+_FC_COLS = [{"field": "export_date"}, {"field": "doc_count"}]
+_FC_ROWS = [[f"2025-{m:02d}-01", 10 + 2 * (m - 1)] for m in range(1, 9)]
+
+
+def test_run_forecast_enabled_returns_block(admin_client):
+    with (
+        patch(
+            "nx_lib.views.reporting._prepare_run",
+            return_value=(_FC_COLS, "SELECT 1", [], None),
+        ),
+        patch("nx_lib.views.reporting._execute", return_value=_FC_ROWS),
+    ):
+        resp = admin_client.post("/api/reporting/run", json=_FC_DEF)
+    assert resp.status_code == 200
+    fc = resp.get_json().get("forecast")
+    assert fc and "unavailable" not in fc
+    assert fc["horizon"] == 3 and len(fc["buckets"]) == 3
+    assert fc["series"][0]["field"] == "doc_count"
+    assert len(fc["series"][0]["values"]) == 3
+    assert (
+        fc["series"][0]["lower"][0] <= fc["series"][0]["values"][0] <= fc["series"][0]["upper"][0]
+    )
+
+
+def test_run_forecast_disabled_or_absent_omits_block(admin_client):
+    quiet = dict(_FC_DEF, forecast={"enabled": False, "horizon": 3})
+    with (
+        patch(
+            "nx_lib.views.reporting._prepare_run",
+            return_value=(_FC_COLS, "SELECT 1", [], None),
+        ),
+        patch("nx_lib.views.reporting._execute", return_value=_FC_ROWS),
+    ):
+        resp = admin_client.post("/api/reporting/run", json=quiet)
+    assert resp.status_code == 200
+    assert "forecast" not in resp.get_json()
+
+
+def test_run_forecast_short_history_reports_unavailable(admin_client):
+    with (
+        patch(
+            "nx_lib.views.reporting._prepare_run",
+            return_value=(_FC_COLS, "SELECT 1", [], None),
+        ),
+        patch("nx_lib.views.reporting._execute", return_value=_FC_ROWS[:3]),
+    ):
+        resp = admin_client.post("/api/reporting/run", json=_FC_DEF)
+    assert resp.status_code == 200
+    assert resp.get_json()["forecast"]["unavailable"] == "insufficient_history"
+
+
+def test_export_forecast_appends_marker_rows(admin_client):
+    body = dict(_FC_DEF, format="csv")
+    with (
+        patch(
+            "nx_lib.views.reporting._prepare_run",
+            return_value=(_FC_COLS, "SELECT 1", [], None),
+        ),
+        patch("nx_lib.views.reporting._execute", return_value=_FC_ROWS),
+    ):
+        resp = admin_client.post("/api/reporting/export", json=body)
+    assert resp.status_code == 200
+    text = resp.data.decode("utf-8-sig")
+    assert text.splitlines()[0].endswith("Forecast")
+    assert text.count("forecast") == 3  # horizon 3 marker rows
+
+
+# --- forecast: grain-dependent lookback widens the fit window (#178) ---
+
+_FC_WIDE_DEF = {
+    "schemaVersion": 1,
+    "visualization": "table",
+    "source": "docprocessing",
+    "title": "Imports by day",
+    "columns": [{"field": "import_date", "grain": "day"}],
+    "metrics": [{"metric": "doc_count"}],
+    "filters": [{"field": "import_date", "op": "between", "value": {"token": "this_month"}}],
+    "sort": [],
+    "scope": {"clients": [], "processes": []},
+    "rowLimit": 5000,
+    "forecast": {"enabled": True, "horizon": 3},
+}
+
+_FC_WIDE_COLS = [{"field": "import_date"}, {"field": "doc_count"}]
+# Visible chart window: only 6 daily buckets (a real "this month, day grain"
+# window) — nowhere near enough for a seasonal fit on its own.
+_FC_WIDE_VISIBLE_ROWS = [[f"2026-08-{d:02d}", 10 + d] for d in range(1, 7)]
+# Widened fit window: 60 contiguous daily buckets with a weekend dip, so
+# trend_seasonal can only have come from the widened rerun.
+_FC_WIDE_WIDE_START = date(2026, 6, 6)
+_FC_WIDE_WIDE_ROWS = [
+    [
+        (_FC_WIDE_WIDE_START + timedelta(days=d)).isoformat(),
+        4 if (_FC_WIDE_WIDE_START + timedelta(days=d)).weekday() >= 5 else 10,
+    ]
+    for d in range(60)
+]
+
+
+def test_run_forecast_fits_on_widened_history_not_visible_window(admin_client):
+    with (
+        patch(
+            "nx_lib.views.reporting._prepare_run",
+            side_effect=[
+                (_FC_WIDE_COLS, "SELECT 1", [], None),
+                (_FC_WIDE_COLS, "SELECT 2", [], None),
+            ],
+        ) as mock_prepare,
+        patch(
+            "nx_lib.views.reporting._execute",
+            side_effect=[_FC_WIDE_VISIBLE_ROWS, _FC_WIDE_WIDE_ROWS],
+        ),
+    ):
+        resp = admin_client.post("/api/reporting/run", json=_FC_WIDE_DEF)
+    assert resp.status_code == 200
+    body = resp.get_json()
+    # The visible chart response is unaffected by the wider fit window.
+    assert body["rows"] == _FC_WIDE_VISIBLE_ROWS
+    assert mock_prepare.call_count == 2
+    widened_rd = mock_prepare.call_args_list[1].args[0]
+    widened_filter = widened_rd["filters"][0]
+    assert widened_filter["op"] == "between"
+    assert isinstance(widened_filter["value"], list) and len(widened_filter["value"]) == 2
+    assert "compare" not in widened_rd
+    fc = body.get("forecast")
+    assert fc and fc.get("method") == "trend_seasonal"
+
+
+def test_export_forecast_fits_on_widened_history_not_visible_window(admin_client):
+    # Same widen-refit-with-fallback as api_run (via the shared _forecast_for
+    # helper) — the export's forecast must not silently regress to a
+    # trend-only fit on the 6-row visible window (#178 finding 2).
+    body = dict(_FC_WIDE_DEF, format="csv")
+    with (
+        patch(
+            "nx_lib.views.reporting._prepare_run",
+            side_effect=[
+                (_FC_WIDE_COLS, "SELECT 1", [], None),
+                (_FC_WIDE_COLS, "SELECT 2", [], None),
+            ],
+        ) as mock_prepare,
+        patch(
+            "nx_lib.views.reporting._execute",
+            side_effect=[_FC_WIDE_VISIBLE_ROWS, _FC_WIDE_WIDE_ROWS],
+        ),
+    ):
+        resp = admin_client.post("/api/reporting/export", json=body)
+    assert resp.status_code == 200
+    assert mock_prepare.call_count == 2
+    widened_rd = mock_prepare.call_args_list[1].args[0]
+    assert widened_rd["filters"][0]["op"] == "between"
+    assert "compare" not in widened_rd
+    text = resp.data.decode("utf-8-sig")
+    # horizon 3 (explicit in _FC_WIDE_DEF) -> 3 marker rows; only reachable if
+    # the widened rerun actually produced a usable (non-unavailable) fit.
+    assert text.count("forecast") == 3
+
+
+def test_runner_forecast_export_rows_failure_still_sends_mail(admin_client):
+    # A forecast_export_rows failure must degrade to the unmarked attachment,
+    # not skip the mail or stall NextRunAt (#168).
+    from ops import run_scheduled_reports
+
+    src = admin_client.post(
+        "/api/reporting/admin/sources",
+        json={
+            "code": "sched_fc_users",
+            "kind": "curated",
+            "label": "Sched Forecast Users",
+            "permission": "reporting.source.docprocessing",
+            "provider": "table",
+            "engine": "nexora",
+            "baseObject": "dbo.Users",
+            "columns": [
+                {
+                    "field": "username",
+                    "label": "Username",
+                    "type": "string",
+                    "filterable": True,
+                    "sortable": True,
+                }
+            ],
+            "enabled": True,
+            "sortOrder": 17,
+        },
+    )
+    src_id = src.get_json()["id"]
+    rep = admin_client.post(
+        "/api/reporting/reports",
+        json={
+            "name": "Sched Forecast Users Report",
+            "definition": {
+                "schemaVersion": 1,
+                "source": "sched_fc_users",
+                "visualization": "table",
+                "title": "Sched Forecast Users Report",
+                "columns": [{"field": "username"}],
+                "filters": [],
+                "sort": [],
+                "scope": {},
+                "rowLimit": 10,
+                "forecast": {"enabled": True, "horizon": 3},
+            },
+        },
+    )
+    rid = rep.get_json()["id"]
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT userID FROM dbo.Users WHERE username = 'admin@test.local'")
+        owner = cur.fetchone()[0]
+        cur.execute(
+            "INSERT INTO dbo.ReportSchedules (ReportID, OwnerUserID, Recipients, Format, "
+            "Frequency, Hour, Minute, Enabled, NextRunAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (rid, owner, "a@x.com", "csv", "daily", 6, 0, 1, datetime(2000, 1, 1)),
+        )
+        conn.commit()
+
+        with (
+            patch(
+                "ops.run_scheduled_reports.compute_forecast",
+                return_value={"buckets": [1, 2, 3], "series": [{"field": "username"}]},
+            ),
+            patch(
+                "ops.run_scheduled_reports.forecast_export_rows",
+                side_effect=Exception("boom"),
+            ),
+            patch("ops.run_scheduled_reports.send_mail") as sm,
+        ):
+            assert run_scheduled_reports.run_once(dry_run=False) == 0
+        sm.assert_called_once()
+
+        cur.execute(
+            "SELECT NextRunAt, LastRunAt FROM dbo.ReportSchedules WHERE ReportID = ?", (rid,)
+        )
+        nxt, last = cur.fetchone()
+        if isinstance(nxt, str):
+            nxt = datetime.fromisoformat(nxt)
+        assert nxt > datetime(2020, 1, 1) and last is not None  # advanced, not stalled
+    finally:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM dbo.ReportSchedules WHERE ReportID = ?", (rid,))
+        conn.commit()
+        conn.close()
+        admin_client.delete(f"/api/reporting/reports/{rid}")
+        admin_client.delete(f"/api/reporting/admin/sources/{src_id}")
+
+
+def _create_field_values_source(admin_client):
+    """A 'backlog_history'-shaped table source (#178), created dynamically
+    since the TEST NexoraDB fixture doesn't seed the real migration-0053 row.
+    Reuses the already-granted reporting.source.docprocessing permission,
+    same idiom as test_zero_dim_latest_metric_run_constrains_to_latest_bucket."""
+    src = admin_client.post(
+        "/api/reporting/admin/sources",
+        json={
+            "code": "field_values_test_src",
+            "kind": "curated",
+            "label": "Field Values Test Src",
+            "permission": "reporting.source.docprocessing",
+            "provider": "table",
+            "engine": "nexora",
+            "baseObject": "dbo.Users",
+            "columns": [
+                {
+                    "field": "username",
+                    "label": "Username",
+                    "type": "string",
+                    "filterable": True,
+                    "sortable": True,
+                },
+                {
+                    "field": "locale",
+                    "label": "Locale",
+                    "type": "string",
+                    "filterable": False,
+                    "sortable": True,
+                },
+            ],
+            "enabled": True,
+            "sortOrder": 18,
+        },
+    )
+    return src.get_json()["id"]
+
+
+def test_field_values_returns_distinct_values(admin_client):
+    """#178: /api/reporting/field_values returns the distinct values (from
+    _execute) of a whitelisted filterable field of a table source, unwrapped
+    from row tuples into a flat list."""
+    src_id = _create_field_values_source(admin_client)
+    fake_rows = [["01_EasyTax"], ["03_Invoice_New"]]
+    try:
+        with patch("nx_lib.views.reporting._execute", return_value=fake_rows) as mock_execute:
+            resp = admin_client.post(
+                "/api/reporting/field_values",
+                json={"source": "field_values_test_src", "field": "username"},
+            )
+        assert resp.status_code == 200, resp.data
+        assert resp.get_json() == {"values": ["01_EasyTax", "03_Invoice_New"]}
+        mock_execute.assert_called_once()
+        sql = mock_execute.call_args[0][1]
+        assert "SELECT DISTINCT TOP (100) [username]" in sql
+        assert "[dbo].[Users]" in sql
+    finally:
+        admin_client.delete(f"/api/reporting/admin/sources/{src_id}")
+
+
+def test_field_values_unknown_field_returns_400(admin_client):
+    """An unwhitelisted (and a non-filterable) field is rejected with 400
+    before any query executes."""
+    src_id = _create_field_values_source(admin_client)
+    try:
+        with patch("nx_lib.views.reporting._execute") as mock_execute:
+            resp = admin_client.post(
+                "/api/reporting/field_values",
+                json={"source": "field_values_test_src", "field": "Nope"},
+            )
+        assert resp.status_code == 400
+        assert "error" in resp.get_json()
+        mock_execute.assert_not_called()
+
+        with patch("nx_lib.views.reporting._execute") as mock_execute:
+            resp = admin_client.post(
+                "/api/reporting/field_values",
+                json={"source": "field_values_test_src", "field": "locale"},
+            )
+        assert resp.status_code == 400
+        mock_execute.assert_not_called()
+    finally:
+        admin_client.delete(f"/api/reporting/admin/sources/{src_id}")
+
+
+def test_field_values_unknown_source_returns_400(admin_client):
+    resp = admin_client.post(
+        "/api/reporting/field_values",
+        json={"source": "does_not_exist", "field": "username"},
+    )
+    assert resp.status_code == 400
+
+
+def test_field_values_without_perm_403(user_client):
+    resp = user_client.post(
+        "/api/reporting/field_values",
+        json={"source": "field_values_test_src", "field": "username"},
+    )
+    assert resp.status_code == 403

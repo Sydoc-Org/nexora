@@ -1,4 +1,4 @@
-"""Integration tests for nx_lib.views.workitems — 19 routes.
+"""Integration tests for nx_lib.views.workitems — 13 routes.
 
 Seed users only have dashboard.view, so all workitems.* gates return 403.
 Tests that exercise route bodies use the workitems_all_perms fixture
@@ -10,37 +10,43 @@ WorkitemTags, WorkitemComments) that are absent from the TEST schema. They
 fall through except branches and return 500 JSON. Tuple matches in
 assertions allow for that.
 
-Routes covered (19 endpoints):
+The collaboration API (single-workitem tags, interactions, comments, assign,
+priority, tags CRUD, mention-autocomplete users) was removed in Task 4 of the
+chat-collab-removal-bug-fixes plan; get_audithistory (Octo processing trail)
+is a separate feature and stays.
+
+Routes covered (13 endpoints):
 - /api/config/fields                         GET
 - /api/docfield_values                       GET
 - /api/workitems                             GET
 - /api/export/workitems/csv                  GET
 - /workitems                                 page
 - /import_workitems                          POST
-- /api/workitem/<id>                         GET
 - /api/get_media_info/<id>                   GET
 - /api/get_media_raw/<id>/<idx>              GET
 - /api/get_audithistory/<id>                 GET
-- /api/users                                 GET
-- /api/workitem/<id>/interactions            GET
-- /api/workitem/<id>/comment                 POST
-- /api/workitem/<id>/assign                  POST
-- /api/workitem/<id>/priority                POST
-- /api/tags                                  GET
 - /api/workitems_page_init                   GET
-- /api/workitem/<id>/tags                    POST
-- /api/workitem/<id>/tags/<tag_id>           DELETE
+- /api/workitem_filter_views                 GET + POST (saved views, #170)
+- /api/workitem_filter_views/<id>            DELETE
 """
 
+import concurrent.futures
 import csv
 import io
 
 import pytest
+import requests
 
 
 @pytest.fixture()
 def workitems_all_perms(monkeypatch):
     monkeypatch.setattr("nx_lib.security.has_permission", lambda code: True)
+    # The detail endpoints (media_info/media_raw/audithistory) also enforce a
+    # per-workitem (client, process) entitlement gate (#193) that reads session
+    # grants + resolves the workitem's real pair -- orthogonal to these tests,
+    # which exercise caching/scoping/error behaviour. Grant it here so "all
+    # perms" keeps meaning all perms.
+    monkeypatch.setattr("nx_lib.views.workitems._may_view_workitem", lambda wid: True)
     yield
 
 
@@ -555,6 +561,259 @@ def test_get_workitems_data_unmapped_docfield_zeroes_both_sources(
     assert captured["filt"].ms02_docfield_ids == set()
 
 
+def test_get_workitems_data_fieldless_pair_searches_all_columns(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Value-first search (#148): a docvalue with NO docfield must widen both
+    SearchConfig lookups to every permitted column (OR'd NOT-NULL filter) and
+    still count as an ACTIVE search for the fail-closed guard -- with no
+    mapping rows found anywhere, both allow-sets must come out set(), never
+    None (which would let a source run unconstrained)."""
+    import nx_lib.hooks as hooks
+    import nx_lib.views.workitems as wv
+
+    monkeypatch.setattr(
+        hooks,
+        "load_permissions_for_user",
+        lambda uid: [
+            "workitems.view",
+            "workitems.filter.documentfields",
+            "workitems.filter.process.sydoc.test_proc",
+        ],
+    )
+
+    sql_log = []
+    monkeypatch.setattr(wv, "engine_nexora_db", _SqlLogEngine(sql_log))
+    monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+
+    monkeypatch.setattr(
+        wv, "get_valid_search_columns", lambda: ["col_validationuser", "col_docbarcode"]
+    )
+    monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: set())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+
+    def _must_not_run(*a, **k):
+        raise AssertionError("resolve_ms02_docfield_ids must not run without mapping rows")
+
+    monkeypatch.setattr(wv, "resolve_ms02_docfield_ids", _must_not_run)
+
+    captured = {}
+
+    def _fake_fetch_merged_page(filt, offset, per_page):
+        captured["filt"] = filt
+        return [], 0, []
+
+    monkeypatch.setattr(wv, "fetch_merged_page", _fake_fetch_merged_page)
+
+    resp = user_client.get(
+        "/api/workitems",
+        query_string={"prcfW": "all", "docfield": "", "docvalue": "alice"},
+    )
+
+    assert resp.status_code == 200
+    widened = [q for q in sql_log if "col_validationuser" in q and "col_docbarcode" in q]
+    assert widened, sql_log
+    assert captured["filt"].docfield_ids == set()
+    assert captured["filt"].ms02_docfield_ids == set()
+
+
+def test_get_workitems_data_fieldless_pair_excludes_sensitive_columns(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Value-first search (#148): the widened any-field column set must drop
+    sensitive FieldKeys for callers without the sensitive-fields permission --
+    no SearchConfig lookup may even mention the blocked column."""
+    import nx_lib.hooks as hooks
+    import nx_lib.views.workitems as wv
+
+    monkeypatch.setattr(
+        hooks,
+        "load_permissions_for_user",
+        lambda uid: [
+            "workitems.view",
+            "workitems.filter.documentfields",
+            "workitems.filter.process.sydoc.test_proc",
+        ],
+    )
+
+    sql_log = []
+    monkeypatch.setattr(wv, "engine_nexora_db", _SqlLogEngine(sql_log))
+    monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+
+    monkeypatch.setattr(
+        wv, "get_valid_search_columns", lambda: ["col_validationuser", "col_secretfield"]
+    )
+    monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: {"secretfield"})
+    monkeypatch.setattr(
+        wv,
+        "has_permission",
+        lambda code: code != "workitems.filter.documentfields.sensitive",
+    )
+    monkeypatch.setattr(wv, "resolve_ms02_docfield_ids", lambda *a, **k: None)
+    monkeypatch.setattr(wv, "fetch_merged_page", lambda filt, offset, per_page: ([], 0, []))
+
+    resp = user_client.get(
+        "/api/workitems",
+        query_string={"prcfW": "all", "docfield": "", "docvalue": "alice"},
+    )
+
+    assert resp.status_code == 200
+    assert any("col_validationuser" in q for q in sql_log), sql_log
+    assert not any("col_secretfield" in q for q in sql_log), sql_log
+
+
+def _op_test_scaffold(monkeypatch, sql_log):
+    """Shared monkeypatching for the docop/doccomb view tests."""
+    import nx_lib.hooks as hooks
+    import nx_lib.views.workitems as wv
+
+    monkeypatch.setattr(
+        hooks,
+        "load_permissions_for_user",
+        lambda uid: [
+            "workitems.view",
+            "workitems.filter.documentfields",
+            "workitems.filter.process.sydoc.test_proc",
+        ],
+    )
+    monkeypatch.setattr(wv, "engine_nexora_db", _SqlLogEngine(sql_log))
+    monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["col_validationuser"])
+    monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: set())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    monkeypatch.setattr(wv, "resolve_ms02_docfield_ids", lambda *a, **k: None)
+    monkeypatch.setattr(wv, "fetch_merged_page", lambda filt, offset, per_page: ([], 0, []))
+
+
+def test_docfield_ops_map_shapes():
+    """(#148) the whitelisted operator map drives the SQL Server comparators
+    and LIKE-pattern params."""
+    from nx_lib.views.workitems import DOCFIELD_OPS, _docfield_comb, _docfield_op
+
+    assert DOCFIELD_OPS["eq"][0] == "="
+    assert DOCFIELD_OPS["neq"][0] == "<>"
+    assert DOCFIELD_OPS["contains"][0] == "LIKE"
+    assert DOCFIELD_OPS["ncontains"][0] == "NOT LIKE"
+    assert DOCFIELD_OPS["contains"][1]("v") == "%v%"
+    assert DOCFIELD_OPS["startswith"][1]("v") == "v%"
+    assert DOCFIELD_OPS["endswith"][1]("v") == "%v"
+    assert DOCFIELD_OPS["eq"][1]("v") == "v"
+    # normalizers: unknown/missing keys fall back to contains / and
+    assert _docfield_op(["EQ"], 0) == "eq"
+    assert _docfield_op(["bogus"], 0) == "contains"
+    assert _docfield_op([], 5) == "contains"
+    assert _docfield_comb(["OR"], 0) == "or"
+    assert _docfield_comb(["nand"], 0) == "and"
+    assert _docfield_comb([], 5) == "and"
+
+
+def test_docfield_unknown_op_and_comb_are_whitelisted(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """(#148) hostile docop/doccomb values must never be interpolated into
+    SQL -- unknown keys fall back to contains/and."""
+    sql_log = []
+    _op_test_scaffold(monkeypatch, sql_log)
+
+    resp = user_client.get(
+        "/api/workitems",
+        query_string={
+            "prcfW": "all",
+            "docfield": "validationuser",
+            "docvalue": "alice",
+            "docop": "1; DROP TABLE Users--",
+            "doccomb": "UNION SELECT",
+        },
+    )
+    assert resp.status_code == 200
+    assert not any("DROP TABLE" in q for q in sql_log)
+    assert not any("UNION SELECT" in q for q in sql_log)
+
+
+def test_docfield_or_pair_processed_without_early_break(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """(#148) with AND-only semantics the first no-mapping pair used to break
+    out of the loop; OR support requires every pair to be evaluated. Two
+    field-carrying pairs must produce TWO default-leg SearchConfig lookups even
+    though the first finds no mapping rows."""
+    sql_log = []
+    _op_test_scaffold(monkeypatch, sql_log)
+
+    captured = {}
+
+    def _fake_fetch_merged_page(filt, offset, per_page):
+        captured["filt"] = filt
+        return [], 0, []
+
+    import nx_lib.views.workitems as wv
+
+    monkeypatch.setattr(wv, "fetch_merged_page", _fake_fetch_merged_page)
+
+    resp = user_client.get(
+        "/api/workitems",
+        query_string=[
+            ("prcfW", "all"),
+            ("docfield", "validationuser"),
+            ("docvalue", "alice"),
+            ("doccomb", "and"),
+            ("docfield", "validationuser"),
+            ("docvalue", "bob"),
+            ("doccomb", "or"),
+        ],
+    )
+    assert resp.status_code == 200
+    default_lookups = [q for q in sql_log if "ClientCode = 'default'" in q]
+    assert len(default_lookups) == 2, sql_log
+    # both pairs unmapped -> OR-fold of two empty sets -> still fail-closed
+    assert captured["filt"].docfield_ids == set()
+
+
+def test_api_docfield_values_no_field_widens_and_excludes_sensitive(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """/api/docfield_values with no field (value-first mode, #148) must answer
+    200 with a JSON list (labeled suggestions), widen its SearchConfig lookup
+    to all permitted columns, and never mention sensitive columns."""
+    import nx_lib.hooks as hooks
+    import nx_lib.views.workitems as wv
+
+    monkeypatch.setattr(
+        hooks,
+        "load_permissions_for_user",
+        lambda uid: [
+            "workitems.view",
+            "workitems.filter.documentfields",
+            "workitems.filter.process.sydoc.test_proc",
+        ],
+    )
+
+    sql_log = []
+    monkeypatch.setattr(wv, "engine_nexora_db", _SqlLogEngine(sql_log))
+    monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", None)
+
+    monkeypatch.setattr(
+        wv, "get_valid_search_columns", lambda: ["col_validationuser", "col_secretfield"]
+    )
+    monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: {"secretfield"})
+    monkeypatch.setattr(
+        wv,
+        "has_permission",
+        lambda code: code != "workitems.filter.documentfields.sensitive",
+    )
+
+    resp = user_client.get("/api/docfield_values", query_string={"process": "all", "q": ""})
+
+    assert resp.status_code == 200
+    assert resp.get_json() == []
+    assert any("col_validationuser" in q for q in sql_log), sql_log
+    assert not any("col_secretfield" in q for q in sql_log), sql_log
+
+
 def test_export_workitems_csv_gated(noperm_client):
     resp = noperm_client.get("/api/export/workitems/csv")
     assert resp.status_code == 403
@@ -645,7 +904,10 @@ def test_export_workitems_csv_keys_by_client_not_bare_id(
 
     monkeypatch.setattr(wv, "get_extensions_urls_fields", fake_get_extensions_urls_fields)
 
-    resp = user_client.get("/api/export/workitems/csv?include=fields")
+    # D-CSVLIM: include=fields now requires an explicit (<=10) ids selection
+    # server-side; name both colliding rows so this test's actual concern
+    # (per-client field values, not the selection cap) is unaffected.
+    resp = user_client.get("/api/export/workitems/csv?include=fields&ids=default-1216,ms02-1216")
     assert resp.status_code == 200
     body = resp.get_data(as_text=True)
     csv_rows = list(csv.reader(io.StringIO(body)))
@@ -724,6 +986,297 @@ def test_export_workitems_csv_selected_ids_are_client_aware(
     )
 
 
+# --- D-CSVLIM: heavy-include cap is enforced server-side, not just in JS --- #
+# fields/history/images are all per-row Octo fetches; the ≤10-selection rule
+# used to live only in the JS control (isSelection = selectedIds.size > 0 &&
+# selectedIds.size <= 10). A direct API call bypassing that control could
+# request include=fields|history|images with no ids (or an arbitrarily large
+# ids list) and walk up to EXPORT_MAX_ROWS rows doing per-row Octo fetches.
+
+
+def test_export_workitems_csv_include_without_ids_returns_400(user_client, workitems_all_perms):
+    resp = user_client.get("/api/export/workitems/csv?include=fields")
+    assert resp.status_code == 400
+    body = resp.get_json()
+    assert body and "error" in body
+
+
+def test_export_workitems_csv_include_with_over_10_ids_returns_400(
+    user_client, workitems_all_perms
+):
+    ids_param = ",".join(f"default-{i}" for i in range(1, 12))  # 11 compound ids
+    resp = user_client.get(f"/api/export/workitems/csv?include=history&ids={ids_param}")
+    assert resp.status_code == 400
+    body = resp.get_json()
+    assert body and "error" in body
+
+
+def test_export_workitems_csv_include_with_le_10_ids_is_honored(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """3 selected ids (<= the cap) must still get the requested include=fields
+    treatment -- the cap must not also block legitimate small selections."""
+    import nx_lib.views.workitems as wv
+
+    fake_cache = _FakeCache()
+    monkeypatch.setattr(wv, "cache", fake_cache)
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+
+    rows = [
+        {
+            "workitemid": wid,
+            "client": "default",
+            "status": "Open",
+            "current_stage": "Stage A",
+            "priority": 1,
+            "tags": [],
+            "modifiedat": None,
+        }
+        for wid in (91001, 91002, 91003)
+    ]
+
+    monkeypatch.setattr(
+        wv,
+        "_get_workitems_data",
+        lambda args, export_all=False: {
+            "workitems": rows,
+            "pagination": {"totalItems": len(rows)},
+        },
+    )
+    monkeypatch.setattr(
+        wv, "get_domain_for_workitem", lambda wid, client_hint=None: "d.example.com"
+    )
+    monkeypatch.setattr(
+        wv, "get_workitemdata_param", lambda wid, domain: (f"wdata-{wid}", f"doc-{wid}")
+    )
+    monkeypatch.setattr(
+        wv,
+        "get_extensions_urls_fields",
+        lambda workitemdata, document_id, domain, with_tables=False: (
+            [],
+            [],
+            {"Amount": "42"},
+            {},
+            {},
+        ),
+    )
+
+    ids_param = "default-91001,default-91002,default-91003"
+    resp = user_client.get(f"/api/export/workitems/csv?include=fields&ids={ids_param}")
+    assert resp.status_code == 200
+    body = resp.get_data(as_text=True)
+    csv_rows = list(csv.reader(io.StringIO(body)))
+    header, data_rows = csv_rows[0], csv_rows[1:]
+    assert "Amount" in header, f"expected include=fields honored, got header={header!r}"
+    assert len(data_rows) == 3
+
+
+def test_export_workitems_csv_no_include_no_ids_still_200(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Regression: the new heavy-include cap must not affect the light default
+    export path (no include=, no ids=) -- it stays a plain 200 CSV."""
+    import nx_lib.views.workitems as wv
+
+    monkeypatch.setattr(
+        wv,
+        "_get_workitems_data",
+        lambda args, export_all=False: {"workitems": [], "pagination": {"totalItems": 0}},
+    )
+
+    resp = user_client.get("/api/export/workitems/csv")
+    assert resp.status_code == 200
+    assert "text/csv" in resp.headers.get("Content-Type", "")
+
+
+# --- as_completed() timing out mid-iteration must degrade, not 500 -------- #
+# Per-row Octo fetches (fields/history/images) run on a thread pool; the
+# `for future in as_completed(futures, timeout=120):` loop's own iteration
+# protocol -- not just future.result() inside the loop body -- can raise
+# concurrent.futures.TimeoutError once the budget elapses with futures still
+# pending. That used to be uncaught and 500'd the entire export.
+
+
+def test_export_workitems_csv_survives_as_completed_timeout(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """as_completed() raising TimeoutError at the loop boundary must still
+    yield a 200 CSV: rows that finished before the timeout keep their data,
+    rows that didn't get an explicit timed-out marker instead of a 500."""
+    import nx_lib.views.workitems as wv
+
+    fake_cache = _FakeCache()
+    monkeypatch.setattr(wv, "cache", fake_cache)
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+
+    rows = [
+        {
+            "workitemid": wid,
+            "client": "default",
+            "status": "Open",
+            "current_stage": "Stage A",
+            "priority": 1,
+            "tags": [],
+            "modifiedat": None,
+        }
+        for wid in (82001, 82002)
+    ]
+
+    monkeypatch.setattr(
+        wv,
+        "_get_workitems_data",
+        lambda args, export_all=False: {
+            "workitems": rows,
+            "pagination": {"totalItems": len(rows)},
+        },
+    )
+    monkeypatch.setattr(
+        wv, "get_domain_for_workitem", lambda wid, client_hint=None: "d.example.com"
+    )
+    monkeypatch.setattr(
+        wv, "get_workitemdata_param", lambda wid, domain: (f"wdata-{wid}", f"doc-{wid}")
+    )
+    monkeypatch.setattr(
+        wv,
+        "get_extensions_urls_fields",
+        lambda workitemdata, document_id, domain, with_tables=False: (
+            [],
+            [],
+            {"Amount": "42"},
+            {},
+            {},
+        ),
+    )
+
+    real_as_completed = wv.as_completed
+
+    def fake_as_completed(futures, timeout=None):
+        # Simulate the 120s budget elapsing mid-iteration: let the
+        # first-completed future come through normally (so the export has
+        # at least one real row), then raise instead of yielding the rest
+        # -- exactly what the real as_completed() does when its timeout
+        # fires with futures still outstanding.
+        it = real_as_completed(futures, timeout=timeout)
+        yield next(it)
+        raise concurrent.futures.TimeoutError()
+
+    monkeypatch.setattr(wv, "as_completed", fake_as_completed)
+
+    ids_param = "default-82001,default-82002"
+    resp = user_client.get(f"/api/export/workitems/csv?include=fields&ids={ids_param}")
+    assert resp.status_code == 200, (
+        f"as_completed() timing out mid-iteration must degrade gracefully, not "
+        f"500 the export; got {resp.status_code}: {resp.get_data(as_text=True)!r}"
+    )
+    body = resp.get_data(as_text=True)
+    csv_rows = list(csv.reader(io.StringIO(body)))
+    header, data_rows = csv_rows[0], csv_rows[1:]
+    assert len(data_rows) == 2, f"expected both rows still present, got {data_rows!r}"
+    amount_idx = header.index("Amount")
+    values = {r[amount_idx] for r in data_rows}
+    assert "42" in values, (
+        f"expected the row that finished before the timeout to keep its "
+        f"fetched data, got {values!r}"
+    )
+    assert wv.EXPORT_TIMEOUT_MARKER in values, (
+        f"expected the row that never finished before the timeout to carry "
+        f"an explicit timed-out marker, got {values!r}"
+    )
+
+
+# D-CSVTIMEOUT: when the 120s budget elapses before ANY future completes --
+# the realistic Octo-outage shape, since EXPORT_HEAVY_INCLUDE_MAX_IDS caps
+# heavy exports to <=10 rows -- all_field_keys/max_images derive from zero
+# completed rows and end up empty. That used to leave the CSV with no
+# include= columns at all, indistinguishable from a legitimate "these
+# workitems have no fields" result. Must instead be signalled via the same
+# trailer-line + header pattern the row-truncation path already uses.
+
+
+def test_export_workitems_csv_all_rows_timeout_signals_degraded_export(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Zero completed rows before the as_completed() timeout must still
+    yield a 200 CSV, but flagged as timeout-degraded rather than looking
+    like a legitimate zero-fields export."""
+    import nx_lib.views.workitems as wv
+
+    fake_cache = _FakeCache()
+    monkeypatch.setattr(wv, "cache", fake_cache)
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+
+    rows = [
+        {
+            "workitemid": wid,
+            "client": "default",
+            "status": "Open",
+            "current_stage": "Stage A",
+            "priority": 1,
+            "tags": [],
+            "modifiedat": None,
+        }
+        for wid in (83001, 83002)
+    ]
+
+    monkeypatch.setattr(
+        wv,
+        "_get_workitems_data",
+        lambda args, export_all=False: {
+            "workitems": rows,
+            "pagination": {"totalItems": len(rows)},
+        },
+    )
+    monkeypatch.setattr(
+        wv, "get_domain_for_workitem", lambda wid, client_hint=None: "d.example.com"
+    )
+    monkeypatch.setattr(
+        wv, "get_workitemdata_param", lambda wid, domain: (f"wdata-{wid}", f"doc-{wid}")
+    )
+    monkeypatch.setattr(
+        wv,
+        "get_extensions_urls_fields",
+        lambda workitemdata, document_id, domain, with_tables=False: (
+            [],
+            [],
+            {"Amount": "42"},
+            {},
+            {},
+        ),
+    )
+
+    def fake_as_completed(futures, timeout=None):
+        # Simulate the 120s budget elapsing before a single future completes
+        # -- exactly what as_completed() itself raises in that shape.
+        raise concurrent.futures.TimeoutError()
+
+    monkeypatch.setattr(wv, "as_completed", fake_as_completed)
+
+    ids_param = "default-83001,default-83002"
+    resp = user_client.get(f"/api/export/workitems/csv?include=fields&ids={ids_param}")
+    assert resp.status_code == 200, (
+        f"all rows timing out must still degrade gracefully, not 500; "
+        f"got {resp.status_code}: {resp.get_data(as_text=True)!r}"
+    )
+    body = resp.get_data(as_text=True)
+    csv_rows = list(csv.reader(io.StringIO(body)))
+    header, data_rows = csv_rows[0], csv_rows[1:]
+
+    # The bug: with zero completed rows, all_field_keys was empty, so the
+    # header carried no include= columns at all -- exactly the silently
+    # misleading shape this fix must prevent.
+    assert (
+        "Amount" not in header
+    ), f"sanity check: no row completed, so no field header should appear; got {header!r}"
+    assert resp.headers.get("X-Export-Timeout") == "true", (
+        f"expected the timeout to be signalled via X-Export-Timeout header, "
+        f"got headers={dict(resp.headers)!r}"
+    )
+    assert (
+        "EXPORT TIMED OUT" in body
+    ), f"expected a trailer line flagging the timeout-degraded export, got body={body!r}"
+    assert len(data_rows) >= 2, f"expected both rows still present, got {data_rows!r}"
+
+
 def test_strip_export_fields_removes_sensitive_columns():
     from nx_lib.views.workitems import _strip_export_fields
 
@@ -747,40 +1300,7 @@ def test_import_workitems_with_perms_empty_body(user_client, workitems_all_perms
     assert resp.status_code in (200, 302, 400, 500)
 
 
-# ============================ single workitem detail =========================
-
-
-def test_get_single_workitem_anonymous(client):
-    resp = client.get("/api/workitem/1", follow_redirects=False)
-    # Function checks `if 'username' not in session` first → 401 JSON
-    assert resp.status_code in (200, 302, 401, 500)
-
-
-@pytest.mark.parametrize(
-    ("method", "path", "payload"),
-    [
-        ("get", "/api/workitem/999999", None),
-        ("get", "/api/workitem/999999/interactions", None),
-        ("post", "/api/workitem/999999/comment", {"comment": "x"}),
-        ("post", "/api/workitem/999999/assign", {"assignedUserID": 1001}),
-        ("post", "/api/workitem/999999/priority", {"priority": 2}),
-        ("post", "/api/workitem/999999/tags", {"tagName": "x", "tagColor": "#fff"}),
-        ("delete", "/api/workitem/999999/tags/999", None),
-    ],
-)
-def test_workitem_metadata_endpoints_require_permission(noperm_client, method, path, payload):
-    """These seven endpoints checked only `"username" in session`, so ANY logged-in
-    user could read and mutate any workitem's tags/priority/assignment/comments --
-    verified live on INT with a user who gets 403 on the workitems page itself yet
-    successfully tagged, prioritized and re-assigned workitem 18319."""
-    kwargs = {"json": payload} if payload is not None else {}
-    resp = getattr(noperm_client, method)(path, **kwargs)
-    assert resp.status_code == 403, f"{method.upper()} {path} -> {resp.status_code}"
-
-
-def test_get_single_workitem_authed_unknown_id(user_client, workitems_all_perms):
-    resp = user_client.get("/api/workitem/999999")
-    assert resp.status_code in (200, 404, 500)
+# ============================ media + audit history ===========================
 
 
 def test_api_get_media_info_authed_unknown_id(user_client):
@@ -789,6 +1309,82 @@ def test_api_get_media_info_authed_unknown_id(user_client):
     would attempt OctoDB lookup and 500/404."""
     resp = user_client.get("/api/get_media_info/999999")
     assert resp.status_code in (200, 401, 403, 404, 500)
+
+
+def test_csv_export_does_not_poison_media_info_cache(user_client, workitems_all_perms, monkeypatch):
+    """Task 60 regression: the export _fetch helper used to cache
+    {"fields": ..., "media_count": ...} under the SAME media_info cache key
+    api_get_media_info serves, but built without with_tables=True -- so the
+    very next detail-panel request for that workitem got served the export's
+    reduced payload and the source-highlight overlay (field_sources/
+    table_sources) went silently empty. The export path must be read-through
+    only: it may reuse an existing media_info cache entry, but must never
+    write a reduced one itself."""
+    import nx_lib.views.workitems as wv
+
+    fake_cache = _FakeCache()
+    monkeypatch.setattr(wv, "cache", fake_cache)
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+
+    wid = 92001
+    rows = [
+        {
+            "workitemid": wid,
+            "client": "default",
+            "status": "Open",
+            "current_stage": "Stage A",
+            "priority": 1,
+            "tags": [],
+            "modifiedat": None,
+        }
+    ]
+    monkeypatch.setattr(
+        wv,
+        "_get_workitems_data",
+        lambda args, export_all=False: {
+            "workitems": rows,
+            "pagination": {"totalItems": len(rows)},
+        },
+    )
+    monkeypatch.setattr(
+        wv, "get_domain_for_workitem", lambda wid, client_hint=None: "d.example.com"
+    )
+    monkeypatch.setattr(
+        wv, "get_workitemdata_param", lambda wid, domain: (f"wdata-{wid}", f"doc-{wid}")
+    )
+
+    def fake_get_extensions_urls_fields(workitemdata, document_id, domain, with_tables=False):
+        # Mirrors real Octo behavior (nx_lib/octo.py get_extensions_urls_fields):
+        # field_sources are always computed; table_sources only when
+        # with_tables=True. The export path never passes with_tables=True.
+        field_sources = [{"key": "Amount", "value": "42", "locations": []}]
+        table_sources = [{"rows": []}] if with_tables else []
+        return [], [], {"Amount": "42"}, field_sources, table_sources
+
+    monkeypatch.setattr(wv, "get_extensions_urls_fields", fake_get_extensions_urls_fields)
+
+    export_resp = user_client.get(f"/api/export/workitems/csv?include=fields&ids=default-{wid}")
+    assert export_resp.status_code == 200
+    body = export_resp.get_data(as_text=True)
+    assert "Amount" in body, f"sanity check: export should have fetched fields; got {body!r}"
+
+    # The export must not have written anything to the shared media_info slot.
+    ck = wv._wi_cache_key("media_info", wid, "d.example.com")
+    assert fake_cache.get(ck) is None, (
+        "export path wrote to the shared media_info cache key -- it must be " "read-through only"
+    )
+
+    detail_resp = user_client.get(f"/api/get_media_info/{wid}?client=default")
+    assert detail_resp.status_code == 200
+    payload = detail_resp.get_json()
+    assert payload.get("field_sources"), (
+        f"detail panel lost field_sources after an export ran first for the same "
+        f"workitem; got payload={payload!r}"
+    )
+    assert payload.get("table_sources") == [{"rows": []}], (
+        f"detail panel should compute its own full with_tables=True payload, "
+        f"not reuse anything the export cached; got payload={payload!r}"
+    )
 
 
 def test_strip_sensitive_from_detail_removes_fields_and_sources():
@@ -818,6 +1414,177 @@ def test_api_get_media_raw_with_perms_unknown(user_client, workitems_all_perms):
     assert resp.status_code in (200, 404, 500)
 
 
+# --- PDF/TIF page-image caches must be keyed by client domain -------------- #
+# Workitem ids collide across clients (e.g. 1216 exists in both the default
+# Octo runtime and MS02 on live INT, see docs/design/ms02-multisource.md).
+# media_raw_pdfpage_/media_raw_tif_ used to key their rendered-page cache on
+# the bare (workitem_id, media_index) pair, so the second client's request
+# for the "same" id was served the first client's already-cached page image
+# for up to an hour. Both tests substitute a throwaway fake cache (see
+# _FakeCache above) so they don't depend on the shared process-wide cache
+# being empty, and each mocks the client-domain resolution + media fetch to
+# return bytes that are distinguishable per domain.
+
+
+def test_api_get_media_raw_tif_cache_is_client_scoped(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Requesting the same colliding workitem id/media_index under two
+    different clients must render+cache each client's own TIFF bytes, never
+    reuse the other client's cached JPEG."""
+    import io as _io
+
+    from PIL import Image
+
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "cache", _FakeCache())
+
+    def _tif_bytes(color):
+        buf = _io.BytesIO()
+        Image.new("RGB", (4, 4), color=color).save(buf, format="TIFF")
+        return buf.getvalue()
+
+    domains = {"default": "default-domain.example.com", "ms02": "ms02-domain.example.com"}
+    media_bytes = {
+        domains["default"]: _tif_bytes((255, 0, 0)),
+        domains["ms02"]: _tif_bytes((0, 0, 255)),
+    }
+
+    monkeypatch.setattr(
+        wv, "get_domain_for_workitem", lambda wid, client_hint=None: domains[client_hint]
+    )
+    monkeypatch.setattr(
+        wv, "get_workitemdata_param", lambda wid, domain: (f"wdata-{domain}", f"doc-{domain}")
+    )
+    monkeypatch.setattr(
+        wv,
+        "get_extensions_urls_fields",
+        lambda workitemdata, document_id, domain: (
+            [".tif"],
+            [f"http://media/{domain}"],
+            {},
+            {},
+            {},
+        ),
+    )
+    monkeypatch.setattr(wv, "get_media", lambda url, domain: media_bytes[domain])
+
+    resp_default = user_client.get("/api/get_media_raw/1216/0?client=default")
+    resp_ms02 = user_client.get("/api/get_media_raw/1216/0?client=ms02")
+
+    assert resp_default.status_code == 200
+    assert resp_ms02.status_code == 200
+
+    img_default = Image.open(io.BytesIO(resp_default.data))
+    img_ms02 = Image.open(io.BytesIO(resp_ms02.data))
+    r_default, _g, b_default = img_default.convert("RGB").getpixel((0, 0))
+    r_ms02, _g, b_ms02 = img_ms02.convert("RGB").getpixel((0, 0))
+
+    assert r_default > b_default, "default-client response should be the red TIFF it fetched"
+    assert b_ms02 > r_ms02, (
+        "ms02-client response came back red (the default client's cached bytes) instead of "
+        "blue -- media_raw_tif_ cache key omitted the client domain"
+    )
+    assert resp_default.data != resp_ms02.data, (
+        "second client's response returned the first client's cached bytes -- "
+        "media_raw_tif_ cache key omitted the client domain"
+    )
+
+
+def test_api_get_media_raw_pdf_cache_is_client_scoped(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Same leak for the PDF-page-render cache: media_raw_pdfpage_{id}_{idx}
+    used to omit the domain, so the second client's request served back the
+    first client's rendered PDF page."""
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "cache", _FakeCache())
+
+    domains = {"default": "default-domain.example.com", "ms02": "ms02-domain.example.com"}
+
+    monkeypatch.setattr(
+        wv, "get_domain_for_workitem", lambda wid, client_hint=None: domains[client_hint]
+    )
+    monkeypatch.setattr(
+        wv, "get_workitemdata_param", lambda wid, domain: (f"wdata-{domain}", f"doc-{domain}")
+    )
+    monkeypatch.setattr(
+        wv,
+        "get_extensions_urls_fields",
+        lambda workitemdata, document_id, domain: (
+            [".pdf"],
+            [f"http://media/{domain}#page=0"],
+            {},
+            {},
+            {},
+        ),
+    )
+    monkeypatch.setattr(wv, "pdf_src_bytes", lambda url, domain: f"pdfbytes-{domain}".encode())
+    monkeypatch.setattr(
+        wv, "render_pdf_page_jpeg", lambda pdf_bytes, page_index: pdf_bytes + b"-rendered"
+    )
+
+    resp_default = user_client.get("/api/get_media_raw/1216/0?client=default")
+    resp_ms02 = user_client.get("/api/get_media_raw/1216/0?client=ms02")
+
+    assert resp_default.status_code == 200
+    assert resp_ms02.status_code == 200
+    assert resp_default.data == b"pdfbytes-default-domain.example.com-rendered"
+    assert resp_ms02.data == b"pdfbytes-ms02-domain.example.com-rendered", (
+        "second client's response returned the first client's cached PDF-page bytes -- "
+        "media_raw_pdfpage_ cache key omitted the client domain"
+    )
+    assert resp_default.data != resp_ms02.data
+
+
+def test_api_get_media_raw_pdf_error_does_not_cache(user_client, workitems_all_perms, monkeypatch):
+    """When the PDF source stream errors (e.g. Octo 502s), pdf_src_bytes must
+    raise instead of handing back the error body as if it were page bytes.
+    The route has to degrade to an error status without ever writing the
+    rendered-page cache slot -- caching the error would poison that slot
+    with garbage for every request in the next hour."""
+    import nx_lib.views.workitems as wv
+
+    fake_cache = _FakeCache()
+    monkeypatch.setattr(wv, "cache", fake_cache)
+
+    monkeypatch.setattr(
+        wv, "get_domain_for_workitem", lambda wid, client_hint=None: "default-domain.example.com"
+    )
+    monkeypatch.setattr(wv, "get_workitemdata_param", lambda wid, domain: ("wdata", "doc-1"))
+    monkeypatch.setattr(
+        wv,
+        "get_extensions_urls_fields",
+        lambda workitemdata, document_id, domain: (
+            [".pdf"],
+            ["http://media/doc.pdf#page=0"],
+            {},
+            {},
+            {},
+        ),
+    )
+
+    def _raise_http_error(url, domain):
+        raise requests.HTTPError("502 Server Error")
+
+    monkeypatch.setattr(wv, "pdf_src_bytes", _raise_http_error)
+
+    resp = user_client.get("/api/get_media_raw/1216/0?client=default")
+
+    assert resp.status_code == 500
+    pdf_cache_key = "media_raw_pdfpage_0_default-domain.example.com_1216"
+    assert pdf_cache_key not in fake_cache.store, (
+        "an error response must not populate the rendered-page cache slot -- "
+        "that would poison media_raw_pdfpage_ for the next hour"
+    )
+
+
 def test_get_audithistory_gated(noperm_client):
     resp = noperm_client.get("/api/get_audithistory/1")
     assert resp.status_code == 403
@@ -828,57 +1595,19 @@ def test_get_audithistory_with_perms(user_client, workitems_all_perms):
     assert resp.status_code in (200, 404, 500)
 
 
-# ============================ users + interactions ===========================
-
-
-def test_get_users_for_mentions_authed(user_client):
-    """No permission gate — returns users matching a session-org filter."""
-    resp = user_client.get("/api/users")
-    assert resp.status_code in (200, 401, 500)
-
-
-def test_get_workitem_interactions_authed(user_client, workitems_all_perms):
-    resp = user_client.get("/api/workitem/999999/interactions")
-    assert resp.status_code in (200, 404, 500)
-
-
-def test_add_workitem_comment_anonymous_returns_unauth(client):
-    resp = client.post("/api/workitem/1/comment", json={"comment": "x"})
-    assert resp.status_code in (200, 302, 401, 500)
-
-
-def test_add_workitem_comment_authed_unknown(user_client, workitems_all_perms):
-    resp = user_client.post("/api/workitem/999999/comment", json={"comment": "x"})
-    assert resp.status_code in (200, 400, 404, 500)
-
-
-def test_assign_workitem_authed_unknown(user_client, workitems_all_perms):
-    resp = user_client.post("/api/workitem/999999/assign", json={"userId": 1001})
-    assert resp.status_code in (200, 400, 404, 500)
-
-
-def test_set_workitem_priority_authed_unknown(user_client, workitems_all_perms):
-    resp = user_client.post("/api/workitem/999999/priority", json={"priority": "high"})
-    assert resp.status_code in (200, 400, 404, 500)
-
-
 # ============================ tags + page init ===============================
 
 
-def test_get_all_tags_authed(user_client):
-    """No permission gate — returns tags from WorkitemTags (absent → 500)."""
-    resp = user_client.get("/api/tags")
-    assert resp.status_code in (200, 500)
-
-
 def test_api_workitems_page_init_authed(user_client):
+    """Collaboration was removed (Task 6 of the chat-collab-removal-bug-fixes
+    plan): the response now carries only the surviving doc-field search
+    config, no tags/users blocks."""
     resp = user_client.get("/api/workitems_page_init")
-    assert resp.status_code in (200, 500)
-
-
-def test_add_tag_to_workitem_authed_unknown(user_client, workitems_all_perms):
-    resp = user_client.post("/api/workitem/999999/tags", json={"tag_id": 1})
-    assert resp.status_code in (200, 400, 404, 500)
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert "field_config" in body
+    assert "tags" not in body
+    assert "users" not in body
 
 
 # ============================ MS02 autocomplete ==============================
@@ -932,9 +1661,53 @@ def test_api_docfield_values_allows_sensitive_with_perm(
     assert resp.status_code in (200, 500)
 
 
-def test_remove_tag_from_workitem_authed_unknown(user_client, workitems_all_perms):
-    resp = user_client.delete("/api/workitem/999999/tags/999")
-    assert resp.status_code in (200, 404, 500)
+def test_api_docfield_values_process_not_allowed_returns_empty(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """A caller holding the blanket workitems.filter.documentfields perm but
+    NOT workitems.filter.process.<p> for the specific process requested must
+    not get value suggestions leaked from that process -- fail closed to []
+    (never a leak, never an error that confirms/denies existence)."""
+    import nx_lib.views.workitems as wv
+
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["col_doctype"])
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)  # sensitivity gate open
+
+    with user_client.session_transaction() as sess:
+        sess["permissions"] = [
+            "workitems.filter.documentfields",
+            "workitems.filter.process.sydoc.allowedprocess",
+        ]
+
+    resp = user_client.get(
+        "/api/docfield_values",
+        query_string={"field": "doctype", "process": "sydoc.otherprocess"},
+    )
+    assert resp.status_code == 200
+    assert resp.get_json() == []
+
+
+def test_api_docfield_values_all_scopes_to_allowed_processes(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """`process=all` (the JS default when no process filter is selected) must
+    not be an unfiltered escape hatch: it narrows to the caller's own
+    workitems.filter.process.* grants, not every process in SearchConfig.
+    With zero process grants, "all" fails closed to []."""
+    import nx_lib.views.workitems as wv
+
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["col_doctype"])
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+
+    with user_client.session_transaction() as sess:
+        sess["permissions"] = ["workitems.filter.documentfields"]  # no process grants
+
+    resp = user_client.get(
+        "/api/docfield_values",
+        query_string={"field": "doctype", "process": "all"},
+    )
+    assert resp.status_code == 200
+    assert resp.get_json() == []
 
 
 # ============================ /import_prepared_audit =========================
@@ -1189,11 +1962,11 @@ def test_prepared_documents_page_renders_when_ms02_active(
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
     monkeypatch.setitem(CLIENTS, "ms02", object())
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
-    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None: 1)
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None, **kw: 1)
     monkeypatch.setattr(
         wv,
         "fetch_prepared_documents_page",
-        lambda offset, limit, pid=None: [
+        lambda offset, limit, pid=None, **kw: [
             {
                 "id": 1,
                 "pid": "100",
@@ -1226,11 +1999,11 @@ def test_prepared_documents_page_octo_resolve_failure_degrades(
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
     monkeypatch.setitem(CLIENTS, "ms02", object())
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
-    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None: 1)
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None, **kw: 1)
     monkeypatch.setattr(
         wv,
         "fetch_prepared_documents_page",
-        lambda offset, limit, pid=None: [
+        lambda offset, limit, pid=None, **kw: [
             {
                 "id": 1,
                 "pid": "100",
@@ -1266,11 +2039,11 @@ def test_prepared_documents_octo_status_false_when_stage_not_found(
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
     monkeypatch.setitem(CLIENTS, "ms02", object())
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
-    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None: 1)
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None, **kw: 1)
     monkeypatch.setattr(
         wv,
         "fetch_prepared_documents_page",
-        lambda offset, limit, pid=None: [
+        lambda offset, limit, pid=None, **kw: [
             {
                 "id": 1,
                 "pid": "100",
@@ -1289,8 +2062,8 @@ def test_prepared_documents_octo_status_false_when_stage_not_found(
     monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: {"100": [42]})
     monkeypatch.setattr(
         wv,
-        "resolve_octo_wid_stage",
-        lambda e, w: {"status": None, "current_stage": None},
+        "_resolve_prepared_doc_wid_stage",
+        lambda w: {"status": None, "current_stage": None},
     )
 
     captured = {}
@@ -1309,6 +2082,146 @@ def test_prepared_documents_octo_status_false_when_stage_not_found(
     # button / "Open in Workitems" link for a wid that Octo doesn't actually have.
     assert b'data-wid="42"' not in resp.data
     assert b'data-testid="prepared-docs-octo-link"' not in resp.data
+
+
+def test_prepared_documents_resolves_stage_against_owning_client_engine(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Compound identity (client + id): dbo.PreparedDocuments is an MS02-only
+    register, so a register wid must be resolved against CLIENTS['ms02']'s
+    runtime engine, never CLIENTS['default'] -- ids collide across client
+    runtimes (docs/design/ms02-multisource.md), so resolving against the
+    default engine can silently surface a DIFFERENT client's status/stage for
+    a colliding id. Two distinct engines return two distinct stages; the
+    MS02 stage must win and the default engine must never be consulted."""
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS, ClientConfig
+
+    default_engine = object()
+    ms02_engine = object()
+    default_client = ClientConfig(
+        code="default",
+        runtime_engine=default_engine,
+        dialect="tsql",
+        octo_domain="default.example",
+        octo_client_id="id",
+        octo_secret="secret",
+        octo_grant_type="client_credentials",
+    )
+    ms02_client = ClientConfig(
+        code="ms02",
+        runtime_engine=ms02_engine,
+        dialect="postgres",
+        octo_domain="ms02.example",
+        octo_client_id="id",
+        octo_secret="secret",
+        octo_grant_type="client_credentials",
+    )
+    monkeypatch.setitem(CLIENTS, "default", default_client)
+    monkeypatch.setitem(CLIENTS, "ms02", ms02_client)
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None, **kw: 1)
+    monkeypatch.setattr(
+        wv,
+        "fetch_prepared_documents_page",
+        lambda offset, limit, pid=None, **kw: [
+            {
+                "id": 1,
+                "pid": "100",
+                "collected": True,
+                "collected_by": "A",
+                "prepared": False,
+                "prepared_by": "",
+                "uploaded_by": 7,
+                "uploaded_at": None,
+                "updated_at": None,
+            }
+        ],
+    )
+    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: ["sydoc.05_PDBS"])
+    monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [("t", "id", "pid", None)])
+    monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: {"100": [42]})
+
+    calls = []
+
+    def fake_default_resolve(engine, wid):
+        calls.append(("default", engine))
+        return {"status": "Ready", "current_stage": "Extraction"}
+
+    def fake_pg_resolve(engine, wid):
+        calls.append(("ms02", engine))
+        return {"status": "Done", "current_stage": "Delivery"}
+
+    monkeypatch.setattr(wv, "resolve_octo_wid_stage", fake_default_resolve)
+    monkeypatch.setattr(wv, "_resolve_octo_wid_stage_pg", fake_pg_resolve)
+
+    captured = {}
+    real_render_template = wv.render_template
+
+    def _capture(template_name, **kwargs):
+        captured.update(kwargs)
+        return real_render_template(template_name, **kwargs)
+
+    monkeypatch.setattr(wv, "render_template", _capture)
+
+    resp = user_client.get("/prepared_documents")
+    assert resp.status_code == 200
+    # The MS02 (owning-client) engine must have been used, and ONLY it --
+    # never the default engine, even though both are registered.
+    assert calls == [("ms02", ms02_engine)]
+    assert captured["octo_status"]["100"]["status"] == "Done"
+    assert captured["octo_status"]["100"]["current_stage"] == "Delivery"
+    assert captured["octo_status"]["100"]["in_octo"] is True
+
+
+def test_prepared_documents_stage_resolve_fails_closed_on_error(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """A resolution error (bad CLIENTS shape, DB error, etc.) must degrade to
+    in_octo=False, never raise and 500 the register page."""
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    # A malformed/partial CLIENTS['ms02'] entry (e.g. missing .dialect) must
+    # not blow up the route -- it must fail closed instead.
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None, **kw: 1)
+    monkeypatch.setattr(
+        wv,
+        "fetch_prepared_documents_page",
+        lambda offset, limit, pid=None, **kw: [
+            {
+                "id": 1,
+                "pid": "100",
+                "collected": True,
+                "collected_by": "A",
+                "prepared": False,
+                "prepared_by": "",
+                "uploaded_by": 7,
+                "uploaded_at": None,
+                "updated_at": None,
+            }
+        ],
+    )
+    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: ["sydoc.05_PDBS"])
+    monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [("t", "id", "pid", None)])
+    monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: {"100": [42]})
+
+    captured = {}
+    real_render_template = wv.render_template
+
+    def _capture(template_name, **kwargs):
+        captured.update(kwargs)
+        return real_render_template(template_name, **kwargs)
+
+    monkeypatch.setattr(wv, "render_template", _capture)
+
+    resp = user_client.get("/prepared_documents")
+    assert resp.status_code == 200
+    assert captured["octo_status"]["100"]["in_octo"] is False
 
 
 def test_prepared_documents_clear_gated(noperm_client):
@@ -1344,11 +2257,11 @@ def test_prepared_documents_preview_button_requires_details_view(
 
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
     monkeypatch.setitem(CLIENTS, "ms02", object())
-    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None: 1)
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None, **kw: 1)
     monkeypatch.setattr(
         wv,
         "fetch_prepared_documents_page",
-        lambda offset, limit, pid=None: [
+        lambda offset, limit, pid=None, **kw: [
             {
                 "id": 1,
                 "pid": "100",
@@ -1367,8 +2280,8 @@ def test_prepared_documents_preview_button_requires_details_view(
     monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: {"100": [42]})
     monkeypatch.setattr(
         wv,
-        "resolve_octo_wid_stage",
-        lambda e, w: {"status": "Ready", "current_stage": "Import"},
+        "_resolve_prepared_doc_wid_stage",
+        lambda w: {"status": "Ready", "current_stage": "Import"},
     )
 
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
@@ -1376,6 +2289,9 @@ def test_prepared_documents_preview_button_requires_details_view(
     assert resp.status_code == 200
     assert b'data-testid="prepared-docs-preview"' in resp.data
     assert b'data-wid="42"' in resp.data
+    # Register is MS02-only: the preview button must carry the owning client
+    # so the shared detail panel's media/audit fetches disambiguate colliding ids.
+    assert b'data-client="ms02"' in resp.data
     assert b"NexoraWorkitemDetail" in resp.data
 
     monkeypatch.setattr(wv, "has_permission", lambda code: code != "workitems.details.view")
@@ -1393,8 +2309,10 @@ def test_prepared_documents_modal_wires_shared_renderer(
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
     monkeypatch.setitem(CLIENTS, "ms02", object())
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
-    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None: 0)
-    monkeypatch.setattr(wv, "fetch_prepared_documents_page", lambda offset, limit, pid=None: [])
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None, **kw: 0)
+    monkeypatch.setattr(
+        wv, "fetch_prepared_documents_page", lambda offset, limit, pid=None, **kw: []
+    )
     monkeypatch.setattr(wv, "_ms02_target_processes", lambda: [])
     monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [])
     monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: None)
@@ -1403,6 +2321,11 @@ def test_prepared_documents_modal_wires_shared_renderer(
     assert b"NexoraWorkitemDetail.render" in resp.data
     assert b"attachLightbox" in resp.data
     assert b"api/config/fields" in resp.data
+    # The click handler must thread the button's data-client through to
+    # openPreview, which must forward it into the render() options (mirrors
+    # toggleDetailsAndLoadImages's `client: detailsRow.dataset.client` convention).
+    assert b"btn.dataset.client" in resp.data
+    assert b"client: client" in resp.data
 
 
 def test_prepared_documents_preview_present_when_media_degrades(
@@ -1416,11 +2339,11 @@ def test_prepared_documents_preview_present_when_media_degrades(
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
     monkeypatch.setitem(CLIENTS, "ms02", object())
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
-    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None: 1)
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None, **kw: 1)
     monkeypatch.setattr(
         wv,
         "fetch_prepared_documents_page",
-        lambda offset, limit, pid=None: [
+        lambda offset, limit, pid=None, **kw: [
             {
                 "id": 1,
                 "pid": "100",
@@ -1453,12 +2376,14 @@ def test_prepared_documents_pid_filter_passes_through(
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
     seen = {}
     monkeypatch.setattr(
-        wv, "count_prepared_documents", lambda pid=None: (seen.__setitem__("count_pid", pid) or 1)
+        wv,
+        "count_prepared_documents",
+        lambda pid=None, **kw: (seen.__setitem__("count_pid", pid) or 1),
     )
     monkeypatch.setattr(
         wv,
         "fetch_prepared_documents_page",
-        lambda offset, limit, pid=None: (
+        lambda offset, limit, pid=None, **kw: (
             seen.__setitem__("fetch_pid", pid)
             or [
                 {
@@ -1485,6 +2410,106 @@ def test_prepared_documents_pid_filter_passes_through(
     assert b'data-testid="prepared-docs-show-all"' in resp.data
 
 
+def test_prepared_documents_collected_prepared_group_by_per_page_pass_through(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Collected/Prepared/group_by/per_page query params must reach the
+    data-access calls unchanged, and per_page must round-trip so the
+    rendered select reflects what was actually requested."""
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    seen = {}
+    monkeypatch.setattr(
+        wv,
+        "count_prepared_documents",
+        lambda pid=None, collected=None, prepared=None, **kw: (
+            seen.__setitem__("count_kwargs", (pid, collected, prepared)) or 1
+        ),
+    )
+    monkeypatch.setattr(
+        wv,
+        "fetch_prepared_documents_page",
+        lambda offset, limit, pid=None, collected=None, prepared=None, group_by=None, **kw: (
+            seen.__setitem__("fetch_kwargs", (offset, limit, pid, collected, prepared, group_by))
+            or []
+        ),
+    )
+    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: [])
+    monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [])
+    monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: None)
+
+    resp = user_client.get(
+        "/prepared_documents?collected=1&prepared=0&group_by=collected_by&per_page=100"
+    )
+    assert resp.status_code == 200
+    assert seen["count_kwargs"] == (None, True, False)
+    assert seen["fetch_kwargs"] == (0, 100, None, True, False, "collected_by")
+    # The per-page select must reflect the requested value, not the default.
+    assert b'value="100" selected' in resp.data
+
+
+def test_prepared_documents_per_page_rejects_unknown_value(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """An out-of-allowlist per_page must fall back to the 40 default rather
+    than reaching the DB layer with an arbitrary page size."""
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    seen = {}
+    monkeypatch.setattr(
+        wv,
+        "count_prepared_documents",
+        lambda pid=None, **kw: 1,
+    )
+    monkeypatch.setattr(
+        wv,
+        "fetch_prepared_documents_page",
+        lambda offset, limit, **kw: (seen.__setitem__("limit", limit) or []),
+    )
+    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: [])
+    monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [])
+    monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: None)
+
+    resp = user_client.get("/prepared_documents?per_page=9999")
+    assert resp.status_code == 200
+    assert seen["limit"] == 40
+
+
+def test_prepared_documents_group_by_rejects_unknown_column(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """An unrecognized group_by value must not reach the ORDER BY builder --
+    it should be dropped rather than passed through as free text."""
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    seen = {}
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None, **kw: 1)
+    monkeypatch.setattr(
+        wv,
+        "fetch_prepared_documents_page",
+        lambda offset, limit, group_by=None, **kw: (seen.__setitem__("group_by", group_by) or []),
+    )
+    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: [])
+    monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [])
+    monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: None)
+
+    resp = user_client.get("/prepared_documents?group_by=DROP TABLE Users")
+    assert resp.status_code == 200
+    assert seen["group_by"] is None
+
+
 def test_prepared_documents_centered_headers_use_align_center(
     user_client, workitems_all_perms, monkeypatch
 ):
@@ -1493,11 +2518,11 @@ def test_prepared_documents_centered_headers_use_align_center(
 
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
     monkeypatch.setitem(CLIENTS, "ms02", object())
-    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None: 1)
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None, **kw: 1)
     monkeypatch.setattr(
         wv,
         "fetch_prepared_documents_page",
-        lambda offset, limit, pid=None: [
+        lambda offset, limit, pid=None, **kw: [
             {
                 "id": 1,
                 "pid": "100",
@@ -1643,11 +2668,11 @@ def test_prepared_docs_preview_button_carries_stage(user_client, workitems_all_p
 
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
     monkeypatch.setitem(CLIENTS, "ms02", object())
-    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None: 1)
+    monkeypatch.setattr(wv, "count_prepared_documents", lambda pid=None, **kw: 1)
     monkeypatch.setattr(
         wv,
         "fetch_prepared_documents_page",
-        lambda offset, limit, pid=None: [
+        lambda offset, limit, pid=None, **kw: [
             {
                 "id": 1,
                 "pid": "100",
@@ -1666,8 +2691,8 @@ def test_prepared_docs_preview_button_carries_stage(user_client, workitems_all_p
     monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: {"100": [42]})
     monkeypatch.setattr(
         wv,
-        "resolve_octo_wid_stage",
-        lambda e, w: {"status": "In Progress", "current_stage": "Validation"},
+        "_resolve_prepared_doc_wid_stage",
+        lambda w: {"status": "In Progress", "current_stage": "Validation"},
     )
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
     resp = user_client.get("/prepared_documents")
@@ -1675,6 +2700,125 @@ def test_prepared_docs_preview_button_carries_stage(user_client, workitems_all_p
     assert b'data-wid="42"' in resp.data
     assert b'data-status="In Progress"' in resp.data
     assert b'data-current-stage="Validation"' in resp.data
+    # openPreview is called with 4 args -- status/stage plus the client, so a
+    # colliding id (compound identity: client + id) resolves against the
+    # right runtime instead of whichever client happens to own the id.
     assert (
-        b"openPreview(btn.dataset.wid, btn.dataset.status, btn.dataset.currentStage)" in resp.data
+        b"openPreview(btn.dataset.wid, btn.dataset.status, btn.dataset.currentStage, "
+        b"btn.dataset.client)" in resp.data
     )
+
+
+# ===================== API: saved filter views (#170) ========================
+
+
+def test_filter_views_anonymous(client):
+    resp = client.get("/api/workitem_filter_views", follow_redirects=False)
+    assert resp.status_code in (302, 401, 403)
+
+
+def test_filter_views_without_perm_returns_403(noperm_client):
+    assert noperm_client.get("/api/workitem_filter_views").status_code == 403
+
+
+def test_filter_views_crud_roundtrip(user_client, workitems_all_perms):
+    filters = [["prcfW", "all"], ["search", "1216"], ["status", "Done"]]
+
+    resp = user_client.post(
+        "/api/workitem_filter_views", json={"name": "My queue", "filters": filters}
+    )
+    assert resp.status_code == 200
+    vid = resp.get_json()["id"]
+
+    resp = user_client.get("/api/workitem_filter_views")
+    assert resp.status_code == 200
+    mine = [v for v in resp.get_json()["views"] if v["id"] == vid]
+    assert mine and mine[0]["name"] == "My queue" and mine[0]["filters"] == filters
+
+    # Saving under the same name overwrites, keeping one row (same id).
+    resp = user_client.post(
+        "/api/workitem_filter_views",
+        json={"name": "My queue", "filters": [["status", "Ready"]]},
+    )
+    assert resp.status_code == 200
+    assert resp.get_json()["id"] == vid
+
+    # Rename via id keeps the id stable.
+    resp = user_client.post(
+        "/api/workitem_filter_views",
+        json={"id": vid, "name": "Renamed queue", "filters": filters},
+    )
+    assert resp.status_code == 200
+    resp = user_client.get("/api/workitem_filter_views")
+    assert [v["name"] for v in resp.get_json()["views"] if v["id"] == vid] == ["Renamed queue"]
+
+    assert user_client.delete(f"/api/workitem_filter_views/{vid}").status_code == 200
+    assert user_client.delete(f"/api/workitem_filter_views/{vid}").status_code == 404
+
+
+def test_filter_views_validation(user_client, workitems_all_perms):
+    def post(body):
+        return user_client.post("/api/workitem_filter_views", json=body)
+
+    assert post({"name": "", "filters": []}).status_code == 400
+    assert post({"name": "x" * 101, "filters": []}).status_code == 400
+    assert post({"name": "x", "filters": "nope"}).status_code == 400
+    assert post({"name": "x", "filters": [["only-one-element"]]}).status_code == 400
+    assert post({"name": "x", "filters": [["k", 1]]}).status_code == 400
+    assert post({"name": "x", "filters": [["k", "v"]], "id": "nope"}).status_code == 400
+
+
+def test_filter_views_scoped_to_owner(login, workitems_all_perms):
+    user = login(username="user@test.local")
+    vid = user.post(
+        "/api/workitem_filter_views", json={"name": "scope check", "filters": []}
+    ).get_json()["id"]
+
+    admin = login(username="admin@test.local")
+    assert vid not in [v["id"] for v in admin.get("/api/workitem_filter_views").get_json()["views"]]
+    assert admin.delete(f"/api/workitem_filter_views/{vid}").status_code == 404
+
+    user = login(username="user@test.local")
+    assert user.delete(f"/api/workitem_filter_views/{vid}").status_code == 200
+
+
+def test_filter_views_folder_roundtrip(user_client, workitems_all_perms):
+    resp = user_client.post(
+        "/api/workitem_filter_views",
+        json={"name": "foldered", "folder": "Search Specific", "filters": []},
+    )
+    assert resp.status_code == 200
+    body = resp.get_json()
+    vid = body["id"]
+    assert body["folder"] == "Search Specific"
+
+    views = user_client.get("/api/workitem_filter_views").get_json()["views"]
+    assert [v["folder"] for v in views if v["id"] == vid] == ["Search Specific"]
+
+    # Move to another folder via id-update (id stays stable).
+    resp = user_client.post(
+        "/api/workitem_filter_views",
+        json={"id": vid, "name": "foldered", "folder": "Other", "filters": []},
+    )
+    assert resp.status_code == 200
+    views = user_client.get("/api/workitem_filter_views").get_json()["views"]
+    assert [v["folder"] for v in views if v["id"] == vid] == ["Other"]
+
+    # Blank folder clears it back to un-foldered (NULL -> JSON null).
+    resp = user_client.post(
+        "/api/workitem_filter_views",
+        json={"id": vid, "name": "foldered", "folder": "  ", "filters": []},
+    )
+    assert resp.status_code == 200
+    views = user_client.get("/api/workitem_filter_views").get_json()["views"]
+    assert [v["folder"] for v in views if v["id"] == vid] == [None]
+
+    assert user_client.delete(f"/api/workitem_filter_views/{vid}").status_code == 200
+
+
+def test_filter_views_folder_validation(user_client, workitems_all_perms):
+    def post(body):
+        return user_client.post("/api/workitem_filter_views", json=body)
+
+    assert post({"name": "x", "folder": "f" * 101, "filters": []}).status_code == 400
+    assert post({"name": "x", "folder": 5, "filters": []}).status_code == 400

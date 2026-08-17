@@ -1,18 +1,11 @@
-"""Integration tests for nx_lib.views.dashboard — page + 11 widget APIs +
-recent activity.
+"""Integration tests for nx_lib.views.dashboard — page + KPI APIs + recent
+activity.
 
 Seed test users (user@test.local, admin@test.local) have only the
 `dashboard.view` permission, not the per-process `dashboard.filter.process.*`
 codes. That means most KPI endpoints short-circuit at the
 `if not target_processes` guard and return an empty/zero response — which is
 ideal for an integration test (deterministic, no DB-write needed).
-
-For endpoints whose first DB hit is unconditional (field_metadata,
-get_layout, put_layout, reset_layout), the missing tables in TEST schema
-(FieldMetadata, SearchConfig, Search_Field_Labels, DashboardLayouts) push
-the request through the except branch → JSON error with 500. We assert
-tuple-match `(200, 500)` to stay forward-compatible if the test schema is
-later extended.
 
 Routes covered:
 - GET  /dashboard                            page (dashboard.view-gated)
@@ -21,12 +14,6 @@ Routes covered:
 - GET  /api/dashboard/hourly_stats           cached empty path
 - GET  /api/dashboard/avg_processing_time    cached empty path
 - POST /api/dashboard/set_filter             session mutation
-- GET  /api/dashboard/field_metadata         expects 200/500
-- GET  /api/dashboard/layout                 expects 200/500
-- PUT  /api/dashboard/layout                 invalid JSON 400 + 200/500
-- POST /api/dashboard/layout/reset           expects 200/500
-- POST /api/dashboard/widget_data            invalid widget 400 + 200/500
-- POST /api/dashboard/widget_compare         no-date-range path returns warning
 - GET  /api/dashboard/recent_activity        early-empty (returns [])
 """
 
@@ -35,6 +22,7 @@ from unittest.mock import MagicMock
 
 import nx_lib.hooks
 import nx_lib.views.dashboard as dv
+import nx_lib.views.workitems as wv
 from nx_lib.extensions import cache
 
 
@@ -125,75 +113,6 @@ def test_set_filter_unknown_process_falls_back_to_all(user_client):
     )
     assert resp.status_code == 200
     assert resp.get_json()["process_name"] == "all"
-
-
-def test_field_metadata_authed_returns_json(user_client):
-    """FieldMetadata table is missing from TEST → 500 via except branch."""
-    resp = user_client.get("/api/dashboard/field_metadata")
-    assert resp.status_code in (200, 500)
-    assert resp.is_json
-
-
-def test_get_layout_no_table_returns_500_or_default(user_client):
-    """DashboardLayouts table is missing in TEST → 500."""
-    resp = user_client.get("/api/dashboard/layout")
-    assert resp.status_code in (200, 500)
-
-
-def test_put_layout_invalid_json_returns_400(user_client):
-    resp = user_client.put("/api/dashboard/layout", data="not-json")
-    assert resp.status_code == 400
-
-
-def test_put_layout_valid_payload_attempts_save(user_client):
-    """Valid empty layout payload — DB tables missing, expect 500 from except."""
-    resp = user_client.put("/api/dashboard/layout", json={"widgets": []})
-    assert resp.status_code in (200, 400, 500)
-
-
-def test_reset_layout_500_when_table_missing(user_client):
-    resp = user_client.post("/api/dashboard/layout/reset")
-    assert resp.status_code in (200, 500)
-
-
-def test_widget_data_anonymous_returns_redirect(client):
-    """@require_permission with no session redirects to /login."""
-    resp = client.post(
-        "/api/dashboard/widget_data",
-        json={"widget": {"type": "kpi"}},
-        follow_redirects=False,
-    )
-    assert resp.status_code in (302, 401)
-
-
-def test_widget_data_invalid_widget_returns_400(user_client):
-    resp = user_client.post("/api/dashboard/widget_data", json={"widget": {}})
-    assert resp.status_code == 400
-
-
-def test_widget_data_valid_payload_attempts_query(user_client):
-    """Valid widget type but no allowed_processes → query returns empty/error."""
-    resp = user_client.post(
-        "/api/dashboard/widget_data",
-        json={"widget": {"type": "kpi", "metric": "count"}},
-    )
-    assert resp.status_code in (200, 400, 500)
-
-
-def test_widget_compare_no_date_range_returns_warning(user_client):
-    """No date filter → returns warning rather than running queries."""
-    resp = user_client.post(
-        "/api/dashboard/widget_compare",
-        json={"widget": {"type": "categorical"}},
-    )
-    assert resp.status_code == 200
-    body = resp.get_json()
-    assert "compare_unavailable_no_date_range" in body.get("warnings", [])
-
-
-def test_widget_compare_invalid_widget_returns_400(user_client):
-    resp = user_client.post("/api/dashboard/widget_compare", json={"widget": {}})
-    assert resp.status_code == 400
 
 
 def test_recent_activity_authed_returns_empty_list(user_client):
@@ -305,6 +224,133 @@ def test_recent_activity_skips_row_when_workitemdata_lookup_fails(user_client, m
     assert resp.status_code == 200
     body = resp.get_json()
     assert [row["id"] for row in body] == [good_row["id"]]
+
+
+# --------------------- sensitive doc-fields must not leak (Task 16) --------- #
+# The activity feed read raw Octo `fields` straight through with no strip,
+# unlike every other surface that shows doc-fields (workitems.filter.
+# documentfields.sensitive). Caller without the perm must not see a
+# sensitive-configured field's value.
+
+
+def test_recent_activity_strips_sensitive_fields_without_perm(user_client, monkeypatch):
+    """Caller WITHOUT workitems.filter.documentfields.sensitive: a sensitive-
+    configured field must be absent from the row's fields, not leaked."""
+    cache.clear()
+    monkeypatch.setattr(
+        nx_lib.hooks,
+        "load_permissions_for_user",
+        lambda uid: ["dashboard.view", "dashboard.filter.process.sydoc.TestProc"],
+    )
+    monkeypatch.setattr(dv, "get_activity_instances_to_ignore", lambda: "")
+    monkeypatch.setattr(wv, "get_sensitive_field_tokens", lambda: {"pid"})
+
+    row = {
+        "id": 444,
+        "modifiedat": datetime(2026, 7, 20, 9, 30),
+        "process": "TestProc",
+        "client": "sydoc",
+    }
+    monkeypatch.setattr(dv, "recent_activity_rows", lambda *a, **k: [row])
+    monkeypatch.setattr(
+        dv, "get_domain_for_workitem", lambda wid, client_hint=None: "domain.example.com"
+    )
+    monkeypatch.setattr(dv, "get_workitemdata_param", lambda wid, domain: ("wdata", "docid"))
+    monkeypatch.setattr(
+        dv,
+        "get_extensions_urls_fields",
+        lambda workitemdata, document_id, domain: (
+            None,
+            None,
+            {"PID": "12345", "Notes": "hello"},
+            None,
+            None,
+        ),
+    )
+
+    resp = user_client.get("/api/dashboard/recent_activity")
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body[0]["fields"] == {"Notes": "hello"}
+
+
+# --------------------- every row must carry its client (Task 16) ------------ #
+# Rows carried no `client` key in the JSON response, so a colliding-id
+# click-through (see D9 tests above, which cover the server-side hint
+# forwarding) could not disambiguate on the front end either.
+
+
+def test_recent_activity_rows_include_client_key(user_client, monkeypatch):
+    """Every emitted row carries its source client, not just internally for
+    the domain-hint lookup -- the front-end deep link needs it too."""
+    cache.clear()
+    monkeypatch.setattr(
+        nx_lib.hooks,
+        "load_permissions_for_user",
+        lambda uid: ["dashboard.view", "dashboard.filter.process.ms02.TestProc"],
+    )
+    monkeypatch.setattr(dv, "get_activity_instances_to_ignore", lambda: "")
+
+    row = {
+        "id": 1216,
+        "modifiedat": datetime(2026, 7, 20, 9, 30),
+        "process": "TestProc",
+        "client": "ms02",
+    }
+    monkeypatch.setattr(dv, "recent_activity_rows", lambda *a, **k: [row])
+    monkeypatch.setattr(
+        dv, "get_domain_for_workitem", lambda wid, client_hint=None: "ms02-domain.example.com"
+    )
+    monkeypatch.setattr(dv, "get_workitemdata_param", lambda wid, domain: ("wdata", "docid"))
+    monkeypatch.setattr(
+        dv,
+        "get_extensions_urls_fields",
+        lambda workitemdata, document_id, domain: (None, None, {}, None, None),
+    )
+
+    resp = user_client.get("/api/dashboard/recent_activity")
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body[0]["client"] == "ms02"
+
+
+# --------------------- phase-review fix: cross-product pair derivation ------ #
+# api_recent_activity() built two separately-uniqued proc/client lists from
+# target_processes -- the SAME cross-product bug Task 14 (cc167e1) fixed for
+# the workitems list, but independently, since this call site feeds
+# recent_activity_rows()/backlog_count(), not list_workitems(). A caller
+# granted only (A, P1) and (B, P2) must never let (A, P2)/(B, P1) reach the
+# source layer.
+
+
+def test_recent_activity_route_derives_granted_pairs_not_cross_product(user_client, monkeypatch):
+    cache.clear()
+    monkeypatch.setattr(
+        nx_lib.hooks,
+        "load_permissions_for_user",
+        lambda uid: [
+            "dashboard.view",
+            "dashboard.filter.process.A.P1",
+            "dashboard.filter.process.B.P2",
+        ],
+    )
+    monkeypatch.setattr(dv, "get_activity_instances_to_ignore", lambda: "")
+
+    calls = []
+
+    def _fake_recent_activity_rows(pairs, activity_ignore_csv, top=3):
+        calls.append(pairs)
+        return []
+
+    monkeypatch.setattr(dv, "recent_activity_rows", _fake_recent_activity_rows)
+
+    resp = user_client.get("/api/dashboard/recent_activity")
+    assert resp.status_code == 200
+    assert len(calls) == 1
+    built_pairs = calls[0]
+    assert sorted(built_pairs) == [("A", "P1"), ("B", "P2")]
+    assert ("A", "P2") not in built_pairs
+    assert ("B", "P1") not in built_pairs
 
 
 # --------------------- error responses must not be cached ------------------- #

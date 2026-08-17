@@ -6,7 +6,14 @@ callable directly (Task 4) and, for the real provider round-trip, inject a fake
 HTTP ``transport`` (Task 5). No network.
 """
 
-from nx_lib.reporting.ai import AssistantTurn, _make_agent_step, ask_agentic
+import time
+
+from nx_lib.reporting.ai import (
+    AssistantTurn,
+    _make_agent_step,
+    ask_agentic,
+    ask_agentic_iter,
+)
 from nx_lib.reporting.ai_tools import TOOL_SPECS, ToolRegistry
 
 
@@ -71,6 +78,86 @@ def test_turn_cap_stops_runaway_loop():
     assert res.answer == ""
 
 
+# ---- Issue #127: a silent final turn (no tools, no text) must not surface
+# as an empty answer without a fight — the loop nudges the model exactly once
+# to write the answer it owes; a second silent turn ends the loop normally
+# (the view layer substitutes a user-facing fallback for the empty string).
+
+
+def test_empty_final_answer_gets_one_nudge_retry():
+    seen = []
+
+    def step(messages):
+        seen.append(list(messages))
+        if len(seen) == 1:
+            return AssistantTurn(text="")
+        return AssistantTurn(text="Here is the answer.")
+
+    res = ask_agentic("q", registry=ToolRegistry(), agent_step=step, max_turns=5)
+    assert res.answer == "Here is the answer."
+    assert res.turns == 2
+    assert res.stopped_reason == "final"
+    # the nudge rides in as a user message after the silent assistant turn
+    assert seen[1][-1]["role"] == "user"
+    assert "final answer" in seen[1][-1]["content"]
+
+
+def test_second_silent_turn_ends_final_without_second_nudge():
+    step = _script(AssistantTurn(text=""), AssistantTurn(text="   "))
+    res = ask_agentic("q", registry=ToolRegistry(), agent_step=step, max_turns=5)
+    assert res.turns == 2
+    assert res.stopped_reason == "final"
+    assert not res.answer.strip()
+
+
+def test_empty_final_at_turn_cap_returns_without_nudge():
+    step = _script(AssistantTurn(text=""))
+    res = ask_agentic("q", registry=ToolRegistry(), agent_step=step, max_turns=1)
+    assert res.turns == 1
+    assert res.stopped_reason == "final"
+    assert res.answer == ""
+
+
+def test_nonempty_final_answer_is_not_nudged():
+    step = _script(AssistantTurn(text="Direct answer."))
+    res = ask_agentic("q", registry=ToolRegistry(), agent_step=step, max_turns=5)
+    assert res.answer == "Direct answer."
+    assert res.turns == 1
+
+
+def test_iter_yields_progress_events_then_exactly_one_result():
+    """ask_agentic_iter narrates the same loop ask_agentic drains silently."""
+    step = _script(
+        AssistantTurn(
+            text="Let me check that.",
+            tool_calls=[{"id": "1", "name": "validate_sql", "args": {"sql": "SELECT 1"}}],
+        ),
+        AssistantTurn(text="It is valid."),
+    )
+    events = list(ask_agentic_iter("q", registry=ToolRegistry(), agent_step=step))
+    assert [e.get("phase") for e in events[:-1]] == ["thinking", "note", "tool", "thinking"]
+    assert events[1]["text"] == "Let me check that."
+    assert events[2]["name"] == "validate_sql"
+    assert [("result" in e) for e in events].count(True) == 1
+    assert events[-1]["result"].answer == "It is valid."
+
+
+def test_wall_clock_budget_stops_a_slow_loop():
+    """A model slow enough to blow the budget stops between turns, not mid-turn."""
+    reg = ToolRegistry()
+    forever = AssistantTurn(
+        tool_calls=[{"id": "x", "name": "validate_sql", "args": {"sql": "SELECT 1"}}]
+    )
+
+    def slow(messages):
+        time.sleep(0.02)
+        return forever
+
+    res = ask_agentic("q", registry=reg, agent_step=slow, max_turns=50, budget_s=0.01)
+    assert res.stopped_reason == "budget"
+    assert res.turns == 1  # one turn always runs; the budget is checked before the next
+
+
 def test_loop_passes_tool_results_into_next_messages():
     """The assistant turn + tool results are appended so the model sees them."""
     seen = []
@@ -86,6 +173,36 @@ def test_loop_passes_tool_results_into_next_messages():
     ask_agentic("q", registry=ToolRegistry(), agent_step=step, max_turns=5)
     # second call must see: user, assistant, tool
     assert seen[1] == ["user", "assistant", "tool"]
+
+
+def test_ask_agentic_seeds_history_before_question():
+    seen = {}
+
+    def step(messages):
+        seen["messages"] = list(messages)
+        return AssistantTurn(text="done", tool_calls=[])
+
+    result = ask_agentic(
+        "follow-up?",
+        registry=ToolRegistry(),
+        agent_step=step,
+        history=[
+            {"role": "user", "content": "first"},
+            {"role": "assistant", "content": "answer"},
+        ],
+    )
+    assert seen["messages"][0] == {"role": "user", "content": "first"}
+    assert seen["messages"][1] == {"role": "assistant", "content": "answer"}
+    assert seen["messages"][2] == {"role": "user", "content": "follow-up?"}
+    assert result.answer == "done"
+
+
+def test_ask_agentic_no_history_unchanged():
+    def step(messages):
+        assert messages == [{"role": "user", "content": "q"}]
+        return AssistantTurn(text="ok", tool_calls=[])
+
+    assert ask_agentic("q", registry=ToolRegistry(), agent_step=step).answer == "ok"
 
 
 # ---- Task 5: provider tool-calling round-trip ----------------------------
@@ -318,3 +435,29 @@ def test_agent_system_prompt_defaults_time_filters_to_processing_dates():
 
     assert "processing-date" in _AGENT_SYSTEM
     assert "Document Date" in _AGENT_SYSTEM
+
+
+def test_agent_system_prompt_makes_ambiguous_readings_explicit():
+    # Issue #132 case 17: a vague question got a silently-picked interpretation.
+    from nx_lib.reporting.ai import _AGENT_SYSTEM
+
+    assert "underdetermines" in _AGENT_SYSTEM
+    assert "main alternative" in _AGENT_SYSTEM
+
+
+def test_agent_system_prompt_carries_the_caveat_checklist():
+    # Issue #132: partial periods, small-n percentages, silent assumptions and
+    # trend claims off one row all went unflagged across six eval cases.
+    from nx_lib.reporting.ai import _AGENT_SYSTEM
+
+    for marker in ("PARTIAL PERIOD", "SMALL", "ASSUMPTIONS", "THIN EVIDENCE"):
+        assert marker in _AGENT_SYSTEM
+
+
+def test_agent_system_prompt_forbids_quitting_and_unexecuted_sql():
+    # Issue #132 cases 9/18/20: quit with turns left, or passed off a query it
+    # never ran as the source of the numbers.
+    from nx_lib.reporting.ai import _AGENT_SYSTEM
+
+    assert "did not execute" in _AGENT_SYSTEM
+    assert "do not hand the question back" in _AGENT_SYSTEM

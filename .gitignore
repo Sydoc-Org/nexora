@@ -260,5 +260,8 @@ ruvector.db
 mockups/
 var/autopilot/
 
-# db-standard: keep the design docs, not the sample Crystal Report binary
-db-standard/*.rpt
+# Deploy-generated build stamp (see .github/workflows/deploy.yml) -- never committed
+nx_lib/_build.py
+
+# backlog-history collector runtime state (ops/backlog_history/)
+ops/backlog_history/last_ticket.txt

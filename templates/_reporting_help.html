@@ -1,0 +1,59 @@
+{# In-app "Get the best results" tips for the Reporting page. Opened by the
+   #rpHelpToggle button in reporting.html's page head.
+
+   CONTENT CONTRACT: this panel mirrors the "Tips — getting the best results"
+   section of docs/howto/reporting-guide.md. If you change user-visible
+   Reporting behaviour, update BOTH in the same commit (CLAUDE.md "Keeping
+   docs in sync"; scripts/check-reporting-help-sync.py nudges on commit). #}
+<div id="rpHelpModal" class="reporting-modal" hidden data-testid="reporting-help-modal">
+  <div class="reporting-modal-box reporting-help-box nx-card nx-card--pad" role="dialog" aria-modal="true" aria-labelledby="rpHelpTitle">
+    <h3 id="rpHelpTitle">{{ _("Get the best results") }}</h3>
+    <div class="reporting-help-body">
+      <h4>{{ _("Building a report") }}</h4>
+      <ul>
+        <li>{{ _("Watch the coverage badge (e.g. 2/5) on measures and categories: only part of the processes provide that field, and documents from the others land in the empty bucket. Hover it to see which. If a number looks too low, check the badge first.") }}</li>
+        <li>{{ _("Everything in one empty bucket? The breakdown field is not filled in for the processes you selected.") }}</li>
+        <li>{{ _("Relative presets stay relative: a report saved with “This month” shows the current month on every run and in every scheduled mail. Schedule times are UTC.") }}</li>
+      </ul>
+      <h4>{{ _("Checking a number") }}</h4>
+      <ul>
+        <li>{{ _("Click a chart bar or a table row to open the documents behind that number; “Show query” reveals exactly how it was computed.") }}</li>
+        <li>{{ _("The ↑/↓ comparison chips compare a window shifted back by your range’s length in days — not the previous calendar period. Hover a chip for the exact dates.") }}</li>
+        <li>{{ _("Two people can see different totals on the same report: it always runs with the viewer’s own data access.") }}</li>
+        <li>{{ _("Charts cap at 50 axis values and 12 series — past the cap you get a partial chart or none at all; the table and exports always carry the full data.") }}</li>
+      </ul>
+      <h4>{{ _("Saving and sharing") }}</h4>
+      <ul>
+        <li>{{ _("Save works differently per tab: on Simple, Save always creates a new report under My reports; on Advanced, Save overwrites the open report — including a shared one you can edit. Use “Save as” for a copy.") }}</li>
+        <li>{{ _("A scheduled email runs with the report owner’s data access — recipients see the owner’s numbers, not their own.") }}</li>
+      </ul>
+      {% if ai_enabled %}
+      <h4>{{ _("Asking the AI") }}</h4>
+      <ul>
+        <li>{{ _("Name the measure, the time range and the processes: “invoices by process, last 3 months” beats “show me invoices”.") }}</li>
+        <li>{{ _("Check what the AI built with “Open in builder” — the filters and process scope it chose are visible there before you trust the number.") }}</li>
+        <li>{{ _("Follow-ups work: the chat remembers the conversation, so “now only this quarter” refines the last answer.") }}</li>
+        <li>{{ _("When the AI used tools, unfold “How the agent worked” to see the steps; if a “Continue” button appears, click it before rephrasing your question.") }}</li>
+      </ul>
+      {% endif %}
+    </div>
+    <div class="reporting-modal-actions reporting-help-actions">
+      {# New tab on purpose: the builder holds unsaved state. #}
+      <a class="nx-btn nx-btn--ghost" data-testid="reporting-help-guide-link"
+         href="{{ url_for('reporting_guide') }}" target="_blank" rel="noopener">
+        <i class="fas fa-book-open" aria-hidden="true"></i> {{ _("Full guide") }}</a>
+      <button id="rpHelpClose" class="reporting-btn nx-btn nx-btn--secondary" data-testid="reporting-help-close">{{ _("Close") }}</button>
+    </div>
+  </div>
+</div>
+<script nonce="{{ csp_nonce() }}">
+  (function () {
+    var modal = document.getElementById('rpHelpModal');
+    var toggle = document.getElementById('rpHelpToggle');
+    if (!modal || !toggle) return;
+    toggle.addEventListener('click', function () { modal.hidden = false; });
+    document.getElementById('rpHelpClose').addEventListener('click', function () { modal.hidden = true; });
+    modal.addEventListener('click', function (e) { if (e.target === modal) modal.hidden = true; });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modal.hidden) modal.hidden = true; });
+  }());
+</script>

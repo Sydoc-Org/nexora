@@ -1,5 +1,7 @@
 # Branch-name guard for pre-push.
-# Refuses pushes from branches not named 'main' or 'feature/<x.y.z>'.
+# Refuses pushes from branches not named 'main', 'v<x.y[.z]>' (release cycle
+# branches, e.g. v3.1 — convention since the 3.1 cycle) or 'feature/<x.y.z>'
+# (pre-3.1 cycle branches, kept for in-flight branches).
 # Bypass with: git push --no-verify
 #
 # Invoked by the pre-commit framework (.pre-commit-config.yaml) at the
@@ -10,11 +12,11 @@
 $ErrorActionPreference = 'Stop'
 
 $branch = (git rev-parse --abbrev-ref HEAD).Trim()
-$allowed = '^(main|feature/[0-9]+\.[0-9]+\.[0-9]+)$'
+$allowed = '^(main|v[0-9]+\.[0-9]+(\.[0-9]+)?|feature/[0-9]+\.[0-9]+\.[0-9]+)$'
 
 if ($branch -notmatch $allowed) {
-    Write-Host "[pre-push] refused: branch '$branch' must be 'main' or match 'feature/<x.y.z>' (e.g. feature/2.5.60)." -ForegroundColor Red
-    Write-Host "[pre-push] rename with: git branch -m feature/<x.y.z>"
+    Write-Host "[pre-push] refused: branch '$branch' must be 'main' or match 'v<x.y[.z]>' (e.g. v3.1) or 'feature/<x.y.z>'." -ForegroundColor Red
+    Write-Host "[pre-push] rename with: git branch -m v<x.y>"
     Write-Host "[pre-push] bypass with: git push --no-verify"
     exit 1
 }

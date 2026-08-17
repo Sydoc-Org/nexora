@@ -1,4 +1,4 @@
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
   const csrf = document.querySelector('meta[name="csrf-token"]').content;
   const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
@@ -13,7 +13,11 @@
     currentReportOwned: true, currentReportCanEdit: true,
     // Semantic metrics: cached full map {sourceId: [{code,label,...}]} (null until
     // fetched), the per-source available list, and the selected metric codes.
-    metricsBySource: null, availableMetrics: [], metrics: []
+    metricsBySource: null, availableMetrics: [], metrics: [],
+    // Forecast toggle state: {enabled: true, horizon: 'auto'|number} or null.
+    // Mirrors the Simple tab's shape (see def.forecast in _reporting_simple_js.html)
+    // so buildDefinition()/applyDefinition() can pass it through verbatim.
+    forecast: null
   };
 
   // Relative-date token presets for date-typed filter fields. Token shape
@@ -178,7 +182,7 @@
   // toggles the box natively, firing `onToggle`.
   function scopeRow(labelText, checked, indeterminate, onToggle) {
     var row = document.createElement('label');
-    row.className = 'reporting-scope-row';
+    row.className = 'nx-scope-row';
     var box = document.createElement('input');
     box.type = 'checkbox';
     box.checked = checked;
@@ -209,20 +213,20 @@
 
     var allRow = scopeRow('{{ _("All processes") }}', selN >= total, selN > 0 && selN < total,
       function () { selectAllProcesses(); });
-    allRow.classList.add('reporting-scope-all');
+    allRow.classList.add('nx-scope-all');
     menu.appendChild(allRow);
 
     processGroups().forEach(function (g) {
       var sel = g.procs.filter(isSelected).length;
       var clientRow = scopeRow(g.client, sel === g.procs.length, sel > 0 && sel < g.procs.length,
         (function (c) { return function () { toggleClient(c); }; })(g.client));
-      clientRow.classList.add('reporting-scope-client');
+      clientRow.classList.add('nx-scope-client');
       menu.appendChild(clientRow);
       g.procs.forEach(function (p) {
         var label = p.slice(g.client.length + 1) || p; // process part after '<client>.'
         var row = scopeRow(label, isSelected(p), false,
           (function (proc) { return function () { toggleProcess(proc); }; })(p));
-        row.classList.add('reporting-scope-proc');
+        row.classList.add('nx-scope-proc');
         menu.appendChild(row);
       });
     });
@@ -247,7 +251,7 @@
   }
 
   function buildDefinition() {
-    return {
+    var d = {
       schemaVersion: 1,
       source: state.source,
       visualization: 'table',
@@ -269,6 +273,8 @@
       sql: null,
       sqlTarget: null,
     };
+    if (state.forecast && state.forecast.enabled) d.forecast = state.forecast;
+    return d;
   }
 
   // Definition for whichever mode is active (curated builder vs SQL editor).
@@ -383,10 +389,64 @@
     renderSort();
   }
 
+  // ----- Auto AI caption (Task 13) -------------------------------------------
+  // Fires on chart mount (below) when the caption slot exists in the DOM --
+  // it only exists when the page was rendered for a reporting.ai.explain_data
+  // holder (Jinja `ai_caption_enabled` gate in reporting.html), so a caller
+  // with no permission is a silent no-op. Shimmers while the request is in
+  // flight, then shows the caption with its AI chip -- or hides silently on
+  // ANY error (network failure, non-200, bad JSON): unlike the chat panel,
+  // this surface never shows an error state or logs to the console.
+  // `captionSeq` is a monotonically-increasing token: a slow response from an
+  // old run is discarded once a newer run has fired its own caption, so a
+  // fast filter change/re-run can never show a stale caption over the new
+  // result. Duplicated (not shared) from _reporting_simple_js.html -- Simple
+  // and Advanced are separate self-contained IIFEs with no shared util
+  // partial today, and this task deliberately doesn't invent one.
+  var captionSeq = 0;
+  function fireCaption(boxId, columns, rows, title, dateLabel) {
+    var box = document.getElementById(boxId);
+    if (!box) return;
+    var seq = ++captionSeq;
+    box.hidden = false;
+    box.classList.add('rp-caption--loading');
+    box.textContent = '';
+    fetch(API_PREFIX + 'api/reporting/ai/caption', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+      body: JSON.stringify({
+        columns: columns, rows: rows.slice(0, 50),
+        title: title || undefined, dateLabel: dateLabel || undefined
+      })
+    }).then(function (res) {
+      if (!res.ok) throw new Error('caption http ' + res.status);
+      return res.json();
+    }).then(function (data) {
+      if (seq !== captionSeq) return;   // a newer run superseded this one
+      if (!data || !data.caption) { box.hidden = true; box.classList.remove('rp-caption--loading'); return; }
+      box.classList.remove('rp-caption--loading');
+      var chip = document.createElement('span');
+      chip.className = 'rp-caption-chip';
+      chip.textContent = I18N_AI_CHIP;
+      box.appendChild(chip);
+      box.appendChild(document.createTextNode(' ' + data.caption));
+    }).catch(function () {
+      if (seq !== captionSeq) return;
+      box.hidden = true;
+      box.classList.remove('rp-caption--loading');
+    });
+  }
+
   function resetViews(hasData) {
     state._chartMounted = false;
     state._pivotMounted = false;
     document.getElementById('rpViewToggle').hidden = !hasData;
+    // A prior run's caption only ever fires on chart mount, but it must not
+    // linger once a NEW run lands — whether that run's grid has data, is
+    // empty, or the user never revisits the Chart view. Guarded: the box
+    // only exists in the DOM for a reporting.ai.explain_data holder.
+    var rpCaptionBox = document.getElementById('rpCaption');
+    if (rpCaptionBox) { rpCaptionBox.hidden = true; rpCaptionBox.textContent = ''; }
     setView('grid');
   }
 
@@ -406,9 +466,16 @@
       // grid, aggregate or not, so a raw non-aggregate chart must not show a
       // pointer cursor that leads nowhere.
       var chartOpts = canDrill(state.lastDef) ? { onElementClick: drillFromChart } : {};
+      chartOpts.forecast = state.lastResult.forecast || null;
       ReportingViz.mountChart(document.getElementById('rpChart'),
         state.lastResult.columns, state.lastResult.rows, chartOpts);
       state._chartMounted = true;
+      // Task 13: fires once per chart mount (guarded by _chartMounted above,
+      // which resetViews() clears on every new run), not on every setView
+      // call — switching Grid -> Chart -> Grid -> Chart again re-fires
+      // nothing since the chart is already mounted.
+      fireCaption('rpCaption', state.lastResult.columns, state.lastResult.rows,
+        reportTitle(), state._lastResolvedDatesLabel || null);
     }
     if (view === 'pivot' && !state._pivotMounted) {
       ReportingViz.mountPivot(document.getElementById('rpPivot'),
@@ -443,6 +510,8 @@
   var I18N_KPI_TOTAL = {{ _("Total")|tojson }};
   var I18N_KPI_BUCKETS = {{ _("Buckets")|tojson }};
   var I18N_KPI_AVG = {{ _("Avg per bucket")|tojson }};
+  var I18N_AI_CHIP = {{ _("AI")|tojson }};
+  var I18N_FORECAST = {{ _("Forecast")|tojson }};
 
   // ----- Drill-through (Advanced: chart clicks + grid rows) -----
   // Mirrors _reporting_simple_js.html's metricAggFor/clickedFor/openDrill/
@@ -583,8 +652,52 @@
     band.hidden = false;
   }
 
+  // Forecast toggle (mirrors _reporting_simple_js.html's forecastEligible/
+  // syncForecastCtl, adapted to the Advanced builder's def shape): eligible
+  // only for a single grained date column + at least one metric, same shape
+  // the server's /run forecast block requires.
+  function forecastEligibleDef(def) {
+    var cols = (def && def.columns) || [];
+    return !!(def && def.kind !== 'sql' && cols.length === 1 && cols[0].grain &&
+      Array.isArray(def.metrics) && def.metrics.length > 0);
+  }
+  function syncForecastCtl() {
+    var wrap = document.getElementById('rpForecastWrap');
+    var box = document.getElementById('rpForecast');
+    var sel = document.getElementById('rpForecastHorizon');
+    if (!wrap) return;
+    var eligible = forecastEligibleDef(state.lastDef);
+    wrap.hidden = !eligible;
+    var on = eligible && !!(state.forecast && state.forecast.enabled);
+    box.checked = on;
+    sel.hidden = !on;
+    if (!eligible) state.forecast = null;
+  }
+  document.getElementById('rpForecast').addEventListener('change', function () {
+    var h = document.getElementById('rpForecastHorizon').value;
+    state.forecast = this.checked
+      ? { enabled: true, horizon: h === 'auto' ? 'auto' : parseInt(h, 10) } : null;
+    run();
+  });
+  document.getElementById('rpForecastHorizon').addEventListener('change', function () {
+    if (!state.forecast) return;
+    var h = this.value;
+    state.forecast.horizon = h === 'auto' ? 'auto' : parseInt(h, 10);
+    run();
+  });
+
   function renderResults(data) {
-    state.lastResult = { columns: data.columns || [], rows: data.rows || [] };
+    state.lastResult = { columns: data.columns || [], rows: data.rows || [], forecast: data.forecast || null };
+    syncForecastCtl();
+    // Resolved-dates label for fireCaption() on chart mount (Task 13) --
+    // Advanced has no per-token i18n label map like Simple's tokenLabel(), so
+    // this is just the field + the resolved start/end, e.g. "ForDate: 2026-06-01
+    // → 2026-06-30". Good enough context for the caption prompt; not shown
+    // anywhere in the Advanced UI itself.
+    var rdates = data.resolvedDates || [];
+    state._lastResolvedDatesLabel = rdates.length
+      ? rdates.map(function (d) { return d.field + ': ' + d.start + ' → ' + d.end; }).join(' · ')
+      : null;
     renderKpiBand(state.lastDef, data.rows || []);
     // Stash the echoed SQL for the Show query panel. Only /run echoes sql;
     // SQL-sandbox runs (/api/reporting/sql/run) never set a sql key — button stays hidden.
@@ -656,12 +769,32 @@
     thead.appendChild(headRow);
     table.appendChild(thead);
 
+    // Data bars (Task 7): one column max per column index, computed once
+    // over cells the same isNumericCell check already accepts — a mixed/
+    // text column just never gets a bar rather than being skewed by a stray
+    // numeric-looking cell.
+    var colMax = data.columns.map(function (_, i) {
+      var max = 0;
+      data.rows.forEach(function (r) {
+        if (isNumericCell(r[i])) {
+          var n = Math.abs(Number(r[i]));
+          if (n > max) max = n;
+        }
+      });
+      return max;
+    });
+
     var tbody = document.createElement('tbody');
     data.rows.forEach(function (r) {
       var tr = document.createElement('tr');
-      r.forEach(function (v) {
+      r.forEach(function (v, i) {
         var td = document.createElement('td');
-        if (isNumericCell(v)) td.className = 'reporting-ledger-num';
+        if (isNumericCell(v)) {
+          td.className = 'reporting-ledger-num rp-cell-num';
+          var max = colMax[i];
+          var pct = max > 0 ? (Math.abs(Number(v)) / max * 100) : 0;
+          td.style.setProperty('--bar', pct + '%');
+        }
         td.textContent = (v == null ? '' : String(v));
         tr.appendChild(td);
       });
@@ -674,6 +807,36 @@
       }
       tbody.appendChild(tr);
     });
+    // Forecast rows (Task 6's Simple-tab reference, adapted to this pane's
+    // DOM-built grid): appended after the real data rows, positionally
+    // matched to the trailing metric columns (mStart), never drillable.
+    var fcRows = (data.forecast && !data.forecast.unavailable && (data.forecast.buckets || []).length)
+      ? data.forecast : null;
+    if (fcRows) {
+      var mStart = data.columns.length - fcRows.series.length;
+      fcRows.buckets.forEach(function (b, bi) {
+        var ftr = document.createElement('tr');
+        ftr.className = 'is-forecast';
+        ftr.setAttribute('data-testid', 'rp-forecast-row');
+        for (var ci = 0; ci < data.columns.length; ci++) {
+          var ftd = document.createElement('td');
+          if (ci === 0) {
+            ftd.textContent = String(b).slice(0, 10) + ' ';
+            var badge = document.createElement('span');
+            badge.className = 'rp-forecast-badge';
+            badge.textContent = I18N_FORECAST;
+            ftd.appendChild(badge);
+          } else if (ci >= mStart) {
+            var sv = fcRows.series[ci - mStart];
+            var val = sv.values[bi];
+            ftd.className = 'reporting-ledger-num rp-cell-num';
+            ftd.textContent = (val == null ? '' : String(val));
+          }
+          ftr.appendChild(ftd);
+        }
+        tbody.appendChild(ftr);
+      });
+    }
     table.appendChild(tbody);
 
     wrap.appendChild(table);
@@ -714,33 +877,57 @@
     p.className = 'reporting-error';
     p.textContent = msg;
     wrap.appendChild(p);
+    // Same stale-caption guard as resetViews() -- a failed run must not leave
+    // the PREVIOUS run's caption sentence sitting above the error message.
+    var rpCaptionErrBox = document.getElementById('rpCaption');
+    if (rpCaptionErrBox) { rpCaptionErrBox.hidden = true; rpCaptionErrBox.textContent = ''; }
   }
   // In-flight indicator for report runs. Lives inside #rpResults so the
   // renderResults/showError innerHTML swap self-cleans it. The view is forced
   // to grid because #rpResults is hidden whenever state.view !== 'grid' —
   // without this, a re-run from Chart/Pivot would show nothing. Run is
   // disabled so a double-click can't fire two parallel requests (rpRun is the
-  // only run trigger on this tab). DOM-built so the translated label needs no
-  // escaping. The Motion observer ignores non-TABLE/.reporting-empty/
-  // .reporting-error nodes, so this block is animation-inert.
+  // only run trigger on this tab). The Motion observer ignores non-TABLE/
+  // .reporting-empty/.reporting-error nodes, so this block is
+  // animation-inert there — its own shimmer is pure CSS (.rp-skeleton),
+  // reduced-motion safe via reporting.css's own query. Task 7: a KPI-band-
+  // shaped + table-shaped skeleton replaces the old dots+text spinner (still
+  // used elsewhere, e.g. the drill drawer) so the real result doesn't cause a
+  // layout jump on arrival; role=status + aria-label keeps the same
+  // "Running…" screen-reader announcement the old visible label gave.
   function showRunLoading() {
     document.getElementById('rpRun').disabled = true;
     document.getElementById('rpViewToggle').hidden = true;
     setView('grid');
     var wrap = document.getElementById('rpResults');
     wrap.innerHTML = '';
+    // A prior run's caption sentence must never linger over the new run's
+    // (still-loading, possibly failed or empty) result -- hidden here just
+    // like Simple's runCurrent() does at run-start, cleared again by
+    // fireCaption() once (and if) the new run's chart gets mounted. Guarded:
+    // the box only exists in the DOM for a reporting.ai.explain_data holder.
+    var rpCaptionLoadBox = document.getElementById('rpCaption');
+    if (rpCaptionLoadBox) { rpCaptionLoadBox.hidden = true; rpCaptionLoadBox.textContent = ''; }
     var box = document.createElement('div');
-    box.className = 'reporting-ai-loading';
     box.setAttribute('data-testid', 'reporting-run-loading');
-    var dots = document.createElement('span');
-    dots.className = 'reporting-ai-dots';
-    dots.setAttribute('aria-hidden', 'true');
-    dots.innerHTML = '<i></i><i></i><i></i>';
-    var label = document.createElement('span');
-    label.setAttribute('role', 'status');
-    label.textContent = I18N_RUNNING;
-    box.appendChild(dots);
-    box.appendChild(label);
+    box.setAttribute('role', 'status');
+    box.setAttribute('aria-label', I18N_RUNNING);
+    var band = document.createElement('div');
+    band.className = 'rp-skeleton-band';
+    for (var i = 0; i < 3; i++) {
+      var kpi = document.createElement('div');
+      kpi.className = 'rp-skeleton rp-skeleton-kpi';
+      band.appendChild(kpi);
+    }
+    var table = document.createElement('div');
+    table.className = 'rp-skeleton-table';
+    for (var j = 0; j < 6; j++) {
+      var row = document.createElement('div');
+      row.className = 'rp-skeleton rp-skeleton-row';
+      table.appendChild(row);
+    }
+    box.appendChild(band);
+    box.appendChild(table);
     wrap.appendChild(box);
   }
   function endRunLoading() {
@@ -963,8 +1150,13 @@
         state.fields = s.fields || [];
         setProcessScope(s.processes || [], null);
         state.columns = [];
+        // The previous source's filters reference fields that may not exist
+        // on the new source (or mean something different) — drop them so a
+        // source switch can't leave stale chips that 400 every subsequent Run.
+        state.filters = [];
         renderFields();
         renderWells();
+        renderFilters();
         // Re-derive the per-source metric list (prunes now-unavailable picks).
         refreshAvailableMetrics();
       }
@@ -1345,6 +1537,8 @@
     state.metrics = (def.metrics || [])
       .map(function (m) { return m && m.metric; })
       .filter(function (c) { return c && availCodes[c]; });
+    state.forecast = (def.forecast && def.forecast.enabled)
+      ? { enabled: true, horizon: def.forecast.horizon || 'auto' } : null;
     document.getElementById('rpSubtitle').value = def.subtitle || '';
     renderFields();
     renderWells();
@@ -1711,6 +1905,6 @@
   loadMetrics();
   loadSources();
   loadReports();
-  window.Reporting = Object.assign(window.Reporting || {}, { applyDefinition: applyDefinition, setMode: setMode, applyDefinitionAndChart: applyDefinitionAndChart });
+  window.Reporting = Object.assign(window.Reporting || {}, { applyDefinition: applyDefinition, setMode: setMode, applyDefinitionAndChart: applyDefinitionAndChart, run: run });
 }());
 </script>

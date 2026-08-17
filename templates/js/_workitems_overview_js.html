@@ -7,7 +7,7 @@
 </head>
 
 <body>
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
         // Source-highlight confidence helpers (shared by the field list, thumbnails
         // and the lightbox overlay). field_sources entries may carry an optional
@@ -24,8 +24,6 @@
             return Math.round(conf * 100) + '%';
         };
         let animationTimeouts = [];
-        let mentionableUsers = [];
-        let docValuesCache = [];
         let fieldConfig = {
             search_options: {},
             labels: {}
@@ -39,17 +37,13 @@
               buildSourceDetailsHtml = window.buildSourceDetailsHtml,
               renderThumbOverlay = window.renderThumbOverlay, refreshThumbOverlays = window.refreshThumbOverlays,
               loadImage = window.loadImage, loadImagesInBatch = window.loadImagesInBatch,
-              loadHistory = window.loadHistory, loadCollaborationData = window.loadCollaborationData,
-              renderWorkitemTimeline = window.renderWorkitemTimeline, renderTagsInDetails = window.renderTagsInDetails;
+              loadHistory = window.loadHistory,
+              renderWorkitemTimeline = window.renderWorkitemTimeline;
 
         window.__workitemDetailPerms = {
           images:      {{ 'true' if details_images_perm else 'false' }},
           audit:       {{ 'true' if details_audit_perm else 'false' }},
           fields:      {{ 'true' if details_fields_perm else 'false' }},
-          setPriority: {{ 'true' if details_set_priority_perm else 'false' }},
-          addTag:      {{ 'true' if details_add_tag_perm else 'false' }},
-          assignUsers: {{ 'true' if details_assign_users_perm else 'false' }},
-          addComment:  {{ 'true' if details_add_comment_perm else 'false' }},
         };
         let _inRegisterByWid = {};
 
@@ -83,56 +77,6 @@
             }, 5000);
         }
 
-        function renderCustomDatalist(values) {
-            const listContainer = document.getElementById('docValueCustomList');
-            const docValueInput = document.getElementById('docValueInput');
-            if (!listContainer || !docValueInput) return;
-
-            listContainer.innerHTML = '';
-            if (values.length === 0) {
-                listContainer.classList.add('hidden');
-                return;
-            }
-
-            values.forEach(value => {
-                const item = document.createElement('div');
-                item.className = 'cursor-pointer p-2 hover:bg-indigo-100 text-gray-700 text-sm';
-                item.textContent = value;
-                item.addEventListener('mousedown', (e) => {
-                    e.preventDefault();
-                    docValueInput.value = value;
-                    listContainer.classList.add('hidden');
-                    const filterForm = document.getElementById('filterForm');
-                    if (filterForm.requestSubmit) filterForm.requestSubmit();
-                    else fetchAndUpdateWorkitems();
-                });
-                listContainer.appendChild(item);
-            });
-
-            listContainer.classList.remove('hidden');
-        }
-
-        async function fetchDocFieldValues(q = '') {
-            try {
-                const process = document.getElementById('prcfW')?.value || 'all';
-                const field = document.getElementById('docFieldFilter')?.value;
-                const url = `${API_PREFIX}api/docfield_values?process=${encodeURIComponent(process)}&field=${encodeURIComponent(field)}&q=${encodeURIComponent(q)}`;
-                const res = await fetch(url, {headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
-                }});
-                if (!res.ok) throw new Error('Could not fetch field values');
-
-                docValuesCache = await res.json();
-                renderCustomDatalist(docValuesCache);
-            } catch (e) {
-                console.error('Failed to fetch field values:', e);
-                const listContainer = document.getElementById('docValueCustomList');
-                if (listContainer) listContainer.classList.add('hidden');
-            }
-        }
-
-
         function cancelAllAnimations() {
             animationTimeouts.forEach(clearTimeout);
             animationTimeouts = [];
@@ -165,33 +109,6 @@
                 search: searchInput.value,
             };
         }
-
-        async function refreshWorkitemUI(workitemId) {
-        try {
-            const response = await fetch(`${API_PREFIX}api/workitem/${workitemId}`, {headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
-                }});
-            if (!response.ok) throw new Error('Failed to fetch updated workitem data.');
-            const workitem = await response.json();
-            const tags = workitem.tags || [];
-
-            const previewContainer = document.getElementById(`tags-preview-${workitem.workitemid}`);
-            if (previewContainer) {
-                previewContainer.innerHTML = tags.map(tag =>
-                    `<span class="text-xs font-semibold px-2 py-0.5 rounded-full" style="background-color:${tag.color}20; color:${tag.color};">${tag.name}</span>`
-                ).join('');
-            }
-
-            const detailsContainer = document.getElementById(`tags-container-${workitemId}`);
-            if (detailsContainer) {
-                renderTagsInDetails(workitemId, tags);
-            }
-
-        } catch (error) {
-            console.error("Failed to refresh workitem UI:", error);
-        }
-    }
 
         async function toggleDetailsAndLoadImages(event) {
           try {
@@ -231,7 +148,7 @@
                 perms: window.__workitemDetailPerms,
                 client: detailsRow.dataset.client || '',   // disambiguates colliding ids
 
-                inRegisterPid: _inRegisterByWid[String(workitemid)] || null,  // P3 (defaults null; map seeded in 3.4)
+                inRegisterPid: _inRegisterByWid[rowKey] || null,  // P3 (defaults null; keyed by client+id, not bare wid)
               });
               detailsRow.dataset.initialized = 'true';
             }
@@ -247,151 +164,6 @@
             chevron.classList.toggle('glyphicon-chevron-up-custom');
             chevron.classList.toggle('glyphicon-chevron-down-custom');
           } catch (error) { /* pass */ }
-        }
-
-        async function handlePostComment(event) {
-            event.preventDefault();
-            const form = event.target;
-            const workitemid = form.dataset.workitemid;
-            const textarea = form.querySelector('textarea');
-            const commentText = textarea.value.trim();
-            if (!commentText) return;
-
-            try {
-                const response = await fetch(`${API_PREFIX}api/workitem/${workitemid}/comment`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                        ,'X-CSRFToken': csrfToken
-                    },
-                    body: JSON.stringify({
-                        commentText
-                    })
-                });
-                if (!response.ok) throw new Error('Failed to post comment.');
-
-                textarea.value = '';
-                const commentsContainer = document.getElementById(`comments-container-${workitemid}`);
-                commentsContainer.dataset.loaded = 'false';
-                loadCollaborationData(workitemid, mentionableUsers);
-
-            } catch (error) {
-                console.error("Comment post error:", error);
-            }
-        }
-
-        async function fetchMentionableUsers() {
-            try {
-                const response = await fetch(`${API_PREFIX}api/users`, {headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
-                }});
-                if (!response.ok) throw new Error('Could not fetch users');
-                mentionableUsers = await response.json();
-                window.mentionableUsers = mentionableUsers;
-            } catch (error) {
-                console.error("Failed to fetch users for mentions:", error);
-            }
-        }
-
-        function insertMention(username, textarea) {
-            const text = textarea.value;
-            const cursorPos = textarea.selectionStart;
-            const textToCursor = text.substring(0, cursorPos);
-            const mentionMatch = textToCursor.match(/@(\w*)$/);
-            if (mentionMatch) {
-                const startIndex = mentionMatch.index;
-                const newText = text.substring(0, startIndex) + `@${username} ` + text.substring(cursorPos);
-                textarea.value = newText;
-                textarea.focus();
-                const newCursorPos = startIndex + username.length + 2;
-                textarea.setSelectionRange(newCursorPos, newCursorPos);
-            }
-        }
-
-        function renderAutocompleteList(users, listElement, textarea) {
-            listElement.innerHTML = '';
-            if (users.length === 0) {
-                listElement.classList.add('hidden');
-                return;
-            }
-            users.forEach(user => {
-                const item = document.createElement('div');
-                item.className = 'p-2 hover:bg-indigo-100 cursor-pointer text-sm border-b';
-                item.textContent = `${user.fullname} (@${user.username})`;
-                item.addEventListener('mousedown', (e) => {
-                    e.preventDefault();
-                    insertMention(user.username, textarea);
-                    listElement.classList.add('hidden');
-                });
-                listElement.appendChild(item);
-            });
-            listElement.classList.remove('hidden');
-        }
-
-        function handleMentionInput(event) {
-            const textarea = event.target;
-            const wrapper = textarea.closest('[id^="comment-form-wrapper-"]');
-            const autocompleteList = wrapper.querySelector('.mention-autocomplete-list');
-            const text = textarea.value;
-            const cursorPos = textarea.selectionStart;
-            const textToCursor = text.substring(0, cursorPos);
-            const mentionMatch = textToCursor.match(/@(\w*)$/);
-            if (mentionMatch) {
-                const searchTerm = mentionMatch[1].toLowerCase();
-                const filteredUsers = mentionableUsers.filter(user => user.username.toLowerCase().startsWith(searchTerm));
-                renderAutocompleteList(filteredUsers, autocompleteList, textarea);
-            } else {
-                autocompleteList.classList.add('hidden');
-            }
-        }
-
-        async function handleSetPriority(event) {
-            const selector = event.target;
-            const workitemid = selector.dataset.workitemid;
-            const priority = parseInt(selector.value, 10);
-            try {
-                const response = await fetch(`${API_PREFIX}api/workitem/${workitemid}/priority`, {
-                    method: 'POST',
-                     headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken
-                        },
-                    body: JSON.stringify({
-                        priority
-                    })
-                });
-                if (!response.ok) throw new Error('Failed to set priority.');
-                const indicatorCell = document.getElementById(`priority-indicator-${workitemid}`);
-                let iconHtml = '';
-                if (priority === 3) iconHtml = `<span title="{{ _('High Priority') }}"><i class="fas fa-flag text-red-500"></i></span>`;
-                else if (priority === 2) iconHtml = `<span title="{{ _('Medium Priority') }}"><i class="fas fa-flag text-yellow-500"></i></span>`;
-                else if (priority === 1) iconHtml = `<span title="{{ _('Low Priority') }}"><i class="fas fa-flag text-blue-500"></i></span>`;
-                indicatorCell.innerHTML = iconHtml;
-            } catch (error) {
-                console.error("Set priority error:", error);
-            }
-        }
-
-        async function handleAssigning(event) {
-            const selector = event.target;
-            const workitemid = selector.dataset.workitemid;
-            const assignedUserID = selector.value;
-            try {
-                const response = await fetch(`${API_PREFIX}api/workitem/${workitemid}/assign`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken
-                    },
-                    body: JSON.stringify({
-                        assignedUserID
-                    })
-                });
-                if (!response.ok) throw new Error('Failed to assign.');
-            } catch (error) {
-                console.error("Assigment error:", error);
-            }
         }
 
         function openImportModal(files) {
@@ -488,21 +260,8 @@ async function uploadBatchFiles(files, processName) {
                 if (!res.ok) throw new Error('page init failed');
                 const data = await res.json();
 
-                mentionableUsers = data.users || [];
-                window.mentionableUsers = mentionableUsers;
                 fieldConfig = data.field_config || { search_options: {}, labels: {} };
                 window.fieldConfig = fieldConfig;
-
-                const allTags = data.tags || [];
-                const datalist = document.getElementById('taglist');
-                if (datalist) {
-                    datalist.innerHTML = '';
-                    allTags.forEach(tag => {
-                        const option = document.createElement('option');
-                        option.value = tag.TagName;
-                        datalist.appendChild(option);
-                    });
-                }
 
             } catch (e) {
                 console.error('Failed to fetch page init data:', e);
@@ -530,7 +289,6 @@ async function uploadBatchFiles(files, processName) {
                 const process = document.getElementById('prcfW')?.value || 'all';
                 document.querySelectorAll('.doc-filter-field').forEach(hiddenInput => fillDocFieldSelect(hiddenInput, process));
             });
-            fetchDocFieldValues();
 
             // Load initial workitems client-side (read page from URL to support direct links)
             const _initPage = parseInt(new URLSearchParams(window.location.search).get('page') || '1', 10);
@@ -546,7 +304,10 @@ async function uploadBatchFiles(files, processName) {
                 let procs = [];
                 try { procs = JSON.parse(link.dataset.pdocProcesses || '[]'); } catch (e) { procs = []; }
                 const sel = document.getElementById('prcfW')?.value || 'all';
-                link.classList.toggle('hidden', !procs.includes(sel));
+                // Multi-select (issue #150): the register is reachable as soon as
+                // one selected process is a prepared-documents process.
+                const shown = sel !== 'all' && sel.split(',').some(p => procs.includes(p));
+                link.classList.toggle('hidden', !shown);
             };
             document.getElementById('prcfW')?.addEventListener('change', _updatePreparedDocsLink);
             _updatePreparedDocsLink();
@@ -573,6 +334,36 @@ async function uploadBatchFiles(files, processName) {
                 toggleBtn.addEventListener('click', () => {
                     advancedContainer.classList.toggle('hidden');
                 });
+                // Auto-open when the URL restored an advanced filter, so
+                // active-but-hidden filters can't silently narrow the list.
+                if (['startDate', 'endDate', 'docFieldFilter', 'docValueInput']
+                    .some(id => document.getElementById(id)?.value)) {
+                    advancedContainer.classList.remove('hidden');
+                }
+            }
+
+            const datePreset = document.getElementById('datePreset');
+            if (datePreset) {
+                const pad = n => String(n).padStart(2, '0');
+                const fmtDay = (d, end) =>
+                    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${end ? '23:59:59' : '00:00:00'}`;
+                datePreset.addEventListener('change', () => {
+                    if (!datePreset.value) return;
+                    const from = new Date(), to = new Date();
+                    switch (datePreset.value) {
+                        case 'yesterday': from.setDate(from.getDate() - 1); to.setDate(to.getDate() - 1); break;
+                        case 'this_week': from.setDate(from.getDate() - ((from.getDay() + 6) % 7)); break;
+                        case 'last_7_days': from.setDate(from.getDate() - 6); break;
+                        case 'this_month': from.setDate(1); break;
+                    }
+                    document.getElementById('startDate').value = fmtDay(from, false);
+                    document.getElementById('endDate').value = fmtDay(to, true);
+                    fetchAndUpdateWorkitems();
+                });
+                // Hand-editing a date means the range is custom again.
+                ['startDate', 'endDate'].forEach(id => {
+                    document.getElementById(id)?.addEventListener('input', () => { datePreset.value = ''; });
+                });
             }
 
             async function fetchFieldConfig() {
@@ -598,15 +389,13 @@ async function uploadBatchFiles(files, processName) {
 
             function fillDocFieldSelect(hiddenInput, process) {
                 const selectedValue = hiddenInput.getAttribute('data-selected') || hiddenInput.value || '';
-                let fields = [];
-
-                if (process === 'all') {
-                    const allFieldsMap = new Map();
-                    Object.values(fieldConfig.search_options).flat().forEach(f => allFieldsMap.set(f.value, f));
-                    fields = Array.from(allFieldsMap.values()).sort((a, b) => a.label.localeCompare(b.label));
-                } else {
-                    fields = fieldConfig.search_options[process] || [];
-                }
+                // `process` is 'all' or a comma-joined multi-selection (issue #150):
+                // offer the union of the selected processes' fields.
+                const opts = fieldConfig.search_options || {};
+                const procs = (!process || process === 'all') ? Object.keys(opts) : process.split(',');
+                const fieldMap = new Map();
+                procs.forEach(p => (opts[p] || []).forEach(f => fieldMap.set(f.value, f)));
+                const fields = Array.from(fieldMap.values()).sort((a, b) => a.label.localeCompare(b.label));
 
                 hiddenInput._docFieldOptions = fields;
 
@@ -620,8 +409,17 @@ async function uploadBatchFiles(files, processName) {
                 }
 
                 const match = fields.find(f => f.value === selectedValue);
-                const selected = match || fields[0];
-                hiddenInput.value = selected.value;
+                if (match) {
+                    hiddenInput.value = match.value;
+                    hiddenInput._userSelected = true;
+                    if (searchInput) searchInput.value = match.label;
+                } else {
+                    // Value-first (issue #148): no silent auto-select -- empty
+                    // field means "search all fields".
+                    hiddenInput.value = '';
+                    hiddenInput._userSelected = false;
+                    if (searchInput) searchInput.value = '';
+                }
             }
 
             function initDocFieldCombobox(wrapper) {
@@ -637,6 +435,21 @@ async function uploadBatchFiles(files, processName) {
                         ? options.filter(f => f.label.toLowerCase().includes(q) || f.value.toLowerCase().includes(q))
                         : options;
                     dropdown.innerHTML = '';
+                    // "All fields" pseudo-option: clears the field -> value-first
+                    // search across every permitted field (issue #148).
+                    const allDiv = document.createElement('div');
+                    allDiv.className = 'px-4 py-2 text-sm cursor-pointer hover:bg-indigo-50 border-b border-gray-100' +
+                        (!hiddenInput.value ? ' bg-indigo-50 font-semibold text-indigo-700' : ' text-gray-500 italic');
+                    allDiv.textContent = "{{ _('All fields') }}";
+                    allDiv.addEventListener('mousedown', (e) => {
+                        e.preventDefault();
+                        hiddenInput.value = '';
+                        hiddenInput._userSelected = false;
+                        searchInput.value = '';
+                        dropdown.classList.add('hidden');
+                        hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+                    });
+                    dropdown.appendChild(allDiv);
                     if (filtered.length === 0) {
                         const div = document.createElement('div');
                         div.className = 'px-4 py-2 text-sm text-gray-500 italic';
@@ -743,7 +556,18 @@ async function uploadBatchFiles(files, processName) {
                     if (item) {
                         const row = item.closest('.doc-filter-row');
                         const input = row.querySelector('.doc-filter-value');
-                        input.value = item.textContent;
+                        input.value = item.dataset.value ?? item.textContent;
+                        // Labeled (value-first) suggestion: lock the field it came
+                        // from so the search runs field-precise from here on.
+                        if (item.dataset.field) {
+                            const hiddenInput = row.querySelector('.doc-filter-field');
+                            const fieldSearch = row.querySelector('.doc-filter-field-search');
+                            if (hiddenInput) {
+                                hiddenInput.value = item.dataset.field;
+                                hiddenInput._userSelected = true;
+                            }
+                            if (fieldSearch) fieldSearch.value = fieldLabelFor(item.dataset.field);
+                        }
                         hideRowList(row);
                         const form = document.getElementById('filterForm');
                         if (form?.requestSubmit) form.requestSubmit(); else fetchAndUpdateWorkitems();
@@ -763,6 +587,16 @@ async function uploadBatchFiles(files, processName) {
                     }
                 });
 
+                // Operator / AND-OR change -> re-run the search (the backend
+                // skips rows whose value is still empty, so this is safe).
+                container.addEventListener('change', (e) => {
+                    if (e.target.classList.contains('doc-filter-op') ||
+                        e.target.classList.contains('doc-filter-comb')) {
+                        const form = document.getElementById('filterForm');
+                        if (form?.requestSubmit) form.requestSubmit(); else fetchAndUpdateWorkitems();
+                    }
+                });
+
                 const procSel = document.getElementById('prcfW');
                 if (procSel) {
                     procSel.addEventListener('change', () => {
@@ -775,6 +609,10 @@ async function uploadBatchFiles(files, processName) {
             function hideRowList(row) {
                 row.querySelector('.doc-filter-list')?.classList.add('hidden');
             }
+            function fieldLabelFor(key) {
+                const opts = Object.values(fieldConfig.search_options || {}).flat();
+                return (opts.find(f => f.value === key) || {}).label || key;
+            }
             function renderRowList(row, values) {
                 const list = row.querySelector('.doc-filter-list');
                 const input = row.querySelector('.doc-filter-value');
@@ -782,9 +620,24 @@ async function uploadBatchFiles(files, processName) {
                 list.innerHTML = '';
                 if (!values || values.length === 0) { list.classList.add('hidden'); return; }
                 values.forEach(v => {
+                    const isObj = typeof v === 'object' && v !== null;
+                    const value = isObj ? v.value : v;
                     const div = document.createElement('div');
-                    div.className = 'doc-row-suggestion cursor-pointer p-2 hover:bg-indigo-100 text-gray-700 text-sm';
-                    div.textContent = v;
+                    div.className = 'doc-row-suggestion cursor-pointer p-2 hover:bg-indigo-100 text-gray-700 text-sm flex items-center justify-between gap-2';
+                    div.dataset.value = value;
+                    const valSpan = document.createElement('span');
+                    valSpan.className = 'truncate';
+                    valSpan.textContent = value;
+                    div.appendChild(valSpan);
+                    if (isObj && v.field) {
+                        // Value-first suggestions are labeled with their field so
+                        // picking one can lock the pair (issue #148).
+                        div.dataset.field = v.field;
+                        const badge = document.createElement('span');
+                        badge.className = 'text-xs text-gray-400 shrink-0';
+                        badge.textContent = fieldLabelFor(v.field);
+                        div.appendChild(badge);
+                    }
                     list.appendChild(div);
                 });
                 list.classList.remove('hidden');
@@ -792,7 +645,9 @@ async function uploadBatchFiles(files, processName) {
             async function fetchRowSuggestions(row, q = '') {
                 try {
                     const process = document.getElementById('prcfW')?.value || 'all';
-                    const field = row.querySelector('.doc-filter-field')?.value || 'doctype';
+                    // Empty field = value-first mode: the backend returns labeled
+                    // {value, field} suggestions across all permitted fields.
+                    const field = row.querySelector('.doc-filter-field')?.value || '';
                     const res = await fetch(`${API_PREFIX}api/docfield_values?process=${encodeURIComponent(process)}&field=${encodeURIComponent(field)}&q=${encodeURIComponent(q)}`, {headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': csrfToken
@@ -878,12 +733,6 @@ async function uploadBatchFiles(files, processName) {
         uploadBatchFiles(pendingImportFiles, selectedProcess);
     });
 }
-            const processSel = document.getElementById('prcfW');
-            if (processSel) {
-                processSel.addEventListener('change', () => {
-                    fetchDocFieldValues(docValueInput?.value || '');
-                });
-            }
             function renderDegradedBanner(codes) {
                 const BANNER_ID = 'workitems-degraded-banner';
                 let banner = document.getElementById(BANNER_ID);
@@ -926,6 +775,10 @@ async function uploadBatchFiles(files, processName) {
             }
 
             async function fetchAndUpdateWorkitems(page = 1) {
+                // Stale-response guard: rapid re-submits (e.g. two smart-search
+                // chips added back-to-back) race, and the FIRST response can land
+                // last, overwriting the newer result. Only the latest wins.
+                const seq = fetchAndUpdateWorkitems._seq = (fetchAndUpdateWorkitems._seq || 0) + 1;
                 const tbody = document.getElementById('workitemsTbody');
                 const filterForm = document.getElementById('filterForm');
                 const params = new URLSearchParams();
@@ -942,7 +795,7 @@ async function uploadBatchFiles(files, processName) {
 
                 const loaderHtml = `
             <tr>
-                <td colspan="6" class="text-center py-20">
+                <td colspan="5" class="text-center py-20">
                     <div class="flex items-center justify-center space-x-3 text-gray-700">
                         <i class="fas fa-spinner fa-spin text-3xl text-indigo-600"></i>
                         <span class="text-xl font-medium">{{ _("Loading workitems...") }}</span>
@@ -963,14 +816,16 @@ async function uploadBatchFiles(files, processName) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
                     const data = await response.json();
+                    if (seq !== fetchAndUpdateWorkitems._seq) return;  // superseded
                     try { renderDegradedBanner(data.degradedSources || []); } catch (bannerErr) { console.warn('renderDegradedBanner error:', bannerErr); }
                     renderTable(data.workitems);
                     renderPagination(data.pagination);
 
                 } catch (error) {
+                    if (seq !== fetchAndUpdateWorkitems._seq) return;
                     console.error("Failed to fetch or render workitems:", error);
                     if (tbody) {
-                        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-red-500">{{ _("Failed to load data. Please try again.") }}</td></tr>`;
+                        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-red-500">{{ _("Failed to load data. Please try again.") }}</td></tr>`;
                     }
                 }
             }
@@ -1093,7 +948,7 @@ async function uploadBatchFiles(files, processName) {
                 updateBulkBar();
 
                 if (workitems.length === 0) {
-                    const emptyColspan = 7;
+                    const emptyColspan = 5;
                     tbody.innerHTML = `
                         <tr><td colspan="${emptyColspan}">
                             <div class="nx-empty">
@@ -1110,12 +965,8 @@ async function uploadBatchFiles(files, processName) {
                         'Ready':       '<span class="nx-label nx-label--blue">Ready</span>',
                         'In Progress': '<span class="nx-label nx-label--amber">In Progress</span>',
                         'Done':        '<span class="nx-label nx-label--green">Done</span>',
+                        'Deleted':     '<span class="nx-label nx-label--red">Deleted</span>',
                     }[workitem.status] || `<span class="nx-label nx-label--gray">${workitem.status}</span>`;
-
-                    let priorityIcon = '';
-                    if (workitem.priority === 3) priorityIcon = `<span title="{{ _('High Priority') }}"><i class="fas fa-flag text-red-500"></i></span>`;
-                    if (workitem.priority === 2) priorityIcon = `<span title="{{ _('Medium Priority') }}"><i class="fas fa-flag text-yellow-500"></i></span>`;
-                    if (workitem.priority === 1) priorityIcon = `<span title="{{ _('Low Priority') }}"><i class="fas fa-flag text-blue-500"></i></span>`;
 
                     // Workitem ids are only unique WITHIN a client, so every DOM id
                     // is keyed on client+id -- two rows sharing a bare id produced
@@ -1131,10 +982,6 @@ async function uploadBatchFiles(files, processName) {
                         <td class="px-6 py-4 whitespace-nowrap text-center"><div class="nx-mono font-medium">${workitem.workitemid}</div></td>
                         <td class="px-6 py-4 whitespace-nowrap text-center">${statusBadge}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-center"><div class="nx-mono" style="color:var(--nx-text-sec)">${workitem.modifiedat ? new Date(workitem.modifiedat).toISOString().slice(0, 19).replace('T', ' ') : ''}</div></td>
-                        <td class="px-6 py-4 whitespace-nowrap text-center" id="priority-indicator-${rowKey}">${priorityIcon}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-center" id="tags-preview-${rowKey}">
-                            ${workitem.tags.map(tag => `<span class="text-xs font-semibold px-2 py-0.5 rounded-full" style="background-color:${tag.color}20; color:${tag.color};">${tag.name}</span>`).join('')}
-                        </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
                             <button class="details-toggle-button text-indigo-600 hover:text-indigo-900"
                                 data-workitemid="${workitem.workitemid}" data-rowkey="${rowKey}"
@@ -1148,11 +995,11 @@ async function uploadBatchFiles(files, processName) {
                         data-current-stage="${workitem.current_stage || ''}"
                         data-pid="${workitem.pid || ''}"
                         data-client="${workitem.client || ''}"
-                        data-in-register="${workitem.in_register ? '1' : '0'}"><td colspan="7"></td></tr>
+                        data-in-register="${workitem.in_register ? '1' : '0'}"><td colspan="5"></td></tr>
                 `;
                     tbody.insertAdjacentHTML('beforeend', rowHtml);
                     if (workitem.in_register && workitem.pid) {
-                        _inRegisterByWid[String(workitem.workitemid)] = workitem.pid;
+                        _inRegisterByWid[rowKey] = workitem.pid;
                     }
                 });
 
@@ -1164,82 +1011,6 @@ async function uploadBatchFiles(files, processName) {
                         updateBulkBar();
                     });
                 });
-            }
-
-            let allTags = [];
-
-            async function fetchAllTags() {
-                try {
-                    const response = await fetch(`${API_PREFIX}api/tags`, {headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
-                }});
-                    if (!response.ok) throw new Error('Could not fetch tags');
-                    allTags = await response.json();
-
-                    const datalist = document.getElementById('taglist');
-                    datalist.innerHTML = '';
-                    allTags.forEach(tag => {
-                        const option = document.createElement('option');
-                        option.value = tag.TagName;
-                        datalist.appendChild(option);
-                    });
-                } catch (error) {
-                    console.error("Failed to fetch tags:", error);
-                }
-            }
-
-
-            async function handleAddTag(event) {
-                const button = event.currentTarget;
-                const workitemId = button.dataset.workitemid;
-                const tagName = document.getElementById(`tag-input-${workitemId}`).value.trim();
-                const tagColor = document.getElementById(`tag-color-${workitemId}`).value;
-
-                if (!tagName) return;
-
-                try {
-                    const response = await fetch(`${API_PREFIX}api/workitem/${workitemId}/tags`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': csrfToken
-                        },
-                        body: JSON.stringify({
-                            tagName,
-                            tagColor
-                        })
-                    });
-                    const result = await response.json();
-                    if (!response.ok) throw new Error(result.message || 'Failed to add tag.');
-
-                    document.getElementById(`tag-input-${workitemId}`).value = '';
-                    refreshWorkitemUI(workitemId);
-
-                } catch (error) {
-                    console.error("Add tag error:", error);
-                }
-            }
-
-            async function handleRemoveTag(event) {
-                const button = event.currentTarget;
-                const workitemid = button.dataset.workitemid;
-                const tagId = button.dataset.tagId;
-
-                try {
-                    const response = await fetch(`${API_PREFIX}api/workitem/${workitemid}/tags/${tagId}`, {
-                        method: 'DELETE'
-                        ,headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken
-                        }
-                    });
-                    if (!response.ok) throw new Error('Failed to remove tag.');
-
-                    refreshWorkitemUI(workitemid);
-                } catch (error) {
-                    console.error("Remove tag error:", error);
-                }
             }
 
             function renderPagination(pagination) {
@@ -1310,12 +1081,21 @@ async function uploadBatchFiles(files, processName) {
 
                     let comparison = 0;
                     if (columnIndex === 3) {
-                        const parseDate = (str) => {
-                            const [datePart, timePart] = str.split(' - ');
-                            const [day, month, year] = datePart.split('. ');
-                            return new Date(`${year}-${month}-${day}T${timePart}:00`);
-                        };
-                        comparison = parseDate(aText) - parseDate(bText);
+                        // renderTable writes ISO "YYYY-MM-DD HH:MM:SS" (see the
+                        // "Last movement at" cell). Parse that directly; fall back
+                        // to plain string comparison for this pair if either side
+                        // isn't a valid date, rather than letting NaN silently no-op
+                        // the whole sort.
+                        const parseDate = (str) => new Date(str.replace(' ', 'T'));
+                        const aDate = parseDate(aText);
+                        const bDate = parseDate(bText);
+                        if (isNaN(aDate) || isNaN(bDate)) {
+                            comparison = aText.localeCompare(bText, undefined, {
+                                numeric: true
+                            });
+                        } else {
+                            comparison = aDate - bDate;
+                        }
                     } else {
                         comparison = aText.localeCompare(bText, undefined, {
                             numeric: true
@@ -1362,15 +1142,12 @@ async function uploadBatchFiles(files, processName) {
                 fetchAndUpdateWorkitems();
             });
 
-            ['prcfW', 'statusFilter', 'startDate', 'endDate', 'priorityFilter', 'assignedUserFilter', 'filterPerPage'].forEach(id => {
+            ['prcfW', 'stageFilter', 'statusFilter', 'startDate', 'endDate', 'filterPerPage'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.addEventListener('change', () => fetchAndUpdateWorkitems());
             });
             const searchInput = document.getElementById('searchInput');
             if (searchInput) searchInput.addEventListener('input', () => debounceSearch(() => fetchAndUpdateWorkitems()));
-
-            const tagFilterInput = document.getElementById('tagFilterInput');
-            if (tagFilterInput) tagFilterInput.addEventListener('input', () => debounceSearch(() => fetchAndUpdateWorkitems()));
 
             const paginationContainer = document.getElementById('paginationContainer');
             if (paginationContainer) {
@@ -1397,19 +1174,6 @@ async function uploadBatchFiles(files, processName) {
                     return;
                 }
 
-                const addTagButton = event.target.closest('.add-tag-btn');
-                if (addTagButton) {
-                    handleAddTag({
-                        currentTarget: addTagButton
-                    });
-                }
-                const removeTagButton = event.target.closest('.remove-tag-btn');
-                if (removeTagButton) {
-                    handleRemoveTag({
-                        currentTarget: removeTagButton
-                    });
-                }
-
                 const loadMoreButton = event.target.closest('.load-more-btn');
                 if (loadMoreButton) {
                     const workitemid = loadMoreButton.dataset.workitemid;
@@ -1418,32 +1182,6 @@ async function uploadBatchFiles(files, processName) {
                     if (imageContainer) {
                         loadImagesInBatch(imageContainer, workitemid, totalImages);
                     }
-                }
-            });
-
-            tbody.addEventListener('submit', (event) => {
-                if (event.target.classList.contains('comment-form')) {
-                    handlePostComment(event);
-                }
-            });
-            tbody.addEventListener('change', (event) => {
-                if (event.target.classList.contains('priority-selector')) {
-                    handleSetPriority(event);
-                }
-                if (event.target.classList.contains('assign-selector')) {
-                    handleAssigning(event);
-                }
-            });
-            tbody.addEventListener('input', (event) => {
-                if (event.target.tagName === 'TEXTAREA' && event.target.closest('.comment-form')) {
-                    handleMentionInput(event);
-                }
-            });
-            tbody.addEventListener('focusout', (event) => {
-                if (event.target.tagName === 'TEXTAREA' && event.target.closest('.comment-form')) {
-                    const wrapper = event.target.closest('[id^="comment-form-wrapper-"]');
-                    const autocompleteList = wrapper.querySelector('.mention-autocomplete-list');
-                    setTimeout(() => autocompleteList.classList.add('hidden'), 200);
                 }
             });
 
@@ -1514,6 +1252,387 @@ async function uploadBatchFiles(files, processName) {
                     setTimeout(() => { this.innerHTML = '<i class="fas fa-copy text-xs"></i>'; }, 1500);
                 });
             });
+
+            // ---- Saved filter views (issue #170) ----
+            // Per-user named presets of the whole filter form (incl. Advanced +
+            // doc-value rows), shown as chips between the filter card and the
+            // table. Persisted via /api/workitem_filter_views as the same
+            // [name, value] pair list the form serializer builds above.
+            const savedViewsBar = document.getElementById('savedViewsBar');
+            let savedViews = [];
+            let activeViewId = null;
+
+            function serializeFilters() {
+                const pairs = [];
+                for (const el of filterForm.elements) {
+                    if (!el.name || el.disabled || el.type === 'file' || el.type === 'hidden') continue;
+                    if ((el.type === 'checkbox' || el.type === 'radio') && !el.checked) continue;
+                    pairs.push([el.name, el.value]);
+                }
+                return pairs;
+            }
+
+            async function viewsApi(path, opts = {}) {
+                const res = await fetch(`${API_PREFIX}api/workitem_filter_views${path}`, {
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    ...opts,
+                });
+                const body = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
+                return body;
+            }
+
+            // Chip styling shared by plain view chips and folder chips (#186).
+            const CHIP_ACTIVE = 'bg-indigo-600 border-indigo-600 text-white';
+            const CHIP_IDLE = 'bg-white border-gray-200 text-gray-600 hover:border-indigo-300 hover:text-indigo-700';
+
+            function makeActionBtn(icon, title, active, hoverColor, handler) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'px-1 py-1.5 ' +
+                    (active ? 'text-indigo-200 hover:text-white' : `text-gray-300 ${hoverColor}`);
+                btn.innerHTML = `<i class="fas ${icon} text-xs"></i>`;
+                btn.title = title;
+                btn.setAttribute('aria-label', title);
+                btn.addEventListener('click', handler);
+                return btn;
+            }
+
+            function makeViewChip(v) {
+                const active = v.id === activeViewId;
+                const chip = document.createElement('span');
+                chip.className = 'saved-view-chip inline-flex items-center rounded-full border text-sm font-medium transition-colors pr-1 ' +
+                    (active ? CHIP_ACTIVE : CHIP_IDLE);
+                chip.dataset.testid = 'workitems-view-chip';
+
+                const nameBtn = document.createElement('button');
+                nameBtn.type = 'button';
+                nameBtn.className = 'pl-3 pr-1 py-1.5 cursor-pointer';
+                nameBtn.textContent = v.name;
+                nameBtn.title = active ? {{ _("Deselect view")|tojson }} : {{ _("Apply view")|tojson }};
+                nameBtn.addEventListener('click', () => active ? deselectView() : applyView(v));
+                chip.appendChild(nameBtn);
+                // A dedicated pencil, NOT dblclick-on-name: applying re-renders
+                // the chips, so the second click of a dblclick lands on a
+                // replaced node and the rename handler never fires. The editor
+                // it opens is also where DELETE lives — an always-visible x
+                // deleted views when people expected it to deselect them.
+                chip.appendChild(makeActionBtn('fa-pen', {{ _("Edit view")|tojson }}, active,
+                    'hover:text-indigo-600', () => startEdit(v)));
+                if (active) {
+                    chip.appendChild(makeActionBtn('fa-times', {{ _("Deselect view")|tojson }}, active,
+                        'hover:text-red-500', deselectView));
+                }
+                return chip;
+            }
+
+            // Folder chip (#186): one chip per folder, opening a dropdown that
+            // lists the folder's views (click applies / toggles off, pencil edits).
+            function makeFolderChip(folder, views) {
+                const wrap = document.createElement('span');
+                wrap.className = 'saved-view-folder relative inline-flex';
+                const hasActive = views.some(v => v.id === activeViewId);
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-medium transition-colors ' +
+                    (hasActive ? CHIP_ACTIVE : CHIP_IDLE);
+                btn.dataset.testid = 'workitems-view-folder';
+                btn.title = folder;
+                const icon = document.createElement('i');
+                icon.className = 'fas fa-folder text-xs';
+                const label = document.createElement('span');
+                label.textContent = `${folder} (${views.length})`;
+                const chev = document.createElement('i');
+                chev.className = 'fas fa-chevron-down text-xs';
+                btn.append(icon, label, chev);
+
+                const menu = document.createElement('div');
+                menu.className = 'saved-view-folder-menu hidden absolute z-20 top-full left-0 mt-1 min-w-56 bg-white border border-gray-200 rounded-lg shadow-lg py-1';
+                views.forEach(v => {
+                    const active = v.id === activeViewId;
+                    const row = document.createElement('div');
+                    row.className = 'flex items-center px-2 py-0.5';
+                    const applyBtn = document.createElement('button');
+                    applyBtn.type = 'button';
+                    applyBtn.className = 'flex-1 text-left px-2 py-1 text-sm rounded truncate ' +
+                        (active ? 'bg-indigo-50 font-semibold text-indigo-700' : 'text-gray-700 hover:bg-indigo-50');
+                    applyBtn.textContent = v.name;
+                    applyBtn.title = active ? {{ _("Deselect view")|tojson }} : {{ _("Apply view")|tojson }};
+                    applyBtn.dataset.testid = 'workitems-view-menu-apply';
+                    applyBtn.addEventListener('click', () => active ? deselectView() : applyView(v));
+                    row.appendChild(applyBtn);
+                    row.appendChild(makeActionBtn('fa-pen', {{ _("Edit view")|tojson }}, false,
+                        'hover:text-indigo-600', () => startEdit(v)));
+                    menu.appendChild(row);
+                });
+
+                btn.addEventListener('click', () => {
+                    const wasHidden = menu.classList.contains('hidden');
+                    savedViewsBar.querySelectorAll('.saved-view-folder-menu').forEach(m => m.classList.add('hidden'));
+                    menu.classList.toggle('hidden', !wasHidden);
+                });
+                wrap.append(btn, menu);
+                return wrap;
+            }
+
+            function renderSavedViews() {
+                savedViewsBar.querySelectorAll('.saved-view-chip, .saved-view-folder').forEach(c => c.remove());
+                const folders = new Map();
+                savedViews.forEach(v => {
+                    if (!v.folder) return;
+                    if (!folders.has(v.folder)) folders.set(v.folder, []);
+                    folders.get(v.folder).push(v);
+                });
+                savedViews.filter(v => !v.folder).forEach(v => savedViewsBar.appendChild(makeViewChip(v)));
+                folders.forEach((views, folder) => savedViewsBar.appendChild(makeFolderChip(folder, views)));
+                savedViewsBar.classList.toggle('hidden',
+                    savedViews.length === 0 && !savedViewsBar.querySelector('input'));
+            }
+
+            const sortViews = () => savedViews.sort((a, b) =>
+                (a.folder || '').localeCompare(b.folder || '') || a.name.localeCompare(b.name));
+
+            // Close any open folder dropdown on a click outside its chip.
+            document.addEventListener('mousedown', e => {
+                if (!e.target.closest('.saved-view-folder')) {
+                    savedViewsBar.querySelectorAll('.saved-view-folder-menu').forEach(m => m.classList.add('hidden'));
+                }
+            });
+
+            // Inline editor shared by save + edit: view name + optional
+            // folder (#186). The folder input opens a dropdown of the folders
+            // that already exist — click to pick, or type a new name (a
+            // datalist was tried first and nobody found it). Enter commits,
+            // Escape or focusing elsewhere cancels. When editing an existing
+            // view (onDelete given), a trash button deletes it — deletion
+            // lives here, behind the pencil, on purpose.
+            function viewEditor(initial, onCommit, onDelete) {
+                const wrap = document.createElement('span');
+                wrap.className = 'saved-view-editor inline-flex items-center gap-2';
+
+                const nameIn = document.createElement('input');
+                nameIn.type = 'text';
+                nameIn.maxLength = 100;
+                nameIn.value = initial.name || '';
+                nameIn.placeholder = {{ _("View name…")|tojson }};
+                nameIn.className = 'nx-input h-9 w-48 text-sm';
+                nameIn.dataset.testid = 'workitems-view-name-input';
+
+                const folderWrap = document.createElement('span');
+                folderWrap.className = 'relative inline-flex';
+                const folderIn = document.createElement('input');
+                folderIn.type = 'text';
+                folderIn.maxLength = 100;
+                folderIn.autocomplete = 'off';
+                folderIn.value = initial.folder || '';
+                folderIn.placeholder = {{ _("optional")|tojson }};
+                folderIn.className = 'nx-input h-9 w-40 text-sm pr-7';
+                folderIn.dataset.testid = 'workitems-view-folder-input';
+                const chev = document.createElement('span');
+                chev.className = 'pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 text-gray-400';
+                chev.innerHTML = '<i class="fa-solid fa-chevron-down text-xs"></i>';
+                const folderList = document.createElement('div');
+                folderList.className = 'hidden absolute z-30 top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto';
+                folderList.dataset.testid = 'workitems-view-folder-options';
+                const existingFolders = [...new Set(savedViews.map(v => v.folder).filter(Boolean))].sort();
+                const renderFolderList = q => {
+                    folderList.innerHTML = '';
+                    const ql = (q || '').toLowerCase();
+                    existingFolders.filter(f => !ql || f.toLowerCase().includes(ql)).forEach(f => {
+                        const opt = document.createElement('div');
+                        opt.className = 'px-3 py-1.5 text-sm cursor-pointer text-gray-700 hover:bg-indigo-50 truncate';
+                        opt.textContent = f;
+                        // mousedown, not click: keeps focus in the input so the
+                        // editor's focusout-cancel doesn't fire first.
+                        opt.addEventListener('mousedown', ev => {
+                            ev.preventDefault();
+                            folderIn.value = f;
+                            folderList.classList.add('hidden');
+                        });
+                        folderList.appendChild(opt);
+                    });
+                    folderList.classList.toggle('hidden', !folderList.children.length);
+                };
+                folderIn.addEventListener('focus', () => renderFolderList(folderIn.value));
+                folderIn.addEventListener('input', () => renderFolderList(folderIn.value));
+                folderWrap.append(folderIn, chev, folderList);
+
+                let done = false;
+                const finish = commit => {
+                    if (done) return;
+                    done = true;
+                    const name = nameIn.value.trim();
+                    const folder = folderIn.value.trim();
+                    wrap.remove();
+                    renderSavedViews();
+                    if (commit && name) onCommit(name, folder);
+                };
+                [nameIn, folderIn].forEach(inp => inp.addEventListener('keydown', e => {
+                    if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+                    if (e.key === 'Escape') finish(false);
+                }));
+                wrap.addEventListener('focusout', e => {
+                    if (!wrap.contains(e.relatedTarget)) finish(false);
+                });
+                wrap.append(nameIn, folderWrap);
+                if (onDelete) {
+                    const del = document.createElement('button');
+                    del.type = 'button';
+                    del.className = 'px-2 py-1.5 text-gray-400 hover:text-red-500 transition-colors';
+                    del.innerHTML = '<i class="fas fa-trash text-sm"></i>';
+                    del.title = {{ _("Delete view")|tojson }};
+                    del.setAttribute('aria-label', {{ _("Delete view")|tojson }});
+                    del.dataset.testid = 'workitems-view-delete';
+                    del.addEventListener('click', () => {
+                        done = true;
+                        wrap.remove();
+                        onDelete();
+                    });
+                    wrap.appendChild(del);
+                }
+                return wrap;
+            }
+
+            function startSave() {
+                if (savedViewsBar.querySelector('input')) return;
+                const editor = viewEditor({}, async (name, folder) => {
+                    const filters = serializeFilters();
+                    try {
+                        const saved = await viewsApi('', {
+                            method: 'POST',
+                            body: JSON.stringify({ name, folder, filters }),
+                        });
+                        savedViews = savedViews.filter(v => v.id !== saved.id);
+                        savedViews.push({ id: saved.id, name: saved.name, folder: saved.folder || '', filters });
+                        sortViews();
+                        activeViewId = saved.id;
+                        showNotification({{ _("View saved.")|tojson }});
+                    } catch (e) {
+                        showNotification(e.message, 'error');
+                    }
+                    renderSavedViews();
+                });
+                savedViewsBar.classList.remove('hidden');
+                savedViewsBar.appendChild(editor);
+                editor.querySelector('input').focus();
+            }
+
+            function startEdit(v) {
+                if (savedViewsBar.querySelector('input')) return;
+                savedViewsBar.querySelectorAll('.saved-view-folder-menu').forEach(m => m.classList.add('hidden'));
+                const editor = viewEditor({ name: v.name, folder: v.folder }, async (name, folder) => {
+                    if (name !== v.name || folder !== (v.folder || '')) {
+                        try {
+                            await viewsApi('', {
+                                method: 'POST',
+                                body: JSON.stringify({ id: v.id, name, folder, filters: v.filters }),
+                            });
+                            v.name = name;
+                            v.folder = folder;
+                            sortViews();
+                        } catch (e) {
+                            showNotification(e.message, 'error');
+                        }
+                    }
+                    renderSavedViews();
+                }, () => deleteView(v));
+                savedViewsBar.appendChild(editor);
+                const nameIn = editor.querySelector('input');
+                nameIn.focus();
+                nameIn.select();
+            }
+
+            // Deselect = back to the default, unfiltered list: applying an
+            // empty view resets every filter and clears the highlight.
+            function deselectView() {
+                applyView({ id: null, filters: [] });
+            }
+
+            async function deleteView(v) {
+                try {
+                    await viewsApi(`/${v.id}`, { method: 'DELETE' });
+                    savedViews = savedViews.filter(x => x.id !== v.id);
+                    if (activeViewId === v.id) activeViewId = null;
+                    renderSavedViews();
+                } catch (e) {
+                    showNotification(e.message, 'error');
+                }
+            }
+
+            function applyView(v) {
+                const byName = {};
+                v.filters.forEach(([k, val]) => { (byName[k] = byName[k] || []).push(val); });
+                const one = k => (byName[k] || [''])[0];
+
+                const prcfW = document.getElementById('prcfW');
+                prcfW.value = one('prcfW') || 'all';
+                if (prcfW._nxScopeSync) prcfW._nxScopeSync();
+                _updatePreparedDocsLink();
+
+                document.getElementById('searchInput').value = one('search');
+                document.getElementById('stageFilter').value = one('stage');
+                document.getElementById('statusFilter').value = one('status');
+                if (datePreset) datePreset.value = '';
+                ['startDate', 'endDate'].forEach(id => {
+                    const el = document.getElementById(id);
+                    el.value = one(id);
+                    if (el._flatpickr) el._flatpickr.setDate(el.value || null, false);
+                });
+                if (byName.perPage) document.getElementById('filterPerPage').value = one('perPage');
+
+                // Doc-value rows: prune to row 1, re-add as needed, fill
+                // index-aligned (doccomb/docfield/docop/docvalue).
+                const container = document.getElementById('docFiltersContainer');
+                container.querySelectorAll('.doc-filter-row').forEach((row, i) => { if (i > 0) row.remove(); });
+                const nRows = Math.max(1, (byName.docfield || []).length);
+                for (let i = 1; i < nRows; i++) addDocFilterRow();
+                const process = prcfW.value || 'all';
+                container.querySelectorAll('.doc-filter-row').forEach((row, i) => {
+                    const comb = row.querySelector('select[name="doccomb"]');
+                    if (comb) comb.value = (byName.doccomb || [])[i] || 'and';
+                    const hidden = row.querySelector('.doc-filter-field');
+                    hidden.value = (byName.docfield || [])[i] || '';
+                    hidden.setAttribute('data-selected', hidden.value);
+                    // Restores the visible label; a field the user can no longer
+                    // see simply resolves to "All fields" (permission drop).
+                    fillDocFieldSelect(hidden, process);
+                    row.querySelector('.doc-filter-op').value = (byName.docop || [])[i] || 'contains';
+                    row.querySelector('.doc-filter-value').value = (byName.docvalue || [])[i] || '';
+                });
+
+                // Open Advanced when the view actually uses it (mirrors the
+                // URL-restore auto-open above), close it otherwise.
+                const usesAdvanced = one('startDate') || one('endDate') ||
+                    (byName.docfield || []).some(x => x) || (byName.docvalue || []).some(x => x);
+                advancedContainer.classList.toggle('hidden', !usesAdvanced);
+
+                activeViewId = v.id;
+                renderSavedViews();
+                fetchAndUpdateWorkitems(1);
+            }
+
+            // Editing any filter by hand means the chip no longer describes the
+            // list — drop the highlight. applyView sets values without firing
+            // events, so applying itself doesn't clear it. The bar lives inside
+            // the filter form's toolbar row, so ignore events bubbling out of
+            // the chips/editor themselves (typing a view name is not a filter
+            // edit).
+            function clearActiveView(e) {
+                if (e && savedViewsBar.contains(e.target)) return;
+                if (activeViewId === null) return;
+                activeViewId = null;
+                renderSavedViews();
+            }
+            filterForm.addEventListener('input', clearActiveView);
+            filterForm.addEventListener('change', clearActiveView);
+
+            document.getElementById('saveViewBtn')?.addEventListener('click', startSave);
+            viewsApi('').then(data => {
+                savedViews = (data.views || []).map(v => ({ ...v, folder: v.folder || '' }));
+                sortViews();
+                renderSavedViews();
+            }).catch(() => { /* bar just stays hidden */ });
         });
     </script>
 </body>

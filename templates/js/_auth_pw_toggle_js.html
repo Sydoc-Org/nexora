@@ -1,0 +1,15 @@
+<script nonce="{{ csp_nonce() }}">
+    document.querySelectorAll('.auth-pw-toggle').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const input = document.getElementById(btn.getAttribute('data-target'));
+            const icon = btn.querySelector('i');
+            if (!input) return;
+            const showing = input.type === 'text';
+            input.type = showing ? 'password' : 'text';
+            if (icon) {
+                icon.classList.toggle('fa-eye', showing);
+                icon.classList.toggle('fa-eye-slash', !showing);
+            }
+        });
+    });
+</script>

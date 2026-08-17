@@ -23,7 +23,7 @@
     {% if actions %}
       <div class="nx-page-head__actions">
         {% for act in actions %}
-          <button type="button" onclick="{{ act.onclick }}" class="nx-btn nx-btn--{{ act.variant|default('primary') }}" data-testid="admin-helpers-page-action-{{ act.testid|default(loop.index) }}">
+          <button type="button" class="nx-btn nx-btn--{{ act.variant|default('primary') }}"{% if act.onclick %} data-nx-click="{{ act.onclick }}"{% endif %} data-testid="admin-helpers-page-action-{{ act.testid|default(loop.index) }}">
             {% if act.icon %}<i class="fas {{ act.icon }}"></i>{% endif %}
             {{ act.label }}
           </button>
@@ -40,7 +40,7 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
     {% for f in filters %}
       <div>
-        <label for="{{ f.id }}" class="block text-xs font-bold uppercase tracking-widest mb-1" style="color: var(--nx-text-meta)">{{ f.label }}</label>
+        <label for="{{ f.id }}" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ f.label }}</label>
         {% if f.type == 'search' %}
           <div class="nx-input-icon">
             <i class="fas fa-search"></i>
@@ -71,7 +71,7 @@
     {% if actions %}
       <div class="nx-page-head__actions">
         {% for act in actions %}
-          <button type="button" onclick="{{ act.onclick }}" class="nx-btn nx-btn--{{ act.variant|default('primary') }}" data-testid="admin-helpers-toolbar-action-{{ act.testid|default(loop.index) }}">
+          <button type="button" class="nx-btn nx-btn--{{ act.variant|default('primary') }}" data-testid="admin-helpers-toolbar-action-{{ act.testid|default(loop.index) }}">
             {% if act.icon %}<i class="fas {{ act.icon }}"></i>{% endif %}
             {{ act.label }}
           </button>

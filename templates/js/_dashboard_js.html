@@ -1,4 +1,4 @@
-<script>
+<script nonce="{{ csp_nonce() }}">
 
 
     const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
@@ -33,6 +33,23 @@
     new MutationObserver(applyChartTheme).observe(
         document.documentElement, { attributes: true, attributeFilter: ['class'] });
 
+    // ponytail: one plugin, not a rewrite of every chart's empty-state markup
+    const noDataPlugin = {
+        id: 'noData',
+        afterDraw(chart) {
+            const hasData = chart.data.datasets.some(ds => ds.data.some(v => v > 0));
+            if (hasData) return;
+            const { ctx, chartArea: { left, top, right, bottom } } = chart;
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.font = "14px 'Inter', sans-serif";
+            ctx.fillStyle = nxAxis().text;
+            ctx.fillText({{ _("No data to display") | tojson }}, (left + right) / 2, (top + bottom) / 2);
+            ctx.restore();
+        }
+    };
+
     function shuffleObject(obj) {
         const entries = Object.entries(obj);
         for (let i = entries.length - 1; i > 0; i--) {
@@ -51,11 +68,16 @@
 
     // Delegated click handler for activity-feed rows: reads the workitem id
     // from data-wid (never re-parsed as HTML) instead of an inline onclick
-    // built from server-derived text.
+    // built from server-derived text. data-client disambiguates colliding
+    // ids across sources (e.g. 1216 exists on both the default and MS02
+    // clients) -- without it the deep link can land on the wrong client's
+    // workitem.
     function onActivityFeedClick(e) {
         const row = e.target.closest('[data-wid]');
         if (!row) return;
-        window.location.href = `${API_PREFIX}workitems?search=${encodeURIComponent(row.dataset.wid)}`;
+        const client = row.dataset.client || '';
+        const clientQs = client ? `&client=${encodeURIComponent(client)}` : '';
+        window.location.href = `${API_PREFIX}workitems?search=${encodeURIComponent(row.dataset.wid)}${clientQs}`;
     }
 
     async function updateActivityFeed() {
@@ -84,7 +106,7 @@
                 const widStr = String(act.id);
                 return `
                     <div class="p-3 rounded-xl border border-gray-50 bg-gray-50/50 hover:bg-white hover:shadow-md transition-all cursor-pointer"
-                        data-wid="${escapeHtml(widStr)}">
+                        data-wid="${escapeHtml(widStr)}" data-client="${escapeHtml(String(act.client || ''))}">
                         <div class="flex justify-between items-start mb-1">
                             <span class="text-xs font-bold text-indigo-600">ID: ${escapeHtml(widStr)}</span>
                             <span class="text-[10px] text-gray-400">${escapeHtml(String(act.time))}</span>
@@ -200,6 +222,7 @@
                             tension: 0.4,
                         }]
                     },
+                    plugins: [noDataPlugin],
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
@@ -223,6 +246,10 @@
             const data = await response.json();
             const labels = data.labels.slice(6, 18);
             const chartData = data.data.slice(6, 18);
+
+            document.getElementById('hourlyChartWrap').style.display = '';
+            document.getElementById('hourlyChartEmpty').style.display = 'none';
+
             const ctx = document.getElementById('hourlyChart').getContext('2d');
 
             if (hourlyChart) {
@@ -244,6 +271,7 @@
                             borderSkipped: false,
                         }]
                     },
+                    plugins: [noDataPlugin],
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,

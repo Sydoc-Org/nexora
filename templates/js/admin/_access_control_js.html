@@ -1,4 +1,4 @@
-<script>
+<script nonce="{{ csp_nonce() }}">
     const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
 
     // Drawer & modal DOM refs
@@ -99,15 +99,24 @@
         const inheritHeader = document.getElementById('drawerInheritHeader');
         const inheritCells  = document.querySelectorAll('#permissionDrawer tbody td:nth-child(2)');
 
+        // Every permission defaults to the neutral/inherit state (no explicit
+        // row) until the admin actively picks Allow or Deny. An absent
+        // AccessProfilePermission row is already read back as "not set" (see
+        // get_profile_details), and fnUserHasPermission already treats an
+        // absent row the same as an explicit Deny — so pre-checking Deny here
+        // only added noise rows that then blocked Permission deletion.
+        document.querySelectorAll('#permissionDrawer input[type=radio][value="None"]').forEach(r => r.checked = true);
+        // The "None" column is the only way to click a permission back to the
+        // neutral/unset state (see the default-checked block above) — it must
+        // stay visible in every mode, profile included, or an admin who wants
+        // to explicitly clear a permission they'd set to Allow/Deny has no way
+        // back to neutral, re-creating the noise-row problem this was meant
+        // to fix.
+        if (inheritHeader) inheritHeader.style.display = '';
+        inheritCells.forEach(td => td.style.display = '');
         if (mode === 'profile') {
-            if (inheritHeader) inheritHeader.style.display = 'none';
-            inheritCells.forEach(td => td.style.display = 'none');
-            document.querySelectorAll('#permissionDrawer input[type=radio][value="D"]').forEach(r => r.checked = true);
             document.getElementById('drawerProfileMeta').classList.remove('hidden');
         } else {
-            if (inheritHeader) inheritHeader.style.display = '';
-            inheritCells.forEach(td => td.style.display = '');
-            document.querySelectorAll('#permissionDrawer input[type=radio][value="None"]').forEach(r => r.checked = true);
             document.getElementById('drawerProfileMeta').classList.add('hidden');
         }
 
@@ -515,8 +524,21 @@
     }
 
     // ── USER CRUD ─────────────────────────────────────────────────────
+    // Ticked (the default) = the backend generates the password and mails a
+    // set-password link, so the field is neither shown nor required.
+    function syncInviteToggle() {
+        const invite = document.getElementById('send_invite').checked;
+        document.getElementById('passwordField').classList.toggle('hidden', invite);
+        const pw = document.getElementById('password');
+        pw.required = !invite;
+        if (invite) pw.value = '';
+    }
+
+    document.getElementById('send_invite')?.addEventListener('change', syncInviteToggle);
+
     function openAddUserModal() {
         document.getElementById('userForm').reset();
+        syncInviteToggle();
         openCenterModal(userModal);
     }
 
@@ -567,7 +589,8 @@
     function _makePermHeader(tag, colspan, cls, style, text) {
         const tr = document.createElement('tr');
         tr.setAttribute(tag, text);
-        tr.setAttribute('onclick', 'permGroupToggle(this)');
+        /* Toggling is bound by the delegated drawerPermsBody listener; an
+           inline onclick would be CSP-blocked (#193 finding 10) anyway. */
         tr.style.cssText = (style || '') + ';cursor:pointer;user-select:none';
         tr.className = cls;
         const td = document.createElement('td');
@@ -615,8 +638,7 @@
             tr.id = `perm-row-${p.PermissionID}`;
             tr.innerHTML = `
                 <td class="px-4 py-4">
-                    <button onclick="togglePermExpand(${p.PermissionID})"
-                            class="text-gray-400 hover:text-indigo-600 w-6 h-6 flex items-center justify-center" data-testid="admin-ac-perm-expand-${p.PermissionID}">
+                    <button class="perm-expand-btn text-gray-400 hover:text-indigo-600 w-6 h-6 flex items-center justify-center" data-permission-id="${p.PermissionID}" data-testid="admin-ac-perm-expand-${p.PermissionID}">
                         <i class="fas fa-chevron-right text-xs transition-transform duration-200" id="perm-expand-icon-${p.PermissionID}"></i>
                     </button>
                 </td>
@@ -631,12 +653,10 @@
                     <span class="px-2 py-0.5 text-xs rounded-full ${p.OverrideCount > 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-500'}">${p.OverrideCount}</span>
                 </td>
                 <td class="px-6 py-4 text-right space-x-3">
-                    <button onclick="openEditPermissionModal(${p.PermissionID})"
-                            class="text-indigo-400 hover:text-indigo-700 text-sm" title="{{ _('Edit') }}" data-testid="admin-ac-perm-edit-${p.PermissionID}">
+                    <button class="perm-edit-btn text-indigo-400 hover:text-indigo-700 text-sm" data-permission-id="${p.PermissionID}" title="{{ _('Edit') }}" data-testid="admin-ac-perm-edit-${p.PermissionID}">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button onclick="confirmDeletePermission(${p.PermissionID})"
-                            class="text-red-300 hover:text-red-600 text-sm" title="{{ _('Delete') }}" data-testid="admin-ac-perm-delete-${p.PermissionID}">
+                    <button class="perm-delete-btn text-red-300 hover:text-red-600 text-sm" data-permission-id="${p.PermissionID}" title="{{ _('Delete') }}" data-testid="admin-ac-perm-delete-${p.PermissionID}">
                         <i class="fas fa-trash-alt"></i>
                     </button>
                 </td>`;
@@ -729,7 +749,7 @@
     function openAddPermissionModal() {
         permMetaMode = 'add';
         document.getElementById('permMetaModalTitle').innerText = {{ _("Add Permission") | tojson }};
-        ['permMetaId','permMetaCode','permMetaDescription','permMetaSortingCode'].forEach(id => {
+        ['permMetaId','permMetaCode','permMetaDescription'].forEach(id => {
             document.getElementById(id).value = '';
         });
         openCenterModal(permMetaModal);
@@ -742,7 +762,6 @@
         document.getElementById('permMetaId').value          = id;
         document.getElementById('permMetaCode').value        = p.Code;
         document.getElementById('permMetaDescription').value = p.Description;
-        document.getElementById('permMetaSortingCode').value = p.SortingCode || '';
         openCenterModal(permMetaModal);
     }
 
@@ -751,7 +770,6 @@
     async function savePermissionMeta() {
         const code        = document.getElementById('permMetaCode').value.trim();
         const description = document.getElementById('permMetaDescription').value.trim();
-        const sortingCode = document.getElementById('permMetaSortingCode').value.trim();
         const id          = document.getElementById('permMetaId').value;
         if (!code || !description) {
             showNotification({{ _("Code and description are required.") | tojson }}, 'error'); return;
@@ -763,7 +781,7 @@
             const res    = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                body: JSON.stringify({ code, description, sortingCode })
+                body: JSON.stringify({ code, description })
             });
             const result = await res.json();
             if (result.success) {
@@ -807,6 +825,48 @@
 
     // ── INIT ──────────────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', () => {
+        // #193 finding 10: onclick/oninput="" attribute handlers aren't
+        // nonce-covered by CSP; bind them here instead.
+        document.getElementById('tab-users-btn')?.addEventListener('click', () => switchTab('users'));
+        document.getElementById('tab-permissions-btn')?.addEventListener('click', () => switchTab('permissions'));
+        document.getElementById('tab-profiles-btn')?.addEventListener('click', () => switchTab('profiles'));
+        document.getElementById('userSearchInput')?.addEventListener('input', () => {
+            filterUsersTable();
+            updateClearFilterVisibility();
+        });
+        document.getElementById('userClearFiltersBtn')?.addEventListener('click', clearUserFilters);
+        document.querySelector('[data-testid="admin-ac-add-user"]')?.addEventListener('click', openAddUserModal);
+        document.getElementById('permSearchInput')?.addEventListener('input', filterPermissionsTable);
+        document.querySelector('[data-testid="admin-ac-add-permission"]')?.addEventListener('click', openAddPermissionModal);
+        document.querySelector('[data-testid="admin-ac-add-profile"]')?.addEventListener('click', openProfileDrawer);
+        document.querySelector('[data-testid="admin-ac-user-modal-close"]')?.addEventListener('click', closeUserModal);
+        document.querySelector('[data-testid="admin-ac-user-modal-cancel"]')?.addEventListener('click', closeUserModal);
+        document.querySelector('[data-testid="admin-ac-confirm-delete-cancel"]')?.addEventListener('click', closeConfirmDeleteModal);
+        document.querySelector('[data-testid="admin-ac-perm-modal-close"]')?.addEventListener('click', closePermMetaModal);
+        document.querySelector('[data-testid="admin-ac-perm-modal-cancel"]')?.addEventListener('click', closePermMetaModal);
+        document.querySelector('[data-testid="admin-ac-perm-modal-save"]')?.addEventListener('click', savePermissionMeta);
+        document.getElementById('drawerOverlay')?.addEventListener('click', closeDrawer);
+        document.querySelector('[data-testid="admin-ac-drawer-close"]')?.addEventListener('click', closeDrawer);
+        document.getElementById('drawerPermSearch')?.addEventListener('input', filterDrawerPerms);
+        document.querySelector('[data-testid="admin-ac-drawer-cancel"]')?.addEventListener('click', closeDrawer);
+        document.querySelector('[data-testid="admin-ac-drawer-save"]')?.addEventListener('click', savePermissions);
+        document.getElementById('drawerPermsBody')?.addEventListener('click', (e) => {
+            const tr = e.target.closest('tr[data-perm-group], tr[data-perm-sub-group]');
+            if (tr) permGroupToggle(tr);
+        });
+        document.getElementById('permissionsTableBody')?.addEventListener('click', (e) => {
+            const expandBtn = e.target.closest('.perm-expand-btn');
+            if (expandBtn) return togglePermExpand(Number(expandBtn.dataset.permissionId));
+            const editBtn = e.target.closest('.perm-edit-btn');
+            if (editBtn) return openEditPermissionModal(Number(editBtn.dataset.permissionId));
+            const deleteBtn = e.target.closest('.perm-delete-btn');
+            if (deleteBtn) confirmDeletePermission(Number(deleteBtn.dataset.permissionId));
+        });
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('.edit-access-profile-btn');
+            if (btn) editProfile(Number(btn.dataset.accessId));
+        });
+
         fetchAllUsers();
         fetchAllPermissions();
 

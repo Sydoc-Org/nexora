@@ -34,8 +34,8 @@ MIN_COVERAGE = {
     "maintenance.py": 100,
     "middleware.py": 100,
     "hooks.py": 100,
-    "notifications.py": 100,
     "octo.py": 95,
+    "outage.py": 95,
     "process_helpers.py": 100,
     "extensions.py": 100,
     "app_logging.py": 100,
@@ -47,9 +47,10 @@ MIN_COVERAGE = {
     "views/dashboard.py": 25,
     "views/admin.py": 65,
     "views/workitems.py": 35,
-    "views/invoices.py": 80,
-    "views/notifications.py": 100,
-    "views/chat.py": 60,
+    # Archived page (#177) — routes unregistered, so only the Bexio helpers are
+    # still exercised (tests/unit/test_invoices_helpers.py). Target lowered to
+    # match: the view functions are dead code kept for a possible revival.
+    "views/invoices.py": 55,
     # views/generali.py intentionally excluded — covered by the Generali
     # phase-2 plan.
 }

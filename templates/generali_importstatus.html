@@ -33,22 +33,22 @@
 
     <!-- Filter Bar -->
     <div class="nx-filter mb-6 nx-rise-2">
-      <div class="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end sm:gap-4">
-        <div class="w-full sm:w-auto">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div>
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("From Date") }}</label>
           <input type="text" id="filterStartDate" placeholder="yyyy-mm-dd"
-            class="nx-input w-full h-11" data-testid="generali-import-status-start-date" />
+            class="nx-input h-11" data-testid="generali-import-status-start-date" />
         </div>
-        <div class="w-full sm:w-auto">
+        <div>
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("To Date") }}</label>
           <input type="text" id="filterEndDate" placeholder="yyyy-mm-dd"
-            class="nx-input w-full h-11" data-testid="generali-import-status-end-date" />
+            class="nx-input h-11" data-testid="generali-import-status-end-date" />
         </div>
-        <div class="col-span-2 sm:col-span-1 w-full sm:w-auto">
+        <div>
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Status") }}</label>
           <div class="relative">
             <select id="filterStatus"
-              class="nx-select block w-full sm:min-w-40 h-11 appearance-none pr-10" data-testid="generali-import-status-status-filter">
+              class="nx-select h-11 appearance-none pr-10" data-testid="generali-import-status-status-filter">
               <option value="">{{ _("All") }}</option>
               <option value="success">{{ _("Success") }}</option>
               <option value="running">{{ _("Running") }}</option>
@@ -59,21 +59,21 @@
             </div>
           </div>
         </div>
-        <div class="col-span-2 sm:col-span-1 w-full sm:w-auto">
+        <div>
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("File name") }}</label>
           <input type="text" id="filterSearch" placeholder="{{ _('Search…') }}"
-            class="nx-input w-full h-11" data-testid="generali-import-status-search" />
+            class="nx-input h-11" data-testid="generali-import-status-search" />
         </div>
-        <div class="col-span-2 sm:col-span-1 flex gap-3 sm:pb-0.5">
-          <button id="applyFilterBtn"
-            class="nx-btn nx-btn--primary flex-1 sm:flex-none h-11" data-testid="generali-import-status-apply-filter">
-            <i class="fas fa-filter mr-2"></i>{{ _("Apply") }}
-          </button>
-          <button id="resetFilterBtn"
-            class="nx-btn nx-btn--secondary flex-1 sm:flex-none h-11" data-testid="generali-import-status-reset-filter">
-            {{ _("Reset") }}
-          </button>
-        </div>
+      </div>
+      <div class="flex gap-3 mt-5 pt-5 border-t [border-color:var(--nx-divider)]!">
+        <button id="applyFilterBtn"
+          class="nx-btn nx-btn--primary h-11" data-testid="generali-import-status-apply-filter">
+          <i class="fas fa-filter mr-2"></i>{{ _("Apply") }}
+        </button>
+        <button id="resetFilterBtn"
+          class="nx-btn nx-btn--secondary h-11" data-testid="generali-import-status-reset-filter">
+          {{ _("Reset") }}
+        </button>
       </div>
     </div>
 
@@ -134,7 +134,6 @@
 
   </main>
 
-  {% include '_small_footer.html' %}
   {% include 'js/_generali_import_status_js.html' %}
 </body>
 </html>

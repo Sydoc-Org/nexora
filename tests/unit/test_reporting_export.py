@@ -6,7 +6,7 @@ import zipfile
 
 from openpyxl import load_workbook
 
-from nx_lib.reporting.export import rows_to_csv, rows_to_xlsx
+from nx_lib.reporting.export import _safe_cell, rows_to_csv, rows_to_xlsx
 
 
 def test_rows_to_xlsx_uses_custom_headers_and_title():
@@ -146,3 +146,78 @@ def test_xlsx_without_chart_has_no_media():
     data = rows_to_xlsx([{"field": "a", "header": "A"}], [[1]], title="Plain")
     with zipfile.ZipFile(io.BytesIO(data)) as z:
         assert not [n for n in z.namelist() if n.startswith("xl/media/")]
+
+
+# ---------------------------------------------------------------------------
+# bytes / control-char cells (Task 52) — openpyxl raises on both; the csv
+# path would otherwise write the Python b'...' repr literally.
+# ---------------------------------------------------------------------------
+
+
+def test_rows_to_xlsx_decodes_bytes_cell():
+    columns = [{"field": "a", "header": "A"}]
+    rows = [[b"caf\xc3\xa9"]]
+    data = rows_to_xlsx(columns, rows, title="t")  # must not raise
+    ws = load_workbook(io.BytesIO(data)).active
+    assert ws["A5"].value == "café"
+
+
+def test_rows_to_xlsx_strips_control_characters():
+    columns = [{"field": "a", "header": "A"}]
+    rows = [["bell\x07ringer"]]
+    data = rows_to_xlsx(columns, rows, title="t")  # must not raise
+    ws = load_workbook(io.BytesIO(data)).active
+    assert ws["A5"].value == "bellringer"
+
+
+def test_rows_to_csv_decodes_bytes_cell():
+    columns = [{"field": "a", "header": "A"}]
+    rows = [[b"caf\xc3\xa9"]]
+    data = rows_to_csv(columns, rows)  # must not raise
+    assert _parse_csv(data)[1] == ["café"]
+    assert b"b'" not in data  # no Python bytes-repr leaking into the file
+
+
+def test_rows_to_csv_strips_control_characters():
+    columns = [{"field": "a", "header": "A"}]
+    rows = [["bell\x07ringer"]]
+    data = rows_to_csv(columns, rows)
+    assert _parse_csv(data)[1] == ["bellringer"]
+    assert b"\x07" not in data
+
+
+def test_safe_cell_stringifies_non_primitive_types():
+    from uuid import UUID
+
+    val = UUID("12345678-1234-5678-1234-567812345678")
+    assert _safe_cell(val) == str(val)
+
+
+def test_safe_cell_passes_decimal_and_date_through_unchanged():
+    from datetime import date
+    from decimal import Decimal
+
+    d = Decimal("1.50")
+    dt = date(2020, 1, 1)
+    assert _safe_cell(d) == d
+    assert _safe_cell(dt) == dt
+
+
+def test_xlsx_forecast_rows_styled_italic():
+    from openpyxl import load_workbook
+
+    columns = [
+        {"field": "d", "header": "Date"},
+        {"field": "n", "header": "Count"},
+        {"field": "__forecast", "header": "Forecast"},
+    ]
+    rows = [["2025-01-01", 10, ""], ["2025-02-01", 12, ""], ["2025-03-01", 14.0, "forecast"]]
+    data = rows_to_xlsx(columns, rows, title="T", forecast_start=2)
+    ws = load_workbook(io.BytesIO(data)).active
+    # header_row is 4 without a chart; data rows follow
+    # openpyxl round-trips an empty-string cell value as None, not "" — pinned
+    # via ws.iter_rows() against the actual saved/reloaded workbook.
+    assert ws.cell(row=5, column=3).value is None
+    fc_cell = ws.cell(row=7, column=1)
+    assert fc_cell.font.italic
+    assert ws.cell(row=7, column=3).value == "forecast"

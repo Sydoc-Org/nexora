@@ -1,0 +1,45 @@
+<script nonce="{{ csp_nonce() }}">
+// Status page: the server renders every timestamp as UTC ISO (the monitor works
+// in UTC and the page may be read from another timezone), so the browser does
+// the localising. Server-rendered ISO stays visible if JS never runs.
+(function () {
+    const locale = document.documentElement.lang || 'en';
+    const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+    const fmt = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' });
+    // The history table needs a form that fits one line in its column; the full
+    // one stays available as the tooltip.
+    const fmtShort = new Intl.DateTimeFormat(locale, {
+        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+    const UNITS = [['day', 86400], ['hour', 3600], ['minute', 60], ['second', 1]];
+
+    function relative(then) {
+        const diff = (then - Date.now()) / 1000;
+        for (const [unit, secs] of UNITS) {
+            if (Math.abs(diff) >= secs || unit === 'second') {
+                return rtf.format(Math.round(diff / secs), unit);
+            }
+        }
+    }
+
+    function paint() {
+        document.querySelectorAll('.status-ago[data-ts]').forEach(el => {
+            const d = new Date(el.dataset.ts);
+            if (isNaN(d)) return;
+            el.textContent = relative(d);
+            el.title = fmt.format(d);
+        });
+        document.querySelectorAll('.status-time[data-ts]').forEach(el => {
+            const d = new Date(el.dataset.ts);
+            if (isNaN(d)) return;
+            el.textContent = fmtShort.format(d);
+            el.title = fmt.format(d);
+        });
+    }
+
+    paint();
+    // The monitor polls every 5 min; re-rendering "3 minutes ago" keeps an
+    // open tab from quietly under-reporting how stale the page is.
+    setInterval(paint, 30000);
+})();
+</script>

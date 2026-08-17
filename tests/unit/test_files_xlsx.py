@@ -27,3 +27,13 @@ def test_pdf_bytes_renamed_to_xlsx_is_rejected():
 
 def test_xlsx_extension_required():
     assert is_file_allowed("prepared.txt", _xlsx_bytes()) is False
+
+
+def test_octet_stream_no_longer_accepted_for_xlsx(monkeypatch):
+    """Security #193: application/octet-stream is libmagic's any-binary
+    fallback, so accepting it for .xlsx collapsed the sniff to a bare
+    extension check. A payload that sniffs as octet-stream must be rejected."""
+    import nx_lib.files as files
+
+    monkeypatch.setattr(files.magic, "from_buffer", lambda *a, **k: "application/octet-stream")
+    assert is_file_allowed("prepared.xlsx", io.BytesIO(b"anything")) is False

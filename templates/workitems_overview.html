@@ -73,20 +73,20 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
-            <label for="prcfW" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{{
-              _("Process") }}</label>
-            <div class="relative mt-1">
-              <select id="prcfW" name="prcfW" class="nx-select h-11 appearance-none pr-10" data-testid="workitems-process-filter">
-                <option value="all" {% if process_name=='all' %}selected{% endif %}>{{ _("All Processes") }}</option>
-                {% for proc in allowed_processes %}
-                <option value="{{ proc }}" {% if process_name==proc %}selected{% endif %}>
-                  {{ proc }}
-                </option>
-                {% endfor %}
-              </select>
-              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
-                <i class="fa-solid fa-chevron-down text-xs"></i>
-              </div>
+            <span id="prcfWLabel" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{{
+              _("Process") }}</span>
+            <div class="nx-scope nx-scope--tall mt-1" data-testid="workitems-process-filter">
+              {# type=text + .hidden, not type=hidden: the filter-form serializer
+                 skips hidden inputs (it must skip the CSRF token). #}
+              <input type="text" id="prcfW" name="prcfW" class="hidden" value="{{ process_name }}" readonly
+                     tabindex="-1" data-testid="workitems-process-filter-value">
+              <button type="button" class="nx-scope-btn" aria-expanded="false" aria-labelledby="prcfWLabel"
+                      data-testid="workitems-process-filter-btn">
+                <span class="nx-scope-summary"></span>
+                <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+              </button>
+              <div class="nx-scope-menu" hidden role="group" aria-label="{{ _('Filter by client and process') }}"
+                   data-testid="workitems-process-filter-menu"></div>
             </div>
           </div>
 
@@ -104,16 +104,18 @@
           </div>
 
           <div>
-            <label for="tagFilterInput"
-              class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Tag</label>
+            <label for="stageFilter" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{{
+              _("Stage") }}</label>
             <div class="relative mt-1">
-              <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-                <i class="fas fa-tag"></i>
-              </span>
-              <input type="text" id="tagFilterInput" name="tag" value="{{ tag or '' }}" list="taglist" {% if
-                tag_filter_perm==False %} disabled {% endif %} class="nx-input h-11 pl-10 pr-10"
-                placeholder="Enter tag name..." data-testid="workitems-tag-filter">
-              <datalist id="taglist"></datalist>
+              <select id="stageFilter" name="stage" {% if stage_perm==False %} disabled {% endif %} class="nx-select h-11 appearance-none pr-10" data-testid="workitems-stage-filter">
+                <option value="">{{ _("All stages") }}</option>
+                {% for st in workitem_stages %}
+                <option value="{{ st }}" {% if stage==st %}selected{% endif %}>{{ _(st) }}</option>
+                {% endfor %}
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+                <i class="fa-solid fa-chevron-down text-xs"></i>
+              </div>
             </div>
           </div>
 
@@ -126,6 +128,9 @@
                 <option value="Ready" {% if status=='Ready' %}selected{% endif %}>Ready</option>
                 <option value="In Progress" {% if status=='In Progress' %}selected{% endif %}>In Progress</option>
                 <option value="Done" {% if status=='Done' %}selected{% endif %}>Done</option>
+                {% if deleted_status_perm %}
+                <option value="Deleted" {% if status=='Deleted' %}selected{% endif %}>Deleted</option>
+                {% endif %}
               </select>
               <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
                 <i class="fa-solid fa-chevron-down text-xs"></i>
@@ -137,7 +142,27 @@
         {% set input_base = "nx-input h-11" %}
 
         <div id="advancedFilterContainer" class="hidden mt-8 pt-6 border-t border-gray-200">
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+
+            <div class="min-w-0">
+              <label for="datePreset" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
+                {{ _("Date Range") }}
+              </label>
+              <div class="relative mt-1">
+                <select id="datePreset" {% if datetime_perm==False %} disabled {% endif %}
+                  class="nx-select h-11 appearance-none pr-10" data-testid="workitems-date-preset">
+                  <option value="">{{ _("Custom") }}</option>
+                  <option value="today">{{ _("Today") }}</option>
+                  <option value="yesterday">{{ _("Yesterday") }}</option>
+                  <option value="this_week">{{ _("This week") }}</option>
+                  <option value="last_7_days">{{ _("Last 7 days") }}</option>
+                  <option value="this_month">{{ _("This month") }}</option>
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+                  <i class="fa-solid fa-chevron-down text-xs"></i>
+                </div>
+              </div>
+            </div>
 
             <div class="min-w-0">
               <label for="startDate" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
@@ -159,135 +184,146 @@
               </div>
             </div>
 
-            <div class="min-w-0">
-              <label for="priorityFilter" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
-                {{ _("Priority") }}
-              </label>
-              <div class="relative mt-1">
-                <select id="priorityFilter" name="priority" class="{{ input_base }} appearance-none pr-10" {% if
-                  priority_perm==False %} disabled {% endif %} data-testid="workitems-priority-filter">
-                  <option value="">{{ _("All Priorities") }}</option>
-                  <option value="3" {% if priority=='3' %}selected{% endif %}>{{ _("High") }}</option>
-                  <option value="2" {% if priority=='2' %}selected{% endif %}>{{ _("Medium") }}</option>
-                  <option value="1" {% if priority=='1' %}selected{% endif %}>{{ _("Low") }}</option>
-                </select>
-                <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">
-                  <i class="fa-solid fa-chevron-down text-xs"></i>
-                </span>
-              </div>
-            </div>
+          </div>
 
+        {# Document Value Search -- its own engine, tucked INSIDE the Advanced
+           toggle (issue #159; was always-visible per #148). #}
+        <div class="mt-8 pt-6 border-t border-gray-200" data-testid="workitems-doc-value-search">
             <div class="min-w-0">
-              <label for="assignedUserFilter"
-                class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
-                {{ _("Assigned To") }}
-              </label>
-              <div class="relative mt-1">
-                <select id="assignedUserFilter" name="assignedUser" class="{{ input_base }} appearance-none pr-10" {% if
-                  assigned_user_perm==False %} disabled {% endif %} data-testid="workitems-assigned-user-filter">
-                  <option value="">{{ _("All Users") }}</option>
-                  <option value="None" {% if assignedUser=='None' %}selected{% endif %}>{{ _("Unassigned") }}</option>
-                  {% for user in portal_assignedUsers_filter %}
-                  <option value="{{ user.userID }}" {% if assignedUser==user.userID|string %}selected{% endif %}>
-                    {{ user.fullname }}
-                  </option>
-                  {% endfor %}
-                </select>
-                <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">
-                  <i class="fa-solid fa-chevron-down text-xs"></i>
-                </span>
-              </div>
-            </div>
-
-            <div class="min-w-0 col-span-full mt-4">
               <div class="flex items-center gap-4">
-                <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{{ _("Document
-                  fields") }}</label>
+                <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{{ _("Document Value Search") }}</label>
               </div>
-              <div id="docFiltersContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 items-start">
-                <div class="doc-filter-row grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div class="relative doc-field-combobox">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 pointer-events-none z-[1]">
-                      <i class="fa-regular fa-rectangle-list"></i>
-                    </span>
-                    <input type="text" autocomplete="off" id="docFieldSearch"
-                      {% if docFieldsValues_perm==False %} disabled {% endif %}
-                      class="{{ input_base }} pl-10 pr-10 doc-filter-field-search"
-                      placeholder="{{ _('Search field…') }}" data-testid="workitems-doc-field-search" />
-                    <input type="text" id="docFieldFilter" name="docfield" class="doc-filter-field"
-                      {% if docFieldsValues_perm==False %} disabled {% endif %}
-                      value="{{ docfield or '' }}" style="display:none" readonly tabindex="-1" data-testid="workitems-doc-field" />
-                    <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 pointer-events-none">
-                      <i class="fa-solid fa-chevron-down text-xs"></i>
-                    </span>
-                    <div class="hidden absolute z-20 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto doc-field-dropdown" style="top:100%; margin-top:2px;"></div>
-                  </div>
-
-                  <div class="relative">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-                      <i class="fa-regular fa-keyboard"></i>
-                    </span>
-                    <input type="text" id="docValueInput" name="docvalue" value="{{ docvalue or '' }}" {% if
-                      docFieldsValues_perm==False %} disabled {% endif %} autocomplete="off"
-                      class="{{ input_base }} pl-10 pr-4 doc-filter-value" placeholder="{{ _('Type to search…') }}" data-testid="workitems-doc-value" />
-                    <div id="docValueCustomList"
-                      class="hidden absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto doc-filter-list">
+              {# Query-builder rows: field | op | value as separate boxes on the
+                 same 3-column grid as the date row above, so the two sections
+                 share one rhythm (issue #159). The AND/OR combinator lives on a
+                 connector line BETWEEN rows. #}
+              <div id="docFiltersContainer" class="flex flex-col gap-3">
+                <div class="doc-filter-row flex flex-col gap-2">
+                  {# Row 1 has no visible combinator; the hidden 'and' keeps the
+                     doccomb list index-aligned with docfield/docop/docvalue. #}
+                  <input type="text" name="doccomb" value="and" class="hidden doc-filter-comb-fixed"
+                    {% if docFieldsValues_perm==False %} disabled {% endif %} readonly tabindex="-1" />
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+                    <div class="relative doc-field-combobox min-w-0">
+                      <input type="text" autocomplete="off" id="docFieldSearch"
+                        {% if docFieldsValues_perm==False %} disabled {% endif %}
+                        class="{{ input_base }} pr-9 doc-filter-field-search"
+                        placeholder="{{ _('All fields') }}" data-testid="workitems-doc-field-search" />
+                      <input type="text" id="docFieldFilter" name="docfield" class="doc-filter-field hidden"
+                        {% if docFieldsValues_perm==False %} disabled {% endif %}
+                        value="{{ docfield or '' }}" readonly tabindex="-1" data-testid="workitems-doc-field" />
+                      <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 pointer-events-none">
+                        <i class="fa-solid fa-chevron-down text-xs"></i>
+                      </span>
+                      <div class="hidden absolute z-20 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto doc-field-dropdown [top:100%]! [margin-top:2px]!"></div>
+                    </div>
+                    <div class="relative min-w-0">
+                      <select id="docOpFilter" name="docop" {% if docFieldsValues_perm==False %} disabled {% endif %}
+                        class="nx-select h-11 appearance-none pr-8 text-gray-500 doc-filter-op" data-testid="workitems-doc-op">
+                        <option value="contains" {% if docop=='contains' %}selected{% endif %}>{{ _('contains') }}</option>
+                        <option value="eq" {% if docop=='eq' %}selected{% endif %}>=</option>
+                        <option value="neq" {% if docop=='neq' %}selected{% endif %}>&ne;</option>
+                        <option value="startswith" {% if docop=='startswith' %}selected{% endif %}>{{ _('starts with') }}</option>
+                        <option value="endswith" {% if docop=='endswith' %}selected{% endif %}>{{ _('ends with') }}</option>
+                        <option value="ncontains" {% if docop=='ncontains' %}selected{% endif %}>{{ _('does not contain') }}</option>
+                      </select>
+                      <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+                        <i class="fa-solid fa-chevron-down text-xs"></i>
+                      </div>
+                    </div>
+                    <div class="relative min-w-0">
+                      <input type="text" id="docValueInput" name="docvalue" value="{{ docvalue or '' }}" {% if
+                        docFieldsValues_perm==False %} disabled {% endif %} autocomplete="off"
+                        class="{{ input_base }} px-3.5 doc-filter-value" placeholder="{{ _('Type to search…') }}" data-testid="workitems-doc-value" />
+                      <div id="docValueCustomList"
+                        class="hidden absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto doc-filter-list">
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
               <template id="docFilterRowTemplate">
-                <div class="doc-filter-row grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div class="relative doc-field-combobox">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 pointer-events-none z-[1]">
-                      <i class="fa-regular fa-rectangle-list"></i>
-                    </span>
-                    <input type="text" autocomplete="off"
-                      class="{{ input_base }} pl-10 pr-10 doc-filter-field-search"
-                      placeholder="{{ _('Search field…') }}" />
-                    <input type="text" name="docfield" class="doc-filter-field"
-                      style="display:none" readonly tabindex="-1" />
-                    <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 pointer-events-none">
-                      <i class="fa-solid fa-chevron-down text-xs"></i>
-                    </span>
-                    <div class="hidden absolute z-20 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto doc-field-dropdown" style="top:100%; margin-top:2px;"></div>
+                <div class="doc-filter-row flex flex-col gap-2">
+                  <div class="flex items-center gap-3">
+                    <div class="relative shrink-0">
+                      <select name="doccomb"
+                        class="nx-select h-8 w-[4.75rem] appearance-none pl-3 pr-7 py-0! text-xs font-semibold tracking-wide text-gray-500 rounded-full! doc-filter-comb" data-testid="workitems-doc-comb">
+                        <option value="and" selected>{{ _('AND') }}</option>
+                        <option value="or">{{ _('OR') }}</option>
+                      </select>
+                      <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-gray-400">
+                        <i class="fa-solid fa-chevron-down text-xs"></i>
+                      </div>
+                    </div>
+                    <div class="h-px flex-1 bg-gray-200" aria-hidden="true"></div>
                   </div>
-
-                  <div class="relative flex items-center gap-2">
-                    <div class="relative w-full">
-                      <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-                        <i class="fa-regular fa-keyboard"></i>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+                    <div class="relative doc-field-combobox min-w-0">
+                      <input type="text" autocomplete="off"
+                        class="{{ input_base }} pr-9 doc-filter-field-search"
+                        placeholder="{{ _('All fields') }}" />
+                      <input type="text" name="docfield" class="doc-filter-field [display:none]!" readonly tabindex="-1"/>
+                      <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 pointer-events-none">
+                        <i class="fa-solid fa-chevron-down text-xs"></i>
                       </span>
+                      <div class="hidden absolute z-20 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto doc-field-dropdown [top:100%]! [margin-top:2px]!"></div>
+                    </div>
+                    <div class="relative min-w-0">
+                      <select name="docop"
+                        class="nx-select h-11 appearance-none pr-8 text-gray-500 doc-filter-op" data-testid="workitems-doc-op-row">
+                        <option value="contains" selected>{{ _('contains') }}</option>
+                        <option value="eq">=</option>
+                        <option value="neq">&ne;</option>
+                        <option value="startswith">{{ _('starts with') }}</option>
+                        <option value="endswith">{{ _('ends with') }}</option>
+                        <option value="ncontains">{{ _('does not contain') }}</option>
+                      </select>
+                      <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+                        <i class="fa-solid fa-chevron-down text-xs"></i>
+                      </div>
+                    </div>
+                    <div class="relative min-w-0">
                       <input type="text" name="docvalue" autocomplete="off"
-                        class="{{ input_base }} pl-10 pr-4 doc-filter-value" placeholder="{{ _('Type to search…') }}" />
+                        class="{{ input_base }} pl-3.5 pr-10 doc-filter-value" placeholder="{{ _('Type to search…') }}" />
+                      {# x lives INSIDE the value input so this row's segments
+                         stay geometrically identical to row 1's. #}
+                      <button type="button"
+                        class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 hover:text-red-500 transition-colors remove-doc-filter" data-testid="workitems-remove-doc-filter">
+                        <i class="fas fa-times"></i>
+                      </button>
                       <div
                         class="hidden absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto doc-filter-list">
                       </div>
                     </div>
-                    <button type="button" class="text-gray-400 hover:text-red-500 transition-colors remove-doc-filter" data-testid="workitems-remove-doc-filter">
-                      <i class="fas fa-times"></i>
-                    </button>
                   </div>
                 </div>
               </template>
 
             </div>
 
-            <div class="flex items-center gap-4 mb-2 mt-4">
+            <div id="addDocFilterWrap" class="flex items-center gap-4 mt-5">
               <button type="button" id="addDocFilterBtn"
                 class="text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors" data-testid="workitems-add-doc-filter">
                 <i class="fas fa-plus-circle mr-1"></i>{{ _("Add filter") }}
               </button>
             </div>
-
-          </div>
+        </div>
         </div>
 
-        <div class="flex items-center justify-end gap-3 mt-5 pt-5 border-t border-gray-200">
+        <div class="flex flex-wrap items-center justify-end gap-3 mt-5 pt-5 border-t border-gray-200">
+          {# Saved filter views (issues #170/#186): per-user chips, rendered by
+             JS. mr-auto keeps them left while the action buttons stick right.
+             Hidden until the user has a view or is naming a new one. #}
+          <div id="savedViewsBar" class="hidden flex flex-wrap items-center gap-2 mr-auto"
+            data-testid="workitems-saved-views"></div>
           <button id="toggleAdvancedFilterBtn" type="button"
             class="nx-btn nx-btn--secondary" data-testid="workitems-toggle-advanced">
             <i class="fas fa-sliders-h mr-2"></i>{{ _("Advanced") }}
+          </button>
+          <button id="saveViewBtn" type="button"
+            class="nx-btn nx-btn--secondary" data-testid="workitems-save-view">
+            <i class="fas fa-bookmark mr-2"></i>{{ _("Save view") }}
           </button>
           <a href="{{ url_for('workitems_overview', prcfW=process_name) }}"
             class="nx-btn nx-btn--secondary" data-testid="workitems-reset">{{
@@ -331,9 +367,7 @@
 
       <div class="nx-table-wrap nx-rise-3 relative">
         <div class="overflow-x-auto">
-          <div id="table-top-loader"
-            class="sticky top-0 z-10 hidden items-center justify-center p-4 bg-white bg-opacity-80 backdrop-blur-sm"
-            style="display: none;">
+          <div id="table-top-loader" class="sticky top-0 z-10 hidden items-center justify-center p-4 bg-white bg-opacity-80 backdrop-blur-sm [display:none]!">
           </div>
           <table class="nx-table" id="workitemsTable">
             <thead>
@@ -368,16 +402,6 @@
                     <i class="fas fa-sort text-gray-400 group-hover:text-gray-600 transition-colors"></i>
                   </div>
                 </th>
-                <th scope="col" class="px-6 py-3 text-center">
-                  <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    <i class="fas fa-flag" title="{{_('Priority')}}"></i>
-                  </span>
-                </th>
-                <th scope="col" class="px-6 py-3 text-center">
-                  <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    <i class="fas fa-tag" title="{{_('Tag')}}"></i>
-                  </span>
-                </th>
                 <th scope="col" class="relative px-6 py-3">
                   <span class="sr-only">Details</span>
                 </th>
@@ -385,7 +409,7 @@
             </thead>
             <tbody id="workitemsTbody">
               <tr>
-                <td colspan="7" class="text-center py-20">
+                <td colspan="5" class="text-center py-20">
                   <i class="fas fa-spinner fa-spin text-3xl text-indigo-600"></i>
                 </td>
               </tr>
@@ -482,7 +506,7 @@
             <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Always included") }}</p>
             <div class="flex items-center gap-2 text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
               <i class="fas fa-lock text-gray-300 text-xs"></i>
-              {{ _("Workitem ID, Status, Stage, Last Movement, Priority, Tags") }}
+              {{ _("Workitem ID, Status, Stage, Last Movement") }}
             </div>
           </div>
 
@@ -511,7 +535,7 @@
                   <p class="text-xs text-gray-400">{{ _("Up to 5 images per workitem — only available for selections of up to 10 workitems") }}</p>
                 </div>
               </label>
-              <div id="exportImagesHelperInfo" style="display:none" class="ml-7 mt-1 rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2">
+              <div id="exportImagesHelperInfo" class="ml-7 mt-1 rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2 [display:none]!">
                 <p class="text-xs text-gray-500">{{ _("Use this PowerShell script to extract images from the exported CSV. Requires execution policy") }} <code class="bg-gray-200 rounded px-1 font-mono text-gray-700">Bypass</code> {{ _("or higher.") }}</p>
                 <div class="relative">
                   <pre class="text-xs bg-white border border-gray-200 rounded p-2 overflow-x-auto m-0"><code id="exportHelperScript" class="language-powershell">$csvPath = (Read-Host "CSV Path").replace('"','').replace("'",'')
@@ -552,7 +576,7 @@ $data | ForEach-Object {
           </button>
           <button type="button" id="confirmExportModalBtn"
             class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium shadow-sm flex items-center gap-2" data-testid="workitems-confirm-export">
-            <i id="exportModalSpinner" class="fas fa-spinner fa-spin" style="display:none"></i>
+            <i id="exportModalSpinner" class="fas fa-spinner fa-spin [display:none]!"></i>
             <i id="exportModalIcon" class="fas fa-download"></i>
             {{ _("Export CSV") }}
           </button>
@@ -572,7 +596,7 @@ $data | ForEach-Object {
             <i class="fas fa-magnifying-glass-location"></i>
             <span id="srcHlToggleLabel">{{ _('Show sources') }}</span>
           </button>
-          <img class="modal-content" id="modalImage">
+          <img class="modal-content" id="modalImage" alt="{{ _('Document page preview') }}">
           <div id="srcHlLayer" class="src-hl-layer-full"></div>
           <a class="modal-prev">&#10094;</a>
           <a class="modal-next">&#10095;</a>
@@ -585,10 +609,11 @@ $data | ForEach-Object {
       </div>
     </div>
 
-    {% include '_small_footer.html' %}
     {% include 'js/_workitem_detail_panel_js.html' %}
     {% include 'js/_workitems_overview_js.html' %}
-    <script>
+    {% include 'js/_process_multiselect_js.html' %}
+    <script nonce="{{ csp_nonce() }}">
+      NexoraProcessPicker.init({ inputId: 'prcfW', processes: {{ allowed_processes|tojson }} });
       const _fpDtOpts = { dateFormat: 'Y-m-d H:i:S', enableTime: true, enableSeconds: true, allowInput: true, time_24hr: true };
       flatpickr('#startDate', _fpDtOpts);
       flatpickr('#endDate',   _fpDtOpts);

@@ -1,5 +1,17 @@
 # Reporting
 
+> **Looking for how to *use* the page?** This file is the developer /
+> architecture reference. The plain-language, task-shaped user guide is
+> [`reporting-guide.md`](reporting-guide.md) — keep it current whenever you
+> change user-visible behaviour here. That guide is **served in-app** at
+> `/reporting/guide` (rendered server-side by `nx_lib/views/reporting.py`
+> with markdown-it-py; the deploy workflow copies the one docs file to the
+> server, and a guide-only push to `main` still triggers a deploy). The
+> page's **Help** button opens an in-app tips panel
+> (`templates/_reporting_help.html`) mirroring the guide's "Tips" section —
+> update it in the same commit too (the `reporting-help-sync` pre-commit hook
+> nudges when forgotten).
+
 The `/reporting` page is Nexora's self-service report builder — a PowerBI
 replacement for internal users. Phase 1 ships a **table/list** visualization
 over the curated **Document Processing** source with full filter, sort, combine,
@@ -9,6 +21,26 @@ custom-header, save/load, and Excel-export support.
 
 `/reporting` opens as two tabs (one route, two client-side panes;
 `templates/js/_reporting_tabs_js.html` is the controller):
+
+### Page layout
+
+Top to bottom: the masthead (title, subtitle, the run's `N rows · M ms` timing
+badge, and **AI chat** as its one action), then a full-width **tab rail** —
+Simple / Advanced on the left as the app's standard `.nx-tabs` underline bar,
+the admin-only **Sources** link parked quietly at its right end — then the
+active pane. All four run through `.reporting-shell` / `.reporting-main` /
+`.reporting-simple`, which share `body.nx-app .nx-main`'s 1600px max-width and
+40px inset, so the Reporting title sits on the same left edge as every other
+page's. Two rules worth knowing before restyling this area (both cost time
+once, see #175):
+
+- `_header.html` links `nexora-ui.css` from the `<body>`, i.e. *after*
+  `reporting.css`. An equal-specificity override here (`.reporting-tabs` vs
+  `.nx-tabs`) silently loses — use two classes.
+- The page-level tab rail is deliberately *not* the pill/segmented language
+  used by the in-pane Table/SQL and Grid/Chart toggles. Primary navigation that
+  looks like a control inside the pane it navigates to is what made the old
+  masthead read as three unrelated buttons.
 
 ### Indigo Studio identity
 
@@ -45,12 +77,29 @@ working. Design spec: `docs/superpowers/specs/2026-07-20-reporting-redesign-hand
   chrome around them changed. Coverage badges on measure/breakdown chips
   render as a small colour-tiered progress bar (same amber/muted
   convention).
-- **KPI stat band** above the results — total, bucket count, and average per
-  bucket, computed client-side from the rows already returned (no extra
-  query); hidden for zero-row or non-numeric results, with no "vs prior
-  period" delta in v1 for this single-report view (deferred — it would need
-  a second query; a dashboard's KPI cards do get a trend, see
-  **Dashboards** below).
+- **KPI stat band** above the results — total, bucket count, average per
+  bucket, and peak, computed client-side from the rows already returned (no
+  extra query); hidden for zero-row or non-numeric results. When the
+  **first** requested metric's registry row has **`TotalMode = 'latest'`**
+  (`metricTotalModeFor` in `_reporting_simple_js.html` only inspects
+  `def.metrics[0]` — a mixed-mode multi-metric request is judged by that one
+  metric alone, not "every" metric), the Total tile's caption adds a **"·
+  last bucket &lt;bucket&gt;"** suffix, naming the bucket the number
+  actually covers. This is the client's own zero-filled last bucket, not a
+  request for the server's single exact-snapshot latest row, so the wording
+  is deliberately bucket-honest rather than implying snapshot precision —
+  point-in-time metrics like backlog are wrong to sum across buckets, so the
+  band restricts the client total to the latest one, mirroring (but not
+  reading) the server's own zero-dim latest-bucket total described in
+  **Metrics registry** below (`kpiLatestSuffix` in `_reporting_simple_js.html`).
+  When the definition carries a **single relative-date token filter**, the run request
+  sets `compare: true` and each stat renders a **delta chip** (↑/↓/— plus a
+  percentage) against the immediately preceding period of the same length —
+  see **Comparison & delta chips** below for the exact semantics (why it's
+  not always "last calendar month", and when the average chip is suppressed).
+  An **AI caption** (a 1–2 sentence auto-narration, gated by
+  `reporting.ai.explain_data`) can also appear under the chart — see
+  **AI assistant → Auto captions**.
 - **Timing badge** in the masthead — "N rows · M ms", the row count from the
   run response and the elapsed time measured client-side around the fetch;
   appears after the first successful run.
@@ -61,7 +110,11 @@ working. Design spec: `docs/superpowers/specs/2026-07-20-reporting-redesign-hand
 - **Result header** — `Open in Advanced` and `Show query` live behind a `⋯`
   overflow menu (`#rsMoreMenu`); **Save** is the gradient primary action;
   the format select + **Export** read as one visual unit. The error-state
-  "Open in Advanced" escape hatch stays a visible inline button.
+  "Open in Advanced" escape hatch stays a visible inline button. `Open in
+  Advanced` restores the current definition into the builder **and runs
+  it** (`window.Reporting.run()` right after `applyDefinition()`) — it used
+  to only pre-fill the wells, leaving Advanced showing no results and "Show
+  query" hidden/stale until the user pressed Run themselves (#178, Task 15).
 
 Single-series bar/line charts render in ink-navy with a brand-indigo accent
 on the peak value; multi-series charts keep the existing categorical
@@ -94,7 +147,24 @@ chart already on screen re-themes on the next render, not live.
     counters so no gap shows) → break down by *over time* (with a grain
     select, default month) / a category / *none — just the total* → time
     range (presets or a custom flatpickr range; emits a `between` filter on the
-    **raw** date field, defaulting to `import_date`). Time presets include **This
+    **raw** date field, defaulting to `import_date`). The grain select is
+    **always visible** once the source has any date field at all, not only
+    after a time breakdown is picked — it starts disabled with a
+    "Pick a time breakdown first to choose its granularity." tooltip, so the
+    control is discoverable up front instead of appearing to not exist (#178).
+    A **table** source with no process registry but a filterable string field
+    whose name/label matches `/process/i` (e.g. `backlog_history.ProcessName`)
+    gets the same "which processes?" step in spirit — a **field-scope step**:
+    it POSTs the field's up-to-100 distinct values from the new
+    `POST /api/reporting/field_values` endpoint (`reporting.view`-gated,
+    source-permission-checked, whitelisted-filterable-field only, `SELECT
+    DISTINCT TOP (100)`) and renders them as the same pre-checked checkbox
+    list. A partial pick serializes to a plain `{"op": "in"}` filter on that
+    field — not `scope.processes` — so on "Adjust in wizard" it round-trips as
+    a normal editable filter chip, not the process chip. If the endpoint is
+    unreachable or the field has no values, the step is silently skipped
+    (graceful degrade — the same behaviour production sees when StatisticsDB
+    is down). Time presets include **This
     week** and **This quarter** (both stored as tokens in `WIZ_TOKENS`, so saved
     and scheduled reports stay relative). Any wizard-shaped result shows an
     **"Adjust in wizard"** button that reopens the walkthrough with all prior
@@ -120,13 +190,18 @@ chart already on screen re-themes on the next render, not live.
     document date, workitem id) is hidden; other sources list their catalog
     fields unfiltered. There is **no chip cap** — every filterable string
     field the Advanced tab offers renders as a chip.
-  - **Ask AI** — one input to Surface A; a valid draft renders straight to the
-    result view. Hidden if AI is unconfigured.
+  - **Ask AI** — the hero bar and its suggestion chips are a shortcut into the
+    shared **AI chat panel** (`window.ReportingChat.open()` + `.send()`):
+    typing a question and pressing enter opens the panel and sends it there
+    rather than running its own one-shot ask. See **AI assistant** below.
+    Hidden if AI is unconfigured.
   - **Result view** — a grand-total **number card** (computed by a zero-column
     clone run, so it is correct for every aggregation — avg/count_distinct
     included), a **chart card** (line for date breakdowns, bar for categories by default,
     with a bar/line/pie/doughnut switcher; the chosen type is saved with the report).
-    The wizard supports **up to three breakdowns** (at most one date); the first breakdown is
+    The wizard supports **up to three breakdowns**, including more than one date
+    (export date *and* import date together, #164 — all dates share the one grain
+    select, so a per-date grain still needs the Advanced tab); the first breakdown is
     the chart axis and every remaining breakdown joins into the composite colored series
     ("Process · Source" — grouped bars or one line per series, with a stacked-bar option),
     exact for every aggregation since nothing collapses in the pivot. Charts cap
@@ -143,26 +218,173 @@ chart already on screen re-themes on the next render, not live.
     until the response lands), and the Advanced Ask-AI surfaces show the same indicator
     with rotating status lines.
     A **Show table** toggle, *Save* (always creates a new
-    row under My reports), *Open in Advanced* (pre-fills the builder), and *Export*
+    row under My reports), *Open in Advanced* (pre-fills the builder **and
+    runs it**, see **Result header** above), and *Export*
     (downloads Excel with a title block and — when a chart is on screen — the chart image
     embedded above the data; needs `reporting.export`). For AI-built results, a
     **transparency line** below the report title shows the AI's explanation
     and the filters/processes it applied, so a wrong guess (bad date range,
     wrong process) is immediately visible.
-    Every result (wizard-built, library-opened, or AI-built) shows **editable
-    filter/process chips** and a **Refine** bar — use them to tweak any result
-    without returning to the wizard or asking the AI again. When the server row
-    limit is hit, both tabs show "Showing the first N rows — narrow the filters
-    or time range to see the rest."
+    Every result (wizard-built or library-opened) shows **editable filter/process
+    chips** — click one to edit its value inline, or × to remove it; each change
+    re-runs the report immediately, no AI involved. Whenever the definition has a
+    date column that is (or *could be*) grain-broken-down, a **Granularity chip**
+    joins that row — `Granularity: Month` etc. — click it to change grain the same
+    way as any other chip, so the breakdown's time resolution is always visible
+    and editable on the result itself, not only back inside the wizard (#178).
+    (The AI-specific **Refine**
+    bar that used to sit alongside these chips is gone — a follow-up question now
+    just continues the conversation in the **AI chat panel**, see below.) When the
+    server row limit is hit, both tabs show "Showing the first N rows — narrow the
+    filters or time range to see the rest."
 - **Advanced** — the full three-panel builder described below, unchanged.
 
 Deep link with `/reporting?tab=advanced` (or `?tab=simple`); without a `?tab=`
 parameter the last-used tab is restored per browser (`localStorage`).
 
+## Comparison & delta chips
+
+**Simple tab only** (the Advanced KPI band does not have this — see
+**Dashboards → KPI trend** above for the unrelated dashboard-card mechanism).
+When the current definition's filters contain **exactly one relative-date
+token filter** (`{"token": "this_month"}` etc. — a literal date-range pair, no
+token filter at all, or more than one token filter, are all ambiguous and get
+no comparison), the Simple result run sends `compare: true` on
+`POST /api/reporting/run`. The server (`shifted_definition_for_comparison` in
+`nx_lib/reporting/tokens.py`) reruns the **same** definition with that one
+token filter replaced by a literal window shifted back by **the current
+window's own length in days**: `[start − length, start)`. The response gains
+a `comparison` block:
+
+```json
+{ "comparison": { "columns": [...], "rows": [...], "priorStart": "2026-06-01", "priorEnd": "2026-06-30" } }
+```
+
+**This is not a calendar-aligned "last month"/"last quarter" shift** — a
+31-day month shifted back 31 days lands one day short of the 1st of a
+30-day prior month. The delta chip's tooltip therefore only ever shows the
+literal `priorStart`–`priorEnd` range, never a calendar label. The KPI
+band's **Total**, **Avg per bucket**, and **Peak** tiles each get a chip —
+an arrow (↑/↓/flat "—") plus a percentage — computed client-side
+(`computeDelta`/`deltaChipHtml` in `_reporting_simple_js.html`) from the
+current value vs. the same stat over `comparison.rows`:
+
+- **Flat** when the prior value is `0`/non-finite (no percentage is
+  meaningful) or the magnitude of change is under 0.5%.
+- **Colour is directional, never inverted** — more of a "more is good" metric
+  going up renders the same "up" colour as more of a "more is bad" metric
+  going up; the chip never guesses which direction is actually good for a
+  given metric, it only ever reports the raw direction.
+- **The Avg-per-bucket chip is suppressed** (Total and Peak still render)
+  whenever the current and prior periods zero-fill to a **different number of
+  buckets** — a day-length shift that isn't aligned to the chart's grain
+  (e.g. a calendar-quarter preset against a month grain) can land the prior
+  window's start mid-month, producing a different bucket count than the
+  current period. Averaging `total/bucket-count` across two genuinely
+  different-length periods would fabricate a percentage, so that one chip is
+  dropped rather than shown misleadingly; Total and Peak are unaffected
+  because an extra all-zero bucket contributes `0` to both.
+- The Simple KPI band's **Total** tile also gets a small inline **sparkline**
+  (a hand-rolled SVG polyline, not a Chart.js instance) of the metric series
+  — gated to the same single-dimension date-grain case the zero-fill already
+  special-cases.
+
 > **Viewer semantics:** a shared library report runs against the *viewer's*
 > grants (`reporting.scope.process.*`, per-source perms) — different users can
 > legitimately see different numbers, or a friendly "you don't have access"
 > message. This is existing run-path behavior, surfaced honestly in the UI.
+
+## Forecast
+
+Any result shaped like **exactly one date-grained breakdown plus one or more
+metrics** — the same D2 shape the zero-fill and comparison chips key off —
+can be projected forward. This is an **owner-locked single-dim rule**: two or
+three breakdowns, a dimension without a grain, or zero metrics all leave the
+Forecast control disabled (the Simple toggle button and the Advanced
+`rpForecastWrap` checkbox both call the same `forecastEligible(def)` check
+client-side; the server independently re-checks the shape in
+`compute_forecast` and never trusts the flag alone).
+
+**Persistence.** The toggle and horizon live in the report definition as an
+optional `forecast` block — `{ "enabled": true, "horizon": "auto" }` — so a
+saved or scheduled report remembers whether forecasting was on. `horizon` is
+`"auto"` or an integer number of buckets in `[1, 60]`; the Simple/Advanced UI
+only offers Auto/+7/+14/+30, but the schema accepts any value in range for
+forward compatibility. `compare` (delta chips) and `forecast` are independent
+blocks on the same payload and can both be set at once.
+
+**Method.** `nx_lib/reporting/forecast.py` fits an **OLS linear trend** over
+the zero-filled bucket series and, once there are at least two full seasonal
+cycles for the grain (7 buckets/period for `day`, 12 for `month`, 4 for
+`quarter` — `week`/`year` stay trend-only), layers on **additive seasonal
+indices** from classical decomposition (mean residual per calendar position,
+centered to net to zero). Each projected point carries a **95% prediction
+interval** from the residual standard error and the two-sided Student-t
+quantile at the fit's degrees of freedom (falling back to `1.96` past 30 df),
+widening with distance from the fitted window; an all-nonnegative history
+clamps projections and bounds at zero. A series needs at least 5 zero-filled
+buckets to fit at all, and seasonal decomposition only engages when it would
+leave at least 3 residual degrees of freedom — short or sparse series
+silently fall back to trend-only rather than fail. Deliberately stdlib-only
+(no numpy/scipy/statsmodels), matching the `stats.py` rule; see the
+`# ponytail:` note in `forecast.py` for swapping in a heavier library later.
+
+**History window (lookback).** The fit does not only see the rows the visible
+result already returned — a **day-grain** report over "this month" would hand
+the seasonal fit under four weeks of daily buckets, nowhere near the two
+weekday cycles it needs. When the definition's single date filter is a
+**relative-date token** (the same token-only ceiling `compare` uses),
+`widened_definition_for_forecast` (`nx_lib/reporting/tokens.py`) reruns the
+query with that filter's start pushed back by a grain-dependent number of
+days — `day`: 56, `week`: 182, `month`: 730, `quarter`: 1460, `year`: 2190
+(`_FORECAST_LOOKBACK_DAYS`) — purely to fit on; the widened rerun is discarded
+and only its fitted trend/seasonality feed the chart, which still extends
+only from the original visible window. A literal (non-token) date range is
+left as-is — there's no "back" to extend a range the user typed explicitly —
+and a failed widened rerun falls back to fitting on the visible rows alone
+rather than failing the run (#178).
+
+**`unavailable` reasons.** `compute_forecast` never raises on user data —
+a shape or data problem returns `{"unavailable": "<reason>"}` instead of a
+projection: `"shape"` (the D2 gate above isn't met — shouldn't normally reach
+the server since the UI disables the toggle first), `"bad_buckets"` (a bucket
+value doesn't parse as a date, or the filled range doesn't land on the last
+real bucket — a grain/data mismatch), and `"insufficient_history"` (fewer
+than 5 buckets after zero-fill, a degenerate all-identical-x series, or an
+absurd bucket count from a huge date range). The UI collapses all reasons
+into one user-facing message, *"Not enough history to forecast this
+series."*, shown as the chart note when the toggle is on but no dashed line
+appears.
+
+**Charting and table rows.** The chart extends past the last actual bucket
+with a dashed prediction line plus a shaded 95% band (`_forecast`/`_band`
+flagged Chart.js datasets, filtered out of the legend and excluded from
+`state.chartData.datasets` — the actual-only array the chart-type switcher
+and preview cache read). The results table appends the predicted buckets as
+extra rows carrying a small "Forecast" badge; the anchor bucket
+(`forecast.anchor`) is the last real data point, not the first predicted one.
+
+**Drill-through never fires on predicted points.** Both the chart's point
+`onClick` and the table's row click bail out before opening the drill drawer
+whenever the point/row is forecast-flagged — there is no underlying query to
+drill into for a number the server invented. This is enforced at the click
+sites, not inside the shared drill drawer module.
+
+**Exports.** `forecast_export_rows` appends a trailing **`Forecast` marker
+column** to CSV/XLSX exports — empty string on actual rows, `"forecast"` on
+projected rows — rather than a separate sheet or file, so a spreadsheet
+consumer can filter or highlight predicted rows without out-of-band
+knowledge. Only `yhat` is exported; the confidence bounds are chart/UI-only
+(D7). The XLSX export additionally styles forecast rows grey-italic as a
+visual cue matching the chart's dashed/shaded treatment.
+
+**Scheduled mails.** `ops/run_scheduled_reports.py` computes the forecast
+block the same way the interactive run does, whenever the saved definition's
+`forecast.enabled` is `true` — the emailed chart PNG carries the dashed
+line/band and the attached export carries the marker column, with no
+schedule-level opt-in beyond what's already saved in the definition. A
+forecast failure (bad data shape, an exception) degrades to no-forecast
+rather than blocking the mail.
 
 ## Dashboards
 
@@ -172,8 +394,8 @@ change, no new endpoint, no new permission. It lives entirely in the Simple
 pane (`templates/js/_reporting_dashboard_js.html`, exposing
 `window.ReportingDashboard = {openNew, open, close}`) as a fourth pane view
 alongside library/wizard/result, and is built out of multiple **cards**
-(KPI / line / bar / donut / table), each running the existing curated-source
-`POST /api/reporting/run` path independently.
+(KPI / line / bar / donut / table / report), each running the existing
+curated-source `POST /api/reporting/run` path independently.
 
 **Definition shape (`schemaVersion: 1`):**
 
@@ -198,8 +420,8 @@ alongside library/wizard/result, and is built out of multiple **cards**
 }
 ```
 
-`type` is one of `kpi` / `line` / `bar` / `donut` / `table`; `span` is the
-card's grid width; `definition` is a normal report-definition fragment
+`type` is one of `kpi` / `line` / `bar` / `donut` / `table` / `report`; `span`
+is the card's grid width; `definition` is a normal report-definition fragment
 (same shape as **Report-definition v1 JSON** below) run through the same
 validator and query builder as any other report; `filterOverrides` are
 per-card filters that layer on top of the dashboard's `globalFilters`.
@@ -242,11 +464,42 @@ per-card filters that layer on top of the dashboard's `globalFilters`.
   the existing `/api/reporting/export` (gated by `reporting.export`, same
   as everywhere else). A whole-workbook (one sheet per card) export is not
   built yet.
+- **Two-dimension reports** — a line or bar card whose report has a second
+  dimension ("per month **/ process**") pivots it exactly like the Simple
+  result view: first dimension on the axis, one named, colored series per
+  remaining-dimension combination, legend below the chart. Series are ordered
+  by total descending and capped at 8 (a 190 px card body cannot carry
+  Simple's 12 legibly); when more exist the card says how many it is showing.
+  Donut/table cards have no axis to pivot against, so they name the
+  combination instead — the label joins every dimension ("Jan · Invoice") and
+  each row stays one exact aggregate value. KPI cards never see a breakdown
+  at all: their run clears `definition.columns` (see **KPI trend** above).
 - **Drill-through** works per card exactly as it does on a normal aggregate
   result (see **Drill-through** below) — clicking a chart element or table
-  row on an eligible card opens the same slide-over drawer; donut cards are
-  excluded from click-drill (their >8-category "Other" rollup breaks the
-  1:1 index-to-row mapping the drawer needs).
+  row on an eligible card opens the same slide-over drawer, with one chip per
+  dimension (on a pivoted card, the clicked bucket **and** its series); donut
+  cards are excluded from click-drill (their >8-category "Other" rollup breaks
+  the 1:1 index-to-row mapping the drawer needs).
+- **`report` card — adopt a saved report 1:1** (#178). In Edit mode, the "+
+  Report" add-pill opens a picker of the current user's own saved non-SQL,
+  non-dashboard reports (`GET /api/reporting/reports`, filtered client-side);
+  picking one copies that report's `definition` and name straight into the
+  card verbatim — the card is not a chart-type choice like `kpi`/`line`/
+  `bar`/`donut`, it renders using the **adopted report's own**
+  `definition.chartType` (pie/doughnut → donut chart, bar/stacked → bar
+  chart, anything else → line), with a total tile above the chart. Because
+  it carries the source report's full definition rather than a
+  dashboard-authored one, a `report` card still participates normally in
+  `filterOverrides`/`globalFilters` layering and drill-through like any other
+  card — only its own row-total metric and chart-type choice come from the
+  adopted report instead of being configured on the dashboard. A known v1
+  limitation: the card's headline total always **sums every returned row**
+  — it does not get the `TotalMode='latest'` treatment described in
+  **Metrics registry** below, so an adopted report built on a
+  `TotalMode='latest'` metric (e.g. `backlog_total`) shows a summed total on
+  the dashboard card even though the same report's Simple KPI band shows a
+  last-bucket-only total. Latest-mode awareness inside dashboard cards is
+  deferred to a later slice, not a bug.
 
 Migration history: the dashboard builder **supersedes**
 `docs/superpowers/plans/2026-07-15-reporting-pin-to-dashboard.md` (a
@@ -495,8 +748,9 @@ Both serialization paths neutralize spreadsheet formula injection (leading
 | `reporting.admin.sources` | Manage the data-source registry at `/reporting/sources` (see below). Admins seeded. |
 | `reporting.semantic.admin` | Manage the canonical-metrics registry at `/reporting/metrics` (see below). Admins seeded. |
 | `reporting.schedule` | Schedule a saved report to run and be emailed (see below). Admins seeded. |
-| `reporting.ai.use` | Use the AI assistant — ask natural-language questions (see below). Admins seeded. |
+| `reporting.ai.use` | Use the AI assistant — see the AI chat toggle, ask natural-language questions (see below). Admins seeded. |
 | `reporting.ai.sql` | Receive AI-drafted read-only T-SQL into the SQL editor. Grant alongside `reporting.sql.run`. Admins seeded. |
+| `reporting.ai.explain_data` | Let a result's rows reach the model: gates **auto captions** alone, and — combined with `reporting.sql.run` — the chat agent's `run_sql`/`compute_stats` tools (live-query narration). Grantable; admins seeded (see below). |
 
 **Scope permissions mirror the dashboard.** Migration
 `0005_seed_reporting_permissions.sql` auto-creates a
@@ -538,6 +792,7 @@ This is the shape saved in `dbo.Reports.DefinitionJSON` and sent to
   "metrics": [
     { "metric": "doc_count" }
   ],
+  "forecast": { "enabled": true, "horizon": "auto" },
   "rowLimit": 5000
 }
 ```
@@ -551,6 +806,13 @@ against the source's enabled metrics and resolves it through
 `nx_lib/reporting/semantic.py` into a safe `AGG(col) AS [code]` expression
 (`MetricResolveError` → HTTP 400). Absent or empty `metrics` keeps today's
 row-projection behaviour, unchanged.
+
+**`forecast` (optional — see Forecast above).** `{ "enabled": bool, "horizon":
+"auto" | 1–60 }`. Both keys are optional and `horizon` defaults to `"auto"`;
+an unrecognized key or an out-of-range/non-integer `horizon` is a validation
+error. Only takes effect on the single-date-dim + metrics shape — set on any
+other definition it validates fine but `compute_forecast` returns
+`{"unavailable": "shape"}` at run time.
 
 **Filter ops (Phase 1):** `eq`, `ne`, `in`, `not_in`, `gt`, `gte`, `lt`,
 `lte`, `between` (value is a 2-element list), `contains`, `starts_with`,
@@ -610,15 +872,26 @@ Each curated source binds to a **provider**:
   a **whitelist-built, parameterized `SELECT`** of the chosen columns over a
   single `BaseObject` (`Db.schema.object`) on the source's `Engine`
   (`nexora` / `statistics` / `generali` / `octopus`). Its field catalog is the
-  source's `ColumnsJSON` (`[{field,label,type,filterable,sortable}]`). Every
-  identifier (base object + columns) is validated against `^[A-Za-z_][A-Za-z0-9_]*$`
-  and bracket-quoted; users only choose among catalogued columns and supply
-  parameterized values — so a `table` source is safe to register from the UI.
+  source's `ColumnsJSON`
+  (`[{field,label,type,filterable,sortable,grainable}]` — `grainable` marks a
+  date/datetime column as eligible for the Simple wizard's "over time"
+  breakdown and AI date-token filters; `table_source_catalog()` and the run
+  path's `grainable_fields` both key off it, and `build_generic_query` applies
+  the actual `DATEFROMPARTS`/`DATEADD` bucketing expression per the column's
+  `grain`). Every identifier (base object + columns) is validated against
+  `^[A-Za-z_][A-Za-z0-9_]*$` and bracket-quoted; users only choose among
+  catalogued columns and supply parameterized values — so a `table` source is
+  safe to register from the UI.
 
 **Built-in registered sources.** Migration `0011` seeds two `table`-provider
 sources: **Generali — PDQM Report** (`generali_pdqm` over `dbo.PDQMReport`) and
-**Workitems (Octopus)** (`workitems` over `dbo.t_Documents`), each gated by its
-own permission (`reporting.source.generali.pdqm`, `reporting.source.workitems`).
+**Workitems (Octopus)** (`workitems` over `dbo.t_Documents`). Migrations `0053`
++ `0054` seed **Backlog History** (`backlog_history` over
+`StatisticsDB.dbo.BacklogHistory`, the #161 collector's 30-minute C+A backlog
+snapshots) with a canonical `backlog_total` metric (`SUM(BacklogCount)`) so it
+surfaces as a measure in the Simple wizard and AI grounding. Each is gated by
+its own permission (`reporting.source.generali.pdqm`,
+`reporting.source.workitems`, `reporting.source.backlog_history`).
 Unlike the docprocessing source, the `table` provider does **not** apply
 `reporting.scope.process.*` row scoping — the source permission is the whole
 gate, so grant it deliberately. Tune the exposed columns/object at
@@ -669,6 +942,25 @@ docprocessing union projects a constant `1 AS [_one]` per subquery when the
 metric set is count-only so the SELECT list is never empty). This powers the
 Simple tab's number card and works identically in Advanced and the AI surfaces.
 
+**`TotalMode`** (`sum` default / `latest`, migration `0056`, `table`-provider
+sources only) governs *how* that zero-dimension grand total is computed for a
+metric backed by a **point-in-time snapshot series** rather than an
+additive one — the seeded case is `backlog_total` on the `backlog_history`
+source (`dbo.BacklogHistory`, 30-minute backlog snapshots): summing every
+snapshot's `BacklogCount` across a time range is meaningless, the total
+should be the backlog **as of the latest snapshot**, not the sum of all of
+them. When a zero-column request's metrics are **all** `TotalMode = 'latest'`
+and the source has **exactly one** grainable date field, `_prepare_run`
+passes that field as `latest_of` into `build_generic_query`, which restricts
+the aggregate to rows at the latest bucket instead of the whole matched set;
+any mixed `sum`/`latest` metric set, or more than one date candidate, falls
+back to the safe default (`sum` over everything) rather than guessing which
+metric should win. The Simple KPI band shows a similarly-motivated "· last
+bucket &lt;bucket&gt;" caption on the Total tile, but it is a **separate,
+client-computed** number, not a read of this server total — see **Simple and
+Advanced tabs → KPI stat band** above for why the two can legitimately
+differ (e.g. snapshots finer-grained than the report's display grain).
+
 > Per-metric locked filters (`FilterJson`) are stored in the table but **not yet
 > applied** by the engine in Slice 1 (reserved for a later slice). Report-level
 > `filters` still apply pre-aggregation.
@@ -698,7 +990,7 @@ Simple tab's number card and works identically in Advanced and the AI surfaces.
 
 3. **Implement the query builder** in `nx_lib/reporting/query.py` (or extend
    `build_table_query` to handle the new source). Column names must come from
-   `SearchConfig` / `FieldMetadata` mappings, never from user input.
+   the `SearchConfig` mappings, never from user input.
 
 4. **Wire the catalog + query into the view** (`nx_lib/views/reporting.py`).
    The `/api/reporting/sources` endpoint returns the catalog for each source
@@ -714,12 +1006,14 @@ Simple tab's number card and works identically in Advanced and the AI surfaces.
    GO
    ```
 
-6. **FieldMetadata / SearchConfig coverage** for curated sources: each
-   `field` key the catalog exposes must have a corresponding row in
-   `dbo.FieldMetadata` (data type, sortable/aggregable flags) and entries in
-   `dbo.SearchConfig` for each process that maps `col_<field>` to the actual
-   data column name in that process's statistics table. Labels come from
-   `dbo.Search_Field_Labels`.
+6. **SearchConfig coverage** for curated sources: `dbo.SearchConfig` is what
+   defines the field set — each process needs a row mapping `col_<field>` to
+   the actual data column name in that process's statistics table. Labels come
+   from `dbo.Search_Field_Labels`. `dbo.FieldMetadata` (data type,
+   sortable/aggregable flags) is *optional* enrichment that
+   `nx_lib/reporting/catalog.py` merges in when present — it exists on no
+   environment today, so every field falls back to
+   `type=string, aggregable=False, sortable=True`.
 
 ## Scheduled & emailed reports
 
@@ -777,144 +1071,219 @@ Graph is unconfigured the runner logs the failure per-schedule and continues.
 
 ## AI assistant
 
-The **Ask AI** tab in the report builder offers two sub-modes: **Build a report**
-(Surface A, default) and **Write SQL** (Surface B; only shown when the user also
-holds `reporting.ai.sql`). Both modes send only the user's question and curated-source
-catalog metadata to the model — never result rows.
+The AI surface is a single **AI chat panel**, shared by both the Simple and
+Advanced tabs, that talks to the agentic drafter (`POST /api/reporting/ai/agent`).
+The earlier per-mode UI (an "Ask AI" tab with **Build a report** / **Write SQL** /
+**Agent** sub-modes, plus a Simple-tab **Refine** bar) is retired — see
+**AI chat panel** below for what replaced it, and **Legacy single-shot endpoints**
+for what's left of the old surfaces server-side.
 
-### Build a report (Surface A)
+### AI chat panel
 
-Route: `POST /api/reporting/ai/build`
+**Toggle:** an **"AI chat"** button (`#rpChatToggle`, wand-sparkles icon) is the
+masthead's action, on both tabs, whenever `reporting.ai.use` is held
+(`ai_enabled`). (**Sources** is not next to it — it sits at the right end of the
+Simple/Advanced tab rail below, see *Page layout*.) Clicking it — or, on Simple, typing into the landing hero's
+**Ask AI** bar or clicking one of its suggestion chips — opens a docked
+right-side slide-over (`#rpChatPanel`) with an empty state offering three
+example questions. It closes any open drill-through drawer first (the two
+panels share the same slide-over real estate) and closes on **×**, clicking the
+backdrop, or **Escape**.
 
-**Access:** only `reporting.ai.use` is required. `reporting.ai.sql` and
-`reporting.sql.run` are **not** needed.
+**Conversation & history.** Every question is sent with the running
+conversation as `history`: an array of `{role: "user"|"assistant", content}`
+pairs, one entry per prior turn (the current question is sent separately as
+`question`, never folded into `history`). The client keeps the whole session's
+history in memory; the server (`nx_lib/views/reporting.py: api_ai_agent`)
+**caps what it actually uses** to the **last 8 entries**, then trims further
+from the front until the total character count of the kept entries is at most
+**12000** — so a long-running chat degrades to "recent context only" rather
+than growing the prompt without bound. History is **text-only** (`role`/
+`content` strings — anything else is dropped) and never carries schema/
+grounding text; that stays attached to the current turn's `question` only, so
+it isn't repeated once per history entry. Each **assistant** turn the client
+records also appends its own produced artifact — `\n[sql from this
+answer]\n<sql, first 1500 chars>` and/or `\n[report definition from this
+answer]\n<definition JSON, first 1200 chars>` — so a presentation-only
+follow-up ("show it as a chart", "break that down by process") can be
+answered by re-shaping the **same** query/definition instead of the model
+re-deriving it (or silently switching source) from the English answer alone;
+see `docs/design/reporting-ai-assistant.md` for the full mechanism and why
+the cap went from 4000 to 12000 to fit these artifacts.
 
-The model produces a v1 report definition (source, columns, filters, sort, scope,
-rowLimit, optionally `metrics` + per-column `grain`). The catalog the model sees
-marks **grainable** date fields and lists each source's canonical **metrics**
-(code, label, aggregation), and the system prompt documents the metrics/grain
-contract — including zero-column grand totals — so drafts can aggregate the same
-way the builder does. The server validates the draft through
-`validate_report_definition` — the same whitelist validator used by
-`/api/reporting/run`, with the same `metric_codes`/`grainable_fields` — and
-attempts one self-repair retry if the first draft fails validation.
+While a request is in flight, a **live build-step list** narrates what the
+agent is actually doing turn by turn (a title line — "Asking the AI…", the
+model's own preamble when it wrote one, or "Thinking… (N)" on later turns —
+plus a growing list of steps such as "Building the report…", "Checking the
+query…", "Running the query…", "Crunching the numbers…", one per tool call,
+the previous one flipping to done as the next starts). See **Agent endpoint
+contract → Live progress** below for the underlying NDJSON stream this
+renders; `docs/design/reporting-ai-assistant.md` documents the exact
+phase-to-label mapping. Each reply renders as:
 
-**Prompt grounding (AI quality):**
-- **Today's date** is injected into the user prompt so relative time expressions
-  ("last month", "this year", "yesterday") resolve to correct absolute date ranges,
-  not to training-data dates.
-- **Distinct/different values:** the system prompt teaches the model that
-  answering "different X" questions requires `columns: [X]` plus a count metric,
-  which triggers GROUP BY so each value appears once (bare columns produce duplicate rows).
-- **Process labels:** each process id in the catalog is shown with a derived human
-  label in parentheses (e.g. `privera.03_Invoice_New ("privera Invoice New")`),
-  and the model is instructed to match natural-language process names
-  case-insensitively against both the id and the label, including all matches.
+- The **answer** text.
+- A collapsed **"How the agent worked"** `<details>` — one line per tool call,
+  an ok/error chip, and a row count where applicable.
+- Action chips, shown only when the reply actually produced the artifact:
+  **Open report** (only if the reply carries a `definition` — switches to the
+  Simple tab and opens it straight into the result view via
+  `window.ReportingSimple.openDefinition()` (#178 A4), which runs it through
+  the normal `/api/reporting/run` path, so row-scoping and the field
+  whitelist still apply; falls back to the Advanced builder's
+  `applyDefinition()` **followed by `run()`** if the Simple seam isn't
+  loaded — the fallback used to stop at `applyDefinition()`, leaving
+  Advanced showing no results until Run was pressed by hand, fixed
+  alongside the equivalent Simple-side bug, #178 Task 15), **Insert into SQL
+  editor** / **Show query**
+  (only if the reply carries `sql`, which in turn only happens when the caller
+  holds `reporting.ai.sql` — see **Access** below).
+- Three canned **follow-up** suggestion chips ("Only this quarter", "Break down
+  by process", "Show it as a chart") that, when clicked, send that exact text as
+  the next turn.
 
-On success, the panel shows a summary and two buttons:
+**Access:** `reporting.ai.use` to see the toggle/panel at all. Whether a turn
+*can* return SQL depends on `reporting.ai.sql` (gates the agent's `validate_sql`
+tool — without it, no SQL is ever drafted, so the SQL-related chips never
+appear). Whether a turn can narrate **real numbers** from a live query depends
+on `reporting.ai.explain_data` **and** `reporting.sql.run` together — see
+**Agent endpoint contract** below.
 
-- **Open in builder** — calls `applyDefinition()` to fill the builder wells; the user
-  then runs the report via the existing `POST /api/reporting/run` path (so row-scoping
-  via `reporting.scope.process.*` and the source field whitelist still apply — no data
-  bypass).
-- **Make a chart** — appears only when the model returns a `chartHint`; one-click
-  renders the hinted chart type via the existing chart view.
+### Auto captions
 
-Every call is audited to `dbo.ReportingAiAudit` with `Surface='definition'`. The
-per-user/day cap (`AI_DAILY_LIMIT`) applies. No new permission, table, or migration.
+Route: `POST /api/reporting/ai/caption` — accepts
+`{"columns": [...], "rows": [...], "title": "...", "dateLabel": "..."}` and
+returns `{"caption": "..."}`.
 
-**Egress:** the model receives the question plus the curated-source field catalog
-metadata only — never result rows.
+The **trigger point differs per tab**: the Simple tab fires this after
+**every** successful run render that actually has rows — an empty (zero-row)
+result returns before reaching the caption call, so no request goes out and
+no caption box appears; the Advanced tab fires it only on **chart mount**
+(switching to the Chart view) — not on every grid run — so re-running a
+report while sitting in Grid view does not itself request a new caption
+(see `resetViews()`/`fireCaption()` in `_reporting_js.html` vs. the end of
+`runCurrent()` in `_reporting_simple_js.html`). Either way, the request goes
+out in the background with the columns and (up to 50) rows just rendered,
+and — if it returns a caption — the result view shows a small "shimmer in"
+1–2 sentence narration under the chart/KPI band, prefixed with an **AI**
+chip. Unlike the chat panel's schema-only default, this endpoint's whole
+purpose is to send the rows already on screen to the model, so it is gated by
+`reporting.ai.explain_data` **alone** — deliberately **not** also requiring
+`reporting.sql.run` (there's no live query involved; the rows already left the
+database through the ordinary, already-scoped `/api/reporting/run` call, this
+just narrates them). This makes `reporting.ai.explain_data` control two
+distinct things with two distinct blast radii: captions (any accessible
+result's rows, no live SQL) and the chat agent's `run_sql`/`compute_stats`
+tools (arbitrary read-only queries the model itself writes, which additionally
+needs `reporting.sql.run`).
 
-### AI refine (Simple tab)
+The caption call is entirely **silent-fail**: a network error, a `503`
+(unconfigured), a `429` (daily cap hit), or any other failure just hides the
+caption box — it never surfaces an error to the user, since a missing caption
+is not a broken report. It still counts toward the shared per-user/day AI cap
+and is rate-limited (10/min) like the other AI routes, and is audited to
+`dbo.ReportingAiAudit` with `Surface='caption'`.
 
-After an AI-built result renders, a **Refine** bar appears below the explanation.
-Type a follow-up question (e.g. "break it down by month instead") and click
-**Refine** to improve the report without starting over. The AI receives the original
-question and definition as context so it can apply targeted changes rather than
-rebuilding from scratch.
+### Comparison / delta chips
 
-**Filter/process chips** appear below the explanation, showing every filter the AI
-chose and which processes are in scope. Click a chip to edit the value inline; click
-× to remove a filter. The process chip opens a checklist to narrow scope. Each change
-re-runs the report immediately — no AI cost.
+Not an AI feature — see **Comparison & delta chips** above (`compare` request
+flag, `comparison` response block, delta-chip semantics). It's documented
+separately from this section because no model call is involved.
 
-### Write SQL (Phase 1 — Surface B)
+### Agent endpoint contract
 
-The **Ask AI** tab in the report builder lets a user ask a question in plain
-language and receive a read-only T-SQL draft placed in the SQL editor. The user
-then reviews and runs it via the normal SQL sandbox path — the assistant never
-executes anything itself.
+Route: `POST /api/reporting/ai/agent` — accepts
+`{"question": "...", "history": [...], "source": "<sourceId>|null", "stream": bool, "continueAttempt": int}`
+and returns
+`{"answer", "definition", "sql", "toolTrace", "turns", "stoppedReason", "explainData", "continueAttempt", "canContinue"}`.
+This runs a **Tier-2 agentic tool-loop** (`nx_lib/reporting/ai.py: ask_agentic`):
+the model calls tools, sees their results, and **self-repairs** until it has a
+validated artifact or hits a hard turn cap.
 
-### Access
+**Continue past a dead-end (#153).** When the loop stops on `"max_turns"` or
+`"budget"` without a final answer, `canContinue` is `true` (while
+`continueAttempt < MAX_CONTINUE_ATTEMPTS`) and the chat panel renders a
+**Continue** chip. Clicking it re-sends the exact same question with
+`continueAttempt` incremented — not a mid-loop resume (the tool-call
+transcript isn't persisted), just a fresh run with the turn/budget caps
+doubled (`CONTINUE_MAX_TURNS` / `CONTINUE_BUDGET_S` in `nx_lib/reporting/ai.py`).
+`continueAttempt` is capped server-side at `MAX_CONTINUE_ATTEMPTS` (2) and
+clamped rather than rejected, so a stale/tampered client value can't grant
+more than the ceiling.
 
-Two permissions control the feature:
+**Live progress (`"stream": true`).** A loop turn can take a minute on a
+reasoning model, so the chat panel asks the server to narrate it. With the flag
+the response is **NDJSON** (`application/x-ndjson`), one object per line:
 
-| Code | Grants |
-|------|--------|
-| `reporting.ai.use` | See the **Ask AI** tab (question → model call). |
-| `reporting.ai.sql` | Receive the AI-drafted SQL into the editor. Grant alongside `reporting.sql.run` so the user can then run it. |
+```
+{"phase": "thinking", "turn": 1}
+{"phase": "note", "text": "Let me check the schema."}
+{"phase": "tool", "name": "run_sql"}
+{"done": true, "answer": "...", "definition": {...}, "sql": "...", "toolTrace": [...], ...}
+```
 
-Admins have both seeded; grant them per-user via the normal Permissions admin UI.
-If neither permission is held the tab does not appear.
+`phase` events come straight out of the loop (`ask_agentic_iter`, the generator
+`ask_agentic` drains) — `thinking` before each provider round-trip, `note` for
+the model's own preamble on a tool turn, `tool` before each tool call. Exactly
+one `done` line closes the stream, carrying the same payload the plain-JSON mode
+returns. **Headers are already sent by then**, so a mid-stream failure arrives as
+`{"done": true, "error": "..."}` on that last line rather than a 502 — a client
+must treat a stream that ends *without* a `done` line as a failure too. Without
+the flag (or from any other caller) the route answers plain JSON exactly as
+before. The chat panel picks its reader off the response `Content-Type`, so
+stubbed tests that answer `application/json` keep working unchanged.
 
-### Route
+**Tool binding follows permissions:** `build_definition` is always bound
+(data-free — the same whitelist validator `/api/reporting/run` uses).
+`validate_sql` (data-free — a gate check only) is bound only with
+`reporting.ai.sql`. `run_sql` / `compute_stats` (`nx_lib/reporting/stats.py`) —
+which feed real result rows back to the model — are bound **only** when the
+caller holds **both** `reporting.ai.explain_data` **and** `reporting.sql.run`;
+otherwise the loop stays fully schema-only (question + source catalog + SQL
+schema in, ok/error-only tool results out, never a result row).
 
-`POST /api/reporting/ai/ask` — accepts `{"question": "..."}`, returns
-`{"sql": "...", "explanation": "...", "valid": true|false, "target": "statistics", "model": "..."}`,
-where `target` is the default editor target the SQL is meant for (the user can
-switch) and `model` is the model that drafted it. The sqlglot gate verdict and
-token counts are **not** returned to the client — they are recorded only in the
-`dbo.ReportingAiAudit` row. Every call is audited to `dbo.ReportingAiAudit`
-(user, question, model, provider, duration, gate verdict, token counts).
+The grounding prepends today's date (so relative time expressions resolve to
+real dates, not training-data dates) and includes the `source` the client's
+builder currently has selected as a hint only — not a gate; a builder-only
+curated source (e.g. Generali) is marked as such so the model steers `run_sql`
+to a real read-only target instead. Process-name matching (case-insensitive,
+against both id and humanized label) and "different X" → `columns + count
+metric` GROUP BY guidance apply the same way they did for the old Surface A/C
+prompts. `AI_DAILY_LIMIT` applies before any provider call; audited with
+`Surface='agent'` (`Status='misconfig'` if the provider is broken, `'blocked'`
+when the cap is hit). The last validated definition/SQL anywhere in the tool
+trace is what the chat panel's **Open report** / **Insert SQL** chips act
+on.
 
-### Agent (Surface C — Phase 3, drafter)
+Tool and SQL-sandbox errors surfaced to the model (and to the visible tool-step
+trace) go through `humanize_sql_error`, which strips ODBC driver noise
+(`[Microsoft][ODBC Driver 17 for SQL Server]…`-style prefixes) and adds a
+teaching hint for SQL Server error 1033 (`ORDER BY` used inside a derived
+table/subquery without `TOP`/`OFFSET`) so the model — and a human reading the
+trace — sees the actual fix instead of a raw driver message. The system prompt
+also forbids resubmitting SQL that just failed unchanged, pushing the model to
+actually address the error on the next tool call.
 
-Route: `POST /api/reporting/ai/agent` — accepts `{"question": "..."}` and returns
-`{"answer", "definition", "sql", "toolTrace", "turns", "stoppedReason", "explainData"}`.
-Unlike Surfaces A/B (single draft + one retry), this runs a **Tier-2 agentic
-tool-loop** (`nx_lib/reporting/ai.py: ask_agentic`): the model calls tools, sees
-their results, and **self-repairs** until it has a validated artifact or hits a
-hard turn cap. In the UI it is the **Agent** sub-mode of the Ask-AI panel, which
-shows a conversation thread, a visible tool-step trace (each step + ok/error
-chip + row count), and a follow-up input.
+> **Data egress (opt-in).** When the caller holds `reporting.ai.explain_data`
+> **and** `reporting.sql.run`, the loop binds `run_sql`/`compute_stats` so the
+> model runs validated read-only SELECTs and **narrates the actual numbers** —
+> a deliberate **data-egress** path (result rows reach the model). Seeded to
+> admins by migration `0015`; grantable per-user; **off by default** (then the
+> loop stays schema-only). The response/audit carry an `explainData` flag.
+> Glossary RAG (a separately planned accuracy improvement) is not built —
+> needs a curation owner.
 
-**Access:** `reporting.ai.use`. By default the loop binds only **data-free** tools
-to the model — `build_definition` (always) and `validate_sql` (only with
-`reporting.ai.sql`) — so egress stays **schema-only**: the model receives the
-question plus the source catalog / SQL schema, and tool results are ok/error only.
-The grounding prepends today's date and the system prompt instructs the model to
-resolve relative time expressions against it; process matching, distinct-values,
-and humanized process labels apply identically to Surface A (see above).
-`AI_DAILY_LIMIT` applies; audited with `Surface='agent'` (and `Status='misconfig'`
-if the provider is broken, `'blocked'` when the cap is hit). The last validated
-definition/SQL in the tool trace is returned for one-click **Open in builder** /
-**Insert SQL**.
+### Legacy single-shot endpoints (not reachable from any UI)
 
-When a run hits the turn cap or otherwise produces no usable artifact, the
-Agent panel shows a **Try again** button that resends the exact same question
-in a fresh turn — no retyping needed. Tool and SQL-sandbox errors surfaced to
-the model (and to the visible tool-step trace) go through
-`humanize_sql_error`, which strips ODBC driver noise (`[Microsoft][ODBC
-Driver 17 for SQL Server]…`-style prefixes) and adds a teaching hint for SQL
-Server error 1033 (`ORDER BY` used inside a derived table/subquery without
-`TOP`/`OFFSET`) so the model — and a human reading the trace — sees the
-actual fix instead of a raw driver message. The system prompt also forbids
-resubmitting SQL that just failed unchanged, pushing the model to actually
-address the error on the next tool call.
-
-> **Phase 3e — explain the data (opt-in).** When the caller holds
-> `reporting.ai.explain_data` **and** `reporting.sql.run`, the loop additionally
-> binds `run_sql` and `compute_stats` (`nx_lib/reporting/stats.py`), so the model
-> runs validated read-only SELECTs and **narrates the actual numbers** — a
-> deliberate **data-egress** path (result rows reach the model). Seeded to admins
-> by migration `0015`; grantable per-user; **off by default** (then the loop stays
-> schema-only as above). The response/audit carry an `explainData` flag.
-> The data tools stay bound even while the builder's source dropdown sits on a
-> **builder-only** curated source (e.g. Generali on GeneraliDB): the selected
-> source is prompt grounding, not a gate — the grounding marks it builder-only
-> and steers `run_sql` to the real RO targets instead. Glossary
-> RAG (the other Phase 3e item) is still planned — it needs a curation owner.
+`POST /api/reporting/ai/build` (single-draft "build a report", `reporting.ai.use`,
+optionally with `priorQuestion`/`priorDefinition` refine context, audited
+`Surface='definition'`) and `POST /api/reporting/ai/ask` (single-draft "write
+SQL", requires `reporting.ai.sql` in addition to `reporting.ai.use`,
+`{"question"}` → `{"sql", "explanation", "valid", "target", "model"}`, audited
+`Surface='sql'`) still exist as routes — unchanged, still permission-gated,
+still audited — but no template or JS file calls either of them any more; the
+chat panel's agent endpoint is the only UI path today. They're documented here
+only so the routes aren't a mystery if you go looking for their caller and
+don't find one.
 
 ### Configuration (`AI_*` env vars)
 
@@ -929,8 +1298,10 @@ Set these in `env/INT.env` and `env/PROD.env`:
 | `AZURE_OPENAI_ENDPOINT` | Azure OpenAI resource endpoint (required when `AI_PROVIDER=azure`). |
 | `AZURE_OPENAI_KEY` | Azure OpenAI API key (required when `AI_PROVIDER=azure`). |
 | `AZURE_OPENAI_DEPLOYMENT` | Deployment name (required when `AI_PROVIDER=azure`). |
-| `AZURE_OPENAI_API_VERSION` | API version (optional; defaults to `2024-10-21`). |
+| `AZURE_OPENAI_API_VERSION` | API version (optional; defaults to `2024-10-21`). GPT-5-family deployments need a newer one, e.g. `2025-01-01-preview`. |
 | `AI_DAILY_LIMIT` | Per-user/day cap on AI asks (cost/abuse control). `0` (default) = unlimited. When the cap is hit the route returns **429** before any provider call, and the throttle is recorded in `dbo.ReportingAiAudit` with `Status='blocked'`. |
+| `AI_TIMEOUT_S` | HTTP read timeout for a single model round-trip (default `120`). Reasoning deployments (GPT-5 family) regularly spend 30–60 s on one hard question; too tight a value surfaces as *"The AI assistant could not answer right now"* (502) with a `Read timed out` line in `var/logs/system/app.log`. |
+| `AI_AGENT_BUDGET_S` | Wall-clock ceiling for a whole agentic (chat) run (default `180`). Checked between turns, so a slow model can't hold a worker for `max_turns × AI_TIMEOUT_S`; a run that hits it returns what it has with `stoppedReason: "budget"`. |
 
 Until `AI_PROVIDER` is set (or is `none`) the route returns **503** and the tab
 does not render. Sanitised key names are committed in `env/*.env.example`.
@@ -945,25 +1316,42 @@ does not render. Sanitised key names are committed in `env/*.env.example`.
   as the SQL sandbox) before it is returned to the client. A draft that fails
   the read-only check is still shown to the user but flagged with a warning;
   it is never auto-inserted silently.
-- **No new execution path:** the only action available from the AI panel is
-  **Insert into SQL editor**. The user then runs it via the existing gated
-  `POST /api/reporting/sql/run` path — the same read-only login, row cap,
-  timeout, and audit trail as any other SQL sandbox run.
+- **No unmediated execution path:** the chat panel itself never runs anything —
+  **Insert into SQL editor** only stages a draft for the user to review and run
+  via the existing gated `POST /api/reporting/sql/run` path (same read-only
+  login, row cap, timeout, audit trail); **Open report** only stages a
+  definition for a normal, whitelisted `/api/reporting/run` call. The one path
+  where the model itself triggers a read against real data is the opt-in
+  `run_sql`/`compute_stats` tool binding (`reporting.ai.explain_data` +
+  `reporting.sql.run`), which still goes through the same sqlglot gate and RO
+  login as everything else.
 - **Audit:** every AI interaction (question, model, provider, gate verdict,
   token counts, duration, status) is written to `dbo.ReportingAiAudit`
-  (migration `0013_create_reporting_ai_audit.sql`).
-- **Cost/abuse control:** `flask_limiter` caps the route at 10/min/user, and the
-  optional `AI_DAILY_LIMIT` enforces a per-user/day ceiling that is checked
-  *before* any provider call (a throttled ask costs no tokens) and audited with
-  `Status='blocked'`.
+  (migration `0013_create_reporting_ai_audit.sql`), including chat turns
+  (`Surface='agent'`) and captions (`Surface='caption'`).
+- **Cost/abuse control:** `flask_limiter` caps every AI route at 10/min/user,
+  and the optional `AI_DAILY_LIMIT` enforces a per-user/day ceiling that is
+  checked *before* any provider call (a throttled ask costs no tokens) and
+  audited with `Status='blocked'`.
 
 ### Implementation
 
 - `nx_lib/reporting/ai.py` — provider-agnostic client (Anthropic + Azure
-  OpenAI); HTTP transport is injectable for tests.
+  OpenAI); HTTP transport is injectable for tests; `ai_caption` drafts the
+  1–2 sentence result narration.
 - `nx_lib/reporting/ai_schema.py` — bounded schema serializer.
-- `templates/reporting.html` + `templates/js/_reporting_ai_js.html` — Ask AI
-  panel and JS.
+- `nx_lib/reporting/tokens.py` — `shifted_definition_for_comparison` (the
+  comparison-window shift; not AI, just lives next to the other date-token
+  helpers).
+- `templates/reporting.html` — chat panel markup (`#rpChatPanel` and friends).
+- `templates/js/_reporting_ai_js.html` — the chat module (`window.ReportingChat`).
+- `templates/js/_reporting_simple_js.html` — Simple's hero-bar shortcut into
+  the chat panel, the KPI delta chips/sparkline, and the auto-caption fetch.
+- `templates/js/_reporting_js.html` — the Advanced grid's own auto-caption
+  fetch (no delta chips/comparison there — Simple-tab only, see
+  **Comparison & delta chips**).
+- `static/css/reporting.css` — `.reporting-chat-*` panel styles, `.rp-delta*`
+  chip styles, `.rp-caption*` styles.
 
 See `docs/design/reporting-ai-assistant.md` for the full design spec.
 
@@ -995,7 +1383,11 @@ not shown again on subsequent runs.
   login with no write permissions — `engine_statistics_ro` for Statistics,
   `engine_octo_ro` for Octopus. Each target requires the matching permission
   before its query runs.
-- **Row cap:** results are hard-limited to 50,000 rows.
+- **Row cap:** results are hard-limited to 50,000 rows. Plain `SELECT`s get a
+  SQL-side `SELECT TOP (n) * FROM (…) AS _q` wrap; `WITH`-rooted queries and
+  queries ending in a top-level `ORDER BY` run unwrapped (neither is legal
+  inside a derived table, #129) with the cap enforced fetch-side instead —
+  either way you never get more than the cap.
 - **Timeout:** a ~30-second statement timeout is enforced server-side.
 - **Audit:** every run (query text, user, row count, duration, status) is
   written to `dbo.ReportingSqlAudit` (NexoraDB).
@@ -1030,12 +1422,15 @@ live schema grounding and scheduled-report delivery.
 
 ## See also
 
+- [`reporting-guide.md`](reporting-guide.md) — the end-user guide (how to build,
+  read, share, export and schedule a report). Update it in the same commit
+  whenever user-visible behaviour changes here.
 - `nx_lib/reporting/` — engine package (`schema.py`, `catalog.py`, `sources.py`,
   `query.py`, `export.py`, `sandbox.py`, `ai.py`, `ai_schema.py`).
 - `nx_lib/views/reporting.py` — Flask routes.
 - `templates/js/_reporting_js.html` — builder UI; `templates/js/_reporting_viz_js.html`
   — chart + drag-and-drop pivot (`window.ReportingViz`);
-  `templates/js/_reporting_ai_js.html` — Ask AI panel;
+  `templates/js/_reporting_ai_js.html` — the AI chat panel (`window.ReportingChat`);
   `templates/js/_reporting_dashboard_js.html` — dashboard builder
   (`window.ReportingDashboard`).
 - `sql/_migrations/NexoraDB/0004_create_reports_table.sql` — `dbo.Reports` DDL.

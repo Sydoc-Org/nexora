@@ -4,7 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{{ user.fullname }} — {{ _('User detail') }}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
 </head>
@@ -33,27 +32,35 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)" for="fld-username">{{ _('Username') }}</label>
+                    <label class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta" for="fld-username">{{ _('Username') }}</label>
                     <input type="text" id="fld-username" name="username" value="{{ user.username }}" required class="nx-input" data-testid="admin-userdetail-username">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)" for="fld-fullname">{{ _('Full name') }}</label>
+                    <label class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta" for="fld-fullname">{{ _('Full name') }}</label>
                     <input type="text" id="fld-fullname" name="fullname" value="{{ user.fullname }}" required class="nx-input" data-testid="admin-userdetail-fullname">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)" for="fld-email">{{ _('Email') }}</label>
+                    <label class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta" for="fld-email">{{ _('Email') }}</label>
                     <input type="email" id="fld-email" name="email" value="{{ user.email or '' }}" required class="nx-input" data-testid="admin-userdetail-email">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)" for="fld-profile">{{ _('Access profile') }}</label>
+                    <label class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta" for="fld-profile">{{ _('Access profile') }}</label>
                     <select id="fld-profile" name="accessprofile" class="nx-select" {% if not can_edit_user %}disabled{% endif %} data-testid="admin-userdetail-accessprofile">
+                        {% set assignable_names = assignable_profiles | map(attribute='profile') | list %}
+                        {% if user.AccessProfileName and user.AccessProfileName not in assignable_names %}
+                        {# NOT disabled: a <select> option that is both selected AND disabled is
+                           excluded from FormData on submit in real browsers (Chromium, Firefox),
+                           so an untouched form would silently drop the accessprofile key entirely.
+                           `selected` alone is enough to round-trip the current value unchanged. #}
+                        <option value="{{ user.AccessProfileName }}" selected data-testid="admin-userdetail-accessprofile-current">{{ user.AccessProfileName }} ({{ _('current, not assignable') }})</option>
+                        {% endif %}
                         {% for p in assignable_profiles %}
                         <option value="{{ p.profile }}" {% if p.profile == user.AccessProfileName %}selected{% endif %}>{{ p.profile }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)" for="fld-org">{{ _('Organization') }}</label>
+                    <label class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta" for="fld-org">{{ _('Organization') }}</label>
                     <select id="fld-org" name="organization" class="nx-select" {% if not can_edit_user %}disabled{% endif %} data-testid="admin-userdetail-organization">
                         {% for o in organizations %}
                         <option value="{{ o.organization }}" {% if o.organizationcode == user.organizationcode %}selected{% endif %}>{{ o.organization }}</option>
@@ -61,7 +68,7 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-widest mb-1" style="color:var(--nx-text-meta)" for="fld-password">{{ _('New password') }}</label>
+                    <label class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta" for="fld-password">{{ _('New password') }}</label>
                     <input type="password" id="fld-password" name="password" class="nx-input" placeholder="{{ _('Leave blank to keep current') }}" data-testid="admin-userdetail-password">
                 </div>
 
@@ -80,12 +87,12 @@
 
         <ul class="nx-tabs">
             <li>
-                <button id="perm-tab-effective-btn" type="button" onclick="switchPermTab('effective')" class="nx-tab is-active" data-testid="admin-userdetail-tab-effective">
+                <button id="perm-tab-effective-btn" type="button" class="nx-tab is-active" data-testid="admin-userdetail-tab-effective">
                     <i class="fas fa-shield-halved"></i>{{ _('Effective Permissions') }}
                 </button>
             </li>
             <li>
-                <button id="perm-tab-overrides-btn" type="button" onclick="switchPermTab('overrides')" class="nx-tab" data-testid="admin-userdetail-tab-overrides">
+                <button id="perm-tab-overrides-btn" type="button" class="nx-tab" data-testid="admin-userdetail-tab-overrides">
                     <i class="fas fa-sliders"></i>{{ _('Overrides') }}
                 </button>
             </li>
@@ -159,7 +166,7 @@
                             {% if group != ns.prev_group %}
                             {% set ns.prev_group = group %}
                             {% set ns.prev_sub = '' %}
-                            <tr data-perm-group="{{ group }}" style="background:var(--nx-alt);cursor:pointer;user-select:none" onclick="permGroupToggle(this)">
+                            <tr data-perm-group="{{ group }}" style="background:var(--nx-alt);cursor:pointer;user-select:none">
                                 <td colspan="4" style="padding:6px 12px;font-size:11px;font-weight:700;color:var(--nx-text-sec);text-transform:uppercase;letter-spacing:0.6px">
                                     <span class="perm-chevron" style="display:inline-block;margin-right:5px;transition:transform 0.15s">▾</span>{{ group }}
                                 </td>
@@ -167,7 +174,7 @@
                             {% endif %}
                             {% if action and sub != ns.prev_sub %}
                             {% set ns.prev_sub = sub %}
-                            <tr data-perm-sub-group="{{ sub }}" style="background:var(--nx-bg);cursor:pointer;user-select:none" onclick="permGroupToggle(this)">
+                            <tr data-perm-sub-group="{{ sub }}" style="background:var(--nx-bg);cursor:pointer;user-select:none">
                                 <td colspan="4" style="padding:4px 24px;font-size:11px;font-weight:600;color:var(--nx-text-meta);text-transform:uppercase;letter-spacing:0.5px">
                                     <span class="perm-chevron" style="display:inline-block;margin-right:5px;transition:transform 0.15s;font-size:10px">▾</span>{{ action }}
                                 </td>
@@ -238,7 +245,7 @@
     <div class="nx-card" style="border-color:var(--nx-danger)">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
             <div>
-                <div class="nx-section" style="color:var(--nx-danger)">{{ _('Danger zone') }}</div>
+                <div class="nx-section nx-c-danger">{{ _('Danger zone') }}</div>
                 <p style="font-size:12px;color:var(--nx-text-sec);margin:4px 0 0">
                     {{ _('Deleting this user is irreversible. Their access is revoked immediately.') }}
                 </p>
@@ -268,8 +275,8 @@
             <h3 style="font-size:16px;font-weight:600;margin:10px 0 6px">{{ _('Delete user?') }}</h3>
             <p style="font-size:13px;color:var(--nx-text-sec);margin:0 0 16px" id="confirmDeleteMessage"></p>
             <div style="display:flex;justify-content:center;gap:8px">
-                <button type="button" class="nx-btn nx-btn--secondary"
-                        onclick="document.getElementById('confirmDeleteModal').style.display='none'" data-testid="admin-userdetail-confirm-delete-cancel">
+                <button type="button" id="confirmDeleteCancelBtn" class="nx-btn nx-btn--secondary"
+                        data-testid="admin-userdetail-confirm-delete-cancel">
                     {{ _('Cancel') }}
                 </button>
                 <button type="button" id="confirmDeleteBtn" class="nx-btn nx-btn--danger" data-testid="admin-userdetail-confirm-delete">

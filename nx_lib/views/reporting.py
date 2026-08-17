@@ -2,6 +2,7 @@
 
 Routes:
   GET  /reporting                     builder page
+  GET  /reporting/guide               in-app user guide (docs/howto/reporting-guide.md rendered)
   GET  /reporting/sources             source-registry admin page (reporting.admin.sources)
   GET  /api/reporting/sources         sources + field catalog the caller may use
   GET/POST/PUT/DELETE /api/reporting/admin/sources[/<id>]  registry CRUD (admin)
@@ -29,6 +30,7 @@ import os
 import re
 import time
 import uuid
+from pathlib import Path
 
 from flask import (
     Response,
@@ -37,8 +39,10 @@ from flask import (
     render_template,
     request,
     session,
+    stream_with_context,
 )
 from flask_babel import gettext as _
+from markdown_it import MarkdownIt
 
 from ..db import (
     engine_generali_db,
@@ -50,18 +54,31 @@ from ..db import (
 )
 from ..extensions import limiter
 from ..i18n import get_locale
-from ..reporting.ai import _AGENT_EXPLAIN_SUFFIX, _AGENT_SYSTEM, AiError, ask_agentic
+from ..reporting.ai import (
+    _AGENT_EXPLAIN_SUFFIX,
+    _AGENT_SYSTEM,
+    CAPTION_MAX_ROWS,
+    CONTINUE_BUDGET_S,
+    CONTINUE_MAX_TURNS,
+    MAX_CONTINUE_ATTEMPTS,
+    AiError,
+    ask_agentic,
+    ask_agentic_iter,
+)
 from ..reporting.ai import _make_agent_step as make_agent_step
 from ..reporting.ai import ask as ai_ask
 from ..reporting.ai import ask_definition as ai_ask_definition
+from ..reporting.ai import caption as ai_caption
 from ..reporting.ai_schema import serialize_schema, serialize_sources_catalog
 from ..reporting.ai_tools import TOOL_SPECS, ToolRegistry
 from ..reporting.catalog import fetch_docprocessing_catalog
 from ..reporting.export import rows_to_csv, rows_to_xlsx
+from ..reporting.forecast import compute_forecast, forecast_export_rows
 from ..reporting.query import QueryBuildError, build_table_query
 from ..reporting.sandbox import (
     MAX_SQL_LEN,
     SqlSandboxError,
+    fetch_capped,
     humanize_sql_error,
     validate_select,
     wrap_with_cap,
@@ -91,6 +108,7 @@ from ..reporting.sources import (
 from ..reporting.sqlformat import format_sql, inline_sql_params
 from ..reporting.table_query import (
     TableQueryError,
+    build_distinct_query,
     build_generic_query,
     table_source_catalog,
 )
@@ -98,6 +116,8 @@ from ..reporting.tokens import (
     date_fields_from_catalog,
     resolve_definition_tokens,
     resolve_token,
+    shifted_definition_for_comparison,
+    widened_definition_for_forecast,
 )
 from ..security import has_permission, page_visibility, require_permission
 
@@ -202,7 +222,7 @@ def _load_db_metrics():
         cur = conn.cursor()
         cur.execute(
             "SELECT Code, SourceId, Label, GermanLabel, FrenchLabel, ItalianLabel, "
-            "Aggregation, BaseField, Description, Format, Enabled, SortOrder "
+            "Aggregation, BaseField, Description, Format, Enabled, SortOrder, TotalMode "
             "FROM dbo.ReportingMetrics WHERE Enabled = 1"
         )
         out = {}
@@ -219,6 +239,7 @@ def _load_db_metrics():
                 "description": r.Description,
                 "format": r.Format,
                 "sort_order": r.SortOrder,
+                "total_mode": (getattr(r, "TotalMode", None) or "sum"),
             }
         return out
     except Exception as e:
@@ -245,7 +266,11 @@ def _metric_label(m):
 def _metrics_for_source(source_id):
     """Enabled metrics bound to `source_id` as {code: {aggregation, base_field}}."""
     return {
-        code: {"aggregation": m["aggregation"], "base_field": m["base_field"]}
+        code: {
+            "aggregation": m["aggregation"],
+            "base_field": m["base_field"],
+            "total_mode": m.get("total_mode", "sum"),
+        }
         for code, m in _load_db_metrics().items()
         if m["source_id"] == source_id
     }
@@ -363,7 +388,35 @@ def _ai_schema_text():
                 {"label": s.get("label"), "fields": table_source_catalog(s.get("columns"))}
             )
     metrics = _accessible_metrics()
-    text, truncated = serialize_schema(targets=targets, curated=curated, metrics=metrics or None)
+    # Mark the Statconfig tables as per-process partial views, so the agent stops
+    # answering company-wide questions from whichever single one it found in the
+    # flat INFORMATION_SCHEMA dump (issue #128). Statconfig being unavailable just
+    # drops the block — never a 500.
+    partial_tables = {}
+    try:
+        allowed = _allowed_processes()
+        field_maps = _load_field_col_maps(allowed)
+        for cfg in _load_process_configs(allowed):
+            if not cfg.get("table"):
+                continue
+            entry = partial_tables.setdefault(
+                cfg["table"],
+                {
+                    "processes": [],
+                    "import_col": cfg.get("import_col"),
+                    "export_col": cfg.get("export_col"),
+                    "fields": field_maps.get(cfg["process"]) or {},
+                },
+            )
+            entry["processes"].append(cfg["process"])
+    except Exception as e:
+        current_app.logger.warning(f"reporting.ai schema: Statconfig unavailable: {e}")
+    text, truncated = serialize_schema(
+        targets=targets,
+        curated=curated,
+        metrics=metrics or None,
+        partial_tables=partial_tables,
+    )
     if truncated:
         current_app.logger.info("reporting.ai schema truncated for user=%s", session.get("userid"))
     return text
@@ -606,7 +659,13 @@ def _run_sql(target, sql, *, userid, username):
         cur = conn.cursor()
         cur.execute(wrapped)
         col_names = [d[0] for d in cur.description] if cur.description else []
-        rows = [list(r) for r in cur.fetchall()]
+        # Fetch-side cap, uniform on every path (D-CTE): a plain SELECT's TOP
+        # wrap already limits the driver's result set, but a WITH-rooted or
+        # top-level-ORDER-BY query is passed through unwrapped by
+        # wrap_with_cap() (neither construct is legal inside a derived-table
+        # subquery, see issue #129) — this fetchmany(cap + 1) is the only
+        # row-count enforcement for that path.
+        rows, _truncated = fetch_capped(cur, SQL_ROW_CAP)
     except Exception:
         _audit_sql(
             userid,
@@ -848,6 +907,7 @@ def _prepare_run(rd):
 
     if provider == "table":
         catalog, catalog_fields, filterable, sortable = _catalog_for_source(source)
+        grainable = {f["field"] for f in catalog if f.get("grainable")}
         source_metrics = _metrics_for_source(source["id"])
         validate_report_definition(
             rd,
@@ -856,6 +916,7 @@ def _prepare_run(rd):
             sortable,
             max_row_limit=MAX_ROW_LIMIT,
             metric_codes=set(source_metrics),
+            grainable_fields=grainable,
             date_fields=date_fields_from_catalog(catalog),
         )
         rd = _resolve_definition_tokens_or_error(rd)
@@ -864,12 +925,21 @@ def _prepare_run(rd):
             if rd.get("metrics")
             else None
         )
+        latest_of = None
+        if resolved and not (rd.get("columns") or []):
+            modes = {
+                (source_metrics.get(m["code"]) or {}).get("total_mode", "sum") for m in resolved
+            }
+            date_candidates = [f["field"] for f in catalog if f.get("grainable")]
+            if modes == {"latest"} and len(date_candidates) == 1:
+                latest_of = date_candidates[0]
         sql, params = build_generic_query(
             rd,
             source.get("baseObject"),
             catalog,
             row_cap=rd.get("rowLimit", DEFAULT_ROW_LIMIT),
             resolved_metrics=resolved,
+            latest_of=latest_of,
         )
         engine = _CURATED_ENGINES.get(source.get("engine"))
         if engine is None:
@@ -893,6 +963,27 @@ def _execute(engine, sql, params):
         conn.close()
 
 
+def _forecast_for(rd, columns, rows):
+    """Forecast block for one run result — shared by /api/reporting/run and
+    /api/reporting/export so both surfaces produce the same forecast (#178).
+
+    Refits on a widened lookback window when the definition qualifies (real
+    history beats the visible window for fit quality), falling back to the
+    visible rows on any failure. The auto horizon still resolves from the
+    VISIBLE `rows` (via compute_forecast's `visible_rows` param) so widening
+    the lookback changes fit quality only, never how many buckets project.
+    """
+    fit_columns, fit_rows = columns, rows
+    widened = widened_definition_for_forecast(rd)
+    if widened is not None:
+        try:
+            w_columns, w_sql, w_params, w_engine = _prepare_run(widened)
+            fit_columns, fit_rows = w_columns, _execute(w_engine, w_sql, w_params)
+        except Exception as e:
+            current_app.logger.warning(f"reporting forecast lookback skipped: {e}")
+    return compute_forecast(rd, fit_columns, fit_rows, visible_rows=rows)
+
+
 def _json_safe(value):
     """Coerce one DB result cell to a JSON-serializable value.
 
@@ -902,6 +993,13 @@ def _json_safe(value):
     "Object of type X is not JSON serializable" and 500 the run. Map the crashy
     types to readable strings, pass the Flask-native ones through unchanged, and
     stringify anything else as a last resort (a result cell must never 500).
+
+    Dates are the exception to "pass Flask-native through": DefaultJSONProvider
+    emits the HTTP-date form ("Thu, 26 Mar 2026 08:56:28 GMT"), which is what
+    ended up in result tables (issue #175). Format them here instead —
+    yyyy-MM-dd HH:mm:ss / yyyy-MM-dd, sortable and locale-free. Nothing parses
+    these back: the front end renders result cells as text, and xlsx/csv export
+    serializes the raw rows, not these.
     """
     if value is None or isinstance(value, bool | int | float | str):
         return value
@@ -909,7 +1007,11 @@ def _json_safe(value):
         return "0x" + bytes(value).hex()
     if isinstance(value, datetime.time):
         return value.isoformat()
-    if isinstance(value, datetime.date | decimal.Decimal | uuid.UUID):
+    if isinstance(value, datetime.datetime):  # before date — datetime subclasses it
+        return value.strftime("%Y-%m-%d %H:%M:%S")
+    if isinstance(value, datetime.date):
+        return value.strftime("%Y-%m-%d")
+    if isinstance(value, decimal.Decimal | uuid.UUID):
         return value  # Flask's DefaultJSONProvider serializes these
     return str(value)
 
@@ -950,7 +1052,7 @@ def _parse_chart_image(value):
     return raw
 
 
-def _serialize_export(columns, rows, title, fmt, chart_png=None):
+def _serialize_export(columns, rows, title, fmt, chart_png=None, forecast_start=None):
     """Build a Flask download Response for `rows` in the requested format."""
     name = _safe_report_name(title)
     if fmt == "csv":
@@ -960,9 +1062,61 @@ def _serialize_export(columns, rows, title, fmt, chart_png=None):
             headers={"Content-Disposition": f'attachment; filename="{name}.csv"'},
         )
     return Response(
-        rows_to_xlsx(columns, rows, title=title or "Report", chart_png=chart_png),
+        rows_to_xlsx(
+            columns,
+            rows,
+            title=title or "Report",
+            chart_png=chart_png,
+            forecast_start=forecast_start,
+        ),
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f'attachment; filename="{name}.xlsx"'},
+    )
+
+
+# The user guide is authored in git as docs/howto/reporting-guide.md and
+# served in-app here (English only; the Confluence mirror stays for the team).
+# The deploy workflow copies this one docs file onto the server — see the
+# "Sync to deploy folder" step in .github/workflows/deploy.yml.
+_GUIDE_MD = Path(__file__).resolve().parents[2] / "docs" / "howto" / "reporting-guide.md"
+
+
+def _guide_render(md_text):
+    """reporting-guide.md -> (html, toc list of {slug, title}). Pure.
+
+    Drops the H1 (the page chrome carries the title), unwraps links to other
+    .md files (their targets are not routable in-app), and stamps slug ids on
+    <h2> headings so the on-page TOC can anchor-link them.
+    """
+    lines = md_text.splitlines()
+    body = [ln for i, ln in enumerate(lines) if not (ln.startswith("# ") and i < 5)]
+    text = re.sub(r"\[([^\]]+)\]\([^)\s]*\.md\)", r"\1", "\n".join(body))
+    html = MarkdownIt("commonmark").enable(["table", "strikethrough"]).render(text)
+    toc = []
+
+    def _anchor(match):
+        title = re.sub(r"<[^>]+>", "", match.group(1))
+        slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")
+        toc.append({"slug": slug, "title": title})
+        return f'<h2 id="{slug}">{match.group(1)}</h2>'
+
+    return re.sub(r"<h2>(.*?)</h2>", _anchor, html), toc
+
+
+@require_permission("reporting.view")
+def reporting_guide():
+    try:
+        guide_html, guide_toc = _guide_render(_GUIDE_MD.read_text(encoding="utf-8"))
+    except OSError:
+        current_app.logger.error("reporting guide source missing: %s", _GUIDE_MD)
+        guide_html, guide_toc = None, []
+    return render_template(
+        "reporting_guide.html",
+        guide_html=guide_html,
+        guide_toc=guide_toc,
+        logged_in_user=session.get("username", "Unknown"),
+        fullname=session.get("fullname"),
+        pageV=page_visibility(),
     )
 
 
@@ -975,9 +1129,7 @@ def reporting():
         fullname=session.get("fullname"),
         pageV=page_visibility(),
         ai_enabled=has_permission("reporting.ai.use"),
-        ai_sql_enabled=has_permission("reporting.ai.sql"),
-        ai_explain_enabled=has_permission("reporting.ai.explain_data")
-        and has_permission("reporting.sql.run"),
+        ai_caption_enabled=has_permission("reporting.ai.explain_data"),
         details_images_perm=has_permission("workitems.details.view.images"),
         details_audit_perm=has_permission("workitems.details.view.audit"),
         details_fields_perm=has_permission("workitems.details.view.fields"),
@@ -1046,6 +1198,30 @@ def api_run():
         "sqlDisplay": inline_sql_params(pretty, params),
         "params": [_json_safe(p) for p in params],
     }
+    if rd.get("compare"):
+        shifted = shifted_definition_for_comparison(rd)
+        if shifted is not None:
+            shifted_rd, prior_start, prior_end = shifted
+            try:
+                c_columns, c_sql, c_params, c_engine = _prepare_run(shifted_rd)
+                c_rows = _execute(c_engine, c_sql, c_params)
+                payload["comparison"] = {
+                    "columns": [
+                        {"field": c["field"], "header": c.get("header") or c["field"]}
+                        for c in c_columns
+                    ],
+                    "rows": _rows_json_safe(c_rows),
+                    "priorStart": prior_start.isoformat(),
+                    "priorEnd": prior_end.isoformat(),
+                }
+            except Exception as e:
+                current_app.logger.warning(f"/api/reporting/run comparison skipped: {e}")
+    fc_req = rd.get("forecast")
+    if isinstance(fc_req, dict) and fc_req.get("enabled"):
+        try:
+            payload["forecast"] = _forecast_for(rd, columns, rows)
+        except Exception as e:  # a forecast must never take down the run
+            current_app.logger.warning(f"/api/reporting/run forecast skipped: {e}")
     # rd is the original request body (tokens intact) — _prepare_run resolves
     # its own local copy. _resolved_dates_meta needs the tokens to produce labels.
     resolved_dates = _resolved_dates_meta(rd)
@@ -1451,6 +1627,35 @@ def api_ai_agent():
     if not question:
         return jsonify({"error": _("A question is required")}), 400
 
+    raw_history = body.get("history")
+    if raw_history is not None and not isinstance(raw_history, list):
+        return jsonify({"error": _("Invalid history")}), 400
+    history = []
+    for h in raw_history or []:
+        if (
+            isinstance(h, dict)
+            and h.get("role") in ("user", "assistant")
+            and isinstance(h.get("content"), str)
+            and h["content"].strip()
+        ):
+            history.append({"role": h["role"], "content": h["content"]})
+    history = history[-8:]
+    while history and sum(len(h["content"]) for h in history) > 12000:
+        history.pop(0)
+
+    # Issue #153: "Continue" past a max_turns/budget dead-end re-runs the same
+    # question with raised caps rather than resuming the loop mid-flight (the
+    # transcript isn't persisted). continueAttempt is clamped, not rejected
+    # out of range, so a stale/tampered client value can't grant more than the
+    # ceiling.
+    try:
+        continue_attempt = int(body.get("continueAttempt") or 0)
+    except (TypeError, ValueError):
+        continue_attempt = 0
+    continue_attempt = max(0, min(continue_attempt, MAX_CONTINUE_ATTEMPTS))
+    agent_max_turns = CONTINUE_MAX_TURNS if continue_attempt else None
+    agent_budget_s = CONTINUE_BUDGET_S if continue_attempt else None
+
     cfg = _ai_config()
     if cfg.get("provider") == "none" or not cfg.get("api_key"):
         return jsonify({"error": _("The AI assistant is not configured")}), 503
@@ -1517,6 +1722,27 @@ def api_ai_agent():
     if explain:
 
         def run_sql_bound(target, sql):
+            """Enforce the same gates api_sql_run applies before touching _run_sql.
+
+            Mirrors api_sql_run's exact composition/order: ack check first, then
+            per-target authorization (_authorize_sql_target). D-RUNSQL: binding
+            run_sql on reporting.ai.explain_data + reporting.sql.run is not itself
+            proof the caller may use THIS target, nor that they've acked the
+            sandbox terms — those are checked here, same as the HTTP route.
+            Both failures raise (audited with a distinct status first);
+            ToolRegistry.call() catches any tool exception and turns it into a
+            {"ok": False, "error": ...} result, so this never raises through to a
+            500 on /api/reporting/ai/agent — the agent gets a relayable error.
+            """
+            sql_text = sql if isinstance(sql, str) else ""
+            if not _has_acked(userid):
+                _audit_sql(userid, username, target, sql_text, None, "refused_ack", None)
+                raise PermissionError("Acknowledgment required before running SQL")
+            try:
+                _authorize_sql_target(target)
+            except PermissionError as e:
+                _audit_sql(userid, username, target, sql_text, None, "refused_auth", None)
+                raise PermissionError(f"Not authorized for SQL target {target!r}") from e
             return _run_sql(target, sql, userid=userid, username=username)
 
     registry = ToolRegistry(
@@ -1549,7 +1775,101 @@ def api_ai_agent():
     initial = f"{grounding}\n\nQuestion: {question}"
     system_prompt = _AGENT_SYSTEM + (_AGENT_EXPLAIN_SUFFIX if explain else "")
 
+    loop_kwargs = {}
+    if agent_max_turns is not None:
+        loop_kwargs["max_turns"] = agent_max_turns
+    if agent_budget_s is not None:
+        loop_kwargs["budget_s"] = agent_budget_s
+
     start = time.monotonic()
+
+    def _finish(result):
+        """Audit a completed loop and shape its response payload.
+
+        Shared by both delivery modes: the plain JSON response and the NDJSON
+        progress stream's final `done` line.
+        """
+        duration_ms = int((time.monotonic() - start) * 1000)
+        definition, sql = _extract_agent_artifacts(result.tool_trace)
+        _audit_ai(
+            userid,
+            username,
+            question,
+            "agent",
+            json.dumps(
+                {
+                    "answer": result.answer,
+                    "tools": [t["name"] for t in result.tool_trace],
+                    "explainData": explain,
+                }
+            )[:4000],
+            cfg.get("provider"),
+            cfg.get("model"),
+            result.tokens_in,
+            result.tokens_out,
+            result.stopped_reason,
+            "ok",
+            duration_ms,
+        )
+        # Issue #127: never ship an empty answer — the chat panel would render
+        # a blank bubble. The audit above keeps the raw (empty) answer; only
+        # the user-facing payload gets the fallback. The in-loop nudge
+        # (ask_agentic_iter) already retried once, so this is the last resort:
+        # point at whatever artifact the loop did produce, or admit defeat.
+        answer = (result.answer or "").strip()
+        if not answer:
+            if definition is not None and sql:
+                answer = _(
+                    "I couldn't write a summary this time, but I did produce a "
+                    "report draft and a validated SQL query — use the actions "
+                    "below to open them."
+                )
+            elif definition is not None:
+                answer = _(
+                    "I couldn't write a summary this time, but I did produce a "
+                    "report draft — use “Open report” below to run it."
+                )
+            elif sql:
+                answer = _(
+                    "I couldn't write a summary this time, but I did draft a SQL "
+                    "query — use the actions below to review it."
+                )
+            else:
+                answer = _(
+                    "I couldn't complete this request. Please try rephrasing the "
+                    "question or narrowing it down."
+                )
+        return {
+            "answer": answer,
+            "definition": definition,
+            "sql": sql,
+            "toolTrace": result.tool_trace,
+            "turns": result.turns,
+            "stoppedReason": result.stopped_reason,
+            "explainData": explain,
+            "continueAttempt": continue_attempt,
+            "canContinue": (
+                result.stopped_reason in ("max_turns", "budget")
+                and continue_attempt < MAX_CONTINUE_ATTEMPTS
+            ),
+        }
+
+    def _audit_failure(status):
+        _audit_ai(
+            userid,
+            username,
+            question,
+            "agent",
+            None,
+            cfg.get("provider"),
+            cfg.get("model"),
+            None,
+            None,
+            "na",
+            status,
+            int((time.monotonic() - start) * 1000),
+        )
+
     try:
         step = make_agent_step(
             system=system_prompt,
@@ -1562,14 +1882,154 @@ def api_ai_agent():
             api_version=cfg.get("api_version", "2024-10-21"),
             url=cfg.get("url"),
         )
-        result = ask_agentic(initial, registry=registry, agent_step=step)
+        # Streaming mode: the client asked to watch the loop work. NDJSON, one
+        # object per line — {"phase": ...} progress events as they happen, then
+        # exactly one {"done": true, ...} line carrying the same payload the
+        # plain-JSON mode returns. Headers are already sent by then, so a
+        # mid-stream failure rides in that final line instead of an HTTP status.
+        if body.get("stream"):
+
+            def emit():
+                result = None
+                try:
+                    for event in ask_agentic_iter(
+                        initial,
+                        registry=registry,
+                        agent_step=step,
+                        history=history,
+                        **loop_kwargs,
+                    ):
+                        if "result" in event:
+                            result = event["result"]
+                            break
+                        yield json.dumps(event) + "\n"
+                except Exception as e:
+                    current_app.logger.error(f"/api/reporting/ai/agent provider error: {e}")
+                    _audit_failure("error")
+                    yield (
+                        json.dumps(
+                            {
+                                "done": True,
+                                "error": _("The AI assistant could not answer right now"),
+                            }
+                        )
+                        + "\n"
+                    )
+                    return
+                yield json.dumps({"done": True, **_finish(result)}) + "\n"
+
+            return Response(
+                stream_with_context(emit()),
+                mimetype="application/x-ndjson",
+                headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
+            )
+
+        result = ask_agentic(
+            initial, registry=registry, agent_step=step, history=history, **loop_kwargs
+        )
     except AiError as e:
         current_app.logger.warning(f"/api/reporting/ai/agent config error: {e}")
+        _audit_failure("misconfig")
+        return jsonify({"error": _("The AI assistant is not configured")}), 503
+    except Exception as e:
+        current_app.logger.error(f"/api/reporting/ai/agent provider error: {e}")
+        _audit_failure("error")
+        return jsonify({"error": _("The AI assistant could not answer right now")}), 502
+
+    return jsonify(_finish(result))
+
+
+def _caption_columns(raw):
+    """Normalize a client-supplied column list to [{field, header}] dicts.
+
+    Mirrors api_export_grid's column normalization: bare strings are accepted
+    too (field == header == str(c)) so a caller need not always ship the full
+    {field, header} shape.
+    """
+    out = []
+    for c in raw:
+        if isinstance(c, dict):
+            header = c.get("header") or c.get("field") or ""
+            out.append({"field": c.get("field") or header, "header": header})
+        else:
+            out.append({"field": str(c), "header": str(c)})
+    return out
+
+
+@require_permission("reporting.ai.explain_data")
+@limiter.limit("10 per minute")
+def api_ai_caption():
+    """Surface D — a 1-2 sentence auto-caption over a result grid (Task 12).
+
+    Unlike ask/build/agent, this surface's egress is NOT schema-only: `rows`
+    are the actual values a Simple/Advanced result is displaying, so it is
+    gated by reporting.ai.explain_data (the data-egress grant) rather than the
+    weaker reporting.ai.use. It still counts toward the shared daily AI cap and
+    is rate limited like the other AI endpoints. Rows are capped at
+    CAPTION_MAX_ROWS before ever reaching the model — a caption summarizes a
+    glance, not a full export. Fired by fireCaption() (Task 13): the Simple
+    tab after every successful run render, the Advanced tab on chart mount.
+    """
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return jsonify({"error": _("Invalid JSON body")}), 400
+    raw_columns = body.get("columns")
+    rows = body.get("rows")
+    if not isinstance(raw_columns, list) or not raw_columns or not isinstance(rows, list):
+        return jsonify({"error": _("columns and rows are required")}), 400
+    columns = _caption_columns(raw_columns)
+    rows = [list(r) if isinstance(r, list | tuple) else [r] for r in rows[:CAPTION_MAX_ROWS]]
+    title = (body.get("title") or "").strip() or None
+    date_label = (body.get("dateLabel") or "").strip() or None
+
+    cfg = _ai_config()
+    if cfg.get("provider") == "none" or not cfg.get("api_key"):
+        return jsonify({"error": _("The AI assistant is not configured")}), 503
+
+    userid, username = session.get("userid"), session.get("username")
+    limit = _ai_daily_limit()
+    if limit > 0 and _ai_asks_today(userid) >= limit:
         _audit_ai(
             userid,
             username,
-            question,
-            "agent",
+            title or "",
+            "caption",
+            None,
+            cfg.get("provider"),
+            cfg.get("model"),
+            None,
+            None,
+            "na",
+            "blocked",
+            0,
+        )
+        return jsonify(
+            {
+                "error": _(
+                    "You have reached the daily AI request limit (%(limit)s). "
+                    "Please try again tomorrow.",
+                    limit=limit,
+                )
+            }
+        ), 429
+
+    start = time.monotonic()
+    try:
+        result = ai_caption(
+            columns,
+            rows,
+            title,
+            date_label,
+            locale=str(get_locale()),
+            cfg=cfg,
+        )
+    except AiError as e:
+        current_app.logger.warning(f"/api/reporting/ai/caption config error: {e}")
+        _audit_ai(
+            userid,
+            username,
+            title or "",
+            "caption",
             None,
             cfg.get("provider"),
             cfg.get("model"),
@@ -1581,12 +2041,12 @@ def api_ai_agent():
         )
         return jsonify({"error": _("The AI assistant is not configured")}), 503
     except Exception as e:
-        current_app.logger.error(f"/api/reporting/ai/agent provider error: {e}")
+        current_app.logger.error(f"/api/reporting/ai/caption provider error: {e}")
         _audit_ai(
             userid,
             username,
-            question,
-            "agent",
+            title or "",
+            "caption",
             None,
             cfg.get("provider"),
             cfg.get("model"),
@@ -1599,38 +2059,21 @@ def api_ai_agent():
         return jsonify({"error": _("The AI assistant could not answer right now")}), 502
 
     duration_ms = int((time.monotonic() - start) * 1000)
-    definition, sql = _extract_agent_artifacts(result.tool_trace)
     _audit_ai(
         userid,
         username,
-        question,
-        "agent",
-        json.dumps(
-            {
-                "answer": result.answer,
-                "tools": [t["name"] for t in result.tool_trace],
-                "explainData": explain,
-            }
-        )[:4000],
-        cfg.get("provider"),
-        cfg.get("model"),
+        title or "",
+        "caption",
+        None,
+        result.provider,
+        result.model,
         result.tokens_in,
         result.tokens_out,
-        result.stopped_reason,
+        "na",
         "ok",
         duration_ms,
     )
-    return jsonify(
-        {
-            "answer": result.answer,
-            "definition": definition,
-            "sql": sql,
-            "toolTrace": result.tool_trace,
-            "turns": result.turns,
-            "stoppedReason": result.stopped_reason,
-            "explainData": explain,
-        }
-    )
+    return jsonify({"caption": result.caption})
 
 
 @require_permission("reporting.export")
@@ -1681,8 +2124,24 @@ def api_export():
     except Exception as e:
         current_app.logger.error(f"/api/reporting/export error: {e}")
         return jsonify({"error": _("Could not export report")}), 500
+    forecast_start = None
+    fc_req = rd.get("forecast")
+    if isinstance(fc_req, dict) and fc_req.get("enabled"):
+        try:
+            fc = _forecast_for(rd, columns, rows)
+            if fc and not fc.get("unavailable"):
+                columns, rows, forecast_start = forecast_export_rows(
+                    columns, rows, fc, marker_header=_("Forecast")
+                )
+        except Exception as e:
+            current_app.logger.warning(f"/api/reporting/export forecast skipped: {e}")
     return _serialize_export(
-        columns, rows, rd.get("title") or _("Report"), fmt, chart_png=chart_png
+        columns,
+        rows,
+        rd.get("title") or _("Report"),
+        fmt,
+        chart_png=chart_png,
+        forecast_start=forecast_start,
     )
 
 
@@ -1724,12 +2183,25 @@ def _preview_kind(defn):
     exactly: no breakdown columns -> 'total'; a grain or a date-ish field name
     on the first column -> 'line'; a pie/donut visualization -> 'donut';
     otherwise -> 'bar'.
+
+    Saved definitions come from a JSON blob a caller wrote through the report
+    editor API, which only checks the top level is a dict (see
+    api_reports_create). Anything under 'columns' can be malformed (a corrupt
+    row, a hand-edited DB value, a future schema change) so every access below
+    is type-guarded — malformed shape falls back to a sensible default kind
+    instead of raising and taking the whole library listing down with it.
     """
+    if not isinstance(defn, dict):
+        return "bar"
     cols = defn.get("columns") or []
-    if not cols:
+    if not isinstance(cols, list) or not cols:
         return "total"
-    first = cols[0] or {}
+    first = cols[0]
+    if not isinstance(first, dict):
+        return "bar"
     field = first.get("field") or ""
+    if not isinstance(field, str):
+        field = ""
     if first.get("grain") or re.search(r"date", field, re.I):
         return "line"
     if defn.get("visualization") in ("pie", "donut"):
@@ -1773,19 +2245,30 @@ def api_reports_list():
                 defn = json.loads(r.DefinitionJSON or "{}")
             except (TypeError, ValueError):
                 defn = {}
-            rows.append(
-                {
-                    "id": r.ReportID,
-                    "name": r.Name,
-                    "updatedAt": str(r.UpdatedAt),
-                    "kind": r.Kind or "table",
-                    "visibility": r.Visibility,
-                    "owned": bool(r.Owned),
-                    "canEdit": bool(r.CanEdit),
-                    "ownerName": r.OwnerName,
-                    "previewKind": _preview_kind(defn),
-                }
-            )
+            # Defense-in-depth: _preview_kind type-guards known malformed
+            # shapes internally, but one corrupt saved definition must never
+            # be able to 500 the whole library for every user, so a row that
+            # still fails to serialize for any other reason is skipped and
+            # logged rather than propagating up to the route-level except.
+            try:
+                rows.append(
+                    {
+                        "id": r.ReportID,
+                        "name": r.Name,
+                        "updatedAt": str(r.UpdatedAt),
+                        "kind": r.Kind or "table",
+                        "visibility": r.Visibility,
+                        "owned": bool(r.Owned),
+                        "canEdit": bool(r.CanEdit),
+                        "ownerName": r.OwnerName,
+                        "previewKind": _preview_kind(defn),
+                    }
+                )
+            except Exception as row_err:
+                current_app.logger.warning(
+                    f"/api/reporting/reports list: skipping malformed report "
+                    f"{r.ReportID}: {row_err}"
+                )
         return jsonify(rows)
     except Exception as e:
         current_app.logger.error(f"/api/reporting/reports list error: {e}")
@@ -2585,6 +3068,40 @@ def api_admin_metrics_delete(metric_id):
 
 
 @require_permission("reporting.view")
+@limiter.limit("30 per minute")
+def api_field_values():
+    """Distinct values of one whitelisted field of a table source (#178) —
+    powers the wizard's process-scope step for sources without a process
+    registry. Source-permission-gated; table provider only."""
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return jsonify({"error": _("Invalid JSON body")}), 400
+    source = _get_effective_source((body.get("source") or "").strip())
+    if (
+        source is None
+        or source.get("kind") != "curated"
+        or (source.get("provider") or "docprocessing") != "table"
+    ):
+        return jsonify({"error": _("Unknown or unsupported source")}), 400
+    if not has_permission(source["permission"]):
+        return jsonify({"error": _("Not authorized for this source")}), 403
+    engine = _CURATED_ENGINES.get(source.get("engine"))
+    if engine is None:
+        return jsonify({"error": _("Source engine is not configured")}), 503
+    catalog, _fields, _filterable, _sortable = _catalog_for_source(source)
+    try:
+        field = (body.get("field") or "").strip()
+        sql = build_distinct_query(field, source.get("baseObject"), catalog)
+        rows = _execute(engine, sql, [])
+    except TableQueryError as e:
+        return jsonify({"error": _("This request is invalid."), "detail": str(e)}), 400
+    except Exception as e:
+        current_app.logger.error(f"/api/reporting/field_values exec error: {e}")
+        return jsonify({"error": _("Could not load values")}), 500
+    return jsonify({"values": [r[0] for r in rows]})
+
+
+@require_permission("reporting.view")
 def api_metrics():
     """Accessible metrics grouped by source id -> [{code,label,aggregation,...}].
 
@@ -2608,6 +3125,7 @@ def api_metrics():
                 "aggregation": m["aggregation"],
                 "baseField": m["base_field"],
                 "format": m["format"],
+                "totalMode": m.get("total_mode", "sum"),
             }
         )
     return jsonify(out)
@@ -2615,6 +3133,7 @@ def api_metrics():
 
 def register_routes(app):
     app.add_url_rule("/reporting", endpoint="reporting", view_func=reporting)
+    app.add_url_rule("/reporting/guide", endpoint="reporting_guide", view_func=reporting_guide)
     app.add_url_rule(
         "/reporting/sources",
         endpoint="reporting_sources_admin",
@@ -2676,6 +3195,12 @@ def register_routes(app):
         endpoint="reporting_metrics",
         view_func=api_metrics,
     )
+    app.add_url_rule(
+        "/api/reporting/field_values",
+        endpoint="reporting_field_values",
+        view_func=api_field_values,
+        methods=["POST"],
+    )
     app.add_url_rule("/api/reporting/sources", endpoint="reporting_sources", view_func=api_sources)
     app.add_url_rule(
         "/api/reporting/run",
@@ -2711,6 +3236,12 @@ def register_routes(app):
         "/api/reporting/ai/agent",
         endpoint="reporting_ai_agent",
         view_func=api_ai_agent,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/api/reporting/ai/caption",
+        endpoint="reporting_ai_caption",
+        view_func=api_ai_caption,
         methods=["POST"],
     )
     app.add_url_rule(

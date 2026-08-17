@@ -39,8 +39,7 @@
                         <img src="{{ get_user_icon_url(userid) }}"
                             id="profilePictureNonHeader"
                             class="profile-avatar"
-                            alt="{{ _('Profile Picture') }}"
-                            onerror="defaultIconNonHeader()">
+                            alt="{{ _('Profile Picture') }}">
                     </div>
 
                     <div class="profile-identity-name">{{ fullname }}</div>
@@ -67,6 +66,11 @@
                         <a href="#section-language" class="profile-jumpnav-link" data-testid="profile-jumpnav-language">
                             <i class="fas fa-language"></i>
                             <span>{{ _("Language") }}</span>
+                            <i class="fas fa-chevron-right profile-jumpnav-chev"></i>
+                        </a>
+                        <a href="#section-appearance" class="profile-jumpnav-link" data-testid="profile-jumpnav-appearance">
+                            <i class="fas fa-palette"></i>
+                            <span>{{ _("Appearance") }}</span>
                             <i class="fas fa-chevron-right profile-jumpnav-chev"></i>
                         </a>
                     </nav>
@@ -114,8 +118,7 @@
                             <div class="profile-photo-preview">
                                 <img id="photoPreview"
                                      src="{{ get_user_icon_url(userid) }}"
-                                     alt="{{ _('Profile Picture') }}"
-                                     onerror="defaultIconPreview()">
+                                     alt="{{ _('Profile Picture') }}">
                             </div>
                             <div class="profile-photo-controls">
                                 <label for="file" class="profile-photo-btn" data-testid="profile-upload-photo-label">
@@ -305,11 +308,34 @@
                     </p>
                 </section>
 
+                <section id="section-appearance" class="profile-card">
+                    <header class="profile-card-header">
+                        <div class="profile-card-icon"><i class="fas fa-palette"></i></div>
+                        <div>
+                            <h2 class="profile-card-title">{{ _("Appearance") }}</h2>
+                            <p class="profile-card-sub">{{ _("Theme, accent color, animations and density — saved to your account and applied on every device.") }}</p>
+                        </div>
+                    </header>
+
+                    <div class="profile-appearance-teaser">
+                        <div class="profile-appearance-teaser-swatches" aria-hidden="true">
+                            <span style="--swatch: linear-gradient(135deg,#4f46e5,#7c3aed)"></span>
+                            <span style="--swatch: linear-gradient(135deg,#059669,#0d9488)"></span>
+                            <span style="--swatch: linear-gradient(135deg,#d97706,#ea580c)"></span>
+                            <span style="--swatch: linear-gradient(135deg,#e11d48,#db2777)"></span>
+                            <span style="--swatch: linear-gradient(135deg,#0284c7,#0891b2)"></span>
+                        </div>
+                        <a href="{{ url_for('appearance') }}" class="profile-btn profile-btn--primary" data-testid="profile-open-appearance">
+                            <i class="fas fa-palette"></i>
+                            <span>{{ _("Open appearance settings") }}</span>
+                        </a>
+                    </div>
+                </section>
+
             </div>
         </div>
     </main>
 
-    {% include '_small_footer.html' %}
     {% include 'js/_profile_js.html' %}
 
 </body>

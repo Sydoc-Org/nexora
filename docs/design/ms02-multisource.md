@@ -45,12 +45,14 @@ on a bare workitem id is therefore ambiguous, and the following rules are load-b
 - **Front-end element ids are keyed `client-id`**, not the bare id — two rows otherwise shared
   one DOM id. At most one detail panel per id is open at a time, since the shared panel
   partial's internal ids are still id-keyed.
-- **NexoraDB metadata (tags, priority, assignment, PID register) is keyed on the bare id** and
-  has no client column, so it is inherently shared between colliding ids. MS02-only resolution
-  (`_stamp_in_register`) is restricted to rows whose `client == "ms02"`. Note `Workitem_Metadata`
-  / `Workitem_Tags` store `WorkitemId` as **NVARCHAR** while the Postgres runtime's `"ID"` is an
-  integer — normalize ids at that seam (an unnormalized allow-set errored the whole MS02 source
-  out of every tag/priority/assigned filter).
+- **The PID-register cross-reference (`_stamp_in_register` → `dbo.PreparedDocuments`) is
+  MS02-only.** Ids collide across clients, so it resolves rows to PIDs (via
+  `resolve_ms02_wids_to_pids`) only for rows whose `client == "ms02"` — an unfiltered lookup would
+  stamp a default-client row with an unrelated MS02 person's PID. `resolve_ms02_pid_to_wids` /
+  `resolve_ms02_wids_to_pids` still normalize ids at the NVARCHAR/string-vs-Postgres-integer seam
+  (`_as_workitem_ids`, `int()` coercion) before matching — an unnormalized id silently drops out
+  of the PID map, the same failure mode that used to break every tag/priority/assigned filter
+  before collaboration was removed.
 
 ## Multi-source workitems
 
@@ -86,6 +88,19 @@ Postgres-syntax `TimeFilter`s (the `'default'` rows stay T-SQL).
 Doc-field visibility is permission-aware — `dbo.Search_Field_Labels.IsSensitive` marks sensitive
 `FieldKey`s, gated by the shared `workitems.filter.documentfields.sensitive` permission and
 enforced server-side at every surface (dropdown, values API, search, detail panel, CSV).
+
+Since #148 the search is **value-first** ("Document Value Search"): a pair with a value but no
+field OR-matches the value across every permitted, non-sensitive `col_*` column on both paths
+(one widened UNION on the default leg; multi-column specs into `resolve_ms02_docfield_ids` on the
+MS02 leg — specs within a pair are OR'd). Each pair also carries an **operator** (`docop`:
+contains/eq/neq/startswith/endswith/ncontains, whitelisted keys — `DOCFIELD_OPS` on the default
+leg, `_MS02_DOCFIELD_OPS` on the MS02 leg where everything runs through ILIKE for CI parity and
+eq/neq escape LIKE metacharacters) and a **combinator** (`doccomb`: and/or) joining it to the
+pairs before it; both legs fold pairs left-to-right, so `A AND B OR C` = `(A AND B) OR C`. The
+fail-closed contract is unchanged: a field-less pair counts as an active search, unmapped/errored
+pairs contribute an empty set (never "no constraint"), and the old AND-only early-breaks are gone
+so OR-joined pairs are always evaluated. `/api/docfield_values` with an empty `field` returns
+labeled `{value, field}` suggestions across the same permitted column set.
 
 ## Personal-number (PID) import & prepared-documents register
 

@@ -29,9 +29,16 @@ def test_dashboard_does_not_error(nexora_server, page):
 
 
 @pytest.mark.flaky_e2e
-def test_dashboard_process_filter_is_a_select(nexora_server, page):
+def test_dashboard_process_filter_opens_a_checkbox_menu(nexora_server, page):
+    """The filter is a multi-select scope picker (issue #150), not a <select>:
+    the menu is built client-side and holds one checkbox per allowed process
+    plus the 'All Processes' row."""
     _login(page, nexora_server)
-    select = page.locator('[data-testid="dashboard-process-filter"]')
-    expect(select).to_be_visible()
-    # A native <select> exposes options even before any data loads.
-    assert select.evaluate("el => el.tagName.toLowerCase()") == "select"
+    expect(page.locator('[data-testid="dashboard-process-filter"]')).to_be_visible()
+    menu = page.locator('[data-testid="dashboard-process-filter-menu"]')
+    expect(menu).to_be_hidden()
+    page.locator('[data-testid="dashboard-process-filter-btn"]').click()
+    expect(menu).to_be_visible()
+    assert menu.locator('input[type="checkbox"]').count() >= 1
+    # Value stays on the hidden input the backend reads.
+    assert page.locator('[data-testid="dashboard-process-filter-value"]').input_value() == "all"

@@ -1,6 +1,6 @@
 """chart_render renders report rows to PNG bytes for mails/exports."""
 
-from nx_lib.reporting.chart_render import render_chart_png
+from nx_lib.reporting.chart_render import _PALETTE, MAX_SERIES, render_chart_png
 
 _PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
 
@@ -83,3 +83,36 @@ def test_empty_rows_returns_none():
         )
         is None
     )
+
+
+def test_palette_covers_the_full_series_cap_with_no_repeats():
+    # Finding B: a >7-series breakdown must not silently repeat a color
+    # before hitting MAX_SERIES=12 -- _PALETTE (the server-side twin of the
+    # web charts' shared NX_PALETTE) must have at least MAX_SERIES distinct
+    # entries, so `_PALETTE[i % len(_PALETTE)]` never wraps within one chart.
+    assert len(_PALETTE) >= MAX_SERIES
+    assert len(set(_PALETTE)) == len(_PALETTE)
+
+
+def test_render_chart_png_with_forecast_band():
+    definition = {
+        "columns": [{"field": "d", "grain": "month"}],
+        "metrics": [{"metric": "n"}],
+        "chartType": "line",
+    }
+    columns = [{"field": "d"}, {"field": "n"}]
+    rows = [[f"2025-{m:02d}-01", 10 + m] for m in range(1, 7)]
+    forecast = {
+        "anchor": "2025-06-01",
+        "grain": "month",
+        "method": "trend",
+        "horizon": 2,
+        "buckets": ["2025-07-01", "2025-08-01"],
+        "series": [
+            {"field": "n", "values": [17.0, 18.0], "lower": [15.0, 15.5], "upper": [19.0, 20.5]}
+        ],
+    }
+    png = render_chart_png(definition, columns, rows, forecast=forecast)
+    assert png and png[:8] == _PNG_MAGIC
+    # the forecast must not crash the chartless fallback either
+    assert render_chart_png(definition, columns, [], forecast=forecast) is None

@@ -4,9 +4,11 @@ External HTTP and the IndexFieldMappings table aren't reachable in the
 test environment; tests mock requests + the cache + engine_nexora_db.
 """
 
+import hashlib
 from unittest.mock import MagicMock, patch
 
 import pytest
+import requests
 
 from nx_lib import octo as octo_mod
 from nx_lib.octo import (
@@ -16,6 +18,7 @@ from nx_lib.octo import (
     get_index_field_mappings,
     get_media,
     get_workitemdata_param,
+    pdf_src_bytes,
 )
 
 
@@ -180,6 +183,23 @@ def test_get_workitemdata_param_returns_none_on_bad_status(app):
     assert not returndata
 
 
+def test_get_workitemdata_param_returns_none_on_missing_document_id(app):
+    """A payload with no `DocumentID` key (e.g. `{}`) must return the same
+    falsy sentinel as any other failure, not raise KeyError past the
+    request-only except clause and kill callers like the activity feed."""
+    fake_resp = MagicMock()
+    fake_resp.json.return_value = {}
+
+    with (
+        patch.object(octo_mod, "get_access_token", return_value="tok"),
+        patch.object(octo_mod.requests, "get", return_value=fake_resp),
+        app.app_context(),
+    ):
+        returndata = get_workitemdata_param("workitem-1", domain="octo.example")
+
+    assert not returndata
+
+
 # ---------- get_index_field_mappings ----------
 
 
@@ -210,6 +230,41 @@ def test_get_index_field_mappings_returns_empty_on_db_error(app):
         mock_engine.raw_connection.side_effect = RuntimeError("DB down")
         mappings = get_index_field_mappings()
     assert mappings == {}
+
+
+def test_get_index_field_mappings_does_not_cache_empty_result(app):
+    """A transient DB failure must not poison the 1h cache with `{}` --
+    the very next call has to re-query rather than replaying the empty
+    result for an hour (the bug: @cache.cached cached the failure)."""
+    row = MagicMock(SourceFieldName="Invoice_Date", TargetKey="invoice_date")
+    fake_cursor = MagicMock()
+    fake_cursor.fetchall.return_value = [row]
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cursor
+
+    with (
+        patch.object(octo_mod, "engine_nexora_db") as mock_engine,
+        app.app_context(),
+    ):
+        # 1st call: DB read fails -> {} must NOT be cached.
+        mock_engine.raw_connection.side_effect = RuntimeError("DB down")
+        first = get_index_field_mappings()
+        assert first == {}
+
+        # 2nd call: DB recovers -> must re-query (not replay the cached {})
+        # and the real result must get cached this time.
+        mock_engine.raw_connection.side_effect = None
+        mock_engine.raw_connection.return_value = fake_conn
+        second = get_index_field_mappings()
+        assert second == {"Invoice_Date": "invoice_date"}
+        assert mock_engine.raw_connection.call_count == 2
+
+        # 3rd call: DB would fail again, but the non-empty result from the
+        # 2nd call must have been cached, so no DB access happens at all.
+        mock_engine.raw_connection.side_effect = RuntimeError("DB down again")
+        third = get_index_field_mappings()
+        assert third == {"Invoice_Date": "invoice_date"}
+        assert mock_engine.raw_connection.call_count == 2
 
 
 # ---------- get_extensions_urls_fields ----------
@@ -491,6 +546,48 @@ def test_get_media_returns_bytes(app):
     # Auth header was attached
     headers = mock_get.call_args.kwargs["headers"]
     assert headers["Authorization"] == "Bearer tok"
+
+
+def test_get_media_raises_on_http_error(app):
+    """A 502/error body must not be handed back as if it were valid media
+    bytes -- get_media has to check the response status so a transient Octo
+    outage can't be mistaken for a real document."""
+    fake_resp = MagicMock(content=b"<html>502 Bad Gateway</html>")
+    fake_resp.raise_for_status.side_effect = requests.HTTPError("502 Server Error")
+    with (
+        patch.object(octo_mod, "get_access_token", return_value="tok"),
+        patch.object(octo_mod.requests, "get", return_value=fake_resp),
+        app.app_context(),
+        pytest.raises(requests.HTTPError),
+    ):
+        get_media("https://cdn/x.png")
+
+
+def test_pdf_src_bytes_does_not_cache_on_http_error(app):
+    """pdf_src_bytes caches get_media's result for an hour -- if get_media
+    raises instead of silently returning an error body, the cache.set below
+    it must never execute, so a transient 502 doesn't poison the slot for
+    every request in the next 3600s."""
+    from nx_lib.extensions import cache
+
+    url = "https://cdn/doc.pdf"
+    key = "pdf_src_" + hashlib.sha1(url.encode("utf-8")).hexdigest()
+
+    fake_resp = MagicMock(content=b"<html>502 Bad Gateway</html>")
+    fake_resp.raise_for_status.side_effect = requests.HTTPError("502 Server Error")
+    with (
+        patch.object(octo_mod, "get_access_token", return_value="tok"),
+        patch.object(octo_mod.requests, "get", return_value=fake_resp),
+        app.app_context(),
+        pytest.raises(requests.HTTPError),
+    ):
+        pdf_src_bytes(url)
+
+    with app.app_context():
+        assert cache.get(key) is None, (
+            "pdf_src_bytes cached an error response -- the next request for this "
+            "PDF will be served garbage bytes for up to an hour"
+        )
 
 
 # ---------- get_activity_type_name ----------

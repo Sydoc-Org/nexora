@@ -11,63 +11,95 @@ from .extensions import cache
 from .security import has_permission
 
 
+def _selected_pairs(prefix, process_name):
+    """Granted (client, process) pairs for a comma-joined selection."""
+    pairs = set()
+    for name in process_name.split(","):
+        name = name.strip()
+        parts = name.split(".")
+        if len(parts) >= 2 and has_permission(f"{prefix}{name}"):
+            pairs.add((parts[0], parts[1]))
+    return sorted(pairs)
+
+
+def normalize_process_selection(process_name, allowed_processes):
+    """Canonicalize a process-filter value against what the caller may see.
+
+    Accepts the multi-select wire format (issue #150): ``"all"`` or a
+    comma-joined ``"<client>.<process>"`` list. Returns
+    ``(canonical_value, target_processes)``. Entries the caller holds no grant
+    for are dropped, and a selection that ends up empty -- stale bookmark,
+    forged arg, every box unticked -- falls back to ``"all"``, the historical
+    single-select behaviour. Both halves are sorted so cache keys built from
+    the canonical value stay stable regardless of click order.
+    """
+    allowed = sorted(allowed_processes)
+    picked = sorted({p.strip() for p in (process_name or "").split(",")} & set(allowed))
+    if not picked or picked == allowed:
+        return "all", allowed
+    return ",".join(picked), picked
+
+
 def prepare_process_selection_sql(prefix, process_name):
+    """Build an OR-joined parameterized (client, process) pair predicate --
+    e.g. "(client = ? AND process = ?) OR (client = ? AND process = ?)" --
+    plus its flat params list, from the caller's granted
+    "<prefix><client>.<process>" permissions.
+
+    ``process_name`` is "all" or a comma-joined list of "<client>.<process>"
+    (issue #150); each entry is permission-checked on its own.
+
+    Building two INDEPENDENT client/process IN-lists (the previous shape of
+    this function) authorizes their full cross product once spliced into a
+    query: a caller granted only (A, P1) and (B, P2) would also be
+    authorized for (A, P2) and (B, P1), neither of which was ever granted.
+    """
     try:
         perms = session.get("permissions", [])
-        process_params = []
-        client_params = []
+        pairs = []
         if process_name == "all":
-            unique_processes = set()
-            unique_clients = set()
+            unique_pairs = set()
             for perm in perms:
                 if perm.startswith(prefix):
                     parts = perm.split(".")
                     client = parts[-2]
                     proc = parts[-1]
-
-                    unique_clients.add(client)
-                    unique_processes.add(proc)
-            process_params = sorted(list(unique_processes))
-            client_params = sorted(list(unique_clients))
+                    unique_pairs.add((client, proc))
+            pairs = sorted(unique_pairs)
         else:
-            if has_permission(f"{prefix}{process_name}"):
-                parts = process_name.split(".")
-                if len(parts) >= 2:
-                    client_params = [parts[0]]
-                    process_params = [parts[1]]
-        process_placeholders = ", ".join(["?"] * len(process_params))
-        client_placeholders = ", ".join(["?"] * len(client_params))
-        params = process_params + client_params
-        return params, process_placeholders, client_placeholders
+            pairs = _selected_pairs(prefix, process_name)
+        predicate = " OR ".join("(client = ? AND process = ?)" for _ in pairs)
+        params = [value for pair in pairs for value in pair]
+        return params, predicate
     except Exception as e:
         current_app.logger.error(f"Failed to prepare process selection: {e}")
         raise
 
 
 def prepare_process_selection_lists(prefix, process_name):
-    """Like prepare_process_selection_sql but returns (process_params, client_params)
-    as separate lists (no placeholder strings) — for the multi-source WorkitemFilter."""
+    """Like prepare_process_selection_sql but returns the granted (client,
+    process) pairs as a plain list of tuples (no placeholder strings, no SQL
+    text) — for the multi-source WorkitemFilter, which builds its own
+    per-dialect OR-joined pair predicate from them.
+
+    Returning independently-uniqued client and process lists (the previous
+    shape) let a caller granted only (A, P1) and (B, P2) also read (A, P2)
+    and (B, P1) -- the full client x process cross product -- once those two
+    lists were spliced into independent IN-lists downstream.
+    """
     try:
         perms = session.get("permissions", [])
-        process_params = []
-        client_params = []
+        pairs = []
         if process_name == "all":
-            unique_processes = set()
-            unique_clients = set()
+            unique_pairs = set()
             for perm in perms:
                 if perm.startswith(prefix):
                     parts = perm.split(".")
-                    unique_clients.add(parts[-2])
-                    unique_processes.add(parts[-1])
-            process_params = sorted(unique_processes)
-            client_params = sorted(unique_clients)
+                    unique_pairs.add((parts[-2], parts[-1]))
+            pairs = sorted(unique_pairs)
         else:
-            if has_permission(f"{prefix}{process_name}"):
-                parts = process_name.split(".")
-                if len(parts) >= 2:
-                    client_params = [parts[0]]
-                    process_params = [parts[1]]
-        return process_params, client_params
+            pairs = _selected_pairs(prefix, process_name)
+        return pairs
     except Exception as e:
         current_app.logger.error(f"Failed to prepare process selection lists: {e}")
         raise
@@ -84,7 +116,7 @@ def get_activity_instances_to_ignore():
         cursor = conn.cursor()
         cursor.execute("SELECT ProcessName, ActivityInstanceName FROM ActivityInstancesToIgnore")
         rows = cursor.fetchall()
-        result = ", ".join("'" + row.ActivityInstanceName + "'" for row in rows)
+        result = ", ".join("'" + row.ActivityInstanceName.replace("'", "''") + "'" for row in rows)
         cache.set("activity_instances_ignore", result, timeout=3600)
         return result
     except Exception as e:

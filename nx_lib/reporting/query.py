@@ -217,17 +217,23 @@ def build_table_query(rd, process_configs, field_col_maps, *, row_cap, resolved_
     # fields (deduped, order-stable). For the row path this is just `columns`.
     projected_fields = list(dict.fromkeys(columns + metric_base_fields))
 
-    # SUM/AVG bases are projected as TRY_CAST(col AS float): the doc-extraction
-    # stat columns are varchar, and a raw SUM would implicit-convert and fail on
-    # the first non-numeric cell — TRY_CAST yields NULL there and SUM/AVG ignore
-    # NULLs. T-SQL only, which is fine: this builder targets the SQL Server
-    # statistics engine (table sources aggregate typed columns in table_query).
+    # SUM/AVG/MIN/MAX bases are projected as TRY_CAST(col AS float): the
+    # doc-extraction stat columns are varchar, and a raw SUM would
+    # implicit-convert and fail on the first non-numeric cell — TRY_CAST
+    # yields NULL there and SUM/AVG ignore NULLs. MIN/MAX need the same cast:
+    # without it they compare lexicographically as strings ("9" > "10" is
+    # true as strings), not numerically. T-SQL only, which is fine: this
+    # builder targets the SQL Server statistics engine (table sources
+    # aggregate typed columns in table_query).
     # ponytail: float is exact for page counts (< 2^53); switch to
     # decimal(18,2) when money metrics arrive.
+    # This set alone is not the whole gate: applying it below also requires
+    # `field in colmap`, so the cast only ever wraps real varchar stat columns,
+    # never the synthetic date/workitem-id fields (see the usage site).
     numeric_bases = {
         m["base_field"]
         for m in (resolved_metrics or [])
-        if m.get("base_field") and m["aggregation"] in ("sum", "avg")
+        if m.get("base_field") and m["aggregation"] in ("sum", "avg", "min", "max")
     }
 
     # Validate that every requested column field is known across all maps.
@@ -279,7 +285,15 @@ def build_table_query(rd, process_configs, field_col_maps, *, row_cap, resolved_
                 params.append(cfg["process"])
             else:
                 actual = proj_resolved.get(field)
-                if actual and field in numeric_bases:
+                # numeric_bases gates SUM/AVG/MIN/MAX onto varchar stat columns
+                # (colmap) only. proj_resolved also carries the synthetic
+                # date/workitem-id expressions from _date_exprs_for /
+                # _workitem_exprs_for, which already have their own typed
+                # handling (DATE expressions, CAST ... AS nvarchar) — a numeric
+                # float wrap around those is not just wrong, it's a hard SQL
+                # Server error for date -> float (TRY_CAST doesn't degrade to
+                # NULL for that pair, unlike varchar -> float).
+                if actual and field in numeric_bases and field in colmap:
                     select_exprs.append(f"TRY_CAST({actual} AS float) AS [{field}]")
                 elif actual:
                     select_exprs.append(f"{actual} AS [{field}]")

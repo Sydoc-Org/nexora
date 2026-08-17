@@ -12,7 +12,9 @@ from urllib.request import urlopen
 
 import pytest
 
-E2E_PORT = 8765
+# Overridable so parallel checkouts/worktrees (and a gate run next to a live
+# session) don't fight over one hardcoded port.
+E2E_PORT = int(os.environ.get("NEXORA_E2E_PORT", "8765"))
 E2E_BASE_URL = f"http://localhost:{E2E_PORT}"
 
 # Number of automatic retries for flaky browser tests. E2E flakes come from
@@ -124,11 +126,10 @@ def nexora_server():
     env["NEXORA_DISABLE_RATELIMIT"] = "1"
 
     # Stream the server's stdout/stderr to a log file rather than an unread
-    # PIPE. The app logs an error on every request (the MaintenanceBanner table
-    # is absent in TEST), so an undrained PIPE fills its ~64KB OS buffer after a
-    # handful of requests and the server blocks on write — wedging every
-    # subsequent request. A file sink drains freely and keeps the log for
-    # post-mortem on startup failure.
+    # PIPE: a long E2E run's request volume fills an undrained PIPE's ~64KB OS
+    # buffer, and the server then blocks on write — wedging every subsequent
+    # request. A file sink drains freely and keeps the log for post-mortem on
+    # startup failure.
     log_dir = repo_root / "var" / "test-results"
     log_dir.mkdir(parents=True, exist_ok=True)
     log_path = log_dir / "e2e-server.log"

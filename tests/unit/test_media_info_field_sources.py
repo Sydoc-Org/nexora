@@ -32,6 +32,10 @@ def _patch(monkeypatch, perms):
         lambda *a, **k: ([".jpg"], ["u0"], {"Doc number": "INV-1", "VAT rate": "7.7"}, SOURCES, []),
     )
     monkeypatch.setattr(w, "has_permission", lambda code: code in perms)
+    # Orthogonal to these field-suppression tests: the per-workitem (client,
+    # process) entitlement gate (#193) is granted here (its own tests live in
+    # tests/integration/test_workitem_detail_authz.py).
+    monkeypatch.setattr(w, "_may_view_workitem", lambda wid: True)
     w.cache.delete("media_info_123")
     w.cache.delete("media_data_123")
 

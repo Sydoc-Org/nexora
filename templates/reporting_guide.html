@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale }}">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ _("Reporting guide - nexora") }}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/reporting.css') }}">
+  <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
+</head>
+
+<body class="nx-app">
+  {% set active_page = 'reporting' %} {% include '_header.html' %}
+
+  <main class="nx-main reporting-guide" data-testid="reporting-guide-page">
+    <div class="nx-page-head nx-rise">
+      <div class="nx-page-head__main">
+        <div class="nx-page-head__title">
+          <span class="nx-page-icon"><i class="fas fa-book-open"></i></span>
+          <div>
+            <h1 class="nx-title">{{ _("Reporting guide") }}</h1>
+            <p class="nx-subtitle">{{ _("How to build, read, share and schedule reports") }}</p>
+          </div>
+        </div>
+      </div>
+      <div class="nx-page-head__actions">
+        <a href="{{ url_for('reporting') }}" class="nx-btn nx-btn--secondary" data-testid="reporting-guide-back">
+          <i class="fas fa-arrow-left"></i><span class="hidden sm:inline">{{ _("Back to Reporting") }}</span>
+        </a>
+      </div>
+    </div>
+
+    {% if guide_html %}
+    <div class="reporting-guide-layout nx-rise">
+      {% if guide_toc %}
+      <nav class="reporting-guide-toc" aria-label="{{ _('On this page') }}">
+        <h2>{{ _("On this page") }}</h2>
+        <ul>
+          {% for item in guide_toc %}
+          <li><a href="#{{ item.slug }}">{{ item.title }}</a></li>
+          {% endfor %}
+        </ul>
+      </nav>
+      {% endif %}
+      {# guide_html is rendered server-side from the repo's own
+         docs/howto/reporting-guide.md — trusted content, hence |safe. #}
+      <article class="reporting-guide-article nx-card nx-card--pad" data-testid="reporting-guide-article">
+        {{ guide_html|safe }}
+      </article>
+    </div>
+    {% else %}
+    <div class="nx-card nx-card--pad reporting-guide-missing" data-testid="reporting-guide-missing">
+      <p>{{ _("The guide file is not available on this server. Please tell an administrator — the deployment is missing docs/howto/reporting-guide.md.") }}</p>
+    </div>
+    {% endif %}
+  </main>
+</body>
+
+</html>

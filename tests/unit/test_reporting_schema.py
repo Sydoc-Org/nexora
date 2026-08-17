@@ -777,3 +777,31 @@ def test_malformed_token_structure_rejected(bad_value):
             max_row_limit=50000,
             date_fields=DATE_FIELDS,
         )
+
+
+# ---------------------------------------------------------------------------
+# forecast block (Task 3)
+# ---------------------------------------------------------------------------
+
+
+def test_forecast_block_valid_shapes_accepted():
+    d = _valid_def()
+    d["forecast"] = {"enabled": True, "horizon": "auto"}
+    validate_report_definition(d, CATALOG_FIELDS, FILTERABLE, SORTABLE, max_row_limit=50000)
+    d["forecast"] = {"enabled": False, "horizon": 12}
+    validate_report_definition(d, CATALOG_FIELDS, FILTERABLE, SORTABLE, max_row_limit=50000)
+
+
+def test_forecast_block_bad_shapes_rejected():
+    for bad in (
+        "yes",  # not an object
+        {"enabled": "true"},  # non-bool enabled
+        {"enabled": True, "horizon": 0},  # below range
+        {"enabled": True, "horizon": 61},  # above range
+        {"enabled": True, "horizon": True},  # bool masquerading as int
+        {"enabled": True, "surprise": 1},  # unknown key
+    ):
+        d = _valid_def()
+        d["forecast"] = bad
+        with pytest.raises(ReportDefinitionError):
+            validate_report_definition(d, CATALOG_FIELDS, FILTERABLE, SORTABLE, max_row_limit=50000)

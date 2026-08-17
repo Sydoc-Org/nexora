@@ -69,27 +69,31 @@
       </div>
     </div>
 
-    <div class="nx-filter mb-6 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end sm:gap-4">
-      <div class="w-full sm:w-auto">
-        <label for="filterStartDate" class="nx-meta block mb-2">{{ _("From") }}</label>
-        <input type="text" id="filterStartDate" placeholder="yyyy-mm-dd hh:mm:ss"
-               class="nx-input w-full h-10" data-testid="generali-dashboard-start-date" />
+    <div class="nx-filter mb-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div>
+          <label for="filterStartDate" class="nx-meta block mb-2">{{ _("From") }}</label>
+          <input type="text" id="filterStartDate" placeholder="yyyy-mm-dd hh:mm:ss"
+                 class="nx-input h-11" data-testid="generali-dashboard-start-date" />
+        </div>
+        <div>
+          <label for="filterEndDate" class="nx-meta block mb-2">{{ _("To") }}</label>
+          <input type="text" id="filterEndDate" placeholder="yyyy-mm-dd hh:mm:ss"
+                 class="nx-input h-11" data-testid="generali-dashboard-end-date" />
+        </div>
       </div>
-      <div class="w-full sm:w-auto">
-        <label for="filterEndDate" class="nx-meta block mb-2">{{ _("To") }}</label>
-        <input type="text" id="filterEndDate" placeholder="yyyy-mm-dd hh:mm:ss"
-               class="nx-input w-full h-10" data-testid="generali-dashboard-end-date" />
-      </div>
-      <button id="applyDateFilter"
-              class="nx-btn nx-btn--primary h-10 w-full sm:w-auto justify-center" data-testid="generali-dashboard-apply-filter">
-        <i class="fas fa-filter mr-2"></i>{{ _("Apply") }}
-      </button>
-      <button id="resetDateFilter"
-              class="nx-btn nx-btn--secondary h-10 w-full sm:w-auto justify-center" data-testid="generali-dashboard-reset-filter">
-        {{ _("Reset") }}
-      </button>
-      <div id="statsLoader" class="hidden col-span-2 sm:col-span-1 sm:ml-2 flex items-center">
-        <i class="fas fa-spinner fa-spin text-lg" style="color:var(--nx-accent)"></i>
+      <div class="flex items-center gap-3 mt-5 pt-5 border-t [border-color:var(--nx-divider)]!">
+        <button id="applyDateFilter"
+                class="nx-btn nx-btn--primary h-11" data-testid="generali-dashboard-apply-filter">
+          <i class="fas fa-filter mr-2"></i>{{ _("Apply") }}
+        </button>
+        <button id="resetDateFilter"
+                class="nx-btn nx-btn--secondary h-11" data-testid="generali-dashboard-reset-filter">
+          {{ _("Reset") }}
+        </button>
+        <div id="statsLoader" class="hidden ml-2 flex items-center">
+          <i class="fas fa-spinner fa-spin text-lg [color:var(--nx-accent)]!"></i>
+        </div>
       </div>
     </div>
 
@@ -135,14 +139,14 @@
       <div class="nx-card nx-card--pad">
         <div class="flex items-start justify-between mb-4 flex-wrap gap-2">
           <h3 class="nx-meta">
-            <i class="fas fa-chart-line mr-2" style="color:var(--nx-accent)"></i>{{ _("Daily Processing Volume") }}
+            <i class="fas fa-chart-line mr-2 [color:var(--nx-accent)]!"></i>{{ _("Daily Processing Volume") }}
           </h3>
           <div class="flex items-center gap-2 flex-wrap" id="trendToggles">
             <button type="button" data-series="total" class="trend-chip" aria-pressed="true" data-testid="generali-dashboard-trend-total">
-              <span class="trend-chip-dot" style="background:#4f46e5"></span>{{ _("Total") }}
+              <span class="trend-chip-dot [background:#4f46e5]!"></span>{{ _("Total") }}
             </button>
             <button type="button" data-series="expected" class="trend-chip" aria-pressed="false" data-testid="generali-dashboard-trend-expected">
-              <span class="trend-chip-dot" style="background:#ef4444"></span>{{ _("Expected") }} (10000)
+              <span class="trend-chip-dot [background:#ef4444]!"></span>{{ _("Expected") }} (10000)
             </button>
             <div class="relative" id="kommWrap">
               <button type="button" id="kommBtn" class="trend-chip" aria-pressed="false" aria-haspopup="true" aria-expanded="false" data-testid="generali-dashboard-komm-toggle">
@@ -151,9 +155,9 @@
                 <i class="fas fa-chevron-down text-[10px] ml-0.5"></i>
               </button>
               <div id="kommMenu" class="hidden absolute right-0 mt-1 z-20 w-56 max-h-72 overflow-y-auto nx-surface shadow-lg p-2">
-                <div class="flex items-center justify-between px-2 pb-2 mb-1" style="border-bottom:1px solid var(--nx-border)">
-                  <button type="button" id="kommAll" class="text-[11px] font-semibold hover:underline" style="color:var(--nx-accent)" data-testid="generali-dashboard-komm-all">{{ _("Select all") }}</button>
-                  <button type="button" id="kommNone" class="text-[11px] font-semibold hover:underline" style="color:var(--nx-text-sec)" data-testid="generali-dashboard-komm-none">{{ _("Clear") }}</button>
+                <div class="flex items-center justify-between px-2 pb-2 mb-1 [border-bottom:1px_solid_var(--nx-border)]!">
+                  <button type="button" id="kommAll" class="text-[11px] font-semibold hover:underline [color:var(--nx-accent)]!" data-testid="generali-dashboard-komm-all">{{ _("Select all") }}</button>
+                  <button type="button" id="kommNone" class="text-[11px] font-semibold hover:underline [color:var(--nx-text-sec)]!" data-testid="generali-dashboard-komm-none">{{ _("Clear") }}</button>
                 </div>
                 <div id="kommItems" class="space-y-0.5 text-sm"></div>
               </div>
@@ -164,7 +168,7 @@
       </div>
       <div class="nx-card nx-card--pad">
         <h3 class="nx-meta mb-4">
-          <i class="fas fa-chart-pie mr-2" style="color:var(--nx-accent)"></i>{{ _("Document Type Distribution") }}
+          <i class="fas fa-chart-pie mr-2 [color:var(--nx-accent)]!"></i>{{ _("Document Type Distribution") }}
         </h3>
         <div class="h-48 sm:h-64"><canvas id="doctypeChart"></canvas></div>
       </div>
@@ -174,13 +178,13 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
       <div class="nx-card nx-card--pad">
         <h3 class="nx-meta mb-4">
-          <i class="fas fa-users mr-2" style="color:var(--nx-accent)"></i>{{ _("Recipient Distribution") }}
+          <i class="fas fa-users mr-2 [color:var(--nx-accent)]!"></i>{{ _("Recipient Distribution") }}
         </h3>
         <div class="h-48 sm:h-64"><canvas id="empfaengerChart"></canvas></div>
       </div>
       <div class="nx-card nx-card--pad">
         <h3 class="nx-meta mb-4">
-          <i class="fas fa-shield-check mr-2" style="color:var(--nx-accent)"></i>{{ _("NK1 / NK2 Quality Control") }}
+          <i class="fas fa-shield-check mr-2 [color:var(--nx-accent)]!"></i>{{ _("NK1 / NK2 Quality Control") }}
         </h3>
         <div class="h-48 sm:h-64"><canvas id="nkChart"></canvas></div>
       </div>
@@ -190,13 +194,13 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
       <div class="nx-card nx-card--pad">
         <h3 class="nx-meta mb-4">
-          <i class="fas fa-language mr-2" style="color:var(--nx-accent)"></i>{{ _("Language Distribution") }}
+          <i class="fas fa-language mr-2 [color:var(--nx-accent)]!"></i>{{ _("Language Distribution") }}
         </h3>
         <div class="h-48 sm:h-64"><canvas id="languageChart"></canvas></div>
       </div>
       <div class="nx-card nx-card--pad">
         <h3 class="nx-meta mb-4">
-          <i class="fas fa-inbox mr-2" style="color:var(--nx-accent)"></i>{{ _("Entry Channel") }}
+          <i class="fas fa-inbox mr-2 [color:var(--nx-accent)]!"></i>{{ _("Entry Channel") }}
         </h3>
         <div class="h-48 sm:h-64"><canvas id="channelChart"></canvas></div>
       </div>
@@ -205,7 +209,6 @@
   </main>
 
   {% include 'js/_generali_dashboard_js.html' %}
-  {% include '_small_footer.html' %}
 
 </body>
 </html>

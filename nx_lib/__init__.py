@@ -28,13 +28,22 @@ def create_app():
 
     app.config["SECRET_KEY"] = cfg.SECRET_KEY
 
+    # Applied in EVERY environment (#193): a non-PROD instance is not
+    # guaranteed unreachable (ngrok tunnel, LAN, pivot), so it must never serve
+    # a JS-readable / cross-site-sendable session cookie or accept an unbounded
+    # upload body. SECURE stays PROD-only -- dev/INT run plain HTTP and a Secure
+    # cookie would never be sent, breaking local login.
+    app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=24)
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    # Cap request bodies so an upload route can't buffer arbitrary memory into a
+    # worker (#193). Sized above the largest legitimate PID xlsx / avatar.
+    app.config["MAX_CONTENT_LENGTH"] = 25 * 1024 * 1024  # 25 MB
+
     app_logging.init_app(app)
 
     if cfg.IS_PROD:
-        app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=24)
         app.config["SESSION_COOKIE_SECURE"] = True
-        app.config["SESSION_COOKIE_HTTPONLY"] = True
-        app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
         app.config["SESSION_TYPE"] = "filesystem"
         app.config["SESSION_FILE_DIR"] = str(cfg.PATHS.session)
         app.config["SESSION_PERMANENT"] = True
@@ -44,8 +53,32 @@ def create_app():
     extensions.init_app(app)
     hooks.init_app(app)
 
+    # Nonce global for inline <script nonce="{{ csp_nonce() }}"> tags (#193
+    # finding 10). Talisman below overwrites this with the real per-request
+    # nonce generator, but only in PROD (where Talisman/CSP is active) --
+    # this no-op default keeps every template rendering the attribute
+    # harmlessly (empty nonce) in dev/INT/test, where there's no CSP to
+    # violate.
+    app.jinja_env.globals.setdefault("csp_nonce", lambda: "")
+
+    @app.after_request
+    def _baseline_security_headers(resp):
+        # Clickjacking + MIME-sniff protection in EVERY environment (#193); PROD
+        # additionally gets the full Talisman CSP/HSTS below. setdefault so
+        # PROD's Talisman values win where both set the same header.
+        resp.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+        resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+        return resp
+
     if cfg.IS_PROD:
-        Talisman(app, content_security_policy=cfg.CSP)
+        # content_security_policy_nonce_in appends a fresh 'nonce-<random>'
+        # to script-src on every request and exposes it to templates via
+        # csp_nonce(); every inline <script> carries nonce="{{ csp_nonce() }}"
+        # so 'unsafe-inline' is no longer needed on script-src (#193 finding
+        # 10 -- CSP previously provided zero XSS mitigation).
+        Talisman(
+            app, content_security_policy=cfg.CSP, content_security_policy_nonce_in=["script-src"]
+        )
 
     # Routes are registered via add_url_rule() (rather than Blueprint) so the
     # original endpoint names ("login", "logout", "profile", ...) are preserved
@@ -54,12 +87,9 @@ def create_app():
         admin,
         api_external,
         auth,
-        chat,
         core,
         dashboard,
         generali,
-        invoices,
-        notifications,
         profile,
         reporting,
         workitems,
@@ -73,9 +103,8 @@ def create_app():
     reporting.register_routes(app)
     workitems.register_routes(app)
     generali.register_routes(app)
-    notifications.register_routes(app)
-    invoices.register_routes(app)
-    chat.register_routes(app)
+    # views/invoices.py is ARCHIVED (#177) — deliberately not registered, so
+    # /invoices, /api/invoices and /invoice/<id>/pdf 404. See its docstring.
     api_external.register_routes(app)  # machine-to-machine API (Bearer key, no session)
 
     if cfg.IS_PROD:

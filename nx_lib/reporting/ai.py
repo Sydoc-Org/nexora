@@ -8,7 +8,9 @@ the prompt carries the user's question + schema metadata, never result rows.
 """
 
 import json
+import os
 import re
+import time
 from dataclasses import dataclass
 
 import requests
@@ -17,8 +19,16 @@ from .sandbox import SqlSandboxError, validate_select
 
 ANTHROPIC_VERSION = "2023-06-01"
 DEFAULT_ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
-DEFAULT_MAX_TOKENS = 1024
-DEFAULT_TIMEOUT_S = 30
+# Reasoning models (GPT-5 family) spend hidden reasoning tokens inside this
+# budget before emitting output — 1024 truncates them to empty replies.
+DEFAULT_MAX_TOKENS = 4096
+# Per-turn HTTP read timeout. Reasoning models (GPT-5 family) routinely spend
+# 30s+ on a single hard question, so a tight timeout turns a good answer into a
+# generic 502. Override with AI_TIMEOUT_S when a deployment is slower still.
+DEFAULT_TIMEOUT_S = int(os.environ.get("AI_TIMEOUT_S") or 120)
+# Wall-clock ceiling for a whole agentic loop, so a slow model can't pin a
+# worker for max_turns * DEFAULT_TIMEOUT_S.
+DEFAULT_BUDGET_S = int(os.environ.get("AI_AGENT_BUDGET_S") or 180)
 
 _SQL_FENCE = re.compile(r"```(?:sql|json)?\s*(.+?)```", re.IGNORECASE | re.DOTALL)
 
@@ -27,7 +37,12 @@ _SYSTEM = (
     "reporting tool. Given a database schema and a question, return ONE read-only "
     "SELECT query that answers it. Rules: SELECT/WITH only; never INSERT, UPDATE, "
     "DELETE, MERGE, EXEC, or DDL; use only tables/columns present in the schema; "
-    "prefer TOP (n) to bound large results. Respond with STRICT JSON: "
+    "prefer TOP (n) to bound large results. When the question asks for several "
+    "counts/totals under DIFFERENT conditions (e.g. imported today and exported "
+    "today), return one row with one column per number using conditional "
+    "aggregation (SUM(CASE WHEN <condition> THEN 1 ELSE 0 END)) or scalar "
+    "subqueries - NEVER combine the conditions with AND in a shared WHERE "
+    "clause. Respond with STRICT JSON: "
     '{"sql": "<the query>", "explanation": "<one sentence>"}. No prose outside JSON.'
 )
 
@@ -104,7 +119,9 @@ def _call_azure(
         f"/chat/completions?api-version={api_version}"
     )
     body = {
-        "max_tokens": max_tokens,
+        # GPT-5-family deployments reject `max_tokens`; `max_completion_tokens`
+        # is accepted by every model from api-version 2024-10-21 on.
+        "max_completion_tokens": max_tokens,
         "messages": [
             {"role": "system", "content": system},
             {"role": "user", "content": user},
@@ -266,6 +283,15 @@ _SYSTEM_DEF = (
     " when the question says imported/received/arrived. Content dates such as"
     ' "Document Date" (the date printed on the document) are correct ONLY'
     " when the user names that field explicitly."
+    " A definition has ONE shared filter set, so it CANNOT express several"
+    ' numbers under DIFFERENT conditions (e.g. "how many imported today and'
+    ' how many exported today" needs one count filtered on import_date and'
+    " another filtered on export_date). NEVER AND-combine such conditions"
+    " into filters — that counts only rows matching ALL of them, which"
+    " answers a different question. Instead build the definition for the"
+    " FIRST number only and use the explanation to tell the user this report"
+    " answers that number and each remaining number needs its own report"
+    " (one question per number)."
 )
 
 
@@ -451,6 +477,95 @@ def ask(
 
 
 # ---------------------------------------------------------------------------
+# Surface D — auto AI captions over a result grid (Task 12). Unlike ask() /
+# ask_definition() (schema-only egress), `rows` here are the actual values a
+# Simple/Advanced result is displaying, so callers must gate this behind
+# reporting.ai.explain_data (the same data-egress grant used for run_sql /
+# compute_stats in the agentic loop).
+# ---------------------------------------------------------------------------
+
+CAPTION_MAX_ROWS = 50
+
+_CAPTION_SYSTEM = (
+    "You are a concise data analyst for an internal reporting tool. Given a "
+    "small table of report results, write ONE short caption that states the "
+    "most notable pattern, standout value, or takeaway. Rules: 1-2 sentences, "
+    'no preamble ("Here is...", "Looking at the data..."), no restating the '
+    "question, no code fences or markdown, plain prose only. Answer in {locale}."
+)
+
+
+@dataclass
+class AiCaptionResult:
+    caption: str
+    model: str
+    provider: str
+    tokens_in: int | None
+    tokens_out: int | None
+
+
+def _caption_user_prompt(columns, rows, title, date_label):
+    headers = [c.get("header") or c.get("field") or "" for c in (columns or [])]
+    lines = [", ".join(headers)] if headers else []
+    for row in rows:
+        cells = row if isinstance(row, list | tuple) else [row]
+        lines.append(", ".join("" if v is None else str(v) for v in cells))
+    table_text = "\n".join(lines)
+    prefix = ""
+    if title:
+        prefix += f"Report: {title}\n"
+    if date_label:
+        prefix += f"Period: {date_label}\n"
+    return f"{prefix}Data ({len(rows)} rows):\n{table_text}"
+
+
+def caption(
+    columns,
+    rows,
+    title=None,
+    date_label=None,
+    *,
+    locale="en",
+    cfg,
+    max_tokens=DEFAULT_MAX_TOKENS,
+    timeout=DEFAULT_TIMEOUT_S,
+    transport=_http_post,
+):
+    """Draft a 1-2 sentence caption over a small result grid.
+
+    `cfg` bundles the resolved provider settings the same way `_ai_config()` in
+    the view module produces them (provider/api_key/model/endpoint/deployment/
+    api_version/url) so the caller does not need to unpack it field-by-field.
+    Rows are truncated to CAPTION_MAX_ROWS before the prompt is built, so an
+    oversized grid never balloons the prompt or the bill — this is the single
+    source of truth for the 50-row cap; the caller does not need to pre-slice.
+    """
+    rows = list(rows)[:CAPTION_MAX_ROWS]
+    provider = (cfg.get("provider") or "").lower()
+    text, tin, tout = _dispatch(
+        _CAPTION_SYSTEM.format(locale=locale or "en"),
+        _caption_user_prompt(columns, rows, title, date_label),
+        provider=provider,
+        model=cfg.get("model"),
+        api_key=cfg.get("api_key"),
+        endpoint=cfg.get("endpoint"),
+        deployment=cfg.get("deployment"),
+        api_version=cfg.get("api_version", "2024-10-21"),
+        url=cfg.get("url"),
+        max_tokens=max_tokens,
+        timeout=timeout,
+        transport=transport,
+    )
+    return AiCaptionResult(
+        caption=(text or "").strip(),
+        model=cfg.get("model"),
+        provider=provider,
+        tokens_in=tin,
+        tokens_out=tout,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Phase 3 — agentic tool-loop (Tier 2). The loop (`ask_agentic`) is provider-
 # agnostic and drives model -> tool -> model until a final answer or a hard turn
 # cap. Provider tool-calling parsing lives in `_make_agent_step`; both layers are
@@ -464,6 +579,25 @@ def ask(
 # answer off exactly when the agent was doing its job.
 DEFAULT_MAX_TURNS = 10
 
+# Issue #153: raised caps for a user-initiated "Continue" retry after the loop
+# hit max_turns/budget the first time. Double the default rather than
+# unbounded — cross-process aggregate questions (post-#128) can legitimately
+# need more turns, but this still isn't a resume, just a fresh run with more
+# room, so it stays finite. MAX_CONTINUE_ATTEMPTS caps how many times a single
+# question can be retried this way.
+CONTINUE_MAX_TURNS = DEFAULT_MAX_TURNS * 2
+CONTINUE_BUDGET_S = DEFAULT_BUDGET_S * 2
+MAX_CONTINUE_ATTEMPTS = 2
+
+# Issue #127: sent once when the model ends its turn with neither tool calls
+# nor text. Model-facing, English by design (like the tool results).
+_EMPTY_FINAL_NUDGE = (
+    "You returned no answer text. Write your final answer for the user now, "
+    "based on the work above. If you could not complete the task, say so "
+    "briefly, describe what you tried, and mention any query or report "
+    "definition you produced."
+)
+
 _AGENT_SYSTEM = (
     "You are a careful analyst for an internal reporting tool. Use the provided "
     "TOOLS to answer the question, grounded ONLY in the data SOURCES/SCHEMA given "
@@ -473,11 +607,18 @@ _AGENT_SYSTEM = (
     "counting/summing/averaging question use a source that lists metrics — a "
     'source marked "metrics: none" cannot aggregate at all. '
     "If validate_sql is available, draft ONE read-only SELECT and "
-    "validate it before presenting. When a tool returns an error, fix your input "
+    "validate it before presenting. A definition's filters apply to the WHOLE "
+    "report, so the builder CANNOT put two differently-filtered measures side by "
+    'side (e.g. "imported documents and exported documents per month"). For such '
+    "a question do NOT split it into two reports and do NOT give up: draft ONE "
+    "T-SQL SELECT that groups by the period and uses conditional aggregation "
+    "(SUM(CASE WHEN <condition> THEN 1 ELSE 0 END)) — one column per measure — "
+    "and validate_sql it instead. When a tool returns an error, fix your input "
     "and try again — but after 2 failed attempts on the same tool stop calling it "
     "and write your final answer explaining what you could and could not do. "
-    "Once any tool returns ok:true, stop calling tools immediately and give a "
-    "one- or two-sentence plain-language answer. Do not ask the user questions."
+    "Once a tool returns ok:true for the artifact that actually answers the whole "
+    "question, stop calling tools immediately and give a one- or two-sentence "
+    "plain-language answer. Do not ask the user questions."
     " The grounding states today's date; resolve relative time expressions"
     ' ("last month", "this year") against it, never against your training data.'
     ' For "list the distinct values of X" build a definition with X in'
@@ -487,6 +628,17 @@ _AGENT_SYSTEM = (
     " itself — that forces every count to 1."
     " Match process words against whole process ids and their"
     " humanized labels; include all matches, or none rather than a guess."
+    " The SQL schema marks some tables as per-process PARTIAL tables: each holds"
+    " ONE process, not the company. A totals question that names no process"
+    ' ("our volume", "the numbers", "how many documents", "total") is'
+    " company-wide — answer it from the source that unions all processes"
+    " (build_definition), not from one process table. When raw SQL is genuinely"
+    " needed, UNION every relevant partial table rather than picking one — but"
+    " these tables do NOT share column names, so if the UNION fails twice, stop"
+    " and answer with build_definition instead, saying why. Every SQL answer must"
+    " name which processes its numbers cover, and an empty or zero result from a"
+    " single partial table must be reported as zero FOR THAT PROCESS — never as"
+    " zero company-wide."
     " When a question groups by a time period (per day/week/month/quarter/"
     "year), the date column in the definition MUST carry the matching"
     ' "grain" (e.g. {"field": "<date key>", "grain": "month"}).'
@@ -501,6 +653,46 @@ _AGENT_SYSTEM = (
     ' "last quarter" = the previous calendar quarter, i.e. last_quarter, not'
     " last_3_months) — these resolve at run"
     " time; keep literal ISO dates for explicit dates."
+    # Issue #132 case 17: "show me the numbers for the last quarter" got a
+    # silently-picked reading (calendar Q2, two arbitrary metrics, one process
+    # table) presented as "the numbers". Asking is off the table here — the rule
+    # above forbids it — so the interpretation has to be visible in the answer.
+    " When the question underdetermines the answer — which metric, calendar"
+    " versus rolling period, or which processes/scope — do NOT silently pick"
+    " one and present it as the answer. Take the most reasonable reading, and"
+    " open your answer with one sentence naming the reading you used and the"
+    " main alternative (\"Reading 'last quarter' as the calendar quarter and"
+    " showing document volume across all processes — say so if you meant the"
+    ' rolling last 3 months").'
+    # Issue #132: the caveats a stakeholder needs were missing across cases 1, 4,
+    # 8, 11, 13 and 15 — a partial current month reported as a drop, +200% off a
+    # baseline of 3, assumed-NULL columns inflating a backlog, "yes it's
+    # seasonal" from a single TOP 1 row.
+    " Before you finish, check these four and state in ONE short sentence any"
+    " that apply (say nothing if none do): (a) PARTIAL PERIOD — the current"
+    " month/quarter/week is still running, so its number is incomplete and not"
+    " comparable to a finished one unless you aligned the windows; (b) SMALL"
+    " N — a percentage resting on a tiny or near-zero baseline is noise, so"
+    " give the underlying counts alongside it; (c) ASSUMPTIONS — rows or"
+    " tables you excluded, skipped or treated as NULL, and fields only some"
+    " processes populate; (d) THIN EVIDENCE — a single top row, or two years"
+    " of history, does not establish a trend or seasonality, so describe what"
+    " the data shows instead of asserting the pattern."
+    # Issue #132 cases 9, 18, 20: quit at turn 5 of 10 telling the user to run
+    # the comparison themselves, or shipped a query it never executed as if the
+    # numbers were real.
+    " Never present a query you did not execute as though it produced numbers:"
+    " if you only drafted or validated SQL, say plainly that it has not been"
+    " run. And do not hand the question back — while turns remain and the"
+    " question is unanswered, try a different angle yourself (a simpler query,"
+    " a definition, fewer parts at a time) rather than giving the user"
+    " instructions to run it."
+    " When a follow-up only changes HOW the previous answer is presented"
+    " (as a chart, as a table, a different breakdown of the SAME data), stay"
+    " on the same source and data as that answer — reuse the"
+    " [sql from this answer] / [report definition from this answer] context"
+    " carried in the conversation. Switching to a different source for a"
+    " presentation-only follow-up is wrong."
 )
 
 # Appended to the system prompt only when the caller holds reporting.ai.explain_data
@@ -526,6 +718,14 @@ _AGENT_EXPLAIN_SUFFIX = (
     "top N) about data run_sql can reach, a successful build_definition does NOT "
     "answer it — go on to validate_sql and run_sql and report the actual numbers; "
     "stop only once run_sql has returned the data."
+    " This never licenses narrowing the universe: SQL that reaches one per-process"
+    " partial table does NOT answer a company-wide question — UNION them or use"
+    " build_definition, and state the coverage either way."
+    " T-SQL discipline for drafted SQL: alias every table and derived table;"
+    " qualify every column that appears in more than one table, CTE or UNION"
+    " branch; give every computed column an explicit alias; in a set"
+    " operation put ORDER BY only after the LAST branch (never inside inner"
+    " branches or a derived table without TOP)."
 )
 
 
@@ -548,42 +748,93 @@ class AiAgenticResult:
     answer: str
     turns: int
     tool_trace: list  # [{"name", "args", "result"}]
-    stopped_reason: str  # "final" | "max_turns"
+    stopped_reason: str  # "final" | "max_turns" | "budget"
     tokens_in: int
     tokens_out: int
 
 
-def ask_agentic(question, *, registry, agent_step, max_turns=DEFAULT_MAX_TURNS):
+def ask_agentic_iter(
+    question,
+    *,
+    registry,
+    agent_step,
+    max_turns=DEFAULT_MAX_TURNS,
+    history=None,
+    budget_s=DEFAULT_BUDGET_S,
+):
+    """Same loop as `ask_agentic`, yielded step by step so a caller can stream it.
+
+    Yields progress events as plain dicts while the loop runs — `{"phase":
+    "thinking", "turn": n}` before each provider round-trip, `{"phase": "note",
+    "text": ...}` for the model's own preamble on a tool turn, and `{"phase":
+    "tool", "name": ...}` before each tool call — and finally exactly one
+    `{"result": AiAgenticResult}`. The final event is always yielded, so a
+    consumer can just read until it sees `"result"`.
+    """
+    messages = [*(history or []), {"role": "user", "content": question}]
+    trace, tin, tout, turns, stopped = [], 0, 0, 0, "max_turns"
+    nudged = False
+    deadline = time.monotonic() + budget_s if budget_s else None
+    while turns < max_turns:
+        if deadline and turns and time.monotonic() > deadline:
+            stopped = "budget"
+            break
+        turns += 1
+        yield {"phase": "thinking", "turn": turns}
+        turn = agent_step(messages)
+        tin += turn.tokens_in or 0
+        tout += turn.tokens_out or 0
+        if not turn.tool_calls:
+            # Issue #127: the model sometimes ends a turn with no tool calls
+            # AND no text — accepted as-is, that surfaces as a blank chat
+            # bubble. Nudge it exactly once to write the answer it owes;
+            # a second silent turn falls through to the normal final path
+            # (the view layer substitutes a fallback message for the empty
+            # answer).
+            if not (turn.text or "").strip() and not nudged and turns < max_turns:
+                nudged = True
+                messages.append({"role": "assistant", "content": turn.text or ""})
+                messages.append({"role": "user", "content": _EMPTY_FINAL_NUDGE})
+                continue
+            stopped = "final"
+            messages.append({"role": "assistant", "content": turn.text})
+            yield {"result": AiAgenticResult(turn.text, turns, trace, stopped, tin, tout)}
+            return
+        messages.append({"role": "assistant", "content": turn.text, "tool_calls": turn.tool_calls})
+        if (turn.text or "").strip():
+            yield {"phase": "note", "text": turn.text.strip()}
+        results = []
+        for call in turn.tool_calls:
+            yield {"phase": "tool", "name": call["name"]}
+            result = registry.call(call["name"], call.get("args"))
+            trace.append({"name": call["name"], "args": call.get("args"), "result": result})
+            results.append({"tool_call_id": call.get("id"), "name": call["name"], "result": result})
+        messages.append({"role": "tool", "content": results})
+    yield {"result": AiAgenticResult("", turns, trace, stopped, tin, tout)}
+
+
+def ask_agentic(question, **kwargs):
     """Drive the model->tool->model loop until a final answer or the turn cap.
 
     `agent_step(messages) -> AssistantTurn` is the injected provider round-trip
     (scripted in tests, built by `_make_agent_step` in production). `registry` is
     a ToolRegistry. Returns AiAgenticResult. No network/provider code lives here.
+    Progress-reporting callers want `ask_agentic_iter` instead; this drains it.
+
+    `history` is an optional pre-validated list of prior `{"role": "user"|
+    "assistant", "content": str}` turns, seeded ahead of the new question so a
+    chat-style caller can carry conversation context into the loop. The caller
+    is responsible for sanitizing/capping it; this function trusts it as-is.
 
     `messages` is the neutral conversation: user/assistant strings, an assistant
     turn carrying `tool_calls`, and a `tool` turn whose content is the list of
     `{tool_call_id, name, result}` envelopes. `_make_agent_step` translates this
     into each provider's wire format.
     """
-    messages = [{"role": "user", "content": question}]
-    trace, tin, tout, turns, stopped = [], 0, 0, 0, "max_turns"
-    while turns < max_turns:
-        turns += 1
-        turn = agent_step(messages)
-        tin += turn.tokens_in or 0
-        tout += turn.tokens_out or 0
-        if not turn.tool_calls:
-            stopped = "final"
-            messages.append({"role": "assistant", "content": turn.text})
-            return AiAgenticResult(turn.text, turns, trace, stopped, tin, tout)
-        messages.append({"role": "assistant", "content": turn.text, "tool_calls": turn.tool_calls})
-        results = []
-        for call in turn.tool_calls:
-            result = registry.call(call["name"], call.get("args"))
-            trace.append({"name": call["name"], "args": call.get("args"), "result": result})
-            results.append({"tool_call_id": call.get("id"), "name": call["name"], "result": result})
-        messages.append({"role": "tool", "content": results})
-    return AiAgenticResult("", turns, trace, stopped, tin, tout)
+    for event in ask_agentic_iter(question, **kwargs):
+        if "result" in event:
+            return event["result"]
+    raise AssertionError("agentic loop ended without a result")  # unreachable
 
 
 def _azure_tools(tools):
@@ -755,7 +1006,7 @@ def _make_agent_step(
 
         def step(messages):
             body = {
-                "max_tokens": max_tokens,
+                "max_completion_tokens": max_tokens,
                 "messages": _to_azure_messages(system, messages),
                 "tools": azure_tools,
             }

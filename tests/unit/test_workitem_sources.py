@@ -8,9 +8,7 @@ from nx_lib.workitem_sources import (
     PostgresSource,
     SqlServerSource,
     WorkitemFilter,
-    enrich_rows_from_nexora,
     merge_sorted_rows,
-    resolve_nexora_filter_ids,
 )
 
 
@@ -20,8 +18,6 @@ def _row(wid, mins, client="default"):
         "workitemid": wid,
         "status": "Ready",
         "current_stage": "Extraction",
-        "priority": 0,
-        "tags": [],
         "client": client,
     }
 
@@ -46,8 +42,7 @@ def test_merge_sorted_rows_handles_empty_sources():
 
 def _mk_filter():
     return WorkitemFilter(
-        process_names=["Invoices"],
-        client_names=["Privera"],
+        client_process_pairs=[("Privera", "Invoices")],
         activity_ignore_csv="'Ignore'",
     )
 
@@ -59,8 +54,6 @@ def test_sqlserver_source_normalizes_rows(app):
         WorkItemID=7,
         Status="Ready",
         CurrentStage="Extraction",
-        Priority=None,
-        TagsJSON='[{"id":1,"name":"urgent","color":"#f00"}]',
     )
     fake_cur = MagicMock()
     fake_cur.fetchone.return_value = count_row
@@ -75,36 +68,12 @@ def test_sqlserver_source_normalizes_rows(app):
 
     assert total == 3
     assert rows[0]["workitemid"] == 7
-    assert rows[0]["priority"] == 0  # None -> 0
-    assert rows[0]["tags"][0]["name"] == "urgent"
     assert rows[0]["client"] == "default"
+    assert "priority" not in rows[0]
+    assert "tags" not in rows[0]
 
 
-def test_resolve_nexora_filter_ids_returns_none_when_no_filters(app):
-    f = _mk_filter()  # no tag/priority/assigned
-    with app.app_context():
-        assert resolve_nexora_filter_ids(f) is None
-
-
-def test_resolve_nexora_filter_ids_intersects_active_filters(app):
-    f = _mk_filter()
-    f.tag = "urgent"
-    f.priority = "2"
-    # tag query -> {1001, 1002}; priority query -> {1002, 1003}; intersect -> {1002}
-    fake_cur = MagicMock()
-    fake_cur.fetchall.side_effect = [
-        [MagicMock(WorkItemID=1001), MagicMock(WorkItemID=1002)],
-        [MagicMock(WorkItemID=1002), MagicMock(WorkItemID=1003)],
-    ]
-    fake_conn = MagicMock()
-    fake_conn.cursor.return_value = fake_cur
-    with patch("nx_lib.workitem_sources.engine_nexora_db") as eng, app.app_context():
-        eng.raw_connection.return_value = fake_conn
-        ids = resolve_nexora_filter_ids(f)
-    assert ids == {1002}
-
-
-def test_postgres_source_builds_pg_sql_and_enriches(app):
+def test_postgres_source_builds_pg_sql(app):
     # psycopg2 cursor returns namedtuple-ish rows; we normalize by attribute.
     count_row = [2]
     data_rows = [
@@ -122,106 +91,31 @@ def test_postgres_source_builds_pg_sql_and_enriches(app):
     fake_conn.cursor.return_value = fake_cur
 
     src = PostgresSource(CLIENTS_code="ms02")
-    with (
-        patch.object(src, "engine") as eng,
-        patch("nx_lib.workitem_sources.enrich_rows_from_nexora", side_effect=lambda r: r),
-        patch("nx_lib.workitem_sources.resolve_nexora_filter_ids", return_value=None),
-        app.app_context(),
-    ):
+    with patch.object(src, "engine") as eng, app.app_context():
         eng.raw_connection.return_value = fake_conn
         rows, total = src.list_workitems(_mk_filter(), offset=0, limit=40)
 
     assert total == 2
     assert rows[0]["workitemid"] == 1001
     assert rows[0]["client"] == "ms02"
+    assert "priority" not in rows[0]
+    assert "tags" not in rows[0]
     # Verify the executed SQL used %s placeholders (psycopg2), not ?.
     executed_sql = " ".join(str(c.args[0]) for c in fake_cur.execute.call_args_list)
     assert "%s" in executed_sql
     assert "?" not in executed_sql
 
 
-def test_enrich_rows_from_nexora_attaches_priority_and_tags(app):
-    rows = [
-        {"workitemid": 1001, "priority": 0, "tags": []},
-        {"workitemid": 1002, "priority": 0, "tags": []},
-    ]
-    fake_cur = MagicMock()
-    fake_cur.fetchall.side_effect = [
-        # priority rows
-        [MagicMock(WorkItemID=1001, Priority=3)],
-        # tag rows
-        [MagicMock(WorkItemID=1002, TagID=9, TagName="vip", TagColor="#0f0")],
-    ]
-    fake_conn = MagicMock()
-    fake_conn.cursor.return_value = fake_cur
-    with patch("nx_lib.workitem_sources.engine_nexora_db") as eng, app.app_context():
-        eng.raw_connection.return_value = fake_conn
-        out = enrich_rows_from_nexora(rows)
-    by_id = {r["workitemid"]: r for r in out}
-    assert by_id[1001]["priority"] == 3
-    assert by_id[1002]["tags"] == [{"id": 9, "name": "vip", "color": "#0f0"}]
-
-
-def test_resolve_nexora_filter_ids_coerces_nvarchar_ids_to_int(app):
-    """NexoraDB stores WorkitemId as NVARCHAR, so pyodbc yields str. The
-    Postgres source binds this allow-set against an INTEGER "ID" column
-    (`twi."ID" = ANY(%s)`), which errors on a text[] -- observed live: every
-    tag/priority/assigned filter degraded the whole MS02 source, silently
-    dropping its rows from the result. The resolver must hand back ints."""
-    f = _mk_filter()
-    f.tag = "urgent"
-    fake_cur = MagicMock()
-    fake_cur.fetchall.side_effect = [
-        [MagicMock(WorkItemID="1001"), MagicMock(WorkItemID="1002")],
-    ]
-    fake_conn = MagicMock()
-    fake_conn.cursor.return_value = fake_cur
-    with patch("nx_lib.workitem_sources.engine_nexora_db") as eng, app.app_context():
-        eng.raw_connection.return_value = fake_conn
-        ids = resolve_nexora_filter_ids(f)
-    assert ids == {1001, 1002}
-    assert all(isinstance(i, int) for i in ids)
-
-
-def test_enrich_rows_from_nexora_matches_nvarchar_ids(app):
-    """Same NVARCHAR-vs-int seam on the display side: the Postgres source's
-    workitemid is an int while NexoraDB returns str, so tags/priority set on an
-    MS02 workitem never rendered in the list."""
-    rows = [{"workitemid": 3413, "priority": 0, "tags": []}]
-    fake_cur = MagicMock()
-    fake_cur.fetchall.side_effect = [
-        [MagicMock(WorkItemID="3413", Priority=3)],
-        [MagicMock(WorkItemID="3413", TagID=56, TagName="nxsweep", TagColor="#8b5cf6")],
-    ]
-    fake_conn = MagicMock()
-    fake_conn.cursor.return_value = fake_cur
-    with patch("nx_lib.workitem_sources.engine_nexora_db") as eng, app.app_context():
-        eng.raw_connection.return_value = fake_conn
-        out = enrich_rows_from_nexora(rows)
-    assert out[0]["priority"] == 3
-    assert out[0]["tags"] == [{"id": 56, "name": "nxsweep", "color": "#8b5cf6"}]
-
-
-def _captured_sql(src, filt, is_pg=False):
+def _captured_sql(src, filt):
     """Run list_workitems against a mock cursor and return all executed SQL."""
     fake_cur = MagicMock()
     fake_cur.fetchone.return_value = [0]
     fake_cur.fetchall.return_value = []
     fake_conn = MagicMock()
     fake_conn.cursor.return_value = fake_cur
-    patches = [patch.object(src, "engine")]
-    if is_pg:
-        patches.append(patch("nx_lib.workitem_sources.enrich_rows_from_nexora", lambda r: r))
-        patches.append(patch("nx_lib.workitem_sources.resolve_nexora_filter_ids", lambda f: None))
-    with patches[0] as eng:
-        for p in patches[1:]:
-            p.start()
-        try:
-            eng.raw_connection.return_value = fake_conn
-            src.list_workitems(filt, offset=0, limit=40)
-        finally:
-            for p in patches[1:]:
-                p.stop()
+    with patch.object(src, "engine") as eng:
+        eng.raw_connection.return_value = fake_conn
+        src.list_workitems(filt, offset=0, limit=40)
     return " ".join(str(c.args[0]) for c in fake_cur.execute.call_args_list), fake_cur
 
 
@@ -230,26 +124,88 @@ def test_status_in_progress_filter_covers_all_non_terminal_codes(app):
     (live INT has codes 3 and 4 in real use), but the status filter compared
     `Status = 1`, so 96 rows shown as 'In Progress' could not be found by
     filtering for it. Both sources must filter the whole bucket."""
-    for src, is_pg in ((SqlServerSource(), False), (PostgresSource(CLIENTS_code="ms02"), True)):
+    for src in (SqlServerSource(), PostgresSource(CLIENTS_code="ms02")):
         f = _mk_filter()
         f.status_code = 1
         with app.app_context():
-            sql, _ = _captured_sql(src, f, is_pg=is_pg)
+            sql, _ = _captured_sql(src, f)
         norm = sql.replace('"', "").replace(" ", "").lower()
         assert "statusnotin(0,5)" in norm, f"{type(src).__name__}: {sql}"
 
 
+def test_deleted_workitems_hidden_unless_explicitly_filtered_for(app):
+    """Status 2 (deleted) is hard-excluded from every default list. Asking for it
+    by status code -- which the view only maps for holders of
+    workitems.filter.status.deleted -- must DROP that exclusion, otherwise the
+    two clauses contradict and the filter returns nothing."""
+    for src in (SqlServerSource(), PostgresSource(CLIENTS_code="ms02")):
+        name = type(src).__name__
+        f = _mk_filter()
+        with app.app_context():
+            sql, _ = _captured_sql(src, f)
+        norm = sql.replace('"', "").replace(" ", "").lower()
+        assert "status<>2" in norm, f"{name} stopped hiding deleted workitems: {sql}"
+
+        f.status_code = 2
+        with app.app_context():
+            sql, cur = _captured_sql(src, f)
+        norm = sql.replace('"', "").replace(" ", "").lower()
+        assert "status<>2" not in norm, f"{name} contradicts the Deleted filter: {sql}"
+        params = [c.args[1] for c in cur.execute.call_args_list if len(c.args) > 1]
+        flat = [p for group in params for p in (group if isinstance(group, list) else [group])]
+        assert 2 in flat, f"{name} lost the Deleted status code: {flat}"
+
+
 def test_search_id_is_exact_match_not_substring(app):
     """Searching workitem 371 must not also return 1371/3716/16371."""
-    for src, is_pg in ((SqlServerSource(), False), (PostgresSource(CLIENTS_code="ms02"), True)):
+    for src in (SqlServerSource(), PostgresSource(CLIENTS_code="ms02")):
         f = _mk_filter()
         f.search_id = "371"
         with app.app_context():
-            sql, cur = _captured_sql(src, f, is_pg=is_pg)
+            sql, cur = _captured_sql(src, f)
         params = [c.args[1] for c in cur.execute.call_args_list if len(c.args) > 1]
         flat = [p for group in params for p in (group if isinstance(group, list) else [group])]
         assert "%371%" not in flat, f"{type(src).__name__} still binds a LIKE pattern: {flat}"
         assert "371" in flat, f"{type(src).__name__} lost the search term: {flat}"
+
+
+def test_stage_filter_applied_after_latest_activity_dedup(app):
+    """Stage is a derived value computed per activity row, but only the
+    workitem's LATEST activity row should decide its stage (issue #147) -- a
+    workitem with an earlier 'Extraction' row and a newer 'Validation' row
+    must match `stage=Validation`, not both. Filtering inside the base WHERE
+    (pre-dedup) would match on any row instead of just the latest, so the
+    clause must be applied against the deduped rn=1 result."""
+    for src in (SqlServerSource(), PostgresSource(CLIENTS_code="ms02")):
+        f = _mk_filter()
+        f.stage = "Validation"
+        with app.app_context():
+            sql, cur = _captured_sql(src, f)
+        norm = sql.replace('"', "").replace(" ", "").lower()
+        assert "currentstage=" in norm, f"{type(src).__name__}: stage clause missing: {sql}"
+        # The dedup CTE alias (LatestCTE / latest) must appear BEFORE the stage
+        # clause is applied, both in the count and list queries.
+        dedup_alias = "latestcte" if isinstance(src, SqlServerSource) else "latest"
+        for call_args in cur.execute.call_args_list:
+            stmt = str(call_args.args[0]).replace('"', "").replace(" ", "").lower()
+            if "currentstage=" in stmt:
+                assert (
+                    dedup_alias in stmt
+                ), f"{type(src).__name__}: stage filter not scoped to deduped rows: {stmt}"
+        params = [c.args[1] for c in cur.execute.call_args_list if len(c.args) > 1]
+        flat = [p for group in params for p in (group if isinstance(group, list) else [group])]
+        assert "Validation" in flat, f"{type(src).__name__} lost the stage value: {flat}"
+
+
+def test_no_stage_filter_omits_stage_clause(app):
+    """stage=None (the default / 'All stages' option) must not constrain the
+    query at all -- no WHERE CurrentStage clause, no extra bound param."""
+    for src in (SqlServerSource(), PostgresSource(CLIENTS_code="ms02")):
+        sql, cur = (None, None)
+        with app.app_context():
+            sql, cur = _captured_sql(src, _mk_filter())
+        norm = sql.replace('"', "").replace(" ", "").lower()
+        assert "currentstage=" not in norm, f"{type(src).__name__}: {sql}"
 
 
 def test_empty_process_scope_yields_no_rows_without_sql_error(app):
@@ -257,7 +213,7 @@ def test_empty_process_scope_yields_no_rows_without_sql_error(app):
     in both dialects -- so both sources errored and the page showed a degraded
     banner instead of a clean empty state."""
     for src in (SqlServerSource(), PostgresSource(CLIENTS_code="ms02")):
-        f = WorkitemFilter(process_names=[], client_names=[], activity_ignore_csv="'Ignore'")
+        f = WorkitemFilter(client_process_pairs=[], activity_ignore_csv="'Ignore'")
         with app.app_context():
             rows, total = (None, None)
             fake_cur = MagicMock()
@@ -271,6 +227,112 @@ def test_empty_process_scope_yields_no_rows_without_sql_error(app):
             sql = " ".join(str(c.args[0]) for c in fake_cur.execute.call_args_list)
         assert rows == [] and total == 0, f"{type(src).__name__}: {rows}, {total}"
         assert "in ()" not in sql.lower().replace("in  (", "in ("), sql
+
+
+def test_pair_scope_authorizes_granted_pairs_only_not_cross_product(app):
+    """A filter granted only (A, P1) and (B, P2) must build a WHERE whose
+    params can only ever reconstruct those two pairs -- never the
+    cross-product pairs (A, P2) / (B, P1) that two independent client/process
+    IN-lists (ANDed together) would have authorized."""
+    for src in (SqlServerSource(), PostgresSource(CLIENTS_code="ms02")):
+        f = WorkitemFilter(
+            client_process_pairs=[("A", "P1"), ("B", "P2")],
+            activity_ignore_csv="'Ignore'",
+        )
+        with app.app_context():
+            sql, cur = _captured_sql(src, f)
+
+        assert (
+            " or " in sql.lower()
+        ), f"{type(src).__name__}: expected an OR-joined predicate: {sql}"
+
+        count_call = cur.execute.call_args_list[0]
+        count_params = count_call.args[1]
+        pair_params = list(count_params[:4])
+        built_pairs = list(zip(pair_params[0::2], pair_params[1::2], strict=True))
+        assert built_pairs == [("A", "P1"), ("B", "P2")], f"{type(src).__name__}: {built_pairs}"
+        assert ("A", "P2") not in built_pairs, f"{type(src).__name__} authorizes an ungranted pair"
+        assert ("B", "P1") not in built_pairs, f"{type(src).__name__} authorizes an ungranted pair"
+
+
+# ---- Phase-review fix: recent_rows/backlog_count had the SAME cross-product
+# bug as list_workitems (fixed above by cc167e1), but independently -- these
+# are different functions the dashboard's recent-activity feed and backlog
+# KPI call directly, and were not touched by that commit. -----------------
+
+
+def test_recent_rows_authorizes_granted_pairs_only_not_cross_product(app):
+    """A caller granted only (A, P1) and (B, P2) must build a WHERE whose
+    params can only ever reconstruct those two pairs -- never the
+    cross-product pairs (A, P2) / (B, P1)."""
+    pairs = [("A", "P1"), ("B", "P2")]
+    for src in (SqlServerSource(), PostgresSource(CLIENTS_code="ms02")):
+        fake_cur = MagicMock()
+        fake_cur.fetchall.return_value = []
+        fake_conn = MagicMock()
+        fake_conn.cursor.return_value = fake_cur
+        with patch.object(src, "engine") as eng, app.app_context():
+            eng.raw_connection.return_value = fake_conn
+            src.recent_rows(pairs, "'Ignore'", top=3)
+
+        call = fake_cur.execute.call_args_list[0]
+        sql = str(call.args[0])
+        params = list(call.args[1])
+        assert " or " in sql.lower(), f"{type(src).__name__}: expected OR-joined predicate: {sql}"
+        built_pairs = list(zip(params[0::2], params[1::2], strict=True))
+        assert built_pairs == pairs, f"{type(src).__name__}: {built_pairs}"
+        assert ("A", "P2") not in built_pairs, f"{type(src).__name__} authorizes an ungranted pair"
+        assert ("B", "P1") not in built_pairs, f"{type(src).__name__} authorizes an ungranted pair"
+
+
+def test_backlog_count_authorizes_granted_pairs_only_not_cross_product(app):
+    """Same guarantee as above, for backlog_count -- the dashboard backlog
+    KPI's query builder."""
+    pairs = [("A", "P1"), ("B", "P2")]
+    for src in (SqlServerSource(), PostgresSource(CLIENTS_code="ms02")):
+        fake_cur = MagicMock()
+        fake_cur.fetchone.return_value = [0]
+        fake_conn = MagicMock()
+        fake_conn.cursor.return_value = fake_cur
+        with patch.object(src, "engine") as eng, app.app_context():
+            eng.raw_connection.return_value = fake_conn
+            src.backlog_count(pairs)
+
+        call = fake_cur.execute.call_args_list[0]
+        sql = str(call.args[0])
+        params = list(call.args[1])
+        assert " or " in sql.lower(), f"{type(src).__name__}: expected OR-joined predicate: {sql}"
+        built_pairs = list(zip(params[0::2], params[1::2], strict=True))
+        assert built_pairs == pairs, f"{type(src).__name__}: {built_pairs}"
+        assert ("A", "P2") not in built_pairs, f"{type(src).__name__} authorizes an ungranted pair"
+        assert ("B", "P1") not in built_pairs, f"{type(src).__name__} authorizes an ungranted pair"
+
+
+def test_recent_activity_rows_and_total_backlog_count_pass_pairs_through(app, monkeypatch):
+    """The module-level merge/sum wrappers must forward the pairs shape
+    verbatim to each source -- not re-split them back into independent
+    client/process lists."""
+    captured = {}
+
+    class Fake:
+        code = "default"
+
+        def recent_rows(self, pairs, activity_ignore_csv, top=3):
+            captured["recent_rows_pairs"] = pairs
+            return []
+
+        def backlog_count(self, pairs):
+            captured["backlog_count_pairs"] = pairs
+            return 0
+
+    monkeypatch.setattr(ws, "active_sources", lambda: [Fake()])
+    pairs = [("A", "P1"), ("B", "P2")]
+    with app.app_context():
+        ws.recent_activity_rows(pairs, "'Ignore'", top=3)
+        ws.total_backlog_count(pairs)
+
+    assert captured["recent_rows_pairs"] == pairs
+    assert captured["backlog_count_pairs"] == pairs
 
 
 def test_get_source_for_workitem_cache_hit(app, monkeypatch):
@@ -392,17 +454,6 @@ def test_fetch_merged_page_merges_and_slices(app, monkeypatch):
     assert [r["workitemid"] for r in rows] == [2, 1001]  # top 2 of merged desc
 
 
-def test_single_workitem_tags_uses_nexora(app, monkeypatch):
-    fake_cur = MagicMock()
-    fake_cur.fetchall.return_value = [MagicMock(TagID=3, TagName="x", TagColor="#111")]
-    fake_conn = MagicMock()
-    fake_conn.cursor.return_value = fake_cur
-    with patch("nx_lib.workitem_sources.engine_nexora_db") as eng, app.app_context():
-        eng.raw_connection.return_value = fake_conn
-        tags = ws.single_workitem_tags(42)
-    assert tags == [{"id": 3, "name": "x", "color": "#111"}]
-
-
 def test_fetch_merged_page_degrades_on_source_error(app, monkeypatch):
     s1, s2 = SqlServerSource(), SqlServerSource()
     s2.code = "ms02"
@@ -418,6 +469,79 @@ def test_fetch_merged_page_degrades_on_source_error(app, monkeypatch):
     assert [r["workitemid"] for r in rows] == [2]
     assert total == 1
     assert degraded == ["ms02"]
+
+
+def test_fetch_merged_page_warm_loop_does_not_blind_cache_colliding_id(app, monkeypatch):
+    """A wid present in BOTH sources must be routed through the same
+    collision fail-safe as get_source_for_workitem -- not pinned to whichever
+    client's page happened to list it first during the cache-warm pass."""
+    s1, s2 = SqlServerSource(), SqlServerSource()
+    s2.code = "ms02"
+    monkeypatch.setattr(ws, "active_sources", lambda: [s1, s2])
+    # Both sources list -- and both sources claim -- id 1216 (the same
+    # collision documented for the default/MS02 id spaces on INT).
+    monkeypatch.setattr(
+        s1, "list_workitems", lambda filt, offset, limit: ([_row(1216, 30, client="default")], 1)
+    )
+    monkeypatch.setattr(
+        s2, "list_workitems", lambda filt, offset, limit: ([_row(1216, 20, client="ms02")], 1)
+    )
+    monkeypatch.setattr(s1, "has_workitem", lambda wid: True)
+    monkeypatch.setattr(s2, "has_workitem", lambda wid: True)
+    monkeypatch.setattr(ws, "_cache_lookup", lambda wid: None)
+    stored = []
+    monkeypatch.setattr(ws, "_cache_store", lambda wid, code: stored.append((wid, code)))
+
+    with app.app_context():
+        rows, total, degraded = ws.fetch_merged_page(_mk_filter(), offset=0, limit=40)
+
+    assert [r["workitemid"] for r in rows] == [1216, 1216]  # both rows still render
+    assert degraded == []
+    assert stored == [], "colliding id must not be blind-cached by the warm loop"
+
+
+def test_fetch_merged_page_warm_loop_caches_a_single_claimant_id(app, monkeypatch):
+    """Companion to the collision test above: an unambiguous, non-colliding id
+    (claimed by exactly one source) must still get warmed into the routing
+    cache. Without this positive-path proof, a silently-broken warm loop (a
+    swallowed exception, a bad refactor that no-ops the whole pass) would
+    slip through -- the negative test alone can't distinguish "correctly
+    refused to cache an ambiguous id" from "stopped caching anything at
+    all". Also proves the fix for the N+1 warm-loop cost: get_source_for_workitem
+    must reuse fetch_merged_page's already-built ``sources`` list (passed via
+    its ``sources=`` param) rather than calling active_sources() again itself."""
+    s1, s2 = SqlServerSource(), SqlServerSource()
+    s2.code = "ms02"
+    active_sources_calls = []
+
+    def _active_sources():
+        active_sources_calls.append(1)
+        return [s1, s2]
+
+    monkeypatch.setattr(ws, "active_sources", _active_sources)
+    # id 5 is default-only, id 1001 is ms02-only -- neither collides.
+    monkeypatch.setattr(
+        s1, "list_workitems", lambda filt, offset, limit: ([_row(5, 30, client="default")], 1)
+    )
+    monkeypatch.setattr(
+        s2, "list_workitems", lambda filt, offset, limit: ([_row(1001, 20, client="ms02")], 1)
+    )
+    monkeypatch.setattr(s1, "has_workitem", lambda wid: False)
+    monkeypatch.setattr(s2, "has_workitem", lambda wid: wid == 1001)
+    monkeypatch.setattr(ws, "_cache_lookup", lambda wid: None)
+    stored = []
+    monkeypatch.setattr(ws, "_cache_store", lambda wid, code: stored.append((wid, code)))
+
+    with app.app_context():
+        rows, total, degraded = ws.fetch_merged_page(_mk_filter(), offset=0, limit=40)
+
+    assert [r["workitemid"] for r in rows] == [5, 1001]
+    assert degraded == []
+    assert stored == [(1001, "ms02")], "unambiguous id must be warmed into the cache"
+    # Exactly one active_sources() call total (fetch_merged_page's own, at the
+    # top of the function) -- get_source_for_workitem must not construct a
+    # second fresh set of source instances per probed row.
+    assert active_sources_calls == [1]
 
 
 # ---------------- dashboard source-awareness (Task 14) ---------------- #
@@ -437,7 +561,7 @@ def test_sqlserver_recent_rows_normalizes(app):
     src = SqlServerSource()
     with patch.object(src, "engine") as eng, app.app_context():
         eng.raw_connection.return_value = fake_conn
-        rows = src.recent_rows(["Invoices"], ["Privera"], "'Ignore'", top=3)
+        rows = src.recent_rows([("Privera", "Invoices")], "'Ignore'", top=3)
 
     assert rows == [
         {
@@ -464,7 +588,7 @@ def test_sqlserver_recent_rows_omits_not_in_when_ignore_csv_empty(app):
     src = SqlServerSource()
     with patch.object(src, "engine") as eng, app.app_context():
         eng.raw_connection.return_value = fake_conn
-        rows = src.recent_rows(["Invoices"], ["Privera"], "", top=3)
+        rows = src.recent_rows([("Privera", "Invoices")], "", top=3)
 
     assert rows == []
     executed_sql = " ".join(str(c.args[0]) for c in fake_cur.execute.call_args_list)
@@ -480,7 +604,7 @@ def test_sqlserver_recent_rows_omits_not_in_when_ignore_csv_none(app):
     src = SqlServerSource()
     with patch.object(src, "engine") as eng, app.app_context():
         eng.raw_connection.return_value = fake_conn
-        rows = src.recent_rows(["Invoices"], ["Privera"], None, top=3)
+        rows = src.recent_rows([("Privera", "Invoices")], None, top=3)
 
     assert rows == []
     executed_sql = " ".join(str(c.args[0]) for c in fake_cur.execute.call_args_list)
@@ -496,7 +620,7 @@ def test_sqlserver_backlog_count(app):
     src = SqlServerSource()
     with patch.object(src, "engine") as eng, app.app_context():
         eng.raw_connection.return_value = fake_conn
-        count = src.backlog_count(["Invoices"], ["Privera"])
+        count = src.backlog_count([("Privera", "Invoices")])
 
     assert count == 12
     executed_sql = " ".join(str(c.args[0]) for c in fake_cur.execute.call_args_list)
@@ -517,7 +641,7 @@ def test_postgres_recent_rows_uses_pg_sql(app):
     src = PostgresSource(CLIENTS_code="ms02")
     with patch.object(src, "engine") as eng, app.app_context():
         eng.raw_connection.return_value = fake_conn
-        rows = src.recent_rows(["Invoices"], ["Privera"], "'Ignore'", top=3)
+        rows = src.recent_rows([("Privera", "Invoices")], "'Ignore'", top=3)
 
     assert rows[0]["id"] == 1001
     assert rows[0]["client"] == "ms02"
@@ -537,7 +661,7 @@ def test_postgres_backlog_count(app):
     src = PostgresSource(CLIENTS_code="ms02")
     with patch.object(src, "engine") as eng, app.app_context():
         eng.raw_connection.return_value = fake_conn
-        count = src.backlog_count(["Invoices"], ["Privera"])
+        count = src.backlog_count([("Privera", "Invoices")])
 
     assert count == 4
     executed_sql = " ".join(str(c.args[0]) for c in fake_cur.execute.call_args_list)
@@ -552,7 +676,7 @@ def test_recent_activity_rows_merges_and_caps(app, monkeypatch):
             self.code = code
             self._rows = rows
 
-        def recent_rows(self, process_names, client_names, activity_ignore_csv, top=3):
+        def recent_rows(self, pairs, activity_ignore_csv, top=3):
             return self._rows
 
     f1 = Fake(
@@ -585,7 +709,7 @@ def test_recent_activity_rows_merges_and_caps(app, monkeypatch):
     )
     monkeypatch.setattr(ws, "active_sources", lambda: [f1, f2])
     with app.app_context():
-        out = ws.recent_activity_rows(["P"], ["C"], "'Ignore'", top=2)
+        out = ws.recent_activity_rows([("C", "P")], "'Ignore'", top=2)
     assert [r["id"] for r in out] == [2, 1001]  # newest first, capped to 2
 
 
@@ -595,12 +719,12 @@ def test_total_backlog_count_sums(app, monkeypatch):
             self.code = code
             self._n = n
 
-        def backlog_count(self, process_names, client_names):
+        def backlog_count(self, pairs):
             return self._n
 
     monkeypatch.setattr(ws, "active_sources", lambda: [Fake("default", 3), Fake("ms02", 4)])
     with app.app_context():
-        assert ws.total_backlog_count(["P"], ["C"]) == 7
+        assert ws.total_backlog_count([("C", "P")]) == 7
 
 
 # ---------------- MS02 doc-field resolver (columnar) ---------------- #
@@ -691,17 +815,79 @@ def test_resolve_ms02_docfield_ids_query_error_returns_none(app):
         assert ws.resolve_ms02_docfield_ids(engine, [([_SPEC], "1")]) is None
 
 
+def test_resolve_ms02_docfield_ids_or_combinator_unions(app):
+    # (#148) 4-tuple entries carry (specs, value, op, comb); 'or' unions the
+    # pair into the fold instead of intersecting.
+    engine = MagicMock()
+    cur = engine.raw_connection.return_value.cursor.return_value
+    cur.fetchall.side_effect = [[(1,)], [(2,)]]
+    with app.app_context():
+        result = ws.resolve_ms02_docfield_ids(
+            engine,
+            [([_SPEC], "a", "contains", "and"), ([_SPEC], "b", "contains", "or")],
+        )
+    assert result == {1, 2}
+
+
+def test_resolve_ms02_docfield_ids_forced_empty_pair_ored_is_noop(app):
+    # An empty-specs entry (field unmapped) contributes set(); OR'd it must not
+    # shrink the result, AND'd it must zero it.
+    engine = MagicMock()
+    cur = engine.raw_connection.return_value.cursor.return_value
+    cur.fetchall.side_effect = [[(1,)]]
+    with app.app_context():
+        ored = ws.resolve_ms02_docfield_ids(
+            engine, [([_SPEC], "a", "contains", "and"), ([], "b", "contains", "or")]
+        )
+    assert ored == {1}
+    cur.fetchall.side_effect = [[(1,)]]
+    with app.app_context():
+        anded = ws.resolve_ms02_docfield_ids(
+            engine, [([_SPEC], "a", "contains", "and"), ([], "b", "contains", "and")]
+        )
+    assert anded == set()
+
+
+def test_resolve_ms02_docfield_ids_and_with_empty_pair_still_zeroes(app):
+    # Regression for the removed early-return: pure-AND semantics unchanged --
+    # a pair that matches nothing zeroes the whole result.
+    engine = MagicMock()
+    cur = engine.raw_connection.return_value.cursor.return_value
+    cur.fetchall.side_effect = [[(1,), (2,)], []]
+    with app.app_context():
+        result = ws.resolve_ms02_docfield_ids(engine, [([_SPEC], "a"), ([_SPEC], "b")])
+    assert result == set()
+
+
+def test_resolve_ms02_docfield_ids_eq_op_escapes_and_compares_literally(app):
+    # (#148) 'eq' runs through ILIKE on the ESCAPED value: wildcards in the
+    # user's value must compare literally, and 'neq' uses NOT ILIKE.
+    engine = MagicMock()
+    cur = engine.raw_connection.return_value.cursor.return_value
+    cur.fetchall.side_effect = [[(1,)], [(2,)]]
+    with app.app_context():
+        ws.resolve_ms02_docfield_ids(
+            engine,
+            [([_SPEC], "50%", "eq", "and"), ([_SPEC], "a_b", "neq", "and")],
+        )
+    (sql_eq, params_eq), _ = cur.execute.call_args_list[0]
+    (sql_neq, params_neq), _ = cur.execute.call_args_list[1]
+    assert "ILIKE %s" in sql_eq and "NOT ILIKE" not in sql_eq
+    assert params_eq == ["50\\%"]
+    assert "NOT ILIKE %s" in sql_neq
+    assert params_neq == ["a\\_b"]
+
+
 def test_build_where_emits_any_for_populated_ms02_docfield_ids(app):
     src = ws.PostgresSource.__new__(ws.PostgresSource)  # skip __init__
     src.code = "ms02"
     src.engine = None
     filt = ws.WorkitemFilter(
-        process_names=["p"],
-        client_names=["c"],
+        client_process_pairs=[("c", "p")],
         activity_ignore_csv="",
         ms02_docfield_ids={10, 20},
     )
-    with app.app_context(), patch.object(ws, "resolve_nexora_filter_ids", return_value=None):
+    with app.app_context():
         where, params = src._build_where(filt)
     assert 'twi."ID" = ANY(%s)' in where
     assert "t_DocumentIndexes" not in where
@@ -714,12 +900,11 @@ def test_build_where_empty_ms02_docfield_ids_forces_no_rows(app):
     src.code = "ms02"
     src.engine = None
     filt = ws.WorkitemFilter(
-        process_names=["p"],
-        client_names=["c"],
+        client_process_pairs=[("c", "p")],
         activity_ignore_csv="",
         ms02_docfield_ids=set(),
     )
-    with app.app_context(), patch.object(ws, "resolve_nexora_filter_ids", return_value=None):
+    with app.app_context():
         where, _ = src._build_where(filt)
     assert "1=0" in where
     assert "t_DocumentIndexes" not in where
@@ -730,12 +915,11 @@ def test_build_where_none_ms02_docfield_ids_adds_no_clause(app):
     src.code = "ms02"
     src.engine = None
     filt = ws.WorkitemFilter(
-        process_names=["p"],
-        client_names=["c"],
+        client_process_pairs=[("c", "p")],
         activity_ignore_csv="",
         ms02_docfield_ids=None,
     )
-    with app.app_context(), patch.object(ws, "resolve_nexora_filter_ids", return_value=None):
+    with app.app_context():
         where, _ = src._build_where(filt)
     assert "t_DocumentIndexes" not in where
     assert "ANY(%s)" not in where
@@ -747,13 +931,12 @@ def test_build_where_ignores_raw_docfields_for_ms02(app):
     src.code = "ms02"
     src.engine = None
     filt = ws.WorkitemFilter(
-        process_names=["p"],
-        client_names=["c"],
+        client_process_pairs=[("c", "p")],
         activity_ignore_csv="",
         docfields=["barcode"],
         docvalues=["123"],
     )
-    with app.app_context(), patch.object(ws, "resolve_nexora_filter_ids", return_value=None):
+    with app.app_context():
         where, _ = src._build_where(filt)
     assert "t_DocumentIndexes" not in where
     assert "EXISTS" not in where
@@ -903,6 +1086,35 @@ def test_resolve_ms02_wids_to_pids_maps_first_pid(app):
     assert result[43] == "222"
 
 
+def test_resolve_ms02_wids_to_pids_casts_id_column_to_text(app):
+    """Regression: the WHERE clause must cast the varchar id column ::text and
+    bind a string-typed param list, mirroring resolve_ms02_pid_to_wids's
+    WHERE-side cast convention -- otherwise Postgres raises an operator-type
+    mismatch (varchar = ANY(int[])) on every call, silently killing the
+    reverse 'In register' chip."""
+    from unittest.mock import MagicMock
+
+    from nx_lib.workitem_sources import resolve_ms02_wids_to_pids
+
+    cur = MagicMock()
+    cur.fetchall.return_value = []
+    conn = MagicMock()
+    conn.cursor.return_value = cur
+    engine = MagicMock()
+    engine.raw_connection.return_value = conn
+    with app.app_context():
+        resolve_ms02_wids_to_pids(
+            engine, [("DossierStatistik", "WorkItemID", "DossierNummer", None)], [42, 43]
+        )
+
+    assert cur.execute.call_count == 1
+    sql, params = cur.execute.call_args[0]
+    assert 'WHERE "WorkItemID"::text = ANY(%s)' in sql
+    bound_list = params[0]
+    assert bound_list == ["42", "43"]
+    assert all(isinstance(v, str) for v in bound_list)
+
+
 def test_resolve_ms02_wids_to_pids_none_contract(app):
     from unittest.mock import MagicMock
 
@@ -948,4 +1160,66 @@ def test_resolve_octo_wid_stage_maps_status_and_stage(app):
         assert ws.resolve_octo_wid_stage(eng, 42) == {
             "status": "In Progress",
             "current_stage": "Validation",
+        }
+
+
+def test_resolve_octo_wid_stage_pg_returns_none_without_engine(app):
+    with app.app_context():
+        assert ws._resolve_octo_wid_stage_pg(None, 42) == {
+            "status": None,
+            "current_stage": None,
+        }
+
+
+def test_resolve_octo_wid_stage_pg_degrades_to_none_on_error(app):
+    class Boom:
+        def raw_connection(self):
+            raise RuntimeError("pg down")
+
+    with app.app_context():
+        assert ws._resolve_octo_wid_stage_pg(Boom(), 42) == {
+            "status": None,
+            "current_stage": None,
+        }
+
+
+def test_resolve_octo_wid_stage_pg_maps_status_and_stage(app):
+    """Fake-cursor proof of the Postgres-dialect twin's own SQL + row mapping
+    (the T-SQL twin's coverage above does not exercise this query at all --
+    every existing prepared_documents test monkeypatches this function out).
+    Postgres rows come back as plain tuples (no NamedTupleCursor), unlike
+    resolve_octo_wid_stage's pyodbc .Status/.CurrentStage attribute access."""
+    from unittest.mock import MagicMock
+
+    fake_cur = MagicMock()
+    fake_cur.fetchone.return_value = ("In Progress", "Validation")
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cur
+    eng = MagicMock()
+    eng.raw_connection.return_value = fake_conn
+    with app.app_context():
+        assert ws._resolve_octo_wid_stage_pg(eng, 42) == {
+            "status": "In Progress",
+            "current_stage": "Validation",
+        }
+    sql, params = fake_cur.execute.call_args[0]
+    assert '"t_WorkItems"' in sql
+    assert '"t_ActivityInstances"' in sql
+    assert 'twi."ID" = %s' in sql
+    assert params == [42]
+
+
+def test_resolve_octo_wid_stage_pg_returns_empty_when_not_found(app):
+    from unittest.mock import MagicMock
+
+    fake_cur = MagicMock()
+    fake_cur.fetchone.return_value = None
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cur
+    eng = MagicMock()
+    eng.raw_connection.return_value = fake_conn
+    with app.app_context():
+        assert ws._resolve_octo_wid_stage_pg(eng, 42) == {
+            "status": None,
+            "current_stage": None,
         }

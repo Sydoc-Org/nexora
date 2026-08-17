@@ -38,6 +38,10 @@ def _patch(monkeypatch, perms):
         lambda *a, **k: ([".jpg"], ["u0", "u1"], {"x": "y"}, [], TABLES),
     )
     monkeypatch.setattr(w, "has_permission", lambda code: code in perms)
+    # Orthogonal to these cell-suppression tests: the per-workitem (client,
+    # process) entitlement gate (#193) is granted here (its own tests live in
+    # tests/integration/test_workitem_detail_authz.py).
+    monkeypatch.setattr(w, "_may_view_workitem", lambda wid: True)
 
 
 # A dedicated workitem id no other test caches, so this file is immune to a

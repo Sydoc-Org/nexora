@@ -30,8 +30,13 @@ IF OBJECT_ID('dbo.ApiKeys', 'U') IS NOT NULL DROP TABLE dbo.ApiKeys;
 IF OBJECT_ID('dbo.UserPermissionOverride', 'U') IS NOT NULL DROP TABLE dbo.UserPermissionOverride;
 IF OBJECT_ID('dbo.AccessProfilePermission', 'U') IS NOT NULL DROP TABLE dbo.AccessProfilePermission;
 IF OBJECT_ID('dbo.ActiveSessions', 'U') IS NOT NULL DROP TABLE dbo.ActiveSessions;
--- User-referencing child tables that admin_delete_user cascades through (dropped
--- before Users because each carries an FK to dbo.Users).
+IF OBJECT_ID('dbo.MaintenanceBanner', 'U') IS NOT NULL DROP TABLE dbo.MaintenanceBanner;
+IF OBJECT_ID('dbo.WorkitemFilterViews', 'U') IS NOT NULL DROP TABLE dbo.WorkitemFilterViews;
+-- Legacy collaboration tables (chat/workitem-collaboration/notifications, removed from
+-- the app): CREATE TABLE + seed rows are gone for good, but these DROP-only guards stay
+-- so a TEST database created before commit 1d4a02a self-heals on the next reset instead
+-- of failing to drop dbo.Users on its now-orphaned FK. No-op once a machine's stale
+-- tables are gone.
 IF OBJECT_ID('dbo.Comment_Mentions', 'U') IS NOT NULL DROP TABLE dbo.Comment_Mentions;
 IF OBJECT_ID('dbo.Workitem_Comments', 'U') IS NOT NULL DROP TABLE dbo.Workitem_Comments;
 IF OBJECT_ID('dbo.Workitem_Metadata', 'U') IS NOT NULL DROP TABLE dbo.Workitem_Metadata;
@@ -64,8 +69,7 @@ GO
 CREATE TABLE dbo.Permission (
     PermissionID INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
     Code SYSNAME NOT NULL UNIQUE,
-    Description NVARCHAR(200) NOT NULL,
-    SortingCode nvarchar(50) NULL
+    Description NVARCHAR(200) NOT NULL
 );
 GO
 
@@ -81,7 +85,27 @@ CREATE TABLE dbo.Users (
     InitReset BIT NULL,
     twoFA BIT NULL,
     twoFASecret NVARCHAR(100) NULL,
-    locale NVARCHAR(3) NULL
+    locale NVARCHAR(3) NULL,
+    LastLoginAt DATETIME NULL,  -- migration 0049
+    ui_prefs NVARCHAR(500) NULL,  -- migration 0050
+    whats_new_seen_version NVARCHAR(32) NULL  -- migration 0061
+);
+GO
+
+-- Maintenance lockout/banner (read on every request; missing table fails the
+-- lockout lookup closed and 302s every login, breaking the whole suite).
+CREATE TABLE dbo.MaintenanceBanner (
+    ID INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    Title NVARCHAR(200) NULL,
+    Message NVARCHAR(2000) NOT NULL,
+    StartAt DATETIME2(7) NOT NULL,
+    EndAt DATETIME2(7) NOT NULL,
+    Severity VARCHAR(20) NOT NULL DEFAULT ('info'),
+    Active BIT NOT NULL DEFAULT ((1)),
+    BlockAccess BIT NOT NULL DEFAULT ((0)),
+    CreatedBy INT NULL,
+    CreatedAt DATETIME2(7) NOT NULL DEFAULT (getdate()),
+    AnnounceMinutesBefore INT NULL DEFAULT ((0))
 );
 GO
 
@@ -108,7 +132,8 @@ CREATE TABLE dbo.ActiveSessions (
     SessionID NVARCHAR(64) NOT NULL PRIMARY KEY,
     UserID INT NOT NULL,
     CreatedAt DATETIME NOT NULL DEFAULT (GETDATE()),
-    IPAddress NVARCHAR(45) NULL
+    IPAddress NVARCHAR(45) NULL,
+    LastSeenAt DATETIME NOT NULL DEFAULT (GETDATE())
 );
 GO
 
@@ -272,7 +297,8 @@ BEGIN
 END;
 GO
 
--- Canonical metrics registry (mirrors 0017_create_reporting_metrics.sql + 0039 label columns).
+-- Canonical metrics registry (mirrors 0017_create_reporting_metrics.sql + 0039 label
+-- columns + 0056 TotalMode).
 IF OBJECT_ID(N'dbo.ReportingMetrics', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.ReportingMetrics (
@@ -290,10 +316,13 @@ BEGIN
         Format       NVARCHAR(16) NULL,
         Enabled      BIT NOT NULL CONSTRAINT DF_ReportingMetrics_Enabled DEFAULT 1,
         SortOrder    INT NOT NULL CONSTRAINT DF_ReportingMetrics_SortOrder DEFAULT 100,
+        TotalMode    NVARCHAR(16) NOT NULL CONSTRAINT DF_ReportingMetrics_TotalMode DEFAULT 'sum',
         CreatedAt    DATETIME2 NOT NULL CONSTRAINT DF_ReportingMetrics_CreatedAt DEFAULT SYSUTCDATETIME(),
         UpdatedAt    DATETIME2 NOT NULL CONSTRAINT DF_ReportingMetrics_UpdatedAt DEFAULT SYSUTCDATETIME(),
         CONSTRAINT CK_ReportingMetrics_Aggregation
-            CHECK (Aggregation IN ('count','count_distinct','sum','avg','min','max'))
+            CHECK (Aggregation IN ('count','count_distinct','sum','avg','min','max')),
+        CONSTRAINT CK_ReportingMetrics_TotalMode
+            CHECK (TotalMode IN ('sum', 'latest'))
     );
 END;
 GO
@@ -335,103 +364,33 @@ BEGIN
 END;
 GO
 
--- ---------------------------------------------------------------------------
--- User-referencing child tables cascaded by admin_delete_user
--- (nx_lib/views/admin.py). Mirrors sql/NexoraDB/Tables/*.sql: only the columns
--- the delete statements + the delete-user integration tests touch are modelled,
--- and the Chat_Conversations FK on the Chat_* tables is omitted (that table is
--- out of scope for TEST). Users-FK ON DELETE actions mirror production so the
--- reset stays faithful. Without these tables the route dies on its first
--- `delete from tags` and never reaches the Users/reporting deletes under test.
--- ---------------------------------------------------------------------------
-IF OBJECT_ID(N'dbo.Tags', N'U') IS NULL
+-- Per-user saved workitem filter views (mirrors 0057_workitem_filter_views.sql)
+-- so the saved-views list/save/delete flow can be exercised in TEST.
+IF OBJECT_ID(N'dbo.WorkitemFilterViews', N'U') IS NULL
 BEGIN
-    CREATE TABLE dbo.Tags (
-        TagID           INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Tags PRIMARY KEY,
-        TagName         NVARCHAR(50) NOT NULL CONSTRAINT UQ_TagName UNIQUE,
-        TagColor        NVARCHAR(7) NOT NULL CONSTRAINT DF_Tags_TagColor DEFAULT '#6B7280',
-        CreatedByUserID INT NULL CONSTRAINT FK_Tags_Users
-                        FOREIGN KEY REFERENCES dbo.Users(userID) ON DELETE SET NULL,
-        CreatedAt       DATETIME2 NOT NULL CONSTRAINT DF_Tags_CreatedAt DEFAULT SYSUTCDATETIME()
+    CREATE TABLE dbo.WorkitemFilterViews (
+        ID         INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_WorkitemFilterViews PRIMARY KEY,
+        UserID     INT NOT NULL,
+        Name       NVARCHAR(100) NOT NULL,
+        Folder     NVARCHAR(100) NULL,  -- migration 0059 (#186)
+        FilterJSON NVARCHAR(MAX) NOT NULL,
+        SortOrder  INT NOT NULL CONSTRAINT DF_WorkitemFilterViews_SortOrder DEFAULT 0,
+        CreatedAt  DATETIME2 NOT NULL CONSTRAINT DF_WorkitemFilterViews_CreatedAt DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT FK_WorkitemFilterViews_Users FOREIGN KEY (UserID) REFERENCES dbo.Users(userID) ON DELETE CASCADE,
+        CONSTRAINT UQ_WorkitemFilterViews_User_Name UNIQUE (UserID, Name)
     );
 END;
 GO
 
-IF OBJECT_ID(N'dbo.Workitem_Metadata', N'U') IS NULL
+-- Durable per-account login lockout (mirrors 0062_login_lockout.sql) so the
+-- login flow can be exercised in TEST.
+IF OBJECT_ID(N'dbo.LoginLockout', N'U') IS NULL
 BEGIN
-    CREATE TABLE dbo.Workitem_Metadata (
-        MetadataID          INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Workitem_Metadata PRIMARY KEY,
-        WorkitemId          NVARCHAR(255) NOT NULL CONSTRAINT UQ_Workitem_Metadata_WorkitemId UNIQUE,
-        Priority            INT NULL,
-        LastUpdatedByUserID INT NULL CONSTRAINT FK_Workitem_Metadata_Users_LastUpd
-                            FOREIGN KEY REFERENCES dbo.Users(userID),
-        LastUpdatedAt       DATETIME NULL,
-        AssignedUserID      INT NULL CONSTRAINT FK_Workitem_Metadata_Users_Assigned
-                            FOREIGN KEY REFERENCES dbo.Users(userID)
-    );
-END;
-GO
-
-IF OBJECT_ID(N'dbo.Workitem_Comments', N'U') IS NULL
-BEGIN
-    CREATE TABLE dbo.Workitem_Comments (
-        CommentID   INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Workitem_Comments PRIMARY KEY,
-        WorkitemId  NVARCHAR(255) NOT NULL,
-        UserID      INT NULL CONSTRAINT FK_Workitem_Comments_Users
-                    FOREIGN KEY REFERENCES dbo.Users(userID),
-        CommentText NVARCHAR(MAX) NOT NULL,
-        Timestamp   DATETIME NULL
-    );
-END;
-GO
-
-IF OBJECT_ID(N'dbo.Comment_Mentions', N'U') IS NULL
-BEGIN
-    CREATE TABLE dbo.Comment_Mentions (
-        MentionID       INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Comment_Mentions PRIMARY KEY,
-        CommentID       INT NULL,
-        MentionedUserID INT NULL CONSTRAINT FK_Comment_Mentions_Users
-                        FOREIGN KEY REFERENCES dbo.Users(userID)
-    );
-END;
-GO
-
-IF OBJECT_ID(N'dbo.Notifications', N'U') IS NULL
-BEGIN
-    CREATE TABLE dbo.Notifications (
-        NotificationID INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Notifications PRIMARY KEY,
-        UserID         INT NOT NULL CONSTRAINT FK_Notifications_Users
-                       FOREIGN KEY REFERENCES dbo.Users(userID) ON DELETE CASCADE,
-        Message        NVARCHAR(512) NOT NULL,
-        Link           NVARCHAR(255) NULL,
-        Icon           NVARCHAR(50) NULL,
-        IsRead         BIT NOT NULL CONSTRAINT DF_Notifications_IsRead DEFAULT 0,
-        Timestamp      DATETIME2 NOT NULL CONSTRAINT DF_Notifications_Timestamp DEFAULT SYSUTCDATETIME()
-    );
-END;
-GO
-
-IF OBJECT_ID(N'dbo.Chat_Messages', N'U') IS NULL
-BEGIN
-    CREATE TABLE dbo.Chat_Messages (
-        MessageID      INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Chat_Messages PRIMARY KEY,
-        ConversationID INT NULL,
-        SenderID       INT NULL CONSTRAINT FK_Chat_Messages_Users
-                       FOREIGN KEY REFERENCES dbo.Users(userID),
-        MessageText    NVARCHAR(MAX) NULL,
-        Timestamp      DATETIME NULL,
-        IsRead         BIT NULL
-    );
-END;
-GO
-
-IF OBJECT_ID(N'dbo.Chat_Participants', N'U') IS NULL
-BEGIN
-    CREATE TABLE dbo.Chat_Participants (
-        ConversationID INT NOT NULL,
-        UserID         INT NOT NULL CONSTRAINT FK_Chat_Participants_Users
-                       FOREIGN KEY REFERENCES dbo.Users(userID),
-        CONSTRAINT PK_Chat_Participants PRIMARY KEY (ConversationID, UserID)
+    CREATE TABLE dbo.LoginLockout (
+        userid NVARCHAR(64) NOT NULL PRIMARY KEY,
+        failed_count INT NOT NULL DEFAULT 0,
+        locked_until DATETIME2 NULL,
+        updated_at DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
     );
 END;
 GO

@@ -113,7 +113,7 @@ def _group_by(columns, rows, by, agg):
         key = tuple(r[i] for i in by_idx)
         buckets.setdefault(key, []).append(r)
     result = []
-    for key in sorted(buckets, key=lambda k: tuple("" if v is None else v for v in k)):
+    for key in sorted(buckets, key=lambda k: tuple((v is None, str(v)) for v in k)):
         group_rows = buckets[key]
         values = {}
         for field, funcs in agg.items():
