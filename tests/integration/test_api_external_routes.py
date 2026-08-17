@@ -1515,3 +1515,319 @@ def test_test_workitems_fields_static_shape_no_backend(client, monkeypatch):
         assert body["fields"] and all(f == f.lower() for f in body["fields"])
     finally:
         _delete_key(key_hash)
+
+
+# ----------------------- hardening pass (2026-08-17) ----------------------- #
+# The endpoints are client-facing contract surface; these pin the corners the
+# feature tests above don't: the detail endpoint's multi-source resolution
+# loop, validation boundaries, parameter defaults, and response-shape locks.
+
+
+def _fake_page(rows=None):
+    return {
+        "workitems": rows or [],
+        "pagination": {"currentPage": 1, "totalPages": 0, "totalItems": 0, "perPage": 40},
+        "degradedSources": [],
+    }
+
+
+def test_workitem_detail_resolves_via_second_source_when_first_out_of_scope(client, monkeypatch):
+    # The scope-resolution loop must not stop at the first source that KNOWS
+    # the id -- only at the first whose (client, process) pair the key covers.
+    # Pins the colliding-id case: default owns the id under an ungranted
+    # process, ms02 owns it under the granted one.
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw, processes="pdbs.MS02Proc")
+    seen = {"pair_hints": [], "domain_hint": None}
+    pairs_by_hint = {"default": ("sydoc", "NotGranted"), "ms02": ("pdbs", "MS02Proc")}
+
+    def _fake_pair(wid, client_hint=None):
+        seen["pair_hints"].append(client_hint)
+        return pairs_by_hint.get(client_hint)
+
+    def _fake_domain(wid, client_hint=None):
+        seen["domain_hint"] = client_hint
+        return "octo.ms02"
+
+    monkeypatch.setattr(ax, "CLIENTS", {"default": object(), "ms02": object()})
+    monkeypatch.setattr(ax, "process_pair_for_workitem", _fake_pair)
+    monkeypatch.setattr(ax, "get_domain_for_workitem", _fake_domain)
+    monkeypatch.setattr(
+        ax,
+        "_load_media_info",
+        lambda wid, domain: {"fields": {"A": "1"}, "field_sources": [], "table_sources": []},
+    )
+    monkeypatch.setattr(ax, "get_sensitive_field_tokens", lambda: set())
+    try:
+        resp = client.get(WORKITEM_DETAIL_URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 200
+        assert seen["pair_hints"] == ["default", "ms02"]  # tried in registration order
+        assert seen["domain_hint"] == "ms02"  # media loaded from the WINNING source
+        assert resp.get_json() == {
+            "workitem_id": 1216,
+            "detail": {"fields": {"A": "1"}, "tables": []},
+        }
+    finally:
+        _delete_key(key_hash)
+
+
+def test_workitem_detail_prefers_default_source_on_full_collision(client, monkeypatch):
+    # A key covering BOTH sources of a colliding id gets the default-source
+    # document deterministically (registration order) -- documented edge.
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw, processes="sydoc.TestProc, pdbs.MS02Proc")
+    seen = {"domain_hint": None}
+    pairs_by_hint = {"default": ("sydoc", "TestProc"), "ms02": ("pdbs", "MS02Proc")}
+
+    def _fake_domain(wid, client_hint=None):
+        seen["domain_hint"] = client_hint
+        return "octo.default"
+
+    monkeypatch.setattr(ax, "CLIENTS", {"default": object(), "ms02": object()})
+    monkeypatch.setattr(
+        ax, "process_pair_for_workitem", lambda wid, client_hint=None: pairs_by_hint[client_hint]
+    )
+    monkeypatch.setattr(ax, "get_domain_for_workitem", _fake_domain)
+    monkeypatch.setattr(
+        ax,
+        "_load_media_info",
+        lambda wid, domain: {"fields": {}, "field_sources": [], "table_sources": []},
+    )
+    monkeypatch.setattr(ax, "get_sensitive_field_tokens", lambda: set())
+    try:
+        resp = client.get(WORKITEM_DETAIL_URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 200
+        assert seen["domain_hint"] == "default"
+    finally:
+        _delete_key(key_hash)
+
+
+def test_workitem_detail_dotless_process_scope_returns_404(client, monkeypatch):
+    # A ProcessList entry without a '.' can never form a (client, process)
+    # pair -- the key must resolve nothing rather than error.
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw, processes="NoDotProcess")
+    monkeypatch.setattr(
+        ax, "process_pair_for_workitem", lambda wid, client_hint=None: ("sydoc", "TestProc")
+    )
+    try:
+        resp = client.get(WORKITEM_DETAIL_URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 404
+        assert resp.get_json() == {"workitem_id": 1216, "detail": None}
+    finally:
+        _delete_key(key_hash)
+
+
+def test_workitem_detail_strips_all_sensitive_table_and_absent_tables(client, monkeypatch):
+    # _api_tables corners: a payload without table_sources answers tables=[],
+    # and a table whose every column is sensitive keeps its title but loses
+    # all columns and cell values.
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw, processes="sydoc.TestProc")
+    monkeypatch.setattr(
+        ax, "process_pair_for_workitem", lambda wid, client_hint=None: ("sydoc", "TestProc")
+    )
+    monkeypatch.setattr(ax, "get_domain_for_workitem", lambda wid, client_hint=None: "octo.test")
+    monkeypatch.setattr(ax, "get_sensitive_field_tokens", lambda: {"pid"})
+    payloads = [
+        {"fields": {"A": "1"}, "field_sources": []},  # no table_sources key at all
+        {
+            "fields": {"A": "1"},
+            "field_sources": [],
+            "table_sources": [
+                {
+                    "title": "Persons",
+                    "columns": ["PID"],
+                    "rows": [[{"col": "PID", "value": "756.1"}]],
+                }
+            ],
+        },
+    ]
+    expected_tables = [[], [{"title": "Persons", "columns": [], "rows": [[]]}]]
+    try:
+        for payload, tables in zip(payloads, expected_tables, strict=True):
+            monkeypatch.setattr(ax, "_load_media_info", lambda wid, domain, _p=payload: _p)
+            resp = client.get(WORKITEM_DETAIL_URL, headers={"Authorization": f"Bearer {raw}"})
+            assert resp.status_code == 200
+            assert resp.get_json()["detail"]["tables"] == tables
+    finally:
+        _delete_key(key_hash)
+
+
+def test_workitems_more_validation_corners_return_400(client, monkeypatch):
+    # Additions to the bad-params matrix: value without field, surplus
+    # op/comb entries, page/per_page corner values.
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+
+    def _must_not_be_called(*a, **kw):
+        raise AssertionError("_get_workitems_data must not run for an invalid request")
+
+    monkeypatch.setattr(ax, "_get_workitems_data", _must_not_be_called)
+    _patch_field_whitelist(monkeypatch)
+    bad = [
+        [("value", "x")],  # value without field
+        [("field", "invoicenr"), ("value", "x"), ("op", "eq"), ("op", "eq")],  # surplus op
+        [("field", "invoicenr"), ("value", "x"), ("comb", "and"), ("comb", "or")],  # surplus comb
+        [("page", "-1")],
+        [("page", "1.5")],
+        [("per_page", "0")],
+        [("per_page", "9999")],
+        [("field", "invoicenr"), ("value", "   ")],  # whitespace-only value
+    ]
+    try:
+        for qs in bad:
+            resp = client.get(
+                WORKITEMS_URL, headers={"Authorization": f"Bearer {raw}"}, query_string=qs
+            )
+            assert resp.status_code == 400, qs
+            assert "error" in resp.get_json(), qs
+    finally:
+        _delete_key(key_hash)
+
+
+def test_workitems_ten_pairs_is_accepted_and_eleven_is_not(client, monkeypatch):
+    # Boundary lock on WORKITEM_API_MAX_DOCFIELD_PAIRS.
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+    monkeypatch.setattr(ax, "_get_workitems_data", lambda args, scope=None: _fake_page())
+    monkeypatch.setattr(ax, "resolve_import_datetimes", lambda ids, procs, *, strict=False: {})
+    _patch_field_whitelist(monkeypatch)
+    try:
+        for n, expected in ((10, 200), (11, 400)):
+            qs = []
+            for i in range(n):
+                qs += [("field", "invoicenr"), ("value", f"v{i}")]
+            resp = client.get(
+                WORKITEMS_URL, headers={"Authorization": f"Bearer {raw}"}, query_string=qs
+            )
+            assert resp.status_code == expected, n
+    finally:
+        _delete_key(key_hash)
+
+
+def test_workitems_field_key_case_insensitive_and_value_case_preserved(client, monkeypatch):
+    # Field keys normalize to lowercase; the VALUE must pass through
+    # untouched (lowercasing it would break exact-match searches).
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+    seen = {}
+
+    def _fake_data(args, scope=None):
+        seen["args"] = args
+        return _fake_page()
+
+    monkeypatch.setattr(ax, "_get_workitems_data", _fake_data)
+    monkeypatch.setattr(ax, "resolve_import_datetimes", lambda ids, procs, *, strict=False: {})
+    _patch_field_whitelist(monkeypatch)
+    try:
+        resp = client.get(
+            WORKITEMS_URL,
+            headers={"Authorization": f"Bearer {raw}"},
+            query_string=[("field", "INVOICENR"), ("value", "  Inv-2026-X  ")],
+        )
+        assert resp.status_code == 200
+        assert seen["args"].getlist("docfield") == ["invoicenr"]
+        assert seen["args"].getlist("docvalue") == ["Inv-2026-X"]  # trimmed, case kept
+    finally:
+        _delete_key(key_hash)
+
+
+def test_workitems_omitted_op_and_comb_default_to_contains_and(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+    seen = {}
+
+    def _fake_data(args, scope=None):
+        seen["args"] = args
+        return _fake_page()
+
+    monkeypatch.setattr(ax, "_get_workitems_data", _fake_data)
+    monkeypatch.setattr(ax, "resolve_import_datetimes", lambda ids, procs, *, strict=False: {})
+    _patch_field_whitelist(monkeypatch)
+    try:
+        resp = client.get(
+            WORKITEMS_URL,
+            headers={"Authorization": f"Bearer {raw}"},
+            query_string=[
+                ("field", "invoicenr"),
+                ("value", "a"),
+                ("field", "invoicenr"),
+                ("value", "b"),
+            ],
+        )
+        assert resp.status_code == 200
+        assert seen["args"].getlist("docop") == ["contains", "contains"]
+        assert seen["args"].getlist("doccomb") == ["and", "and"]
+    finally:
+        _delete_key(key_hash)
+
+
+def test_workitems_workitem_id_maps_to_search_and_all_per_page_values_accepted(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+    seen = {}
+
+    def _fake_data(args, scope=None):
+        seen["args"] = args
+        return _fake_page()
+
+    monkeypatch.setattr(ax, "_get_workitems_data", _fake_data)
+    monkeypatch.setattr(ax, "resolve_import_datetimes", lambda ids, procs, *, strict=False: {})
+    _patch_field_whitelist(monkeypatch)
+    try:
+        resp = client.get(
+            WORKITEMS_URL,
+            headers={"Authorization": f"Bearer {raw}"},
+            query_string={"workitem_id": " 4711 "},
+        )
+        assert resp.status_code == 200
+        assert seen["args"].get("search") == "4711"
+        for pp in ax.WORKITEM_API_PER_PAGE:
+            resp = client.get(
+                WORKITEMS_URL,
+                headers={"Authorization": f"Bearer {raw}"},
+                query_string={"per_page": pp},
+            )
+            assert resp.status_code == 200, pp
+    finally:
+        _delete_key(key_hash)
+
+
+def test_workitems_process_list_tolerates_whitespace(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw, processes="sydoc.TestProc, sydoc.Other")
+    seen = {}
+
+    def _fake_data(args, scope=None):
+        seen["args"] = args
+        return _fake_page()
+
+    monkeypatch.setattr(ax, "_get_workitems_data", _fake_data)
+    monkeypatch.setattr(ax, "resolve_import_datetimes", lambda ids, procs, *, strict=False: {})
+    _patch_field_whitelist(monkeypatch)
+    try:
+        resp = client.get(
+            WORKITEMS_URL,
+            headers={"Authorization": f"Bearer {raw}"},
+            query_string={"process": " sydoc.TestProc , sydoc.Other "},
+        )
+        assert resp.status_code == 200
+        assert seen["args"].get("prcfW") == "sydoc.TestProc,sydoc.Other"
+    finally:
+        _delete_key(key_hash)
+
+
+def test_workitems_fields_sorted_and_stamps_last_used(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+    _patch_field_whitelist(
+        monkeypatch, columns=("col_zeta", "col_alpha", "col_mid"), sensitive=("mid",)
+    )
+    try:
+        resp = client.get(FIELDS_URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 200
+        assert resp.get_json() == {"fields": ["alpha", "zeta"]}  # sorted, sensitive dropped
+        assert _last_used(key_hash) is not None
+    finally:
+        _delete_key(key_hash)
