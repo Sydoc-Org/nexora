@@ -41,7 +41,7 @@ directly — only `-md` won't move your shell.
 > edit needed; if it finds none it tells you to run `bootstrap.ps1`.
 >
 > If `nx` reports `ModuleNotFoundError`, it is running against an interpreter
-> that was never synced. Run `uv sync --extra dev` in the repo root — that
+> that was never synced. Run `uv sync` in the repo root — that
 > populates `.venv`, which `nx` prefers. Do **not** hand-add packages to
 > `requirements.txt`: it is generated from `uv.lock`, so `uv sync` ignores it.
 > Declare the dep in `pyproject.toml` instead (enforced by

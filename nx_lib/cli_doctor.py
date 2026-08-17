@@ -546,7 +546,7 @@ def _check_git_hooks() -> list[CheckResult]:
             return CheckResult(
                 "git hooks",
                 "fail",
-                "pre-commit not in .venv and bootstrap.ps1 missing — run `uv sync --extra dev`",
+                "pre-commit not in .venv and bootstrap.ps1 missing — run `uv sync`",
             )
         cmd = [
             "powershell",

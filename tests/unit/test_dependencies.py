@@ -34,10 +34,9 @@ def _normalize(name: str) -> str:
 
 def _declared() -> set[str]:
     data = tomllib.loads((REPO / "pyproject.toml").read_text(encoding="utf-8"))
-    project = data["project"]
-    specs = list(project["dependencies"])
-    for extra in project.get("optional-dependencies", {}).values():
-        specs.extend(extra)
+    specs = list(data["project"]["dependencies"])
+    for group in data.get("dependency-groups", {}).values():
+        specs.extend(s for s in group if isinstance(s, str))  # skip include-group tables
     # keep the name only: "coverage[toml]==7.6.10" / "sqlglot>=30.8.0" -> name
     return {_normalize(re.split(r"[<>=!~\[;\s]", s, maxsplit=1)[0]) for s in specs}
 

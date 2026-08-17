@@ -45,7 +45,10 @@ dependencies = [
     "markdown-it-py==4.2.0",    # nx_lib/views/reporting.py
 ]
 
-[project.optional-dependencies]
+# PEP 735 dependency group, NOT an optional extra: bare `uv sync` installs it
+# by default, so a fresh clone needs no flags to get a fully working env
+# (runtime + tests + lint + hooks). CI/IIS use the exported requirements*.txt.
+[dependency-groups]
 dev = [
     "pytest==8.3.4",
     "pytest-html==4.1.1",

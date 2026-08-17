@@ -62,13 +62,12 @@ $uvVersion = (& uv --version 2>&1).ToString().Trim()
 Write-Host "==> uv: $uvVersion"
 
 # --- 3. Virtualenv + sync --------------------------------------------------
-# `uv sync --extra dev` creates .venv if missing and resolves from uv.lock,
-# including the dev group (pytest, ruff, mypy, playwright, pre-commit, ...).
-# Without --extra dev only runtime deps land, which would break the
-# Playwright install step and every later dev workflow.
-Write-Host "==> Syncing dependencies (uv sync --extra dev)"
-& uv sync --extra dev
-if ($LASTEXITCODE -ne 0) { throw "uv sync --extra dev failed (exit $LASTEXITCODE)" }
+# `uv sync` creates .venv if missing and resolves from uv.lock. Dev deps are a
+# PEP 735 dependency group (pytest, ruff, mypy, playwright, pre-commit, ...),
+# which bare `uv sync` installs by default — no flag needed.
+Write-Host "==> Syncing dependencies (uv sync)"
+& uv sync
+if ($LASTEXITCODE -ne 0) { throw "uv sync failed (exit $LASTEXITCODE)" }
 
 # --- 4. Playwright ---------------------------------------------------------
 Write-Host "==> Installing Playwright chromium (no-op if already present)"

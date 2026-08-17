@@ -8,6 +8,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Changed
+
+- **Dev setup is now bare `uv sync`** — dev dependencies moved from
+  `[project.optional-dependencies]` to a PEP 735 `[dependency-groups]` group,
+  which uv installs by default. `--extra dev` no longer exists (and now
+  errors); `bootstrap.ps1`, `nx --doctor`'s hint and the docs are updated.
+  `requirements-dev.txt` is likewise exported without flags now.
+
 ### Fixed
 
 - **A fresh clone could not run the app or the `nx` CLI** — `ModuleNotFoundError`
