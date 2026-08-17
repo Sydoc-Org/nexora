@@ -16,12 +16,6 @@ query/detail data shared with the Workitems overview page
 `nx_lib/views/workitems.py`), table created by
 `sql/_migrations/NexoraDB/0038_create_api_keys.sql`.
 
-`GET /api/v1/stats/today` also still exists in code (and its
-`/api/test/v1/...` twin) but is undocumented on purpose (#181): it was the
-first endpoint, built to scaffold the auth/routing structure before
-`/backlog` shipped as the actual first client-facing endpoint (#158) — never
-meant for clients to call.
-
 ## Base URLs
 
 | Environment | Base URL |
@@ -189,7 +183,9 @@ Doc-field filters repeat in parallel: each `field`+`value` pair may carry an
 `op` (`contains` default, `ncontains`, `eq`, `neq`, `startswith`,
 `endswith`) and a `comb` (`and` default, `or`) joining it to the pairs
 before it — at most **10 pairs** per request (`400` beyond). Field keys are
-the overview page's document-field names (`invoicenr`, …); an unknown — or
+written **lowercase with no separators** (`invoicenr`, `esrreference`,
+`grossamount`, `validationuser`, …) — fetch the full live list from
+`GET /api/v1/workitems/fields` below; an unknown — or
 sensitive — field key returns `400 {"error": "Unknown field '...'"}`
 (sensitive doc-fields are never queryable with an API key). The `LIKE`-family ops treat `%` and `_` in the
 value as SQL wildcards (historical overview behaviour). Matches honour the
@@ -208,6 +204,24 @@ partial page; a failing doc-field resolution instead fails **closed** to
 zero matching rows (same guard as the overview), and a failed load of the
 sensitive-field list also answers `500` on both workitem endpoints — this
 surface never degrades to serving unfiltered data. Not cached.
+
+## GET /api/v1/workitems/fields
+
+The **discovery** endpoint for the query above: the field keys `?field=`
+accepts, as the server resolves them right now. No parameters:
+
+    curl -H "Authorization: Bearer <key>" \
+        "https://nexora.sydoc.ch/nexora/api/v1/workitems/fields"
+
+    {
+      "fields": ["archiveboxno", "bankpk", "branch", "…", "invoicenr", "…"]
+    }
+
+Keys are lowercase with no separators. The list is config-driven (the
+searchable columns the Workitems overview offers, **minus sensitive
+fields**), so prefer fetching it over hard-coding — a key absent here
+answers `400 Unknown field` on `/workitems`. A failed config lookup returns
+`500` (fail closed), never a partial list. Not cached.
 
 ## GET /api/v1/workitems/&lt;id&gt;
 

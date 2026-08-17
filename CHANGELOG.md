@@ -8,6 +8,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Added
+
+- `GET /api/v1/workitems/fields` (and its `/api/test/v1` twin): discovery
+  endpoint listing the field keys `/api/v1/workitems` accepts in `?field=`
+  (the searchable overview columns minus sensitive fields). Docs and the
+  in-app API docs page now state the key-naming rule (lowercase, no
+  separators) and point at it.
+
 ### Changed
 
 - `GET /api/v1/avg_processing_time` (and its `/api/test/v1` twin) no longer

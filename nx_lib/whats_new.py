@@ -139,7 +139,7 @@ RELEASES = [
             {
                 "title": _("API documentation in the app"),
                 "body": _(
-                    "The external API is now documented on the new API Docs page — "
+                    "The external API is now documented on the new API Documentation page — "
                     "authentication, endpoints and copyable examples included. "
                     "Every endpoint also has a test twin — same address and shape, "
                     "fake data — so you can integrate without touching production."

@@ -1393,3 +1393,60 @@ def test_test_undelivered_validates_days_like_the_real_endpoint(client):
         assert resp.get_json() == {"error": "days must be 7 or 10"}
     finally:
         _delete_key(key_hash)
+
+
+# ------------------------ /api/v1/workitems/fields ------------------------- #
+
+FIELDS_URL = "/api/v1/workitems/fields"
+TEST_FIELDS_URL = "/api/test/v1/workitems/fields"
+
+
+def test_workitems_fields_lists_keys_minus_sensitive(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+    _patch_field_whitelist(
+        monkeypatch, columns=("col_invoicenr", "col_pid", "col_doctype"), sensitive=("pid",)
+    )
+    try:
+        resp = client.get(FIELDS_URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 200
+        assert resp.get_json() == {"fields": ["doctype", "invoicenr"]}
+    finally:
+        _delete_key(key_hash)
+
+
+def test_workitems_fields_fails_closed_on_lookup_errors(client, monkeypatch):
+    # BOTH error fallbacks answer 500: sensitive-list None AND the [] error
+    # fallback of get_valid_search_columns -- never an empty/unstripped list.
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+    try:
+        _patch_field_whitelist(monkeypatch, columns=("col_invoicenr",))
+        monkeypatch.setattr(ax, "get_sensitive_field_keys", lambda: None)
+        resp = client.get(FIELDS_URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 500
+        assert resp.get_json() == {"error": "Workitems backend unavailable"}
+        _patch_field_whitelist(monkeypatch, columns=())
+        resp = client.get(FIELDS_URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 500
+        assert resp.get_json() == {"error": "Workitems backend unavailable"}
+    finally:
+        _delete_key(key_hash)
+
+
+def test_test_workitems_fields_static_shape_no_backend(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+
+    def _must_not_be_called(*a, **kw):
+        raise AssertionError("sandbox must not query SearchConfig")
+
+    monkeypatch.setattr(ax, "get_valid_search_columns", _must_not_be_called)
+    monkeypatch.setattr(ax, "get_sensitive_field_keys", _must_not_be_called)
+    try:
+        resp = client.get(TEST_FIELDS_URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert body["fields"] and all(f == f.lower() for f in body["fields"])
+    finally:
+        _delete_key(key_hash)

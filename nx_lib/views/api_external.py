@@ -1,6 +1,6 @@
 """External machine-to-machine JSON API, version 1.
 
-Six endpoints in v1:
+Seven endpoints in v1:
 - GET /api/v1/stats/today -- the dashboard's imported/processed "today" KPI
   numbers for the API key's process scope (dbo.ApiKeys.ProcessList).
 - GET /api/v1/backlog -- the dashboard's "Current Backlog" KPI number for the
@@ -25,6 +25,10 @@ Six endpoints in v1:
   status, stage, modified_at and import_datetime (Statconfig lookup,
   default client only) -- superseding issue #195's dedicated
   /invoice/import_datetime endpoint, which never shipped.
+- GET /api/v1/workitems/fields -- DISCOVERY for the query endpoint: the
+  field keys /workitems accepts in ?field= (SearchConfig's col_* columns,
+  lowercased with the col_ prefix stripped), sensitive keys excluded. The
+  live list, so integrators don't depend on a hand-maintained doc table.
 - GET /api/v1/workitems/<id> -- the DETAIL endpoint (issue #197): document
   details (extracted fields + table values) for one workitem, the same data
   the overview row-expand shows (no media/confidence/locations). ?client=
@@ -400,6 +404,23 @@ def api_v1_workitems():
     )
 
 
+@limiter.limit("60 per minute")
+@require_api_key
+def api_v1_workitems_fields():
+    # Queryable field keys for /workitems: SearchConfig's col_* columns minus
+    # the sensitive set. Fail CLOSED on either lookup failing (module
+    # docstring) -- [] from get_valid_search_columns is its error fallback,
+    # never a real config state (the table always has col_* columns).
+    blocked_keys = get_sensitive_field_keys()
+    valid_columns = get_valid_search_columns()
+    if blocked_keys is None or not valid_columns:
+        return jsonify({"error": "Workitems backend unavailable"}), 500
+    fields = sorted(
+        key for key in (c.removeprefix("col_") for c in valid_columns) if key not in blocked_keys
+    )
+    return jsonify({"fields": fields})
+
+
 def _api_tables(table_sources, blocked_tokens):
     """Reduce the detail panel's table_sources to plain value tables for the
     external API: locations/confidence dropped, and any column whose
@@ -562,6 +583,16 @@ def api_test_v1_workitems():
 
 @limiter.limit("60 per minute")
 @require_api_key
+def api_test_v1_workitems_fields():
+    # Fixed plausible list in the real shape -- the sandbox stays
+    # zero-backend-query, so no live SearchConfig read here.
+    return jsonify(
+        {"fields": ["docdate", "doctype", "grossamount", "invoicenr", "ordernumber", "recipient"]}
+    )
+
+
+@limiter.limit("60 per minute")
+@require_api_key
 def api_test_v1_workitem_detail(workitem_id):
     # Same ?client= validation as the real endpoint; a plausible fake document
     # (fields + one table) in the real shape, no backend queries.
@@ -627,6 +658,11 @@ def register_routes(app):
         view_func=api_v1_workitems,
     )
     app.add_url_rule(
+        "/api/v1/workitems/fields",
+        endpoint="api_v1_workitems_fields",
+        view_func=api_v1_workitems_fields,
+    )
+    app.add_url_rule(
         "/api/v1/workitems/<int:workitem_id>",
         endpoint="api_v1_workitem_detail",
         view_func=api_v1_workitem_detail,
@@ -655,6 +691,11 @@ def register_routes(app):
         "/api/test/v1/workitems",
         endpoint="api_test_v1_workitems",
         view_func=api_test_v1_workitems,
+    )
+    app.add_url_rule(
+        "/api/test/v1/workitems/fields",
+        endpoint="api_test_v1_workitems_fields",
+        view_func=api_test_v1_workitems_fields,
     )
     app.add_url_rule(
         "/api/test/v1/workitems/<int:workitem_id>",

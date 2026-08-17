@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-11 12:12+0200\n"
+"POT-Creation-Date: 2026-08-17 07:39+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -174,15 +174,16 @@ msgstr "API-Dokumentation in der App"
 
 #: nx_lib/whats_new.py:142
 msgid ""
-"The external API is now documented on the new API Docs page — "
+"The external API is now documented on the new API Documentation page — "
 "authentication, endpoints and copyable examples included. Every endpoint "
 "also has a test twin — same address and shape, fake data — so you can "
 "integrate without touching production."
 msgstr ""
-"Die externe API ist jetzt auf der neuen Seite „API-Doku“ dokumentiert — "
-"inklusive Authentifizierung, Endpunkten und kopierbaren Beispielen. Jeder"
-" Endpunkt hat außerdem einen Test-Zwilling — gleiche Adresse und "
-"Struktur, Fake-Daten — für Integrationen ohne Produktionsdaten."
+"Die externe API ist jetzt auf der neuen Seite „API-Dokumentation“ "
+"dokumentiert — inklusive Authentifizierung, Endpunkten und kopierbaren "
+"Beispielen. Jeder Endpunkt hat außerdem einen Test-Zwilling — gleiche "
+"Adresse und Struktur, Fake-Daten — für Integrationen ohne "
+"Produktionsdaten."
 
 #: nx_lib/whats_new.py:152
 msgid "System status at a glance for admins"
@@ -1189,7 +1190,7 @@ msgstr "Protokolle"
 
 #: templates/_header.html:223 templates/admin/logs.html:64
 #: templates/admin/logs.html:97 templates/admin/user_detail.html:226
-#: templates/api_docs.html:181 templates/appearance.html:355
+#: templates/api_docs.html:184 templates/appearance.html:355
 #: templates/archive/invoices.html:78 templates/archive/invoices.html:123
 #: templates/generali_importstatus.html:48
 #: templates/generali_importstatus.html:108
@@ -1206,9 +1207,9 @@ msgstr "Wartung"
 msgid "Development"
 msgstr "Entwicklung"
 
-#: templates/_header.html:249
-msgid "API Docs"
-msgstr "API-Doku"
+#: templates/_header.html:249 templates/api_docs.html:74
+msgid "API Documentation"
+msgstr "API-Dokumentation"
 
 #: templates/_header.html:256 templates/_header.html:284
 #: templates/appearance.html:324 templates/dashboard.html:26
@@ -1767,14 +1768,15 @@ msgid "Query sent to the database"
 msgstr "An die Datenbank gesendete Abfrage"
 
 #: templates/_reporting_simple.html:244 templates/admin/logs.html:133
-#: templates/api_docs.html:141 templates/api_docs.html:147
-#: templates/api_docs.html:161 templates/api_docs.html:207
-#: templates/api_docs.html:213 templates/api_docs.html:238
-#: templates/api_docs.html:244 templates/api_docs.html:280
-#: templates/api_docs.html:286 templates/api_docs.html:311
-#: templates/api_docs.html:317 templates/api_docs.html:359
-#: templates/api_docs.html:365 templates/api_docs.html:411
-#: templates/api_docs.html:417 templates/reporting.html:356
+#: templates/api_docs.html:144 templates/api_docs.html:150
+#: templates/api_docs.html:164 templates/api_docs.html:210
+#: templates/api_docs.html:216 templates/api_docs.html:241
+#: templates/api_docs.html:247 templates/api_docs.html:283
+#: templates/api_docs.html:289 templates/api_docs.html:314
+#: templates/api_docs.html:320 templates/api_docs.html:362
+#: templates/api_docs.html:368 templates/api_docs.html:382
+#: templates/api_docs.html:388 templates/api_docs.html:434
+#: templates/api_docs.html:440 templates/reporting.html:356
 msgid "Copy"
 msgstr "Kopieren"
 
@@ -1802,10 +1804,6 @@ msgstr "Kontakt"
 msgid "API Documentation - nexora"
 msgstr "API-Dokumentation - nexora"
 
-#: templates/api_docs.html:74
-msgid "API Documentation"
-msgstr "API-Dokumentation"
-
 #: templates/api_docs.html:75
 msgid "Reference for the nexora machine-to-machine API (v1)."
 msgstr "Referenz für die nexora Machine-to-Machine-API (v1)."
@@ -1818,11 +1816,11 @@ msgstr "Abschnitte der API-Dokumentation"
 msgid "Guide"
 msgstr "Leitfaden"
 
-#: templates/api_docs.html:86 templates/api_docs.html:122
+#: templates/api_docs.html:86 templates/api_docs.html:125
 msgid "Getting Started"
 msgstr "Erste Schritte"
 
-#: templates/api_docs.html:89 templates/api_docs.html:158
+#: templates/api_docs.html:89 templates/api_docs.html:161
 msgid "Authentication"
 msgstr "Authentifizierung"
 
@@ -1834,16 +1832,16 @@ msgstr "Fehler & Rate-Limits"
 msgid "Endpoints"
 msgstr "Endpunkte"
 
-#: templates/api_docs.html:112 templates/api_docs.html:131
-#: templates/api_docs.html:407
+#: templates/api_docs.html:115 templates/api_docs.html:134
+#: templates/api_docs.html:430
 msgid "Test sandbox"
 msgstr "Test-Sandbox"
 
-#: templates/api_docs.html:114
+#: templates/api_docs.html:117
 msgid "api/test/v1"
 msgstr "api/test/v1"
 
-#: templates/api_docs.html:123
+#: templates/api_docs.html:126
 msgid ""
 "The nexora external API is a read-only JSON API for machine-to-machine "
 "integrations, authenticated with per-client API keys. All endpoints live "
@@ -1854,19 +1852,19 @@ msgstr ""
 "Alle Endpunkte liegen unter der v1-Basis-URL und beantworten "
 "ausschliesslich GET-Anfragen."
 
-#: templates/api_docs.html:125
+#: templates/api_docs.html:128
 msgid "Base URLs"
 msgstr "Basis-URLs"
 
-#: templates/api_docs.html:128
+#: templates/api_docs.html:131
 msgid "Environment"
 msgstr "Umgebung"
 
-#: templates/api_docs.html:128
+#: templates/api_docs.html:131
 msgid "Base URL"
 msgstr "Basis-URL"
 
-#: templates/api_docs.html:135
+#: templates/api_docs.html:138
 msgid ""
 "The test sandbox accepts the same API key as the production base URL and "
 "answers in the same shape, but with random numbers — safe to hit while "
@@ -1877,11 +1875,11 @@ msgstr ""
 "gefahrlos nutzbar, während Sie Ihre Integration aufbauen. Details im "
 "Abschnitt api/test/v1."
 
-#: templates/api_docs.html:137
+#: templates/api_docs.html:140
 msgid "Quick start"
 msgstr "Schnellstart"
 
-#: templates/api_docs.html:138
+#: templates/api_docs.html:141
 msgid ""
 "One header, one GET — with an API key in hand, this is the whole "
 "integration:"
@@ -1889,25 +1887,26 @@ msgstr ""
 "Ein Header, ein GET — mit einem API-Schlüssel ist das die ganze "
 "Integration:"
 
-#: templates/api_docs.html:141 templates/api_docs.html:147
-#: templates/api_docs.html:161 templates/api_docs.html:207
-#: templates/api_docs.html:213 templates/api_docs.html:238
-#: templates/api_docs.html:244 templates/api_docs.html:280
-#: templates/api_docs.html:286 templates/api_docs.html:311
-#: templates/api_docs.html:317 templates/api_docs.html:359
-#: templates/api_docs.html:365 templates/api_docs.html:411
-#: templates/api_docs.html:417
+#: templates/api_docs.html:144 templates/api_docs.html:150
+#: templates/api_docs.html:164 templates/api_docs.html:210
+#: templates/api_docs.html:216 templates/api_docs.html:241
+#: templates/api_docs.html:247 templates/api_docs.html:283
+#: templates/api_docs.html:289 templates/api_docs.html:314
+#: templates/api_docs.html:320 templates/api_docs.html:362
+#: templates/api_docs.html:368 templates/api_docs.html:382
+#: templates/api_docs.html:388 templates/api_docs.html:434
+#: templates/api_docs.html:440
 msgid "Copy code"
 msgstr "Code kopieren"
 
-#: templates/api_docs.html:146 templates/api_docs.html:212
-#: templates/api_docs.html:243 templates/api_docs.html:285
-#: templates/api_docs.html:316 templates/api_docs.html:364
-#: templates/api_docs.html:416
+#: templates/api_docs.html:149 templates/api_docs.html:215
+#: templates/api_docs.html:246 templates/api_docs.html:288
+#: templates/api_docs.html:319 templates/api_docs.html:367
+#: templates/api_docs.html:387 templates/api_docs.html:439
 msgid "response"
 msgstr "Antwort"
 
-#: templates/api_docs.html:153
+#: templates/api_docs.html:156
 msgid ""
 "In PowerShell use curl.exe — bare curl is an alias for Invoke-WebRequest,"
 " which spells the header differently. No key or a wrong key returns"
@@ -1916,11 +1915,11 @@ msgstr ""
 "WebRequest, das den Header anders schreibt. Ohne oder mit falschem "
 "Schlüssel kommt"
 
-#: templates/api_docs.html:159
+#: templates/api_docs.html:162
 msgid "Send your API key as a Bearer token on every request:"
 msgstr "Den API-Schlüssel bei jeder Anfrage als Bearer-Token mitsenden:"
 
-#: templates/api_docs.html:165
+#: templates/api_docs.html:168
 msgid ""
 "Keys are issued per client by the Sydoc team. Each key carries a process "
 "scope: it only ever sees the numbers of the processes it was issued for. "
@@ -1933,19 +1932,19 @@ msgstr ""
 " Kanal übergeben und ist danach nicht wiederherstellbar — sicher "
 "aufbewahren."
 
-#: templates/api_docs.html:166
+#: templates/api_docs.html:169
 msgid "Key lifecycle"
 msgstr "Schlüssel-Lebenszyklus"
 
-#: templates/api_docs.html:168
+#: templates/api_docs.html:171
 msgid "Keys do not expire on their own; they stay valid until revoked."
 msgstr "Schlüssel laufen nicht von selbst ab; sie bleiben bis zum Widerruf gültig."
 
-#: templates/api_docs.html:169
+#: templates/api_docs.html:172
 msgid "Revocation is effective immediately on the next request."
 msgstr "Ein Widerruf wirkt sofort ab der nächsten Anfrage."
 
-#: templates/api_docs.html:170
+#: templates/api_docs.html:173
 msgid ""
 "A revoked or unknown key answers a uniform 401 — deliberately "
 "indistinguishable, so a leaked key confirms nothing."
@@ -1953,7 +1952,7 @@ msgstr ""
 "Ein widerrufener oder unbekannter Schlüssel erhält ein einheitliches 401 "
 "— bewusst ununterscheidbar, damit ein geleakter Schlüssel nichts verrät."
 
-#: templates/api_docs.html:171
+#: templates/api_docs.html:174
 msgid ""
 "Rotation: request a new key from the Sydoc team, switch your integration,"
 " then the old key is disabled."
@@ -1961,11 +1960,11 @@ msgstr ""
 "Rotation: neuen Schlüssel beim Sydoc-Team anfordern, Integration "
 "umstellen, dann wird der alte Schlüssel deaktiviert."
 
-#: templates/api_docs.html:177
+#: templates/api_docs.html:180
 msgid "Errors"
 msgstr "Fehler"
 
-#: templates/api_docs.html:178
+#: templates/api_docs.html:181
 msgid ""
 "Errors are JSON unless noted. The body always carries an English error "
 "string — the API is not localized."
@@ -1973,40 +1972,40 @@ msgstr ""
 "Fehler sind JSON, sofern nicht anders vermerkt. Der Body enthält immer "
 "einen englischen Fehlertext — die API ist nicht lokalisiert."
 
-#: templates/api_docs.html:181
+#: templates/api_docs.html:184
 msgid "Body"
 msgstr "Body"
 
-#: templates/api_docs.html:181 templates/api_docs.html:222
-#: templates/api_docs.html:254 templates/api_docs.html:263
-#: templates/api_docs.html:295 templates/api_docs.html:338
-#: templates/api_docs.html:394
+#: templates/api_docs.html:184 templates/api_docs.html:225
+#: templates/api_docs.html:257 templates/api_docs.html:266
+#: templates/api_docs.html:298 templates/api_docs.html:341
+#: templates/api_docs.html:417
 msgid "Meaning"
 msgstr "Bedeutung"
 
-#: templates/api_docs.html:183
+#: templates/api_docs.html:186
 msgid "/undelivered called with a missing or invalid days param"
 msgstr "/undelivered wurde ohne oder mit ungültigem days-Parameter aufgerufen"
 
-#: templates/api_docs.html:184
+#: templates/api_docs.html:187
 msgid "/workitems called with an invalid filter param (the message names it)"
 msgstr ""
 "/workitems mit einem ungültigen Filterparameter aufgerufen (die Meldung "
 "benennt ihn)"
 
-#: templates/api_docs.html:185
+#: templates/api_docs.html:188
 msgid "Missing or malformed Authorization: Bearer header"
 msgstr "Fehlender oder fehlerhafter Authorization: Bearer Header"
 
-#: templates/api_docs.html:186
+#: templates/api_docs.html:189
 msgid "Unknown or disabled key (uniform on purpose)"
 msgstr "Unbekannter oder deaktivierter Schlüssel (absichtlich einheitlich)"
 
-#: templates/api_docs.html:187
+#: templates/api_docs.html:190
 msgid "Wrong path under"
 msgstr "Falscher Pfad unter"
 
-#: templates/api_docs.html:188
+#: templates/api_docs.html:191
 msgid ""
 "Workitem unknown, outside your key's scope, or its document is currently "
 "unloadable (uniform on purpose)"
@@ -2014,35 +2013,35 @@ msgstr ""
 "Workitem unbekannt, außerhalb des Umfangs Ihres Schlüssels, oder sein "
 "Dokument ist gerade nicht ladbar (absichtlich einheitlich)"
 
-#: templates/api_docs.html:189 templates/api_docs.html:190
+#: templates/api_docs.html:192 templates/api_docs.html:193
 msgid "HTML"
 msgstr "HTML"
 
-#: templates/api_docs.html:189
+#: templates/api_docs.html:192
 msgid "Non-GET verb — the API is GET-only"
 msgstr "Nicht-GET-Verb — die API ist GET-only"
 
-#: templates/api_docs.html:190
+#: templates/api_docs.html:193
 msgid "Over the rate limit"
 msgstr "Rate-Limit überschritten"
 
-#: templates/api_docs.html:191
+#: templates/api_docs.html:194
 msgid "Backend or server failure"
 msgstr "Backend- oder Serverfehler"
 
-#: templates/api_docs.html:192
+#: templates/api_docs.html:195
 msgid "Auth database unreachable (fail closed)"
 msgstr "Auth-Datenbank nicht erreichbar (fail closed)"
 
-#: templates/api_docs.html:193
+#: templates/api_docs.html:196
 msgid "Blocking maintenance window"
 msgstr "Blockierendes Wartungsfenster"
 
-#: templates/api_docs.html:197
+#: templates/api_docs.html:200
 msgid "Rate limit"
 msgstr "Rate-Limit"
 
-#: templates/api_docs.html:198
+#: templates/api_docs.html:201
 msgid ""
 "60 requests per minute per source IP, checked before authentication. "
 "Exceeding it returns HTTP 429; back off and retry after the minute "
@@ -2052,7 +2051,7 @@ msgstr ""
 "Bei Überschreitung kommt HTTP 429; warten und nach dem Minutenfenster "
 "erneut versuchen."
 
-#: templates/api_docs.html:204
+#: templates/api_docs.html:207
 msgid ""
 "The current backlog count for your key's processes — the same number as "
 "the nexora dashboard's \"Current Backlog\" KPI tile."
@@ -2060,42 +2059,42 @@ msgstr ""
 "Der aktuelle Backlog-Stand für die Prozesse des Schlüssels — dieselbe "
 "Zahl wie die \"Current Backlog\"-KPI-Kachel des nexora-Dashboards."
 
-#: templates/api_docs.html:219 templates/api_docs.html:260
-#: templates/api_docs.html:292 templates/api_docs.html:391
+#: templates/api_docs.html:222 templates/api_docs.html:263
+#: templates/api_docs.html:295 templates/api_docs.html:414
 msgid "Response fields"
 msgstr "Antwortfelder"
 
-#: templates/api_docs.html:222 templates/api_docs.html:263
-#: templates/api_docs.html:295 templates/api_docs.html:394
+#: templates/api_docs.html:225 templates/api_docs.html:266
+#: templates/api_docs.html:298 templates/api_docs.html:417
 #: templates/js/_reporting_dashboard_js.html:76
 msgid "Field"
 msgstr "Feld"
 
-#: templates/api_docs.html:222 templates/api_docs.html:254
-#: templates/api_docs.html:263 templates/api_docs.html:295
-#: templates/api_docs.html:394 templates/generali_documents.html:226
+#: templates/api_docs.html:225 templates/api_docs.html:257
+#: templates/api_docs.html:266 templates/api_docs.html:298
+#: templates/api_docs.html:417 templates/generali_documents.html:226
 #: templates/js/_reporting_viz_js.html:166
 msgid "Type"
 msgstr "Typ"
 
-#: templates/api_docs.html:224
+#: templates/api_docs.html:227
 msgid "Server-local timestamp of the count (YYYY-MM-DD HH:MM)"
 msgstr "Server-lokaler Zeitstempel der Zählung (YYYY-MM-DD HH:MM)"
 
-#: templates/api_docs.html:225
+#: templates/api_docs.html:228
 msgid "Workitems currently in the backlog across your key's processes"
 msgstr "Workitems, die aktuell im Backlog der Prozesse des Schlüssels liegen"
 
-#: templates/api_docs.html:229 templates/api_docs.html:271
-#: templates/api_docs.html:302
+#: templates/api_docs.html:232 templates/api_docs.html:274
+#: templates/api_docs.html:305
 msgid ""
-"Unlike stats/today, the response does not echo the process list — scoping"
-" happens at key issuance."
+"The response does not echo the process list — scoping happens at key "
+"issuance."
 msgstr ""
-"Anders als stats/today gibt die Antwort die Prozessliste nicht zurück — "
-"der Scope wird bei der Schlüsselausgabe festgelegt."
+"Die Antwort gibt die Prozessliste nicht zurück — der Scope wird bei der "
+"Schlüsselausgabe festgelegt."
 
-#: templates/api_docs.html:235
+#: templates/api_docs.html:238
 msgid ""
 "The number of workitems not delivered yet: imported within the last days-"
 "param days but with no export date so far, scoped to your key's "
@@ -2105,15 +2104,15 @@ msgstr ""
 " days-Parameter-Tage importiert, aber bisher ohne Exportdatum, beschränkt"
 " auf die Prozesse Ihres Schlüssels."
 
-#: templates/api_docs.html:251 templates/api_docs.html:335
+#: templates/api_docs.html:254 templates/api_docs.html:338
 msgid "Query parameters"
 msgstr "Query-Parameter"
 
-#: templates/api_docs.html:254 templates/api_docs.html:338
+#: templates/api_docs.html:257 templates/api_docs.html:341
 msgid "Param"
 msgstr "Parameter"
 
-#: templates/api_docs.html:256
+#: templates/api_docs.html:259
 msgid ""
 "Required. The import window in calendar days, counted back from today "
 "inclusive. Only 7 or 10 is accepted — anything else returns a 400."
@@ -2122,23 +2121,23 @@ msgstr ""
 "gezählt (einschließlich). Nur 7 oder 10 wird akzeptiert — alles andere "
 "liefert einen 400."
 
-#: templates/api_docs.html:265
+#: templates/api_docs.html:268
 msgid "Server-local calendar date the counts refer to (ISO 8601)"
 msgstr "Server-lokales Kalenderdatum, auf das sich die Zahlen beziehen (ISO 8601)"
 
-#: templates/api_docs.html:266
+#: templates/api_docs.html:269
 msgid "The window you asked for, echoed back"
 msgstr "Das angefragte Fenster, zur Kontrolle zurückgegeben"
 
-#: templates/api_docs.html:267
+#: templates/api_docs.html:270
 msgid "Workitems imported in the window that have no export date yet"
 msgstr "Im Fenster importierte Workitems, die noch kein Exportdatum haben"
 
-#: templates/api_docs.html:271
+#: templates/api_docs.html:274
 msgid "Responses are computed fresh on every call — there is no cache."
 msgstr "Antworten werden bei jedem Aufruf frisch berechnet — es gibt keinen Cache."
 
-#: templates/api_docs.html:277
+#: templates/api_docs.html:280
 msgid ""
 "The average processing time for your key's processes — the same number as"
 " the nexora dashboard's \"Avg Processing Time\" KPI tile."
@@ -2147,7 +2146,7 @@ msgstr ""
 " dieselbe Zahl wie die \"Avg Processing Time\"-KPI-Kachel des nexora-"
 "Dashboards."
 
-#: templates/api_docs.html:297
+#: templates/api_docs.html:300
 msgid ""
 "Average minutes between import and export among rows exported today, "
 "rounded to 1 decimal. null if no matching rows exist yet today."
@@ -2156,7 +2155,7 @@ msgstr ""
 "exportierten Zeilen, auf 1 Dezimalstelle gerundet. null, wenn heute noch "
 "keine passenden Zeilen vorliegen."
 
-#: templates/api_docs.html:298
+#: templates/api_docs.html:301
 msgid ""
 "Same figure pre-formatted: seconds under a minute, minutes under an hour,"
 " hours above — or \"—\" when null."
@@ -2164,7 +2163,7 @@ msgstr ""
 "Dieselbe Zahl vorformatiert: Sekunden unter einer Minute, Minuten unter "
 "einer Stunde, Stunden darüber — oder \"—\" bei null."
 
-#: templates/api_docs.html:302
+#: templates/api_docs.html:305
 msgid ""
 "Calculation: for each configured process/table, the average seconds "
 "between import and export among rows exported today; the per-source "
@@ -2179,7 +2178,7 @@ msgstr ""
 "Zeilenanzahl je Quelle. Antworten werden bei jedem Aufruf frisch "
 "berechnet — es gibt keinen Cache."
 
-#: templates/api_docs.html:308
+#: templates/api_docs.html:311
 #, python-brace-format
 msgid ""
 "Query workitems with the Workitems overview page's filters, scoped to "
@@ -2191,11 +2190,11 @@ msgstr ""
 "client) eines Treffers in /api/v1/workitems/{id} für dessen "
 "Dokumentdetails."
 
-#: templates/api_docs.html:340
+#: templates/api_docs.html:343
 msgid "Exact workitem-id match"
 msgstr "Exakte Übereinstimmung der Workitem-ID"
 
-#: templates/api_docs.html:343
+#: templates/api_docs.html:346
 msgid ""
 "ISO datetime bounds on the last-modified timestamp; start inclusive, end "
 "exclusive"
@@ -2203,29 +2202,33 @@ msgstr ""
 "ISO-Datumsgrenzen für den Zeitpunkt der letzten Änderung; Beginn "
 "inklusiv, Ende exklusiv"
 
-#: templates/api_docs.html:344
+#: templates/api_docs.html:347
 msgid "Comma-joined subset of your key's process scope (default: all of it)"
 msgstr ""
 "Kommagetrennte Teilmenge des Prozessumfangs Ihres Schlüssels (Standard: "
 "alle)"
 
-#: templates/api_docs.html:345
+#: templates/api_docs.html:348
 msgid ""
-"Repeated document-field filter pairs (max 10); op: contains (default), "
-"ncontains, eq, neq, startswith, endswith; comb joins a pair to the "
-"previous ones with and (default) / or"
+"Repeated document-field filter pairs (max 10); field keys are lowercase "
+"without separators (invoicenr, esrreference, …) — fetch the live list "
+"from /workitems/fields; op: contains (default), ncontains, eq, neq, "
+"startswith, endswith; comb joins a pair to the previous ones with and "
+"(default) / or"
 msgstr ""
-"Wiederholte Dokumentfeld-Filterpaare (max. 10); op: contains (Standard), "
+"Wiederholte Dokumentfeld-Filterpaare (max. 10); Feldschlüssel sind "
+"kleingeschrieben ohne Trennzeichen (invoicenr, esrreference, …) — die "
+"aktuelle Liste liefert /workitems/fields; op: contains (Standard), "
 "ncontains, eq, neq, startswith, endswith; comb verknüpft ein Paar mit den"
 " vorherigen per and (Standard) / or"
 
-#: templates/api_docs.html:346
+#: templates/api_docs.html:349
 msgid "Paging; per_page accepts only 40, 100, 200, 500 or 1000 (default 40)"
 msgstr ""
 "Seitenweise Ausgabe; per_page akzeptiert nur 40, 100, 200, 500 oder 1000 "
 "(Standard 40)"
 
-#: templates/api_docs.html:350
+#: templates/api_docs.html:353
 msgid ""
 "Every invalid value returns a 400 with a plain-English error — nothing is"
 " silently coerced. Unknown and sensitive field keys answer identically "
@@ -2242,7 +2245,28 @@ msgstr ""
 "null. Dokumentfeld-Treffer unterliegen demselben Zeitfenster pro Prozess "
 "wie die Suche der Übersichtsseite."
 
-#: templates/api_docs.html:356
+#: templates/api_docs.html:359
+msgid ""
+"The field keys /workitems accepts in ?field=, as the server resolves them"
+" right now — the searchable columns of the Workitems overview minus "
+"sensitive fields. Prefer fetching this over hard-coding key names."
+msgstr ""
+"Die Feldschlüssel, die /workitems in ?field= akzeptiert, so wie der "
+"Server sie gerade auflöst — die durchsuchbaren Spalten der Workitems-"
+"Übersicht ohne sensible Felder. Rufen Sie diese Liste bevorzugt ab, statt"
+" Schlüsselnamen fest zu verdrahten."
+
+#: templates/api_docs.html:373
+msgid ""
+"Keys are lowercase without separators. A key missing here answers 400 "
+"Unknown field on /workitems; a failed config lookup returns 500, never a "
+"partial list."
+msgstr ""
+"Schlüssel sind kleingeschrieben ohne Trennzeichen. Ein hier fehlender "
+"Schlüssel liefert auf /workitems 400 Unknown field; ein fehlgeschlagenes "
+"Laden der Konfiguration liefert 500, nie eine unvollständige Liste."
+
+#: templates/api_docs.html:379
 msgid ""
 "The document details the overview row-expand shows for one workitem: "
 "extracted field values and table values. No page images, confidence or "
@@ -2252,7 +2276,7 @@ msgstr ""
 " extrahierte Feldwerte und Tabellenwerte. Keine Seitenbilder, Konfidenzen"
 " oder Fundstellen; sensible Felder werden immer entfernt."
 
-#: templates/api_docs.html:396
+#: templates/api_docs.html:419
 msgid ""
 "The client the workitem was resolved to; pass the query row's client as "
 "?client= — ids collide across clients"
@@ -2260,7 +2284,7 @@ msgstr ""
 "Der Client, dem das Workitem zugeordnet wurde; geben Sie den client der "
 "Abfragezeile als ?client= mit — IDs kollidieren zwischen Clients"
 
-#: templates/api_docs.html:397
+#: templates/api_docs.html:420
 msgid ""
 "Extracted field name → value, mapped through the same field-name mapping "
 "the overview uses"
@@ -2268,11 +2292,11 @@ msgstr ""
 "Extrahierter Feldname → Wert, abgebildet über dieselbe Feldnamen-"
 "Zuordnung wie in der Übersicht"
 
-#: templates/api_docs.html:398
+#: templates/api_docs.html:421
 msgid "Extracted tables: title, columns, and rows of column/value cells"
 msgstr "Extrahierte Tabellen: Titel, Spalten und Zeilen aus Spalte/Wert-Zellen"
 
-#: templates/api_docs.html:402
+#: templates/api_docs.html:425
 msgid ""
 "404 with a null detail is returned uniformly for an unknown id, an id "
 "outside your key's scope, and a document the runtime backend can't load "
@@ -2285,7 +2309,7 @@ msgstr ""
 "kaltes Workitem lädt live vom Laufzeitdienst und kann einige Sekunden "
 "dauern."
 
-#: templates/api_docs.html:408
+#: templates/api_docs.html:431
 msgid ""
 "Every endpoint above has a /api/test/v1/... twin: same path suffix, same "
 "Bearer-key auth, same response shape — but the numbers are random, not "
@@ -2298,7 +2322,7 @@ msgstr ""
 "Backend-Abfragen statt, daher lässt es sich beim Aufbau einer Integration"
 " beliebig oft aufrufen."
 
-#: templates/api_docs.html:423
+#: templates/api_docs.html:446
 msgid ""
 "Use a real (enabled) API key — the same auth errors (401/429) apply. "
 "Available for"
@@ -2306,7 +2330,7 @@ msgstr ""
 "Verwenden Sie einen echten (aktivierten) API-Schlüssel — dieselben Auth-"
 "Fehler (401/429) gelten. Verfügbar für"
 
-#: templates/api_docs.html:423
+#: templates/api_docs.html:446
 msgid "and"
 msgstr "und"
 
@@ -7806,4 +7830,7 @@ msgstr ""
 #~ "Der Prozess-Scope des Schlüssels, zur"
 #~ " Fehlersuche zurückgegeben. Ein leerer "
 #~ "Scope liefert null/\"—\"."
+
+#~ msgid "API Docs"
+#~ msgstr "API-Doku"
 
