@@ -105,11 +105,11 @@
 
                 const widStr = String(act.id);
                 return `
-                    <div class="p-3 rounded-xl border border-gray-50 bg-gray-50/50 hover:bg-white hover:shadow-md transition-all cursor-pointer"
+                    <div class="p-3 rounded-xl border border-gray-50 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 hover:shadow-md transition-all cursor-pointer"
                         data-wid="${escapeHtml(widStr)}" data-client="${escapeHtml(String(act.client || ''))}">
                         <div class="flex justify-between items-start mb-1">
-                            <span class="text-xs font-bold text-indigo-600">ID: ${escapeHtml(widStr)}</span>
-                            <span class="text-[10px] text-gray-400">${escapeHtml(String(act.time))}</span>
+                            <span class="text-xs font-bold text-indigo-600 dark:text-indigo-400">ID: ${escapeHtml(widStr)}</span>
+                            <span class="text-[10px] text-gray-400 dark:text-slate-500">${escapeHtml(String(act.time))}</span>
                         </div>
                         <p class="text-xs text-gray-700 mb-2">Validated in <strong>${escapeHtml(String(act.process))}</strong></p>
                         <div class="flex flex-wrap gap-1">

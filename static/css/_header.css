@@ -341,6 +341,33 @@ html.dark .sidebar-nav-group-header:hover { background: #334155; color: #a5b4fc;
     cursor: pointer;
 }
 
+/* ---------- Dark mode toggle ----------
+   Colours match the login page's theme-toggle (teal sun / orange moon) —
+   position stays the sidebar-bottom nav item above the profile button,
+   only the colours change. Hover picks up the same teal/orange tint
+   instead of the generic indigo nav-item highlight, so the control reads
+   as "the theme switch" rather than just another nav link. Higher-
+   specificity ID selectors so these win over the generic
+   .sidebar-nav-item(:hover) colour rules. */
+#dark-mode-toggle #dark-mode-icon {
+    color: #3d6c7a;
+    transition: color 0.2s ease, transform 0.3s ease;
+}
+#dark-mode-toggle:hover {
+    background: rgba(61, 108, 122, 0.1);
+    color: #3d6c7a;
+}
+#dark-mode-toggle:hover #dark-mode-icon {
+    transform: rotate(-14deg);
+}
+html.dark #dark-mode-toggle #dark-mode-icon {
+    color: #e2603c;
+}
+html.dark #dark-mode-toggle:hover {
+    background: rgba(226, 96, 60, 0.16);
+    color: #e2603c;
+}
+
 /* ---------- notification-item (legacy support) ---------- */
 .notification-item {
     border-left: 3px solid transparent;
