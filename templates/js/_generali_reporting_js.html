@@ -863,13 +863,15 @@
     });
 
     // ----------------------------- filter ----------------------------- //
-    const fpFilterStart = flatpickr('#filterStartDate', { dateFormat: 'Y-m-d', allowInput: true });
-    const fpFilterEnd   = flatpickr('#filterEndDate',   { dateFormat: 'Y-m-d', allowInput: true });
+    let _filterTimer;
+    const applyFiltersSoon = () => { clearTimeout(_filterTimer); _filterTimer = setTimeout(() => fetchRecords(1), 350); };
+    document.querySelectorAll('.nx-filter select').forEach(s => s.addEventListener('change', applyFiltersSoon));
+    const fpFilterStart = flatpickr('#filterStartDate', { dateFormat: 'Y-m-d', allowInput: true, onChange: applyFiltersSoon });
+    const fpFilterEnd   = flatpickr('#filterEndDate',   { dateFormat: 'Y-m-d', allowInput: true, onChange: applyFiltersSoon });
 
-    document.getElementById('applyFilterBtn').addEventListener('click', () => fetchRecords(1));
     document.getElementById('resetFilterBtn').addEventListener('click', () => {
-        fpFilterStart.clear();
-        fpFilterEnd.clear();
+        fpFilterStart.clear(false);
+        fpFilterEnd.clear(false);
         document.getElementById('filterCategory').value = '';
         document.getElementById('filterOrganizationCode').value = '';
         const fu = document.getElementById('filterUserId');

@@ -314,7 +314,9 @@
     }
 
     // ----------------------------- filters ----------------------------- //
-    document.getElementById('applyFilterBtn').addEventListener('click', () => loadRecords(1));
+    let _filterTimer;
+    const applyFiltersSoon = () => { clearTimeout(_filterTimer); _filterTimer = setTimeout(() => loadRecords(1), 350); };
+    document.querySelectorAll('.nx-filter select').forEach(s => s.addEventListener('change', applyFiltersSoon));
 
     document.getElementById('resetFilterBtn').addEventListener('click', () => {
         document.getElementById('filterStartDate').value = '';
@@ -388,8 +390,8 @@
         }
     });
 
-    flatpickr('#filterStartDate', { dateFormat: 'Y-m-d', allowInput: true });
-    flatpickr('#filterEndDate',   { dateFormat: 'Y-m-d', allowInput: true });
+    flatpickr('#filterStartDate', { dateFormat: 'Y-m-d', allowInput: true, onChange: applyFiltersSoon });
+    flatpickr('#filterEndDate',   { dateFormat: 'Y-m-d', allowInput: true, onChange: applyFiltersSoon });
 
     // ----------------------------- Add Modal ----------------------------- //
     {% if can_add %}

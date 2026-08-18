@@ -10,6 +10,12 @@ Work toward the next release.
 
 ### Changed
 
+- **Generali filters apply instantly** — the Apply button is gone from all
+  Generali filter bars (base services, additional services, reporting, PDQM,
+  project management, import status, dashboard). Changing any filter select
+  or date now reloads the list directly (debounced; the dashboard's datetime
+  pickers refresh on picker close, import-status text search as you type).
+  Reset is unchanged.
 - **Dev setup is now bare `uv sync`** — dev dependencies moved from
   `[project.optional-dependencies]` to a PEP 735 `[dependency-groups]` group,
   which uv installs by default. `--extra dev` no longer exists (and now

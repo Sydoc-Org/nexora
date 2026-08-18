@@ -258,7 +258,9 @@
         container.appendChild(btn('<i class="fas fa-chevron-right"></i>', page + 1, page === totalPages, false));
     }
 
-    document.getElementById('applyFilterBtn').addEventListener('click', () => loadRecords(1));
+    let _filterTimer;
+    const applyFiltersSoon = () => { clearTimeout(_filterTimer); _filterTimer = setTimeout(() => loadRecords(1), 350); };
+    document.querySelectorAll('.nx-filter select').forEach(s => s.addEventListener('change', applyFiltersSoon));
     document.getElementById('resetFilterBtn').addEventListener('click', () => {
         document.getElementById('filterStartDate').value = '';
         document.getElementById('filterEndDate').value = '';
@@ -297,8 +299,8 @@
         filterSub.options[0].textContent = {{ _("All") | tojson }};
     });
 
-    flatpickr('#filterStartDate', { dateFormat: 'Y-m-d', allowInput: true });
-    flatpickr('#filterEndDate',   { dateFormat: 'Y-m-d', allowInput: true });
+    flatpickr('#filterStartDate', { dateFormat: 'Y-m-d', allowInput: true, onChange: applyFiltersSoon });
+    flatpickr('#filterEndDate',   { dateFormat: 'Y-m-d', allowInput: true, onChange: applyFiltersSoon });
 
     {% if can_add %}
     function loadOrgUsers() {
