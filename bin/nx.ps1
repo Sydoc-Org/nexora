@@ -2,7 +2,7 @@
 
 # Script lives in <repo>/bin/, but the app expects $AppDir = <repo> (where nx_main.py lives).
 $AppDir    = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Definition)
-$Python    = "C:\Users\bes\AppData\Local\Programs\Python\Python313\python.exe"
+$Python    = Join-Path $AppDir ".venv\Scripts\python.exe"
 $AppPy     = Join-Path $AppDir "nx_main.py"
 # Must match nx_lib/cli.py: PATHS.logs / "system" → var/logs/system. Both
 # sides share current_env / app_stderr.log etc., so the TUI can read the
