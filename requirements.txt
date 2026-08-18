@@ -20,6 +20,10 @@ colorama==0.4.6 ; sys_platform == 'win32'
     # via
     #   click
     #   qrcode
+contourpy==1.3.3
+    # via matplotlib
+cycler==0.12.1
+    # via matplotlib
 deprecated==1.3.1
     # via limits
 et-xmlfile==2.0.0
@@ -44,6 +48,8 @@ flask-talisman==1.1.0
     # via nexora
 flask-wtf==1.2.2
     # via nexora
+fonttools==4.63.0
+    # via matplotlib
 greenlet==3.1.1 ; platform_machine == 'AMD64' or platform_machine == 'WIN32' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'ppc64le' or platform_machine == 'win32' or platform_machine == 'x86_64'
     # via sqlalchemy
 idna==3.16
@@ -57,6 +63,8 @@ jinja2==3.1.6
     # via
     #   flask
     #   flask-babel
+kiwisolver==1.5.0
+    # via matplotlib
 limits==5.8.0
     # via flask-limiter
 markdown-it-py==4.2.0
@@ -67,23 +75,31 @@ markupsafe==3.0.3
     #   jinja2
     #   werkzeug
     #   wtforms
+matplotlib==3.11.1
+    # via nexora
 mdurl==0.1.2
     # via markdown-it-py
 msgspec==0.21.1
     # via flask-session
+numpy==2.5.2
+    # via
+    #   contourpy
+    #   matplotlib
 openpyxl==3.1.5
     # via nexora
 ordered-set==4.1.0
     # via flask-limiter
 packaging==26.2
-    # via limits
+    # via
+    #   limits
+    #   matplotlib
 pillow==11.3.0
-    # via nexora
+    # via
+    #   matplotlib
+    #   nexora
 prompt-toolkit==3.0.51
     # via nexora
 psycopg2-binary==2.9.12
-    # via nexora
-pypdfium2==4.30.0
     # via nexora
 pygments==2.20.0
     # via rich
@@ -91,6 +107,10 @@ pyodbc==5.2.0
     # via nexora
 pyotp==2.9.0
     # via nexora
+pyparsing==3.3.2
+    # via matplotlib
+python-dateutil==2.9.0.post0
+    # via matplotlib
 python-dotenv==1.1.1
     # via nexora
 python-magic-bin==0.4.14
@@ -103,6 +123,8 @@ requests==2.32.4
     # via nexora
 rich==13.9.4
     # via flask-limiter
+six==1.17.0
+    # via python-dateutil
 sqlalchemy==2.0.45
     # via nexora
 sqlglot==30.8.0
