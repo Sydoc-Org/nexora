@@ -8,6 +8,23 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+## [3.1.2] - 2026-08-18
+
+### Fixed
+
+- **Generali edit/delete row buttons were dead on PROD since v3.1** (base
+  services, additional services, PDQM, project management). The #193
+  finding-10 CSP hardening removed `'unsafe-inline'` from `script-src`, and
+  these four partials still built their row buttons with inline
+  `onclick="openEditModal(...)"` handlers — which the browser refuses under
+  that CSP ("Refused to execute inline event handler"), so clicking did
+  nothing and the PUT/DELETE never left the browser. Invisible on dev/INT,
+  where Talisman (and thus the CSP) is deliberately off. The buttons now use
+  `data-id` + one delegated tbody listener per page (the same pattern the
+  reporting page already had, which is why reporting survived). A new
+  template lint (`tests/unit/test_no_inline_event_handlers.py`) fails on any
+  inline `on<event>=` handler so the PROD-only breakage can't ship again.
+
 ## [3.1.1] - 2026-08-18
 
 ### Added
