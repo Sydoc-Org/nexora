@@ -152,6 +152,36 @@
       .bh-sparks i{ animation: none; opacity:.5; }
     }
 
+    /* The black-hole icon's "depth" pieces -- .bh-core's outer shadow,
+       .bh-penumbra, .bh-disk::before's outer shadow -- are all near-black
+       (rgba(0,0,0,*) / rgba(17,24,39,*)), a drop-shadow that reads as
+       depth against a white page. Against the dark navy page it's
+       black-on-near-black: invisible, and the icon loses its presence
+       entirely instead of just going a bit flat. Swapped for an actual
+       glow (indigo/violet, brighter) so it still has a halo. The core
+       itself stays black on purpose -- it's a black hole, that part is
+       correct in either theme -- only the shadow/glow pieces change. */
+    html.dark .bh-core {
+      box-shadow:
+        0 0 22px rgba(129, 140, 248, 0.45),
+        inset 0 0 10px rgba(0, 0, 0, 0.85),
+        0 0 44px rgba(167, 139, 250, 0.25);
+    }
+    html.dark .bh-penumbra {
+      background: radial-gradient(55% 55% at 50% 50%, rgba(129, 140, 248, 0.4), rgba(129, 140, 248, 0) 70%);
+      opacity: .9;
+    }
+    html.dark .bh-disk::before {
+      box-shadow:
+        0 0 14px rgba(129, 140, 248, 0.35),
+        0 0 28px rgba(167, 139, 250, 0.22),
+        inset 0 0 28px rgba(129, 140, 248, 0.5);
+    }
+    html.dark .bh-sparks i {
+      background: #a5b4fc;
+      box-shadow: 0 0 10px rgba(165, 180, 252, 1);
+    }
+
     .nexora-title{
       background: linear-gradient(90deg, #0b0b12, #111827 35%, var(--indigo));
       -webkit-background-clip: text; background-clip: text; color: transparent;
