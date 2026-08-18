@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-18 08:45+0200\n"
+"POT-Creation-Date: 2026-08-18 11:30+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -1633,7 +1633,7 @@ msgid "Back"
 msgstr "Indietro"
 
 #: templates/_reporting_simple.html:115 templates/_reporting_simple.html:116
-#: templates/_reporting_simple.html:117 templates/init_reset.html:82
+#: templates/_reporting_simple.html:117 templates/init_reset.html:104
 #: templates/js/_reporting_ai_js.html:41
 msgid "Continue"
 msgstr "Continua"
@@ -2691,7 +2691,8 @@ msgid "Forgot password - nexora"
 msgstr "Password dimenticata - nexora"
 
 #: templates/forgot_password.html:43 templates/hero.html:60
-#: templates/index.html:46
+#: templates/index.html:46 templates/init_reset.html:45
+#: templates/reset_password.html:45 templates/set_password.html:45
 msgid "Switch to dark mode"
 msgstr "Attiva/disattiva modalità scura"
 
@@ -2715,8 +2716,8 @@ msgstr "Indirizzo e-mail"
 msgid "Send reset link"
 msgstr "Invia link di reimpostazione"
 
-#: templates/forgot_password.html:85 templates/init_reset.html:87
-#: templates/reset_password.html:87
+#: templates/forgot_password.html:85 templates/init_reset.html:109
+#: templates/reset_password.html:109
 msgid "Back to login"
 msgstr "Torna al login"
 
@@ -3687,15 +3688,15 @@ msgstr "Il tuo nome utente"
 
 #: templates/admin/access_control.html:224
 #: templates/admin/modals/_user_modals.html:71 templates/index.html:77
-#: templates/profile.html:63 templates/set_password.html:52
+#: templates/profile.html:63 templates/set_password.html:74
 msgid "Password"
 msgstr "Password"
 
-#: templates/index.html:86 templates/init_reset.html:58
-#: templates/init_reset.html:73 templates/profile.html:196
+#: templates/index.html:86 templates/init_reset.html:80
+#: templates/init_reset.html:95 templates/profile.html:196
 #: templates/profile.html:207 templates/profile.html:224
-#: templates/reset_password.html:58 templates/reset_password.html:73
-#: templates/set_password.html:61 templates/set_password.html:76
+#: templates/reset_password.html:80 templates/reset_password.html:95
+#: templates/set_password.html:83 templates/set_password.html:98
 msgid "Toggle password visibility"
 msgstr "Mostra/nascondi password"
 
@@ -3751,31 +3752,31 @@ msgstr "Verifica e abilita"
 msgid "Initial Password Reset - nexora"
 msgstr "Reimpostazione password iniziale - nexora"
 
-#: templates/init_reset.html:37 templates/reset_password.html:37
+#: templates/init_reset.html:59 templates/reset_password.html:59
 msgid "Set a new password"
 msgstr "Imposta una nuova password"
 
-#: templates/init_reset.html:38 templates/reset_password.html:38
+#: templates/init_reset.html:60 templates/reset_password.html:60
 msgid "Your new password must be different from your previously used password."
 msgstr ""
 "La tua nuova password deve essere diversa dalla password utilizzata in "
 "precedenza."
 
-#: templates/admin/user_detail.html:71 templates/init_reset.html:49
-#: templates/profile.html:202 templates/reset_password.html:49
+#: templates/admin/user_detail.html:71 templates/init_reset.html:71
+#: templates/profile.html:202 templates/reset_password.html:71
 msgid "New password"
 msgstr "Nuova password"
 
-#: templates/init_reset.html:56 templates/reset_password.html:56
+#: templates/init_reset.html:78 templates/reset_password.html:78
 msgid "Enter your new password"
 msgstr "Inserisci la tua nuova password"
 
-#: templates/init_reset.html:64 templates/profile.html:219
-#: templates/reset_password.html:64
+#: templates/init_reset.html:86 templates/profile.html:219
+#: templates/reset_password.html:86
 msgid "Confirm new password"
 msgstr "Conferma la nuova password"
 
-#: templates/init_reset.html:71 templates/reset_password.html:71
+#: templates/init_reset.html:93 templates/reset_password.html:93
 msgid "Confirm your new password"
 msgstr "Conferma la tua nuova password"
 
@@ -4556,7 +4557,7 @@ msgstr "Formatta JSON"
 msgid "Reset password - nexora"
 msgstr "Reimposta password - nexora"
 
-#: templates/reset_password.html:82
+#: templates/reset_password.html:104
 msgid "Reset password"
 msgstr "Reimposta password"
 
@@ -4564,11 +4565,11 @@ msgstr "Reimposta password"
 msgid "Set password - nexora"
 msgstr "Imposta la password - nexora"
 
-#: templates/set_password.html:37
+#: templates/set_password.html:59
 msgid "Welcome to nexora"
 msgstr "Benvenuto su nexora"
 
-#: templates/set_password.html:38
+#: templates/set_password.html:60
 msgid ""
 "Choose a password for your account. You will be asked to set up two-"
 "factor authentication right after."
@@ -4576,23 +4577,23 @@ msgstr ""
 "Scegli una password per il tuo account. Subito dopo ti verrà chiesto di "
 "configurare l'autenticazione a due fattori."
 
-#: templates/set_password.html:59
+#: templates/set_password.html:81
 msgid "At least 8 characters, no spaces"
 msgstr "Almeno 8 caratteri, senza spazi"
 
-#: templates/set_password.html:67
+#: templates/set_password.html:89
 msgid "Confirm password"
 msgstr "Conferma la password"
 
-#: templates/set_password.html:74
+#: templates/set_password.html:96
 msgid "Repeat your password"
 msgstr "Ripeti la tua password"
 
-#: templates/set_password.html:85
+#: templates/set_password.html:107
 msgid "Set password"
 msgstr "Imposta password"
 
-#: templates/set_password.html:91
+#: templates/set_password.html:113
 msgid "Go to login"
 msgstr "Vai al login"
 

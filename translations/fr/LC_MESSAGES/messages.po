@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-18 08:45+0200\n"
+"POT-Creation-Date: 2026-08-18 11:30+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -1640,7 +1640,7 @@ msgid "Back"
 msgstr "Retour"
 
 #: templates/_reporting_simple.html:115 templates/_reporting_simple.html:116
-#: templates/_reporting_simple.html:117 templates/init_reset.html:82
+#: templates/_reporting_simple.html:117 templates/init_reset.html:104
 #: templates/js/_reporting_ai_js.html:41
 msgid "Continue"
 msgstr "Continuer"
@@ -2692,7 +2692,8 @@ msgid "Forgot password - nexora"
 msgstr "Mot de passe oublié - nexora"
 
 #: templates/forgot_password.html:43 templates/hero.html:60
-#: templates/index.html:46
+#: templates/index.html:46 templates/init_reset.html:45
+#: templates/reset_password.html:45 templates/set_password.html:45
 msgid "Switch to dark mode"
 msgstr "Activer/désactiver le mode sombre"
 
@@ -2716,8 +2717,8 @@ msgstr "Adresse e-mail"
 msgid "Send reset link"
 msgstr "Envoyer le lien de réinitialisation"
 
-#: templates/forgot_password.html:85 templates/init_reset.html:87
-#: templates/reset_password.html:87
+#: templates/forgot_password.html:85 templates/init_reset.html:109
+#: templates/reset_password.html:109
 msgid "Back to login"
 msgstr "Retour à la connexion"
 
@@ -3689,15 +3690,15 @@ msgstr "Votre nom d'utilisateur"
 
 #: templates/admin/access_control.html:224
 #: templates/admin/modals/_user_modals.html:71 templates/index.html:77
-#: templates/profile.html:63 templates/set_password.html:52
+#: templates/profile.html:63 templates/set_password.html:74
 msgid "Password"
 msgstr "Mot de passe"
 
-#: templates/index.html:86 templates/init_reset.html:58
-#: templates/init_reset.html:73 templates/profile.html:196
+#: templates/index.html:86 templates/init_reset.html:80
+#: templates/init_reset.html:95 templates/profile.html:196
 #: templates/profile.html:207 templates/profile.html:224
-#: templates/reset_password.html:58 templates/reset_password.html:73
-#: templates/set_password.html:61 templates/set_password.html:76
+#: templates/reset_password.html:80 templates/reset_password.html:95
+#: templates/set_password.html:83 templates/set_password.html:98
 msgid "Toggle password visibility"
 msgstr "Afficher/masquer le mot de passe"
 
@@ -3753,31 +3754,31 @@ msgstr "Vérifier et activer"
 msgid "Initial Password Reset - nexora"
 msgstr "Réinitialisation initiale du mot de passe - nexora"
 
-#: templates/init_reset.html:37 templates/reset_password.html:37
+#: templates/init_reset.html:59 templates/reset_password.html:59
 msgid "Set a new password"
 msgstr "Définir un nouveau mot de passe"
 
-#: templates/init_reset.html:38 templates/reset_password.html:38
+#: templates/init_reset.html:60 templates/reset_password.html:60
 msgid "Your new password must be different from your previously used password."
 msgstr ""
 "Votre nouveau mot de passe doit être différent de votre mot de passe "
 "précédent."
 
-#: templates/admin/user_detail.html:71 templates/init_reset.html:49
-#: templates/profile.html:202 templates/reset_password.html:49
+#: templates/admin/user_detail.html:71 templates/init_reset.html:71
+#: templates/profile.html:202 templates/reset_password.html:71
 msgid "New password"
 msgstr "Nouveau mot de passe"
 
-#: templates/init_reset.html:56 templates/reset_password.html:56
+#: templates/init_reset.html:78 templates/reset_password.html:78
 msgid "Enter your new password"
 msgstr "Saisissez votre nouveau mot de passe"
 
-#: templates/init_reset.html:64 templates/profile.html:219
-#: templates/reset_password.html:64
+#: templates/init_reset.html:86 templates/profile.html:219
+#: templates/reset_password.html:86
 msgid "Confirm new password"
 msgstr "Confirmer le nouveau mot de passe"
 
-#: templates/init_reset.html:71 templates/reset_password.html:71
+#: templates/init_reset.html:93 templates/reset_password.html:93
 msgid "Confirm your new password"
 msgstr "Confirmez votre nouveau mot de passe"
 
@@ -4567,7 +4568,7 @@ msgstr "Formater le JSON"
 msgid "Reset password - nexora"
 msgstr "Réinitialisation du mot de passe - nexora"
 
-#: templates/reset_password.html:82
+#: templates/reset_password.html:104
 msgid "Reset password"
 msgstr "Réinitialiser le mot de passe"
 
@@ -4575,11 +4576,11 @@ msgstr "Réinitialiser le mot de passe"
 msgid "Set password - nexora"
 msgstr "Définir le mot de passe - nexora"
 
-#: templates/set_password.html:37
+#: templates/set_password.html:59
 msgid "Welcome to nexora"
 msgstr "Bienvenue sur nexora"
 
-#: templates/set_password.html:38
+#: templates/set_password.html:60
 msgid ""
 "Choose a password for your account. You will be asked to set up two-"
 "factor authentication right after."
@@ -4587,23 +4588,23 @@ msgstr ""
 "Choisissez un mot de passe pour votre compte. Vous serez ensuite invité à"
 " configurer l'authentification à deux facteurs."
 
-#: templates/set_password.html:59
+#: templates/set_password.html:81
 msgid "At least 8 characters, no spaces"
 msgstr "Au moins 8 caractères, sans espaces"
 
-#: templates/set_password.html:67
+#: templates/set_password.html:89
 msgid "Confirm password"
 msgstr "Confirmer le mot de passe"
 
-#: templates/set_password.html:74
+#: templates/set_password.html:96
 msgid "Repeat your password"
 msgstr "Répétez votre mot de passe"
 
-#: templates/set_password.html:85
+#: templates/set_password.html:107
 msgid "Set password"
 msgstr "Définir le mot de passe"
 
-#: templates/set_password.html:91
+#: templates/set_password.html:113
 msgid "Go to login"
 msgstr "Aller à la connexion"
 
