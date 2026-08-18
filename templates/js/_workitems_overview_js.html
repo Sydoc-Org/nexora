@@ -856,7 +856,7 @@ async function uploadBatchFiles(files, processName) {
             let _exportSelectedIds = new Set();
 
             function _setExportSpinner(on) {
-                document.getElementById('exportModalSpinner').style.display = on ? '' : 'none';
+                document.getElementById('exportModalSpinner').classList.toggle('[display:none]!', !on);
                 document.getElementById('exportModalIcon').style.display    = on ? 'none' : '';
                 document.getElementById('confirmExportModalBtn').disabled   = on;
             }
@@ -894,7 +894,7 @@ async function uploadBatchFiles(files, processName) {
 
             function closeExportModal() {
                 document.getElementById('exportOptionsModal').classList.add('hidden');
-                document.getElementById('exportImagesHelperInfo').style.display = 'none';
+                document.getElementById('exportImagesHelperInfo').classList.add('[display:none]!');
                 _setExportSpinner(false);
             }
 
@@ -1237,7 +1237,7 @@ async function uploadBatchFiles(files, processName) {
             // Show helper info when images checkbox is ticked; highlight once on first show
             let _helperHighlighted = false;
             document.getElementById('exportOptImages')?.addEventListener('change', e => {
-                document.getElementById('exportImagesHelperInfo').style.display = e.target.checked ? '' : 'none';
+                document.getElementById('exportImagesHelperInfo').classList.toggle('[display:none]!', !e.target.checked);
                 if (e.target.checked && !_helperHighlighted) {
                     const codeEl = document.getElementById('exportHelperScript');
                     if (codeEl && window.hljs) { hljs.highlightElement(codeEl); }

@@ -18,6 +18,16 @@ Work toward the next release.
 
 ### Fixed
 
+- **Generali user-search filter was invisible on all five Generali pages**
+  (base services, additional services, reporting, PDQM, project management;
+  client-reported on base services). The #142 inline-style cleanup replaced
+  `style="display:none"` on `#filterUserWrapper` with the Tailwind class
+  `[display:none]!` (= `display:none !important`), which the reveal code's
+  `wrapper.style.display = ''` can never override — so the filter stayed
+  hidden regardless of permissions. The reveal now removes the class instead.
+  Same fix for the workitems export spinner and export-images helper info,
+  which could likewise never show. A template lint test now guards the
+  pattern (`tests/unit/test_display_none_important.py`).
 - **A fresh clone could not run the app or the `nx` CLI** — `ModuleNotFoundError`
   even after installing every `requirements*.txt`. Three causes, all fixed:
   - `matplotlib`, `pypdfium2` and `markdown-it-py` are imported at module scope

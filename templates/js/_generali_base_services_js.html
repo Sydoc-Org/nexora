@@ -244,7 +244,7 @@
                 opt.textContent = u.fullname || u.userId;
                 sel.appendChild(opt);
             });
-            wrapper.style.display = '';
+            wrapper.classList.remove('[display:none]!');
         })
         .catch(e => console.error('Failed to load filter users', e));
     }
