@@ -31,7 +31,7 @@ RELEASES = [
                     "changing any filter or date reloads the list right away."
                 ),
                 "perm": "generali.baseservices.view",
-                "endpoint": "generali_base_services",
+                "endpoint": "generali_baseServices",
                 "icon": "bolt",
             },
             {
@@ -42,7 +42,7 @@ RELEASES = [
                     "instantly."
                 ),
                 "perm": "generali.baseservices.view",
-                "endpoint": "generali_base_services",
+                "endpoint": "generali_baseServices",
                 "icon": "magnifying-glass",
             },
         ],

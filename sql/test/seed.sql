@@ -75,6 +75,7 @@ INSERT INTO dbo.Permission (Code, Description) VALUES
     ('invoices.filter.status', 'Filter invoices by status'),
     ('invoices.filter.invoiceid', 'Filter invoices by id'),
     ('jd.view', 'View JD Vance page'),
+    ('generali.baseservices.view', 'View Generali base services'),
     ('api.docs.view', 'View the in-app API documentation page'),  -- migration 0051
     ('admin.status.view', 'View the admin system-status page'),  -- migration 0055
     ('admin.restart', 'Restart the dev server from the admin overview (dev-only)'),  -- migration 0059
