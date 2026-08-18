@@ -8,6 +8,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+## [3.2.2] - Unreleased
+
 ## [3.1.2] - 2026-08-18
 
 ### Fixed
