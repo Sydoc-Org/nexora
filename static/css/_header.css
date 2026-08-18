@@ -30,7 +30,7 @@
 body {
     font-family: 'Inter', sans-serif;
     background-color: #f9fafb;
-    padding-left: 64px;          /* reserve sidebar width */
+    padding-left: 100px;          /* collapsed sidebar (64px) + a little breathing room */
     transition: padding-left 0.3s ease;
     display: flex;
     flex-direction: column;

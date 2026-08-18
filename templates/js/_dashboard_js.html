@@ -315,4 +315,29 @@
             updateHourlyChart();
         }, 30000);
     });
+
+    // ---- Ambient fireflies (decorative, non-interactive) ----
+    // Each dot gets its own random position/size/timing so the field never
+    // settles into a visible pattern. Styling (glow + drift keyframes) lives
+    // in dashboard.css; this just picks the per-dot randoms via CSS vars.
+    (function initFireflies() {
+        const field = document.getElementById('fireflyField');
+        if (!field || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        const COUNT = 16;
+        const rand = (min, max) => Math.random() * (max - min) + min;
+        for (let i = 0; i < COUNT; i++) {
+            const dot = document.createElement('span');
+            dot.className = 'firefly';
+            dot.style.setProperty('--ff-left', rand(0, 100).toFixed(1) + '%');
+            dot.style.setProperty('--ff-top', rand(0, 100).toFixed(1) + '%');
+            dot.style.setProperty('--ff-size', rand(3, 7).toFixed(1) + 'px');
+            dot.style.setProperty('--ff-dx', rand(-40, 40).toFixed(0) + 'px');
+            dot.style.setProperty('--ff-dy', rand(-40, 40).toFixed(0) + 'px');
+            dot.style.setProperty('--ff-glow-dur', rand(3, 6).toFixed(1) + 's');
+            dot.style.setProperty('--ff-drift-dur', rand(7, 13).toFixed(1) + 's');
+            dot.style.setProperty('--ff-delay', rand(0, 8).toFixed(1) + 's');
+            dot.style.setProperty('--ff-peak', rand(0.55, 0.9).toFixed(2));
+            field.appendChild(dot);
+        }
+    })();
 </script>
