@@ -1831,3 +1831,99 @@ def test_workitems_fields_sorted_and_stamps_last_used(client, monkeypatch):
         assert _last_used(key_hash) is not None
     finally:
         _delete_key(key_hash)
+
+
+# ----------------------- /api/v1/workitems/stages -------------------------- #
+# Auth-required coverage comes for free from test_every_api_v1_route_requires_auth.
+
+STAGES_URL = "/api/v1/workitems/stages"
+TEST_STAGES_URL = "/api/test/v1/workitems/stages"
+
+
+def test_workitems_stages_counts_all_four_stages(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw, processes="sydoc.TestProc, sydoc.Other")
+    seen = []
+
+    def _fake_data(args, export_all=False, scope=None):
+        seen.append((args.get("stage"), scope))
+        totals = {"Import": 3, "Extraction": 1, "Validation": 0, "Delivery": 7}
+        return {
+            "workitems": [],
+            "pagination": {
+                "currentPage": 1,
+                "totalPages": 1,
+                "totalItems": totals[args.get("stage")],
+                "perPage": 40,
+            },
+            "degradedSources": [],
+        }
+
+    monkeypatch.setattr(ax, "_get_workitems_data", _fake_data)
+    try:
+        resp = client.get(STAGES_URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert body["stages"] == {"Import": 3, "Extraction": 1, "Validation": 0, "Delivery": 7}
+        assert "datetime" in body
+        # One stage-filtered query per stage, session-less scope from the key.
+        assert [s for s, _ in seen] == list(ax.WORKITEM_STAGES)
+        assert all(sc["allowed"] == {"sydoc.TestProc", "sydoc.Other"} for _, sc in seen)
+        assert _last_used(key_hash) is not None
+    finally:
+        _delete_key(key_hash)
+
+
+def test_workitems_stages_empty_scope_returns_zeros_without_backend(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw, processes="")
+
+    def _must_not_be_called(*a, **kw):
+        raise AssertionError("_get_workitems_data must not run for an empty scope")
+
+    monkeypatch.setattr(ax, "_get_workitems_data", _must_not_be_called)
+    try:
+        resp = client.get(STAGES_URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 200
+        assert resp.get_json()["stages"] == {
+            "Import": 0,
+            "Extraction": 0,
+            "Validation": 0,
+            "Delivery": 0,
+        }
+    finally:
+        _delete_key(key_hash)
+
+
+def test_workitems_stages_degraded_source_returns_500(client, monkeypatch):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+
+    def _fake_data(args, export_all=False, scope=None):
+        return {
+            "workitems": [],
+            "pagination": {"currentPage": 1, "totalPages": 0, "totalItems": 0, "perPage": 40},
+            "degradedSources": ["ms02"],
+        }
+
+    monkeypatch.setattr(ax, "_get_workitems_data", _fake_data)
+    try:
+        resp = client.get(STAGES_URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 500
+        assert resp.get_json() == {"error": "Workitems backend unavailable"}
+    finally:
+        _delete_key(key_hash)
+
+
+def test_test_workitems_stages_returns_random_counts_in_shape(client):
+    raw = secrets.token_urlsafe(32)
+    key_hash = _insert_key(raw)
+    try:
+        resp = client.get(TEST_STAGES_URL, headers={"Authorization": f"Bearer {raw}"})
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert set(body["stages"]) == {"Import", "Extraction", "Validation", "Delivery"}
+        assert all(isinstance(v, int) and v >= 0 for v in body["stages"].values())
+        assert "datetime" in body
+    finally:
+        _delete_key(key_hash)

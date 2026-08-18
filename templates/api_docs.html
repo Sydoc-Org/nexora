@@ -108,6 +108,9 @@
         <button class="apidocs-nav-item" data-section="workitems-fields" data-testid="apidocs-nav-workitems-fields">
           <span class="apidocs-method">GET</span><span class="truncate">/workitems/fields</span>
         </button>
+        <button class="apidocs-nav-item" data-section="workitems-stages" data-testid="apidocs-nav-workitems-stages">
+          <span class="apidocs-method">GET</span><span class="truncate">/workitems/stages</span>
+        </button>
         <button class="apidocs-nav-item" data-section="workitem-detail" data-testid="apidocs-nav-workitem-detail">
           <span class="apidocs-method">GET</span><span class="truncate">/workitems/{id}</span>
         </button>
@@ -370,6 +373,32 @@ Authorization: Bearer &lt;api key&gt;</code></pre>
 }</code></pre>
           </div>
           <p class="apidocs-p mt-2">{{ _("Keys are lowercase without separators. On /workitems an unknown key answers 400 Unknown field, and a real field outside your key's scope answers 400 Field not available for your process scope; a failed config lookup returns 500, never a partial list.") }}</p>
+        </section>
+
+        <!-- ============ GET /workitems/stages ============ -->
+        <section id="apidocs-workitems-stages" class="apidocs-section nx-card nx-card--pad" data-testid="apidocs-section-workitems-stages">
+          <h2 class="apidocs-h2 mt-0 flex items-center gap-2"><span class="apidocs-method">GET</span><span class="nx-mono">/api/v1/workitems/stages</span></h2>
+          <p class="apidocs-p">{{ _("The count of workitems currently in each stage (Import, Extraction, Validation, Delivery) for your key's process scope. No parameters; the numbers always match a stage-filtered /workitems query.") }}</p>
+          <div class="apidocs-code">
+            <span class="apidocs-code-label">curl</span>
+            <button class="apidocs-copy" title="{{ _('Copy') }}" aria-label="{{ _('Copy code') }}"><i class="far fa-copy"></i></button>
+            <pre><code class="language-bash">curl -H "Authorization: Bearer &lt;api key&gt;" \
+    "https://nexora.sydoc.ch/nexora/api/v1/workitems/stages"</code></pre>
+          </div>
+          <div class="apidocs-code">
+            <span class="apidocs-code-label">{{ _("response") }} 200</span>
+            <button class="apidocs-copy" title="{{ _('Copy') }}" aria-label="{{ _('Copy code') }}"><i class="far fa-copy"></i></button>
+            <pre><code class="language-json">{
+  "datetime": "2026-08-18 09:15",
+  "stages": {
+    "Import": 12,
+    "Extraction": 4,
+    "Validation": 9,
+    "Delivery": 131
+  }
+}</code></pre>
+          </div>
+          <p class="apidocs-p mt-2">{{ _("datetime is the server-local timestamp the counts were computed at. An empty process scope returns all zeros; a degraded workitem source answers 500 instead of silently partial counts. Not cached: every call computes fresh numbers.") }}</p>
         </section>
 
         <!-- ============ GET /workitems/{id} ============ -->

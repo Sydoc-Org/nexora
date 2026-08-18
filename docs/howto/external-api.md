@@ -5,7 +5,7 @@ Docs", permission `api.docs.view`) for internal staff and API clients'
 portal accounts — this file stays the source of truth; keep both in sync.
 
 Read-only JSON API for external clients, authenticated with per-client API
-keys. Five documented endpoints in v1. Code: routes in
+keys. Seven documented endpoints in v1. Code: routes in
 `nx_lib/views/api_external.py`, auth in `nx_lib/api_auth.py`, KPI
 computation shared with the dashboard (`compute_today_stats` /
 `compute_avg_processing_time` / `compute_undelivered_count` /
@@ -228,6 +228,34 @@ answers `400 Unknown field`; a real field outside your scope answers
 lookup returns `500` (fail closed), never a partial list. An empty
 `ProcessList` returns an empty list. Not cached.
 
+## GET /api/v1/workitems/stages
+
+The count of workitems currently in each stage, scoped to the key's
+`ProcessList`. No parameters:
+
+    curl -H "Authorization: Bearer <key>" \
+        "https://nexora.sydoc.ch/nexora/api/v1/workitems/stages"
+
+    {
+      "datetime": "2026-08-18 09:15",
+      "stages": {
+        "Import": 12,
+        "Extraction": 4,
+        "Validation": 9,
+        "Delivery": 131
+      }
+    }
+
+- `datetime` — **server-local** timestamp (`YYYY-MM-DD HH:MM`) the counts
+  were computed at.
+- `stages` — one integer per stage (`Import`, `Extraction`, `Validation`,
+  `Delivery`): how many workitems are currently in that stage across all
+  active workitem sources for the key's `ProcessList`. Computed via the
+  same path as a stage-filtered `/workitems` query, so the numbers always
+  match it. A degraded source answers `500` instead of silently partial
+  counts. An empty scope returns all zeros. Not cached: every call computes
+  fresh numbers.
+
 ## GET /api/v1/workitems/&lt;id&gt;
 
 The **detail** endpoint (issue #197): the document details the overview
@@ -338,7 +366,7 @@ counterpart in the same change.
 | 404 | `{"workitem_id": ..., "detail": null}` | `/workitems/<id>`: unknown id, id outside the key's scope, or the runtime backend can't load the document (uniform on purpose) |
 | 405 | HTML (Flask default) | non-GET verb — the API is GET-only |
 | 429 | HTML (flask-limiter default) | over 60 requests/minute |
-| 500 | `{"error": "Stats backend unavailable"}` (`/avg_processing_time`, `/undelivered`) or `{"error": "Backlog backend unavailable"}` (`/backlog`) or `{"error": "Workitems backend unavailable"}` (`/workitems`, `/workitems/<id>`) or `{"error": "Internal server error"}` | backend query or server failure |
+| 500 | `{"error": "Stats backend unavailable"}` (`/avg_processing_time`, `/undelivered`) or `{"error": "Backlog backend unavailable"}` (`/backlog`) or `{"error": "Workitems backend unavailable"}` (`/workitems`, `/workitems/stages`, `/workitems/<id>`) or `{"error": "Internal server error"}` | backend query or server failure |
 | 503 | `{"error": "Auth backend unavailable"}` | NexoraDB unreachable during auth (fail closed) |
 | 503 | `{"error": "Maintenance", "maintenance": {...}}` | blocking maintenance window (global lockout) |
 
