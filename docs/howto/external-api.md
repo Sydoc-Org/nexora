@@ -228,13 +228,13 @@ answers `400 Unknown field`; a real field outside your scope answers
 lookup returns `500` (fail closed), never a partial list. An empty
 `ProcessList` returns an empty list. Not cached.
 
-## GET /api/v1/workitems/stages
+## GET /api/v1/stages
 
 The count of workitems currently in each stage, scoped to the key's
 `ProcessList`. No parameters:
 
     curl -H "Authorization: Bearer <key>" \
-        "https://nexora.sydoc.ch/nexora/api/v1/workitems/stages"
+        "https://nexora.sydoc.ch/nexora/api/v1/stages"
 
     {
       "datetime": "2026-08-18 09:15",
@@ -366,7 +366,7 @@ counterpart in the same change.
 | 404 | `{"workitem_id": ..., "detail": null}` | `/workitems/<id>`: unknown id, id outside the key's scope, or the runtime backend can't load the document (uniform on purpose) |
 | 405 | HTML (Flask default) | non-GET verb — the API is GET-only |
 | 429 | HTML (flask-limiter default) | over 60 requests/minute |
-| 500 | `{"error": "Stats backend unavailable"}` (`/avg_processing_time`, `/undelivered`) or `{"error": "Backlog backend unavailable"}` (`/backlog`) or `{"error": "Workitems backend unavailable"}` (`/workitems`, `/workitems/stages`, `/workitems/<id>`) or `{"error": "Internal server error"}` | backend query or server failure |
+| 500 | `{"error": "Stats backend unavailable"}` (`/avg_processing_time`, `/undelivered`) or `{"error": "Backlog backend unavailable"}` (`/backlog`) or `{"error": "Workitems backend unavailable"}` (`/workitems`, `/workitems/<id>`, `/stages`) or `{"error": "Internal server error"}` | backend query or server failure |
 | 503 | `{"error": "Auth backend unavailable"}` | NexoraDB unreachable during auth (fail closed) |
 | 503 | `{"error": "Maintenance", "maintenance": {...}}` | blocking maintenance window (global lockout) |
 

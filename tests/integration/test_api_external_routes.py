@@ -1833,11 +1833,11 @@ def test_workitems_fields_sorted_and_stamps_last_used(client, monkeypatch):
         _delete_key(key_hash)
 
 
-# ----------------------- /api/v1/workitems/stages -------------------------- #
+# --------------------------- /api/v1/stages -------------------------------- #
 # Auth-required coverage comes for free from test_every_api_v1_route_requires_auth.
 
-STAGES_URL = "/api/v1/workitems/stages"
-TEST_STAGES_URL = "/api/test/v1/workitems/stages"
+STAGES_URL = "/api/v1/stages"
+TEST_STAGES_URL = "/api/test/v1/stages"
 
 
 def test_workitems_stages_counts_all_four_stages(client, monkeypatch):

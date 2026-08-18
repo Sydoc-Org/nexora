@@ -32,7 +32,7 @@ Eight endpoints in v1:
   (SearchConfig col_* columns mapped for >=1 of the key's processes,
   lowercased with the col_ prefix stripped), sensitive keys excluded. The
   live list, so integrators don't depend on a hand-maintained doc table.
-- GET /api/v1/workitems/stages -- count of workitems per stage (Import,
+- GET /api/v1/stages -- count of workitems per stage (Import,
   Extraction, Validation, Delivery) for the key's process scope: four
   stage-filtered runs of the same _get_workitems_data path /workitems uses,
   so the numbers always match a stage-filtered /workitems query.
@@ -454,7 +454,7 @@ def api_v1_workitems_fields():
 
 @limiter.limit("60 per minute")
 @require_api_key
-def api_v1_workitems_stages():
+def api_v1_stages():
     processes = g.api_client["processes"]
     counts = dict.fromkeys(WORKITEM_STAGES, 0)
     if processes:
@@ -473,7 +473,7 @@ def api_v1_workitems_stages():
                     raise RuntimeError(f"degraded sources: {data['degradedSources']}")
                 counts[stage_name] = data["pagination"]["totalItems"]
         except Exception as e:
-            current_app.logger.error(f"external api workitems/stages failed: {e}")
+            current_app.logger.error(f"external api stages failed: {e}")
             return jsonify({"error": "Workitems backend unavailable"}), 500
     return jsonify(
         {
@@ -662,7 +662,7 @@ def api_test_v1_workitems_fields():
 
 @limiter.limit("60 per minute")
 @require_api_key
-def api_test_v1_workitems_stages():
+def api_test_v1_stages():
     return jsonify(
         {
             "datetime": datetime.now().strftime("%Y-%m-%d %H:%M"),
@@ -739,9 +739,9 @@ def register_routes(app):
         view_func=api_v1_workitems_fields,
     )
     app.add_url_rule(
-        "/api/v1/workitems/stages",
-        endpoint="api_v1_workitems_stages",
-        view_func=api_v1_workitems_stages,
+        "/api/v1/stages",
+        endpoint="api_v1_stages",
+        view_func=api_v1_stages,
     )
     app.add_url_rule(
         "/api/v1/workitems/<int:workitem_id>",
@@ -779,9 +779,9 @@ def register_routes(app):
         view_func=api_test_v1_workitems_fields,
     )
     app.add_url_rule(
-        "/api/test/v1/workitems/stages",
-        endpoint="api_test_v1_workitems_stages",
-        view_func=api_test_v1_workitems_stages,
+        "/api/test/v1/stages",
+        endpoint="api_test_v1_stages",
+        view_func=api_test_v1_stages,
     )
     app.add_url_rule(
         "/api/test/v1/workitems/<int:workitem_id>",

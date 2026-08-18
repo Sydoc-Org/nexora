@@ -10,10 +10,10 @@ Work toward the next release.
 
 ### Added
 
-- **External API: `GET /api/v1/workitems/stages`** — count of workitems per
+- **External API: `GET /api/v1/stages`** — count of workitems per
   stage (Import, Extraction, Validation, Delivery) for the key's process
   scope, computed via the same path as a stage-filtered `/workitems` query.
-  Ships with its `/api/test/v1/workitems/stages` sandbox twin, the
+  Ships with its `/api/test/v1/stages` sandbox twin, the
   `docs/howto/external-api.md` section and the in-app API-docs page entry.
 
 ### Changed
