@@ -6,7 +6,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ _('Setup 2FA - nexora') }}</title>
+    <!-- Pre-paint theme apply -- see hero.html / index.html for the full
+         explanation. Same localStorage keys, same anti-flash reasoning. -->
+    <script nonce="{{ csp_nonce() }}">
+        (function () {
+            try {
+                var ls = function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } };
+                var stored = {};
+                try { stored = JSON.parse(ls('nexora-ui-prefs')) || {}; } catch (e) {}
+                var theme = stored.theme || (ls('nexora-theme') === 'dark' ? 'dark' : 'light');
+                if (theme === 'dark') document.documentElement.classList.add('dark');
+            } catch (e) {}
+        })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Config must come AFTER the CDN script -- setting it before gets
+         silently overwritten when the script loads (see hero.html). -->
+    <script nonce="{{ csp_nonce() }}">
+        tailwind.config = { darkMode: 'class' };
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous">
     <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
@@ -22,6 +40,10 @@
                 <div class="flex items-center">
                     {% include 'nexora_logo/_nexora_logo.html' %}
                 </div>
+                <button type="button" class="auth-theme-toggle inline-flex items-center justify-center rounded-full w-10 h-10" aria-label="{{ _('Switch to dark mode') }}" aria-pressed="false" data-testid="init-2fa-theme-toggle">
+                    <i class="fas fa-sun dark:hidden" aria-hidden="true"></i>
+                    <i class="fas fa-moon hidden dark:inline" aria-hidden="true"></i>
+                </button>
             </div>
         </div>
     </header>
@@ -47,7 +69,7 @@
 
             <div class="flex justify-center mb-6">
                 {% if qr_code %}
-                    <div class="p-2 border border-gray-200 rounded-lg">
+                    <div class="p-2 border border-gray-200 dark:border-slate-600 rounded-lg">
                         <img src="data:image/png;base64,{{ qr_code }}" alt="2FA QR Code" class="w-48 h-48">
                     </div>
                 {% else %}
@@ -58,7 +80,7 @@
             <div class="text-center mb-8">
                 <p class="text-xs text-gray-500 mb-1">{{ _('Can\'t scan the code?') }}</p>
                 <p class="text-xs text-gray-500 mb-1">{{ _('Enter this code manually:') }}</p>
-                <p class="font-mono text-sm font-medium bg-gray-100 py-1 px-3 rounded inline-block select-all">
+                <p class="font-mono text-sm font-medium text-gray-800 dark:text-slate-100 bg-gray-100 dark:bg-slate-700 py-1 px-3 rounded inline-block select-all">
                     {{ secret }}
                 </p>
             </div>
@@ -90,6 +112,7 @@
     </main>
 
        {% include '_small_footer.html' %}
+       {% include 'js/_auth_theme_toggle_js.html' %}
 
 
 </body>

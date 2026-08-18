@@ -136,7 +136,15 @@ html.dark .rounded-xl.shadow-2xl.bg-white {
 html.dark .text-gray-800 { color: var(--nx-text, #e2e8f0) !important; }
 html.dark .text-gray-700 { color: var(--nx-text-sec, #94a3b8) !important; }
 html.dark .text-gray-600 { color: var(--nx-text-sec, #94a3b8) !important; }
+html.dark .text-gray-500 { color: var(--nx-text-meta, #64748b) !important; }
 html.dark .text-gray-400 { color: var(--nx-text-meta, #64748b) !important; }
+
+/* Flash-error box (init_2FA.html, verify_2fa.html) -- a raw Tailwind
+   red-tint pattern, not the .error-message component the other pages
+   use, so it never got covered by anything above. */
+html.dark .bg-red-50 { background-color: rgba(220, 38, 38, 0.12) !important; }
+html.dark .border-red-500 { border-color: var(--nx-danger, #f87171) !important; }
+html.dark .text-red-700 { color: var(--nx-danger, #f87171) !important; }
 html.dark .hover\:text-gray-600:hover { color: var(--nx-text, #e2e8f0) !important; }
 
 /* Inputs -- Tailwind's preflight gives bare `border` a light-gray
