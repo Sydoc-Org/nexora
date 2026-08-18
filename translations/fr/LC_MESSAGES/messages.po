@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-18 10:21+0200\n"
+"POT-Creation-Date: 2026-08-18 11:40+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -27,10 +27,35 @@ msgid "Date is outside the allowed entry window"
 msgstr "La date est en dehors de la période de saisie autorisée"
 
 #: nx_lib/whats_new.py:28
+msgid "Filters apply instantly"
+msgstr "Les filtres s'appliquent instantanément"
+
+#: nx_lib/whats_new.py:30
+msgid ""
+"The Apply button is gone from the Generali filter bars — changing any "
+"filter or date reloads the list right away."
+msgstr ""
+"Le bouton Appliquer a disparu des barres de filtres Generali — modifier un "
+"filtre ou une date recharge la liste immédiatement."
+
+#: nx_lib/whats_new.py:38
+msgid "Type to find a user in the filters"
+msgstr "Tapez pour trouver un utilisateur dans les filtres"
+
+#: nx_lib/whats_new.py:40
+msgid ""
+"The user filter on the Generali pages is now a search box: type a few "
+"letters, pick the name, and the list filters instantly."
+msgstr ""
+"Le filtre utilisateur des pages Generali est désormais un champ de "
+"recherche : tapez quelques lettres, choisissez le nom, et la liste se "
+"filtre instantanément."
+
+#: nx_lib/whats_new.py:55
 msgid "Forecast your report trends"
 msgstr "Prévoyez les tendances de vos rapports"
 
-#: nx_lib/whats_new.py:30
+#: nx_lib/whats_new.py:57
 msgid ""
 "Reports charted over a single date breakdown (per week, month, …) gain a "
 "Forecast toggle: the chart extends with a dashed prediction line and a "
@@ -42,11 +67,11 @@ msgstr ""
 " prédiction en pointillés et d'une bande de confiance ; les exports et "
 "les envois planifiés incluent aussi la prévision."
 
-#: nx_lib/whats_new.py:40
+#: nx_lib/whats_new.py:67
 msgid "Compare with the prior period"
 msgstr "Comparez avec la période précédente"
 
-#: nx_lib/whats_new.py:42
+#: nx_lib/whats_new.py:69
 msgid ""
 "Simple-tab reports with a relative date range now show ↑/↓ change chips "
 "and a small trend sparkline against the equivalent prior period — see at "
@@ -57,11 +82,11 @@ msgstr ""
 "de tendance par rapport à la période précédente équivalente — voyez d'un "
 "coup d'œil si les chiffres montent ou descendent."
 
-#: nx_lib/whats_new.py:52
+#: nx_lib/whats_new.py:79
 msgid "Backlog over time"
 msgstr "Backlog dans le temps"
 
-#: nx_lib/whats_new.py:54
+#: nx_lib/whats_new.py:81
 msgid ""
 "Reporting has a new Backlog measure — track how the open backlog develops"
 " per client or process, week by week."
@@ -69,11 +94,11 @@ msgstr ""
 "La page Rapports dispose d'une nouvelle mesure Backlog — suivez semaine "
 "après semaine l'évolution du backlog ouvert par client ou par processus."
 
-#: nx_lib/whats_new.py:62
+#: nx_lib/whats_new.py:89
 msgid "Chat with the reporting AI"
 msgstr "Discutez avec l'IA des rapports"
 
-#: nx_lib/whats_new.py:64
+#: nx_lib/whats_new.py:91
 msgid ""
 "The one-shot Ask AI is now a full chat panel on both Reporting tabs — ask"
 " follow-up questions in context, watch live progress while the agent "
@@ -84,11 +109,11 @@ msgstr ""
 "contexte, suivez la progression en direct et poursuivez ou relancez une "
 "exécution arrêtée trop tôt."
 
-#: nx_lib/whats_new.py:74
+#: nx_lib/whats_new.py:101
 msgid "Filter several processes at once"
 msgstr "Filtrer plusieurs processus à la fois"
 
-#: nx_lib/whats_new.py:76
+#: nx_lib/whats_new.py:103
 msgid ""
 "The process filter on Dashboard and Workitems is now a multi-select — "
 "combine two or three processes in one view."
@@ -97,11 +122,11 @@ msgstr ""
 "à sélection multiple — combinez deux ou trois processus dans une même "
 "vue."
 
-#: nx_lib/whats_new.py:84
+#: nx_lib/whats_new.py:111
 msgid "Smarter document value search"
 msgstr "Recherche de valeurs de documents plus intelligente"
 
-#: nx_lib/whats_new.py:86
+#: nx_lib/whats_new.py:113
 msgid ""
 "Search workitems by document value without picking a field first — "
 "matches are found across every field you may see. Each search row now has"
@@ -114,11 +139,11 @@ msgstr ""
 "(contient, =, ≠, commence par, se termine par) et les lignes se combinent"
 " avec ET/OU."
 
-#: nx_lib/whats_new.py:96
+#: nx_lib/whats_new.py:123
 msgid "Date-range presets"
 msgstr "Plages de dates prédéfinies"
 
-#: nx_lib/whats_new.py:98
+#: nx_lib/whats_new.py:125
 msgid ""
 "Today, Yesterday, This week, Last 7 days, This month — one click in the "
 "Workitems advanced filter instead of typing dates."
@@ -126,11 +151,11 @@ msgstr ""
 "Aujourd'hui, Hier, Cette semaine, 7 derniers jours, Ce mois-ci — un clic "
 "dans le filtre avancé des workitems au lieu de saisir des dates."
 
-#: nx_lib/whats_new.py:106
+#: nx_lib/whats_new.py:133
 msgid "Filter workitems by stage"
 msgstr "Filtrer les workitems par étape"
 
-#: nx_lib/whats_new.py:108
+#: nx_lib/whats_new.py:135
 msgid ""
 "A new Stage filter (Import, Extraction, Validation, Delivery) narrows the"
 " list to workitems currently in that step."
@@ -138,11 +163,11 @@ msgstr ""
 "Un nouveau filtre Étape (Importation, Extraction, Validation, Livraison) "
 "restreint la liste aux workitems actuellement à cette étape."
 
-#: nx_lib/whats_new.py:116
+#: nx_lib/whats_new.py:143
 msgid "See deleted workitems"
 msgstr "Voir les workitems supprimés"
 
-#: nx_lib/whats_new.py:118
+#: nx_lib/whats_new.py:145
 msgid ""
 "The status filter gains a Deleted option — workitems that were deleted, "
 "previously hidden entirely, can now be shown on demand, badged red."
@@ -151,11 +176,11 @@ msgstr ""
 "supprimés, jusqu'ici totalement masqués, peuvent désormais être affichés "
 "à la demande, marqués en rouge."
 
-#: nx_lib/whats_new.py:127
+#: nx_lib/whats_new.py:154
 msgid "Make nexora look your way"
 msgstr "Donnez à nexora votre style"
 
-#: nx_lib/whats_new.py:129
+#: nx_lib/whats_new.py:156
 msgid ""
 "The new Appearance page has a live preview and more choices: light, dark "
 "or system theme, custom accent color, font size, corner style, high "
@@ -168,11 +193,11 @@ msgstr ""
 "plans de page et vitesse d'animation. Vos réglages suivent votre compte "
 "sur chaque appareil."
 
-#: nx_lib/whats_new.py:140
+#: nx_lib/whats_new.py:167
 msgid "API documentation in the app"
 msgstr "Documentation de l'API dans l'application"
 
-#: nx_lib/whats_new.py:142
+#: nx_lib/whats_new.py:169
 msgid ""
 "The external API is now documented on the new API Documentation page — "
 "authentication, endpoints and copyable examples included. Every endpoint "
@@ -185,11 +210,11 @@ msgstr ""
 "adresse et même structure, données factices — pour intégrer sans toucher "
 "à la production."
 
-#: nx_lib/whats_new.py:152
+#: nx_lib/whats_new.py:179
 msgid "System status at a glance for admins"
 msgstr "Le statut du système en un coup d'œil pour les admins"
 
-#: nx_lib/whats_new.py:154
+#: nx_lib/whats_new.py:181
 msgid ""
 "The new Status page shows each component's health, a 30-day uptime strip "
 "and the incident history — checked every few minutes by the outage "
@@ -200,11 +225,11 @@ msgstr ""
 "toutes les quelques minutes par le moniteur de pannes, avec un "
 "avertissement clair si les données deviennent obsolètes."
 
-#: nx_lib/whats_new.py:164
+#: nx_lib/whats_new.py:191
 msgid "Chat, notifications and workitem tags retired"
 msgstr "Chat, notifications et tags de workitems retirés"
 
-#: nx_lib/whats_new.py:166
+#: nx_lib/whats_new.py:193
 msgid ""
 "The chat page, the notification bell, and workitem tags, priority, "
 "assignment and comments have been removed to keep nexora focused on "
@@ -215,11 +240,11 @@ msgstr ""
 " pour recentrer nexora sur le traitement des documents. Les données "
 "existantes sont conservées."
 
-#: nx_lib/whats_new.py:182
+#: nx_lib/whats_new.py:209
 msgid "Build multi-card dashboards"
 msgstr "Composez des tableaux de bord multi-cartes"
 
-#: nx_lib/whats_new.py:184
+#: nx_lib/whats_new.py:211
 msgid ""
 "Save several reports as one dashboard: combine KPI, chart and table "
 "cards, drag to rearrange, set global filters with per-card overrides, and"
@@ -230,11 +255,11 @@ msgstr ""
 "définissez des filtres globaux avec des exceptions par carte, et exportez"
 " ou explorez les détails depuis chaque carte."
 
-#: nx_lib/whats_new.py:193
+#: nx_lib/whats_new.py:220
 msgid "Drill through to the documents"
 msgstr "Explorer jusqu'aux documents"
 
-#: nx_lib/whats_new.py:195
+#: nx_lib/whats_new.py:222
 msgid ""
 "Click a chart element or result row in Reporting to open the underlying "
 "document rows, with workitem links and export."
@@ -243,11 +268,11 @@ msgstr ""
 "Rapports pour ouvrir les lignes de documents sous-jacentes, avec liens "
 "workitem et export."
 
-#: nx_lib/whats_new.py:203
+#: nx_lib/whats_new.py:230
 msgid "Combine measures in one report"
 msgstr "Combiner des mesures dans un rapport"
 
-#: nx_lib/whats_new.py:205
+#: nx_lib/whats_new.py:232
 msgid ""
 "The guided report builder now takes several measures at once (from the "
 "same source) and has its own process step, with coverage badges showing "
@@ -258,11 +283,11 @@ msgstr ""
 "des badges de couverture indiquant quels processus fournissent chaque "
 "champ."
 
-#: nx_lib/whats_new.py:214
+#: nx_lib/whats_new.py:241
 msgid "Machine-to-machine API"
 msgstr "API machine à machine"
 
-#: nx_lib/whats_new.py:216
+#: nx_lib/whats_new.py:243
 msgid ""
 "External clients can fetch KPI numbers — like today's imported and "
 "processed counts — over the new authenticated /api/v1 interface."
@@ -2265,10 +2290,10 @@ msgid ""
 "Validation, Delivery) for your key's process scope. No parameters; the "
 "numbers always match a stage-filtered /workitems query."
 msgstr ""
-"Le nombre de workitems actuellement dans chaque étape (Import, Extraction,"
-" Validation, Delivery) pour le périmètre de processus de votre clé. Aucun "
-"paramètre ; les chiffres correspondent toujours à une requête /workitems "
-"filtrée par étape."
+"Le nombre de workitems actuellement dans chaque étape (Import, "
+"Extraction, Validation, Delivery) pour le périmètre de processus de votre"
+" clé. Aucun paramètre ; les chiffres correspondent toujours à une requête"
+" /workitems filtrée par étape."
 
 #: templates/api_docs.html:401
 msgid ""
@@ -2280,8 +2305,8 @@ msgstr ""
 "datetime est l'horodatage local du serveur auquel les comptes ont été "
 "calculés. Un périmètre de processus vide renvoie uniquement des zéros ; "
 "une source de workitems dégradée répond 500 au lieu de comptes "
-"silencieusement partiels. Pas de cache : chaque appel calcule des chiffres"
-" à jour."
+"silencieusement partiels. Pas de cache : chaque appel calcule des "
+"chiffres à jour."
 
 #: templates/api_docs.html:407
 msgid ""
@@ -2921,15 +2946,15 @@ msgstr "Catégorie parente"
 #: templates/generali_pdqm.html:81 templates/generali_pdqm.html:93
 #: templates/generali_reporting.html:118
 #: templates/js/_generali_additional_services_js.html:88
-#: templates/js/_generali_additional_services_js.html:299
+#: templates/js/_generali_additional_services_js.html:278
 #: templates/js/_generali_pdqm_js.html:88
 #: templates/js/_generali_pdqm_js.html:101
 #: templates/js/_generali_pdqm_js.html:110
 #: templates/js/_generali_pdqm_js.html:130
 #: templates/js/_generali_pdqm_js.html:328
+#: templates/js/_generali_pdqm_js.html:347
+#: templates/js/_generali_pdqm_js.html:356
 #: templates/js/_generali_pdqm_js.html:368
-#: templates/js/_generali_pdqm_js.html:377
-#: templates/js/_generali_pdqm_js.html:389
 #: templates/js/_reporting_viz_js.html:639
 #: templates/js/_reporting_viz_js.html:641
 msgid "All"
@@ -2980,10 +3005,10 @@ msgstr "Toutes les organisations"
 msgid "User"
 msgstr "Utilisateur"
 
-#: templates/generali_additionalservices.html:109
-#: templates/generali_baseservices.html:97 templates/generali_pdqm.html:117
-#: templates/generali_projectmanagement.html:85
-#: templates/generali_reporting.html:106
+#: templates/generali_additionalservices.html:111
+#: templates/generali_baseservices.html:99 templates/generali_pdqm.html:119
+#: templates/generali_projectmanagement.html:87
+#: templates/generali_reporting.html:108
 msgid "All Users"
 msgstr "Tous les utilisateurs"
 
@@ -3161,14 +3186,14 @@ msgstr "Cette action est irréversible."
 #: templates/generali_baseservices.html:296 templates/generali_pdqm.html:371
 #: templates/generali_projectmanagement.html:282
 #: templates/generali_reporting.html:339
-#: templates/js/_generali_additional_services_js.html:509
-#: templates/js/_generali_additional_services_js.html:519
-#: templates/js/_generali_base_services_js.html:436
-#: templates/js/_generali_base_services_js.html:449
-#: templates/js/_generali_pdqm_js.html:646
-#: templates/js/_generali_pdqm_js.html:661
-#: templates/js/_generali_project_management_js.html:410
-#: templates/js/_generali_project_management_js.html:424
+#: templates/js/_generali_additional_services_js.html:488
+#: templates/js/_generali_additional_services_js.html:498
+#: templates/js/_generali_base_services_js.html:415
+#: templates/js/_generali_base_services_js.html:428
+#: templates/js/_generali_pdqm_js.html:625
+#: templates/js/_generali_pdqm_js.html:640
+#: templates/js/_generali_project_management_js.html:389
+#: templates/js/_generali_project_management_js.html:403
 #: templates/js/_generali_reporting_js.html:846
 #: templates/js/_generali_reporting_js.html:860
 #: templates/js/_reporting_metrics_js.html:62
@@ -5840,61 +5865,61 @@ msgstr "Aucun enregistrement trouvé."
 msgid "Try adjusting your filters or resetting the search."
 msgstr "Essayez d'ajuster vos filtres ou de réinitialiser la recherche."
 
-#: templates/js/_generali_additional_services_js.html:363
-#: templates/js/_generali_additional_services_js.html:448
-#: templates/js/_generali_base_services_js.html:305
-#: templates/js/_generali_base_services_js.html:376
-#: templates/js/_generali_pdqm_js.html:473
-#: templates/js/_generali_pdqm_js.html:578
-#: templates/js/_generali_project_management_js.html:279
-#: templates/js/_generali_project_management_js.html:350
+#: templates/js/_generali_additional_services_js.html:342
+#: templates/js/_generali_additional_services_js.html:427
+#: templates/js/_generali_base_services_js.html:284
+#: templates/js/_generali_base_services_js.html:355
+#: templates/js/_generali_pdqm_js.html:452
+#: templates/js/_generali_pdqm_js.html:557
+#: templates/js/_generali_project_management_js.html:258
+#: templates/js/_generali_project_management_js.html:329
 msgid "Please fill in all fields."
 msgstr "Veuillez remplir tous les champs."
 
-#: templates/js/_generali_additional_services_js.html:387
-#: templates/js/_generali_additional_services_js.html:466
-#: templates/js/_generali_base_services_js.html:329
-#: templates/js/_generali_base_services_js.html:394
-#: templates/js/_generali_pdqm_js.html:499
-#: templates/js/_generali_pdqm_js.html:602
-#: templates/js/_generali_project_management_js.html:303
-#: templates/js/_generali_project_management_js.html:368
+#: templates/js/_generali_additional_services_js.html:366
+#: templates/js/_generali_additional_services_js.html:445
+#: templates/js/_generali_base_services_js.html:308
+#: templates/js/_generali_base_services_js.html:373
+#: templates/js/_generali_pdqm_js.html:478
+#: templates/js/_generali_pdqm_js.html:581
+#: templates/js/_generali_project_management_js.html:282
+#: templates/js/_generali_project_management_js.html:347
 msgid "Error saving record."
 msgstr "Erreur lors de l'enregistrement."
 
-#: templates/js/_generali_additional_services_js.html:393
-#: templates/js/_generali_additional_services_js.html:472
-#: templates/js/_generali_base_services_js.html:335
-#: templates/js/_generali_base_services_js.html:400
-#: templates/js/_generali_pdqm_js.html:505
-#: templates/js/_generali_pdqm_js.html:608
-#: templates/js/_generali_project_management_js.html:309
-#: templates/js/_generali_project_management_js.html:374
+#: templates/js/_generali_additional_services_js.html:372
+#: templates/js/_generali_additional_services_js.html:451
+#: templates/js/_generali_base_services_js.html:314
+#: templates/js/_generali_base_services_js.html:379
+#: templates/js/_generali_pdqm_js.html:484
+#: templates/js/_generali_pdqm_js.html:587
+#: templates/js/_generali_project_management_js.html:288
+#: templates/js/_generali_project_management_js.html:353
 #: templates/js/admin/_sessions_js.html:132
 msgid "Network error."
 msgstr "Erreur réseau."
 
-#: templates/js/_generali_additional_services_js.html:501
-#: templates/js/_generali_base_services_js.html:428
-#: templates/js/_generali_pdqm_js.html:638
-#: templates/js/_generali_project_management_js.html:402
+#: templates/js/_generali_additional_services_js.html:480
+#: templates/js/_generali_base_services_js.html:407
+#: templates/js/_generali_pdqm_js.html:617
+#: templates/js/_generali_project_management_js.html:381
 #: templates/js/_generali_reporting_js.html:838
 msgid "Deleting…"
 msgstr "Suppression…"
 
-#: templates/js/_generali_additional_services_js.html:514
-#: templates/js/_generali_base_services_js.html:442
-#: templates/js/_generali_pdqm_js.html:654
-#: templates/js/_generali_project_management_js.html:417
+#: templates/js/_generali_additional_services_js.html:493
+#: templates/js/_generali_base_services_js.html:421
+#: templates/js/_generali_pdqm_js.html:633
+#: templates/js/_generali_project_management_js.html:396
 #: templates/js/_generali_reporting_js.html:853
 msgid "Error deleting record."
 msgstr "Erreur lors de la suppression."
 
-#: templates/js/_generali_additional_services_js.html:574
-#: templates/js/_generali_base_services_js.html:499
-#: templates/js/_generali_pdqm_js.html:712
-#: templates/js/_generali_project_management_js.html:473
-#: templates/js/_generali_reporting_js.html:947
+#: templates/js/_generali_additional_services_js.html:553
+#: templates/js/_generali_base_services_js.html:478
+#: templates/js/_generali_pdqm_js.html:691
+#: templates/js/_generali_project_management_js.html:452
+#: templates/js/_generali_reporting_js.html:926
 msgid "Export failed."
 msgstr "L'exportation a échoué."
 

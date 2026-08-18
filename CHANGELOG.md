@@ -8,6 +8,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+## [3.1.1] - 2026-08-18
+
 ### Added
 
 - **External API: `GET /api/v1/stages`** — count of workitems per

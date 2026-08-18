@@ -21,6 +21,33 @@ from .version import __version__
 # endpoint (url_for name, None = no link), icon (fontawesome, no "fa-" prefix).
 RELEASES = [
     {
+        "version": "3.1.1",
+        "date": "2026-08-18",
+        "entries": [
+            {
+                "title": _("Filters apply instantly"),
+                "body": _(
+                    "The Apply button is gone from the Generali filter bars — "
+                    "changing any filter or date reloads the list right away."
+                ),
+                "perm": "generali.baseservices.view",
+                "endpoint": "generali_base_services",
+                "icon": "bolt",
+            },
+            {
+                "title": _("Type to find a user in the filters"),
+                "body": _(
+                    "The user filter on the Generali pages is now a search box: "
+                    "type a few letters, pick the name, and the list filters "
+                    "instantly."
+                ),
+                "perm": "generali.baseservices.view",
+                "endpoint": "generali_base_services",
+                "icon": "magnifying-glass",
+            },
+        ],
+    },
+    {
         "version": "3.1",
         "date": "2026-08-06",
         "entries": [
