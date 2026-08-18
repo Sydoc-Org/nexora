@@ -32,6 +32,12 @@ Work toward the next release.
 
 ### Fixed
 
+- **Compact density broke every icon'd search input** — with Appearance →
+  Density set to Compact, the `html.nx-compact` input-padding shorthand
+  outranked the `.nx-input.pl-10`/`.pr-10` icon-padding re-asserts (extra
+  `html` type selector), so placeholders rendered underneath the magnifying
+  glass on the Workitems, Generali documents, prepared-documents and admin
+  search fields. The re-asserts now also exist at compact specificity.
 - **Env switching was a silent no-op for TUI-started dev servers** — the `nx`
   REPL imports `nx_lib.config` at startup, which loads the current env file's
   keys into the TUI's own process env; servers it spawned inherited them, and
