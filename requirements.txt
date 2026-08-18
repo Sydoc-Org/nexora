@@ -109,6 +109,8 @@ pyotp==2.9.0
     # via nexora
 pyparsing==3.3.2
     # via matplotlib
+pypdfium2==5.13.0
+    # via nexora
 python-dateutil==2.9.0.post0
     # via matplotlib
 python-dotenv==1.1.1

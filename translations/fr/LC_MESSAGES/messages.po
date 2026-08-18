@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-17 08:48+0200\n"
+"POT-Creation-Date: 2026-08-18 08:45+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -826,7 +826,7 @@ msgid "Could not export query"
 msgstr "Impossible d'exporter la requête"
 
 #: nx_lib/views/reporting.py:2113 nx_lib/views/reporting.py:2141
-#: nx_lib/views/reporting.py:2175 templates/hero.html:96
+#: nx_lib/views/reporting.py:2175 templates/hero.html:133
 #: templates/js/_reporting_dashboard_js.html:98
 #: templates/js/_reporting_js.html:490
 msgid "Report"
@@ -2225,8 +2225,8 @@ msgstr ""
 "Toute valeur invalide renvoie un 400 avec un message d'erreur clair en "
 "anglais — rien n'est silencieusement corrigé. Les clés de champ inconnues"
 " et sensibles répondent à l'identique (400 Unknown field). "
-"import_datetime est renseigné lorsque le processus est mappé dans la "
-"base statistique, sinon null. Les correspondances de champs de document "
+"import_datetime est renseigné lorsque le processus est mappé dans la base"
+" statistique, sinon null. Les correspondances de champs de document "
 "respectent la même fenêtre temporelle par processus que la recherche de "
 "la page Vue d'ensemble."
 
@@ -2691,11 +2691,16 @@ msgstr "Aucun document traité pour le moment aujourd'hui."
 msgid "Forgot password - nexora"
 msgstr "Mot de passe oublié - nexora"
 
-#: templates/forgot_password.html:35
+#: templates/forgot_password.html:43 templates/hero.html:60
+#: templates/index.html:46
+msgid "Switch to dark mode"
+msgstr "Activer/désactiver le mode sombre"
+
+#: templates/forgot_password.html:57
 msgid "Forgot your password"
 msgstr "Mot de passe oublié"
 
-#: templates/forgot_password.html:36
+#: templates/forgot_password.html:58
 msgid ""
 "No problem. Enter the email address associated with your account and "
 "we'll send you a link to reset your password"
@@ -2703,15 +2708,15 @@ msgstr ""
 "Pas de problème. Saisissez l'adresse e-mail associée à votre compte et "
 "nous vous enverrons un lien pour réinitialiser votre mot de passe."
 
-#: templates/forgot_password.html:47 templates/profile.html:146
+#: templates/forgot_password.html:69 templates/profile.html:146
 msgid "Email address"
 msgstr "Adresse e-mail"
 
-#: templates/forgot_password.html:57
+#: templates/forgot_password.html:79
 msgid "Send reset link"
 msgstr "Envoyer le lien de réinitialisation"
 
-#: templates/forgot_password.html:63 templates/init_reset.html:87
+#: templates/forgot_password.html:85 templates/init_reset.html:87
 #: templates/reset_password.html:87
 msgid "Back to login"
 msgstr "Retour à la connexion"
@@ -3528,7 +3533,7 @@ msgstr "Date du rapport"
 msgid "Email Received"
 msgstr "E-mail reçu"
 
-#: templates/generali_reporting.html:300 templates/hero.html:155
+#: templates/generali_reporting.html:300 templates/hero.html:192
 #: templates/js/_generali_reporting_js.html:354
 msgid "Delivery"
 msgstr "Livraison"
@@ -3538,19 +3543,19 @@ msgstr "Livraison"
 msgid "Latest Delivery"
 msgstr "Dernière livraison"
 
-#: templates/hero.html:29 templates/hero.html:32
+#: templates/hero.html:65 templates/hero.html:68
 msgid "Sign In"
 msgstr "Se connecter"
 
-#: templates/hero.html:44 templates/hero.html:76
+#: templates/hero.html:81 templates/hero.html:113
 msgid "Real-time updates"
 msgstr "Mises à jour en temps réel"
 
-#: templates/hero.html:46
+#: templates/hero.html:83
 msgid "Seamless Document Tracking, Complete Peace of Mind."
 msgstr "Suivi de documents sans accroc, tranquillité d'esprit totale."
 
-#: templates/hero.html:49
+#: templates/hero.html:86
 msgid ""
 "Welcome to nexora. Securely monitor your document's journey from import "
 "to validation and final delivery in real-time. Access a complete, "
@@ -3560,39 +3565,39 @@ msgstr ""
 "de l'import à la validation et à la livraison finale. Accédez à un "
 "historique complet et traçable 24h/24 et 7j/7."
 
-#: templates/hero.html:53
+#: templates/hero.html:90
 msgid "Access Your Portal"
 msgstr "Accéder à votre portail"
 
-#: templates/hero.html:57 templates/hero.html:179
+#: templates/hero.html:94 templates/hero.html:216
 msgid "Real-time tracking"
 msgstr "Suivi en temps réel"
 
-#: templates/hero.html:58 templates/hero.html:186
+#: templates/hero.html:95 templates/hero.html:223
 msgid "Document history"
 msgstr "Historique des documents"
 
-#: templates/hero.html:59 templates/hero.html:193
+#: templates/hero.html:96 templates/hero.html:230
 msgid "Secure access"
 msgstr "Accès sécurisé"
 
-#: templates/hero.html:69 templates/hero.html:75
+#: templates/hero.html:106 templates/hero.html:112
 msgid "Document Status"
 msgstr "Statut du document"
 
-#: templates/hero.html:82
+#: templates/hero.html:119
 msgid "Invoice"
 msgstr "Facture"
 
-#: templates/hero.html:89
+#: templates/hero.html:126
 msgid "Contract"
 msgstr "Contrat"
 
-#: templates/hero.html:114
+#: templates/hero.html:151
 msgid "Visualize Your Document's Journey"
 msgstr "Visualisez le parcours de votre document"
 
-#: templates/hero.html:117
+#: templates/hero.html:154
 msgid ""
 "Our automated system handles every step with precision and security. "
 "Follow along as a document is processed in real-time."
@@ -3600,32 +3605,32 @@ msgstr ""
 "Notre système automatisé gère chaque étape avec précision et sécurité. "
 "Suivez en temps réel le traitement d'un document."
 
-#: templates/hero.html:134 templates/js/_workitems_overview_js.html:276
+#: templates/hero.html:171 templates/js/_workitems_overview_js.html:276
 #: templates/workitems_overview.html:354
 msgid "Import"
 msgstr "Importation"
 
-#: templates/hero.html:141
+#: templates/hero.html:178
 msgid "Extraction"
 msgstr "Extraction"
 
-#: templates/hero.html:148
+#: templates/hero.html:185
 msgid "Validation"
 msgstr "Validation"
 
-#: templates/hero.html:161
+#: templates/hero.html:198
 msgid "Initializing..."
 msgstr "Initialisation..."
 
-#: templates/hero.html:171
+#: templates/hero.html:208
 msgid "Why use nexora"
 msgstr "Pourquoi utiliser nexora"
 
-#: templates/hero.html:172
+#: templates/hero.html:209
 msgid "Everything you need in one secure and convenient place"
 msgstr "Tout ce dont vous avez besoin en un seul endroit sécurisé et pratique"
 
-#: templates/hero.html:180
+#: templates/hero.html:217
 msgid ""
 "Monitor your document's journey from import to validation and final "
 "delivery, every step of the way"
@@ -3633,7 +3638,7 @@ msgstr ""
 "Suivez le parcours de votre document de l'import à la validation et à la "
 "livraison finale, étape par étape."
 
-#: templates/hero.html:187
+#: templates/hero.html:224
 msgid ""
 "Access a complete, auditable history of all your processed documents "
 "available 24/7."
@@ -3641,7 +3646,7 @@ msgstr ""
 "Accédez 24h/24 à un historique complet et traçable de tous vos documents "
 "traités."
 
-#: templates/hero.html:194
+#: templates/hero.html:231
 msgid ""
 "Your data is protected with industry-leading security protocols, ensuring"
 " complete confidentiality"
@@ -3649,11 +3654,11 @@ msgstr ""
 "Vos données sont protégées par des protocoles de sécurité de pointe "
 "garantissant une confidentialité totale."
 
-#: templates/hero.html:203
+#: templates/hero.html:240
 msgid "Ready to See Your Documents in Action?"
 msgstr "Prêt à voir vos documents en action ?"
 
-#: templates/hero.html:206
+#: templates/hero.html:243
 msgid ""
 "Log in to your portal to access real-time tracking, view your history, "
 "and manage your workflow with confidence."
@@ -3662,7 +3667,7 @@ msgstr ""
 "consulter votre historique et gérer votre flux de travail en toute "
 "confiance."
 
-#: templates/hero.html:209
+#: templates/hero.html:246
 msgid "Access Your Portal Now"
 msgstr "Accédez à votre portail maintenant"
 
@@ -3673,22 +3678,22 @@ msgstr "Connexion - nexora"
 #: templates/admin/access_control.html:189
 #: templates/admin/archive/user_management.html:37 templates/admin/logs.html:42
 #: templates/admin/modals/_user_modals.html:32 templates/admin/sessions.html:27
-#: templates/admin/user_detail.html:35 templates/index.html:42
+#: templates/admin/user_detail.html:35 templates/index.html:66
 #: templates/profile.html:135
 msgid "Username"
 msgstr "Nom d'utilisateur"
 
-#: templates/index.html:49
+#: templates/index.html:73
 msgid "Your Username"
 msgstr "Votre nom d'utilisateur"
 
 #: templates/admin/access_control.html:224
-#: templates/admin/modals/_user_modals.html:71 templates/index.html:53
+#: templates/admin/modals/_user_modals.html:71 templates/index.html:77
 #: templates/profile.html:63 templates/set_password.html:52
 msgid "Password"
 msgstr "Mot de passe"
 
-#: templates/index.html:62 templates/init_reset.html:58
+#: templates/index.html:86 templates/init_reset.html:58
 #: templates/init_reset.html:73 templates/profile.html:196
 #: templates/profile.html:207 templates/profile.html:224
 #: templates/reset_password.html:58 templates/reset_password.html:73
@@ -3696,15 +3701,15 @@ msgstr "Mot de passe"
 msgid "Toggle password visibility"
 msgstr "Afficher/masquer le mot de passe"
 
-#: templates/index.html:71
+#: templates/index.html:95
 msgid "Remember me"
 msgstr "Se souvenir de moi"
 
-#: templates/index.html:74
+#: templates/index.html:98
 msgid "Forgot password"
 msgstr "Mot de passe oublié"
 
-#: templates/index.html:78
+#: templates/index.html:102
 msgid "Sign in"
 msgstr "Se connecter"
 
