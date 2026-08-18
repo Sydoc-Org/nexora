@@ -1,8 +1,11 @@
 /* ============================================================
    hero (public landing) — adopts the nexora-ui design system.
    nexora-ui.css loads BEFORE this file, so the --nx-* tokens are
-   available here. This is the light brand identity only (the
-   public page has no dark-mode toggle), mirroring auth.css.
+   available here. Token-based throughout, so it follows the
+   app's html.dark preference automatically -- the page now carries
+   its own light/dark toggle (#theme-toggle in hero.html), the
+   first of the pre-login pages to get one; index.html/auth.css
+   doesn't have it wired up yet.
 
    Keeps every JS hook intact: #preloader / #preloader-logo /
    #header-logo-wrapper / #signin / #main-content-wrapper (the
@@ -25,6 +28,20 @@ body.hero-body {
         radial-gradient(44rem 40rem at 3% 76%,  var(--nx-accent-soft, rgba(79, 70, 229, 0.10)) 0%, transparent 46%),
         radial-gradient(48rem 40rem at 92% 99%, #f3f0ff 0%, transparent 48%),
         var(--nx-page, #f9fafb);
+}
+/* Dark-mode wash: the two hardcoded near-white blobs above (#f5f3ff,
+   #f3f0ff) are tuned for the light page and never got a dark counterpart,
+   so they rendered as bright lavender circles floating on the dark navy
+   background instead of blending in. Same layout, all-token colors so
+   they stay a subtle ambient glow at any brightness. */
+html.dark body.hero-body {
+    background:
+        radial-gradient(46rem 40rem at 88% 1%,  var(--nx-accent-tint, #312e81) 0%, transparent 46%),
+        radial-gradient(44rem 40rem at 6% 24%,  var(--nx-violet-tint, rgba(167,139,250,.12)) 0%, transparent 44%),
+        radial-gradient(42rem 38rem at 97% 50%, rgba(167, 139, 250, 0.06) 0%, transparent 44%),
+        radial-gradient(44rem 40rem at 3% 76%,  var(--nx-accent-soft, rgba(129,140,248,0.20)) 0%, transparent 46%),
+        radial-gradient(48rem 40rem at 92% 99%, var(--nx-violet-tint, rgba(167,139,250,.12)) 0%, transparent 48%),
+        var(--nx-page, #0f172a);
 }
 
 /* Generic brand-gradient fill (header sign-in on mobile, etc.) */
@@ -58,7 +75,7 @@ body.hero-body {
 .hero-feat:hover {
     border-color: transparent;
     box-shadow: var(--nx-shadow-pop, 0 12px 32px rgba(16, 24, 40, 0.12));
-    transform: translateY(-4px);
+    transform: translateY(-4px) scale(1.02);
 }
 /* Gradient icon chip inside each feature card. */
 .hero-feat-icon {
@@ -89,6 +106,17 @@ body.hero-body {
         radial-gradient(46rem 32rem at 82% -16%, var(--nx-accent-soft, rgba(79, 70, 229, 0.12)), transparent 60%),
         radial-gradient(40rem 30rem at 4% 2%, rgba(124, 58, 237, 0.10), transparent 55%),
         var(--nx-page, #f9fafb);
+}
+/* Dark mode: this section sits directly under the header and stacks its
+   own top-right glow on top of body.hero-body's (also top-right, 88% 1%)
+   -- fine at light-mode opacity, but the two together read as one
+   over-bright patch right at the top of the page in dark mode. Toned down
+   so it reads as one coherent glow instead of two stacked ones. */
+html.dark .hero-band {
+    background:
+        radial-gradient(46rem 32rem at 82% -16%, rgba(129, 140, 248, 0.08), transparent 60%),
+        radial-gradient(40rem 30rem at 4% 2%, rgba(167, 139, 250, 0.05), transparent 55%),
+        var(--nx-page, #0f172a);
 }
 /* faint hairline grid, masked so it fades toward the edges */
 .hero-band__grid {
@@ -121,13 +149,37 @@ body.hero-body {
     height: 7px;
     border-radius: 50%;
     background: var(--nx-success, #059669);
-    animation: hero-pulse 2.2s infinite;
+    animation: hero-pulse 3.4s infinite;
 }
+/* Toned down (was 2.2s / peak 0.45 opacity / 9px ring): on mobile this
+   badge sits right under the header, close to the Sign In button, and the
+   original pulse read as a glitch there rather than a subtle "live"
+   indicator -- slower, smaller ring, lower peak opacity. */
 @keyframes hero-pulse {
-    0%   { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.45); }
-    70%  { box-shadow: 0 0 0 9px rgba(5, 150, 105, 0); }
+    0%   { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.28); }
+    70%  { box-shadow: 0 0 0 6px rgba(5, 150, 105, 0); }
     100% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0); }
 }
+
+/* Theme toggle — round icon button, top-right of the header. Same resting
+   look as .hero-ghost-btn (card surface + border) so it reads as part of
+   the same button group as Sign In. */
+.hero-theme-toggle {
+    background: var(--nx-card, #ffffff);
+    border: 1px solid var(--nx-border-strong, #d1d5db);
+    color: var(--nx-text-sec, #6b7280);
+    font-size: 15px;
+    transition: background-color var(--nx-dur, 150ms) var(--nx-ease, ease),
+                border-color var(--nx-dur, 150ms) var(--nx-ease, ease),
+                color var(--nx-dur, 150ms) var(--nx-ease, ease),
+                transform var(--nx-dur, 150ms) var(--nx-ease, ease);
+}
+.hero-theme-toggle:hover {
+    background: var(--nx-alt, #f9fafb);
+    border-color: var(--nx-accent, #4f46e5);
+    color: var(--nx-accent, #4f46e5);
+}
+.hero-theme-toggle:active { transform: scale(0.93); }
 
 /* Secondary (outline) button — light, used in hero + header */
 .hero-ghost-btn {
@@ -223,6 +275,19 @@ body.hero-body {
 .step-icon-wrapper.completed {
     border-color: var(--nx-success, #059669);
     background-color: #ecfdf5;
+}
+/* Hardcoded light mint tint above never got a dark counterpart -- rendered
+   as a bright splotch on the dark background every time a step completes
+   in the loop. Opaque (not translucent) so the progress-line bar behind
+   the circle doesn't show through the checkmark -- same reason the light
+   version above is opaque, not a soft tint. Reuses the app's existing
+   dark-mode "green label" token for consistency. !important: Tailwind's
+   Play CDN (cdn.tailwindcss.com) generates dark:bg-slate-800 via a
+   constructed stylesheet (adoptedStyleSheets) that wins the cascade here
+   despite this selector's higher specificity -- not a normal <link>/
+   <style> sheet, so the usual specificity math doesn't settle it. */
+html.dark .step-icon-wrapper.completed {
+    background-color: var(--nx-l-green, #064e3b) !important;
 }
 .step-icon-wrapper.completed i {
     color: var(--nx-success, #059669);

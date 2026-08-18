@@ -157,4 +157,27 @@
       -webkit-background-clip: text; background-clip: text; color: transparent;
     }
 
+    /* The gradient above is near-black -> indigo, tuned for a light page;
+       clipped-to-text + color:transparent means it doesn't fall back to
+       anything if it's wrong, it just goes invisible. Bright variant for
+       html.dark (nexora-ui.css's dark-mode class) so the wordmark stays
+       legible instead of disappearing into the dark background. */
+    html.dark .nexora-title{
+      background: linear-gradient(90deg, #eef2ff, #c7d2fe 35%, #818cf8);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+
+    /* .nexora-subtitle has no color of its own -- it inherits whatever the
+       page body sets. hero.css's body sets color:var(--nx-text), so it
+       resolves fine there, but auth.css's body never sets a color at all,
+       so on the login page this fell back to the browser default (black),
+       invisible on the dark card. Explicit rule so it doesn't depend on
+       which page's body happens to set what. Secondary/muted tone (not
+       pure white) on purpose -- it's a tagline under the bold title, same
+       hierarchy the rest of the dark-mode system uses (--nx-text for
+       primary text, --nx-text-sec for secondary/muted). */
+    html.dark .nexora-subtitle{
+      color: var(--nx-text-sec, #94a3b8);
+    }
+
     .brand:hover .bh{ transform: translateY(-1px); }

@@ -1,0 +1,26 @@
+<script nonce="{{ csp_nonce() }}">
+    // Shared with hero.html's toggle: same localStorage keys
+    // (nexora-ui-prefs primary, legacy nexora-theme fallback), same
+    // mechanism _header.html reads once the user logs in. Bound by
+    // class, not id, so any pre-login page can include this partial
+    // and add a .auth-theme-toggle button to get a working toggle.
+    document.querySelectorAll('.auth-theme-toggle').forEach(function (btn) {
+        var syncPressed = function () {
+            btn.setAttribute('aria-pressed', document.documentElement.classList.contains('dark') ? 'true' : 'false');
+        };
+        syncPressed();
+        btn.addEventListener('click', function () {
+            var root = document.documentElement;
+            var dark = !root.classList.contains('dark');
+            root.classList.toggle('dark', dark);
+            syncPressed();
+            try {
+                var stored = {};
+                try { stored = JSON.parse(localStorage.getItem('nexora-ui-prefs')) || {}; } catch (e) {}
+                stored.theme = dark ? 'dark' : 'light';
+                localStorage.setItem('nexora-ui-prefs', JSON.stringify(stored));
+                localStorage.setItem('nexora-theme', dark ? 'dark' : 'light');
+            } catch (e) {}
+        });
+    });
+</script>
