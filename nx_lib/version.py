@@ -12,7 +12,7 @@ enforces that all three copies agree.
 
 # ponytail: bare "3.1" here — PEP 440 strips a leading "v", so the display "v"
 # lives in the two templates that render it, not in the version string.
-__version__ = "3.1.1"
+__version__ = "3.1.2"
 
 try:
     # ponytail: nx_lib/_build.py is written by .github/workflows/deploy.yml right
