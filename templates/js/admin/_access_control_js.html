@@ -467,8 +467,8 @@
             usersMap[u.userID] = u;
             const badge = profileBadge(u.AccessProfileName, u.AccessProfileID);
             const overrideBadge = u.OverrideCount > 0
-                ? `<span class="px-2 py-0.5 text-xs font-medium text-yellow-700 bg-yellow-100 rounded-full border border-yellow-200">${u.OverrideCount} {{ _("overrides") }}</span>`
-                : `<span class="px-2 py-0.5 text-xs text-gray-400 bg-gray-100 rounded-full">{{ _("default") }}</span>`;
+                ? `<span class="px-2 py-0.5 text-xs font-medium text-yellow-700 bg-yellow-100 rounded-full border border-yellow-200 whitespace-nowrap">${u.OverrideCount} {{ _("overrides") }}</span>`
+                : `<span class="px-2 py-0.5 text-xs text-gray-400 bg-gray-100 rounded-full whitespace-nowrap">{{ _("default") }}</span>`;
 
             const tr = document.createElement('tr');
             tr.className = 'is-clickable';

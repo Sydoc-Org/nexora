@@ -109,6 +109,13 @@
                 d.classList.toggle('nx-stripes', eff.stripes === 'on');
                 if (eff.background !== 'plain') d.setAttribute('data-bg', eff.background);
                 else d.removeAttribute('data-bg');
+                // Fireflies need actual DOM nodes, not just the CSS attribute
+                // selector Aurora/Grid rely on. __nxSyncFireflies is defined
+                // later (_header_js.html) — undefined on this first,
+                // pre-paint call, which is fine: that initial state is
+                // covered by its own DOMContentLoaded sync. This call only
+                // matters for later, live pref changes (Appearance page).
+                if (window.__nxSyncFireflies) window.__nxSyncFireflies(eff.background);
             }
             apply();
             sysDark.addEventListener('change', function () { if (eff.theme === 'system') apply(); });
@@ -134,6 +141,13 @@
                 fetch(API_PREFIX + 'profile/ui_prefs', {
                     method: 'POST',
                     credentials: 'same-origin',
+                    // keepalive: lets this tiny PATCH survive a navigation that
+                    // starts right after the click (e.g. picking a background
+                    // then immediately clicking a sidebar link) — without it
+                    // the browser aborts the in-flight request on unload, the
+                    // DB write never lands, and the next page's server-
+                    // rendered ui_prefs silently reverts the pick.
+                    keepalive: true,
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRFToken': meta ? meta.getAttribute('content') : ''
@@ -170,6 +184,7 @@
 
 <body>
     {% include '_maintenance_banner.html' %}
+    <div id="fireflyField" class="firefly-field" aria-hidden="true"></div>
     <button id="sidebar-toggle" class="sidebar-toggle-btn" aria-label="{{ _('Open navigation') }}" type="button" data-testid="header-burger">
         <i class="fas fa-bars"></i>
     </button>

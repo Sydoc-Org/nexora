@@ -593,6 +593,18 @@ html[data-radius="round"] { --nx-radius-scale: 1.6; }
 html[data-fontscale="sm"] body { zoom: 0.9; }
 html[data-fontscale="lg"] body { zoom: 1.1; }
 
+/* #nexora-sidebar is position:fixed with height:100vh. body's zoom still
+   scales it (Chromium applies zoom to fixed descendants too), but 100vh
+   itself keeps resolving against the real, un-zoomed viewport — so the
+   rendered box ends up short/tall of the actual viewport height, leaving
+   a visible gap below the sidebar's bottom actions (or an overflow at
+   "lg"). Counter-zoom the sidebar by the inverse factor so its net scale
+   is 1 and it always fills exactly 100vh; the trade-off is the sidebar
+   itself no longer scales with the rest of the UI, which reads fine for
+   a persistent icon rail. */
+html[data-fontscale="sm"] #nexora-sidebar { zoom: 1.1111; }
+html[data-fontscale="lg"] #nexora-sidebar { zoom: 0.9091; }
+
 /* High contrast: stronger borders + darker secondary text */
 html.nx-contrast {
   --nx-border: #cbd5e1; --nx-border-strong: #94a3b8; --nx-divider: #e2e8f0;
@@ -629,6 +641,59 @@ html[data-bg="grid"] body.admin-page {
   background-image: radial-gradient(
     color-mix(in srgb, var(--nx-border) 70%, transparent) 1px, transparent 1px);
   background-size: 22px 22px;
+}
+
+/* Fireflies backdrop — dots are spawned into #fireflyField (in _header.html,
+   present on every page) by _header_js.html, driven by the data-bg pref
+   set here. Sits behind everything: main content is promoted to its own
+   stacking context so cards/text always paint above the dots. */
+body.nx-app main,
+body.admin-page main {
+  position: relative;
+  z-index: 1;
+}
+.firefly-field {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.firefly {
+  --ff-color: 61, 108, 122; /* teal (login/dashboard-toggle blue), warmer amber in dark mode below */
+  position: absolute;
+  left: var(--ff-left, 50%);
+  top: var(--ff-top, 50%);
+  width: var(--ff-size, 5px);
+  height: var(--ff-size, 5px);
+  border-radius: 50%;
+  background: rgb(var(--ff-color));
+  opacity: 0;
+  will-change: transform, opacity;
+  animation:
+    firefly-glow var(--ff-glow-dur, 4s) ease-in-out var(--ff-delay, 0s) infinite,
+    firefly-drift var(--ff-drift-dur, 9s) ease-in-out var(--ff-delay, 0s) infinite;
+}
+html.dark .firefly {
+  --ff-color: 245, 224, 132; /* warmer amber glow against the dark slate bg */
+}
+@keyframes firefly-glow {
+  0%, 100% {
+    opacity: 0;
+    box-shadow: 0 0 0 0 rgba(var(--ff-color), 0);
+  }
+  50% {
+    opacity: var(--ff-peak, 0.8);
+    box-shadow: 0 0 6px 2px rgba(var(--ff-color), 0.7), 0 0 16px 6px rgba(var(--ff-color), 0.3);
+  }
+}
+@keyframes firefly-drift {
+  0%   { transform: translate(0, 0); }
+  50%  { transform: translate(var(--ff-dx, 20px), var(--ff-dy, -20px)); }
+  100% { transform: translate(0, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .firefly { animation: none; opacity: 0.35; }
 }
 
 /* ------------------------------------------------------------------
