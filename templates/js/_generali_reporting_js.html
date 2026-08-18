@@ -881,27 +881,6 @@
         fetchRecords(1);
     });
 
-    function loadFilterUsers() {
-        fetch(`${API_PREFIX}api/generali/reporting/filterUsers`, {
-            headers: { 'X-CSRFToken': csrfToken }
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (!data.success || !data.users.length) return;
-            const wrapper = document.getElementById('filterUserWrapper');
-            const sel = document.getElementById('filterUserId');
-            if (!wrapper || !sel) return;
-            data.users.forEach(u => {
-                const opt = document.createElement('option');
-                opt.value = u.userId;
-                opt.textContent = u.fullname || u.userId;
-                sel.appendChild(opt);
-            });
-            wrapper.classList.remove('[display:none]!');
-        })
-        .catch(e => console.error('Failed to load filter users', e));
-    }
-
     // ----------------------------- excel export ----------------------------- //
     function showExportError(msg) {
         const errDiv = document.createElement('div');
@@ -953,6 +932,6 @@
 
     // ----------------------------- init ----------------------------- //
     loadOrganizations();
-    loadFilterUsers();
+    nxUserFilter.init(API_PREFIX + 'api/generali/reporting/filterUsers', applyFiltersSoon);
     fetchRecords(1);
 </script>

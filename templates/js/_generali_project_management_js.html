@@ -204,27 +204,6 @@
     flatpickr('#filterStartDate', { dateFormat: 'Y-m-d', allowInput: true, onChange: applyFiltersSoon });
     flatpickr('#filterEndDate',   { dateFormat: 'Y-m-d', allowInput: true, onChange: applyFiltersSoon });
 
-    function loadFilterUsers() {
-        fetch(API_PREFIX + 'api/generali/projectmanagement/filterUsers', {
-            headers: { 'X-CSRFToken': csrfToken }
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (!data.success || !data.users.length) return;
-            const wrapper = document.getElementById('filterUserWrapper');
-            const sel = document.getElementById('filterUserId');
-            if (!wrapper || !sel) return;
-            data.users.forEach(u => {
-                const opt = document.createElement('option');
-                opt.value = u.userId;
-                opt.textContent = u.fullname || u.userId;
-                sel.appendChild(opt);
-            });
-            wrapper.classList.remove('[display:none]!');
-        })
-        .catch(e => console.error('Failed to load filter users', e));
-    }
-
     {% if can_add %}
     function loadOrgUsers() {
         if (!canAddForOrg && !canAddTransOrg) return;
@@ -479,6 +458,6 @@
 
     {% if can_add %}loadOrgUsers();{% endif %}
     loadOrganizations();
-    loadFilterUsers();
+    nxUserFilter.init(API_PREFIX + 'api/generali/projectmanagement/filterUsers', applyFiltersSoon);
     loadRecords(1);
 </script>

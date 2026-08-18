@@ -18,6 +18,13 @@ Work toward the next release.
 
 ### Changed
 
+- **Generali user filter is searchable** — the user dropdown on the base
+  services, additional services, reporting, PDQM and project-management
+  filter bars is now a type-to-search box (native datalist): typing filters
+  the user list, picking a name applies the filter instantly, clearing the
+  box returns to all users. Duplicate display names are disambiguated with
+  the user id. Shared implementation in
+  `templates/js/_generali_user_filter_js.html`.
 - **Generali filters apply instantly** — the Apply button is gone from all
   Generali filter bars (base services, additional services, reporting, PDQM,
   project management, import status, dashboard). Changing any filter select
