@@ -1,6 +1,6 @@
 """External machine-to-machine JSON API, version 1.
 
-Seven endpoints in v1:
+Eight endpoints in v1:
 - GET /api/v1/stats/today -- the dashboard's imported/processed "today" KPI
   numbers for the API key's process scope (dbo.ApiKeys.ProcessList).
 - GET /api/v1/backlog -- the dashboard's "Current Backlog" KPI number for the
@@ -32,6 +32,10 @@ Seven endpoints in v1:
   (SearchConfig col_* columns mapped for >=1 of the key's processes,
   lowercased with the col_ prefix stripped), sensitive keys excluded. The
   live list, so integrators don't depend on a hand-maintained doc table.
+- GET /api/v1/stages -- count of workitems per stage (Import,
+  Extraction, Validation, Delivery) for the key's process scope: four
+  stage-filtered runs of the same _get_workitems_data path /workitems uses,
+  so the numbers always match a stage-filtered /workitems query.
 - GET /api/v1/workitems/<id> -- the DETAIL endpoint (issue #197): document
   details (extracted fields + table values) for one workitem, the same data
   the overview row-expand shows (no media/confidence/locations). No
@@ -448,6 +452,37 @@ def api_v1_workitems_fields():
     return jsonify({"fields": fields})
 
 
+@limiter.limit("60 per minute")
+@require_api_key
+def api_v1_stages():
+    processes = g.api_client["processes"]
+    counts = dict.fromkeys(WORKITEM_STAGES, 0)
+    if processes:
+        # ponytail: 4 sequential stage-filtered list queries reusing the
+        # /workitems path instead of a new GROUP BY in both source adapters;
+        # add the grouped query if this endpoint ever sees real traffic.
+        # sensitive_blocked is irrelevant here (no doc-field params exist on
+        # this route), so pass an empty set instead of the fail-closed lookup.
+        scope = _api_workitems_scope(processes, frozenset())
+        try:
+            for stage_name in WORKITEM_STAGES:
+                data = _get_workitems_data(MultiDict([("stage", stage_name)]), scope=scope)
+                if data["degradedSources"]:
+                    # Strict contract (/workitems precedent): a dead source
+                    # must not serve silently partial counts.
+                    raise RuntimeError(f"degraded sources: {data['degradedSources']}")
+                counts[stage_name] = data["pagination"]["totalItems"]
+        except Exception as e:
+            current_app.logger.error(f"external api stages failed: {e}")
+            return jsonify({"error": "Workitems backend unavailable"}), 500
+    return jsonify(
+        {
+            "datetime": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "stages": counts,
+        }
+    )
+
+
 def _api_tables(table_sources, blocked_tokens):
     """Reduce the detail panel's table_sources to plain value tables for the
     external API: locations/confidence dropped, and any column whose
@@ -627,6 +662,17 @@ def api_test_v1_workitems_fields():
 
 @limiter.limit("60 per minute")
 @require_api_key
+def api_test_v1_stages():
+    return jsonify(
+        {
+            "datetime": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "stages": {s: random.randint(0, 200) for s in WORKITEM_STAGES},
+        }
+    )
+
+
+@limiter.limit("60 per minute")
+@require_api_key
 def api_test_v1_workitem_detail(workitem_id):
     # A plausible fake document (fields + one table) in the real shape, no
     # backend queries and no parameters (the real endpoint takes none either).
@@ -693,6 +739,11 @@ def register_routes(app):
         view_func=api_v1_workitems_fields,
     )
     app.add_url_rule(
+        "/api/v1/stages",
+        endpoint="api_v1_stages",
+        view_func=api_v1_stages,
+    )
+    app.add_url_rule(
         "/api/v1/workitems/<int:workitem_id>",
         endpoint="api_v1_workitem_detail",
         view_func=api_v1_workitem_detail,
@@ -726,6 +777,11 @@ def register_routes(app):
         "/api/test/v1/workitems/fields",
         endpoint="api_test_v1_workitems_fields",
         view_func=api_test_v1_workitems_fields,
+    )
+    app.add_url_rule(
+        "/api/test/v1/stages",
+        endpoint="api_test_v1_stages",
+        view_func=api_test_v1_stages,
     )
     app.add_url_rule(
         "/api/test/v1/workitems/<int:workitem_id>",

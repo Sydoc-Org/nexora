@@ -110,23 +110,19 @@
           </div>
         </div>
         <div id="filterUserWrapper" class="[display:none]!">
-          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("User") }}</label>
+          <label for="filterUserSearch" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("User") }}</label>
           <div class="relative">
-            <select id="filterUserId"
-              class="nx-select h-11 appearance-none pr-10" data-testid="generali-pdqm-filter-user">
-              <option value="">{{ _("All Users") }}</option>
-            </select>
-            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
-              <i class="fa-solid fa-chevron-down text-xs"></i>
-            </div>
+            <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+              <i class="fas fa-search text-xs"></i>
+            </span>
+            <input type="text" id="filterUserSearch" list="filterUserOptions" autocomplete="off"
+              class="nx-input h-11 pl-10" placeholder="{{ _('All Users') }}" data-testid="generali-pdqm-filter-user">
+            <datalist id="filterUserOptions"></datalist>
+            <input type="hidden" id="filterUserId">
           </div>
         </div>
       </div>
       <div class="flex gap-3 mt-5 pt-5 border-t [border-color:var(--nx-divider)]!">
-        <button id="applyFilterBtn"
-          class="nx-btn nx-btn--primary h-11" data-testid="generali-pdqm-apply-filter">
-          <i class="fas fa-filter mr-2"></i>{{ _("Apply") }}
-        </button>
         <button id="resetFilterBtn"
           class="nx-btn nx-btn--secondary h-11" data-testid="generali-pdqm-reset-filter">
           {{ _("Reset") }}
@@ -378,6 +374,7 @@
     </div>
   </div>
 
+  {% include 'js/_generali_user_filter_js.html' %}
   {% include 'js/_generali_pdqm_js.html' %}
 </body>
 </html>

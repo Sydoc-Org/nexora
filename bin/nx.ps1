@@ -2,7 +2,18 @@
 
 # Script lives in <repo>/bin/, but the app expects $AppDir = <repo> (where nx_main.py lives).
 $AppDir    = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Definition)
-$Python    = "C:\Users\bes\AppData\Local\Programs\Python\Python313\python.exe"
+# Interpreter: repo .venv (what bootstrap.ps1/uv sync populate) → $env:NEXORA_PYTHON
+# override → whatever `python` is on PATH. Never hardcode a per-user path here;
+# it worked on exactly one machine and broke every other checkout.
+$Python = Join-Path $AppDir ".venv\Scripts\python.exe"
+if (-not (Test-Path $Python)) {
+    $Python = if ($env:NEXORA_PYTHON) { $env:NEXORA_PYTHON }
+              else { (Get-Command python -ErrorAction SilentlyContinue).Source }
+}
+if (-not $Python -or -not (Test-Path $Python)) {
+    Write-Host "nx: no Python found. Run .\bootstrap.ps1 (creates .venv), or set NEXORA_PYTHON." -ForegroundColor Red
+    exit 1
+}
 $AppPy     = Join-Path $AppDir "nx_main.py"
 # Must match nx_lib/cli.py: PATHS.logs / "system" → var/logs/system. Both
 # sides share current_env / app_stderr.log etc., so the TUI can read the

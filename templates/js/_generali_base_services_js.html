@@ -214,7 +214,9 @@
         container.appendChild(btn('<i class="fas fa-chevron-right"></i>', page + 1, page === totalPages, false));
     }
 
-    document.getElementById('applyFilterBtn').addEventListener('click', () => loadRecords(1));
+    let _filterTimer;
+    const applyFiltersSoon = () => { clearTimeout(_filterTimer); _filterTimer = setTimeout(() => loadRecords(1), 350); };
+    document.querySelectorAll('.nx-filter select').forEach(s => s.addEventListener('change', applyFiltersSoon));
     document.getElementById('resetFilterBtn').addEventListener('click', () => {
         document.getElementById('filterStartDate').value = '';
         document.getElementById('filterEndDate').value = '';
@@ -225,29 +227,8 @@
         loadRecords(1);
     });
 
-    flatpickr('#filterStartDate', { dateFormat: 'Y-m-d', allowInput: true });
-    flatpickr('#filterEndDate',   { dateFormat: 'Y-m-d', allowInput: true });
-
-    function loadFilterUsers() {
-        fetch(API_PREFIX + 'api/generali/baseservices/filterUsers', {
-            headers: { 'X-CSRFToken': csrfToken }
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (!data.success || !data.users.length) return;
-            const wrapper = document.getElementById('filterUserWrapper');
-            const sel = document.getElementById('filterUserId');
-            if (!wrapper || !sel) return;
-            data.users.forEach(u => {
-                const opt = document.createElement('option');
-                opt.value = u.userId;
-                opt.textContent = u.fullname || u.userId;
-                sel.appendChild(opt);
-            });
-            wrapper.style.display = '';
-        })
-        .catch(e => console.error('Failed to load filter users', e));
-    }
+    flatpickr('#filterStartDate', { dateFormat: 'Y-m-d', allowInput: true, onChange: applyFiltersSoon });
+    flatpickr('#filterEndDate',   { dateFormat: 'Y-m-d', allowInput: true, onChange: applyFiltersSoon });
 
     {% if can_add %}
     function loadOrgUsers() {
@@ -506,6 +487,6 @@
     loadOrgUsers();
     {% endif %}
     loadOrganizations();
-    loadFilterUsers();
+    nxUserFilter.init(API_PREFIX + 'api/generali/baseservices/filterUsers', applyFiltersSoon);
     loadRecords(1);
 </script>

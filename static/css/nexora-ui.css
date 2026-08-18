@@ -578,6 +578,13 @@ html.nx-compact .admin-card { padding: 12px; }
 html.nx-compact body.admin-page main { padding: 18px 28px; }
 html.nx-compact .nx-btn { padding: 6px 11px; }
 html.nx-compact .nx-input, html.nx-compact .nx-select { padding: 6px 10px; }
+/* The padding shorthand above outranks the .nx-input.pl-10 re-asserts
+   (extra html type selector), so icon'd search inputs lost their text
+   indent in compact density — placeholder rendered under the icon.
+   Re-assert the icon paddings at compact specificity too. */
+html.nx-compact .nx-input.pl-10, html.nx-compact .nx-select.pl-10 { padding-left: 2.5rem; }
+html.nx-compact .nx-input.pr-10, html.nx-compact .nx-select.pr-10 { padding-right: 2.5rem; }
+html.nx-compact .nx-select.pr-8 { padding-right: 2rem; }
 
 /* ============================================================
    8. APPEARANCE EXTRAS — corner style, font scale, contrast,

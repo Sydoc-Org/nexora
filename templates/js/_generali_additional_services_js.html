@@ -258,7 +258,9 @@
         container.appendChild(btn('<i class="fas fa-chevron-right"></i>', page + 1, page === totalPages, false));
     }
 
-    document.getElementById('applyFilterBtn').addEventListener('click', () => loadRecords(1));
+    let _filterTimer;
+    const applyFiltersSoon = () => { clearTimeout(_filterTimer); _filterTimer = setTimeout(() => loadRecords(1), 350); };
+    document.querySelectorAll('.nx-filter select').forEach(s => s.addEventListener('change', applyFiltersSoon));
     document.getElementById('resetFilterBtn').addEventListener('click', () => {
         document.getElementById('filterStartDate').value = '';
         document.getElementById('filterEndDate').value = '';
@@ -270,35 +272,14 @@
         loadRecords(1);
     });
 
-    function loadFilterUsers() {
-        fetch(API_PREFIX + 'api/generali/attendance/filterUsers', {
-            headers: { 'X-CSRFToken': csrfToken }
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (!data.success || !data.users.length) return;
-            const wrapper = document.getElementById('filterUserWrapper');
-            const sel = document.getElementById('filterUserId');
-            if (!wrapper || !sel) return;
-            data.users.forEach(u => {
-                const opt = document.createElement('option');
-                opt.value = u.userId;
-                opt.textContent = u.fullname || u.userId;
-                sel.appendChild(opt);
-            });
-            wrapper.style.display = '';
-        })
-        .catch(e => console.error('Failed to load filter users', e));
-    }
-
     document.getElementById('filterParentCategory').addEventListener('change', function() {
         const filterSub = document.getElementById('filterSubCategory');
         populateSubSelect(filterSub, this.value);
         filterSub.options[0].textContent = {{ _("All") | tojson }};
     });
 
-    flatpickr('#filterStartDate', { dateFormat: 'Y-m-d', allowInput: true });
-    flatpickr('#filterEndDate',   { dateFormat: 'Y-m-d', allowInput: true });
+    flatpickr('#filterStartDate', { dateFormat: 'Y-m-d', allowInput: true, onChange: applyFiltersSoon });
+    flatpickr('#filterEndDate',   { dateFormat: 'Y-m-d', allowInput: true, onChange: applyFiltersSoon });
 
     {% if can_add %}
     function loadOrgUsers() {
@@ -578,7 +559,7 @@
 
     loadCategories();
     loadOrganizations();
-    loadFilterUsers();
+    nxUserFilter.init(API_PREFIX + 'api/generali/attendance/filterUsers', applyFiltersSoon);
     {% if can_add %}loadOrgUsers();{% endif %}
     loadRecords(1);
 </script>

@@ -27,7 +27,7 @@ If bootstrap fails (or you want to know what it does), the manual steps are:
 ```powershell
 pip install uv
 uv venv
-uv sync --extra dev
+uv sync
 python -m playwright install chromium
 
 copy env\INT.env.example env\INT.env       # then fill in real values
@@ -38,7 +38,24 @@ copy env\TEST.env.example env\TEST.env
 .venv\Scripts\pre-commit.exe install --hook-type pre-push
 ```
 
-The repo still ships `requirements.txt` and `requirements-dev.txt` (generated from `uv.lock`); they exist for the IIS/wfastcgi deploy path on SYAPP01. Locally, use `uv sync --extra dev`.
+The repo still ships `requirements.txt` and `requirements-dev.txt` (generated from `uv.lock`); they exist for the IIS/wfastcgi deploy path on SYAPP01. Locally, bare `uv sync` is the whole setup — dev deps are a PEP 735 `[dependency-groups]` group that uv installs by default, so no `--extra` flag exists anymore.
+
+**Adding a dependency.** `pyproject.toml` is the only source of truth. Never
+hand-edit `requirements*.txt` — they are regenerated from `uv.lock` and your
+edit is both silently discarded on the next export and invisible to `uv sync`,
+so every other checkout gets `ModuleNotFoundError` while your machine keeps
+working off an ad-hoc install. The correct sequence:
+
+```
+# 1. add to [project.dependencies] (runtime) or [dependency-groups].dev
+uv lock
+uv sync
+uv export --format requirements-txt --no-hashes --no-dev -o requirements.txt
+uv export --format requirements-txt --no-hashes          -o requirements-dev.txt
+```
+
+`tests/unit/test_dependencies.py` fails if `nx_lib/`, `scripts/` or `ops/`
+imports a package that `pyproject.toml` does not declare.
 
 ## Naming conventions
 

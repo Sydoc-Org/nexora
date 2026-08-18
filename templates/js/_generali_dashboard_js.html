@@ -465,7 +465,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        const fpOpts = { dateFormat: 'Y-m-d H:i:S', enableTime: true, enableSeconds: true, allowInput: true, time_24hr: true };
+        const fpOpts = { dateFormat: 'Y-m-d H:i:S', enableTime: true, enableSeconds: true, allowInput: true, time_24hr: true, onClose: () => loadStats() };
         fpStart = flatpickr('#filterStartDate', fpOpts);
         fpEnd   = flatpickr('#filterEndDate',   fpOpts);
 
@@ -474,7 +474,6 @@
         setDefaultDates();
         loadStats();
 
-        document.getElementById('applyDateFilter').addEventListener('click', loadStats);
         document.getElementById('resetDateFilter').addEventListener('click', () => {
             setDefaultDates();
             loadStats();

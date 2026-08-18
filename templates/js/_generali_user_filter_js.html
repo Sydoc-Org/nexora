@@ -1,0 +1,76 @@
+{# Searchable user filter for the Generali filter bars: a text input with a
+   <datalist> of user names, backed by a hidden #filterUserId that the page's
+   buildParams()/reset handler keep reading unchanged. Include this BEFORE the
+   page's own JS partial; the page calls
+     nxUserFilter.init(API_PREFIX + 'api/generali/<page>/filterUsers', applyFiltersSoon)
+   where its loadFilterUsers() used to be. #}
+<script nonce="{{ csp_nonce() }}">
+    window.nxUserFilter = (function () {
+        let byLabel = {};   /* display label -> userId */
+
+        function labelFor(id) {
+            for (const l in byLabel) if (byLabel[l] === id) return l;
+            return '';
+        }
+
+        function init(endpoint, onPick) {
+            const wrapper = document.getElementById('filterUserWrapper');
+            const search  = document.getElementById('filterUserSearch');
+            const list    = document.getElementById('filterUserOptions');
+            const hidden  = document.getElementById('filterUserId');
+            if (!wrapper || !search || !list || !hidden) return;
+
+            fetch(endpoint, { headers: { 'X-CSRFToken': csrfToken } })
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success || !data.users.length) return;
+                    /* Duplicate display names get the id appended so every
+                       label maps back to exactly one user. */
+                    const seen = {};
+                    data.users.forEach(u => {
+                        const base = u.fullname || u.userId;
+                        seen[base] = (seen[base] || 0) + 1;
+                    });
+                    byLabel = {};
+                    data.users.forEach(u => {
+                        const base  = u.fullname || u.userId;
+                        const label = seen[base] > 1 ? `${base} (${u.userId})` : base;
+                        byLabel[label] = String(u.userId);
+                        const opt = document.createElement('option');
+                        opt.value = label;
+                        list.appendChild(opt);
+                    });
+                    wrapper.classList.remove('[display:none]!');
+                })
+                .catch(e => console.error('Failed to load filter users', e));
+
+            search.addEventListener('input', () => {
+                const label = search.value.trim();
+                if (label === '' && hidden.value !== '') {
+                    hidden.value = '';
+                    onPick();
+                    return;
+                }
+                const id = byLabel[label];
+                if (id && id !== hidden.value) {
+                    hidden.value = id;
+                    onPick();
+                }
+            });
+
+            /* Leaving the field with text that is no user: snap back to the
+               active selection (or empty when none). */
+            search.addEventListener('change', () => {
+                const label = search.value.trim();
+                if (label !== '' && !byLabel[label]) {
+                    search.value = hidden.value ? labelFor(hidden.value) : '';
+                }
+            });
+
+            document.getElementById('resetFilterBtn')
+                ?.addEventListener('click', () => { search.value = ''; });
+        }
+
+        return { init };
+    })();
+</script>

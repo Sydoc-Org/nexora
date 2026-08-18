@@ -8,6 +8,83 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+## [3.1.1] - 2026-08-18
+
+### Added
+
+- **External API: `GET /api/v1/stages`** — count of workitems per
+  stage (Import, Extraction, Validation, Delivery) for the key's process
+  scope, computed via the same path as a stage-filtered `/workitems` query.
+  Ships with its `/api/test/v1/stages` sandbox twin, the
+  `docs/howto/external-api.md` section and the in-app API-docs page entry.
+
+### Changed
+
+- **Generali user filter is searchable** — the user dropdown on the base
+  services, additional services, reporting, PDQM and project-management
+  filter bars is now a type-to-search box (native datalist): typing filters
+  the user list, picking a name applies the filter instantly, clearing the
+  box returns to all users. Duplicate display names are disambiguated with
+  the user id. Shared implementation in
+  `templates/js/_generali_user_filter_js.html`.
+- **Generali filters apply instantly** — the Apply button is gone from all
+  Generali filter bars (base services, additional services, reporting, PDQM,
+  project management, import status, dashboard). Changing any filter select
+  or date now reloads the list directly (debounced; the dashboard's datetime
+  pickers refresh on picker close, import-status text search as you type).
+  Reset is unchanged.
+- **Dev setup is now bare `uv sync`** — dev dependencies moved from
+  `[project.optional-dependencies]` to a PEP 735 `[dependency-groups]` group,
+  which uv installs by default. `--extra dev` no longer exists (and now
+  errors); `bootstrap.ps1`, `nx --doctor`'s hint and the docs are updated.
+  `requirements-dev.txt` is likewise exported without flags now.
+
+### Fixed
+
+- **Compact density broke every icon'd search input** — with Appearance →
+  Density set to Compact, the `html.nx-compact` input-padding shorthand
+  outranked the `.nx-input.pl-10`/`.pr-10` icon-padding re-asserts (extra
+  `html` type selector), so placeholders rendered underneath the magnifying
+  glass on the Workitems, Generali documents, prepared-documents and admin
+  search fields. The re-asserts now also exist at compact specificity.
+- **Env switching was a silent no-op for TUI-started dev servers** — the `nx`
+  REPL imports `nx_lib.config` at startup, which loads the current env file's
+  keys into the TUI's own process env; servers it spawned inherited them, and
+  with `override=False` those inherited creds beat the target env file, so a
+  server restarted with `env:staging` claimed STAGING while still running INT
+  DB connections. Contamination was hereditary: such a server's `DOTENV_KEYS`
+  is empty, so even the in-app restart's #187 strip couldn't recover. The TUI
+  now spawns `nx.ps1` and python subcommands with the dotenv-injected keys
+  stripped (same idiom as the in-app restart).
+- **Generali user-search filter was invisible on all five Generali pages**
+  (base services, additional services, reporting, PDQM, project management;
+  client-reported on base services). The #142 inline-style cleanup replaced
+  `style="display:none"` on `#filterUserWrapper` with the Tailwind class
+  `[display:none]!` (= `display:none !important`), which the reveal code's
+  `wrapper.style.display = ''` can never override — so the filter stayed
+  hidden regardless of permissions. The reveal now removes the class instead.
+  Same fix for the workitems export spinner and export-images helper info,
+  which could likewise never show. A template lint test now guards the
+  pattern (`tests/unit/test_display_none_important.py`).
+- **A fresh clone could not run the app or the `nx` CLI** — `ModuleNotFoundError`
+  even after installing every `requirements*.txt`. Three causes, all fixed:
+  - `matplotlib`, `pypdfium2` and `markdown-it-py` are imported at module scope
+    by `nx_lib/` but were never declared in `pyproject.toml` (they had been
+    hand-added to `requirements.txt`, which `uv lock`/`uv sync` ignore, so only
+    machines with ad-hoc global installs worked). `tabulate` was likewise
+    undeclared for `scripts/new-process.py`. All are now real dependencies,
+    with `matplotlib`/`pypdfium2` pinned to the versions already in production
+    rather than the latest resolve (`pypdfium2` 5.x is an unexercised major).
+  - `bin/nx.ps1` hardcoded one developer's absolute interpreter path. It now
+    resolves the repo's `.venv`, then `$env:NEXORA_PYTHON`, then `python` from
+    `PATH`, and prints an actionable error instead of failing obscurely.
+  - `requirements-dev.txt` was a stale export missing `openpyxl`,
+    `psycopg2-binary`, `sqlglot` and `et-xmlfile`. Both requirements files are
+    regenerated from the refreshed lock.
+- `tests/unit/test_dependencies.py` (new) fails when `nx_lib/`, `scripts/` or
+  `ops/` imports a package `pyproject.toml` does not declare, so this class of
+  drift cannot silently return.
+
 ## [3.1] - 2026-08-17
 
 ### Added

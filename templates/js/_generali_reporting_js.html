@@ -863,13 +863,15 @@
     });
 
     // ----------------------------- filter ----------------------------- //
-    const fpFilterStart = flatpickr('#filterStartDate', { dateFormat: 'Y-m-d', allowInput: true });
-    const fpFilterEnd   = flatpickr('#filterEndDate',   { dateFormat: 'Y-m-d', allowInput: true });
+    let _filterTimer;
+    const applyFiltersSoon = () => { clearTimeout(_filterTimer); _filterTimer = setTimeout(() => fetchRecords(1), 350); };
+    document.querySelectorAll('.nx-filter select').forEach(s => s.addEventListener('change', applyFiltersSoon));
+    const fpFilterStart = flatpickr('#filterStartDate', { dateFormat: 'Y-m-d', allowInput: true, onChange: applyFiltersSoon });
+    const fpFilterEnd   = flatpickr('#filterEndDate',   { dateFormat: 'Y-m-d', allowInput: true, onChange: applyFiltersSoon });
 
-    document.getElementById('applyFilterBtn').addEventListener('click', () => fetchRecords(1));
     document.getElementById('resetFilterBtn').addEventListener('click', () => {
-        fpFilterStart.clear();
-        fpFilterEnd.clear();
+        fpFilterStart.clear(false);
+        fpFilterEnd.clear(false);
         document.getElementById('filterCategory').value = '';
         document.getElementById('filterOrganizationCode').value = '';
         const fu = document.getElementById('filterUserId');
@@ -878,27 +880,6 @@
         if (fo) fo.value = '';
         fetchRecords(1);
     });
-
-    function loadFilterUsers() {
-        fetch(`${API_PREFIX}api/generali/reporting/filterUsers`, {
-            headers: { 'X-CSRFToken': csrfToken }
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (!data.success || !data.users.length) return;
-            const wrapper = document.getElementById('filterUserWrapper');
-            const sel = document.getElementById('filterUserId');
-            if (!wrapper || !sel) return;
-            data.users.forEach(u => {
-                const opt = document.createElement('option');
-                opt.value = u.userId;
-                opt.textContent = u.fullname || u.userId;
-                sel.appendChild(opt);
-            });
-            wrapper.style.display = '';
-        })
-        .catch(e => console.error('Failed to load filter users', e));
-    }
 
     // ----------------------------- excel export ----------------------------- //
     function showExportError(msg) {
@@ -951,6 +932,6 @@
 
     // ----------------------------- init ----------------------------- //
     loadOrganizations();
-    loadFilterUsers();
+    nxUserFilter.init(API_PREFIX + 'api/generali/reporting/filterUsers', applyFiltersSoon);
     fetchRecords(1);
 </script>
