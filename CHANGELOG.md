@@ -32,6 +32,15 @@ Work toward the next release.
 
 ### Fixed
 
+- **Env switching was a silent no-op for TUI-started dev servers** — the `nx`
+  REPL imports `nx_lib.config` at startup, which loads the current env file's
+  keys into the TUI's own process env; servers it spawned inherited them, and
+  with `override=False` those inherited creds beat the target env file, so a
+  server restarted with `env:staging` claimed STAGING while still running INT
+  DB connections. Contamination was hereditary: such a server's `DOTENV_KEYS`
+  is empty, so even the in-app restart's #187 strip couldn't recover. The TUI
+  now spawns `nx.ps1` and python subcommands with the dotenv-injected keys
+  stripped (same idiom as the in-app restart).
 - **Generali user-search filter was invisible on all five Generali pages**
   (base services, additional services, reporting, PDQM, project management;
   client-reported on base services). The #142 inline-style cleanup replaced

@@ -24,7 +24,7 @@ from prompt_toolkit.history import FileHistory, ThreadedHistory
 from prompt_toolkit.shortcuts import clear as pt_clear
 from prompt_toolkit.styles import Style
 
-from .config import PATHS
+from .config import DOTENV_KEYS, PATHS
 from .version import __version__
 
 APP_DIR = Path(__file__).resolve().parent.parent
@@ -333,6 +333,16 @@ def _current_env() -> str | None:
 # ── ps1 dispatch ───────────────────────────────────────────────────────────
 
 
+def _clean_env() -> dict[str, str]:
+    """os.environ minus the keys load_dotenv injected into THIS process.
+
+    Importing .config above loads the TUI's own env file into os.environ.
+    Inherited, those keys would win over the child's env file (override=False)
+    and a spawned server would run this env's DB connections under the target
+    env's name — the same trap the in-app restart strips for (#187)."""
+    return {k: v for k, v in os.environ.items() if k not in DOTENV_KEYS}
+
+
 def _run_ps1(*args: str) -> int:
     cmd = [
         "powershell",
@@ -344,7 +354,7 @@ def _run_ps1(*args: str) -> int:
         *args,
     ]
     try:
-        return subprocess.call(cmd)
+        return subprocess.call(cmd, env=_clean_env())
     except KeyboardInterrupt:
         return 130
 
@@ -469,7 +479,7 @@ def _run_python_module(*args: str) -> int:
     to the parent terminal)."""
     cmd = [sys.executable, "-m", "nx_lib.cli", *args]
     try:
-        return subprocess.call(cmd, cwd=str(APP_DIR))
+        return subprocess.call(cmd, cwd=str(APP_DIR), env=_clean_env())
     except KeyboardInterrupt:
         return 130
 
