@@ -39,7 +39,7 @@ body {
 }
 
 .progress-step.completed:not(:last-child)::after {
-  background-color: #4f46e5; /* Use indigo for better branding match */
+  background-color: var(--nx-accent, #4f46e5);
 }
 
 .progress-icon {
@@ -120,7 +120,7 @@ body {
 }
 
 .timeline-item:hover .timeline-icon {
-    border-color: #6366f1;
+    border-color: var(--nx-accent, #6366f1);
     transform: scale(1.1);
 }
 
@@ -139,16 +139,16 @@ body {
     transition: background-color 0.2s ease;
 }
 
-.flatpickr-day.selected, 
-.flatpickr-day.startRange, 
+.flatpickr-day.selected,
+.flatpickr-day.startRange,
 .flatpickr-day.endRange {
-  background: #4f46e5;
-  border-color: #4f46e5;
-  box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3);
+  background: var(--nx-accent, #4f46e5);
+  border-color: var(--nx-accent, #4f46e5);
+  box-shadow: 0 4px 6px -1px color-mix(in srgb, var(--nx-accent) 30%, transparent);
 }
 
 .flatpickr-day:hover {
-  background: #eef2ff;
+  background: var(--nx-accent-tint, #eef2ff);
 }
 
 .flatpickr-months .flatpickr-month {

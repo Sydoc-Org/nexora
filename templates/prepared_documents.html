@@ -194,7 +194,7 @@
                 {% if st and st.in_octo %}
                   <div class="flex items-center justify-center gap-3">
                     {% if details_view_perm %}
-                    <button type="button" class="text-indigo-600 underline"
+                    <button type="button" class="text-[var(--nx-accent)] underline"
                             data-testid="prepared-docs-preview"
                             data-wid="{{ st.wid }}" data-pid="{{ r.pid }}"
                             data-status="{{ st.status }}" data-current-stage="{{ st.current_stage }}"
@@ -203,7 +203,7 @@
                     </button>
                     {% endif %}
                     <a href="{{ url_for('workitems_overview') }}?search={{ st.wid }}"
-                       class="text-indigo-600 underline" data-testid="prepared-docs-octo-link">
+                       class="text-[var(--nx-accent)] underline" data-testid="prepared-docs-octo-link">
                       <i class="fas fa-up-right-from-square mr-1"></i>{{ _("Open in Workitems") }}
                     </a>
                   </div>

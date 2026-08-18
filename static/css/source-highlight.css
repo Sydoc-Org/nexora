@@ -253,7 +253,7 @@
 }
 .modal .modal-close:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.45);   /* --nx-accent ring */
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--nx-accent) 45%, transparent);
 }
 .modal .modal-close:active { transform: scale(0.92); }
 /* Narrow screens: stack the page over the values panel. */

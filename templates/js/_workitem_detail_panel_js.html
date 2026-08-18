@@ -22,7 +22,7 @@
             ${readOnly ? '' : `<div id="timeline-container-${workitemid}" class="relative bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100" data-current-stage="${currentStage}" data-status="${status}">
               <div class="relative flex justify-between items-center">
                 <div class="absolute top-1/2 h-1 -translate-y-1/2 bg-gray-200 rounded-full" style="left: 28px; right: 28px;"></div>
-                <div class="progress-line absolute top-1/2 h-1 -translate-y-1/2 bg-indigo-500 rounded-full" style="left: 28px; right: 28px; transform: scaleX(0); transform-origin: left; transition: transform 0.8s ease-in-out;"></div>
+                <div class="progress-line absolute top-1/2 h-1 -translate-y-1/2 bg-[var(--nx-accent)] rounded-full" style="left: 28px; right: 28px; transform: scaleX(0); transform-origin: left; transition: transform 0.8s ease-in-out;"></div>
                 <div class="process-step z-10 flex flex-col items-center text-center"><div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full"><i class="fas fa-cloud-arrow-up text-xl text-gray-400"></i></div><p class="step-label mt-3 font-semibold text-gray-500 text-sm">Import</p></div>
                 <div class="process-step z-10 flex flex-col items-center text-center"><div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full"><i class="fas fa-gears text-xl text-gray-400"></i></div><p class="step-label mt-3 font-semibold text-gray-500 text-sm">Extraction</p></div>
                 <div class="process-step z-10 flex flex-col items-center text-center"><div class="step-icon-wrapper flex items-center justify-center w-14 h-14 bg-white border-2 border-gray-300 rounded-full"><i class="fas fa-shield-halved text-xl text-gray-400"></i></div><p class="step-label mt-3 font-semibold text-gray-500 text-sm">Validation</p></div>
@@ -76,14 +76,14 @@
                     historyContainer.innerHTML = `<p class="text-gray-500">{{ _("No history available for this item") }}</p>`;
                 } else {
                     const timeline = document.createElement('div');
-                    timeline.className = 'border-l-2 border-indigo-200 ml-2';
+                    timeline.className = 'border-l-2 border-[var(--nx-card-hover-border)] ml-2';
 
                     historyData.forEach(item => {
                         const eventElement = document.createElement('div');
                         eventElement.className = 'relative mb-4 pl-6';
 
                         const dot = document.createElement('div');
-                        dot.className = 'absolute -left-[7px] top-1 h-3 w-3 rounded-full bg-indigo-500';
+                        dot.className = 'absolute -left-[7px] top-1 h-3 w-3 rounded-full bg-[var(--nx-accent)]';
                         eventElement.appendChild(dot);
 
                         const eventText = document.createElement('p');
@@ -183,7 +183,7 @@
 
             if (endIndex < totalImages) {
                 const loadMoreBtn = document.createElement('button');
-                loadMoreBtn.className = 'load-more-btn col-span-full text-center w-full mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition';
+                loadMoreBtn.className = 'load-more-btn col-span-full text-center w-full mt-4 px-4 py-2 bg-[var(--nx-accent)] text-white rounded-lg hover:bg-[var(--nx-accent-hover)] transition';
                 loadMoreBtn.textContent = `{{ _("Load more") }} (${endIndex} / ${totalImages})`;
                 loadMoreBtn.dataset.workitemid = workitemid;
                 loadMoreBtn.dataset.totalImages = totalImages;

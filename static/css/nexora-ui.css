@@ -77,8 +77,8 @@
   --nx-violet-border: #ddd6fe;
   --nx-radius-lg: calc(var(--nx-radius-scale, 1) * 12px);
   --nx-radius-hero: calc(var(--nx-radius-scale, 1) * 16px);
-  --nx-card-hover-border: #c7d2fe;
-  --nx-card-hover-shadow: 0 8px 24px -8px rgba(79, 70, 229, .18);
+  --nx-card-hover-border: color-mix(in srgb, var(--nx-accent) 40%, white);
+  --nx-card-hover-shadow: 0 8px 24px -8px color-mix(in srgb, var(--nx-accent) 18%, transparent);
 }
 
 html.dark {
@@ -119,7 +119,7 @@ html.dark {
   /* Indigo Studio (2026-07-20 reporting redesign) */
   --nx-violet-tint: rgba(167, 139, 250, .12);
   --nx-violet-border: #4c1d95;
-  --nx-card-hover-border: #4c4a8f;
+  --nx-card-hover-border: color-mix(in srgb, var(--nx-accent) 45%, var(--nx-card));
   --nx-card-hover-shadow: 0 8px 24px -8px rgba(0, 0, 0, .5);
 }
 
@@ -135,7 +135,7 @@ body.nx-app .nx-main {
   width: 100%;
   max-width: 1600px;
   margin: 0 auto;
-  padding: 28px 40px;
+  padding: 44px 40px 28px;
   box-sizing: border-box;
 }
 
@@ -216,8 +216,8 @@ a.nx-card:hover, .nx-card--link:hover {
 }
 .nx-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--nx-accent-soft); }
 /* signature: primary CTA carries the brand gradient */
-.nx-btn--primary  { background: var(--nx-brand-grad); color: #fff; box-shadow: 0 2px 8px -2px rgba(79,70,229,0.45); }
-.nx-btn--primary:hover  { filter: brightness(1.08); box-shadow: 0 4px 12px -2px rgba(79,70,229,0.5); }
+.nx-btn--primary  { background: var(--nx-brand-grad); color: #fff; box-shadow: 0 2px 8px -2px color-mix(in srgb, var(--nx-accent) 45%, transparent); }
+.nx-btn--primary:hover  { filter: brightness(1.08); box-shadow: 0 4px 12px -2px color-mix(in srgb, var(--nx-accent) 50%, transparent); }
 .nx-btn--secondary { background: var(--nx-card); color: var(--nx-text); border-color: var(--nx-border-strong); }
 .nx-btn--secondary:hover { background: var(--nx-alt); }
 .nx-btn--ghost { background: transparent; color: var(--nx-text-sec); }
@@ -325,7 +325,7 @@ a.nx-card:hover, .nx-card--link:hover {
   display: flex; align-items: center; justify-content: center;
   font-size: 24px; color: #fff;
   background: var(--nx-brand-grad);
-  box-shadow: 0 10px 28px -8px rgba(79,70,229,0.55);
+  box-shadow: 0 10px 28px -8px color-mix(in srgb, var(--nx-accent) 55%, transparent);
   margin-bottom: 18px;
   position: relative;
 }
@@ -430,7 +430,7 @@ html.nx-motion-reduced *::after {
   width: 44px; height: 44px; border-radius: calc(var(--nx-radius-scale, 1) * 12px); flex-shrink: 0;
   display: inline-flex; align-items: center; justify-content: center;
   font-size: 18px; color: #fff; background: var(--nx-brand-grad);
-  box-shadow: 0 8px 20px -6px rgba(79,70,229,0.55);
+  box-shadow: 0 8px 20px -6px color-mix(in srgb, var(--nx-accent) 55%, transparent);
 }
 
 /* Designed count pill with gradient numerals */

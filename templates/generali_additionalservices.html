@@ -128,7 +128,7 @@
 
     <div class="mb-4 flex items-center gap-2">
       <span class="text-sm font-medium [color:var(--nx-text-sec)]!">{{ _("Total hours (filtered):") }}</span>
-      <span id="totalHoursDisplay" class="text-sm font-bold text-indigo-600">—</span>
+      <span id="totalHoursDisplay" class="text-sm font-bold text-[var(--nx-accent)]">—</span>
     </div>
 
     <div class="nx-table-wrap nx-rise-3"
@@ -174,7 +174,7 @@
           <tbody id="attendanceTbody">
             <tr>
               <td colspan="{{ 7 if (can_edit or can_delete) else 6 }}" class="text-center py-16">
-                <i class="fas fa-spinner fa-spin text-3xl text-indigo-600"></i>
+                <i class="fas fa-spinner fa-spin text-3xl text-[var(--nx-accent)]"></i>
               </td>
             </tr>
           </tbody>

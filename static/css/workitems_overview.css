@@ -411,8 +411,8 @@
 }
 
 .step-icon-wrapper.active {
-    border-color: #e0e7ff;
-    background-color: #4f46e5;
+    border-color: var(--nx-accent-tint, #e0e7ff);
+    background-color: var(--nx-accent, #4f46e5);
     transform: scale(1.15);
 }
 

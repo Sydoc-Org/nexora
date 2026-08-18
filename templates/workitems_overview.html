@@ -30,9 +30,9 @@
   <div id="dropZoneOverlay"
     class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-16">
     <div
-      class="bg-gray-500 bg-opacity-50 border-4 border-dashed border-indigo-400 rounded-2xl w-full h-95/100 mt-24 flex items-center justify-center pointer-events-none">
+      class="bg-gray-500 bg-opacity-50 border-4 border-dashed border-[var(--nx-accent)] rounded-2xl w-full h-95/100 mt-24 flex items-center justify-center pointer-events-none">
       <div class="text-center">
-        <i class="fas fa-file-pdf text-indigo-500 text-6xl mb-4"></i>
+        <i class="fas fa-file-pdf text-[var(--nx-accent)] text-6xl mb-4"></i>
         <p class="text-2xl font-bold text-gray-700">{{ _("Drop PDF file here to import") }}</p>
       </div>
     </div>
@@ -304,7 +304,7 @@
 
             <div id="addDocFilterWrap" class="flex items-center gap-4 mt-5">
               <button type="button" id="addDocFilterBtn"
-                class="text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors" data-testid="workitems-add-doc-filter">
+                class="text-sm font-medium text-[var(--nx-accent)] hover:text-[var(--nx-accent-hover)] transition-colors" data-testid="workitems-add-doc-filter">
                 <i class="fas fa-plus-circle mr-1"></i>{{ _("Add filter") }}
               </button>
             </div>
@@ -374,7 +374,7 @@
               <tr>
                 <th scope="col" class="px-4 py-4 w-10 text-center">
                   <input type="checkbox" id="selectAllCheckbox"
-                    class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                    class="h-4 w-4 rounded border-gray-300 text-[var(--nx-accent)] focus:ring-[var(--nx-accent)] cursor-pointer"
                     title="{{ _('Select all') }}" data-testid="workitems-select-all">
                 </th>
                 <th scope="col" class="sortable-header px-6 py-4 whitespace-nowrap text-center cursor-pointer"
@@ -410,7 +410,7 @@
             <tbody id="workitemsTbody">
               <tr>
                 <td colspan="5" class="text-center py-20">
-                  <i class="fas fa-spinner fa-spin text-3xl text-indigo-600"></i>
+                  <i class="fas fa-spinner fa-spin text-3xl text-[var(--nx-accent)]"></i>
                 </td>
               </tr>
             </tbody>
@@ -460,7 +460,7 @@
           </label>
           <div class="relative">
             <select id="importProcessSelect"
-              class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm leading-5 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 appearance-none" data-testid="workitems-import-process-select">
+              class="block w-full h-11 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm leading-5 shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--nx-accent)] focus:border-[var(--nx-accent)] appearance-none" data-testid="workitems-import-process-select">
               <option value="" disabled selected>{{ _("Choose a process...") }}</option>
               {% for proc in allowed_processes %}
               <option value="{{ proc }}">{{ proc }}</option>
@@ -479,7 +479,7 @@
             {{ _("Cancel") }}
           </button>
           <button type="button" id="confirmImportBtn"
-            class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium shadow-sm" data-testid="workitems-confirm-import">
+            class="px-4 py-2 bg-[var(--nx-accent)] text-white rounded-lg hover:bg-[var(--nx-accent-hover)] transition text-sm font-medium shadow-sm" data-testid="workitems-confirm-import">
             {{ _("Import File") }}
           </button>
         </div>
@@ -515,21 +515,21 @@
             <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ _("Optional extras") }}</p>
             <div class="space-y-2">
               <label class="flex items-start gap-3 cursor-pointer group">
-                <input type="checkbox" id="exportOptFields" class="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" data-testid="workitems-export-opt-fields">
+                <input type="checkbox" id="exportOptFields" class="mt-0.5 h-4 w-4 rounded border-gray-300 text-[var(--nx-accent)] focus:ring-[var(--nx-accent)] cursor-pointer" data-testid="workitems-export-opt-fields">
                 <div>
                   <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">{{ _("Document fields") }}</span>
                   <p class="text-xs text-gray-400">{{ _("Index fields — only available for selections of up to 10 workitems") }}</p>
                 </div>
               </label>
               <label class="flex items-start gap-3 cursor-pointer group">
-                <input type="checkbox" id="exportOptHistory" class="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" data-testid="workitems-export-opt-history">
+                <input type="checkbox" id="exportOptHistory" class="mt-0.5 h-4 w-4 rounded border-gray-300 text-[var(--nx-accent)] focus:ring-[var(--nx-accent)] cursor-pointer" data-testid="workitems-export-opt-history">
                 <div>
                   <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">{{ _("Audit history") }}</span>
                   <p class="text-xs text-gray-400">{{ _("Full timeline of all stages — only available for selections of up to 10 workitems") }}</p>
                 </div>
               </label>
               <label class="flex items-start gap-3 cursor-pointer group">
-                <input type="checkbox" id="exportOptImages" class="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" data-testid="workitems-export-opt-images">
+                <input type="checkbox" id="exportOptImages" class="mt-0.5 h-4 w-4 rounded border-gray-300 text-[var(--nx-accent)] focus:ring-[var(--nx-accent)] cursor-pointer" data-testid="workitems-export-opt-images">
                 <div>
                   <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">{{ _("Images as base64") }}</span>
                   <p class="text-xs text-gray-400">{{ _("Up to 5 images per workitem — only available for selections of up to 10 workitems") }}</p>
@@ -575,7 +575,7 @@ $data | ForEach-Object {
             {{ _("Cancel") }}
           </button>
           <button type="button" id="confirmExportModalBtn"
-            class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium shadow-sm flex items-center gap-2" data-testid="workitems-confirm-export">
+            class="px-4 py-2 bg-[var(--nx-accent)] text-white rounded-lg hover:bg-[var(--nx-accent-hover)] transition text-sm font-medium shadow-sm flex items-center gap-2" data-testid="workitems-confirm-export">
             <i id="exportModalSpinner" class="fas fa-spinner fa-spin [display:none]!"></i>
             <i id="exportModalIcon" class="fas fa-download"></i>
             {{ _("Export CSV") }}

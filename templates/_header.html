@@ -382,28 +382,28 @@
                 <el-menu anchor="right end" popover
                     class="w-48 rounded-lg bg-white dark:bg-slate-800 p-1 shadow-xl dark:shadow-black/40 border border-gray-100 dark:border-slate-700 ml-2">
                     <a href="{{ url_for('profile') }}"
-                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-slate-300 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" data-testid="header-profile-link">
+                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-slate-300 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-[var(--nx-accent)] transition-colors" data-testid="header-profile-link">
                         <i class="fas fa-user-circle w-4"></i> {{ _("Your profile") }}
                     </a>
                     <a href="{{ url_for('appearance') }}"
-                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-slate-300 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" data-testid="header-appearance-link">
+                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-slate-300 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-[var(--nx-accent)] transition-colors" data-testid="header-appearance-link">
                         <i class="fas fa-palette w-4"></i> {{ _("Appearance") }}
                     </a>
                     <a href="{{ url_for('whats_new') }}"
-                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-slate-300 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" data-testid="header-whatsnew-link">
+                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-slate-300 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-[var(--nx-accent)] transition-colors" data-testid="header-whatsnew-link">
                         <i class="fas fa-bullhorn w-4"></i> {{ _("What's New") }}
                         {% if whats_new_unseen %}<span class="ml-auto w-2 h-2 rounded-full bg-rose-500" data-testid="header-whatsnew-dot"></span>{% endif %}
                     </a>
                     {# Sidebar pages no longer render _small_footer.html, so this is
                        the only support link a logged-in user can reach. #}
                     <a href="mailto:support.helpdesk@sydoc.ch"
-                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-slate-300 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" data-testid="header-help-link">
+                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-slate-300 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-[var(--nx-accent)] transition-colors" data-testid="header-help-link">
                         <i class="fas fa-circle-question w-4"></i> {{ _("Help") }}
                     </a>
                     {% if not is_prod %}
                     <div class="my-1 border-t border-gray-100 dark:border-slate-700"></div>
                     <button type="button" id="switchUserBtn"
-                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-slate-300 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors w-full text-left" data-testid="header-switch-user">
+                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-slate-300 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-[var(--nx-accent)] transition-colors w-full text-left" data-testid="header-switch-user">
                         <i class="fas fa-user-friends w-4"></i> {{ _("Switch user") }}
                     </button>
                     {% endif %}

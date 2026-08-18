@@ -812,7 +812,7 @@ body.nx-app {
   background: var(--nx-brand-grad);
   color: #fff;
   border-color: transparent;
-  box-shadow: 0 2px 8px -2px rgba(79, 70, 229, 0.45);
+  box-shadow: 0 2px 8px -2px color-mix(in srgb, var(--nx-accent) 45%, transparent);
 }
 .reporting-btn-primary:hover { filter: brightness(1.06); background: var(--nx-brand-grad); }
 .reporting-export-format { margin: 0; padding: 7px 9px; }
@@ -947,7 +947,7 @@ body.nx-app {
 .reporting-simple-choice { border: 1px solid var(--nx-border); border-radius: 999px; background: var(--nx-card); color: var(--nx-text); padding: 8px 16px; font-size: 13px; cursor: pointer; font-family: inherit; }
 .reporting-simple-choice.is-selected {
   border: 1.5px solid var(--nx-accent); background: var(--nx-accent-tint);
-  color: #4338ca; font-weight: 600;
+  color: var(--nx-accent-hover); font-weight: 600;
 }
 .reporting-simple-choice.is-selected::before { content: "\2713"; margin-right: 6px; font-weight: 700; }
 /* "None -- just the total": dashed outline sets it apart from the real
@@ -1042,8 +1042,8 @@ body.nx-app {
 }
 .rs-rail-line { flex: 1; width: 2px; min-height: 16px; margin: 4px 0; background: var(--nx-border); }
 .rs-rail-step:last-child .rs-rail-line { display: none; }
-.rs-rail-step.is-done .rs-rail-dot { background: #eef2ff; border-color: #c7d2fe; color: #4338ca; }
-.rs-rail-step.is-done .rs-rail-line { background: #c7d2fe; }
+.rs-rail-step.is-done .rs-rail-dot { background: var(--nx-accent-tint); border-color: var(--nx-card-hover-border); color: var(--nx-accent-hover); }
+.rs-rail-step.is-done .rs-rail-line { background: var(--nx-card-hover-border); }
 .rs-rail-step.is-active .rs-rail-dot { background: var(--nx-brand-grad); border-color: transparent; color: #fff; }
 .rs-rail-title { font: 600 13px var(--nx-font); color: var(--nx-text); padding-top: 4px; }
 .rs-rail-step.is-active .rs-rail-title { color: var(--nx-accent); }
@@ -1342,7 +1342,7 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
   font-size: 11.5px; font-weight: 600; white-space: nowrap;
 }
 .reporting-drill-chip i { font-size: 10px; }
-.reporting-drill-chip--indigo { background: var(--nx-accent-tint); border-color: #e0e7ff; color: #4338ca; }
+.reporting-drill-chip--indigo { background: var(--nx-accent-tint); border-color: var(--nx-card-hover-border); color: var(--nx-accent-hover); }
 .reporting-drill-chip--violet { background: var(--nx-violet-tint); border-color: var(--nx-violet-border); color: var(--nx-violet); }
 .reporting-drill-body { flex: 1; overflow: auto; padding: 0 16px; }
 .reporting-drill-body table { width: 100%; border-collapse: collapse; font-size: 12px; }
@@ -1358,7 +1358,7 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
 /* Type pill (doctype column, when present in the drilled columns). */
 .reporting-drill-type-pill {
   display: inline-block; padding: 2px 8px; border-radius: 999px;
-  background: var(--nx-accent-tint); color: #4338ca; font-size: 11px; font-weight: 600;
+  background: var(--nx-accent-tint); color: var(--nx-accent-hover); font-size: 11px; font-weight: 600;
 }
 /* Info callout, built by ensureCallout() in _reporting_drill_js.html, only
    when the workitem-preview modal is on the page -- sits above the foot. */
@@ -1678,7 +1678,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   background: var(--nx-brand-grad);
   color: #fff;
   border-radius: calc(var(--nx-radius-scale, 1) * 14px);
-  box-shadow: 0 12px 28px -10px rgba(79, 70, 229, .5);
+  box-shadow: 0 12px 28px -10px color-mix(in srgb, var(--nx-accent) 50%, transparent);
   padding: 18px 20px;
   display: flex;
   flex-direction: column;
@@ -2068,18 +2068,18 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 .rdb-editing-pill {
   display: inline-flex; align-items: center; gap: 7px;
   padding: 6px 13px; border-radius: var(--nx-radius-pill);
-  background: var(--nx-accent-tint); border: 1px solid #c7d2fe;
-  font: 600 12px var(--nx-font); color: #4338ca;
+  background: var(--nx-accent-tint); border: 1px solid var(--nx-card-hover-border);
+  font: 600 12px var(--nx-font); color: var(--nx-accent-hover);
 }
 .rdb-editing-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--nx-accent); }
 .rdb-addcard-btn {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 14px; border-radius: var(--nx-radius-sm);
-  font: 600 12.5px var(--nx-font); border: 1px solid #c7d2fe;
-  background: var(--nx-accent-tint); color: #4338ca; cursor: pointer;
+  font: 600 12.5px var(--nx-font); border: 1px solid var(--nx-card-hover-border);
+  background: var(--nx-accent-tint); color: var(--nx-accent-hover); cursor: pointer;
   transition: background-color var(--nx-dur) var(--nx-ease);
 }
-.rdb-addcard-btn:hover { background: #e0e7ff; }
+.rdb-addcard-btn:hover { background: var(--nx-card-hover-border); }
 
 .rdb-filterbar {
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
@@ -2110,7 +2110,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   transition: color var(--nx-dur) var(--nx-ease), border-color var(--nx-dur) var(--nx-ease);
 }
 .rdb-add-filter i { font-size: 9px; }
-.rdb-add-filter:hover { color: var(--nx-accent); border-color: #c7d2fe; }
+.rdb-add-filter:hover { color: var(--nx-accent); border-color: var(--nx-card-hover-border); }
 
 /* Filter popover (#rdbFilterPop): field/op/value + Apply/Cancel, positioned
    under the clicked chip via JS-computed top/left off .rdb-filterbar's
@@ -2250,7 +2250,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
    ============================================================ */
 .rdb-card-grip { color: #d3d9f8; font-size: 11px; cursor: grab; }
 .rdb-card--dragging { opacity: .35; }
-.rdb-card--over { border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79, 70, 229, .15); }
+.rdb-card--over { border-color: var(--nx-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--nx-accent) 15%, transparent); }
 
 /* Hover control cluster: 22px squares, top:-11px;right:10px per D10. */
 .rdb-card-controls { position: absolute; top: -11px; right: 10px; z-index: 3; display: flex; gap: 4px; }
@@ -2262,7 +2262,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   transition: color var(--nx-dur) var(--nx-ease), border-color var(--nx-dur) var(--nx-ease),
               background-color var(--nx-dur) var(--nx-ease);
 }
-.rdb-card-ctrl-btn:hover { color: var(--nx-accent); border-color: #c7d2fe; }
+.rdb-card-ctrl-btn:hover { color: var(--nx-accent); border-color: var(--nx-card-hover-border); }
 .rdb-card-ctrl-btn--danger { border-color: #fecaca; color: var(--nx-danger); }
 .rdb-card-ctrl-btn--danger:hover { background: #fef2f2; color: var(--nx-danger); }
 
@@ -2275,7 +2275,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   cursor: pointer;
   transition: border-color var(--nx-dur) var(--nx-ease), color var(--nx-dur) var(--nx-ease);
 }
-.rdb-card-configure:hover { border-color: #c7d2fe; color: var(--nx-accent); }
+.rdb-card-configure:hover { border-color: var(--nx-card-hover-border); color: var(--nx-accent); }
 .rdb-card-configure i { font-size: 14px; }
 .rdb-card-unconfigured { margin: 0; padding: 24px 0; text-align: center; font: 12.5px var(--nx-font); color: var(--nx-text-meta); }
 
@@ -2286,7 +2286,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   border: 2px dashed var(--nx-border-strong); border-radius: var(--nx-radius-lg);
   transition: border-color var(--nx-dur) var(--nx-ease), background-color var(--nx-dur) var(--nx-ease);
 }
-.rdb-add-tile:hover { border-color: #a5b4fc; background: rgba(238, 242, 255, .4); }
+.rdb-add-tile:hover { border-color: var(--nx-card-hover-border); background: color-mix(in srgb, var(--nx-accent-tint) 40%, transparent); }
 .rdb-add-tile-icon {
   width: 40px; height: 40px; border-radius: 999px;
   display: inline-flex; align-items: center; justify-content: center; font-size: 15px;
@@ -2302,7 +2302,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   transition: border-color var(--nx-dur) var(--nx-ease), color var(--nx-dur) var(--nx-ease);
 }
 .rdb-add-pill i { font-size: 10px; color: var(--nx-violet); }
-.rdb-add-pill:hover { border-color: #c7d2fe; color: var(--nx-accent); }
+.rdb-add-pill:hover { border-color: var(--nx-card-hover-border); color: var(--nx-accent); }
 .rdb-add-tile-hint { font: 11px var(--nx-font); color: var(--nx-text-meta); }
 
 /* ---- Saved-report picker modal (D14 v1 card configuration) ------------- */
@@ -2365,14 +2365,13 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
    -> --nx-card-hover-border) rather than inventing new literals.
    ============================================================ */
 
-/* Wizard breakdown chip (indigo chip: #312e81 bg via --nx-accent-tint,
-   already dark-aware -- only the text needs the dark chip fg). */
-html.dark .reporting-simple-choice.is-selected { color: #c7d2fe; }
+/* Wizard breakdown chip: bg/border/fg now all ride --nx-accent-tint/
+   --nx-card-hover-border/--nx-accent-hover on the light-mode rule above,
+   which already flip correctly under html.dark -- no entry needed here. */
 
 /* Wizard progress rail (Task 5/7). */
 html.dark .rs-rail-dot { background: var(--nx-card); color: var(--nx-text-meta); border-color: var(--nx-border); }
 html.dark .rs-rail-line { background: var(--nx-border); }
-html.dark .rs-rail-step.is-done .rs-rail-dot { border-color: var(--nx-card-hover-border); color: #c7d2fe; }
 html.dark .rs-rail-step.is-done .rs-rail-line { background: var(--nx-accent); }
 /* Active dot sits on --nx-brand-grad, which dark-remaps to the lighter
    #818cf8->#a78bfa gradient (spec's "gradient buttons"); white text loses
@@ -2380,9 +2379,9 @@ html.dark .rs-rail-step.is-done .rs-rail-line { background: var(--nx-accent); }
 html.dark .rs-rail-step.is-active .rs-rail-dot { color: var(--nx-page); }
 html.dark .rs-wizard-preview { background: var(--nx-accent-soft); border-color: var(--nx-card-hover-border); }
 
-/* Drill drawer indigo chips + callout (Task 9). */
-html.dark .reporting-drill-chip--indigo { border-color: var(--nx-card-hover-border); color: #c7d2fe; }
-html.dark .reporting-drill-type-pill { color: #c7d2fe; }
+/* Drill drawer indigo chips + callout (Task 9). --chip--indigo and
+   --type-pill are covered by their light-mode rules (--nx-card-hover-
+   border/--nx-accent-hover), which already flip under html.dark. */
 html.dark .reporting-drill-callout { border-color: var(--nx-card-hover-border); background: var(--nx-alt); }
 
 /* Process-coverage badge, mid tier (amber) -- base + ledger-scoped repeat. */
@@ -2409,15 +2408,15 @@ html.dark .rs-suggestion { border-color: var(--nx-card-hover-border); }
 html.dark .rs-card-preview { background: linear-gradient(180deg, var(--nx-alt), var(--nx-card)); }
 html.dark .rs-card-avatar { color: var(--nx-page); }
 
-/* Dashboard builder: editing pill + add-card button (indigo chips). */
-html.dark .rdb-editing-pill { border-color: var(--nx-card-hover-border); color: #c7d2fe; }
-html.dark .rdb-addcard-btn { border-color: var(--nx-card-hover-border); color: #c7d2fe; }
+/* Dashboard builder: editing pill + add-card button (indigo chips) --
+   covered by their light-mode rules (--nx-card-hover-border/
+   --nx-accent-hover), which already flip under html.dark. */
 html.dark .rdb-addcard-btn:hover { background: var(--nx-accent-soft); }
 html.dark .rdb-add-filter:hover { border-color: var(--nx-accent); }
 
 /* Dashboard builder: edit-mode drag/hover chrome (Task 14). */
 html.dark .rdb-card-grip { color: var(--nx-text-meta); }
-html.dark .rdb-card--over { border-color: var(--nx-accent); box-shadow: 0 0 0 3px rgba(129, 140, 248, .25); }
+html.dark .rdb-card--over { border-color: var(--nx-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--nx-accent) 25%, transparent); }
 html.dark .rdb-card-ctrl-btn:hover { border-color: var(--nx-accent); }
 html.dark .rdb-card-ctrl-btn--danger { border-color: rgba(248, 113, 113, .4); color: var(--nx-danger); }
 html.dark .rdb-card-ctrl-btn--danger:hover { background: rgba(248, 113, 113, .15); color: var(--nx-danger); }

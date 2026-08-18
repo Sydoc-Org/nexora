@@ -590,7 +590,7 @@ body.admin-page main {
 .profile-lang-pill:hover {
     border-color: var(--a-indigo);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.08);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--a-indigo) 8%, transparent);
 }
 .dark .profile-lang-pill:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);

@@ -638,7 +638,7 @@
             tr.id = `perm-row-${p.PermissionID}`;
             tr.innerHTML = `
                 <td class="px-4 py-4">
-                    <button class="perm-expand-btn text-gray-400 hover:text-indigo-600 w-6 h-6 flex items-center justify-center" data-permission-id="${p.PermissionID}" data-testid="admin-ac-perm-expand-${p.PermissionID}">
+                    <button class="perm-expand-btn text-gray-400 hover:text-[var(--nx-accent)] w-6 h-6 flex items-center justify-center" data-permission-id="${p.PermissionID}" data-testid="admin-ac-perm-expand-${p.PermissionID}">
                         <i class="fas fa-chevron-right text-xs transition-transform duration-200" id="perm-expand-icon-${p.PermissionID}"></i>
                     </button>
                 </td>
@@ -653,7 +653,7 @@
                     <span class="px-2 py-0.5 text-xs rounded-full ${p.OverrideCount > 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-500'}">${p.OverrideCount}</span>
                 </td>
                 <td class="px-6 py-4 text-right space-x-3">
-                    <button class="perm-edit-btn text-indigo-400 hover:text-indigo-700 text-sm" data-permission-id="${p.PermissionID}" title="{{ _('Edit') }}" data-testid="admin-ac-perm-edit-${p.PermissionID}">
+                    <button class="perm-edit-btn text-[var(--nx-accent)] hover:text-[var(--nx-accent-hover)] text-sm" data-permission-id="${p.PermissionID}" title="{{ _('Edit') }}" data-testid="admin-ac-perm-edit-${p.PermissionID}">
                         <i class="fas fa-edit"></i>
                     </button>
                     <button class="perm-delete-btn text-red-300 hover:text-red-600 text-sm" data-permission-id="${p.PermissionID}" title="{{ _('Delete') }}" data-testid="admin-ac-perm-delete-${p.PermissionID}">
@@ -675,17 +675,17 @@
         const icon = document.getElementById(`perm-expand-icon-${permId}`);
         if (document.getElementById(`perm-detail-row-${permId}`)) {
             document.getElementById(`perm-detail-row-${permId}`).remove();
-            icon.style.transform = ''; icon.classList.remove('text-indigo-600');
+            icon.style.transform = ''; icon.classList.remove('text-[var(--nx-accent)]');
             expandedPermId = null; return;
         }
         if (expandedPermId !== null) {
             const prev = document.getElementById(`perm-detail-row-${expandedPermId}`);
             if (prev) prev.remove();
             const pi = document.getElementById(`perm-expand-icon-${expandedPermId}`);
-            if (pi) { pi.style.transform = ''; pi.classList.remove('text-indigo-600'); }
+            if (pi) { pi.style.transform = ''; pi.classList.remove('text-[var(--nx-accent)]'); }
         }
         expandedPermId = permId;
-        icon.style.transform = 'rotate(90deg)'; icon.classList.add('text-indigo-600');
+        icon.style.transform = 'rotate(90deg)'; icon.classList.add('text-[var(--nx-accent)]');
 
         const permRow   = document.getElementById(`perm-row-${permId}`);
         const detailRow = document.createElement('tr');
