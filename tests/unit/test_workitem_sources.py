@@ -156,8 +156,9 @@ def test_deleted_workitems_hidden_unless_explicitly_filtered_for(app):
         assert 2 in flat, f"{name} lost the Deleted status code: {flat}"
 
 
-def test_search_id_is_exact_match_not_substring(app):
-    """Searching workitem 371 must not also return 1371/3716/16371."""
+def test_search_id_is_prefix_match_not_substring(app):
+    """Searching workitem 371 must match 3710/37199 but not 1371/3716/16371 --
+    prefix (LIKE '371%'), not substring (LIKE '%371%')."""
     for src in (SqlServerSource(), PostgresSource(CLIENTS_code="ms02")):
         f = _mk_filter()
         f.search_id = "371"
@@ -165,8 +166,10 @@ def test_search_id_is_exact_match_not_substring(app):
             sql, cur = _captured_sql(src, f)
         params = [c.args[1] for c in cur.execute.call_args_list if len(c.args) > 1]
         flat = [p for group in params for p in (group if isinstance(group, list) else [group])]
-        assert "%371%" not in flat, f"{type(src).__name__} still binds a LIKE pattern: {flat}"
-        assert "371" in flat, f"{type(src).__name__} lost the search term: {flat}"
+        assert "%371%" not in flat, f"{type(src).__name__} binds a full-substring pattern: {flat}"
+        assert "371%" in flat, f"{type(src).__name__} lost the prefix pattern: {flat}"
+        norm = sql.replace('"', "").lower()
+        assert "like" in norm, f"{type(src).__name__} isn't using LIKE for the prefix match: {sql}"
 
 
 def test_stage_filter_applied_after_latest_activity_dedup(app):

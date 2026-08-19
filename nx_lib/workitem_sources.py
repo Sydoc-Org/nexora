@@ -42,7 +42,7 @@ class WorkitemFilter:
     client_process_pairs: list
     activity_ignore_csv: str  # "'A','B'" string from ActivityInstancesToIgnore
     status_code: int | None = None
-    search_id: str | None = None  # exact workitem id to match
+    search_id: str | None = None  # workitem id prefix to match (e.g. "11" -> 11, 110, 1199, ...)
     start_date: object = None
     end_date: object = None
     # One of 'Import' | 'Extraction' | 'Validation' | 'Delivery' -- matched
@@ -158,9 +158,15 @@ class SqlServerSource:
                 where_clauses.append("twi.Status = ?")
                 params.append(filt.status_code)
         if filt.search_id:
-            # Exact match: searching 371 must not also return 1371/3716/16371.
-            where_clauses.append("CAST(twi.id AS NVARCHAR(50)) = ?")
-            params.append(str(filt.search_id).strip())
+            # Prefix match: searching 11 returns 11/110/1199/... but not
+            # 911/3211 -- LIKE 'id%', not '%id%' (a full substring match
+            # would also pull in 1371/3716/16371 for a search of 371, which
+            # is the one thing this deliberately still avoids). The '%' is
+            # appended to the bound value, not the SQL text, so it's still a
+            # literal for LIKE's purposes on this call, not something the
+            # caller could inject wildcards through beyond their own prefix.
+            where_clauses.append("CAST(twi.id AS NVARCHAR(50)) LIKE ?")
+            params.append(str(filt.search_id).strip() + "%")
         if filt.start_date:
             where_clauses.append("twi.ModifiedAt >= ?")
             params.append(filt.start_date)
@@ -943,8 +949,9 @@ class PostgresSource:
                 clauses.append('twi."Status" = %s')
                 params.append(filt.status_code)
         if filt.search_id:
-            clauses.append('CAST(twi."ID" AS TEXT) = %s')
-            params.append(str(filt.search_id).strip())
+            # Prefix match, same semantics/reasoning as the SQL Server path above.
+            clauses.append('CAST(twi."ID" AS TEXT) LIKE %s')
+            params.append(str(filt.search_id).strip() + "%")
         if filt.start_date:
             clauses.append('twi."ModifiedAt" >= %s')
             params.append(filt.start_date)

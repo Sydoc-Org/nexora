@@ -170,7 +170,7 @@ English `error` string — nothing is silently coerced or ignored):
 
 | Param | Meaning |
 |---|---|
-| `workitem_id` | exact workitem-id match |
+| `workitem_id` | workitem-id **prefix** match (`11` matches `11`, `110`, `1199`, ... but not `911`) |
 | `status` | one of `Ready`, `In Progress`, `Done` |
 | `stage` | one of `Import`, `Extraction`, `Validation`, `Delivery` |
 | `start_date` / `end_date` | ISO datetime bounds on the last-modified timestamp; `start_date` is **inclusive**, `end_date` is **exclusive** |

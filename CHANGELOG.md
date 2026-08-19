@@ -8,6 +8,16 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Changed
+
+- **Workitems search: prefix match instead of exact match.** Typing `11`
+  now returns every workitem whose id *starts with* `11` (`11`, `110`,
+  `1199`, ...), not just the literal `11`. Still not a full substring
+  match — searching `371` still won't pull in `1371`/`3716`/`16371`, the
+  original reason it was exact-only. Applies everywhere the Workitems
+  overview's search box does, including the external API's `workitem_id`
+  param (`docs/howto/external-api.md`).
+
 ### Added
 
 - **Feedback page** (`/feedback`, profile dropdown → "Feedback") — an
