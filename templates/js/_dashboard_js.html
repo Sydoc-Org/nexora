@@ -196,9 +196,13 @@
             const data = await response.json();
             const ctx = document.getElementById('processedOverTimeChart').getContext('2d');
 
+            // Canvas needs a resolved color, not a CSS custom property string --
+            // same pattern as nxAxis() above, just for the accent instead of the
+            // grid/text tokens.
+            const accent = (getComputedStyle(document.body).getPropertyValue('--nx-accent') || '#4f46e5').trim();
             const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-            gradient.addColorStop(0, 'rgba(79, 70, 229, 0.2)');
-            gradient.addColorStop(1, 'rgba(79, 70, 229, 0)');
+            gradient.addColorStop(0, `color-mix(in srgb, ${accent} 20%, transparent)`);
+            gradient.addColorStop(1, 'transparent');
 
             if (processedChart) {
                 processedChart.data.labels = data.labels;
@@ -214,9 +218,9 @@
                             data: data.data,
                             fill: true,
                             backgroundColor: gradient,
-                            borderColor: '#4F46E5',
+                            borderColor: accent,
                             borderWidth: 3,
-                            pointBackgroundColor: '#4F46E5',
+                            pointBackgroundColor: accent,
                             pointRadius: 0,
                             pointHoverRadius: 6,
                             tension: 0.4,
@@ -226,6 +230,12 @@
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        // Default Chart.js interaction requires the cursor to sit
+                        // exactly on the line (intersect: true) to trigger the
+                        // tooltip. 'index' + intersect:false instead matches on
+                        // x-position alone, so hovering anywhere in that column
+                        // -- not just the 3px-wide line itself -- shows the value.
+                        interaction: { mode: 'index', intersect: false },
                         scales: {
                             y: { beginAtZero: true, grid: { borderDash: [5, 5], color: nxAxis().grid } },
                             x: { grid: { display: false } }
