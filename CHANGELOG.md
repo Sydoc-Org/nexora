@@ -21,7 +21,9 @@ Work toward the next release.
   the `/api/test/v1` twin with a Bearer key from the new optional
   `OUTAGE_API_KEY` env var, covering the `dbo.ApiKeys` lookup and process
   scoping. `api:key` skips itself when the var is unset, the same way the Graph
-  probe does. See `docs/howto/outage-monitor.md`.
+  probe does. See `docs/howto/outage-monitor.md`. Migration `0064` seeds the
+  monitor-only key row in `dbo.ApiKeys`; the raw key still has to be pasted
+  into each server's `env/<ENV>.env` as `OUTAGE_API_KEY` by hand.
 
 ## [3.1.2] - 2026-08-18
 
