@@ -69,17 +69,26 @@ class WorkitemFilter:
     ms02_docfield_ids: set | None = None
 
 
-def merge_sorted_rows(row_lists):
+def merge_sorted_rows(row_lists, search_id=None):
     """Merge per-source normalized rows into one list, newest first.
 
     Deterministic tie-break on workitemid (ascending) so equal timestamps order
     stably across sources. The tie-break key is stringified so equal-timestamp
     rows from different sources never raise TypeError when their id types differ
     (e.g. int vs str); ordering of same-timestamp rows is otherwise immaterial.
+
+    search_id: when a workitem-id prefix search is active, relevance (shortest
+    id first -- the same reasoning as each source's own ORDER BY, see
+    list_workitems) takes priority over recency, since sort() is stable and
+    this key is applied *last*. Each per-source list already arrives in this
+    relevance order from its own query; this re-establishes it across sources
+    after the merge, since plain recency would otherwise scramble it back.
     """
     flat = [r for rows in row_lists for r in rows]
     flat.sort(key=lambda r: str(r["workitemid"]))
     flat.sort(key=lambda r: r["modifiedat"], reverse=True)
+    if search_id:
+        flat.sort(key=lambda r: len(str(r["workitemid"])))
     return flat
 
 
@@ -233,6 +242,17 @@ class SqlServerSource:
             stage_clause = "WHERE CurrentStage = ?" if filt.stage else ""
             stage_params = [filt.stage] if filt.stage else []
 
+            # A workitem-id prefix search ranks by relevance first: the
+            # fewer extra digits an id has beyond the searched prefix, the
+            # closer/more-matching it is (an exact-length match is the best
+            # possible match). Shortest id wins; ModifiedAt DESC only breaks
+            # ties among same-length ids. No search -> unchanged recency sort.
+            order_clause = (
+                "ORDER BY LEN(CAST(WorkItemID AS NVARCHAR(50))) ASC, ModifiedAt DESC"
+                if filt.search_id
+                else "ORDER BY ModifiedAt DESC"
+            )
+
             cur.execute(
                 cte_sql + f"SELECT COUNT(*) FROM LatestCTE {stage_clause}",
                 [*params, *stage_params],
@@ -244,7 +264,7 @@ class SqlServerSource:
                 + f"""
                 SELECT ModifiedAt, WorkItemID, Status, CurrentStage
                 FROM LatestCTE {stage_clause}
-                ORDER BY ModifiedAt DESC
+                {order_clause}
                 OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
             """,
                 [*params, *stage_params, offset, limit],
@@ -1017,6 +1037,14 @@ class PostgresSource:
             stage_clause = "WHERE currentstage = %s" if filt.stage else ""
             stage_params = [filt.stage] if filt.stage else []
 
+            # Same relevance-first ordering as the SQL Server source's
+            # list_workitems -- see the comment there.
+            order_clause = (
+                "ORDER BY LENGTH(workitemid::text) ASC, modifiedat DESC"
+                if filt.search_id
+                else "ORDER BY modifiedat DESC"
+            )
+
             cur.execute(
                 cte_sql + f"SELECT COUNT(*) FROM latest {stage_clause}",
                 [*params, *stage_params],
@@ -1028,7 +1056,7 @@ class PostgresSource:
                 + f"""
                 SELECT modifiedat, workitemid, status, currentstage
                 FROM latest {stage_clause}
-                ORDER BY modifiedat DESC
+                {order_clause}
                 LIMIT %s OFFSET %s
                 """,
                 [*params, *stage_params, limit, offset],
@@ -1275,7 +1303,7 @@ def fetch_merged_page(filt, offset, limit):
         except Exception as e:
             current_app.logger.error(f"source {src.code} failed: {e}")
             degraded.append(src.code)
-    merged = merge_sorted_rows(per_source_rows)
+    merged = merge_sorted_rows(per_source_rows, search_id=filt.search_id)
     page = merged[offset : offset + limit]
 
     # Warm the routing cache for non-default rows on this page. Routed through

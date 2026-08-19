@@ -8,6 +8,17 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Changed
+
+- **Workitems search results now rank by relevance.** With a workitem-id
+  search active, the closest match sorts first — shortest id (fewest extra
+  digits beyond the searched prefix) on top, longer ids further down;
+  searching `11` puts `11` above `110` above `1199`. Applies in both
+  per-source queries (`ORDER BY LEN(id) ASC, ModifiedAt DESC`) and the
+  cross-source merge for multi-client setups, which previously
+  re-sorted everything back to plain recency after each source's own
+  query. No search term active: unchanged plain-recency ordering.
+
 ### Fixed
 
 - **Segmented picker buttons (Feedback's category, Appearance's Theme/
