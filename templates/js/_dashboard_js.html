@@ -197,9 +197,14 @@
             const ctx = document.getElementById('processedOverTimeChart').getContext('2d');
 
             // Canvas needs a resolved color, not a CSS custom property string --
-            // same pattern as nxAxis() above, just for the accent instead of the
-            // grid/text tokens.
-            const accent = (getComputedStyle(document.body).getPropertyValue('--nx-accent') || '#4f46e5').trim();
+            // same pattern as nxAxis() above, just for the accent (and, below,
+            // the tooltip card) instead of the grid/text tokens.
+            const bodyCs = getComputedStyle(document.body);
+            const accent = (bodyCs.getPropertyValue('--nx-accent') || '#4f46e5').trim();
+            const nxCard = (bodyCs.getPropertyValue('--nx-card') || '#1e293b').trim();
+            const nxBorder = (bodyCs.getPropertyValue('--nx-border') || '#334155').trim();
+            const nxText = (bodyCs.getPropertyValue('--nx-text') || '#e2e8f0').trim();
+            const nxTextMeta = (bodyCs.getPropertyValue('--nx-text-meta') || '#64748b').trim();
             const gradient = ctx.createLinearGradient(0, 0, 0, 300);
             gradient.addColorStop(0, `color-mix(in srgb, ${accent} 20%, transparent)`);
             gradient.addColorStop(1, 'transparent');
@@ -240,7 +245,27 @@
                             y: { beginAtZero: true, grid: { borderDash: [5, 5], color: nxAxis().grid } },
                             x: { grid: { display: false } }
                         },
-                        plugins: { legend: { display: false } }
+                        plugins: {
+                            legend: { display: false },
+                            // Default Chart.js tooltip is a plain black box that
+                            // clashes with the rest of the app's card styling --
+                            // reskin it to match (rounded, bordered, --nx-* colors).
+                            tooltip: {
+                                backgroundColor: nxCard,
+                                titleColor: nxTextMeta,
+                                bodyColor: nxText,
+                                borderColor: nxBorder,
+                                borderWidth: 1,
+                                cornerRadius: 10,
+                                padding: 10,
+                                boxPadding: 6,
+                                usePointStyle: true,
+                                titleFont: { size: 11, weight: '600' },
+                                titleMarginBottom: 6,
+                                bodyFont: { size: 13, weight: '600' },
+                                caretSize: 6,
+                            }
+                        }
                     }
                 });
             }
