@@ -1898,7 +1898,13 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 .reporting-hero__title { margin: 0 0 8px; font: 600 28px var(--nx-font); letter-spacing: -.6px; color: var(--nx-text); }
 .reporting-hero__sub { margin: 0 0 24px; font-size: 14px; color: var(--nx-text-sec); }
 .reporting-hero__aiwrap { max-width: 660px; margin: 0 auto; border-radius: calc(var(--nx-radius-scale, 1) * 14px); background: var(--nx-brand-grad); padding: 1.5px; box-shadow: 0 12px 32px -12px rgba(79, 70, 229, .4); }
-.reporting-hero__aiwrap .reporting-simple-aibar { display: flex; align-items: center; border-radius: 12.5px; background: var(--nx-card); padding: 5px 5px 5px 18px; }
+/* Nested inside the 1.5px gradient-border padding above, so its radius
+   must track the same --nx-radius-scale minus that 1.5px gap -- it was
+   a flat 12.5px (only correct when scale=1, i.e. the default "Standard"
+   corner style), so any other corner-style pref (e.g. "Round", scale
+   1.6x) left the inner bar's corners visibly tighter than the outer
+   ring's, instead of nesting concentrically. */
+.reporting-hero__aiwrap .reporting-simple-aibar { display: flex; align-items: center; border-radius: calc((var(--nx-radius-scale, 1) * 14px) - 1.5px); background: var(--nx-card); padding: 5px 5px 5px 18px; }
 .reporting-hero__wand { color: var(--nx-violet); font-size: 15px; }
 .reporting-hero__aiinput { flex: 1; min-width: 0; border: none; outline: none; background: transparent; padding: 11px 14px; font: 13.5px var(--nx-font); color: var(--nx-text); }
 .reporting-hero__aibtn { border: none; border-radius: calc(var(--nx-radius-scale, 1) * 9px); background: var(--nx-brand-grad); color: #fff; font: 600 13px var(--nx-font); padding: 11px 20px; cursor: pointer; }
