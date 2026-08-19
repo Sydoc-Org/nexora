@@ -8,6 +8,23 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Fixed
+
+- **Checkboxes/radios stayed plain white regardless of theme.** Native
+  checkbox rendering wasn't reliable enough on its own: `accent-color`
+  only tints the checked-state fill, and on a real Windows/Chrome setup
+  even that wasn't enough — the *unchecked* box painted solid opaque
+  white regardless of `color-scheme`/`accent-color`, standing out
+  against every other bit of chrome that does follow dark mode/accent
+  (Workitems' row-select/select-all checkboxes, the export-options
+  checkboxes, the process-filter dropdown's checkboxes, admin/reporting
+  radios, ...). Replaced native rendering with a fully custom checkbox/
+  radio (`appearance: none` + our own border/background/checkmark, via
+  `body.nx-app input[type="checkbox"|"radio"]` in `nexora-ui.css`) so
+  every state — unchecked, checked, indeterminate (the process-filter
+  dropdown's "some but not all selected" rows) — is explicitly
+  theme-and-accent-aware instead of trusting the browser.
+
 ### Changed
 
 - **Workitems search results now rank by relevance.** With a workitem-id

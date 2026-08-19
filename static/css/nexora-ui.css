@@ -130,7 +130,75 @@ body.nx-app {
   background: var(--nx-page);
   color: var(--nx-text);
   font-family: var(--nx-font);
+  /* Native checkbox/radio "selected" fill. Never set anywhere in the app
+     before this -- so every checkbox's checked state (workitems' row/
+     select-all checkboxes, the export-options checkboxes, ...) rendered
+     with the browser's own OS-default accent color, not nexora's. It read
+     as "not dark mode" because it's the one bit of chrome that ignores
+     the page's theme AND accent entirely, standing out against
+     everything else that does. Set here (not just under html.dark) since
+     it should track the accent picker in light mode too, not only look
+     "fixed" in dark. */
+  accent-color: var(--nx-accent);
 }
+/* Custom checkbox/radio chrome. accent-color above is a start, but native
+   widget rendering isn't reliable enough on its own -- confirmed on a real
+   Windows/Chrome combo, the *unchecked* box still painted solid opaque
+   white regardless of color-scheme/accent-color, since browsers mostly
+   only listen to those for the checked-state tint, not the base widget
+   chrome. appearance:none + our own box/checkmark makes every state
+   (unchecked, checked, indeterminate -- the process-filter dropdown's
+   "some but not all selected" rows use indeterminate, see
+   _process_multiselect_js.html) explicitly theme-aware instead of trusting
+   the browser. Sizing (h-4/w-4 etc.) is left to each checkbox's own
+   classes -- only chrome (border/background/checkmark) is set here, via
+   background-image so it scales with whatever box size the caller uses
+   instead of assuming one fixed pixel size. */
+body.nx-app input[type="checkbox"],
+body.nx-app input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0;
+  border: 1.5px solid var(--nx-border-strong);
+  background-color: var(--nx-card);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 68% 68%;
+  cursor: pointer;
+  transition: background-color 0.12s, border-color 0.12s;
+}
+body.nx-app input[type="checkbox"] { border-radius: 4px; }
+body.nx-app input[type="radio"] { border-radius: 50%; }
+body.nx-app input[type="checkbox"]:hover,
+body.nx-app input[type="radio"]:hover {
+  border-color: var(--nx-accent);
+}
+body.nx-app input[type="checkbox"]:checked,
+body.nx-app input[type="checkbox"]:indeterminate,
+body.nx-app input[type="radio"]:checked {
+  background-color: var(--nx-accent);
+  border-color: var(--nx-accent);
+}
+body.nx-app input[type="checkbox"]:checked {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3 8 6.5 11.5 13 4.5'/%3E%3C/svg%3E");
+}
+body.nx-app input[type="checkbox"]:indeterminate {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round'%3E%3Cline x1='4' y1='8' x2='12' y2='8'/%3E%3C/svg%3E");
+}
+body.nx-app input[type="radio"]:checked {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='3.5' fill='white'/%3E%3C/svg%3E");
+}
+body.nx-app input[type="checkbox"]:focus-visible,
+body.nx-app input[type="radio"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--nx-accent-soft);
+}
+body.nx-app input[type="checkbox"]:disabled,
+body.nx-app input[type="radio"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 body.nx-app .nx-main {
   width: 100%;
   max-width: 1600px;
