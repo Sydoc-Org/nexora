@@ -18,7 +18,39 @@
                 var stored = {};
                 try { stored = JSON.parse(ls('nexora-ui-prefs')) || {}; } catch (e) {}
                 var theme = stored.theme || (ls('nexora-theme') === 'dark' ? 'dark' : 'light');
-                if (theme === 'dark') document.documentElement.classList.add('dark');
+                var dark = theme === 'dark';
+                if (dark) document.documentElement.classList.add('dark');
+
+                // Accent: the logo/brand color follows the user's
+                // Appearance pick even before login, via the same
+                // localStorage mirror _header.html writes once they've
+                // logged in once on this browser -- first-ever visit
+                // falls through to the default indigo, same as everywhere
+                // else this mirror is read pre-login.
+                var accent = stored.accent || 'indigo';
+                var d = document.documentElement;
+                if (accent === 'custom') {
+                    var m = /^#([0-9a-f]{6})$/i.exec(stored.accentHex || '');
+                    if (m) {
+                        var n = parseInt(m[1], 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+                        var mix = function (t, w) {
+                            return 'rgb(' + Math.round(r + (w - r) * t) + ',' +
+                                Math.round(g + (w - g) * t) + ',' + Math.round(b + (w - b) * t) + ')';
+                        };
+                        var mixc = function (t, wr, wg, wb) {
+                            return 'rgb(' + Math.round(r + (wr - r) * t) + ',' +
+                                Math.round(g + (wg - g) * t) + ',' + Math.round(b + (wb - b) * t) + ')';
+                        };
+                        var base = dark ? mix(0.30, 255) : 'rgb(' + r + ',' + g + ',' + b + ')';
+                        var hover = dark ? mix(0.45, 255) : mix(0.15, 0);
+                        var partner = dark ? mix(0.55, 255) : mixc(0.28, 124, 58, 237);
+                        d.style.setProperty('--nx-accent', base);
+                        d.style.setProperty('--nx-accent-hover', hover);
+                        d.style.setProperty('--nx-violet', partner);
+                    }
+                } else if (accent !== 'indigo') {
+                    d.setAttribute('data-accent', accent);
+                }
             } catch (e) {}
         })();
     </script>

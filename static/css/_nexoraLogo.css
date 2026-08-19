@@ -1,6 +1,15 @@
 :root{
-      --indigo:#4338ca;          
-      --indigo-600:#4f46e5;     
+      /* Historically the logo's own fixed indigo -- now that it follows
+         the user's accent picker (--nx-accent/--nx-violet from
+         nexora-ui.css, re-tinted per html[data-accent] or a custom hex),
+         these two are only the *fallback* for pages that don't load
+         nexora-ui.css at all. Kept at their original values so nothing
+         regresses on such a page. --space (the wordmark's near-black
+         leading stops) stays fixed brand ink in every theme/accent --
+         same "the black hole's black core is correct in either theme"
+         reasoning this file already applied to .bh-core. */
+      --indigo:#4338ca;
+      --indigo-600:#4f46e5;
       --space:#0b0b12;
     }
 
@@ -61,9 +70,9 @@
       background:
         radial-gradient(closest-side,
           transparent calc(50% - 2px),
-          rgba(156, 163, 255, .95) calc(50% - 2px),
-          rgba(129,140,248,.85) calc(50% - 1px),
-          rgba(99,102,241,.55) 50%,
+          color-mix(in srgb, var(--nx-accent, var(--indigo-600)) 78%, white) calc(50% - 2px),
+          color-mix(in srgb, var(--nx-accent, var(--indigo-600)) 85%, transparent) calc(50% - 1px),
+          color-mix(in srgb, var(--nx-accent, var(--indigo-600)) 55%, transparent) 50%,
           transparent 52%);
       filter: blur(.6px) saturate(130%);
       opacity: .95;
@@ -83,25 +92,27 @@
       content:""; position:absolute; inset: 4px; border-radius:50%;
       background:
         conic-gradient(from 0deg,
-          rgba(67,56,202,0) 0deg,
-          rgba(67,56,202,.12) 12deg,
-          rgba(79,70,229,.28) 60deg,
-          rgba(129,140,248,.5) 110deg,
-          rgba(79,70,229,.32) 180deg,
-          rgba(67,56,202,.14) 300deg,
-          rgba(67,56,202,0) 360deg);
+          color-mix(in srgb, var(--nx-accent, var(--indigo-600)) 0%, transparent) 0deg,
+          color-mix(in srgb, var(--nx-accent, var(--indigo-600)) 12%, transparent) 12deg,
+          color-mix(in srgb, var(--nx-accent, var(--indigo-600)) 28%, transparent) 60deg,
+          color-mix(in srgb, var(--nx-violet, var(--nx-accent, var(--indigo-600))) 50%, transparent) 110deg,
+          color-mix(in srgb, var(--nx-accent, var(--indigo-600)) 32%, transparent) 180deg,
+          color-mix(in srgb, var(--nx-accent, var(--indigo-600)) 14%, transparent) 300deg,
+          color-mix(in srgb, var(--nx-accent, var(--indigo-600)) 0%, transparent) 360deg);
       -webkit-mask: radial-gradient(circle at 50% 50%, transparent 30%, black 31%);
               mask: radial-gradient(circle at 50% 50%, transparent 30%, black 31%);
       filter: blur(.5px) saturate(120%);
       box-shadow:
         0 1px 6px rgba(17,24,39,.12),
         0 10px 18px rgba(17,24,39,.08),
-        inset 0 0 28px rgba(67,56,202,.38);
+        inset 0 0 28px color-mix(in srgb, var(--nx-accent, var(--indigo-600)) 38%, transparent);
     }
 
     .bh-disk::after{
       content:""; position:absolute; inset: -2px; border-radius:50%;
-      background: radial-gradient(60% 60% at 50% 50%, rgba(67,56,202,.18), rgba(67,56,202,0) 70%);
+      background: radial-gradient(60% 60% at 50% 50%,
+        color-mix(in srgb, var(--nx-accent, var(--indigo-600)) 18%, transparent),
+        transparent 70%);
       -webkit-mask: radial-gradient(circle at 50% 50%, transparent 48%, black 60%);
               mask: radial-gradient(circle at 50% 50%, transparent 48%, black 60%);
       filter: blur(2.2px);
@@ -118,9 +129,13 @@
     .bh-sparks{ position:absolute; inset:0; }
     .bh-sparks i{
       position:absolute; width:3px; height:3px; border-radius:50%;
-      background: #312e81; 
-      box-shadow: 0 0 9px rgba(79,70,229,.9);
-      animation: spiral 10s linear infinite; 
+      /* accent-hover, not accent itself -- a darker shade reads as a
+         solid spark against the light page the way the original fixed
+         indigo-900 dot did; dark mode's own override below switches to
+         the light-on-dark equivalent. */
+      background: var(--nx-accent-hover, var(--indigo));
+      box-shadow: 0 0 9px color-mix(in srgb, var(--nx-accent, var(--indigo-600)) 90%, transparent);
+      animation: spiral 10s linear infinite;
       opacity:.85;
     }
     .bh-sparks i:nth-child(1){ left: 50%; top: 6%; animation-delay: -.1s; }
@@ -163,37 +178,46 @@
        correct in either theme -- only the shadow/glow pieces change. */
     html.dark .bh-core {
       box-shadow:
-        0 0 22px rgba(129, 140, 248, 0.45),
+        0 0 22px color-mix(in srgb, var(--nx-accent, #818cf8) 45%, transparent),
         inset 0 0 10px rgba(0, 0, 0, 0.85),
-        0 0 44px rgba(167, 139, 250, 0.25);
+        0 0 44px color-mix(in srgb, var(--nx-violet, #a78bfa) 25%, transparent);
     }
     html.dark .bh-penumbra {
-      background: radial-gradient(55% 55% at 50% 50%, rgba(129, 140, 248, 0.4), rgba(129, 140, 248, 0) 70%);
+      background: radial-gradient(55% 55% at 50% 50%,
+        color-mix(in srgb, var(--nx-accent, #818cf8) 40%, transparent),
+        transparent 70%);
       opacity: .9;
     }
     html.dark .bh-disk::before {
       box-shadow:
-        0 0 14px rgba(129, 140, 248, 0.35),
-        0 0 28px rgba(167, 139, 250, 0.22),
-        inset 0 0 28px rgba(129, 140, 248, 0.5);
+        0 0 14px color-mix(in srgb, var(--nx-accent, #818cf8) 35%, transparent),
+        0 0 28px color-mix(in srgb, var(--nx-violet, #a78bfa) 22%, transparent),
+        inset 0 0 28px color-mix(in srgb, var(--nx-accent, #818cf8) 50%, transparent);
     }
     html.dark .bh-sparks i {
-      background: #a5b4fc;
-      box-shadow: 0 0 10px rgba(165, 180, 252, 1);
+      /* accent-hover(dark) is the lighter shade -- same "darker in light
+         mode, lighter in dark mode" logic as the base rule above. */
+      background: var(--nx-accent-hover, #a5b4fc);
+      box-shadow: 0 0 10px color-mix(in srgb, var(--nx-accent-hover, #a5b4fc) 100%, transparent);
     }
 
     .nexora-title{
-      background: linear-gradient(90deg, #0b0b12, #111827 35%, var(--indigo));
+      /* Near-black leading stops stay fixed brand ink (--space) in every
+         accent -- only the trailing stop, the color the gradient actually
+         resolves *to*, follows --nx-accent. */
+      background: linear-gradient(90deg, var(--space), #111827 35%, var(--nx-accent, var(--indigo)));
       -webkit-background-clip: text; background-clip: text; color: transparent;
     }
 
-    /* The gradient above is near-black -> indigo, tuned for a light page;
+    /* The gradient above is near-black -> accent, tuned for a light page;
        clipped-to-text + color:transparent means it doesn't fall back to
        anything if it's wrong, it just goes invisible. Bright variant for
        html.dark (nexora-ui.css's dark-mode class) so the wordmark stays
        legible instead of disappearing into the dark background. */
     html.dark .nexora-title{
-      background: linear-gradient(90deg, #eef2ff, #c7d2fe 35%, #818cf8);
+      background: linear-gradient(90deg, #eef2ff,
+        color-mix(in srgb, var(--nx-accent-hover, #c7d2fe) 60%, white) 35%,
+        var(--nx-accent, #818cf8));
       -webkit-background-clip: text; background-clip: text; color: transparent;
     }
 

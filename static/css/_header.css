@@ -424,7 +424,7 @@ html.dark #nexora-sidebar {
     box-shadow: 2px 0 8px rgba(0,0,0,0.3);
 }
 html.dark .sidebar-logo-area  { border-bottom-color: #334155; }
-html.dark .sidebar-logo-area .nexora-title { background: linear-gradient(90deg, #f1f5f9, #a5b4fc) !important; -webkit-background-clip: text !important; background-clip: text !important; }
+html.dark .sidebar-logo-area .nexora-title { background: linear-gradient(90deg, #f1f5f9, var(--nx-accent-hover, #a5b4fc)) !important; -webkit-background-clip: text !important; background-clip: text !important; }
 html.dark .sidebar-bottom      { border-top-color: #334155; }
 html.dark .sidebar-nav-item    { color: #94a3b8; }
 /* :hover dark override removed -- the base rule above now uses

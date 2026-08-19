@@ -20,6 +20,15 @@ Work toward the next release.
   is the queue. Rate-limited (`10 per hour`); screenshots are sniffed with
   the same `is_file_allowed` MIME check as every other upload, capped at
   5 MB, and never touch disk.
+- **The nexora logo now follows your accent color** — the wordmark
+  gradient and the black-hole icon's glow/ring/spark colors re-tint with
+  whichever accent you pick in Appearance (preset or custom hex), on every
+  page including pre-login (login, password reset, 2FA setup — read from
+  the same `nexora-ui-prefs` localStorage mirror `_header.html` already
+  writes, so it's picked up the moment you've logged in once on that
+  browser). Previously fixed indigo everywhere; the black core and the
+  wordmark's near-black leading stops stay fixed brand ink in every theme
+  — only the actual accent-colored pieces change.
 
 ### Fixed
 
