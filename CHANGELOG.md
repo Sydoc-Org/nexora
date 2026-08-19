@@ -8,6 +8,17 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Fixed
+
+- **Segmented picker buttons (Feedback's category, Appearance's Theme/
+  Background/Density/... pickers) had an invisible "selected" indicator in
+  dark mode.** `.profile-seg-btn.is-active`'s box-shadow was a near-black
+  drop shadow tuned for a white card — on a dark card it was essentially
+  imperceptible, so which option was selected read almost entirely off
+  color alone. Added a `.dark`-scoped shadow (a visible border ring plus a
+  soft accent-colored glow) so the selected state is unambiguous in dark
+  mode too.
+
 ### Changed
 
 - **Workitems search: prefix match instead of exact match.** Typing `11`
