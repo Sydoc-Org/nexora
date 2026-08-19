@@ -1889,7 +1889,12 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 }
 
 /* ---- Landing hero (spec §Landing) ---- */
-.reporting-hero { border-radius: var(--nx-radius-hero); border: 1px solid #e0e7ff; background: radial-gradient(1200px 320px at 50% -80px, var(--nx-accent-tint) 0%, var(--nx-card) 70%); padding: 44px 48px 36px; text-align: center; }
+/* Border deliberately uses --nx-border-strong (neutral) rather than an
+   accent-derived tone: the glow behind it is centered above the box
+   (radial gradient at 50% -80px), so an accent-tinted border blends
+   into that glow right at the top -- exactly where the rounded
+   corners need to read clearly -- and disappears. */
+.reporting-hero { border-radius: var(--nx-radius-hero); border: 1px solid var(--nx-border-strong); background: radial-gradient(1200px 320px at 50% -80px, var(--nx-accent-tint) 0%, var(--nx-card) 70%); padding: 44px 48px 36px; text-align: center; }
 .reporting-hero__title { margin: 0 0 8px; font: 600 28px var(--nx-font); letter-spacing: -.6px; color: var(--nx-text); }
 .reporting-hero__sub { margin: 0 0 24px; font-size: 14px; color: var(--nx-text-sec); }
 .reporting-hero__aiwrap { max-width: 660px; margin: 0 auto; border-radius: calc(var(--nx-radius-scale, 1) * 14px); background: var(--nx-brand-grad); padding: 1.5px; box-shadow: 0 12px 32px -12px rgba(79, 70, 229, .4); }
@@ -2400,7 +2405,7 @@ html.dark .reporting-ledger-sqlpeek { background: var(--nx-alt); }
 /* Landing hero (spec §Landing) -- radial stops + border, and the gradient
    AI button's text (same dark-text-on-gradient treatment). */
 html.dark .reporting-hero {
-  border-color: var(--nx-card-hover-border);
+  border-color: var(--nx-border-strong);
   background: radial-gradient(1200px 320px at 50% -80px, rgba(49, 46, 129, .55) 0%, #1e293b 70%);
 }
 html.dark .reporting-hero__aibtn { color: var(--nx-page); }
