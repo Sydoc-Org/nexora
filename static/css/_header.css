@@ -60,7 +60,17 @@ footer {
     overflow: hidden;
     transition: width 0.28s cubic-bezier(.4,0,.2,1);
 }
-#nexora-sidebar:is(:hover, .pinned) {
+/* html.sidebar-pinned #nexora-sidebar variants (here and below) exist
+   because html.sidebar-pinned is set pre-paint, synchronously in
+   _header.html's <head> script -- but #nexora-sidebar.pinned itself is
+   only added later by _header_js.html, once the whole page (including
+   external CDN scripts) has finished loading. Without these, a pinned
+   sidebar rendered collapsed/unlabeled for that whole gap, then
+   visibly snapped open once the late JS ran -- driving the open state
+   from a class that's guaranteed present at first paint removes the
+   flash entirely. */
+#nexora-sidebar:is(:hover, .pinned),
+html.sidebar-pinned #nexora-sidebar {
     width: 220px;
 }
 html.sidebar-pinned body {
@@ -76,7 +86,8 @@ html.sidebar-pinned body {
     pointer-events: none;
     overflow: hidden;
 }
-#nexora-sidebar:is(:hover, .pinned) .sidebar-label {
+#nexora-sidebar:is(:hover, .pinned) .sidebar-label,
+html.sidebar-pinned #nexora-sidebar .sidebar-label {
     opacity: 1;
     pointer-events: auto;
 }
@@ -122,7 +133,8 @@ html.sidebar-pinned body {
     transition: opacity 0.18s ease;
     pointer-events: none;
 }
-#nexora-sidebar:is(:hover, .pinned) .sidebar-logo-area .flex.flex-col {
+#nexora-sidebar:is(:hover, .pinned) .sidebar-logo-area .flex.flex-col,
+html.sidebar-pinned #nexora-sidebar .sidebar-logo-area .flex.flex-col {
     opacity: 1;
     pointer-events: auto;
 }
@@ -198,15 +210,18 @@ html.sidebar-pinned body {
     max-height: 0;
     transition: max-height 0.25s ease;
 }
-#nexora-sidebar:is(:hover, .pinned) #generaliNavGroup.generali-open .sidebar-nav-subitems {
+#nexora-sidebar:is(:hover, .pinned) #generaliNavGroup.generali-open .sidebar-nav-subitems,
+html.sidebar-pinned #nexora-sidebar #generaliNavGroup.generali-open .sidebar-nav-subitems {
     max-height: var(--generali-subitems-height, 9999px);
 }
 /* Admin group expand (mirrors generali rules) */
-#nexora-sidebar:is(:hover, .pinned) #adminNavGroup.admin-open .sidebar-nav-subitems {
+#nexora-sidebar:is(:hover, .pinned) #adminNavGroup.admin-open .sidebar-nav-subitems,
+html.sidebar-pinned #nexora-sidebar #adminNavGroup.admin-open .sidebar-nav-subitems {
     max-height: var(--admin-subitems-height, 9999px);
 }
 /* Development group expand (mirrors generali/admin rules) */
-#nexora-sidebar:is(:hover, .pinned) #devNavGroup.dev-open .sidebar-nav-subitems {
+#nexora-sidebar:is(:hover, .pinned) #devNavGroup.dev-open .sidebar-nav-subitems,
+html.sidebar-pinned #nexora-sidebar #devNavGroup.dev-open .sidebar-nav-subitems {
     max-height: var(--dev-subitems-height, 9999px);
 }
 .sidebar-nav-subitem {
