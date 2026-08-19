@@ -372,33 +372,37 @@
     color: #4f46e5; 
 }
 .process-step p.active {
-    color: #111827; 
+    color: var(--nx-text, #111827);
     font-weight: 700;
 }
 .step-icon-wrapper.completed {
     border-color: #22c55e;
-    background-color: #f0fdf4; 
+    background-color: #f0fdf4;
 }
 .step-icon-wrapper.completed i {
-    color: #16a34a; 
+    color: var(--nx-success, #16a34a);
 }
 .process-step p.completed {
-    color: #374151;
+    color: var(--nx-text-sec, #374151);
 }
 
+/* #workitemsTable is an ID selector, so it was beating .nx-table's
+   otherwise-correctly dark-aware var(--nx-*) styles with hardcoded
+   light colors regardless of theme -- this (plus .workitem-row:hover's
+   !important below) was the "list is still white" bug. */
 #workitemsTable thead th {
-    background-color: #f9fafb;
-    border-bottom: 1px solid #f1f5f9;
+    background-color: var(--nx-alt, #f9fafb);
+    border-bottom: 1px solid var(--nx-divider, #f1f5f9);
     padding: 1rem 1.5rem;
 }
 
 .workitem-row {
-    border-bottom: 1px solid #f8fafc;
+    border-bottom: 1px solid var(--nx-divider, #f8fafc);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .workitem-row:hover {
-    background-color: #fbfcfe !important;
+    background-color: var(--nx-alt, #fbfcfe) !important;
     transform: translateY(-1px);
     box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.05);
 }
@@ -406,8 +410,8 @@
 .step-icon-wrapper {
     width: 3.5rem;
     height: 3.5rem;
-    border: 3px solid #f1f5f9;
-    box-shadow: 0 0 0 4px white; 
+    border: 3px solid var(--nx-divider, #f1f5f9);
+    box-shadow: 0 0 0 4px var(--nx-card, white);
 }
 
 .step-icon-wrapper.active {
@@ -421,12 +425,12 @@
 }
 
 .step-icon-wrapper.completed {
-    background-color: #ecfdf5;
-    border-color: #10b981;
+    background-color: color-mix(in srgb, var(--nx-success, #10b981) 15%, var(--nx-card, #ecfdf5));
+    border-color: var(--nx-success, #10b981);
 }
 
 .details-content-wrapper {
-    background-color: #f8fafc;
+    background-color: var(--nx-alt, #f8fafc);
 }
 
 .details-content-wrapper > div {
