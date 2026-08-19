@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-19 12:49+0200\n"
+"POT-Creation-Date: 2026-08-19 13:59+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -537,7 +537,7 @@ msgid "All Fields must be filled"
 msgstr "Alle Felder müssen ausgefüllt werden"
 
 #: nx_lib/views/auth.py:437 nx_lib/views/auth.py:780
-#: nx_lib/views/profile.py:164
+#: nx_lib/views/profile.py:170
 msgid "New password has to be atleast 8 characters long, with no whitespaces"
 msgstr ""
 "Das neue Passwort muss mindestens 8 Zeichen lang sein und darf keine "
@@ -606,50 +606,97 @@ msgstr ""
 msgid "An unexpected error occurred while downloading the PDF."
 msgstr "Beim Herunterladen des PDFs ist ein unerwarteter Fehler aufgetreten."
 
-#: nx_lib/views/profile.py:71
+#: nx_lib/views/profile.py:77
 msgid "Email Adress is not valid"
 msgstr "E-Mail-Adresse ist ungültig"
 
-#: nx_lib/views/profile.py:78
+#: nx_lib/views/profile.py:84
 msgid "Email Adress is already in use"
 msgstr "E-Mail-Adresse wird bereits verwendet"
 
-#: nx_lib/views/profile.py:99 nx_lib/views/profile.py:123
+#: nx_lib/views/profile.py:105 nx_lib/views/profile.py:129
 msgid "Invalid file format. Please upload a valid image."
 msgstr "Ungültiges Dateiformat. Bitte laden Sie ein gültiges Bild hoch."
 
-#: nx_lib/views/profile.py:127
+#: nx_lib/views/profile.py:133
 msgid "Profile updated successfully!"
 msgstr "Profil erfolgreich aktualisiert!"
 
-#: nx_lib/views/profile.py:132
+#: nx_lib/views/profile.py:138
 msgid "Unexpected error"
 msgstr "Unerwarteter Fehler"
 
-#: nx_lib/views/profile.py:157
+#: nx_lib/views/profile.py:163
 msgid "New passwords do not match"
 msgstr "Die neuen Passwörter stimmen nicht überein"
 
-#: nx_lib/views/profile.py:160
+#: nx_lib/views/profile.py:166
 msgid "All fields must be filled"
 msgstr "Alle Felder müssen ausgefüllt werden"
 
-#: nx_lib/views/profile.py:194
+#: nx_lib/views/profile.py:200
 msgid "Password updated successfully!"
 msgstr "Passwort erfolgreich aktualisiert!"
 
-#: nx_lib/views/profile.py:197
+#: nx_lib/views/profile.py:203
 msgid "Current password is incorrect"
 msgstr "Aktuelles Passwort ist falsch"
 
-#: nx_lib/views/profile.py:202 nx_lib/views/profile.py:215
-#: nx_lib/views/profile.py:228
+#: nx_lib/views/profile.py:208 nx_lib/views/profile.py:221
+#: nx_lib/views/profile.py:234
 msgid "Unexpected Error"
 msgstr "Unerwarteter Fehler"
 
-#: nx_lib/views/profile.py:224
+#: nx_lib/views/profile.py:230
 msgid "Language changed successfully!"
 msgstr "Sprache erfolgreich geändert!"
+
+#: nx_lib/views/profile.py:318
+msgid "Unauthorized"
+msgstr "Nicht autorisiert"
+
+#: nx_lib/views/profile.py:325
+msgid "Please choose a category."
+msgstr "Bitte wählen Sie eine Kategorie."
+
+#: nx_lib/views/profile.py:327 templates/js/_feedback_js.html:149
+msgid "Please describe the problem or idea."
+msgstr "Bitte beschreiben Sie das Problem oder die Idee."
+
+#: nx_lib/views/profile.py:329
+msgid "Message is too long."
+msgstr "Nachricht ist zu lang."
+
+#: nx_lib/views/profile.py:342 templates/js/_feedback_js.html:84
+msgid "Screenshot must be a PNG or JPEG image."
+msgstr "Der Screenshot muss ein PNG- oder JPEG-Bild sein."
+
+#: nx_lib/views/profile.py:345 templates/js/_feedback_js.html:89
+msgid "Screenshot is too large (max 5 MB)."
+msgstr "Der Screenshot ist zu gross (max. 5 MB)."
+
+#: nx_lib/views/profile.py:352
+msgid "Feedback is not configured on this environment."
+msgstr "Feedback ist in dieser Umgebung nicht konfiguriert."
+
+#: nx_lib/views/profile.py:354 templates/feedback.html:60
+msgid "Bug"
+msgstr "Fehler"
+
+#: nx_lib/views/profile.py:354 templates/feedback.html:63
+msgid "Idea"
+msgstr "Idee"
+
+#: nx_lib/views/profile.py:354 templates/feedback.html:66
+msgid "Question"
+msgstr "Frage"
+
+#: nx_lib/views/profile.py:377 templates/js/_feedback_js.html:169
+#: templates/js/_feedback_js.html:175
+msgid "Could not send feedback. Please try again later."
+msgstr ""
+"Feedback konnte nicht gesendet werden. Bitte versuchen Sie es später "
+"erneut."
 
 #: nx_lib/views/reporting.py:1171 nx_lib/views/reporting.py:1259
 #: nx_lib/views/reporting.py:1320 nx_lib/views/reporting.py:1448
@@ -831,7 +878,7 @@ msgid "Could not export query"
 msgstr "Abfrage konnte nicht exportiert werden"
 
 #: nx_lib/views/reporting.py:2113 nx_lib/views/reporting.py:2141
-#: nx_lib/views/reporting.py:2175 templates/hero.html:133
+#: nx_lib/views/reporting.py:2175 templates/hero.html:165
 #: templates/js/_reporting_dashboard_js.html:98
 #: templates/js/_reporting_js.html:490
 msgid "Report"
@@ -1258,7 +1305,7 @@ msgstr "Datenimport-Status"
 
 #: templates/_header.html:360 templates/_header.html:362
 #: templates/appearance.html:293 templates/appearance.html:298
-#: templates/js/_header_js.html:275
+#: templates/js/_header_js.html:276
 msgid "Keep sidebar open"
 msgstr "Seitenleiste geöffnet halten"
 
@@ -1290,41 +1337,46 @@ msgstr "Darstellung"
 msgid "What's New"
 msgstr "Neuigkeiten"
 
-#: templates/_header.html:401 templates/_small_footer.html:28
+#: templates/_header.html:399 templates/feedback.html:34
+#: templates/js/_header_js.html:102
+msgid "Feedback"
+msgstr "Feedback"
+
+#: templates/_header.html:406 templates/_small_footer.html:28
 #: templates/reporting.html:90
 msgid "Help"
 msgstr "Hilfe"
 
-#: templates/_header.html:407 templates/_header.html:449
+#: templates/_header.html:412 templates/_header.html:454
 msgid "Switch user"
 msgstr "Benutzer wechseln"
 
-#: templates/_header.html:413 templates/js/_header_js.html:102
+#: templates/_header.html:418 templates/js/_header_js.html:103
 #: templates/profile.html:82
 msgid "Sign out"
 msgstr "Abmelden"
 
-#: templates/_header.html:430
+#: templates/_header.html:435
 msgid "Command palette"
 msgstr "Befehlspalette"
 
-#: templates/_header.html:434
+#: templates/_header.html:439
 msgid "Type a command or search..."
 msgstr "Befehl eingeben oder suchen..."
 
-#: templates/_header.html:439
+#: templates/_header.html:444
 msgid "navigate"
 msgstr "navigieren"
 
-#: templates/_header.html:440
+#: templates/_header.html:445
 msgid "open"
 msgstr "öffnen"
 
-#: templates/_header.html:441
+#: templates/_header.html:446
 msgid "close"
 msgstr "schließen"
 
-#: templates/_header.html:453
+#: templates/_header.html:458
 msgid "Switch to user..."
 msgstr "Zu Benutzer wechseln ..."
 
@@ -1652,7 +1704,7 @@ msgid "Back"
 msgstr "Zurück"
 
 #: templates/_reporting_simple.html:115 templates/_reporting_simple.html:116
-#: templates/_reporting_simple.html:117 templates/init_reset.html:104
+#: templates/_reporting_simple.html:117 templates/init_reset.html:136
 #: templates/js/_reporting_ai_js.html:41
 msgid "Continue"
 msgstr "Weiter"
@@ -2332,7 +2384,8 @@ msgstr "und"
 msgid "Appearance - nexora"
 msgstr "Darstellung - nexora"
 
-#: templates/appearance.html:32 templates/whats_new.html:77
+#: templates/appearance.html:32 templates/feedback.html:32
+#: templates/whats_new.html:77
 msgid "Back to profile"
 msgstr "Zurück zum Profil"
 
@@ -2700,22 +2753,99 @@ msgstr "Heute verarbeitete Dokumente nach Stunde"
 msgid "No documents processed yet today."
 msgstr "Heute noch keine Dokumente verarbeitet."
 
+#: templates/feedback.html:9
+msgid "Feedback - nexora"
+msgstr "Feedback - nexora"
+
+#: templates/feedback.html:35
+msgid ""
+"Found a bug, have an idea, or just a question? Tell us — it goes straight"
+" to the support team."
+msgstr ""
+"Einen Fehler gefunden, eine Idee oder einfach eine Frage? Sagen Sie es "
+"uns — es geht direkt an das Support-Team."
+
+#: templates/feedback.html:44 templates/feedback.html:105
+#: templates/js/_feedback_js.html:121
+msgid "Send feedback"
+msgstr "Feedback senden"
+
+#: templates/feedback.html:45
+msgid "We'll include your username, this page, and the app version automatically."
+msgstr ""
+"Wir fügen automatisch Ihren Benutzernamen, diese Seite und die App-"
+"Version hinzu."
+
+#: templates/feedback.html:57 templates/feedback.html:58
+#: templates/generali_baseservices.html:71
+#: templates/generali_baseservices.html:141
+#: templates/generali_baseservices.html:206
+#: templates/generali_baseservices.html:252
+#: templates/generali_monthreport.html:123
+#: templates/generali_projectmanagement.html:194
+#: templates/generali_reporting.html:75 templates/generali_reporting.html:162
+#: templates/js/_reporting_viz_js.html:167
+msgid "Category"
+msgstr "Kategorie"
+
+#: templates/admin/maintenance.html:63 templates/feedback.html:73
+msgid "Message"
+msgstr "Nachricht"
+
+#: templates/feedback.html:75
+msgid "Describe what happened, what you expected, or what you have in mind…"
+msgstr ""
+"Beschreiben Sie, was passiert ist, was Sie erwartet haben, oder was Ihnen"
+" vorschwebt…"
+
+#: templates/feedback.html:81
+msgid "Screenshot (optional)"
+msgstr "Screenshot (optional)"
+
+#: templates/feedback.html:88
+msgid "Attach a screenshot"
+msgstr "Screenshot anhängen"
+
+#: templates/feedback.html:92
+msgid "PNG or JPEG, up to 5 MB."
+msgstr "PNG oder JPEG, bis zu 5 MB."
+
+#: templates/feedback.html:95
+msgid "Remove screenshot"
+msgstr "Screenshot entfernen"
+
+#: templates/feedback.html:113
+msgid "Thanks — we got it"
+msgstr "Danke — wir haben es erhalten"
+
+#: templates/feedback.html:114
+msgid ""
+"Your feedback was sent to the support team. If it needs a reply, they'll "
+"reach out by email."
+msgstr ""
+"Ihr Feedback wurde an das Support-Team gesendet. Falls eine Antwort nötig"
+" ist, meldet sich das Team per E-Mail."
+
+#: templates/feedback.html:116
+msgid "Send another"
+msgstr "Weiteres senden"
+
 #: templates/forgot_password.html:7
 msgid "Forgot password - nexora"
 msgstr "Passwort vergessen - nexora"
 
-#: templates/forgot_password.html:43 templates/hero.html:60
-#: templates/index.html:46 templates/init_2FA.html:43
-#: templates/init_reset.html:45 templates/reset_password.html:45
-#: templates/set_password.html:45
+#: templates/forgot_password.html:75 templates/hero.html:92
+#: templates/index.html:78 templates/init_2FA.html:75
+#: templates/init_reset.html:77 templates/reset_password.html:77
+#: templates/set_password.html:77
 msgid "Switch to dark mode"
 msgstr "Dunkelmodus umschalten"
 
-#: templates/forgot_password.html:57
+#: templates/forgot_password.html:89
 msgid "Forgot your password"
 msgstr "Passwort vergessen"
 
-#: templates/forgot_password.html:58
+#: templates/forgot_password.html:90
 msgid ""
 "No problem. Enter the email address associated with your account and "
 "we'll send you a link to reset your password"
@@ -2723,16 +2853,16 @@ msgstr ""
 "Kein Problem. Geben Sie die mit Ihrem Konto verknüpfte E-Mail-Adresse ein"
 " und wir senden Ihnen einen Link zum Zurücksetzen Ihres Passworts."
 
-#: templates/forgot_password.html:69 templates/profile.html:148
+#: templates/forgot_password.html:101 templates/profile.html:148
 msgid "Email address"
 msgstr "E-Mail-Adresse"
 
-#: templates/forgot_password.html:79
+#: templates/forgot_password.html:111
 msgid "Send reset link"
 msgstr "Reset-Link senden"
 
-#: templates/forgot_password.html:85 templates/init_reset.html:109
-#: templates/reset_password.html:109
+#: templates/forgot_password.html:117 templates/init_reset.html:141
+#: templates/reset_password.html:141
 msgid "Back to login"
 msgstr "Zurück zur Anmeldung"
 
@@ -3201,17 +3331,6 @@ msgstr "Generali Basisleistungen"
 msgid "Add Entry"
 msgstr "Eintrag hinzufügen"
 
-#: templates/generali_baseservices.html:71
-#: templates/generali_baseservices.html:141
-#: templates/generali_baseservices.html:206
-#: templates/generali_baseservices.html:252
-#: templates/generali_monthreport.html:123
-#: templates/generali_projectmanagement.html:194
-#: templates/generali_reporting.html:75 templates/generali_reporting.html:162
-#: templates/js/_reporting_viz_js.html:167
-msgid "Category"
-msgstr "Kategorie"
-
 #: templates/generali_baseservices.html:240 templates/generali_pdqm.html:291
 #: templates/generali_projectmanagement.html:233
 msgid "Edit Entry"
@@ -3548,7 +3667,7 @@ msgstr "Berichtsdatum"
 msgid "Email Received"
 msgstr "E-Mail erhalten"
 
-#: templates/generali_reporting.html:302 templates/hero.html:192
+#: templates/generali_reporting.html:302 templates/hero.html:224
 #: templates/js/_generali_reporting_js.html:354
 msgid "Delivery"
 msgstr "Zustellung"
@@ -3558,19 +3677,19 @@ msgstr "Zustellung"
 msgid "Latest Delivery"
 msgstr "Späteste Zustellung"
 
-#: templates/hero.html:65 templates/hero.html:68
+#: templates/hero.html:97 templates/hero.html:100
 msgid "Sign In"
 msgstr "Anmelden"
 
-#: templates/hero.html:81 templates/hero.html:113
+#: templates/hero.html:113 templates/hero.html:145
 msgid "Real-time updates"
 msgstr "Echtzeit-Updates"
 
-#: templates/hero.html:83
+#: templates/hero.html:115
 msgid "Seamless Document Tracking, Complete Peace of Mind."
 msgstr "Nahtlose Dokumentenverfolgung, vollständige Sorglosigkeit."
 
-#: templates/hero.html:86
+#: templates/hero.html:118
 msgid ""
 "Welcome to nexora. Securely monitor your document's journey from import "
 "to validation and final delivery in real-time. Access a complete, "
@@ -3581,39 +3700,39 @@ msgstr ""
 "Echtzeit. Greifen Sie rund um die Uhr auf eine vollständige, "
 "nachvollziehbare Historie zu."
 
-#: templates/hero.html:90
+#: templates/hero.html:122
 msgid "Access Your Portal"
 msgstr "Zugang zu Ihrem Portal"
 
-#: templates/hero.html:94 templates/hero.html:216
+#: templates/hero.html:126 templates/hero.html:248
 msgid "Real-time tracking"
 msgstr "Echtzeit-Verfolgung"
 
-#: templates/hero.html:95 templates/hero.html:223
+#: templates/hero.html:127 templates/hero.html:255
 msgid "Document history"
 msgstr "Dokumenthistorie"
 
-#: templates/hero.html:96 templates/hero.html:230
+#: templates/hero.html:128 templates/hero.html:262
 msgid "Secure access"
 msgstr "Sicherer Zugang"
 
-#: templates/hero.html:106 templates/hero.html:112
+#: templates/hero.html:138 templates/hero.html:144
 msgid "Document Status"
 msgstr "Dokumentstatus"
 
-#: templates/hero.html:119
+#: templates/hero.html:151
 msgid "Invoice"
 msgstr "Rechnung"
 
-#: templates/hero.html:126
+#: templates/hero.html:158
 msgid "Contract"
 msgstr "Vertrag"
 
-#: templates/hero.html:151
+#: templates/hero.html:183
 msgid "Visualize Your Document's Journey"
 msgstr "Visualisieren Sie den Weg Ihres Dokuments"
 
-#: templates/hero.html:154
+#: templates/hero.html:186
 msgid ""
 "Our automated system handles every step with precision and security. "
 "Follow along as a document is processed in real-time."
@@ -3621,32 +3740,32 @@ msgstr ""
 "Unser automatisiertes System verarbeitet jeden Schritt präzise und "
 "sicher. Verfolgen Sie in Echtzeit, wie ein Dokument verarbeitet wird."
 
-#: templates/hero.html:171 templates/js/_workitems_overview_js.html:276
+#: templates/hero.html:203 templates/js/_workitems_overview_js.html:276
 #: templates/workitems_overview.html:356
 msgid "Import"
 msgstr "Import"
 
-#: templates/hero.html:178
+#: templates/hero.html:210
 msgid "Extraction"
 msgstr "Extraktion"
 
-#: templates/hero.html:185
+#: templates/hero.html:217
 msgid "Validation"
 msgstr "Validierung"
 
-#: templates/hero.html:198
+#: templates/hero.html:230
 msgid "Initializing..."
 msgstr "Initialisierung..."
 
-#: templates/hero.html:208
+#: templates/hero.html:240
 msgid "Why use nexora"
 msgstr "Warum nexora nutzen"
 
-#: templates/hero.html:209
+#: templates/hero.html:241
 msgid "Everything you need in one secure and convenient place"
 msgstr "Alles, was Sie brauchen, an einem sicheren und praktischen Ort"
 
-#: templates/hero.html:217
+#: templates/hero.html:249
 msgid ""
 "Monitor your document's journey from import to validation and final "
 "delivery, every step of the way"
@@ -3654,7 +3773,7 @@ msgstr ""
 "Überwachen Sie den Weg Ihres Dokuments von der Einlieferung bis zur "
 "Validierung und abschließenden Zustellung — Schritt für Schritt."
 
-#: templates/hero.html:224
+#: templates/hero.html:256
 msgid ""
 "Access a complete, auditable history of all your processed documents "
 "available 24/7."
@@ -3662,7 +3781,7 @@ msgstr ""
 "Greifen Sie rund um die Uhr auf eine vollständige, nachvollziehbare "
 "Historie aller verarbeiteten Dokumente zu."
 
-#: templates/hero.html:231
+#: templates/hero.html:263
 msgid ""
 "Your data is protected with industry-leading security protocols, ensuring"
 " complete confidentiality"
@@ -3670,11 +3789,11 @@ msgstr ""
 "Ihre Daten sind mit branchenführenden Sicherheitsprotokollen geschützt "
 "und vollständige Vertraulichkeit ist gewährleistet."
 
-#: templates/hero.html:240
+#: templates/hero.html:272
 msgid "Ready to See Your Documents in Action?"
 msgstr "Bereit, Ihre Dokumente in Aktion zu sehen?"
 
-#: templates/hero.html:243
+#: templates/hero.html:275
 msgid ""
 "Log in to your portal to access real-time tracking, view your history, "
 "and manage your workflow with confidence."
@@ -3682,7 +3801,7 @@ msgstr ""
 "Melden Sie sich bei Ihrem Portal an, um Echtzeit-Verfolgung zu nutzen, "
 "Ihre Historie einzusehen und Ihren Workflow souverän zu verwalten."
 
-#: templates/hero.html:246
+#: templates/hero.html:278
 msgid "Access Your Portal Now"
 msgstr "Jetzt auf Ihr Portal zugreifen"
 
@@ -3693,38 +3812,38 @@ msgstr "Anmeldung - nexora"
 #: templates/admin/access_control.html:191
 #: templates/admin/archive/user_management.html:37 templates/admin/logs.html:44
 #: templates/admin/modals/_user_modals.html:32 templates/admin/sessions.html:29
-#: templates/admin/user_detail.html:37 templates/index.html:66
+#: templates/admin/user_detail.html:37 templates/index.html:98
 #: templates/profile.html:137
 msgid "Username"
 msgstr "Benutzername"
 
-#: templates/index.html:73
+#: templates/index.html:105
 msgid "Your Username"
 msgstr "Ihr Benutzername"
 
 #: templates/admin/access_control.html:226
-#: templates/admin/modals/_user_modals.html:71 templates/index.html:77
-#: templates/profile.html:65 templates/set_password.html:74
+#: templates/admin/modals/_user_modals.html:71 templates/index.html:109
+#: templates/profile.html:65 templates/set_password.html:106
 msgid "Password"
 msgstr "Passwort"
 
-#: templates/index.html:86 templates/init_reset.html:80
-#: templates/init_reset.html:95 templates/profile.html:198
+#: templates/index.html:118 templates/init_reset.html:112
+#: templates/init_reset.html:127 templates/profile.html:198
 #: templates/profile.html:209 templates/profile.html:226
-#: templates/reset_password.html:80 templates/reset_password.html:95
-#: templates/set_password.html:83 templates/set_password.html:98
+#: templates/reset_password.html:112 templates/reset_password.html:127
+#: templates/set_password.html:115 templates/set_password.html:130
 msgid "Toggle password visibility"
 msgstr "Passwortsichtbarkeit umschalten"
 
-#: templates/index.html:95
+#: templates/index.html:127
 msgid "Remember me"
 msgstr "Angemeldet bleiben"
 
-#: templates/index.html:98
+#: templates/index.html:130
 msgid "Forgot password"
 msgstr "Passwort vergessen"
 
-#: templates/index.html:102
+#: templates/index.html:134
 msgid "Sign in"
 msgstr "Anmelden"
 
@@ -3732,11 +3851,11 @@ msgstr "Anmelden"
 msgid "Setup 2FA - nexora"
 msgstr "2FA einrichten - nexora"
 
-#: templates/init_2FA.html:54
+#: templates/init_2FA.html:86
 msgid "Secure Your Account"
 msgstr "Ihr Konto absichern"
 
-#: templates/init_2FA.html:56
+#: templates/init_2FA.html:88
 msgid ""
 "Scan the QR code below with your Authenticator App (Microsoft or Google "
 "Authenticator)."
@@ -3744,23 +3863,23 @@ msgstr ""
 "Scannen Sie den QR-Code unten mit Ihrer Authenticator-App (Microsoft oder"
 " Google Authenticator)."
 
-#: templates/init_2FA.html:76
+#: templates/init_2FA.html:108
 msgid "Error generating QR code. Please refresh."
 msgstr "Fehler beim Generieren des QR-Codes. Bitte aktualisieren Sie die Seite."
 
-#: templates/init_2FA.html:81
+#: templates/init_2FA.html:113
 msgid "Can't scan the code?"
 msgstr "Code kann nicht gescannt werden?"
 
-#: templates/init_2FA.html:82
+#: templates/init_2FA.html:114
 msgid "Enter this code manually:"
 msgstr "Geben Sie diesen Code manuell ein:"
 
-#: templates/init_2FA.html:91
+#: templates/init_2FA.html:123
 msgid "Enter 6-digit Code"
 msgstr "6-stelligen Code eingeben"
 
-#: templates/init_2FA.html:108
+#: templates/init_2FA.html:140
 msgid "Verify and Enable"
 msgstr "Verifizieren und aktivieren"
 
@@ -3768,31 +3887,31 @@ msgstr "Verifizieren und aktivieren"
 msgid "Initial Password Reset - nexora"
 msgstr "Erstpasswort zurücksetzen - nexora"
 
-#: templates/init_reset.html:59 templates/reset_password.html:59
+#: templates/init_reset.html:91 templates/reset_password.html:91
 msgid "Set a new password"
 msgstr "Neues Passwort festlegen"
 
-#: templates/init_reset.html:60 templates/reset_password.html:60
+#: templates/init_reset.html:92 templates/reset_password.html:92
 msgid "Your new password must be different from your previously used password."
 msgstr ""
 "Ihr neues Passwort muss sich von Ihrem zuvor verwendeten Passwort "
 "unterscheiden."
 
-#: templates/admin/user_detail.html:73 templates/init_reset.html:71
-#: templates/profile.html:204 templates/reset_password.html:71
+#: templates/admin/user_detail.html:73 templates/init_reset.html:103
+#: templates/profile.html:204 templates/reset_password.html:103
 msgid "New password"
 msgstr "Neues Passwort"
 
-#: templates/init_reset.html:78 templates/reset_password.html:78
+#: templates/init_reset.html:110 templates/reset_password.html:110
 msgid "Enter your new password"
 msgstr "Neues Passwort eingeben"
 
-#: templates/init_reset.html:86 templates/profile.html:221
-#: templates/reset_password.html:86
+#: templates/init_reset.html:118 templates/profile.html:221
+#: templates/reset_password.html:118
 msgid "Confirm new password"
 msgstr "Neues Passwort bestätigen"
 
-#: templates/init_reset.html:93 templates/reset_password.html:93
+#: templates/init_reset.html:125 templates/reset_password.html:125
 msgid "Confirm your new password"
 msgstr "Neues Passwort bestätigen"
 
@@ -4581,7 +4700,7 @@ msgstr "JSON formatieren"
 msgid "Reset password - nexora"
 msgstr "Passwort zurücksetzen - nexora"
 
-#: templates/reset_password.html:104
+#: templates/reset_password.html:136
 msgid "Reset password"
 msgstr "Passwort zurücksetzen"
 
@@ -4589,11 +4708,11 @@ msgstr "Passwort zurücksetzen"
 msgid "Set password - nexora"
 msgstr "Passwort festlegen - nexora"
 
-#: templates/set_password.html:59
+#: templates/set_password.html:91
 msgid "Welcome to nexora"
 msgstr "Willkommen bei nexora"
 
-#: templates/set_password.html:60
+#: templates/set_password.html:92
 msgid ""
 "Choose a password for your account. You will be asked to set up two-"
 "factor authentication right after."
@@ -4601,23 +4720,23 @@ msgstr ""
 "Wählen Sie ein Passwort für Ihr Konto. Direkt danach werden Sie zur "
 "Einrichtung der Zwei-Faktor-Authentifizierung aufgefordert."
 
-#: templates/set_password.html:81
+#: templates/set_password.html:113
 msgid "At least 8 characters, no spaces"
 msgstr "Mindestens 8 Zeichen, keine Leerzeichen"
 
-#: templates/set_password.html:89
+#: templates/set_password.html:121
 msgid "Confirm password"
 msgstr "Passwort bestätigen"
 
-#: templates/set_password.html:96
+#: templates/set_password.html:128
 msgid "Repeat your password"
 msgstr "Wiederholen Sie Ihr Passwort"
 
-#: templates/set_password.html:107
+#: templates/set_password.html:139
 msgid "Set password"
 msgstr "Passwort festlegen"
 
-#: templates/set_password.html:113
+#: templates/set_password.html:145
 msgid "Go to login"
 msgstr "Zur Anmeldung"
 
@@ -5273,10 +5392,6 @@ msgstr "Ankündigung"
 msgid "Active"
 msgstr "Aktiv"
 
-#: templates/admin/maintenance.html:63
-msgid "Message"
-msgstr "Nachricht"
-
 #: templates/admin/maintenance.html:68
 msgid "Start"
 msgstr "Start"
@@ -5817,6 +5932,10 @@ msgstr "Keine Daten vorhanden"
 msgid "Documents Processed"
 msgstr "Verarbeitete Dokumente"
 
+#: templates/js/_feedback_js.html:120
+msgid "Sending…"
+msgstr "Wird gesendet…"
+
 #: templates/js/_generali_additional_services_js.html:204
 #: templates/js/_generali_base_services_js.html:159
 #: templates/js/_generali_pdqm_js.html:259
@@ -6062,23 +6181,23 @@ msgid "Work items"
 msgstr "Workitems"
 
 #: templates/js/_header_js.html:99 templates/js/_header_js.html:100
-#: templates/js/_header_js.html:101
+#: templates/js/_header_js.html:101 templates/js/_header_js.html:102
 msgid "Quick action"
 msgstr "Schnellaktion"
 
-#: templates/js/_header_js.html:102
+#: templates/js/_header_js.html:103
 msgid "Account"
 msgstr "Konto"
 
-#: templates/js/_header_js.html:146
+#: templates/js/_header_js.html:147
 msgid "No matching commands."
 msgstr "Keine passenden Befehle."
 
-#: templates/js/_header_js.html:275
+#: templates/js/_header_js.html:276
 msgid "Unpin sidebar"
 msgstr "Seitenleiste lösen"
 
-#: templates/js/_header_js.html:403
+#: templates/js/_header_js.html:404
 msgid "No matching users."
 msgstr "Keine passenden Benutzer."
 

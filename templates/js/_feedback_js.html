@@ -1,0 +1,185 @@
+<script nonce="{{ csp_nonce() }}">
+(function () {
+    document.addEventListener('DOMContentLoaded', function () {
+
+        const form = document.getElementById('feedbackForm');
+        if (!form) return;
+
+        const MAX_SCREENSHOT_BYTES = 5 * 1024 * 1024;
+        const ALLOWED_SCREENSHOT_TYPES = ['image/png', 'image/jpeg'];
+
+        const formCard = document.getElementById('feedback-form-card');
+        const confirmCard = document.getElementById('feedback-confirm-card');
+        const errorBox = document.getElementById('feedbackError');
+        const errorText = document.getElementById('feedbackErrorText');
+        const messageInput = document.getElementById('feedbackMessage');
+        const messageHint = document.getElementById('feedbackMessageHint');
+        const categoryInput = document.getElementById('feedbackCategory');
+        const categoryButtons = document.querySelectorAll('.feedback-category [data-category]');
+        const fileInput = document.getElementById('feedbackScreenshot');
+        const fileLabel = document.getElementById('feedbackScreenshotLabel');
+        const fileHint = document.getElementById('feedbackScreenshotHint');
+        const fileClear = document.getElementById('feedbackScreenshotClear');
+        const dropIcon = document.getElementById('feedbackDropIcon');
+        const submitBtn = document.getElementById('feedbackSubmit');
+        const sendAnotherBtn = document.getElementById('feedbackSendAnother');
+
+        const submitLabel = submitBtn ? submitBtn.querySelector('span') : null;
+        const defaultFileHint = fileHint ? fileHint.textContent : '';
+        const defaultFileLabel = fileLabel ? fileLabel.textContent : '';
+
+        function clearError() {
+            if (!errorBox) return;
+            errorBox.hidden = true;
+            errorText.textContent = '';
+        }
+
+        function showError(message) {
+            if (!errorBox) return;
+            errorText.textContent = message;
+            errorBox.hidden = false;
+        }
+
+        // -------- Category segmented control --------
+        categoryButtons.forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                categoryButtons.forEach(function (b) { b.classList.remove('is-active'); });
+                btn.classList.add('is-active');
+                categoryInput.value = btn.getAttribute('data-category');
+            });
+        });
+
+        // -------- Message length hint --------
+        if (messageInput && messageHint) {
+            const maxLen = parseInt(messageInput.getAttribute('maxlength'), 10) || 5000;
+            const updateHint = function () {
+                messageHint.textContent = messageInput.value.length + ' / ' + maxLen;
+            };
+            messageInput.addEventListener('input', function () {
+                clearError();
+                updateHint();
+            });
+            updateHint();
+        }
+
+        // -------- Screenshot picker --------
+        function resetScreenshot() {
+            if (fileInput) fileInput.value = '';
+            if (fileLabel) fileLabel.textContent = defaultFileLabel;
+            if (fileHint) {
+                fileHint.textContent = defaultFileHint;
+                fileHint.classList.remove('is-error');
+            }
+            if (dropIcon) dropIcon.innerHTML = '<i class="fas fa-image"></i>';
+            if (fileClear) fileClear.hidden = true;
+        }
+
+        if (fileInput) {
+            fileInput.addEventListener('change', function () {
+                clearError();
+                const file = fileInput.files && fileInput.files[0];
+                if (!file) { resetScreenshot(); return; }
+
+                if (ALLOWED_SCREENSHOT_TYPES.indexOf(file.type) === -1) {
+                    showError("{{ _('Screenshot must be a PNG or JPEG image.') }}");
+                    resetScreenshot();
+                    return;
+                }
+                if (file.size > MAX_SCREENSHOT_BYTES) {
+                    showError("{{ _('Screenshot is too large (max 5 MB).') }}");
+                    resetScreenshot();
+                    return;
+                }
+
+                if (fileLabel) fileLabel.textContent = file.name;
+                if (fileHint) fileHint.textContent = Math.round(file.size / 1024) + ' KB';
+                if (fileClear) fileClear.hidden = false;
+
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    if (dropIcon) dropIcon.innerHTML = '<img src="' + e.target.result + '" alt="">';
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        if (fileClear) {
+            fileClear.addEventListener('click', function () {
+                resetScreenshot();
+            });
+        }
+
+        // -------- Submit --------
+        function setSubmitLoading(isLoading) {
+            if (!submitBtn) return;
+            submitBtn.disabled = isLoading;
+            const icon = submitBtn.querySelector('i');
+            if (icon) icon.className = isLoading ? 'fas fa-spinner fa-spin' : 'fas fa-paper-plane';
+            if (submitLabel) {
+                submitLabel.textContent = isLoading
+                    ? "{{ _('Sending…') }}"
+                    : "{{ _('Send feedback') }}";
+            }
+        }
+
+        function showConfirmation() {
+            if (formCard) formCard.hidden = true;
+            if (confirmCard) confirmCard.hidden = false;
+        }
+
+        function showForm() {
+            if (confirmCard) confirmCard.hidden = true;
+            if (formCard) formCard.hidden = false;
+            form.reset();
+            categoryButtons.forEach(function (b) { b.classList.remove('is-active'); });
+            const firstBtn = categoryButtons[0];
+            if (firstBtn) firstBtn.classList.add('is-active');
+            categoryInput.value = firstBtn ? firstBtn.getAttribute('data-category') : 'bug';
+            resetScreenshot();
+            if (messageInput) messageInput.dispatchEvent(new Event('input'));
+            clearError();
+        }
+
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
+            clearError();
+
+            const message = (messageInput.value || '').trim();
+            if (!message) {
+                showError("{{ _('Please describe the problem or idea.') }}");
+                messageInput.focus();
+                return;
+            }
+
+            setSubmitLoading(true);
+
+            fetch("{{ url_for('submit_feedback') }}", {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                body: new FormData(form),
+            })
+                .then(function (res) {
+                    return res.json().catch(function () { return {}; }).then(function (data) {
+                        return { ok: res.ok, data: data };
+                    });
+                })
+                .then(function (result) {
+                    if (!result.ok) {
+                        showError(result.data.error || "{{ _('Could not send feedback. Please try again later.') }}");
+                        return;
+                    }
+                    showConfirmation();
+                })
+                .catch(function () {
+                    showError("{{ _('Could not send feedback. Please try again later.') }}");
+                })
+                .finally(function () {
+                    setSubmitLoading(false);
+                });
+        });
+
+        if (sendAnotherBtn) sendAnotherBtn.addEventListener('click', showForm);
+    });
+})();
+</script>

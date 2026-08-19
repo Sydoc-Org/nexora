@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale }}">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% include '_theme_prepaint.html' %}
+    <link rel="stylesheet" href="{{ url_for('static',filename='css/nexora-ui.css') }}">
+    <title>{{ _('Feedback - nexora') }}</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.0" integrity="sha384-AIH1kL7JmmReCxSwiSyaRNwzSFO7h4Ir4F/PO28EKezqFza1LwIMgEPLd83KwmZ4" crossorigin="anonymous"></script>
+    <style type="text/tailwindcss">
+        @custom-variant dark (&:where(.dark, .dark *));
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1.0.22" integrity="sha384-E7dy6eN+cKffMM/2+QF5MMP1q8KS0AT4IlmT4v3mG2mNZ7ISeLRPdlHrlWJK/8yx" crossorigin="anonymous" type="module"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous">
+    <link rel="stylesheet" href="{{ url_for('static',filename='css/admin-tokens.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='css/profile.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='css/feedback.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
+</head>
+
+<body class="admin-page">
+
+    {% set active_page = 'feedback' %} {% include '_header.html' %}
+
+    <main>
+
+        <div class="appearance-pageheader">
+            <a href="{{ url_for('profile') }}" class="appearance-back" data-testid="feedback-back">
+                <i class="fas fa-arrow-left"></i>
+                <span>{{ _("Back to profile") }}</span>
+            </a>
+            <h1 class="profile-title">{{ _("Feedback") }}</h1>
+            <p class="profile-lede">{{ _("Found a bug, have an idea, or just a question? Tell us — it goes straight to the support team.") }}</p>
+        </div>
+
+        <div class="feedback-grid">
+
+            <section class="profile-card feedback-card" id="feedback-form-card" data-testid="feedback-form-card">
+                <header class="profile-card-header">
+                    <div class="profile-card-icon"><i class="fas fa-comment-dots"></i></div>
+                    <div>
+                        <h2 class="profile-card-title">{{ _("Send feedback") }}</h2>
+                        <p class="profile-card-sub">{{ _("We'll include your username, this page, and the app version automatically.") }}</p>
+                    </div>
+                </header>
+
+                <p class="profile-flash profile-flash--error" id="feedbackError" data-testid="feedback-error" hidden>
+                    <i class="fas fa-circle-exclamation"></i>
+                    <span id="feedbackErrorText"></span>
+                </p>
+
+                <form class="profile-form" id="feedbackForm" data-testid="feedback-form" novalidate>
+
+                    <div class="profile-field">
+                        <label class="profile-label">{{ _("Category") }}</label>
+                        <div class="profile-seg feedback-category" role="group" aria-label="{{ _('Category') }}">
+                            <button type="button" class="profile-seg-btn is-active" data-category="bug" data-testid="feedback-category-bug">
+                                <i class="fas fa-bug"></i><span>{{ _("Bug") }}</span>
+                            </button>
+                            <button type="button" class="profile-seg-btn" data-category="idea" data-testid="feedback-category-idea">
+                                <i class="fas fa-lightbulb"></i><span>{{ _("Idea") }}</span>
+                            </button>
+                            <button type="button" class="profile-seg-btn" data-category="question" data-testid="feedback-category-question">
+                                <i class="fas fa-circle-question"></i><span>{{ _("Question") }}</span>
+                            </button>
+                        </div>
+                        <input type="hidden" name="category" id="feedbackCategory" value="bug">
+                    </div>
+
+                    <div class="profile-field">
+                        <label class="profile-label" for="feedbackMessage">{{ _("Message") }}</label>
+                        <textarea id="feedbackMessage" name="message" class="profile-input feedback-textarea" rows="6" maxlength="5000"
+                            placeholder="{{ _('Describe what happened, what you expected, or what you have in mind…') }}"
+                            required data-testid="feedback-message"></textarea>
+                        <p class="profile-field-hint" id="feedbackMessageHint"></p>
+                    </div>
+
+                    <div class="profile-field">
+                        <label class="profile-label">{{ _("Screenshot (optional)") }}</label>
+                        <div class="profile-photo-row feedback-drop" id="feedbackDrop" data-testid="feedback-drop">
+                            <div class="feedback-drop-icon" id="feedbackDropIcon" aria-hidden="true">
+                                <i class="fas fa-image"></i>
+                            </div>
+                            <div class="profile-photo-controls">
+                                <label for="feedbackScreenshot" class="profile-photo-btn" data-testid="feedback-screenshot-label">
+                                    <i class="fas fa-upload"></i><span id="feedbackScreenshotLabel">{{ _("Attach a screenshot") }}</span>
+                                </label>
+                                <input id="feedbackScreenshot" type="file" name="screenshot" accept=".png,.jpg,.jpeg,image/png,image/jpeg"
+                                    class="profile-photo-input" data-testid="feedback-screenshot">
+                                <span class="profile-field-hint" id="feedbackScreenshotHint">{{ _("PNG or JPEG, up to 5 MB.") }}</span>
+                            </div>
+                            <button type="button" class="feedback-drop-clear" id="feedbackScreenshotClear" hidden
+                                aria-label="{{ _('Remove screenshot') }}" data-testid="feedback-screenshot-clear">
+                                <i class="fas fa-xmark"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <input type="hidden" name="from_page" id="feedbackFromPage" value="{{ from_page }}">
+
+                    <div class="profile-form-actions">
+                        <button type="submit" class="profile-btn profile-btn--primary" id="feedbackSubmit" data-testid="feedback-submit">
+                            <i class="fas fa-paper-plane"></i><span>{{ _("Send feedback") }}</span>
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="profile-card feedback-card feedback-confirm" id="feedback-confirm-card" data-testid="feedback-confirm-card" hidden>
+                <div class="feedback-confirm-icon"><i class="fas fa-circle-check"></i></div>
+                <h2 class="profile-card-title">{{ _("Thanks — we got it") }}</h2>
+                <p class="profile-card-sub">{{ _("Your feedback was sent to the support team. If it needs a reply, they'll reach out by email.") }}</p>
+                <button type="button" class="profile-btn profile-btn--primary" id="feedbackSendAnother" data-testid="feedback-send-another">
+                    {{ _("Send another") }}
+                </button>
+            </section>
+
+        </div>
+    </main>
+
+    {% include 'js/_feedback_js.html' %}
+
+</body>
+
+</html>

@@ -8,6 +8,19 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Added
+
+- **Feedback page** (`/feedback`, profile dropdown → "Feedback") — an
+  in-app way to report a bug, ask a question, or suggest an idea, so
+  problems don't rely on someone happening to mention them. Category
+  (Bug/Idea/Question) + message + an optional screenshot mail
+  `SUPPORT_MAIL` (the outage-monitor env var, issue #166) via the existing
+  Graph sender, auto-enriched with the submitter, the page they came from,
+  and the app version/environment. No ticket tracking in-app — the mailbox
+  is the queue. Rate-limited (`10 per hour`); screenshots are sniffed with
+  the same `is_file_allowed` MIME check as every other upload, capped at
+  5 MB, and never touch disk.
+
 ### Fixed
 
 - **Logged-in pages: light-theme flash on reload/navigation in dark mode.**

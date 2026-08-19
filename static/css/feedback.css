@@ -1,0 +1,109 @@
+/* ============================================================
+   FEEDBACK PAGE
+   Small in-app "report a problem / suggest something" form.
+   Reuses .profile-card / .profile-input / .profile-btn / .profile-seg /
+   .profile-photo-* from profile.css (same admin-tokens.css --a-* palette) —
+   only the bits specific to this page live here.
+   ============================================================ */
+
+.feedback-grid {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 0 24px 60px;
+}
+
+.feedback-card { position: relative; }
+
+/* ---------- Category segmented control ---------- */
+.feedback-category { width: 100%; }
+.feedback-category .profile-seg-btn {
+    flex: 1;
+    justify-content: center;
+}
+
+/* ---------- Message textarea ---------- */
+.feedback-textarea {
+    resize: vertical;
+    min-height: 130px;
+    line-height: 1.5;
+    font-family: inherit;
+}
+
+#feedbackMessageHint {
+    text-align: right;
+}
+
+/* ---------- Screenshot dropzone ---------- */
+.feedback-drop {
+    position: relative;
+    padding-right: 44px;
+}
+
+.feedback-drop-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: calc(var(--nx-radius-scale, 1) * 9px);
+    background: var(--a-card);
+    border: 1px solid var(--a-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--a-text-meta);
+    overflow: hidden;
+}
+.feedback-drop-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.feedback-drop-clear {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1px solid var(--a-border-input);
+    background: var(--a-card);
+    color: var(--a-text-sec);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 11px;
+    transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.feedback-drop-clear:hover {
+    background: var(--a-b-red);
+    border-color: rgba(220, 38, 38, 0.25);
+    color: var(--a-b-red-fg);
+}
+
+/* ---------- Confirmation state ---------- */
+.feedback-confirm {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 48px 32px;
+    animation: profileFadeUp 0.3s ease-out;
+}
+.feedback-confirm-icon {
+    font-size: 40px;
+    color: var(--a-success);
+    margin-bottom: 6px;
+}
+.feedback-confirm .profile-card-title { margin: 0; }
+.feedback-confirm .profile-card-sub {
+    max-width: 40ch;
+    margin: 0 0 10px;
+}
+
+@media (max-width: 600px) {
+    .feedback-grid { padding: 0 16px 40px; }
+    .feedback-category { flex-direction: column; }
+}

@@ -394,8 +394,13 @@
                         <i class="fas fa-bullhorn w-4"></i> {{ _("What's New") }}
                         {% if whats_new_unseen %}<span class="ml-auto w-2 h-2 rounded-full bg-rose-500" data-testid="header-whatsnew-dot"></span>{% endif %}
                     </a>
-                    {# Sidebar pages no longer render _small_footer.html, so this is
-                       the only support link a logged-in user can reach. #}
+                    <a href="{{ url_for('feedback', from=request.path) }}"
+                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-slate-300 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-[var(--nx-accent)] transition-colors" data-testid="header-feedback-link">
+                        <i class="fas fa-comment-dots w-4"></i> {{ _("Feedback") }}
+                    </a>
+                    {# mailto: fallback for anyone who'd rather just fire off an
+                       email from their own client than use the in-app form
+                       above. #}
                     <a href="mailto:support.helpdesk@sydoc.ch"
                         class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-slate-300 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-[var(--nx-accent)] transition-colors" data-testid="header-help-link">
                         <i class="fas fa-circle-question w-4"></i> {{ _("Help") }}

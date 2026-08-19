@@ -99,6 +99,7 @@
                 { section: "{{ _('Quick action') }}", label: "{{ _('Toggle dark mode') }}", icon: 'fa-moon', action: 'toggle-dark' },
                 { section: "{{ _('Quick action') }}", label: "{{ _('Appearance') }}", icon: 'fa-palette', url: "{{ url_for('appearance') }}" },
                 { section: "{{ _('Quick action') }}", label: "{{ _("What's New") }}", icon: 'fa-bullhorn', url: "{{ url_for('whats_new') }}" },
+                { section: "{{ _('Quick action') }}", label: "{{ _('Feedback') }}", icon: 'fa-comment-dots', url: "{{ url_for('feedback', from=request.path) }}" },
                 { section: "{{ _('Account') }}", label: "{{ _('Sign out') }}", icon: 'fa-sign-out-alt', url: "{{ url_for('logout') }}" },
             ];
 
