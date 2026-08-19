@@ -365,9 +365,9 @@ a.nx-card:hover, .nx-card--link:hover {
    `both` holds the filled `to` as a resolved identity matrix, which still creates
    a stacking context -- that trapped overflowing popovers (e.g. the workitems
    doc-field dropdown) under the next .nx-rise card. */
-.nx-rise { animation: nx-rise calc(var(--nx-anim-speed, 1) * 0.32s) var(--nx-ease) backwards; }
-.nx-rise-2 { animation: nx-rise calc(var(--nx-anim-speed, 1) * 0.32s) var(--nx-ease) calc(var(--nx-anim-speed, 1) * 0.05s) backwards; }
-.nx-rise-3 { animation: nx-rise calc(var(--nx-anim-speed, 1) * 0.32s) var(--nx-ease) calc(var(--nx-anim-speed, 1) * 0.10s) backwards; }
+.nx-rise { animation: nx-rise calc(var(--nx-anim-speed, 1) * 0.6s) var(--nx-ease) backwards; }
+.nx-rise-2 { animation: nx-rise calc(var(--nx-anim-speed, 1) * 0.6s) var(--nx-ease) calc(var(--nx-anim-speed, 1) * 0.095s) backwards; }
+.nx-rise-3 { animation: nx-rise calc(var(--nx-anim-speed, 1) * 0.6s) var(--nx-ease) calc(var(--nx-anim-speed, 1) * 0.19s) backwards; }
 
 /* Animation speed preference */
 html[data-animspeed="relaxed"] { --nx-anim-speed: 1.8; }

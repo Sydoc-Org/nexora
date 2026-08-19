@@ -8,6 +8,29 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Fixed
+
+- **Logged-in pages: light-theme flash on reload/navigation in dark mode.**
+  `_header.html`'s own UI-prefs script (issue #155) never actually ran
+  pre-paint despite the comment claiming otherwise: it's `{% include %}`'d
+  inside every page's `<body>`, but its markup opens with a *second*
+  `<!DOCTYPE html><html><head>...</head><body>` of its own — the HTML
+  parser drops that nested `<head>` start tag but still processes the
+  script/link tags meant to live inside it, just relocated as `<body>`
+  children. So dark mode (and `nexora-ui.css`'s `--nx-*` design tokens)
+  only ever applied after the page's real `<head>` — and its first paint —
+  had already happened. Added `templates/_theme_prepaint.html`, included
+  first in the real `<head>` of all 28 logged-in page templates: it
+  applies `html.dark`/`.sidebar-pinned` and an inline `background-color`
+  synchronously from the server-rendered prefs, and an early
+  `nexora-ui.css` `<link>` so `--nx-*` tokens exist before any dependent
+  CSS (Reporting's `--rl-canvas`, Workitems' table colors) can paint.
+  `reporting.css`'s token block also gained explicit fallback values as a
+  second line of defense.
+- **Page-entrance animation felt rushed.** `.nx-rise`/`.nx-rise-2`/
+  `.nx-rise-3` (`nexora-ui.css`) went from 0.32s to 0.6s, stagger delays
+  scaled to match.
+
 ## [3.1] - 2026-08-17
 
 ### Added

@@ -1571,11 +1571,18 @@ body.reporting-ledger {
   --rl-navy:     #312e81;
 }
 html.dark body.reporting-ledger {
-  --rl-canvas:   var(--nx-page);
-  --rl-band:     var(--nx-card);
-  --rl-hairline: var(--nx-border);
-  --rl-ink:      var(--nx-text);
-  --rl-navy:     var(--nx-accent);
+  /* Fallbacks matter here: this page now loads nexora-ui.css early (real
+     <head>) specifically so --nx-* is always defined before this rule
+     ever paints, but keep the fallback anyway as a second line of
+     defense -- without it, var(--nx-page) with nothing defining --nx-page
+     yet is an invalid reference, which makes --rl-canvas itself
+     guaranteed-invalid (not "falls back to the light value above", an
+     unstyled/transparent background instead). */
+  --rl-canvas:   var(--nx-page, #0f172a);
+  --rl-band:     var(--nx-card, #1e293b);
+  --rl-hairline: var(--nx-border, #334155);
+  --rl-ink:      var(--nx-text, #e2e8f0);
+  --rl-navy:     var(--nx-accent, #818cf8);
 }
 
 /* Canvas only. The masthead's full-bleed white band + hairline were retired
