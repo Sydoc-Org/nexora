@@ -382,3 +382,8 @@ counterpart in the same change.
 - No session, no cookies, no CSRF (GET-only), no i18n — error strings are
   English by design (`_()` in these modules would drag in the pybabel
   cycle for machine-facing text).
+- Monitored: `ops/outage_monitor.py` probes this API every 5 minutes and the
+  result shows on `/admin/status` under **Application** — `api:v1`
+  (unauthenticated, 401 is the pass) and, when `OUTAGE_API_KEY` holds a
+  monitor-only key, `api:key` against `/api/test/v1/stats/today`. See
+  `docs/howto/outage-monitor.md`.

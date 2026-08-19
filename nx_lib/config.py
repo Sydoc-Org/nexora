@@ -133,6 +133,9 @@ DB_ODBC_ENCRYPT = DB_ODBC_DRIVER != "SQL Server"
 SUPPORT_MAIL = os.environ.get("SUPPORT_MAIL")
 # Public URL the outage monitor GETs to prove IIS + the app pool are alive.
 OUTAGE_SITE_URL = os.environ.get("OUTAGE_SITE_URL", "https://nexora.sydoc.ch/nexora/")
+# Monitor-only key from dbo.ApiKeys, used to probe the external API's full auth
+# path against its /api/test/v1 twin. Unset -> that probe skips itself.
+OUTAGE_API_KEY = os.environ.get("OUTAGE_API_KEY")
 
 GRAPH_TENANT_ID = os.environ.get("GRAPH_TENANT_ID")
 GRAPH_CLIENT_ID = os.environ.get("GRAPH_CLIENT_ID")

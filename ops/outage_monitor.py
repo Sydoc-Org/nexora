@@ -2,7 +2,8 @@
 
 Runs *outside* the Flask process on purpose: an in-app scheduler cannot report
 that the app is dead, which is exactly the case this exists to catch. Probes the
-databases, the public site, the Octo runtime API and the application log, folds
+databases, the public site, the external API, the Octo runtime API and the
+application log, folds
 each result through ``nx_lib.outage``'s hysteresis, and mails
 ``SUPPORT_MAIL`` when a component opens or recovers.
 
@@ -46,7 +47,8 @@ APP_LOG = PATHS.logs / "system" / "app.log"
 
 # A slower fail threshold for the HTTP probe: an IIS app-pool recycle can drop a
 # single request without anything actually being wrong.
-_FAIL_THRESHOLDS = {"http:site": 3}
+# The API probes ride the same IIS app pool, so they inherit the same slack.
+_FAIL_THRESHOLDS = {"http:site": 3, "api:v1": 3, "api:key": 3}
 # Log storms carry their own N-errors-in-M-minutes hysteresis, so one sighting
 # is already strong evidence -- waiting for a second poll only delays the mail.
 _STORM_FAIL_THRESHOLD = 1
@@ -96,6 +98,52 @@ def _probe_http(url):
     # Any 2xx/3xx means IIS served the app. A login redirect is a healthy answer.
     ok = resp.status_code < 400
     return "http:site", ok, f"{url}: HTTP {resp.status_code}"
+
+
+def _probe_api(site_url):
+    """GET an /api/v1 route with no Authorization header. 401 is the pass.
+
+    ``http:site`` only proves IIS served a *page*. The external API is a second
+    entry point with its own auth module, and it can break on its own (a bad
+    rewrite rule, an import error in api_auth) while every page still renders.
+    A 401 means the request reached ``require_api_key`` and it answered -- the
+    strongest signal available without holding a key.
+    """
+    url = f"{site_url.rstrip('/')}/api/v1/stats/today"
+    try:
+        resp = requests.get(url, timeout=_HTTP_TIMEOUT_S)
+    except requests.RequestException as e:
+        return "api:v1", False, f"{url}: {type(e).__name__}: {str(e)[:160]}"
+    ok = resp.status_code == 401
+    return "api:v1", ok, f"{url}: HTTP {resp.status_code}"
+
+
+def _probe_api_key(site_url):
+    """Call the /api/test/v1 twin with a real key: the full auth path, no backend.
+
+    Where ``api:v1`` stops at "the 401 branch works", this one exercises the
+    dbo.ApiKeys lookup and the key's process scope end to end. It deliberately
+    targets the *test* twin (fake data, same auth) so a monitor poll never
+    touches the Statistics/Octo backends every 5 minutes.
+
+    Returns None when OUTAGE_API_KEY is unset -- same graceful skip as the Graph
+    probe, so the code can land before the key exists on a server.
+    """
+    from nx_lib.config import OUTAGE_API_KEY
+
+    if not OUTAGE_API_KEY:
+        return None
+    url = f"{site_url.rstrip('/')}/api/test/v1/stats/today"
+    try:
+        resp = requests.get(
+            url,
+            headers={"Authorization": f"Bearer {OUTAGE_API_KEY}"},
+            timeout=_HTTP_TIMEOUT_S,
+        )
+    except requests.RequestException as e:
+        return "api:key", False, f"{url}: {type(e).__name__}: {str(e)[:160]}"
+    ok = resp.status_code == 200 and "imported_today" in resp.text
+    return "api:key", ok, f"{url}: HTTP {resp.status_code}"
 
 
 def _probe_octo(domain):
@@ -184,6 +232,12 @@ def _collect(config):
         results.append((key, key, ok, detail, None))
     http_key, http_ok, http_detail = _probe_http(config["site_url"])
     results.append((http_key, http_key, http_ok, http_detail, None))
+    apiv1_key, api_ok, api_detail = _probe_api(config["site_url"])
+    results.append((apiv1_key, apiv1_key, api_ok, api_detail, None))
+    probed = _probe_api_key(config["site_url"])  # None when no key is configured
+    if probed:
+        key, ok, detail = probed
+        results.append((key, key, ok, detail, None))
     if config["octo_domain"]:
         octo_key, octo_ok, octo_detail = _probe_octo(config["octo_domain"])
         results.append((octo_key, octo_key, octo_ok, octo_detail, None))

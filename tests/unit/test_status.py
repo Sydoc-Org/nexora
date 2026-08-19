@@ -28,6 +28,18 @@ def test_pretty_name_maps_each_monitor_key_prefix():
     assert status.pretty_name("http:site") == "Application (IIS)"
     assert status.pretty_name("octo:prd-dps.sydoc.ch") == "Octo runtime (prd-dps.sydoc.ch)"
     assert status.pretty_name("graph:mail") == "Microsoft Graph (mail)"
+    assert status.pretty_name("api:v1") == "Nexora API (/api/v1)"
+    assert status.pretty_name("api:key") == "Nexora API (key auth)"
+
+
+def test_component_group_puts_the_api_probes_next_to_the_app():
+    # The API is a second entry point into the same app, not a third-party
+    # integration -- during an incident it must read next to Application (IIS).
+    assert status.component_group("api:v1") == "Application"
+    assert status.component_group("api:key") == "Application"
+    assert status.component_group("http:site") == "Application"
+    assert status.component_group("db:NexoraDB") == "Databases"
+    assert status.component_group("graph:mail") == "Integrations"
 
 
 def test_pretty_name_falls_back_to_stored_label_for_log_storms():

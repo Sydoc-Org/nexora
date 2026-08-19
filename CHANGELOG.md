@@ -10,6 +10,19 @@ Work toward the next release.
 
 ## [3.2.2] - Unreleased
 
+### Added
+
+- **The external API is now watched by the outage monitor and shows on
+  `/admin/status`** (#201). `http:site` only proves IIS served a *page* — the
+  `/api/v1/*` surface is a second entry point with its own auth module and can
+  break on its own. Two new probes, both in the Application group: `api:v1`
+  calls `/api/v1/stats/today` with no credentials and treats **401 as the pass**
+  (zero setup, proves routing reached `require_api_key`), and `api:key` calls
+  the `/api/test/v1` twin with a Bearer key from the new optional
+  `OUTAGE_API_KEY` env var, covering the `dbo.ApiKeys` lookup and process
+  scoping. `api:key` skips itself when the var is unset, the same way the Graph
+  probe does. See `docs/howto/outage-monitor.md`.
+
 ## [3.1.2] - 2026-08-18
 
 ### Fixed

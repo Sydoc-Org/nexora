@@ -43,6 +43,10 @@ def pretty_name(key, stored=None):
         return f"Octo runtime ({key[5:]})"
     if key == "graph:mail":
         return "Microsoft Graph (mail)"
+    if key == "api:v1":
+        return "Nexora API (/api/v1)"
+    if key == "api:key":
+        return "Nexora API (key auth)"
     return stored or key
 
 
@@ -55,7 +59,7 @@ GROUPS = ("Application", "Databases", "Integrations")
 def component_group(key):
     if key.startswith("db:"):
         return "Databases"
-    if key == "http:site":
+    if key == "http:site" or key.startswith("api:"):
         return "Application"
     return "Integrations"
 
