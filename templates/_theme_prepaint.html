@@ -51,21 +51,11 @@
                 (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
             var sidebar = stored.sidebar || (ls('nexora-sidebar-pinned') === 'true' ? 'pinned' : 'auto');
             var d = document.documentElement;
-            var bgColor = dark ? '#0f172a' : '#f9fafb';
             d.classList.toggle('dark', dark);
             d.classList.toggle('sidebar-pinned', sidebar === 'pinned');
             // Mirrors nexora-ui.css's --nx-page token (:root / html.dark).
-            d.style.backgroundColor = bgColor;
+            d.style.backgroundColor = dark ? '#0f172a' : '#f9fafb';
             d.style.colorScheme = dark ? 'dark' : 'light';
-            // Also set body background early to prevent white flash before stylesheet loads
-            if (document.body) {
-                document.body.style.backgroundColor = bgColor;
-            } else {
-                // If body not ready yet, defer to DOMContentLoaded
-                document.addEventListener('DOMContentLoaded', function() {
-                    if (document.body) document.body.style.backgroundColor = bgColor;
-                });
-            }
         } catch (e) {
             // Ignore storage/matchMedia access issues; _header.html's later
             // script still applies the correct state, just not pre-paint.
