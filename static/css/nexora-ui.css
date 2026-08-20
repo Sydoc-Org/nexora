@@ -645,7 +645,15 @@ html.nx-compact .admin-table tbody td { padding: 7px 12px; }
 html.nx-compact .admin-card { padding: 12px; }
 html.nx-compact body.admin-page main { padding: 18px 28px; }
 html.nx-compact .nx-btn { padding: 6px 11px; }
-html.nx-compact .nx-input, html.nx-compact .nx-select { padding: 6px 10px; }
+/* padding-block only, not the padding shorthand: the shorthand also sets
+   left/right, which -- at equal specificity and later in the cascade --
+   silently beat the .nx-input.pl-10/.pr-10 icon-clearance fix above
+   whenever density=compact is on, dragging icon inputs (e.g. Workitems'
+   search box) back down to 10px and letting the placeholder text run
+   into the icon. Compact density only means less vertical padding;
+   horizontal icon clearance is a separate concern that should hold
+   regardless of density. */
+html.nx-compact .nx-input, html.nx-compact .nx-select { padding-block: 6px; }
 
 /* ============================================================
    8. APPEARANCE EXTRAS — corner style, font scale, contrast,
@@ -819,7 +827,7 @@ html.dark .firefly {
   cursor: pointer;
 }
 .nx-scope-row:hover { background: var(--nx-accent-tint); }
-.nx-scope-row input { margin: 0; cursor: pointer; }
+.nx-scope-row input { width: 18px; height: 18px; margin: 0; cursor: pointer; flex-shrink: 0; }
 .nx-scope-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nx-scope-all { font-weight: 600; }
 .nx-scope-all + .nx-scope-client { border-top: 1px solid var(--nx-border); }
