@@ -76,6 +76,11 @@ html.sidebar-pinned #nexora-sidebar {
 html.sidebar-pinned body {
     padding-left: 220px;
 }
+/* When sidebar is hovered (unpinned), also add padding to prevent overlay */
+body:has(#nexora-sidebar:hover) {
+    padding-left: 220px;
+    transition: padding-left 0.28s cubic-bezier(.4,0,.2,1);
+}
 .sidebar-pin-active { color: var(--nx-accent, #4f46e5); transform: rotate(-45deg); }
 
 /* ---------- Sidebar label (hidden when collapsed) ---------- */
