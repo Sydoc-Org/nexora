@@ -76,6 +76,59 @@
     return m ? m.getAttribute("content") : "";
   }
 
+  // ----- Panel drag functionality -----
+  var dragState = { isDragging: false, startX: 0, startY: 0, startLeft: 0, startTop: 0 };
+
+  function startDrag(e) {
+    if (e.button !== 0) return; // Only left mouse button
+    dragState.isDragging = true;
+    dragState.startX = e.clientX;
+    dragState.startY = e.clientY;
+    var rect = panel.getBoundingClientRect();
+    dragState.startLeft = rect.left;
+    dragState.startTop = rect.top;
+    panel.classList.add("is-dragging");
+    panel.style.transition = "none";
+    document.body.style.cursor = "grabbing";
+    e.preventDefault();
+  }
+
+  function moveDrag(e) {
+    if (!dragState.isDragging) return;
+    var dx = e.clientX - dragState.startX;
+    var dy = e.clientY - dragState.startY;
+    var newLeft = dragState.startLeft + dx;
+    var newTop = dragState.startTop + dy;
+
+    // Clamp to viewport
+    var maxLeft = window.innerWidth - panel.offsetWidth;
+    var maxTop = window.innerHeight - panel.offsetHeight;
+    newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+    newTop = Math.max(0, Math.min(newTop, maxTop));
+
+    panel.style.position = "fixed";
+    panel.style.right = "auto";
+    panel.style.bottom = "auto";
+    panel.style.left = newLeft + "px";
+    panel.style.top = newTop + "px";
+  }
+
+  function endDrag(e) {
+    if (!dragState.isDragging) return;
+    dragState.isDragging = false;
+    panel.classList.remove("is-dragging");
+    panel.style.transition = "";
+    document.body.style.cursor = "";
+  }
+
+  var panelHead = document.querySelector(".reporting-chat-head");
+  if (panelHead) {
+    panelHead.addEventListener("mousedown", startDrag);
+    document.addEventListener("mousemove", moveDrag);
+    document.addEventListener("mouseup", endDrag);
+    document.addEventListener("mouseleave", endDrag);
+  }
+
   // ----- Panel open/close -----
 
   function openPanel(prefill) {
