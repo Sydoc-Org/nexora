@@ -9,6 +9,17 @@
 <body>
     <script nonce="{{ csp_nonce() }}">
         const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+        // Smallest perPage the filter/pagination controls offer. Doubles as the
+        // "fast chunk" size in fetchAndUpdateWorkitems (further down this same
+        // script): when a larger perPage is picked (e.g. 1000), it fires a
+        // small perPage=40 request first so *something* renders almost
+        // immediately, then follows up with the real, full-size request in the
+        // background instead of leaving the table on the spinner for the whole
+        // round trip. Declared here, at the very top, rather than next to
+        // fetchAndUpdateWorkitems itself, so there's no possible ordering
+        // question about it being ready before the DOMContentLoaded-registered
+        // initial-load call further down references it.
+        const FAST_CHUNK_PER_PAGE = 40;
         // Source-highlight confidence helpers (shared by the field list, thumbnails
         // and the lightbox overlay). field_sources entries may carry an optional
         // 0..1 `confidence`; map it to a colour bucket and a rounded percentage.
@@ -774,6 +785,29 @@ async function uploadBatchFiles(files, processName) {
                 banner.classList.remove('hidden');
             }
 
+            async function _fetchWorkitemsJson(fetchParamsForRequest) {
+                const url = `${API_PREFIX}api/workitems?${fetchParamsForRequest.toString()}`;
+                const response = await fetch(url, {headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                }});
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            }
+
+            function _appendLoadingMoreRow() {
+                const tbody = document.getElementById('workitemsTbody');
+                if (!tbody) return;
+                const tr = document.createElement('tr');
+                tr.id = 'workitems-loading-more-row';
+                tr.innerHTML = `<td colspan="5" class="text-center py-6 text-sm" style="color:var(--nx-text-sec)">
+                    <i class="fas fa-spinner fa-spin mr-2"></i>{{ _("Loading the rest in the background…") }}
+                </td>`;
+                tbody.appendChild(tr);
+            }
+
             async function fetchAndUpdateWorkitems(page = 1) {
                 // Stale-response guard: rapid re-submits (e.g. two smart-search
                 // chips added back-to-back) race, and the FIRST response can land
@@ -789,7 +823,9 @@ async function uploadBatchFiles(files, processName) {
                 }
                 params.set('page', page);
                 const fetchParams = new URLSearchParams(params);
-                const url = `${API_PREFIX}api/workitems?${fetchParams.toString()}`;
+                // Always the real requested perPage (40/100/200/500/1000), never
+                // the fast-chunk override below -- the address bar/history entry
+                // must reflect what the user actually asked for.
                 const newUrl = `${window.location.pathname}?${params.toString()}`;
                 window.history.pushState({ path: newUrl }, '', newUrl);
 
@@ -807,15 +843,25 @@ async function uploadBatchFiles(files, processName) {
                     tbody.innerHTML = loaderHtml;
                 }
 
+                const requestedPerPage = parseInt(fetchParams.get('perPage') || '40', 10);
+                const needsFastChunk = requestedPerPage > FAST_CHUNK_PER_PAGE;
+
                 try {
-                    const response = await fetch(url, {headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
-                }});
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
+                    if (needsFastChunk) {
+                        const fastParams = new URLSearchParams(fetchParams);
+                        fastParams.set('perPage', FAST_CHUNK_PER_PAGE);
+                        const fastData = await _fetchWorkitemsJson(fastParams);
+                        if (seq !== fetchAndUpdateWorkitems._seq) return;  // superseded
+                        // Pagination is deliberately NOT updated from this partial
+                        // chunk -- it's computed against perPage=40, so "1 / 25"
+                        // would flash briefly before the real perPage=1000 numbers
+                        // land a moment later. Only the rows themselves preview
+                        // early; the count/pagination UI waits for the real data.
+                        renderTable(fastData.workitems);
+                        _appendLoadingMoreRow();
                     }
-                    const data = await response.json();
+
+                    const data = await _fetchWorkitemsJson(fetchParams);
                     if (seq !== fetchAndUpdateWorkitems._seq) return;  // superseded
                     try { renderDegradedBanner(data.degradedSources || []); } catch (bannerErr) { console.warn('renderDegradedBanner error:', bannerErr); }
                     renderTable(data.workitems);
