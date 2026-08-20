@@ -96,11 +96,18 @@
             <label for="searchInput" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{{
               _("Workitem") }}</label>
             <div class="relative mt-1">
-              <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400 pointer-events-none">
-                <i class="fas fa-search text-sm"></i>
+              {# pl-3 + the input's pl-10 matches the other icon inputs across the
+                 app (prepared_documents, generali_documents, the auth pages).
+                 The clearance that actually keeps the placeholder out from under
+                 the glyph is .nx-input.pl-10 in nexora-ui.css, plus the
+                 padding-block-only compact-density rule beside it -- not the
+                 offset here. pointer-events-none so a click on the glyph falls
+                 through and focuses the field. #}
+              <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 pointer-events-none">
+                <i class="fas fa-search"></i>
               </span>
               <input type="text" id="searchInput" name="search" value="{{ search or '' }}" {% if search_term_perm==False
-                %} disabled {% endif %} class="nx-input h-11 pl-10 pr-3"
+                %} disabled {% endif %} class="nx-input h-11 pl-10 pr-10"
                 placeholder="Enter workitem..." data-testid="workitems-search">
             </div>
           </div>
