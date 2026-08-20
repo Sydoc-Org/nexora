@@ -11,8 +11,7 @@
 
   var toggleBtn = document.getElementById("rpChatToggle");
   var panel = document.getElementById("rpChatPanel");
-  var backdrop = document.getElementById("rpChatBackdrop");
-  if (!toggleBtn || !panel || !backdrop) return;
+  if (!toggleBtn || !panel) return;
 
   var closeBtn = document.getElementById("rpChatClose");
   var thread = document.getElementById("rpChatThread");
@@ -132,13 +131,11 @@
   // ----- Panel open/close -----
 
   function openPanel(prefill) {
-    // Opening the chat supersedes any open drill-through drawer -- both are
-    // fixed right-edge slide-overs sharing the same z-index/position, so
-    // showing both at once would visually collide (see
-    // .reporting-drill-panel / .reporting-chat-panel in reporting.css).
+    // The drill-through drawer is still a modal right-edge slide-over with its
+    // own backdrop, so it would dim and block this panel. The chat supersedes
+    // it (see .reporting-drill-panel / .reporting-chat-panel in reporting.css).
     if (window.ReportingDrill) ReportingDrill.close();
     panel.hidden = false;
-    backdrop.hidden = false;
     toggleBtn.setAttribute("aria-expanded", "true");
     if (typeof prefill === "string" && prefill) {
       input.value = prefill;
@@ -147,20 +144,27 @@
     input.focus();
   }
 
-  function closePanel() {
+  // `returnFocus` is false when the panel closes without the user asking it to
+  // (nothing to hand focus back to). Non-modal means the page keeps working
+  // while the chat is open, so we must not yank focus out of whatever the user
+  // is typing in just because Escape or the × was pressed elsewhere.
+  function closePanel(returnFocus) {
     panel.hidden = true;
-    backdrop.hidden = true;
     toggleBtn.setAttribute("aria-expanded", "false");
-    toggleBtn.focus();
+    if (returnFocus !== false) toggleBtn.focus();
   }
 
   toggleBtn.addEventListener("click", function () {
     if (panel.hidden) openPanel(); else closePanel();
   });
-  closeBtn.addEventListener("click", closePanel);
-  backdrop.addEventListener("click", closePanel);
+  closeBtn.addEventListener("click", function () { closePanel(); });
+  // Non-modal: no backdrop, so clicking the page does NOT close the chat --
+  // that is the point, the page stays usable underneath. Escape still closes,
+  // but only while focus is inside the panel; otherwise Escape belongs to
+  // whatever the user is actually working in.
   document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape" && !panel.hidden) closePanel();
+    if (e.key !== "Escape" || panel.hidden) return;
+    if (panel.contains(document.activeElement)) closePanel();
   });
 
   // ----- Thread rendering -----

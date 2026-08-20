@@ -160,6 +160,63 @@ def test_mobile_still_drops_the_sidebar_padding():
 # --------------------------------------------------------------------------
 
 
+def test_chat_panel_is_non_modal():
+    """Issue #205: the chat is a floating tool window, not a dialog that owns
+    the page. A backdrop would dim the report underneath and swallow clicks on
+    it, which defeats the point of being able to drag the panel out of the way
+    -- you would have to close it to use whatever you moved it away from."""
+    markup = (TEMPLATES / "reporting.html").read_text(encoding="utf-8")
+    css = (CSS / "reporting.css").read_text(encoding="utf-8")
+    js = (TEMPLATES / "js" / "_reporting_ai_js.html").read_text(encoding="utf-8")
+
+    assert "rpChatBackdrop" not in markup, "the chat backdrop element is back in reporting.html"
+    assert "rpChatBackdrop" not in js, "the chat JS still wires a backdrop"
+    assert _rule_body(css, ".reporting-chat-backdrop") is None, (
+        ".reporting-chat-backdrop is back in reporting.css; the page will be "
+        "dimmed and unusable while the chat is open"
+    )
+    assert 'aria-modal="false"' in markup, (
+        "the chat panel does not declare aria-modal=false; assistive tech will "
+        "announce it as modal and hide the rest of the page"
+    )
+
+
+def test_drill_drawer_is_still_modal():
+    """Counterpart guard. Only the *chat* went non-modal -- the drill-through
+    drawer is a different interaction (drill into a number, read, dismiss) and
+    keeps its backdrop. Stripping both would be over-applying the change, and
+    the chat's openPanel() closes the drill precisely because the drill still
+    dims the page."""
+    markup = (TEMPLATES / "reporting.html").read_text(encoding="utf-8")
+    css = (CSS / "reporting.css").read_text(encoding="utf-8")
+
+    assert "rdBackdrop" in markup, "the drill drawer lost its backdrop"
+    assert _rule_body(css, ".reporting-drill-backdrop") is not None
+
+
+def test_clicking_the_page_does_not_close_the_chat():
+    """With no backdrop there is nothing to click "outside" onto, so a
+    document-level click handler that closes the panel would make the page
+    unusable in a subtler way: every click on the report would dismiss the
+    chat."""
+    js = (TEMPLATES / "js" / "_reporting_ai_js.html").read_text(encoding="utf-8")
+    assert not re.search(r"document\.addEventListener\(\s*[\"']click[\"']", js), (
+        "the chat JS registers a document-level click handler; with the "
+        "backdrop gone this would close the panel on any click on the page"
+    )
+
+
+def test_escape_only_closes_the_chat_from_inside_it():
+    """Non-modal means the page keeps focus and keeps working. A global Escape
+    handler would steal the key from whatever the user is actually in -- the
+    SQL editor, a filter, the drill drawer."""
+    js = (TEMPLATES / "js" / "_reporting_ai_js.html").read_text(encoding="utf-8")
+    assert "panel.contains(document.activeElement)" in js, (
+        "Escape closes the chat regardless of where focus is; it should only "
+        "do so when focus is inside the panel"
+    )
+
+
 def test_chat_panel_body_stays_selectable():
     """The panel header is a drag handle, so it sets user-select: none -- a
     text selection started on the handle would fight the drag. That must stay

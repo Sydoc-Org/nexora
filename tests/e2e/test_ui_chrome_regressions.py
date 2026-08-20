@@ -232,6 +232,79 @@ def test_dragged_chat_panel_stays_inside_the_viewport(nexora_server, page):
 
 
 @pytest.mark.flaky_e2e
+def test_page_stays_usable_while_the_chat_is_open(nexora_server, page):
+    """The whole point of non-modal (issue #205): no backdrop intercepting
+    clicks, so the report underneath is still operable. Proven by hit-testing
+    -- ask the browser what element is actually at a point over the page and
+    check it is not some overlay."""
+    _login(page, nexora_server)
+    _open_chat(page, nexora_server)
+
+    # A point on the page, deliberately away from the bottom-right panel.
+    at_point = page.evaluate(
+        "() => { const el = document.elementFromPoint(window.innerWidth * 0.3,"
+        " window.innerHeight * 0.35); return el ? el.className.toString() : null; }"
+    )
+    assert at_point is not None
+    assert "backdrop" not in at_point, (
+        f"a backdrop is covering the page at 30%/35% (hit {at_point!r}); the "
+        f"report is not clickable while the chat is open"
+    )
+
+
+@pytest.mark.flaky_e2e
+def test_clicking_the_page_leaves_the_chat_open(nexora_server, page):
+    """Modal drawers close on outside-click. A non-modal tool window must not
+    -- otherwise working on the report you moved it away from dismisses it."""
+    _login(page, nexora_server)
+    _open_chat(page, nexora_server)
+
+    page.mouse.click(page.viewport_size["width"] * 0.3, page.viewport_size["height"] * 0.35)
+    page.wait_for_timeout(200)
+
+    expect(page.get_by_test_id("reporting-chat-panel")).to_be_visible()
+
+
+@pytest.mark.flaky_e2e
+def test_escape_inside_the_chat_closes_it(nexora_server, page):
+    _login(page, nexora_server)
+    _open_chat(page, nexora_server)
+
+    page.get_by_test_id("reporting-chat-input").focus()
+    page.keyboard.press("Escape")
+    page.wait_for_timeout(200)
+
+    expect(page.get_by_test_id("reporting-chat-panel")).to_be_hidden()
+
+
+@pytest.mark.flaky_e2e
+def test_escape_outside_the_chat_leaves_it_open(nexora_server, page):
+    """Escape belongs to whatever the user is focused in. The chat must not
+    swallow it globally just because it happens to be open."""
+    _login(page, nexora_server)
+    _open_chat(page, nexora_server)
+
+    # Focus a real control on the page. `document.body.focus()` will not do:
+    # body is not focusable without a tabindex, so it silently leaves focus in
+    # the chat input and the test passes for the wrong reason.
+    outside = page.locator("#rpSource")
+    if outside.count() == 0:
+        pytest.skip("no focusable source control on this build of the page")
+    outside.focus()
+
+    moved = page.evaluate(
+        "() => { const p = document.getElementById('rpChatPanel');"
+        " return !p.contains(document.activeElement); }"
+    )
+    assert moved, "focus never left the chat panel; the test would prove nothing"
+
+    page.keyboard.press("Escape")
+    page.wait_for_timeout(200)
+
+    expect(page.get_by_test_id("reporting-chat-panel")).to_be_visible()
+
+
+@pytest.mark.flaky_e2e
 def test_chat_answers_can_be_selected(nexora_server, page):
     """The header is a drag handle (user-select: none). That must not leak to
     the thread -- the answers and generated SQL exist to be copied."""

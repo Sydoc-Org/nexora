@@ -94,6 +94,119 @@ def test_sending_without_graph_configured_fails_loudly(monkeypatch):
         mail.send_mail("someone@example.com", "subject", "<p>body</p>")
 
 
+class _Resp:
+    """Minimal stand-in for a requests.Response."""
+
+    def __init__(self, status_code=202, payload=None, text=""):
+        self.status_code = status_code
+        self._payload = payload if payload is not None else {"access_token": "stub-token"}
+        self.text = text
+
+    def json(self):
+        return self._payload
+
+
+@pytest.fixture
+def graph(monkeypatch):
+    """Configure Graph and capture every POST instead of making one.
+
+    Returns the call list: [(url, kwargs), ...] in order -- the token request
+    first, then sendMail.
+    """
+    for name in MAIL_KEYS:
+        monkeypatch.setattr(mail, name, f"stub-{name.lower()}", raising=False)
+
+    calls = []
+
+    def _post(url, **kwargs):
+        calls.append((url, kwargs))
+        return _Resp(202) if "sendMail" in url else _Resp(200)
+
+    monkeypatch.setattr(mail.requests, "post", _post)
+    return calls
+
+
+def test_send_mail_posts_to_graph_with_the_bearer_token(graph):
+    """The happy path end to end: acquire a token, then send with it."""
+    assert mail.send_mail("someone@example.com", "Subject", "<p>hello</p>") is True
+
+    token_url, _ = graph[0]
+    send_url, send_kwargs = graph[1]
+    assert "oauth2/v2.0/token" in token_url
+    assert send_url.endswith("/me/sendMail")
+    assert send_kwargs["headers"]["Authorization"] == "Bearer stub-token"
+
+
+def test_send_mail_addresses_every_recipient(graph):
+    """A list of recipients has to survive into the Graph payload; a bare
+    string is normalised to a one-element list."""
+    mail.send_mail(["a@example.com", "b@example.com"], "s", "<p>b</p>")
+    message = graph[1][1]["json"]["message"]
+    assert [r["emailAddress"]["address"] for r in message["toRecipients"]] == [
+        "a@example.com",
+        "b@example.com",
+    ]
+
+    graph.clear()
+    mail.send_mail("solo@example.com", "s", "<p>b</p>")
+    message = graph[1][1]["json"]["message"]
+    assert [r["emailAddress"]["address"] for r in message["toRecipients"]] == ["solo@example.com"]
+
+
+def test_send_mail_carries_attachments_and_inline_images(graph):
+    """Scheduled reports attach a file; the branded mails reference an inline
+    logo by content id. Both ride on the same message."""
+    mail.send_mail(
+        "someone@example.com",
+        "s",
+        '<p><img src="cid:logo"></p>',
+        attachments=[("report.csv", b"a,b\n1,2\n", "text/csv")],
+        inline_images=[("logo", b"\x89PNG", "image/png")],
+    )
+    attachments = graph[1][1]["json"]["message"]["attachments"]
+    by_name = {a.get("name") or a.get("contentId"): a for a in attachments}
+
+    assert "report.csv" in by_name, f"attachment missing, got {list(by_name)}"
+    inline = [a for a in attachments if a.get("isInline")]
+    assert inline, "the inline image was not marked isInline; it renders as an attachment"
+    assert inline[0]["contentId"] == "logo", (
+        "the inline image's contentId must match the cid: in the HTML body or "
+        "the <img> renders broken"
+    )
+
+
+def test_send_mail_raises_when_graph_rejects_the_send(monkeypatch):
+    """A non-2xx from sendMail must surface. The scheduled-report runner
+    reports delivery based on this return value."""
+    for name in MAIL_KEYS:
+        monkeypatch.setattr(mail, name, "stub", raising=False)
+
+    def _post(url, **kwargs):
+        if "sendMail" in url:
+            return _Resp(403, text="Forbidden: mailbox not licensed")
+        return _Resp(200)
+
+    monkeypatch.setattr(mail.requests, "post", _post)
+
+    with pytest.raises(mail.MailError, match="403"):
+        mail.send_mail("someone@example.com", "s", "<p>b</p>")
+
+
+def test_send_mail_raises_when_the_token_request_fails(monkeypatch):
+    """Bad or expired credentials must fail loudly rather than sending
+    unauthenticated."""
+    for name in MAIL_KEYS:
+        monkeypatch.setattr(mail, name, "stub", raising=False)
+    monkeypatch.setattr(
+        mail.requests,
+        "post",
+        lambda url, **kw: _Resp(401, payload={"error": "invalid_grant"}, text="invalid_grant"),
+    )
+
+    with pytest.raises(mail.MailError, match="token"):
+        mail.send_mail("someone@example.com", "s", "<p>b</p>")
+
+
 def test_send_mail_does_not_reach_the_network_when_unconfigured(monkeypatch):
     """Belt and braces on the guard above: the tenant check has to happen
     before any HTTP call, so an unconfigured box cannot hit Graph at all."""

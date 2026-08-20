@@ -1390,10 +1390,9 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
    open/close, message rendering and send behaviour). Bubbles, starter chips
    and the thinking ticker reuse the existing AI-panel/hero visual language
    (.reporting-ai-dots, .rs-suggestion) rather than inventing new ones. */
-.reporting-chat-backdrop {
-  position: fixed; inset: 0; background: rgba(0, 0, 0, .28); z-index: var(--z-modal-backdrop);
-}
-.reporting-chat-backdrop[hidden] { display: none; }
+/* Non-modal (issue #205): no backdrop rule here on purpose -- the chat is a
+   floating tool window, not a dialog that owns the page. Contrast with
+   .reporting-drill-backdrop above, which is still modal. */
 .reporting-chat-panel {
   position: fixed; right: 20px; bottom: 20px; z-index: var(--z-modal);
   width: 450px; max-width: calc(100vw - 40px); height: 600px; max-height: calc(100dvh - 40px);
