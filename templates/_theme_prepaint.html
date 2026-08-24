@@ -1,0 +1,64 @@
+{# Sets html.dark (and .sidebar-pinned) synchronously, before first paint.
+   Include this as the very first thing in a page's real <head> -- right
+   after the charset/viewport metas, before any external script/link.
+
+   Why this exists separately from _header.html's own UI-prefs script
+   (issue #155): _header.html is {% include %}'d inside every page's
+   <body>, but its own markup opens with a *second*
+   <!DOCTYPE html><html><head>...</head><body> of its own. The HTML parser
+   folds that nested <head> into the surrounding <body> (a stray <head>
+   start tag mid-body is dropped, but the script/link/style/meta tags that
+   were meant to live inside it still get processed -- they just end up
+   positioned as <body> children instead of <head> children -- see the
+   HTML5 tree-construction rules for "in body" handling of head-only
+   tags). So _header.html's dark-mode script only ever runs *after* the
+   page's real <head> - and often the first paint that comes with it -
+   have already happened: a visible flash of the default light theme
+   before it flips to dark. (reporting.html's own rp-anim script already
+   works around this same gap for the motion pref, via the same
+   localStorage mirror read below - see its comment.)
+
+   This partial duplicates just the minimal pre-paint essentials so
+   theme/sidebar are correct from the first frame. _header.html's script
+   still runs afterwards and re-applies the full pref set (accent, motion,
+   density, ...) - harmless, since by then theme/sidebar already match and
+   it's a no-op repaint.
+
+   Setting the .dark class alone isn't enough to stop the flash: the rule
+   that actually paints the dark background (html.dark's --nx-page token +
+   body.nx-app's `background: var(--nx-page)`) lives in nexora-ui.css,
+   which -- same root cause as above -- only reaches the page via
+   _header.html's body-embedded <link>, so it loads/applies later than a
+   real <head> stylesheet would. Between this script running and that
+   stylesheet arriving, the browser has nothing telling it what "dark"
+   should look like and paints its UA-default white in the meantime. So
+   this also sets the background color directly, inline, via `style` --
+   no stylesheet load required for the first paint to be correct. The
+   hex values mirror nexora-ui.css's --nx-page token; once that stylesheet
+   loads it takes over (same color, so no visible change). #}
+<script nonce="{{ csp_nonce() }}">
+    (function () {
+        try {
+            var stored = {{ ui_prefs | tojson }};
+            var ls = function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } };
+            /* Resilience: if a save never reached the server (offline, 401),
+               the last locally-applied prefs fill any keys the DB lacks. */
+            try {
+                stored = Object.assign({}, JSON.parse(ls('nexora-ui-prefs')) || {}, stored);
+            } catch (e) {}
+            var theme = stored.theme || (ls('nexora-theme') === 'dark' ? 'dark' : 'light');
+            var dark = theme === 'dark' ||
+                (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            var sidebar = stored.sidebar || (ls('nexora-sidebar-pinned') === 'true' ? 'pinned' : 'auto');
+            var d = document.documentElement;
+            d.classList.toggle('dark', dark);
+            d.classList.toggle('sidebar-pinned', sidebar === 'pinned');
+            // Mirrors nexora-ui.css's --nx-page token (:root / html.dark).
+            d.style.backgroundColor = dark ? '#0f172a' : '#f9fafb';
+            d.style.colorScheme = dark ? 'dark' : 'light';
+        } catch (e) {
+            // Ignore storage/matchMedia access issues; _header.html's later
+            // script still applies the correct state, just not pre-paint.
+        }
+    })();
+</script>

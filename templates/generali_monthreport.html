@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  {% include '_theme_prepaint.html' %}
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/nexora-ui.css') }}">
   <title>{{ _("Month Report") }} — {{ section_title }} - nexora</title>
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.0" integrity="sha384-AIH1kL7JmmReCxSwiSyaRNwzSFO7h4Ir4F/PO28EKezqFza1LwIMgEPLd83KwmZ4" crossorigin="anonymous"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -152,13 +154,13 @@
                 <td class="px-6 py-4 text-center text-sm nx-mono [color:var(--nx-text-sec)]!">{{ row.entries }}</td>
                 <td class="px-6 py-4 text-center text-sm font-semibold nx-mono [color:var(--nx-success)]!">{{ row.on_time }}</td>
                 <td class="px-6 py-4 text-center text-sm font-semibold nx-mono [color:var(--nx-danger)]!">{{ row.late }}</td>
-                <td class="px-6 py-4 text-center text-sm font-bold text-indigo-600 nx-mono">{{ row.pct }}%</td>
+                <td class="px-6 py-4 text-center text-sm font-bold nx-mono [color:var(--nx-accent)]!">{{ row.pct }}%</td>
                 {% elif section == 'pdqm' %}
                 <td class="px-6 py-4 text-center text-sm nx-mono [color:var(--nx-text-sec)]!">{{ row.entries }}</td>
-                <td class="px-6 py-4 text-center text-sm font-bold text-indigo-600 nx-mono">{{ row.total_quantity }}</td>
+                <td class="px-6 py-4 text-center text-sm font-bold nx-mono [color:var(--nx-accent)]!">{{ row.total_quantity }}</td>
                 {% else %}
                 <td class="px-6 py-4 text-center text-sm nx-mono [color:var(--nx-text-sec)]!">{{ row.entries }}</td>
-                <td class="px-6 py-4 text-center text-sm font-bold text-indigo-600 nx-mono">{{ row.total_hours }}</td>
+                <td class="px-6 py-4 text-center text-sm font-bold nx-mono [color:var(--nx-accent)]!">{{ row.total_hours }}</td>
                 {% endif %}
               </tr>
               {% endfor %}

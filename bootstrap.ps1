@@ -36,27 +36,32 @@ Write-Host "==> Bootstrapping nexora dev environment ($Env)" -ForegroundColor Cy
 Write-Host ""
 
 # --- 1. Python -------------------------------------------------------------
+# uv provisions its own isolated interpreter per .python-version (step 3) --
+# it does NOT need a matching (or any) system Python on PATH. This step is
+# informational only. A bare `python` on PATH is notoriously unreliable on
+# Windows (the Microsoft Store "app execution alias" shadows it with a stub
+# that errors instead of running, even when a real install exists elsewhere)
+# and previously made this a hard blocker for anyone hitting that -- don't
+# repeat that mistake here.
 $pyVersionFile = Join-Path $repoRoot '.python-version'
 if (-not (Test-Path $pyVersionFile)) {
     throw "Missing .python-version. Are you in the nexora repo root?"
 }
 $wantPy = (Get-Content $pyVersionFile -Raw).Trim()
-Write-Host "==> Required Python: $wantPy"
-
-$pyCmd = Get-Command python -ErrorAction SilentlyContinue
-if (-not $pyCmd) {
-    throw "Python not found on PATH. Install Python $wantPy first (https://www.python.org/downloads/)."
-}
-$gotPy = (& python --version 2>&1).ToString().Replace('Python ', '').Trim()
-Write-Host "==> Found Python: $gotPy"
-if ($gotPy -ne $wantPy) {
-    Write-Warning "Python version mismatch (want $wantPy, got $gotPy). Continuing, but the locked deps target $wantPy."
-}
+Write-Host "==> Required Python: $wantPy (uv will fetch it in step 3 if it isn't already installed)"
 
 # --- 2. uv -----------------------------------------------------------------
-if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
-    Write-Host "==> Installing uv via pip"
-    & python -m pip install --user --upgrade uv
+$uvCmd = Get-Command uv -ErrorAction SilentlyContinue
+if (-not $uvCmd) {
+    Write-Host "==> Installing uv (standalone installer -- doesn't depend on"
+    Write-Host "    python/pip being resolvable, unlike 'pip install uv')"
+    Invoke-Expression (Invoke-RestMethod https://astral.sh/uv/install.ps1)
+    $uvBin = Join-Path $env:USERPROFILE '.local\bin'
+    if ($env:Path -notlike "*$uvBin*") { $env:Path = "$uvBin;$env:Path" }
+    $uvCmd = Get-Command uv -ErrorAction SilentlyContinue
+    if (-not $uvCmd) {
+        throw "uv still not found after install. Open a new shell (so PATH picks up $uvBin) and re-run bootstrap.ps1."
+    }
 }
 $uvVersion = (& uv --version 2>&1).ToString().Trim()
 Write-Host "==> uv: $uvVersion"

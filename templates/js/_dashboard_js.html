@@ -105,11 +105,11 @@
 
                 const widStr = String(act.id);
                 return `
-                    <div class="p-3 rounded-xl border border-gray-50 bg-gray-50/50 hover:bg-white hover:shadow-md transition-all cursor-pointer"
+                    <div class="p-3 rounded-xl border border-gray-50 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 hover:shadow-md transition-all cursor-pointer"
                         data-wid="${escapeHtml(widStr)}" data-client="${escapeHtml(String(act.client || ''))}">
                         <div class="flex justify-between items-start mb-1">
-                            <span class="text-xs font-bold text-indigo-600">ID: ${escapeHtml(widStr)}</span>
-                            <span class="text-[10px] text-gray-400">${escapeHtml(String(act.time))}</span>
+                            <span class="text-xs font-bold text-indigo-600 dark:text-indigo-400">ID: ${escapeHtml(widStr)}</span>
+                            <span class="text-[10px] text-gray-400 dark:text-slate-500">${escapeHtml(String(act.time))}</span>
                         </div>
                         <p class="text-xs text-gray-700 mb-2">Validated in <strong>${escapeHtml(String(act.process))}</strong></p>
                         <div class="flex flex-wrap gap-1">
@@ -196,9 +196,18 @@
             const data = await response.json();
             const ctx = document.getElementById('processedOverTimeChart').getContext('2d');
 
+            // Canvas needs a resolved color, not a CSS custom property string --
+            // same pattern as nxAxis() above, just for the accent (and, below,
+            // the tooltip card) instead of the grid/text tokens.
+            const bodyCs = getComputedStyle(document.body);
+            const accent = (bodyCs.getPropertyValue('--nx-accent') || '#4f46e5').trim();
+            const nxCard = (bodyCs.getPropertyValue('--nx-card') || '#1e293b').trim();
+            const nxBorder = (bodyCs.getPropertyValue('--nx-border') || '#334155').trim();
+            const nxText = (bodyCs.getPropertyValue('--nx-text') || '#e2e8f0').trim();
+            const nxTextMeta = (bodyCs.getPropertyValue('--nx-text-meta') || '#64748b').trim();
             const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-            gradient.addColorStop(0, 'rgba(79, 70, 229, 0.2)');
-            gradient.addColorStop(1, 'rgba(79, 70, 229, 0)');
+            gradient.addColorStop(0, `color-mix(in srgb, ${accent} 20%, transparent)`);
+            gradient.addColorStop(1, 'transparent');
 
             if (processedChart) {
                 processedChart.data.labels = data.labels;
@@ -214,9 +223,9 @@
                             data: data.data,
                             fill: true,
                             backgroundColor: gradient,
-                            borderColor: '#4F46E5',
+                            borderColor: accent,
                             borderWidth: 3,
-                            pointBackgroundColor: '#4F46E5',
+                            pointBackgroundColor: accent,
                             pointRadius: 0,
                             pointHoverRadius: 6,
                             tension: 0.4,
@@ -226,12 +235,65 @@
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        // Default Chart.js interaction requires the cursor to sit
+                        // exactly on the line (intersect: true) to trigger the
+                        // tooltip. 'index' + intersect:false instead matches on
+                        // x-position alone, so hovering anywhere in that column
+                        // -- not just the 3px-wide line itself -- shows the value.
+                        interaction: { mode: 'index', intersect: false },
                         scales: {
                             y: { beginAtZero: true, grid: { borderDash: [5, 5], color: nxAxis().grid } },
                             x: { grid: { display: false } }
                         },
-                        plugins: { legend: { display: false } }
+                        plugins: {
+                            legend: { display: false },
+                            // Default Chart.js tooltip is a plain black box that
+                            // clashes with the rest of the app's card styling --
+                            // reskin it to match (rounded, bordered, --nx-* colors).
+                            tooltip: {
+                                backgroundColor: nxCard,
+                                titleColor: nxTextMeta,
+                                bodyColor: nxText,
+                                borderColor: nxBorder,
+                                borderWidth: 1,
+                                cornerRadius: 10,
+                                padding: 10,
+                                boxPadding: 6,
+                                usePointStyle: true,
+                                titleFont: { size: 11, weight: '600' },
+                                titleMarginBottom: 6,
+                                bodyFont: { size: 13, weight: '600' },
+                                caretSize: 6,
+                            }
+                        }
                     }
+                });
+
+                // Chart.js's own mode:'index' hover only registers inside
+                // chartArea. This dataset is beginAtZero with mostly-low
+                // values, so the line sits right at chartArea's bottom edge
+                // for most of its length -- a cursor a pixel below where the
+                // line visually is (still "on the line" to the eye) falls
+                // outside chartArea and the tooltip vanishes, while hovering
+                // further up (safely inside chartArea) always works. Clamp
+                // the pointer into chartArea before hit-testing so the whole
+                // canvas height is a reliable hover target, not just the
+                // area above the line.
+                ctx.canvas.addEventListener('mousemove', (e) => {
+                    const area = processedChart.chartArea;
+                    const rect = ctx.canvas.getBoundingClientRect();
+                    const x = Math.min(Math.max(e.clientX - rect.left, area.left), area.right);
+                    const y = Math.min(Math.max(e.clientY - rect.top, area.top), area.bottom);
+                    // getElementsAtEventForMode -> getRelativePosition treats
+                    // {x, y} as already-canvas-relative ONLY when a `native`
+                    // key is present at all (`'native' in event`); without it,
+                    // it assumes a raw DOM event was passed and resolves x/y
+                    // to null, silently matching nothing.
+                    const elements = processedChart.getElementsAtEventForMode(
+                        { x, y, native: true }, 'index', { intersect: false }, true
+                    );
+                    processedChart.tooltip.setActiveElements(elements, { x, y });
+                    processedChart.update('none');
                 });
             }
         } catch (error) { console.error("Failed to update processed chart:", error); }

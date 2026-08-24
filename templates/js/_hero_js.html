@@ -111,7 +111,7 @@
                     iconWrapper.classList.remove('active', 'completed');
                     iconWrapper.style.transform = 'scale(1)';
                     label.classList.remove('active', 'completed');
-                    icon.className = `fas ${icon.dataset.originalIcon} text-2xl text-gray-400`;
+                    icon.className = `fas ${icon.dataset.originalIcon} text-2xl text-gray-400 dark:text-slate-500`;
                 });
 
                 await wait(500);
@@ -164,6 +164,33 @@
             if (document.getElementById('animation-container')) {
                  document.fonts.ready.then(() => {
                     runAnimation();
+                });
+            }
+
+            // Theme toggle (sun/moon). Shares localStorage keys with
+            // _header.html's prefs system (nexora-ui-prefs primary,
+            // legacy nexora-theme fallback) so a choice made here already
+            // carries over once the user logs in, even though only this
+            // page has a toggle switch for now (issue: dark mode rollout,
+            // landing page first).
+            var themeToggle = document.getElementById('theme-toggle');
+            if (themeToggle) {
+                var syncPressed = function () {
+                    themeToggle.setAttribute('aria-pressed', document.documentElement.classList.contains('dark') ? 'true' : 'false');
+                };
+                syncPressed();
+                themeToggle.addEventListener('click', function () {
+                    var root = document.documentElement;
+                    var dark = !root.classList.contains('dark');
+                    root.classList.toggle('dark', dark);
+                    syncPressed();
+                    try {
+                        var stored = {};
+                        try { stored = JSON.parse(localStorage.getItem('nexora-ui-prefs')) || {}; } catch (e) {}
+                        stored.theme = dark ? 'dark' : 'light';
+                        localStorage.setItem('nexora-ui-prefs', JSON.stringify(stored));
+                        localStorage.setItem('nexora-theme', dark ? 'dark' : 'light');
+                    } catch (e) {}
                 });
             }
         });

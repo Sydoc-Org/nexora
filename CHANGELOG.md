@@ -92,6 +92,228 @@ Work toward the next release.
   same list the rest of the app shows. UI curation only; the run path stays
   gated by the source-level permission.
 
+### Fixed
+
+- **Uploaded profile avatars were silently deleted on every production
+  deploy.** The upload handler saved `{userid}-icon.png` directly under
+  `static/images/`, but that whole tree is `robocopy /MIR`'d from git on
+  every deploy — anything present on the server but absent from the git
+  source gets purged, and an uploaded avatar (never committed to git) was
+  exactly that. Avatars now save to `var/uploads/avatars/` (already
+  excluded from the deploy mirror, same as sessions/logs/screenshots) and
+  are served through a new `/avatar/<user_id>` route instead of a static
+  file path.
+
+- **Checkboxes/radios stayed plain white regardless of theme.** Native
+  checkbox rendering wasn't reliable enough on its own: `accent-color`
+  only tints the checked-state fill, and on a real Windows/Chrome setup
+  even that wasn't enough — the *unchecked* box painted solid opaque
+  white regardless of `color-scheme`/`accent-color`, standing out
+  against every other bit of chrome that does follow dark mode/accent
+  (Workitems' row-select/select-all checkboxes, the export-options
+  checkboxes, the process-filter dropdown's checkboxes, admin/reporting
+  radios, ...). Replaced native rendering with a fully custom checkbox/
+  radio (`appearance: none` + our own border/background/checkmark, via
+  `body.nx-app input[type="checkbox"|"radio"]` in `nexora-ui.css`) so
+  every state — unchecked, checked, indeterminate (the process-filter
+  dropdown's "some but not all selected" rows) — is explicitly
+  theme-and-accent-aware instead of trusting the browser.
+
+### Changed
+
+- **Workitems search results now rank by relevance.** With a workitem-id
+  search active, the closest match sorts first — shortest id (fewest extra
+  digits beyond the searched prefix) on top, longer ids further down;
+  searching `11` puts `11` above `110` above `1199`. Applies in both
+  per-source queries (`ORDER BY LEN(id) ASC, ModifiedAt DESC`) and the
+  cross-source merge for multi-client setups, which previously
+  re-sorted everything back to plain recency after each source's own
+  query. No search term active: unchanged plain-recency ordering.
+
+### Fixed
+
+- **Segmented picker buttons (Feedback's category, Appearance's Theme/
+  Background/Density/... pickers) had an invisible "selected" indicator in
+  dark mode.** `.profile-seg-btn.is-active`'s box-shadow was a near-black
+  drop shadow tuned for a white card — on a dark card it was essentially
+  imperceptible, so which option was selected read almost entirely off
+  color alone. Added a `.dark`-scoped shadow (a visible border ring plus a
+  soft accent-colored glow) so the selected state is unambiguous in dark
+  mode too.
+
+### Changed
+
+- **Workitems search: prefix match instead of exact match.** Typing `11`
+  now returns every workitem whose id *starts with* `11` (`11`, `110`,
+  `1199`, ...), not just the literal `11`. Still not a full substring
+  match — searching `371` still won't pull in `1371`/`3716`/`16371`, the
+  original reason it was exact-only. Applies everywhere the Workitems
+  overview's search box does, including the external API's `workitem_id`
+  param (`docs/howto/external-api.md`).
+
+### Added
+
+- **Feedback page** (`/feedback`, profile dropdown → "Feedback") — an
+  in-app way to report a bug, ask a question, or suggest an idea, so
+  problems don't rely on someone happening to mention them. Category
+  (Bug/Idea/Question) + message + an optional screenshot mail
+  `SUPPORT_MAIL` (the outage-monitor env var, issue #166) via the existing
+  Graph sender, auto-enriched with the submitter, the page they came from,
+  and the app version/environment. No ticket tracking in-app — the mailbox
+  is the queue. Rate-limited (`10 per hour`); screenshots are sniffed with
+  the same `is_file_allowed` MIME check as every other upload, capped at
+  5 MB, and never touch disk.
+- **The nexora logo now follows your accent color** — the wordmark
+  gradient and the black-hole icon's glow/ring/spark colors re-tint with
+  whichever accent you pick in Appearance (preset or custom hex), on every
+  page including pre-login (login, password reset, 2FA setup — read from
+  the same `nexora-ui-prefs` localStorage mirror `_header.html` already
+  writes, so it's picked up the moment you've logged in once on that
+  browser). Previously fixed indigo everywhere; the black core and the
+  wordmark's near-black leading stops stay fixed brand ink in every theme
+  — only the actual accent-colored pieces change.
+
+### Fixed
+
+- **Logged-in pages: light-theme flash on reload/navigation in dark mode.**
+  `_header.html`'s own UI-prefs script (issue #155) never actually ran
+  pre-paint despite the comment claiming otherwise: it's `{% include %}`'d
+  inside every page's `<body>`, but its markup opens with a *second*
+  `<!DOCTYPE html><html><head>...</head><body>` of its own — the HTML
+  parser drops that nested `<head>` start tag but still processes the
+  script/link tags meant to live inside it, just relocated as `<body>`
+  children. So dark mode (and `nexora-ui.css`'s `--nx-*` design tokens)
+  only ever applied after the page's real `<head>` — and its first paint —
+  had already happened. Added `templates/_theme_prepaint.html`, included
+  first in the real `<head>` of all 28 logged-in page templates: it
+  applies `html.dark`/`.sidebar-pinned` and an inline `background-color`
+  synchronously from the server-rendered prefs, and an early
+  `nexora-ui.css` `<link>` so `--nx-*` tokens exist before any dependent
+  CSS (Reporting's `--rl-canvas`, Workitems' table colors) can paint.
+  `reporting.css`'s token block also gained explicit fallback values as a
+  second line of defense.
+- **Page-entrance animation felt rushed.** `.nx-rise`/`.nx-rise-2`/
+  `.nx-rise-3` (`nexora-ui.css`) went from 0.32s to 0.6s, stagger delays
+  scaled to match.
+
+### Added
+
+- **Dark mode toggle on every pre-login page** — landing, login, the
+  forgot/reset/set/init password pages, and 2FA setup all get the same
+  sun/moon toggle and share the logged-in pages' prefs storage, so a
+  choice made before logging in carries over automatically afterward.
+  Along the way, fixed several pages' hardcoded light-only colors that
+  had no dark counterpart at all (an invisible gradient-clipped logo
+  wordmark, background glow blobs anchored off-viewport, a JS reset
+  loop that kept clobbering the process-animation icon back to light
+  mode) and brightened the login page's black-hole icon glow, which
+  was a near-black drop shadow invisible against the dark background.
+- **"Fireflies" background option in Appearance** (alongside Plain/
+  Aurora/Grid) — started as a dashboard-only decorative effect,
+  promoted to a real per-user preference available on every page.
+  Fixed two real bugs surfaced while wiring it up: the server-side
+  prefs allowlist rejected the new value outright (a 400 with no
+  visible error, so the pick silently never saved), and the prefs-save
+  request had no `keepalive`, so picking any appearance setting and
+  immediately navigating away (e.g. clicking a sidebar link) could let
+  the browser abort the save mid-flight — affecting every appearance
+  preference, not just background.
+- **Reporting's AI chat panel is now a draggable, non-modal floating
+  window** (#205), replacing the fixed right-edge modal slide-over —
+  the report underneath is no longer dimmed or click-blocked while the
+  chat is open, restyled to match the app's theme (gradient header,
+  accent-colored user messages, dark-mode-aware scrollbars). The drill-
+  through drawer intentionally stays modal.
+
+### Changed
+
+- **Workitems now loads large result sets in two phases.** A `perPage`
+  of up to 1000 previously left the table on a spinner for the whole
+  round trip; a small 40-row chunk now renders almost immediately,
+  with the full-size request following in the background (guarded
+  against a stale response overwriting a newer one).
+
+### Fixed
+
+- **`bin/nx.ps1` hardcoded a previous owner's personal Python path** —
+  every `nx` command failed outright on a fresh clone. Now points at
+  the project's own `.venv`; `bootstrap.ps1`'s `uv` install also no
+  longer depends on `python`/`pip` resolving correctly first (the
+  Windows Store app-execution alias can silently break that).
+- **`matplotlib` and `pypdfium2` were used by the reporting chart-
+  render/export pipeline but missing from `requirements.txt`** — a
+  clean install could break reporting exports depending on install
+  order. Both declared as explicit dependencies.
+- **Dashboard dark-mode toggle recolored** to match the login page's
+  teal/orange pair; the "Recent Validations" card was missing `dark:`
+  variants entirely and stayed light-gray against the dark sidebar.
+- **Dashboard: sidebar hover no longer pushes/reflows the page**
+  (reverted an earlier push-on-hover change that felt like too much
+  motion), and `html` was forced to an always-visible scrollbar
+  (`overflow-y: scroll`) even when content fit — switched to `auto`.
+- **Account dropdown menu (profile menu) had zero `dark:` variants** —
+  stayed white-background/gray-text regardless of theme.
+- **Profile's active nav pill and avatar ring were hardcoded indigo**
+  instead of following the accent picker (`admin-tokens.css`'s
+  `--a-b-indigo` pair, `profile.css`'s avatar-ring gradient).
+- **App-wide accent-color sweep, ~30 files** — the same hardcoded-
+  indigo bug class as the profile fix above, found across sidebar
+  nav/hover states, buttons, focus rings, dashboard charts, workitems
+  chrome, reporting wizard/dashboard-builder UI, all 7 Generali pages,
+  and admin. Deliberately left alone: the logo (confirmed deliberate
+  brand artwork), a couple of "locked spec palette" colors, and chart
+  "primary series" colors used to visually anchor a multi-series
+  legend. Also fixed two bugs surfaced along the way: the active
+  sidebar item's text losing a CSS-specificity fight to the dark-mode
+  idle-text rule, and a missing gap between the sidebar's "Admin"
+  group header and its subitems that fused them into one pill.
+- **Dashboard trend chart hover required the cursor to land exactly
+  on the 3px line** — switched to index-based hover so any x-position
+  in that column shows the tooltip. The line color was also hardcoded
+  indigo in uppercase hex (which is why it slipped past the sweep
+  above's case-sensitive grep), and the default plain-black Chart.js
+  tooltip was reskinned to match the app's card styling.
+- **Workitems table/list stayed white in dark mode** — an ID selector
+  and an `!important` in `workitems_overview.css` were beating the
+  otherwise dark-aware `.nx-table` styles regardless of theme.
+- **Reporting hero card's rounded corners were invisible** — an
+  accent-tinted border was blending into the equally accent-tinted
+  glow rendered behind it.
+- **Reporting's "Ask AI" bar's inner corners didn't nest with its
+  outer gradient-border ring** except at the default corner-style
+  setting; the inner radius now scales with the same preference.
+- **A pinned sidebar flashed collapsed, then snapped open, on every
+  page navigation** — its open state was only ever set by JS on
+  `DOMContentLoaded`, well after the pre-paint script had already
+  reserved the layout space for it.
+- **Remaining white-flash-on-load cases in dark mode** — the pre-paint
+  script now also sets the body background color directly (deferring
+  to `DOMContentLoaded` if the body isn't ready yet), on top of the
+  `<html>`-level pre-paint fix above.
+- **Reporting AI chat panel: answers and generated SQL could not be
+  selected or copied** — `user-select: none` was scoped to the whole
+  panel instead of just its drag handle.
+- **Process selector (Reporting scope picker) checkboxes rendered as
+  barely-visible tiny dots** — missing explicit width/height and
+  `flex-shrink: 0` let them shrink to almost nothing (#206).
+- **An unpinned sidebar overlaid page content on hover** instead of
+  pushing it aside — content now gets matching padding while the
+  sidebar is hovered open.
+- **Workitems search bar: icon and input text overlapped.** Root cause
+  turned out to be the compact-density padding shorthand clobbering
+  the input's left clearance in `nexora-ui.css`; fixed there instead
+  of a per-page padding tweak that was tried first and then reverted,
+  keeping this input's markup consistent with the other seven search/
+  icon inputs across the app.
+- **Dashboard trend chart: a second tooltip dead zone, at the bottom
+  edge of the chart's plotting area.** Chart.js's hover only hit-tests
+  inside its internal `chartArea`, and this dataset's often-zero
+  values put the line right at that boundary — a cursor a couple
+  pixels below where the line visually sits (still "on" it to the eye)
+  fell outside `chartArea` and got no tooltip, while hovering higher
+  up always worked. The pointer is now clamped into `chartArea` before
+  hit-testing, so the whole canvas height is a reliable hover target.
+
 ## [3.2.2] - Unreleased
 
 ### Added

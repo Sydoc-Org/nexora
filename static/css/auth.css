@@ -6,19 +6,32 @@
    inputs and a `bg-gradient-primary` button), so this layer can
    harmonize all of them onto the global --nx-* design tokens
    (loaded from nexora-ui.css) without per-page markup churn.
-   Pre-login pages have no dark-mode toggle, so this is the light
-   brand identity only. Loaded AFTER each page's own stylesheet
-   so it wins on source order; brand-critical rules use !important
-   to also beat the Tailwind CDN's runtime utilities.
+   Loaded AFTER each page's own stylesheet so it wins on source
+   order; brand-critical rules use !important to also beat the
+   Tailwind CDN's runtime utilities.
+
+   index.html (login) is the first of these pages with a dark-mode
+   toggle (hero.html got one first; same html.dark + localStorage
+   mechanism, see index.html's <head>). The html.dark rules below
+   are written broadly against the shared utility classes these
+   pages already use, so forgot_password/reset_password/2FA are
+   dark-ready too the moment any of them gets a toggle -- html.dark
+   is simply never set on those pages today, so nothing changes for
+   them yet.
    ============================================================ */
 
 body {
   font-family: var(--nx-font, 'Inter', system-ui, sans-serif);
-  /* a barely-there indigo→violet wash so the card floats on brand,
-     not flat white — matches the app shell's tinted surfaces. */
+  /* Two blobs, deliberately uneven (not mirrored corner-to-corner): one
+     small brand-tint accent tucked in the top-right corner, one larger
+     sky-blue blob placed with enough margin on every side that the full
+     circle is visible, not clipped by the viewport edge. This page is
+     short (one viewport, no scroll), so both need to land INSIDE 0-100%
+     of that height -- the original 2-blob version had one anchored at
+     110% (below the whole page), invisible. */
   background:
-    radial-gradient(60rem 40rem at 85% -10%, var(--nx-accent-tint, #eef2ff) 0%, transparent 60%),
-    radial-gradient(50rem 36rem at -10% 110%, #f5f3ff 0%, transparent 55%),
+    radial-gradient(28rem 20rem at 92% 8%,  var(--nx-accent-tint, #eef2ff) 0%, transparent 55%),
+    radial-gradient(20rem 16rem at 32% 46%, rgba(56, 189, 248, 0.18) 0%, transparent 62%),
     var(--nx-page, #f8fafc) !important;
 }
 
@@ -42,6 +55,14 @@ body {
 
 /* Header + brand keylines */
 header.bg-white { border-bottom: 1px solid var(--nx-border, #e5e7eb); }
+
+/* index.html wraps its whole content area in <section class="bg-white">,
+   opaque in both themes -- it sat on top of body's tinted gradient wash
+   as a flat white bar (and in dark mode, the html.dark equivalent of this
+   same bug hid the glow entirely, fixed separately below). Transparent
+   here too so the wash shows through and only the actual login card
+   (its own rounded-xl shadow-2xl box) reads as a distinct box. */
+section.bg-white { background-color: transparent !important; }
 
 /* Inputs — brand focus ring (most pages already ask for indigo-500;
    this makes the ring the exact accent + soft halo, consistently). */
@@ -78,3 +99,87 @@ a.text-indigo-600,
   text-align: center;
   font-size: 0.9rem;
 }
+
+/* ============================================================
+   DARK MODE (html.dark) — see file header note above.
+   ============================================================ */
+
+/* Same background wash as body's light rule above, but the second
+   stop was a hardcoded near-white violet (#f5f3ff) with no dark
+   counterpart -- exactly the bug hero.css had, same fix: token or
+   an explicit dark-appropriate value, never a raw light hex here. */
+html.dark body {
+  /* Same uneven 2-blob layout as the light rule above, dark-appropriate
+     colors -- brighter sky-blue on the fully-visible one so it actually
+     reads as a glowing dot against the dark page. */
+  background:
+    radial-gradient(28rem 20rem at 92% 8%,  var(--nx-accent-tint, #312e81) 0%, transparent 55%),
+    radial-gradient(20rem 16rem at 32% 46%, rgba(56, 189, 248, 0.22) 0%, transparent 62%),
+    var(--nx-page, #0f172a) !important;
+}
+
+html.dark header.bg-white {
+  background-color: var(--nx-card, #1e293b) !important;
+  border-bottom-color: var(--nx-border, #334155);
+}
+
+/* The auth card itself (bg-white rounded-xl shadow-2xl) -- scoped to that
+   exact combination, NOT a blanket .bg-white. index.html also wraps its
+   whole content area in <section class="bg-white">, which the light-mode
+   `section.bg-white` rule above already neutralizes in both themes -- a
+   blanket .bg-white here would repaint it solid gray and hide the glow
+   behind it again, same bug as the light-mode white bar. */
+html.dark .rounded-xl.shadow-2xl.bg-white {
+  background-color: var(--nx-card, #1e293b) !important;
+}
+
+html.dark .text-gray-800 { color: var(--nx-text, #e2e8f0) !important; }
+html.dark .text-gray-700 { color: var(--nx-text-sec, #94a3b8) !important; }
+html.dark .text-gray-600 { color: var(--nx-text-sec, #94a3b8) !important; }
+html.dark .text-gray-500 { color: var(--nx-text-meta, #64748b) !important; }
+html.dark .text-gray-400 { color: var(--nx-text-meta, #64748b) !important; }
+
+/* Flash-error box (init_2FA.html, verify_2fa.html) -- a raw Tailwind
+   red-tint pattern, not the .error-message component the other pages
+   use, so it never got covered by anything above. */
+html.dark .bg-red-50 { background-color: rgba(220, 38, 38, 0.12) !important; }
+html.dark .border-red-500 { border-color: var(--nx-danger, #f87171) !important; }
+html.dark .text-red-700 { color: var(--nx-danger, #f87171) !important; }
+html.dark .hover\:text-gray-600:hover { color: var(--nx-text, #e2e8f0) !important; }
+
+/* Inputs -- Tailwind's preflight gives bare `border` a light-gray
+   default (border-color: theme('borderColor.DEFAULT')) that never
+   got a dark pairing, and the fields have no explicit background so
+   they'd stay page-white against a dark card. */
+html.dark input,
+html.dark select,
+html.dark textarea {
+  background-color: var(--nx-sunken, #273449) !important;
+  border-color: var(--nx-border, #334155) !important;
+  color: var(--nx-text, #e2e8f0) !important;
+}
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: var(--nx-text-meta, #64748b) !important;
+}
+
+/* Theme toggle button -- same look as hero.html's .hero-theme-toggle
+   (round icon button, card surface + border), duplicated rather than
+   shared across stylesheets since hero.css and auth.css load on
+   disjoint sets of pages. */
+.auth-theme-toggle {
+  background: var(--nx-card, #ffffff);
+  border: 1px solid var(--nx-border-strong, #d1d5db);
+  color: var(--nx-text-sec, #6b7280);
+  font-size: 15px;
+  transition: background-color var(--nx-dur, 150ms) var(--nx-ease, ease),
+              border-color var(--nx-dur, 150ms) var(--nx-ease, ease),
+              color var(--nx-dur, 150ms) var(--nx-ease, ease),
+              transform var(--nx-dur, 150ms) var(--nx-ease, ease);
+}
+.auth-theme-toggle:hover {
+  background: var(--nx-alt, #f9fafb);
+  border-color: var(--nx-accent, #4f46e5);
+  color: var(--nx-accent, #4f46e5);
+}
+.auth-theme-toggle:active { transform: scale(0.93); }

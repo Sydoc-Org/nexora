@@ -109,6 +109,13 @@
                 d.classList.toggle('nx-stripes', eff.stripes === 'on');
                 if (eff.background !== 'plain') d.setAttribute('data-bg', eff.background);
                 else d.removeAttribute('data-bg');
+                // Fireflies need actual DOM nodes, not just the CSS attribute
+                // selector Aurora/Grid rely on. __nxSyncFireflies is defined
+                // later (_header_js.html) — undefined on this first,
+                // pre-paint call, which is fine: that initial state is
+                // covered by its own DOMContentLoaded sync. This call only
+                // matters for later, live pref changes (Appearance page).
+                if (window.__nxSyncFireflies) window.__nxSyncFireflies(eff.background);
             }
             apply();
             sysDark.addEventListener('change', function () { if (eff.theme === 'system') apply(); });
@@ -134,6 +141,13 @@
                 fetch(API_PREFIX + 'profile/ui_prefs', {
                     method: 'POST',
                     credentials: 'same-origin',
+                    // keepalive: lets this tiny PATCH survive a navigation that
+                    // starts right after the click (e.g. picking a background
+                    // then immediately clicking a sidebar link) — without it
+                    // the browser aborts the in-flight request on unload, the
+                    // DB write never lands, and the next page's server-
+                    // rendered ui_prefs silently reverts the pick.
+                    keepalive: true,
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRFToken': meta ? meta.getAttribute('content') : ''
@@ -170,6 +184,7 @@
 
 <body>
     {% include '_maintenance_banner.html' %}
+    <div id="fireflyField" class="firefly-field" aria-hidden="true"></div>
     <button id="sidebar-toggle" class="sidebar-toggle-btn" aria-label="{{ _('Open navigation') }}" type="button" data-testid="header-burger">
         <i class="fas fa-bars"></i>
     </button>
@@ -365,42 +380,47 @@
                     <span class="sidebar-label sidebar-username">{{ logged_in_user }}</span>
                 </button>
                 <el-menu anchor="right end" popover
-                    class="w-48 rounded-lg bg-white p-1 shadow-xl border border-gray-100 ml-2">
+                    class="w-48 rounded-lg bg-white dark:bg-slate-800 p-1 shadow-xl dark:shadow-black/40 border border-gray-100 dark:border-slate-700 ml-2">
                     <a href="{{ url_for('profile') }}"
-                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50 hover:text-indigo-600 transition-colors" data-testid="header-profile-link">
+                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-slate-300 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-[var(--nx-accent)] transition-colors" data-testid="header-profile-link">
                         <i class="fas fa-user-circle w-4"></i> {{ _("Your profile") }}
                     </a>
                     <a href="{{ url_for('appearance') }}"
-                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50 hover:text-indigo-600 transition-colors" data-testid="header-appearance-link">
+                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-slate-300 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-[var(--nx-accent)] transition-colors" data-testid="header-appearance-link">
                         <i class="fas fa-palette w-4"></i> {{ _("Appearance") }}
                     </a>
                     <a href="{{ url_for('whats_new') }}"
-                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50 hover:text-indigo-600 transition-colors" data-testid="header-whatsnew-link">
+                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-slate-300 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-[var(--nx-accent)] transition-colors" data-testid="header-whatsnew-link">
                         <i class="fas fa-bullhorn w-4"></i> {{ _("What's New") }}
                         {% if whats_new_unseen %}<span class="ml-auto w-2 h-2 rounded-full bg-rose-500" data-testid="header-whatsnew-dot"></span>{% endif %}
                     </a>
-                    {# Sidebar pages no longer render _small_footer.html, so this is
-                       the only support link a logged-in user can reach. #}
+                    <a href="{{ url_for('feedback', from=request.path) }}"
+                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-slate-300 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-[var(--nx-accent)] transition-colors" data-testid="header-feedback-link">
+                        <i class="fas fa-comment-dots w-4"></i> {{ _("Feedback") }}
+                    </a>
+                    {# mailto: fallback for anyone who'd rather just fire off an
+                       email from their own client than use the in-app form
+                       above. #}
                     <a href="mailto:support.helpdesk@sydoc.ch"
-                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50 hover:text-indigo-600 transition-colors" data-testid="header-help-link">
+                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-slate-300 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-[var(--nx-accent)] transition-colors" data-testid="header-help-link">
                         <i class="fas fa-circle-question w-4"></i> {{ _("Help") }}
                     </a>
                     {% if not is_prod %}
-                    <div class="my-1 border-t border-gray-100"></div>
+                    <div class="my-1 border-t border-gray-100 dark:border-slate-700"></div>
                     <button type="button" id="switchUserBtn"
-                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50 hover:text-indigo-600 transition-colors w-full text-left" data-testid="header-switch-user">
+                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-slate-300 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-[var(--nx-accent)] transition-colors w-full text-left" data-testid="header-switch-user">
                         <i class="fas fa-user-friends w-4"></i> {{ _("Switch user") }}
                     </button>
                     {% endif %}
-                    <div class="my-1 border-t border-gray-100"></div>
+                    <div class="my-1 border-t border-gray-100 dark:border-slate-700"></div>
                     <a href="{{ url_for('logout') }}"
-                        class="flex items-center gap-2 px-3 py-2 text-sm text-red-600 rounded-md hover:bg-red-50 transition-colors" data-testid="header-logout-link">
+                        class="flex items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 rounded-md hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors" data-testid="header-logout-link">
                         <i class="fas fa-sign-out-alt w-4"></i> {{ _("Sign out") }}
                     </a>
                     {# Reporting, admin and prepared-documents have no footer, so this
                        is the only place the running build is visible on those pages. #}
-                    <div class="my-1 border-t border-gray-100"></div>
-                    <p class="px-3 py-1 text-xs leading-tight text-gray-500" data-testid="header-version">
+                    <div class="my-1 border-t border-gray-100 dark:border-slate-700"></div>
+                    <p class="px-3 py-1 text-xs leading-tight text-gray-500 dark:text-slate-500" data-testid="header-version">
                         nexora v{{ nexora_version }}{% if nexora_build %}<br>{{ nexora_build }}{% endif %}
                     </p>
                 </el-menu>

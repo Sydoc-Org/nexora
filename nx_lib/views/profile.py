@@ -1,27 +1,35 @@
-"""Profile, password change, language switch."""
+"""Profile, password change, language switch, feedback."""
 
 import io
 import os
 import re
+from html import escape
 
 import bcrypt
 from flask import (
+    abort,
     current_app,
     flash,
     jsonify,
     redirect,
     render_template,
     request,
+    send_from_directory,
     session,
     url_for,
 )
 from flask_babel import gettext as _
 from PIL import Image
+from werkzeug.utils import secure_filename
 
+from ..config import PATHS, SUPPORT_MAIL
 from ..db import engine_nexora_db
+from ..extensions import limiter
 from ..files import is_file_allowed
+from ..mail import MailError, send_mail
 from ..security import has_permission, page_visibility
 from ..ui_prefs import sanitize_ui_prefs, save_ui_prefs
+from ..version import BUILD_STAMP, __version__
 from ..whats_new import mark_seen, visible_releases
 
 
@@ -109,8 +117,9 @@ def update_profile():
                     img.verify()
 
                     filename = f"{userid}-icon.png"
-                    rel_path = os.path.join("static", "images", filename)
-                    abs_path = os.path.join(current_app.root_path, rel_path)
+                    avatars_dir = PATHS.uploads / "avatars"
+                    avatars_dir.mkdir(parents=True, exist_ok=True)
+                    abs_path = os.path.join(avatars_dir, filename)
                     if os.path.exists(abs_path):
                         os.remove(abs_path)
 
@@ -136,6 +145,19 @@ def update_profile():
             cursor.close()
         if conn:
             conn.close()
+
+
+def user_avatar(user_id):
+    """Serve an uploaded avatar from var/uploads/avatars/ (see resolve_user_icon_url).
+
+    Not under static/ on purpose -- static/ is robocopy-mirrored from git on
+    every deploy, which would delete every uploaded avatar on the next release.
+    """
+    avatars_dir = PATHS.uploads / "avatars"
+    for filename in (f"{user_id}-icon.png", f"{user_id}-Icon.png"):
+        if (avatars_dir / filename).exists():
+            return send_from_directory(avatars_dir, filename)
+    abort(404)
 
 
 def change_password():
@@ -281,6 +303,98 @@ def set_ui_prefs():
     return jsonify({"ok": True, "prefs": prefs})
 
 
+FEEDBACK_CATEGORIES = ("bug", "idea", "question")
+FEEDBACK_MAX_MESSAGE_LEN = 5000
+FEEDBACK_MAX_SCREENSHOT_BYTES = 5 * 1024 * 1024
+FEEDBACK_SCREENSHOT_EXTS = {"png", "jpg", "jpeg"}
+
+
+def feedback():
+    """Small in-app "report a problem / suggest something" form. Available to
+    every authenticated user, same as Appearance/What's New -- no dedicated
+    permission code, so (like those two) it's absent from page_visibility()."""
+    if "username" not in session:
+        return redirect(url_for("login"))
+    return render_template(
+        "feedback.html",
+        userid=session.get("userid", "Unknown"),
+        logged_in_user=session.get("username", "Unknown"),
+        from_page=request.args.get("from", ""),
+        pageV=page_visibility(),
+    )
+
+
+@limiter.limit("10 per hour")
+def submit_feedback():
+    """AJAX endpoint behind the Feedback page. Mails SUPPORT_MAIL (the
+    outage-monitor env var, issue #166) via the existing Graph sender --
+    no ticket tracking in-app, the mailbox is the queue (deliberate scope
+    cut)."""
+    if "username" not in session:
+        return jsonify({"error": _("Unauthorized")}), 401
+
+    category = (request.form.get("category") or "").strip().lower()
+    message = (request.form.get("message") or "").strip()
+    from_page = (request.form.get("from_page") or "").strip()[:200]
+
+    if category not in FEEDBACK_CATEGORIES:
+        return jsonify({"error": _("Please choose a category.")}), 400
+    if not message:
+        return jsonify({"error": _("Please describe the problem or idea.")}), 400
+    if len(message) > FEEDBACK_MAX_MESSAGE_LEN:
+        return jsonify({"error": _("Message is too long.")}), 400
+
+    attachments = None
+    screenshot = request.files.get("screenshot")
+    if screenshot and screenshot.filename:
+        ext = screenshot.filename.rsplit(".", 1)[-1].lower() if "." in screenshot.filename else ""
+        # FEEDBACK_SCREENSHOT_EXTS narrows is_file_allowed's own table (which
+        # also accepts pdf/xlsx, not wanted for a screenshot) -- the ext
+        # check short-circuits before it, so a non-image never touches the
+        # stream at all.
+        if ext not in FEEDBACK_SCREENSHOT_EXTS or not is_file_allowed(
+            screenshot.filename, screenshot.stream
+        ):
+            return jsonify({"error": _("Screenshot must be a PNG or JPEG image.")}), 400
+        data = screenshot.stream.read()
+        if len(data) > FEEDBACK_MAX_SCREENSHOT_BYTES:
+            return jsonify({"error": _("Screenshot is too large (max 5 MB).")}), 400
+        content_type = "image/png" if ext == "png" else "image/jpeg"
+        attachment_name = secure_filename(screenshot.filename) or "screenshot.png"
+        attachments = [(attachment_name, data, content_type)]
+
+    if not SUPPORT_MAIL:
+        current_app.logger.warning("Feedback submitted but SUPPORT_MAIL is unset -- not mailing.")
+        return jsonify({"error": _("Feedback is not configured on this environment.")}), 503
+
+    category_labels = {"bug": _("Bug"), "idea": _("Idea"), "question": _("Question")}
+    category_label = category_labels.get(category, category)
+    fullname = session.get("fullname") or session.get("username", "Unknown")
+    username = session.get("username", "Unknown")
+    environment = os.environ.get("ENVIRONMENT", "?")
+    version_str = f"{__version__} ({BUILD_STAMP})" if BUILD_STAMP else __version__
+
+    subject = f"[nexora Feedback] {category_label} — {username}"
+    html_body = f"""
+    <p><strong>{escape(category_label)}</strong> from
+    <strong>{escape(fullname)}</strong> ({escape(username)})</p>
+    <p style="white-space: pre-wrap;">{escape(message)}</p>
+    <hr>
+    <p style="color:#666; font-size:12px;">
+      Page: {escape(from_page or "-")}<br>
+      Version: {escape(version_str)} &middot; Environment: {escape(environment)}
+    </p>
+    """
+
+    try:
+        send_mail(SUPPORT_MAIL, subject, html_body, attachments=attachments)
+    except MailError as e:
+        current_app.logger.error(f"Feedback mail failed: {e}")
+        return jsonify({"error": _("Could not send feedback. Please try again later.")}), 502
+
+    return jsonify({"ok": True})
+
+
 def register_routes(app):
     app.add_url_rule("/profile", endpoint="profile", view_func=profile)
     app.add_url_rule(
@@ -296,11 +410,23 @@ def register_routes(app):
         methods=["POST", "GET"],
     )
     app.add_url_rule("/language/<lang>", endpoint="set_language", view_func=set_language)
+    app.add_url_rule(
+        "/avatar/<int:user_id>",
+        endpoint="user_avatar",
+        view_func=user_avatar,
+    )
     app.add_url_rule("/appearance", endpoint="appearance", view_func=appearance)
     app.add_url_rule("/whats_new", endpoint="whats_new", view_func=whats_new)
     app.add_url_rule(
         "/profile/ui_prefs",
         endpoint="set_ui_prefs",
         view_func=set_ui_prefs,
+        methods=["POST"],
+    )
+    app.add_url_rule("/feedback", endpoint="feedback", view_func=feedback)
+    app.add_url_rule(
+        "/feedback/submit",
+        endpoint="submit_feedback",
+        view_func=submit_feedback,
         methods=["POST"],
     )

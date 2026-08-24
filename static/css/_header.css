@@ -30,7 +30,7 @@
 body {
     font-family: 'Inter', sans-serif;
     background-color: #f9fafb;
-    padding-left: 64px;          /* reserve sidebar width */
+    padding-left: 100px;          /* collapsed sidebar (64px) + a little breathing room */
     transition: padding-left 0.3s ease;
     display: flex;
     flex-direction: column;
@@ -60,13 +60,28 @@ footer {
     overflow: hidden;
     transition: width 0.28s cubic-bezier(.4,0,.2,1);
 }
-#nexora-sidebar:is(:hover, .pinned) {
+/* html.sidebar-pinned #nexora-sidebar variants (here and below) exist
+   because html.sidebar-pinned is set pre-paint, synchronously in
+   _header.html's <head> script -- but #nexora-sidebar.pinned itself is
+   only added later by _header_js.html, once the whole page (including
+   external CDN scripts) has finished loading. Without these, a pinned
+   sidebar rendered collapsed/unlabeled for that whole gap, then
+   visibly snapped open once the late JS ran -- driving the open state
+   from a class that's guaranteed present at first paint removes the
+   flash entirely. */
+#nexora-sidebar:is(:hover, .pinned),
+html.sidebar-pinned #nexora-sidebar {
     width: 220px;
 }
 html.sidebar-pinned body {
     padding-left: 220px;
 }
-.sidebar-pin-active { color: #4f46e5; transform: rotate(-45deg); }
+/* When sidebar is hovered (unpinned), also add padding to prevent overlay */
+body:has(#nexora-sidebar:hover) {
+    padding-left: 220px;
+    transition: padding-left 0.28s cubic-bezier(.4,0,.2,1);
+}
+.sidebar-pin-active { color: var(--nx-accent, #4f46e5); transform: rotate(-45deg); }
 
 /* ---------- Sidebar label (hidden when collapsed) ---------- */
 .sidebar-label {
@@ -76,7 +91,8 @@ html.sidebar-pinned body {
     pointer-events: none;
     overflow: hidden;
 }
-#nexora-sidebar:is(:hover, .pinned) .sidebar-label {
+#nexora-sidebar:is(:hover, .pinned) .sidebar-label,
+html.sidebar-pinned #nexora-sidebar .sidebar-label {
     opacity: 1;
     pointer-events: auto;
 }
@@ -122,7 +138,8 @@ html.sidebar-pinned body {
     transition: opacity 0.18s ease;
     pointer-events: none;
 }
-#nexora-sidebar:is(:hover, .pinned) .sidebar-logo-area .flex.flex-col {
+#nexora-sidebar:is(:hover, .pinned) .sidebar-logo-area .flex.flex-col,
+html.sidebar-pinned #nexora-sidebar .sidebar-logo-area .flex.flex-col {
     opacity: 1;
     pointer-events: auto;
 }
@@ -157,12 +174,12 @@ html.sidebar-pinned body {
     cursor: pointer;
 }
 .sidebar-nav-item:hover {
-    background: #f5f3ff;
-    color: #4f46e5;
+    background: var(--nx-accent-tint, #f5f3ff);
+    color: var(--nx-accent, #4f46e5);
 }
 .sidebar-nav-item--active {
-    background: #eef2ff;
-    color: #4f46e5;
+    background: var(--nx-accent-tint, #eef2ff);
+    color: var(--nx-accent, #4f46e5);
     font-weight: 600;
 }
 
@@ -178,30 +195,38 @@ html.sidebar-pinned body {
 }
 
 /* ---------- Nav sub-group (e.g. Generali) ---------- */
+.sidebar-nav-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
 .sidebar-nav-group-header {
     cursor: pointer;
 }
 .sidebar-nav-group-header:hover {
-    background: #f5f3ff;
-    color: #4f46e5;
+    background: var(--nx-accent-tint, #f5f3ff);
+    color: var(--nx-accent, #4f46e5);
 }
 .sidebar-nav-subitems {
     display: flex;
     flex-direction: column;
-    gap: 1px;
+    gap: 2px;
     overflow: hidden;
     max-height: 0;
     transition: max-height 0.25s ease;
 }
-#nexora-sidebar:is(:hover, .pinned) #generaliNavGroup.generali-open .sidebar-nav-subitems {
+#nexora-sidebar:is(:hover, .pinned) #generaliNavGroup.generali-open .sidebar-nav-subitems,
+html.sidebar-pinned #nexora-sidebar #generaliNavGroup.generali-open .sidebar-nav-subitems {
     max-height: var(--generali-subitems-height, 9999px);
 }
 /* Admin group expand (mirrors generali rules) */
-#nexora-sidebar:is(:hover, .pinned) #adminNavGroup.admin-open .sidebar-nav-subitems {
+#nexora-sidebar:is(:hover, .pinned) #adminNavGroup.admin-open .sidebar-nav-subitems,
+html.sidebar-pinned #nexora-sidebar #adminNavGroup.admin-open .sidebar-nav-subitems {
     max-height: var(--admin-subitems-height, 9999px);
 }
 /* Development group expand (mirrors generali/admin rules) */
-#nexora-sidebar:is(:hover, .pinned) #devNavGroup.dev-open .sidebar-nav-subitems {
+#nexora-sidebar:is(:hover, .pinned) #devNavGroup.dev-open .sidebar-nav-subitems,
+html.sidebar-pinned #nexora-sidebar #devNavGroup.dev-open .sidebar-nav-subitems {
     max-height: var(--dev-subitems-height, 9999px);
 }
 .sidebar-nav-subitem {
@@ -225,7 +250,8 @@ html.sidebar-pinned body {
 #devNavGroup.dev-open .sidebar-generali-chevron {
     transform: rotate(90deg);
 }
-html.dark .sidebar-nav-group-header:hover { background: #334155; color: #a5b4fc; }
+/* html.dark .sidebar-nav-group-header:hover hardcode removed -- see the
+   same note by .sidebar-nav-item's dark overrides below. */
 
 /* ---------- Bottom section ---------- */
 .sidebar-bottom {
@@ -286,8 +312,8 @@ html.dark .sidebar-nav-group-header:hover { background: #334155; color: #a5b4fc;
 }
 .sidebar-notif-new-badge {
     font-size: 9px;
-    background: #eef2ff;
-    color: #4f46e5;
+    background: var(--nx-accent-tint, #eef2ff);
+    color: var(--nx-accent, #4f46e5);
     padding: 2px 7px;
     border-radius: 999px;
     font-weight: 800;
@@ -341,13 +367,40 @@ html.dark .sidebar-nav-group-header:hover { background: #334155; color: #a5b4fc;
     cursor: pointer;
 }
 
+/* ---------- Dark mode toggle ----------
+   Colours match the login page's theme-toggle (teal sun / orange moon) —
+   position stays the sidebar-bottom nav item above the profile button,
+   only the colours change. Hover picks up the same teal/orange tint
+   instead of the generic indigo nav-item highlight, so the control reads
+   as "the theme switch" rather than just another nav link. Higher-
+   specificity ID selectors so these win over the generic
+   .sidebar-nav-item(:hover) colour rules. */
+#dark-mode-toggle #dark-mode-icon {
+    color: #3d6c7a;
+    transition: color 0.2s ease, transform 0.3s ease;
+}
+#dark-mode-toggle:hover {
+    background: rgba(61, 108, 122, 0.1);
+    color: #3d6c7a;
+}
+#dark-mode-toggle:hover #dark-mode-icon {
+    transform: rotate(-14deg);
+}
+html.dark #dark-mode-toggle #dark-mode-icon {
+    color: #e2603c;
+}
+html.dark #dark-mode-toggle:hover {
+    background: rgba(226, 96, 60, 0.16);
+    color: #e2603c;
+}
+
 /* ---------- notification-item (legacy support) ---------- */
 .notification-item {
     border-left: 3px solid transparent;
     transition: all 0.2s ease;
 }
 .notification-item:hover {
-    border-left-color: #4f46e5;
+    border-left-color: var(--nx-accent, #4f46e5);
     background-color: #f9fafb;
 }
 
@@ -376,11 +429,17 @@ html.dark #nexora-sidebar {
     box-shadow: 2px 0 8px rgba(0,0,0,0.3);
 }
 html.dark .sidebar-logo-area  { border-bottom-color: #334155; }
-html.dark .sidebar-logo-area .nexora-title { background: linear-gradient(90deg, #f1f5f9, #a5b4fc) !important; -webkit-background-clip: text !important; background-clip: text !important; }
+html.dark .sidebar-logo-area .nexora-title { background: linear-gradient(90deg, #f1f5f9, var(--nx-accent-hover, #a5b4fc)) !important; -webkit-background-clip: text !important; background-clip: text !important; }
 html.dark .sidebar-bottom      { border-top-color: #334155; }
 html.dark .sidebar-nav-item    { color: #94a3b8; }
-html.dark .sidebar-nav-item:hover { background: #334155; color: #a5b4fc; }
-html.dark .sidebar-nav-item--active { background: rgba(79,70,229,0.25); color: #a5b4fc; }
+/* :hover dark override removed -- the base rule above now uses
+   var(--nx-accent-tint), which already flips correctly under html.dark
+   (and per accent). --active still needs an entry here though: it's a
+   single-class selector (0,1,0), so without this it loses to the idle
+   color rule just above (0,2,1) and the active item's text falls back
+   to the idle gray in dark mode. Still var(--nx-accent), just scoped
+   enough to win -- not a hardcoded-color reintroduction. */
+html.dark .sidebar-nav-item--active { color: var(--nx-accent); }
 html.dark .sidebar-username    { color: #e2e8f0; }
 html.dark .sidebar-online-dot  { border-color: #1e293b; }
 html.dark .sidebar-news-dot    { border-color: #1e293b; }
@@ -454,18 +513,18 @@ html.dark .skeleton-shimmer {
     border-radius: calc(var(--nx-radius-scale, 1) * 10px);
     background: #ffffff;
     border: 1px solid #e5e7eb;
-    color: #4f46e5;
+    color: var(--nx-accent, #4f46e5);
     font-size: 1.05rem;
     align-items: center;
     justify-content: center;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     cursor: pointer;
 }
-.sidebar-toggle-btn:hover { background: #f5f3ff; }
+.sidebar-toggle-btn:hover { background: var(--nx-accent-tint, #f5f3ff); }
 html.dark .sidebar-toggle-btn {
     background: #1e293b;
     border-color: #334155;
-    color: #a5b4fc;
+    color: var(--nx-accent, #a5b4fc);
 }
 
 .sidebar-backdrop {
@@ -715,8 +774,8 @@ html.dark .sidebar-toggle-btn {
 .cmdk-item .cmdk-item-section {
     font-size: 11px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.6px;
 }
-.cmdk-item.is-selected { background: #eef2ff; color: #3730a3; }
-.cmdk-item.is-selected .cmdk-item-icon { color: #4f46e5; }
+.cmdk-item.is-selected { background: var(--nx-accent-tint, #eef2ff); color: var(--nx-accent-hover, #3730a3); }
+.cmdk-item.is-selected .cmdk-item-icon { color: var(--nx-accent, #4f46e5); }
 .cmdk-list .cmdk-empty {
     padding: 24px 12px; text-align: center; color: #9ca3af; font-size: 13px;
 }
@@ -744,8 +803,9 @@ html.dark .cmdk-input::placeholder { color: #64748b; }
 html.dark .cmdk-input-icon { color: #64748b; }
 html.dark .cmdk-item { color: #e2e8f0; }
 html.dark .cmdk-item .cmdk-item-icon { color: #94a3b8; }
-html.dark .cmdk-item.is-selected { background: #312e81; color: #c7d2fe; }
-html.dark .cmdk-item.is-selected .cmdk-item-icon { color: #818cf8; }
+/* .is-selected dark overrides removed -- the base rules above already use
+   var(--nx-accent-tint)/var(--nx-accent-hover)/var(--nx-accent), which
+   flip correctly under html.dark and per accent on their own. */
 html.dark .cmdk-list .cmdk-empty { color: #64748b; }
 html.dark .cmdk-footer { border-top-color: #273449; color: #64748b; }
 html.dark .cmdk-kbd { background: #273449; border-color: #334155; color: #cbd5e1; }

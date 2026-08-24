@@ -29,9 +29,15 @@
   --a-warning:       #d97706;
   --a-danger:        #dc2626;
 
-  /* Badge backgrounds — Tailwind-aligned pastels */
-  --a-b-indigo:      #eef2ff;
-  --a-b-indigo-fg:   #4338ca;
+  /* Badge backgrounds — Tailwind-aligned pastels.
+     --a-b-indigo/-fg are the "active/brand" pair (e.g. the selected
+     profile-jumpnav item) so they follow the user's chosen accent
+     (nexora-ui.css's html[data-accent] blocks + the custom-color
+     picker both already re-tint --nx-accent-tint/-hover); the other
+     --a-b-* pairs are fixed semantic status colors (success/warning/
+     neutral/danger) and must stay put regardless of accent. */
+  --a-b-indigo:      var(--nx-accent-tint, #eef2ff);
+  --a-b-indigo-fg:   var(--nx-accent-hover, #4338ca);
   --a-b-green:       #d1fae5;
   --a-b-green-fg:    #065f46;
   --a-b-amber:       #fef3c7;
@@ -195,8 +201,8 @@ body.admin-page main {
   --a-warning:       #fbbf24;
   --a-danger:        #f87171;
 
-  --a-b-indigo:      #312e81;
-  --a-b-indigo-fg:   #c7d2fe;
+  --a-b-indigo:      var(--nx-accent-tint, #312e81);
+  --a-b-indigo-fg:   var(--nx-accent-hover, #c7d2fe);
   --a-b-green:       #064e3b;
   --a-b-green-fg:    #6ee7b7;
   --a-b-amber:       #78350f;

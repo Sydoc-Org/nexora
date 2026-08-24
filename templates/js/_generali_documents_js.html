@@ -319,7 +319,7 @@
             if (!icon) return;
             const col = th.dataset.col;
             if (col === sortBy) {
-                icon.className = `fas ${sortDir === 'ASC' ? 'fa-sort-up' : 'fa-sort-down'} text-indigo-600 text-xs`;
+                icon.className = `fas ${sortDir === 'ASC' ? 'fa-sort-up' : 'fa-sort-down'} text-[var(--nx-accent)] text-xs`;
             } else {
                 icon.className = 'fas fa-sort text-gray-400 text-xs';
             }

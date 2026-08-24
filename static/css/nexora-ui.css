@@ -77,8 +77,8 @@
   --nx-violet-border: #ddd6fe;
   --nx-radius-lg: calc(var(--nx-radius-scale, 1) * 12px);
   --nx-radius-hero: calc(var(--nx-radius-scale, 1) * 16px);
-  --nx-card-hover-border: #c7d2fe;
-  --nx-card-hover-shadow: 0 8px 24px -8px rgba(79, 70, 229, .18);
+  --nx-card-hover-border: color-mix(in srgb, var(--nx-accent) 40%, white);
+  --nx-card-hover-shadow: 0 8px 24px -8px color-mix(in srgb, var(--nx-accent) 18%, transparent);
 }
 
 html.dark {
@@ -119,7 +119,7 @@ html.dark {
   /* Indigo Studio (2026-07-20 reporting redesign) */
   --nx-violet-tint: rgba(167, 139, 250, .12);
   --nx-violet-border: #4c1d95;
-  --nx-card-hover-border: #4c4a8f;
+  --nx-card-hover-border: color-mix(in srgb, var(--nx-accent) 45%, var(--nx-card));
   --nx-card-hover-shadow: 0 8px 24px -8px rgba(0, 0, 0, .5);
 }
 
@@ -130,12 +130,80 @@ body.nx-app {
   background: var(--nx-page);
   color: var(--nx-text);
   font-family: var(--nx-font);
+  /* Native checkbox/radio "selected" fill. Never set anywhere in the app
+     before this -- so every checkbox's checked state (workitems' row/
+     select-all checkboxes, the export-options checkboxes, ...) rendered
+     with the browser's own OS-default accent color, not nexora's. It read
+     as "not dark mode" because it's the one bit of chrome that ignores
+     the page's theme AND accent entirely, standing out against
+     everything else that does. Set here (not just under html.dark) since
+     it should track the accent picker in light mode too, not only look
+     "fixed" in dark. */
+  accent-color: var(--nx-accent);
 }
+/* Custom checkbox/radio chrome. accent-color above is a start, but native
+   widget rendering isn't reliable enough on its own -- confirmed on a real
+   Windows/Chrome combo, the *unchecked* box still painted solid opaque
+   white regardless of color-scheme/accent-color, since browsers mostly
+   only listen to those for the checked-state tint, not the base widget
+   chrome. appearance:none + our own box/checkmark makes every state
+   (unchecked, checked, indeterminate -- the process-filter dropdown's
+   "some but not all selected" rows use indeterminate, see
+   _process_multiselect_js.html) explicitly theme-aware instead of trusting
+   the browser. Sizing (h-4/w-4 etc.) is left to each checkbox's own
+   classes -- only chrome (border/background/checkmark) is set here, via
+   background-image so it scales with whatever box size the caller uses
+   instead of assuming one fixed pixel size. */
+body.nx-app input[type="checkbox"],
+body.nx-app input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0;
+  border: 1.5px solid var(--nx-border-strong);
+  background-color: var(--nx-card);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 68% 68%;
+  cursor: pointer;
+  transition: background-color 0.12s, border-color 0.12s;
+}
+body.nx-app input[type="checkbox"] { border-radius: 4px; }
+body.nx-app input[type="radio"] { border-radius: 50%; }
+body.nx-app input[type="checkbox"]:hover,
+body.nx-app input[type="radio"]:hover {
+  border-color: var(--nx-accent);
+}
+body.nx-app input[type="checkbox"]:checked,
+body.nx-app input[type="checkbox"]:indeterminate,
+body.nx-app input[type="radio"]:checked {
+  background-color: var(--nx-accent);
+  border-color: var(--nx-accent);
+}
+body.nx-app input[type="checkbox"]:checked {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3 8 6.5 11.5 13 4.5'/%3E%3C/svg%3E");
+}
+body.nx-app input[type="checkbox"]:indeterminate {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round'%3E%3Cline x1='4' y1='8' x2='12' y2='8'/%3E%3C/svg%3E");
+}
+body.nx-app input[type="radio"]:checked {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='3.5' fill='white'/%3E%3C/svg%3E");
+}
+body.nx-app input[type="checkbox"]:focus-visible,
+body.nx-app input[type="radio"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--nx-accent-soft);
+}
+body.nx-app input[type="checkbox"]:disabled,
+body.nx-app input[type="radio"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 body.nx-app .nx-main {
   width: 100%;
   max-width: 1600px;
   margin: 0 auto;
-  padding: 28px 40px;
+  padding: 44px 40px 28px;
   box-sizing: border-box;
 }
 
@@ -216,8 +284,8 @@ a.nx-card:hover, .nx-card--link:hover {
 }
 .nx-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--nx-accent-soft); }
 /* signature: primary CTA carries the brand gradient */
-.nx-btn--primary  { background: var(--nx-brand-grad); color: #fff; box-shadow: 0 2px 8px -2px rgba(79,70,229,0.45); }
-.nx-btn--primary:hover  { filter: brightness(1.08); box-shadow: 0 4px 12px -2px rgba(79,70,229,0.5); }
+.nx-btn--primary  { background: var(--nx-brand-grad); color: #fff; box-shadow: 0 2px 8px -2px color-mix(in srgb, var(--nx-accent) 45%, transparent); }
+.nx-btn--primary:hover  { filter: brightness(1.08); box-shadow: 0 4px 12px -2px color-mix(in srgb, var(--nx-accent) 50%, transparent); }
 .nx-btn--secondary { background: var(--nx-card); color: var(--nx-text); border-color: var(--nx-border-strong); }
 .nx-btn--secondary:hover { background: var(--nx-alt); }
 .nx-btn--ghost { background: transparent; color: var(--nx-text-sec); }
@@ -325,7 +393,7 @@ a.nx-card:hover, .nx-card--link:hover {
   display: flex; align-items: center; justify-content: center;
   font-size: 24px; color: #fff;
   background: var(--nx-brand-grad);
-  box-shadow: 0 10px 28px -8px rgba(79,70,229,0.55);
+  box-shadow: 0 10px 28px -8px color-mix(in srgb, var(--nx-accent) 55%, transparent);
   margin-bottom: 18px;
   position: relative;
 }
@@ -365,9 +433,9 @@ a.nx-card:hover, .nx-card--link:hover {
    `both` holds the filled `to` as a resolved identity matrix, which still creates
    a stacking context -- that trapped overflowing popovers (e.g. the workitems
    doc-field dropdown) under the next .nx-rise card. */
-.nx-rise { animation: nx-rise calc(var(--nx-anim-speed, 1) * 0.32s) var(--nx-ease) backwards; }
-.nx-rise-2 { animation: nx-rise calc(var(--nx-anim-speed, 1) * 0.32s) var(--nx-ease) calc(var(--nx-anim-speed, 1) * 0.05s) backwards; }
-.nx-rise-3 { animation: nx-rise calc(var(--nx-anim-speed, 1) * 0.32s) var(--nx-ease) calc(var(--nx-anim-speed, 1) * 0.10s) backwards; }
+.nx-rise { animation: nx-rise calc(var(--nx-anim-speed, 1) * 0.6s) var(--nx-ease) backwards; }
+.nx-rise-2 { animation: nx-rise calc(var(--nx-anim-speed, 1) * 0.6s) var(--nx-ease) calc(var(--nx-anim-speed, 1) * 0.095s) backwards; }
+.nx-rise-3 { animation: nx-rise calc(var(--nx-anim-speed, 1) * 0.6s) var(--nx-ease) calc(var(--nx-anim-speed, 1) * 0.19s) backwards; }
 
 /* Animation speed preference */
 html[data-animspeed="relaxed"] { --nx-anim-speed: 1.8; }
@@ -430,7 +498,7 @@ html.nx-motion-reduced *::after {
   width: 44px; height: 44px; border-radius: calc(var(--nx-radius-scale, 1) * 12px); flex-shrink: 0;
   display: inline-flex; align-items: center; justify-content: center;
   font-size: 18px; color: #fff; background: var(--nx-brand-grad);
-  box-shadow: 0 8px 20px -6px rgba(79,70,229,0.55);
+  box-shadow: 0 8px 20px -6px color-mix(in srgb, var(--nx-accent) 55%, transparent);
 }
 
 /* Designed count pill with gradient numerals */
@@ -577,14 +645,15 @@ html.nx-compact .admin-table tbody td { padding: 7px 12px; }
 html.nx-compact .admin-card { padding: 12px; }
 html.nx-compact body.admin-page main { padding: 18px 28px; }
 html.nx-compact .nx-btn { padding: 6px 11px; }
-html.nx-compact .nx-input, html.nx-compact .nx-select { padding: 6px 10px; }
-/* The padding shorthand above outranks the .nx-input.pl-10 re-asserts
-   (extra html type selector), so icon'd search inputs lost their text
-   indent in compact density — placeholder rendered under the icon.
-   Re-assert the icon paddings at compact specificity too. */
-html.nx-compact .nx-input.pl-10, html.nx-compact .nx-select.pl-10 { padding-left: 2.5rem; }
-html.nx-compact .nx-input.pr-10, html.nx-compact .nx-select.pr-10 { padding-right: 2.5rem; }
-html.nx-compact .nx-select.pr-8 { padding-right: 2rem; }
+/* padding-block only, not the padding shorthand: the shorthand also sets
+   left/right, which -- at equal specificity and later in the cascade --
+   silently beat the .nx-input.pl-10/.pr-10 icon-clearance fix above
+   whenever density=compact is on, dragging icon inputs (e.g. Workitems'
+   search box) back down to 10px and letting the placeholder text run
+   into the icon. Compact density only means less vertical padding;
+   horizontal icon clearance is a separate concern that should hold
+   regardless of density. */
+html.nx-compact .nx-input, html.nx-compact .nx-select { padding-block: 6px; }
 
 /* ============================================================
    8. APPEARANCE EXTRAS — corner style, font scale, contrast,
@@ -599,6 +668,18 @@ html[data-radius="round"] { --nx-radius-scale: 1.6; }
 /* Font scale — zoom scales px-based layouts too (Chromium + FF 126+). */
 html[data-fontscale="sm"] body { zoom: 0.9; }
 html[data-fontscale="lg"] body { zoom: 1.1; }
+
+/* #nexora-sidebar is position:fixed with height:100vh. body's zoom still
+   scales it (Chromium applies zoom to fixed descendants too), but 100vh
+   itself keeps resolving against the real, un-zoomed viewport — so the
+   rendered box ends up short/tall of the actual viewport height, leaving
+   a visible gap below the sidebar's bottom actions (or an overflow at
+   "lg"). Counter-zoom the sidebar by the inverse factor so its net scale
+   is 1 and it always fills exactly 100vh; the trade-off is the sidebar
+   itself no longer scales with the rest of the UI, which reads fine for
+   a persistent icon rail. */
+html[data-fontscale="sm"] #nexora-sidebar { zoom: 1.1111; }
+html[data-fontscale="lg"] #nexora-sidebar { zoom: 0.9091; }
 
 /* High contrast: stronger borders + darker secondary text */
 html.nx-contrast {
@@ -636,6 +717,59 @@ html[data-bg="grid"] body.admin-page {
   background-image: radial-gradient(
     color-mix(in srgb, var(--nx-border) 70%, transparent) 1px, transparent 1px);
   background-size: 22px 22px;
+}
+
+/* Fireflies backdrop — dots are spawned into #fireflyField (in _header.html,
+   present on every page) by _header_js.html, driven by the data-bg pref
+   set here. Sits behind everything: main content is promoted to its own
+   stacking context so cards/text always paint above the dots. */
+body.nx-app main,
+body.admin-page main {
+  position: relative;
+  z-index: 1;
+}
+.firefly-field {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.firefly {
+  --ff-color: 61, 108, 122; /* teal (login/dashboard-toggle blue), warmer amber in dark mode below */
+  position: absolute;
+  left: var(--ff-left, 50%);
+  top: var(--ff-top, 50%);
+  width: var(--ff-size, 5px);
+  height: var(--ff-size, 5px);
+  border-radius: 50%;
+  background: rgb(var(--ff-color));
+  opacity: 0;
+  will-change: transform, opacity;
+  animation:
+    firefly-glow var(--ff-glow-dur, 4s) ease-in-out var(--ff-delay, 0s) infinite,
+    firefly-drift var(--ff-drift-dur, 9s) ease-in-out var(--ff-delay, 0s) infinite;
+}
+html.dark .firefly {
+  --ff-color: 245, 224, 132; /* warmer amber glow against the dark slate bg */
+}
+@keyframes firefly-glow {
+  0%, 100% {
+    opacity: 0;
+    box-shadow: 0 0 0 0 rgba(var(--ff-color), 0);
+  }
+  50% {
+    opacity: var(--ff-peak, 0.8);
+    box-shadow: 0 0 6px 2px rgba(var(--ff-color), 0.7), 0 0 16px 6px rgba(var(--ff-color), 0.3);
+  }
+}
+@keyframes firefly-drift {
+  0%   { transform: translate(0, 0); }
+  50%  { transform: translate(var(--ff-dx, 20px), var(--ff-dy, -20px)); }
+  100% { transform: translate(0, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .firefly { animation: none; opacity: 0.35; }
 }
 
 /* ------------------------------------------------------------------
@@ -693,7 +827,7 @@ html[data-bg="grid"] body.admin-page {
   cursor: pointer;
 }
 .nx-scope-row:hover { background: var(--nx-accent-tint); }
-.nx-scope-row input { margin: 0; cursor: pointer; }
+.nx-scope-row input { width: 18px; height: 18px; margin: 0; cursor: pointer; flex-shrink: 0; }
 .nx-scope-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nx-scope-all { font-weight: 600; }
 .nx-scope-all + .nx-scope-client { border-top: 1px solid var(--nx-border); }

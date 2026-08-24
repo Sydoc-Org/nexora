@@ -812,7 +812,7 @@ body.nx-app {
   background: var(--nx-brand-grad);
   color: #fff;
   border-color: transparent;
-  box-shadow: 0 2px 8px -2px rgba(79, 70, 229, 0.45);
+  box-shadow: 0 2px 8px -2px color-mix(in srgb, var(--nx-accent) 45%, transparent);
 }
 .reporting-btn-primary:hover { filter: brightness(1.06); background: var(--nx-brand-grad); }
 .reporting-export-format { margin: 0; padding: 7px 9px; }
@@ -947,7 +947,7 @@ body.nx-app {
 .reporting-simple-choice { border: 1px solid var(--nx-border); border-radius: 999px; background: var(--nx-card); color: var(--nx-text); padding: 8px 16px; font-size: 13px; cursor: pointer; font-family: inherit; }
 .reporting-simple-choice.is-selected {
   border: 1.5px solid var(--nx-accent); background: var(--nx-accent-tint);
-  color: #4338ca; font-weight: 600;
+  color: var(--nx-accent-hover); font-weight: 600;
 }
 .reporting-simple-choice.is-selected::before { content: "\2713"; margin-right: 6px; font-weight: 700; }
 /* "None -- just the total": dashed outline sets it apart from the real
@@ -1042,8 +1042,8 @@ body.nx-app {
 }
 .rs-rail-line { flex: 1; width: 2px; min-height: 16px; margin: 4px 0; background: var(--nx-border); }
 .rs-rail-step:last-child .rs-rail-line { display: none; }
-.rs-rail-step.is-done .rs-rail-dot { background: #eef2ff; border-color: #c7d2fe; color: #4338ca; }
-.rs-rail-step.is-done .rs-rail-line { background: #c7d2fe; }
+.rs-rail-step.is-done .rs-rail-dot { background: var(--nx-accent-tint); border-color: var(--nx-card-hover-border); color: var(--nx-accent-hover); }
+.rs-rail-step.is-done .rs-rail-line { background: var(--nx-card-hover-border); }
 .rs-rail-step.is-active .rs-rail-dot { background: var(--nx-brand-grad); border-color: transparent; color: #fff; }
 .rs-rail-title { font: 600 13px var(--nx-font); color: var(--nx-text); padding-top: 4px; }
 .rs-rail-step.is-active .rs-rail-title { color: var(--nx-accent); }
@@ -1384,7 +1384,7 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
   font-size: 11.5px; font-weight: 600; white-space: nowrap;
 }
 .reporting-drill-chip i { font-size: 10px; }
-.reporting-drill-chip--indigo { background: var(--nx-accent-tint); border-color: #e0e7ff; color: #4338ca; }
+.reporting-drill-chip--indigo { background: var(--nx-accent-tint); border-color: var(--nx-card-hover-border); color: var(--nx-accent-hover); }
 .reporting-drill-chip--violet { background: var(--nx-violet-tint); border-color: var(--nx-violet-border); color: var(--nx-violet); }
 .reporting-drill-body { flex: 1; overflow: auto; padding: 0 16px; }
 .reporting-drill-body table { width: 100%; border-collapse: collapse; font-size: 12px; }
@@ -1400,7 +1400,7 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
 /* Type pill (doctype column, when present in the drilled columns). */
 .reporting-drill-type-pill {
   display: inline-block; padding: 2px 8px; border-radius: 999px;
-  background: var(--nx-accent-tint); color: #4338ca; font-size: 11px; font-weight: 600;
+  background: var(--nx-accent-tint); color: var(--nx-accent-hover); font-size: 11px; font-weight: 600;
 }
 /* Info callout, built by ensureCallout() in _reporting_drill_js.html, only
    when the workitem-preview modal is on the page -- sits above the foot. */
@@ -1432,70 +1432,91 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
    open/close, message rendering and send behaviour). Bubbles, starter chips
    and the thinking ticker reuse the existing AI-panel/hero visual language
    (.reporting-ai-dots, .rs-suggestion) rather than inventing new ones. */
-.reporting-chat-backdrop {
-  position: fixed; inset: 0; background: rgba(0, 0, 0, .28); z-index: var(--z-modal-backdrop);
-}
-.reporting-chat-backdrop[hidden] { display: none; }
+/* Non-modal (issue #205): no backdrop rule here on purpose -- the chat is a
+   floating tool window, not a dialog that owns the page. Contrast with
+   .reporting-drill-backdrop above, which is still modal. */
 .reporting-chat-panel {
-  position: fixed; top: 0; right: 0; bottom: 0; z-index: var(--z-modal);
-  width: 420px; max-width: 420px; height: 100dvh;
+  position: fixed; right: 20px; bottom: 20px; z-index: var(--z-modal);
+  width: 450px; max-width: calc(100vw - 40px); height: 600px; max-height: calc(100dvh - 40px);
   display: flex; flex-direction: column;
   background: var(--nx-card); color: var(--nx-text);
-  border-left: 1px solid var(--nx-border);
-  box-shadow: -24px 0 64px -24px rgba(0, 0, 0, .35);
+  border: 1px solid var(--nx-border);
+  border-radius: calc(var(--nx-radius-scale, 1) * 12px);
+  box-shadow: 0 20px 60px -12px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
 }
 .reporting-chat-panel[hidden] { display: none; }
-/* Slide-in, 250ms -- `backwards` only (never `both`; see
-   .reporting-drill-panel above / nexora-ui.css's .nx-rise comment): the
-   "from" state paints for the instant before the JS-driven [hidden] flip,
-   and the effect fully ends once the animation completes -- no lingering
-   held transform/stacking context. */
-@keyframes rc-slide-in { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
-.reporting-chat-panel:not([hidden]) { animation: rc-slide-in .25s var(--nx-ease) backwards; }
+.reporting-chat-panel.is-dragging { box-shadow: 0 25px 80px -12px rgba(0, 0, 0, 0.45); }
+/* Fade-in entrance */
+@keyframes rc-fade-in { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: none; } }
+.reporting-chat-panel:not([hidden]) { animation: rc-fade-in .25s var(--nx-ease) backwards; }
 @media (prefers-reduced-motion: reduce) {
   .reporting-chat-panel:not([hidden]) { animation: none; }
 }
 @media (max-width: 900px) {
-  .reporting-chat-panel { width: 100vw; max-width: 100vw; }
+  .reporting-chat-panel { width: calc(100vw - 40px); height: calc(100dvh - 40px); }
 }
 
 .reporting-chat-head {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 16px; border-bottom: 1px solid var(--nx-border);
+  padding: 12px 16px; border-bottom: 1px solid var(--nx-divider);
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.05) 0%, rgba(124, 58, 237, 0.03) 100%);
+  cursor: grab;
+  user-select: none;
+  flex-shrink: 0;
 }
-.reporting-chat-title { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; color: var(--nx-text); }
-.reporting-chat-title i { color: var(--nx-violet); }
+.reporting-chat-head:active { cursor: grabbing; }
+.reporting-chat-title { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--nx-text); }
+.reporting-chat-title i { color: var(--nx-violet); font-size: 16px; }
 
 .reporting-chat-thread {
-  flex: 1; overflow-y: auto; padding: 16px;
-  display: flex; flex-direction: column; gap: 12px;
+  flex: 1; overflow-y: auto; overflow-x: hidden; padding: 12px 12px;
+  display: flex; flex-direction: column; gap: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--nx-border) transparent;
 }
-.reporting-chat-empty { text-align: center; padding: 24px 8px; color: var(--nx-text-sec); }
-.reporting-chat-empty p { margin: 0 0 16px; font-size: 13px; line-height: 1.5; }
+.reporting-chat-thread::-webkit-scrollbar {
+  width: 6px;
+}
+.reporting-chat-thread::-webkit-scrollbar-track {
+  background: transparent;
+}
+.reporting-chat-thread::-webkit-scrollbar-thumb {
+  background: var(--nx-border);
+  border-radius: 3px;
+}
+.reporting-chat-empty { text-align: center; padding: 20px 8px; color: var(--nx-text-sec); }
+.reporting-chat-empty p { margin: 0 0 12px; font-size: 12px; line-height: 1.5; }
 
 /* Starter suggestion chips -- same pill look as the landing hero's
    .rs-suggestion (border + accent text, tint background on hover). */
 .rp-chat-starter {
-  display: inline-block; margin: 4px; border: 1px solid #e0e7ff; border-radius: 999px;
-  background: var(--nx-card); color: var(--nx-accent); font: 500 12px var(--nx-font);
-  padding: 6px 14px; cursor: pointer;
+  display: inline-block; margin: 3px; border: 1px solid var(--nx-accent-soft); border-radius: 999px;
+  background: var(--nx-accent-tint); color: var(--nx-accent); font: 500 11px var(--nx-font);
+  padding: 5px 12px; cursor: pointer; transition: all var(--nx-dur) var(--nx-ease);
 }
-.rp-chat-starter:hover { background: var(--nx-accent-tint); }
-html.dark .rp-chat-starter { border-color: var(--nx-card-hover-border); }
+.rp-chat-starter:hover { background: var(--nx-accent-soft); border-color: var(--nx-accent); }
+html.dark .rp-chat-starter { border-color: var(--nx-border); background: transparent; }
 
 /* Message bubbles */
-.rp-chat-msg { max-width: 88%; padding: 10px 14px; border-radius: calc(var(--nx-radius-scale, 1) * 14px); font-size: 13px; line-height: 1.5; }
+.rp-chat-msg { max-width: 95%; padding: 9px 12px; border-radius: calc(var(--nx-radius-scale, 1) * 12px); font-size: 13px; line-height: 1.5; word-wrap: break-word; overflow-wrap: break-word; }
 .rp-chat-msg--user {
-  align-self: flex-end; background: var(--nx-accent-soft); color: var(--nx-text);
-  border-bottom-right-radius: 4px;
+  align-self: flex-end; background: var(--nx-accent); color: white;
+  border-bottom-right-radius: 4px; box-shadow: 0 2px 8px rgba(79, 70, 229, 0.2);
 }
 .rp-chat-msg--ai {
-  align-self: flex-start; background: var(--nx-card); color: var(--nx-text);
-  border: 1px solid var(--nx-border); border-bottom-left-radius: 4px;
+  align-self: flex-start; background: var(--nx-sunken); color: var(--nx-text);
+  border: none; border-bottom-left-radius: 4px;
 }
 
 /* Action chip row under an AI turn (e.g. "Open in builder", "Run query"). */
-.rp-chat-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; align-self: flex-start; }
+.rp-chat-actions {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; align-self: flex-start; width: 100%;
+}
+.rp-chat-actions .nx-btn { font-size: 12px; padding: 6px 12px; }
+.rp-chat-actions .nx-btn--secondary {
+  background: var(--nx-alt); border-color: var(--nx-border);
+}
 
 /* Mini result table under an AI turn -- capped height, scrolls internally. */
 .rp-chat-result {
@@ -1526,14 +1547,20 @@ html.dark .rp-chat-starter { border-color: var(--nx-card-hover-border); }
   .rp-chat-ticker i { animation: none; }
 }
 
-.reporting-chat-form { display: flex; align-items: flex-end; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--nx-border); }
-.reporting-chat-input {
-  flex: 1; resize: none; max-height: 120px; padding: 9px 12px;
-  background: var(--nx-card); color: var(--nx-text);
-  border: 1px solid var(--nx-border); border-radius: var(--nx-radius-sm);
-  font: 13px var(--nx-font);
+.reporting-chat-form {
+  display: flex; align-items: flex-end; gap: 8px; padding: 10px 12px;
+  border-top: 1px solid var(--nx-divider);
+  background: var(--nx-alt);
+  flex-shrink: 0;
 }
-.reporting-chat-input:focus { outline: none; border-color: var(--nx-accent); box-shadow: 0 0 0 3px var(--nx-accent-tint); }
+.reporting-chat-input {
+  flex: 1; resize: none; max-height: 100px; padding: 8px 10px;
+  background: var(--nx-card); color: var(--nx-text);
+  border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 8px);
+  font: 13px var(--nx-font);
+  transition: border-color var(--nx-dur) var(--nx-ease), box-shadow var(--nx-dur) var(--nx-ease);
+}
+.reporting-chat-input:focus { outline: none; border-color: var(--nx-accent); box-shadow: 0 0 0 2px var(--nx-accent-soft); }
 
 /* --- Workitem detail panel modal, opened from a .reporting-drill-wi-link
    row in the drill drawer (templates/js/_reporting_drill_js.html
@@ -1613,11 +1640,18 @@ body.reporting-ledger {
   --rl-navy:     #312e81;
 }
 html.dark body.reporting-ledger {
-  --rl-canvas:   var(--nx-page);
-  --rl-band:     var(--nx-card);
-  --rl-hairline: var(--nx-border);
-  --rl-ink:      var(--nx-text);
-  --rl-navy:     var(--nx-accent);
+  /* Fallbacks matter here: this page now loads nexora-ui.css early (real
+     <head>) specifically so --nx-* is always defined before this rule
+     ever paints, but keep the fallback anyway as a second line of
+     defense -- without it, var(--nx-page) with nothing defining --nx-page
+     yet is an invalid reference, which makes --rl-canvas itself
+     guaranteed-invalid (not "falls back to the light value above", an
+     unstyled/transparent background instead). */
+  --rl-canvas:   var(--nx-page, #0f172a);
+  --rl-band:     var(--nx-card, #1e293b);
+  --rl-hairline: var(--nx-border, #334155);
+  --rl-ink:      var(--nx-text, #e2e8f0);
+  --rl-navy:     var(--nx-accent, #818cf8);
 }
 
 /* Canvas only. The masthead's full-bleed white band + hairline were retired
@@ -1720,7 +1754,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   background: var(--nx-brand-grad);
   color: #fff;
   border-radius: calc(var(--nx-radius-scale, 1) * 14px);
-  box-shadow: 0 12px 28px -10px rgba(79, 70, 229, .5);
+  box-shadow: 0 12px 28px -10px color-mix(in srgb, var(--nx-accent) 50%, transparent);
   padding: 18px 20px;
   display: flex;
   flex-direction: column;
@@ -1931,11 +1965,22 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 }
 
 /* ---- Landing hero (spec §Landing) ---- */
-.reporting-hero { border-radius: var(--nx-radius-hero); border: 1px solid #e0e7ff; background: radial-gradient(1200px 320px at 50% -80px, var(--nx-accent-tint) 0%, var(--nx-card) 70%); padding: 44px 48px 36px; text-align: center; }
+/* Border deliberately uses --nx-border-strong (neutral) rather than an
+   accent-derived tone: the glow behind it is centered above the box
+   (radial gradient at 50% -80px), so an accent-tinted border blends
+   into that glow right at the top -- exactly where the rounded
+   corners need to read clearly -- and disappears. */
+.reporting-hero { border-radius: var(--nx-radius-hero); border: 1px solid var(--nx-border-strong); background: radial-gradient(1200px 320px at 50% -80px, var(--nx-accent-tint) 0%, var(--nx-card) 70%); padding: 44px 48px 36px; text-align: center; }
 .reporting-hero__title { margin: 0 0 8px; font: 600 28px var(--nx-font); letter-spacing: -.6px; color: var(--nx-text); }
 .reporting-hero__sub { margin: 0 0 24px; font-size: 14px; color: var(--nx-text-sec); }
 .reporting-hero__aiwrap { max-width: 660px; margin: 0 auto; border-radius: calc(var(--nx-radius-scale, 1) * 14px); background: var(--nx-brand-grad); padding: 1.5px; box-shadow: 0 12px 32px -12px rgba(79, 70, 229, .4); }
-.reporting-hero__aiwrap .reporting-simple-aibar { display: flex; align-items: center; border-radius: 12.5px; background: var(--nx-card); padding: 5px 5px 5px 18px; }
+/* Nested inside the 1.5px gradient-border padding above, so its radius
+   must track the same --nx-radius-scale minus that 1.5px gap -- it was
+   a flat 12.5px (only correct when scale=1, i.e. the default "Standard"
+   corner style), so any other corner-style pref (e.g. "Round", scale
+   1.6x) left the inner bar's corners visibly tighter than the outer
+   ring's, instead of nesting concentrically. */
+.reporting-hero__aiwrap .reporting-simple-aibar { display: flex; align-items: center; border-radius: calc((var(--nx-radius-scale, 1) * 14px) - 1.5px); background: var(--nx-card); padding: 5px 5px 5px 18px; }
 .reporting-hero__wand { color: var(--nx-violet); font-size: 15px; }
 .reporting-hero__aiinput { flex: 1; min-width: 0; border: none; outline: none; background: transparent; padding: 11px 14px; font: 13.5px var(--nx-font); color: var(--nx-text); }
 .reporting-hero__aibtn { border: none; border-radius: calc(var(--nx-radius-scale, 1) * 9px); background: var(--nx-brand-grad); color: #fff; font: 600 13px var(--nx-font); padding: 11px 20px; cursor: pointer; }
@@ -2110,18 +2155,18 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 .rdb-editing-pill {
   display: inline-flex; align-items: center; gap: 7px;
   padding: 6px 13px; border-radius: var(--nx-radius-pill);
-  background: var(--nx-accent-tint); border: 1px solid #c7d2fe;
-  font: 600 12px var(--nx-font); color: #4338ca;
+  background: var(--nx-accent-tint); border: 1px solid var(--nx-card-hover-border);
+  font: 600 12px var(--nx-font); color: var(--nx-accent-hover);
 }
 .rdb-editing-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--nx-accent); }
 .rdb-addcard-btn {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 14px; border-radius: var(--nx-radius-sm);
-  font: 600 12.5px var(--nx-font); border: 1px solid #c7d2fe;
-  background: var(--nx-accent-tint); color: #4338ca; cursor: pointer;
+  font: 600 12.5px var(--nx-font); border: 1px solid var(--nx-card-hover-border);
+  background: var(--nx-accent-tint); color: var(--nx-accent-hover); cursor: pointer;
   transition: background-color var(--nx-dur) var(--nx-ease);
 }
-.rdb-addcard-btn:hover { background: #e0e7ff; }
+.rdb-addcard-btn:hover { background: var(--nx-card-hover-border); }
 
 .rdb-filterbar {
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
@@ -2152,7 +2197,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   transition: color var(--nx-dur) var(--nx-ease), border-color var(--nx-dur) var(--nx-ease);
 }
 .rdb-add-filter i { font-size: 9px; }
-.rdb-add-filter:hover { color: var(--nx-accent); border-color: #c7d2fe; }
+.rdb-add-filter:hover { color: var(--nx-accent); border-color: var(--nx-card-hover-border); }
 
 /* Filter popover (#rdbFilterPop): field/op/value + Apply/Cancel, positioned
    under the clicked chip via JS-computed top/left off .rdb-filterbar's
@@ -2292,7 +2337,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
    ============================================================ */
 .rdb-card-grip { color: #d3d9f8; font-size: 11px; cursor: grab; }
 .rdb-card--dragging { opacity: .35; }
-.rdb-card--over { border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79, 70, 229, .15); }
+.rdb-card--over { border-color: var(--nx-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--nx-accent) 15%, transparent); }
 
 /* Hover control cluster: 22px squares, top:-11px;right:10px per D10. */
 .rdb-card-controls { position: absolute; top: -11px; right: 10px; z-index: 3; display: flex; gap: 4px; }
@@ -2304,7 +2349,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   transition: color var(--nx-dur) var(--nx-ease), border-color var(--nx-dur) var(--nx-ease),
               background-color var(--nx-dur) var(--nx-ease);
 }
-.rdb-card-ctrl-btn:hover { color: var(--nx-accent); border-color: #c7d2fe; }
+.rdb-card-ctrl-btn:hover { color: var(--nx-accent); border-color: var(--nx-card-hover-border); }
 .rdb-card-ctrl-btn--danger { border-color: #fecaca; color: var(--nx-danger); }
 .rdb-card-ctrl-btn--danger:hover { background: #fef2f2; color: var(--nx-danger); }
 
@@ -2317,7 +2362,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   cursor: pointer;
   transition: border-color var(--nx-dur) var(--nx-ease), color var(--nx-dur) var(--nx-ease);
 }
-.rdb-card-configure:hover { border-color: #c7d2fe; color: var(--nx-accent); }
+.rdb-card-configure:hover { border-color: var(--nx-card-hover-border); color: var(--nx-accent); }
 .rdb-card-configure i { font-size: 14px; }
 .rdb-card-unconfigured { margin: 0; padding: 24px 0; text-align: center; font: 12.5px var(--nx-font); color: var(--nx-text-meta); }
 
@@ -2328,7 +2373,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   border: 2px dashed var(--nx-border-strong); border-radius: var(--nx-radius-lg);
   transition: border-color var(--nx-dur) var(--nx-ease), background-color var(--nx-dur) var(--nx-ease);
 }
-.rdb-add-tile:hover { border-color: #a5b4fc; background: rgba(238, 242, 255, .4); }
+.rdb-add-tile:hover { border-color: var(--nx-card-hover-border); background: color-mix(in srgb, var(--nx-accent-tint) 40%, transparent); }
 .rdb-add-tile-icon {
   width: 40px; height: 40px; border-radius: 999px;
   display: inline-flex; align-items: center; justify-content: center; font-size: 15px;
@@ -2344,7 +2389,7 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   transition: border-color var(--nx-dur) var(--nx-ease), color var(--nx-dur) var(--nx-ease);
 }
 .rdb-add-pill i { font-size: 10px; color: var(--nx-violet); }
-.rdb-add-pill:hover { border-color: #c7d2fe; color: var(--nx-accent); }
+.rdb-add-pill:hover { border-color: var(--nx-card-hover-border); color: var(--nx-accent); }
 .rdb-add-tile-hint { font: 11px var(--nx-font); color: var(--nx-text-meta); }
 
 /* ---- Saved-report picker modal (D14 v1 card configuration) ------------- */
@@ -2407,14 +2452,13 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
    -> --nx-card-hover-border) rather than inventing new literals.
    ============================================================ */
 
-/* Wizard breakdown chip (indigo chip: #312e81 bg via --nx-accent-tint,
-   already dark-aware -- only the text needs the dark chip fg). */
-html.dark .reporting-simple-choice.is-selected { color: #c7d2fe; }
+/* Wizard breakdown chip: bg/border/fg now all ride --nx-accent-tint/
+   --nx-card-hover-border/--nx-accent-hover on the light-mode rule above,
+   which already flip correctly under html.dark -- no entry needed here. */
 
 /* Wizard progress rail (Task 5/7). */
 html.dark .rs-rail-dot { background: var(--nx-card); color: var(--nx-text-meta); border-color: var(--nx-border); }
 html.dark .rs-rail-line { background: var(--nx-border); }
-html.dark .rs-rail-step.is-done .rs-rail-dot { border-color: var(--nx-card-hover-border); color: #c7d2fe; }
 html.dark .rs-rail-step.is-done .rs-rail-line { background: var(--nx-accent); }
 /* Active dot sits on --nx-brand-grad, which dark-remaps to the lighter
    #818cf8->#a78bfa gradient (spec's "gradient buttons"); white text loses
@@ -2422,9 +2466,9 @@ html.dark .rs-rail-step.is-done .rs-rail-line { background: var(--nx-accent); }
 html.dark .rs-rail-step.is-active .rs-rail-dot { color: var(--nx-page); }
 html.dark .rs-wizard-preview { background: var(--nx-accent-soft); border-color: var(--nx-card-hover-border); }
 
-/* Drill drawer indigo chips + callout (Task 9). */
-html.dark .reporting-drill-chip--indigo { border-color: var(--nx-card-hover-border); color: #c7d2fe; }
-html.dark .reporting-drill-type-pill { color: #c7d2fe; }
+/* Drill drawer indigo chips + callout (Task 9). --chip--indigo and
+   --type-pill are covered by their light-mode rules (--nx-card-hover-
+   border/--nx-accent-hover), which already flip under html.dark. */
 html.dark .reporting-drill-callout { border-color: var(--nx-card-hover-border); background: var(--nx-alt); }
 
 /* Process-coverage badge, mid tier (amber) -- base + ledger-scoped repeat. */
@@ -2443,7 +2487,7 @@ html.dark .reporting-ledger-sqlpeek { background: var(--nx-alt); }
 /* Landing hero (spec §Landing) -- radial stops + border, and the gradient
    AI button's text (same dark-text-on-gradient treatment). */
 html.dark .reporting-hero {
-  border-color: var(--nx-card-hover-border);
+  border-color: var(--nx-border-strong);
   background: radial-gradient(1200px 320px at 50% -80px, rgba(49, 46, 129, .55) 0%, #1e293b 70%);
 }
 html.dark .reporting-hero__aibtn { color: var(--nx-page); }
@@ -2451,15 +2495,15 @@ html.dark .rs-suggestion { border-color: var(--nx-card-hover-border); }
 html.dark .rs-card-preview { background: linear-gradient(180deg, var(--nx-alt), var(--nx-card)); }
 html.dark .rs-card-avatar { color: var(--nx-page); }
 
-/* Dashboard builder: editing pill + add-card button (indigo chips). */
-html.dark .rdb-editing-pill { border-color: var(--nx-card-hover-border); color: #c7d2fe; }
-html.dark .rdb-addcard-btn { border-color: var(--nx-card-hover-border); color: #c7d2fe; }
+/* Dashboard builder: editing pill + add-card button (indigo chips) --
+   covered by their light-mode rules (--nx-card-hover-border/
+   --nx-accent-hover), which already flip under html.dark. */
 html.dark .rdb-addcard-btn:hover { background: var(--nx-accent-soft); }
 html.dark .rdb-add-filter:hover { border-color: var(--nx-accent); }
 
 /* Dashboard builder: edit-mode drag/hover chrome (Task 14). */
 html.dark .rdb-card-grip { color: var(--nx-text-meta); }
-html.dark .rdb-card--over { border-color: var(--nx-accent); box-shadow: 0 0 0 3px rgba(129, 140, 248, .25); }
+html.dark .rdb-card--over { border-color: var(--nx-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--nx-accent) 25%, transparent); }
 html.dark .rdb-card-ctrl-btn:hover { border-color: var(--nx-accent); }
 html.dark .rdb-card-ctrl-btn--danger { border-color: rgba(248, 113, 113, .4); color: var(--nx-danger); }
 html.dark .rdb-card-ctrl-btn--danger:hover { background: rgba(248, 113, 113, .15); color: var(--nx-danger); }

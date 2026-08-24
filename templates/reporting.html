@@ -4,6 +4,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  {% include '_theme_prepaint.html' %}
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/nexora-ui.css') }}">
   <title>{{ _("Reporting - nexora") }}</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" integrity="sha384-RkASv+6KfBMW9eknReJIJ6b3UnjKOKC5bOUaNgIY778NFbQ8MtWq9Lr/khUgqtTt" crossorigin="anonymous">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13" integrity="sha384-5JqMv4L/Xa0hfvtF06qboNdhvuYXUku9ZrhZh3bSk8VXF0A/RuSLHpLsSV9Zqhl6" crossorigin="anonymous"></script>
@@ -147,12 +149,15 @@
   </aside>
   {% include "js/_reporting_drill_js.html" %}
 
-  {# AI chat panel: docked right-side slide-over, same shell pattern as the
-     drill drawer above. Markup only here -- rendered hidden/inert; Task 3
-     wires open/close, message rendering and send behaviour. #}
+  {# AI chat panel: a NON-MODAL floating tool window (issue #205). Unlike the
+     drill drawer above it has no backdrop -- the page stays lit and clickable
+     while it is open, so an answer can be read against the report it is about,
+     and its SQL pasted into the editor without dismissing the chat first. It
+     is draggable by its header; aria-modal="false" states the non-modal
+     semantics for AT. Markup only here; js/_reporting_ai_js.html wires open/
+     close, dragging, message rendering and send behaviour. #}
   {% if ai_enabled %}
-  <div id="rpChatBackdrop" class="reporting-chat-backdrop" hidden></div>
-  <aside id="rpChatPanel" class="reporting-chat-panel" hidden role="dialog"
+  <aside id="rpChatPanel" class="reporting-chat-panel" hidden role="dialog" aria-modal="false"
          aria-label="{{ _('AI chat') }}" data-testid="reporting-chat-panel">
     <div class="reporting-chat-head">
       <span class="reporting-chat-title"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>{{ _("AI chat") }}</span>
