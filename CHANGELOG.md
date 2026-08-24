@@ -102,6 +102,124 @@ Work toward the next release.
   `.nx-rise-3` (`nexora-ui.css`) went from 0.32s to 0.6s, stagger delays
   scaled to match.
 
+### Added
+
+- **Dark mode toggle on every pre-login page** — landing, login, the
+  forgot/reset/set/init password pages, and 2FA setup all get the same
+  sun/moon toggle and share the logged-in pages' prefs storage, so a
+  choice made before logging in carries over automatically afterward.
+  Along the way, fixed several pages' hardcoded light-only colors that
+  had no dark counterpart at all (an invisible gradient-clipped logo
+  wordmark, background glow blobs anchored off-viewport, a JS reset
+  loop that kept clobbering the process-animation icon back to light
+  mode) and brightened the login page's black-hole icon glow, which
+  was a near-black drop shadow invisible against the dark background.
+- **"Fireflies" background option in Appearance** (alongside Plain/
+  Aurora/Grid) — started as a dashboard-only decorative effect,
+  promoted to a real per-user preference available on every page.
+  Fixed two real bugs surfaced while wiring it up: the server-side
+  prefs allowlist rejected the new value outright (a 400 with no
+  visible error, so the pick silently never saved), and the prefs-save
+  request had no `keepalive`, so picking any appearance setting and
+  immediately navigating away (e.g. clicking a sidebar link) could let
+  the browser abort the save mid-flight — affecting every appearance
+  preference, not just background.
+- **Reporting's AI chat panel is now a draggable, non-modal floating
+  window** (#205), replacing the fixed right-edge modal slide-over —
+  the report underneath is no longer dimmed or click-blocked while the
+  chat is open, restyled to match the app's theme (gradient header,
+  accent-colored user messages, dark-mode-aware scrollbars). The drill-
+  through drawer intentionally stays modal.
+
+### Changed
+
+- **Workitems now loads large result sets in two phases.** A `perPage`
+  of up to 1000 previously left the table on a spinner for the whole
+  round trip; a small 40-row chunk now renders almost immediately,
+  with the full-size request following in the background (guarded
+  against a stale response overwriting a newer one).
+
+### Fixed
+
+- **`bin/nx.ps1` hardcoded a previous owner's personal Python path** —
+  every `nx` command failed outright on a fresh clone. Now points at
+  the project's own `.venv`; `bootstrap.ps1`'s `uv` install also no
+  longer depends on `python`/`pip` resolving correctly first (the
+  Windows Store app-execution alias can silently break that).
+- **`matplotlib` and `pypdfium2` were used by the reporting chart-
+  render/export pipeline but missing from `requirements.txt`** — a
+  clean install could break reporting exports depending on install
+  order. Both declared as explicit dependencies.
+- **Dashboard dark-mode toggle recolored** to match the login page's
+  teal/orange pair; the "Recent Validations" card was missing `dark:`
+  variants entirely and stayed light-gray against the dark sidebar.
+- **Dashboard: sidebar hover no longer pushes/reflows the page**
+  (reverted an earlier push-on-hover change that felt like too much
+  motion), and `html` was forced to an always-visible scrollbar
+  (`overflow-y: scroll`) even when content fit — switched to `auto`.
+- **Account dropdown menu (profile menu) had zero `dark:` variants** —
+  stayed white-background/gray-text regardless of theme.
+- **Profile's active nav pill and avatar ring were hardcoded indigo**
+  instead of following the accent picker (`admin-tokens.css`'s
+  `--a-b-indigo` pair, `profile.css`'s avatar-ring gradient).
+- **App-wide accent-color sweep, ~30 files** — the same hardcoded-
+  indigo bug class as the profile fix above, found across sidebar
+  nav/hover states, buttons, focus rings, dashboard charts, workitems
+  chrome, reporting wizard/dashboard-builder UI, all 7 Generali pages,
+  and admin. Deliberately left alone: the logo (confirmed deliberate
+  brand artwork), a couple of "locked spec palette" colors, and chart
+  "primary series" colors used to visually anchor a multi-series
+  legend. Also fixed two bugs surfaced along the way: the active
+  sidebar item's text losing a CSS-specificity fight to the dark-mode
+  idle-text rule, and a missing gap between the sidebar's "Admin"
+  group header and its subitems that fused them into one pill.
+- **Dashboard trend chart hover required the cursor to land exactly
+  on the 3px line** — switched to index-based hover so any x-position
+  in that column shows the tooltip. The line color was also hardcoded
+  indigo in uppercase hex (which is why it slipped past the sweep
+  above's case-sensitive grep), and the default plain-black Chart.js
+  tooltip was reskinned to match the app's card styling.
+- **Workitems table/list stayed white in dark mode** — an ID selector
+  and an `!important` in `workitems_overview.css` were beating the
+  otherwise dark-aware `.nx-table` styles regardless of theme.
+- **Reporting hero card's rounded corners were invisible** — an
+  accent-tinted border was blending into the equally accent-tinted
+  glow rendered behind it.
+- **Reporting's "Ask AI" bar's inner corners didn't nest with its
+  outer gradient-border ring** except at the default corner-style
+  setting; the inner radius now scales with the same preference.
+- **A pinned sidebar flashed collapsed, then snapped open, on every
+  page navigation** — its open state was only ever set by JS on
+  `DOMContentLoaded`, well after the pre-paint script had already
+  reserved the layout space for it.
+- **Remaining white-flash-on-load cases in dark mode** — the pre-paint
+  script now also sets the body background color directly (deferring
+  to `DOMContentLoaded` if the body isn't ready yet), on top of the
+  `<html>`-level pre-paint fix above.
+- **Reporting AI chat panel: answers and generated SQL could not be
+  selected or copied** — `user-select: none` was scoped to the whole
+  panel instead of just its drag handle.
+- **Process selector (Reporting scope picker) checkboxes rendered as
+  barely-visible tiny dots** — missing explicit width/height and
+  `flex-shrink: 0` let them shrink to almost nothing (#206).
+- **An unpinned sidebar overlaid page content on hover** instead of
+  pushing it aside — content now gets matching padding while the
+  sidebar is hovered open.
+- **Workitems search bar: icon and input text overlapped.** Root cause
+  turned out to be the compact-density padding shorthand clobbering
+  the input's left clearance in `nexora-ui.css`; fixed there instead
+  of a per-page padding tweak that was tried first and then reverted,
+  keeping this input's markup consistent with the other seven search/
+  icon inputs across the app.
+- **Dashboard trend chart: a second tooltip dead zone, at the bottom
+  edge of the chart's plotting area.** Chart.js's hover only hit-tests
+  inside its internal `chartArea`, and this dataset's often-zero
+  values put the line right at that boundary — a cursor a couple
+  pixels below where the line visually sits (still "on" it to the eye)
+  fell outside `chartArea` and got no tooltip, while hovering higher
+  up always worked. The pointer is now clamped into `chartArea` before
+  hit-testing, so the whole canvas height is a reliable hover target.
+
 ## [3.1] - 2026-08-17
 
 ### Added
