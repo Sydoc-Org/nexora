@@ -153,19 +153,21 @@ chart already on screen re-themes on the next render, not live.
     "Pick a time breakdown first to choose its granularity." tooltip, so the
     control is discoverable up front instead of appearing to not exist (#178).
     A **table** source with no process registry but a filterable string field
-    whose name/label matches `/process/i` (e.g. `backlog_history.ProcessName`)
+    whose name/label matches `/process/i` (formerly
+    `backlog_history.ProcessName`; the source is retired but the mechanism
+    stays for future table sources)
     gets the same "which processes?" step in spirit — a **field-scope step**:
     it POSTs the field's up-to-100 distinct values from the new
     `POST /api/reporting/field_values` endpoint (`reporting.view`-gated,
     source-permission-checked, whitelisted-filterable-field only, `SELECT
     DISTINCT TOP (100)`) and renders them as the same pre-checked checkbox
     list. A column entry may declare `"labelWith": "<OtherField>"` in
-    `ColumnsJSON` (seeded for `backlog_history.ProcessName` →
+    `ColumnsJSON` (was seeded for `backlog_history.ProcessName` →
     `ClientName`, migration `0065`): the endpoint then returns a `labels`
     map alongside `values`, labelling each distinct value
     `"<companion>.<value>"` (lowercased companion — `privera.03_Invoice_New`,
     matching the app-wide client.process idiom); the filter value stays the
-    bare column value. A second flag `"grantScoped": true` (seeded by
+    bare column value. A second flag `"grantScoped": true` (was seeded by
     migration `0066`) additionally drops every value whose client.process
     label is **not** in the caller's `reporting.scope.process.*` grants — the
     snapshot collector records every Octo process, but the picker should only
@@ -901,13 +903,13 @@ Each curated source binds to a **provider**:
 
 **Built-in registered sources.** Migration `0011` seeds two `table`-provider
 sources: **Generali — PDQM Report** (`generali_pdqm` over `dbo.PDQMReport`) and
-**Workitems (Octopus)** (`workitems` over `dbo.t_Documents`). Migrations `0053`
-+ `0054` seed **Backlog History** (`backlog_history` over
-`StatisticsDB.dbo.BacklogHistory`, the #161 collector's 30-minute C+A backlog
-snapshots) with a canonical `backlog_total` metric (`SUM(BacklogCount)`) so it
-surfaces as a measure in the Simple wizard and AI grounding. Each is gated by
-its own permission (`reporting.source.generali.pdqm`,
-`reporting.source.workitems`, `reporting.source.backlog_history`).
+**Workitems (Octopus)** (`workitems` over `dbo.t_Documents`). A third,
+**Backlog History** (`backlog_history` over `StatisticsDB.dbo.BacklogHistory`
+with a `backlog_total` metric, migrations `0053`–`0056`/`0065`/`0066`/`0068`),
+was **retired by migration `0069`**: the date-anchored **Backlog** measure on
+the docprocessing source (see **`DateAnchor`** below) supersedes it, and the
+collector + table it read stay in place. Each source is gated by its own
+permission (`reporting.source.generali.pdqm`, `reporting.source.workitems`).
 Unlike the docprocessing source, the `table` provider does **not** apply
 `reporting.scope.process.*` row scoping — the source permission is the whole
 gate, so grant it deliberately. Tune the exposed columns/object at
@@ -960,10 +962,11 @@ Simple tab's number card and works identically in Advanced and the AI surfaces.
 
 **`TotalMode`** (`sum` default / `latest`, migration `0056`, `table`-provider
 sources only) governs how aggregates over a metric backed by a
-**point-in-time snapshot series** are computed — the seeded case is
-`backlog_total` on the `backlog_history` source (`dbo.BacklogHistory`,
-30-minute backlog snapshots): summing snapshots across time is meaningless
-for a gauge. When a request's metrics are **all** `TotalMode = 'latest'` and
+**point-in-time snapshot series** are computed — the seeded case was
+`backlog_total` on the since-retired `backlog_history` source
+(`dbo.BacklogHistory`, 30-minute backlog snapshots; retired `0069`, the
+machinery stays for future snapshot sources): summing snapshots across time
+is meaningless for a gauge. When a request's metrics are **all** `TotalMode = 'latest'` and
 the source has **exactly one** grainable date field, `_prepare_run` passes
 that field as `latest_of` into `build_generic_query`, which restricts the
 row set before aggregating:

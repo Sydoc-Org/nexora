@@ -81,7 +81,9 @@ RELEASES = [
                     "Reporting has a new Backlog measure — track how the open "
                     "backlog develops per client or process, week by week."
                 ),
-                "perm": "reporting.source.backlog_history",
+                # 0069 retired the standalone backlog source; the Backlog
+                # measure now lives on the docprocessing source.
+                "perm": "reporting.source.docprocessing",
                 "endpoint": "reporting",
                 "icon": "layer-group",
             },

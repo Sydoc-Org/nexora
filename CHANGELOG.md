@@ -24,6 +24,17 @@ Work toward the next release.
   incompatible pills. Known v1 limits: drill-through is not available on
   anchored results, and months without any backlog snapshot chart as 0.
 
+### Removed
+
+- **The standalone "Backlog History" reporting source is retired**
+  (migration `0069`): the anchored *Backlog* measure on Document Processing
+  supersedes it (combinable, process-scoped, latest-per-bucket). The
+  migration deletes the source, its `backlog_total` metric, the
+  `reporting.source.backlog_history` permission (incl. grants), and the
+  saved reports/dashboards that referenced them. The `dbo.BacklogHistory`
+  table and its collector are untouched — the anchored measure reads them
+  directly.
+
 ### Fixed
 
 - **Charts with a second breakdown silently dropped every measure but the

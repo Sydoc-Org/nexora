@@ -115,10 +115,10 @@ step without losing your picks; **✕** leaves without deleting anything you sav
 
 2. **Which processes?**
    A checklist, everything ticked by default. Untick to narrow. This step is
-   skipped for data sources that have no processes. For the backlog source
-   the entries read `client.process` (e.g. `privera.03_Invoice_New`) — the
-   same naming, and the same set of processes, you see everywhere else in
-   the app (only processes you have access to are offered).
+   skipped for data sources that have no processes. Entries read
+   `client.process` (e.g. `privera.03_Invoice_New`) — the same naming, and
+   the same set of processes, you see everywhere else in the app (only
+   processes you have access to are offered).
 
 3. **Break it down by…**
    - *Over time* — pick a **Granularity** (Week / Month / Quarter / Year).
