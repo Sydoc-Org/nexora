@@ -3067,6 +3067,28 @@ def api_admin_metrics_delete(metric_id):
         conn.close()
 
 
+def _labeled_field_values(rows, allowed=None):
+    """(values, labels) from labelWith pair rows [(value, companion), ...]:
+    label is "companion.value" (companion lowercased — the app's
+    client.process idiom). `allowed` (a set of such labels, from the caller's
+    grants) drops every value whose label isn't granted.
+    ponytail: a value shared by several companions falls back to its bare
+    name — split into per-companion filters if that ever matters."""
+    values, labels = [], {}
+    for r in rows:
+        v = r[0]
+        label = f"{str(r[1]).lower()}.{v}" if r[1] is not None else str(v)
+        if v not in labels:
+            values.append(v)
+            labels[v] = label
+        elif labels[v] != label:
+            labels[v] = str(v)
+    if allowed is not None:
+        values = [v for v in values if labels.get(v) in allowed]
+        labels = {v: labels[v] for v in values}
+    return values, labels
+
+
 @require_permission("reporting.view")
 @limiter.limit("30 per minute")
 def api_field_values():
@@ -3099,19 +3121,13 @@ def api_field_values():
         current_app.logger.error(f"/api/reporting/field_values exec error: {e}")
         return jsonify({"error": _("Could not load values")}), 500
     if rows and len(rows[0]) > 1:
-        # labelWith companion column: label each value "companion.value"
-        # (lowercased companion, matching the app's client.process idiom).
-        # ponytail: a value shared by several companions falls back to its
-        # bare name — split into per-companion filters if that ever matters.
-        values, labels = [], {}
-        for r in rows:
-            v = r[0]
-            label = f"{str(r[1]).lower()}.{v}" if r[1] is not None else str(v)
-            if v not in labels:
-                values.append(v)
-                labels[v] = label
-            elif labels[v] != label:
-                labels[v] = str(v)
+        meta = next((c for c in catalog if c.get("field") == field), None)
+        # grantScoped: the snapshot table carries every Octo process; offer
+        # only the ones the caller is granted (= the list the rest of the app
+        # shows). UI curation on top of the source-level permission — the run
+        # path stays gated by the source grant alone.
+        allowed = set(_allowed_processes()) if meta and meta.get("grantScoped") else None
+        values, labels = _labeled_field_values(rows, allowed)
         return jsonify({"values": values, "labels": labels})
     return jsonify({"values": [r[0] for r in rows]})
 

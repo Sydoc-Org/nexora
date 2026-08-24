@@ -81,6 +81,11 @@ def table_source_catalog(columns):
             # Companion column whose value prefixes this field's distinct values
             # in pickers (e.g. ProcessName labeled "client.process" via ClientName).
             entry["labelWith"] = c["labelWith"]
+        if c.get("grantScoped"):
+            # Pickers offer only values whose client.process label is in the
+            # caller's reporting.scope.process.* grants — the snapshot table
+            # holds every Octo process, most of which aren't configured/wanted.
+            entry["grantScoped"] = True
         out.append(entry)
     return out
 

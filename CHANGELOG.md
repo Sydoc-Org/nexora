@@ -44,6 +44,12 @@ Work toward the next release.
   of the app) via a new optional `labelWith` key in `ReportingSources.
   ColumnsJSON` (migration `0065`, which also renames the "Snapshot at" column
   label to "Stand").
+- **…and only offers granted processes.** The snapshot collector records
+  every Octo process, so the picker listed processes nobody has configured.
+  A second ColumnsJSON flag `grantScoped` (migration `0066`) restricts the
+  offered values to the caller's `reporting.scope.process.*` grants — the
+  same list the rest of the app shows. UI curation only; the run path stays
+  gated by the source-level permission.
 
 ## [3.2.2] - Unreleased
 

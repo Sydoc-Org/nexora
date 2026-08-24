@@ -84,3 +84,46 @@ def test_result_preserves_allowed_order_and_dedupes():
         "privera.02_Posteingang",
         "privera.03_Invoice_New",
     ]
+
+
+# ---------------------------------------------------------------------------
+# _labeled_field_values: labelWith pair shaping + grantScoped filtering for
+# /api/reporting/field_values (backlog_history process picker).
+# ---------------------------------------------------------------------------
+
+from nx_lib.views.reporting import _labeled_field_values  # noqa: E402
+
+PAIR_ROWS = [
+    ("01_EasyTax", "Bucherer"),
+    ("01_Invoice_SAP", "Compass"),
+    ("02_InitialScan", "Privera"),
+    ("05_MGBE", "Sydoc"),
+]
+
+
+def test_labeled_field_values_builds_lowercased_client_labels():
+    values, labels = _labeled_field_values(PAIR_ROWS)
+    assert values == ["01_EasyTax", "01_Invoice_SAP", "02_InitialScan", "05_MGBE"]
+    assert labels["01_Invoice_SAP"] == "compass.01_Invoice_SAP"
+    assert labels["01_EasyTax"] == "bucherer.01_EasyTax"
+
+
+def test_labeled_field_values_grant_scope_drops_unpermitted():
+    allowed = {"compass.01_Invoice_SAP", "privera.02_InitialScan"}
+    values, labels = _labeled_field_values(PAIR_ROWS, allowed)
+    assert values == ["01_Invoice_SAP", "02_InitialScan"]
+    assert set(labels) == set(values)
+
+
+def test_labeled_field_values_duplicate_value_falls_back_to_bare_label():
+    rows = [("02_Invoice", "Compass"), ("02_Invoice", "Privera")]
+    values, labels = _labeled_field_values(rows)
+    assert values == ["02_Invoice"]
+    assert labels["02_Invoice"] == "02_Invoice"
+    # bare label is never in the client.process grant set -> scoped out
+    assert _labeled_field_values(rows, {"compass.02_Invoice"})[0] == []
+
+
+def test_labeled_field_values_null_companion_labels_bare():
+    values, labels = _labeled_field_values([("01_SPARK", None)])
+    assert values == ["01_SPARK"] and labels["01_SPARK"] == "01_SPARK"

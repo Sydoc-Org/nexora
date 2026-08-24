@@ -165,7 +165,13 @@ chart already on screen re-themes on the next render, not live.
     map alongside `values`, labelling each distinct value
     `"<companion>.<value>"` (lowercased companion — `privera.03_Invoice_New`,
     matching the app-wide client.process idiom); the filter value stays the
-    bare column value. A partial pick serializes to a plain `{"op": "in"}`
+    bare column value. A second flag `"grantScoped": true` (seeded by
+    migration `0066`) additionally drops every value whose client.process
+    label is **not** in the caller's `reporting.scope.process.*` grants — the
+    snapshot collector records every Octo process, but the picker should only
+    offer the ones the rest of the app shows. This is UI curation, not a
+    security boundary: the run path stays gated by the source-level
+    permission alone. A partial pick serializes to a plain `{"op": "in"}`
     filter on that field — not `scope.processes` — which the result view
     renders as the **process chip** ("Processes: a, b" — clicking it opens a
     checkbox picker; picking everything removes the filter). All `in`/
