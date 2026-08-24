@@ -268,6 +268,33 @@
                         }
                     }
                 });
+
+                // Chart.js's own mode:'index' hover only registers inside
+                // chartArea. This dataset is beginAtZero with mostly-low
+                // values, so the line sits right at chartArea's bottom edge
+                // for most of its length -- a cursor a pixel below where the
+                // line visually is (still "on the line" to the eye) falls
+                // outside chartArea and the tooltip vanishes, while hovering
+                // further up (safely inside chartArea) always works. Clamp
+                // the pointer into chartArea before hit-testing so the whole
+                // canvas height is a reliable hover target, not just the
+                // area above the line.
+                ctx.canvas.addEventListener('mousemove', (e) => {
+                    const area = processedChart.chartArea;
+                    const rect = ctx.canvas.getBoundingClientRect();
+                    const x = Math.min(Math.max(e.clientX - rect.left, area.left), area.right);
+                    const y = Math.min(Math.max(e.clientY - rect.top, area.top), area.bottom);
+                    // getElementsAtEventForMode -> getRelativePosition treats
+                    // {x, y} as already-canvas-relative ONLY when a `native`
+                    // key is present at all (`'native' in event`); without it,
+                    // it assumes a raw DOM event was passed and resolves x/y
+                    // to null, silently matching nothing.
+                    const elements = processedChart.getElementsAtEventForMode(
+                        { x, y, native: true }, 'index', { intersect: false }, true
+                    );
+                    processedChart.tooltip.setActiveElements(elements, { x, y });
+                    processedChart.update('none');
+                });
             }
         } catch (error) { console.error("Failed to update processed chart:", error); }
     }
