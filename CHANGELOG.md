@@ -55,6 +55,10 @@ Work toward the next release.
 
 ### Changed
 
+- **Chip editors got a visual overhaul.** The inline editors that open when
+  clicking a result chip (date preset, process/value checkbox pickers, grain)
+  now render as small popover-style cards — checkbox options as selectable
+  pills with accent highlighting — instead of raw unstyled controls.
 - **The wizard's process picker for the backlog source now shows
   client-prefixed names** (`privera.03_Invoice_New` style, matching the rest
   of the app) via a new optional `labelWith` key in `ReportingSources.

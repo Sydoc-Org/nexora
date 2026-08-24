@@ -1256,8 +1256,50 @@ body.nx-app {
 }
 .rs-chip--empty { cursor: default; opacity: .7; }
 .rs-chip .rs-chip-x { font-weight: 700; padding: 0 .15rem; }
-.rs-chip-editor { display: inline-flex; align-items: center; gap: .35rem; }
-.rs-chip-editor input, .rs-chip-editor select { max-width: 11rem; }
+/* Inline chip editors — a small popover-style card instead of raw controls. */
+.rs-chip-editor {
+  display: inline-flex; align-items: center; flex-wrap: wrap; gap: .4rem;
+  max-width: 100%;
+  padding: .45rem .55rem;
+  background: var(--nx-card);
+  border: 1px solid var(--nx-accent-soft);
+  border-radius: calc(var(--nx-radius-scale, 1) * 12px);
+  box-shadow: var(--nx-shadow-pop);
+  cursor: default;
+  font-size: 1em;  /* undo the .rs-chip shrink — editors read at normal size */
+}
+.rs-chip-editor input.reporting-input, .rs-chip-editor select {
+  max-width: 12rem;
+  padding: .3rem .55rem;
+  font-size: .85em;
+  border: 1px solid var(--nx-border);
+  border-radius: calc(var(--nx-radius-scale, 1) * 8px);
+  background: var(--nx-card);
+  color: var(--nx-text);
+}
+/* Checkbox options (process / value pickers) render as selectable pills. */
+.rs-chip-editor > label {
+  display: inline-flex; align-items: center; gap: .4rem;
+  padding: .28rem .65rem .28rem .5rem;
+  border: 1px solid var(--nx-border);
+  border-radius: 999px;
+  background: var(--nx-sunken);
+  color: var(--nx-text);
+  font-size: .85em;
+  cursor: pointer; user-select: none;
+  transition: border-color .12s ease, background-color .12s ease;
+}
+.rs-chip-editor > label:hover { border-color: var(--nx-accent); }
+.rs-chip-editor > label:has(input:checked) {
+  background: var(--nx-accent-tint);
+  border-color: var(--nx-accent);
+  font-weight: 600;
+}
+.rs-chip-editor input[type="checkbox"] {
+  margin: 0;
+  accent-color: var(--nx-accent);
+}
+.rs-chip-editor .reporting-btn { margin-inline-start: .15rem; }
 
 /* --- Show query panel (T7) --- */
 .reporting-sqlview { margin-top: 12px; }
