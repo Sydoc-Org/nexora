@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-18 11:40+0200\n"
+"POT-Creation-Date: 2026-08-24 10:20+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -35,8 +35,8 @@ msgid ""
 "The Apply button is gone from the Generali filter bars — changing any "
 "filter or date reloads the list right away."
 msgstr ""
-"Der Anwenden-Button ist aus den Generali-Filterleisten verschwunden — jede "
-"Änderung an einem Filter oder Datum lädt die Liste sofort neu."
+"Der Anwenden-Button ist aus den Generali-Filterleisten verschwunden — "
+"jede Änderung an einem Filter oder Datum lädt die Liste sofort neu."
 
 #: nx_lib/whats_new.py:38
 msgid "Type to find a user in the filters"
@@ -47,8 +47,9 @@ msgid ""
 "The user filter on the Generali pages is now a search box: type a few "
 "letters, pick the name, and the list filters instantly."
 msgstr ""
-"Der Benutzerfilter auf den Generali-Seiten ist jetzt ein Suchfeld: ein paar "
-"Buchstaben tippen, den Namen auswählen, und die Liste wird sofort gefiltert."
+"Der Benutzerfilter auf den Generali-Seiten ist jetzt ein Suchfeld: ein "
+"paar Buchstaben tippen, den Namen auswählen, und die Liste wird sofort "
+"gefiltert."
 
 #: nx_lib/whats_new.py:55
 msgid "Forecast your report trends"
@@ -1402,11 +1403,21 @@ msgstr ""
 "Bericht zeigt bei jedem Aufruf und in jeder geplanten Mail den aktuellen "
 "Monat. Zeitpläne laufen in UTC."
 
-#: templates/_reporting_help.html:18
+#: templates/_reporting_help.html:17
+msgid ""
+"The chips above a result are editable: the Processes chip and any “is one"
+" of” filter open a checkbox picker — ticking everything removes the "
+"restriction."
+msgstr ""
+"Die Chips über einem Ergebnis sind bearbeitbar: Der Prozesse-Chip und jeder "
+"„ist eines von“-Filter öffnen eine Checkbox-Auswahl — alles anhaken hebt die "
+"Einschränkung auf."
+
+#: templates/_reporting_help.html:19
 msgid "Checking a number"
 msgstr "Eine Zahl prüfen"
 
-#: templates/_reporting_help.html:20
+#: templates/_reporting_help.html:21
 msgid ""
 "Click a chart bar or a table row to open the documents behind that "
 "number; “Show query” reveals exactly how it was computed."
@@ -1415,7 +1426,7 @@ msgstr ""
 "hinter dieser Zahl zu öffnen; „SQL anzeigen“ zeigt, wie sie genau "
 "berechnet wurde."
 
-#: templates/_reporting_help.html:21
+#: templates/_reporting_help.html:22
 msgid ""
 "The ↑/↓ comparison chips compare a window shifted back by your range’s "
 "length in days — not the previous calendar period. Hover a chip for the "
@@ -1425,7 +1436,7 @@ msgstr ""
 "Zeitraums zurückverschobenen Fenster — nicht mit der vorherigen "
 "Kalenderperiode. Beim Überfahren zeigt der Chip die exakten Daten."
 
-#: templates/_reporting_help.html:22
+#: templates/_reporting_help.html:23
 msgid ""
 "Two people can see different totals on the same report: it always runs "
 "with the viewer’s own data access."
@@ -1433,7 +1444,7 @@ msgstr ""
 "Zwei Personen können im selben Bericht unterschiedliche Summen sehen: Er "
 "läuft immer mit dem Datenzugriff der betrachtenden Person."
 
-#: templates/_reporting_help.html:23
+#: templates/_reporting_help.html:24
 msgid ""
 "Charts cap at 50 axis values and 12 series — past the cap you get a "
 "partial chart or none at all; the table and exports always carry the full"
@@ -1443,11 +1454,11 @@ msgstr ""
 "es ein unvollständiges oder gar kein Diagramm; Tabelle und Exporte "
 "enthalten immer alle Daten."
 
-#: templates/_reporting_help.html:25
+#: templates/_reporting_help.html:26
 msgid "Saving and sharing"
 msgstr "Speichern und Teilen"
 
-#: templates/_reporting_help.html:27
+#: templates/_reporting_help.html:28
 msgid ""
 "Save works differently per tab: on Simple, Save always creates a new "
 "report under My reports; on Advanced, Save overwrites the open report — "
@@ -1458,7 +1469,7 @@ msgstr ""
 "„Erweitert“ überschreibt es den geöffneten Bericht — auch einen geteilten"
 " mit Bearbeitungsrecht. Für eine Kopie „Speichern unter“ verwenden."
 
-#: templates/_reporting_help.html:28
+#: templates/_reporting_help.html:29
 msgid ""
 "A scheduled email runs with the report owner’s data access — recipients "
 "see the owner’s numbers, not their own."
@@ -1467,11 +1478,11 @@ msgstr ""
 "bzw. des Berichtsbesitzers — Empfänger sehen deren Zahlen, nicht ihre "
 "eigenen."
 
-#: templates/_reporting_help.html:31
+#: templates/_reporting_help.html:32
 msgid "Asking the AI"
 msgstr "Die KI fragen"
 
-#: templates/_reporting_help.html:33
+#: templates/_reporting_help.html:34
 msgid ""
 "Name the measure, the time range and the processes: “invoices by process,"
 " last 3 months” beats “show me invoices”."
@@ -1479,7 +1490,7 @@ msgstr ""
 "Nennen Sie Kennzahl, Zeitraum und Prozesse: „Rechnungen nach Prozess, "
 "letzte 3 Monate“ schlägt „zeig mir Rechnungen“."
 
-#: templates/_reporting_help.html:34
+#: templates/_reporting_help.html:35
 msgid ""
 "Check what the AI built with “Open in builder” — the filters and process "
 "scope it chose are visible there before you trust the number."
@@ -1488,7 +1499,7 @@ msgstr ""
 " Filter und der Prozessumfang sind dort sichtbar, bevor Sie der Zahl "
 "vertrauen."
 
-#: templates/_reporting_help.html:35
+#: templates/_reporting_help.html:36
 msgid ""
 "Follow-ups work: the chat remembers the conversation, so “now only this "
 "quarter” refines the last answer."
@@ -1496,7 +1507,7 @@ msgstr ""
 "Rückfragen funktionieren: Der Chat merkt sich das Gespräch, „jetzt nur "
 "dieses Quartal“ verfeinert also die letzte Antwort."
 
-#: templates/_reporting_help.html:36
+#: templates/_reporting_help.html:37
 msgid ""
 "When the AI used tools, unfold “How the agent worked” to see the steps; "
 "if a “Continue” button appears, click it before rephrasing your question."
@@ -1505,11 +1516,11 @@ msgstr ""
 "auf, um die Schritte zu sehen; erscheint ein „Weiter“-Knopf, klicken Sie "
 "ihn, bevor Sie die Frage umformulieren."
 
-#: templates/_reporting_help.html:44
+#: templates/_reporting_help.html:45
 msgid "Full guide"
 msgstr "Vollständige Anleitung"
 
-#: templates/_reporting_help.html:45 templates/admin/logs.html:139
+#: templates/_reporting_help.html:46 templates/admin/logs.html:139
 #: templates/js/_reporting_drill_js.html:16
 #: templates/prepared_documents.html:251 templates/prepared_documents.html:263
 #: templates/reporting.html:132 templates/reporting.html:160
@@ -2954,15 +2965,15 @@ msgstr "Übergeordnete Kategorie"
 #: templates/generali_pdqm.html:81 templates/generali_pdqm.html:93
 #: templates/generali_reporting.html:118
 #: templates/js/_generali_additional_services_js.html:88
-#: templates/js/_generali_additional_services_js.html:278
+#: templates/js/_generali_additional_services_js.html:280
 #: templates/js/_generali_pdqm_js.html:88
 #: templates/js/_generali_pdqm_js.html:101
 #: templates/js/_generali_pdqm_js.html:110
 #: templates/js/_generali_pdqm_js.html:130
-#: templates/js/_generali_pdqm_js.html:328
-#: templates/js/_generali_pdqm_js.html:347
-#: templates/js/_generali_pdqm_js.html:356
-#: templates/js/_generali_pdqm_js.html:368
+#: templates/js/_generali_pdqm_js.html:330
+#: templates/js/_generali_pdqm_js.html:349
+#: templates/js/_generali_pdqm_js.html:358
+#: templates/js/_generali_pdqm_js.html:370
 #: templates/js/_reporting_viz_js.html:639
 #: templates/js/_reporting_viz_js.html:641
 msgid "All"
@@ -3194,14 +3205,14 @@ msgstr "Diese Aktion kann nicht rückgängig gemacht werden."
 #: templates/generali_baseservices.html:296 templates/generali_pdqm.html:371
 #: templates/generali_projectmanagement.html:282
 #: templates/generali_reporting.html:339
-#: templates/js/_generali_additional_services_js.html:488
-#: templates/js/_generali_additional_services_js.html:498
-#: templates/js/_generali_base_services_js.html:415
-#: templates/js/_generali_base_services_js.html:428
-#: templates/js/_generali_pdqm_js.html:625
-#: templates/js/_generali_pdqm_js.html:640
-#: templates/js/_generali_project_management_js.html:389
-#: templates/js/_generali_project_management_js.html:403
+#: templates/js/_generali_additional_services_js.html:497
+#: templates/js/_generali_additional_services_js.html:507
+#: templates/js/_generali_base_services_js.html:424
+#: templates/js/_generali_base_services_js.html:437
+#: templates/js/_generali_pdqm_js.html:634
+#: templates/js/_generali_pdqm_js.html:649
+#: templates/js/_generali_project_management_js.html:397
+#: templates/js/_generali_project_management_js.html:411
 #: templates/js/_generali_reporting_js.html:846
 #: templates/js/_generali_reporting_js.html:860
 #: templates/js/_reporting_metrics_js.html:62
@@ -4731,17 +4742,20 @@ msgid "Custom"
 msgstr "Benutzerdefiniert"
 
 #: templates/admin/logs.html:26 templates/admin/status.html:161
-#: templates/js/_reporting_js.html:26 templates/js/_reporting_simple_js.html:59
+#: templates/js/_reporting_drill_js.html:26 templates/js/_reporting_js.html:26
+#: templates/js/_reporting_simple_js.html:59
 #: templates/workitems_overview.html:155
 msgid "Today"
 msgstr "Heute"
 
-#: templates/js/_reporting_js.html:27 templates/js/_reporting_simple_js.html:60
+#: templates/js/_reporting_drill_js.html:26 templates/js/_reporting_js.html:27
+#: templates/js/_reporting_simple_js.html:60
 #: templates/workitems_overview.html:156
 msgid "Yesterday"
 msgstr "Gestern"
 
-#: templates/js/_reporting_js.html:28 templates/js/_reporting_simple_js.html:61
+#: templates/js/_reporting_drill_js.html:27 templates/js/_reporting_js.html:28
+#: templates/js/_reporting_simple_js.html:61
 #: templates/workitems_overview.html:157
 msgid "This week"
 msgstr "Diese Woche"
@@ -4750,7 +4764,8 @@ msgstr "Diese Woche"
 msgid "Last 7 days"
 msgstr "Letzte 7 Tage"
 
-#: templates/js/_reporting_js.html:30 templates/js/_reporting_simple_js.html:45
+#: templates/js/_reporting_drill_js.html:28 templates/js/_reporting_js.html:30
+#: templates/js/_reporting_simple_js.html:45
 #: templates/workitems_overview.html:159
 msgid "This month"
 msgstr "Dieser Monat"
@@ -5851,77 +5866,77 @@ msgstr "Keine Daten vorhanden"
 msgid "Documents Processed"
 msgstr "Verarbeitete Dokumente"
 
-#: templates/js/_generali_additional_services_js.html:204
-#: templates/js/_generali_base_services_js.html:159
-#: templates/js/_generali_pdqm_js.html:259
-#: templates/js/_generali_project_management_js.html:136
+#: templates/js/_generali_additional_services_js.html:206
+#: templates/js/_generali_base_services_js.html:161
+#: templates/js/_generali_pdqm_js.html:261
+#: templates/js/_generali_project_management_js.html:138
 #: templates/js/_generali_reporting_js.html:175
 msgid "No records found"
 msgstr "Keine Einträge gefunden."
 
-#: templates/js/_generali_additional_services_js.html:204
-#: templates/js/_generali_base_services_js.html:160
-#: templates/js/_generali_pdqm_js.html:259
-#: templates/js/_generali_project_management_js.html:136
+#: templates/js/_generali_additional_services_js.html:206
+#: templates/js/_generali_base_services_js.html:162
+#: templates/js/_generali_pdqm_js.html:261
+#: templates/js/_generali_project_management_js.html:138
 #: templates/js/_generali_reporting_js.html:176
 #: templates/js/_workitems_overview_js.html:957
 msgid "Try adjusting your filters or resetting the search."
 msgstr "Versuchen Sie, Ihre Filter anzupassen oder die Suche zurückzusetzen."
 
-#: templates/js/_generali_additional_services_js.html:342
-#: templates/js/_generali_additional_services_js.html:427
-#: templates/js/_generali_base_services_js.html:284
-#: templates/js/_generali_base_services_js.html:355
-#: templates/js/_generali_pdqm_js.html:452
-#: templates/js/_generali_pdqm_js.html:557
-#: templates/js/_generali_project_management_js.html:258
-#: templates/js/_generali_project_management_js.html:329
+#: templates/js/_generali_additional_services_js.html:344
+#: templates/js/_generali_additional_services_js.html:429
+#: templates/js/_generali_base_services_js.html:286
+#: templates/js/_generali_base_services_js.html:357
+#: templates/js/_generali_pdqm_js.html:454
+#: templates/js/_generali_pdqm_js.html:559
+#: templates/js/_generali_project_management_js.html:260
+#: templates/js/_generali_project_management_js.html:331
 msgid "Please fill in all fields."
 msgstr "Bitte alle Felder ausfüllen."
 
-#: templates/js/_generali_additional_services_js.html:366
-#: templates/js/_generali_additional_services_js.html:445
-#: templates/js/_generali_base_services_js.html:308
-#: templates/js/_generali_base_services_js.html:373
-#: templates/js/_generali_pdqm_js.html:478
-#: templates/js/_generali_pdqm_js.html:581
-#: templates/js/_generali_project_management_js.html:282
-#: templates/js/_generali_project_management_js.html:347
+#: templates/js/_generali_additional_services_js.html:368
+#: templates/js/_generali_additional_services_js.html:447
+#: templates/js/_generali_base_services_js.html:310
+#: templates/js/_generali_base_services_js.html:375
+#: templates/js/_generali_pdqm_js.html:480
+#: templates/js/_generali_pdqm_js.html:583
+#: templates/js/_generali_project_management_js.html:284
+#: templates/js/_generali_project_management_js.html:349
 msgid "Error saving record."
 msgstr "Fehler beim Speichern des Eintrags."
 
-#: templates/js/_generali_additional_services_js.html:372
-#: templates/js/_generali_additional_services_js.html:451
-#: templates/js/_generali_base_services_js.html:314
-#: templates/js/_generali_base_services_js.html:379
-#: templates/js/_generali_pdqm_js.html:484
-#: templates/js/_generali_pdqm_js.html:587
-#: templates/js/_generali_project_management_js.html:288
-#: templates/js/_generali_project_management_js.html:353
+#: templates/js/_generali_additional_services_js.html:374
+#: templates/js/_generali_additional_services_js.html:453
+#: templates/js/_generali_base_services_js.html:316
+#: templates/js/_generali_base_services_js.html:381
+#: templates/js/_generali_pdqm_js.html:486
+#: templates/js/_generali_pdqm_js.html:589
+#: templates/js/_generali_project_management_js.html:290
+#: templates/js/_generali_project_management_js.html:355
 #: templates/js/admin/_sessions_js.html:132
 msgid "Network error."
 msgstr "Netzwerkfehler."
 
-#: templates/js/_generali_additional_services_js.html:480
-#: templates/js/_generali_base_services_js.html:407
-#: templates/js/_generali_pdqm_js.html:617
-#: templates/js/_generali_project_management_js.html:381
+#: templates/js/_generali_additional_services_js.html:489
+#: templates/js/_generali_base_services_js.html:416
+#: templates/js/_generali_pdqm_js.html:626
+#: templates/js/_generali_project_management_js.html:389
 #: templates/js/_generali_reporting_js.html:838
 msgid "Deleting…"
 msgstr "Löschen…"
 
-#: templates/js/_generali_additional_services_js.html:493
-#: templates/js/_generali_base_services_js.html:421
-#: templates/js/_generali_pdqm_js.html:633
-#: templates/js/_generali_project_management_js.html:396
+#: templates/js/_generali_additional_services_js.html:502
+#: templates/js/_generali_base_services_js.html:430
+#: templates/js/_generali_pdqm_js.html:642
+#: templates/js/_generali_project_management_js.html:404
 #: templates/js/_generali_reporting_js.html:853
 msgid "Error deleting record."
 msgstr "Fehler beim Löschen des Eintrags."
 
-#: templates/js/_generali_additional_services_js.html:553
-#: templates/js/_generali_base_services_js.html:478
-#: templates/js/_generali_pdqm_js.html:691
-#: templates/js/_generali_project_management_js.html:452
+#: templates/js/_generali_additional_services_js.html:562
+#: templates/js/_generali_base_services_js.html:487
+#: templates/js/_generali_pdqm_js.html:700
+#: templates/js/_generali_project_management_js.html:460
 #: templates/js/_generali_reporting_js.html:926
 msgid "Export failed."
 msgstr "Export fehlgeschlagen."
@@ -6444,33 +6459,46 @@ msgstr "Auf ein Workitem klicken, um die schreibgeschützte Vorschau zu öffnen.
 msgid "Could not filter this selection — drill cancelled."
 msgstr "Diese Auswahl konnte nicht gefiltert werden — Drilldown abgebrochen."
 
-#: templates/js/_reporting_js.html:29 templates/js/_reporting_simple_js.html:62
+#: templates/js/_reporting_drill_js.html:27 templates/js/_reporting_js.html:29
+#: templates/js/_reporting_simple_js.html:62
 msgid "Last week"
 msgstr "Letzte Woche"
 
-#: templates/js/_reporting_js.html:31 templates/js/_reporting_simple_js.html:46
+#: templates/js/_reporting_drill_js.html:28 templates/js/_reporting_js.html:31
+#: templates/js/_reporting_simple_js.html:46
 msgid "Last month"
 msgstr "Letzter Monat"
 
-#: templates/js/_reporting_js.html:32 templates/js/_reporting_simple_js.html:50
+#: templates/js/_reporting_drill_js.html:29 templates/js/_reporting_js.html:32
+#: templates/js/_reporting_simple_js.html:50
 msgid "This quarter"
 msgstr "Dieses Quartal"
 
-#: templates/js/_reporting_js.html:33 templates/js/_reporting_simple_js.html:51
+#: templates/js/_reporting_drill_js.html:29 templates/js/_reporting_js.html:33
+#: templates/js/_reporting_simple_js.html:51
 msgid "Last quarter"
 msgstr "Letztes Quartal"
 
-#: templates/js/_reporting_js.html:34 templates/js/_reporting_simple_js.html:47
+#: templates/js/_reporting_drill_js.html:30 templates/js/_reporting_js.html:34
+#: templates/js/_reporting_simple_js.html:47
 msgid "Last 3 months"
 msgstr "Letzte 3 Monate"
 
-#: templates/js/_reporting_js.html:35 templates/js/_reporting_simple_js.html:48
+#: templates/js/_reporting_drill_js.html:30 templates/js/_reporting_js.html:35
+#: templates/js/_reporting_simple_js.html:48
 msgid "This year"
 msgstr "Dieses Jahr"
 
-#: templates/js/_reporting_js.html:36 templates/js/_reporting_simple_js.html:49
+#: templates/js/_reporting_drill_js.html:31 templates/js/_reporting_js.html:36
+#: templates/js/_reporting_simple_js.html:49
 msgid "Last year"
 msgstr "Letztes Jahr"
+
+#: templates/js/_reporting_drill_js.html:31
+#: templates/js/_reporting_simple_js.html:63
+#, python-brace-format
+msgid "Last {n} days"
+msgstr "Letzte {n} Tage"
 
 #: templates/js/_reporting_js.html:37
 msgid "Last N days"
@@ -6765,11 +6793,6 @@ msgstr "Das tägliche KI-Limit ist erreicht — versuchen Sie es morgen erneut."
 #: templates/js/_reporting_simple_js.html:58
 msgid "no filters"
 msgstr "keine Filter"
-
-#: templates/js/_reporting_simple_js.html:63
-#, python-brace-format
-msgid "Last {n} days"
-msgstr "Letzte {n} Tage"
 
 #: templates/js/_reporting_simple_js.html:65
 msgid "Drafting your report…"

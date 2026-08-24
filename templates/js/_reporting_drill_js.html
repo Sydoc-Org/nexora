@@ -19,6 +19,34 @@ window.ReportingDrill = (function () {
     cannotFilter: {{ _("Could not filter this selection — drill cancelled.")|tojson }}
   };
 
+  // Relative-date token labels — same msgids as _reporting_simple_js.html's
+  // TOKEN_LABELS (this module is deliberately self-contained; dashboard-card
+  // drills load it without the Simple partial).
+  var TOKEN_LABELS = {
+    today: {{ _("Today")|tojson }}, yesterday: {{ _("Yesterday")|tojson }},
+    this_week: {{ _("This week")|tojson }}, last_week: {{ _("Last week")|tojson }},
+    this_month: {{ _("This month")|tojson }}, last_month: {{ _("Last month")|tojson }},
+    this_quarter: {{ _("This quarter")|tojson }}, last_quarter: {{ _("Last quarter")|tojson }},
+    last_3_months: {{ _("Last 3 months")|tojson }}, this_year: {{ _("This year")|tojson }},
+    last_year: {{ _("Last year")|tojson }}, last_n_days: {{ _("Last {n} days")|tojson }}
+  };
+
+  // A filter value may be a relative-date token object ({token, n?}) or a
+  // list ('in'/'between') — format it instead of String()-ing to
+  // "[object Object]".
+  function chipValue(v) {
+    if (v === null || v === undefined || v === '') return I18N.nullLabel;
+    if (Array.isArray(v)) return v.join(', ');
+    if (typeof v === 'object') {
+      if (typeof v.token === 'string') {
+        var lbl = TOKEN_LABELS[v.token] || v.token;
+        return v.token === 'last_n_days' ? lbl.replace('{n}', v.n) : lbl;
+      }
+      return I18N.nullLabel;
+    }
+    return String(v);
+  }
+
   var SMART_FIELDS = ['workitem_id', 'processname', 'import_date', 'export_date'];
 
   // In-page toast -- same DOM/CSS contract as the Advanced tab's private
@@ -167,16 +195,14 @@ window.ReportingDrill = (function () {
     if (!container) return;
     var parts = [];
     ((definition && definition.filters) || []).forEach(function (f) {
-      var val = (f.value === null || f.value === undefined) ? I18N.nullLabel : f.value;
       parts.push(chipHtml('reporting-drill-chip--indigo',
         isDateField(fields, f.field) ? 'fa-calendar' : 'fa-filter',
-        fieldLabel(fields, f.field) + ' · ' + val));
+        fieldLabel(fields, f.field) + ' · ' + chipValue(f.value)));
     });
     (clicked || []).forEach(function (c) {
-      var val = (c.value === null || c.value === undefined || c.value === '') ? I18N.nullLabel : c.value;
       parts.push(chipHtml('reporting-drill-chip--violet',
         isDateField(fields, c.field, c.grain) ? 'fa-calendar' : 'fa-filter',
-        fieldLabel(fields, c.field) + ' · ' + val));
+        fieldLabel(fields, c.field) + ' · ' + chipValue(c.value)));
     });
     container.innerHTML = parts.join('');
   }

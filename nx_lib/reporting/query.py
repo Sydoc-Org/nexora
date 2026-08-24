@@ -311,6 +311,14 @@ def build_table_query(rd, process_configs, field_col_maps, *, row_cap, resolved_
             if not col:
                 continue
             where.append(_filter_clause(col, f["op"], f.get("value"), params))
+        # Zero-date sentinel guard: empty-string/zero varchar dates CONVERT to
+        # 1900-01-01 and would surface as a plausible-looking 1900 bucket on a
+        # projected date dim. NULL rows stay — "no date yet" is a real group.
+        raw_dates = _date_exprs_for(cfg, {})
+        for field in columns:
+            expr = raw_dates.get(field)
+            if expr:
+                where.append(f"({expr} IS NULL OR {expr} >= '19010101')")
         cond = f" {cfg['condition']}" if cfg.get("condition") else ""
         sub_queries.append(
             f"SELECT {', '.join(select_exprs)} FROM {_bracket_object(cfg['table'])} "

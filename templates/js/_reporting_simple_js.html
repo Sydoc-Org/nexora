@@ -1427,6 +1427,81 @@
   }
 
   function filterChipEditor(cur, f, chipEl) {
+    // Value-LIST ops get a checkbox picker of the field's known values
+    // (typing comma-separated process names by hand is hostile); every other
+    // op keeps the text/preset editor.
+    if (f.op === 'in' || f.op === 'not_in') {
+      valueListChipEditor(cur, f, chipEl, null);
+      return;
+    }
+    textChipEditor(cur, f, chipEl);
+  }
+
+  // Checkbox picker for 'in'/'not_in' values. Values come from the source's
+  // process registry (processname) or /api/reporting/field_values (table
+  // sources); falls back to the text editor when neither yields values.
+  // opts: {allMeansNoFilter, onApply} — used by the process chip, which
+  // treats "everything picked" as "no filter" and may add the filter lazily.
+  async function valueListChipEditor(cur, f, chipEl, opts) {
+    opts = opts || {};
+    var box = document.createElement('span');
+    box.className = 'rs-chip rs-chip-editor';
+    box.setAttribute('data-testid', 'rs-chip-values');
+    box.textContent = I18N.loadingValues;
+    chipEl.replaceWith(box);
+    var src = (state.sources || []).find(function (s) { return s.id === cur.def.source; });
+    var values = [], labels = {};
+    if (f.field === 'processname' && src && (src.processes || []).length) {
+      values = src.processes.slice();
+    } else {
+      var res = await api('/api/reporting/field_values', {
+        method: 'POST',
+        body: JSON.stringify({ source: cur.def.source, field: f.field })
+      });
+      values = (res.ok && res.data && res.data.values) || [];
+      labels = (res.ok && res.data && res.data.labels) || {};
+    }
+    if (!box.isConnected) return;
+    if (!values.length) { textChipEditor(cur, f, box); return; }
+    var selected = Array.isArray(f.value) ? f.value.slice()
+      : (f.value === null || f.value === undefined ? [] : [f.value]);
+    // A previously typed value the column no longer holds must stay pickable.
+    selected.forEach(function (v) { if (values.indexOf(v) === -1) values.push(v); });
+    box.textContent = '';
+    var inputs = values.map(function (p) {
+      var lbl = document.createElement('label');
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.value = p;
+      cb.checked = opts.allMeansNoFilter && !selected.length
+        ? true : selected.indexOf(p) !== -1;
+      lbl.appendChild(cb);
+      lbl.appendChild(document.createTextNode(' ' + (labels[p] || p)));
+      box.appendChild(lbl);
+      return cb;
+    });
+    var ok = document.createElement('button');
+    ok.className = 'reporting-btn';
+    ok.setAttribute('data-testid', 'rs-chip-apply');
+    ok.textContent = I18N.chipApply;
+    ok.addEventListener('click', function () {
+      var picked = inputs.filter(function (c) { return c.checked; })
+                         .map(function (c) { return c.value; });
+      if (opts.allMeansNoFilter && picked.length === values.length) {
+        var at = cur.def.filters.indexOf(f);
+        if (at !== -1) cur.def.filters.splice(at, 1);
+        runCurrent();
+        return;
+      }
+      if (!picked.length) return;   // an empty IN () matches nothing — keep editing
+      f.value = picked;
+      if (opts.onApply) opts.onApply(f);
+      runCurrent();
+    });
+    box.appendChild(ok);
+  }
+
+  function textChipEditor(cur, f, chipEl) {
     var box = document.createElement('span');
     box.className = 'rs-chip rs-chip-editor';
     var meta = fieldMetaFor(cur.def, f.field);
@@ -1565,7 +1640,18 @@
     wrap.hidden = !hasDef;
     if (!hasDef) return;
     var def = cur.def || {};
+    def.filters = def.filters || [];
+    // Sources without a process registry (table sources, e.g. backlog_history)
+    // carry their process restriction as a plain in-filter on the
+    // processFieldFor field. Render THAT as the process chip instead of a
+    // duplicate filter chip next to a lying "Processes: all" (#178).
+    var chipSrc = (state.sources || []).find(function (s) { return s.id === def.source; });
+    var pf = chipSrc ? processFieldFor(chipSrc) : null;
+    var pfFilter = pf ? (def.filters || []).find(function (ft) {
+      return ft.op === 'in' && ft.field === pf.field;
+    }) || null : null;
     (def.filters || []).forEach(function (f) {
+      if (f === pfFilter) return;
       var meta = fieldMetaFor(def, f.field);
       var parts = [(meta && meta.label) || f.field, OP_LABELS[f.op] || f.op];
       var vl = chipValueLabel(f.value, f.op);
@@ -1586,12 +1672,29 @@
       none.textContent = I18N.aiNoFilters;
       wrap.appendChild(none);
     }
-    var procs = (def.scope && def.scope.processes) || [];
-    wrap.appendChild(chip(
-      I18N.aiProcesses + ': ' + (procs.length ? procs.join(', ') : I18N.allProcesses),
-      function (chipEl) { processChipEditor(cur, chipEl); },
-      null
-    ));
+    if (pf) {
+      var pfVals = (pfFilter && pfFilter.value) || [];
+      wrap.appendChild(chip(
+        I18N.aiProcesses + ': ' + (pfVals.length ? pfVals.join(', ') : I18N.allProcesses),
+        function (chipEl) {
+          var f = pfFilter || { field: pf.field, op: 'in', value: [] };
+          valueListChipEditor(cur, f, chipEl, {
+            allMeansNoFilter: true,
+            onApply: function (ft) {
+              if (def.filters.indexOf(ft) === -1) def.filters.push(ft);
+            }
+          });
+        },
+        null
+      ));
+    } else {
+      var procs = (def.scope && def.scope.processes) || [];
+      wrap.appendChild(chip(
+        I18N.aiProcesses + ': ' + (procs.length ? procs.join(', ') : I18N.allProcesses),
+        function (chipEl) { processChipEditor(cur, chipEl); },
+        null
+      ));
+    }
     var grainedCol = (def.columns || []).find(function (c) { return c.grain; });
     if (!grainedCol) {
       grainedCol = (def.columns || []).find(function (c) {
@@ -2416,6 +2519,7 @@
       return;
     }
     var values = (res.ok && res.data && res.data.values) || [];
+    var valueLabels = (res.ok && res.data && res.data.labels) || {};
     if (!values.length) {  // endpoint down or empty column: skip the step
       w.fieldScope = null;
       step.hidden = true;
@@ -2436,7 +2540,8 @@
           box.querySelectorAll('input:checked'), function (c) { return c.value; });
       });
       lbl.appendChild(cb);
-      lbl.appendChild(document.createTextNode(' ' + p));
+      // labelWith companion (e.g. "privera.03_Invoice_New"); value stays bare.
+      lbl.appendChild(document.createTextNode(' ' + (valueLabels[p] || p)));
       box.appendChild(lbl);
     });
     renderWizardRail();

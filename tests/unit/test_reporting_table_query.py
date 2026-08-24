@@ -211,25 +211,108 @@ def test_build_distinct_query_rejects_unknown_or_unfilterable():
         build_distinct_query("Nope", "dbo.BacklogHistory", cols)
 
 
-def test_latest_of_ignored_with_dimensions():
+_SNAPSHOT_COLS = [
+    {
+        "field": "SnapshotAt",
+        "type": "datetime",
+        "filterable": True,
+        "sortable": True,
+        "grainable": True,
+    },
+    {"field": "ProcessName", "type": "string", "filterable": True, "sortable": True},
+    {"field": "BacklogCount", "type": "number", "filterable": True, "sortable": True},
+]
+_SNAPSHOT_METRICS = [{"code": "backlog_total", "aggregation": "sum", "base_field": "BacklogCount"}]
+
+
+def test_day_grain_truncates_datetime_dimension():
     rd = {"columns": [{"field": "SnapshotAt", "grain": "day"}], "filters": [], "sort": []}
-    cols = [
-        {
-            "field": "SnapshotAt",
-            "type": "datetime",
-            "filterable": True,
-            "sortable": True,
-            "grainable": True,
-        },
-        {"field": "BacklogCount", "type": "number", "filterable": True, "sortable": True},
-    ]
-    metrics = [{"code": "backlog_total", "aggregation": "sum", "base_field": "BacklogCount"}]
     sql, _ = build_generic_query(
         rd,
         "dbo.BacklogHistory",
-        cols,
+        _SNAPSHOT_COLS,
         row_cap=5000,
-        resolved_metrics=metrics,
+        resolved_metrics=_SNAPSHOT_METRICS,
+    )
+    assert "CAST([SnapshotAt] AS date) AS [SnapshotAt]" in sql
+    assert "GROUP BY CAST([SnapshotAt] AS date)" in sql
+
+
+def test_grained_date_dim_excludes_zero_date_sentinel():
+    rd = {"columns": [{"field": "SnapshotAt", "grain": "day"}], "filters": [], "sort": []}
+    sql, _ = build_generic_query(
+        rd,
+        "dbo.BacklogHistory",
+        _SNAPSHOT_COLS,
+        row_cap=5000,
+        resolved_metrics=_SNAPSHOT_METRICS,
+    )
+    assert "([SnapshotAt] IS NULL OR [SnapshotAt] >= '19010101')" in sql
+
+
+def test_latest_of_with_day_grain_keeps_newest_snapshot_per_bucket():
+    rd = {
+        "columns": [{"field": "SnapshotAt", "grain": "day"}, {"field": "ProcessName"}],
+        "filters": [
+            {"field": "SnapshotAt", "op": "between", "value": ["2026-08-01", "2026-08-31"]}
+        ],
+        "sort": [],
+    }
+    sql, params = build_generic_query(
+        rd,
+        "dbo.BacklogHistory",
+        _SNAPSHOT_COLS,
+        row_cap=5000,
+        resolved_metrics=_SNAPSHOT_METRICS,
+        latest_of="SnapshotAt",
+    )
+    assert "[SnapshotAt] IN (SELECT MAX([SnapshotAt]) FROM [dbo].[BacklogHistory]" in sql
+    assert "GROUP BY CAST([SnapshotAt] AS date))" in sql
+    # filter params appear twice: outer WHERE + the per-bucket MAX subquery
+    assert params == ["2026-08-01", "2026-08-31", "2026-08-01", "2026-08-31"]
+
+
+def test_latest_of_without_date_dimension_constrains_to_global_max():
+    rd = {"columns": [{"field": "ProcessName"}], "filters": [], "sort": []}
+    sql, _ = build_generic_query(
+        rd,
+        "dbo.BacklogHistory",
+        _SNAPSHOT_COLS,
+        row_cap=5000,
+        resolved_metrics=_SNAPSHOT_METRICS,
+        latest_of="SnapshotAt",
+    )
+    assert "[SnapshotAt] = (SELECT MAX([SnapshotAt]) FROM [dbo].[BacklogHistory])" in sql
+
+
+def test_latest_of_skipped_for_raw_date_dimension():
+    # grain None: every snapshot instant is its own bucket — no restriction.
+    rd = {"columns": [{"field": "SnapshotAt"}], "filters": [], "sort": []}
+    sql, _ = build_generic_query(
+        rd,
+        "dbo.BacklogHistory",
+        _SNAPSHOT_COLS,
+        row_cap=5000,
+        resolved_metrics=_SNAPSHOT_METRICS,
         latest_of="SnapshotAt",
     )
     assert "SELECT MAX(" not in sql
+
+
+def test_build_distinct_query_label_with_pairs():
+    cols = [
+        {"field": "ProcessName", "type": "string", "filterable": True, "labelWith": "ClientName"},
+        {"field": "ClientName", "type": "string", "filterable": True},
+    ]
+    sql = build_distinct_query("ProcessName", "dbo.BacklogHistory", cols)
+    assert sql == (
+        "SELECT DISTINCT TOP (100) [ProcessName], [ClientName] "
+        "FROM [dbo].[BacklogHistory] "
+        "WHERE [ProcessName] IS NOT NULL ORDER BY [ProcessName], [ClientName]"
+    )
+    with pytest.raises(TableQueryError):
+        build_distinct_query(
+            "ProcessName",
+            "dbo.BacklogHistory",
+            [{"field": "ProcessName", "filterable": True, "labelWith": "Nope"}],
+        )

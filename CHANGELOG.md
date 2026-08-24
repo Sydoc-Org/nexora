@@ -8,6 +8,43 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Fixed
+
+- **Backlog history charts showed summed snapshots instead of point-in-time
+  values.** Two stacked bugs: the generic table builder never truncated a
+  `day`-grained `datetime` dimension (grouping per 30-minute snapshot, not per
+  day), and the chart then added every snapshot landing on the same date — a
+  day showing 9 000+ for a backlog that never exceeded 1 300. Day grain now
+  buckets via `CAST(... AS date)`, and `TotalMode='latest'` metrics
+  (`backlog_total`) aggregate only the **newest snapshot per bucket** (per-day
+  closing value) instead of the whole day — also applied to category-only
+  breakdowns ("Backlog by process" = latest snapshot), previously
+  zero-dimension totals only. The KPI stat band (groups / avg per group /
+  peak) becomes consistent with the chart as a side effect.
+- **A `1900-01-01` bucket could appear on reporting time axes.** SQL Server's
+  zero-date sentinel (empty-string/zero date casts) bucketed as a real date;
+  both query builders now exclude it from grained date dimensions (NULL "no
+  date yet" buckets stay).
+- **Drill-through chips rendered relative date ranges as `[object Object]`.**
+  Token values ({"token": "this_month"}) and value lists are now formatted.
+- **The result view showed "Processes: all" next to an active process
+  filter.** For sources without a process registry (`backlog_history`) the
+  process restriction lives in a plain `in`-filter; the process chip now
+  renders (and edits) that filter instead of always reading `scope.processes`
+  — the same chip was previously also dead on click for those sources.
+- **`in`/`not_in` filter chips no longer demand comma-separated typing.**
+  Editing opens a checkbox picker of the field's distinct values (process
+  registry or `POST /api/reporting/field_values`), falling back to the text
+  editor when no values are available.
+
+### Changed
+
+- **The wizard's process picker for the backlog source now shows
+  client-prefixed names** (`privera.03_Invoice_New` style, matching the rest
+  of the app) via a new optional `labelWith` key in `ReportingSources.
+  ColumnsJSON` (migration `0065`, which also renames the "Snapshot at" column
+  label to "Stand").
+
 ## [3.2.2] - Unreleased
 
 ### Added

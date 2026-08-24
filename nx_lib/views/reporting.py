@@ -926,7 +926,7 @@ def _prepare_run(rd):
             else None
         )
         latest_of = None
-        if resolved and not (rd.get("columns") or []):
+        if resolved:
             modes = {
                 (source_metrics.get(m["code"]) or {}).get("total_mode", "sum") for m in resolved
             }
@@ -3098,6 +3098,21 @@ def api_field_values():
     except Exception as e:
         current_app.logger.error(f"/api/reporting/field_values exec error: {e}")
         return jsonify({"error": _("Could not load values")}), 500
+    if rows and len(rows[0]) > 1:
+        # labelWith companion column: label each value "companion.value"
+        # (lowercased companion, matching the app's client.process idiom).
+        # ponytail: a value shared by several companions falls back to its
+        # bare name — split into per-companion filters if that ever matters.
+        values, labels = [], {}
+        for r in rows:
+            v = r[0]
+            label = f"{str(r[1]).lower()}.{v}" if r[1] is not None else str(v)
+            if v not in labels:
+                values.append(v)
+                labels[v] = label
+            elif labels[v] != label:
+                labels[v] = str(v)
+        return jsonify({"values": values, "labels": labels})
     return jsonify({"values": [r[0] for r in rows]})
 
 

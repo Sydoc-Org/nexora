@@ -108,7 +108,9 @@ step without losing your picks; **✕** leaves without deleting anything you sav
 
 2. **Which processes?**
    A checklist, everything ticked by default. Untick to narrow. This step is
-   skipped for data sources that have no processes.
+   skipped for data sources that have no processes. For the backlog source
+   the entries read `client.process` (e.g. `privera.03_Invoice_New`) — the
+   same naming the rest of the app uses.
 
 3. **Break it down by…**
    - *Over time* — pick a **Granularity** (Week / Month / Quarter / Year).
@@ -130,7 +132,10 @@ step without losing your picks; **✕** leaves without deleting anything you sav
    the month you built it in.
 
 Then **Show result**. To change something afterwards, hit **Adjust** — the
-wizard reopens with all your answers still selected.
+wizard reopens with all your answers still selected. The chips above the
+result are editable too: clicking the **Processes** chip or any *is one of*
+filter chip opens a checkbox picker of the known values — no typing needed.
+Ticking everything simply removes the restriction.
 
 #### About those "2/5" badges
 

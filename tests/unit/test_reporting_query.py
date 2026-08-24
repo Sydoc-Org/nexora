@@ -68,6 +68,22 @@ def test_builds_union_over_processes_with_top_and_order():
     assert "NULL AS [pages]" in sql
 
 
+def test_projected_date_dim_excludes_zero_date_sentinel():
+    rd = _rd(
+        columns=[{"field": "export_date", "header": "Exported", "agg": None}],
+        sort=[],
+    )
+    sql, _ = build_table_query(rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100)
+    # per-process raw date expr, NULL bucket kept, 1900 sentinel dropped
+    assert "(CAST(ExportDate AS date) IS NULL OR CAST(ExportDate AS date) >= '19010101')" in sql
+    assert "(CAST(ExpD AS date) IS NULL OR CAST(ExpD AS date) >= '19010101')" in sql
+
+
+def test_non_date_columns_get_no_sentinel_guard():
+    sql, _ = build_table_query(_rd(), PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100)
+    assert "19010101" not in sql
+
+
 def test_schema_qualified_table_brackets_each_part():
     # Statconfig TableName values are schema-qualified ('dbo.Compass_Invoice');
     # bracketing the whole string as one identifier ([dbo.Compass_Invoice])
