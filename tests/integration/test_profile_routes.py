@@ -52,8 +52,18 @@ def test_update_profile_invalid_email_flashes_and_redirects(user_client):
     assert "/profile" in resp.headers.get("Location", "")
 
 
-def test_update_profile_happy_path_updates_session(user_client):
-    """Valid email update succeeds; session reflects new fullname/email."""
+def test_update_profile_happy_path_updates_session(user_client, db_conn):
+    """Valid email update succeeds; session reflects new fullname/email.
+
+    Restores the seeded fullname afterward via db_conn (update_profile
+    commits on its own connection, so db_conn's rollback can't undo it) --
+    same pattern as test_change_password_happy_path_then_restore. Without
+    this, the write to "Updated Test User" persists in the TEST database
+    and silently drifts any other test/suite (e.g. the reporting-share e2e
+    test) that depends on this account's seeded "Test User" fullname.
+    """
+    from sqlalchemy import text
+
     new_full = "Updated Test User"
     new_email = "user@test.local"  # keep same email to avoid uniqueness collision
     resp = user_client.post(
@@ -64,6 +74,11 @@ def test_update_profile_happy_path_updates_session(user_client):
     assert resp.status_code == 302
     with user_client.session_transaction() as sess:
         assert sess.get("fullname") == new_full
+
+    db_conn.execute(
+        text("UPDATE Users SET fullname = 'Test User' WHERE username = 'user@test.local'"),
+    )
+    db_conn.commit()
 
 
 def test_update_profile_duplicate_email_redirects_with_flash(user_client):
