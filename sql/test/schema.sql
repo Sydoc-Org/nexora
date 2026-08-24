@@ -298,7 +298,7 @@ END;
 GO
 
 -- Canonical metrics registry (mirrors 0017_create_reporting_metrics.sql + 0039 label
--- columns + 0056 TotalMode).
+-- columns + 0056 TotalMode + 0067 DateAnchor).
 IF OBJECT_ID(N'dbo.ReportingMetrics', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.ReportingMetrics (
@@ -317,6 +317,7 @@ BEGIN
         Enabled      BIT NOT NULL CONSTRAINT DF_ReportingMetrics_Enabled DEFAULT 1,
         SortOrder    INT NOT NULL CONSTRAINT DF_ReportingMetrics_SortOrder DEFAULT 100,
         TotalMode    NVARCHAR(16) NOT NULL CONSTRAINT DF_ReportingMetrics_TotalMode DEFAULT 'sum',
+        DateAnchor   NVARCHAR(32) NULL,
         CreatedAt    DATETIME2 NOT NULL CONSTRAINT DF_ReportingMetrics_CreatedAt DEFAULT SYSUTCDATETIME(),
         UpdatedAt    DATETIME2 NOT NULL CONSTRAINT DF_ReportingMetrics_UpdatedAt DEFAULT SYSUTCDATETIME(),
         CONSTRAINT CK_ReportingMetrics_Aggregation
