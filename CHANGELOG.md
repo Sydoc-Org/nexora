@@ -26,6 +26,16 @@ Work toward the next release.
 
 ### Fixed
 
+- **Charts with a second breakdown silently dropped every measure but the
+  first.** "Imported + exported + backlog per month / process" rendered only
+  the first measure's lines. The two-dimension pivot (Simple pane and the
+  scheduled-mail PNG renderer) now emits one series per (breakdown ×
+  measure) pair ("privera.03_Invoice_New · Documents exported"), with the
+  12-series cap applied fairly per measure so a small-valued measure
+  (backlog) is never crowded out by large ones; single-breakdown PNGs also
+  gained per-measure series. The old "Backlog" measure on the Backlog
+  History source is relabeled "Backlog (detail analysis)" (migration `0068`)
+  to distinguish it from the combinable anchored one.
 - **Backlog history charts showed summed snapshots instead of point-in-time
   values.** Two stacked bugs: the generic table builder never truncated a
   `day`-grained `datetime` dimension (grouping per 30-minute snapshot, not per

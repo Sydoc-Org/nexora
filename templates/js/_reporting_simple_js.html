@@ -1258,9 +1258,12 @@
       rows = rows.slice(0, 50);
     }
     if (dims >= 2) {
-      // Only the first metric is pivoted into series — wizard always emits one metric.
+      // EVERY metric is pivoted into series: with several measures each
+      // (dims × measure) pair becomes its own series ("Process · Measure").
       var metricIdx2 = columns.length - (def.metrics || []).length;
-      var xOrder = [], cell = {}, seriesTot = {}, seriesParts = {};
+      var nMetrics2 = (def.metrics || []).length || 1;
+      var mLabels2 = metricLabelsFor(def);
+      var xOrder = [], cell = {}, seriesTot = {}, seriesParts = {}, seriesMetric = {};
       rows.forEach(function (r) {
         var x = String(r[0] == null ? '' : r[0]).slice(0, isDate ? 10 : 200);
         // Series key = ALL remaining breakdowns joined ("Process · Source").
@@ -1277,22 +1280,40 @@
           // raw so drill-through still gets the full value.
           labelParts.push(def.columns[d] && def.columns[d].grain ? pv.slice(0, 10) : pv);
         }
-        var s = labelParts.join(' · ');
-        var v = Number(r[metricIdx2]) || 0;
         if (!cell[x]) { xOrder.push(x); cell[x] = {}; }
-        cell[x][s] = (cell[x][s] || 0) + v;
-        seriesTot[s] = (seriesTot[s] || 0) + v;
-        seriesParts[s] = parts;
+        for (var mi = 0; mi < nMetrics2; mi++) {
+          var s = nMetrics2 > 1
+            ? labelParts.concat([mLabels2[mi] || def.metrics[mi].metric]).join(' · ')
+            : labelParts.join(' · ');
+          var v = Number(r[metricIdx2 + mi]) || 0;
+          cell[x][s] = (cell[x][s] || 0) + v;
+          seriesTot[s] = (seriesTot[s] || 0) + v;
+          seriesParts[s] = parts;
+          seriesMetric[s] = mi;
+        }
       });
       if (xOrder.length > 50) { chartCardNote(I18N.noChartTooManyPoints); return false; }
-      var series = Object.keys(seriesTot).sort(function (a, b) {
-        return seriesTot[b] - seriesTot[a];
-      });
-      if (series.length > 12) {
-        el('rsChartNote').textContent =
-          I18N.chartSeriesCapped.replace('{shown}', '12').replace('{n}', String(series.length));
+      var allSeries = Object.keys(seriesTot);
+      var byTot = function (a, b) { return seriesTot[b] - seriesTot[a]; };
+      var series;
+      if (nMetrics2 > 1) {
+        // Fair cap: top slots per measure, so a small-valued measure (a
+        // backlog of hundreds next to document counts in the tens of
+        // thousands) is never crowded out of the chart entirely.
+        var per = Math.max(1, Math.floor(12 / nMetrics2));
+        series = [];
+        for (var mj = 0; mj < nMetrics2; mj++) {
+          series = series.concat(allSeries.filter(function (s) {
+            return seriesMetric[s] === mj;
+          }).sort(byTot).slice(0, per));
+        }
+      } else {
+        series = allSeries.sort(byTot).slice(0, 12);
+      }
+      if (allSeries.length > series.length) {
+        el('rsChartNote').textContent = I18N.chartSeriesCapped
+          .replace('{shown}', String(series.length)).replace('{n}', String(allSeries.length));
         el('rsChartNote').hidden = false;
-        series = series.slice(0, 12);
       }
       state.chartData = {
         labels: xOrder,
