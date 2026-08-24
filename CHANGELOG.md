@@ -10,6 +10,16 @@ Work toward the next release.
 
 ### Fixed
 
+- **Uploaded profile avatars were silently deleted on every production
+  deploy.** The upload handler saved `{userid}-icon.png` directly under
+  `static/images/`, but that whole tree is `robocopy /MIR`'d from git on
+  every deploy — anything present on the server but absent from the git
+  source gets purged, and an uploaded avatar (never committed to git) was
+  exactly that. Avatars now save to `var/uploads/avatars/` (already
+  excluded from the deploy mirror, same as sessions/logs/screenshots) and
+  are served through a new `/avatar/<user_id>` route instead of a static
+  file path.
+
 - **Checkboxes/radios stayed plain white regardless of theme.** Native
   checkbox rendering wasn't reliable enough on its own: `accent-color`
   only tints the checked-state fill, and on a real Windows/Chrome setup

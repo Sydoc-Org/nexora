@@ -37,6 +37,7 @@ from .whats_new import has_unseen, load_seen_version
 
 _SESSION_ENFORCE_SKIP_PATHS = (
     "/static",
+    "/avatar",
     "/login",
     "/logout",
     "/forgot_password",
@@ -97,7 +98,7 @@ def _enforce_active_session():
 
 
 def _reload_user_permissions():
-    if request.path.startswith("/static"):
+    if request.path.startswith(("/static", "/avatar")):
         return
     if "userid" in session:
         try:
@@ -126,7 +127,7 @@ def _load_user_ui_prefs():
     permissions). A load-once session cache goes stale: concurrent requests
     (e.g. the 5s heartbeat) race the session cookie and can resurrect the
     old prefs, making saves look non-persistent (#155)."""
-    if request.path.startswith("/static"):
+    if request.path.startswith(("/static", "/avatar")):
         return
     if "userid" in session:
         session["ui_prefs"] = load_ui_prefs(session["userid"])
@@ -156,7 +157,7 @@ def _enforce_maintenance_lockout():
 
 
 def _log_every_request(response):
-    if request.path.startswith("/static"):
+    if request.path.startswith(("/static", "/avatar")):
         return response
     duration = time.time() - request.start_time if hasattr(request, "start_time") else 0
 

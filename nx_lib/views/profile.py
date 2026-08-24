@@ -7,12 +7,14 @@ from html import escape
 
 import bcrypt
 from flask import (
+    abort,
     current_app,
     flash,
     jsonify,
     redirect,
     render_template,
     request,
+    send_from_directory,
     session,
     url_for,
 )
@@ -20,7 +22,7 @@ from flask_babel import gettext as _
 from PIL import Image
 from werkzeug.utils import secure_filename
 
-from ..config import SUPPORT_MAIL
+from ..config import PATHS, SUPPORT_MAIL
 from ..db import engine_nexora_db
 from ..extensions import limiter
 from ..files import is_file_allowed
@@ -115,8 +117,9 @@ def update_profile():
                     img.verify()
 
                     filename = f"{userid}-icon.png"
-                    rel_path = os.path.join("static", "images", filename)
-                    abs_path = os.path.join(current_app.root_path, rel_path)
+                    avatars_dir = PATHS.uploads / "avatars"
+                    avatars_dir.mkdir(parents=True, exist_ok=True)
+                    abs_path = os.path.join(avatars_dir, filename)
                     if os.path.exists(abs_path):
                         os.remove(abs_path)
 
@@ -142,6 +145,19 @@ def update_profile():
             cursor.close()
         if conn:
             conn.close()
+
+
+def user_avatar(user_id):
+    """Serve an uploaded avatar from var/uploads/avatars/ (see resolve_user_icon_url).
+
+    Not under static/ on purpose -- static/ is robocopy-mirrored from git on
+    every deploy, which would delete every uploaded avatar on the next release.
+    """
+    avatars_dir = PATHS.uploads / "avatars"
+    for filename in (f"{user_id}-icon.png", f"{user_id}-Icon.png"):
+        if (avatars_dir / filename).exists():
+            return send_from_directory(avatars_dir, filename)
+    abort(404)
 
 
 def change_password():
@@ -394,6 +410,11 @@ def register_routes(app):
         methods=["POST", "GET"],
     )
     app.add_url_rule("/language/<lang>", endpoint="set_language", view_func=set_language)
+    app.add_url_rule(
+        "/avatar/<int:user_id>",
+        endpoint="user_avatar",
+        view_func=user_avatar,
+    )
     app.add_url_rule("/appearance", endpoint="appearance", view_func=appearance)
     app.add_url_rule("/whats_new", endpoint="whats_new", view_func=whats_new)
     app.add_url_rule(

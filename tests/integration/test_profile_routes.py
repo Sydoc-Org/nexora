@@ -6,6 +6,7 @@ Routes covered:
 - POST /update_profile  (profile update — invalid email, dup email, happy path)
 - POST /change_password (mismatch, length, current-pw wrong, current-pw OK)
 - GET  /language/<lang> (bad lang, valid lang)
+- GET  /avatar/<id>     (uploaded-avatar serving; upload saves outside static/)
 
 All write paths roll back via the db_conn-scoped transaction fixture where
 possible. /update_profile and /change_password run via the test client which
@@ -13,7 +14,11 @@ holds its own connection, so changes persist within the test session — each
 test that mutates restores the original password/email at the end.
 """
 
+import io
+from types import SimpleNamespace
+
 import bcrypt
+from PIL import Image
 
 
 def test_profile_anonymous_redirects_to_login(client):
@@ -190,3 +195,58 @@ def test_set_language_all_valid_locales(user_client):
         assert resp.status_code == 302
     # End on en for sibling tests
     user_client.get("/language/en")
+
+
+def _patch_avatars_dir(monkeypatch, uploads_dir):
+    """Point profile.py's PATHS.uploads at an isolated tmp dir for the
+    duration of one test, so avatar tests never touch the real var/uploads/."""
+    from nx_lib.views import profile as profile_module
+
+    monkeypatch.setattr(profile_module, "PATHS", SimpleNamespace(uploads=uploads_dir))
+
+
+def test_avatar_missing_returns_404(client, tmp_path, monkeypatch):
+    _patch_avatars_dir(monkeypatch, tmp_path)
+    resp = client.get("/avatar/999999")
+    assert resp.status_code == 404
+
+
+def test_avatar_serves_uploaded_file(client, tmp_path, monkeypatch):
+    _patch_avatars_dir(monkeypatch, tmp_path)
+    avatars_dir = tmp_path / "avatars"
+    avatars_dir.mkdir(parents=True)
+    img = Image.new("RGB", (1, 1))
+    img.save(avatars_dir / "424242-icon.png", format="PNG")
+
+    resp = client.get("/avatar/424242")
+    assert resp.status_code == 200
+    assert resp.headers["Content-Type"] == "image/png"
+
+
+def test_avatar_upload_saves_outside_static(user_client, tmp_path, monkeypatch):
+    """Regression guard for the bug this route was added to fix: an uploaded
+    avatar must land under var/uploads/avatars/, never under static/ -- that
+    tree is robocopy /MIR'd from git on every deploy, which deletes anything
+    not committed to source, i.e. it would silently wipe every user's
+    uploaded avatar on the next release (see nx_lib/users.py)."""
+    _patch_avatars_dir(monkeypatch, tmp_path)
+
+    buf = io.BytesIO()
+    Image.new("RGB", (1, 1)).save(buf, format="PNG")
+    buf.seek(0)
+
+    resp = user_client.post(
+        "/update_profile",
+        data={
+            "fullName": "User",
+            "email": "user@test.local",
+            "file": (buf, "avatar.png"),
+        },
+        content_type="multipart/form-data",
+        follow_redirects=False,
+    )
+    assert resp.status_code == 302
+
+    with user_client.session_transaction() as sess:
+        userid = sess["userid"]
+    assert (tmp_path / "avatars" / f"{userid}-icon.png").exists()
