@@ -989,6 +989,31 @@ date yet" is a real group). The Simple KPI band's "· last bucket" caption on
 the Total tile remains a separate, client-computed number — see **Simple and
 Advanced tabs → KPI stat band** above.
 
+**`DateAnchor`** (migration `0067`, docprocessing only) marks a metric as
+**date-anchored**: *Documents/Pages imported* count on the import date,
+*Documents/Pages exported* on the export date, and *Backlog* reads
+`dbo.BacklogHistory` (same Statistics engine). Anchored metrics plot on the
+shared synthetic **`activity_date`** axis — each metric buckets its OWN date
+onto it — which is what makes "import line + export line + backlog line in
+one chart" a single-SQL report. Mechanics (`query.py:_build_anchored_query`):
+one UNION-ALL leg per (process, used date anchor) plus one BacklogHistory
+leg, each projecting the axis and one **counter column per metric** (1 / the
+value column / `BacklogCount` on the matching-anchor leg, `0` elsewhere);
+the outer query GROUPs BY the dims and SUMs the counters
+(`resolve_metrics` aliases an anchored metric's `base_field` to its own
+code; the registry `BaseField`, e.g. `pagecount`, becomes `value_field`).
+The backlog leg concatenates `LOWER(ClientName)+'.'+ProcessName` so its
+process vocabulary matches the docprocessing `client.process` constants, is
+restricted to the report's effective process scope, and keeps only the
+newest snapshot instant per bucket. Rules, enforced with teaching errors in
+`_prepare_run`: anchored and unanchored metrics never mix; anchored reports
+use `activity_date` (never `import_date`/`export_date`) for both columns and
+filters; `activity_date` is invalid without anchored metrics. Like
+`TotalMode`, `DateAnchor` is migration-managed (not writable via the admin
+metrics API). v1 limits: drill-through is unavailable on anchored results
+(the axis is not a physical column), and buckets without a backlog snapshot
+render as 0.
+
 > Per-metric locked filters (`FilterJson`) are stored in the table but **not yet
 > applied** by the engine in Slice 1 (reserved for a later slice). Report-level
 > `filters` still apply pre-aggregation.

@@ -182,3 +182,41 @@ def test_unknown_metric_code_is_ignored():
         "metrics": [{"metric": "nope"}],
     }
     assert drop_columns_shadowing_distinct_metrics(rd, _SHADOW_REGISTRY) == []
+
+
+# ---------------------------------------------------------------------------
+# Date-anchored metrics (imported/exported/backlog, migration 0067)
+# ---------------------------------------------------------------------------
+
+_ANCHORED_REGISTRY = {
+    "docs_imported": {"aggregation": "sum", "base_field": None, "anchor": "import_date"},
+    "pages_imported": {"aggregation": "sum", "base_field": "pagecount", "anchor": "import_date"},
+    "backlog": {"aggregation": "sum", "base_field": None, "anchor": "backlog"},
+    "bad_agg": {"aggregation": "avg", "base_field": None, "anchor": "import_date"},
+    "bad_base": {"aggregation": "sum", "base_field": "nope", "anchor": "export_date"},
+}
+
+
+def test_resolve_anchored_metric_aliases_counter_to_code():
+    out = resolve_metrics(
+        [{"metric": "docs_imported"}, {"metric": "pages_imported"}, {"metric": "backlog"}],
+        _ANCHORED_REGISTRY,
+        {"pagecount"},
+    )
+    assert out[0] == {
+        "code": "docs_imported",
+        "aggregation": "sum",
+        "base_field": "docs_imported",
+        "anchor": "import_date",
+        "value_field": None,
+    }
+    assert out[1]["base_field"] == "pages_imported"  # outer SUMs the alias
+    assert out[1]["value_field"] == "pagecount"  # legs read the real column
+    assert out[2]["anchor"] == "backlog"
+
+
+def test_resolve_anchored_metric_rejects_non_sum_and_bad_value_field():
+    with pytest.raises(MetricResolveError):
+        resolve_metrics([{"metric": "bad_agg"}], _ANCHORED_REGISTRY, {"pagecount"})
+    with pytest.raises(MetricResolveError):
+        resolve_metrics([{"metric": "bad_base"}], _ANCHORED_REGISTRY, {"pagecount"})

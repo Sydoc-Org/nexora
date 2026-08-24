@@ -223,6 +223,22 @@ def fetch_docprocessing_catalog(allowed_processes, locale_str):
         catalog += date_catalog_entries(
             date_avail, {"import_date": _("Import date"), "export_date": _("Export date")}
         )
+        if date_avail:
+            # Shared time axis for date-anchored measures (imported/exported/
+            # backlog): each measure buckets its OWN date onto this axis. Only
+            # valid together with anchored metrics — _prepare_run enforces.
+            catalog.append(
+                {
+                    "field": "activity_date",
+                    "label": _("Date"),
+                    "type": "date",
+                    "aggregable": False,
+                    "sortable": True,
+                    "filterable": True,
+                    "grainable": True,
+                    "processes": sorted({p for ps in date_avail.values() for p in ps}),
+                }
+            )
         catalog += workitem_catalog_entries(
             workitem_availability(statconfig_rows, allowed_processes), _("Workitem ID")
         )

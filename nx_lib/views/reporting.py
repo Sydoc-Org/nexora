@@ -222,7 +222,8 @@ def _load_db_metrics():
         cur = conn.cursor()
         cur.execute(
             "SELECT Code, SourceId, Label, GermanLabel, FrenchLabel, ItalianLabel, "
-            "Aggregation, BaseField, Description, Format, Enabled, SortOrder, TotalMode "
+            "Aggregation, BaseField, Description, Format, Enabled, SortOrder, TotalMode, "
+            "DateAnchor "
             "FROM dbo.ReportingMetrics WHERE Enabled = 1"
         )
         out = {}
@@ -240,6 +241,7 @@ def _load_db_metrics():
                 "format": r.Format,
                 "sort_order": r.SortOrder,
                 "total_mode": (getattr(r, "TotalMode", None) or "sum"),
+                "anchor": getattr(r, "DateAnchor", None),
             }
         return out
     except Exception as e:
@@ -270,6 +272,7 @@ def _metrics_for_source(source_id):
             "aggregation": m["aggregation"],
             "base_field": m["base_field"],
             "total_mode": m.get("total_mode", "sum"),
+            "anchor": m.get("anchor"),
         }
         for code, m in _load_db_metrics().items()
         if m["source_id"] == source_id
@@ -888,6 +891,32 @@ def _prepare_run(rd):
             if rd.get("metrics")
             else None
         )
+        # Date-anchored measures (imported/exported/backlog) share ONE time
+        # axis (activity_date) — each measure buckets its own date onto it.
+        # Teach the incoherent combinations away instead of emitting bad SQL.
+        anchored = [m for m in (resolved or []) if m.get("anchor")]
+        col_fields = {c.get("field") for c in rd.get("columns") or []}
+        filt_fields = {f.get("field") for f in rd.get("filters") or []}
+        if anchored and len(anchored) != len(resolved):
+            raise ReportDefinitionError(
+                "anchored measures (imported/exported/backlog) cannot be mixed "
+                "with unanchored ones — pick one kind"
+            )
+        if anchored and col_fields & {"import_date", "export_date"}:
+            raise ReportDefinitionError(
+                "anchored measures plot on the shared 'activity_date' axis — "
+                "use it instead of import_date/export_date columns"
+            )
+        if anchored and filt_fields & {"import_date", "export_date"}:
+            raise ReportDefinitionError(
+                "filter anchored reports on 'activity_date' — the range then "
+                "applies to each measure's own date"
+            )
+        if "activity_date" in (col_fields | filt_fields) and not anchored:
+            raise ReportDefinitionError(
+                "'activity_date' is only valid with date-anchored measures "
+                "(imported/exported/backlog)"
+            )
         allowed = _allowed_processes()
         scope = _effective_scope(rd, allowed)
         configs = _load_process_configs(scope)
@@ -3157,6 +3186,7 @@ def api_metrics():
                 "baseField": m["base_field"],
                 "format": m["format"],
                 "totalMode": m.get("total_mode", "sum"),
+                "anchor": m.get("anchor"),
             }
         )
     return jsonify(out)

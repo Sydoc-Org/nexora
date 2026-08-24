@@ -2380,9 +2380,17 @@
 
   // Measures are toggle-select; the first pick pins the source (the query
   // engine is single-source), other sources' chips gray out until empty.
+  // Anchored measures (imported/exported/backlog, m.anchor set) plot on the
+  // shared activity_date axis and can't mix with plain measures — the server
+  // rejects such definitions, so don't let the wizard build one.
+  function anchorMismatch(w, m) {
+    return !!(w.measures.length && (!!m.anchor) !== (!!w.measures[0].anchor));
+  }
+
   function toggleMeasure(m, src) {
     var w = state.wiz;
     if (w.source && w.source.id !== src.id) return;   // disabled chip
+    if (anchorMismatch(w, m)) return;                 // disabled chip
     var idx = -1, i;
     for (i = 0; i < w.measures.length; i++) {
       if (w.measures[i].code === m.code) { idx = i; break; }
@@ -2430,6 +2438,7 @@
         }, !!(w.source && w.source.id === src.id
               && w.measures.some(function (x) { return x.code === m.code; })));
         if (w.source && w.source.id !== src.id) btn.disabled = true;
+        if (anchorMismatch(w, m)) btn.disabled = true;
         // Partial coverage (vs ALL allowed processes — no scope exists yet at
         // this step): same badge as the breakdown chips.
         if (fld && fld.processes && fld.processes.length && srcProcs.length
@@ -2656,7 +2665,13 @@
       var list = el('rsBreakdownList');
       list.innerHTML = '';
       var fields = w.source.fields || [];
-      var dateFields = fields.filter(function (f) { return f.grainable; }).filter(inScope);
+      // Anchored measures use ONLY the shared activity_date axis; plain
+      // measures never do (each anchored metric buckets its own date onto it).
+      var anchoredWiz = !!(w.measures.length && w.measures[0].anchor);
+      var dateFields = fields.filter(function (f) { return f.grainable; }).filter(inScope)
+        .filter(function (f) {
+          return anchoredWiz ? f.field === 'activity_date' : f.field !== 'activity_date';
+        });
       var catFields = fields.filter(function (f) {
         return f.type === 'string' && f.filterable;
       }).filter(inScope);
@@ -2764,7 +2779,11 @@
       if (state.wiz._fp) state.wiz._fp.setDate(state.wiz.range, false);
     }
     var fields = state.wiz.source.fields || [];
-    var dateFields = fields.filter(function (f) { return f.grainable; });
+    var anchoredTime = !!(state.wiz.measures.length && state.wiz.measures[0].anchor);
+    var dateFields = fields.filter(function (f) { return f.grainable; })
+      .filter(function (f) {
+        return anchoredTime ? f.field === 'activity_date' : f.field !== 'activity_date';
+      });
     var list = el('rsTimeList');
     // Skipped when the source exposes no date field.
     if (!dateFields.length) {

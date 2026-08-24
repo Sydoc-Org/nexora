@@ -42,6 +42,32 @@ def resolve_metrics(metric_refs, metric_registry, catalog_fields):
         agg = spec.get("aggregation")
         if agg not in AGGREGATIONS:
             raise MetricResolveError(f"unsupported aggregation: {agg!r}")
+        anchor = spec.get("anchor")
+        if anchor:
+            # Date-anchored metric: the builder projects a per-leg counter
+            # column aliased to the metric code and the outer query SUMs that
+            # alias — so base_field becomes the code itself, and the registry
+            # BaseField (if any) is the per-row value column (e.g. pagecount),
+            # validated against the catalog like any aggregate base.
+            if agg != "sum":
+                raise MetricResolveError(f"anchored metric {code!r} must aggregate with sum")
+            value = spec.get("base_field")
+            if value is not None:
+                if not isinstance(value, str) or not _CODE.match(value):
+                    raise MetricResolveError(f"unsafe metric base field: {value!r}")
+                if value not in catalog_fields:
+                    raise MetricResolveError(f"metric base field not in catalog: {value!r}")
+            seen.add(code)
+            out.append(
+                {
+                    "code": code,
+                    "aggregation": "sum",
+                    "base_field": code,
+                    "anchor": anchor,
+                    "value_field": value,
+                }
+            )
+            continue
         base = spec.get("base_field")
         if agg == "count":
             base = None

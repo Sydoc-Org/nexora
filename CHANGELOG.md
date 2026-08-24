@@ -8,6 +8,22 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Added
+
+- **Imports, exports and backlog on one chart.** New date-anchored measures
+  on the Document Processing source — *Documents imported* / *Pages imported*
+  (counted on the import date), *Documents exported* / *Pages exported*
+  (export date) and *Backlog* (point-in-time from `dbo.BacklogHistory`,
+  newest snapshot per bucket, process names unified to `client.process`) —
+  all plotted on one shared **activity_date** time axis. Pick them together
+  in the wizard ("Over time (Date)") to get the import line, the export line
+  and the backlog line in a single report; tiles, exports, saving and
+  scheduling work unchanged (single SQL on the Statistics engine).
+  `ReportingMetrics` gains a `DateAnchor` column (migration `0067`); anchored
+  and unanchored measures cannot be mixed, and the wizard greys the
+  incompatible pills. Known v1 limits: drill-through is not available on
+  anchored results, and months without any backlog snapshot chart as 0.
+
 ### Fixed
 
 - **Backlog history charts showed summed snapshots instead of point-in-time
