@@ -223,12 +223,21 @@ def test_avatar_serves_uploaded_file(client, tmp_path, monkeypatch):
     assert resp.headers["Content-Type"] == "image/png"
 
 
-def test_avatar_upload_saves_outside_static(user_client, tmp_path, monkeypatch):
+def test_avatar_upload_saves_outside_static(user_client, tmp_path, monkeypatch, db_conn):
     """Regression guard for the bug this route was added to fix: an uploaded
     avatar must land under var/uploads/avatars/, never under static/ -- that
     tree is robocopy /MIR'd from git on every deploy, which deletes anything
     not committed to source, i.e. it would silently wipe every user's
-    uploaded avatar on the next release (see nx_lib/users.py)."""
+    uploaded avatar on the next release (see nx_lib/users.py).
+
+    /update_profile requires fullName/email in the same POST as the file, so
+    this incidentally rewrites Fullname too -- restored below via db_conn
+    (same pattern as test_change_password_happy_path_then_restore) so this
+    doesn't drift a value other tests/suites (e.g. the reporting-share e2e
+    test) depend on.
+    """
+    from sqlalchemy import text
+
     _patch_avatars_dir(monkeypatch, tmp_path)
 
     buf = io.BytesIO()
@@ -250,3 +259,10 @@ def test_avatar_upload_saves_outside_static(user_client, tmp_path, monkeypatch):
     with user_client.session_transaction() as sess:
         userid = sess["userid"]
     assert (tmp_path / "avatars" / f"{userid}-icon.png").exists()
+
+    # update_profile committed on its own connection -- db_conn's rollback
+    # can't undo it, so restore the seeded fullname explicitly.
+    db_conn.execute(
+        text("UPDATE Users SET fullname = 'Test User' WHERE username = 'user@test.local'"),
+    )
+    db_conn.commit()
