@@ -52,8 +52,13 @@ def test_level_measure_reports_latest_not_sum():
     cols = [{"field": "d", "header": "Monat"}, {"field": "backlog", "header": "Backlog"}]
     rows = [["2026-01-01", 745], ["2026-02-01", 1183], ["2026-03-01", 369]]
     facts = build_facts(cols, rows, level_fields={"backlog"}, today=date(2026, 8, 25))
-    assert "Backlog: latest 369 (2026-03-01); a level, so buckets must not be summed" in facts
+    assert "Backlog: current level 369 (2026-03-01) -- a snapshot series, no total" in facts
     assert "total 2297" not in facts
+    # A level's newest snapshot is the CURRENT value even inside the running month.
+    rows.append(["2026-08-01", 1574])
+    facts = build_facts(cols, rows, level_fields={"backlog"}, today=date(2026, 8, 25))
+    assert "still-running month" in facts  # flagged for the reader...
+    assert "Backlog: current level 1574 (2026-08-01)" in facts  # ...but the level is not sidelined
 
 
 def test_category_dimension_gives_top_shares_and_rest():

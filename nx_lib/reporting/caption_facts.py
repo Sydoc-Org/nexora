@@ -115,8 +115,9 @@ def _series_lines(name, series, *, level, partial_last=False):
         return [f"{name}: no values."]
     total = sum(v for _, v in present)  # what the page's total card shows, partial bucket included
     current = None
-    if partial_last and present[-1][0] == series[-1][0]:
-        # The still-running bucket must not set peak/low/latest or skew averages.
+    if partial_last and not level and present[-1][0] == series[-1][0]:
+        # A flow's running bucket must not set peak/low/latest or skew averages.
+        # A level (backlog) is a snapshot: its newest bucket IS the current value.
         current, present = present[-1], present[:-1]
         if not present:
             return [
@@ -127,7 +128,7 @@ def _series_lines(name, series, *, level, partial_last=False):
     peak = max(present, key=lambda p: p[1])
     low = min(present, key=lambda p: p[1])
     head = (
-        f"{name}: latest {_fmt(nums[-1])} ({present[-1][0]}); a level, so buckets must not be summed"
+        f"{name}: current level {_fmt(nums[-1])} ({present[-1][0]}) -- a snapshot series, no total"
         if level
         else f"{name}: total {_fmt(total)}"
     )
@@ -141,7 +142,7 @@ def _series_lines(name, series, *, level, partial_last=False):
     if zeros:
         head += f", {zeros} at zero"
     head += (
-        f"; avg per bucket {_fmt(fmean(nums))}; peak {_fmt(peak[1])} ({peak[0]}); "
+        f"; avg per bucket {_fmt(round(fmean(nums)))}; peak {_fmt(peak[1])} ({peak[0]}); "
         f"low {_fmt(low[1])} ({low[0]})."
     )
     out = [head]
@@ -152,7 +153,7 @@ def _series_lines(name, series, *, level, partial_last=False):
         )
     if len(present) >= 4:
         half = len(present) // 2
-        a, b = fmean(nums[:half]), fmean(nums[half:])
+        a, b = round(fmean(nums[:half])), round(fmean(nums[half:]))
         out.append(
             f"{name} avg per bucket, first half {_fmt(a)} vs second half {_fmt(b)}: {_pct(b, a)}."
         )

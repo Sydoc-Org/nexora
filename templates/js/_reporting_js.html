@@ -415,7 +415,7 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
       body: JSON.stringify({
-        columns: columns, rows: rows.slice(0, 50),
+        columns: columns, rows: rows.slice(0, 5000),   // whole grid -> server-side fact sheet
         title: title || undefined, dateLabel: dateLabel || undefined
       })
     }).then(function (res) {

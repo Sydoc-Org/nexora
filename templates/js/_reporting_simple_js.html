@@ -2012,7 +2012,15 @@
     return out.join(' ');
   }
 
-  function fireCaption(boxId, columns, rows, title, dateLabel, notes) {
+  // Level metrics (backlog): tell the server which measures must be headlined
+  // by their latest value, not a sum over buckets (caption_facts.build_facts).
+  function captionLevelFields(def) {
+    var labels = metricLabelsFor(def);
+    return metricTotalModes(def).map(function (m, i) { return m === 'latest' ? labels[i] : null; })
+      .filter(Boolean);
+  }
+
+  function fireCaption(boxId, columns, rows, title, dateLabel, notes, levelFields) {
     var box = el(boxId);
     if (!box) return;
     var seq = ++captionSeq;
@@ -2023,9 +2031,12 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
       body: JSON.stringify({
-        columns: columns, rows: rows.slice(0, 50),
+        // The WHOLE grid (payload-capped): the server reduces it to a fact
+        // sheet, so the model no longer judges from the first 50 rows.
+        columns: columns, rows: rows.slice(0, 5000),
         title: title || undefined, dateLabel: dateLabel || undefined,
-        notes: notes || undefined
+        notes: notes || undefined,
+        levelFields: (levelFields && levelFields.length) ? levelFields : undefined
       })
     }).then(function (res) {
       if (!res.ok) throw new Error('caption http ' + res.status);
@@ -2250,7 +2261,8 @@
     // Task 13: auto AI caption over the result that just rendered. Placed
     // after the `!rows.length` early return above, so an empty result never
     // fires one (nothing to caption).
-    fireCaption('rsCaption', columns, rows, cur.name || cur.def.title || '', resolvedTxt, captionNotes(def, rows));
+    fireCaption('rsCaption', columns, rows, cur.name || cur.def.title || '', resolvedTxt,
+      captionNotes(def, rows), captionLevelFields(def));
   }
 
   // Step 5 — refresh the library card's preview thumbnail from the result

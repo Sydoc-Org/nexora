@@ -58,6 +58,17 @@ Work toward the next release.
 
 ### Fixed
 
+- **The AI caption ("KI" box) narrates the whole result, not its first 50
+  rows.** The caption route used to send the model `rows[:50]` off the top of
+  the grid — for a time series sorted ascending that is the NULL-date bucket
+  plus the oldest weeks, hence captions such as "a clear outlier of 74,182
+  pages" (the rows with no date) and "at most 3,712 pages in the latest
+  weeks" (it never saw them). The server now reduces the complete grid to an
+  exact fact sheet — total or latest level, buckets with vs. without a value,
+  peak/low, latest vs. previous, half-vs-half trend, recent tail, top
+  categories, rows without a date named as such, the running bucket flagged
+  and kept out of the comparisons — and the model writes at most two
+  sentences from those numbers only (`nx_lib/reporting/caption_facts.py`).
 - **Time charts no longer invent the future or read a half month as a
   collapse.** The Simple tab's bucket fill stops at today (*This year* = Jan
   to the current month, not Jan–Dec zeros), the bucket containing today is
