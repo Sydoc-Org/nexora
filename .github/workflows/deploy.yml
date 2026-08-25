@@ -294,13 +294,17 @@ jobs:
           }
           Write-Host "App pool '$pool' is Stopped."
 
-          $svc = Get-Service -Name 'ngrok' -ErrorAction SilentlyContinue
-          if ($svc -and $svc.Status -ne 'Stopped') {
-            Stop-Service -Name 'ngrok' -Force
-            $svc.WaitForStatus('Stopped', '00:01:00')
+          # Tunnel-agnostic (ngrok today, cloudflared after the Cloudflare
+          # Tunnel cutover -- docs/howto/cloudflare-tunnel.md): stop whichever
+          # public-tunnel services exist so no traffic hits the site mid-mirror.
+          foreach ($tunnel in @('ngrok', 'cloudflared')) {
+            $svc = Get-Service -Name $tunnel -ErrorAction SilentlyContinue
+            if ($svc -and $svc.Status -ne 'Stopped') {
+              Stop-Service -Name $tunnel -Force
+              $svc.WaitForStatus('Stopped', '00:01:00')
+            }
+            if ($svc) { Write-Host "Service '$tunnel' is Stopped." }
           }
-          Write-Host "Service 'ngrok' is Stopped."
-
       - name: Sync to deploy folder
         shell: powershell
         run: |
@@ -372,6 +376,10 @@ jobs:
           }
           Write-Host "App pool '$pool' is Started."
 
-          Start-Service -Name 'ngrok'
-          (Get-Service -Name 'ngrok').WaitForStatus('Running', '00:01:00')
-          Write-Host "Service 'ngrok' is Running."
+          foreach ($tunnel in @('ngrok', 'cloudflared')) {
+            if (Get-Service -Name $tunnel -ErrorAction SilentlyContinue) {
+              Start-Service -Name $tunnel
+              (Get-Service -Name $tunnel).WaitForStatus('Running', '00:01:00')
+              Write-Host "Service '$tunnel' is Running."
+            }
+          }
