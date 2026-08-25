@@ -4444,3 +4444,16 @@ def test_open_in_advanced_runs_report_and_reveals_sql(nexora_server, page):
     expect(page.get_by_test_id("reporting-field-panel")).to_be_visible()
     expect(page.get_by_test_id("reporting-results")).to_contain_text("acme.inv")
     expect(page.get_by_test_id("reporting-show-sql")).to_be_visible()
+
+
+def test_reporting_simple_exposes_result_builders(nexora_server, page):
+    """Whole-report dashboard cards draw through the Simple pane's own result
+    builders; they must be reachable (and pure functions) on
+    window.ReportingSimple. Each Phase-1 task of the whole-report-card plan
+    adds its builder to this list."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    expect(page.get_by_test_id("rs-hero")).to_be_visible()
+    names = ["ensureCatalogs", "fmtNumber", "zeroFillDateBuckets", "kpiBandHtml", "statCardHtml"]
+    kinds = page.evaluate("(names) => names.map(k => typeof window.ReportingSimple[k])", names)
+    assert kinds == ["function"] * len(names), dict(zip(names, kinds, strict=False))

@@ -752,10 +752,13 @@
   // grand-total clone query, untouched here) alongside this band --
   // existing, tested behavior (test_wizard_category_breakdown_to_result_cards)
   // that this task's regroup does not change.
-  function renderKpiBand(dims, rows, comparison, def) {
-    var band = el('rsKpiBand');
+  // Pure HTML builder for the KPI band (Total / Buckets / Avg / Peak, prior-
+  // period delta chips, sparkline). Returns '' when the rows carry no numeric
+  // metric column. DOM-free -- shared with the dashboard's whole-report card
+  // via window.ReportingSimple, so it must never touch #rs* elements.
+  function kpiBandHtml(dims, rows, comparison, def) {
     var kpi = computeKpiBand(dims, rows);
-    if (!kpi) { band.hidden = true; band.innerHTML = ''; return; }
+    if (!kpi) return '';
     // Prior-period KPIs via the SAME computeKpiBand, fed comparison.rows --
     // no separate delta math to keep in sync. comparison.rows comes straight
     // off the backend's GROUP BY and omits empty date buckets exactly like
@@ -792,7 +795,7 @@
       peakDelta = deltaChipHtml(kpi.peak, priorKpi.peak, comparison.priorStart, comparison.priorEnd);
     }
     var sparkHtml = def ? sparklineHtml(def, rows, kpi) : '';
-    band.innerHTML =
+    return (
       '<div class="rs-kpi-total-card" data-testid="rs-kpi-total">' +
         '<span class="reporting-ledger-caption">' + esc(I18N.kpiTotal) +
           (latestKey ? ' · ' + esc(I18N.kpiLatestSuffix) + ' ' + esc(String(latestKey).slice(0, 16)) : '') + '</span>' +
@@ -803,7 +806,15 @@
         kpiBlock('rs-kpi-buckets', I18N.kpiBuckets, kpi.buckets) +
         kpiBlock('rs-kpi-avg', I18N.kpiAvg, kpi.avg, avgDelta) +
         kpiPeakBlock('rs-kpi-peak', I18N.kpiPeak, kpi.peakLabel, kpi.peak, peakDelta) +
-      '</div>';
+      '</div>'
+    );
+  }
+
+  function renderKpiBand(dims, rows, comparison, def) {
+    var band = el('rsKpiBand');
+    var html = kpiBandHtml(dims, rows, comparison, def);
+    if (!html) { band.hidden = true; band.innerHTML = ''; return; }
+    band.innerHTML = html;
     band.hidden = false;
     Array.prototype.forEach.call(band.querySelectorAll('[data-count-target]'), function (span) {
       animateValue(span, Number(span.getAttribute('data-count-target')), fmtNumber);
@@ -818,16 +829,21 @@
     });
   }
 
-  // One label/value pair per metric in the stat card (the first pair keeps
-  // the rsStatLabel/rsStatValue ids the tests target).
-  function fillStatCard(def, rowVals) {
+  // Pure: one label/value pair per metric. withIds keeps the rsStatLabel/
+  // rsStatValue ids on the first pair (the Simple pane's tests target them);
+  // the dashboard's whole-report card passes false so ids never duplicate.
+  function statCardHtml(def, rowVals, withIds) {
     var labels = metricLabelsFor(def);
-    el('rsStatBody').innerHTML = labels.map(function (lb, i) {
-      var idL = i === 0 ? ' id="rsStatLabel"' : '';
-      var idV = i === 0 ? ' id="rsStatValue"' : '';
+    return labels.map(function (lb, i) {
+      var idL = (withIds && i === 0) ? ' id="rsStatLabel"' : '';
+      var idV = (withIds && i === 0) ? ' id="rsStatValue"' : '';
       return '<p class="nx-stat__label"' + idL + '>' + esc(lb) + '</p>' +
              '<div class="nx-stat__value"' + idV + '>' + fmtNumber(rowVals[i]) + '</div>';
     }).join('');
+  }
+
+  function fillStatCard(def, rowVals) {
+    el('rsStatBody').innerHTML = statCardHtml(def, rowVals, true);
     el('rsStatCard').hidden = false;
   }
 
@@ -2755,6 +2771,15 @@
     return state.sources;
   }
 
+  // Warms the two catalogs the shared builders read through state
+  // (metricLabelsFor, applyLatestTotal, fieldMetaFor). Idempotent -- both
+  // loaders short-circuit once filled. Exposed for the dashboard's
+  // whole-report card, which renders while the Simple result view is idle.
+  async function ensureCatalogs() {
+    await loadSourcesCatalog();
+    if (!state.metricsBySource) await loadMetricsCatalog();
+  }
+
   async function startWizard() {
     await loadSourcesCatalog();
     if (!state.metricsBySource) await loadMetricsCatalog();
@@ -3507,7 +3532,18 @@
   // into this module's functions (D3).
   document.addEventListener('rs:dashboard-closed', exitToLibrary);
 
-  window.ReportingSimple = { openDefinition: openDefinition };
+  // Result builders shared with the dashboard's whole-report card
+  // (_reporting_dashboard_js.html renderReportCard). Everything here is
+  // DOM-free except ensureCatalogs (network); none of it touches the Simple
+  // pane's own elements, so a card can call them while #rsResult is hidden.
+  window.ReportingSimple = {
+    openDefinition: openDefinition,
+    ensureCatalogs: ensureCatalogs,
+    fmtNumber: fmtNumber,
+    zeroFillDateBuckets: zeroFillDateBuckets,
+    kpiBandHtml: kpiBandHtml,
+    statCardHtml: statCardHtml
+  };
 
   document.addEventListener('rp:tabshown', function (e) {
     if (e.detail.tab === 'simple') initOnce();
