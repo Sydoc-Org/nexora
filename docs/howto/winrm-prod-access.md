@@ -88,6 +88,11 @@ gh workflow run "PROD diagnostics" --ref main -f log_lines=200
 gh run watch   # then: gh run view --log
 ```
 
+Output lands in the Actions run log, so a run shares that slice of `app.log`
+with everyone holding repo read for the retention window — fine for an
+internal team, worth a thought before tailing 5000 lines. Env **key names**
+are printed; values never leave the server.
+
 It takes no command input by design — it is a diagnostic window, not a remote
 shell. `workflow_dispatch` only registers once the file is on the **default
 branch**, so it cannot be triggered from a feature branch before the merge.

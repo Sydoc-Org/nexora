@@ -8,6 +8,15 @@
 #
 # Deliberately has no command input: every step is a fixed, read-only probe.
 # Nothing here writes, restarts, or prints a secret value.
+#
+# Two accepted trade-offs:
+#   * Everything printed lands in the Actions run log -- private repo, but
+#     visible to anyone with read access for the retention window. app.log can
+#     carry request paths and usernames, so treat a run as sharing that window
+#     internally. Env KEY NAMES are printed; values never are.
+#   * `runs-on: self-hosted` is unscoped, matching deploy.yml. There is one
+#     runner and it lives on SYAPP01; add a label filter here and in deploy.yml
+#     together if a second one ever joins.
 name: PROD diagnostics
 
 on:
