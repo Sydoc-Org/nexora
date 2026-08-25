@@ -99,6 +99,9 @@ def spark_series(samples, now, window_h=SPARK_WINDOW_H, buckets=SPARK_BUCKETS):
         "avg_ms": round(sum(values) / len(values)),
         "window_h": window_h,
         "count": seen,
+        # Anomaly charts must *say* what the marker means, not only draw it:
+        # a red square is invisible to a screen reader and to a greyscale print.
+        "failed_buckets": sum(1 for f in failed if f),
     }
 
 

@@ -16,8 +16,10 @@ Work toward the next release.
   from the durations it already measured and previously discarded. Inline SVG,
   no chart library: zero-based axis scaled per component, one bucket per hour
   keeping its slowest sample, gaps left as gaps, and failed probes marked with a
-  square as well as a colour. The HTTP, API, Graph and Octo probes now append
-  their own `(204 ms)` timing so they are graphed too.
+  square as well as a colour — and *named* in the tooltip and `aria-label`, so
+  the anomaly survives a screen reader and a greyscale print. The HTTP, API,
+  Graph and Octo probes now append their own `(204 ms)` timing so they are
+  graphed too.
 - **The outage monitor watches `WARNING` storms.** Previously only
   `ERROR`/`CRITICAL` signatures could open an incident, so a fault that merely
   warns was invisible — the reporting catalog warned on every request for months

@@ -207,6 +207,13 @@ def test_spark_series_leaves_gaps_where_the_monitor_was_not_running():
 def test_spark_series_marks_buckets_that_failed():
     series = status.spark_series(_samples(NOW, 4, ms=5000, ok=False), NOW)
     assert any(series["failed"])
+    # Counted as well as flagged: the marker is a red square, which says nothing
+    # to a screen reader or a greyscale print -- the label has to say it.
+    assert series["failed_buckets"] == 1
+
+
+def test_spark_series_reports_no_failures_when_every_probe_passed():
+    assert status.spark_series(_samples(NOW, 40), NOW)["failed_buckets"] == 0
 
 
 def test_spark_series_needs_two_points_to_be_a_trend():

@@ -146,8 +146,8 @@
                         <div class="status-spark">
                             {% if c.spark_svg %}
                             <svg viewBox="0 0 {{ c.spark_svg.width }} {{ c.spark_svg.height }}" preserveAspectRatio="none"
-                                 role="img" aria-label="{{ _('Response time over the last %(h)s h: now %(now)s ms, best %(min)s ms, worst %(max)s ms', h=c.spark.window_h, now=c.spark.last_ms, min=c.spark.min_ms, max=c.spark.max_ms) }}">
-                                <title>{{ _('%(n)s samples · avg %(avg)s ms · %(min)s–%(max)s ms', n=c.spark.count, avg=c.spark.avg_ms, min=c.spark.min_ms, max=c.spark.max_ms) }}</title>
+                                 role="img" aria-label="{{ _('Response time over the last %(h)s h: now %(now)s ms, best %(min)s ms, worst %(max)s ms', h=c.spark.window_h, now=c.spark.last_ms, min=c.spark.min_ms, max=c.spark.max_ms) }}{% if c.spark.failed_buckets %} — {{ _('%(n)s hour(s) with a failed probe', n=c.spark.failed_buckets) }}{% endif %}">
+                                <title>{{ _('%(n)s samples · avg %(avg)s ms · %(min)s–%(max)s ms', n=c.spark.count, avg=c.spark.avg_ms, min=c.spark.min_ms, max=c.spark.max_ms) }}{% if c.spark.failed_buckets %} · {{ _('%(n)s hour(s) with a failed probe', n=c.spark.failed_buckets) }}{% endif %}</title>
                                 {% for seg in c.spark_svg.segments %}
                                 <polyline points="{{ seg }}" vector-effect="non-scaling-stroke"></polyline>
                                 {% endfor %}

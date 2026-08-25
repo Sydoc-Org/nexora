@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-25 21:45+0200\n"
+"POT-Creation-Date: 2026-08-25 21:53+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -5765,8 +5765,17 @@ msgstr "ultimi %(n)s giorni"
 
 #: templates/admin/status.html:149
 #, python-format
-msgid "Response time over the last %(h)s h: now %(now)s ms, best %(min)s ms, worst %(max)s ms"
-msgstr "Tempo di risposta nelle ultime %(h)s h: ora %(now)s ms, minimo %(min)s ms, massimo %(max)s ms"
+msgid ""
+"Response time over the last %(h)s h: now %(now)s ms, best %(min)s ms, "
+"worst %(max)s ms"
+msgstr ""
+"Tempo di risposta nelle ultime %(h)s h: ora %(now)s ms, minimo %(min)s "
+"ms, massimo %(max)s ms"
+
+#: templates/admin/status.html:149 templates/admin/status.html:150
+#, python-format
+msgid "%(n)s hour(s) with a failed probe"
+msgstr "%(n)s ora/e con un controllo fallito"
 
 #: templates/admin/status.html:150
 #, python-format
