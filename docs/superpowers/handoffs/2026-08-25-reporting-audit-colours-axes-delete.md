@@ -1,3 +1,5 @@
+> **Superseded the same day** → [`2026-08-25-reporting-audit-wounds-fixed.md`](2026-08-25-reporting-audit-wounds-fixed.md) (layers 1+2 committed, all seven audit wounds fixed). Resume from that file.
+
 # Handoff — Reporting audit → colours/right-axis popover → delete reports (WIP fixes uncommitted)
 
 **Date:** 2026-08-25 · **Branch:** `v3.2.3.1` (owner's per-developer branch off `v3.2.3`) ·
