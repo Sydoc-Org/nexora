@@ -16,6 +16,7 @@ _MAINTENANCE_BLOCK_TTL = 5  # seconds
 
 _MAINTENANCE_LOCKOUT_SKIP_PATHS = (
     "/static",
+    "/avatar",
     "/maintenance",
     "/api/maintenance/active",
     "/login",

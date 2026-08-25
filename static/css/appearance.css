@@ -87,6 +87,28 @@ html[data-bg="grid"] .appearance-canvas {
         color-mix(in srgb, var(--nx-border) 70%, transparent) 1px, transparent 1px);
     background-size: 22px 22px;
 }
+/* Static preview: a handful of fixed glow points stand in for the real
+   randomized, animated dots (those only get spawned into the live
+   #fireflyField, not this mock canvas). */
+html[data-bg="fireflies"] .appearance-canvas {
+    background-color: var(--nx-page);
+    background-image:
+        radial-gradient(3px 3px at 18% 28%, rgba(61, 108, 122, 0.9), transparent 65%),
+        radial-gradient(2.5px 2.5px at 68% 18%, rgba(61, 108, 122, 0.65), transparent 65%),
+        radial-gradient(3px 3px at 42% 68%, rgba(61, 108, 122, 0.85), transparent 65%),
+        radial-gradient(2px 2px at 85% 60%, rgba(61, 108, 122, 0.55), transparent 65%),
+        radial-gradient(2.5px 2.5px at 12% 78%, rgba(61, 108, 122, 0.7), transparent 65%),
+        radial-gradient(2px 2px at 60% 85%, rgba(61, 108, 122, 0.6), transparent 65%);
+}
+html.dark[data-bg="fireflies"] .appearance-canvas {
+    background-image:
+        radial-gradient(3px 3px at 18% 28%, rgba(245, 224, 132, 0.95), transparent 65%),
+        radial-gradient(2.5px 2.5px at 68% 18%, rgba(245, 224, 132, 0.7), transparent 65%),
+        radial-gradient(3px 3px at 42% 68%, rgba(245, 224, 132, 0.9), transparent 65%),
+        radial-gradient(2px 2px at 85% 60%, rgba(245, 224, 132, 0.6), transparent 65%),
+        radial-gradient(2.5px 2.5px at 12% 78%, rgba(245, 224, 132, 0.75), transparent 65%),
+        radial-gradient(2px 2px at 60% 85%, rgba(245, 224, 132, 0.65), transparent 65%);
+}
 
 .appearance-mock-head {
     display: flex; align-items: center; justify-content: space-between; gap: 10px;

@@ -68,6 +68,158 @@ def test_builds_union_over_processes_with_top_and_order():
     assert "NULL AS [pages]" in sql
 
 
+def test_projected_date_dim_excludes_zero_date_sentinel():
+    rd = _rd(
+        columns=[{"field": "export_date", "header": "Exported", "agg": None}],
+        sort=[],
+    )
+    sql, _ = build_table_query(rd, PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100)
+    # per-process raw date expr, NULL bucket kept, 1900 sentinel dropped
+    assert "(CAST(ExportDate AS date) IS NULL OR CAST(ExportDate AS date) >= '19010101')" in sql
+    assert "(CAST(ExpD AS date) IS NULL OR CAST(ExpD AS date) >= '19010101')" in sql
+
+
+def test_non_date_columns_get_no_sentinel_guard():
+    sql, _ = build_table_query(_rd(), PROCESS_CONFIGS, FIELD_COL_MAPS, row_cap=100)
+    assert "19010101" not in sql
+
+
+# ---------------------------------------------------------------------------
+# Date-anchored metrics: imported/exported/backlog on one activity_date axis.
+# ---------------------------------------------------------------------------
+
+
+def _anchored(code, anchor, value_field=None):
+    return {
+        "code": code,
+        "aggregation": "sum",
+        "base_field": code,
+        "anchor": anchor,
+        "value_field": value_field,
+    }
+
+
+_THREE_LINES = [
+    _anchored("docs_imported", "import_date"),
+    _anchored("docs_exported", "export_date"),
+    _anchored("backlog", "backlog"),
+]
+
+
+def _anchored_rd(**over):
+    base = _rd(
+        columns=[
+            {"field": "activity_date", "grain": "month"},
+            {"field": "processname"},
+        ],
+        filters=[
+            {"field": "activity_date", "op": "between", "value": ["2026-01-01", "2026-12-31"]}
+        ],
+        sort=[{"field": "activity_date", "dir": "asc"}],
+    )
+    base.update(over)
+    return base
+
+
+def test_anchored_three_lines_shape():
+    sql, params = build_table_query(
+        _anchored_rd(),
+        PROCESS_CONFIGS,
+        FIELD_COL_MAPS,
+        row_cap=5000,
+        resolved_metrics=_THREE_LINES,
+    )
+    # per-anchor legs with aligned counters
+    assert "1 AS [docs_imported], 0 AS [docs_exported], 0 AS [backlog]" in sql
+    assert "0 AS [docs_imported], 1 AS [docs_exported], 0 AS [backlog]" in sql
+    # backlog leg: unified client.process vocabulary + per-bucket newest snapshot
+    assert "LOWER([ClientName]) + N'.' + [ProcessName] AS [processname]" in sql
+    assert "[BacklogCount] AS [backlog]" in sql
+    assert "SELECT MAX([SnapshotAt]) FROM [dbo].[BacklogHistory]" in sql
+    assert (
+        "GROUP BY DATEFROMPARTS(YEAR(CAST([SnapshotAt] AS date)), MONTH(CAST([SnapshotAt] AS date)), 1))"
+        in sql
+    )
+    # backlog leg scoped to the docprocessing process set
+    assert "IN (?, ?)" in sql
+    assert "acme.inv" in params and "acme.hr" in params
+    # outer aggregate sums the counter aliases
+    assert "SUM([docs_imported]) AS [docs_imported]" in sql
+    assert "SUM([backlog]) AS [backlog]" in sql
+    assert "GROUP BY" in sql
+    # legs drop NULL anchors + the zero-date sentinel
+    assert "CAST(ExportDate AS date) >= '19010101'" in sql
+
+
+def test_anchored_activity_filter_applies_per_leg_anchor():
+    sql, params = build_table_query(
+        _anchored_rd(),
+        PROCESS_CONFIGS,
+        FIELD_COL_MAPS,
+        row_cap=5000,
+        resolved_metrics=[
+            _anchored("docs_imported", "import_date"),
+            _anchored("docs_exported", "export_date"),
+        ],
+    )
+    assert "CAST(ImportDate AS date) BETWEEN ? AND ?" in sql
+    assert "CAST(ExportDate AS date) BETWEEN ? AND ?" in sql
+    assert params.count("2026-01-01") == 4  # one per (process, anchor) leg
+
+
+def test_anchored_pages_value_field_casts_or_zeroes():
+    sql, _ = build_table_query(
+        _anchored_rd(),
+        PROCESS_CONFIGS,
+        FIELD_COL_MAPS,
+        row_cap=5000,
+        resolved_metrics=[_anchored("pages_imported", "import_date", "pages")],
+    )
+    # acme.inv maps pages -> PageCount; acme.hr has no pages column
+    assert "TRY_CAST(PageCount AS float) AS [pages_imported]" in sql
+    assert "0 AS [pages_imported]" in sql
+
+
+def test_anchored_mixed_with_plain_metric_rejected():
+    with pytest.raises(QueryBuildError):
+        build_table_query(
+            _anchored_rd(),
+            PROCESS_CONFIGS,
+            FIELD_COL_MAPS,
+            row_cap=5000,
+            resolved_metrics=[
+                _anchored("docs_imported", "import_date"),
+                {"code": "doc_count", "aggregation": "count", "base_field": None},
+            ],
+        )
+
+
+def test_anchored_foreign_filter_drops_backlog_leg():
+    rd = _anchored_rd()
+    rd["filters"].append({"field": "doctype", "op": "eq", "value": "invoice"})
+    sql, _ = build_table_query(
+        rd,
+        PROCESS_CONFIGS,
+        FIELD_COL_MAPS,
+        row_cap=5000,
+        resolved_metrics=_THREE_LINES,
+    )
+    assert "BacklogHistory" not in sql  # backlog can't answer a doctype filter
+    assert "DocType = ?" in sql and "DType = ?" in sql
+
+
+def test_anchored_no_time_axis_uses_global_newest_snapshot():
+    rd = _anchored_rd(columns=[{"field": "processname"}], sort=[])
+    sql, _ = build_table_query(
+        rd,
+        PROCESS_CONFIGS,
+        FIELD_COL_MAPS,
+        row_cap=5000,
+        resolved_metrics=_THREE_LINES,
+    )
+    assert "[SnapshotAt] = (SELECT MAX([SnapshotAt]) FROM [dbo].[BacklogHistory]" in sql
+
+
 def test_schema_qualified_table_brackets_each_part():
     # Statconfig TableName values are schema-qualified ('dbo.Compass_Invoice');
     # bracketing the whole string as one identifier ([dbo.Compass_Invoice])

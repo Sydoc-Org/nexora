@@ -9,6 +9,17 @@
 <body>
     <script nonce="{{ csp_nonce() }}">
         const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+        // Smallest perPage the filter/pagination controls offer. Doubles as the
+        // "fast chunk" size in fetchAndUpdateWorkitems (further down this same
+        // script): when a larger perPage is picked (e.g. 1000), it fires a
+        // small perPage=40 request first so *something* renders almost
+        // immediately, then follows up with the real, full-size request in the
+        // background instead of leaving the table on the spinner for the whole
+        // round trip. Declared here, at the very top, rather than next to
+        // fetchAndUpdateWorkitems itself, so there's no possible ordering
+        // question about it being ready before the DOMContentLoaded-registered
+        // initial-load call further down references it.
+        const FAST_CHUNK_PER_PAGE = 40;
         // Source-highlight confidence helpers (shared by the field list, thumbnails
         // and the lightbox overlay). field_sources entries may carry an optional
         // 0..1 `confidence`; map it to a colour bucket and a rounded percentage.
@@ -438,8 +449,8 @@ async function uploadBatchFiles(files, processName) {
                     // "All fields" pseudo-option: clears the field -> value-first
                     // search across every permitted field (issue #148).
                     const allDiv = document.createElement('div');
-                    allDiv.className = 'px-4 py-2 text-sm cursor-pointer hover:bg-indigo-50 border-b border-gray-100' +
-                        (!hiddenInput.value ? ' bg-indigo-50 font-semibold text-indigo-700' : ' text-gray-500 italic');
+                    allDiv.className = 'px-4 py-2 text-sm cursor-pointer hover:bg-[var(--nx-accent-tint)] border-b border-gray-100' +
+                        (!hiddenInput.value ? ' bg-[var(--nx-accent-tint)] font-semibold text-[var(--nx-accent-hover)]' : ' text-gray-500 italic');
                     allDiv.textContent = "{{ _('All fields') }}";
                     allDiv.addEventListener('mousedown', (e) => {
                         e.preventDefault();
@@ -459,8 +470,8 @@ async function uploadBatchFiles(files, processName) {
                         filtered.forEach(f => {
                             const div = document.createElement('div');
                             const isSelected = f.value === hiddenInput.value;
-                            div.className = 'px-4 py-2 text-sm cursor-pointer hover:bg-indigo-50' +
-                                (isSelected ? ' bg-indigo-50 font-semibold text-indigo-700' : ' text-gray-700');
+                            div.className = 'px-4 py-2 text-sm cursor-pointer hover:bg-[var(--nx-accent-tint)]' +
+                                (isSelected ? ' bg-[var(--nx-accent-tint)] font-semibold text-[var(--nx-accent-hover)]' : ' text-gray-700');
                             div.textContent = f.label;
                             div.addEventListener('mousedown', (e) => {
                                 e.preventDefault();
@@ -623,7 +634,7 @@ async function uploadBatchFiles(files, processName) {
                     const isObj = typeof v === 'object' && v !== null;
                     const value = isObj ? v.value : v;
                     const div = document.createElement('div');
-                    div.className = 'doc-row-suggestion cursor-pointer p-2 hover:bg-indigo-100 text-gray-700 text-sm flex items-center justify-between gap-2';
+                    div.className = 'doc-row-suggestion cursor-pointer p-2 hover:bg-[var(--nx-accent-tint)] text-gray-700 text-sm flex items-center justify-between gap-2';
                     div.dataset.value = value;
                     const valSpan = document.createElement('span');
                     valSpan.className = 'truncate';
@@ -774,6 +785,29 @@ async function uploadBatchFiles(files, processName) {
                 banner.classList.remove('hidden');
             }
 
+            async function _fetchWorkitemsJson(fetchParamsForRequest) {
+                const url = `${API_PREFIX}api/workitems?${fetchParamsForRequest.toString()}`;
+                const response = await fetch(url, {headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                }});
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            }
+
+            function _appendLoadingMoreRow() {
+                const tbody = document.getElementById('workitemsTbody');
+                if (!tbody) return;
+                const tr = document.createElement('tr');
+                tr.id = 'workitems-loading-more-row';
+                tr.innerHTML = `<td colspan="5" class="text-center py-6 text-sm" style="color:var(--nx-text-sec)">
+                    <i class="fas fa-spinner fa-spin mr-2"></i>{{ _("Loading the rest in the background…") }}
+                </td>`;
+                tbody.appendChild(tr);
+            }
+
             async function fetchAndUpdateWorkitems(page = 1) {
                 // Stale-response guard: rapid re-submits (e.g. two smart-search
                 // chips added back-to-back) race, and the FIRST response can land
@@ -789,7 +823,9 @@ async function uploadBatchFiles(files, processName) {
                 }
                 params.set('page', page);
                 const fetchParams = new URLSearchParams(params);
-                const url = `${API_PREFIX}api/workitems?${fetchParams.toString()}`;
+                // Always the real requested perPage (40/100/200/500/1000), never
+                // the fast-chunk override below -- the address bar/history entry
+                // must reflect what the user actually asked for.
                 const newUrl = `${window.location.pathname}?${params.toString()}`;
                 window.history.pushState({ path: newUrl }, '', newUrl);
 
@@ -797,7 +833,7 @@ async function uploadBatchFiles(files, processName) {
             <tr>
                 <td colspan="5" class="text-center py-20">
                     <div class="flex items-center justify-center space-x-3 text-gray-700">
-                        <i class="fas fa-spinner fa-spin text-3xl text-indigo-600"></i>
+                        <i class="fas fa-spinner fa-spin text-3xl text-[var(--nx-accent)]"></i>
                         <span class="text-xl font-medium">{{ _("Loading workitems...") }}</span>
                     </div>
                 </td>
@@ -807,15 +843,25 @@ async function uploadBatchFiles(files, processName) {
                     tbody.innerHTML = loaderHtml;
                 }
 
+                const requestedPerPage = parseInt(fetchParams.get('perPage') || '40', 10);
+                const needsFastChunk = requestedPerPage > FAST_CHUNK_PER_PAGE;
+
                 try {
-                    const response = await fetch(url, {headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
-                }});
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
+                    if (needsFastChunk) {
+                        const fastParams = new URLSearchParams(fetchParams);
+                        fastParams.set('perPage', FAST_CHUNK_PER_PAGE);
+                        const fastData = await _fetchWorkitemsJson(fastParams);
+                        if (seq !== fetchAndUpdateWorkitems._seq) return;  // superseded
+                        // Pagination is deliberately NOT updated from this partial
+                        // chunk -- it's computed against perPage=40, so "1 / 25"
+                        // would flash briefly before the real perPage=1000 numbers
+                        // land a moment later. Only the rows themselves preview
+                        // early; the count/pagination UI waits for the real data.
+                        renderTable(fastData.workitems);
+                        _appendLoadingMoreRow();
                     }
-                    const data = await response.json();
+
+                    const data = await _fetchWorkitemsJson(fetchParams);
                     if (seq !== fetchAndUpdateWorkitems._seq) return;  // superseded
                     try { renderDegradedBanner(data.degradedSources || []); } catch (bannerErr) { console.warn('renderDegradedBanner error:', bannerErr); }
                     renderTable(data.workitems);
@@ -976,14 +1022,14 @@ async function uploadBatchFiles(files, processName) {
                     const rowHtml = `
                      <tr class="hover:bg-gray-50 transition-colors duration-200 workitem-row" data-status="${workitem.status}" id="row-${rowKey}">
                         <td class="px-4 py-4 text-center w-10">
-                            <input type="checkbox" class="row-checkbox h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                            <input type="checkbox" class="row-checkbox h-4 w-4 rounded border-gray-300 text-[var(--nx-accent)] focus:ring-[var(--nx-accent)] cursor-pointer"
                                 data-id="${rowKey}" data-testid="workitems-row-checkbox-${workitem.workitemid}">
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-center"><div class="nx-mono font-medium">${workitem.workitemid}</div></td>
                         <td class="px-6 py-4 whitespace-nowrap text-center">${statusBadge}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-center"><div class="nx-mono" style="color:var(--nx-text-sec)">${workitem.modifiedat ? new Date(workitem.modifiedat).toISOString().slice(0, 19).replace('T', ' ') : ''}</div></td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
-                            <button class="details-toggle-button text-indigo-600 hover:text-indigo-900"
+                            <button class="details-toggle-button text-[var(--nx-accent)] hover:text-[var(--nx-accent-hover)]"
                                 data-workitemid="${workitem.workitemid}" data-rowkey="${rowKey}"
                                 data-testid="workitems-details-toggle-${workitem.workitemid}">
                                 <i class="indicator fas fa-chevron-down"></i>
@@ -1120,7 +1166,7 @@ async function uploadBatchFiles(files, processName) {
                         if (parseInt(header.dataset.columnIndex, 10) === columnIndex) {
                             icon.classList.remove('fa-sort');
                             icon.classList.add(sortState.ascending ? 'fa-sort-up' : 'fa-sort-down');
-                            icon.classList.add('text-indigo-600');
+                            icon.classList.add('text-[var(--nx-accent)]');
                         }
                     }
                 });
@@ -1283,14 +1329,14 @@ async function uploadBatchFiles(files, processName) {
             }
 
             // Chip styling shared by plain view chips and folder chips (#186).
-            const CHIP_ACTIVE = 'bg-indigo-600 border-indigo-600 text-white';
-            const CHIP_IDLE = 'bg-white border-gray-200 text-gray-600 hover:border-indigo-300 hover:text-indigo-700';
+            const CHIP_ACTIVE = 'bg-[var(--nx-accent)] border-[var(--nx-accent)] text-white';
+            const CHIP_IDLE = 'bg-white border-gray-200 text-gray-600 hover:border-[var(--nx-accent)] hover:text-[var(--nx-accent-hover)]';
 
             function makeActionBtn(icon, title, active, hoverColor, handler) {
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.className = 'px-1 py-1.5 ' +
-                    (active ? 'text-indigo-200 hover:text-white' : `text-gray-300 ${hoverColor}`);
+                    (active ? 'text-[var(--nx-accent-tint)] hover:text-white' : `text-gray-300 ${hoverColor}`);
                 btn.innerHTML = `<i class="fas ${icon} text-xs"></i>`;
                 btn.title = title;
                 btn.setAttribute('aria-label', title);
@@ -1318,7 +1364,7 @@ async function uploadBatchFiles(files, processName) {
                 // it opens is also where DELETE lives — an always-visible x
                 // deleted views when people expected it to deselect them.
                 chip.appendChild(makeActionBtn('fa-pen', {{ _("Edit view")|tojson }}, active,
-                    'hover:text-indigo-600', () => startEdit(v)));
+                    'hover:text-[var(--nx-accent)]', () => startEdit(v)));
                 if (active) {
                     chip.appendChild(makeActionBtn('fa-times', {{ _("Deselect view")|tojson }}, active,
                         'hover:text-red-500', deselectView));
@@ -1356,14 +1402,14 @@ async function uploadBatchFiles(files, processName) {
                     const applyBtn = document.createElement('button');
                     applyBtn.type = 'button';
                     applyBtn.className = 'flex-1 text-left px-2 py-1 text-sm rounded truncate ' +
-                        (active ? 'bg-indigo-50 font-semibold text-indigo-700' : 'text-gray-700 hover:bg-indigo-50');
+                        (active ? 'bg-[var(--nx-accent-tint)] font-semibold text-[var(--nx-accent-hover)]' : 'text-gray-700 hover:bg-[var(--nx-accent-tint)]');
                     applyBtn.textContent = v.name;
                     applyBtn.title = active ? {{ _("Deselect view")|tojson }} : {{ _("Apply view")|tojson }};
                     applyBtn.dataset.testid = 'workitems-view-menu-apply';
                     applyBtn.addEventListener('click', () => active ? deselectView() : applyView(v));
                     row.appendChild(applyBtn);
                     row.appendChild(makeActionBtn('fa-pen', {{ _("Edit view")|tojson }}, false,
-                        'hover:text-indigo-600', () => startEdit(v)));
+                        'hover:text-[var(--nx-accent)]', () => startEdit(v)));
                     menu.appendChild(row);
                 });
 
@@ -1441,7 +1487,7 @@ async function uploadBatchFiles(files, processName) {
                     const ql = (q || '').toLowerCase();
                     existingFolders.filter(f => !ql || f.toLowerCase().includes(ql)).forEach(f => {
                         const opt = document.createElement('div');
-                        opt.className = 'px-3 py-1.5 text-sm cursor-pointer text-gray-700 hover:bg-indigo-50 truncate';
+                        opt.className = 'px-3 py-1.5 text-sm cursor-pointer text-gray-700 hover:bg-[var(--nx-accent-tint)] truncate';
                         opt.textContent = f;
                         // mousedown, not click: keeps focus in the input so the
                         // editor's focusout-cancel doesn't fire first.

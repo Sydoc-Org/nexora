@@ -25,10 +25,15 @@ Then follow the checklist it prints: edit your `env\*.env` files with real crede
 If bootstrap fails (or you want to know what it does), the manual steps are:
 
 ```powershell
-pip install uv
+# pip install uv   # only if `python`/pip already work reliably on your PATH.
+# Windows' Microsoft Store "app execution alias" often shadows `python` with
+# a stub that errors instead of running (even when a real install exists) --
+# if `python --version` doesn't cleanly print a version, use the standalone
+# installer instead, which needs neither python nor pip:
+#   powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
 uv venv
 uv sync
-python -m playwright install chromium
+.venv\Scripts\python.exe -m playwright install chromium
 
 copy env\INT.env.example env\INT.env       # then fill in real values
 copy env\TEST.env.example env\TEST.env

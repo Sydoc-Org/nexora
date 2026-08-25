@@ -38,6 +38,7 @@ CREATE TABLE [dbo].[ReportingMetrics](
 	[FrenchLabel] [nvarchar](120) NULL,
 	[ItalianLabel] [nvarchar](120) NULL,
 	[TotalMode] [nvarchar](16) NOT NULL,
+	[DateAnchor] [nvarchar](32) NULL,
  CONSTRAINT [PK_ReportingMetrics] PRIMARY KEY CLUSTERED 
 (
 	[MetricID] ASC

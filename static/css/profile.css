@@ -101,12 +101,17 @@ body.admin-page main {
     position: absolute;
     inset: 0;
     border-radius: 50%;
+    /* Follows the user's chosen accent (nexora-ui.css's --nx-accent/
+       --nx-violet already flip per html[data-accent=...] and per
+       html.dark, plus the custom-color picker) instead of a fixed
+       indigo — was hardcoded hex before, so it never matched the
+       accent you picked. */
     background: conic-gradient(from 0deg,
-        #4f46e5 0deg,
-        #818cf8 90deg,
-        #a5b4fc 180deg,
-        #4f46e5 270deg,
-        #4f46e5 360deg);
+        var(--nx-accent) 0deg,
+        var(--nx-violet) 90deg,
+        var(--nx-accent-hover) 180deg,
+        var(--nx-violet) 270deg,
+        var(--nx-accent) 360deg);
     padding: 3px;
     animation: profileRingSpin 14s linear infinite;
     filter: blur(0.2px);
@@ -117,14 +122,6 @@ body.admin-page main {
     inset: 3px;
     border-radius: 50%;
     background: var(--a-card);
-}
-.dark .profile-avatar-ring {
-    background: conic-gradient(from 0deg,
-        #6366f1 0deg,
-        #818cf8 90deg,
-        #c7d2fe 180deg,
-        #6366f1 270deg,
-        #6366f1 360deg);
 }
 .profile-avatar {
     position: absolute;
@@ -593,7 +590,7 @@ body.admin-page main {
 .profile-lang-pill:hover {
     border-color: var(--a-indigo);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.08);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--a-indigo) 8%, transparent);
 }
 .dark .profile-lang-pill:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -723,6 +720,17 @@ body.admin-page main {
     background: var(--a-card);
     color: var(--a-indigo);
     box-shadow: 0 1px 2px rgba(16, 24, 40, 0.1);
+}
+/* The light-mode shadow above is a near-black drop shadow -- a believable
+   "lifted" cue against a white card, but on a dark card (.dark's --a-card)
+   a near-black shadow is nearly invisible, so the selected segment reads
+   almost the same as the unselected ones (bg/color still differ, but the
+   shadow contributed real depth). Swap for a soft indigo glow instead of
+   dropping the shadow outright, same idiom the rest of the dark-mode
+   system uses for "this is the active/focused one" (--a-indigo-soft is
+   already how :focus-visible signals selection two rules below). */
+.dark .profile-seg-btn.is-active {
+    box-shadow: 0 0 0 1px var(--a-border), 0 1px 4px var(--a-indigo-soft);
 }
 .profile-seg-btn:focus-visible {
     outline: none;

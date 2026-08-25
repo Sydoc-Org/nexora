@@ -41,9 +41,21 @@ Scheduler on SYAPP01.
 |---|---|---|
 | `db:<engine>` | `SELECT 1` via `ping_dbs_parallel`, 5s timeout | DB server down, credentials expired, network partition |
 | `http:site` | `GET` on `OUTAGE_SITE_URL` | IIS down, app pool crashed, WSGI import error |
+| `api:v1` | unauthenticated `GET /api/v1/stats/today`, **401 is the pass** | the external API entry point being broken (bad rewrite rule, import error in `api_auth`) while every page still renders |
+| `api:key` | `GET /api/test/v1/stats/today` with `OUTAGE_API_KEY` as Bearer | the key lookup / process scoping being broken -- the half `api:v1` cannot see |
 | `octo:<domain>` | `POST /auth/connect/token` | Octo vendor-side outage |
 | `graph:mail` | Graph ROPC token request | expired Graph credentials — which silently kill alert mail itself |
 | `log storm @ <site>` | repeated `ERROR` signature in `app.log` | logic-level breakage while every connectivity probe stays green |
+
+The two API probes are deliberately split. `api:v1` needs no credentials at all
+(a 401 already proves routing reached `require_api_key` and it answered), so it
+runs everywhere with zero setup. `api:key` covers what a 401 cannot -- the
+`dbo.ApiKeys` lookup and the key's process scope -- and hits the `/api/test/v1`
+twin so a poll every 5 minutes never touches the Statistics or Octo backends.
+It skips itself when `OUTAGE_API_KEY` is unset, so no server is required to hold
+a key before the code lands. To enable it: create a monitor-only key row in
+`dbo.ApiKeys` and paste `OUTAGE_API_KEY=<raw key>` into that server's
+`env/<ENV>.env` (`scripts/env-sync.py` will otherwise report it missing).
 
 The Graph probe asks for a **token only**. Actually sending a message would be a
 truer end-to-end check but would also drop mail in the mailbox every 5 minutes,

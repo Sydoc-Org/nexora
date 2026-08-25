@@ -68,7 +68,25 @@ def render_chart_png(definition, columns, rows, *, width=8.0, height=4.5, dpi=11
 
     fig, ax = plt.subplots(figsize=(width, height), dpi=dpi)
     try:
-        if len(dims) == 1:
+        if len(dims) == 1 and len(metrics) > 1 and chart_type != "pie":
+            # One series per measure (mirrors the Simple pane's per-metric
+            # datasets); forecast stays single-metric-only and is skipped here.
+            labels = [_label(r[0]) for r in rows[:MAX_X]]
+            n = len(metrics)
+            for i, m in enumerate(metrics):
+                vals = [float(r[metric_idx + i] or 0) for r in rows[:MAX_X]]
+                color = _PALETTE[i % len(_PALETTE)]
+                name = m.get("metric") or f"metric {i + 1}"
+                if chart_type == "line":
+                    ax.plot(labels, vals, label=name, color=color, marker="o")
+                else:
+                    xs = [j + (i - n / 2) * (0.8 / n) + 0.4 / n for j in range(len(labels))]
+                    ax.bar(xs, vals, width=0.8 / n, label=name, color=color)
+            if chart_type != "line":
+                ax.set_xticks(range(len(labels)))
+                ax.set_xticklabels(labels)
+            ax.legend(fontsize=8)
+        elif len(dims) == 1:
             data = [(_label(r[0]), float(r[metric_idx] or 0)) for r in rows[:MAX_X]]
             labels = [d[0] for d in data]
             values = [d[1] for d in data]
@@ -110,18 +128,34 @@ def render_chart_png(definition, columns, rows, *, width=8.0, height=4.5, dpi=11
             # pivot: x = dim1 (row order), series = remaining dims joined
             # ("Process · Source", 12 largest by total) — mirrors the Simple-pane
             # client mountChart composite series key.
-            x_order, series_tot, cell = [], {}, {}
+            x_order, series_tot, cell, series_metric = [], {}, {}, {}
             for r in rows:
                 x = _label(r[0])
-                s = " · ".join(_label(v) for v in r[1 : len(dims)])
-                v = float(r[metric_idx] or 0)
+                base = " · ".join(_label(v) for v in r[1 : len(dims)])
                 if x not in cell:
                     x_order.append(x)
                     cell[x] = {}
-                cell[x][s] = cell[x].get(s, 0) + v
-                series_tot[s] = series_tot.get(s, 0) + v
+                for i, m in enumerate(metrics):
+                    s = f"{base} · {m.get('metric')}" if len(metrics) > 1 else base
+                    v = float(r[metric_idx + i] or 0)
+                    cell[x][s] = cell[x].get(s, 0) + v
+                    series_tot[s] = series_tot.get(s, 0) + v
+                    series_metric[s] = i
             x_order = x_order[:MAX_X]
-            series = sorted(series_tot, key=series_tot.get, reverse=True)[:MAX_SERIES]
+            if len(metrics) > 1:
+                # Fair cap per measure (mirrors the Simple-pane pivot): a
+                # small-valued measure must not be crowded out entirely.
+                per = max(1, MAX_SERIES // len(metrics))
+                series = []
+                for i in range(len(metrics)):
+                    grp = sorted(
+                        (s for s in series_tot if series_metric[s] == i),
+                        key=series_tot.get,
+                        reverse=True,
+                    )
+                    series.extend(grp[:per])
+            else:
+                series = sorted(series_tot, key=series_tot.get, reverse=True)[:MAX_SERIES]
             n = max(len(series), 1)
             for i, s in enumerate(series):
                 vals = [cell[x].get(s, 0) for x in x_order]

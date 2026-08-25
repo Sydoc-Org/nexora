@@ -27,7 +27,7 @@ UI_PREF_CHOICES = {
     "radius": ("default", "sharp", "round"),
     "contrast": ("normal", "high"),
     "stripes": ("off", "on"),
-    "background": ("plain", "aurora", "grid"),
+    "background": ("plain", "aurora", "grid", "fireflies"),
 }
 
 # Free-form keys with their own validation (not enumerable).

@@ -116,3 +116,49 @@ def test_render_chart_png_with_forecast_band():
     assert png and png[:8] == _PNG_MAGIC
     # the forecast must not crash the chartless fallback either
     assert render_chart_png(definition, columns, [], forecast=forecast) is None
+
+
+def test_one_dim_multi_metric_renders_series_per_measure():
+    d = {
+        "source": "x",
+        "metrics": [
+            {"metric": "docs_imported"},
+            {"metric": "docs_exported"},
+            {"metric": "backlog"},
+        ],
+        "columns": [{"field": "activity_date", "grain": "month"}],
+    }
+    png = render_chart_png(
+        d,
+        [
+            {"field": "activity_date"},
+            {"field": "docs_imported"},
+            {"field": "docs_exported"},
+            {"field": "backlog"},
+        ],
+        [["2026-01-01", 100, 90, 500], ["2026-02-01", 120, 95, 480]],
+    )
+    assert png and png[:8] == _PNG_MAGIC
+
+
+def test_two_dims_multi_metric_renders_fair_capped_series():
+    d = {
+        "source": "x",
+        "metrics": [{"metric": "docs_imported"}, {"metric": "docs_exported"}],
+        "columns": [{"field": "activity_date", "grain": "month"}, {"field": "processname"}],
+    }
+    rows = []
+    for month in ("2026-01-01", "2026-02-01"):
+        for p in range(10):  # 10 processes x 2 metrics = 20 series > MAX_SERIES
+            rows.append([month, f"proc{p}", 1000 + p, 5 + p])
+    png = render_chart_png(
+        d,
+        [
+            {"field": "activity_date"},
+            {"field": "processname"},
+            {"field": "docs_imported"},
+            {"field": "docs_exported"},
+        ],
+        rows,
+    )
+    assert png and png[:8] == _PNG_MAGIC

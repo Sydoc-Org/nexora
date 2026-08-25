@@ -106,9 +106,19 @@ step without losing your picks; **✕** leaves without deleting anything you sav
    clear the selection. Each measure you add becomes its own column, series and
    total in the result.
 
+   **The imports / exports / backlog view:** pick *Documents imported*,
+   *Documents exported* and *Backlog* together (or the *Pages …* variants),
+   break down *Over time (Date)*, and you get one line per measure on a
+   shared time axis — imports counted on their import date, exports on their
+   export date, backlog as the point-in-time level. These "anchored" measures
+   can't be mixed with the plain ones (the incompatible pills grey out).
+
 2. **Which processes?**
    A checklist, everything ticked by default. Untick to narrow. This step is
-   skipped for data sources that have no processes.
+   skipped for data sources that have no processes. Entries read
+   `client.process` (e.g. `privera.03_Invoice_New`) — the same naming, and
+   the same set of processes, you see everywhere else in the app (only
+   processes you have access to are offered).
 
 3. **Break it down by…**
    - *Over time* — pick a **Granularity** (Week / Month / Quarter / Year).
@@ -130,7 +140,10 @@ step without losing your picks; **✕** leaves without deleting anything you sav
    the month you built it in.
 
 Then **Show result**. To change something afterwards, hit **Adjust** — the
-wizard reopens with all your answers still selected.
+wizard reopens with all your answers still selected. The chips above the
+result are editable too: clicking the **Processes** chip or any *is one of*
+filter chip opens a checkbox picker of the known values — no typing needed.
+Ticking everything simply removes the restriction.
 
 #### About those "2/5" badges
 

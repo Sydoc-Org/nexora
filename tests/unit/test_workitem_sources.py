@@ -156,8 +156,9 @@ def test_deleted_workitems_hidden_unless_explicitly_filtered_for(app):
         assert 2 in flat, f"{name} lost the Deleted status code: {flat}"
 
 
-def test_search_id_is_exact_match_not_substring(app):
-    """Searching workitem 371 must not also return 1371/3716/16371."""
+def test_search_id_is_prefix_match_not_substring(app):
+    """Searching workitem 371 must match 3710/37199 but not 1371/3716/16371 --
+    prefix (LIKE '371%'), not substring (LIKE '%371%')."""
     for src in (SqlServerSource(), PostgresSource(CLIENTS_code="ms02")):
         f = _mk_filter()
         f.search_id = "371"
@@ -165,8 +166,53 @@ def test_search_id_is_exact_match_not_substring(app):
             sql, cur = _captured_sql(src, f)
         params = [c.args[1] for c in cur.execute.call_args_list if len(c.args) > 1]
         flat = [p for group in params for p in (group if isinstance(group, list) else [group])]
-        assert "%371%" not in flat, f"{type(src).__name__} still binds a LIKE pattern: {flat}"
-        assert "371" in flat, f"{type(src).__name__} lost the search term: {flat}"
+        assert "%371%" not in flat, f"{type(src).__name__} binds a full-substring pattern: {flat}"
+        assert "371%" in flat, f"{type(src).__name__} lost the prefix pattern: {flat}"
+        norm = sql.replace('"', "").lower()
+        assert "like" in norm, f"{type(src).__name__} isn't using LIKE for the prefix match: {sql}"
+
+
+def test_search_id_orders_by_relevance_shortest_id_first(app):
+    """With a workitem-id search active, the closest match (fewest extra
+    digits beyond the searched prefix) must sort first -- e.g. searching 11
+    puts 11 above 110 above 1199. Without a search, plain recency (unrelated
+    to id length) is unchanged."""
+    for src in (SqlServerSource(), PostgresSource(CLIENTS_code="ms02")):
+        f = _mk_filter()
+        f.search_id = "11"
+        with app.app_context():
+            sql, _ = _captured_sql(src, f)
+        norm = sql.replace('"', "").lower()
+        assert (
+            "len(cast(workitemid" in norm or "length(workitemid" in norm
+        ), f"{type(src).__name__} isn't ordering by id length for a search: {sql}"
+        # The length-based ORDER BY must come before "OFFSET"/"LIMIT" (i.e. it's
+        # the query's actual sort, not just present somewhere in the SQL text).
+        order_pos = norm.find("order by")
+        assert order_pos != -1 and "len" in norm[order_pos:], sql
+
+        # No search -> unchanged plain-recency sort, no LEN()/LENGTH() at all.
+        f2 = _mk_filter()
+        with app.app_context():
+            sql2, _ = _captured_sql(src, f2)
+        norm2 = sql2.replace('"', "").lower()
+        assert (
+            "len(cast(workitemid" not in norm2 and "length(workitemid" not in norm2
+        ), f"{type(src).__name__} orders by id length even without a search: {sql2}"
+
+
+def test_merge_sorted_rows_search_id_ranks_shortest_id_first():
+    """Across sources, a search-id merge must rank by id length (relevance)
+    ahead of recency -- a short-id match from an OLDER row still beats a
+    long-id match from a NEWER row."""
+    a = [_row(1199, 30)]  # default: longer id, newer
+    b = [_row(11, 10, "ms02")]  # ms02: shorter id (exact match), older
+    merged = merge_sorted_rows([a, b], search_id="11")
+    assert [r["workitemid"] for r in merged] == [11, 1199]
+
+    # Without search_id, recency wins as before (regression guard).
+    merged_no_search = merge_sorted_rows([a, b])
+    assert [r["workitemid"] for r in merged_no_search] == [1199, 11]
 
 
 def test_stage_filter_applied_after_latest_activity_dedup(app):

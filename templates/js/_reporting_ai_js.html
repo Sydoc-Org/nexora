@@ -11,8 +11,7 @@
 
   var toggleBtn = document.getElementById("rpChatToggle");
   var panel = document.getElementById("rpChatPanel");
-  var backdrop = document.getElementById("rpChatBackdrop");
-  if (!toggleBtn || !panel || !backdrop) return;
+  if (!toggleBtn || !panel) return;
 
   var closeBtn = document.getElementById("rpChatClose");
   var thread = document.getElementById("rpChatThread");
@@ -76,16 +75,67 @@
     return m ? m.getAttribute("content") : "";
   }
 
+  // ----- Panel drag functionality -----
+  var dragState = { isDragging: false, startX: 0, startY: 0, startLeft: 0, startTop: 0 };
+
+  function startDrag(e) {
+    if (e.button !== 0) return; // Only left mouse button
+    dragState.isDragging = true;
+    dragState.startX = e.clientX;
+    dragState.startY = e.clientY;
+    var rect = panel.getBoundingClientRect();
+    dragState.startLeft = rect.left;
+    dragState.startTop = rect.top;
+    panel.classList.add("is-dragging");
+    panel.style.transition = "none";
+    document.body.style.cursor = "grabbing";
+    e.preventDefault();
+  }
+
+  function moveDrag(e) {
+    if (!dragState.isDragging) return;
+    var dx = e.clientX - dragState.startX;
+    var dy = e.clientY - dragState.startY;
+    var newLeft = dragState.startLeft + dx;
+    var newTop = dragState.startTop + dy;
+
+    // Clamp to viewport
+    var maxLeft = window.innerWidth - panel.offsetWidth;
+    var maxTop = window.innerHeight - panel.offsetHeight;
+    newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+    newTop = Math.max(0, Math.min(newTop, maxTop));
+
+    panel.style.position = "fixed";
+    panel.style.right = "auto";
+    panel.style.bottom = "auto";
+    panel.style.left = newLeft + "px";
+    panel.style.top = newTop + "px";
+  }
+
+  function endDrag(e) {
+    if (!dragState.isDragging) return;
+    dragState.isDragging = false;
+    panel.classList.remove("is-dragging");
+    panel.style.transition = "";
+    document.body.style.cursor = "";
+  }
+
+  var panelHead = document.querySelector(".reporting-chat-head");
+  if (panelHead) {
+    panelHead.addEventListener("mousedown", startDrag);
+    document.addEventListener("mousemove", moveDrag);
+    document.addEventListener("mouseup", endDrag);
+    document.addEventListener("mouseleave", endDrag);
+  }
+
   // ----- Panel open/close -----
 
   function openPanel(prefill) {
-    // Opening the chat supersedes any open drill-through drawer -- both are
-    // fixed right-edge slide-overs sharing the same z-index/position, so
-    // showing both at once would visually collide (see
-    // .reporting-drill-panel / .reporting-chat-panel in reporting.css).
+    // The drill-through drawer is still a modal right-edge slide-over with its
+    // own backdrop, so it would dim and block this panel. The chat supersedes
+    // it (see .reporting-drill-panel / .reporting-chat-panel in reporting.css).
     if (window.ReportingDrill) ReportingDrill.close();
     panel.hidden = false;
-    backdrop.hidden = false;
     toggleBtn.setAttribute("aria-expanded", "true");
     if (typeof prefill === "string" && prefill) {
       input.value = prefill;
@@ -94,20 +144,27 @@
     input.focus();
   }
 
-  function closePanel() {
+  // `returnFocus` is false when the panel closes without the user asking it to
+  // (nothing to hand focus back to). Non-modal means the page keeps working
+  // while the chat is open, so we must not yank focus out of whatever the user
+  // is typing in just because Escape or the × was pressed elsewhere.
+  function closePanel(returnFocus) {
     panel.hidden = true;
-    backdrop.hidden = true;
     toggleBtn.setAttribute("aria-expanded", "false");
-    toggleBtn.focus();
+    if (returnFocus !== false) toggleBtn.focus();
   }
 
   toggleBtn.addEventListener("click", function () {
     if (panel.hidden) openPanel(); else closePanel();
   });
-  closeBtn.addEventListener("click", closePanel);
-  backdrop.addEventListener("click", closePanel);
+  closeBtn.addEventListener("click", function () { closePanel(); });
+  // Non-modal: no backdrop, so clicking the page does NOT close the chat --
+  // that is the point, the page stays usable underneath. Escape still closes,
+  // but only while focus is inside the panel; otherwise Escape belongs to
+  // whatever the user is actually working in.
   document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape" && !panel.hidden) closePanel();
+    if (e.key !== "Escape" || panel.hidden) return;
+    if (panel.contains(document.activeElement)) closePanel();
   });
 
   // ----- Thread rendering -----

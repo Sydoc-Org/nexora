@@ -21,10 +21,14 @@ class TableQueryError(ValueError):
 
 
 def _grain_sql(d, grain):
-    """Wrap a DATE/DATETIME expression `d` for the requested grain. None/'day' =
-    raw. Mirrors query.py's _grain_sql (T-SQL, DATEFIRST-independent week)."""
-    if grain in (None, "day"):
+    """Wrap a DATE/DATETIME expression `d` for the requested grain. None = raw.
+    Mirrors query.py's _grain_sql (T-SQL, DATEFIRST-independent week), plus an
+    explicit 'day' cast: table sources group DATETIME columns, and an
+    untruncated day grain would bucket per timestamp, not per day."""
+    if grain is None:
         return d
+    if grain == "day":
+        return f"CAST({d} AS date)"
     if grain == "week":
         return f"DATEADD(week, DATEDIFF(week, 0, {d}), 0)"
     if grain == "month":
@@ -73,6 +77,15 @@ def table_source_catalog(columns):
         }
         if c.get("grainable"):
             entry["grainable"] = True
+        if c.get("labelWith"):
+            # Companion column whose value prefixes this field's distinct values
+            # in pickers (e.g. ProcessName labeled "client.process" via ClientName).
+            entry["labelWith"] = c["labelWith"]
+        if c.get("grantScoped"):
+            # Pickers offer only values whose client.process label is in the
+            # caller's reporting.scope.process.* grants — the snapshot table
+            # holds every Octo process, most of which aren't configured/wanted.
+            entry["grantScoped"] = True
         out.append(entry)
     return out
 
@@ -129,6 +142,16 @@ def build_distinct_query(field, base_object, columns, *, cap=100):
     if meta is None or not meta.get("filterable"):
         raise TableQueryError(f"unknown or unfilterable field: {field!r}")
     col = _quote_ident(field)
+    label_with = meta.get("labelWith")
+    if label_with:
+        if label_with not in by_field:
+            raise TableQueryError(f"unknown labelWith field: {label_with!r}")
+        lcol = _quote_ident(label_with)
+        return (
+            f"SELECT DISTINCT TOP ({int(cap)}) {col}, {lcol} "
+            f"FROM {_quote_object(base_object)} "
+            f"WHERE {col} IS NOT NULL ORDER BY {col}, {lcol}"
+        )
     return (
         f"SELECT DISTINCT TOP ({int(cap)}) {col} FROM {_quote_object(base_object)} "
         f"WHERE {col} IS NOT NULL ORDER BY {col}"
@@ -157,27 +180,49 @@ def build_generic_query(
     dim_exprs = {
         f: _grain_sql(_quote_ident(f), grain_by_field.get(f))
         for f in dim_fields
-        if by_field[f].get("grainable") and grain_by_field.get(f) not in (None, "day")
+        if by_field[f].get("grainable") and grain_by_field.get(f) is not None
     }
 
     conds, params = _build_conditions(rd, by_field)
+
+    # 1900-01-01 is SQL Server's zero-date sentinel; drop such rows from any
+    # grained date dimension so they don't render as a plausible-looking 1900
+    # bucket. NULL buckets stay — "no date yet" is a real group.
+    for f in dim_exprs:
+        col = _quote_ident(f)
+        conds.append(f"({col} IS NULL OR {col} >= '19010101')")
 
     if resolved_metrics:
         # Zero-dimension grand totals: empty dim_fields is valid here and
         # yields a global aggregate with no GROUP BY.
         where = (" WHERE " + " AND ".join(conds)) if conds else ""
         inner_from = f"{_quote_object(base_object)}{where}"
-        # #178: a 'latest' total aggregates only the newest bucket of the
-        # snapshot date field — summing point-in-time snapshots across time
-        # is meaningless. Caller passes latest_of only for zero-dim runs.
-        if latest_of and not dim_fields:
+        # #178: 'latest' metrics are point-in-time gauges — summing snapshots
+        # across time is meaningless. Without the date field as a dimension the
+        # run aggregates only the newest snapshot; with a grained date dimension
+        # it keeps only the newest snapshot instant *within each bucket* (all
+        # rows of one collector run share one SnapshotAt, so IN on the per-
+        # bucket MAX keeps exactly that run's rows).
+        if latest_of:
             if latest_of not in by_field:
                 raise TableQueryError(f"unknown latest_of field: {latest_of!r}")
             col = _quote_ident(latest_of)
-            sub = f"(SELECT MAX({col}) FROM {_quote_object(base_object)}{where})"
             glue = " AND " if conds else " WHERE "
-            inner_from = f"{inner_from}{glue}{col} = {sub}"
-            params = params + params  # outer WHERE params, then the subquery's
+            grain = grain_by_field.get(latest_of)
+            if latest_of not in dim_fields:
+                sub = f"(SELECT MAX({col}) FROM {_quote_object(base_object)}{where})"
+                inner_from = f"{inner_from}{glue}{col} = {sub}"
+                params = params + params  # outer WHERE params, then the subquery's
+            elif grain is not None:
+                bucket = _grain_sql(col, grain)
+                sub = (
+                    f"(SELECT MAX({col}) FROM {_quote_object(base_object)}{where} "
+                    f"GROUP BY {bucket})"
+                )
+                inner_from = f"{inner_from}{glue}{col} IN {sub}"
+                params = params + params
+            # raw (grain None) date dimension: every instant is its own
+            # bucket, the restriction would be a no-op — skip it.
         sql = build_aggregate_sql(
             inner_from=inner_from,
             dim_fields=dim_fields,

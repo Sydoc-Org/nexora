@@ -185,6 +185,178 @@ def _scope_by_processname(process_configs, filters):
     return result
 
 
+# Date-anchored measures: shared time-axis field + anchor -> Statconfig date
+# column key. The 'backlog' anchor reads dbo.BacklogHistory (same Statistics
+# engine) as one more UNION leg.
+ACTIVITY_FIELD = "activity_date"
+_ANCHOR_DATE_KEY = {"import_date": "import_col", "export_date": "export_col"}
+_BACKLOG_OBJECT = "[dbo].[BacklogHistory]"
+
+
+def _build_anchored_query(rd, process_configs, field_col_maps, resolved_metrics, row_cap):
+    """(sql, params) for date-anchored metrics (imported/exported/backlog).
+
+    Long-format UNION ALL: one leg per (process, used date anchor) plus one
+    BacklogHistory leg when a 'backlog'-anchored metric is selected. Every leg
+    projects the shared [activity_date] axis (its OWN date, bucketed by the
+    axis grain) and one counter column per metric (1 / the value column /
+    BacklogCount on the matching-anchor leg, 0 elsewhere); the outer query
+    GROUPs BY the dims and SUMs the counters. The backlog leg concatenates
+    LOWER(ClientName)+'.'+ProcessName so its process vocabulary matches the
+    docprocessing 'client.process' constants, and keeps only the newest
+    snapshot instant per bucket (one collector timestamp per run).
+    """
+    rd_columns = rd.get("columns") or []
+    columns = [c["field"] for c in rd_columns]
+    filters = rd.get("filters") or []
+    sort = rd.get("sort") or []
+    cap = min(int(rd.get("rowLimit", row_cap)), int(row_cap))
+    act_grain = next((c.get("grain") for c in rd_columns if c["field"] == ACTIVITY_FIELD), None)
+
+    process_configs = _scope_by_processname(process_configs, filters)
+    if not process_configs:
+        raise QueryBuildError("no processes in scope after processname filter")
+    col_filters = [f for f in filters if f["field"] != "processname"]
+    act_filters = [f for f in col_filters if f["field"] == ACTIVITY_FIELD]
+    other_filters = [f for f in col_filters if f["field"] != ACTIVITY_FIELD]
+
+    used_anchors = list(dict.fromkeys(m["anchor"] for m in resolved_metrics))
+    date_anchors = [a for a in used_anchors if a in _ANCHOR_DATE_KEY]
+    has_backlog = "backlog" in used_anchors
+
+    known = {ACTIVITY_FIELD, "processname"}
+    for colmap in field_col_maps.values():
+        known.update(colmap.keys())
+    for field in columns:
+        if field not in known:
+            raise QueryBuildError(f"unknown column field: {field!r}")
+
+    def counter_exprs(leg_anchor, colmap):
+        exprs = []
+        for m in resolved_metrics:
+            if m["anchor"] != leg_anchor:
+                exprs.append(f"0 AS [{m['code']}]")
+            elif leg_anchor == "backlog":
+                exprs.append(f"[BacklogCount] AS [{m['code']}]")
+            elif m.get("value_field"):
+                col = colmap.get(m["value_field"])
+                # A process without the value column contributes nothing.
+                exprs.append(
+                    f"TRY_CAST({col} AS float) AS [{m['code']}]" if col else f"0 AS [{m['code']}]"
+                )
+            else:
+                exprs.append(f"1 AS [{m['code']}]")
+        return exprs
+
+    sub_queries = []
+    params = []
+    for cfg in process_configs:
+        colmap = field_col_maps.get(cfg["process"], {})
+        for anchor in date_anchors:
+            raw_col = cfg.get(_ANCHOR_DATE_KEY[anchor])
+            if not raw_col:
+                continue  # this process never has that date -> no events
+            raw_date = _date_base(raw_col)
+            select_exprs = []
+            leg_params = []
+            for field in columns:
+                if field == ACTIVITY_FIELD:
+                    select_exprs.append(f"{_grain_sql(raw_date, act_grain)} AS [{ACTIVITY_FIELD}]")
+                elif field == "processname":
+                    select_exprs.append("? AS [processname]")
+                    leg_params.append(cfg["process"])
+                else:
+                    actual = colmap.get(field)
+                    select_exprs.append(
+                        f"{actual} AS [{field}]" if actual else f"NULL AS [{field}]"
+                    )
+            select_exprs += counter_exprs(anchor, colmap)
+            # `>= '19010101'` drops both NULL anchors (the event never
+            # happened for that row) and the zero-date sentinel.
+            where = ["1 = 1", f"{raw_date} >= '19010101'"]
+            skip = False
+            for f in other_filters:
+                col = colmap.get(f["field"])
+                if not col:
+                    if f["op"] != "is_null":
+                        skip = True
+                        break
+                    continue
+                where.append(_filter_clause(col, f["op"], f.get("value"), leg_params))
+            if skip:
+                continue
+            for f in act_filters:
+                where.append(_filter_clause(raw_date, f["op"], f.get("value"), leg_params))
+            cond = f" {cfg['condition']}" if cfg.get("condition") else ""
+            params.extend(leg_params)
+            sub_queries.append(
+                f"SELECT {', '.join(select_exprs)} FROM {_bracket_object(cfg['table'])} "
+                f"WHERE {' AND '.join(where)}{cond}"
+            )
+
+    # A filter on a field BacklogHistory doesn't have can never match there —
+    # drop the leg (same rule as per-process subqueries); is_null is trivially
+    # TRUE (the leg projects NULL for foreign dims).
+    if has_backlog and all(f["op"] == "is_null" for f in other_filters):
+        proc_expr = "LOWER([ClientName]) + N'.' + [ProcessName]"
+        snap = "CAST([SnapshotAt] AS date)"
+        select_exprs = []
+        leg_params = []
+        for field in columns:
+            if field == ACTIVITY_FIELD:
+                select_exprs.append(f"{_grain_sql(snap, act_grain)} AS [{ACTIVITY_FIELD}]")
+            elif field == "processname":
+                select_exprs.append(f"{proc_expr} AS [processname]")
+            else:
+                select_exprs.append(f"NULL AS [{field}]")
+        select_exprs += counter_exprs("backlog", {})
+        where = ["1 = 1", f"{snap} >= '19010101'"]
+        procs = [cfg["process"] for cfg in process_configs]
+        placeholders = ", ".join(["?"] * len(procs))
+        where.append(f"{proc_expr} IN ({placeholders})")
+        leg_params.extend(procs)
+        sub_where = [f"{snap} >= '19010101'"]
+        for f in act_filters:
+            where.append(_filter_clause(snap, f["op"], f.get("value"), leg_params))
+        # Newest snapshot instant only — per bucket when the axis is bucketed,
+        # globally otherwise (raw-grain axis needs no restriction). The MAX
+        # subquery repeats the activity filters, so its params come last.
+        sub_params = []
+        for f in act_filters:
+            sub_where.append(_filter_clause(snap, f["op"], f.get("value"), sub_params))
+        if ACTIVITY_FIELD in columns and act_grain is not None:
+            where.append(
+                f"[SnapshotAt] IN (SELECT MAX([SnapshotAt]) FROM {_BACKLOG_OBJECT} "
+                f"WHERE {' AND '.join(sub_where)} GROUP BY {_grain_sql(snap, act_grain)})"
+            )
+            leg_params.extend(sub_params)
+        elif ACTIVITY_FIELD not in columns:
+            where.append(
+                f"[SnapshotAt] = (SELECT MAX([SnapshotAt]) FROM {_BACKLOG_OBJECT} "
+                f"WHERE {' AND '.join(sub_where)})"
+            )
+            leg_params.extend(sub_params)
+        params.extend(leg_params)
+        sub_queries.append(
+            f"SELECT {', '.join(select_exprs)} FROM {_BACKLOG_OBJECT} "
+            f"WHERE {' AND '.join(where)}"
+        )
+
+    if not sub_queries:
+        raise QueryBuildError("no subqueries produced for the requested scope/filters")
+
+    return (
+        build_aggregate_sql(
+            inner_from=f"({' UNION ALL '.join(sub_queries)}) t",
+            dim_fields=columns,
+            resolved_metrics=resolved_metrics,
+            sort=sort,
+            cap=cap,
+        ),
+        params,
+    )
+
+
 def build_table_query(rd, process_configs, field_col_maps, *, row_cap, resolved_metrics=None):
     """Build (sql, params) for a table report.
 
@@ -201,6 +373,12 @@ def build_table_query(rd, process_configs, field_col_maps, *, row_cap, resolved_
     """
     if not process_configs:
         raise QueryBuildError("no processes in scope")
+
+    anchored = [m for m in (resolved_metrics or []) if m.get("anchor")]
+    if anchored:
+        if len(anchored) != len(resolved_metrics):
+            raise QueryBuildError("anchored and unanchored metrics cannot be combined")
+        return _build_anchored_query(rd, process_configs, field_col_maps, resolved_metrics, row_cap)
 
     # `columns` may be absent/empty for zero-dimension metric definitions.
     rd_columns = rd.get("columns") or []
@@ -311,6 +489,14 @@ def build_table_query(rd, process_configs, field_col_maps, *, row_cap, resolved_
             if not col:
                 continue
             where.append(_filter_clause(col, f["op"], f.get("value"), params))
+        # Zero-date sentinel guard: empty-string/zero varchar dates CONVERT to
+        # 1900-01-01 and would surface as a plausible-looking 1900 bucket on a
+        # projected date dim. NULL rows stay — "no date yet" is a real group.
+        raw_dates = _date_exprs_for(cfg, {})
+        for field in columns:
+            expr = raw_dates.get(field)
+            if expr:
+                where.append(f"({expr} IS NULL OR {expr} >= '19010101')")
         cond = f" {cfg['condition']}" if cfg.get("condition") else ""
         sub_queries.append(
             f"SELECT {', '.join(select_exprs)} FROM {_bracket_object(cfg['table'])} "

@@ -4,7 +4,70 @@
     <meta charset="UTF-8">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Secure Document Tracking - nexora</title>
+    <!-- Pre-paint theme apply -- runs before anything else so the page
+         never flashes light before dark loads. Shares localStorage keys
+         with _header.html's prefs system (issue #155) -- nexora-ui-prefs
+         {theme:...} primary, legacy nexora-theme as fallback -- so a
+         choice made here is already picked up once the user logs in, even
+         though only this page has a toggle for now. Doesn't touch Tailwind
+         config -- just sets the .dark class, independent of it. -->
+    <script nonce="{{ csp_nonce() }}">
+        (function () {
+            try {
+                var ls = function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } };
+                var stored = {};
+                try { stored = JSON.parse(ls('nexora-ui-prefs')) || {}; } catch (e) {}
+                var theme = stored.theme || (ls('nexora-theme') === 'dark' ? 'dark' : 'light');
+                var dark = theme === 'dark';
+                if (dark) document.documentElement.classList.add('dark');
+
+                // Accent: the logo/brand color follows the user's
+                // Appearance pick even before login, via the same
+                // localStorage mirror _header.html writes once they've
+                // logged in once on this browser -- first-ever visit
+                // falls through to the default indigo, same as everywhere
+                // else this mirror is read pre-login.
+                var accent = stored.accent || 'indigo';
+                var d = document.documentElement;
+                if (accent === 'custom') {
+                    var m = /^#([0-9a-f]{6})$/i.exec(stored.accentHex || '');
+                    if (m) {
+                        var n = parseInt(m[1], 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+                        var mix = function (t, w) {
+                            return 'rgb(' + Math.round(r + (w - r) * t) + ',' +
+                                Math.round(g + (w - g) * t) + ',' + Math.round(b + (w - b) * t) + ')';
+                        };
+                        var mixc = function (t, wr, wg, wb) {
+                            return 'rgb(' + Math.round(r + (wr - r) * t) + ',' +
+                                Math.round(g + (wg - g) * t) + ',' + Math.round(b + (wb - b) * t) + ')';
+                        };
+                        var base = dark ? mix(0.30, 255) : 'rgb(' + r + ',' + g + ',' + b + ')';
+                        var hover = dark ? mix(0.45, 255) : mix(0.15, 0);
+                        var partner = dark ? mix(0.55, 255) : mixc(0.28, 124, 58, 237);
+                        d.style.setProperty('--nx-accent', base);
+                        d.style.setProperty('--nx-accent-hover', hover);
+                        d.style.setProperty('--nx-violet', partner);
+                    }
+                } else if (accent !== 'indigo') {
+                    d.setAttribute('data-accent', accent);
+                }
+            } catch (e) {}
+        })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind's Play CDN creates `window.tailwind` itself when the script
+         above runs, and OVERWRITES anything set on that name beforehand --
+         setting `tailwind.config` before the CDN script (as this used to do)
+         gets silently discarded. It has to be configured AFTER, like this.
+         Without darkMode:'class', Tailwind defaults to 'media' -- every
+         dark: utility class on the page would follow the OS/browser's
+         prefers-color-scheme instead of the #theme-toggle button, which is
+         the bug: on a browser with a dark OS theme, dark: text/backgrounds
+         would apply *always*, even after switching this page to light mode
+         with the toggle. -->
+    <script nonce="{{ csp_nonce() }}">
+        tailwind.config = { darkMode: 'class' };
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous">
     <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
@@ -14,7 +77,7 @@
 </head>
 <body class="hero-body">
 
-    <div id="preloader" class="fixed inset-0 bg-white z-[100] flex items-center justify-center">
+    <div id="preloader" class="fixed inset-0 bg-white dark:bg-slate-900 z-[100] flex items-center justify-center">
         <div id="preloader-logo" class="brand title-wrap">
             {% include 'nexora_logo/_nexora_logo.html' %}
         </div>
@@ -25,12 +88,18 @@
                 <div id="header-logo-wrapper" class="text-2xl font-bold text-indigo-600">
                     {% include 'nexora_logo/_nexora_logo.html' %}
                 </div>
-                <a href="{{ url_for('login') }}" id="signin" class="hero-ghost-btn hidden md:inline-flex items-center gap-2 font-semibold py-2 px-4 rounded-lg transition duration-300" data-testid="hero-signin-desktop">
-                    <i class="fas fa-right-to-bracket text-sm"></i>{{ _("Sign In") }}
-                </a>
-                <a href="{{ url_for('login') }}" class="hero-grad md:hidden text-white font-semibold py-2 px-4 rounded-lg transition" data-testid="hero-signin-mobile">
-                    {{ _("Sign In") }}
-                </a>
+                <div class="flex items-center gap-2 md:gap-3">
+                    <button type="button" id="theme-toggle" class="hero-theme-toggle inline-flex items-center justify-center rounded-full w-10 h-10" aria-label="{{ _('Switch to dark mode') }}" aria-pressed="false" data-testid="hero-theme-toggle">
+                        <i class="fas fa-sun dark:hidden" aria-hidden="true"></i>
+                        <i class="fas fa-moon hidden dark:inline" aria-hidden="true"></i>
+                    </button>
+                    <a href="{{ url_for('login') }}" id="signin" class="hero-ghost-btn hidden md:inline-flex items-center gap-2 font-semibold py-2 px-4 rounded-lg transition duration-300" data-testid="hero-signin-desktop">
+                        <i class="fas fa-right-to-bracket text-sm"></i>{{ _("Sign In") }}
+                    </a>
+                    <a href="{{ url_for('login') }}" class="hero-grad md:hidden text-white font-semibold py-2 px-4 rounded-lg transition" data-testid="hero-signin-mobile">
+                        {{ _("Sign In") }}
+                    </a>
+                </div>
             </div>
         </header>
 
@@ -42,10 +111,10 @@
                         <div class="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
                             <div class="text-center lg:text-left">
                                 <span class="hero-eyebrow"><span class="dot"></span>{{ _("Real-time updates") }}</span>
-                                <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1] mt-6 mb-6 text-gray-900">
+                                <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1] mt-6 mb-6 text-gray-900 dark:text-slate-50">
                                     {{ _("Seamless Document Tracking, Complete Peace of Mind.") }}
                                 </h1>
-                                <p class="text-lg text-gray-600 mb-9 max-w-xl mx-auto lg:mx-0">
+                                <p class="text-lg text-gray-600 dark:text-slate-400 mb-9 max-w-xl mx-auto lg:mx-0">
                                     {{ _("Welcome to nexora. Securely monitor your document's journey from import to validation and final delivery in real-time. Access a complete, auditable history 24/7.") }}
                                 </p>
                                 <div class="flex flex-wrap items-center justify-center lg:justify-start gap-4 mb-10">
@@ -60,43 +129,43 @@
                                 </div>
                             </div>
 
-                            <div class="hero-window-wrap relative hidden lg:block">
+                            <div class="hero-window-wrap relative hidden lg:block lg:mt-96 2xl:mt-0">
                                 <div class="hero-window">
                                     <div class="hero-window__bar">
                                         <span class="hero-window__dot bg-[#f87171]"></span>
                                         <span class="hero-window__dot bg-[#fbbf24]"></span>
                                         <span class="hero-window__dot bg-[#34d399]"></span>
-                                        <span class="ml-3 text-xs font-medium text-gray-500">nexora &middot; {{ _("Document Status") }}</span>
+                                        <span class="ml-3 text-xs font-medium text-gray-500 dark:text-slate-400">nexora &middot; {{ _("Document Status") }}</span>
                                     </div>
                                     <div class="p-7">
                                         <div class="flex items-center mb-6">
                                             <span class="hero-window__icon"><i class="fas fa-file-alt"></i></span>
                                             <div class="ml-3">
-                                                <h3 class="font-semibold text-gray-800">{{ _("Document Status") }}</h3>
-                                                <p class="text-sm text-gray-500">{{ _("Real-time updates") }}</p>
+                                                <h3 class="font-semibold text-gray-800 dark:text-slate-100">{{ _("Document Status") }}</h3>
+                                                <p class="text-sm text-gray-500 dark:text-slate-400">{{ _("Real-time updates") }}</p>
                                             </div>
                                         </div>
                                         <div class="space-y-5">
                                             <div>
                                                 <div class="flex items-center justify-between mb-1.5">
-                                                    <span class="text-sm font-medium text-gray-600">{{ _("Invoice") }} #431</span>
-                                                    <span class="text-xs font-semibold text-emerald-600">100%</span>
+                                                    <span class="text-sm font-medium text-gray-600 dark:text-slate-400">{{ _("Invoice") }} #431</span>
+                                                    <span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400">100%</span>
                                                 </div>
-                                                <div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-emerald-500 h-2 rounded-full w-full"></div></div>
+                                                <div class="w-full bg-gray-100 dark:bg-slate-700 rounded-full h-2"><div class="bg-emerald-500 h-2 rounded-full w-full"></div></div>
                                             </div>
                                             <div>
                                                 <div class="flex items-center justify-between mb-1.5">
-                                                    <span class="text-sm font-medium text-gray-600">{{ _("Contract") }} #A89</span>
-                                                    <span class="text-xs font-semibold text-sky-600">75%</span>
+                                                    <span class="text-sm font-medium text-gray-600 dark:text-slate-400">{{ _("Contract") }} #A89</span>
+                                                    <span class="text-xs font-semibold text-sky-600 dark:text-sky-400">75%</span>
                                                 </div>
-                                                <div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-sky-500 h-2 rounded-full w-[75%]"></div></div>
+                                                <div class="w-full bg-gray-100 dark:bg-slate-700 rounded-full h-2"><div class="bg-sky-500 h-2 rounded-full w-[75%]"></div></div>
                                             </div>
                                             <div>
                                                 <div class="flex items-center justify-between mb-1.5">
-                                                    <span class="text-sm font-medium text-gray-600">{{ _("Report") }} Q3</span>
-                                                    <span class="text-xs font-semibold text-amber-600">35%</span>
+                                                    <span class="text-sm font-medium text-gray-600 dark:text-slate-400">{{ _("Report") }} Q3</span>
+                                                    <span class="text-xs font-semibold text-amber-600 dark:text-amber-400">35%</span>
                                                 </div>
-                                                <div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-amber-500 h-2 rounded-full w-[35%]"></div></div>
+                                                <div class="w-full bg-gray-100 dark:bg-slate-700 rounded-full h-2"><div class="bg-amber-500 h-2 rounded-full w-[35%]"></div></div>
                                             </div>
                                         </div>
                                     </div>
@@ -110,55 +179,55 @@
                     <div class="container mx-auto px-6">
 
                         <div class="text-center mb-16">
-                            <h2 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">
+                            <h2 class="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-slate-50 mb-4">
                                {{ _("Visualize Your Document's Journey") }}
                             </h2>
-                            <p class="text-lg text-gray-600 max-w-3xl mx-auto">
+                            <p class="text-lg text-gray-600 dark:text-slate-400 max-w-3xl mx-auto">
                                 {{ _("Our automated system handles every step with precision and security. Follow along as a document is processed in real-time.") }}
                             </p>
                         </div>
 
-                       <div id="animation-container" class="relative max-w-4xl mx-auto bg-white p-8 sm:p-12 rounded-2xl shadow-xl border border-gray-200">
+                       <div id="animation-container" class="relative max-w-4xl mx-auto bg-white dark:bg-slate-800 p-8 sm:p-12 rounded-2xl shadow-xl border border-gray-200 dark:border-slate-700">
 
                             <div class="relative flex justify-between items-center">
 
                                 <div class="absolute top-1/2 h-1 transform -translate-y-1/2 left-[2rem] right-[2rem]">
-                                    <div class="absolute top-0 left-0 w-full h-full bg-gray-200 rounded-full"></div>
+                                    <div class="absolute top-0 left-0 w-full h-full bg-gray-200 dark:bg-slate-700 rounded-full"></div>
                                     <div id="progress-line" class="absolute top-0 left-0 h-full w-0 rounded-full [transition:width_0.8s_ease-in-out]"></div>
                                 </div>
 
                                 <div id="step-1" class="process-step z-10 flex flex-col items-center text-center">
-                                    <div class="step-icon-wrapper flex items-center justify-center w-16 h-16 bg-white border-2 border-gray-300 rounded-full">
-                                        <i data-original-icon="fa-cloud-arrow-up" class="fas fa-cloud-arrow-up text-2xl text-gray-400"></i>
+                                    <div class="step-icon-wrapper flex items-center justify-center w-16 h-16 bg-white dark:bg-slate-800 border-2 border-gray-300 dark:border-slate-600 rounded-full">
+                                        <i data-original-icon="fa-cloud-arrow-up" class="fas fa-cloud-arrow-up text-2xl text-gray-400 dark:text-slate-500"></i>
                                     </div>
-                                    <p class="step-label mt-3 font-semibold text-gray-500">{{ _("Import") }}</p>
+                                    <p class="step-label mt-3 font-semibold text-gray-500 dark:text-slate-400">{{ _("Import") }}</p>
                                 </div>
 
                                 <div id="step-2" class="process-step z-10 flex flex-col items-center text-center">
-                                    <div class="step-icon-wrapper flex items-center justify-center w-16 h-16 bg-white border-2 border-gray-300 rounded-full">
-                                        <i data-original-icon="fa-gears" class="fas fa-gears text-2xl text-gray-400"></i>
+                                    <div class="step-icon-wrapper flex items-center justify-center w-16 h-16 bg-white dark:bg-slate-800 border-2 border-gray-300 dark:border-slate-600 rounded-full">
+                                        <i data-original-icon="fa-gears" class="fas fa-gears text-2xl text-gray-400 dark:text-slate-500"></i>
                                     </div>
-                                    <p class="step-label mt-3 font-semibold text-gray-500">{{ _("Extraction") }}</p>
+                                    <p class="step-label mt-3 font-semibold text-gray-500 dark:text-slate-400">{{ _("Extraction") }}</p>
                                 </div>
 
                                 <div id="step-3" class="process-step z-10 flex flex-col items-center text-center">
-                                    <div class="step-icon-wrapper flex items-center justify-center w-16 h-16 bg-white border-2 border-gray-300 rounded-full">
-                                        <i data-original-icon="fa-shield-halved" class="fas fa-shield-halved text-2xl text-gray-400"></i>
+                                    <div class="step-icon-wrapper flex items-center justify-center w-16 h-16 bg-white dark:bg-slate-800 border-2 border-gray-300 dark:border-slate-600 rounded-full">
+                                        <i data-original-icon="fa-shield-halved" class="fas fa-shield-halved text-2xl text-gray-400 dark:text-slate-500"></i>
                                     </div>
-                                    <p class="step-label mt-3 font-semibold text-gray-500">{{ _("Validation") }}</p>
+                                    <p class="step-label mt-3 font-semibold text-gray-500 dark:text-slate-400">{{ _("Validation") }}</p>
                                 </div>
 
                                 <div id="step-4" class="process-step z-10 flex flex-col items-center text-center">
-                                    <div class="step-icon-wrapper flex items-center justify-center w-16 h-16 bg-white border-2 border-gray-300 rounded-full">
-                                        <i data-original-icon="fa-paper-plane" class="fas fa-paper-plane text-2xl text-gray-400"></i>
+                                    <div class="step-icon-wrapper flex items-center justify-center w-16 h-16 bg-white dark:bg-slate-800 border-2 border-gray-300 dark:border-slate-600 rounded-full">
+                                        <i data-original-icon="fa-paper-plane" class="fas fa-paper-plane text-2xl text-gray-400 dark:text-slate-500"></i>
                                     </div>
-                                    <p class="step-label mt-3 font-semibold text-gray-500">{{ _("Delivery") }}</p>
+                                    <p class="step-label mt-3 font-semibold text-gray-500 dark:text-slate-400">{{ _("Delivery") }}</p>
                                 </div>
                             </div>
 
                              <div class="text-center mt-10 h-8">
-                                <p class="text-lg font-medium text-gray-700">
-                                    Status: <span id="status-text" class="font-bold text-indigo-600 [transition:opacity_0.4s_ease-in-out]">{{ _("Initializing...") }}</span>
+                                <p class="text-lg font-medium text-gray-700 dark:text-slate-300">
+                                    Status: <span id="status-text" class="font-bold text-indigo-600 dark:text-indigo-400 [transition:opacity_0.4s_ease-in-out]">{{ _("Initializing...") }}</span>
                                 </p>
                             </div>
                         </div>
@@ -168,30 +237,30 @@
                 <section id="services" class="py-20 sm:py-24">
                         <div class="container mx-auto px-6">
                             <div class="text-center mb-16">
-                                <h2 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">{{ _("Why use nexora") }}? </h2>
-                                <p class="text-lg text-gray-600 max-w-3xl mx-auto">{{ _("Everything you need in one secure and convenient place") }}. </p>
+                                <h2 class="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-slate-50 mb-4">{{ _("Why use nexora") }}? </h2>
+                                <p class="text-lg text-gray-600 dark:text-slate-400 max-w-3xl mx-auto">{{ _("Everything you need in one secure and convenient place") }}. </p>
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                                 <div class="hero-feat p-8 rounded-xl text-center">
                                     <div class="hero-feat-icon flex items-center justify-center h-16 w-16 rounded-full mx-auto mb-6">
                                          <i class="fas fa-search-location text-3xl text-white"></i>
                                     </div>
-                                    <h3 class="text-xl font-bold text-gray-800 mb-2">{{ _("Real-time tracking") }} </h3>
-                                    <p class="text-gray-600">{{ _("Monitor your document's journey from import to validation and final delivery, every step of the way") }}. </p>
+                                    <h3 class="text-xl font-bold text-gray-800 dark:text-slate-100 mb-2">{{ _("Real-time tracking") }} </h3>
+                                    <p class="text-gray-600 dark:text-slate-400">{{ _("Monitor your document's journey from import to validation and final delivery, every step of the way") }}. </p>
                                 </div>
                                 <div class="hero-feat p-8 rounded-xl text-center">
                                     <div class="hero-feat-icon flex items-center justify-center h-16 w-16 rounded-full mx-auto mb-6">
                                         <i class="fas fa-history text-3xl text-white"></i>
                                     </div>
-                                    <h3 class="text-xl font-bold text-gray-800 mb-2">{{ _("Document history") }} </h3>
-                                    <p class="text-gray-600">{{ _("Access a complete, auditable history of all your processed documents available 24/7.") }} </p>
+                                    <h3 class="text-xl font-bold text-gray-800 dark:text-slate-100 mb-2">{{ _("Document history") }} </h3>
+                                    <p class="text-gray-600 dark:text-slate-400">{{ _("Access a complete, auditable history of all your processed documents available 24/7.") }} </p>
                                 </div>
                                 <div class="hero-feat p-8 rounded-xl text-center">
                                     <div class="hero-feat-icon flex items-center justify-center h-16 w-16 rounded-full mx-auto mb-6">
                                         <i class="fas fa-shield-alt text-3xl text-white"></i>
                                     </div>
-                                    <h3 class="text-xl font-bold text-gray-800 mb-2">{{ _("Secure access") }} </h3>
-                                    <p class="text-gray-600">{{ _("Your data is protected with industry-leading security protocols, ensuring complete confidentiality") }}.</p>
+                                    <h3 class="text-xl font-bold text-gray-800 dark:text-slate-100 mb-2">{{ _("Secure access") }} </h3>
+                                    <p class="text-gray-600 dark:text-slate-400">{{ _("Your data is protected with industry-leading security protocols, ensuring complete confidentiality") }}.</p>
                                 </div>
                             </div>
                         </div>
@@ -199,10 +268,10 @@
 
                 <section class="hero-band-cta relative">
                     <div class="container mx-auto px-6 py-24 text-center relative z-10">
-                         <h2 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">
+                         <h2 class="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-slate-50 mb-4">
                             {{ _("Ready to See Your Documents in Action?") }}
                         </h2>
-                        <p class="text-lg text-gray-600 max-w-2xl mx-auto mb-8">
+                        <p class="text-lg text-gray-600 dark:text-slate-400 max-w-2xl mx-auto mb-8">
                             {{ _("Log in to your portal to access real-time tracking, view your history, and manage your workflow with confidence.") }}
                         </p>
                         <a href="{{ url_for('login') }}" class="hero-cta inline-block font-bold py-4 px-10 rounded-lg text-lg" data-testid="hero-access-portal-cta">

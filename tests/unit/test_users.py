@@ -37,7 +37,7 @@ def test_resolve_user_icon_url_lowercase_filename_found(app, monkeypatch):
 
     with app.test_request_context("/"):
         url = resolve_user_icon_url(99887766)
-    assert target in url
+    assert "/avatar/99887766" in url
     assert "v=1700000000" in url
 
 
@@ -57,5 +57,5 @@ def test_resolve_user_icon_url_uppercase_filename_found(app, monkeypatch):
 
     with app.test_request_context("/"):
         url = resolve_user_icon_url(55667788)
-    assert target in url
+    assert "/avatar/55667788" in url
     assert "v=1700000001" in url

@@ -153,15 +153,33 @@ chart already on screen re-themes on the next render, not live.
     "Pick a time breakdown first to choose its granularity." tooltip, so the
     control is discoverable up front instead of appearing to not exist (#178).
     A **table** source with no process registry but a filterable string field
-    whose name/label matches `/process/i` (e.g. `backlog_history.ProcessName`)
+    whose name/label matches `/process/i` (formerly
+    `backlog_history.ProcessName`; the source is retired but the mechanism
+    stays for future table sources)
     gets the same "which processes?" step in spirit — a **field-scope step**:
     it POSTs the field's up-to-100 distinct values from the new
     `POST /api/reporting/field_values` endpoint (`reporting.view`-gated,
     source-permission-checked, whitelisted-filterable-field only, `SELECT
     DISTINCT TOP (100)`) and renders them as the same pre-checked checkbox
-    list. A partial pick serializes to a plain `{"op": "in"}` filter on that
-    field — not `scope.processes` — so on "Adjust in wizard" it round-trips as
-    a normal editable filter chip, not the process chip. If the endpoint is
+    list. A column entry may declare `"labelWith": "<OtherField>"` in
+    `ColumnsJSON` (was seeded for `backlog_history.ProcessName` →
+    `ClientName`, migration `0065`): the endpoint then returns a `labels`
+    map alongside `values`, labelling each distinct value
+    `"<companion>.<value>"` (lowercased companion — `privera.03_Invoice_New`,
+    matching the app-wide client.process idiom); the filter value stays the
+    bare column value. A second flag `"grantScoped": true` (was seeded by
+    migration `0066`) additionally drops every value whose client.process
+    label is **not** in the caller's `reporting.scope.process.*` grants — the
+    snapshot collector records every Octo process, but the picker should only
+    offer the ones the rest of the app shows. This is UI curation, not a
+    security boundary: the run path stays gated by the source-level
+    permission alone. A partial pick serializes to a plain `{"op": "in"}`
+    filter on that field — not `scope.processes` — which the result view
+    renders as the **process chip** ("Processes: a, b" — clicking it opens a
+    checkbox picker; picking everything removes the filter). All `in`/
+    `not_in` filter chips likewise edit through a checkbox picker fed by
+    `field_values` (or the process registry for `processname`), falling back
+    to the free-text editor when no values are available. If the endpoint is
     unreachable or the field has no values, the step is silently skipped
     (graceful degrade — the same behaviour production sees when StatisticsDB
     is down). Time presets include **This
@@ -885,13 +903,13 @@ Each curated source binds to a **provider**:
 
 **Built-in registered sources.** Migration `0011` seeds two `table`-provider
 sources: **Generali — PDQM Report** (`generali_pdqm` over `dbo.PDQMReport`) and
-**Workitems (Octopus)** (`workitems` over `dbo.t_Documents`). Migrations `0053`
-+ `0054` seed **Backlog History** (`backlog_history` over
-`StatisticsDB.dbo.BacklogHistory`, the #161 collector's 30-minute C+A backlog
-snapshots) with a canonical `backlog_total` metric (`SUM(BacklogCount)`) so it
-surfaces as a measure in the Simple wizard and AI grounding. Each is gated by
-its own permission (`reporting.source.generali.pdqm`,
-`reporting.source.workitems`, `reporting.source.backlog_history`).
+**Workitems (Octopus)** (`workitems` over `dbo.t_Documents`). A third,
+**Backlog History** (`backlog_history` over `StatisticsDB.dbo.BacklogHistory`
+with a `backlog_total` metric, migrations `0053`–`0056`/`0065`/`0066`/`0068`),
+was **retired by migration `0069`**: the date-anchored **Backlog** measure on
+the docprocessing source (see **`DateAnchor`** below) supersedes it, and the
+collector + table it read stay in place. Each source is gated by its own
+permission (`reporting.source.generali.pdqm`, `reporting.source.workitems`).
 Unlike the docprocessing source, the `table` provider does **not** apply
 `reporting.scope.process.*` row scoping — the source permission is the whole
 gate, so grant it deliberately. Tune the exposed columns/object at
@@ -943,23 +961,61 @@ metric set is count-only so the SELECT list is never empty). This powers the
 Simple tab's number card and works identically in Advanced and the AI surfaces.
 
 **`TotalMode`** (`sum` default / `latest`, migration `0056`, `table`-provider
-sources only) governs *how* that zero-dimension grand total is computed for a
-metric backed by a **point-in-time snapshot series** rather than an
-additive one — the seeded case is `backlog_total` on the `backlog_history`
-source (`dbo.BacklogHistory`, 30-minute backlog snapshots): summing every
-snapshot's `BacklogCount` across a time range is meaningless, the total
-should be the backlog **as of the latest snapshot**, not the sum of all of
-them. When a zero-column request's metrics are **all** `TotalMode = 'latest'`
-and the source has **exactly one** grainable date field, `_prepare_run`
-passes that field as `latest_of` into `build_generic_query`, which restricts
-the aggregate to rows at the latest bucket instead of the whole matched set;
-any mixed `sum`/`latest` metric set, or more than one date candidate, falls
+sources only) governs how aggregates over a metric backed by a
+**point-in-time snapshot series** are computed — the seeded case was
+`backlog_total` on the since-retired `backlog_history` source
+(`dbo.BacklogHistory`, 30-minute backlog snapshots; retired `0069`, the
+machinery stays for future snapshot sources): summing snapshots across time
+is meaningless for a gauge. When a request's metrics are **all** `TotalMode = 'latest'` and
+the source has **exactly one** grainable date field, `_prepare_run` passes
+that field as `latest_of` into `build_generic_query`, which restricts the
+row set before aggregating:
+
+- **no date dimension** (zero-column grand total, or a category-only
+  breakdown like "Backlog by process"): only rows at the **newest snapshot
+  instant** in the filtered range count;
+- **grained date dimension** ("Backlog per day/week/month"): only rows at
+  the newest snapshot instant **within each bucket** count, so a day bucket
+  shows the day's closing backlog, not the sum of its 30-minute snapshots
+  (all rows of one collector run share one `SnapshotAt`, which is what makes
+  the per-bucket `MAX` restriction exact);
+- a **raw** (ungrained) date dimension needs no restriction — every snapshot
+  instant is its own group.
+
+Any mixed `sum`/`latest` metric set, or more than one date candidate, falls
 back to the safe default (`sum` over everything) rather than guessing which
-metric should win. The Simple KPI band shows a similarly-motivated "· last
-bucket &lt;bucket&gt;" caption on the Total tile, but it is a **separate,
-client-computed** number, not a read of this server total — see **Simple and
-Advanced tabs → KPI stat band** above for why the two can legitimately
-differ (e.g. snapshots finer-grained than the report's display grain).
+metric should win. Relatedly, the generic builder truncates a `day`-grained
+`datetime` dimension via `CAST(... AS date)` (an untruncated day grain would
+bucket per timestamp), and both builders exclude SQL Server's `1900-01-01`
+zero-date sentinel from grained date dimensions (NULL buckets stay — "no
+date yet" is a real group). The Simple KPI band's "· last bucket" caption on
+the Total tile remains a separate, client-computed number — see **Simple and
+Advanced tabs → KPI stat band** above.
+
+**`DateAnchor`** (migration `0067`, docprocessing only) marks a metric as
+**date-anchored**: *Documents/Pages imported* count on the import date,
+*Documents/Pages exported* on the export date, and *Backlog* reads
+`dbo.BacklogHistory` (same Statistics engine). Anchored metrics plot on the
+shared synthetic **`activity_date`** axis — each metric buckets its OWN date
+onto it — which is what makes "import line + export line + backlog line in
+one chart" a single-SQL report. Mechanics (`query.py:_build_anchored_query`):
+one UNION-ALL leg per (process, used date anchor) plus one BacklogHistory
+leg, each projecting the axis and one **counter column per metric** (1 / the
+value column / `BacklogCount` on the matching-anchor leg, `0` elsewhere);
+the outer query GROUPs BY the dims and SUMs the counters
+(`resolve_metrics` aliases an anchored metric's `base_field` to its own
+code; the registry `BaseField`, e.g. `pagecount`, becomes `value_field`).
+The backlog leg concatenates `LOWER(ClientName)+'.'+ProcessName` so its
+process vocabulary matches the docprocessing `client.process` constants, is
+restricted to the report's effective process scope, and keeps only the
+newest snapshot instant per bucket. Rules, enforced with teaching errors in
+`_prepare_run`: anchored and unanchored metrics never mix; anchored reports
+use `activity_date` (never `import_date`/`export_date`) for both columns and
+filters; `activity_date` is invalid without anchored metrics. Like
+`TotalMode`, `DateAnchor` is migration-managed (not writable via the admin
+metrics API). v1 limits: drill-through is unavailable on anchored results
+(the axis is not a physical column), and buckets without a backlog snapshot
+render as 0.
 
 > Per-metric locked filters (`FilterJson`) are stored in the table but **not yet
 > applied** by the engine in Slice 1 (reserved for a later slice). Report-level
