@@ -10,6 +10,11 @@ Work toward the next release.
 
 ### Added
 
+- **WinRM access to PROD documented.** `docs/howto/winrm-prod-access.md`
+  covers the one-time `Enable-PSRemoting` setup on SYAPP01 plus the firewall
+  scoping, so log tails, app-pool checks and env-key audits can run remotely
+  instead of needing an RDP session. Only 445 (SMB) and 3389 (RDP) were open
+  before.
 - **Colours & axes on Simple-tab charts.** A palette button in the chart
   toolbar opens a popover with one colour picker per series, one for the
   report title + legend, and a *Right axis* toggle per series so a level-type
