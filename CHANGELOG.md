@@ -21,6 +21,23 @@ Work toward the next release.
 
 ### Changed
 
+- **PROD now runs on waitress behind IIS HttpPlatformHandler, not wfastcgi.**
+  `web.config` starts one `python -m waitress` process (32 threads, loopback
+  port picked by IIS) and reverse-proxies to it; `wfastcgi` — archived
+  upstream, one blocking request per process — is gone. Motivation: the
+  expected jump to ~500 users, where a handful of slow reporting queries
+  would have starved the FastCGI pool. `waitress` joins the runtime
+  dependencies; the deploy workflow gains a preflight that refuses to stop
+  the app pool unless the HttpPlatformHandler IIS module and `waitress` are
+  present on SYAPP01 (one-time host setup in `docs/howto/iis.md`). Rollback
+  is reverting the commit — `wfastcgi` stays installed on the box.
+- **Rate limits are keyed on the client IP behind the proxy chain.** The
+  limiter now reads the leftmost `X-Forwarded-For` hop (the same rule the CSV
+  request log uses) instead of the socket peer, which behind ngrok → IIS →
+  waitress is always `127.0.0.1` — i.e. one shared *10 logins per minute*
+  bucket for everybody. `web.config` tells waitress to trust
+  `X-Forwarded-For` from IIS so the header survives (waitress ≥ 2 strips
+  proxy headers from untrusted peers).
 - **The branch-name guard accepts a fourth version segment.** Cycle branches
   are still `v<x.y[.z]>`, but a per-developer branch off a cycle
   (`v3.2.3.1` beside `v3.2.3`) now passes `scripts/git-hooks/branch-name-guard.ps1`

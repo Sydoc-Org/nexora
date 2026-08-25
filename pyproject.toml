@@ -10,7 +10,8 @@ requires-python = ">=3.13"
 readme = "README.md"
 license = { file = "LICENSE" }
 
-# Runtime dependencies are mirrored to requirements.txt for IIS/wfastcgi.
+# Runtime dependencies are mirrored to requirements.txt for the IIS deploy
+# (pip install on the prod interpreter; waitress is the PROD WSGI server).
 # requirements.txt is generated from uv.lock — do not edit it by hand.
 dependencies = [
     "Flask==3.1.2",
@@ -43,6 +44,7 @@ dependencies = [
     "matplotlib==3.10.5",       # nx_lib/reporting/chart_render.py
     "pypdfium2==4.30.0",        # nx_lib/octo.py
     "markdown-it-py==4.2.0",    # nx_lib/views/reporting.py
+    "waitress==3.0.2",
 ]
 
 # PEP 735 dependency group, NOT an optional extra: bare `uv sync` installs it

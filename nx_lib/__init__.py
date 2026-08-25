@@ -1,8 +1,8 @@
 """nx_lib — Flask application package.
 
-This package replaces the old monolithic app.py. The wfastcgi entry point
-remains C:\\...\\nexora\\app.py which calls create_app() from this package
-so IIS continues to resolve app:app unchanged.
+The WSGI entry point is ``nx_main:app`` at the repo root (what waitress is
+handed by IIS's HttpPlatformHandler on PROD, and what ``nx -u`` / ``flask
+run`` load locally); it calls create_app() from this package.
 """
 
 import os

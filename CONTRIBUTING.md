@@ -43,7 +43,7 @@ copy env\TEST.env.example env\TEST.env
 .venv\Scripts\pre-commit.exe install --hook-type pre-push
 ```
 
-The repo still ships `requirements.txt` and `requirements-dev.txt` (generated from `uv.lock`); they exist for the IIS/wfastcgi deploy path on SYAPP01. Locally, bare `uv sync` is the whole setup — dev deps are a PEP 735 `[dependency-groups]` group that uv installs by default, so no `--extra` flag exists anymore.
+The repo still ships `requirements.txt` and `requirements-dev.txt` (generated from `uv.lock`); they exist for the IIS deploy path on SYAPP01 (the deploy workflow runs `pip install -r requirements.txt` on the prod interpreter). Locally, bare `uv sync` is the whole setup — dev deps are a PEP 735 `[dependency-groups]` group that uv installs by default, so no `--extra` flag exists anymore.
 
 **Adding a dependency.** `pyproject.toml` is the only source of truth. Never
 hand-edit `requirements*.txt` — they are regenerated from `uv.lock` and your

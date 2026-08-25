@@ -1,7 +1,8 @@
-""" "nx_main — WSGI entry point.
+"""nx_main — WSGI entry point.
 
-wfastcgi expects ``app:app`` so this module stays at the repo root and
-exposes the Flask application via the ``nx_lib.create_app()`` factory.
+PROD runs ``python -m waitress ... nx_main:app`` under IIS's
+HttpPlatformHandler (see web.config), so this module stays at the repo root
+and exposes the Flask application via the ``nx_lib.create_app()`` factory.
 
 All cross-cutting setup (config, DB engines, extensions, request hooks,
 error handlers, security helpers, maintenance lockout) lives in the
