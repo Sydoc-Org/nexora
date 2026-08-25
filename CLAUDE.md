@@ -15,7 +15,7 @@ The entire backend is a single file: `nx_main.py` (a 119-line WSGI shim); routes
 - Environment is selected via the `ENVIRONMENT` env var (`INT` or `PROD`). `nx_lib/config.py` loads `env/{ENVIRONMENT}.env` on startup (with a one-release fallback to the legacy root-level `{ENVIRONMENT}.env`, emitting a `DeprecationWarning`). `env/INT.env`, `env/PROD.env`, `env/STAGING.env`, `env/TEST.env` hold secrets and DB/Graph/Octo/Bexio credentials. Sanitised templates live at `env/*.env.example`.
 - Local dev: create a venv at `./venv`, `pip install -r requirements.txt`, set `ENVIRONMENT=INT`, run `python nx_main.py` (or `flask run`). The WSGI handler is `nx_main.app`.
 - Production: IIS + HttpPlatformHandler → `waitress` (32 threads, loopback port picked by IIS). See `docs/howto/iis.md`. `web.config` is the whole hosting contract: it starts `D:\sydoc\tools\py\python.exe -m waitress ... nx_main:app`, sets `ENVIRONMENT=PROD` / `PYTHONPATH=D:\sydoc\nexora`, trusts `X-Forwarded-For` from IIS, and logs the process's stdout to `var/logs/system/waitress-stdout*`. HttpPlatformHandler + `waitress` are host installs the deploy preflight checks for. (`wfastcgi` was retired in v3.2.3.)
-- Public tunnel (SYAPP01 only): see `docs/howto/ngrok.md` — `ngrok start --config="D:\sydoc\nexora\ngrok.yaml" --all`, or run as a Windows service.
+- Public tunnel (SYAPP01 only): ngrok today (`docs/howto/ngrok.md`), switching to Cloudflare Tunnel (`docs/howto/cloudflare-tunnel.md` -- prepared, cutover pending; `deploy.yml` already stops/starts whichever of the `ngrok`/`cloudflared` services exists).
 
 ## Databases
 

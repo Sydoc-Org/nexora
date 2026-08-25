@@ -10,6 +10,14 @@ Work toward the next release.
 
 ### Added
 
+- **Cloudflare Tunnel runbook, prepared for the ngrok replacement.**
+  `docs/howto/cloudflare-tunnel.md` documents the remotely-managed tunnel
+  (token-only install on SYAPP01, hostname `nexora.sydoc.ch` -> local IIS,
+  Bot-Fight-Mode caveat for `/api/v1` clients, verify/cutover/rollback), and
+  the deploy workflow now stops/starts whichever of the `ngrok`/`cloudflared`
+  Windows services exists, so deploys behave identically before, during and
+  after the cutover. ngrok remains the live entry until then
+  (`docs/howto/ngrok.md` carries the deprecation banner).
 - **Colours & axes on Simple-tab charts.** A palette button in the chart
   toolbar opens a popover with one colour picker per series, one for the
   report title + legend, and a *Right axis* toggle per series so a level-type
