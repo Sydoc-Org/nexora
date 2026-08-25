@@ -2010,6 +2010,19 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   border-color: var(--nx-card-hover-border); box-shadow: var(--nx-card-hover-shadow);
   transform: translateY(-2px);
 }
+/* Owned cards get a hover-revealed trash button; the wrapper keeps the
+   <button> card valid HTML (no nested buttons) and anchors the icon. */
+.rs-card-wrap { position: relative; }
+.rs-card-wrap .rs-card { width: 100%; height: 100%; }
+.rs-card-del {
+  position: absolute; right: 10px; bottom: 10px; width: 28px; height: 28px;
+  border: 1px solid var(--nx-border); border-radius: 8px; background: var(--nx-card);
+  color: var(--nx-text-sec); font-size: 12px; cursor: pointer; opacity: 0;
+  transition: opacity 150ms cubic-bezier(.4, 0, .2, 1), color 150ms;
+}
+.rs-card-wrap:hover .rs-card-del, .rs-card-del:focus-visible { opacity: 1; }
+.rs-card-del:hover { color: var(--nx-danger, #dc2626); border-color: var(--nx-danger, #dc2626); }
+.rs-more-row--danger { color: var(--nx-danger, #dc2626); }
 .rs-card-preview {
   position: relative; height: 78px; padding: 14px 14px 0;
   background: linear-gradient(180deg, #fafaff, var(--nx-card));
@@ -2521,8 +2534,15 @@ html.dark .rdb-add-pill:hover { border-color: var(--nx-accent); }
 .rs-style-row input[type="color"] { width: 24px; height: 24px; padding: 0; border: 1px solid var(--nx-border);
   border-radius: 6px; background: transparent; cursor: pointer; }
 .rs-style-row span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.rs-style-axis { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--nx-text-sec); white-space: nowrap; }
+/* Per-series Left | Right axis switch */
+.rs-axis-seg { display: inline-flex; padding: 2px; gap: 2px; border-radius: 7px; background: var(--nx-divider); border: 1px solid var(--nx-border); }
+.rs-axis-btn { border: none; background: transparent; padding: 1px 7px; font: inherit; font-size: 11px; line-height: 1.4;
+  color: var(--nx-text-sec); border-radius: 5px; cursor: pointer; }
+.rs-axis-btn[aria-pressed="true"] { background: var(--nx-card); color: var(--nx-accent); font-weight: 600; box-shadow: 0 1px 2px rgba(16, 24, 40, .06); }
 .rs-style-reset { margin-top: 6px; font-size: 12px; }
+/* Toolbar toggles outside the chart-type track sit on the card background, so
+   the track's .is-selected (card bg) is invisible on them — tint instead. */
+#rsForecastToggle.is-selected, #rsStyleToggle.is-selected { background: var(--nx-accent-tint); color: var(--nx-accent); }
 
 /* Forecast toggle + horizon (issue #168) */
 .rs-forecast-horizon { font-size: 12px; padding: 2px 6px; border-radius: 8px;

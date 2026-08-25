@@ -152,3 +152,36 @@ def test_forecast_export_rows_marks_predictions():
     assert start == 8 and len(rows2) == 10
     assert rows2[0][-1] == "" and rows2[-1][-1] == "forecast"
     assert rows2[8][0] == "2025-09-01" and round(rows2[8][1]) == 26
+
+
+def test_compute_forecast_carries_levels_forward_over_gaps():
+    # A backlog (level) with two unmeasured buckets: NULL cell + missing row.
+    dates = _months(8)
+    rows = [[d.isoformat(), 100 + i * 10] for i, d in enumerate(dates)]
+    rows[3][1] = None  # snapshot missing -> NULL from SQL
+    del rows[5]  # bucket absent entirely
+    defn = {"columns": [{"field": "d", "grain": "month"}], "metrics": [{"metric": "backlog"}]}
+    zero = compute_forecast(defn, [{"field": "d"}, {"field": "backlog"}], rows)
+    level = compute_forecast(defn, [{"field": "d"}, {"field": "backlog"}], rows, carry_forward={0})
+    # Zero-filling the gaps drags the trend down; carrying forward keeps the climb.
+    assert level["series"][0]["values"][0] > zero["series"][0]["values"][0]
+    assert level["series"][0]["values"][0] > 170
+
+
+def test_compute_forecast_fits_on_finished_buckets_when_last_contains_today(monkeypatch):
+    import datetime as _dt
+
+    class _Today(_dt.date):
+        @classmethod
+        def today(cls):
+            return _dt.date(2026, 8, 25)
+
+    monkeypatch.setattr(_dt, "date", _Today)
+    dates = _months(8, start="2026-01-01")  # Jan..Aug 2026; Aug is still running
+    rows = [[d.isoformat(), 1000] for d in dates]
+    rows[-1][1] = 300  # partial month looks like a collapse if fitted
+    defn = {"columns": [{"field": "d", "grain": "month"}], "metrics": [{"metric": "m"}]}
+    fc = compute_forecast(defn, [{"field": "d"}, {"field": "m"}], rows)
+    assert fc["anchor"] == "2026-08-01"  # the partial bucket stays on the chart
+    assert fc["buckets"][0] == "2026-09-01"  # projection starts after it
+    assert abs(fc["series"][0]["values"][0] - 1000) < 1  # fit ignored the 300

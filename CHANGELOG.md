@@ -18,9 +18,20 @@ Work toward the next release.
   a chart with other measures. Picks are saved with the report
   (`definition.style`, validated hex-only in `nx_lib/reporting/schema.py`).
   Scheduled-mail PNGs and the Advanced tab keep the default palette.
+- **Delete reports from the Simple tab.** Owned cards under *My reports* get a
+  hover trash button, and an open saved report has *⋯ → Delete report*; both
+  confirm first and call the existing owner-scoped
+  `DELETE /api/reporting/reports/<id>`. Until now deleting was Advanced-only.
 
 ### Changed
 
+- **Colours & axes popover polish.** The per-series *Right axis* checkbox is a
+  **Left | Right** switch; each Y axis is titled with the series it carries and
+  takes that series' colour when it carries exactly one; colour-picker drags
+  re-render at most once per frame. The forecast is drawn as translucent bars
+  on bar charts (dashed tails only on line charts), its toggle is tinted while
+  on and greyed out on pie/doughnut, and switching it **off** repaints from the
+  last result instead of re-running the query.
 - **PROD now runs on waitress behind IIS HttpPlatformHandler, not wfastcgi.**
   `web.config` starts one `python -m waitress` process (32 threads, loopback
   port picked by IIS) and reverse-proxies to it; `wfastcgi` — archived
@@ -44,6 +55,31 @@ Work toward the next release.
   instead of needing `git push --no-verify`. `CONTRIBUTING.md`'s branch list was
   stale — it still advertised `fix/…`, `chore/…` and `hotfix/…` prefixes the
   guard has always refused — and now describes what actually pushes.
+
+### Fixed
+
+- **Time charts no longer invent the future or read a half month as a
+  collapse.** The Simple tab's bucket fill stops at today (*This year* = Jan
+  to the current month, not Jan–Dec zeros), the bucket containing today is
+  drawn faded/dashed with a "still running" note, the forecast fits on
+  finished buckets only and projects from the next one, and a bucketed date
+  axis may carry up to 400 points (53 weeks charted, not "too many points").
+- **Backlog is treated as a level.** `dbo.ReportingMetrics.TotalMode` for the
+  anchored `backlog` measure is `latest` (migration `0070`), so the Total card
+  shows the newest snapshot instead of summing every month; buckets without a
+  snapshot come back `NULL` from the query (gap in the chart, skipped by the
+  KPI cards, carried forward by the forecast) instead of a fake `0`.
+- **AI grounding for imported / exported / backlog.** The agent prompt no
+  longer claims the builder can't put differently-dated measures side by side;
+  anchored metrics are marked `anchor=<date>` in the catalog and the model is
+  told to answer such questions with `build_definition` on `activity_date`
+  (the business definition) instead of hand-rolled SQL that disagreed with the
+  reports (681k vs 1,574 backlog). *Show it as a chart* on an answer that
+  carries a definition opens it in the builder instead of asking the model to
+  draw. The auto-caption receives notes about the partial bucket and NULL
+  buckets and is told empty cells are missing measurements, not zero.
+- Wizard "So far" summary updates on breakdown, grain and time-range picks
+  (it lagged one pick behind); weekly/daily peak labels drop the `00:00:00`.
 
 ## [3.2.2] - 2026-08-25
 

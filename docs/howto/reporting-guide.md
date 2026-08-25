@@ -68,6 +68,9 @@ guide as an app page.
   shared one you can edit. Use **Save as** for a copy.
 - A scheduled email runs with the report owner's data access — recipients see
   the owner's numbers, not their own.
+- Delete a report you own: hover its card under My reports and click the trash
+  icon, or open it and use ⋯ → Delete report. Shared copies and schedules go
+  with it.
 
 **Asking the AI**
 
@@ -250,16 +253,35 @@ full data.
 query behind the number, formatted and copyable — useful when you want to prove
 where a figure came from.
 
+### Today, unfinished periods and gaps
+
+- A time chart **stops at today**. *This year* draws January up to the current
+  month — the months that haven't happened yet are not drawn as zero, and the
+  *Groups* / *Ø per group* cards only count the periods that exist.
+- The period that contains today is **still filling up**: its bar is faded (its
+  line segment dashed) and the note *"The current period is still running"*
+  appears under the chart. Don't read it as a drop.
+- **Backlog is a level, not a count.** Its *Total* is the newest snapshot, never
+  the sum of all snapshots. A period nobody measured shows as a **gap** in the
+  line (not zero) with the note *"Gaps are periods without a backlog snapshot"*.
+- A weekly or daily breakdown of a whole year charts fine — the 50-point cut
+  only applies to category axes.
+
 ### Forecast
 
 If your report is *one time breakdown plus a measure*, the **Forecast** toggle
 becomes available. (On the Simple tab the toggle is always visible in the chart
-toolbar but greyed out until the report qualifies; Advanced hides it instead.) It extends the chart with a dashed projection line and a shaded 95%
-confidence band, and appends the predicted rows to the table with a *Forecast*
-badge.
+toolbar but greyed out until the report qualifies; Advanced hides it instead.)
+On a line chart it extends the chart with a dashed projection line and a shaded
+95% confidence band; on a bar chart the predicted periods are drawn as
+translucent bars in the series' colour. Pie and doughnut charts have no
+forecast. The predicted rows are appended to the table with a *Forecast* badge,
+and switching the forecast off again is instant — nothing is re-queried.
 
 - It fits a trend and, when there is enough history, a repeating seasonal
-  pattern on top.
+  pattern on top. The unfinished current period is left out of the fit (it
+  stays on the chart as-is) and the projection starts right after it; a
+  backlog's unmeasured periods are carried forward, not counted as empty.
 - It needs at least 5 periods of history. Below that you get *"Not enough
   history to forecast this series."*
 - The setting is saved with the report — including for scheduled emails.
@@ -271,11 +293,13 @@ badge.
 
 The palette button in the chart toolbar opens a small panel with a colour
 picker for every series and one for the **report title and legend**. Each
-series also has a **Right axis** switch: tick it to plot that line against
-its own scale on the right-hand side — the way to keep a *Backlog* of a few
-hundred readable next to imports in the tens of thousands (when *Backlog*
+series also has a **Left | Right** switch: put it on *Right* to plot that line
+against its own scale on the right-hand side — the way to keep a *Backlog* of a
+few hundred readable next to imports in the tens of thousands (when *Backlog*
 shares a chart with other measures it starts on the right axis by default).
-**Reset colours** returns to the standard palette.
+Each axis is titled with the series it carries, and when it carries exactly one
+series its numbers take that series' colour. **Reset colours** returns to the
+standard palette.
 
 - Your picks are saved with the report and come back when you open it.
 - Emailed reports and the Advanced tab use the standard colours.

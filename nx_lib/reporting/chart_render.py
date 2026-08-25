@@ -25,6 +25,20 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
 MAX_X = 50
+MAX_X_DATE = 400  # a bucketed date axis (53 weeks, 365 days) is still readable as a line
+
+
+def _num(v):
+    """Cell -> float; NULL (no measurement, e.g. a backlog bucket without a
+    snapshot) becomes NaN so matplotlib leaves a gap instead of drawing 0."""
+    if v is None:
+        return float("nan")
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return float("nan")
+
+
 MAX_SERIES = 12
 
 # Same 12 colors as the web charts' shared NX_PALETTE (defined in
@@ -65,16 +79,17 @@ def render_chart_png(definition, columns, rows, *, width=8.0, height=4.5, dpi=11
     # Assumes query engine places metrics as trailing columns (dims first).
     metric_idx = len(columns) - len(metrics)
     chart_type = definition.get("chartType") or ("line" if dims[0].get("grain") else "bar")
+    max_x = MAX_X_DATE if dims[0].get("grain") else MAX_X
 
     fig, ax = plt.subplots(figsize=(width, height), dpi=dpi)
     try:
         if len(dims) == 1 and len(metrics) > 1 and chart_type != "pie":
             # One series per measure (mirrors the Simple pane's per-metric
             # datasets); forecast stays single-metric-only and is skipped here.
-            labels = [_label(r[0]) for r in rows[:MAX_X]]
+            labels = [_label(r[0]) for r in rows[:max_x]]
             n = len(metrics)
             for i, m in enumerate(metrics):
-                vals = [float(r[metric_idx + i] or 0) for r in rows[:MAX_X]]
+                vals = [_num(r[metric_idx + i]) for r in rows[:max_x]]
                 color = _PALETTE[i % len(_PALETTE)]
                 name = m.get("metric") or f"metric {i + 1}"
                 if chart_type == "line":
@@ -87,7 +102,7 @@ def render_chart_png(definition, columns, rows, *, width=8.0, height=4.5, dpi=11
                 ax.set_xticklabels(labels)
             ax.legend(fontsize=8)
         elif len(dims) == 1:
-            data = [(_label(r[0]), float(r[metric_idx] or 0)) for r in rows[:MAX_X]]
+            data = [(_label(r[0]), _num(r[metric_idx])) for r in rows[:max_x]]
             labels = [d[0] for d in data]
             values = [d[1] for d in data]
             if chart_type == "pie" and len(labels) <= MAX_SERIES:
@@ -101,7 +116,7 @@ def render_chart_png(definition, columns, rows, *, width=8.0, height=4.5, dpi=11
                 and not forecast.get("unavailable")
                 and forecast.get("buckets")
                 and chart_type in ("line", "bar")
-                and len(rows) <= MAX_X
+                and len(rows) <= max_x
             ):
                 fx = [_label(b) for b in forecast["buckets"]]
                 s0 = forecast["series"][0]
@@ -137,7 +152,7 @@ def render_chart_png(definition, columns, rows, *, width=8.0, height=4.5, dpi=11
                     cell[x] = {}
                 for i, m in enumerate(metrics):
                     s = f"{base} · {m.get('metric')}" if len(metrics) > 1 else base
-                    v = float(r[metric_idx + i] or 0)
+                    v = _num(r[metric_idx + i])
                     cell[x][s] = cell[x].get(s, 0) + v
                     series_tot[s] = series_tot.get(s, 0) + v
                     series_metric[s] = i

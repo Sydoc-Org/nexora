@@ -235,7 +235,11 @@ def _build_anchored_query(rd, process_configs, field_col_maps, resolved_metrics,
         exprs = []
         for m in resolved_metrics:
             if m["anchor"] != leg_anchor:
-                exprs.append(f"0 AS [{m['code']}]")
+                # A backlog is a LEVEL, not an event count: a leg with no
+                # snapshot contributes NULL so a bucket nobody measured sums
+                # to NULL (rendered as a gap), never to a fake 0.
+                null_or_zero = "NULL" if m["anchor"] == "backlog" else "0"
+                exprs.append(f"{null_or_zero} AS [{m['code']}]")
             elif leg_anchor == "backlog":
                 exprs.append(f"[BacklogCount] AS [{m['code']}]")
             elif m.get("value_field"):
