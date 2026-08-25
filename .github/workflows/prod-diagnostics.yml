@@ -1,0 +1,69 @@
+# Read-only look at PROD from off-box.
+#
+# WinRM to SYAPP01 is blocked by the VPN/network ACL (see
+# docs/howto/winrm-prod-access.md), and only SMB + RDP get through. The
+# self-hosted runner already executes ON SYAPP01, so this workflow borrows it
+# to answer the handful of questions that need a process on the server rather
+# than a file read over the admin share.
+#
+# Deliberately has no command input: every step is a fixed, read-only probe.
+# Nothing here writes, restarts, or prints a secret value.
+name: PROD diagnostics
+
+on:
+  workflow_dispatch:
+    inputs:
+      log_lines:
+        description: "Lines of app.log to tail"
+        required: false
+        default: "80"
+
+jobs:
+  diagnose:
+    runs-on: self-hosted
+    steps:
+      - name: App log
+        shell: powershell
+        run: |
+          $log = "D:\sydoc\nexora\var\logs\system\app.log"
+          if (-not (Test-Path $log)) { "MISSING: $log"; exit 0 }
+          $f = Get-Item $log
+          "last write : $($f.LastWriteTime)  ($([math]::Round($f.Length/1KB)) KB)"
+          "--- tail ${{ inputs.log_lines }} ---"
+          Get-Content $log -Tail ${{ inputs.log_lines }}
+
+      - name: IIS state
+        shell: powershell
+        run: |
+          Import-Module WebAdministration
+          Get-ChildItem IIS:\AppPools | Select-Object Name, State | Format-Table -AutoSize | Out-String
+          Get-ChildItem IIS:\Sites | Select-Object Name, State | Format-Table -AutoSize | Out-String
+
+      - name: PROD env keys
+        shell: powershell
+        run: |
+          # Key names only -- values never leave the box.
+          $envFile = "D:\sydoc\nexora\env\PROD.env"
+          if (-not (Test-Path $envFile)) { "MISSING: $envFile"; exit 0 }
+          (Get-Content $envFile | Where-Object { $_ -match '^\s*[A-Za-z_]' } |
+            ForEach-Object { ($_ -split '=', 2)[0].Trim() }) -join "`n"
+
+      - name: Disk and uptime
+        shell: powershell
+        run: |
+          Get-PSDrive -PSProvider FileSystem |
+            Where-Object { $_.Used -ne $null } |
+            Select-Object Name,
+              @{n = 'UsedGB'; e = { [math]::Round($_.Used / 1GB, 1) }},
+              @{n = 'FreeGB'; e = { [math]::Round($_.Free / 1GB, 1) }} |
+            Format-Table -AutoSize | Out-String
+          "booted: $((Get-CimInstance Win32_OperatingSystem).LastBootUpTime)"
+
+      - name: Outage monitor state
+        shell: powershell
+        run: |
+          $state = "D:\sydoc\nexora\var\outage-state.json"
+          if (Test-Path $state) {
+            "last write: $((Get-Item $state).LastWriteTime)"
+            Get-Content $state -Raw
+          } else { "no outage-state.json yet" }

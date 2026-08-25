@@ -6,6 +6,15 @@ That means files can be read and written remotely, but **no command can be run**
 on the box without an interactive RDP session or a push to `main` (the
 `self-hosted` GitHub runner in `.github/workflows/deploy.yml` executes there).
 
+**Status (2026-08-25): not reachable yet.** SYAPP01 is configured correctly —
+`WinRM` running/Automatic, listening on `0.0.0.0:5985`, NIC profile
+`DomainAuthenticated`, `WINRM-HTTP-In-TCP` enabled with `RemoteAddress = Any` —
+and `Get-SmbSession` on the server shows the dev box arriving unNATted as
+`10.212.134.5`. From that same address 445 connects and 5985 never does, so the
+remaining blocker is the VPN/network ACL, not the host. It needs a firewall
+request: **permit TCP 5985 from the VPN client pool to 192.168.40.7**. Until
+that lands, use the *PROD diagnostics* workflow below.
+
 WinRM closes that gap with no extra software: it ships with Windows and
 PowerShell speaks it natively (`Invoke-Command -ComputerName syapp01 { ... }`).
 Both machines are domain-joined (`dom.local`), so authentication is Kerberos —
@@ -64,3 +73,22 @@ change. WinRM is only for the things that must *execute* on the server.
 | `WSManFault` … *Firewallausnahme* | Service off, or the rule is scoped to the local subnet (NIC profile is Public/Private). |
 | `Access is denied` | The calling account is not in the server's local `Administrators` group. |
 | `Kerberos … cannot find the computer` | Name resolved but SPN mismatch — use the FQDN `syapp01.dom.local`. |
+
+## Interim: the PROD diagnostics workflow
+
+The `self-hosted` GitHub Actions runner already executes **on** SYAPP01 (see the
+`robocopy` to the local `D:\sydoc\nexora` in `.github/workflows/deploy.yml`),
+which is command execution the ACL does not touch.
+`.github/workflows/prod-diagnostics.yml` borrows it for a fixed, read-only
+sweep: `app.log` tail, IIS app-pool/site state, PROD env **key names** (never
+values), disk + uptime, and the outage-monitor state file.
+
+```powershell
+gh workflow run "PROD diagnostics" --ref main -f log_lines=200
+gh run watch   # then: gh run view --log
+```
+
+It takes no command input by design — it is a diagnostic window, not a remote
+shell. `workflow_dispatch` only registers once the file is on the **default
+branch**, so it cannot be triggered from a feature branch before the merge.
+When the ACL opens, `Invoke-Command` supersedes it and this workflow can go.

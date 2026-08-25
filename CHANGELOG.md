@@ -19,6 +19,11 @@ Work toward the next release.
   concrete numbers (imported/exported/backlog, or any other business-metric
   question) ended with "definition built, numbers not run" instead of an
   answer.
+- **PROD diagnostics workflow.** `.github/workflows/prod-diagnostics.yml` is a
+  manual, read-only sweep of SYAPP01 — `app.log` tail, IIS app-pool/site state,
+  PROD env key names (never values), disk/uptime, outage-monitor state — run on
+  the `self-hosted` runner that already executes on the box. It exists because
+  WinRM to PROD is blocked by the VPN/network ACL; it takes no command input.
 - **WinRM access to PROD documented.** `docs/howto/winrm-prod-access.md`
   covers the one-time `Enable-PSRemoting` setup on SYAPP01 plus the firewall
   scoping, so log tails, app-pool checks and env-key audits can run remotely
