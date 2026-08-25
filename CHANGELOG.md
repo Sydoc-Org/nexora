@@ -4,9 +4,7 @@ All notable changes to nexora are tracked here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-Work toward the next release.
+## [3.2.2] - 2026-08-25
 
 ### Added
 
@@ -313,8 +311,6 @@ Work toward the next release.
   fell outside `chartArea` and got no tooltip, while hovering higher
   up always worked. The pointer is now clamped into `chartArea` before
   hit-testing, so the whole canvas height is a reliable hover target.
-
-## [3.2.2] - Unreleased
 
 ### Added
 

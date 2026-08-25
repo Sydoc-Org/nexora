@@ -21,6 +21,68 @@ from .version import __version__
 # endpoint (url_for name, None = no link), icon (fontawesome, no "fa-" prefix).
 RELEASES = [
     {
+        "version": "3.2.2",
+        "date": "2026-08-25",
+        "entries": [
+            {
+                "title": _("Imports, exports and backlog on one chart"),
+                "body": _(
+                    "Document Processing gained date-anchored measures: pick "
+                    "documents or pages imported, exported and the backlog "
+                    "together over time and they all plot on one shared date "
+                    "axis. The separate Backlog History source is retired — the "
+                    "new Backlog measure replaces it."
+                ),
+                "perm": "reporting.source.docprocessing",
+                "endpoint": "reporting",
+                "icon": "chart-line",
+            },
+            {
+                "title": _("The reporting AI panel gets out of your way"),
+                "body": _(
+                    "The chat panel now floats instead of blocking the page: "
+                    "drag it by its header, keep working behind it, and select "
+                    "or copy any answer or generated SQL."
+                ),
+                "perm": "reporting.ai.use",
+                "endpoint": "reporting",
+                "icon": "comments",
+            },
+            {
+                "title": _("Large workitem searches load faster"),
+                "body": _(
+                    "Big result sets arrive in two phases, so the first rows "
+                    "show up right away. Typing a partial id now matches by "
+                    "prefix and the closest hits are ranked first."
+                ),
+                "perm": "workitems.view",
+                "endpoint": "workitems_overview",
+                "icon": "gauge-high",
+            },
+            {
+                "title": _("Tell us what you think"),
+                "body": _(
+                    "The new Feedback page (profile dropdown → Feedback) sends "
+                    "your praise, gripes and ideas straight to the nexora team."
+                ),
+                "perm": None,
+                "endpoint": "feedback",
+                "icon": "comment-dots",
+            },
+            {
+                "title": _("Dark mode, polished"),
+                "body": _(
+                    "The light flash on page loads is gone, checkboxes, menus "
+                    "and tables follow the theme everywhere, and Appearance "
+                    'adds a "Fireflies" page background.'
+                ),
+                "perm": None,
+                "endpoint": "appearance",
+                "icon": "moon",
+            },
+        ],
+    },
+    {
         "version": "3.1.1",
         "date": "2026-08-18",
         "entries": [
