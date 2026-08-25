@@ -805,3 +805,38 @@ def test_forecast_block_bad_shapes_rejected():
         d["forecast"] = bad
         with pytest.raises(ReportDefinitionError):
             validate_report_definition(d, CATALOG_FIELDS, FILTERABLE, SORTABLE, max_row_limit=50000)
+
+
+# ---------------------------------------------------------------------------
+# style block (Simple tab "Colours & axes")
+# ---------------------------------------------------------------------------
+
+
+def test_style_block_valid_shapes_accepted():
+    d = _valid_def()
+    d["style"] = {
+        "colors": {"backlog": "#ef4444"},
+        "titleColor": "#4F46E5",
+        "rightAxis": ["backlog"],
+    }
+    validate_report_definition(d, CATALOG_FIELDS, FILTERABLE, SORTABLE, max_row_limit=50000)
+    d["style"] = {}
+    validate_report_definition(d, CATALOG_FIELDS, FILTERABLE, SORTABLE, max_row_limit=50000)
+
+
+def test_style_block_bad_shapes_rejected():
+    for bad in (
+        "red",  # not an object
+        {"colors": {"backlog": "red"}},  # named colour, not hex
+        {"colors": {"backlog": "#fff"}},  # short hex
+        {"colors": {"backlog": "#ef4444; background:url(x)"}},  # CSS injection
+        {"colors": ["#ef4444"]},  # list, not map
+        {"titleColor": "rgb(0,0,0)"},
+        {"rightAxis": "backlog"},  # not a list
+        {"rightAxis": [1]},  # non-string key
+        {"surprise": 1},  # unknown key
+    ):
+        d = _valid_def()
+        d["style"] = bad
+        with pytest.raises(ReportDefinitionError):
+            validate_report_definition(d, CATALOG_FIELDS, FILTERABLE, SORTABLE, max_row_limit=50000)

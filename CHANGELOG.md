@@ -8,6 +8,17 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Added
+
+- **Colours & axes on Simple-tab charts.** A palette button in the chart
+  toolbar opens a popover with one colour picker per series, one for the
+  report title + legend, and a *Right axis* toggle per series so a level-type
+  measure (backlog in the hundreds) no longer flat-lines beside imports in
+  the tens of thousands — *Backlog* defaults to the right axis when it shares
+  a chart with other measures. Picks are saved with the report
+  (`definition.style`, validated hex-only in `nx_lib/reporting/schema.py`).
+  Scheduled-mail PNGs and the Advanced tab keep the default palette.
+
 ### Changed
 
 - **The branch-name guard accepts a fourth version segment.** Cycle branches

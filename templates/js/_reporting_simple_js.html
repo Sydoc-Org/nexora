@@ -78,6 +78,7 @@
     noChartTooManyPoints: {{ _("Too many data points to chart — choose a coarser granularity or a shorter time range.")|tojson }},
     chartSeriesCapped: {{ _("Showing the {shown} largest of {n} series.")|tojson }},
     noChartLib: {{ _("The chart could not be drawn (chart library failed to load).")|tojson }},
+    styleRightAxis: {{ _("Right axis")|tojson }},
     openInAdvanced: {{ _("Open in Advanced")|tojson }},
     showQuery: {{ _("Show query")|tojson }},
     truncatedNote: {{ _("Showing the first {n} rows — narrow the filters or time range to see the rest.")|tojson }},
@@ -485,6 +486,7 @@
     hideTimingBadge();
     toggleMoreMenu(false);
     el('rsResultTitle').textContent = (opts && opts.title) || '';
+    el('rsResultTitle').style.color = '';
     el('rsResultMeta').textContent = '';
     el('rsTableRowCount').textContent = '';
     el('rsMsg').hidden = true;
@@ -1008,12 +1010,51 @@
     return String(v);
   }
 
+  // ----- Colours & axes overrides (def.style, Simple tab only) -----
+  // style = { colors: {seriesKey: '#rrggbb'}, titleColor: '#rrggbb',
+  //           rightAxis: [seriesKey] } -- saved with the report like forecast.
+  function styleOf() {
+    var cur = state.current;
+    return (cur && cur.def && cur.def.style) || {};
+  }
+  function ensureStyle() {
+    var cur = state.current;
+    if (!cur.def.style) cur.def.style = {};
+    return cur.def.style;
+  }
+  // Metric code for measure series (locale-stable); the pivoted label for
+  // multi-breakdown series, where several series share one measure code.
+  function seriesKey(ds, multi) { return (!multi && ds.field) || ds.label; }
+  // ponytail: backlog detection by metric code; make it registry-driven if a
+  // second level-type measure ever appears.
+  function rightAxisKeys(d, style) {
+    if (Array.isArray(style.rightAxis)) return style.rightAxis;
+    if (!d || d.datasets.length < 2) return [];
+    return d.datasets.filter(function (ds) { return /backlog/i.test(ds.field || ''); })
+      .map(function (ds) { return seriesKey(ds, !!d.multiSeries); });
+  }
+  function hexAlpha(hex, a) {
+    var n = parseInt(hex.slice(1), 16);
+    return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')';
+  }
+  function rgbToHex(rgb) {
+    var m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(rgb || '');
+    if (!m) return '#1f2937';
+    return '#' + [m[1], m[2], m[3]].map(function (v) {
+      return ('0' + parseInt(v, 10).toString(16)).slice(-2);
+    }).join('');
+  }
+  function applyTitleStyle() {
+    el('rsResultTitle').style.color = styleOf().titleColor || '';
+  }
+
   function renderChart(type) {
     var d = state.chartData;
     if (!d) return;
     destroyChart();
     var multi = !!(d && d.multiSeries);
     if (multi && (type === 'pie' || type === 'doughnut')) type = 'bar';
+    state.chartType = type;
     var stacked = type === 'stacked';
     var chartJsType = stacked ? 'bar' : type;
     var circular = chartJsType === 'pie' || chartJsType === 'doughnut';
@@ -1063,6 +1104,20 @@
       }
       return out;
     });
+    var style = styleOf();
+    var overrides = style.colors || {};
+    var rightKeys = circular ? [] : rightAxisKeys(d, style);
+    var useY2 = false;
+    datasets = datasets.map(function (ds, i) {
+      var key = seriesKey(d.datasets[i], multi);
+      var c = overrides[key];
+      if (c && !circular) {
+        ds.borderColor = c;
+        ds.backgroundColor = chartJsType === 'line' ? hexAlpha(c, .15) : c;
+      }
+      if (rightKeys.indexOf(key) >= 0) { ds.yAxisID = 'y2'; useY2 = true; }
+      return ds;
+    });
     var fcActive = !!(d.forecast && !multi && (chartJsType === 'line' || chartJsType === 'bar'));
     if (fcActive) {
       var fc = d.forecast;
@@ -1076,19 +1131,25 @@
       for (var li = 0; li < histN - 1; li++) lead.push(null);
       fc.series.forEach(function (s, si) {
         var base = d.datasets[si];
+        var styled = datasets[si] || {};
         var bridge = base ? base.data[histN - 1] : null;
+        // A user-picked series colour carries over to its forecast line (and
+        // its right-axis placement), so the dotted tail stays readable.
+        var own = overrides[seriesKey(base || {}, multi)];
         datasets.push({
           label: (base ? base.label : s.field) + ' · ' + I18N.forecastLabel,
           data: lead.concat([bridge], s.values),
-          type: 'line', borderColor: fcAccent, borderDash: [6, 4],
-          borderWidth: 2, backgroundColor: 'transparent',
+          type: 'line', borderColor: own || fcAccent, borderDash: [6, 4],
+          borderWidth: 2, backgroundColor: 'transparent', yAxisID: styled.yAxisID,
           pointStyle: 'rectRot', fill: false, tension: .25, _forecast: true
         });
       });
       if (fc.series.length === 1) {
         var s0 = fc.series[0];
         var b0 = d.datasets[0] ? d.datasets[0].data[histN - 1] : null;
-        var bandFill = isDark ? 'rgba(129,140,248,.18)' : 'rgba(79,70,229,.12)';
+        var own0 = overrides[seriesKey(d.datasets[0] || {}, multi)];
+        var bandFill = own0 ? hexAlpha(own0, .15)
+          : (isDark ? 'rgba(129,140,248,.18)' : 'rgba(79,70,229,.12)');
         datasets.push({ label: '', data: lead.concat([b0], s0.upper), type: 'line',
           borderWidth: 0, pointRadius: 0, backgroundColor: 'transparent',
           fill: false, _band: true });
@@ -1118,9 +1179,15 @@
                                 return (allInts && !Number.isInteger(value)) ? undefined : value;
                               }
                             },
-                            grid: { color: gridColor() } } },
+                            grid: { color: gridColor() } },
+                       // Secondary Y axis for level-type series (backlog in the
+                       // hundreds beside imports in the tens of thousands).
+                       y2: { display: useY2, position: 'right', beginAtZero: true,
+                             ticks: { maxTicksLimit: 6 },
+                             grid: { drawOnChartArea: false } } },
                  plugins: { legend: { display: multi || circular || (d.datasets && d.datasets.length > 1) || fcActive,
-                                      labels: { filter: function (item, data) {
+                                      labels: { color: style.titleColor || undefined,
+                                                filter: function (item, data) {
                                         // D6: band + forecast-line datasets are excluded from
                                         // the legend (and drill — see the _forecast/_band guard
                                         // in the drill click-handler below).
@@ -1240,6 +1307,7 @@
     state.chartData = null;
     el('rsChartNote').hidden = true;
     el('rsChartTools').hidden = true;
+    toggleStylePop(false);
     el('rsChartCanvas').hidden = false;
     var dims = (def.columns || []).length;
     if (!dims || !rows.length) { el('rsChartCard').hidden = true; return false; }
@@ -1325,6 +1393,10 @@
         datasets: series.map(function (s, i) {
           return {
             label: s,
+            // Style key for the colours/axes popover. With several measures a
+            // pivoted series is "<category> · <measure>" — keep the measure
+            // code in `field` so a backlog series can default to the right axis.
+            field: def.metrics && def.metrics[seriesMetric[s]] ? def.metrics[seriesMetric[s]].metric : null,
             data: xOrder.map(function (x) { return cell[x][s] || 0; }),
             borderColor: NX_PALETTE[i % NX_PALETTE.length],
             backgroundColor: NX_PALETTE[i % NX_PALETTE.length],
@@ -1356,6 +1428,7 @@
       var col = columns[metricIdx + i];
       return {
         label: mLabels[i] || (col ? (col.header || m.metric) : m.metric),
+        field: m.metric,
         data: rows.map(function (r) { return Number(r[metricIdx + i]); }),
         // First metric keeps the classic indigo; further metrics take the
         // series palette so a multi-measure report reads as distinct series.
@@ -1832,6 +1905,7 @@
     toggleMoreMenu(false);
     el('rsMsg').hidden = true;
     el('rsResultTitle').textContent = cur.name || cur.def.title || '';
+    applyTitleStyle();
     renderAiChips(cur);
     var adjustBtn = el('rsAdjustWizard');
     if (adjustBtn) {
@@ -2093,6 +2167,89 @@
     var h = this.value;
     cur.def.forecast.horizon = h === 'auto' ? 'auto' : parseInt(h, 10);
     runCurrent();
+  });
+
+  // ----- Colours & axes popover -----
+  // Client-side only: edits def.style and re-renders the mounted chart (no
+  // re-run); Save persists it with the report like chartType/forecast.
+  function toggleStylePop(open) {
+    var pop = el('rsStylePop'), btn = el('rsStyleToggle');
+    if (!pop || !btn) return;
+    pop.hidden = !open;
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    btn.setAttribute('aria-pressed', open ? 'true' : 'false');
+    btn.classList.toggle('is-selected', open);
+    if (open) syncStyleCtl();
+  }
+  function defaultSeriesColor(d, i) {
+    var single = d.datasets.length === 1 && !d.multiSeries;
+    var c = single ? (document.documentElement.classList.contains('dark') ? '#818cf8' : '#312e81')
+                   : d.datasets[i].borderColor;
+    return /^#[0-9a-f]{6}$/i.test(c || '') ? c : '#4f46e5';
+  }
+  function syncStyleCtl() {
+    var d = state.chartData;
+    if (!d) return;
+    var style = styleOf(), colors = style.colors || {};
+    var multi = !!d.multiSeries;
+    var circular = state.chartType === 'pie' || state.chartType === 'doughnut';
+    var rightKeys = circular ? [] : rightAxisKeys(d, style);
+    var html = '';
+    d.datasets.forEach(function (ds, i) {
+      var key = seriesKey(ds, multi);
+      html += '<div class="rs-style-row" data-key="' + esc(key) + '">' +
+        '<input type="color" value="' + esc(colors[key] || defaultSeriesColor(d, i)) +
+        '" aria-label="' + esc(ds.label) + '" data-testid="rs-style-color">' +
+        '<span>' + esc(ds.label) + '</span>' +
+        (!circular && d.datasets.length > 1
+          ? '<label class="rs-style-axis"><input type="checkbox" data-testid="rs-style-right"' +
+            (rightKeys.indexOf(key) >= 0 ? ' checked' : '') + '> ' + esc(I18N.styleRightAxis) + '</label>'
+          : '') +
+        '</div>';
+    });
+    el('rsStyleRows').innerHTML = html;
+    el('rsStyleTitleColor').value = style.titleColor ||
+      rgbToHex(getComputedStyle(el('rsResultTitle')).color);
+  }
+  function rerenderStyled() {
+    if (state.chartData) renderChart(state.chartType || state.chartData.type);
+    applyTitleStyle();
+  }
+  el('rsStyleToggle').addEventListener('click', function () {
+    toggleStylePop(el('rsStylePop').hidden);
+  });
+  el('rsStyleRows').addEventListener('input', function (e) {
+    var cur = state.current, d = state.chartData;
+    if (!cur || !cur.def || !d) return;
+    var row = e.target.closest('.rs-style-row');
+    if (!row) return;
+    var key = row.dataset.key, style = ensureStyle();
+    if (e.target.type === 'color') {
+      style.colors = style.colors || {};
+      style.colors[key] = e.target.value;
+    } else if (e.target.type === 'checkbox') {
+      // Materialise the defaults first so unticking a default right-axis
+      // series (backlog) is remembered as an explicit choice.
+      var keys = rightAxisKeys(d, style).slice();
+      var at = keys.indexOf(key);
+      if (e.target.checked && at < 0) keys.push(key);
+      if (!e.target.checked && at >= 0) keys.splice(at, 1);
+      style.rightAxis = keys;
+    }
+    rerenderStyled();
+  });
+  el('rsStyleTitleColor').addEventListener('input', function () {
+    var cur = state.current;
+    if (!cur || !cur.def) return;
+    ensureStyle().titleColor = this.value;
+    rerenderStyled();
+  });
+  el('rsStyleReset').addEventListener('click', function () {
+    var cur = state.current;
+    if (!cur || !cur.def) return;
+    delete cur.def.style;
+    rerenderStyled();
+    syncStyleCtl();
   });
 
   el('rsShowSql').addEventListener('click', function () {

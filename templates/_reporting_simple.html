@@ -215,6 +215,18 @@
             <option value="14">+14</option>
             <option value="30">+30</option>
           </select>
+          <button type="button" class="reporting-chartbtn" id="rsStyleToggle" aria-pressed="false" aria-expanded="false" aria-controls="rsStylePop" title="{{ _('Colours & axes') }}" aria-label="{{ _('Colours & axes') }}" data-testid="rs-style-toggle"><i class="fas fa-palette" aria-hidden="true"></i></button>
+        </div>
+        {# Colours & axes popover: one colour input per series (+ right-axis
+           toggle), one for the title/legend, Reset. Rows are built by
+           syncStyleCtl() in _reporting_simple_js.html from the mounted chart. #}
+        <div id="rsStylePop" class="rs-style-pop" hidden data-testid="rs-style-pop">
+          <div id="rsStyleRows"></div>
+          <div class="rs-style-row rs-style-row--title">
+            <input type="color" id="rsStyleTitleColor" aria-label="{{ _('Title colour') }}" data-testid="rs-style-title-color">
+            <span>{{ _('Title & legend') }}</span>
+          </div>
+          <button type="button" class="reporting-link rs-style-reset" id="rsStyleReset" data-testid="rs-style-reset">{{ _('Reset colours') }}</button>
         </div>
         <p id="rsChartNote" class="reporting-simple-chartnote" hidden data-testid="rs-chart-note"></p>
         <canvas id="rsChartCanvas"></canvas>

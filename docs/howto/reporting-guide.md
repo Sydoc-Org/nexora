@@ -44,6 +44,10 @@ guide as an app page.
 - Relative presets stay relative: a report saved with "This month" shows the
   current month on every run and in every scheduled mail. Schedule times are
   UTC.
+- The palette button in the chart toolbar recolours each series and the
+  title, and puts a series on its own right-hand axis — Backlog starts there
+  by default so a few hundred stays readable next to tens of thousands. Picks
+  are saved with the report.
 
 **Checking a number**
 
@@ -262,6 +266,19 @@ badge.
 - Exports get an extra **Forecast** column so you can tell predicted rows from
   real ones. Predicted points are not clickable — there are no real documents
   behind a number the system invented.
+
+### Colours & axes
+
+The palette button in the chart toolbar opens a small panel with a colour
+picker for every series and one for the **report title and legend**. Each
+series also has a **Right axis** switch: tick it to plot that line against
+its own scale on the right-hand side — the way to keep a *Backlog* of a few
+hundred readable next to imports in the tens of thousands (when *Backlog*
+shares a chart with other measures it starts on the right axis by default).
+**Reset colours** returns to the standard palette.
+
+- Your picks are saved with the report and come back when you open it.
+- Emailed reports and the Advanced tab use the standard colours.
 
 ### Click a bar to see the documents behind it
 
