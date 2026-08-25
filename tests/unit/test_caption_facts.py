@@ -31,6 +31,11 @@ def test_partial_current_bucket_is_flagged():
     rows = _weeks(4, start=date(2026, 8, 3))  # last bucket starts Mon 2026-08-24
     facts = build_facts(COLS, rows, today=date(2026, 8, 25))
     assert "last bucket (2026-08-24) is the CURRENT, still-running week" in facts
+    # Stats come from the three complete weeks; the running one is only in the total.
+    assert "PAGE_COUNT: total 120006; 3 complete buckets with a value" in facts
+    assert "peak 30002 (2026-08-17)" in facts
+    assert "latest 30002 (2026-08-17) vs previous 30001 (2026-08-10)" in facts
+    assert "current still-running bucket so far: 30003 (2026-08-24)" in facts
     facts_done = build_facts(COLS, rows, today=date(2026, 9, 10))
     assert "still-running" not in facts_done
 
@@ -84,7 +89,7 @@ def test_second_dimension_is_summed_per_bucket():
     ]
     facts = build_facts(cols, rows, today=date(2026, 9, 1))
     assert "N: total 8; 2 buckets with a value" in facts
-    assert "N recent: 2026-08-03=3, 2026-08-10=5." in facts
+    assert "N recent complete buckets: 2026-08-03=3, 2026-08-10=5." in facts
     assert "Further breakdown columns: Prozess" in facts
 
 

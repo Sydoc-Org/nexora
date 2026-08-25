@@ -108,11 +108,20 @@ def _sample(items, k):
     return [items[round(i * step)] for i in range(k)]
 
 
-def _series_lines(name, series, *, level):
+def _series_lines(name, series, *, level, partial_last=False):
     present = [(lab, v) for lab, v in series if v is not None]
     missing = len(series) - len(present)
     if not present:
         return [f"{name}: no values."]
+    total = sum(v for _, v in present)  # what the page's total card shows, partial bucket included
+    current = None
+    if partial_last and present[-1][0] == series[-1][0]:
+        # The still-running bucket must not set peak/low/latest or skew averages.
+        current, present = present[-1], present[:-1]
+        if not present:
+            return [
+                f"{name}: only the current, still-running bucket so far: {_fmt(current[1])} ({current[0]})."
+            ]
     nums = [v for _, v in present]
     zeros = sum(1 for v in nums if v == 0)
     peak = max(present, key=lambda p: p[1])
@@ -120,9 +129,13 @@ def _series_lines(name, series, *, level):
     head = (
         f"{name}: latest {_fmt(nums[-1])} ({present[-1][0]}); a level, so buckets must not be summed"
         if level
-        else f"{name}: total {_fmt(sum(nums))}"
+        else f"{name}: total {_fmt(total)}"
     )
-    head += f"; {len(present)} buckets with a value"
+    head += (
+        f"; {len(present)} complete buckets with a value"
+        if current
+        else f"; {len(present)} buckets with a value"
+    )
     if missing:
         head += f", {missing} with NO measurement (not zero)"
     if zeros:
@@ -144,10 +157,15 @@ def _series_lines(name, series, *, level):
             f"{name} avg per bucket, first half {_fmt(a)} vs second half {_fmt(b)}: {_pct(b, a)}."
         )
     out.append(
-        f"{name} recent: "
+        f"{name} recent complete buckets: "
         + ", ".join(f"{lab}={_fmt(v)}" for lab, v in present[-RECENT_POINTS:])
         + "."
     )
+    if current:
+        out.append(
+            f"{name} current still-running bucket so far: {_fmt(current[1])} ({current[0]}) -- "
+            "incomplete; counted in the total, excluded from every other figure above."
+        )
     if len(present) > RECENT_POINTS:
         out.append(
             f"{name} sampled across the whole range: "
@@ -238,7 +256,8 @@ def build_facts(columns, rows, *, level_fields=(), today=None):
             + (f", one per {grain}" if grain else "")
             + "."
         )
-        if grain and dates[-1] <= today < _bucket_end(dates[-1], grain):
+        partial = bool(grain) and dates[-1] <= today < _bucket_end(dates[-1], grain)
+        if partial:
             lines.append(
                 f"The last bucket ({dates[-1]}) is the CURRENT, still-running {grain}: its value is "
                 "incomplete and not comparable to finished buckets -- never call it a drop."
@@ -246,7 +265,7 @@ def build_facts(columns, rows, *, level_fields=(), today=None):
         for i in num_idx:
             series = sorted(_group(data_labels, [r[i] for _, r in data]).items())
             level = cols[i][0] in level_fields or cols[i][1] in level_fields
-            lines += _series_lines(cols[i][1], series, level=level)
+            lines += _series_lines(cols[i][1], series, level=level, partial_last=partial)
     else:
         lines.append(f"{dname}: {len(_group(data_labels, [None] * len(data)))} distinct values.")
         for i in num_idx:
