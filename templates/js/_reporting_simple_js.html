@@ -83,6 +83,8 @@
     axisShortLeft: {{ _("Left")|tojson }},
     axisShortRight: {{ _("Right")|tojson }},
     forecastNeedsLineBar: {{ _("Forecast is only drawn on line and bar charts.")|tojson }},
+    partialBucketNote: {{ _("The current period is still running — its last bucket is incomplete.")|tojson }},
+    gapNote: {{ _("Gaps are periods without a backlog snapshot.")|tojson }},
     deleteReport: {{ _("Delete report")|tojson }},
     deleteConfirm: {{ _("Delete “{name}”? This cannot be undone.")|tojson }},
     deleteFailed: {{ _("Delete failed")|tojson }},
@@ -616,18 +618,24 @@
   function computeKpiBand(dims, rows) {
     if (!rows.length) return null;
     var idx = -1;
+    // First numeric metric column; NULL cells are allowed (a level such as
+    // the backlog has no value in buckets nobody measured) but skipped below.
     for (var i = dims; i < rows[0].length; i++) {
-      if (rows.every(function (r) { return isNumericCell(r[i]); })) { idx = i; break; }
+      var anyNum = rows.some(function (r) { return isNumericCell(r[i]); });
+      if (anyNum && rows.every(function (r) { return r[i] == null || isNumericCell(r[i]); })) { idx = i; break; }
     }
     if (idx === -1) return null;
-    var total = 0, peak = -Infinity, peakRow = rows[0];
+    var total = 0, peak = -Infinity, peakRow = rows[0], buckets = 0;
     rows.forEach(function (r) {
+      if (r[idx] == null) return;
       var v = Number(r[idx]);
       total += v;
+      buckets++;
       if (v > peak) { peak = v; peakRow = r; }
     });
-    var buckets = rows.length;
-    var peakLabel = dims ? Array.prototype.slice.call(peakRow, 0, dims).map(String).join(' · ') : '';
+    var peakLabel = dims ? Array.prototype.slice.call(peakRow, 0, dims).map(function (v) {
+      return String(v).replace(/[T ]00:00:00(\.0+)?$/, '');
+    }).join(' · ') : '';
     return { total: total, buckets: buckets, avg: buckets ? total / buckets : 0,
              peak: peak, peakLabel: peakLabel, idx: idx };
   }
@@ -668,8 +676,9 @@
     var cols = def.columns || [];
     if (cols.length !== 1 || !cols[0].grain) return '';
     if (!kpi || kpi.idx == null || rows.length < 2) return '';
-    var series = rows.map(function (r) { return Number(r[kpi.idx]); });
-    if (series.some(function (v) { return isNaN(v); })) return '';
+    var series = rows.map(function (r) { return r[kpi.idx]; })
+      .filter(function (v) { return v != null; }).map(Number);
+    if (series.length < 2 || series.some(function (v) { return isNaN(v); })) return '';
     var w = 120, h = 32, pad = 2;
     var min = Math.min.apply(null, series), max = Math.max.apply(null, series);
     var span = (max - min) || 1;
@@ -841,6 +850,15 @@
     return (hit && hit.totalMode) || 'sum';
   }
 
+  // One totalMode per def.metrics entry ('sum' | 'latest').
+  function metricTotalModes(def) {
+    var list = (state.metricsBySource || {})[def.source] || [];
+    return (def.metrics || []).map(function (m) {
+      var hit = list.find(function (x) { return x.code === m.metric; });
+      return (hit && hit.totalMode) || 'sum';
+    });
+  }
+
   // #178 C10: for a latest-mode metric the band total is the newest date
   // bucket's sum, not the sum over all buckets. Returns the bucket label it
   // used, or null when not applicable (no date dim / not latest mode).
@@ -855,6 +873,7 @@
     if (dateIdx === -1) return null;
     var maxKey = null;
     rows.forEach(function (r) {
+      if (r[kpi.idx] == null) return;   // no snapshot in this bucket
       var k = String(r[dateIdx]);
       if (maxKey === null || k > maxKey) maxKey = k;
     });
@@ -1069,6 +1088,22 @@
     return d.datasets.filter(function (ds) { return /backlog/i.test(ds.field || ''); })
       .map(function (ds) { return seriesKey(ds, !!d.multiSeries); });
   }
+  function fadeColor(c) {
+    if (typeof c !== 'string') return c;
+    if (c.charAt(0) === '#') return hexAlpha(c, .35);
+    var m = /^rgba?\(([^)]+)\)$/.exec(c);
+    if (!m) return c;
+    return 'rgba(' + m[1].split(',').slice(0, 3).map(function (s) { return s.trim(); }).join(',') + ',.35)';
+  }
+  function localTodayIso() {
+    var t = new Date(), p = function (n) { return (n < 10 ? '0' : '') + n; };
+    return t.getFullYear() + '-' + p(t.getMonth() + 1) + '-' + p(t.getDate());
+  }
+  // Start of the bucket that contains today, in the SQL grain's own keys.
+  function currentBucketStart(grain) {
+    var seq = bucketSeq(localTodayIso(), localTodayIso(), grain);
+    return seq && seq.length ? seq[0] : '';
+  }
   function hexAlpha(hex, a) {
     var n = parseInt(hex.slice(1), 16);
     return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')';
@@ -1154,6 +1189,29 @@
       if (rightKeys.indexOf(key) >= 0) { ds.yAxisID = 'y2'; useY2 = true; }
       return ds;
     });
+    // The bucket containing today is still filling up: fade it (bar) or dash
+    // into it (line) so a low current month reads as "in progress", not a drop.
+    var grain0 = (state.current && state.current.def && (state.current.def.columns || [])[0])
+      ? state.current.def.columns[0].grain : null;
+    var partialIdx = (grain0 && !circular) ? d.labels.indexOf(currentBucketStart(grain0)) : -1;
+    if (partialIdx >= 0) {
+      datasets = datasets.map(function (ds) {
+        var out = Object.assign({}, ds);
+        if (chartJsType === 'bar') {
+          var base = out.backgroundColor;
+          out.backgroundColor = out.data.map(function (_, i) {
+            var c = Array.isArray(base) ? base[i] : base;
+            return i === partialIdx ? fadeColor(c) : c;
+          });
+        } else {
+          out.segment = { borderDash: function (ctx) { return ctx.p1DataIndex === partialIdx ? [4, 4] : undefined; } };
+          out.pointStyle = out.data.map(function (_, i) { return i === partialIdx ? 'rectRot' : 'circle'; });
+        }
+        return out;
+      });
+    }
+    // A level's NULL bucket is a gap in knowledge, not a cliff — bridge it.
+    if (chartJsType === 'line') datasets.forEach(function (ds) { ds.spanGaps = true; });
     // Axis ownership cues: each Y axis is titled with its series and, when it
     // carries exactly one series, its ticks take that series' colour.
     var leftSeries = [], rightSeries = [];
@@ -1342,13 +1400,19 @@
       }
     }
     if (!range) return rows;
-    var seq = bucketSeq(range[0], range[1], grain);
+    // Never fabricate buckets that haven't happened yet: "This year" fills
+    // Jan..today, not Jan..Dec — a future month is unknown, not zero.
+    var today = localTodayIso();
+    var seq = bucketSeq(range[0], range[1] > today ? today : range[1], grain);
     if (!seq) return rows;
     var byBucket = {};
     rows.forEach(function (r) {
       byBucket[String(r[0] == null ? '' : r[0]).slice(0, 10)] = r;
     });
-    var zeros = (def.metrics || []).map(function () { return 0; });
+    // Flows (counts) fill with 0 — nothing happened. Levels (latest-mode,
+    // e.g. backlog) fill with null — nobody measured, which is not zero.
+    var modes = metricTotalModes(def);
+    var zeros = (def.metrics || []).map(function (_, i) { return modes[i] === 'latest' ? null : 0; });
     var filled = seq.map(function (b) { return byBucket[b] || [b].concat(zeros); });
     // A data row whose bucket string didn't match the generated sequence
     // (dialect formatting drift) means the fill would DROP data — bail to
@@ -1379,7 +1443,10 @@
     // (e.g. 12 months x 8 sources = 96 rows) that the pivot below collapses to
     // far fewer x-points, so two-dim is judged AFTER pivoting by the xOrder>50
     // guard + 12-series cap (mirrors render_chart_png MAX_X / MAX_SERIES).
-    if (dims === 1 && rows.length > 50) {
+    // A bucketed date axis stays readable far past 50 points (53 weeks, a
+    // year of days); only categorical axes keep the 50-row cut.
+    var xCap = isDate ? 400 : 50;
+    if (dims === 1 && rows.length > xCap) {
       if (isDate) { chartCardNote(I18N.noChartTooManyPoints); return false; }
       el('rsChartNote').textContent = I18N.chartFirst50.replace('{n}', String(rows.length));
       el('rsChartNote').hidden = false;
@@ -1420,7 +1487,7 @@
           seriesMetric[s] = mi;
         }
       });
-      if (xOrder.length > 50) { chartCardNote(I18N.noChartTooManyPoints); return false; }
+      if (xOrder.length > xCap) { chartCardNote(I18N.noChartTooManyPoints); return false; }
       var allSeries = Object.keys(seriesTot);
       var byTot = function (a, b) { return seriesTot[b] - seriesTot[a]; };
       var series;
@@ -1470,6 +1537,7 @@
       };
       el('rsChartCard').hidden = false;
       el('rsChartTools').hidden = false;
+      noteDataQuality(def, rows, isDate);
       renderChart(state.chartData.type);
       return true;
     }
@@ -1489,7 +1557,7 @@
       return {
         label: mLabels[i] || (col ? (col.header || m.metric) : m.metric),
         field: m.metric,
-        data: rows.map(function (r) { return Number(r[metricIdx + i]); }),
+        data: rows.map(function (r) { return r[metricIdx + i] == null ? null : Number(r[metricIdx + i]); }),
         // First metric keeps the classic indigo; further metrics take the
         // series palette so a multi-measure report reads as distinct series.
         borderColor: i === 0 ? '#4f46e5' : NX_PALETTE[i % NX_PALETTE.length],
@@ -1511,8 +1579,32 @@
     };
     el('rsChartCard').hidden = false;
     el('rsChartTools').hidden = false;
+    noteDataQuality(def, rows, isDate);
     renderChart(state.chartData.type);
     return true;
+  }
+
+  function appendChartNote(txt) {
+    var n = el('rsChartNote');
+    n.textContent = (!n.hidden && n.textContent) ? n.textContent + ' — ' + txt : txt;
+    n.hidden = false;
+  }
+
+  // Under-chart disclosures the numbers alone don't carry: the bucket that
+  // contains today is still filling up, and a level metric's NULL buckets
+  // are unmeasured, not empty.
+  function noteDataQuality(def, rows, isDate) {
+    var c0 = (def.columns || [])[0];
+    if (!isDate || !c0 || !c0.grain) return;
+    var cur = currentBucketStart(c0.grain);
+    if (rows.some(function (r) { return String(r[0] == null ? '' : r[0]).slice(0, 10) === cur; })) {
+      appendChartNote(I18N.partialBucketNote);
+    }
+    var metricIdx = (def.columns || []).length, modes = metricTotalModes(def);
+    var gaps = rows.some(function (r) {
+      return modes.some(function (m, i) { return m === 'latest' && r[metricIdx + i] == null; });
+    });
+    if (gaps) appendChartNote(I18N.gapNote);
   }
 
   // One-line transparency note under the title of AI-built reports: the
@@ -1897,7 +1989,30 @@
   // result. Duplicated (not shared) in _reporting_js.html for the Advanced
   // pane -- see that file for why.
   var captionSeq = 0;
-  function fireCaption(boxId, columns, rows, title, dateLabel) {
+  // Facts about the grid the caption model can't see for itself (the model
+  // otherwise narrates a half-finished month as a drop and a NULL as zero).
+  function captionNotes(def, rows) {
+    var out = [];
+    var c0 = (def.columns || [])[0];
+    if (c0 && c0.grain) {
+      var cur = currentBucketStart(c0.grain);
+      if (rows.some(function (r) { return String(r[0] == null ? '' : r[0]).slice(0, 10) === cur; })) {
+        out.push('The bucket ' + cur + ' is the current, still-running period and is incomplete; ' +
+                 'do not compare it with finished periods or call it a drop.');
+      }
+    }
+    var modes = metricTotalModes(def), labels = metricLabelsFor(def), metricIdx = (def.columns || []).length;
+    modes.forEach(function (m, i) {
+      if (m !== 'latest') return;
+      out.push('"' + labels[i] + '" is a point-in-time level: never sum it across periods; its total is the latest value.');
+      if (rows.some(function (r) { return r[metricIdx + i] == null; })) {
+        out.push('Empty "' + labels[i] + '" cells are periods with no snapshot (no measurement), not zero.');
+      }
+    });
+    return out.join(' ');
+  }
+
+  function fireCaption(boxId, columns, rows, title, dateLabel, notes) {
     var box = el(boxId);
     if (!box) return;
     var seq = ++captionSeq;
@@ -1909,7 +2024,8 @@
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
       body: JSON.stringify({
         columns: columns, rows: rows.slice(0, 50),
-        title: title || undefined, dateLabel: dateLabel || undefined
+        title: title || undefined, dateLabel: dateLabel || undefined,
+        notes: notes || undefined
       })
     }).then(function (res) {
       if (!res.ok) throw new Error('caption http ' + res.status);
@@ -2134,7 +2250,7 @@
     // Task 13: auto AI caption over the result that just rendered. Placed
     // after the `!rows.length` early return above, so an empty result never
     // fires one (nothing to caption).
-    fireCaption('rsCaption', columns, rows, cur.name || cur.def.title || '', resolvedTxt);
+    fireCaption('rsCaption', columns, rows, cur.name || cur.def.title || '', resolvedTxt, captionNotes(def, rows));
   }
 
   // Step 5 — refresh the library card's preview thumbnail from the result
@@ -2207,11 +2323,9 @@
     // chartCardNote(...) — clobbering that here would silently destroy it,
     // and there's nothing forecast-related to disclaim if there's no chart.
     if (charted && on && forecast && forecast.unavailable) {
-      el('rsChartNote').textContent = I18N.forecastUnavailable;
-      el('rsChartNote').hidden = false;
+      appendChartNote(I18N.forecastUnavailable);
     } else if (charted && on) {
-      el('rsChartNote').textContent = I18N.forecastNote;
-      el('rsChartNote').hidden = false;
+      appendChartNote(I18N.forecastNote);
     }
   }
   el('rsForecastToggle').addEventListener('click', function () {
@@ -2241,6 +2355,9 @@
     cur.def.forecast.horizon = h === 'auto' ? 'auto' : parseInt(h, 10);
     runCurrent();
   });
+
+  // The rail's breakdown summary names the grain — keep it live.
+  el('rsGrain').addEventListener('change', renderWizardRail);
 
   // ----- Colours & axes popover -----
   // Client-side only: edits def.style and re-renders the mounted chart (no
@@ -2883,7 +3000,7 @@
           idx = i; break;
         }
       }
-      if (idx !== -1) { w.breakdowns.splice(idx, 1); refreshChips(); return; }
+      if (idx !== -1) { w.breakdowns.splice(idx, 1); refreshChips(); renderWizardRail(); return; }
       // ponytail: date breakdowns are no longer mutually exclusive (#164) --
       // export+import date together is a plain 2-dim group-by, which the query
       // builder already supports (grain is per-column server-side). They share
@@ -2891,6 +3008,7 @@
       if (w.breakdowns.length >= 3) { refreshChips(); return; }
       w.breakdowns.push(bd);
       refreshChips();
+      renderWizardRail();
     }
 
     // --- process coverage (docprocessing) --------------------------------
@@ -3108,6 +3226,7 @@
           state.wiz.range = p[0] === 'all_time' ? null : { token: p[0] };
         }
         el('rsAllTimeHint').hidden = state.wiz.range !== null;
+        renderWizardRail();
       }, state.wiz.range === p[0] ||
          (state.wiz.range && state.wiz.range.token === p[0]) ||
          (p[0] === 'custom' && Array.isArray(state.wiz.range)) ||

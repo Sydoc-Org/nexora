@@ -208,3 +208,23 @@ def test_caption_truncates_rows_to_50_before_building_prompt():
     assert "Data (50 rows)" in user_msg
     assert "\n49" in user_msg  # last surviving row (0-indexed #49)
     assert "\n50" not in user_msg  # row #50 (the 81-row list's 51st) truncated away
+
+
+def test_caption_notes_reach_the_prompt():
+    captured = {}
+
+    def transport(url, headers, body, timeout):
+        captured["body"] = body
+        return {"content": [{"type": "text", "text": "ok"}], "usage": {}}
+
+    ai.caption(
+        columns=[{"field": "d", "header": "Month"}, {"field": "backlog", "header": "Backlog"}],
+        rows=[["2026-07-01", 338], ["2026-08-01", None]],
+        notes="The bucket 2026-08-01 is the current, still-running period.",
+        locale="en",
+        cfg={"provider": "anthropic", "model": "m", "api_key": "k"},
+        transport=transport,
+    )
+    user_msg = captured["body"]["messages"][0]["content"]
+    assert "Notes: The bucket 2026-08-01 is the current" in user_msg
+    assert "Empty cells are periods with NO measurement" in captured["body"]["system"]

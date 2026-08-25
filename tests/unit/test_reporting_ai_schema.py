@@ -424,3 +424,21 @@ def test_partial_tables_block_teaches_workitem_count_semantics():
     assert "ONE ROW = ONE WORKITEM" in text
     assert "doc_count on source docprocessing" in text
     assert "collide" in text
+
+
+def test_serialize_sources_catalog_marks_anchored_metrics():
+    sources = [
+        {
+            "id": "docprocessing",
+            "label": "Document Processing",
+            "fields": [{"field": "activity_date", "type": "date", "grainable": True}],
+            "metrics": [
+                {"code": "doc_count", "label": "Documents", "aggregation": "count"},
+                {"code": "backlog", "label": "Backlog", "aggregation": "sum", "anchor": "backlog"},
+            ],
+        }
+    ]
+    text, _ = ai_schema.serialize_sources_catalog(sources, char_budget=10000)
+    assert 'backlog "Backlog" = sum(*) anchor=backlog' in text
+    assert 'doc_count "Documents" = count(*)\n' in text + "\n" or "count(*);" in text
+    assert "doc_count" in text and "anchor=" not in text.split("doc_count")[1].split(";")[0]

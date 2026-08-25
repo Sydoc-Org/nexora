@@ -132,7 +132,11 @@ def serialize_sources_catalog(sources, *, char_budget=DEFAULT_CHAR_BUDGET):
             for m in mets:
                 col = m.get("base_field") or "*"
                 label = f' "{m.get("label")}"' if m.get("label") else ""
-                parts.append(f"{m.get('code')}{label} = {m.get('aggregation')}({col})")
+                # Date-anchored measures count on their own date and share the
+                # activity_date axis — the agent prompt keys its "use
+                # build_definition, not SQL" rule on this marker.
+                anchor = f" anchor={m['anchor']}" if m.get("anchor") else ""
+                parts.append(f"{m.get('code')}{label} = {m.get('aggregation')}({col}){anchor}")
             lines.append(f"  metrics: {'; '.join(parts)}")
         else:
             lines.append(

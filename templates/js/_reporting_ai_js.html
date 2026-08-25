@@ -372,7 +372,14 @@
 
     var followups = node.querySelectorAll(".rp-chat-followup");
     for (var i = 0; i < followups.length; i++) {
-      followups[i].addEventListener("click", function () { send(this.textContent.trim()); });
+      followups[i].addEventListener("click", function () {
+        var t = this.textContent.trim();
+        // "Show it as a chart" on an answer that already carries a report
+        // definition: open it in the builder — a model round-trip can only
+        // answer in prose, it cannot draw.
+        if (t === I18N.followups[2] && d.definition && openBtn) { openBtn.click(); return; }
+        send(t);
+      });
     }
 
     var continueBtn = node.querySelector(".rp-chat-continue");

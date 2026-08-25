@@ -439,6 +439,7 @@ def _accessible_curated_sources():
                 "label": m["label"],
                 "aggregation": m["aggregation"],
                 "base_field": m["base_field"],
+                "anchor": m.get("anchor"),
             }
         )
     out = []
@@ -1010,7 +1011,25 @@ def _forecast_for(rd, columns, rows):
             fit_columns, fit_rows = w_columns, _execute(w_engine, w_sql, w_params)
         except Exception as e:
             current_app.logger.warning(f"reporting forecast lookback skipped: {e}")
-    return compute_forecast(rd, fit_columns, fit_rows, visible_rows=rows)
+    return compute_forecast(
+        rd, fit_columns, fit_rows, visible_rows=rows, carry_forward=_level_metric_indexes(rd)
+    )
+
+
+def _level_metric_indexes(rd):
+    """Indexes (within rd['metrics']) of latest-mode metrics — levels such as
+    the backlog, whose missing buckets the forecast carries forward rather
+    than zero-fills. Empty for anything that can't be resolved."""
+    try:
+        source = _get_effective_source(rd.get("source"))
+        modes = _metrics_for_source(source["id"]) if source else {}
+        return {
+            i
+            for i, m in enumerate(rd.get("metrics") or [])
+            if (modes.get(m.get("metric")) or {}).get("total_mode") == "latest"
+        }
+    except Exception:
+        return set()
 
 
 def _json_safe(value):
@@ -2010,6 +2029,9 @@ def api_ai_caption():
     rows = [list(r) if isinstance(r, list | tuple) else [r] for r in rows[:CAPTION_MAX_ROWS]]
     title = (body.get("title") or "").strip() or None
     date_label = (body.get("dateLabel") or "").strip() or None
+    # Client-side facts about the grid the model can't see (partial current
+    # bucket, NULL = no snapshot); bounded like title.
+    notes = str(body.get("notes") or "").strip()[:400] or None
 
     cfg = _ai_config()
     if cfg.get("provider") == "none" or not cfg.get("api_key"):
@@ -2049,6 +2071,7 @@ def api_ai_caption():
             rows,
             title,
             date_label,
+            notes=notes,
             locale=str(get_locale()),
             cfg=cfg,
         )

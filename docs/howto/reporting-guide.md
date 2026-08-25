@@ -253,6 +253,20 @@ full data.
 query behind the number, formatted and copyable — useful when you want to prove
 where a figure came from.
 
+### Today, unfinished periods and gaps
+
+- A time chart **stops at today**. *This year* draws January up to the current
+  month — the months that haven't happened yet are not drawn as zero, and the
+  *Groups* / *Ø per group* cards only count the periods that exist.
+- The period that contains today is **still filling up**: its bar is faded (its
+  line segment dashed) and the note *"The current period is still running"*
+  appears under the chart. Don't read it as a drop.
+- **Backlog is a level, not a count.** Its *Total* is the newest snapshot, never
+  the sum of all snapshots. A period nobody measured shows as a **gap** in the
+  line (not zero) with the note *"Gaps are periods without a backlog snapshot"*.
+- A weekly or daily breakdown of a whole year charts fine — the 50-point cut
+  only applies to category axes.
+
 ### Forecast
 
 If your report is *one time breakdown plus a measure*, the **Forecast** toggle
@@ -265,7 +279,9 @@ forecast. The predicted rows are appended to the table with a *Forecast* badge,
 and switching the forecast off again is instant — nothing is re-queried.
 
 - It fits a trend and, when there is enough history, a repeating seasonal
-  pattern on top.
+  pattern on top. The unfinished current period is left out of the fit (it
+  stays on the chart as-is) and the projection starts right after it; a
+  backlog's unmeasured periods are carried forward, not counted as empty.
 - It needs at least 5 periods of history. Below that you get *"Not enough
   history to forecast this series."*
 - The setting is saved with the report — including for scheduled emails.

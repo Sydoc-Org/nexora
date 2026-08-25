@@ -491,7 +491,9 @@ _CAPTION_SYSTEM = (
     "small table of report results, write ONE short caption that states the "
     "most notable pattern, standout value, or takeaway. Rules: 1-2 sentences, "
     'no preamble ("Here is...", "Looking at the data..."), no restating the '
-    "question, no code fences or markdown, plain prose only. Answer in {locale}."
+    "question, no code fences or markdown, plain prose only. Empty cells are "
+    "periods with NO measurement (not zero) — never read them as a drop to "
+    "nothing. Follow any Notes about partial or missing periods. Answer in {locale}."
 )
 
 
@@ -504,7 +506,7 @@ class AiCaptionResult:
     tokens_out: int | None
 
 
-def _caption_user_prompt(columns, rows, title, date_label):
+def _caption_user_prompt(columns, rows, title, date_label, notes=None):
     headers = [c.get("header") or c.get("field") or "" for c in (columns or [])]
     lines = [", ".join(headers)] if headers else []
     for row in rows:
@@ -516,6 +518,8 @@ def _caption_user_prompt(columns, rows, title, date_label):
         prefix += f"Report: {title}\n"
     if date_label:
         prefix += f"Period: {date_label}\n"
+    if notes:
+        prefix += f"Notes: {notes}\n"
     return f"{prefix}Data ({len(rows)} rows):\n{table_text}"
 
 
@@ -525,6 +529,7 @@ def caption(
     title=None,
     date_label=None,
     *,
+    notes=None,
     locale="en",
     cfg,
     max_tokens=DEFAULT_MAX_TOKENS,
@@ -532,6 +537,10 @@ def caption(
     transport=_http_post,
 ):
     """Draft a 1-2 sentence caption over a small result grid.
+
+    `notes`: optional caller-supplied context the model must honour — e.g.
+    "the last bucket is the current, still-running month" or "empty cells are
+    buckets with no snapshot" — so it doesn't narrate artefacts as findings.
 
     `cfg` bundles the resolved provider settings the same way `_ai_config()` in
     the view module produces them (provider/api_key/model/endpoint/deployment/
@@ -544,7 +553,7 @@ def caption(
     provider = (cfg.get("provider") or "").lower()
     text, tin, tout = _dispatch(
         _CAPTION_SYSTEM.format(locale=locale or "en"),
-        _caption_user_prompt(columns, rows, title, date_label),
+        _caption_user_prompt(columns, rows, title, date_label, notes),
         provider=provider,
         model=cfg.get("model"),
         api_key=cfg.get("api_key"),
@@ -607,13 +616,24 @@ _AGENT_SYSTEM = (
     "counting/summing/averaging question use a source that lists metrics — a "
     'source marked "metrics: none" cannot aggregate at all. '
     "If validate_sql is available, draft ONE read-only SELECT and "
-    "validate it before presenting. A definition's filters apply to the WHOLE "
-    "report, so the builder CANNOT put two differently-filtered measures side by "
-    'side (e.g. "imported documents and exported documents per month"). For such '
-    "a question do NOT split it into two reports and do NOT give up: draft ONE "
-    "T-SQL SELECT that groups by the period and uses conditional aggregation "
-    "(SUM(CASE WHEN <condition> THEN 1 ELSE 0 END)) — one column per measure — "
-    "and validate_sql it instead. When a tool returns an error, fix your input "
+    "validate it before presenting. Metrics whose catalog line carries "
+    '"anchor=<date>" (documents/pages imported, documents/pages exported, '
+    "backlog) each count on their OWN date and plot together on the shared "
+    '"activity_date" field: for imported-vs-exported-vs-backlog over time, '
+    "the imported/exported/backlog totals, or any question about the backlog, "
+    "ALWAYS use build_definition with those metrics, "
+    '"columns": [{"field": "activity_date", "grain": <period>}] and the time '
+    "filter on activity_date. That definition IS the business definition "
+    "(process scope, deleted-document rules, newest snapshot per bucket); never "
+    "re-derive a backlog or an import/export comparison in raw SQL when the "
+    "source lists anchored metrics — SQL there gives different numbers than "
+    "the reports users see. Anchored metrics cannot be mixed with plain "
+    "metrics in one definition. For OTHER pairs of differently-filtered "
+    "measures the builder cannot express, do NOT split them into two reports "
+    "and do NOT give up: draft ONE T-SQL SELECT that groups by the period and "
+    "uses conditional aggregation (SUM(CASE WHEN <condition> THEN 1 ELSE 0 END)) "
+    "— one column per measure — and validate_sql it instead. When a tool "
+    "returns an error, fix your input "
     "and try again — but after 2 failed attempts on the same tool stop calling it "
     "and write your final answer explaining what you could and could not do. "
     "Once a tool returns ok:true for the artifact that actually answers the whole "
