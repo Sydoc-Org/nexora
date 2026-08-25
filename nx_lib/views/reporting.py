@@ -70,11 +70,12 @@ from ..reporting.ai import ask as ai_ask
 from ..reporting.ai import ask_definition as ai_ask_definition
 from ..reporting.ai import caption as ai_caption
 from ..reporting.ai_schema import serialize_schema, serialize_sources_catalog
-from ..reporting.ai_tools import TOOL_SPECS, ToolRegistry
+from ..reporting.ai_tools import RUN_DEFINITION_ROW_CAP, TOOL_SPECS, ToolRegistry
 from ..reporting.catalog import fetch_docprocessing_catalog
 from ..reporting.export import rows_to_csv, rows_to_xlsx
 from ..reporting.forecast import compute_forecast, forecast_export_rows
 from ..reporting.query import QueryBuildError, build_table_query
+from ..reporting.runner import execute_definition
 from ..reporting.sandbox import (
     MAX_SQL_LEN,
     SqlSandboxError,
@@ -1640,15 +1641,16 @@ def api_ai_build():
 def _extract_agent_artifacts(tool_trace):
     """Pull the last validated definition / SQL out of the loop's tool trace.
 
-    A build_definition call that returned ok=True carries a runnable definition in
-    its args; a validate_sql ok=True carries gate-approved SQL. These let the UI
+    A build_definition OR run_definition call that returned ok=True carries a
+    runnable definition in its args (run_definition validates the same way before
+    executing); a validate_sql ok=True carries gate-approved SQL. These let the UI
     offer one-click 'Open in builder' / 'Insert SQL' just like Surfaces A/B.
     """
     definition, sql = None, None
     for step in tool_trace:
         if not (step.get("result") or {}).get("ok"):
             continue
-        if step.get("name") == "build_definition":
+        if step.get("name") in ("build_definition", "run_definition"):
             d = (step.get("args") or {}).get("definition")
             if isinstance(d, dict):
                 definition = _normalize_definition(dict(d))
@@ -1763,8 +1765,26 @@ def api_ai_agent():
     if has_sql:
         tool_names.add("validate_sql")
     if explain:
-        tool_names.update({"run_sql", "compute_stats"})
+        tool_names.update({"run_sql", "compute_stats", "run_definition"})
     tools = [t for t in TOOL_SPECS if t["name"] in tool_names]
+
+    run_definition_bound = None
+    if explain:
+
+        def run_definition_bound(definition):
+            """Run a v1 definition for real and hand back its rows, so the agent
+            can quote actual numbers instead of stopping at "definition built,
+            not run". Same repair/validate pass as build_definition (a near-miss
+            draft is coerced, not bounced), then the exact query the interactive
+            builder would run. Capped so one runaway (ungrouped) definition can't
+            blow the tool-result context — grouped/anchored reports are naturally
+            small (a handful of buckets)."""
+            ok, error = _validate_definition_for_user(definition)
+            if not ok:
+                raise ReportDefinitionError(error or "invalid definition")
+            perms = set(session.get("permissions") or [])
+            columns, rows = execute_definition(definition, perms, userid, username, get_locale())
+            return columns, rows[:RUN_DEFINITION_ROW_CAP]
 
     run_sql_bound = None
     if explain:
@@ -1794,7 +1814,9 @@ def api_ai_agent():
             return _run_sql(target, sql, userid=userid, username=username)
 
     registry = ToolRegistry(
-        run_sql=run_sql_bound, validate_definition=_validate_definition_for_user
+        run_sql=run_sql_bound,
+        validate_definition=_validate_definition_for_user,
+        run_definition=run_definition_bound,
     )
 
     grounding = (

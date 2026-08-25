@@ -1291,11 +1291,17 @@ stubbed tests that answer `application/json` keep working unchanged.
 **Tool binding follows permissions:** `build_definition` is always bound
 (data-free — the same whitelist validator `/api/reporting/run` uses).
 `validate_sql` (data-free — a gate check only) is bound only with
-`reporting.ai.sql`. `run_sql` / `compute_stats` (`nx_lib/reporting/stats.py`) —
-which feed real result rows back to the model — are bound **only** when the
-caller holds **both** `reporting.ai.explain_data` **and** `reporting.sql.run`;
-otherwise the loop stays fully schema-only (question + source catalog + SQL
-schema in, ok/error-only tool results out, never a result row).
+`reporting.ai.sql`. `run_sql` / `run_definition` / `compute_stats`
+(`nx_lib/reporting/stats.py`) — which feed real result rows back to the model —
+are bound **only** when the caller holds **both** `reporting.ai.explain_data`
+**and** `reporting.sql.run`; otherwise the loop stays fully schema-only
+(question + source catalog + SQL schema in, ok/error-only tool results out,
+never a result row). `run_definition` takes the same v1-definition shape as
+`build_definition` but actually executes it (`nx_lib.reporting.runner.execute_definition`
+— the same path the scheduled-report runner uses) and returns the real rows,
+capped to `RUN_DEFINITION_ROW_CAP` (500); it exists so an anchored-metrics or
+other business-definition question ends with real numbers instead of a
+validated-but-unexecuted definition ("definition built, numbers not run").
 
 The grounding prepends today's date (so relative time expressions resolve to
 real dates, not training-data dates) and includes the `source` the client's

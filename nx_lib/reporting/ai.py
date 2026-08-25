@@ -717,8 +717,9 @@ _AGENT_SYSTEM = (
 
 # Appended to the system prompt only when the caller holds reporting.ai.explain_data
 # (Phase 3e). It unlocks the data-returning tools: run_sql feeds real result rows
-# back to the model and compute_stats gives exact aggregates over them, so the model
-# may narrate concrete numbers instead of only drafting an artifact.
+# back to the model, run_definition executes a build_definition-shaped definition
+# for real, and compute_stats gives exact aggregates over them, so the model may
+# narrate concrete numbers instead of only drafting an artifact.
 _AGENT_EXPLAIN_SUFFIX = (
     " You may run validated read-only SELECTs with run_sql and summarise the actual "
     "rows returned, and use compute_stats for exact aggregates (describe, group_by, "
@@ -729,6 +730,14 @@ _AGENT_EXPLAIN_SUFFIX = (
     "never resubmit the identical SQL; change the query before retrying. Report "
     "only concrete numbers taken from the data you fetched — never estimate or "
     "fabricate values."
+    " A build_definition that returns ok:true has only validated the SHAPE — it has"
+    " NOT run. When the question wants concrete values (anchored metrics like"
+    " imported/exported/backlog, or any other business-definition question),"
+    " call run_definition with that same definition to fetch the real rows before"
+    " you answer — this runs the exact query the report builder would run, so the"
+    " numbers match what users see on the report. Once run_definition returns"
+    " ok:true, answer from its rows and stop calling tools; never present a"
+    " validated-but-unexecuted definition's shape as though it were the answer."
     " run_sql can ONLY query the SQL-schema targets named below (e.g. statistics, "
     "octopus). NEVER pass a report SOURCE id as a table name, and NEVER call run_sql "
     "for a source marked 'builder-only' — answer those with build_definition instead. "

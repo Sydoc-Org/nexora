@@ -10,6 +10,15 @@ Work toward the next release.
 
 ### Added
 
+- **The AI chat agent can execute a report definition, not just validate it.**
+  A new `run_definition` tool (bound alongside `run_sql`, behind
+  `reporting.ai.explain_data` + `reporting.sql.run`) runs a `build_definition`-
+  shaped definition for real — the same query the report builder would run —
+  and hands the rows back to the model, capped to 500. Previously a
+  `build_definition` call only validated the shape, so a question needing
+  concrete numbers (imported/exported/backlog, or any other business-metric
+  question) ended with "definition built, numbers not run" instead of an
+  answer.
 - **WinRM access to PROD documented.** `docs/howto/winrm-prod-access.md`
   covers the one-time `Enable-PSRemoting` setup on SYAPP01 plus the firewall
   scoping, so log tails, app-pool checks and env-key audits can run remotely

@@ -311,10 +311,12 @@ def test_ai_build_audits_misconfig_on_aierror(user_client):
 # ---- POST /api/reporting/ai/agent (Phase 3d) -----------------------------
 
 
-def _agentic_result(answer="Built a report by outcome.", definition_ok=True):
+def _agentic_result(
+    answer="Built a report by outcome.", definition_ok=True, tool_name="build_definition"
+):
     trace = [
         {
-            "name": "build_definition",
+            "name": tool_name,
             "args": {
                 "definition": {
                     "schemaVersion": 1,
@@ -437,6 +439,30 @@ def test_ai_agent_happy_path_returns_answer_and_audits(user_client):
     audit.assert_called_once()
     assert audit.call_args.args[3] == "agent"  # Surface positional arg
     assert audit.call_args.args[-2] == "ok"  # Status
+
+
+def test_ai_agent_extracts_definition_from_run_definition_call(user_client):
+    # run_definition validates the same shape as build_definition before
+    # executing it, so an ok=True run_definition call must offer "Open in
+    # builder" too — not just build_definition.
+    with ExitStack() as es:
+        for p in _agent_patches():
+            es.enter_context(p)
+        es.enter_context(
+            patch(
+                "nx_lib.views.reporting.ask_agentic",
+                return_value=_agentic_result(tool_name="run_definition"),
+            )
+        )
+        es.enter_context(
+            patch("nx_lib.views.reporting._validate_definition_for_user", return_value=(True, None))
+        )
+        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        resp = user_client.post("/api/reporting/ai/agent", json={"question": "report by outcome"})
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["toolTrace"][0]["name"] == "run_definition"
+    assert data["definition"]["source"] == "gen_pdqm"
 
 
 # ---- Issue #127: an empty final answer must never reach the chat as-is ------
@@ -660,6 +686,7 @@ def test_ai_agent_binds_data_tools_with_explain_data_permission(user_client):
 
     def fake_loop(initial, *, registry, agent_step, **kw):
         captured["run_sql_bound"] = registry._run_sql is not None
+        captured["run_definition_bound"] = registry._run_definition is not None
         return _agentic_result()
 
     with ExitStack() as es:
@@ -676,9 +703,11 @@ def test_ai_agent_binds_data_tools_with_explain_data_permission(user_client):
         resp = user_client.post("/api/reporting/ai/agent", json={"question": "how many?"})
     assert resp.status_code == 200
     assert resp.get_json()["explainData"] is True
-    assert {"run_sql", "compute_stats"} <= set(captured["tools"])
+    assert {"run_sql", "compute_stats", "run_definition"} <= set(captured["tools"])
     assert captured["run_sql_bound"] is True
+    assert captured["run_definition_bound"] is True
     assert "run_sql" in captured["system"]  # explain suffix appended
+    assert "run_definition" in captured["system"]
     assert audit.call_args.args[-2] == "ok"
 
 
@@ -694,6 +723,7 @@ def test_ai_agent_no_data_tools_without_explain_data(user_client):
 
     def fake_loop(initial, *, registry, agent_step, **kw):
         captured["run_sql_bound"] = registry._run_sql is not None
+        captured["run_definition_bound"] = registry._run_definition is not None
         return _agentic_result()
 
     with ExitStack() as es:
@@ -712,7 +742,9 @@ def test_ai_agent_no_data_tools_without_explain_data(user_client):
     assert resp.get_json()["explainData"] is False
     assert "run_sql" not in captured["tools"]
     assert "compute_stats" not in captured["tools"]
+    assert "run_definition" not in captured["tools"]
     assert captured["run_sql_bound"] is False
+    assert captured["run_definition_bound"] is False
     assert "run_sql" not in captured["system"]
 
 
