@@ -25,6 +25,13 @@ Work toward the next release.
 
 ### Changed
 
+- **Colours & axes popover polish.** The per-series *Right axis* checkbox is a
+  **Left | Right** switch; each Y axis is titled with the series it carries and
+  takes that series' colour when it carries exactly one; colour-picker drags
+  re-render at most once per frame. The forecast is drawn as translucent bars
+  on bar charts (dashed tails only on line charts), its toggle is tinted while
+  on and greyed out on pie/doughnut, and switching it **off** repaints from the
+  last result instead of re-running the query.
 - **The branch-name guard accepts a fourth version segment.** Cycle branches
   are still `v<x.y[.z]>`, but a per-developer branch off a cycle
   (`v3.2.3.1` beside `v3.2.3`) now passes `scripts/git-hooks/branch-name-guard.ps1`

@@ -2534,8 +2534,15 @@ html.dark .rdb-add-pill:hover { border-color: var(--nx-accent); }
 .rs-style-row input[type="color"] { width: 24px; height: 24px; padding: 0; border: 1px solid var(--nx-border);
   border-radius: 6px; background: transparent; cursor: pointer; }
 .rs-style-row span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.rs-style-axis { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--nx-text-sec); white-space: nowrap; }
+/* Per-series Left | Right axis switch */
+.rs-axis-seg { display: inline-flex; padding: 2px; gap: 2px; border-radius: 7px; background: var(--nx-divider); border: 1px solid var(--nx-border); }
+.rs-axis-btn { border: none; background: transparent; padding: 1px 7px; font: inherit; font-size: 11px; line-height: 1.4;
+  color: var(--nx-text-sec); border-radius: 5px; cursor: pointer; }
+.rs-axis-btn[aria-pressed="true"] { background: var(--nx-card); color: var(--nx-accent); font-weight: 600; box-shadow: 0 1px 2px rgba(16, 24, 40, .06); }
 .rs-style-reset { margin-top: 6px; font-size: 12px; }
+/* Toolbar toggles outside the chart-type track sit on the card background, so
+   the track's .is-selected (card bg) is invisible on them — tint instead. */
+#rsForecastToggle.is-selected, #rsStyleToggle.is-selected { background: var(--nx-accent-tint); color: var(--nx-accent); }
 
 /* Forecast toggle + horizon (issue #168) */
 .rs-forecast-horizon { font-size: 12px; padding: 2px 6px; border-radius: 8px;

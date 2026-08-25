@@ -257,9 +257,12 @@ where a figure came from.
 
 If your report is *one time breakdown plus a measure*, the **Forecast** toggle
 becomes available. (On the Simple tab the toggle is always visible in the chart
-toolbar but greyed out until the report qualifies; Advanced hides it instead.) It extends the chart with a dashed projection line and a shaded 95%
-confidence band, and appends the predicted rows to the table with a *Forecast*
-badge.
+toolbar but greyed out until the report qualifies; Advanced hides it instead.)
+On a line chart it extends the chart with a dashed projection line and a shaded
+95% confidence band; on a bar chart the predicted periods are drawn as
+translucent bars in the series' colour. Pie and doughnut charts have no
+forecast. The predicted rows are appended to the table with a *Forecast* badge,
+and switching the forecast off again is instant — nothing is re-queried.
 
 - It fits a trend and, when there is enough history, a repeating seasonal
   pattern on top.
@@ -274,11 +277,13 @@ badge.
 
 The palette button in the chart toolbar opens a small panel with a colour
 picker for every series and one for the **report title and legend**. Each
-series also has a **Right axis** switch: tick it to plot that line against
-its own scale on the right-hand side — the way to keep a *Backlog* of a few
-hundred readable next to imports in the tens of thousands (when *Backlog*
+series also has a **Left | Right** switch: put it on *Right* to plot that line
+against its own scale on the right-hand side — the way to keep a *Backlog* of a
+few hundred readable next to imports in the tens of thousands (when *Backlog*
 shares a chart with other measures it starts on the right axis by default).
-**Reset colours** returns to the standard palette.
+Each axis is titled with the series it carries, and when it carries exactly one
+series its numbers take that series' colour. **Reset colours** returns to the
+standard palette.
 
 - Your picks are saved with the report and come back when you open it.
 - Emailed reports and the Advanced tab use the standard colours.

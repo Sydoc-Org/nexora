@@ -1154,7 +1154,15 @@
       if (rightKeys.indexOf(key) >= 0) { ds.yAxisID = 'y2'; useY2 = true; }
       return ds;
     });
-    var fcActive = !!(d.forecast && !multi && (chartJsType === 'line' || chartJsType === 'bar'));
+    // Axis ownership cues: each Y axis is titled with its series and, when it
+    // carries exactly one series, its ticks take that series' colour.
+    var leftSeries = [], rightSeries = [];
+    datasets.forEach(function (ds) { (ds.yAxisID === 'y2' ? rightSeries : leftSeries).push(ds); });
+    function axisTint(list) {
+      return (list.length === 1 && typeof list[0].borderColor === 'string') ? list[0].borderColor : undefined;
+    }
+    function axisTitle(list) { return list.map(function (ds) { return ds.label; }).join(' · '); }
+    var fcActive = !!(d.forecast && !multi && !stacked && (chartJsType === 'line' || chartJsType === 'bar'));
     if (fcActive) {
       var fc = d.forecast;
       var histN = d.forecastStart;
@@ -1172,15 +1180,23 @@
         // A user-picked series colour carries over to its forecast line (and
         // its right-axis placement), so the dotted tail stays readable.
         var own = overrides[seriesKey(base || {}, multi)];
-        datasets.push({
-          label: (base ? base.label : s.field) + ' · ' + I18N.forecastLabel,
-          data: lead.concat([bridge], s.values),
-          type: 'line', borderColor: own || fcAccent, borderDash: [6, 4],
+        var fcColor = own || (typeof styled.borderColor === 'string' ? styled.borderColor : fcAccent);
+        var fcLabel = (base ? base.label : s.field) + ' · ' + I18N.forecastLabel;
+        // Bar charts get the forecast as translucent bars of the same colour
+        // (dashed lines over bars read as a stray series); line charts keep
+        // the dashed tail + confidence band.
+        datasets.push(chartJsType === 'bar' ? {
+          label: fcLabel, data: lead.concat([null], s.values), type: 'bar',
+          backgroundColor: hexAlpha(fcColor, .35), borderColor: fcColor, borderWidth: 1,
+          borderRadius: 6, maxBarThickness: 48, yAxisID: styled.yAxisID, _forecast: true
+        } : {
+          label: fcLabel, data: lead.concat([bridge], s.values),
+          type: 'line', borderColor: fcColor, borderDash: [6, 4],
           borderWidth: 2, backgroundColor: 'transparent', yAxisID: styled.yAxisID,
           pointStyle: 'rectRot', fill: false, tension: .25, _forecast: true
         });
       });
-      if (fc.series.length === 1) {
+      if (fc.series.length === 1 && chartJsType === 'line') {
         var s0 = fc.series[0];
         var b0 = d.datasets[0] ? d.datasets[0].data[histN - 1] : null;
         var own0 = overrides[seriesKey(d.datasets[0] || {}, multi)];
@@ -1209,8 +1225,10 @@
                    : { x: { stacked: stacked },
                        y: { stacked: stacked,
                             beginAtZero: true,
+                            title: { display: useY2, text: axisTitle(leftSeries), color: axisTint(leftSeries) },
                             ticks: {
                               maxTicksLimit: 6,
+                              color: useY2 ? axisTint(leftSeries) : undefined,
                               callback: function (value) {
                                 return (allInts && !Number.isInteger(value)) ? undefined : value;
                               }
@@ -1219,7 +1237,8 @@
                        // Secondary Y axis for level-type series (backlog in the
                        // hundreds beside imports in the tens of thousands).
                        y2: { display: useY2, position: 'right', beginAtZero: true,
-                             ticks: { maxTicksLimit: 6 },
+                             title: { display: true, text: axisTitle(rightSeries), color: axisTint(rightSeries) },
+                             ticks: { maxTicksLimit: 6, color: axisTint(rightSeries) },
                              grid: { drawOnChartArea: false } } },
                  plugins: { legend: { display: multi || circular || (d.datasets && d.datasets.length > 1) || fcActive,
                                       labels: { color: style.titleColor || undefined,
@@ -1256,6 +1275,11 @@
     });
     el('rsChartTools').querySelector('[data-type="pie"]').hidden = multi;
     el('rsChartTools').querySelector('[data-type="doughnut"]').hidden = multi;
+    // Forecast only draws on line/bar — grey the toggle out on pie/doughnut
+    // (syncForecastCtl owns the shape-based disable after each run).
+    var fcBtn = el('rsForecastToggle');
+    if (circular) { fcBtn.disabled = true; fcBtn.title = I18N.forecastNeedsLineBar; }
+    else if (state.current && forecastEligible(state.current.def)) { fcBtn.disabled = false; fcBtn.title = I18N.forecastLabel; }
     el('rsChartTools').querySelector('[data-type="stacked"]').hidden = !multi;
     el('rsChartCanvas').dataset.series = String(d.datasets.length);
     Array.prototype.forEach.call(
@@ -1942,6 +1966,7 @@
     el('rsMsg').hidden = true;
     el('rsResultTitle').textContent = cur.name || cur.def.title || '';
     applyTitleStyle();
+    el('rsDeleteReport').hidden = !(cur.owned && cur.reportId);
     renderAiChips(cur);
     var adjustBtn = el('rsAdjustWizard');
     if (adjustBtn) {
@@ -1966,7 +1991,6 @@
     if (rsCaptionBox) { rsCaptionBox.hidden = true; rsCaptionBox.textContent = ''; }
 
     var def = cur.def;
-    el('rsDeleteReport').hidden = !(cur.owned && cur.reportId);
     var hasMetrics = Array.isArray(def.metrics) && def.metrics.length > 0;
     var dims = (def.columns || []).length;
     // Timing badge: measures the full round-trip (both the optional grand-total
@@ -2087,6 +2111,9 @@
         return String(r[0] == null ? '' : r[0]).slice(0, 10) <= fcForTrim.anchor;
       });
     }
+    // Kept so switching the forecast OFF can re-render from this result
+    // without another (slow, lookback-widened) server run.
+    state.lastRun = { def: def, columns: columns, rows: rows, hasMetrics: hasMetrics, dims: dims };
     var charted = (hasMetrics && dims)
       ? !!mountChart(def, columns, rows, res.data.forecast || null) : false;
     syncForecastCtl(def, res.data.forecast || null, charted);
@@ -2192,6 +2219,15 @@
     if (!cur || !cur.def || this.disabled) return;
     if (cur.def.forecast && cur.def.forecast.enabled) {
       delete cur.def.forecast;
+      // Off = drop the forecast block from the last result and repaint; the
+      // rows are already on hand, no need to hit the server again.
+      var lr = state.lastRun;
+      if (lr && lr.def === cur.def) {
+        var charted = (lr.hasMetrics && lr.dims) ? !!mountChart(cur.def, lr.columns, lr.rows, null) : false;
+        syncForecastCtl(cur.def, null, charted);
+        renderTable(lr.columns, lr.rows, null);
+        return;
+      }
     } else {
       var h = el('rsForecastHorizon').value;
       cur.def.forecast = { enabled: true, horizon: h === 'auto' ? 'auto' : parseInt(h, 10) };
@@ -2234,13 +2270,18 @@
     var html = '';
     d.datasets.forEach(function (ds, i) {
       var key = seriesKey(ds, multi);
+      var onRight = rightKeys.indexOf(key) >= 0;
       html += '<div class="rs-style-row" data-key="' + esc(key) + '">' +
         '<input type="color" value="' + esc(colors[key] || defaultSeriesColor(d, i)) +
         '" aria-label="' + esc(ds.label) + '" data-testid="rs-style-color">' +
         '<span>' + esc(ds.label) + '</span>' +
         (!circular && d.datasets.length > 1
-          ? '<label class="rs-style-axis"><input type="checkbox" data-testid="rs-style-right"' +
-            (rightKeys.indexOf(key) >= 0 ? ' checked' : '') + '> ' + esc(I18N.styleRightAxis) + '</label>'
+          ? '<span class="rs-axis-seg" role="group">' +
+            '<button type="button" class="rs-axis-btn" data-axis="left" aria-pressed="' + (!onRight) +
+            '" title="' + esc(I18N.styleLeftAxis) + '" data-testid="rs-style-axis-left">' + esc(I18N.axisShortLeft) + '</button>' +
+            '<button type="button" class="rs-axis-btn" data-axis="right" aria-pressed="' + onRight +
+            '" title="' + esc(I18N.styleRightAxis) + '" data-testid="rs-style-axis-right">' + esc(I18N.axisShortRight) + '</button>' +
+            '</span>'
           : '') +
         '</div>';
     });
@@ -2248,32 +2289,44 @@
     el('rsStyleTitleColor').value = style.titleColor ||
       rgbToHex(getComputedStyle(el('rsResultTitle')).color);
   }
+  // Colour inputs fire `input` continuously while dragging the picker —
+  // coalesce to one chart rebuild per frame.
+  var styleRaf = 0;
   function rerenderStyled() {
-    if (state.chartData) renderChart(state.chartType || state.chartData.type);
-    applyTitleStyle();
+    if (styleRaf) return;
+    styleRaf = requestAnimationFrame(function () {
+      styleRaf = 0;
+      if (state.chartData) renderChart(state.chartType || state.chartData.type);
+      applyTitleStyle();
+    });
   }
   el('rsStyleToggle').addEventListener('click', function () {
     toggleStylePop(el('rsStylePop').hidden);
   });
   el('rsStyleRows').addEventListener('input', function (e) {
     var cur = state.current, d = state.chartData;
-    if (!cur || !cur.def || !d) return;
+    if (!cur || !cur.def || !d || e.target.type !== 'color') return;
     var row = e.target.closest('.rs-style-row');
     if (!row) return;
-    var key = row.dataset.key, style = ensureStyle();
-    if (e.target.type === 'color') {
-      style.colors = style.colors || {};
-      style.colors[key] = e.target.value;
-    } else if (e.target.type === 'checkbox') {
-      // Materialise the defaults first so unticking a default right-axis
-      // series (backlog) is remembered as an explicit choice.
-      var keys = rightAxisKeys(d, style).slice();
-      var at = keys.indexOf(key);
-      if (e.target.checked && at < 0) keys.push(key);
-      if (!e.target.checked && at >= 0) keys.splice(at, 1);
-      style.rightAxis = keys;
-    }
+    var style = ensureStyle();
+    style.colors = style.colors || {};
+    style.colors[row.dataset.key] = e.target.value;
     rerenderStyled();
+  });
+  el('rsStyleRows').addEventListener('click', function (e) {
+    var btn = e.target.closest('.rs-axis-btn');
+    var cur = state.current, d = state.chartData;
+    if (!btn || !cur || !cur.def || !d) return;
+    var key = btn.closest('.rs-style-row').dataset.key, style = ensureStyle();
+    // Materialise the defaults first so moving a default right-axis series
+    // (backlog) back to the left is remembered as an explicit choice.
+    var keys = rightAxisKeys(d, style).slice();
+    var at = keys.indexOf(key);
+    if (btn.dataset.axis === 'right' && at < 0) keys.push(key);
+    if (btn.dataset.axis === 'left' && at >= 0) keys.splice(at, 1);
+    style.rightAxis = keys;
+    rerenderStyled();
+    syncStyleCtl();
   });
   el('rsStyleTitleColor').addEventListener('input', function () {
     var cur = state.current;
@@ -2371,6 +2424,12 @@
     });
   }
 
+  el('rsDeleteReport').addEventListener('click', function () {
+    var cur = state.current;
+    if (!cur || !cur.reportId) return;
+    deleteReport(cur.reportId, cur.name || cur.def.title);
+  });
+
   el('rsOpenAdvanced').addEventListener('click', function () {
     var cur = state.current;
     if (!cur || !window.Reporting || !window.Reporting.applyDefinition) return;
@@ -2424,12 +2483,6 @@
         el('rsError').textContent = I18N.couldNotExport;
         el('rsError').hidden = false;
         return;
-  el('rsDeleteReport').addEventListener('click', function () {
-    var cur = state.current;
-    if (!cur || !cur.reportId) return;
-    deleteReport(cur.reportId, cur.name || cur.def.title);
-  });
-
       }
       var blob = await res.blob();
       var a = document.createElement('a');
