@@ -68,6 +68,10 @@ Work toward the next release.
   buckets and is told empty cells are missing measurements, not zero.
 - Wizard "So far" summary updates on breakdown, grain and time-range picks
   (it lagged one pick behind); weekly/daily peak labels drop the `00:00:00`.
+- **Backlog stays a gap when broken down by a second dimension.** The
+  Simple-tab chart pivot (e.g. backlog by process) coerced an unmeasured
+  bucket's `NULL` to `0` while collapsing rows into series; it now stays a
+  gap for latest-mode metrics, matching the single-dimension chart.
 
 ## [3.2.2] - 2026-08-25
 
