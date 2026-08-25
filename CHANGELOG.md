@@ -10,6 +10,20 @@ Work toward the next release.
 
 ### Added
 
+- **Response-time sparklines on the admin status page.** Each component row now
+  carries a 24-hour latency graph beside its uptime strip, drawn from the new
+  `dbo.StatusSamples` table (migration `0071`) that the outage monitor fills
+  from the durations it already measured and previously discarded. Inline SVG,
+  no chart library: zero-based axis scaled per component, one bucket per hour
+  keeping its slowest sample, gaps left as gaps, and failed probes marked with a
+  square as well as a colour. The HTTP, API, Graph and Octo probes now append
+  their own `(204 ms)` timing so they are graphed too.
+- **The outage monitor watches `WARNING` storms.** Previously only
+  `ERROR`/`CRITICAL` signatures could open an incident, so a fault that merely
+  warns was invisible — the reporting catalog warned on every request for months
+  with nothing watching. Warnings get their own much higher bar (60 in 15 min vs
+  10) and are labelled `warn storm @ <site>`.
+
 - **The AI chat agent can execute a report definition, not just validate it.**
   A new `run_definition` tool (bound alongside `run_sql`, behind
   `reporting.ai.explain_data` + `reporting.sql.run`) runs a `build_definition`-
@@ -59,6 +73,15 @@ Work toward the next release.
   guard has always refused — and now describes what actually pushes.
 
 ### Fixed
+
+- **Reporting catalog stopped flooding `app.log`.** `fetch_docprocessing_catalog`
+  logged `reporting catalog: FieldMetadata unavailable` at WARNING on *every*
+  reporting request. The table has never existed in any environment — the
+  customizable-widget engine that owned it was removed in 2.5.65 — so the miss is
+  permanent and the warning was pure noise, thousands of identical lines a day on
+  PROD. It now reports each missing optional table once per process, and includes
+  the driver's message so a *new* cause (permission revoked, column dropped) is
+  distinguishable from the expected "table does not exist".
 
 - **Time charts no longer invent the future or read a half month as a
   collapse.** The Simple tab's bucket fill stops at today (*This year* = Jan

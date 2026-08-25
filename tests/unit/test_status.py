@@ -155,3 +155,100 @@ def test_first_seen_mid_day_counts_that_whole_day_as_monitored():
     first_seen = datetime(2026, 8, 4, 23, 30, 0)
     cells = status.uptime_strip([], NOW, days=3, first_seen=first_seen)
     assert [c["state"] for c in cells] == ["unknown", "operational", "operational"]
+
+
+# --------------------------- latency sparklines (0071) ---------------------------
+
+
+def test_latency_parsed_from_every_detail_shape_the_monitor_writes():
+    assert status.latency_from_detail("158 ms") == 158
+    assert status.latency_from_detail("timeout (5001 ms)") == 5001
+    assert status.latency_from_detail("https://h/: HTTP 200 (204 ms)") == 204
+    assert status.latency_from_detail("https://h/: HTTP 500") is None
+    assert status.latency_from_detail(None) is None
+
+
+def test_absurd_latency_is_a_parse_accident_not_a_measurement():
+    """A four-hour "probe" means the regex hit an id, not a duration."""
+    assert status.latency_from_detail("99999999 ms") is None
+
+
+def _samples(now, count, ms=100, step_min=5, ok=True):
+    return [(now - timedelta(minutes=step_min * i), ms, ok) for i in range(count)]
+
+
+def test_spark_series_buckets_a_day_of_samples():
+    series = status.spark_series(_samples(NOW, 288), NOW, window_h=24, buckets=24)
+    assert series["count"] == 288
+    assert len(series["points"]) == 24
+    assert series["last_ms"] == 100
+    assert None not in series["points"]
+
+
+def test_spark_series_keeps_the_spike_rather_than_averaging_it_away():
+    """A 5-minute stall is the whole point of the graph; a mean would hide it."""
+    samples = _samples(NOW, 12, ms=100)
+    samples.append((NOW - timedelta(minutes=3), 4000, True))
+    series = status.spark_series(samples, NOW, window_h=24, buckets=24)
+    assert series["max_ms"] == 4000
+    assert series["points"][-1] == 4000
+
+
+def test_spark_series_leaves_gaps_where_the_monitor_was_not_running():
+    """Interpolating would draw a healthy flat line straight through an outage."""
+    old = [
+        (NOW - timedelta(hours=20), 100, True),
+        (NOW - timedelta(hours=20, minutes=5), 100, True),
+    ]
+    series = status.spark_series(old + _samples(NOW, 3), NOW, window_h=24, buckets=24)
+    assert series["points"].count(None) > 0
+
+
+def test_spark_series_marks_buckets_that_failed():
+    series = status.spark_series(_samples(NOW, 4, ms=5000, ok=False), NOW)
+    assert any(series["failed"])
+
+
+def test_spark_series_needs_two_points_to_be_a_trend():
+    """One dot implies a direction it cannot support."""
+    assert status.spark_series([], NOW) is None
+    assert status.spark_series([(NOW, 100, True)], NOW) is None
+
+
+def test_spark_series_ignores_samples_outside_the_window():
+    stale = [(NOW - timedelta(days=3), 100, True) for _ in range(50)]
+    assert status.spark_series(stale, NOW) is None
+
+
+def test_spark_geometry_is_zero_based_so_height_means_duration():
+    """A min..max fit turns ordinary jitter into cliffs and alarms nobody usefully."""
+    series = status.spark_series(
+        [(NOW - timedelta(minutes=5 * i), 100 if i else 200, True) for i in range(200)],
+        NOW,
+    )
+    geom = status.spark_geometry(series, width=100, height=24, pad=2)
+    ys = [float(p.split(",")[1]) for seg in geom["segments"] for p in seg.split()]
+    # 200 ms sits at the top (pad), 100 ms halfway down the 20-unit plot area.
+    assert min(ys) == 2.0
+    assert 11.5 <= max(ys) <= 12.5
+
+
+def test_spark_geometry_breaks_the_line_where_samples_are_missing():
+    gappy = [(NOW - timedelta(minutes=5 * i), 100, True) for i in range(6)]
+    gappy += [(NOW - timedelta(hours=12, minutes=5 * i), 100, True) for i in range(6)]
+    geom = status.spark_geometry(status.spark_series(gappy, NOW))
+    # Two clusters an hour apart: one is wide enough to be a line, the newest
+    # falls in a single bucket and survives as a dot rather than vanishing.
+    assert len(geom["segments"]) + len(geom["dots"]) == 2
+    assert geom["dots"], "the newest bucket must still be drawn"
+
+
+def test_spark_geometry_marks_failed_probes_for_the_template():
+    series = status.spark_series(
+        [(NOW - timedelta(minutes=5 * i), 5000, False) for i in range(6)], NOW
+    )
+    assert status.spark_geometry(series)["marks"]
+
+
+def test_spark_geometry_has_nothing_to_draw_without_a_series():
+    assert status.spark_geometry(None) is None

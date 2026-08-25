@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-25 20:01+0200\n"
+"POT-Creation-Date: 2026-08-25 21:45+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -288,15 +288,15 @@ msgid ""
 "processed counts — over the new authenticated /api/v1 interface."
 msgstr ""
 
-#: nx_lib/reporting/catalog.py:224
+#: nx_lib/reporting/catalog.py:247
 msgid "Import date"
 msgstr ""
 
-#: nx_lib/reporting/catalog.py:224
+#: nx_lib/reporting/catalog.py:247
 msgid "Export date"
 msgstr ""
 
-#: nx_lib/reporting/catalog.py:233 templates/archive/invoices.html:121
+#: nx_lib/reporting/catalog.py:256 templates/archive/invoices.html:121
 #: templates/generali_additionalservices.html:148
 #: templates/generali_additionalservices.html:224
 #: templates/generali_additionalservices.html:282
@@ -312,7 +312,7 @@ msgstr ""
 msgid "Date"
 msgstr ""
 
-#: nx_lib/reporting/catalog.py:243
+#: nx_lib/reporting/catalog.py:266
 msgid "Workitem ID"
 msgstr ""
 
@@ -4642,7 +4642,7 @@ msgstr ""
 msgid "Custom"
 msgstr ""
 
-#: templates/admin/logs.html:28 templates/admin/status.html:163
+#: templates/admin/logs.html:28 templates/admin/status.html:188
 #: templates/js/_reporting_drill_js.html:26 templates/js/_reporting_js.html:26
 #: templates/js/_reporting_simple_js.html:59
 #: templates/workitems_overview.html:164
@@ -5301,7 +5301,7 @@ msgstr ""
 msgid "System Status - nexora"
 msgstr ""
 
-#: templates/admin/status.html:20 templates/admin/status.html:159
+#: templates/admin/status.html:20 templates/admin/status.html:184
 msgid "Operational"
 msgstr ""
 
@@ -5309,7 +5309,7 @@ msgstr ""
 msgid "Degraded"
 msgstr ""
 
-#: templates/admin/status.html:22 templates/admin/status.html:160
+#: templates/admin/status.html:22 templates/admin/status.html:185
 msgid "Outage"
 msgstr ""
 
@@ -5392,58 +5392,79 @@ msgstr ""
 msgid "Components"
 msgstr ""
 
-#: templates/admin/status.html:124 templates/admin/status.html:175
+#: templates/admin/status.html:124 templates/admin/status.html:200
 #, python-format
 msgid "last %(n)s days"
 msgstr ""
 
-#: templates/admin/status.html:142
+#: templates/admin/status.html:149
+#, python-format
+msgid ""
+"Response time over the last %(h)s h: now %(now)s ms, best %(min)s ms, "
+"worst %(max)s ms"
+msgstr ""
+
+#: templates/admin/status.html:150
+#, python-format
+msgid "%(n)s samples · avg %(avg)s ms · %(min)s–%(max)s ms"
+msgstr ""
+
+#: templates/admin/status.html:163
+msgid "no samples yet"
+msgstr ""
+
+#: templates/admin/status.html:166
 #, python-format
 msgid "Last %(n)s days"
 msgstr ""
 
-#: templates/admin/status.html:157
+#: templates/admin/status.html:181
 #, python-format
 msgid "%(n)s days ago"
 msgstr ""
 
-#: templates/admin/status.html:161
+#: templates/admin/status.html:183
+#, python-format
+msgid "Response time, %(h)s h"
+msgstr ""
+
+#: templates/admin/status.html:186
 msgid "No data"
 msgstr ""
 
-#: templates/admin/status.html:168
+#: templates/admin/status.html:193
 msgid "No component has been probed yet."
 msgstr ""
 
-#: templates/admin/status.html:174
+#: templates/admin/status.html:199
 msgid "Incident history"
 msgstr ""
 
-#: templates/admin/status.html:180
+#: templates/admin/status.html:205
 msgid "Component"
 msgstr ""
 
-#: templates/admin/status.html:181
+#: templates/admin/status.html:206
 msgid "Started"
 msgstr ""
 
-#: templates/admin/status.html:182
+#: templates/admin/status.html:207
 msgid "Ended"
 msgstr ""
 
-#: templates/admin/status.html:183
+#: templates/admin/status.html:208
 msgid "Duration"
 msgstr ""
 
-#: templates/admin/status.html:184
+#: templates/admin/status.html:209
 msgid "Evidence"
 msgstr ""
 
-#: templates/admin/status.html:195
+#: templates/admin/status.html:220
 msgid "Ongoing"
 msgstr ""
 
-#: templates/admin/status.html:202
+#: templates/admin/status.html:227
 msgid "No incidents recorded."
 msgstr ""
 

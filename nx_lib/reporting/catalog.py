@@ -143,6 +143,29 @@ def lang_col_for(locale_str):
     return _LANG_COLS.get(locale_str, "EnglishLabel")
 
 
+# Tables whose absence is already reported this process. FieldMetadata has never
+# been created in any environment (the widget engine that owned it was removed
+# in 2.5.65 -- see nx_lib/views/dashboard.py), so the miss is permanent and
+# firing a WARNING per reporting request buried the log in thousands of
+# identical lines a day. Report each table once, with the driver's message so a
+# *new* cause (permission revoked, column dropped) is distinguishable from the
+# expected "table does not exist".
+_WARNED_TABLES = set()
+
+
+def _warn_once(table, exc):
+    """Log an optional catalog table's absence once per process."""
+    if table in _WARNED_TABLES:
+        return
+    _WARNED_TABLES.add(table)
+    current_app.logger.warning(
+        "reporting catalog: %s unavailable (%s) -- catalog falls back to "
+        "defaults; not logged again this process",
+        table,
+        str(exc).strip().replace(chr(10), " ")[:200],
+    )
+
+
 def fetch_docprocessing_catalog(allowed_processes, locale_str):
     """Load the docprocessing field catalog for the given allowed processes.
 
@@ -163,8 +186,8 @@ def fetch_docprocessing_catalog(allowed_processes, locale_str):
         try:
             cur.execute("SELECT FieldKey, DataType, Aggregable, Sortable FROM FieldMetadata")
             meta_rows = cur.fetchall()
-        except Exception:
-            current_app.logger.warning("reporting catalog: FieldMetadata unavailable")
+        except Exception as exc:
+            _warn_once("FieldMetadata", exc)
             meta_rows = []
 
         # Optional: localized labels.
@@ -174,8 +197,8 @@ def fetch_docprocessing_catalog(allowed_processes, locale_str):
                 "FROM Search_Field_Labels"
             )
             label_rows = cur.fetchall()
-        except Exception:
-            current_app.logger.warning("reporting catalog: Search_Field_Labels unavailable")
+        except Exception as exc:
+            _warn_once("Search_Field_Labels", exc)
             label_rows = []
 
         # Required: SearchConfig drives the availability map (the field set).

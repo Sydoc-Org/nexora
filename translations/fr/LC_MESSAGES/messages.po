@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-25 20:01+0200\n"
+"POT-Creation-Date: 2026-08-25 21:45+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -368,15 +368,15 @@ msgstr ""
 "volumes importés et traités du jour — via la nouvelle interface "
 "authentifiée /api/v1."
 
-#: nx_lib/reporting/catalog.py:224
+#: nx_lib/reporting/catalog.py:247
 msgid "Import date"
 msgstr "Date d'import"
 
-#: nx_lib/reporting/catalog.py:224
+#: nx_lib/reporting/catalog.py:247
 msgid "Export date"
 msgstr "Date d'export"
 
-#: nx_lib/reporting/catalog.py:233 templates/archive/invoices.html:121
+#: nx_lib/reporting/catalog.py:256 templates/archive/invoices.html:121
 #: templates/generali_additionalservices.html:148
 #: templates/generali_additionalservices.html:224
 #: templates/generali_additionalservices.html:282
@@ -392,7 +392,7 @@ msgstr "Date d'export"
 msgid "Date"
 msgstr "Date"
 
-#: nx_lib/reporting/catalog.py:243
+#: nx_lib/reporting/catalog.py:266
 msgid "Workitem ID"
 msgstr "ID Workitem"
 
@@ -5002,7 +5002,7 @@ msgstr "Période"
 msgid "Custom"
 msgstr "Personnalisé"
 
-#: templates/admin/logs.html:28 templates/admin/status.html:163
+#: templates/admin/logs.html:28 templates/admin/status.html:188
 #: templates/js/_reporting_drill_js.html:26 templates/js/_reporting_js.html:26
 #: templates/js/_reporting_simple_js.html:59
 #: templates/workitems_overview.html:164
@@ -5681,7 +5681,7 @@ msgstr "Connecté"
 msgid "System Status - nexora"
 msgstr "État du système - nexora"
 
-#: templates/admin/status.html:20 templates/admin/status.html:159
+#: templates/admin/status.html:20 templates/admin/status.html:184
 msgid "Operational"
 msgstr "Opérationnel"
 
@@ -5689,7 +5689,7 @@ msgstr "Opérationnel"
 msgid "Degraded"
 msgstr "Dégradé"
 
-#: templates/admin/status.html:22 templates/admin/status.html:160
+#: templates/admin/status.html:22 templates/admin/status.html:185
 msgid "Outage"
 msgstr "Panne"
 
@@ -5780,58 +5780,77 @@ msgstr "Incidents ouverts"
 msgid "Components"
 msgstr "Composants"
 
-#: templates/admin/status.html:124 templates/admin/status.html:175
+#: templates/admin/status.html:124 templates/admin/status.html:200
 #, python-format
 msgid "last %(n)s days"
 msgstr "%(n)s derniers jours"
 
-#: templates/admin/status.html:142
+#: templates/admin/status.html:149
+#, python-format
+msgid "Response time over the last %(h)s h: now %(now)s ms, best %(min)s ms, worst %(max)s ms"
+msgstr "Temps de réponse des %(h)s dernières heures : actuellement %(now)s ms, au mieux %(min)s ms, au pire %(max)s ms"
+
+#: templates/admin/status.html:150
+#, python-format
+msgid "%(n)s samples · avg %(avg)s ms · %(min)s–%(max)s ms"
+msgstr "%(n)s mesures · moy. %(avg)s ms · %(min)s–%(max)s ms"
+
+#: templates/admin/status.html:163
+msgid "no samples yet"
+msgstr "pas encore de mesures"
+
+#: templates/admin/status.html:166
 #, python-format
 msgid "Last %(n)s days"
 msgstr "%(n)s derniers jours"
 
-#: templates/admin/status.html:157
+#: templates/admin/status.html:181
 #, python-format
 msgid "%(n)s days ago"
 msgstr "il y a %(n)s jours"
 
-#: templates/admin/status.html:161
+#: templates/admin/status.html:183
+#, python-format
+msgid "Response time, %(h)s h"
+msgstr "Temps de réponse, %(h)s h"
+
+#: templates/admin/status.html:186
 msgid "No data"
 msgstr "Aucune donnée"
 
-#: templates/admin/status.html:168
+#: templates/admin/status.html:193
 msgid "No component has been probed yet."
 msgstr "Aucun composant n'a encore été sondé."
 
-#: templates/admin/status.html:174
+#: templates/admin/status.html:199
 msgid "Incident history"
 msgstr "Historique des incidents"
 
-#: templates/admin/status.html:180
+#: templates/admin/status.html:205
 msgid "Component"
 msgstr "Composant"
 
-#: templates/admin/status.html:181
+#: templates/admin/status.html:206
 msgid "Started"
 msgstr "Début"
 
-#: templates/admin/status.html:182
+#: templates/admin/status.html:207
 msgid "Ended"
 msgstr "Fin"
 
-#: templates/admin/status.html:183
+#: templates/admin/status.html:208
 msgid "Duration"
 msgstr "Durée"
 
-#: templates/admin/status.html:184
+#: templates/admin/status.html:209
 msgid "Evidence"
 msgstr "Preuve"
 
-#: templates/admin/status.html:195
+#: templates/admin/status.html:220
 msgid "Ongoing"
 msgstr "En cours"
 
-#: templates/admin/status.html:202
+#: templates/admin/status.html:227
 msgid "No incidents recorded."
 msgstr "Aucun incident enregistré."
 

@@ -238,3 +238,34 @@ def test_build_catalog_availability_is_source_of_truth():
     assert by_key["avail_only"]["aggregable"] is False
     assert by_key["avail_only"]["sortable"] is True
     assert by_key["avail_only"]["filterable"] is True
+
+
+class _RaisingCatalogCursor(_FakeCatalogCursor):
+    """FieldMetadata raises, as it does everywhere: the table was never created."""
+
+    def execute(self, sql, *params):
+        if "FROM FieldMetadata" in sql:
+            raise RuntimeError("Invalid object name 'FieldMetadata'.")
+        super().execute(sql, *params)
+
+
+def test_missing_optional_table_warns_once_per_process(app, monkeypatch, caplog):
+    """It warned on every reporting request for months -- thousands of identical lines."""
+    monkeypatch.setattr(catalog_mod, "_WARNED_TABLES", set())
+    description = [("ProcessName",), ("ClientCode",), ("col_doctype",)]
+    rows = [_SCRow("acme.invoices", "default", ("DocType",))]
+    engine = MagicMock()
+    engine.raw_connection.return_value.cursor.return_value = _RaisingCatalogCursor(
+        description, rows
+    )
+    monkeypatch.setattr(catalog_mod, "engine_nexora_db", engine)
+
+    with app.test_request_context(), caplog.at_level("WARNING"):
+        for _ in range(3):
+            fetch_docprocessing_catalog(["acme.invoices"], "en")
+
+    hits = [r for r in caplog.records if "FieldMetadata unavailable" in r.getMessage()]
+    assert len(hits) == 1
+    # The driver message survives, so a new cause is distinguishable from the
+    # expected "table does not exist".
+    assert "Invalid object name" in hits[0].getMessage()
