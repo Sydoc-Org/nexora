@@ -1,9 +1,10 @@
 # Handoff — Plan: dashboard "Whole report" card (+ Reporting BEFORE screenshots for Claude Design)
 
 **Date:** 2026-08-25 · **Branch:** `plan/dashboard-whole-report-card` in worktree
-`.claude/worktrees/plan-dashboard-whole-report-card` (cut from `v3.2.3.1` @ `33b42f4c`; the
-`v3.2.3.1` tip is now `b35feb23`, i.e. the worktree is **2 commits behind** — `48a08364` audit fixes +
-`b35feb23` handoff) · **2 commits on the plan branch, unpushed** · commit-only (owner pushes) ·
+`.claude/worktrees/plan-dashboard-whole-report-card` (cut from `v3.2.3.1` @ `33b42f4c`, then
+**rebased onto the `v3.2.3.1` tip `b35feb23`** the same day — a plain fast-forward wasn't possible
+because the plan commits had already landed) · **3 commits on the plan branch, unpushed** ·
+commit-only (owner pushes) ·
 **clean tree** (worktree). Main checkout `C:\dev\nexora` is on `v3.2.3.1`, clean, not touched by this
 session.
 
@@ -21,7 +22,7 @@ explicitly (the `var/handoff-pending` flag already carries it).
   pieces (KPI / chart / table / donut) — i.e. everything the Simple tab shows.
 - (1) done: **19 screenshots** in `var/screenshots/_forclaudedesign/` (gitignored; STAGING data,
   locale de, light + dark). Three were sent to the owner in-chat.
-- (2) done: plan committed as `c8f7d917` —
+- (2) done: plan committed as `8a69e457` (rebased; originally `c8f7d917`) —
   `docs/superpowers/plans/2026-08-25-dashboard-whole-report-card.md` (1110 lines, 9 tasks, 2 phases,
   every anchor verified against `48a08364`, zero placeholders). **Not executed.**
 - Architecture chosen: expose the Simple pane's result renderers as pure builders on
@@ -33,8 +34,9 @@ explicitly (the `var/handoff-pending` flag already carries it).
 
 | Hash | What |
 |---|---|
-| `c8f7d917` | docs(plans): add dashboard-whole-report-card implementation plan |
-| *(this)* | docs(handoff): dashboard-whole-report-card plan |
+| `8a69e457` | docs(plans): add dashboard-whole-report-card implementation plan (was `c8f7d917` before the rebase) |
+| `811226ca` | docs(handoff): dashboard-whole-report-card plan (was `cb7ec529`) |
+| *(this)* | docs(handoff): note the rebase onto v3.2.3.1 in plan + handoff |
 
 ## What shipped
 
@@ -62,10 +64,9 @@ locked by a peer). Nothing was saved to the DB (dashboards closed via Back, no D
 
 ## Next steps (ordered)
 
-1. **Owner:** `git -C .claude\worktrees\plan-dashboard-whole-report-card merge --ff-only v3.2.3.1`
-   — moves the plan branch onto `b35feb23` (plan anchors were verified against `48a08364`; `b35feb23`
-   is docs-only). Needed **before** execution: Tasks 2–3 extract function bodies that only exist in
-   that form after `48a08364`.
+1. ~~Fast-forward~~ **done** — the plan branch already sits on `b35feb23` (rebased 2026-08-25). Only if
+   `v3.2.3.1` moves again: owner runs/authorizes `git rebase v3.2.3.1` in the worktree, because
+   Tasks 2–3 extract function bodies that only exist in their current form after `48a08364`.
 2. `/execute-plan` in the worktree → `docs/superpowers/plans/2026-08-25-dashboard-whole-report-card.md`,
    start at **Task 1**. Executor model per the owner: Sonnet (commit trailers in the plan already say
    `Claude Sonnet 5`). Do **not** pass `--merge-worktree` until execution finishes.
