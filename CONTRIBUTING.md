@@ -81,12 +81,17 @@ imports a package that `pyproject.toml` does not declare.
 - Functions: `fn` + `PascalCase`
 - Migration files: `NNNN_short_snake_case.sql`
 
-**Branches:**
-- `feature/<version>` — release-track work (e.g. `feature/2.5.60`)
-- `fix/<short-kebab-topic>` — isolated bug fix
-- `chore/<short-kebab-topic>` — tooling, deps, refactors with no behaviour change
-- `refactor/<short-kebab-topic>` — structural change with no behaviour change
-- `hotfix/<version>` — emergency PROD fix
+**Branches:** the pre-push guard (`scripts/git-hooks/branch-name-guard.ps1`)
+only lets these names push:
+- `v<x.y[.z]>` — the release-cycle branch, named after the version it ships
+  (e.g. `v3.1`, `v3.2.3`). Convention since the 3.1 cycle.
+- `v<x.y.z.n>` — a per-developer branch off a cycle, so two people can work the
+  same release without sharing one branch (e.g. `v3.2.3.1` beside `v3.2.3`).
+  Merge it into the cycle branch, and the cycle branch into `main` via PR.
+- `feature/<x.y.z>` — the pre-3.1 naming, kept for in-flight branches only.
+
+Anything else (`fix/…`, `chore/…`, `hotfix/…`) is refused at push time — put the
+work on the current cycle branch instead.
 
 **Commits — Conventional Commits:**
 - `feat: <subject>` — new user-facing feature

@@ -4,6 +4,19 @@ All notable changes to nexora are tracked here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Work toward the next release.
+
+### Changed
+
+- **The branch-name guard accepts a fourth version segment.** Cycle branches
+  are still `v<x.y[.z]>`, but a per-developer branch off a cycle
+  (`v3.2.3.1` beside `v3.2.3`) now passes `scripts/git-hooks/branch-name-guard.ps1`
+  instead of needing `git push --no-verify`. `CONTRIBUTING.md`'s branch list was
+  stale — it still advertised `fix/…`, `chore/…` and `hotfix/…` prefixes the
+  guard has always refused — and now describes what actually pushes.
+
 ## [3.2.2] - 2026-08-25
 
 ### Added
