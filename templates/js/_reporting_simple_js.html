@@ -1442,16 +1442,16 @@
     return filled;
   }
 
-  function mountChart(def, columns, rows, forecast) {
-    destroyChart();
-    state.chartData = null;
-    el('rsChartNote').hidden = true;
-    el('rsChartTools').hidden = true;
-    toggleStylePop(false);
-    el('rsChartCanvas').hidden = false;
+  // Pure: turns a run result into the chart-data block renderChart /
+  // chartConfigFor draw. Returns {data, note}: data null = no chart and
+  // note says why (too many points); note alongside data = a non-blocking
+  // disclosure (first-50 cut, series cap, data-quality notes). DOM-free --
+  // shared with the dashboard's whole-report card via window.ReportingSimple.
+  function buildChartData(def, columns, rows, forecast) {
+    var note = null;
+    function addNote(txt) { note = note ? note + ' — ' + txt : txt; }
     var dims = (def.columns || []).length;
-    if (!dims || !rows.length) { el('rsChartCard').hidden = true; return false; }
-    if (!window.Chart) { chartCardNote(I18N.noChartLib); return false; }
+    if (!dims || !rows.length) return { data: null, note: null };
     var firstCol = def.columns[0];
     var isDate = !!firstCol.grain || /date/.test(firstCol.field);
     // Single-dim only: here rows.length IS the x-point count, so the raw-row
@@ -1463,9 +1463,8 @@
     // year of days); only categorical axes keep the 50-row cut.
     var xCap = isDate ? 400 : 50;
     if (dims === 1 && rows.length > xCap) {
-      if (isDate) { chartCardNote(I18N.noChartTooManyPoints); return false; }
-      el('rsChartNote').textContent = I18N.chartFirst50.replace('{n}', String(rows.length));
-      el('rsChartNote').hidden = false;
+      if (isDate) { return { data: null, note: I18N.noChartTooManyPoints }; }
+      addNote(I18N.chartFirst50.replace('{n}', String(rows.length)));
       rows = rows.slice(0, 50);
     }
     if (dims >= 2) {
@@ -1503,7 +1502,7 @@
           seriesMetric[s] = mi;
         }
       });
-      if (xOrder.length > xCap) { chartCardNote(I18N.noChartTooManyPoints); return false; }
+      if (xOrder.length > xCap) { return { data: null, note: I18N.noChartTooManyPoints }; }
       var allSeries = Object.keys(seriesTot);
       var byTot = function (a, b) { return seriesTot[b] - seriesTot[a]; };
       var series;
@@ -1522,40 +1521,38 @@
         series = allSeries.sort(byTot).slice(0, 12);
       }
       if (allSeries.length > series.length) {
-        el('rsChartNote').textContent = I18N.chartSeriesCapped
-          .replace('{shown}', String(series.length)).replace('{n}', String(allSeries.length));
-        el('rsChartNote').hidden = false;
+        addNote(I18N.chartSeriesCapped
+          .replace('{shown}', String(series.length)).replace('{n}', String(allSeries.length)));
       }
-      state.chartData = {
-        labels: xOrder,
-        // Raw click values for drill-through: the pivot above already
-        // stringifies x keys ('' means NULL), so labels === raw here. Series
-        // are per-dim value arrays so a click can filter each breakdown.
-        rawX: xOrder,
-        rawSeries: series.map(function (s) { return seriesParts[s]; }),
-        datasets: series.map(function (s, i) {
-          return {
-            label: s,
-            // Style key for the colours/axes popover. With several measures a
-            // pivoted series is "<category> · <measure>" — keep the measure
-            // code in `field` so a backlog series can default to the right axis.
-            field: def.metrics && def.metrics[seriesMetric[s]] ? def.metrics[seriesMetric[s]].metric : null,
-            data: xOrder.map(function (x) { return cell[x][s] || 0; }),
-            borderColor: NX_PALETTE[i % NX_PALETTE.length],
-            backgroundColor: NX_PALETTE[i % NX_PALETTE.length],
-            tension: .25
-          };
-        }),
-        multiSeries: true,
-        // Preview cache (Step 5) reads this back to tag the cached series —
-        // must match whatever renderChart() below actually draws.
-        type: def.chartType || (isDate ? 'line' : 'bar')
+      noteDataQuality(def, rows, isDate).forEach(addNote);
+      return {
+        data: {
+          labels: xOrder,
+          // Raw click values for drill-through: the pivot above already
+          // stringifies x keys ('' means NULL), so labels === raw here. Series
+          // are per-dim value arrays so a click can filter each breakdown.
+          rawX: xOrder,
+          rawSeries: series.map(function (s) { return seriesParts[s]; }),
+          datasets: series.map(function (s, i) {
+            return {
+              label: s,
+              // Style key for the colours/axes popover. With several measures a
+              // pivoted series is "<category> · <measure>" — keep the measure
+              // code in `field` so a backlog series can default to the right axis.
+              field: def.metrics && def.metrics[seriesMetric[s]] ? def.metrics[seriesMetric[s]].metric : null,
+              data: xOrder.map(function (x) { return cell[x][s] || 0; }),
+              borderColor: NX_PALETTE[i % NX_PALETTE.length],
+              backgroundColor: NX_PALETTE[i % NX_PALETTE.length],
+              tension: .25
+            };
+          }),
+          multiSeries: true,
+          // Preview cache (Step 5) reads this back to tag the cached series —
+          // must match whatever mountChart's chart draw actually renders.
+          type: def.chartType || (isDate ? 'line' : 'bar')
+        },
+        note: note
       };
-      el('rsChartCard').hidden = false;
-      el('rsChartTools').hidden = false;
-      noteDataQuality(def, rows, isDate);
-      renderChart(state.chartData.type);
-      return true;
     }
     var metricIdx = columns.length - (def.metrics || []).length;
     var labels = rows.map(function (r) {
@@ -1588,14 +1585,36 @@
     if (fc) {
       labels = labels.concat(fc.buckets.map(function (b) { return String(b).slice(0, 10); }));
     }
-    state.chartData = {
-      labels: labels, rawX: rawX, datasets: datasets, multiSeries: false,
-      forecast: fc, forecastStart: histN,
-      type: def.chartType || (isDate ? 'line' : 'bar')
+    noteDataQuality(def, rows, isDate).forEach(addNote);
+    return {
+      data: {
+        labels: labels, rawX: rawX, datasets: datasets, multiSeries: false,
+        forecast: fc, forecastStart: histN,
+        type: def.chartType || (isDate ? 'line' : 'bar')
+      },
+      note: note
     };
+  }
+
+  function mountChart(def, columns, rows, forecast) {
+    destroyChart();
+    state.chartData = null;
+    el('rsChartNote').hidden = true;
+    el('rsChartTools').hidden = true;
+    toggleStylePop(false);
+    el('rsChartCanvas').hidden = false;
+    var dims = (def.columns || []).length;
+    if (!dims || !rows.length) { el('rsChartCard').hidden = true; return false; }
+    if (!window.Chart) { chartCardNote(I18N.noChartLib); return false; }
+    var built = buildChartData(def, columns, rows, forecast);
+    if (!built.data) { chartCardNote(built.note || I18N.noChartTooManyPoints); return false; }
+    if (built.note) {
+      el('rsChartNote').textContent = built.note;
+      el('rsChartNote').hidden = false;
+    }
+    state.chartData = built.data;
     el('rsChartCard').hidden = false;
     el('rsChartTools').hidden = false;
-    noteDataQuality(def, rows, isDate);
     renderChart(state.chartData.type);
     return true;
   }
@@ -1610,17 +1629,19 @@
   // contains today is still filling up, and a level metric's NULL buckets
   // are unmeasured, not empty.
   function noteDataQuality(def, rows, isDate) {
+    var out = [];
     var c0 = (def.columns || [])[0];
-    if (!isDate || !c0 || !c0.grain) return;
+    if (!isDate || !c0 || !c0.grain) return out;
     var cur = currentBucketStart(c0.grain);
     if (rows.some(function (r) { return String(r[0] == null ? '' : r[0]).slice(0, 10) === cur; })) {
-      appendChartNote(I18N.partialBucketNote);
+      out.push(I18N.partialBucketNote);
     }
     var metricIdx = (def.columns || []).length, modes = metricTotalModes(def);
     var gaps = rows.some(function (r) {
       return modes.some(function (m, i) { return m === 'latest' && r[metricIdx + i] == null; });
     });
-    if (gaps) appendChartNote(I18N.gapNote);
+    if (gaps) out.push(I18N.gapNote);
+    return out;
   }
 
   // One-line transparency note under the title of AI-built reports: the
@@ -3542,7 +3563,8 @@
     fmtNumber: fmtNumber,
     zeroFillDateBuckets: zeroFillDateBuckets,
     kpiBandHtml: kpiBandHtml,
-    statCardHtml: statCardHtml
+    statCardHtml: statCardHtml,
+    buildChartData: buildChartData
   };
 
   document.addEventListener('rp:tabshown', function (e) {

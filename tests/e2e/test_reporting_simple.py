@@ -4454,6 +4454,13 @@ def test_reporting_simple_exposes_result_builders(nexora_server, page):
     _login(page, nexora_server)
     page.goto(f"{nexora_server}/reporting?tab=simple")
     expect(page.get_by_test_id("rs-hero")).to_be_visible()
-    names = ["ensureCatalogs", "fmtNumber", "zeroFillDateBuckets", "kpiBandHtml", "statCardHtml"]
+    names = [
+        "ensureCatalogs",
+        "fmtNumber",
+        "zeroFillDateBuckets",
+        "kpiBandHtml",
+        "statCardHtml",
+        "buildChartData",
+    ]
     kinds = page.evaluate("(names) => names.map(k => typeof window.ReportingSimple[k])", names)
     assert kinds == ["function"] * len(names), dict(zip(names, kinds, strict=False))
