@@ -1458,6 +1458,7 @@
       var metricIdx2 = columns.length - (def.metrics || []).length;
       var nMetrics2 = (def.metrics || []).length || 1;
       var mLabels2 = metricLabelsFor(def);
+      var modes2 = metricTotalModes(def);
       var xOrder = [], cell = {}, seriesTot = {}, seriesParts = {}, seriesMetric = {};
       rows.forEach(function (r) {
         var x = String(r[0] == null ? '' : r[0]).slice(0, isDate ? 10 : 200);
@@ -1480,9 +1481,18 @@
           var s = nMetrics2 > 1
             ? labelParts.concat([mLabels2[mi] || def.metrics[mi].metric]).join(' · ')
             : labelParts.join(' · ');
-          var v = Number(r[metricIdx2 + mi]) || 0;
-          cell[x][s] = (cell[x][s] || 0) + v;
-          seriesTot[s] = (seriesTot[s] || 0) + v;
+          // A level metric (backlog) is NULL, not 0, on legs where it wasn't
+          // measured — coercing it to 0 here would silently zero out a real
+          // gap once broken down by a second dimension (#follow-up from the
+          // stop-at-today/backlog-as-a-level audit). Only fold in a value
+          // when this row actually has one; an all-NULL cell stays NULL.
+          if (!(s in cell[x])) cell[x][s] = modes2[mi] === 'latest' ? null : 0;
+          var raw = r[metricIdx2 + mi];
+          if (raw != null) {
+            var v = Number(raw) || 0;
+            cell[x][s] = (cell[x][s] || 0) + v;
+            seriesTot[s] = (seriesTot[s] || 0) + v;
+          }
           seriesParts[s] = parts;
           seriesMetric[s] = mi;
         }
@@ -1524,7 +1534,10 @@
             // pivoted series is "<category> · <measure>" — keep the measure
             // code in `field` so a backlog series can default to the right axis.
             field: def.metrics && def.metrics[seriesMetric[s]] ? def.metrics[seriesMetric[s]].metric : null,
-            data: xOrder.map(function (x) { return cell[x][s] || 0; }),
+            data: xOrder.map(function (x) {
+              var v = cell[x] ? cell[x][s] : undefined;
+              return v === undefined ? (modes2[seriesMetric[s]] === 'latest' ? null : 0) : v;
+            }),
             borderColor: NX_PALETTE[i % NX_PALETTE.length],
             backgroundColor: NX_PALETTE[i % NX_PALETTE.length],
             tension: .25
