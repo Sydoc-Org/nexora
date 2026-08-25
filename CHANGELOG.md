@@ -25,6 +25,25 @@ Work toward the next release.
 
 ### Changed
 
+- **Permissions and UI prefs come from a 30-second per-process cache instead
+  of two DB round-trips per request.** Every non-static request used to run
+  `spGetUserPermissions` and `SELECT ui_prefs` for the user — at ~500 users
+  that was the biggest DB-load multiplier (each click, each 5 s heartbeat).
+  `nx_lib/user_cache.py` caches both per user (`NEXORA_USER_CACHE_TTL`,
+  default 30, `0` disables); a user's own pref save and any admin write drop
+  the affected entries immediately, so changes still show on the next
+  request. Safe because PROD is a single waitress process — it is a process
+  dict, deliberately not a session cache (the heartbeat/cookie race, #155).
+- **The per-request `ActiveSessions` UPDATE is throttled through the same
+  cache.** Profiling showed it was the hottest per-request cost (~70 ms of a
+  75 ms heartbeat: UPDATE + commit every request). The alive-check is now
+  cached per session id for the TTL; admin force-logout still takes effect on
+  the revoked user's next request (any `/admin` write clears the cache), and
+  `LastSeenAt` in the admin sessions view lags activity by at most the TTL.
+- **The session-liveness heartbeat polls every 30 s instead of every 5 s.**
+  Its only job is noticing an admin force-logout, and the server now answers
+  that from the 30 s cache anyway — polling faster could not detect it
+  sooner. At ~500 users the 5 s poll alone was ~100 requests/s of overhead.
 - **Colours & axes popover polish.** The per-series *Right axis* checkbox is a
   **Left | Right** switch; each Y axis is titled with the series it carries and
   takes that series' colour when it carries exactly one; colour-picker drags
