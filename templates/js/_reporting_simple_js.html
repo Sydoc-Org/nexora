@@ -79,6 +79,13 @@
     chartSeriesCapped: {{ _("Showing the {shown} largest of {n} series.")|tojson }},
     noChartLib: {{ _("The chart could not be drawn (chart library failed to load).")|tojson }},
     styleRightAxis: {{ _("Right axis")|tojson }},
+    styleLeftAxis: {{ _("Left axis")|tojson }},
+    axisShortLeft: {{ _("Left")|tojson }},
+    axisShortRight: {{ _("Right")|tojson }},
+    forecastNeedsLineBar: {{ _("Forecast is only drawn on line and bar charts.")|tojson }},
+    deleteReport: {{ _("Delete report")|tojson }},
+    deleteConfirm: {{ _("Delete “{name}”? This cannot be undone.")|tojson }},
+    deleteFailed: {{ _("Delete failed")|tojson }},
     openInAdvanced: {{ _("Open in Advanced")|tojson }},
     showQuery: {{ _("Show query")|tojson }},
     truncatedNote: {{ _("Showing the first {n} rows — narrow the filters or time range to see the rest.")|tojson }},
@@ -364,7 +371,36 @@
       if (r.kind === 'dashboard') { openDashboard(r); return; }
       openReport(r);
     });
-    return b;
+    if (!r.owned) return b;
+    // Owner-only trash button beside the card (DELETE is owner-scoped server-side too).
+    var wrap = document.createElement('div');
+    wrap.className = 'rs-card-wrap';
+    wrap.appendChild(b);
+    var del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'rs-card-del';
+    del.setAttribute('data-testid', 'rs-card-delete');
+    del.title = I18N.deleteReport;
+    del.setAttribute('aria-label', I18N.deleteReport + ': ' + r.name);
+    del.innerHTML = '<i class="fas fa-trash-can" aria-hidden="true"></i>';
+    del.addEventListener('click', function (e) { e.stopPropagation(); deleteReport(r.id, r.name); });
+    wrap.appendChild(del);
+    return wrap;
+  }
+
+  // Shared by the card trash button and the result view's "More actions" row.
+  // ponytail: window.confirm, same as the Advanced tab's delete — swap for a
+  // styled dialog when one exists for the page.
+  async function deleteReport(id, name) {
+    if (!window.confirm(I18N.deleteConfirm.replace('{name}', name || ''))) return;
+    var res = await api('/api/reporting/reports/' + id, { method: 'DELETE' });
+    if (!res.ok) { showResultError(I18N.deleteFailed); return; }
+    if (state.current && String(state.current.reportId) === String(id)) {
+      state.current = null;
+      toggleMoreMenu(false);
+      setView('library');
+    }
+    loadLibrary();
   }
 
   function renderLibrary() {
@@ -1930,6 +1966,7 @@
     if (rsCaptionBox) { rsCaptionBox.hidden = true; rsCaptionBox.textContent = ''; }
 
     var def = cur.def;
+    el('rsDeleteReport').hidden = !(cur.owned && cur.reportId);
     var hasMetrics = Array.isArray(def.metrics) && def.metrics.length > 0;
     var dims = (def.columns || []).length;
     // Timing badge: measures the full round-trip (both the optional grand-total
@@ -2387,6 +2424,12 @@
         el('rsError').textContent = I18N.couldNotExport;
         el('rsError').hidden = false;
         return;
+  el('rsDeleteReport').addEventListener('click', function () {
+    var cur = state.current;
+    if (!cur || !cur.reportId) return;
+    deleteReport(cur.reportId, cur.name || cur.def.title);
+  });
+
       }
       var blob = await res.blob();
       var a = document.createElement('a');

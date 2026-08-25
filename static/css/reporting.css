@@ -2010,6 +2010,19 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   border-color: var(--nx-card-hover-border); box-shadow: var(--nx-card-hover-shadow);
   transform: translateY(-2px);
 }
+/* Owned cards get a hover-revealed trash button; the wrapper keeps the
+   <button> card valid HTML (no nested buttons) and anchors the icon. */
+.rs-card-wrap { position: relative; }
+.rs-card-wrap .rs-card { width: 100%; height: 100%; }
+.rs-card-del {
+  position: absolute; right: 10px; bottom: 10px; width: 28px; height: 28px;
+  border: 1px solid var(--nx-border); border-radius: 8px; background: var(--nx-card);
+  color: var(--nx-text-sec); font-size: 12px; cursor: pointer; opacity: 0;
+  transition: opacity 150ms cubic-bezier(.4, 0, .2, 1), color 150ms;
+}
+.rs-card-wrap:hover .rs-card-del, .rs-card-del:focus-visible { opacity: 1; }
+.rs-card-del:hover { color: var(--nx-danger, #dc2626); border-color: var(--nx-danger, #dc2626); }
+.rs-more-row--danger { color: var(--nx-danger, #dc2626); }
 .rs-card-preview {
   position: relative; height: 78px; padding: 14px 14px 0;
   background: linear-gradient(180deg, #fafaff, var(--nx-card));

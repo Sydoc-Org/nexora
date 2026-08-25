@@ -18,6 +18,10 @@ Work toward the next release.
   a chart with other measures. Picks are saved with the report
   (`definition.style`, validated hex-only in `nx_lib/reporting/schema.py`).
   Scheduled-mail PNGs and the Advanced tab keep the default palette.
+- **Delete reports from the Simple tab.** Owned cards under *My reports* get a
+  hover trash button, and an open saved report has *⋯ → Delete report*; both
+  confirm first and call the existing owner-scoped
+  `DELETE /api/reporting/reports/<id>`. Until now deleting was Advanced-only.
 
 ### Changed
 

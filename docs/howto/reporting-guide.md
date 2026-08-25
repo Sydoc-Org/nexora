@@ -68,6 +68,9 @@ guide as an app page.
   shared one you can edit. Use **Save as** for a copy.
 - A scheduled email runs with the report owner's data access — recipients see
   the owner's numbers, not their own.
+- Delete a report you own: hover its card under My reports and click the trash
+  icon, or open it and use ⋯ → Delete report. Shared copies and schedules go
+  with it.
 
 **Asking the AI**
 
