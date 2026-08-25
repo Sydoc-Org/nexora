@@ -24,13 +24,20 @@ jobs:
     steps:
       - name: App log
         shell: powershell
+        # log_lines reaches the script through the environment, never through
+        # a ${{ }} interpolation into the body -- an input like "80; <command>"
+        # would otherwise run as PowerShell. Digits only, else the default.
+        env:
+          LOG_LINES: ${{ inputs.log_lines }}
         run: |
+          $n = 80
+          if ($env:LOG_LINES -match '^[0-9]{1,5}$') { $n = [int]$env:LOG_LINES }
           $log = "D:\sydoc\nexora\var\logs\system\app.log"
           if (-not (Test-Path $log)) { "MISSING: $log"; exit 0 }
           $f = Get-Item $log
           "last write : $($f.LastWriteTime)  ($([math]::Round($f.Length/1KB)) KB)"
-          "--- tail ${{ inputs.log_lines }} ---"
-          Get-Content $log -Tail ${{ inputs.log_lines }}
+          "--- tail $n ---"
+          Get-Content $log -Tail $n
 
       - name: IIS state
         shell: powershell
