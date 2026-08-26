@@ -605,15 +605,60 @@ body.reporting-console .reporting-simple-ractions {
   gap: 8px;
 }
 
-/* Filter chips: neutral white pills (mock), not accent-tinted */
+/* Filter chips: neutral white pills (mock), not accent-tinted.
+   align-items:flex-start matters — the row's default `stretch` grew every
+   chip to match an open editor, which is what made them read as tall boxes. */
+body.reporting-console .reporting-simple-chips {
+  align-items: flex-start;
+  gap: 6px;
+}
 body.reporting-console .rs-chip {
   background: var(--nx-card);
   border: 1px solid var(--nx-border);
-  color: var(--nx-text);
-  border-radius: 7px;
+  color: var(--nx-text-sec);
+  border-radius: 999px;
   font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  padding: 6px 12px;
+  box-shadow: var(--nx-shadow);
+  transition: border-color var(--nx-dur) var(--nx-ease),
+              color var(--nx-dur) var(--nx-ease),
+              background var(--nx-dur) var(--nx-ease);
 }
-body.reporting-console .rs-chip:hover { border-color: var(--nx-border-strong); }
+body.reporting-console .rs-chip:not(.rs-chip--empty):not(.rs-chip-editor):hover {
+  border-color: var(--nx-accent);
+  background: var(--nx-accent-tint);
+  color: var(--nx-accent);
+}
+body.reporting-console .rs-chip:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--nx-accent-soft);
+}
+/* The remove affordance only earns its ink on hover. */
+body.reporting-console .rs-chip .rs-chip-x {
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1;
+  opacity: 0.45;
+  padding: 0 0 0 2px;
+  transition: opacity var(--nx-dur) var(--nx-ease);
+}
+body.reporting-console .rs-chip:hover .rs-chip-x { opacity: 1; }
+body.reporting-console .rs-chip--empty {
+  border-style: dashed;
+  box-shadow: none;
+  color: var(--nx-text-meta);
+}
+/* Open editor reads as a popover above the row, not as a grown chip. */
+body.reporting-console .rs-chip-editor {
+  border-radius: calc(var(--nx-radius-scale, 1) * 12px);
+  border-color: var(--nx-accent);
+  color: var(--nx-text);
+  padding: 10px 12px;
+  gap: 8px;
+  box-shadow: var(--nx-shadow-pop);
+}
 
 /* KPI row: ONE uniform row of Console cards — the metric stat card joins the
    band's cards instead of sitting above them as a hero (design mock). */

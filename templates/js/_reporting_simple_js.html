@@ -1999,8 +1999,44 @@
       x.addEventListener('click', function (e) { e.stopPropagation(); onRemove(); });
       c.appendChild(x);
     }
-    if (onEdit) c.addEventListener('click', function () { onEdit(c); });
+    if (onEdit) {
+      // A clickable <span> is invisible to the keyboard — give it button
+      // semantics so Tab reaches it and Enter/Space opens the editor.
+      c.tabIndex = 0;
+      c.setAttribute('role', 'button');
+      c.addEventListener('click', function () { onEdit(c); });
+      c.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEdit(c); }
+      });
+    }
     return c;
+  }
+
+  // Swap a chip for its inline editor and give the editor a way out. Without
+  // this the only exits were Apply or a full re-render — clicking elsewhere or
+  // pressing Escape left the popover stuck open (escape-routes, modal-escape).
+  function openChipEditor(chipEl, box) {
+    chipEl.replaceWith(box);
+    function close() {
+      document.removeEventListener('mousedown', onDoc, true);
+      document.removeEventListener('keydown', onKey, true);
+      if (box.isConnected) box.replaceWith(chipEl);
+    }
+    function onDoc(e) {
+      // Apply re-renders the chip row, which disconnects the box — drop the
+      // listeners rather than resurrecting a stale chip over the new row.
+      if (!box.isConnected) {
+        document.removeEventListener('mousedown', onDoc, true);
+        document.removeEventListener('keydown', onKey, true);
+        return;
+      }
+      if (!box.contains(e.target)) close();
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') { e.stopPropagation(); close(); }
+    }
+    document.addEventListener('mousedown', onDoc, true);
+    document.addEventListener('keydown', onKey, true);
   }
 
   function filterChipEditor(cur, f, chipEl) {
@@ -2025,7 +2061,7 @@
     box.className = 'rs-chip rs-chip-editor';
     box.setAttribute('data-testid', 'rs-chip-values');
     box.textContent = I18N.loadingValues;
-    chipEl.replaceWith(box);
+    openChipEditor(chipEl, box);
     var src = (state.sources || []).find(function (s) { return s.id === cur.def.source; });
     var values = [], labels = {};
     if (f.field === 'processname' && src && (src.processes || []).length) {
@@ -2141,7 +2177,7 @@
     });
     box.appendChild(input);
     box.appendChild(ok);
-    chipEl.replaceWith(box);
+    openChipEditor(chipEl, box);
     if (!input.hidden) input.focus();
   }
 
@@ -2178,7 +2214,7 @@
       runCurrent();
     });
     box.appendChild(ok);
-    chipEl.replaceWith(box);
+    openChipEditor(chipEl, box);
   }
 
   function grainChipEditor(cur, col, chipEl) {
@@ -2204,7 +2240,7 @@
     });
     box.appendChild(sel);
     box.appendChild(ok);
-    chipEl.replaceWith(box);
+    openChipEditor(chipEl, box);
   }
 
   function renderAiChips(cur) {
