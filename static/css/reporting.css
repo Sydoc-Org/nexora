@@ -1488,6 +1488,16 @@ html.dark .reporting-sqlview pre .sql-comment, html.dark .reporting-ai-sql .sql-
 .reporting-chat-empty { text-align: center; padding: 20px 8px; color: var(--nx-text-sec); }
 .reporting-chat-empty p { margin: 0 0 12px; font-size: 12px; line-height: 1.5; }
 
+/* Eddard (issue #212): the mascot greeting the empty thread, the small mark in
+   the panel header / toolbar button, and the working one inside the progress
+   ticker. Mascot styles themselves live in eddard.css. */
+.reporting-chat-mascot { margin: 4px auto 10px; }
+.rc-btn--eddard { gap: 6px; padding-left: 7px; }
+/* The build stage sits above the real agent-step list, so the ticker needs the
+   panel's full width (it is otherwise a flex-start-hugging bubble). */
+.rp-chat-ticker.rp-chat-build { align-self: stretch; }
+.rp-chat-build .ed-stage { margin-bottom: 8px; }
+
 /* Starter suggestion chips -- same pill look as the landing hero's
    .rs-suggestion (border + accent text, tint background on hover). */
 .rp-chat-starter {

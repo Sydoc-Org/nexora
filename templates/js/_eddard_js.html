@@ -1,0 +1,87 @@
+{# Eddard's idle personality loop (issue #212). Drives every .ed--idle mark on
+   the page from ONE timer: the mood index walks a fixed sequence and writes
+   the mood's transforms as CSS vars; static/css/eddard.css springs them into
+   place. Moods, sequence and the 1450ms beat come from the design handoff
+   (docs/design/design_handoff_eddard_mascot/README.md).
+
+   ponytail: one shared timer, so several marks on a page blink and hop in
+   sync. Per-mark phase offsets only if that ever looks wrong. #}
+<script nonce="{{ csp_nonce() }}">
+  (function () {
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    //          ex,  ey,  es,   wy,   hop,  sx,   sy
+    var MOODS = [
+      [0, 0, 1, 1, 0, 1, 1],            // idle
+      [-8, 1, 1, 1, 0, 1, 1],           // look left
+      [8, 1, 1, 1, 0, 1, 1],            // look right
+      [3, 0, 1, 0.08, 0, 1.03, 1],      // wink
+      [0, 0, 1, 1, -16, 1.06, 0.9],     // happy hop
+      [0, -4, 1.42, 1, -9, 0.92, 1.12]  // surprise
+    ];
+    var SEQ = [0, 1, 0, 2, 3, 0, 4, 5, 0, 1, 4, 0];
+    var step = 0;
+
+    setInterval(function () {
+      var m = MOODS[SEQ[step % SEQ.length]];
+      step++;
+      var marks = document.querySelectorAll(".ed--idle");
+      for (var i = 0; i < marks.length; i++) {
+        var s = marks[i].style;
+        s.setProperty("--ed-ex", m[0] + "px");
+        s.setProperty("--ed-ey", m[1] + "px");
+        s.setProperty("--ed-es", m[2]);
+        s.setProperty("--ed-wy", m[3]);
+        s.setProperty("--ed-hop", m[4] + "px");
+        s.setProperty("--ed-sx", m[5]);
+        s.setProperty("--ed-sy", m[6]);
+      }
+    }, 1450);
+  })();
+
+  /* "Eddard builds a report" (handoff behaviour 2). The build counter walks
+     0->5 every 1300ms and wraps, unhiding one more report slot each step; the
+     entrance animations are pure CSS and (re)fire because the slot goes from
+     display:none to shown. Callers own the lifetime -- start it when a request
+     goes out, stop it when the answer lands. */
+  window.NexoraEddard = (function () {
+    var REDUCED = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var timers = new WeakMap();
+
+    // Lowest build step at which each slot is on the page.
+    var SLOTS = { title: 1, kpi: 2, bars: 3, line: 4, badge: 5 };
+
+    // toggleAttribute, not el.hidden: the trend line is an <svg>, and the
+    // `hidden` IDL property is HTMLElement-only -- assigning it there sets a
+    // dead expando and the element stays display:none.
+    function show(stage, name, on) {
+      stage.querySelector('[data-ed-slot="' + name + '"]').toggleAttribute("hidden", !on);
+    }
+
+    function paint(stage, build) {
+      show(stage, "empty", build === 0);
+      Object.keys(SLOTS).forEach(function (name) {
+        show(stage, name, name === "badge" ? build === 5 : build >= SLOTS[name]);
+      });
+    }
+
+    function startBuild(stage) {
+      if (!stage || timers.has(stage)) return;
+      if (REDUCED) { paint(stage, 5); return; }   // hold the finished report
+      var build = 0;
+      paint(stage, build);
+      timers.set(stage, setInterval(function () {
+        build = (build + 1) % 6;
+        paint(stage, build);
+      }, 1300));
+    }
+
+    function stopBuild(stage) {
+      if (!stage) return;
+      clearInterval(timers.get(stage));
+      timers.delete(stage);
+    }
+
+    return { startBuild: startBuild, stopBuild: stopBuild };
+  })();
+</script>

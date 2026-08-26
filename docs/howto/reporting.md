@@ -23,7 +23,7 @@ custom-header, save/load, and Excel-export support.
 `docs/design/design_handoff_reporting_console/README.md`, superseding the
 "Indigo Studio" hero/tab layout): a compact top bar (app icon, **Reporting**,
 Beta chip, the run's `N rows · M ms` timing badge, a sources sync line,
-**Help**, **AI chat**) over a body grid — a sticky 196px left rail and the
+**Help**, **Eddard**) over a body grid — a sticky 196px left rail and the
 content area. `templates/js/_reporting_tabs_js.html` is the nav controller
 (still exported as `window.ReportingTabs` for compat).
 
@@ -66,7 +66,7 @@ content area. `templates/js/_reporting_tabs_js.html` is the nav controller
   footer, and an owner-only `…` menu (Share / Delete —
   `window.Reporting.openShareFor(id)` drives the existing share modal). The
   old landing hero + global Ask-AI bar are gone (design intent #1); the AI
-  entry point is the top-bar **AI chat** button.
+  entry point is the top-bar **Eddard** button.
 - **Report cards with live-preview thumbnails** — every card in the Library/
   My reports/Shared-with-me groups renders a small preview (a chart curve,
   a big-number total, or a mini table) from the report's last cached run
@@ -230,8 +230,8 @@ chart already on screen re-themes on the next render, not live.
     document date, workitem id) is hidden; other sources list their catalog
     fields unfiltered. There is **no chip cap** — every filterable string
     field the Advanced tab offers renders as a chip.
-  - **Ask AI** — the hero bar and its suggestion chips are a shortcut into the
-    shared **AI chat panel** (`window.ReportingChat.open()` + `.send()`):
+  - **Ask Eddard** — the hero bar and its suggestion chips are a shortcut into the
+    shared **Eddard chat panel** (`window.ReportingChat.open()` + `.send()`):
     typing a question and pressing enter opens the panel and sends it there
     rather than running its own one-shot ask. See **AI assistant** below.
     Hidden if AI is unconfigured.
@@ -794,7 +794,7 @@ Both serialization paths neutralize spreadsheet formula injection (leading
 | `reporting.admin.sources` | Manage the data-source registry at `/reporting/sources` (see below). Admins seeded. |
 | `reporting.semantic.admin` | Manage the canonical-metrics registry at `/reporting/metrics` (see below). Admins seeded. |
 | `reporting.schedule` | Schedule a saved report to run and be emailed (see below). Admins seeded. |
-| `reporting.ai.use` | Use the AI assistant — see the AI chat toggle, ask natural-language questions (see below). Admins seeded. |
+| `reporting.ai.use` | Use the AI assistant (Eddard) — see the chat toggle, ask natural-language questions (see below). Admins seeded. |
 | `reporting.ai.sql` | Receive AI-drafted read-only T-SQL into the SQL editor. Grant alongside `reporting.sql.run`. Admins seeded. |
 | `reporting.ai.explain_data` | Let a result's rows reach the model: gates **auto captions** alone, and — combined with `reporting.sql.run` — the chat agent's `run_sql`/`compute_stats` tools (live-query narration). Grantable; admins seeded (see below). |
 
@@ -1162,20 +1162,45 @@ Graph is unconfigured the runner logs the failure per-schedule and continues.
 
 ## AI assistant
 
-The AI surface is a single **AI chat panel**, shared by both the Simple and
-Advanced tabs, that talks to the agentic drafter (`POST /api/reporting/ai/agent`).
+The AI surface is a single chat panel — branded **Eddard** in the UI (issue
+ #212) — shared by both the Simple and Advanced tabs, talking to the agentic
+drafter (`POST /api/reporting/ai/agent`).
 The earlier per-mode UI (an "Ask AI" tab with **Build a report** / **Write SQL** /
 **Agent** sub-modes, plus a Simple-tab **Refine** bar) is retired — see
 **AI chat panel** below for what replaced it, and **Legacy single-shot endpoints**
 for what's left of the old surfaces server-side.
 
+### Eddard, the mascot
+
+Every AI surface carries **Eddard**: an animated version of the Nexora
+black-hole logo (black core, accent accretion ring, two dot eyes) that floats,
+blinks, looks around, winks and hops. Files:
+
+- `templates/_eddard.html` — two macros: `mark(size, state)` renders the SVG
+  mascot, `stage()` renders the "builds a report" loading stage.
+- `static/css/eddard.css` — geometry-independent styling + every keyframe. The
+  accent follows `--nx-accent`, so the mascot re-tints with the user's accent
+  picker; the core stays black in both themes (same rule as `.bh-core`).
+- `templates/js/_eddard_js.html` — one shared timer walking the idle mood
+  sequence, plus `window.NexoraEddard.startBuild/stopBuild(stage)` for the
+  build loop (0→5, 1300 ms per step, wraps).
+
+Placements: the top-bar toggle (22px), the chat panel header (24px), the empty
+thread (88px, idle), the AI-insight card head on Simple (20px), and the
+progress ticker while a turn runs — there the `stage()` macro flings a
+placeholder report together (title → KPI → bars → trend → Ready badge) beside
+the real agent steps. Everything is `aria-hidden` (decorative; the visible
+status text carries the meaning) and `prefers-reduced-motion` holds each loop
+on its resting frame. Source of truth for geometry, mood table and timings:
+`docs/design/design_handoff_eddard_mascot/README.md`.
+
 ### AI chat panel
 
-**Toggle:** an **"AI chat"** button (`#rpChatToggle`, wand-sparkles icon) is the
+**Toggle:** an **"Eddard"** button (`#rpChatToggle`, mascot mark) is the
 masthead's action, on both tabs, whenever `reporting.ai.use` is held
 (`ai_enabled`). (**Sources** is not next to it — it sits at the right end of the
 Simple/Advanced tab rail below, see *Page layout*.) Clicking it — or, on Simple, typing into the landing hero's
-**Ask AI** bar or clicking one of its suggestion chips — opens a docked
+**Ask Eddard** bar or clicking one of its suggestion chips — opens a docked
 right-side slide-over (`#rpChatPanel`) with an empty state offering three
 example questions. It closes any open drill-through drawer first (the two
 panels share the same slide-over real estate) and closes on **×**, clicking the
@@ -1412,7 +1437,7 @@ Set these in `env/INT.env` and `env/PROD.env`:
 | `AZURE_OPENAI_DEPLOYMENT` | Deployment name (required when `AI_PROVIDER=azure`). |
 | `AZURE_OPENAI_API_VERSION` | API version (optional; defaults to `2024-10-21`). GPT-5-family deployments need a newer one, e.g. `2025-01-01-preview`. |
 | `AI_DAILY_LIMIT` | Per-user/day cap on AI asks (cost/abuse control). `0` (default) = unlimited. When the cap is hit the route returns **429** before any provider call, and the throttle is recorded in `dbo.ReportingAiAudit` with `Status='blocked'`. |
-| `AI_TIMEOUT_S` | HTTP read timeout for a single model round-trip (default `120`). Reasoning deployments (GPT-5 family) regularly spend 30–60 s on one hard question; too tight a value surfaces as *"The AI assistant could not answer right now"* (502) with a `Read timed out` line in `var/logs/system/app.log`. |
+| `AI_TIMEOUT_S` | HTTP read timeout for a single model round-trip (default `120`). Reasoning deployments (GPT-5 family) regularly spend 30–60 s on one hard question; too tight a value surfaces as *"Eddard could not answer right now"* (502) with a `Read timed out` line in `var/logs/system/app.log`. |
 | `AI_AGENT_BUDGET_S` | Wall-clock ceiling for a whole agentic (chat) run (default `180`). Checked between turns, so a slow model can't hold a worker for `max_turns × AI_TIMEOUT_S`; a run that hits it returns what it has with `stoppedReason: "budget"`. |
 
 Until `AI_PROVIDER` is set (or is `none`) the route returns **503** and the tab
@@ -1543,6 +1568,8 @@ live schema grounding and scheduled-report delivery.
 - `templates/js/_reporting_js.html` — builder UI; `templates/js/_reporting_viz_js.html`
   — chart + drag-and-drop pivot (`window.ReportingViz`);
   `templates/js/_reporting_ai_js.html` — the AI chat panel (`window.ReportingChat`);
+  `templates/_eddard.html` + `templates/js/_eddard_js.html` + `static/css/eddard.css`
+  — the Eddard mascot and its build-a-report loading stage;
   `templates/js/_reporting_dashboard_js.html` — dashboard builder
   (`window.ReportingDashboard`).
 - `sql/_migrations/NexoraDB/0004_create_reports_table.sql` — `dbo.Reports` DDL.

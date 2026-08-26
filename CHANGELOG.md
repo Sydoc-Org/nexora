@@ -10,6 +10,19 @@ Work toward the next release.
 
 ### Added
 
+- **Eddard, the reporting mascot** (#212). The AI assistant now has a face and a
+  name: an animated version of the Nexora black-hole logo — black core, accent
+  accretion ring, two dot eyes — who floats, blinks, looks around, winks and
+  hops through the reporting AI surfaces (top-bar toggle, chat header, empty
+  thread, the Simple tab's insight card). While a question is running he builds
+  a placeholder report piece by piece — title, KPI, bars, trend line, a green
+  *Ready* badge — above the real agent steps. The visible AI wording is rebranded
+  with him ("AI chat" → **Eddard**, "AI insight" → **Eddard insight**), and his
+  accent follows the user's accent picker while the core stays black in both
+  themes. Decorative and `aria-hidden`; `prefers-reduced-motion` holds every loop
+  on its resting frame. New `templates/_eddard.html`,
+  `templates/js/_eddard_js.html`, `static/css/eddard.css`; design source is
+  `docs/design/design_handoff_eddard_mascot/`.
 - **Response-time sparklines on the admin status page.** Each component row now
   carries a 24-hour latency graph beside its uptime strip, drawn from the new
   `dbo.StatusSamples` table (migration `0071`) that the outage monitor fills

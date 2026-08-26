@@ -1,3 +1,4 @@
+{% import '_eddard.html' as eddard %}
 <!DOCTYPE html>
 <html lang="{{ get_locale }}">
 
@@ -17,6 +18,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
   <link rel="stylesheet" href="{{ url_for('static',filename='css/reporting.css') }}">
   <link rel="stylesheet" href="{{ url_for('static',filename='css/reporting-console.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/eddard.css') }}">
   <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
   {% if details_images_perm or details_fields_perm %}
   {# The drill-drawer workitem panel (below, near the drill include) reuses
@@ -85,9 +87,9 @@
       {% if ai_enabled %}
       {# aria-label, not just the visible span: that span is display:none below
          the sm breakpoint, leaving an icon-only button with no name. #}
-      <button id="rpChatToggle" class="rc-btn" data-testid="reporting-chat-toggle"
-              aria-controls="rpChatPanel" aria-expanded="false" aria-label="{{ _('AI chat') }}">
-        <i class="fas fa-message rc-btn-ico--accent" aria-hidden="true"></i><span class="hidden sm:inline">{{ _("AI chat") }}</span></button>
+      <button id="rpChatToggle" class="rc-btn rc-btn--eddard" data-testid="reporting-chat-toggle"
+              aria-controls="rpChatPanel" aria-expanded="false" aria-label="{{ _('Ask Eddard') }}">
+        {{ eddard.mark(22) }}<span class="hidden sm:inline">{{ _("Eddard") }}</span></button>
       {% endif %}
     </div>
 
@@ -170,20 +172,25 @@
      close, dragging, message rendering and send behaviour. #}
   {% if ai_enabled %}
   <aside id="rpChatPanel" class="reporting-chat-panel" hidden role="dialog" aria-modal="false"
-         aria-label="{{ _('AI chat') }}" data-testid="reporting-chat-panel">
+         aria-label="{{ _('Ask Eddard') }}" data-testid="reporting-chat-panel">
     <div class="reporting-chat-head">
-      <span class="reporting-chat-title"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>{{ _("AI chat") }}</span>
+      <span class="reporting-chat-title">{{ eddard.mark(24) }}{{ _("Eddard") }}</span>
       <button id="rpChatClose" class="nx-btn nx-btn--ghost nx-btn--sm" data-testid="reporting-chat-close"
               aria-label="{{ _('Close') }}">&times;</button>
     </div>
     <div id="rpChatThread" class="reporting-chat-thread" data-testid="reporting-chat-thread">
       <div id="rpChatEmpty" class="reporting-chat-empty">
-        <p>{{ _("Ask about your data in plain language. I can build reports, draft SQL, and — with the right permission — run read-only queries and report real numbers.") }}</p>
+        {{ eddard.mark(88, cls='reporting-chat-mascot', testid='reporting-chat-mascot') }}
+        <p>{{ _("Hi, I'm Eddard. Ask about your data in plain language. I can build reports, draft SQL, and — with the right permission — run read-only queries and report real numbers.") }}</p>
         <button type="button" class="rp-chat-starter" data-testid="rp-chat-starter">{{ _("documents per month this year") }}</button>
         <button type="button" class="rp-chat-starter" data-testid="rp-chat-starter">{{ _("invoices by process, last 3 months") }}</button>
         <button type="button" class="rp-chat-starter" data-testid="rp-chat-starter">{{ _("pages processed per week") }}</button>
       </div>
     </div>
+    {# Cloned into the progress ticker while a request runs: Eddard flings a
+       report together (title -> KPI -> bars -> trend -> Ready) beside the real
+       agent steps. Kept in the macro instead of duplicating the SVG in JS. #}
+    <template id="rpChatWorkingMascot">{{ eddard.stage(testid='reporting-chat-build-stage') }}</template>
     <form id="rpChatForm" class="reporting-chat-form">
       <textarea id="rpChatInput" class="reporting-chat-input" rows="1"
                 placeholder="{{ _('Ask about your data…') }}" data-testid="reporting-chat-input"></textarea>
@@ -373,7 +380,7 @@
         <div class="nx-empty reporting-empty-state" data-testid="reporting-empty-state">
           <div class="nx-empty__art"><i class="fas fa-chart-column" aria-hidden="true"></i></div>
           <p class="nx-empty__title">{{ _("Build a report to see results") }}</p>
-          <p class="nx-empty__sub">{{ _("Choose a source on the left, add columns and filters, then press Run — or open the AI chat to draft one in plain language.") }}</p>
+          <p class="nx-empty__sub">{{ _("Choose a source on the left, add columns and filters, then press Run — or ask Eddard to draft one in plain language.") }}</p>
         </div>
       </div>
       <div id="rpChart" class="reporting-viz" hidden data-testid="reporting-chart"></div>
@@ -539,6 +546,7 @@
 
   {% include '_reporting_help.html' %}
 
+  {% include 'js/_eddard_js.html' %}
   {% include 'js/_reporting_viz_js.html' %}
   {% include 'js/_reporting_js.html' %}
   <!-- Motion (motion.dev) — vanilla-JS animation library, pinned + SRI. -->

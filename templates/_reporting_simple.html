@@ -1,3 +1,4 @@
+{% import '_eddard.html' as eddard %}
 {# ============================================================
    Simple pane (Spec 2) — report library + guided wizard + ask-AI
    helper, card-based results. Self-contained: behavior lives in
@@ -263,7 +264,7 @@
            #rsCaption exactly as before. #}
         <div class="rc-card rc-side-card" id="rsCaptionCard" data-testid="rs-caption-card">
           <div class="rc-side-card__head rc-side-card__head--ai">
-            <i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>{{ _("AI insight") }}
+            {{ eddard.mark(20) }}{{ _("Eddard insight") }}
           </div>
           <div id="rsCaption" class="rp-caption rc-side-card__body" hidden data-testid="rs-caption"></div>
         </div>

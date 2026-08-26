@@ -111,11 +111,11 @@ whichever suits you.
 | Way in | Where | Best for |
 |---|---|---|
 | **Guided builder** (wizard) | **New report** in the Library | Almost everyone, almost always. Four questions, no jargon. |
-| **Ask AI** | **AI chat** button, top right | You know the question in words but not which fields to pick. |
+| **Ask Eddard** | **Eddard** button, top right | You know the question in words but not which fields to pick. |
 | **Advanced builder** | **Advanced** in the left navigation | You want exact control: pick individual columns, several filters, custom sort, custom headers. |
 
 You can start in one and move to another: any result has an **Open in Advanced**
-entry in its **…** menu, and the AI's answers have an **Open report** chip.
+entry in its **…** menu, and Eddard's answers have an **Open report** chip.
 
 ### Way 1 — the guided builder
 
@@ -186,9 +186,11 @@ step, and the badge does not recompute when you narrow the selection later); a
 Chips that no selected process provides at all are hidden, and the rest sort
 best-coverage-first. **If a number looks too low, check the badge first.**
 
-### Way 2 — Ask AI
+### Way 2 — Ask Eddard
 
-Click **AI chat** in the top-right and ask in plain words — *"documents per
+**Eddard** is the reporting assistant — the little black hole in the top bar,
+who blinks at you while he waits and throws a report together while he works.
+Click **Eddard** in the top-right and ask in plain words — *"documents per
 month this year"*, *"invoices by process, last 3 months"* — or click one of
 the starter chips in the empty panel. The answer arrives in the same panel.
 
@@ -197,18 +199,18 @@ the starter chips in the empty panel. The answer arrives in the same panel.
   under an answer, the agent ran out of budget mid-way — one click resumes it
   with more room; try that before rephrasing.
 - If it built a report, an **Open report** chip opens it in the results view.
-  **Use it.** The filters and process scope the AI chose are visible there —
+  **Use it.** The filters and process scope Eddard chose are visible there —
   a wrong guess (wrong date range, wrong process) shows up immediately, and
   you can adjust before trusting the number. From there, **Open in Advanced**
   reaches the builder if you need it.
 - It remembers the conversation, so "…now only this quarter" works as a
   follow-up. Three follow-up chips are offered for you.
 
-The AI does not get to bypass anything: it can only build a report you were
+Eddard does not get to bypass anything: he can only build a report you were
 already allowed to run, and the report still runs through the normal path with
 your own permissions.
 
-If you do not see the **AI chat** button, the assistant is either not switched
+If you do not see the **Eddard** button, the assistant is either not switched
 on in your environment or not granted to your account.
 
 ### Way 3 — the Advanced builder
@@ -497,7 +499,7 @@ different pages. Ask an administrator to grant what you need:
 | See a particular data source | Access to that source |
 | Export to Excel/CSV | Export permission |
 | See a client or process in the picker | Row scope for that process |
-| Use the AI assistant | AI assistant access |
+| Ask Eddard | AI assistant access |
 | Set up email delivery | Scheduling permission |
 | Write your own SQL | SQL sandbox access (below) |
 

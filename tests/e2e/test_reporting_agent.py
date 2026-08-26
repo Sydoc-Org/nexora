@@ -382,3 +382,78 @@ def test_chat_panel_surfaces_a_mid_stream_failure(nexora_server, page):
 
     expect(page.get_by_test_id("rp-chat-msg-ai")).to_contain_text("could not answer")
     expect(page.get_by_test_id("reporting-chat-send")).to_be_enabled()
+
+
+def test_chat_ticker_shows_eddard_building_a_report(nexora_server, page):
+    """Issue #212: while a turn is in flight the ticker carries Eddard's build
+    stage, and the build loop reveals the report piece by piece.
+
+    Two halves, because a stubbed answer resolves far faster than the 1300ms
+    build beat: a MutationObserver (same trick as the build-steps test above)
+    proves the stage really is mounted into the ticker on send, then the build
+    controller is driven directly to check the reveal order. That second half
+    also pins the <svg> trend slot -- `hidden` is an HTMLElement-only IDL
+    property, so toggling it by assignment leaves the line invisible forever.
+    """
+    _login(page, nexora_server)
+    _stub_agent_sequence(
+        page,
+        [
+            {
+                "body": {
+                    "answer": "done",
+                    "toolTrace": [],
+                    "turns": 1,
+                    "stoppedReason": "final",
+                    "definition": None,
+                    "sql": None,
+                },
+            }
+        ],
+    )
+    _open_chat_from_advanced(page, nexora_server)
+
+    page.evaluate("""() => {
+        window.__sawStage = false;
+        const obs = new MutationObserver((records) => {
+            records.forEach((rec) => rec.addedNodes.forEach((n) => {
+                if (n.nodeType === 1 && n.querySelector && n.querySelector('.ed-stage')) {
+                    window.__sawStage = true;
+                }
+            }));
+        });
+        obs.observe(document.getElementById('rpChatThread'), { childList: true, subtree: true });
+    }""")
+
+    page.get_by_test_id("reporting-chat-input").fill("build me something")
+    page.get_by_test_id("reporting-chat-send").click()
+    expect(page.get_by_test_id("rp-chat-msg-ai")).to_contain_text("done")
+    assert page.evaluate("() => window.__sawStage"), "no Eddard stage in the progress ticker"
+    # The stage leaves with the ticker -- nothing keeps painting afterwards.
+    expect(page.get_by_test_id("reporting-chat-build-stage")).to_have_count(0)
+
+    # Drive the build loop itself and record which slots are on screen at each
+    # step. 8s covers the full 0->5 walk at the handoff's 1300ms beat.
+    steps = page.evaluate("""() => new Promise((resolve) => {
+        const stage = document.getElementById('rpChatWorkingMascot').content.cloneNode(true)
+            .querySelector('.ed-stage');
+        document.getElementById('rpChatThread').appendChild(stage);
+        const shown = () => Array.from(stage.querySelectorAll('[data-ed-slot]'))
+            .filter((el) => el.getBoundingClientRect().height > 0)
+            .map((el) => el.dataset.edSlot);
+        const seen = [];
+        window.NexoraEddard.startBuild(stage);
+        const t = setInterval(() => {
+            const now = shown().join(',');
+            if (seen[seen.length - 1] !== now) seen.push(now);
+            if (now.includes('badge')) {
+                clearInterval(t);
+                window.NexoraEddard.stopBuild(stage);
+                stage.remove();
+                resolve(seen);
+            }
+        }, 100);
+    })""")
+
+    assert steps[0] == "empty", steps
+    assert steps[-1] == "title,kpi,bars,line,badge", steps

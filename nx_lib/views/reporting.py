@@ -1481,7 +1481,7 @@ def api_ai_ask():
             "error",
             int((time.monotonic() - start) * 1000),
         )
-        return jsonify({"error": _("The AI assistant could not answer right now")}), 502
+        return jsonify({"error": _("Eddard could not answer right now")}), 502
 
     duration_ms = int((time.monotonic() - start) * 1000)
     _audit_ai(
@@ -1627,7 +1627,7 @@ def api_ai_build():
                 "error",
                 int((time.monotonic() - start) * 1000),
             )
-            return jsonify({"error": _("The AI assistant could not answer right now")}), 502
+            return jsonify({"error": _("Eddard could not answer right now")}), 502
         valid, prior_error = _validate_definition_for_user(result.definition)
         if valid:
             break
@@ -2000,7 +2000,7 @@ def api_ai_agent():
                         json.dumps(
                             {
                                 "done": True,
-                                "error": _("The AI assistant could not answer right now"),
+                                "error": _("Eddard could not answer right now"),
                             }
                         )
                         + "\n"
@@ -2024,7 +2024,7 @@ def api_ai_agent():
     except Exception as e:
         current_app.logger.error(f"/api/reporting/ai/agent provider error: {e}")
         _audit_failure("error")
-        return jsonify({"error": _("The AI assistant could not answer right now")}), 502
+        return jsonify({"error": _("Eddard could not answer right now")}), 502
 
     return jsonify(_finish(result))
 
@@ -2160,7 +2160,7 @@ def api_ai_caption():
             "error",
             int((time.monotonic() - start) * 1000),
         )
-        return jsonify({"error": _("The AI assistant could not answer right now")}), 502
+        return jsonify({"error": _("Eddard could not answer right now")}), 502
 
     duration_ms = int((time.monotonic() - start) * 1000)
     _audit_ai(
