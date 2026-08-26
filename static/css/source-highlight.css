@@ -209,9 +209,13 @@
   overflow: hidden;
 }
 /* Image fills the page pane (overrides the centred-lightbox 90% / 85vh sizing). */
+/* Pane-relative, NOT 92vh: with the line-item box occupying the grid's second
+   row the page pane is shorter than the viewport, and a vh-sized image overflows
+   it -- .src-modal-page clips (overflow:hidden), so the bottom of the document
+   silently disappeared behind the box. */
 .src-modal-page .modal-content {
   max-width: 100%;
-  max-height: 92vh;
+  max-height: 100%;
   margin: 0;
 }
 .src-modal-values {
