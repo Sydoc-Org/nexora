@@ -809,8 +809,9 @@ def test_workitems_real_data_path_and_docfield_fail_closed(client, monkeypatch):
     # Drives the REAL _get_workitems_data (no seam monkeypatch) with the
     # scope built from the key -- pins the stringly-typed scope-dict seam --
     # and pins the documented fail-closed contract: an active doc-field pair
-    # that cannot be resolved (no SearchConfig mapping here) must force an
-    # EMPTY allow-set, never an unconstrained query.
+    # that cannot be resolved (no mapping_config mapping here, #98 phase 3)
+    # must force an EMPTY allow-set, never an unconstrained query.
+    import nx_lib.mapping_config as mc
     import nx_lib.views.workitems as wi
 
     raw = secrets.token_urlsafe(32)
@@ -824,7 +825,11 @@ def test_workitems_real_data_path_and_docfield_fail_closed(client, monkeypatch):
     monkeypatch.setattr(wi, "fetch_merged_page", _fake_fetch)
     monkeypatch.setattr(wi, "get_activity_instances_to_ignore", lambda: "")
     monkeypatch.setattr(wi, "get_valid_search_columns", lambda: ["col_invoicenr"])
-    monkeypatch.setattr(wi, "engine_nexora_db", _engine_returning([]))  # no SearchConfig rows
+    # No mapping_config rows for the field -> the resolution blocks' upfront
+    # mappings_for/sources_for reads (#98 phase 3) come back empty, same as
+    # the old "no SearchConfig rows" simulation.
+    monkeypatch.setattr(mc, "mappings_for", lambda client, processes, field_keys=None: [])
+    monkeypatch.setattr(mc, "sources_for", lambda client, processes=None: [])
     _patch_field_whitelist(monkeypatch)  # view-level whitelist (ax namespace)
     monkeypatch.setattr(ax, "resolve_import_datetimes", lambda ids, procs, *, strict=False: {})
     try:

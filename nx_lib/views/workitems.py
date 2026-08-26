@@ -569,12 +569,34 @@ def _get_workitems_data(args, export_all=False, scope=None):
         valid_db_columns = get_valid_search_columns()
         blocked_docfields = scope["sensitive_blocked"]
 
-        conn_nex = None
-        cursor_nex = None
-        try:
-            conn_nex = engine_nexora_db.raw_connection()
-            cursor_nex = conn_nex.cursor()
+        # One registry read per leg (#98 phase-3 perf) instead of one SearchConfig
+        # query per pair: mapping_config.registry() is cached in-process, so this
+        # is zero NexoraDB round-trips on a warm cache, vs. len(docfields) before.
+        default_mappings = mapping_config.mappings_for("default", target_processes)
+        default_sources = {
+            s.process: s for s in mapping_config.sources_for("default", target_processes)
+        }
+        _default_id_col_cache = {}
 
+        def _default_id_col(src):
+            # Same JoinCondition/alias regex the legacy SearchConfig-row path
+            # used, cached per (leg, process) rather than re-derived per pair.
+            if src.process not in _default_id_col_cache:
+                id_col = None
+                for part in re.split(r"\s*=\s*", (src.join_condition or "").strip()):
+                    if src.alias and re.match(
+                        rf"^{re.escape(src.alias)}\.\w+$", part.strip(), re.IGNORECASE
+                    ):
+                        id_col = part.strip()
+                        break
+                if not id_col:
+                    current_app.logger.warning(
+                        f"Could not extract ID col from JoinCondition: {src.join_condition}"
+                    )
+                _default_id_col_cache[src.process] = id_col
+            return _default_id_col_cache[src.process]
+
+        try:
             for pair_idx, (docfield, docvalue) in enumerate(
                 zip(docfields, docvalues, strict=False)
             ):
@@ -605,18 +627,8 @@ def _get_workitems_data(args, export_all=False, scope=None):
 
                 op_sql, op_param = DOCFIELD_OPS[_docfield_op(docops, pair_idx)]
 
-                placeholders = ",".join(["?"] * len(target_processes))
-                # target_cols come from get_valid_search_columns() (whitelist) --
-                # safe to interpolate.
-                non_null = " OR ".join(f"{c} IS NOT NULL" for c in target_cols)
-                query = f"""
-                    SELECT ProcessName, TableName, TableAlias, JoinCondition, TimeFilter, {", ".join(target_cols)}
-                    FROM SearchConfig
-                    WHERE ({non_null})
-                    AND ClientCode = 'default'
-                    AND ProcessName IN ({placeholders})
-                """
-                configs = cursor_nex.execute(query, target_processes).fetchall()
+                target_field_keys = {c.removeprefix("col_") for c in target_cols}
+                configs = [m for m in default_mappings if m.field_key in target_field_keys]
 
                 if not configs:
                     # Field unmapped for every targeted default process -> this
@@ -628,34 +640,28 @@ def _get_workitems_data(args, export_all=False, scope=None):
                     id_parts = []
                     id_params = []
                     for config in configs:
-                        tbl = config.TableName
-                        alias = config.TableAlias
-                        time_filter = config.TimeFilter
+                        src = default_sources.get(config.process)
+                        if src is None or not src.table:
+                            continue
+                        tbl = src.table
+                        alias = src.alias
+                        time_filter = src.time_filter
 
-                        id_col = None
-                        for part in re.split(r"\s*=\s*", (config.JoinCondition or "").strip()):
-                            if re.match(rf"^{re.escape(alias)}\.\w+$", part.strip(), re.IGNORECASE):
-                                id_col = part.strip()
-                                break
-
+                        id_col = _default_id_col(src)
                         if not id_col:
-                            current_app.logger.warning(
-                                f"Could not extract ID col from JoinCondition: {config.JoinCondition}"
-                            )
                             continue
 
-                        for target_config_col in target_cols:
-                            db_column = getattr(config, target_config_col)
-                            if not db_column:
-                                continue
-                            safe_col = f"CAST({alias}.{db_column} AS NVARCHAR(MAX))"
-                            id_parts.append(f"""
-                                SELECT DISTINCT {id_col} AS id
-                                FROM {tbl} {alias}
-                                WHERE {safe_col} COLLATE DATABASE_DEFAULT {op_sql} ?
-                                AND {time_filter}
-                            """)
-                            id_params.append(op_param(docvalue))
+                        db_column = config.column
+                        if not db_column:
+                            continue
+                        safe_col = f"CAST({alias}.{db_column} AS NVARCHAR(MAX))"
+                        id_parts.append(f"""
+                            SELECT DISTINCT {id_col} AS id
+                            FROM {tbl} {alias}
+                            WHERE {safe_col} COLLATE DATABASE_DEFAULT {op_sql} ?
+                            AND {time_filter}
+                        """)
+                        id_params.append(op_param(docvalue))
 
                     if not id_parts:
                         continue  # mapping rows exist but unusable -> tolerant skip
@@ -688,11 +694,6 @@ def _get_workitems_data(args, export_all=False, scope=None):
 
         except Exception as e:
             current_app.logger.error(f"Error in docfield pre-fetch block: {e}")
-        finally:
-            if cursor_nex:
-                cursor_nex.close()
-            if conn_nex:
-                conn_nex.close()
 
     # --- MS02 columnar doc-field pre-resolution (sibling to the default block) ---
     # Resolves through the SAME SearchConfig mapping but against the separate
@@ -704,11 +705,19 @@ def _get_workitems_data(args, export_all=False, scope=None):
     if scope["can_docfields"] and target_processes and engine_ms02_docfields_pg is not None:
         valid_db_columns = get_valid_search_columns()
         blocked_docfields = scope["sensitive_blocked"]
-        conn_nex2 = None
-        cursor_nex2 = None
+
+        # One registry read per leg (#98 phase-3 perf), mirroring the default
+        # leg above -- see its comment for the round-trip-elimination rationale.
+        ms02_mappings = mapping_config.mappings_for("ms02", target_processes)
+        ms02_sources = {s.process: s for s in mapping_config.sources_for("ms02", target_processes)}
+        _ms02_id_col_cache = {}
+
+        def _cached_ms02_id_col(src):
+            if src.process not in _ms02_id_col_cache:
+                _ms02_id_col_cache[src.process] = _ms02_id_column(src.join_condition, src.alias)
+            return _ms02_id_col_cache[src.process]
+
         try:
-            conn_nex2 = engine_nexora_db.raw_connection()
-            cursor_nex2 = conn_nex2.cursor()
             pairs = []
             for pair_idx, (docfield, docvalue) in enumerate(
                 zip(docfields, docvalues, strict=False)
@@ -736,20 +745,12 @@ def _get_workitems_data(args, export_all=False, scope=None):
                     ]
                     if not target_cols:
                         continue
-                placeholders = ",".join(["?"] * len(target_processes))
-                non_null = " OR ".join(f"{c} IS NOT NULL" for c in target_cols)
-                cursor_nex2.execute(
-                    f"SELECT TableName, TableAlias, JoinCondition, TimeFilter, {', '.join(target_cols)} "
-                    f"FROM SearchConfig "
-                    f"WHERE ({non_null}) "
-                    f"AND ClientCode = 'ms02' "
-                    f"AND ProcessName IN ({placeholders})",
-                    target_processes,
-                )
-                # Each ms02 row maps a docfield to a COLUMN in a wide statistik
-                # table (col_<field> = the column name); build one columnar spec
-                # per (row, column) (specs within a pair are OR'd in the resolver).
-                config_rows = cursor_nex2.fetchall()
+
+                # Each matching FieldMapping maps a docfield to a COLUMN in a wide
+                # statistik table (column = the column name); build one columnar
+                # spec per mapping (specs within a pair are OR'd in the resolver).
+                target_field_keys = {c.removeprefix("col_") for c in target_cols}
+                config_rows = [m for m in ms02_mappings if m.field_key in target_field_keys]
                 if not config_rows:
                     # Field unmapped for every targeted ms02 process -> this
                     # pair cannot match here -> forced-empty pair (empty specs;
@@ -765,17 +766,17 @@ def _get_workitems_data(args, export_all=False, scope=None):
                     )
                     continue
                 specs = []
-                for r in config_rows:
-                    if not r.TableName:
+                for m in config_rows:
+                    src = ms02_sources.get(m.process)
+                    if src is None or not src.table:
                         continue
-                    id_col = _ms02_id_column(r.JoinCondition, r.TableAlias)
+                    id_col = _cached_ms02_id_col(src)
                     if not id_col:
                         continue
-                    for target_config_col in target_cols:
-                        field_col = getattr(r, target_config_col)
-                        if not field_col:
-                            continue
-                        specs.append((r.TableName, id_col, field_col, r.TimeFilter))
+                    field_col = m.column
+                    if not field_col:
+                        continue
+                    specs.append((src.table, id_col, field_col, src.time_filter))
                 if not specs:
                     continue  # mapping rows exist but unusable -> tolerant no-constraint
                 pairs.append(
@@ -797,11 +798,6 @@ def _get_workitems_data(args, export_all=False, scope=None):
         except Exception as e:
             current_app.logger.error(f"Error in MS02 docfield pre-fetch block: {e}")
             ms02_docfield_ids = None
-        finally:
-            if cursor_nex2:
-                cursor_nex2.close()
-            if conn_nex2:
-                conn_nex2.close()
 
     # Fail CLOSED: an active doc-field search must never leave a source
     # unconstrained. Every unresolved path -- absent MS02 engine, resolver/DB

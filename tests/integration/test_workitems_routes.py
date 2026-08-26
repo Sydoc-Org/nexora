@@ -269,6 +269,72 @@ class _SqlLogEngine:
         return _SqlLogConn(self._log)
 
 
+def _fm(field_key, column, process="test_proc", client="default", column_type=None):
+    """Build a nx_lib.mapping_config.FieldMapping for docfield-resolution
+    tests (#98 phase 3: the two resolution blocks in _get_workitems_data
+    now read mapping_config instead of per-pair SearchConfig cursors)."""
+    from nx_lib.mapping_config import FieldMapping
+
+    return FieldMapping(
+        client=client, process=process, field_key=field_key, column=column, column_type=column_type
+    )
+
+
+def _ps(
+    process,
+    table,
+    alias="t",
+    join_condition=None,
+    time_filter="1=1",
+    client="default",
+):
+    """Build a nx_lib.mapping_config.ProcessSource -- sibling to _fm above.
+    join_condition defaults to referencing `alias` (matching the id-col
+    regex/`_ms02_id_column` both legs use to pull the id column out of it)."""
+    from nx_lib.mapping_config import ProcessSource
+
+    return ProcessSource(
+        client=client,
+        process=process,
+        table=table,
+        alias=alias,
+        join_condition=join_condition or f"{alias}.ID = twi.id",
+        time_filter=time_filter,
+        suggestion_time_filter=None,
+        export_column=None,
+        import_column=None,
+        workitem_column=None,
+        extra_condition=None,
+        id_column_type=None,
+    )
+
+
+def _stub_mapping_config(
+    monkeypatch,
+    wv,
+    *,
+    default_mappings=(),
+    default_sources=(),
+    ms02_mappings=(),
+    ms02_sources=(),
+):
+    """Replace mapping_config.mappings_for/sources_for with canned per-client
+    data. The two doc-field resolution blocks in _get_workitems_data each
+    make exactly one mappings_for + one sources_for call per leg, before the
+    pair loop (#98 phase 3) -- this is the direct successor to the legacy
+    per-pair SearchConfig cursor mocks (_SqlLogCursor/_SqlLogConn/_SqlLogEngine
+    above), which those two blocks no longer query."""
+
+    def _mappings_for(client, processes, field_keys=None):
+        return list(default_mappings) if client == "default" else list(ms02_mappings)
+
+    def _sources_for(client, processes=None):
+        return list(default_sources) if client == "default" else list(ms02_sources)
+
+    monkeypatch.setattr(wv.mapping_config, "mappings_for", _mappings_for)
+    monkeypatch.setattr(wv.mapping_config, "sources_for", _sources_for)
+
+
 def test_get_workitems_data_skips_sensitive_docfield_search(
     user_client, workitems_all_perms, monkeypatch
 ):
@@ -276,8 +342,8 @@ def test_get_workitems_data_skips_sensitive_docfield_search(
     _get_workitems_data (default/StatisticsDB path + MS02/Postgres path, both
     gated in commit ae83bcb via `if docfield in blocked_docfields: continue`).
     A sensitive docfield/docvalue pair must contribute NO SQL constraint --
-    neither block may even build/execute its SearchConfig lookup query -- when
-    the caller lacks workitems.filter.documentfields.sensitive, and the
+    neither block may even build/execute its StatisticsDB constraint query --
+    when the caller lacks workitems.filter.documentfields.sensitive, and the
     resulting WorkitemFilter must carry no docfield constraint at all."""
     import nx_lib.hooks as hooks
     import nx_lib.views.workitems as wv
@@ -299,7 +365,6 @@ def test_get_workitems_data_skips_sensitive_docfield_search(
     )
 
     sql_log = []
-    monkeypatch.setattr(wv, "engine_nexora_db", _SqlLogEngine(sql_log))
     monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
     # Force entry into the MS02 block too (engine_ms02_docfields_pg is None in
     # CI/this dev env absent MS02_DOCFIELDS_DB_* env vars).
@@ -309,6 +374,17 @@ def test_get_workitems_data_skips_sensitive_docfield_search(
     monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: {"validationuser"})
     monkeypatch.setattr(
         wv, "has_permission", lambda code: code != "workitems.filter.documentfields.sensitive"
+    )
+
+    # Mapped on BOTH legs -- proves the skip is caused by the sensitive-field
+    # gate, not by an absent mapping (which would zero the pair anyway).
+    _stub_mapping_config(
+        monkeypatch,
+        wv,
+        default_mappings=[_fm("validationuser", "ValidationUser")],
+        default_sources=[_ps("test_proc", "dbo.T")],
+        ms02_mappings=[_fm("validationuser", "ValidationUser", client="ms02")],
+        ms02_sources=[_ps("test_proc", 'public."T"', alias="d", client="ms02")],
     )
 
     def _must_not_run(*a, **k):
@@ -330,7 +406,7 @@ def test_get_workitems_data_skips_sensitive_docfield_search(
     )
 
     assert resp.status_code == 200
-    assert not [q for q in sql_log if "col_validationuser" in q], sql_log
+    assert not [q for q in sql_log if "ValidationUser" in q], sql_log
     assert captured["filt"].docfield_ids is None
     assert captured["filt"].ms02_docfield_ids is None
 
@@ -359,13 +435,13 @@ def test_docfield_search_absent_ms02_engine_fails_closed(
     )
 
     sql_log = []
-    monkeypatch.setattr(wv, "engine_nexora_db", _SqlLogEngine(sql_log))
     monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", None)
 
     monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["col_docbarcode"])
     monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: set())
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    _stub_mapping_config(monkeypatch, wv)  # unmapped everywhere; MS02 block skipped anyway
 
     captured = {}
 
@@ -388,7 +464,7 @@ def test_docfield_search_ms02_resolver_error_fails_closed(
     user_client, workitems_all_perms, monkeypatch
 ):
     """Sibling to the absent-engine test: the engine exists and the ms02
-    SearchConfig mapping row is found, but resolve_ms02_docfield_ids errors
+    mapping_config mapping is found, but resolve_ms02_docfield_ids errors
     (its contract returns None on any failure). That None must be coerced to
     an empty allow-set -- zero MS02 rows -- not treated as "no constraint"."""
     import nx_lib.hooks as hooks
@@ -404,37 +480,7 @@ def test_docfield_search_ms02_resolver_error_fails_closed(
         ],
     )
 
-    class _Ms02ConfigCursor(_SqlLogCursor):
-        """Returns one usable ms02 SearchConfig mapping row for the MS02 leg's
-        lookup; every other query still returns no rows."""
-
-        def execute(self, sql, params=None):
-            self._last_sql = sql
-            return super().execute(sql, params)
-
-        def fetchall(self):
-            if "ClientCode = 'ms02'" in getattr(self, "_last_sql", ""):
-                return [
-                    (
-                        'public."DossierStatistik"',
-                        "d",
-                        "d.WorkItemID = twi.id",
-                        None,
-                        "DossierBarcode",
-                    )
-                ]
-            return []
-
-    class _Ms02ConfigConn(_SqlLogConn):
-        def cursor(self):
-            return _Ms02ConfigCursor(self._log)
-
-    class _Ms02ConfigEngine(_SqlLogEngine):
-        def raw_connection(self):
-            return _Ms02ConfigConn(self._log)
-
     sql_log = []
-    monkeypatch.setattr(wv, "engine_nexora_db", _Ms02ConfigEngine(sql_log))
     monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
 
@@ -442,6 +488,23 @@ def test_docfield_search_ms02_resolver_error_fails_closed(
     monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: set())
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
     monkeypatch.setattr(wv, "resolve_ms02_docfield_ids", lambda *a, **k: None)
+    # One usable ms02 mapping row for the MS02 leg's lookup; the default leg
+    # stays unmapped (not asserted on here).
+    _stub_mapping_config(
+        monkeypatch,
+        wv,
+        ms02_mappings=[_fm("docbarcode", "DossierBarcode", process="test_proc", client="ms02")],
+        ms02_sources=[
+            _ps(
+                "test_proc",
+                'public."DossierStatistik"',
+                alias="d",
+                join_condition="d.WorkItemID = twi.id",
+                time_filter=None,
+                client="ms02",
+            )
+        ],
+    )
 
     captured = {}
 
@@ -466,9 +529,9 @@ def test_get_workitems_data_queries_nonsensitive_docfield_search(
     """Control for the sibling skip test above: with the SAME field but no
     sensitivity block in play (get_sensitive_field_keys empty + full
     has_permission), both doc-field pre-fetch blocks DO attempt their
-    SearchConfig lookup -- proving the sibling test's absence of SQL is
+    resolution -- proving the sibling test's absence of a constraint is
     genuinely caused by the sensitive-field skip, not by the fakes
-    themselves suppressing all queries regardless of gating."""
+    themselves suppressing all resolution regardless of gating."""
     import nx_lib.hooks as hooks
     import nx_lib.views.workitems as wv
 
@@ -483,15 +546,30 @@ def test_get_workitems_data_queries_nonsensitive_docfield_search(
     )
 
     sql_log = []
-    monkeypatch.setattr(wv, "engine_nexora_db", _SqlLogEngine(sql_log))
     monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
 
     monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["col_validationuser"])
     monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: set())
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
-    monkeypatch.setattr(wv, "resolve_ms02_docfield_ids", lambda *a, **k: None)
+
+    captured_ms02 = {}
+
+    def _spy_resolve(engine, pairs):
+        captured_ms02["pairs"] = pairs
+        return None
+
+    monkeypatch.setattr(wv, "resolve_ms02_docfield_ids", _spy_resolve)
     monkeypatch.setattr(wv, "fetch_merged_page", lambda filt, offset, per_page: ([], 0, []))
+
+    _stub_mapping_config(
+        monkeypatch,
+        wv,
+        default_mappings=[_fm("validationuser", "ValidationUser")],
+        default_sources=[_ps("test_proc", "dbo.T")],
+        ms02_mappings=[_fm("validationuser", "ValidationUser", client="ms02")],
+        ms02_sources=[_ps("test_proc", 'public."T"', alias="d", client="ms02")],
+    )
 
     resp = user_client.get(
         "/api/workitems",
@@ -499,23 +577,22 @@ def test_get_workitems_data_queries_nonsensitive_docfield_search(
     )
 
     assert resp.status_code == 200
-    default_queries = [
-        q for q in sql_log if "col_validationuser" in q and "ClientCode = 'default'" in q
-    ]
-    ms02_queries = [q for q in sql_log if "col_validationuser" in q and "ClientCode = 'ms02'" in q]
+    default_queries = [q for q in sql_log if "ValidationUser" in q]
     assert default_queries, sql_log
-    assert ms02_queries, sql_log
+    ms02_specs = [spec for pair in captured_ms02.get("pairs", []) for spec in pair[0]]
+    assert ms02_specs, captured_ms02
 
 
 def test_get_workitems_data_unmapped_docfield_zeroes_both_sources(
     user_client, workitems_all_perms, monkeypatch
 ):
-    """Cross-source bleed regression: a searched doc-field with NO SearchConfig
-    mapping for a source must force that source to ZERO rows (empty allow-set),
-    not run unconstrained (None). Observed on PROD: validationuser was mapped
-    only for a 'default' process, and the unconstrained MS02 leg returned every
-    PDBS workitem. Here neither leg finds a mapping row, so BOTH allow-sets
-    must come out as set() -- and the MS02 resolver must never run."""
+    """Cross-source bleed regression: a searched doc-field with NO
+    mapping_config mapping for a source must force that source to ZERO rows
+    (empty allow-set), not run unconstrained (None). Observed on PROD:
+    validationuser was mapped only for a 'default' process, and the
+    unconstrained MS02 leg returned every PDBS workitem. Here neither leg
+    finds a mapping row, so BOTH allow-sets must come out as set() -- and the
+    MS02 resolver must never run."""
     import nx_lib.hooks as hooks
     import nx_lib.views.workitems as wv
 
@@ -530,13 +607,13 @@ def test_get_workitems_data_unmapped_docfield_zeroes_both_sources(
     )
 
     sql_log = []
-    monkeypatch.setattr(wv, "engine_nexora_db", _SqlLogEngine(sql_log))
     monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
 
     monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["col_validationuser"])
     monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: set())
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    _stub_mapping_config(monkeypatch, wv)  # unmapped everywhere
 
     def _must_not_run(*a, **k):
         raise AssertionError("resolve_ms02_docfield_ids must not run without mapping rows")
@@ -564,11 +641,13 @@ def test_get_workitems_data_unmapped_docfield_zeroes_both_sources(
 def test_get_workitems_data_fieldless_pair_searches_all_columns(
     user_client, workitems_all_perms, monkeypatch
 ):
-    """Value-first search (#148): a docvalue with NO docfield must widen both
-    SearchConfig lookups to every permitted column (OR'd NOT-NULL filter) and
-    still count as an ACTIVE search for the fail-closed guard -- with no
-    mapping rows found anywhere, both allow-sets must come out set(), never
-    None (which would let a source run unconstrained)."""
+    """Value-first search (#148): a docvalue with NO docfield must widen the
+    default leg's resolution to every permitted column (proven here by both
+    mapped columns showing up together in the single StatisticsDB constraint
+    query the widened UNION produces) and still count as an ACTIVE search for
+    the fail-closed guard -- with the MS02 leg deliberately left unmapped,
+    both allow-sets must come out set(), never None (which would let a
+    source run unconstrained)."""
     import nx_lib.hooks as hooks
     import nx_lib.views.workitems as wv
 
@@ -583,7 +662,6 @@ def test_get_workitems_data_fieldless_pair_searches_all_columns(
     )
 
     sql_log = []
-    monkeypatch.setattr(wv, "engine_nexora_db", _SqlLogEngine(sql_log))
     monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
 
@@ -592,6 +670,17 @@ def test_get_workitems_data_fieldless_pair_searches_all_columns(
     )
     monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: set())
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
+    # Default leg mapped for BOTH widened columns (proves the widening);
+    # MS02 leg stays unmapped so the resolver-must-not-run guard still holds.
+    _stub_mapping_config(
+        monkeypatch,
+        wv,
+        default_mappings=[
+            _fm("validationuser", "ValidationUser"),
+            _fm("docbarcode", "DocBarcode"),
+        ],
+        default_sources=[_ps("test_proc", "dbo.T")],
+    )
 
     def _must_not_run(*a, **k):
         raise AssertionError("resolve_ms02_docfield_ids must not run without mapping rows")
@@ -612,7 +701,7 @@ def test_get_workitems_data_fieldless_pair_searches_all_columns(
     )
 
     assert resp.status_code == 200
-    widened = [q for q in sql_log if "col_validationuser" in q and "col_docbarcode" in q]
+    widened = [q for q in sql_log if "ValidationUser" in q and "DocBarcode" in q]
     assert widened, sql_log
     assert captured["filt"].docfield_ids == set()
     assert captured["filt"].ms02_docfield_ids == set()
@@ -623,7 +712,7 @@ def test_get_workitems_data_fieldless_pair_excludes_sensitive_columns(
 ):
     """Value-first search (#148): the widened any-field column set must drop
     sensitive FieldKeys for callers without the sensitive-fields permission --
-    no SearchConfig lookup may even mention the blocked column."""
+    no StatisticsDB constraint query may even mention the blocked column."""
     import nx_lib.hooks as hooks
     import nx_lib.views.workitems as wv
 
@@ -638,7 +727,6 @@ def test_get_workitems_data_fieldless_pair_excludes_sensitive_columns(
     )
 
     sql_log = []
-    monkeypatch.setattr(wv, "engine_nexora_db", _SqlLogEngine(sql_log))
     monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
 
@@ -653,6 +741,18 @@ def test_get_workitems_data_fieldless_pair_excludes_sensitive_columns(
     )
     monkeypatch.setattr(wv, "resolve_ms02_docfield_ids", lambda *a, **k: None)
     monkeypatch.setattr(wv, "fetch_merged_page", lambda filt, offset, per_page: ([], 0, []))
+    # Both fields ARE mapped -- the blocked one must still never reach a
+    # query even though a mapping row exists for it (the block happens
+    # earlier, at the target_cols/blocked_docfields filter).
+    _stub_mapping_config(
+        monkeypatch,
+        wv,
+        default_mappings=[
+            _fm("validationuser", "ValidationUser"),
+            _fm("secretfield", "SecretField"),
+        ],
+        default_sources=[_ps("test_proc", "dbo.T")],
+    )
 
     resp = user_client.get(
         "/api/workitems",
@@ -660,8 +760,8 @@ def test_get_workitems_data_fieldless_pair_excludes_sensitive_columns(
     )
 
     assert resp.status_code == 200
-    assert any("col_validationuser" in q for q in sql_log), sql_log
-    assert not any("col_secretfield" in q for q in sql_log), sql_log
+    assert any("ValidationUser" in q for q in sql_log), sql_log
+    assert not any("SecretField" in q for q in sql_log), sql_log
 
 
 def _op_test_scaffold(monkeypatch, sql_log):
@@ -678,7 +778,6 @@ def _op_test_scaffold(monkeypatch, sql_log):
             "workitems.filter.process.sydoc.test_proc",
         ],
     )
-    monkeypatch.setattr(wv, "engine_nexora_db", _SqlLogEngine(sql_log))
     monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
     monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["col_validationuser"])
@@ -686,6 +785,12 @@ def _op_test_scaffold(monkeypatch, sql_log):
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
     monkeypatch.setattr(wv, "resolve_ms02_docfield_ids", lambda *a, **k: None)
     monkeypatch.setattr(wv, "fetch_merged_page", lambda filt, offset, per_page: ([], 0, []))
+    _stub_mapping_config(
+        monkeypatch,
+        wv,
+        default_mappings=[_fm("validationuser", "ValidationUser")],
+        default_sources=[_ps("test_proc", "dbo.T")],
+    )
 
 
 def test_docfield_ops_map_shapes():
@@ -738,8 +843,11 @@ def test_docfield_or_pair_processed_without_early_break(
 ):
     """(#148) with AND-only semantics the first no-mapping pair used to break
     out of the loop; OR support requires every pair to be evaluated. Two
-    field-carrying pairs must produce TWO default-leg SearchConfig lookups even
-    though the first finds no mapping rows."""
+    field-carrying pairs must both reach the op/comb resolution step (spied
+    via _docfield_op, called once per pair in EACH of the two resolution legs
+    -- default and MS02 -- so both pair indices must appear twice) even
+    though StatisticsDB (stubbed to return no rows) ultimately resolves both
+    to empty."""
     sql_log = []
     _op_test_scaffold(monkeypatch, sql_log)
 
@@ -752,6 +860,15 @@ def test_docfield_or_pair_processed_without_early_break(
     import nx_lib.views.workitems as wv
 
     monkeypatch.setattr(wv, "fetch_merged_page", _fake_fetch_merged_page)
+
+    pair_indices = []
+    _orig_docfield_op = wv._docfield_op
+
+    def _spy_docfield_op(docops, idx):
+        pair_indices.append(idx)
+        return _orig_docfield_op(docops, idx)
+
+    monkeypatch.setattr(wv, "_docfield_op", _spy_docfield_op)
 
     resp = user_client.get(
         "/api/workitems",
@@ -766,9 +883,9 @@ def test_docfield_or_pair_processed_without_early_break(
         ],
     )
     assert resp.status_code == 200
-    default_lookups = [q for q in sql_log if "ClientCode = 'default'" in q]
-    assert len(default_lookups) == 2, sql_log
-    # both pairs unmapped -> OR-fold of two empty sets -> still fail-closed
+    assert sorted(pair_indices) == [0, 0, 1, 1], pair_indices
+    # both pairs mapped but StatisticsDB (stubbed) returns no rows -> OR-fold
+    # of two empty sets -> still fail-closed
     assert captured["filt"].docfield_ids == set()
 
 
