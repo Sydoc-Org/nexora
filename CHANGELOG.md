@@ -8,6 +8,20 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Fixed
+
+- **Fireflies now tint with the chosen accent color.** The `fireflies`
+  background option used a hardcoded teal/amber dot color instead of
+  following the user's accent choice (preset or custom). The dots and
+  their glow now derive from `--nx-accent`, so they match whatever accent
+  is active, light or dark mode included (#210).
+
+- **Feedback page header didn't line up with the feedback card.** The
+  header markup was copied from the Appearance page but never linked
+  `appearance.css`, so the "Back to profile" link had no margin below it
+  and the title/lede weren't width-constrained to match the card below.
+  Gave the header its own scoped styles instead (#211).
+
 ### Changed
 
 - **The branch-name guard accepts a fourth version segment.** Cycle branches
