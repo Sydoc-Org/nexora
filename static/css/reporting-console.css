@@ -828,8 +828,24 @@ body.reporting-console .reporting-simple-chartcard {
   color: var(--nx-text-meta);
   text-transform: uppercase;
 }
-/* Chart toolbar: what's-plotted title left, controls right; Forecast is a
-   real switch (the button keeps its id/testid — pure restyle). */
+/* Chart toolbar: a normal in-flow header row (the legacy sheet floats it
+   absolute over the card, which overlapped the title and the partial-bucket
+   note) — what's-plotted title left, controls right; Forecast is a real
+   switch (the button keeps its id/testid — pure restyle). */
+body.reporting-console .reporting-simple-charttools {
+  position: static;
+  top: auto;
+  right: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+body.reporting-console .reporting-simple-chartnote {
+  font-size: 12px;
+  margin: 0 0 8px;
+}
 .rs-chart-title {
   font-size: 12.5px;
   font-weight: 700;
