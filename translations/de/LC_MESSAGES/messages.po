@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-26 22:43+0200\n"
+"POT-Creation-Date: 2026-08-26 22:56+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -1439,43 +1439,72 @@ msgstr "Neuigkeiten"
 msgid "Feedback"
 msgstr "Feedback"
 
-#: templates/_header.html:411 templates/_small_footer.html:28
+#: templates/_header.html:411 templates/_header.html:481
+#: templates/_header.html:484
+msgid "Keyboard shortcuts"
+msgstr "Tastenkombinationen"
+
+#: templates/_header.html:415 templates/_small_footer.html:28
 #: templates/reporting.html:86
 msgid "Help"
 msgstr "Hilfe"
 
-#: templates/_header.html:417 templates/_header.html:459
+#: templates/_header.html:421 templates/_header.html:463
 msgid "Switch user"
 msgstr "Benutzer wechseln"
 
-#: templates/_header.html:423 templates/js/_header_js.html:60
+#: templates/_header.html:427 templates/js/_header_js.html:60
 #: templates/profile.html:82
 msgid "Sign out"
 msgstr "Abmelden"
 
-#: templates/_header.html:440
+#: templates/_header.html:444
 msgid "Command palette"
 msgstr "Befehlspalette"
 
-#: templates/_header.html:444
+#: templates/_header.html:448
 msgid "Type a command or search..."
 msgstr "Befehl eingeben oder suchen..."
 
-#: templates/_header.html:449
+#: templates/_header.html:453
 msgid "navigate"
 msgstr "navigieren"
 
-#: templates/_header.html:450
+#: templates/_header.html:454
 msgid "open"
 msgstr "öffnen"
 
-#: templates/_header.html:451
+#: templates/_header.html:455
 msgid "close"
 msgstr "schließen"
 
-#: templates/_header.html:463
+#: templates/_header.html:467
 msgid "Switch to user..."
 msgstr "Zu Benutzer wechseln ..."
+
+#: templates/_header.html:488
+msgid "Global"
+msgstr "Global"
+
+#: templates/_header.html:490
+msgid "Open command palette"
+msgstr "Befehlspalette öffnen"
+
+#: templates/_header.html:494
+msgid "Show this shortcuts overlay"
+msgstr "Diese Übersicht anzeigen"
+
+#: templates/_header.html:498
+msgid "Close the open dialog or panel"
+msgstr "Das offene Dialogfeld oder Panel schließen"
+
+#: templates/_header.html:503
+msgid "Document viewer"
+msgstr "Dokumentanzeige"
+
+#: templates/_header.html:505
+msgid "Previous / next document page"
+msgstr "Vorherige / nächste Dokumentseite"
 
 #: templates/_maintenance_banner.html:99
 msgid "Maintenance in"
@@ -5791,7 +5820,9 @@ msgstr "Berechtigungsmatrix - nexora"
 msgid ""
 "Who can do what — read-only. Granting and revoking stays on Access "
 "Control."
-msgstr "Wer kann was — nur lesend. Berechtigungen werden weiterhin über Zugriffskontrolle vergeben oder entzogen."
+msgstr ""
+"Wer kann was — nur lesend. Berechtigungen werden weiterhin über "
+"Zugriffskontrolle vergeben oder entzogen."
 
 #: templates/admin/permission_matrix.html:30
 msgid "By permission"
@@ -5815,7 +5846,9 @@ msgstr "Benutzernamen eingeben…"
 
 #: templates/admin/permission_matrix.html:80
 msgid "Pick a user above to see their effective permissions."
-msgstr "Oben einen Benutzer auswählen, um dessen effektive Berechtigungen zu sehen."
+msgstr ""
+"Oben einen Benutzer auswählen, um dessen effektive Berechtigungen zu "
+"sehen."
 
 #: templates/admin/sessions.html:8
 msgid "Active Sessions - nexora"

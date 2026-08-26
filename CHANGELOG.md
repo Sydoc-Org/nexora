@@ -10,6 +10,16 @@ Work toward the next release.
 
 ### Added
 
+- **Keyboard shortcut cheatsheet overlay** (#173). Pressing `?` outside an
+  input field (or picking "Keyboard shortcuts" from the profile dropdown)
+  shows every shortcut the app actually has: the `Ctrl`/`⌘`+`K` command
+  palette, `Esc` to close a dialog, `?` itself, and — on the pages that embed
+  the document viewer (Workitems, Reporting drill-through, Prepared
+  documents) — `←`/`→` to page through a document's images. Content is
+  static markup in `_header.html`, not scanned from the JS: adding a
+  shortcut later means adding a row, on purpose, so the list can't silently
+  drift from what's actually wired up.
+
 - **Admin permission matrix** (#172). Read-only `/admin/permission_matrix`
   page answering "who can see reporting?" / "what can this user open?"
   without SQL against `spGetUserPermissions`'s tables directly: toggle

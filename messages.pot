@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-26 22:43+0200\n"
+"POT-Creation-Date: 2026-08-26 22:56+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1317,42 +1317,71 @@ msgstr ""
 msgid "Feedback"
 msgstr ""
 
-#: templates/_header.html:411 templates/_small_footer.html:28
+#: templates/_header.html:411 templates/_header.html:481
+#: templates/_header.html:484
+msgid "Keyboard shortcuts"
+msgstr ""
+
+#: templates/_header.html:415 templates/_small_footer.html:28
 #: templates/reporting.html:86
 msgid "Help"
 msgstr ""
 
-#: templates/_header.html:417 templates/_header.html:459
+#: templates/_header.html:421 templates/_header.html:463
 msgid "Switch user"
 msgstr ""
 
-#: templates/_header.html:423 templates/js/_header_js.html:60
+#: templates/_header.html:427 templates/js/_header_js.html:60
 #: templates/profile.html:82
 msgid "Sign out"
 msgstr ""
 
-#: templates/_header.html:440
+#: templates/_header.html:444
 msgid "Command palette"
 msgstr ""
 
-#: templates/_header.html:444
+#: templates/_header.html:448
 msgid "Type a command or search..."
 msgstr ""
 
-#: templates/_header.html:449
+#: templates/_header.html:453
 msgid "navigate"
 msgstr ""
 
-#: templates/_header.html:450
+#: templates/_header.html:454
 msgid "open"
 msgstr ""
 
-#: templates/_header.html:451
+#: templates/_header.html:455
 msgid "close"
 msgstr ""
 
-#: templates/_header.html:463
+#: templates/_header.html:467
 msgid "Switch to user..."
+msgstr ""
+
+#: templates/_header.html:488
+msgid "Global"
+msgstr ""
+
+#: templates/_header.html:490
+msgid "Open command palette"
+msgstr ""
+
+#: templates/_header.html:494
+msgid "Show this shortcuts overlay"
+msgstr ""
+
+#: templates/_header.html:498
+msgid "Close the open dialog or panel"
+msgstr ""
+
+#: templates/_header.html:503
+msgid "Document viewer"
+msgstr ""
+
+#: templates/_header.html:505
+msgid "Previous / next document page"
 msgstr ""
 
 #: templates/_maintenance_banner.html:99

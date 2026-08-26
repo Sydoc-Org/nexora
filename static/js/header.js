@@ -391,6 +391,35 @@
         overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
     })();
 
+    /* ---- Keyboard shortcuts overlay (#173) ---- */
+    (function() {
+        const btn = document.getElementById('shortcutsOverlayBtn');
+        const overlay = document.getElementById('shortcutsOverlay');
+        if (!overlay) return;
+
+        function isEditableTarget(el) {
+            if (!el) return false;
+            const tag = el.tagName;
+            return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
+        }
+
+        function open() { overlay.hidden = false; }
+        function close() { overlay.hidden = true; }
+
+        if (btn) btn.addEventListener('click', open);
+        overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+
+        document.addEventListener('keydown', e => {
+            if (!overlay.hidden && e.key === 'Escape') {
+                e.preventDefault();
+                close();
+            } else if (overlay.hidden && e.key === '?' && !isEditableTarget(e.target)) {
+                e.preventDefault();
+                open();
+            }
+        });
+    })();
+
     /* ---- Mobile sidebar drawer toggle ---- */
     document.addEventListener('DOMContentLoaded', function () {
         const toggle   = document.getElementById('sidebar-toggle');

@@ -406,6 +406,10 @@
                     {# mailto: fallback for anyone who'd rather just fire off an
                        email from their own client than use the in-app form
                        above. #}
+                    <button type="button" id="shortcutsOverlayBtn"
+                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-slate-300 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-[var(--nx-accent)] transition-colors w-full text-left" data-testid="header-shortcuts-link">
+                        <i class="fas fa-keyboard w-4"></i> {{ _("Keyboard shortcuts") }}
+                    </button>
                     <a href="mailto:support.helpdesk@sydoc.ch"
                         class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-slate-300 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-[var(--nx-accent)] transition-colors" data-testid="header-help-link">
                         <i class="fas fa-circle-question w-4"></i> {{ _("Help") }}
@@ -467,6 +471,44 @@
         </div>
     </div>
     {% endif %}
+
+    {# ========== KEYBOARD SHORTCUTS OVERLAY (issue #173) ==========
+       Static content, on purpose (see the note in issue #173): no registry
+       machinery scanning for keydown listeners -- adding a shortcut means
+       adding a row here, which keeps the list honest in review instead of
+       silently drifting from what the JS actually wires up. #}
+    <div id="shortcutsOverlay" class="cmdk-overlay" hidden>
+        <div class="cmdk-panel shortcuts-panel" role="dialog" aria-modal="true" aria-label="{{ _('Keyboard shortcuts') }}">
+            <div class="cmdk-input-row">
+                <i class="fas fa-keyboard cmdk-input-icon"></i>
+                <span class="shortcuts-panel-title">{{ _('Keyboard shortcuts') }}</span>
+                <kbd class="cmdk-kbd">ESC</kbd>
+            </div>
+            <div class="shortcuts-panel-body">
+                <div class="shortcuts-section-title">{{ _('Global') }}</div>
+                <div class="shortcuts-row">
+                    <span>{{ _('Open command palette') }}</span>
+                    <span><kbd class="cmdk-kbd">Ctrl</kbd>/<kbd class="cmdk-kbd">⌘</kbd> <kbd class="cmdk-kbd">K</kbd></span>
+                </div>
+                <div class="shortcuts-row">
+                    <span>{{ _('Show this shortcuts overlay') }}</span>
+                    <span><kbd class="cmdk-kbd">?</kbd></span>
+                </div>
+                <div class="shortcuts-row">
+                    <span>{{ _('Close the open dialog or panel') }}</span>
+                    <span><kbd class="cmdk-kbd">Esc</kbd></span>
+                </div>
+
+                {% if active_page in ('workitems_overview', 'reporting', 'prepared_documents') %}
+                <div class="shortcuts-section-title">{{ _('Document viewer') }}</div>
+                <div class="shortcuts-row">
+                    <span>{{ _('Previous / next document page') }}</span>
+                    <span><kbd class="cmdk-kbd">←</kbd> <kbd class="cmdk-kbd">→</kbd></span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 
     {% include 'js/_header_js.html' %}
 </body>

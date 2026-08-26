@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-26 22:43+0200\n"
+"POT-Creation-Date: 2026-08-26 22:56+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -1421,43 +1421,72 @@ msgstr "Novità"
 msgid "Feedback"
 msgstr "Feedback"
 
-#: templates/_header.html:411 templates/_small_footer.html:28
+#: templates/_header.html:411 templates/_header.html:481
+#: templates/_header.html:484
+msgid "Keyboard shortcuts"
+msgstr "Scorciatoie da tastiera"
+
+#: templates/_header.html:415 templates/_small_footer.html:28
 #: templates/reporting.html:86
 msgid "Help"
 msgstr "Aiuto"
 
-#: templates/_header.html:417 templates/_header.html:459
+#: templates/_header.html:421 templates/_header.html:463
 msgid "Switch user"
 msgstr "Cambia utente"
 
-#: templates/_header.html:423 templates/js/_header_js.html:60
+#: templates/_header.html:427 templates/js/_header_js.html:60
 #: templates/profile.html:82
 msgid "Sign out"
 msgstr "Disconnetti"
 
-#: templates/_header.html:440
+#: templates/_header.html:444
 msgid "Command palette"
 msgstr "Tavolozza dei comandi"
 
-#: templates/_header.html:444
+#: templates/_header.html:448
 msgid "Type a command or search..."
 msgstr "Digita un comando o cerca..."
 
-#: templates/_header.html:449
+#: templates/_header.html:453
 msgid "navigate"
 msgstr "naviga"
 
-#: templates/_header.html:450
+#: templates/_header.html:454
 msgid "open"
 msgstr "apri"
 
-#: templates/_header.html:451
+#: templates/_header.html:455
 msgid "close"
 msgstr "chiudi"
 
-#: templates/_header.html:463
+#: templates/_header.html:467
 msgid "Switch to user..."
 msgstr "Passa all'utente ..."
+
+#: templates/_header.html:488
+msgid "Global"
+msgstr "Globale"
+
+#: templates/_header.html:490
+msgid "Open command palette"
+msgstr "Apri la tavolozza dei comandi"
+
+#: templates/_header.html:494
+msgid "Show this shortcuts overlay"
+msgstr "Mostra questa panoramica scorciatoie"
+
+#: templates/_header.html:498
+msgid "Close the open dialog or panel"
+msgstr "Chiudi la finestra di dialogo o il pannello aperto"
+
+#: templates/_header.html:503
+msgid "Document viewer"
+msgstr "Visualizzatore documenti"
+
+#: templates/_header.html:505
+msgid "Previous / next document page"
+msgstr "Pagina documento precedente / successiva"
 
 #: templates/_maintenance_banner.html:99
 msgid "Maintenance in"
@@ -5766,7 +5795,9 @@ msgstr "Matrice dei permessi - nexora"
 msgid ""
 "Who can do what — read-only. Granting and revoking stays on Access "
 "Control."
-msgstr "Chi può fare cosa — sola lettura. La concessione e la revoca restano nel Controllo Accessi."
+msgstr ""
+"Chi può fare cosa — sola lettura. La concessione e la revoca restano nel "
+"Controllo Accessi."
 
 #: templates/admin/permission_matrix.html:30
 msgid "By permission"

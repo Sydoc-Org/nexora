@@ -809,3 +809,24 @@ html.dark .cmdk-item .cmdk-item-icon { color: #94a3b8; }
 html.dark .cmdk-list .cmdk-empty { color: #64748b; }
 html.dark .cmdk-footer { border-top-color: #273449; color: #64748b; }
 html.dark .cmdk-kbd { background: #273449; border-color: #334155; color: #cbd5e1; }
+
+/* ============================================================
+   KEYBOARD SHORTCUTS OVERLAY (issue #173) -- reuses .cmdk-overlay/
+   .cmdk-panel/.cmdk-kbd above, just a static content body instead of a
+   searchable list.
+   ============================================================ */
+.shortcuts-panel-title { flex: 1; font-size: 15px; font-weight: 600; color: #111827; }
+.shortcuts-panel-body { padding: 8px 16px 16px; max-height: 360px; overflow-y: auto; }
+.shortcuts-section-title {
+    font-size: 11px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.6px;
+    margin: 14px 0 6px;
+}
+.shortcuts-section-title:first-child { margin-top: 4px; }
+.shortcuts-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 7px 0; font-size: 13px; color: #1f2937;
+}
+
+html.dark .shortcuts-panel-title { color: #e2e8f0; }
+html.dark .shortcuts-section-title { color: #64748b; }
+html.dark .shortcuts-row { color: #e2e8f0; }
