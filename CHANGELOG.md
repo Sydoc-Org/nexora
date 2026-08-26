@@ -8,6 +8,23 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Removed
+
+- **Dead `decapitated_*` tables dropped for good** (#98). Migrations 0042 and
+  0056 had renamed the ten dead chat/collaboration/notification/invoice tables
+  with a `decapitated_` prefix as a reversible safety net; nothing has read
+  them since, so migration `0072` deletes them (data included). The archived,
+  never-registered `nx_lib/views/invoices.py` and the `templates/archive/`
+  invoices/chat templates went with them.
+
+### Changed
+
+- **Schema hygiene: `StatConfig` gets a primary key, `Logs` gets a timestamp
+  index** (#98, migration `0073`). `StatConfig` was a PK-less heap with a
+  nullable key column — now `ProcessName` is `NOT NULL` with a composite PK on
+  `(ProcessName, ClientCode)`. `dbo.Logs` gains `IX_Logs_Timestamp` so the
+  admin log pages stop table-scanning as the log grows.
+
 ### Fixed
 
 - **Workitem detail panel: line-item tables are tables again** (#199). Each
