@@ -305,7 +305,7 @@ def init_2fa():
 
         if not code or not secret:
             flash(_("Session expired, please try again"), "error")
-            return redirect(url_for("init_2FA"))
+            return redirect(url_for("init_2fa"))
 
         totp = pyotp.TOTP(secret)
         # valid_window=1 also accepts the adjacent 30s windows. Guards against
@@ -365,7 +365,7 @@ def init_2fa():
 
         else:
             flash(_("Invalid code. Please try again."), "error")
-            return redirect(url_for("init_2FA"))
+            return redirect(url_for("init_2fa"))
 
 
 @limiter.limit("30 per hour")
@@ -477,7 +477,7 @@ def init_reset_password():
         if not stored_2fa:
             session["pre_2fa_userid"] = pre_auth_userid
             session["pre_2fa_username"] = stored_username
-            return redirect(url_for("init_2FA"))
+            return redirect(url_for("init_2fa"))
         return redirect(url_for("login"))
     except Exception as e:
         current_app.logger.error(f"Password reset (init) failed: {e}")
@@ -690,7 +690,7 @@ def login():
                         session.clear()
                         session["pre_2fa_userid"] = str(stored_userid)
                         session["pre_2fa_username"] = stored_username
-                        return redirect(url_for("init_2FA"))
+                        return redirect(url_for("init_2fa"))
                     else:
                         session.clear()
                         session["pre_2fa_userid"] = str(stored_userid)
@@ -985,7 +985,7 @@ def request_password_reset():
 
 
 def register_routes(app):
-    app.add_url_rule("/init_2FA", endpoint="init_2FA", view_func=init_2fa, methods=["GET", "POST"])
+    app.add_url_rule("/init_2FA", endpoint="init_2fa", view_func=init_2fa, methods=["GET", "POST"])
     app.add_url_rule(
         "/verify_2fa", endpoint="verify_2fa", view_func=verify_2fa, methods=["GET", "POST"]
     )

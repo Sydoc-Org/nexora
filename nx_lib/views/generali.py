@@ -1112,7 +1112,7 @@ def generali_additionalservices_monthreport():
             page_visibility=page_visibility(),
             section="additionalservices",
             section_title="Generali Additional Services",
-            back_url=url_for("generali_additionalServices"),
+            back_url=url_for("generali_additional_services"),
             year=year,
             month=month,
             month_label=month_label,
@@ -1648,7 +1648,7 @@ def generali_baseservices_monthreport():
             page_visibility=page_visibility(),
             section="baseservices",
             section_title="Generali Base Services",
-            back_url=url_for("generali_baseServices"),
+            back_url=url_for("generali_base_services"),
             year=year,
             month=month,
             month_label=month_label,
@@ -2133,7 +2133,7 @@ def generali_projectmanagement_monthreport():
             page_visibility=page_visibility(),
             section="projectmanagement",
             section_title="Generali Project Management",
-            back_url=url_for("generali_projectManagement"),
+            back_url=url_for("generali_project_management"),
             year=year,
             month=month,
             month_label=month_label,
@@ -3249,7 +3249,7 @@ def register_routes(app):
     )
     app.add_url_rule(
         "/generali/additionalServices",
-        endpoint="generali_additionalServices",
+        endpoint="generali_additional_services",
         view_func=generali_additional_services,
     )
     app.add_url_rule(
@@ -3306,7 +3306,9 @@ def register_routes(app):
         methods=["DELETE"],
     )
     app.add_url_rule(
-        "/generali/baseServices", endpoint="generali_baseServices", view_func=generali_base_services
+        "/generali/baseServices",
+        endpoint="generali_base_services",
+        view_func=generali_base_services,
     )
     app.add_url_rule(
         "/generali/baseServices/monthreport",
@@ -3357,7 +3359,7 @@ def register_routes(app):
     )
     app.add_url_rule(
         "/generali/projectManagement",
-        endpoint="generali_projectManagement",
+        endpoint="generali_project_management",
         view_func=generali_project_management,
     )
     app.add_url_rule(
@@ -3462,7 +3464,9 @@ def register_routes(app):
         methods=["DELETE"],
     )
     app.add_url_rule(
-        "/generali/importStatus", endpoint="generali_importStatus", view_func=generali_import_status
+        "/generali/importStatus",
+        endpoint="generali_import_status",
+        view_func=generali_import_status,
     )
     app.add_url_rule(
         "/api/generali/importstatus",

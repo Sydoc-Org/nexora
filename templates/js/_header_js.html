@@ -88,13 +88,13 @@
                 { section: "Generali", label: "{{ _('Reporting') }}",            icon: 'fa-clipboard-list',  url: "{{ url_for('generali_reporting') }}" },
                 {% endif %}
                 {% if page_visibility.generaliAdditionalServicesPerm %}
-                { section: "Generali", label: "{{ _('Additional Services') }}",  icon: 'fa-clock',           url: "{{ url_for('generali_additionalServices') }}" },
+                { section: "Generali", label: "{{ _('Additional Services') }}",  icon: 'fa-clock',           url: "{{ url_for('generali_additional_services') }}" },
                 {% endif %}
                 {% if page_visibility.generaliBaseServicesPerm %}
-                { section: "Generali", label: "{{ _('Base Services') }}",        icon: 'fa-inbox',           url: "{{ url_for('generali_baseServices') }}" },
+                { section: "Generali", label: "{{ _('Base Services') }}",        icon: 'fa-inbox',           url: "{{ url_for('generali_base_services') }}" },
                 {% endif %}
                 {% if page_visibility.generaliProjectManagementPerm %}
-                { section: "Generali", label: "{{ _('Project Management') }}",   icon: 'fa-diagram-project', url: "{{ url_for('generali_projectManagement') }}" },
+                { section: "Generali", label: "{{ _('Project Management') }}",   icon: 'fa-diagram-project', url: "{{ url_for('generali_project_management') }}" },
                 {% endif %}
                 {% if page_visibility.generaliPDQMPerm %}
                 { section: "Generali", label: "{{ _('PDQM') }}",                 icon: 'fa-file-lines',      url: "{{ url_for('generali_pdqm') }}" },

@@ -314,21 +314,21 @@
                     </a>
                     {% endif %}
                     {% if page_visibility.generaliAdditionalServicesPerm %}
-                    <a href="{{ url_for('generali_additionalServices') }}"
+                    <a href="{{ url_for('generali_additional_services') }}"
                         class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_additionalservices' else '' }}" data-testid="header-nav-generali-additional-services">
                         <i class="fas fa-clock sidebar-nav-icon sidebar-subitem-icon"></i>
                         <span class="sidebar-label">{{ _('Additional Services') }}</span>
                     </a>
                     {% endif %}
                     {% if page_visibility.generaliBaseServicesPerm %}
-                    <a href="{{ url_for('generali_baseServices') }}"
+                    <a href="{{ url_for('generali_base_services') }}"
                         class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_baseservices' else '' }}" data-testid="header-nav-generali-base-services">
                         <i class="fas fa-inbox sidebar-nav-icon sidebar-subitem-icon"></i>
                         <span class="sidebar-label">{{ _('Base Services') }}</span>
                     </a>
                     {% endif %}
                     {% if page_visibility.generaliProjectManagementPerm %}
-                    <a href="{{ url_for('generali_projectManagement') }}"
+                    <a href="{{ url_for('generali_project_management') }}"
                         class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_projectmanagement' else '' }}" data-testid="header-nav-generali-project-management">
                         <i class="fas fa-diagram-project sidebar-nav-icon sidebar-subitem-icon"></i>
                         <span class="sidebar-label">{{ _('Project Management') }}</span>
@@ -342,7 +342,7 @@
                     </a>
                     {% endif %}
                     {% if page_visibility.generaliImportStatusPerm %}
-                    <a href="{{ url_for('generali_importStatus') }}"
+                    <a href="{{ url_for('generali_import_status') }}"
                         class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'generali_importstatus' else '' }}" data-testid="header-nav-generali-import-status">
                         <i class="fas fa-database sidebar-nav-icon sidebar-subitem-icon"></i>
                         <span class="sidebar-label">{{ _('Data Import Status') }}</span>
