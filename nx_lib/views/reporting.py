@@ -64,6 +64,7 @@ from ..reporting.ai import (
     AiError,
     ask_agentic,
     ask_agentic_iter,
+    stage_preview,
 )
 from ..reporting.ai import _make_agent_step as make_agent_step
 from ..reporting.ai import ask as ai_ask
@@ -1992,6 +1993,17 @@ def api_ai_agent():
                         if "result" in event:
                             result = event["result"]
                             break
+                        if event.get("phase") == "tool_result":
+                            # Raw tool output never reaches the client from a
+                            # progress line -- distill it into the tiny
+                            # build-stage preview (real title/total/series for
+                            # Eddard's mock report) or drop it.
+                            preview = stage_preview(
+                                event.get("name"), event.get("args"), event.get("output")
+                            )
+                            if preview:
+                                yield json.dumps({"phase": "preview", **preview}) + "\n"
+                            continue
                         yield json.dumps(event) + "\n"
                 except Exception as e:
                     current_app.logger.error(f"/api/reporting/ai/agent provider error: {e}")

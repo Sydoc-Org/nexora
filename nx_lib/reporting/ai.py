@@ -853,8 +853,50 @@ def ask_agentic_iter(
             result = registry.call(call["name"], call.get("args"))
             trace.append({"name": call["name"], "args": call.get("args"), "result": result})
             results.append({"tool_call_id": call.get("id"), "name": call["name"], "result": result})
+            # Carries the RAW tool output -- for the view layer to distill
+            # into the tiny build-stage preview (stage_preview below).
+            # Consumers that forward events to a client must map or drop it,
+            # never relay it. Key is "output", NOT "result": every consumer
+            # detects the loop's final event via `"result" in event`.
+            yield {
+                "phase": "tool_result",
+                "name": call["name"],
+                "args": call.get("args"),
+                "output": result,
+            }
         messages.append({"role": "tool", "content": results})
     yield {"result": AiAgenticResult("", turns, trace, stopped, tin, tout)}
+
+
+def stage_preview(name, args, result):
+    """Distill one tool call into the compact preview the chat's build-stage
+    mascot animates with real numbers: {"title"?, "total"?, "series"?}.
+
+    Returns None when the call carries nothing previewable. The series is the
+    first numeric cell per row (label/value result shapes), capped to the last
+    12 rows; a numeric-less result still previews its row count as the total.
+    Pure -- safe to unit test without a provider."""
+    if not isinstance(result, dict) or not result.get("ok"):
+        return None
+    if name == "build_definition":
+        defn = (args or {}).get("definition")
+        title = defn.get("title") if isinstance(defn, dict) else None
+        return {"title": title} if isinstance(title, str) and title.strip() else None
+    if name in ("run_definition", "run_sql"):
+        rows = result.get("rows") or []
+        series = []
+        for row in rows:
+            if not isinstance(row, list | tuple):
+                continue
+            for v in row:
+                if isinstance(v, int | float) and not isinstance(v, bool):
+                    series.append(float(v))
+                    break
+        if not series:
+            return {"total": len(rows)} if rows else None
+        series = series[-12:]
+        return {"total": sum(series), "series": series}
+    return None
 
 
 def ask_agentic(question, **kwargs):

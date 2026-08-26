@@ -44,7 +44,14 @@ Work toward the next release.
   themes. Decorative and `aria-hidden`; `prefers-reduced-motion` holds every loop
   on its resting frame. New `templates/_eddard.html`,
   `templates/js/_eddard_js.html`, `static/css/eddard.css`; design source is
-  `docs/design/design_handoff_eddard_mascot/`.
+  `docs/design/design_handoff_eddard_mascot/`. He since gained the rest of the
+  handoff's personality — drifting ambient sparks and pointer-following eyes on
+  the big chat mascot, a hover perk-up on the small marks, and per-piece
+  build choreography (a fling as each report piece lands, a card settle, an
+  orbiting spark while working, the celebrate pose on *Ready*) — and his mock
+  report is no longer mock: the agent stream distills each tool result into a
+  compact preview (`stage_preview`), so the title, total, bars and trend he
+  animates while you wait are the real numbers of the answer being built.
 - **Response-time sparklines on the admin status page.** Each component row now
   carries a 24-hour latency graph beside its uptime strip, drawn from the new
   `dbo.StatusSamples` table (migration `0071`) that the outage monitor fills

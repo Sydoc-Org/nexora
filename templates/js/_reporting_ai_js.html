@@ -216,6 +216,12 @@
   // is the completion signal.
   function tickerEvent(ev) {
     if (!tickerEl) return;
+    if (ev.phase === "preview") {
+      // Server-distilled numbers from the tool the agent just ran -- Eddard's
+      // mock report becomes a live preview of the actual answer (#212).
+      if (buildStageEl && window.NexoraEddard) NexoraEddard.setPreview(buildStageEl, ev);
+      return;
+    }
     if (ev.phase === "tool") {
       tickerTextEl.textContent = BUILD_TITLE;
       var prev = tickerStepsEl.querySelector(".is-running");

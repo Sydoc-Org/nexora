@@ -457,3 +457,34 @@ def test_chat_ticker_shows_eddard_building_a_report(nexora_server, page):
 
     assert steps[0] == "empty", steps
     assert steps[-1] == "title,kpi,bars,line,badge", steps
+
+    # Live preview + choreography (#212 follow-up): setPreview swaps the mock
+    # report's hardcoded copy for the streamed real numbers (title, compact
+    # total, per-value bars, no fake delta), and the celebrate class carries
+    # the Ready pose.
+    got = page.evaluate("""() => {
+        const stage = document.getElementById('rpChatWorkingMascot').content.cloneNode(true)
+            .querySelector('.ed-stage');
+        document.getElementById('rpChatThread').appendChild(stage);
+        ['title','kpi','bars','line','badge'].forEach(n =>
+            stage.querySelector('[data-ed-slot=' + n + ']').toggleAttribute('hidden', false));
+        window.NexoraEddard.setPreview(stage, {title: 'Real title', total: 1234567, series: [2, 1, 2]});
+        stage.querySelector('.ed').classList.add('ed--celebrate');
+        const bars = Array.from(stage.querySelectorAll('.ed-rc-bars i'));
+        const out = {
+            title: stage.querySelector('.ed-rc-title').textContent,
+            kpi: stage.querySelector('.ed-rc-kpi__num').textContent,
+            deltaHidden: stage.querySelector('.ed-rc-kpi__delta').hidden,
+            shownBars: bars.filter(b => !b.hidden).length,
+            tallerFirst: parseInt(bars[0].style.height) > parseInt(bars[1].style.height),
+            celebrate: stage.querySelector('.ed').classList.contains('ed--celebrate'),
+        };
+        stage.remove();
+        return out;
+    }""")
+    assert got["title"] == "Real title", got
+    # compact notation is locale-dependent ("1.2M" / "1.2 Mio.") -- assert
+    # compactness, not the suffix
+    assert got["kpi"].startswith("1.2") and len(got["kpi"]) < 10, got
+    assert got["deltaHidden"] and got["shownBars"] == 3 and got["tallerFirst"], got
+    assert got["celebrate"], got
