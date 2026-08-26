@@ -28,9 +28,12 @@ def client_ip():
     in ONE bucket -- ten logins a minute for the whole company. Same rule
     hooks.get_ip() applies to the CSV request log.
     """
-    # ponytail: leftmost hop is client-controlled (lets a spoofer dodge his own
-    # limit, never amplify onto others); tighten to waitress
-    # --trusted-proxy-count once the hop count on SYAPP01 is confirmed.
+    # ponytail: leftmost hop is client-controlled — a spoofer can dodge his own
+    # limit AND burn a chosen victim's bucket (targeted 429s). Kept anyway:
+    # switching to a rightmost/trusted-hop scheme with the WRONG hop count puts
+    # every public user in one bucket (company-wide 429s). Tighten to
+    # hops[-TRUSTED_PROXY_COUNT] once the SYAPP01 chain (ngrok/IIS XFF
+    # appends per path) is confirmed.
     forwarded = request.headers.get("X-Forwarded-For", "")
     return forwarded.split(",")[0].strip() or get_remote_address()
 
