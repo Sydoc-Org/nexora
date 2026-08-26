@@ -51,8 +51,8 @@
     lastQuarter: {{ _("Last quarter")|tojson }},
     allTime: {{ _("All time")|tojson }},
     custom: {{ _("Custom")|tojson }},
-    aiInvalid: {{ _("The AI could not draft that report — try rephrasing.")|tojson }},
-    aiLimit: {{ _("The AI daily limit is reached — try again tomorrow.")|tojson }},
+    aiInvalid: {{ _("Eddard could not draft that report — try rephrasing.")|tojson }},
+    aiLimit: {{ _("Eddard’s daily limit is reached — try again tomorrow.")|tojson }},
     aiFilters: {{ _("Filters")|tojson }},
     aiProcesses: {{ _("Processes")|tojson }},
     aiNoFilters: {{ _("no filters")|tojson }},
@@ -61,7 +61,7 @@
     thisWeek: {{ _("This week")|tojson }},
     lastWeek: {{ _("Last week")|tojson }},
     lastNDays: {{ _("Last {n} days")|tojson }},
-    aiThinking: {{ _("Asking the AI…")|tojson }},
+    aiThinking: {{ _("Asking Eddard…")|tojson }},
     aiDrafting: {{ _("Drafting your report…")|tojson }},
     aiChecking: {{ _("Checking the result…")|tojson }},
     chipApply: {{ _("Apply")|tojson }},
@@ -86,6 +86,13 @@
     partialBucketNote: {{ _("The current period is still running — its last bucket is incomplete.")|tojson }},
     gapNote: {{ _("Gaps are periods without a backlog snapshot.")|tojson }},
     deleteReport: {{ _("Delete report")|tojson }},
+    cardMenu: {{ _("Report actions")|tojson }},
+    anomDown: {{ _("{label} down {pct} vs previous")|tojson }},
+    anomUp: {{ _("{label} up {pct} vs previous")|tojson }},
+    anomPeak: {{ _("{label} peak — {bucket}")|tojson }},
+    share: {{ _("Share")|tojson }},
+    oneReport: {{ _("1 report")|tojson }},
+    nReports: {{ _("{n} reports")|tojson }},
     deleteConfirm: {{ _("Delete “{name}”? This cannot be undone.")|tojson }},
     deleteFailed: {{ _("Delete failed")|tojson }},
     openInAdvanced: {{ _("Open in Advanced")|tojson }},
@@ -110,6 +117,10 @@
     // client's own zero-filled last bucket, not the server's single exact-
     // snapshot latest row -- "latest snapshot" overclaimed the precision.
     kpiLatestSuffix: {{ _("last bucket")|tojson }},
+    kpiSumSub: {{ _("sum over the period")|tojson }},
+    kpiBucketsSub: {{ _("periods in the range")|tojson }},
+    kpiAvgSub: {{ _("total ÷ buckets")|tojson }},
+    statGrandTotal: {{ _("grand total")|tojson }},
     kpiBuckets: {{ _("Buckets")|tojson }},
     kpiAvg: {{ _("Avg per bucket")|tojson }},
     kpiPeak: {{ _("Peak")|tojson }},
@@ -146,9 +157,15 @@
     loaded: false,
     view: 'library',        // library | wizard | result
     current: null,          // { def, name, reportId, owned, canEdit, fromWizard }
+    grandTotals: null,      // authoritative per-metric totals for the KPI band
     chart: null,            // private Chart.js instance
     chartData: null,        // prepared labels+datasets for renderChart
-    wiz: null               // wizard state
+    wiz: null,              // wizard state
+    sort: 'updated',        // library sort: 'updated' | 'name'
+    layout: (function () {  // library card layout: '2' | '4' per row
+      try { return localStorage.getItem('nx.reporting.layout') === '4' ? '4' : '2'; }
+      catch (e) { return '2'; }
+    }())
   };
 
   function el(id) { return document.getElementById(id); }
@@ -187,18 +204,57 @@
   function setView(view) {
     state.view = view;
     el('rsLibrary').hidden = view !== 'library';  // #rsSearch nests under it now
-    el('rsHero').hidden = view !== 'library';
-    el('rsNewReport').hidden = view !== 'library';
-    el('rsNewDashboard').hidden = view !== 'library';
-    var aiBar = el('rsAiBar');
-    if (aiBar) aiBar.hidden = view !== 'library';
     el('rsWizard').hidden = view !== 'wizard';
     el('rsResult').hidden = view !== 'result';
     el('rsDashboard').hidden = view !== 'dashboard';
     if (view !== 'result') {
+      // Only the Chart.js instance is torn down; the rest of the result DOM
+      // (KPI band, table, caption, chips, query card) stays rendered so the
+      // Results nav item can restore the last result without re-querying
+      // (Console design intent #8) — restoreResult() re-mounts the chart
+      // from state.lastRun.
       destroyChart();
       hideTimingBadge();
       toggleMoreMenu(false);
+    }
+    // The Console nav rail follows the Simple pane's internal view.
+    document.dispatchEvent(new CustomEvent('rs:viewchanged', { detail: { view: view } }));
+  }
+
+  // Console "Results" nav: bring back the last rendered result from cache.
+  // Returns false when this session has no rendered result yet.
+  function restoreResult() {
+    var cur = state.current, lr = state.lastRun;
+    if (!cur || !lr) return false;
+    setView('result');
+    if (lr.hasMetrics && lr.dims) {
+      mountChart(cur.def, lr.columns, lr.rows,
+        (cur.def.forecast && cur.def.forecast.enabled) ? (lr.forecast || null) : null);
+    }
+    return true;
+  }
+
+  // Entry point for the Console nav rail (js/_reporting_tabs_js.html).
+  function navTo(screen) {
+    if (screen === 'library') {
+      if (state.view !== 'library') { setView('library'); loadLibrary(); }
+      return;
+    }
+    if (screen === 'results') {
+      if (state.view === 'result') return;
+      if (restoreResult()) return;
+      // Nothing rendered yet this session: open the most recent report so
+      // Results never shows an empty state.
+      var r = (state.reports || []).filter(function (x) { return x.kind !== 'dashboard'; })[0];
+      if (r) openReport(r); else setView('library');
+      return;
+    }
+    if (screen === 'dashboards') {
+      if (state.view === 'dashboard') return;
+      var d = (state.reports || []).filter(function (x) { return x.kind === 'dashboard'; })[0];
+      if (d) { openDashboard(d); return; }
+      setView('dashboard');
+      window.ReportingDashboard.openNew();
     }
   }
 
@@ -246,12 +302,16 @@
     return r.previewKind || 'bar';
   }
 
-  // Shared by the line preview: polyline point list, pure. (h-4)/(h-10) keep
-  // a 4px top margin and a few px of headroom above the peak.
+  // Shared by the line preview: polyline point list, pure. Scaled between the
+  // series' own min and max, not 0..max -- eight values that only differ by a
+  // few percent drew as a flat hairline when they were measured off zero.
   function sparkPath(vals, w, h) {
-    var max = Math.max.apply(null, vals) || 1;
+    var min = Math.min.apply(null, vals), max = Math.max.apply(null, vals);
+    var span = max - min;
     return vals.map(function (v, i) {
-      return (i / (vals.length - 1) * w).toFixed(1) + ',' + (h - 4 - (v / max) * (h - 10)).toFixed(1);
+      // A dead-flat series has no shape to show -- centre it instead of /0.
+      var t = span ? (v - min) / span : 0.5;
+      return (i / (vals.length - 1) * w).toFixed(1) + ',' + (h - 4 - t * (h - 10)).toFixed(1);
     }).join(' ');
   }
 
@@ -275,14 +335,22 @@
   };
 
   function previewSvgLine(vals) {
+    // Hover behavior (Console intent #5): the area fill and endpoint dot are
+    // invisible at rest and fade in on card hover — CSS transitions on
+    // .rs-spark-area / .rs-spark-dot in reporting-console.css. Nothing moves.
     var w = 200, h = 60;
     var pts = sparkPath(vals, w, h).split(' ');
     var last = pts[pts.length - 1].split(',');
     var area = pts.join(' ') + ' ' + w.toFixed(1) + ',' + h + ' 0,' + h;
     return '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" class="rs-card-svg">' +
-      '<polygon points="' + area + '" fill="#4f46e5" opacity=".12"></polygon>' +
-      '<polyline points="' + pts.join(' ') + '" fill="none" stroke="#4f46e5" stroke-width="2"></polyline>' +
-      '<circle cx="' + last[0] + '" cy="' + last[1] + '" r="3" fill="#4f46e5"></circle>' +
+      '<polygon class="rs-spark-area" points="' + area + '" fill="var(--nx-accent, #4f46e5)"></polygon>' +
+      '<polyline points="' + pts.join(' ') + '" fill="none" stroke="var(--nx-accent, #4f46e5)"' +
+        // preserveAspectRatio="none" squashes the stroke to a hairline when the
+        // 200x60 box is drawn wide and short -- non-scaling-stroke keeps it an
+        // even 2px whatever the card width.
+        ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round"' +
+        ' vector-effect="non-scaling-stroke"></polyline>' +
+      '<circle class="rs-spark-dot" cx="' + last[0] + '" cy="' + last[1] + '" r="3" fill="var(--nx-accent, #4f46e5)"></circle>' +
       '</svg>';
   }
 
@@ -321,8 +389,9 @@
     return '<svg viewBox="0 0 60 60" class="rs-card-svg">' + cells + '</svg>';
   }
 
-  // Preview band: thumbnail (real cache values when the kind matches, else
-  // the seeded decorative fallback) + the type badge pinned top-right.
+  // Preview strip: slim thumbnail (real cache values when the kind matches,
+  // else the seeded decorative fallback). The type badge lives in the card's
+  // top row (Console), not over the preview.
   function previewBandHtml(r) {
     var kind = previewKindOf(r);
     var cache = previewCacheGet(r.id);
@@ -342,10 +411,7 @@
       body = kind === 'line' ? previewSvgLine(vals)
         : kind === 'bar' ? previewSvgBar(vals) : previewSvgDonut(vals);
     }
-    var badge = PREVIEW_BADGE[kind] || PREVIEW_BADGE.bar;
-    return '<div class="rs-card-preview" data-kind="' + kind + '">' + body +
-      '<span class="rs-card-badge"><i class="fas ' + badge.icon + '" aria-hidden="true"></i>' +
-      badge.label + '</span></div>';
+    return '<div class="rs-card-preview" data-kind="' + kind + '">' + body + '</div>';
   }
 
   function initialsOf(name) {
@@ -354,18 +420,43 @@
     return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
   }
 
+  // One open card menu at a time (Console intent #6).
+  var openCardMenu = null;
+  function closeCardMenu() {
+    if (!openCardMenu) return;
+    openCardMenu.menu.hidden = true;
+    openCardMenu.btn.setAttribute('aria-expanded', 'false');
+    openCardMenu = null;
+  }
+  document.addEventListener('click', function (e) {
+    if (openCardMenu && !openCardMenu.wrap.contains(e.target)) closeCardMenu();
+  });
+
   function card(r) {
+    var kind = previewKindOf(r);
+    var badge = PREVIEW_BADGE[kind] || PREVIEW_BADGE.bar;
+    var wrap = document.createElement('div');
+    wrap.className = 'rs-card-wrap';
     var b = document.createElement('button');
     b.type = 'button';
     b.className = 'rs-card';
     b.setAttribute('data-testid', 'rs-card');
-    b.innerHTML = previewBandHtml(r) +
-      '<div class="rs-card-body">' +
-        '<p class="rs-card-name">' + esc(r.name) + '</p>' +
-        '<div class="rs-card-meta">' +
-          '<span class="rs-card-avatar">' + esc(initialsOf(r.ownerName)) + '</span>' +
-          '<span class="rs-card-metatext">' + esc(r.ownerName || '') + ' · ' + esc(relTime(r.updatedAt)) + '</span>' +
-        '</div>' +
+    b.innerHTML =
+      '<div class="rs-card-top">' +
+        '<span class="rs-card-tag' + (kind === 'dash' ? ' rs-card-tag--gray' : '') + '">' +
+          '<i class="fas ' + badge.icon + '" aria-hidden="true"></i>' + badge.label + '</span>' +
+      '</div>' +
+      '<p class="rs-card-name" title="' + esc(r.name) + '">' + esc(r.name) + '</p>' +
+      previewBandHtml(r) +
+      '<div class="rs-card-meta">' +
+        '<span class="rs-card-avatar">' + esc(initialsOf(r.ownerName)) + '</span>' +
+        '<span class="rs-card-metatext">' + esc(r.ownerName || '') + ' · ' + esc(relTime(r.updatedAt)) +
+          // Owner-side 'shared' tag: an explicit per-user grant leaves
+          // Visibility = 'private', so the card would otherwise look
+          // identical to a private one.
+          (r.owned && (r.visibility === 'shared' || r.sharedCount) ? ' · {{ _("shared") }}' : '') +
+          '</span>' +
+        '<i class="fas fa-play rs-card-play" aria-hidden="true"></i>' +
       '</div>';
     b.addEventListener('click', function () {
       // D17: a dashboard-kind report routes to the builder view instead of
@@ -373,20 +464,56 @@
       if (r.kind === 'dashboard') { openDashboard(r); return; }
       openReport(r);
     });
-    if (!r.owned) return b;
-    // Owner-only trash button beside the card (DELETE is owner-scoped server-side too).
-    var wrap = document.createElement('div');
-    wrap.className = 'rs-card-wrap';
     wrap.appendChild(b);
+    if (!r.owned) return wrap;
+    // Owner-only "…" menu: Share / Delete (both owner-scoped server-side too).
+    var kebab = document.createElement('button');
+    kebab.type = 'button';
+    kebab.className = 'rs-card-kebab';
+    kebab.setAttribute('data-testid', 'rs-card-kebab');
+    kebab.setAttribute('aria-haspopup', 'true');
+    kebab.setAttribute('aria-expanded', 'false');
+    kebab.setAttribute('aria-label', I18N.cardMenu + ': ' + r.name);
+    kebab.innerHTML = '<i class="fas fa-ellipsis" aria-hidden="true"></i>';
+    var menu = document.createElement('div');
+    menu.className = 'rs-card-menu';
+    menu.hidden = true;
+    menu.setAttribute('role', 'menu');
+    var share = document.createElement('button');
+    share.type = 'button';
+    share.className = 'rs-card-menu-row';
+    share.setAttribute('role', 'menuitem');
+    share.setAttribute('data-testid', 'rs-card-share');
+    share.innerHTML = '<i class="fas fa-arrow-up-from-bracket" aria-hidden="true"></i>' + esc(I18N.share);
+    share.addEventListener('click', function (e) {
+      e.stopPropagation();
+      closeCardMenu();
+      if (window.Reporting && window.Reporting.openShareFor) window.Reporting.openShareFor(r.id);
+    });
     var del = document.createElement('button');
     del.type = 'button';
-    del.className = 'rs-card-del';
+    del.className = 'rs-card-menu-row rs-card-menu-row--danger';
+    del.setAttribute('role', 'menuitem');
     del.setAttribute('data-testid', 'rs-card-delete');
-    del.title = I18N.deleteReport;
-    del.setAttribute('aria-label', I18N.deleteReport + ': ' + r.name);
-    del.innerHTML = '<i class="fas fa-trash-can" aria-hidden="true"></i>';
-    del.addEventListener('click', function (e) { e.stopPropagation(); deleteReport(r.id, r.name); });
-    wrap.appendChild(del);
+    del.innerHTML = '<i class="fas fa-trash-can" aria-hidden="true"></i>' + esc(I18N.deleteReport);
+    del.addEventListener('click', function (e) { e.stopPropagation(); closeCardMenu(); deleteReport(r.id, r.name); });
+    menu.appendChild(share);
+    var hr = document.createElement('div');
+    hr.className = 'rs-card-menu-sep';
+    menu.appendChild(hr);
+    menu.appendChild(del);
+    kebab.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var isOpen = openCardMenu && openCardMenu.menu === menu;
+      closeCardMenu();
+      if (!isOpen) {
+        menu.hidden = false;
+        kebab.setAttribute('aria-expanded', 'true');
+        openCardMenu = { wrap: wrap, menu: menu, btn: kebab };
+      }
+    });
+    wrap.appendChild(kebab);
+    wrap.appendChild(menu);
     return wrap;
   }
 
@@ -409,13 +536,31 @@
     var q = (el('rsSearch').value || '').toLowerCase();
     var groups = { shared: el('rsGroupShared'), mine: el('rsGroupMine'), direct: el('rsGroupDirect') };
     var counts = { shared: 0, mine: 0, direct: 0 };
-    Object.keys(groups).forEach(function (k) { groups[k].innerHTML = ''; });
-    state.reports.forEach(function (r) {
+    Object.keys(groups).forEach(function (k) {
+      groups[k].innerHTML = '';
+      groups[k].classList.toggle('is-cols-4', state.layout === '4');
+    });
+    var list = state.reports.slice();
+    if (state.sort === 'name') {
+      list.sort(function (a, b) { return String(a.name).localeCompare(String(b.name)); });
+    }  // 'updated' keeps the server order (Owned DESC, UpdatedAt DESC)
+    // --i drives the staggered entrance + sparkline draw-in (reporting-console
+    // .css). Capped so a large library still finishes settling in under a
+    // second instead of trickling in card by card.
+    var idx = 0;
+    list.forEach(function (r) {
       if (q && r.name.toLowerCase().indexOf(q) === -1) return;
       var g = r.visibility === 'shared' ? 'shared' : (r.owned ? 'mine' : 'direct');
-      groups[g].appendChild(card(r));
+      var c = card(r);
+      c.style.setProperty('--i', String(Math.min(idx++, 11)));
+      groups[g].appendChild(c);
       counts[g]++;
     });
+    var all = el('rsCountAll');
+    if (all) {
+      var total = counts.shared + counts.mine + counts.direct;
+      all.textContent = total === 1 ? I18N.oneReport : I18N.nReports.replace('{n}', String(total));
+    }
     var pills = { mine: el('rsCountMine'), shared: el('rsCountShared'), direct: el('rsCountDirect') };
     // The empty-state name line reuses the group's own header string (already
     // translated above the grid); the hint line reuses the existing
@@ -442,6 +587,9 @@
     // they stay fully usable in Advanced.
     state.reports = res.data.filter(function (r) { return r.kind !== 'sql'; });
     renderLibrary();
+    // Feeds the Console nav-rail counts (Library / Dashboards).
+    document.dispatchEvent(new CustomEvent('rs:libraryloaded',
+      { detail: { reports: state.reports } }));
   }
 
   async function openReport(r) {
@@ -525,6 +673,8 @@
     toggleMoreMenu(false);
     el('rsResultTitle').textContent = (opts && opts.title) || '';
     el('rsResultTitle').style.color = '';
+    el('rsCrumbName').textContent = (opts && opts.title) || '';
+    el('rsSavedChip').hidden = true;
     el('rsResultMeta').textContent = '';
     el('rsTableRowCount').textContent = '';
     el('rsMsg').hidden = true;
@@ -533,7 +683,6 @@
     el('rsError').hidden = false;
     renderErrorOpenAdvanced(!!(opts && opts.openAdvanced));
     setHeaderActionsEnabled(false);
-    el('rsStatCard').hidden = true;
     el('rsChartCard').hidden = true;
     el('rsTableCard').hidden = true;
     el('rsChartNote').hidden = true;
@@ -548,6 +697,8 @@
     // the error message.
     var rsCaptionErrBox = el('rsCaption');
     if (rsCaptionErrBox) { rsCaptionErrBox.hidden = true; rsCaptionErrBox.textContent = ''; }
+    var anomErrCard = el('rsAnomCard');
+    if (anomErrCard) anomErrCard.hidden = true;
   }
 
   // Prefers the server's own error + detail (e.g. "…invalid or outdated. —
@@ -720,17 +871,21 @@
   // caption/value space-between layout still sees exactly two top-level
   // children -- a bare 3rd sibling would split away from the value under
   // flex-wrap instead of hugging it.
-  function kpiBlock(testid, caption, value, deltaHtml) {
+  // Console KPI cards are a fixed three-row structure (label / value / sub)
+  // so every value sits on the same baseline across the row — the sub span
+  // renders even when empty.
+  function kpiBlock(testid, caption, value, deltaHtml, sub) {
     return '<div class="reporting-ledger-kpi" data-testid="' + testid + '">' +
       '<span class="reporting-ledger-caption">' + esc(caption) + '</span>' +
       '<span class="rs-kpi-value-wrap">' +
         '<span class="reporting-ledger-kpi-value" data-count-target="' + Number(value) + '">0</span>' +
         (deltaHtml || '') +
-      '</span></div>';
+      '</span>' +
+      '<span class="reporting-ledger-kpi-sub">' + esc(sub || '') + '</span></div>';
   }
 
-  // Peak row additionally carries the winning bucket's label under the
-  // value (omitted for the zero-dimension case, where there is none).
+  // Peak row's sub is the winning bucket's label (empty for the
+  // zero-dimension case, where there is none).
   function kpiPeakBlock(testid, caption, label, value, deltaHtml) {
     return '<div class="reporting-ledger-kpi" id="rsKpiPeak" data-testid="' + testid + '">' +
       '<span class="reporting-ledger-caption">' + esc(caption) + '</span>' +
@@ -738,25 +893,26 @@
         '<span class="reporting-ledger-kpi-value" data-count-target="' + Number(value) + '">0</span>' +
         (deltaHtml || '') +
       '</span>' +
-      (label ? '<span class="reporting-ledger-kpi-sub">' + esc(label) + '</span>' : '') +
+      '<span class="reporting-ledger-kpi-sub">' + esc(label || '') + '</span>' +
       '</div>';
   }
 
-  // Left-rail layout (studio result body): the primary total renders into
-  // its own gradient card, the secondary Buckets/Avg/Peak rows stack into a
-  // second card below it -- both inside the one #rsKpiBand container that
-  // computeKpiBand already owned (see the CSS for the ID-scoped override
-  // that turns the Advanced pane's shared flat .reporting-ledger-kpis row
-  // into this stacked pair for Simple only). A breakdown run also keeps
-  // showing the legacy rsStatCard (filled by runCurrent's separate
-  // grand-total clone query, untouched here) alongside this band --
-  // existing, tested behavior (test_wizard_category_breakdown_to_result_cards)
-  // that this task's regroup does not change.
-  // Pure HTML builder for the KPI band (Total / Buckets / Avg / Peak, prior-
-  // period delta chips, sparkline). Returns '' when the rows carry no numeric
-  // metric column. DOM-free -- shared with the dashboard's whole-report card
-  // via window.ReportingSimple, so it must never touch #rs* elements.
-  function kpiBandHtml(dims, rows, comparison, def) {
+  // Left-rail layout (studio result body): one labelled total card per metric
+  // (the first gets the gradient, a delta chip and the sparkline), then the
+  // Buckets/Avg/Peak rows stacked into a card headed with the measure they
+  // describe -- all inside the one #rsKpiBand container computeKpiBand
+  // already owned (see the CSS for the ID-scoped override that turns the
+  // Advanced pane's shared flat .reporting-ledger-kpis row into this stack
+  // for Simple only). Nothing here says a bare "Total" any more: on a
+  // multi-metric run that number was one arbitrary metric's, and the reader
+  // had no way to tell which. The grand totals used to be repeated in a
+  // separate rsStatCard above the band; they live here now.
+  // Pure HTML builder for the band above. Returns '' when the rows carry no
+  // numeric metric column. DOM-free -- shared with the dashboard's whole-
+  // report card via window.ReportingSimple, so it must never touch #rs*
+  // elements; a card passes its OWN zero-column run through `grandTotals`
+  // rather than inheriting the Simple pane's state.
+  function kpiBandHtml(dims, rows, comparison, def, columns, grandTotals) {
     var kpi = computeKpiBand(dims, rows);
     if (!kpi) return '';
     // Prior-period KPIs via the SAME computeKpiBand, fed comparison.rows --
@@ -774,10 +930,14 @@
       ? zeroFillDateBuckets(def, comparison.rows, [], [comparison.priorStart, comparison.priorEnd])
       : (comparison ? comparison.rows : null);
     var priorKpi = priorRows ? computeKpiBand(dims, priorRows) : null;
-    var latestKey = applyLatestTotal(def, kpi, rows);
+    // kpi.total only feeds the delta chip now (the cards render their own
+    // per-measure totals), but it still has to be the same kind of number the
+    // prior period's is -- a level's latest bucket, not its sum.
+    applyLatestTotal(def, kpi, rows);
     if (priorKpi) applyLatestTotal(def, priorKpi, priorRows);
-    var totalDelta = '', avgDelta = '', peakDelta = '';
+    var totalDelta = '', avgDelta = '', peakDelta = '', deltaNote = '';
     if (priorKpi) {
+      deltaNote = I18N.deltaVs + ' ' + comparison.priorStart + ' – ' + comparison.priorEnd;
       totalDelta = deltaChipHtml(kpi.total, priorKpi.total, comparison.priorStart, comparison.priorEnd);
       // Bucket-count mismatch guard: shifted_definition_for_comparison shifts
       // the prior window back by the CURRENT window's length in DAYS, not by
@@ -795,30 +955,125 @@
       peakDelta = deltaChipHtml(kpi.peak, priorKpi.peak, comparison.priorStart, comparison.priorEnd);
     }
     var sparkHtml = def ? sparklineHtml(def, rows, kpi) : '';
-    return (
-      '<div class="rs-kpi-total-card" data-testid="rs-kpi-total">' +
-        '<span class="reporting-ledger-caption">' + esc(I18N.kpiTotal) +
-          (latestKey ? ' · ' + esc(I18N.kpiLatestSuffix) + ' ' + esc(String(latestKey).slice(0, 16)) : '') + '</span>' +
-        '<span class="reporting-ledger-kpi-value" data-count-target="' + Number(kpi.total) + '">0</span>' +
-        totalDelta + sparkHtml +
-      '</div>' +
+    var measures = measureTotals(def, columns, rows, dims, kpi, grandTotals);
+    // The delta chip and the sparkline both describe the series at kpi.idx,
+    // so they only belong on the headline card when that is the measure it
+    // shows -- and only while the shown figure IS this pane's own sum of that
+    // series. An authoritative grand total (a distinct count, an average)
+    // can't be diffed against a client-side sum of the prior period without
+    // inventing a percentage.
+    var headline = measures[0] || null;
+    var seriesIsHeadline = !!headline && headline.idx === kpi.idx &&
+      Math.abs(Number(headline.total) - Number(kpi.total)) < 0.5;
+    // Buckets/Avg/Peak describe a distribution across the breakdown; a
+    // zero-dimension run is a single grand total with nothing to distribute.
+    var statsHtml = dims ? (
       '<div class="rs-kpi-stats-card">' +
-        kpiBlock('rs-kpi-buckets', I18N.kpiBuckets, kpi.buckets) +
-        kpiBlock('rs-kpi-avg', I18N.kpiAvg, kpi.avg, avgDelta) +
+        '<span class="rs-kpi-stats-title" data-testid="rs-kpi-stats-title">' +
+          esc(measureLabel(columns, kpi.idx)) + '</span>' +
+        kpiBlock('rs-kpi-buckets', I18N.kpiBuckets, kpi.buckets, '', I18N.kpiBucketsSub) +
+        kpiBlock('rs-kpi-avg', I18N.kpiAvg, kpi.avg, avgDelta, I18N.kpiAvgSub) +
         kpiPeakBlock('rs-kpi-peak', I18N.kpiPeak, kpi.peakLabel, kpi.peak, peakDelta) +
-      '</div>'
-    );
+      '</div>') : '';
+    return measures.map(function (m, i) {
+      var first = i === 0;
+      // Console card: caption keeps the "Total · <measure>" contract; the
+      // explainer (last-bucket note for levels, sum-over-period otherwise)
+      // moves to the sub line so every value sits on one baseline.
+      return '<div class="rs-kpi-total-card' + (first ? '' : ' rs-kpi-total-card--alt') + '"' +
+        ' data-testid="' + (first ? 'rs-kpi-total' : 'rs-kpi-total-extra') + '">' +
+        '<span class="reporting-ledger-caption" title="' +
+          esc(I18N.kpiTotal + (m.label ? ' · ' + m.label : '')) + '">' +
+          esc(I18N.kpiTotal) + (m.label ? ' · ' + esc(m.label) : '') +
+        '</span>' +
+        '<span class="rs-kpi-value-wrap">' +
+          '<span class="reporting-ledger-kpi-value" data-count-target="' + Number(m.total) + '">0</span>' +
+          (first && seriesIsHeadline ? totalDelta : '') +
+        '</span>' +
+        '<span class="reporting-ledger-kpi-sub">' +
+          esc(m.latestKey
+            ? I18N.kpiLatestSuffix + ' ' + String(m.latestKey).slice(0, 16)
+            : I18N.kpiSumSub) +
+          // The delta chip's "vs <prior range>" was tooltip-only, so the
+          // percentage read as a bare number with nothing to compare against.
+          (first && seriesIsHeadline && totalDelta ? ' · ' + esc(deltaNote) : '') +
+        '</span>' +
+        (first && seriesIsHeadline ? sparkHtml : '') +
+        '</div>';
+    }).join('') + statsHtml;
   }
 
-  function renderKpiBand(dims, rows, comparison, def) {
+  function renderKpiBand(dims, rows, comparison, def, columns) {
     var band = el('rsKpiBand');
-    var html = kpiBandHtml(dims, rows, comparison, def);
+    var html = kpiBandHtml(dims, rows, comparison, def, columns);
     if (!html) { band.hidden = true; band.innerHTML = ''; return; }
     band.innerHTML = html;
     band.hidden = false;
     Array.prototype.forEach.call(band.querySelectorAll('[data-count-target]'), function (span) {
       animateValue(span, Number(span.getAttribute('data-count-target')), fmtNumber);
     });
+  }
+
+  // Console "Anomalies" card: cheap client-side outlier notes over the rows
+  // already rendered — the latest complete bucket's swing per series, plus
+  // each series' peak bucket. Only for a single-dimension result (one clean
+  // axis). ponytail: ±15% swing heuristic; a real detector belongs
+  // server-side if this ever needs to be smarter.
+  function renderAnomalies(def, columns, rows) {
+    var card = el('rsAnomCard');
+    if (!card) return;
+    card.hidden = true;
+    el('rsAnomRows').innerHTML = '';
+    var dims = (def.columns || []).length;
+    var hasMetrics = Array.isArray(def.metrics) && def.metrics.length > 0;
+    if (!hasMetrics || dims !== 1 || !rows || rows.length < 3) return;
+    var grain = def.columns[0].grain || null;
+    var body = rows.slice();
+    // Ignore a trailing partial bucket — comparing it against a full one
+    // would fabricate a drop (same reasoning as the chart's faded bucket).
+    if (grain && body.length &&
+        String(body[body.length - 1][0] || '').slice(0, 10) >= currentBucketStart(grain)) {
+      body = body.slice(0, -1);
+    }
+    if (body.length < 3) return;
+    var out = [];
+    var mlabels = metricLabelsFor(def);
+    for (var mi = dims; mi < columns.length; mi++) {
+      var vals = body.map(function (r) { return Number(r[mi]) || 0; });
+      var label = mlabels[mi - dims] || columns[mi].header || columns[mi].field;
+      var last = vals[vals.length - 1], prev = vals[vals.length - 2];
+      // prev >= 5: a swing between single-digit buckets is noise, not signal
+      if (prev >= 5) {
+        var pct = (last - prev) / prev;
+        if (Math.abs(pct) >= 0.15) {
+          out.push({
+            cls: pct < 0 ? 'rs-anom-dot--down' : 'rs-anom-dot--up',
+            text: (pct < 0 ? I18N.anomDown : I18N.anomUp)
+              .replace('{label}', label)
+              .replace('{pct}', Math.round(Math.abs(pct) * 100) + '%'),
+            value: fmtNumber(last)
+          });
+        }
+      }
+      var maxI = 0;
+      vals.forEach(function (v, i) { if (v > vals[maxI]) maxI = i; });
+      if (vals[maxI] > 0 && maxI !== vals.length - 1) {
+        out.push({
+          cls: 'rs-anom-dot--peak',
+          text: I18N.anomPeak.replace('{label}', label)
+            .replace('{bucket}', String(body[maxI][0]).slice(0, 10)),
+          value: fmtNumber(vals[maxI])
+        });
+      }
+    }
+    out = out.slice(0, 3);
+    if (!out.length) return;
+    el('rsAnomRows').innerHTML = out.map(function (a) {
+      return '<div class="rs-anom-row"><span class="rs-anom-dot ' + a.cls + '"></span>' +
+        '<span class="rs-anom-text">' + esc(a.text) + '</span>' +
+        '<span class="rs-anom-val">' + esc(a.value) + '</span></div>';
+    }).join('');
+    card.hidden = false;
   }
 
   function metricLabelsFor(def) {
@@ -829,22 +1084,13 @@
     });
   }
 
-  // Pure: one label/value pair per metric. withIds keeps the rsStatLabel/
-  // rsStatValue ids on the first pair (the Simple pane's tests target them);
-  // the dashboard's whole-report card passes false so ids never duplicate.
-  function statCardHtml(def, rowVals, withIds) {
-    var labels = metricLabelsFor(def);
-    return labels.map(function (lb, i) {
-      var idL = (withIds && i === 0) ? ' id="rsStatLabel"' : '';
-      var idV = (withIds && i === 0) ? ' id="rsStatValue"' : '';
-      return '<p class="nx-stat__label"' + idL + '>' + esc(lb) + '</p>' +
-             '<div class="nx-stat__value"' + idV + '>' + fmtNumber(rowVals[i]) + '</div>';
-    }).join('');
-  }
-
-  function fillStatCard(def, rowVals) {
-    el('rsStatBody').innerHTML = statCardHtml(def, rowVals, true);
-    el('rsStatCard').hidden = false;
+  // Authoritative per-metric grand totals (one cell per def.metrics entry),
+  // from the zero-column clone run — or from the single row of a zero-dim run,
+  // which IS that total. The band renders them; summing the grouped rows in
+  // the browser only happens to be right for additive metrics, and would
+  // quietly double-count a count_distinct or average an average.
+  function setGrandTotals(rowVals) {
+    state.grandTotals = Array.isArray(rowVals) ? rowVals : null;
   }
 
   // The metric's aggregation (sum/avg/count/count_distinct/…), used to decide
@@ -875,11 +1121,11 @@
     });
   }
 
-  // #178 C10: for a latest-mode metric the band total is the newest date
-  // bucket's sum, not the sum over all buckets. Returns the bucket label it
-  // used, or null when not applicable (no date dim / not latest mode).
-  function applyLatestTotal(def, kpi, rows) {
-    if (!kpi || metricTotalModeFor(def) !== 'latest') return null;
+  // #178 C10: for a latest-mode metric the "total" is the newest date
+  // bucket's sum, not the sum over all buckets -- a level (the backlog) added
+  // up across twelve months is a number nobody can spend. Returns
+  // {total, key} for column `idx`, or null when there is no date dimension.
+  function latestBucketTotal(def, rows, idx) {
     var cols = def.columns || [];
     var dateIdx = -1;
     for (var i = 0; i < cols.length; i++) {
@@ -889,17 +1135,75 @@
     if (dateIdx === -1) return null;
     var maxKey = null;
     rows.forEach(function (r) {
-      if (r[kpi.idx] == null) return;   // no snapshot in this bucket
+      if (r[idx] == null) return;   // no snapshot in this bucket
       var k = String(r[dateIdx]);
       if (maxKey === null || k > maxKey) maxKey = k;
     });
     if (maxKey === null) return null;
     var t = 0;
     rows.forEach(function (r) {
-      if (String(r[dateIdx]) === maxKey) t += Number(r[kpi.idx]) || 0;
+      if (String(r[dateIdx]) === maxKey) t += Number(r[idx]) || 0;
     });
-    kpi.total = t;
-    return maxKey;
+    return { total: t, key: maxKey };
+  }
+
+  // Rewrites kpi.total in place for a latest-mode primary metric; returns the
+  // bucket label it used, or null when not applicable.
+  function applyLatestTotal(def, kpi, rows) {
+    if (!kpi || metricTotalModeFor(def) !== 'latest') return null;
+    var latest = latestBucketTotal(def, rows, kpi.idx);
+    if (!latest) return null;
+    kpi.total = latest.total;
+    return latest.key;
+  }
+
+  // Result-column header for a measure, e.g. "Documents imported" -- what the
+  // /run payload already carries for every projected column (metric columns
+  // included, since _prepare_run headers them from the registry label). This
+  // is what makes a KPI say WHAT it totals; without it the band just reads
+  // "Total" and the reader has to guess which of the metrics it means.
+  function measureLabel(columns, idx) {
+    var c = (columns || [])[idx];
+    return (c && (c.header || c.field)) || '';
+  }
+
+  // One labelled total per metric, in def.metrics order — the aggregate query
+  // projects the metrics after the dimensions, so measure n lives at dims + n.
+  // Prefers the authoritative grand total (state.grandTotals); otherwise falls
+  // back to this pane's own arithmetic, which honours each measure's total
+  // mode so a level (the backlog) reports its latest snapshot rather than a
+  // meaningless sum across buckets. A definition with no semantic metrics
+  // (SQL / plain grid) has exactly one measure: whatever numeric column
+  // computeKpiBand locked onto.
+  function measureTotals(def, columns, rows, dims, kpi, grandTotals) {
+    var modes = def ? metricTotalModes(def) : [];
+    if (!modes.length) {
+      return kpi ? [{ idx: kpi.idx, label: measureLabel(columns, kpi.idx),
+                      total: kpi.total, latestKey: null }] : [];
+    }
+    var grand = grandTotals === undefined ? state.grandTotals : grandTotals;
+    return modes.map(function (mode, n) {
+      var idx = dims + n;
+      var exact = grand && isNumericCell(grand[n]);
+      // Computed even when the grand total is authoritative: its bucket key
+      // is what the caption annotates ("· last bucket 2026-08-06"), so the
+      // reader knows a level is a snapshot and not a period sum.
+      var latest = mode === 'latest' ? latestBucketTotal(def, rows, idx) : null;
+      var total = 0;
+      if (exact) {
+        total = Number(grand[n]);
+      } else if (latest) {
+        total = latest.total;
+      } else {
+        rows.forEach(function (r) { if (isNumericCell(r[idx])) total += Number(r[idx]); });
+      }
+      return {
+        idx: idx,
+        label: measureLabel(columns, idx),
+        total: total,
+        latestKey: latest ? latest.key : null,
+      };
+    });
   }
 
   // ----- Drill-through (Simple: chart clicks + table rows) -----
@@ -1142,6 +1446,20 @@
     el('rsResultTitle').style.color = styleOf().titleColor || '';
   }
 
+  // Console x-axis: compact bucket labels ("Jan 25", "Q2 25", "2025",
+  // "3 Mar") instead of raw ISO dates — the tooltip title keeps the full
+  // value. Category axes (no grain) pass through unchanged.
+  function prettyBucketLabel(s, grain) {
+    var m = /^(\d{4})-(\d{2})(?:-(\d{2}))?/.exec(String(s == null ? '' : s));
+    if (!m || !grain) return s;
+    var dte = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3] || 1));
+    if (isNaN(dte)) return s;
+    if (grain === 'year') return m[1];
+    if (grain === 'quarter') return 'Q' + (Math.floor(dte.getMonth() / 3) + 1) + ' ' + m[1].slice(2);
+    if (grain === 'month') return dte.toLocaleDateString(undefined, { month: 'short' }) + ' ' + m[1].slice(2);
+    return dte.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });  // day / week
+  }
+
   // Pure: the Chart.js config for a chart-data block. `def` supplies the
   // saved style (colours / right-axis picks) and the date grain; opts.onDrill
   // (index, datasetIndex) receives clicks on real (non-forecast) elements.
@@ -1151,6 +1469,7 @@
   function chartConfigFor(d, type, def, opts) {
     var style = (def && def.style) || {};
     var onDrill = (opts && opts.onDrill) || function () {};
+    var xGrain = ((def && (def.columns || [])[0]) || {}).grain || null;
     var multi = !!(d && d.multiSeries);
     if (multi && (type === 'pie' || type === 'doughnut')) type = 'bar';
     var stacked = type === 'stacked';
@@ -1305,7 +1624,15 @@
       data: { labels: d.labels, datasets: datasets },
       options: { responsive: true, maintainAspectRatio: false,
                  scales: (circular) ? {}
-                   : { x: { stacked: stacked },
+                   : { x: { stacked: stacked,
+                            ticks: {
+                              maxRotation: 0,
+                              autoSkip: true,
+                              maxTicksLimit: 12,
+                              callback: function (value) {
+                                return prettyBucketLabel(this.getLabelForValue(value), xGrain);
+                              }
+                            } },
                        y: { stacked: stacked,
                             beginAtZero: true,
                             title: { display: useY2, text: axisTitle(leftSeries), color: axisTint(leftSeries) },
@@ -1363,7 +1690,8 @@
     var d = state.chartData;
     if (!d) return;
     destroyChart();
-    var built = chartConfigFor(d, type, (state.current && state.current.def) || {}, { onDrill: drillFromChart });
+    var built = chartConfigFor(d, type, (state.current && state.current.def) || {},
+                               { onDrill: drillFromChart });
     type = built.type;
     state.chartType = type;
     var multi = built.multi, circular = built.circular;
@@ -1484,7 +1812,7 @@
     // year of days); only categorical axes keep the 50-row cut.
     var xCap = isDate ? 400 : 50;
     if (dims === 1 && rows.length > xCap) {
-      if (isDate) { return { data: null, note: I18N.noChartTooManyPoints }; }
+      if (isDate) return { data: null, note: I18N.noChartTooManyPoints };
       addNote(I18N.chartFirst50.replace('{n}', String(rows.length)));
       rows = rows.slice(0, 50);
     }
@@ -1494,6 +1822,7 @@
       var metricIdx2 = columns.length - (def.metrics || []).length;
       var nMetrics2 = (def.metrics || []).length || 1;
       var mLabels2 = metricLabelsFor(def);
+      var modes2 = metricTotalModes(def);
       var xOrder = [], cell = {}, seriesTot = {}, seriesParts = {}, seriesMetric = {};
       rows.forEach(function (r) {
         var x = String(r[0] == null ? '' : r[0]).slice(0, isDate ? 10 : 200);
@@ -1516,14 +1845,23 @@
           var s = nMetrics2 > 1
             ? labelParts.concat([mLabels2[mi] || def.metrics[mi].metric]).join(' · ')
             : labelParts.join(' · ');
-          var v = Number(r[metricIdx2 + mi]) || 0;
-          cell[x][s] = (cell[x][s] || 0) + v;
-          seriesTot[s] = (seriesTot[s] || 0) + v;
+          // A level metric (backlog) is NULL, not 0, on legs where it wasn't
+          // measured — coercing it to 0 here would silently zero out a real
+          // gap once broken down by a second dimension (#follow-up from the
+          // stop-at-today/backlog-as-a-level audit). Only fold in a value
+          // when this row actually has one; an all-NULL cell stays NULL.
+          if (!(s in cell[x])) cell[x][s] = modes2[mi] === 'latest' ? null : 0;
+          var raw = r[metricIdx2 + mi];
+          if (raw != null) {
+            var v = Number(raw) || 0;
+            cell[x][s] = (cell[x][s] || 0) + v;
+            seriesTot[s] = (seriesTot[s] || 0) + v;
+          }
           seriesParts[s] = parts;
           seriesMetric[s] = mi;
         }
       });
-      if (xOrder.length > xCap) { return { data: null, note: I18N.noChartTooManyPoints }; }
+      if (xOrder.length > xCap) return { data: null, note: I18N.noChartTooManyPoints };
       var allSeries = Object.keys(seriesTot);
       var byTot = function (a, b) { return seriesTot[b] - seriesTot[a]; };
       var series;
@@ -1546,34 +1884,34 @@
           .replace('{shown}', String(series.length)).replace('{n}', String(allSeries.length)));
       }
       noteDataQuality(def, rows, isDate).forEach(addNote);
-      return {
-        data: {
-          labels: xOrder,
-          // Raw click values for drill-through: the pivot above already
-          // stringifies x keys ('' means NULL), so labels === raw here. Series
-          // are per-dim value arrays so a click can filter each breakdown.
-          rawX: xOrder,
-          rawSeries: series.map(function (s) { return seriesParts[s]; }),
-          datasets: series.map(function (s, i) {
-            return {
-              label: s,
-              // Style key for the colours/axes popover. With several measures a
-              // pivoted series is "<category> · <measure>" — keep the measure
-              // code in `field` so a backlog series can default to the right axis.
-              field: def.metrics && def.metrics[seriesMetric[s]] ? def.metrics[seriesMetric[s]].metric : null,
-              data: xOrder.map(function (x) { return cell[x][s] || 0; }),
-              borderColor: NX_PALETTE[i % NX_PALETTE.length],
-              backgroundColor: NX_PALETTE[i % NX_PALETTE.length],
-              tension: .25
-            };
-          }),
-          multiSeries: true,
-          // Preview cache (Step 5) reads this back to tag the cached series —
-          // must match whatever mountChart's chart draw actually renders.
-          type: def.chartType || (isDate ? 'line' : 'bar')
-        },
-        note: note
-      };
+      return { data: {
+        labels: xOrder,
+        // Raw click values for drill-through: the pivot above already
+        // stringifies x keys ('' means NULL), so labels === raw here. Series
+        // are per-dim value arrays so a click can filter each breakdown.
+        rawX: xOrder,
+        rawSeries: series.map(function (s) { return seriesParts[s]; }),
+        datasets: series.map(function (s, i) {
+          return {
+            label: s,
+            // Style key for the colours/axes popover. With several measures a
+            // pivoted series is "<category> · <measure>" — keep the measure
+            // code in `field` so a backlog series can default to the right axis.
+            field: def.metrics && def.metrics[seriesMetric[s]] ? def.metrics[seriesMetric[s]].metric : null,
+            data: xOrder.map(function (x) {
+              var v = cell[x] ? cell[x][s] : undefined;
+              return v === undefined ? (modes2[seriesMetric[s]] === 'latest' ? null : 0) : v;
+            }),
+            borderColor: NX_PALETTE[i % NX_PALETTE.length],
+            backgroundColor: NX_PALETTE[i % NX_PALETTE.length],
+            tension: .25
+          };
+        }),
+        multiSeries: true,
+        // Preview cache (Step 5) reads this back to tag the cached series —
+        // must match whatever renderChart() below actually draws.
+        type: def.chartType || (isDate ? 'line' : 'bar')
+      }, note: note };
     }
     var metricIdx = columns.length - (def.metrics || []).length;
     var labels = rows.map(function (r) {
@@ -1607,14 +1945,11 @@
       labels = labels.concat(fc.buckets.map(function (b) { return String(b).slice(0, 10); }));
     }
     noteDataQuality(def, rows, isDate).forEach(addNote);
-    return {
-      data: {
-        labels: labels, rawX: rawX, datasets: datasets, multiSeries: false,
-        forecast: fc, forecastStart: histN,
-        type: def.chartType || (isDate ? 'line' : 'bar')
-      },
-      note: note
-    };
+    return { data: {
+      labels: labels, rawX: rawX, datasets: datasets, multiSeries: false,
+      forecast: fc, forecastStart: histN,
+      type: def.chartType || (isDate ? 'line' : 'bar')
+    }, note: note };
   }
 
   function mountChart(def, columns, rows, forecast) {
@@ -1726,8 +2061,44 @@
       x.addEventListener('click', function (e) { e.stopPropagation(); onRemove(); });
       c.appendChild(x);
     }
-    if (onEdit) c.addEventListener('click', function () { onEdit(c); });
+    if (onEdit) {
+      // A clickable <span> is invisible to the keyboard — give it button
+      // semantics so Tab reaches it and Enter/Space opens the editor.
+      c.tabIndex = 0;
+      c.setAttribute('role', 'button');
+      c.addEventListener('click', function () { onEdit(c); });
+      c.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEdit(c); }
+      });
+    }
     return c;
+  }
+
+  // Swap a chip for its inline editor and give the editor a way out. Without
+  // this the only exits were Apply or a full re-render — clicking elsewhere or
+  // pressing Escape left the popover stuck open (escape-routes, modal-escape).
+  function openChipEditor(chipEl, box) {
+    chipEl.replaceWith(box);
+    function close() {
+      document.removeEventListener('mousedown', onDoc, true);
+      document.removeEventListener('keydown', onKey, true);
+      if (box.isConnected) box.replaceWith(chipEl);
+    }
+    function onDoc(e) {
+      // Apply re-renders the chip row, which disconnects the box — drop the
+      // listeners rather than resurrecting a stale chip over the new row.
+      if (!box.isConnected) {
+        document.removeEventListener('mousedown', onDoc, true);
+        document.removeEventListener('keydown', onKey, true);
+        return;
+      }
+      if (!box.contains(e.target)) close();
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') { e.stopPropagation(); close(); }
+    }
+    document.addEventListener('mousedown', onDoc, true);
+    document.addEventListener('keydown', onKey, true);
   }
 
   function filterChipEditor(cur, f, chipEl) {
@@ -1752,7 +2123,7 @@
     box.className = 'rs-chip rs-chip-editor';
     box.setAttribute('data-testid', 'rs-chip-values');
     box.textContent = I18N.loadingValues;
-    chipEl.replaceWith(box);
+    openChipEditor(chipEl, box);
     var src = (state.sources || []).find(function (s) { return s.id === cur.def.source; });
     var values = [], labels = {};
     if (f.field === 'processname' && src && (src.processes || []).length) {
@@ -1868,7 +2239,7 @@
     });
     box.appendChild(input);
     box.appendChild(ok);
-    chipEl.replaceWith(box);
+    openChipEditor(chipEl, box);
     if (!input.hidden) input.focus();
   }
 
@@ -1905,7 +2276,7 @@
       runCurrent();
     });
     box.appendChild(ok);
-    chipEl.replaceWith(box);
+    openChipEditor(chipEl, box);
   }
 
   function grainChipEditor(cur, col, chipEl) {
@@ -1931,7 +2302,7 @@
     });
     box.appendChild(sel);
     box.appendChild(ok);
-    chipEl.replaceWith(box);
+    openChipEditor(chipEl, box);
   }
 
   function renderAiChips(cur) {
@@ -2070,7 +2441,15 @@
     return out.join(' ');
   }
 
-  function fireCaption(boxId, columns, rows, title, dateLabel, notes) {
+  // Level metrics (backlog): tell the server which measures must be headlined
+  // by their latest value, not a sum over buckets (caption_facts.build_facts).
+  function captionLevelFields(def) {
+    var labels = metricLabelsFor(def);
+    return metricTotalModes(def).map(function (m, i) { return m === 'latest' ? labels[i] : null; })
+      .filter(Boolean);
+  }
+
+  function fireCaption(boxId, columns, rows, title, dateLabel, notes, levelFields) {
     var box = el(boxId);
     if (!box) return;
     var seq = ++captionSeq;
@@ -2081,9 +2460,12 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
       body: JSON.stringify({
-        columns: columns, rows: rows.slice(0, 50),
+        // The WHOLE grid (payload-capped): the server reduces it to a fact
+        // sheet, so the model no longer judges from the first 50 rows.
+        columns: columns, rows: rows.slice(0, 5000),
         title: title || undefined, dateLabel: dateLabel || undefined,
-        notes: notes || undefined
+        notes: notes || undefined,
+        levelFields: (levelFields && levelFields.length) ? levelFields : undefined
       })
     }).then(function (res) {
       if (!res.ok) throw new Error('caption http ' + res.status);
@@ -2139,6 +2521,8 @@
     toggleMoreMenu(false);
     el('rsMsg').hidden = true;
     el('rsResultTitle').textContent = cur.name || cur.def.title || '';
+    el('rsCrumbName').textContent = cur.name || cur.def.title || '';
+    el('rsSavedChip').hidden = !cur.reportId;
     applyTitleStyle();
     el('rsDeleteReport').hidden = !(cur.owned && cur.reportId);
     renderAiChips(cur);
@@ -2147,7 +2531,7 @@
       adjustBtn.hidden = cur.builtBy !== 'wizard' && !wizardStateFromDefinition(cur.def);
     }
     el('rsSaveName').hidden = true;
-    el('rsStatCard').hidden = true;
+    setGrandTotals(null);
     el('rsChartCard').hidden = true;
     el('rsTableCard').hidden = true;
     el('rsTableToggle').hidden = true;
@@ -2163,10 +2547,19 @@
     // exists in the DOM for a reporting.ai.explain_data holder.
     var rsCaptionBox = el('rsCaption');
     if (rsCaptionBox) { rsCaptionBox.hidden = true; rsCaptionBox.textContent = ''; }
+    var anomCard = el('rsAnomCard');
+    if (anomCard) { anomCard.hidden = true; }
 
     var def = cur.def;
     var hasMetrics = Array.isArray(def.metrics) && def.metrics.length > 0;
     var dims = (def.columns || []).length;
+    // Console chart-card title: what is plotted (the metric labels), not the
+    // report name — that one is already in the result header.
+    var chartTitle = el('rsChartTitle');
+    if (chartTitle) {
+      chartTitle.textContent = hasMetrics
+        ? metricLabelsFor(def).join(' · ') : (cur.name || def.title || '');
+    }
     // Timing badge: measures the full round-trip (both the optional grand-total
     // call below and the main run), from just before the first request fires
     // to the moment the main run's response lands.
@@ -2180,15 +2573,15 @@
       totalDef.columns = [];
       totalDef.sort = [];
       delete totalDef.forecast;
-      // No compare: true here -- this run only feeds fillStatCard, which
-      // never reads a comparison payload. The breakdown def below is the
+      // No compare: true here -- this run only feeds the band's total cards,
+      // which never read a comparison payload. The breakdown def below is the
       // one whose comparison drives renderKpiBand's delta chips; asking
       // the backend to also diff THIS zero-column clone's own prior period
       // would be a fully wasted extra query.
       var t = await api('/api/reporting/run', { method: 'POST', body: JSON.stringify(totalDef) });
       if (seq !== runSeq) return;
       if (t.ok && t.data && t.data.rows && t.data.rows.length) {
-        fillStatCard(def, t.data.rows[0]);
+        setGrandTotals(t.data.rows[0]);
       }
     }
 
@@ -2219,7 +2612,12 @@
     state.current.sqlPretty = res.data.sqlPretty || null;
     state.current.sqlDisplay = res.data.sqlDisplay || null;
     state.current.params = res.data.params || [];
-    el('rsSqlView').hidden = true;
+    // Console: the Query card sits in the result's side column and is always
+    // visible when the run produced SQL — no reveal toggle anymore.
+    el('rsSqlView').hidden = !state.current.sql;
+    if (state.current.sql) {
+      ReportingSqlFormat.render(el('rsSqlText'), ReportingSqlFormat.displayText(state.current));
+    }
     el('rsShowSql').hidden = !state.current.sql;
     el('rsShowSql').textContent = I18N.showQuery;
     var peek = el('rsSqlPeek');
@@ -2231,7 +2629,9 @@
     }
     var columns = res.data.columns || [], rows = res.data.rows || [];
     rows = zeroFillDateBuckets(def, rows, res.data.resolvedDates || []);
-    renderKpiBand(dims, rows, res.data.comparison || null, def);
+    // A zero-dim run's single row is itself the per-metric grand total.
+    if (hasMetrics && !dims && rows.length) setGrandTotals(rows[0]);
+    renderKpiBand(dims, rows, res.data.comparison || null, def, columns);
     var rdates = res.data.resolvedDates || [];
     // Hoisted out of the `if` below (Task 13): fireCaption() at the end of
     // this function needs the same resolved-dates label the message line
@@ -2254,7 +2654,6 @@
       tNote.hidden = false;
     }
     if (hasMetrics && !dims && rows.length) {
-      fillStatCard(def, rows[0]);
       var totMsg = el('rsMsg');
       totMsg.textContent = (!totMsg.hidden && totMsg.textContent)
         ? totMsg.textContent + ' — ' + I18N.noChartTotalOnly : I18N.noChartTotalOnly;
@@ -2287,11 +2686,13 @@
     }
     // Kept so switching the forecast OFF can re-render from this result
     // without another (slow, lookback-widened) server run.
-    state.lastRun = { def: def, columns: columns, rows: rows, hasMetrics: hasMetrics, dims: dims };
+    state.lastRun = { def: def, columns: columns, rows: rows, hasMetrics: hasMetrics,
+                      dims: dims, forecast: res.data.forecast || null };
     var charted = (hasMetrics && dims)
       ? !!mountChart(def, columns, rows, res.data.forecast || null) : false;
     syncForecastCtl(def, res.data.forecast || null, charted);
     renderTable(columns, rows, res.data.forecast || null);
+    renderAnomalies(def, columns, rows);
     // Collapse the table behind the toggle only when a chart actually rendered
     // (or the stat card carries a dimensionless total). When mountChart bails
     // — three breakdowns, too many points, no Chart.js — the table is the only
@@ -2308,7 +2709,8 @@
     // Task 13: auto AI caption over the result that just rendered. Placed
     // after the `!rows.length` early return above, so an empty result never
     // fires one (nothing to caption).
-    fireCaption('rsCaption', columns, rows, cur.name || cur.def.title || '', resolvedTxt, captionNotes(def, rows));
+    fireCaption('rsCaption', columns, rows, cur.name || cur.def.title || '', resolvedTxt,
+      captionNotes(def, rows), captionLevelFields(def));
   }
 
   // Step 5 — refresh the library card's preview thumbnail from the result
@@ -2518,16 +2920,16 @@
   });
 
   el('rsShowSql').addEventListener('click', function () {
+    // Console: the Query card is already visible in the side column — this
+    // menu item just makes sure it's rendered and brings it into view.
     var cur = state.current;
     if (!cur || !cur.sql) return;
     var view = el('rsSqlView');
-    view.hidden = !view.hidden;
-    this.textContent = view.hidden ? I18N.showQuery : I18N.hideQuery;
-    if (!view.hidden) {
-      // sqlDisplay = pretty SQL with the parameter literals inlined
-      // server-side (display + copy only; execution stays parameterized).
-      ReportingSqlFormat.render(el('rsSqlText'), ReportingSqlFormat.displayText(cur));
-    }
+    view.hidden = false;
+    // sqlDisplay = pretty SQL with the parameter literals inlined
+    // server-side (display + copy only; execution stays parameterized).
+    ReportingSqlFormat.render(el('rsSqlText'), ReportingSqlFormat.displayText(cur));
+    view.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   });
   el('rsSqlPeek').addEventListener('click', function () {
     // Same reveal path as the Show-query button — no duplicated panel-fill
@@ -2746,25 +3148,29 @@
   // renderScopeStep, renderBreakdownStep, renderTimeStep and the Back button
   // handler) so the header step counter + rail always match the visible step.
   function renderWizardRail() {
+    // Console: horizontal step chips (active = accent tint, done = check dot)
+    // + the "So far" summary panel beside the step card.
     var idx = wizStepIndex();
     el('rsWizardStepNo').textContent = I18N.stepNof4.replace('{n}', idx + 1);
     var sums = wizSummaries();
     var html = '';
-    var previewParts = [];
     WIZ_STEPS.forEach(function (step, i) {
       var cls = i < idx ? 'is-done' : (i === idx ? 'is-active' : '');
       var dot = i < idx ? '<i class="fas fa-check" aria-hidden="true"></i>' : String(i + 1);
-      var sum = (i <= idx && sums[i]) ? '<div class="rs-rail-sum">' + esc(sums[i]) + '</div>' : '';
-      if (i <= idx && sums[i]) previewParts.push(sums[i]);
-      html += '<div class="rs-rail-step ' + cls + '">'
-        + '<div><span class="rs-rail-dot">' + dot + '</span><span class="rs-rail-line"></span></div>'
-        + '<div><div class="rs-rail-title">' + esc(step.label) + '</div>' + sum + '</div>'
-        + '</div>';
+      html += '<span class="rs-rail-step ' + cls + '">'
+        + '<span class="rs-rail-dot">' + dot + '</span>'
+        + '<span class="rs-rail-title">' + esc(step.label) + '</span></span>';
+      if (i < WIZ_STEPS.length - 1) html += '<span class="rs-rail-line"></span>';
     });
-    html += '<div id="rsWizardPreview" class="rs-wizard-preview">'
-      + '<strong>' + esc(I18N.wizPreviewTitle) + ':</strong> ' + esc(previewParts.join(' · '))
-      + '</div>';
     el('rsWizardRail').innerHTML = html;
+    var sm = el('rsWizSummary');
+    if (sm) {
+      sm.innerHTML = WIZ_STEPS.map(function (step, i) {
+        var v = (i <= idx && sums[i]) ? sums[i] : '';
+        return '<div class="rs-wizsum-row"><span class="rs-wizsum-k">' + esc(step.label) + '</span>'
+          + '<span class="rs-wizsum-v' + (v ? '' : ' is-empty') + '">' + esc(v || '—') + '</span></div>';
+      }).join('');
+    }
   }
 
   // In-chip coverage bar: n of m allowed/selected processes provide this
@@ -3516,34 +3922,8 @@
     runCurrent();
   });
 
-  // ---------- Hero "Ask AI" -> shared chat panel ----------
-  // The hero bar is now just a shortcut into window.ReportingChat (Task 3):
-  // it never builds or runs a report itself. ai_enabled-off keeps its
-  // existing behavior -- #rsAiBar (and therefore #rsAiPrompt/.rs-suggestion)
-  // simply isn't in the DOM in that case, so nothing below wires up.
-  function askViaChat(text) {
-    var q = String(text || '').trim();
-    if (!q || !window.ReportingChat) return;
-    window.ReportingChat.open();
-    window.ReportingChat.send(q);
-    el('rsAiPrompt').value = '';
-  }
-
-  var aiBar = el('rsAiBar');  // only in the DOM when ai_enabled
-  if (aiBar) {
-    el('rsAiAsk').addEventListener('click', function () {
-      askViaChat(el('rsAiPrompt').value);
-    });
-    el('rsAiPrompt').addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') askViaChat(el('rsAiPrompt').value);
-    });
-  }
-
-  // Suggestion chips route through the same open+send path -- they used to
-  // only prefill the prompt input.
-  document.querySelectorAll('.rs-suggestion').forEach(function (b) {
-    b.addEventListener('click', function () { askViaChat(b.textContent); });
-  });
+  // (The old hero Ask-AI bar is gone — Console intent #1. The AI entry point
+  // is the top-bar "AI chat" button; window.ReportingChat owns that panel.)
 
   // ---------- init ----------
   function initOnce() {
@@ -3551,9 +3931,26 @@
     state.loaded = true;
     loadMetricsCatalog();
     loadLibrary();
+    syncLayoutToggle();
   }
 
   el('rsSearch').addEventListener('input', renderLibrary);
+  el('rsSort').addEventListener('change', function () {
+    state.sort = this.value === 'name' ? 'name' : 'updated';
+    renderLibrary();
+  });
+  function syncLayoutToggle() {
+    el('rsLayout2').classList.toggle('is-active', state.layout === '2');
+    el('rsLayout4').classList.toggle('is-active', state.layout === '4');
+  }
+  function setLayout(n) {
+    state.layout = n;
+    try { localStorage.setItem('nx.reporting.layout', n); } catch (e) {}
+    syncLayoutToggle();
+    renderLibrary();
+  }
+  el('rsLayout2').addEventListener('click', function () { setLayout('2'); });
+  el('rsLayout4').addEventListener('click', function () { setLayout('4'); });
   function exitToLibrary() { setView('library'); loadLibrary(); }
 
   // Back on a result returns to the result's origin: a wizard-built (or
@@ -3574,6 +3971,10 @@
   // into this module's functions (D3).
   document.addEventListener('rs:dashboard-closed', exitToLibrary);
 
+  el('rsRunAgain').addEventListener('click', function () {
+    if (state.current) runCurrent();
+  });
+
   // Result builders shared with the dashboard's whole-report card
   // (_reporting_dashboard_js.html renderReportCard). Everything here is
   // DOM-free except ensureCatalogs (network) and chartConfigFor's one read
@@ -3582,11 +3983,11 @@
   // is hidden.
   window.ReportingSimple = {
     openDefinition: openDefinition,
+    navTo: navTo,
     ensureCatalogs: ensureCatalogs,
     fmtNumber: fmtNumber,
     zeroFillDateBuckets: zeroFillDateBuckets,
     kpiBandHtml: kpiBandHtml,
-    statCardHtml: statCardHtml,
     buildChartData: buildChartData,
     chartConfigFor: chartConfigFor,
     tableHtml: tableHtml

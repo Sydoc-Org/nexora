@@ -1,3 +1,7 @@
+> **Superseded same-day:** see
+> [`2026-08-25-reporting-audit-followups.md`](2026-08-25-reporting-audit-followups.md)
+> for the next session, which closed this handoff's three "Next steps" items.
+
 # Handoff — Reporting audit wounds fixed (delete reports, popover polish, stop-at-today, backlog-as-level, AI grounding)
 
 **Date:** 2026-08-25 · **Branch:** `v3.2.3.1` (owner's per-developer branch off `v3.2.3`) ·

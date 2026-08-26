@@ -70,3 +70,46 @@ def test_share_modal_sets_visibility_and_adds_user(nexora_server, page):
     assert any(s["username"] == "user@test.local" for s in state["shares"])
 
     page.request.delete(f"{nexora_server}/api/reporting/reports/{rid}", headers=headers)
+
+
+@pytest.mark.flaky_e2e
+def test_named_share_tags_owner_card_as_shared(nexora_server, page):
+    """A per-user grant leaves Visibility='private'; the owner's own card must
+    still say the report is shared, or the share is invisible to whoever made it.
+    """
+    _login(page, nexora_server)
+    token = page.evaluate("() => document.querySelector('meta[name=\"csrf-token\"]').content")
+    headers = {"X-CSRFToken": token, "Content-Type": "application/json"}
+    created = page.request.post(
+        f"{nexora_server}/api/reporting/reports",
+        headers=headers,
+        data={
+            "name": "Named Share E2E",
+            "definition": {"kind": "table", "title": "Named Share E2E", "columns": []},
+        },
+    )
+    assert created.ok, created.text()
+    rid = created.json()["id"]
+    try:
+        shared = page.request.post(
+            f"{nexora_server}/api/reporting/reports/{rid}/shares",
+            headers=headers,
+            data={"user": "user@test.local"},
+        )
+        assert shared.ok, shared.text()
+        # The grant deliberately does NOT flip visibility.
+        assert shared.json()["visibility"] == "private"
+
+        page.goto(f"{nexora_server}/reporting?tab=simple")
+        card = page.locator('[data-testid="rs-card"]', has_text="Named Share E2E")
+        expect(card).to_be_visible()
+        expect(card).to_contain_text("shared")
+        page.screenshot(path="var/screenshots/reporting_named_share_card.png")
+
+        # Advanced tags the same report in its saved-reports dropdown.
+        page.goto(f"{nexora_server}/reporting?tab=advanced")
+        opt = page.locator(f'[data-testid="reporting-saved-reports"] option[value="{rid}"]')
+        opt.wait_for(state="attached")
+        assert "shared" in opt.inner_text()
+    finally:
+        page.request.delete(f"{nexora_server}/api/reporting/reports/{rid}", headers=headers)

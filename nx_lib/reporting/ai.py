@@ -15,6 +15,7 @@ from dataclasses import dataclass
 
 import requests
 
+from .caption_facts import build_facts
 from .sandbox import SqlSandboxError, validate_select
 
 ANTHROPIC_VERSION = "2023-06-01"
@@ -484,16 +485,28 @@ def ask(
 # compute_stats in the agentic loop).
 # ---------------------------------------------------------------------------
 
-CAPTION_MAX_ROWS = 50
+# Payload guard only. Rows never reach the model raw any more: the whole grid
+# is reduced to a fact sheet (caption_facts.build_facts) and that is what the
+# prompt carries. Before (cap 50, rows[:50] of an ascending time series) the
+# model saw the NULL-date bucket plus 2020 and called it "a clear outlier".
+CAPTION_MAX_ROWS = 5000
 
 _CAPTION_SYSTEM = (
-    "You are a concise data analyst for an internal reporting tool. Given a "
-    "small table of report results, write ONE short caption that states the "
-    "most notable pattern, standout value, or takeaway. Rules: 1-2 sentences, "
-    'no preamble ("Here is...", "Looking at the data..."), no restating the '
-    "question, no code fences or markdown, plain prose only. Empty cells are "
-    "periods with NO measurement (not zero) — never read them as a drop to "
-    "nothing. Follow any Notes about partial or missing periods. Answer in {locale}."
+    "You are a concise data analyst for an internal reporting tool. You get a "
+    "FACT SHEET computed exactly over the complete result — not the raw table. "
+    "Write ONE caption, at most 2 sentences and about 40 words, giving a manager "
+    "the single most useful takeaway: the headline total (or, for a level such "
+    "as a backlog, its latest value; with several measures name each headline "
+    "briefly), then the one thing that matters most — trend, peak, "
+    "concentration, or a caveat the facts flag. Rules: use only "
+    "numbers from the facts, rounded sensibly and formatted for {locale} "
+    "(thousands separators); never invent, extrapolate, or recite every fact; "
+    "buckets with NO measurement are missing data, never zero or a drop; rows "
+    "with NO <dimension> are not a period or category — mention them, if at all, "
+    "as rows without a date; a still-running bucket is incomplete — never call it "
+    "a decline or compare it with finished ones; a percentage on a near-zero "
+    "baseline is noise; follow any Notes. No preamble, no restating the report "
+    "title, no code fences or markdown, plain prose only. Answer in {locale}."
 )
 
 
@@ -506,13 +519,7 @@ class AiCaptionResult:
     tokens_out: int | None
 
 
-def _caption_user_prompt(columns, rows, title, date_label, notes=None):
-    headers = [c.get("header") or c.get("field") or "" for c in (columns or [])]
-    lines = [", ".join(headers)] if headers else []
-    for row in rows:
-        cells = row if isinstance(row, list | tuple) else [row]
-        lines.append(", ".join("" if v is None else str(v) for v in cells))
-    table_text = "\n".join(lines)
+def _caption_user_prompt(columns, rows, title, date_label, notes=None, level_fields=()):
     prefix = ""
     if title:
         prefix += f"Report: {title}\n"
@@ -520,7 +527,8 @@ def _caption_user_prompt(columns, rows, title, date_label, notes=None):
         prefix += f"Period: {date_label}\n"
     if notes:
         prefix += f"Notes: {notes}\n"
-    return f"{prefix}Data ({len(rows)} rows):\n{table_text}"
+    facts = build_facts(columns, rows, level_fields=level_fields)
+    return f"{prefix}Facts:\n{facts}"
 
 
 def caption(
@@ -530,30 +538,37 @@ def caption(
     date_label=None,
     *,
     notes=None,
+    level_fields=(),
     locale="en",
     cfg,
     max_tokens=DEFAULT_MAX_TOKENS,
     timeout=DEFAULT_TIMEOUT_S,
     transport=_http_post,
 ):
-    """Draft a 1-2 sentence caption over a small result grid.
+    """Draft a 1-2 sentence caption over a result grid.
+
+    The model never sees the rows: `caption_facts.build_facts` reduces the whole
+    grid to exact facts (totals, peak, latest vs previous, missing vs zero
+    buckets, the NULL-key rows, the still-running bucket) and the prompt
+    carries those, so it cannot mis-aggregate a truncated sample.
 
     `notes`: optional caller-supplied context the model must honour — e.g.
     "the last bucket is the current, still-running month" or "empty cells are
     buckets with no snapshot" — so it doesn't narrate artefacts as findings.
+    `level_fields`: field/header names of level measures (backlog) whose
+    headline is the latest value, not a sum.
 
     `cfg` bundles the resolved provider settings the same way `_ai_config()` in
     the view module produces them (provider/api_key/model/endpoint/deployment/
     api_version/url) so the caller does not need to unpack it field-by-field.
-    Rows are truncated to CAPTION_MAX_ROWS before the prompt is built, so an
-    oversized grid never balloons the prompt or the bill — this is the single
-    source of truth for the 50-row cap; the caller does not need to pre-slice.
+    Rows are truncated to CAPTION_MAX_ROWS (a payload guard; the fact sheet's
+    size does not grow with the row count) — the caller need not pre-slice.
     """
     rows = list(rows)[:CAPTION_MAX_ROWS]
     provider = (cfg.get("provider") or "").lower()
     text, tin, tout = _dispatch(
         _CAPTION_SYSTEM.format(locale=locale or "en"),
-        _caption_user_prompt(columns, rows, title, date_label, notes),
+        _caption_user_prompt(columns, rows, title, date_label, notes, level_fields),
         provider=provider,
         model=cfg.get("model"),
         api_key=cfg.get("api_key"),
@@ -717,8 +732,9 @@ _AGENT_SYSTEM = (
 
 # Appended to the system prompt only when the caller holds reporting.ai.explain_data
 # (Phase 3e). It unlocks the data-returning tools: run_sql feeds real result rows
-# back to the model and compute_stats gives exact aggregates over them, so the model
-# may narrate concrete numbers instead of only drafting an artifact.
+# back to the model, run_definition executes a build_definition-shaped definition
+# for real, and compute_stats gives exact aggregates over them, so the model may
+# narrate concrete numbers instead of only drafting an artifact.
 _AGENT_EXPLAIN_SUFFIX = (
     " You may run validated read-only SELECTs with run_sql and summarise the actual "
     "rows returned, and use compute_stats for exact aggregates (describe, group_by, "
@@ -729,6 +745,14 @@ _AGENT_EXPLAIN_SUFFIX = (
     "never resubmit the identical SQL; change the query before retrying. Report "
     "only concrete numbers taken from the data you fetched — never estimate or "
     "fabricate values."
+    " A build_definition that returns ok:true has only validated the SHAPE — it has"
+    " NOT run. When the question wants concrete values (anchored metrics like"
+    " imported/exported/backlog, or any other business-definition question),"
+    " call run_definition with that same definition to fetch the real rows before"
+    " you answer — this runs the exact query the report builder would run, so the"
+    " numbers match what users see on the report. Once run_definition returns"
+    " ok:true, answer from its rows and stop calling tools; never present a"
+    " validated-but-unexecuted definition's shape as though it were the answer."
     " run_sql can ONLY query the SQL-schema targets named below (e.g. statistics, "
     "octopus). NEVER pass a report SOURCE id as a table name, and NEVER call run_sql "
     "for a source marked 'builder-only' — answer those with build_definition instead. "

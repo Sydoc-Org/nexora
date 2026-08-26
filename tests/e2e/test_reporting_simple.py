@@ -26,9 +26,11 @@ def test_tab_param_overrides_to_advanced(nexora_server, page):
 
 
 def test_tab_choice_sticks_across_reload(nexora_server, page):
+    """The chosen screen persists via localStorage. The Advanced nav entry is
+    currently parked (hidden), so enter Advanced via ?tab= — the same path
+    its remaining entry points (Open in Advanced, deep links) use."""
     _login(page, nexora_server)
-    page.goto(f"{nexora_server}/reporting")
-    page.get_by_test_id("reporting-tab-advanced").click()
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
     expect(page.get_by_test_id("reporting-field-panel")).to_be_visible()
     page.goto(f"{nexora_server}/reporting")  # no ?tab param: localStorage wins
     expect(page.get_by_test_id("reporting-field-panel")).to_be_visible()
@@ -205,7 +207,7 @@ def test_library_card_shows_preview_band_and_type_badge(nexora_server, page):
     page.goto(f"{nexora_server}/reporting?tab=simple")
     card = page.get_by_test_id("rs-card").first
     expect(card.locator(".rs-card-preview")).to_be_visible()
-    expect(card.locator(".rs-card-badge")).to_contain_text("LINE")
+    expect(card.locator(".rs-card-tag")).to_contain_text("LINE")
 
 
 def test_library_card_preview_cache_round_trips_real_values(nexora_server, page):
@@ -323,7 +325,7 @@ def test_wizard_opens_and_lists_measures_or_empty_state(nexora_server, page):
 def test_wizard_category_breakdown_to_result_cards(nexora_server, page):
     # Full wizard -> result run over a seeded table source + count metric:
     # measure chip pins the source, category breakdown, no date field (table
-    # source), Show result renders the grand-total stat card + the chart/table.
+    # source), Show result renders the labelled grand-total card + chart/table.
     _login(page, nexora_server)
     page.goto(f"{nexora_server}/reporting?tab=advanced")
     ids = page.evaluate(
@@ -358,12 +360,16 @@ def test_wizard_category_breakdown_to_result_cards(nexora_server, page):
         expect(run).to_be_visible()
         run.click()
         expect(page.get_by_test_id("rs-result")).to_be_visible()
-        stat = page.get_by_test_id("rs-stat-card")
+        stat = page.get_by_test_id("rs-kpi-total")
         expect(stat).to_be_visible()
+        # The total names the measure it totals -- a bare "Total" left the
+        # reader guessing which metric it belonged to.
         expect(stat).to_contain_text("Wizard user count")
-        # The seeded TEST DB always has at least the admin user.
-        value = page.locator("#rsStatValue").inner_text()
-        assert value.strip() not in ("", "–", "0")  # noqa: RUF001 — fmtNumber's null dash
+        # The seeded TEST DB always has at least the admin user (the value
+        # counts up from "0", so poll rather than read once).
+        expect(stat.locator(".reporting-ledger-kpi-value")).not_to_have_text(
+            re.compile(r"^\s*(0|–)?\s*$")  # noqa: RUF001 — fmtNumber's null dash
+        )
         expect(page.get_by_test_id("rs-table-toggle")).to_be_visible()
     finally:
         page.evaluate(
@@ -504,6 +510,9 @@ def test_kpi_band_shows_total_buckets_avg(nexora_server, page):
         # total: 4 + 5 + 3; buckets: 3 rows; avg per bucket: 12 / 3;
         # peak: bob's row (5) is the largest metric value.
         expect(page.get_by_test_id("rs-kpi-total")).to_contain_text("12")
+        # ...and it names the measure it totals, as does the stats card.
+        expect(page.get_by_test_id("rs-kpi-total")).to_contain_text("KPI user count")
+        expect(page.get_by_test_id("rs-kpi-stats-title")).to_contain_text("KPI user count")
         expect(page.get_by_test_id("rs-kpi-buckets")).to_contain_text("3")
         expect(page.get_by_test_id("rs-kpi-avg")).to_contain_text("4")
         expect(page.get_by_test_id("rs-kpi-peak")).to_contain_text("5")
@@ -518,6 +527,143 @@ def test_kpi_band_shows_total_buckets_avg(nexora_server, page):
             }""",
             ids,
         )
+
+
+def test_kpi_band_labels_every_metric_total(nexora_server, page):
+    """A multi-metric run gets one labelled total card per metric.
+
+    The band used to show a single bare "Total" holding whichever metric came
+    first, with nothing on screen saying which — an imported+exported report
+    read as though one of the two numbers were the report's grand total.
+    """
+    _login(page, nexora_server)
+    page.emulate_media(reduced_motion="reduce")
+    page.route(
+        "**/api/reporting/metrics",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "backlog_history": [
+                        {
+                            "code": "docs_imported",
+                            "label": "Documents imported",
+                            "aggregation": "sum",
+                            "totalMode": "sum",
+                        },
+                        {
+                            "code": "docs_exported",
+                            "label": "Documents exported",
+                            "aggregation": "sum",
+                            "totalMode": "sum",
+                        },
+                    ]
+                }
+            ),
+        ),
+    )
+
+    def _run(route):
+        grand = not (route.request.post_data_json or {}).get("columns")
+        metric_cols = [
+            {"field": "docs_imported", "header": "Documents imported"},
+            {"field": "docs_exported", "header": "Documents exported"},
+        ]
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": (
+                        metric_cols
+                        if grand
+                        else [{"field": "SnapshotAt", "header": "Date"}, *metric_cols]
+                    ),
+                    "rows": ([[15, 5]] if grand else [["2026-01-01", 6, 2], ["2026-02-01", 9, 3]]),
+                    "rowCount": 1 if grand else 2,
+                    "truncated": False,
+                    "resolvedDates": [],
+                }
+            ),
+        )
+
+    page.route("**/api/reporting/run", _run)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.evaluate(
+        """() => window.ReportingSimple.openDefinition({
+      schemaVersion: 1, visualization: 'table', source: 'backlog_history',
+      title: 'flow', columns: [{field: 'SnapshotAt', grain: 'month'}],
+      metrics: [{metric: 'docs_imported'}, {metric: 'docs_exported'}],
+      filters: [], sort: [], scope: {clients: [], processes: []},
+      rowLimit: 5000}, 'flow')"""
+    )
+
+    total = page.get_by_test_id("rs-kpi-total")
+    expect(total).to_contain_text("Documents imported")
+    expect(total).to_contain_text("15")
+    extra = page.get_by_test_id("rs-kpi-total-extra")
+    expect(extra).to_contain_text("Documents exported")
+    expect(extra).to_contain_text("5")
+    # Buckets/Avg/Peak describe one measure, so the card says which.
+    expect(page.get_by_test_id("rs-kpi-stats-title")).to_contain_text("Documents imported")
+
+
+def test_kpi_band_hides_distribution_stats_for_a_grand_total(nexora_server, page):
+    """A zero-dimension run is one grand total per metric — there is no
+    distribution, so no Buckets/Avg per bucket/Peak ("Buckets 1, Avg 15,
+    Peak 15" was just the same number restated three times)."""
+    _login(page, nexora_server)
+    page.emulate_media(reduced_motion="reduce")
+    page.route(
+        "**/api/reporting/metrics",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "backlog_history": [
+                        {
+                            "code": "docs_imported",
+                            "label": "Documents imported",
+                            "aggregation": "sum",
+                            "totalMode": "sum",
+                        }
+                    ]
+                }
+            ),
+        ),
+    )
+    page.route(
+        "**/api/reporting/run",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [{"field": "docs_imported", "header": "Documents imported"}],
+                    "rows": [[15]],
+                    "rowCount": 1,
+                    "truncated": False,
+                    "resolvedDates": [],
+                }
+            ),
+        ),
+    )
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.evaluate(
+        """() => window.ReportingSimple.openDefinition({
+      schemaVersion: 1, visualization: 'table', source: 'backlog_history',
+      title: 'total only', columns: [],
+      metrics: [{metric: 'docs_imported'}], filters: [], sort: [],
+      scope: {clients: [], processes: []}, rowLimit: 5000}, 'total only')"""
+    )
+
+    total = page.get_by_test_id("rs-kpi-total")
+    expect(total).to_contain_text("Documents imported")
+    expect(total).to_contain_text("15")
+    expect(page.get_by_test_id("rs-kpi-buckets")).to_have_count(0)
+    expect(page.get_by_test_id("rs-kpi-peak")).to_have_count(0)
 
 
 # ---------------------------------------------------------------------------
@@ -941,24 +1087,22 @@ def _cleanup_caption_wizard(page, ids):
     )
 
 
-def test_hero_ask_routes_into_chat_panel(nexora_server, page):
-    """Task 4: the hero's Ask AI no longer builds/runs its own report -- it
-    opens the shared chat panel and forwards the question there."""
+def test_chat_starter_sends_from_panel(nexora_server, page):
+    """Console: the hero Ask-AI bar is gone (intent #1) — the top-bar AI-chat
+    button opens the panel, whose starter chips send their own text."""
     _login(page, nexora_server)
-    page.goto(f"{nexora_server}/reporting?tab=simple")
-
     # Stub BEFORE clicking — ReportingChat.send() fires the request the
-    # instant the hero handler calls it, right after open().
+    # instant the starter chip is clicked.
     _stub_agent_ok(page)
-    page.get_by_test_id("rs-ai-prompt").fill("docs by process")
-    page.get_by_test_id("rs-ai-ask").click()
-
+    page.goto(f"{nexora_server}/reporting?tab=library")
+    page.get_by_test_id("reporting-chat-toggle").click()
     expect(page.get_by_test_id("reporting-chat-panel")).to_be_visible()
-    expect(page.get_by_test_id("rp-chat-msg-user")).to_contain_text("docs by process")
+    chip = page.locator("#rpChatEmpty .rp-chat-starter").first
+    chip_text = chip.inner_text()
+    chip.click()
+    expect(page.get_by_test_id("rp-chat-msg-user")).to_contain_text(chip_text)
     expect(page.get_by_test_id("rp-chat-msg-ai")).to_contain_text("Here is your report.")
     expect(page.get_by_test_id("reporting-chat-input")).to_have_value("")
-    # The hero's own prompt input is cleared once the question is forwarded.
-    expect(page.get_by_test_id("rs-ai-prompt")).to_have_value("")
 
 
 def test_saved_token_report_shows_resolved_range(nexora_server, page):
@@ -1318,7 +1462,7 @@ def test_total_only_result_explains_missing_chart(nexora_server, page):
         ).click()
         page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
-        expect(page.get_by_test_id("rs-stat-card")).to_be_visible()
+        expect(page.get_by_test_id("rs-kpi-total")).to_be_visible()
         expect(page.get_by_test_id("rs-msg")).to_contain_text("single total")
         expect(page.get_by_test_id("rs-chart-card")).to_be_hidden()
     finally:
@@ -1495,22 +1639,17 @@ def test_show_query_reveals_sql(nexora_server, page):
         page.get_by_test_id("rs-breakdown-list").get_by_role("button").first.click()
         page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
-        # Task 7: Show-query now lives in the ⋯ overflow menu — open it first.
-        page.get_by_test_id("rs-more").click()
-        show = page.get_by_test_id("rs-show-sql")
-        expect(show).to_be_visible()
-        # Collapsed by default: the panel is hidden until the user expands it.
+        # Console: the Query side card renders with the result — visible
+        # immediately, no reveal step.
         sql_view = page.get_by_test_id("rs-sql-view")
-        expect(sql_view).to_be_hidden()
-        show.click()
         expect(sql_view).to_be_visible()
         expect(page.locator("#rsSqlText")).to_contain_text("SELECT")
         # Pretty-printed (multi-line) and token-highlighted.
         assert "\n" in page.locator("#rsSqlText").inner_text()
         assert page.locator("#rsSqlText span.sql-kw").count() > 0
-        # Second click re-collapses.
-        show.click()
-        expect(sql_view).to_be_hidden()
+        # The ⋯ menu's Show-query entry stays as a shortcut to the card.
+        page.get_by_test_id("rs-more").click()
+        expect(page.get_by_test_id("rs-show-sql")).to_be_visible()
     finally:
         page.evaluate(
             """async (ids) => {
@@ -2324,7 +2463,7 @@ def test_run_shows_loading_then_result(nexora_server, page):
         # which is strictly after the indicator is hidden.
         expect(page.get_by_test_id("rs-show-sql")).to_be_visible()
         expect(page.get_by_test_id("rs-run-loading")).to_be_hidden()
-        expect(page.get_by_test_id("rs-stat-card")).to_be_visible()
+        expect(page.get_by_test_id("rs-kpi-total")).to_be_visible()
         assert page.evaluate(
             "() => window.__runLoadingWasSeen"
         ), "rsRunLoading never became visible during the report run"
@@ -3373,8 +3512,8 @@ def test_advanced_no_rows_shows_designed_empty_state(nexora_server, page):
 def test_zero_rows_shows_empty_state_hint(nexora_server, page):
     """A successful zero-row Simple-pane run always shows the no-data empty
     state plus a hint — even though the zero-column grand-total call succeeds
-    and leaves the stat card visible (previously the empty state only showed
-    when el('rsStatCard') was hidden, so a visible zero stat card produced a
+    and yields a total to render (the empty state used to be gated on the
+    since-retired rsStatCard being hidden, so a visible zero total produced a
     bare header-only grid instead)."""
     _login(page, nexora_server)
     _stub_catalogs(page)
@@ -3742,36 +3881,11 @@ def test_sql_peek_footer_reveals_query_on_click(nexora_server, page):
     page.get_by_test_id("rs-breakdown-next").click()
     page.get_by_test_id("rs-wizard-run").click()
 
-    peek = page.get_by_test_id("rs-sql-peek")
-    expect(peek).to_be_visible()
-    expect(peek).to_have_text("SELECT [d] AS [d], COUNT(*) AS [n]…")
-
+    # Console: the Query side card is visible immediately after a run — no
+    # peek/reveal step anymore.
     sql_view = page.get_by_test_id("rs-sql-view")
-    expect(sql_view).to_be_hidden()
-    peek.click()
     expect(sql_view).to_be_visible()
     expect(page.locator("#rsSqlText")).to_contain_text("GROUP BY")
-
-
-def test_landing_hero_suggestion_opens_chat_and_sends(nexora_server, page):
-    """Task 4: the landing hero holds the AI command bar + suggestion chips.
-    Clicking a chip now routes straight into the shared chat panel (open +
-    send its own text) instead of just prefilling the prompt input."""
-    _login(page, nexora_server)
-    # Stub BEFORE goto/click — the chip click fires ReportingChat.send()
-    # immediately.
-    _stub_agent_ok(page)
-    page.goto(f"{nexora_server}/reporting?tab=simple")
-    hero = page.get_by_test_id("rs-hero")
-    expect(hero).to_be_visible()
-    expect(hero.get_by_test_id("rs-ai-prompt")).to_be_visible()
-    chip = page.get_by_test_id("rs-suggestion").first
-    chip_text = chip.inner_text()
-    chip.click()
-    expect(page.get_by_test_id("reporting-chat-panel")).to_be_visible()
-    expect(page.get_by_test_id("rp-chat-msg-user")).to_contain_text(chip_text)
-    expect(page.get_by_test_id("rp-chat-msg-ai")).to_contain_text("Here is your report.")
-    expect(page.get_by_test_id("rs-ai-prompt")).to_have_value("")
 
 
 def test_wizard_rail_tracks_progress(nexora_server, page):
@@ -3790,7 +3904,9 @@ def test_wizard_rail_tracks_progress(nexora_server, page):
     page.get_by_test_id("rs-measure-list").get_by_text("Docproc count stub").click()
     page.get_by_test_id("rs-measure-next").click()
     expect(page.locator("#rsWizardStepNo")).to_have_text("Step 2 of 4")
-    expect(rail).to_contain_text("Docproc count stub")  # chosen-value summary
+    # Chosen-value summaries live in the Console "So far" panel beside the
+    # step card (the rail itself is now just the step chips).
+    expect(page.get_by_test_id("rs-wizard-summary")).to_contain_text("Docproc count stub")
 
 
 def test_result_more_menu_holds_advanced_and_sql(nexora_server, page):
@@ -4102,16 +4218,16 @@ def test_forecast_trims_zero_filled_rows_past_anchor(nexora_server, page):
     expect(forecast_rows.first).to_contain_text("2025-07-01")
 
 
-def test_hero_hidden_outside_library_view(nexora_server, page):
-    """#178 B6: the 'Build a report in seconds' hero must vanish when a
-    wizard/result is open and come back in the library."""
+def test_library_hidden_outside_library_view(nexora_server, page):
+    """#178 B6 (Console): the Library screen must vanish when a wizard/result
+    is open and come back via the breadcrumb."""
     _login(page, nexora_server)
     page.goto(f"{nexora_server}/reporting?tab=simple")
-    expect(page.get_by_test_id("rs-hero")).to_be_visible()
+    expect(page.get_by_test_id("rs-library")).to_be_visible()
     page.get_by_test_id("rs-new-report").click()
-    expect(page.get_by_test_id("rs-hero")).to_be_hidden()
+    expect(page.get_by_test_id("rs-library")).to_be_hidden()
     page.get_by_test_id("rs-wizard-backlib").first.click()
-    expect(page.get_by_test_id("rs-hero")).to_be_visible()
+    expect(page.get_by_test_id("rs-library")).to_be_visible()
 
 
 def test_granularity_chip_changes_grain_and_reruns(nexora_server, page):
@@ -4172,22 +4288,34 @@ def test_kpi_band_total_uses_latest_snapshot_for_latest_mode_metric(nexora_serve
             ),
         ),
     )
-    page.route(
-        "**/api/reporting/run",
-        lambda r: r.fulfill(
+
+    def _run(route):
+        # The pane fires a zero-column clone first for the authoritative grand
+        # total (for a level, the server resolves that to the latest snapshot);
+        # the breakdown call follows.
+        grand = not (route.request.post_data_json or {}).get("columns")
+        route.fulfill(
             status=200,
             content_type="application/json",
             body=json.dumps(
                 {
-                    "columns": [{"field": "SnapshotAt"}, {"field": "backlog_total"}],
-                    "rows": [["2026-08-05", 27122], ["2026-08-06", 9755]],
-                    "rowCount": 2,
+                    "columns": (
+                        [{"field": "backlog_total", "header": "Backlog total"}]
+                        if grand
+                        else [
+                            {"field": "SnapshotAt", "header": "Snapshot at"},
+                            {"field": "backlog_total", "header": "Backlog total"},
+                        ]
+                    ),
+                    "rows": ([[9755]] if grand else [["2026-08-05", 27122], ["2026-08-06", 9755]]),
+                    "rowCount": 1 if grand else 2,
                     "truncated": False,
                     "resolvedDates": [],
                 }
             ),
-        ),
-    )
+        )
+
+    page.route("**/api/reporting/run", _run)
     page.goto(f"{nexora_server}/reporting?tab=simple")
     page.evaluate("""() => window.ReportingSimple.openDefinition({
       schemaVersion: 1, visualization: 'table', source: 'backlog_history',
@@ -4453,13 +4581,12 @@ def test_reporting_simple_exposes_result_builders(nexora_server, page):
     adds its builder to this list."""
     _login(page, nexora_server)
     page.goto(f"{nexora_server}/reporting?tab=simple")
-    expect(page.get_by_test_id("rs-hero")).to_be_visible()
+    expect(page.get_by_test_id("rs-library")).to_be_visible()
     names = [
         "ensureCatalogs",
         "fmtNumber",
         "zeroFillDateBuckets",
         "kpiBandHtml",
-        "statCardHtml",
         "buildChartData",
         "chartConfigFor",
         "tableHtml",

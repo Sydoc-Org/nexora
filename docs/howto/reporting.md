@@ -17,52 +17,56 @@ replacement for internal users. Phase 1 ships a **table/list** visualization
 over the curated **Document Processing** source with full filter, sort, combine,
 custom-header, save/load, and Excel-export support.
 
-## Simple and Advanced tabs
+## The Console shell (navigation + screens)
 
-`/reporting` opens as two tabs (one route, two client-side panes;
-`templates/js/_reporting_tabs_js.html` is the controller):
+`/reporting` is one route rendering a **Console** workspace (design:
+`docs/design/design_handoff_reporting_console/README.md`, superseding the
+"Indigo Studio" hero/tab layout): a compact top bar (app icon, **Reporting**,
+Beta chip, the run's `N rows · M ms` timing badge, a sources sync line,
+**Help**, **Eddard**) over a body grid — a sticky 196px left rail and the
+content area. `templates/js/_reporting_tabs_js.html` is the nav controller
+(still exported as `window.ReportingTabs` for compat).
 
-### Page layout
+- **Workspace nav**: `Library`, `Results`, `Dashboards`, `Scheduled`
+  (perm-gated on `reporting.schedule`), `Advanced`. The first three map into
+  the old Simple pane's internal views (`window.ReportingSimple.navTo`);
+  `Scheduled` and `Advanced` are their own containers. The `?tab=` URL param
+  and the `nx.reporting.tab` storage key keep their historical names and now
+  carry the screen name (`simple` stays accepted as an alias for `library`);
+  `rp:tabshown` still fires with `simple|advanced` for the Simple pane's
+  init contract, and `rc:screenshown` fires with the real screen name.
+- **Results is a cache, not a runner** (design intent #8): it restores the
+  last rendered result from `state.lastRun` without re-querying (only the
+  Chart.js instance is re-mounted — the rest of the result DOM never left).
+  With nothing rendered yet this session it opens the most recent report.
+- **Sources rail**: one card per accessible source (`/api/reporting/sources`
+  for the list, **`GET /api/reporting/sources/health`** for the green pulse
+  dot, the probe latency and the real database name — one timed
+  `SELECT DB_NAME()` per distinct engine, shared across sources; the URL
+  carries no database attribute because the engines are built from
+  `odbc_connect` strings). The admin-only registry link is the gear next to
+  the SOURCES label. The **Advanced** nav entry is currently parked
+  (`hidden` in `reporting.html`) — the pane stays reachable via
+  `?tab=advanced`, Open-in-Advanced and `ReportingTabs.show('advanced')`.
+- Everything still runs through `.reporting-shell` (1600px max-width /
+  40px inset) so the page lines up with the rest of the app. The Console
+  skin lives in **`static/css/reporting-console.css`**, loaded after
+  `reporting.css` and scoped under `body.reporting-console`; it rides the
+  `nexora-ui.css` tokens, so the user's accent pick and dark mode apply
+  without page-specific code. Page type is Schibsted Grotesk.
+- `_header.html` links `nexora-ui.css` from the `<body>`, i.e. *after* the
+  reporting stylesheets — an equal-specificity override silently loses, so
+  Console overrides are prefixed with `body.reporting-console`.
 
-Top to bottom: the masthead (title, subtitle, the run's `N rows · M ms` timing
-badge, and **AI chat** as its one action), then a full-width **tab rail** —
-Simple / Advanced on the left as the app's standard `.nx-tabs` underline bar,
-the admin-only **Sources** link parked quietly at its right end — then the
-active pane. All four run through `.reporting-shell` / `.reporting-main` /
-`.reporting-simple`, which share `body.nx-app .nx-main`'s 1600px max-width and
-40px inset, so the Reporting title sits on the same left edge as every other
-page's. Two rules worth knowing before restyling this area (both cost time
-once, see #175):
-
-- `_header.html` links `nexora-ui.css` from the `<body>`, i.e. *after*
-  `reporting.css`. An equal-specificity override here (`.reporting-tabs` vs
-  `.nx-tabs`) silently loses — use two classes.
-- The page-level tab rail is deliberately *not* the pill/segmented language
-  used by the in-pane Table/SQL and Grid/Chart toggles. Primary navigation that
-  looks like a control inside the pane it navigates to is what made the old
-  masthead read as three unrelated buttons.
-
-### Indigo Studio identity
-
-The page carries its own visual identity, distinct from the rest of the app —
-codenamed **"Indigo Studio"**: a landing hero with an AI command bar and
-live-preview report cards, a progress-rail wizard, a refined result view, a
-restyled drill drawer and Advanced builder, and full dark mode. It's a
-restyle in place over the short-lived "Editorial Ledger" serif/mono skin
-(retired, see `CHANGELOG.md`) — every `.reporting-*` class and every
-`id`/`name`/`data-testid` is unchanged, so existing e2e selectors keep
-working. Design spec: `docs/superpowers/specs/2026-07-20-reporting-redesign-handoff.md`
-(token table, type scale, per-screen specs) + the working prototype
-`docs/superpowers/specs/2026-07-20-reporting-dashboard-prototype.dc.html`
-(the dashboard JS state model — see **Dashboards** below).
-
-- **Landing hero** (`#rsHero`) — shown above the library before any report is
-  open: a title/subtitle, an **AI command bar** (`#rsAiBar` — hidden
-  entirely when the AI assistant is unconfigured, per the existing
-  `ai_enabled` guard) with three static **suggestion chips** that prefill
-  the prompt (i18n strings only, no backend registry), and two actions —
-  **New report — guided builder** and **New dashboard** (`#rsNewDashboard`,
-  see **Dashboards** below).
+- **Library screen** — header row (title, count pill, **New dashboard**,
+  **New report**), a filter row (search, sort: recently-updated/name, a
+  2-or-4-cards-per-row layout toggle persisted in
+  `localStorage['nx.reporting.layout']`), then the three grouped card grids.
+  Cards are compact: type tag, one-line name, a 22px preview strip, owner
+  footer, and an owner-only `…` menu (Share / Delete —
+  `window.Reporting.openShareFor(id)` drives the existing share modal). The
+  old landing hero + global Ask-AI bar are gone (design intent #1); the AI
+  entry point is the top-bar **Eddard** button.
 - **Report cards with live-preview thumbnails** — every card in the Library/
   My reports/Shared-with-me groups renders a small preview (a chart curve,
   a big-number total, or a mini table) from the report's last cached run
@@ -71,28 +75,41 @@ working. Design spec: `docs/superpowers/specs/2026-07-20-reporting-redesign-hand
   card with no cache yet shows a deterministic decorative placeholder seeded
   from the report id. A definition edit without a re-run keeps showing the
   previous shape until the next run.
-- **Wizard progress rail** (`#rsWizardRail`) — a left-hand rail lists the
-  wizard's steps with a running "Step N of 4" indicator; the step
-  renderers, ids, testids and flow are unchanged from Phase 1 — only the
-  chrome around them changed. Coverage badges on measure/breakdown chips
-  render as a small colour-tiered progress bar (same amber/muted
-  convention).
-- **KPI stat band** above the results — total, bucket count, average per
-  bucket, and peak, computed client-side from the rows already returned (no
-  extra query); hidden for zero-row or non-numeric results. When the
-  **first** requested metric's registry row has **`TotalMode = 'latest'`**
-  (`metricTotalModeFor` in `_reporting_simple_js.html` only inspects
-  `def.metrics[0]` — a mixed-mode multi-metric request is judged by that one
-  metric alone, not "every" metric), the Total tile's caption adds a **"·
-  last bucket &lt;bucket&gt;"** suffix, naming the bucket the number
-  actually covers. This is the client's own zero-filled last bucket, not a
-  request for the server's single exact-snapshot latest row, so the wording
-  is deliberately bucket-honest rather than implying snapshot precision —
-  point-in-time metrics like backlog are wrong to sum across buckets, so the
-  band restricts the client total to the latest one, mirroring (but not
-  reading) the server's own zero-dim latest-bucket total described in
-  **Metrics registry** below (`kpiLatestSuffix` in `_reporting_simple_js.html`).
-  When the definition carries a **single relative-date token filter**, the run request
+- **Wizard step chips + summary** (`#rsWizardRail`, `#rsWizSummary`) — the
+  four steps render as horizontal chips (active = accent tint, done = check
+  dot) with a running "Step N of 4" indicator, and the chosen values collect
+  in a **"So far"** panel beside the step card; the step renderers, ids,
+  testids and flow are unchanged from Phase 1 — only the chrome around them
+  changed. Coverage badges on measure/breakdown chips render as a small
+  colour-tiered progress bar (same amber/muted convention).
+- **KPI stat band** above the results — **one labelled total card per
+  metric** (`Total · <metric label>`), followed by bucket count, average per
+  bucket and peak for the primary measure under a heading naming it; hidden
+  for zero-row or non-numeric results. Every caption names the measure it
+  belongs to: the label is the result column's own `header`, which
+  `_prepare_run` fills from the metrics registry (`metric_result_columns` in
+  `views/reporting.py`), so a run's table, export and KPI band all read
+  "Documents imported" rather than `docs_imported`. A bare "Total" used to
+  hold whichever metric happened to come first, with nothing saying which.
+  - **Totals are the server's, not the browser's.** The band renders
+    `state.grandTotals` — the zero-column clone run's row (or, for a
+    zero-dimension definition, the single row the main run returns), which is
+    correct for every aggregation. Summing the grouped rows in the browser is
+    only right for additive metrics; it is the fallback for a result with no
+    semantic metrics (SQL / plain grid). The separate `rsStatCard` that used
+    to repeat these totals just above the band is retired.
+  - **Distribution stats need a distribution.** Buckets / average per bucket /
+    peak render only when the definition has at least one dimension — a
+    zero-dimension run is a single grand total per metric.
+  - **Levels.** When a metric's registry row has **`TotalMode = 'latest'`**,
+    its card's caption adds a **"· last bucket &lt;bucket&gt;"** suffix,
+    naming the bucket the number actually covers, and the fallback total is
+    that bucket's value rather than a sum across buckets (point-in-time
+    metrics like backlog are wrong to add up). Each metric is judged by its
+    **own** total mode, so a summed count and a levelled backlog can share one
+    band. The suffix is the client's own zero-filled last bucket, so the
+    wording is deliberately bucket-honest rather than implying snapshot
+    precision (`kpiLatestSuffix` in `_reporting_simple_js.html`).  When the definition carries a **single relative-date token filter**, the run request
   sets `compare: true` and each stat renders a **delta chip** (↑/↓/— plus a
   percentage) against the immediately preceding period of the same length —
   see **Comparison & delta chips** below for the exact semantics (why it's
@@ -103,18 +120,23 @@ working. Design spec: `docs/superpowers/specs/2026-07-20-reporting-redesign-hand
 - **Timing badge** in the masthead — "N rows · M ms", the row count from the
   run response and the elapsed time measured client-side around the fetch;
   appears after the first successful run.
-- **Persistent query footer** — a one-line peek of the inlined `sqlDisplay`
-  SQL under the results; click it to expand the existing Show-query panel.
-  Hidden whenever `sqlDisplay` is absent (the WS1 inliner-degrade fallback
-  keeps working).
-- **Result header** — `Open in Advanced` and `Show query` live behind a `⋯`
-  overflow menu (`#rsMoreMenu`); **Save** is the gradient primary action;
-  the format select + **Export** read as one visual unit. The error-state
-  "Open in Advanced" escape hatch stays a visible inline button. `Open in
-  Advanced` restores the current definition into the builder **and runs
-  it** (`window.Reporting.run()` right after `applyDefinition()`) — it used
-  to only pre-fill the wells, leaving Advanced showing no results and "Show
-  query" hidden/stale until the user pressed Run themselves (#178, Task 15).
+- **Query side card** (`#rsSqlView`) — the result's chart card stretches
+  beside a 292px side column holding the AI-insight caption card and an
+  always-visible, syntax-coloured **Query** card (the inlined `sqlDisplay`
+  SQL, rendered on every successful run). The old one-line SQL peek footer
+  is retired; the `⋯` menu's `Show query` entry stays as a scroll-to
+  shortcut. Hidden whenever `sqlDisplay` is absent (the WS1 inliner-degrade
+  fallback keeps working).
+- **Result header** — a `Library / <name>` breadcrumb with a green **Saved**
+  chip for persisted reports, a **Run again** tint button, then Adjust /
+  Export / **Save** (primary) / the `⋯` overflow menu (`#rsMoreMenu`,
+  hosting `Open in Advanced`, `Show query` and `Delete report`). The
+  error-state "Open in Advanced" escape hatch stays a visible inline
+  button. `Open in Advanced` restores the current definition into the
+  builder **and runs it** (`window.Reporting.run()` right after
+  `applyDefinition()`) — it used to only pre-fill the wells, leaving
+  Advanced showing no results and "Show query" hidden/stale until the user
+  pressed Run themselves (#178, Task 15).
 
 Single-series bar/line charts render in ink-navy with a brand-indigo accent
 on the peak value; multi-series charts keep the existing categorical
@@ -140,7 +162,7 @@ chart already on screen re-themes on the next render, not live.
   - **+ New report (wizard)** — measures (from the metrics registry;
     **multi-select** — the first pick pins the source and other sources'
     chips disable until the selection is cleared; the result carries one
-    column/series per metric and the stat card one total per metric; admins
+    column/series per metric and the KPI band one labelled total per metric; admins
     grow the wizard's reach by adding rows at `/reporting/metrics`, zero code
     change) → **which processes?** (own step, checkbox list all pre-checked;
     skipped for sources without processes — step headings auto-number via CSS
@@ -208,8 +230,8 @@ chart already on screen re-themes on the next render, not live.
     document date, workitem id) is hidden; other sources list their catalog
     fields unfiltered. There is **no chip cap** — every filterable string
     field the Advanced tab offers renders as a chip.
-  - **Ask AI** — the hero bar and its suggestion chips are a shortcut into the
-    shared **AI chat panel** (`window.ReportingChat.open()` + `.send()`):
+  - **Ask Eddard** — the hero bar and its suggestion chips are a shortcut into the
+    shared **Eddard chat panel** (`window.ReportingChat.open()` + `.send()`):
     typing a question and pressing enter opens the panel and sends it there
     rather than running its own one-shot ask. See **AI assistant** below.
     Hidden if AI is unconfigured.
@@ -302,7 +324,7 @@ current value vs. the same stat over `comparison.rows`:
   different-length periods would fabricate a percentage, so that one chip is
   dropped rather than shown misleadingly; Total and Peak are unaffected
   because an extra all-zero bucket contributes `0` to both.
-- The Simple KPI band's **Total** tile also gets a small inline **sparkline**
+- The Simple KPI band's headline total card also gets a small inline **sparkline**
   (a hand-rolled SVG polyline, not a Chart.js instance) of the metric series
   — gated to the same single-dimension date-grain case the zero-fill already
   special-cases.
@@ -504,17 +526,17 @@ per-card filters that layer on top of the dashboard's `globalFilters`.
   filtered client-side); picking one copies that report's `definition` and
   name straight into the card verbatim. Unlike `kpi`/`line`/`bar`/`donut`,
   this card is not a dashboard-authored chart type — it renders the adopted
-  report exactly as the Simple tab would: a stat card with per-metric grand
-  totals (via a zero-column aggregate clone, correct for every aggregation
-  including `avg`/`count_distinct`, not a client-side sum of already-grouped
-  rows), a KPI band with prior-period delta chips (the same band Simple
+  report exactly as the Simple tab would: the KPI band with one labelled
+  total per measure (fed by a zero-column aggregate clone, correct for every
+  aggregation including `avg`/`count_distinct`, not a client-side sum of
+  already-grouped rows) plus prior-period delta chips — the same band Simple
   shows, including its `TotalMode='latest'` handling for metrics like
-  `backlog_total` — see **Metrics registry** below), a chart using the
+  `backlog_total` (see **Metrics registry** below) — a chart using the
   report's own saved `chartType`/colours/right-axis/forecast settings, and
   the full result table (behind a "Show table" toggle when a chart is drawn,
   shown directly otherwise) with row drill-through. All of this is drawn
   through the Simple pane's own pure builders, exposed on
-  `window.ReportingSimple` (`kpiBandHtml`, `statCardHtml`, `buildChartData`,
+  `window.ReportingSimple` (`kpiBandHtml`, `buildChartData`,
   `chartConfigFor`, `tableHtml`, …), so the dashboard card and the Simple
   result view cannot drift apart. Because it carries the source report's
   full definition rather than a dashboard-authored one, a `report` card still
@@ -645,6 +667,12 @@ own) controls two independent mechanisms, both held in NexoraDB:
   by email/username, optionally **Can edit** (read-write). FK to `Reports` is
   `ON DELETE CASCADE`, so deleting a report removes its shares.
 
+A named share leaves `Visibility` at `private`, so the owner's own card would
+look untouched — the list endpoint therefore returns an owner-only
+`sharedCount` (number of `ReportShares` rows) and both panes tag such a report
+`· shared`, exactly like an org-wide one. It stays under **My reports**; only
+`Visibility='shared'` moves a card to the **Library** shelf.
+
 A recipient sees shared reports under **Shared with me** and can **Load** them.
 **Save** overwrites in place only if they own the report or hold an edit grant;
 otherwise it forks a copy (**Save as**). Only the owner can change visibility,
@@ -652,7 +680,7 @@ manage shares, rename, or delete. Endpoints:
 
 | Endpoint | Who | Purpose |
 |----------|-----|---------|
-| `GET /api/reporting/reports` | any `reporting.view` | reports you own + shared-with-you (tagged `owned`/`canEdit`/`ownerName`) |
+| `GET /api/reporting/reports` | any `reporting.view` | reports you own + shared-with-you (tagged `owned`/`canEdit`/`ownerName`/`sharedCount`) |
 | `GET /api/reporting/reports/<id>` | owner / recipient | load (404 if not visible to you) |
 | `PUT /api/reporting/reports/<id>` | owner / edit-grant | overwrite |
 | `DELETE /api/reporting/reports/<id>` | owner | delete (cascades shares) |
@@ -774,7 +802,7 @@ Both serialization paths neutralize spreadsheet formula injection (leading
 | `reporting.admin.sources` | Manage the data-source registry at `/reporting/sources` (see below). Admins seeded. |
 | `reporting.semantic.admin` | Manage the canonical-metrics registry at `/reporting/metrics` (see below). Admins seeded. |
 | `reporting.schedule` | Schedule a saved report to run and be emailed (see below). Admins seeded. |
-| `reporting.ai.use` | Use the AI assistant — see the AI chat toggle, ask natural-language questions (see below). Admins seeded. |
+| `reporting.ai.use` | Use the AI assistant (Eddard) — see the chat toggle, ask natural-language questions (see below). Admins seeded. |
 | `reporting.ai.sql` | Receive AI-drafted read-only T-SQL into the SQL editor. Grant alongside `reporting.sql.run`. Admins seeded. |
 | `reporting.ai.explain_data` | Let a result's rows reach the model: gates **auto captions** alone, and — combined with `reporting.sql.run` — the chat agent's `run_sql`/`compute_stats` tools (live-query narration). Grantable; admins seeded (see below). |
 
@@ -1082,10 +1110,17 @@ render as 0.
 ## Scheduled & emailed reports
 
 A saved report you own can be delivered on a schedule (permission
-`reporting.schedule`). The **Schedule** dialog manages per-report schedules:
+`reporting.schedule`). The **Scheduled** screen (Console left nav,
+`templates/js/_reporting_scheduled_js.html`) lists every schedule the caller
+owns across all reports — **`GET /api/reporting/schedules`** joins
+`dbo.ReportSchedules` with the report names — with an instant on/off toggle
+(a full-field `PUT` with `enabled` flipped; off rows dim to 55%), per-row
+delete, and a **New schedule** modal (report picker over the owned reports +
+the same cadence/format/recipients fields). The Advanced builder's per-report
+**Schedule** dialog still exists and manages the same rows. Fields:
 **frequency** (daily / weekly / monthly), **time** (UTC), **format** (xlsx/csv),
 and **recipients**. Schedules live in `dbo.ReportSchedules` (migration `0012`,
-FK to `Reports` `ON DELETE CASCADE`); endpoints are under
+FK to `Reports` `ON DELETE CASCADE`); per-report endpoints are under
 `/api/reporting/reports/<id>/schedules` (owner-only).
 
 ### Alert-only schedules
@@ -1135,20 +1170,48 @@ Graph is unconfigured the runner logs the failure per-schedule and continues.
 
 ## AI assistant
 
-The AI surface is a single **AI chat panel**, shared by both the Simple and
-Advanced tabs, that talks to the agentic drafter (`POST /api/reporting/ai/agent`).
+The AI surface is a single chat panel — branded **Eddard** in the UI (issue
+ #212) — shared by both the Simple and Advanced tabs, talking to the agentic
+drafter (`POST /api/reporting/ai/agent`).
 The earlier per-mode UI (an "Ask AI" tab with **Build a report** / **Write SQL** /
 **Agent** sub-modes, plus a Simple-tab **Refine** bar) is retired — see
 **AI chat panel** below for what replaced it, and **Legacy single-shot endpoints**
 for what's left of the old surfaces server-side.
 
+### Eddard, the mascot
+
+Every AI surface carries **Eddard**: an animated version of the Nexora
+black-hole logo (black core, accent accretion ring, two dot eyes) that floats,
+blinks, looks around, winks and hops. Files:
+
+- `templates/_eddard.html` — two macros: `mark(size, state)` renders the SVG
+  mascot, `stage()` renders the "builds a report" loading stage.
+- `static/css/eddard.css` — geometry-independent styling + every keyframe. The
+  accent follows `--nx-accent`, so the mascot re-tints with the user's accent
+  picker; the core stays black in both themes (same rule as `.bh-core`).
+- `templates/js/_eddard_js.html` — one shared timer walking the idle mood
+  sequence, plus `window.NexoraEddard.startBuild/stopBuild(stage)` for the
+  build loop (0→5, 1300 ms per step, wraps).
+
+Placements: the top-bar toggle (22px), the chat panel header (24px), the empty
+thread (88px) and the AI-insight card head on Simple (20px). The three inline
+marks pass `cls='ed--calm'`: they only breathe (a 2px `edBreathe`) and blink,
+because a mark sitting in a text row must not shove its label around — the
+mood loop skips `.ed--calm` entirely, so the hops and eye darting stay on the
+big empty-thread mascot. While a turn runs, the progress ticker gets the
+`stage()` macro, which flings a placeholder report together (title → KPI →
+bars → trend → Ready badge) beside the real agent steps. Everything is `aria-hidden` (decorative; the visible
+status text carries the meaning) and `prefers-reduced-motion` holds each loop
+on its resting frame. Source of truth for geometry, mood table and timings:
+`docs/design/design_handoff_eddard_mascot/README.md`.
+
 ### AI chat panel
 
-**Toggle:** an **"AI chat"** button (`#rpChatToggle`, wand-sparkles icon) is the
+**Toggle:** an **"Eddard"** button (`#rpChatToggle`, mascot mark) is the
 masthead's action, on both tabs, whenever `reporting.ai.use` is held
 (`ai_enabled`). (**Sources** is not next to it — it sits at the right end of the
 Simple/Advanced tab rail below, see *Page layout*.) Clicking it — or, on Simple, typing into the landing hero's
-**Ask AI** bar or clicking one of its suggestion chips — opens a docked
+**Ask Eddard** bar or clicking one of its suggestion chips — opens a docked
 right-side slide-over (`#rpChatPanel`) with an empty state offering three
 example questions. It closes any open drill-through drawer first (the two
 panels share the same slide-over real estate) and closes on **×**, clicking the
@@ -1215,8 +1278,8 @@ on `reporting.ai.explain_data` **and** `reporting.sql.run` together — see
 ### Auto captions
 
 Route: `POST /api/reporting/ai/caption` — accepts
-`{"columns": [...], "rows": [...], "title": "...", "dateLabel": "..."}` and
-returns `{"caption": "..."}`.
+`{"columns": [...], "rows": [...], "title": "...", "dateLabel": "...", "notes": "...", "levelFields": [...]}`
+and returns `{"caption": "..."}`.
 
 The **trigger point differs per tab**: the Simple tab fires this after
 **every** successful run render that actually has rows — an empty (zero-row)
@@ -1226,10 +1289,25 @@ no caption box appears; the Advanced tab fires it only on **chart mount**
 report while sitting in Grid view does not itself request a new caption
 (see `resetViews()`/`fireCaption()` in `_reporting_js.html` vs. the end of
 `runCurrent()` in `_reporting_simple_js.html`). Either way, the request goes
-out in the background with the columns and (up to 50) rows just rendered,
-and — if it returns a caption — the result view shows a small "shimmer in"
-1–2 sentence narration under the chart/KPI band, prefixed with an **AI**
-chip. Unlike the chat panel's schema-only default, this endpoint's whole
+out in the background with the columns and the **whole grid** just rendered
+(payload-capped at `CAPTION_MAX_ROWS` = 5000 rows), and — if it returns a
+caption — the result view shows a small "shimmer in" 1–2 sentence narration
+under the chart/KPI band, prefixed with an **AI** chip.
+
+**The model never sees the rows.** `caption()` reduces the grid to an exact
+**fact sheet** (`nx_lib/reporting/caption_facts.py::build_facts`): total (or,
+for a level measure such as the backlog, the *latest* value — the client
+names those in `levelFields`), buckets with a value vs. buckets with **no
+measurement** (never read as zero), peak/low, latest vs. previous, first-half
+vs. second-half average, the recent tail and an evenly spaced sample across
+the range, top categories with shares, the NULL-key rows reported separately
+as "rows with no *<dimension>*" (never a period, never an outlier), and the
+still-running current bucket flagged and kept out of peak/latest/averages.
+The prompt carries those facts plus the client's `notes` (partial bucket,
+NULL = no snapshot). Before this, the route sliced `rows[:50]` off the top of
+an ascending time series, so the model judged 313 weeks from the NULL-date
+bucket plus 2020 — "a clear outlier of 74,182 pages", "at most 3,712 in the
+latest weeks" (2026-08-25 audit). Unlike the chat panel's schema-only default, this endpoint's whole
 purpose is to send the rows already on screen to the model, so it is gated by
 `reporting.ai.explain_data` **alone** — deliberately **not** also requiring
 `reporting.sql.run` (there's no live query involved; the rows already left the
@@ -1299,11 +1377,17 @@ stubbed tests that answer `application/json` keep working unchanged.
 **Tool binding follows permissions:** `build_definition` is always bound
 (data-free — the same whitelist validator `/api/reporting/run` uses).
 `validate_sql` (data-free — a gate check only) is bound only with
-`reporting.ai.sql`. `run_sql` / `compute_stats` (`nx_lib/reporting/stats.py`) —
-which feed real result rows back to the model — are bound **only** when the
-caller holds **both** `reporting.ai.explain_data` **and** `reporting.sql.run`;
-otherwise the loop stays fully schema-only (question + source catalog + SQL
-schema in, ok/error-only tool results out, never a result row).
+`reporting.ai.sql`. `run_sql` / `run_definition` / `compute_stats`
+(`nx_lib/reporting/stats.py`) — which feed real result rows back to the model —
+are bound **only** when the caller holds **both** `reporting.ai.explain_data`
+**and** `reporting.sql.run`; otherwise the loop stays fully schema-only
+(question + source catalog + SQL schema in, ok/error-only tool results out,
+never a result row). `run_definition` takes the same v1-definition shape as
+`build_definition` but actually executes it (`nx_lib.reporting.runner.execute_definition`
+— the same path the scheduled-report runner uses) and returns the real rows,
+capped to `RUN_DEFINITION_ROW_CAP` (500); it exists so an anchored-metrics or
+other business-definition question ends with real numbers instead of a
+validated-but-unexecuted definition ("definition built, numbers not run").
 
 The grounding prepends today's date (so relative time expressions resolve to
 real dates, not training-data dates) and includes the `source` the client's
@@ -1364,7 +1448,7 @@ Set these in `env/INT.env` and `env/PROD.env`:
 | `AZURE_OPENAI_DEPLOYMENT` | Deployment name (required when `AI_PROVIDER=azure`). |
 | `AZURE_OPENAI_API_VERSION` | API version (optional; defaults to `2024-10-21`). GPT-5-family deployments need a newer one, e.g. `2025-01-01-preview`. |
 | `AI_DAILY_LIMIT` | Per-user/day cap on AI asks (cost/abuse control). `0` (default) = unlimited. When the cap is hit the route returns **429** before any provider call, and the throttle is recorded in `dbo.ReportingAiAudit` with `Status='blocked'`. |
-| `AI_TIMEOUT_S` | HTTP read timeout for a single model round-trip (default `120`). Reasoning deployments (GPT-5 family) regularly spend 30–60 s on one hard question; too tight a value surfaces as *"The AI assistant could not answer right now"* (502) with a `Read timed out` line in `var/logs/system/app.log`. |
+| `AI_TIMEOUT_S` | HTTP read timeout for a single model round-trip (default `120`). Reasoning deployments (GPT-5 family) regularly spend 30–60 s on one hard question; too tight a value surfaces as *"Eddard could not answer right now"* (502) with a `Read timed out` line in `var/logs/system/app.log`. |
 | `AI_AGENT_BUDGET_S` | Wall-clock ceiling for a whole agentic (chat) run (default `180`). Checked between turns, so a slow model can't hold a worker for `max_turns × AI_TIMEOUT_S`; a run that hits it returns what it has with `stoppedReason: "budget"`. |
 
 Until `AI_PROVIDER` is set (or is `none`) the route returns **503** and the tab
@@ -1495,6 +1579,8 @@ live schema grounding and scheduled-report delivery.
 - `templates/js/_reporting_js.html` — builder UI; `templates/js/_reporting_viz_js.html`
   — chart + drag-and-drop pivot (`window.ReportingViz`);
   `templates/js/_reporting_ai_js.html` — the AI chat panel (`window.ReportingChat`);
+  `templates/_eddard.html` + `templates/js/_eddard_js.html` + `static/css/eddard.css`
+  — the Eddard mascot and its build-a-report loading stage;
   `templates/js/_reporting_dashboard_js.html` — dashboard builder
   (`window.ReportingDashboard`).
 - `sql/_migrations/NexoraDB/0004_create_reports_table.sql` — `dbo.Reports` DDL.

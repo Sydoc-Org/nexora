@@ -48,12 +48,13 @@
   };
   // Live progress labels. The server streams what the agent is actually doing
   // (see the NDJSON branch of /api/reporting/ai/agent); these name each phase.
-  var STEP_START = {{ _("Asking the AI…")|tojson }};
+  var STEP_START = {{ _("Asking Eddard…")|tojson }};
   var STEP_THINKING = {{ _("Thinking…")|tojson }};
   var STEP_WORKING = {{ _("Working…")|tojson }};
   var BUILD_TITLE = {{ _("Building your report…")|tojson }};
   var STEP_LABELS = {
     build_definition: {{ _("Building the report…")|tojson }},
+    run_definition: {{ _("Running the report…")|tojson }},
     validate_sql: {{ _("Checking the query…")|tojson }},
     run_sql: {{ _("Running the query…")|tojson }},
     compute_stats: {{ _("Crunching the numbers…")|tojson }}
@@ -63,6 +64,7 @@
   var tickerEl = null;
   var tickerTextEl = null;
   var tickerStepsEl = null;
+  var buildStageEl = null;
 
   function escapeHtml(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -190,6 +192,17 @@
     tickerEl.setAttribute("data-testid", "rp-chat-ticker");
     tickerEl.innerHTML = '<div class="rp-build-title"><i></i><i></i><i></i><span></span></div>' +
       '<ol class="rp-build-steps" data-testid="rp-build-steps"></ol>';
+    // Eddard builds a report above the real step list while we wait; the
+    // pulsing dots stay as the fallback on any page that didn't render his
+    // <template> (issue #212).
+    var mascotTpl = document.getElementById("rpChatWorkingMascot");
+    if (mascotTpl) {
+      Array.prototype.forEach.call(tickerEl.querySelectorAll(".rp-build-title i"),
+        function (dot) { dot.remove(); });
+      tickerEl.insertBefore(mascotTpl.content.cloneNode(true), tickerEl.firstChild);
+      buildStageEl = tickerEl.querySelector(".ed-stage");
+      if (window.NexoraEddard) window.NexoraEddard.startBuild(buildStageEl);
+    }
     tickerTextEl = tickerEl.querySelector(".rp-build-title span");
     tickerStepsEl = tickerEl.querySelector(".rp-build-steps");
     tickerTextEl.textContent = STEP_START;
@@ -218,6 +231,11 @@
   }
 
   function stopTicker() {
+    // Stop the build loop first -- the ticker (and Eddard's stage with it) is
+    // about to leave the DOM, and its interval would keep painting a detached
+    // node forever.
+    if (buildStageEl && window.NexoraEddard) window.NexoraEddard.stopBuild(buildStageEl);
+    buildStageEl = null;
     if (tickerEl && tickerEl.parentNode) tickerEl.parentNode.removeChild(tickerEl);
     tickerEl = null; tickerTextEl = null; tickerStepsEl = null;
   }

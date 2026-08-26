@@ -1191,9 +1191,10 @@
     '</div>';
   }
 
-  // Whole-report card: the saved report as the Simple tab shows it -- stat
-  // card (per-metric grand totals), KPI band, the chart with its saved
-  // colours / right axis / forecast, and the full table behind a toggle.
+  // Whole-report card: the saved report as the Simple tab shows it -- the
+  // KPI band (one labelled total per measure, then Buckets/Avg/Peak), the
+  // chart with its saved colours / right axis / forecast, and the full
+  // table behind a toggle.
   // Everything is drawn by the Simple pane's own builders
   // (window.ReportingSimple), so the two surfaces cannot drift apart. `def`
   // is the effective definition that was POSTed (global filters merged).
@@ -1219,7 +1220,6 @@
     body.innerHTML =
       '<div class="rdb-report" data-testid="rdb-report">' +
         '<div class="rdb-report-side">' +
-          '<div class="nx-card nx-card--pad nx-stat rdb-report-stat" data-testid="rdb-report-stat" hidden></div>' +
           '<div class="reporting-ledger-kpis rdb-report-kpis" data-testid="rdb-report-kpis" hidden></div>' +
         '</div>' +
         '<div class="nx-card nx-card--pad rdb-report-chartcard" data-testid="rdb-report-chartcard">' +
@@ -1234,9 +1234,30 @@
       '<div class="reporting-table-wrap rdb-report-table" data-testid="rdb-report-table" hidden></div>';
     var q = function (sel) { return body.querySelector(sel); };
 
-    // KPI band (Total / Buckets / Avg / Peak + prior-period chips). Cards
-    // skip the count-up animation and write the final numbers.
-    var kpiHtml = (hasMetrics && dims) ? RS.kpiBandHtml(dims, rows, data.comparison || null, def) : '';
+    // Per-measure grand totals. With a breakdown dimension, via a zero-column
+    // clone -- correct for every aggregation (avg / count_distinct), unlike
+    // summing the grouped rows. Same clone the Simple pane's runCurrent fires.
+    // With NO dimension the breakdown run's own first row already IS the
+    // total for this shape, so no second request is needed.
+    var grandTotals = null;
+    if (hasMetrics && dims) {
+      var totalDef = JSON.parse(JSON.stringify(def));
+      totalDef.columns = []; totalDef.sort = [];
+      delete totalDef.forecast; delete totalDef.compare;
+      var t = await api('/api/reporting/run', { method: 'POST', body: JSON.stringify(totalDef) });
+      if (runGen[card.id] !== gen) return;
+      if (t.ok && t.data && Array.isArray(t.data.rows) && t.data.rows.length) {
+        grandTotals = t.data.rows[0];
+      }
+    } else if (hasMetrics && rows.length) {
+      grandTotals = rows[0];
+    }
+
+    // KPI band (one labelled total per measure, then Buckets/Avg/Peak and the
+    // prior-period chips). Cards skip the count-up animation and write the
+    // final numbers.
+    var kpiHtml = hasMetrics
+      ? RS.kpiBandHtml(dims, rows, data.comparison || null, def, columns, grandTotals) : '';
     if (kpiHtml) {
       var kpis = q('.rdb-report-kpis');
       kpis.innerHTML = kpiHtml;
@@ -1271,32 +1292,6 @@
     q('.rdb-report-table').innerHTML = RS.tableHtml(columns, rows, fc, drillable);
     if (!charted) { q('.rdb-report-table').hidden = false; q('.rdb-report-tablebar').hidden = true; }
     prefixTestIds(body);
-
-    // Stat card: per-metric grand totals. With a breakdown dimension, via a
-    // zero-column clone -- correct for every aggregation (avg /
-    // count_distinct), unlike summing the grouped rows. Same clone the
-    // Simple pane's runCurrent fires. With NO dimension, the breakdown run's
-    // own first row already IS the total for this shape (mirrors Simple's
-    // runCurrent `hasMetrics && !dims` branch / fillStatCard call) -- no
-    // second request needed.
-    if (hasMetrics && dims) {
-      var totalDef = JSON.parse(JSON.stringify(def));
-      totalDef.columns = []; totalDef.sort = [];
-      delete totalDef.forecast; delete totalDef.compare;
-      var t = await api('/api/reporting/run', { method: 'POST', body: JSON.stringify(totalDef) });
-      if (runGen[card.id] !== gen) return;
-      var stat = q('.rdb-report-stat');
-      if (stat && t.ok && t.data && Array.isArray(t.data.rows) && t.data.rows.length) {
-        stat.innerHTML = RS.statCardHtml(def, t.data.rows[0], false);
-        stat.hidden = false;
-      }
-    } else if (hasMetrics && !dims && rows.length) {
-      var stat0 = q('.rdb-report-stat');
-      if (stat0) {
-        stat0.innerHTML = RS.statCardHtml(def, rows[0], false);
-        stat0.hidden = false;
-      }
-    }
   }
 
   // The Simple builders stamp their own data-testids (rs-kpi-total,

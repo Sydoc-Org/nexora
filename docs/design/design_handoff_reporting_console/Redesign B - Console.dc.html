@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<style>
+body{margin:0;background:#f5f6f8;color:#101623;font-family:'Schibsted Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#4f46e5}a:hover{color:#3d38b8}
+button{font-family:inherit}
+::placeholder{color:#8a93a6;opacity:1}
+@keyframes srcpulse{0%{box-shadow:0 0 0 0 rgba(24,164,94,0.45)}70%{box-shadow:0 0 0 5px rgba(24,164,94,0)}100%{box-shadow:0 0 0 0 rgba(24,164,94,0)}}
+.src-pulse{animation:srcpulse 2.4s ease-out infinite}
+.spark-area{transition:opacity 0.45s ease}
+.spark-dot{transition:opacity 0.45s ease}
+button:hover .spark-area{opacity:0.14}
+button:hover .spark-dot{opacity:1}
+</style>
+</helmet>
+<div style="min-height:100vh;background:#f5f6f8;--acc:{{ acc }};--acc-tint:{{ accTint }}">
+
+  <div style="max-width:1400px;margin:0 auto;padding:20px 32px 80px;box-sizing:border-box">
+
+    <div style="display:flex;align-items:center;gap:12px">
+      <span style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:var(--acc,#4f46e5);color:#fff;font-size:13px;flex-shrink:0"><i class="fas fa-chart-column"></i></span>
+      <span style="font-size:15px;font-weight:700;letter-spacing:-0.01em">Reporting</span>
+      <span style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:var(--acc,#4f46e5);background:var(--acc-tint,#edf0ff);border-radius:5px;padding:2px 7px;text-transform:uppercase">Beta</span>
+      <span style="flex:1"></span>
+      <span style="font-size:11.5px;color:#8a93a6;font-variant-numeric:tabular-nums;white-space:nowrap"><span style="display:inline-block;width:7px;height:7px;border-radius:99px;background:#18a45e;margin-right:6px"></span>2 sources · synced 2 m ago</span>
+      <button style="display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;font-size:12.5px;font-weight:600;background:#fff;color:#101623;border:1px solid #e2e5ea;cursor:pointer" onClick="{{ openHelp }}"><i class="fas fa-circle-question" style="color:#8a93a6"></i>Help</button>
+      <button style="display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;font-size:12.5px;font-weight:600;background:#fff;color:#101623;border:1px solid #e2e5ea;cursor:pointer" onClick="{{ openChat }}"><i class="fas fa-message" style="color:var(--acc,#4f46e5)"></i>AI chat</button>
+    </div>
+
+    <div style="display:grid;grid-template-columns:196px 1fr;gap:24px;margin-top:22px;align-items:start">
+
+      <div style="display:flex;flex-direction:column;gap:2px;position:sticky;top:20px">
+        <span style="font-size:10px;font-weight:700;letter-spacing:0.1em;color:#8a93a6;text-transform:uppercase;padding:0 10px 6px">Workspace</span>
+        <button style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:8px;border:none;font-size:13px;font-weight:{{ navLibW }};background:{{ navLibBg }};color:{{ navLibC }};cursor:pointer;text-align:left" onClick="{{ goLibrary }}"><i class="fas fa-folder-open" style="width:15px;font-size:12px"></i>Library<span style="margin-left:auto;font-size:11px;font-weight:600;color:#8a93a6;font-variant-numeric:tabular-nums">5</span></button>
+        <!-- NOTE: "Results" always shows the last rendered result (cached) — never an empty state; clicking it restores the most recent run without re-querying -->
+        <button style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:8px;border:none;font-size:13px;font-weight:{{ navResW }};background:{{ navResBg }};color:{{ navResC }};cursor:pointer;text-align:left" onClick="{{ goResult }}"><i class="fas fa-chart-line" style="width:15px;font-size:12px"></i>Results</button>
+        <button style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:8px;border:none;font-size:13px;font-weight:{{ navDashW }};background:{{ navDashBg }};color:{{ navDashC }};cursor:pointer;text-align:left" onClick="{{ goDashboard }}"><i class="fas fa-table-cells-large" style="width:15px;font-size:12px"></i>Dashboards<span style="margin-left:auto;font-size:11px;font-weight:600;color:#8a93a6">1</span></button>
+        <button style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:8px;border:none;font-size:13px;font-weight:{{ navSchW }};background:{{ navSchBg }};color:{{ navSchC }};cursor:pointer;text-align:left" onClick="{{ goScheduled }}"><i class="fas fa-clock-rotate-left" style="width:15px;font-size:12px"></i>Scheduled<span style="margin-left:auto;font-size:11px;font-weight:600;color:#8a93a6;font-variant-numeric:tabular-nums">2</span></button>
+        <span style="font-size:10px;font-weight:700;letter-spacing:0.1em;color:#8a93a6;text-transform:uppercase;padding:18px 10px 6px">Sources</span>
+        <sc-for list="{{ sources }}" as="src" hint-placeholder-count="2">
+          <div style="background:#fff;border:1px solid #e2e5ea;border-radius:9px;padding:8px 10px;margin:0 0 6px">
+            <div style="display:flex;align-items:center;gap:7px">
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:6px;background:{{ src.iconBg }};color:{{ src.iconC }};font-size:9px;flex-shrink:0"><i class="fas {{ src.icon }}"></i></span>
+              <span style="font-size:11.5px;font-weight:600;color:#101623;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">{{ src.name }}</span>
+              <span class="src-pulse" style="margin-left:auto;width:7px;height:7px;border-radius:99px;background:#18a45e;flex-shrink:0"></span>
+            </div>
+            <div style="display:flex;align-items:flex-end;gap:2px;height:16px;margin-top:7px">
+              <sc-for list="{{ src.bars }}" as="b" hint-placeholder-count="12">
+                <span style="flex:1;height:{{ b.h }};background:{{ b.bg }};border-radius:1.5px"></span>
+              </sc-for>
+            </div>
+            <div style="display:flex;align-items:center;margin-top:6px;font-size:10px;color:#8a93a6;font-variant-numeric:tabular-nums">
+              <span>{{ src.docs }}</span>
+              <span style="margin-left:auto">{{ src.ms }} ms</span>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="min-width:0">
+
+        <sc-if value="{{ isLibrary }}" hint-placeholder-val="{{ true }}">
+        <div data-screen-label="B · Library">
+          <div style="display:flex;align-items:center;gap:10px">
+            <h1 style="margin:0;font-size:19px;font-weight:700;letter-spacing:-0.02em">Library</h1>
+            <span style="font-size:11px;font-weight:600;color:#57617a;background:#fff;border:1px solid #e2e5ea;border-radius:99px;padding:2px 9px;font-variant-numeric:tabular-nums">5 reports</span>
+            <span style="flex:1"></span>
+            <button style="display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;font-size:12.5px;font-weight:600;background:#fff;color:#101623;border:1px solid #e2e5ea;cursor:pointer;height:33px;box-sizing:border-box"><i class="fas fa-table-cells-large" style="font-size:11px;color:#8a93a6"></i>New dashboard</button>
+            <button style="display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;font-size:12.5px;font-weight:600;background:var(--acc,#4f46e5);color:#fff;border:1px solid transparent;cursor:pointer;height:33px;box-sizing:border-box" onClick="{{ goWizard }}"><i class="fas fa-plus" style="font-size:11px"></i>New report</button>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:8px;margin-top:12px">
+            <span style="position:relative;flex:1">
+              <i class="fas fa-magnifying-glass" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#8a93a6;font-size:11px"></i>
+              <input style="width:100%;height:33px;box-sizing:border-box;border:1px solid #e2e5ea;border-radius:8px;padding:0 10px 0 30px;font-size:12.5px;font-family:inherit;background:#fff;color:#101623;outline:none" placeholder="Search reports…">
+            </span>
+            <select style="border:1px solid #e2e5ea;border-radius:8px;padding:0 9px;height:33px;box-sizing:border-box;font-size:12.5px;font-family:inherit;background:#fff;color:#57617a;outline:none"><option>Recently updated</option><option>Name</option><option>Most run</option></select>
+            <span style="display:inline-flex;border:1px solid #e2e5ea;border-radius:8px;background:#fff;overflow:hidden;height:33px;box-sizing:border-box">
+              <button title="2 per row" style="border:none;padding:0 10px;font-size:12px;cursor:pointer;background:{{ gridBtnBg }};color:{{ gridBtnColor }}" onClick="{{ setGrid }}"><i class="fas fa-table-cells-large"></i></button>
+              <button title="4 per row" style="border:none;border-left:1px solid #e2e5ea;padding:0 10px;font-size:12px;cursor:pointer;background:{{ listBtnBg }};color:{{ listBtnColor }}" onClick="{{ setList }}"><i class="fas fa-table-cells"></i></button>
+            </span>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:8px;margin:20px 0 10px">
+            <span style="font-size:11px;font-weight:700;letter-spacing:0.08em;color:#57617a;text-transform:uppercase">My reports</span>
+            <span style="font-size:11px;font-weight:600;color:#8a93a6;font-variant-numeric:tabular-nums">5</span>
+            <span style="flex:1;height:1px;background:#e2e5ea"></span>
+          </div>
+          <div style="display:grid;gap:12px;grid-template-columns:{{ gridCols }}">
+            <sc-for list="{{ reports }}" as="r" hint-placeholder-count="5">
+              <button style="position:relative;display:block;text-align:left;cursor:pointer;padding:10px 12px;border:1px solid #e2e5ea;border-radius:10px;background:#fff;color:#101623;font-family:inherit;box-shadow:0 1px 2px rgba(16,22,35,0.04)" style-hover="border-color:var(--acc,#4f46e5);box-shadow:0 4px 14px -4px rgba(79,70,229,0.25)" onClick="{{ r.open }}">
+                <div style="display:flex;align-items:center;gap:7px;padding:0">
+                  <span style="display:inline-flex;align-items:center;gap:5px;font-size:9.5px;font-weight:700;letter-spacing:0.08em;color:{{ r.tagColor }};background:{{ r.tagBg }};border-radius:5px;padding:2px 7px;text-transform:uppercase"><i class="fas {{ r.tagIcon }}" style="font-size:8.5px"></i>{{ r.type }}</span>
+                  <span style="margin-left:auto;font-size:10.5px;color:#8a93a6;font-variant-numeric:tabular-nums">{{ r.runs }} runs</span>
+                  <span role="button" tabindex="0" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;margin:-3px -6px -3px -2px;border-radius:6px;color:#8a93a6;font-size:12px;cursor:pointer" style-hover="background:#f0f2f5;color:#101623" onClick="{{ r.toggleMenu }}"><i class="fas fa-ellipsis"></i></span>
+                </div>
+                <sc-if value="{{ r.menuOpen }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:absolute;top:34px;right:10px;z-index:30;display:flex;flex-direction:column;background:#fff;border:1px solid #e2e5ea;border-radius:9px;box-shadow:0 8px 24px -6px rgba(16,22,35,0.18);padding:4px;min-width:140px">
+                    <span role="button" tabindex="0" style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:6px;font-size:12.5px;font-weight:500;color:#101623;cursor:pointer" style-hover="background:#f0f2f5" onClick="{{ r.share }}"><i class="fas fa-arrow-up-from-bracket" style="width:14px;font-size:11px;color:#8a93a6"></i>Share</span>
+                    <span role="button" tabindex="0" style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:6px;font-size:12.5px;font-weight:500;color:#101623;cursor:pointer" style-hover="background:#f0f2f5" onClick="{{ r.closeMenu }}"><i class="fas fa-box-archive" style="width:14px;font-size:11px;color:#8a93a6"></i>Archive</span>
+                    <span style="height:1px;background:#f0f2f5;margin:4px 6px"></span>
+                    <span role="button" tabindex="0" style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:6px;font-size:12.5px;font-weight:500;color:#c92f42;cursor:pointer" style-hover="background:#fdf0f2" onClick="{{ r.remove }}"><i class="fas fa-trash-can" style="width:14px;font-size:11px"></i>Delete</span>
+                  </div>
+                </sc-if>
+                <p style="margin:7px 0 0;font-size:13px;font-weight:600;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</p>
+                <sc-if value="{{ r.isLine }}" hint-placeholder-val="{{ true }}">
+                  <svg viewBox="0 0 196 34" preserveAspectRatio="none" style="width:100%;height:22px;display:block;margin-top:6px;overflow:visible">
+                    <polyline class="spark-line" points="{{ r.spark }}" pathLength="1" fill="none" stroke="var(--acc,#4f46e5)" stroke-width="1.6"></polyline>
+                    <polygon class="spark-area" points="{{ r.area }}" fill="var(--acc,#4f46e5)" opacity="0.08"></polygon>
+                    <circle class="spark-dot" cx="{{ r.lastX }}" cy="{{ r.lastY }}" r="2.6" fill="var(--acc,#4f46e5)" opacity="0"></circle>
+                  </svg>
+                </sc-if>
+                <sc-if value="{{ r.isDash }}" hint-placeholder-val="{{ false }}">
+                  <svg viewBox="0 0 196 34" style="width:100%;height:22px;display:block;margin-top:6px">
+                    <rect x="0" y="2" width="60" height="13" rx="3" fill="#f0f2f5" stroke="#e2e5ea"></rect>
+                    <rect x="66" y="2" width="60" height="13" rx="3" fill="#f0f2f5" stroke="#e2e5ea"></rect>
+                    <rect x="0" y="19" width="60" height="13" rx="3" fill="#f0f2f5" stroke="#e2e5ea"></rect>
+                    <rect x="66" y="19" width="60" height="13" rx="3" fill="var(--acc-tint,#edf0ff)" stroke="var(--acc,#4f46e5)"></rect>
+                  </svg>
+                </sc-if>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:7px;padding-top:7px;border-top:1px solid #f0f2f5">
+                  <span style="width:16px;height:16px;border-radius:99px;background:var(--acc,#4f46e5);color:#fff;font-size:8px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">B</span>
+                  <span style="font-size:11px;color:#8a93a6">ben.streich · {{ r.updated }}</span>
+                  <span style="margin-left:auto;font-size:10px;color:var(--acc,#4f46e5)"><i class="fas fa-play"></i></span>
+                </div>
+              </button>
+            </sc-for>
+          </div>
+
+
+          <div style="display:flex;align-items:center;gap:8px;margin:24px 0 10px">
+            <span style="font-size:11px;font-weight:700;letter-spacing:0.08em;color:#57617a;text-transform:uppercase">Shared with me</span>
+            <span style="font-size:11px;font-weight:600;color:#8a93a6">0</span>
+            <span style="flex:1;height:1px;background:#e2e5ea"></span>
+          </div>
+          <div style="border:1px dashed #cdd2da;border-radius:10px;padding:14px 18px;font-size:12.5px;color:#8a93a6">No reports have been shared with you yet.</div>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ isScheduled }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="B · Scheduled">
+          <div style="display:flex;align-items:center;gap:10px">
+            <h1 style="margin:0;font-size:19px;font-weight:700;letter-spacing:-0.02em">Scheduled</h1>
+            <span style="font-size:11px;font-weight:600;color:#57617a;background:#fff;border:1px solid #e2e5ea;border-radius:99px;padding:2px 9px;font-variant-numeric:tabular-nums">2 schedules</span>
+            <span style="flex:1"></span>
+            <button style="display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;font-size:12.5px;font-weight:600;background:var(--acc,#4f46e5);color:#fff;border:1px solid transparent;cursor:pointer;height:33px;box-sizing:border-box" onClick="{{ openNewSchedule }}"><i class="fas fa-plus" style="font-size:11px"></i>New schedule</button>
+          </div>
+          <p style="margin:10px 0 0;font-size:12.5px;color:#8a93a6">Reports run automatically and get delivered to your inbox or team.</p>
+          <div style="background:#fff;border:1px solid #e2e5ea;border-radius:10px;box-shadow:0 1px 2px rgba(16,22,35,0.04);margin-top:16px;overflow:hidden">
+            <div style="display:grid;grid-template-columns:44px 1.4fr 1.1fr 1.2fr 90px 1fr 110px 40px;align-items:center">
+              <div style="grid-column:1/-1;display:grid;grid-template-columns:subgrid;background:#f7f8fa;border-bottom:1px solid #e2e5ea">
+                <span></span>
+                <span style="padding:7px 0;font-size:10px;font-weight:700;letter-spacing:0.08em;color:#8a93a6;text-transform:uppercase">Report</span>
+                <span style="padding:7px 0;font-size:10px;font-weight:700;letter-spacing:0.08em;color:#8a93a6;text-transform:uppercase">Cadence</span>
+                <span style="padding:7px 0;font-size:10px;font-weight:700;letter-spacing:0.08em;color:#8a93a6;text-transform:uppercase">Delivers to</span>
+                <span style="padding:7px 0;font-size:10px;font-weight:700;letter-spacing:0.08em;color:#8a93a6;text-transform:uppercase">Format</span>
+                <span style="padding:7px 0;font-size:10px;font-weight:700;letter-spacing:0.08em;color:#8a93a6;text-transform:uppercase">Last run</span>
+                <span style="padding:7px 0;font-size:10px;font-weight:700;letter-spacing:0.08em;color:#8a93a6;text-transform:uppercase">Next run</span>
+                <span></span>
+              </div>
+              <sc-for list="{{ schedules }}" as="s" hint-placeholder-count="2">
+                <div style="grid-column:1/-1;display:grid;grid-template-columns:subgrid;align-items:center;border-bottom:1px solid #f0f2f5;opacity:{{ s.rowOpacity }}">
+                  <span style="display:flex;justify-content:center;padding:11px 0"><span role="button" tabindex="0" style="width:26px;height:15px;border-radius:99px;background:{{ s.togBg }};position:relative;display:inline-block;cursor:pointer;flex-shrink:0" onClick="{{ s.toggle }}"><span style="position:absolute;left:{{ s.knobLeft }};right:{{ s.knobRight }};top:2px;width:11px;height:11px;border-radius:99px;background:#fff"></span></span></span>
+                  <span style="padding:11px 0;font-size:12.5px;font-weight:600;color:#101623;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ s.name }}</span>
+                  <span style="padding:11px 0;font-size:12px;color:#57617a;font-variant-numeric:tabular-nums">{{ s.cadence }}</span>
+                  <span style="padding:11px 0;font-size:12px;color:#57617a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ s.dest }}</span>
+                  <span style="padding:11px 0"><span style="font-size:10px;font-weight:700;letter-spacing:0.06em;color:#57617a;background:#f0f2f5;border-radius:4px;padding:2px 7px">{{ s.format }}</span></span>
+                  <span style="padding:11px 0;font-size:12px;color:#57617a;font-variant-numeric:tabular-nums"><span style="display:inline-block;width:7px;height:7px;border-radius:99px;background:#18a45e;margin-right:6px"></span>{{ s.lastRun }}</span>
+                  <span style="padding:11px 0;font-size:12px;color:#57617a;font-variant-numeric:tabular-nums">{{ s.next }}</span>
+                  <span style="display:flex;justify-content:center;padding:11px 0"><span role="button" tabindex="0" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;color:#8a93a6;font-size:12px;cursor:pointer" style-hover="background:#f0f2f5;color:#101623"><i class="fas fa-ellipsis"></i></span></span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ isResult }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="B · Result">
+          <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#8a93a6">
+            <button style="background:none;border:none;padding:0;font-size:12px;color:#8a93a6;cursor:pointer" style-hover="color:var(--acc,#4f46e5)" onClick="{{ goLibrary }}">Library</button>
+            <span>/</span>
+            <span style="color:#101623;font-weight:600">DEMO</span>
+            <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:#18a45e;background:#e7f6ee;border-radius:5px;padding:2px 7px;text-transform:uppercase;letter-spacing:0.06em">Saved</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+            <h1 style="margin:0;font-size:19px;font-weight:700;letter-spacing:-0.02em">DEMO</h1>
+            <button style="background:none;border:none;padding:2px;font-size:11px;color:#8a93a6;cursor:pointer"><i class="fas fa-pencil"></i></button>
+            <span style="font-size:11.5px;color:#8a93a6;font-variant-numeric:tabular-nums">8 rows · 32.1 s · just now</span>
+            <span style="flex:1"></span>
+            <button style="display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;font-size:12.5px;font-weight:600;background:var(--acc-tint,#edf0ff);color:var(--acc,#4f46e5);border:1px solid transparent;cursor:pointer"><i class="fas fa-play" style="font-size:10px"></i>Run again</button>
+            <button style="display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;font-size:12.5px;font-weight:600;background:#fff;color:#101623;border:1px solid #e2e5ea;cursor:pointer">Export<i class="fas fa-chevron-down" style="font-size:9px;color:#8a93a6"></i></button>
+            <button style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-size:12.5px;font-weight:600;background:var(--acc,#4f46e5);color:#fff;border:1px solid transparent;cursor:pointer">Save</button>
+            <button style="display:inline-flex;align-items:center;padding:7px 9px;border-radius:8px;font-size:12px;background:#fff;color:#57617a;border:1px solid #e2e5ea;cursor:pointer"><i class="fas fa-ellipsis"></i></button>
+          </div>
+
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:12px">
+            <sc-for list="{{ tokens }}" as="t" hint-placeholder-count="3">
+              <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:7px;font-size:12px;background:#fff;border:1px solid #e2e5ea;color:#101623"><span style="color:#8a93a6">{{ t.field }}</span><span style="font-weight:600">{{ t.value }}</span><sc-if value="{{ t.x }}" hint-placeholder-val="{{ false }}"><span style="color:#8a93a6;cursor:pointer;font-size:11px">✕</span></sc-if></span>
+            </sc-for>
+            <button style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:7px;font-size:12px;font-weight:500;background:transparent;border:1px dashed #cdd2da;color:#8a93a6;cursor:pointer"><i class="fas fa-plus" style="font-size:9px"></i>Filter</button>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:14px">
+            <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="5">
+              <div style="background:#fff;border:1px solid #e2e5ea;border-radius:10px;padding:12px 14px;box-shadow:0 1px 2px rgba(16,22,35,0.04)">
+                <div style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:#8a93a6;text-transform:uppercase">{{ k.label }}</div>
+                <div style="display:flex;align-items:baseline;gap:8px;margin-top:5px">
+                  <span style="font-size:21px;font-weight:700;letter-spacing:-0.02em;font-variant-numeric:tabular-nums">{{ k.value }}</span>
+                  <sc-if value="{{ k.hasDelta }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;font-weight:700;color:{{ k.deltaColor }};font-variant-numeric:tabular-nums">{{ k.delta }}</span></sc-if>
+                </div>
+                <div style="font-size:10.5px;color:#8a93a6;margin-top:2px">{{ k.sub }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) 292px;gap:12px;margin-top:12px;align-items:stretch">
+            <div style="background:#fff;border:1px solid #e2e5ea;border-radius:10px;box-shadow:0 1px 2px rgba(16,22,35,0.04);min-width:0;display:flex;flex-direction:column">
+              <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #f0f2f5">
+                <span style="font-size:12.5px;font-weight:700">Volume over time</span>
+                <span style="flex:1"></span>
+                <span style="display:inline-flex;gap:2px;padding:2px;background:#f0f2f5;border-radius:7px">
+                  <button style="border:none;background:transparent;border-radius:5px;padding:4px 8px;font-size:11px;color:#8a93a6;cursor:pointer"><i class="fas fa-chart-column"></i></button>
+                  <button style="border:none;background:#fff;border-radius:5px;padding:4px 8px;font-size:11px;color:var(--acc,#4f46e5);box-shadow:0 1px 2px rgba(16,22,35,0.08);cursor:pointer"><i class="fas fa-chart-line"></i></button>
+                  <button style="border:none;background:transparent;border-radius:5px;padding:4px 8px;font-size:11px;color:#8a93a6;cursor:pointer"><i class="fas fa-chart-pie"></i></button>
+                </span>
+                <span style="display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;color:var(--acc,#4f46e5)"><span style="width:26px;height:15px;border-radius:99px;background:var(--acc,#4f46e5);position:relative;display:inline-block"><span style="position:absolute;right:2px;top:2px;width:11px;height:11px;border-radius:99px;background:#fff"></span></span>Forecast</span>
+                <select style="border:1px solid #e2e5ea;border-radius:7px;padding:4px 7px;font-size:11.5px;font-family:inherit;background:#fff;color:#57617a;outline:none"><option>Auto</option><option>+7</option><option>+14</option><option>+30</option></select>
+                <button style="border:1px solid #e2e5ea;background:#fff;border-radius:7px;padding:4px 8px;font-size:11px;color:#57617a;cursor:pointer"><i class="fas fa-palette"></i></button>
+                <button style="border:1px solid #e2e5ea;background:#fff;border-radius:7px;padding:4px 8px;font-size:11px;color:#57617a;cursor:pointer"><i class="fas fa-download"></i></button>
+              </div>
+              <div style="padding:12px 14px 8px;flex:1;display:flex;flex-direction:column">
+                <div style="display:flex;gap:16px;font-size:11px;font-weight:600;color:#57617a;margin-bottom:6px">
+                  <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:14px;height:3px;border-radius:2px;background:var(--acc,#4f46e5)"></span>Imported</span>
+                  <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:14px;height:3px;border-radius:2px;background:#101623"></span>Exported</span>
+                  <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:14px;height:3px;border-radius:2px;background:#c92f42"></span>Backlog <span style="font-weight:500;color:#8a93a6">right axis</span></span>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+                <svg viewBox="0 0 780 268" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;min-height:268px;flex:1;display:block">
+                  <sc-for list="{{ gridH }}" as="g" hint-placeholder-count="6">
+                    <line x1="46" y1="{{ g.y }}" x2="734" y2="{{ g.y }}" stroke="#eef0f3" stroke-width="1"></line>
+                    <text x="40" y="{{ g.ty }}" text-anchor="end" font-size="10" fill="#8a93a6" font-family="Schibsted Grotesk">{{ g.label }}</text>
+                  </sc-for>
+                  <sc-for list="{{ rightTicks }}" as="rt" hint-placeholder-count="4">
+                    <text x="742" y="{{ rt.ty }}" text-anchor="start" font-size="10" fill="#c92f42" font-family="Schibsted Grotesk">{{ rt.label }}</text>
+                  </sc-for>
+                  <sc-for list="{{ xTicks }}" as="xt" hint-placeholder-count="11">
+                    <text x="{{ xt.x }}" y="252" text-anchor="middle" font-size="10" fill="#8a93a6" font-family="Schibsted Grotesk">{{ xt.label }}</text>
+                  </sc-for>
+                  <rect x="{{ fcX }}" y="14" width="{{ fcW }}" height="222" fill="var(--acc,#4f46e5)" opacity="0.04"></rect>
+                  <line x1="{{ fcX }}" y1="14" x2="{{ fcX }}" y2="236" stroke="#cdd2da" stroke-width="1" stroke-dasharray="3 3"></line>
+                  <text x="{{ fcLabelX }}" y="26" font-size="9.5" fill="#8a93a6" font-family="Schibsted Grotesk">FORECAST</text>
+                  <sc-for list="{{ series }}" as="s" hint-placeholder-count="6">
+                    <polyline points="{{ s.pts }}" fill="none" stroke="{{ s.color }}" stroke-width="{{ s.w }}" stroke-dasharray="{{ s.dash }}" stroke-linejoin="round" stroke-linecap="round"></polyline>
+                  </sc-for>
+                  <sc-for list="{{ markers }}" as="m" hint-placeholder-count="22">
+                    <circle cx="{{ m.cx }}" cy="{{ m.cy }}" r="2.4" fill="{{ m.color }}" stroke="#fff" stroke-width="1"></circle>
+                  </sc-for>
+                </svg>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+              <div style="background:#fff;border:1px solid #e2e5ea;border-radius:10px;box-shadow:0 1px 2px rgba(16,22,35,0.04);overflow:hidden">
+                <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--acc-tint,#edf0ff)">
+                  <i class="fas fa-wand-magic-sparkles" style="color:var(--acc,#4f46e5);font-size:12px"></i>
+                  <span style="font-size:12px;font-weight:700;color:var(--acc,#4f46e5)">AI insight</span>
+                </div>
+                <p style="margin:0;padding:12px 14px;font-size:12.5px;line-height:1.55;color:#101623">January peaks at <strong>69,958</strong> imports against 65,255 exports; August drops a third to <strong>40,164</strong>. Backlog tops out in April at <strong>1,357</strong>.</p>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e5ea;border-radius:10px;box-shadow:0 1px 2px rgba(16,22,35,0.04)">
+                <div style="padding:10px 14px 0;font-size:11px;font-weight:700;letter-spacing:0.08em;color:#8a93a6;text-transform:uppercase">Anomalies</div>
+                <div style="display:flex;align-items:baseline;gap:8px;padding:9px 14px;border-bottom:1px solid #f0f2f5"><span style="width:7px;height:7px;border-radius:99px;background:#c92f42;flex-shrink:0;transform:translateY(-1px)"></span><span style="font-size:12px;color:#101623">Aug volume −33% vs Jul</span><span style="margin-left:auto;font-size:11px;color:#8a93a6;font-variant-numeric:tabular-nums">40,164</span></div>
+                <div style="display:flex;align-items:baseline;gap:8px;padding:9px 14px"><span style="width:7px;height:7px;border-radius:99px;background:#d97706;flex-shrink:0;transform:translateY(-1px)"></span><span style="font-size:12px;color:#101623">Apr backlog peak</span><span style="margin-left:auto;font-size:11px;color:#8a93a6;font-variant-numeric:tabular-nums">1,357</span></div>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e5ea;border-radius:10px;box-shadow:0 1px 2px rgba(16,22,35,0.04)">
+                <div style="display:flex;align-items:center;padding:10px 14px 0">
+                  <span style="font-size:11px;font-weight:700;letter-spacing:0.08em;color:#8a93a6;text-transform:uppercase">Query</span>
+                  <button style="margin-left:auto;background:none;border:none;padding:0;font-size:11px;font-weight:600;color:var(--acc,#4f46e5);cursor:pointer">Copy</button>
+                </div>
+                <pre style="margin:8px 14px 12px;padding:10px;background:#f7f8fa;border:1px solid #eef0f3;border-radius:7px;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:10.5px;line-height:1.5;color:#57617a;white-space:pre-wrap;overflow:hidden"><span style="color:#4f46e5;font-weight:600">SELECT</span> <span style="color:#0e7490">date_trunc</span>(<span style="color:#b45309">'month'</span>, date),
+  <span style="color:#0e7490">sum</span>(docs_imported),
+  <span style="color:#0e7490">sum</span>(docs_exported), …</pre>
+              </div>
+            </div>
+          </div>
+
+          <div style="background:#fff;border:1px solid #e2e5ea;border-radius:10px;box-shadow:0 1px 2px rgba(16,22,35,0.04);margin-top:12px;overflow:hidden">
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #f0f2f5">
+              <span style="font-size:12.5px;font-weight:700">Rows</span>
+              <span style="font-size:11px;color:#8a93a6;font-variant-numeric:tabular-nums">8 actual · 3 forecast</span>
+              <span style="flex:1"></span>
+              <span style="font-size:11px;color:#8a93a6">click a row to see the documents behind it</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr">
+              <div style="padding:7px 14px;background:#f7f8fa;border-bottom:1px solid #e2e5ea;font-size:10px;font-weight:700;letter-spacing:0.08em;color:#8a93a6;text-transform:uppercase">Date</div>
+              <div style="padding:7px 14px;background:#f7f8fa;border-bottom:1px solid #e2e5ea;font-size:10px;font-weight:700;letter-spacing:0.08em;color:#8a93a6;text-transform:uppercase;text-align:right">Docs imported</div>
+              <div style="padding:7px 14px;background:#f7f8fa;border-bottom:1px solid #e2e5ea;font-size:10px;font-weight:700;letter-spacing:0.08em;color:#8a93a6;text-transform:uppercase;text-align:right">Docs exported</div>
+              <div style="padding:7px 14px;background:#f7f8fa;border-bottom:1px solid #e2e5ea;font-size:10px;font-weight:700;letter-spacing:0.08em;color:#8a93a6;text-transform:uppercase;text-align:right">Backlog</div>
+              <sc-for list="{{ tableRows }}" as="r" hint-placeholder-count="11">
+                <div style="padding:7px 14px;border-bottom:1px solid #f0f2f5;font-size:12px;color:{{ r.dateColor }};display:flex;align-items:center;gap:8px;font-variant-numeric:tabular-nums">{{ r.d }}<sc-if value="{{ r.f }}" hint-placeholder-val="{{ false }}"><span style="font-size:9px;font-weight:700;letter-spacing:0.06em;color:var(--acc,#4f46e5);background:var(--acc-tint,#edf0ff);border-radius:4px;padding:1px 6px;text-transform:uppercase">Forecast</span></sc-if></div>
+                <div style="padding:7px 14px;border-bottom:1px solid #f0f2f5;font-size:12px;color:{{ r.numColor }};text-align:right;font-variant-numeric:tabular-nums;position:relative"><span style="position:absolute;right:14px;top:5px;bottom:5px;width:{{ r.iw }};background:var(--acc-tint,#edf0ff);border-radius:3px;z-index:0"></span><span style="position:relative;z-index:1">{{ r.i }}</span></div>
+                <div style="padding:7px 14px;border-bottom:1px solid #f0f2f5;font-size:12px;color:{{ r.numColor }};text-align:right;font-variant-numeric:tabular-nums;position:relative"><span style="position:absolute;right:14px;top:5px;bottom:5px;width:{{ r.ew }};background:var(--acc-tint,#edf0ff);border-radius:3px;z-index:0"></span><span style="position:relative;z-index:1">{{ r.e }}</span></div>
+                <div style="padding:7px 14px;border-bottom:1px solid #f0f2f5;font-size:12px;color:{{ r.numColor }};text-align:right;font-variant-numeric:tabular-nums">{{ r.b }}</div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ isWizard }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="B · Wizard">
+          <div style="display:flex;align-items:center;gap:10px">
+            <button style="background:none;border:none;padding:0;font-size:12px;color:#8a93a6;cursor:pointer" onClick="{{ goLibrary }}">Library</button>
+            <span style="font-size:12px;color:#8a93a6">/</span>
+            <h1 style="margin:0;font-size:19px;font-weight:700;letter-spacing:-0.02em">New report</h1>
+            <span style="flex:1"></span>
+            <span style="font-size:11.5px;font-weight:600;color:#8a93a6;font-variant-numeric:tabular-nums">Step 1 of 4</span>
+            <button style="display:inline-flex;align-items:center;padding:7px 9px;border-radius:8px;font-size:12px;background:#fff;color:#57617a;border:1px solid #e2e5ea;cursor:pointer" onClick="{{ goLibrary }}">✕</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:0;margin-top:16px">
+            <sc-for list="{{ wizSteps }}" as="w" hint-placeholder-count="4">
+              <span style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:99px;background:{{ w.bg }};border:1px solid {{ w.border }}">
+                <span style="width:18px;height:18px;border-radius:99px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;background:{{ w.dotBg }};color:{{ w.dotC }}">{{ w.no }}</span>
+                <span style="font-size:12px;font-weight:600;color:{{ w.c }};white-space:nowrap">{{ w.label }}</span>
+              </span>
+              <sc-if value="{{ w.line }}" hint-placeholder-val="{{ true }}"><span style="width:22px;height:1px;background:#cdd2da"></span></sc-if>
+            </sc-for>
+          </div>
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) 272px;gap:12px;margin-top:14px;align-items:start">
+            <div style="background:#fff;border:1px solid #e2e5ea;border-radius:10px;padding:18px 20px;box-shadow:0 1px 2px rgba(16,22,35,0.04)">
+              <div style="font-size:13.5px;font-weight:700">What do you want to measure?</div>
+              <div style="font-size:12px;color:#8a93a6;margin-top:3px">Pick one or more — combined measures must come from the same source.</div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px">
+                <sc-for list="{{ measures }}" as="mm" hint-placeholder-count="7">
+                  <button style="display:inline-flex;align-items:center;gap:7px;border:1px solid {{ mm.border }};border-radius:8px;background:{{ mm.bg }};color:{{ mm.c }};padding:9px 14px;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap"><sc-if value="{{ mm.sel }}" hint-placeholder-val="{{ false }}"><i class="fas fa-check" style="font-size:10px"></i></sc-if>{{ mm.label }}<span style="font-size:10px;font-weight:600;color:#8a93a6;font-variant-numeric:tabular-nums">{{ mm.cov }}</span></button>
+                </sc-for>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;border-top:1px solid #f0f2f5;padding-top:14px;margin-top:18px">
+                <button style="background:none;border:none;padding:0;font-size:12.5px;font-weight:600;color:#8a93a6;cursor:pointer" onClick="{{ goLibrary }}">← Back</button>
+                <span style="flex:1"></span>
+                <span style="font-size:11.5px;color:#8a93a6">1 selected</span>
+                <button style="display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:8px;font-size:12.5px;font-weight:600;background:var(--acc,#4f46e5);color:#fff;border:1px solid transparent;cursor:pointer">Continue →</button>
+              </div>
+            </div>
+            <div style="background:#fff;border:1px solid #e2e5ea;border-radius:10px;padding:14px 16px;box-shadow:0 1px 2px rgba(16,22,35,0.04)">
+              <div style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:#8a93a6;text-transform:uppercase">So far</div>
+              <sc-for list="{{ wizSummary }}" as="ws" hint-placeholder-count="4">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #f0f2f5">
+                  <span style="font-size:11.5px;color:#8a93a6">{{ ws.k }}</span>
+                  <span style="font-size:12px;font-weight:600;color:{{ ws.c }};text-align:right">{{ ws.v }}</span>
+                </div>
+              </sc-for>
+              <div style="font-size:11px;color:#8a93a6;margin-top:10px;line-height:1.5">The next step only offers fields these processes provide.</div>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ isDashboard }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="B · Dashboard">
+          <div style="display:flex;align-items:center;gap:10px">
+            <button style="background:none;border:none;padding:0;font-size:12px;color:#8a93a6;cursor:pointer" onClick="{{ goLibrary }}">Library</button>
+            <span style="font-size:12px;color:#8a93a6">/</span>
+            <h1 style="margin:0;font-size:19px;font-weight:700;letter-spacing:-0.02em">Untitled dashboard</h1>
+            <button style="background:none;border:none;padding:2px;font-size:11px;color:#8a93a6;cursor:pointer"><i class="fas fa-pencil"></i></button>
+            <span style="font-size:11.5px;color:#8a93a6">3 cards · drag to reorder</span>
+            <span style="flex:1"></span>
+            <button style="display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;font-size:12.5px;font-weight:600;background:var(--acc-tint,#edf0ff);color:var(--acc,#4f46e5);border:1px solid transparent;cursor:pointer"><i class="fas fa-plus" style="font-size:10px"></i>Add card</button>
+            <button style="display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;font-size:12.5px;font-weight:600;background:#fff;color:#101623;border:1px solid #e2e5ea;cursor:pointer">Export<i class="fas fa-chevron-down" style="font-size:9px;color:#8a93a6"></i></button>
+            <button style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-size:12.5px;font-weight:600;background:var(--acc,#4f46e5);color:#fff;border:1px solid transparent;cursor:pointer">Edit</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:12px;background:#fff;border:1px solid #e2e5ea;border-radius:10px;padding:9px 14px;box-shadow:0 1px 2px rgba(16,22,35,0.04)">
+            <span style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:#8a93a6;text-transform:uppercase"><i class="fas fa-filter" style="color:var(--acc,#4f46e5);font-size:9px;margin-right:5px"></i>Global filters</span>
+            <span style="width:1px;height:16px;background:#e2e5ea"></span>
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:7px;font-size:12px;background:#f7f8fa;border:1px solid #e2e5ea;color:#101623"><span style="color:#8a93a6">date</span><span style="font-weight:600">This year</span><span style="color:#8a93a6;cursor:pointer;font-size:11px">✕</span></span>
+            <button style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:7px;font-size:12px;font-weight:500;background:transparent;border:1px dashed #cdd2da;color:#8a93a6;cursor:pointer"><i class="fas fa-plus" style="font-size:9px"></i>Filter</button>
+            <span style="flex:1"></span>
+            <span style="font-size:11px;color:#8a93a6">apply to every card · a card can override them</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(12,1fr);gap:12px;margin-top:12px">
+            <div style="grid-column:span 4;background:#fff;border:1px solid #e2e5ea;border-radius:10px;padding:14px 16px;box-shadow:0 1px 2px rgba(16,22,35,0.04)">
+              <div style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:#8a93a6;text-transform:uppercase">Documents this month</div>
+              <div style="display:flex;align-items:baseline;gap:8px;margin-top:6px"><span style="font-size:26px;font-weight:700;letter-spacing:-0.02em;font-variant-numeric:tabular-nums">40,164</span><span style="font-size:11.5px;font-weight:700;color:#c92f42">↓ 33%</span></div>
+              <div style="font-size:11px;color:#8a93a6;margin-top:2px">vs previous period</div>
+            </div>
+            <div style="grid-column:span 4;background:#fff;border:1px solid #e2e5ea;border-radius:10px;padding:14px 16px;box-shadow:0 1px 2px rgba(16,22,35,0.04)">
+              <div style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:#8a93a6;text-transform:uppercase">Backlog</div>
+              <div style="display:flex;align-items:baseline;gap:8px;margin-top:6px"><span style="font-size:26px;font-weight:700;letter-spacing:-0.02em;font-variant-numeric:tabular-nums">794</span><span style="font-size:11.5px;font-weight:700;color:#18a45e">↓ 41% vs Apr peak</span></div>
+              <div style="font-size:11px;color:#8a93a6;margin-top:2px">open documents, Aug 01</div>
+            </div>
+            <div style="grid-column:span 4;background:#fff;border:1px solid #e2e5ea;border-radius:10px;padding:14px 16px;box-shadow:0 1px 2px rgba(16,22,35,0.04)">
+              <div style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:#8a93a6;text-transform:uppercase">Top process</div>
+              <div style="display:flex;align-items:baseline;gap:8px;margin-top:6px"><span style="font-size:16px;font-weight:700;letter-spacing:-0.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">privera.03_Invoice_New</span></div>
+              <div style="font-size:11px;color:#8a93a6;margin-top:6px;font-variant-numeric:tabular-nums">161,500 documents · 34% of total</div>
+            </div>
+            <div style="grid-column:span 12;background:#fff;border:1px solid #e2e5ea;border-radius:10px;box-shadow:0 1px 2px rgba(16,22,35,0.04);overflow:hidden">
+              <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #f0f2f5">
+                <span style="font-size:12.5px;font-weight:700">Documents per month / process</span>
+                <span style="font-size:11px;color:#8a93a6;font-variant-numeric:tabular-nums">473,558 total</span>
+                <span style="flex:1"></span>
+                <span style="font-size:10.5px;color:#8a93a6">inherits global filters</span>
+              </div>
+              <div style="padding:12px 14px 8px">
+                <svg viewBox="0 0 1080 240" style="width:100%;height:auto;display:block">
+                  <sc-for list="{{ dGridH }}" as="dg" hint-placeholder-count="7">
+                    <line x1="52" y1="{{ dg.y }}" x2="1052" y2="{{ dg.y }}" stroke="#eef0f3" stroke-width="1"></line>
+                    <text x="46" y="{{ dg.ty }}" text-anchor="end" font-size="10" fill="#8a93a6" font-family="Schibsted Grotesk">{{ dg.label }}</text>
+                  </sc-for>
+                  <sc-for list="{{ dXTicks }}" as="dx" hint-placeholder-count="8">
+                    <text x="{{ dx.x }}" y="228" text-anchor="middle" font-size="10" fill="#8a93a6" font-family="Schibsted Grotesk">{{ dx.label }}</text>
+                  </sc-for>
+                  <sc-for list="{{ dSeries }}" as="ds" hint-placeholder-count="5">
+                    <path d="{{ ds.d }}" fill="none" stroke="{{ ds.color }}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"></path>
+                  </sc-for>
+                </svg>
+                <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:14px;margin:6px 0 8px">
+                  <sc-for list="{{ dLegend }}" as="dl" hint-placeholder-count="5">
+                    <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:#57617a"><span style="width:8px;height:8px;border-radius:99px;background:{{ dl.color }}"></span>{{ dl.label }}</span>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+
+      </div>
+    </div>
+  </div>
+
+  <div style="position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:500;display:flex;align-items:center;gap:4px;padding:6px 6px 6px 14px;background:#101623;border-radius:999px;box-shadow:0 12px 32px rgba(16,22,35,0.35)">
+    <span style="font-size:10px;font-weight:700;letter-spacing:0.14em;color:#8a93a6;margin-right:6px">B · CONSOLE</span>
+    <sc-for list="{{ switchItems }}" as="sw" hint-placeholder-count="6">
+      <button style="padding:5px 12px;border-radius:999px;border:none;font-size:11px;font-weight:600;background:{{ sw.bg }};color:{{ sw.color }};cursor:pointer;white-space:nowrap" onClick="{{ sw.cb }}">{{ sw.l }}</button>
+    </sc-for>
+  </div>
+
+  <sc-if value="{{ showHelp }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;background:rgba(16,22,35,0.4);display:flex;align-items:center;justify-content:center;z-index:600" onClick="{{ closeOverlay }}">
+      <div style="background:#fff;border:1px solid #e2e5ea;border-radius:12px;width:560px;max-width:calc(100% - 48px);box-shadow:0 24px 64px rgba(16,22,35,0.25);overflow:hidden">
+        <div style="display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid #f0f2f5">
+          <i class="fas fa-circle-question" style="color:var(--acc,#4f46e5);font-size:13px"></i>
+          <span style="font-size:14px;font-weight:700">Get the most out of Reporting</span>
+          <button style="margin-left:auto;background:none;border:none;color:#8a93a6;font-size:14px;cursor:pointer" onClick="{{ closeOverlay }}">✕</button>
+        </div>
+        <div style="padding:14px 18px;max-height:400px;overflow:auto">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;color:#8a93a6;text-transform:uppercase;margin-bottom:8px">Building a report</div>
+          <div style="display:flex;flex-direction:column;gap:9px;font-size:12.5px;line-height:1.55;color:#101623">
+            <div style="display:flex;gap:9px"><span style="color:var(--acc,#4f46e5);flex-shrink:0">·</span><span>Watch the coverage badge (e.g. <strong>2/5</strong>) on measures and categories — only some processes provide that field; documents from the rest land in the empty group.</span></div>
+            <div style="display:flex;gap:9px"><span style="color:var(--acc,#4f46e5);flex-shrink:0">·</span><span>Everything in one empty group? The breakdown field isn't populated for the selected processes.</span></div>
+            <div style="display:flex;gap:9px"><span style="color:var(--acc,#4f46e5);flex-shrink:0">·</span><span>Relative time ranges stay relative: a report saved with "This month" shows the current month on every open and in every scheduled mail. Schedules run in UTC.</span></div>
+            <div style="display:flex;gap:9px"><span style="color:var(--acc,#4f46e5);flex-shrink:0">·</span><span>The filter tokens above a result are editable — the processes token and every "is one of" filter open a checkbox picker.</span></div>
+            <div style="display:flex;gap:9px"><span style="color:var(--acc,#4f46e5);flex-shrink:0">·</span><span>Imports, exports and backlog in one chart: select all three measures, then break down over time — one line per measure on a shared axis, backlog on its own right axis.</span></div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;padding:12px 18px;border-top:1px solid #f0f2f5">
+          <button style="display:inline-flex;align-items:center;gap:7px;background:none;border:none;padding:0;font-size:12.5px;font-weight:600;color:var(--acc,#4f46e5);cursor:pointer"><i class="fas fa-book-open" style="font-size:11px"></i>Full guide</button>
+          <button style="margin-left:auto;display:inline-flex;padding:7px 14px;border-radius:8px;font-size:12.5px;font-weight:600;background:#fff;color:#101623;border:1px solid #e2e5ea;cursor:pointer" onClick="{{ closeOverlay }}">Close</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showNewSchedule }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;background:rgba(16,22,35,0.4);display:flex;align-items:center;justify-content:center;z-index:600" onClick="{{ closeOverlay }}">
+      <div style="background:#fff;border:1px solid #e2e5ea;border-radius:12px;width:440px;max-width:calc(100% - 48px);box-shadow:0 24px 64px rgba(16,22,35,0.25);overflow:hidden" onClick="{{ stop }}">
+        <div style="display:flex;align-items:center;gap:9px;padding:13px 16px;border-bottom:1px solid #f0f2f5">
+          <i class="fas fa-clock-rotate-left" style="color:var(--acc,#4f46e5);font-size:12px"></i>
+          <span style="font-size:13.5px;font-weight:700">New schedule</span>
+          <button style="margin-left:auto;background:none;border:none;padding:4px;font-size:13px;color:#8a93a6;cursor:pointer" onClick="{{ closeOverlay }}"><i class="fas fa-xmark"></i></button>
+        </div>
+        <div style="padding:14px 16px;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <span style="font-size:11px;font-weight:700;letter-spacing:0.06em;color:#57617a;text-transform:uppercase">Report</span>
+            <select style="border:1px solid #e2e5ea;border-radius:8px;padding:0 9px;height:33px;box-sizing:border-box;font-size:12.5px;font-family:inherit;background:#fff;color:#101623;outline:none"><option>DEMO</option><option>Documents per month / process</option><option>Untitled dashboard</option></select>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <span style="font-size:11px;font-weight:700;letter-spacing:0.06em;color:#57617a;text-transform:uppercase">Repeats</span>
+              <select style="border:1px solid #e2e5ea;border-radius:8px;padding:0 9px;height:33px;box-sizing:border-box;font-size:12.5px;font-family:inherit;background:#fff;color:#101623;outline:none"><option>Every Monday</option><option>Daily</option><option>1st of month</option><option>Custom…</option></select>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <span style="font-size:11px;font-weight:700;letter-spacing:0.06em;color:#57617a;text-transform:uppercase">At</span>
+              <input value="08:00" style="border:1px solid #e2e5ea;border-radius:8px;padding:0 10px;height:33px;box-sizing:border-box;font-size:12.5px;font-family:inherit;background:#fff;color:#101623;outline:none;font-variant-numeric:tabular-nums">
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <span style="font-size:11px;font-weight:700;letter-spacing:0.06em;color:#57617a;text-transform:uppercase">Deliver to</span>
+            <input style="border:1px solid #e2e5ea;border-radius:8px;padding:0 10px;height:33px;box-sizing:border-box;font-size:12.5px;font-family:inherit;background:#fff;color:#101623;outline:none" placeholder="People, teams, or email addresses…">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <span style="font-size:11px;font-weight:700;letter-spacing:0.06em;color:#57617a;text-transform:uppercase">Format</span>
+            <div style="display:flex;gap:6px">
+              <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:7px;font-size:12px;font-weight:600;background:var(--acc-tint,#edf0ff);border:1px solid var(--acc,#4f46e5);color:var(--acc,#4f46e5);cursor:pointer">PDF</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:7px;font-size:12px;font-weight:600;background:#fff;border:1px solid #e2e5ea;color:#57617a;cursor:pointer">CSV</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:7px;font-size:12px;font-weight:600;background:#fff;border:1px solid #e2e5ea;color:#57617a;cursor:pointer">Link only</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:11px 16px;background:#f7f8fa;border-top:1px solid #f0f2f5">
+          <span style="font-size:11.5px;color:#8a93a6">Next run: Mon, Aug 31 · 08:00</span>
+          <span style="flex:1"></span>
+          <button style="background:none;border:none;padding:7px 10px;font-size:12.5px;font-weight:600;color:#57617a;cursor:pointer" onClick="{{ closeOverlay }}">Cancel</button>
+          <button style="display:inline-flex;align-items:center;padding:7px 14px;border-radius:8px;font-size:12.5px;font-weight:600;background:var(--acc,#4f46e5);color:#fff;border:1px solid transparent;cursor:pointer" onClick="{{ closeOverlay }}">Create schedule</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showShare }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;background:rgba(16,22,35,0.4);display:flex;align-items:center;justify-content:center;z-index:600" onClick="{{ closeOverlay }}">
+      <div style="background:#fff;border:1px solid #e2e5ea;border-radius:12px;width:440px;max-width:calc(100% - 48px);box-shadow:0 24px 64px rgba(16,22,35,0.25);overflow:hidden" onClick="{{ stop }}">
+        <div style="display:flex;align-items:center;gap:9px;padding:13px 16px;border-bottom:1px solid #f0f2f5">
+          <i class="fas fa-arrow-up-from-bracket" style="color:var(--acc,#4f46e5);font-size:12px"></i>
+          <span style="font-size:13.5px;font-weight:700">Share “{{ shareName }}”</span>
+          <button style="margin-left:auto;background:none;border:none;padding:4px;font-size:13px;color:#8a93a6;cursor:pointer" onClick="{{ closeOverlay }}"><i class="fas fa-xmark"></i></button>
+        </div>
+        <div style="padding:14px 16px;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;gap:8px">
+            <input style="flex:1;height:33px;box-sizing:border-box;border:1px solid #e2e5ea;border-radius:8px;padding:0 10px;font-size:12.5px;font-family:inherit;background:#fff;color:#101623;outline:none" placeholder="Add people or teams by name or email…">
+            <select style="border:1px solid #e2e5ea;border-radius:8px;padding:0 9px;height:33px;box-sizing:border-box;font-size:12.5px;font-family:inherit;background:#fff;color:#57617a;outline:none"><option>Can view</option><option>Can edit</option></select>
+            <button style="display:inline-flex;align-items:center;padding:0 14px;border-radius:8px;font-size:12.5px;font-weight:600;background:var(--acc,#4f46e5);color:#fff;border:1px solid transparent;cursor:pointer;height:33px;box-sizing:border-box">Invite</button>
+          </div>
+          <div style="display:flex;flex-direction:column">
+            <div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid #f0f2f5">
+              <span style="width:24px;height:24px;border-radius:99px;background:var(--acc,#4f46e5);color:#fff;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">B</span>
+              <span style="font-size:12.5px;font-weight:600;color:#101623">ben.streich</span>
+              <span style="font-size:11px;color:#8a93a6">you</span>
+              <span style="margin-left:auto;font-size:11.5px;color:#8a93a6">Owner</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;padding:8px 0">
+              <span style="width:24px;height:24px;border-radius:99px;background:#f0f2f5;color:#57617a;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0"><i class="fas fa-users" style="font-size:9px"></i></span>
+              <span style="font-size:12.5px;font-weight:600;color:#101623">ops-team</span>
+              <span style="font-size:11px;color:#8a93a6">4 people</span>
+              <select style="margin-left:auto;border:1px solid #e2e5ea;border-radius:7px;padding:3px 7px;font-size:11.5px;font-family:inherit;background:#fff;color:#57617a;outline:none"><option>Can view</option><option>Can edit</option><option>Remove</option></select>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:11px 16px;background:#f7f8fa;border-top:1px solid #f0f2f5">
+          <i class="fas fa-link" style="color:#8a93a6;font-size:11px"></i>
+          <span style="font-size:12px;color:#57617a">Anyone at Nexora with the link can view</span>
+          <button style="margin-left:auto;background:none;border:none;padding:0;font-size:12px;font-weight:600;color:var(--acc,#4f46e5);cursor:pointer">Copy link</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showChat }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;right:20px;bottom:64px;z-index:600;width:372px;max-width:calc(100vw - 40px);background:#fff;border:1px solid #e2e5ea;border-radius:12px;box-shadow:0 24px 64px rgba(16,22,35,0.25);overflow:hidden;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;gap:9px;padding:11px 14px;background:var(--acc-tint,#edf0ff);border-bottom:1px solid #e2e5ea">
+        <i class="fas fa-wand-magic-sparkles" style="color:var(--acc,#4f46e5);font-size:13px"></i>
+        <span style="font-size:13px;font-weight:700;color:var(--acc,#4f46e5)">AI chat</span>
+        <span style="font-size:10.5px;color:#8a93a6">read-only · every run is logged</span>
+        <button style="margin-left:auto;background:none;border:none;color:#8a93a6;font-size:13px;cursor:pointer" onClick="{{ closeOverlay }}">✕</button>
+      </div>
+      <div style="padding:14px;display:flex;flex-direction:column;gap:10px;min-height:220px">
+        <div style="align-self:flex-end;max-width:85%;background:var(--acc,#4f46e5);color:#fff;border-radius:11px 11px 3px 11px;padding:8px 12px;font-size:12.5px;line-height:1.5">documents per month this year</div>
+        <div style="align-self:flex-start;max-width:92%;background:#f5f6f8;color:#101623;border-radius:11px 11px 11px 3px;padding:9px 12px;font-size:12.5px;line-height:1.55">Built a monthly document count for 2026 — <strong>474,463</strong> documents across 8 months, peak in January.</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button style="display:inline-flex;padding:5px 11px;border-radius:7px;font-size:11.5px;font-weight:600;background:var(--acc-tint,#edf0ff);color:var(--acc,#4f46e5);border:1px solid transparent;cursor:pointer" onClick="{{ goResult }}">Open as report</button>
+          <button style="display:inline-flex;padding:5px 11px;border-radius:7px;font-size:11.5px;font-weight:600;background:#fff;color:#57617a;border:1px solid #e2e5ea;cursor:pointer">Show SQL</button>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-top:1px solid #f0f2f5;background:#f7f8fa">
+        <input style="flex:1;min-width:0;border:1px solid #e2e5ea;border-radius:8px;background:#fff;padding:8px 10px;font-family:inherit;font-size:12.5px;color:#101623;outline:none" placeholder="Ask about your data…">
+        <button style="border:none;border-radius:8px;background:var(--acc,#4f46e5);color:#fff;font-size:12px;padding:8px 11px;cursor:pointer"><i class="fas fa-paper-plane"></i></button>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;view&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;default&quot;: &quot;library&quot;, &quot;options&quot;: [&quot;library&quot;, &quot;wizard&quot;, &quot;result&quot;, &quot;dashboard&quot;], &quot;tsType&quot;: &quot;string&quot;}, &quot;accent&quot;: {&quot;editor&quot;: &quot;color&quot;, &quot;default&quot;: &quot;#4f46e5&quot;, &quot;options&quot;: [&quot;#4f46e5&quot;, &quot;#2563eb&quot;, &quot;#7c3aed&quot;, &quot;#0d9488&quot;], &quot;tsType&quot;: &quot;string&quot;}}">
+class Component extends DCLogic {
+  state = { screen: 'library', overlay: null };
+
+  smooth(vals, x0, dx, yFn) {
+    const p = vals.map((v, i) => [x0 + i * dx, yFn(v)]);
+    let d = 'M' + p[0][0].toFixed(1) + ',' + p[0][1].toFixed(1);
+    for (let i = 0; i < p.length - 1; i++) {
+      const p0 = p[Math.max(0, i - 1)], p1 = p[i], p2 = p[i + 1], p3 = p[Math.min(p.length - 1, i + 2)];
+      d += ' C' + (p1[0] + (p2[0] - p0[0]) / 6).toFixed(1) + ',' + (p1[1] + (p2[1] - p0[1]) / 6).toFixed(1) + ' ' + (p2[0] - (p3[0] - p1[0]) / 6).toFixed(1) + ',' + (p2[1] - (p3[1] - p1[1]) / 6).toFixed(1) + ' ' + p2[0].toFixed(1) + ',' + p2[1].toFixed(1);
+    }
+    return d;
+  }
+
+  seededVals(id, n) {
+    var s = String(id), h = 0, i;
+    for (i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+    var vals = [], x = (h * 2654435761) % 977;
+    for (i = 0; i < n; i++) { x = (x * 48271) % 2147483647; vals.push(40 + (x % 60)); }
+    return vals;
+  }
+
+  spark(id, w, h) {
+    const vals = this.seededVals(id, 8);
+    const pts = vals.map((v, i) => (i * (w / 7)).toFixed(1) + ',' + (3 + (1 - (v - 40) / 60) * (h - 6)).toFixed(1));
+    const last = pts[pts.length - 1].split(',');
+    return { spark: pts.join(' '), area: pts.join(' ') + ' ' + w + ',' + h + ' 0,' + h, lastX: last[0], lastY: last[1] };
+  }
+
+  renderVals() {
+    const screen = this.state.screen ?? (this.props.view || 'library');
+    const overlay = this.state.overlay;
+    const go = s => () => this.setState({ screen: s, overlay: null });
+    const goResult = go('result'), goLibrary = go('library'), goWizard = go('wizard'), goDashboard = go('dashboard'), goScheduled = go('scheduled');
+    const nav = (s, on) => on === undefined
+      ? { bg: screen === s ? '#fff' : 'transparent', c: screen === s ? '#101623' : '#57617a', w: screen === s ? '700' : '500' }
+      : null;
+
+    const acc = this.props.accent ?? '#4f46e5';
+    const m = /^#([0-9a-f]{6})$/i.exec(acc);
+    const accTint = m ? 'rgba(' + parseInt(m[1].slice(0, 2), 16) + ',' + parseInt(m[1].slice(2, 4), 16) + ',' + parseInt(m[1].slice(4, 6), 16) + ',0.09)' : 'rgba(79,70,229,0.09)';
+
+    const reports = [
+      { id: 'r108', name: 'DEMO', kind: 'line', updated: 'today', runs: 14 },
+      { id: 'r211', name: 'DEMO', kind: 'line', updated: 'today', runs: 6 },
+      { id: 'r307', name: 'Documents per month / process', kind: 'line', updated: 'yesterday', runs: 31 },
+      { id: 'r413', name: 'Untitled dashboard', kind: 'dash', updated: 'yesterday', runs: 9 },
+      { id: 'r512', name: 'Documents per month / process', kind: 'line', updated: 'yesterday', runs: 4 }
+    ].filter(r => !(this.state.removed || []).includes(r.id)).map(r => ({
+      ...r, ...(r.kind === 'line' ? this.spark(r.id, 196, 34) : {}),
+      menuOpen: this.state.menuId === r.id,
+      toggleMenu: e => { e.stopPropagation(); this.setState(s => ({ menuId: s.menuId === r.id ? null : r.id })); },
+      closeMenu: e => { e.stopPropagation(); this.setState({ menuId: null }); },
+      share: e => { e.stopPropagation(); this.setState({ menuId: null, overlay: 'share', shareName: r.name }); },
+      remove: e => { e.stopPropagation(); this.setState(s => ({ menuId: null, removed: [...(s.removed || []), r.id] })); },
+      isLine: r.kind === 'line', isDash: r.kind === 'dash',
+      type: r.kind === 'dash' ? 'Dashboard' : 'Line',
+      tagIcon: r.kind === 'dash' ? 'fa-table-cells-large' : 'fa-chart-line',
+      tagColor: r.kind === 'dash' ? '#57617a' : 'var(--acc,#4f46e5)',
+      tagBg: r.kind === 'dash' ? '#f0f2f5' : 'var(--acc-tint,#edf0ff)',
+      open: goResult
+    }));
+
+    const tokens = [
+      { field: 'date', value: 'This year', x: true },
+      { field: 'processes', value: 'All', x: false },
+      { field: 'granularity', value: 'Month', x: false }
+    ];
+
+    const kpis = [
+      { label: 'Total', value: '474,463', hasDelta: true, delta: '↓ 42%', deltaColor: '#c92f42', sub: 'vs prior year' },
+      { label: 'Imported', value: '474,463', sub: 'documents' },
+      { label: 'Exported', value: '459,063', sub: 'documents' },
+      { label: 'Backlog', value: '794', sub: 'open, Aug 01' },
+      { label: 'Peak', value: '69,958', hasDelta: true, delta: '↓ 15%', deltaColor: '#c92f42', sub: 'Jan 2026' }
+    ];
+
+    // Chart: viewBox 780x268, plot x 46..734, y 14..236
+    const IMP = [69958, 61828, 66684, 62685, 52952, 59861, 60331, 40164];
+    const IMPF = [64190.75, 83982.75, 74670.75];
+    const EXP = [65255, 59975, 65834, 59991, 51558, 58503, 58718, 39229];
+    const EXPF = [60932.54, 67985.54, 58522.54];
+    const BCK = [745, 1183, 369, 1357, 526, 577, 338, 794];
+    const BCKF = [473.24, 473.24, 473.24];
+    const X = i => 46 + i * 68.8;
+    const yL = v => 14 + 222 * (1 - v / 100000);
+    const yR = v => 14 + 222 * (1 - v / 1500);
+    const pts = (vals, start, yFn) => vals.map((v, i) => X(start + i).toFixed(1) + ',' + yFn(v).toFixed(1)).join(' ');
+
+    const series = [
+      { pts: pts(BCK, 0, yR), color: '#c92f42', w: 1.6, dash: 'none' },
+      { pts: pts([BCK[7], ...BCKF], 7, yR), color: '#c92f42', w: 1.4, dash: '4 4' },
+      { pts: pts(EXP, 0, yL), color: '#101623', w: 1.8, dash: 'none' },
+      { pts: pts([EXP[7], ...EXPF], 7, yL), color: '#101623', w: 1.5, dash: '4 4' },
+      { pts: pts(IMP, 0, yL), color: 'var(--acc,#4f46e5)', w: 2.2, dash: 'none' },
+      { pts: pts([IMP[7], ...IMPF], 7, yL), color: 'var(--acc,#4f46e5)', w: 1.8, dash: '4 4' }
+    ];
+    const markers = [];
+    IMP.forEach((v, i) => markers.push({ cx: X(i).toFixed(1), cy: yL(v).toFixed(1), color: 'var(--acc,#4f46e5)' }));
+    IMPF.forEach((v, i) => markers.push({ cx: X(8 + i).toFixed(1), cy: yL(v).toFixed(1), color: 'var(--acc,#4f46e5)' }));
+    EXPF.forEach((v, i) => markers.push({ cx: X(8 + i).toFixed(1), cy: yL(v).toFixed(1), color: '#101623' }));
+
+    const gridH = [0, 20000, 40000, 60000, 80000, 100000].map(v => ({
+      y: yL(v).toFixed(1), ty: (yL(v) + 3.5).toFixed(1),
+      label: v === 0 ? '0' : (v / 1000) + 'k'
+    }));
+    const rightTicks = [0, 500, 1000, 1500].map(v => ({ ty: (yR(v) + 3.5).toFixed(1), label: v.toLocaleString('en-US') }));
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov'];
+    const xTicks = monthNames.map((mn, i) => ({ x: X(i).toFixed(1), label: mn }));
+    const fcX = X(7).toFixed(1), fcW = (X(10) - X(7)).toFixed(1), fcLabelX = (X(7) + 8).toFixed(1);
+
+    const fmt = n => Number(n).toLocaleString('en-US');
+    const tableRows = [
+      ['2026-01-01', 69958, 65255, 745], ['2026-02-01', 61828, 59975, 1183],
+      ['2026-03-01', 66684, 65834, 369], ['2026-04-01', 62685, 59991, 1357],
+      ['2026-05-01', 52952, 51558, 526], ['2026-06-01', 59861, 58503, 577],
+      ['2026-07-01', 60331, 58718, 338], ['2026-08-01', 40164, 39229, 794],
+      ['2026-09-01', 64190.75, 60932.54, 473.24, true],
+      ['2026-10-01', 83982.75, 67985.54, 473.24, true],
+      ['2026-11-01', 74670.75, 58522.54, 473.24, true]
+    ].map(r => ({
+      d: r[0], i: fmt(r[1]), e: fmt(r[2]), b: fmt(r[3]), f: !!r[4],
+      dateColor: r[4] ? '#8a93a6' : '#101623',
+      numColor: r[4] ? '#8a93a6' : '#101623',
+      iw: r[4] ? '0%' : (r[1] / 69958 * 80).toFixed(1) + '%',
+      ew: r[4] ? '0%' : (r[2] / 65834 * 80).toFixed(1) + '%'
+    }));
+
+    const layout = this.state.layout || 'grid';
+    return {
+      acc, accTint,
+      gridCols: layout === 'grid' ? 'repeat(2,minmax(0,1fr))' : 'repeat(4,minmax(0,1fr))',
+      setGrid: () => this.setState({ layout: 'grid' }),
+      setList: () => this.setState({ layout: 'list' }),
+      gridBtnBg: layout === 'grid' ? 'var(--acc-tint,#edf0ff)' : '#fff',
+      gridBtnColor: layout === 'grid' ? 'var(--acc,#4f46e5)' : '#8a93a6',
+      listBtnBg: layout === 'list' ? 'var(--acc-tint,#edf0ff)' : '#fff',
+      listBtnColor: layout === 'list' ? 'var(--acc,#4f46e5)' : '#8a93a6',
+      isLibrary: screen === 'library', isResult: screen === 'result',
+      goLibrary, goResult,
+      reports, tokens, kpis, tableRows,
+      series, markers, gridH, rightTicks, xTicks, fcX, fcW, fcLabelX,
+      isWizard: screen === 'wizard', isDashboard: screen === 'dashboard',
+      showHelp: overlay === 'help', showChat: overlay === 'chat',
+      showShare: overlay === 'share', shareName: this.state.shareName || 'Report',
+      showNewSchedule: overlay === 'newSchedule',
+      openNewSchedule: () => this.setState({ overlay: 'newSchedule' }),
+      stop: e => e.stopPropagation(),
+      sources: [
+        { name: 'NexoraDB', icon: 'fa-database', iconBg: 'var(--acc-tint,#edf0ff)', iconC: 'var(--acc,#4f46e5)', ms: 14, docs: '474k docs', seed: 'nx' },
+        { name: 'Generali — PDQM', icon: 'fa-plug', iconBg: '#f0f2f5', iconC: '#57617a', ms: 31, docs: '128k docs', seed: 'gp' }
+      ].map(src => ({
+        ...src,
+        bars: this.seededVals(src.seed, 12).map((v, i, a) => ({
+          h: Math.round(4 + (v - 40) / 60 * 12) + 'px',
+          bg: i === a.length - 1 ? 'var(--acc,#4f46e5)' : '#e2e5ea'
+        }))
+      })),
+      goWizard, goDashboard,
+      openHelp: () => this.setState({ overlay: 'help' }),
+      openChat: () => this.setState({ overlay: 'chat' }),
+      closeOverlay: () => this.setState({ overlay: null }),
+      navLibBg: nav('library').bg, navLibC: nav('library').c, navLibW: nav('library').w,
+      navResBg: nav('result').bg, navResC: nav('result').c, navResW: nav('result').w,
+      navDashBg: nav('dashboard').bg, navDashC: nav('dashboard').c, navDashW: nav('dashboard').w,
+      navSchBg: nav('scheduled').bg, navSchC: nav('scheduled').c, navSchW: nav('scheduled').w,
+      isScheduled: screen === 'scheduled', goScheduled,
+      schedules: [
+        { id: 's1', name: 'DEMO', cadence: 'Every Monday · 08:00', dest: 'ben.streich@nexora.io', format: 'PDF', lastRun: 'Mon 08:00 · ok', next: 'Mon, Aug 31' },
+        { id: 's2', name: 'Documents per month / process', cadence: '1st of month · 06:00', dest: 'ops-team (4 people)', format: 'CSV + PDF', lastRun: 'Aug 01 · ok', next: 'Tue, Sep 01' }
+      ].map(sc => {
+        const on = !(this.state.schedOff || []).includes(sc.id);
+        return { ...sc, on,
+          knobLeft: on ? 'auto' : '2px', knobRight: on ? '2px' : 'auto',
+          togBg: on ? 'var(--acc,#4f46e5)' : '#cdd2da',
+          rowOpacity: on ? '1' : '0.55',
+          toggle: () => this.setState(s => ({ schedOff: on ? [...(s.schedOff || []), sc.id] : (s.schedOff || []).filter(x => x !== sc.id) })) };
+      }),
+      wizSteps: [
+        { no: '1', label: 'Measure', active: true }, { no: '2', label: 'Processes' },
+        { no: '3', label: 'Breakdown' }, { no: '4', label: 'Time range' }
+      ].map((w, i, arr) => ({
+        ...w, line: i < arr.length - 1,
+        bg: w.active ? 'var(--acc-tint,#edf0ff)' : '#fff',
+        border: w.active ? 'var(--acc,#4f46e5)' : '#e2e5ea',
+        dotBg: w.active ? 'var(--acc,#4f46e5)' : '#f0f2f5',
+        dotC: w.active ? '#fff' : '#8a93a6',
+        c: w.active ? 'var(--acc,#4f46e5)' : '#57617a'
+      })),
+      measures: [
+        { label: 'Document count', cov: '5/5', sel: true }, { label: 'Pages processed', cov: '5/5' },
+        { label: 'Documents imported', cov: '4/5' }, { label: 'Documents exported', cov: '4/5' },
+        { label: 'Pages imported', cov: '3/5' }, { label: 'Pages exported', cov: '3/5' },
+        { label: 'Backlog', cov: '2/5' }
+      ].map(mm => ({
+        ...mm, sel: !!mm.sel,
+        bg: mm.sel ? 'var(--acc-tint,#edf0ff)' : '#fff',
+        border: mm.sel ? 'var(--acc,#4f46e5)' : '#e2e5ea',
+        c: mm.sel ? 'var(--acc,#4f46e5)' : '#101623'
+      })),
+      wizSummary: [
+        { k: 'Measure', v: 'Document count', c: '#101623' },
+        { k: 'Processes', v: '—', c: '#8a93a6' },
+        { k: 'Breakdown', v: '—', c: '#8a93a6' },
+        { k: 'Time range', v: '—', c: '#8a93a6' }
+      ],
+      ...this.dashVals(),
+      switchItems: [
+        { k: 'library', l: 'Library', cb: goLibrary },
+        { k: 'wizard', l: 'Wizard', cb: goWizard },
+        { k: 'result', l: 'Result', cb: goResult },
+        { k: 'dashboard', l: 'Dashboard', cb: goDashboard },
+        { k: 'chat', l: 'AI chat', cb: () => this.setState({ overlay: 'chat' }) },
+        { k: 'help', l: 'Help', cb: () => this.setState({ overlay: 'help' }) }
+      ].map(s => ({
+        ...s,
+        bg: (s.k === screen || s.k === overlay) ? '#f5f6f8' : 'transparent',
+        color: (s.k === screen || s.k === overlay) ? '#101623' : '#8a93a6'
+      }))
+    };
+  }
+
+  dashVals() {
+    const dyL = v => 10 + 190 * (1 - v / 30000);
+    const dX0 = 52, dDX = (1052 - 52) / 7;
+    const data = [
+      { label: 'privera.03_Invoice_New', color: 'var(--acc,#4f46e5)', vals: [2500, 21500, 27500, 23000, 21000, 21500, 23500, 21500] },
+      { label: 'privera.02_Posteingang', color: '#8b5cf6', vals: [1000, 15000, 16800, 14800, 15500, 16500, 17000, 13500] },
+      { label: 'elektromaterial.02_Invoice', color: '#0891b2', vals: [400, 10000, 12800, 16000, 16500, 15000, 15500, 16000] },
+      { label: 'compass.01_Invoice_SAP', color: '#18a45e', vals: [300, 8800, 9800, 10500, 10800, 10300, 10800, 11000] },
+      { label: 'privera.02_InitialScan', color: '#d97706', vals: [100, 200, 400, 500, 900, 1600, 900, 300] }
+    ];
+    return {
+      dSeries: data.map(s => ({ d: this.smooth(s.vals, dX0, dDX, dyL), color: s.color })),
+      dLegend: data.map(s => ({ label: s.label, color: s.color })),
+      dGridH: [0, 5000, 10000, 15000, 20000, 25000, 30000].map(v => ({
+        y: dyL(v).toFixed(1), ty: (dyL(v) + 3.5).toFixed(1),
+        label: v === 0 ? '0' : (v / 1000) + 'k'
+      })),
+      dXTicks: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'].map((mn, i) => ({ x: (dX0 + i * dDX).toFixed(1), label: mn }))
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -6,6 +6,7 @@ Splitting instantiation from binding lets blueprints import these (e.g. for
 
 import os
 
+from flask import request
 from flask_babel import Babel
 from flask_caching import Cache
 from flask_limiter import Limiter
@@ -17,10 +18,30 @@ from . import config as cfg
 from .i18n import get_locale, get_timezone
 
 babel = Babel()
-# TODO: under IIS FastCGI each worker process gets its own in-memory rate-limit
-# counter, so @limiter.limit(...) is enforced per-worker rather than globally.
-# For real protection wire storage_uri to NexoraDB (SQLAlchemy) or Redis.
-limiter = Limiter(key_func=get_remote_address)
+
+
+def client_ip():
+    """Rate-limit key: leftmost X-Forwarded-For hop, else the socket peer.
+
+    Behind the PROD chain (ngrok edge -> IIS/HttpPlatformHandler -> waitress)
+    the socket peer is always 127.0.0.1, so keying on it would put every user
+    in ONE bucket -- ten logins a minute for the whole company. Same rule
+    hooks.get_ip() applies to the CSV request log.
+    """
+    # ponytail: leftmost hop is client-controlled — a spoofer can dodge his own
+    # limit AND burn a chosen victim's bucket (targeted 429s). Kept anyway:
+    # switching to a rightmost/trusted-hop scheme with the WRONG hop count puts
+    # every public user in one bucket (company-wide 429s). Tighten to
+    # hops[-TRUSTED_PROXY_COUNT] once the SYAPP01 chain (ngrok/IIS XFF
+    # appends per path) is confirmed.
+    forwarded = request.headers.get("X-Forwarded-For", "")
+    return forwarded.split(",")[0].strip() or get_remote_address()
+
+
+# In-memory counter: PROD is a single waitress process (see web.config), so the
+# limit is global for the process and only resets on an app-pool recycle. Wire
+# storage_uri to NexoraDB/Redis if a second process or box is ever added.
+limiter = Limiter(key_func=client_ip)
 cache = Cache(config={"CACHE_TYPE": "SimpleCache", "CACHE_DEFAULT_TIMEOUT": 300})
 csrf = CSRFProtect()
 

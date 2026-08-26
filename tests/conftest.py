@@ -9,6 +9,10 @@ import os
 # CRITICAL: set BEFORE importing nx_lib. setdefault avoids overwriting if a
 # caller deliberately set a different environment (e.g. for debug).
 os.environ.setdefault("ENVIRONMENT", "TEST")
+# The per-process user cache (nx_lib/user_cache.py) would carry one test's
+# patched permissions/prefs into the next; 0 disables it (the e2e subprocess
+# inherits this environment too). tests/unit/test_user_cache.py covers it.
+os.environ.setdefault("NEXORA_USER_CACHE_TTL", "0")
 
 import pyotp
 import pytest

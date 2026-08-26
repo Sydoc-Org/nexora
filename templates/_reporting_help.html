@@ -21,25 +21,28 @@
       </ul>
       <h4>{{ _("Checking a number") }}</h4>
       <ul>
-        <li>{{ _("Click a chart bar or a table row to open the documents behind that number; “Show query” reveals exactly how it was computed.") }}</li>
+        <li>{{ _("Click a chart bar or a table row to open the documents behind that number; the “Query” card beside the chart shows exactly how it was computed.") }}</li>
+        <li>{{ _("Each measure gets its own total card, named after it — “Total · Documents imported”, “Total · Documents exported”. There is no combined number: the same document can be counted in both, so adding them up would not count anything real.") }}</li>
         <li>{{ _("The ↑/↓ comparison chips compare a window shifted back by your range’s length in days — not the previous calendar period. Hover a chip for the exact dates.") }}</li>
         <li>{{ _("Two people can see different totals on the same report: it always runs with the viewer’s own data access.") }}</li>
         <li>{{ _("Charts cap at 50 axis values and 12 series — past the cap you get a partial chart or none at all; the table and exports always carry the full data.") }}</li>
       </ul>
       <h4>{{ _("Saving and sharing") }}</h4>
       <ul>
-        <li>{{ _("Save works differently per tab: on Simple, Save always creates a new report under My reports; on Advanced, Save overwrites the open report — including a shared one you can edit. Use “Save as” for a copy.") }}</li>
+        <li>{{ _("Save works differently per builder: from the guided view, Save always creates a new report under My reports; in Advanced, Save overwrites the open report — including a shared one you can edit. Use “Save as” for a copy.") }}</li>
+        <li>{{ _("A report of yours that you have shared — with everyone or with named colleagues — is tagged “· shared” on its card. Named shares stay under My reports; only “shared with everyone” moves it to the Library shelf.") }}</li>
         <li>{{ _("A scheduled email runs with the report owner’s data access — recipients see the owner’s numbers, not their own.") }}</li>
-        <li>{{ _("Delete a report you own: hover its card under My reports and click the trash icon, or open it and use ⋯ → Delete report. Shared copies and schedules go with it.") }}</li>
+        <li>{{ _("Delete a report you own: open its card’s “…” menu under My reports, or open the report and use ⋯ → Delete report. Shared copies and schedules go with it.") }}</li>
         <li>{{ _("On a dashboard, the “Whole report” tile shows a saved report exactly as the Simple tab does — totals, chart with its colours, axes and forecast, and the table behind “Show table”. The other tiles show one piece each; change colours or the chart type in the report itself.") }}</li>
       </ul>
       {% if ai_enabled %}
-      <h4>{{ _("Asking the AI") }}</h4>
+      <h4>{{ _("Asking Eddard") }}</h4>
       <ul>
+        <li>{{ _("Eddard is the reporting assistant behind the chat panel — the little black hole in the top bar.") }}</li>
         <li>{{ _("Name the measure, the time range and the processes: “invoices by process, last 3 months” beats “show me invoices”.") }}</li>
-        <li>{{ _("Check what the AI built with “Open in builder” — the filters and process scope it chose are visible there before you trust the number.") }}</li>
+        <li>{{ _("Check what Eddard built with “Open in builder” — the filters and process scope it chose are visible there before you trust the number.") }}</li>
         <li>{{ _("Follow-ups work: the chat remembers the conversation, so “now only this quarter” refines the last answer.") }}</li>
-        <li>{{ _("When the AI used tools, unfold “How the agent worked” to see the steps; if a “Continue” button appears, click it before rephrasing your question.") }}</li>
+        <li>{{ _("When Eddard used tools, unfold “How the agent worked” to see the steps; if a “Continue” button appears, click it before rephrasing your question.") }}</li>
       </ul>
       {% endif %}
     </div>

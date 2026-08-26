@@ -1742,11 +1742,11 @@ def test_report_card_runs_definition_unmodified(nexora_server, page):
     page.get_by_test_id("rdb-report-pick").first.click()
 
     # The whole report: KPI band (Simple's own markup, rdb- prefixed testids),
-    # chart canvas, grand-total stat card, table collapsed behind its toggle.
+    # chart canvas, table collapsed behind its toggle. The band's own total
+    # card carries the grand total from the zero-column clone.
     expect(page.get_by_test_id("rdb-report-kpis")).to_be_visible()
     expect(page.get_by_test_id("rdb-rs-kpi-total")).to_contain_text("12")
     expect(page.locator('[data-testid="rdb-report-chartcard"] canvas')).to_be_visible()
-    expect(page.get_by_test_id("rdb-report-stat")).to_contain_text("12")
     expect(page.get_by_test_id("rdb-report-table")).to_be_hidden()
     expect(page.get_by_test_id("rdb-report-table-toggle")).to_have_text("Show table")
 
@@ -1760,14 +1760,13 @@ def test_report_card_runs_definition_unmodified(nexora_server, page):
     assert "compare" not in totals[0] and "forecast" not in totals[0]
 
 
-def test_report_card_zero_dim_fills_stat_card_without_second_run(nexora_server, page):
+def test_report_card_zero_dim_totals_without_second_run(nexora_server, page):
     """I1: a saved report with metrics but ZERO dimensions/columns (a pure
-    "Total X this period" report, no breakdown) must still get its stat card
-    filled -- from the breakdown run's own first row, mirroring Simple's
-    runCurrent `hasMetrics && !dims` branch (fillStatCard) -- and must NOT
-    fire a second /api/reporting/run POST to get there: for this shape the
-    breakdown run's own result already IS the total, so there is nothing
-    left to clone."""
+    "Total X this period" report, no breakdown) must still show its total --
+    from the breakdown run's own first row, mirroring Simple's runCurrent
+    `hasMetrics && !dims` setGrandTotals branch -- and must NOT fire a second
+    /api/reporting/run POST to get there: for this shape the breakdown run's
+    own result already IS the total, so there is nothing left to clone."""
     _login(page, nexora_server)
     _stub_gfilter_catalog(page)
 
@@ -1847,11 +1846,12 @@ def test_report_card_zero_dim_fills_stat_card_without_second_run(nexora_server, 
     expect(picker).to_be_visible()
     page.get_by_test_id("rdb-report-pick").first.click()
 
-    # Zero-dim: no chart, no KPI band -- but the stat card still fills, from
-    # the breakdown run's own (only) row.
-    expect(page.get_by_test_id("rdb-report-stat")).to_be_visible()
-    expect(page.get_by_test_id("rdb-report-stat")).to_contain_text("42")
-    expect(page.get_by_test_id("rdb-report-kpis")).to_be_hidden()
+    # Zero-dim: no chart, and no Buckets/Avg/Peak card (nothing to
+    # distribute) -- but the labelled total still renders, from the breakdown
+    # run's own (only) row.
+    expect(page.get_by_test_id("rdb-report-kpis")).to_be_visible()
+    expect(page.get_by_test_id("rdb-rs-kpi-total")).to_contain_text("42")
+    expect(page.get_by_test_id("rdb-rs-kpi-stats-title")).to_have_count(0)
     expect(page.locator('[data-testid="rdb-report-chartcard"]')).to_be_hidden()
 
     # Exactly one /api/reporting/run call for this card -- no zero-column
@@ -1974,8 +1974,7 @@ def test_whole_report_card_keeps_saved_colours_axis_forecast_and_table(nexora_se
     assert sum(1 for d in datasets if d[2]) == 2, datasets  # one forecast tail per series
 
     expect(page.get_by_test_id("rdb-rs-kpi-total")).to_contain_text("12")
-    expect(page.get_by_test_id("rdb-report-stat")).to_contain_text("12")
-    expect(page.get_by_test_id("rdb-report-stat")).to_contain_text("90")
+    expect(page.get_by_test_id("rdb-rs-kpi-total-extra")).to_contain_text("90")
 
     expect(page.get_by_test_id("rdb-report-table")).to_be_hidden()
     page.get_by_test_id("rdb-report-table-toggle").click()

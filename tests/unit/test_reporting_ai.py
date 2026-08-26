@@ -187,27 +187,37 @@ def test_caption_returns_stripped_text():
     assert res.tokens_out == 12
 
 
-def test_caption_truncates_rows_to_50_before_building_prompt():
+def test_caption_prompt_is_a_fact_sheet_over_all_rows():
+    """The model never sees raw rows; it gets facts computed over the WHOLE
+    grid (the old rows[:50] slice of an ascending series showed it the
+    NULL-date bucket plus 2020 and it called that an outlier)."""
     captured = {}
 
     def transport(url, headers, body, timeout):
         captured["body"] = body
         return {"content": [{"type": "text", "text": "ok"}], "usage": {}}
 
-    rows = [[i] for i in range(80)]  # 80 rows; only the first 50 may reach the prompt
+    rows = [
+        [None, 74_182],
+        *[[f"2026-01-{d:02d}", 100 + d] for d in range(1, 30)],
+        ["2026-01-30", 999],
+    ]
     ai.caption(
-        columns=[{"field": "n", "header": "N"}],
+        columns=[{"field": "day", "header": "Day"}, {"field": "n", "header": "N"}],
         rows=rows,
-        title=None,
-        date_label=None,
+        title="Pages",
+        date_label="Jan 2026",
+        level_fields=("N",),
         locale="en",
         cfg={"provider": "anthropic", "model": "m", "api_key": "k"},
         transport=transport,
     )
     user_msg = captured["body"]["messages"][0]["content"]
-    assert "Data (50 rows)" in user_msg
-    assert "\n49" in user_msg  # last surviving row (0-indexed #49)
-    assert "\n50" not in user_msg  # row #50 (the 81-row list's 51st) truncated away
+    assert user_msg.startswith("Report: Pages\nPeriod: Jan 2026\nFacts:\n")
+    assert "Rows with NO Day (1): N 74182" in user_msg
+    assert "peak 999 (2026-01-30)" in user_msg  # the last row counted, not sliced away
+    assert "N: current level 999 (2026-01-30)" in user_msg  # level_fields honoured
+    assert "Data (" not in user_msg  # no raw table any more
 
 
 def test_caption_notes_reach_the_prompt():
@@ -227,4 +237,4 @@ def test_caption_notes_reach_the_prompt():
     )
     user_msg = captured["body"]["messages"][0]["content"]
     assert "Notes: The bucket 2026-08-01 is the current" in user_msg
-    assert "Empty cells are periods with NO measurement" in captured["body"]["system"]
+    assert "NO measurement are missing data" in captured["body"]["system"]

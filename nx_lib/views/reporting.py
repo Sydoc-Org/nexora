@@ -70,11 +70,12 @@ from ..reporting.ai import ask as ai_ask
 from ..reporting.ai import ask_definition as ai_ask_definition
 from ..reporting.ai import caption as ai_caption
 from ..reporting.ai_schema import serialize_schema, serialize_sources_catalog
-from ..reporting.ai_tools import TOOL_SPECS, ToolRegistry
+from ..reporting.ai_tools import RUN_DEFINITION_ROW_CAP, TOOL_SPECS, ToolRegistry
 from ..reporting.catalog import fetch_docprocessing_catalog
 from ..reporting.export import rows_to_csv, rows_to_xlsx
 from ..reporting.forecast import compute_forecast, forecast_export_rows
 from ..reporting.query import QueryBuildError, build_table_query
+from ..reporting.runner import execute_definition
 from ..reporting.sandbox import (
     MAX_SQL_LEN,
     SqlSandboxError,
@@ -265,18 +266,38 @@ def _metric_label(m):
     return (m.get(attr) if attr else None) or m["label"]
 
 
-def _metrics_for_source(source_id):
-    """Enabled metrics bound to `source_id` as {code: {aggregation, base_field}}."""
+def _metrics_for_source(source_id, locale=None):
+    """Enabled metrics bound to `source_id` as {code: {aggregation, base_field}}.
+
+    `label` is the metric's display name, used as the result column header so a
+    run never shows the raw code (`docs_imported`). It is only locale-swapped
+    when `locale` is passed — the scheduler calls this outside a request, where
+    get_locale() would raise, so it keeps the English label.
+    """
+    attr = _METRIC_LABEL_ATTRS.get(str(locale)) if locale else None
     return {
         code: {
             "aggregation": m["aggregation"],
             "base_field": m["base_field"],
             "total_mode": m.get("total_mode", "sum"),
             "anchor": m.get("anchor"),
+            "label": (m.get(attr) if attr else None) or m["label"],
         }
         for code, m in _load_db_metrics().items()
         if m["source_id"] == source_id
     }
+
+
+def metric_result_columns(resolved_metrics, source_metrics):
+    """Result columns for a run's metric projection — the metric codes the
+    aggregate query appends after the dims, headered with their labels."""
+    return [
+        {
+            "field": m["code"],
+            "header": (source_metrics.get(m["code"]) or {}).get("label") or m["code"],
+        }
+        for m in resolved_metrics or []
+    ]
 
 
 def _accessible_metrics():
@@ -875,7 +896,7 @@ def _prepare_run(rd):
     if provider == "docprocessing":
         catalog, catalog_fields, filterable, sortable = _catalog_for_source(source)
         grainable = {f["field"] for f in catalog if f.get("grainable")}
-        source_metrics = _metrics_for_source(source["id"])
+        source_metrics = _metrics_for_source(source["id"], get_locale())
         validate_report_definition(
             rd,
             catalog_fields,
@@ -931,14 +952,14 @@ def _prepare_run(rd):
         )
         rd_columns = rd.get("columns") or []
         out_columns = (
-            rd_columns + [{"field": m["code"]} for m in resolved] if resolved else rd_columns
+            rd_columns + metric_result_columns(resolved, source_metrics) if resolved else rd_columns
         )
         return out_columns, sql, params, engine_statistics_db
 
     if provider == "table":
         catalog, catalog_fields, filterable, sortable = _catalog_for_source(source)
         grainable = {f["field"] for f in catalog if f.get("grainable")}
-        source_metrics = _metrics_for_source(source["id"])
+        source_metrics = _metrics_for_source(source["id"], get_locale())
         validate_report_definition(
             rd,
             catalog_fields,
@@ -976,7 +997,7 @@ def _prepare_run(rd):
             raise ReportDefinitionError("source engine is not configured")
         rd_columns = rd.get("columns") or []
         out_columns = (
-            rd_columns + [{"field": m["code"]} for m in resolved] if resolved else rd_columns
+            rd_columns + metric_result_columns(resolved, source_metrics) if resolved else rd_columns
         )
         return out_columns, sql, params, engine
 
@@ -1460,7 +1481,7 @@ def api_ai_ask():
             "error",
             int((time.monotonic() - start) * 1000),
         )
-        return jsonify({"error": _("The AI assistant could not answer right now")}), 502
+        return jsonify({"error": _("Eddard could not answer right now")}), 502
 
     duration_ms = int((time.monotonic() - start) * 1000)
     _audit_ai(
@@ -1606,7 +1627,7 @@ def api_ai_build():
                 "error",
                 int((time.monotonic() - start) * 1000),
             )
-            return jsonify({"error": _("The AI assistant could not answer right now")}), 502
+            return jsonify({"error": _("Eddard could not answer right now")}), 502
         valid, prior_error = _validate_definition_for_user(result.definition)
         if valid:
             break
@@ -1640,15 +1661,16 @@ def api_ai_build():
 def _extract_agent_artifacts(tool_trace):
     """Pull the last validated definition / SQL out of the loop's tool trace.
 
-    A build_definition call that returned ok=True carries a runnable definition in
-    its args; a validate_sql ok=True carries gate-approved SQL. These let the UI
+    A build_definition OR run_definition call that returned ok=True carries a
+    runnable definition in its args (run_definition validates the same way before
+    executing); a validate_sql ok=True carries gate-approved SQL. These let the UI
     offer one-click 'Open in builder' / 'Insert SQL' just like Surfaces A/B.
     """
     definition, sql = None, None
     for step in tool_trace:
         if not (step.get("result") or {}).get("ok"):
             continue
-        if step.get("name") == "build_definition":
+        if step.get("name") in ("build_definition", "run_definition"):
             d = (step.get("args") or {}).get("definition")
             if isinstance(d, dict):
                 definition = _normalize_definition(dict(d))
@@ -1763,8 +1785,26 @@ def api_ai_agent():
     if has_sql:
         tool_names.add("validate_sql")
     if explain:
-        tool_names.update({"run_sql", "compute_stats"})
+        tool_names.update({"run_sql", "compute_stats", "run_definition"})
     tools = [t for t in TOOL_SPECS if t["name"] in tool_names]
+
+    run_definition_bound = None
+    if explain:
+
+        def run_definition_bound(definition):
+            """Run a v1 definition for real and hand back its rows, so the agent
+            can quote actual numbers instead of stopping at "definition built,
+            not run". Same repair/validate pass as build_definition (a near-miss
+            draft is coerced, not bounced), then the exact query the interactive
+            builder would run. Capped so one runaway (ungrouped) definition can't
+            blow the tool-result context — grouped/anchored reports are naturally
+            small (a handful of buckets)."""
+            ok, error = _validate_definition_for_user(definition)
+            if not ok:
+                raise ReportDefinitionError(error or "invalid definition")
+            perms = set(session.get("permissions") or [])
+            columns, rows = execute_definition(definition, perms, userid, username, get_locale())
+            return columns, rows[:RUN_DEFINITION_ROW_CAP]
 
     run_sql_bound = None
     if explain:
@@ -1794,7 +1834,9 @@ def api_ai_agent():
             return _run_sql(target, sql, userid=userid, username=username)
 
     registry = ToolRegistry(
-        run_sql=run_sql_bound, validate_definition=_validate_definition_for_user
+        run_sql=run_sql_bound,
+        validate_definition=_validate_definition_for_user,
+        run_definition=run_definition_bound,
     )
 
     grounding = (
@@ -1958,7 +2000,7 @@ def api_ai_agent():
                         json.dumps(
                             {
                                 "done": True,
-                                "error": _("The AI assistant could not answer right now"),
+                                "error": _("Eddard could not answer right now"),
                             }
                         )
                         + "\n"
@@ -1982,7 +2024,7 @@ def api_ai_agent():
     except Exception as e:
         current_app.logger.error(f"/api/reporting/ai/agent provider error: {e}")
         _audit_failure("error")
-        return jsonify({"error": _("The AI assistant could not answer right now")}), 502
+        return jsonify({"error": _("Eddard could not answer right now")}), 502
 
     return jsonify(_finish(result))
 
@@ -2013,10 +2055,11 @@ def api_ai_caption():
     are the actual values a Simple/Advanced result is displaying, so it is
     gated by reporting.ai.explain_data (the data-egress grant) rather than the
     weaker reporting.ai.use. It still counts toward the shared daily AI cap and
-    is rate limited like the other AI endpoints. Rows are capped at
-    CAPTION_MAX_ROWS before ever reaching the model — a caption summarizes a
-    glance, not a full export. Fired by fireCaption() (Task 13): the Simple
-    tab after every successful run render, the Advanced tab on chart mount.
+    is rate limited like the other AI endpoints. Rows never reach the model
+    raw: caption() reduces the WHOLE grid to a fact sheet
+    (nx_lib/reporting/caption_facts) — CAPTION_MAX_ROWS only bounds the request
+    payload. Fired by fireCaption() (Task 13): the Simple tab after every
+    successful run render, the Advanced tab on chart mount.
     """
     body = request.get_json(silent=True)
     if not isinstance(body, dict):
@@ -2032,6 +2075,14 @@ def api_ai_caption():
     # Client-side facts about the grid the model can't see (partial current
     # bucket, NULL = no snapshot); bounded like title.
     notes = str(body.get("notes") or "").strip()[:400] or None
+    # Level measures (backlog): the fact sheet headlines their latest value
+    # instead of summing buckets. Names only, bounded.
+    raw_levels = body.get("levelFields")
+    level_fields = (
+        tuple(str(x)[:100] for x in raw_levels[:20] if isinstance(x, str))
+        if isinstance(raw_levels, list)
+        else ()
+    )
 
     cfg = _ai_config()
     if cfg.get("provider") == "none" or not cfg.get("api_key"):
@@ -2072,6 +2123,7 @@ def api_ai_caption():
             title,
             date_label,
             notes=notes,
+            level_fields=level_fields,
             locale=str(get_locale()),
             cfg=cfg,
         )
@@ -2108,7 +2160,7 @@ def api_ai_caption():
             "error",
             int((time.monotonic() - start) * 1000),
         )
-        return jsonify({"error": _("The AI assistant could not answer right now")}), 502
+        return jsonify({"error": _("Eddard could not answer right now")}), 502
 
     duration_ms = int((time.monotonic() - start) * 1000)
     _audit_ai(
@@ -2267,7 +2319,8 @@ def api_reports_list():
 
     A report is visible when the caller owns it, its Visibility is 'shared'
     (everyone with reporting.view), or it is explicitly shared with the caller.
-    Each row is tagged owned / canEdit and carries the owner's name, plus a
+    Each row is tagged owned / canEdit and carries the owner's name, the
+    owner-only sharedCount (explicit per-user grants), plus a
     server-computed previewKind for the library card badge/thumbnail (derived
     from DefinitionJSON — the raw definition itself is never sent here).
     """
@@ -2282,7 +2335,9 @@ def api_reports_list():
             "       r.DefinitionJSON, "
             "       CASE WHEN r.OwnerUserID = ? THEN 1 ELSE 0 END AS Owned, "
             "       CASE WHEN r.OwnerUserID = ? THEN 1 "
-            "            WHEN s.CanEdit = 1 THEN 1 ELSE 0 END AS CanEdit "
+            "            WHEN s.CanEdit = 1 THEN 1 ELSE 0 END AS CanEdit, "
+            "       (SELECT COUNT(*) FROM dbo.ReportShares sc "
+            "         WHERE sc.ReportID = r.ReportID) AS ShareCount "
             "FROM dbo.Reports r "
             "JOIN dbo.Users u ON u.userID = r.OwnerUserID "
             "LEFT JOIN dbo.ReportShares s "
@@ -2313,6 +2368,10 @@ def api_reports_list():
                         "owned": bool(r.Owned),
                         "canEdit": bool(r.CanEdit),
                         "ownerName": r.OwnerName,
+                        # Owner-only: how many colleagues it is shared with,
+                        # so the library can tag a report that is shared by
+                        # explicit grant while Visibility is still private.
+                        "sharedCount": int(r.ShareCount) if r.Owned else 0,
                         "previewKind": _preview_kind(defn),
                     }
                 )
@@ -2788,6 +2847,122 @@ def api_reports_schedules_delete(report_id, schedule_id):
         return jsonify({"error": _("Could not delete schedule")}), 500
     finally:
         conn.close()
+
+
+@require_permission("reporting.schedule")
+def api_schedules_all():
+    """Every schedule the caller owns, across all reports — feeds the
+    Console 'Scheduled' screen. Owner-scoped like the per-report routes."""
+    userid = session.get("userid")
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT s.ScheduleID, s.ReportID, r.Name AS ReportName, s.Recipients, "
+            "s.Format, s.Frequency, s.Hour, s.Minute, s.Weekday, s.DayOfMonth, "
+            "s.Enabled, s.LastRunAt, s.NextRunAt, s.AlertOp, s.AlertThreshold "
+            "FROM dbo.ReportSchedules s "
+            "JOIN dbo.Reports r ON r.ReportID = s.ReportID "
+            "WHERE r.OwnerUserID = ? "
+            "ORDER BY s.NextRunAt, s.ScheduleID",
+            (userid,),
+        )
+        out = []
+        for r in cur.fetchall():
+            d = _serialize_schedule(r)
+            d["reportId"] = r.ReportID
+            d["reportName"] = r.ReportName
+            out.append(d)
+        return jsonify(out)
+    except Exception as e:
+        current_app.logger.error(f"reporting schedules overview error: {e}")
+        return jsonify({"error": _("Could not list schedules")}), 500
+    finally:
+        conn.close()
+
+
+@require_permission("reporting.view")
+@limiter.limit("30 per minute")
+def api_share_targets():
+    """Typeahead for the share modal: up to 8 users matching by username,
+    full name or email. Returns only username + display name — the share
+    POST already accepts the username."""
+    q = (request.args.get("q") or "").strip()
+    if len(q) < 2:
+        return jsonify([])
+    like = f"%{q}%"
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT TOP 8 username, Fullname FROM dbo.Users "
+            "WHERE username LIKE ? OR Fullname LIKE ? OR Email LIKE ? "
+            "ORDER BY username",
+            (like, like, like),
+        )
+        return jsonify(
+            [{"username": r.username, "name": r.Fullname or r.username} for r in cur.fetchall()]
+        )
+    except Exception as e:
+        current_app.logger.error(f"reporting share targets error: {e}")
+        return jsonify([])
+    finally:
+        conn.close()
+
+
+# ---- Source health (Console sources rail) ---------------------------------
+
+
+def _probe_engine(engine):
+    """(ok, latency_ms, db_name) for one probe round-trip; DB_NAME() rides
+    along because the engines are built from odbc_connect strings whose
+    SQLAlchemy URL carries no database attribute."""
+    if engine is None:
+        return False, None, None
+    t0 = time.perf_counter()
+    try:
+        conn = engine.raw_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT DB_NAME()")
+            row = cur.fetchone()
+        finally:
+            conn.close()
+        return True, (time.perf_counter() - t0) * 1000.0, (row[0] if row else None)
+    except Exception:
+        return False, None, None
+
+
+@require_permission("reporting.view")
+def api_sources_health():
+    """Live status dot + latency per accessible source (Console rail).
+    One SELECT-1 probe per distinct engine, shared across sources."""
+    perms = set(session.get("permissions", []))
+    sources = accessible(_effective_sources(), perms)
+    probes = {}  # id(engine) -> (ok, ms)
+
+    def probe(engine):
+        key = id(engine)
+        if key not in probes:
+            probes[key] = _probe_engine(engine)
+        return probes[key]
+
+    out = []
+    for s in sources:
+        if s["kind"] == "sql":
+            engine = _SQL_TARGET_ENGINES.get(s.get("target", "statistics"))
+        else:
+            engine = _CURATED_ENGINES.get(s.get("engine"), engine_statistics_db)
+        ok, ms, db_name = probe(engine)
+        out.append(
+            {
+                "id": s["id"],
+                "ok": ok,
+                "latencyMs": round(ms, 1) if ms is not None else None,
+                "db": db_name,
+            }
+        )
+    return jsonify({"sources": out})
 
 
 # ---- Source-registry admin (reporting.admin.sources) ----------------------
@@ -3384,6 +3559,21 @@ def register_routes(app):
         endpoint="reporting_reports_shares_delete",
         view_func=api_reports_shares_delete,
         methods=["DELETE"],
+    )
+    app.add_url_rule(
+        "/api/reporting/schedules",
+        endpoint="reporting_schedules_all",
+        view_func=api_schedules_all,
+    )
+    app.add_url_rule(
+        "/api/reporting/sources/health",
+        endpoint="reporting_sources_health",
+        view_func=api_sources_health,
+    )
+    app.add_url_rule(
+        "/api/reporting/share_targets",
+        endpoint="reporting_share_targets",
+        view_func=api_share_targets,
     )
     app.add_url_rule(
         "/api/reporting/reports/<int:report_id>/schedules",

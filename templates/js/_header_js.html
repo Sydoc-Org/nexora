@@ -21,8 +21,11 @@
            script in _header.html <head> (issue #155). */
 
         /* ---- Session liveness poll ----
-           Polls /api/session/heartbeat every 5s. If the admin force-logs us out,
-           the before_request hook returns 401 and we bounce to /login. */
+           Polls /api/session/heartbeat every 30s. If the admin force-logs us out,
+           the before_request hook returns 401 and we bounce to /login. 30s
+           matches the server's session-alive cache TTL (nx_lib/user_cache.py):
+           polling faster cannot detect a revocation sooner, and at ~500 users
+           a 5s poll alone was ~100 req/s of pure overhead. */
         (function() {
             const PUBLIC_PATHS = ['/login', '/logout', '/forgot_password',
                 '/set_new_password', '/init_reset', '/init_2FA', '/verify_2fa',
@@ -46,9 +49,9 @@
                     // Network blip — keep trying.
                 }
             }
-            // First check after 2s, then every 5s.
+            // First check after 2s, then every 30s.
             setTimeout(ping, 2000);
-            setInterval(ping, 5000);
+            setInterval(ping, 30000);
         })();
 
         /* ---- Command palette (Ctrl/Cmd+K) ----

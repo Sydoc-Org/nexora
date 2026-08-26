@@ -1,0 +1,187 @@
+/* Eddard -- the reporting mascot (issue #212).
+   An animated version of the Nexora black-hole logo: black core body, accent
+   accretion ring, two white dot eyes. Geometry/keyframes/mood table come from
+   docs/design/design_handoff_eddard_mascot/README.md.
+
+   Colors follow the user's accent picker through --nx-accent / --nx-violet
+   (nexora-ui.css, re-tinted per html[data-accent] and dark mode). The core
+   stays black in both themes -- same reasoning as .bh-core in _nexoraLogo.css.
+
+   ponytail: one geometry at every size (the handoff's separate 24px lockup is
+   just this SVG scaled by the viewBox), and no report-building choreography --
+   the chat already streams real agent steps. */
+
+.ed {
+  --ed-acc: var(--nx-accent, #4f46e5);
+  --ed-acc-soft: color-mix(in srgb, var(--ed-acc) 55%, #fff);
+  display: inline-block;
+  width: var(--ed-size, 64px);
+  height: var(--ed-size, 64px);
+  flex: none;
+  line-height: 0;
+}
+
+.ed-svg { width: 100%; height: 100%; overflow: visible; }
+.ed--idle .ed-svg { animation: edFloat 4.5s ease-in-out infinite; }
+/* Inline marks (toolbar button, panel header, card heads) sit in a text row --
+   the full float shoves the label around, so they only breathe. The mood loop
+   skips them too (js/_eddard_js.html), so no hops or eye darting either. */
+.ed--calm .ed-svg { animation: edBreathe 5s ease-in-out infinite; }
+.ed--calm.ed--idle .ed-ring-front { animation: none; }   /* beats .ed--idle below */
+
+.ed-ring-back { stroke: var(--ed-acc-soft); }
+.ed-rim,
+.ed-ring-front { stroke: var(--ed-acc); }
+
+.ed-ring-front {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.ed--idle .ed-ring-front { animation: edRingWob 4s ease-in-out infinite; }
+
+/* The mood transforms below are driven by CSS vars that js/_eddard_js.html
+   rewrites on the wrapper; the spring transition is what makes them read as
+   personality rather than teleporting. */
+.ed-body {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  transform: translateY(var(--ed-hop, 0px)) scale(var(--ed-sx, 1), var(--ed-sy, 1));
+  transition: transform .5s cubic-bezier(.34, 1.56, .64, 1);
+}
+
+.ed-eyes-shift {
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: translate(var(--ed-ex, 0px), var(--ed-ey, 0px)) scale(var(--ed-es, 1));
+  transition: transform .45s cubic-bezier(.34, 1.56, .64, 1);
+}
+
+.ed-eyes-blink { transform-box: fill-box; transform-origin: center; }
+.ed--idle .ed-eyes-blink { animation: edBlink 4.5s ease-in-out infinite; }
+
+.ed-eye-wink {
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scaleY(var(--ed-wy, 1));
+  transition: transform .16s ease;
+}
+
+.ed-core { transform-box: fill-box; transform-origin: center; }
+
+/* Working: he leans into the report he is building and the core glows.
+   drop-shadow, not box-shadow -- SVG shapes have no CSS box. */
+.ed--working .ed-body { transform: rotate(6deg); }
+.ed--working .ed-eyes-shift { transform: translate(7px, 1px); }
+.ed--working .ed-core { animation: edEmit 1.6s ease-in-out infinite; }
+
+@keyframes edFloat {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50%      { transform: translateY(-9px) rotate(2deg); }
+}
+@keyframes edBreathe {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50%      { transform: translateY(-2px) rotate(1deg); }
+}
+@keyframes edBlink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  96%           { transform: scaleY(.1); }
+}
+@keyframes edRingWob {
+  0%, 100% { transform: scaleX(1); }
+  50%      { transform: scaleX(1.05); }
+}
+@keyframes edEmit {
+  0%, 100% { filter: none; }
+  50%      { filter: drop-shadow(0 0 9px color-mix(in srgb, var(--ed-acc) 65%, transparent)); }
+}
+
+/* Hold every loop on its resting frame, exactly as .bh does for its disk. */
+@media (prefers-reduced-motion: reduce) {
+  .ed .ed-svg,
+  .ed .ed-eyes-blink,
+  .ed .ed-ring-front,
+  .ed .ed-core { animation: none !important; }
+  .ed .ed-body,
+  .ed .ed-eyes-shift,
+  .ed .ed-eye-wink { transition: none; }
+}
+
+/* ---------------------------------------------------------------------------
+   "Eddard builds a report" (handoff behaviour 2). Each slot is hidden until
+   js/_eddard_js.html unhides it at its build step; going display:none -> shown
+   is what (re)starts the entrance animation, so no JS animation bookkeeping.
+   --------------------------------------------------------------------------- */
+
+.ed-stage {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 12px;
+  background: radial-gradient(120% 120% at 50% 38%,
+      color-mix(in srgb, var(--nx-accent, #4f46e5) 6%, var(--nx-card, #fff)),
+      color-mix(in srgb, var(--nx-accent, #4f46e5) 14%, var(--nx-card, #fff)));
+}
+.ed-stage__mascot { flex: none; }
+
+.ed-rc {
+  position: relative; flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 10px; border: 1px solid var(--nx-border, #e2e5ea); border-radius: 12px;
+  background: var(--nx-card, #fff); box-shadow: 0 8px 24px rgba(16, 22, 35, .10);
+}
+.ed-rc > * { animation: edToss .7s cubic-bezier(.34, 1.4, .6, 1) both; }
+
+.ed-rc-empty {
+  border: 1px dashed var(--nx-border, #e2e5ea); border-radius: 8px;
+  padding: 14px 8px; text-align: center;
+  font: 500 10px var(--nx-font, Inter, sans-serif); color: var(--nx-text-meta, #8a93a6);
+  animation: none;
+}
+.ed-rc-title { font: 700 12px var(--nx-font, Inter, sans-serif); color: var(--nx-text, #101623); }
+.ed-rc-kpi { display: flex; align-items: baseline; gap: 6px; }
+.ed-rc-kpi__num { font: 800 16px var(--nx-font, Inter, sans-serif); color: var(--nx-text, #101623); }
+.ed-rc-kpi__delta { font: 600 10px var(--nx-font, Inter, sans-serif); color: #127a46; }
+
+.ed-rc-bars { display: flex; align-items: flex-end; gap: 5px; height: 58px; }
+.ed-rc-bars i {
+  flex: 1; border-radius: 3px 3px 0 0;
+  background: var(--ed-acc, var(--nx-accent, #4f46e5));
+  transform-origin: bottom;
+  animation: edGrow .5s ease-out both;
+}
+.ed-rc-bars i:nth-child(even) { background: color-mix(in srgb, var(--nx-accent, #4f46e5) 55%, #fff); }
+
+.ed-rc-line { width: 100%; height: 30px; }
+.ed-rc-line polyline {
+  stroke: var(--nx-accent, #4f46e5);
+  stroke-dasharray: 240;
+  animation: edDraw .9s ease-out both;
+}
+
+.ed-rc-badge {
+  align-self: flex-start;
+  padding: 2px 8px; border: 1px solid #bfe8cf; border-radius: 999px;
+  background: #eafaf1; color: #127a46;
+  font: 700 10px var(--nx-font, Inter, sans-serif);
+  animation: edBadge .5s cubic-bezier(.34, 1.56, .64, 1) both;
+}
+
+@keyframes edToss {
+  0%   { transform: translate(-180px, 24px) scale(.3) rotate(-22deg); opacity: 0; }
+  55%  { opacity: 1; }
+  72%  { transform: translate(6px, -5px) scale(1.06) rotate(4deg); }
+  100% { transform: translate(0, 0) scale(1) rotate(0); opacity: 1; }
+}
+@keyframes edGrow  { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes edDraw  { from { stroke-dashoffset: 240; } to { stroke-dashoffset: 0; } }
+@keyframes edBadge {
+  0%   { transform: scale(0); opacity: 0; }
+  60%  { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Reduced motion: the stage holds the finished report (the JS jumps straight
+   to the last build step) instead of flinging pieces around. */
+@media (prefers-reduced-motion: reduce) {
+  .ed-rc > *,
+  .ed-rc-bars i,
+  .ed-rc-line polyline { animation: none !important; }
+}

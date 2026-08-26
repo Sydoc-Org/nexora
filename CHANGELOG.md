@@ -10,6 +10,80 @@ Work toward the next release.
 
 ### Added
 
+- **Eddard, the reporting mascot** (#212). The AI assistant now has a face and a
+  name: an animated version of the Nexora black-hole logo — black core, accent
+  accretion ring, two dot eyes — who floats, blinks, looks around, winks and
+  hops through the reporting AI surfaces (top-bar toggle, chat header, empty
+  thread, the Simple tab's insight card). While a question is running he builds
+  a placeholder report piece by piece — title, KPI, bars, trend line, a green
+  *Ready* badge — above the real agent steps. The visible AI wording is rebranded
+  with him ("AI chat" → **Eddard**, "AI insight" → **Eddard insight**), and his
+  accent follows the user's accent picker while the core stays black in both
+  themes. Decorative and `aria-hidden`; `prefers-reduced-motion` holds every loop
+  on its resting frame. New `templates/_eddard.html`,
+  `templates/js/_eddard_js.html`, `static/css/eddard.css`; design source is
+  `docs/design/design_handoff_eddard_mascot/`.
+- **Response-time sparklines on the admin status page.** Each component row now
+  carries a 24-hour latency graph beside its uptime strip, drawn from the new
+  `dbo.StatusSamples` table (migration `0071`) that the outage monitor fills
+  from the durations it already measured and previously discarded. Inline SVG,
+  no chart library: zero-based axis scaled per component, one bucket per hour
+  keeping its slowest sample, gaps left as gaps, and failed probes marked with a
+  square as well as a colour — and *named* in the tooltip and `aria-label`, so
+  the anomaly survives a screen reader and a greyscale print. The HTTP, API,
+  Graph and Octo probes now append their own `(204 ms)` timing so they are
+  graphed too.
+- **The outage monitor watches `WARNING` storms.** Previously only
+  `ERROR`/`CRITICAL` signatures could open an incident, so a fault that merely
+  warns was invisible — the reporting catalog warned on every request for months
+  with nothing watching. Warnings get their own much higher bar (60 in 15 min vs
+  10) and are labelled `warn storm @ <site>`.
+
+- **Reporting "Console" redesign.** The `/reporting` page is now a workbench
+  shell (design handoff `docs/design/design_handoff_reporting_console/`):
+  compact top bar, persistent left rail with a Workspace nav (Library /
+  Results / Dashboards / Scheduled / Advanced) and a live sources rail
+  (status dot + latency via the new `GET /api/reporting/sources/health`),
+  replacing the Simple/Advanced tab strip and the landing hero + global
+  Ask-AI bar (AI lives in the chat panel). Library gains search + sort + a
+  2-or-4-cards-per-row toggle and compact cards with an owner `…` menu
+  (Share / Delete); the result view gains a breadcrumb + Saved chip, a Run
+  again button, a flat KPI card row, and a side column with the AI-insight
+  and always-visible syntax-coloured Query cards; the wizard gains
+  horizontal step chips + a "So far" summary; **Results** restores the last
+  rendered result from cache without re-querying. New **Scheduled** screen
+  lists every owned schedule across reports (new
+  `GET /api/reporting/schedules`) with on/off toggles and a New-schedule
+  modal. Styling in the new `static/css/reporting-console.css`, riding the
+  design-system tokens (accent picker + dark mode included), typeface
+  Schibsted Grotesk.
+- **The AI chat agent can execute a report definition, not just validate it.**
+  A new `run_definition` tool (bound alongside `run_sql`, behind
+  `reporting.ai.explain_data` + `reporting.sql.run`) runs a `build_definition`-
+  shaped definition for real — the same query the report builder would run —
+  and hands the rows back to the model, capped to 500. Previously a
+  `build_definition` call only validated the shape, so a question needing
+  concrete numbers (imported/exported/backlog, or any other business-metric
+  question) ended with "definition built, numbers not run" instead of an
+  answer.
+- **PROD diagnostics workflow.** `.github/workflows/prod-diagnostics.yml` is a
+  manual, read-only sweep of SYAPP01 — `app.log` tail, IIS app-pool/site state,
+  PROD env key names (never values), disk/uptime, outage-monitor state — run on
+  the `self-hosted` runner that already executes on the box. It exists because
+  WinRM to PROD is blocked by the VPN/network ACL; it takes no command input.
+- **WinRM access to PROD documented.** `docs/howto/winrm-prod-access.md`
+  covers the one-time `Enable-PSRemoting` setup on SYAPP01 plus the firewall
+  scoping, so log tails, app-pool checks and env-key audits can run remotely
+  instead of needing an RDP session. Only 445 (SMB) and 3389 (RDP) were open
+  before.
+- **Cloudflare Tunnel runbook, prepared for the ngrok replacement.**
+  `docs/howto/cloudflare-tunnel.md` documents the remotely-managed tunnel
+  (token-only install on SYAPP01, hostname `nexora.sydoc.ch` -> local IIS,
+  Bot-Fight-Mode caveat for `/api/v1` clients, verify/cutover/rollback), and
+  the deploy workflow now stops/starts whichever of the `ngrok`/`cloudflared`
+  Windows services exists, so deploys behave identically before, during and
+  after the cutover. ngrok remains the live entry until then
+  (`docs/howto/ngrok.md` carries the deprecation banner).
 - **Colours & axes on Simple-tab charts.** A palette button in the chart
   toolbar opens a popover with one colour picker per series, one for the
   report title + legend, and a *Right axis* toggle per series so a level-type
@@ -26,12 +100,48 @@ Work toward the next release.
 ### Changed
 
 - **Dashboard "Whole report" tile.** The Report tile on a reporting dashboard
-  now renders the saved report as the Simple tab does — per-measure totals,
-  KPI band with prior-period chips, the chart with its saved colours, right
+  now renders the saved report as the Simple tab does — the KPI band with one
+  labelled total per measure and prior-period chips, the chart with its saved
   axis and forecast, and the full table behind *Show table* with row
   drill-through — instead of a single total and one line. It draws through
   the Simple pane's own builders (`window.ReportingSimple`), so the two
   surfaces can no longer drift apart. Existing dashboards upgrade in place.
+- **Every reporting total says what it is a total of.** The Simple and Advanced
+  KPI bands showed a bare *Total* — on a multi-metric report that number was
+  whichever metric happened to come first, with nothing on screen saying which,
+  so an imported+exported report read as though one of the two were the
+  report's grand total. The band now renders **one labelled total card per
+  metric** (`Total · Documents imported`, `Total · Documents exported`, …), with
+  Buckets / Avg per bucket / Peak grouped under a heading naming the measure
+  they describe. Metric result columns are headered from the metrics registry
+  server-side (`metric_result_columns`), so the table, the KPI band, exports and
+  scheduled mails all read *Documents imported* instead of `docs_imported`.
+  Three related fixes came with it: totals now come from the authoritative
+  zero-column grand-total run rather than a client-side sum of the grouped rows
+  (which was only ever right for additive metrics), each metric honours its
+  **own** total mode so a levelled backlog reports its latest snapshot beside a
+  summed count, and a *just the total* report no longer prints "Buckets 1, Avg
+  per bucket N, Peak N" — the same number three more times. The separate
+  `rsStatCard` that repeated the grand totals above the band is retired.
+- **Permissions and UI prefs come from a 30-second per-process cache instead
+  of two DB round-trips per request.** Every non-static request used to run
+  `spGetUserPermissions` and `SELECT ui_prefs` for the user — at ~500 users
+  that was the biggest DB-load multiplier (each click, each 5 s heartbeat).
+  `nx_lib/user_cache.py` caches both per user (`NEXORA_USER_CACHE_TTL`,
+  default 30, `0` disables); a user's own pref save and any admin write drop
+  the affected entries immediately, so changes still show on the next
+  request. Safe because PROD is a single waitress process — it is a process
+  dict, deliberately not a session cache (the heartbeat/cookie race, #155).
+- **The per-request `ActiveSessions` UPDATE is throttled through the same
+  cache.** Profiling showed it was the hottest per-request cost (~70 ms of a
+  75 ms heartbeat: UPDATE + commit every request). The alive-check is now
+  cached per session id for the TTL; admin force-logout still takes effect on
+  the revoked user's next request (any `/admin` write clears the cache), and
+  `LastSeenAt` in the admin sessions view lags activity by at most the TTL.
+- **The session-liveness heartbeat polls every 30 s instead of every 5 s.**
+  Its only job is noticing an admin force-logout, and the server now answers
+  that from the 30 s cache anyway — polling faster could not detect it
+  sooner. At ~500 users the 5 s poll alone was ~100 requests/s of overhead.
 - **Colours & axes popover polish.** The per-series *Right axis* checkbox is a
   **Left | Right** switch; each Y axis is titled with the series it carries and
   takes that series' colour when it carries exactly one; colour-picker drags
@@ -39,6 +149,23 @@ Work toward the next release.
   on bar charts (dashed tails only on line charts), its toggle is tinted while
   on and greyed out on pie/doughnut, and switching it **off** repaints from the
   last result instead of re-running the query.
+- **PROD now runs on waitress behind IIS HttpPlatformHandler, not wfastcgi.**
+  `web.config` starts one `python -m waitress` process (32 threads, loopback
+  port picked by IIS) and reverse-proxies to it; `wfastcgi` — archived
+  upstream, one blocking request per process — is gone. Motivation: the
+  expected jump to ~500 users, where a handful of slow reporting queries
+  would have starved the FastCGI pool. `waitress` joins the runtime
+  dependencies; the deploy workflow gains a preflight that refuses to stop
+  the app pool unless the HttpPlatformHandler IIS module and `waitress` are
+  present on SYAPP01 (one-time host setup in `docs/howto/iis.md`). Rollback
+  is reverting the commit — `wfastcgi` stays installed on the box.
+- **Rate limits are keyed on the client IP behind the proxy chain.** The
+  limiter now reads the leftmost `X-Forwarded-For` hop (the same rule the CSV
+  request log uses) instead of the socket peer, which behind ngrok → IIS →
+  waitress is always `127.0.0.1` — i.e. one shared *10 logins per minute*
+  bucket for everybody. `web.config` tells waitress to trust
+  `X-Forwarded-For` from IIS so the header survives (waitress ≥ 2 strips
+  proxy headers from untrusted peers).
 - **The branch-name guard accepts a fourth version segment.** Cycle branches
   are still `v<x.y[.z]>`, but a per-developer branch off a cycle
   (`v3.2.3.1` beside `v3.2.3`) now passes `scripts/git-hooks/branch-name-guard.ps1`
@@ -48,6 +175,47 @@ Work toward the next release.
 
 ### Fixed
 
+- **Fireflies now tint with the chosen accent color.** The `fireflies`
+  background option used a hardcoded teal/amber dot color instead of
+  following the user's accent choice (preset or custom). The dots and
+  their glow now derive from `--nx-accent`, so they match whatever accent
+  is active, light or dark mode included (#210).
+
+- **Feedback page header didn't line up with the feedback card.** The
+  header markup was copied from the Appearance page but never linked
+  `appearance.css`, so the "Back to profile" link had no margin below it
+  and the title/lede weren't width-constrained to match the card below.
+  Gave the header its own scoped styles instead (#211).
+
+- **A report shared with named colleagues now looks shared to its owner.**
+  Only `Visibility='shared'` was ever surfaced, so a report shared by explicit
+  per-user grant (which deliberately leaves `Visibility='private'`) was
+  indistinguishable from a private one in the Simple library and the Advanced
+  dropdown — the share was saved, it just never showed. `GET
+  /api/reporting/reports` now returns an owner-only `sharedCount` and both
+  panes tag the report `· shared`. Named shares stay on the **My reports**
+  shelf; the **Library** shelf remains org-wide visibility only.
+
+- **Reporting catalog stopped flooding `app.log`.** `fetch_docprocessing_catalog`
+  logged `reporting catalog: FieldMetadata unavailable` at WARNING on *every*
+  reporting request. The table has never existed in any environment — the
+  customizable-widget engine that owned it was removed in 2.5.65 — so the miss is
+  permanent and the warning was pure noise, thousands of identical lines a day on
+  PROD. It now reports each missing optional table once per process, and includes
+  the driver's message so a *new* cause (permission revoked, column dropped) is
+  distinguishable from the expected "table does not exist".
+
+- **The AI caption ("KI" box) narrates the whole result, not its first 50
+  rows.** The caption route used to send the model `rows[:50]` off the top of
+  the grid — for a time series sorted ascending that is the NULL-date bucket
+  plus the oldest weeks, hence captions such as "a clear outlier of 74,182
+  pages" (the rows with no date) and "at most 3,712 pages in the latest
+  weeks" (it never saw them). The server now reduces the complete grid to an
+  exact fact sheet — total or latest level, buckets with vs. without a value,
+  peak/low, latest vs. previous, half-vs-half trend, recent tail, top
+  categories, rows without a date named as such, the running bucket flagged
+  and kept out of the comparisons — and the model writes at most two
+  sentences from those numbers only (`nx_lib/reporting/caption_facts.py`).
 - **Time charts no longer invent the future or read a half month as a
   collapse.** The Simple tab's bucket fill stops at today (*This year* = Jan
   to the current month, not Jan–Dec zeros), the bucket containing today is
@@ -70,6 +238,10 @@ Work toward the next release.
   buckets and is told empty cells are missing measurements, not zero.
 - Wizard "So far" summary updates on breakdown, grain and time-range picks
   (it lagged one pick behind); weekly/daily peak labels drop the `00:00:00`.
+- **Backlog stays a gap when broken down by a second dimension.** The
+  Simple-tab chart pivot (e.g. backlog by process) coerced an unmeasured
+  bucket's `NULL` to `0` while collapsing rows into series; it now stays a
+  gap for latest-mode metrics, matching the single-dimension chart.
 
 ## [3.2.2] - 2026-08-25
 

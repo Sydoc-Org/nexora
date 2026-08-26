@@ -41,6 +41,11 @@ DEFAULT_MIN_HOLD_S = 30 * 60
 # that only the log can see.
 DEFAULT_STORM_WINDOW_MIN = 15
 DEFAULT_STORM_MIN_COUNT = 10
+# WARNING is scanned too -- a logic-level fault often only warns (the reporting
+# catalog spent months emitting a WARNING per request that nothing watched).
+# It needs its own, much higher bar: warnings are routine, errors are not.
+# 60 in a 15-minute window is 4/minute sustained, well above ordinary chatter.
+DEFAULT_STORM_WARN_MIN_COUNT = 60
 
 # app_logging._LOG_FORMAT: "%(asctime)s [%(levelname)s] %(name)s %(module)s:%(lineno)d %(message)s"
 # asctime renders as "2026-08-05 09:12:33,123" in *local* time (logging uses
@@ -99,7 +104,8 @@ def detect_error_storms(
     now_local,
     window_min=DEFAULT_STORM_WINDOW_MIN,
     min_count=DEFAULT_STORM_MIN_COUNT,
-    levels=("ERROR", "CRITICAL"),
+    levels=("ERROR", "CRITICAL", "WARNING"),
+    warn_min_count=DEFAULT_STORM_WARN_MIN_COUNT,
 ):
     """Find error signatures repeating at least ``min_count`` times in the window.
 
@@ -121,18 +127,30 @@ def detect_error_storms(
                 "first_seen": ts,
                 "last_seen": ts,
                 "sample": message.strip(),
+                "level": level,
             }
             continue
+        # A signature seen at two levels takes the louder one, so one stray
+        # WARNING cannot lower an ERROR storm's bar.
+        if entry["level"] == "WARNING" and level != "WARNING":
+            entry["level"] = level
         entry["count"] += 1
         entry["first_seen"] = min(entry["first_seen"], ts)
         entry["last_seen"] = max(entry["last_seen"], ts)
 
     storms = []
     for entry in groups.values():
-        if entry["count"] < min_count:
+        floor = warn_min_count if entry["level"] == "WARNING" else min_count
+        if entry["count"] < floor:
             continue
         digest = hashlib.sha1(entry["signature"].encode("utf-8")).hexdigest()[:10]
-        storms.append({"key": f"log:{digest}", "label": storm_label(entry["sample"]), **entry})
+        storms.append(
+            {
+                "key": f"log:{digest}",
+                "label": storm_label(entry["sample"], entry["level"]),
+                **entry,
+            }
+        )
     storms.sort(key=lambda s: s["count"], reverse=True)
     return storms
 
@@ -141,15 +159,17 @@ def detect_error_storms(
 _ORIGIN_RE = re.compile(r"^\S+\s+(\S+:\d+)\s")
 
 
-def storm_label(sample):
+def storm_label(sample, level="ERROR"):
     """A human-readable component name for a storm.
 
     The state key is a hash (stable across line-number churn), but a support
     ticket titled ``OUTAGE: log:8a8920493d`` tells the reader nothing -- the
-    subject line should name the code site that is screaming.
+    subject line should name the code site that is screaming, and whether it is
+    screaming or merely grumbling.
     """
+    kind = "warn storm" if level == "WARNING" else "log storm"
     m = _ORIGIN_RE.match(sample or "")
-    return f"log storm @ {m.group(1)}" if m else "log storm"
+    return f"{kind} @ {m.group(1)}" if m else kind
 
 
 def tail_text(path, max_bytes=2 * 1024 * 1024):

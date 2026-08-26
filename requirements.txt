@@ -139,6 +139,8 @@ typing-extensions==4.15.0
     #   sqlalchemy
 urllib3==2.7.0
     # via requests
+waitress==3.0.2
+    # via nexora
 wcwidth==0.7.0
     # via prompt-toolkit
 werkzeug==3.1.3
