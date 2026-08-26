@@ -351,6 +351,16 @@
         }
         return;
       }
+      var rtRow = e.target.closest && e.target.closest('.rdb-report-table tbody tr');
+      if (rtRow) {
+        if (rtRow.classList.contains('is-forecast') || !rtRow.closest('.reporting-drill-clickable')) return;
+        var rtRows = Array.prototype.filter.call(rtRow.parentNode.children, function (tr) {
+          return !tr.classList.contains('is-forecast');
+        });
+        var rtCard = findCardById(rtRow.closest('[data-card-id]').getAttribute('data-card-id'));
+        if (rtCard) handleCardTableRowClick(rtCard, rtRows.indexOf(rtRow));
+        return;
+      }
       // Table-card row drill-through (Task 15): renderTable draws each row as
       // a flat k/v span pair (no per-row wrapper element -- see its comment),
       // so the row index is derived from the hit span's position among its

@@ -10,6 +10,7 @@ instead of the normal single-report result view.
 """
 
 import json
+import re
 
 from playwright.sync_api import expect
 
@@ -2038,3 +2039,91 @@ def test_multi_series_card_click_drills_on_axis_and_series(nexora_server, page):
     expect(page.get_by_test_id("reporting-drill-panel")).to_be_visible()
     chips = page.get_by_test_id("reporting-drill-chips").locator(".reporting-drill-chip")
     expect(chips).to_have_count(2)
+
+
+def test_whole_report_card_table_toggle_and_row_drill(nexora_server, page):
+    """Show table toggles the full grid; clicking a data row drills through
+    (same handler as the table card), forecast rows are inert."""
+    _login(page, nexora_server)
+    _stub_gfilter_catalog(page)
+    definition = {
+        "source": "workitems",
+        "metrics": [{"metric": "id_count"}],
+        "columns": [{"field": "status"}],
+        "filters": [],
+        "sort": [],
+        "chartType": "bar",
+    }
+    dash = {
+        "kind": "dashboard",
+        "schemaVersion": 1,
+        "title": "e2e whole report drill",
+        "globalFilters": [],
+        "cards": [
+            {
+                "id": "r1",
+                "type": "report",
+                "span": 12,
+                "title": "By status",
+                "definition": definition,
+                "filterOverrides": [],
+            }
+        ],
+    }
+    _stub_dashboard_report(page, "e2e-dash-whole-drill", dash)
+
+    def fulfill_run(route):
+        body = route.request.post_data_json or {}
+        if body.get("rowLimit") == 100:
+            # the drill drawer's own run (raw rows behind the clicked bucket)
+            payload = {
+                "columns": [{"field": "status", "header": "Status"}],
+                "rows": [["closed"]],
+                "rowCount": 1,
+                "truncated": False,
+            }
+        elif not body.get("columns"):
+            payload = {
+                "columns": [{"field": "id_count", "header": "Count"}],
+                "rows": [[9]],
+                "rowCount": 1,
+            }
+        else:
+            payload = {
+                "columns": [
+                    {"field": "status", "header": "Status"},
+                    {"field": "id_count", "header": "Count"},
+                ],
+                "rows": [["open", 4], ["closed", 5]],
+                "rowCount": 2,
+            }
+        route.fulfill(status=200, content_type="application/json", body=json.dumps(payload))
+
+    page.route("**/api/reporting/run", fulfill_run)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-card").filter(has_text="e2e whole report drill").first.click()
+    expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
+    expect(page.locator('[data-testid="rdb-report-chartcard"] canvas')).to_be_visible()
+
+    toggle = page.get_by_test_id("rdb-report-table-toggle")
+    table = page.get_by_test_id("rdb-report-table")
+    expect(table).to_be_hidden()
+    toggle.click()
+    expect(table).to_be_visible()
+    expect(toggle).to_have_text("Hide table")
+    expect(table.locator("tbody tr")).to_have_count(2)
+    expect(table.locator("table")).to_have_class(re.compile(r"reporting-drill-clickable"))
+
+    table.locator("tbody tr").nth(1).click()
+    expect(page.get_by_test_id("reporting-drill-panel")).to_be_visible()
+    expect(page.locator("#rdTitle")).to_have_text("By status")
+
+    # Close the drill drawer before touching the card again -- while open it
+    # covers the card's right-aligned toggle (both span the viewport's right
+    # 640px at the default e2e size), so a real user closes it first too.
+    page.get_by_test_id("reporting-drill-close").click()
+    expect(page.get_by_test_id("reporting-drill-panel")).to_be_hidden()
+
+    toggle.click()
+    expect(table).to_be_hidden()
+    expect(toggle).to_have_text("Show table")
