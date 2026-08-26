@@ -1,3 +1,8 @@
+> **Superseded for resume purposes** — see
+> [`2026-08-26-post-merge-cleanup-resume-restructure-plan.md`](2026-08-26-post-merge-cleanup-resume-restructure-plan.md)
+> (same date, later). This plan is still the one to execute; that file has the up-to-date branch/worktree
+> state to resume from.
+
 # Handoff — Issue #98: dead tables dropped, doc-field restructure planned
 
 **Date:** 2026-08-26 · **Branch:** `v3.2.3.1` (main checkout, no worktree) · **2 commits this
