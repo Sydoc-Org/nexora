@@ -370,7 +370,7 @@ def test_get_workitems_data_skips_sensitive_docfield_search(
     # CI/this dev env absent MS02_DOCFIELDS_DB_* env vars).
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
 
-    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["col_validationuser"])
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["validationuser"])
     monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: {"validationuser"})
     monkeypatch.setattr(
         wv, "has_permission", lambda code: code != "workitems.filter.documentfields.sensitive"
@@ -438,7 +438,7 @@ def test_docfield_search_absent_ms02_engine_fails_closed(
     monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", None)
 
-    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["col_docbarcode"])
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["docbarcode"])
     monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: set())
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
     _stub_mapping_config(monkeypatch, wv)  # unmapped everywhere; MS02 block skipped anyway
@@ -484,7 +484,7 @@ def test_docfield_search_ms02_resolver_error_fails_closed(
     monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
 
-    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["col_docbarcode"])
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["docbarcode"])
     monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: set())
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
     monkeypatch.setattr(wv, "resolve_ms02_docfield_ids", lambda *a, **k: None)
@@ -549,7 +549,7 @@ def test_get_workitems_data_queries_nonsensitive_docfield_search(
     monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
 
-    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["col_validationuser"])
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["validationuser"])
     monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: set())
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
 
@@ -610,7 +610,7 @@ def test_get_workitems_data_unmapped_docfield_zeroes_both_sources(
     monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
 
-    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["col_validationuser"])
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["validationuser"])
     monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: set())
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
     _stub_mapping_config(monkeypatch, wv)  # unmapped everywhere
@@ -665,9 +665,7 @@ def test_get_workitems_data_fieldless_pair_searches_all_columns(
     monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
 
-    monkeypatch.setattr(
-        wv, "get_valid_search_columns", lambda: ["col_validationuser", "col_docbarcode"]
-    )
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["validationuser", "docbarcode"])
     monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: set())
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
     # Default leg mapped for BOTH widened columns (proves the widening);
@@ -730,9 +728,7 @@ def test_get_workitems_data_fieldless_pair_excludes_sensitive_columns(
     monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
 
-    monkeypatch.setattr(
-        wv, "get_valid_search_columns", lambda: ["col_validationuser", "col_secretfield"]
-    )
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["validationuser", "secretfield"])
     monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: {"secretfield"})
     monkeypatch.setattr(
         wv,
@@ -780,7 +776,7 @@ def _op_test_scaffold(monkeypatch, sql_log):
     )
     monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
-    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["col_validationuser"])
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["validationuser"])
     monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: set())
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
     monkeypatch.setattr(wv, "resolve_ms02_docfield_ids", lambda *a, **k: None)
@@ -893,8 +889,12 @@ def test_api_docfield_values_no_field_widens_and_excludes_sensitive(
     user_client, workitems_all_perms, monkeypatch
 ):
     """/api/docfield_values with no field (value-first mode, #148) must answer
-    200 with a JSON list (labeled suggestions), widen its SearchConfig lookup
-    to all permitted columns, and never mention sensitive columns."""
+    200 with a JSON list (labeled suggestions), widen its mapping_config
+    lookup to all permitted field keys, and never mention sensitive fields --
+    neither in the generated StatisticsDB SQL nor in the field_keys passed to
+    mapping_config.mappings_for itself (#98 task 6: the SearchConfig cursor
+    this test used to log queries against is gone; the widened field-key set
+    is now the thing to assert on)."""
     import nx_lib.hooks as hooks
     import nx_lib.views.workitems as wv
 
@@ -909,13 +909,10 @@ def test_api_docfield_values_no_field_widens_and_excludes_sensitive(
     )
 
     sql_log = []
-    monkeypatch.setattr(wv, "engine_nexora_db", _SqlLogEngine(sql_log))
     monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
     monkeypatch.setattr(wv, "engine_ms02_docfields_pg", None)
 
-    monkeypatch.setattr(
-        wv, "get_valid_search_columns", lambda: ["col_validationuser", "col_secretfield"]
-    )
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["validationuser", "secretfield"])
     monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: {"secretfield"})
     monkeypatch.setattr(
         wv,
@@ -923,12 +920,28 @@ def test_api_docfield_values_no_field_widens_and_excludes_sensitive(
         lambda code: code != "workitems.filter.documentfields.sensitive",
     )
 
+    captured_field_keys = {}
+
+    def _mappings_for(client, processes, field_keys=None):
+        captured_field_keys[client] = set(field_keys or [])
+        if client == "default":
+            return [_fm("validationuser", "ValidationUser")]
+        return []
+
+    def _sources_for(client, processes=None):
+        return [_ps("test_proc", "dbo.T")] if client == "default" else []
+
+    monkeypatch.setattr(wv.mapping_config, "mappings_for", _mappings_for)
+    monkeypatch.setattr(wv.mapping_config, "sources_for", _sources_for)
+
     resp = user_client.get("/api/docfield_values", query_string={"process": "all", "q": ""})
 
     assert resp.status_code == 200
     assert resp.get_json() == []
-    assert any("col_validationuser" in q for q in sql_log), sql_log
-    assert not any("col_secretfield" in q for q in sql_log), sql_log
+    assert any("ValidationUser" in q for q in sql_log), sql_log
+    assert not any("SecretField" in q for q in sql_log), sql_log
+    assert "secretfield" not in captured_field_keys.get("default", set()), captured_field_keys
+    assert "secretfield" not in captured_field_keys.get("ms02", set()), captured_field_keys
 
 
 def test_export_workitems_csv_gated(noperm_client):
@@ -1751,8 +1764,8 @@ def test_api_docfield_values_blocks_sensitive_without_perm(
 ):
     import nx_lib.views.workitems as wv
 
-    # Pretend col_validationuser is a real searchable column, and that it is sensitive.
-    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["col_validationuser"])
+    # Pretend validationuser is a real searchable field, and that it is sensitive.
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["validationuser"])
     monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: {"validationuser"})
     # Everything allowed EXCEPT the sensitive perm.
     monkeypatch.setattr(
@@ -1768,12 +1781,12 @@ def test_api_docfield_values_allows_sensitive_with_perm(
 ):
     import nx_lib.views.workitems as wv
 
-    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["col_validationuser"])
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["validationuser"])
     monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: {"validationuser"})
     monkeypatch.setattr(wv, "has_permission", lambda code: True)  # incl. the sensitive perm
     # With the perm the sensitivity gate is skipped; the route then hits the
-    # (absent-in-CI) SearchConfig and degrades to 500/[] -- either proves the gate
-    # did NOT short-circuit. Accept both to stay DB-independent.
+    # (unmapped-in-CI) mapping_config registry and degrades to 500/[] -- either
+    # proves the gate did NOT short-circuit. Accept both to stay DB-independent.
     resp = user_client.get("/api/docfield_values?field=validationuser&process=all")
     assert resp.status_code in (200, 500)
 
@@ -1787,7 +1800,7 @@ def test_api_docfield_values_process_not_allowed_returns_empty(
     (never a leak, never an error that confirms/denies existence)."""
     import nx_lib.views.workitems as wv
 
-    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["col_doctype"])
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["doctype"])
     monkeypatch.setattr(wv, "has_permission", lambda code: True)  # sensitivity gate open
 
     with user_client.session_transaction() as sess:
@@ -1813,7 +1826,7 @@ def test_api_docfield_values_all_scopes_to_allowed_processes(
     With zero process grants, "all" fails closed to []."""
     import nx_lib.views.workitems as wv
 
-    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["col_doctype"])
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["doctype"])
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
 
     with user_client.session_transaction() as sess:

@@ -522,7 +522,7 @@ WORKITEMS_URL = "/api/v1/workitems"
 WORKITEM_DETAIL_URL = "/api/v1/workitems/1216"
 
 
-def _patch_field_whitelist(monkeypatch, columns=("col_invoicenr",), sensitive=(), scoped=None):
+def _patch_field_whitelist(monkeypatch, columns=("invoicenr",), sensitive=(), scoped=None):
     """Doc-field whitelist without a NexoraDB round-trip. scoped defaults to
     columns (every valid column mapped for the key's scope); pass a subset to
     exercise the mapped-for-no-target-process 400."""
@@ -578,7 +578,7 @@ def test_workitems_unknown_and_sensitive_field_answer_identically(client, monkey
     # sensitivity-existence oracle on the external surface.
     raw = secrets.token_urlsafe(32)
     key_hash = _insert_key(raw)
-    _patch_field_whitelist(monkeypatch, columns=("col_invoicenr", "col_pid"), sensitive=("pid",))
+    _patch_field_whitelist(monkeypatch, columns=("invoicenr", "pid"), sensitive=("pid",))
     try:
         for field in ("nosuchfield", "pid"):
             resp = client.get(
@@ -824,7 +824,7 @@ def test_workitems_real_data_path_and_docfield_fail_closed(client, monkeypatch):
 
     monkeypatch.setattr(wi, "fetch_merged_page", _fake_fetch)
     monkeypatch.setattr(wi, "get_activity_instances_to_ignore", lambda: "")
-    monkeypatch.setattr(wi, "get_valid_search_columns", lambda: ["col_invoicenr"])
+    monkeypatch.setattr(wi, "get_valid_search_columns", lambda: ["invoicenr"])
     # No mapping_config rows for the field -> the resolution blocks' upfront
     # mappings_for/sources_for reads (#98 phase 3) come back empty, same as
     # the old "no SearchConfig rows" simulation.
@@ -1401,9 +1401,7 @@ TEST_FIELDS_URL = "/api/test/v1/workitems/fields"
 def test_workitems_fields_lists_keys_minus_sensitive(client, monkeypatch):
     raw = secrets.token_urlsafe(32)
     key_hash = _insert_key(raw)
-    _patch_field_whitelist(
-        monkeypatch, columns=("col_invoicenr", "col_pid", "col_doctype"), sensitive=("pid",)
-    )
+    _patch_field_whitelist(monkeypatch, columns=("invoicenr", "pid", "doctype"), sensitive=("pid",))
     try:
         resp = client.get(FIELDS_URL, headers={"Authorization": f"Bearer {raw}"})
         assert resp.status_code == 200
@@ -1418,12 +1416,12 @@ def test_workitems_fields_fails_closed_on_lookup_errors(client, monkeypatch):
     raw = secrets.token_urlsafe(32)
     key_hash = _insert_key(raw)
     try:
-        _patch_field_whitelist(monkeypatch, columns=("col_invoicenr",))
+        _patch_field_whitelist(monkeypatch, columns=("invoicenr",))
         monkeypatch.setattr(ax, "get_sensitive_field_keys", lambda: None)
         resp = client.get(FIELDS_URL, headers={"Authorization": f"Bearer {raw}"})
         assert resp.status_code == 500
         assert resp.get_json() == {"error": "Workitems backend unavailable"}
-        _patch_field_whitelist(monkeypatch, columns=("col_invoicenr",))
+        _patch_field_whitelist(monkeypatch, columns=("invoicenr",))
         monkeypatch.setattr(ax, "get_search_columns_for_processes", lambda processes: None)
         resp = client.get(FIELDS_URL, headers={"Authorization": f"Bearer {raw}"})
         assert resp.status_code == 500
@@ -1452,9 +1450,7 @@ def test_workitems_field_unmapped_for_scope_returns_400(client, monkeypatch):
     # message distinct from the unknown/sensitive "Unknown field".
     raw = secrets.token_urlsafe(32)
     key_hash = _insert_key(raw)
-    _patch_field_whitelist(
-        monkeypatch, columns=("col_invoicenr", "col_doctype"), scoped=("col_invoicenr",)
-    )
+    _patch_field_whitelist(monkeypatch, columns=("invoicenr", "doctype"), scoped=("invoicenr",))
 
     def _must_not_be_called(*a, **kw):
         raise AssertionError("_get_workitems_data must not run for an unmapped field")
@@ -1483,17 +1479,17 @@ def test_workitems_field_unmapped_for_scope_returns_400(client, monkeypatch):
 
 
 def test_get_search_columns_for_processes_maps_and_fails_closed(monkeypatch, auth_app_ctx):
-    # Delegates to mapping_config.field_keys_for_processes (#98 phase 2):
-    # keys come back col_-prefixed lowercase; empty scope short-circuits
-    # without a registry lookup; a registry load failure (None) propagates
-    # so the external API keeps failing closed.
+    # Delegates to mapping_config.field_keys_for_processes (#98): keys come
+    # back bare lowercase (the col_ prefix was retired in task 6); empty
+    # scope short-circuits without a registry lookup; a registry load
+    # failure (None) propagates so the external API keeps failing closed.
     import nx_lib.mapping_config as mc
     import nx_lib.views.workitems as wi
 
     monkeypatch.setattr(mc, "field_keys_for_processes", lambda processes: {"invoicenr", "doctype"})
     assert wi.get_search_columns_for_processes(["p.a", "p.b"]) == {
-        "col_invoicenr",
-        "col_doctype",
+        "invoicenr",
+        "doctype",
     }
     assert wi.get_search_columns_for_processes([]) == set()
     monkeypatch.setattr(mc, "field_keys_for_processes", lambda processes: None)
@@ -1822,9 +1818,7 @@ def test_workitems_process_list_tolerates_whitespace(client, monkeypatch):
 def test_workitems_fields_sorted_and_stamps_last_used(client, monkeypatch):
     raw = secrets.token_urlsafe(32)
     key_hash = _insert_key(raw)
-    _patch_field_whitelist(
-        monkeypatch, columns=("col_zeta", "col_alpha", "col_mid"), sensitive=("mid",)
-    )
+    _patch_field_whitelist(monkeypatch, columns=("zeta", "alpha", "mid"), sensitive=("mid",))
     try:
         resp = client.get(FIELDS_URL, headers={"Authorization": f"Bearer {raw}"})
         assert resp.status_code == 200

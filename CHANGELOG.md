@@ -19,6 +19,18 @@ Work toward the next release.
 
 ### Changed
 
+- **Doc-field suggestion endpoints read the mapping_config registry; `col_`
+  prefix retired** (#98). `/api/docfield_values` (both the field-specific and
+  value-first "any field" paths) no longer query `SearchConfig` directly —
+  they resolve through `nx_lib.mapping_config`, like the search-filter
+  resolution paths already did. With every `SearchConfig` read gone from
+  `nx_lib/views/workitems.py`, `get_valid_search_columns()` and
+  `get_search_columns_for_processes()` now return bare lowercase field keys
+  instead of `col_`-prefixed ones — the last step of the two-phase migration
+  off the legacy naming convention; `nx_lib/views/api_external.py` updated to
+  match. The 600s suggestion caches and their key shapes (which encode the
+  sensitive-permission column set) are unchanged.
+
 - **Schema hygiene: `StatConfig` gets a primary key, `Logs` gets a timestamp
   index** (#98, migration `0073`). `StatConfig` was a PK-less heap with a
   nullable key column — now `ProcessName` is `NOT NULL` with a composite PK on
