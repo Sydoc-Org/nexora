@@ -89,7 +89,7 @@
          the sm breakpoint, leaving an icon-only button with no name. #}
       <button id="rpChatToggle" class="rc-btn rc-btn--eddard" data-testid="reporting-chat-toggle"
               aria-controls="rpChatPanel" aria-expanded="false" aria-label="{{ _('Ask Eddard') }}">
-        {{ eddard.mark(22) }}<span class="hidden sm:inline">{{ _("Eddard") }}</span></button>
+        {{ eddard.mark(22, cls='ed--calm') }}<span class="hidden sm:inline">{{ _("Eddard") }}</span></button>
       {% endif %}
     </div>
 
@@ -174,7 +174,7 @@
   <aside id="rpChatPanel" class="reporting-chat-panel" hidden role="dialog" aria-modal="false"
          aria-label="{{ _('Ask Eddard') }}" data-testid="reporting-chat-panel">
     <div class="reporting-chat-head">
-      <span class="reporting-chat-title">{{ eddard.mark(24) }}{{ _("Eddard") }}</span>
+      <span class="reporting-chat-title">{{ eddard.mark(24, cls='ed--calm') }}{{ _("Eddard") }}</span>
       <button id="rpChatClose" class="nx-btn nx-btn--ghost nx-btn--sm" data-testid="reporting-chat-close"
               aria-label="{{ _('Close') }}">&times;</button>
     </div>

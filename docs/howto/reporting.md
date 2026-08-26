@@ -1186,10 +1186,13 @@ blinks, looks around, winks and hops. Files:
   build loop (0→5, 1300 ms per step, wraps).
 
 Placements: the top-bar toggle (22px), the chat panel header (24px), the empty
-thread (88px, idle), the AI-insight card head on Simple (20px), and the
-progress ticker while a turn runs — there the `stage()` macro flings a
-placeholder report together (title → KPI → bars → trend → Ready badge) beside
-the real agent steps. Everything is `aria-hidden` (decorative; the visible
+thread (88px) and the AI-insight card head on Simple (20px). The three inline
+marks pass `cls='ed--calm'`: they only breathe (a 2px `edBreathe`) and blink,
+because a mark sitting in a text row must not shove its label around — the
+mood loop skips `.ed--calm` entirely, so the hops and eye darting stay on the
+big empty-thread mascot. While a turn runs, the progress ticker gets the
+`stage()` macro, which flings a placeholder report together (title → KPI →
+bars → trend → Ready badge) beside the real agent steps. Everything is `aria-hidden` (decorative; the visible
 status text carries the meaning) and `prefers-reduced-motion` holds each loop
 on its resting frame. Source of truth for geometry, mood table and timings:
 `docs/design/design_handoff_eddard_mascot/README.md`.

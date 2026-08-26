@@ -25,7 +25,7 @@
     setInterval(function () {
       var m = MOODS[SEQ[step % SEQ.length]];
       step++;
-      var marks = document.querySelectorAll(".ed--idle");
+      var marks = document.querySelectorAll(".ed--idle:not(.ed--calm)");
       for (var i = 0; i < marks.length; i++) {
         var s = marks[i].style;
         s.setProperty("--ed-ex", m[0] + "px");

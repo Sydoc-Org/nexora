@@ -23,6 +23,11 @@
 
 .ed-svg { width: 100%; height: 100%; overflow: visible; }
 .ed--idle .ed-svg { animation: edFloat 4.5s ease-in-out infinite; }
+/* Inline marks (toolbar button, panel header, card heads) sit in a text row --
+   the full float shoves the label around, so they only breathe. The mood loop
+   skips them too (js/_eddard_js.html), so no hops or eye darting either. */
+.ed--calm .ed-svg { animation: edBreathe 5s ease-in-out infinite; }
+.ed--calm.ed--idle .ed-ring-front { animation: none; }   /* beats .ed--idle below */
 
 .ed-ring-back { stroke: var(--ed-acc-soft); }
 .ed-rim,
@@ -72,6 +77,10 @@
 @keyframes edFloat {
   0%, 100% { transform: translateY(0) rotate(-2deg); }
   50%      { transform: translateY(-9px) rotate(2deg); }
+}
+@keyframes edBreathe {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50%      { transform: translateY(-2px) rotate(1deg); }
 }
 @keyframes edBlink {
   0%, 92%, 100% { transform: scaleY(1); }
