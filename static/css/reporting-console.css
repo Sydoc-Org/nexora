@@ -418,7 +418,9 @@ body.reporting-console .rs-card-preview {
   /* The thumbnail no longer owns the whole row: facts on the left, a compact
      chart on the right. A line drawn across the full card width flattened into
      a smear -- 40% of the row is enough to read the shape. */
-  height: 62px;
+  /* min-height, not height: at larger user font scales three fact rows
+     outgrow 62px and the last row (breakdowns / filters) was clipped. */
+  min-height: 62px;
   margin-top: 8px;
   display: flex;
   align-items: center;

@@ -383,52 +383,10 @@
       'transform="rotate(-90 ' + cx + ' ' + cy + ')"></circle></svg>';
   }
 
-  // Tiny per-type glyph drawn inside a dashboard-miniature cell. Accent-
-  // colored so it follows the theme like the other previews.
-  function dashGlyph(t, x, y, w, h) {
-    var a = 'var(--nx-accent, #4f46e5)';
-    // Inner padding 7: at the ~0.87 render scale a 4px inset put stroke ends
-    // flush against the cell's rounded corners and read as clipped content.
-    var px = 7, py = 4, cx = x + w / 2, cy = y + h / 2;
-    var ix = x + px, iy = y + py, iw = Math.max(2, w - px * 2), ih = Math.max(2, h - py * 2);
-    if (t === 'donut') {
-      var r = Math.min(iw, ih) / 2;
-      return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r.toFixed(1) +
-        '" fill="none" stroke="' + a + '" stroke-width="3" opacity="0.75"></circle>';
-    }
-    if (t === 'kpi') {
-      return '<rect x="' + ix + '" y="' + (cy - 1.5).toFixed(1) + '" width="' + (iw * 0.6).toFixed(1) +
-        '" height="3" rx="1.5" fill="' + a + '" opacity="0.8"></rect>';
-    }
-    if (t === 'bar') {
-      var n = 3, g = 2, bw = (iw - g * (n - 1)) / n, out = '';
-      [0.5, 1, 0.7].forEach(function (f, i) {
-        var bh = ih * f;
-        out += '<rect x="' + (ix + i * (bw + g)).toFixed(1) + '" y="' + (iy + ih - bh).toFixed(1) +
-          '" width="' + bw.toFixed(1) + '" height="' + bh.toFixed(1) + '" rx="1" fill="' + a + '" opacity="0.7"></rect>';
-      });
-      return out;
-    }
-    if (t === 'table') {
-      var out2 = '';
-      [0.2, 0.5, 0.8].forEach(function (f) {
-        out2 += '<rect x="' + ix + '" y="' + (iy + ih * f - 1).toFixed(1) + '" width="' + iw.toFixed(1) +
-          '" height="2" rx="1" fill="' + a + '" opacity="0.45"></rect>';
-      });
-      return out2;
-    }
-    // line / report / anything new: a small zigzag sparkline.
-    var pts = [0, 0.4, 0.15, 0.75, 0.35, 1].map(function (f, i) {
-      return (ix + iw * (i / 5)).toFixed(1) + ',' + (iy + ih - ih * f).toFixed(1);
-    }).join(' ');
-    return '<polyline points="' + pts + '" fill="none" stroke="' + a +
-      '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.75"></polyline>';
-  }
-
   // Dashboard miniature: the card's real layout, packed into 12-col rows the
-  // same way the builder grid does, each cell carrying a glyph for its chart
-  // type. Falls back to the old generic 2x2 when the dashboard has no cards
-  // (or an old cached list payload has no summary).
+  // same way the builder grid does -- plain soft tiles, no per-type glyphs
+  // (tried, too busy at this size). Falls back to the old generic 2x2 when
+  // the dashboard has no cards (or an old cached list payload has no summary).
   function previewSvgDash(cards) {
     if (!cards || !cards.length) {
       var s = 22, gap0 = 6, x0 = 5, y0 = 5, cells = '';
@@ -458,8 +416,7 @@
         var x = c.x / 12 * (w + gap);
         var cw = c.s / 12 * (w + gap) - gap;
         body += '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + cw.toFixed(1) +
-          '" height="' + rh.toFixed(1) + '" rx="3" fill="var(--nx-accent, #4f46e5)" opacity="0.1"></rect>' +
-          dashGlyph(c.t, x, y, cw, rh);
+          '" height="' + rh.toFixed(1) + '" rx="3" fill="var(--nx-accent, #4f46e5)" opacity="0.14"></rect>';
       });
     });
     if (clipped) {
