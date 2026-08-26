@@ -2290,6 +2290,23 @@ def _preview_summary(defn):
     """
     if not isinstance(defn, dict):
         return {}
+    if defn.get("kind") == "dashboard":
+        # Dashboard library card: a compact layout sketch ({t: card type,
+        # s: 12-col span} per card) so the client can draw a true miniature of
+        # the dashboard instead of a generic placeholder. Type-guarded like
+        # everything else here — a malformed card is skipped, not fatal.
+        cards = defn.get("cards") if isinstance(defn.get("cards"), list) else []
+        mini = []
+        for c in cards[:12]:
+            if not isinstance(c, dict):
+                continue
+            t = c.get("type") if isinstance(c.get("type"), str) else "bar"
+            try:
+                s = int(c.get("span") or 6)
+            except (TypeError, ValueError):
+                s = 6
+            mini.append({"t": t, "s": max(1, min(12, s))})
+        return {"cards": mini, "cardCount": len(cards)}
     cols = defn.get("columns") if isinstance(defn.get("columns"), list) else []
     grain = ""
     for c in cols:

@@ -24,6 +24,14 @@ Work toward the next release.
 
 ### Added
 
+- **Dashboard cards in the reporting library preview their real layout.** A
+  dashboard's library card used to show a generic 2×2 placeholder; it now draws
+  a miniature of the dashboard itself — the actual cards packed into their
+  12-column rows, each tile carrying a small glyph for its chart type (KPI,
+  line, bar, donut, table, whole report) — plus a card-count fact, so
+  dashboards can be told apart before opening one. The list endpoint's
+  server-computed summary now carries the compact card layout for
+  dashboard-kind reports; an empty dashboard keeps the old placeholder.
 - **Eddard, the reporting mascot** (#212). The AI assistant now has a face and a
   name: an animated version of the Nexora black-hole logo — black core, accent
   accretion ring, two dot eyes — who floats, blinks, looks around, winks and

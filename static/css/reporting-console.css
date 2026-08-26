@@ -477,10 +477,10 @@ body.reporting-console .rs-card-svg {
   height: 52px;
   display: block;
 }
-body.reporting-console .rs-card-preview[data-kind="donut"] .rs-card-svg,
-body.reporting-console .rs-card-preview[data-kind="dash"] .rs-card-svg {
+body.reporting-console .rs-card-preview[data-kind="donut"] .rs-card-svg {
   /* Square previews keep their own aspect -- only the stretched line/bar
-     strips fill their box. */
+     strips fill their box. Dashboard miniatures are wide layout sketches
+     now, so they take the full strip like line/bar. */
   width: 52px;
   margin: 0 auto;
 }
