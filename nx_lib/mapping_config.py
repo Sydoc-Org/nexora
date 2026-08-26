@@ -210,18 +210,19 @@ def sources_for(client, processes=None) -> list[ProcessSource]:
     ]
 
 
-def mappings_for(client, processes, field_keys=None) -> list[FieldMapping]:
-    """FieldMapping rows for ``client`` restricted to ``processes``, optionally
-    further restricted to ``field_keys`` (matched case-insensitively)."""
+def mappings_for(client, processes=None, field_keys=None) -> list[FieldMapping]:
+    """FieldMapping rows for ``client``, optionally restricted to ``processes``
+    (None means all processes for that client), and optionally further
+    restricted to ``field_keys`` (matched case-insensitively)."""
     reg = registry()
     if reg is None:
         return []
-    wanted_processes = set(processes)
+    wanted_processes = set(processes) if processes is not None else None
     wanted_fields = {k.lower() for k in field_keys} if field_keys is not None else None
     return [
         m
         for m in reg.mappings
         if m.client == client
-        and m.process in wanted_processes
+        and (wanted_processes is None or m.process in wanted_processes)
         and (wanted_fields is None or m.field_key in wanted_fields)
     ]

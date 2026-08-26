@@ -313,72 +313,40 @@ def _ms02_target_processes():
 def _ms02_pid_specs(target_processes):
     """Columnar specs for resolving personal numbers (PIDs) against the MS02
     statistik table: ``[(table, id_col, pid_col, time_filter), ...]`` read from
-    the 'ms02' SearchConfig col_pid rows for the given processes (whitelisted
-    column, ClientCode='ms02', ProcessName IN (target_processes) -- NEVER a
-    hardcoded process key). ``time_filter`` is None: the PID lookup is an exact
-    match that must surface ALL matching workitems, unbounded by time. Returns []
-    when unseeded."""
-    col = f"col_{_MS02_PID_SEARCH_FIELD}"
-    if col not in get_valid_search_columns() or not target_processes:
+    the 'ms02' ProcessFieldMappings 'pid' rows for the given processes
+    (mapping_config registry, ClientCode='ms02', ProcessName IN
+    (target_processes) -- NEVER a hardcoded process key). ``time_filter`` is
+    None: the PID lookup is an exact match that must surface ALL matching
+    workitems, unbounded by time. Returns [] when unseeded."""
+    if not target_processes:
         return []
-    conn = None
-    cur = None
-    try:
-        conn = engine_nexora_db.raw_connection()
-        cur = conn.cursor()
-        placeholders = ",".join(["?"] * len(target_processes))
-        cur.execute(
-            f"SELECT TableName, TableAlias, JoinCondition, {col} FROM SearchConfig "
-            f"WHERE {col} IS NOT NULL AND ClientCode = 'ms02' "
-            f"AND ProcessName IN ({placeholders})",
-            target_processes,
-        )
-        specs = []
-        for table_name, alias, join_cond, pid_col in cur.fetchall():
-            if not (table_name and pid_col):
-                continue
-            id_col = _ms02_id_column(join_cond, alias)
-            if not id_col:
-                continue
-            specs.append((table_name, id_col, pid_col, None))
-        return specs
-    except Exception as e:
-        current_app.logger.error(f"_ms02_pid_specs: {e}")
+    mappings = mapping_config.mappings_for(
+        "ms02", target_processes, field_keys={_MS02_PID_SEARCH_FIELD}
+    )
+    if not mappings:
         return []
-    finally:
-        if cur:
-            cur.close()
-        if conn:
-            conn.close()
+    sources = {s.process: s for s in mapping_config.sources_for("ms02", target_processes)}
+    specs = []
+    for m in mappings:
+        src = sources.get(m.process)
+        if src is None or not src.table or not m.column:
+            continue
+        id_col = _ms02_id_column(src.join_condition, src.alias)
+        if not id_col:
+            continue
+        specs.append((src.table, id_col, m.column, None))
+    return specs
 
 
 def _ms02_prepared_docs_processes():
     """The MS02 processes for which the Prepared Documents register is relevant:
-    the 'ms02' SearchConfig rows that carry a col_pid mapping (single source of
-    truth, NEVER a hardcoded process key -- currently just ['sydoc.05_PDBS']).
-    The Workitems toolbar link is gated to these processes. Returns [] when
-    unseeded or on error so the caller degrades to hiding the link."""
-    col = f"col_{_MS02_PID_SEARCH_FIELD}"
-    if col not in get_valid_search_columns():
-        return []
-    conn = None
-    cur = None
-    try:
-        conn = engine_nexora_db.raw_connection()
-        cur = conn.cursor()
-        cur.execute(
-            f"SELECT DISTINCT ProcessName FROM SearchConfig "
-            f"WHERE {col} IS NOT NULL AND ClientCode = 'ms02' AND ProcessName IS NOT NULL"
-        )
-        return [r[0] for r in cur.fetchall() if r[0]]
-    except Exception as e:
-        current_app.logger.error(f"_ms02_prepared_docs_processes: {e}")
-        return []
-    finally:
-        if cur:
-            cur.close()
-        if conn:
-            conn.close()
+    the 'ms02' ProcessFieldMappings rows that carry a 'pid' mapping (single
+    source of truth, NEVER a hardcoded process key -- currently just
+    ['sydoc.05_PDBS']). The Workitems toolbar link is gated to these processes.
+    Returns [] when unseeded or on error so the caller degrades to hiding the
+    link."""
+    mappings = mapping_config.mappings_for("ms02", None, field_keys={_MS02_PID_SEARCH_FIELD})
+    return sorted({m.process for m in mappings if m.process})
 
 
 # Hard ceiling on a CSV export. It used to be 5000 with no signal to the user,

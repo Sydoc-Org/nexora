@@ -2665,6 +2665,87 @@ def test_prepared_documents_centered_headers_use_align_center(
     assert resp.data.count(b'class="px-6 py-3 align-center"') == 3
 
 
+def test_ms02_pid_specs_builds_from_mapping_registry(monkeypatch):
+    """#98 phase 5: _ms02_pid_specs reads mapping_config.mappings_for/sources_for
+    (ProcessFieldMappings/ProcessSources) instead of a per-call SearchConfig
+    SELECT, but keeps the same (table, id_col, pid_col, None) spec shape."""
+    import nx_lib.views.workitems as wv
+
+    mapping = _fm("pid", "PidCol", process="sydoc.05_PDBS", client="ms02")
+    source = _ps("sydoc.05_PDBS", "DossierStatistik", alias="d", client="ms02")
+
+    monkeypatch.setattr(
+        wv.mapping_config,
+        "mappings_for",
+        lambda client, processes, field_keys=None: [mapping] if client == "ms02" else [],
+    )
+    monkeypatch.setattr(
+        wv.mapping_config,
+        "sources_for",
+        lambda client, processes=None: [source] if client == "ms02" else [],
+    )
+
+    specs = wv._ms02_pid_specs(["sydoc.05_PDBS"])
+    assert specs == [("DossierStatistik", "ID", "PidCol", None)]
+
+
+def test_ms02_pid_specs_empty_target_processes_returns_empty(monkeypatch):
+    import nx_lib.views.workitems as wv
+
+    def _must_not_run(*a, **k):
+        raise AssertionError("mapping_config must not be queried with no target processes")
+
+    monkeypatch.setattr(wv.mapping_config, "mappings_for", _must_not_run)
+    assert wv._ms02_pid_specs([]) == []
+
+
+def test_ms02_pid_specs_skips_mapping_without_matching_source(monkeypatch):
+    import nx_lib.views.workitems as wv
+
+    mapping = _fm("pid", "PidCol", process="sydoc.05_PDBS", client="ms02")
+
+    monkeypatch.setattr(
+        wv.mapping_config, "mappings_for", lambda client, processes, field_keys=None: [mapping]
+    )
+    monkeypatch.setattr(wv.mapping_config, "sources_for", lambda client, processes=None: [])
+
+    assert wv._ms02_pid_specs(["sydoc.05_PDBS"]) == []
+
+
+def test_ms02_prepared_docs_processes_distinct_from_registry(monkeypatch):
+    """#98 phase 5: distinct processes carrying a 'pid' mapping, sourced from
+    mapping_config.mappings_for(None) (all processes) instead of a
+    SELECT DISTINCT ProcessName FROM SearchConfig."""
+    import nx_lib.views.workitems as wv
+
+    mappings = [
+        _fm("pid", "PidCol", process="sydoc.05_PDBS", client="ms02"),
+        _fm("pid", "PidCol", process="sydoc.05_PDBS", client="ms02"),
+        _fm("pid", "PidCol", process="sydoc.06_ABC", client="ms02"),
+    ]
+    captured = {}
+
+    def _mappings_for(client, processes, field_keys=None):
+        captured["processes"] = processes
+        captured["field_keys"] = field_keys
+        return mappings if client == "ms02" else []
+
+    monkeypatch.setattr(wv.mapping_config, "mappings_for", _mappings_for)
+
+    assert wv._ms02_prepared_docs_processes() == ["sydoc.05_PDBS", "sydoc.06_ABC"]
+    assert captured["processes"] is None
+    assert captured["field_keys"] == {"pid"}
+
+
+def test_ms02_prepared_docs_processes_empty_when_unseeded(monkeypatch):
+    import nx_lib.views.workitems as wv
+
+    monkeypatch.setattr(
+        wv.mapping_config, "mappings_for", lambda client, processes, field_keys=None: []
+    )
+    assert wv._ms02_prepared_docs_processes() == []
+
+
 def test_stamp_in_register_marks_rows(monkeypatch):
     import nx_lib.views.workitems as wv
     from nx_lib.clients import CLIENTS
