@@ -41,9 +41,13 @@ content area. `templates/js/_reporting_tabs_js.html` is the nav controller
   With nothing rendered yet this session it opens the most recent report.
 - **Sources rail**: one card per accessible source (`/api/reporting/sources`
   for the list, **`GET /api/reporting/sources/health`** for the green pulse
-  dot + latency — one timed `SELECT 1` per distinct engine, shared across
-  sources). The admin-only registry link is the gear next to the SOURCES
-  label.
+  dot, the probe latency and the real database name — one timed
+  `SELECT DB_NAME()` per distinct engine, shared across sources; the URL
+  carries no database attribute because the engines are built from
+  `odbc_connect` strings). The admin-only registry link is the gear next to
+  the SOURCES label. The **Advanced** nav entry is currently parked
+  (`hidden` in `reporting.html`) — the pane stays reachable via
+  `?tab=advanced`, Open-in-Advanced and `ReportingTabs.show('advanced')`.
 - Everything still runs through `.reporting-shell` (1600px max-width /
   40px inset) so the page lines up with the rest of the app. The Console
   skin lives in **`static/css/reporting-console.css`**, loaded after

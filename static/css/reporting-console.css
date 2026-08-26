@@ -11,6 +11,15 @@ body.reporting-console {
   font-family: 'Schibsted Grotesk', var(--nx-font);
   background: var(--nx-page);
 }
+/* Standard page inset (mirrors body.nx-app .nx-main's 44px/28px vertical) */
+body.reporting-console .rc-shell {
+  padding-top: 44px;
+  padding-bottom: 28px;
+}
+html.nx-compact body.reporting-console .rc-shell {
+  padding-top: 18px;
+  padding-bottom: 18px;
+}
 
 /* ---------- Top bar ---------- */
 .rc-topbar {
@@ -194,23 +203,35 @@ body.reporting-console {
   background: var(--nx-card);
   border: 1px solid var(--nx-border);
   border-radius: calc(var(--nx-radius-scale, 1) * 9px);
-  padding: 8px 10px;
+  padding: 9px 10px;
   margin: 0 0 6px;
+  box-shadow: var(--nx-shadow);
+  transition: border-color var(--nx-dur) var(--nx-ease);
 }
-.rc-src-row { display: flex; align-items: center; gap: 7px; }
+.rc-src:hover { border-color: var(--nx-border-strong); }
+.rc-src-row { display: flex; align-items: center; gap: 8px; }
 .rc-src-ico {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 6px;
   background: var(--nx-sunken);
   color: var(--nx-text-sec);
-  font-size: 9px;
+  font-size: 10px;
   flex-shrink: 0;
 }
 .rc-src-ico--db { background: var(--nx-accent-tint); color: var(--nx-accent); }
+.rc-src-db {
+  font-family: var(--nx-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
 .rc-src-name {
   font-size: 11.5px;
   font-weight: 600;
@@ -575,9 +596,48 @@ body.reporting-console .reporting-simple-ractions {
   gap: 8px;
 }
 
-/* KPI row: flat card per KPI (overrides the Simple pane's stacked-pair
-   ID-scoped layout from the previous design). */
-.rs-kpi-row { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; }
+/* KPI row: ONE uniform row of Console cards — the metric stat card joins the
+   band's cards instead of sitting above them as a hero (design mock). */
+.rs-kpi-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 14px;
+  align-items: stretch;
+}
+body.reporting-console .rs-kpi-row #rsStatCard {
+  flex: 1 1 170px;
+  min-width: 170px;
+  margin: 0;
+  padding: 12px 14px;
+  background: var(--nx-card);
+  border: 1px solid var(--nx-border);
+  border-radius: calc(var(--nx-radius-scale, 1) * 10px);
+  box-shadow: var(--nx-shadow);
+  display: flex;
+  align-items: flex-start;
+}
+body.reporting-console .rs-kpi-row #rsStatCard .nx-stat__label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--nx-text-meta);
+  text-transform: uppercase;
+  margin: 0 0 5px;
+}
+body.reporting-console .rs-kpi-row #rsStatCard .nx-stat__value {
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--nx-text);
+  background: none;
+  -webkit-text-fill-color: currentColor;
+}
+body.reporting-console .rs-kpi-row #rsStatCard .nx-stat__icon { display: none; }
+body.reporting-console .rs-kpi-row #rsKpiBand { flex: 999 1 auto; }
+/* The mock's KPI cards carry no sparkline — value + delta + sub only */
+body.reporting-console #rsKpiBand .rs-kpi-total-card .rp-sparkline { display: none; }
 body.reporting-console #rsKpiBand {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -726,6 +786,73 @@ body.reporting-console .reporting-simple-chartcard {
   color: var(--nx-text-meta);
   text-transform: uppercase;
 }
+/* Chart toolbar: what's-plotted title left, controls right; Forecast is a
+   real switch (the button keeps its id/testid — pure restyle). */
+.rs-chart-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--nx-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  margin-right: auto;
+}
+body.reporting-console #rsForecastToggle {
+  width: 26px;
+  height: 15px;
+  padding: 0;
+  border: none;
+  border-radius: 99px;
+  background: var(--nx-border-strong);
+  position: relative;
+  flex-shrink: 0;
+  transition: background var(--nx-dur) var(--nx-ease);
+}
+body.reporting-console #rsForecastToggle i { display: none; }
+body.reporting-console #rsForecastToggle::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 11px;
+  height: 11px;
+  border-radius: 99px;
+  background: #fff;
+  transition: left var(--nx-dur) var(--nx-ease);
+}
+body.reporting-console #rsForecastToggle[aria-pressed="true"] { background: var(--nx-accent); }
+body.reporting-console #rsForecastToggle[aria-pressed="true"]::after { left: 13px; }
+body.reporting-console #rsForecastToggle:disabled { opacity: 0.45; }
+
+/* Anomalies card rows */
+.rs-anom-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--nx-divider);
+}
+.rs-anom-row:last-child { border-bottom: none; }
+.rs-anom-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 99px;
+  flex-shrink: 0;
+  transform: translateY(-1px);
+}
+.rs-anom-dot--down { background: var(--nx-danger); }
+.rs-anom-dot--up { background: var(--nx-success); }
+.rs-anom-dot--peak { background: var(--nx-warning); }
+.rs-anom-text { font-size: 12px; color: var(--nx-text); min-width: 0; }
+.rs-anom-val {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--nx-text-meta);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 /* The AI-insight wrapper card follows its inner caption's hidden flag */
 #rsCaptionCard:has(> #rsCaption[hidden]) { display: none; }
 /* The caption's own inline "AI" chip duplicates the card header — hide it */

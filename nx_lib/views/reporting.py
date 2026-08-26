@@ -2848,21 +2848,23 @@ def api_schedules_all():
 
 
 def _probe_engine(engine):
-    """(ok, latency_ms) for a SELECT 1 round-trip; (False, None) on failure."""
+    """(ok, latency_ms, db_name) for one probe round-trip; DB_NAME() rides
+    along because the engines are built from odbc_connect strings whose
+    SQLAlchemy URL carries no database attribute."""
     if engine is None:
-        return False, None
+        return False, None, None
     t0 = time.perf_counter()
     try:
         conn = engine.raw_connection()
         try:
             cur = conn.cursor()
-            cur.execute("SELECT 1")
-            cur.fetchone()
+            cur.execute("SELECT DB_NAME()")
+            row = cur.fetchone()
         finally:
             conn.close()
-        return True, (time.perf_counter() - t0) * 1000.0
+        return True, (time.perf_counter() - t0) * 1000.0, (row[0] if row else None)
     except Exception:
-        return False, None
+        return False, None, None
 
 
 @require_permission("reporting.view")
@@ -2884,9 +2886,16 @@ def api_sources_health():
         if s["kind"] == "sql":
             engine = _SQL_TARGET_ENGINES.get(s.get("target", "statistics"))
         else:
-            engine = engine_statistics_db
-        ok, ms = probe(engine)
-        out.append({"id": s["id"], "ok": ok, "latencyMs": round(ms, 1) if ms is not None else None})
+            engine = _CURATED_ENGINES.get(s.get("engine"), engine_statistics_db)
+        ok, ms, db_name = probe(engine)
+        out.append(
+            {
+                "id": s["id"],
+                "ok": ok,
+                "latencyMs": round(ms, 1) if ms is not None else None,
+                "db": db_name,
+            }
+        )
     return jsonify({"sources": out})
 
 

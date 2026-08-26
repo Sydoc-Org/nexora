@@ -222,6 +222,7 @@
     <div class="rs-result-main">
       <div class="nx-card nx-card--pad reporting-simple-chartcard nx-rise-2" id="rsChartCard" hidden data-testid="rs-chart-card">
         <div class="reporting-simple-charttools" id="rsChartTools" hidden data-testid="rs-chart-tools">
+          <span id="rsChartTitle" class="rs-chart-title" data-testid="rs-chart-title"></span>
           <div class="rs-chart-track">
             <button type="button" class="reporting-chartbtn" data-type="bar" title="{{ _('Bar chart') }}" aria-label="{{ _('Bar chart') }}" data-testid="rs-chart-bar"><i class="fas fa-chart-column" aria-hidden="true"></i></button>
             <button type="button" class="reporting-chartbtn" data-type="line" title="{{ _('Line chart') }}" aria-label="{{ _('Line chart') }}" data-testid="rs-chart-line"><i class="fas fa-chart-line" aria-hidden="true"></i></button>
@@ -271,6 +272,13 @@
           <div id="rsCaption" class="rp-caption rc-side-card__body" hidden data-testid="rs-caption"></div>
         </div>
         {% endif %}
+        {# Anomalies card: computed client-side from the rows already on hand
+           (renderAnomalies() in the JS partial) — biggest latest-bucket move
+           per series + series peaks. Hidden when nothing stands out. #}
+        <div class="rc-card rc-side-card" id="rsAnomCard" hidden data-testid="rs-anomalies">
+          <div class="rc-side-card__head">{{ _("Anomalies") }}</div>
+          <div id="rsAnomRows"></div>
+        </div>
         <div class="rc-card rc-side-card reporting-sqlview" id="rsSqlView" hidden data-testid="rs-sql-view">
           <div class="reporting-sqlview-bar rc-side-card__head">
             <span>{{ _("Query") }}</span>

@@ -87,6 +87,9 @@
     gapNote: {{ _("Gaps are periods without a backlog snapshot.")|tojson }},
     deleteReport: {{ _("Delete report")|tojson }},
     cardMenu: {{ _("Report actions")|tojson }},
+    anomDown: {{ _("{label} down {pct} vs previous")|tojson }},
+    anomUp: {{ _("{label} up {pct} vs previous")|tojson }},
+    anomPeak: {{ _("{label} peak — {bucket}")|tojson }},
     share: {{ _("Share")|tojson }},
     oneReport: {{ _("1 report")|tojson }},
     nReports: {{ _("{n} reports")|tojson }},
@@ -670,6 +673,8 @@
     // the error message.
     var rsCaptionErrBox = el('rsCaption');
     if (rsCaptionErrBox) { rsCaptionErrBox.hidden = true; rsCaptionErrBox.textContent = ''; }
+    var anomErrCard = el('rsAnomCard');
+    if (anomErrCard) anomErrCard.hidden = true;
   }
 
   // Prefers the server's own error + detail (e.g. "…invalid or outdated. —
@@ -930,6 +935,68 @@
     Array.prototype.forEach.call(band.querySelectorAll('[data-count-target]'), function (span) {
       animateValue(span, Number(span.getAttribute('data-count-target')), fmtNumber);
     });
+  }
+
+  // Console "Anomalies" card: cheap client-side outlier notes over the rows
+  // already rendered — the latest complete bucket's swing per series, plus
+  // each series' peak bucket. Only for a single-dimension result (one clean
+  // axis). ponytail: ±15% swing heuristic; a real detector belongs
+  // server-side if this ever needs to be smarter.
+  function renderAnomalies(def, columns, rows) {
+    var card = el('rsAnomCard');
+    if (!card) return;
+    card.hidden = true;
+    el('rsAnomRows').innerHTML = '';
+    var dims = (def.columns || []).length;
+    var hasMetrics = Array.isArray(def.metrics) && def.metrics.length > 0;
+    if (!hasMetrics || dims !== 1 || !rows || rows.length < 3) return;
+    var grain = def.columns[0].grain || null;
+    var body = rows.slice();
+    // Ignore a trailing partial bucket — comparing it against a full one
+    // would fabricate a drop (same reasoning as the chart's faded bucket).
+    if (grain && body.length &&
+        String(body[body.length - 1][0] || '').slice(0, 10) >= currentBucketStart(grain)) {
+      body = body.slice(0, -1);
+    }
+    if (body.length < 3) return;
+    var out = [];
+    var mlabels = metricLabelsFor(def);
+    for (var mi = dims; mi < columns.length; mi++) {
+      var vals = body.map(function (r) { return Number(r[mi]) || 0; });
+      var label = mlabels[mi - dims] || columns[mi].header || columns[mi].field;
+      var last = vals[vals.length - 1], prev = vals[vals.length - 2];
+      // prev >= 5: a swing between single-digit buckets is noise, not signal
+      if (prev >= 5) {
+        var pct = (last - prev) / prev;
+        if (Math.abs(pct) >= 0.15) {
+          out.push({
+            cls: pct < 0 ? 'rs-anom-dot--down' : 'rs-anom-dot--up',
+            text: (pct < 0 ? I18N.anomDown : I18N.anomUp)
+              .replace('{label}', label)
+              .replace('{pct}', Math.round(Math.abs(pct) * 100) + '%'),
+            value: fmtNumber(last)
+          });
+        }
+      }
+      var maxI = 0;
+      vals.forEach(function (v, i) { if (v > vals[maxI]) maxI = i; });
+      if (vals[maxI] > 0 && maxI !== vals.length - 1) {
+        out.push({
+          cls: 'rs-anom-dot--peak',
+          text: I18N.anomPeak.replace('{label}', label)
+            .replace('{bucket}', String(body[maxI][0]).slice(0, 10)),
+          value: fmtNumber(vals[maxI])
+        });
+      }
+    }
+    out = out.slice(0, 3);
+    if (!out.length) return;
+    el('rsAnomRows').innerHTML = out.map(function (a) {
+      return '<div class="rs-anom-row"><span class="rs-anom-dot ' + a.cls + '"></span>' +
+        '<span class="rs-anom-text">' + esc(a.text) + '</span>' +
+        '<span class="rs-anom-val">' + esc(a.value) + '</span></div>';
+    }).join('');
+    card.hidden = false;
   }
 
   function metricLabelsFor(def) {
@@ -2242,10 +2309,19 @@
     // exists in the DOM for a reporting.ai.explain_data holder.
     var rsCaptionBox = el('rsCaption');
     if (rsCaptionBox) { rsCaptionBox.hidden = true; rsCaptionBox.textContent = ''; }
+    var anomCard = el('rsAnomCard');
+    if (anomCard) { anomCard.hidden = true; }
 
     var def = cur.def;
     var hasMetrics = Array.isArray(def.metrics) && def.metrics.length > 0;
     var dims = (def.columns || []).length;
+    // Console chart-card title: what is plotted (the metric labels), not the
+    // report name — that one is already in the result header.
+    var chartTitle = el('rsChartTitle');
+    if (chartTitle) {
+      chartTitle.textContent = hasMetrics
+        ? metricLabelsFor(def).join(' · ') : (cur.name || def.title || '');
+    }
     // Timing badge: measures the full round-trip (both the optional grand-total
     // call below and the main run), from just before the first request fires
     // to the moment the main run's response lands.
@@ -2377,6 +2453,7 @@
       ? !!mountChart(def, columns, rows, res.data.forecast || null) : false;
     syncForecastCtl(def, res.data.forecast || null, charted);
     renderTable(columns, rows, res.data.forecast || null);
+    renderAnomalies(def, columns, rows);
     // Collapse the table behind the toggle only when a chart actually rendered
     // (or the stat card carries a dimensionless total). When mountChart bails
     // — three breakdowns, too many points, no Chart.js — the table is the only

@@ -487,15 +487,18 @@ def test_sources_health_without_perm_403(user_client):
 
 
 def test_sources_health_shape(admin_client):
-    """One row per accessible source: id, ok flag, latencyMs (None when the
-    probe fails — the TEST env's engines may or may not be reachable)."""
+    """One row per accessible source: id, ok flag, latencyMs and the real
+    database name behind the source (None when the probe fails — the TEST
+    env's engines may or may not be reachable)."""
     resp = admin_client.get("/api/reporting/sources/health")
     assert resp.status_code == 200
     data = resp.get_json()
     assert isinstance(data.get("sources"), list)
     for row in data["sources"]:
-        assert set(row) == {"id", "ok", "latencyMs"}
+        assert set(row) == {"id", "ok", "latencyMs", "db"}
         assert isinstance(row["ok"], bool)
+        if row["ok"]:
+            assert row["db"]  # DB_NAME() rides along on a successful probe
 
 
 def test_schedule_validation_400(admin_client):
