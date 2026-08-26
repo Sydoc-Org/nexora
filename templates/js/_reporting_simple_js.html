@@ -1135,13 +1135,17 @@
     el('rsResultTitle').style.color = styleOf().titleColor || '';
   }
 
-  function renderChart(type) {
-    var d = state.chartData;
-    if (!d) return;
-    destroyChart();
+  // Pure: the Chart.js config for a chart-data block. `def` supplies the
+  // saved style (colours / right-axis picks) and the date grain; opts.onDrill
+  // (index, datasetIndex) receives clicks on real (non-forecast) elements.
+  // Reads only the dark-mode class and --nx-border from the document.
+  // Returns {type, multi, circular, config}. Shared with the dashboard's
+  // whole-report card via window.ReportingSimple.
+  function chartConfigFor(d, type, def, opts) {
+    var style = (def && def.style) || {};
+    var onDrill = (opts && opts.onDrill) || function () {};
     var multi = !!(d && d.multiSeries);
     if (multi && (type === 'pie' || type === 'doughnut')) type = 'bar';
-    state.chartType = type;
     var stacked = type === 'stacked';
     var chartJsType = stacked ? 'bar' : type;
     var circular = chartJsType === 'pie' || chartJsType === 'doughnut';
@@ -1191,7 +1195,6 @@
       }
       return out;
     });
-    var style = styleOf();
     var overrides = style.colors || {};
     var rightKeys = circular ? [] : rightAxisKeys(d, style);
     var useY2 = false;
@@ -1207,8 +1210,7 @@
     });
     // The bucket containing today is still filling up: fade it (bar) or dash
     // into it (line) so a low current month reads as "in progress", not a drop.
-    var grain0 = (state.current && state.current.def && (state.current.def.columns || [])[0])
-      ? state.current.def.columns[0].grain : null;
+    var grain0 = (def && (def.columns || [])[0]) ? def.columns[0].grain : null;
     var partialIdx = (grain0 && !circular) ? d.labels.indexOf(currentBucketStart(grain0)) : -1;
     if (partialIdx >= 0) {
       datasets = datasets.map(function (ds) {
@@ -1291,7 +1293,7 @@
     var allInts = !circular && datasets.every(function (ds) {
       return (ds.data || []).every(function (v) { return Number.isInteger(v); });
     });
-    state.chart = new Chart(el('rsChartCanvas'), {
+    var config = {
       type: chartJsType,
       data: { labels: d.labels, datasets: datasets },
       options: { responsive: true, maintainAspectRatio: false,
@@ -1338,15 +1340,27 @@
                  onClick: function (evt) {
                    var els = this.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, false);
                    if (!els.length) return;
-                   var dsHit = (state.chart.data.datasets || [])[els[0].datasetIndex] || {};
+                   var dsHit = (this.data.datasets || [])[els[0].datasetIndex] || {};
                    if (dsHit._forecast || dsHit._band) return;
                    if (d.forecastStart != null && d.forecast && els[0].index >= d.forecastStart) return;
-                   drillFromChart(els[0].index, els[0].datasetIndex);
+                   onDrill(els[0].index, els[0].datasetIndex);
                  },
                  onHover: function (evt, els) {
                    evt.native.target.style.cursor = els.length ? 'pointer' : 'default';
                  } }
-    });
+    };
+    return { type: type, multi: multi, circular: circular, config: config };
+  }
+
+  function renderChart(type) {
+    var d = state.chartData;
+    if (!d) return;
+    destroyChart();
+    var built = chartConfigFor(d, type, (state.current && state.current.def) || {}, { onDrill: drillFromChart });
+    type = built.type;
+    state.chartType = type;
+    var multi = built.multi, circular = built.circular;
+    state.chart = new Chart(el('rsChartCanvas'), built.config);
     el('rsChartTools').querySelector('[data-type="pie"]').hidden = multi;
     el('rsChartTools').querySelector('[data-type="doughnut"]').hidden = multi;
     // Forecast only draws on line/bar — grey the toggle out on pie/doughnut
@@ -3564,7 +3578,8 @@
     zeroFillDateBuckets: zeroFillDateBuckets,
     kpiBandHtml: kpiBandHtml,
     statCardHtml: statCardHtml,
-    buildChartData: buildChartData
+    buildChartData: buildChartData,
+    chartConfigFor: chartConfigFor
   };
 
   document.addEventListener('rp:tabshown', function (e) {

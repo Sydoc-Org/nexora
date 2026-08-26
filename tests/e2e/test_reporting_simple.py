@@ -4461,6 +4461,7 @@ def test_reporting_simple_exposes_result_builders(nexora_server, page):
         "kpiBandHtml",
         "statCardHtml",
         "buildChartData",
+        "chartConfigFor",
     ]
     kinds = page.evaluate("(names) => names.map(k => typeof window.ReportingSimple[k])", names)
     assert kinds == ["function"] * len(names), dict(zip(names, kinds, strict=False))
