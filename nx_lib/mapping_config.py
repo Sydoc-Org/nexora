@@ -198,7 +198,12 @@ def field_aliases() -> dict[str, str]:
 
 
 def sources_for(client, processes=None) -> list[ProcessSource]:
-    """ProcessSource rows for ``client``, optionally restricted to ``processes``."""
+    """ProcessSource rows for ``client``, optionally restricted to ``processes``.
+
+    ``client=None`` skips the client filter and returns sources across every
+    client (nx_lib/views/dashboard.py's Statconfig-parity read, which then
+    re-splits the combined list by ``.client`` -- see its
+    ``_split_stat_configs``)."""
     reg = registry()
     if reg is None:
         return []
@@ -206,7 +211,7 @@ def sources_for(client, processes=None) -> list[ProcessSource]:
     return [
         src
         for (src_client, src_process), src in reg.sources.items()
-        if src_client == client and (wanted is None or src_process in wanted)
+        if (client is None or src_client == client) and (wanted is None or src_process in wanted)
     ]
 
 

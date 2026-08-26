@@ -14,7 +14,6 @@ No login fixtures: this API never touches the session.
 
 import hashlib
 import secrets
-import types
 from datetime import date, datetime
 from unittest.mock import MagicMock
 
@@ -24,6 +23,7 @@ import nx_lib.views.api_external as ax
 import nx_lib.views.dashboard as dv
 from nx_lib.clients import CLIENTS as CLIENTS_REGISTRY
 from nx_lib.db import engine_nexora_db
+from nx_lib.mapping_config import ProcessSource
 
 URL = "/api/v1/stats/today"
 
@@ -221,21 +221,45 @@ def _dead_engine(msg="StatisticsDB down"):
 
 
 def _cfg_row(client_code, name, table, exp, imp):
-    return types.SimpleNamespace(
-        ClientCode=client_code,
-        ProcessName=name,
-        TableName=table,
-        ExportColumn=exp,
-        ImportColumn=imp,
-        additionalCondition=None,
+    return ProcessSource(
+        client=client_code,
+        process=name,
+        table=table,
+        alias=None,
+        join_condition=None,
+        time_filter=None,
+        suggestion_time_filter=None,
+        export_column=exp,
+        import_column=imp,
+        workitem_column=None,
+        extra_condition=None,
+        id_column_type=None,
     )
+
+
+def _stub_sources(monkeypatch, configs):
+    """Replace mapping_config.registry()/sources_for() on the dashboard view
+    module so _statconfig_sources returns `configs` -- the direct successor
+    to monkeypatching dv.engine_nexora_db with a fake cursor around the
+    legacy Statconfig SELECT (#98)."""
+    monkeypatch.setattr(dv.mapping_config, "registry", lambda: object())
+    monkeypatch.setattr(
+        dv.mapping_config, "sources_for", lambda client, processes=None: list(configs)
+    )
+
+
+def _stub_sources_dead(monkeypatch, msg="NexoraDB down"):
+    def _boom():
+        raise RuntimeError(msg)
+
+    monkeypatch.setattr(dv.mapping_config, "registry", _boom)
 
 
 def test_statistics_db_outage_returns_500_not_zeros(client, monkeypatch):
     raw = secrets.token_urlsafe(32)
     key_hash = _insert_key(raw, processes="sydoc.TestProc")
     cfg = _cfg_row("default", "sydoc.TestProc", "dbo.tblTest", "ExportDate", "ImportDate")
-    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning([cfg]))
+    _stub_sources(monkeypatch, [cfg])
     monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine("Statistics DB down"))
     try:
         resp = client.get(URL, headers={"Authorization": f"Bearer {raw}"})
@@ -252,7 +276,7 @@ def test_genuinely_quiet_day_still_returns_200_zeros(client, monkeypatch):
     raw = secrets.token_urlsafe(32)
     key_hash = _insert_key(raw, processes="sydoc.TestProc")
     cfg = _cfg_row("default", "sydoc.TestProc", "dbo.tblTest", "ExportDate", "ImportDate")
-    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning([cfg]))
+    _stub_sources(monkeypatch, [cfg])
     monkeypatch.setattr(dv, "engine_statistics_db", _engine_returning([(None, None)]))
     try:
         resp = client.get(URL, headers={"Authorization": f"Bearer {raw}"})
@@ -268,12 +292,19 @@ def test_genuinely_quiet_day_still_returns_200_zeros(client, monkeypatch):
 
 
 def _import_cfg_row(client_code, name, table, wid_col, imp_col):
-    return types.SimpleNamespace(
-        ClientCode=client_code,
-        ProcessName=name,
-        TableName=table,
-        WorkitemColumn=wid_col,
-        ImportColumn=imp_col,
+    return ProcessSource(
+        client=client_code,
+        process=name,
+        table=table,
+        alias=None,
+        join_condition=None,
+        time_filter=None,
+        suggestion_time_filter=None,
+        export_column=None,
+        import_column=imp_col,
+        workitem_column=wid_col,
+        extra_condition=None,
+        id_column_type=None,
     )
 
 
@@ -285,7 +316,7 @@ def test_resolve_import_datetimes_maps_ids_and_skips_unmapped(monkeypatch, auth_
         # MS02 rows never feed the default-leg UNION.
         _import_cfg_row("ms02", "sydoc.MsProc", 'public."DossierStatistik"', "wid", "imp"),
     ]
-    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning(cfgs))
+    _stub_sources(monkeypatch, cfgs)
     monkeypatch.setattr(
         dv, "engine_statistics_db", _engine_returning([("1216", datetime(2026, 8, 1, 8, 0, 0))])
     )
@@ -294,7 +325,7 @@ def test_resolve_import_datetimes_maps_ids_and_skips_unmapped(monkeypatch, auth_
 
 
 def test_resolve_import_datetimes_empty_inputs_short_circuit(monkeypatch, auth_app_ctx):
-    monkeypatch.setattr(dv, "engine_nexora_db", _dead_engine("must not be reached"))
+    _stub_sources_dead(monkeypatch, "must not be reached")
     assert dv.resolve_import_datetimes([], ["sydoc.TestProc"]) == {}
     assert dv.resolve_import_datetimes([1], []) == {}
 
@@ -306,7 +337,7 @@ def test_resolve_import_datetimes_chunks_under_param_limit(monkeypatch, auth_app
         _import_cfg_row("default", f"sydoc.P{i}", f"dbo.tbl{i}", "WorkitemID", "ImportDate")
         for i in range(3)
     ]
-    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning(cfgs))
+    _stub_sources(monkeypatch, cfgs)
     calls = []
 
     def _fake_rows(sql, params=None, *, strict=False):
@@ -322,7 +353,7 @@ def test_resolve_import_datetimes_chunks_under_param_limit(monkeypatch, auth_app
 
 def test_resolve_import_datetimes_strict_raises_on_outage(monkeypatch, auth_app_ctx):
     cfg = _import_cfg_row("default", "sydoc.TestProc", "dbo.tblTest", "WorkitemID", "ImportDate")
-    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning([cfg]))
+    _stub_sources(monkeypatch, [cfg])
     monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine("Statistics DB down"))
     with pytest.raises(RuntimeError):
         dv.resolve_import_datetimes([1216], ["sydoc.TestProc"], strict=True)
@@ -1361,13 +1392,13 @@ def test_test_undelivered_good_key_returns_random_data_in_real_shape(client):
 def test_undelivered_compute_runs_real_sql_leg(client, monkeypatch):
     # Exercise compute_undelivered_count FOR REAL (only engines faked): the
     # T-SQL leg must window on the import column, require a NULL export
-    # column, and skip Statconfig rows without an ImportColumn.
+    # column, and skip ProcessSources rows without an import_column.
     raw = secrets.token_urlsafe(32)
     key_hash = _insert_key(raw, processes="sydoc.TestProc")
     cfg_ok = _cfg_row("default", "sydoc.TestProc", "dbo.tblTest", "ExportDate", "ImportDate")
     cfg_no_import = _cfg_row("default", "sydoc.TestProc", "dbo.tblOther", "ExportDate", None)
     stats_engine = _engine_returning([(5,)])
-    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning([cfg_ok, cfg_no_import]))
+    _stub_sources(monkeypatch, [cfg_ok, cfg_no_import])
     monkeypatch.setattr(dv, "engine_statistics_db", stats_engine)
     try:
         resp = client.get(f"{UNDELIVERED_URL}?days=7", headers={"Authorization": f"Bearer {raw}"})
