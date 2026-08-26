@@ -1,12 +1,12 @@
 ﻿USE [nexora]
 GO
-DROP TABLE [dbo].[IndexFieldMappings]
+DROP TABLE [dbo].[decapitated_IndexFieldMappings]
 GO
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE TABLE [dbo].[IndexFieldMappings](
+CREATE TABLE [dbo].[decapitated_IndexFieldMappings](
 	[MappingID] [int] IDENTITY(1,1) NOT NULL,
 	[SourceFieldName] [nvarchar](100) NOT NULL,
 	[TargetKey] [nvarchar](100) NOT NULL,

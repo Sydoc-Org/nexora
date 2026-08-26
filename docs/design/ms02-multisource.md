@@ -11,9 +11,11 @@ this is the authoritative reference for the facts below.
 - `engine_ms02_stats_pg` — the MS02 client's dashboard-statistics DB (`Praesidialdepartement_BS`,
   Azure Postgres); stays `None` until `MS02_STATS_DB_*` are set (defaults reuse the MS02 runtime
   host/login). The dashboard reads the actual stats table + date columns from the `'ms02'`
-  `dbo.Statconfig` row (`public."DossierStatistik"`, cols `DatumInTempExport`/`ImportDate` — *not*
-  the dead `public.batchtracking` that `0025` first seeded; corrected by migration `0031`), so it
-  never hardcodes a Postgres table name.
+  `('ms02', <process>)` row in `nx_lib/mapping_config.py`'s registry (`dbo.ProcessSources`,
+  migration `0074`; formerly the `dbo.StatConfig` row, decapitated by `0075`) —
+  `public."DossierStatistik"`, cols `DatumInTempExport`/`ImportDate` — *not* the dead
+  `public.batchtracking` that `0025` first seeded; corrected by migration `0031` — so it never
+  hardcodes a Postgres table name.
 - `engine_ms02_docfields_pg` — the MS02 client's doc-field source DB (Azure Postgres, same
   host/login as the MS02 runtime, a *different* dbname — for MS02 the client's *statistik* DB
   `Praesidialdepartement_BS`, which holds the per-process columnar tables like
@@ -65,29 +67,37 @@ separately — see `docs/howto/iis.md`).
 
 ## Dashboard statistics
 
-Dashboard statistics are made multi-source via `dbo.Statconfig.ClientCode` (migration `0024`) —
-`'default'` rows are served by the Statistics DB (T-SQL), `'ms02'` rows by `engine_ms02_stats_pg`
-(Postgres, aggregated once over `public.batchtracking`); the `ClientConfig` registry carries each
-client's `stats_engine`/`stats_dialect`.
+Dashboard statistics are made multi-source via the `ClientCode` column on each `ProcessSources`
+row (`nx_lib/mapping_config.py`, migration `0074`; the routing was originally
+`dbo.Statconfig.ClientCode` from migration `0024`, superseded when `0074` normalized the mapping
+schema and `0075` decapitated the old `dbo.StatConfig` table) — `'default'` rows are served by the
+Statistics DB (T-SQL), `'ms02'` rows by `engine_ms02_stats_pg` (Postgres, aggregated once over
+`public.batchtracking`); the `ClientConfig` registry carries each client's
+`stats_engine`/`stats_dialect`.
 
 ## Doc-field search
 
-Doc-field (document-field) search is `SearchConfig`-driven for every client:
-`dbo.SearchConfig.ClientCode` (migration `0027`, mirroring `Statconfig.ClientCode` from `0024`)
-routes `'default'` rows to StatisticsDB and `'ms02'` rows to `engine_ms02_docfields_pg`. For BOTH,
-`col_<field>` is a real **column** name in a wide per-process *statistik* table
-(`SearchConfig.TableName`, e.g. `public."DossierStatistik"`), matched columnar as
-`"<col>"::text ILIKE %value%` and pre-resolved to a workitem-id allow-set
-(`resolve_ms02_docfield_ids` in `nx_lib/workitem_sources.py`) applied as `twi."ID" = ANY(...)`.
+Doc-field (document-field) search is driven by the normalized mapping registry
+(`nx_lib/mapping_config.py`'s cached `registry()` over `dbo.ProcessSources` /
+`ProcessFieldMappings`, migration `0074`) for every client. Routing is by `ClientCode` on the
+`ProcessSources` row — originally `dbo.SearchConfig.ClientCode` (migration `0027`, mirroring
+`Statconfig.ClientCode` from `0024`); both legacy tables were decapitated by migration `0075` once
+every consumer had moved to the registry — sending `'default'` rows to StatisticsDB and `'ms02'`
+rows to `engine_ms02_docfields_pg`. For BOTH, the field mapping's `column` is a real **column**
+name in a wide per-process *statistik* table (`ProcessSources.table`, e.g.
+`public."DossierStatistik"`), matched columnar as `"<col>"::text ILIKE %value%` and pre-resolved to
+a workitem-id allow-set (`resolve_ms02_docfield_ids` in `nx_lib/workitem_sources.py`) applied as
+`twi."ID" = ANY(...)`.
 
 Migration `0030` corrected the earlier EAV (`t_DocumentIndexes` `"Name"`/`"StringValue"`)
 assumption from `0027`: the MS02 doc-field source is the columnar `DossierStatistik` (in the same
 Postgres DB the stats engine uses), not an EAV index; `'ms02'` rows therefore carry
 Postgres-syntax `TimeFilter`s (the `'default'` rows stay T-SQL).
 
-Doc-field visibility is permission-aware — `dbo.Search_Field_Labels.IsSensitive` marks sensitive
-`FieldKey`s, gated by the shared `workitems.filter.documentfields.sensitive` permission and
-enforced server-side at every surface (dropdown, values API, search, detail panel, CSV).
+Doc-field visibility is permission-aware — `FieldLabels.IsSensitive` in the registry (formerly
+`dbo.Search_Field_Labels.IsSensitive`, decapitated by `0075`) marks sensitive `FieldKey`s, gated by
+the shared `workitems.filter.documentfields.sensitive` permission and enforced server-side at every
+surface (dropdown, values API, search, detail panel, CSV).
 
 Since #148 the search is **value-first** ("Document Value Search"): a pair with a value but no
 field OR-matches the value across every permitted, non-sensitive `col_*` column on both paths
@@ -122,9 +132,10 @@ Processes" and on non-PDBS processes. Gated by `workitems.import.preparedaudit` 
 reused) AND `ms02_active`; registered in `page_visibility()` as `preparedDocsPagePerm`.
 
 The earlier transient session-overlay (`?pidImport=<token>` filter with row-merge + synthetic
-rows) has been removed. The personal-number column is owner-seeded as the `'ms02'` `SearchConfig`
-`col_pid` value (read dynamically per the user's `target_processes`, e.g.
-`ProcessName='sydoc.05_PDBS'`; the full PDBS mapping + `ClientCode='ms02'` is migration `0030`).
+rows) has been removed. The personal-number column is owner-seeded as the `'ms02'` registry's
+`pid` field mapping (read dynamically per the user's `target_processes`, e.g.
+`ProcessName='sydoc.05_PDBS'`; the full PDBS mapping + `ClientCode='ms02'` is migration `0030`,
+carried into the `0074` normalized schema).
 
 The register's Octo-Status cell also exposes a read-only **Preview** modal (via the shared
 `templates/js/_workitem_detail_panel_js.html` partial) showing the full workitem detail panel

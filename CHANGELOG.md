@@ -37,6 +37,17 @@ Work toward the next release.
   `(ProcessName, ClientCode)`. `dbo.Logs` gains `IX_Logs_Timestamp` so the
   admin log pages stop table-scanning as the log grows.
 
+- **Normalized mapping schema live, legacy tables decapitated** (#98,
+  migrations `0074`/`0075`). Every Python consumer of the doc-field/process
+  mapping config now reads the single cached registry in
+  `nx_lib/mapping_config.py`, backed by the normalized `dbo.ProcessSources` /
+  `ProcessFieldMappings` / `FieldLabels` / `FieldAliases` tables (`0074`).
+  With the cutover verified clean across the whole tree, migration `0075`
+  renames the four legacy tables (`SearchConfig`, `StatConfig`,
+  `IndexFieldMappings`, `Search_Field_Labels`) to `decapitated_*` — data is
+  preserved, not dropped, following the same reversible pattern `0042` used
+  for the chat/collaboration tables (later dropped for good by `0072`).
+
 ### Fixed
 
 - **Workitem detail panel: line-item tables are tables again** (#199). Each

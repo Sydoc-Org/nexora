@@ -1,14 +1,14 @@
 ﻿USE [nexora]
 GO
-ALTER TABLE [dbo].[SearchConfig] DROP CONSTRAINT [DF_SearchConfig_ClientCode]
+ALTER TABLE [dbo].[decapitated_SearchConfig] DROP CONSTRAINT [DF_SearchConfig_ClientCode]
 GO
-DROP TABLE [dbo].[SearchConfig]
+DROP TABLE [dbo].[decapitated_SearchConfig]
 GO
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE TABLE [dbo].[SearchConfig](
+CREATE TABLE [dbo].[decapitated_SearchConfig](
 	[ProcessName] [varchar](100) NOT NULL,
 	[TableName] [varchar](100) NULL,
 	[TableAlias] [varchar](10) NULL,
@@ -58,5 +58,5 @@ PRIMARY KEY CLUSTERED
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[SearchConfig] ADD  CONSTRAINT [DF_SearchConfig_ClientCode]  DEFAULT ('default') FOR [ClientCode]
+ALTER TABLE [dbo].[decapitated_SearchConfig] ADD  CONSTRAINT [DF_SearchConfig_ClientCode]  DEFAULT ('default') FOR [ClientCode]
 GO
