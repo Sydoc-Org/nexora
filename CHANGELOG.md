@@ -10,6 +10,24 @@ Work toward the next release.
 
 ### Added
 
+- **Reporting "Console" redesign.** The `/reporting` page is now a workbench
+  shell (design handoff `docs/design/design_handoff_reporting_console/`):
+  compact top bar, persistent left rail with a Workspace nav (Library /
+  Results / Dashboards / Scheduled / Advanced) and a live sources rail
+  (status dot + latency via the new `GET /api/reporting/sources/health`),
+  replacing the Simple/Advanced tab strip and the landing hero + global
+  Ask-AI bar (AI lives in the chat panel). Library gains search + sort + a
+  2-or-4-cards-per-row toggle and compact cards with an owner `…` menu
+  (Share / Delete); the result view gains a breadcrumb + Saved chip, a Run
+  again button, a flat KPI card row, and a side column with the AI-insight
+  and always-visible syntax-coloured Query cards; the wizard gains
+  horizontal step chips + a "So far" summary; **Results** restores the last
+  rendered result from cache without re-querying. New **Scheduled** screen
+  lists every owned schedule across reports (new
+  `GET /api/reporting/schedules`) with on/off toggles and a New-schedule
+  modal. Styling in the new `static/css/reporting-console.css`, riding the
+  design-system tokens (accent picker + dark mode included), typeface
+  Schibsted Grotesk.
 - **The AI chat agent can execute a report definition, not just validate it.**
   A new `run_definition` tool (bound alongside `run_sql`, behind
   `reporting.ai.explain_data` + `reporting.sql.run`) runs a `build_definition`-

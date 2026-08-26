@@ -17,52 +17,52 @@ replacement for internal users. Phase 1 ships a **table/list** visualization
 over the curated **Document Processing** source with full filter, sort, combine,
 custom-header, save/load, and Excel-export support.
 
-## Simple and Advanced tabs
+## The Console shell (navigation + screens)
 
-`/reporting` opens as two tabs (one route, two client-side panes;
-`templates/js/_reporting_tabs_js.html` is the controller):
+`/reporting` is one route rendering a **Console** workspace (design:
+`docs/design/design_handoff_reporting_console/README.md`, superseding the
+"Indigo Studio" hero/tab layout): a compact top bar (app icon, **Reporting**,
+Beta chip, the run's `N rows · M ms` timing badge, a sources sync line,
+**Help**, **AI chat**) over a body grid — a sticky 196px left rail and the
+content area. `templates/js/_reporting_tabs_js.html` is the nav controller
+(still exported as `window.ReportingTabs` for compat).
 
-### Page layout
+- **Workspace nav**: `Library`, `Results`, `Dashboards`, `Scheduled`
+  (perm-gated on `reporting.schedule`), `Advanced`. The first three map into
+  the old Simple pane's internal views (`window.ReportingSimple.navTo`);
+  `Scheduled` and `Advanced` are their own containers. The `?tab=` URL param
+  and the `nx.reporting.tab` storage key keep their historical names and now
+  carry the screen name (`simple` stays accepted as an alias for `library`);
+  `rp:tabshown` still fires with `simple|advanced` for the Simple pane's
+  init contract, and `rc:screenshown` fires with the real screen name.
+- **Results is a cache, not a runner** (design intent #8): it restores the
+  last rendered result from `state.lastRun` without re-querying (only the
+  Chart.js instance is re-mounted — the rest of the result DOM never left).
+  With nothing rendered yet this session it opens the most recent report.
+- **Sources rail**: one card per accessible source (`/api/reporting/sources`
+  for the list, **`GET /api/reporting/sources/health`** for the green pulse
+  dot + latency — one timed `SELECT 1` per distinct engine, shared across
+  sources). The admin-only registry link is the gear next to the SOURCES
+  label.
+- Everything still runs through `.reporting-shell` (1600px max-width /
+  40px inset) so the page lines up with the rest of the app. The Console
+  skin lives in **`static/css/reporting-console.css`**, loaded after
+  `reporting.css` and scoped under `body.reporting-console`; it rides the
+  `nexora-ui.css` tokens, so the user's accent pick and dark mode apply
+  without page-specific code. Page type is Schibsted Grotesk.
+- `_header.html` links `nexora-ui.css` from the `<body>`, i.e. *after* the
+  reporting stylesheets — an equal-specificity override silently loses, so
+  Console overrides are prefixed with `body.reporting-console`.
 
-Top to bottom: the masthead (title, subtitle, the run's `N rows · M ms` timing
-badge, and **AI chat** as its one action), then a full-width **tab rail** —
-Simple / Advanced on the left as the app's standard `.nx-tabs` underline bar,
-the admin-only **Sources** link parked quietly at its right end — then the
-active pane. All four run through `.reporting-shell` / `.reporting-main` /
-`.reporting-simple`, which share `body.nx-app .nx-main`'s 1600px max-width and
-40px inset, so the Reporting title sits on the same left edge as every other
-page's. Two rules worth knowing before restyling this area (both cost time
-once, see #175):
-
-- `_header.html` links `nexora-ui.css` from the `<body>`, i.e. *after*
-  `reporting.css`. An equal-specificity override here (`.reporting-tabs` vs
-  `.nx-tabs`) silently loses — use two classes.
-- The page-level tab rail is deliberately *not* the pill/segmented language
-  used by the in-pane Table/SQL and Grid/Chart toggles. Primary navigation that
-  looks like a control inside the pane it navigates to is what made the old
-  masthead read as three unrelated buttons.
-
-### Indigo Studio identity
-
-The page carries its own visual identity, distinct from the rest of the app —
-codenamed **"Indigo Studio"**: a landing hero with an AI command bar and
-live-preview report cards, a progress-rail wizard, a refined result view, a
-restyled drill drawer and Advanced builder, and full dark mode. It's a
-restyle in place over the short-lived "Editorial Ledger" serif/mono skin
-(retired, see `CHANGELOG.md`) — every `.reporting-*` class and every
-`id`/`name`/`data-testid` is unchanged, so existing e2e selectors keep
-working. Design spec: `docs/superpowers/specs/2026-07-20-reporting-redesign-handoff.md`
-(token table, type scale, per-screen specs) + the working prototype
-`docs/superpowers/specs/2026-07-20-reporting-dashboard-prototype.dc.html`
-(the dashboard JS state model — see **Dashboards** below).
-
-- **Landing hero** (`#rsHero`) — shown above the library before any report is
-  open: a title/subtitle, an **AI command bar** (`#rsAiBar` — hidden
-  entirely when the AI assistant is unconfigured, per the existing
-  `ai_enabled` guard) with three static **suggestion chips** that prefill
-  the prompt (i18n strings only, no backend registry), and two actions —
-  **New report — guided builder** and **New dashboard** (`#rsNewDashboard`,
-  see **Dashboards** below).
+- **Library screen** — header row (title, count pill, **New dashboard**,
+  **New report**), a filter row (search, sort: recently-updated/name, a
+  2-or-4-cards-per-row layout toggle persisted in
+  `localStorage['nx.reporting.layout']`), then the three grouped card grids.
+  Cards are compact: type tag, one-line name, a 22px preview strip, owner
+  footer, and an owner-only `…` menu (Share / Delete —
+  `window.Reporting.openShareFor(id)` drives the existing share modal). The
+  old landing hero + global Ask-AI bar are gone (design intent #1); the AI
+  entry point is the top-bar **AI chat** button.
 - **Report cards with live-preview thumbnails** — every card in the Library/
   My reports/Shared-with-me groups renders a small preview (a chart curve,
   a big-number total, or a mini table) from the report's last cached run
@@ -71,12 +71,13 @@ working. Design spec: `docs/superpowers/specs/2026-07-20-reporting-redesign-hand
   card with no cache yet shows a deterministic decorative placeholder seeded
   from the report id. A definition edit without a re-run keeps showing the
   previous shape until the next run.
-- **Wizard progress rail** (`#rsWizardRail`) — a left-hand rail lists the
-  wizard's steps with a running "Step N of 4" indicator; the step
-  renderers, ids, testids and flow are unchanged from Phase 1 — only the
-  chrome around them changed. Coverage badges on measure/breakdown chips
-  render as a small colour-tiered progress bar (same amber/muted
-  convention).
+- **Wizard step chips + summary** (`#rsWizardRail`, `#rsWizSummary`) — the
+  four steps render as horizontal chips (active = accent tint, done = check
+  dot) with a running "Step N of 4" indicator, and the chosen values collect
+  in a **"So far"** panel beside the step card; the step renderers, ids,
+  testids and flow are unchanged from Phase 1 — only the chrome around them
+  changed. Coverage badges on measure/breakdown chips render as a small
+  colour-tiered progress bar (same amber/muted convention).
 - **KPI stat band** above the results — total, bucket count, average per
   bucket, and peak, computed client-side from the rows already returned (no
   extra query); hidden for zero-row or non-numeric results. When the
@@ -103,18 +104,23 @@ working. Design spec: `docs/superpowers/specs/2026-07-20-reporting-redesign-hand
 - **Timing badge** in the masthead — "N rows · M ms", the row count from the
   run response and the elapsed time measured client-side around the fetch;
   appears after the first successful run.
-- **Persistent query footer** — a one-line peek of the inlined `sqlDisplay`
-  SQL under the results; click it to expand the existing Show-query panel.
-  Hidden whenever `sqlDisplay` is absent (the WS1 inliner-degrade fallback
-  keeps working).
-- **Result header** — `Open in Advanced` and `Show query` live behind a `⋯`
-  overflow menu (`#rsMoreMenu`); **Save** is the gradient primary action;
-  the format select + **Export** read as one visual unit. The error-state
-  "Open in Advanced" escape hatch stays a visible inline button. `Open in
-  Advanced` restores the current definition into the builder **and runs
-  it** (`window.Reporting.run()` right after `applyDefinition()`) — it used
-  to only pre-fill the wells, leaving Advanced showing no results and "Show
-  query" hidden/stale until the user pressed Run themselves (#178, Task 15).
+- **Query side card** (`#rsSqlView`) — the result's chart card stretches
+  beside a 292px side column holding the AI-insight caption card and an
+  always-visible, syntax-coloured **Query** card (the inlined `sqlDisplay`
+  SQL, rendered on every successful run). The old one-line SQL peek footer
+  is retired; the `⋯` menu's `Show query` entry stays as a scroll-to
+  shortcut. Hidden whenever `sqlDisplay` is absent (the WS1 inliner-degrade
+  fallback keeps working).
+- **Result header** — a `Library / <name>` breadcrumb with a green **Saved**
+  chip for persisted reports, a **Run again** tint button, then Adjust /
+  Export / **Save** (primary) / the `⋯` overflow menu (`#rsMoreMenu`,
+  hosting `Open in Advanced`, `Show query` and `Delete report`). The
+  error-state "Open in Advanced" escape hatch stays a visible inline
+  button. `Open in Advanced` restores the current definition into the
+  builder **and runs it** (`window.Reporting.run()` right after
+  `applyDefinition()`) — it used to only pre-fill the wells, leaving
+  Advanced showing no results and "Show query" hidden/stale until the user
+  pressed Run themselves (#178, Task 15).
 
 Single-series bar/line charts render in ink-navy with a brand-indigo accent
 on the peak value; multi-series charts keep the existing categorical
@@ -1074,10 +1080,17 @@ render as 0.
 ## Scheduled & emailed reports
 
 A saved report you own can be delivered on a schedule (permission
-`reporting.schedule`). The **Schedule** dialog manages per-report schedules:
+`reporting.schedule`). The **Scheduled** screen (Console left nav,
+`templates/js/_reporting_scheduled_js.html`) lists every schedule the caller
+owns across all reports — **`GET /api/reporting/schedules`** joins
+`dbo.ReportSchedules` with the report names — with an instant on/off toggle
+(a full-field `PUT` with `enabled` flipped; off rows dim to 55%), per-row
+delete, and a **New schedule** modal (report picker over the owned reports +
+the same cadence/format/recipients fields). The Advanced builder's per-report
+**Schedule** dialog still exists and manages the same rows. Fields:
 **frequency** (daily / weekly / monthly), **time** (UTC), **format** (xlsx/csv),
 and **recipients**. Schedules live in `dbo.ReportSchedules` (migration `0012`,
-FK to `Reports` `ON DELETE CASCADE`); endpoints are under
+FK to `Reports` `ON DELETE CASCADE`); per-report endpoints are under
 `/api/reporting/reports/<id>/schedules` (owner-only).
 
 ### Alert-only schedules

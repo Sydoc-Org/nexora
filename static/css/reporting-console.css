@@ -728,6 +728,8 @@ body.reporting-console .reporting-simple-chartcard {
 }
 /* The AI-insight wrapper card follows its inner caption's hidden flag */
 #rsCaptionCard:has(> #rsCaption[hidden]) { display: none; }
+/* The caption's own inline "AI" chip duplicates the card header — hide it */
+body.reporting-console #rsCaption .rp-caption-chip { display: none; }
 body.reporting-console #rsCaption.rc-side-card__body {
   margin: 0;
   border: none;
