@@ -10,6 +10,13 @@ Work toward the next release.
 
 ### Added
 
+- **Clear button on the document-value filter's first row** (#185). Added
+  filter rows already had an "x" to remove them; the fixed first row (it
+  always exists, so it can't be removed the same way) had no way to reset
+  itself once filled. It now gets the same "x", shown only once the row
+  actually has a field or value to clear, and clears field/operator/value
+  back to defaults instead of removing the row.
+
 - **Keyboard shortcut cheatsheet overlay** (#173). Pressing `?` outside an
   input field (or picking "Keyboard shortcuts" from the profile dropdown)
   shows every shortcut the app actually has: the `Ctrl`/`⌘`+`K` command

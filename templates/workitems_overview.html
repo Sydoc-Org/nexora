@@ -243,7 +243,14 @@
                     <div class="relative min-w-0">
                       <input type="text" id="docValueInput" name="docvalue" value="{{ docvalue or '' }}" {% if
                         docFieldsValues_perm==False %} disabled {% endif %} autocomplete="off"
-                        class="{{ input_base }} px-3.5 doc-filter-value" placeholder="{{ _('Type to search…') }}" data-testid="workitems-doc-value" />
+                        class="{{ input_base }} pl-3.5 pr-10 doc-filter-value" placeholder="{{ _('Type to search…') }}" data-testid="workitems-doc-value" />
+                      {# Clears row 1 back to defaults rather than removing it --
+                         it's the anchor row and always exists (issue #185). Only
+                         shown once the row actually has something to clear. #}
+                      <button type="button"
+                        class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 hover:text-red-500 transition-colors clear-doc-filter{% if not (docfield or docvalue) %} hidden{% endif %}" data-testid="workitems-clear-doc-filter">
+                        <i class="fas fa-times"></i>
+                      </button>
                       <div id="docValueCustomList"
                         class="hidden absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto doc-filter-list">
                       </div>

@@ -518,6 +518,18 @@ async function uploadBatchFiles(files, processName) {
                 });
             }
 
+            // Row 1's "x" clears rather than removes it -- it's the anchor row
+            // and always exists (issue #185). Only worth showing once there's
+            // actually something to clear.
+            function syncClearButton(row) {
+                const btn = row.querySelector('.clear-doc-filter');
+                if (!btn) return;
+                const field = row.querySelector('.doc-filter-field');
+                const value = row.querySelector('.doc-filter-value');
+                const hasContent = !!(field?.value || value?.value);
+                btn.classList.toggle('hidden', !hasContent);
+            }
+
             function addDocFilterRow() {
                 const tpl = document.getElementById('docFilterRowTemplate');
                 const container = document.getElementById('docFiltersContainer');
@@ -543,6 +555,7 @@ async function uploadBatchFiles(files, processName) {
                     if (e.target.classList.contains('doc-filter-value')) {
                         const row = e.target.closest('.doc-filter-row');
                         debounceFetchRowSuggestions(row, e.target.value);
+                        syncClearButton(row);
                     }
                 });
 
@@ -579,6 +592,7 @@ async function uploadBatchFiles(files, processName) {
                             }
                             if (fieldSearch) fieldSearch.value = fieldLabelFor(item.dataset.field);
                         }
+                        syncClearButton(row);
                         hideRowList(row);
                         const form = document.getElementById('filterForm');
                         if (form?.requestSubmit) form.requestSubmit(); else fetchAndUpdateWorkitems();
@@ -589,12 +603,38 @@ async function uploadBatchFiles(files, processName) {
                         const form = document.getElementById('filterForm');
                         if (form?.requestSubmit) form.requestSubmit(); else fetchAndUpdateWorkitems();
                     }
+                    if (e.target.closest('.clear-doc-filter')) {
+                        const row = e.target.closest('.doc-filter-row');
+                        const fieldSearch = row.querySelector('.doc-filter-field-search');
+                        const fieldHidden = row.querySelector('.doc-filter-field');
+                        const opSelect = row.querySelector('.doc-filter-op');
+                        const valueInput = row.querySelector('.doc-filter-value');
+                        if (fieldSearch) fieldSearch.value = '';
+                        if (fieldHidden) {
+                            fieldHidden.value = '';
+                            fieldHidden.removeAttribute('data-selected');
+                            fieldHidden._userSelected = false;
+                        }
+                        if (opSelect) opSelect.selectedIndex = 0;
+                        if (valueInput) valueInput.value = '';
+                        syncClearButton(row);
+                        const form = document.getElementById('filterForm');
+                        if (form?.requestSubmit) form.requestSubmit(); else fetchAndUpdateWorkitems();
+                    }
                 });
 
                 container.addEventListener('focusout', (e) => {
                     if (e.target.classList.contains('doc-filter-value')) {
                         const row = e.target.closest('.doc-filter-row');
                         setTimeout(() => hideRowList(row), 200);
+                    }
+                });
+
+                // Field combobox selection (initDocFieldCombobox fires this on
+                // the hidden input) -- keep row 1's clear button in sync.
+                container.addEventListener('change', (e) => {
+                    if (e.target.classList.contains('doc-filter-field')) {
+                        syncClearButton(e.target.closest('.doc-filter-row'));
                     }
                 });
 
@@ -1638,6 +1678,7 @@ async function uploadBatchFiles(files, processName) {
                     fillDocFieldSelect(hidden, process);
                     row.querySelector('.doc-filter-op').value = (byName.docop || [])[i] || 'contains';
                     row.querySelector('.doc-filter-value').value = (byName.docvalue || [])[i] || '';
+                    syncClearButton(row);
                 });
 
                 // Open Advanced when the view actually uses it (mirrors the
