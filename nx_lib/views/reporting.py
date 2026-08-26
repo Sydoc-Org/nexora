@@ -2844,6 +2844,35 @@ def api_schedules_all():
         conn.close()
 
 
+@require_permission("reporting.view")
+@limiter.limit("30 per minute")
+def api_share_targets():
+    """Typeahead for the share modal: up to 8 users matching by username,
+    full name or email. Returns only username + display name — the share
+    POST already accepts the username."""
+    q = (request.args.get("q") or "").strip()
+    if len(q) < 2:
+        return jsonify([])
+    like = f"%{q}%"
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT TOP 8 username, Fullname FROM dbo.Users "
+            "WHERE username LIKE ? OR Fullname LIKE ? OR Email LIKE ? "
+            "ORDER BY username",
+            (like, like, like),
+        )
+        return jsonify(
+            [{"username": r.username, "name": r.Fullname or r.username} for r in cur.fetchall()]
+        )
+    except Exception as e:
+        current_app.logger.error(f"reporting share targets error: {e}")
+        return jsonify([])
+    finally:
+        conn.close()
+
+
 # ---- Source health (Console sources rail) ---------------------------------
 
 
@@ -3503,6 +3532,11 @@ def register_routes(app):
         "/api/reporting/sources/health",
         endpoint="reporting_sources_health",
         view_func=api_sources_health,
+    )
+    app.add_url_rule(
+        "/api/reporting/share_targets",
+        endpoint="reporting_share_targets",
+        view_func=api_share_targets,
     )
     app.add_url_rule(
         "/api/reporting/reports/<int:report_id>/schedules",

@@ -26,9 +26,11 @@ def test_tab_param_overrides_to_advanced(nexora_server, page):
 
 
 def test_tab_choice_sticks_across_reload(nexora_server, page):
+    """The chosen screen persists via localStorage. The Advanced nav entry is
+    currently parked (hidden), so enter Advanced via ?tab= — the same path
+    its remaining entry points (Open in Advanced, deep links) use."""
     _login(page, nexora_server)
-    page.goto(f"{nexora_server}/reporting")
-    page.get_by_test_id("reporting-tab-advanced").click()
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
     expect(page.get_by_test_id("reporting-field-panel")).to_be_visible()
     page.goto(f"{nexora_server}/reporting")  # no ?tab param: localStorage wins
     expect(page.get_by_test_id("reporting-field-panel")).to_be_visible()

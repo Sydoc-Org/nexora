@@ -571,6 +571,12 @@ body.reporting-console .reporting-simple-resultbar {
   gap: 10px;
   margin-top: 8px;
   flex-wrap: wrap;
+  /* No card chrome around the result header — title sits on the page (mock) */
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 0;
 }
 body.reporting-console .reporting-simple-rtitle {
   margin: 0;
@@ -595,6 +601,16 @@ body.reporting-console .reporting-simple-ractions {
   align-items: center;
   gap: 8px;
 }
+
+/* Filter chips: neutral white pills (mock), not accent-tinted */
+body.reporting-console .rs-chip {
+  background: var(--nx-card);
+  border: 1px solid var(--nx-border);
+  color: var(--nx-text);
+  border-radius: 7px;
+  font-size: 12px;
+}
+body.reporting-console .rs-chip:hover { border-color: var(--nx-border-strong); }
 
 /* KPI row: ONE uniform row of Console cards — the metric stat card joins the
    band's cards instead of sitting above them as a hero (design mock). */
@@ -713,10 +729,34 @@ body.reporting-console #rsKpiBand .reporting-ledger-kpi-value {
   background: none;
   -webkit-text-fill-color: currentColor;
 }
-body.reporting-console #rsKpiBand .reporting-ledger-kpi-sub {
+body.reporting-console #rsKpiBand .reporting-ledger-kpi-sub,
+body.reporting-console .rs-kpi-row #rsStatCard .reporting-ledger-kpi-sub {
+  position: static;
+  margin: 0;
   font-size: 10.5px;
   color: var(--nx-text-meta);
+  min-height: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+/* Fixed three-row rhythm so every value lines up across the KPI row */
+body.reporting-console #rsKpiBand .reporting-ledger-kpi,
+body.reporting-console #rsKpiBand .rs-kpi-total-card,
+body.reporting-console .rs-kpi-row #rsStatCard #rsStatBody {
+  display: grid;
+  grid-template-rows: 14px 26px 14px;
+  align-content: start;
+  gap: 4px;
+}
+body.reporting-console #rsKpiBand .reporting-ledger-caption,
+body.reporting-console .rs-kpi-row #rsStatCard .nx-stat__label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  align-self: end;
+}
+body.reporting-console #rsKpiBand .rs-kpi-value-wrap { align-items: baseline; }
 
 /* Main row: chart stretches to the side column's full height (intent #11) */
 .rs-result-main {
@@ -737,7 +777,9 @@ body.reporting-console .reporting-simple-chartcard {
   position: relative;
   flex: 1;
   min-height: 268px;
-  max-height: 460px;
+  /* No cap: the absolutely-positioned canvas doesn't feed back into layout,
+     so the body safely fills whatever height the side column stretched the
+     card to (intent #11 — same bottom edge). */
 }
 .rs-chart-body canvas {
   position: absolute;
@@ -1128,6 +1170,38 @@ body.reporting-console .rs-wizard-stepcard { padding: 18px 20px; }
 body.reporting-console .reporting-modal-box {
   border-radius: calc(var(--nx-radius-scale, 1) * 12px);
   box-shadow: 0 24px 64px rgba(16, 22, 35, 0.25);
+}
+/* Share modal: the design system's appearance:none radios/checkbox leave
+   sizing to the caller — without it they collapse to invisible dots. */
+body.reporting-console .reporting-share-vis input[type="radio"],
+body.reporting-console .reporting-share-canedit input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+body.reporting-console .reporting-share-vis label {
+  align-items: center;
+  font-size: 12.5px;
+  gap: 9px;
+}
+body.reporting-console .reporting-share-canedit {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+body.reporting-console .reporting-share-add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+body.reporting-console .reporting-share-add .rs-search-wrap { flex: 1; }
+body.reporting-console .reporting-share-add .reporting-input {
+  width: 100%;
+  padding-left: 30px;
+  height: 33px;
+  box-sizing: border-box;
 }
 
 /* ---------- Responsive ---------- */

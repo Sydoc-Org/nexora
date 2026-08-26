@@ -482,6 +482,20 @@ def test_schedules_overview_lists_owned(admin_client):
         admin_client.delete(f"/api/reporting/reports/{rid}")
 
 
+def test_share_targets_without_perm_403(user_client):
+    assert user_client.get("/api/reporting/share_targets?q=ad").status_code == 403
+
+
+def test_share_targets_typeahead(admin_client):
+    """2+ chars returns matching users (username + display name only);
+    shorter queries return an empty list."""
+    assert admin_client.get("/api/reporting/share_targets?q=a").get_json() == []
+    rows = admin_client.get("/api/reporting/share_targets?q=test").get_json()
+    assert isinstance(rows, list) and len(rows) <= 8
+    for row in rows:
+        assert set(row) == {"username", "name"}
+
+
 def test_sources_health_without_perm_403(user_client):
     assert user_client.get("/api/reporting/sources/health").status_code == 403
 

@@ -117,6 +117,10 @@
     // client's own zero-filled last bucket, not the server's single exact-
     // snapshot latest row -- "latest snapshot" overclaimed the precision.
     kpiLatestSuffix: {{ _("last bucket")|tojson }},
+    kpiSumSub: {{ _("sum over the period")|tojson }},
+    kpiBucketsSub: {{ _("periods in the range")|tojson }},
+    kpiAvgSub: {{ _("total ÷ buckets")|tojson }},
+    statGrandTotal: {{ _("grand total")|tojson }},
     kpiBuckets: {{ _("Buckets")|tojson }},
     kpiAvg: {{ _("Avg per bucket")|tojson }},
     kpiPeak: {{ _("Peak")|tojson }},
@@ -847,17 +851,21 @@
   // caption/value space-between layout still sees exactly two top-level
   // children -- a bare 3rd sibling would split away from the value under
   // flex-wrap instead of hugging it.
-  function kpiBlock(testid, caption, value, deltaHtml) {
+  // Console KPI cards are a fixed three-row structure (label / value / sub)
+  // so every value sits on the same baseline across the row — the sub span
+  // renders even when empty.
+  function kpiBlock(testid, caption, value, deltaHtml, sub) {
     return '<div class="reporting-ledger-kpi" data-testid="' + testid + '">' +
       '<span class="reporting-ledger-caption">' + esc(caption) + '</span>' +
       '<span class="rs-kpi-value-wrap">' +
         '<span class="reporting-ledger-kpi-value" data-count-target="' + Number(value) + '">0</span>' +
         (deltaHtml || '') +
-      '</span></div>';
+      '</span>' +
+      '<span class="reporting-ledger-kpi-sub">' + esc(sub || '') + '</span></div>';
   }
 
-  // Peak row additionally carries the winning bucket's label under the
-  // value (omitted for the zero-dimension case, where there is none).
+  // Peak row's sub is the winning bucket's label (empty for the
+  // zero-dimension case, where there is none).
   function kpiPeakBlock(testid, caption, label, value, deltaHtml) {
     return '<div class="reporting-ledger-kpi" id="rsKpiPeak" data-testid="' + testid + '">' +
       '<span class="reporting-ledger-caption">' + esc(caption) + '</span>' +
@@ -865,7 +873,7 @@
         '<span class="reporting-ledger-kpi-value" data-count-target="' + Number(value) + '">0</span>' +
         (deltaHtml || '') +
       '</span>' +
-      (label ? '<span class="reporting-ledger-kpi-sub">' + esc(label) + '</span>' : '') +
+      '<span class="reporting-ledger-kpi-sub">' + esc(label || '') + '</span>' +
       '</div>';
   }
 
@@ -921,14 +929,20 @@
     var sparkHtml = def ? sparklineHtml(def, rows, kpi) : '';
     band.innerHTML =
       '<div class="rs-kpi-total-card" data-testid="rs-kpi-total">' +
-        '<span class="reporting-ledger-caption">' + esc(I18N.kpiTotal) +
-          (latestKey ? ' · ' + esc(I18N.kpiLatestSuffix) + ' ' + esc(String(latestKey).slice(0, 16)) : '') + '</span>' +
-        '<span class="reporting-ledger-kpi-value" data-count-target="' + Number(kpi.total) + '">0</span>' +
-        totalDelta + sparkHtml +
+        '<span class="reporting-ledger-caption">' + esc(I18N.kpiTotal) + '</span>' +
+        '<span class="rs-kpi-value-wrap">' +
+          '<span class="reporting-ledger-kpi-value" data-count-target="' + Number(kpi.total) + '">0</span>' +
+          totalDelta +
+        '</span>' +
+        '<span class="reporting-ledger-kpi-sub">' +
+          esc(latestKey
+            ? I18N.kpiLatestSuffix + ' ' + String(latestKey).slice(0, 16)
+            : I18N.kpiSumSub) + '</span>' +
+        sparkHtml +
       '</div>' +
       '<div class="rs-kpi-stats-card">' +
-        kpiBlock('rs-kpi-buckets', I18N.kpiBuckets, kpi.buckets) +
-        kpiBlock('rs-kpi-avg', I18N.kpiAvg, kpi.avg, avgDelta) +
+        kpiBlock('rs-kpi-buckets', I18N.kpiBuckets, kpi.buckets, '', I18N.kpiBucketsSub) +
+        kpiBlock('rs-kpi-avg', I18N.kpiAvg, kpi.avg, avgDelta, I18N.kpiAvgSub) +
         kpiPeakBlock('rs-kpi-peak', I18N.kpiPeak, kpi.peakLabel, kpi.peak, peakDelta) +
       '</div>';
     band.hidden = false;
@@ -1016,7 +1030,8 @@
       var idV = i === 0 ? ' id="rsStatValue"' : '';
       return '<p class="nx-stat__label"' + idL + '>' + esc(lb) + '</p>' +
              '<div class="nx-stat__value"' + idV + '>' + fmtNumber(rowVals[i]) + '</div>';
-    }).join('');
+    }).join('') +
+    '<span class="reporting-ledger-kpi-sub">' + esc(I18N.statGrandTotal) + '</span>';
     el('rsStatCard').hidden = false;
   }
 
@@ -1308,10 +1323,26 @@
     el('rsResultTitle').style.color = styleOf().titleColor || '';
   }
 
+  // Console x-axis: compact bucket labels ("Jan 25", "Q2 25", "2025",
+  // "3 Mar") instead of raw ISO dates — the tooltip title keeps the full
+  // value. Category axes (no grain) pass through unchanged.
+  function prettyBucketLabel(s, grain) {
+    var m = /^(\d{4})-(\d{2})(?:-(\d{2}))?/.exec(String(s == null ? '' : s));
+    if (!m || !grain) return s;
+    var dte = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3] || 1));
+    if (isNaN(dte)) return s;
+    if (grain === 'year') return m[1];
+    if (grain === 'quarter') return 'Q' + (Math.floor(dte.getMonth() / 3) + 1) + ' ' + m[1].slice(2);
+    if (grain === 'month') return dte.toLocaleDateString(undefined, { month: 'short' }) + ' ' + m[1].slice(2);
+    return dte.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });  // day / week
+  }
+
   function renderChart(type) {
     var d = state.chartData;
     if (!d) return;
     destroyChart();
+    var xGrain = ((state.current && state.current.def &&
+      (state.current.def.columns || [])[0]) || {}).grain || null;
     var multi = !!(d && d.multiSeries);
     if (multi && (type === 'pie' || type === 'doughnut')) type = 'bar';
     state.chartType = type;
@@ -1469,7 +1500,15 @@
       data: { labels: d.labels, datasets: datasets },
       options: { responsive: true, maintainAspectRatio: false,
                  scales: (circular) ? {}
-                   : { x: { stacked: stacked },
+                   : { x: { stacked: stacked,
+                            ticks: {
+                              maxRotation: 0,
+                              autoSkip: true,
+                              maxTicksLimit: 12,
+                              callback: function (value) {
+                                return prettyBucketLabel(this.getLabelForValue(value), xGrain);
+                              }
+                            } },
                        y: { stacked: stacked,
                             beginAtZero: true,
                             title: { display: useY2, text: axisTitle(leftSeries), color: axisTint(leftSeries) },

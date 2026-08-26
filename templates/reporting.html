@@ -439,7 +439,14 @@
       <h4 class="reporting-share-h">{{ _("Shared with specific people") }}</h4>
       <ul id="rpShareList" class="reporting-share-list" data-testid="reporting-share-list"></ul>
       <div class="reporting-share-add">
-        <input id="rpShareUser" class="reporting-input" placeholder="{{ _('Email or username') }}" data-testid="reporting-share-user">
+        {# People search: a native datalist fed by /api/reporting/share_targets
+           (wired in js/_reporting_js.html) — type 2+ characters to search by
+           name, username or email. #}
+        <span class="rs-search-wrap"><i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+          <input id="rpShareUser" class="reporting-input" list="rpShareUserList"
+                 placeholder="{{ _('Search people by name or email…') }}" data-testid="reporting-share-user">
+        </span>
+        <datalist id="rpShareUserList"></datalist>
         <label class="reporting-share-canedit"><input type="checkbox" id="rpShareCanEdit"> {{ _("Can edit") }}</label>
         <button id="rpShareAdd" class="reporting-btn nx-btn nx-btn--secondary" data-testid="reporting-share-add">{{ _("Add") }}</button>
       </div>

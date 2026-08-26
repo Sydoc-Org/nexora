@@ -1678,6 +1678,28 @@
   document.getElementById('rpShareClose').addEventListener('click', function () {
     document.getElementById('rpShareModal').hidden = true;
   });
+  // People search for the share input: debounced typeahead into the native
+  // datalist (GET /api/reporting/share_targets, 2+ chars).
+  var shareSuggestTimer = null;
+  document.getElementById('rpShareUser').addEventListener('input', function () {
+    var q = this.value.trim();
+    clearTimeout(shareSuggestTimer);
+    if (q.length < 2) return;
+    shareSuggestTimer = setTimeout(function () {
+      api('/api/reporting/share_targets?q=' + encodeURIComponent(q))
+        .then(function (res) { return res.json(); })
+        .then(function (rows) {
+          var list = document.getElementById('rpShareUserList');
+          list.innerHTML = '';
+          (rows || []).forEach(function (u) {
+            var opt = document.createElement('option');
+            opt.value = u.username;
+            opt.label = u.name;
+            list.appendChild(opt);
+          });
+        }).catch(function () { /* typeahead only — never surface an error */ });
+    }, 200);
+  });
   document.getElementById('rpShareAdd').addEventListener('click', function () {
     var u = document.getElementById('rpShareUser').value.trim();
     if (!u) return;
