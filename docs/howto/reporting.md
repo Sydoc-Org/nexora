@@ -498,26 +498,34 @@ per-card filters that layer on top of the dashboard's `globalFilters`.
   dimension (on a pivoted card, the clicked bucket **and** its series); donut
   cards are excluded from click-drill (their >8-category "Other" rollup breaks
   the 1:1 index-to-row mapping the drawer needs).
-- **`report` card — adopt a saved report 1:1** (#178). In Edit mode, the "+
-  Report" add-pill opens a picker of the current user's own saved non-SQL,
-  non-dashboard reports (`GET /api/reporting/reports`, filtered client-side);
-  picking one copies that report's `definition` and name straight into the
-  card verbatim — the card is not a chart-type choice like `kpi`/`line`/
-  `bar`/`donut`, it renders using the **adopted report's own**
-  `definition.chartType` (pie/doughnut → donut chart, bar/stacked → bar
-  chart, anything else → line), with a total tile above the chart. Because
-  it carries the source report's full definition rather than a
-  dashboard-authored one, a `report` card still participates normally in
-  `filterOverrides`/`globalFilters` layering and drill-through like any other
-  card — only its own row-total metric and chart-type choice come from the
-  adopted report instead of being configured on the dashboard. A known v1
-  limitation: the card's headline total always **sums every returned row**
-  — it does not get the `TotalMode='latest'` treatment described in
-  **Metrics registry** below, so an adopted report built on a
-  `TotalMode='latest'` metric (e.g. `backlog_total`) shows a summed total on
-  the dashboard card even though the same report's Simple KPI band shows a
-  last-bucket-only total. Latest-mode awareness inside dashboard cards is
-  deferred to a later slice, not a bug.
+- **`report` card ("Whole report") — a saved report 1:1** (#178). In Edit
+  mode, the "Whole report" add-pill opens a picker of the current user's own
+  saved non-SQL, non-dashboard reports (`GET /api/reporting/reports`,
+  filtered client-side); picking one copies that report's `definition` and
+  name straight into the card verbatim. Unlike `kpi`/`line`/`bar`/`donut`,
+  this card is not a dashboard-authored chart type — it renders the adopted
+  report exactly as the Simple tab would: a stat card with per-metric grand
+  totals (via a zero-column aggregate clone, correct for every aggregation
+  including `avg`/`count_distinct`, not a client-side sum of already-grouped
+  rows), a KPI band with prior-period delta chips (the same band Simple
+  shows, including its `TotalMode='latest'` handling for metrics like
+  `backlog_total` — see **Metrics registry** below), a chart using the
+  report's own saved `chartType`/colours/right-axis/forecast settings, and
+  the full result table (behind a "Show table" toggle when a chart is drawn,
+  shown directly otherwise) with row drill-through. All of this is drawn
+  through the Simple pane's own pure builders, exposed on
+  `window.ReportingSimple` (`kpiBandHtml`, `statCardHtml`, `buildChartData`,
+  `chartConfigFor`, `tableHtml`, …), so the dashboard card and the Simple
+  result view cannot drift apart. Because it carries the source report's
+  full definition rather than a dashboard-authored one, a `report` card still
+  participates normally in `filterOverrides`/`globalFilters` layering and
+  drill-through like any other card. One real cost worth knowing: the card
+  typically fires two `/api/reporting/run` requests per render — the
+  breakdown run plus a zero-column totals clone (skipped only when the
+  report has zero dimensions, where the breakdown run's own result already
+  is the total) — mirroring what the Simple tab itself does on every visit,
+  so a dashboard with several whole-report cards can be slower to load than
+  one built entirely from `kpi`/`line`/`bar`/`donut` cards.
 
 Migration history: the dashboard builder **supersedes**
 `docs/superpowers/plans/2026-07-15-reporting-pin-to-dashboard.md` (a

@@ -1760,6 +1760,106 @@ def test_report_card_runs_definition_unmodified(nexora_server, page):
     assert "compare" not in totals[0] and "forecast" not in totals[0]
 
 
+def test_report_card_zero_dim_fills_stat_card_without_second_run(nexora_server, page):
+    """I1: a saved report with metrics but ZERO dimensions/columns (a pure
+    "Total X this period" report, no breakdown) must still get its stat card
+    filled -- from the breakdown run's own first row, mirroring Simple's
+    runCurrent `hasMetrics && !dims` branch (fillStatCard) -- and must NOT
+    fire a second /api/reporting/run POST to get there: for this shape the
+    breakdown run's own result already IS the total, so there is nothing
+    left to clone."""
+    _login(page, nexora_server)
+    _stub_gfilter_catalog(page)
+
+    reports_list = [
+        {
+            "id": 602,
+            "name": "Open workitems total",
+            "ownerName": "Admin",
+            "updatedAt": "2026-07-01T00:00:00Z",
+            "visibility": "private",
+            "owned": True,
+            "kind": "kpi",
+        },
+    ]
+    adopted_definition = {
+        "source": "workitems",
+        "metrics": [{"field": "id", "agg": "count"}],
+        "columns": [],
+        "filters": [{"field": "status", "op": "eq", "value": "open"}],
+        "sort": [],
+        "chartType": "line",
+    }
+
+    def handle_reports(route):
+        if route.request.method == "POST":
+            route.fulfill(
+                status=200, content_type="application/json", body=json.dumps({"id": 9, "ok": True})
+            )
+        else:
+            route.fulfill(
+                status=200, content_type="application/json", body=json.dumps(reports_list)
+            )
+
+    page.route("**/api/reporting/reports", handle_reports)
+    page.route(
+        "**/api/reporting/reports/602",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "id": 602,
+                    "name": "Open workitems total",
+                    "definition": adopted_definition,
+                    "visibility": "private",
+                    "owned": True,
+                    "canEdit": True,
+                }
+            ),
+        ),
+    )
+
+    posted = []
+
+    def fulfill_run(route):
+        body = route.request.post_data_json or {}
+        posted.append(body)
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {"columns": [{"field": "id", "header": "Count"}], "rows": [[42]], "rowCount": 1}
+            ),
+        )
+
+    page.route("**/api/reporting/run", fulfill_run)
+
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-dashboard").click()
+    expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
+
+    page.get_by_test_id("rdb-add-report").click()
+    expect(page.get_by_test_id("rdb-card")).to_have_count(1)
+
+    page.get_by_test_id("rdb-card-configure").click()
+    picker = page.get_by_test_id("rdb-report-picker")
+    expect(picker).to_be_visible()
+    page.get_by_test_id("rdb-report-pick").first.click()
+
+    # Zero-dim: no chart, no KPI band -- but the stat card still fills, from
+    # the breakdown run's own (only) row.
+    expect(page.get_by_test_id("rdb-report-stat")).to_be_visible()
+    expect(page.get_by_test_id("rdb-report-stat")).to_contain_text("42")
+    expect(page.get_by_test_id("rdb-report-kpis")).to_be_hidden()
+    expect(page.locator('[data-testid="rdb-report-chartcard"]')).to_be_hidden()
+
+    # Exactly one /api/reporting/run call for this card -- no zero-column
+    # clone fires for a zero-dim report (the whole point of the fix: the
+    # breakdown run above already returned the total).
+    assert len(posted) == 1, posted
+
+
 def test_whole_report_card_keeps_saved_colours_axis_forecast_and_table(nexora_server, page):
     """The card draws through the Simple pane's own builders: saved series
     colours and right-axis picks reach the Chart.js datasets, the forecast
@@ -1798,8 +1898,11 @@ def test_whole_report_card_keeps_saved_colours_axis_forecast_and_table(nexora_se
     }
     _stub_dashboard_report(page, "e2e-dash-whole", dash)
 
+    posted = []
+
     def fulfill_run(route):
         body = route.request.post_data_json or {}
+        posted.append(body)
         if not body.get("columns"):
             route.fulfill(
                 status=200,
@@ -1879,6 +1982,13 @@ def test_whole_report_card_keeps_saved_colours_axis_forecast_and_table(nexora_se
     expect(page.get_by_test_id("rdb-report-table")).to_be_visible()
     expect(page.get_by_test_id("rdb-report-table-toggle")).to_have_text("Hide table")
     expect(page.get_by_test_id("rdb-rs-forecast-row")).to_have_count(2)
+
+    # #10: the zero-column totals clone must genuinely drop forecast/compare
+    # from the saved definition (this definition carries a real forecast, so
+    # "absent" here proves the clone stripped it, not that it was never set).
+    totals = [b for b in posted if not b.get("columns")]
+    assert totals, "zero-column grand-total clone never fired"
+    assert "forecast" not in totals[0] and "compare" not in totals[0]
 
 
 # #174: a saved report with a SECOND dimension. Before the fix the card

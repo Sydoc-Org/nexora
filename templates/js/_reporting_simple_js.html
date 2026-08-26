@@ -3576,8 +3576,10 @@
 
   // Result builders shared with the dashboard's whole-report card
   // (_reporting_dashboard_js.html renderReportCard). Everything here is
-  // DOM-free except ensureCatalogs (network); none of it touches the Simple
-  // pane's own elements, so a card can call them while #rsResult is hidden.
+  // DOM-free except ensureCatalogs (network) and chartConfigFor's one read
+  // of document.documentElement.classList for dark mode; none of it touches
+  // the Simple pane's own elements, so a card can call them while #rsResult
+  // is hidden.
   window.ReportingSimple = {
     openDefinition: openDefinition,
     ensureCatalogs: ensureCatalogs,

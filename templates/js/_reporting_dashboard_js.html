@@ -335,12 +335,10 @@
       }
       var addType = e.target.closest && e.target.closest('[data-add-type]');
       if (addType) { addCard(addType.getAttribute('data-add-type')); return; }
-      // Whole-report card: table toggle only -- flips the card's full grid
-      // in place (same msgids as the Simple pane's own #rsTableToggle). Row
-      // drill-through on this table is Task 7's job (handleCardTableRowClick
-      // wiring); this half is pulled forward because Task 6's own e2e test
-      // (test_whole_report_card_keeps_saved_colours_axis_forecast_and_table)
-      // exercises Show/Hide table directly.
+      // Whole-report card: table toggle (show/hide the full grid in place,
+      // same msgids as the Simple pane's own #rsTableToggle) and row
+      // drill-through (mirrors handleCardTableRowClick; forecast rows stay
+      // inert).
       var rtToggle = e.target.closest && e.target.closest('.rdb-report-table-toggle');
       if (rtToggle) {
         var rtCardEl = rtToggle.closest('[data-card-id]');
@@ -357,7 +355,8 @@
         var rtRows = Array.prototype.filter.call(rtRow.parentNode.children, function (tr) {
           return !tr.classList.contains('is-forecast');
         });
-        var rtCard = findCardById(rtRow.closest('[data-card-id]').getAttribute('data-card-id'));
+        var rtCardWrap = rtRow.closest('[data-card-id]');
+        var rtCard = rtCardWrap && findCardById(rtCardWrap.getAttribute('data-card-id'));
         if (rtCard) handleCardTableRowClick(rtCard, rtRows.indexOf(rtRow));
         return;
       }
@@ -1273,9 +1272,13 @@
     if (!charted) { q('.rdb-report-table').hidden = false; q('.rdb-report-tablebar').hidden = true; }
     prefixTestIds(body);
 
-    // Stat card: per-metric grand totals via a zero-column clone -- correct
-    // for every aggregation (avg / count_distinct), unlike summing the
-    // grouped rows. Same clone the Simple pane's runCurrent fires.
+    // Stat card: per-metric grand totals. With a breakdown dimension, via a
+    // zero-column clone -- correct for every aggregation (avg /
+    // count_distinct), unlike summing the grouped rows. Same clone the
+    // Simple pane's runCurrent fires. With NO dimension, the breakdown run's
+    // own first row already IS the total for this shape (mirrors Simple's
+    // runCurrent `hasMetrics && !dims` branch / fillStatCard call) -- no
+    // second request needed.
     if (hasMetrics && dims) {
       var totalDef = JSON.parse(JSON.stringify(def));
       totalDef.columns = []; totalDef.sort = [];
@@ -1286,6 +1289,12 @@
       if (stat && t.ok && t.data && Array.isArray(t.data.rows) && t.data.rows.length) {
         stat.innerHTML = RS.statCardHtml(def, t.data.rows[0], false);
         stat.hidden = false;
+      }
+    } else if (hasMetrics && !dims && rows.length) {
+      var stat0 = q('.rdb-report-stat');
+      if (stat0) {
+        stat0.innerHTML = RS.statCardHtml(def, rows[0], false);
+        stat0.hidden = false;
       }
     }
   }
