@@ -422,7 +422,7 @@ body.reporting-console .rs-card-preview {
   margin-top: 8px;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 28px;
   overflow: hidden;
 }
 /* Two columns so the short counts (measures / breakdowns / filters) pair up
