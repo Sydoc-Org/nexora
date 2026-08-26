@@ -422,18 +422,21 @@ body.reporting-console .rs-card-preview {
   margin-top: 8px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
   overflow: hidden;
 }
 /* Two columns so the short counts (measures / breakdowns / filters) pair up
    instead of each claiming a line of its own. */
 body.reporting-console .rs-card-facts {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* Columns size to their content, not to half the row each -- the counts are
+     one or two characters wide, and stretching them left a gap of dead space
+     before the chart. */
+  grid-template-columns: repeat(2, minmax(0, max-content));
   align-content: center;
   gap: 2px 10px;
   min-width: 0;
-  flex: 1;
+  flex: 0 1 auto;
 }
 body.reporting-console .rs-card-fact--wide { grid-column: 1 / -1; }
 body.reporting-console .rs-card-fact {
@@ -455,10 +458,10 @@ body.reporting-console .rs-card-fact i {
   color: var(--nx-accent);
   opacity: 0.75;
 }
+/* The chart takes whatever the facts leave, starting one gap after them. */
 body.reporting-console .rs-card-thumb {
-  width: 40%;
-  max-width: 190px;
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 90px;
   align-self: stretch;
   display: flex;
   align-items: center;
@@ -467,7 +470,6 @@ body.reporting-console .rs-card-thumb {
    thumbnail have the row back rather than leaving a gap. */
 body.reporting-console .rs-card-preview:not(:has(.rs-card-facts)) .rs-card-thumb {
   width: 100%;
-  max-width: none;
 }
 body.reporting-console .rs-card-svg {
   width: 100%;
