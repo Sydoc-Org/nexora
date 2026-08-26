@@ -62,6 +62,7 @@ dev = [
     "defusedxml==0.7.1",
     "ruff==0.7.4",
     "mypy==1.13.0",
+    "types-requests==2.32.0.20241016",
     "pre-commit==4.0.1",
     "gitlint-core==0.19.1",
     "tabulate>=0.10.0",   # scripts/new-process.py
@@ -103,6 +104,9 @@ line-ending = "lf"
 [tool.mypy]
 python_version = "3.13"
 ignore_missing_imports = true
+# Flask/SQLAlchemy globals are legitimately Optional-until-configured here;
+# strict-optional would flag ~12 known-safe sites. Revisit if those get typed.
+strict_optional = false
 check_untyped_defs = false
 warn_unused_ignores = true
 warn_redundant_casts = true

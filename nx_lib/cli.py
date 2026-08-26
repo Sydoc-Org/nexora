@@ -862,7 +862,7 @@ def repl() -> int:
     ctrl_c_pending = False
     while True:
         try:
-            line = session.prompt(_prompt_message()).strip()
+            line = session.prompt(_prompt_message()).strip()  # type: ignore[arg-type]
             ctrl_c_pending = False
         except KeyboardInterrupt:
             if ctrl_c_pending:
