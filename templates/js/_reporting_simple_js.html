@@ -387,8 +387,10 @@
   // colored so it follows the theme like the other previews.
   function dashGlyph(t, x, y, w, h) {
     var a = 'var(--nx-accent, #4f46e5)';
-    var px = 4, cx = x + w / 2, cy = y + h / 2;
-    var ix = x + px, iy = y + px, iw = Math.max(2, w - px * 2), ih = Math.max(2, h - px * 2);
+    // Inner padding 7: at the ~0.87 render scale a 4px inset put stroke ends
+    // flush against the cell's rounded corners and read as clipped content.
+    var px = 7, py = 4, cx = x + w / 2, cy = y + h / 2;
+    var ix = x + px, iy = y + py, iw = Math.max(2, w - px * 2), ih = Math.max(2, h - py * 2);
     if (t === 'donut') {
       var r = Math.min(iw, ih) / 2;
       return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r.toFixed(1) +
