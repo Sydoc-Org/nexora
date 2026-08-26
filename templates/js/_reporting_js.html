@@ -1186,9 +1186,7 @@
   }
 
   function loadSources() {
-    api('/api/reporting/sources').then(function (res) {
-      return res.json();
-    }).then(function (sources) {
+    ReportingCatalog.sources().then(function (sources) {
       var sel = document.getElementById('rpSource');
       sel.innerHTML = '';
       state.sourcesById = {};
@@ -1447,7 +1445,7 @@
   // Fetch the full accessible-metrics map once and cache it, then derive the
   // per-source list. A failed fetch is non-fatal: treat as "no metrics".
   function loadMetrics() {
-    api('/api/reporting/metrics').then(function (res) { return res.json(); })
+    ReportingCatalog.metrics()
       .then(function (map) {
         state.metricsBySource = map || {};
         refreshAvailableMetrics();

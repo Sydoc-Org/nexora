@@ -57,9 +57,7 @@ window.ReportingDrill = (function () {
   // measures". Translate it back to the anchor's own date column instead.
   var ACTIVITY_FIELD = 'activity_date';
   var metricsBySource = null;
-  var metricsReady = fetch(API_PREFIX + 'api/reporting/metrics',
-    { headers: { 'X-CSRFToken': csrf } })
-    .then(function (r) { return r.ok ? r.json() : {}; })
+  var metricsReady = ReportingCatalog.metrics()
     .then(function (j) { metricsBySource = j || {}; })
     .catch(function () { metricsBySource = {}; });
 

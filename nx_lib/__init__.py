@@ -12,7 +12,7 @@ from flask import Flask
 from flask_session import Session
 from flask_talisman import Talisman
 
-from . import app_logging, extensions, hooks
+from . import app_logging, compression, extensions, hooks
 from . import config as cfg
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -49,6 +49,11 @@ def create_app():
         app.config["SESSION_PERMANENT"] = True
         app.config["SESSION_USE_SIGNER"] = True
         Session(app)
+
+    # Registered before the other after_request hooks so it runs LAST (Flask
+    # calls them in reverse registration order) -- nothing else then reads or
+    # rewrites a body that is already gzipped.
+    compression.init_app(app)
 
     extensions.init_app(app)
     hooks.init_app(app)

@@ -1,0 +1,53 @@
+{# One fetch per read-only reporting catalog, per page load.
+
+   The reporting page is five separate IIFEs (tabs, Simple, Advanced,
+   dashboard, drill) and each of them needs the same catalogs. Because none
+   of them can read another's state, each used to fetch its own copy: a
+   single /reporting load asked for /api/reporting/sources three times and
+   /api/reporting/metrics three times, all identical, all serialised behind
+   one another. This memo is the one thing they share -- not state, just the
+   in-flight promise.
+
+   Only the two immutable-per-session registries live here. /reports is
+   deliberately NOT memoised: it changes whenever a report is saved, renamed
+   or deleted, and a cache would need invalidating at a dozen call sites.
+   ponytail: that leaves two /reports fetches per load; memoise it too only
+   if it ever shows up as a real cost. #}
+<script nonce="{{ csp_nonce() }}">
+(function () {
+  const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+  // path -> Promise<string>. Kept for the lifetime of the page; a failed
+  // fetch drops out again so the next caller retries rather than inheriting
+  // the rejection.
+  var pending = {};
+
+  function body(path) {
+    if (!pending[path]) {
+      pending[path] = fetch(API_PREFIX + path.replace(/^\//, ''), {
+        headers: { 'Accept': 'application/json' },
+        credentials: 'same-origin'
+      }).then(function (res) {
+        if (!res.ok) {
+          var err = new Error('catalog ' + path + ' failed: ' + res.status);
+          err.status = res.status;
+          throw err;
+        }
+        return res.text();
+      }).catch(function (err) {
+        delete pending[path];
+        throw err;
+      });
+    }
+    return pending[path];
+  }
+
+  window.ReportingCatalog = {
+    // Resolves to a FRESH parse per caller: the modules keep their own
+    // catalog state and some of them decorate it, so handing out one shared
+    // object would let a mutation in one pane surface in another.
+    json: function (path) { return body(path).then(JSON.parse); },
+    sources: function () { return window.ReportingCatalog.json('api/reporting/sources'); },
+    metrics: function () { return window.ReportingCatalog.json('api/reporting/metrics'); }
+  };
+}());
+</script>

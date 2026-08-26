@@ -682,8 +682,9 @@
   }
 
   async function loadMetricsCatalog() {
-    var res = await api('/api/reporting/metrics');
-    if (res.ok && res.data) state.metricsBySource = res.data;
+    try {
+      state.metricsBySource = await ReportingCatalog.metrics();
+    } catch (e) { /* non-fatal: the panes treat a missing map as "no metrics" */ }
   }
 
   // ---------- Result view ----------
@@ -3321,8 +3322,9 @@
 
   async function loadSourcesCatalog() {
     if (state.sources) return state.sources;
-    var res = await api('/api/reporting/sources');
-    state.sources = (res.ok && Array.isArray(res.data)) ? res.data : [];
+    var list = null;
+    try { list = await ReportingCatalog.sources(); } catch (e) { list = null; }
+    state.sources = Array.isArray(list) ? list : [];
     return state.sources;
   }
 

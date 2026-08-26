@@ -522,11 +522,9 @@
 
   async function ensureCatalog() {
     if (catalog.loaded) return;
-    var sourcesRes = await api('/api/reporting/sources');
-    // Fetched for parity with the Simple pane's catalog load (same two
-    // endpoints); not itself read by the filter popover below.
-    await api('/api/reporting/metrics');
-    catalog.sources = (sourcesRes.ok && Array.isArray(sourcesRes.data)) ? sourcesRes.data : [];
+    var list = null;
+    try { list = await ReportingCatalog.sources(); } catch (e) { list = null; }
+    catalog.sources = Array.isArray(list) ? list : [];
     catalog.loaded = true;
   }
 

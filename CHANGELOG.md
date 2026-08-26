@@ -10,6 +10,19 @@ Work toward the next release.
 
 ### Fixed
 
+- **The reporting page fetched the same catalogs eight times per load.** Its
+  five modules (tabs rail, Simple, Advanced, dashboard builder, drill drawer)
+  are separate IIFEs that can't read each other's state, so each fetched its
+  own copy: `GET /api/reporting/sources` **three** times and
+  `/api/reporting/metrics` **three** times on a single visit, serialised one
+  behind another — and one of those `/metrics` calls, in the dashboard
+  builder's `ensureCatalog`, was never read at all (its own comment said so).
+  Both read-only registries now come from one shared in-flight promise
+  (`window.ReportingCatalog`, `templates/js/_reporting_catalog_js.html`), so a
+  page load makes one request each. Measured on INT: 8 API requests → 6, and
+  the catalogs stop queueing behind one another. `/api/reporting/reports` is
+  deliberately left alone — it changes on every save/rename/delete.
+
 - **Saving a report in the Console duplicated it instead of updating it.** Save
   in the results view always `POST`ed a new row, so pressing it on a report you
   had opened from the library left two identical entries under My reports — and
@@ -23,6 +36,20 @@ Work toward the next release.
   answer from Eddard) still asks for a name and creates one.
 
 ### Added
+
+- **Responses are gzipped.** Nexora ships each page's JavaScript inline (the
+  `templates/js/*.html` partials), so an HTML response is the whole client for
+  that page — `/reporting` is ~620 KB — and none of it was compressed. Flask
+  does nothing by default, and IIS could not cover for it: `web.config` maps
+  `path="*"` to HttpPlatformHandler, so *every* request, `/static` included, is
+  proxied to waitress rather than served (and compressed) by IIS.
+  `nx_lib/compression.py` is one `after_request` hook over the stdlib's `gzip`,
+  registered first so it runs last. Measured on INT: `/reporting` **172 KB
+  instead of 625 KB** (‑73%, ~24 ms of CPU) and `reporting.css` **30 KB instead
+  of 124 KB**. Only text types, only bodies over 1 KB, only a bounded
+  (< 2 MB) `send_file` body, never a genuinely streamed one; `Vary:
+  Accept-Encoding` is set whether or not the body ends up compressed, and the
+  `ETag` is left alone so `If-None-Match` still answers 304.
 
 - **Eddard, the reporting mascot** (#212). The AI assistant now has a face and a
   name: an animated version of the Nexora black-hole logo — black core, accent

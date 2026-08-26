@@ -133,9 +133,7 @@
     if (!wrap) return;
     var res, health = null;
     try {
-      res = await fetch(API_PREFIX + 'api/reporting/sources',
-        { headers: { 'X-CSRFToken': csrf } });
-      res = res.ok ? await res.json() : null;
+      res = await ReportingCatalog.sources();
     } catch (e) { res = null; }
     if (!Array.isArray(res) || !res.length) return;
     try {

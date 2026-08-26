@@ -48,6 +48,16 @@ content area. `templates/js/_reporting_tabs_js.html` is the nav controller
   the SOURCES label. The **Advanced** nav entry is currently parked
   (`hidden` in `reporting.html`) — the pane stays reachable via
   `?tab=advanced`, Open-in-Advanced and `ReportingTabs.show('advanced')`.
+- **One fetch per catalog per page load.** The page is five independent IIFEs
+  (tabs rail, Simple, Advanced, dashboard builder, drill drawer) that cannot
+  read each other's state, and each used to fetch its own copy of the same
+  registries — `GET /api/reporting/sources` **3×** and `/api/reporting/metrics`
+  **3×** per visit, serialised behind one another. They now share one in-flight
+  promise via `window.ReportingCatalog` (`templates/js/_reporting_catalog_js.html`,
+  included before every consumer): `ReportingCatalog.sources()` /
+  `.metrics()` each resolve to a **fresh parse** per caller, so a module that
+  decorates its own copy can't corrupt another's. `/api/reporting/reports` is
+  deliberately not memoised — it changes on every save, rename and delete.
 - Everything still runs through `.reporting-shell` (1600px max-width /
   40px inset) so the page lines up with the rest of the app. The Console
   skin lives in **`static/css/reporting-console.css`**, loaded after
