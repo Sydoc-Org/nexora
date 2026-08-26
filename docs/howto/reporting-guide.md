@@ -219,10 +219,18 @@ could not run otherwise.
 
 ## Reading the result
 
-**The stat band** at the top: total, number of buckets, average per bucket, and
-peak. Computed from the rows on screen, so it costs no extra query time.
+**The stat band** at the top. Every figure says what it is a figure *of*:
 
-**Delta chips (↑ 12%)** appear on those tiles when your report uses exactly one
+- One **total card per measure** — `Total · Documents imported`, then
+  `Total · Documents exported`, and so on, one per measure you picked. There is
+  no single number combining them: a document that was imported and later
+  exported would be counted twice, so adding the two together would not be a
+  count of anything real.
+- Below them, **number of buckets, average per bucket and peak** for the first
+  measure — the card says which one it is describing. A report with no
+  breakdown (*just the total*) has no buckets, so these are not shown.
+
+**Delta chips (↑ 12%)** appear on those cards when your report uses exactly one
 relative date preset. They compare against the period *immediately before* the
 one you are looking at.
 

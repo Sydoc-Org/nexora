@@ -77,21 +77,34 @@ working. Design spec: `docs/superpowers/specs/2026-07-20-reporting-redesign-hand
   chrome around them changed. Coverage badges on measure/breakdown chips
   render as a small colour-tiered progress bar (same amber/muted
   convention).
-- **KPI stat band** above the results — total, bucket count, average per
-  bucket, and peak, computed client-side from the rows already returned (no
-  extra query); hidden for zero-row or non-numeric results. When the
-  **first** requested metric's registry row has **`TotalMode = 'latest'`**
-  (`metricTotalModeFor` in `_reporting_simple_js.html` only inspects
-  `def.metrics[0]` — a mixed-mode multi-metric request is judged by that one
-  metric alone, not "every" metric), the Total tile's caption adds a **"·
-  last bucket &lt;bucket&gt;"** suffix, naming the bucket the number
-  actually covers. This is the client's own zero-filled last bucket, not a
-  request for the server's single exact-snapshot latest row, so the wording
-  is deliberately bucket-honest rather than implying snapshot precision —
-  point-in-time metrics like backlog are wrong to sum across buckets, so the
-  band restricts the client total to the latest one, mirroring (but not
-  reading) the server's own zero-dim latest-bucket total described in
-  **Metrics registry** below (`kpiLatestSuffix` in `_reporting_simple_js.html`).
+- **KPI stat band** above the results — **one labelled total card per
+  metric** (`Total · <metric label>`), followed by bucket count, average per
+  bucket and peak for the primary measure under a heading naming it; hidden
+  for zero-row or non-numeric results. Every caption names the measure it
+  belongs to: the label is the result column's own `header`, which
+  `_prepare_run` fills from the metrics registry (`metric_result_columns` in
+  `views/reporting.py`), so a run's table, export and KPI band all read
+  "Documents imported" rather than `docs_imported`. A bare "Total" used to
+  hold whichever metric happened to come first, with nothing saying which.
+  - **Totals are the server's, not the browser's.** The band renders
+    `state.grandTotals` — the zero-column clone run's row (or, for a
+    zero-dimension definition, the single row the main run returns), which is
+    correct for every aggregation. Summing the grouped rows in the browser is
+    only right for additive metrics; it is the fallback for a result with no
+    semantic metrics (SQL / plain grid). The separate `rsStatCard` that used
+    to repeat these totals just above the band is retired.
+  - **Distribution stats need a distribution.** Buckets / average per bucket /
+    peak render only when the definition has at least one dimension — a
+    zero-dimension run is a single grand total per metric.
+  - **Levels.** When a metric's registry row has **`TotalMode = 'latest'`**,
+    its card's caption adds a **"· last bucket &lt;bucket&gt;"** suffix,
+    naming the bucket the number actually covers, and the fallback total is
+    that bucket's value rather than a sum across buckets (point-in-time
+    metrics like backlog are wrong to add up). Each metric is judged by its
+    **own** total mode, so a summed count and a levelled backlog can share one
+    band. The suffix is the client's own zero-filled last bucket, so the
+    wording is deliberately bucket-honest rather than implying snapshot
+    precision (`kpiLatestSuffix` in `_reporting_simple_js.html`).
   When the definition carries a **single relative-date token filter**, the run request
   sets `compare: true` and each stat renders a **delta chip** (↑/↓/— plus a
   percentage) against the immediately preceding period of the same length —
@@ -140,7 +153,7 @@ chart already on screen re-themes on the next render, not live.
   - **+ New report (wizard)** — measures (from the metrics registry;
     **multi-select** — the first pick pins the source and other sources'
     chips disable until the selection is cleared; the result carries one
-    column/series per metric and the stat card one total per metric; admins
+    column/series per metric and the KPI band one labelled total per metric; admins
     grow the wizard's reach by adding rows at `/reporting/metrics`, zero code
     change) → **which processes?** (own step, checkbox list all pre-checked;
     skipped for sources without processes — step headings auto-number via CSS
@@ -302,7 +315,7 @@ current value vs. the same stat over `comparison.rows`:
   different-length periods would fabricate a percentage, so that one chip is
   dropped rather than shown misleadingly; Total and Peak are unaffected
   because an extra all-zero bucket contributes `0` to both.
-- The Simple KPI band's **Total** tile also gets a small inline **sparkline**
+- The Simple KPI band's headline total card also gets a small inline **sparkline**
   (a hand-rolled SVG polyline, not a Chart.js instance) of the metric series
   — gated to the same single-dimension date-grain case the zero-fill already
   special-cases.

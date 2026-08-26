@@ -187,17 +187,13 @@
     <div class="rs-result-grid">
       <div class="rs-result-left">
         {# Task 7 -- .nx-rise entrance (fill-mode backwards, never both --
-           see nexora-ui.css) restarts each run: these cards go hidden (thus
+           see nexora-ui.css) restarts each run: this card goes hidden (thus
            unrendered) between runs, so the browser treats the next unhide
            as a fresh insertion. Staggered with rsChartCard/rsTableCard
-           below so the result reveals top-to-bottom. #}
-        <div class="nx-card nx-card--pad nx-stat reporting-simple-stat nx-rise" id="rsStatCard" hidden data-testid="rs-stat-card">
-          <div id="rsStatBody">
-            <p class="nx-stat__label" id="rsStatLabel"></p>
-            <div class="nx-stat__value" id="rsStatValue"></div>
-          </div>
-          <i class="fas fa-chart-simple nx-stat__icon" aria-hidden="true"></i>
-        </div>
+           below so the result reveals top-to-bottom.
+           The band owns every headline figure -- one labelled total per
+           metric, then the primary measure's buckets/avg/peak. A separate
+           rsStatCard used to repeat the same grand totals just above it. #}
         <div id="rsKpiBand" class="reporting-ledger-kpis nx-rise" hidden data-testid="rs-kpi-band"></div>
       </div>
       <div class="nx-card nx-card--pad reporting-simple-chartcard nx-rise-2" id="rsChartCard" hidden data-testid="rs-chart-card">

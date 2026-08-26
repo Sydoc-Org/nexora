@@ -981,8 +981,8 @@ body.nx-app {
 .reporting-simple-rtitle { margin: 0; font-size: 16px; font-weight: 700; }
 .reporting-simple-ractions { display: flex; gap: 8px; align-items: center; }
 /* Task 8 retires .reporting-simple-cards (260px sidebar) in favor of
-   .rs-result-grid (250px) -- rsStatCard/rsKpiBand share the left rail via
-   the new .rs-result-left wrapper, rsChartCard is the sole right item. */
+   .rs-result-grid (250px) -- rsKpiBand owns the left rail via the
+   .rs-result-left wrapper, rsChartCard is the sole right item. */
 .rs-result-grid { display: grid; grid-template-columns: 250px 1fr; gap: 14px; align-items: start; }
 .rs-result-grid:has(#rsChartCard[hidden]) { grid-template-columns: 250px; }
 .rs-result-left { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
@@ -1741,14 +1741,11 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
   color: var(--rl-ink);
 }
 
-/* Task 8 -- result body left rail: rsStatCard (zero-dimension total) sits
-   at the same 14px radius as the other studio cards. #rsKpiBand itself
-   (breakdown case) is restyled by ID rather than editing the shared
-   .reporting-ledger-kpis/-kpi/-kpi-value rules above, so the Advanced
-   pane's rpKpiBand keeps its flat flex-row band untouched. renderKpiBand
-   (JS partial) nests a gradient total card and a stacked secondary card
-   (Buckets/Avg/Peak) inside #rsKpiBand; those two inner cards are new. */
-.reporting-simple-stat { border-radius: calc(var(--nx-radius-scale, 1) * 14px); }
+/* Task 8 -- result body left rail: #rsKpiBand is restyled by ID rather than
+   editing the shared .reporting-ledger-kpis/-kpi/-kpi-value rules above, so
+   the Advanced pane's rpKpiBand keeps its flat flex-row band untouched.
+   renderKpiBand (JS partial) nests one total card per metric and a stacked
+   secondary card (Buckets/Avg/Peak) inside #rsKpiBand. */
 #rsKpiBand { display: flex; flex-direction: column; gap: 10px; padding: 0; }
 .rs-kpi-total-card {
   background: var(--nx-brand-grad);
@@ -1762,6 +1759,28 @@ body.nx-app.reporting-ledger { background: var(--rl-canvas); }
 }
 .rs-kpi-total-card .reporting-ledger-caption { color: rgba(255, 255, 255, .8); }
 .rs-kpi-total-card .reporting-ledger-kpi-value { color: #fff; font-size: 38px; letter-spacing: -1.5px; }
+/* A multi-metric run gets one labelled total card per metric. Only the first
+   (the one the Buckets/Avg/Peak stats describe) keeps the gradient -- the rest
+   are plain cards so the band still reads as one primary + its companions. */
+.rs-kpi-total-card--alt {
+  background: var(--nx-card);
+  border: 1px solid var(--nx-border);
+  box-shadow: none;
+  color: inherit;
+}
+.rs-kpi-total-card--alt .reporting-ledger-caption { color: var(--nx-text-meta); }
+.rs-kpi-total-card--alt .reporting-ledger-kpi-value { color: var(--rl-ink); font-size: 28px; }
+/* Names the measure the stats below belong to (Buckets/Avg/Peak are all about
+   the primary metric, never the whole result set). */
+.rs-kpi-stats-title {
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--nx-text-meta);
+  border-bottom: 1px solid var(--nx-border);
+  padding-bottom: 8px;
+}
 .rs-kpi-stats-card {
   background: var(--nx-card);
   border: 1px solid var(--nx-border);
@@ -2495,6 +2514,11 @@ html.dark .reporting-ledger .reporting-simple-chip-cov.is-cov-mid .rs-cov-fill {
 html.dark .rs-kpi-total-card { color: var(--nx-page); }
 html.dark .rs-kpi-total-card .reporting-ledger-caption { color: rgba(15, 23, 42, .65); }
 html.dark .rs-kpi-total-card .reporting-ledger-kpi-value { color: var(--nx-page); }
+/* ...but the further metrics' cards are plain, not gradient -- dark-on-dark
+   would make their captions unreadable, so they take the normal card ink. */
+html.dark .rs-kpi-total-card--alt { color: inherit; }
+html.dark .rs-kpi-total-card--alt .reporting-ledger-caption { color: var(--nx-text-meta); }
+html.dark .rs-kpi-total-card--alt .reporting-ledger-kpi-value { color: var(--nx-text); }
 html.dark .reporting-ledger-sqlpeek { background: var(--nx-alt); }
 
 /* Landing hero (spec §Landing) -- radial stops + border, and the gradient

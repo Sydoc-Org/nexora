@@ -146,6 +146,7 @@
     loaded: false,
     view: 'library',        // library | wizard | result
     current: null,          // { def, name, reportId, owned, canEdit, fromWizard }
+    grandTotals: null,      // authoritative per-metric totals for the KPI band
     chart: null,            // private Chart.js instance
     chartData: null,        // prepared labels+datasets for renderChart
     wiz: null               // wizard state
@@ -533,7 +534,6 @@
     el('rsError').hidden = false;
     renderErrorOpenAdvanced(!!(opts && opts.openAdvanced));
     setHeaderActionsEnabled(false);
-    el('rsStatCard').hidden = true;
     el('rsChartCard').hidden = true;
     el('rsTableCard').hidden = true;
     el('rsChartNote').hidden = true;
@@ -742,17 +742,17 @@
       '</div>';
   }
 
-  // Left-rail layout (studio result body): the primary total renders into
-  // its own gradient card, the secondary Buckets/Avg/Peak rows stack into a
-  // second card below it -- both inside the one #rsKpiBand container that
-  // computeKpiBand already owned (see the CSS for the ID-scoped override
-  // that turns the Advanced pane's shared flat .reporting-ledger-kpis row
-  // into this stacked pair for Simple only). A breakdown run also keeps
-  // showing the legacy rsStatCard (filled by runCurrent's separate
-  // grand-total clone query, untouched here) alongside this band --
-  // existing, tested behavior (test_wizard_category_breakdown_to_result_cards)
-  // that this task's regroup does not change.
-  function renderKpiBand(dims, rows, comparison, def) {
+  // Left-rail layout (studio result body): one labelled total card per metric
+  // (the first gets the gradient, a delta chip and the sparkline), then the
+  // Buckets/Avg/Peak rows stacked into a card headed with the measure they
+  // describe -- all inside the one #rsKpiBand container computeKpiBand
+  // already owned (see the CSS for the ID-scoped override that turns the
+  // Advanced pane's shared flat .reporting-ledger-kpis row into this stack
+  // for Simple only). Nothing here says a bare "Total" any more: on a
+  // multi-metric run that number was one arbitrary metric's, and the reader
+  // had no way to tell which. The grand totals used to be repeated in a
+  // separate rsStatCard above the band; they live here now.
+  function renderKpiBand(dims, rows, comparison, def, columns) {
     var band = el('rsKpiBand');
     var kpi = computeKpiBand(dims, rows);
     if (!kpi) { band.hidden = true; band.innerHTML = ''; return; }
@@ -771,7 +771,10 @@
       ? zeroFillDateBuckets(def, comparison.rows, [], [comparison.priorStart, comparison.priorEnd])
       : (comparison ? comparison.rows : null);
     var priorKpi = priorRows ? computeKpiBand(dims, priorRows) : null;
-    var latestKey = applyLatestTotal(def, kpi, rows);
+    // kpi.total only feeds the delta chip now (the cards render their own
+    // per-measure totals), but it still has to be the same kind of number the
+    // prior period's is -- a level's latest bucket, not its sum.
+    applyLatestTotal(def, kpi, rows);
     if (priorKpi) applyLatestTotal(def, priorKpi, priorRows);
     var totalDelta = '', avgDelta = '', peakDelta = '';
     if (priorKpi) {
@@ -792,18 +795,38 @@
       peakDelta = deltaChipHtml(kpi.peak, priorKpi.peak, comparison.priorStart, comparison.priorEnd);
     }
     var sparkHtml = def ? sparklineHtml(def, rows, kpi) : '';
-    band.innerHTML =
-      '<div class="rs-kpi-total-card" data-testid="rs-kpi-total">' +
-        '<span class="reporting-ledger-caption">' + esc(I18N.kpiTotal) +
-          (latestKey ? ' · ' + esc(I18N.kpiLatestSuffix) + ' ' + esc(String(latestKey).slice(0, 16)) : '') + '</span>' +
-        '<span class="reporting-ledger-kpi-value" data-count-target="' + Number(kpi.total) + '">0</span>' +
-        totalDelta + sparkHtml +
-      '</div>' +
+    var measures = measureTotals(def, columns, rows, dims, kpi);
+    // The delta chip and the sparkline both describe the series at kpi.idx,
+    // so they only belong on the headline card when that is the measure it
+    // shows -- and only while the shown figure IS this pane's own sum of that
+    // series. An authoritative grand total (a distinct count, an average)
+    // can't be diffed against a client-side sum of the prior period without
+    // inventing a percentage.
+    var headline = measures[0] || null;
+    var seriesIsHeadline = !!headline && headline.idx === kpi.idx &&
+      Math.abs(Number(headline.total) - Number(kpi.total)) < 0.5;
+    // Buckets/Avg/Peak describe a distribution across the breakdown; a
+    // zero-dimension run is a single grand total with nothing to distribute.
+    var statsHtml = dims ? (
       '<div class="rs-kpi-stats-card">' +
+        '<span class="rs-kpi-stats-title" data-testid="rs-kpi-stats-title">' +
+          esc(measureLabel(columns, kpi.idx)) + '</span>' +
         kpiBlock('rs-kpi-buckets', I18N.kpiBuckets, kpi.buckets) +
         kpiBlock('rs-kpi-avg', I18N.kpiAvg, kpi.avg, avgDelta) +
         kpiPeakBlock('rs-kpi-peak', I18N.kpiPeak, kpi.peakLabel, kpi.peak, peakDelta) +
-      '</div>';
+      '</div>') : '';
+    band.innerHTML = measures.map(function (m, i) {
+      var first = i === 0;
+      return '<div class="rs-kpi-total-card' + (first ? '' : ' rs-kpi-total-card--alt') + '"' +
+        ' data-testid="' + (first ? 'rs-kpi-total' : 'rs-kpi-total-extra') + '">' +
+        '<span class="reporting-ledger-caption">' + esc(I18N.kpiTotal) +
+          (m.label ? ' · ' + esc(m.label) : '') +
+          (m.latestKey ? ' · ' + esc(I18N.kpiLatestSuffix) + ' ' + esc(String(m.latestKey).slice(0, 16)) : '') +
+        '</span>' +
+        '<span class="reporting-ledger-kpi-value" data-count-target="' + Number(m.total) + '">0</span>' +
+        (first && seriesIsHeadline ? totalDelta + sparkHtml : '') +
+        '</div>';
+    }).join('') + statsHtml;
     band.hidden = false;
     Array.prototype.forEach.call(band.querySelectorAll('[data-count-target]'), function (span) {
       animateValue(span, Number(span.getAttribute('data-count-target')), fmtNumber);
@@ -818,17 +841,13 @@
     });
   }
 
-  // One label/value pair per metric in the stat card (the first pair keeps
-  // the rsStatLabel/rsStatValue ids the tests target).
-  function fillStatCard(def, rowVals) {
-    var labels = metricLabelsFor(def);
-    el('rsStatBody').innerHTML = labels.map(function (lb, i) {
-      var idL = i === 0 ? ' id="rsStatLabel"' : '';
-      var idV = i === 0 ? ' id="rsStatValue"' : '';
-      return '<p class="nx-stat__label"' + idL + '>' + esc(lb) + '</p>' +
-             '<div class="nx-stat__value"' + idV + '>' + fmtNumber(rowVals[i]) + '</div>';
-    }).join('');
-    el('rsStatCard').hidden = false;
+  // Authoritative per-metric grand totals (one cell per def.metrics entry),
+  // from the zero-column clone run — or from the single row of a zero-dim run,
+  // which IS that total. The band renders them; summing the grouped rows in
+  // the browser only happens to be right for additive metrics, and would
+  // quietly double-count a count_distinct or average an average.
+  function setGrandTotals(rowVals) {
+    state.grandTotals = Array.isArray(rowVals) ? rowVals : null;
   }
 
   // The metric's aggregation (sum/avg/count/count_distinct/…), used to decide
@@ -859,11 +878,11 @@
     });
   }
 
-  // #178 C10: for a latest-mode metric the band total is the newest date
-  // bucket's sum, not the sum over all buckets. Returns the bucket label it
-  // used, or null when not applicable (no date dim / not latest mode).
-  function applyLatestTotal(def, kpi, rows) {
-    if (!kpi || metricTotalModeFor(def) !== 'latest') return null;
+  // #178 C10: for a latest-mode metric the "total" is the newest date
+  // bucket's sum, not the sum over all buckets -- a level (the backlog) added
+  // up across twelve months is a number nobody can spend. Returns
+  // {total, key} for column `idx`, or null when there is no date dimension.
+  function latestBucketTotal(def, rows, idx) {
     var cols = def.columns || [];
     var dateIdx = -1;
     for (var i = 0; i < cols.length; i++) {
@@ -873,17 +892,75 @@
     if (dateIdx === -1) return null;
     var maxKey = null;
     rows.forEach(function (r) {
-      if (r[kpi.idx] == null) return;   // no snapshot in this bucket
+      if (r[idx] == null) return;   // no snapshot in this bucket
       var k = String(r[dateIdx]);
       if (maxKey === null || k > maxKey) maxKey = k;
     });
     if (maxKey === null) return null;
     var t = 0;
     rows.forEach(function (r) {
-      if (String(r[dateIdx]) === maxKey) t += Number(r[kpi.idx]) || 0;
+      if (String(r[dateIdx]) === maxKey) t += Number(r[idx]) || 0;
     });
-    kpi.total = t;
-    return maxKey;
+    return { total: t, key: maxKey };
+  }
+
+  // Rewrites kpi.total in place for a latest-mode primary metric; returns the
+  // bucket label it used, or null when not applicable.
+  function applyLatestTotal(def, kpi, rows) {
+    if (!kpi || metricTotalModeFor(def) !== 'latest') return null;
+    var latest = latestBucketTotal(def, rows, kpi.idx);
+    if (!latest) return null;
+    kpi.total = latest.total;
+    return latest.key;
+  }
+
+  // Result-column header for a measure, e.g. "Documents imported" -- what the
+  // /run payload already carries for every projected column (metric columns
+  // included, since _prepare_run headers them from the registry label). This
+  // is what makes a KPI say WHAT it totals; without it the band just reads
+  // "Total" and the reader has to guess which of the metrics it means.
+  function measureLabel(columns, idx) {
+    var c = (columns || [])[idx];
+    return (c && (c.header || c.field)) || '';
+  }
+
+  // One labelled total per metric, in def.metrics order — the aggregate query
+  // projects the metrics after the dimensions, so measure n lives at dims + n.
+  // Prefers the authoritative grand total (state.grandTotals); otherwise falls
+  // back to this pane's own arithmetic, which honours each measure's total
+  // mode so a level (the backlog) reports its latest snapshot rather than a
+  // meaningless sum across buckets. A definition with no semantic metrics
+  // (SQL / plain grid) has exactly one measure: whatever numeric column
+  // computeKpiBand locked onto.
+  function measureTotals(def, columns, rows, dims, kpi) {
+    var modes = def ? metricTotalModes(def) : [];
+    if (!modes.length) {
+      return kpi ? [{ idx: kpi.idx, label: measureLabel(columns, kpi.idx),
+                      total: kpi.total, latestKey: null }] : [];
+    }
+    var grand = state.grandTotals;
+    return modes.map(function (mode, n) {
+      var idx = dims + n;
+      var exact = grand && isNumericCell(grand[n]);
+      // Computed even when the grand total is authoritative: its bucket key
+      // is what the caption annotates ("· last bucket 2026-08-06"), so the
+      // reader knows a level is a snapshot and not a period sum.
+      var latest = mode === 'latest' ? latestBucketTotal(def, rows, idx) : null;
+      var total = 0;
+      if (exact) {
+        total = Number(grand[n]);
+      } else if (latest) {
+        total = latest.total;
+      } else {
+        rows.forEach(function (r) { if (isNumericCell(r[idx])) total += Number(r[idx]); });
+      }
+      return {
+        idx: idx,
+        label: measureLabel(columns, idx),
+        total: total,
+        latestKey: latest ? latest.key : null,
+      };
+    });
   }
 
   // ----- Drill-through (Simple: chart clicks + table rows) -----
@@ -2102,7 +2179,7 @@
       adjustBtn.hidden = cur.builtBy !== 'wizard' && !wizardStateFromDefinition(cur.def);
     }
     el('rsSaveName').hidden = true;
-    el('rsStatCard').hidden = true;
+    setGrandTotals(null);
     el('rsChartCard').hidden = true;
     el('rsTableCard').hidden = true;
     el('rsTableToggle').hidden = true;
@@ -2135,15 +2212,15 @@
       totalDef.columns = [];
       totalDef.sort = [];
       delete totalDef.forecast;
-      // No compare: true here -- this run only feeds fillStatCard, which
-      // never reads a comparison payload. The breakdown def below is the
+      // No compare: true here -- this run only feeds the band's total cards,
+      // which never read a comparison payload. The breakdown def below is the
       // one whose comparison drives renderKpiBand's delta chips; asking
       // the backend to also diff THIS zero-column clone's own prior period
       // would be a fully wasted extra query.
       var t = await api('/api/reporting/run', { method: 'POST', body: JSON.stringify(totalDef) });
       if (seq !== runSeq) return;
       if (t.ok && t.data && t.data.rows && t.data.rows.length) {
-        fillStatCard(def, t.data.rows[0]);
+        setGrandTotals(t.data.rows[0]);
       }
     }
 
@@ -2186,7 +2263,9 @@
     }
     var columns = res.data.columns || [], rows = res.data.rows || [];
     rows = zeroFillDateBuckets(def, rows, res.data.resolvedDates || []);
-    renderKpiBand(dims, rows, res.data.comparison || null, def);
+    // A zero-dim run's single row is itself the per-metric grand total.
+    if (hasMetrics && !dims && rows.length) setGrandTotals(rows[0]);
+    renderKpiBand(dims, rows, res.data.comparison || null, def, columns);
     var rdates = res.data.resolvedDates || [];
     // Hoisted out of the `if` below (Task 13): fireCaption() at the end of
     // this function needs the same resolved-dates label the message line
@@ -2209,7 +2288,6 @@
       tNote.hidden = false;
     }
     if (hasMetrics && !dims && rows.length) {
-      fillStatCard(def, rows[0]);
       var totMsg = el('rsMsg');
       totMsg.textContent = (!totMsg.hidden && totMsg.textContent)
         ? totMsg.textContent + ' — ' + I18N.noChartTotalOnly : I18N.noChartTotalOnly;

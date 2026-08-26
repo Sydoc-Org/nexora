@@ -266,18 +266,38 @@ def _metric_label(m):
     return (m.get(attr) if attr else None) or m["label"]
 
 
-def _metrics_for_source(source_id):
-    """Enabled metrics bound to `source_id` as {code: {aggregation, base_field}}."""
+def _metrics_for_source(source_id, locale=None):
+    """Enabled metrics bound to `source_id` as {code: {aggregation, base_field}}.
+
+    `label` is the metric's display name, used as the result column header so a
+    run never shows the raw code (`docs_imported`). It is only locale-swapped
+    when `locale` is passed — the scheduler calls this outside a request, where
+    get_locale() would raise, so it keeps the English label.
+    """
+    attr = _METRIC_LABEL_ATTRS.get(str(locale)) if locale else None
     return {
         code: {
             "aggregation": m["aggregation"],
             "base_field": m["base_field"],
             "total_mode": m.get("total_mode", "sum"),
             "anchor": m.get("anchor"),
+            "label": (m.get(attr) if attr else None) or m["label"],
         }
         for code, m in _load_db_metrics().items()
         if m["source_id"] == source_id
     }
+
+
+def metric_result_columns(resolved_metrics, source_metrics):
+    """Result columns for a run's metric projection — the metric codes the
+    aggregate query appends after the dims, headered with their labels."""
+    return [
+        {
+            "field": m["code"],
+            "header": (source_metrics.get(m["code"]) or {}).get("label") or m["code"],
+        }
+        for m in resolved_metrics or []
+    ]
 
 
 def _accessible_metrics():
@@ -876,7 +896,7 @@ def _prepare_run(rd):
     if provider == "docprocessing":
         catalog, catalog_fields, filterable, sortable = _catalog_for_source(source)
         grainable = {f["field"] for f in catalog if f.get("grainable")}
-        source_metrics = _metrics_for_source(source["id"])
+        source_metrics = _metrics_for_source(source["id"], get_locale())
         validate_report_definition(
             rd,
             catalog_fields,
@@ -932,14 +952,14 @@ def _prepare_run(rd):
         )
         rd_columns = rd.get("columns") or []
         out_columns = (
-            rd_columns + [{"field": m["code"]} for m in resolved] if resolved else rd_columns
+            rd_columns + metric_result_columns(resolved, source_metrics) if resolved else rd_columns
         )
         return out_columns, sql, params, engine_statistics_db
 
     if provider == "table":
         catalog, catalog_fields, filterable, sortable = _catalog_for_source(source)
         grainable = {f["field"] for f in catalog if f.get("grainable")}
-        source_metrics = _metrics_for_source(source["id"])
+        source_metrics = _metrics_for_source(source["id"], get_locale())
         validate_report_definition(
             rd,
             catalog_fields,
@@ -977,7 +997,7 @@ def _prepare_run(rd):
             raise ReportDefinitionError("source engine is not configured")
         rd_columns = rd.get("columns") or []
         out_columns = (
-            rd_columns + [{"field": m["code"]} for m in resolved] if resolved else rd_columns
+            rd_columns + metric_result_columns(resolved, source_metrics) if resolved else rd_columns
         )
         return out_columns, sql, params, engine
 

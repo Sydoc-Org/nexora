@@ -60,6 +60,23 @@ Work toward the next release.
 
 ### Changed
 
+- **Every reporting total says what it is a total of.** The Simple and Advanced
+  KPI bands showed a bare *Total* — on a multi-metric report that number was
+  whichever metric happened to come first, with nothing on screen saying which,
+  so an imported+exported report read as though one of the two were the
+  report's grand total. The band now renders **one labelled total card per
+  metric** (`Total · Documents imported`, `Total · Documents exported`, …), with
+  Buckets / Avg per bucket / Peak grouped under a heading naming the measure
+  they describe. Metric result columns are headered from the metrics registry
+  server-side (`metric_result_columns`), so the table, the KPI band, exports and
+  scheduled mails all read *Documents imported* instead of `docs_imported`.
+  Three related fixes came with it: totals now come from the authoritative
+  zero-column grand-total run rather than a client-side sum of the grouped rows
+  (which was only ever right for additive metrics), each metric honours its
+  **own** total mode so a levelled backlog reports its latest snapshot beside a
+  summed count, and a *just the total* report no longer prints "Buckets 1, Avg
+  per bucket N, Peak N" — the same number three more times. The separate
+  `rsStatCard` that repeated the grand totals above the band is retired.
 - **Colours & axes popover polish.** The per-series *Right axis* checkbox is a
   **Left | Right** switch; each Y axis is titled with the series it carries and
   takes that series' colour when it carries exactly one; colour-picker drags
