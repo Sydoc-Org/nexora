@@ -451,6 +451,53 @@ def test_schedule_crud(admin_client):
         admin_client.delete(f"/api/reporting/reports/{rid}")
 
 
+def test_schedules_overview_without_perm_403(user_client):
+    assert user_client.get("/api/reporting/schedules").status_code == 403
+
+
+def test_schedules_overview_lists_owned(admin_client):
+    """Console Scheduled screen: GET /api/reporting/schedules returns every
+    owned schedule with the joined report name."""
+    rid = _create_report(admin_client)
+    try:
+        cr = admin_client.post(
+            f"/api/reporting/reports/{rid}/schedules",
+            json={
+                "frequency": "daily",
+                "hour": 6,
+                "minute": 0,
+                "format": "xlsx",
+                "recipients": "a@x.com",
+            },
+        )
+        assert cr.status_code == 200, cr.data
+        rows = admin_client.get("/api/reporting/schedules").get_json()
+        mine = [r for r in rows if r["reportId"] == rid]
+        assert len(mine) == 1
+        row = mine[0]
+        assert row["reportName"]
+        assert row["frequency"] == "daily" and row["enabled"] is True
+        assert row["nextRunAt"]
+    finally:
+        admin_client.delete(f"/api/reporting/reports/{rid}")
+
+
+def test_sources_health_without_perm_403(user_client):
+    assert user_client.get("/api/reporting/sources/health").status_code == 403
+
+
+def test_sources_health_shape(admin_client):
+    """One row per accessible source: id, ok flag, latencyMs (None when the
+    probe fails — the TEST env's engines may or may not be reachable)."""
+    resp = admin_client.get("/api/reporting/sources/health")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert isinstance(data.get("sources"), list)
+    for row in data["sources"]:
+        assert set(row) == {"id", "ok", "latencyMs"}
+        assert isinstance(row["ok"], bool)
+
+
 def test_schedule_validation_400(admin_client):
     rid = _create_report(admin_client)
     try:

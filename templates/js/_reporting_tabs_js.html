@@ -1,50 +1,172 @@
 <script nonce="{{ csp_nonce() }}">
-// Simple/Advanced tab controller. Included LAST on the page so all pane markup
-// and window.Reporting exist. Resolution order for the initial tab lives in the
-// head script (window.__rpInitialTab): ?tab= > localStorage > 'simple'.
+// Console nav controller (design_handoff_reporting_console). Included LAST on
+// the page so all pane markup, window.Reporting and window.ReportingSimple
+// exist. Owns the left-rail Workspace nav + the sources rail, and switches
+// between the three top-level containers:
+//   #rpPaneSimple  — library / results / dashboards (inner views owned by
+//                    window.ReportingSimple)
+//   #rcScheduled   — the cross-report schedules screen (perm-gated markup)
+//   #rpPaneAdvanced— the classic Advanced builder
+// Exported as window.ReportingTabs for compat: current() still answers
+// 'simple' | 'advanced' (the Simple pane's IIFE and the anim layer key off
+// that), screen() answers the real screen name. The ?tab= URL param and the
+// nx.reporting.tab storage key keep their historical names; 'simple' is an
+// accepted alias for 'library'.
 (function () {
-  var ORDER = ['simple', 'advanced'];
-  var EL = {
-    simple:   { tab: 'rpTabSimple',   pane: 'rpPaneSimple' },
-    advanced: { tab: 'rpTabAdvanced', pane: 'rpPaneAdvanced' }
-  };
+  var SCREENS = ['library', 'results', 'dashboards', 'scheduled', 'advanced'];
+  var csrf = document.querySelector('meta[name="csrf-token"]').content;
+  var API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
   var current = null;
 
-  function show(name) {
-    if (!EL[name]) name = 'simple';
-    current = name;
-    ORDER.forEach(function (k) {
-      var tab = document.getElementById(EL[k].tab);
-      var pane = document.getElementById(EL[k].pane);
-      var active = k === name;
-      tab.classList.toggle('is-active', active);
-      tab.setAttribute('aria-selected', active ? 'true' : 'false');
-      tab.tabIndex = active ? 0 : -1;
-      pane.hidden = !active;
+  function el(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
-    try { localStorage.setItem('nx.reporting.tab', name); } catch (e) {}
-    try {
-      var url = new URL(window.location.href);
-      url.searchParams.set('tab', name);
-      history.replaceState(null, '', url);
-    } catch (e) {}
-    document.dispatchEvent(new CustomEvent('rp:tabshown', { detail: { tab: name } }));
   }
 
-  ORDER.forEach(function (k) {
-    var el = document.getElementById(EL[k].tab);
-    el.addEventListener('click', function () { show(k); });
-    el.addEventListener('keydown', function (e) {
-      var i = ORDER.indexOf(current), next = null;
-      if (e.key === 'ArrowRight') next = ORDER[(i + 1) % ORDER.length];
-      else if (e.key === 'ArrowLeft') next = ORDER[(i - 1 + ORDER.length) % ORDER.length];
-      else if (e.key === 'Home') next = ORDER[0];
-      else if (e.key === 'End') next = ORDER[ORDER.length - 1];
-      if (next) { e.preventDefault(); show(next); document.getElementById(EL[next].tab).focus(); }
+  function paneFor(screen) {
+    if (screen === 'advanced') return 'rpPaneAdvanced';
+    if (screen === 'scheduled') return 'rcScheduled';
+    return 'rpPaneSimple';
+  }
+
+  function normalize(name) {
+    if (name === 'simple') return 'library';
+    if (SCREENS.indexOf(name) === -1) return 'library';
+    if (name === 'scheduled' && !el('rcScheduled')) return 'library';
+    return name;
+  }
+
+  function highlight(screen) {
+    document.querySelectorAll('.rc-rail .rc-nav').forEach(function (b) {
+      b.classList.toggle('is-active', b.dataset.screen === screen);
     });
+  }
+
+  function show(name) {
+    var screen = normalize(name);
+    current = screen;
+    var pane = paneFor(screen);
+    ['rpPaneSimple', 'rcScheduled', 'rpPaneAdvanced'].forEach(function (id) {
+      var p = el(id);
+      if (p) p.hidden = id !== pane;
+    });
+    highlight(screen);
+    // The run-timing badge belongs to a rendered result — hide it on any
+    // other screen (the Simple pane only manages it within its own views).
+    var timing = el('reportingTiming');
+    if (timing && screen !== 'results' && screen !== 'advanced') timing.hidden = true;
+    try { localStorage.setItem('nx.reporting.tab', screen); } catch (e) {}
+    try {
+      var url = new URL(window.location.href);
+      url.searchParams.set('tab', screen);
+      history.replaceState(null, '', url);
+    } catch (e) {}
+    // Compat event first (the Simple IIFE's initOnce listens for tab
+    // 'simple'), then the screen-level event new consumers use.
+    var tab = screen === 'advanced' ? 'advanced' : 'simple';
+    document.dispatchEvent(new CustomEvent('rp:tabshown', { detail: { tab: tab } }));
+    document.dispatchEvent(new CustomEvent('rc:screenshown', { detail: { screen: screen } }));
+    if (pane === 'rpPaneSimple' && window.ReportingSimple && window.ReportingSimple.navTo) {
+      window.ReportingSimple.navTo(screen);
+    }
+  }
+
+  document.querySelectorAll('.rc-rail .rc-nav').forEach(function (b) {
+    b.addEventListener('click', function () { show(b.dataset.screen); });
   });
 
-  window.ReportingTabs = { show: show, current: function () { return current; } };
-  show(window.__rpInitialTab || 'simple');
+  // The Simple pane announces its internal view changes (wizard, result,
+  // dashboard builder…) so the rail highlight follows without re-entering
+  // show() — a wizard or an open result keeps its nav item lit.
+  document.addEventListener('rs:viewchanged', function (e) {
+    if (current === 'scheduled' || current === 'advanced') return;
+    var v = e.detail.view;
+    var screen = v === 'result' ? 'results' : v === 'dashboard' ? 'dashboards' : 'library';
+    current = screen;
+    highlight(screen);
+    try { localStorage.setItem('nx.reporting.tab', screen); } catch (e2) {}
+    try {
+      var url = new URL(window.location.href);
+      url.searchParams.set('tab', screen);
+      history.replaceState(null, '', url);
+    } catch (e3) {}
+  });
+
+  // Rail counts (Library and Dashboards fed by the Simple pane's library
+  // load; Scheduled by its own screen module).
+  document.addEventListener('rs:libraryloaded', function (e) {
+    var reports = e.detail.reports || [];
+    var dash = reports.filter(function (r) { return r.kind === 'dashboard'; }).length;
+    var lib = el('rcNavLibraryCount'), db = el('rcNavDashboardsCount');
+    if (lib) lib.textContent = String(reports.length - dash);
+    if (db) db.textContent = dash ? String(dash) : '';
+  });
+  document.addEventListener('rc:schedloaded', function (e) {
+    var c = el('rcNavScheduledCount');
+    if (c) c.textContent = e.detail.count ? String(e.detail.count) : '';
+  });
+
+  // ---------- Sources rail ----------
+  // Card per accessible source (GET /api/reporting/sources). Health detail
+  // (status dot, latency, sync line) comes from /api/reporting/sources/health
+  // and degrades silently when unavailable.
+  function sourceCardHtml(s, health) {
+    var isSql = s.kind === 'sql';
+    var h = health && health[s.id];
+    var dot = h ? '<span class="rc-src-dot' + (h.ok ? ' rc-src-dot--ok src-pulse' : ' rc-src-dot--warn') + '"></span>' : '';
+    var PROCESSES = {{ _("processes")|tojson }};
+    var foot = h && h.latencyMs != null
+      ? '<div class="rc-src-foot"><span>' + esc(s.processes && s.processes.length
+          ? s.processes.length + ' ' + PROCESSES : '') + '</span>' +
+        '<span class="rc-src-ms">' + esc(String(Math.round(h.latencyMs))) + ' ms</span></div>'
+      : '';
+    return '<div class="rc-src" data-testid="rc-source">' +
+      '<div class="rc-src-row">' +
+        '<span class="rc-src-ico' + (isSql ? ' rc-src-ico--db' : '') + '">' +
+          '<i class="fas ' + (isSql ? 'fa-database' : 'fa-plug') + '" aria-hidden="true"></i></span>' +
+        '<span class="rc-src-name" title="' + esc(s.label) + '">' + esc(s.label) + '</span>' + dot +
+      '</div>' + foot + '</div>';
+  }
+
+  async function loadSourcesRail() {
+    var wrap = el('rcSources');
+    if (!wrap) return;
+    var res, health = null;
+    try {
+      res = await fetch(API_PREFIX + 'api/reporting/sources',
+        { headers: { 'X-CSRFToken': csrf } });
+      res = res.ok ? await res.json() : null;
+    } catch (e) { res = null; }
+    if (!Array.isArray(res) || !res.length) return;
+    try {
+      var hres = await fetch(API_PREFIX + 'api/reporting/sources/health',
+        { headers: { 'X-CSRFToken': csrf } });
+      health = hres.ok ? await hres.json() : null;
+    } catch (e) { health = null; }
+    var byId = null;
+    if (health && Array.isArray(health.sources)) {
+      byId = {};
+      health.sources.forEach(function (h) { byId[h.id] = h; });
+    }
+    wrap.innerHTML = res.map(function (s) { return sourceCardHtml(s, byId); }).join('');
+    var sync = el('rcSyncStatus');
+    if (sync) {
+      var okAll = !byId || health.sources.every(function (h) { return h.ok; });
+      sync.innerHTML = '<span class="rc-sync-dot' + (okAll ? '' : ' rc-sync-dot--warn') + '"></span>' +
+        esc(String(res.length)) + ' ' + (res.length === 1 ? {{ _("source")|tojson }} : {{ _("sources")|tojson }}) +
+        (health && health.checkedAgo ? ' · ' + esc(health.checkedAgo) : '');
+      sync.hidden = false;
+    }
+  }
+
+  window.ReportingTabs = {
+    show: show,
+    current: function () { return current === 'advanced' ? 'advanced' : 'simple'; },
+    screen: function () { return current; }
+  };
+  show(window.__rpInitialTab || 'library');
+  loadSourcesRail();
 }());
 </script>

@@ -1611,17 +1611,23 @@
   // ---- Sharing ----
   var shareReportId = null;
 
-  function openShare() {
-    var sel = document.getElementById('rpSavedReports');
-    var opt = sel.options[sel.selectedIndex];
-    if (!opt || opt.dataset.owned !== '1') return;
-    shareReportId = sel.value;
+  // Also the entry point for the Console library card's "…" > Share menu
+  // (exported as window.Reporting.openShareFor below).
+  function openShareFor(id) {
+    shareReportId = id;
     api('/api/reporting/reports/' + shareReportId + '/shares')
       .then(function (res) { return res.json(); })
       .then(function (data) {
         renderShareState(data);
         document.getElementById('rpShareModal').hidden = false;
       }).catch(function (e) { toast(e.message, true); });
+  }
+
+  function openShare() {
+    var sel = document.getElementById('rpSavedReports');
+    var opt = sel.options[sel.selectedIndex];
+    if (!opt || opt.dataset.owned !== '1') return;
+    openShareFor(sel.value);
   }
 
   function renderShareState(data) {
@@ -1905,6 +1911,6 @@
   loadMetrics();
   loadSources();
   loadReports();
-  window.Reporting = Object.assign(window.Reporting || {}, { applyDefinition: applyDefinition, setMode: setMode, applyDefinitionAndChart: applyDefinitionAndChart, run: run });
+  window.Reporting = Object.assign(window.Reporting || {}, { applyDefinition: applyDefinition, setMode: setMode, applyDefinitionAndChart: applyDefinitionAndChart, run: run, openShareFor: openShareFor });
 }());
 </script>
