@@ -10,6 +10,13 @@ Work toward the next release.
 
 ### Added
 
+- **Sidebar restyled toward a minimal, GitHub-inspired look** (#213). Same
+  icons and labels, different treatment: the active page is marked by a thin
+  accent-coloured bar on the left edge instead of a filled accent-tinted
+  pill, and icons/text stay neutral gray (idle) / near-black (hover,
+  active) in every state — the user's configurable accent colour now shows
+  up in exactly one restrained place instead of painting the whole row.
+
 - **Clear button on the document-value filter's first row** (#185). Added
   filter rows already had an "x" to remove them; the fixed first row (it
   always exists, so it can't be removed the same way) had no way to reset
