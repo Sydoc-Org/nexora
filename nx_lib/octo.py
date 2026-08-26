@@ -14,9 +14,9 @@ import requests
 from flask import current_app
 from flask_babel import gettext as _
 
+from . import mapping_config
 from .clients import octo_creds_for_domain
 from .config import OCTO_DOMAIN
-from .db import engine_nexora_db
 from .extensions import cache
 from .field_locations import extract_field_locations, items_of
 from .table_locations import extract_table_locations
@@ -87,25 +87,16 @@ def get_workitemdata_param(workitem_id, domain=None):
         return None
 
 
-@cache.cached(timeout=3600, key_prefix="index_field_mappings", response_filter=lambda v: bool(v))
 def get_index_field_mappings():
-    mapping = {}
-    conn = None
-    cursor = None
-    try:
-        conn = engine_nexora_db.raw_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT SourceFieldName, TargetKey FROM IndexFieldMappings")
-        for row in cursor.fetchall():
-            mapping[row.SourceFieldName] = row.TargetKey
-    except Exception as e:
-        current_app.logger.error(f"Failed to load IndexFieldMappings: {e}")
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-    return mapping
+    """SourceFieldName -> TargetKey, from the mapping_config registry (#98).
+
+    Kept as the stable seam its hot-path callers (get_extensions_urls_fields
+    and friends) import -- only the storage moved. No caching of its own
+    anymore: mapping_config.registry() caches upstream (60s, never caches a
+    load failure), so the old ``@cache.cached`` here would only re-cache the
+    same data for longer and risk pinning a stale/failed {} for an hour, the
+    exact bug that decorator was already guarded against."""
+    return mapping_config.field_aliases()
 
 
 def get_extensions_urls_fields(workitemdata, document_id, domain=None, with_tables=False):

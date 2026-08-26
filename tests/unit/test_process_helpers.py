@@ -1,5 +1,6 @@
 """Unit tests for nx_lib.process_helpers — stat-query builders."""
 
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -293,31 +294,32 @@ def test_get_params_from_process_list_dedups_and_sorts():
 # ---------- build_stat_query ----------
 
 
-def test_build_stat_query_returns_row(app):
-    fake_cursor = MagicMock()
-    fake_row = ("Workitems", "Status,Date", "WHERE foo=1")
-    fake_cursor.fetchone.return_value = fake_row
-    fake_conn = MagicMock()
-    fake_conn.cursor.return_value = fake_cursor
+def test_build_stat_query_returns_row(app, monkeypatch):
+    fake_source = SimpleNamespace(
+        table="Workitems", export_column="Status,Date", extra_condition="WHERE foo=1"
+    )
+    captured = {}
 
-    with (
-        patch.object(ph_mod, "engine_nexora_db") as mock_engine,
-        app.app_context(),
-    ):
-        mock_engine.raw_connection.return_value = fake_conn
+    def fake_sources_for(client, processes=None):
+        captured["client"] = client
+        captured["processes"] = processes
+        return [fake_source]
+
+    monkeypatch.setattr(ph_mod.mapping_config, "sources_for", fake_sources_for)
+
+    with app.app_context():
         result = build_stat_query("Invoices")
 
-    assert result == fake_row
-    sql, params = fake_cursor.execute.call_args.args
-    assert "Statconfig" in sql
-    assert params == "Invoices"
+    assert result == ("Workitems", "Status,Date", "WHERE foo=1")
+    assert captured == {"client": None, "processes": ["Invoices"]}
 
 
-def test_build_stat_query_returns_none_on_db_error(app):
-    with (
-        patch.object(ph_mod, "engine_nexora_db") as mock_engine,
-        app.app_context(),
-    ):
-        mock_engine.raw_connection.side_effect = RuntimeError("DB down")
+def test_build_stat_query_returns_none_on_db_error(app, monkeypatch):
+    # mapping_config.sources_for degrades to [] on a registry load failure
+    # (see mapping_config.registry()'s failure contract) -- build_stat_query
+    # must return None in that case, matching the legacy except-block.
+    monkeypatch.setattr(ph_mod.mapping_config, "sources_for", lambda client, processes=None: [])
+
+    with app.app_context():
         result = build_stat_query("Invoices")
     assert result is None
