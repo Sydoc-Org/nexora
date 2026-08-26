@@ -694,6 +694,16 @@ manage shares, rename, or delete. Endpoints:
 name. The current report's title field doubles as its name on an in-place save,
 so editing the title then **Save** also renames it.
 
+The Console result view follows the same rule (it used to `POST` unconditionally,
+so Save duplicated the open report and the rename pencil forked a second copy
+under the new name): `persistCurrent()` in `js/_reporting_simple_js.html` `PUT`s
+whenever `canUpdateCurrent()` — a `reportId` plus `owned || canEdit`, the same
+pair the endpoint accepts — and `POST`s otherwise, which is the wizard/AI
+result's first save. The rename pencil is that same call with a different name.
+⋯ → **Save as copy** (`#rsSaveCopy`, shown only for an already-saved report)
+arms the one-shot `saveAsCopy` flag to force the `POST`, then adopts the new id
+as the open report so a following Save doesn't write back to the original.
+
 ### Result views — chart & pivot
 
 After a run returns rows, a **Grid / Chart / Pivot** toggle appears above the

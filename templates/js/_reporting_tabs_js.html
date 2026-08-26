@@ -148,6 +148,15 @@
       byId = {};
       health.sources.forEach(function (h) { byId[h.id] = h; });
     }
+    // The library cards name the same databases (rs-card-fact) -- publish the
+    // probe's id -> database map so they don't have to probe a second time.
+    if (byId) {
+      window.ReportingSourceDb = {};
+      Object.keys(byId).forEach(function (id) {
+        if (byId[id].db) window.ReportingSourceDb[id] = byId[id].db;
+      });
+      document.dispatchEvent(new CustomEvent('rc:sourcehealth'));
+    }
     // Several sources can sit on the same database (Workitems + Live SQL both
     // hit RuntimeDatabase) -- one card per distinct database, first wins.
     var seen = {};

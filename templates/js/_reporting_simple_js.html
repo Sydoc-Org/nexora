@@ -34,6 +34,8 @@
     noData: {{ _("No data for this report")|tojson }},
     noDataHint: {{ _("Widen the time range or remove a filter.")|tojson }},
     savedToMine: {{ _("Saved to My reports.")|tojson }},
+    savedChanges: {{ _("Changes saved.")|tojson }},
+    copyOf: {{ _("{name} (copy)")|tojson }},
     showTable: {{ _("Show table")|tojson }},
     hideTable: {{ _("Hide table")|tojson }},
     overTime: {{ _("Over time")|tojson }},
@@ -411,7 +413,42 @@
       body = kind === 'line' ? previewSvgLine(vals)
         : kind === 'bar' ? previewSvgBar(vals) : previewSvgDonut(vals);
     }
-    return '<div class="rs-card-preview" data-kind="' + kind + '">' + body + '</div>';
+    return '<div class="rs-card-preview" data-kind="' + kind + '">' +
+      cardFactsHtml(r) +
+      '<div class="rs-card-thumb">' + body + '</div>' +
+      '</div>';
+  }
+
+  // The thumbnail alone left the preview row mostly empty, and a line stretched
+  // across the whole card read as a flat smear. It now shares the row with the
+  // facts that actually tell reports apart: which source it reads, how it is
+  // bucketed, and how narrowed it is. Server-computed (see _preview_summary);
+  // labels resolve here so they stay translated, and each fact is dropped
+  // rather than guessed when the definition doesn't have it.
+  function cardFactsHtml(r) {
+    var sm = r.summary || {};
+    var facts = [];
+    function fact(icon, text, title, wide) {
+      facts.push('<span class="rs-card-fact' + (wide ? ' rs-card-fact--wide' : '') +
+        '" title="' + esc(title) + '">' +
+        '<i class="fas ' + icon + '" aria-hidden="true"></i>' + esc(text) + '</span>');
+    }
+    if (sm.source) {
+      // The real database behind the source, same as the sources rail names
+      // (published by _reporting_tabs_js once its health probe lands); the
+      // registry label is the fallback until then.
+      var src = (state.sources || []).find(function (x) { return x.id === sm.source; });
+      var db = (window.ReportingSourceDb || {})[sm.source] || (src && src.label) || sm.source;
+      fact('fa-database', db, db, true);
+    }
+    var GRAINS = { day: I18N.grainDay, week: I18N.grainWeek, month: I18N.grainMonth,
+                   quarter: I18N.grainQuarter, year: I18N.grainYear };
+    if (sm.grain && GRAINS[sm.grain]) fact('fa-calendar-day', GRAINS[sm.grain], I18N.granularity);
+    if (sm.metrics) fact('fa-hashtag', String(sm.metrics), I18N.wizMeasure);
+    if (sm.dimensions) fact('fa-layer-group', String(sm.dimensions), I18N.wizBreakdown);
+    if (sm.filters) fact('fa-filter', String(sm.filters), I18N.aiFilters);
+    if (!facts.length) return '';
+    return '<div class="rs-card-facts">' + facts.join('') + '</div>';
   }
 
   function initialsOf(name) {
@@ -587,6 +624,17 @@
     // they stay fully usable in Advanced.
     state.reports = res.data.filter(function (r) { return r.kind !== 'sql'; });
     renderLibrary();
+    // Card facts name the source, so redraw once the catalog lands -- until
+    // then they'd read as raw ids.
+    if (!state.sources) loadSourcesCatalog().then(renderLibrary);
+    // …and again when the rail's health probe reports the real database names,
+    // which is what the cards would rather show than the registry label.
+    if (!window.ReportingSourceDb) {
+      document.addEventListener('rc:sourcehealth', function once() {
+        document.removeEventListener('rc:sourcehealth', once);
+        if (state.reports) renderLibrary();
+      });
+    }
     // Feeds the Console nav-rail counts (Library / Dashboards).
     document.dispatchEvent(new CustomEvent('rs:libraryloaded',
       { detail: { reports: state.reports } }));
@@ -2525,6 +2573,8 @@
     el('rsSavedChip').hidden = !cur.reportId;
     applyTitleStyle();
     el('rsDeleteReport').hidden = !(cur.owned && cur.reportId);
+    el('rsSaveCopy').hidden = !cur.reportId;
+    saveAsCopy = false;
     renderAiChips(cur);
     var adjustBtn = el('rsAdjustWizard');
     if (adjustBtn) {
@@ -2948,37 +2998,94 @@
     }).catch(function () { /* clipboard unavailable (non-HTTPS / unfocused) */ });
   });
 
-  // Reveal the inline rename/save-name input (Task 7's pencil icon and the
-  // first click of Save both land here — one rename path, two entry points).
-  function revealSaveNameInput() {
+  // Reveal the inline rename/save-name input (the pencil, "Save as copy", and
+  // Save on a not-yet-saved result all land here).
+  function revealSaveNameInput(value) {
     if (!state.current) return;  // error view without a loaded report
     var nameInput = el('rsSaveName');
     nameInput.hidden = false;
-    nameInput.value = state.current.name || state.current.def.title || '';
+    nameInput.value = value || state.current.name || state.current.def.title || '';
     nameInput.focus();
+    nameInput.select();
   }
 
-  el('rsRenamePencil').addEventListener('click', revealSaveNameInput);
+  // True once the result IS a stored report the user may write back to: an
+  // owner, or a colleague holding a CanEdit share (the same pair the PUT
+  // endpoint accepts).
+  function canUpdateCurrent() {
+    var cur = state.current;
+    return !!(cur && cur.reportId && (cur.owned || cur.canEdit));
+  }
 
-  // Save: always a NEW row (inline name input, no window.prompt).
-  el('rsSave').addEventListener('click', async function () {
-    if (!state.current) return;  // error view without a loaded report
-    var nameInput = el('rsSaveName');
-    if (nameInput.hidden) { revealSaveNameInput(); return; }
-    var name = nameInput.value.trim();
-    if (!name) return;
-    var res = await api('/api/reporting/reports', {
-      method: 'POST',
-      body: JSON.stringify({ name: name, definition: state.current.def })
-    });
-    if (res.ok) {
-      nameInput.hidden = true;
-      el('rsMsg').textContent = I18N.savedToMine;
-      el('rsMsg').hidden = false;
-    } else {
+  // Armed by "Save as copy" so the next save creates a row instead of writing
+  // back; cleared on every render (runCurrent) and after each save.
+  var saveAsCopy = false;
+
+  // PUT when we're writing back to the open report, POST when we're making a
+  // new one. Renaming is the same call with a different name -- that is what
+  // stops the pencil from spawning a duplicate under the new name.
+  async function persistCurrent(name) {
+    var cur = state.current;
+    var update = !saveAsCopy && canUpdateCurrent();
+    var res = update
+      ? await api('/api/reporting/reports/' + cur.reportId, {
+          method: 'PUT', body: JSON.stringify({ name: name, definition: cur.def })
+        })
+      : await api('/api/reporting/reports', {
+          method: 'POST', body: JSON.stringify({ name: name, definition: cur.def })
+        });
+    if (!res.ok) {
       el('rsError').textContent = (res.data && res.data.error) || I18N.couldNotSave;
       el('rsError').hidden = false;
+      return;
     }
+    cur.name = name;
+    if (!update) {
+      // The copy (or the first save) is now the open report -- otherwise the
+      // next Save would write back to the original it was copied from.
+      cur.reportId = (res.data && res.data.id) || null;
+      cur.owned = true;
+      cur.canEdit = true;
+    }
+    saveAsCopy = false;
+    el('rsSaveName').hidden = true;
+    el('rsResultTitle').textContent = name;
+    el('rsCrumbName').textContent = name;
+    el('rsSavedChip').hidden = !cur.reportId;
+    el('rsDeleteReport').hidden = !(cur.owned && cur.reportId);
+    el('rsSaveCopy').hidden = !cur.reportId;
+    el('rsError').hidden = true;
+    el('rsMsg').textContent = update ? I18N.savedChanges : I18N.savedToMine;
+    el('rsMsg').hidden = false;
+    loadLibrary();
+  }
+
+  el('rsRenamePencil').addEventListener('click', function () { revealSaveNameInput(); });
+
+  el('rsSave').addEventListener('click', function () {
+    if (!state.current) return;  // error view without a loaded report
+    var nameInput = el('rsSaveName');
+    if (!nameInput.hidden) {          // naming a new report, or renaming this one
+      var typed = nameInput.value.trim();
+      if (typed) persistCurrent(typed);
+      return;
+    }
+    // A saved report keeps its name and takes the edit; anything else has to
+    // be named first.
+    if (canUpdateCurrent()) persistCurrent(state.current.name || state.current.def.title || '');
+    else revealSaveNameInput();
+  });
+
+  el('rsSaveName').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); el('rsSave').click(); }
+    else if (e.key === 'Escape') { this.hidden = true; saveAsCopy = false; el('rsSave').focus(); }
+  });
+
+  el('rsSaveCopy').addEventListener('click', function () {
+    if (!state.current) return;
+    saveAsCopy = true;
+    toggleMoreMenu(false);
+    revealSaveNameInput(I18N.copyOf.replace('{name}', state.current.name || state.current.def.title || ''));
   });
 
   // Open in Advanced. id:null for non-owned reports is LOAD-BEARING: CanEdit

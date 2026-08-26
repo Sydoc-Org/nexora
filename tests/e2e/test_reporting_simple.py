@@ -4593,3 +4593,74 @@ def test_reporting_simple_exposes_result_builders(nexora_server, page):
     ]
     kinds = page.evaluate("(names) => names.map(k => typeof window.ReportingSimple[k])", names)
     assert kinds == ["function"] * len(names), dict(zip(names, kinds, strict=False))
+
+
+def test_console_save_writes_back_and_rename_does_not_duplicate(nexora_server, page):
+    """Save on an open, editable report updates that row (PUT) instead of
+    inserting a second one, the rename pencil renames it in place, and
+    ⋯ → "Save as copy" is the one path that creates a new report — and leaves
+    the copy open, so the next Save does not write back to the original."""
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
+    seeded = page.evaluate(
+        """async () => {
+          const csrf = document.querySelector('meta[name="csrf-token"]').content;
+          const res = await fetch('/api/reporting/reports', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify({name: 'e2e save inplace', definition: {
+              schemaVersion: 1, source: 'docprocessing', visualization: 'table',
+              title: 'e2e save inplace', columns: [{field: 'processname'}],
+              filters: [], sort: [], scope: {clients: [], processes: []},
+              rowLimit: 100}})
+          });
+          return (await res.json()).id;
+        }"""
+    )
+
+    def names():
+        return page.evaluate(
+            """async () => (await (await fetch('/api/reporting/reports')).json())
+                 .filter(r => r.name.indexOf('e2e save inplace') === 0)
+                 .map(r => r.id + ':' + r.name)"""
+        )
+
+    try:
+        _stub_run_ok(page)
+        page.goto(f"{nexora_server}/reporting?tab=simple")
+        page.get_by_test_id("rs-group-mine").get_by_text("e2e save inplace").click()
+        expect(page.get_by_test_id("rs-result")).to_be_visible()
+
+        # Save writes back: same row, no second one, and it says so.
+        page.get_by_test_id("rs-save").click()
+        expect(page.get_by_test_id("rs-msg")).to_be_visible()
+        assert names() == [f"{seeded}:e2e save inplace"], names()
+
+        # Rename in place — the pencil must not spawn a copy under the new name.
+        page.get_by_test_id("rs-rename-pencil").click()
+        page.get_by_test_id("rs-save-name").fill("e2e save inplace renamed")
+        page.get_by_test_id("rs-save").click()
+        expect(page.get_by_test_id("rs-result-title")).to_have_text("e2e save inplace renamed")
+        assert names() == [f"{seeded}:e2e save inplace renamed"], names()
+
+        # …and the explicit copy path still creates one, then owns the result.
+        page.get_by_test_id("rs-more").click()
+        page.get_by_test_id("rs-save-copy").click()
+        page.get_by_test_id("rs-save-name").fill("e2e save inplace copy")
+        page.get_by_test_id("rs-save").click()
+        expect(page.get_by_test_id("rs-result-title")).to_have_text("e2e save inplace copy")
+        assert len(names()) == 2, names()
+        page.get_by_test_id("rs-save").click()  # writes back to the COPY
+        expect(page.get_by_test_id("rs-msg")).to_be_visible()
+        assert len(names()) == 2, names()
+    finally:
+        page.evaluate(
+            """async () => {
+              const csrf = document.querySelector('meta[name="csrf-token"]').content;
+              const rows = await (await fetch('/api/reporting/reports')).json();
+              for (const r of rows.filter(x => x.name.indexOf('e2e save inplace') === 0)) {
+                await fetch('/api/reporting/reports/' + r.id,
+                  {method: 'DELETE', headers: {'X-CSRFToken': csrf}});
+              }
+            }"""
+        )

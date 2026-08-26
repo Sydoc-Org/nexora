@@ -186,6 +186,10 @@
                     data-testid="rs-open-advanced">{{ _("Open in Advanced") }}</button>
             <button type="button" id="rsShowSql" class="rs-more-row" hidden role="menuitem"
                     data-testid="rs-show-sql">{{ _("Show query") }}</button>
+            {# Save writes back to the open report; this is the explicit
+               make-a-new-one path (only meaningful once it IS a saved one). #}
+            <button type="button" id="rsSaveCopy" class="rs-more-row" hidden role="menuitem"
+                    data-testid="rs-save-copy">{{ _("Save as copy") }}</button>
             <button type="button" id="rsDeleteReport" class="rs-more-row rs-more-row--danger" hidden role="menuitem"
                     data-testid="rs-delete-report">{{ _("Delete report") }}</button>
           </div>

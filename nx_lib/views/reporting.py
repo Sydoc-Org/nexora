@@ -2280,6 +2280,31 @@ def api_export_grid():
     )
 
 
+def _preview_summary(defn):
+    """Shape facts a library card can show next to its thumbnail.
+
+    Ids and counts only -- the labels are resolved client-side against the
+    source catalog so they stay translated. Type-guarded for the same reason
+    _preview_kind is: a malformed saved definition must not take the listing
+    down. The raw definition still never leaves this endpoint.
+    """
+    if not isinstance(defn, dict):
+        return {}
+    cols = defn.get("columns") if isinstance(defn.get("columns"), list) else []
+    grain = ""
+    for c in cols:
+        if isinstance(c, dict) and isinstance(c.get("grain"), str):
+            grain = c["grain"]
+            break
+    return {
+        "source": defn.get("source") if isinstance(defn.get("source"), str) else "",
+        "grain": grain,
+        "dimensions": len(cols),
+        "metrics": len(defn["metrics"]) if isinstance(defn.get("metrics"), list) else 0,
+        "filters": len(defn["filters"]) if isinstance(defn.get("filters"), list) else 0,
+    }
+
+
 def _preview_kind(defn):
     """Derive the library card badge/preview kind from a report definition.
 
@@ -2373,6 +2398,7 @@ def api_reports_list():
                         # explicit grant while Visibility is still private.
                         "sharedCount": int(r.ShareCount) if r.Owned else 0,
                         "previewKind": _preview_kind(defn),
+                        "summary": _preview_summary(defn),
                     }
                 )
             except Exception as row_err:
