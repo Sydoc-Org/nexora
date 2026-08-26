@@ -51,8 +51,8 @@
     lastQuarter: {{ _("Last quarter")|tojson }},
     allTime: {{ _("All time")|tojson }},
     custom: {{ _("Custom")|tojson }},
-    aiInvalid: {{ _("The AI could not draft that report — try rephrasing.")|tojson }},
-    aiLimit: {{ _("The AI daily limit is reached — try again tomorrow.")|tojson }},
+    aiInvalid: {{ _("Eddard could not draft that report — try rephrasing.")|tojson }},
+    aiLimit: {{ _("Eddard’s daily limit is reached — try again tomorrow.")|tojson }},
     aiFilters: {{ _("Filters")|tojson }},
     aiProcesses: {{ _("Processes")|tojson }},
     aiNoFilters: {{ _("no filters")|tojson }},
@@ -61,7 +61,7 @@
     thisWeek: {{ _("This week")|tojson }},
     lastWeek: {{ _("Last week")|tojson }},
     lastNDays: {{ _("Last {n} days")|tojson }},
-    aiThinking: {{ _("Asking the AI…")|tojson }},
+    aiThinking: {{ _("Asking Eddard…")|tojson }},
     aiDrafting: {{ _("Drafting your report…")|tojson }},
     aiChecking: {{ _("Checking the result…")|tojson }},
     chipApply: {{ _("Apply")|tojson }},
@@ -302,12 +302,16 @@
     return r.previewKind || 'bar';
   }
 
-  // Shared by the line preview: polyline point list, pure. (h-4)/(h-10) keep
-  // a 4px top margin and a few px of headroom above the peak.
+  // Shared by the line preview: polyline point list, pure. Scaled between the
+  // series' own min and max, not 0..max -- eight values that only differ by a
+  // few percent drew as a flat hairline when they were measured off zero.
   function sparkPath(vals, w, h) {
-    var max = Math.max.apply(null, vals) || 1;
+    var min = Math.min.apply(null, vals), max = Math.max.apply(null, vals);
+    var span = max - min;
     return vals.map(function (v, i) {
-      return (i / (vals.length - 1) * w).toFixed(1) + ',' + (h - 4 - (v / max) * (h - 10)).toFixed(1);
+      // A dead-flat series has no shape to show -- centre it instead of /0.
+      var t = span ? (v - min) / span : 0.5;
+      return (i / (vals.length - 1) * w).toFixed(1) + ',' + (h - 4 - t * (h - 10)).toFixed(1);
     }).join(' ');
   }
 
@@ -340,7 +344,12 @@
     var area = pts.join(' ') + ' ' + w.toFixed(1) + ',' + h + ' 0,' + h;
     return '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" class="rs-card-svg">' +
       '<polygon class="rs-spark-area" points="' + area + '" fill="var(--nx-accent, #4f46e5)"></polygon>' +
-      '<polyline points="' + pts.join(' ') + '" fill="none" stroke="var(--nx-accent, #4f46e5)" stroke-width="2"></polyline>' +
+      '<polyline points="' + pts.join(' ') + '" fill="none" stroke="var(--nx-accent, #4f46e5)"' +
+        // preserveAspectRatio="none" squashes the stroke to a hairline when the
+        // 200x60 box is drawn wide and short -- non-scaling-stroke keeps it an
+        // even 2px whatever the card width.
+        ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round"' +
+        ' vector-effect="non-scaling-stroke"></polyline>' +
       '<circle class="rs-spark-dot" cx="' + last[0] + '" cy="' + last[1] + '" r="3" fill="var(--nx-accent, #4f46e5)"></circle>' +
       '</svg>';
   }
@@ -535,10 +544,16 @@
     if (state.sort === 'name') {
       list.sort(function (a, b) { return String(a.name).localeCompare(String(b.name)); });
     }  // 'updated' keeps the server order (Owned DESC, UpdatedAt DESC)
+    // --i drives the staggered entrance + sparkline draw-in (reporting-console
+    // .css). Capped so a large library still finishes settling in under a
+    // second instead of trickling in card by card.
+    var idx = 0;
     list.forEach(function (r) {
       if (q && r.name.toLowerCase().indexOf(q) === -1) return;
       var g = r.visibility === 'shared' ? 'shared' : (r.owned ? 'mine' : 'direct');
-      groups[g].appendChild(card(r));
+      var c = card(r);
+      c.style.setProperty('--i', String(Math.min(idx++, 11)));
+      groups[g].appendChild(c);
       counts[g]++;
     });
     var all = el('rsCountAll');

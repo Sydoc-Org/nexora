@@ -415,7 +415,9 @@ body.reporting-console .rs-card-name {
   text-overflow: ellipsis;
 }
 body.reporting-console .rs-card-preview {
-  height: 22px;
+  /* 22px over a 60-unit viewBox flattened the line into a hairline once the
+     card got wide; 38px gives the series room to actually read as a shape. */
+  height: 38px;
   margin-top: 6px;
   display: flex;
   align-items: center;
@@ -423,8 +425,15 @@ body.reporting-console .rs-card-preview {
 }
 body.reporting-console .rs-card-svg {
   width: 100%;
-  height: 22px;
+  height: 38px;
   display: block;
+}
+body.reporting-console .rs-card-preview[data-kind="donut"] .rs-card-svg,
+body.reporting-console .rs-card-preview[data-kind="dash"] .rs-card-svg {
+  /* Square previews keep their old size -- only the stretched line/bar strips
+     needed the extra height. */
+  width: 38px;
+  margin: 0 auto;
 }
 body.reporting-console .rs-card-total {
   font-size: 15px;
@@ -437,6 +446,38 @@ body.reporting-console .rs-card-total-label {
   font-weight: 600;
   color: var(--nx-text-meta);
 }
+/* Library entrance: cards rise in on a short stagger and each line preview
+   draws itself left-to-right, so the grid arrives instead of just appearing.
+   fill-mode backwards, never both -- a held transform makes a stacking context
+   that buries the card's own kebab menu (see .nx-rise). */
+@keyframes rsCardIn {
+  from { opacity: 0; transform: translateY(10px); }
+}
+@keyframes rsSparkDraw {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+body.reporting-console .rs-card-wrap {
+  animation: rsCardIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+/* A wipe, not a stroke-dash draw: dasharray is measured in user units, and
+   preserveAspectRatio="none" scales x and y differently, so the dashes came
+   out uneven and left visible gaps in the line. */
+body.reporting-console .rs-card-preview[data-kind="line"] .rs-card-svg,
+body.reporting-console .rs-card-preview[data-kind="bar"] .rs-card-svg {
+  animation: rsSparkDraw 0.7s ease-out backwards;
+  animation-delay: calc(var(--i, 0) * 45ms + 140ms);
+}
+html.nx-motion-reduced body.reporting-console .rs-card-wrap,
+html.nx-motion-reduced body.reporting-console .rs-card-svg {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  body.reporting-console .rs-card-wrap,
+  body.reporting-console .rs-card-svg { animation: none; }
+}
+
 /* Hover reveal (intent #5): area fill + endpoint dot fade in, nothing moves */
 .rs-spark-area { opacity: 0; transition: opacity 0.45s ease; }
 .rs-spark-dot { opacity: 0; transition: opacity 0.45s ease; }
