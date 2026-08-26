@@ -1730,6 +1730,7 @@ def test_report_card_runs_definition_unmodified(nexora_server, page):
     page.goto(f"{nexora_server}/reporting?tab=simple")
     page.get_by_test_id("rs-new-dashboard").click()
     expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
+    expect(page.get_by_test_id("rdb-add-report")).to_have_text("Whole report")
 
     page.get_by_test_id("rdb-add-report").click()
     expect(page.get_by_test_id("rdb-card")).to_have_count(1)

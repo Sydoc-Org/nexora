@@ -394,7 +394,7 @@ not the recipients'.
 
 **New dashboard** builds a page of live tiles instead of a single report. Each
 tile is its own small report: **KPI** (one number), **line**, **bar**, **donut**
-or **table**.
+or **table** — or a **Whole report** tile.
 
 - **Edit / Done** toggles edit mode: drag tiles to rearrange, add, duplicate or
   remove them, and set the **global filters**.
@@ -407,6 +407,11 @@ or **table**.
   drawer opens. (Donut tiles are the exception: their "Other" grouping breaks
   the mapping.)
 - **Export** is per tile: the header menu lists the tiles, pick one.
+- **Whole report** imports a saved report exactly as the Simple tab shows it:
+  the per-measure totals, the KPI band, the chart with its saved colours,
+  right axis and forecast, and the full table behind **Show table** (rows drill
+  through like everywhere else). Global filters still apply. The tile is
+  read-only — change colours, chart type or forecast in the report itself.
 
 A dashboard saves, shares and deletes exactly like any other report.
 

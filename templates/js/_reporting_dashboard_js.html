@@ -95,7 +95,7 @@
     pillKpi: {{ _("KPI")|tojson }},
     pillTable: {{ _("Table")|tojson }},
     pillDonut: {{ _("Donut")|tojson }},
-    pillReport: {{ _("Report")|tojson }},
+    pillReport: {{ _("Whole report")|tojson }},
     dropHint: {{ _("or drop a saved report here")|tojson }},
     configureCard: {{ _("Click to configure this card")|tojson }},
     pickReport: {{ _("Choose a saved report")|tojson }},
@@ -1429,6 +1429,10 @@
       return '<div class="rdb-skeleton rdb-skeleton--row"></div>' +
         '<div class="rdb-skeleton rdb-skeleton--row"></div>' +
         '<div class="rdb-skeleton rdb-skeleton--row"></div>';
+    }
+    if (type === 'report') {
+      return '<div class="rdb-skeleton rdb-skeleton--kpi"></div>' +
+        '<div class="rdb-skeleton rdb-skeleton--chart"></div>';
     }
     return '<div class="rdb-skeleton rdb-skeleton--chart"></div>';  // line/bar
   }

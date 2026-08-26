@@ -25,6 +25,13 @@ Work toward the next release.
 
 ### Changed
 
+- **Dashboard "Whole report" tile.** The Report tile on a reporting dashboard
+  now renders the saved report as the Simple tab does — per-measure totals,
+  KPI band with prior-period chips, the chart with its saved colours, right
+  axis and forecast, and the full table behind *Show table* with row
+  drill-through — instead of a single total and one line. It draws through
+  the Simple pane's own builders (`window.ReportingSimple`), so the two
+  surfaces can no longer drift apart. Existing dashboards upgrade in place.
 - **Colours & axes popover polish.** The per-series *Right axis* checkbox is a
   **Left | Right** switch; each Y axis is titled with the series it carries and
   takes that series' colour when it carries exactly one; colour-picker drags
