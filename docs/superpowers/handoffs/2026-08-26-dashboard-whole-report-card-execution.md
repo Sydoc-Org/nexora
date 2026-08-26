@@ -1,3 +1,5 @@
+> **Newer same-date handoff exists:** [`2026-08-26-docfield-config-restructure-perf.md`](2026-08-26-docfield-config-restructure-perf.md) (issue #98 — dead tables dropped, restructure planned). If you came here via a bare `/reset-session`, check which workstream you're resuming.
+
 # Handoff — Dashboard "Whole report" card: plan executed, reviewed, ready to merge
 
 **Date:** 2026-08-26 · **Branch:** `plan/dashboard-whole-report-card` (worktree
