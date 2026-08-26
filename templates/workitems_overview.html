@@ -416,14 +416,23 @@
                 </th>
               </tr>
             </thead>
-            <tbody id="workitemsTbody">
-              <tr>
-                <td colspan="5" class="text-center py-20">
-                  <i class="fas fa-spinner fa-spin text-3xl text-[var(--nx-accent)]"></i>
-                </td>
+            {% set skeleton_rows %}
+              {% for _ in range(6) %}
+              <tr aria-hidden="true">
+                <td class="text-center"><span class="nx-skel" style="width:16px;height:16px;border-radius:4px"></span></td>
+                <td class="text-center"><span class="nx-skel" style="width:70px"></span></td>
+                <td class="text-center"><span class="nx-skel" style="width:90px;height:20px;border-radius:10px"></span></td>
+                <td class="text-center"><span class="nx-skel" style="width:130px"></span></td>
+                <td></td>
               </tr>
+              {% endfor %}
+              <tr class="sr-only"><td colspan="5">{{ _("Loading workitems...") }}</td></tr>
+            {% endset %}
+            <tbody id="workitemsTbody">
+              {{ skeleton_rows }}
             </tbody>
           </table>
+          <template id="workitemsSkeletonTpl">{{ skeleton_rows }}</template>
         </div>
       </div>
 

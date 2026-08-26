@@ -10,6 +10,24 @@ Work toward the next release.
 
 ### Fixed
 
+- **Workitem detail panel: line-item tables are tables again** (#199). Each
+  extracted table (`TabVat`, `TabOrder`, …) was rendered as a stack of
+  label-over-value rows inside the narrow Document Details column, so line-item
+  rows could not be compared at a glance. They now render as a real `<table>`
+  — one row per line item, collapsible per table — in their own full-width card
+  below the two-column detail grid, with horizontal scroll for wide SAP-style
+  grids. Click-to-locate on a cell is unchanged; empty cells show an em dash
+  instead of a "no source location" badge per cell.
+
+- **Workitems loading state: cramped spinner row → accent-tinted skeleton rows**
+  (#189). The loader was a single Font Awesome dot-spinner in a row squashed to
+  12px padding (the unlayered `.nx-table tbody td` rule beats Tailwind's
+  layered `py-20`), and until v3.2.3 it was hardcoded indigo. The table now
+  shows six shimmering skeleton rows shaped like real workitem rows, tinted by
+  the user's accent color and frozen under reduced motion; both the initial
+  page load and every filter refetch share one server-rendered template
+  (`#workitemsSkeletonTpl`).
+
 - **The reporting page fetched the same catalogs eight times per load.** Its
   five modules (tabs rail, Simple, Advanced, dashboard builder, drill drawer)
   are separate IIFEs that can't read each other's state, so each fetched its

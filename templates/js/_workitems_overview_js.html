@@ -829,15 +829,8 @@ async function uploadBatchFiles(files, processName) {
                 const newUrl = `${window.location.pathname}?${params.toString()}`;
                 window.history.pushState({ path: newUrl }, '', newUrl);
 
-                const loaderHtml = `
-            <tr>
-                <td colspan="5" class="text-center py-20">
-                    <div class="flex items-center justify-center space-x-3 text-gray-700">
-                        <i class="fas fa-spinner fa-spin text-3xl text-[var(--nx-accent)]"></i>
-                        <span class="text-xl font-medium">{{ _("Loading workitems...") }}</span>
-                    </div>
-                </td>
-            </tr>`;
+                // Skeleton rows, single source of truth in workitems_overview.html (#189)
+                const loaderHtml = document.getElementById('workitemsSkeletonTpl').innerHTML;
 
                 if (tbody) {
                     tbody.innerHTML = loaderHtml;
