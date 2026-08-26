@@ -2839,6 +2839,122 @@ def api_reports_schedules_delete(report_id, schedule_id):
         conn.close()
 
 
+@require_permission("reporting.schedule")
+def api_schedules_all():
+    """Every schedule the caller owns, across all reports — feeds the
+    Console 'Scheduled' screen. Owner-scoped like the per-report routes."""
+    userid = session.get("userid")
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT s.ScheduleID, s.ReportID, r.Name AS ReportName, s.Recipients, "
+            "s.Format, s.Frequency, s.Hour, s.Minute, s.Weekday, s.DayOfMonth, "
+            "s.Enabled, s.LastRunAt, s.NextRunAt, s.AlertOp, s.AlertThreshold "
+            "FROM dbo.ReportSchedules s "
+            "JOIN dbo.Reports r ON r.ReportID = s.ReportID "
+            "WHERE r.OwnerUserID = ? "
+            "ORDER BY s.NextRunAt, s.ScheduleID",
+            (userid,),
+        )
+        out = []
+        for r in cur.fetchall():
+            d = _serialize_schedule(r)
+            d["reportId"] = r.ReportID
+            d["reportName"] = r.ReportName
+            out.append(d)
+        return jsonify(out)
+    except Exception as e:
+        current_app.logger.error(f"reporting schedules overview error: {e}")
+        return jsonify({"error": _("Could not list schedules")}), 500
+    finally:
+        conn.close()
+
+
+@require_permission("reporting.view")
+@limiter.limit("30 per minute")
+def api_share_targets():
+    """Typeahead for the share modal: up to 8 users matching by username,
+    full name or email. Returns only username + display name — the share
+    POST already accepts the username."""
+    q = (request.args.get("q") or "").strip()
+    if len(q) < 2:
+        return jsonify([])
+    like = f"%{q}%"
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT TOP 8 username, Fullname FROM dbo.Users "
+            "WHERE username LIKE ? OR Fullname LIKE ? OR Email LIKE ? "
+            "ORDER BY username",
+            (like, like, like),
+        )
+        return jsonify(
+            [{"username": r.username, "name": r.Fullname or r.username} for r in cur.fetchall()]
+        )
+    except Exception as e:
+        current_app.logger.error(f"reporting share targets error: {e}")
+        return jsonify([])
+    finally:
+        conn.close()
+
+
+# ---- Source health (Console sources rail) ---------------------------------
+
+
+def _probe_engine(engine):
+    """(ok, latency_ms, db_name) for one probe round-trip; DB_NAME() rides
+    along because the engines are built from odbc_connect strings whose
+    SQLAlchemy URL carries no database attribute."""
+    if engine is None:
+        return False, None, None
+    t0 = time.perf_counter()
+    try:
+        conn = engine.raw_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT DB_NAME()")
+            row = cur.fetchone()
+        finally:
+            conn.close()
+        return True, (time.perf_counter() - t0) * 1000.0, (row[0] if row else None)
+    except Exception:
+        return False, None, None
+
+
+@require_permission("reporting.view")
+def api_sources_health():
+    """Live status dot + latency per accessible source (Console rail).
+    One SELECT-1 probe per distinct engine, shared across sources."""
+    perms = set(session.get("permissions", []))
+    sources = accessible(_effective_sources(), perms)
+    probes = {}  # id(engine) -> (ok, ms)
+
+    def probe(engine):
+        key = id(engine)
+        if key not in probes:
+            probes[key] = _probe_engine(engine)
+        return probes[key]
+
+    out = []
+    for s in sources:
+        if s["kind"] == "sql":
+            engine = _SQL_TARGET_ENGINES.get(s.get("target", "statistics"))
+        else:
+            engine = _CURATED_ENGINES.get(s.get("engine"), engine_statistics_db)
+        ok, ms, db_name = probe(engine)
+        out.append(
+            {
+                "id": s["id"],
+                "ok": ok,
+                "latencyMs": round(ms, 1) if ms is not None else None,
+                "db": db_name,
+            }
+        )
+    return jsonify({"sources": out})
+
+
 # ---- Source-registry admin (reporting.admin.sources) ----------------------
 
 _SOURCE_CODE_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
@@ -3433,6 +3549,21 @@ def register_routes(app):
         endpoint="reporting_reports_shares_delete",
         view_func=api_reports_shares_delete,
         methods=["DELETE"],
+    )
+    app.add_url_rule(
+        "/api/reporting/schedules",
+        endpoint="reporting_schedules_all",
+        view_func=api_schedules_all,
+    )
+    app.add_url_rule(
+        "/api/reporting/sources/health",
+        endpoint="reporting_sources_health",
+        view_func=api_sources_health,
+    )
+    app.add_url_rule(
+        "/api/reporting/share_targets",
+        endpoint="reporting_share_targets",
+        view_func=api_share_targets,
     )
     app.add_url_rule(
         "/api/reporting/reports/<int:report_id>/schedules",

@@ -26,9 +26,11 @@ def test_tab_param_overrides_to_advanced(nexora_server, page):
 
 
 def test_tab_choice_sticks_across_reload(nexora_server, page):
+    """The chosen screen persists via localStorage. The Advanced nav entry is
+    currently parked (hidden), so enter Advanced via ?tab= — the same path
+    its remaining entry points (Open in Advanced, deep links) use."""
     _login(page, nexora_server)
-    page.goto(f"{nexora_server}/reporting")
-    page.get_by_test_id("reporting-tab-advanced").click()
+    page.goto(f"{nexora_server}/reporting?tab=advanced")
     expect(page.get_by_test_id("reporting-field-panel")).to_be_visible()
     page.goto(f"{nexora_server}/reporting")  # no ?tab param: localStorage wins
     expect(page.get_by_test_id("reporting-field-panel")).to_be_visible()
@@ -205,7 +207,7 @@ def test_library_card_shows_preview_band_and_type_badge(nexora_server, page):
     page.goto(f"{nexora_server}/reporting?tab=simple")
     card = page.get_by_test_id("rs-card").first
     expect(card.locator(".rs-card-preview")).to_be_visible()
-    expect(card.locator(".rs-card-badge")).to_contain_text("LINE")
+    expect(card.locator(".rs-card-tag")).to_contain_text("LINE")
 
 
 def test_library_card_preview_cache_round_trips_real_values(nexora_server, page):
@@ -1085,24 +1087,22 @@ def _cleanup_caption_wizard(page, ids):
     )
 
 
-def test_hero_ask_routes_into_chat_panel(nexora_server, page):
-    """Task 4: the hero's Ask AI no longer builds/runs its own report -- it
-    opens the shared chat panel and forwards the question there."""
+def test_chat_starter_sends_from_panel(nexora_server, page):
+    """Console: the hero Ask-AI bar is gone (intent #1) — the top-bar AI-chat
+    button opens the panel, whose starter chips send their own text."""
     _login(page, nexora_server)
-    page.goto(f"{nexora_server}/reporting?tab=simple")
-
     # Stub BEFORE clicking — ReportingChat.send() fires the request the
-    # instant the hero handler calls it, right after open().
+    # instant the starter chip is clicked.
     _stub_agent_ok(page)
-    page.get_by_test_id("rs-ai-prompt").fill("docs by process")
-    page.get_by_test_id("rs-ai-ask").click()
-
+    page.goto(f"{nexora_server}/reporting?tab=library")
+    page.get_by_test_id("reporting-chat-toggle").click()
     expect(page.get_by_test_id("reporting-chat-panel")).to_be_visible()
-    expect(page.get_by_test_id("rp-chat-msg-user")).to_contain_text("docs by process")
+    chip = page.locator("#rpChatEmpty .rp-chat-starter").first
+    chip_text = chip.inner_text()
+    chip.click()
+    expect(page.get_by_test_id("rp-chat-msg-user")).to_contain_text(chip_text)
     expect(page.get_by_test_id("rp-chat-msg-ai")).to_contain_text("Here is your report.")
     expect(page.get_by_test_id("reporting-chat-input")).to_have_value("")
-    # The hero's own prompt input is cleared once the question is forwarded.
-    expect(page.get_by_test_id("rs-ai-prompt")).to_have_value("")
 
 
 def test_saved_token_report_shows_resolved_range(nexora_server, page):
@@ -1639,22 +1639,17 @@ def test_show_query_reveals_sql(nexora_server, page):
         page.get_by_test_id("rs-breakdown-list").get_by_role("button").first.click()
         page.get_by_test_id("rs-breakdown-next").click()
         page.get_by_test_id("rs-wizard-run").click()
-        # Task 7: Show-query now lives in the ⋯ overflow menu — open it first.
-        page.get_by_test_id("rs-more").click()
-        show = page.get_by_test_id("rs-show-sql")
-        expect(show).to_be_visible()
-        # Collapsed by default: the panel is hidden until the user expands it.
+        # Console: the Query side card renders with the result — visible
+        # immediately, no reveal step.
         sql_view = page.get_by_test_id("rs-sql-view")
-        expect(sql_view).to_be_hidden()
-        show.click()
         expect(sql_view).to_be_visible()
         expect(page.locator("#rsSqlText")).to_contain_text("SELECT")
         # Pretty-printed (multi-line) and token-highlighted.
         assert "\n" in page.locator("#rsSqlText").inner_text()
         assert page.locator("#rsSqlText span.sql-kw").count() > 0
-        # Second click re-collapses.
-        show.click()
-        expect(sql_view).to_be_hidden()
+        # The ⋯ menu's Show-query entry stays as a shortcut to the card.
+        page.get_by_test_id("rs-more").click()
+        expect(page.get_by_test_id("rs-show-sql")).to_be_visible()
     finally:
         page.evaluate(
             """async (ids) => {
@@ -3886,36 +3881,11 @@ def test_sql_peek_footer_reveals_query_on_click(nexora_server, page):
     page.get_by_test_id("rs-breakdown-next").click()
     page.get_by_test_id("rs-wizard-run").click()
 
-    peek = page.get_by_test_id("rs-sql-peek")
-    expect(peek).to_be_visible()
-    expect(peek).to_have_text("SELECT [d] AS [d], COUNT(*) AS [n]…")
-
+    # Console: the Query side card is visible immediately after a run — no
+    # peek/reveal step anymore.
     sql_view = page.get_by_test_id("rs-sql-view")
-    expect(sql_view).to_be_hidden()
-    peek.click()
     expect(sql_view).to_be_visible()
     expect(page.locator("#rsSqlText")).to_contain_text("GROUP BY")
-
-
-def test_landing_hero_suggestion_opens_chat_and_sends(nexora_server, page):
-    """Task 4: the landing hero holds the AI command bar + suggestion chips.
-    Clicking a chip now routes straight into the shared chat panel (open +
-    send its own text) instead of just prefilling the prompt input."""
-    _login(page, nexora_server)
-    # Stub BEFORE goto/click — the chip click fires ReportingChat.send()
-    # immediately.
-    _stub_agent_ok(page)
-    page.goto(f"{nexora_server}/reporting?tab=simple")
-    hero = page.get_by_test_id("rs-hero")
-    expect(hero).to_be_visible()
-    expect(hero.get_by_test_id("rs-ai-prompt")).to_be_visible()
-    chip = page.get_by_test_id("rs-suggestion").first
-    chip_text = chip.inner_text()
-    chip.click()
-    expect(page.get_by_test_id("reporting-chat-panel")).to_be_visible()
-    expect(page.get_by_test_id("rp-chat-msg-user")).to_contain_text(chip_text)
-    expect(page.get_by_test_id("rp-chat-msg-ai")).to_contain_text("Here is your report.")
-    expect(page.get_by_test_id("rs-ai-prompt")).to_have_value("")
 
 
 def test_wizard_rail_tracks_progress(nexora_server, page):
@@ -3934,7 +3904,9 @@ def test_wizard_rail_tracks_progress(nexora_server, page):
     page.get_by_test_id("rs-measure-list").get_by_text("Docproc count stub").click()
     page.get_by_test_id("rs-measure-next").click()
     expect(page.locator("#rsWizardStepNo")).to_have_text("Step 2 of 4")
-    expect(rail).to_contain_text("Docproc count stub")  # chosen-value summary
+    # Chosen-value summaries live in the Console "So far" panel beside the
+    # step card (the rail itself is now just the step chips).
+    expect(page.get_by_test_id("rs-wizard-summary")).to_contain_text("Docproc count stub")
 
 
 def test_result_more_menu_holds_advanced_and_sql(nexora_server, page):
@@ -4246,16 +4218,16 @@ def test_forecast_trims_zero_filled_rows_past_anchor(nexora_server, page):
     expect(forecast_rows.first).to_contain_text("2025-07-01")
 
 
-def test_hero_hidden_outside_library_view(nexora_server, page):
-    """#178 B6: the 'Build a report in seconds' hero must vanish when a
-    wizard/result is open and come back in the library."""
+def test_library_hidden_outside_library_view(nexora_server, page):
+    """#178 B6 (Console): the Library screen must vanish when a wizard/result
+    is open and come back via the breadcrumb."""
     _login(page, nexora_server)
     page.goto(f"{nexora_server}/reporting?tab=simple")
-    expect(page.get_by_test_id("rs-hero")).to_be_visible()
+    expect(page.get_by_test_id("rs-library")).to_be_visible()
     page.get_by_test_id("rs-new-report").click()
-    expect(page.get_by_test_id("rs-hero")).to_be_hidden()
+    expect(page.get_by_test_id("rs-library")).to_be_hidden()
     page.get_by_test_id("rs-wizard-backlib").first.click()
-    expect(page.get_by_test_id("rs-hero")).to_be_visible()
+    expect(page.get_by_test_id("rs-library")).to_be_visible()
 
 
 def test_granularity_chip_changes_grain_and_reruns(nexora_server, page):

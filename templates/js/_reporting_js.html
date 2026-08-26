@@ -1687,17 +1687,23 @@
   // ---- Sharing ----
   var shareReportId = null;
 
-  function openShare() {
-    var sel = document.getElementById('rpSavedReports');
-    var opt = sel.options[sel.selectedIndex];
-    if (!opt || opt.dataset.owned !== '1') return;
-    shareReportId = sel.value;
+  // Also the entry point for the Console library card's "…" > Share menu
+  // (exported as window.Reporting.openShareFor below).
+  function openShareFor(id) {
+    shareReportId = id;
     api('/api/reporting/reports/' + shareReportId + '/shares')
       .then(function (res) { return res.json(); })
       .then(function (data) {
         renderShareState(data);
         document.getElementById('rpShareModal').hidden = false;
       }).catch(function (e) { toast(e.message, true); });
+  }
+
+  function openShare() {
+    var sel = document.getElementById('rpSavedReports');
+    var opt = sel.options[sel.selectedIndex];
+    if (!opt || opt.dataset.owned !== '1') return;
+    openShareFor(sel.value);
   }
 
   function renderShareState(data) {
@@ -1747,6 +1753,28 @@
   document.getElementById('rpShare').addEventListener('click', openShare);
   document.getElementById('rpShareClose').addEventListener('click', function () {
     document.getElementById('rpShareModal').hidden = true;
+  });
+  // People search for the share input: debounced typeahead into the native
+  // datalist (GET /api/reporting/share_targets, 2+ chars).
+  var shareSuggestTimer = null;
+  document.getElementById('rpShareUser').addEventListener('input', function () {
+    var q = this.value.trim();
+    clearTimeout(shareSuggestTimer);
+    if (q.length < 2) return;
+    shareSuggestTimer = setTimeout(function () {
+      api('/api/reporting/share_targets?q=' + encodeURIComponent(q))
+        .then(function (res) { return res.json(); })
+        .then(function (rows) {
+          var list = document.getElementById('rpShareUserList');
+          list.innerHTML = '';
+          (rows || []).forEach(function (u) {
+            var opt = document.createElement('option');
+            opt.value = u.username;
+            opt.label = u.name;
+            list.appendChild(opt);
+          });
+        }).catch(function () { /* typeahead only — never surface an error */ });
+    }, 200);
   });
   document.getElementById('rpShareAdd').addEventListener('click', function () {
     var u = document.getElementById('rpShareUser').value.trim();
@@ -1981,6 +2009,6 @@
   loadMetrics();
   loadSources();
   loadReports();
-  window.Reporting = Object.assign(window.Reporting || {}, { applyDefinition: applyDefinition, setMode: setMode, applyDefinitionAndChart: applyDefinitionAndChart, run: run });
+  window.Reporting = Object.assign(window.Reporting || {}, { applyDefinition: applyDefinition, setMode: setMode, applyDefinitionAndChart: applyDefinitionAndChart, run: run, openShareFor: openShareFor });
 }());
 </script>
