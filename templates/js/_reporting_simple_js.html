@@ -365,7 +365,12 @@
         '<p class="rs-card-name">' + esc(r.name) + '</p>' +
         '<div class="rs-card-meta">' +
           '<span class="rs-card-avatar">' + esc(initialsOf(r.ownerName)) + '</span>' +
-          '<span class="rs-card-metatext">' + esc(r.ownerName || '') + ' · ' + esc(relTime(r.updatedAt)) + '</span>' +
+          '<span class="rs-card-metatext">' + esc(r.ownerName || '') + ' · ' + esc(relTime(r.updatedAt)) +
+            // Owner-side 'shared' tag: an explicit per-user grant leaves
+            // Visibility = 'private', so the card would otherwise look
+            // identical to a private one.
+            (r.owned && (r.visibility === 'shared' || r.sharedCount) ? ' · {{ _("shared") }}' : '') +
+            '</span>' +
         '</div>' +
       '</div>';
     b.addEventListener('click', function () {

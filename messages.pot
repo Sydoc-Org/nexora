@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-26 09:03+0200\n"
+"POT-Creation-Date: 2026-08-26 09:33+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -714,12 +714,12 @@ msgstr ""
 #: nx_lib/views/reporting.py:1389 nx_lib/views/reporting.py:1517
 #: nx_lib/views/reporting.py:1695 nx_lib/views/reporting.py:2065
 #: nx_lib/views/reporting.py:2178 nx_lib/views/reporting.py:2253
-#: nx_lib/views/reporting.py:3194
+#: nx_lib/views/reporting.py:3201
 msgid "Invalid JSON body"
 msgstr ""
 
 #: nx_lib/views/reporting.py:1244 nx_lib/views/reporting.py:2213
-#: nx_lib/views/reporting.py:3203
+#: nx_lib/views/reporting.py:3210
 msgid "Not authorized for this source"
 msgstr ""
 
@@ -895,162 +895,162 @@ msgstr ""
 msgid "Forecast"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2369
+#: nx_lib/views/reporting.py:2376
 msgid "Could not list reports"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2394 nx_lib/views/reporting.py:2469
-#: nx_lib/views/reporting.py:2491 nx_lib/views/reporting.py:2567
-#: nx_lib/views/reporting.py:2577 nx_lib/views/reporting.py:2627
-#: nx_lib/views/reporting.py:2696 nx_lib/views/reporting.py:2720
-#: nx_lib/views/reporting.py:2767 nx_lib/views/reporting.py:2802
-#: nx_lib/views/reporting.py:2815 nx_lib/views/reporting.py:2826
-#: nx_lib/views/reporting.py:3016 nx_lib/views/reporting.py:3034
-#: nx_lib/views/reporting.py:3137 nx_lib/views/reporting.py:3155
+#: nx_lib/views/reporting.py:2401 nx_lib/views/reporting.py:2476
+#: nx_lib/views/reporting.py:2498 nx_lib/views/reporting.py:2574
+#: nx_lib/views/reporting.py:2584 nx_lib/views/reporting.py:2634
+#: nx_lib/views/reporting.py:2703 nx_lib/views/reporting.py:2727
+#: nx_lib/views/reporting.py:2774 nx_lib/views/reporting.py:2809
+#: nx_lib/views/reporting.py:2822 nx_lib/views/reporting.py:2833
+#: nx_lib/views/reporting.py:3023 nx_lib/views/reporting.py:3041
+#: nx_lib/views/reporting.py:3144 nx_lib/views/reporting.py:3162
 msgid "Not found"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2407
+#: nx_lib/views/reporting.py:2414
 msgid "Could not load report"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2420 nx_lib/views/reporting.py:2449
+#: nx_lib/views/reporting.py:2427 nx_lib/views/reporting.py:2456
 msgid "name and definition are required"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2423 nx_lib/views/reporting.py:2452
+#: nx_lib/views/reporting.py:2430 nx_lib/views/reporting.py:2459
 msgid "Report definition too large"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2436
+#: nx_lib/views/reporting.py:2443
 msgid "Could not save report"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2473
+#: nx_lib/views/reporting.py:2480
 msgid "Could not update report"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2495
+#: nx_lib/views/reporting.py:2502
 msgid "Could not delete report"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2585
+#: nx_lib/views/reporting.py:2592
 msgid "Invalid visibility"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2594
+#: nx_lib/views/reporting.py:2601
 msgid "User not found"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2596
+#: nx_lib/views/reporting.py:2603
 msgid "Cannot share a report with yourself"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2617 nx_lib/views/reporting.py:2638
+#: nx_lib/views/reporting.py:2624 nx_lib/views/reporting.py:2645
 msgid "Could not update sharing"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2710
+#: nx_lib/views/reporting.py:2717
 msgid "Could not list schedules"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2757
+#: nx_lib/views/reporting.py:2764
 msgid "Could not save schedule"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2806
+#: nx_lib/views/reporting.py:2813
 msgid "Could not update schedule"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2830
+#: nx_lib/views/reporting.py:2837
 msgid "Could not delete schedule"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2843 nx_lib/views/reporting.py:2893
+#: nx_lib/views/reporting.py:2850 nx_lib/views/reporting.py:2900
 msgid "Invalid body"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2845
+#: nx_lib/views/reporting.py:2852
 msgid "code must be 1-64 chars: letters, digits, . _ -"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2847
+#: nx_lib/views/reporting.py:2854
 msgid "kind must be 'curated' or 'sql'"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2849 nx_lib/views/reporting.py:2899
+#: nx_lib/views/reporting.py:2856 nx_lib/views/reporting.py:2906
 msgid "label is required"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2851
+#: nx_lib/views/reporting.py:2858
 msgid "permission is required"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2857
+#: nx_lib/views/reporting.py:2864
 msgid "columns must be valid JSON"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2895
+#: nx_lib/views/reporting.py:2902
 msgid "code must start with a letter/underscore: letters, digits, _"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2897
+#: nx_lib/views/reporting.py:2904
 msgid "sourceId is required"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2902
+#: nx_lib/views/reporting.py:2909
 msgid "aggregation must be one of: "
 msgstr ""
 
-#: nx_lib/views/reporting.py:2904
+#: nx_lib/views/reporting.py:2911
 msgid "baseField is required unless aggregation is 'count'"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2963
+#: nx_lib/views/reporting.py:2970
 msgid "Could not list sources"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2991
+#: nx_lib/views/reporting.py:2998
 msgid "Could not save source (code already exists?)"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3020
+#: nx_lib/views/reporting.py:3027
 msgid "Could not update source"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3038
+#: nx_lib/views/reporting.py:3045
 msgid "Could not delete source"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3083
+#: nx_lib/views/reporting.py:3090
 msgid "Could not list metrics"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3112
+#: nx_lib/views/reporting.py:3119
 msgid "Could not save metric (code already exists?)"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3141
+#: nx_lib/views/reporting.py:3148
 msgid "Could not update metric"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3159
+#: nx_lib/views/reporting.py:3166
 msgid "Could not delete metric"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3201
+#: nx_lib/views/reporting.py:3208
 msgid "Unknown or unsupported source"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3206
+#: nx_lib/views/reporting.py:3213
 msgid "Source engine is not configured"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3213
+#: nx_lib/views/reporting.py:3220
 msgid "This request is invalid."
 msgstr ""
 
-#: nx_lib/views/reporting.py:3216
+#: nx_lib/views/reporting.py:3223
 msgid "Could not load values"
 msgstr ""
 
@@ -1490,50 +1490,57 @@ msgstr ""
 
 #: templates/_reporting_help.html:33
 msgid ""
+"A report of yours that you have shared — with everyone or with named "
+"colleagues — is tagged “· shared” on its card. Named shares stay under My"
+" reports; only “shared with everyone” moves it to the Library shelf."
+msgstr ""
+
+#: templates/_reporting_help.html:34
+msgid ""
 "A scheduled email runs with the report owner’s data access — recipients "
 "see the owner’s numbers, not their own."
 msgstr ""
 
-#: templates/_reporting_help.html:34
+#: templates/_reporting_help.html:35
 msgid ""
 "Delete a report you own: hover its card under My reports and click the "
 "trash icon, or open it and use ⋯ → Delete report. Shared copies and "
 "schedules go with it."
 msgstr ""
 
-#: templates/_reporting_help.html:37
+#: templates/_reporting_help.html:38
 msgid "Asking the AI"
 msgstr ""
 
-#: templates/_reporting_help.html:39
+#: templates/_reporting_help.html:40
 msgid ""
 "Name the measure, the time range and the processes: “invoices by process,"
 " last 3 months” beats “show me invoices”."
 msgstr ""
 
-#: templates/_reporting_help.html:40
+#: templates/_reporting_help.html:41
 msgid ""
 "Check what the AI built with “Open in builder” — the filters and process "
 "scope it chose are visible there before you trust the number."
 msgstr ""
 
-#: templates/_reporting_help.html:41
+#: templates/_reporting_help.html:42
 msgid ""
 "Follow-ups work: the chat remembers the conversation, so “now only this "
 "quarter” refines the last answer."
 msgstr ""
 
-#: templates/_reporting_help.html:42
+#: templates/_reporting_help.html:43
 msgid ""
 "When the AI used tools, unfold “How the agent worked” to see the steps; "
 "if a “Continue” button appears, click it before rephrasing your question."
 msgstr ""
 
-#: templates/_reporting_help.html:50
+#: templates/_reporting_help.html:51
 msgid "Full guide"
 msgstr ""
 
-#: templates/_reporting_help.html:51 templates/admin/logs.html:141
+#: templates/_reporting_help.html:52 templates/admin/logs.html:141
 #: templates/js/_reporting_drill_js.html:16
 #: templates/prepared_documents.html:253 templates/prepared_documents.html:265
 #: templates/reporting.html:134 templates/reporting.html:165
@@ -1579,7 +1586,7 @@ msgstr ""
 msgid "New dashboard"
 msgstr ""
 
-#: templates/_reporting_simple.html:38 templates/js/_reporting_js.html:1545
+#: templates/_reporting_simple.html:38 templates/js/_reporting_js.html:1548
 #: templates/js/_reporting_simple_js.html:25
 msgid "My reports"
 msgstr ""
@@ -1594,7 +1601,7 @@ msgstr ""
 msgid "Library"
 msgstr ""
 
-#: templates/_reporting_simple.html:52 templates/js/_reporting_js.html:1551
+#: templates/_reporting_simple.html:52 templates/js/_reporting_js.html:1554
 #: templates/js/_reporting_simple_js.html:27
 msgid "Shared with me"
 msgstr ""
@@ -4286,15 +4293,15 @@ msgstr ""
 msgid "Frequency"
 msgstr ""
 
-#: templates/js/_reporting_js.html:1770 templates/reporting.html:423
+#: templates/js/_reporting_js.html:1773 templates/reporting.html:423
 msgid "Daily"
 msgstr ""
 
-#: templates/js/_reporting_js.html:1770 templates/reporting.html:424
+#: templates/js/_reporting_js.html:1773 templates/reporting.html:424
 msgid "Weekly"
 msgstr ""
 
-#: templates/js/_reporting_js.html:1770 templates/reporting.html:425
+#: templates/js/_reporting_js.html:1773 templates/reporting.html:425
 msgid "Monthly"
 msgstr ""
 
@@ -6267,7 +6274,7 @@ msgid "Duplicate"
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:92
-#: templates/js/_reporting_js.html:1717 templates/js/_reporting_js.html:1836
+#: templates/js/_reporting_js.html:1720 templates/js/_reporting_js.html:1839
 msgid "Remove"
 msgstr ""
 
@@ -6494,56 +6501,57 @@ msgstr ""
 msgid "Could not load metrics"
 msgstr ""
 
-#: templates/js/_reporting_js.html:1531
+#: templates/js/_reporting_js.html:1534
+#: templates/js/_reporting_simple_js.html:372
 msgid "shared"
 msgstr ""
 
-#: templates/js/_reporting_js.html:1558
+#: templates/js/_reporting_js.html:1561
 msgid "Could not load saved reports"
 msgstr ""
 
-#: templates/js/_reporting_js.html:1655
+#: templates/js/_reporting_js.html:1658
 msgid "New name"
 msgstr ""
 
-#: templates/js/_reporting_js.html:1665
+#: templates/js/_reporting_js.html:1668
 msgid "Rename failed"
 msgstr ""
 
-#: templates/js/_reporting_js.html:1673
+#: templates/js/_reporting_js.html:1676
 msgid "Delete this saved report?"
 msgstr ""
 
-#: templates/js/_reporting_js.html:1681
+#: templates/js/_reporting_js.html:1684
 #: templates/js/_reporting_simple_js.html:90
 msgid "Delete failed"
 msgstr ""
 
-#: templates/js/_reporting_js.html:1712
+#: templates/js/_reporting_js.html:1715
 msgid "can edit"
 msgstr ""
 
-#: templates/js/_reporting_js.html:1725
+#: templates/js/_reporting_js.html:1728
 msgid "Not shared with anyone yet."
 msgstr ""
 
-#: templates/js/_reporting_js.html:1810
+#: templates/js/_reporting_js.html:1813
 msgid "No schedules yet."
 msgstr ""
 
-#: templates/js/_reporting_js.html:1819
+#: templates/js/_reporting_js.html:1822
 msgid "only when total"
 msgstr ""
 
-#: templates/js/_reporting_js.html:1821
+#: templates/js/_reporting_js.html:1824
 msgid "disabled"
 msgstr ""
 
-#: templates/js/_reporting_js.html:1830
+#: templates/js/_reporting_js.html:1833
 msgid "Disable"
 msgstr ""
 
-#: templates/js/_reporting_js.html:1830
+#: templates/js/_reporting_js.html:1833
 msgid "Enable"
 msgstr ""
 

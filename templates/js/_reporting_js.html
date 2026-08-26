@@ -1528,7 +1528,10 @@
           opt.value = r.id;
           var suffix = (r.kind === 'sql' ? ' (SQL)' : '');
           if (!r.owned && r.ownerName) suffix += ' — ' + r.ownerName;
-          else if (r.owned && r.visibility === 'shared') suffix += ' · {{ _("shared") }}';
+          // Owner-side 'shared' tag: org-wide visibility OR an explicit
+          // per-user grant (which leaves Visibility = 'private').
+          else if (r.owned && (r.visibility === 'shared' || r.sharedCount))
+            suffix += ' · {{ _("shared") }}';
           opt.textContent = r.name + suffix;
           opt.dataset.owned = r.owned ? '1' : '0';
           opt.dataset.canEdit = r.canEdit ? '1' : '0';

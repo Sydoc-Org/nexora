@@ -650,6 +650,12 @@ own) controls two independent mechanisms, both held in NexoraDB:
   by email/username, optionally **Can edit** (read-write). FK to `Reports` is
   `ON DELETE CASCADE`, so deleting a report removes its shares.
 
+A named share leaves `Visibility` at `private`, so the owner's own card would
+look untouched — the list endpoint therefore returns an owner-only
+`sharedCount` (number of `ReportShares` rows) and both panes tag such a report
+`· shared`, exactly like an org-wide one. It stays under **My reports**; only
+`Visibility='shared'` moves a card to the **Library** shelf.
+
 A recipient sees shared reports under **Shared with me** and can **Load** them.
 **Save** overwrites in place only if they own the report or hold an edit grant;
 otherwise it forks a copy (**Save as**). Only the owner can change visibility,
@@ -657,7 +663,7 @@ manage shares, rename, or delete. Endpoints:
 
 | Endpoint | Who | Purpose |
 |----------|-----|---------|
-| `GET /api/reporting/reports` | any `reporting.view` | reports you own + shared-with-you (tagged `owned`/`canEdit`/`ownerName`) |
+| `GET /api/reporting/reports` | any `reporting.view` | reports you own + shared-with-you (tagged `owned`/`canEdit`/`ownerName`/`sharedCount`) |
 | `GET /api/reporting/reports/<id>` | owner / recipient | load (404 if not visible to you) |
 | `PUT /api/reporting/reports/<id>` | owner / edit-grant | overwrite |
 | `DELETE /api/reporting/reports/<id>` | owner | delete (cascades shares) |

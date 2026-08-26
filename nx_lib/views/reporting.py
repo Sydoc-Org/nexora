@@ -2309,7 +2309,8 @@ def api_reports_list():
 
     A report is visible when the caller owns it, its Visibility is 'shared'
     (everyone with reporting.view), or it is explicitly shared with the caller.
-    Each row is tagged owned / canEdit and carries the owner's name, plus a
+    Each row is tagged owned / canEdit and carries the owner's name, the
+    owner-only sharedCount (explicit per-user grants), plus a
     server-computed previewKind for the library card badge/thumbnail (derived
     from DefinitionJSON — the raw definition itself is never sent here).
     """
@@ -2324,7 +2325,9 @@ def api_reports_list():
             "       r.DefinitionJSON, "
             "       CASE WHEN r.OwnerUserID = ? THEN 1 ELSE 0 END AS Owned, "
             "       CASE WHEN r.OwnerUserID = ? THEN 1 "
-            "            WHEN s.CanEdit = 1 THEN 1 ELSE 0 END AS CanEdit "
+            "            WHEN s.CanEdit = 1 THEN 1 ELSE 0 END AS CanEdit, "
+            "       (SELECT COUNT(*) FROM dbo.ReportShares sc "
+            "         WHERE sc.ReportID = r.ReportID) AS ShareCount "
             "FROM dbo.Reports r "
             "JOIN dbo.Users u ON u.userID = r.OwnerUserID "
             "LEFT JOIN dbo.ReportShares s "
@@ -2355,6 +2358,10 @@ def api_reports_list():
                         "owned": bool(r.Owned),
                         "canEdit": bool(r.CanEdit),
                         "ownerName": r.OwnerName,
+                        # Owner-only: how many colleagues it is shared with,
+                        # so the library can tag a report that is shared by
+                        # explicit grant while Visibility is still private.
+                        "sharedCount": int(r.ShareCount) if r.Owned else 0,
                         "previewKind": _preview_kind(defn),
                     }
                 )

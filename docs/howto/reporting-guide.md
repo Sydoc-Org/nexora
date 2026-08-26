@@ -357,6 +357,11 @@ Nothing runs until you click a card.
 - **Named shares** — share with specific colleagues, optionally with **Can
   edit**.
 
+Once a report of yours is shared either way, its card and its entry in the
+Advanced dropdown are tagged **· shared**. A named share does not move the card
+to the **Library** shelf — that shelf is only for reports shared with the whole
+organisation.
+
 Only the owner can change visibility, manage shares, rename or delete. Someone
 with a read-only share who edits and saves gets their own copy instead.
 

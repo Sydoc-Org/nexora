@@ -297,6 +297,25 @@ def test_add_and_remove_user_share(admin_client):
         admin_client.delete(f"/api/reporting/reports/{rid}")
 
 
+def test_list_tags_owner_report_shared_by_explicit_grant(admin_client):
+    """A per-user grant leaves Visibility='private' — the list must still say
+    the owner shared it, or the library card looks private."""
+    rid = _create_report(admin_client)
+    try:
+
+        def row():
+            rows = admin_client.get("/api/reporting/reports").get_json()
+            return next(r for r in rows if r["id"] == rid)
+
+        assert row()["sharedCount"] == 0
+        admin_client.post(f"/api/reporting/reports/{rid}/shares", json={"user": "user@test.local"})
+        after = row()
+        assert after["visibility"] == "private"
+        assert after["sharedCount"] == 1
+    finally:
+        admin_client.delete(f"/api/reporting/reports/{rid}")
+
+
 def test_share_unknown_user_404(admin_client):
     rid = _create_report(admin_client)
     try:

@@ -93,6 +93,15 @@ Work toward the next release.
 
 ### Fixed
 
+- **A report shared with named colleagues now looks shared to its owner.**
+  Only `Visibility='shared'` was ever surfaced, so a report shared by explicit
+  per-user grant (which deliberately leaves `Visibility='private'`) was
+  indistinguishable from a private one in the Simple library and the Advanced
+  dropdown — the share was saved, it just never showed. `GET
+  /api/reporting/reports` now returns an owner-only `sharedCount` and both
+  panes tag the report `· shared`. Named shares stay on the **My reports**
+  shelf; the **Library** shelf remains org-wide visibility only.
+
 - **Reporting catalog stopped flooding `app.log`.** `fetch_docprocessing_catalog`
   logged `reporting catalog: FieldMetadata unavailable` at WARNING on *every*
   reporting request. The table has never existed in any environment — the
