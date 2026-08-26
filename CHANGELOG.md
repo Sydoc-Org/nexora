@@ -8,6 +8,16 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Changed
+
+- **`CLAUDE.md` is now a map, not a manual.** It is injected into every Claude
+  Code session and re-sent after every compact, so its 28 KB of prose was a
+  fixed per-session token cost. The architectural-conventions block moved
+  verbatim to `docs/design/architecture-conventions.md`, the Databases section
+  dropped the ~5 KB it duplicated from `docs/howto/db-migrations.md`, and the
+  translations and GitNexus blocks became pointers. 28,069 -> 14,361 bytes with
+  no content lost, only relocated; the Git branch policy is kept verbatim.
+
 ### Fixed
 
 - **The reporting page fetched the same catalogs eight times per load.** Its
