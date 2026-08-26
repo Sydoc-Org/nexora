@@ -376,7 +376,9 @@ opens the report.
 Cards show a small preview chart. It only reflects your real numbers after you
 have opened and run that report in this browser — before that it is a
 decorative placeholder, so don't read trends off a card you haven't opened.
-Nothing runs until you click a card.
+A dashboard card previews the dashboard itself: a miniature of its real card
+layout (each tile drawn with its chart type), plus a card count. Nothing runs
+until you click a card.
 
 **Share** (on a report you own) does two independent things:
 

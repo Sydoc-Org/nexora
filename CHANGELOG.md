@@ -51,6 +51,14 @@ Work toward the next release.
   Accept-Encoding` is set whether or not the body ends up compressed, and the
   `ETag` is left alone so `If-None-Match` still answers 304.
 
+- **Dashboard cards in the reporting library preview their real layout.** A
+  dashboard's library card used to show a generic 2×2 placeholder; it now draws
+  a miniature of the dashboard itself — the actual cards packed into their
+  12-column rows, each tile carrying a small glyph for its chart type (KPI,
+  line, bar, donut, table, whole report) — plus a card-count fact, so
+  dashboards can be told apart before opening one. The list endpoint's
+  server-computed summary now carries the compact card layout for
+  dashboard-kind reports; an empty dashboard keeps the old placeholder.
 - **Eddard, the reporting mascot** (#212). The AI assistant now has a face and a
   name: an animated version of the Nexora black-hole logo — black core, accent
   accretion ring, two dot eyes — who floats, blinks, looks around, winks and
@@ -63,7 +71,14 @@ Work toward the next release.
   themes. Decorative and `aria-hidden`; `prefers-reduced-motion` holds every loop
   on its resting frame. New `templates/_eddard.html`,
   `templates/js/_eddard_js.html`, `static/css/eddard.css`; design source is
-  `docs/design/design_handoff_eddard_mascot/`.
+  `docs/design/design_handoff_eddard_mascot/`. He since gained the rest of the
+  handoff's personality — drifting ambient sparks and pointer-following eyes on
+  the big chat mascot, a hover perk-up on the small marks, and per-piece
+  build choreography (a fling as each report piece lands, a card settle, an
+  orbiting spark while working, the celebrate pose on *Ready*) — and his mock
+  report is no longer mock: the agent stream distills each tool result into a
+  compact preview (`stage_preview`), so the title, total, bars and trend he
+  animates while you wait are the real numbers of the answer being built.
 - **Response-time sparklines on the admin status page.** Each component row now
   carries a 24-hour latency graph beside its uptime strip, drawn from the new
   `dbo.StatusSamples` table (migration `0071`) that the outage monitor fills

@@ -181,7 +181,7 @@
     </div>
     <div id="rpChatThread" class="reporting-chat-thread" data-testid="reporting-chat-thread">
       <div id="rpChatEmpty" class="reporting-chat-empty">
-        {{ eddard.mark(88, cls='reporting-chat-mascot', testid='reporting-chat-mascot') }}
+        {{ eddard.mark(88, cls='reporting-chat-mascot ed--track', testid='reporting-chat-mascot', sparks=true) }}
         <p>{{ _("Hi, I'm Eddard. Ask about your data in plain language. I can build reports, draft SQL, and — with the right permission — run read-only queries and report real numbers.") }}</p>
         <button type="button" class="rp-chat-starter" data-testid="rp-chat-starter">{{ _("documents per month this year") }}</button>
         <button type="button" class="rp-chat-starter" data-testid="rp-chat-starter">{{ _("invoices by process, last 3 months") }}</button>

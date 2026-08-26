@@ -1218,9 +1218,26 @@ thread (88px) and the AI-insight card head on Simple (20px). The three inline
 marks pass `cls='ed--calm'`: they only breathe (a 2px `edBreathe`) and blink,
 because a mark sitting in a text row must not shove its label around — the
 mood loop skips `.ed--calm` entirely, so the hops and eye darting stay on the
-big empty-thread mascot. While a turn runs, the progress ticker gets the
-`stage()` macro, which flings a placeholder report together (title → KPI →
-bars → trend → Ready badge) beside the real agent steps. Everything is `aria-hidden` (decorative; the visible
+big empty-thread mascot. That big mark also opts into `ed--track` (eyes follow
+the pointer, rAF-throttled; the mood loop yields the eye vars while the
+pointer is fresh) and `sparks=true` (the handoff's three drifting ambient
+dots). Hovering a calm mark's parent perks him up (1px lift, wide eyes).
+
+While a turn runs, the progress ticker gets the `stage()` macro, which flings
+a report together (title → KPI → bars → trend → Ready badge) beside the real
+agent steps, with per-piece choreography: a one-shot `edThrow` fling and card
+settle as each piece lands, an orbiting spark while working, and the handoff's
+celebrate pose on Ready. The stage starts with placeholder copy but becomes a
+**live preview of the actual answer**: `ask_agentic_iter` yields a
+`tool_result` event after every tool call (key `output`, never `result` — that
+key terminates every consumer's loop), the view distills it through
+`stage_preview()` (`nx_lib/reporting/ai.py`; title from `build_definition`,
+total + series from `run_definition`/`run_sql` rows — first numeric cell per
+row, capped to the last 12) into a `{"phase": "preview"}` NDJSON line, and
+`NexoraEddard.setPreview()` swaps the mock report's title, compact-formatted
+total (the canned +8.3% delta hides next to real data), bar heights and trend
+line for the real numbers. Raw tool output never reaches the client from a
+progress line. Everything is `aria-hidden` (decorative; the visible
 status text carries the meaning) and `prefers-reduced-motion` holds each loop
 on its resting frame. Source of truth for geometry, mood table and timings:
 `docs/design/design_handoff_eddard_mascot/README.md`.

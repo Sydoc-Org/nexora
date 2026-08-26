@@ -11,9 +11,15 @@
    which only touches wrappers carrying .ed--idle.
 
    Decorative in every placement so far -- callers own the visible label. #}
-{% macro mark(size=64, state='idle', cls='', testid='') -%}
+{% macro mark(size=64, state='idle', cls='', testid='', sparks=false) -%}
 <span class="ed ed--{{ state }}{% if cls %} {{ cls }}{% endif %}" style="--ed-size: {{ size }}px"
       {% if testid %}data-testid="{{ testid }}" {% endif %}aria-hidden="true">
+  {% if sparks %}{# ambient drifting sparks (handoff: 3 dots, 4-6s, staggered) #}
+  <i class="ed-spark"></i><i class="ed-spark"></i><i class="ed-spark"></i>
+  {% endif %}
+  {% if state == 'working' %}{# orbiting spark while he works (handoff edOrbit) #}
+  <i class="ed-orbit"></i>
+  {% endif %}
   <svg class="ed-svg" viewBox="0 0 200 200" fill="none" focusable="false">
     <path class="ed-ring-back" d="M24 116 A76 22 0 0 1 176 116" stroke-width="9" stroke-linecap="round"/>
     <g class="ed-body">

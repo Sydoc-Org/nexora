@@ -68,6 +68,7 @@
     aiChecking: {{ _("Checking the result…")|tojson }},
     chipApply: {{ _("Apply")|tojson }},
     granularity: {{ _("Granularity")|tojson }},
+    cardsLabel: {{ _("Cards")|tojson }},
     grainNeedsDate: {{ _("Pick a time breakdown first to choose its granularity.")|tojson }},
     grainDay: {{ _("Day")|tojson }},
     grainWeek: {{ _("Week")|tojson }},
@@ -382,13 +383,90 @@
       'transform="rotate(-90 ' + cx + ' ' + cy + ')"></circle></svg>';
   }
 
-  function previewSvgDash() {
-    var s = 22, gap = 6, x0 = 5, y0 = 5, cells = '';
-    [[0, 0], [1, 0], [0, 1], [1, 1]].forEach(function (p) {
-      cells += '<rect x="' + (x0 + p[0] * (s + gap)) + '" y="' + (y0 + p[1] * (s + gap)) +
-        '" width="' + s + '" height="' + s + '" rx="4" fill="#eef2ff" stroke="#c7d2fe"></rect>';
+  // Tiny per-type glyph drawn inside a dashboard-miniature cell. Accent-
+  // colored so it follows the theme like the other previews.
+  function dashGlyph(t, x, y, w, h) {
+    var a = 'var(--nx-accent, #4f46e5)';
+    // Inner padding 7: at the ~0.87 render scale a 4px inset put stroke ends
+    // flush against the cell's rounded corners and read as clipped content.
+    var px = 7, py = 4, cx = x + w / 2, cy = y + h / 2;
+    var ix = x + px, iy = y + py, iw = Math.max(2, w - px * 2), ih = Math.max(2, h - py * 2);
+    if (t === 'donut') {
+      var r = Math.min(iw, ih) / 2;
+      return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r.toFixed(1) +
+        '" fill="none" stroke="' + a + '" stroke-width="3" opacity="0.75"></circle>';
+    }
+    if (t === 'kpi') {
+      return '<rect x="' + ix + '" y="' + (cy - 1.5).toFixed(1) + '" width="' + (iw * 0.6).toFixed(1) +
+        '" height="3" rx="1.5" fill="' + a + '" opacity="0.8"></rect>';
+    }
+    if (t === 'bar') {
+      var n = 3, g = 2, bw = (iw - g * (n - 1)) / n, out = '';
+      [0.5, 1, 0.7].forEach(function (f, i) {
+        var bh = ih * f;
+        out += '<rect x="' + (ix + i * (bw + g)).toFixed(1) + '" y="' + (iy + ih - bh).toFixed(1) +
+          '" width="' + bw.toFixed(1) + '" height="' + bh.toFixed(1) + '" rx="1" fill="' + a + '" opacity="0.7"></rect>';
+      });
+      return out;
+    }
+    if (t === 'table') {
+      var out2 = '';
+      [0.2, 0.5, 0.8].forEach(function (f) {
+        out2 += '<rect x="' + ix + '" y="' + (iy + ih * f - 1).toFixed(1) + '" width="' + iw.toFixed(1) +
+          '" height="2" rx="1" fill="' + a + '" opacity="0.45"></rect>';
+      });
+      return out2;
+    }
+    // line / report / anything new: a small zigzag sparkline.
+    var pts = [0, 0.4, 0.15, 0.75, 0.35, 1].map(function (f, i) {
+      return (ix + iw * (i / 5)).toFixed(1) + ',' + (iy + ih - ih * f).toFixed(1);
+    }).join(' ');
+    return '<polyline points="' + pts + '" fill="none" stroke="' + a +
+      '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.75"></polyline>';
+  }
+
+  // Dashboard miniature: the card's real layout, packed into 12-col rows the
+  // same way the builder grid does, each cell carrying a glyph for its chart
+  // type. Falls back to the old generic 2x2 when the dashboard has no cards
+  // (or an old cached list payload has no summary).
+  function previewSvgDash(cards) {
+    if (!cards || !cards.length) {
+      var s = 22, gap0 = 6, x0 = 5, y0 = 5, cells = '';
+      [[0, 0], [1, 0], [0, 1], [1, 1]].forEach(function (p) {
+        cells += '<rect x="' + (x0 + p[0] * (s + gap0)) + '" y="' + (y0 + p[1] * (s + gap0)) +
+          '" width="' + s + '" height="' + s + '" rx="4" fill="var(--nx-accent, #4f46e5)" opacity="0.14"></rect>';
+      });
+      return '<svg viewBox="0 0 60 60" class="rs-card-svg rs-card-svg-dash">' + cells + '</svg>';
+    }
+    // Pack spans into rows of 12, like the real grid; cap at 3 rows.
+    var rows = [], cur = [], used = 0;
+    cards.forEach(function (c) {
+      var sp = Math.max(1, Math.min(12, parseInt(c.s, 10) || 6));
+      if (used + sp > 12 && cur.length) { rows.push(cur); cur = []; used = 0; }
+      cur.push({ t: c.t, s: sp, x: used });
+      used += sp;
     });
-    return '<svg viewBox="0 0 60 60" class="rs-card-svg">' + cells + '</svg>';
+    if (cur.length) rows.push(cur);
+    var clipped = rows.length > 3;
+    rows = rows.slice(0, 3);
+    var w = 200, h = 60, gap = 4;
+    var rh = (h - gap * (rows.length - 1)) / rows.length;
+    var body = '';
+    rows.forEach(function (row, ri) {
+      var y = ri * (rh + gap);
+      row.forEach(function (c) {
+        var x = c.x / 12 * (w + gap);
+        var cw = c.s / 12 * (w + gap) - gap;
+        body += '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + cw.toFixed(1) +
+          '" height="' + rh.toFixed(1) + '" rx="3" fill="var(--nx-accent, #4f46e5)" opacity="0.1"></rect>' +
+          dashGlyph(c.t, x, y, cw, rh);
+      });
+    });
+    if (clipped) {
+      body += '<text x="' + (w - 4) + '" y="' + (h - 3) + '" text-anchor="end" font-size="9" ' +
+        'fill="var(--nx-text-meta, #64748b)">…</text>';
+    }
+    return '<svg viewBox="0 0 ' + w + ' ' + h + '" class="rs-card-svg rs-card-svg-dash">' + body + '</svg>';
   }
 
   // Preview strip: slim thumbnail (real cache values when the kind matches,
@@ -406,7 +484,7 @@
         ? '<div class="rs-card-total">' + esc(fmtNumber(cache.v)) + '</div>'
         : '<div class="rs-card-total rs-card-total-label">' + esc(metricLabel) + '</div>';
     } else if (kind === 'dash') {
-      body = previewSvgDash();
+      body = previewSvgDash((r.summary || {}).cards);
     } else {
       var n = kind === 'donut' ? 2 : 8;
       var vals = real ? (Array.isArray(cache.v) ? cache.v : [cache.v]) : seededVals(r.id, n);
@@ -447,6 +525,9 @@
     if (sm.metrics) fact('fa-hashtag', String(sm.metrics), I18N.wizMeasure);
     if (sm.dimensions) fact('fa-layer-group', String(sm.dimensions), I18N.wizBreakdown);
     if (sm.filters) fact('fa-filter', String(sm.filters), I18N.aiFilters);
+    // Dashboard cards: the one fact a dashboard has (its summary carries no
+    // source/grain/metrics -- see _preview_summary's dashboard branch).
+    if (sm.cardCount) fact('fa-table-cells-large', String(sm.cardCount), I18N.cardsLabel);
     if (!facts.length) return '';
     return '<div class="rs-card-facts">' + facts.join('') + '</div>';
   }

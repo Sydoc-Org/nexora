@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-26 13:13+0200\n"
+"POT-Creation-Date: 2026-08-26 14:06+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -714,12 +714,12 @@ msgstr ""
 #: nx_lib/views/reporting.py:1389 nx_lib/views/reporting.py:1517
 #: nx_lib/views/reporting.py:1695 nx_lib/views/reporting.py:2066
 #: nx_lib/views/reporting.py:2188 nx_lib/views/reporting.py:2263
-#: nx_lib/views/reporting.py:3353
+#: nx_lib/views/reporting.py:3370
 msgid "Invalid JSON body"
 msgstr ""
 
 #: nx_lib/views/reporting.py:1244 nx_lib/views/reporting.py:2223
-#: nx_lib/views/reporting.py:3362
+#: nx_lib/views/reporting.py:3379
 msgid "Not authorized for this source"
 msgstr ""
 
@@ -895,163 +895,163 @@ msgstr ""
 msgid "Forecast"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2412
+#: nx_lib/views/reporting.py:2429
 msgid "Could not list reports"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2437 nx_lib/views/reporting.py:2512
-#: nx_lib/views/reporting.py:2534 nx_lib/views/reporting.py:2610
-#: nx_lib/views/reporting.py:2620 nx_lib/views/reporting.py:2670
-#: nx_lib/views/reporting.py:2739 nx_lib/views/reporting.py:2763
-#: nx_lib/views/reporting.py:2810 nx_lib/views/reporting.py:2845
-#: nx_lib/views/reporting.py:2858 nx_lib/views/reporting.py:2869
-#: nx_lib/views/reporting.py:3175 nx_lib/views/reporting.py:3193
-#: nx_lib/views/reporting.py:3296 nx_lib/views/reporting.py:3314
+#: nx_lib/views/reporting.py:2454 nx_lib/views/reporting.py:2529
+#: nx_lib/views/reporting.py:2551 nx_lib/views/reporting.py:2627
+#: nx_lib/views/reporting.py:2637 nx_lib/views/reporting.py:2687
+#: nx_lib/views/reporting.py:2756 nx_lib/views/reporting.py:2780
+#: nx_lib/views/reporting.py:2827 nx_lib/views/reporting.py:2862
+#: nx_lib/views/reporting.py:2875 nx_lib/views/reporting.py:2886
+#: nx_lib/views/reporting.py:3192 nx_lib/views/reporting.py:3210
+#: nx_lib/views/reporting.py:3313 nx_lib/views/reporting.py:3331
 msgid "Not found"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2450
+#: nx_lib/views/reporting.py:2467
 msgid "Could not load report"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2463 nx_lib/views/reporting.py:2492
+#: nx_lib/views/reporting.py:2480 nx_lib/views/reporting.py:2509
 msgid "name and definition are required"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2466 nx_lib/views/reporting.py:2495
+#: nx_lib/views/reporting.py:2483 nx_lib/views/reporting.py:2512
 msgid "Report definition too large"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2479
+#: nx_lib/views/reporting.py:2496
 msgid "Could not save report"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2516
+#: nx_lib/views/reporting.py:2533
 msgid "Could not update report"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2538
+#: nx_lib/views/reporting.py:2555
 msgid "Could not delete report"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2628
+#: nx_lib/views/reporting.py:2645
 msgid "Invalid visibility"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2637
+#: nx_lib/views/reporting.py:2654
 msgid "User not found"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2639
+#: nx_lib/views/reporting.py:2656
 msgid "Cannot share a report with yourself"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2660 nx_lib/views/reporting.py:2681
+#: nx_lib/views/reporting.py:2677 nx_lib/views/reporting.py:2698
 msgid "Could not update sharing"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2753 nx_lib/views/reporting.py:2905
+#: nx_lib/views/reporting.py:2770 nx_lib/views/reporting.py:2922
 #: templates/js/_reporting_scheduled_js.html:28
 msgid "Could not list schedules"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2800 templates/js/_reporting_scheduled_js.html:29
+#: nx_lib/views/reporting.py:2817 templates/js/_reporting_scheduled_js.html:29
 msgid "Could not save schedule"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2849
+#: nx_lib/views/reporting.py:2866
 msgid "Could not update schedule"
 msgstr ""
 
-#: nx_lib/views/reporting.py:2873
+#: nx_lib/views/reporting.py:2890
 msgid "Could not delete schedule"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3002 nx_lib/views/reporting.py:3052
+#: nx_lib/views/reporting.py:3019 nx_lib/views/reporting.py:3069
 msgid "Invalid body"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3004
+#: nx_lib/views/reporting.py:3021
 msgid "code must be 1-64 chars: letters, digits, . _ -"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3006
+#: nx_lib/views/reporting.py:3023
 msgid "kind must be 'curated' or 'sql'"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3008 nx_lib/views/reporting.py:3058
+#: nx_lib/views/reporting.py:3025 nx_lib/views/reporting.py:3075
 msgid "label is required"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3010
+#: nx_lib/views/reporting.py:3027
 msgid "permission is required"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3016
+#: nx_lib/views/reporting.py:3033
 msgid "columns must be valid JSON"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3054
+#: nx_lib/views/reporting.py:3071
 msgid "code must start with a letter/underscore: letters, digits, _"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3056
+#: nx_lib/views/reporting.py:3073
 msgid "sourceId is required"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3061
+#: nx_lib/views/reporting.py:3078
 msgid "aggregation must be one of: "
 msgstr ""
 
-#: nx_lib/views/reporting.py:3063
+#: nx_lib/views/reporting.py:3080
 msgid "baseField is required unless aggregation is 'count'"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3122
+#: nx_lib/views/reporting.py:3139
 msgid "Could not list sources"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3150
+#: nx_lib/views/reporting.py:3167
 msgid "Could not save source (code already exists?)"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3179
+#: nx_lib/views/reporting.py:3196
 msgid "Could not update source"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3197
+#: nx_lib/views/reporting.py:3214
 msgid "Could not delete source"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3242
+#: nx_lib/views/reporting.py:3259
 msgid "Could not list metrics"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3271
+#: nx_lib/views/reporting.py:3288
 msgid "Could not save metric (code already exists?)"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3300
+#: nx_lib/views/reporting.py:3317
 msgid "Could not update metric"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3318
+#: nx_lib/views/reporting.py:3335
 msgid "Could not delete metric"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3360
+#: nx_lib/views/reporting.py:3377
 msgid "Unknown or unsupported source"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3365
+#: nx_lib/views/reporting.py:3382
 msgid "Source engine is not configured"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3372
+#: nx_lib/views/reporting.py:3389
 msgid "This request is invalid."
 msgstr ""
 
-#: nx_lib/views/reporting.py:3375
+#: nx_lib/views/reporting.py:3392
 msgid "Could not load values"
 msgstr ""
 
@@ -1519,45 +1519,52 @@ msgid ""
 "change colours or the chart type in the report itself."
 msgstr ""
 
-#: templates/_reporting_help.html:39
+#: templates/_reporting_help.html:37
+msgid ""
+"A dashboard’s library card previews its real layout — one small tile per "
+"card, drawn with that card’s chart type — plus a card count, so you can "
+"tell dashboards apart before opening one."
+msgstr ""
+
+#: templates/_reporting_help.html:40
 msgid "Asking Eddard"
 msgstr ""
 
-#: templates/_reporting_help.html:41
+#: templates/_reporting_help.html:42
 msgid ""
 "Eddard is the reporting assistant behind the chat panel — the little "
 "black hole in the top bar."
 msgstr ""
 
-#: templates/_reporting_help.html:42
+#: templates/_reporting_help.html:43
 msgid ""
 "Name the measure, the time range and the processes: “invoices by process,"
 " last 3 months” beats “show me invoices”."
 msgstr ""
 
-#: templates/_reporting_help.html:43
+#: templates/_reporting_help.html:44
 msgid ""
 "Check what Eddard built with “Open in builder” — the filters and process "
 "scope it chose are visible there before you trust the number."
 msgstr ""
 
-#: templates/_reporting_help.html:44
+#: templates/_reporting_help.html:45
 msgid ""
 "Follow-ups work: the chat remembers the conversation, so “now only this "
 "quarter” refines the last answer."
 msgstr ""
 
-#: templates/_reporting_help.html:45
+#: templates/_reporting_help.html:46
 msgid ""
 "When Eddard used tools, unfold “How the agent worked” to see the steps; "
 "if a “Continue” button appears, click it before rephrasing your question."
 msgstr ""
 
-#: templates/_reporting_help.html:53
+#: templates/_reporting_help.html:54
 msgid "Full guide"
 msgstr ""
 
-#: templates/_reporting_help.html:54 templates/admin/logs.html:141
+#: templates/_reporting_help.html:55 templates/admin/logs.html:141
 #: templates/js/_reporting_drill_js.html:16
 #: templates/prepared_documents.html:253 templates/prepared_documents.html:265
 #: templates/reporting.html:148 templates/reporting.html:179
@@ -1651,27 +1658,27 @@ msgid "Granularity"
 msgstr ""
 
 #: templates/_reporting_simple.html:90 templates/js/_reporting_js.html:366
-#: templates/js/_reporting_simple_js.html:72
+#: templates/js/_reporting_simple_js.html:73
 msgid "Day"
 msgstr ""
 
 #: templates/_reporting_simple.html:91 templates/js/_reporting_js.html:366
-#: templates/js/_reporting_simple_js.html:73
+#: templates/js/_reporting_simple_js.html:74
 msgid "Week"
 msgstr ""
 
 #: templates/_reporting_simple.html:92 templates/js/_reporting_js.html:366
-#: templates/js/_reporting_simple_js.html:74
+#: templates/js/_reporting_simple_js.html:75
 msgid "Month"
 msgstr ""
 
 #: templates/_reporting_simple.html:93 templates/js/_reporting_js.html:367
-#: templates/js/_reporting_simple_js.html:75
+#: templates/js/_reporting_simple_js.html:76
 msgid "Quarter"
 msgstr ""
 
 #: templates/_reporting_simple.html:94 templates/js/_reporting_js.html:367
-#: templates/js/_reporting_simple_js.html:76
+#: templates/js/_reporting_simple_js.html:77
 msgid "Year"
 msgstr ""
 
@@ -1682,7 +1689,7 @@ msgid ""
 msgstr ""
 
 #: templates/_reporting_simple.html:99
-#: templates/js/_reporting_simple_js.html:135
+#: templates/js/_reporting_simple_js.html:136
 msgid "Time range"
 msgstr ""
 
@@ -1719,7 +1726,7 @@ msgid "Show result"
 msgstr ""
 
 #: templates/_reporting_simple.html:129
-#: templates/js/_reporting_simple_js.html:136
+#: templates/js/_reporting_simple_js.html:137
 msgid "So far"
 msgstr ""
 
@@ -1778,13 +1785,13 @@ msgid "More actions"
 msgstr ""
 
 #: templates/_reporting_simple.html:186
-#: templates/js/_reporting_simple_js.html:100
+#: templates/js/_reporting_simple_js.html:101
 msgid "Open in Advanced"
 msgstr ""
 
 #: templates/_reporting_simple.html:188 templates/js/_reporting_ai_js.html:37
 #: templates/js/_reporting_js.html:506
-#: templates/js/_reporting_simple_js.html:101 templates/reporting.html:345
+#: templates/js/_reporting_simple_js.html:102 templates/reporting.html:345
 msgid "Show query"
 msgstr ""
 
@@ -1793,7 +1800,7 @@ msgid "Save as copy"
 msgstr ""
 
 #: templates/_reporting_simple.html:194
-#: templates/js/_reporting_simple_js.html:90
+#: templates/js/_reporting_simple_js.html:91
 msgid "Delete report"
 msgstr ""
 
@@ -2875,7 +2882,7 @@ msgstr ""
 #: templates/js/_generali_dashboard_js.html:25
 #: templates/js/_reporting_dashboard_js.html:90
 #: templates/js/_reporting_js.html:510
-#: templates/js/_reporting_simple_js.html:117
+#: templates/js/_reporting_simple_js.html:118
 #: templates/js/_reporting_viz_js.html:557
 #: templates/js/_reporting_viz_js.html:619
 #: templates/js/_reporting_viz_js.html:675
@@ -4173,12 +4180,12 @@ msgid "Source"
 msgstr ""
 
 #: templates/js/_reporting_simple_js.html:59
-#: templates/js/_reporting_simple_js.html:133 templates/reporting.html:302
+#: templates/js/_reporting_simple_js.html:134 templates/reporting.html:302
 msgid "Processes"
 msgstr ""
 
 #: templates/js/_reporting_js.html:214 templates/js/_reporting_js.html:241
-#: templates/js/_reporting_simple_js.html:77 templates/reporting.html:305
+#: templates/js/_reporting_simple_js.html:78 templates/reporting.html:305
 msgid "All processes"
 msgstr ""
 
@@ -4218,7 +4225,7 @@ msgstr ""
 msgid "Share the selected report you own"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:95 templates/reporting.html:332
+#: templates/js/_reporting_simple_js.html:96 templates/reporting.html:332
 msgid "Share"
 msgstr ""
 
@@ -4782,14 +4789,14 @@ msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:81
 #: templates/js/_reporting_js.html:501
-#: templates/js/_reporting_simple_js.html:107
+#: templates/js/_reporting_simple_js.html:108
 #: templates/workitems_overview.html:232 templates/workitems_overview.html:284
 msgid "contains"
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:82
 #: templates/js/_reporting_js.html:502
-#: templates/js/_reporting_simple_js.html:108
+#: templates/js/_reporting_simple_js.html:109
 #: templates/workitems_overview.html:235 templates/workitems_overview.html:287
 msgid "starts with"
 msgstr ""
@@ -4878,7 +4885,7 @@ msgstr ""
 msgid "Optional extras"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:139
+#: templates/js/_reporting_simple_js.html:140
 #: templates/workitems_overview.html:529
 msgid "Document fields"
 msgstr ""
@@ -5245,7 +5252,7 @@ msgstr ""
 
 #: templates/admin/logs.html:96 templates/admin/logs.html:131
 #: templates/admin/user_detail.html:226
-#: templates/js/_reporting_simple_js.html:138
+#: templates/js/_reporting_simple_js.html:139
 msgid "Time"
 msgstr ""
 
@@ -6190,7 +6197,7 @@ msgid "Insert into SQL editor"
 msgstr ""
 
 #: templates/js/_reporting_ai_js.html:38 templates/js/_reporting_js.html:507
-#: templates/js/_reporting_simple_js.html:103
+#: templates/js/_reporting_simple_js.html:104
 msgid "Hide query"
 msgstr ""
 
@@ -6315,13 +6322,13 @@ msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:83
 #: templates/js/_reporting_js.html:503
-#: templates/js/_reporting_simple_js.html:109
+#: templates/js/_reporting_simple_js.html:110
 msgid "is empty"
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:84
 #: templates/js/_reporting_js.html:504
-#: templates/js/_reporting_simple_js.html:110
+#: templates/js/_reporting_simple_js.html:111
 msgid "is not empty"
 msgstr ""
 
@@ -6402,7 +6409,7 @@ msgid "No cards to export yet."
 msgstr ""
 
 #: templates/js/_reporting_dashboard_js.html:110
-#: templates/js/_reporting_simple_js.html:81
+#: templates/js/_reporting_simple_js.html:82
 #, python-brace-format
 msgid "Showing the {shown} largest of {n} series."
 msgstr ""
@@ -6503,7 +6510,7 @@ msgid "Running your report…"
 msgstr ""
 
 #: templates/js/_reporting_js.html:488
-#: templates/js/_reporting_simple_js.html:114
+#: templates/js/_reporting_simple_js.html:115
 #, python-brace-format
 msgid "{rows} rows · {ms} ms"
 msgstr ""
@@ -6517,27 +6524,27 @@ msgid "SQL report"
 msgstr ""
 
 #: templates/js/_reporting_js.html:498
-#: templates/js/_reporting_simple_js.html:104
+#: templates/js/_reporting_simple_js.html:105
 msgid "between"
 msgstr ""
 
 #: templates/js/_reporting_js.html:499
-#: templates/js/_reporting_simple_js.html:105
+#: templates/js/_reporting_simple_js.html:106
 msgid "is one of"
 msgstr ""
 
 #: templates/js/_reporting_js.html:500
-#: templates/js/_reporting_simple_js.html:106
+#: templates/js/_reporting_simple_js.html:107
 msgid "is not one of"
 msgstr ""
 
 #: templates/js/_reporting_js.html:508
-#: templates/js/_reporting_simple_js.html:111
+#: templates/js/_reporting_simple_js.html:112
 msgid "Copied"
 msgstr ""
 
 #: templates/js/_reporting_js.html:509
-#: templates/js/_reporting_simple_js.html:102
+#: templates/js/_reporting_simple_js.html:103
 #, python-brace-format
 msgid ""
 "Showing the first {n} rows — narrow the filters or time range to see the "
@@ -6545,17 +6552,17 @@ msgid ""
 msgstr ""
 
 #: templates/js/_reporting_js.html:511
-#: templates/js/_reporting_simple_js.html:126
+#: templates/js/_reporting_simple_js.html:127
 msgid "Buckets"
 msgstr ""
 
 #: templates/js/_reporting_js.html:512
-#: templates/js/_reporting_simple_js.html:127
+#: templates/js/_reporting_simple_js.html:128
 msgid "Avg per bucket"
 msgstr ""
 
 #: templates/js/_reporting_js.html:513
-#: templates/js/_reporting_simple_js.html:142
+#: templates/js/_reporting_simple_js.html:143
 msgid "AI"
 msgstr ""
 
@@ -6588,7 +6595,7 @@ msgid "Could not load metrics"
 msgstr ""
 
 #: templates/js/_reporting_js.html:1534
-#: templates/js/_reporting_simple_js.html:494
+#: templates/js/_reporting_simple_js.html:573
 msgid "shared"
 msgstr ""
 
@@ -6609,7 +6616,7 @@ msgid "Delete this saved report?"
 msgstr ""
 
 #: templates/js/_reporting_js.html:1684
-#: templates/js/_reporting_simple_js.html:99
+#: templates/js/_reporting_simple_js.html:100
 msgid "Delete failed"
 msgstr ""
 
@@ -6840,175 +6847,179 @@ msgid "Checking the result…"
 msgstr ""
 
 #: templates/js/_reporting_simple_js.html:71
+msgid "Cards"
+msgstr ""
+
+#: templates/js/_reporting_simple_js.html:72
 msgid "Pick a time breakdown first to choose its granularity."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:78
+#: templates/js/_reporting_simple_js.html:79
 msgid ""
 "No chart — this report is a single total. Adjust it in the wizard and "
 "pick a breakdown to get one."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:79
+#: templates/js/_reporting_simple_js.html:80
 #, python-brace-format
 msgid "Chart shows the first 50 of {n} rows."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:80
+#: templates/js/_reporting_simple_js.html:81
 msgid ""
 "Too many data points to chart — choose a coarser granularity or a shorter"
 " time range."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:82
+#: templates/js/_reporting_simple_js.html:83
 msgid "The chart could not be drawn (chart library failed to load)."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:83
+#: templates/js/_reporting_simple_js.html:84
 msgid "Right axis"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:84
+#: templates/js/_reporting_simple_js.html:85
 msgid "Left axis"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:85
+#: templates/js/_reporting_simple_js.html:86
 msgid "Left"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:86
+#: templates/js/_reporting_simple_js.html:87
 msgid "Right"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:87
+#: templates/js/_reporting_simple_js.html:88
 msgid "Forecast is only drawn on line and bar charts."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:88
+#: templates/js/_reporting_simple_js.html:89
 msgid "The current period is still running — its last bucket is incomplete."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:89
+#: templates/js/_reporting_simple_js.html:90
 msgid "Gaps are periods without a backlog snapshot."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:91
-msgid "Report actions"
-msgstr ""
-
 #: templates/js/_reporting_simple_js.html:92
-#, python-brace-format
-msgid "{label} down {pct} vs previous"
+msgid "Report actions"
 msgstr ""
 
 #: templates/js/_reporting_simple_js.html:93
 #, python-brace-format
-msgid "{label} up {pct} vs previous"
+msgid "{label} down {pct} vs previous"
 msgstr ""
 
 #: templates/js/_reporting_simple_js.html:94
 #, python-brace-format
+msgid "{label} up {pct} vs previous"
+msgstr ""
+
+#: templates/js/_reporting_simple_js.html:95
+#, python-brace-format
 msgid "{label} peak — {bucket}"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:96
-msgid "1 report"
-msgstr ""
-
 #: templates/js/_reporting_simple_js.html:97
-#, python-brace-format
-msgid "{n} reports"
+msgid "1 report"
 msgstr ""
 
 #: templates/js/_reporting_simple_js.html:98
 #, python-brace-format
+msgid "{n} reports"
+msgstr ""
+
+#: templates/js/_reporting_simple_js.html:99
+#, python-brace-format
 msgid "Delete “{name}”? This cannot be undone."
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:112
+#: templates/js/_reporting_simple_js.html:113
 #, python-brace-format
 msgid ""
 "Only {n} of {m} selected processes provide this field — documents from "
 "the other processes show an empty value here. Provided by:"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:113
+#: templates/js/_reporting_simple_js.html:114
 #, python-brace-format
 msgid ""
 "Only {n} of {m} processes provide this field — the measure only counts "
 "documents from these processes:"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:115
+#: templates/js/_reporting_simple_js.html:116
 #, python-brace-format
 msgid "{rows} rows · {ms} ms · {when}"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:116
+#: templates/js/_reporting_simple_js.html:117
 msgid "run just now"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:121
+#: templates/js/_reporting_simple_js.html:122
 msgid "last bucket"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:122
+#: templates/js/_reporting_simple_js.html:123
 msgid "sum over the period"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:123
+#: templates/js/_reporting_simple_js.html:124
 msgid "periods in the range"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:124
+#: templates/js/_reporting_simple_js.html:125
 msgid "total ÷ buckets"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:125
+#: templates/js/_reporting_simple_js.html:126
 msgid "grand total"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:128
+#: templates/js/_reporting_simple_js.html:129
 msgid "Peak"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:129
-msgid "vs"
-msgstr ""
-
 #: templates/js/_reporting_simple_js.html:130
-#, python-brace-format
-msgid "{n} rows"
+msgid "vs"
 msgstr ""
 
 #: templates/js/_reporting_simple_js.html:131
 #, python-brace-format
-msgid "Step {n} of 4"
+msgid "{n} rows"
 msgstr ""
 
 #: templates/js/_reporting_simple_js.html:132
+#, python-brace-format
+msgid "Step {n} of 4"
+msgstr ""
+
+#: templates/js/_reporting_simple_js.html:133
 msgid "Measure"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:134
+#: templates/js/_reporting_simple_js.html:135
 msgid "Breakdown"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:137
+#: templates/js/_reporting_simple_js.html:138
 #, python-brace-format
 msgid "{n} of {m} selected"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:140
+#: templates/js/_reporting_simple_js.html:141
 msgid "Or"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:141
+#: templates/js/_reporting_simple_js.html:142
 #, python-brace-format
 msgid "{n} of 3 picked"
 msgstr ""
 
-#: templates/js/_reporting_simple_js.html:143
+#: templates/js/_reporting_simple_js.html:144
 msgid "Loading values…"
 msgstr ""
 

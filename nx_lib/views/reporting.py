@@ -64,6 +64,7 @@ from ..reporting.ai import (
     AiError,
     ask_agentic,
     ask_agentic_iter,
+    stage_preview,
 )
 from ..reporting.ai import _make_agent_step as make_agent_step
 from ..reporting.ai import ask as ai_ask
@@ -1992,6 +1993,17 @@ def api_ai_agent():
                         if "result" in event:
                             result = event["result"]
                             break
+                        if event.get("phase") == "tool_result":
+                            # Raw tool output never reaches the client from a
+                            # progress line -- distill it into the tiny
+                            # build-stage preview (real title/total/series for
+                            # Eddard's mock report) or drop it.
+                            preview = stage_preview(
+                                event.get("name"), event.get("args"), event.get("output")
+                            )
+                            if preview:
+                                yield json.dumps({"phase": "preview", **preview}) + "\n"
+                            continue
                         yield json.dumps(event) + "\n"
                 except Exception as e:
                     current_app.logger.error(f"/api/reporting/ai/agent provider error: {e}")
@@ -2290,6 +2302,23 @@ def _preview_summary(defn):
     """
     if not isinstance(defn, dict):
         return {}
+    if defn.get("kind") == "dashboard":
+        # Dashboard library card: a compact layout sketch ({t: card type,
+        # s: 12-col span} per card) so the client can draw a true miniature of
+        # the dashboard instead of a generic placeholder. Type-guarded like
+        # everything else here — a malformed card is skipped, not fatal.
+        cards = defn.get("cards") if isinstance(defn.get("cards"), list) else []
+        mini = []
+        for c in cards[:12]:
+            if not isinstance(c, dict):
+                continue
+            t = c.get("type") if isinstance(c.get("type"), str) else "bar"
+            try:
+                s = int(c.get("span") or 6)
+            except (TypeError, ValueError):
+                s = 6
+            mini.append({"t": t, "s": max(1, min(12, s))})
+        return {"cards": mini, "cardCount": len(cards)}
     cols = defn.get("columns") if isinstance(defn.get("columns"), list) else []
     grain = ""
     for c in cols:
