@@ -283,17 +283,19 @@
           <pre id="rsSqlText"></pre>
         </div>
       </div>
-    </div>
-    <div class="nx-card nx-card--pad rs-table-card nx-rise-3" id="rsTableCard" hidden data-testid="rs-table-card">
-      <div class="rs-table-card__head">
-        <span class="rs-table-card__titlewrap">
-          <span class="rs-table-card__title">{{ _("Table") }}<span id="rsTableRowCount" class="rs-table-card__count"></span></span>
-          <button id="rsTableToggle" class="reporting-link" hidden data-testid="rs-table-toggle">{{ _("Show table") }}</button>
-        </span>
-        <p class="reporting-simple-hint rs-table-card__hint" id="rsDrillHint" hidden data-testid="rs-drill-hint">{{ _("Click a row or chart element to see the documents behind it.") }}</p>
+      {# Table sits in the chart's column (grid row 2) so the side column's
+         height is filled by data instead of stretching the chart. #}
+      <div class="nx-card nx-card--pad rs-table-card nx-rise-3" id="rsTableCard" hidden data-testid="rs-table-card">
+        <div class="rs-table-card__head">
+          <span class="rs-table-card__titlewrap">
+            <span class="rs-table-card__title">{{ _("Table") }}<span id="rsTableRowCount" class="rs-table-card__count"></span></span>
+            <button id="rsTableToggle" class="reporting-link" hidden data-testid="rs-table-toggle">{{ _("Show table") }}</button>
+          </span>
+          <p class="reporting-simple-hint rs-table-card__hint" id="rsDrillHint" hidden data-testid="rs-drill-hint">{{ _("Click a row or chart element to see the documents behind it.") }}</p>
+        </div>
+        <div id="rsTableWrap" class="reporting-table-wrap reporting-simple-table" hidden data-testid="rs-table"></div>
+        <button type="button" id="rsSqlPeek" class="reporting-ledger-sqlpeek" hidden data-testid="rs-sql-peek"></button>
       </div>
-      <div id="rsTableWrap" class="reporting-table-wrap reporting-simple-table" hidden data-testid="rs-table"></div>
-      <button type="button" id="rsSqlPeek" class="reporting-ledger-sqlpeek" hidden data-testid="rs-sql-peek"></button>
     </div>
   </div>
 

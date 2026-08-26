@@ -916,8 +916,9 @@
     // prior period's is -- a level's latest bucket, not its sum.
     applyLatestTotal(def, kpi, rows);
     if (priorKpi) applyLatestTotal(def, priorKpi, priorRows);
-    var totalDelta = '', avgDelta = '', peakDelta = '';
+    var totalDelta = '', avgDelta = '', peakDelta = '', deltaNote = '';
     if (priorKpi) {
+      deltaNote = I18N.deltaVs + ' ' + comparison.priorStart + ' – ' + comparison.priorEnd;
       totalDelta = deltaChipHtml(kpi.total, priorKpi.total, comparison.priorStart, comparison.priorEnd);
       // Bucket-count mismatch guard: shifted_definition_for_comparison shifts
       // the prior window back by the CURRENT window's length in DAYS, not by
@@ -962,8 +963,9 @@
       // moves to the sub line so every value sits on one baseline.
       return '<div class="rs-kpi-total-card' + (first ? '' : ' rs-kpi-total-card--alt') + '"' +
         ' data-testid="' + (first ? 'rs-kpi-total' : 'rs-kpi-total-extra') + '">' +
-        '<span class="reporting-ledger-caption">' + esc(I18N.kpiTotal) +
-          (m.label ? ' · ' + esc(m.label) : '') +
+        '<span class="reporting-ledger-caption" title="' +
+          esc(I18N.kpiTotal + (m.label ? ' · ' + m.label : '')) + '">' +
+          esc(I18N.kpiTotal) + (m.label ? ' · ' + esc(m.label) : '') +
         '</span>' +
         '<span class="rs-kpi-value-wrap">' +
           '<span class="reporting-ledger-kpi-value" data-count-target="' + Number(m.total) + '">0</span>' +
@@ -972,7 +974,11 @@
         '<span class="reporting-ledger-kpi-sub">' +
           esc(m.latestKey
             ? I18N.kpiLatestSuffix + ' ' + String(m.latestKey).slice(0, 16)
-            : I18N.kpiSumSub) + '</span>' +
+            : I18N.kpiSumSub) +
+          // The delta chip's "vs <prior range>" was tooltip-only, so the
+          // percentage read as a bare number with nothing to compare against.
+          (first && seriesIsHeadline && totalDelta ? ' · ' + esc(deltaNote) : '') +
+        '</span>' +
         (first && seriesIsHeadline ? sparkHtml : '') +
         '</div>';
     }).join('') + statsHtml;

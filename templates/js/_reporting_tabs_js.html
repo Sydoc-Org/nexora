@@ -109,27 +109,22 @@
   });
 
   // ---------- Sources rail ----------
-  // Card per accessible source (GET /api/reporting/sources). Health detail
-  // (status dot, latency, sync line) comes from /api/reporting/sources/health
-  // and degrades silently when unavailable.
+  // Card per accessible source (GET /api/reporting/sources). The card names
+  // the real database behind the source (from /api/reporting/sources/health)
+  // rather than the registry label, plus a connected dot and probe latency;
+  // it falls back to the label and degrades silently when health is absent.
   function sourceCardHtml(s, health) {
     var h = health && health[s.id];
     var dot = h ? '<span class="rc-src-dot' + (h.ok ? ' rc-src-dot--ok src-pulse' : ' rc-src-dot--warn') + '"></span>' : '';
-    // Footer: the real database behind the source (from /sources/health) +
-    // its probe latency.
-    var foot = '';
-    if (h && (h.db || h.latencyMs != null)) {
-      foot = '<div class="rc-src-foot">' +
-        '<span class="rc-src-db" title="' + esc(h.db || '') + '">' + esc(h.db || '') + '</span>' +
-        (h.latencyMs != null
-          ? '<span class="rc-src-ms">' + esc(String(Math.round(h.latencyMs))) + ' ms</span>' : '') +
-        '</div>';
-    }
+    var name = (h && h.db) || s.label;
+    var foot = h && h.latencyMs != null
+      ? '<div class="rc-src-foot"><span class="rc-src-ms">' +
+        esc(String(Math.round(h.latencyMs))) + ' ms</span></div>' : '';
     return '<div class="rc-src" data-testid="rc-source">' +
       '<div class="rc-src-row">' +
         '<span class="rc-src-ico rc-src-ico--db">' +
           '<i class="fas fa-database" aria-hidden="true"></i></span>' +
-        '<span class="rc-src-name" title="' + esc(s.label) + '">' + esc(s.label) + '</span>' + dot +
+        '<span class="rc-src-name" title="' + esc(name) + '">' + esc(name) + '</span>' + dot +
       '</div>' + foot + '</div>';
   }
 
@@ -153,13 +148,23 @@
       byId = {};
       health.sources.forEach(function (h) { byId[h.id] = h; });
     }
-    wrap.innerHTML = res.map(function (s) { return sourceCardHtml(s, byId); }).join('');
+    // Several sources can sit on the same database (Workitems + Live SQL both
+    // hit RuntimeDatabase) -- one card per distinct database, first wins.
+    var seen = {};
+    var cards = res.filter(function (s) {
+      var h = byId && byId[s.id];
+      var key = (h && h.db) || s.label;
+      if (seen[key]) return false;
+      seen[key] = true;
+      return true;
+    });
+    wrap.innerHTML = cards.map(function (s) { return sourceCardHtml(s, byId); }).join('');
     var sync = el('rcSyncStatus');
     if (sync) {
       var okAll = !byId || health.sources.every(function (h) { return h.ok; });
       var dotCls = okAll ? 'rc-sync-dot' : 'rc-sync-dot rc-sync-dot--warn';
       var syncHtml = '<span class="' + dotCls + '"></span>' +
-        esc(String(res.length)) + ' ' + (res.length === 1 ? {{ _("source")|tojson }} : {{ _("sources")|tojson }});
+        esc(String(cards.length)) + ' ' + (cards.length === 1 ? {{ _("source")|tojson }} : {{ _("sources")|tojson }});
       sync.innerHTML = syncHtml;
       sync.hidden = false;
     }

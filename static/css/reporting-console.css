@@ -25,25 +25,28 @@ html.nx-compact body.reporting-console .rc-shell {
 .rc-topbar {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   padding-top: 4px;
 }
+/* Matches .nx-page-icon / .nx-title in nexora-ui.css so the Console header
+   reads like every other page's header. */
 .rc-appicon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: calc(var(--nx-radius-scale, 1) * 8px);
-  background: var(--nx-accent);
+  width: 44px;
+  height: 44px;
+  border-radius: calc(var(--nx-radius-scale, 1) * 12px);
+  background: var(--nx-brand-grad);
   color: #fff;
-  font-size: 13px;
+  font-size: 18px;
   flex-shrink: 0;
+  box-shadow: 0 8px 20px -6px color-mix(in srgb, var(--nx-accent) 55%, transparent);
 }
 .rc-apptitle {
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
   color: var(--nx-text);
 }
 .rc-beta {
@@ -669,6 +672,10 @@ body.reporting-console #rsKpiBand {
 body.reporting-console #rsKpiBand .rs-kpi-stats-card {
   display: contents;
 }
+/* display:contents promotes the wrapper's children to grid items, which left
+   the group's title label sitting alone in its own cell. The measure name is
+   already in the total card's caption ("Total · Document count"), so drop it. */
+body.reporting-console #rsKpiBand .rs-kpi-stats-title { display: none; }
 body.reporting-console #rsKpiBand .rs-kpi-total-card {
   display: flex;
   flex-direction: column;
@@ -745,27 +752,55 @@ body.reporting-console #rsKpiBand .reporting-ledger-kpi,
 body.reporting-console #rsKpiBand .rs-kpi-total-card,
 body.reporting-console .rs-kpi-row #rsStatCard #rsStatBody {
   display: grid;
-  grid-template-rows: 14px 26px 14px;
+  /* Caption row fits two lines so a long measure name ("Total · Documents
+     imported") wraps instead of ellipsing; the fixed height keeps the value
+     baselines aligned across cards. */
+  grid-template-rows: 28px 26px 14px;
   align-content: start;
   gap: 4px;
 }
 body.reporting-console #rsKpiBand .reporting-ledger-caption,
 body.reporting-console .rs-kpi-row #rsStatCard .nx-stat__label {
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
   align-self: end;
+  line-height: 1.25;
 }
 body.reporting-console #rsKpiBand .rs-kpi-value-wrap { align-items: baseline; }
 
-/* Main row: chart stretches to the side column's full height (intent #11) */
+/* Main row: chart (row 1) + table (row 2) share the left column; the side
+   column spans both. The chart no longer stretches to the side column's full
+   height -- at that size the series read as vertically smeared -- so the table
+   absorbs the leftover height and both columns still end on the same edge. */
 .rs-result-main {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 292px;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 12px;
   margin-top: 12px;
   align-items: stretch;
 }
+.rs-result-main > #rsChartCard { grid-column: 1; grid-row: 1; }
+.rs-result-main > .rs-result-side { grid-column: 2; grid-row: 1 / -1; }
+.rs-result-main > #rsTableCard {
+  grid-column: 1;
+  grid-row: 2;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.rs-result-main > #rsTableCard .reporting-table-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+/* No table to fill the gap (hidden result / plain-table reports) -- fall back
+   to the old full-height chart so the two columns still end level. */
+.rs-result-main:has(> #rsTableCard[hidden]) > #rsChartCard { grid-row: 1 / -1; }
+.rs-result-main:has(> #rsTableCard[hidden]) .rs-chart-body { flex: 1; height: auto; }
 .rs-result-main:has(> #rsChartCard[hidden]) { grid-template-columns: minmax(0, 1fr); }
 .rs-result-main:has(> .rs-result-side:empty) { grid-template-columns: minmax(0, 1fr); }
 body.reporting-console .reporting-simple-chartcard {
@@ -775,11 +810,12 @@ body.reporting-console .reporting-simple-chartcard {
 }
 .rs-chart-body {
   position: relative;
-  flex: 1;
+  /* ~3/4 of the old stretched height: enough vertical range to read the
+     series, short enough to leave the table a real row. flex:none so the card
+     no longer grows to match the side column. */
+  flex: none;
+  height: 360px;
   min-height: 268px;
-  /* No cap: the absolutely-positioned canvas doesn't feed back into layout,
-     so the body safely fills whatever height the side column stretched the
-     card to (intent #11 — same bottom edge). */
 }
 .rs-chart-body canvas {
   position: absolute;
