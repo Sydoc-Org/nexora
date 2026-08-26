@@ -648,9 +648,35 @@
             const panel = document.getElementById(cfg.reviewPanel);
             const body = document.getElementById(cfg.reviewPanelBody);
             if (!panel || !body) return;
-            const html = window.buildSourceDetailsHtml(workitemid);
+            const html = window.buildSourceDetailsHtml(workitemid, { tables: false });
             body.innerHTML = html;
             panel.hidden = !html;
+            renderReviewTables(workitemid);
+        }
+
+        // Line-item tables get their own box UNDER the page, spanning the image
+        // pane only -- a table squeezed into the values sidebar has to scroll for
+        // every column. The box is created lazily so the three templates carrying
+        // this modal (workitems, prepared documents, reporting) need no markup.
+        function reviewTablesBox() {
+            const panel = document.getElementById(cfg.reviewPanel);
+            const modalBody = panel && panel.closest('.src-modal-body');
+            if (!modalBody) return null;
+            let box = modalBody.querySelector('.src-modal-tables');
+            if (!box) {
+                box = document.createElement('div');
+                box.className = 'src-modal-tables';
+                modalBody.appendChild(box);
+            }
+            return box;
+        }
+
+        function renderReviewTables(workitemid) {
+            const box = reviewTablesBox();
+            if (!box) return;
+            const html = window.renderTableGrids(workitemid);
+            box.innerHTML = html;
+            box.hidden = !html;
         }
 
         // Render the overlay only once the displayed page is geometrically SETTLED:
@@ -694,6 +720,8 @@
             currentImages = [];
             currentIndex = 0;
             if (srcHlLayer) srcHlLayer.innerHTML = '';
+            const tbox = document.querySelector('.src-modal-tables');
+            if (tbox) { tbox.innerHTML = ''; tbox.hidden = true; }
         };
 
         document.addEventListener('click', (event) => {
@@ -725,7 +753,7 @@
             const panel = document.getElementById(cfg.reviewPanel);
             if (!panel) return;
             const row = event.target.closest('.src-field-row.is-locatable');
-            if (!row || !panel.contains(row)) return;
+            if (!row || !row.closest('.src-modal-values, .src-modal-tables')) return;
             ensureSourcesOn();   // clicking a value turns boxes on (toggle -> "Hide sources")
             srcHl.pendingPulse = row.dataset.key;
             showImage(parseInt(row.dataset.page || '0', 10));

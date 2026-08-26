@@ -65,8 +65,12 @@ The extracted data is **never modified** — purely a visualization of provenanc
   produced by one shared builder `buildSourceDetailsHtml(wid, opts)` (scalar
   `<dl>` + `renderTableGrids`) reused by both the inline Document Details panel
   and the review panel, reading `window.__fieldsByWorkitem[wid]` — so the two
-  never drift. The inline panel passes `{tables: false}` (its line-items live in
-  the full-width card below the grid); the standalone review panel keeps them.
+  never drift. Both panels pass `{tables: false}`: the inline one keeps its
+  line-items in the full-width card below the grid, and in the lightbox they get
+  their own box (`.src-modal-tables`, created lazily by `renderReviewTables`)
+  spanning the **page pane** under the image, so a table never has to fit the
+  480px sidebar. `.src-modal-body` is a 2x2 grid — page top-left, tables box
+  below it, values sidebar spanning both rows on the right.
   Clicking a value/cell in the panel navigates the open view to that page and
   pulses its box (no re-open). The panel hides (`hidden`) for documents with no
   extracted values, so plain media viewing stays full-width.

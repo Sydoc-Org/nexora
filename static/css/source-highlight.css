@@ -172,16 +172,36 @@
    .modal is a two-pane review: the document page (with the highlight overlay)
    on the LEFT, the extracted values on the RIGHT. The values panel hides itself for
    documents with no extracted values, so plain media viewing stays full-width. */
+/* Two columns, two rows: page top-left, line-item tables directly beneath it,
+   the values sidebar spanning both rows on the right. The tables box needs the
+   page's full width (a table in the 480px sidebar scrolls for every column), so
+   it is NOT part of the sidebar. Row 2 collapses to 0 when the box is absent. */
 .modal .src-modal-body {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr) auto;
   width: 100%;
   height: 100%;
-  align-items: stretch;
 }
+.src-modal-tables {
+  grid-column: 1;
+  grid-row: 2;
+  max-height: 38vh;
+  overflow-y: auto;
+  margin: 0 1rem 1rem;
+  padding: 0.75rem 1rem 1rem;
+  background: #ffffff;
+  color: #111827;
+  border-radius: calc(var(--nx-radius-scale, 1) * 12px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+.src-modal-tables[hidden] { display: none; }
 .src-modal-page {
   position: relative;          /* containing block for .src-hl-layer-full + the nav arrows */
-  flex: 1 1 auto;
+  grid-column: 1;
+  grid-row: 1;
   min-width: 0;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -195,7 +215,8 @@
   margin: 0;
 }
 .src-modal-values {
-  flex: 0 0 auto;
+  grid-column: 2;
+  grid-row: 1 / -1;
   width: min(44vw, 480px);
   background: #ffffff;
   color: #111827;

@@ -16,7 +16,9 @@ Work toward the next release.
   rows could not be compared at a glance. They now render as a real `<table>`
   — one row per line item, collapsible per table — in their own full-width card
   below the two-column detail grid, with horizontal scroll for wide SAP-style
-  grids. Click-to-locate on a cell is unchanged; empty cells show an em dash
+  grids. In the document lightbox they get their own box under the page image,
+  spanning the page pane instead of being squeezed into the 480px values
+  sidebar. Click-to-locate on a cell is unchanged; empty cells show an em dash
   instead of a "no source location" badge per cell.
 
 - **Workitems loading state: cramped spinner row → accent-tinted skeleton rows**
