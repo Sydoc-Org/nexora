@@ -904,12 +904,10 @@ def reset_password(token):
         # (Defender Safe Links, Proofpoint, Mimecast, ...) prefetching the
         # URL before the user ever clicks it, would otherwise burn the link
         # pre-emptively and strand the user with no explanation. NOTE:
-        # `cache` (Flask-Caching SimpleCache) is an in-process dict -- under
-        # wfastcgi's multi-worker deployment each worker process has its own
-        # cache, so a token consumed on worker A is still unseen as "used"
-        # by worker B. This makes single-use best-effort ACROSS WORKERS, not
-        # perfectly atomic. Accepted per the plan's D-RESET decision -- not
-        # a gap to fix further here.
+        # `cache` (Flask-Caching SimpleCache) is an in-process dict. PROD is
+        # a single waitress process (IIS HttpPlatformHandler, v3.2.3), so the
+        # mark is seen by every request; only an app-pool recycle forgets it.
+        # Accepted per the plan's D-RESET decision -- not a gap to fix here.
         cache_key = _reset_token_cache_key(token)
         if cache.get(cache_key):
             return redirect(url_for("index"))
@@ -953,7 +951,7 @@ def request_password_reset():
         # url_for() and gettext(), which need it), then hand the network
         # call off to a daemon thread so both branches return immediately.
         # The thread catches/logs its own exceptions -- nothing may escape
-        # unhandled onto a background thread under IIS/wfastcgi -- and it
+        # unhandled onto a background thread under IIS/waitress -- and it
         # touches no Flask request/app-context object, since those are not
         # valid once this request has returned.
         if rows:

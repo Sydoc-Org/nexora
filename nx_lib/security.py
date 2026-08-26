@@ -158,7 +158,7 @@ def _revoke_session_by_id(session_id):
     Returns True if the DB row existed.
 
     The before_request hook also enforces revocation by re-checking
-    ActiveSessions on every request, so stale session files alone cannot keep
+    ActiveSessions on every request (via a short per-process cache), so stale session files alone cannot keep
     someone logged in.
     """
     deleted = 0

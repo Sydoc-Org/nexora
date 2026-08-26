@@ -2055,10 +2055,11 @@ def api_ai_caption():
     are the actual values a Simple/Advanced result is displaying, so it is
     gated by reporting.ai.explain_data (the data-egress grant) rather than the
     weaker reporting.ai.use. It still counts toward the shared daily AI cap and
-    is rate limited like the other AI endpoints. Rows are capped at
-    CAPTION_MAX_ROWS before ever reaching the model — a caption summarizes a
-    glance, not a full export. Fired by fireCaption() (Task 13): the Simple
-    tab after every successful run render, the Advanced tab on chart mount.
+    is rate limited like the other AI endpoints. Rows never reach the model
+    raw: caption() reduces the WHOLE grid to a fact sheet
+    (nx_lib/reporting/caption_facts) — CAPTION_MAX_ROWS only bounds the request
+    payload. Fired by fireCaption() (Task 13): the Simple tab after every
+    successful run render, the Advanced tab on chart mount.
     """
     body = request.get_json(silent=True)
     if not isinstance(body, dict):
@@ -2074,6 +2075,14 @@ def api_ai_caption():
     # Client-side facts about the grid the model can't see (partial current
     # bucket, NULL = no snapshot); bounded like title.
     notes = str(body.get("notes") or "").strip()[:400] or None
+    # Level measures (backlog): the fact sheet headlines their latest value
+    # instead of summing buckets. Names only, bounded.
+    raw_levels = body.get("levelFields")
+    level_fields = (
+        tuple(str(x)[:100] for x in raw_levels[:20] if isinstance(x, str))
+        if isinstance(raw_levels, list)
+        else ()
+    )
 
     cfg = _ai_config()
     if cfg.get("provider") == "none" or not cfg.get("api_key"):
@@ -2114,6 +2123,7 @@ def api_ai_caption():
             title,
             date_label,
             notes=notes,
+            level_fields=level_fields,
             locale=str(get_locale()),
             cfg=cfg,
         )

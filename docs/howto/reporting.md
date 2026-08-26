@@ -1242,8 +1242,8 @@ on `reporting.ai.explain_data` **and** `reporting.sql.run` together — see
 ### Auto captions
 
 Route: `POST /api/reporting/ai/caption` — accepts
-`{"columns": [...], "rows": [...], "title": "...", "dateLabel": "..."}` and
-returns `{"caption": "..."}`.
+`{"columns": [...], "rows": [...], "title": "...", "dateLabel": "...", "notes": "...", "levelFields": [...]}`
+and returns `{"caption": "..."}`.
 
 The **trigger point differs per tab**: the Simple tab fires this after
 **every** successful run render that actually has rows — an empty (zero-row)
@@ -1253,10 +1253,25 @@ no caption box appears; the Advanced tab fires it only on **chart mount**
 report while sitting in Grid view does not itself request a new caption
 (see `resetViews()`/`fireCaption()` in `_reporting_js.html` vs. the end of
 `runCurrent()` in `_reporting_simple_js.html`). Either way, the request goes
-out in the background with the columns and (up to 50) rows just rendered,
-and — if it returns a caption — the result view shows a small "shimmer in"
-1–2 sentence narration under the chart/KPI band, prefixed with an **AI**
-chip. Unlike the chat panel's schema-only default, this endpoint's whole
+out in the background with the columns and the **whole grid** just rendered
+(payload-capped at `CAPTION_MAX_ROWS` = 5000 rows), and — if it returns a
+caption — the result view shows a small "shimmer in" 1–2 sentence narration
+under the chart/KPI band, prefixed with an **AI** chip.
+
+**The model never sees the rows.** `caption()` reduces the grid to an exact
+**fact sheet** (`nx_lib/reporting/caption_facts.py::build_facts`): total (or,
+for a level measure such as the backlog, the *latest* value — the client
+names those in `levelFields`), buckets with a value vs. buckets with **no
+measurement** (never read as zero), peak/low, latest vs. previous, first-half
+vs. second-half average, the recent tail and an evenly spaced sample across
+the range, top categories with shares, the NULL-key rows reported separately
+as "rows with no *<dimension>*" (never a period, never an outlier), and the
+still-running current bucket flagged and kept out of peak/latest/averages.
+The prompt carries those facts plus the client's `notes` (partial bucket,
+NULL = no snapshot). Before this, the route sliced `rows[:50]` off the top of
+an ascending time series, so the model judged 313 weeks from the NULL-date
+bucket plus 2020 — "a clear outlier of 74,182 pages", "at most 3,712 in the
+latest weeks" (2026-08-25 audit). Unlike the chat panel's schema-only default, this endpoint's whole
 purpose is to send the rows already on screen to the model, so it is gated by
 `reporting.ai.explain_data` **alone** — deliberately **not** also requiring
 `reporting.sql.run` (there's no live query involved; the rows already left the

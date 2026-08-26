@@ -63,6 +63,14 @@ Work toward the next release.
   scoping, so log tails, app-pool checks and env-key audits can run remotely
   instead of needing an RDP session. Only 445 (SMB) and 3389 (RDP) were open
   before.
+- **Cloudflare Tunnel runbook, prepared for the ngrok replacement.**
+  `docs/howto/cloudflare-tunnel.md` documents the remotely-managed tunnel
+  (token-only install on SYAPP01, hostname `nexora.sydoc.ch` -> local IIS,
+  Bot-Fight-Mode caveat for `/api/v1` clients, verify/cutover/rollback), and
+  the deploy workflow now stops/starts whichever of the `ngrok`/`cloudflared`
+  Windows services exists, so deploys behave identically before, during and
+  after the cutover. ngrok remains the live entry until then
+  (`docs/howto/ngrok.md` carries the deprecation banner).
 - **Colours & axes on Simple-tab charts.** A palette button in the chart
   toolbar opens a popover with one colour picker per series, one for the
   report title + legend, and a *Right axis* toggle per series so a level-type
@@ -95,6 +103,25 @@ Work toward the next release.
   summed count, and a *just the total* report no longer prints "Buckets 1, Avg
   per bucket N, Peak N" — the same number three more times. The separate
   `rsStatCard` that repeated the grand totals above the band is retired.
+- **Permissions and UI prefs come from a 30-second per-process cache instead
+  of two DB round-trips per request.** Every non-static request used to run
+  `spGetUserPermissions` and `SELECT ui_prefs` for the user — at ~500 users
+  that was the biggest DB-load multiplier (each click, each 5 s heartbeat).
+  `nx_lib/user_cache.py` caches both per user (`NEXORA_USER_CACHE_TTL`,
+  default 30, `0` disables); a user's own pref save and any admin write drop
+  the affected entries immediately, so changes still show on the next
+  request. Safe because PROD is a single waitress process — it is a process
+  dict, deliberately not a session cache (the heartbeat/cookie race, #155).
+- **The per-request `ActiveSessions` UPDATE is throttled through the same
+  cache.** Profiling showed it was the hottest per-request cost (~70 ms of a
+  75 ms heartbeat: UPDATE + commit every request). The alive-check is now
+  cached per session id for the TTL; admin force-logout still takes effect on
+  the revoked user's next request (any `/admin` write clears the cache), and
+  `LastSeenAt` in the admin sessions view lags activity by at most the TTL.
+- **The session-liveness heartbeat polls every 30 s instead of every 5 s.**
+  Its only job is noticing an admin force-logout, and the server now answers
+  that from the 30 s cache anyway — polling faster could not detect it
+  sooner. At ~500 users the 5 s poll alone was ~100 requests/s of overhead.
 - **Colours & axes popover polish.** The per-series *Right axis* checkbox is a
   **Left | Right** switch; each Y axis is titled with the series it carries and
   takes that series' colour when it carries exactly one; colour-picker drags
@@ -102,6 +129,23 @@ Work toward the next release.
   on bar charts (dashed tails only on line charts), its toggle is tinted while
   on and greyed out on pie/doughnut, and switching it **off** repaints from the
   last result instead of re-running the query.
+- **PROD now runs on waitress behind IIS HttpPlatformHandler, not wfastcgi.**
+  `web.config` starts one `python -m waitress` process (32 threads, loopback
+  port picked by IIS) and reverse-proxies to it; `wfastcgi` — archived
+  upstream, one blocking request per process — is gone. Motivation: the
+  expected jump to ~500 users, where a handful of slow reporting queries
+  would have starved the FastCGI pool. `waitress` joins the runtime
+  dependencies; the deploy workflow gains a preflight that refuses to stop
+  the app pool unless the HttpPlatformHandler IIS module and `waitress` are
+  present on SYAPP01 (one-time host setup in `docs/howto/iis.md`). Rollback
+  is reverting the commit — `wfastcgi` stays installed on the box.
+- **Rate limits are keyed on the client IP behind the proxy chain.** The
+  limiter now reads the leftmost `X-Forwarded-For` hop (the same rule the CSV
+  request log uses) instead of the socket peer, which behind ngrok → IIS →
+  waitress is always `127.0.0.1` — i.e. one shared *10 logins per minute*
+  bucket for everybody. `web.config` tells waitress to trust
+  `X-Forwarded-For` from IIS so the header survives (waitress ≥ 2 strips
+  proxy headers from untrusted peers).
 - **The branch-name guard accepts a fourth version segment.** Cycle branches
   are still `v<x.y[.z]>`, but a per-developer branch off a cycle
   (`v3.2.3.1` beside `v3.2.3`) now passes `scripts/git-hooks/branch-name-guard.ps1`
@@ -129,6 +173,17 @@ Work toward the next release.
   the driver's message so a *new* cause (permission revoked, column dropped) is
   distinguishable from the expected "table does not exist".
 
+- **The AI caption ("KI" box) narrates the whole result, not its first 50
+  rows.** The caption route used to send the model `rows[:50]` off the top of
+  the grid — for a time series sorted ascending that is the NULL-date bucket
+  plus the oldest weeks, hence captions such as "a clear outlier of 74,182
+  pages" (the rows with no date) and "at most 3,712 pages in the latest
+  weeks" (it never saw them). The server now reduces the complete grid to an
+  exact fact sheet — total or latest level, buckets with vs. without a value,
+  peak/low, latest vs. previous, half-vs-half trend, recent tail, top
+  categories, rows without a date named as such, the running bucket flagged
+  and kept out of the comparisons — and the model writes at most two
+  sentences from those numbers only (`nx_lib/reporting/caption_facts.py`).
 - **Time charts no longer invent the future or read a half month as a
   collapse.** The Simple tab's bucket fill stops at today (*This year* = Jan
   to the current month, not Jan–Dec zeros), the bucket containing today is
