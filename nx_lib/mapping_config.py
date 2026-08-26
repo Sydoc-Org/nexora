@@ -178,11 +178,15 @@ def sensitive_field_keys() -> set[str] | None:
 
 
 def labels() -> dict[str, dict] | None:
-    """field_key -> {"en","de","fr","it","sensitive"}. None on failure."""
+    """field_key -> {"en","de","fr","it","sensitive"}. None on failure.
+
+    Returns a defensive copy (including per-field dicts) so a caller can
+    never mutate the shared cached registry instance.
+    """
     reg = registry()
     if reg is None:
         return None
-    return reg.labels
+    return {key: dict(meta) for key, meta in reg.labels.items()}
 
 
 def field_aliases() -> dict[str, str]:
