@@ -154,9 +154,10 @@
     var sync = el('rcSyncStatus');
     if (sync) {
       var okAll = !byId || health.sources.every(function (h) { return h.ok; });
-      sync.innerHTML = '<span class="rc-sync-dot' + (okAll ? '' : ' rc-sync-dot--warn') + '"></span>' +
-        esc(String(res.length)) + ' ' + (res.length === 1 ? {{ _("source")|tojson }} : {{ _("sources")|tojson }}) +
-        (health && health.checkedAgo ? ' · ' + esc(health.checkedAgo) : '');
+      var dotCls = okAll ? 'rc-sync-dot' : 'rc-sync-dot rc-sync-dot--warn';
+      var syncHtml = '<span class="' + dotCls + '"></span>' +
+        esc(String(res.length)) + ' ' + (res.length === 1 ? {{ _("source")|tojson }} : {{ _("sources")|tojson }});
+      sync.innerHTML = syncHtml;
       sync.hidden = false;
     }
   }
