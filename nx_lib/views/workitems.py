@@ -31,6 +31,7 @@ from flask_babel import gettext as _
 from PIL import Image
 from werkzeug.utils import secure_filename
 
+from .. import mapping_config
 from ..clients import CLIENTS
 from ..config import DB_STATISTICS, OCTO_DOMAIN, PATHS
 from ..db import engine_ms02_docfields_pg, engine_nexora_db, engine_statistics_db
@@ -82,6 +83,35 @@ from ..workitem_sources import (
 
 # ---------------------------- field/config helpers ---------------------------- #
 
+_LABEL_LANGS = ("en", "de", "fr", "it")
+
+
+def _build_field_config(allowed_processes, current_lang):
+    """search_options ({ProcessName: [{'value','label'}, ...]}) + labels
+    (FieldKey -> localized label) pair shared by api_config_fields and
+    api_workitems_page_init, read from the mapping_config registry (#98
+    phase 2) instead of a live legacy-table introspection. A registry load
+    failure degrades both to {} exactly like the legacy per-cell SELECT used
+    to on a DB error."""
+    target_lang = current_lang if current_lang in _LABEL_LANGS else "en"
+    lbls = mapping_config.labels() or {}
+    db_labels_map = {key: (meta.get(target_lang) or meta.get("en")) for key, meta in lbls.items()}
+
+    search_options = {}
+    reg = mapping_config.registry()
+    if reg is not None:
+        for m in reg.mappings:
+            if m.process not in allowed_processes:
+                continue
+            nice_label = db_labels_map.get(m.field_key, m.field_key.replace("_", " ").title())
+            search_options.setdefault(m.process, []).append(
+                {"value": m.field_key, "label": nice_label}
+            )
+        for fields in search_options.values():
+            fields.sort(key=lambda x: x["label"])
+
+    return search_options, db_labels_map
+
 
 def api_config_fields():
     if "username" not in session:
@@ -101,64 +131,8 @@ def api_config_fields():
     cached = cache.get(_cache_key)
     if cached is not None:
         return jsonify(cached)
-    lang_column_map = {
-        "de": "GermanLabel",
-        "fr": "FrenchLabel",
-        "it": "ItalianLabel",
-        "en": "EnglishLabel",
-    }
-    target_column = lang_column_map.get(current_lang, "EnglishLabel")
 
-    search_options = {}
-    db_labels_map = {}
-    conn = None
-    try:
-        conn = engine_nexora_db.raw_connection()
-        cursor = conn.cursor()
-
-        try:
-            cursor.execute(
-                "SELECT FieldKey, EnglishLabel, GermanLabel, FrenchLabel, ItalianLabel FROM Search_Field_Labels"
-            )
-            for row in cursor.fetchall():
-                translated_label = getattr(row, target_column) or row.EnglishLabel
-                db_labels_map[row.FieldKey] = translated_label
-        except Exception:
-            pass
-
-        cursor.execute("SELECT TOP 0 * FROM SearchConfig")
-        cols = [c[0] for c in cursor.description if c[0].startswith("col_")]
-
-        query = f"SELECT ProcessName, {','.join(cols)} FROM SearchConfig"
-        cursor.execute(query)
-        rows = cursor.fetchall()
-
-        for row in rows:
-            proc_name = row.ProcessName
-
-            if proc_name not in allowed_processes:
-                continue
-
-            fields = []
-            for i, col_name in enumerate(cols):
-                if row[i + 1]:
-                    field_key = col_name.replace("col_", "")
-                    nice_label = db_labels_map.get(field_key, field_key.replace("_", " ").title())
-
-                    fields.append(
-                        {
-                            "value": field_key,
-                            "label": nice_label,
-                        }
-                    )
-            fields.sort(key=lambda x: x["label"])
-            search_options[proc_name] = fields
-
-    except Exception as e:
-        current_app.logger.error(f"Error fetching field config: {e}")
-    finally:
-        if conn:
-            conn.close()
+    search_options, db_labels_map = _build_field_config(allowed_processes, current_lang)
 
     blocked = sensitive_blocked_keys()
     if blocked:
@@ -197,60 +171,26 @@ def _docfield_comb(doccombs, i):
 
 
 def get_valid_search_columns():
-    """Whitelist of SearchConfig col_<field> columns. Cached for an hour, but
-    ONLY on success: caching the empty error-fallback used to disable doc-field
-    search, autocomplete and the PID/register lookups app-wide for a full hour
-    after a single transient DB blip."""
-    cached = cache.get("search_config_columns")
-    if cached is not None:
-        return cached
-    conn = None
-    try:
-        conn = engine_nexora_db.raw_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT TOP 0 * FROM SearchConfig")
-        valid_cols = [c[0].lower() for c in cursor.description if c[0].lower().startswith("col_")]
-        cache.set("search_config_columns", valid_cols, timeout=3600)
-        return valid_cols
-    except Exception as e:
-        current_app.logger.error(f"Error fetching search config columns: {e}")
-        return []
-    finally:
-        if conn:
-            conn.close()
+    """Whitelist of col_<field> columns backing doc-field search, derived from
+    the mapping_config field-key registry (#98 phase 2). Still col_-prefixed
+    lowercase for now -- the ~20 intra-file callers strip/compare against
+    that prefix; a later task drops it. Caching (success-only, on a DB blip)
+    now lives in mapping_config.registry() itself."""
+    return [f"col_{k}" for k in mapping_config.valid_field_keys()]
 
 
 def get_search_columns_for_processes(processes):
-    """col_<field> SearchConfig columns mapped (non-NULL) for at least one of
-    the given ProcessNames, lowercased -- the per-scope companion to
-    get_valid_search_columns (which is table-wide). Returns None when the
-    lookup fails so callers can fail closed (external API contract); an empty
-    input short-circuits to an empty set without a query. Uncached: one
-    PK-range read per call on a rate-limited surface."""
+    """col_<field> mapping_config field keys mapped for at least one of the
+    given "client.process" entries, lowercased col_-prefixed -- the per-scope
+    companion to get_valid_search_columns (which is table-wide). Returns None
+    when the lookup fails so callers can fail closed (external API contract);
+    an empty input short-circuits to an empty set without a lookup."""
     if not processes:
         return set()
-    conn = None
-    try:
-        conn = engine_nexora_db.raw_connection()
-        cursor = conn.cursor()
-        placeholders = ",".join(["?"] * len(processes))
-        cursor.execute(
-            f"SELECT * FROM SearchConfig WHERE ProcessName IN ({placeholders})",
-            list(processes),
-        )
-        names = [d[0].lower() for d in cursor.description]
-        mapped = set()
-        for row in cursor.fetchall():
-            for name, val in zip(names, row, strict=True):
-                if val is not None and name.startswith("col_"):
-                    mapped.add(name)
-        return mapped
-    except Exception as e:
-        current_app.logger.error(f"Error fetching per-process search columns: {e}")
+    keys = mapping_config.field_keys_for_processes(processes)
+    if keys is None:
         return None
-    finally:
-        if conn:
-            conn.close()
+    return {f"col_{k}" for k in keys}
 
 
 def _norm_field_token(s):
@@ -281,63 +221,33 @@ def drop_sensitive_options(search_options, blocked_keys):
 
 
 def get_sensitive_field_keys():
-    """Lowercased FieldKeys flagged IsSensitive=1 in Search_Field_Labels, or
-    None when the lookup fails. Cached for an hour, but ONLY on success --
-    caching the error fallback used to pin a fail-open empty set for a full
-    hour (same trap get_valid_search_columns already avoids). Callers decide
-    the failure posture: the in-app wrappers below coerce None to set()
-    (fail-open behind session permissions, the historical behaviour); the
-    external API (nx_lib/views/api_external.py) fails CLOSED on None -- its
-    contract is unconditional blocking with no permission fallback."""
-    cached = cache.get("sensitive_field_keys")
-    if cached is not None:
-        return cached
-    conn = None
-    try:
-        conn = engine_nexora_db.raw_connection()
-        cur = conn.cursor()
-        cur.execute("SELECT FieldKey FROM Search_Field_Labels WHERE IsSensitive = 1")
-        keys = {r[0].lower() for r in cur.fetchall() if r[0]}
-        cache.set("sensitive_field_keys", keys, timeout=3600)
-        return keys
-    except Exception as e:
-        current_app.logger.error(f"get_sensitive_field_keys: {e}")
-        return None
-    finally:
-        if conn:
-            conn.close()
+    """Lowercased FieldKeys flagged sensitive in the mapping_config label
+    registry (#98 phase 2), or None when the lookup fails. Caching
+    (success-only) now lives in mapping_config.registry() itself. Callers
+    decide the failure posture: the in-app wrappers below coerce None to
+    set() (fail-open behind session permissions, the historical behaviour);
+    the external API (nx_lib/views/api_external.py) fails CLOSED on None --
+    its contract is unconditional blocking with no permission fallback."""
+    return mapping_config.sensitive_field_keys()
 
 
 def get_sensitive_field_tokens():
     """Normalized name-tokens (FieldKey + all four language labels) of sensitive
     fields, for matching against Octo extraction field names shown in the detail
-    panel / CSV export. None on any error -- cached only on success; see
-    get_sensitive_field_keys for the failure-posture contract."""
-    cached = cache.get("sensitive_field_tokens")
-    if cached is not None:
-        return cached
-    conn = None
-    try:
-        conn = engine_nexora_db.raw_connection()
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT FieldKey, EnglishLabel, GermanLabel, FrenchLabel, ItalianLabel "
-            "FROM Search_Field_Labels WHERE IsSensitive = 1"
-        )
-        tokens = set()
-        for row in cur.fetchall():
-            for val in row:
-                t = _norm_field_token(val)
-                if t:
-                    tokens.add(t)
-        cache.set("sensitive_field_tokens", tokens, timeout=3600)
-        return tokens
-    except Exception as e:
-        current_app.logger.error(f"get_sensitive_field_tokens: {e}")
+    panel / CSV export. None on any error; see get_sensitive_field_keys for the
+    failure-posture contract."""
+    lbls = mapping_config.labels()
+    if lbls is None:
         return None
-    finally:
-        if conn:
-            conn.close()
+    tokens = set()
+    for key, meta in lbls.items():
+        if not meta.get("sensitive"):
+            continue
+        for val in (key, meta.get("en"), meta.get("de"), meta.get("fr"), meta.get("it")):
+            t = _norm_field_token(val)
+            if t:
+                tokens.add(t)
+    return tokens
 
 
 def sensitive_blocked_keys():
@@ -2120,51 +2030,7 @@ def api_workitems_page_init():
     _fields_key = f"config_fields_{'_'.join(sorted(allowed_processes))}_{current_lang}_s{int(_sees_sensitive)}"
     field_config = cache.get(_fields_key)
     if field_config is None:
-        lang_column_map = {
-            "de": "GermanLabel",
-            "fr": "FrenchLabel",
-            "it": "ItalianLabel",
-            "en": "EnglishLabel",
-        }
-        target_column = lang_column_map.get(current_lang, "EnglishLabel")
-        search_options = {}
-        db_labels_map = {}
-        conn = None
-        try:
-            conn = engine_nexora_db.raw_connection()
-            cursor = conn.cursor()
-            try:
-                cursor.execute(
-                    "SELECT FieldKey, EnglishLabel, GermanLabel, FrenchLabel, ItalianLabel FROM Search_Field_Labels"
-                )
-                for row in cursor.fetchall():
-                    translated_label = getattr(row, target_column) or row.EnglishLabel
-                    db_labels_map[row.FieldKey] = translated_label
-            except Exception:
-                pass
-            cursor.execute("SELECT TOP 0 * FROM SearchConfig")
-            cols = [c[0] for c in cursor.description if c[0].startswith("col_")]
-            query = f"SELECT ProcessName, {','.join(cols)} FROM SearchConfig"
-            cursor.execute(query)
-            for row in cursor.fetchall():
-                proc_name = row.ProcessName
-                if proc_name not in allowed_processes:
-                    continue
-                fields = []
-                for i, col_name in enumerate(cols):
-                    if row[i + 1]:
-                        field_key = col_name.replace("col_", "")
-                        nice_label = db_labels_map.get(
-                            field_key, field_key.replace("_", " ").title()
-                        )
-                        fields.append({"value": field_key, "label": nice_label})
-                fields.sort(key=lambda x: x["label"])
-                search_options[proc_name] = fields
-        except Exception as e:
-            current_app.logger.error(f"page_init: failed to fetch field config: {e}")
-        finally:
-            if conn:
-                conn.close()
+        search_options, db_labels_map = _build_field_config(allowed_processes, current_lang)
         blocked = sensitive_blocked_keys()
         if blocked:
             search_options = drop_sensitive_options(search_options, blocked)

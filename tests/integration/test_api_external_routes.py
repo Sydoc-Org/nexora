@@ -1478,24 +1478,20 @@ def test_workitems_field_unmapped_for_scope_returns_400(client, monkeypatch):
 
 
 def test_get_search_columns_for_processes_maps_and_fails_closed(monkeypatch, auth_app_ctx):
-    # Unit-ish: non-NULL col_* cells across the scope's rows union up
-    # (lowercased); empty scope short-circuits; a dead engine returns None.
+    # Delegates to mapping_config.field_keys_for_processes (#98 phase 2):
+    # keys come back col_-prefixed lowercase; empty scope short-circuits
+    # without a registry lookup; a registry load failure (None) propagates
+    # so the external API keeps failing closed.
+    import nx_lib.mapping_config as mc
     import nx_lib.views.workitems as wi
 
-    cur = MagicMock()
-    cur.description = [("ProcessName",), ("TableName",), ("col_InvoiceNr",), ("col_doctype",)]
-    cur.fetchall.return_value = [("p.a", "t1", "InvNo", None), ("p.b", "t2", None, "DocType")]
-    conn = MagicMock()
-    conn.cursor.return_value = cur
-    eng = MagicMock()
-    eng.raw_connection.return_value = conn
-    monkeypatch.setattr(wi, "engine_nexora_db", eng)
+    monkeypatch.setattr(mc, "field_keys_for_processes", lambda processes: {"invoicenr", "doctype"})
     assert wi.get_search_columns_for_processes(["p.a", "p.b"]) == {
         "col_invoicenr",
         "col_doctype",
     }
     assert wi.get_search_columns_for_processes([]) == set()
-    monkeypatch.setattr(wi, "engine_nexora_db", _dead_engine("NexoraDB down"))
+    monkeypatch.setattr(mc, "field_keys_for_processes", lambda processes: None)
     assert wi.get_search_columns_for_processes(["p.a"]) is None
 
 
