@@ -25,6 +25,14 @@ Work toward the next release.
   `(ProcessName, ClientCode)`. `dbo.Logs` gains `IX_Logs_Timestamp` so the
   admin log pages stop table-scanning as the log grows.
 
+- **`CLAUDE.md` is now a map, not a manual.** It is injected into every Claude
+  Code session and re-sent after every compact, so its 28 KB of prose was a
+  fixed per-session token cost. The architectural-conventions block moved
+  verbatim to `docs/design/architecture-conventions.md`, the Databases section
+  dropped the ~5 KB it duplicated from `docs/howto/db-migrations.md`, and the
+  translations and GitNexus blocks became pointers. 28,069 -> 14,361 bytes with
+  no content lost, only relocated; the Git branch policy is kept verbatim.
+
 ### Fixed
 
 - **Workitem detail panel: line-item tables are tables again** (#199). Each
@@ -191,6 +199,30 @@ Work toward the next release.
   `DELETE /api/reporting/reports/<id>`. Until now deleting was Advanced-only.
 
 ### Changed
+
+- **The three biggest JS partials now ship as cacheable static files** (#191).
+  Nexora's per-page JavaScript lived inside Jinja partials only because that
+  was the way to get Babel to translate its strings — which turned every
+  navigation into a re-download and a re-parse of the whole client, since a
+  script inside the document can never be cached. It didn't have to: the
+  partials already funnel every translated string through one `I18N` object
+  literal at the top, so the literal can stay in Jinja and the behaviour can
+  leave. `_reporting_simple_js.html`, `_reporting_dashboard_js.html` and
+  `_header_js.html` now keep a small inline `<script nonce>` holding only the
+  Jinja-rendered data — the strings, `url_for()` endpoints and the
+  permission-filtered Ctrl+K command list — and load their body from
+  `static/js/reporting_simple.js`, `static/js/reporting_dashboard.js` and
+  `static/js/header.js`. **290 KB of JavaScript left the document**:
+  `/reporting` now renders 333 KB of HTML with 260 KB of inline script,
+  against ~620 KB / 549 KB before, and what moved is cached across
+  navigations and across pages. Babel is untouched — `babel.cfg` still
+  extracts from `templates/**.html`, so `messages.pot` and the three `.po`
+  files are byte-identical. New Jinja global `static_v()` appends an mtime
+  `?v=` so a deploy busts the cache; `tests/unit/test_template_url_prefix.py`
+  now also lints `static/js/` (a `.js` file has no `url_for()` to fall back
+  on) and fails on any Jinja syntax left in a static file. As a side effect
+  `_header_js.html` no longer injects a stray `<!DOCTYPE html><html><head>`
+  block into the middle of every page.
 
 - **Dashboard "Whole report" tile.** The Report tile on a reporting dashboard
   now renders the saved report as the Simple tab does — the KPI band with one

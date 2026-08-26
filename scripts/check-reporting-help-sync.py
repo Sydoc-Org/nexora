@@ -18,6 +18,7 @@ WATCHED_PREFIXES = (
     "templates/reporting_metrics.html",
     "templates/reporting_sources.html",
     "templates/js/_reporting_",
+    "static/js/reporting_",  # bodies lifted out of the partials above (#191)
     "nx_lib/views/reporting.py",
 )
 # ... and the two places that document it for end users.
