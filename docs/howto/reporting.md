@@ -119,7 +119,7 @@ content area. `templates/js/_reporting_tabs_js.html` is the nav controller
     **own** total mode, so a summed count and a levelled backlog can share one
     band. The suffix is the client's own zero-filled last bucket, so the
     wording is deliberately bucket-honest rather than implying snapshot
-    precision (`kpiLatestSuffix` in `_reporting_simple_js.html`).  When the definition carries a **single relative-date token filter**, the run request
+    precision (`kpiLatestSuffix` in `reporting_simple.js`).  When the definition carries a **single relative-date token filter**, the run request
   sets `compare: true` and each stat renders a **delta chip** (↑/↓/— plus a
   percentage) against the immediately preceding period of the same length —
   see **Comparison & delta chips** below for the exact semantics (why it's
@@ -159,7 +159,7 @@ chart already on screen re-themes on the next render, not live.
 - **Simple** — the default; built for report *viewers* and non-data-science
   stakeholders. It is purely a presentation layer over the existing REST
   endpoints (`templates/_reporting_simple.html` +
-  `templates/js/_reporting_simple_js.html`). It opens on the **landing hero**
+  `static/js/reporting_simple.js`). It opens on the **landing hero**
   (AI command bar + suggestion chips + "New report"/"New dashboard" —
   see **Indigo Studio identity** above), then the library below it:
   - **Library** — every report you can see, grouped into *Library*
@@ -316,7 +316,7 @@ a `comparison` block:
 literal `priorStart`–`priorEnd` range, never a calendar label. The KPI
 band's **Total**, **Avg per bucket**, and **Peak** tiles each get a chip —
 an arrow (↑/↓/flat "—") plus a percentage — computed client-side
-(`computeDelta`/`deltaChipHtml` in `_reporting_simple_js.html`) from the
+(`computeDelta`/`deltaChipHtml` in `reporting_simple.js`) from the
 current value vs. the same stat over `comparison.rows`:
 
 - **Flat** when the prior value is `0`/non-finite (no percentage is
@@ -441,7 +441,7 @@ rather than blocking the mail.
 A **dashboard** is a saved report whose definition has
 `kind: 'dashboard'` instead of the usual curated/SQL shape — no schema
 change, no new endpoint, no new permission. It lives entirely in the Simple
-pane (`templates/js/_reporting_dashboard_js.html`, exposing
+pane (`static/js/reporting_dashboard.js`, exposing
 `window.ReportingDashboard = {openNew, open, close}`) as a fourth pane view
 alongside library/wizard/result, and is built out of multiple **cards**
 (KPI / line / bar / donut / table / report), each running the existing
@@ -706,7 +706,7 @@ so editing the title then **Save** also renames it.
 
 The Console result view follows the same rule (it used to `POST` unconditionally,
 so Save duplicated the open report and the rename pencil forked a second copy
-under the new name): `persistCurrent()` in `js/_reporting_simple_js.html` `PUT`s
+under the new name): `persistCurrent()` in `static/js/reporting_simple.js` `PUT`s
 whenever `canUpdateCurrent()` — a `reportId` plus `owned || canEdit`, the same
 pair the endpoint accepts — and `POST`s otherwise, which is the wizard/AI
 result's first save. The rename pencil is that same call with a different name.
@@ -777,7 +777,7 @@ tabs:
 
 Shared code lives in `templates/js/_reporting_drill_js.html`
 (`window.ReportingDrill` — `buildDrillDefinition`, drawer open/close/render,
-export), wired into `templates/js/_reporting_simple_js.html` (Simple: chart
+export), wired into `static/js/reporting_simple.js` (Simple: chart
 `onClick`/`onHover` + result-row clicks) and `templates/js/_reporting_js.html`
 (Advanced: chart `onElementClick` + grid-row clicks), with drawer markup/CSS
 in `templates/reporting.html` and `static/css/reporting.css`.
@@ -1325,7 +1325,7 @@ no caption box appears; the Advanced tab fires it only on **chart mount**
 (switching to the Chart view) — not on every grid run — so re-running a
 report while sitting in Grid view does not itself request a new caption
 (see `resetViews()`/`fireCaption()` in `_reporting_js.html` vs. the end of
-`runCurrent()` in `_reporting_simple_js.html`). Either way, the request goes
+`runCurrent()` in `reporting_simple.js`). Either way, the request goes
 out in the background with the columns and the **whole grid** just rendered
 (payload-capped at `CAPTION_MAX_ROWS` = 5000 rows), and — if it returns a
 caption — the result view shows a small "shimmer in" 1–2 sentence narration
@@ -1530,7 +1530,7 @@ does not render. Sanitised key names are committed in `env/*.env.example`.
   helpers).
 - `templates/reporting.html` — chat panel markup (`#rpChatPanel` and friends).
 - `templates/js/_reporting_ai_js.html` — the chat module (`window.ReportingChat`).
-- `templates/js/_reporting_simple_js.html` — Simple's hero-bar shortcut into
+- `static/js/reporting_simple.js` — Simple's hero-bar shortcut into
   the chat panel, the KPI delta chips/sparkline, and the auto-caption fetch.
 - `templates/js/_reporting_js.html` — the Advanced grid's own auto-caption
   fetch (no delta chips/comparison there — Simple-tab only, see
@@ -1618,7 +1618,7 @@ live schema grounding and scheduled-report delivery.
   `templates/js/_reporting_ai_js.html` — the AI chat panel (`window.ReportingChat`);
   `templates/_eddard.html` + `templates/js/_eddard_js.html` + `static/css/eddard.css`
   — the Eddard mascot and its build-a-report loading stage;
-  `templates/js/_reporting_dashboard_js.html` — dashboard builder
+  `static/js/reporting_dashboard.js` — dashboard builder
   (`window.ReportingDashboard`).
 - `sql/_migrations/NexoraDB/0004_create_reports_table.sql` — `dbo.Reports` DDL.
 - `sql/_migrations/NexoraDB/0005_seed_reporting_permissions.sql` — permission seed.
@@ -1641,7 +1641,7 @@ live schema grounding and scheduled-report delivery.
   "Indigo Studio" design handoff (token table, type scale, per-screen specs)
   + `docs/superpowers/specs/2026-07-20-reporting-dashboard-prototype.dc.html`
   — the dashboard JS state-model prototype (its logic class is the literal
-  spec for `_reporting_dashboard_js.html`).
+  spec for `reporting_dashboard.js`).
 - `docs/superpowers/plans/2026-07-20-reporting-redesign-dashboard-builder.md` —
   the redesign + dashboard-builder implementation plan; supersedes
   `docs/superpowers/plans/2026-07-15-reporting-pin-to-dashboard.md`.

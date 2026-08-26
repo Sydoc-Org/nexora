@@ -8,7 +8,7 @@ run`` load locally); it calls create_app() from this package.
 import os
 from datetime import timedelta
 
-from flask import Flask
+from flask import Flask, url_for
 from flask_session import Session
 from flask_talisman import Talisman
 
@@ -65,6 +65,29 @@ def create_app():
     # harmlessly (empty nonce) in dev/INT/test, where there's no CSP to
     # violate.
     app.jinja_env.globals.setdefault("csp_nonce", lambda: "")
+
+    @app.template_global()
+    def static_v(filename):
+        """url_for('static') with an mtime cache-buster (#191).
+
+        The JS partials under templates/js/ now ship their behaviour as real
+        files under static/js/, so the browser can cache them across
+        navigations -- which only works if a deploy changes the URL.
+        Flask 3 serves /static with no-cache + ETag, so today each of these
+        still costs one 304 per navigation -- cheap, and the body and the
+        parse are what mattered. The ?v= is what makes it safe to go further:
+        once the CSS/image tags use static_v() too, SEND_FILE_MAX_AGE_DEFAULT
+        can go long and the 304s disappear.
+
+        ponytail: one stat() per tag per render, uncached; the OS caches the
+        inode and a page carries a handful of these. Cache it if a profile
+        ever says otherwise.
+        """
+        try:
+            version = int(os.stat(os.path.join(app.static_folder, filename)).st_mtime)
+        except OSError:
+            version = 0
+        return f"{url_for('static', filename=filename)}?v={version}"
 
     @app.after_request
     def _baseline_security_headers(resp):
