@@ -958,18 +958,10 @@
     openDrill(clicked);
   }
 
-  function renderTable(columns, rows, forecast) {
-    var cur = state.current;
-    var def = (cur && cur.def) || {};
-    var hasMetrics = Array.isArray(def.metrics) && def.metrics.length > 0;
-    var dims = (def.columns || []).length;
-    var src = (state.sources || []).find(function (s) { return s.id === def.source; });
-    // Drillable only for aggregate results (metric + dimension) whose leading
-    // columns resolve to a valid drill definition — probed once with the
-    // first row rather than assumed, so e.g. non-filterable dimensions don't
-    // get a false affordance.
-    var drillable = !!(hasMetrics && dims && src && rows.length &&
-      ReportingDrill.buildDrillDefinition(def, src.fields || [], clickedFor(rows[0])));
+  // Pure HTML builder for the result grid (data bars + forecast rows).
+  // `drillable` only adds the clickable class -- the caller binds the row
+  // handlers. Shared with the dashboard's whole-report card.
+  function tableHtml(columns, rows, forecast, drillable) {
     var html = '<table class="reporting-table' + (drillable ? ' reporting-drill-clickable' : '') +
       '"><thead><tr>';
     columns.forEach(function (c) { html += '<th>' + esc(c.header || c.field) + '</th>'; });
@@ -1023,7 +1015,22 @@
       });
     }
     html += '</tbody></table>';
-    el('rsTableWrap').innerHTML = html;
+    return html;
+  }
+
+  function renderTable(columns, rows, forecast) {
+    var cur = state.current;
+    var def = (cur && cur.def) || {};
+    var hasMetrics = Array.isArray(def.metrics) && def.metrics.length > 0;
+    var dims = (def.columns || []).length;
+    var src = (state.sources || []).find(function (s) { return s.id === def.source; });
+    // Drillable only for aggregate results (metric + dimension) whose leading
+    // columns resolve to a valid drill definition — probed once with the
+    // first row rather than assumed, so e.g. non-filterable dimensions don't
+    // get a false affordance.
+    var drillable = !!(hasMetrics && dims && src && rows.length &&
+      ReportingDrill.buildDrillDefinition(def, src.fields || [], clickedFor(rows[0])));
+    el('rsTableWrap').innerHTML = tableHtml(columns, rows, forecast, drillable);
     if (drillable) {
       Array.prototype.forEach.call(
         el('rsTableWrap').querySelectorAll('tbody tr:not(.is-forecast)'), function (tr, i) {
@@ -3579,7 +3586,8 @@
     kpiBandHtml: kpiBandHtml,
     statCardHtml: statCardHtml,
     buildChartData: buildChartData,
-    chartConfigFor: chartConfigFor
+    chartConfigFor: chartConfigFor,
+    tableHtml: tableHtml
   };
 
   document.addEventListener('rp:tabshown', function (e) {
