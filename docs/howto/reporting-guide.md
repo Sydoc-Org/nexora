@@ -63,9 +63,11 @@ guide as an app page.
 
 **Saving and sharing**
 
-- Save works differently per builder: from the guided view, Save always creates a new report
-  under My reports; on Advanced, Save overwrites the open report — including a
-  shared one you can edit. Use **Save as** for a copy.
+- Save writes back to the report you have open — the pencil beside the title
+  renames it in place, and neither one leaves a duplicate behind. A result that
+  is not a saved report yet (a wizard run, an answer from Eddard) asks for a
+  name and lands under My reports. To keep the original untouched, use
+  ⋯ → **Save as copy** (**Save as** in the Advanced builder).
 - A scheduled email runs with the report owner's data access — recipients see
   the owner's numbers, not their own.
 - Delete a report you own: open its card's **…** menu under My reports and
@@ -350,12 +352,15 @@ number. A hint line tells you when this is available.
 
 ## Saving, sharing, finding again
 
-**Save** stores the report under **My reports** — but the two builders treat
-it differently. From the guided view, Save always creates a *new* report, even
-when you opened one from the library. In the **Advanced** builder, Save
-overwrites the loaded report — including a shared report you have edit rights
-on, for everyone — and **Save as** makes a copy. Editing the title and hitting
-Save also renames it.
+**Save** writes back to the report you have open — yours, or a shared one you
+have edit rights on (in which case everyone sees the change). The pencil beside
+the title renames that same report; neither leaves a duplicate behind. A result
+that is not a saved report yet — a wizard run, an answer from Eddard — asks for
+a name instead and lands under **My reports**.
+
+To keep the original as it was, make a copy: ⋯ → **Save as copy** in the
+results view, **Save as** in the Advanced builder. The copy becomes the report
+you have open, so the next Save goes to the copy, not the original.
 
 The **Library** groups everything into three shelves:
 

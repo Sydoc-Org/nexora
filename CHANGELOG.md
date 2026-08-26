@@ -8,6 +8,20 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Fixed
+
+- **Saving a report in the Console duplicated it instead of updating it.** Save
+  in the results view always `POST`ed a new row, so pressing it on a report you
+  had opened from the library left two identical entries under My reports — and
+  the rename pencil was the same code path, so renaming forked a *second* copy
+  under the new name while the original kept the old one. Save now writes back
+  (`PUT`) whenever the open result is a stored report you may edit — owner or
+  CanEdit share — and the pencil renames that same report in place. Making a
+  new one is now the explicit path: ⋯ → **Save as copy**, which pre-fills
+  "<name> (copy)" and then leaves the copy open, so the next Save can't reach
+  back to the original. A result that isn't a saved report yet (wizard run, an
+  answer from Eddard) still asks for a name and creates one.
+
 ### Added
 
 - **Eddard, the reporting mascot** (#212). The AI assistant now has a face and a
