@@ -44,6 +44,7 @@ from flask import (
 from flask_babel import gettext as _
 from markdown_it import MarkdownIt
 
+from .. import mapping_config
 from ..db import (
     engine_generali_db,
     engine_nexora_db,
@@ -734,62 +735,64 @@ def _allowed_processes():
 
 
 def _load_process_configs(target_processes):
-    """Load Statconfig rows for the target processes as plain dicts."""
+    """ProcessSource rows (mapping_config #98 registry) for the target
+    processes, scoped to non-ms02 clients, as plain dicts (build_table_query's
+    expected shape) -- successor to the direct Statconfig cursor read.
+
+    Raises if the registry itself failed to load: a genuine NexoraDB/config
+    outage must surface as an error here (via _prepare_run's generic-exception
+    500, or _ai_schema_text's own try/except), never be silently reshaped into
+    an empty catalog / a QueryBuildError("no processes in scope") 400 that
+    misrepresents a system failure as bad input -- the contract the legacy
+    per-call SELECT gave for free by always hitting NexoraDB directly. See
+    nx_lib/views/dashboard.py's `_statconfig_sources` for the same pattern.
+    """
     if not target_processes:
         return []
-    conn = engine_nexora_db.raw_connection()
-    try:
-        cur = conn.cursor()
-        ph = ",".join(["?"] * len(target_processes))
-        # SELECT * so a pre-0020 Statconfig (no WorkitemColumn yet) still
-        # serves the date columns; WorkitemColumn is read defensively.
-        cur.execute(
-            f"SELECT * FROM Statconfig WHERE ProcessName IN ({ph}) AND ISNULL(ClientCode, 'default') <> 'ms02'",
-            target_processes,
-        )
-        return [
-            {
-                "process": r.ProcessName,
-                "table": r.TableName,
-                "export_col": r.ExportColumn,
-                "import_col": r.ImportColumn,
-                "condition": r.additionalCondition or "",
-                "workitem_col": getattr(r, "WorkitemColumn", None),
-            }
-            for r in cur.fetchall()
-        ]
-    finally:
-        conn.close()
+    if mapping_config.registry() is None:
+        raise RuntimeError("mapping_config registry unavailable")
+    sources = [
+        s
+        for s in mapping_config.sources_for(None, target_processes)
+        if (s.client or "default") != "ms02"
+    ]
+    return [
+        {
+            "process": s.process,
+            "table": s.table,
+            "export_col": s.export_column,
+            "import_col": s.import_column,
+            "condition": s.extra_condition or "",
+            "workitem_col": s.workitem_column,
+        }
+        for s in sources
+    ]
 
 
 def _load_field_col_maps(target_processes):
-    """Load per-process {field_key: actual_column} maps from SearchConfig."""
+    """Per-process {field_key: actual_column} maps from the mapping_config
+    #98 registry's ProcessFieldMappings -- successor to the direct
+    SearchConfig col_* cursor read. Same fail-loud contract as
+    `_load_process_configs` (registry load failure raises, never degrades to
+    an empty map that looks like "no fields configured").
+
+    The legacy SELECT had no ClientCode filter (SearchConfig's ProcessName
+    already disambiguates within a client's rows), so this reads across all
+    clients too -- mappings_for() requires one client per call, so build the
+    dict by iterating every client present in the registry's sources rather
+    than guessing which ones matter.
+    """
     maps = {}
     if not target_processes:
         return maps
-    conn = engine_nexora_db.raw_connection()
-    try:
-        cur = conn.cursor()
-        cur.execute("SELECT TOP 0 * FROM SearchConfig")
-        cols = [c[0] for c in cur.description if c[0].startswith("col_")]
-        if not cols:
-            return maps
-        select_cols = ", ".join(cols)
-        ph = ",".join(["?"] * len(target_processes))
-        cur.execute(
-            f"SELECT ProcessName, {select_cols} FROM SearchConfig WHERE ProcessName IN ({ph})",
-            target_processes,
-        )
-        for row in cur.fetchall():
-            m = {}
-            for i, col in enumerate(cols):
-                val = row[i + 1]
-                if val:
-                    m[col[len("col_") :]] = val
-            maps[row.ProcessName] = m
-        return maps
-    finally:
-        conn.close()
+    reg = mapping_config.registry()
+    if reg is None:
+        raise RuntimeError("mapping_config registry unavailable")
+    clients = {client for client, _process in reg.sources}
+    for client in clients:
+        for m in mapping_config.mappings_for(client, target_processes):
+            maps.setdefault(m.process, {})[m.field_key] = m.column
+    return maps
 
 
 def _client_of(process):
