@@ -825,7 +825,7 @@ def dashboard():
             userid=userid,
             process_name=process_name,
             allowed_processes=allowed_processes,
-            pageV=page_visibility(),
+            page_visibility=page_visibility(),
             fullname=fullname,
             login_at=login_at,
             prev_login_at=prev_login_at,

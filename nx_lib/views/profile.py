@@ -47,7 +47,7 @@ def profile():
             logged_in_user=logged_in_user,
             fullname=fullname,
             email=email,
-            pageV=page_visibility(),
+            page_visibility=page_visibility(),
         )
     except Exception:
         return render_template("500.html")
@@ -263,7 +263,7 @@ def appearance():
             "appearance.html",
             userid=session.get("userid", "Unknown"),
             logged_in_user=session.get("username", "Unknown"),
-            pageV=page_visibility(),
+            page_visibility=page_visibility(),
         )
     except Exception:
         return render_template("500.html")
@@ -282,7 +282,7 @@ def whats_new():
             releases=releases,
             userid=session.get("userid", "Unknown"),
             logged_in_user=session.get("username", "Unknown"),
-            pageV=page_visibility(),
+            page_visibility=page_visibility(),
         )
     except Exception:
         return render_template("500.html")
@@ -320,7 +320,7 @@ def feedback():
         userid=session.get("userid", "Unknown"),
         logged_in_user=session.get("username", "Unknown"),
         from_page=request.args.get("from", ""),
-        pageV=page_visibility(),
+        page_visibility=page_visibility(),
     )
 
 

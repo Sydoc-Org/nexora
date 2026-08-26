@@ -45,7 +45,7 @@
         {{ a.page_header(
             title=_('System Status'),
             subtitle=_('Component health and incident history, recorded by the outage monitor'),
-            back_url=url_for('admin_dashboard') if pageV.adminPagePerm else None,
+            back_url=url_for('admin_dashboard') if page_visibility.adminPagePerm else None,
             icon='fa-heart-pulse'
         ) }}
 

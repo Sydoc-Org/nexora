@@ -178,7 +178,7 @@
                 {{ _("From Date") }}
               </label>
               <div class="relative mt-1">
-                <input type="text" id="startDate" name="startDate" value="{{ startDate or '' }}" {% if
+                <input type="text" id="startDate" name="startDate" value="{{ start_date or '' }}" {% if
                   datetime_perm==False %} disabled {% endif %} placeholder="yyyy-mm-dd hh:mm:ss" class="{{ input_base }}" data-testid="workitems-start-date" />
               </div>
             </div>
@@ -188,7 +188,7 @@
                 {{ _("To Date") }}
               </label>
               <div class="relative mt-1">
-                <input type="text" id="endDate" name="endDate" value="{{ endDate or '' }}" {% if
+                <input type="text" id="endDate" name="endDate" value="{{ end_date or '' }}" {% if
                   datetime_perm==False %} disabled {% endif %} placeholder="yyyy-mm-dd hh:mm:ss" class="{{ input_base }}" data-testid="workitems-end-date" />
               </div>
             </div>
