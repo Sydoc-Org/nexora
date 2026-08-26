@@ -66,8 +66,9 @@ Send the key as a Bearer token on every request:
 
 Keys are per-client rows in `dbo.ApiKeys` (NexoraDB): only the SHA-256 hash
 of the key is stored, plus a client code, an audit `Label`, a
-comma-separated `ProcessList` scope (full `dbo.Statconfig.ProcessName`
-values, e.g. `sydoc.05_PDBS`), an `Enabled` flag and `CreatedAt` /
+comma-separated `ProcessList` scope (full process names from
+`nx_lib/mapping_config.py`'s registry, i.e. `dbo.ProcessSources.ProcessName`,
+migration `0074`, e.g. `sydoc.05_PDBS`), an `Enabled` flag and `CreatedAt` /
 `LastUsedAt` stamps.
 
 ### Issuing a key (v1: manual, dev-side)
@@ -130,8 +131,8 @@ happens at key issuance. An empty scope returns `null`/`"—"`.
 
 **Calculation**, verified against `compute_avg_processing_time` (the same
 function backing the dashboard card, so this is deliberately "the same
-number as on the Dashboard"): for each `Statconfig` row (each represents one
-process/table), take `AVG(export_column - import_column)` in seconds among
+number as on the Dashboard"): for each `ProcessSources` row (each represents
+one process/table), take `AVG(export_column - import_column)` in seconds among
 rows whose export date is today and whose export is after its import; then
 average those per-row-source averages together as a **plain mean, not
 weighted by row count** — a source with 2000 rows counts the same as one
@@ -191,8 +192,9 @@ field mapped for none of your key's processes returns
 `400 {"error": "Field '...' is not available for your process scope"}`
 instead of silently matching nothing. The `LIKE`-family ops treat `%` and `_` in the
 value as SQL wildcards (historical overview behaviour). Matches honour the
-same per-process time window (`SearchConfig.TimeFilter`) as the overview
-page's search — very old documents fall outside it.
+same per-process time window (`ProcessSources.TimeFilter`, from
+`nx_lib/mapping_config.py`'s registry) as the overview page's search — very
+old documents fall outside it.
 
 Response rows: `id` feeds the detail call below, `modified_at` is the
 runtime's last-touch timestamp, and `import_datetime` is looked up from the
@@ -327,8 +329,8 @@ The number of workitems **not delivered yet**: imported within the last
   `400 {"error": "days must be 7 or 10"}`.
 - `date` — the **server-local** calendar date the count refers to.
 - `undelivered` — workitems whose import-date column falls within the window
-  and whose export-date column is still `NULL`. Statconfig rows without an
-  `ImportColumn` can't answer this metric and are skipped.
+  and whose export-date column is still `NULL`. `ProcessSources` rows without
+  an `ImportColumn` can't answer this metric and are skipped.
 
 Like `/backlog`, the response does **not** echo the process list — scoping
 happens once, at key issuance. An empty scope returns `0`. Not cached:

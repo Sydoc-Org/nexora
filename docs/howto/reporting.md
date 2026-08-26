@@ -610,7 +610,8 @@ silently excludes it (no data leak). The selection is saved with the report and
 restored on load.
 
 The **field list scopes to the selected process(es)**, mirroring the workitems
-field picker. Not every process populates every `SearchConfig.col_*`, so each
+field picker. Not every process populates every field mapped in
+`nx_lib/mapping_config.py`'s registry (`dbo.ProcessFieldMappings`, migration `0074`), so each
 catalog field carries the `processes` that expose it; the left-panel list shows a
 field only when at least one selected process exposes it (union — `All
 processes` shows every field). This is purely client-side off the catalog already
@@ -621,8 +622,9 @@ from every scoped process (which the query builder would reject).
 ### Date dimension (import / export date)
 
 The docprocessing source exposes two synthetic **date** fields, `import_date`
-and `export_date`, derived from each process's `Statconfig.ImportColumn` /
-`ExportColumn` (CONVERT-vs-CAST normalized like the dashboard). They are
+and `export_date`, derived from each process's `ProcessSources.ImportColumn` /
+`ExportColumn` (`nx_lib/mapping_config.py`, migration `0074`; CONVERT-vs-CAST
+normalized like the dashboard). They are
 filterable (date-range via the flatpickr filter row), sortable, and **grainable**:
 a date column carries an optional `grain` (`day/week/month/quarter/year`, default
 `month`) that the query builder truncates to — `DATEFROMPARTS(...)` for
@@ -630,18 +632,20 @@ month/quarter/year, Monday-anchored `DATEADD/DATEDIFF` for week. Grain applies t
 projection/grouping only; a **filter** on a date field always compares the raw
 date. Combined with a metric (e.g. `doc_count`) and a month-grain `import_date`
 dimension, this produces "documents per month". Date expressions originate solely
-from `Statconfig`, never the client — same trust boundary as the table/condition
-interpolation.
+from the `ProcessSources` registry row, never the client — same trust boundary as
+the table/condition interpolation.
 
 ### Workitem dimension & distinct count (`workitem_id` / `workitem_count`)
 
 The docprocessing source exposes a synthetic **`workitem_id`** field mapped per
-process by `StatConfig.WorkitemColumn` (migration `0020`; the underlying column
-names vary — `WorkItem`, `WorkitemID`, `WID`, ...). The query builder CASTs
-every mapping to `nvarchar(100)` so the cross-process UNION never mixes the
-columns' native types (nvarchar vs int). A process whose `WorkitemColumn` is
-NULL simply doesn't expose the field — set the column in `StatConfig` to add it
-for a new process, no code change needed.
+process by `ProcessSources.WorkitemColumn` (`nx_lib/mapping_config.py`, migration
+`0074`; originally `StatConfig.WorkitemColumn` from migration `0020`, decapitated
+by `0075`; the underlying column names vary — `WorkItem`, `WorkitemID`, `WID`,
+...). The query builder CASTs every mapping to `nvarchar(100)` so the
+cross-process UNION never mixes the columns' native types (nvarchar vs int). A
+process whose `WorkitemColumn` is NULL simply doesn't expose the field — set the
+column in `ProcessSources` (via a migration) to add it for a new process, no
+code change needed.
 
 Its companion metric **`workitem_count`** (`COUNT(DISTINCT workitem_id)`,
 registered in `dbo.ReportingMetrics`) was intended to answer "how many workitems"
@@ -941,7 +945,9 @@ source — no code change for the common cases.
 
 Each curated source binds to a **provider**:
 
-- **`docprocessing`** — the bespoke Statconfig builder (the built-in source).
+- **`docprocessing`** — the bespoke builder over `nx_lib/mapping_config.py`'s
+  registry (`dbo.ProcessSources` / `ProcessFieldMappings`, migration `0074`; the
+  built-in source).
 - **`table`** — a generic provider (`nx_lib/reporting/table_query.py`) that runs
   a **whitelist-built, parameterized `SELECT`** of the chosen columns over a
   single `BaseObject` (`Db.schema.object`) on the source's `Engine`
@@ -992,8 +998,9 @@ definition's `metrics` list), a `SourceId` (which source it aggregates), a
 every aggregation except `count`). `Format` (`int`/`decimal`/`percent`) is a
 display hint; `Enabled` and `SortOrder` control visibility/ordering. Labels are
 DB-driven i18n: `Label` (English) plus nullable `GermanLabel`/`FrenchLabel`/
-`ItalianLabel` (migration `0039`; NULL falls back to `Label`, the
-`Search_Field_Labels` convention) — `/api/reporting/metrics` serves the session
+`ItalianLabel` (migration `0039`; NULL falls back to `Label`, the same
+NULL-falls-back-to-English convention `dbo.FieldLabels` uses in
+`nx_lib/mapping_config.py`'s registry) — `/api/reporting/metrics` serves the session
 locale's label, while the AI catalogs deliberately keep the English `Label` for
 prompt-grounding stability. Migration `0017` seeds a worked example, `doc_count`
 (a `count` over the docprocessing source); migration `0039` adds **`page_count`**
@@ -1102,7 +1109,8 @@ render as 0.
 
 3. **Implement the query builder** in `nx_lib/reporting/query.py` (or extend
    `build_table_query` to handle the new source). Column names must come from
-   the `SearchConfig` mappings, never from user input.
+   `nx_lib/mapping_config.py`'s registry (`dbo.ProcessFieldMappings`), never
+   from user input.
 
 4. **Wire the catalog + query into the view** (`nx_lib/views/reporting.py`).
    The `/api/reporting/sources` endpoint returns the catalog for each source
@@ -1118,10 +1126,11 @@ render as 0.
    GO
    ```
 
-6. **SearchConfig coverage** for curated sources: `dbo.SearchConfig` is what
-   defines the field set — each process needs a row mapping `col_<field>` to
-   the actual data column name in that process's statistics table. Labels come
-   from `dbo.Search_Field_Labels`. `dbo.FieldMetadata` (data type,
+6. **Mapping-registry coverage** for curated sources: `nx_lib/mapping_config.py`'s
+   registry (`dbo.ProcessFieldMappings`, migration `0074`) is what defines the
+   field set — each process needs a row mapping a `FieldKey` to the actual data
+   column name in that process's statistics table. Labels come from
+   `dbo.FieldLabels`. `dbo.FieldMetadata` (data type,
    sortable/aggregable flags) is *optional* enrichment that
    `nx_lib/reporting/catalog.py` merges in when present — it exists on no
    environment today, so every field falls back to
