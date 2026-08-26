@@ -164,7 +164,7 @@ def field_keys_for_processes(processes) -> set[str] | None:
     wanted = set(processes)
     keys = set()
     for m in reg.mappings:
-        if f"{m.client}.{m.process}" in wanted:
+        if m.process in wanted:
             keys.add(m.field_key)
     return keys
 

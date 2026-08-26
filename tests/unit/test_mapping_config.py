@@ -170,6 +170,27 @@ def test_field_keys_for_processes_none_on_failure(app, monkeypatch):
         assert mc.field_keys_for_processes(["default.sydoc.Alpha"]) is None
 
 
+def test_field_keys_for_processes_returns_matching_keys(app, monkeypatch):
+    """Positive path: a compound ProcessName (client-prefixed, matching how
+    migration 0074 copies the legacy ProcessName verbatim) must actually be
+    matched by field_keys_for_processes -- regression test for the bug where
+    the comparison re-prefixed m.process with m.client, which never matched
+    the already-compound value and silently returned an empty set for every
+    real input."""
+    eng, _ = _engine_with(
+        mappings=[
+            _mapping_row(client="default", process="sydoc.05_PDBS", field_key="DocType"),
+            _mapping_row(client="default", process="sydoc.Beta", field_key="CrdNo"),
+        ],
+    )
+    monkeypatch.setattr(mc, "engine_nexora_db", eng)
+
+    with app.app_context():
+        result = mc.field_keys_for_processes(["sydoc.05_PDBS"])
+
+    assert result == {"doctype"}
+
+
 def test_sensitive_field_keys_none_on_failure(app, monkeypatch):
     monkeypatch.setattr(mc, "engine_nexora_db", _dead_engine())
     with app.app_context():

@@ -7,6 +7,8 @@ scope. The `reporting.scope.process.*` grant (the `allowed` arg) is the security
 boundary — anything requested but not granted is dropped.
 """
 
+import pytest
+
 from nx_lib.views.reporting import _client_of, _effective_scope
 
 ALLOWED = [
@@ -127,3 +129,26 @@ def test_labeled_field_values_duplicate_value_falls_back_to_bare_label():
 def test_labeled_field_values_null_companion_labels_bare():
     values, labels = _labeled_field_values([("01_SPARK", None)])
     assert values == ["01_SPARK"] and labels["01_SPARK"] == "01_SPARK"
+
+
+# ---------------------------------------------------------------------------
+# _load_process_configs / _load_field_col_maps: fail-loud guards on a
+# registry load failure (mapping_config.registry() -> None must raise, never
+# silently degrade to an empty catalog that looks like "no processes in
+# scope" -- see the RuntimeError docstrings on both functions).
+# ---------------------------------------------------------------------------
+
+from nx_lib import mapping_config  # noqa: E402
+from nx_lib.views.reporting import _load_field_col_maps, _load_process_configs  # noqa: E402
+
+
+def test_load_process_configs_raises_on_registry_failure(monkeypatch):
+    monkeypatch.setattr(mapping_config, "registry", lambda: None)
+    with pytest.raises(RuntimeError):
+        _load_process_configs(["privera.02_InitialScan"])
+
+
+def test_load_field_col_maps_raises_on_registry_failure(monkeypatch):
+    monkeypatch.setattr(mapping_config, "registry", lambda: None)
+    with pytest.raises(RuntimeError):
+        _load_field_col_maps(["privera.02_InitialScan"])

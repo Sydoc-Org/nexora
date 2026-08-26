@@ -97,18 +97,21 @@ def _build_field_config(allowed_processes, current_lang):
     lbls = mapping_config.labels() or {}
     db_labels_map = {key: (meta.get(target_lang) or meta.get("en")) for key, meta in lbls.items()}
 
-    search_options = {}
+    process_fields = {}
     reg = mapping_config.registry()
     if reg is not None:
         for m in reg.mappings:
             if m.process not in allowed_processes:
                 continue
             nice_label = db_labels_map.get(m.field_key, m.field_key.replace("_", " ").title())
-            search_options.setdefault(m.process, []).append(
-                {"value": m.field_key, "label": nice_label}
-            )
-        for fields in search_options.values():
-            fields.sort(key=lambda x: x["label"])
+            process_fields.setdefault(m.process, {})[m.field_key] = {
+                "value": m.field_key,
+                "label": nice_label,
+            }
+
+    search_options = {}
+    for process, fields_by_key in process_fields.items():
+        search_options[process] = sorted(fields_by_key.values(), key=lambda x: x["label"])
 
     return search_options, db_labels_map
 

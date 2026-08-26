@@ -269,7 +269,7 @@ class _SqlLogEngine:
         return _SqlLogConn(self._log)
 
 
-def _fm(field_key, column, process="test_proc", client="default", column_type=None):
+def _fm(field_key, column, process="sydoc.test_proc", client="default", column_type=None):
     """Build a nx_lib.mapping_config.FieldMapping for docfield-resolution
     tests (#98 phase 3: the two resolution blocks in _get_workitems_data
     now read mapping_config instead of per-pair SearchConfig cursors)."""
@@ -326,10 +326,18 @@ def _stub_mapping_config(
     above), which those two blocks no longer query."""
 
     def _mappings_for(client, processes, field_keys=None):
-        return list(default_mappings) if client == "default" else list(ms02_mappings)
+        rows = default_mappings if client == "default" else ms02_mappings
+        if processes is None:
+            return list(rows)
+        wanted = set(processes)
+        return [m for m in rows if m.process in wanted]
 
     def _sources_for(client, processes=None):
-        return list(default_sources) if client == "default" else list(ms02_sources)
+        rows = default_sources if client == "default" else ms02_sources
+        if processes is None:
+            return list(rows)
+        wanted = set(processes)
+        return [s for s in rows if s.process in wanted]
 
     monkeypatch.setattr(wv.mapping_config, "mappings_for", _mappings_for)
     monkeypatch.setattr(wv.mapping_config, "sources_for", _sources_for)
@@ -382,9 +390,9 @@ def test_get_workitems_data_skips_sensitive_docfield_search(
         monkeypatch,
         wv,
         default_mappings=[_fm("validationuser", "ValidationUser")],
-        default_sources=[_ps("test_proc", "dbo.T")],
+        default_sources=[_ps("sydoc.test_proc", "dbo.T")],
         ms02_mappings=[_fm("validationuser", "ValidationUser", client="ms02")],
-        ms02_sources=[_ps("test_proc", 'public."T"', alias="d", client="ms02")],
+        ms02_sources=[_ps("sydoc.test_proc", 'public."T"', alias="d", client="ms02")],
     )
 
     def _must_not_run(*a, **k):
@@ -493,10 +501,12 @@ def test_docfield_search_ms02_resolver_error_fails_closed(
     _stub_mapping_config(
         monkeypatch,
         wv,
-        ms02_mappings=[_fm("docbarcode", "DossierBarcode", process="test_proc", client="ms02")],
+        ms02_mappings=[
+            _fm("docbarcode", "DossierBarcode", process="sydoc.test_proc", client="ms02")
+        ],
         ms02_sources=[
             _ps(
-                "test_proc",
+                "sydoc.test_proc",
                 'public."DossierStatistik"',
                 alias="d",
                 join_condition="d.WorkItemID = twi.id",
@@ -566,9 +576,9 @@ def test_get_workitems_data_queries_nonsensitive_docfield_search(
         monkeypatch,
         wv,
         default_mappings=[_fm("validationuser", "ValidationUser")],
-        default_sources=[_ps("test_proc", "dbo.T")],
+        default_sources=[_ps("sydoc.test_proc", "dbo.T")],
         ms02_mappings=[_fm("validationuser", "ValidationUser", client="ms02")],
-        ms02_sources=[_ps("test_proc", 'public."T"', alias="d", client="ms02")],
+        ms02_sources=[_ps("sydoc.test_proc", 'public."T"', alias="d", client="ms02")],
     )
 
     resp = user_client.get(
@@ -677,7 +687,7 @@ def test_get_workitems_data_fieldless_pair_searches_all_columns(
             _fm("validationuser", "ValidationUser"),
             _fm("docbarcode", "DocBarcode"),
         ],
-        default_sources=[_ps("test_proc", "dbo.T")],
+        default_sources=[_ps("sydoc.test_proc", "dbo.T")],
     )
 
     def _must_not_run(*a, **k):
@@ -747,7 +757,7 @@ def test_get_workitems_data_fieldless_pair_excludes_sensitive_columns(
             _fm("validationuser", "ValidationUser"),
             _fm("secretfield", "SecretField"),
         ],
-        default_sources=[_ps("test_proc", "dbo.T")],
+        default_sources=[_ps("sydoc.test_proc", "dbo.T")],
     )
 
     resp = user_client.get(
@@ -785,7 +795,7 @@ def _op_test_scaffold(monkeypatch, sql_log):
         monkeypatch,
         wv,
         default_mappings=[_fm("validationuser", "ValidationUser")],
-        default_sources=[_ps("test_proc", "dbo.T")],
+        default_sources=[_ps("sydoc.test_proc", "dbo.T")],
     )
 
 
@@ -929,7 +939,7 @@ def test_api_docfield_values_no_field_widens_and_excludes_sensitive(
         return []
 
     def _sources_for(client, processes=None):
-        return [_ps("test_proc", "dbo.T")] if client == "default" else []
+        return [_ps("sydoc.test_proc", "dbo.T")] if client == "default" else []
 
     monkeypatch.setattr(wv.mapping_config, "mappings_for", _mappings_for)
     monkeypatch.setattr(wv.mapping_config, "sources_for", _sources_for)
