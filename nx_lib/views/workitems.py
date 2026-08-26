@@ -166,6 +166,56 @@ def _docfield_op(docops, i):
     return op if op in DOCFIELD_OPS else "contains"
 
 
+# Type buckets for the sargable predicate builder below (#98 Task 12).
+# Values MUST match ``ColumnType``/``IdColumnType`` exactly as seeded by
+# scripts/seed_column_types.py (migration 0076) -- lowercase
+# INFORMATION_SCHEMA.COLUMNS values on the SQL Server side (e.g. 'nvarchar',
+# 'int'). A bucket that doesn't match the seeded strings silently disables
+# the sargable path (falls through to the CAST fallback below -- safe, just
+# not faster), so DO NOT "helpfully" add casing/synonym variants without
+# checking a live sample first.
+_TEXT_TYPES = {"varchar", "nvarchar", "char", "nchar", "text"}
+_INT_TYPES = {"int", "bigint", "smallint", "tinyint", "integer"}
+
+
+def _docfield_predicate(alias, column, column_type, op_key, value):
+    """Build a sargable WHERE fragment for a default-leg doc-field predicate
+    (#98 Task 12), given the ``ColumnType`` metadata seeded onto
+    ``FieldMapping`` (migration 0076). Returns ``(sql, params)`` -- ``sql``
+    uses ``?`` placeholders, ``params`` the ordered bind values.
+
+    - TEXT type (``_TEXT_TYPES``): bare column comparison, no CAST. ``eq``
+      becomes a seekable ``col = ?``; the LIKE-family ops stay a scan but
+      drop the CAST/COLLATE overhead.
+    - INT type (``_INT_TYPES``) + ``eq``/``neq``: native int bind, no CAST --
+      SEEKABLE. A non-numeric value can never equal an int column, so this
+      is resolved at the predicate level rather than hitting the DB:
+      ``eq`` -> ``"1=0"`` (can't match -- fails closed, no scan); ``neq`` ->
+      ``"1=1"`` (vacuously true: nothing unparseable can fail to differ from
+      every int value, so the negation always holds -- this is a predicate-
+      level truth, NOT a relaxation of the allow-set fail-closed contract
+      used elsewhere in this file).
+    - Everything else (INT type + a LIKE-family op, unmapped/unknown type,
+      or ``column_type is None``): the legacy, always-correct
+      ``CAST(...) AS NVARCHAR(MAX) COLLATE DATABASE_DEFAULT`` fallback.
+    """
+    op_sql, op_param = DOCFIELD_OPS[op_key]
+    col_ref = f"{alias}.{column}"
+
+    if column_type in _INT_TYPES and op_key in ("eq", "neq"):
+        try:
+            int_value = int(value)
+        except (TypeError, ValueError):
+            return ("1=0" if op_key == "eq" else "1=1", [])
+        return (f"{col_ref} {op_sql} ?", [int_value])
+
+    if column_type in _TEXT_TYPES:
+        return (f"{col_ref} {op_sql} ?", [op_param(value)])
+
+    safe_col = f"CAST({col_ref} AS NVARCHAR(MAX))"
+    return (f"{safe_col} COLLATE DATABASE_DEFAULT {op_sql} ?", [op_param(value)])
+
+
 def _docfield_comb(doccombs, i):
     """The AND/OR combinator joining pair ``i`` to the pairs before it
     ('and' fallback; the first pair's value is ignored by the fold)."""
@@ -313,12 +363,19 @@ def _ms02_target_processes():
 
 def _ms02_pid_specs(target_processes):
     """Columnar specs for resolving personal numbers (PIDs) against the MS02
-    statistik table: ``[(table, id_col, pid_col, time_filter), ...]`` read from
-    the 'ms02' ProcessFieldMappings 'pid' rows for the given processes
-    (mapping_config registry, ClientCode='ms02', ProcessName IN
-    (target_processes) -- NEVER a hardcoded process key). ``time_filter`` is
-    None: the PID lookup is an exact match that must surface ALL matching
-    workitems, unbounded by time. Returns [] when unseeded."""
+    statistik table: ``[(table, id_col, pid_col, time_filter, pid_column_type,
+    id_column_type), ...]`` read from the 'ms02' ProcessFieldMappings 'pid'
+    rows for the given processes (mapping_config registry, ClientCode='ms02',
+    ProcessName IN (target_processes) -- NEVER a hardcoded process key).
+    ``time_filter`` is None: the PID lookup is an exact match that must
+    surface ALL matching workitems, unbounded by time.
+
+    ``pid_column_type`` (FieldMapping.column_type, #98 Task 12) types the
+    ``pid_col = ANY(%s)`` comparisons in resolve_ms02_pid_ids /
+    resolve_ms02_pid_to_wids; ``id_column_type`` (ProcessSource.id_column_type)
+    types the DIFFERENT ``id_col = ANY(%s)`` comparison in
+    resolve_ms02_wids_to_pids -- deliberately two separate type fields since
+    they describe two different columns. Returns [] when unseeded."""
     if not target_processes:
         return []
     mappings = mapping_config.mappings_for(
@@ -335,7 +392,7 @@ def _ms02_pid_specs(target_processes):
         id_col = _ms02_id_column(src.join_condition, src.alias)
         if not id_col:
             continue
-        specs.append((src.table, id_col, m.column, None))
+        specs.append((src.table, id_col, m.column, None, m.column_type, src.id_column_type))
     return specs
 
 
@@ -590,7 +647,7 @@ def _get_workitems_data(args, export_all=False, scope=None):
                     if not target_field_keys:
                         continue
 
-                op_sql, op_param = DOCFIELD_OPS[_docfield_op(docops, pair_idx)]
+                op_key = _docfield_op(docops, pair_idx)
 
                 configs = [m for m in default_mappings if m.field_key in target_field_keys]
 
@@ -618,14 +675,19 @@ def _get_workitems_data(args, export_all=False, scope=None):
                         db_column = config.column
                         if not db_column:
                             continue
-                        safe_col = f"CAST({alias}.{db_column} AS NVARCHAR(MAX))"
+                        # Sargable predicate from ColumnType (#98 Task 12) --
+                        # bare-column/native-int compare when the type is
+                        # known-safe, else the legacy CAST+COLLATE fallback.
+                        pred_sql, pred_params = _docfield_predicate(
+                            alias, db_column, config.column_type, op_key, docvalue
+                        )
                         id_parts.append(f"""
                             SELECT DISTINCT {id_col} AS id
                             FROM {tbl} {alias}
-                            WHERE {safe_col} COLLATE DATABASE_DEFAULT {op_sql} ?
+                            WHERE {pred_sql}
                             AND {time_filter}
                         """)
-                        id_params.append(op_param(docvalue))
+                        id_params.extend(pred_params)
 
                     if not id_parts:
                         continue  # mapping rows exist but unusable -> tolerant skip
@@ -736,7 +798,9 @@ def _get_workitems_data(args, export_all=False, scope=None):
                     field_col = m.column
                     if not field_col:
                         continue
-                    specs.append((src.table, id_col, field_col, src.time_filter))
+                    # 5-tuple (#98 Task 12): field_type drives the typed
+                    # int-eq fast path in resolve_ms02_docfield_ids.
+                    specs.append((src.table, id_col, field_col, src.time_filter, m.column_type))
                 if not specs:
                     continue  # mapping rows exist but unusable -> tolerant no-constraint
                 pairs.append(

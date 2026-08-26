@@ -2691,7 +2691,8 @@ def test_prepared_documents_centered_headers_use_align_center(
 def test_ms02_pid_specs_builds_from_mapping_registry(monkeypatch):
     """#98 phase 5: _ms02_pid_specs reads mapping_config.mappings_for/sources_for
     (ProcessFieldMappings/ProcessSources) instead of a per-call SearchConfig
-    SELECT, but keeps the same (table, id_col, pid_col, None) spec shape."""
+    SELECT, and (#98 Task 12) widens the spec shape to (table, id_col,
+    pid_col, None, pid_column_type, id_column_type)."""
     import nx_lib.views.workitems as wv
 
     mapping = _fm("pid", "PidCol", process="sydoc.05_PDBS", client="ms02")
@@ -2709,7 +2710,7 @@ def test_ms02_pid_specs_builds_from_mapping_registry(monkeypatch):
     )
 
     specs = wv._ms02_pid_specs(["sydoc.05_PDBS"])
-    assert specs == [("DossierStatistik", "ID", "PidCol", None)]
+    assert specs == [("DossierStatistik", "ID", "PidCol", None, None, None)]
 
 
 def test_ms02_pid_specs_empty_target_processes_returns_empty(monkeypatch):

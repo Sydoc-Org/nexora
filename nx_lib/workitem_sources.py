@@ -388,7 +388,22 @@ def _ms02_id_column(join_condition, alias):
     return None
 
 
-def _ms02_columnar_sql(table, id_col, field_col, time_filter, value_clause):
+# Int-type bucket for the MS02 (Postgres) typed-predicate fast path (#98 Task
+# 12). Values MUST match FieldMapping.ColumnType / ProcessSource.IdColumnType
+# exactly as seeded by scripts/seed_column_types.py (migration 0076) --
+# lowercase information_schema.columns values on the PG side (e.g.
+# 'character varying', 'bigint'). A mismatch here silently disables the fast
+# path (falls through to the always-correct ``::text`` fallback below), it
+# never misfires the bare-column path against a non-numeric value.
+_MS02_INT_TYPES = {"int", "bigint", "smallint", "tinyint", "integer"}
+
+# value_clause shapes that compare a column to a fully-typed bind value (as
+# opposed to ILIKE, which always needs the text cast) -- these are the only
+# shapes eligible for the typed/bare-column fast path.
+_MS02_EXACT_MATCH_CLAUSES = {"= %s", "= ANY(%s)"}
+
+
+def _ms02_columnar_sql(table, id_col, field_col, time_filter, value_clause, field_type=None):
     """Build a columnar MS02 lookup against a per-client statistik table.
 
     The MS02 doc-field source is NOT an EAV table -- it is a wide table (e.g.
@@ -397,15 +412,25 @@ def _ms02_columnar_sql(table, id_col, field_col, time_filter, value_clause):
     verbatim from SearchConfig (admin-controlled, like the default path); the
     id/field columns are validated as plain identifiers and double-quoted (PG is
     case-sensitive, so ``WorkItemID`` must be quoted). ``value_clause`` is the
-    bound predicate applied to ``"<field>"::text`` -- ``ILIKE %s`` for search,
-    ``= ANY(%s)`` for a PID list. Returns SQL, or None if an identifier is unsafe.
+    bound predicate applied to ``field_col`` -- ``ILIKE %s`` for search,
+    ``= ANY(%s)`` for a list. Returns SQL, or None if an identifier is unsafe.
+
+    ``field_type`` (#98 Task 12): when it is int-typed (``_MS02_INT_TYPES``)
+    AND ``value_clause`` is an exact-match shape (``_MS02_EXACT_MATCH_CLAUSES``
+    -- ``= %s`` / ``= ANY(%s)``), the predicate compares the bare column
+    (sargable, no cast) -- the CALLER is responsible for binding already-typed
+    int params in that case. Every other combination keeps the legacy
+    ``"<field>"::text`` cast, which is always correct.
     """
     if not (table and id_col and field_col):
         return None
     if not (_MS02_IDENT.match(id_col) and _MS02_IDENT.match(field_col)):
         current_app.logger.error(f"_ms02_columnar_sql: unsafe identifier {(id_col, field_col)}")
         return None
-    sql = f'SELECT DISTINCT "{id_col}" FROM {table} WHERE "{field_col}"::text {value_clause}'
+    if field_type in _MS02_INT_TYPES and value_clause in _MS02_EXACT_MATCH_CLAUSES:
+        sql = f'SELECT DISTINCT "{id_col}" FROM {table} WHERE "{field_col}" {value_clause}'
+    else:
+        sql = f'SELECT DISTINCT "{id_col}" FROM {table} WHERE "{field_col}"::text {value_clause}'
     if time_filter:
         sql += f" AND {time_filter}"
     return sql
@@ -448,13 +473,27 @@ def resolve_ms02_docfield_ids(engine, pairs):
 
     ``pairs`` is ``[(specs, value[, op[, comb]]), ...]`` -- one entry per
     searched docfield, where ``specs`` is the list of
-    ``(table, id_col, field_col, time_filter)`` config rows the docfield maps
-    to (from the 'ms02' SearchConfig rows; usually one). An EMPTY specs list is
-    a forced-empty pair (field unmapped -> contributes set()). Within a pair
-    the spec rows are OR'd; pairs fold left-to-right joined by their ``comb``
-    ('and' intersects, 'or' unions; the first pair's comb is ignored). ``op``
-    is a _MS02_DOCFIELD_OPS key ('contains' fallback). Matching is
-    case-insensitive (ILIKE), matching the default SQL Server path's collation.
+    ``(table, id_col, field_col, time_filter[, field_type])`` config rows the
+    docfield maps to (from the 'ms02' SearchConfig rows; usually one) -- the
+    5th ``field_type`` element (#98 Task 12) is optional, a bare 4-tuple is
+    still accepted (``field_type=None``, always the ``::text`` fallback). An
+    EMPTY specs list is a forced-empty pair (field unmapped -> contributes
+    set()). Within a pair the spec rows are OR'd; pairs fold left-to-right
+    joined by their ``comb`` ('and' intersects, 'or' unions; the first pair's
+    comb is ignored). ``op`` is a _MS02_DOCFIELD_OPS key ('contains'
+    fallback). Matching is case-insensitive (ILIKE), matching the default SQL
+    Server path's collation -- EXCEPT the int-typed ``eq`` fast path below,
+    which is an exact numeric compare (case-insensitivity is meaningless for
+    an int column).
+
+    Typed fast path (#98 Task 12): when a spec's ``field_type`` is int-typed
+    (``_MS02_INT_TYPES``) and ``op == "eq"``, the value is parsed as int and
+    compared with a bare, sargable ``"<field>" = %s`` instead of
+    ``"<field>"::text ILIKE %s``. A non-numeric value can never equal an int
+    column, so an unparseable value makes that ONE spec contribute nothing
+    (skipped, not an error) -- other specs in the same pair (OR'd) are
+    unaffected. Every other op/type combination is unchanged (``::text``
+    fallback).
 
     Three-way contract (mirrors the DEFAULT docfield pre-fetch block):
       * None      -> unresolved (engine absent, no pairs, or any error). The
@@ -479,11 +518,25 @@ def resolve_ms02_docfield_ids(engine, pairs):
             comb = entry[3] if len(entry) > 3 else "and"
             comparator, param_of = _MS02_DOCFIELD_OPS.get(op, _MS02_DOCFIELD_OPS["contains"])
             field_ids = set()
-            for table, id_col, field_col, time_filter in specs:
-                sql = _ms02_columnar_sql(table, id_col, field_col, time_filter, comparator)
-                if sql is None:
-                    continue
-                cur.execute(sql, [param_of(value)])
+            for spec in specs:
+                table, id_col, field_col, time_filter = spec[0], spec[1], spec[2], spec[3]
+                field_type = spec[4] if len(spec) > 4 else None
+                if field_type in _MS02_INT_TYPES and op == "eq":
+                    try:
+                        int_value = int(value)
+                    except (TypeError, ValueError):
+                        continue  # unparseable -> this spec can't match an int column
+                    sql = _ms02_columnar_sql(
+                        table, id_col, field_col, time_filter, "= %s", field_type
+                    )
+                    if sql is None:
+                        continue
+                    cur.execute(sql, [int_value])
+                else:
+                    sql = _ms02_columnar_sql(table, id_col, field_col, time_filter, comparator)
+                    if sql is None:
+                        continue
+                    cur.execute(sql, [param_of(value)])
                 field_ids |= _as_workitem_ids(cur.fetchall())
             if result is None:
                 result = field_ids
@@ -642,12 +695,19 @@ def resolve_ms02_pid_ids(engine, specs, pid_values):
     """Resolve a list of personal-number PIDs to an MS02 workitem-id allow-set
     (columnar).
 
-    ``specs`` is the list of ``(table, id_col, pid_col, time_filter)`` config rows
-    the PID column maps to (from the 'ms02' SearchConfig col_pid rows -- never
-    hard-coded; usually one). ``pid_values`` is the deduped PID list from the
-    uploaded Excel. Matching is EXACT (``= ANY``), not ILIKE, since PIDs are
-    precise identifiers. One PID can map to many workitems; the result is the
-    UNION across all specs.
+    ``specs`` is the list of ``(table, id_col, pid_col, time_filter[,
+    pid_column_type])`` config rows the PID column maps to (from the 'ms02'
+    SearchConfig col_pid rows -- never hard-coded; usually one; a bare 4-tuple
+    is still accepted, ``pid_column_type=None``). ``pid_values`` is the
+    deduped PID list from the uploaded Excel. Matching is EXACT (``= ANY``),
+    not ILIKE, since PIDs are precise identifiers. One PID can map to many
+    workitems; the result is the UNION across all specs.
+
+    Typed fast path (#98 Task 12): when a spec's ``pid_column_type`` is
+    int-typed (``_MS02_INT_TYPES``), the PID list is parsed to ints and
+    compared with a bare, sargable ``"<pid_col>" = ANY(%s)``. If ANY PID in
+    the list fails to parse, that spec is skipped entirely (contributes
+    nothing) -- other specs are unaffected.
 
     Three-way contract (mirrors resolve_ms02_docfield_ids):
       * None      -> no constraint (engine absent, no specs, no PIDs, or error).
@@ -663,11 +723,22 @@ def resolve_ms02_pid_ids(engine, specs, pid_values):
         conn = engine.raw_connection()
         cur = conn.cursor()
         ids = set()
-        for table, id_col, pid_col, time_filter in specs:
-            sql = _ms02_columnar_sql(table, id_col, pid_col, time_filter, "= ANY(%s)")
+        for spec in specs:
+            table, id_col, pid_col, time_filter = spec[0], spec[1], spec[2], spec[3]
+            field_type = spec[4] if len(spec) > 4 else None
+            if field_type in _MS02_INT_TYPES:
+                try:
+                    values = [int(p) for p in pid_list]
+                except (TypeError, ValueError):
+                    continue  # unparseable PID -> this spec can't match an int column
+                value_clause = "= ANY(%s)"
+            else:
+                values = pid_list
+                value_clause = "= ANY(%s)"
+            sql = _ms02_columnar_sql(table, id_col, pid_col, time_filter, value_clause, field_type)
             if sql is None:
                 continue
-            cur.execute(sql, [pid_list])
+            cur.execute(sql, [values])
             ids |= _as_workitem_ids(cur.fetchall())
         return ids
     except Exception as e:
@@ -684,9 +755,15 @@ def resolve_ms02_pid_to_wids(engine, specs, pid_values):
     needed to merge import values onto matched rows and detect unmatched PIDs
     (for synthetic-row generation).
 
-    Reuses _ms02_columnar_sql / _MS02_IDENT / _as_workitem_ids to avoid
-    duplicating identifier-safety logic. Projects both the pid and id columns
-    by wrapping the columnar SQL: SELECT DISTINCT "pid_col"::text, "id_col".
+    Reuses _MS02_IDENT / _as_workitem_ids to avoid duplicating identifier-
+    safety logic. Projects both the pid and id columns: SELECT DISTINCT
+    "pid_col", "id_col" -- the pid projection is cast to text UNLESS the
+    spec's ``pid_column_type`` (5th tuple element, #98 Task 12) is int-typed
+    (``_MS02_INT_TYPES``), in which case both the projection and the ``= ANY``
+    comparison stay bare/native-int (sargable), and the bound PID list is
+    parsed to ints -- an unparseable PID skips that one spec, same as
+    resolve_ms02_pid_ids. A bare 4-tuple spec is still accepted
+    (``pid_column_type=None``, always the ``::text`` fallback).
 
     Three-way contract (mirrors resolve_ms02_pid_ids):
       * None        -> no constraint (engine absent, no specs, no PIDs, error).
@@ -702,7 +779,9 @@ def resolve_ms02_pid_to_wids(engine, specs, pid_values):
         conn = engine.raw_connection()
         cur = conn.cursor()
         result: dict[str, list[int]] = {}
-        for table, id_col, pid_col, time_filter in specs:
+        for spec in specs:
+            table, id_col, pid_col, time_filter = spec[0], spec[1], spec[2], spec[3]
+            field_type = spec[4] if len(spec) > 4 else None
             # Validate identifiers using the same _MS02_IDENT guard as
             # _ms02_columnar_sql — keeps security logic in one place.
             if not (table and id_col and pid_col):
@@ -712,14 +791,26 @@ def resolve_ms02_pid_to_wids(engine, specs, pid_values):
                     f"resolve_ms02_pid_to_wids: unsafe identifier {(id_col, pid_col)}"
                 )
                 continue
-            sql = (
-                f'SELECT DISTINCT "{pid_col}"::text, "{id_col}"'
-                f" FROM {table}"
-                f' WHERE "{pid_col}"::text = ANY(%s)'
-            )
+            if field_type in _MS02_INT_TYPES:
+                try:
+                    values = [int(p) for p in pid_list]
+                except (TypeError, ValueError):
+                    continue  # unparseable PID -> this spec can't match an int column
+                sql = (
+                    f'SELECT DISTINCT "{pid_col}", "{id_col}"'
+                    f" FROM {table}"
+                    f' WHERE "{pid_col}" = ANY(%s)'
+                )
+            else:
+                values = pid_list
+                sql = (
+                    f'SELECT DISTINCT "{pid_col}"::text, "{id_col}"'
+                    f" FROM {table}"
+                    f' WHERE "{pid_col}"::text = ANY(%s)'
+                )
             if time_filter:
                 sql += f" AND {time_filter}"
-            cur.execute(sql, [pid_list])
+            cur.execute(sql, [values])
             for pid_raw, wid_raw in cur.fetchall():
                 pid_str = str(pid_raw) if pid_raw is not None else None
                 if not pid_str:
@@ -855,6 +946,13 @@ def resolve_ms02_wids_to_pids(engine, specs, wids):
     value, columnar. Used by the reverse 'In register' chip to learn each visible
     workitem's PID. Reuses the _MS02_IDENT guard + _as_workitem_ids.
 
+    The ``wids`` themselves are ALWAYS integers -- the id-column comparison
+    uses ``id_column_type`` (the 6th spec tuple element, #98 Task 12 --
+    ProcessSource.IdColumnType, NOT the pid field's ColumnType used elsewhere
+    in this module) to decide whether the WHERE/SELECT can stay bare/native-
+    int (sargable) instead of ``::text``. A spec shorter than 6 elements
+    falls back to ``id_column_type=None`` (always ``::text``).
+
     None (engine/specs/wids absent or error) -> no mapping; {} -> none matched;
     {wid: pid} otherwise. First PID seen per wid wins. Never raises."""
     if engine is None or not specs or not wids:
@@ -862,7 +960,7 @@ def resolve_ms02_wids_to_pids(engine, specs, wids):
     ids = []
     for w in wids:
         try:
-            ids.append(str(int(w)))
+            ids.append(int(w))
         except (TypeError, ValueError):
             continue
     if not ids:
@@ -872,7 +970,9 @@ def resolve_ms02_wids_to_pids(engine, specs, wids):
         conn = engine.raw_connection()
         cur = conn.cursor()
         result: dict[int, str] = {}
-        for table, id_col, pid_col, time_filter in specs:
+        for spec in specs:
+            table, id_col, pid_col, time_filter = spec[0], spec[1], spec[2], spec[3]
+            id_column_type = spec[5] if len(spec) > 5 else None
             if not (table and id_col and pid_col):
                 continue
             if not (_MS02_IDENT.match(id_col) and _MS02_IDENT.match(pid_col)):
@@ -880,14 +980,23 @@ def resolve_ms02_wids_to_pids(engine, specs, wids):
                     f"resolve_ms02_wids_to_pids: unsafe identifier {(id_col, pid_col)}"
                 )
                 continue
-            sql = (
-                f'SELECT DISTINCT "{id_col}", "{pid_col}"::text'
-                f" FROM {table}"
-                f' WHERE "{id_col}"::text = ANY(%s)'
-            )
+            if id_column_type in _MS02_INT_TYPES:
+                sql = (
+                    f'SELECT DISTINCT "{id_col}", "{pid_col}"::text'
+                    f" FROM {table}"
+                    f' WHERE "{id_col}" = ANY(%s)'
+                )
+                id_values = ids
+            else:
+                sql = (
+                    f'SELECT DISTINCT "{id_col}", "{pid_col}"::text'
+                    f" FROM {table}"
+                    f' WHERE "{id_col}"::text = ANY(%s)'
+                )
+                id_values = [str(i) for i in ids]
             if time_filter:
                 sql += f" AND {time_filter}"
-            cur.execute(sql, [ids])
+            cur.execute(sql, [id_values])
             for wid_raw, pid_raw in cur.fetchall():
                 wids_parsed = _as_workitem_ids([(wid_raw,)])
                 if not wids_parsed:
