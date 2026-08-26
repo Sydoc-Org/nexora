@@ -62,9 +62,11 @@ The extracted data is **never modified** — purely a visualization of provenanc
   (`.src-modal-body`): the page + overlay + nav + toggle on the **left**
   (`.src-modal-page`, the `position:relative` containing block for `#srcHlLayer`),
   the extracted values on the **right** (`#srcReviewPanel`). The values markup is
-  produced by one shared builder `buildSourceDetailsHtml(wid)` (scalar `<dl>` +
-  `renderTableGrids`) reused by both the inline Document Details panel and the
-  review panel, reading `window.__fieldsByWorkitem[wid]` — so the two never drift.
+  produced by one shared builder `buildSourceDetailsHtml(wid, opts)` (scalar
+  `<dl>` + `renderTableGrids`) reused by both the inline Document Details panel
+  and the review panel, reading `window.__fieldsByWorkitem[wid]` — so the two
+  never drift. The inline panel passes `{tables: false}` (its line-items live in
+  the full-width card below the grid); the standalone review panel keeps them.
   Clicking a value/cell in the panel navigates the open view to that page and
   pulses its box (no re-open). The panel hides (`hidden`) for documents with no
   extracted values, so plain media viewing stays full-width.
@@ -168,11 +170,15 @@ dependency and the rotation risk. No backend normalization.
    stays on the border. `hasAnyLocation()` / toggle visibility account for table
    cells too.
 
-6. **Panel grid.** Under the scalar `<dl>` in `fields-container-${wid}`, render each
-   table as a compact grid (title + header row + cell rows). Located cells are
-   click-to-locate (reuse the existing locate/pulse path, keyed by page + a
-   cell id); a located row offers a row-level locate (pulses all its cells).
-   Un-locatable cells reuse the scalar "no source location" affordance.
+6. **Panel grid.** Line-items render as a real `<table>` (one `<tr>` per row,
+   collapsible `<details>` per table) in their own **full-width card**
+   `tables-container-${wid}` below the two-column detail grid — the narrow
+   Document Details column could only stack cells label-over-value, which made
+   rows impossible to compare (#199). Wide tables scroll horizontally inside
+   `.src-table-scroll`. Located cells are click-to-locate (reuse the existing
+   locate/pulse path, keyed by page + a cell id); the delegation finds the
+   workitem id via `data-src-wid` on either container. Empty cells render an em
+   dash — no per-cell "no source location" badge (it buried the values).
 
 7. **Toggle / persistence.** The single existing `#srcHlToggle` +
    `localStorage('srcHlOn')` controls field *and* table boxes (no second toggle).
