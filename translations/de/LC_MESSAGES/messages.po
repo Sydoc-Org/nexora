@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-25 18:44+0200\n"
+"POT-Creation-Date: 2026-08-26 10:48+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -991,7 +991,6 @@ msgstr "Abfrage konnte nicht exportiert werden"
 
 #: nx_lib/views/reporting.py:2165 nx_lib/views/reporting.py:2193
 #: nx_lib/views/reporting.py:2227 templates/hero.html:165
-#: templates/js/_reporting_dashboard_js.html:98
 #: templates/js/_reporting_js.html:490
 msgid "Report"
 msgstr "Bericht"
@@ -1569,7 +1568,12 @@ msgid ""
 " because it is still filling up, months that haven’t happened aren’t "
 "drawn, and a backlog period nobody measured is a gap, not a zero. "
 "Backlog’s Total is the newest snapshot."
-msgstr "Zeitdiagramme enden heute: Der Zeitraum, der heute enthält, ist blass/gestrichelt, weil er noch läuft; Monate, die noch nicht stattgefunden haben, werden nicht gezeichnet, und ein Backlog-Zeitraum ohne Messung ist eine Lücke, keine Null. Das Backlog-Total ist die neueste Momentaufnahme."
+msgstr ""
+"Zeitdiagramme enden heute: Der Zeitraum, der heute enthält, ist "
+"blass/gestrichelt, weil er noch läuft; Monate, die noch nicht "
+"stattgefunden haben, werden nicht gezeichnet, und ein Backlog-Zeitraum "
+"ohne Messung ist eine Lücke, keine Null. Das Backlog-Total ist die "
+"neueste Momentaufnahme."
 
 #: templates/_reporting_help.html:20
 msgid ""
@@ -1659,11 +1663,19 @@ msgstr ""
 "das Papierkorb-Symbol klicken, oder Bericht öffnen und ⋯ → «Bericht "
 "löschen» wählen. Freigaben und Zeitpläne werden mitgelöscht."
 
-#: templates/_reporting_help.html:36
+#: templates/_reporting_help.html:34
+msgid ""
+"On a dashboard, the “Whole report” tile shows a saved report exactly as "
+"the Simple tab does — totals, chart with its colours, axes and forecast, "
+"and the table behind “Show table”. The other tiles show one piece each; "
+"change colours or the chart type in the report itself."
+msgstr "Auf einem Dashboard zeigt die Kachel „Ganzer Bericht“ einen gespeicherten Bericht genau wie der Tab „Einfach“ — Summen, Diagramm mit seinen Farben, Achsen und Prognose sowie die Tabelle hinter „Tabelle anzeigen“. Die anderen Kacheln zeigen je einen Ausschnitt; Farben oder Diagrammtyp ändern Sie im Bericht selbst."
+
+#: templates/_reporting_help.html:37
 msgid "Asking the AI"
 msgstr "Die KI fragen"
 
-#: templates/_reporting_help.html:38
+#: templates/_reporting_help.html:39
 msgid ""
 "Name the measure, the time range and the processes: “invoices by process,"
 " last 3 months” beats “show me invoices”."
@@ -1671,7 +1683,7 @@ msgstr ""
 "Nennen Sie Kennzahl, Zeitraum und Prozesse: „Rechnungen nach Prozess, "
 "letzte 3 Monate“ schlägt „zeig mir Rechnungen“."
 
-#: templates/_reporting_help.html:39
+#: templates/_reporting_help.html:40
 msgid ""
 "Check what the AI built with “Open in builder” — the filters and process "
 "scope it chose are visible there before you trust the number."
@@ -1680,7 +1692,7 @@ msgstr ""
 " Filter und der Prozessumfang sind dort sichtbar, bevor Sie der Zahl "
 "vertrauen."
 
-#: templates/_reporting_help.html:40
+#: templates/_reporting_help.html:41
 msgid ""
 "Follow-ups work: the chat remembers the conversation, so “now only this "
 "quarter” refines the last answer."
@@ -1688,7 +1700,7 @@ msgstr ""
 "Rückfragen funktionieren: Der Chat merkt sich das Gespräch, „jetzt nur "
 "dieses Quartal“ verfeinert also die letzte Antwort."
 
-#: templates/_reporting_help.html:41
+#: templates/_reporting_help.html:42
 msgid ""
 "When the AI used tools, unfold “How the agent worked” to see the steps; "
 "if a “Continue” button appears, click it before rephrasing your question."
@@ -1697,11 +1709,11 @@ msgstr ""
 "auf, um die Schritte zu sehen; erscheint ein „Weiter“-Knopf, klicken Sie "
 "ihn, bevor Sie die Frage umformulieren."
 
-#: templates/_reporting_help.html:49
+#: templates/_reporting_help.html:50
 msgid "Full guide"
 msgstr "Vollständige Anleitung"
 
-#: templates/_reporting_help.html:50 templates/admin/logs.html:141
+#: templates/_reporting_help.html:51 templates/admin/logs.html:141
 #: templates/js/_reporting_drill_js.html:16
 #: templates/prepared_documents.html:253 templates/prepared_documents.html:265
 #: templates/reporting.html:134 templates/reporting.html:165
@@ -1990,6 +2002,7 @@ msgid "Table"
 msgstr "Tabelle"
 
 #: templates/_reporting_simple.html:248
+#: templates/js/_reporting_dashboard_js.html:113
 #: templates/js/_reporting_simple_js.html:37
 msgid "Show table"
 msgstr "Tabelle anzeigen"
@@ -6646,6 +6659,10 @@ msgstr "KPI"
 msgid "Donut"
 msgstr "Ring"
 
+#: templates/js/_reporting_dashboard_js.html:98
+msgid "Whole report"
+msgstr "Ganzer Bericht"
+
 #: templates/js/_reporting_dashboard_js.html:99
 msgid "or drop a saved report here"
 msgstr "oder einen gespeicherten Bericht hierher ziehen"
@@ -6681,6 +6698,11 @@ msgstr "Noch keine Karten zum Exportieren."
 #, python-brace-format
 msgid "Showing the {shown} largest of {n} series."
 msgstr "Die {shown} grössten von {n} Serien werden angezeigt."
+
+#: templates/js/_reporting_dashboard_js.html:114
+#: templates/js/_reporting_simple_js.html:38
+msgid "Hide table"
+msgstr "Tabelle ausblenden"
 
 #: templates/js/_reporting_drill_js.html:9
 msgid "Rows behind this number"
@@ -7013,10 +7035,6 @@ msgstr "Erweitern Sie den Zeitraum oder entfernen Sie einen Filter."
 msgid "Saved to My reports."
 msgstr "Unter «Meine Berichte» gespeichert."
 
-#: templates/js/_reporting_simple_js.html:38
-msgid "Hide table"
-msgstr "Tabelle ausblenden"
-
 #: templates/js/_reporting_simple_js.html:39
 msgid "Over time"
 msgstr "Im Zeitverlauf"
@@ -7123,7 +7141,9 @@ msgstr "Die Prognose wird nur in Linien- und Balkendiagrammen gezeichnet."
 
 #: templates/js/_reporting_simple_js.html:86
 msgid "The current period is still running — its last bucket is incomplete."
-msgstr "Der aktuelle Zeitraum läuft noch — sein letzter Abschnitt ist unvollständig."
+msgstr ""
+"Der aktuelle Zeitraum läuft noch — sein letzter Abschnitt ist "
+"unvollständig."
 
 #: templates/js/_reporting_simple_js.html:87
 msgid "Gaps are periods without a backlog snapshot."

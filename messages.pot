@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-25 18:44+0200\n"
+"POT-Creation-Date: 2026-08-26 10:48+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -879,7 +879,6 @@ msgstr ""
 
 #: nx_lib/views/reporting.py:2165 nx_lib/views/reporting.py:2193
 #: nx_lib/views/reporting.py:2227 templates/hero.html:165
-#: templates/js/_reporting_dashboard_js.html:98
 #: templates/js/_reporting_js.html:490
 msgid "Report"
 msgstr ""
@@ -1493,39 +1492,47 @@ msgid ""
 "schedules go with it."
 msgstr ""
 
-#: templates/_reporting_help.html:36
+#: templates/_reporting_help.html:34
+msgid ""
+"On a dashboard, the “Whole report” tile shows a saved report exactly as "
+"the Simple tab does — totals, chart with its colours, axes and forecast, "
+"and the table behind “Show table”. The other tiles show one piece each; "
+"change colours or the chart type in the report itself."
+msgstr ""
+
+#: templates/_reporting_help.html:37
 msgid "Asking the AI"
 msgstr ""
 
-#: templates/_reporting_help.html:38
+#: templates/_reporting_help.html:39
 msgid ""
 "Name the measure, the time range and the processes: “invoices by process,"
 " last 3 months” beats “show me invoices”."
 msgstr ""
 
-#: templates/_reporting_help.html:39
+#: templates/_reporting_help.html:40
 msgid ""
 "Check what the AI built with “Open in builder” — the filters and process "
 "scope it chose are visible there before you trust the number."
 msgstr ""
 
-#: templates/_reporting_help.html:40
+#: templates/_reporting_help.html:41
 msgid ""
 "Follow-ups work: the chat remembers the conversation, so “now only this "
 "quarter” refines the last answer."
 msgstr ""
 
-#: templates/_reporting_help.html:41
+#: templates/_reporting_help.html:42
 msgid ""
 "When the AI used tools, unfold “How the agent worked” to see the steps; "
 "if a “Continue” button appears, click it before rephrasing your question."
 msgstr ""
 
-#: templates/_reporting_help.html:49
+#: templates/_reporting_help.html:50
 msgid "Full guide"
 msgstr ""
 
-#: templates/_reporting_help.html:50 templates/admin/logs.html:141
+#: templates/_reporting_help.html:51 templates/admin/logs.html:141
 #: templates/js/_reporting_drill_js.html:16
 #: templates/prepared_documents.html:253 templates/prepared_documents.html:265
 #: templates/reporting.html:134 templates/reporting.html:165
@@ -1806,6 +1813,7 @@ msgid "Table"
 msgstr ""
 
 #: templates/_reporting_simple.html:248
+#: templates/js/_reporting_dashboard_js.html:113
 #: templates/js/_reporting_simple_js.html:37
 msgid "Show table"
 msgstr ""
@@ -6245,6 +6253,10 @@ msgstr ""
 msgid "Donut"
 msgstr ""
 
+#: templates/js/_reporting_dashboard_js.html:98
+msgid "Whole report"
+msgstr ""
+
 #: templates/js/_reporting_dashboard_js.html:99
 msgid "or drop a saved report here"
 msgstr ""
@@ -6279,6 +6291,11 @@ msgstr ""
 #: templates/js/_reporting_simple_js.html:79
 #, python-brace-format
 msgid "Showing the {shown} largest of {n} series."
+msgstr ""
+
+#: templates/js/_reporting_dashboard_js.html:114
+#: templates/js/_reporting_simple_js.html:38
+msgid "Hide table"
 msgstr ""
 
 #: templates/js/_reporting_drill_js.html:9
@@ -6594,10 +6611,6 @@ msgstr ""
 
 #: templates/js/_reporting_simple_js.html:36
 msgid "Saved to My reports."
-msgstr ""
-
-#: templates/js/_reporting_simple_js.html:38
-msgid "Hide table"
 msgstr ""
 
 #: templates/js/_reporting_simple_js.html:39

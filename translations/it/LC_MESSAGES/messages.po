@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-25 18:44+0200\n"
+"POT-Creation-Date: 2026-08-26 10:48+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -977,7 +977,6 @@ msgstr "Impossibile esportare la query"
 
 #: nx_lib/views/reporting.py:2165 nx_lib/views/reporting.py:2193
 #: nx_lib/views/reporting.py:2227 templates/hero.html:165
-#: templates/js/_reporting_dashboard_js.html:98
 #: templates/js/_reporting_js.html:490
 msgid "Report"
 msgstr "Rapporto"
@@ -1549,7 +1548,12 @@ msgid ""
 " because it is still filling up, months that haven’t happened aren’t "
 "drawn, and a backlog period nobody measured is a gap, not a zero. "
 "Backlog’s Total is the newest snapshot."
-msgstr "I grafici temporali si fermano a oggi: il periodo che contiene oggi è sbiadito/tratteggiato perché è ancora in corso; i mesi non ancora trascorsi non vengono disegnati e un periodo di backlog senza misurazione è una lacuna, non uno zero. Il totale del backlog è l’istantanea più recente."
+msgstr ""
+"I grafici temporali si fermano a oggi: il periodo che contiene oggi è "
+"sbiadito/tratteggiato perché è ancora in corso; i mesi non ancora "
+"trascorsi non vengono disegnati e un periodo di backlog senza misurazione"
+" è una lacuna, non uno zero. Il totale del backlog è l’istantanea più "
+"recente."
 
 #: templates/_reporting_help.html:20
 msgid ""
@@ -1639,11 +1643,19 @@ msgstr ""
 "miei report» e fai clic sul cestino, oppure aprilo e scegli ⋯ → «Elimina "
 "report». Condivisioni e pianificazioni vengono eliminate con esso."
 
-#: templates/_reporting_help.html:36
+#: templates/_reporting_help.html:34
+msgid ""
+"On a dashboard, the “Whole report” tile shows a saved report exactly as "
+"the Simple tab does — totals, chart with its colours, axes and forecast, "
+"and the table behind “Show table”. The other tiles show one piece each; "
+"change colours or the chart type in the report itself."
+msgstr "In una dashboard il riquadro «Report completo» mostra un report salvato esattamente come la scheda Semplice — totali, grafico con i suoi colori, assi e previsione, e la tabella dietro «Mostra tabella». Gli altri riquadri mostrano un solo elemento; colori o tipo di grafico si cambiano nel report stesso."
+
+#: templates/_reporting_help.html:37
 msgid "Asking the AI"
 msgstr "Chiedere all'IA"
 
-#: templates/_reporting_help.html:38
+#: templates/_reporting_help.html:39
 msgid ""
 "Name the measure, the time range and the processes: “invoices by process,"
 " last 3 months” beats “show me invoices”."
@@ -1651,7 +1663,7 @@ msgstr ""
 "Nomina la misura, il periodo e i processi: “fatture per processo, ultimi "
 "3 mesi” batte “mostrami le fatture”."
 
-#: templates/_reporting_help.html:39
+#: templates/_reporting_help.html:40
 msgid ""
 "Check what the AI built with “Open in builder” — the filters and process "
 "scope it chose are visible there before you trust the number."
@@ -1660,7 +1672,7 @@ msgstr ""
 "l'ambito dei processi scelti sono visibili lì prima di fidarti del "
 "numero."
 
-#: templates/_reporting_help.html:40
+#: templates/_reporting_help.html:41
 msgid ""
 "Follow-ups work: the chat remembers the conversation, so “now only this "
 "quarter” refines the last answer."
@@ -1668,7 +1680,7 @@ msgstr ""
 "I follow-up funzionano: la chat ricorda la conversazione, quindi “ora "
 "solo questo trimestre” affina l'ultima risposta."
 
-#: templates/_reporting_help.html:41
+#: templates/_reporting_help.html:42
 msgid ""
 "When the AI used tools, unfold “How the agent worked” to see the steps; "
 "if a “Continue” button appears, click it before rephrasing your question."
@@ -1677,11 +1689,11 @@ msgstr ""
 "vedere i passaggi; se compare un pulsante “Continua”, cliccalo prima di "
 "riformulare la domanda."
 
-#: templates/_reporting_help.html:49
+#: templates/_reporting_help.html:50
 msgid "Full guide"
 msgstr "Guida completa"
 
-#: templates/_reporting_help.html:50 templates/admin/logs.html:141
+#: templates/_reporting_help.html:51 templates/admin/logs.html:141
 #: templates/js/_reporting_drill_js.html:16
 #: templates/prepared_documents.html:253 templates/prepared_documents.html:265
 #: templates/reporting.html:134 templates/reporting.html:165
@@ -1968,6 +1980,7 @@ msgid "Table"
 msgstr "Tabella"
 
 #: templates/_reporting_simple.html:248
+#: templates/js/_reporting_dashboard_js.html:113
 #: templates/js/_reporting_simple_js.html:37
 msgid "Show table"
 msgstr "Mostra tabella"
@@ -6620,6 +6633,10 @@ msgstr "KPI"
 msgid "Donut"
 msgstr "Ciambella"
 
+#: templates/js/_reporting_dashboard_js.html:98
+msgid "Whole report"
+msgstr "Report completo"
+
 #: templates/js/_reporting_dashboard_js.html:99
 msgid "or drop a saved report here"
 msgstr "oppure trascina qui un report salvato"
@@ -6655,6 +6672,11 @@ msgstr "Nessuna scheda da esportare ancora."
 #, python-brace-format
 msgid "Showing the {shown} largest of {n} series."
 msgstr "Mostrate le {shown} serie più grandi su {n}."
+
+#: templates/js/_reporting_dashboard_js.html:114
+#: templates/js/_reporting_simple_js.html:38
+msgid "Hide table"
+msgstr "Nascondi tabella"
 
 #: templates/js/_reporting_drill_js.html:9
 msgid "Rows behind this number"
@@ -6980,10 +7002,6 @@ msgstr "Amplia l'intervallo di tempo o rimuovi un filtro."
 #: templates/js/_reporting_simple_js.html:36
 msgid "Saved to My reports."
 msgstr "Salvato in «I miei report»."
-
-#: templates/js/_reporting_simple_js.html:38
-msgid "Hide table"
-msgstr "Nascondi tabella"
 
 #: templates/js/_reporting_simple_js.html:39
 msgid "Over time"
