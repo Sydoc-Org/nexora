@@ -1639,9 +1639,11 @@ def test_effective_filters_keeps_both_bounds_of_a_same_field_range(nexora_server
 
 
 def test_report_card_runs_definition_unmodified(nexora_server, page):
-    """#178 D11: a report card POSTs the adopted definition as-is (grain,
-    filters, sort intact) and renders total + chart."""
+    """Whole-report card: POSTs the adopted definition as-is (grain, filters,
+    sort intact, plus compare: true), fires the zero-column grand-total
+    clone, and renders KPI band + chart + stat card + collapsed table."""
     _login(page, nexora_server)
+    _stub_gfilter_catalog(page)
 
     reports_list = [
         {
@@ -1695,7 +1697,18 @@ def test_report_card_runs_definition_unmodified(nexora_server, page):
     posted = []
 
     def fulfill_run(route):
-        posted.append(route.request.post_data_json or {})
+        body = route.request.post_data_json or {}
+        posted.append(body)
+        if not body.get("columns"):
+            # the zero-column grand-total clone the whole-report card fires
+            route.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps(
+                    {"columns": [{"field": "id", "header": "Count"}], "rows": [[12]], "rowCount": 1}
+                ),
+            )
+            return
         route.fulfill(
             status=200,
             content_type="application/json",
@@ -1705,7 +1718,7 @@ def test_report_card_runs_definition_unmodified(nexora_server, page):
                         {"field": "createdDate", "header": "Month"},
                         {"field": "id", "header": "Count"},
                     ],
-                    "rows": [["2026-01", 5], ["2026-02", 7]],
+                    "rows": [["2026-01-01", 5], ["2026-02-01", 7]],
                     "rowCount": 2,
                 }
             ),
@@ -1726,13 +1739,144 @@ def test_report_card_runs_definition_unmodified(nexora_server, page):
     expect(picker).to_be_visible()
     page.get_by_test_id("rdb-report-pick").first.click()
 
-    body = page.get_by_test_id("rdb-report-total")
-    expect(body).to_be_visible()
+    # The whole report: KPI band (Simple's own markup, rdb- prefixed testids),
+    # chart canvas, grand-total stat card, table collapsed behind its toggle.
+    expect(page.get_by_test_id("rdb-report-kpis")).to_be_visible()
+    expect(page.get_by_test_id("rdb-rs-kpi-total")).to_contain_text("12")
+    expect(page.locator('[data-testid="rdb-report-chartcard"] canvas')).to_be_visible()
+    expect(page.get_by_test_id("rdb-report-stat")).to_contain_text("12")
+    expect(page.get_by_test_id("rdb-report-table")).to_be_hidden()
+    expect(page.get_by_test_id("rdb-report-table-toggle")).to_have_text("Show table")
 
     grained = [b for b in posted if (b.get("columns") or [{}])[0].get("grain") == "month"]
     assert grained, "definition lost its grain on the way to /run"
     assert grained[0]["filters"] == adopted_definition["filters"]
     assert grained[0]["sort"] == adopted_definition["sort"]
+    assert grained[0].get("compare") is True, "whole-report run must ask for the prior period"
+    totals = [b for b in posted if not b.get("columns")]
+    assert totals and totals[0]["filters"] == adopted_definition["filters"]
+    assert "compare" not in totals[0] and "forecast" not in totals[0]
+
+
+def test_whole_report_card_keeps_saved_colours_axis_forecast_and_table(nexora_server, page):
+    """The card draws through the Simple pane's own builders: saved series
+    colours and right-axis picks reach the Chart.js datasets, the forecast
+    tail is drawn per series, and Show table reveals the full grid with its
+    forecast rows."""
+    _login(page, nexora_server)
+    _stub_gfilter_catalog(page)
+    definition = {
+        "source": "workitems",
+        "metrics": [{"metric": "id_count"}, {"metric": "backlog_total"}],
+        "columns": [{"field": "createdDate", "grain": "month"}],
+        "filters": [],
+        "sort": [],
+        "chartType": "line",
+        "style": {
+            "colors": {"id_count": "#00aa00", "backlog_total": "#ff0000"},
+            "rightAxis": ["backlog_total"],
+        },
+        "forecast": {"enabled": True, "horizon": 2},
+    }
+    dash = {
+        "kind": "dashboard",
+        "schemaVersion": 1,
+        "title": "e2e whole report",
+        "globalFilters": [],
+        "cards": [
+            {
+                "id": "r1",
+                "type": "report",
+                "span": 12,
+                "title": "Imports vs backlog",
+                "definition": definition,
+                "filterOverrides": [],
+            }
+        ],
+    }
+    _stub_dashboard_report(page, "e2e-dash-whole", dash)
+
+    def fulfill_run(route):
+        body = route.request.post_data_json or {}
+        if not body.get("columns"):
+            route.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps(
+                    {
+                        "columns": [
+                            {"field": "id_count", "header": "Count"},
+                            {"field": "backlog_total", "header": "Backlog"},
+                        ],
+                        "rows": [[12, 90]],
+                        "rowCount": 1,
+                    }
+                ),
+            )
+            return
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [
+                        {"field": "createdDate", "header": "Month"},
+                        {"field": "id_count", "header": "Count"},
+                        {"field": "backlog_total", "header": "Backlog"},
+                    ],
+                    "rows": [["2026-01-01", 5, 100], ["2026-02-01", 7, 90]],
+                    "rowCount": 2,
+                    "forecast": {
+                        "anchor": "2026-02-01",
+                        "buckets": ["2026-03-01", "2026-04-01"],
+                        "series": [
+                            {
+                                "field": "id_count",
+                                "values": [8, 9],
+                                "upper": [10, 11],
+                                "lower": [6, 7],
+                            },
+                            {
+                                "field": "backlog_total",
+                                "values": [80, 70],
+                                "upper": [90, 80],
+                                "lower": [70, 60],
+                            },
+                        ],
+                    },
+                }
+            ),
+        )
+
+    page.route("**/api/reporting/run", fulfill_run)
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-card").filter(has_text="e2e whole report").first.click()
+    expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
+
+    canvas = page.locator('[data-testid="rdb-report-chartcard"] canvas')
+    expect(canvas).to_be_visible()
+    page.wait_for_function(
+        "() => { const c = document.querySelector('[data-testid=\"rdb-report-chartcard\"] canvas');"
+        " return !!(c && window.Chart && Chart.getChart(c)); }"
+    )
+    datasets = page.evaluate(
+        "() => { const c = document.querySelector('[data-testid=\"rdb-report-chartcard\"] canvas');"
+        " return Chart.getChart(c).data.datasets.map(d => [d.borderColor, d.yAxisID || 'y', !!d._forecast]); }"
+    )
+    real = [d for d in datasets if not d[2]]
+    assert [d[0] for d in real] == ["#00aa00", "#ff0000"], datasets
+    assert [d[1] for d in real] == ["y", "y2"], datasets
+    assert sum(1 for d in datasets if d[2]) == 2, datasets  # one forecast tail per series
+
+    expect(page.get_by_test_id("rdb-rs-kpi-total")).to_contain_text("12")
+    expect(page.get_by_test_id("rdb-report-stat")).to_contain_text("12")
+    expect(page.get_by_test_id("rdb-report-stat")).to_contain_text("90")
+
+    expect(page.get_by_test_id("rdb-report-table")).to_be_hidden()
+    page.get_by_test_id("rdb-report-table-toggle").click()
+    expect(page.get_by_test_id("rdb-report-table")).to_be_visible()
+    expect(page.get_by_test_id("rdb-report-table-toggle")).to_have_text("Hide table")
+    expect(page.get_by_test_id("rdb-rs-forecast-row")).to_have_count(2)
 
 
 # #174: a saved report with a SECOND dimension. Before the fix the card

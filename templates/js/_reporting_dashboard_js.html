@@ -107,7 +107,11 @@
     // Same msgid as the Simple pane's own series cap (already translated) --
     // reused verbatim so a second breakdown on a card reports its overflow
     // in the wording users already know.
-    chartSeriesCapped: {{ _("Showing the {shown} largest of {n} series.")|tojson }}
+    chartSeriesCapped: {{ _("Showing the {shown} largest of {n} series.")|tojson }},
+    // Whole-report card table toggle -- same msgids as the Simple pane's
+    // #rsTableToggle so the two surfaces read identically.
+    showTable: {{ _("Show table")|tojson }},
+    hideTable: {{ _("Hide table")|tojson }}
   };
 
   // Chart.js palette for bar/donut cards (spec §Dashboard "Cards") -- cycles
@@ -331,6 +335,22 @@
       }
       var addType = e.target.closest && e.target.closest('[data-add-type]');
       if (addType) { addCard(addType.getAttribute('data-add-type')); return; }
+      // Whole-report card: table toggle only -- flips the card's full grid
+      // in place (same msgids as the Simple pane's own #rsTableToggle). Row
+      // drill-through on this table is Task 7's job (handleCardTableRowClick
+      // wiring); this half is pulled forward because Task 6's own e2e test
+      // (test_whole_report_card_keeps_saved_colours_axis_forecast_and_table)
+      // exercises Show/Hide table directly.
+      var rtToggle = e.target.closest && e.target.closest('.rdb-report-table-toggle');
+      if (rtToggle) {
+        var rtCardEl = rtToggle.closest('[data-card-id]');
+        var rtWrap = rtCardEl && rtCardEl.querySelector('.rdb-report-table');
+        if (rtWrap) {
+          rtWrap.hidden = !rtWrap.hidden;
+          rtToggle.textContent = rtWrap.hidden ? I18N.showTable : I18N.hideTable;
+        }
+        return;
+      }
       // Table-card row drill-through (Task 15): renderTable draws each row as
       // a flat k/v span pair (no per-row wrapper element -- see its comment),
       // so the row index is derived from the hit span's position among its
@@ -1162,24 +1182,140 @@
     '</div>';
   }
 
-  // #178 D11: the closest 1:1 of the Simple result a card can be -- headline
-  // total over the grouped rows + the definition's own chart type, with the
-  // definition (grain, filters, sort) POSTed verbatim by cardRunDef.
-  function renderReportCard(card, body, columns, rows) {
+  // Whole-report card: the saved report as the Simple tab shows it -- stat
+  // card (per-metric grand totals), KPI band, the chart with its saved
+  // colours / right axis / forecast, and the full table behind a toggle.
+  // Everything is drawn by the Simple pane's own builders
+  // (window.ReportingSimple), so the two surfaces cannot drift apart. `def`
+  // is the effective definition that was POSTed (global filters merged).
+  async function renderReportCard(card, body, def, data, gen) {
     destroyCardChart(card.id);
-    var idx = dimValIdx(columns);
-    var total = rows.reduce(function (a, r) { return a + (toNum(r[idx.val]) || 0); }, 0);
-    var head = '<div class="rdb-report-total" data-testid="rdb-report-total">' +
-      '<span class="rdb-report-total-value">' + esc(fmtNum(total)) + '</span>' +
-      '<span class="rdb-report-total-label">' + esc(I18N.total) + '</span></div>';
-    var chartHost = document.createElement('div');
-    body.innerHTML = head;
-    body.appendChild(chartHost);
-    chartHost.className = 'rdb-report-chart';
-    var t = (card.definition && card.definition.chartType) || 'line';
-    if (t === 'pie' || t === 'doughnut') return renderDonut(card, chartHost, columns, rows);
-    if (t === 'bar' || t === 'stacked') return renderBar(card, chartHost, columns, rows);
-    return renderLine(card, chartHost, columns, rows);
+    var RS = window.ReportingSimple;
+    await RS.ensureCatalogs();   // metric labels / latest-mode totals
+    await ensureCatalog();       // this module's own source catalog (drill probe)
+    if (runGen[card.id] !== gen) return;
+    var hasMetrics = Array.isArray(def.metrics) && def.metrics.length > 0;
+    var dims = (def.columns || []).length;
+    var columns = data.columns || [];
+    var rows = RS.zeroFillDateBuckets(def, data.rows || [], data.resolvedDates || []);
+    var fc = data.forecast || null;
+    // Same trailing trim as the Simple pane's runCurrent: zero-fill pads to
+    // the filter range, but the forecast starts at the last REAL bucket.
+    if (fc && !fc.unavailable && fc.anchor) {
+      rows = rows.filter(function (r) {
+        return String(r[0] == null ? '' : r[0]).slice(0, 10) <= fc.anchor;
+      });
+    }
+    cardRunData[card.id] = { columns: columns, rows: rows };
+    body.innerHTML =
+      '<div class="rdb-report" data-testid="rdb-report">' +
+        '<div class="rdb-report-side">' +
+          '<div class="nx-card nx-card--pad nx-stat rdb-report-stat" data-testid="rdb-report-stat" hidden></div>' +
+          '<div class="reporting-ledger-kpis rdb-report-kpis" data-testid="rdb-report-kpis" hidden></div>' +
+        '</div>' +
+        '<div class="nx-card nx-card--pad rdb-report-chartcard" data-testid="rdb-report-chartcard">' +
+          '<p class="reporting-simple-chartnote rdb-report-note" data-testid="rdb-report-note" hidden></p>' +
+          '<div class="rdb-report-chart"><canvas></canvas></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="rdb-report-tablebar">' +
+        '<button type="button" class="reporting-link rdb-report-table-toggle" ' +
+          'data-testid="rdb-report-table-toggle">' + esc(I18N.showTable) + '</button>' +
+      '</div>' +
+      '<div class="reporting-table-wrap rdb-report-table" data-testid="rdb-report-table" hidden></div>';
+    var q = function (sel) { return body.querySelector(sel); };
+
+    // KPI band (Total / Buckets / Avg / Peak + prior-period chips). Cards
+    // skip the count-up animation and write the final numbers.
+    var kpiHtml = (hasMetrics && dims) ? RS.kpiBandHtml(dims, rows, data.comparison || null, def) : '';
+    if (kpiHtml) {
+      var kpis = q('.rdb-report-kpis');
+      kpis.innerHTML = kpiHtml;
+      kpis.hidden = false;
+      Array.prototype.forEach.call(kpis.querySelectorAll('[data-count-target]'), function (span) {
+        span.textContent = RS.fmtNumber(Number(span.getAttribute('data-count-target')));
+      });
+    }
+
+    // Chart -- identical config to the Simple result view (saved colours,
+    // right axis, forecast tail/band), on the card's own canvas.
+    var charted = false;
+    if (hasMetrics && dims && rows.length && typeof Chart !== 'undefined') {
+      var built = RS.buildChartData(def, columns, rows, fc);
+      if (built.note) { q('.rdb-report-note').textContent = built.note; q('.rdb-report-note').hidden = false; }
+      if (built.data) {
+        var cfg = RS.chartConfigFor(built.data, built.data.type, def, {
+          onDrill: function (index, datasetIndex) { reportCardChartDrill(card, built.data, index, datasetIndex); }
+        });
+        charts[card.id] = new Chart(q('.rdb-report-chart canvas'), cfg.config);
+        charted = true;
+      } else {
+        q('.rdb-report-chart').hidden = true;
+      }
+    } else {
+      q('.rdb-report-chartcard').hidden = true;
+    }
+
+    // Table -- full rows (+ forecast rows). Collapsed behind the toggle only
+    // when a chart carries the result, exactly like the Simple pane.
+    var drillable = !!(hasMetrics && dims && rows.length && reportCardDrillable(card, def, columns, rows));
+    q('.rdb-report-table').innerHTML = RS.tableHtml(columns, rows, fc, drillable);
+    if (!charted) { q('.rdb-report-table').hidden = false; q('.rdb-report-tablebar').hidden = true; }
+    prefixTestIds(body);
+
+    // Stat card: per-metric grand totals via a zero-column clone -- correct
+    // for every aggregation (avg / count_distinct), unlike summing the
+    // grouped rows. Same clone the Simple pane's runCurrent fires.
+    if (hasMetrics && dims) {
+      var totalDef = JSON.parse(JSON.stringify(def));
+      totalDef.columns = []; totalDef.sort = [];
+      delete totalDef.forecast; delete totalDef.compare;
+      var t = await api('/api/reporting/run', { method: 'POST', body: JSON.stringify(totalDef) });
+      if (runGen[card.id] !== gen) return;
+      var stat = q('.rdb-report-stat');
+      if (stat && t.ok && t.data && Array.isArray(t.data.rows) && t.data.rows.length) {
+        stat.innerHTML = RS.statCardHtml(def, t.data.rows[0], false);
+        stat.hidden = false;
+      }
+    }
+  }
+
+  // The Simple builders stamp their own data-testids (rs-kpi-total,
+  // rs-forecast-row, ...). Inside a card those would collide with the
+  // (hidden but still mounted) Simple result view under Playwright's strict
+  // mode, so they get an rdb- prefix: rs-kpi-total -> rdb-rs-kpi-total.
+  function prefixTestIds(root) {
+    Array.prototype.forEach.call(root.querySelectorAll('[data-testid^="rs-"]'), function (n) {
+      n.setAttribute('data-testid', 'rdb-' + n.getAttribute('data-testid'));
+    });
+  }
+
+  // Mirrors the Simple pane's renderTable probe: drillable only when the
+  // leading columns resolve to a valid drill definition for the first row.
+  function reportCardDrillable(card, def, columns, rows) {
+    if (!window.ReportingDrill || !catalog.sources) return false;
+    var src = catalog.sources.find(function (s) { return s.id === def.source; });
+    if (!src) return false;
+    var idx = dimValIdx(columns, card);
+    var clicked = clickedFor(card, idx, idx.dims.map(function (d) { return rows[0][d]; }));
+    return !!(clicked.length && ReportingDrill.buildDrillDefinition(def, src.fields || [], clicked));
+  }
+
+  // Chart click -> drill, mirroring the Simple pane's drillFromChart: the x
+  // value comes from rawX; on a pivoted (multi-series) chart the clicked
+  // series' raw per-dim values feed the remaining breakdowns.
+  function reportCardChartDrill(card, d, index, datasetIndex) {
+    var cols = (card.definition && card.definition.columns) || [];
+    if (!cols.length) return;
+    var clicked = [{ field: cols[0].field, grain: cols[0].grain || null,
+                     value: (d.rawX || d.labels || [])[index] }];
+    if (d.multiSeries && cols.length > 1) {
+      var parts = (d.rawSeries || [])[datasetIndex] || [];
+      for (var i = 1; i < cols.length; i++) {
+        clicked.push({ field: cols[i].field, grain: cols[i].grain || null, value: parts[i - 1] });
+      }
+    }
+    openCardDrill(card, clicked);
   }
 
   function renderCardContent(card, body, columns, rows) {
@@ -1188,7 +1324,6 @@
     if (card.type === 'bar') return renderBar(card, body, columns, rows);
     if (card.type === 'donut') return renderDonut(card, body, columns, rows);
     if (card.type === 'table') return renderTable(card, body, columns, rows);
-    if (card.type === 'report') return renderReportCard(card, body, columns, rows);
     body.textContent = '';
   }
 
@@ -1216,7 +1351,11 @@
     if (!cardEl) return;
     var gen = (runGen[card.id] = (runGen[card.id] || 0) + 1);
     var def = cardRunDef(card, effectiveFilters(card));
-    var res = await api('/api/reporting/run', { method: 'POST', body: JSON.stringify(def) });
+    // Whole-report cards mirror the Simple result run: compare: true rides on
+    // a COPY of the body (cardRunDef's value also feeds Export) so the KPI
+    // band gets its prior-period delta chips.
+    var posted = card.type === 'report' ? Object.assign({}, def, { compare: true }) : def;
+    var res = await api('/api/reporting/run', { method: 'POST', body: JSON.stringify(posted) });
     if (runGen[card.id] !== gen) return;  // superseded by a newer render/run
     var body = cardEl.querySelector('[data-testid="rdb-card-body"]');
     if (!body) return;
@@ -1228,6 +1367,7 @@
       return;
     }
     body.className = 'rdb-card-body';
+    if (card.type === 'report') { renderReportCard(card, body, def, res.data, gen); return; }
     cardRunData[card.id] = { columns: res.data.columns, rows: res.data.rows };
     renderCardContent(card, body, res.data.columns, res.data.rows);
     if (card.type === 'kpi') maybeRenderKpiTrend(card, body, res.data.columns, res.data.rows, gen);
