@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body>
+    <script nonce="{{ csp_nonce() }}">
+    (function () {
+        const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+
+        function escapeHtml(s) {
+            return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+
+        const sourceLabel = {
+            'override-allow': {{ _('User override')|tojson }},
+            'profile': {{ _('Access profile')|tojson }},
+        };
+
+        // ---- tabs ----
+        const permTabBtn = document.getElementById('matrix-tab-permission-btn');
+        const userTabBtn = document.getElementById('matrix-tab-user-btn');
+        const permTab = document.getElementById('matrix-tab-permission');
+        const userTab = document.getElementById('matrix-tab-user');
+        permTabBtn.addEventListener('click', () => {
+            permTabBtn.classList.add('is-active'); userTabBtn.classList.remove('is-active');
+            permTab.classList.remove('hidden'); userTab.classList.add('hidden');
+        });
+        userTabBtn.addEventListener('click', () => {
+            userTabBtn.classList.add('is-active'); permTabBtn.classList.remove('is-active');
+            userTab.classList.remove('hidden'); permTab.classList.add('hidden');
+        });
+
+        // ---- lookup maps, built off the datalists so there's one source of truth ----
+        const permissionIdByCode = {};
+        document.querySelectorAll('#permissionsDatalist option').forEach(opt => {
+            permissionIdByCode[opt.value] = opt.dataset.permissionId;
+        });
+        const userIdByLabel = {};
+        document.querySelectorAll('#usersDatalist option').forEach(opt => {
+            userIdByLabel[opt.value] = opt.dataset.userId;
+        });
+
+        // ---- by permission ----
+        const permissionPicker = document.getElementById('permissionPicker');
+        const holdersTbody = document.getElementById('holdersTbody');
+        permissionPicker.addEventListener('change', async () => {
+            const permissionId = permissionIdByCode[permissionPicker.value];
+            if (!permissionId) return;
+            holdersTbody.innerHTML = `<tr><td colspan="4" class="admin-empty"><i class="fas fa-circle-notch fa-spin"></i> &nbsp; {{ _('Loading...') }}</td></tr>`;
+            try {
+                const res = await fetch(`${API_PREFIX}api/admin/permissions/${permissionId}/holders`);
+                const data = await res.json();
+                if (!data.success || !data.holders.length) {
+                    holdersTbody.innerHTML = `<tr><td colspan="4" class="admin-empty"><i class="fas fa-user-slash"></i> &nbsp; {{ _('No one holds this permission.') }}</td></tr>`;
+                    return;
+                }
+                holdersTbody.innerHTML = data.holders.map(h => `
+                    <tr>
+                        <td>${escapeHtml(h.fullname || h.username)}</td>
+                        <td>${escapeHtml(h.organization || h.organizationCode || '')}</td>
+                        <td>${escapeHtml(sourceLabel[h.source] || h.source)}</td>
+                        <td class="align-right"><a class="nx-btn nx-btn--ghost nx-btn--sm" href="${API_PREFIX}admin/users/${h.userID}">{{ _('Manage') }}</a></td>
+                    </tr>
+                `).join('');
+            } catch (e) {
+                holdersTbody.innerHTML = `<tr><td colspan="4" class="admin-empty"><i class="fas fa-triangle-exclamation"></i> &nbsp; {{ _('Could not load holders.') }}</td></tr>`;
+            }
+        });
+
+        // ---- by user ----
+        const userPicker = document.getElementById('userPicker');
+        const userResult = document.getElementById('userPermissionsResult');
+        userPicker.addEventListener('change', async () => {
+            const userId = userIdByLabel[userPicker.value];
+            if (!userId) return;
+            userResult.innerHTML = `<p class="admin-empty"><i class="fas fa-circle-notch fa-spin"></i> &nbsp; {{ _('Loading...') }}</p>`;
+            try {
+                const res = await fetch(`${API_PREFIX}api/admin/users/${userId}/effective_permissions`);
+                const data = await res.json();
+                if (!data.success || !data.granted.length) {
+                    userResult.innerHTML = `<p class="admin-empty"><i class="fas fa-user-slash"></i> &nbsp; {{ _('This user holds no permissions.') }}</p>`;
+                    return;
+                }
+                const families = {};
+                data.granted.forEach(p => {
+                    const family = p.Code.split('.')[0];
+                    (families[family] = families[family] || []).push(p);
+                });
+                const sections = Object.keys(families).sort().map(family => `
+                    <div class="nx-section" style="margin-top:16px">${escapeHtml(family)}</div>
+                    <div class="nx-table-wrap">
+                        <table class="nx-table">
+                            <tbody>
+                                ${families[family].map(p => `
+                                    <tr>
+                                        <td><span class="nx-mono">${escapeHtml(p.Code)}</span></td>
+                                        <td>${escapeHtml(p.Description)}</td>
+                                        <td class="align-right" style="width:160px">${escapeHtml(sourceLabel[p.source] || p.source)}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `).join('');
+                userResult.innerHTML = sections
+                    + `<div style="margin-top:16px"><a class="nx-btn nx-btn--ghost nx-btn--sm" href="${API_PREFIX}admin/users/${userId}">{{ _('Manage overrides') }}</a></div>`;
+            } catch (e) {
+                userResult.innerHTML = `<p class="admin-empty"><i class="fas fa-triangle-exclamation"></i> &nbsp; {{ _('Could not load permissions.') }}</p>`;
+            }
+        });
+    })();
+    </script>
+</body>
+</html>

@@ -95,6 +95,24 @@ def test_api_admin_restart_denied_for_remote_caller_without_perm(admin_client, n
     assert resp.status_code == 403
 
 
+# ============================ permission matrix ===============================
+
+
+def test_admin_permission_matrix_view_gated(noperm_client):
+    resp = noperm_client.get("/admin/permission_matrix")
+    assert resp.status_code == 403
+
+
+def test_admin_permission_matrix_view_with_perms(admin_client, admin_all_perms):
+    resp = admin_client.get("/admin/permission_matrix")
+    assert resp.status_code == 200
+
+
+def test_api_admin_permission_holders_unknown_returns_404(admin_client, admin_all_perms):
+    resp = admin_client.get("/api/admin/permissions/999999/holders")
+    assert resp.status_code == 404
+
+
 # ============================ organizations ==================================
 
 

@@ -1455,6 +1455,146 @@ def admin_access_control():
 
 
 @require_permission("admin.view.accessprofiles.useroverrides")
+def admin_permission_matrix():
+    """Read-only user x permission matrix (#172) -- filterable either
+    direction. Editing stays on access_control / user_detail; this page only
+    links through to them."""
+    conn = None
+    cursor = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT PermissionID, Code, Description FROM Permission
+            ORDER BY
+                LEFT(Code, LEN(Code) - CHARINDEX('.', REVERSE(Code))),
+                CASE
+                    WHEN Code LIKE '%.view'    THEN 1
+                    WHEN Code LIKE '%.add'     THEN 2
+                    WHEN Code LIKE '%.add.%'   THEN 3
+                    WHEN Code LIKE '%.edit%'   THEN 4
+                    WHEN Code LIKE '%.delete%' THEN 5
+                    ELSE 6
+                END,
+                Code
+        """)
+        all_permissions = [
+            dict(zip([column[0] for column in cursor.description], row, strict=False))
+            for row in cursor.fetchall()
+        ]
+
+        cursor.execute("""
+            SELECT u.userID, u.username, u.Fullname, u.organizationCode, o.organization
+            FROM Users u
+            LEFT JOIN Organizations o ON o.organizationcode = u.organizationCode
+            ORDER BY u.Fullname
+        """)
+        all_users = [
+            dict(zip([column[0] for column in cursor.description], row, strict=False))
+            for row in cursor.fetchall()
+        ]
+
+        return render_template(
+            "admin/permission_matrix.html",
+            all_permissions=all_permissions,
+            all_users=all_users,
+            pageV=page_visibility(),
+        )
+    except Exception as e:
+        current_app.logger.error(f"Error loading permission matrix: {e}")
+        return render_template("500.html")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@require_permission("admin.view.accessprofiles.useroverrides")
+def api_admin_permission_holders(permission_id):
+    """Mirror of api_admin_user_effective_permissions with the axes flipped:
+    one permission, resolved across every user."""
+    conn = None
+    cursor = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "SELECT PermissionID, Code, Description FROM Permission WHERE PermissionID = ?",
+            (permission_id,),
+        )
+        p = cursor.fetchone()
+        if not p:
+            return jsonify({"success": False, "message": "Permission not found"}), 404
+
+        cursor.execute(
+            """
+            SELECT u.userID, u.username, u.Fullname, u.organizationCode, o.organization,
+                   ap_perm.Effect AS ProfileEffect,
+                   uo.Effect      AS OverrideEffect
+            FROM Users u
+            LEFT JOIN Organizations o ON o.organizationcode = u.organizationCode
+            LEFT JOIN AccessProfilePermission ap_perm
+                   ON ap_perm.AccessID = u.accessid
+                  AND ap_perm.PermissionID = ?
+            LEFT JOIN UserPermissionOverride uo
+                   ON uo.UserID = u.userID
+                  AND uo.PermissionID = ?
+            ORDER BY u.Fullname
+        """,
+            (permission_id, permission_id),
+        )
+
+        holders = []
+        for r in cursor.fetchall():
+            override = r.OverrideEffect
+            profile = r.ProfileEffect
+            if override == "A":
+                source = "override-allow"
+            elif override == "D":
+                continue  # explicitly denied -- not a holder
+            elif profile == "A":
+                source = "profile"
+            else:
+                continue  # no grant, no override -- not a holder
+
+            holders.append(
+                {
+                    "userID": r.userID,
+                    "username": r.username,
+                    "fullname": r.Fullname,
+                    "organizationCode": r.organizationCode,
+                    "organization": r.organization,
+                    "source": source,
+                }
+            )
+
+        return jsonify(
+            {
+                "success": True,
+                "permission": {
+                    "PermissionID": p.PermissionID,
+                    "Code": p.Code,
+                    "Description": p.Description,
+                },
+                "holders": holders,
+            }
+        )
+    except Exception as e:
+        current_app.logger.error(f"Failed to compute holders for permission {permission_id}: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        if cursor:
+            with suppress(Exception):
+                cursor.close()
+        if conn:
+            with suppress(Exception):
+                conn.close()
+
+
+@require_permission("admin.view.accessprofiles.useroverrides")
 def get_users_admin_access_control():
     if "username" not in session:
         return jsonify({"error": _("Not authorized")}), 401
@@ -2140,6 +2280,16 @@ def register_routes(app):
     # access control & permissions
     app.add_url_rule(
         "/admin/access_control", endpoint="admin_access_control", view_func=admin_access_control
+    )
+    app.add_url_rule(
+        "/admin/permission_matrix",
+        endpoint="admin_permission_matrix",
+        view_func=admin_permission_matrix,
+    )
+    app.add_url_rule(
+        "/api/admin/permissions/<int:permission_id>/holders",
+        endpoint="api_admin_permission_holders",
+        view_func=api_admin_permission_holders,
     )
     app.add_url_rule(
         "/api/admin/users",

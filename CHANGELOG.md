@@ -8,6 +8,17 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Added
+
+- **Admin permission matrix** (#172). Read-only `/admin/permission_matrix`
+  page answering "who can see reporting?" / "what can this user open?"
+  without SQL against `spGetUserPermissions`'s tables directly: toggle
+  between picking a permission code (every holder, override vs. profile) or a
+  user (their effective permissions, grouped by family). Reuses the existing
+  `effective_permissions` resolution logic and links each row through to
+  Access Control / the user's overrides tab — granting and revoking stays
+  there.
+
 ### Removed
 
 - **Dead `decapitated_*` tables dropped for good** (#98). Migrations 0042 and
