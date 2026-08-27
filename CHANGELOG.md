@@ -21,8 +21,12 @@ Work toward the next release.
   uses, behind the new `reporting.sources.schema` permission
   (migration `0079`, seeded to profiles that hold `admin.view`) *and* the
   source's own permission — so it never widens which databases a user reaches.
-  Databases with no foreign keys (the statistics DBs) show their biggest
-  tables as a grid instead of an empty diagram.
+  The panel shows **only the tables the source actually reads** — the ones its
+  registry names (`BaseObject` / `dbo.ProcessSources.TableName`), plus whatever
+  a used view reads and one foreign-key hop off them; the header says how many
+  tables were hidden. A source whose SQL is hand-written falls back to hiding
+  empty tables. View→table dependencies are drawn as dashed edges, so a
+  view-backed source shows what it is built on.
 
 - **Reporting dashboards: one-dialog "Add a card".** The add-card tile's type
   pills are replaced by a single mask (`rdb-add-mask`) that asks for everything

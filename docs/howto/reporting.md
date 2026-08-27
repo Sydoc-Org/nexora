@@ -992,17 +992,40 @@ that source** — a filterable table list and an ER diagram. Structure only: no
 row of data is ever returned.
 
 **Route.** `GET /api/reporting/sources/<source_id>/schema` →
-`{db, label, source, tables[], relations[], truncated}`.
+`{db, label, source, tables[], relations[], truncated, filter, hidden}`.
 
 - `tables[]`: `{schema, name, kind: table|view, rows, columns[{name, type,
   nullable, pk, fk?}]}`, sorted by row count desc. `rows` is the
   `sys.partitions` approximation (no `VIEW DATABASE STATE` needed); views get
   `null`. `fk` is `{table, column}` on the child column.
-- `relations[]`: one entry per foreign key, multi-column keys grouped —
-  `{name, from, to, fromColumns[], toColumns[]}`.
+- `relations[]`: `{name, from, to, fromColumns[], toColumns[], kind}` —
+  `kind: "fk"` is a foreign key (multi-column keys grouped into one edge),
+  `kind: "view"` is a view→table dependency from
+  `sys.sql_expression_dependencies` (no columns; drawn dashed).
+- `filter` / `hidden`: which narrowing rule ran and how many tables it dropped
+  (see **Only what the source reads** below).
 - `truncated`: how many tables the 400-object cap dropped (`0` normally).
   Edges pointing outside the cap are dropped with them, so the diagram never
   references a table that isn't there.
+
+**Only what the source reads.** The full database is not what anyone came to
+see — `filter_used()` narrows the payload to the tables the reporting layer
+actually queries, and reports the drop count rather than hiding it:
+
+1. **Seed** — the source's `BaseObject` plus every `dbo.ProcessSources.TableName`
+   (migration 0074), matched on the *bare* object name because the registries
+   qualify them inconsistently (`dbo.PriveraInvoice`, `public."DossierStatistik"`).
+   Names belonging to another database simply match nothing.
+2. **Expand** — transitively, whatever a seeded **view** reads (a view's tables
+   are as used as the view), then **one hop** across foreign keys, so a used
+   table arrives with the lookups it joins to instead of as a lonely box.
+3. **Fall back** — a seed that matches nothing in this database (a source whose
+   SQL is hand-written) drops tables holding zero rows instead. `filter` says
+   which rule ran: `used` or `nonempty`.
+
+Today that turns SYDOC_Statistik's 53 objects into the 5 statistik tables the
+registry names plus the 5 field-statistic views over them, and RuntimeDatabase's
+31 into `t_Documents` + its two FK neighbours.
 
 **Two gates, not one.** The route carries `@require_permission(
 "reporting.sources.schema")` *and* re-checks that `source_id` is in the

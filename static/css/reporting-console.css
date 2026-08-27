@@ -1551,6 +1551,8 @@ body.reporting-console .reporting-share-add .reporting-input {
 .rc-erd-dot { fill: var(--nx-accent); }
 .rc-erd-dot--pk { fill: var(--nx-warning); }
 .rc-erd-edge { fill: none; stroke: var(--nx-border-strong); stroke-width: 1.4; }
+/* view -> table ("this view reads that"), not a key join */
+.rc-erd-edge--view { stroke-dasharray: 4 3; stroke: var(--nx-violet); }
 .rc-erd-arrowhead { fill: var(--nx-border-strong); }
 .rc-erd-node { cursor: pointer; }
 .rc-erd-node:hover .rc-erd-box { stroke: var(--nx-accent); }

@@ -3024,6 +3024,24 @@ def api_sources_health():
     return jsonify({"sources": out})
 
 
+def _source_used_tables(src):
+    """Qualified table names the reporting layer actually reads for `src`.
+
+    Two registries know this: the source's own `BaseObject` (the generic
+    `table` provider's target) and `dbo.ProcessSources.TableName` (the
+    statistik table per client/process, migration 0074). Names from a
+    different database simply won't match anything when the payload is
+    filtered, so all of them can be thrown in together.
+    """
+    names = set()
+    if src.get("baseObject"):
+        names.add(src["baseObject"])
+    reg = mapping_config.registry()
+    if reg is not None:
+        names |= {ps.table for ps in reg.sources.values() if ps.table}
+    return names
+
+
 @require_permission("reporting.sources.schema")
 def api_source_schema(source_id):
     """Tables, columns and foreign keys of the database behind one source.
@@ -3053,7 +3071,7 @@ def api_source_schema(source_id):
         current_app.logger.warning(f"reporting schema: connect failed for {source_id}: {e}")
         return jsonify({"error": _("Could not reach this database.")}), 503
     try:
-        payload = db_schema.introspect(conn)
+        payload = db_schema.filter_used(db_schema.introspect(conn), _source_used_tables(src))
     except Exception as e:
         current_app.logger.error(f"reporting schema: introspection failed for {source_id}: {e}")
         return jsonify({"error": _("Could not read this database's schema.")}), 502

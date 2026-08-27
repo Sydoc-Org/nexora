@@ -42,8 +42,8 @@ guide as an app page.
 - Everything in one empty bucket? The breakdown field is not filled in for the
   processes you selected.
 - Not sure which table a source really reads? Click its card in the **Sources**
-  rail: **List** shows every table and column, **Diagram** draws the foreign
-  keys between them.
+  rail: **List** shows the tables it uses and their columns, **Diagram** draws
+  the relationships between them.
 - Relative presets stay relative: a report saved with "This month" shows the
   current month on every run and in every scheduled mail. Schedule times are
   UTC.
@@ -111,15 +111,18 @@ report on, with a green dot and its current response time.
 **Click a source card** to look inside the database behind it (needs the
 "browse source structure" permission — see [For administrators](#for-administrators-internal)):
 
-- **List** — every table, biggest first, with its row count. Open one to see
-  its columns, their types, which is the primary key (🔑) and which point at
-  another table (🔗 — click it to jump there).
-- **Diagram** — the same tables drawn as boxes, with an arrow from each
-  foreign key to the table it references. Drag to pan, scroll to zoom, **Fit**
-  to see everything again; clicking a box opens it in the list. Databases
-  without foreign keys show their biggest tables instead of a web of arrows.
+- **List** — the tables this source actually reads, biggest first, with their
+  row counts. Open one to see its columns, their types, which is the primary
+  key (🔑) and which point at another table (🔗 — click it to jump there).
+- **Diagram** — the same tables drawn as boxes, with a solid arrow from each
+  foreign key to the table it references and a dashed one from a view to what
+  it reads. Drag to pan, scroll to zoom, **Fit** to see everything again;
+  clicking a box opens it in the list.
 
-This is a read-only look at the structure — no data rows are shown.
+The rest of the database is left out: the header says how many tables were
+hidden. "Used" means named by the source registry, plus whatever those tables
+join to or a used view reads. And it is a read-only look at the structure —
+no data rows are shown.
 
 ## Three ways to build a report
 

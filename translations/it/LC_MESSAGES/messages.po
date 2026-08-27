@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-27 10:24+0200\n"
+"POT-Creation-Date: 2026-08-27 10:37+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -784,12 +784,12 @@ msgstr "Impossibile inviare il feedback. Riprova più tardi."
 #: nx_lib/views/reporting.py:1394 nx_lib/views/reporting.py:1522
 #: nx_lib/views/reporting.py:1700 nx_lib/views/reporting.py:2082
 #: nx_lib/views/reporting.py:2204 nx_lib/views/reporting.py:2279
-#: nx_lib/views/reporting.py:3426
+#: nx_lib/views/reporting.py:3444
 msgid "Invalid JSON body"
 msgstr "Corpo JSON non valido"
 
 #: nx_lib/views/reporting.py:1249 nx_lib/views/reporting.py:2239
-#: nx_lib/views/reporting.py:3043 nx_lib/views/reporting.py:3435
+#: nx_lib/views/reporting.py:3061 nx_lib/views/reporting.py:3453
 msgid "Not authorized for this source"
 msgstr "Non autorizzato per questa sorgente"
 
@@ -985,8 +985,8 @@ msgstr "Impossibile elencare i report"
 #: nx_lib/views/reporting.py:2772 nx_lib/views/reporting.py:2796
 #: nx_lib/views/reporting.py:2843 nx_lib/views/reporting.py:2878
 #: nx_lib/views/reporting.py:2891 nx_lib/views/reporting.py:2902
-#: nx_lib/views/reporting.py:3248 nx_lib/views/reporting.py:3266
-#: nx_lib/views/reporting.py:3369 nx_lib/views/reporting.py:3387
+#: nx_lib/views/reporting.py:3266 nx_lib/views/reporting.py:3284
+#: nx_lib/views/reporting.py:3387 nx_lib/views/reporting.py:3405
 msgid "Not found"
 msgstr "Non trovato"
 
@@ -1047,103 +1047,103 @@ msgstr "Impossibile aggiornare la pianificazione"
 msgid "Could not delete schedule"
 msgstr "Impossibile eliminare la pianificazione"
 
-#: nx_lib/views/reporting.py:3049
+#: nx_lib/views/reporting.py:3067
 msgid "This source's database is not configured."
 msgstr "Il database di questa fonte non è configurato."
 
-#: nx_lib/views/reporting.py:3054
+#: nx_lib/views/reporting.py:3072
 msgid "Could not reach this database."
 msgstr "Impossibile raggiungere questo database."
 
-#: nx_lib/views/reporting.py:3059
+#: nx_lib/views/reporting.py:3077
 msgid "Could not read this database's schema."
 msgstr "Impossibile leggere lo schema di questo database."
 
-#: nx_lib/views/reporting.py:3075 nx_lib/views/reporting.py:3125
+#: nx_lib/views/reporting.py:3093 nx_lib/views/reporting.py:3143
 msgid "Invalid body"
 msgstr "Corpo non valido"
 
-#: nx_lib/views/reporting.py:3077
+#: nx_lib/views/reporting.py:3095
 msgid "code must be 1-64 chars: letters, digits, . _ -"
 msgstr "il codice deve contenere 1-64 caratteri: lettere, cifre, . _ -"
 
-#: nx_lib/views/reporting.py:3079
+#: nx_lib/views/reporting.py:3097
 msgid "kind must be 'curated' or 'sql'"
 msgstr "kind deve essere 'curated' o 'sql'"
 
-#: nx_lib/views/reporting.py:3081 nx_lib/views/reporting.py:3131
+#: nx_lib/views/reporting.py:3099 nx_lib/views/reporting.py:3149
 msgid "label is required"
 msgstr "l'etichetta è obbligatoria"
 
-#: nx_lib/views/reporting.py:3083
+#: nx_lib/views/reporting.py:3101
 msgid "permission is required"
 msgstr "l'autorizzazione è obbligatoria"
 
-#: nx_lib/views/reporting.py:3089
+#: nx_lib/views/reporting.py:3107
 msgid "columns must be valid JSON"
 msgstr "le colonne devono essere JSON valido"
 
-#: nx_lib/views/reporting.py:3127
+#: nx_lib/views/reporting.py:3145
 msgid "code must start with a letter/underscore: letters, digits, _"
 msgstr "il codice deve iniziare con una lettera/trattino basso: lettere, cifre, _"
 
-#: nx_lib/views/reporting.py:3129
+#: nx_lib/views/reporting.py:3147
 msgid "sourceId is required"
 msgstr "sourceId è obbligatorio"
 
-#: nx_lib/views/reporting.py:3134
+#: nx_lib/views/reporting.py:3152
 msgid "aggregation must be one of: "
 msgstr "aggregation deve essere uno dei seguenti valori: "
 
-#: nx_lib/views/reporting.py:3136
+#: nx_lib/views/reporting.py:3154
 msgid "baseField is required unless aggregation is 'count'"
 msgstr "baseField è obbligatorio a meno che aggregation non sia 'count'"
 
-#: nx_lib/views/reporting.py:3195
+#: nx_lib/views/reporting.py:3213
 msgid "Could not list sources"
 msgstr "Impossibile elencare le sorgenti"
 
-#: nx_lib/views/reporting.py:3223
+#: nx_lib/views/reporting.py:3241
 msgid "Could not save source (code already exists?)"
 msgstr "Impossibile salvare la sorgente (codice già esistente?)"
 
-#: nx_lib/views/reporting.py:3252
+#: nx_lib/views/reporting.py:3270
 msgid "Could not update source"
 msgstr "Impossibile aggiornare la sorgente"
 
-#: nx_lib/views/reporting.py:3270
+#: nx_lib/views/reporting.py:3288
 msgid "Could not delete source"
 msgstr "Impossibile eliminare la sorgente"
 
-#: nx_lib/views/reporting.py:3315
+#: nx_lib/views/reporting.py:3333
 msgid "Could not list metrics"
 msgstr "Impossibile elencare le metriche"
 
-#: nx_lib/views/reporting.py:3344
+#: nx_lib/views/reporting.py:3362
 msgid "Could not save metric (code already exists?)"
 msgstr "Impossibile salvare la metrica (codice già esistente?)"
 
-#: nx_lib/views/reporting.py:3373
+#: nx_lib/views/reporting.py:3391
 msgid "Could not update metric"
 msgstr "Impossibile aggiornare la metrica"
 
-#: nx_lib/views/reporting.py:3391
+#: nx_lib/views/reporting.py:3409
 msgid "Could not delete metric"
 msgstr "Impossibile eliminare la metrica"
 
-#: nx_lib/views/reporting.py:3433
+#: nx_lib/views/reporting.py:3451
 msgid "Unknown or unsupported source"
 msgstr "Sorgente sconosciuta o non supportata"
 
-#: nx_lib/views/reporting.py:3438
+#: nx_lib/views/reporting.py:3456
 msgid "Source engine is not configured"
 msgstr "Il motore della sorgente non è configurato"
 
-#: nx_lib/views/reporting.py:3445
+#: nx_lib/views/reporting.py:3463
 msgid "This request is invalid."
 msgstr "Questa richiesta non è valida."
 
-#: nx_lib/views/reporting.py:3448
+#: nx_lib/views/reporting.py:3466
 msgid "Could not load values"
 msgstr "Impossibile caricare i valori"
 
@@ -1543,12 +1543,12 @@ msgstr ""
 #: templates/_reporting_help.html:16
 msgid ""
 "Not sure which table a source really reads? Click its card in the Sources"
-" rail: List shows every table and column, Diagram draws the foreign keys "
-"between them."
+" rail: List shows the tables it uses and their columns, Diagram draws the"
+" relationships between them."
 msgstr ""
 "Non sai quale tabella legge davvero una fonte? Clicca sulla sua scheda "
-"nella barra Fonti: Elenco mostra ogni tabella e colonna, Diagramma "
-"disegna le chiavi esterne tra di esse."
+"nella barra Fonti: Elenco mostra le tabelle usate e le loro colonne, "
+"Diagramma disegna le relazioni tra di esse."
 
 #: templates/_reporting_help.html:17
 msgid ""
@@ -7276,10 +7276,19 @@ msgid "{n} more not shown"
 msgstr "altre {n} non mostrate"
 
 #: templates/js/_reporting_schema_js.html:17
+#, python-brace-format
+msgid "{n} hidden"
+msgstr "{n} nascoste"
+
+#: templates/js/_reporting_schema_js.html:18
+msgid "These are the tables this source reads."
+msgstr "Queste sono le tabelle che questa fonte legge."
+
+#: templates/js/_reporting_schema_js.html:19
 msgid "No foreign keys defined — showing the biggest tables."
 msgstr "Nessuna chiave esterna definita — vengono mostrate le tabelle più grandi."
 
-#: templates/js/_reporting_schema_js.html:18
+#: templates/js/_reporting_schema_js.html:20
 #, python-brace-format
 msgid "Showing the {n} most connected tables."
 msgstr "Vengono mostrate le {n} tabelle più collegate."

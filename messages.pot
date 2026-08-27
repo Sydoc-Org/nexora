@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-27 10:24+0200\n"
+"POT-Creation-Date: 2026-08-27 10:37+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -697,12 +697,12 @@ msgstr ""
 #: nx_lib/views/reporting.py:1394 nx_lib/views/reporting.py:1522
 #: nx_lib/views/reporting.py:1700 nx_lib/views/reporting.py:2082
 #: nx_lib/views/reporting.py:2204 nx_lib/views/reporting.py:2279
-#: nx_lib/views/reporting.py:3426
+#: nx_lib/views/reporting.py:3444
 msgid "Invalid JSON body"
 msgstr ""
 
 #: nx_lib/views/reporting.py:1249 nx_lib/views/reporting.py:2239
-#: nx_lib/views/reporting.py:3043 nx_lib/views/reporting.py:3435
+#: nx_lib/views/reporting.py:3061 nx_lib/views/reporting.py:3453
 msgid "Not authorized for this source"
 msgstr ""
 
@@ -887,8 +887,8 @@ msgstr ""
 #: nx_lib/views/reporting.py:2772 nx_lib/views/reporting.py:2796
 #: nx_lib/views/reporting.py:2843 nx_lib/views/reporting.py:2878
 #: nx_lib/views/reporting.py:2891 nx_lib/views/reporting.py:2902
-#: nx_lib/views/reporting.py:3248 nx_lib/views/reporting.py:3266
-#: nx_lib/views/reporting.py:3369 nx_lib/views/reporting.py:3387
+#: nx_lib/views/reporting.py:3266 nx_lib/views/reporting.py:3284
+#: nx_lib/views/reporting.py:3387 nx_lib/views/reporting.py:3405
 msgid "Not found"
 msgstr ""
 
@@ -949,103 +949,103 @@ msgstr ""
 msgid "Could not delete schedule"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3049
+#: nx_lib/views/reporting.py:3067
 msgid "This source's database is not configured."
 msgstr ""
 
-#: nx_lib/views/reporting.py:3054
+#: nx_lib/views/reporting.py:3072
 msgid "Could not reach this database."
 msgstr ""
 
-#: nx_lib/views/reporting.py:3059
+#: nx_lib/views/reporting.py:3077
 msgid "Could not read this database's schema."
 msgstr ""
 
-#: nx_lib/views/reporting.py:3075 nx_lib/views/reporting.py:3125
+#: nx_lib/views/reporting.py:3093 nx_lib/views/reporting.py:3143
 msgid "Invalid body"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3077
+#: nx_lib/views/reporting.py:3095
 msgid "code must be 1-64 chars: letters, digits, . _ -"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3079
+#: nx_lib/views/reporting.py:3097
 msgid "kind must be 'curated' or 'sql'"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3081 nx_lib/views/reporting.py:3131
+#: nx_lib/views/reporting.py:3099 nx_lib/views/reporting.py:3149
 msgid "label is required"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3083
+#: nx_lib/views/reporting.py:3101
 msgid "permission is required"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3089
+#: nx_lib/views/reporting.py:3107
 msgid "columns must be valid JSON"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3127
+#: nx_lib/views/reporting.py:3145
 msgid "code must start with a letter/underscore: letters, digits, _"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3129
+#: nx_lib/views/reporting.py:3147
 msgid "sourceId is required"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3134
+#: nx_lib/views/reporting.py:3152
 msgid "aggregation must be one of: "
 msgstr ""
 
-#: nx_lib/views/reporting.py:3136
+#: nx_lib/views/reporting.py:3154
 msgid "baseField is required unless aggregation is 'count'"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3195
+#: nx_lib/views/reporting.py:3213
 msgid "Could not list sources"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3223
+#: nx_lib/views/reporting.py:3241
 msgid "Could not save source (code already exists?)"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3252
+#: nx_lib/views/reporting.py:3270
 msgid "Could not update source"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3270
+#: nx_lib/views/reporting.py:3288
 msgid "Could not delete source"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3315
+#: nx_lib/views/reporting.py:3333
 msgid "Could not list metrics"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3344
+#: nx_lib/views/reporting.py:3362
 msgid "Could not save metric (code already exists?)"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3373
+#: nx_lib/views/reporting.py:3391
 msgid "Could not update metric"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3391
+#: nx_lib/views/reporting.py:3409
 msgid "Could not delete metric"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3433
+#: nx_lib/views/reporting.py:3451
 msgid "Unknown or unsupported source"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3438
+#: nx_lib/views/reporting.py:3456
 msgid "Source engine is not configured"
 msgstr ""
 
-#: nx_lib/views/reporting.py:3445
+#: nx_lib/views/reporting.py:3463
 msgid "This request is invalid."
 msgstr ""
 
-#: nx_lib/views/reporting.py:3448
+#: nx_lib/views/reporting.py:3466
 msgid "Could not load values"
 msgstr ""
 
@@ -1433,8 +1433,8 @@ msgstr ""
 #: templates/_reporting_help.html:16
 msgid ""
 "Not sure which table a source really reads? Click its card in the Sources"
-" rail: List shows every table and column, Diagram draws the foreign keys "
-"between them."
+" rail: List shows the tables it uses and their columns, Diagram draws the"
+" relationships between them."
 msgstr ""
 
 #: templates/_reporting_help.html:17
@@ -6852,10 +6852,19 @@ msgid "{n} more not shown"
 msgstr ""
 
 #: templates/js/_reporting_schema_js.html:17
-msgid "No foreign keys defined — showing the biggest tables."
+#, python-brace-format
+msgid "{n} hidden"
 msgstr ""
 
 #: templates/js/_reporting_schema_js.html:18
+msgid "These are the tables this source reads."
+msgstr ""
+
+#: templates/js/_reporting_schema_js.html:19
+msgid "No foreign keys defined — showing the biggest tables."
+msgstr ""
+
+#: templates/js/_reporting_schema_js.html:20
 #, python-brace-format
 msgid "Showing the {n} most connected tables."
 msgstr ""

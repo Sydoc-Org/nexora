@@ -555,6 +555,10 @@ def test_source_schema_shape(admin_client):
     assert isinstance(data["tables"], list)
     assert isinstance(data["relations"], list)
     assert data["source"] == "workitems"
+    # Narrowed to what the reporting layer reads (registry BaseObject /
+    # ProcessSources), or to non-empty tables when nothing matches.
+    assert data["filter"] in ("used", "nonempty")
+    assert data["hidden"] >= 0
     for t in data["tables"]:
         assert {"schema", "name", "kind", "rows", "columns"} <= set(t)
         for c in t["columns"]:

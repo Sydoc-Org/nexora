@@ -216,9 +216,15 @@
     var L = layout();
     var edges = L.rels.map(function (r) {
       var a = L.nodes[r.from], b = L.nodes[r.to];
-      return '<path class="rc-erd-edge" d="' + edgePath(a, b) + '" marker-end="url(#rcErdArrow)">' +
-        '<title>' + esc(r.from + '.' + r.fromColumns.join(', ') + '  →  ' +
-          r.to + '.' + r.toColumns.join(', ')) + '</title></path>';
+      // A view->table edge carries no columns; dashed, and labelled as what
+      // the view reads rather than as a key join.
+      var isView = r.kind === 'view';
+      var tip = isView
+        ? r.from + '  →  ' + r.to
+        : r.from + '.' + r.fromColumns.join(', ') + '  →  ' + r.to + '.' + r.toColumns.join(', ');
+      return '<path class="rc-erd-edge' + (isView ? ' rc-erd-edge--view' : '') +
+        '" d="' + edgePath(a, b) + '" marker-end="url(#rcErdArrow)">' +
+        '<title>' + esc(tip) + '</title></path>';
     }).join('');
     var boxes = Object.keys(L.nodes).map(function (k) {
       var n = L.nodes[k], t = n.table;
@@ -259,8 +265,13 @@
     var note = el('rcSchemaErdNote');
     if (note) {
       var msg = '';
-      if (!data.relations.length) msg = I18N.noRelations || 'No foreign keys defined — showing the biggest tables.';
-      else if (L.capped) msg = (I18N.erdCapped || 'Showing the {n} most connected tables.').replace('{n}', L.total);
+      if (!data.relations.length) {
+        msg = data.filter === 'used'
+          ? (I18N.onlyUsed || 'These are the tables this source reads.')
+          : (I18N.noRelations || 'No foreign keys defined — showing the biggest tables.');
+      } else if (L.capped) {
+        msg = (I18N.erdCapped || 'Showing the {n} most connected tables.').replace('{n}', L.total);
+      }
       note.textContent = msg;
       note.hidden = !msg;
     }
@@ -389,6 +400,9 @@
       (I18N.tablesN || '{n} tables').replace('{n}', num(payload.tables.length)),
       (I18N.relationsN || '{n} relationships').replace('{n}', num(payload.relations.length))
     ];
+    if (payload.hidden) {
+      parts.push((I18N.hiddenN || '{n} hidden').replace('{n}', num(payload.hidden)));
+    }
     if (payload.truncated) {
       parts.push((I18N.truncatedN || '{n} more not shown').replace('{n}', num(payload.truncated)));
     }

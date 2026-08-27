@@ -64,6 +64,18 @@ JOIN sys.columns rc ON rc.object_id = fkc.referenced_object_id
 ORDER BY fk.name, fkc.constraint_column_id
 """
 
+# What a view reads. A reporting source often points at a view (Generali's
+# dbo.PDQMReport), and the tables behind it are just as "used" as the view --
+# without this a view-backed source draws a single lonely box.
+_VIEW_DEPS_SQL = """
+SELECT vs.name AS from_sch, v.name AS from_tbl, rs.name AS to_sch, ro.name AS to_tbl
+FROM sys.sql_expression_dependencies d
+JOIN sys.objects v ON v.object_id = d.referencing_id AND v.type = 'V'
+JOIN sys.schemas vs ON vs.schema_id = v.schema_id
+JOIN sys.objects ro ON ro.object_id = d.referenced_id AND ro.type IN ('U', 'V')
+JOIN sys.schemas rs ON rs.schema_id = ro.schema_id
+"""
+
 _SIZED = {"varchar", "nvarchar", "char", "nchar", "varbinary", "binary"}
 _SCALED = {"decimal", "numeric"}
 
@@ -138,6 +150,27 @@ def introspect(conn, *, max_tables=MAX_TABLES):
             }
         rel["fromColumns"].append(r.from_col)
         rel["toColumns"].append(r.to_col)
+        rel["kind"] = "fk"
+
+    # View -> table edges, same shape as an FK edge but with no columns: they
+    # say "this view reads that table", which is what makes a view-backed
+    # source's diagram more than one box.
+    cur.execute(_VIEW_DEPS_SQL)
+    for r in cur.fetchall():
+        src, dst = f"{r.from_sch}.{r.from_tbl}", f"{r.to_sch}.{r.to_tbl}"
+        if src == dst:
+            continue
+        relations.setdefault(
+            f"view:{src}->{dst}",
+            {
+                "name": f"{src} → {dst}",
+                "from": src,
+                "to": dst,
+                "fromColumns": [],
+                "toColumns": [],
+                "kind": "view",
+            },
+        )
 
     # Mark the FK columns on the table side so the list view can link out of a
     # column row without walking `relations` per render.
@@ -169,3 +202,70 @@ def introspect(conn, *, max_tables=MAX_TABLES):
         "relations": sorted(relations.values(), key=lambda r: r["name"] or ""),
         "truncated": truncated,
     }
+
+
+# ---- "only what this source reads" ---------------------------------------
+
+_QUOTES = '[]"`'
+
+
+def bare_name(qualified):
+    """'dbo.PriveraInvoice' / 'public."DossierStatistik"' -> 'priverainvoice' /
+    'dossierstatistik'. Schema and quoting vary per registry row; the object
+    name is what identifies a table across them."""
+    name = str(qualified or "").strip()
+    name = name.rsplit(".", 1)[-1]
+    return name.strip(_QUOTES).strip().lower()
+
+
+def filter_used(payload, used_names, *, expand_fk=True):
+    """Narrow an introspect() payload to the tables the reporting layer reads.
+
+    `used_names` are qualified names from the source registry (a source's
+    BaseObject plus dbo.ProcessSources.TableName) -- matched on the bare object
+    name, since the registries qualify them inconsistently. With `expand_fk`
+    two things come along, so the diagram shows the neighbourhood a used table
+    lives in instead of one lonely box: everything a used **view** reads
+    (transitively -- a view's tables are as used as the view it feeds), then
+    one hop across foreign keys from that set.
+
+    A `used_names` that matches nothing in this database (the common case for
+    a source whose queries are hand-written) falls back to dropping tables
+    that hold no rows -- something is always better than an empty panel.
+
+    Mutates and returns `payload`, adding `filter` ('used' | 'nonempty') and
+    `hidden` (how many tables were dropped -- never a silent filter).
+    """
+    wanted = {bare_name(n) for n in (used_names or ()) if n}
+    keys = [f"{t['schema']}.{t['name']}" for t in payload["tables"]]
+    keep = {k for k in keys if bare_name(k) in wanted}
+    mode = "used"
+    if keep and expand_fk:
+        changed = True
+        while changed:
+            changed = False
+            for rel in payload["relations"]:
+                if rel.get("kind") == "view" and rel["from"] in keep and rel["to"] not in keep:
+                    keep.add(rel["to"])
+                    changed = True
+        seed = set(keep)
+        for rel in payload["relations"]:
+            if rel["from"] in seed or rel["to"] in seed:
+                keep |= {rel["from"], rel["to"]}
+        keep &= set(keys)
+    if not keep:
+        mode = "nonempty"
+        # rows is None for views (no row count exists) -- keep those.
+        keep = {
+            k
+            for k, t in zip(keys, payload["tables"], strict=True)
+            if t["rows"] is None or t["rows"] > 0
+        }
+    before = len(payload["tables"])
+    payload["tables"] = [t for k, t in zip(keys, payload["tables"], strict=True) if k in keep]
+    payload["relations"] = [
+        r for r in payload["relations"] if r["from"] in keep and r["to"] in keep
+    ]
+    payload["filter"] = mode
+    payload["hidden"] = before - len(payload["tables"])
+    return payload
