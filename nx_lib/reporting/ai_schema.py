@@ -157,20 +157,21 @@ def serialize_partial_tables(table_processes, union_source_id):
 
     The RO-target dump (`serialize_target`) is a flat INFORMATION_SCHEMA listing,
     so `dbo.Compass_Invoice` looks exactly like a company-wide fact table. It is
-    not: each Statconfig table holds exactly ONE process. Without this block the
-    agent answers "our volume" from whichever single table it found first and
+    not: each ProcessSources table holds exactly ONE process. Without this block
+    the agent answers "our volume" from whichever single table it found first and
     reports the number as the whole company (issue #128) — worst case a confident
     zero from a table that simply had no rows in the window.
 
     This list is also exhaustive in the other direction: the statistics DB holds
-    plenty of tables Statconfig never registered (dbo.BFH_Statistic,
+    plenty of tables ProcessSources never registered (dbo.BFH_Statistic,
     dbo.DPSLicenseCounter, …) which the curated source does not read at all. The
     agent reached for exactly those, so the block says so explicitly rather than
     leaving "not listed here" to be inferred.
 
     `table_processes`: {table_name: {"processes": [...], "import_col": str|None,
     "export_col": str|None, "fields": {field_key: column_name, ...}}} from
-    Statconfig + SearchConfig. The date/field columns are included because the
+    nx_lib/mapping_config.py's ProcessSources + ProcessFieldMappings registry.
+    The date/field columns are included because the
     tables do NOT share column names (`ExportDate` vs `ExportEM_dt`, `AnzImagesOut`
     vs `PageCount`, …) — telling the agent to UNION them without saying which
     column is which just moves the failure from "wrong universe" to "invalid

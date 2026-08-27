@@ -18,8 +18,9 @@ from flask import (
 )
 from flask_babel import gettext as _
 
+from .. import mapping_config
 from ..config import DB_STATISTICS
-from ..db import engine_ms02_stats_pg, engine_nexora_db, engine_statistics_db
+from ..db import engine_ms02_stats_pg, engine_statistics_db
 from ..extensions import cache
 from ..octo import get_extensions_urls_fields, get_workitemdata_param
 from ..process_helpers import (
@@ -49,13 +50,13 @@ def _cacheable_response(rv):
 
 
 def _split_stat_configs(configs):
-    """Partition Statconfig rows by serving client. Returns (default_rows, ms02_rows).
-    Rows with a blank/missing ClientCode count as 'default' (back-compat with
-    pre-0024 data)."""
+    """Partition ProcessSource rows (mapping_config #98) by serving client.
+    Returns (default_rows, ms02_rows). Rows with a blank/missing client code
+    count as 'default' (back-compat with pre-0024 data)."""
     default_rows = []
     ms02_rows = []
     for r in configs:
-        code = getattr(r, "ClientCode", None) or "default"
+        code = r.client or "default"
         if code == "ms02":
             ms02_rows.append(r)
         else:
@@ -63,13 +64,28 @@ def _split_stat_configs(configs):
     return default_rows, ms02_rows
 
 
+def _statconfig_sources(target_processes):
+    """All ProcessSource rows (any client) for ``target_processes``, from the
+    mapping_config registry (#98) -- successor to the direct per-call legacy
+    stat-config-table cursor read. Raises if the registry itself failed to
+    load: a genuine NexoraDB/config outage must surface as an error here
+    (dashboard view: uncached 500 via its except-block; external API strict
+    callers: JSON 500), never be swallowed into a false 'quiet day' zero --
+    the contract the legacy per-call SELECT gave for free by always hitting
+    NexoraDB directly. mapping_config.registry() is cached 60s on success,
+    so most calls never round-trip NexoraDB at all."""
+    if mapping_config.registry() is None:
+        raise RuntimeError("mapping_config registry unavailable")
+    return mapping_config.sources_for(client=None, processes=target_processes)
+
+
 def _ms02_source(ms02_rows):
-    """Resolve the single MS02 stats source from its Statconfig row(s).
+    """Resolve the single MS02 stats source from its ProcessSource row(s).
 
     Returns (table, export_expr, import_expr) or None. MS02 rows all point at the
-    same table (no per-process split), so we dedupe to the first row. TableName is
+    same table (no per-process split), so we dedupe to the first row. table is
     used verbatim (already schema-qualified, e.g. public."DossierStatistik"); the
-    column names are admin-controlled Statconfig values, quoted as Postgres
+    column names are admin-controlled ProcessSources values, quoted as Postgres
     identifiers because they are PascalCase. The old hardcoded
     'public.batchtracking'/'datuminexport' literals never existed in the MS02 DB."""
     if not ms02_rows:
@@ -79,7 +95,7 @@ def _ms02_source(ms02_rows):
     def q(col):
         return '"' + str(col).replace('"', '""') + '"'
 
-    return r.TableName, q(r.ExportColumn), q(r.ImportColumn)
+    return r.table, q(r.export_column), q(r.import_column)
 
 
 def _ms02_stat_rows(sql, *, strict=False):
@@ -87,7 +103,7 @@ def _ms02_stat_rows(sql, *, strict=False):
     engine is unconfigured/unreachable or the query errors. Centralises the
     connection handling + error swallowing for the dashboard's MS02 branches: a
     failure here must never break the default-client numbers, so by default it
-    logs and yields no rows. MS02 Statconfig conditions (additionalCondition) are
+    logs and yields no rows. MS02 ProcessSources conditions (extra_condition) are
     Postgres-syntax and currently NULL, so they are not applied here.
 
     strict: the external API's opt-in (compute_today_stats(..., strict=True))
@@ -95,7 +111,7 @@ def _ms02_stat_rows(sql, *, strict=False):
     surfaces as a 500 rather than silent zeros. An unconfigured engine
     (engine_ms02_stats_pg is None) is NOT a failure either way -- MS02 simply
     not being wired up for this deployment still yields [].
-    # ponytail: no per-call additionalCondition; add when an MS02 row needs one."""
+    # ponytail: no per-call extra_condition; add when an MS02 row needs one."""
     if engine_ms02_stats_pg is None:
         return []
     try:
@@ -116,7 +132,7 @@ def _ms02_stat_rows(sql, *, strict=False):
 def _default_stat_rows(sql, params=None, *, strict=False):
     """Run a read-only query on the default StatisticsDB engine; return rows,
     or [] if the server is unreachable or the query errors (e.g. a stale
-    Statconfig row pointing at a dropped table). Mirror of _ms02_stat_rows for
+    ProcessSources row pointing at a dropped table). Mirror of _ms02_stat_rows for
     the T-SQL leg: by default a leg failure must never blank the other leg's
     numbers -- log and yield no rows so each leg degrades independently.
 
@@ -148,7 +164,7 @@ def compute_today_stats(target_processes, *, strict=False):
     """Session-free 'today' KPI computation shared by the dashboard KPI card
     (dashboard_kpi_stats) and the external API v1 (nx_lib/views/api_external.py).
 
-    target_processes: NON-EMPTY list of full Statconfig ProcessName values
+    target_processes: NON-EMPTY list of full ProcessSources process-name values
     (e.g. 'sydoc.05_PDBS'); both callers guard the empty case. Returns
     (imported_today, processed_today): imported = import-date-column is today,
     processed = export-date-column is today. Long-standing dashboard semantics
@@ -157,9 +173,9 @@ def compute_today_stats(target_processes, *, strict=False):
     leg counts export-today unconditionally. 'Today' is server-local --
     GETDATE() on the T-SQL leg, CURRENT_DATE on the MS02 Postgres leg.
 
-    The Statconfig read (NexoraDB) always RAISES on failure -- callers own the
-    error surface (the dashboard's except->500 stays uncached via
-    _cacheable_response; the API returns a JSON 500).
+    The mapping_config registry read (NexoraDB) always RAISES on failure --
+    callers own the error surface (the dashboard's except->500 stays
+    uncached via _cacheable_response; the API returns a JSON 500).
 
     strict (default False, the dashboard's setting): the two stat-row legs
     keep their swallow-and-degrade contract (_default_stat_rows /
@@ -172,43 +188,27 @@ def compute_today_stats(target_processes, *, strict=False):
     200. An unconfigured MS02 engine still yields [] either way -- that's
     "not applicable", not a failure. Deliberately NOT cached here -- the
     dashboard view's @cache.cached (session-keyed) stays on the view.
-    Deliberately lives in THIS module: it must resolve engine_nexora_db /
+    Deliberately lives in THIS module: it must resolve mapping_config /
     engine_statistics_db / _ms02_stat_rows as nx_lib.views.dashboard
     attributes, which the existing tests monkeypatch.
     """
     processed_today = 0
     imported_today = 0
 
-    conn_nex = None
-    cursor_nex = None
-    try:
-        conn_nex = engine_nexora_db.raw_connection()
-        cursor_nex = conn_nex.cursor()
-        placeholders = ",".join(["?"] * len(target_processes))
-        cursor_nex.execute(
-            f"SELECT ProcessName, TableName, ExportColumn, ImportColumn, additionalCondition, ClientCode FROM Statconfig WHERE ProcessName IN ({placeholders})",
-            target_processes,
-        )
-        configs = cursor_nex.fetchall()
-    finally:
-        if cursor_nex:
-            cursor_nex.close()
-        if conn_nex:
-            conn_nex.close()
-
+    configs = _statconfig_sources(target_processes)
     default_configs, ms02_rows = _split_stat_configs(configs)
 
     if default_configs:
         sub_queries = []
         for row in default_configs:
-            col_export = row.ExportColumn
-            col_import = row.ImportColumn
-            condition = f" {row.additionalCondition}" if row.additionalCondition else ""
+            col_export = row.export_column
+            col_import = row.import_column
+            condition = f" {row.extra_condition}" if row.extra_condition else ""
             sub_queries.append(f"""
                 SELECT
                     SUM(CASE WHEN CAST({col_export} AS DATE) = CAST(GETDATE() AS DATE) THEN 1 ELSE 0 END) as TodayCountExport,
                     SUM(CASE WHEN CAST({col_import} AS DATE) = CAST(GETDATE() AS DATE) THEN 1 ELSE 0 END) as TodayCountExportImport
-                FROM [{DB_STATISTICS}].{row.TableName}
+                FROM [{DB_STATISTICS}].{row.table}
                 WHERE CAST({col_import} as date) = cast(GETDATE() as date)
                 {condition}
             """)
@@ -254,43 +254,27 @@ def compute_avg_processing_time(target_processes, *, strict=False):
     (nx_lib/views/api_external.py). Mirror of compute_today_stats -- see its
     docstring for the strict/error-surface contract.
 
-    target_processes: NON-EMPTY list of full Statconfig ProcessName values;
+    target_processes: NON-EMPTY list of full ProcessSources process-name values;
     both callers guard the empty case. Returns the average number of seconds
     between import and export for rows exported "today" (server-local), or
     None if no matching rows exist. Per source, AVG(export - import) is taken
     across matching rows; the default-client and MS02 sources then contribute
     one average each, combined as a plain mean-of-means (NOT weighted by row
     count) -- a source with 2000 rows counts the same as one with 2."""
-    conn_nex = None
-    cursor_nex = None
-    try:
-        conn_nex = engine_nexora_db.raw_connection()
-        cursor_nex = conn_nex.cursor()
-        placeholders = ",".join(["?"] * len(target_processes))
-        cursor_nex.execute(
-            f"SELECT ProcessName, TableName, ExportColumn, ImportColumn, additionalCondition, ClientCode FROM Statconfig WHERE ProcessName IN ({placeholders})",
-            target_processes,
-        )
-        configs = cursor_nex.fetchall()
-    finally:
-        if cursor_nex:
-            cursor_nex.close()
-        if conn_nex:
-            conn_nex.close()
-
+    configs = _statconfig_sources(target_processes)
     default_configs, ms02_rows = _split_stat_configs(configs)
 
     sub_queries = []
     for row in default_configs:
-        if not row.ImportColumn:
+        if not row.import_column:
             continue
-        condition = f" {row.additionalCondition}" if row.additionalCondition else ""
+        condition = f" {row.extra_condition}" if row.extra_condition else ""
         sub_queries.append(f"""
-            SELECT AVG(CAST(DATEDIFF(second, {row.ImportColumn}, {row.ExportColumn}) AS FLOAT)) as avg_sec
-            FROM [{DB_STATISTICS}].{row.TableName}
-            WHERE CAST({row.ExportColumn} AS DATE) = CAST(GETDATE() AS DATE)
-            AND {row.ImportColumn} IS NOT NULL
-            AND {row.ExportColumn} > {row.ImportColumn}
+            SELECT AVG(CAST(DATEDIFF(second, {row.import_column}, {row.export_column}) AS FLOAT)) as avg_sec
+            FROM [{DB_STATISTICS}].{row.table}
+            WHERE CAST({row.export_column} AS DATE) = CAST(GETDATE() AS DATE)
+            AND {row.import_column} IS NOT NULL
+            AND {row.export_column} > {row.import_column}
             {condition}
         """)
 
@@ -349,8 +333,8 @@ def format_avg_processing_display(avg_sec):
 def resolve_import_datetimes(workitem_ids, target_processes, *, strict=False):
     """Batch import-datetime lookup for a page of workitem ids (issue #197,
     external API v1 /workitems -- supersedes issue #195's single-invoice
-    helper). Default client only: each default-client Statconfig row names the
-    stat table plus its WorkitemColumn/ImportColumn; one UNION query over
+    helper). Default client only: each default-client ProcessSources row names the
+    stat table plus its workitem_column/import_column; one UNION query over
     those tables maps every id it can. Ids are compared and returned as
     strings (stat tables mix int and NVARCHAR id columns). Ids without a
     match are simply absent from the result -- MS02 rows and unmapped
@@ -359,31 +343,17 @@ def resolve_import_datetimes(workitem_ids, target_processes, *, strict=False):
     if not workitem_ids or not target_processes:
         return {}
 
-    conn_nex = None
-    try:
-        conn_nex = engine_nexora_db.raw_connection()
-        cur = conn_nex.cursor()
-        placeholders = ",".join(["?"] * len(target_processes))
-        cur.execute(
-            f"SELECT ProcessName, TableName, WorkitemColumn, ImportColumn, ClientCode "
-            f"FROM Statconfig WHERE ProcessName IN ({placeholders})",
-            target_processes,
-        )
-        configs = cur.fetchall()
-    finally:
-        if conn_nex:
-            conn_nex.close()
-
+    configs = _statconfig_sources(target_processes)
     default_configs, _ms02_rows = _split_stat_configs(configs)
 
     legs = []
     for row in default_configs:
-        if not getattr(row, "WorkitemColumn", None) or not row.ImportColumn:
+        if not row.workitem_column or not row.import_column:
             continue
         # CAST + COLLATE on the id column: the UNION legs span stat tables with
         # mixed id types/collations (same reason the doc-field search casts).
-        wid_expr = f"CAST({row.WorkitemColumn} AS NVARCHAR(50)) COLLATE DATABASE_DEFAULT"
-        legs.append((wid_expr, row.ImportColumn, row.TableName))
+        wid_expr = f"CAST({row.workitem_column} AS NVARCHAR(50)) COLLATE DATABASE_DEFAULT"
+        legs.append((wid_expr, row.import_column, row.table))
 
     if not legs:
         return {}
@@ -426,45 +396,29 @@ def compute_undelivered_count(target_processes, days, *, strict=False):
     compute_today_stats -- see its docstring for the strict/error-surface
     contract and why this lives in this module.
 
-    target_processes: NON-EMPTY list of full Statconfig ProcessName values;
+    target_processes: NON-EMPTY list of full ProcessSources process-name values;
     the caller guards the empty case. days: a validated int (the API allows
     only 7 or 10) -- inlined into the SQL, never raw request input. The
     import window is calendar-day based and includes today (import date >=
-    today - days, server-local). Statconfig rows without an ImportColumn
+    today - days, server-local). ProcessSources rows without an import_column
     cannot answer this metric and are skipped (same rule as the avg
     processing-time KPI)."""
     days = int(days)
     total = 0
 
-    conn_nex = None
-    cursor_nex = None
-    try:
-        conn_nex = engine_nexora_db.raw_connection()
-        cursor_nex = conn_nex.cursor()
-        placeholders = ",".join(["?"] * len(target_processes))
-        cursor_nex.execute(
-            f"SELECT ProcessName, TableName, ExportColumn, ImportColumn, additionalCondition, ClientCode FROM Statconfig WHERE ProcessName IN ({placeholders})",
-            target_processes,
-        )
-        configs = cursor_nex.fetchall()
-    finally:
-        if cursor_nex:
-            cursor_nex.close()
-        if conn_nex:
-            conn_nex.close()
-
+    configs = _statconfig_sources(target_processes)
     default_configs, ms02_rows = _split_stat_configs(configs)
 
     sub_queries = []
     for row in default_configs:
-        if not row.ImportColumn:
+        if not row.import_column:
             continue
-        condition = f" {row.additionalCondition}" if row.additionalCondition else ""
+        condition = f" {row.extra_condition}" if row.extra_condition else ""
         sub_queries.append(f"""
             SELECT COUNT(*) as c
-            FROM [{DB_STATISTICS}].{row.TableName}
-            WHERE CAST({row.ImportColumn} AS DATE) >= CAST(DATEADD(day, -{days}, GETDATE()) AS DATE)
-            AND {row.ExportColumn} IS NULL
+            FROM [{DB_STATISTICS}].{row.table}
+            WHERE CAST({row.import_column} AS DATE) >= CAST(DATEADD(day, -{days}, GETDATE()) AS DATE)
+            AND {row.export_column} IS NULL
             {condition}
         """)
 
@@ -522,22 +476,8 @@ def dashboard_processed_over_time():
     if not target_processes:
         return jsonify({"labels": [], "data": []})
 
-    conn = None
     try:
-        conn = engine_nexora_db.raw_connection()
-        cursor = conn.cursor()
-
-        placeholders = ",".join(["?"] * len(target_processes))
-        config_query = f"""
-            SELECT ProcessName, TableName, ExportColumn, ImportColumn, additionalCondition, ClientCode
-            FROM Statconfig
-            WHERE ProcessName IN ({placeholders})
-        """
-        cursor.execute(config_query, target_processes)
-        configs = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        conn = None
+        configs = _statconfig_sources(target_processes)
 
         if not configs:
             return jsonify({"labels": [], "data": []})
@@ -546,13 +486,13 @@ def dashboard_processed_over_time():
 
         sub_queries = []
         for row in default_configs:
-            convert = "convert" in str(row.ExportColumn).lower()
-            date_col = f"CAST({row.ExportColumn} AS DATE)" if not convert else row.ExportColumn
-            condition = f" {row.additionalCondition}" if row.additionalCondition else ""
+            convert = "convert" in str(row.export_column).lower()
+            date_col = f"CAST({row.export_column} AS DATE)" if not convert else row.export_column
+            condition = f" {row.extra_condition}" if row.extra_condition else ""
             sub_queries.append(f"""
                 SELECT {date_col} as d, COUNT(*) as c
-                FROM [{DB_STATISTICS}].{row.TableName}
-                WHERE {row.ExportColumn} >= DATEADD(day, -14, GETDATE()) {condition}
+                FROM [{DB_STATISTICS}].{row.table}
+                WHERE {row.export_column} >= DATEADD(day, -14, GETDATE()) {condition}
                 GROUP BY {date_col}
             """)
 
@@ -601,9 +541,6 @@ def dashboard_processed_over_time():
     except Exception as e:
         current_app.logger.error(f"Failed to fetch processed_over_time report: {e}")
         return jsonify({"error": _("An unexpected error occurred")}), 500
-    finally:
-        if conn:
-            conn.close()
 
 
 @require_permission("dashboard.view")
@@ -686,17 +623,8 @@ def dashboard_hourly_stats():
     if not target_processes:
         return jsonify({"labels": [f"{h:02d}:00" for h in range(24)], "data": [0] * 24})
 
-    conn_nex = None
-    cursor_nex = None
     try:
-        conn_nex = engine_nexora_db.raw_connection()
-        cursor_nex = conn_nex.cursor()
-        placeholders = ",".join(["?"] * len(target_processes))
-        cursor_nex.execute(
-            f"SELECT ProcessName, TableName, ExportColumn, ImportColumn, additionalCondition, ClientCode FROM Statconfig WHERE ProcessName IN ({placeholders})",
-            target_processes,
-        )
-        configs = cursor_nex.fetchall()
+        configs = _statconfig_sources(target_processes)
 
         if not configs:
             return jsonify({"labels": [f"{h:02d}:00" for h in range(24)], "data": [0] * 24})
@@ -705,12 +633,12 @@ def dashboard_hourly_stats():
 
         sub_queries = []
         for row in default_configs:
-            condition = f" {row.additionalCondition}" if row.additionalCondition else ""
+            condition = f" {row.extra_condition}" if row.extra_condition else ""
             sub_queries.append(f"""
-                SELECT DATEPART(hour, {row.ExportColumn}) as h, COUNT(*) as c
-                FROM [{DB_STATISTICS}].{row.TableName}
-                WHERE CAST({row.ExportColumn} AS DATE) = CAST(GETDATE() AS DATE) {condition}
-                GROUP BY DATEPART(hour, {row.ExportColumn})
+                SELECT DATEPART(hour, {row.export_column}) as h, COUNT(*) as c
+                FROM [{DB_STATISTICS}].{row.table}
+                WHERE CAST({row.export_column} AS DATE) = CAST(GETDATE() AS DATE) {condition}
+                GROUP BY DATEPART(hour, {row.export_column})
             """)
 
         hourly = {}
@@ -746,11 +674,6 @@ def dashboard_hourly_stats():
     except Exception as e:
         current_app.logger.error(f"Failed to fetch hourly_stats: {e}")
         return jsonify({"error": _("An unexpected error occurred")}), 500
-    finally:
-        if cursor_nex:
-            cursor_nex.close()
-        if conn_nex:
-            conn_nex.close()
 
 
 @require_permission("dashboard.view")

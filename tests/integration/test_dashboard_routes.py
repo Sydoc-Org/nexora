@@ -18,7 +18,6 @@ Routes covered:
 """
 
 from datetime import datetime
-from unittest.mock import MagicMock
 
 import nx_lib.hooks
 import nx_lib.views.dashboard as dv
@@ -354,27 +353,13 @@ def test_recent_activity_route_derives_granted_pairs_not_cross_product(user_clie
 
 
 # --------------------- error responses must not be cached ------------------- #
-# TEST has no Statistics DB, so engines are mocked on the VIEW module (it
-# does `from ..db import ...` at load time). Session permissions are
-# rewritten every request by _reload_user_permissions (nx_lib/hooks.py), so
-# we patch nx_lib.hooks.load_permissions_for_user (precedent:
+# TEST has no Statistics DB, so engines/registry are mocked on the VIEW
+# module (it does `from ..db import ...` / `from .. import mapping_config`
+# at load time). Session permissions are rewritten every request by
+# _reload_user_permissions (nx_lib/hooks.py), so we patch
+# nx_lib.hooks.load_permissions_for_user (precedent:
 # tests/integration/test_workitems_routes.py). SimpleCache is process-global
 # and the app fixture is session-scoped -> cache.clear() first, always.
-
-
-class _BoomEngine:
-    def raw_connection(self):
-        raise RuntimeError("nexora db hiccup")
-
-
-def _fake_nexora_engine(rows):
-    cur = MagicMock()
-    cur.fetchall.return_value = rows
-    conn = MagicMock()
-    conn.cursor.return_value = cur
-    eng = MagicMock()
-    eng.raw_connection.return_value = conn
-    return eng
 
 
 # --------------------- dashboard.view required on the four legacy KPI endpoints -----------
@@ -410,8 +395,9 @@ def test_avg_processing_time_without_dashboard_view_returns_403(noperm_client):
 
 
 def test_processed_over_time_error_response_is_not_cached(user_client, monkeypatch):
-    """A transient 500 (Statconfig read on NexoraDB fails) must not be pinned
-    in the 300s response cache: the next request re-executes the view."""
+    """A transient 500 (mapping_config registry read fails) must not be
+    pinned in the 300s response cache: the next request re-executes the
+    view."""
     cache.clear()
     monkeypatch.setattr(
         nx_lib.hooks,
@@ -419,11 +405,15 @@ def test_processed_over_time_error_response_is_not_cached(user_client, monkeypat
         lambda uid: ["dashboard.view", "dashboard.filter.process.sydoc.TestProc"],
     )
 
-    monkeypatch.setattr(dv, "engine_nexora_db", _BoomEngine())
+    def _boom():
+        raise RuntimeError("nexora db hiccup")
+
+    monkeypatch.setattr(dv.mapping_config, "registry", _boom)
     resp = user_client.get("/api/dashboard/processed_over_time")
     assert resp.status_code == 500
 
-    monkeypatch.setattr(dv, "engine_nexora_db", _fake_nexora_engine([]))
+    monkeypatch.setattr(dv.mapping_config, "registry", lambda: object())
+    monkeypatch.setattr(dv.mapping_config, "sources_for", lambda client, processes=None: [])
     resp2 = user_client.get("/api/dashboard/processed_over_time")
     assert resp2.status_code == 200
     assert resp2.get_json() == {"labels": [], "data": []}

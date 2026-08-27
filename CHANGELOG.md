@@ -68,6 +68,17 @@ Work toward the next release.
   recorded in `pyproject.toml` instead of being passed as a hook flag, and the
   hook now runs from the project environment so a local `mypy nx_lib nx_main.py`
   and the hook agree.
+- **Doc-field suggestion endpoints read the mapping_config registry; `col_`
+  prefix retired** (#98). `/api/docfield_values` (both the field-specific and
+  value-first "any field" paths) no longer query `SearchConfig` directly —
+  they resolve through `nx_lib.mapping_config`, like the search-filter
+  resolution paths already did. With every `SearchConfig` read gone from
+  `nx_lib/views/workitems.py`, `get_valid_search_columns()` and
+  `get_search_columns_for_processes()` now return bare lowercase field keys
+  instead of `col_`-prefixed ones — the last step of the two-phase migration
+  off the legacy naming convention; `nx_lib/views/api_external.py` updated to
+  match. The 600s suggestion caches and their key shapes (which encode the
+  sensitive-permission column set) are unchanged.
 - **Schema hygiene: `StatConfig` gets a primary key, `Logs` gets a timestamp
   index** (#98, migration `0073`). `StatConfig` was a PK-less heap with a
   nullable key column — now `ProcessName` is `NOT NULL` with a composite PK on
@@ -81,6 +92,36 @@ Work toward the next release.
   dropped the ~5 KB it duplicated from `docs/howto/db-migrations.md`, and the
   translations and GitNexus blocks became pointers. 28,069 -> 14,361 bytes with
   no content lost, only relocated; the Git branch policy is kept verbatim.
+- **Normalized mapping schema live, legacy tables decapitated** (#98,
+  migrations `0074`/`0075`). Every Python consumer of the doc-field/process
+  mapping config now reads the single cached registry in
+  `nx_lib/mapping_config.py`, backed by the normalized `dbo.ProcessSources` /
+  `ProcessFieldMappings` / `FieldLabels` / `FieldAliases` tables (`0074`).
+  With the cutover verified clean across the whole tree, migration `0075`
+  renames the four legacy tables (`SearchConfig`, `StatConfig`,
+  `IndexFieldMappings`, `Search_Field_Labels`) to `decapitated_*` — data is
+  preserved, not dropped, following the same reversible pattern `0042` used
+  for the chat/collaboration tables (later dropped for good by `0072`).
+
+- **Doc-field search performance: sargable predicates, seeded column types,
+  a short-lived allow-set cache, and a batched source-routing cache** (#98,
+  migrations `0076`–`0078`). `ProcessSource.id_column_type` is now seeded
+  from the live target DBs (`0076`, refined by fixup `0077`) so
+  `_ms02_columnar_sql` can emit a sargable comparison instead of an
+  unconditional `::text` cast on every row. Resolved doc-field allow-sets are
+  now cached for 60s per (client, field-spec, value) — repeat identical
+  searches skip re-querying MS02 entirely; the trade-off is that a workitem
+  imported in the last 60s can be briefly missing from a repeat of the exact
+  same search (accepted). `WorkitemSourceCache`'s primary key widens from
+  `(WorkItemID)` to `(WorkItemID, ClientCode)` (migration `0078`) since ids
+  collide across clients (1216 on INT) and a single-column PK could only ever
+  pin one client per id; `fetch_merged_page`'s cache-warm loop replaces up to
+  1000 sequential per-row lookups with one batched `_cache_lookup_many` call
+  per page, falling back to `get_source_for_workitem` only for ids missing
+  from the batch. Both `_cache_lookup` and `_cache_lookup_many` mirror
+  `get_source_for_workitem`'s existing collision fail-safe: more than one
+  row for an id is ambiguous and is never guessed — it's omitted (forcing a
+  re-probe) with an error logged.
 
 ### Fixed
 

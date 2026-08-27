@@ -2,44 +2,47 @@
 """Field catalog for curated reporting sources.
 
 `build_catalog` derives the catalog from the per-field availability map (which
-processes expose each `col_*` of SearchConfig) and localized label rows, with
-FieldMetadata as *optional* enrichment for type/aggregable/sortable. The DB
-fetch (`fetch_docprocessing_catalog`) is a thin wrapper that loads SearchConfig
-availability (required) plus Search_Field_Labels and FieldMetadata (optional;
-FieldMetadata does not exist on every environment).
+processes expose each field) and localized label rows, with FieldMetadata as
+*optional* enrichment for type/aggregable/sortable. The DB fetch
+(`fetch_docprocessing_catalog`) is a thin wrapper that loads the mapping_config
+#98 registry's availability + labels (required) plus FieldMetadata (optional;
+FieldMetadata does not exist on every environment -- see D10, untouched by
+this whole plan).
 """
+
+from types import SimpleNamespace
 
 from flask import current_app
 from flask_babel import gettext as _
 
+from .. import mapping_config
 from ..db import engine_nexora_db
 
 _LANG_COLS = {"de": "GermanLabel", "fr": "FrenchLabel", "it": "ItalianLabel"}
 
-# Synthetic date fields, derived from Statconfig (not SearchConfig.col_*).
-# field_key -> the Statconfig column attribute holding its date expression.
-_DATE_FIELDS = (("import_date", "ImportColumn"), ("export_date", "ExportColumn"))
+# Synthetic date fields, derived from ProcessSources (not ProcessFieldMappings).
+# field_key -> the ProcessSource attribute holding its date expression.
+_DATE_FIELDS = (("import_date", "import_column"), ("export_date", "export_column"))
 
-# Synthetic workitem-id field, derived from Statconfig.WorkitemColumn
-# (migration 0020). One canonical field key; the actual column name varies
-# per process (WorkItem / WorkitemID / WID ...).
+# Synthetic workitem-id field, derived from ProcessSource.workitem_column.
+# One canonical field key; the actual column name varies per process
+# (WorkItem / WorkitemID / WID ...).
 _WORKITEM_FIELD = "workitem_id"
 
 
-def date_availability(statconfig_rows, allowed_processes):
-    """{date_field: [process, ...]} for processes (in scope) whose Statconfig
-    Import/Export column is non-null. Pure: rows are objects with ProcessName +
-    ImportColumn/ExportColumn (or dicts with those keys)."""
+def date_availability(sources, allowed_processes):
+    """{date_field: [process, ...]} for processes (in scope) whose
+    ProcessSource import_column/export_column is non-null. Pure: `sources` are
+    mapping_config.ProcessSource rows (or any object exposing .process /
+    .import_column / .export_column)."""
     allowed = set(allowed_processes)
     out = {}
-    for r in statconfig_rows:
-        proc = r["ProcessName"] if isinstance(r, dict) else r.ProcessName
-        if proc not in allowed:
+    for s in sources:
+        if s.process not in allowed:
             continue
         for field, attr in _DATE_FIELDS:
-            val = r[attr] if isinstance(r, dict) else getattr(r, attr)
-            if val:
-                out.setdefault(field, []).append(proc)
+            if getattr(s, attr):
+                out.setdefault(field, []).append(s.process)
     return out
 
 
@@ -67,22 +70,12 @@ def date_catalog_entries(date_avail, labels):
     return entries
 
 
-def workitem_availability(statconfig_rows, allowed_processes):
-    """[process, ...] (in scope) whose Statconfig WorkitemColumn is non-null.
-
-    Pure: rows are objects or dicts with ProcessName + WorkitemColumn. A row
-    without the attribute (pre-0020 Statconfig) counts as unavailable rather
-    than raising, so un-migrated environments simply lack the field."""
+def workitem_availability(sources, allowed_processes):
+    """[process, ...] (in scope) whose ProcessSource.workitem_column is
+    non-null. Pure: `sources` are mapping_config.ProcessSource rows (or any
+    object exposing .process / .workitem_column)."""
     allowed = set(allowed_processes)
-    out = []
-    for r in statconfig_rows:
-        proc = r["ProcessName"] if isinstance(r, dict) else r.ProcessName
-        if proc not in allowed:
-            continue
-        val = r.get("WorkitemColumn") if isinstance(r, dict) else getattr(r, "WorkitemColumn", None)
-        if val:
-            out.append(proc)
-    return out
+    return [s.process for s in sources if s.process in allowed and s.workitem_column]
 
 
 def workitem_catalog_entries(processes, label):
@@ -107,8 +100,9 @@ def build_catalog(meta_rows, label_rows, availability, *, lang_col):
     """Merge availability + labels + optional metadata into a sorted field list.
 
     Each entry: {field, label, type, aggregable, sortable, filterable, processes}.
-    The field set is defined by `availability` (the col_* a permitted process
-    exposes), NOT by FieldMetadata: a field present in `availability` always
+    The field set is defined by `availability` (the field keys a permitted
+    process exposes, per nx_lib/mapping_config.py's ProcessFieldMappings-backed
+    registry), NOT by FieldMetadata: a field present in `availability` always
     appears (with defaults when no FieldMetadata row backs it), and a field with
     only a FieldMetadata row but no availability is excluded. FieldMetadata, when
     present, enriches type/aggregable/sortable. Filterable is always True (every
@@ -169,13 +163,17 @@ def _warn_once(table, exc):
 def fetch_docprocessing_catalog(allowed_processes, locale_str):
     """Load the docprocessing field catalog for the given allowed processes.
 
-    Returns build_catalog(...) output. SearchConfig availability is the source of
-    truth for the field set; Search_Field_Labels (labels) and FieldMetadata
-    (type/aggregable/sortable enrichment) are optional — a missing table or query
-    error for either yields empty rows rather than a 500. `processname` is always
-    available for any allowed process (synthesized by the query builder as a
-    constant per subquery). `status` is NOT injected here — SearchConfig has no
-    col_status column, so the query builder cannot resolve it.
+    Returns build_catalog(...) output. The mapping_config #98 registry's
+    ProcessFieldMappings availability is the source of truth for the field
+    set (required -- a registry load failure raises rather than silently
+    returning an empty catalog, same fail-loud contract as
+    nx_lib/views/dashboard.py's `_statconfig_sources`); FieldLabels (labels)
+    and FieldMetadata (type/aggregable/sortable enrichment) are optional -- a
+    missing table/registry or query error for either yields empty rows rather
+    than a 500. `processname` is always available for any allowed process
+    (synthesized by the query builder as a constant per subquery). `status`
+    is NOT injected here — the registry has no status field mapping, so the
+    query builder cannot resolve it.
     """
     conn = None
     try:
@@ -189,84 +187,82 @@ def fetch_docprocessing_catalog(allowed_processes, locale_str):
         except Exception as exc:
             _warn_once("FieldMetadata", exc)
             meta_rows = []
-
-        # Optional: localized labels.
-        try:
-            cur.execute(
-                "SELECT FieldKey, EnglishLabel, GermanLabel, FrenchLabel, ItalianLabel "
-                "FROM Search_Field_Labels"
-            )
-            label_rows = cur.fetchall()
-        except Exception as exc:
-            _warn_once("Search_Field_Labels", exc)
-            label_rows = []
-
-        # Required: SearchConfig drives the availability map (the field set).
-        cur.execute("SELECT TOP 0 * FROM SearchConfig")
-        cols = [c[0] for c in cur.description if c[0].startswith("col_")]
-        if not cols:
-            return build_catalog(meta_rows, label_rows, {}, lang_col=lang_col_for(locale_str))
-        select_cols = ", ".join(cols)
-        # Scope to the 'default' client only (same convention as the workitems
-        # doc-field search path, e.g. get_workitems_data's default docfield
-        # pre-fetch: `ClientCode = 'default'`). Without this filter, an 'ms02'
-        # SearchConfig row for a process that ALSO has a 'default' row (e.g.
-        # 'sydoc.05_PDBS') would contribute its columnar col_* mappings into
-        # this catalog too -- a field that only exists for MS02 would show up
-        # as "available" in the default docprocessing source's catalog, even
-        # though the default runner (StatisticsDB) can't resolve it.
-        cur.execute(
-            f"SELECT ProcessName, {select_cols} FROM SearchConfig WHERE ClientCode = 'default'"
-        )
-        availability = {}
-        allowed = set(allowed_processes)
-        for row in cur.fetchall():
-            if row.ProcessName not in allowed:
-                continue
-            for i, col in enumerate(cols):
-                if row[i + 1]:
-                    availability.setdefault(col[len("col_") :], []).append(row.ProcessName)
-        availability["processname"] = list(allowed_processes)
-
-        catalog = build_catalog(
-            meta_rows, label_rows, availability, lang_col=lang_col_for(locale_str)
-        )
-
-        # Synthetic fields from Statconfig (a different table from SearchConfig):
-        # import_date / export_date as first-class date fields, workitem_id from
-        # WorkitemColumn. SELECT * so a pre-0020 Statconfig (no WorkitemColumn)
-        # still yields the date fields; the helpers read attributes defensively.
-        try:
-            cur.execute("SELECT * FROM Statconfig WHERE ISNULL(ClientCode, 'default') <> 'ms02'")
-            statconfig_rows = cur.fetchall()
-        except Exception:
-            current_app.logger.warning("reporting catalog: Statconfig unavailable")
-            statconfig_rows = []
-        date_avail = date_availability(statconfig_rows, allowed_processes)
-        catalog += date_catalog_entries(
-            date_avail, {"import_date": _("Import date"), "export_date": _("Export date")}
-        )
-        if date_avail:
-            # Shared time axis for date-anchored measures (imported/exported/
-            # backlog): each measure buckets its OWN date onto this axis. Only
-            # valid together with anchored metrics — _prepare_run enforces.
-            catalog.append(
-                {
-                    "field": "activity_date",
-                    "label": _("Date"),
-                    "type": "date",
-                    "aggregable": False,
-                    "sortable": True,
-                    "filterable": True,
-                    "grainable": True,
-                    "processes": sorted({p for ps in date_avail.values() for p in ps}),
-                }
-            )
-        catalog += workitem_catalog_entries(
-            workitem_availability(statconfig_rows, allowed_processes), _("Workitem ID")
-        )
-        catalog.sort(key=lambda e: e["label"])
-        return catalog
     finally:
         if conn:
             conn.close()
+
+    # Required: the registry drives the availability map (the field set). A
+    # load failure must surface as an error here, never be silently reshaped
+    # into an empty catalog that looks like "no fields configured".
+    if mapping_config.registry() is None:
+        raise RuntimeError("mapping_config registry unavailable")
+
+    # Optional: localized labels.
+    label_dict = mapping_config.labels() or {}
+    label_rows = [
+        SimpleNamespace(
+            FieldKey=key,
+            EnglishLabel=meta.get("en"),
+            GermanLabel=meta.get("de"),
+            FrenchLabel=meta.get("fr"),
+            ItalianLabel=meta.get("it"),
+        )
+        for key, meta in label_dict.items()
+    ]
+
+    # Scope to the 'default' client only (same convention as the workitems
+    # doc-field search path, e.g. get_workitems_data's default docfield
+    # pre-fetch: `ClientCode = 'default'`). Without this filter, an 'ms02'
+    # ProcessFieldMappings row for a process that ALSO has a 'default' row
+    # (e.g. 'sydoc.05_PDBS') would contribute its field mappings into this
+    # catalog too -- a field that only exists for MS02 would show up as
+    # "available" in the default docprocessing source's catalog, even though
+    # the default runner (StatisticsDB) can't resolve it.
+    availability = {}
+    allowed = set(allowed_processes)
+    for m in mapping_config.mappings_for("default", allowed_processes):
+        if m.process not in allowed:
+            continue
+        availability.setdefault(m.field_key, []).append(m.process)
+    availability["processname"] = list(allowed_processes)
+
+    catalog = build_catalog(meta_rows, label_rows, availability, lang_col=lang_col_for(locale_str))
+
+    # Synthetic fields from ProcessSources (a different table from
+    # ProcessFieldMappings): import_date / export_date as first-class date
+    # fields, workitem_id from workitem_column. Non-ms02 clients only, same
+    # scope as mapping_config.sources_for()'s ProcessSources read.
+    if mapping_config.registry() is None:
+        current_app.logger.warning("reporting catalog: ProcessSources unavailable")
+        sources = []
+    else:
+        sources = [
+            s
+            for s in mapping_config.sources_for(None, allowed_processes)
+            if (s.client or "default") != "ms02"
+        ]
+    date_avail = date_availability(sources, allowed_processes)
+    catalog += date_catalog_entries(
+        date_avail, {"import_date": _("Import date"), "export_date": _("Export date")}
+    )
+    if date_avail:
+        # Shared time axis for date-anchored measures (imported/exported/
+        # backlog): each measure buckets its OWN date onto this axis. Only
+        # valid together with anchored metrics — _prepare_run enforces.
+        catalog.append(
+            {
+                "field": "activity_date",
+                "label": _("Date"),
+                "type": "date",
+                "aggregable": False,
+                "sortable": True,
+                "filterable": True,
+                "grainable": True,
+                "processes": sorted({p for ps in date_avail.values() for p in ps}),
+            }
+        )
+    catalog += workitem_catalog_entries(
+        workitem_availability(sources, allowed_processes), _("Workitem ID")
+    )
+    catalog.sort(key=lambda e: e["label"])
+    return catalog

@@ -1,14 +1,14 @@
 ﻿USE [nexora]
 GO
-ALTER TABLE [dbo].[StatConfig] DROP CONSTRAINT [DF_Statconfig_ClientCode]
+ALTER TABLE [dbo].[decapitated_StatConfig] DROP CONSTRAINT [DF_Statconfig_ClientCode]
 GO
-DROP TABLE [dbo].[StatConfig]
+DROP TABLE [dbo].[decapitated_StatConfig]
 GO
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE TABLE [dbo].[StatConfig](
+CREATE TABLE [dbo].[decapitated_StatConfig](
 	[ProcessName] [nvarchar](100) NOT NULL,
 	[TableName] [nvarchar](100) NULL,
 	[ExportColumn] [nvarchar](100) NULL,
@@ -23,5 +23,5 @@ CREATE TABLE [dbo].[StatConfig](
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[StatConfig] ADD  CONSTRAINT [DF_Statconfig_ClientCode]  DEFAULT ('default') FOR [ClientCode]
+ALTER TABLE [dbo].[decapitated_StatConfig] ADD  CONSTRAINT [DF_Statconfig_ClientCode]  DEFAULT ('default') FOR [ClientCode]
 GO

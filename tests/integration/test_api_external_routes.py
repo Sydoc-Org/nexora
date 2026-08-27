@@ -14,7 +14,6 @@ No login fixtures: this API never touches the session.
 
 import hashlib
 import secrets
-import types
 from datetime import date, datetime
 from unittest.mock import MagicMock
 
@@ -24,6 +23,7 @@ import nx_lib.views.api_external as ax
 import nx_lib.views.dashboard as dv
 from nx_lib.clients import CLIENTS as CLIENTS_REGISTRY
 from nx_lib.db import engine_nexora_db
+from nx_lib.mapping_config import ProcessSource
 
 URL = "/api/v1/stats/today"
 
@@ -221,21 +221,45 @@ def _dead_engine(msg="StatisticsDB down"):
 
 
 def _cfg_row(client_code, name, table, exp, imp):
-    return types.SimpleNamespace(
-        ClientCode=client_code,
-        ProcessName=name,
-        TableName=table,
-        ExportColumn=exp,
-        ImportColumn=imp,
-        additionalCondition=None,
+    return ProcessSource(
+        client=client_code,
+        process=name,
+        table=table,
+        alias=None,
+        join_condition=None,
+        time_filter=None,
+        suggestion_time_filter=None,
+        export_column=exp,
+        import_column=imp,
+        workitem_column=None,
+        extra_condition=None,
+        id_column_type=None,
     )
+
+
+def _stub_sources(monkeypatch, configs):
+    """Replace mapping_config.registry()/sources_for() on the dashboard view
+    module so _statconfig_sources returns `configs` -- the direct successor
+    to monkeypatching dv.engine_nexora_db with a fake cursor around the
+    legacy Statconfig SELECT (#98)."""
+    monkeypatch.setattr(dv.mapping_config, "registry", lambda: object())
+    monkeypatch.setattr(
+        dv.mapping_config, "sources_for", lambda client, processes=None: list(configs)
+    )
+
+
+def _stub_sources_dead(monkeypatch, msg="NexoraDB down"):
+    def _boom():
+        raise RuntimeError(msg)
+
+    monkeypatch.setattr(dv.mapping_config, "registry", _boom)
 
 
 def test_statistics_db_outage_returns_500_not_zeros(client, monkeypatch):
     raw = secrets.token_urlsafe(32)
     key_hash = _insert_key(raw, processes="sydoc.TestProc")
     cfg = _cfg_row("default", "sydoc.TestProc", "dbo.tblTest", "ExportDate", "ImportDate")
-    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning([cfg]))
+    _stub_sources(monkeypatch, [cfg])
     monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine("Statistics DB down"))
     try:
         resp = client.get(URL, headers={"Authorization": f"Bearer {raw}"})
@@ -252,7 +276,7 @@ def test_genuinely_quiet_day_still_returns_200_zeros(client, monkeypatch):
     raw = secrets.token_urlsafe(32)
     key_hash = _insert_key(raw, processes="sydoc.TestProc")
     cfg = _cfg_row("default", "sydoc.TestProc", "dbo.tblTest", "ExportDate", "ImportDate")
-    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning([cfg]))
+    _stub_sources(monkeypatch, [cfg])
     monkeypatch.setattr(dv, "engine_statistics_db", _engine_returning([(None, None)]))
     try:
         resp = client.get(URL, headers={"Authorization": f"Bearer {raw}"})
@@ -268,12 +292,19 @@ def test_genuinely_quiet_day_still_returns_200_zeros(client, monkeypatch):
 
 
 def _import_cfg_row(client_code, name, table, wid_col, imp_col):
-    return types.SimpleNamespace(
-        ClientCode=client_code,
-        ProcessName=name,
-        TableName=table,
-        WorkitemColumn=wid_col,
-        ImportColumn=imp_col,
+    return ProcessSource(
+        client=client_code,
+        process=name,
+        table=table,
+        alias=None,
+        join_condition=None,
+        time_filter=None,
+        suggestion_time_filter=None,
+        export_column=None,
+        import_column=imp_col,
+        workitem_column=wid_col,
+        extra_condition=None,
+        id_column_type=None,
     )
 
 
@@ -285,7 +316,7 @@ def test_resolve_import_datetimes_maps_ids_and_skips_unmapped(monkeypatch, auth_
         # MS02 rows never feed the default-leg UNION.
         _import_cfg_row("ms02", "sydoc.MsProc", 'public."DossierStatistik"', "wid", "imp"),
     ]
-    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning(cfgs))
+    _stub_sources(monkeypatch, cfgs)
     monkeypatch.setattr(
         dv, "engine_statistics_db", _engine_returning([("1216", datetime(2026, 8, 1, 8, 0, 0))])
     )
@@ -294,7 +325,7 @@ def test_resolve_import_datetimes_maps_ids_and_skips_unmapped(monkeypatch, auth_
 
 
 def test_resolve_import_datetimes_empty_inputs_short_circuit(monkeypatch, auth_app_ctx):
-    monkeypatch.setattr(dv, "engine_nexora_db", _dead_engine("must not be reached"))
+    _stub_sources_dead(monkeypatch, "must not be reached")
     assert dv.resolve_import_datetimes([], ["sydoc.TestProc"]) == {}
     assert dv.resolve_import_datetimes([1], []) == {}
 
@@ -306,7 +337,7 @@ def test_resolve_import_datetimes_chunks_under_param_limit(monkeypatch, auth_app
         _import_cfg_row("default", f"sydoc.P{i}", f"dbo.tbl{i}", "WorkitemID", "ImportDate")
         for i in range(3)
     ]
-    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning(cfgs))
+    _stub_sources(monkeypatch, cfgs)
     calls = []
 
     def _fake_rows(sql, params=None, *, strict=False):
@@ -322,7 +353,7 @@ def test_resolve_import_datetimes_chunks_under_param_limit(monkeypatch, auth_app
 
 def test_resolve_import_datetimes_strict_raises_on_outage(monkeypatch, auth_app_ctx):
     cfg = _import_cfg_row("default", "sydoc.TestProc", "dbo.tblTest", "WorkitemID", "ImportDate")
-    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning([cfg]))
+    _stub_sources(monkeypatch, [cfg])
     monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine("Statistics DB down"))
     with pytest.raises(RuntimeError):
         dv.resolve_import_datetimes([1216], ["sydoc.TestProc"], strict=True)
@@ -522,7 +553,7 @@ WORKITEMS_URL = "/api/v1/workitems"
 WORKITEM_DETAIL_URL = "/api/v1/workitems/1216"
 
 
-def _patch_field_whitelist(monkeypatch, columns=("col_invoicenr",), sensitive=(), scoped=None):
+def _patch_field_whitelist(monkeypatch, columns=("invoicenr",), sensitive=(), scoped=None):
     """Doc-field whitelist without a NexoraDB round-trip. scoped defaults to
     columns (every valid column mapped for the key's scope); pass a subset to
     exercise the mapped-for-no-target-process 400."""
@@ -578,7 +609,7 @@ def test_workitems_unknown_and_sensitive_field_answer_identically(client, monkey
     # sensitivity-existence oracle on the external surface.
     raw = secrets.token_urlsafe(32)
     key_hash = _insert_key(raw)
-    _patch_field_whitelist(monkeypatch, columns=("col_invoicenr", "col_pid"), sensitive=("pid",))
+    _patch_field_whitelist(monkeypatch, columns=("invoicenr", "pid"), sensitive=("pid",))
     try:
         for field in ("nosuchfield", "pid"):
             resp = client.get(
@@ -809,8 +840,9 @@ def test_workitems_real_data_path_and_docfield_fail_closed(client, monkeypatch):
     # Drives the REAL _get_workitems_data (no seam monkeypatch) with the
     # scope built from the key -- pins the stringly-typed scope-dict seam --
     # and pins the documented fail-closed contract: an active doc-field pair
-    # that cannot be resolved (no SearchConfig mapping here) must force an
-    # EMPTY allow-set, never an unconstrained query.
+    # that cannot be resolved (no mapping_config mapping here, #98 phase 3)
+    # must force an EMPTY allow-set, never an unconstrained query.
+    import nx_lib.mapping_config as mc
     import nx_lib.views.workitems as wi
 
     raw = secrets.token_urlsafe(32)
@@ -823,8 +855,12 @@ def test_workitems_real_data_path_and_docfield_fail_closed(client, monkeypatch):
 
     monkeypatch.setattr(wi, "fetch_merged_page", _fake_fetch)
     monkeypatch.setattr(wi, "get_activity_instances_to_ignore", lambda: "")
-    monkeypatch.setattr(wi, "get_valid_search_columns", lambda: ["col_invoicenr"])
-    monkeypatch.setattr(wi, "engine_nexora_db", _engine_returning([]))  # no SearchConfig rows
+    monkeypatch.setattr(wi, "get_valid_search_columns", lambda: ["invoicenr"])
+    # No mapping_config rows for the field -> the resolution blocks' upfront
+    # mappings_for/sources_for reads (#98 phase 3) come back empty, same as
+    # the old "no SearchConfig rows" simulation.
+    monkeypatch.setattr(mc, "mappings_for", lambda client, processes, field_keys=None: [])
+    monkeypatch.setattr(mc, "sources_for", lambda client, processes=None: [])
     _patch_field_whitelist(monkeypatch)  # view-level whitelist (ax namespace)
     monkeypatch.setattr(ax, "resolve_import_datetimes", lambda ids, procs, *, strict=False: {})
     try:
@@ -1356,13 +1392,13 @@ def test_test_undelivered_good_key_returns_random_data_in_real_shape(client):
 def test_undelivered_compute_runs_real_sql_leg(client, monkeypatch):
     # Exercise compute_undelivered_count FOR REAL (only engines faked): the
     # T-SQL leg must window on the import column, require a NULL export
-    # column, and skip Statconfig rows without an ImportColumn.
+    # column, and skip ProcessSources rows without an import_column.
     raw = secrets.token_urlsafe(32)
     key_hash = _insert_key(raw, processes="sydoc.TestProc")
     cfg_ok = _cfg_row("default", "sydoc.TestProc", "dbo.tblTest", "ExportDate", "ImportDate")
     cfg_no_import = _cfg_row("default", "sydoc.TestProc", "dbo.tblOther", "ExportDate", None)
     stats_engine = _engine_returning([(5,)])
-    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning([cfg_ok, cfg_no_import]))
+    _stub_sources(monkeypatch, [cfg_ok, cfg_no_import])
     monkeypatch.setattr(dv, "engine_statistics_db", stats_engine)
     try:
         resp = client.get(f"{UNDELIVERED_URL}?days=7", headers={"Authorization": f"Bearer {raw}"})
@@ -1396,9 +1432,7 @@ TEST_FIELDS_URL = "/api/test/v1/workitems/fields"
 def test_workitems_fields_lists_keys_minus_sensitive(client, monkeypatch):
     raw = secrets.token_urlsafe(32)
     key_hash = _insert_key(raw)
-    _patch_field_whitelist(
-        monkeypatch, columns=("col_invoicenr", "col_pid", "col_doctype"), sensitive=("pid",)
-    )
+    _patch_field_whitelist(monkeypatch, columns=("invoicenr", "pid", "doctype"), sensitive=("pid",))
     try:
         resp = client.get(FIELDS_URL, headers={"Authorization": f"Bearer {raw}"})
         assert resp.status_code == 200
@@ -1413,12 +1447,12 @@ def test_workitems_fields_fails_closed_on_lookup_errors(client, monkeypatch):
     raw = secrets.token_urlsafe(32)
     key_hash = _insert_key(raw)
     try:
-        _patch_field_whitelist(monkeypatch, columns=("col_invoicenr",))
+        _patch_field_whitelist(monkeypatch, columns=("invoicenr",))
         monkeypatch.setattr(ax, "get_sensitive_field_keys", lambda: None)
         resp = client.get(FIELDS_URL, headers={"Authorization": f"Bearer {raw}"})
         assert resp.status_code == 500
         assert resp.get_json() == {"error": "Workitems backend unavailable"}
-        _patch_field_whitelist(monkeypatch, columns=("col_invoicenr",))
+        _patch_field_whitelist(monkeypatch, columns=("invoicenr",))
         monkeypatch.setattr(ax, "get_search_columns_for_processes", lambda processes: None)
         resp = client.get(FIELDS_URL, headers={"Authorization": f"Bearer {raw}"})
         assert resp.status_code == 500
@@ -1447,9 +1481,7 @@ def test_workitems_field_unmapped_for_scope_returns_400(client, monkeypatch):
     # message distinct from the unknown/sensitive "Unknown field".
     raw = secrets.token_urlsafe(32)
     key_hash = _insert_key(raw)
-    _patch_field_whitelist(
-        monkeypatch, columns=("col_invoicenr", "col_doctype"), scoped=("col_invoicenr",)
-    )
+    _patch_field_whitelist(monkeypatch, columns=("invoicenr", "doctype"), scoped=("invoicenr",))
 
     def _must_not_be_called(*a, **kw):
         raise AssertionError("_get_workitems_data must not run for an unmapped field")
@@ -1478,24 +1510,20 @@ def test_workitems_field_unmapped_for_scope_returns_400(client, monkeypatch):
 
 
 def test_get_search_columns_for_processes_maps_and_fails_closed(monkeypatch, auth_app_ctx):
-    # Unit-ish: non-NULL col_* cells across the scope's rows union up
-    # (lowercased); empty scope short-circuits; a dead engine returns None.
+    # Delegates to mapping_config.field_keys_for_processes (#98): keys come
+    # back bare lowercase (the col_ prefix was retired in task 6); empty
+    # scope short-circuits without a registry lookup; a registry load
+    # failure (None) propagates so the external API keeps failing closed.
+    import nx_lib.mapping_config as mc
     import nx_lib.views.workitems as wi
 
-    cur = MagicMock()
-    cur.description = [("ProcessName",), ("TableName",), ("col_InvoiceNr",), ("col_doctype",)]
-    cur.fetchall.return_value = [("p.a", "t1", "InvNo", None), ("p.b", "t2", None, "DocType")]
-    conn = MagicMock()
-    conn.cursor.return_value = cur
-    eng = MagicMock()
-    eng.raw_connection.return_value = conn
-    monkeypatch.setattr(wi, "engine_nexora_db", eng)
+    monkeypatch.setattr(mc, "field_keys_for_processes", lambda processes: {"invoicenr", "doctype"})
     assert wi.get_search_columns_for_processes(["p.a", "p.b"]) == {
-        "col_invoicenr",
-        "col_doctype",
+        "invoicenr",
+        "doctype",
     }
     assert wi.get_search_columns_for_processes([]) == set()
-    monkeypatch.setattr(wi, "engine_nexora_db", _dead_engine("NexoraDB down"))
+    monkeypatch.setattr(mc, "field_keys_for_processes", lambda processes: None)
     assert wi.get_search_columns_for_processes(["p.a"]) is None
 
 
@@ -1821,9 +1849,7 @@ def test_workitems_process_list_tolerates_whitespace(client, monkeypatch):
 def test_workitems_fields_sorted_and_stamps_last_used(client, monkeypatch):
     raw = secrets.token_urlsafe(32)
     key_hash = _insert_key(raw)
-    _patch_field_whitelist(
-        monkeypatch, columns=("col_zeta", "col_alpha", "col_mid"), sensitive=("mid",)
-    )
+    _patch_field_whitelist(monkeypatch, columns=("zeta", "alpha", "mid"), sensitive=("mid",))
     try:
         resp = client.get(FIELDS_URL, headers={"Authorization": f"Bearer {raw}"})
         assert resp.status_code == 200
