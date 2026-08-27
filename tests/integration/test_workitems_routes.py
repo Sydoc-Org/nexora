@@ -38,6 +38,38 @@ import pytest
 import requests
 
 
+@pytest.fixture(autouse=True)
+def _clear_docfield_ids_cache(app):
+    """(#98 Task 13) The 60s docfield-allow-set result cache is keyed on
+    (leg, target_processes, pairs_normalized) -- it does NOT know about a
+    test's mocked mapping_config/engine, so two unrelated tests that happen
+    to reuse the same literal field/value/target_processes (e.g.
+    "validationuser"/"alice"/"sydoc.test_proc", which many tests in this file
+    do) but stub DIFFERENT fake tables/columns/blocked-sets would otherwise
+    collide on the same cache entry and silently read each other's result --
+    a test-fixture artifact only, since in production the mapping for a
+    given (client, process, field_key) is stable rather than swapped per
+    request. Clearing before every test keeps each test's SQL-log assertions
+    honest regardless of run order/selection.
+
+    MUST clear inside ``app.app_context()``, not bare ``cache.clear()``:
+    outside a request/app context Flask-Caching's ``Cache`` falls back to
+    ``self.app`` -- whatever Flask app last called ``cache.init_app()`` --
+    which is NOT necessarily this session's ``app`` fixture. Importing
+    ``ops.run_scheduled_reports`` (as the scheduled-report delivery tests in
+    test_reporting_routes.py do) triggers ``from nx_main import app``, and
+    since ``nx_main.py`` calls ``create_app()`` at import time, that SECOND
+    app silently becomes the fallback for the rest of the process -- so a
+    bare ``cache.clear()`` run between tests would clear the wrong app's
+    cache while real requests (dispatched through THIS app) keep reading a
+    never-cleared one. Binding the context here removes the ambiguity."""
+    import nx_lib.views.workitems as wv
+
+    with app.app_context():
+        wv.cache.clear()
+    yield
+
+
 @pytest.fixture()
 def workitems_all_perms(monkeypatch):
     monkeypatch.setattr("nx_lib.security.has_permission", lambda code: True)
@@ -648,6 +680,123 @@ def test_get_workitems_data_unmapped_docfield_zeroes_both_sources(
     assert captured["filt"].ms02_docfield_ids == set()
 
 
+def test_get_workitems_data_docfield_cache_hits_resolution_once(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """(#98 Task 13) Two identical /api/workitems doc-field requests must hit
+    the default leg's StatisticsDB resolution query only once -- the second
+    request is served from the 60s allow-set result cache instead of
+    re-running the pair-fold."""
+    import nx_lib.hooks as hooks
+    import nx_lib.views.workitems as wv
+
+    monkeypatch.setattr(
+        hooks,
+        "load_permissions_for_user",
+        lambda uid: [
+            "workitems.view",
+            "workitems.filter.documentfields",
+            "workitems.filter.process.sydoc.test_proc",
+        ],
+    )
+
+    sql_log = []
+    monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine(sql_log))
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", None)
+
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["validationuser"])
+    monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: set())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+
+    _stub_mapping_config(
+        monkeypatch,
+        wv,
+        default_mappings=[_fm("validationuser", "ValidationUser")],
+        default_sources=[_ps("sydoc.test_proc", "dbo.T")],
+    )
+
+    monkeypatch.setattr(wv, "fetch_merged_page", lambda filt, offset, per_page: ([], 0, []))
+
+    qs = {"prcfW": "all", "docfield": "validationuser", "docvalue": "alice"}
+
+    resp1 = user_client.get("/api/workitems", query_string=qs)
+    assert resp1.status_code == 200
+    first_hits = len([q for q in sql_log if "ValidationUser" in q])
+    assert first_hits == 1, sql_log
+
+    resp2 = user_client.get("/api/workitems", query_string=qs)
+    assert resp2.status_code == 200
+    second_hits = len([q for q in sql_log if "ValidationUser" in q])
+    assert second_hits == first_hits, sql_log
+
+
+def test_get_workitems_data_docfield_cache_never_caches_error_path(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """(#98 Task 13, D7) A StatisticsDB error during default-leg resolution
+    must never populate the result cache. The pair fails closed (empty set)
+    for the request that hit the error, but a second identical request must
+    re-resolve (hit StatisticsDB again) rather than replay a cached
+    error-path result for up to 60s -- the exact failure class behind the
+    2026-07-20 STAGING incident."""
+    import nx_lib.hooks as hooks
+    import nx_lib.views.workitems as wv
+
+    monkeypatch.setattr(
+        hooks,
+        "load_permissions_for_user",
+        lambda uid: [
+            "workitems.view",
+            "workitems.filter.documentfields",
+            "workitems.filter.process.sydoc.test_proc",
+        ],
+    )
+
+    class _RaisingEngine:
+        def __init__(self):
+            self.calls = 0
+
+        def raw_connection(self):
+            self.calls += 1
+            raise RuntimeError("StatisticsDB unavailable")
+
+    raising_engine = _RaisingEngine()
+    monkeypatch.setattr(wv, "engine_statistics_db", raising_engine)
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", None)
+
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["validationuser"])
+    monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: set())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+
+    _stub_mapping_config(
+        monkeypatch,
+        wv,
+        default_mappings=[_fm("validationuser", "ValidationUser")],
+        default_sources=[_ps("sydoc.test_proc", "dbo.T")],
+    )
+
+    captured = []
+
+    def _fake_fetch_merged_page(filt, offset, per_page):
+        captured.append(filt)
+        return [], 0, []
+
+    monkeypatch.setattr(wv, "fetch_merged_page", _fake_fetch_merged_page)
+
+    qs = {"prcfW": "all", "docfield": "validationuser", "docvalue": "alice"}
+
+    resp1 = user_client.get("/api/workitems", query_string=qs)
+    assert resp1.status_code == 200
+    assert captured[0].docfield_ids == set()  # fail-closed for the pair
+    assert raising_engine.calls == 1
+
+    resp2 = user_client.get("/api/workitems", query_string=qs)
+    assert resp2.status_code == 200
+    assert captured[1].docfield_ids == set()
+    # A cached error result would leave calls at 1 here -- it must re-resolve.
+    assert raising_engine.calls == 2
+
+
 def test_get_workitems_data_fieldless_pair_searches_all_columns(
     user_client, workitems_all_perms, monkeypatch
 ):
@@ -850,10 +999,11 @@ def test_docfield_or_pair_processed_without_early_break(
     """(#148) with AND-only semantics the first no-mapping pair used to break
     out of the loop; OR support requires every pair to be evaluated. Two
     field-carrying pairs must both reach the op/comb resolution step (spied
-    via _docfield_op, called once per pair in EACH of the two resolution legs
-    -- default and MS02 -- so both pair indices must appear twice) even
-    though StatisticsDB (stubbed to return no rows) ultimately resolves both
-    to empty."""
+    via _docfield_op) even though StatisticsDB (stubbed to return no rows)
+    ultimately resolves both to empty. Each leg calls _docfield_op twice per
+    pair now (#98 Task 13): once while building the leg's normalized cache
+    key, once in the actual pair-fold loop -- so with two legs (default +
+    MS02) and two pairs, each pair index appears FOUR times."""
     sql_log = []
     _op_test_scaffold(monkeypatch, sql_log)
 
@@ -889,7 +1039,7 @@ def test_docfield_or_pair_processed_without_early_break(
         ],
     )
     assert resp.status_code == 200
-    assert sorted(pair_indices) == [0, 0, 1, 1], pair_indices
+    assert sorted(pair_indices) == [0, 0, 0, 0, 1, 1, 1, 1], pair_indices
     # both pairs mapped but StatisticsDB (stubbed) returns no rows -> OR-fold
     # of two empty sets -> still fail-closed
     assert captured["filt"].docfield_ids == set()

@@ -4,6 +4,7 @@ plus the CSV exporter."""
 import base64
 import concurrent.futures
 import csv
+import hashlib
 import io
 import json
 import math
@@ -221,6 +222,61 @@ def _docfield_comb(doccombs, i):
     ('and' fallback; the first pair's value is ignored by the fold)."""
     comb = (doccombs[i] if i < len(doccombs) else "").lower().strip()
     return comb if comb in ("and", "or") else "and"
+
+
+def _docfield_pairs_normalized(
+    docfields, docvalues, docops, doccombs, valid_db_columns, blocked_docfields
+):
+    """The ``(field_keys, value, op, comb)`` tuples that actually drive a
+    leg's pair-fold (#98 Task 13 cache key input) -- mirrors the per-pair
+    ``continue`` guards each leg's resolution loop applies (empty value,
+    unknown field, sensitive-blocked field), so two requests that resolve
+    identically hash identically.
+
+    ``field_keys`` is the RESOLVED sorted tuple of target field keys, not the
+    raw ``docfield`` string: for an explicit field it is that one key; for a
+    value-first pair (no field picked, #148) it is every permitted
+    non-sensitive column, i.e. ``valid_db_columns - blocked_docfields``. Using
+    the resolved set (rather than the empty string every value-first pair
+    would otherwise normalize to) is what makes sensitive-field filtering
+    actually key-scoped: two callers with different sensitive-field
+    permissions searching the same bare value would otherwise both normalize
+    to the SAME raw-field pair and collide on one cache entry, letting a
+    lower-privilege caller inherit a higher-privilege caller's allow-set --
+    an allow-set that can include workitem ids matched ONLY via a sensitive
+    column the lower-privilege caller must never be able to infer the
+    contents of. Keying on the resolved column set instead makes any
+    permission difference a genuinely different key. Sensitive-field
+    filtering happens here, BEFORE any cache key is built, so a blocked pair
+    never contributes to the key.
+    """
+    pairs = []
+    for i, (docfield, docvalue) in enumerate(zip(docfields, docvalues, strict=False)):
+        docfield = (docfield or "").lower().strip()
+        docvalue = (docvalue or "").strip()
+        if not docvalue:
+            continue
+        if docfield:
+            if docfield not in valid_db_columns or docfield in blocked_docfields:
+                continue
+            field_keys = (docfield,)
+        else:
+            field_keys = tuple(sorted(c for c in valid_db_columns if c not in blocked_docfields))
+            if not field_keys:
+                continue
+        pairs.append((field_keys, docvalue, _docfield_op(docops, i), _docfield_comb(doccombs, i)))
+    return tuple(pairs)
+
+
+def _docfield_ids_cache_key(leg, target_processes, pairs_normalized):
+    """Cache key for a leg's resolved allow-set (#98 Task 13). ``leg`` is
+    'default' / 'ms02'. Callers must pair this with the ('v', result) sentinel
+    when storing, so a legitimately-empty resolved set is distinguishable
+    from a cache miss, and must NEVER cache.set on an error/None path."""
+    return (
+        f"docfield_ids_{leg}_"
+        + hashlib.sha1(repr((sorted(target_processes), pairs_normalized)).encode()).hexdigest()
+    )
 
 
 def get_valid_search_columns():
@@ -622,104 +678,134 @@ def _get_workitems_data(args, export_all=False, scope=None):
                 _default_id_col_cache[src.process] = id_col
             return _default_id_col_cache[src.process]
 
-        try:
-            for pair_idx, (docfield, docvalue) in enumerate(
-                zip(docfields, docvalues, strict=False)
-            ):
-                docfield = (docfield or "").lower().strip()
-                docvalue = (docvalue or "").strip()
+        # Result cache (#98 Task 13): key on the target processes plus the
+        # pairs that actually drive resolution (sensitive-blocked/invalid
+        # pairs already dropped by _docfield_pairs_normalized, so the key
+        # itself is permission-scoped). ("v", result) sentinel distinguishes
+        # a resolved-but-empty set from a cache miss.
+        _default_pairs_normalized = _docfield_pairs_normalized(
+            docfields, docvalues, docops, doccombs, valid_db_columns, blocked_docfields
+        )
+        _default_cache_key = _docfield_ids_cache_key(
+            "default", target_processes, _default_pairs_normalized
+        )
+        _default_cached = cache.get(_default_cache_key)
+        if (
+            isinstance(_default_cached, tuple)
+            and len(_default_cached) == 2
+            and _default_cached[0] == "v"
+        ):
+            docfield_ids = _default_cached[1]
+        else:
+            _default_had_error = False
+            try:
+                for pair_idx, (docfield, docvalue) in enumerate(
+                    zip(docfields, docvalues, strict=False)
+                ):
+                    docfield = (docfield or "").lower().strip()
+                    docvalue = (docvalue or "").strip()
 
-                if not docvalue:
-                    continue
-
-                if docfield:
-                    if docfield not in valid_db_columns:
+                    if not docvalue:
                         continue
-                    if docfield in blocked_docfields:
-                        continue
-                    target_field_keys = {docfield}
-                else:
-                    # Value-first search (issue #148): no field picked -> OR the
-                    # value across every permitted, non-sensitive field. The
-                    # UNION below already ORs across configs, so widening it to
-                    # multiple fields keeps the same shape.
-                    target_field_keys = {c for c in valid_db_columns if c not in blocked_docfields}
-                    if not target_field_keys:
-                        continue
 
-                op_key = _docfield_op(docops, pair_idx)
-
-                configs = [m for m in default_mappings if m.field_key in target_field_keys]
-
-                if not configs:
-                    # Field unmapped for every targeted default process -> this
-                    # pair cannot match here -> force zero rows for THIS pair.
-                    # No early break (an OR-joined later pair may still widen
-                    # the result); the fold below preserves AND semantics.
-                    pair_ids = set()
-                else:
-                    id_parts = []
-                    id_params = []
-                    for config in configs:
-                        src = default_sources.get(config.process)
-                        if src is None or not src.table:
+                    if docfield:
+                        if docfield not in valid_db_columns:
                             continue
-                        tbl = src.table
-                        alias = src.alias
-                        time_filter = src.time_filter
-
-                        id_col = _default_id_col(src)
-                        if not id_col:
+                        if docfield in blocked_docfields:
+                            continue
+                        target_field_keys = {docfield}
+                    else:
+                        # Value-first search (issue #148): no field picked -> OR the
+                        # value across every permitted, non-sensitive field. The
+                        # UNION below already ORs across configs, so widening it to
+                        # multiple fields keeps the same shape.
+                        target_field_keys = {
+                            c for c in valid_db_columns if c not in blocked_docfields
+                        }
+                        if not target_field_keys:
                             continue
 
-                        db_column = config.column
-                        if not db_column:
-                            continue
-                        # Sargable predicate from ColumnType (#98 Task 12) --
-                        # bare-column/native-int compare when the type is
-                        # known-safe, else the legacy CAST+COLLATE fallback.
-                        pred_sql, pred_params = _docfield_predicate(
-                            alias, db_column, config.column_type, op_key, docvalue
-                        )
-                        id_parts.append(f"""
-                            SELECT DISTINCT {id_col} AS id
-                            FROM {tbl} {alias}
-                            WHERE {pred_sql}
-                            AND {time_filter}
-                        """)
-                        id_params.extend(pred_params)
+                    op_key = _docfield_op(docops, pair_idx)
 
-                    if not id_parts:
-                        continue  # mapping rows exist but unusable -> tolerant skip
+                    configs = [m for m in default_mappings if m.field_key in target_field_keys]
 
-                    stat_conn = None
-                    try:
-                        stat_conn = engine_statistics_db.raw_connection()
-                        stat_cur = stat_conn.cursor()
-                        union_sql = " UNION ALL ".join(id_parts)
-                        stat_cur.execute(f"SELECT DISTINCT id FROM ({union_sql}) t", id_params)
-                        matching_ids = [row[0] for row in stat_cur.fetchall()]
-                    except Exception as e:
-                        current_app.logger.error(f"Error pre-fetching docfield IDs: {e}")
-                        matching_ids = None
-                    finally:
-                        if stat_conn:
-                            stat_conn.close()
+                    if not configs:
+                        # Field unmapped for every targeted default process -> this
+                        # pair cannot match here -> force zero rows for THIS pair.
+                        # No early break (an OR-joined later pair may still widen
+                        # the result); the fold below preserves AND semantics.
+                        pair_ids = set()
+                    else:
+                        id_parts = []
+                        id_params = []
+                        for config in configs:
+                            src = default_sources.get(config.process)
+                            if src is None or not src.table:
+                                continue
+                            tbl = src.table
+                            alias = src.alias
+                            time_filter = src.time_filter
 
-                    # StatisticsDB error -> this pair cannot be checked. Fail
-                    # CLOSED for the pair (empty set), never unconstrained.
-                    pair_ids = set() if matching_ids is None else set(matching_ids)
+                            id_col = _default_id_col(src)
+                            if not id_col:
+                                continue
 
-                comb = _docfield_comb(doccombs, pair_idx)
-                if docfield_ids is None:
-                    docfield_ids = pair_ids
-                elif comb == "or":
-                    docfield_ids = docfield_ids | pair_ids
-                else:
-                    docfield_ids = docfield_ids & pair_ids
+                            db_column = config.column
+                            if not db_column:
+                                continue
+                            # Sargable predicate from ColumnType (#98 Task 12) --
+                            # bare-column/native-int compare when the type is
+                            # known-safe, else the legacy CAST+COLLATE fallback.
+                            pred_sql, pred_params = _docfield_predicate(
+                                alias, db_column, config.column_type, op_key, docvalue
+                            )
+                            id_parts.append(f"""
+                                SELECT DISTINCT {id_col} AS id
+                                FROM {tbl} {alias}
+                                WHERE {pred_sql}
+                                AND {time_filter}
+                            """)
+                            id_params.extend(pred_params)
 
-        except Exception as e:
-            current_app.logger.error(f"Error in docfield pre-fetch block: {e}")
+                        if not id_parts:
+                            continue  # mapping rows exist but unusable -> tolerant skip
+
+                        stat_conn = None
+                        try:
+                            stat_conn = engine_statistics_db.raw_connection()
+                            stat_cur = stat_conn.cursor()
+                            union_sql = " UNION ALL ".join(id_parts)
+                            stat_cur.execute(f"SELECT DISTINCT id FROM ({union_sql}) t", id_params)
+                            matching_ids = [row[0] for row in stat_cur.fetchall()]
+                        except Exception as e:
+                            current_app.logger.error(f"Error pre-fetching docfield IDs: {e}")
+                            matching_ids = None
+                            _default_had_error = True
+                        finally:
+                            if stat_conn:
+                                stat_conn.close()
+
+                        # StatisticsDB error -> this pair cannot be checked. Fail
+                        # CLOSED for the pair (empty set), never unconstrained.
+                        pair_ids = set() if matching_ids is None else set(matching_ids)
+
+                    comb = _docfield_comb(doccombs, pair_idx)
+                    if docfield_ids is None:
+                        docfield_ids = pair_ids
+                    elif comb == "or":
+                        docfield_ids = docfield_ids | pair_ids
+                    else:
+                        docfield_ids = docfield_ids & pair_ids
+
+            except Exception as e:
+                current_app.logger.error(f"Error in docfield pre-fetch block: {e}")
+                _default_had_error = True
+
+            # Never cache an error/None-path result (D7): a StatisticsDB
+            # failure fails the PAIR closed (set()) without raising, so an
+            # error flag -- not just "no exception" -- gates the write.
+            if not _default_had_error:
+                cache.set(_default_cache_key, ("v", docfield_ids), timeout=60)
 
     # --- MS02 columnar doc-field pre-resolution (sibling to the default block) ---
     # Resolves through the SAME SearchConfig mapping but against the separate
@@ -743,84 +829,108 @@ def _get_workitems_data(args, export_all=False, scope=None):
                 _ms02_id_col_cache[src.process] = _ms02_id_column(src.join_condition, src.alias)
             return _ms02_id_col_cache[src.process]
 
-        try:
-            pairs = []
-            for pair_idx, (docfield, docvalue) in enumerate(
-                zip(docfields, docvalues, strict=False)
-            ):
-                docfield = (docfield or "").lower().strip()
-                docvalue = (docvalue or "").strip()
-                if not docvalue:
-                    continue
-                if docfield:
-                    # Whitelist the field key (same guard the default path uses)
-                    # before it drives a mapping_config lookup -- blocks an
-                    # unknown/injected `docfield` from reaching the resolver.
-                    if docfield not in valid_db_columns:
+        # Result cache (#98 Task 13) -- see the default leg above for the key
+        # shape and the fail-closed rationale; identical treatment here.
+        _ms02_pairs_normalized = _docfield_pairs_normalized(
+            docfields, docvalues, docops, doccombs, valid_db_columns, blocked_docfields
+        )
+        _ms02_cache_key = _docfield_ids_cache_key("ms02", target_processes, _ms02_pairs_normalized)
+        _ms02_cached = cache.get(_ms02_cache_key)
+        if isinstance(_ms02_cached, tuple) and len(_ms02_cached) == 2 and _ms02_cached[0] == "v":
+            ms02_docfield_ids = _ms02_cached[1]
+        else:
+            _ms02_had_error = False
+            try:
+                pairs = []
+                for pair_idx, (docfield, docvalue) in enumerate(
+                    zip(docfields, docvalues, strict=False)
+                ):
+                    docfield = (docfield or "").lower().strip()
+                    docvalue = (docvalue or "").strip()
+                    if not docvalue:
                         continue
-                    if docfield in blocked_docfields:
-                        continue
-                    target_field_keys = {docfield}
-                else:
-                    # Value-first search (issue #148): no field picked -> specs
-                    # spanning every permitted field; the resolver ORs specs
-                    # within a pair, so this is OR-across-fields for free.
-                    target_field_keys = {c for c in valid_db_columns if c not in blocked_docfields}
-                    if not target_field_keys:
-                        continue
+                    if docfield:
+                        # Whitelist the field key (same guard the default path uses)
+                        # before it drives a mapping_config lookup -- blocks an
+                        # unknown/injected `docfield` from reaching the resolver.
+                        if docfield not in valid_db_columns:
+                            continue
+                        if docfield in blocked_docfields:
+                            continue
+                        target_field_keys = {docfield}
+                    else:
+                        # Value-first search (issue #148): no field picked -> specs
+                        # spanning every permitted field; the resolver ORs specs
+                        # within a pair, so this is OR-across-fields for free.
+                        target_field_keys = {
+                            c for c in valid_db_columns if c not in blocked_docfields
+                        }
+                        if not target_field_keys:
+                            continue
 
-                # Each matching FieldMapping maps a docfield to a COLUMN in a wide
-                # statistik table (column = the column name); build one columnar
-                # spec per mapping (specs within a pair are OR'd in the resolver).
-                config_rows = [m for m in ms02_mappings if m.field_key in target_field_keys]
-                if not config_rows:
-                    # Field unmapped for every targeted ms02 process -> this
-                    # pair cannot match here -> forced-empty pair (empty specs;
-                    # the resolver folds it as set()). No early break (mirrors
-                    # the default leg): an OR-joined later pair may still widen.
+                    # Each matching FieldMapping maps a docfield to a COLUMN in a wide
+                    # statistik table (column = the column name); build one columnar
+                    # spec per mapping (specs within a pair are OR'd in the resolver).
+                    config_rows = [m for m in ms02_mappings if m.field_key in target_field_keys]
+                    if not config_rows:
+                        # Field unmapped for every targeted ms02 process -> this
+                        # pair cannot match here -> forced-empty pair (empty specs;
+                        # the resolver folds it as set()). No early break (mirrors
+                        # the default leg): an OR-joined later pair may still widen.
+                        pairs.append(
+                            (
+                                [],
+                                docvalue,
+                                _docfield_op(docops, pair_idx),
+                                _docfield_comb(doccombs, pair_idx),
+                            )
+                        )
+                        continue
+                    specs = []
+                    for m in config_rows:
+                        src = ms02_sources.get(m.process)
+                        if src is None or not src.table:
+                            continue
+                        id_col = _cached_ms02_id_col(src)
+                        if not id_col:
+                            continue
+                        field_col = m.column
+                        if not field_col:
+                            continue
+                        # 5-tuple (#98 Task 12): field_type drives the typed
+                        # int-eq fast path in resolve_ms02_docfield_ids.
+                        specs.append((src.table, id_col, field_col, src.time_filter, m.column_type))
+                    if not specs:
+                        continue  # mapping rows exist but unusable -> tolerant no-constraint
                     pairs.append(
                         (
-                            [],
+                            specs,
                             docvalue,
                             _docfield_op(docops, pair_idx),
                             _docfield_comb(doccombs, pair_idx),
                         )
                     )
-                    continue
-                specs = []
-                for m in config_rows:
-                    src = ms02_sources.get(m.process)
-                    if src is None or not src.table:
-                        continue
-                    id_col = _cached_ms02_id_col(src)
-                    if not id_col:
-                        continue
-                    field_col = m.column
-                    if not field_col:
-                        continue
-                    # 5-tuple (#98 Task 12): field_type drives the typed
-                    # int-eq fast path in resolve_ms02_docfield_ids.
-                    specs.append((src.table, id_col, field_col, src.time_filter, m.column_type))
-                if not specs:
-                    continue  # mapping rows exist but unusable -> tolerant no-constraint
-                pairs.append(
-                    (
-                        specs,
-                        docvalue,
-                        _docfield_op(docops, pair_idx),
-                        _docfield_comb(doccombs, pair_idx),
-                    )
-                )
-            if pairs:
-                if any(entry[0] for entry in pairs):
-                    ms02_docfield_ids = resolve_ms02_docfield_ids(engine_ms02_docfields_pg, pairs)
-                else:
-                    # Every active pair is unmapped for ms02 -> zero MS02 rows
-                    # without a resolver round-trip (also keeps the "resolver
-                    # must not run without mapping rows" contract).
-                    ms02_docfield_ids = set()
-        except Exception as e:
-            current_app.logger.error(f"Error in MS02 docfield pre-fetch block: {e}")
+                if pairs:
+                    if any(entry[0] for entry in pairs):
+                        ms02_docfield_ids = resolve_ms02_docfield_ids(
+                            engine_ms02_docfields_pg, pairs
+                        )
+                        if ms02_docfield_ids is None:
+                            # resolve_ms02_docfield_ids never raises -- it fails
+                            # closed to None on error, so a None result here IS
+                            # the error path (D7): must not be cached.
+                            _ms02_had_error = True
+                    else:
+                        # Every active pair is unmapped for ms02 -> zero MS02 rows
+                        # without a resolver round-trip (also keeps the "resolver
+                        # must not run without mapping rows" contract).
+                        ms02_docfield_ids = set()
+            except Exception as e:
+                current_app.logger.error(f"Error in MS02 docfield pre-fetch block: {e}")
+                _ms02_had_error = True
+
+            if not _ms02_had_error:
+                cache.set(_ms02_cache_key, ("v", ms02_docfield_ids), timeout=60)
             ms02_docfield_ids = None
 
     # Fail CLOSED: an active doc-field search must never leave a source
