@@ -31,6 +31,7 @@
            back to the legacy localStorage keys, then to the defaults. */
         (function () {
             var stored = {{ ui_prefs | tojson }};
+            var brand = {{ brand | tojson }};
             var d = document.documentElement;
             var ls = function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } };
             /* Resilience: if a save never reached the server (offline, 401),
@@ -40,8 +41,8 @@
             } catch (e) {}
             var eff = {
                 theme:      stored.theme      || (ls('nexora-theme') === 'dark' ? 'dark' : 'light'),
-                accent:     stored.accent     || 'indigo',
-                accentHex:  stored.accentHex  || '#4f46e5',
+                accent:     stored.accent     || (brand.accent_hex ? 'custom' : 'indigo'),
+                accentHex:  stored.accentHex  || brand.accent_hex || '#4f46e5',
                 motion:     stored.motion     || 'full',
                 entrance:   stored.entrance   || 'rise',
                 animspeed:  stored.animspeed  || 'normal',
@@ -197,8 +198,8 @@
         </div>
 
         <nav class="sidebar-nav">
-            {% if page_visibility.adminPagePerm or page_visibility.adminMaintenanceViewPerm or page_visibility.adminStatusPagePerm %}
-            {% set admin_active = active_page in ['adminOverview','organizations','admin_access','admin_logs','admin_sessions','admin_user_detail','maintenance','admin_status'] %}
+            {% if page_visibility.adminPagePerm or page_visibility.adminMaintenanceViewPerm or page_visibility.adminStatusPagePerm or page_visibility.adminClientsPagePerm or page_visibility.adminProcessesPagePerm %}
+            {% set admin_active = active_page in ['adminOverview','organizations','admin_access','admin_logs','admin_sessions','admin_user_detail','maintenance','admin_status','clients','processes'] %}
             <div class="sidebar-nav-group" id="adminNavGroup" data-active="{{ 'true' if admin_active else 'false' }}">
                 <button class="sidebar-nav-item sidebar-nav-group-header {{ 'sidebar-nav-item--active' if admin_active else '' }}" id="adminNavHeader" type="button" data-testid="header-nav-admin-toggle">
                     <i class="fas fa-shield-halved sidebar-nav-icon"></i>
@@ -248,6 +249,20 @@
                         class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'maintenance' else '' }}" data-testid="header-nav-admin-maintenance">
                         <i class="fas fa-bullhorn sidebar-nav-icon sidebar-subitem-icon"></i>
                         <span class="sidebar-label">{{ _('Maintenance') }}</span>
+                    </a>
+                    {% endif %}
+                    {% if page_visibility.adminClientsPagePerm %}
+                    <a href="{{ url_for('admin_clients_view') }}"
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'clients' else '' }}" data-testid="header-nav-admin-clients">
+                        <i class="fas fa-server sidebar-nav-icon sidebar-subitem-icon"></i>
+                        <span class="sidebar-label">{{ _('Clients') }}</span>
+                    </a>
+                    {% endif %}
+                    {% if page_visibility.adminProcessesPagePerm %}
+                    <a href="{{ url_for('admin_processes_view') }}"
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'processes' else '' }}" data-testid="header-nav-admin-processes">
+                        <i class="fas fa-diagram-project sidebar-nav-icon sidebar-subitem-icon"></i>
+                        <span class="sidebar-label">{{ _('Processes') }}</span>
                     </a>
                     {% endif %}
                 </div>

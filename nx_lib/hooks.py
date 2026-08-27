@@ -18,6 +18,7 @@ from flask import (
 )
 
 from . import user_cache
+from .branding import brand_for_org
 from .config import IS_PROD, PATHS
 from .db import engine_nexora_db
 from .i18n import get_locale
@@ -115,7 +116,7 @@ def _reload_user_permissions():
     the per-process TTL cache (nx_lib/user_cache.py) so ~500 users no longer
     mean one spGetUserPermissions round-trip per click and per heartbeat.
     _invalidate_user_cache() drops entries the moment an admin writes."""
-    if request.path.startswith(("/static", "/avatar")):
+    if request.path.startswith(("/static", "/avatar", "/branding")):
         return
     if "userid" in session:
         uid = str(session["userid"])
@@ -149,7 +150,7 @@ def _load_user_ui_prefs():
     old prefs, making saves look non-persistent (#155). A process-local dict has
     no such race, and POST /profile/ui_prefs drops the user's entry
     (_invalidate_user_cache) so a save shows on the very next request."""
-    if request.path.startswith(("/static", "/avatar")):
+    if request.path.startswith(("/static", "/avatar", "/branding")):
         return
     if "userid" in session:
         uid = session["userid"]
@@ -194,7 +195,7 @@ def _enforce_maintenance_lockout():
 
 
 def _log_every_request(response):
-    if request.path.startswith(("/static", "/avatar")):
+    if request.path.startswith(("/static", "/avatar", "/branding")):
         return response
     duration = time.time() - request.start_time if hasattr(request, "start_time") else 0
 
@@ -275,6 +276,24 @@ def _inject_ui_prefs():
     return {"ui_prefs": session.get("ui_prefs") or {}}
 
 
+def _inject_brand():
+    """Header badge/wordmark/accent-default source: the viewer's organization
+    brand (#98 phase 4). Read fresh per render behind branding.registry()'s
+    own 60s cache -- never cached in the session (D5, #155 — a session cache
+    races the cookie and sticks until re-login). A load failure or an org
+    with no branding both degrade to {}, which renders today's markup.
+
+    Gated on a logged-in session (D2): the pre-session pages (landing, login,
+    2FA, password reset) stay Nexora-branded. This gate is load-bearing, not
+    belt-and-braces -- logout() pops username/uuid/userid but leaves
+    organizationcode in the session, so keying on organizationcode alone kept
+    branding the landing page after logout, complete with a broken <img>
+    (branding_logo aborts 401 without a userid). Mirror that route's gate."""
+    if "userid" not in session:
+        return {"brand": {}}
+    return {"brand": brand_for_org(session.get("organizationcode")) or {}}
+
+
 def _utility_processor():
     return dict(
         get_user_icon_url=resolve_user_icon_url, has_permission=has_permission, is_prod=IS_PROD
@@ -312,6 +331,7 @@ def init_app(app):
 
     app.context_processor(_inject_current_lang)
     app.context_processor(_inject_ui_prefs)
+    app.context_processor(_inject_brand)
     app.context_processor(_utility_processor)
     app.context_processor(_inject_app_version)
     app.context_processor(_inject_whats_new)

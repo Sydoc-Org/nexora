@@ -11,9 +11,11 @@ from nx_lib.hooks import (
     _enforce_maintenance_lockout,
     _forbidden_page,
     _handle_permission_denied,
+    _inject_brand,
     _inject_current_lang,
     _internal_error,
     _load_user_locale,
+    _load_user_ui_prefs,
     _log_every_request,
     _page_not_found,
     _reload_user_permissions,
@@ -452,6 +454,49 @@ def test_utility_processor_exposes_helpers(app):
         assert callable(ctx["get_user_icon_url"])
 
 
+def test_inject_brand_returns_empty_dict_when_no_org_in_session(app):
+    with app.test_request_context("/"):
+        assert _inject_brand() == {"brand": {}}
+
+
+def test_inject_brand_reads_fresh_per_render_not_from_session(app, monkeypatch):
+    """#155: branding must never be cached in flask.session -- it's read fresh
+    (behind branding.registry()'s own 60s cache) on every render."""
+    monkeypatch.setattr(
+        "nx_lib.hooks.brand_for_org",
+        lambda code: {"name": "Provera", "accent_hex": "#336699", "logo_file": "PRVR.png"},
+    )
+    with app.test_request_context("/"):
+        # Gated on a logged-in session: logout() leaves organizationcode behind,
+        # so _inject_brand() keys on userid too (see its docstring).
+        session["userid"] = 1
+        session["organizationcode"] = "PRVR"
+        ctx = _inject_brand()
+        assert ctx == {
+            "brand": {"name": "Provera", "accent_hex": "#336699", "logo_file": "PRVR.png"}
+        }
+        assert "brand" not in session
+
+
+def test_inject_brand_degrades_to_empty_dict_on_registry_failure(app, monkeypatch):
+    monkeypatch.setattr("nx_lib.hooks.brand_for_org", lambda code: None)
+    with app.test_request_context("/"):
+        session["userid"] = 1
+        session["organizationcode"] = "PRVR"
+        assert _inject_brand() == {"brand": {}}
+
+
+def test_inject_brand_is_gated_on_a_logged_in_session(app, monkeypatch):
+    """logout() pops userid but leaves organizationcode behind, so keying on
+    organizationcode alone kept branding the post-logout landing page."""
+    monkeypatch.setattr(
+        "nx_lib.hooks.brand_for_org", lambda code: {"name": "Provera", "logo_file": "PRVR.png"}
+    )
+    with app.test_request_context("/"):
+        session["organizationcode"] = "PRVR"
+        assert _inject_brand() == {"brand": {}}
+
+
 # ---------- init_app ----------
 
 
@@ -495,6 +540,7 @@ def test_init_app_registers_context_processors(app):
     proc_names = {p.__name__ for p in procs}
     assert "_inject_current_lang" in proc_names
     assert "_utility_processor" in proc_names
+    assert "_inject_brand" in proc_names
 
 
 # ---------- error handlers: /api/v1 JSON branch ----------
@@ -526,3 +572,40 @@ def test_permission_denied_api_v1_returns_json(app):
         body, status = _handle_permission_denied(PermissionDenied())
         assert status == 403
         assert body.get_json() == {"error": "Forbidden"}
+
+
+# ---------- /branding is skipped like /avatar ----------
+#
+# The header fetches /branding/<orgcode>/logo on every page load of a branded
+# org, exactly like /avatar/<id>. Without the skip it costs a permission
+# refresh, a ui-prefs refresh and one extra CSV row in var/logs/user/ per page
+# view -- roughly doubling the request log and skewing /admin/logs.
+
+
+def test_reload_user_permissions_skips_branding(app):
+    with app.test_request_context("/branding/ACME/logo"):
+        session["userid"] = 42
+        with patch.object(hooks_mod, "load_permissions_for_user") as loader:
+            _reload_user_permissions()
+        loader.assert_not_called()
+
+
+def test_load_user_ui_prefs_skips_branding(app):
+    with app.test_request_context("/branding/ACME/logo"):
+        session["userid"] = 42
+        with patch.object(hooks_mod, "load_ui_prefs") as loader:
+            _load_user_ui_prefs()
+        loader.assert_not_called()
+
+
+def test_log_every_request_skips_branding(app, tmp_path, monkeypatch):
+    fake_paths = MagicMock()
+    fake_paths.logs = tmp_path
+    monkeypatch.setattr(hooks_mod, "PATHS", fake_paths)
+    fake_response = MagicMock(status_code=200)
+
+    with app.test_request_context("/branding/ACME/logo"):
+        result = _log_every_request(fake_response)
+
+    assert result is fake_response
+    assert not list(tmp_path.rglob("nexora_logs.csv"))

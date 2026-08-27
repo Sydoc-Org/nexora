@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body>
+    <script nonce="{{ csp_nonce() }}">
+        // #98 phase 4 task 5: add/edit/delete for dbo.Clients (runtime sources).
+        const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+
+        const clientModal = document.getElementById('clientModal');
+        const clientModalTitle = document.getElementById('clientModalTitle');
+        const clientForm = document.getElementById('clientForm');
+        const clientOriginalCodeInput = document.getElementById('clientOriginalCode');
+        const clientCodeInput = document.getElementById('ClientCode');
+
+        const confirmationModal = document.getElementById('confirmationModal');
+        const confirmMessage = document.getElementById('confirmMessage');
+        const confirmBtn = document.getElementById('confirmBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+
+        function showNotification(message, type = 'success') {
+            const container = document.getElementById('notification-container');
+            if (!container) return;
+
+            const notification = document.createElement('div');
+            const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+            const icon = type === 'success'
+                ? '<i class="fas fa-check-circle"></i>'
+                : '<i class="fas fa-exclamation-circle"></i>';
+
+            notification.className = `flex items-center w-full p-4 text-white ${bgColor} rounded-lg shadow-lg transform transition-all duration-300 opacity-0 translate-x-full`;
+            notification.innerHTML = `<div class="text-xl">${icon}</div><div class="ml-3 text-sm font-medium"></div>`;
+            // textContent, not innerHTML: server messages echo admin-supplied
+            // client codes and engine keys back at us.
+            notification.lastElementChild.textContent = message;
+
+            container.appendChild(notification);
+            setTimeout(() => notification.classList.remove('opacity-0', 'translate-x-full'), 10);
+            setTimeout(() => {
+                notification.classList.add('opacity-0', 'translate-x-full');
+                setTimeout(() => notification.remove(), 300);
+            }, 5000);
+        }
+
+        function openModal() {
+            clientModal.classList.remove('hidden');
+            setTimeout(() => {
+                clientModal.classList.remove('opacity-0');
+                clientModal.querySelector('.modal-content').classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeModal(event) {
+            if (event && event.target !== clientModal) return;
+            clientModal.classList.add('opacity-0');
+            clientModal.querySelector('.modal-content').classList.add('scale-95');
+            setTimeout(() => clientModal.classList.add('hidden'), 300);
+        }
+
+        // #193 finding 10: onclick="" attribute handlers aren't nonce-covered by CSP.
+        clientModal.addEventListener('click', closeModal);
+        document.getElementById('clientModalCancelBtn')?.addEventListener('click', () => closeModal());
+
+        function openAddClientModal() {
+            clientForm.reset();
+            clientModalTitle.textContent = `{{ _("Add a new Client") }}`;
+            clientOriginalCodeInput.value = '';
+            clientCodeInput.disabled = false;
+            document.getElementById('IsActive').checked = true;
+            openModal();
+        }
+
+        function openEditClientModal(clientData) {
+            clientForm.reset();
+            clientModalTitle.textContent = `{{ _("Edit Client") }}`;
+
+            clientOriginalCodeInput.value = clientData.ClientCode;
+            clientCodeInput.value = clientData.ClientCode;
+            // ClientCode is the primary key -- editing it would strand every
+            // dbo.ProcessSources row that still points at the old code.
+            clientCodeInput.disabled = true;
+
+            document.getElementById('DisplayName').value = clientData.DisplayName || '';
+            document.getElementById('Dialect').value = clientData.Dialect || 'tsql';
+            document.getElementById('RuntimeEngineKey').value = clientData.RuntimeEngineKey || '';
+            // These four must be populated: the edit endpoint writes all ten
+            // writable columns, so leaving them blank here would NULL the row's
+            // stats / doc-field engine bindings on save.
+            document.getElementById('StatsEngineKey').value = clientData.StatsEngineKey || '';
+            document.getElementById('StatsDialect').value = clientData.StatsDialect || '';
+            document.getElementById('DocfieldsEngineKey').value = clientData.DocfieldsEngineKey || '';
+            document.getElementById('DocfieldsDialect').value = clientData.DocfieldsDialect || '';
+            document.getElementById('OctoDomain').value = clientData.OctoDomain || '';
+            document.getElementById('SecretRef').value = clientData.SecretRef || '';
+            document.getElementById('IsActive').checked = !!clientData.IsActive;
+
+            openModal();
+        }
+
+        function refreshClientsTable() {
+            // The page route renders HTML, not JSON (no separate list API for
+            // clients yet) -- reload so the freshly-rendered table is picked up.
+            window.location.reload();
+        }
+
+        clientForm.addEventListener('submit', async function (event) {
+            event.preventDefault();
+            const data = Object.fromEntries(new FormData(clientForm).entries());
+            data.IsActive = document.getElementById('IsActive').checked;
+            const originalCode = clientOriginalCodeInput.value;
+            const url = originalCode
+                ? `${API_PREFIX}admin/clients/edit/${encodeURIComponent(originalCode)}`
+                : `${API_PREFIX}admin/clients/add`;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.status === 403) {
+                    showNotification(`{{ _("You do not have permission to perform this action.") }}`, 'error');
+                    return;
+                }
+
+                const result = await response.json();
+                if (response.ok) {
+                    closeModal(null);
+                    showNotification(`{{ _("Success") }}`);
+                    refreshClientsTable();
+                } else {
+                    showNotification(`{{ _("Error:") }} ${result.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('Form submission error:', error);
+                showNotification(`{{ _("An unexpected network error occurred.") }}`, 'error');
+            }
+        });
+
+        let confirmCallback = null;
+
+        function showConfirmationModal(message, onConfirm) {
+            confirmMessage.textContent = message;
+            confirmCallback = onConfirm;
+            confirmationModal.classList.remove('hidden');
+            setTimeout(() => {
+                confirmationModal.classList.remove('opacity-0');
+                confirmationModal.querySelector('.modal-content').classList.remove('scale-95');
+            }, 10);
+        }
+
+        function hideConfirmationModal() {
+            confirmationModal.classList.add('opacity-0');
+            confirmationModal.querySelector('.modal-content').classList.add('scale-95');
+            setTimeout(() => confirmationModal.classList.add('hidden'), 300);
+        }
+
+        confirmBtn.addEventListener('click', () => {
+            if (confirmCallback) confirmCallback();
+            hideConfirmationModal();
+        });
+
+        cancelBtn.addEventListener('click', hideConfirmationModal);
+
+        async function deleteClient(clientcode) {
+            const deletionTask = async () => {
+                try {
+                    const response = await fetch(`${API_PREFIX}admin/clients/delete/${encodeURIComponent(clientcode)}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        }
+                    });
+
+                    if (response.status === 403) {
+                        showNotification(`{{ _("You do not have permission to delete this client.") }}`, 'error');
+                        return;
+                    }
+
+                    const result = await response.json();
+                    if (response.ok) {
+                        showNotification({{ _("Success") | tojson }});
+                        refreshClientsTable();
+                    } else {
+                        showNotification(`{{ _("Error:") }} ${result.message}`, 'error');
+                    }
+                } catch (error) {
+                    console.error('Delete error:', error);
+                    showNotification(`{{ _("An unexpected network error occurred.") }}`, 'error');
+                }
+            };
+            showConfirmationModal(`{{ _("Are you sure you want to delete this client? This action cannot be undone.") }}`, deletionTask);
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const input = document.getElementById('clientSearchInput');
+            const tbody = document.getElementById('clients-tbody');
+            if (!input || !tbody) return;
+
+            function applyFilter() {
+                const q = input.value.trim().toLowerCase();
+                tbody.querySelectorAll('tr[data-search]').forEach(tr => {
+                    tr.style.display = !q || tr.dataset.search.includes(q) ? '' : 'none';
+                });
+            }
+
+            input.addEventListener('input', applyFilter);
+
+            const observer = new MutationObserver(applyFilter);
+            observer.observe(tbody, { childList: true });
+
+            // Deep-link from command palette: /admin/clients#add-client
+            if (window.location.hash === '#add-client' && typeof openAddClientModal === 'function') {
+                openAddClientModal();
+                history.replaceState(null, '', window.location.pathname + window.location.search);
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            const editBtn = e.target.closest('.edit-client-btn');
+            if (editBtn) {
+                const clientData = JSON.parse(editBtn.dataset.client);
+                openEditClientModal(clientData);
+                return;
+            }
+            // #193 finding 10: onclick="" attribute handlers aren't nonce-covered by CSP.
+            const deleteBtn = e.target.closest('.delete-client-btn');
+            if (deleteBtn) {
+                deleteClient(deleteBtn.dataset.clientcode);
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -48,6 +48,74 @@ Work toward the next release.
   sized to the heights those cards already had, so existing dashboards reopen
   unchanged.
 
+- **Self-service client/process onboarding admin UI** (#98 phase 4). A new
+  `dbo.Clients` runtime-source registry (migration `0079`) replaces the
+  hardcoded `CLIENTS` dict in `nx_lib/clients.py`, seeded from today's two
+  values (`default`, `ms02`); a new client still needs an app-pool recycle
+  to take effect. New pages `/admin/clients` (CRUD over the registry, with
+  delete refused when a `ClientCode` is still referenced by
+  `dbo.ProcessSources`) and `/admin/processes` (view/edit `ProcessSources`
+  and their field mappings per client through the cached
+  `nx_lib/mapping_config.py` registry, with strict identifier validation on
+  every value interpolated into SQL). `ProcessName` must be exactly
+  `<customer>.<process>` — the permission that grants access to a process is
+  derived from those two dot-segments, so any other shape could never be
+  granted (and a three-segment name could piggyback on another customer's
+  grant); a name whose two-segment reduction already belongs to another
+  process is refused with 409. `ClientCode` is picked from `dbo.Clients`
+  and checked server-side, so a typo can no longer create config that never
+  resolves. `/admin/clients` shows resolved state next to configured state —
+  a row the running registry did not load reads "Configured, not loaded" —
+  and a boot-time `dbo.Clients` failure (which silently drops every
+  non-`default` runtime for the process lifetime) now raises a banner on
+  `/admin/clients` and `/admin/status` instead of only a stderr line written
+  before logging was configured. Adding a process source
+  auto-provisions its `workitems.filter.process.<name>` permission,
+  granted to nobody until deliberately assigned at `/admin/access-control`;
+  every write invalidates the mapping-config cache. New permissions
+  `admin.view.clients`, `admin.edit.clients`, `admin.view.processes`,
+  `admin.edit.processes` (migration `0080`), granted to `enterpriseAdmin`
+  and `globalAdmin`; the same migration also seeds
+  `admin.edit.organization.branding`, now in use by the branding panel below.
+  Onboarding a customer riding the shared `default`
+  runtime is now fully self-service — no migration, no deploy. See
+  `docs/howto/white-label.md`.
+
+- **Per-organization branding panel** (#98 phase 4). `/admin/organizations`
+  gained a branding panel — brand name, accent colour and logo — behind the
+  `admin.edit.organization.branding` permission (the panel and its per-row
+  button are hidden entirely from a viewer who only holds
+  `admin.view.organizations`). Branding attaches to the customer
+  organization, never to a runtime `ClientCode`. Uploads are MIME-sniffed
+  with libmagic through `nx_lib/files.py::is_file_allowed` (never the
+  client-declared content type), capped at 512 KB, restricted to SVG/PNG/JPEG
+  and stored as `var/branding/<orgcode>.<ext>`; `deploy.yml` already excludes
+  `var/` from the robocopy mirror. Every successful save invalidates the
+  60-second branding cache so the edit shows up immediately.
+
+- **Per-organization white-label branding applied in the app** (#98 phase 4).
+  Migration `0081` adds nullable `BrandName` / `BrandAccentHex` /
+  `BrandLogoFile` to `dbo.Organizations`; `nx_lib/branding.py` reads them into
+  a 60-second, success-only cached registry (`brand_for_org()`,
+  `invalidate_branding()`) whose load errors return `None`, are never cached,
+  and degrade the caller to Nexora branding. A context processor injects the
+  viewer's organization brand fresh per render — never cached in `session`
+  (#155) — so the header/sidebar shows the org's logo and wordmark when set and
+  today's exact markup when not. **The organization accent is a default, not an
+  override:** a user's own `/appearance` accent still wins, and the org accent
+  only replaces the built-in `indigo` / `#4f46e5`. Logos are served from
+  `GET /branding/<orgcode>/logo` with `Content-Security-Policy: sandbox` and
+  `X-Content-Type-Options: nosniff`, because SVG is allowed and is
+  script-capable. It is served with a one-hour `max-age` and skipped by the
+  per-request hooks the same way `/avatar/<id>` is — the header fetches it on
+  every page load of a branded org, which would otherwise double the request
+  log and skew `/admin/logs`. The login page, the error pages and scheduled-report emails
+  stay Nexora-branded by design — login is pre-session, so there is no user and
+  therefore no organization; the context processor is gated on a logged-in
+  session, because `logout()` leaves `organizationcode` behind and keying on it
+  alone kept branding the landing page (with a broken logo `<img>`) after
+  logout. See `docs/howto/white-label.md`.
+
 - **Sidebar restyled toward a minimal, GitHub-inspired look** (#213). Same
   icons and labels, different treatment: the active page is marked by a thin
   accent-coloured bar on the left edge instead of a filled accent-tinted

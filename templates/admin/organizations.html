@@ -41,6 +41,9 @@
                         <td>{{ organization.organization }}</td>
                         <td class="align-right">
                             <button data-organization='{{ organization|tojson|safe }}' class="edit-organization-btn nx-btn nx-btn--ghost nx-btn--sm" type="button" data-testid="admin-org-edit-{{ organization.organizationcode }}">{{ _("Edit") }}</button>
+                            {% if can_edit_branding %}
+                            <button class="branding-organization-btn nx-btn nx-btn--ghost nx-btn--sm" type="button" data-organizationcode="{{ organization.organizationcode }}" data-testid="admin-org-branding-{{ organization.organizationcode }}">{{ _("Branding") }}</button>
+                            {% endif %}
                             <button class="delete-organization-btn nx-btn nx-btn--ghost nx-btn--sm nx-c-danger" type="button" data-organizationcode="{{ organization.organizationcode }}" data-testid="admin-org-delete-{{ organization.organizationcode }}">{{ _("Delete") }}</button>
                         </td>
                     </tr>
@@ -48,6 +51,50 @@
                 </tbody>
             </table>
         </div>
+
+        {% if can_edit_branding %}
+        {# White-label branding (#98 phase 4). Branding belongs to the customer
+           organization, never to a runtime client source. #}
+        <section id="org-branding-panel" class="nx-card mt-6 hidden" data-testid="admin-org-branding-panel">
+            <h2 class="nx-section">{{ _("Branding") }} — <span id="branding-org-label" class="nx-mono"></span></h2>
+            <p class="text-sm nx-c-sec mb-4">{{ _("Applies to this customer organization and everyone in it. Leave a field empty to fall back to nexora branding.") }}</p>
+            <form id="org-branding-form" enctype="multipart/form-data" data-testid="admin-org-branding-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <input type="hidden" id="branding-orgcode" name="organizationcode" />
+                <div class="space-y-4">
+                    <div>
+                        <label for="branding-name" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Brand name") }}</label>
+                        <input type="text" id="branding-name" name="brand_name" class="nx-input" maxlength="100" data-testid="admin-org-branding-name" />
+                    </div>
+                    <div>
+                        <label for="branding-accent" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Accent colour") }}</label>
+                        <div class="flex items-center gap-3">
+                            <input type="color" id="branding-accent" name="brand_accent_hex" class="nx-input w-16 p-1" value="#4f46e5" data-testid="admin-org-branding-accent" />
+                            <input type="text" id="branding-accent-hex" class="nx-input nx-mono w-32" placeholder="#336699" maxlength="7" data-testid="admin-org-branding-accent-hex" />
+                            <button type="button" id="branding-accent-clear" class="nx-btn nx-btn--ghost nx-btn--sm" data-testid="admin-org-branding-accent-clear">{{ _("Clear") }}</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="branding-logo" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Logo") }}</label>
+                        <input type="file" id="branding-logo" name="logo" class="nx-input" accept=".svg,.png,.jpg,.jpeg" data-testid="admin-org-branding-logo" />
+                        <p class="text-xs nx-c-meta mt-1">{{ _("SVG, PNG or JPEG, up to 512 KB.") }}</p>
+                    </div>
+                    <div>
+                        <span class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Preview") }}</span>
+                        <div class="flex items-center gap-3">
+                            <span id="branding-swatch" class="inline-block h-8 w-8 rounded" data-testid="admin-org-branding-swatch"></span>
+                            <img id="branding-preview-logo" alt="{{ _('Logo preview') }}" class="h-8 hidden" />
+                            <span id="branding-preview-name" class="font-semibold"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-end mt-6 gap-2">
+                    <button type="button" id="branding-cancel" class="nx-btn nx-btn--secondary" data-testid="admin-org-branding-cancel">{{ _("Cancel") }}</button>
+                    <button type="submit" class="nx-btn nx-btn--primary" data-testid="admin-org-branding-save">{{ _("Save branding") }}</button>
+                </div>
+            </form>
+        </section>
+        {% endif %}
     </main>
 
     {% include 'admin/modals/_organizations_modals.html' %}

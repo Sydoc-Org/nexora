@@ -19,6 +19,20 @@
         const cancelBtn = document.getElementById('cancelBtn');
 
         const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+
+        // White-label branding (#98 phase 4). Branding belongs to the customer
+        // organization, never to a runtime client source. The panel and every
+        // affordance are server-gated on admin.edit.organization.branding, so a
+        // viewer never gets a 403 toast after a click.
+        const canEditBranding = {{ (can_edit_branding | default(false)) | tojson }};
+        const orgBranding = {};
+        {% for organization in organizations | default([]) %}
+        orgBranding[{{ organization.organizationcode | tojson }}] = {
+            brand_name: {{ organization.brand_name | tojson }},
+            brand_accent_hex: {{ organization.brand_accent_hex | tojson }},
+            brand_logo_file: {{ organization.brand_logo_file | tojson }}
+        };
+        {% endfor %}
         function showNotification(message, type = 'success') {
             const container = document.getElementById('notification-container');
 
@@ -98,6 +112,7 @@
                 <td>${escapeHtml(org.organization)}</td>
                 <td class="align-right">
                     <button data-organization="${orgJson}" class="edit-organization-btn nx-btn nx-btn--ghost nx-btn--sm" type="button" data-testid="admin-org-edit-${escapeHtml(org.organizationcode)}">{{ _("Edit") }}</button>
+                    ${canEditBranding ? `<button class="branding-organization-btn nx-btn nx-btn--ghost nx-btn--sm" type="button" data-organizationcode="${escapeHtml(org.organizationcode)}" data-testid="admin-org-branding-${escapeHtml(org.organizationcode)}">{{ _("Branding") }}</button>` : ''}
                     <button class="delete-organization-btn nx-btn nx-btn--ghost nx-btn--sm" style="color:var(--nx-danger)" type="button" data-organizationcode="${escapeHtml(org.organizationcode)}" data-testid="admin-org-delete-${escapeHtml(org.organizationcode)}">{{ _("Delete") }}</button>
                 </td>
             </tr>`;
@@ -242,8 +257,125 @@
             const deleteBtn = e.target.closest('.delete-organization-btn');
             if (deleteBtn) {
                 deleteorganization(deleteBtn.dataset.organizationcode);
+                return;
+            }
+            const brandingBtn = e.target.closest('.branding-organization-btn');
+            if (brandingBtn) {
+                openBrandingPanel(brandingBtn.dataset.organizationcode);
             }
         });
+
+        // ------------------------------ branding panel ------------------------------
+        // Rendered only when the server says the viewer holds
+        // admin.edit.organization.branding, so every element below may be absent.
+        const brandingPanel = document.getElementById('org-branding-panel');
+        const brandingForm = document.getElementById('org-branding-form');
+
+        function updateBrandingPreview() {
+            const hexField = document.getElementById('branding-accent-hex');
+            const swatch = document.getElementById('branding-swatch');
+            const hex = hexField.value.trim();
+            const valid = /^#[0-9a-fA-F]{6}$/.test(hex);
+            swatch.style.background = valid ? hex : 'transparent';
+            swatch.style.border = valid ? 'none' : '1px dashed var(--nx-border)';
+            document.getElementById('branding-preview-name').textContent =
+                document.getElementById('branding-name').value.trim();
+        }
+
+        function openBrandingPanel(organizationcode) {
+            if (!brandingPanel) return;
+            const brand = orgBranding[organizationcode] || {};
+            document.getElementById('branding-orgcode').value = organizationcode;
+            document.getElementById('branding-org-label').textContent = organizationcode;
+            document.getElementById('branding-name').value = brand.brand_name || '';
+            document.getElementById('branding-accent-hex').value = brand.brand_accent_hex || '';
+            document.getElementById('branding-accent').value = brand.brand_accent_hex || '#4f46e5';
+            document.getElementById('branding-logo').value = '';
+
+            const img = document.getElementById('branding-preview-logo');
+            if (brand.brand_logo_file) {
+                img.src = `${API_PREFIX}branding/${encodeURIComponent(organizationcode)}/logo`;
+                img.classList.remove('hidden');
+            } else {
+                img.removeAttribute('src');
+                img.classList.add('hidden');
+            }
+            updateBrandingPreview();
+            brandingPanel.classList.remove('hidden');
+            brandingPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        if (brandingForm) {
+            document.getElementById('branding-accent').addEventListener('input', (e) => {
+                document.getElementById('branding-accent-hex').value = e.target.value;
+                updateBrandingPreview();
+            });
+            document.getElementById('branding-accent-hex').addEventListener('input', (e) => {
+                if (/^#[0-9a-fA-F]{6}$/.test(e.target.value.trim())) {
+                    document.getElementById('branding-accent').value = e.target.value.trim();
+                }
+                updateBrandingPreview();
+            });
+            document.getElementById('branding-accent-clear').addEventListener('click', () => {
+                document.getElementById('branding-accent-hex').value = '';
+                updateBrandingPreview();
+            });
+            document.getElementById('branding-name').addEventListener('input', updateBrandingPreview);
+            document.getElementById('branding-cancel').addEventListener('click', () => {
+                brandingPanel.classList.add('hidden');
+            });
+            document.getElementById('branding-logo').addEventListener('change', (e) => {
+                const file = e.target.files && e.target.files[0];
+                const img = document.getElementById('branding-preview-logo');
+                if (!file) return;
+                if (file.size > 512 * 1024) {
+                    showNotification(`{{ _("Logo is too large (max 512 KB).") }}`, 'error');
+                    e.target.value = '';
+                    return;
+                }
+                img.src = URL.createObjectURL(file);
+                img.classList.remove('hidden');
+            });
+
+            brandingForm.addEventListener('submit', async function (event) {
+                event.preventDefault();
+                const organizationcode = document.getElementById('branding-orgcode').value;
+                const body = new FormData();
+                body.append('brand_name', document.getElementById('branding-name').value.trim());
+                body.append('brand_accent_hex', document.getElementById('branding-accent-hex').value.trim());
+                const file = document.getElementById('branding-logo').files[0];
+                if (file) body.append('logo', file);
+
+                try {
+                    const response = await fetch(
+                        `${API_PREFIX}admin/organizations/${encodeURIComponent(organizationcode)}/branding`,
+                        { method: 'POST', headers: { 'X-CSRFToken': csrfToken }, body }
+                    );
+                    if (response.status === 403) {
+                        showNotification(`{{ _("You do not have permission to perform this action.") }}`, 'error');
+                        return;
+                    }
+                    const result = await response.json();
+                    if (response.ok) {
+                        const previous = orgBranding[organizationcode] || {};
+                        const saved = result.brand || {};
+                        orgBranding[organizationcode] = {
+                            brand_name: saved.brand_name,
+                            brand_accent_hex: saved.brand_accent_hex,
+                            // a save without an upload leaves the stored logo alone
+                            brand_logo_file: saved.brand_logo_file || previous.brand_logo_file || null
+                        };
+                        brandingPanel.classList.add('hidden');
+                        showNotification(`{{ _("Branding saved.") }}`);
+                    } else {
+                        showNotification(`{{ _("Error:") }} ${result.message}`, 'error');
+                    }
+                } catch (error) {
+                    console.error('Branding save error:', error);
+                    showNotification(`{{ _("An unexpected network error occurred.") }}`, 'error');
+                }
+            });
+        }
 
     </script>
 </body>

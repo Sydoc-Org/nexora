@@ -8,6 +8,12 @@ ALLOWED_MIME_TYPES = {
     "png": ["image/png"],
     "jpg": ["image/jpeg"],
     "jpeg": ["image/jpeg"],
+    # Organization logos (#98 phase 4). libmagic reports image/svg+xml when the
+    # document opens with an XML declaration and the bare image/svg when it
+    # doesn't -- both are the same thing. SVG is script-capable, so every
+    # consumer must serve it sandboxed: nx_lib/views/core.py::branding_logo
+    # sends Content-Security-Policy: sandbox + X-Content-Type-Options: nosniff.
+    "svg": ["image/svg+xml", "image/svg"],
     # .xlsx is an OOXML zip container. libmagic reports it as the office-openxml
     # type on newer builds and a generic application/zip on older ones -- accept
     # both. application/octet-stream was dropped (#193): it is libmagic's

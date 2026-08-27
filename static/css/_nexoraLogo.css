@@ -235,3 +235,15 @@
     }
 
     .brand:hover .bh{ transform: translateY(-1px); }
+
+/* Customer-uploaded brand logo (#98 phase 4), in place of the .bh mark.
+   height="48" on the <img> bounds one axis only: an SVG with no intrinsic
+   size and no viewBox falls back to the 300px default, and a very wide
+   raster logo would push the header. Cap both axes and letterbox. */
+.nx-brand-logo {
+  height: 48px;
+  width: auto;
+  max-height: 48px;
+  max-width: 220px;
+  object-fit: contain;
+}

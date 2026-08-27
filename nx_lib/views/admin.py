@@ -4,10 +4,12 @@ user CRUD, access control, permissions."""
 import csv
 import math
 import os
+import re
 import secrets
 import subprocess
 from contextlib import suppress
 from datetime import datetime
+from pathlib import Path
 
 import bcrypt
 import pyodbc
@@ -24,9 +26,14 @@ from flask import (
 )
 from flask_babel import gettext as _
 from werkzeug.exceptions import HTTPException
+from werkzeug.utils import secure_filename
 
-from .. import status
-from ..config import DOTENV_KEYS, IS_PROD, REPO_ROOT
+from .. import clients as clients_registry
+from .. import mapping_config, status
+from ..branding import _HEX_RE, invalidate_branding
+from ..branding import registry as branding_registry
+from ..clients import _ENGINE_KEYS
+from ..config import DOTENV_KEYS, IS_PROD, PATHS, REPO_ROOT
 from ..db import (
     engine_generali_db,
     engine_ms02_docfields_pg,
@@ -37,12 +44,14 @@ from ..db import (
     engine_statistics_db,
     ping_dbs_parallel,
 )
+from ..files import is_file_allowed
 from ..maintenance import (
     _MAINTENANCE_BLOCK_CACHE,
     _get_blocking_maintenance,
     _maintenance_parse_payload,
     _maintenance_row_to_dict,
 )
+from ..mapping_config import invalidate_mapping_config
 from ..security import (
     _revoke_session_by_id,
     has_permission,
@@ -164,9 +173,20 @@ def admin_organizations_view():
             for row in cursor.fetchall()
         ]
 
+        # #98 phase 4: current branding per org, for the panel's initial state.
+        # registry() returns None when the load fails (or when the database
+        # predates migration 0081) -- degrade to "nothing branded", never error.
+        brands = branding_registry() or {}
+        for org in organizations:
+            brand = brands.get(org.get("organizationcode")) or {}
+            org["brand_name"] = brand.get("name")
+            org["brand_accent_hex"] = brand.get("accent_hex")
+            org["brand_logo_file"] = brand.get("logo_file")
+
         return render_template(
             "admin/organizations.html",
             organizations=organizations,
+            can_edit_branding=has_permission("admin.edit.organization.branding"),
             logged_in_user=session.get("username"),
             userid=session.get("userid"),
             page_visibility=page_visibility(),
@@ -257,6 +277,14 @@ def admin_delete_organization(organizationcode):
         if cursor.rowcount == 0:
             return jsonify({"success": False, "message": _("Organization not found.")}), 404
 
+        # A delete mutates the branding registry exactly like a save does: skip
+        # this and the dead org keeps its brand -- and /branding/<code>/logo
+        # keeps serving its image -- for up to the 60s TTL. The file has to go
+        # too, or it is orphaned forever and would be re-exposed verbatim if the
+        # same org code is ever created again (#98 phase 4).
+        _delete_branding_logo(organizationcode)
+        invalidate_branding()
+
         return jsonify({"success": True, "message": _("Organization deleted successfully.")})
     except Exception as e:
         current_app.logger.error(f"Error deleting Organization {organizationcode}: {e}")
@@ -295,6 +323,1020 @@ def api_admin_organizations_list():
             conn.close()
 
 
+# ------------------------------ organization branding ----------------------- #
+#
+# Branding attaches to the Organization (the customer -- PRVR, LKTR, ...),
+# never to ClientCode (the runtime source). See nx_lib/branding.py.
+
+BRANDING_MAX_BYTES = 512 * 1024
+# Narrows is_file_allowed's own table, which also knows pdf/xlsx. The ext check
+# short-circuits before the sniff, so a PDF never reaches the stream at all.
+BRANDING_LOGO_EXTS = ("svg", "png", "jpg", "jpeg")
+# The org code is used to build a filename, so it must be a plain code. Task 10's
+# serve route defends itself independently (os.path.basename on the stored name).
+_ORG_CODE_RE = re.compile(r"^[A-Za-z0-9]{1,16}$")
+
+
+def _branding_logo_target(branding_dir: Path, filename: str) -> Path | None:
+    """Resolve ``filename`` inside ``branding_dir``, or None if it escapes it.
+
+    The single path derivation + traversal check shared by the upload and the
+    delete side (the serve side in nx_lib/views/core.py defends itself with the
+    same basename/containment idiom against a hostile stored value)."""
+    target = (branding_dir / os.path.basename(filename)).resolve()
+    if target.parent != branding_dir.resolve():
+        return None
+    return target
+
+
+def _delete_branding_logo(organizationcode: str) -> None:
+    """Remove the logo files an organization's uploads left in var/branding/.
+
+    Sweeps every allowed extension rather than trusting BrandLogoFile: the row
+    is already gone by the time this runs, a NULL BrandLogoFile can still
+    coexist with a file on disk (switching formats leaves the old extension
+    behind), and every upload writes exactly ``<orgcode>.<ext>``. A missing
+    file is not an error."""
+    if not _ORG_CODE_RE.match(organizationcode or ""):
+        return
+    branding_dir = Path(PATHS.branding)
+    for ext in BRANDING_LOGO_EXTS:
+        target = _branding_logo_target(branding_dir, f"{organizationcode}.{ext}")
+        if target is None:
+            continue
+        try:
+            target.unlink()
+        except FileNotFoundError:
+            pass
+        except OSError as e:
+            current_app.logger.warning(f"branding logo unlink failed for {target}: {e}")
+
+
+def _org_exists(cursor, organizationcode):
+    cursor.execute(
+        "SELECT organizationcode FROM organizations WHERE organizationcode = ?",
+        (organizationcode,),
+    )
+    return cursor.fetchone() is not None
+
+
+@require_permission("admin.edit.organization.branding")
+def api_admin_organization_branding_save(organizationcode):
+    """Save an organization's brand name, accent hex and logo (#98 phase 4).
+
+    Accepts JSON (name/accent only) or multipart/form-data (plus ``logo``).
+
+    Upload safety is nx_lib/files.py's ``is_file_allowed`` -- secure_filename
+    plus a libmagic sniff of the actual bytes. The client-declared content type
+    is never consulted. SVG is allowed (spec D9) and is script-capable, which is
+    why branding_logo() serves every logo with a sandbox CSP + nosniff.
+
+    Path traversal: ``organizationcode`` reaches a filesystem path, so it is
+    matched against _ORG_CODE_RE first and the resolved target is re-checked to
+    live directly inside PATHS.branding. The stored filename is derived from the
+    org code, never from the uploaded filename.
+    """
+    if not _ORG_CODE_RE.match(organizationcode or ""):
+        return jsonify({"success": False, "message": _("Organization not found.")}), 404
+
+    data = (request.get_json(silent=True) or {}) if request.is_json else request.form
+
+    brand_name = (data.get("brand_name") or "").strip() or None
+    accent = (data.get("brand_accent_hex") or "").strip() or None
+    if accent is not None and not _HEX_RE.match(accent):
+        return (
+            jsonify(
+                {"success": False, "message": _("Accent colour must be a hex value like #336699.")}
+            ),
+            400,
+        )
+
+    logo = request.files.get("logo")
+    logo_bytes = None
+    logo_filename = None
+    if logo is not None and logo.filename:
+        safe_name = secure_filename(logo.filename)
+        ext = safe_name.rsplit(".", 1)[-1].lower() if "." in safe_name else ""
+        if ext not in BRANDING_LOGO_EXTS:
+            return (
+                jsonify(
+                    {"success": False, "message": _("Logo must be an SVG, PNG or JPEG image.")}
+                ),
+                400,
+            )
+        # Size before sniff, and both before anything touches the disk.
+        logo.stream.seek(0, os.SEEK_END)
+        size = logo.stream.tell()
+        logo.stream.seek(0)
+        if size > BRANDING_MAX_BYTES:
+            return (
+                jsonify({"success": False, "message": _("Logo is too large (max 512 KB).")}),
+                400,
+            )
+        if not is_file_allowed(safe_name, logo.stream):
+            return (
+                jsonify(
+                    {"success": False, "message": _("Logo must be an SVG, PNG or JPEG image.")}
+                ),
+                400,
+            )
+        logo_bytes = logo.stream.read()
+        logo_filename = f"{organizationcode}.{ext}"
+
+    conn = None
+    cursor = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+        if not _org_exists(cursor, organizationcode):
+            return jsonify({"success": False, "message": _("Organization not found.")}), 404
+
+        if logo_bytes is not None:
+            branding_dir = Path(PATHS.branding)
+            branding_dir.mkdir(parents=True, exist_ok=True)
+            target = _branding_logo_target(branding_dir, logo_filename)
+            if target is None:
+                return jsonify({"success": False, "message": _("Organization not found.")}), 404
+            target.write_bytes(logo_bytes)
+            cursor.execute(
+                "UPDATE organizations SET BrandName=?, BrandAccentHex=?, BrandLogoFile=? "
+                "WHERE organizationcode=?",
+                (brand_name, accent, logo_filename, organizationcode),
+            )
+        else:
+            cursor.execute(
+                "UPDATE organizations SET BrandName=?, BrandAccentHex=? WHERE organizationcode=?",
+                (brand_name, accent, organizationcode),
+            )
+        conn.commit()
+    except Exception as e:
+        current_app.logger.error(f"Error saving branding for {organizationcode}: {e}")
+        return jsonify({"success": False, "message": _("An error occurred.")}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+    # Must run on every successful save -- otherwise the edit looks broken for
+    # up to the registry's 60s TTL.
+    invalidate_branding()
+    return jsonify(
+        {
+            "success": True,
+            "message": _("Branding saved."),
+            # brand_logo_file is null when this save carried no upload: the
+            # stored logo is left untouched, so the caller keeps what it had.
+            "brand": {
+                "brand_name": brand_name,
+                "brand_accent_hex": accent,
+                "brand_logo_file": logo_filename,
+            },
+        }
+    )
+
+
+# ----------------------------------- clients (runtime sources) --------------------- #
+
+
+@require_permission("admin.view.clients")
+def admin_clients_view():
+    """List of dbo.Clients -- runtime sources (default/ms02), not customers
+    (see dbo.Organizations). The add/edit/delete affordances are rendered only
+    for ``admin.edit.clients`` (``can_edit``); the endpoints re-check it."""
+    conn = None
+    cursor = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT ClientCode, DisplayName, Dialect, RuntimeEngineKey, StatsEngineKey, "
+            "StatsDialect, DocfieldsEngineKey, DocfieldsDialect, OctoDomain, SecretRef, "
+            "IsActive FROM dbo.Clients ORDER BY ClientCode"
+        )
+        clients = [
+            dict(zip([column[0] for column in cursor.description], row, strict=False))
+            for row in cursor.fetchall()
+        ]
+        # Configured state (the table) is not resolved state (what the process
+        # actually runs on). 0079's seed is unconditional, so PROD gets an
+        # 'ms02' row whether or not env/PROD.env carries the MS02_* keys -- and
+        # without them _build_clients() skips it, leaving the page cheerfully
+        # reporting "Active: Yes" for a runtime that does not exist. Mark each
+        # row with whether the live registry actually holds it.
+        for client in clients:
+            client["loaded"] = client.get("ClientCode") in clients_registry.CLIENTS
+
+        return render_template(
+            "admin/clients.html",
+            clients=clients,
+            registry_degraded_reason=clients_registry.REGISTRY_DEGRADED_REASON,
+            can_edit=has_permission("admin.edit.clients"),
+            logged_in_user=session.get("username"),
+            userid=session.get("userid"),
+            page_visibility=page_visibility(),
+        )
+    except Exception as e:
+        current_app.logger.error(f"Failed to fetch clients: {e}")
+        return render_template("handlers/500.html"), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+_CLIENTS_ALLOWED_DIALECTS = {"tsql", "postgres"}
+_CLIENT_CODE_RE = re.compile(r"^[a-z0-9_]{2,50}$")
+# SecretRef holds only an env-key *prefix* (e.g. "MS02"), never a secret value
+# -- cfg.py looks up f"{SecretRef}_OCTO_CLIENT_SECRET" etc. This shape check is
+# the cheap guard called for: it rejects anything that isn't prefix-shaped
+# (lower-case, spaces, punctuation -- the kind of thing a pasted secret has),
+# not a guarantee that a value can never sneak in.
+_SECRET_REF_RE = re.compile(r"^[A-Z0-9_]{0,20}$")
+
+
+def _validate_client_payload(data, *, require_code):
+    """Server-side validation for the client add/edit endpoints -- never trust
+    the client-side checks in _clients_js.html. Returns a list of error
+    messages (empty when the payload is valid)."""
+    errors = []
+
+    client_code = (data.get("ClientCode") or "").strip()
+    if (require_code or client_code) and not _CLIENT_CODE_RE.match(client_code):
+        errors.append(_("Client code must be 2-50 lowercase letters, digits or underscores."))
+
+    if not (data.get("DisplayName") or "").strip():
+        errors.append(_("Display name is required."))
+
+    allowed = ", ".join(sorted(_CLIENTS_ALLOWED_DIALECTS))
+    dialect = data.get("Dialect")
+    if dialect not in _CLIENTS_ALLOWED_DIALECTS:
+        errors.append(_("Dialect must be one of: %(allowed)s", allowed=allowed))
+    for field in ("StatsDialect", "DocfieldsDialect"):
+        value = data.get(field)
+        if value and value not in _CLIENTS_ALLOWED_DIALECTS:
+            errors.append(_("%(field)s must be one of: %(allowed)s", field=field, allowed=allowed))
+
+    if data.get("RuntimeEngineKey") not in _ENGINE_KEYS:
+        errors.append(_("Unknown runtime engine key."))
+    for field in ("StatsEngineKey", "DocfieldsEngineKey"):
+        value = data.get(field)
+        if value and value not in _ENGINE_KEYS:
+            errors.append(_("Unknown %(field)s.", field=field))
+
+    secret_ref = data.get("SecretRef")
+    if secret_ref and not _SECRET_REF_RE.match(secret_ref):
+        errors.append(
+            _(
+                "Secret ref must be an env-key prefix (upper-case letters, digits, "
+                "underscores) -- never a secret value."
+            )
+        )
+
+    return errors
+
+
+@require_permission("admin.edit.clients")
+def api_admin_clients_add():
+    """Add a dbo.Clients row (migration 0079) -- a runtime source (default/
+    ms02: which DB/dialect/Octo tenant serves a client), not a customer
+    (dbo.Organizations). CLIENTS is built once at import (nx_lib/clients.py),
+    so a new row needs an app-pool recycle before it is picked up."""
+    data = request.get_json() or {}
+    errors = _validate_client_payload(data, require_code=True)
+    if errors:
+        return jsonify({"success": False, "message": " ".join(str(e) for e in errors)}), 400
+
+    conn = None
+    cursor = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO dbo.Clients (ClientCode, DisplayName, Dialect, RuntimeEngineKey, "
+            "StatsEngineKey, StatsDialect, DocfieldsEngineKey, DocfieldsDialect, OctoDomain, "
+            "SecretRef, IsActive) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                data["ClientCode"].strip(),
+                data["DisplayName"].strip(),
+                data["Dialect"],
+                data["RuntimeEngineKey"],
+                data.get("StatsEngineKey") or None,
+                data.get("StatsDialect") or None,
+                data.get("DocfieldsEngineKey") or None,
+                data.get("DocfieldsDialect") or None,
+                data.get("OctoDomain") or None,
+                data.get("SecretRef") or None,
+                1 if data.get("IsActive", True) else 0,
+            ),
+        )
+        conn.commit()
+        return jsonify({"success": True, "message": _("Client created successfully.")})
+    except pyodbc.IntegrityError:
+        return jsonify({"success": False, "message": _("Client code already exists.")}), 409
+    except Exception as e:
+        current_app.logger.error(f"Error adding client: {e}")
+        return jsonify({"success": False, "message": _("An unexpected error occurred.")}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@require_permission("admin.edit.clients")
+def api_admin_clients_edit(clientcode):
+    data = request.get_json() or {}
+    errors = _validate_client_payload(data, require_code=False)
+    if errors:
+        return jsonify({"success": False, "message": " ".join(str(e) for e in errors)}), 400
+
+    conn = None
+    cursor = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE dbo.Clients SET DisplayName=?, Dialect=?, RuntimeEngineKey=?, "
+            "StatsEngineKey=?, StatsDialect=?, DocfieldsEngineKey=?, DocfieldsDialect=?, "
+            "OctoDomain=?, SecretRef=?, IsActive=? WHERE ClientCode=?",
+            (
+                data["DisplayName"].strip(),
+                data["Dialect"],
+                data["RuntimeEngineKey"],
+                data.get("StatsEngineKey") or None,
+                data.get("StatsDialect") or None,
+                data.get("DocfieldsEngineKey") or None,
+                data.get("DocfieldsDialect") or None,
+                data.get("OctoDomain") or None,
+                data.get("SecretRef") or None,
+                1 if data.get("IsActive", True) else 0,
+                clientcode,
+            ),
+        )
+        conn.commit()
+
+        if cursor.rowcount == 0:
+            return jsonify({"success": False, "message": _("Client not found.")}), 404
+
+        return jsonify({"success": True, "message": _("Client updated successfully.")})
+    except Exception as e:
+        current_app.logger.error(f"Error editing client {clientcode}: {e}")
+        return jsonify({"success": False, "message": _("An error occurred.")}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@require_permission("admin.edit.clients")
+def api_admin_clients_delete(clientcode):
+    """Refuses (409) a ClientCode still referenced by dbo.ProcessSources (migration
+    0074) instead of deleting it out from under the mapping-config registry
+    (nx_lib/mapping_config.py) or the running CLIENTS registry."""
+    conn = None
+    cursor = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT COUNT(*) FROM dbo.ProcessSources WHERE ClientCode = ?", (clientcode,)
+        )
+        row = cursor.fetchone()
+        if row and row[0]:
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "message": _(
+                            "This client is still referenced by process sources and "
+                            "cannot be deleted."
+                        ),
+                    }
+                ),
+                409,
+            )
+
+        cursor.execute("DELETE FROM dbo.Clients WHERE ClientCode=?", (clientcode,))
+        conn.commit()
+
+        if cursor.rowcount == 0:
+            return jsonify({"success": False, "message": _("Client not found.")}), 404
+
+        return jsonify({"success": True, "message": _("Client deleted successfully.")})
+    except Exception as e:
+        current_app.logger.error(f"Error deleting client {clientcode}: {e}")
+        return jsonify({"success": False, "message": _("An error occurred.")}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+# ----------------------------------- processes (mapping config) -------------------- #
+
+
+def _process_field_dict(field_mapping):
+    return {
+        "field_key": field_mapping.field_key,
+        "column": field_mapping.column,
+        "column_type": field_mapping.column_type,
+    }
+
+
+def _process_source_dict(source, fields):
+    return {
+        "client": source.client,
+        "process": source.process,
+        "table": source.table,
+        "alias": source.alias,
+        "join_condition": source.join_condition,
+        "time_filter": source.time_filter,
+        "suggestion_time_filter": source.suggestion_time_filter,
+        "export_column": source.export_column,
+        "import_column": source.import_column,
+        "workitem_column": source.workitem_column,
+        "extra_condition": source.extra_condition,
+        "id_column_type": source.id_column_type,
+        "fields": [_process_field_dict(m) for m in fields],
+    }
+
+
+@require_permission("admin.view.processes")
+def admin_processes_view():
+    """Read-only view of dbo.ProcessSources / ProcessFieldMappings (migration
+    0074), grouped by ClientCode -- a *runtime source* (default/ms02, see
+    dbo.Clients), not a customer (dbo.Organizations) -- then by ProcessName,
+    with each process's field mappings as a nested table. Read entirely
+    through the cached nx_lib/mapping_config.py registry, never raw SQL.
+
+    registry() returning None means the config failed to load (a load error
+    is never cached) -- render an explicit "unavailable" state rather than an
+    empty-looking success. The edit affordances render only for
+    admin.edit.processes; the free-form SQL fragment columns (JoinCondition,
+    TimeFilter, SuggestionTimeFilter, ExtraCondition) stay read-only for
+    everybody -- they are editable only by a migration."""
+    reg = mapping_config.registry()
+    clients_data = []
+    if reg is not None:
+        by_client = {}
+        for (client, process), source in reg.sources.items():
+            fields = sorted(
+                (m for m in reg.mappings if m.client == client and m.process == process),
+                key=lambda m: m.field_key,
+            )
+            by_client.setdefault(client, []).append((process, source, fields))
+        for client in sorted(by_client):
+            processes = sorted(by_client[client], key=lambda item: item[0])
+            clients_data.append(
+                {
+                    "client": client,
+                    "processes": [
+                        _process_source_dict(source, fields) for _, source, fields in processes
+                    ],
+                }
+            )
+
+    return render_template(
+        "admin/processes.html",
+        mapping_config_available=reg is not None,
+        can_edit=has_permission("admin.edit.processes"),
+        clients_data=clients_data,
+        client_codes=_client_codes(),
+        logged_in_user=session.get("username"),
+        userid=session.get("userid"),
+        page_visibility=page_visibility(),
+    )
+
+
+@require_permission("admin.view.processes")
+def api_admin_processes_list():
+    """JSON mirror of admin_processes_view() for a single client (or every
+    client when ``?client=`` is omitted) -- read through nx_lib/mapping_config.py,
+    never raw SQL. Mirrors that module's fail-closed contract: a registry load
+    failure is a 503, never an empty-looking 200 (task 6 brief)."""
+    client = request.args.get("client")
+    reg = mapping_config.registry()
+    if reg is None:
+        return jsonify({"error": _("Mapping config is currently unavailable.")}), 503
+
+    sources = mapping_config.sources_for(client)
+    processes = []
+    for source in sorted(sources, key=lambda s: (s.client, s.process)):
+        fields = sorted(
+            mapping_config.mappings_for(source.client, [source.process]),
+            key=lambda m: m.field_key,
+        )
+        processes.append(_process_source_dict(source, fields))
+
+    return jsonify({"client": client, "processes": processes})
+
+
+# --------------------- processes (mapping config, writes) -------------------------- #
+
+# ProcessName MUST be exactly <customer>.<process> -- two dot-separated
+# segments, no more, no fewer. This is NOT cosmetic and NOT "convention only":
+# every consumer of the auto-provisioned workitems.filter.process.<ProcessName>
+# permission reconstructs the process name from the permission code as exactly
+# the LAST TWO dot-segments (nx_lib/views/workitems.py, nx_lib/process_helpers.py
+# `parts[-2], parts[-1]`). A one-segment name ("Invoice") derives back as
+# "process.Invoice" and the grant silently never matches; a three-segment name
+# ("acme.eu.01_Invoice") derives back as "eu.01_Invoice", same silent dead end;
+# and worse, "x.acme.01_Invoice" reduces to "acme.01_Invoice", so it would
+# piggyback on another customer's existing grant. Until this page existed the
+# invariant held only because process names were migration-controlled -- now an
+# admin types them, so it is enforced here.
+_PROCESS_NAME_RE = re.compile(r"^[A-Za-z0-9_\-]{1,49}\.[A-Za-z0-9_\-]{1,50}$")
+
+# FieldKey is a plain mapping key (doctype, invoice_no) -- it is never turned
+# into a permission code, so it keeps the looser shape.
+_FIELD_KEY_RE = re.compile(r"^[A-Za-z0-9_.\-]{1,100}$")
+
+# TableName / TableAlias / ColumnName / Export|Import|WorkitemColumn are
+# INTERPOLATED into SQL by the downstream query builders (f-strings in
+# nx_lib/views/dashboard.py and nx_lib/workitem_sources.py) -- they are config,
+# not bind parameters. Every admin-editable field that reaches a builder is
+# validated on the way in, here, server-side. Quotes and brackets are allowed
+# because the live config holds qualified identifiers in both dialects
+# (dbo.tblAlpha, public."DossierStatistik") -- spaces, semicolons, parentheses
+# and comment markers are not.
+_IDENT = re.compile(r'^[A-Za-z_][A-Za-z0-9_."\[\]]{0,99}$')
+
+# ColumnType / IdColumnType are never interpolated -- they are only compared
+# against the literal type buckets in workitems.py / workitem_sources.py (e.g.
+# 'nvarchar', 'character varying'), hence the space.
+_COLUMN_TYPE_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_ ]{0,29}$")
+
+# ProcessSources.JoinCondition / TimeFilter / SuggestionTimeFilter /
+# ExtraCondition are free-form SQL fragments by design and are deliberately NOT
+# writable here: no validator can make an arbitrary predicate safe, so they
+# stay migration-only. They appear in no INSERT/UPDATE and in no form below --
+# a payload carrying them is ignored, not applied.
+_PROCESS_PERMISSION_PREFIX = "workitems.filter.process."
+
+
+def _validate_identifier_fields(data, fields, errors, *, required=()):
+    """Append an error for every ``fields`` entry that is present but is not a
+    plain SQL identifier (and for every ``required`` entry that is missing)."""
+    for field in fields:
+        value = (data.get(field) or "").strip()
+        if not value:
+            if field in required:
+                errors.append(_("%(field)s is required.", field=field))
+            continue
+        if not _IDENT.match(value):
+            errors.append(
+                _(
+                    "%(field)s must be a plain SQL identifier (letters, digits, "
+                    "underscores, dots, quotes or brackets).",
+                    field=field,
+                )
+            )
+
+
+def _validate_process_identity(client_code, process_name, errors, field_key=None):
+    if not _CLIENT_CODE_RE.match(client_code or ""):
+        errors.append(_("Client code must be 2-50 lowercase letters, digits or underscores."))
+    if not _PROCESS_NAME_RE.match(process_name or ""):
+        errors.append(
+            _(
+                "Process name must be exactly <customer>.<process> -- two parts separated "
+                "by a single dot (e.g. acme.01_Invoice), letters, digits, dashes or "
+                "underscores only. The permission that grants access to this process is "
+                "derived from those two parts, so any other shape can never be granted."
+            )
+        )
+    if field_key is not None and not _FIELD_KEY_RE.match(field_key or ""):
+        errors.append(_("Field key must be 1-100 letters, digits, dots, dashes or underscores."))
+
+
+def _validate_process_source_payload(data, client_code, process_name):
+    """Server-side validation for the process-source write endpoints -- never
+    trust the client-side checks in templates/js/admin/_processes_js.html."""
+    errors = []
+    _validate_process_identity(client_code, process_name, errors)
+    _validate_identifier_fields(
+        data,
+        ("TableName", "TableAlias", "ExportColumn", "ImportColumn", "WorkitemColumn"),
+        errors,
+        required=("TableName",),
+    )
+    if len((data.get("TableAlias") or "").strip()) > 10:
+        errors.append(_("Table alias must be at most 10 characters."))
+    id_column_type = (data.get("IdColumnType") or "").strip()
+    if id_column_type and not _COLUMN_TYPE_RE.match(id_column_type):
+        errors.append(_("Id column type must be a plain SQL type name."))
+    return errors
+
+
+def _validate_field_mapping_payload(data, client_code, process_name, field_key):
+    errors = []
+    _validate_process_identity(client_code, process_name, errors, field_key=field_key)
+    _validate_identifier_fields(data, ("ColumnName",), errors, required=("ColumnName",))
+    column_type = (data.get("ColumnType") or "").strip()
+    if column_type and not _COLUMN_TYPE_RE.match(column_type):
+        errors.append(_("Column type must be a plain SQL type name."))
+    return errors
+
+
+def _process_source_values(data):
+    """The six writable ProcessSources columns, in INSERT/UPDATE order. The
+    free-form SQL fragment columns are absent on purpose."""
+    return (
+        (data.get("TableName") or "").strip(),
+        (data.get("TableAlias") or "").strip() or None,
+        (data.get("ExportColumn") or "").strip() or None,
+        (data.get("ImportColumn") or "").strip() or None,
+        (data.get("WorkitemColumn") or "").strip() or None,
+        (data.get("IdColumnType") or "").strip() or None,
+    )
+
+
+def _validation_error(errors):
+    return jsonify({"success": False, "message": " ".join(str(e) for e in errors)}), 400
+
+
+def _permission_reduction(process_name):
+    """The (customer, process) pair every consumer derives back out of a
+    ``workitems.filter.process.<ProcessName>`` code -- the last two dot
+    segments. Two process names sharing a reduction share an entitlement,
+    whatever their ClientCode: the permission code carries no client."""
+    return ".".join((process_name or "").split(".")[-2:])
+
+
+def _reduction_conflict(cursor, client_code, process_name):
+    """The existing (ClientCode, ProcessName) whose permission reduction
+    collides with ``process_name``, or None.
+
+    _PROCESS_NAME_RE already forces new names to two segments, so the new name
+    IS its own reduction -- but rows written before this page existed (or by a
+    migration) may have more, and a legacy 'x.acme.01_Invoice' reduces onto a
+    freshly typed 'acme.01_Invoice'. The exact same pair is not a conflict: the
+    PK insert below turns that into the usual 409 "already exists".
+    """
+    reduction = _permission_reduction(process_name)
+    cursor.execute("SELECT ClientCode, ProcessName FROM dbo.ProcessSources")
+    for row in cursor.fetchall():
+        existing = (row[0], row[1])
+        if existing == (client_code, process_name):
+            continue
+        if _permission_reduction(row[1]) == reduction:
+            return existing
+    return None
+
+
+def _client_code_exists(cursor, client_code):
+    cursor.execute("SELECT COUNT(*) FROM dbo.Clients WHERE ClientCode = ?", (client_code,))
+    row = cursor.fetchone()
+    return bool(row and row[0])
+
+
+def _client_codes():
+    """ClientCodes from dbo.Clients, for the /admin/processes picker. Read from
+    the table rather than from the resolved CLIENTS registry on purpose: a row
+    that is configured but not loaded (missing env keys) is still a legitimate
+    target for process config. Degrades to [] -- the picker then falls back to
+    free text rather than blocking the page."""
+    conn = None
+    cursor = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT ClientCode FROM dbo.Clients ORDER BY ClientCode")
+        return [row[0] for row in cursor.fetchall()]
+    except Exception as e:
+        current_app.logger.error(f"Failed to fetch client codes: {e}")
+        return []
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@require_permission("admin.edit.processes")
+def api_admin_process_source_add():
+    """Add a dbo.ProcessSources row (migration 0074) AND provision its
+    ``workitems.filter.process.<ProcessName>`` permission in the same
+    transaction -- self-service onboarding is the whole point of this page, and
+    a process nobody can be granted is a half-created process.
+
+    The permission is created granted to NOBODY: granting stays a deliberate
+    act at /admin/access-control. The insert mirrors migration 0059's
+    idempotent WHERE NOT EXISTS shape, so re-adding a process whose permission
+    row outlived an earlier delete is a no-op rather than a unique-key error."""
+    data = request.get_json() or {}
+    client_code = (data.get("ClientCode") or "").strip()
+    process_name = (data.get("ProcessName") or "").strip()
+    errors = _validate_process_source_payload(data, client_code, process_name)
+    if errors:
+        return _validation_error(errors)
+
+    conn = None
+    cursor = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+        # Nothing in the schema ties ProcessSources.ClientCode to dbo.Clients
+        # (migration 0079 deliberately adds no FK -- ProcessSources predates the
+        # table), so a typo like 'defualt' would otherwise create a process
+        # source, auto-provision its permission, and yield config that can never
+        # resolve. Check it here instead.
+        if not _client_code_exists(cursor, client_code):
+            return _validation_error(
+                [
+                    _(
+                        "Unknown client code %(code)s -- it must be an existing "
+                        "runtime source from the Clients page.",
+                        code=client_code,
+                    )
+                ]
+            )
+        conflict = _reduction_conflict(cursor, client_code, process_name)
+        if conflict:
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "message": _(
+                            "Process name %(name)s collides with the existing "
+                            "%(other_client)s / %(other)s: both resolve to the same "
+                            "permission %(code)s, so a grant for one would entitle the "
+                            "other. Pick a different name.",
+                            name=process_name,
+                            other_client=conflict[0],
+                            other=conflict[1],
+                            code=f"{_PROCESS_PERMISSION_PREFIX}{_permission_reduction(process_name)}",
+                        ),
+                    }
+                ),
+                409,
+            )
+        cursor.execute(
+            "INSERT INTO dbo.ProcessSources (ClientCode, ProcessName, TableName, TableAlias, "
+            "ExportColumn, ImportColumn, WorkitemColumn, IdColumnType) VALUES (?,?,?,?,?,?,?,?)",
+            (client_code, process_name, *_process_source_values(data)),
+        )
+        code = f"{_PROCESS_PERMISSION_PREFIX}{process_name}"
+        cursor.execute(
+            "INSERT INTO dbo.Permission (Code, Description) SELECT ?, ? "
+            "WHERE NOT EXISTS (SELECT 1 FROM dbo.Permission p WHERE p.Code = ?)",
+            (code, f"View {process_name} workitems"[:200], code),
+        )
+        conn.commit()
+        invalidate_mapping_config()
+        return jsonify(
+            {
+                "success": True,
+                "message": _(
+                    "Process source created. Its permission %(code)s was created but "
+                    "granted to nobody -- grant it under Access Control.",
+                    code=code,
+                ),
+            }
+        )
+    except pyodbc.IntegrityError:
+        return (
+            jsonify({"success": False, "message": _("This process source already exists.")}),
+            409,
+        )
+    except Exception as e:
+        current_app.logger.error(f"Error adding process source {client_code}/{process_name}: {e}")
+        return jsonify({"success": False, "message": _("An unexpected error occurred.")}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@require_permission("admin.edit.processes")
+def api_admin_process_source_edit(clientcode, processname):
+    """Edit the identifier columns of a dbo.ProcessSources row. Identity
+    (ClientCode, ProcessName) comes from the URL and is never rewritten -- a
+    rename would strand the process's field mappings and its permission."""
+    data = request.get_json() or {}
+    errors = _validate_process_source_payload(data, clientcode, processname)
+    if errors:
+        return _validation_error(errors)
+
+    conn = None
+    cursor = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE dbo.ProcessSources SET TableName=?, TableAlias=?, ExportColumn=?, "
+            "ImportColumn=?, WorkitemColumn=?, IdColumnType=? "
+            "WHERE ClientCode=? AND ProcessName=?",
+            (*_process_source_values(data), clientcode, processname),
+        )
+        conn.commit()
+        if cursor.rowcount == 0:
+            return jsonify({"success": False, "message": _("Process source not found.")}), 404
+        invalidate_mapping_config()
+        return jsonify({"success": True, "message": _("Process source updated successfully.")})
+    except Exception as e:
+        current_app.logger.error(f"Error editing process source {clientcode}/{processname}: {e}")
+        return jsonify({"success": False, "message": _("An error occurred.")}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@require_permission("admin.edit.processes")
+def api_admin_process_source_delete(clientcode, processname):
+    """Delete a dbo.ProcessSources row. Refused with 409 while field mappings
+    still reference it -- FK_ProcessFieldMappings_ProcessSources would raise
+    anyway, and a 500 tells the admin nothing about what to do next.
+
+    The ``workitems.filter.process.<name>`` permission row is deliberately left
+    behind: dropping it would silently revoke access the admin never asked to
+    change, and re-adding the process re-uses it (see the add endpoint)."""
+    conn = None
+    cursor = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT COUNT(*) FROM dbo.ProcessFieldMappings WHERE ClientCode = ? "
+            "AND ProcessName = ?",
+            (clientcode, processname),
+        )
+        row = cursor.fetchone()
+        if row and row[0]:
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "message": _(
+                            "This process source still has field mappings and cannot be "
+                            "deleted. Remove them first."
+                        ),
+                    }
+                ),
+                409,
+            )
+
+        cursor.execute(
+            "DELETE FROM dbo.ProcessSources WHERE ClientCode=? AND ProcessName=?",
+            (clientcode, processname),
+        )
+        conn.commit()
+        if cursor.rowcount == 0:
+            return jsonify({"success": False, "message": _("Process source not found.")}), 404
+        invalidate_mapping_config()
+        return jsonify({"success": True, "message": _("Process source deleted successfully.")})
+    except pyodbc.IntegrityError:
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "message": _("This process source is still referenced and cannot be deleted."),
+                }
+            ),
+            409,
+        )
+    except Exception as e:
+        current_app.logger.error(f"Error deleting process source {clientcode}/{processname}: {e}")
+        return jsonify({"success": False, "message": _("An error occurred.")}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@require_permission("admin.edit.processes")
+def api_admin_field_mapping_add():
+    """Add a dbo.ProcessFieldMappings row -- one doc-field of one process."""
+    data = request.get_json() or {}
+    client_code = (data.get("ClientCode") or "").strip()
+    process_name = (data.get("ProcessName") or "").strip()
+    field_key = (data.get("FieldKey") or "").strip()
+    errors = _validate_field_mapping_payload(data, client_code, process_name, field_key)
+    if errors:
+        return _validation_error(errors)
+
+    conn = None
+    cursor = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO dbo.ProcessFieldMappings (ClientCode, ProcessName, FieldKey, "
+            "ColumnName, ColumnType) VALUES (?,?,?,?,?)",
+            (
+                client_code,
+                process_name,
+                field_key,
+                (data.get("ColumnName") or "").strip(),
+                (data.get("ColumnType") or "").strip() or None,
+            ),
+        )
+        conn.commit()
+        invalidate_mapping_config()
+        return jsonify({"success": True, "message": _("Field mapping created successfully.")})
+    except pyodbc.IntegrityError:
+        # PK_ProcessFieldMappings, or FK_ProcessFieldMappings_ProcessSources
+        # when the parent process source does not exist.
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "message": _(
+                        "This field mapping already exists, or its process source does not."
+                    ),
+                }
+            ),
+            409,
+        )
+    except Exception as e:
+        current_app.logger.error(f"Error adding field mapping {client_code}/{process_name}: {e}")
+        return jsonify({"success": False, "message": _("An unexpected error occurred.")}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@require_permission("admin.edit.processes")
+def api_admin_field_mapping_edit(clientcode, processname, fieldkey):
+    """Edit a field mapping's column. Identity comes from the URL -- renaming a
+    FieldKey is a delete plus an add, not an update."""
+    data = request.get_json() or {}
+    errors = _validate_field_mapping_payload(data, clientcode, processname, fieldkey)
+    if errors:
+        return _validation_error(errors)
+
+    conn = None
+    cursor = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE dbo.ProcessFieldMappings SET ColumnName=?, ColumnType=? "
+            "WHERE ClientCode=? AND ProcessName=? AND FieldKey=?",
+            (
+                (data.get("ColumnName") or "").strip(),
+                (data.get("ColumnType") or "").strip() or None,
+                clientcode,
+                processname,
+                fieldkey,
+            ),
+        )
+        conn.commit()
+        if cursor.rowcount == 0:
+            return jsonify({"success": False, "message": _("Field mapping not found.")}), 404
+        invalidate_mapping_config()
+        return jsonify({"success": True, "message": _("Field mapping updated successfully.")})
+    except Exception as e:
+        current_app.logger.error(
+            f"Error editing field mapping {clientcode}/{processname}/{fieldkey}: {e}"
+        )
+        return jsonify({"success": False, "message": _("An error occurred.")}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@require_permission("admin.edit.processes")
+def api_admin_field_mapping_delete(clientcode, processname, fieldkey):
+    conn = None
+    cursor = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "DELETE FROM dbo.ProcessFieldMappings WHERE ClientCode=? AND ProcessName=? "
+            "AND FieldKey=?",
+            (clientcode, processname, fieldkey),
+        )
+        conn.commit()
+        if cursor.rowcount == 0:
+            return jsonify({"success": False, "message": _("Field mapping not found.")}), 404
+        invalidate_mapping_config()
+        return jsonify({"success": True, "message": _("Field mapping deleted successfully.")})
+    except Exception as e:
+        current_app.logger.error(
+            f"Error deleting field mapping {clientcode}/{processname}/{fieldkey}: {e}"
+        )
+        return jsonify({"success": False, "message": _("An error occurred.")}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
 # ----------------------------------- status page ---------------------------------- #
 
 
@@ -319,6 +1361,10 @@ def admin_status_view():
     return render_template(
         "admin/status.html",
         status=data,
+        # Import-time degradation of the client registry (nx_lib/clients.py):
+        # its only other signal is a logger.error that fires before Flask has
+        # configured logging, so it never reaches app.log.
+        clients_registry_degraded_reason=clients_registry.REGISTRY_DEGRADED_REASON,
         stale_after_min=status.DEFAULT_STALE_AFTER_S // 60,
         logged_in_user=session.get("username"),
         userid=session.get("userid"),
@@ -2173,6 +3219,79 @@ def register_routes(app):
         "/api/admin/organizations/list",
         endpoint="api_admin_organizations_list",
         view_func=api_admin_organizations_list,
+    )
+    app.add_url_rule(
+        "/admin/organizations/<organizationcode>/branding",
+        endpoint="api_admin_organization_branding_save",
+        view_func=api_admin_organization_branding_save,
+        methods=["POST"],
+    )
+
+    # clients (runtime sources)
+    app.add_url_rule("/admin/clients", endpoint="admin_clients_view", view_func=admin_clients_view)
+    app.add_url_rule(
+        "/admin/clients/add",
+        endpoint="api_admin_clients_add",
+        view_func=api_admin_clients_add,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/admin/clients/edit/<clientcode>",
+        endpoint="api_admin_clients_edit",
+        view_func=api_admin_clients_edit,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/admin/clients/delete/<clientcode>",
+        endpoint="api_admin_clients_delete",
+        view_func=api_admin_clients_delete,
+        methods=["DELETE"],
+    )
+
+    # processes (mapping config)
+    app.add_url_rule(
+        "/admin/processes", endpoint="admin_processes_view", view_func=admin_processes_view
+    )
+    app.add_url_rule(
+        "/api/admin/processes/list",
+        endpoint="api_admin_processes_list",
+        view_func=api_admin_processes_list,
+    )
+    app.add_url_rule(
+        "/admin/processes/sources/add",
+        endpoint="api_admin_process_source_add",
+        view_func=api_admin_process_source_add,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/admin/processes/sources/edit/<clientcode>/<processname>",
+        endpoint="api_admin_process_source_edit",
+        view_func=api_admin_process_source_edit,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/admin/processes/sources/delete/<clientcode>/<processname>",
+        endpoint="api_admin_process_source_delete",
+        view_func=api_admin_process_source_delete,
+        methods=["DELETE"],
+    )
+    app.add_url_rule(
+        "/admin/processes/fields/add",
+        endpoint="api_admin_field_mapping_add",
+        view_func=api_admin_field_mapping_add,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/admin/processes/fields/edit/<clientcode>/<processname>/<fieldkey>",
+        endpoint="api_admin_field_mapping_edit",
+        view_func=api_admin_field_mapping_edit,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/admin/processes/fields/delete/<clientcode>/<processname>/<fieldkey>",
+        endpoint="api_admin_field_mapping_delete",
+        view_func=api_admin_field_mapping_delete,
+        methods=["DELETE"],
     )
 
     # status page
