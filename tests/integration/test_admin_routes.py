@@ -32,7 +32,9 @@ Sections:
 - /api/admin/permissions/*  CRUD
 """
 
+import types as _types
 import uuid
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -263,6 +265,189 @@ def test_admin_clients_delete_refuses_when_referenced_by_process_sources(
 
     resp = admin_client.delete("/admin/clients/delete/ms02")
     assert resp.status_code == 409
+
+
+# ============================ processes (mapping config, read-only) ==========
+
+# The six (ClientCode, ProcessName) rows migration 0074 verified agree between
+# SearchConfig and StatConfig on INT/PROD -- used here as canned mapping_config
+# rows so the route tests exercise the real registry() shape rather than a
+# schema this test DB doesn't have (dbo.ProcessSources isn't in
+# sql/test/schema.sql, same as dbo.Clients above).
+
+
+def _processes_source_row(client, process, table="dbo.tblAlpha"):
+    return _types.SimpleNamespace(
+        ClientCode=client,
+        ProcessName=process,
+        TableName=table,
+        TableAlias=None,
+        JoinCondition=None,
+        TimeFilter=None,
+        SuggestionTimeFilter=None,
+        ExportColumn="ExportDate",
+        ImportColumn="ImportDate",
+        WorkitemColumn=None,
+        ExtraCondition=None,
+        IdColumnType=None,
+    )
+
+
+def _processes_mapping_row(client, process, field_key="DocType", column="DocType"):
+    return _types.SimpleNamespace(
+        ClientCode=client,
+        ProcessName=process,
+        FieldKey=field_key,
+        ColumnName=column,
+        ColumnType=None,
+    )
+
+
+_SIX_INT_SOURCE_ROWS = [
+    _processes_source_row("default", "sydoc.05_PDBS"),
+    _processes_source_row("default", "sydoc.Alpha"),
+    _processes_source_row("default", "sydoc.Beta"),
+    _processes_source_row("ms02", "privera.02_Posteingang"),
+    _processes_source_row("ms02", "privera.03_Rechnungen"),
+    _processes_source_row("ms02", "privera.04_Vertraege"),
+]
+
+
+class _ProcessesFakeCursor:
+    def __init__(self, sources, mappings):
+        self._sources = sources
+        self._mappings = mappings
+        self._result = []
+
+    def execute(self, sql, *params):
+        if "FROM ProcessSources" in sql:
+            self._result = self._sources
+        elif "FROM ProcessFieldMappings" in sql:
+            self._result = self._mappings
+        elif "FROM FieldLabels" in sql or "FROM FieldAliases" in sql:
+            self._result = []
+        else:
+            raise AssertionError(f"unexpected query: {sql}")
+
+    def fetchall(self):
+        return self._result
+
+
+def _fake_mapping_config_engine(sources, mappings):
+    cur = _ProcessesFakeCursor(sources, mappings)
+    conn = MagicMock()
+    conn.cursor.return_value = cur
+    conn.close.return_value = None
+    eng = MagicMock()
+    eng.raw_connection.return_value = conn
+    return eng
+
+
+@pytest.fixture
+def mapping_config_with_six_rows(monkeypatch, app):
+    import nx_lib.mapping_config as mc
+
+    with app.app_context():
+        mc.invalidate_mapping_config()
+
+    eng = _fake_mapping_config_engine(
+        _SIX_INT_SOURCE_ROWS,
+        [_processes_mapping_row("default", "sydoc.Alpha", "doctype", "DocType")],
+    )
+    monkeypatch.setattr(mc, "engine_nexora_db", eng)
+    yield
+    with app.app_context():
+        mc.invalidate_mapping_config()
+
+
+def test_admin_processes_view_gated(noperm_client):
+    resp = noperm_client.get("/admin/processes")
+    assert resp.status_code == 403
+
+
+def test_admin_processes_view_with_perm(
+    admin_client, admin_all_perms, mapping_config_with_six_rows
+):
+    resp = admin_client.get("/admin/processes")
+    assert resp.status_code == 200
+
+
+def test_admin_processes_view_renders_unavailable_state_on_registry_none(
+    admin_client, admin_all_perms, monkeypatch, app
+):
+    import nx_lib.mapping_config as mc
+
+    with app.app_context():
+        mc.invalidate_mapping_config()
+    dead_eng = MagicMock()
+    dead_eng.raw_connection.side_effect = RuntimeError("NexoraDB down")
+    monkeypatch.setattr(mc, "engine_nexora_db", dead_eng)
+
+    resp = admin_client.get("/admin/processes")
+    assert resp.status_code == 200
+    assert b"unavailable" in resp.data.lower() or b"config" in resp.data.lower()
+    with app.app_context():
+        mc.invalidate_mapping_config()
+
+
+def test_api_admin_processes_list_gated(noperm_client):
+    resp = noperm_client.get("/api/admin/processes/list?client=default")
+    assert resp.status_code == 403
+
+
+def test_api_admin_processes_list_returns_six_int_rows_shape(
+    admin_client, admin_all_perms, mapping_config_with_six_rows
+):
+    resp = admin_client.get("/api/admin/processes/list")
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert len(body["processes"]) == 6
+    process = body["processes"][0]
+    for key in (
+        "client",
+        "process",
+        "table",
+        "alias",
+        "join_condition",
+        "time_filter",
+        "suggestion_time_filter",
+        "export_column",
+        "import_column",
+        "workitem_column",
+        "extra_condition",
+        "id_column_type",
+        "fields",
+    ):
+        assert key in process
+
+
+def test_api_admin_processes_list_filters_by_client(
+    admin_client, admin_all_perms, mapping_config_with_six_rows
+):
+    resp = admin_client.get("/api/admin/processes/list?client=default")
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert len(body["processes"]) == 3
+    assert all(p["client"] == "default" for p in body["processes"])
+    alpha = next(p for p in body["processes"] if p["process"] == "sydoc.Alpha")
+    assert alpha["fields"] == [{"field_key": "doctype", "column": "DocType", "column_type": None}]
+
+
+def test_api_admin_processes_list_returns_503_on_registry_none(
+    admin_client, admin_all_perms, monkeypatch, app
+):
+    import nx_lib.mapping_config as mc
+
+    with app.app_context():
+        mc.invalidate_mapping_config()
+    dead_eng = MagicMock()
+    dead_eng.raw_connection.side_effect = RuntimeError("NexoraDB down")
+    monkeypatch.setattr(mc, "engine_nexora_db", dead_eng)
+
+    resp = admin_client.get("/api/admin/processes/list")
+    assert resp.status_code == 503
+    with app.app_context():
+        mc.invalidate_mapping_config()
 
 
 # ============================ maintenance banner =============================

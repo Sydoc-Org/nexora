@@ -26,7 +26,7 @@ from flask import (
 from flask_babel import gettext as _
 from werkzeug.exceptions import HTTPException
 
-from .. import status
+from .. import mapping_config, status
 from ..clients import _ENGINE_KEYS
 from ..config import DOTENV_KEYS, IS_PROD, REPO_ROOT
 from ..db import (
@@ -524,6 +524,101 @@ def api_admin_clients_delete(clientcode):
             cursor.close()
         if conn:
             conn.close()
+
+
+# ----------------------------------- processes (mapping config, read-only) --------- #
+
+
+def _process_field_dict(field_mapping):
+    return {
+        "field_key": field_mapping.field_key,
+        "column": field_mapping.column,
+        "column_type": field_mapping.column_type,
+    }
+
+
+def _process_source_dict(source, fields):
+    return {
+        "client": source.client,
+        "process": source.process,
+        "table": source.table,
+        "alias": source.alias,
+        "join_condition": source.join_condition,
+        "time_filter": source.time_filter,
+        "suggestion_time_filter": source.suggestion_time_filter,
+        "export_column": source.export_column,
+        "import_column": source.import_column,
+        "workitem_column": source.workitem_column,
+        "extra_condition": source.extra_condition,
+        "id_column_type": source.id_column_type,
+        "fields": [_process_field_dict(m) for m in fields],
+    }
+
+
+@require_permission("admin.view.processes")
+def admin_processes_view():
+    """Read-only view of dbo.ProcessSources / ProcessFieldMappings (migration
+    0074), grouped by ClientCode -- a *runtime source* (default/ms02, see
+    dbo.Clients), not a customer (dbo.Organizations) -- then by ProcessName,
+    with each process's field mappings as a nested table. Read entirely
+    through the cached nx_lib/mapping_config.py registry, never raw SQL.
+
+    registry() returning None means the config failed to load (a load error
+    is never cached) -- render an explicit "unavailable" state rather than an
+    empty-looking success. Write endpoints for sources/mappings land in a
+    later task; this page is deliberately read-only."""
+    reg = mapping_config.registry()
+    clients_data = []
+    if reg is not None:
+        by_client = {}
+        for (client, process), source in reg.sources.items():
+            fields = sorted(
+                (m for m in reg.mappings if m.client == client and m.process == process),
+                key=lambda m: m.field_key,
+            )
+            by_client.setdefault(client, []).append((process, source, fields))
+        for client in sorted(by_client):
+            processes = sorted(by_client[client], key=lambda item: item[0])
+            clients_data.append(
+                {
+                    "client": client,
+                    "processes": [
+                        _process_source_dict(source, fields) for _, source, fields in processes
+                    ],
+                }
+            )
+
+    return render_template(
+        "admin/processes.html",
+        mapping_config_available=reg is not None,
+        clients_data=clients_data,
+        logged_in_user=session.get("username"),
+        userid=session.get("userid"),
+        page_visibility=page_visibility(),
+    )
+
+
+@require_permission("admin.view.processes")
+def api_admin_processes_list():
+    """JSON mirror of admin_processes_view() for a single client (or every
+    client when ``?client=`` is omitted) -- read through nx_lib/mapping_config.py,
+    never raw SQL. Mirrors that module's fail-closed contract: a registry load
+    failure is a 503, never an empty-looking 200 (task 6 brief)."""
+    client = request.args.get("client")
+    reg = mapping_config.registry()
+    if reg is None:
+        return jsonify({"error": _("Mapping config is currently unavailable.")}), 503
+
+    sources = mapping_config.sources_for(client)
+    processes = []
+    for source in sorted(sources, key=lambda s: (s.client, s.process)):
+        fields = sorted(
+            mapping_config.mappings_for(source.client, [source.process]),
+            key=lambda m: m.field_key,
+        )
+        processes.append(_process_source_dict(source, fields))
+
+    return jsonify({"client": client, "processes": processes})
 
 
 # ----------------------------------- status page ---------------------------------- #
@@ -2425,6 +2520,16 @@ def register_routes(app):
         endpoint="api_admin_clients_delete",
         view_func=api_admin_clients_delete,
         methods=["DELETE"],
+    )
+
+    # processes (mapping config, read-only)
+    app.add_url_rule(
+        "/admin/processes", endpoint="admin_processes_view", view_func=admin_processes_view
+    )
+    app.add_url_rule(
+        "/api/admin/processes/list",
+        endpoint="api_admin_processes_list",
+        view_func=api_admin_processes_list,
     )
 
     # status page

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale }}">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    {% include '_theme_prepaint.html' %}
+    <link rel="stylesheet" href="{{ url_for('static',filename='css/nexora-ui.css') }}">
+    <title>{{ _("Processes - nexora") }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
+</head>
+<body class="nx-app">
+    <div id="notification-container" class="fixed top-4 right-4 z-[100] w-full max-w-xs space-y-3"></div>
+
+    {% set active_page = 'processes' %}
+    {% include '_header.html' %}
+    {% import 'admin/_admin_helpers.html' as a %}
+
+    <main class="nx-main">
+        {{ a.page_header(
+            title=_('Processes'),
+            subtitle=_('Process sources and field mappings per client -- read-only (dbo.ProcessSources / dbo.ProcessFieldMappings)'),
+            back_url=url_for('admin_dashboard'),
+            icon='fa-diagram-project'
+        ) }}
+
+        <p class="nx-c-meta" style="font-size:0.85rem;margin:-8px 0 16px" data-testid="admin-processes-help">
+            <i class="fas fa-circle-info"></i>
+            {{ _("\"Client\" here is a runtime source (default/ms02, see Clients) -- not a customer organization. Process names are customer-prefixed by convention only (e.g. privera.02_Posteingang); this page never parses that prefix.") }}
+        </p>
+
+        {% if not mapping_config_available %}
+        <div class="nx-card admin-empty" data-testid="admin-processes-unavailable">
+            <i class="fas fa-triangle-exclamation"></i> &nbsp;
+            {{ _("Mapping config is currently unavailable. The registry failed to load -- check the application log; this is not the same as \"no processes configured\".") }}
+        </div>
+        {% else %}
+
+        {{ a.toolbar(search_id='processSearchInput', search_placeholder=_('Search client or process...')) }}
+
+        <div id="processes-groups">
+            {% for group in clients_data %}
+            <section class="nx-card nx-rise" style="margin-bottom:20px" data-testid="admin-processes-client-{{ group.client }}">
+                <h2 class="nx-section" style="margin-bottom:12px">
+                    <span class="nx-mono">{{ group.client }}</span>
+                </h2>
+
+                {% for process in group.processes %}
+                <div data-search="{{ (group.client ~ ' ' ~ process.process)|lower }}" style="margin-bottom:16px" data-testid="admin-processes-row-{{ group.client }}-{{ process.process }}">
+                    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
+                        <h3 class="nx-subtitle" style="margin:0">{{ process.process }}</h3>
+                        <span class="nx-c-meta" style="font-size:0.8rem">
+                            {{ _('Table:') }} <span class="nx-mono">{{ process.table or '—' }}</span>
+                        </span>
+                    </div>
+
+                    <div class="nx-table-wrap" style="margin-top:8px">
+                        <table class="nx-table">
+                            {{ a.table_header([
+                                {'label': _('Field key')},
+                                {'label': _('Column')},
+                                {'label': _('Column type'), 'width': '140px'}
+                            ]) }}
+                            <tbody>
+                                {% for field in process.fields %}
+                                <tr data-testid="admin-processes-field-{{ group.client }}-{{ process.process }}-{{ field.field_key }}">
+                                    <td class="nx-mono">{{ field.field_key }}</td>
+                                    <td class="nx-mono">{{ field.column }}</td>
+                                    <td>{{ field.column_type or '—' }}</td>
+                                </tr>
+                                {% else %}
+                                {{ a.empty_state('fa-table-cells', _('No field mappings for this process.'), 3) }}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endfor %}
+            </section>
+            {% endfor %}
+            {% if not clients_data %}
+            <div class="nx-card admin-empty" data-testid="admin-processes-empty">
+                <i class="fas fa-inbox"></i> &nbsp; {{ _("No process sources configured.") }}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </main>
+
+    {% include 'js/admin/_processes_js.html' %}
+</body>
+</html>

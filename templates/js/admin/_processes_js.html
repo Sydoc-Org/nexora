@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body>
+    <script nonce="{{ csp_nonce() }}">
+        // #98 phase 4 task 6: read-only /admin/processes. Write endpoints (add/edit
+        // source, add/edit/delete field mapping) land in task 7 and extend this
+        // same shim -- keep API_PREFIX + delegated-click plumbing here even though
+        // nothing calls them yet.
+        const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const input = document.getElementById('processSearchInput');
+            const groups = document.getElementById('processes-groups');
+            if (!input || !groups) return;
+
+            function applyFilter() {
+                const q = input.value.trim().toLowerCase();
+                groups.querySelectorAll('[data-search]').forEach(row => {
+                    row.style.display = !q || row.dataset.search.includes(q) ? '' : 'none';
+                });
+            }
+
+            input.addEventListener('input', applyFilter);
+        });
+
+        // #193 finding 10: onclick="" attribute handlers aren't nonce-covered by CSP --
+        // delegate through data-nx-click instead, once task 7 adds actions here.
+        document.addEventListener('click', (e) => {
+            const target = e.target.closest('[data-nx-click]');
+            if (!target) return;
+            // No actions wired yet on this read-only page.
+        });
+    </script>
+</body>
+
+</html>
