@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` or `superpowers:executing-plans` to implement this plan phase-by-phase. Steps use checkbox (`- [ ]`) syntax. Every table, column, row count and fill rate quoted below was **measured against the live INT `Generali` database on 2026-08-27** (`sys.*` catalogs + a full profiling pass over 2,468,923 `ReportJob` rows) — re-measure before executing, the importer runs daily. Plan file: `docs/superpowers/plans/2026-08-27-generali-db-restructure.md`.
 
+**Issue:** [#220](https://github.com/Sydoc-Code/nexora/issues/220) — the four open questions at the bottom of this plan are repeated there for the owner to answer.
+
 **Goal:** Turn the Generali tenant DB from a half-German, half-English, string-typed CSV landing zone into a schema someone can read: **English names, one naming style, real types, real keys, real indexes** — without a single minute of downtime for `/generali/*` or the daily CSV import.
 
 **Why now:** the reporting source visualizer (`reporting.sources.schema`, shipped 2026-08-27) draws this database, and it draws it honestly: one 79-column table whose columns are `DOC_SCHADEN_NR`-style SCREAMING_SNAKE German, thirteen two-column German lookup tables, four near-identical effort-logging tables, and a `PDQMReport` table with **5 rows** that the reporting registry points at while the 2.47M-row table beside it is what actually holds the data.
