@@ -87,6 +87,11 @@ INSERT INTO dbo.Permission (Code, Description) VALUES
     ('reporting.sql.target.octopus', 'Reporting: target the Octopus runtime DB in the live-SQL sandbox'),
     ('reporting.admin.sources', 'Reporting: manage the data-source registry'),
     ('reporting.sources.schema', 'Reporting: browse a source database''s tables, columns and relationships'),  -- migration 0079
+    ('admin.view.clients', 'Admin: view the runtime-source (dbo.Clients) registry page'),  -- migration 0080
+    ('admin.edit.clients', 'Admin: create, edit and delete runtime-source registry rows'),  -- migration 0080
+    ('admin.view.processes', 'Admin: view the process-source and field-mapping page'),  -- migration 0080
+    ('admin.edit.processes', 'Admin: create and edit process sources and field mappings'),  -- migration 0080
+    ('admin.edit.organization.branding', 'Admin: edit an organization''s name, logo and accent'),  -- migration 0080
     ('reporting.semantic.admin', 'Reporting: manage the canonical metrics registry'),
     ('reporting.source.generali.pdqm', 'Reporting: use the Generali PDQM Report source'),
     ('reporting.source.workitems', 'Reporting: use the Workitems (Octopus) source'),

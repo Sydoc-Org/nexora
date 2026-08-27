@@ -118,6 +118,30 @@ RELEASES = [
                 "endpoint": "admin_permission_matrix",
                 "icon": "table-cells",
             },
+            {
+                "title": _("Your organization's own look"),
+                "body": _(
+                    "An organization can now carry its own name, logo and "
+                    "accent colour into the header and the page title, so the "
+                    "portal looks like your workplace. Your own Appearance "
+                    "choices still win over it."
+                ),
+                "perm": None,
+                "endpoint": "appearance",
+                "icon": "palette",
+            },
+            {
+                "title": _("Onboard a client without a release"),
+                "body": _(
+                    "Two new admin pages — Clients and Processes — hold the "
+                    "runtime sources and the field mappings that used to need "
+                    "a database migration and a deploy. Adding a process now "
+                    "creates its permission for you."
+                ),
+                "perm": "admin.view.clients",
+                "endpoint": "admin_clients_view",
+                "icon": "building-user",
+            },
         ],
     },
     {

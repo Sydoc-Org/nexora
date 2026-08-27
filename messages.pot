@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-27 13:37+0200\n"
+"POT-Creation-Date: 2026-08-27 14:24+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -119,11 +119,33 @@ msgid ""
 "can see instead of hunt."
 msgstr ""
 
-#: nx_lib/whats_new.py:128
+#: nx_lib/whats_new.py:122
+msgid "Your organization's own look"
+msgstr ""
+
+#: nx_lib/whats_new.py:124
+msgid ""
+"An organization can now carry its own name, logo and accent colour into "
+"the header and the page title, so the portal looks like your workplace. "
+"Your own Appearance choices still win over it."
+msgstr ""
+
+#: nx_lib/whats_new.py:134
+msgid "Onboard a client without a release"
+msgstr ""
+
+#: nx_lib/whats_new.py:136
+msgid ""
+"Two new admin pages — Clients and Processes — hold the runtime sources "
+"and the field mappings that used to need a database migration and a "
+"deploy. Adding a process now creates its permission for you."
+msgstr ""
+
+#: nx_lib/whats_new.py:152
 msgid "Imports, exports and backlog on one chart"
 msgstr ""
 
-#: nx_lib/whats_new.py:130
+#: nx_lib/whats_new.py:154
 msgid ""
 "Document Processing gained date-anchored measures: pick documents or "
 "pages imported, exported and the backlog together over time and they all "
@@ -131,74 +153,74 @@ msgid ""
 "retired — the new Backlog measure replaces it."
 msgstr ""
 
-#: nx_lib/whats_new.py:141
+#: nx_lib/whats_new.py:165
 msgid "The reporting AI panel gets out of your way"
 msgstr ""
 
-#: nx_lib/whats_new.py:143
+#: nx_lib/whats_new.py:167
 msgid ""
 "The chat panel now floats instead of blocking the page: drag it by its "
 "header, keep working behind it, and select or copy any answer or "
 "generated SQL."
 msgstr ""
 
-#: nx_lib/whats_new.py:152
+#: nx_lib/whats_new.py:176
 msgid "Large workitem searches load faster"
 msgstr ""
 
-#: nx_lib/whats_new.py:154
+#: nx_lib/whats_new.py:178
 msgid ""
 "Big result sets arrive in two phases, so the first rows show up right "
 "away. Typing a partial id now matches by prefix and the closest hits are "
 "ranked first."
 msgstr ""
 
-#: nx_lib/whats_new.py:163
+#: nx_lib/whats_new.py:187
 msgid "Tell us what you think"
 msgstr ""
 
-#: nx_lib/whats_new.py:165
+#: nx_lib/whats_new.py:189
 msgid ""
 "The new Feedback page (profile dropdown → Feedback) sends your praise, "
 "gripes and ideas straight to the nexora team."
 msgstr ""
 
-#: nx_lib/whats_new.py:173
+#: nx_lib/whats_new.py:197
 msgid "Dark mode, polished"
 msgstr ""
 
-#: nx_lib/whats_new.py:175
+#: nx_lib/whats_new.py:199
 msgid ""
 "The light flash on page loads is gone, checkboxes, menus and tables "
 "follow the theme everywhere, and Appearance adds a \"Fireflies\" page "
 "background."
 msgstr ""
 
-#: nx_lib/whats_new.py:190
+#: nx_lib/whats_new.py:214
 msgid "Filters apply instantly"
 msgstr ""
 
-#: nx_lib/whats_new.py:192
+#: nx_lib/whats_new.py:216
 msgid ""
 "The Apply button is gone from the Generali filter bars — changing any "
 "filter or date reloads the list right away."
 msgstr ""
 
-#: nx_lib/whats_new.py:200
+#: nx_lib/whats_new.py:224
 msgid "Type to find a user in the filters"
 msgstr ""
 
-#: nx_lib/whats_new.py:202
+#: nx_lib/whats_new.py:226
 msgid ""
 "The user filter on the Generali pages is now a search box: type a few "
 "letters, pick the name, and the list filters instantly."
 msgstr ""
 
-#: nx_lib/whats_new.py:217
+#: nx_lib/whats_new.py:241
 msgid "Forecast your report trends"
 msgstr ""
 
-#: nx_lib/whats_new.py:219
+#: nx_lib/whats_new.py:243
 msgid ""
 "Reports charted over a single date breakdown (per week, month, …) gain a "
 "Forecast toggle: the chart extends with a dashed prediction line and a "
@@ -206,53 +228,53 @@ msgid ""
 "too."
 msgstr ""
 
-#: nx_lib/whats_new.py:229
+#: nx_lib/whats_new.py:253
 msgid "Compare with the prior period"
 msgstr ""
 
-#: nx_lib/whats_new.py:231
+#: nx_lib/whats_new.py:255
 msgid ""
 "Simple-tab reports with a relative date range now show ↑/↓ change chips "
 "and a small trend sparkline against the equivalent prior period — see at "
 "a glance whether numbers went up or down."
 msgstr ""
 
-#: nx_lib/whats_new.py:241
+#: nx_lib/whats_new.py:265
 msgid "Backlog over time"
 msgstr ""
 
-#: nx_lib/whats_new.py:243
+#: nx_lib/whats_new.py:267
 msgid ""
 "Reporting has a new Backlog measure — track how the open backlog develops"
 " per client or process, week by week."
 msgstr ""
 
-#: nx_lib/whats_new.py:253
+#: nx_lib/whats_new.py:277
 msgid "Chat with the reporting AI"
 msgstr ""
 
-#: nx_lib/whats_new.py:255
+#: nx_lib/whats_new.py:279
 msgid ""
 "The one-shot Ask AI is now a full chat panel on both Reporting tabs — ask"
 " follow-up questions in context, watch live progress while the agent "
 "works, and continue or retry a run that stopped early."
 msgstr ""
 
-#: nx_lib/whats_new.py:265
+#: nx_lib/whats_new.py:289
 msgid "Filter several processes at once"
 msgstr ""
 
-#: nx_lib/whats_new.py:267
+#: nx_lib/whats_new.py:291
 msgid ""
 "The process filter on Dashboard and Workitems is now a multi-select — "
 "combine two or three processes in one view."
 msgstr ""
 
-#: nx_lib/whats_new.py:275
+#: nx_lib/whats_new.py:299
 msgid "Smarter document value search"
 msgstr ""
 
-#: nx_lib/whats_new.py:277
+#: nx_lib/whats_new.py:301
 msgid ""
 "Search workitems by document value without picking a field first — "
 "matches are found across every field you may see. Each search row now has"
@@ -260,41 +282,41 @@ msgid ""
 "with AND/OR."
 msgstr ""
 
-#: nx_lib/whats_new.py:287
+#: nx_lib/whats_new.py:311
 msgid "Date-range presets"
 msgstr ""
 
-#: nx_lib/whats_new.py:289
+#: nx_lib/whats_new.py:313
 msgid ""
 "Today, Yesterday, This week, Last 7 days, This month — one click in the "
 "Workitems advanced filter instead of typing dates."
 msgstr ""
 
-#: nx_lib/whats_new.py:297
+#: nx_lib/whats_new.py:321
 msgid "Filter workitems by stage"
 msgstr ""
 
-#: nx_lib/whats_new.py:299
+#: nx_lib/whats_new.py:323
 msgid ""
 "A new Stage filter (Import, Extraction, Validation, Delivery) narrows the"
 " list to workitems currently in that step."
 msgstr ""
 
-#: nx_lib/whats_new.py:307
+#: nx_lib/whats_new.py:331
 msgid "See deleted workitems"
 msgstr ""
 
-#: nx_lib/whats_new.py:309
+#: nx_lib/whats_new.py:333
 msgid ""
 "The status filter gains a Deleted option — workitems that were deleted, "
 "previously hidden entirely, can now be shown on demand, badged red."
 msgstr ""
 
-#: nx_lib/whats_new.py:318
+#: nx_lib/whats_new.py:342
 msgid "Make nexora look your way"
 msgstr ""
 
-#: nx_lib/whats_new.py:320
+#: nx_lib/whats_new.py:344
 msgid ""
 "The new Appearance page has a live preview and more choices: light, dark "
 "or system theme, custom accent color, font size, corner style, high "
@@ -302,11 +324,11 @@ msgid ""
 "settings follow your account on every device."
 msgstr ""
 
-#: nx_lib/whats_new.py:331
+#: nx_lib/whats_new.py:355
 msgid "API documentation in the app"
 msgstr ""
 
-#: nx_lib/whats_new.py:333
+#: nx_lib/whats_new.py:357
 msgid ""
 "The external API is now documented on the new API Documentation page — "
 "authentication, endpoints and copyable examples included. Every endpoint "
@@ -314,65 +336,65 @@ msgid ""
 "integrate without touching production."
 msgstr ""
 
-#: nx_lib/whats_new.py:343
+#: nx_lib/whats_new.py:367
 msgid "System status at a glance for admins"
 msgstr ""
 
-#: nx_lib/whats_new.py:345
+#: nx_lib/whats_new.py:369
 msgid ""
 "The new Status page shows each component's health, a 30-day uptime strip "
 "and the incident history — checked every few minutes by the outage "
 "monitor, with a clear warning if the data ever goes stale."
 msgstr ""
 
-#: nx_lib/whats_new.py:355
+#: nx_lib/whats_new.py:379
 msgid "Chat, notifications and workitem tags retired"
 msgstr ""
 
-#: nx_lib/whats_new.py:357
+#: nx_lib/whats_new.py:381
 msgid ""
 "The chat page, the notification bell, and workitem tags, priority, "
 "assignment and comments have been removed to keep nexora focused on "
 "document processing. Existing data is preserved."
 msgstr ""
 
-#: nx_lib/whats_new.py:373
+#: nx_lib/whats_new.py:397
 msgid "Build multi-card dashboards"
 msgstr ""
 
-#: nx_lib/whats_new.py:375
+#: nx_lib/whats_new.py:399
 msgid ""
 "Save several reports as one dashboard: combine KPI, chart and table "
 "cards, drag to rearrange, set global filters with per-card overrides, and"
 " export or drill through from any card."
 msgstr ""
 
-#: nx_lib/whats_new.py:384
+#: nx_lib/whats_new.py:408
 msgid "Drill through to the documents"
 msgstr ""
 
-#: nx_lib/whats_new.py:386
+#: nx_lib/whats_new.py:410
 msgid ""
 "Click a chart element or result row in Reporting to open the underlying "
 "document rows, with workitem links and export."
 msgstr ""
 
-#: nx_lib/whats_new.py:394
+#: nx_lib/whats_new.py:418
 msgid "Combine measures in one report"
 msgstr ""
 
-#: nx_lib/whats_new.py:396
+#: nx_lib/whats_new.py:420
 msgid ""
 "The guided report builder now takes several measures at once (from the "
 "same source) and has its own process step, with coverage badges showing "
 "which processes provide each field."
 msgstr ""
 
-#: nx_lib/whats_new.py:405
+#: nx_lib/whats_new.py:429
 msgid "Machine-to-machine API"
 msgstr ""
 
-#: nx_lib/whats_new.py:407
+#: nx_lib/whats_new.py:431
 msgid ""
 "External clients can fetch KPI numbers — like today's imported and "
 "processed counts — over the new authenticated /api/v1 interface."
