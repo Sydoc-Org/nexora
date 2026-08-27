@@ -24,6 +24,30 @@ import bcrypt
 import pytest
 
 
+def _clear_reset_token_marker(client, token):
+    """Forget any "this reset token was already spent" mark left in the shared
+    response cache.
+
+    itsdangerous timestamps have 1-second granularity, so two of these tests
+    minting a token for the same email within the same second get the SAME
+    token string, and a predecessor's successful write leaves it marked
+    consumed -- the next test's GET /reset_password/<token> then 302s instead
+    of rendering.
+
+    MUST delete inside ``client.application.app_context()``, never bare:
+    outside a context Flask-Caching falls back to whatever app LAST called
+    ``cache.init_app()`` -- e.g. test_admin_routes' module-scoped
+    ``prod_csp_app`` -- so a bare delete clears THAT app's backend while the
+    route under test keeps reading the session app's stale mark. Same trap
+    documented at test_dashboard_routes._clear_response_cache.
+    """
+    from nx_lib.extensions import cache
+    from nx_lib.views.auth import _reset_token_cache_key
+
+    with client.application.app_context():
+        cache.delete(_reset_token_cache_key(token))
+
+
 @pytest.fixture()
 def reset_limiter():
     """Reset Flask-Limiter in-memory storage after a test that intentionally
@@ -576,15 +600,7 @@ def test_reset_password_get_twice_then_write_consumes_token(client):
 
     email = "admin@test.local"
     token = s.dumps(email, salt="password-reset-salt")
-    # itsdangerous timestamps have 1-second granularity: two of these tests
-    # minting a token for the same email within the same second get the SAME
-    # token string, so a predecessor's successful write leaves it marked
-    # consumed in the shared cache. Clear that marker so each test starts
-    # with a fresh capability.
-    from nx_lib.extensions import cache
-    from nx_lib.views.auth import _reset_token_cache_key
-
-    cache.delete(_reset_token_cache_key(token))
+    _clear_reset_token_marker(client, token)
 
     # Capture the real seeded password hash so it can be restored -- other
     # fixtures (login/user_client/admin_client) log in as this user with
@@ -674,15 +690,7 @@ def test_set_new_password_mismatch_then_retry_with_same_token_succeeds(client):
 
     email = "admin@test.local"
     token = s.dumps(email, salt="password-reset-salt")
-    # itsdangerous timestamps have 1-second granularity: two of these tests
-    # minting a token for the same email within the same second get the SAME
-    # token string, so a predecessor's successful write leaves it marked
-    # consumed in the shared cache. Clear that marker so each test starts
-    # with a fresh capability.
-    from nx_lib.extensions import cache
-    from nx_lib.views.auth import _reset_token_cache_key
-
-    cache.delete(_reset_token_cache_key(token))
+    _clear_reset_token_marker(client, token)
 
     conn = engine_nexora_db.raw_connection()
     cursor = conn.cursor()
@@ -760,15 +768,7 @@ def test_set_new_password_cross_session_replay_rejected_after_first_write(client
 
     email = "admin@test.local"
     token = s.dumps(email, salt="password-reset-salt")
-    # itsdangerous timestamps have 1-second granularity: two of these tests
-    # minting a token for the same email within the same second get the SAME
-    # token string, so a predecessor's successful write leaves it marked
-    # consumed in the shared cache. Clear that marker so each test starts
-    # with a fresh capability.
-    from nx_lib.extensions import cache
-    from nx_lib.views.auth import _reset_token_cache_key
-
-    cache.delete(_reset_token_cache_key(token))
+    _clear_reset_token_marker(client, token)
 
     conn = engine_nexora_db.raw_connection()
     cursor = conn.cursor()
