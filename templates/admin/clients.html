@@ -21,8 +21,14 @@
             title=_('Clients'),
             subtitle=_('Runtime sources (which DB/dialect/Octo tenant serves each client) -- not customer organizations'),
             back_url=url_for('admin_dashboard'),
+            actions=[{'label': _('Add client'), 'icon': 'fa-plus', 'onclick': 'openAddClientModal()', 'variant': 'primary', 'testid': 'add-client'}],
             icon='fa-server'
         ) }}
+
+        <p class="nx-c-meta" style="font-size:0.85rem;margin:-8px 0 16px" data-testid="admin-clients-help">
+            <i class="fas fa-circle-info"></i>
+            {{ _("A new or edited client is read once at startup: it takes effect only after an app-pool recycle. A client bringing its own database also needs the matching env/{ENV}.env keys added by hand -- adding a row here does not create them.") }}
+        </p>
 
         {{ a.toolbar(search_id='clientSearchInput', search_placeholder=_('Search clients...')) }}
 
@@ -33,7 +39,8 @@
                     {'label': _('Display name')},
                     {'label': _('Dialect'), 'width': '110px'},
                     {'label': _('Runtime engine')},
-                    {'label': _('Active'), 'width': '90px'}
+                    {'label': _('Active'), 'width': '90px'},
+                    {'label': _('Actions'), 'align': 'right', 'width': '180px'}
                 ]) }}
                 <tbody id="clients-tbody">
                     {% for client in clients %}
@@ -43,12 +50,79 @@
                         <td>{{ client.Dialect }}</td>
                         <td><span class="nx-mono">{{ client.RuntimeEngineKey }}</span></td>
                         <td>{{ _('Yes') if client.IsActive else _('No') }}</td>
+                        <td class="align-right">
+                            <button data-client='{{ client|tojson|safe }}' class="edit-client-btn nx-btn nx-btn--ghost nx-btn--sm" type="button" data-testid="admin-client-edit-{{ client.ClientCode }}">{{ _("Edit") }}</button>
+                            <button class="delete-client-btn nx-btn nx-btn--ghost nx-btn--sm nx-c-danger" type="button" data-clientcode="{{ client.ClientCode }}" data-testid="admin-client-delete-{{ client.ClientCode }}">{{ _("Delete") }}</button>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </main>
+
+    <div id="confirmationModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 hidden opacity-0 transition-opacity duration-300 ease-in-out">
+        <div class="modal-content nx-card w-full max-w-sm text-center transform scale-95 transition-transform duration-300 ease-in-out">
+            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full nx-bg-lred">
+                <i class="fas fa-exclamation-triangle fa-lg nx-c-danger"></i>
+            </div>
+            <h3 class="nx-section mt-4" id="confirmTitle">{{ _("Delete Client") }}</h3>
+            <div class="mt-2">
+                <p class="text-sm nx-c-sec" id="confirmMessage"></p>
+            </div>
+            <div class="mt-6 flex justify-center space-x-4">
+                <button id="cancelBtn" type="button" class="nx-btn nx-btn--secondary" data-testid="admin-client-modal-confirmation-cancel">{{ _("Cancel") }}</button>
+                <button id="confirmBtn" type="button" class="nx-btn nx-btn--danger" data-testid="admin-client-modal-confirmation-confirm">{{ _("Confirm") }}</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="clientModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden opacity-0 transition-opacity duration-300 ease-in-out">
+        <div class="modal-content nx-card w-full max-w-md transform scale-95 transition-transform duration-300 ease-in-out">
+            <h3 id="clientModalTitle" class="nx-section mb-4">{{ _("Add a new Client") }}</h3>
+            <form id="clientForm" data-testid="admin-client-modal-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" id="clientOriginalCode" name="clientOriginalCode">
+                <div class="space-y-4">
+                    <div>
+                        <label for="ClientCode" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Client Code") }}</label>
+                        <input type="text" id="ClientCode" name="ClientCode" class="nx-input" pattern="[a-z0-9_]{2,50}" required data-testid="admin-client-modal-code">
+                    </div>
+                    <div>
+                        <label for="DisplayName" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Display Name") }}</label>
+                        <input type="text" id="DisplayName" name="DisplayName" class="nx-input" required data-testid="admin-client-modal-name">
+                    </div>
+                    <div>
+                        <label for="Dialect" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Dialect") }}</label>
+                        <select id="Dialect" name="Dialect" class="nx-select" required data-testid="admin-client-modal-dialect">
+                            <option value="tsql">tsql</option>
+                            <option value="postgres">postgres</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="RuntimeEngineKey" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Runtime Engine Key") }}</label>
+                        <input type="text" id="RuntimeEngineKey" name="RuntimeEngineKey" class="nx-input" required data-testid="admin-client-modal-runtime-engine">
+                    </div>
+                    <div>
+                        <label for="OctoDomain" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Octo Domain (optional)") }}</label>
+                        <input type="text" id="OctoDomain" name="OctoDomain" class="nx-input" data-testid="admin-client-modal-octo-domain">
+                    </div>
+                    <div>
+                        <label for="SecretRef" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Secret Ref (env-key prefix, optional)") }}</label>
+                        <input type="text" id="SecretRef" name="SecretRef" class="nx-input" pattern="[A-Z0-9_]{0,20}" placeholder="MS02" data-testid="admin-client-modal-secret-ref">
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="IsActive" name="IsActive" checked data-testid="admin-client-modal-active">
+                        <label for="IsActive" class="text-xs font-bold uppercase tracking-widest nx-c-meta">{{ _("Active") }}</label>
+                    </div>
+                </div>
+                <div class="flex justify-end mt-6 gap-2">
+                    <button type="button" id="clientModalCancelBtn" class="nx-btn nx-btn--secondary" data-testid="admin-client-modal-cancel">{{ _("Cancel") }}</button>
+                    <button type="submit" class="nx-btn nx-btn--primary" data-testid="admin-client-modal-save">{{ _("Save Client") }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     {% include 'js/admin/_clients_js.html' %}
 </body>

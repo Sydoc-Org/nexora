@@ -175,6 +175,96 @@ def test_admin_clients_view_with_perm(admin_client, admin_all_perms):
     assert resp.status_code in (200, 500)
 
 
+def test_admin_clients_add_gated(noperm_client):
+    resp = noperm_client.post("/admin/clients/add", json={})
+    assert resp.status_code == 403
+
+
+def test_admin_clients_edit_gated(noperm_client):
+    resp = noperm_client.post("/admin/clients/edit/default", json={})
+    assert resp.status_code == 403
+
+
+def test_admin_clients_delete_gated(noperm_client):
+    resp = noperm_client.delete("/admin/clients/delete/default")
+    assert resp.status_code == 403
+
+
+def test_admin_clients_add_rejects_bad_dialect(admin_client, admin_all_perms):
+    resp = admin_client.post(
+        "/admin/clients/add",
+        json={
+            "ClientCode": "acme",
+            "DisplayName": "Acme",
+            "Dialect": "mysql",
+            "RuntimeEngineKey": "engine_octo_db",
+        },
+    )
+    assert resp.status_code == 400
+
+
+def test_admin_clients_add_rejects_unknown_engine_key(admin_client, admin_all_perms):
+    resp = admin_client.post(
+        "/admin/clients/add",
+        json={
+            "ClientCode": "acme",
+            "DisplayName": "Acme",
+            "Dialect": "tsql",
+            "RuntimeEngineKey": "engine_not_a_real_engine",
+        },
+    )
+    assert resp.status_code == 400
+
+
+def test_admin_clients_add_rejects_bad_client_code(admin_client, admin_all_perms):
+    resp = admin_client.post(
+        "/admin/clients/add",
+        json={
+            "ClientCode": "Not Valid!",
+            "DisplayName": "Acme",
+            "Dialect": "tsql",
+            "RuntimeEngineKey": "engine_octo_db",
+        },
+    )
+    assert resp.status_code == 400
+
+
+def test_admin_clients_delete_refuses_when_referenced_by_process_sources(
+    admin_client, admin_all_perms, monkeypatch
+):
+    """A ClientCode still wired into dbo.ProcessSources must be refused with
+    409, not deleted out from under the mapping-config registry (nx_lib/
+    mapping_config.py) and not a 500 -- dbo.ProcessSources isn't in
+    sql/test/schema.sql, so the DB layer is faked here (same technique as
+    test_api_admin_logs_search_returns_iso_timestamp above)."""
+    import nx_lib.views.admin as admin_module
+
+    class _FakeCursor:
+        def execute(self, sql, params=None):
+            pass
+
+        def fetchone(self):
+            return (1,)
+
+        def close(self):
+            pass
+
+    class _FakeConn:
+        def cursor(self):
+            return _FakeCursor()
+
+        def commit(self):
+            pass
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(admin_module.engine_nexora_db, "raw_connection", lambda: _FakeConn())
+
+    resp = admin_client.delete("/admin/clients/delete/ms02")
+    assert resp.status_code == 409
+
+
 # ============================ maintenance banner =============================
 
 
