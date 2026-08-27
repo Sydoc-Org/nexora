@@ -25,7 +25,9 @@ Work toward the next release.
   every write invalidates the mapping-config cache. New permissions
   `admin.view.clients`, `admin.edit.clients`, `admin.view.processes`,
   `admin.edit.processes` (migration `0080`), granted to `enterpriseAdmin`
-  and `globalAdmin`. Onboarding a customer riding the shared `default`
+  and `globalAdmin`; the same migration also seeds
+  `admin.edit.organization.branding`, reserved for a later phase and unused
+  today. Onboarding a customer riding the shared `default`
   runtime is now fully self-service — no migration, no deploy. See
   `docs/howto/white-label.md`.
 

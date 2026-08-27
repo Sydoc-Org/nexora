@@ -164,18 +164,286 @@ def test_api_admin_organizations_list(admin_client, admin_all_perms):
 
 # ============================ clients (runtime sources) ======================
 
+# dbo.Clients isn't in sql/test/schema.sql, so the clients endpoints run against
+# _FakeClientsDb below. Like _FakeMappingDb further down it is not a bare stub:
+# it emulates PK_Clients and stores the row the endpoint actually wrote, so a
+# handler that drops or NULLs a column fails these tests rather than passing.
+
+# The eleven writable columns, in the INSERT's parameter order. The UPDATE uses
+# the same order minus ClientCode, with ClientCode last in the WHERE.
+_CLIENTS_COLUMNS = (
+    "ClientCode",
+    "DisplayName",
+    "Dialect",
+    "RuntimeEngineKey",
+    "StatsEngineKey",
+    "StatsDialect",
+    "DocfieldsEngineKey",
+    "DocfieldsDialect",
+    "OctoDomain",
+    "SecretRef",
+    "IsActive",
+)
+
+_SEEDED_CLIENTS = (
+    {
+        "ClientCode": "default",
+        "DisplayName": "Sydoc (default)",
+        "Dialect": "tsql",
+        "RuntimeEngineKey": "engine_octo_db",
+        "StatsEngineKey": "engine_statistics_db",
+        "StatsDialect": "tsql",
+        "DocfieldsEngineKey": "engine_statistics_db",
+        "DocfieldsDialect": "tsql",
+        "OctoDomain": None,
+        "SecretRef": None,
+        "IsActive": 1,
+    },
+    {
+        "ClientCode": "ms02",
+        "DisplayName": "MS02 (Azure Postgres)",
+        "Dialect": "postgres",
+        "RuntimeEngineKey": "engine_ms02_pg",
+        "StatsEngineKey": "engine_ms02_stats_pg",
+        "StatsDialect": "postgres",
+        "DocfieldsEngineKey": "engine_ms02_docfields_pg",
+        "DocfieldsDialect": "postgres",
+        "OctoDomain": None,
+        "SecretRef": "MS02",
+        "IsActive": 1,
+    },
+)
+
+
+class _FakeClientsDb:
+    """In-memory stand-in for dbo.Clients (+ the ProcessSources reference count
+    the delete endpoint checks)."""
+
+    def __init__(self, rows=(), referenced=()):
+        self.rows = {r["ClientCode"]: dict(r) for r in rows}
+        self.referenced = set(referenced)
+        self.rowcount = 0
+        self.description = None
+        self._rows = []
+        self._fetchone = None
+
+    # -- DBAPI-ish surface -------------------------------------------------
+    def raw_connection(self):
+        return self
+
+    def cursor(self):
+        return self
+
+    def close(self):
+        pass
+
+    def commit(self):
+        pass
+
+    def fetchone(self):
+        return self._fetchone
+
+    def fetchall(self):
+        return self._rows
+
+    def execute(self, sql, params=None):
+        flat = " ".join(sql.split())
+        self.rowcount = 0
+        self._fetchone = None
+
+        if flat.startswith("SELECT ClientCode"):
+            self.description = [(c,) for c in _CLIENTS_COLUMNS]
+            self._rows = [
+                tuple(self.rows[code][c] for c in _CLIENTS_COLUMNS) for code in sorted(self.rows)
+            ]
+        elif flat.startswith("INSERT INTO dbo.Clients"):
+            row = dict(zip(_CLIENTS_COLUMNS, params, strict=True))
+            if row["ClientCode"] in self.rows:
+                raise pyodbc.IntegrityError("23000", "PK_Clients")
+            self.rows[row["ClientCode"]] = row
+            self.rowcount = 1
+        elif flat.startswith("UPDATE dbo.Clients"):
+            code = params[-1]
+            if code in self.rows:
+                self.rows[code].update(dict(zip(_CLIENTS_COLUMNS[1:], params[:-1], strict=True)))
+                self.rowcount = 1
+        elif flat.startswith("SELECT COUNT(*) FROM dbo.ProcessSources"):
+            self._fetchone = (1 if params[0] in self.referenced else 0,)
+        elif flat.startswith("DELETE FROM dbo.Clients"):
+            self.rowcount = 1 if params[0] in self.rows else 0
+            self.rows.pop(params[0], None)
+        else:
+            raise AssertionError(f"unexpected query: {sql}")
+
+
+@pytest.fixture
+def fake_clients_db(monkeypatch):
+    db = _FakeClientsDb(rows=_SEEDED_CLIENTS)
+    monkeypatch.setattr("nx_lib.views.admin.engine_nexora_db", db)
+    return db
+
+
+_NEW_CLIENT = {
+    "ClientCode": "acme",
+    "DisplayName": "Acme AG",
+    "Dialect": "postgres",
+    "RuntimeEngineKey": "engine_ms02_pg",
+    "StatsEngineKey": "engine_ms02_stats_pg",
+    "StatsDialect": "postgres",
+    "DocfieldsEngineKey": "engine_ms02_docfields_pg",
+    "DocfieldsDialect": "postgres",
+    "OctoDomain": "acme.octo.example",
+    "SecretRef": "ACME",
+    "IsActive": True,
+}
+
+
+def test_admin_clients_add_round_trips_every_writable_column(
+    admin_client, admin_all_perms, fake_clients_db
+):
+    resp = admin_client.post("/admin/clients/add", json=_NEW_CLIENT)
+    assert resp.status_code == 200, resp.data
+    stored = fake_clients_db.rows["acme"]
+    expected = dict(_NEW_CLIENT, IsActive=1)
+    assert stored == expected
+
+
+def test_admin_clients_add_rejects_duplicate_code(admin_client, admin_all_perms, fake_clients_db):
+    resp = admin_client.post("/admin/clients/add", json=dict(_NEW_CLIENT, ClientCode="ms02"))
+    assert resp.status_code == 409
+
+
+def test_admin_clients_edit_one_field_preserves_the_others(
+    admin_client, admin_all_perms, fake_clients_db
+):
+    """The regression this whole fix wave exists for: the edit modal must round-
+    trip StatsEngineKey / StatsDialect / DocfieldsEngineKey / DocfieldsDialect,
+    or fixing a display-name typo on 'ms02' NULLs its stats and doc-field
+    engine bindings."""
+    before = dict(fake_clients_db.rows["ms02"])
+    # What the form posts after openEditClientModal() has populated it from the
+    # row's data-client JSON, with only DisplayName changed.
+    payload = {c: before[c] for c in _CLIENTS_COLUMNS if c != "ClientCode"}
+    payload["DisplayName"] = "MS02 (Azure PostgreSQL)"
+    payload["IsActive"] = bool(before["IsActive"])
+
+    resp = admin_client.post("/admin/clients/edit/ms02", json=payload)
+    assert resp.status_code == 200, resp.data
+
+    after = fake_clients_db.rows["ms02"]
+    assert after["DisplayName"] == "MS02 (Azure PostgreSQL)"
+    for column in _CLIENTS_COLUMNS:
+        if column == "DisplayName":
+            continue
+        assert after[column] == before[column], f"{column} was clobbered by the edit"
+
+
+def test_admin_clients_edit_unknown_code_is_404(admin_client, admin_all_perms, fake_clients_db):
+    resp = admin_client.post("/admin/clients/edit/nosuch", json=dict(_NEW_CLIENT))
+    assert resp.status_code == 404
+
+
+def test_admin_clients_edit_rejects_unknown_stats_engine_key(
+    admin_client, admin_all_perms, fake_clients_db
+):
+    resp = admin_client.post(
+        "/admin/clients/edit/ms02",
+        json=dict(_NEW_CLIENT, StatsEngineKey="engine_not_real"),
+    )
+    assert resp.status_code == 400
+    assert fake_clients_db.rows["ms02"]["StatsEngineKey"] == "engine_ms02_stats_pg"
+
+
+def test_admin_clients_edit_accepts_empty_optional_columns_as_null(
+    admin_client, admin_all_perms, fake_clients_db
+):
+    """The four stats/doc-field columns are nullable and a future client may
+    legitimately have none of them -- empty must mean NULL, not a 400."""
+    payload = dict(
+        _NEW_CLIENT,
+        StatsEngineKey="",
+        StatsDialect="",
+        DocfieldsEngineKey="",
+        DocfieldsDialect="",
+        OctoDomain="",
+        SecretRef="",
+    )
+    resp = admin_client.post("/admin/clients/edit/ms02", json=payload)
+    assert resp.status_code == 200, resp.data
+    row = fake_clients_db.rows["ms02"]
+    for column in (
+        "StatsEngineKey",
+        "StatsDialect",
+        "DocfieldsEngineKey",
+        "DocfieldsDialect",
+        "OctoDomain",
+        "SecretRef",
+    ):
+        assert row[column] is None
+
+
+def test_admin_clients_delete_round_trip(admin_client, admin_all_perms, fake_clients_db):
+    resp = admin_client.delete("/admin/clients/delete/ms02")
+    assert resp.status_code == 200, resp.data
+    assert "ms02" not in fake_clients_db.rows
+
+
+def test_admin_clients_delete_unknown_code_is_404(admin_client, admin_all_perms, fake_clients_db):
+    resp = admin_client.delete("/admin/clients/delete/nosuch")
+    assert resp.status_code == 404
+
 
 def test_admin_clients_view_gated(noperm_client):
     resp = noperm_client.get("/admin/clients")
     assert resp.status_code == 403
 
 
-def test_admin_clients_view_with_perm(admin_client, admin_all_perms):
-    """dbo.Clients isn't in sql/test/schema.sql (see module docstring's ABSENT
-    list), so the query 500s -- same tuple-match used for the other
-    missing-table routes (Logs, DashboardLayouts) in this file."""
+def test_admin_clients_view_renders_rows(
+    admin_client, admin_all_perms, fake_clients_db, monkeypatch
+):
+    """dbo.Clients isn't in sql/test/schema.sql, so the table is faked (same
+    technique as fake_mapping_db below). Asserted at a hard 200 with the seeded
+    rows visible -- the old 200-or-500 tuple-match could not fail, so a Jinja
+    error in clients.html would have shipped green."""
+    monkeypatch.setattr("nx_lib.views.admin.has_permission", lambda code: True)
     resp = admin_client.get("/admin/clients")
-    assert resp.status_code in (200, 500)
+    assert resp.status_code == 200
+    html = resp.data.decode()
+    assert 'data-testid="admin-client-row-default"' in html
+    assert 'data-testid="admin-client-row-ms02"' in html
+    assert "MS02 (Azure Postgres)" in html
+
+
+def test_admin_clients_form_covers_every_writable_column(
+    admin_client, admin_all_perms, fake_clients_db, monkeypatch
+):
+    """The edit UPDATE writes all ten writable columns, so the form must carry
+    all ten and openEditClientModal() must populate all of them -- otherwise
+    editing a display name silently NULLs StatsEngineKey / StatsDialect /
+    DocfieldsEngineKey / DocfieldsDialect (MS02 statistics break, doc-field
+    search fails closed after the next app-pool recycle)."""
+    monkeypatch.setattr("nx_lib.views.admin.has_permission", lambda code: True)
+    html = admin_client.get("/admin/clients").data.decode()
+    for column in _CLIENTS_COLUMNS:
+        assert f'id="{column}"' in html, f"{column} has no form input"
+        assert f"clientData.{column}" in html, f"openEditClientModal() ignores {column}"
+
+
+def test_admin_clients_view_only_gets_no_edit_affordances(
+    admin_client, admin_all_perms, fake_clients_db, monkeypatch
+):
+    """admin.view.clients without admin.edit.clients: the page renders, but no
+    Add/Edit/Delete button -- clicking one only ever produced a 403 toast."""
+    monkeypatch.setattr(
+        "nx_lib.views.admin.has_permission", lambda code: code != "admin.edit.clients"
+    )
+    resp = admin_client.get("/admin/clients")
+    assert resp.status_code == 200
+    html = resp.data.decode()
+    assert 'data-testid="admin-client-row-ms02"' in html
+    assert "admin-helpers-page-action-add-client" not in html
+    assert "admin-client-edit-ms02" not in html
+    assert "admin-client-delete-ms02" not in html
 
 
 def test_admin_clients_add_gated(noperm_client):

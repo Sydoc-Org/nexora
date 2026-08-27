@@ -21,7 +21,7 @@
             title=_('Clients'),
             subtitle=_('Runtime sources (which DB/dialect/Octo tenant serves each client) -- not customer organizations'),
             back_url=url_for('admin_dashboard'),
-            actions=[{'label': _('Add client'), 'icon': 'fa-plus', 'onclick': 'openAddClientModal()', 'variant': 'primary', 'testid': 'add-client'}],
+            actions=([{'label': _('Add client'), 'icon': 'fa-plus', 'onclick': 'openAddClientModal()', 'variant': 'primary', 'testid': 'add-client'}] if can_edit else None),
             icon='fa-server'
         ) }}
 
@@ -39,9 +39,8 @@
                     {'label': _('Display name')},
                     {'label': _('Dialect'), 'width': '110px'},
                     {'label': _('Runtime engine')},
-                    {'label': _('Active'), 'width': '90px'},
-                    {'label': _('Actions'), 'align': 'right', 'width': '180px'}
-                ]) }}
+                    {'label': _('Active'), 'width': '90px'}
+                ] + ([{'label': _('Actions'), 'align': 'right', 'width': '180px'}] if can_edit else [])) }}
                 <tbody id="clients-tbody">
                     {% for client in clients %}
                     <tr data-search="{{ (client.ClientCode ~ ' ' ~ client.DisplayName)|lower }}" data-testid="admin-client-row-{{ client.ClientCode }}">
@@ -50,10 +49,12 @@
                         <td>{{ client.Dialect }}</td>
                         <td><span class="nx-mono">{{ client.RuntimeEngineKey }}</span></td>
                         <td>{{ _('Yes') if client.IsActive else _('No') }}</td>
+                        {% if can_edit %}
                         <td class="align-right">
                             <button data-client='{{ client|tojson|safe }}' class="edit-client-btn nx-btn nx-btn--ghost nx-btn--sm" type="button" data-testid="admin-client-edit-{{ client.ClientCode }}">{{ _("Edit") }}</button>
                             <button class="delete-client-btn nx-btn nx-btn--ghost nx-btn--sm nx-c-danger" type="button" data-clientcode="{{ client.ClientCode }}" data-testid="admin-client-delete-{{ client.ClientCode }}">{{ _("Delete") }}</button>
                         </td>
+                        {% endif %}
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -102,6 +103,35 @@
                     <div>
                         <label for="RuntimeEngineKey" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Runtime Engine Key") }}</label>
                         <input type="text" id="RuntimeEngineKey" name="RuntimeEngineKey" class="nx-input" required data-testid="admin-client-modal-runtime-engine">
+                    </div>
+                    {# The four nullable stats/doc-field bindings. They MUST be in the form:
+                       the edit endpoint writes all ten writable columns, so a form that
+                       omitted them would NULL an existing client's stats and doc-field
+                       engines on any save (MS02 statistics break, doc-field search fails
+                       closed after the next app-pool recycle). #}
+                    <div>
+                        <label for="StatsEngineKey" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Stats Engine Key (optional)") }}</label>
+                        <input type="text" id="StatsEngineKey" name="StatsEngineKey" class="nx-input" data-testid="admin-client-modal-stats-engine">
+                    </div>
+                    <div>
+                        <label for="StatsDialect" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Stats Dialect (optional)") }}</label>
+                        <select id="StatsDialect" name="StatsDialect" class="nx-select" data-testid="admin-client-modal-stats-dialect">
+                            <option value="">&mdash;</option>
+                            <option value="tsql">tsql</option>
+                            <option value="postgres">postgres</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="DocfieldsEngineKey" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Doc-field Engine Key (optional)") }}</label>
+                        <input type="text" id="DocfieldsEngineKey" name="DocfieldsEngineKey" class="nx-input" data-testid="admin-client-modal-docfields-engine">
+                    </div>
+                    <div>
+                        <label for="DocfieldsDialect" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Doc-field Dialect (optional)") }}</label>
+                        <select id="DocfieldsDialect" name="DocfieldsDialect" class="nx-select" data-testid="admin-client-modal-docfields-dialect">
+                            <option value="">&mdash;</option>
+                            <option value="tsql">tsql</option>
+                            <option value="postgres">postgres</option>
+                        </select>
                     </div>
                     <div>
                         <label for="OctoDomain" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Octo Domain (optional)") }}</label>

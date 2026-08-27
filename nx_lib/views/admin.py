@@ -303,8 +303,9 @@ def api_admin_organizations_list():
 
 @require_permission("admin.view.clients")
 def admin_clients_view():
-    """Read-only list of dbo.Clients -- runtime sources (default/ms02), not
-    customers (see dbo.Organizations). Write endpoints land in a later task."""
+    """List of dbo.Clients -- runtime sources (default/ms02), not customers
+    (see dbo.Organizations). The add/edit/delete affordances are rendered only
+    for ``admin.edit.clients`` (``can_edit``); the endpoints re-check it."""
     conn = None
     cursor = None
     try:
@@ -323,6 +324,7 @@ def admin_clients_view():
         return render_template(
             "admin/clients.html",
             clients=clients,
+            can_edit=has_permission("admin.edit.clients"),
             logged_in_user=session.get("username"),
             userid=session.get("userid"),
             page_visibility=page_visibility(),

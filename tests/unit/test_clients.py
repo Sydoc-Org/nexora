@@ -67,6 +67,24 @@ def _dead_engine(msg="NexoraDB down"):
     return eng
 
 
+def test_engine_keys_cannot_drift_from_the_engine_dict():
+    """_ENGINE_KEYS is what /admin/clients validates a submitted engine key
+    against; _engines() is what _build_clients() resolves it with. A sixth
+    engine added to one and not the other would make the admin page reject a
+    legitimate key with 'Unknown runtime engine key'."""
+    assert tuple(clients._engines()) == clients._ENGINE_KEYS
+
+
+def test_engine_keys_cover_todays_five_engines():
+    assert set(clients._ENGINE_KEYS) == {
+        "engine_octo_db",
+        "engine_statistics_db",
+        "engine_ms02_pg",
+        "engine_ms02_stats_pg",
+        "engine_ms02_docfields_pg",
+    }
+
+
 def test_default_client_present():
     assert "default" in clients.CLIENTS
     d = clients.CLIENTS["default"]

@@ -19,20 +19,29 @@ from .db import (
 
 logger = logging.getLogger(__name__)
 
-# RuntimeEngineKey / StatsEngineKey / DocfieldsEngineKey values that dbo.Clients
-# rows may reference. Module-level so nx_lib/views/admin.py can validate a
-# submitted engine key against the same set _build_clients() resolves
-# against, without duplicating the keys. Kept as names, not the engine
-# objects themselves -- _build_clients() below re-reads the actual globals
-# each call (tests monkeypatch e.g. clients.engine_octo_db per-test; a dict
-# built once at import time wouldn't see that).
-_ENGINE_KEYS = (
-    "engine_octo_db",
-    "engine_statistics_db",
-    "engine_ms02_pg",
-    "engine_ms02_stats_pg",
-    "engine_ms02_docfields_pg",
-)
+
+def _engines():
+    """{RuntimeEngineKey/StatsEngineKey/DocfieldsEngineKey -> engine object}.
+
+    Built fresh on every call (not hoisted to a module-level dict) so it reads
+    whatever engine_octo_db etc. currently resolve to -- tests monkeypatch
+    those module globals per-test, and a dict built once at import time
+    wouldn't see that.
+    """
+    return {
+        "engine_octo_db": engine_octo_db,
+        "engine_statistics_db": engine_statistics_db,
+        "engine_ms02_pg": engine_ms02_pg,
+        "engine_ms02_stats_pg": engine_ms02_stats_pg,
+        "engine_ms02_docfields_pg": engine_ms02_docfields_pg,
+    }
+
+
+# The engine-key names dbo.Clients rows may reference -- derived from _engines()
+# rather than hand-written a second time, so adding an engine there can't leave
+# nx_lib/views/admin.py rejecting a legitimate key. Only the *keys* are frozen
+# at import; the engine objects are re-read per call by _engines().
+_ENGINE_KEYS = tuple(_engines())
 
 
 @dataclass(frozen=True)
@@ -91,16 +100,7 @@ def _build_clients():
     Any load failure (e.g. dbo.Clients missing, as on TEST) falls back to the
     hardcoded default-only registry so the app still boots.
     """
-    # Built fresh on every call (not hoisted to a module-level dict) so it
-    # reads whatever engine_octo_db etc. currently resolve to -- tests
-    # monkeypatch those module globals per-test.
-    engines = {
-        "engine_octo_db": engine_octo_db,
-        "engine_statistics_db": engine_statistics_db,
-        "engine_ms02_pg": engine_ms02_pg,
-        "engine_ms02_stats_pg": engine_ms02_stats_pg,
-        "engine_ms02_docfields_pg": engine_ms02_docfields_pg,
-    }
+    engines = _engines()
 
     conn = None
     try:

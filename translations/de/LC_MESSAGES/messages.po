@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-27 09:50+0200\n"
+"POT-Creation-Date: 2026-08-27 10:16+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -394,7 +394,7 @@ msgstr "Datum"
 msgid "Workitem ID"
 msgstr "Workitem-ID"
 
-#: nx_lib/views/admin.py:195 nx_lib/views/admin.py:1517
+#: nx_lib/views/admin.py:195 nx_lib/views/admin.py:1519
 msgid "All fields are required."
 msgstr "Alle Felder sind erforderlich."
 
@@ -406,9 +406,9 @@ msgstr "Organisation erfolgreich erstellt."
 msgid "Organization already exists."
 msgstr "Organisation existiert bereits."
 
-#: nx_lib/views/admin.py:215 nx_lib/views/admin.py:431
-#: nx_lib/views/admin.py:785 nx_lib/views/admin.py:938
-#: nx_lib/views/admin.py:1585
+#: nx_lib/views/admin.py:215 nx_lib/views/admin.py:433
+#: nx_lib/views/admin.py:787 nx_lib/views/admin.py:940
+#: nx_lib/views/admin.py:1587
 msgid "An unexpected error occurred."
 msgstr "Ein unerwarteter Fehler ist aufgetreten."
 
@@ -417,10 +417,10 @@ msgid "Organization updated successfully."
 msgstr "Organisation erfolgreich aktualisiert."
 
 #: nx_lib/views/admin.py:242 nx_lib/views/admin.py:266
-#: nx_lib/views/admin.py:477 nx_lib/views/admin.py:522
-#: nx_lib/views/admin.py:821 nx_lib/views/admin.py:884
-#: nx_lib/views/admin.py:980 nx_lib/views/admin.py:1009
-#: nx_lib/views/admin.py:1667 nx_lib/views/admin.py:1915
+#: nx_lib/views/admin.py:479 nx_lib/views/admin.py:524
+#: nx_lib/views/admin.py:823 nx_lib/views/admin.py:886
+#: nx_lib/views/admin.py:982 nx_lib/views/admin.py:1011
+#: nx_lib/views/admin.py:1669 nx_lib/views/admin.py:1917
 msgid "An error occurred."
 msgstr "Ein Fehler ist aufgetreten."
 
@@ -432,11 +432,11 @@ msgstr "Organisation nicht gefunden."
 msgid "Organization deleted successfully."
 msgstr "Organisation erfolgreich gelöscht."
 
-#: nx_lib/views/admin.py:293 nx_lib/views/admin.py:1140
-#: nx_lib/views/admin.py:1181 nx_lib/views/admin.py:1224
-#: nx_lib/views/admin.py:1244 nx_lib/views/admin.py:1391
-#: nx_lib/views/admin.py:1841 nx_lib/views/admin.py:1993
-#: nx_lib/views/admin.py:2660 nx_lib/views/dashboard.py:543
+#: nx_lib/views/admin.py:293 nx_lib/views/admin.py:1142
+#: nx_lib/views/admin.py:1183 nx_lib/views/admin.py:1226
+#: nx_lib/views/admin.py:1246 nx_lib/views/admin.py:1393
+#: nx_lib/views/admin.py:1843 nx_lib/views/admin.py:1995
+#: nx_lib/views/admin.py:2662 nx_lib/views/dashboard.py:543
 #: nx_lib/views/dashboard.py:598 nx_lib/views/dashboard.py:676
 #: nx_lib/views/dashboard.py:714 nx_lib/views/generali.py:228
 #: nx_lib/views/generali.py:257 nx_lib/views/generali.py:426
@@ -463,161 +463,179 @@ msgstr "Organisation erfolgreich gelöscht."
 msgid "An unexpected error occurred"
 msgstr "Ein unerwarteter Fehler ist aufgetreten"
 
-#: nx_lib/views/admin.py:358 nx_lib/views/admin.py:679
+#: nx_lib/views/admin.py:360 nx_lib/views/admin.py:681
 msgid "Client code must be 2-50 lowercase letters, digits or underscores."
-msgstr "Der Client-Code muss 2-50 Kleinbuchstaben, Ziffern oder Unterstriche enthalten."
+msgstr ""
+"Der Client-Code muss 2-50 Kleinbuchstaben, Ziffern oder Unterstriche "
+"enthalten."
 
-#: nx_lib/views/admin.py:361
+#: nx_lib/views/admin.py:363
 msgid "Display name is required."
 msgstr "Anzeigename ist erforderlich."
 
-#: nx_lib/views/admin.py:366
+#: nx_lib/views/admin.py:368
 #, python-format
 msgid "Dialect must be one of: %(allowed)s"
 msgstr "Dialekt muss einer der folgenden sein: %(allowed)s"
 
-#: nx_lib/views/admin.py:370
+#: nx_lib/views/admin.py:372
 #, python-format
 msgid "%(field)s must be one of: %(allowed)s"
 msgstr "%(field)s muss einer der folgenden sein: %(allowed)s"
 
-#: nx_lib/views/admin.py:373
+#: nx_lib/views/admin.py:375
 msgid "Unknown runtime engine key."
 msgstr "Unbekannter Runtime-Engine-Schlüssel."
 
-#: nx_lib/views/admin.py:377
+#: nx_lib/views/admin.py:379
 #, python-format
 msgid "Unknown %(field)s."
 msgstr "Unbekannter Wert für %(field)s."
 
-#: nx_lib/views/admin.py:383
+#: nx_lib/views/admin.py:385
 msgid ""
 "Secret ref must be an env-key prefix (upper-case letters, digits, "
 "underscores) -- never a secret value."
-msgstr "Secret-Ref muss ein Env-Key-Präfix sein (Grossbuchstaben, Ziffern, Unterstriche) -- niemals ein geheimer Wert."
+msgstr ""
+"Secret-Ref muss ein Env-Key-Präfix sein (Grossbuchstaben, Ziffern, "
+"Unterstriche) -- niemals ein geheimer Wert."
 
-#: nx_lib/views/admin.py:426
+#: nx_lib/views/admin.py:428
 msgid "Client created successfully."
 msgstr "Client erfolgreich erstellt."
 
-#: nx_lib/views/admin.py:428
+#: nx_lib/views/admin.py:430
 msgid "Client code already exists."
 msgstr "Client-Code existiert bereits."
 
-#: nx_lib/views/admin.py:472 nx_lib/views/admin.py:517
+#: nx_lib/views/admin.py:474 nx_lib/views/admin.py:519
 msgid "Client not found."
 msgstr "Client nicht gefunden."
 
-#: nx_lib/views/admin.py:474
+#: nx_lib/views/admin.py:476
 msgid "Client updated successfully."
 msgstr "Client erfolgreich aktualisiert."
 
-#: nx_lib/views/admin.py:505
+#: nx_lib/views/admin.py:507
 msgid "This client is still referenced by process sources and cannot be deleted."
-msgstr "Dieser Client wird noch von Prozessquellen referenziert und kann nicht gelöscht werden."
+msgstr ""
+"Dieser Client wird noch von Prozessquellen referenziert und kann nicht "
+"gelöscht werden."
 
-#: nx_lib/views/admin.py:519
+#: nx_lib/views/admin.py:521
 msgid "Client deleted successfully."
 msgstr "Client erfolgreich gelöscht."
 
-#: nx_lib/views/admin.py:614
+#: nx_lib/views/admin.py:616
 msgid "Mapping config is currently unavailable."
 msgstr "Die Mapping-Konfiguration ist derzeit nicht verfügbar."
 
-#: nx_lib/views/admin.py:665
+#: nx_lib/views/admin.py:667
 #, python-format
 msgid "%(field)s is required."
 msgstr "%(field)s ist erforderlich."
 
-#: nx_lib/views/admin.py:670
+#: nx_lib/views/admin.py:672
 #, python-format
 msgid ""
 "%(field)s must be a plain SQL identifier (letters, digits, underscores, "
 "dots, quotes or brackets)."
-msgstr "%(field)s muss ein einfacher SQL-Bezeichner sein (Buchstaben, Ziffern, Unterstriche, Punkte, Anführungszeichen oder Klammern)."
-
-#: nx_lib/views/admin.py:681
-msgid "Process name must be 1-100 letters, digits, dots, dashes or underscores."
-msgstr "Der Prozessname muss 1-100 Buchstaben, Ziffern, Punkte, Bindestriche oder Unterstriche enthalten."
+msgstr ""
+"%(field)s muss ein einfacher SQL-Bezeichner sein (Buchstaben, Ziffern, "
+"Unterstriche, Punkte, Anführungszeichen oder Klammern)."
 
 #: nx_lib/views/admin.py:683
-msgid "Field key must be 1-100 letters, digits, dots, dashes or underscores."
-msgstr "Der Feldschlüssel muss 1-100 Buchstaben, Ziffern, Punkte, Bindestriche oder Unterstriche enthalten."
+msgid "Process name must be 1-100 letters, digits, dots, dashes or underscores."
+msgstr ""
+"Der Prozessname muss 1-100 Buchstaben, Ziffern, Punkte, Bindestriche oder"
+" Unterstriche enthalten."
 
-#: nx_lib/views/admin.py:698
+#: nx_lib/views/admin.py:685
+msgid "Field key must be 1-100 letters, digits, dots, dashes or underscores."
+msgstr ""
+"Der Feldschlüssel muss 1-100 Buchstaben, Ziffern, Punkte, Bindestriche "
+"oder Unterstriche enthalten."
+
+#: nx_lib/views/admin.py:700
 msgid "Table alias must be at most 10 characters."
 msgstr "Der Tabellenalias darf höchstens 10 Zeichen lang sein."
 
-#: nx_lib/views/admin.py:701
+#: nx_lib/views/admin.py:703
 msgid "Id column type must be a plain SQL type name."
 msgstr "Der Id-Spaltentyp muss ein einfacher SQL-Typname sein."
 
-#: nx_lib/views/admin.py:711
+#: nx_lib/views/admin.py:713
 msgid "Column type must be a plain SQL type name."
 msgstr "Der Spaltentyp muss ein einfacher SQL-Typname sein."
 
-#: nx_lib/views/admin.py:772
+#: nx_lib/views/admin.py:774
 #, python-format
 msgid ""
 "Process source created. Its permission %(code)s was created but granted "
 "to nobody -- grant it under Access Control."
-msgstr "Prozessquelle erstellt. Die Berechtigung %(code)s wurde angelegt, aber niemandem zugewiesen -- weisen Sie sie unter Zugriffskontrolle zu."
+msgstr ""
+"Prozessquelle erstellt. Die Berechtigung %(code)s wurde angelegt, aber "
+"niemandem zugewiesen -- weisen Sie sie unter Zugriffskontrolle zu."
 
-#: nx_lib/views/admin.py:780
+#: nx_lib/views/admin.py:782
 msgid "This process source already exists."
 msgstr "Diese Prozessquelle existiert bereits."
 
-#: nx_lib/views/admin.py:816 nx_lib/views/admin.py:869
+#: nx_lib/views/admin.py:818 nx_lib/views/admin.py:871
 msgid "Process source not found."
 msgstr "Prozessquelle nicht gefunden."
 
-#: nx_lib/views/admin.py:818
+#: nx_lib/views/admin.py:820
 msgid "Process source updated successfully."
 msgstr "Prozessquelle erfolgreich aktualisiert."
 
-#: nx_lib/views/admin.py:855
+#: nx_lib/views/admin.py:857
 msgid ""
 "This process source still has field mappings and cannot be deleted. "
 "Remove them first."
-msgstr "Diese Prozessquelle hat noch Feldzuordnungen und kann nicht gelöscht werden. Entfernen Sie diese zuerst."
+msgstr ""
+"Diese Prozessquelle hat noch Feldzuordnungen und kann nicht gelöscht "
+"werden. Entfernen Sie diese zuerst."
 
-#: nx_lib/views/admin.py:871
+#: nx_lib/views/admin.py:873
 msgid "Process source deleted successfully."
 msgstr "Prozessquelle erfolgreich gelöscht."
 
-#: nx_lib/views/admin.py:877
+#: nx_lib/views/admin.py:879
 msgid "This process source is still referenced and cannot be deleted."
 msgstr "Diese Prozessquelle wird noch referenziert und kann nicht gelöscht werden."
 
-#: nx_lib/views/admin.py:921
+#: nx_lib/views/admin.py:923
 msgid "Field mapping created successfully."
 msgstr "Feldzuordnung erfolgreich erstellt."
 
-#: nx_lib/views/admin.py:930
+#: nx_lib/views/admin.py:932
 msgid "This field mapping already exists, or its process source does not."
-msgstr "Diese Feldzuordnung existiert bereits, oder die zugehörige Prozessquelle existiert nicht."
+msgstr ""
+"Diese Feldzuordnung existiert bereits, oder die zugehörige Prozessquelle "
+"existiert nicht."
 
-#: nx_lib/views/admin.py:973 nx_lib/views/admin.py:1002
+#: nx_lib/views/admin.py:975 nx_lib/views/admin.py:1004
 msgid "Field mapping not found."
 msgstr "Feldzuordnung nicht gefunden."
 
-#: nx_lib/views/admin.py:975
+#: nx_lib/views/admin.py:977
 msgid "Field mapping updated successfully."
 msgstr "Feldzuordnung erfolgreich aktualisiert."
 
-#: nx_lib/views/admin.py:1004
+#: nx_lib/views/admin.py:1006
 msgid "Field mapping deleted successfully."
 msgstr "Feldzuordnung erfolgreich gelöscht."
 
-#: nx_lib/views/admin.py:1085
+#: nx_lib/views/admin.py:1087
 msgid "Unknown environment."
 msgstr "Unbekannte Umgebung."
 
-#: nx_lib/views/admin.py:1525 nx_lib/views/admin.py:1639
+#: nx_lib/views/admin.py:1527 nx_lib/views/admin.py:1641
 msgid "Permission Denied for this action."
 msgstr "Berechtigung für diese Aktion verweigert."
 
-#: nx_lib/views/admin.py:1573
+#: nx_lib/views/admin.py:1575
 msgid ""
 "User created, but the email could not be sent. Ask them to use 'Forgot "
 "password'."
@@ -625,46 +643,46 @@ msgstr ""
 "Benutzer erstellt, aber die E-Mail konnte nicht gesendet werden. Bitten "
 "Sie die Person, die Funktion 'Passwort vergessen' zu verwenden."
 
-#: nx_lib/views/admin.py:1578
+#: nx_lib/views/admin.py:1580
 msgid "User created and email sent."
 msgstr "Benutzer erstellt und E-Mail gesendet."
 
-#: nx_lib/views/admin.py:1580 templates/js/admin/_access_control_js.html:564
+#: nx_lib/views/admin.py:1582 templates/js/admin/_access_control_js.html:564
 msgid "User created successfully."
 msgstr "Benutzer erfolgreich erstellt."
 
-#: nx_lib/views/admin.py:1582
+#: nx_lib/views/admin.py:1584
 msgid "Username or email already exists."
 msgstr "Benutzername oder E-Mail existiert bereits."
 
-#: nx_lib/views/admin.py:1664
+#: nx_lib/views/admin.py:1666
 msgid "User updated successfully."
 msgstr "Benutzer erfolgreich aktualisiert."
 
-#: nx_lib/views/admin.py:1861
+#: nx_lib/views/admin.py:1863
 msgid "You cannot delete your own account."
 msgstr "Sie können Ihr eigenes Konto nicht löschen."
 
-#: nx_lib/views/admin.py:1907
+#: nx_lib/views/admin.py:1909
 msgid "User not found."
 msgstr "Benutzer nicht gefunden."
 
-#: nx_lib/views/admin.py:1909
+#: nx_lib/views/admin.py:1911
 msgid "User deleted successfully."
 msgstr "Benutzer erfolgreich gelöscht."
 
-#: nx_lib/views/admin.py:2038
+#: nx_lib/views/admin.py:2040
 msgid "Could not fetch logs"
 msgstr "Protokolle konnten nicht abgerufen werden"
 
-#: nx_lib/views/admin.py:2082
+#: nx_lib/views/admin.py:2084
 msgid "Could not fetch sessions"
 msgstr "Sitzungen konnten nicht abgerufen werden"
 
-#: nx_lib/views/admin.py:2319 nx_lib/views/admin.py:2629
-#: nx_lib/views/admin.py:2671 nx_lib/views/admin.py:2716
-#: nx_lib/views/admin.py:2755 nx_lib/views/admin.py:2792
-#: nx_lib/views/admin.py:2824 nx_lib/views/dashboard.py:461
+#: nx_lib/views/admin.py:2321 nx_lib/views/admin.py:2631
+#: nx_lib/views/admin.py:2673 nx_lib/views/admin.py:2718
+#: nx_lib/views/admin.py:2757 nx_lib/views/admin.py:2794
+#: nx_lib/views/admin.py:2826 nx_lib/views/dashboard.py:461
 #: nx_lib/views/dashboard.py:554 nx_lib/views/dashboard.py:609
 #: nx_lib/views/dashboard.py:687 nx_lib/views/workitems.py:1109
 #: nx_lib/views/workitems.py:1828 nx_lib/views/workitems.py:1830
@@ -672,40 +690,40 @@ msgstr "Sitzungen konnten nicht abgerufen werden"
 msgid "Not authorized"
 msgstr "Nicht autorisiert"
 
-#: nx_lib/views/admin.py:2362
+#: nx_lib/views/admin.py:2364
 msgid "Could not fetch users"
 msgstr "Benutzer konnten nicht abgerufen werden"
 
-#: nx_lib/views/admin.py:2408
+#: nx_lib/views/admin.py:2410
 msgid "Name is required"
 msgstr "Name ist erforderlich"
 
-#: nx_lib/views/admin.py:2436
+#: nx_lib/views/admin.py:2438
 msgid "Profile saved successfully"
 msgstr "Profil erfolgreich gespeichert"
 
-#: nx_lib/views/admin.py:2615
+#: nx_lib/views/admin.py:2617
 msgid "Overrides updated successfully"
 msgstr "Überschreibungen erfolgreich aktualisiert"
 
-#: nx_lib/views/admin.py:2680 nx_lib/views/admin.py:2808
-#: nx_lib/views/admin.py:2850
+#: nx_lib/views/admin.py:2682 nx_lib/views/admin.py:2810
+#: nx_lib/views/admin.py:2852
 msgid "Permission not found"
 msgstr "Berechtigung nicht gefunden"
 
-#: nx_lib/views/admin.py:2760 nx_lib/views/admin.py:2797
+#: nx_lib/views/admin.py:2762 nx_lib/views/admin.py:2799
 msgid "Code and description are required"
 msgstr "Code und Beschreibung sind erforderlich"
 
-#: nx_lib/views/admin.py:2775
+#: nx_lib/views/admin.py:2777
 msgid "Permission created successfully"
 msgstr "Berechtigung erfolgreich erstellt"
 
-#: nx_lib/views/admin.py:2810
+#: nx_lib/views/admin.py:2812
 msgid "Permission updated successfully"
 msgstr "Berechtigung erfolgreich aktualisiert"
 
-#: nx_lib/views/admin.py:2843
+#: nx_lib/views/admin.py:2845
 #, python-format
 msgid ""
 "Cannot delete: used in %(p)d profile(s) and %(o)d override(s). Remove all"
@@ -714,7 +732,7 @@ msgstr ""
 "Kann nicht gelöscht werden: Wird in %(p)d Profil(en) und %(o)d "
 "Override(s) verwendet. Bitte zuerst alle Zuweisungen entfernen."
 
-#: nx_lib/views/admin.py:2852
+#: nx_lib/views/admin.py:2854
 msgid "Permission deleted successfully"
 msgstr "Berechtigung erfolgreich gelöscht"
 
@@ -3672,8 +3690,8 @@ msgstr "Aufwand (Stunden)"
 #: templates/admin/access_control.html:230
 #: templates/admin/access_control.html:247
 #: templates/admin/access_control.html:277
-#: templates/admin/access_control.html:396 templates/admin/clients.html:74
-#: templates/admin/clients.html:120 templates/admin/maintenance.html:115
+#: templates/admin/access_control.html:396 templates/admin/clients.html:75
+#: templates/admin/clients.html:150 templates/admin/maintenance.html:115
 #: templates/admin/maintenance.html:131
 #: templates/admin/modals/_organizations_modals.html:13
 #: templates/admin/modals/_organizations_modals.html:40
@@ -3871,8 +3889,8 @@ msgstr "CSV-Importe in die Dokumentdatenbank"
 
 #: templates/generali_importstatus.html:55
 #: templates/js/_generali_import_status_js.html:17
-#: templates/js/admin/_clients_js.html:130
-#: templates/js/admin/_clients_js.html:184
+#: templates/js/admin/_clients_js.html:137
+#: templates/js/admin/_clients_js.html:191
 #: templates/js/admin/_organizations_js.html:142
 #: templates/js/admin/_organizations_js.html:196
 #: templates/js/admin/_processes_js.html:158
@@ -4422,13 +4440,13 @@ msgstr "Eingegangen"
 msgid "Any"
 msgstr "Beliebig"
 
-#: templates/admin/clients.html:52
+#: templates/admin/clients.html:51
 #: templates/js/admin/_access_control_js.html:709
 #: templates/prepared_documents.html:94 templates/prepared_documents.html:109
 msgid "Yes"
 msgstr "Ja"
 
-#: templates/admin/clients.html:52 templates/prepared_documents.html:95
+#: templates/admin/clients.html:51 templates/prepared_documents.html:95
 #: templates/prepared_documents.html:110
 msgid "No"
 msgstr "Nein"
@@ -5806,7 +5824,9 @@ msgstr "Clients - nexora"
 msgid ""
 "Runtime sources (which DB/dialect/Octo tenant serves each client) -- not "
 "customer organizations"
-msgstr "Laufzeitquellen (welche DB/welcher Dialekt/welcher Octo-Mandant einen Client bedient) -- keine Kundenorganisationen"
+msgstr ""
+"Laufzeitquellen (welche DB/welcher Dialekt/welcher Octo-Mandant einen "
+"Client bedient) -- keine Kundenorganisationen"
 
 #: templates/admin/clients.html:24
 msgid "Add client"
@@ -5819,7 +5839,11 @@ msgid ""
 "after an app-pool recycle. A client bringing its own database also needs "
 "the matching env/{ENV}.env keys added by hand -- adding a row here does "
 "not create them."
-msgstr "Ein neuer oder bearbeiteter Client wird nur beim Start gelesen: Er wird erst nach einem App-Pool-Neustart wirksam. Bringt ein Client seine eigene Datenbank mit, müssen die passenden env/{ENV}.env-Schlüssel zusätzlich von Hand angelegt werden -- ein Eintrag hier legt sie nicht an."
+msgstr ""
+"Ein neuer oder bearbeiteter Client wird nur beim Start gelesen: Er wird "
+"erst nach einem App-Pool-Neustart wirksam. Bringt ein Client seine eigene"
+" Datenbank mit, müssen die passenden env/{ENV}.env-Schlüssel zusätzlich "
+"von Hand angelegt werden -- ein Eintrag hier legt sie nicht an."
 
 #: templates/admin/clients.html:33
 msgid "Search clients..."
@@ -5829,7 +5853,7 @@ msgstr "Clients durchsuchen..."
 msgid "Display name"
 msgstr "Anzeigename"
 
-#: templates/admin/clients.html:40 templates/admin/clients.html:96
+#: templates/admin/clients.html:40 templates/admin/clients.html:97
 msgid "Dialect"
 msgstr "Dialekt"
 
@@ -5837,47 +5861,63 @@ msgstr "Dialekt"
 msgid "Runtime engine"
 msgstr "Runtime-Engine"
 
-#: templates/admin/clients.html:42 templates/admin/clients.html:116
+#: templates/admin/clients.html:42 templates/admin/clients.html:146
 #: templates/admin/maintenance.html:40 templates/admin/maintenance.html:97
 msgid "Active"
 msgstr "Aktiv"
 
-#: templates/admin/clients.html:69
+#: templates/admin/clients.html:70
 msgid "Delete Client"
 msgstr "Client löschen"
 
-#: templates/admin/clients.html:75
+#: templates/admin/clients.html:76
 #: templates/admin/modals/_organizations_modals.html:16
 #: templates/admin/modals/_user_modals.html:16
 #: templates/admin/processes.html:125
 msgid "Confirm"
 msgstr "Bestätigen"
 
-#: templates/admin/clients.html:82 templates/js/admin/_clients_js.html:70
+#: templates/admin/clients.html:83 templates/js/admin/_clients_js.html:70
 msgid "Add a new Client"
 msgstr "Neuen Client hinzufügen"
 
-#: templates/admin/clients.html:88
+#: templates/admin/clients.html:89
 msgid "Client Code"
 msgstr "Client-Code"
 
-#: templates/admin/clients.html:92
+#: templates/admin/clients.html:93
 msgid "Display Name"
 msgstr "Anzeigename"
 
-#: templates/admin/clients.html:103
+#: templates/admin/clients.html:104
 msgid "Runtime Engine Key"
 msgstr "Runtime-Engine-Schlüssel"
 
-#: templates/admin/clients.html:107
+#: templates/admin/clients.html:113
+msgid "Stats Engine Key (optional)"
+msgstr "Statistik-Engine-Schlüssel (optional)"
+
+#: templates/admin/clients.html:117
+msgid "Stats Dialect (optional)"
+msgstr "Statistik-Dialekt (optional)"
+
+#: templates/admin/clients.html:125
+msgid "Doc-field Engine Key (optional)"
+msgstr "Dokumentfeld-Engine-Schlüssel (optional)"
+
+#: templates/admin/clients.html:129
+msgid "Doc-field Dialect (optional)"
+msgstr "Dokumentfeld-Dialekt (optional)"
+
+#: templates/admin/clients.html:137
 msgid "Octo Domain (optional)"
 msgstr "Octo-Domäne (optional)"
 
-#: templates/admin/clients.html:111
+#: templates/admin/clients.html:141
 msgid "Secret Ref (env-key prefix, optional)"
 msgstr "Secret-Ref (Env-Key-Präfix, optional)"
 
-#: templates/admin/clients.html:121
+#: templates/admin/clients.html:151
 msgid "Save Client"
 msgstr "Client speichern"
 
@@ -6105,7 +6145,9 @@ msgstr "Prozesse - nexora"
 msgid ""
 "Process sources and field mappings per client (dbo.ProcessSources / "
 "dbo.ProcessFieldMappings)"
-msgstr "Prozessquellen und Feldzuordnungen pro Client (dbo.ProcessSources / dbo.ProcessFieldMappings)"
+msgstr ""
+"Prozessquellen und Feldzuordnungen pro Client (dbo.ProcessSources / "
+"dbo.ProcessFieldMappings)"
 
 #: templates/admin/processes.html:24
 msgid "Add process source"
@@ -6116,7 +6158,11 @@ msgid ""
 "\"Client\" here is a runtime source (default/ms02, see Clients) -- not a "
 "customer organization. Process names are customer-prefixed by convention "
 "only (e.g. privera.02_Posteingang); this page never parses that prefix."
-msgstr "\"Client\" bezeichnet hier eine Laufzeitquelle (default/ms02, siehe Clients) -- keine Kundenorganisation. Prozessnamen sind nur konventionsgemäss kundenpräfigiert (z. B. privera.02_Posteingang); diese Seite wertet dieses Präfix nie aus."
+msgstr ""
+"\"Client\" bezeichnet hier eine Laufzeitquelle (default/ms02, siehe "
+"Clients) -- keine Kundenorganisation. Prozessnamen sind nur "
+"konventionsgemäss kundenpräfigiert (z. B. privera.02_Posteingang); diese "
+"Seite wertet dieses Präfix nie aus."
 
 #: templates/admin/processes.html:36
 msgid ""
@@ -6124,14 +6170,22 @@ msgid ""
 "permission, granted to nobody -- grant it under Access Control. The join "
 "condition, time filters and extra condition are free-form SQL fragments "
 "and stay read-only here: they are editable only by a database migration."
-msgstr "Das Hinzufügen einer Prozessquelle legt auch deren Berechtigung workitems.filter.process.<name> an, die niemandem zugewiesen ist -- weisen Sie sie unter Zugriffskontrolle zu. Join-Bedingung, Zeitfilter und Zusatzbedingung sind freie SQL-Fragmente und bleiben hier schreibgeschützt: Sie sind nur über eine Datenbankmigration änderbar."
+msgstr ""
+"Das Hinzufügen einer Prozessquelle legt auch deren Berechtigung "
+"workitems.filter.process.<name> an, die niemandem zugewiesen ist -- "
+"weisen Sie sie unter Zugriffskontrolle zu. Join-Bedingung, Zeitfilter und"
+" Zusatzbedingung sind freie SQL-Fragmente und bleiben hier "
+"schreibgeschützt: Sie sind nur über eine Datenbankmigration änderbar."
 
 #: templates/admin/processes.html:43
 msgid ""
 "Mapping config is currently unavailable. The registry failed to load -- "
 "check the application log; this is not the same as \"no processes "
 "configured\"."
-msgstr "Die Mapping-Konfiguration ist derzeit nicht verfügbar. Die Registry konnte nicht geladen werden -- prüfen Sie das Anwendungsprotokoll; das ist nicht dasselbe wie \"keine Prozesse konfiguriert\"."
+msgstr ""
+"Die Mapping-Konfiguration ist derzeit nicht verfügbar. Die Registry "
+"konnte nicht geladen werden -- prüfen Sie das Anwendungsprotokoll; das "
+"ist nicht dasselbe wie \"keine Prozesse konfiguriert\"."
 
 #: templates/admin/processes.html:47
 msgid "Search client or process..."
@@ -6209,7 +6263,9 @@ msgstr "Id-Spaltentyp (optional)"
 msgid ""
 "Join condition, time filters and extra condition are free-form SQL and "
 "are not editable here -- change them with a migration."
-msgstr "Join-Bedingung, Zeitfilter und Zusatzbedingung sind freies SQL und hier nicht editierbar -- ändern Sie sie über eine Migration."
+msgstr ""
+"Join-Bedingung, Zeitfilter und Zusatzbedingung sind freies SQL und hier "
+"nicht editierbar -- ändern Sie sie über eine Migration."
 
 #: templates/admin/processes.html:185 templates/js/admin/_processes_js.html:119
 msgid "Add a field mapping"
@@ -8190,8 +8246,8 @@ msgid "You do not have permission to create users."
 msgstr "Sie haben keine Berechtigung, Benutzer zu erstellen."
 
 #: templates/js/admin/_access_control_js.html:567
-#: templates/js/admin/_clients_js.html:133
-#: templates/js/admin/_clients_js.html:187
+#: templates/js/admin/_clients_js.html:140
+#: templates/js/admin/_clients_js.html:194
 #: templates/js/admin/_organizations_js.html:145
 #: templates/js/admin/_organizations_js.html:199
 #: templates/js/admin/_processes_js.html:164
@@ -8261,15 +8317,15 @@ msgstr "Keine Zuweisung"
 msgid "Edit Client"
 msgstr "Client bearbeiten"
 
-#: templates/js/admin/_clients_js.html:123
+#: templates/js/admin/_clients_js.html:130
 #: templates/js/admin/_organizations_js.html:135
 #: templates/js/admin/_processes_js.html:151
 #: templates/js/admin/_user_management_js.html:149
 msgid "You do not have permission to perform this action."
 msgstr "Sie haben keine Berechtigung, diese Aktion durchzuführen."
 
-#: templates/js/admin/_clients_js.html:137
-#: templates/js/admin/_clients_js.html:191
+#: templates/js/admin/_clients_js.html:144
+#: templates/js/admin/_clients_js.html:198
 #: templates/js/admin/_organizations_js.html:149
 #: templates/js/admin/_organizations_js.html:203
 #: templates/js/admin/_processes_js.html:168
@@ -8278,13 +8334,15 @@ msgstr "Sie haben keine Berechtigung, diese Aktion durchzuführen."
 msgid "An unexpected network error occurred."
 msgstr "Ein unerwarteter Netzwerkfehler ist aufgetreten."
 
-#: templates/js/admin/_clients_js.html:178
+#: templates/js/admin/_clients_js.html:185
 msgid "You do not have permission to delete this client."
 msgstr "Sie haben keine Berechtigung, diesen Client zu löschen."
 
-#: templates/js/admin/_clients_js.html:194
+#: templates/js/admin/_clients_js.html:201
 msgid "Are you sure you want to delete this client? This action cannot be undone."
-msgstr "Sind Sie sicher, dass Sie diesen Client löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden."
+msgstr ""
+"Sind Sie sicher, dass Sie diesen Client löschen möchten? Diese Aktion "
+"kann nicht rückgängig gemacht werden."
 
 #: templates/js/admin/_logs_js.html:32
 msgid "Loading logs..."
@@ -8426,11 +8484,15 @@ msgstr "Feldzuordnung bearbeiten"
 msgid ""
 "Delete this process source? Its field mappings must be removed first, and"
 " its permission row is kept."
-msgstr "Diese Prozessquelle löschen? Ihre Feldzuordnungen müssen zuerst entfernt werden, und die Berechtigungszeile bleibt erhalten."
+msgstr ""
+"Diese Prozessquelle löschen? Ihre Feldzuordnungen müssen zuerst entfernt "
+"werden, und die Berechtigungszeile bleibt erhalten."
 
 #: templates/js/admin/_processes_js.html:241
 msgid "Delete this field mapping? This action cannot be undone."
-msgstr "Diese Feldzuordnung löschen? Diese Aktion kann nicht rückgängig gemacht werden."
+msgstr ""
+"Diese Feldzuordnung löschen? Diese Aktion kann nicht rückgängig gemacht "
+"werden."
 
 #: templates/js/admin/_sessions_js.html:18
 msgid "years ago"

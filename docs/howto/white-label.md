@@ -32,9 +32,18 @@ DB at all, and it does so through the admin UI, not a migration.
 Permissions: `admin.view.clients` (read), `admin.edit.clients` (add/edit/delete). Both are granted to
 `enterpriseAdmin` and `globalAdmin` by migration `0080`.
 
-Lists `dbo.Clients`: `ClientCode`, `DisplayName`, `Dialect` (`tsql` | `postgres`), the three engine
-keys (`RuntimeEngineKey`, `StatsEngineKey`, `DocfieldsEngineKey` — names of engines defined in
-`nx_lib/db.py`, e.g. `engine_octo_db`, `engine_ms02_pg`), `OctoDomain`, `SecretRef` and `IsActive`.
+The table lists five columns per `dbo.Clients` row — `ClientCode`, `DisplayName`, `Dialect`
+(`tsql` | `postgres`), `RuntimeEngineKey` and `IsActive`. The add/edit modal covers all ten writable
+columns: those five plus `StatsEngineKey`, `StatsDialect`, `DocfieldsEngineKey`, `DocfieldsDialect`,
+`OctoDomain` and `SecretRef`. (`ClientCode` is the primary key and is read-only when editing —
+changing it would strand every `dbo.ProcessSources` row pointing at the old code.) The engine keys
+name engines defined in `nx_lib/db.py`, e.g. `engine_octo_db`, `engine_ms02_pg`; the four
+stats/doc-field columns are nullable and empty means `NULL`.
+
+The edit form deliberately carries every writable column, including the four nullable ones the table
+doesn't show: the UPDATE writes all ten, so a form that omitted them would silently NULL a client's
+stats and doc-field engine bindings on any save — MS02 statistics would break and doc-field search
+would fail closed after the next app-pool recycle.
 
 Add/edit validates server-side (never trust the page's own JS checks): `ClientCode` must match
 `^[a-z0-9_]{2,50}$`, `DisplayName` is required, dialect fields must be `tsql` or `postgres`, engine
@@ -71,8 +80,11 @@ Every write is followed by `invalidate_mapping_config()` so the 60-second cache 
 admin staring at a stale page wondering if the save worked.
 
 Every identifier that gets interpolated into SQL elsewhere (`ClientCode`, `ProcessName`, `FieldKey`,
-`TableName`, `TableAlias`, column names, column types) is validated server-side against a strict
-identifier pattern before it is written.
+`TableName`, `TableAlias`, column names) is validated server-side against a strict identifier
+pattern before it is written. Column types (`ColumnType`, `IdColumnType`) are checked against a
+deliberately looser pattern (`_COLUMN_TYPE_RE` in `nx_lib/views/admin.py`) that also permits spaces —
+they are never interpolated into SQL, only compared against literal type buckets such as
+`character varying`.
 
 **Adding a process source auto-provisions its permission.** Saving a new `(ClientCode, ProcessName)`
 row also creates a `workitems.filter.process.<ProcessName>` permission row in the same request, in

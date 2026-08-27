@@ -33,10 +33,10 @@
                 : '<i class="fas fa-exclamation-circle"></i>';
 
             notification.className = `flex items-center w-full p-4 text-white ${bgColor} rounded-lg shadow-lg transform transition-all duration-300 opacity-0 translate-x-full`;
-            notification.innerHTML = `
-                <div class="text-xl">${icon}</div>
-                <div class="ml-3 text-sm font-medium">${message}</div>
-            `;
+            notification.innerHTML = `<div class="text-xl">${icon}</div><div class="ml-3 text-sm font-medium"></div>`;
+            // textContent, not innerHTML: server messages echo admin-supplied
+            // client codes and engine keys back at us.
+            notification.lastElementChild.textContent = message;
 
             container.appendChild(notification);
             setTimeout(() => notification.classList.remove('opacity-0', 'translate-x-full'), 10);
@@ -87,6 +87,13 @@
             document.getElementById('DisplayName').value = clientData.DisplayName || '';
             document.getElementById('Dialect').value = clientData.Dialect || 'tsql';
             document.getElementById('RuntimeEngineKey').value = clientData.RuntimeEngineKey || '';
+            // These four must be populated: the edit endpoint writes all ten
+            // writable columns, so leaving them blank here would NULL the row's
+            // stats / doc-field engine bindings on save.
+            document.getElementById('StatsEngineKey').value = clientData.StatsEngineKey || '';
+            document.getElementById('StatsDialect').value = clientData.StatsDialect || '';
+            document.getElementById('DocfieldsEngineKey').value = clientData.DocfieldsEngineKey || '';
+            document.getElementById('DocfieldsDialect').value = clientData.DocfieldsDialect || '';
             document.getElementById('OctoDomain').value = clientData.OctoDomain || '';
             document.getElementById('SecretRef').value = clientData.SecretRef || '';
             document.getElementById('IsActive').checked = !!clientData.IsActive;
@@ -106,7 +113,7 @@
             data.IsActive = document.getElementById('IsActive').checked;
             const originalCode = clientOriginalCodeInput.value;
             const url = originalCode
-                ? `${API_PREFIX}admin/clients/edit/${originalCode}`
+                ? `${API_PREFIX}admin/clients/edit/${encodeURIComponent(originalCode)}`
                 : `${API_PREFIX}admin/clients/add`;
 
             try {
@@ -166,7 +173,7 @@
         async function deleteClient(clientcode) {
             const deletionTask = async () => {
                 try {
-                    const response = await fetch(`${API_PREFIX}admin/clients/delete/${clientcode}`, {
+                    const response = await fetch(`${API_PREFIX}admin/clients/delete/${encodeURIComponent(clientcode)}`, {
                         method: 'DELETE',
                         headers: {
                             'Content-Type': 'application/json',
