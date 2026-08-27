@@ -1269,3 +1269,56 @@ def test_resolve_octo_wid_stage_pg_returns_empty_when_not_found(app):
             "status": None,
             "current_stage": None,
         }
+
+
+def test_cache_lookup_many_issues_one_query_and_maps_hits(app):
+    """Batched lookup for multiple ids does exactly ONE query (per <=1000 id
+    chunk) and returns unambiguous hits keyed by id string."""
+    fake_cur = MagicMock()
+    fake_cur.fetchall.return_value = [("1", "ms02"), ("2", "generali")]
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cur
+    eng = MagicMock()
+    eng.raw_connection.return_value = fake_conn
+    with app.app_context(), patch("nx_lib.workitem_sources.engine_nexora_db", eng):
+        result = ws._cache_lookup_many(["1", "2", "3"])
+    assert result == {"1": "ms02", "2": "generali"}
+    assert fake_cur.execute.call_count == 1
+
+
+def test_cache_lookup_many_omits_ambiguous_id(app):
+    """An id with two cached rows (compound-PK collision) is left out of the
+    map entirely -- the caller must re-probe it, never guess."""
+    fake_cur = MagicMock()
+    fake_cur.fetchall.return_value = [("1", "ms02"), ("1", "generali"), ("2", "ms02")]
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cur
+    eng = MagicMock()
+    eng.raw_connection.return_value = fake_conn
+    with app.app_context(), patch("nx_lib.workitem_sources.engine_nexora_db", eng):
+        result = ws._cache_lookup_many(["1", "2"])
+    assert result == {"2": "ms02"}
+    assert "1" not in result
+
+
+def test_cache_lookup_many_empty_input_short_circuits():
+    assert ws._cache_lookup_many([]) == {}
+
+
+def test_cache_lookup_returns_none_and_logs_when_ambiguous(app):
+    """_cache_lookup mirrors get_source_for_workitem's collision fail-safe:
+    >1 row for a single id -> None (+ error log), not an arbitrary pick."""
+    fake_cur = MagicMock()
+    fake_cur.fetchall.return_value = [("ms02",), ("generali",)]
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cur
+    eng = MagicMock()
+    eng.raw_connection.return_value = fake_conn
+    with (
+        app.app_context(),
+        patch("nx_lib.workitem_sources.engine_nexora_db", eng),
+        patch.object(ws.current_app.logger, "error") as mock_log,
+    ):
+        result = ws._cache_lookup("42")
+    assert result is None
+    assert mock_log.called

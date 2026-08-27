@@ -48,6 +48,26 @@ Work toward the next release.
   preserved, not dropped, following the same reversible pattern `0042` used
   for the chat/collaboration tables (later dropped for good by `0072`).
 
+- **Doc-field search performance: sargable predicates, seeded column types,
+  a short-lived allow-set cache, and a batched source-routing cache** (#98,
+  migrations `0076`–`0078`). `ProcessSource.id_column_type` is now seeded
+  from the live target DBs (`0076`, refined by fixup `0077`) so
+  `_ms02_columnar_sql` can emit a sargable comparison instead of an
+  unconditional `::text` cast on every row. Resolved doc-field allow-sets are
+  now cached for 60s per (client, field-spec, value) — repeat identical
+  searches skip re-querying MS02 entirely; the trade-off is that a workitem
+  imported in the last 60s can be briefly missing from a repeat of the exact
+  same search (accepted). `WorkitemSourceCache`'s primary key widens from
+  `(WorkItemID)` to `(WorkItemID, ClientCode)` (migration `0078`) since ids
+  collide across clients (1216 on INT) and a single-column PK could only ever
+  pin one client per id; `fetch_merged_page`'s cache-warm loop replaces up to
+  1000 sequential per-row lookups with one batched `_cache_lookup_many` call
+  per page, falling back to `get_source_for_workitem` only for ids missing
+  from the batch. Both `_cache_lookup` and `_cache_lookup_many` mirror
+  `get_source_for_workitem`'s existing collision fail-safe: more than one
+  row for an id is ambiguous and is never guessed — it's omitted (forcing a
+  re-probe) with an error logged.
+
 ### Fixed
 
 - **Workitem detail panel: line-item tables are tables again** (#199). Each

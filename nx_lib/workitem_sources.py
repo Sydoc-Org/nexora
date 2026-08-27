@@ -1267,11 +1267,59 @@ def _cache_lookup(workitem_id):
             "SELECT ClientCode FROM WorkitemSourceCache WHERE WorkItemID = ?",
             str(workitem_id),
         )
-        row = cur.fetchone()
-        return row[0] if row else None
+        rows = cur.fetchall()
+        if not rows:
+            return None
+        if len(rows) > 1:
+            current_app.logger.error(
+                f"WorkitemSourceCache lookup({workitem_id}): {len(rows)} rows "
+                "-- ambiguous (compound PK collision), forcing re-probe."
+            )
+            return None
+        return rows[0][0]
     except Exception as e:
         current_app.logger.error(f"WorkitemSourceCache lookup({workitem_id}): {e}")
         return None
+    finally:
+        conn.close()
+
+
+def _cache_lookup_many(workitem_ids):
+    """Batched cache lookup: one (chunked) query instead of one round-trip per
+    id. Returns {id_str: client_code} for unambiguous hits only -- an id with
+    more than one cached row is OMITTED (ambiguous -> caller re-probes via
+    get_source_for_workitem, same fail-safe as _cache_lookup)."""
+    ids = [str(w) for w in workitem_ids]
+    if not ids:
+        return {}
+    result = {}
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        seen_counts = {}
+        for i in range(0, len(ids), 1000):
+            chunk = ids[i : i + 1000]
+            placeholders = ",".join("?" for _ in chunk)
+            cur.execute(
+                f"SELECT WorkItemID, ClientCode FROM WorkitemSourceCache "
+                f"WHERE WorkItemID IN ({placeholders})",
+                chunk,
+            )
+            for wid, client_code in cur.fetchall():
+                wid = str(wid)
+                seen_counts[wid] = seen_counts.get(wid, 0) + 1
+                result[wid] = client_code
+        ambiguous = [wid for wid, count in seen_counts.items() if count > 1]
+        for wid in ambiguous:
+            current_app.logger.error(
+                f"WorkitemSourceCache lookup_many({wid}): {seen_counts[wid]} rows "
+                "-- ambiguous (compound PK collision), forcing re-probe."
+            )
+            result.pop(wid, None)
+        return result
+    except Exception as e:
+        current_app.logger.error(f"WorkitemSourceCache lookup_many: {e}")
+        return {}
     finally:
         conn.close()
 
@@ -1287,7 +1335,7 @@ def _cache_store(workitem_id, client_code):
             """
             MERGE dbo.WorkitemSourceCache AS tgt
             USING (SELECT ? AS WorkItemID, ? AS ClientCode) AS src
-            ON tgt.WorkItemID = src.WorkItemID
+            ON tgt.WorkItemID = src.WorkItemID AND tgt.ClientCode = src.ClientCode
             WHEN MATCHED THEN UPDATE SET ClientCode = src.ClientCode, ResolvedAt = SYSUTCDATETIME()
             WHEN NOT MATCHED THEN INSERT (WorkItemID, ClientCode) VALUES (src.WorkItemID, src.ClientCode);
             """,
@@ -1415,22 +1463,28 @@ def fetch_merged_page(filt, offset, limit):
     merged = merge_sorted_rows(per_source_rows, search_id=filt.search_id)
     page = merged[offset : offset + limit]
 
-    # Warm the routing cache for non-default rows on this page. Routed through
-    # get_source_for_workitem's collision fail-safe (not a direct _cache_store)
-    # so a colliding id -- claimed by more than one source -- is left uncached
-    # instead of being pinned to whichever client's page happened to list it
-    # first during this warm pass. Pass the ``sources`` list this function
-    # already built above -- avoids get_source_for_workitem constructing a
-    # second fresh set of source instances (2 extra objects) for every
-    # non-default row on the page; the live has_workitem probes themselves
-    # are unchanged, since list_workitems' permission/date/status-filtered,
-    # offset+limit-capped rows are not proof of exclusive ownership the way
-    # an unscoped has_workitem check is -- skipping the probe based on this
-    # page's own row shape would risk under-detecting a real collision whose
-    # twin row didn't happen to surface in this particular filtered fetch.
-    for r in page:
-        if r["client"] != "default":
-            get_source_for_workitem(r["workitemid"], sources=sources)
+    # Warm the routing cache for non-default rows on this page. First, ONE
+    # batched cache lookup for every non-default id on the page (instead of
+    # up to `limit` sequential round-trips). Ids that come back missing --
+    # not cached yet, or ambiguous per _cache_lookup_many's own fail-safe --
+    # fall through to get_source_for_workitem's collision fail-safe (not a
+    # direct _cache_store) so a colliding id -- claimed by more than one
+    # source -- is left uncached instead of being pinned to whichever
+    # client's page happened to list it first during this warm pass. Pass
+    # the ``sources`` list this function already built above -- avoids
+    # get_source_for_workitem constructing a second fresh set of source
+    # instances (2 extra objects) for every non-default row on the page; the
+    # live has_workitem probes themselves are unchanged, since
+    # list_workitems' permission/date/status-filtered, offset+limit-capped
+    # rows are not proof of exclusive ownership the way an unscoped
+    # has_workitem check is -- skipping the probe based on this page's own
+    # row shape would risk under-detecting a real collision whose twin row
+    # didn't happen to surface in this particular filtered fetch.
+    non_default_ids = [r["workitemid"] for r in page if r["client"] != "default"]
+    cached_map = _cache_lookup_many(non_default_ids)
+    for wid in non_default_ids:
+        if str(wid) not in cached_map:
+            get_source_for_workitem(wid, sources=sources)
 
     return page, total, degraded
 
