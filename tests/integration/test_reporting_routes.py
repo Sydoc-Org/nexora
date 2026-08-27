@@ -534,6 +534,33 @@ def test_sources_health_shape(admin_client):
             assert row["db"]  # DB_NAME() rides along on a successful probe
 
 
+def test_source_schema_without_perm_403(user_client):
+    assert user_client.get("/api/reporting/sources/workitems/schema").status_code == 403
+
+
+def test_source_schema_unknown_source_403(admin_client):
+    """An id outside the caller's accessible sources never reaches a DB."""
+    assert admin_client.get("/api/reporting/sources/nope/schema").status_code == 403
+
+
+def test_source_schema_shape(admin_client):
+    """Tables (with columns) plus FK edges, or a JSON error when the TEST env
+    cannot reach that source's engine -- never a 500."""
+    resp = admin_client.get("/api/reporting/sources/workitems/schema")
+    assert resp.status_code in (200, 502, 503)
+    data = resp.get_json()
+    if resp.status_code != 200:
+        assert data.get("error")
+        return
+    assert isinstance(data["tables"], list)
+    assert isinstance(data["relations"], list)
+    assert data["source"] == "workitems"
+    for t in data["tables"]:
+        assert {"schema", "name", "kind", "rows", "columns"} <= set(t)
+        for c in t["columns"]:
+            assert {"name", "type", "nullable", "pk"} <= set(c)
+
+
 def test_schedule_validation_400(admin_client):
     rid = _create_report(admin_client)
     try:

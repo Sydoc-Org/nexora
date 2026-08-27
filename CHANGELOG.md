@@ -10,6 +10,20 @@ Work toward the next release.
 
 ### Added
 
+- **Reporting: click a source to see inside its database.** The Console's
+  Sources rail cards are now buttons that open a source visualizer — a
+  filterable list of every table (row count, columns, types, primary and
+  foreign keys) and an ER diagram drawing the foreign keys as arrows between
+  table boxes, with pan, zoom and Fit. Clicking a box, or a column's 🔗,
+  jumps to that table in the list. Structure only — no data rows are read.
+  Served by `GET /api/reporting/sources/<id>/schema`
+  (`nx_lib/reporting/db_schema.py`), on the same engine the source already
+  uses, behind the new `reporting.sources.schema` permission
+  (migration `0079`, seeded to profiles that hold `admin.view`) *and* the
+  source's own permission — so it never widens which databases a user reaches.
+  Databases with no foreign keys (the statistics DBs) show their biggest
+  tables as a grid instead of an empty diagram.
+
 - **Reporting dashboards: one-dialog "Add a card".** The add-card tile's type
   pills are replaced by a single mask (`rdb-add-mask`) that asks for everything
   at once — which saved report to show, how to draw it (KPI / chart / donut /

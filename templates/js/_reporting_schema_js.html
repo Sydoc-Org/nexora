@@ -1,0 +1,21 @@
+<script nonce="{{ csp_nonce() }}">
+  // Jinja-rendered strings for static/js/reporting_schema.js (#191 shim
+  // pattern: a .js file has no url_for()/gettext, so translated text rides in
+  // on window and URLs are built from API_PREFIX).
+  window.NX_I18N_REPORTING_SCHEMA = {
+    loading: {{ _("Loading…")|tojson }},
+    failed: {{ _("Could not read this database.")|tojson }},
+    noMatch: {{ _("Nothing matches that.")|tojson }},
+    rows: {{ _("rows")|tojson }},
+    cols: {{ _("cols")|tojson }},
+    view: {{ _("view")|tojson }},
+    primaryKey: {{ _("Primary key")|tojson }},
+    references: {{ _("References {t}")|tojson }},
+    tablesN: {{ _("{n} tables")|tojson }},
+    relationsN: {{ _("{n} relationships")|tojson }},
+    truncatedN: {{ _("{n} more not shown")|tojson }},
+    noRelations: {{ _("No foreign keys defined — showing the biggest tables.")|tojson }},
+    erdCapped: {{ _("Showing the {n} most connected tables.")|tojson }}
+  };
+</script>
+<script src="{{ static_v('js/reporting_schema.js') }}"></script>

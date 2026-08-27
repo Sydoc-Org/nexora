@@ -545,6 +545,60 @@
     </div>
   </div>
 
+  {% if has_permission('reporting.sources.schema') %}
+  {# Source visualizer: click a card in the Sources rail (js/_reporting_tabs_js.html)
+     to inspect the database behind it -- table list + ER diagram, both fed by
+     GET /api/reporting/sources/<id>/schema. Same slide-over shell as the
+     drill-through drawer, wider because the diagram needs the room. #}
+  <div id="rcSchemaBackdrop" class="reporting-drill-backdrop" hidden data-testid="rc-schema-backdrop"></div>
+  <aside id="rcSchemaPanel" class="rc-schema-panel" hidden data-testid="rc-schema-panel"
+         aria-label="{{ _('Database structure') }}">
+    <header class="rc-schema-head">
+      <div class="rc-schema-head__main">
+        <span class="reporting-drill-icon"><i class="fas fa-database" aria-hidden="true"></i></span>
+        <div class="rc-schema-head__text">
+          <h3 id="rcSchemaTitle" data-testid="rc-schema-title"></h3>
+          <p id="rcSchemaSub" class="reporting-drill-subtitle"></p>
+        </div>
+      </div>
+      <div class="rc-schema-head__actions">
+        <div class="rc-schema-tabs" role="tablist">
+          <button type="button" id="rcSchemaTabList" class="rc-schema-tab is-active" data-view="list"
+                  data-testid="rc-schema-tab-list">{{ _("List") }}</button>
+          <button type="button" id="rcSchemaTabDiagram" class="rc-schema-tab" data-view="diagram"
+                  data-testid="rc-schema-tab-diagram">{{ _("Diagram") }}</button>
+        </div>
+        <button type="button" id="rcSchemaClose" class="rc-schema-x"
+                aria-label="{{ _('Close') }}" data-testid="rc-schema-close">
+          <i class="fas fa-xmark" aria-hidden="true"></i></button>
+      </div>
+    </header>
+    <p id="rcSchemaStatus" class="rc-schema-status" hidden data-testid="rc-schema-status"></p>
+    <div class="rc-schema-body">
+      <div id="rcSchemaList" class="rc-schema-list">
+        <label class="rc-schema-filter">
+          <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+          <input id="rcSchemaFilter" type="search" class="reporting-input"
+                 placeholder="{{ _('Filter tables and columns…') }}" data-testid="rc-schema-filter">
+        </label>
+        <div id="rcSchemaTables" class="rc-schema-tables"></div>
+      </div>
+      <div id="rcSchemaDiagram" class="rc-schema-diagram" hidden>
+        <div class="rc-schema-zoom">
+          <button type="button" class="rc-schema-zoom-btn" data-zoom="out" aria-label="{{ _('Zoom out') }}">
+            <i class="fas fa-minus" aria-hidden="true"></i></button>
+          <button type="button" class="rc-schema-zoom-btn" data-zoom="fit" data-testid="rc-schema-fit">
+            {{ _("Fit") }}</button>
+          <button type="button" class="rc-schema-zoom-btn" data-zoom="in" aria-label="{{ _('Zoom in') }}">
+            <i class="fas fa-plus" aria-hidden="true"></i></button>
+        </div>
+        <p id="rcSchemaErdNote" class="rc-schema-erd-note" hidden></p>
+        <svg id="rcSchemaSvg" class="rc-schema-svg" data-testid="rc-schema-svg"></svg>
+      </div>
+    </div>
+  </aside>
+  {% endif %}
+
   {% include '_reporting_help.html' %}
 
   {% include 'js/_eddard_js.html' %}
@@ -558,6 +612,9 @@
   {% endif %}
   {# Tabs controller LAST: its initial show() dispatches rp:tabshown, which the
      Simple pane's IIFE (included inside _reporting_simple.html) listens for. #}
+  {% if has_permission('reporting.sources.schema') %}
+  {% include 'js/_reporting_schema_js.html' %}
+  {% endif %}
   {% include 'js/_reporting_tabs_js.html' %}
 </body>
 

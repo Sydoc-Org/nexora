@@ -55,6 +55,7 @@ from ..db import (
 )
 from ..extensions import limiter
 from ..i18n import get_locale
+from ..reporting import db_schema
 from ..reporting.ai import (
     _AGENT_EXPLAIN_SUFFIX,
     _AGENT_SYSTEM,
@@ -3023,6 +3024,46 @@ def api_sources_health():
     return jsonify({"sources": out})
 
 
+@require_permission("reporting.sources.schema")
+def api_source_schema(source_id):
+    """Tables, columns and foreign keys of the database behind one source.
+
+    Feeds the Console's source visualizer (click a rail card): a filterable
+    table list and an ER diagram. Read-only catalog queries on the same engine
+    the source itself reads from, so no new credential surface -- but the
+    schema of a whole database is more than the source's own fields, hence its
+    own grant on top of the source's permission.
+    """
+    perms = set(session.get("permissions", []))
+    src = next(
+        (s for s in accessible(_effective_sources(), perms) if s.get("id") == source_id),
+        None,
+    )
+    if src is None:
+        return jsonify({"error": _("Not authorized for this source")}), 403
+    if src["kind"] == "sql":
+        engine = _SQL_TARGET_ENGINES.get(src.get("target", "statistics"))
+    else:
+        engine = _CURATED_ENGINES.get(src.get("engine"), engine_statistics_db)
+    if engine is None:
+        return jsonify({"error": _("This source's database is not configured.")}), 503
+    try:
+        conn = engine.raw_connection()
+    except Exception as e:
+        current_app.logger.warning(f"reporting schema: connect failed for {source_id}: {e}")
+        return jsonify({"error": _("Could not reach this database.")}), 503
+    try:
+        payload = db_schema.introspect(conn)
+    except Exception as e:
+        current_app.logger.error(f"reporting schema: introspection failed for {source_id}: {e}")
+        return jsonify({"error": _("Could not read this database's schema.")}), 502
+    finally:
+        conn.close()
+    payload["source"] = source_id
+    payload["label"] = src.get("label")
+    return jsonify(payload)
+
+
 # ---- Source-registry admin (reporting.admin.sources) ----------------------
 
 _SOURCE_CODE_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
@@ -3627,6 +3668,11 @@ def register_routes(app):
         "/api/reporting/sources/health",
         endpoint="reporting_sources_health",
         view_func=api_sources_health,
+    )
+    app.add_url_rule(
+        "/api/reporting/sources/<source_id>/schema",
+        endpoint="reporting_source_schema",
+        view_func=api_source_schema,
     )
     app.add_url_rule(
         "/api/reporting/share_targets",

@@ -45,7 +45,8 @@ content area. `templates/js/_reporting_tabs_js.html` is the nav controller
   `SELECT DB_NAME()` per distinct engine, shared across sources; the URL
   carries no database attribute because the engines are built from
   `odbc_connect` strings). The admin-only registry link is the gear next to
-  the SOURCES label. The **Advanced** nav entry is currently parked
+  the SOURCES label. With `reporting.sources.schema` each card becomes a
+  button opening the **source visualizer** (below). The **Advanced** nav entry is currently parked
   (`hidden` in `reporting.html`) — the pane stays reachable via
   `?tab=advanced`, Open-in-Advanced and `ReportingTabs.show('advanced')`.
 - **One fetch per catalog per page load.** The page is five independent IIFEs
@@ -824,6 +825,7 @@ Both serialization paths neutralize spreadsheet formula injection (leading
 | `reporting.sql.run` | Run live read-only SQL in the sandbox against **Statistics** (see below). Grantable; admins seeded. |
 | `reporting.sql.target.octopus` | Additionally target the **Octopus** runtime DB in the SQL sandbox. Independent of `reporting.sql.run`; grantable; admins seeded. |
 | `reporting.admin.sources` | Manage the data-source registry at `/reporting/sources` (see below). Admins seeded. |
+| `reporting.sources.schema` | Open the **source visualizer** on a Sources rail card — the tables, columns and foreign keys of the database behind a source (see below). Still requires that source's own permission. Migration `0079`; admins seeded. |
 | `reporting.semantic.admin` | Manage the canonical-metrics registry at `/reporting/metrics` (see below). Admins seeded. |
 | `reporting.schedule` | Schedule a saved report to run and be emailed (see below). Admins seeded. |
 | `reporting.ai.use` | Use the AI assistant (Eddard) — see the chat toggle, ask natural-language questions (see below). Admins seeded. |
@@ -982,6 +984,52 @@ gate, so grant it deliberately. Tune the exposed columns/object at
 catalog, and a `Permission` — then grant that permission. A `Kind=sql` row adds a
 SQL-sandbox source over an existing target. Use the code path below only when a
 source needs bespoke query logic the `table` provider can't express.
+
+## Source visualizer (`reporting.sources.schema`)
+
+Clicking a Sources rail card opens a slide-over showing the **database behind
+that source** — a filterable table list and an ER diagram. Structure only: no
+row of data is ever returned.
+
+**Route.** `GET /api/reporting/sources/<source_id>/schema` →
+`{db, label, source, tables[], relations[], truncated}`.
+
+- `tables[]`: `{schema, name, kind: table|view, rows, columns[{name, type,
+  nullable, pk, fk?}]}`, sorted by row count desc. `rows` is the
+  `sys.partitions` approximation (no `VIEW DATABASE STATE` needed); views get
+  `null`. `fk` is `{table, column}` on the child column.
+- `relations[]`: one entry per foreign key, multi-column keys grouped —
+  `{name, from, to, fromColumns[], toColumns[]}`.
+- `truncated`: how many tables the 400-object cap dropped (`0` normally).
+  Edges pointing outside the cap are dropped with them, so the diagram never
+  references a table that isn't there.
+
+**Two gates, not one.** The route carries `@require_permission(
+"reporting.sources.schema")` *and* re-checks that `source_id` is in the
+caller's `accessible()` set (403 otherwise). The grant therefore widens what
+you see *of* a database you already read — it never adds a database.
+
+**Engine reuse.** The same engine the source itself queries
+(`_SQL_TARGET_ENGINES` for `kind=sql`, `_CURATED_ENGINES` otherwise), so no new
+credential and no new connection string. An unconfigured engine is a 503, a
+failed catalog read a 502 — never a 500.
+
+**Introspection** lives in `nx_lib/reporting/db_schema.py` (`introspect(conn)`,
+connection injected → unit-testable, `tests/unit/test_reporting_db_schema.py`).
+Three `sys.*` catalog queries: objects+columns with the PK flag, row counts,
+foreign keys. SQL Server only — every engine behind a reporting source is SQL
+Server today; a Postgres source (MS02) would need a dialect branch here.
+
+**Front end**: `static/js/reporting_schema.js` + the string shim
+`templates/js/_reporting_schema_js.html`, markup in `reporting.html` behind the
+same permission check (no grant → no markup, no script, and the rail cards stay
+plain `<div>`s). The diagram is hand-rolled SVG, no graph library: nodes are
+laid out by a BFS per connected component (depth → column), which tolerates
+cycles and keeps parents beside children; a database with **no** foreign keys
+grids its biggest tables instead of stacking them in one column. Pan is a
+pointer drag, zoom is the wheel, **Fit** re-frames. Caps: 60 nodes (by degree),
+8 columns per box — both reported in the diagram's note rather than silently
+applied.
 
 ## Metrics registry (semantic layer, admin)
 

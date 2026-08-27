@@ -117,15 +117,25 @@
     var h = health && health[s.id];
     var dot = h ? '<span class="rc-src-dot' + (h.ok ? ' rc-src-dot--ok src-pulse' : ' rc-src-dot--warn') + '"></span>' : '';
     var name = (h && h.db) || s.label;
+    // With reporting.sources.schema the card opens the source visualizer
+    // (static/js/reporting_schema.js); without it there is no panel on the
+    // page, so it stays a plain div.
+    var live = !!window.ReportingSchema;
     var foot = h && h.latencyMs != null
-      ? '<div class="rc-src-foot"><span class="rc-src-ms">' +
-        esc(String(Math.round(h.latencyMs))) + ' ms</span></div>' : '';
-    return '<div class="rc-src" data-testid="rc-source">' +
+      ? '<span class="rc-src-ms">' + esc(String(Math.round(h.latencyMs))) + ' ms</span>' : '';
+    var hint = live
+      ? '<span class="rc-src-hint"><i class="fas fa-diagram-project" aria-hidden="true"></i>' +
+        esc({{ _("Structure")|tojson }}) + '</span>' : '';
+    return '<' + (live ? 'button type="button"' : 'div') +
+      ' class="rc-src' + (live ? ' rc-src--live' : '') + '" data-testid="rc-source"' +
+      (live ? ' data-source-id="' + esc(s.id) + '" data-db="' + esc(name) + '"' : '') + '>' +
       '<div class="rc-src-row">' +
         '<span class="rc-src-ico rc-src-ico--db">' +
           '<i class="fas fa-database" aria-hidden="true"></i></span>' +
         '<span class="rc-src-name" title="' + esc(name) + '">' + esc(name) + '</span>' + dot +
-      '</div>' + foot + '</div>';
+      '</div>' +
+      (foot || hint ? '<div class="rc-src-foot">' + foot + hint + '</div>' : '') +
+      '</' + (live ? 'button' : 'div') + '>';
   }
 
   async function loadSourcesRail() {
@@ -166,6 +176,13 @@
       return true;
     });
     wrap.innerHTML = cards.map(function (s) { return sourceCardHtml(s, byId); }).join('');
+    if (window.ReportingSchema && !wrap.dataset.wired) {
+      wrap.dataset.wired = '1';
+      wrap.addEventListener('click', function (e) {
+        var card = e.target.closest('.rc-src--live');
+        if (card) window.ReportingSchema.open(card.dataset.sourceId, card.dataset.db);
+      });
+    }
     var sync = el('rcSyncStatus');
     if (sync) {
       var okAll = !byId || health.sources.every(function (h) { return h.ok; });

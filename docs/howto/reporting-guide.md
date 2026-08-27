@@ -41,6 +41,9 @@ guide as an app page.
   the badge first.
 - Everything in one empty bucket? The breakdown field is not filled in for the
   processes you selected.
+- Not sure which table a source really reads? Click its card in the **Sources**
+  rail: **List** shows every table and column, **Diagram** draws the foreign
+  keys between them.
 - Relative presets stay relative: a report saved with "This month" shows the
   current month on every run and in every scheduled mail. Schedule times are
   UTC.
@@ -104,6 +107,19 @@ The page is a small workspace with a fixed navigation on the left:
 
 Under the navigation, the **Sources** list shows each data source you can
 report on, with a green dot and its current response time.
+
+**Click a source card** to look inside the database behind it (needs the
+"browse source structure" permission — see [For administrators](#for-administrators-internal)):
+
+- **List** — every table, biggest first, with its row count. Open one to see
+  its columns, their types, which is the primary key (🔑) and which point at
+  another table (🔗 — click it to jump there).
+- **Diagram** — the same tables drawn as boxes, with an arrow from each
+  foreign key to the table it references. Drag to pan, scroll to zoom, **Fit**
+  to see everything again; clicking a box opens it in the list. Databases
+  without foreign keys show their biggest tables instead of a web of arrows.
+
+This is a read-only look at the structure — no data rows are shown.
 
 ## Three ways to build a report
 
@@ -525,6 +541,7 @@ different pages. Ask an administrator to grant what you need:
 | Ask Eddard | AI assistant access |
 | Set up email delivery | Scheduling permission |
 | Write your own SQL | SQL sandbox access (below) |
+| Click a source card to see its tables | Browse source structure (`reporting.sources.schema`) |
 
 ---
 
@@ -539,6 +556,12 @@ table-shaped source.
 
 **Measures** (`/reporting/metrics`) — the list the wizard's first step offers.
 Adding a row here widens the guided builder for everyone, without a release.
+
+**Source structure** — `reporting.sources.schema` turns the Sources rail cards
+into buttons that open the tables, columns and foreign keys of the database
+behind a source. It reads structure only (no rows), on the same connection the
+source already uses, and still requires the source's own permission — so it
+widens *what you see of* a database, never *which* databases you reach.
 
 **Live SQL sandbox** — the **SQL** tab in the Advanced builder, for when the
 builder cannot express the query. It runs a single read-only `SELECT` against a
