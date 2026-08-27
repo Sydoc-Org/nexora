@@ -1,3 +1,8 @@
+> **Newer handoff same day:** see
+> [`2026-08-27-reporting-dashboard-mask-resize-delete-label.md`](2026-08-27-reporting-dashboard-mask-resize-delete-label.md)
+> for unrelated dashboard-UI work done later on 2026-08-27. `/reset-session` may not pick this
+> file by date alone — pass the explicit path for whichever session you mean to resume.
+
 # Handoff — white-label + admin onboarding UI (#98 phase 4) planned; ready to execute
 
 **Date:** 2026-08-27 · **Branch:** `v3.2.3.1` (main checkout, no worktree) · **3 commits this
