@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body>
+    <script nonce="{{ csp_nonce() }}">
+        // Read-only for now (#98 phase 4 task 4) -- add/edit/delete land in a later task.
+        const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const input = document.getElementById('clientSearchInput');
+            const tbody = document.getElementById('clients-tbody');
+            if (!input || !tbody) return;
+
+            function applyFilter() {
+                const q = input.value.trim().toLowerCase();
+                tbody.querySelectorAll('tr[data-search]').forEach(tr => {
+                    tr.style.display = !q || tr.dataset.search.includes(q) ? '' : 'none';
+                });
+            }
+
+            input.addEventListener('input', applyFilter);
+        });
+    </script>
+</body>
+
+</html>

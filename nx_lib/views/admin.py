@@ -295,6 +295,45 @@ def api_admin_organizations_list():
             conn.close()
 
 
+# ----------------------------------- clients (runtime sources) --------------------- #
+
+
+@require_permission("admin.view.clients")
+def admin_clients_view():
+    """Read-only list of dbo.Clients -- runtime sources (default/ms02), not
+    customers (see dbo.Organizations). Write endpoints land in a later task."""
+    conn = None
+    cursor = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT ClientCode, DisplayName, Dialect, RuntimeEngineKey, StatsEngineKey, "
+            "StatsDialect, DocfieldsEngineKey, DocfieldsDialect, OctoDomain, SecretRef, "
+            "IsActive FROM dbo.Clients ORDER BY ClientCode"
+        )
+        clients = [
+            dict(zip([column[0] for column in cursor.description], row, strict=False))
+            for row in cursor.fetchall()
+        ]
+
+        return render_template(
+            "admin/clients.html",
+            clients=clients,
+            logged_in_user=session.get("username"),
+            userid=session.get("userid"),
+            page_visibility=page_visibility(),
+        )
+    except Exception as e:
+        current_app.logger.error(f"Failed to fetch clients: {e}")
+        return render_template("handlers/500.html"), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
 # ----------------------------------- status page ---------------------------------- #
 
 
@@ -2174,6 +2213,9 @@ def register_routes(app):
         endpoint="api_admin_organizations_list",
         view_func=api_admin_organizations_list,
     )
+
+    # clients (runtime sources)
+    app.add_url_rule("/admin/clients", endpoint="admin_clients_view", view_func=admin_clients_view)
 
     # status page
     app.add_url_rule("/admin/status", endpoint="admin_status_view", view_func=admin_status_view)

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale }}">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    {% include '_theme_prepaint.html' %}
+    <link rel="stylesheet" href="{{ url_for('static',filename='css/nexora-ui.css') }}">
+    <title>{{ _("Clients - nexora") }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
+</head>
+<body class="nx-app">
+    <div id="notification-container" class="fixed top-4 right-4 z-[100] w-full max-w-xs space-y-3"></div>
+
+    {% set active_page = 'clients' %}
+    {% include '_header.html' %}
+    {% import 'admin/_admin_helpers.html' as a %}
+
+    <main class="nx-main">
+        {{ a.page_header(
+            title=_('Clients'),
+            subtitle=_('Runtime sources (which DB/dialect/Octo tenant serves each client) -- not customer organizations'),
+            back_url=url_for('admin_dashboard'),
+            icon='fa-server'
+        ) }}
+
+        {{ a.toolbar(search_id='clientSearchInput', search_placeholder=_('Search clients...')) }}
+
+        <div class="nx-table-wrap">
+            <table class="nx-table">
+                {{ a.table_header([
+                    {'label': _('Code'), 'width': '140px'},
+                    {'label': _('Display name')},
+                    {'label': _('Dialect'), 'width': '110px'},
+                    {'label': _('Runtime engine')},
+                    {'label': _('Active'), 'width': '90px'}
+                ]) }}
+                <tbody id="clients-tbody">
+                    {% for client in clients %}
+                    <tr data-search="{{ (client.ClientCode ~ ' ' ~ client.DisplayName)|lower }}" data-testid="admin-client-row-{{ client.ClientCode }}">
+                        <td><span class="nx-mono">{{ client.ClientCode }}</span></td>
+                        <td>{{ client.DisplayName }}</td>
+                        <td>{{ client.Dialect }}</td>
+                        <td><span class="nx-mono">{{ client.RuntimeEngineKey }}</span></td>
+                        <td>{{ _('Yes') if client.IsActive else _('No') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    {% include 'js/admin/_clients_js.html' %}
+</body>
+</html>

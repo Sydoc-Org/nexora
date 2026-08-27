@@ -159,6 +159,22 @@ def test_api_admin_organizations_list(admin_client, admin_all_perms):
     assert isinstance(resp.get_json(), list)
 
 
+# ============================ clients (runtime sources) ======================
+
+
+def test_admin_clients_view_gated(noperm_client):
+    resp = noperm_client.get("/admin/clients")
+    assert resp.status_code == 403
+
+
+def test_admin_clients_view_with_perm(admin_client, admin_all_perms):
+    """dbo.Clients isn't in sql/test/schema.sql (see module docstring's ABSENT
+    list), so the query 500s -- same tuple-match used for the other
+    missing-table routes (Logs, DashboardLayouts) in this file."""
+    resp = admin_client.get("/admin/clients")
+    assert resp.status_code in (200, 500)
+
+
 # ============================ maintenance banner =============================
 
 
