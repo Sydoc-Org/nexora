@@ -31,6 +31,18 @@ Work toward the next release.
   runtime is now fully self-service — no migration, no deploy. See
   `docs/howto/white-label.md`.
 
+- **Per-organization branding panel** (#98 phase 4). `/admin/organizations`
+  gained a branding panel — brand name, accent colour and logo — behind the
+  `admin.edit.organization.branding` permission (the panel and its per-row
+  button are hidden entirely from a viewer who only holds
+  `admin.view.organizations`). Branding attaches to the customer
+  organization, never to a runtime `ClientCode`. Uploads are MIME-sniffed
+  with libmagic through `nx_lib/files.py::is_file_allowed` (never the
+  client-declared content type), capped at 512 KB, restricted to SVG/PNG/JPEG
+  and stored as `var/branding/<orgcode>.<ext>`; `deploy.yml` already excludes
+  `var/` from the robocopy mirror. Every successful save invalidates the
+  60-second branding cache so the edit shows up immediately.
+
 - **Sidebar restyled toward a minimal, GitHub-inspired look** (#213). Same
   icons and labels, different treatment: the active page is marked by a thin
   accent-coloured bar on the left edge instead of a filled accent-tinted

@@ -32,6 +32,8 @@ Sections:
 - /api/admin/permissions/*  CRUD
 """
 
+import base64 as _b64
+import io as _io
 import re
 import types as _types
 import uuid
@@ -2314,3 +2316,200 @@ def test_branding_logo_path_traversal_via_logo_file_is_blocked(admin_client, mon
     )
     resp = admin_client.get("/branding/TEST/logo")
     assert resp.status_code == 404
+
+
+# ============ /admin/organizations/<code>/branding (Task 11, #98 phase 4) =====
+#
+# Branding attaches to the Organization (the customer -- PRVR, LKTR, ...),
+# never to ClientCode (the runtime source).
+#
+# The TEST database's Organizations table predates migration 0081, so the
+# BrandName/BrandAccentHex/BrandLogoFile UPDATE cannot run against it: tests
+# that need to reach the write substitute a fake engine.
+
+_PNG_1x1 = _b64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+)
+_BRANDING_URL = "/admin/organizations/TEST/branding"
+
+
+def _fake_nexora_engine():
+    """MagicMock stand-in for engine_nexora_db: every SELECT "succeeds" (the
+    org exists) and the UPDATE is recorded rather than executed."""
+    cursor = MagicMock()
+    conn = MagicMock()
+    conn.cursor.return_value = cursor
+    engine = MagicMock()
+    engine.raw_connection.return_value = conn
+    return engine, conn, cursor
+
+
+@pytest.fixture()
+def branding_write(monkeypatch, tmp_path):
+    """Redirect var/branding/ at a tmp dir, stub the DB and count
+    invalidate_branding() calls. Yields (tmp_path, cursor, calls)."""
+    engine, _conn, cursor = _fake_nexora_engine()
+    calls = []
+    monkeypatch.setattr("nx_lib.views.admin.engine_nexora_db", engine)
+    monkeypatch.setattr("nx_lib.views.admin.PATHS.branding", tmp_path)
+    monkeypatch.setattr("nx_lib.views.admin.invalidate_branding", lambda: calls.append(1))
+    yield tmp_path, cursor, calls
+
+
+def test_branding_save_without_permission_is_403(noperm_client):
+    resp = noperm_client.post(_BRANDING_URL, json={"brand_name": "Provera"})
+    assert resp.status_code == 403
+
+
+def test_branding_save_gate_is_the_branding_permission(admin_client, monkeypatch):
+    """admin.view.organizations alone must not be enough to save branding."""
+    monkeypatch.setattr(
+        "nx_lib.security.has_permission", lambda code: code == "admin.view.organizations"
+    )
+    resp = admin_client.post(_BRANDING_URL, json={"brand_name": "Provera"})
+    assert resp.status_code == 403
+
+
+def test_branding_save_rejects_non_image_with_svg_name(
+    admin_client, admin_all_perms, branding_write
+):
+    """MIME sniff is on the bytes, not the filename: a Windows executable
+    called logo.svg must be rejected and never reach disk."""
+    tmp_path, _cursor, calls = branding_write
+    data = {"logo": (_io.BytesIO(b"MZ\x90\x00" + b"\x00" * 4096), "logo.svg")}
+    resp = admin_client.post(_BRANDING_URL, data=data, content_type="multipart/form-data")
+    assert resp.status_code == 400
+    assert list(tmp_path.iterdir()) == []
+    assert calls == []
+
+
+def test_branding_save_accepts_a_real_svg(admin_client, admin_all_perms, branding_write):
+    tmp_path, _cursor, calls = branding_write
+    svg = (
+        b'<?xml version="1.0" encoding="UTF-8"?>\n'
+        b'<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8">'
+        b'<rect width="8" height="8"/></svg>'
+    )
+    data = {"logo": (_io.BytesIO(svg), "brand.svg")}
+    resp = admin_client.post(_BRANDING_URL, data=data, content_type="multipart/form-data")
+    assert resp.status_code == 200
+    assert (tmp_path / "TEST.svg").read_bytes() == svg
+    assert calls == [1]
+
+
+def test_branding_save_rejects_oversize_logo(admin_client, admin_all_perms, branding_write):
+    """512 KB cap, enforced server-side and before anything is written."""
+    tmp_path, _cursor, calls = branding_write
+    oversize = _PNG_1x1 + b"\x00" * (512 * 1024)
+    data = {"logo": (_io.BytesIO(oversize), "logo.png")}
+    resp = admin_client.post(_BRANDING_URL, data=data, content_type="multipart/form-data")
+    assert resp.status_code == 400
+    assert list(tmp_path.iterdir()) == []
+    assert calls == []
+
+
+def test_branding_save_rejects_disallowed_extension(admin_client, admin_all_perms, branding_write):
+    """is_file_allowed also knows pdf/xlsx -- a logo must not."""
+    tmp_path, _cursor, calls = branding_write
+    data = {"logo": (_io.BytesIO(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n"), "logo.pdf")}
+    resp = admin_client.post(_BRANDING_URL, data=data, content_type="multipart/form-data")
+    assert resp.status_code == 400
+    assert list(tmp_path.iterdir()) == []
+    assert calls == []
+
+
+def test_branding_save_writes_logo_named_after_the_org(
+    admin_client, admin_all_perms, branding_write
+):
+    """The stored name is derived from the org code, never from the client
+    filename -- so Task 10's serve route finds it at var/branding/<code>.<ext>."""
+    tmp_path, cursor, calls = branding_write
+    data = {
+        "brand_name": "Provera",
+        "brand_accent_hex": "#336699",
+        "logo": (_io.BytesIO(_PNG_1x1), "../../evil name.png"),
+    }
+    resp = admin_client.post(_BRANDING_URL, data=data, content_type="multipart/form-data")
+    assert resp.status_code == 200
+    assert (tmp_path / "TEST.png").read_bytes() == _PNG_1x1
+    assert list(tmp_path.iterdir()) == [tmp_path / "TEST.png"]
+    assert calls == [1]
+    params = [c.args[1] for c in cursor.execute.call_args_list if len(c.args) > 1]
+    assert any("Provera" in p and "#336699" in p and "TEST.png" in p for p in params)
+
+
+def test_branding_save_json_without_logo_invalidates_cache(
+    admin_client, admin_all_perms, branding_write
+):
+    _tmp, _cursor, calls = branding_write
+    resp = admin_client.post(
+        _BRANDING_URL, json={"brand_name": "Provera", "brand_accent_hex": "#336699"}
+    )
+    assert resp.status_code == 200
+    assert calls == [1]
+
+
+def test_branding_save_rejects_bad_accent_hex(admin_client, admin_all_perms, branding_write):
+    _tmp, _cursor, calls = branding_write
+    resp = admin_client.post(_BRANDING_URL, json={"brand_accent_hex": "red; drop table"})
+    assert resp.status_code == 400
+    assert calls == []
+
+
+def test_branding_save_stores_null_for_empty_accent(admin_client, admin_all_perms, branding_write):
+    """An empty accent means "fall back to Nexora branding", i.e. NULL."""
+    _tmp, cursor, calls = branding_write
+    resp = admin_client.post(_BRANDING_URL, json={"brand_name": "", "brand_accent_hex": ""})
+    assert resp.status_code == 200
+    assert calls == [1]
+    updates = [
+        c.args[1]
+        for c in cursor.execute.call_args_list
+        if c.args and "UPDATE" in c.args[0].upper() and len(c.args) > 1
+    ]
+    assert updates, "no UPDATE issued"
+    assert updates[-1][0] is None and updates[-1][1] is None
+
+
+def test_branding_save_rejects_traversal_shaped_orgcode(
+    admin_client, admin_all_perms, branding_write
+):
+    """The org code reaches a filesystem path -- anything but a plain
+    alphanumeric code must be refused before a path is built."""
+    tmp_path, _cursor, calls = branding_write
+    resp = admin_client.post("/admin/organizations/..TEST/branding", json={"brand_name": "Provera"})
+    assert resp.status_code == 404
+    assert list(tmp_path.iterdir()) == []
+    assert calls == []
+
+
+def test_branding_save_unknown_org_is_404(admin_client, admin_all_perms, monkeypatch, tmp_path):
+    monkeypatch.setattr("nx_lib.views.admin.PATHS.branding", tmp_path)
+    resp = admin_client.post("/admin/organizations/NOPE/branding", json={"brand_name": "Provera"})
+    assert resp.status_code == 404
+
+
+def test_organizations_page_shows_branding_panel_with_perm(
+    admin_client, admin_all_perms, monkeypatch
+):
+    # can_edit_branding is resolved through views.admin's own has_permission
+    # binding, which admin_all_perms (nx_lib.security) doesn't cover.
+    monkeypatch.setattr("nx_lib.views.admin.has_permission", lambda code: True)
+    resp = admin_client.get("/admin/organizations")
+    assert resp.status_code == 200
+    assert b'data-testid="admin-org-branding-panel"' in resp.data
+
+
+def test_organizations_page_hides_branding_panel_without_perm(admin_client, monkeypatch):
+    """A viewer who only holds admin.view.organizations must not see the
+    controls at all -- a 403 toast after the click is the bug, not the gate."""
+    monkeypatch.setattr(
+        "nx_lib.security.has_permission", lambda code: code == "admin.view.organizations"
+    )
+    monkeypatch.setattr(
+        "nx_lib.views.admin.has_permission", lambda code: code == "admin.view.organizations"
+    )
+    resp = admin_client.get("/admin/organizations")
+    assert resp.status_code == 200
+    assert b'data-testid="admin-org-branding-panel"' not in resp.data
+    assert b"admin-org-branding-TEST" not in resp.data
