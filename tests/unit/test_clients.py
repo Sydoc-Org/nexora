@@ -138,6 +138,67 @@ def test_build_clients_skips_row_whose_engine_is_none(monkeypatch):
     assert set(result.keys()) == {"default"}
 
 
+def test_build_clients_skips_row_with_no_resolvable_octo_domain(monkeypatch):
+    """Falsy-domain half of the skip guard: a non-default row whose DB OctoDomain
+    is NULL and whose SecretRef-prefixed env domain is also unset must be skipped,
+    even though its runtime engine resolves fine."""
+    monkeypatch.setattr(clients, "engine_octo_db", "ENGINE_OCTO")
+    monkeypatch.setattr(clients, "engine_statistics_db", "ENGINE_STATS")
+    monkeypatch.setattr(clients, "engine_ms02_pg", "ENGINE_MS02")
+    monkeypatch.setattr(clients.cfg, "MS02_OCTO_DOMAIN", None)  # unset env domain
+    rows = [
+        _row(),
+        _row(
+            client_code="ms02",
+            display_name="MS02",
+            dialect="postgres",
+            runtime_engine_key="engine_ms02_pg",
+            stats_engine_key="engine_ms02_stats_pg",
+            stats_dialect="postgres",
+            docfields_engine_key="engine_ms02_docfields_pg",
+            docfields_dialect="postgres",
+            octo_domain=None,
+            secret_ref="MS02",
+        ),
+    ]
+    eng, _ = _engine_with(rows)
+    monkeypatch.setattr(clients, "engine_nexora_db", eng)
+
+    result = clients._build_clients()
+
+    assert set(result.keys()) == {"default"}
+
+
+def test_default_survives_engine_and_domain_degradation(monkeypatch):
+    """D5: the skip guard was always MS02-only. 'default' must stay registered
+    even when its own runtime engine is unavailable and its Octo domain is unset --
+    workitem_sources.py indexes CLIENTS["default"] unguarded (CLIENTS["default"],
+    CLIENTS.get(code) or CLIENTS["default"])."""
+    monkeypatch.setattr(clients, "engine_octo_db", None)
+    monkeypatch.setattr(clients.cfg, "OCTO_DOMAIN", None)
+    eng, _ = _engine_with([_row(runtime_engine_key="engine_octo_db", octo_domain=None)])
+    monkeypatch.setattr(clients, "engine_nexora_db", eng)
+
+    result = clients._build_clients()
+
+    assert "default" in result
+    assert result["default"].code == "default"
+
+
+def test_build_clients_prefers_db_octo_domain_over_env(monkeypatch):
+    """OctoDomain column wins over the SecretRef-resolved env domain when set --
+    phase B writes this column through the admin UI."""
+    monkeypatch.setattr(clients, "engine_octo_db", "ENGINE_OCTO")
+    monkeypatch.setattr(clients, "engine_statistics_db", "ENGINE_STATS")
+    monkeypatch.setattr(clients.cfg, "OCTO_DOMAIN", "env-default.example")
+    eng, _ = _engine_with([_row(octo_domain="db-default.example")])
+    monkeypatch.setattr(clients, "engine_nexora_db", eng)
+
+    result = clients._build_clients()
+
+    assert result["default"].octo_domain == "db-default.example"
+
+
 def test_build_clients_skips_inactive_rows(monkeypatch):
     monkeypatch.setattr(clients, "engine_octo_db", "ENGINE_OCTO")
     monkeypatch.setattr(clients, "engine_statistics_db", "ENGINE_STATS")

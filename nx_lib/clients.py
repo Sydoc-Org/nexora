@@ -117,6 +117,12 @@ def _build_clients():
                 docfields_engine=engines.get(r.DocfieldsEngineKey),
                 docfields_dialect=r.DocfieldsDialect or "tsql",
             )
+        # 'default' is guaranteed present regardless of the skip guard above or of
+        # dbo.Clients missing/omitting the row -- pre-0079 the skip only ever
+        # applied to MS02 (D5: preserve today's degradation verbatim), and
+        # workitem_sources.py indexes CLIENTS["default"] unguarded.
+        if "default" not in result:
+            result.update(_hardcoded_default())
         return result
     except Exception as e:
         logger.error(f"clients registry load: {e}")
