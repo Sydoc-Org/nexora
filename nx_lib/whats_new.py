@@ -118,18 +118,6 @@ RELEASES = [
                 "endpoint": "admin_permission_matrix",
                 "icon": "table-cells",
             },
-            {
-                "title": _("Onboard a client without a release"),
-                "body": _(
-                    "Two new admin pages — Clients and Processes — hold the "
-                    "runtime sources and the field mappings that used to need "
-                    "a database migration and a deploy. Adding a process now "
-                    "creates its permission for you."
-                ),
-                "perm": "admin.view.clients",
-                "endpoint": "admin_clients_view",
-                "icon": "building-user",
-            },
         ],
     },
     {
