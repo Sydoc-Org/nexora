@@ -110,7 +110,7 @@ def test_create_app_endpoint_set_includes_expected_critical_set():
         "login",
         "logout",
         "verify_2fa",
-        "init_2FA",
+        "init_2fa",
         "init_reset",
         "forgot_password",
         "reset_password",
@@ -139,7 +139,7 @@ EXPECTED_NON_GENERALI_ENDPOINTS = {
     "api_maintenance_active",
     "session_heartbeat",
     # views/auth.py
-    "init_2FA",
+    "init_2fa",
     "verify_2fa",
     "init_reset",
     "init_reset_password",

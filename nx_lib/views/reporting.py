@@ -1186,7 +1186,7 @@ def reporting_guide():
         guide_toc=guide_toc,
         logged_in_user=session.get("username", "Unknown"),
         fullname=session.get("fullname"),
-        pageV=page_visibility(),
+        page_visibility=page_visibility(),
     )
 
 
@@ -1197,7 +1197,7 @@ def reporting():
         logged_in_user=session.get("username", "Unknown"),
         userid=session.get("userid", "Unknown"),
         fullname=session.get("fullname"),
-        pageV=page_visibility(),
+        page_visibility=page_visibility(),
         ai_enabled=has_permission("reporting.ai.use"),
         ai_caption_enabled=has_permission("reporting.ai.explain_data"),
         details_images_perm=has_permission("workitems.details.view.images"),
@@ -3115,7 +3115,7 @@ def reporting_sources_admin():
         "reporting_sources.html",
         logged_in_user=session.get("username", "Unknown"),
         fullname=session.get("fullname"),
-        pageV=page_visibility(),
+        page_visibility=page_visibility(),
     )
 
 
@@ -3234,7 +3234,7 @@ def reporting_metrics_admin():
         "reporting_metrics.html",
         logged_in_user=session.get("username", "Unknown"),
         fullname=session.get("fullname"),
-        pageV=page_visibility(),
+        page_visibility=page_visibility(),
     )
 
 

@@ -54,6 +54,20 @@ Work toward the next release.
 
 ### Changed
 
+- **Dev-structure leftovers from the 2026-05 dev-env upgrade closed out**
+  (#108). The camelCase template render kwargs the PR 6 handoff deferred are
+  now snake_case (`pageV` -> `page_visibility`, `startDate`/`endDate` ->
+  `start_date`/`end_date`), and the five endpoint names PR 5 deliberately kept
+  camelCase as a compat surface were renamed too (`init_2FA` -> `init_2fa`,
+  `generali_baseServices` -> `generali_base_services`, and the additional
+  services / project management / import status siblings). Public URL paths are
+  unchanged - the rules are declared explicitly, so only `url_for()` keys moved.
+- **mypy is a blocking pre-commit hook** (#108). It was wired in as advisory
+  (`stages: [manual]`) and never enforced. The 13 outstanding errors are fixed,
+  `types-requests` joins the dev dependencies, `strict_optional = false` is
+  recorded in `pyproject.toml` instead of being passed as a hook flag, and the
+  hook now runs from the project environment so a local `mypy nx_lib nx_main.py`
+  and the hook agree.
 - **Schema hygiene: `StatConfig` gets a primary key, `Logs` gets a timestamp
   index** (#98, migration `0073`). `StatConfig` was a PK-less heap with a
   nullable key column — now `ProcessName` is `NOT NULL` with a composite PK on

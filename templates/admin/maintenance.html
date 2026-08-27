@@ -22,8 +22,8 @@
         {{ a.page_header(
             title=_('Maintenance Banners'),
             subtitle=_('Schedule downtime announcements shown to all users'),
-            back_url=url_for('admin_dashboard') if pageV.adminPagePerm else None,
-            actions=([{'label': _('Add banner'), 'icon': 'fa-plus', 'onclick': 'openMaintModal()', 'variant': 'primary'}] if pageV.adminMaintenanceEditPerm else None),
+            back_url=url_for('admin_dashboard') if page_visibility.adminPagePerm else None,
+            actions=([{'label': _('Add banner'), 'icon': 'fa-plus', 'onclick': 'openMaintModal()', 'variant': 'primary'}] if page_visibility.adminMaintenanceEditPerm else None),
             icon='fa-wrench'
         ) }}
 
@@ -134,7 +134,7 @@
         </div>
     </div>
 
-    <script nonce="{{ csp_nonce() }}">window.MAINTENANCE_CAN_EDIT = {{ pageV.adminMaintenanceEditPerm|tojson }};</script>
+    <script nonce="{{ csp_nonce() }}">window.MAINTENANCE_CAN_EDIT = {{ page_visibility.adminMaintenanceEditPerm|tojson }};</script>
     {% include 'js/admin/_maintenance_js.html' %}
 </body>
 </html>

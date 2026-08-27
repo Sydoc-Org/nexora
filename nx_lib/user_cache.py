@@ -22,7 +22,7 @@ import threading
 import time
 
 _lock = threading.Lock()
-_store = {}  # (kind, userid) -> (expires_at_monotonic, value)
+_store: dict[tuple[str, object], tuple[float, object]] = {}  # (kind, userid) -> (expires_at, value)
 
 
 def ttl_seconds():

@@ -13,7 +13,7 @@
       keepSidebarOpen: {{ _('Keep sidebar open')|tojson }}
     },
     commands: [
-        {% if pageV.adminPagePerm %}
+        {% if page_visibility.adminPagePerm %}
         { section: "{{ _('Admin') }}", label: "{{ _('Admin Overview') }}", icon: 'fa-shield-halved', url: "{{ url_for('admin_dashboard') }}" },
         { section: "{{ _('Admin') }}", label: "{{ _('Access Control') }}",   icon: 'fa-id-badge',  url: "{{ url_for('admin_access_control') }}" },
         { section: "{{ _('Admin') }}", label: "{{ _('Organizations') }}",    icon: 'fa-building',  url: "{{ url_for('admin_organizations_view') }}" },
@@ -26,31 +26,31 @@
         {% if has_permission('admin.add.organization') %}
         { section: "{{ _('Admin action') }}", label: "{{ _('Add organization') }}", icon: 'fa-circle-plus', url: "{{ url_for('admin_organizations_view') }}#add-org" },
         {% endif %}
-        {% if pageV.dashboardPagePerm %}
+        {% if page_visibility.dashboardPagePerm %}
         { section: "{{ _('Workspace') }}", label: "{{ _('Dashboard') }}",              icon: 'fa-chart-line', url: "{{ url_for('dashboard') }}" },
         {% endif %}
-{% if pageV.workitemsPagePerm %}
+{% if page_visibility.workitemsPagePerm %}
         { section: "{{ _('Workspace') }}", label: "{{ _('Work items') }}", icon: 'fa-list-check', url: "{{ url_for('workitems_overview') }}" },
         {% endif %}
-        {% if pageV.generaliPagePerm %}
+        {% if page_visibility.generaliPagePerm %}
         { section: "Generali", label: "{{ _('Dashboard') }}",            icon: 'fa-chart-line',      url: "{{ url_for('generali_evaluation') }}" },
         {% endif %}
-        {% if pageV.generaliDocumentsPerm %}
+        {% if page_visibility.generaliDocumentsPerm %}
         { section: "Generali", label: "{{ _('Document List') }}",        icon: 'fa-table-list',      url: "{{ url_for('generali_documents') }}" },
         {% endif %}
-        {% if pageV.generaliReportingPerm %}
+        {% if page_visibility.generaliReportingPerm %}
         { section: "Generali", label: "{{ _('Reporting') }}",            icon: 'fa-clipboard-list',  url: "{{ url_for('generali_reporting') }}" },
         {% endif %}
-        {% if pageV.generaliAdditionalServicesPerm %}
-        { section: "Generali", label: "{{ _('Additional Services') }}",  icon: 'fa-clock',           url: "{{ url_for('generali_additionalServices') }}" },
+        {% if page_visibility.generaliAdditionalServicesPerm %}
+        { section: "Generali", label: "{{ _('Additional Services') }}",  icon: 'fa-clock',           url: "{{ url_for('generali_additional_services') }}" },
         {% endif %}
-        {% if pageV.generaliBaseServicesPerm %}
-        { section: "Generali", label: "{{ _('Base Services') }}",        icon: 'fa-inbox',           url: "{{ url_for('generali_baseServices') }}" },
+        {% if page_visibility.generaliBaseServicesPerm %}
+        { section: "Generali", label: "{{ _('Base Services') }}",        icon: 'fa-inbox',           url: "{{ url_for('generali_base_services') }}" },
         {% endif %}
-        {% if pageV.generaliProjectManagementPerm %}
-        { section: "Generali", label: "{{ _('Project Management') }}",   icon: 'fa-diagram-project', url: "{{ url_for('generali_projectManagement') }}" },
+        {% if page_visibility.generaliProjectManagementPerm %}
+        { section: "Generali", label: "{{ _('Project Management') }}",   icon: 'fa-diagram-project', url: "{{ url_for('generali_project_management') }}" },
         {% endif %}
-        {% if pageV.generaliPDQMPerm %}
+        {% if page_visibility.generaliPDQMPerm %}
         { section: "Generali", label: "{{ _('PDQM') }}",                 icon: 'fa-file-lines',      url: "{{ url_for('generali_pdqm') }}" },
         {% endif %}
         { section: "{{ _('Quick action') }}", label: "{{ _('Toggle dark mode') }}", icon: 'fa-moon', action: 'toggle-dark' },

@@ -23,7 +23,7 @@ def jdvance():
 def api_docs():
     return render_template(
         "api_docs.html",
-        pageV=page_visibility(),
+        page_visibility=page_visibility(),
         logged_in_user=session.get("username", "Unknown"),
         userid=session.get("userid", "Unknown"),
     )

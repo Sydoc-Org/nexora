@@ -497,7 +497,11 @@ def compute_undelivered_count(target_processes, days, *, strict=False):
 
 
 @require_permission("dashboard.view")
-@cache.cached(timeout=300, key_prefix=make_cache_key, response_filter=_cacheable_response)
+@cache.cached(
+    timeout=300,
+    key_prefix=make_cache_key,  # type: ignore[arg-type]  # callable prefix, stubs say str
+    response_filter=_cacheable_response,
+)
 def dashboard_processed_over_time():
     if "username" not in session:
         return jsonify({"error": _("Not authorized")}), 401
@@ -605,7 +609,7 @@ def dashboard_processed_over_time():
 @require_permission("dashboard.view")
 @cache.cached(
     timeout=60,
-    key_prefix=lambda: f"kpi_stats_{session.get('userid')}_{session.get('process_name_dashboard','all')}",
+    key_prefix=lambda: f"kpi_stats_{session.get('userid')}_{session.get('process_name_dashboard','all')}",  # type: ignore[arg-type]
     response_filter=_cacheable_response,
 )
 def dashboard_kpi_stats():
@@ -660,7 +664,7 @@ def dashboard_kpi_stats():
 @require_permission("dashboard.view")
 @cache.cached(
     timeout=120,
-    key_prefix=lambda: f"hourly_stats_{session.get('userid')}_{session.get('process_name_dashboard','all')}",
+    key_prefix=lambda: f"hourly_stats_{session.get('userid')}_{session.get('process_name_dashboard','all')}",  # type: ignore[arg-type]
     response_filter=_cacheable_response,
 )
 def dashboard_hourly_stats():
@@ -752,7 +756,7 @@ def dashboard_hourly_stats():
 @require_permission("dashboard.view")
 @cache.cached(
     timeout=300,
-    key_prefix=lambda: f"avg_proc_time_{session.get('userid')}_{session.get('process_name_dashboard','all')}",
+    key_prefix=lambda: f"avg_proc_time_{session.get('userid')}_{session.get('process_name_dashboard','all')}",  # type: ignore[arg-type]
     response_filter=_cacheable_response,
 )
 def dashboard_avg_processing_time():
@@ -825,7 +829,7 @@ def dashboard():
             userid=userid,
             process_name=process_name,
             allowed_processes=allowed_processes,
-            pageV=page_visibility(),
+            page_visibility=page_visibility(),
             fullname=fullname,
             login_at=login_at,
             prev_login_at=prev_login_at,
@@ -860,7 +864,7 @@ def dashboard_set_filter():
 @require_permission("dashboard.view")
 @cache.cached(
     timeout=120,
-    key_prefix=lambda: f"recent_activity_{session.get('userid')}_{session.get('process_name_dashboard','all')}",
+    key_prefix=lambda: f"recent_activity_{session.get('userid')}_{session.get('process_name_dashboard','all')}",  # type: ignore[arg-type]
 )
 def api_recent_activity():
     try:
