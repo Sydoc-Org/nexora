@@ -281,7 +281,16 @@ def _inject_brand():
     brand (#98 phase 4). Read fresh per render behind branding.registry()'s
     own 60s cache -- never cached in the session (D5, #155 — a session cache
     races the cookie and sticks until re-login). A load failure or an org
-    with no branding both degrade to {}, which renders today's markup."""
+    with no branding both degrade to {}, which renders today's markup.
+
+    Gated on a logged-in session (D2): the pre-session pages (landing, login,
+    2FA, password reset) stay Nexora-branded. This gate is load-bearing, not
+    belt-and-braces -- logout() pops username/uuid/userid but leaves
+    organizationcode in the session, so keying on organizationcode alone kept
+    branding the landing page after logout, complete with a broken <img>
+    (branding_logo aborts 401 without a userid). Mirror that route's gate."""
+    if "userid" not in session:
+        return {"brand": {}}
     return {"brand": brand_for_org(session.get("organizationcode")) or {}}
 
 

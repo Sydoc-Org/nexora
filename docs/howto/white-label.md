@@ -1,9 +1,9 @@
 # White-label admin onboarding (issue #98 phase 4)
 
 Self-service admin surface for onboarding a customer without a SQL migration or a deploy, for the
-common case. Covers what shipped in **phase A/B**: the `dbo.Clients` runtime-source registry and the
-`/admin/clients` + `/admin/processes` admin pages. Branding (phase C) is a separate, not-yet-shipped
-piece — see the note at the bottom.
+common case. Covers **phase A/B** — the `dbo.Clients` runtime-source registry and the
+`/admin/clients` + `/admin/processes` admin pages — and **phase C**, per-organization branding (see
+the branding section at the bottom).
 
 Design background: `docs/superpowers/specs/2026-08-27-white-label-admin-ui-design.md`.
 
@@ -152,7 +152,136 @@ DB backups. The admin-UI validation on `SecretRef` (`^[A-Z0-9_]{0,20}$`) is a sh
 secret-detector — it rejects anything that doesn't look like a prefix (lower-case, spaces,
 punctuation), but is not a guarantee that a pasted secret can never sneak into the field.
 
-## Not shipped yet: branding
+## Branding (phase C)
 
-Per-organization branding (logo, wordmark, accent color) is **phase C** of this effort and has not
-landed as of this writing. This document will grow a branding section when it does.
+Per-organization white-labelling: a customer sees their own logo, wordmark and accent colour inside
+the app, without a deploy and without a per-customer template.
+
+**Branding attaches to the Organization, not to `ClientCode`.** It is a property of the customer
+(axis 2), never of the runtime source (axis 1) — the three organizations riding the shared `default`
+runtime each get their own brand, and MS02's own `ClientCode` has no branding of its own. The
+registry is keyed by `organizationcode` and nothing in the branding path ever looks at `ClientCode`.
+
+### What is brandable
+
+Three things, all stored on `dbo.Organizations` by migration `0081` (nullable — `NULL` everywhere
+means "unbranded", which renders exactly today's Nexora markup):
+
+| Column | Effect |
+|---|---|
+| `BrandName` | the wordmark in the header/sidebar — replaces the literal `nexora` in `templates/nexora_logo/_nexora_logo.html` |
+| `BrandAccentHex` | the organization's default accent colour (`#rrggbb`) |
+| `BrandLogoFile` | the header/sidebar logo image; filename only, resolved under `var/branding/` |
+
+Everything else — page layout, fonts, the favicon, the product name in page titles — is out of scope
+and unchanged.
+
+### The precedence rule — the org accent is a *default*, not an override
+
+This is the part that is easy to get backwards:
+
+1. **The user's own `/appearance` accent wins.** If the user ever picked an accent, that is what they
+   see, on every organization.
+2. **Otherwise the organization accent applies** — `BrandAccentHex` replaces the built-in `indigo` /
+   `#4f46e5` default.
+3. **Otherwise the built-in `indigo` / `#4f46e5`.**
+
+Mechanically, in `templates/_header.html`'s pre-paint block: `stored.accentHex || brand.accent_hex
+|| '#4f46e5'` (and the matching `stored.accent || (brand.accent_hex ? 'custom' : 'indigo')`). The
+org brand only ever fills the slot the user left empty. Deliberately: an org brand must never
+silently undo a personal accessibility or preference choice (issue #155's spirit).
+
+**`stored` includes the localStorage mirror.** The pre-paint block merges `localStorage`'s
+`nexora-ui-prefs` *under* the DB row (`Object.assign({}, localStorage, db)`) as offline resilience,
+so a locally-remembered accent also outranks the org accent. That is the intended reading of rule 1 —
+it is still the user's own choice — but it surprises you while testing: clearing
+`Users.ui_prefs.accent` alone is not enough to see the org accent in a browser that has visited
+`/appearance` before. Clear `nexora-ui-prefs` from localStorage too.
+
+The brand is injected by a context processor in `nx_lib/hooks.py` (`_inject_brand`), read **fresh per
+render** through `nx_lib/branding.py` and **never** cached in `flask.session` — same rule as UI prefs
+(#155). The staleness budget is the registry's own 60-second TTL, and every admin save calls
+`invalidate_branding()`, so an edit shows up on the next page load, not a minute later.
+
+### The registry and its failure contract
+
+`nx_lib/branding.py` is one cached accessor over all five organizations — `registry()`,
+`brand_for_org(code)`, `invalidate_branding()`. It mirrors `nx_lib/mapping_config.py`'s contract and
+should not be weakened:
+
+- 60-second TTL, **success-only caching** — an empty-but-successful load is a valid, cacheable result;
+- a load error returns `None` and is **never** cached, so a transient DB blip does not pin
+  "unbranded" for a minute;
+- callers degrade to Nexora branding on `None` (`brand_for_org(...) or {}`), never to an error page;
+- the TEST database's `Organizations` table predates the brand columns, so pyodbc's "invalid column
+  name" (SQLSTATE `42S22`) is caught explicitly and logged at INFO rather than ERROR;
+- an accent that is not `^#[0-9a-fA-F]{6}$` is dropped to `None` on read, so a bad row cannot inject
+  anything into the pre-paint style block.
+
+### Logos on disk
+
+Uploaded logos live in **`var/branding/<orgcode>.<ext>`** (`PATHS.branding` in `nx_lib/config.py`).
+The stored filename is derived from the organization code, never from the uploaded filename.
+
+- **Allowed types: SVG, PNG, JPEG. Cap: 512 KB.** Enforced server-side in
+  `nx_lib/views/admin.py::api_admin_organization_branding_save` — extension check first, then the
+  size check, then `nx_lib/files.py::is_file_allowed` (`secure_filename` + a libmagic sniff of the
+  actual bytes). The client-declared content type is never consulted, and nothing touches the disk
+  until all three checks pass.
+- **`var/` survives deploys.** It is in `deploy.yml`'s robocopy `/XD` list, and `/XD` directories are
+  never copied *and* never purged by `/MIR` — so uploads made on PROD stay put across deploys. It is
+  also already inside `var\`, so no new SYAPP01 Defender exclusion is needed.
+- **Serving:** `GET /branding/<orgcode>/logo` (`nx_lib/views/core.py::branding_logo`), the same idiom
+  as `/avatar/<user_id>` — any logged-in user may fetch it, no extra permission. `orgcode` never
+  touches the filesystem; it is only a dict key into the registry, so a hostile value simply 404s.
+  Because SVG is allowed and SVG is script-capable, every response carries
+  `Content-Security-Policy: sandbox` and `X-Content-Type-Options: nosniff` (spec D9) — it must never
+  be treated as same-origin executable content.
+
+### Editing a brand
+
+The branding panel on `/admin/organizations` sits behind **`admin.edit.organization.branding`**
+(seeded by migration `0080`, granted to `enterpriseAdmin` and `globalAdmin`). A viewer holding only
+`admin.view.organizations` never sees the panel or its per-row button. `POST
+/admin/organizations/<organizationcode>/branding` accepts JSON (name + accent only) or
+`multipart/form-data` (plus `logo`); a save without an upload leaves the stored logo untouched.
+Every successful save calls `invalidate_branding()`.
+
+### Explicitly *not* branded (decision D2)
+
+**The login page, the error pages and scheduled-report emails stay Nexora-branded.** This is
+deliberate, not an oversight:
+
+- **Login and the rest of the pre-session flow** (`index.html`, `verify_2fa.html`,
+  `forgot_password.html`, `reset_password.html`, `set_password.html`, `init_2FA.html`,
+  `init_reset.html`) — there is no session, therefore no user, therefore no organization. Branding
+  the login page would mean guessing the customer from the hostname or the typed username, which is
+  a different feature with its own security questions. These pages include
+  `templates/nexora_logo/_nexora_logo.html`, and `_inject_brand` yields `{}` for them because it is
+  gated on `"userid" in session` — the same gate `branding_logo` uses.
+
+  **That gate is load-bearing, not belt-and-braces.** `logout()` pops `username`, `uuid` and
+  `userid` but leaves `organizationcode` in the session, so keying the context processor on
+  `organizationcode` alone kept branding the landing page after logout — and the logo `<img>`
+  rendered broken, because `branding_logo` 401s without a `userid`. Caught in browser verification
+  and fixed by the gate; don't remove it without also clearing `organizationcode` on logout.
+- **Error pages** (`templates/handlers/*.html`) — they must render when the DB is down, which is
+  exactly when the branding registry returns `None`. A branded error page would be a second thing
+  that can fail while something is already failing.
+- **Scheduled-report emails** — out of scope for this phase; they render outside a request context
+  and would need their own brand-resolution path.
+
+### Known rough edges
+
+Small, known, and left for a later pass rather than discovered by the next person:
+
+- **Changing a logo's file format orphans the old file.** Uploading `PRVR.png` over an existing
+  `PRVR.svg` writes the new file and repoints `BrandLogoFile`; the old `PRVR.svg` stays on disk
+  forever. It is never served (the serve route reads `BrandLogoFile`, not the directory), so this is
+  disk litter, not a leak.
+- **There is no "remove logo" button.** A brand name and an accent can be cleared by emptying the
+  field; a logo can only be replaced. Clearing one today means a manual `UPDATE` plus
+  `invalidate_branding()` (or waiting out the 60-second TTL).
+- **The file write is not atomic with the DB commit.** `target.write_bytes(...)` happens before
+  `conn.commit()`, so a commit failure leaves the new image on disk with the old filename still in
+  the row. Same "never served" consequence as above; worth fixing if this ever grows a delete path.

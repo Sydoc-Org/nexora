@@ -26,8 +26,8 @@ Work toward the next release.
   `admin.view.clients`, `admin.edit.clients`, `admin.view.processes`,
   `admin.edit.processes` (migration `0080`), granted to `enterpriseAdmin`
   and `globalAdmin`; the same migration also seeds
-  `admin.edit.organization.branding`, reserved for a later phase and unused
-  today. Onboarding a customer riding the shared `default`
+  `admin.edit.organization.branding`, now in use by the branding panel below.
+  Onboarding a customer riding the shared `default`
   runtime is now fully self-service — no migration, no deploy. See
   `docs/howto/white-label.md`.
 
@@ -42,6 +42,26 @@ Work toward the next release.
   and stored as `var/branding/<orgcode>.<ext>`; `deploy.yml` already excludes
   `var/` from the robocopy mirror. Every successful save invalidates the
   60-second branding cache so the edit shows up immediately.
+
+- **Per-organization white-label branding applied in the app** (#98 phase 4).
+  Migration `0081` adds nullable `BrandName` / `BrandAccentHex` /
+  `BrandLogoFile` to `dbo.Organizations`; `nx_lib/branding.py` reads them into
+  a 60-second, success-only cached registry (`brand_for_org()`,
+  `invalidate_branding()`) whose load errors return `None`, are never cached,
+  and degrade the caller to Nexora branding. A context processor injects the
+  viewer's organization brand fresh per render — never cached in `session`
+  (#155) — so the header/sidebar shows the org's logo and wordmark when set and
+  today's exact markup when not. **The organization accent is a default, not an
+  override:** a user's own `/appearance` accent still wins, and the org accent
+  only replaces the built-in `indigo` / `#4f46e5`. Logos are served from
+  `GET /branding/<orgcode>/logo` with `Content-Security-Policy: sandbox` and
+  `X-Content-Type-Options: nosniff`, because SVG is allowed and is
+  script-capable. The login page, the error pages and scheduled-report emails
+  stay Nexora-branded by design — login is pre-session, so there is no user and
+  therefore no organization; the context processor is gated on a logged-in
+  session, because `logout()` leaves `organizationcode` behind and keying on it
+  alone kept branding the landing page (with a broken logo `<img>`) after
+  logout. See `docs/howto/white-label.md`.
 
 - **Sidebar restyled toward a minimal, GitHub-inspired look** (#213). Same
   icons and labels, different treatment: the active page is marked by a thin

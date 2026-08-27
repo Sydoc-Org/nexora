@@ -136,3 +136,39 @@ def test_invalid_accent_hex_is_dropped(app, monkeypatch):
 
     assert brand is not None
     assert brand["accent_hex"] is None
+
+
+# --- the pre-session gate on the context processor (spec D2) ----------------
+#
+# logout() pops username/uuid/userid but leaves organizationcode in the
+# session. Keying _inject_brand on organizationcode alone therefore kept
+# branding the landing page after logout, complete with a broken logo <img>
+# (branding_logo aborts 401 without a userid). Found in browser verification.
+
+
+def test_inject_brand_is_empty_without_a_logged_in_session(app, monkeypatch):
+    """No userid -> Nexora branding, even with organizationcode left behind."""
+    from flask import session
+
+    from nx_lib.hooks import _inject_brand
+
+    eng, _ = _engine_with(rows=[_org_row(code="PRVR")])
+    monkeypatch.setattr(branding, "engine_nexora_db", eng)
+
+    with app.test_request_context("/"):
+        session["organizationcode"] = "PRVR"  # exactly what logout() leaves
+        assert _inject_brand() == {"brand": {}}
+
+
+def test_inject_brand_returns_the_org_brand_when_logged_in(app, monkeypatch):
+    from flask import session
+
+    from nx_lib.hooks import _inject_brand
+
+    eng, _ = _engine_with(rows=[_org_row(code="PRVR", name="Privera")])
+    monkeypatch.setattr(branding, "engine_nexora_db", eng)
+
+    with app.test_request_context("/"):
+        session["userid"] = 1
+        session["organizationcode"] = "PRVR"
+        assert _inject_brand()["brand"]["name"] == "Privera"
