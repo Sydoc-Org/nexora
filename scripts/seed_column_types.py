@@ -211,6 +211,13 @@ def main():
         bare = strip_dbo_prefix(table)
         return stat_columns.get((bare or "").lower())
 
+    # text/ntext are deprecated LOB types SQL Server rejects for bare
+    # =/<> comparison (error 402/8180) -- migration 0077 had to revert one
+    # such column's seeded ColumnType back to NULL after it broke doc-field
+    # search. Never seed these; leave them UNRESOLVED (comment only) so the
+    # legacy CAST fallback keeps handling them.
+    unsafe_types = {"text", "ntext"}
+
     resolved = 0
     unresolved = 0
 
@@ -237,7 +244,7 @@ def main():
         data_type = None
         if id_col and cols is not None:
             data_type = cols.get(id_col.lower())
-        if data_type:
+        if data_type and data_type.lower() not in unsafe_types:
             resolved += 1
             lines.append(
                 "UPDATE dbo.ProcessSources SET IdColumnType = "
@@ -250,7 +257,13 @@ def main():
                 "no id column parsed from JoinCondition"
                 if not id_col
                 else (
-                    "target table not found" if cols is None else "column not found in target table"
+                    "target table not found"
+                    if cols is None
+                    else (
+                        f"unsafe type {data_type!r} (text/ntext reject bare =/<>)"
+                        if data_type and data_type.lower() in unsafe_types
+                        else "column not found in target table"
+                    )
                 )
             )
             lines.append(
@@ -267,7 +280,7 @@ def main():
         table = source_table.get((client, process))
         cols = columns_for(client, table)
         data_type = cols.get((column_name or "").lower()) if cols is not None else None
-        if data_type:
+        if data_type and data_type.lower() not in unsafe_types:
             resolved += 1
             lines.append(
                 "UPDATE dbo.ProcessFieldMappings SET ColumnType = "
@@ -281,7 +294,13 @@ def main():
                 "source table not found"
                 if table is None
                 else (
-                    "target table not found" if cols is None else "column not found in target table"
+                    "target table not found"
+                    if cols is None
+                    else (
+                        f"unsafe type {data_type!r} (text/ntext reject bare =/<>)"
+                        if data_type and data_type.lower() in unsafe_types
+                        else "column not found in target table"
+                    )
                 )
             )
             lines.append(

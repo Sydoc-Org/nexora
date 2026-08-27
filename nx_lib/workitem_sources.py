@@ -727,10 +727,16 @@ def resolve_ms02_pid_ids(engine, specs, pid_values):
             table, id_col, pid_col, time_filter = spec[0], spec[1], spec[2], spec[3]
             field_type = spec[4] if len(spec) > 4 else None
             if field_type in _MS02_INT_TYPES:
-                try:
-                    values = [int(p) for p in pid_list]
-                except (TypeError, ValueError):
-                    continue  # unparseable PID -> this spec can't match an int column
+                # An unparseable PID can't match an int column -- drop just
+                # that value (I2), not the whole spec's batch of valid PIDs.
+                values = []
+                for p in pid_list:
+                    try:
+                        values.append(int(p))
+                    except (TypeError, ValueError):
+                        continue
+                if not values:
+                    continue  # every PID in the batch was unparseable
                 value_clause = "= ANY(%s)"
             else:
                 values = pid_list
@@ -792,10 +798,16 @@ def resolve_ms02_pid_to_wids(engine, specs, pid_values):
                 )
                 continue
             if field_type in _MS02_INT_TYPES:
-                try:
-                    values = [int(p) for p in pid_list]
-                except (TypeError, ValueError):
-                    continue  # unparseable PID -> this spec can't match an int column
+                # An unparseable PID can't match an int column -- drop just
+                # that value (I2), not the whole spec's batch of valid PIDs.
+                values = []
+                for p in pid_list:
+                    try:
+                        values.append(int(p))
+                    except (TypeError, ValueError):
+                        continue
+                if not values:
+                    continue  # every PID in the batch was unparseable
                 sql = (
                     f'SELECT DISTINCT "{pid_col}", "{id_col}"'
                     f" FROM {table}"

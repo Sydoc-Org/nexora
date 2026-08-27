@@ -51,3 +51,20 @@ def test_unknown_type_falls_back_to_cast():
     sql, params = _docfield_predicate("s", "X", "date", "eq", "2026-01-01")
     assert sql == "CAST(s.X AS NVARCHAR(MAX)) COLLATE DATABASE_DEFAULT = ?"
     assert params == ["2026-01-01"]
+
+
+def test_text_type_eq_falls_back_to_cast():
+    # SQL Server rejects bare =/<> against a `text` column (deprecated LOB
+    # type, error 402/8180) -- migration 0077 reverted one such column's
+    # seeded ColumnType back to NULL after it broke doc-field search. `text`
+    # was removed from _TEXT_TYPES entirely (I1); it must fall to the CAST
+    # path exactly like any other unmapped type, for both eq and LIKE ops.
+    sql, params = _docfield_predicate("s", "Notes", "text", "eq", "Invoice")
+    assert sql == "CAST(s.Notes AS NVARCHAR(MAX)) COLLATE DATABASE_DEFAULT = ?"
+    assert params == ["Invoice"]
+
+
+def test_text_type_contains_falls_back_to_cast():
+    sql, params = _docfield_predicate("s", "Notes", "text", "contains", "Inv")
+    assert sql == "CAST(s.Notes AS NVARCHAR(MAX)) COLLATE DATABASE_DEFAULT LIKE ?"
+    assert params == ["%Inv%"]

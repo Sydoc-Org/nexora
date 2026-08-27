@@ -175,7 +175,7 @@ def _docfield_op(docops, i):
 # the sargable path (falls through to the CAST fallback below -- safe, just
 # not faster), so DO NOT "helpfully" add casing/synonym variants without
 # checking a live sample first.
-_TEXT_TYPES = {"varchar", "nvarchar", "char", "nchar", "text"}
+_TEXT_TYPES = {"varchar", "nvarchar", "char", "nchar"}
 _INT_TYPES = {"int", "bigint", "smallint", "tinyint", "integer"}
 
 
@@ -928,10 +928,10 @@ def _get_workitems_data(args, export_all=False, scope=None):
             except Exception as e:
                 current_app.logger.error(f"Error in MS02 docfield pre-fetch block: {e}")
                 _ms02_had_error = True
+                ms02_docfield_ids = None
 
             if not _ms02_had_error:
                 cache.set(_ms02_cache_key, ("v", ms02_docfield_ids), timeout=60)
-            ms02_docfield_ids = None
 
     # Fail CLOSED: an active doc-field search must never leave a source
     # unconstrained. Every unresolved path -- absent MS02 engine, resolver/DB

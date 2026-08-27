@@ -797,6 +797,134 @@ def test_get_workitems_data_docfield_cache_never_caches_error_path(
     assert raising_engine.calls == 2
 
 
+def test_get_workitems_data_ms02_docfield_resolves_nonempty_set(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """Critical regression (phase C review): a successfully-resolved,
+    NON-EMPTY MS02 allow-set must actually reach the WorkitemFilter --
+    not be discarded and replaced with None (which the fail-closed guard
+    then turns into set(), returning zero rows despite a real match). Every
+    other MS02 assertion in this file only checks the None/set() failure
+    shapes; this is the missing positive-path check."""
+    import nx_lib.hooks as hooks
+    import nx_lib.views.workitems as wv
+
+    monkeypatch.setattr(
+        hooks,
+        "load_permissions_for_user",
+        lambda uid: [
+            "workitems.view",
+            "workitems.filter.documentfields",
+            "workitems.filter.process.sydoc.test_proc",
+        ],
+    )
+
+    monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine([]))
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["validationuser"])
+    monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: set())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+
+    resolved_ids = {101, 202, 303}
+    monkeypatch.setattr(wv, "resolve_ms02_docfield_ids", lambda engine, pairs: set(resolved_ids))
+
+    _stub_mapping_config(
+        monkeypatch,
+        wv,
+        default_mappings=[_fm("validationuser", "ValidationUser")],
+        default_sources=[_ps("sydoc.test_proc", "dbo.T")],
+        ms02_mappings=[_fm("validationuser", "ValidationUser", client="ms02")],
+        ms02_sources=[_ps("sydoc.test_proc", 'public."T"', alias="d", client="ms02")],
+    )
+
+    captured = {}
+
+    def _fake_fetch_merged_page(filt, offset, per_page):
+        captured["filt"] = filt
+        return [], 0, []
+
+    monkeypatch.setattr(wv, "fetch_merged_page", _fake_fetch_merged_page)
+
+    resp = user_client.get(
+        "/api/workitems",
+        query_string={"prcfW": "all", "docfield": "validationuser", "docvalue": "alice"},
+    )
+
+    assert resp.status_code == 200
+    assert captured["filt"].ms02_docfield_ids == resolved_ids, (
+        "resolved non-empty MS02 allow-set must reach the filter, not be "
+        f"discarded to None/set(): got {captured['filt'].ms02_docfield_ids!r}"
+    )
+
+
+def test_get_workitems_data_ms02_docfield_cache_hits_resolution_once(
+    user_client, workitems_all_perms, monkeypatch
+):
+    """(#98 Task 13) MS02-leg twin of
+    test_get_workitems_data_docfield_cache_hits_resolution_once: two
+    identical /api/workitems doc-field requests must hit
+    resolve_ms02_docfield_ids only once -- the second request is served
+    from the 60s allow-set result cache. This is exactly the coverage gap
+    that let the ms02_docfield_ids-discarded Critical bug ship undetected."""
+    import nx_lib.hooks as hooks
+    import nx_lib.views.workitems as wv
+
+    monkeypatch.setattr(
+        hooks,
+        "load_permissions_for_user",
+        lambda uid: [
+            "workitems.view",
+            "workitems.filter.documentfields",
+            "workitems.filter.process.sydoc.test_proc",
+        ],
+    )
+
+    monkeypatch.setattr(wv, "engine_statistics_db", _SqlLogEngine([]))
+    monkeypatch.setattr(wv, "engine_ms02_docfields_pg", object())
+
+    monkeypatch.setattr(wv, "get_valid_search_columns", lambda: ["validationuser"])
+    monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: set())
+    monkeypatch.setattr(wv, "has_permission", lambda code: True)
+
+    resolve_calls = []
+
+    def _spy_resolve(engine, pairs):
+        resolve_calls.append(pairs)
+        return {101, 202}
+
+    monkeypatch.setattr(wv, "resolve_ms02_docfield_ids", _spy_resolve)
+
+    _stub_mapping_config(
+        monkeypatch,
+        wv,
+        default_mappings=[_fm("validationuser", "ValidationUser")],
+        default_sources=[_ps("sydoc.test_proc", "dbo.T")],
+        ms02_mappings=[_fm("validationuser", "ValidationUser", client="ms02")],
+        ms02_sources=[_ps("sydoc.test_proc", 'public."T"', alias="d", client="ms02")],
+    )
+
+    captured = []
+
+    def _fake_fetch_merged_page(filt, offset, per_page):
+        captured.append(filt)
+        return [], 0, []
+
+    monkeypatch.setattr(wv, "fetch_merged_page", _fake_fetch_merged_page)
+
+    qs = {"prcfW": "all", "docfield": "validationuser", "docvalue": "alice"}
+
+    resp1 = user_client.get("/api/workitems", query_string=qs)
+    assert resp1.status_code == 200
+    assert len(resolve_calls) == 1, resolve_calls
+    assert captured[0].ms02_docfield_ids == {101, 202}
+
+    resp2 = user_client.get("/api/workitems", query_string=qs)
+    assert resp2.status_code == 200
+    assert len(resolve_calls) == 1, resolve_calls  # served from cache, not re-resolved
+    assert captured[1].ms02_docfield_ids == {101, 202}
+
+
 def test_get_workitems_data_fieldless_pair_searches_all_columns(
     user_client, workitems_all_perms, monkeypatch
 ):
