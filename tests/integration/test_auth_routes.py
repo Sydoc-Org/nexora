@@ -16,12 +16,26 @@ Covers:
 - rate-limit hooks (best-effort — Flask-Limiter is in-memory per worker)
 """
 
+import re
 import threading
 import time
 from unittest.mock import MagicMock, patch
 
 import bcrypt
 import pytest
+
+
+def _without_csrf_token(body):
+    """Blank the CSRF token out of a rendered page before comparing two of them.
+
+    Flask-WTF re-signs the session's CSRF secret on every request with an
+    itsdangerous timestamp, and those have 1-second granularity -- so two
+    otherwise byte-identical responses rendered either side of a second
+    boundary differ, at exactly one place, by that token. It is per-request
+    noise, not part of the "a registered and an unregistered address must
+    look identical" contract the callers are asserting.
+    """
+    return re.sub(rb'(?<=name="csrf-token" content=")[^"]*', b"", body)
 
 
 def _clear_reset_token_marker(client, token):
@@ -510,7 +524,7 @@ def test_request_password_reset_known_and_unknown_email_same_response(client):
         unknown_call_count = mock_post.call_count - known_call_count
 
     assert known_resp.status_code == unknown_resp.status_code == 200
-    assert known_resp.data == unknown_resp.data
+    assert _without_csrf_token(known_resp.data) == _without_csrf_token(unknown_resp.data)
     # Mail must still only be attempted for the real account.
     assert known_call_count > 0
     assert unknown_call_count == 0
@@ -549,7 +563,7 @@ def test_request_password_reset_returns_before_send_completes(client):
         unknown_elapsed = time.monotonic() - start
 
     assert known_resp.status_code == unknown_resp.status_code == 200
-    assert known_resp.data == unknown_resp.data
+    assert _without_csrf_token(known_resp.data) == _without_csrf_token(unknown_resp.data)
     # The route must return well before the blocking send's 5s hold is
     # released -- i.e. it did not wait on send_reset_email() (the closed
     # timing oracle). 3s (not 1s) so full-suite machine load can't flake it.
