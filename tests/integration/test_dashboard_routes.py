@@ -19,10 +19,26 @@ Routes covered:
 
 from datetime import datetime
 
+import pytest
+
 import nx_lib.hooks
 import nx_lib.views.dashboard as dv
 import nx_lib.views.workitems as wv
 from nx_lib.extensions import cache
+
+
+@pytest.fixture(autouse=True)
+def _clear_response_cache(app):
+    """MUST clear inside ``app.app_context()``, never bare ``cache.clear()``:
+    outside a context Flask-Caching falls back to whatever app LAST called
+    ``cache.init_app()`` -- e.g. test_admin_routes' module-scoped
+    ``prod_csp_app`` -- so a bare clear wipes THAT app's backend while requests
+    dispatched through this session's ``app`` fixture keep serving earlier
+    tests' cached empty responses (and the mocks below never run). Same trap
+    documented at test_workitems_routes._clear_view_cache."""
+    with app.app_context():
+        cache.clear()
+    yield
 
 
 def test_dashboard_anonymous_redirects_to_login(client):
@@ -126,15 +142,14 @@ def test_recent_activity_authed_returns_empty_list(user_client):
 # every row it returns. A colliding id (e.g. 1216 exists in both the default
 # Octo client and MS02) is only resolvable to the RIGHT client if that hint is
 # forwarded to get_domain_for_workitem — discarding it re-probes/defaults and
-# can surface the wrong client's fields. cache.clear() first: SimpleCache is
-# process-global and keyed by (userid, process_name_dashboard), same trap the
-# section below documents.
+# can surface the wrong client's fields. The autouse _clear_response_cache
+# fixture wipes the (userid, process_name_dashboard)-keyed entries first --
+# SimpleCache is process-global, same trap the section below documents.
 
 
 def test_recent_activity_forwards_row_client_as_hint(user_client, monkeypatch):
     """A row for a colliding id carries client='ms02' — that must reach
     get_domain_for_workitem as client_hint, not be silently dropped."""
-    cache.clear()
     monkeypatch.setattr(
         nx_lib.hooks,
         "load_permissions_for_user",
@@ -182,7 +197,6 @@ def test_recent_activity_forwards_row_client_as_hint(user_client, monkeypatch):
 def test_recent_activity_skips_row_when_workitemdata_lookup_fails(user_client, monkeypatch):
     """One row's get_workitemdata_param returning None (Octo hiccup) must be
     skipped, not blank the whole feed for the other, healthy rows."""
-    cache.clear()
     monkeypatch.setattr(
         nx_lib.hooks,
         "load_permissions_for_user",
@@ -235,7 +249,6 @@ def test_recent_activity_skips_row_when_workitemdata_lookup_fails(user_client, m
 def test_recent_activity_strips_sensitive_fields_without_perm(user_client, monkeypatch):
     """Caller WITHOUT workitems.filter.documentfields.sensitive: a sensitive-
     configured field must be absent from the row's fields, not leaked."""
-    cache.clear()
     monkeypatch.setattr(
         nx_lib.hooks,
         "load_permissions_for_user",
@@ -282,7 +295,6 @@ def test_recent_activity_strips_sensitive_fields_without_perm(user_client, monke
 def test_recent_activity_rows_include_client_key(user_client, monkeypatch):
     """Every emitted row carries its source client, not just internally for
     the domain-hint lookup -- the front-end deep link needs it too."""
-    cache.clear()
     monkeypatch.setattr(
         nx_lib.hooks,
         "load_permissions_for_user",
@@ -323,7 +335,6 @@ def test_recent_activity_rows_include_client_key(user_client, monkeypatch):
 
 
 def test_recent_activity_route_derives_granted_pairs_not_cross_product(user_client, monkeypatch):
-    cache.clear()
     monkeypatch.setattr(
         nx_lib.hooks,
         "load_permissions_for_user",
@@ -359,7 +370,8 @@ def test_recent_activity_route_derives_granted_pairs_not_cross_product(user_clie
 # _reload_user_permissions (nx_lib/hooks.py), so we patch
 # nx_lib.hooks.load_permissions_for_user (precedent:
 # tests/integration/test_workitems_routes.py). SimpleCache is process-global
-# and the app fixture is session-scoped -> cache.clear() first, always.
+# and the app fixture is session-scoped -> _clear_response_cache (autouse)
+# wipes it before every test.
 
 
 # --------------------- dashboard.view required on the four legacy KPI endpoints -----------
@@ -398,7 +410,6 @@ def test_processed_over_time_error_response_is_not_cached(user_client, monkeypat
     """A transient 500 (mapping_config registry read fails) must not be
     pinned in the 300s response cache: the next request re-executes the
     view."""
-    cache.clear()
     monkeypatch.setattr(
         nx_lib.hooks,
         "load_permissions_for_user",
