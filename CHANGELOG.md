@@ -168,6 +168,19 @@ Work toward the next release.
 
 ### Fixed
 
+- **`scripts/test_db_reset.py` wipes NEXORA_TEST before applying the schema.**
+  The reset relied on a hand-maintained FK-safe `DROP TABLE` order inside
+  `sql/test/schema.sql`, which cannot know about tables it has never heard of:
+  a table another branch had applied its own migration for (`dbo.Clients`,
+  `dbo.KundenmagazinIssue*`) held a foreign key into `dbo.Organizations` and
+  wedged every reset with *"Could not drop object 'dbo.Organizations' because
+  it is referenced by a FOREIGN KEY constraint"* — leaving the test database
+  half-applied and the integration suite failing on missing permissions. The
+  script now drops every user object (foreign keys first, then views, tables,
+  procedures and functions) before applying `schema.sql`, re-checking
+  `DB_NAME() = 'NEXORA_TEST'` on the live connection first. Third time this
+  drop list has broken; it no longer needs maintaining.
+
 - **Reporting library: dashboard cards said "Delete report"** (#214). A
   library card's `…` menu now reads "Delete dashboard" when the card is a
   dashboard (`r.kind === 'dashboard'`), matching the "DASHBOARD" tag already
