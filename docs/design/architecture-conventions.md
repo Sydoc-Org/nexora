@@ -1,6 +1,6 @@
 # Architectural conventions
 
-Per-subsystem detail behind the one-line summaries in [CLAUDE.md](../../CLAUDE.md). Auth, permissions, UI prefs, i18n, response compression, logging, outage detection, routing, static JS partials, error pages, rate limiting, uploads, the PROD URL prefix, and the workitems document viewer.
+Per-subsystem detail behind the one-line summaries in `CLAUDE.md` (repo root). Auth, permissions, UI prefs, i18n, response compression, logging, outage detection, routing, static JS partials, error pages, rate limiting, uploads, the PROD URL prefix, and the workitems document viewer.
 
 
 - **Auth & sessions:** Flask-Session with filesystem backend in `var/session/`. The filesystem session backend is active in production; it is intentionally commented out in local dev (the in-memory default is used instead). Do not re-enable it locally. CSRF via Flask-WTF (`CSRFProtect`). `Talisman` enforces a CSP defined inline in `nx_lib/config.py`. Password hashing uses `bcrypt`. 2FA is TOTP via `pyotp` with QR codes rendered to base64 PNG in `init_2FA.html`.

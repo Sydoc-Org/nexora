@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-27 10:37+0200\n"
+"POT-Creation-Date: 2026-08-27 12:54+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -27,10 +27,100 @@ msgid "Date is outside the allowed entry window"
 msgstr "Datum liegt außerhalb des erlaubten Erfassungszeitraums"
 
 #: nx_lib/whats_new.py:28
+msgid "Reporting has a new home screen"
+msgstr "Das Reporting hat einen neuen Startbildschirm"
+
+#: nx_lib/whats_new.py:30
+msgid ""
+"The reporting page is now a workbench: a Library of every report you can "
+"see, a Results screen that brings back your last result without re-"
+"running it, Dashboards, Scheduled deliveries, and a rail down the left "
+"showing each data source with its live response time."
+msgstr "Die Reporting-Seite ist jetzt eine Werkbank: eine Bibliothek mit allen Berichten, die Sie sehen dürfen, eine Ergebnis-Ansicht, die Ihr letztes Ergebnis ohne erneute Ausführung zurückholt, Dashboards, geplante Zustellungen und links eine Leiste mit jeder Datenquelle und ihrer aktuellen Antwortzeit."
+
+#: nx_lib/whats_new.py:41
+msgid "Look inside a data source"
+msgstr "Blick in eine Datenquelle"
+
+#: nx_lib/whats_new.py:43
+msgid ""
+"Click a card in the Sources rail to see the database behind it: the "
+"tables that source actually reads, their columns and types, and a diagram"
+" of how they connect. Structure only — no data is shown."
+msgstr "Klicken Sie auf eine Karte in der Quellen-Leiste, um die dahinterliegende Datenbank zu sehen: die Tabellen, die diese Quelle wirklich liest, ihre Spalten und Typen sowie ein Diagramm ihrer Verbindungen. Nur die Struktur — es werden keine Daten angezeigt."
+
+#: nx_lib/whats_new.py:53
+msgid "Dashboards you can arrange"
+msgstr "Dashboards, die Sie anordnen können"
+
+#: nx_lib/whats_new.py:55
+msgid ""
+"Adding a card asks everything in one dialog — which saved report, how to "
+"draw it, its title and its size. In edit mode drag a tile anywhere and "
+"resize it by its corner grip, and the Whole report tile shows a saved "
+"report exactly as the Library does."
+msgstr "Beim Hinzufügen einer Karte fragt ein einziger Dialog alles ab — welcher gespeicherte Bericht, wie er dargestellt wird, Titel und Grösse. Im Bearbeitungsmodus ziehen Sie eine Kachel beliebig und ändern ihre Grösse am Eckgriff; die Kachel «Ganzer Bericht» zeigt einen gespeicherten Bericht genau wie die Bibliothek."
+
+#: nx_lib/whats_new.py:66
+msgid "Meet Eddard"
+msgstr "Das ist Eddard"
+
+#: nx_lib/whats_new.py:68
+msgid ""
+"The reporting assistant has a name and a face — the little black hole in "
+"the top bar. Ask it a question in plain language and open what it built "
+"in the builder before you trust the number."
+msgstr "Der Reporting-Assistent hat einen Namen und ein Gesicht — das kleine schwarze Loch in der oberen Leiste. Stellen Sie ihm eine Frage in normaler Sprache und öffnen Sie im Builder, was er gebaut hat, bevor Sie der Zahl vertrauen."
+
+#: nx_lib/whats_new.py:78
+msgid "Charts in your colours"
+msgstr "Diagramme in Ihren Farben"
+
+#: nx_lib/whats_new.py:80
+msgid ""
+"The palette button in the chart toolbar recolours each series and the "
+"title, and can move a series onto its own right-hand axis so a few "
+"hundred stays readable next to tens of thousands. Your picks are saved "
+"with the report."
+msgstr "Die Paletten-Schaltfläche in der Diagramm-Werkzeugleiste färbt jede Serie und den Titel neu und kann eine Serie auf eine eigene rechte Achse legen, damit ein paar Hundert neben Zehntausenden lesbar bleiben. Ihre Auswahl wird mit dem Bericht gespeichert."
+
+#: nx_lib/whats_new.py:90
+msgid "Press ? for the shortcuts"
+msgstr "Drücken Sie ? für die Tastenkürzel"
+
+#: nx_lib/whats_new.py:92
+msgid ""
+"A cheatsheet of every keyboard shortcut on the page, one keypress away. "
+"Press ? anywhere outside a text box."
+msgstr "Eine Übersicht aller Tastenkürzel der Seite, nur einen Tastendruck entfernt. Drücken Sie ? ausserhalb eines Textfelds."
+
+#: nx_lib/whats_new.py:100
+msgid "Everything loads quicker"
+msgstr "Alles lädt schneller"
+
+#: nx_lib/whats_new.py:102
+msgid ""
+"Pages are compressed in transit, their scripts are cached between visits,"
+" and the reporting page stopped fetching the same lists eight times per "
+"load."
+msgstr "Seiten werden komprimiert übertragen, ihre Skripte zwischen Besuchen zwischengespeichert, und die Reporting-Seite lädt dieselben Listen nicht mehr achtmal pro Aufruf."
+
+#: nx_lib/whats_new.py:111
+msgid "Who can do what, on one page"
+msgstr "Wer was darf, auf einer Seite"
+
+#: nx_lib/whats_new.py:113
+msgid ""
+"The new permission matrix under Admin shows every access profile against "
+"every permission in a single grid, so a missing grant is something you "
+"can see instead of hunt."
+msgstr "Die neue Berechtigungsmatrix unter Admin zeigt jedes Zugriffsprofil gegen jede Berechtigung in einem einzigen Raster — eine fehlende Berechtigung sieht man, statt sie zu suchen."
+
+#: nx_lib/whats_new.py:128
 msgid "Imports, exports and backlog on one chart"
 msgstr "Importe, Exporte und Backlog in einem Diagramm"
 
-#: nx_lib/whats_new.py:30
+#: nx_lib/whats_new.py:130
 msgid ""
 "Document Processing gained date-anchored measures: pick documents or "
 "pages imported, exported and the backlog together over time and they all "
@@ -43,11 +133,11 @@ msgstr ""
 "gemeinsamen Datumsachse. Die separate Quelle „Backlog History“ wurde "
 "entfernt; die neue Kennzahl Backlog ersetzt sie."
 
-#: nx_lib/whats_new.py:41
+#: nx_lib/whats_new.py:141
 msgid "The reporting AI panel gets out of your way"
 msgstr "Das KI-Panel im Reporting geht nicht mehr im Weg"
 
-#: nx_lib/whats_new.py:43
+#: nx_lib/whats_new.py:143
 msgid ""
 "The chat panel now floats instead of blocking the page: drag it by its "
 "header, keep working behind it, and select or copy any answer or "
@@ -57,11 +147,11 @@ msgstr ""
 "sich an der Kopfzeile verschieben, dahinter kann weitergearbeitet werden,"
 " und jede Antwort sowie jedes erzeugte SQL ist markier- und kopierbar."
 
-#: nx_lib/whats_new.py:52
+#: nx_lib/whats_new.py:152
 msgid "Large workitem searches load faster"
 msgstr "Große Workitem-Suchen laden schneller"
 
-#: nx_lib/whats_new.py:54
+#: nx_lib/whats_new.py:154
 msgid ""
 "Big result sets arrive in two phases, so the first rows show up right "
 "away. Typing a partial id now matches by prefix and the closest hits are "
@@ -71,11 +161,11 @@ msgstr ""
 "Zeilen sofort erscheinen. Eine teilweise eingegebene ID trifft jetzt per "
 "Präfix, und die besten Treffer stehen oben."
 
-#: nx_lib/whats_new.py:63
+#: nx_lib/whats_new.py:163
 msgid "Tell us what you think"
 msgstr "Jede Rückmeldung ist willkommen"
 
-#: nx_lib/whats_new.py:65
+#: nx_lib/whats_new.py:165
 msgid ""
 "The new Feedback page (profile dropdown → Feedback) sends your praise, "
 "gripes and ideas straight to the nexora team."
@@ -83,11 +173,11 @@ msgstr ""
 "Die neue Feedback-Seite (Profilmenü → Feedback) schickt Lob, Kritik und "
 "Ideen direkt an das nexora-Team."
 
-#: nx_lib/whats_new.py:73
+#: nx_lib/whats_new.py:173
 msgid "Dark mode, polished"
 msgstr "Dunkelmodus, aufpoliert"
 
-#: nx_lib/whats_new.py:75
+#: nx_lib/whats_new.py:175
 msgid ""
 "The light flash on page loads is gone, checkboxes, menus and tables "
 "follow the theme everywhere, and Appearance adds a \"Fireflies\" page "
@@ -97,11 +187,11 @@ msgstr ""
 "folgen überall dem Theme, und unter Darstellung gibt es neu den "
 "Seitenhintergrund „Glühwürmchen“."
 
-#: nx_lib/whats_new.py:90
+#: nx_lib/whats_new.py:190
 msgid "Filters apply instantly"
 msgstr "Filter wirken sofort"
 
-#: nx_lib/whats_new.py:92
+#: nx_lib/whats_new.py:192
 msgid ""
 "The Apply button is gone from the Generali filter bars — changing any "
 "filter or date reloads the list right away."
@@ -109,11 +199,11 @@ msgstr ""
 "Der Anwenden-Button ist aus den Generali-Filterleisten verschwunden — "
 "jede Änderung an einem Filter oder Datum lädt die Liste sofort neu."
 
-#: nx_lib/whats_new.py:100
+#: nx_lib/whats_new.py:200
 msgid "Type to find a user in the filters"
 msgstr "Benutzer im Filter per Tippen finden"
 
-#: nx_lib/whats_new.py:102
+#: nx_lib/whats_new.py:202
 msgid ""
 "The user filter on the Generali pages is now a search box: type a few "
 "letters, pick the name, and the list filters instantly."
@@ -122,11 +212,11 @@ msgstr ""
 "paar Buchstaben tippen, den Namen auswählen, und die Liste wird sofort "
 "gefiltert."
 
-#: nx_lib/whats_new.py:117
+#: nx_lib/whats_new.py:217
 msgid "Forecast your report trends"
 msgstr "Prognosen für Ihre Report-Trends"
 
-#: nx_lib/whats_new.py:119
+#: nx_lib/whats_new.py:219
 msgid ""
 "Reports charted over a single date breakdown (per week, month, …) gain a "
 "Forecast toggle: the chart extends with a dashed prediction line and a "
@@ -138,11 +228,11 @@ msgstr ""
 "Vorhersagelinie und ein Konfidenzband erweitert; Exporte und geplante "
 "Mails enthalten die Prognose ebenfalls."
 
-#: nx_lib/whats_new.py:129
+#: nx_lib/whats_new.py:229
 msgid "Compare with the prior period"
 msgstr "Vergleich mit der Vorperiode"
 
-#: nx_lib/whats_new.py:131
+#: nx_lib/whats_new.py:231
 msgid ""
 "Simple-tab reports with a relative date range now show ↑/↓ change chips "
 "and a small trend sparkline against the equivalent prior period — see at "
@@ -153,11 +243,11 @@ msgstr ""
 "entsprechenden Vorperiode — sehen Sie auf einen Blick, ob die Zahlen "
 "gestiegen oder gefallen sind."
 
-#: nx_lib/whats_new.py:141
+#: nx_lib/whats_new.py:241
 msgid "Backlog over time"
 msgstr "Backlog im Zeitverlauf"
 
-#: nx_lib/whats_new.py:143
+#: nx_lib/whats_new.py:243
 msgid ""
 "Reporting has a new Backlog measure — track how the open backlog develops"
 " per client or process, week by week."
@@ -165,11 +255,11 @@ msgstr ""
 "Das Reporting hat eine neue Backlog-Kennzahl — verfolgen Sie Woche für "
 "Woche, wie sich der offene Backlog pro Kunde oder Prozess entwickelt."
 
-#: nx_lib/whats_new.py:153
+#: nx_lib/whats_new.py:253
 msgid "Chat with the reporting AI"
 msgstr "Mit der Reporting-KI chatten"
 
-#: nx_lib/whats_new.py:155
+#: nx_lib/whats_new.py:255
 msgid ""
 "The one-shot Ask AI is now a full chat panel on both Reporting tabs — ask"
 " follow-up questions in context, watch live progress while the agent "
@@ -180,11 +270,11 @@ msgstr ""
 "Sie den Live-Fortschritt, und setzen Sie einen vorzeitig gestoppten Lauf "
 "fort oder starten ihn erneut."
 
-#: nx_lib/whats_new.py:165
+#: nx_lib/whats_new.py:265
 msgid "Filter several processes at once"
 msgstr "Mehrere Prozesse gleichzeitig filtern"
 
-#: nx_lib/whats_new.py:167
+#: nx_lib/whats_new.py:267
 msgid ""
 "The process filter on Dashboard and Workitems is now a multi-select — "
 "combine two or three processes in one view."
@@ -193,11 +283,11 @@ msgstr ""
 "Mehrfachauswahl — kombinieren Sie zwei oder drei Prozesse in einer "
 "Ansicht."
 
-#: nx_lib/whats_new.py:175
+#: nx_lib/whats_new.py:275
 msgid "Smarter document value search"
 msgstr "Intelligentere Dokumentwert-Suche"
 
-#: nx_lib/whats_new.py:177
+#: nx_lib/whats_new.py:277
 msgid ""
 "Search workitems by document value without picking a field first — "
 "matches are found across every field you may see. Each search row now has"
@@ -209,11 +299,11 @@ msgstr ""
 "Jede Suchzeile hat jetzt einen Operator (enthält, =, ≠, beginnt mit, "
 "endet mit), und Zeilen lassen sich mit UND/ODER kombinieren."
 
-#: nx_lib/whats_new.py:187
+#: nx_lib/whats_new.py:287
 msgid "Date-range presets"
 msgstr "Zeitraum-Voreinstellungen"
 
-#: nx_lib/whats_new.py:189
+#: nx_lib/whats_new.py:289
 msgid ""
 "Today, Yesterday, This week, Last 7 days, This month — one click in the "
 "Workitems advanced filter instead of typing dates."
@@ -221,11 +311,11 @@ msgstr ""
 "Heute, Gestern, Diese Woche, Letzte 7 Tage, Dieser Monat — ein Klick im "
 "erweiterten Workitems-Filter statt Datumseingabe."
 
-#: nx_lib/whats_new.py:197
+#: nx_lib/whats_new.py:297
 msgid "Filter workitems by stage"
 msgstr "Workitems nach Phase filtern"
 
-#: nx_lib/whats_new.py:199
+#: nx_lib/whats_new.py:299
 msgid ""
 "A new Stage filter (Import, Extraction, Validation, Delivery) narrows the"
 " list to workitems currently in that step."
@@ -234,11 +324,11 @@ msgstr ""
 "grenzt die Liste auf Workitems ein, die sich aktuell in diesem Schritt "
 "befinden."
 
-#: nx_lib/whats_new.py:207
+#: nx_lib/whats_new.py:307
 msgid "See deleted workitems"
 msgstr "Gelöschte Workitems anzeigen"
 
-#: nx_lib/whats_new.py:209
+#: nx_lib/whats_new.py:309
 msgid ""
 "The status filter gains a Deleted option — workitems that were deleted, "
 "previously hidden entirely, can now be shown on demand, badged red."
@@ -247,11 +337,11 @@ msgstr ""
 "bisher komplett verborgen waren, lassen sich jetzt bei Bedarf anzeigen "
 "und werden rot gekennzeichnet."
 
-#: nx_lib/whats_new.py:218
+#: nx_lib/whats_new.py:318
 msgid "Make nexora look your way"
 msgstr "Gestalten Sie nexora nach Ihrem Geschmack"
 
-#: nx_lib/whats_new.py:220
+#: nx_lib/whats_new.py:320
 msgid ""
 "The new Appearance page has a live preview and more choices: light, dark "
 "or system theme, custom accent color, font size, corner style, high "
@@ -264,11 +354,11 @@ msgstr ""
 "Animationsgeschwindigkeit. Ihre Einstellungen folgen Ihrem Konto auf "
 "jedem Gerät."
 
-#: nx_lib/whats_new.py:231
+#: nx_lib/whats_new.py:331
 msgid "API documentation in the app"
 msgstr "API-Dokumentation in der App"
 
-#: nx_lib/whats_new.py:233
+#: nx_lib/whats_new.py:333
 msgid ""
 "The external API is now documented on the new API Documentation page — "
 "authentication, endpoints and copyable examples included. Every endpoint "
@@ -281,11 +371,11 @@ msgstr ""
 "Adresse und Struktur, Fake-Daten — für Integrationen ohne "
 "Produktionsdaten."
 
-#: nx_lib/whats_new.py:243
+#: nx_lib/whats_new.py:343
 msgid "System status at a glance for admins"
 msgstr "Systemstatus auf einen Blick für Admins"
 
-#: nx_lib/whats_new.py:245
+#: nx_lib/whats_new.py:345
 msgid ""
 "The new Status page shows each component's health, a 30-day uptime strip "
 "and the incident history — checked every few minutes by the outage "
@@ -296,11 +386,11 @@ msgstr ""
 "Ausfall-Monitor geprüft, mit deutlichem Hinweis, falls die Daten "
 "veralten."
 
-#: nx_lib/whats_new.py:255
+#: nx_lib/whats_new.py:355
 msgid "Chat, notifications and workitem tags retired"
 msgstr "Chat, Benachrichtigungen und Workitem-Tags eingestellt"
 
-#: nx_lib/whats_new.py:257
+#: nx_lib/whats_new.py:357
 msgid ""
 "The chat page, the notification bell, and workitem tags, priority, "
 "assignment and comments have been removed to keep nexora focused on "
@@ -311,11 +401,11 @@ msgstr ""
 " auf die Dokumentverarbeitung konzentriert. Bestehende Daten bleiben "
 "erhalten."
 
-#: nx_lib/whats_new.py:273
+#: nx_lib/whats_new.py:373
 msgid "Build multi-card dashboards"
 msgstr "Dashboards aus mehreren Karten bauen"
 
-#: nx_lib/whats_new.py:275
+#: nx_lib/whats_new.py:375
 msgid ""
 "Save several reports as one dashboard: combine KPI, chart and table "
 "cards, drag to rearrange, set global filters with per-card overrides, and"
@@ -326,11 +416,11 @@ msgstr ""
 " globale Filter mit Ausnahmen pro Karte, und exportieren Sie oder klicken"
 " Sie sich von jeder Karte zu den Details durch."
 
-#: nx_lib/whats_new.py:284
+#: nx_lib/whats_new.py:384
 msgid "Drill through to the documents"
 msgstr "Bis zu den Dokumenten durchklicken"
 
-#: nx_lib/whats_new.py:286
+#: nx_lib/whats_new.py:386
 msgid ""
 "Click a chart element or result row in Reporting to open the underlying "
 "document rows, with workitem links and export."
@@ -339,11 +429,11 @@ msgstr ""
 " um die zugrunde liegenden Dokumentzeilen zu öffnen — mit Workitem-Links "
 "und Export."
 
-#: nx_lib/whats_new.py:294
+#: nx_lib/whats_new.py:394
 msgid "Combine measures in one report"
 msgstr "Kennzahlen in einem Report kombinieren"
 
-#: nx_lib/whats_new.py:296
+#: nx_lib/whats_new.py:396
 msgid ""
 "The guided report builder now takes several measures at once (from the "
 "same source) and has its own process step, with coverage badges showing "
@@ -353,11 +443,11 @@ msgstr ""
 "gleichzeitig (aus derselben Quelle) und hat einen eigenen Prozess-Schritt"
 " — mit Abdeckungs-Badges, die zeigen, welche Prozesse jedes Feld liefern."
 
-#: nx_lib/whats_new.py:305
+#: nx_lib/whats_new.py:405
 msgid "Machine-to-machine API"
 msgstr "Machine-to-Machine-API"
 
-#: nx_lib/whats_new.py:307
+#: nx_lib/whats_new.py:407
 msgid ""
 "External clients can fetch KPI numbers — like today's imported and "
 "processed counts — over the new authenticated /api/v1 interface."

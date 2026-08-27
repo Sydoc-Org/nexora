@@ -21,6 +21,106 @@ from .version import __version__
 # endpoint (url_for name, None = no link), icon (fontawesome, no "fa-" prefix).
 RELEASES = [
     {
+        "version": "3.2.3",
+        "date": "2026-08-27",
+        "entries": [
+            {
+                "title": _("Reporting has a new home screen"),
+                "body": _(
+                    "The reporting page is now a workbench: a Library of every "
+                    "report you can see, a Results screen that brings back your "
+                    "last result without re-running it, Dashboards, Scheduled "
+                    "deliveries, and a rail down the left showing each data "
+                    "source with its live response time."
+                ),
+                "perm": "reporting.view",
+                "endpoint": "reporting",
+                "icon": "table-columns",
+            },
+            {
+                "title": _("Look inside a data source"),
+                "body": _(
+                    "Click a card in the Sources rail to see the database "
+                    "behind it: the tables that source actually reads, their "
+                    "columns and types, and a diagram of how they connect. "
+                    "Structure only — no data is shown."
+                ),
+                "perm": "reporting.sources.schema",
+                "endpoint": "reporting",
+                "icon": "diagram-project",
+            },
+            {
+                "title": _("Dashboards you can arrange"),
+                "body": _(
+                    "Adding a card asks everything in one dialog — which saved "
+                    "report, how to draw it, its title and its size. In edit "
+                    "mode drag a tile anywhere and resize it by its corner "
+                    "grip, and the Whole report tile shows a saved report "
+                    "exactly as the Library does."
+                ),
+                "perm": "reporting.view",
+                "endpoint": "reporting",
+                "icon": "grip",
+            },
+            {
+                "title": _("Meet Eddard"),
+                "body": _(
+                    "The reporting assistant has a name and a face — the little "
+                    "black hole in the top bar. Ask it a question in plain "
+                    "language and open what it built in the builder before you "
+                    "trust the number."
+                ),
+                "perm": "reporting.ai.use",
+                "endpoint": "reporting",
+                "icon": "wand-magic-sparkles",
+            },
+            {
+                "title": _("Charts in your colours"),
+                "body": _(
+                    "The palette button in the chart toolbar recolours each "
+                    "series and the title, and can move a series onto its own "
+                    "right-hand axis so a few hundred stays readable next to "
+                    "tens of thousands. Your picks are saved with the report."
+                ),
+                "perm": "reporting.view",
+                "endpoint": "reporting",
+                "icon": "palette",
+            },
+            {
+                "title": _("Press ? for the shortcuts"),
+                "body": _(
+                    "A cheatsheet of every keyboard shortcut on the page, one "
+                    "keypress away. Press ? anywhere outside a text box."
+                ),
+                "perm": None,
+                "endpoint": None,
+                "icon": "keyboard",
+            },
+            {
+                "title": _("Everything loads quicker"),
+                "body": _(
+                    "Pages are compressed in transit, their scripts are cached "
+                    "between visits, and the reporting page stopped fetching "
+                    "the same lists eight times per load."
+                ),
+                "perm": None,
+                "endpoint": None,
+                "icon": "bolt",
+            },
+            {
+                "title": _("Who can do what, on one page"),
+                "body": _(
+                    "The new permission matrix under Admin shows every access "
+                    "profile against every permission in a single grid, so a "
+                    "missing grant is something you can see instead of hunt."
+                ),
+                "perm": "admin.view",
+                "endpoint": "admin_permission_matrix",
+                "icon": "table-cells",
+            },
+        ],
+    },
+    {
         "version": "3.2.2",
         "date": "2026-08-25",
         "entries": [

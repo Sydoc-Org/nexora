@@ -2,11 +2,10 @@
 
 nexora runs as **one `waitress` process managed by IIS's HttpPlatformHandler**.
 IIS owns the port/TLS binding and the app-pool lifecycle; HttpPlatformHandler
-starts `D:\sydoc	ools\py\python.exe -m waitress ... nx_main:app` on a
+starts `D:\sydoc\tools\py\python.exe -m waitress ... nx_main:app` on a
 loopback port it picks (`%HTTP_PLATFORM_PORT%`) and reverse-proxies every
 request to it. Everything is declared in `web.config` at the site root — nothing
-is configured in IIS Manager beyond the site pointing at `D:\sydoc
-exora`.
+is configured in IIS Manager beyond the site pointing at `D:\sydoc\nexora`.
 (`wfastcgi` served until v3.2.3; it is archived upstream and handled one blocking
 request per process.)
 
@@ -24,13 +23,11 @@ request per process.)
    deploy workflow's `pip install -r requirements.txt` installs it; by hand:
 
    ```powershell
-   D:\sydoc	ools\py\python.exe -m pip install waitress
+   D:\sydoc\tools\py\python.exe -m pip install waitress
    ```
 
-3. Site → physical path `D:\sydoc
-exora`, app pool `DefaultAppPool`.
-   The app-pool identity must be able to write `D:\sydoc
-exoraar\`
+3. Site → physical path `D:\sydoc\nexora`, app pool `DefaultAppPool`.
+   The app-pool identity must be able to write `D:\sydoc\nexora\var\`
    (waitress stdout log, sessions, CSV request logs) — same as before.
 
 The deploy workflow (`.github/workflows/deploy.yml`, step *Preflight IIS host*)
@@ -46,9 +43,8 @@ the deploy while the old app is still serving instead of 500-ing the site.
 | `--connection-limit=1000` | Keep-alive channels from ~500 browsers would hit waitress's default ceiling of 100. |
 | `--url-scheme=https` | TLS terminates at the ngrok edge; waitress only ever sees plain HTTP. Telling it "https" keeps Talisman's `force_https` from redirect-looping and makes `url_for(_external=True)` right. |
 | `--trusted-proxy=127.0.0.1 --trusted-proxy-headers=x-forwarded-for` | waitress ≥ 2 **strips** `X-Forwarded-*` from untrusted peers. IIS is the peer, so trust it — otherwise the CSV log and the rate limiter see only `127.0.0.1`. The limiter keys on the leftmost hop (`nx_lib/extensions.py::client_ip`). |
-| `ENVIRONMENT=PROD`, `PYTHONPATH=D:\sydoc
-exora` | Child-process env; the app pool identity has no user profile to inherit from. |
-| `stdoutLogFile=…ar\logs\system\waitress-stdout` | Process stdout/stderr (startup tracebacks land here). `app.log` beside it is the app logger. |
+| `ENVIRONMENT=PROD`, `PYTHONPATH=D:\sydoc\nexora` | Child-process env; the app pool identity has no user profile to inherit from. |
+| `stdoutLogFile=…\var\logs\system\waitress-stdout` | Process stdout/stderr (startup tracebacks land here). `app.log` beside it is the app logger. |
 | `requestTimeout=00:02:00` | Same 120 s ceiling the FastCGI setup had. |
 
 URL prefix: IIS forwards the full `/nexora/...` path; `nx_lib/middleware.py`
@@ -63,8 +59,7 @@ rules** — a rewrite to `nx_main.py` would reach waitress as a 404.
   (step 1).
 - **502.3 / "process failed to start"** → waitress died inside
   `startupTimeLimit` (60 s). Read the newest
-  `D:\sydoc
-exoraar\logs\system\waitress-stdout_*.log` — it holds the
+  `D:\sydoc\nexora\var\logs\system\waitress-stdout_*.log` — it holds the
   Python traceback (missing package, bad env, DB unreachable at import).
 - **Restart** the app = recycle `DefaultAppPool`; HttpPlatformHandler kills and
   relaunches waitress with it. `rapidFailsPerMinute` (default 10) stops

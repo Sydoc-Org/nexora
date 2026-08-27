@@ -1418,7 +1418,7 @@ names those in `levelFields`), buckets with a value vs. buckets with **no
 measurement** (never read as zero), peak/low, latest vs. previous, first-half
 vs. second-half average, the recent tail and an evenly spaced sample across
 the range, top categories with shares, the NULL-key rows reported separately
-as "rows with no *<dimension>*" (never a period, never an outlier), and the
+as "rows with no `<dimension>`" (never a period, never an outlier), and the
 still-running current bucket flagged and kept out of peak/latest/averages.
 The prompt carries those facts plus the client's `notes` (partial bucket,
 NULL = no snapshot). Before this, the route sliced `rows[:50]` off the top of

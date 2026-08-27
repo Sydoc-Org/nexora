@@ -8,6 +8,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+## [3.2.3] - 2026-08-27
+
 ### Added
 
 - **Reporting: click a source to see inside its database.** The Console's
@@ -79,169 +81,6 @@ Work toward the next release.
   Access Control / the user's overrides tab — granting and revoking stays
   there.
 
-### Removed
-
-- **Dead `decapitated_*` tables dropped for good** (#98). Migrations 0042 and
-  0056 had renamed the ten dead chat/collaboration/notification/invoice tables
-  with a `decapitated_` prefix as a reversible safety net; nothing has read
-  them since, so migration `0072` deletes them (data included). The archived,
-  never-registered `nx_lib/views/invoices.py` and the `templates/archive/`
-  invoices/chat templates went with them.
-
-### Changed
-
-- **Reporting dashboards: drag-to-rearrange previews the real layout.** The
-  dragged card is spliced into its landing position as you hover, so the grid
-  itself is the preview and its dashed outline sits where the card will end up;
-  the whole card is now grabbable, with a `grab` cursor, rather than looking
-  static. Drop only clears the drag state.
-
-
-- **Dev-structure leftovers from the 2026-05 dev-env upgrade closed out**
-  (#108). The camelCase template render kwargs the PR 6 handoff deferred are
-  now snake_case (`pageV` -> `page_visibility`, `startDate`/`endDate` ->
-  `start_date`/`end_date`), and the five endpoint names PR 5 deliberately kept
-  camelCase as a compat surface were renamed too (`init_2FA` -> `init_2fa`,
-  `generali_baseServices` -> `generali_base_services`, and the additional
-  services / project management / import status siblings). Public URL paths are
-  unchanged - the rules are declared explicitly, so only `url_for()` keys moved.
-- **mypy is a blocking pre-commit hook** (#108). It was wired in as advisory
-  (`stages: [manual]`) and never enforced. The 13 outstanding errors are fixed,
-  `types-requests` joins the dev dependencies, `strict_optional = false` is
-  recorded in `pyproject.toml` instead of being passed as a hook flag, and the
-  hook now runs from the project environment so a local `mypy nx_lib nx_main.py`
-  and the hook agree.
-- **Doc-field suggestion endpoints read the mapping_config registry; `col_`
-  prefix retired** (#98). `/api/docfield_values` (both the field-specific and
-  value-first "any field" paths) no longer query `SearchConfig` directly —
-  they resolve through `nx_lib.mapping_config`, like the search-filter
-  resolution paths already did. With every `SearchConfig` read gone from
-  `nx_lib/views/workitems.py`, `get_valid_search_columns()` and
-  `get_search_columns_for_processes()` now return bare lowercase field keys
-  instead of `col_`-prefixed ones — the last step of the two-phase migration
-  off the legacy naming convention; `nx_lib/views/api_external.py` updated to
-  match. The 600s suggestion caches and their key shapes (which encode the
-  sensitive-permission column set) are unchanged.
-- **Schema hygiene: `StatConfig` gets a primary key, `Logs` gets a timestamp
-  index** (#98, migration `0073`). `StatConfig` was a PK-less heap with a
-  nullable key column — now `ProcessName` is `NOT NULL` with a composite PK on
-  `(ProcessName, ClientCode)`. `dbo.Logs` gains `IX_Logs_Timestamp` so the
-  admin log pages stop table-scanning as the log grows.
-
-- **`CLAUDE.md` is now a map, not a manual.** It is injected into every Claude
-  Code session and re-sent after every compact, so its 28 KB of prose was a
-  fixed per-session token cost. The architectural-conventions block moved
-  verbatim to `docs/design/architecture-conventions.md`, the Databases section
-  dropped the ~5 KB it duplicated from `docs/howto/db-migrations.md`, and the
-  translations and GitNexus blocks became pointers. 28,069 -> 14,361 bytes with
-  no content lost, only relocated; the Git branch policy is kept verbatim.
-- **Normalized mapping schema live, legacy tables decapitated** (#98,
-  migrations `0074`/`0075`). Every Python consumer of the doc-field/process
-  mapping config now reads the single cached registry in
-  `nx_lib/mapping_config.py`, backed by the normalized `dbo.ProcessSources` /
-  `ProcessFieldMappings` / `FieldLabels` / `FieldAliases` tables (`0074`).
-  With the cutover verified clean across the whole tree, migration `0075`
-  renames the four legacy tables (`SearchConfig`, `StatConfig`,
-  `IndexFieldMappings`, `Search_Field_Labels`) to `decapitated_*` — data is
-  preserved, not dropped, following the same reversible pattern `0042` used
-  for the chat/collaboration tables (later dropped for good by `0072`).
-
-- **Doc-field search performance: sargable predicates, seeded column types,
-  a short-lived allow-set cache, and a batched source-routing cache** (#98,
-  migrations `0076`–`0078`). `ProcessSource.id_column_type` is now seeded
-  from the live target DBs (`0076`, refined by fixup `0077`) so
-  `_ms02_columnar_sql` can emit a sargable comparison instead of an
-  unconditional `::text` cast on every row. Resolved doc-field allow-sets are
-  now cached for 60s per (client, field-spec, value) — repeat identical
-  searches skip re-querying MS02 entirely; the trade-off is that a workitem
-  imported in the last 60s can be briefly missing from a repeat of the exact
-  same search (accepted). `WorkitemSourceCache`'s primary key widens from
-  `(WorkItemID)` to `(WorkItemID, ClientCode)` (migration `0078`) since ids
-  collide across clients (1216 on INT) and a single-column PK could only ever
-  pin one client per id; `fetch_merged_page`'s cache-warm loop replaces up to
-  1000 sequential per-row lookups with one batched `_cache_lookup_many` call
-  per page, falling back to `get_source_for_workitem` only for ids missing
-  from the batch. Both `_cache_lookup` and `_cache_lookup_many` mirror
-  `get_source_for_workitem`'s existing collision fail-safe: more than one
-  row for an id is ambiguous and is never guessed — it's omitted (forcing a
-  re-probe) with an error logged.
-
-### Fixed
-
-- **`scripts/test_db_reset.py` wipes NEXORA_TEST before applying the schema.**
-  The reset relied on a hand-maintained FK-safe `DROP TABLE` order inside
-  `sql/test/schema.sql`, which cannot know about tables it has never heard of:
-  a table another branch had applied its own migration for (`dbo.Clients`,
-  `dbo.KundenmagazinIssue*`) held a foreign key into `dbo.Organizations` and
-  wedged every reset with *"Could not drop object 'dbo.Organizations' because
-  it is referenced by a FOREIGN KEY constraint"* — leaving the test database
-  half-applied and the integration suite failing on missing permissions. The
-  script now drops every user object (foreign keys first, then views, tables,
-  procedures and functions) before applying `schema.sql`, re-checking
-  `DB_NAME() = 'NEXORA_TEST'` on the live connection first. Third time this
-  drop list has broken; it no longer needs maintaining.
-
-- **`ActivityInstancesToIgnore` rules were applied globally instead of
-  per-process.** The table has a `ProcessName` column precisely so an admin
-  can hide a `Deletion Marker`-style activity on one process without
-  affecting another, but the loader read `ActivityInstanceName` only and
-  discarded `ProcessName` — every configured rule was silently OR'd across
-  every process's workitem list and Recent Validations feed. The predicate is
-  now built per `(client, process)` (`_activity_ignore_predicate` in
-  `nx_lib/workitem_sources.py`), and is fully parameterized instead of
-  string-spliced into the SQL (no more manual quote-escaping).
-
-- **Reporting library: dashboard cards said "Delete report"** (#214). A
-  library card's `…` menu now reads "Delete dashboard" when the card is a
-  dashboard (`r.kind === 'dashboard'`), matching the "DASHBOARD" tag already
-  on the card.
-
-- **Workitem detail panel: line-item tables are tables again** (#199). Each
-  extracted table (`TabVat`, `TabOrder`, …) was rendered as a stack of
-  label-over-value rows inside the narrow Document Details column, so line-item
-  rows could not be compared at a glance. They now render as a real `<table>`
-  — one row per line item, collapsible per table — in their own full-width card
-  below the two-column detail grid, with horizontal scroll for wide SAP-style
-  grids. In the document lightbox they get their own box under the page image,
-  spanning the page pane instead of being squeezed into the 480px values
-  sidebar. Click-to-locate on a cell is unchanged; empty cells show an em dash
-  instead of a "no source location" badge per cell.
-
-- **Workitems loading state: cramped spinner row → accent-tinted skeleton rows**
-  (#189). The loader was a single Font Awesome dot-spinner in a row squashed to
-  12px padding (the unlayered `.nx-table tbody td` rule beats Tailwind's
-  layered `py-20`), and until v3.2.3 it was hardcoded indigo. The table now
-  shows six shimmering skeleton rows shaped like real workitem rows, tinted by
-  the user's accent color and frozen under reduced motion; both the initial
-  page load and every filter refetch share one server-rendered template
-  (`#workitemsSkeletonTpl`).
-
-- **The reporting page fetched the same catalogs eight times per load.** Its
-  five modules (tabs rail, Simple, Advanced, dashboard builder, drill drawer)
-  are separate IIFEs that can't read each other's state, so each fetched its
-  own copy: `GET /api/reporting/sources` **three** times and
-  `/api/reporting/metrics` **three** times on a single visit, serialised one
-  behind another — and one of those `/metrics` calls, in the dashboard
-  builder's `ensureCatalog`, was never read at all (its own comment said so).
-  Both read-only registries now come from one shared in-flight promise
-  (`window.ReportingCatalog`, `templates/js/_reporting_catalog_js.html`), so a
-  page load makes one request each. Measured on INT: 8 API requests → 6, and
-  the catalogs stop queueing behind one another. `/api/reporting/reports` is
-  deliberately left alone — it changes on every save/rename/delete.
-
-- **Saving a report in the Console duplicated it instead of updating it.** Save
-  in the results view always `POST`ed a new row, so pressing it on a report you
-  had opened from the library left two identical entries under My reports — and
-  the rename pencil was the same code path, so renaming forked a *second* copy
-  under the new name while the original kept the old one. Save now writes back
-  (`PUT`) whenever the open result is a stored report you may edit — owner or
-  CanEdit share — and the pencil renames that same report in place. Making a
-  new one is now the explicit path: ⋯ → **Save as copy**, which pre-fills
-  "<name> (copy)" and then leaves the copy open, so the next Save can't reach
-  back to the original. A result that isn't a saved report yet (wizard run, an
-  answer from Eddard) still asks for a name and creates one.
-
-### Added
 
 - **Responses are gzipped.** Nexora ships each page's JavaScript inline (the
   `templates/js/*.html` partials), so an HTML response is the whole client for
@@ -361,6 +200,83 @@ Work toward the next release.
 
 ### Changed
 
+- **Reporting dashboards: drag-to-rearrange previews the real layout.** The
+  dragged card is spliced into its landing position as you hover, so the grid
+  itself is the preview and its dashed outline sits where the card will end up;
+  the whole card is now grabbable, with a `grab` cursor, rather than looking
+  static. Drop only clears the drag state.
+
+
+- **Dev-structure leftovers from the 2026-05 dev-env upgrade closed out**
+  (#108). The camelCase template render kwargs the PR 6 handoff deferred are
+  now snake_case (`pageV` -> `page_visibility`, `startDate`/`endDate` ->
+  `start_date`/`end_date`), and the five endpoint names PR 5 deliberately kept
+  camelCase as a compat surface were renamed too (`init_2FA` -> `init_2fa`,
+  `generali_baseServices` -> `generali_base_services`, and the additional
+  services / project management / import status siblings). Public URL paths are
+  unchanged - the rules are declared explicitly, so only `url_for()` keys moved.
+- **mypy is a blocking pre-commit hook** (#108). It was wired in as advisory
+  (`stages: [manual]`) and never enforced. The 13 outstanding errors are fixed,
+  `types-requests` joins the dev dependencies, `strict_optional = false` is
+  recorded in `pyproject.toml` instead of being passed as a hook flag, and the
+  hook now runs from the project environment so a local `mypy nx_lib nx_main.py`
+  and the hook agree.
+- **Doc-field suggestion endpoints read the mapping_config registry; `col_`
+  prefix retired** (#98). `/api/docfield_values` (both the field-specific and
+  value-first "any field" paths) no longer query `SearchConfig` directly —
+  they resolve through `nx_lib.mapping_config`, like the search-filter
+  resolution paths already did. With every `SearchConfig` read gone from
+  `nx_lib/views/workitems.py`, `get_valid_search_columns()` and
+  `get_search_columns_for_processes()` now return bare lowercase field keys
+  instead of `col_`-prefixed ones — the last step of the two-phase migration
+  off the legacy naming convention; `nx_lib/views/api_external.py` updated to
+  match. The 600s suggestion caches and their key shapes (which encode the
+  sensitive-permission column set) are unchanged.
+- **Schema hygiene: `StatConfig` gets a primary key, `Logs` gets a timestamp
+  index** (#98, migration `0073`). `StatConfig` was a PK-less heap with a
+  nullable key column — now `ProcessName` is `NOT NULL` with a composite PK on
+  `(ProcessName, ClientCode)`. `dbo.Logs` gains `IX_Logs_Timestamp` so the
+  admin log pages stop table-scanning as the log grows.
+
+- **`CLAUDE.md` is now a map, not a manual.** It is injected into every Claude
+  Code session and re-sent after every compact, so its 28 KB of prose was a
+  fixed per-session token cost. The architectural-conventions block moved
+  verbatim to `docs/design/architecture-conventions.md`, the Databases section
+  dropped the ~5 KB it duplicated from `docs/howto/db-migrations.md`, and the
+  translations and GitNexus blocks became pointers. 28,069 -> 14,361 bytes with
+  no content lost, only relocated; the Git branch policy is kept verbatim.
+- **Normalized mapping schema live, legacy tables decapitated** (#98,
+  migrations `0074`/`0075`). Every Python consumer of the doc-field/process
+  mapping config now reads the single cached registry in
+  `nx_lib/mapping_config.py`, backed by the normalized `dbo.ProcessSources` /
+  `ProcessFieldMappings` / `FieldLabels` / `FieldAliases` tables (`0074`).
+  With the cutover verified clean across the whole tree, migration `0075`
+  renames the four legacy tables (`SearchConfig`, `StatConfig`,
+  `IndexFieldMappings`, `Search_Field_Labels`) to `decapitated_*` — data is
+  preserved, not dropped, following the same reversible pattern `0042` used
+  for the chat/collaboration tables (later dropped for good by `0072`).
+
+- **Doc-field search performance: sargable predicates, seeded column types,
+  a short-lived allow-set cache, and a batched source-routing cache** (#98,
+  migrations `0076`–`0078`). `ProcessSource.id_column_type` is now seeded
+  from the live target DBs (`0076`, refined by fixup `0077`) so
+  `_ms02_columnar_sql` can emit a sargable comparison instead of an
+  unconditional `::text` cast on every row. Resolved doc-field allow-sets are
+  now cached for 60s per (client, field-spec, value) — repeat identical
+  searches skip re-querying MS02 entirely; the trade-off is that a workitem
+  imported in the last 60s can be briefly missing from a repeat of the exact
+  same search (accepted). `WorkitemSourceCache`'s primary key widens from
+  `(WorkItemID)` to `(WorkItemID, ClientCode)` (migration `0078`) since ids
+  collide across clients (1216 on INT) and a single-column PK could only ever
+  pin one client per id; `fetch_merged_page`'s cache-warm loop replaces up to
+  1000 sequential per-row lookups with one batched `_cache_lookup_many` call
+  per page, falling back to `get_source_for_workitem` only for ids missing
+  from the batch. Both `_cache_lookup` and `_cache_lookup_many` mirror
+  `get_source_for_workitem`'s existing collision fail-safe: more than one
+  row for an id is ambiguous and is never guessed — it's omitted (forcing a
+  re-probe) with an error logged.
+
+
 - **The three biggest JS partials now ship as cacheable static files** (#191).
   Nexora's per-page JavaScript lived inside Jinja partials only because that
   was the way to get Babel to translate its strings — which turned every
@@ -459,7 +375,90 @@ Work toward the next release.
   stale — it still advertised `fix/…`, `chore/…` and `hotfix/…` prefixes the
   guard has always refused — and now describes what actually pushes.
 
+### Removed
+
+- **Dead `decapitated_*` tables dropped for good** (#98). Migrations 0042 and
+  0056 had renamed the ten dead chat/collaboration/notification/invoice tables
+  with a `decapitated_` prefix as a reversible safety net; nothing has read
+  them since, so migration `0072` deletes them (data included). The archived,
+  never-registered `nx_lib/views/invoices.py` and the `templates/archive/`
+  invoices/chat templates went with them.
+
 ### Fixed
+
+- **`scripts/test_db_reset.py` wipes NEXORA_TEST before applying the schema.**
+  The reset relied on a hand-maintained FK-safe `DROP TABLE` order inside
+  `sql/test/schema.sql`, which cannot know about tables it has never heard of:
+  a table another branch had applied its own migration for (`dbo.Clients`,
+  `dbo.KundenmagazinIssue*`) held a foreign key into `dbo.Organizations` and
+  wedged every reset with *"Could not drop object 'dbo.Organizations' because
+  it is referenced by a FOREIGN KEY constraint"* — leaving the test database
+  half-applied and the integration suite failing on missing permissions. The
+  script now drops every user object (foreign keys first, then views, tables,
+  procedures and functions) before applying `schema.sql`, re-checking
+  `DB_NAME() = 'NEXORA_TEST'` on the live connection first. Third time this
+  drop list has broken; it no longer needs maintaining.
+
+- **`ActivityInstancesToIgnore` rules were applied globally instead of
+  per-process.** The table has a `ProcessName` column precisely so an admin
+  can hide a `Deletion Marker`-style activity on one process without
+  affecting another, but the loader read `ActivityInstanceName` only and
+  discarded `ProcessName` — every configured rule was silently OR'd across
+  every process's workitem list and Recent Validations feed. The predicate is
+  now built per `(client, process)` (`_activity_ignore_predicate` in
+  `nx_lib/workitem_sources.py`), and is fully parameterized instead of
+  string-spliced into the SQL (no more manual quote-escaping).
+
+- **Reporting library: dashboard cards said "Delete report"** (#214). A
+  library card's `…` menu now reads "Delete dashboard" when the card is a
+  dashboard (`r.kind === 'dashboard'`), matching the "DASHBOARD" tag already
+  on the card.
+
+- **Workitem detail panel: line-item tables are tables again** (#199). Each
+  extracted table (`TabVat`, `TabOrder`, …) was rendered as a stack of
+  label-over-value rows inside the narrow Document Details column, so line-item
+  rows could not be compared at a glance. They now render as a real `<table>`
+  — one row per line item, collapsible per table — in their own full-width card
+  below the two-column detail grid, with horizontal scroll for wide SAP-style
+  grids. In the document lightbox they get their own box under the page image,
+  spanning the page pane instead of being squeezed into the 480px values
+  sidebar. Click-to-locate on a cell is unchanged; empty cells show an em dash
+  instead of a "no source location" badge per cell.
+
+- **Workitems loading state: cramped spinner row → accent-tinted skeleton rows**
+  (#189). The loader was a single Font Awesome dot-spinner in a row squashed to
+  12px padding (the unlayered `.nx-table tbody td` rule beats Tailwind's
+  layered `py-20`), and until v3.2.3 it was hardcoded indigo. The table now
+  shows six shimmering skeleton rows shaped like real workitem rows, tinted by
+  the user's accent color and frozen under reduced motion; both the initial
+  page load and every filter refetch share one server-rendered template
+  (`#workitemsSkeletonTpl`).
+
+- **The reporting page fetched the same catalogs eight times per load.** Its
+  five modules (tabs rail, Simple, Advanced, dashboard builder, drill drawer)
+  are separate IIFEs that can't read each other's state, so each fetched its
+  own copy: `GET /api/reporting/sources` **three** times and
+  `/api/reporting/metrics` **three** times on a single visit, serialised one
+  behind another — and one of those `/metrics` calls, in the dashboard
+  builder's `ensureCatalog`, was never read at all (its own comment said so).
+  Both read-only registries now come from one shared in-flight promise
+  (`window.ReportingCatalog`, `templates/js/_reporting_catalog_js.html`), so a
+  page load makes one request each. Measured on INT: 8 API requests → 6, and
+  the catalogs stop queueing behind one another. `/api/reporting/reports` is
+  deliberately left alone — it changes on every save/rename/delete.
+
+- **Saving a report in the Console duplicated it instead of updating it.** Save
+  in the results view always `POST`ed a new row, so pressing it on a report you
+  had opened from the library left two identical entries under My reports — and
+  the rename pencil was the same code path, so renaming forked a *second* copy
+  under the new name while the original kept the old one. Save now writes back
+  (`PUT`) whenever the open result is a stored report you may edit — owner or
+  CanEdit share — and the pencil renames that same report in place. Making a
+  new one is now the explicit path: ⋯ → **Save as copy**, which pre-fills
+  `"<name> (copy)"` and then leaves the copy open, so the next Save can't reach
+  back to the original. A result that isn't a saved report yet (wizard run, an
+  answer from Eddard) still asks for a name and creates one.
+
 
 - **Fireflies now tint with the chosen accent color.** The `fireflies`
   background option used a hardcoded teal/amber dot color instead of
