@@ -10,6 +10,24 @@ Work toward the next release.
 
 ### Added
 
+- **Reporting dashboards: one-dialog "Add a card".** The add-card tile's type
+  pills are replaced by a single mask (`rdb-add-mask`) that asks for everything
+  at once — which saved report to show, how to draw it (KPI / chart / donut /
+  table / whole report), the card title, and the card size as a width in grid
+  columns plus a height in rows, sketched live as the sliders move. The card
+  lands fully configured instead of as a placeholder that had to be clicked to
+  reach the saved-report picker. Submitting with no report selected still adds
+  the blank "configure this card" placeholder, so an empty report library is
+  not a dead end.
+
+- **Reporting dashboards: resizable cards.** Cards now carry a `rows` height
+  alongside their `span` width, both drag-resizable from a card's bottom-right
+  corner grip (Pointer Events, no library): width snaps to the 12 grid columns,
+  height to whole grid rows (max 6). Charts re-fit themselves as the container
+  changes. Saved dashboards without `rows` fall back to a per-type default
+  sized to the heights those cards already had, so existing dashboards reopen
+  unchanged.
+
 - **Sidebar restyled toward a minimal, GitHub-inspired look** (#213). Same
   icons and labels, different treatment: the active page is marked by a thin
   accent-coloured bar on the left edge instead of a filled accent-tinted
@@ -53,6 +71,13 @@ Work toward the next release.
   invoices/chat templates went with them.
 
 ### Changed
+
+- **Reporting dashboards: drag-to-rearrange previews the real layout.** The
+  dragged card is spliced into its landing position as you hover, so the grid
+  itself is the preview and its dashed outline sits where the card will end up;
+  the whole card is now grabbable, with a `grab` cursor, rather than looking
+  static. Drop only clears the drag state.
+
 
 - **Dev-structure leftovers from the 2026-05 dev-env upgrade closed out**
   (#108). The camelCase template render kwargs the PR 6 handoff deferred are

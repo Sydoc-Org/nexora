@@ -89,6 +89,33 @@
 
   var DEFAULT_SPAN = { kpi: 3, line: 8, donut: 4, bar: 6, table: 6, report: 12 };
 
+  // Card height is a whole number of grid rows (--rdb-row / --rdb-gap in
+  // reporting.css); .rdb-card's height calc() reads the count off the
+  // --rdb-cardrows custom property cardGeomStyle() writes. Saved dashboards
+  // predating the `rows` field fall back to the per-type default, sized to the
+  // fixed body heights those cards used to have -- so an older dashboard
+  // reopens looking as it did before resizing existed.
+  var DEFAULT_ROWS = { kpi: 1, line: 2, donut: 2, bar: 2, table: 2, report: 4 };
+  var GRID_COLS = 12, MAX_ROWS = 6;
+
+  function clampInt(v, lo, hi, dflt) {
+    var n = parseInt(v, 10);
+    if (!isFinite(n)) n = dflt;
+    return Math.max(lo, Math.min(hi, n));
+  }
+
+  function cardSpan(c) {
+    return clampInt(c && c.span, 1, GRID_COLS, DEFAULT_SPAN[c && c.type] || 6);
+  }
+
+  function cardRows(c) {
+    return clampInt(c && c.rows, 1, MAX_ROWS, DEFAULT_ROWS[c && c.type] || 2);
+  }
+
+  function cardGeomStyle(span, rows) {
+    return 'grid-column:span ' + span + ';--rdb-cardrows:' + rows;
+  }
+
   function blankDef() {
     return { kind: 'dashboard', schemaVersion: 1, title: I18N.untitled,
              globalFilters: [], cards: [] };
@@ -103,16 +130,23 @@
     render();
   }
 
-  function addCard(type) {
-    if (!state.editing) return;
-    // Empty definition placeholder (D14) -- renders as a "configure this
-    // card" body until a saved report is adopted into it (adoptReport()).
-    var card = { id: 'n' + state.seq, type: type, span: DEFAULT_SPAN[type] || 6,
-                 title: I18N.newCard,
-                 definition: { source: null, metrics: [], columns: [], filters: [] },
+  function addCard(type, opts) {
+    if (!state.editing) return null;
+    // opts comes from the add-card mask: an adopted saved-report definition,
+    // a title and an explicit size. Without it this is still the old empty
+    // placeholder (D14) -- a "configure this card" body until a saved report
+    // is adopted into it (openReportPicker/adoptReport).
+    opts = opts || {};
+    var card = { id: 'n' + state.seq, type: type,
+                 span: clampInt(opts.span, 1, GRID_COLS, DEFAULT_SPAN[type] || 6),
+                 rows: clampInt(opts.rows, 1, MAX_ROWS, DEFAULT_ROWS[type] || 2),
+                 title: opts.title || I18N.newCard,
+                 definition: opts.definition ||
+                   { source: null, metrics: [], columns: [], filters: [] },
                  filterOverrides: [] };
     state.seq += 1;
     setCards(function (list) { return list.concat([card]); });
+    return card;
   }
 
   // ---- Public entry points (window.ReportingDashboard) ---------------------
@@ -243,11 +277,10 @@
     });
     el('rdbTitleInput').addEventListener('blur', commitTitle);
     if (canExport) el('rdbExport').addEventListener('click', toggleExportMenu);
-    // Header "Add card" is a fast shortcut that always adds a KPI shell --
-    // the full type-picker (chart/kpi/table/donut) lives on the grid's
-    // add-card tile (Task 14, rdb-add-tile), the only place a non-KPI type
-    // or the saved-report picker is reachable from.
-    el('rdbAddCard').addEventListener('click', function () { addCard('kpi'); });
+    // Header "Add card" and the grid's add-card tile both open the same
+    // one-dialog mask (report -> type -> size). There is no fast path that
+    // drops an unconfigured card straight onto the grid any more.
+    el('rdbAddCard').addEventListener('click', openAddMask);
     el('rdbEditToggle').addEventListener('click', toggleEditing);
     // Delegated grid clicks -- cards (and the add-card tile) are rebuilt/
     // replaced on every render, so direct per-element listeners would be
@@ -277,8 +310,8 @@
         if (cfgCardEl) openReportPicker(cfgCardEl.getAttribute('data-card-id'));
         return;
       }
-      var addType = e.target.closest && e.target.closest('[data-add-type]');
-      if (addType) { addCard(addType.getAttribute('data-add-type')); return; }
+      var addTile = e.target.closest && e.target.closest('[data-testid="rdb-add-tile"]');
+      if (addTile) { openAddMask(); return; }
       // Whole-report card: table toggle (show/hide the full grid in place,
       // same msgids as the Simple pane's own #rsTableToggle) and row
       // drill-through (mirrors handleCardTableRowClick; forecast rows stay
@@ -323,6 +356,9 @@
     // Drag-to-reorder (D10, ported 1:1 from the prototype's onDragStart/
     // onDragOver/onDrop/onDragEnd) -- delegated on the grid since HTML5 DnD
     // events bubble and cards are rebuilt on every render.
+    // Corner-resize drags (Pointer Events) are delegated on the grid for the
+    // same reason: the handle is rebuilt with its card on every render.
+    el('rdbGrid').addEventListener('pointerdown', handleGridPointerDown);
     el('rdbGrid').addEventListener('dragstart', handleGridDragStart);
     el('rdbGrid').addEventListener('dragover', handleGridDragOver);
     el('rdbGrid').addEventListener('drop', handleGridDrop);
@@ -344,6 +380,7 @@
     document.addEventListener('keydown', function (e) {
       if (filterPop.open && e.key === 'Escape') closeFilterPopover();
       if (reportPicker.open && e.key === 'Escape') closeReportPicker();
+      if (addMask.open && e.key === 'Escape') closeAddMask();
       if (exportMenu.open && e.key === 'Escape') closeExportMenu();
     });
     built = true;
@@ -1440,12 +1477,11 @@
   }
 
   function cardShellHtml(c) {
-    var span = parseInt(c.span, 10) || DEFAULT_SPAN[c.type] || 6;
     var empty = isEmptyCardDef(c);
     var bodyClass = 'rdb-card-body' + (empty ? '' : ' rdb-card-body--loading');
     return '<div class="rdb-card" data-testid="rdb-card" data-card-id="' + esc(c.id) + '" ' +
       'data-type="' + esc(c.type) + '" draggable="' + (state.editing ? 'true' : 'false') + '" ' +
-      'style="grid-column:span ' + span + '">' +
+      'style="' + cardGeomStyle(cardSpan(c), cardRows(c)) + '">' +
       (state.editing ? cardControlClusterHtml() : '') +
       '<div class="rdb-card-head">' +
         (state.editing ? '<i class="fas fa-grip-vertical rdb-card-grip" aria-hidden="true"></i>' : '') +
@@ -1455,6 +1491,7 @@
       '<div class="' + bodyClass + '" data-testid="rdb-card-body">' +
         (empty ? emptyCardBodyHtml() : loadingBodyHtml(c.type)) +
       '</div>' +
+      (state.editing ? cardResizeHandleHtml() : '') +
     '</div>';
   }
 
@@ -1474,29 +1511,16 @@
     return cardEl;
   }
 
-  // Add-card tile (Task 14): last grid item in edit mode, span 6, type
-  // pills mapped to internal card types via data-add-type (delegated click
-  // in ensureShell). The "drop a saved report here" hint is decorative only
-  // (D14 deviation) -- v1's real affordance is clicking a placeholder card's
-  // body to open the report picker, not cross-view drag of a library card.
+  // Add-card tile: last grid item in edit mode, span 6. Clicking anywhere on
+  // it opens the add-card mask (openAddMask) -- the old type pills are gone,
+  // the mask asks for the type along with the report, title and size.
   function addTileHtml() {
-    return '<div class="rdb-add-tile" data-testid="rdb-add-tile" style="grid-column:span 6">' +
+    return '<button type="button" class="rdb-add-tile" data-testid="rdb-add-tile" ' +
+      'style="grid-column:span 6">' +
       '<span class="rdb-add-tile-icon"><i class="fas fa-plus" aria-hidden="true"></i></span>' +
       '<span class="rdb-add-tile-label">' + esc(I18N.addCardTile) + '</span>' +
-      '<div class="rdb-add-tile-pills">' +
-        '<button type="button" class="rdb-add-pill" data-testid="rdb-add-chart" data-add-type="line">' +
-          '<i class="fas fa-chart-line" aria-hidden="true"></i>' + esc(I18N.pillChart) + '</button>' +
-        '<button type="button" class="rdb-add-pill" data-testid="rdb-add-kpi" data-add-type="kpi">' +
-          '<i class="fas fa-hashtag" aria-hidden="true"></i>' + esc(I18N.pillKpi) + '</button>' +
-        '<button type="button" class="rdb-add-pill" data-testid="rdb-add-table" data-add-type="table">' +
-          '<i class="fas fa-table" aria-hidden="true"></i>' + esc(I18N.pillTable) + '</button>' +
-        '<button type="button" class="rdb-add-pill" data-testid="rdb-add-donut" data-add-type="donut">' +
-          '<i class="fas fa-chart-pie" aria-hidden="true"></i>' + esc(I18N.pillDonut) + '</button>' +
-        '<button type="button" class="rdb-add-pill" data-testid="rdb-add-report" data-add-type="report">' +
-          '<i class="fas fa-window-maximize" aria-hidden="true"></i>' + esc(I18N.pillReport) + '</button>' +
-      '</div>' +
-      '<span class="rdb-add-tile-hint">' + esc(I18N.dropHint) + '</span>' +
-    '</div>';
+      '<span class="rdb-add-tile-hint">' + esc(I18N.addTileHint) + '</span>' +
+    '</button>';
   }
 
   function renderGrid() {
@@ -1511,25 +1535,28 @@
     if (state.editing) grid.insertAdjacentHTML('beforeend', addTileHtml());
   }
 
-  // ---- Drag-to-reorder (D10 -- ported 1:1 from the prototype's
-  // onDragStart/onDragOver/onDrop/onDragEnd). The dashed drop-slot + tilted
-  // drag-image from the mock are explicitly skipped (nice-to-have only, per
-  // the plan) -- only the state transitions + splice mechanics are ported.
-  // Cards are moved via direct DOM insertBefore() on drop rather than a full
-  // renderGrid() re-render, so an in-flight drag never tears down/rebuilds
-  // Chart.js canvases or re-fetches every card's data mid-reorder. ---------
-  function clearDragOverClass() {
-    if (!state.overId) return;
-    var prev = findCardEl(state.overId);
-    if (prev) prev.classList.remove('rdb-card--over');
-  }
-
+  // ---- Drag-to-reorder (D10) ---------------------------------------------
+  // Live reorder: the dragged card is spliced to its landing position the
+  // moment the pointer enters a different card, so the grid itself is the
+  // preview -- the dashed .rdb-card--dragging box sits exactly where the card
+  // will end up, and drop() only has to clear the drag state. Cards are moved
+  // by direct DOM insertBefore() (reorderGridDom) rather than a renderGrid()
+  // re-render, so an in-flight drag never tears down/rebuilds Chart.js
+  // canvases or re-fetches every card's data mid-reorder. -----------------
   function handleGridDragStart(e) {
+    // A corner-resize drag starts with a pointerdown on the same (draggable)
+    // card, so never let it turn into an HTML5 reorder drag as well.
+    if (resizing || (e.target.closest && e.target.closest('[data-testid="rdb-card-resize"]'))) {
+      e.preventDefault();
+      return;
+    }
     var cardEl = e.target.closest && e.target.closest('[data-card-id]');
     if (!state.editing || !cardEl) return;
     state.dragId = cardEl.getAttribute('data-card-id');
+    state.overId = null;
     if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
     cardEl.classList.add('rdb-card--dragging');
+    el('rdbGrid').classList.add('rdb-grid--dragging');
   }
 
   function handleGridDragOver(e) {
@@ -1538,14 +1565,13 @@
     if (!cardEl) return;
     e.preventDefault();  // required for drop to fire
     var id = cardEl.getAttribute('data-card-id');
-    if (id === state.overId) return;
-    clearDragOverClass();
-    if (id !== state.dragId) {
-      state.overId = id;
-      cardEl.classList.add('rdb-card--over');
-    } else {
-      state.overId = null;
-    }
+    // Hovering the dragged card itself is a no-op that deliberately does NOT
+    // clear overId: right after a live move the pointer sits over the moved
+    // card, and re-entering the same neighbour must not splice it back and
+    // forth (that oscillation is what a drop-only reorder avoids for free).
+    if (id === state.dragId || id === state.overId) return;
+    state.overId = id;
+    moveDragged(id);
   }
 
   function reorderGridDom() {
@@ -1557,34 +1583,101 @@
     });
   }
 
-  function handleGridDrop(e) {
-    var cardEl = e.target.closest && e.target.closest('[data-card-id]');
-    if (!state.editing || !cardEl) return;
-    e.preventDefault();
-    var from = state.dragId;
-    var toId = cardEl.getAttribute('data-card-id');
-    clearDragOverClass();
-    if (from && from !== toId) {
-      var cards = state.def.cards || [];
-      var fi = cards.findIndex(function (c) { return c.id === from; });
-      var ti = cards.findIndex(function (c) { return c.id === toId; });
-      if (fi > -1 && ti > -1) {
-        var moved = cards.splice(fi, 1)[0];
-        cards.splice(ti, 0, moved);
-        state.dirty = true;
-        reorderGridDom();
-      }
-    }
-    var dragEl = from && findCardEl(from);
+  function moveDragged(toId) {
+    var cards = (state.def && state.def.cards) || [];
+    var fi = cards.findIndex(function (c) { return c.id === state.dragId; });
+    var ti = cards.findIndex(function (c) { return c.id === toId; });
+    if (fi < 0 || ti < 0 || fi === ti) return;
+    // ti is read off the PRE-removal array (the inner splice is evaluated
+    // first), which is what lands a forward drag after the hovered card and a
+    // backward drag before it -- the same index arithmetic the drop-time
+    // reorder used.
+    cards.splice(ti, 0, cards.splice(fi, 1)[0]);
+    state.dirty = true;
+    reorderGridDom();
+  }
+
+  function endDrag() {
+    var dragEl = state.dragId && findCardEl(state.dragId);
     if (dragEl) dragEl.classList.remove('rdb-card--dragging');
+    var grid = el('rdbGrid');
+    if (grid) grid.classList.remove('rdb-grid--dragging');
     state.dragId = null; state.overId = null;
   }
 
-  function handleGridDragEnd(e) {
-    var cardEl = e.target.closest && e.target.closest('[data-card-id]');
-    if (cardEl) cardEl.classList.remove('rdb-card--dragging');
-    clearDragOverClass();
-    state.dragId = null; state.overId = null;
+  function handleGridDrop(e) {
+    if (!state.editing || !state.dragId) return;
+    e.preventDefault();  // the reorder already happened on dragover
+    endDrag();
+  }
+
+  function handleGridDragEnd() { endDrag(); }
+
+  // ---- Corner resize (span x rows, Pointer Events) ------------------------
+  // No library: the drag maps pixel delta -> whole grid columns / rows,
+  // writes the new geometry straight onto the element's inline style for live
+  // feedback, and commits it to the card (marking the dashboard dirty) on
+  // release. Nothing re-renders while dragging -- every chart is built
+  // responsive:true/maintainAspectRatio:false, so Chart.js re-fits each one
+  // as its container changes size.
+  // ponytail: a line card's fill gradient is built once from the wrap height
+  // at creation, so a resized line card keeps its original fade until the
+  // card re-runs (Edit -> Done). Rebuild it per resize if that ever shows.
+  var resizing = null;
+
+  function pxVar(name, dflt) {
+    var raw = getComputedStyle(el('rdbGrid')).getPropertyValue(name);
+    var n = parseFloat(raw);
+    return isFinite(n) && n > 0 ? n : dflt;
+  }
+
+  function cardResizeHandleHtml() {
+    return '<span class="rdb-card-resize" data-testid="rdb-card-resize" ' +
+      'title="' + esc(I18N.resizeCard) + '" aria-hidden="true"></span>';
+  }
+
+  function handleGridPointerDown(e) {
+    var handle = e.target.closest && e.target.closest('[data-testid="rdb-card-resize"]');
+    if (!state.editing || !handle) return;
+    var cardEl = handle.closest('[data-card-id]');
+    var card = cardEl && findCardById(cardEl.getAttribute('data-card-id'));
+    if (!card) return;
+    e.preventDefault();  // suppresses the native drag this pointerdown would start
+    var gap = pxVar('--rdb-gap', 14);
+    var gridW = el('rdbGrid').getBoundingClientRect().width;
+    var span = cardSpan(card), rows = cardRows(card);
+    resizing = { card: card, cardEl: cardEl, x: e.clientX, y: e.clientY,
+                 span: span, rows: rows, nextSpan: span, nextRows: rows,
+                 colStep: (gridW - gap * (GRID_COLS - 1)) / GRID_COLS + gap,
+                 rowStep: pxVar('--rdb-row', 118) + gap };
+    cardEl.classList.add('rdb-card--resizing');
+    window.addEventListener('pointermove', handleResizeMove);
+    window.addEventListener('pointerup', handleResizeEnd);
+  }
+
+  function handleResizeMove(e) {
+    if (!resizing) return;
+    var span = clampInt(resizing.span + Math.round((e.clientX - resizing.x) / resizing.colStep),
+                        1, GRID_COLS, resizing.span);
+    var rows = clampInt(resizing.rows + Math.round((e.clientY - resizing.y) / resizing.rowStep),
+                        1, MAX_ROWS, resizing.rows);
+    if (span === resizing.nextSpan && rows === resizing.nextRows) return;
+    resizing.nextSpan = span;
+    resizing.nextRows = rows;
+    resizing.cardEl.setAttribute('style', cardGeomStyle(span, rows));
+  }
+
+  function handleResizeEnd() {
+    if (!resizing) return;
+    var r = resizing;
+    resizing = null;
+    window.removeEventListener('pointermove', handleResizeMove);
+    window.removeEventListener('pointerup', handleResizeEnd);
+    r.cardEl.classList.remove('rdb-card--resizing');
+    if (r.nextSpan === r.span && r.nextRows === r.rows) return;
+    r.card.span = r.nextSpan;
+    r.card.rows = r.nextRows;
+    state.dirty = true;   // Done autosaves the new geometry like any edit
   }
 
   // ---- Duplicate / remove (D10) ------------------------------------------
@@ -1680,6 +1773,199 @@
     }) : [];
     var body = overlay.querySelector('[data-testid="rdb-report-picker-body"]');
     if (body) body.innerHTML = reportPickerBodyHtml(reports);
+  }
+
+  // ---- Add-card mask (one dialog: report -> type -> size) ----------------
+  // Replaces the old two-step flow, where a type pill on the add tile dropped
+  // an unconfigured card that then had to be clicked to reach the saved-report
+  // picker. Reads the same GET /api/reporting/reports list that picker uses.
+  // Submitting with no report selected still adds the empty "configure this
+  // card" placeholder, so an empty library is not a dead end -- and
+  // openReportPicker() below still configures those cards.
+  var MASK_TYPES = [
+    { t: 'line',   icon: 'fa-chart-line',      label: 'pillChart' },
+    { t: 'kpi',    icon: 'fa-hashtag',         label: 'pillKpi' },
+    { t: 'table',  icon: 'fa-table',           label: 'pillTable' },
+    { t: 'donut',  icon: 'fa-chart-pie',       label: 'pillDonut' },
+    { t: 'report', icon: 'fa-window-maximize', label: 'pillReport' }
+  ];
+
+  var addMask = { open: false, reportId: null, type: 'line', span: 8, rows: 2,
+                  sizeTouched: false, busy: false };
+
+  function closeAddMask() {
+    var overlay = el('rdbAddMask');
+    if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    addMask.open = false;
+    addMask.busy = false;
+  }
+
+  function maskTypePillsHtml() {
+    return MASK_TYPES.map(function (m) {
+      return '<button type="button" class="rdb-mask-pill" data-mask-type="' + m.t + '" ' +
+        'data-testid="rdb-mask-type-' + m.t + '" aria-pressed="false">' +
+        '<i class="fas ' + m.icon + '" aria-hidden="true"></i>' + esc(I18N[m.label]) + '</button>';
+    }).join('');
+  }
+
+  function maskReportsHtml(reports) {
+    if (!reports.length) return '<p class="rdb-modal-empty">' + esc(I18N.noSavedReports) + '</p>';
+    return '<ul class="rdb-report-list">' + reports.map(function (r) {
+      return '<li><button type="button" class="rdb-report-item" data-testid="rdb-mask-report" ' +
+        'data-report-id="' + esc(r.id) + '" data-report-name="' + esc(r.name) + '" ' +
+        'aria-pressed="false">' + esc(r.name) + '</button></li>';
+    }).join('') + '</ul>';
+  }
+
+  // Single source of truth for the mask's visible state: pressed pills, the
+  // pressed report row, both slider read-outs and the proportional preview
+  // box (width as a share of the 12 columns, height in row units).
+  function syncMask() {
+    var overlay = el('rdbAddMask');
+    if (!overlay) return;
+    Array.prototype.forEach.call(overlay.querySelectorAll('[data-mask-type]'), function (b) {
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-mask-type') === addMask.type));
+    });
+    Array.prototype.forEach.call(overlay.querySelectorAll('[data-testid="rdb-mask-report"]'), function (b) {
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-report-id') === String(addMask.reportId)));
+    });
+    el('rdbMaskSpan').value = addMask.span;
+    el('rdbMaskRows').value = addMask.rows;
+    el('rdbMaskSpanOut').textContent = addMask.span + '/' + GRID_COLS;
+    el('rdbMaskRowsOut').textContent = String(addMask.rows);
+    var box = el('rdbMaskPreviewBox');
+    box.style.width = (addMask.span / GRID_COLS * 100) + '%';
+    box.style.height = (addMask.rows * 17) + 'px';
+    box.textContent = addMask.span + ' × ' + addMask.rows;
+    box.setAttribute('data-geom', addMask.span + 'x' + addMask.rows);
+  }
+
+  async function submitAddMask() {
+    if (addMask.busy) return;
+    var type = addMask.type;
+    var opts = { span: addMask.span, rows: addMask.rows,
+                 title: (el('rdbMaskTitle').value || '').trim() };
+    if (addMask.reportId) {
+      addMask.busy = true;
+      var res = await api('/api/reporting/reports/' + addMask.reportId);
+      addMask.busy = false;
+      if (!addMask.open) return;                      // closed meanwhile
+      if (!res.ok || !res.data) { toast(I18N.couldNotLoad, true); return; }
+      opts.definition = res.data.definition;
+      if (!opts.title) opts.title = res.data.name;
+    }
+    closeAddMask();
+    addCard(type, opts);
+  }
+
+  function applyMaskType(type) {
+    addMask.type = type;
+    // The sliders track the type's default size until the user moves one --
+    // picking "Whole report" after "KPI" should not leave a full report
+    // squeezed into 3 columns.
+    if (!addMask.sizeTouched) {
+      addMask.span = DEFAULT_SPAN[type] || 6;
+      addMask.rows = DEFAULT_ROWS[type] || 2;
+    }
+    syncMask();
+  }
+
+  async function openAddMask() {
+    if (!state.editing) return;
+    closeAddMask();
+    addMask.open = true;
+    addMask.reportId = null;
+    addMask.type = 'line';
+    addMask.sizeTouched = false;
+    addMask.span = DEFAULT_SPAN.line;
+    addMask.rows = DEFAULT_ROWS.line;
+    var overlay = document.createElement('div');
+    overlay.id = 'rdbAddMask';
+    overlay.className = 'rdb-modal-overlay';
+    overlay.setAttribute('data-testid', 'rdb-add-mask');
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', I18N.addCardTitle);
+    overlay.innerHTML =
+      '<div class="rdb-modal rdb-modal--mask">' +
+        '<div class="rdb-modal-head">' +
+          '<span class="rdb-modal-title">' + esc(I18N.addCardTitle) + '</span>' +
+          '<button type="button" class="rdb-modal-close" data-testid="rdb-add-mask-close" ' +
+            'aria-label="' + esc(I18N.cancel) + '"><i class="fas fa-xmark" aria-hidden="true"></i></button>' +
+        '</div>' +
+        '<div class="rdb-modal-body rdb-mask-body">' +
+          '<p class="rdb-mask-step"><span class="rdb-mask-stepno">1</span>' +
+            esc(I18N.maskStepReport) + '</p>' +
+          '<div id="rdbMaskReports" class="rdb-mask-reports" data-testid="rdb-add-mask-reports">' +
+            '<p class="rdb-modal-loading">' + esc(I18N.loading) + '</p></div>' +
+          '<p class="rdb-mask-hint">' + esc(I18N.maskReportHint) + '</p>' +
+          '<p class="rdb-mask-step"><span class="rdb-mask-stepno">2</span>' +
+            esc(I18N.maskStepType) + '</p>' +
+          '<div class="rdb-mask-pills">' + maskTypePillsHtml() + '</div>' +
+          '<p class="rdb-mask-step"><span class="rdb-mask-stepno">3</span>' +
+            esc(I18N.maskStepSize) + '</p>' +
+          '<input id="rdbMaskTitle" class="reporting-input rdb-mask-input" ' +
+            'data-testid="rdb-add-mask-title" aria-label="' + esc(I18N.maskTitle) + '" ' +
+            'placeholder="' + esc(I18N.maskTitle) + '">' +
+          '<div class="rdb-mask-sizes">' +
+            '<label class="rdb-mask-label" for="rdbMaskSpan">' + esc(I18N.maskWidth) +
+              '<span id="rdbMaskSpanOut" class="rdb-mask-out"></span></label>' +
+            '<input type="range" id="rdbMaskSpan" data-testid="rdb-add-mask-span" ' +
+              'min="1" max="' + GRID_COLS + '" step="1">' +
+            '<label class="rdb-mask-label" for="rdbMaskRows">' + esc(I18N.maskHeight) +
+              '<span id="rdbMaskRowsOut" class="rdb-mask-out"></span></label>' +
+            '<input type="range" id="rdbMaskRows" data-testid="rdb-add-mask-rows" ' +
+              'min="1" max="' + MAX_ROWS + '" step="1">' +
+          '</div>' +
+          '<div class="rdb-mask-preview" aria-hidden="true">' +
+            '<div id="rdbMaskPreviewBox" class="rdb-mask-preview-box" ' +
+              'data-testid="rdb-add-mask-preview"></div></div>' +
+        '</div>' +
+        '<div class="rdb-modal-foot">' +
+          '<button type="button" class="nx-btn nx-btn--secondary" data-testid="rdb-add-mask-cancel">' +
+            esc(I18N.cancel) + '</button>' +
+          '<button type="button" class="nx-btn nx-btn--primary" data-testid="rdb-add-mask-submit">' +
+            '<i class="fas fa-plus" aria-hidden="true"></i>' + esc(I18N.addCard) + '</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', function (e) {
+      var hit = e.target.closest ? e.target : null;
+      if (e.target === overlay ||
+          (hit && (hit.closest('[data-testid="rdb-add-mask-close"]') ||
+                   hit.closest('[data-testid="rdb-add-mask-cancel"]')))) {
+        closeAddMask();
+        return;
+      }
+      if (!hit) return;
+      var pill = hit.closest('[data-mask-type]');
+      if (pill) { applyMaskType(pill.getAttribute('data-mask-type')); return; }
+      var pick = hit.closest('[data-testid="rdb-mask-report"]');
+      if (pick) {
+        addMask.reportId = pick.getAttribute('data-report-id');
+        el('rdbMaskTitle').value = pick.getAttribute('data-report-name') || '';
+        syncMask();
+        return;
+      }
+      if (hit.closest('[data-testid="rdb-add-mask-submit"]')) submitAddMask();
+    });
+    overlay.addEventListener('input', function (e) {
+      if (e.target.id !== 'rdbMaskSpan' && e.target.id !== 'rdbMaskRows') return;
+      addMask.sizeTouched = true;
+      addMask.span = clampInt(el('rdbMaskSpan').value, 1, GRID_COLS, addMask.span);
+      addMask.rows = clampInt(el('rdbMaskRows').value, 1, MAX_ROWS, addMask.rows);
+      syncMask();
+    });
+    syncMask();
+
+    var res = await api('/api/reporting/reports');
+    if (!addMask.open) return;   // closed meanwhile
+    var reports = (res.ok && Array.isArray(res.data)) ? res.data.filter(function (r) {
+      return r.owned && r.kind !== 'sql' && r.kind !== 'dashboard';
+    }) : [];
+    var host = el('rdbMaskReports');
+    if (host) host.innerHTML = maskReportsHtml(reports);
+    syncMask();
   }
 
   // ---- Export (D9 -- per-card, gated by data-can-export) ------------------

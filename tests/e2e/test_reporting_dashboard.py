@@ -19,6 +19,23 @@ def _login(page, base, who="admin@test.local"):
     page.goto(f"{base}/dev/login/{who}")
 
 
+def _add_card_via_mask(page, card_type, report_name=None):
+    """Add a card the way the UI does: open the add-card mask from the grid
+    tile, pick the type, optionally adopt a saved report, submit.
+
+    Passing report_name=None leaves the report unpicked, which is still the
+    supported way to drop an empty "configure this card" placeholder.
+    """
+    page.get_by_test_id("rdb-add-tile").click()
+    mask = page.get_by_test_id("rdb-add-mask")
+    expect(mask).to_be_visible()
+    mask.get_by_test_id(f"rdb-mask-type-{card_type}").click()
+    if report_name is not None:
+        mask.get_by_test_id("rdb-mask-report").filter(has_text=report_name).click()
+    mask.get_by_test_id("rdb-add-mask-submit").click()
+    expect(mask).to_be_hidden()
+
+
 def test_new_dashboard_opens_builder_and_saves(nexora_server, page):
     _login(page, nexora_server)
     saved = {}
@@ -761,11 +778,12 @@ def test_edit_mode_remove_button_removes_a_card(nexora_server, page):
     expect(page.locator('[data-testid="rdb-card"][data-card-id="c1"]')).to_have_count(1)
 
 
-def test_add_card_tile_type_pill_adds_new_card_shell(nexora_server, page):
-    """Clicking a type pill on the add-card tile (rdb-add-tile) appends a new
-    empty-definition card shell of that type. A brand-new dashboard opens
-    directly into editing mode with zero cards, so the tile is the only way
-    to add one.
+def test_add_card_mask_without_a_report_adds_an_empty_card_shell(nexora_server, page):
+    """The add-card tile (rdb-add-tile) opens the mask; submitting it with a
+    type but no report selected appends an empty-definition card shell of that
+    type -- the escape hatch that keeps an empty report library from being a
+    dead end. A brand-new dashboard opens directly into editing mode with zero
+    cards, so the tile is the only way to add one.
     """
     _login(page, nexora_server)
 
@@ -787,10 +805,12 @@ def test_add_card_tile_type_pill_adds_new_card_shell(nexora_server, page):
     expect(page.get_by_test_id("rdb-add-tile")).to_be_visible()
     expect(page.get_by_test_id("rdb-card")).to_have_count(0)
 
-    page.get_by_test_id("rdb-add-kpi").click()
+    _add_card_via_mask(page, "kpi")
 
     expect(page.get_by_test_id("rdb-card")).to_have_count(1)
     expect(page.locator('[data-testid="rdb-card"][data-type="kpi"]')).to_have_count(1)
+    # No report adopted -> still the click-to-configure placeholder.
+    expect(page.get_by_test_id("rdb-card-configure")).to_be_visible()
 
 
 def test_add_card_configure_click_opens_picker_and_adopts_report(nexora_server, page):
@@ -882,7 +902,7 @@ def test_add_card_configure_click_opens_picker_and_adopts_report(nexora_server, 
     page.get_by_test_id("rs-new-dashboard").click()
     expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
 
-    page.get_by_test_id("rdb-add-kpi").click()
+    _add_card_via_mask(page, "kpi")  # no report picked -> empty placeholder
     expect(page.get_by_test_id("rdb-card")).to_have_count(1)
 
     page.get_by_test_id("rdb-card-configure").click()
@@ -1545,7 +1565,7 @@ SEQ_COLLISION_DASH = {
 def test_reopen_dashboard_then_add_card_does_not_collide_with_persisted_id(nexora_server, page):
     """Review finding 2: reopening a saved dashboard whose first card already
     uses the persisted id n100 (e.g. minted by an add/duplicate in an earlier
-    session), entering edit mode, and adding a new card via the add-card tile
+    session), entering edit mode, and adding a new card via the add-card mask
     must NOT mint another n100 -- open() has to seed state.seq past the
     highest existing n-/dup-prefixed numeric id in the loaded definition
     instead of always resetting it to 100.
@@ -1565,7 +1585,7 @@ def test_reopen_dashboard_then_add_card_does_not_collide_with_persisted_id(nexor
     expect(page.get_by_test_id("rdb-card")).to_have_count(1)
 
     page.get_by_test_id("rdb-edit-toggle").click()  # Edit -> enter editing mode
-    page.get_by_test_id("rdb-add-kpi").click()
+    _add_card_via_mask(page, "kpi")
 
     cards = page.get_by_test_id("rdb-card")
     expect(cards).to_have_count(2)
@@ -1730,16 +1750,10 @@ def test_report_card_runs_definition_unmodified(nexora_server, page):
     page.goto(f"{nexora_server}/reporting?tab=simple")
     page.get_by_test_id("rs-new-dashboard").click()
     expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
-    expect(page.get_by_test_id("rdb-add-report")).to_have_text("Whole report")
 
-    page.get_by_test_id("rdb-add-report").click()
+    _add_card_via_mask(page, "report", "Documents per month")
     expect(page.get_by_test_id("rdb-card")).to_have_count(1)
     expect(page.locator('[data-testid="rdb-card"][data-type="report"]')).to_have_count(1)
-
-    page.get_by_test_id("rdb-card-configure").click()
-    picker = page.get_by_test_id("rdb-report-picker")
-    expect(picker).to_be_visible()
-    page.get_by_test_id("rdb-report-pick").first.click()
 
     # The whole report: KPI band (Simple's own markup, rdb- prefixed testids),
     # chart canvas, table collapsed behind its toggle. The band's own total
@@ -1838,13 +1852,8 @@ def test_report_card_zero_dim_totals_without_second_run(nexora_server, page):
     page.get_by_test_id("rs-new-dashboard").click()
     expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
 
-    page.get_by_test_id("rdb-add-report").click()
+    _add_card_via_mask(page, "report", "Open workitems total")
     expect(page.get_by_test_id("rdb-card")).to_have_count(1)
-
-    page.get_by_test_id("rdb-card-configure").click()
-    picker = page.get_by_test_id("rdb-report-picker")
-    expect(picker).to_be_visible()
-    page.get_by_test_id("rdb-report-pick").first.click()
 
     # Zero-dim: no chart, and no Buckets/Avg/Peak card (nothing to
     # distribute) -- but the labelled total still renders, from the breakdown
@@ -2237,3 +2246,216 @@ def test_whole_report_card_table_toggle_and_row_drill(nexora_server, page):
     toggle.click()
     expect(table).to_be_hidden()
     expect(toggle).to_have_text("Show table")
+
+
+# ---------------------------------------------------------------------------
+# Add-card mask + corner resize: the card geometry (span x rows) is chosen in
+# the mask, adjustable by dragging a card's bottom-right corner, and persisted
+# on the card as span/rows.
+# ---------------------------------------------------------------------------
+
+MASK_REPORTS = [
+    {
+        "id": 601,
+        "name": "Documents per month",
+        "ownerName": "Admin",
+        "updatedAt": "2026-07-01T00:00:00Z",
+        "visibility": "private",
+        "owned": True,
+        "kind": "line",
+    },
+    {
+        "id": 602,
+        "name": "Raw SQL thing",
+        "ownerName": "Admin",
+        "updatedAt": "2026-07-01T00:00:00Z",
+        "visibility": "private",
+        "owned": True,
+        "kind": "sql",
+    },
+]
+
+MASK_DEFINITION = {
+    "source": "workitems",
+    "metrics": [{"field": "id", "agg": "count"}],
+    "columns": [{"field": "status"}],
+    "filters": [],
+}
+
+
+def _stub_mask_reports(page):
+    """GET /api/reporting/reports -> MASK_REPORTS, POST -> a new report id,
+    GET /api/reporting/reports/601 -> MASK_DEFINITION. Returns the list that
+    captured POST bodies land in."""
+    posted = []
+
+    def handle_reports(route):
+        if route.request.method == "POST":
+            posted.append(route.request.post_data_json)
+            route.fulfill(
+                status=200, content_type="application/json", body=json.dumps({"id": 88, "ok": True})
+            )
+        else:
+            route.fulfill(
+                status=200, content_type="application/json", body=json.dumps(MASK_REPORTS)
+            )
+
+    page.route("**/api/reporting/reports", handle_reports)
+    page.route(
+        "**/api/reporting/reports/601",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "id": 601,
+                    "name": "Documents per month",
+                    "definition": MASK_DEFINITION,
+                    "visibility": "private",
+                    "owned": True,
+                    "canEdit": True,
+                }
+            ),
+        ),
+    )
+    page.route(
+        "**/api/reporting/run",
+        lambda r: r.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "columns": [
+                        {"field": "status", "header": "Status"},
+                        {"field": "id", "header": "Count"},
+                    ],
+                    "rows": [["open", 4], ["closed", 9]],
+                    "rowCount": 2,
+                }
+            ),
+        ),
+    )
+    return posted
+
+
+def test_add_card_mask_adopts_report_type_and_size_in_one_step(nexora_server, page):
+    """One dialog does the whole add: pick the saved report, pick how to draw
+    it, set title + width/height. The card lands configured (no placeholder,
+    no second picker) and Done autosaves the chosen geometry as span/rows.
+    """
+    _login(page, nexora_server)
+    posted = _stub_mask_reports(page)
+
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-dashboard").click()
+    expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
+
+    page.get_by_test_id("rdb-add-tile").click()
+    mask = page.get_by_test_id("rdb-add-mask")
+    expect(mask).to_be_visible()
+
+    # sql-kind rows are filtered out of the report list, like the old picker's.
+    rows = mask.get_by_test_id("rdb-mask-report")
+    expect(rows).to_have_count(1)
+    expect(rows).to_have_text("Documents per month")
+
+    rows.click()
+    # Adopting a report prefills the title with its name.
+    expect(mask.get_by_test_id("rdb-add-mask-title")).to_have_value("Documents per month")
+
+    mask.get_by_test_id("rdb-mask-type-donut").click()
+    expect(mask.get_by_test_id("rdb-mask-type-donut")).to_have_attribute("aria-pressed", "true")
+    expect(mask.get_by_test_id("rdb-mask-type-line")).to_have_attribute("aria-pressed", "false")
+
+    mask.get_by_test_id("rdb-add-mask-span").fill("5")
+    mask.get_by_test_id("rdb-add-mask-rows").fill("3")
+    expect(mask.get_by_test_id("rdb-add-mask-preview")).to_have_attribute("data-geom", "5x3")
+
+    mask.get_by_test_id("rdb-add-mask-submit").click()
+    expect(mask).to_be_hidden()
+
+    card = page.get_by_test_id("rdb-card")
+    expect(card).to_have_count(1)
+    expect(page.locator('[data-testid="rdb-card"][data-type="donut"]')).to_have_count(1)
+    expect(card.locator(".rdb-card-title")).to_have_text("Documents per month")
+    # Configured straight away: real data, not the "configure this card" body.
+    expect(page.get_by_test_id("rdb-donut-center")).to_be_visible()
+
+    style = card.get_attribute("style")
+    assert "span 5" in style, style
+    assert "--rdb-cardrows:3" in style.replace(" ", ""), style
+
+    page.get_by_test_id("rdb-edit-toggle").click()  # Done -> autosave
+    expect(page.get_by_test_id("reporting-toast")).to_contain_text("Dashboard saved")
+    assert len(posted) == 1
+    saved = posted[0]["definition"]["cards"][0]
+    assert saved["type"] == "donut"
+    assert saved["span"] == 5
+    assert saved["rows"] == 3
+    assert saved["title"] == "Documents per month"
+    assert saved["definition"] == MASK_DEFINITION
+
+
+def test_corner_drag_resizes_card_in_grid_steps_and_persists(nexora_server, page):
+    """Dragging a card's bottom-right corner (rdb-card-resize) snaps its width
+    to whole grid columns and its height to whole grid rows, clamping at
+    12 columns; Done then autosaves the new span/rows.
+    """
+    _login(page, nexora_server)
+    posted = _stub_mask_reports(page)
+
+    page.goto(f"{nexora_server}/reporting?tab=simple")
+    page.get_by_test_id("rs-new-dashboard").click()
+    expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
+
+    _add_card_via_mask(page, "kpi", "Documents per month")
+    card = page.get_by_test_id("rdb-card")
+    expect(card).to_have_count(1)
+    # KPI defaults: 3 columns wide, 1 row tall (DEFAULT_SPAN / DEFAULT_ROWS).
+    style = card.get_attribute("style")
+    assert "span 3" in style, style
+    assert "--rdb-cardrows:1" in style.replace(" ", ""), style
+
+    # The drag snaps per column/row step, so derive the step from the live grid
+    # rather than hard-coding a viewport width.
+    step = page.evaluate(
+        """() => {
+            const g = document.getElementById('rdbGrid');
+            const cs = getComputedStyle(g);
+            const gap = parseFloat(cs.getPropertyValue('--rdb-gap'));
+            const row = parseFloat(cs.getPropertyValue('--rdb-row'));
+            return { col: (g.getBoundingClientRect().width - gap * 11) / 12 + gap,
+                     row: row + gap };
+        }"""
+    )
+
+    handle = page.get_by_test_id("rdb-card-resize")
+    box = handle.bounding_box()
+    start_x = box["x"] + box["width"] / 2
+    start_y = box["y"] + box["height"] / 2
+
+    page.mouse.move(start_x, start_y)
+    page.mouse.down()
+    page.mouse.move(start_x + step["col"] * 3, start_y + step["row"] * 2, steps=8)
+    page.mouse.up()
+
+    style = card.get_attribute("style")
+    assert "span 6" in style, style  # 3 + 3 columns
+    assert "--rdb-cardrows:3" in style.replace(" ", ""), style  # 1 + 2 rows
+
+    # Dragging past the last column clamps at the full 12 rather than
+    # overflowing the grid.
+    box = handle.bounding_box()
+    far_x = min(page.viewport_size["width"] - 4, box["x"] + step["col"] * 8)
+    page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+    page.mouse.down()
+    page.mouse.move(far_x, box["y"], steps=8)
+    page.mouse.up()
+    assert "span 12" in card.get_attribute("style")
+
+    page.get_by_test_id("rdb-edit-toggle").click()  # Done -> autosave
+    expect(page.get_by_test_id("reporting-toast")).to_contain_text("Dashboard saved")
+    assert len(posted) == 1
+    saved = posted[0]["definition"]["cards"][0]
+    assert saved["span"] == 12
+    assert saved["rows"] == 3

@@ -446,8 +446,19 @@ not the recipients'.
 tile is its own small report: **KPI** (one number), **line**, **bar**, **donut**
 or **table** — or a **Whole report** tile.
 
-- **Edit / Done** toggles edit mode: drag tiles to rearrange, add, duplicate or
-  remove them, and set the **global filters**.
+- **Edit / Done** toggles edit mode: drag tiles to rearrange or resize them, add,
+  duplicate or remove them, and set the **global filters**.
+- **Add a card** (header button, or the dashed tile at the end of the grid) opens
+  one dialog that asks everything at once: which of your saved reports to show,
+  how to draw it (KPI / chart / donut / table / whole report), its title, and how
+  big it should be — a width in grid columns and a height in rows, sketched as
+  you move the sliders. The tile lands ready, already showing its data. Leave the
+  report unpicked to drop a blank tile and configure it later.
+- **Moving and resizing.** In edit mode a tile is grabbable anywhere: drag it and
+  the grid reflows live, the dashed outline showing where it will land. Drag the
+  little corner grip at its bottom right to resize — the width snaps to the 12
+  columns of the grid, the height to whole rows (up to 6). Both are saved with
+  the dashboard on **Done**.
 - Global filters apply to every tile *except* tiles that override that field —
   those are marked "This card overrides the global filters".
 - A KPI tile shows a "vs previous period" change when its filters contain
