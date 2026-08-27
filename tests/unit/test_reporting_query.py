@@ -130,8 +130,8 @@ def test_anchored_three_lines_shape():
         resolved_metrics=_THREE_LINES,
     )
     # per-anchor legs with aligned counters
-    assert "1 AS [docs_imported], 0 AS [docs_exported], 0 AS [backlog]" in sql
-    assert "0 AS [docs_imported], 1 AS [docs_exported], 0 AS [backlog]" in sql
+    assert "1 AS [docs_imported], 0 AS [docs_exported], NULL AS [backlog]" in sql
+    assert "0 AS [docs_imported], 1 AS [docs_exported], NULL AS [backlog]" in sql
     # backlog leg: unified client.process vocabulary + per-bucket newest snapshot
     assert "LOWER([ClientName]) + N'.' + [ProcessName] AS [processname]" in sql
     assert "[BacklogCount] AS [backlog]" in sql

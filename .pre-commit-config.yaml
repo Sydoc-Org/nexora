@@ -42,15 +42,6 @@ repos:
         args: [--fix, --exit-non-zero-on-fix]
       - id: ruff-format
 
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.13.0
-    hooks:
-      - id: mypy
-        additional_dependencies: []
-        args: [--ignore-missing-imports, --no-strict-optional]
-        files: '^(nx_lib/|nx_main\.py)'
-        stages: [manual]  # advisory; run via `pre-commit run mypy --all-files --hook-stage manual`
-
   - repo: https://github.com/jorisroovers/gitlint
     rev: v0.19.1
     hooks:
@@ -59,6 +50,14 @@ repos:
 
   - repo: local
     hooks:
+      - id: mypy
+        name: mypy type check
+        entry: python -m mypy nx_lib nx_main.py
+        language: system
+        pass_filenames: false
+        files: '^(nx_lib/|nx_main\.py|pyproject\.toml)'
+        stages: [pre-commit]
+
       - id: sql-migrate-int
         name: Apply pending SQL migrations to INT
         entry: python scripts/db-migrate.py --env INT
@@ -78,7 +77,7 @@ repos:
         entry: python scripts/check-reporting-help-sync.py
         language: system
         pass_filenames: false
-        files: '^(templates/(reporting\.html|_reporting_simple\.html|reporting_metrics\.html|reporting_sources\.html|js/_reporting_)|nx_lib/views/reporting\.py)'
+        files: '^(templates/(reporting\.html|_reporting_simple\.html|reporting_metrics\.html|reporting_sources\.html|js/_reporting_)|static/js/reporting_|nx_lib/views/reporting\.py)'
         verbose: true
         stages: [pre-commit]
 

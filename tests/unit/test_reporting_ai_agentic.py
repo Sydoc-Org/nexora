@@ -135,9 +135,18 @@ def test_iter_yields_progress_events_then_exactly_one_result():
         AssistantTurn(text="It is valid."),
     )
     events = list(ask_agentic_iter("q", registry=ToolRegistry(), agent_step=step))
-    assert [e.get("phase") for e in events[:-1]] == ["thinking", "note", "tool", "thinking"]
+    assert [e.get("phase") for e in events[:-1]] == [
+        "thinking",
+        "note",
+        "tool",
+        "tool_result",
+        "thinking",
+    ]
     assert events[1]["text"] == "Let me check that."
     assert events[2]["name"] == "validate_sql"
+    # tool_result carries the raw output under "output", NOT "result" -- every
+    # consumer detects the loop's final event via `"result" in event`.
+    assert events[3]["output"] == {"ok": True}
     assert [("result" in e) for e in events].count(True) == 1
     assert events[-1]["result"].answer == "It is valid."
 
@@ -372,6 +381,15 @@ def test_agent_system_prompt_forbids_resubmitting_identical_failed_sql():
     )
 
 
+def test_agent_explain_suffix_teaches_run_definition():
+    # Lives in the explain_data suffix (not the base _AGENT_SYSTEM) for the same
+    # reason as run_sql — the tool is only bound with reporting.ai.explain_data.
+    from nx_lib.reporting.ai import _AGENT_EXPLAIN_SUFFIX
+
+    assert "run_definition" in _AGENT_EXPLAIN_SUFFIX
+    assert "has only validated the SHAPE" in _AGENT_EXPLAIN_SUFFIX
+
+
 def test_anthropic_translates_prior_tool_results():
     captured = {}
 
@@ -461,3 +479,32 @@ def test_agent_system_prompt_forbids_quitting_and_unexecuted_sql():
 
     assert "did not execute" in _AGENT_SYSTEM
     assert "do not hand the question back" in _AGENT_SYSTEM
+
+
+def test_stage_preview_distills_tool_results():
+    """stage_preview turns raw tool output into the tiny build-stage preview:
+    title from build_definition, total+series from run rows (first numeric
+    cell per row, last 12), rowCount fallback, None for errors/no-data."""
+    from nx_lib.reporting.ai import stage_preview
+
+    assert stage_preview(
+        "build_definition", {"definition": {"title": "Docs 2026"}}, {"ok": True}
+    ) == {"title": "Docs 2026"}
+    assert stage_preview("build_definition", {"definition": {}}, {"ok": True}) is None
+
+    rows = [["2026-01", 5], ["2026-02", 12], ["2026-03", 7]]
+    p = stage_preview("run_definition", {}, {"ok": True, "rows": rows, "rowCount": 3})
+    assert p == {"total": 24.0, "series": [5.0, 12.0, 7.0]}
+
+    # bool cells are not numbers; numeric-less rows fall back to the row count
+    p = stage_preview("run_sql", {}, {"ok": True, "rows": [["a", True], ["b", None]]})
+    assert p == {"total": 2}
+
+    # caps to the last 12 rows
+    many = [[i] for i in range(20)]
+    p = stage_preview("run_sql", {}, {"ok": True, "rows": many})
+    assert p["series"] == [float(i) for i in range(8, 20)]
+
+    assert stage_preview("run_sql", {}, {"ok": False, "error": "x"}) is None
+    assert stage_preview("run_sql", {}, {"ok": True, "rows": []}) is None
+    assert stage_preview("validate_sql", {}, {"ok": True}) is None

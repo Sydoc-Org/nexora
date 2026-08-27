@@ -49,6 +49,34 @@ window.ReportingDrill = (function () {
 
   var SMART_FIELDS = ['workitem_id', 'processname', 'import_date', 'export_date'];
 
+  // Date-anchored measures (imported/exported/backlog) plot on a VIRTUAL time
+  // axis, 'activity_date', that no table actually has -- /api/reporting/run
+  // only accepts it alongside those measures. A drill is a raw-row grid with
+  // no measures at all, so carrying the axis through made every drill on such
+  // a report 400 with "'activity_date' is only valid with date-anchored
+  // measures". Translate it back to the anchor's own date column instead.
+  var ACTIVITY_FIELD = 'activity_date';
+  var metricsBySource = null;
+  var metricsReady = ReportingCatalog.metrics()
+    .then(function (j) { metricsBySource = j || {}; })
+    .catch(function () { metricsBySource = {}; });
+
+  // The one real date column behind a definition's measures, or null when
+  // there is none, when they disagree, or when the anchor is 'backlog' (a
+  // snapshot count with no per-row date). Two anchors would need an OR across
+  // two date columns, which a raw-row query can't express -- better to cancel
+  // the drill than to show rows filtered on the wrong date.
+  function anchorFieldFor(def) {
+    var list = (metricsBySource || {})[def.source] || [];
+    var seen = {};
+    (def.metrics || []).forEach(function (m) {
+      var hit = list.find(function (x) { return x.code === m.metric; });
+      if (hit && hit.anchor) seen[hit.anchor] = 1;
+    });
+    var anchors = Object.keys(seen);
+    return anchors.length === 1 && anchors[0] !== 'backlog' ? anchors[0] : null;
+  }
+
   // In-page toast -- same DOM/CSS contract as the Advanced tab's private
   // toast() (.reporting-toast / data-testid="reporting-toast", defined in
   // _reporting_js.html): this module is self-contained (like the dashboard
@@ -97,6 +125,22 @@ window.ReportingDrill = (function () {
     var filters = (def.filters || []).map(function (x) {
       return JSON.parse(JSON.stringify(x));
     });
+    // Both the clicked bucket and the report's own filters can sit on the
+    // virtual activity axis -- rewrite both, or cancel if it has no single
+    // real date column to stand for it.
+    var usesActivity = clicked.some(function (c) { return c.field === ACTIVITY_FIELD; }) ||
+      filters.some(function (f) { return f.field === ACTIVITY_FIELD; });
+    if (usesActivity) {
+      var anchorField = anchorFieldFor(def);
+      if (!anchorField || !byField[anchorField]) return null;
+      clicked = clicked.map(function (c) {
+        return c.field === ACTIVITY_FIELD
+          ? { field: anchorField, grain: c.grain, value: c.value } : c;
+      });
+      filters.forEach(function (f) {
+        if (f.field === ACTIVITY_FIELD) f.field = anchorField;
+      });
+    }
     var unfilterable = false;
     clicked.forEach(function (c) {
       if (c.grain) {
@@ -264,6 +308,12 @@ window.ReportingDrill = (function () {
 
   /* opts: {definition, fields, clicked, header, isDistinct} */
   function open(opts) {
+    // The anchor lookup needs the metric catalog; on the very first drill of a
+    // session it may still be in flight.
+    if (metricsBySource === null) {
+      metricsReady.then(function () { open(opts); });
+      return;
+    }
     var dd = buildDrillDefinition(opts.definition, opts.fields, opts.clicked);
     if (!dd) { toast(I18N.cannotFilter, true); return; }
     current = { definition: dd };

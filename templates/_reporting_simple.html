@@ -1,3 +1,4 @@
+{% import '_eddard.html' as eddard %}
 {# ============================================================
    Simple pane (Spec 2) — report library + guided wizard + ask-AI
    helper, card-based results. Self-contained: behavior lives in
@@ -6,68 +7,71 @@
    window.ReportingTabs. Advanced (the full builder) is untouched.
    ============================================================ #}
 <section class="reporting-simple nx-rise" data-testid="reporting-simple">
-  <div id="rsHero" class="reporting-hero nx-rise" data-testid="rs-hero">
-    <h2 class="reporting-hero__title">{{ _("Build a report in seconds") }}</h2>
-    <p class="reporting-hero__sub">{{ _("Ask in plain language, or step through the guided builder.") }}</p>
-    {% if ai_enabled %}
-    <div class="reporting-hero__aiwrap">
-      <div class="reporting-simple-aibar" id="rsAiBar" data-testid="rs-ai-bar">
-        <i class="fas fa-wand-magic-sparkles reporting-hero__wand" aria-hidden="true"></i>
-        <input id="rsAiPrompt" class="reporting-hero__aiinput"
-               placeholder="{{ _('Ask AI — e.g. “documents per month this year”') }}"
-               data-testid="rs-ai-prompt">
-        <button id="rsAiAsk" class="reporting-hero__aibtn" data-testid="rs-ai-ask">{{ _("Ask AI") }}</button>
-      </div>
-    </div>
-    <div class="reporting-hero__chips">
-      <button type="button" class="rs-suggestion" data-testid="rs-suggestion">{{ _("documents per month this year") }}</button>
-      <button type="button" class="rs-suggestion" data-testid="rs-suggestion">{{ _("invoices by process, last 3 months") }}</button>
-      <button type="button" class="rs-suggestion" data-testid="rs-suggestion">{{ _("pages processed per week") }}</button>
-    </div>
-    {% endif %}
-    <div class="reporting-hero__actions">
-      <button id="rsNewReport" class="nx-btn nx-btn--secondary" data-testid="rs-new-report">
-        <i class="fas fa-plus" aria-hidden="true"></i>{{ _("New report — guided builder") }}</button>
-      <button id="rsNewDashboard" class="nx-btn nx-btn--secondary reporting-hero__dashbtn" data-testid="rs-new-dashboard">
-        <i class="fas fa-table-cells-large" aria-hidden="true"></i>{{ _("New dashboard") }}</button>
-    </div>
-  </div>
-
+  {# Console Library screen: header row (title + count + actions), filter row
+     (search / sort / 2-or-4-per-row layout toggle), then the three grouped
+     card grids. The old hero + global Ask-AI bar are gone by design (intent
+     #1: search lives inside the Library screen only; AI lives in the chat
+     panel behind the top-bar button). #}
   <div id="rsLibrary" data-testid="rs-library">
-    <div class="rs-group-head">
-      <h3 class="reporting-simple-h">{{ _("My reports") }}</h3>
-      <span class="rs-count-pill" id="rsCountMine"></span>
-      <span class="rs-group-spacer"></span>
+    <div class="rc-screen-head">
+      <h1 class="rc-h1">{{ _("Library") }}</h1>
+      <span class="rc-pill" id="rsCountAll" data-testid="rs-count-all"></span>
+      <span class="rc-screen-spacer"></span>
+      <button id="rsNewDashboard" class="rc-btn" data-testid="rs-new-dashboard">
+        <i class="fas fa-table-cells-large rc-btn-ico--muted" aria-hidden="true"></i>{{ _("New dashboard") }}</button>
+      <button id="rsNewReport" class="rc-btn rc-btn--primary" data-testid="rs-new-report">
+        <i class="fas fa-plus" aria-hidden="true"></i>{{ _("New report") }}</button>
+    </div>
+    <div class="rc-filter-row">
       <span class="rs-search-wrap"><i class="fas fa-magnifying-glass" aria-hidden="true"></i>
-        <input id="rsSearch" class="reporting-input reporting-simple-search"
+        <input id="rsSearch" class="rc-input reporting-simple-search"
                placeholder="{{ _('Search reports…') }}" data-testid="rs-search"></span>
+      <select id="rsSort" class="rc-select" data-testid="rs-sort" aria-label="{{ _('Sort reports') }}">
+        <option value="updated">{{ _("Recently updated") }}</option>
+        <option value="name">{{ _("Name") }}</option>
+      </select>
+      <span class="rc-layout-toggle" role="group" aria-label="{{ _('Card layout') }}">
+        <button type="button" id="rsLayout2" title="{{ _('2 per row') }}" aria-label="{{ _('2 per row') }}"
+                data-testid="rs-layout-2"><i class="fas fa-table-cells-large" aria-hidden="true"></i></button>
+        <button type="button" id="rsLayout4" title="{{ _('4 per row') }}" aria-label="{{ _('4 per row') }}"
+                data-testid="rs-layout-4"><i class="fas fa-table-cells" aria-hidden="true"></i></button>
+      </span>
+    </div>
+    <div class="rc-group-head">
+      <span class="rc-group-title">{{ _("My reports") }}</span>
+      <span class="rc-group-count" id="rsCountMine"></span>
+      <span class="rc-group-rule"></span>
     </div>
     <div id="rsGroupMine" class="reporting-simple-grid" data-testid="rs-group-mine"></div>
-    <div class="rs-group-head">
-      <h3 class="reporting-simple-h">{{ _("Library") }}</h3>
-      <span class="rs-count-pill" id="rsCountShared"></span>
+    <div class="rc-group-head">
+      <span class="rc-group-title">{{ _("Library") }}</span>
+      <span class="rc-group-count" id="rsCountShared"></span>
+      <span class="rc-group-rule"></span>
     </div>
     <div id="rsGroupShared" class="reporting-simple-grid" data-testid="rs-group-shared"></div>
-    <div class="rs-group-head">
-      <h3 class="reporting-simple-h">{{ _("Shared with me") }}</h3>
-      <span class="rs-count-pill" id="rsCountDirect"></span>
+    <div class="rc-group-head">
+      <span class="rc-group-title">{{ _("Shared with me") }}</span>
+      <span class="rc-group-count" id="rsCountDirect"></span>
+      <span class="rc-group-rule"></span>
     </div>
     <div id="rsGroupDirect" class="reporting-simple-grid" data-testid="rs-group-direct"></div>
   </div>
 
   <div id="rsWizard" class="reporting-simple-wizard" hidden data-testid="rs-wizard">
-    <div class="rs-wizard-head">
-      <button id="rsWizardClose2" class="nx-btn nx-btn--secondary rs-wizard-backlib" data-testid="rs-wizard-backlib">
-        <i class="fas fa-arrow-left" aria-hidden="true"></i>{{ _("Library") }}</button>
-      <h2 class="rs-wizard-title">{{ _("New report") }}</h2>
-      <span class="rs-wizard-spacer"></span>
+    <div class="rs-wizard-head rc-screen-head">
+      <button id="rsWizardClose2" class="rc-crumb-link" data-testid="rs-wizard-backlib">{{ _("Library") }}</button>
+      <span class="rc-crumb-sep" aria-hidden="true">/</span>
+      <h2 class="rs-wizard-title rc-h1">{{ _("New report") }}</h2>
+      <span class="rs-wizard-spacer rc-screen-spacer"></span>
       <span id="rsWizardStepNo" class="rs-wizard-stepno"></span>
-      <button id="rsWizardClose" class="reporting-link reporting-simple-close" data-testid="rs-wizard-close"
+      <button id="rsWizardClose" class="rc-btn rc-btn--icon reporting-simple-close" data-testid="rs-wizard-close"
               title="{{ _('Back to library') }}" aria-label="{{ _('Back to library') }}">&times;</button>
     </div>
+    {# The rail renders the four step chips horizontally (Console); same
+       renderWizardRail() markup, restyled by reporting-console.css. #}
+    <div id="rsWizardRail" class="rs-wizard-rail" data-testid="rs-wizard-rail"></div>
     <div class="rs-wizard-grid">
-      <div id="rsWizardRail" class="rs-wizard-rail" data-testid="rs-wizard-rail"></div>
-      <div class="rs-wizard-stepcard">
+      <div class="rs-wizard-stepcard rc-card">
         <div class="reporting-simple-step" id="rsStepMeasure">
           <h3 class="reporting-simple-h">{{ _("What do you want to measure?") }}</h3>
           <div id="rsMeasureList" class="reporting-simple-choices" data-testid="rs-measure-list"></div>
@@ -119,6 +123,13 @@
                   data-testid="rs-wizard-run">{{ _("Show result") }}</button>
         </div>
       </div>
+      {# "So far" summary panel (Console): filled by renderWizardRail() in the
+         JS partial alongside the step chips. #}
+      <div class="rc-card rs-wizard-summary" data-testid="rs-wizard-summary">
+        <div class="rc-side-card__label">{{ _("So far") }}</div>
+        <div id="rsWizSummary"></div>
+        <p class="rs-wizard-summary-hint">{{ _("The next step only offers fields these processes provide.") }}</p>
+      </div>
     </div>
   </div>
 
@@ -129,8 +140,13 @@
        group + primary Save + the new ⋯ overflow menu hosting the unchanged
        rsOpenAdvanced/rsShowSql buttons + Exit. Every existing id/testid stays
        in the DOM -- only placement and visual treatment change (D6). #}
+    <div class="rc-crumbs" data-testid="rs-crumbs">
+      <button id="rsBack" class="rc-crumb-link" data-testid="rs-back">{{ _("Library") }}</button>
+      <span class="rc-crumb-sep" aria-hidden="true">/</span>
+      <span id="rsCrumbName" class="rc-crumb-here"></span>
+      <span id="rsSavedChip" class="rc-chip-saved" hidden data-testid="rs-saved-chip">{{ _("Saved") }}</span>
+    </div>
     <div class="reporting-simple-resultbar">
-      <button id="rsBack" class="nx-btn nx-btn--secondary rs-wizard-backlib" data-testid="rs-back">&larr; {{ _("Back") }}</button>
       <div class="rs-result-titleblock">
         <div class="rs-result-titlerow">
           <h3 id="rsResultTitle" class="reporting-simple-rtitle" data-testid="rs-result-title"></h3>
@@ -140,11 +156,13 @@
           </button>
           <input id="rsSaveName" class="reporting-input rs-rename-input" hidden data-testid="rs-save-name"
                  aria-label="{{ _('Report name') }}">
+          <p id="rsResultMeta" class="rs-result-meta" data-testid="rs-result-meta"></p>
         </div>
-        <p id="rsResultMeta" class="rs-result-meta" data-testid="rs-result-meta"></p>
       </div>
       <span class="rs-result-spacer"></span>
       <span class="reporting-simple-ractions">
+        <button id="rsRunAgain" class="rc-btn rc-btn--tint" data-testid="rs-run-again">
+          <i class="fas fa-play" aria-hidden="true"></i>{{ _("Run again") }}</button>
         <button id="rsAdjustWizard" class="reporting-btn nx-btn nx-btn--secondary" hidden
                 data-testid="rs-adjust-wizard">{{ _("Adjust") }}</button>
         {% if has_permission('reporting.export') %}
@@ -168,6 +186,12 @@
                     data-testid="rs-open-advanced">{{ _("Open in Advanced") }}</button>
             <button type="button" id="rsShowSql" class="rs-more-row" hidden role="menuitem"
                     data-testid="rs-show-sql">{{ _("Show query") }}</button>
+            {# Save writes back to the open report; this is the explicit
+               make-a-new-one path (only meaningful once it IS a saved one). #}
+            <button type="button" id="rsSaveCopy" class="rs-more-row" hidden role="menuitem"
+                    data-testid="rs-save-copy">{{ _("Save as copy") }}</button>
+            <button type="button" id="rsDeleteReport" class="rs-more-row rs-more-row--danger" hidden role="menuitem"
+                    data-testid="rs-delete-report">{{ _("Delete report") }}</button>
           </div>
         </div>
         <button id="rsExit" class="reporting-link reporting-simple-close nx-btn nx-btn--ghost nx-btn--sm" data-testid="rs-exit"
@@ -182,24 +206,24 @@
     <p id="rsMsg" class="reporting-ai-explain" hidden data-testid="rs-msg"></p>
     <div id="rsChips" class="reporting-simple-chips" hidden data-testid="rs-chips"></div>
     <p id="rsError" class="reporting-ai-error" hidden data-testid="rs-error"></p>
-    <div class="rs-result-grid">
-      <div class="rs-result-left">
-        {# Task 7 -- .nx-rise entrance (fill-mode backwards, never both --
-           see nexora-ui.css) restarts each run: these cards go hidden (thus
-           unrendered) between runs, so the browser treats the next unhide
-           as a fresh insertion. Staggered with rsChartCard/rsTableCard
-           below so the result reveals top-to-bottom. #}
-        <div class="nx-card nx-card--pad nx-stat reporting-simple-stat nx-rise" id="rsStatCard" hidden data-testid="rs-stat-card">
-          <div id="rsStatBody">
-            <p class="nx-stat__label" id="rsStatLabel"></p>
-            <div class="nx-stat__value" id="rsStatValue"></div>
-          </div>
-          <i class="fas fa-chart-simple nx-stat__icon" aria-hidden="true"></i>
-        </div>
-        <div id="rsKpiBand" class="reporting-ledger-kpis nx-rise" hidden data-testid="rs-kpi-band"></div>
-      </div>
+    {# Console result layout: KPI row on top, then the main row — chart card
+       stretching the full row height beside a 292px side column (AI insight +
+       Query), then the rows table. The band owns every headline figure --
+       one labelled total per metric, then the primary measure's
+       buckets/avg/peak; the separate rsStatCard that repeated the grand
+       totals is retired.
+       .nx-rise entrance (fill-mode backwards, never both -- see
+       nexora-ui.css) restarts each run: the band goes hidden (thus
+       unrendered) between runs, so the browser treats the next unhide as a
+       fresh insertion. Staggered with rsChartCard/rsTableCard below so the
+       result reveals top-to-bottom. #}
+    <div class="rs-kpi-row">
+      <div id="rsKpiBand" class="reporting-ledger-kpis nx-rise" hidden data-testid="rs-kpi-band"></div>
+    </div>
+    <div class="rs-result-main">
       <div class="nx-card nx-card--pad reporting-simple-chartcard nx-rise-2" id="rsChartCard" hidden data-testid="rs-chart-card">
         <div class="reporting-simple-charttools" id="rsChartTools" hidden data-testid="rs-chart-tools">
+          <span id="rsChartTitle" class="rs-chart-title" data-testid="rs-chart-title"></span>
           <div class="rs-chart-track">
             <button type="button" class="reporting-chartbtn" data-type="bar" title="{{ _('Bar chart') }}" aria-label="{{ _('Bar chart') }}" data-testid="rs-chart-bar"><i class="fas fa-chart-column" aria-hidden="true"></i></button>
             <button type="button" class="reporting-chartbtn" data-type="line" title="{{ _('Line chart') }}" aria-label="{{ _('Line chart') }}" data-testid="rs-chart-line"><i class="fas fa-chart-line" aria-hidden="true"></i></button>
@@ -215,36 +239,69 @@
             <option value="14">+14</option>
             <option value="30">+30</option>
           </select>
+          <button type="button" class="reporting-chartbtn" id="rsStyleToggle" aria-pressed="false" aria-expanded="false" aria-controls="rsStylePop" title="{{ _('Colours & axes') }}" aria-label="{{ _('Colours & axes') }}" data-testid="rs-style-toggle"><i class="fas fa-palette" aria-hidden="true"></i></button>
+        </div>
+        {# Colours & axes popover: one colour input per series (+ right-axis
+           toggle), one for the title/legend, Reset. Rows are built by
+           syncStyleCtl() in _reporting_simple_js.html from the mounted chart. #}
+        <div id="rsStylePop" class="rs-style-pop" hidden data-testid="rs-style-pop">
+          <div id="rsStyleRows"></div>
+          <div class="rs-style-row rs-style-row--title">
+            <input type="color" id="rsStyleTitleColor" aria-label="{{ _('Title colour') }}" data-testid="rs-style-title-color">
+            <span>{{ _('Title & legend') }}</span>
+          </div>
+          <button type="button" class="reporting-link rs-style-reset" id="rsStyleReset" data-testid="rs-style-reset">{{ _('Reset colours') }}</button>
         </div>
         <p id="rsChartNote" class="reporting-simple-chartnote" hidden data-testid="rs-chart-note"></p>
-        <canvas id="rsChartCanvas"></canvas>
+        {# Fixed-position wrapper so Chart.js's responsive resize can't enter
+           a grow-forever feedback loop inside the stretched flex card. #}
+        <div class="rs-chart-body"><canvas id="rsChartCanvas"></canvas></div>
       </div>
-    </div>
-    {# Task 13 -- auto AI caption, fired after every successful run render
-       (fireCaption() in the JS partial). Only present for a
-       reporting.ai.explain_data holder -- the div's mere absence is how a
-       user without the permission never sees the feature at all. #}
-    {% if ai_caption_enabled %}
-    <div id="rsCaption" class="rp-caption" hidden data-testid="rs-caption"></div>
-    {% endif %}
-    <div class="nx-card nx-card--pad rs-table-card nx-rise-3" id="rsTableCard" hidden data-testid="rs-table-card">
-      <div class="rs-table-card__head">
-        <span class="rs-table-card__titlewrap">
-          <span class="rs-table-card__title">{{ _("Table") }}<span id="rsTableRowCount" class="rs-table-card__count"></span></span>
-          <button id="rsTableToggle" class="reporting-link" hidden data-testid="rs-table-toggle">{{ _("Show table") }}</button>
-        </span>
-        <p class="reporting-simple-hint rs-table-card__hint" id="rsDrillHint" hidden data-testid="rs-drill-hint">{{ _("Click a row or chart element to see the documents behind it.") }}</p>
-      </div>
-      <div id="rsTableWrap" class="reporting-table-wrap reporting-simple-table" hidden data-testid="rs-table"></div>
-      <button type="button" id="rsSqlPeek" class="reporting-ledger-sqlpeek" hidden data-testid="rs-sql-peek"></button>
-    </div>
-      <div class="nx-card nx-card--pad reporting-sqlview" id="rsSqlView" hidden data-testid="rs-sql-view">
-        <div class="reporting-sqlview-bar">
-          <span><i class="fas fa-database" aria-hidden="true"></i>{{ _("Query sent to the database") }}</span>
-          <button type="button" id="rsSqlCopy" class="reporting-link" data-testid="rs-sql-copy">{{ _("Copy") }}</button>
+      <div class="rs-result-side nx-rise-2">
+        {# Auto AI caption ("AI insight" card), fired after every successful
+           run render (fireCaption() in the JS partial). Only present for a
+           reporting.ai.explain_data holder -- the div's mere absence is how a
+           user without the permission never sees the feature at all. #}
+        {% if ai_caption_enabled %}
+        {# Wrapper visibility mirrors #rsCaption's own hidden flag via CSS
+           :has() in reporting-console.css — the JS keeps toggling only
+           #rsCaption exactly as before. #}
+        <div class="rc-card rc-side-card" id="rsCaptionCard" data-testid="rs-caption-card">
+          <div class="rc-side-card__head rc-side-card__head--ai">
+            {{ eddard.mark(20, cls='ed--calm') }}{{ _("Eddard insight") }}
+          </div>
+          <div id="rsCaption" class="rp-caption rc-side-card__body" hidden data-testid="rs-caption"></div>
         </div>
-        <pre id="rsSqlText"></pre>
+        {% endif %}
+        {# Anomalies card: computed client-side from the rows already on hand
+           (renderAnomalies() in the JS partial) — biggest latest-bucket move
+           per series + series peaks. Hidden when nothing stands out. #}
+        <div class="rc-card rc-side-card" id="rsAnomCard" hidden data-testid="rs-anomalies">
+          <div class="rc-side-card__head">{{ _("Anomalies") }}</div>
+          <div id="rsAnomRows"></div>
+        </div>
+        <div class="rc-card rc-side-card reporting-sqlview" id="rsSqlView" hidden data-testid="rs-sql-view">
+          <div class="reporting-sqlview-bar rc-side-card__head">
+            <span>{{ _("Query") }}</span>
+            <button type="button" id="rsSqlCopy" class="reporting-link" data-testid="rs-sql-copy">{{ _("Copy") }}</button>
+          </div>
+          <pre id="rsSqlText"></pre>
+        </div>
       </div>
+      {# Table sits in the chart's column (grid row 2) so the side column's
+         height is filled by data instead of stretching the chart. #}
+      <div class="nx-card nx-card--pad rs-table-card nx-rise-3" id="rsTableCard" hidden data-testid="rs-table-card">
+        <div class="rs-table-card__head">
+          <span class="rs-table-card__titlewrap">
+            <span class="rs-table-card__title">{{ _("Table") }}<span id="rsTableRowCount" class="rs-table-card__count"></span></span>
+            <button id="rsTableToggle" class="reporting-link" hidden data-testid="rs-table-toggle">{{ _("Show table") }}</button>
+          </span>
+          <p class="reporting-simple-hint rs-table-card__hint" id="rsDrillHint" hidden data-testid="rs-drill-hint">{{ _("Click a row or chart element to see the documents behind it.") }}</p>
+        </div>
+        <div id="rsTableWrap" class="reporting-table-wrap reporting-simple-table" hidden data-testid="rs-table"></div>
+        <button type="button" id="rsSqlPeek" class="reporting-ledger-sqlpeek" hidden data-testid="rs-sql-peek"></button>
+      </div>
+    </div>
   </div>
 
   {# Task 11 -- dashboard builder view (kind:'dashboard' saved reports). Empty

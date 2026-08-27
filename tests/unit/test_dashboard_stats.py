@@ -1,10 +1,11 @@
 """Unit tests for the dashboard stats helpers.
 
-Covers `_split_stat_configs` (partitions `dbo.Statconfig` rows by serving client
-so the StatisticsDB T-SQL path only sees 'default' rows and the MS02 Postgres
-path gets its own rows) and `_ms02_source` (resolves the MS02 stats table +
-date columns from those rows, quoting the PascalCase Postgres identifiers).
-"""
+Covers `_split_stat_configs` (partitions `mapping_config.ProcessSource` rows
+by serving client so the StatisticsDB T-SQL path only sees 'default' rows
+and the MS02 Postgres path gets its own rows), `_ms02_source` (resolves the
+MS02 stats table + date columns from those rows, quoting the PascalCase
+Postgres identifiers) and `_statconfig_sources` (the mapping_config-backed
+successor to the legacy per-call Statconfig cursor read, #98)."""
 
 import types
 from datetime import date, timedelta
@@ -14,16 +15,24 @@ import pytest
 from flask import session
 
 import nx_lib.views.dashboard as dv
+from nx_lib.mapping_config import ProcessSource
 from nx_lib.views.dashboard import _ms02_source, _split_stat_configs
 
 
 def _row(client_code, name="p", table=None, exp=None, imp=None):
-    return types.SimpleNamespace(
-        ClientCode=client_code,
-        ProcessName=name,
-        TableName=table,
-        ExportColumn=exp,
-        ImportColumn=imp,
+    return ProcessSource(
+        client=client_code,
+        process=name,
+        table=table,
+        alias=None,
+        join_condition=None,
+        time_filter=None,
+        suggestion_time_filter=None,
+        export_column=exp,
+        import_column=imp,
+        workitem_column=None,
+        extra_condition=None,
+        id_column_type=None,
     )
 
 
@@ -65,15 +74,6 @@ def test_ms02_only():
     assert ms02_rows == [m1, m2]
 
 
-def test_missing_clientcode_attribute_treated_as_default():
-    # A row object that doesn't even carry a ClientCode attribute (pre-0024
-    # shaped data) must still count as 'default'.
-    r = types.SimpleNamespace(ProcessName="a")
-    default_rows, ms02_rows = _split_stat_configs([r])
-    assert default_rows == [r]
-    assert ms02_rows == []
-
-
 def test_empty_configs():
     default_rows, ms02_rows = _split_stat_configs([])
     assert default_rows == []
@@ -92,7 +92,7 @@ def test_ms02_source_quotes_pascalcase_columns():
         "ms02", "sydoc.05_PDBS", 'public."DossierStatistik"', "DatumInTempExport", "ImportDate"
     )
     table, exp, imp = _ms02_source([r])
-    # TableName passes through verbatim (already schema-qualified + quoted).
+    # table passes through verbatim (already schema-qualified + quoted).
     assert table == 'public."DossierStatistik"'
     # Column names get wrapped as Postgres identifiers.
     assert exp == '"DatumInTempExport"'
@@ -113,19 +113,52 @@ def test_ms02_source_escapes_embedded_quote():
     assert exp == '"we""ird"'
 
 
+# ------------------------- _statconfig_sources ------------------------- #
+# Successor to the legacy per-call Statconfig cursor read: reads through
+# nx_lib.mapping_config.registry()/sources_for(client=None, ...), raising if
+# the registry itself failed to load (parity with the old "Statconfig read
+# always RAISES on failure" contract the external API's strict callers and
+# the dashboard's uncached-500 depend on).
+
+
+def test_statconfig_sources_raises_when_registry_unavailable(app, monkeypatch):
+    monkeypatch.setattr(dv.mapping_config, "registry", lambda: None)
+    with app.app_context(), pytest.raises(Exception):  # noqa: B017
+        dv._statconfig_sources(["sydoc.Alpha"])
+
+
+def test_statconfig_sources_delegates_to_sources_for(app, monkeypatch):
+    sentinel = [_row("default", "sydoc.Alpha")]
+    monkeypatch.setattr(dv.mapping_config, "registry", lambda: object())
+    calls = []
+
+    def _fake_sources_for(client, processes=None):
+        calls.append((client, processes))
+        return sentinel
+
+    monkeypatch.setattr(dv.mapping_config, "sources_for", _fake_sources_for)
+    with app.app_context():
+        assert dv._statconfig_sources(["sydoc.Alpha"]) == sentinel
+    assert calls == [(None, ["sydoc.Alpha"])]
+
+
 # ------------------- per-leg isolation (default T-SQL leg) ------------------- #
-# The existing _row helper deliberately lacks additionalCondition; the route
-# reads it, so config-row fakes for route-level tests need their own shape.
 
 
 def _cfg_row(client, name, table, exp, imp, cond=None):
-    return types.SimpleNamespace(
-        ClientCode=client,
-        ProcessName=name,
-        TableName=table,
-        ExportColumn=exp,
-        ImportColumn=imp,
-        additionalCondition=cond,
+    return ProcessSource(
+        client=client,
+        process=name,
+        table=table,
+        alias=None,
+        join_condition=None,
+        time_filter=None,
+        suggestion_time_filter=None,
+        export_column=exp,
+        import_column=imp,
+        workitem_column=None,
+        extra_condition=cond,
+        id_column_type=None,
     )
 
 
@@ -159,6 +192,23 @@ _CONFIGS = [
 ]
 
 
+def _stub_sources(monkeypatch, configs):
+    """Replace mapping_config.registry()/sources_for() so _statconfig_sources
+    returns `configs` -- the direct successor to monkeypatching
+    dv.engine_nexora_db with a fake cursor around the legacy Statconfig SELECT."""
+    monkeypatch.setattr(dv.mapping_config, "registry", lambda: object())
+    monkeypatch.setattr(
+        dv.mapping_config, "sources_for", lambda client, processes=None: list(configs)
+    )
+
+
+def _stub_sources_dead(monkeypatch, msg="NexoraDB down"):
+    def _boom():
+        raise RuntimeError(msg)
+
+    monkeypatch.setattr(dv.mapping_config, "registry", _boom)
+
+
 def test_default_stat_rows_returns_rows(app, monkeypatch):
     monkeypatch.setattr(dv, "engine_statistics_db", _engine_returning([(1,)]))
     with app.app_context():
@@ -172,7 +222,7 @@ def test_default_stat_rows_swallows_and_logs_errors(app, monkeypatch):
 
 
 def test_processed_over_time_serves_ms02_when_statistics_db_dead(app, monkeypatch):
-    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning(_CONFIGS))
+    _stub_sources(monkeypatch, _CONFIGS)
     monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine())
     today = date.today()
     monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [(today, 7)])
@@ -191,7 +241,7 @@ def test_processed_over_time_serves_ms02_when_statistics_db_dead(app, monkeypatc
 
 
 def test_processed_over_time_default_leg_survives_dead_ms02(app, monkeypatch):
-    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning(_CONFIGS))
+    _stub_sources(monkeypatch, _CONFIGS)
     today = date.today()
     monkeypatch.setattr(
         dv,
@@ -223,7 +273,7 @@ def test_processed_over_time_survives_str_typed_default_leg_date(app, monkeypatc
     # `TypeError: '<' not supported between instances of 'datetime.date' and
     # 'str'` on every request touching a default-leg process (83 PROD app.log
     # occurrences over two weeks).
-    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning(_CONFIGS))
+    _stub_sources(monkeypatch, _CONFIGS)
     today = date.today()
     str_date = today.isoformat()  # what the legacy driver actually returns
     monkeypatch.setattr(
@@ -250,7 +300,7 @@ def test_processed_over_time_survives_str_typed_default_leg_date(app, monkeypatc
 
 
 def test_kpi_stats_serves_ms02_and_backlog_when_statistics_db_dead(app, monkeypatch):
-    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning(_CONFIGS))
+    _stub_sources(monkeypatch, _CONFIGS)
     monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine())
     monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [(5, 2)])
     monkeypatch.setattr(dv, "total_backlog_count", lambda pairs: 3)
@@ -273,7 +323,7 @@ def test_kpi_stats_route_still_200s_on_genuinely_quiet_day(app, monkeypatch):
     # dead Statistics DB (above) and a healthy-but-empty one (here) still
     # 200 through dashboard_kpi_stats (it calls compute_today_stats with no
     # strict kwarg, i.e. strict=False).
-    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning([_CONFIGS[0]]))
+    _stub_sources(monkeypatch, [_CONFIGS[0]])
     monkeypatch.setattr(dv, "engine_statistics_db", _engine_returning([(None, None)]))
     monkeypatch.setattr(dv, "total_backlog_count", lambda pairs: 0)
 
@@ -298,7 +348,7 @@ def test_kpi_stats_route_still_200s_on_genuinely_quiet_day(app, monkeypatch):
 
 
 def test_kpi_stats_backlog_derives_granted_pairs_not_cross_product(app, monkeypatch):
-    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning([]))
+    _stub_sources(monkeypatch, [])
     monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine())
     monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [])
 
@@ -330,7 +380,7 @@ def test_kpi_stats_backlog_derives_granted_pairs_not_cross_product(app, monkeypa
 
 
 def test_hourly_stats_serves_ms02_when_statistics_db_dead(app, monkeypatch):
-    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning(_CONFIGS))
+    _stub_sources(monkeypatch, _CONFIGS)
     monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine())
     monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [(9, 4)])
 
@@ -349,7 +399,7 @@ def test_hourly_stats_serves_ms02_when_statistics_db_dead(app, monkeypatch):
 
 
 def test_avg_processing_time_serves_ms02_when_statistics_db_dead(app, monkeypatch):
-    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning(_CONFIGS))
+    _stub_sources(monkeypatch, _CONFIGS)
     monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine())
     monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [(120.0,)])
 
@@ -380,7 +430,7 @@ def test_cacheable_response_rejects_error_statuses():
 
 
 def test_compute_today_stats_sums_both_legs(app, monkeypatch):
-    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning(_CONFIGS))
+    _stub_sources(monkeypatch, _CONFIGS)
     # T-SQL leg returns (processed, imported) = (5, 7); MS02 leg adds (2, 3).
     monkeypatch.setattr(dv, "engine_statistics_db", _engine_returning([(5, 7)]))
     monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [(2, 3)])
@@ -389,7 +439,7 @@ def test_compute_today_stats_sums_both_legs(app, monkeypatch):
 
 
 def test_compute_today_stats_ms02_leg_survives_dead_statistics_db(app, monkeypatch):
-    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning(_CONFIGS))
+    _stub_sources(monkeypatch, _CONFIGS)
     monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine())
     monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [(5, 2)])
     with app.app_context():
@@ -397,18 +447,19 @@ def test_compute_today_stats_ms02_leg_survives_dead_statistics_db(app, monkeypat
 
 
 def test_compute_today_stats_null_sums_count_as_zero(app, monkeypatch):
-    # A Statconfig table with no rows today yields SUM(...) = (NULL, NULL).
-    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning([_CONFIGS[0]]))
+    # A stat-config source with no rows today yields SUM(...) = (NULL, NULL).
+    _stub_sources(monkeypatch, [_CONFIGS[0]])
     monkeypatch.setattr(dv, "engine_statistics_db", _engine_returning([(None, None)]))
     with app.app_context():
         assert dv.compute_today_stats(["sydoc.Alpha"]) == (0, 0)
 
 
-def test_compute_today_stats_raises_when_nexora_db_down(app, monkeypatch):
-    # Fail-through contract: the Statconfig read must RAISE (not zero-fill) so
-    # the dashboard's uncached-500 semantics and the API's JSON 500 both hold --
-    # zeros here would be cached/reported as real numbers on a NexoraDB blip.
-    monkeypatch.setattr(dv, "engine_nexora_db", _dead_engine("NexoraDB down"))
+def test_compute_today_stats_raises_when_registry_unavailable(app, monkeypatch):
+    # Fail-through contract: a mapping_config registry load failure (e.g. a
+    # dead NexoraDB) must RAISE (not zero-fill) so the dashboard's
+    # uncached-500 semantics and the API's JSON 500 both hold -- zeros here
+    # would be cached/reported as real numbers on a NexoraDB blip.
+    _stub_sources_dead(monkeypatch, "NexoraDB down")
     with app.app_context(), pytest.raises(Exception):  # noqa: B017 -- any exception must propagate
         dv.compute_today_stats(["sydoc.Alpha"])
 
@@ -453,7 +504,7 @@ def test_ms02_stat_rows_strict_still_empty_when_unconfigured(app, monkeypatch):
 
 
 def test_compute_today_stats_strict_raises_on_dead_statistics_db(app, monkeypatch):
-    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning([_CONFIGS[0]]))
+    _stub_sources(monkeypatch, [_CONFIGS[0]])
     monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine("Statistics DB down"))
     with app.app_context(), pytest.raises(Exception):  # noqa: B017
         dv.compute_today_stats(["sydoc.Alpha"], strict=True)
@@ -464,7 +515,7 @@ def test_compute_today_stats_strict_still_zeros_on_genuinely_quiet_day(app, monk
     # still returns one row of NULLs (not []) -- must stay 200 zeros even
     # under strict=True. This is the case that proves the fix isn't just
     # "always 500 now".
-    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning([_CONFIGS[0]]))
+    _stub_sources(monkeypatch, [_CONFIGS[0]])
     monkeypatch.setattr(dv, "engine_statistics_db", _engine_returning([(None, None)]))
     with app.app_context():
         assert dv.compute_today_stats(["sydoc.Alpha"], strict=True) == (0, 0)
@@ -474,7 +525,7 @@ def test_compute_today_stats_non_strict_default_still_degrades(app, monkeypatch)
     # Regression pin: the dashboard's call site (no strict kwarg) must keep
     # serving the healthy leg's numbers when Statistics DB is dead -- Task 58
     # only changes the external API's contract.
-    monkeypatch.setattr(dv, "engine_nexora_db", _engine_returning(_CONFIGS))
+    _stub_sources(monkeypatch, _CONFIGS)
     monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine())
     monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [(5, 2)])
     with app.app_context():

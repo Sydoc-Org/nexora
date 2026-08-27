@@ -19,6 +19,10 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TEMPLATES = REPO_ROOT / "templates"
+# JS lifted out of the Jinja partials (#191) left this lint's original scope;
+# it needs the same guard, and more so -- a .js file cannot fall back on
+# url_for() at all, API_PREFIX is its only option.
+STATIC_JS = REPO_ROOT / "static" / "js"
 
 BAD_PATTERNS = [
     # JS navigation with a root-relative literal (any quote style);
@@ -36,7 +40,7 @@ BAD_PATTERNS = [
 
 def _offenders():
     found = []
-    for tpl in sorted(TEMPLATES.rglob("*.html")):
+    for tpl in sorted(TEMPLATES.rglob("*.html")) + sorted(STATIC_JS.rglob("*.js")):
         text = tpl.read_text(encoding="utf-8", errors="replace")
         for lineno, line in enumerate(text.splitlines(), start=1):
             for rx in BAD_PATTERNS:
@@ -50,4 +54,22 @@ def test_no_root_relative_urls_in_templates():
     assert offenders == [], (
         "Root-relative URL(s) escape the /nexora prefix on PROD and 404 on the "
         "IIS root site. Use API_PREFIX (JS partials) or url_for() (Jinja):\n" + "\n".join(offenders)
+    )
+
+
+def test_no_jinja_syntax_in_static_js():
+    """static/js/*.js is served raw -- Jinja there ships {{ ... }} to the browser.
+
+    Translated strings and url_for() values belong in the paired inline shim
+    under templates/js/ (#191), which is what babel.cfg extracts from.
+    """
+    offenders = [
+        f"{js.relative_to(REPO_ROOT)}:{lineno}: {line.strip()}"
+        for js in sorted(STATIC_JS.rglob("*.js"))
+        for lineno, line in enumerate(js.read_text(encoding="utf-8").splitlines(), start=1)
+        if "{{" in line or "{%" in line
+    ]
+    assert offenders == [], (
+        "Jinja syntax in a static .js file is never rendered. Move the value into "
+        "the inline shim in templates/js/ and read it from window:\n" + "\n".join(offenders)
     )

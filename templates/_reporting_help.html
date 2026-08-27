@@ -13,29 +13,40 @@
       <ul>
         <li>{{ _("Watch the coverage badge (e.g. 2/5) on measures and categories: only part of the processes provide that field, and documents from the others land in the empty bucket. Hover it to see which. If a number looks too low, check the badge first.") }}</li>
         <li>{{ _("Everything in one empty bucket? The breakdown field is not filled in for the processes you selected.") }}</li>
+        <li>{{ _("Not sure which table a source really reads? Click its card in the Sources rail: List shows the tables it uses and their columns, Diagram draws the relationships between them.") }}</li>
         <li>{{ _("Relative presets stay relative: a report saved with “This month” shows the current month on every run and in every scheduled mail. Schedule times are UTC.") }}</li>
         <li>{{ _("The chips above a result are editable: the Processes chip and any “is one of” filter open a checkbox picker — ticking everything removes the restriction.") }}</li>
         <li>{{ _("Imports, exports and backlog in one chart: pick “Documents imported”, “Documents exported” and “Backlog” together, then break down “Over time (Date)” — one line per measure on a shared time axis.") }}</li>
+        <li>{{ _("Time charts stop at today: the period that contains today is faded/dashed because it is still filling up, months that haven’t happened aren’t drawn, and a backlog period nobody measured is a gap, not a zero. Backlog’s Total is the newest snapshot.") }}</li>
+        <li>{{ _("The palette button in the chart toolbar recolours each series and the title, and puts a series on its own right-hand axis — Backlog starts there by default so a few hundred stays readable next to tens of thousands. Picks are saved with the report.") }}</li>
       </ul>
       <h4>{{ _("Checking a number") }}</h4>
       <ul>
-        <li>{{ _("Click a chart bar or a table row to open the documents behind that number; “Show query” reveals exactly how it was computed.") }}</li>
+        <li>{{ _("Click a chart bar or a table row to open the documents behind that number; the “Query” card beside the chart shows exactly how it was computed.") }}</li>
+        <li>{{ _("Each measure gets its own total card, named after it — “Total · Documents imported”, “Total · Documents exported”. There is no combined number: the same document can be counted in both, so adding them up would not count anything real.") }}</li>
         <li>{{ _("The ↑/↓ comparison chips compare a window shifted back by your range’s length in days — not the previous calendar period. Hover a chip for the exact dates.") }}</li>
         <li>{{ _("Two people can see different totals on the same report: it always runs with the viewer’s own data access.") }}</li>
         <li>{{ _("Charts cap at 50 axis values and 12 series — past the cap you get a partial chart or none at all; the table and exports always carry the full data.") }}</li>
       </ul>
       <h4>{{ _("Saving and sharing") }}</h4>
       <ul>
-        <li>{{ _("Save works differently per tab: on Simple, Save always creates a new report under My reports; on Advanced, Save overwrites the open report — including a shared one you can edit. Use “Save as” for a copy.") }}</li>
+        <li>{{ _("Save writes back to the report you have open — the pencil next to the title renames it in place. A result that is not a saved report yet (a wizard run, an answer from Eddard) asks for a name and lands under My reports. To keep the original untouched, use ⋯ → “Save as copy”.") }}</li>
+        <li>{{ _("A report of yours that you have shared — with everyone or with named colleagues — is tagged “· shared” on its card. Named shares stay under My reports; only “shared with everyone” moves it to the Library shelf.") }}</li>
         <li>{{ _("A scheduled email runs with the report owner’s data access — recipients see the owner’s numbers, not their own.") }}</li>
+        <li>{{ _("Delete a report you own: open its card’s “…” menu under My reports, or open the report and use ⋯ → Delete report. Shared copies and schedules go with it.") }}</li>
+        <li>{{ _("On a dashboard, the “Whole report” tile shows a saved report exactly as the Simple tab does — totals, chart with its colours, axes and forecast, and the table behind “Show table”. The other tiles show one piece each; change colours or the chart type in the report itself.") }}</li>
+        <li>{{ _("“Add a card” asks everything in one dialog: which saved report, how to draw it, its title, and how big — a width in grid columns and a height in rows. The tile lands showing its data straight away.") }}</li>
+        <li>{{ _("In edit mode a tile can be dragged anywhere to rearrange it, and resized by its bottom-right corner grip: width snaps to the 12 grid columns, height to whole rows. Done saves the layout.") }}</li>
+        <li>{{ _("A dashboard’s library card previews its real layout — one small tile per card — plus a card count, so you can tell dashboards apart before opening one.") }}</li>
       </ul>
       {% if ai_enabled %}
-      <h4>{{ _("Asking the AI") }}</h4>
+      <h4>{{ _("Asking Eddard") }}</h4>
       <ul>
+        <li>{{ _("Eddard is the reporting assistant behind the chat panel — the little black hole in the top bar.") }}</li>
         <li>{{ _("Name the measure, the time range and the processes: “invoices by process, last 3 months” beats “show me invoices”.") }}</li>
-        <li>{{ _("Check what the AI built with “Open in builder” — the filters and process scope it chose are visible there before you trust the number.") }}</li>
+        <li>{{ _("Check what Eddard built with “Open in builder” — the filters and process scope it chose are visible there before you trust the number.") }}</li>
         <li>{{ _("Follow-ups work: the chat remembers the conversation, so “now only this quarter” refines the last answer.") }}</li>
-        <li>{{ _("When the AI used tools, unfold “How the agent worked” to see the steps; if a “Continue” button appears, click it before rephrasing your question.") }}</li>
+        <li>{{ _("When Eddard used tools, unfold “How the agent worked” to see the steps; if a “Continue” button appears, click it before rephrasing your question.") }}</li>
       </ul>
       {% endif %}
     </div>

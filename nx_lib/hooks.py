@@ -17,6 +17,8 @@ from flask import (
     url_for,
 )
 
+from . import user_cache
+from .branding import brand_for_org
 from .config import IS_PROD, PATHS
 from .db import engine_nexora_db
 from .i18n import get_locale
@@ -66,8 +68,8 @@ def _enforce_active_session():
     revoked it), clear the session and redirect/401. Backend-agnostic: this is
     what makes force-logout actually take effect on the next request.
 
-    Also bumps LastSeenAt on every request so the admin "active sessions" view
-    reflects actual recent activity rather than just login time (issue #109)."""
+    Also bumps LastSeenAt (at most once per cache TTL) so the admin "active
+    sessions" view reflects recent activity rather than just login time (#109)."""
     if request.path.startswith(_SESSION_ENFORCE_SKIP_PATHS):
         return
     if "userid" not in session:
@@ -75,7 +77,8 @@ def _enforce_active_session():
     sid = getattr(session, "sid", None) or session.get("_dev_sid")
     if not sid:
         return
-    try:
+
+    def _check_and_bump():
         conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
@@ -86,10 +89,21 @@ def _enforce_active_session():
         conn.commit()
         cursor.close()
         conn.close()
+        return bool(updated)
+
+    # Cached per SID (nx_lib/user_cache.py): this UPDATE+commit on every request
+    # was the single hottest per-request cost (~70 of 75 ms in profile). An
+    # admin revocation still lands within one request: revoke goes through an
+    # /admin write, which clears the whole cache (_invalidate_user_cache);
+    # otherwise a revoked SID is caught at worst one TTL (30 s) later.
+    # LastSeenAt is now bumped at most once per TTL per session — the admin
+    # "active sessions" view lags actual activity by up to that much.
+    try:
+        alive = user_cache.get_or_load("session_alive", sid, _check_and_bump)
     except Exception as e:
         current_app.logger.warning(f"enforce_active_session check failed: {e}")
         return  # Fail open — never lock users out due to a transient DB blip
-    if updated:
+    if alive:
         return
     session.clear()
     if request.path.startswith("/api/") or request.is_json:
@@ -98,11 +112,18 @@ def _enforce_active_session():
 
 
 def _reload_user_permissions():
-    if request.path.startswith(("/static", "/avatar")):
+    """Refresh session['permissions'] on every non-static request, served from
+    the per-process TTL cache (nx_lib/user_cache.py) so ~500 users no longer
+    mean one spGetUserPermissions round-trip per click and per heartbeat.
+    _invalidate_user_cache() drops entries the moment an admin writes."""
+    if request.path.startswith(("/static", "/avatar", "/branding")):
         return
     if "userid" in session:
+        uid = str(session["userid"])
         try:
-            session["permissions"] = load_permissions_for_user(str(session["userid"]))
+            session["permissions"] = user_cache.get_or_load(
+                "permissions", uid, lambda: load_permissions_for_user(uid)
+            )
         except Exception as e:
             current_app.logger.error(f"reload_user_permissions error: {e}")
 
@@ -123,14 +144,31 @@ def _load_user_locale():
 
 
 def _load_user_ui_prefs():
-    """Refresh UI prefs from the DB on every request (same idiom as
-    permissions). A load-once session cache goes stale: concurrent requests
-    (e.g. the 5s heartbeat) race the session cookie and can resurrect the
-    old prefs, making saves look non-persistent (#155)."""
-    if request.path.startswith(("/static", "/avatar")):
+    """Refresh UI prefs on every request (same idiom as permissions), through
+    the per-process TTL cache. The cache must NOT live in the session: concurrent
+    requests (e.g. the 5s heartbeat) race the session cookie and can resurrect
+    old prefs, making saves look non-persistent (#155). A process-local dict has
+    no such race, and POST /profile/ui_prefs drops the user's entry
+    (_invalidate_user_cache) so a save shows on the very next request."""
+    if request.path.startswith(("/static", "/avatar", "/branding")):
         return
     if "userid" in session:
-        session["ui_prefs"] = load_ui_prefs(session["userid"])
+        uid = session["userid"]
+        session["ui_prefs"] = user_cache.get_or_load("ui_prefs", uid, lambda: load_ui_prefs(uid))
+
+
+def _invalidate_user_cache(resp):
+    """Keep the process cache honest after writes: a user's own pref save drops
+    their entries; ANY admin write drops everything, because access profiles and
+    permission edits fan out to many users and it is not worth tracking which.
+    Paths are unprefixed here (PrefixMiddleware already stripped /nexora)."""
+    if request.method in ("GET", "HEAD", "OPTIONS"):
+        return resp
+    if request.path.startswith("/admin"):
+        user_cache.clear()
+    elif request.path == "/profile/ui_prefs" and "userid" in session:
+        user_cache.forget(session["userid"])
+    return resp
 
 
 def _enforce_maintenance_lockout():
@@ -157,7 +195,7 @@ def _enforce_maintenance_lockout():
 
 
 def _log_every_request(response):
-    if request.path.startswith(("/static", "/avatar")):
+    if request.path.startswith(("/static", "/avatar", "/branding")):
         return response
     duration = time.time() - request.start_time if hasattr(request, "start_time") else 0
 
@@ -238,6 +276,24 @@ def _inject_ui_prefs():
     return {"ui_prefs": session.get("ui_prefs") or {}}
 
 
+def _inject_brand():
+    """Header badge/wordmark/accent-default source: the viewer's organization
+    brand (#98 phase 4). Read fresh per render behind branding.registry()'s
+    own 60s cache -- never cached in the session (D5, #155 — a session cache
+    races the cookie and sticks until re-login). A load failure or an org
+    with no branding both degrade to {}, which renders today's markup.
+
+    Gated on a logged-in session (D2): the pre-session pages (landing, login,
+    2FA, password reset) stay Nexora-branded. This gate is load-bearing, not
+    belt-and-braces -- logout() pops username/uuid/userid but leaves
+    organizationcode in the session, so keying on organizationcode alone kept
+    branding the landing page after logout, complete with a broken <img>
+    (branding_logo aborts 401 without a userid). Mirror that route's gate."""
+    if "userid" not in session:
+        return {"brand": {}}
+    return {"brand": brand_for_org(session.get("organizationcode")) or {}}
+
+
 def _utility_processor():
     return dict(
         get_user_icon_url=resolve_user_icon_url, has_permission=has_permission, is_prod=IS_PROD
@@ -265,6 +321,7 @@ def init_app(app):
     app.before_request(_load_user_locale)
     app.before_request(_load_user_ui_prefs)
     app.before_request(_enforce_maintenance_lockout)
+    app.after_request(_invalidate_user_cache)
     app.after_request(_log_every_request)
 
     app.register_error_handler(404, _page_not_found)
@@ -274,6 +331,7 @@ def init_app(app):
 
     app.context_processor(_inject_current_lang)
     app.context_processor(_inject_ui_prefs)
+    app.context_processor(_inject_brand)
     app.context_processor(_utility_processor)
     app.context_processor(_inject_app_version)
     app.context_processor(_inject_whats_new)

@@ -1,0 +1,66 @@
+{# Eddard -- the reporting mascot (issue #212).
+
+   Usage:  {% import '_eddard.html' as eddard %}
+           {{ eddard.mark(48) }}                      idle, animated
+           {{ eddard.mark(28, state='working') }}     leaning + core glow
+
+   Geometry is the handoff's (docs/design/design_handoff_eddard_mascot):
+   back ring behind the body, body + eyes, front ring in front, so the ring
+   reads as passing around him. Styles: static/css/eddard.css. The mood loop
+   (look around / wink / hop / surprise) is driven by js/_eddard_js.html,
+   which only touches wrappers carrying .ed--idle.
+
+   Decorative in every placement so far -- callers own the visible label. #}
+{% macro mark(size=64, state='idle', cls='', testid='', sparks=false) -%}
+<span class="ed ed--{{ state }}{% if cls %} {{ cls }}{% endif %}" style="--ed-size: {{ size }}px"
+      {% if testid %}data-testid="{{ testid }}" {% endif %}aria-hidden="true">
+  {% if sparks %}{# ambient drifting sparks (handoff: 3 dots, 4-6s, staggered) #}
+  <i class="ed-spark"></i><i class="ed-spark"></i><i class="ed-spark"></i>
+  {% endif %}
+  {% if state == 'working' %}{# orbiting spark while he works (handoff edOrbit) #}
+  <i class="ed-orbit"></i>
+  {% endif %}
+  <svg class="ed-svg" viewBox="0 0 200 200" fill="none" focusable="false">
+    <path class="ed-ring-back" d="M24 116 A76 22 0 0 1 176 116" stroke-width="9" stroke-linecap="round"/>
+    <g class="ed-body">
+      <circle class="ed-core" cx="100" cy="98" r="52" fill="#0a0a12"/>
+      <circle class="ed-rim" cx="100" cy="98" r="52" stroke-width="3"/>
+      <g class="ed-eyes-shift">
+        <g class="ed-eyes-blink">
+          <g class="ed-eye-wink"><circle cx="84" cy="90" r="7.5" fill="#fff"/></g>
+          <circle cx="116" cy="90" r="7.5" fill="#fff"/>
+        </g>
+      </g>
+    </g>
+    <path class="ed-ring-front" d="M24 116 A76 22 0 0 0 176 116" stroke-width="10" stroke-linecap="round"/>
+  </svg>
+</span>
+{%- endmacro %}
+
+{# "Eddard builds a report" (design handoff behaviour 2): he flings each piece
+   of a report onto the card -- title, KPI, bars, trend line -- then pops a
+   green Ready badge and clears back to an empty page. Decorative placeholder
+   content (it is a loading animation, not the real report), hence aria-hidden
+   and untranslated copy.
+
+   The stage is inert markup: js/_eddard_js.html walks the build counter and
+   unhides the slots, each of which plays its entrance animation on reveal. #}
+{% macro stage(testid='') -%}
+<div class="ed-stage" {% if testid %}data-testid="{{ testid }}" {% endif %}aria-hidden="true">
+  {{ mark(72, state='working', cls='ed-stage__mascot') }}
+  <div class="ed-rc">
+    <div class="ed-rc-empty" data-ed-slot="empty">Empty report</div>
+    <div class="ed-rc-title" data-ed-slot="title" hidden>Monthly report</div>
+    <div class="ed-rc-kpi" data-ed-slot="kpi" hidden>
+      <span class="ed-rc-kpi__num">&euro;1.24M</span><span class="ed-rc-kpi__delta">&#9650; 8.3%</span>
+    </div>
+    <div class="ed-rc-bars" data-ed-slot="bars" hidden>
+      {% for h in [34, 52, 26, 44, 58, 38] %}<i style="height: {{ h }}px; animation-delay: {{ 0.15 + loop.index0 * 0.1 }}s"></i>{% endfor %}
+    </div>
+    <svg class="ed-rc-line" data-ed-slot="line" viewBox="0 0 260 44" preserveAspectRatio="none" fill="none" hidden focusable="false">
+      <polyline points="0,38 44,26 88,30 132,14 176,20 220,6 260,12" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span class="ed-rc-badge" data-ed-slot="badge" hidden>Ready</span>
+  </div>
+</div>
+{%- endmacro %}

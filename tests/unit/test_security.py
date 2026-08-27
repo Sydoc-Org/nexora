@@ -342,11 +342,11 @@ def test_startpage_redirect_to_api_docs_only_lands_on_api_docs():
 
 
 # ---------------------------------------------------------------------------
-# page_visibility — all 18 keys
+# page_visibility — all 20 keys
 # ---------------------------------------------------------------------------
 
 
-def test_page_visibility_returns_all_18_keys_with_no_perms(fake_session):
+def test_page_visibility_returns_all_20_keys_with_no_perms(fake_session):
     fake_session["permissions"] = []
     pv = page_visibility()
     expected_keys = {
@@ -368,6 +368,8 @@ def test_page_visibility_returns_all_18_keys_with_no_perms(fake_session):
         "adminMaintenanceViewPerm",
         "adminMaintenanceEditPerm",
         "adminMaintenanceBypassPerm",
+        "adminClientsPagePerm",
+        "adminProcessesPagePerm",
     }
     assert set(pv.keys()) == expected_keys
     assert all(v is False for v in pv.values())

@@ -6,6 +6,7 @@ so these helpers translate permission strings into SQL parameter lists.
 
 from flask import current_app, session
 
+from . import mapping_config
 from .db import engine_nexora_db
 from .extensions import cache
 from .security import has_permission
@@ -106,6 +107,12 @@ def prepare_process_selection_lists(prefix, process_name):
 
 
 def get_activity_instances_to_ignore():
+    """(client, process) -> frozenset of ActivityInstanceName values to hide
+    from the workitem list for that process only. ``ProcessName`` in
+    ActivityInstancesToIgnore is a ``<client>.<process>`` compound string, same
+    convention as everywhere else in this module -- a rule configured for one
+    process must never hide a differently-named activity on another process.
+    """
     cached = cache.get("activity_instances_ignore")
     if cached is not None:
         return cached
@@ -116,12 +123,19 @@ def get_activity_instances_to_ignore():
         cursor = conn.cursor()
         cursor.execute("SELECT ProcessName, ActivityInstanceName FROM ActivityInstancesToIgnore")
         rows = cursor.fetchall()
-        result = ", ".join("'" + row.ActivityInstanceName.replace("'", "''") + "'" for row in rows)
+        grouped = {}
+        for row in rows:
+            if "." not in row.ProcessName:
+                continue
+            parts = row.ProcessName.split(".")
+            key = (parts[0], parts[-1])
+            grouped.setdefault(key, set()).add(row.ActivityInstanceName)
+        result = {key: frozenset(names) for key, names in grouped.items()}
         cache.set("activity_instances_ignore", result, timeout=3600)
         return result
     except Exception as e:
         current_app.logger.error(f"Failed to load activity instances to ignore: {e}")
-        return ""
+        return {}
     finally:
         if cursor:
             cursor.close()
@@ -140,19 +154,15 @@ def get_params_from_process_list(process_list):
 
 
 def build_stat_query(proc):
-    conn = None
-    cursor = None
-    try:
-        conn = engine_nexora_db.raw_connection()
-        cursor = conn.cursor()
-        query = "SELECT TableName, ExportColumn, additionalCondition FROM Statconfig WHERE ProcessName = ?"
-        cursor.execute(query, proc)
-        return cursor.fetchone()
-    except Exception as e:
-        current_app.logger.error(f"Failed to build stat query for process {proc}: {e}")
+    """(TableName, ExportColumn, additionalCondition) for ``proc``, from the
+    mapping_config registry (#98) -- successor to the direct Statconfig
+    cursor read. No caller currently depends on a registry load failure
+    surfacing as an exception (build_stat_query has no in-app callers as of
+    #98 -- only tests/README reference it), so this stays a thin pass-through:
+    ``sources_for`` degrades to ``[]`` on failure, same as the legacy
+    except-block returning ``None``."""
+    sources = mapping_config.sources_for(client=None, processes=[proc])
+    if not sources:
         return None
-    finally:
-        if conn:
-            conn.close()
-        if cursor:
-            cursor.close()
+    src = sources[0]
+    return (src.table, src.export_column, src.extra_condition)

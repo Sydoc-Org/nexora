@@ -4,9 +4,9 @@ Attaches a RotatingFileHandler to ``app.logger`` so the existing
 ``current_app.logger.error(...)`` / ``.warning(...)`` call sites under
 ``nx_lib/`` land in a real file. On dev, ``bin/nx.ps1`` separately
 redirects the worker's stdout/stderr to ``var/logs/system/app_*.log``;
-on prod (IIS + wfastcgi) ``app.log`` is the only file the app itself
-writes -- without it, ``current_app.logger`` calls silently disappear
-because wfastcgi has no ``WSGI_LOG`` configured.
+on prod (IIS HttpPlatformHandler -> waitress) the process's stdout/stderr
+go to ``var/logs/system/waitress-stdout_*.log`` (web.config), but
+``current_app.logger`` calls only land somewhere because of this handler.
 """
 
 import logging

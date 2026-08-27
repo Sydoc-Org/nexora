@@ -415,7 +415,7 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
       body: JSON.stringify({
-        columns: columns, rows: rows.slice(0, 50),
+        columns: columns, rows: rows.slice(0, 5000),   // whole grid -> server-side fact sheet
         title: title || undefined, dateLabel: dateLabel || undefined
       })
     }).then(function (res) {
@@ -613,7 +613,71 @@
     var total = 0;
     rows.forEach(function (r) { total += Number(r[idx]); });
     var buckets = rows.length;
-    return { total: total, buckets: buckets, avg: buckets ? total / buckets : 0 };
+    return { total: total, buckets: buckets, avg: buckets ? total / buckets : 0, idx: idx };
+  }
+
+  // Result-column header for a measure ("Documents imported"), so a KPI says
+  // WHAT it totals instead of just "Total". Mirrors Simple's measureLabel.
+  function measureLabel(columns, idx) {
+    var c = (columns || [])[idx];
+    return (c && (c.header || c.field)) || '';
+  }
+
+  function metricTotalModes(def) {
+    var list = (state.metricsBySource || {})[def && def.source] || [];
+    return ((def && def.metrics) || []).map(function (m) {
+      var hit = list.find(function (x) { return x.code === m.metric; });
+      return (hit && hit.totalMode) || 'sum';
+    });
+  }
+
+  // Newest date bucket's sum for column `idx` — a level (the backlog) totalled
+  // across every bucket would be nonsense. Mirrors Simple's latestBucketTotal;
+  // null when the definition has no grained date dimension.
+  function latestBucketTotal(def, rows, idx) {
+    var cols = (def && def.columns) || [];
+    var dateIdx = -1;
+    for (var i = 0; i < cols.length; i++) {
+      if (cols[i].grain) { dateIdx = i; break; }
+    }
+    if (dateIdx === -1) return null;
+    var maxKey = null;
+    rows.forEach(function (r) {
+      if (r[idx] == null) return;
+      var k = String(r[dateIdx]);
+      if (maxKey === null || k > maxKey) maxKey = k;
+    });
+    if (maxKey === null) return null;
+    var t = 0;
+    rows.forEach(function (r) {
+      if (String(r[dateIdx]) === maxKey) t += Number(r[idx]) || 0;
+    });
+    return { total: t, key: maxKey };
+  }
+
+  // One labelled total per metric: the aggregate query projects the metrics
+  // after the dimensions in def.metrics order, so measure n lives at dims + n.
+  // The primary (kpi.idx) is skipped — the band already shows it.
+  function otherMeasureTotals(def, columns, rows, kpi) {
+    var modes = metricTotalModes(def);
+    if (modes.length < 2 || !rows.length || !kpi) return [];
+    var dims = ((def && def.columns) || []).length;
+    var out = [];
+    for (var n = 0; n < modes.length; n++) {
+      var idx = dims + n;
+      if (idx === kpi.idx || idx >= rows[0].length) continue;
+      var latest = modes[n] === 'latest' ? latestBucketTotal(def, rows, idx) : null;
+      var total = 0, any = !!latest;
+      if (latest) {
+        total = latest.total;
+      } else {
+        rows.forEach(function (r) {
+          if (isNumericCell(r[idx])) { total += Number(r[idx]); any = true; }
+        });
+      }
+      if (any) out.push({ label: measureLabel(columns, idx), total: total });
+    }
+    return out;
   }
 
   // Advanced has no named number-formatting helper elsewhere (grid cells
@@ -640,15 +704,24 @@
     return block;
   }
 
-  function renderKpiBand(def, rows) {
+  function renderKpiBand(def, rows, columns) {
     var band = document.getElementById('rpKpiBand');
     if (!band) return;
     var kpi = computeKpiBand(def, rows);
     band.innerHTML = '';
     if (!kpi) { band.hidden = true; return; }
-    band.appendChild(kpiBlock('reporting-kpi-total', I18N_KPI_TOTAL, kpi.total));
+    // Every figure names its measure — "Total" alone never said total of what,
+    // and a multi-metric run silently showed only the first metric's.
+    var primary = measureLabel(columns, kpi.idx);
+    var withLabel = function (caption, label) {
+      return label ? caption + ' · ' + label : caption;
+    };
+    band.appendChild(kpiBlock('reporting-kpi-total', withLabel(I18N_KPI_TOTAL, primary), kpi.total));
+    otherMeasureTotals(def, columns, rows, kpi).forEach(function (m) {
+      band.appendChild(kpiBlock('reporting-kpi-total-extra', withLabel(I18N_KPI_TOTAL, m.label), m.total));
+    });
     band.appendChild(kpiBlock('reporting-kpi-buckets', I18N_KPI_BUCKETS, kpi.buckets));
-    band.appendChild(kpiBlock('reporting-kpi-avg', I18N_KPI_AVG, kpi.avg));
+    band.appendChild(kpiBlock('reporting-kpi-avg', withLabel(I18N_KPI_AVG, primary), kpi.avg));
     band.hidden = false;
   }
 
@@ -698,7 +771,7 @@
     state._lastResolvedDatesLabel = rdates.length
       ? rdates.map(function (d) { return d.field + ': ' + d.start + ' → ' + d.end; }).join(' · ')
       : null;
-    renderKpiBand(state.lastDef, data.rows || []);
+    renderKpiBand(state.lastDef, data.rows || [], data.columns || []);
     // Stash the echoed SQL for the Show query panel. Only /run echoes sql;
     // SQL-sandbox runs (/api/reporting/sql/run) never set a sql key — button stays hidden.
     var sqlBtn = document.getElementById('rpShowSql');
@@ -1113,9 +1186,7 @@
   }
 
   function loadSources() {
-    api('/api/reporting/sources').then(function (res) {
-      return res.json();
-    }).then(function (sources) {
+    ReportingCatalog.sources().then(function (sources) {
       var sel = document.getElementById('rpSource');
       sel.innerHTML = '';
       state.sourcesById = {};
@@ -1374,7 +1445,7 @@
   // Fetch the full accessible-metrics map once and cache it, then derive the
   // per-source list. A failed fetch is non-fatal: treat as "no metrics".
   function loadMetrics() {
-    api('/api/reporting/metrics').then(function (res) { return res.json(); })
+    ReportingCatalog.metrics()
       .then(function (map) {
         state.metricsBySource = map || {};
         refreshAvailableMetrics();
@@ -1455,7 +1526,10 @@
           opt.value = r.id;
           var suffix = (r.kind === 'sql' ? ' (SQL)' : '');
           if (!r.owned && r.ownerName) suffix += ' — ' + r.ownerName;
-          else if (r.owned && r.visibility === 'shared') suffix += ' · {{ _("shared") }}';
+          // Owner-side 'shared' tag: org-wide visibility OR an explicit
+          // per-user grant (which leaves Visibility = 'private').
+          else if (r.owned && (r.visibility === 'shared' || r.sharedCount))
+            suffix += ' · {{ _("shared") }}';
           opt.textContent = r.name + suffix;
           opt.dataset.owned = r.owned ? '1' : '0';
           opt.dataset.canEdit = r.canEdit ? '1' : '0';
@@ -1611,17 +1685,23 @@
   // ---- Sharing ----
   var shareReportId = null;
 
-  function openShare() {
-    var sel = document.getElementById('rpSavedReports');
-    var opt = sel.options[sel.selectedIndex];
-    if (!opt || opt.dataset.owned !== '1') return;
-    shareReportId = sel.value;
+  // Also the entry point for the Console library card's "…" > Share menu
+  // (exported as window.Reporting.openShareFor below).
+  function openShareFor(id) {
+    shareReportId = id;
     api('/api/reporting/reports/' + shareReportId + '/shares')
       .then(function (res) { return res.json(); })
       .then(function (data) {
         renderShareState(data);
         document.getElementById('rpShareModal').hidden = false;
       }).catch(function (e) { toast(e.message, true); });
+  }
+
+  function openShare() {
+    var sel = document.getElementById('rpSavedReports');
+    var opt = sel.options[sel.selectedIndex];
+    if (!opt || opt.dataset.owned !== '1') return;
+    openShareFor(sel.value);
   }
 
   function renderShareState(data) {
@@ -1671,6 +1751,28 @@
   document.getElementById('rpShare').addEventListener('click', openShare);
   document.getElementById('rpShareClose').addEventListener('click', function () {
     document.getElementById('rpShareModal').hidden = true;
+  });
+  // People search for the share input: debounced typeahead into the native
+  // datalist (GET /api/reporting/share_targets, 2+ chars).
+  var shareSuggestTimer = null;
+  document.getElementById('rpShareUser').addEventListener('input', function () {
+    var q = this.value.trim();
+    clearTimeout(shareSuggestTimer);
+    if (q.length < 2) return;
+    shareSuggestTimer = setTimeout(function () {
+      api('/api/reporting/share_targets?q=' + encodeURIComponent(q))
+        .then(function (res) { return res.json(); })
+        .then(function (rows) {
+          var list = document.getElementById('rpShareUserList');
+          list.innerHTML = '';
+          (rows || []).forEach(function (u) {
+            var opt = document.createElement('option');
+            opt.value = u.username;
+            opt.label = u.name;
+            list.appendChild(opt);
+          });
+        }).catch(function () { /* typeahead only — never surface an error */ });
+    }, 200);
   });
   document.getElementById('rpShareAdd').addEventListener('click', function () {
     var u = document.getElementById('rpShareUser').value.trim();
@@ -1905,6 +2007,6 @@
   loadMetrics();
   loadSources();
   loadReports();
-  window.Reporting = Object.assign(window.Reporting || {}, { applyDefinition: applyDefinition, setMode: setMode, applyDefinitionAndChart: applyDefinitionAndChart, run: run });
+  window.Reporting = Object.assign(window.Reporting || {}, { applyDefinition: applyDefinition, setMode: setMode, applyDefinitionAndChart: applyDefinitionAndChart, run: run, openShareFor: openShareFor });
 }());
 </script>

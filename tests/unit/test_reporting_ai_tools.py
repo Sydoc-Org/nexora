@@ -11,7 +11,13 @@ from nx_lib.reporting.ai_tools import TOOL_SPECS, ToolRegistry
 
 def test_specs_are_provider_neutral():
     names = {t["name"] for t in TOOL_SPECS}
-    assert {"validate_sql", "run_sql", "compute_stats", "build_definition"} <= names
+    assert {
+        "validate_sql",
+        "run_sql",
+        "compute_stats",
+        "build_definition",
+        "run_definition",
+    } <= names
     for t in TOOL_SPECS:
         assert t["description"]
         assert t["parameters"]["type"] == "object"
@@ -69,6 +75,46 @@ def test_run_sql_swallows_runner_error():
     reg = ToolRegistry(run_sql=boom)
     out = reg.call("run_sql", {"target": "statistics", "sql": "SELECT 1"})
     assert out["ok"] is False and "not configured" in out["error"]
+
+
+def test_run_definition_requires_binding():
+    reg = ToolRegistry()  # no runner bound
+    out = reg.call("run_definition", {"definition": {"source": "x"}})
+    assert out["ok"] is False and "not available" in out["error"].lower()
+
+
+def test_run_definition_uses_injected_runner():
+    reg = ToolRegistry(run_definition=lambda d: ([{"field": "n", "header": "n"}], [[1], [2]]))
+    out = reg.call("run_definition", {"definition": {"source": "docprocessing"}})
+    assert out["ok"] is True and out["rows"] == [[1], [2]] and out["rowCount"] == 2
+
+
+def test_run_definition_tolerates_stringified_definition():
+    seen = {}
+
+    def runner(d):
+        seen["definition"] = d
+        return [{"field": "n", "header": "n"}], [[1]]
+
+    reg = ToolRegistry(run_definition=runner)
+    out = reg.call("run_definition", {"definition": '{"source": "docprocessing"}'})
+    assert out["ok"] is True
+    assert seen["definition"] == {"source": "docprocessing"}
+
+
+def test_run_definition_rejects_non_object():
+    reg = ToolRegistry(run_definition=lambda d: ([], []))
+    out = reg.call("run_definition", {"definition": 42})
+    assert out["ok"] is False and "object" in out["error"]
+
+
+def test_run_definition_swallows_runner_error():
+    def boom(d):
+        raise PermissionError("reporting.some.permission")
+
+    reg = ToolRegistry(run_definition=boom)
+    out = reg.call("run_definition", {"definition": {"source": "x"}})
+    assert out["ok"] is False and "reporting.some.permission" in out["error"]
 
 
 def test_unknown_tool_errors():

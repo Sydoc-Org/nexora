@@ -18,12 +18,27 @@ Routes covered:
 """
 
 from datetime import datetime
-from unittest.mock import MagicMock
+
+import pytest
 
 import nx_lib.hooks
 import nx_lib.views.dashboard as dv
 import nx_lib.views.workitems as wv
 from nx_lib.extensions import cache
+
+
+@pytest.fixture(autouse=True)
+def _clear_response_cache(app):
+    """MUST clear inside ``app.app_context()``, never bare ``cache.clear()``:
+    outside a context Flask-Caching falls back to whatever app LAST called
+    ``cache.init_app()`` -- e.g. test_admin_routes' module-scoped
+    ``prod_csp_app`` -- so a bare clear wipes THAT app's backend while requests
+    dispatched through this session's ``app`` fixture keep serving earlier
+    tests' cached empty responses (and the mocks below never run). Same trap
+    documented at test_workitems_routes._clear_view_cache."""
+    with app.app_context():
+        cache.clear()
+    yield
 
 
 def test_dashboard_anonymous_redirects_to_login(client):
@@ -127,21 +142,20 @@ def test_recent_activity_authed_returns_empty_list(user_client):
 # every row it returns. A colliding id (e.g. 1216 exists in both the default
 # Octo client and MS02) is only resolvable to the RIGHT client if that hint is
 # forwarded to get_domain_for_workitem — discarding it re-probes/defaults and
-# can surface the wrong client's fields. cache.clear() first: SimpleCache is
-# process-global and keyed by (userid, process_name_dashboard), same trap the
-# section below documents.
+# can surface the wrong client's fields. The autouse _clear_response_cache
+# fixture wipes the (userid, process_name_dashboard)-keyed entries first --
+# SimpleCache is process-global, same trap the section below documents.
 
 
 def test_recent_activity_forwards_row_client_as_hint(user_client, monkeypatch):
     """A row for a colliding id carries client='ms02' — that must reach
     get_domain_for_workitem as client_hint, not be silently dropped."""
-    cache.clear()
     monkeypatch.setattr(
         nx_lib.hooks,
         "load_permissions_for_user",
         lambda uid: ["dashboard.view", "dashboard.filter.process.ms02.TestProc"],
     )
-    monkeypatch.setattr(dv, "get_activity_instances_to_ignore", lambda: "")
+    monkeypatch.setattr(dv, "get_activity_instances_to_ignore", lambda: {})
 
     row = {
         "id": 1216,
@@ -183,13 +197,12 @@ def test_recent_activity_forwards_row_client_as_hint(user_client, monkeypatch):
 def test_recent_activity_skips_row_when_workitemdata_lookup_fails(user_client, monkeypatch):
     """One row's get_workitemdata_param returning None (Octo hiccup) must be
     skipped, not blank the whole feed for the other, healthy rows."""
-    cache.clear()
     monkeypatch.setattr(
         nx_lib.hooks,
         "load_permissions_for_user",
         lambda uid: ["dashboard.view", "dashboard.filter.process.sydoc.TestProc"],
     )
-    monkeypatch.setattr(dv, "get_activity_instances_to_ignore", lambda: "")
+    monkeypatch.setattr(dv, "get_activity_instances_to_ignore", lambda: {})
 
     good_row = {
         "id": 111,
@@ -236,13 +249,12 @@ def test_recent_activity_skips_row_when_workitemdata_lookup_fails(user_client, m
 def test_recent_activity_strips_sensitive_fields_without_perm(user_client, monkeypatch):
     """Caller WITHOUT workitems.filter.documentfields.sensitive: a sensitive-
     configured field must be absent from the row's fields, not leaked."""
-    cache.clear()
     monkeypatch.setattr(
         nx_lib.hooks,
         "load_permissions_for_user",
         lambda uid: ["dashboard.view", "dashboard.filter.process.sydoc.TestProc"],
     )
-    monkeypatch.setattr(dv, "get_activity_instances_to_ignore", lambda: "")
+    monkeypatch.setattr(dv, "get_activity_instances_to_ignore", lambda: {})
     monkeypatch.setattr(wv, "get_sensitive_field_tokens", lambda: {"pid"})
 
     row = {
@@ -283,13 +295,12 @@ def test_recent_activity_strips_sensitive_fields_without_perm(user_client, monke
 def test_recent_activity_rows_include_client_key(user_client, monkeypatch):
     """Every emitted row carries its source client, not just internally for
     the domain-hint lookup -- the front-end deep link needs it too."""
-    cache.clear()
     monkeypatch.setattr(
         nx_lib.hooks,
         "load_permissions_for_user",
         lambda uid: ["dashboard.view", "dashboard.filter.process.ms02.TestProc"],
     )
-    monkeypatch.setattr(dv, "get_activity_instances_to_ignore", lambda: "")
+    monkeypatch.setattr(dv, "get_activity_instances_to_ignore", lambda: {})
 
     row = {
         "id": 1216,
@@ -324,7 +335,6 @@ def test_recent_activity_rows_include_client_key(user_client, monkeypatch):
 
 
 def test_recent_activity_route_derives_granted_pairs_not_cross_product(user_client, monkeypatch):
-    cache.clear()
     monkeypatch.setattr(
         nx_lib.hooks,
         "load_permissions_for_user",
@@ -334,11 +344,11 @@ def test_recent_activity_route_derives_granted_pairs_not_cross_product(user_clie
             "dashboard.filter.process.B.P2",
         ],
     )
-    monkeypatch.setattr(dv, "get_activity_instances_to_ignore", lambda: "")
+    monkeypatch.setattr(dv, "get_activity_instances_to_ignore", lambda: {})
 
     calls = []
 
-    def _fake_recent_activity_rows(pairs, activity_ignore_csv, top=3):
+    def _fake_recent_activity_rows(pairs, activity_ignore_map, top=3):
         calls.append(pairs)
         return []
 
@@ -354,27 +364,14 @@ def test_recent_activity_route_derives_granted_pairs_not_cross_product(user_clie
 
 
 # --------------------- error responses must not be cached ------------------- #
-# TEST has no Statistics DB, so engines are mocked on the VIEW module (it
-# does `from ..db import ...` at load time). Session permissions are
-# rewritten every request by _reload_user_permissions (nx_lib/hooks.py), so
-# we patch nx_lib.hooks.load_permissions_for_user (precedent:
+# TEST has no Statistics DB, so engines/registry are mocked on the VIEW
+# module (it does `from ..db import ...` / `from .. import mapping_config`
+# at load time). Session permissions are rewritten every request by
+# _reload_user_permissions (nx_lib/hooks.py), so we patch
+# nx_lib.hooks.load_permissions_for_user (precedent:
 # tests/integration/test_workitems_routes.py). SimpleCache is process-global
-# and the app fixture is session-scoped -> cache.clear() first, always.
-
-
-class _BoomEngine:
-    def raw_connection(self):
-        raise RuntimeError("nexora db hiccup")
-
-
-def _fake_nexora_engine(rows):
-    cur = MagicMock()
-    cur.fetchall.return_value = rows
-    conn = MagicMock()
-    conn.cursor.return_value = cur
-    eng = MagicMock()
-    eng.raw_connection.return_value = conn
-    return eng
+# and the app fixture is session-scoped -> _clear_response_cache (autouse)
+# wipes it before every test.
 
 
 # --------------------- dashboard.view required on the four legacy KPI endpoints -----------
@@ -410,20 +407,24 @@ def test_avg_processing_time_without_dashboard_view_returns_403(noperm_client):
 
 
 def test_processed_over_time_error_response_is_not_cached(user_client, monkeypatch):
-    """A transient 500 (Statconfig read on NexoraDB fails) must not be pinned
-    in the 300s response cache: the next request re-executes the view."""
-    cache.clear()
+    """A transient 500 (mapping_config registry read fails) must not be
+    pinned in the 300s response cache: the next request re-executes the
+    view."""
     monkeypatch.setattr(
         nx_lib.hooks,
         "load_permissions_for_user",
         lambda uid: ["dashboard.view", "dashboard.filter.process.sydoc.TestProc"],
     )
 
-    monkeypatch.setattr(dv, "engine_nexora_db", _BoomEngine())
+    def _boom():
+        raise RuntimeError("nexora db hiccup")
+
+    monkeypatch.setattr(dv.mapping_config, "registry", _boom)
     resp = user_client.get("/api/dashboard/processed_over_time")
     assert resp.status_code == 500
 
-    monkeypatch.setattr(dv, "engine_nexora_db", _fake_nexora_engine([]))
+    monkeypatch.setattr(dv.mapping_config, "registry", lambda: object())
+    monkeypatch.setattr(dv.mapping_config, "sources_for", lambda client, processes=None: [])
     resp2 = user_client.get("/api/dashboard/processed_over_time")
     assert resp2.status_code == 200
     assert resp2.get_json() == {"labels": [], "data": []}

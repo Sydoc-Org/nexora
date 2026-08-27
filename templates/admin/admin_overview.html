@@ -80,6 +80,16 @@
                 <p class="admin-overview-card-desc">{{ _('Users, permissions and access profiles') }}</p>
             </a>
 
+            <a href="{{ url_for('admin_permission_matrix') }}" class="nx-card nx-card--link admin-overview-card" data-testid="admin-overview-permission-matrix">
+                <div class="admin-overview-card-top">
+                    <div class="nx-meta">{{ _('Permission Matrix') }}</div>
+                    <i class="fas fa-diagram-project admin-overview-card-icon"></i>
+                </div>
+                <div class="admin-overview-card-number admin-overview-card-number--text">{{ _('Matrix') }}</div>
+                <div class="admin-overview-card-label">{{ _('view') }}</div>
+                <p class="admin-overview-card-desc">{{ _('Who can see what, filterable both ways') }}</p>
+            </a>
+
             <a href="{{ url_for('admin_organizations_view') }}" class="nx-card nx-card--link admin-overview-card" data-testid="admin-overview-organizations">
                 <div class="admin-overview-card-top">
                     <div class="nx-meta">{{ _('Organizations') }}</div>

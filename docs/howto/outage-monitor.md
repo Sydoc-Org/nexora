@@ -45,7 +45,8 @@ Scheduler on SYAPP01.
 | `api:key` | `GET /api/test/v1/stats/today` with `OUTAGE_API_KEY` as Bearer | the key lookup / process scoping being broken -- the half `api:v1` cannot see |
 | `octo:<domain>` | `POST /auth/connect/token` | Octo vendor-side outage |
 | `graph:mail` | Graph ROPC token request | expired Graph credentials — which silently kill alert mail itself |
-| `log storm @ <site>` | repeated `ERROR` signature in `app.log` | logic-level breakage while every connectivity probe stays green |
+| `log storm @ <site>` | repeated `ERROR`/`CRITICAL` signature in `app.log` | logic-level breakage while every connectivity probe stays green |
+| `warn storm @ <site>` | repeated `WARNING` signature in `app.log` | a fault that only warns -- the reporting catalog warned on every request for months, unwatched |
 
 The two API probes are deliberately split. `api:v1` needs no credentials at all
 (a 401 already proves routing reached `require_api_key` and it answered), so it
@@ -69,10 +70,17 @@ woken someone for a vendor no page depends on. Migration `0057` deletes its
 `dbo.StatusComponents` row so it also stops rendering on the admin status page.
 
 The log-storm probe is the one that would have caught the `0042` incident. It
-reads the tail of `var/logs/system/app.log`, normalizes each `ERROR` message
-into a signature (ids, GUIDs, quoted literals and numbers collapse, so the same
-fault does not fragment into hundreds of distinct storms), and opens an incident
-when one signature appears **10+ times in 15 minutes**.
+reads the tail of `var/logs/system/app.log`, normalizes each message into a
+signature (ids, GUIDs, quoted literals and numbers collapse, so the same fault
+does not fragment into hundreds of distinct storms), and opens an incident when
+one signature appears **10+ times in 15 minutes**.
+
+`WARNING` is scanned as well, at its own much higher bar: **60+ in 15 minutes**
+(4/minute sustained). Warnings are routine and errors are not, so one threshold
+for both would either drown the mailbox or keep missing faults that never raise.
+A warning storm is labelled `warn storm @ <site>` rather than `log storm`, and a
+signature seen at both levels is judged at the *error* bar -- one stray WARNING
+must not raise an error storm's threshold.
 
 On a **dev box** expect the log-storm probe to fire constantly: the unit suite
 deliberately logs errors ("boom", "DB down", …) into the same `app.log`, so a
@@ -117,6 +125,7 @@ all the admin status page reads:
 |---|---|
 | `dbo.StatusComponents` | one row per fixed component — current state, detail, `FirstSeenAt`, `LastCheckedAt`, `LastOkAt`; overwritten each run |
 | `dbo.StatusIncidents` | append-only outage log; `EndedAt IS NULL` means still open |
+| `dbo.StatusSamples` | one latency sample per fixed component per run (migration `0071`), behind the status page's response-time sparklines; pruned to 14 days by the monitor itself |
 
 Log-storm components appear **only** in `StatusIncidents`. Their keys are content
 hashes of an error signature, so a permanent row per signature ever seen would
@@ -207,3 +216,29 @@ a non-zero exit would leave Task Scheduler showing a permanently failing task.
 
 Same split as `nx_lib/reporting/schedule.py` + `ops/run_scheduled_reports.py`:
 the decisions are testable without a live PROD, the I/O is not.
+
+## Response-time sparklines
+
+Every probe already measures how long it took -- the DB pings always carried it
+in the detail line, and the HTTP/Graph/Octo probes now append ` (204 ms)` from
+`requests`' own timing. `persist_run` parses that number back out and writes one
+`dbo.StatusSamples` row per component per run, so `/admin/status` can draw 24
+hourly buckets beside each component.
+
+Three choices worth knowing before changing them:
+
+* **Zero-based axis, scaled per component.** A DB ping at 158 ms and a Graph
+  token at 310 ms are both normal, so one shared axis would flatten every line
+  but the slowest; fitting each line to its own min..max instead would turn
+  ordinary ±20% jitter into cliffs. Each component gets its own `0..max`.
+* **Each bucket keeps its slowest sample, not the mean.** A five-minute stall is
+  exactly what the graph exists to show; averaging twelve samples per hour
+  erases it.
+* **Gaps stay gaps.** A bucket with no sample renders as a break in the line.
+  Interpolating would draw a healthy flat line straight through the window where
+  the monitor itself was dead.
+
+The pure helpers (`spark_series`, `spark_geometry` in `nx_lib/status.py`) do the
+bucketing and the SVG coordinates, so the template does no arithmetic and both
+are unit-tested. Retention is enforced by the monitor's own `DELETE` on every
+run -- there is no separate cleanup job to schedule.

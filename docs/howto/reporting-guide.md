@@ -17,7 +17,7 @@ instead, read [`reporting.md`](reporting.md) — that one is for developers.
 ## The 60-second version
 
 1. Open **Reporting** from the left navigation.
-2. Click **New report — guided builder**.
+2. In the **Library**, click **New report** (top right).
 3. Answer four questions: *what to measure* → *which processes* → *how to break
    it down* → *what time range*.
 4. Click **Show result**.
@@ -41,14 +41,21 @@ guide as an app page.
   the badge first.
 - Everything in one empty bucket? The breakdown field is not filled in for the
   processes you selected.
+- Not sure which table a source really reads? Click its card in the **Sources**
+  rail: **List** shows the tables it uses and their columns, **Diagram** draws
+  the relationships between them.
 - Relative presets stay relative: a report saved with "This month" shows the
   current month on every run and in every scheduled mail. Schedule times are
   UTC.
+- The palette button in the chart toolbar recolours each series and the
+  title, and puts a series on its own right-hand axis — Backlog starts there
+  by default so a few hundred stays readable next to tens of thousands. Picks
+  are saved with the report.
 
 **Checking a number**
 
 - Click a chart bar or a table row to open the documents behind that number;
-  **Show query** reveals exactly how it was computed.
+  the **Query** card beside the chart shows exactly how it was computed.
 - The ↑/↓ comparison chips compare a window shifted back by your range's
   length in days — not the previous calendar period. Hover a chip for the
   exact dates.
@@ -59,11 +66,16 @@ guide as an app page.
 
 **Saving and sharing**
 
-- Save works differently per tab: on Simple, Save always creates a new report
-  under My reports; on Advanced, Save overwrites the open report — including a
-  shared one you can edit. Use **Save as** for a copy.
+- Save writes back to the report you have open — the pencil beside the title
+  renames it in place, and neither one leaves a duplicate behind. A result that
+  is not a saved report yet (a wizard run, an answer from Eddard) asks for a
+  name and lands under My reports. To keep the original untouched, use
+  ⋯ → **Save as copy** (**Save as** in the Advanced builder).
 - A scheduled email runs with the report owner's data access — recipients see
   the owner's numbers, not their own.
+- Delete a report you own: open its card's **…** menu under My reports and
+  pick Delete, or open the report and use ⋯ → Delete report. Shared copies and
+  schedules go with it.
 
 **Asking the AI**
 
@@ -81,24 +93,57 @@ guide as an app page.
 
 ---
 
+## Finding your way around
+
+The page is a small workspace with a fixed navigation on the left:
+
+- **Library** — every report you can see, as cards: search, sort, and switch
+  between 2 or 4 cards per row. This is the start screen.
+- **Results** — brings back the **last result you rendered**, exactly as you
+  left it, without running the report again.
+- **Dashboards** — opens your most recent dashboard.
+- **Scheduled** — every automatic delivery you own, in one table.
+- **Advanced** — the full builder for exact control.
+
+Under the navigation, the **Sources** list shows each data source you can
+report on, with a green dot and its current response time.
+
+**Click a source card** to look inside the database behind it (needs the
+"browse source structure" permission — see [For administrators](#for-administrators-internal)):
+
+- **List** — the tables this source actually reads, biggest first, with their
+  row counts. Open one to see its columns, their types, which is the primary
+  key (🔑) and which point at another table (🔗 — click it to jump there).
+- **Diagram** — the same tables drawn as boxes, with a solid arrow from each
+  foreign key to the table it references and a dashed one from a view to what
+  it reads. Drag to pan, scroll to zoom, **Fit** to see everything again;
+  clicking a box opens it in the list.
+
+The rest of the database is left out: the header says how many tables were
+hidden. "Used" means named by the source registry, plus whatever those tables
+join to or a used view reads. And it is a read-only look at the structure —
+no data rows are shown.
+
 ## Three ways to build a report
 
-The page has two tabs — **Simple** and **Advanced** — and three ways in. They
-all produce the same kind of report; pick whichever suits you.
+There are three ways in. They all produce the same kind of report; pick
+whichever suits you.
 
 | Way in | Where | Best for |
 |---|---|---|
-| **Guided builder** (wizard) | Simple tab | Almost everyone, almost always. Four questions, no jargon. |
-| **Ask AI** | Simple tab (the bar at the top) | You know the question in words but not which fields to pick. |
-| **Advanced builder** | Advanced tab | You want exact control: pick individual columns, several filters, custom sort, custom headers. |
+| **Guided builder** (wizard) | **New report** in the Library | Almost everyone, almost always. Four questions, no jargon. |
+| **Ask Eddard** | **Eddard** button, top right | You know the question in words but not which fields to pick. |
+| **Advanced builder** | **Advanced** in the left navigation | You want exact control: pick individual columns, several filters, custom sort, custom headers. |
 
 You can start in one and move to another: any result has an **Open in Advanced**
-button, and the AI's answers have an **Open report** chip.
+entry in its **…** menu, and Eddard's answers have an **Open report** chip.
 
 ### Way 1 — the guided builder
 
-**New report — guided builder** walks you through four steps. **Back** returns a
-step without losing your picks; **✕** leaves without deleting anything you saved.
+**New report** walks you through four steps — the step chips across the top
+show where you are, and the **So far** panel on the right collects your picks.
+**Back** returns a step without losing your picks; **✕** leaves without
+deleting anything you saved.
 
 1. **What do you want to measure?**
    Pick one or more measures (e.g. *documents*). The first pick decides which
@@ -162,31 +207,32 @@ step, and the badge does not recompute when you narrow the selection later); a
 Chips that no selected process provides at all are hidden, and the rest sort
 best-coverage-first. **If a number looks too low, check the badge first.**
 
-### Way 2 — Ask AI
+### Way 2 — Ask Eddard
 
-Type a question into the bar at the top of the Simple tab — *"documents per
-month this year"*, *"invoices by process, last 3 months"* — and press Enter, or
-click one of the suggestion chips. This opens the **AI chat** panel on the right
-and answers there.
+**Eddard** is the reporting assistant — the little black hole in the top bar,
+who blinks at you while he waits and throws a report together while he works.
+Click **Eddard** in the top-right and ask in plain words — *"documents per
+month this year"*, *"invoices by process, last 3 months"* — or click one of
+the starter chips in the empty panel. The answer arrives in the same panel.
 
 - Answers where the agent used tools include a **How the agent worked** section
   you can unfold to see each step it took. If a **Continue** button appears
   under an answer, the agent ran out of budget mid-way — one click resumes it
   with more room; try that before rephrasing.
 - If it built a report, an **Open report** chip opens it in the results view.
-  **Use it.** The filters and process scope the AI chose are visible there —
+  **Use it.** The filters and process scope Eddard chose are visible there —
   a wrong guess (wrong date range, wrong process) shows up immediately, and
   you can adjust before trusting the number. From there, **Open in Advanced**
   reaches the builder if you need it.
 - It remembers the conversation, so "…now only this quarter" works as a
   follow-up. Three follow-up chips are offered for you.
 
-The AI does not get to bypass anything: it can only build a report you were
+Eddard does not get to bypass anything: he can only build a report you were
 already allowed to run, and the report still runs through the normal path with
 your own permissions.
 
-If you do not see the AI bar or the **AI chat** button, the assistant is either
-not switched on in your environment or not granted to your account.
+If you do not see the **Eddard** button, the assistant is either not switched
+on in your environment or not granted to your account.
 
 ### Way 3 — the Advanced builder
 
@@ -212,10 +258,18 @@ could not run otherwise.
 
 ## Reading the result
 
-**The stat band** at the top: total, number of buckets, average per bucket, and
-peak. Computed from the rows on screen, so it costs no extra query time.
+**The stat band** at the top. Every figure says what it is a figure *of*:
 
-**Delta chips (↑ 12%)** appear on those tiles when your report uses exactly one
+- One **total card per measure** — `Total · Documents imported`, then
+  `Total · Documents exported`, and so on, one per measure you picked. There is
+  no single number combining them: a document that was imported and later
+  exported would be counted twice, so adding the two together would not be a
+  count of anything real.
+- Below them, **number of buckets, average per bucket and peak** for the first
+  measure — the card says which one it is describing. A report with no
+  breakdown (*just the total*) has no buckets, so these are not shown.
+
+**Delta chips (↑ 12%)** appear on those cards when your report uses exactly one
 relative date preset. They compare against the period *immediately before* the
 one you are looking at.
 
@@ -236,32 +290,66 @@ percentage, so it is dropped rather than shown wrong.
 bar / line / pie / doughnut switcher (your choice is saved with the report).
 There is a button to download the chart as a **PNG**. Charts show at most 50
 values along the axis and 12 series (the 12 largest are kept). Past 50 axis
-values the two tabs differ: Advanced charts the top 50 by value with a note;
-Simple charts the first 50 for a category axis, and for a date axis (or a
+values the two builders differ: Advanced charts the top 50 by value with a note;
+the guided view charts the first 50 for a category axis, and for a date axis (or a
 result with several breakdowns) shows no chart at all with a hint to pick a
 coarser granularity or a shorter range. The table and exports always carry the
 full data.
 
-**Show table** reveals the data rows. **Show query** reveals the actual database
-query behind the number, formatted and copyable — useful when you want to prove
-where a figure came from.
+**Show table** reveals the data rows. The **Query** card beside the chart
+always shows the actual database query behind the number, formatted and
+copyable — useful when you want to prove where a figure came from.
+
+### Today, unfinished periods and gaps
+
+- A time chart **stops at today**. *This year* draws January up to the current
+  month — the months that haven't happened yet are not drawn as zero, and the
+  *Groups* / *Ø per group* cards only count the periods that exist.
+- The period that contains today is **still filling up**: its bar is faded (its
+  line segment dashed) and the note *"The current period is still running"*
+  appears under the chart. Don't read it as a drop.
+- **Backlog is a level, not a count.** Its *Total* is the newest snapshot, never
+  the sum of all snapshots. A period nobody measured shows as a **gap** in the
+  line (not zero) with the note *"Gaps are periods without a backlog snapshot"*.
+- A weekly or daily breakdown of a whole year charts fine — the 50-point cut
+  only applies to category axes.
 
 ### Forecast
 
 If your report is *one time breakdown plus a measure*, the **Forecast** toggle
-becomes available. (On the Simple tab the toggle is always visible in the chart
-toolbar but greyed out until the report qualifies; Advanced hides it instead.) It extends the chart with a dashed projection line and a shaded 95%
-confidence band, and appends the predicted rows to the table with a *Forecast*
-badge.
+becomes available. (In the guided view the toggle is always visible in the chart
+toolbar but greyed out until the report qualifies; Advanced hides it instead.)
+On a line chart it extends the chart with a dashed projection line and a shaded
+95% confidence band; on a bar chart the predicted periods are drawn as
+translucent bars in the series' colour. Pie and doughnut charts have no
+forecast. The predicted rows are appended to the table with a *Forecast* badge,
+and switching the forecast off again is instant — nothing is re-queried.
 
 - It fits a trend and, when there is enough history, a repeating seasonal
-  pattern on top.
+  pattern on top. The unfinished current period is left out of the fit (it
+  stays on the chart as-is) and the projection starts right after it; a
+  backlog's unmeasured periods are carried forward, not counted as empty.
 - It needs at least 5 periods of history. Below that you get *"Not enough
   history to forecast this series."*
 - The setting is saved with the report — including for scheduled emails.
 - Exports get an extra **Forecast** column so you can tell predicted rows from
   real ones. Predicted points are not clickable — there are no real documents
   behind a number the system invented.
+
+### Colours & axes
+
+The palette button in the chart toolbar opens a small panel with a colour
+picker for every series and one for the **report title and legend**. Each
+series also has a **Left | Right** switch: put it on *Right* to plot that line
+against its own scale on the right-hand side — the way to keep a *Backlog* of a
+few hundred readable next to imports in the tens of thousands (when *Backlog*
+shares a chart with other measures it starts on the right axis by default).
+Each axis is titled with the series it carries, and when it carries exactly one
+series its numbers take that series' colour. **Reset colours** returns to the
+standard palette.
+
+- Your picks are saved with the report and come back when you open it.
+- Emailed reports and the Advanced builder use the standard colours.
 
 ### Click a bar to see the documents behind it
 
@@ -283,23 +371,33 @@ number. A hint line tells you when this is available.
 
 ## Saving, sharing, finding again
 
-**Save** stores the report under **My reports** — but the two tabs treat it
-differently. On the **Simple** tab, Save always creates a *new* report, even
-when you opened one from the library. On the **Advanced** tab, Save overwrites
-the loaded report — including a shared report you have edit rights on, for
-everyone — and **Save as** makes a copy. Editing the title and hitting Save
-also renames it.
+**Save** writes back to the report you have open — yours, or a shared one you
+have edit rights on (in which case everyone sees the change). The pencil beside
+the title renames that same report; neither leaves a duplicate behind. A result
+that is not a saved report yet — a wizard run, an answer from Eddard — asks for
+a name instead and lands under **My reports**.
 
-The library on the Simple tab groups everything into three shelves:
+To keep the original as it was, make a copy: ⋯ → **Save as copy** in the
+results view, **Save as** in the Advanced builder. The copy becomes the report
+you have open, so the next Save goes to the copy, not the original.
+
+The **Library** groups everything into three shelves:
 
 - **Library** — reports shared with the whole organisation.
 - **My reports** — yours.
 - **Shared with me** — reports someone shared with you by name.
 
+Above the shelves: a **search box**, a **sort** dropdown (recently updated /
+name), and a layout toggle for **2 or 4 cards per row**. Every card you own has
+a **…** menu with **Share** and **Delete**; clicking anywhere else on the card
+opens the report.
+
 Cards show a small preview chart. It only reflects your real numbers after you
 have opened and run that report in this browser — before that it is a
 decorative placeholder, so don't read trends off a card you haven't opened.
-Nothing runs until you click a card.
+A dashboard card previews the dashboard itself: a miniature of its real card
+layout (one tile per card), plus a card count. Nothing runs until you click a
+card.
 
 **Share** (on a report you own) does two independent things:
 
@@ -307,6 +405,11 @@ Nothing runs until you click a card.
   can open the Reporting page).
 - **Named shares** — share with specific colleagues, optionally with **Can
   edit**.
+
+Once a report of yours is shared either way, its card and its entry in the
+Advanced dropdown are tagged **· shared**. A named share does not move the card
+to the **Library** shelf — that shelf is only for reports shared with the whole
+organisation.
 
 Only the owner can change visibility, manage shares, rename or delete. Someone
 with a read-only share who edits and saves gets their own copy instead.
@@ -332,12 +435,19 @@ what you are looking at:
 
 ## Getting it by email
 
-On a report you own, **Schedule** sets up automatic delivery: **frequency**
-(daily / weekly / monthly), **time** (UTC — mind the offset), **format**
-(Excel / CSV) and **recipients**. Reports with a breakdown get the chart drawn
-into the mail body and into the attached file.
+The **Scheduled** page (left navigation) lists every automatic delivery you
+own, across all your reports: what runs, how often, who gets it, in which
+format, when it last ran and when it runs next. From there:
 
-Schedules can be switched on and off individually from the list.
+- The **toggle** at the start of each row switches a schedule on or off —
+  switched-off rows stay in the list, dimmed.
+- **New schedule** opens a small form: pick one of your saved reports, a
+  **frequency** (daily / weekly / monthly), a **time** (UTC — mind the
+  offset), a **format** (Excel / CSV) and the **recipients**.
+- The bin icon at the end of a row deletes that schedule.
+
+Reports with a breakdown get the chart drawn into the mail body and into the
+attached file.
 
 **Alert-only schedules.** The **Send** dropdown can turn a schedule into an
 alert: *only when the total is above / at least / below / at most N*. If the
@@ -353,10 +463,21 @@ not the recipients'.
 
 **New dashboard** builds a page of live tiles instead of a single report. Each
 tile is its own small report: **KPI** (one number), **line**, **bar**, **donut**
-or **table**.
+or **table** — or a **Whole report** tile.
 
-- **Edit / Done** toggles edit mode: drag tiles to rearrange, add, duplicate or
-  remove them, and set the **global filters**.
+- **Edit / Done** toggles edit mode: drag tiles to rearrange or resize them, add,
+  duplicate or remove them, and set the **global filters**.
+- **Add a card** (header button, or the dashed tile at the end of the grid) opens
+  one dialog that asks everything at once: which of your saved reports to show,
+  how to draw it (KPI / chart / donut / table / whole report), its title, and how
+  big it should be — a width in grid columns and a height in rows, sketched as
+  you move the sliders. The tile lands ready, already showing its data. Leave the
+  report unpicked to drop a blank tile and configure it later.
+- **Moving and resizing.** In edit mode a tile is grabbable anywhere: drag it and
+  the grid reflows live, the dashed outline showing where it will land. Drag the
+  little corner grip at its bottom right to resize — the width snaps to the 12
+  columns of the grid, the height to whole rows (up to 6). Both are saved with
+  the dashboard on **Done**.
 - Global filters apply to every tile *except* tiles that override that field —
   those are marked "This card overrides the global filters".
 - A KPI tile shows a "vs previous period" change when its filters contain
@@ -366,6 +487,11 @@ or **table**.
   drawer opens. (Donut tiles are the exception: their "Other" grouping breaks
   the mapping.)
 - **Export** is per tile: the header menu lists the tiles, pick one.
+- **Whole report** imports a saved report exactly as the Simple tab shows it:
+  the KPI band with one labelled total per measure, the chart with its colours,
+  right axis and forecast, and the full table behind **Show table** (rows drill
+  through like everywhere else). Global filters still apply. The tile is
+  read-only — change colours, chart type or forecast in the report itself.
 
 A dashboard saves, shares and deletes exactly like any other report.
 
@@ -415,9 +541,10 @@ different pages. Ask an administrator to grant what you need:
 | See a particular data source | Access to that source |
 | Export to Excel/CSV | Export permission |
 | See a client or process in the picker | Row scope for that process |
-| Use the AI assistant | AI assistant access |
+| Ask Eddard | AI assistant access |
 | Set up email delivery | Scheduling permission |
 | Write your own SQL | SQL sandbox access (below) |
+| Click a source card to see its tables | Browse source structure (`reporting.sources.schema`) |
 
 ---
 
@@ -432,6 +559,12 @@ table-shaped source.
 
 **Measures** (`/reporting/metrics`) — the list the wizard's first step offers.
 Adding a row here widens the guided builder for everyone, without a release.
+
+**Source structure** — `reporting.sources.schema` turns the Sources rail cards
+into buttons that open the tables, columns and foreign keys of the database
+behind a source. It reads structure only (no rows), on the same connection the
+source already uses, and still requires the source's own permission — so it
+widens *what you see of* a database, never *which* databases you reach.
 
 **Live SQL sandbox** — the **SQL** tab in the Advanced builder, for when the
 builder cannot express the query. It runs a single read-only `SELECT` against a

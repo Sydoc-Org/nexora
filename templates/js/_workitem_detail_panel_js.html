@@ -14,7 +14,7 @@
           ? `<div id="history-container-${workitemid}" class="flex-grow overflow-y-auto pr-2"><p class="text-gray-500 italic">{{ _("Loading history...") }}</p></div>`
           : `<div class="flex-grow flex items-center justify-center bg-gray-50 rounded"><p class="text-gray-400"><i class="fas fa-lock mr-2"></i>{{ _("Audit history restricted") }}</p></div>`;
         const fieldsBlock = perms.fields
-          ? `<div id="fields-container-${workitemid}" class="flex-grow pr-2"><p class="text-gray-500 italic">{{ _("Loading details...") }}</p></div>`
+          ? `<div id="fields-container-${workitemid}" data-src-wid="${workitemid}" class="flex-grow pr-2"><p class="text-gray-500 italic">{{ _("Loading details...") }}</p></div>`
           : `<div class="flex-grow flex items-center justify-center bg-gray-50 rounded"><p class="text-gray-400 italic"><i class="fas fa-lock mr-2"></i>{{ _("Document fields restricted") }}</p></div>`;
         return `
           <div class="details-content-wrapper p-4 bg-gray-100 flex flex-col gap-6">
@@ -42,6 +42,7 @@
                 ${fieldsBlock}
               </div>
             </div>
+            ${perms.fields ? `<div id="tables-container-${workitemid}" data-src-wid="${workitemid}" class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm" hidden></div>` : ''}
           </div>`;
       }
 
@@ -229,47 +230,61 @@
                 .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
         }
 
+      // Line-item tables render as REAL tables (one <tr> per row) in their own
+      // full-width card below the two-column grid -- the narrow Document Details
+      // column could only ever stack cells label-over-value, which made rows
+      // impossible to compare (#199). Wide SAP-style Tab*/Ord* grids scroll
+      // horizontally inside .src-table-scroll.
       function renderTableGrids(workitemid) {
             const tables = (window.__tableByWorkitem && window.__tableByWorkitem[workitemid]) || [];
-            const locVisible = !(window.__srcLocVisibleByWorkitem
-                && window.__srcLocVisibleByWorkitem[workitemid] === false);
-            let html = '';
             const labels = window.fieldConfig.labels || {};
+            let html = '';
             tables.forEach((t, ti) => {
                 const rows = t.rows || [];
+                if (!rows.length) return;
+                // Column order = first seen across all rows (a row may omit cells).
+                const cols = [];
+                rows.forEach(row => row.forEach(c => { if (cols.indexOf(c.col) === -1) cols.push(c.col); }));
                 const title = srcEsc(t.title || 'Table')
                     + ` <span class="src-table-count">(${rows.length} ${rows.length === 1 ? '{{ _("row") }}' : '{{ _("rows") }}'})</span>`;
+                const head = `<th class="src-table-rownum">#</th>`
+                    + cols.map(col => `<th>${srcEsc(labels[col.toLowerCase()] || splitCode(col))}</th>`).join('');
                 const body = rows.map((row, ri) => {
-                    const rowLabel = rows.length > 1
-                        ? `<div class="src-table-row-label">{{ _("Row") }} ${ri + 1}</div>` : '';
-                    const cellRows = row.map((c, ci) => {
-                        const label = labels[c.col.toLowerCase()] || splitCode(c.col);
+                    const byCol = {};
+                    row.forEach((c, ci) => { byCol[c.col] = { c: c, ci: ci }; });
+                    const cells = cols.map(col => {
+                        const hit = byCol[col];
+                        // Missing cell, or extracted as empty: one em dash. An empty value
+                        // with a 0% confidence chip next to it is noise, not information.
+                        if (!hit || !String(hit.c.value == null ? '' : hit.c.value).trim()) {
+                            return `<td class="src-table-empty">&mdash;</td>`;
+                        }
+                        const c = hit.c;
                         const hasLoc = !!(c.locations && c.locations.length);
                         const page = hasLoc ? c.locations[0].page : '';
-                        const rowCls = 'src-field-row py-2 flex justify-between items-center gap-4'
-                            + (hasLoc ? ' is-locatable' : '');
-                        const badge = (locVisible && !hasLoc)
-                            ? ` <span class="src-no-loc-badge">{{ _("no source location") }}</span>` : '';
-                        const titleAttr = hasLoc
-                            ? ` title="{{ _('Click to locate on the document') }}"` : '';
                         const confCls = window.srcConfClass(c.confidence);
                         const confBadge = confCls
                             ? ` <span class="src-conf-badge ${confCls}" title="{{ _('Extraction confidence') }}">${window.srcConfPct(c.confidence)}</span>`
                             : '';
-                        return `
-                            <div class="${rowCls}" data-key="t${ti}r${ri}c${ci}" data-page="${page}"${titleAttr}>
-                                <dt class="text-gray-500 truncate">${srcEsc(label)}${badge}</dt>
-                                <dd class="font-semibold text-gray-900 text-right">${srcEsc(c.value)}${confBadge}</dd>
-                            </div>`;
+                        // ponytail: no per-cell "no source location" badge -- one badge per cell
+                        // buries the values it annotates. The pointer/hover affordance on
+                        // .is-locatable already marks which cells can be located.
+                        const titleAttr = hasLoc
+                            ? ` title="{{ _('Click to locate on the document') }}"` : '';
+                        return `<td class="src-field-row${hasLoc ? ' is-locatable' : ''}"`
+                            + ` data-key="t${ti}r${ri}c${hit.ci}" data-page="${page}"${titleAttr}>`
+                            + `${srcEsc(c.value)}${confBadge}</td>`;
                     }).join('');
-                    return rowLabel + `<dl class="divide-y divide-gray-200">${cellRows}</dl>`;
+                    return `<tr><td class="src-table-rownum">${ri + 1}</td>${cells}</tr>`;
                 }).join('');
-                html += `<details class="src-table-grid"><summary class="src-table-title">${title}</summary>${body}</details>`;
+                html += `<details class="src-table-grid" open><summary class="src-table-title">${title}</summary>`
+                    + `<div class="src-table-scroll"><table class="src-table">`
+                    + `<thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div></details>`;
             });
             return html;
         }
 
-      function buildSourceDetailsHtml(workitemid) {
+      function buildSourceDetailsHtml(workitemid, opts) {
             const fields = (window.__fieldsByWorkitem && window.__fieldsByWorkitem[workitemid]) || {};
             // Suppress the "no source location" badge when the user lacks the
             // source-location perm (the backend strips locations from everything,
@@ -308,9 +323,9 @@
                 fieldsHtml += '</dl>';
                 html += fieldsHtml;
             }
-            // Line-item tables render below the scalar fields (a table can exist with
-            // no scalar fields, so this is independent).
-            html += renderTableGrids(workitemid);
+            // Inline panel keeps tables out (they live in their own full-width card);
+            // the lightbox review panel is standalone, so it still appends them.
+            if (!opts || opts.tables !== false) html += renderTableGrids(workitemid);
             return html;
         }
 
@@ -432,8 +447,14 @@
           if (fieldsContainer) {
             window.__fieldsByWorkitem = window.__fieldsByWorkitem || {};
             window.__fieldsByWorkitem[workitemid] = fields;
-            fieldsContainer.innerHTML = buildSourceDetailsHtml(workitemid)
+            fieldsContainer.innerHTML = buildSourceDetailsHtml(workitemid, { tables: false })
               || `<p class="text-gray-500 p-2">{{ _("No additional details found.") }}</p>`;
+          }
+          const tablesContainer = document.getElementById(`tables-container-${workitemid}`);
+          if (tablesContainer) {
+            const tablesHtml = renderTableGrids(workitemid);
+            tablesContainer.innerHTML = tablesHtml;
+            tablesContainer.hidden = !tablesHtml;
           }
           if (imageContainer) {
             imageContainer.dataset.loaded = 'true';
@@ -627,9 +648,35 @@
             const panel = document.getElementById(cfg.reviewPanel);
             const body = document.getElementById(cfg.reviewPanelBody);
             if (!panel || !body) return;
-            const html = window.buildSourceDetailsHtml(workitemid);
+            const html = window.buildSourceDetailsHtml(workitemid, { tables: false });
             body.innerHTML = html;
             panel.hidden = !html;
+            renderReviewTables(workitemid);
+        }
+
+        // Line-item tables get their own box UNDER the page, spanning the image
+        // pane only -- a table squeezed into the values sidebar has to scroll for
+        // every column. The box is created lazily so the three templates carrying
+        // this modal (workitems, prepared documents, reporting) need no markup.
+        function reviewTablesBox() {
+            const panel = document.getElementById(cfg.reviewPanel);
+            const modalBody = panel && panel.closest('.src-modal-body');
+            if (!modalBody) return null;
+            let box = modalBody.querySelector('.src-modal-tables');
+            if (!box) {
+                box = document.createElement('div');
+                box.className = 'src-modal-tables';
+                modalBody.appendChild(box);
+            }
+            return box;
+        }
+
+        function renderReviewTables(workitemid) {
+            const box = reviewTablesBox();
+            if (!box) return;
+            const html = window.renderTableGrids(workitemid);
+            box.innerHTML = html;
+            box.hidden = !html;
         }
 
         // Render the overlay only once the displayed page is geometrically SETTLED:
@@ -673,6 +720,8 @@
             currentImages = [];
             currentIndex = 0;
             if (srcHlLayer) srcHlLayer.innerHTML = '';
+            const tbox = document.querySelector('.src-modal-tables');
+            if (tbox) { tbox.innerHTML = ''; tbox.hidden = true; }
         };
 
         document.addEventListener('click', (event) => {
@@ -692,9 +741,9 @@
         document.addEventListener('click', (event) => {
             const row = event.target.closest('.src-field-row.is-locatable');
             if (!row) return;
-            const fc = row.closest('[id^="fields-container-"]');
+            const fc = row.closest('[data-src-wid]');
             if (!fc) return;
-            const workitemid = fc.id.replace('fields-container-', '');
+            const workitemid = fc.dataset.srcWid;
             openModalForWorkitem(workitemid, parseInt(row.dataset.page || '0', 10), row.dataset.key);
         });
 
@@ -704,7 +753,7 @@
             const panel = document.getElementById(cfg.reviewPanel);
             if (!panel) return;
             const row = event.target.closest('.src-field-row.is-locatable');
-            if (!row || !panel.contains(row)) return;
+            if (!row || !row.closest('.src-modal-values, .src-modal-tables')) return;
             ensureSourcesOn();   // clicking a value turns boxes on (toggle -> "Hide sources")
             srcHl.pendingPulse = row.dataset.key;
             showImage(parseInt(row.dataset.page || '0', 10));

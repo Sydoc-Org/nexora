@@ -4,6 +4,598 @@ All notable changes to nexora are tracked here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Work toward the next release.
+
+## [3.2.3] - 2026-08-27
+
+### Added
+
+- **Reporting: click a source to see inside its database.** The Console's
+  Sources rail cards are now buttons that open a source visualizer — a
+  filterable list of every table (row count, columns, types, primary and
+  foreign keys) and an ER diagram drawing the foreign keys as arrows between
+  table boxes, with pan, zoom and Fit. Clicking a box, or a column's 🔗,
+  jumps to that table in the list. Structure only — no data rows are read.
+  Served by `GET /api/reporting/sources/<id>/schema`
+  (`nx_lib/reporting/db_schema.py`), on the same engine the source already
+  uses, behind the new `reporting.sources.schema` permission
+  (migration `0079`, seeded to profiles that hold `admin.view`) *and* the
+  source's own permission — so it never widens which databases a user reaches.
+  The panel shows **only the tables the source actually reads** — the ones its
+  registry names (`BaseObject` / `dbo.ProcessSources.TableName`), plus whatever
+  a used view reads and one foreign-key hop off them; the header says how many
+  tables were hidden. A source whose SQL is hand-written falls back to hiding
+  empty tables. View→table dependencies are drawn as dashed edges, so a
+  view-backed source shows what it is built on.
+
+- **Reporting dashboards: one-dialog "Add a card".** The add-card tile's type
+  pills are replaced by a single mask (`rdb-add-mask`) that asks for everything
+  at once — which saved report to show, how to draw it (KPI / chart / donut /
+  table / whole report), the card title, and the card size as a width in grid
+  columns plus a height in rows, sketched live as the sliders move. The card
+  lands fully configured instead of as a placeholder that had to be clicked to
+  reach the saved-report picker. Submitting with no report selected still adds
+  the blank "configure this card" placeholder, so an empty report library is
+  not a dead end.
+
+- **Reporting dashboards: resizable cards.** Cards now carry a `rows` height
+  alongside their `span` width, both drag-resizable from a card's bottom-right
+  corner grip (Pointer Events, no library): width snaps to the 12 grid columns,
+  height to whole grid rows (max 6). Charts re-fit themselves as the container
+  changes. Saved dashboards without `rows` fall back to a per-type default
+  sized to the heights those cards already had, so existing dashboards reopen
+  unchanged.
+
+- **Self-service client/process onboarding admin UI** (#98 phase 4). A new
+  `dbo.Clients` runtime-source registry (migration `0079`) replaces the
+  hardcoded `CLIENTS` dict in `nx_lib/clients.py`, seeded from today's two
+  values (`default`, `ms02`); a new client still needs an app-pool recycle
+  to take effect. New pages `/admin/clients` (CRUD over the registry, with
+  delete refused when a `ClientCode` is still referenced by
+  `dbo.ProcessSources`) and `/admin/processes` (view/edit `ProcessSources`
+  and their field mappings per client through the cached
+  `nx_lib/mapping_config.py` registry, with strict identifier validation on
+  every value interpolated into SQL). `ProcessName` must be exactly
+  `<customer>.<process>` — the permission that grants access to a process is
+  derived from those two dot-segments, so any other shape could never be
+  granted (and a three-segment name could piggyback on another customer's
+  grant); a name whose two-segment reduction already belongs to another
+  process is refused with 409. `ClientCode` is picked from `dbo.Clients`
+  and checked server-side, so a typo can no longer create config that never
+  resolves. `/admin/clients` shows resolved state next to configured state —
+  a row the running registry did not load reads "Configured, not loaded" —
+  and a boot-time `dbo.Clients` failure (which silently drops every
+  non-`default` runtime for the process lifetime) now raises a banner on
+  `/admin/clients` and `/admin/status` instead of only a stderr line written
+  before logging was configured. Adding a process source
+  auto-provisions its `workitems.filter.process.<name>` permission,
+  granted to nobody until deliberately assigned at `/admin/access-control`;
+  every write invalidates the mapping-config cache. New permissions
+  `admin.view.clients`, `admin.edit.clients`, `admin.view.processes`,
+  `admin.edit.processes` (migration `0080`), granted to `enterpriseAdmin`
+  and `globalAdmin`; the same migration also seeds
+  `admin.edit.organization.branding`, now in use by the branding panel below.
+  Onboarding a customer riding the shared `default`
+  runtime is now fully self-service — no migration, no deploy. See
+  `docs/howto/white-label.md`.
+
+- **Per-organization branding panel** (#98 phase 4). `/admin/organizations`
+  gained a branding panel — brand name, accent colour and logo — behind the
+  `admin.edit.organization.branding` permission (the panel and its per-row
+  button are hidden entirely from a viewer who only holds
+  `admin.view.organizations`). Branding attaches to the customer
+  organization, never to a runtime `ClientCode`. Uploads are MIME-sniffed
+  with libmagic through `nx_lib/files.py::is_file_allowed` (never the
+  client-declared content type), capped at 512 KB, restricted to SVG/PNG/JPEG
+  and stored as `var/branding/<orgcode>.<ext>`; `deploy.yml` already excludes
+  `var/` from the robocopy mirror. Every successful save invalidates the
+  60-second branding cache so the edit shows up immediately.
+
+- **Per-organization white-label branding applied in the app** (#98 phase 4).
+  Migration `0081` adds nullable `BrandName` / `BrandAccentHex` /
+  `BrandLogoFile` to `dbo.Organizations`; `nx_lib/branding.py` reads them into
+  a 60-second, success-only cached registry (`brand_for_org()`,
+  `invalidate_branding()`) whose load errors return `None`, are never cached,
+  and degrade the caller to Nexora branding. A context processor injects the
+  viewer's organization brand fresh per render — never cached in `session`
+  (#155) — so the header/sidebar shows the org's logo and wordmark when set and
+  today's exact markup when not. **The organization accent is a default, not an
+  override:** a user's own `/appearance` accent still wins, and the org accent
+  only replaces the built-in `indigo` / `#4f46e5`. Logos are served from
+  `GET /branding/<orgcode>/logo` with `Content-Security-Policy: sandbox` and
+  `X-Content-Type-Options: nosniff`, because SVG is allowed and is
+  script-capable. It is served with a one-hour `max-age` and skipped by the
+  per-request hooks the same way `/avatar/<id>` is — the header fetches it on
+  every page load of a branded org, which would otherwise double the request
+  log and skew `/admin/logs`. The login page, the error pages and scheduled-report emails
+  stay Nexora-branded by design — login is pre-session, so there is no user and
+  therefore no organization; the context processor is gated on a logged-in
+  session, because `logout()` leaves `organizationcode` behind and keying on it
+  alone kept branding the landing page (with a broken logo `<img>`) after
+  logout. See `docs/howto/white-label.md`.
+
+- **Sidebar restyled toward a minimal, GitHub-inspired look** (#213). Same
+  icons and labels, different treatment: the active page is marked by a thin
+  accent-coloured bar on the left edge instead of a filled accent-tinted
+  pill, and icons/text stay neutral gray (idle) / near-black (hover,
+  active) in every state — the user's configurable accent colour now shows
+  up in exactly one restrained place instead of painting the whole row.
+
+- **Clear button on the document-value filter's first row** (#185). Added
+  filter rows already had an "x" to remove them; the fixed first row (it
+  always exists, so it can't be removed the same way) had no way to reset
+  itself once filled. It now gets the same "x", shown only once the row
+  actually has a field or value to clear, and clears field/operator/value
+  back to defaults instead of removing the row.
+
+- **Keyboard shortcut cheatsheet overlay** (#173). Pressing `?` outside an
+  input field (or picking "Keyboard shortcuts" from the profile dropdown)
+  shows every shortcut the app actually has: the `Ctrl`/`⌘`+`K` command
+  palette, `Esc` to close a dialog, `?` itself, and — on the pages that embed
+  the document viewer (Workitems, Reporting drill-through, Prepared
+  documents) — `←`/`→` to page through a document's images. Content is
+  static markup in `_header.html`, not scanned from the JS: adding a
+  shortcut later means adding a row, on purpose, so the list can't silently
+  drift from what's actually wired up.
+
+- **Admin permission matrix** (#172). Read-only `/admin/permission_matrix`
+  page answering "who can see reporting?" / "what can this user open?"
+  without SQL against `spGetUserPermissions`'s tables directly: toggle
+  between picking a permission code (every holder, override vs. profile) or a
+  user (their effective permissions, grouped by family). Reuses the existing
+  `effective_permissions` resolution logic and links each row through to
+  Access Control / the user's overrides tab — granting and revoking stays
+  there.
+
+
+- **Responses are gzipped.** Nexora ships each page's JavaScript inline (the
+  `templates/js/*.html` partials), so an HTML response is the whole client for
+  that page — `/reporting` is ~620 KB — and none of it was compressed. Flask
+  does nothing by default, and IIS could not cover for it: `web.config` maps
+  `path="*"` to HttpPlatformHandler, so *every* request, `/static` included, is
+  proxied to waitress rather than served (and compressed) by IIS.
+  `nx_lib/compression.py` is one `after_request` hook over the stdlib's `gzip`,
+  registered first so it runs last. Measured on INT: `/reporting` **172 KB
+  instead of 625 KB** (‑73%, ~24 ms of CPU) and `reporting.css` **30 KB instead
+  of 124 KB**. Only text types, only bodies over 1 KB, only a bounded
+  (< 2 MB) `send_file` body, never a genuinely streamed one; `Vary:
+  Accept-Encoding` is set whether or not the body ends up compressed, and the
+  `ETag` is left alone so `If-None-Match` still answers 304.
+
+- **Dashboard cards in the reporting library preview their real layout.** A
+  dashboard's library card used to show a generic 2×2 placeholder; it now draws
+  a miniature of the dashboard itself — the actual cards packed into their
+  12-column rows, each tile carrying a small glyph for its chart type (KPI,
+  line, bar, donut, table, whole report) — plus a card-count fact, so
+  dashboards can be told apart before opening one. The list endpoint's
+  server-computed summary now carries the compact card layout for
+  dashboard-kind reports; an empty dashboard keeps the old placeholder.
+- **Eddard, the reporting mascot** (#212). The AI assistant now has a face and a
+  name: an animated version of the Nexora black-hole logo — black core, accent
+  accretion ring, two dot eyes — who floats, blinks, looks around, winks and
+  hops through the reporting AI surfaces (top-bar toggle, chat header, empty
+  thread, the Simple tab's insight card). While a question is running he builds
+  a placeholder report piece by piece — title, KPI, bars, trend line, a green
+  *Ready* badge — above the real agent steps. The visible AI wording is rebranded
+  with him ("AI chat" → **Eddard**, "AI insight" → **Eddard insight**), and his
+  accent follows the user's accent picker while the core stays black in both
+  themes. Decorative and `aria-hidden`; `prefers-reduced-motion` holds every loop
+  on its resting frame. New `templates/_eddard.html`,
+  `templates/js/_eddard_js.html`, `static/css/eddard.css`; design source is
+  `docs/design/design_handoff_eddard_mascot/`. He since gained the rest of the
+  handoff's personality — drifting ambient sparks and pointer-following eyes on
+  the big chat mascot, a hover perk-up on the small marks, and per-piece
+  build choreography (a fling as each report piece lands, a card settle, an
+  orbiting spark while working, the celebrate pose on *Ready*) — and his mock
+  report is no longer mock: the agent stream distills each tool result into a
+  compact preview (`stage_preview`), so the title, total, bars and trend he
+  animates while you wait are the real numbers of the answer being built.
+- **Response-time sparklines on the admin status page.** Each component row now
+  carries a 24-hour latency graph beside its uptime strip, drawn from the new
+  `dbo.StatusSamples` table (migration `0071`) that the outage monitor fills
+  from the durations it already measured and previously discarded. Inline SVG,
+  no chart library: zero-based axis scaled per component, one bucket per hour
+  keeping its slowest sample, gaps left as gaps, and failed probes marked with a
+  square as well as a colour — and *named* in the tooltip and `aria-label`, so
+  the anomaly survives a screen reader and a greyscale print. The HTTP, API,
+  Graph and Octo probes now append their own `(204 ms)` timing so they are
+  graphed too.
+- **The outage monitor watches `WARNING` storms.** Previously only
+  `ERROR`/`CRITICAL` signatures could open an incident, so a fault that merely
+  warns was invisible — the reporting catalog warned on every request for months
+  with nothing watching. Warnings get their own much higher bar (60 in 15 min vs
+  10) and are labelled `warn storm @ <site>`.
+
+- **Reporting "Console" redesign.** The `/reporting` page is now a workbench
+  shell (design handoff `docs/design/design_handoff_reporting_console/`):
+  compact top bar, persistent left rail with a Workspace nav (Library /
+  Results / Dashboards / Scheduled / Advanced) and a live sources rail
+  (status dot + latency via the new `GET /api/reporting/sources/health`),
+  replacing the Simple/Advanced tab strip and the landing hero + global
+  Ask-AI bar (AI lives in the chat panel). Library gains search + sort + a
+  2-or-4-cards-per-row toggle and compact cards with an owner `…` menu
+  (Share / Delete); the result view gains a breadcrumb + Saved chip, a Run
+  again button, a flat KPI card row, and a side column with the AI-insight
+  and always-visible syntax-coloured Query cards; the wizard gains
+  horizontal step chips + a "So far" summary; **Results** restores the last
+  rendered result from cache without re-querying. New **Scheduled** screen
+  lists every owned schedule across reports (new
+  `GET /api/reporting/schedules`) with on/off toggles and a New-schedule
+  modal. Styling in the new `static/css/reporting-console.css`, riding the
+  design-system tokens (accent picker + dark mode included), typeface
+  Schibsted Grotesk.
+- **The AI chat agent can execute a report definition, not just validate it.**
+  A new `run_definition` tool (bound alongside `run_sql`, behind
+  `reporting.ai.explain_data` + `reporting.sql.run`) runs a `build_definition`-
+  shaped definition for real — the same query the report builder would run —
+  and hands the rows back to the model, capped to 500. Previously a
+  `build_definition` call only validated the shape, so a question needing
+  concrete numbers (imported/exported/backlog, or any other business-metric
+  question) ended with "definition built, numbers not run" instead of an
+  answer.
+- **PROD diagnostics workflow.** `.github/workflows/prod-diagnostics.yml` is a
+  manual, read-only sweep of SYAPP01 — `app.log` tail, IIS app-pool/site state,
+  PROD env key names (never values), disk/uptime, outage-monitor state — run on
+  the `self-hosted` runner that already executes on the box. It exists because
+  WinRM to PROD is blocked by the VPN/network ACL; it takes no command input.
+- **WinRM access to PROD documented.** `docs/howto/winrm-prod-access.md`
+  covers the one-time `Enable-PSRemoting` setup on SYAPP01 plus the firewall
+  scoping, so log tails, app-pool checks and env-key audits can run remotely
+  instead of needing an RDP session. Only 445 (SMB) and 3389 (RDP) were open
+  before.
+- **Cloudflare Tunnel runbook, prepared for the ngrok replacement.**
+  `docs/howto/cloudflare-tunnel.md` documents the remotely-managed tunnel
+  (token-only install on SYAPP01, hostname `nexora.sydoc.ch` -> local IIS,
+  Bot-Fight-Mode caveat for `/api/v1` clients, verify/cutover/rollback), and
+  the deploy workflow now stops/starts whichever of the `ngrok`/`cloudflared`
+  Windows services exists, so deploys behave identically before, during and
+  after the cutover. ngrok remains the live entry until then
+  (`docs/howto/ngrok.md` carries the deprecation banner).
+- **Colours & axes on Simple-tab charts.** A palette button in the chart
+  toolbar opens a popover with one colour picker per series, one for the
+  report title + legend, and a *Right axis* toggle per series so a level-type
+  measure (backlog in the hundreds) no longer flat-lines beside imports in
+  the tens of thousands — *Backlog* defaults to the right axis when it shares
+  a chart with other measures. Picks are saved with the report
+  (`definition.style`, validated hex-only in `nx_lib/reporting/schema.py`).
+  Scheduled-mail PNGs and the Advanced tab keep the default palette.
+- **Delete reports from the Simple tab.** Owned cards under *My reports* get a
+  hover trash button, and an open saved report has *⋯ → Delete report*; both
+  confirm first and call the existing owner-scoped
+  `DELETE /api/reporting/reports/<id>`. Until now deleting was Advanced-only.
+
+### Changed
+
+- **Reporting dashboards: drag-to-rearrange previews the real layout.** The
+  dragged card is spliced into its landing position as you hover, so the grid
+  itself is the preview and its dashed outline sits where the card will end up;
+  the whole card is now grabbable, with a `grab` cursor, rather than looking
+  static. Drop only clears the drag state.
+
+
+- **Dev-structure leftovers from the 2026-05 dev-env upgrade closed out**
+  (#108). The camelCase template render kwargs the PR 6 handoff deferred are
+  now snake_case (`pageV` -> `page_visibility`, `startDate`/`endDate` ->
+  `start_date`/`end_date`), and the five endpoint names PR 5 deliberately kept
+  camelCase as a compat surface were renamed too (`init_2FA` -> `init_2fa`,
+  `generali_baseServices` -> `generali_base_services`, and the additional
+  services / project management / import status siblings). Public URL paths are
+  unchanged - the rules are declared explicitly, so only `url_for()` keys moved.
+- **mypy is a blocking pre-commit hook** (#108). It was wired in as advisory
+  (`stages: [manual]`) and never enforced. The 13 outstanding errors are fixed,
+  `types-requests` joins the dev dependencies, `strict_optional = false` is
+  recorded in `pyproject.toml` instead of being passed as a hook flag, and the
+  hook now runs from the project environment so a local `mypy nx_lib nx_main.py`
+  and the hook agree.
+- **Doc-field suggestion endpoints read the mapping_config registry; `col_`
+  prefix retired** (#98). `/api/docfield_values` (both the field-specific and
+  value-first "any field" paths) no longer query `SearchConfig` directly —
+  they resolve through `nx_lib.mapping_config`, like the search-filter
+  resolution paths already did. With every `SearchConfig` read gone from
+  `nx_lib/views/workitems.py`, `get_valid_search_columns()` and
+  `get_search_columns_for_processes()` now return bare lowercase field keys
+  instead of `col_`-prefixed ones — the last step of the two-phase migration
+  off the legacy naming convention; `nx_lib/views/api_external.py` updated to
+  match. The 600s suggestion caches and their key shapes (which encode the
+  sensitive-permission column set) are unchanged.
+- **Schema hygiene: `StatConfig` gets a primary key, `Logs` gets a timestamp
+  index** (#98, migration `0073`). `StatConfig` was a PK-less heap with a
+  nullable key column — now `ProcessName` is `NOT NULL` with a composite PK on
+  `(ProcessName, ClientCode)`. `dbo.Logs` gains `IX_Logs_Timestamp` so the
+  admin log pages stop table-scanning as the log grows.
+
+- **`CLAUDE.md` is now a map, not a manual.** It is injected into every Claude
+  Code session and re-sent after every compact, so its 28 KB of prose was a
+  fixed per-session token cost. The architectural-conventions block moved
+  verbatim to `docs/design/architecture-conventions.md`, the Databases section
+  dropped the ~5 KB it duplicated from `docs/howto/db-migrations.md`, and the
+  translations and GitNexus blocks became pointers. 28,069 -> 14,361 bytes with
+  no content lost, only relocated; the Git branch policy is kept verbatim.
+- **Normalized mapping schema live, legacy tables decapitated** (#98,
+  migrations `0074`/`0075`). Every Python consumer of the doc-field/process
+  mapping config now reads the single cached registry in
+  `nx_lib/mapping_config.py`, backed by the normalized `dbo.ProcessSources` /
+  `ProcessFieldMappings` / `FieldLabels` / `FieldAliases` tables (`0074`).
+  With the cutover verified clean across the whole tree, migration `0075`
+  renames the four legacy tables (`SearchConfig`, `StatConfig`,
+  `IndexFieldMappings`, `Search_Field_Labels`) to `decapitated_*` — data is
+  preserved, not dropped, following the same reversible pattern `0042` used
+  for the chat/collaboration tables (later dropped for good by `0072`).
+
+- **Doc-field search performance: sargable predicates, seeded column types,
+  a short-lived allow-set cache, and a batched source-routing cache** (#98,
+  migrations `0076`–`0078`). `ProcessSource.id_column_type` is now seeded
+  from the live target DBs (`0076`, refined by fixup `0077`) so
+  `_ms02_columnar_sql` can emit a sargable comparison instead of an
+  unconditional `::text` cast on every row. Resolved doc-field allow-sets are
+  now cached for 60s per (client, field-spec, value) — repeat identical
+  searches skip re-querying MS02 entirely; the trade-off is that a workitem
+  imported in the last 60s can be briefly missing from a repeat of the exact
+  same search (accepted). `WorkitemSourceCache`'s primary key widens from
+  `(WorkItemID)` to `(WorkItemID, ClientCode)` (migration `0078`) since ids
+  collide across clients (1216 on INT) and a single-column PK could only ever
+  pin one client per id; `fetch_merged_page`'s cache-warm loop replaces up to
+  1000 sequential per-row lookups with one batched `_cache_lookup_many` call
+  per page, falling back to `get_source_for_workitem` only for ids missing
+  from the batch. Both `_cache_lookup` and `_cache_lookup_many` mirror
+  `get_source_for_workitem`'s existing collision fail-safe: more than one
+  row for an id is ambiguous and is never guessed — it's omitted (forcing a
+  re-probe) with an error logged.
+
+
+- **The three biggest JS partials now ship as cacheable static files** (#191).
+  Nexora's per-page JavaScript lived inside Jinja partials only because that
+  was the way to get Babel to translate its strings — which turned every
+  navigation into a re-download and a re-parse of the whole client, since a
+  script inside the document can never be cached. It didn't have to: the
+  partials already funnel every translated string through one `I18N` object
+  literal at the top, so the literal can stay in Jinja and the behaviour can
+  leave. `_reporting_simple_js.html`, `_reporting_dashboard_js.html` and
+  `_header_js.html` now keep a small inline `<script nonce>` holding only the
+  Jinja-rendered data — the strings, `url_for()` endpoints and the
+  permission-filtered Ctrl+K command list — and load their body from
+  `static/js/reporting_simple.js`, `static/js/reporting_dashboard.js` and
+  `static/js/header.js`. **290 KB of JavaScript left the document**:
+  `/reporting` now renders 333 KB of HTML with 260 KB of inline script,
+  against ~620 KB / 549 KB before, and what moved is cached across
+  navigations and across pages. Babel is untouched — `babel.cfg` still
+  extracts from `templates/**.html`, so `messages.pot` and the three `.po`
+  files are byte-identical. New Jinja global `static_v()` appends an mtime
+  `?v=` so a deploy busts the cache; `tests/unit/test_template_url_prefix.py`
+  now also lints `static/js/` (a `.js` file has no `url_for()` to fall back
+  on) and fails on any Jinja syntax left in a static file. As a side effect
+  `_header_js.html` no longer injects a stray `<!DOCTYPE html><html><head>`
+  block into the middle of every page.
+
+- **Dashboard "Whole report" tile.** The Report tile on a reporting dashboard
+  now renders the saved report as the Simple tab does — the KPI band with one
+  labelled total per measure and prior-period chips, the chart with its saved
+  axis and forecast, and the full table behind *Show table* with row
+  drill-through — instead of a single total and one line. It draws through
+  the Simple pane's own builders (`window.ReportingSimple`), so the two
+  surfaces can no longer drift apart. Existing dashboards upgrade in place.
+- **Every reporting total says what it is a total of.** The Simple and Advanced
+  KPI bands showed a bare *Total* — on a multi-metric report that number was
+  whichever metric happened to come first, with nothing on screen saying which,
+  so an imported+exported report read as though one of the two were the
+  report's grand total. The band now renders **one labelled total card per
+  metric** (`Total · Documents imported`, `Total · Documents exported`, …), with
+  Buckets / Avg per bucket / Peak grouped under a heading naming the measure
+  they describe. Metric result columns are headered from the metrics registry
+  server-side (`metric_result_columns`), so the table, the KPI band, exports and
+  scheduled mails all read *Documents imported* instead of `docs_imported`.
+  Three related fixes came with it: totals now come from the authoritative
+  zero-column grand-total run rather than a client-side sum of the grouped rows
+  (which was only ever right for additive metrics), each metric honours its
+  **own** total mode so a levelled backlog reports its latest snapshot beside a
+  summed count, and a *just the total* report no longer prints "Buckets 1, Avg
+  per bucket N, Peak N" — the same number three more times. The separate
+  `rsStatCard` that repeated the grand totals above the band is retired.
+- **Permissions and UI prefs come from a 30-second per-process cache instead
+  of two DB round-trips per request.** Every non-static request used to run
+  `spGetUserPermissions` and `SELECT ui_prefs` for the user — at ~500 users
+  that was the biggest DB-load multiplier (each click, each 5 s heartbeat).
+  `nx_lib/user_cache.py` caches both per user (`NEXORA_USER_CACHE_TTL`,
+  default 30, `0` disables); a user's own pref save and any admin write drop
+  the affected entries immediately, so changes still show on the next
+  request. Safe because PROD is a single waitress process — it is a process
+  dict, deliberately not a session cache (the heartbeat/cookie race, #155).
+- **The per-request `ActiveSessions` UPDATE is throttled through the same
+  cache.** Profiling showed it was the hottest per-request cost (~70 ms of a
+  75 ms heartbeat: UPDATE + commit every request). The alive-check is now
+  cached per session id for the TTL; admin force-logout still takes effect on
+  the revoked user's next request (any `/admin` write clears the cache), and
+  `LastSeenAt` in the admin sessions view lags activity by at most the TTL.
+- **The session-liveness heartbeat polls every 30 s instead of every 5 s.**
+  Its only job is noticing an admin force-logout, and the server now answers
+  that from the 30 s cache anyway — polling faster could not detect it
+  sooner. At ~500 users the 5 s poll alone was ~100 requests/s of overhead.
+- **Colours & axes popover polish.** The per-series *Right axis* checkbox is a
+  **Left | Right** switch; each Y axis is titled with the series it carries and
+  takes that series' colour when it carries exactly one; colour-picker drags
+  re-render at most once per frame. The forecast is drawn as translucent bars
+  on bar charts (dashed tails only on line charts), its toggle is tinted while
+  on and greyed out on pie/doughnut, and switching it **off** repaints from the
+  last result instead of re-running the query.
+- **PROD now runs on waitress behind IIS HttpPlatformHandler, not wfastcgi.**
+  `web.config` starts one `python -m waitress` process (32 threads, loopback
+  port picked by IIS) and reverse-proxies to it; `wfastcgi` — archived
+  upstream, one blocking request per process — is gone. Motivation: the
+  expected jump to ~500 users, where a handful of slow reporting queries
+  would have starved the FastCGI pool. `waitress` joins the runtime
+  dependencies; the deploy workflow gains a preflight that refuses to stop
+  the app pool unless the HttpPlatformHandler IIS module and `waitress` are
+  present on SYAPP01 (one-time host setup in `docs/howto/iis.md`). Rollback
+  is reverting the commit — `wfastcgi` stays installed on the box.
+- **Rate limits are keyed on the client IP behind the proxy chain.** The
+  limiter now reads the leftmost `X-Forwarded-For` hop (the same rule the CSV
+  request log uses) instead of the socket peer, which behind ngrok → IIS →
+  waitress is always `127.0.0.1` — i.e. one shared *10 logins per minute*
+  bucket for everybody. `web.config` tells waitress to trust
+  `X-Forwarded-For` from IIS so the header survives (waitress ≥ 2 strips
+  proxy headers from untrusted peers).
+- **The branch-name guard accepts a fourth version segment.** Cycle branches
+  are still `v<x.y[.z]>`, but a per-developer branch off a cycle
+  (`v3.2.3.1` beside `v3.2.3`) now passes `scripts/git-hooks/branch-name-guard.ps1`
+  instead of needing `git push --no-verify`. `CONTRIBUTING.md`'s branch list was
+  stale — it still advertised `fix/…`, `chore/…` and `hotfix/…` prefixes the
+  guard has always refused — and now describes what actually pushes.
+
+### Removed
+
+- **Dead `decapitated_*` tables dropped for good** (#98). Migrations 0042 and
+  0056 had renamed the ten dead chat/collaboration/notification/invoice tables
+  with a `decapitated_` prefix as a reversible safety net; nothing has read
+  them since, so migration `0072` deletes them (data included). The archived,
+  never-registered `nx_lib/views/invoices.py` and the `templates/archive/`
+  invoices/chat templates went with them.
+
+### Fixed
+
+- **`scripts/test_db_reset.py` wipes NEXORA_TEST before applying the schema.**
+  The reset relied on a hand-maintained FK-safe `DROP TABLE` order inside
+  `sql/test/schema.sql`, which cannot know about tables it has never heard of:
+  a table another branch had applied its own migration for (`dbo.Clients`,
+  `dbo.KundenmagazinIssue*`) held a foreign key into `dbo.Organizations` and
+  wedged every reset with *"Could not drop object 'dbo.Organizations' because
+  it is referenced by a FOREIGN KEY constraint"* — leaving the test database
+  half-applied and the integration suite failing on missing permissions. The
+  script now drops every user object (foreign keys first, then views, tables,
+  procedures and functions) before applying `schema.sql`, re-checking
+  `DB_NAME() = 'NEXORA_TEST'` on the live connection first. Third time this
+  drop list has broken; it no longer needs maintaining.
+
+- **`ActivityInstancesToIgnore` rules were applied globally instead of
+  per-process.** The table has a `ProcessName` column precisely so an admin
+  can hide a `Deletion Marker`-style activity on one process without
+  affecting another, but the loader read `ActivityInstanceName` only and
+  discarded `ProcessName` — every configured rule was silently OR'd across
+  every process's workitem list and Recent Validations feed. The predicate is
+  now built per `(client, process)` (`_activity_ignore_predicate` in
+  `nx_lib/workitem_sources.py`), and is fully parameterized instead of
+  string-spliced into the SQL (no more manual quote-escaping).
+
+- **Reporting library: dashboard cards said "Delete report"** (#214). A
+  library card's `…` menu now reads "Delete dashboard" when the card is a
+  dashboard (`r.kind === 'dashboard'`), matching the "DASHBOARD" tag already
+  on the card.
+
+- **Workitem detail panel: line-item tables are tables again** (#199). Each
+  extracted table (`TabVat`, `TabOrder`, …) was rendered as a stack of
+  label-over-value rows inside the narrow Document Details column, so line-item
+  rows could not be compared at a glance. They now render as a real `<table>`
+  — one row per line item, collapsible per table — in their own full-width card
+  below the two-column detail grid, with horizontal scroll for wide SAP-style
+  grids. In the document lightbox they get their own box under the page image,
+  spanning the page pane instead of being squeezed into the 480px values
+  sidebar. Click-to-locate on a cell is unchanged; empty cells show an em dash
+  instead of a "no source location" badge per cell.
+
+- **Workitems loading state: cramped spinner row → accent-tinted skeleton rows**
+  (#189). The loader was a single Font Awesome dot-spinner in a row squashed to
+  12px padding (the unlayered `.nx-table tbody td` rule beats Tailwind's
+  layered `py-20`), and until v3.2.3 it was hardcoded indigo. The table now
+  shows six shimmering skeleton rows shaped like real workitem rows, tinted by
+  the user's accent color and frozen under reduced motion; both the initial
+  page load and every filter refetch share one server-rendered template
+  (`#workitemsSkeletonTpl`).
+
+- **The reporting page fetched the same catalogs eight times per load.** Its
+  five modules (tabs rail, Simple, Advanced, dashboard builder, drill drawer)
+  are separate IIFEs that can't read each other's state, so each fetched its
+  own copy: `GET /api/reporting/sources` **three** times and
+  `/api/reporting/metrics` **three** times on a single visit, serialised one
+  behind another — and one of those `/metrics` calls, in the dashboard
+  builder's `ensureCatalog`, was never read at all (its own comment said so).
+  Both read-only registries now come from one shared in-flight promise
+  (`window.ReportingCatalog`, `templates/js/_reporting_catalog_js.html`), so a
+  page load makes one request each. Measured on INT: 8 API requests → 6, and
+  the catalogs stop queueing behind one another. `/api/reporting/reports` is
+  deliberately left alone — it changes on every save/rename/delete.
+
+- **Saving a report in the Console duplicated it instead of updating it.** Save
+  in the results view always `POST`ed a new row, so pressing it on a report you
+  had opened from the library left two identical entries under My reports — and
+  the rename pencil was the same code path, so renaming forked a *second* copy
+  under the new name while the original kept the old one. Save now writes back
+  (`PUT`) whenever the open result is a stored report you may edit — owner or
+  CanEdit share — and the pencil renames that same report in place. Making a
+  new one is now the explicit path: ⋯ → **Save as copy**, which pre-fills
+  `"<name> (copy)"` and then leaves the copy open, so the next Save can't reach
+  back to the original. A result that isn't a saved report yet (wizard run, an
+  answer from Eddard) still asks for a name and creates one.
+
+
+- **Fireflies now tint with the chosen accent color.** The `fireflies`
+  background option used a hardcoded teal/amber dot color instead of
+  following the user's accent choice (preset or custom). The dots and
+  their glow now derive from `--nx-accent`, so they match whatever accent
+  is active, light or dark mode included (#210).
+
+- **Feedback page header didn't line up with the feedback card.** The
+  header markup was copied from the Appearance page but never linked
+  `appearance.css`, so the "Back to profile" link had no margin below it
+  and the title/lede weren't width-constrained to match the card below.
+  Gave the header its own scoped styles instead (#211).
+
+- **A report shared with named colleagues now looks shared to its owner.**
+  Only `Visibility='shared'` was ever surfaced, so a report shared by explicit
+  per-user grant (which deliberately leaves `Visibility='private'`) was
+  indistinguishable from a private one in the Simple library and the Advanced
+  dropdown — the share was saved, it just never showed. `GET
+  /api/reporting/reports` now returns an owner-only `sharedCount` and both
+  panes tag the report `· shared`. Named shares stay on the **My reports**
+  shelf; the **Library** shelf remains org-wide visibility only.
+
+- **Reporting catalog stopped flooding `app.log`.** `fetch_docprocessing_catalog`
+  logged `reporting catalog: FieldMetadata unavailable` at WARNING on *every*
+  reporting request. The table has never existed in any environment — the
+  customizable-widget engine that owned it was removed in 2.5.65 — so the miss is
+  permanent and the warning was pure noise, thousands of identical lines a day on
+  PROD. It now reports each missing optional table once per process, and includes
+  the driver's message so a *new* cause (permission revoked, column dropped) is
+  distinguishable from the expected "table does not exist".
+
+- **The AI caption ("KI" box) narrates the whole result, not its first 50
+  rows.** The caption route used to send the model `rows[:50]` off the top of
+  the grid — for a time series sorted ascending that is the NULL-date bucket
+  plus the oldest weeks, hence captions such as "a clear outlier of 74,182
+  pages" (the rows with no date) and "at most 3,712 pages in the latest
+  weeks" (it never saw them). The server now reduces the complete grid to an
+  exact fact sheet — total or latest level, buckets with vs. without a value,
+  peak/low, latest vs. previous, half-vs-half trend, recent tail, top
+  categories, rows without a date named as such, the running bucket flagged
+  and kept out of the comparisons — and the model writes at most two
+  sentences from those numbers only (`nx_lib/reporting/caption_facts.py`).
+- **Time charts no longer invent the future or read a half month as a
+  collapse.** The Simple tab's bucket fill stops at today (*This year* = Jan
+  to the current month, not Jan–Dec zeros), the bucket containing today is
+  drawn faded/dashed with a "still running" note, the forecast fits on
+  finished buckets only and projects from the next one, and a bucketed date
+  axis may carry up to 400 points (53 weeks charted, not "too many points").
+- **Backlog is treated as a level.** `dbo.ReportingMetrics.TotalMode` for the
+  anchored `backlog` measure is `latest` (migration `0070`), so the Total card
+  shows the newest snapshot instead of summing every month; buckets without a
+  snapshot come back `NULL` from the query (gap in the chart, skipped by the
+  KPI cards, carried forward by the forecast) instead of a fake `0`.
+- **AI grounding for imported / exported / backlog.** The agent prompt no
+  longer claims the builder can't put differently-dated measures side by side;
+  anchored metrics are marked `anchor=<date>` in the catalog and the model is
+  told to answer such questions with `build_definition` on `activity_date`
+  (the business definition) instead of hand-rolled SQL that disagreed with the
+  reports (681k vs 1,574 backlog). *Show it as a chart* on an answer that
+  carries a definition opens it in the builder instead of asking the model to
+  draw. The auto-caption receives notes about the partial bucket and NULL
+  buckets and is told empty cells are missing measurements, not zero.
+- Wizard "So far" summary updates on breakdown, grain and time-range picks
+  (it lagged one pick behind); weekly/daily peak labels drop the `00:00:00`.
+- **Backlog stays a gap when broken down by a second dimension.** The
+  Simple-tab chart pivot (e.g. backlog by process) coerced an unmeasured
+  bucket's `NULL` to `0` while collapsing rows into series; it now stays a
+  gap for latest-mode metrics, matching the single-dimension chart.
+
 ## [3.2.2] - 2026-08-25
 
 ### Added

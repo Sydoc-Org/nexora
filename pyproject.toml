@@ -4,13 +4,14 @@ name = "nexora"
 # removed or made `dynamic`: uv refuses a [project] table without a static
 # version unless a build backend supplies one, and nexora is a virtual project
 # (never built or installed). tests/unit/test_version.py enforces the sync.
-version = "3.2.2"
+version = "3.2.3"
 description = "Sydoc internal portal: workitems, reporting, admin"
 requires-python = ">=3.13"
 readme = "README.md"
 license = { file = "LICENSE" }
 
-# Runtime dependencies are mirrored to requirements.txt for IIS/wfastcgi.
+# Runtime dependencies are mirrored to requirements.txt for the IIS deploy
+# (pip install on the prod interpreter; waitress is the PROD WSGI server).
 # requirements.txt is generated from uv.lock — do not edit it by hand.
 dependencies = [
     "Flask==3.1.2",
@@ -43,6 +44,7 @@ dependencies = [
     "matplotlib==3.10.5",       # nx_lib/reporting/chart_render.py
     "pypdfium2==4.30.0",        # nx_lib/octo.py
     "markdown-it-py==4.2.0",    # nx_lib/views/reporting.py
+    "waitress==3.0.2",
 ]
 
 # PEP 735 dependency group, NOT an optional extra: bare `uv sync` installs it
@@ -60,6 +62,7 @@ dev = [
     "defusedxml==0.7.1",
     "ruff==0.7.4",
     "mypy==1.13.0",
+    "types-requests==2.32.0.20241016",
     "pre-commit==4.0.1",
     "gitlint-core==0.19.1",
     "tabulate>=0.10.0",   # scripts/new-process.py
@@ -101,6 +104,9 @@ line-ending = "lf"
 [tool.mypy]
 python_version = "3.13"
 ignore_missing_imports = true
+# Flask/SQLAlchemy globals are legitimately Optional-until-configured here;
+# strict-optional would flag ~12 known-safe sites. Revisit if those get typed.
+strict_optional = false
 check_untyped_defs = false
 warn_unused_ignores = true
 warn_redundant_casts = true

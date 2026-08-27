@@ -298,9 +298,10 @@ into a two-part live status rather than a single rotating line (#178 A1):
   `"Thinking… (N)"` on `phase: "thinking"` turns after the first.
 - A **growing ordered list of build steps**, one appended per `phase: "tool"`
   event, labeled from the tool name (`build_definition` → "Building the
-  report…", `validate_sql` → "Checking the query…", `run_sql` → "Running the
-  query…", `compute_stats` → "Crunching the numbers…", unknown tool names
-  fall back to a generic "Working…"). The stream carries no explicit
+  report…", `run_definition` → "Running the report…", `validate_sql` →
+  "Checking the query…", `run_sql` → "Running the query…", `compute_stats` →
+  "Crunching the numbers…", unknown tool names fall back to a generic
+  "Working…"). The stream carries no explicit
   per-tool *completion* event, so the previous step is marked done the
   moment the *next* one starts (or never, if it was the last tool call
   before the final `done` line) — "the next thing starting" is the only
@@ -452,7 +453,7 @@ family:
 |---|---|
 | `reporting.ai.use` | Ask the assistant; receive **Surface A** definitions + explanations (no SQL) |
 | `reporting.ai.sql` | Receive/run **Surface B** SQL — **implies** `reporting.sql.run` |
-| `reporting.ai.explain_data` | Allow result **rows** to be sent to the model (data egress). Gates two distinct things: **auto captions** on any result (alone — no live query, the rows already left the DB through the ordinary run) and, **combined with `reporting.sql.run`**, the chat agent's `run_sql`/`compute_stats` tools (the model's own live read-only queries). |
+| `reporting.ai.explain_data` | Allow result **rows** to be sent to the model (data egress). Gates two distinct things: **auto captions** on any result (alone — no live query, the rows already left the DB through the ordinary run) and, **combined with `reporting.sql.run`**, the chat agent's `run_sql`/`run_definition`/`compute_stats` tools (the model's own live read-only queries and definition runs). |
 
 New audit table `dbo.ReportingAiAudit` (or an `origin` + `prompt` column added to
 `ReportingSqlAudit`): `{user, prompt, surface, generated_sql_or_definition,

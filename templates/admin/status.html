@@ -45,9 +45,23 @@
         {{ a.page_header(
             title=_('System Status'),
             subtitle=_('Component health and incident history, recorded by the outage monitor'),
-            back_url=url_for('admin_dashboard') if pageV.adminPagePerm else None,
+            back_url=url_for('admin_dashboard') if page_visibility.adminPagePerm else None,
             icon='fa-heart-pulse'
         ) }}
+
+        {% if clients_registry_degraded_reason %}
+        {# Not something the outage monitor can see: it happened once, at import,
+           before Flask configured logging. Surfaced here because this is the page
+           an operator opens when something is wrong. #}
+        <div class="nx-card nx-bg-lred" style="margin-bottom:16px;padding:12px 16px" data-testid="status-clients-degraded">
+            <strong class="nx-c-danger"><i class="fas fa-triangle-exclamation"></i>
+                {{ _("Client registry degraded") }}</strong>
+            <p class="nx-c-sec" style="font-size:0.85rem;margin:4px 0 0">
+                {{ _("dbo.Clients could not be read at startup, so this process is running on the built-in 'default' client only. Fix the database access and recycle the app pool.") }}
+                <span class="nx-mono">{{ clients_registry_degraded_reason }}</span>
+            </p>
+        </div>
+        {% endif %}
 
         <!-- Headline state + how-bad-is-it counts -->
         <div class="nx-card status-hero status-hero--{{ status.overall }} nx-rise">
@@ -139,6 +153,30 @@
                             <span class="status-row-label">{{ c.name }}</span>
                             {% if c.detail %}<span class="status-row-detail" title="{{ c.detail }}">{{ c.detail }}</span>{% endif %}
                         </div>
+                        {# Latency sparkline (migration 0071): scaled to this component's own
+                           range, so "normal" for a 158 ms DB ping and a 310 ms Graph token
+                           both read as flat. Failed probes get a square as well as the
+                           danger colour -- colour alone is not a signal. #}
+                        <div class="status-spark">
+                            {% if c.spark_svg %}
+                            <svg viewBox="0 0 {{ c.spark_svg.width }} {{ c.spark_svg.height }}" preserveAspectRatio="none"
+                                 role="img" aria-label="{{ _('Response time over the last %(h)s h: now %(now)s ms, best %(min)s ms, worst %(max)s ms', h=c.spark.window_h, now=c.spark.last_ms, min=c.spark.min_ms, max=c.spark.max_ms) }}{% if c.spark.failed_buckets %} — {{ _('%(n)s hour(s) with a failed probe', n=c.spark.failed_buckets) }}{% endif %}">
+                                <title>{{ _('%(n)s samples · avg %(avg)s ms · %(min)s–%(max)s ms', n=c.spark.count, avg=c.spark.avg_ms, min=c.spark.min_ms, max=c.spark.max_ms) }}{% if c.spark.failed_buckets %} · {{ _('%(n)s hour(s) with a failed probe', n=c.spark.failed_buckets) }}{% endif %}</title>
+                                {% for seg in c.spark_svg.segments %}
+                                <polyline points="{{ seg }}" vector-effect="non-scaling-stroke"></polyline>
+                                {% endfor %}
+                                {% for d in c.spark_svg.dots %}
+                                <circle class="status-spark-dot" cx="{{ d.x }}" cy="{{ d.y }}" r="1.5"></circle>
+                                {% endfor %}
+                                {% for m in c.spark_svg.marks %}
+                                <rect class="status-spark-fail" x="{{ m.x - 1.6 }}" y="{{ m.y - 1.6 }}" width="3.2" height="3.2"></rect>
+                                {% endfor %}
+                            </svg>
+                            <span class="status-spark-value">{{ c.spark.last_ms }}<span class="status-spark-unit"> ms</span></span>
+                            {% else %}
+                            <span class="status-spark-empty">{{ _('no samples yet') }}</span>
+                            {% endif %}
+                        </div>
                         <div class="status-strip" role="img" aria-label="{{ _('Last %(n)s days', n=status.history_days) }}">
                             {% for cell in c.strip %}
                             <span class="status-cell status-cell--{{ cell.state }}" title="{{ cell.date }} — {{ state_labels.get(cell.state, cell.state) }}"></span>
@@ -156,6 +194,7 @@
             <div class="status-legend">
                 <span>{{ _('%(n)s days ago', n=status.history_days) }}</span>
                 <span class="status-legend-keys">
+                    <span class="status-spark-key" aria-hidden="true"></span> {{ _('Response time, %(h)s h', h=24) }}
                     <span class="status-cell status-cell--operational"></span> {{ _('Operational') }}
                     <span class="status-cell status-cell--outage"></span> {{ _('Outage') }}
                     <span class="status-cell status-cell--unknown"></span> {{ _('No data') }}

@@ -297,6 +297,25 @@ def test_add_and_remove_user_share(admin_client):
         admin_client.delete(f"/api/reporting/reports/{rid}")
 
 
+def test_list_tags_owner_report_shared_by_explicit_grant(admin_client):
+    """A per-user grant leaves Visibility='private' — the list must still say
+    the owner shared it, or the library card looks private."""
+    rid = _create_report(admin_client)
+    try:
+
+        def row():
+            rows = admin_client.get("/api/reporting/reports").get_json()
+            return next(r for r in rows if r["id"] == rid)
+
+        assert row()["sharedCount"] == 0
+        admin_client.post(f"/api/reporting/reports/{rid}/shares", json={"user": "user@test.local"})
+        after = row()
+        assert after["visibility"] == "private"
+        assert after["sharedCount"] == 1
+    finally:
+        admin_client.delete(f"/api/reporting/reports/{rid}")
+
+
 def test_share_unknown_user_404(admin_client):
     rid = _create_report(admin_client)
     try:
@@ -449,6 +468,101 @@ def test_schedule_crud(admin_client):
         assert admin_client.get(f"/api/reporting/reports/{rid}/schedules").get_json() == []
     finally:
         admin_client.delete(f"/api/reporting/reports/{rid}")
+
+
+def test_schedules_overview_without_perm_403(user_client):
+    assert user_client.get("/api/reporting/schedules").status_code == 403
+
+
+def test_schedules_overview_lists_owned(admin_client):
+    """Console Scheduled screen: GET /api/reporting/schedules returns every
+    owned schedule with the joined report name."""
+    rid = _create_report(admin_client)
+    try:
+        cr = admin_client.post(
+            f"/api/reporting/reports/{rid}/schedules",
+            json={
+                "frequency": "daily",
+                "hour": 6,
+                "minute": 0,
+                "format": "xlsx",
+                "recipients": "a@x.com",
+            },
+        )
+        assert cr.status_code == 200, cr.data
+        rows = admin_client.get("/api/reporting/schedules").get_json()
+        mine = [r for r in rows if r["reportId"] == rid]
+        assert len(mine) == 1
+        row = mine[0]
+        assert row["reportName"]
+        assert row["frequency"] == "daily" and row["enabled"] is True
+        assert row["nextRunAt"]
+    finally:
+        admin_client.delete(f"/api/reporting/reports/{rid}")
+
+
+def test_share_targets_without_perm_403(user_client):
+    assert user_client.get("/api/reporting/share_targets?q=ad").status_code == 403
+
+
+def test_share_targets_typeahead(admin_client):
+    """2+ chars returns matching users (username + display name only);
+    shorter queries return an empty list."""
+    assert admin_client.get("/api/reporting/share_targets?q=a").get_json() == []
+    rows = admin_client.get("/api/reporting/share_targets?q=test").get_json()
+    assert isinstance(rows, list) and len(rows) <= 8
+    for row in rows:
+        assert set(row) == {"username", "name"}
+
+
+def test_sources_health_without_perm_403(user_client):
+    assert user_client.get("/api/reporting/sources/health").status_code == 403
+
+
+def test_sources_health_shape(admin_client):
+    """One row per accessible source: id, ok flag, latencyMs and the real
+    database name behind the source (None when the probe fails — the TEST
+    env's engines may or may not be reachable)."""
+    resp = admin_client.get("/api/reporting/sources/health")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert isinstance(data.get("sources"), list)
+    for row in data["sources"]:
+        assert set(row) == {"id", "ok", "latencyMs", "db"}
+        assert isinstance(row["ok"], bool)
+        if row["ok"]:
+            assert row["db"]  # DB_NAME() rides along on a successful probe
+
+
+def test_source_schema_without_perm_403(user_client):
+    assert user_client.get("/api/reporting/sources/workitems/schema").status_code == 403
+
+
+def test_source_schema_unknown_source_403(admin_client):
+    """An id outside the caller's accessible sources never reaches a DB."""
+    assert admin_client.get("/api/reporting/sources/nope/schema").status_code == 403
+
+
+def test_source_schema_shape(admin_client):
+    """Tables (with columns) plus FK edges, or a JSON error when the TEST env
+    cannot reach that source's engine -- never a 500."""
+    resp = admin_client.get("/api/reporting/sources/workitems/schema")
+    assert resp.status_code in (200, 502, 503)
+    data = resp.get_json()
+    if resp.status_code != 200:
+        assert data.get("error")
+        return
+    assert isinstance(data["tables"], list)
+    assert isinstance(data["relations"], list)
+    assert data["source"] == "workitems"
+    # Narrowed to what the reporting layer reads (registry BaseObject /
+    # ProcessSources), or to non-empty tables when nothing matches.
+    assert data["filter"] in ("used", "nonempty")
+    assert data["hidden"] >= 0
+    for t in data["tables"]:
+        assert {"schema", "name", "kind", "rows", "columns"} <= set(t)
+        for c in t["columns"]:
+            assert {"name", "type", "nullable", "pk"} <= set(c)
 
 
 def test_schedule_validation_400(admin_client):

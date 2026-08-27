@@ -36,16 +36,18 @@ def _allowed_processes_from_perms(perms):
     )
 
 
-def _normalize_columns(definition, resolved_metrics=None):
+def _normalize_columns(definition, resolved_metrics=None, source_metrics=None):
     """Export columns: the definition's dims plus any resolved metric codes
-    (the aggregate query projects dims + metric codes, in that order)."""
+    (the aggregate query projects dims + metric codes, in that order). Metric
+    columns are headered with the registry label, so an exported or emailed
+    table reads "Documents imported", not "docs_imported"."""
+    from ..views import reporting as rv
+
     cols = [
         {"field": c["field"], "header": c.get("header") or c["field"]}
         for c in definition.get("columns") or []
     ]
-    for m in resolved_metrics or []:
-        cols.append({"field": m["code"], "header": m["code"]})
-    return cols
+    return cols + rv.metric_result_columns(resolved_metrics, source_metrics or {})
 
 
 def execute_definition(definition, owner_perms, owner_id, owner_username, locale):
@@ -124,7 +126,7 @@ def execute_definition(definition, owner_perms, owner_id, owner_username, locale
             row_cap=definition.get("rowLimit", DEFAULT_ROW_LIMIT),
             resolved_metrics=resolved,
         )
-        return _normalize_columns(definition, resolved), rv._execute(
+        return _normalize_columns(definition, resolved, source_metrics), rv._execute(
             rv.engine_statistics_db, sql, params
         )
 
@@ -163,6 +165,8 @@ def execute_definition(definition, owner_perms, owner_id, owner_username, locale
         engine = rv._CURATED_ENGINES.get(source.get("engine"))
         if engine is None:
             raise ReportDefinitionError("source engine is not configured")
-        return _normalize_columns(definition, resolved), rv._execute(engine, sql, params)
+        return _normalize_columns(definition, resolved, source_metrics), rv._execute(
+            engine, sql, params
+        )
 
     raise ReportDefinitionError("unsupported source provider")

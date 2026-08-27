@@ -15,6 +15,11 @@ from .sandbox import SqlSandboxError, humanize_sql_error, validate_select
 from .schema import FILTER_OPS, GRAINS, REPORT_SCHEMA_VERSION
 from .stats import StatsError, compute_stats
 
+# Egress cap for run_definition's rows back to the model: grouped/anchored
+# reports (the intended use) are a handful of buckets; this only bounds the
+# rare ungrouped definition from blowing the tool-result context.
+RUN_DEFINITION_ROW_CAP = 500
+
 # Full JSON schema for the v1 report definition, surfaced to the model through
 # the build_definition tool spec. Without it the model has to guess the shape
 # (and reliably guessed wrong: filters as a map, grain on non-date fields),
@@ -149,6 +154,20 @@ TOOL_SPECS = [
         },
     },
     {
+        "name": "run_definition",
+        "description": (
+            "Execute a v1 report-definition (same shape as build_definition) on the "
+            "real data and return the actual rows, capped. Use this to quote real "
+            "numbers for a business-metric question instead of hand-rolled SQL — "
+            "it runs the exact same query the report builder would run."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {"definition": _DEFINITION_PARAM_SCHEMA},
+            "required": ["definition"],
+        },
+    },
+    {
         "name": "compute_stats",
         "description": (
             "Compute deterministic statistics over rows you already fetched. ops: "
@@ -172,13 +191,16 @@ class ToolRegistry:
 
     ``run_sql`` is a callable ``(target, sql) -> (columns, rows)`` (bound only when
     the caller holds reporting.ai.sql). ``validate_definition`` is a callable
-    ``(definition) -> (ok, error)`` (the Surface-A validator). Both default to None,
-    in which case their tools report themselves unavailable.
+    ``(definition) -> (ok, error)`` (the Surface-A validator). ``run_definition`` is
+    a callable ``(definition) -> (columns, rows)`` that executes a definition for
+    real (bound only alongside run_sql — both feed live rows back to the model).
+    All default to None, in which case their tools report themselves unavailable.
     """
 
-    def __init__(self, *, run_sql=None, validate_definition=None):
+    def __init__(self, *, run_sql=None, validate_definition=None, run_definition=None):
         self._run_sql = run_sql
         self._validate_definition = validate_definition
+        self._run_definition = run_definition
 
     def call(self, name, args):
         try:
@@ -205,23 +227,40 @@ class ToolRegistry:
         columns, rows = self._run_sql(args.get("target"), args.get("sql"))
         return {"ok": True, "columns": columns, "rows": rows, "rowCount": len(rows)}
 
-    def _tool_build_definition(self, args):
-        if self._validate_definition is None:
-            return {"ok": False, "error": "build_definition is not available"}
+    @staticmethod
+    def _coerce_definition_arg(args):
+        """Tolerate the two ways a model mangles the nested `definition` object:
+        stringified JSON, or the fields hoisted to the top level. Writes the
+        coerced dict back into `args` so the tool trace (and the artifact
+        extraction that offers "Open in builder") sees the parsed shape."""
         definition = args.get("definition")
         if isinstance(definition, str):
-            # Some models stringify the nested object argument — tolerate it.
             with contextlib.suppress(ValueError, TypeError):
                 definition = json.loads(definition)
         if definition is None and "schemaVersion" in args:
-            # ... or pass the definition's fields as the top-level arguments.
             definition = dict(args)
         if isinstance(definition, dict):
-            # Write the coerced dict back so the tool trace (and the artifact
-            # extraction that offers "Open in builder") sees the parsed shape.
             args["definition"] = definition
+        return definition
+
+    def _tool_build_definition(self, args):
+        if self._validate_definition is None:
+            return {"ok": False, "error": "build_definition is not available"}
+        definition = self._coerce_definition_arg(args)
         ok, error = self._validate_definition(definition)
         return {"ok": True} if ok else {"ok": False, "error": error}
+
+    def _tool_run_definition(self, args):
+        if self._run_definition is None:
+            return {
+                "ok": False,
+                "error": "run_definition is not available (needs reporting.ai.explain_data)",
+            }
+        definition = self._coerce_definition_arg(args)
+        if not isinstance(definition, dict):
+            return {"ok": False, "error": "definition must be an object"}
+        columns, rows = self._run_definition(definition)
+        return {"ok": True, "columns": columns, "rows": rows, "rowCount": len(rows)}
 
     def _tool_compute_stats(self, args):
         try:

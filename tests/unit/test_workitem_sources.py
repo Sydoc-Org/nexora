@@ -43,7 +43,7 @@ def test_merge_sorted_rows_handles_empty_sources():
 def _mk_filter():
     return WorkitemFilter(
         client_process_pairs=[("Privera", "Invoices")],
-        activity_ignore_csv="'Ignore'",
+        activity_ignore_map={("Privera", "Invoices"): frozenset({"Ignore"})},
     )
 
 
@@ -259,7 +259,7 @@ def test_empty_process_scope_yields_no_rows_without_sql_error(app):
     in both dialects -- so both sources errored and the page showed a degraded
     banner instead of a clean empty state."""
     for src in (SqlServerSource(), PostgresSource(CLIENTS_code="ms02")):
-        f = WorkitemFilter(client_process_pairs=[], activity_ignore_csv="'Ignore'")
+        f = WorkitemFilter(client_process_pairs=[], activity_ignore_map={})
         with app.app_context():
             rows, total = (None, None)
             fake_cur = MagicMock()
@@ -283,7 +283,7 @@ def test_pair_scope_authorizes_granted_pairs_only_not_cross_product(app):
     for src in (SqlServerSource(), PostgresSource(CLIENTS_code="ms02")):
         f = WorkitemFilter(
             client_process_pairs=[("A", "P1"), ("B", "P2")],
-            activity_ignore_csv="'Ignore'",
+            activity_ignore_map={},
         )
         with app.app_context():
             sql, cur = _captured_sql(src, f)
@@ -319,7 +319,7 @@ def test_recent_rows_authorizes_granted_pairs_only_not_cross_product(app):
         fake_conn.cursor.return_value = fake_cur
         with patch.object(src, "engine") as eng, app.app_context():
             eng.raw_connection.return_value = fake_conn
-            src.recent_rows(pairs, "'Ignore'", top=3)
+            src.recent_rows(pairs, {}, top=3)
 
         call = fake_cur.execute.call_args_list[0]
         sql = str(call.args[0])
@@ -363,7 +363,7 @@ def test_recent_activity_rows_and_total_backlog_count_pass_pairs_through(app, mo
     class Fake:
         code = "default"
 
-        def recent_rows(self, pairs, activity_ignore_csv, top=3):
+        def recent_rows(self, pairs, activity_ignore_map, top=3):
             captured["recent_rows_pairs"] = pairs
             return []
 
@@ -374,7 +374,7 @@ def test_recent_activity_rows_and_total_backlog_count_pass_pairs_through(app, mo
     monkeypatch.setattr(ws, "active_sources", lambda: [Fake()])
     pairs = [("A", "P1"), ("B", "P2")]
     with app.app_context():
-        ws.recent_activity_rows(pairs, "'Ignore'", top=3)
+        ws.recent_activity_rows(pairs, {}, top=3)
         ws.total_backlog_count(pairs)
 
     assert captured["recent_rows_pairs"] == pairs
@@ -607,7 +607,7 @@ def test_sqlserver_recent_rows_normalizes(app):
     src = SqlServerSource()
     with patch.object(src, "engine") as eng, app.app_context():
         eng.raw_connection.return_value = fake_conn
-        rows = src.recent_rows([("Privera", "Invoices")], "'Ignore'", top=3)
+        rows = src.recent_rows([("Privera", "Invoices")], {}, top=3)
 
     assert rows == [
         {
@@ -622,10 +622,11 @@ def test_sqlserver_recent_rows_normalizes(app):
     assert "%s" not in executed_sql
 
 
-def test_sqlserver_recent_rows_omits_not_in_when_ignore_csv_empty(app):
+def test_sqlserver_recent_rows_omits_not_in_when_ignore_map_empty(app):
     """Empty ActivityInstancesToIgnore table (the normal default-client state)
-    yields activity_ignore_csv="" -- must not render `NOT IN ()`, a SQL syntax
-    error that was previously swallowed and silently emptied Recent Validations."""
+    yields activity_ignore_map={} -- must not render `NOT (...)`, and must not
+    even reach `IN ()`, a SQL syntax error that was previously swallowed and
+    silently emptied Recent Validations."""
     fake_cur = MagicMock()
     fake_cur.fetchall.return_value = []
     fake_conn = MagicMock()
@@ -634,14 +635,14 @@ def test_sqlserver_recent_rows_omits_not_in_when_ignore_csv_empty(app):
     src = SqlServerSource()
     with patch.object(src, "engine") as eng, app.app_context():
         eng.raw_connection.return_value = fake_conn
-        rows = src.recent_rows([("Privera", "Invoices")], "", top=3)
+        rows = src.recent_rows([("Privera", "Invoices")], {}, top=3)
 
     assert rows == []
     executed_sql = " ".join(str(c.args[0]) for c in fake_cur.execute.call_args_list)
-    assert "NOT IN" not in executed_sql.upper()
+    assert "NOT" not in executed_sql.upper()
 
 
-def test_sqlserver_recent_rows_omits_not_in_when_ignore_csv_none(app):
+def test_sqlserver_recent_rows_omits_not_in_when_ignore_map_none(app):
     fake_cur = MagicMock()
     fake_cur.fetchall.return_value = []
     fake_conn = MagicMock()
@@ -654,7 +655,84 @@ def test_sqlserver_recent_rows_omits_not_in_when_ignore_csv_none(app):
 
     assert rows == []
     executed_sql = " ".join(str(c.args[0]) for c in fake_cur.execute.call_args_list)
-    assert "NOT IN" not in executed_sql.upper()
+    assert "NOT" not in executed_sql.upper()
+
+
+def test_activity_ignore_predicate_scopes_by_process_not_globally(app):
+    """The bug this fix closes: a rule configured for process P1 must never
+    exclude a same-named activity on an unrelated process P2 in the same
+    query -- the predicate must AND the activity match with a (client,
+    process) match, not render one flat `NOT IN (...)` for every activity
+    name across every process."""
+    from nx_lib.workitem_sources import _activity_ignore_predicate
+
+    ignore_map = {
+        ("A", "P1"): frozenset({"Shared Name"}),
+    }
+    sql, params = _activity_ignore_predicate(
+        ignore_map, "tp.ClientName", "tp.Name", "tai.ActivityInstanceName", "?"
+    )
+    assert sql is not None
+    assert "tp.ClientName = ?" in sql
+    assert "tp.Name = ?" in sql
+    assert "tai.ActivityInstanceName IN (?)" in sql
+    assert params == ["A", "P1", "Shared Name"]
+
+
+def test_activity_ignore_predicate_combines_multiple_processes_with_or(app):
+    from nx_lib.workitem_sources import _activity_ignore_predicate
+
+    ignore_map = {
+        ("A", "P1"): frozenset({"X"}),
+        ("B", "P2"): frozenset({"Y", "Z"}),
+    }
+    sql, params = _activity_ignore_predicate(
+        ignore_map, "tp.ClientName", "tp.Name", "tai.ActivityInstanceName", "?"
+    )
+    assert sql.startswith("NOT (") and sql.endswith(")")
+    assert " OR " in sql
+    # Every (client, process) key contributes exactly its own 2 identity
+    # params plus one param per its own activity names -- never another
+    # key's names.
+    assert params.count("A") == 1
+    assert params.count("B") == 1
+    assert set(params) == {"A", "P1", "X", "B", "P2", "Y", "Z"}
+
+
+def test_activity_ignore_predicate_empty_map_returns_no_clause(app):
+    from nx_lib.workitem_sources import _activity_ignore_predicate
+
+    sql, params = _activity_ignore_predicate(
+        {}, "tp.ClientName", "tp.Name", "tai.ActivityInstanceName", "?"
+    )
+    assert sql is None
+    assert params == []
+
+
+def test_sqlserver_recent_rows_ignore_rule_does_not_leak_across_processes(app):
+    """Live integration of the fix: a filter carrying an ignore rule for
+    process P1 must not add any `tai.ActivityInstanceName` predicate scoped to
+    P2 -- and the executed SQL's ignore clause is anchored to P1's identity,
+    not floating free."""
+    fake_cur = MagicMock()
+    fake_cur.fetchall.return_value = []
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cur
+
+    src = SqlServerSource()
+    ignore_map = {("Privera", "Invoices"): frozenset({"Deletion Marker"})}
+    with patch.object(src, "engine") as eng, app.app_context():
+        eng.raw_connection.return_value = fake_conn
+        rows = src.recent_rows([("Privera", "Invoices"), ("Compass", "SAP")], ignore_map, top=3)
+
+    assert rows == []
+    call = fake_cur.execute.call_args_list[0]
+    executed_sql, params = call.args[0], call.args[1]
+    assert "NOT (" in executed_sql
+    assert "tai.ActivityInstanceName IN (?)" in executed_sql
+    # The ignore rule's own (client, process) identity params are present --
+    # scoping it to Privera/Invoices, not applied unconditionally.
+    assert "Privera" in params and "Invoices" in params and "Deletion Marker" in params
 
 
 def test_sqlserver_backlog_count(app):
@@ -687,7 +765,7 @@ def test_postgres_recent_rows_uses_pg_sql(app):
     src = PostgresSource(CLIENTS_code="ms02")
     with patch.object(src, "engine") as eng, app.app_context():
         eng.raw_connection.return_value = fake_conn
-        rows = src.recent_rows([("Privera", "Invoices")], "'Ignore'", top=3)
+        rows = src.recent_rows([("Privera", "Invoices")], {}, top=3)
 
     assert rows[0]["id"] == 1001
     assert rows[0]["client"] == "ms02"
@@ -722,7 +800,7 @@ def test_recent_activity_rows_merges_and_caps(app, monkeypatch):
             self.code = code
             self._rows = rows
 
-        def recent_rows(self, pairs, activity_ignore_csv, top=3):
+        def recent_rows(self, pairs, activity_ignore_map, top=3):
             return self._rows
 
     f1 = Fake(
@@ -755,7 +833,7 @@ def test_recent_activity_rows_merges_and_caps(app, monkeypatch):
     )
     monkeypatch.setattr(ws, "active_sources", lambda: [f1, f2])
     with app.app_context():
-        out = ws.recent_activity_rows([("C", "P")], "'Ignore'", top=2)
+        out = ws.recent_activity_rows([("C", "P")], {}, top=2)
     assert [r["id"] for r in out] == [2, 1001]  # newest first, capped to 2
 
 
@@ -930,7 +1008,7 @@ def test_build_where_emits_any_for_populated_ms02_docfield_ids(app):
     src.engine = None
     filt = ws.WorkitemFilter(
         client_process_pairs=[("c", "p")],
-        activity_ignore_csv="",
+        activity_ignore_map={},
         ms02_docfield_ids={10, 20},
     )
     with app.app_context():
@@ -947,7 +1025,7 @@ def test_build_where_empty_ms02_docfield_ids_forces_no_rows(app):
     src.engine = None
     filt = ws.WorkitemFilter(
         client_process_pairs=[("c", "p")],
-        activity_ignore_csv="",
+        activity_ignore_map={},
         ms02_docfield_ids=set(),
     )
     with app.app_context():
@@ -962,7 +1040,7 @@ def test_build_where_none_ms02_docfield_ids_adds_no_clause(app):
     src.engine = None
     filt = ws.WorkitemFilter(
         client_process_pairs=[("c", "p")],
-        activity_ignore_csv="",
+        activity_ignore_map={},
         ms02_docfield_ids=None,
     )
     with app.app_context():
@@ -978,7 +1056,7 @@ def test_build_where_ignores_raw_docfields_for_ms02(app):
     src.engine = None
     filt = ws.WorkitemFilter(
         client_process_pairs=[("c", "p")],
-        activity_ignore_csv="",
+        activity_ignore_map={},
         docfields=["barcode"],
         docvalues=["123"],
     )
@@ -1038,6 +1116,25 @@ def test_resolve_ms02_pid_ids_query_error_returns_none(app):
     engine.raw_connection.side_effect = Exception("boom")
     with app.app_context():
         assert ws.resolve_ms02_pid_ids(engine, [_PID_SPEC], ["1"]) is None
+
+
+def test_resolve_ms02_pid_ids_mixed_batch_drops_only_unparseable(app):
+    """(I2, #98 Task 12) A batch mixing valid ints with one unparseable value
+    must keep the valid ones and drop only the bad value -- NOT skip the
+    whole spec. Regression test for the docstring/code drift I4 flagged:
+    the previous docstring wording ("if ANY PID fails to parse, that spec is
+    skipped entirely") was already fixed in code but never had a direct
+    test."""
+    int_spec = ('public."DossierStatistik"', "WorkItemID", "DossierNummer", None, "int")
+    engine = MagicMock()
+    cur = engine.raw_connection.return_value.cursor.return_value
+    cur.fetchall.return_value = [(1,), (2,), (4,)]
+    with app.app_context():
+        result = ws.resolve_ms02_pid_ids(engine, [int_spec], ["1", "2", "not-a-number", "4"])
+    assert result == {1, 2, 4}
+    # only the parseable ints are bound -- the bad value never reaches SQL
+    args = cur.execute.call_args[0]
+    assert sorted(args[1][0]) == [1, 2, 4]
 
 
 # ---------------- resolve_ms02_pid_to_wids (per-PID mapping) ---------------- #
@@ -1269,3 +1366,56 @@ def test_resolve_octo_wid_stage_pg_returns_empty_when_not_found(app):
             "status": None,
             "current_stage": None,
         }
+
+
+def test_cache_lookup_many_issues_one_query_and_maps_hits(app):
+    """Batched lookup for multiple ids does exactly ONE query (per <=1000 id
+    chunk) and returns unambiguous hits keyed by id string."""
+    fake_cur = MagicMock()
+    fake_cur.fetchall.return_value = [("1", "ms02"), ("2", "generali")]
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cur
+    eng = MagicMock()
+    eng.raw_connection.return_value = fake_conn
+    with app.app_context(), patch("nx_lib.workitem_sources.engine_nexora_db", eng):
+        result = ws._cache_lookup_many(["1", "2", "3"])
+    assert result == {"1": "ms02", "2": "generali"}
+    assert fake_cur.execute.call_count == 1
+
+
+def test_cache_lookup_many_omits_ambiguous_id(app):
+    """An id with two cached rows (compound-PK collision) is left out of the
+    map entirely -- the caller must re-probe it, never guess."""
+    fake_cur = MagicMock()
+    fake_cur.fetchall.return_value = [("1", "ms02"), ("1", "generali"), ("2", "ms02")]
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cur
+    eng = MagicMock()
+    eng.raw_connection.return_value = fake_conn
+    with app.app_context(), patch("nx_lib.workitem_sources.engine_nexora_db", eng):
+        result = ws._cache_lookup_many(["1", "2"])
+    assert result == {"2": "ms02"}
+    assert "1" not in result
+
+
+def test_cache_lookup_many_empty_input_short_circuits():
+    assert ws._cache_lookup_many([]) == {}
+
+
+def test_cache_lookup_returns_none_and_logs_when_ambiguous(app):
+    """_cache_lookup mirrors get_source_for_workitem's collision fail-safe:
+    >1 row for a single id -> None (+ error log), not an arbitrary pick."""
+    fake_cur = MagicMock()
+    fake_cur.fetchall.return_value = [("ms02",), ("generali",)]
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cur
+    eng = MagicMock()
+    eng.raw_connection.return_value = fake_conn
+    with (
+        app.app_context(),
+        patch("nx_lib.workitem_sources.engine_nexora_db", eng),
+        patch.object(ws.current_app.logger, "error") as mock_log,
+    ):
+        result = ws._cache_lookup("42")
+    assert result is None
+    assert mock_log.called

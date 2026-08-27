@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale }}">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    {% include '_theme_prepaint.html' %}
+    <link rel="stylesheet" href="{{ url_for('static',filename='css/nexora-ui.css') }}">
+    <title>{{ _("Permission Matrix - nexora") }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
+</head>
+<body class="nx-app">
+    <div id="notification-container" class="fixed top-4 right-4 z-[100] w-full max-w-xs space-y-3"></div>
+
+    {% set active_page = 'admin_permission_matrix' %}
+    {% include '_header.html' %}
+    {% import 'admin/_admin_helpers.html' as a %}
+
+    <main class="nx-main">
+        {{ a.page_header(
+            title=_('Permission Matrix'),
+            subtitle=_('Who can do what — read-only. Granting and revoking stays on Access Control.'),
+            back_url=url_for('admin_access_control'),
+            icon='fa-diagram-project'
+        ) }}
+
+        <ul class="nx-tabs">
+            <li>
+                <button id="matrix-tab-permission-btn" type="button" class="nx-tab is-active" data-testid="permission-matrix-tab-permission">
+                    <i class="fas fa-key"></i>{{ _('By permission') }}
+                </button>
+            </li>
+            <li>
+                <button id="matrix-tab-user-btn" type="button" class="nx-tab" data-testid="permission-matrix-tab-user">
+                    <i class="fas fa-user"></i>{{ _('By user') }}
+                </button>
+            </li>
+        </ul>
+
+        {# ---- BY PERMISSION: pick a code, see who holds it ---- #}
+        <div id="matrix-tab-permission">
+            <div class="nx-input-icon" style="max-width:420px;margin-bottom:16px">
+                <i class="fas fa-search"></i>
+                <input type="text" id="permissionPicker" class="nx-input" list="permissionsDatalist" autocomplete="off"
+                    placeholder="{{ _('Type a permission code…') }}" data-testid="permission-matrix-permission-picker">
+            </div>
+            <datalist id="permissionsDatalist">
+                {% for p in all_permissions %}
+                <option value="{{ p.Code }}" data-permission-id="{{ p.PermissionID }}">{{ p.Description }}</option>
+                {% endfor %}
+            </datalist>
+            <div class="nx-table-wrap">
+                <table class="nx-table">
+                    {{ a.table_header([
+                        {'label': _('User')},
+                        {'label': _('Organization')},
+                        {'label': _('Source'), 'width': '160px'},
+                        {'label': '', 'width': '100px'}
+                    ]) }}
+                    <tbody id="holdersTbody">
+                        {{ a.empty_state('fa-key', _('Pick a permission above to see who holds it.'), colspan=4) }}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {# ---- BY USER: pick a user, see their effective permissions ---- #}
+        <div id="matrix-tab-user" class="hidden">
+            <div class="nx-input-icon" style="max-width:420px;margin-bottom:16px">
+                <i class="fas fa-search"></i>
+                <input type="text" id="userPicker" class="nx-input" list="usersDatalist" autocomplete="off"
+                    placeholder="{{ _('Type a user name…') }}" data-testid="permission-matrix-user-picker">
+            </div>
+            <datalist id="usersDatalist">
+                {% for u in all_users %}
+                <option value="{{ u.Fullname }} ({{ u.username }})" data-user-id="{{ u.userID }}">{{ u.organization or '' }}</option>
+                {% endfor %}
+            </datalist>
+            <div id="userPermissionsResult">
+                <p class="admin-empty"><i class="fas fa-user"></i> &nbsp; {{ _('Pick a user above to see their effective permissions.') }}</p>
+            </div>
+        </div>
+    </main>
+
+    {% include 'js/admin/_permission_matrix_js.html' %}
+</body>
+</html>

@@ -89,6 +89,17 @@ def _probe_dbs():
         yield f"db:{ping['label']}", ping["ok"], detail
 
 
+def _took(resp):
+    """Render a response's duration as " (204 ms)" -- requests already timed it.
+
+    The DB pings have carried their duration in the detail line from the start;
+    the HTTP probes did not, which left the status page's sparklines (migration
+    0071) blind to exactly the components most likely to get slow before they
+    get broken.
+    """
+    return f" ({int(resp.elapsed.total_seconds() * 1000)} ms)"
+
+
 def _probe_http(url):
     """GET the public site. Catches IIS / app-pool death that DB pings cannot."""
     try:
@@ -97,7 +108,7 @@ def _probe_http(url):
         return "http:site", False, f"{url}: {type(e).__name__}: {str(e)[:160]}"
     # Any 2xx/3xx means IIS served the app. A login redirect is a healthy answer.
     ok = resp.status_code < 400
-    return "http:site", ok, f"{url}: HTTP {resp.status_code}"
+    return "http:site", ok, f"{url}: HTTP {resp.status_code}{_took(resp)}"
 
 
 def _probe_api(site_url):
@@ -115,7 +126,7 @@ def _probe_api(site_url):
     except requests.RequestException as e:
         return "api:v1", False, f"{url}: {type(e).__name__}: {str(e)[:160]}"
     ok = resp.status_code == 401
-    return "api:v1", ok, f"{url}: HTTP {resp.status_code}"
+    return "api:v1", ok, f"{url}: HTTP {resp.status_code}{_took(resp)}"
 
 
 def _probe_api_key(site_url):
@@ -143,7 +154,7 @@ def _probe_api_key(site_url):
     except requests.RequestException as e:
         return "api:key", False, f"{url}: {type(e).__name__}: {str(e)[:160]}"
     ok = resp.status_code == 200 and "imported_today" in resp.text
-    return "api:key", ok, f"{url}: HTTP {resp.status_code}"
+    return "api:key", ok, f"{url}: HTTP {resp.status_code}{_took(resp)}"
 
 
 def _probe_octo(domain):
@@ -171,7 +182,7 @@ def _probe_octo(domain):
     except requests.RequestException as e:
         return component, False, f"{url}: {type(e).__name__}: {str(e)[:160]}"
     ok = resp.status_code == 200 and "access_token" in resp.text
-    return component, ok, f"{url}: HTTP {resp.status_code}"
+    return component, ok, f"{url}: HTTP {resp.status_code}{_took(resp)}"
 
 
 def _probe_graph():
@@ -208,7 +219,7 @@ def _probe_graph():
     except requests.RequestException as e:
         return "graph:mail", False, f"token: {type(e).__name__}: {str(e)[:160]}"
     ok = resp.ok and "access_token" in resp.text
-    return "graph:mail", ok, f"token: HTTP {resp.status_code}"
+    return "graph:mail", ok, f"token: HTTP {resp.status_code}{_took(resp)}"
 
 
 def _probe_log_storms(now_local):

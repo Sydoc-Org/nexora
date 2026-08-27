@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale }}">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    {% include '_theme_prepaint.html' %}
+    <link rel="stylesheet" href="{{ url_for('static',filename='css/nexora-ui.css') }}">
+    <title>{{ _("Clients - nexora") }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
+</head>
+<body class="nx-app">
+    <div id="notification-container" class="fixed top-4 right-4 z-[100] w-full max-w-xs space-y-3"></div>
+
+    {% set active_page = 'clients' %}
+    {% include '_header.html' %}
+    {% import 'admin/_admin_helpers.html' as a %}
+
+    <main class="nx-main">
+        {{ a.page_header(
+            title=_('Clients'),
+            subtitle=_('Runtime sources (which DB/dialect/Octo tenant serves each client) -- not customer organizations'),
+            back_url=url_for('admin_dashboard'),
+            actions=([{'label': _('Add client'), 'icon': 'fa-plus', 'onclick': 'openAddClientModal()', 'variant': 'primary', 'testid': 'add-client'}] if can_edit else None),
+            icon='fa-server'
+        ) }}
+
+        {% if registry_degraded_reason %}
+        {# The registry is built once, at import, from dbo.Clients. If that read
+           failed the process is running on a hardcoded default-only registry --
+           every non-default runtime is gone until the next app-pool recycle, and
+           the only other signal is a stderr line in waitress-stdout*. #}
+        <div class="nx-card nx-bg-lred" style="margin:-8px 0 16px;padding:12px 16px" data-testid="admin-clients-degraded">
+            <strong class="nx-c-danger"><i class="fas fa-triangle-exclamation"></i>
+                {{ _("Client registry degraded") }}</strong>
+            <p class="nx-c-sec" style="font-size:0.85rem;margin:4px 0 0">
+                {{ _("dbo.Clients could not be read at startup, so this process is running on the built-in 'default' client only -- every other runtime source below is configured but NOT active, whatever this table says. Fix the database access and recycle the app pool.") }}
+                <span class="nx-mono">{{ registry_degraded_reason }}</span>
+            </p>
+        </div>
+        {% endif %}
+
+        <p class="nx-c-meta" style="font-size:0.85rem;margin:-8px 0 16px" data-testid="admin-clients-help">
+            <i class="fas fa-circle-info"></i>
+            {{ _("A new or edited client is read once at startup: it takes effect only after an app-pool recycle. A client bringing its own database also needs the matching env/{ENV}.env keys added by hand -- adding a row here does not create them.") }}
+        </p>
+
+        {{ a.toolbar(search_id='clientSearchInput', search_placeholder=_('Search clients...')) }}
+
+        <div class="nx-table-wrap">
+            <table class="nx-table">
+                {{ a.table_header([
+                    {'label': _('Code'), 'width': '140px'},
+                    {'label': _('Display name')},
+                    {'label': _('Dialect'), 'width': '110px'},
+                    {'label': _('Runtime engine')},
+                    {'label': _('Active'), 'width': '90px'},
+                    {'label': _('Runtime state'), 'width': '190px'}
+                ] + ([{'label': _('Actions'), 'align': 'right', 'width': '180px'}] if can_edit else [])) }}
+                <tbody id="clients-tbody">
+                    {% for client in clients %}
+                    <tr data-search="{{ (client.ClientCode ~ ' ' ~ client.DisplayName)|lower }}" data-testid="admin-client-row-{{ client.ClientCode }}">
+                        <td><span class="nx-mono">{{ client.ClientCode }}</span></td>
+                        <td>{{ client.DisplayName }}</td>
+                        <td>{{ client.Dialect }}</td>
+                        <td><span class="nx-mono">{{ client.RuntimeEngineKey }}</span></td>
+                        <td>{{ _('Yes') if client.IsActive else _('No') }}</td>
+                        {# Configured state (this table) is not resolved state. A row whose
+                           env keys are missing on this machine is skipped when the registry
+                           is built, so it can read "Active: Yes" while serving nothing. #}
+                        <td data-testid="admin-client-loaded-{{ client.ClientCode }}">
+                            {% if client.loaded %}
+                            <span class="nx-c-sec"><i class="fas fa-circle-check"></i> {{ _('Loaded') }}</span>
+                            {% else %}
+                            <span class="nx-c-danger" title="{{ _('This row exists in dbo.Clients but the running process did not load it -- usually missing env/{ENV}.env keys, an unresolvable engine key or Octo domain, or a registry that failed to load at startup. Nothing routes to it until that is fixed and the app pool is recycled.') }}">
+                                <i class="fas fa-triangle-exclamation"></i> {{ _('Configured, not loaded') }}
+                            </span>
+                            {% endif %}
+                        </td>
+                        {% if can_edit %}
+                        <td class="align-right">
+                            <button data-client='{{ client|tojson|safe }}' class="edit-client-btn nx-btn nx-btn--ghost nx-btn--sm" type="button" data-testid="admin-client-edit-{{ client.ClientCode }}">{{ _("Edit") }}</button>
+                            <button class="delete-client-btn nx-btn nx-btn--ghost nx-btn--sm nx-c-danger" type="button" data-clientcode="{{ client.ClientCode }}" data-testid="admin-client-delete-{{ client.ClientCode }}">{{ _("Delete") }}</button>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <div id="confirmationModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 hidden opacity-0 transition-opacity duration-300 ease-in-out">
+        <div class="modal-content nx-card w-full max-w-sm text-center transform scale-95 transition-transform duration-300 ease-in-out">
+            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full nx-bg-lred">
+                <i class="fas fa-exclamation-triangle fa-lg nx-c-danger"></i>
+            </div>
+            <h3 class="nx-section mt-4" id="confirmTitle">{{ _("Delete Client") }}</h3>
+            <div class="mt-2">
+                <p class="text-sm nx-c-sec" id="confirmMessage"></p>
+            </div>
+            <div class="mt-6 flex justify-center space-x-4">
+                <button id="cancelBtn" type="button" class="nx-btn nx-btn--secondary" data-testid="admin-client-modal-confirmation-cancel">{{ _("Cancel") }}</button>
+                <button id="confirmBtn" type="button" class="nx-btn nx-btn--danger" data-testid="admin-client-modal-confirmation-confirm">{{ _("Confirm") }}</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="clientModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden opacity-0 transition-opacity duration-300 ease-in-out">
+        <div class="modal-content nx-card w-full max-w-md transform scale-95 transition-transform duration-300 ease-in-out">
+            <h3 id="clientModalTitle" class="nx-section mb-4">{{ _("Add a new Client") }}</h3>
+            <form id="clientForm" data-testid="admin-client-modal-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" id="clientOriginalCode" name="clientOriginalCode">
+                <div class="space-y-4">
+                    <div>
+                        <label for="ClientCode" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Client Code") }}</label>
+                        <input type="text" id="ClientCode" name="ClientCode" class="nx-input" pattern="[a-z0-9_]{2,50}" required data-testid="admin-client-modal-code">
+                    </div>
+                    <div>
+                        <label for="DisplayName" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Display Name") }}</label>
+                        <input type="text" id="DisplayName" name="DisplayName" class="nx-input" required data-testid="admin-client-modal-name">
+                    </div>
+                    <div>
+                        <label for="Dialect" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Dialect") }}</label>
+                        <select id="Dialect" name="Dialect" class="nx-select" required data-testid="admin-client-modal-dialect">
+                            <option value="tsql">tsql</option>
+                            <option value="postgres">postgres</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="RuntimeEngineKey" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Runtime Engine Key") }}</label>
+                        <input type="text" id="RuntimeEngineKey" name="RuntimeEngineKey" class="nx-input" required data-testid="admin-client-modal-runtime-engine">
+                    </div>
+                    {# The four nullable stats/doc-field bindings. They MUST be in the form:
+                       the edit endpoint writes all ten writable columns, so a form that
+                       omitted them would NULL an existing client's stats and doc-field
+                       engines on any save (MS02 statistics break, doc-field search fails
+                       closed after the next app-pool recycle). #}
+                    <div>
+                        <label for="StatsEngineKey" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Stats Engine Key (optional)") }}</label>
+                        <input type="text" id="StatsEngineKey" name="StatsEngineKey" class="nx-input" data-testid="admin-client-modal-stats-engine">
+                    </div>
+                    <div>
+                        <label for="StatsDialect" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Stats Dialect (optional)") }}</label>
+                        <select id="StatsDialect" name="StatsDialect" class="nx-select" data-testid="admin-client-modal-stats-dialect">
+                            <option value="">&mdash;</option>
+                            <option value="tsql">tsql</option>
+                            <option value="postgres">postgres</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="DocfieldsEngineKey" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Doc-field Engine Key (optional)") }}</label>
+                        <input type="text" id="DocfieldsEngineKey" name="DocfieldsEngineKey" class="nx-input" data-testid="admin-client-modal-docfields-engine">
+                    </div>
+                    <div>
+                        <label for="DocfieldsDialect" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Doc-field Dialect (optional)") }}</label>
+                        <select id="DocfieldsDialect" name="DocfieldsDialect" class="nx-select" data-testid="admin-client-modal-docfields-dialect">
+                            <option value="">&mdash;</option>
+                            <option value="tsql">tsql</option>
+                            <option value="postgres">postgres</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="OctoDomain" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Octo Domain (optional)") }}</label>
+                        <input type="text" id="OctoDomain" name="OctoDomain" class="nx-input" data-testid="admin-client-modal-octo-domain">
+                    </div>
+                    <div>
+                        <label for="SecretRef" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Secret Ref (env-key prefix, optional)") }}</label>
+                        <input type="text" id="SecretRef" name="SecretRef" class="nx-input" pattern="[A-Z0-9_]{0,20}" placeholder="MS02" data-testid="admin-client-modal-secret-ref">
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="IsActive" name="IsActive" checked data-testid="admin-client-modal-active">
+                        <label for="IsActive" class="text-xs font-bold uppercase tracking-widest nx-c-meta">{{ _("Active") }}</label>
+                    </div>
+                </div>
+                <div class="flex justify-end mt-6 gap-2">
+                    <button type="button" id="clientModalCancelBtn" class="nx-btn nx-btn--secondary" data-testid="admin-client-modal-cancel">{{ _("Cancel") }}</button>
+                    <button type="submit" class="nx-btn nx-btn--primary" data-testid="admin-client-modal-save">{{ _("Save Client") }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% include 'js/admin/_clients_js.html' %}
+</body>
+</html>

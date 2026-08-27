@@ -11,9 +11,13 @@ the resulting field sets in; this function does not validate that `source`
 names a known source.
 """
 
+import re
+
 from .tokens import RELATIVE_DATE_TOKENS, validate_token_value
 
 REPORT_SCHEMA_VERSION = 1
+
+_HEX_COLOR = re.compile(r"^#[0-9a-fA-F]{6}$")
 
 SUPPORTED_VISUALIZATIONS = {"table"}
 
@@ -204,6 +208,31 @@ def validate_report_definition(
             isinstance(horizon, bool) or not isinstance(horizon, int) or not 1 <= horizon <= 60
         ):
             raise ReportDefinitionError("forecast.horizon must be 'auto' or an int in [1, 60]")
+
+    # Presentation overrides (Simple tab "Colours & axes" popover): per-series
+    # colours, a title/legend colour and the series plotted on a right-hand
+    # Y axis. Keys are the client-side series keys (metric code, or the
+    # pivoted series label). Values are rendered into CSS/Chart.js, so hex only.
+    style = rd.get("style")
+    if style is not None:
+        if not isinstance(style, dict):
+            raise ReportDefinitionError("style must be an object")
+        extra = set(style) - {"colors", "titleColor", "rightAxis"}
+        if extra:
+            raise ReportDefinitionError(f"unexpected keys in style: {sorted(extra)}")
+        colors = style.get("colors", {})
+        if not isinstance(colors, dict) or not all(
+            isinstance(k, str) and _HEX_COLOR.match(str(v)) for k, v in colors.items()
+        ):
+            raise ReportDefinitionError("style.colors must map series keys to #rrggbb colours")
+        title_color = style.get("titleColor")
+        if title_color is not None and not _HEX_COLOR.match(str(title_color)):
+            raise ReportDefinitionError("style.titleColor must be a #rrggbb colour")
+        right_axis = style.get("rightAxis")
+        if right_axis is not None and (
+            not isinstance(right_axis, list) or not all(isinstance(k, str) for k in right_axis)
+        ):
+            raise ReportDefinitionError("style.rightAxis must be a list of series keys")
 
     row_limit = rd.get("rowLimit")
     if (

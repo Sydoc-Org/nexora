@@ -115,12 +115,12 @@
    border. Works in both the lightbox and thumbnail layers. */
 .src-hl-box--cell { border-style: dashed; }
 
-/* Line-item grid in the field panel (rendered below the scalar <dl>).
-   A <details>/<summary> element, closed by default: wide extraction
-   tables (SAP-style Tab*/Ord* grids can run 10+ columns) don't fit a
-   narrow side panel no matter how they're styled, so they're tucked
-   behind a click instead of always-on scroll. */
+/* Line-item grid: a real <table> in its own full-width card below the two-column
+   detail grid. A <details>/<summary> keeps the collapse, open by default. Wide
+   extraction tables (SAP-style Tab*/Ord* grids run 10+ columns) scroll sideways
+   inside .src-table-scroll instead of stacking cell-per-line. */
 .src-table-grid { margin-top: 0.6rem; }
+.src-table-grid:first-of-type { margin-top: 0; }
 .src-table-grid .src-table-title {
   font-size: 0.72rem;
   font-weight: 700;
@@ -138,28 +138,70 @@
   text-transform: none;
   color: #9ca3af;
 }
-.src-table-grid .src-table-row-label {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: #9ca3af;
-  margin: 0.5rem 0 0.1rem 0.5rem;
+.src-table-scroll { overflow-x: auto; }
+.src-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+.src-table th,
+.src-table td {
+  padding: 0.35rem 0.6rem;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid #f1f5f9;
 }
-.src-table-grid > .src-table-row-label:first-of-type { margin-top: 0; }
+.src-table thead th {
+  position: sticky;            /* header survives the horizontal scroll of long tables */
+  top: 0;
+  background: #ffffff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  border-bottom: 1px solid #e5e7eb;
+}
+.src-table tbody td { color: #111827; font-weight: 600; }
+.src-table tbody tr:last-child td { border-bottom: 0; }
+.src-table .src-table-empty { color: #d1d5db; }
+.src-table .src-table-rownum {
+  width: 1%;
+  text-align: right;
+  color: #9ca3af;
+  font-weight: 500;
+}
 
 /* ---- Full-page source review (split lightbox) ----
    .modal is a two-pane review: the document page (with the highlight overlay)
    on the LEFT, the extracted values on the RIGHT. The values panel hides itself for
    documents with no extracted values, so plain media viewing stays full-width. */
+/* Two columns, two rows: page top-left, line-item tables directly beneath it,
+   the values sidebar spanning both rows on the right. The tables box needs the
+   page's full width (a table in the 480px sidebar scrolls for every column), so
+   it is NOT part of the sidebar. Row 2 collapses to 0 when the box is absent. */
 .modal .src-modal-body {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr) auto;
   width: 100%;
   height: 100%;
-  align-items: stretch;
 }
+.src-modal-tables {
+  grid-column: 1;
+  grid-row: 2;
+  max-height: 38vh;
+  overflow-y: auto;
+  margin: 0 1rem 1rem;
+  padding: 0.75rem 1rem 1rem;
+  background: #ffffff;
+  color: #111827;
+  border-radius: calc(var(--nx-radius-scale, 1) * 12px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+.src-modal-tables[hidden] { display: none; }
 .src-modal-page {
   position: relative;          /* containing block for .src-hl-layer-full + the nav arrows */
-  flex: 1 1 auto;
+  grid-column: 1;
+  grid-row: 1;
   min-width: 0;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -167,13 +209,18 @@
   overflow: hidden;
 }
 /* Image fills the page pane (overrides the centred-lightbox 90% / 85vh sizing). */
+/* Pane-relative, NOT 92vh: with the line-item box occupying the grid's second
+   row the page pane is shorter than the viewport, and a vh-sized image overflows
+   it -- .src-modal-page clips (overflow:hidden), so the bottom of the document
+   silently disappeared behind the box. */
 .src-modal-page .modal-content {
   max-width: 100%;
-  max-height: 92vh;
+  max-height: 100%;
   margin: 0;
 }
 .src-modal-values {
-  flex: 0 0 auto;
+  grid-column: 2;
+  grid-row: 1 / -1;
   width: min(44vw, 480px);
   background: #ffffff;
   color: #111827;
@@ -186,11 +233,11 @@
    labels and wraps the confidence chip. Stacking gives each value the full width
    (wraps cleanly), keeps labels readable, and reads like a property list. Scoped to
    #srcReviewPanel so the inline Document Details panel is unchanged. */
-#srcReviewPanel .src-field-row {
+#srcReviewPanel div.src-field-row {
   display: block;            /* override inline `flex justify-between items-center` */
   padding: 0.5rem 0;
 }
-#srcReviewPanel .src-field-row dt {
+#srcReviewPanel div.src-field-row dt {
   display: block;
   font-size: 0.66rem;
   font-weight: 600;
@@ -201,7 +248,7 @@
   overflow: visible;
   margin-bottom: 0.15rem;
 }
-#srcReviewPanel .src-field-row dd {
+#srcReviewPanel div.src-field-row dd {
   display: block;
   text-align: left;          /* override `text-right` */
   font-size: 0.9rem;

@@ -15,6 +15,7 @@ from dataclasses import dataclass
 
 import requests
 
+from .caption_facts import build_facts
 from .sandbox import SqlSandboxError, validate_select
 
 ANTHROPIC_VERSION = "2023-06-01"
@@ -484,14 +485,28 @@ def ask(
 # compute_stats in the agentic loop).
 # ---------------------------------------------------------------------------
 
-CAPTION_MAX_ROWS = 50
+# Payload guard only. Rows never reach the model raw any more: the whole grid
+# is reduced to a fact sheet (caption_facts.build_facts) and that is what the
+# prompt carries. Before (cap 50, rows[:50] of an ascending time series) the
+# model saw the NULL-date bucket plus 2020 and called it "a clear outlier".
+CAPTION_MAX_ROWS = 5000
 
 _CAPTION_SYSTEM = (
-    "You are a concise data analyst for an internal reporting tool. Given a "
-    "small table of report results, write ONE short caption that states the "
-    "most notable pattern, standout value, or takeaway. Rules: 1-2 sentences, "
-    'no preamble ("Here is...", "Looking at the data..."), no restating the '
-    "question, no code fences or markdown, plain prose only. Answer in {locale}."
+    "You are a concise data analyst for an internal reporting tool. You get a "
+    "FACT SHEET computed exactly over the complete result — not the raw table. "
+    "Write ONE caption, at most 2 sentences and about 40 words, giving a manager "
+    "the single most useful takeaway: the headline total (or, for a level such "
+    "as a backlog, its latest value; with several measures name each headline "
+    "briefly), then the one thing that matters most — trend, peak, "
+    "concentration, or a caveat the facts flag. Rules: use only "
+    "numbers from the facts, rounded sensibly and formatted for {locale} "
+    "(thousands separators); never invent, extrapolate, or recite every fact; "
+    "buckets with NO measurement are missing data, never zero or a drop; rows "
+    "with NO <dimension> are not a period or category — mention them, if at all, "
+    "as rows without a date; a still-running bucket is incomplete — never call it "
+    "a decline or compare it with finished ones; a percentage on a near-zero "
+    "baseline is noise; follow any Notes. No preamble, no restating the report "
+    "title, no code fences or markdown, plain prose only. Answer in {locale}."
 )
 
 
@@ -504,19 +519,16 @@ class AiCaptionResult:
     tokens_out: int | None
 
 
-def _caption_user_prompt(columns, rows, title, date_label):
-    headers = [c.get("header") or c.get("field") or "" for c in (columns or [])]
-    lines = [", ".join(headers)] if headers else []
-    for row in rows:
-        cells = row if isinstance(row, list | tuple) else [row]
-        lines.append(", ".join("" if v is None else str(v) for v in cells))
-    table_text = "\n".join(lines)
+def _caption_user_prompt(columns, rows, title, date_label, notes=None, level_fields=()):
     prefix = ""
     if title:
         prefix += f"Report: {title}\n"
     if date_label:
         prefix += f"Period: {date_label}\n"
-    return f"{prefix}Data ({len(rows)} rows):\n{table_text}"
+    if notes:
+        prefix += f"Notes: {notes}\n"
+    facts = build_facts(columns, rows, level_fields=level_fields)
+    return f"{prefix}Facts:\n{facts}"
 
 
 def caption(
@@ -525,26 +537,38 @@ def caption(
     title=None,
     date_label=None,
     *,
+    notes=None,
+    level_fields=(),
     locale="en",
     cfg,
     max_tokens=DEFAULT_MAX_TOKENS,
     timeout=DEFAULT_TIMEOUT_S,
     transport=_http_post,
 ):
-    """Draft a 1-2 sentence caption over a small result grid.
+    """Draft a 1-2 sentence caption over a result grid.
+
+    The model never sees the rows: `caption_facts.build_facts` reduces the whole
+    grid to exact facts (totals, peak, latest vs previous, missing vs zero
+    buckets, the NULL-key rows, the still-running bucket) and the prompt
+    carries those, so it cannot mis-aggregate a truncated sample.
+
+    `notes`: optional caller-supplied context the model must honour — e.g.
+    "the last bucket is the current, still-running month" or "empty cells are
+    buckets with no snapshot" — so it doesn't narrate artefacts as findings.
+    `level_fields`: field/header names of level measures (backlog) whose
+    headline is the latest value, not a sum.
 
     `cfg` bundles the resolved provider settings the same way `_ai_config()` in
     the view module produces them (provider/api_key/model/endpoint/deployment/
     api_version/url) so the caller does not need to unpack it field-by-field.
-    Rows are truncated to CAPTION_MAX_ROWS before the prompt is built, so an
-    oversized grid never balloons the prompt or the bill — this is the single
-    source of truth for the 50-row cap; the caller does not need to pre-slice.
+    Rows are truncated to CAPTION_MAX_ROWS (a payload guard; the fact sheet's
+    size does not grow with the row count) — the caller need not pre-slice.
     """
     rows = list(rows)[:CAPTION_MAX_ROWS]
     provider = (cfg.get("provider") or "").lower()
     text, tin, tout = _dispatch(
         _CAPTION_SYSTEM.format(locale=locale or "en"),
-        _caption_user_prompt(columns, rows, title, date_label),
+        _caption_user_prompt(columns, rows, title, date_label, notes, level_fields),
         provider=provider,
         model=cfg.get("model"),
         api_key=cfg.get("api_key"),
@@ -607,13 +631,24 @@ _AGENT_SYSTEM = (
     "counting/summing/averaging question use a source that lists metrics — a "
     'source marked "metrics: none" cannot aggregate at all. '
     "If validate_sql is available, draft ONE read-only SELECT and "
-    "validate it before presenting. A definition's filters apply to the WHOLE "
-    "report, so the builder CANNOT put two differently-filtered measures side by "
-    'side (e.g. "imported documents and exported documents per month"). For such '
-    "a question do NOT split it into two reports and do NOT give up: draft ONE "
-    "T-SQL SELECT that groups by the period and uses conditional aggregation "
-    "(SUM(CASE WHEN <condition> THEN 1 ELSE 0 END)) — one column per measure — "
-    "and validate_sql it instead. When a tool returns an error, fix your input "
+    "validate it before presenting. Metrics whose catalog line carries "
+    '"anchor=<date>" (documents/pages imported, documents/pages exported, '
+    "backlog) each count on their OWN date and plot together on the shared "
+    '"activity_date" field: for imported-vs-exported-vs-backlog over time, '
+    "the imported/exported/backlog totals, or any question about the backlog, "
+    "ALWAYS use build_definition with those metrics, "
+    '"columns": [{"field": "activity_date", "grain": <period>}] and the time '
+    "filter on activity_date. That definition IS the business definition "
+    "(process scope, deleted-document rules, newest snapshot per bucket); never "
+    "re-derive a backlog or an import/export comparison in raw SQL when the "
+    "source lists anchored metrics — SQL there gives different numbers than "
+    "the reports users see. Anchored metrics cannot be mixed with plain "
+    "metrics in one definition. For OTHER pairs of differently-filtered "
+    "measures the builder cannot express, do NOT split them into two reports "
+    "and do NOT give up: draft ONE T-SQL SELECT that groups by the period and "
+    "uses conditional aggregation (SUM(CASE WHEN <condition> THEN 1 ELSE 0 END)) "
+    "— one column per measure — and validate_sql it instead. When a tool "
+    "returns an error, fix your input "
     "and try again — but after 2 failed attempts on the same tool stop calling it "
     "and write your final answer explaining what you could and could not do. "
     "Once a tool returns ok:true for the artifact that actually answers the whole "
@@ -697,8 +732,9 @@ _AGENT_SYSTEM = (
 
 # Appended to the system prompt only when the caller holds reporting.ai.explain_data
 # (Phase 3e). It unlocks the data-returning tools: run_sql feeds real result rows
-# back to the model and compute_stats gives exact aggregates over them, so the model
-# may narrate concrete numbers instead of only drafting an artifact.
+# back to the model, run_definition executes a build_definition-shaped definition
+# for real, and compute_stats gives exact aggregates over them, so the model may
+# narrate concrete numbers instead of only drafting an artifact.
 _AGENT_EXPLAIN_SUFFIX = (
     " You may run validated read-only SELECTs with run_sql and summarise the actual "
     "rows returned, and use compute_stats for exact aggregates (describe, group_by, "
@@ -709,6 +745,14 @@ _AGENT_EXPLAIN_SUFFIX = (
     "never resubmit the identical SQL; change the query before retrying. Report "
     "only concrete numbers taken from the data you fetched — never estimate or "
     "fabricate values."
+    " A build_definition that returns ok:true has only validated the SHAPE — it has"
+    " NOT run. When the question wants concrete values (anchored metrics like"
+    " imported/exported/backlog, or any other business-definition question),"
+    " call run_definition with that same definition to fetch the real rows before"
+    " you answer — this runs the exact query the report builder would run, so the"
+    " numbers match what users see on the report. Once run_definition returns"
+    " ok:true, answer from its rows and stop calling tools; never present a"
+    " validated-but-unexecuted definition's shape as though it were the answer."
     " run_sql can ONLY query the SQL-schema targets named below (e.g. statistics, "
     "octopus). NEVER pass a report SOURCE id as a table name, and NEVER call run_sql "
     "for a source marked 'builder-only' — answer those with build_definition instead. "
@@ -809,8 +853,50 @@ def ask_agentic_iter(
             result = registry.call(call["name"], call.get("args"))
             trace.append({"name": call["name"], "args": call.get("args"), "result": result})
             results.append({"tool_call_id": call.get("id"), "name": call["name"], "result": result})
+            # Carries the RAW tool output -- for the view layer to distill
+            # into the tiny build-stage preview (stage_preview below).
+            # Consumers that forward events to a client must map or drop it,
+            # never relay it. Key is "output", NOT "result": every consumer
+            # detects the loop's final event via `"result" in event`.
+            yield {
+                "phase": "tool_result",
+                "name": call["name"],
+                "args": call.get("args"),
+                "output": result,
+            }
         messages.append({"role": "tool", "content": results})
     yield {"result": AiAgenticResult("", turns, trace, stopped, tin, tout)}
+
+
+def stage_preview(name, args, result):
+    """Distill one tool call into the compact preview the chat's build-stage
+    mascot animates with real numbers: {"title"?, "total"?, "series"?}.
+
+    Returns None when the call carries nothing previewable. The series is the
+    first numeric cell per row (label/value result shapes), capped to the last
+    12 rows; a numeric-less result still previews its row count as the total.
+    Pure -- safe to unit test without a provider."""
+    if not isinstance(result, dict) or not result.get("ok"):
+        return None
+    if name == "build_definition":
+        defn = (args or {}).get("definition")
+        title = defn.get("title") if isinstance(defn, dict) else None
+        return {"title": title} if isinstance(title, str) and title.strip() else None
+    if name in ("run_definition", "run_sql"):
+        rows = result.get("rows") or []
+        series = []
+        for row in rows:
+            if not isinstance(row, list | tuple):
+                continue
+            for v in row:
+                if isinstance(v, int | float) and not isinstance(v, bool):
+                    series.append(float(v))
+                    break
+        if not series:
+            return {"total": len(rows)} if rows else None
+        series = series[-12:]
+        return {"total": sum(series), "series": series}
+    return None
 
 
 def ask_agentic(question, **kwargs):

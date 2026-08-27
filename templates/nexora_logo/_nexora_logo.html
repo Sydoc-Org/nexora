@@ -1,5 +1,8 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/_nexoraLogo.css') }}">
 <a href="{{ url_for('index') }}" class="brand title-wrap flex items-center gap-3" data-testid="nexora-logo-home">
+{%- if brand and brand.logo_file %}
+  <img src="{{ url_for('branding_logo', orgcode=session.get('organizationcode')) }}" alt="{{ brand.name or 'nexora' }}" class="nx-brand-logo" height="48">
+{%- else %}
   <div class="bh" aria-hidden="true">
     <div class="bh-penumbra" aria-hidden="true"></div>
     <div class="bh-core"></div>
@@ -9,8 +12,9 @@
       <i></i><i></i>
     </div>
   </div>
+{%- endif %}
   <div class="flex flex-col items-start">
-    <h1 class="nexora-title text-3xl font-semibold tracking-tight">nexora</h1>
+    <h1 class="nexora-title text-3xl font-semibold tracking-tight">{{ brand.name if brand and brand.name else 'nexora' }}</h1>
     <h2 class="nexora-subtitle text-xs font-semibold tracking-tight mt-1">powered by sydoc</h2>
   </div>
 </a>

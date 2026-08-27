@@ -3,7 +3,11 @@
 
 from unittest.mock import MagicMock
 
+import pytest
+
 import nx_lib.reporting.catalog as catalog_mod
+from nx_lib import mapping_config
+from nx_lib.mapping_config import FieldMapping, MappingRegistry, ProcessSource
 from nx_lib.reporting.catalog import (
     build_catalog,
     date_availability,
@@ -19,17 +23,37 @@ class _Row:
         self.__dict__.update(kw)
 
 
+def _source(client="default", process="p", table="dbo.T", **overrides):
+    """A ProcessSource with sane defaults, only the fields under test set."""
+    kw = {
+        "client": client,
+        "process": process,
+        "table": table,
+        "alias": None,
+        "join_condition": None,
+        "time_filter": None,
+        "suggestion_time_filter": None,
+        "export_column": None,
+        "import_column": None,
+        "workitem_column": None,
+        "extra_condition": None,
+        "id_column_type": None,
+    }
+    kw.update(overrides)
+    return ProcessSource(**kw)
+
+
 def test_date_availability_filters_nulls_and_scope():
-    rows = [
-        _Row(
-            ProcessName="compass.01_Invoice_SAP",
-            ImportColumn="ImportDate",
-            ExportColumn="UploadDatetime",
+    sources = [
+        _source(
+            process="compass.01_Invoice_SAP",
+            import_column="ImportDate",
+            export_column="UploadDatetime",
         ),
-        _Row(ProcessName="privera.03_Invoice_New", ImportColumn="ImportTime", ExportColumn=None),
-        _Row(ProcessName="other.99_Hidden", ImportColumn="X", ExportColumn="Y"),  # out of scope
+        _source(process="privera.03_Invoice_New", import_column="ImportTime", export_column=None),
+        _source(process="other.99_Hidden", import_column="X", export_column="Y"),  # out of scope
     ]
-    avail = date_availability(rows, ["compass.01_Invoice_SAP", "privera.03_Invoice_New"])
+    avail = date_availability(sources, ["compass.01_Invoice_SAP", "privera.03_Invoice_New"])
     assert avail == {
         "import_date": ["compass.01_Invoice_SAP", "privera.03_Invoice_New"],
         "export_date": ["compass.01_Invoice_SAP"],
@@ -56,20 +80,13 @@ def test_date_catalog_entries_shape():
 
 
 def test_workitem_availability_filters_nulls_and_scope():
-    rows = [
-        _Row(ProcessName="compass.01_Invoice_SAP", WorkitemColumn="WorkItem"),
-        _Row(ProcessName="privera.03_Invoice_New", WorkitemColumn=None),
-        _Row(ProcessName="other.99_Hidden", WorkitemColumn="X"),  # out of scope
+    sources = [
+        _source(process="compass.01_Invoice_SAP", workitem_column="WorkItem"),
+        _source(process="privera.03_Invoice_New", workitem_column=None),
+        _source(process="other.99_Hidden", workitem_column="X"),  # out of scope
     ]
-    avail = workitem_availability(rows, ["compass.01_Invoice_SAP", "privera.03_Invoice_New"])
+    avail = workitem_availability(sources, ["compass.01_Invoice_SAP", "privera.03_Invoice_New"])
     assert avail == ["compass.01_Invoice_SAP"]
-
-
-def test_workitem_availability_tolerates_pre_migration_rows():
-    # Statconfig without the WorkitemColumn column (migration 0020 not applied):
-    # the field is simply unavailable, never an AttributeError.
-    rows = [_Row(ProcessName="compass.01_Invoice_SAP")]
-    assert workitem_availability(rows, ["compass.01_Invoice_SAP"]) == []
 
 
 def test_workitem_catalog_entries_shape():
@@ -146,73 +163,59 @@ def test_build_catalog_uses_defaults_when_no_metadata():
 # --------------------- fetch_docprocessing_catalog (DB fetch) --------------------- #
 
 
-class _SCRow:
-    """Stand-in for a pyodbc SearchConfig row: attribute access for
-    ProcessName/ClientCode (as read by fetch_docprocessing_catalog directly),
-    plus positional index access for the col_* values (the query shape is
-    `SELECT ProcessName, {col_cols...} FROM SearchConfig ...` and the code
-    reads them by position, `row[i + 1]`)."""
-
-    def __init__(self, process_name, client_code, col_values):
-        self.ProcessName = process_name
-        self.ClientCode = client_code
-        self._row = (process_name, *col_values)
-
-    def __getitem__(self, idx):
-        return self._row[idx]
+def _registry(*, sources=(), mappings=(), labels=None, aliases=None):
+    """A MappingRegistry with just the fields fetch_docprocessing_catalog reads."""
+    return MappingRegistry(
+        sources={(s.client, s.process): s for s in sources},
+        mappings=list(mappings),
+        labels=labels or {},
+        aliases=aliases or {},
+    )
 
 
-class _FakeCatalogCursor:
-    """Fake cursor covering fetch_docprocessing_catalog's query sequence.
+class _EmptyFieldMetadataCursor:
+    """Fake cursor covering only the untouched FieldMetadata read (D10) --
+    fetch_docprocessing_catalog's availability/labels/Statconfig-successor
+    reads all go through mapping_config now, not the cursor."""
 
-    The SearchConfig `WHERE ClientCode = 'default'` branch actually inspects
-    the executed SQL text and filters `_searchconfig_rows` accordingly -- so
-    this fake only returns 'default' rows if the code under test really added
-    the filter, rather than always filtering regardless of the query shape.
-    """
-
-    def __init__(self, description, searchconfig_rows):
-        self._description = description
-        self._searchconfig_rows = searchconfig_rows
-        self.description = None
+    def __init__(self, meta_rows=()):
+        self._meta_rows = list(meta_rows)
         self._result = []
 
     def execute(self, sql, *params):
-        if "FROM FieldMetadata" in sql or "FROM Search_Field_Labels" in sql:
-            self._result = []
-        elif "TOP 0 * FROM SearchConfig" in sql:
-            self.description = self._description
-            self._result = []
-        elif "FROM SearchConfig" in sql:
-            if "ClientCode = 'default'" in sql:
-                self._result = [r for r in self._searchconfig_rows if r.ClientCode == "default"]
-            else:
-                self._result = list(self._searchconfig_rows)
-        elif "FROM Statconfig" in sql:
-            self._result = []
-        else:
-            self._result = []
+        self._result = self._meta_rows if "FROM FieldMetadata" in sql else []
 
     def fetchall(self):
         return self._result
 
 
 def test_fetch_docprocessing_catalog_excludes_ms02_rows(app, monkeypatch):
-    # Task 51: an 'ms02'-coded SearchConfig row (col_pid, process
+    # Task 51: an 'ms02'-client ProcessFieldMappings row (pid, process
     # 'sydoc.05_PDBS') must not contribute a phantom field to the default
     # docprocessing catalog, even though 'sydoc.05_PDBS' is itself an allowed
-    # process. A sibling 'default' row (col_doctype, process 'acme.invoices')
+    # process. A sibling 'default' row (doctype, process 'acme.invoices')
     # must still surface normally.
-    description = [("ProcessName",), ("ClientCode",), ("col_pid",), ("col_doctype",)]
-    rows = [
-        _SCRow("sydoc.05_PDBS", "ms02", ("PidCol", None)),
-        _SCRow("acme.invoices", "default", (None, "DocType")),
-    ]
-    cur = _FakeCatalogCursor(description, rows)
-    conn = MagicMock()
-    conn.cursor.return_value = cur
+    reg = _registry(
+        mappings=[
+            FieldMapping(
+                client="ms02",
+                process="sydoc.05_PDBS",
+                field_key="pid",
+                column="PidCol",
+                column_type=None,
+            ),
+            FieldMapping(
+                client="default",
+                process="acme.invoices",
+                field_key="doctype",
+                column="DocType",
+                column_type=None,
+            ),
+        ]
+    )
+    monkeypatch.setattr(mapping_config, "registry", lambda: reg)
     engine = MagicMock()
-    engine.raw_connection.return_value = conn
+    engine.raw_connection.return_value.cursor.return_value = _EmptyFieldMetadataCursor()
     monkeypatch.setattr(catalog_mod, "engine_nexora_db", engine)
 
     with app.test_request_context():
@@ -221,6 +224,19 @@ def test_fetch_docprocessing_catalog_excludes_ms02_rows(app, monkeypatch):
     by_field = {c["field"]: c for c in catalog}
     assert "pid" not in by_field
     assert by_field["doctype"]["processes"] == ["acme.invoices"]
+
+
+def test_fetch_docprocessing_catalog_raises_on_registry_failure(app, monkeypatch):
+    """The registry failed to load (NexoraDB outage) -- this must surface as an
+    error, never silently degrade to an empty 'no fields configured' catalog
+    (see nx_lib/views/dashboard.py's `_statconfig_sources` fail-loud contract)."""
+    monkeypatch.setattr(mapping_config, "registry", lambda: None)
+    engine = MagicMock()
+    engine.raw_connection.return_value.cursor.return_value = _EmptyFieldMetadataCursor()
+    monkeypatch.setattr(catalog_mod, "engine_nexora_db", engine)
+
+    with app.test_request_context(), pytest.raises(RuntimeError):
+        fetch_docprocessing_catalog(["acme.invoices"], "en")
 
 
 def test_build_catalog_availability_is_source_of_truth():
@@ -238,3 +254,42 @@ def test_build_catalog_availability_is_source_of_truth():
     assert by_key["avail_only"]["aggregable"] is False
     assert by_key["avail_only"]["sortable"] is True
     assert by_key["avail_only"]["filterable"] is True
+
+
+class _RaisingFieldMetadataCursor(_EmptyFieldMetadataCursor):
+    """FieldMetadata raises, as it does everywhere: the table was never created."""
+
+    def execute(self, sql, *params):
+        if "FROM FieldMetadata" in sql:
+            raise RuntimeError("Invalid object name 'FieldMetadata'.")
+        super().execute(sql, *params)
+
+
+def test_missing_optional_table_warns_once_per_process(app, monkeypatch, caplog):
+    """It warned on every reporting request for months -- thousands of identical lines."""
+    monkeypatch.setattr(catalog_mod, "_WARNED_TABLES", set())
+    reg = _registry(
+        mappings=[
+            FieldMapping(
+                client="default",
+                process="acme.invoices",
+                field_key="doctype",
+                column="DocType",
+                column_type=None,
+            ),
+        ]
+    )
+    monkeypatch.setattr(mapping_config, "registry", lambda: reg)
+    engine = MagicMock()
+    engine.raw_connection.return_value.cursor.return_value = _RaisingFieldMetadataCursor()
+    monkeypatch.setattr(catalog_mod, "engine_nexora_db", engine)
+
+    with app.test_request_context(), caplog.at_level("WARNING"):
+        for _ in range(3):
+            fetch_docprocessing_catalog(["acme.invoices"], "en")
+
+    hits = [r for r in caplog.records if "FieldMetadata unavailable" in r.getMessage()]
+    assert len(hits) == 1
+    # The driver message survives, so a new cause is distinguishable from the
+    # expected "table does not exist".
+    assert "Invalid object name" in hits[0].getMessage()

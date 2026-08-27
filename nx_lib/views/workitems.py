@@ -4,6 +4,7 @@ plus the CSV exporter."""
 import base64
 import concurrent.futures
 import csv
+import hashlib
 import io
 import json
 import math
@@ -31,6 +32,7 @@ from flask_babel import gettext as _
 from PIL import Image
 from werkzeug.utils import secure_filename
 
+from .. import mapping_config
 from ..clients import CLIENTS
 from ..config import DB_STATISTICS, OCTO_DOMAIN, PATHS
 from ..db import engine_ms02_docfields_pg, engine_nexora_db, engine_statistics_db
@@ -82,6 +84,38 @@ from ..workitem_sources import (
 
 # ---------------------------- field/config helpers ---------------------------- #
 
+_LABEL_LANGS = ("en", "de", "fr", "it")
+
+
+def _build_field_config(allowed_processes, current_lang):
+    """search_options ({ProcessName: [{'value','label'}, ...]}) + labels
+    (FieldKey -> localized label) pair shared by api_config_fields and
+    api_workitems_page_init, read from the mapping_config registry (#98
+    phase 2) instead of a live legacy-table introspection. A registry load
+    failure degrades both to {} exactly like the legacy per-cell SELECT used
+    to on a DB error."""
+    target_lang = current_lang if current_lang in _LABEL_LANGS else "en"
+    lbls = mapping_config.labels() or {}
+    db_labels_map = {key: (meta.get(target_lang) or meta.get("en")) for key, meta in lbls.items()}
+
+    process_fields = {}
+    reg = mapping_config.registry()
+    if reg is not None:
+        for m in reg.mappings:
+            if m.process not in allowed_processes:
+                continue
+            nice_label = db_labels_map.get(m.field_key, m.field_key.replace("_", " ").title())
+            process_fields.setdefault(m.process, {})[m.field_key] = {
+                "value": m.field_key,
+                "label": nice_label,
+            }
+
+    search_options = {}
+    for process, fields_by_key in process_fields.items():
+        search_options[process] = sorted(fields_by_key.values(), key=lambda x: x["label"])
+
+    return search_options, db_labels_map
+
 
 def api_config_fields():
     if "username" not in session:
@@ -101,64 +135,8 @@ def api_config_fields():
     cached = cache.get(_cache_key)
     if cached is not None:
         return jsonify(cached)
-    lang_column_map = {
-        "de": "GermanLabel",
-        "fr": "FrenchLabel",
-        "it": "ItalianLabel",
-        "en": "EnglishLabel",
-    }
-    target_column = lang_column_map.get(current_lang, "EnglishLabel")
 
-    search_options = {}
-    db_labels_map = {}
-    conn = None
-    try:
-        conn = engine_nexora_db.raw_connection()
-        cursor = conn.cursor()
-
-        try:
-            cursor.execute(
-                "SELECT FieldKey, EnglishLabel, GermanLabel, FrenchLabel, ItalianLabel FROM Search_Field_Labels"
-            )
-            for row in cursor.fetchall():
-                translated_label = getattr(row, target_column) or row.EnglishLabel
-                db_labels_map[row.FieldKey] = translated_label
-        except Exception:
-            pass
-
-        cursor.execute("SELECT TOP 0 * FROM SearchConfig")
-        cols = [c[0] for c in cursor.description if c[0].startswith("col_")]
-
-        query = f"SELECT ProcessName, {','.join(cols)} FROM SearchConfig"
-        cursor.execute(query)
-        rows = cursor.fetchall()
-
-        for row in rows:
-            proc_name = row.ProcessName
-
-            if proc_name not in allowed_processes:
-                continue
-
-            fields = []
-            for i, col_name in enumerate(cols):
-                if row[i + 1]:
-                    field_key = col_name.replace("col_", "")
-                    nice_label = db_labels_map.get(field_key, field_key.replace("_", " ").title())
-
-                    fields.append(
-                        {
-                            "value": field_key,
-                            "label": nice_label,
-                        }
-                    )
-            fields.sort(key=lambda x: x["label"])
-            search_options[proc_name] = fields
-
-    except Exception as e:
-        current_app.logger.error(f"Error fetching field config: {e}")
-    finally:
-        if conn:
-            conn.close()
+    search_options, db_labels_map = _build_field_config(allowed_processes, current_lang)
 
     blocked = sensitive_blocked_keys()
     if blocked:
@@ -189,6 +167,56 @@ def _docfield_op(docops, i):
     return op if op in DOCFIELD_OPS else "contains"
 
 
+# Type buckets for the sargable predicate builder below (#98 Task 12).
+# Values MUST match ``ColumnType``/``IdColumnType`` exactly as seeded by
+# scripts/seed_column_types.py (migration 0076) -- lowercase
+# INFORMATION_SCHEMA.COLUMNS values on the SQL Server side (e.g. 'nvarchar',
+# 'int'). A bucket that doesn't match the seeded strings silently disables
+# the sargable path (falls through to the CAST fallback below -- safe, just
+# not faster), so DO NOT "helpfully" add casing/synonym variants without
+# checking a live sample first.
+_TEXT_TYPES = {"varchar", "nvarchar", "char", "nchar"}
+_INT_TYPES = {"int", "bigint", "smallint", "tinyint", "integer"}
+
+
+def _docfield_predicate(alias, column, column_type, op_key, value):
+    """Build a sargable WHERE fragment for a default-leg doc-field predicate
+    (#98 Task 12), given the ``ColumnType`` metadata seeded onto
+    ``FieldMapping`` (migration 0076). Returns ``(sql, params)`` -- ``sql``
+    uses ``?`` placeholders, ``params`` the ordered bind values.
+
+    - TEXT type (``_TEXT_TYPES``): bare column comparison, no CAST. ``eq``
+      becomes a seekable ``col = ?``; the LIKE-family ops stay a scan but
+      drop the CAST/COLLATE overhead.
+    - INT type (``_INT_TYPES``) + ``eq``/``neq``: native int bind, no CAST --
+      SEEKABLE. A non-numeric value can never equal an int column, so this
+      is resolved at the predicate level rather than hitting the DB:
+      ``eq`` -> ``"1=0"`` (can't match -- fails closed, no scan); ``neq`` ->
+      ``"1=1"`` (vacuously true: nothing unparseable can fail to differ from
+      every int value, so the negation always holds -- this is a predicate-
+      level truth, NOT a relaxation of the allow-set fail-closed contract
+      used elsewhere in this file).
+    - Everything else (INT type + a LIKE-family op, unmapped/unknown type,
+      or ``column_type is None``): the legacy, always-correct
+      ``CAST(...) AS NVARCHAR(MAX) COLLATE DATABASE_DEFAULT`` fallback.
+    """
+    op_sql, op_param = DOCFIELD_OPS[op_key]
+    col_ref = f"{alias}.{column}"
+
+    if column_type in _INT_TYPES and op_key in ("eq", "neq"):
+        try:
+            int_value = int(value)
+        except (TypeError, ValueError):
+            return ("1=0" if op_key == "eq" else "1=1", [])
+        return (f"{col_ref} {op_sql} ?", [int_value])
+
+    if column_type in _TEXT_TYPES:
+        return (f"{col_ref} {op_sql} ?", [op_param(value)])
+
+    safe_col = f"CAST({col_ref} AS NVARCHAR(MAX))"
+    return (f"{safe_col} COLLATE DATABASE_DEFAULT {op_sql} ?", [op_param(value)])
+
+
 def _docfield_comb(doccombs, i):
     """The AND/OR combinator joining pair ``i`` to the pairs before it
     ('and' fallback; the first pair's value is ignored by the fold)."""
@@ -196,61 +224,80 @@ def _docfield_comb(doccombs, i):
     return comb if comb in ("and", "or") else "and"
 
 
+def _docfield_pairs_normalized(
+    docfields, docvalues, docops, doccombs, valid_db_columns, blocked_docfields
+):
+    """The ``(field_keys, value, op, comb)`` tuples that actually drive a
+    leg's pair-fold (#98 Task 13 cache key input) -- mirrors the per-pair
+    ``continue`` guards each leg's resolution loop applies (empty value,
+    unknown field, sensitive-blocked field), so two requests that resolve
+    identically hash identically.
+
+    ``field_keys`` is the RESOLVED sorted tuple of target field keys, not the
+    raw ``docfield`` string: for an explicit field it is that one key; for a
+    value-first pair (no field picked, #148) it is every permitted
+    non-sensitive column, i.e. ``valid_db_columns - blocked_docfields``. Using
+    the resolved set (rather than the empty string every value-first pair
+    would otherwise normalize to) is what makes sensitive-field filtering
+    actually key-scoped: two callers with different sensitive-field
+    permissions searching the same bare value would otherwise both normalize
+    to the SAME raw-field pair and collide on one cache entry, letting a
+    lower-privilege caller inherit a higher-privilege caller's allow-set --
+    an allow-set that can include workitem ids matched ONLY via a sensitive
+    column the lower-privilege caller must never be able to infer the
+    contents of. Keying on the resolved column set instead makes any
+    permission difference a genuinely different key. Sensitive-field
+    filtering happens here, BEFORE any cache key is built, so a blocked pair
+    never contributes to the key.
+    """
+    pairs = []
+    for i, (docfield, docvalue) in enumerate(zip(docfields, docvalues, strict=False)):
+        docfield = (docfield or "").lower().strip()
+        docvalue = (docvalue or "").strip()
+        if not docvalue:
+            continue
+        if docfield:
+            if docfield not in valid_db_columns or docfield in blocked_docfields:
+                continue
+            field_keys = (docfield,)
+        else:
+            field_keys = tuple(sorted(c for c in valid_db_columns if c not in blocked_docfields))
+            if not field_keys:
+                continue
+        pairs.append((field_keys, docvalue, _docfield_op(docops, i), _docfield_comb(doccombs, i)))
+    return tuple(pairs)
+
+
+def _docfield_ids_cache_key(leg, target_processes, pairs_normalized):
+    """Cache key for a leg's resolved allow-set (#98 Task 13). ``leg`` is
+    'default' / 'ms02'. Callers must pair this with the ('v', result) sentinel
+    when storing, so a legitimately-empty resolved set is distinguishable
+    from a cache miss, and must NEVER cache.set on an error/None path."""
+    return (
+        f"docfield_ids_{leg}_"
+        + hashlib.sha1(repr((sorted(target_processes), pairs_normalized)).encode()).hexdigest()
+    )
+
+
 def get_valid_search_columns():
-    """Whitelist of SearchConfig col_<field> columns. Cached for an hour, but
-    ONLY on success: caching the empty error-fallback used to disable doc-field
-    search, autocomplete and the PID/register lookups app-wide for a full hour
-    after a single transient DB blip."""
-    cached = cache.get("search_config_columns")
-    if cached is not None:
-        return cached
-    conn = None
-    try:
-        conn = engine_nexora_db.raw_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT TOP 0 * FROM SearchConfig")
-        valid_cols = [c[0].lower() for c in cursor.description if c[0].lower().startswith("col_")]
-        cache.set("search_config_columns", valid_cols, timeout=3600)
-        return valid_cols
-    except Exception as e:
-        current_app.logger.error(f"Error fetching search config columns: {e}")
-        return []
-    finally:
-        if conn:
-            conn.close()
+    """Whitelist of field keys backing doc-field search, derived from the
+    mapping_config field-key registry (#98). Bare lowercase keys -- the
+    col_<field> internal-column convention was retired in task 6; the
+    intra-file callers compare/interpolate these directly. Caching
+    (success-only, on a DB blip) lives in mapping_config.registry() itself."""
+    return list(mapping_config.valid_field_keys())
 
 
 def get_search_columns_for_processes(processes):
-    """col_<field> SearchConfig columns mapped (non-NULL) for at least one of
-    the given ProcessNames, lowercased -- the per-scope companion to
-    get_valid_search_columns (which is table-wide). Returns None when the
-    lookup fails so callers can fail closed (external API contract); an empty
-    input short-circuits to an empty set without a query. Uncached: one
-    PK-range read per call on a rate-limited surface."""
+    """mapping_config field keys mapped for at least one of the given
+    "client.process" entries -- the per-scope companion to
+    get_valid_search_columns (which is table-wide). Bare lowercase keys (the
+    col_ prefix was retired in task 6). Returns None when the lookup fails so
+    callers can fail closed (external API contract); an empty input
+    short-circuits to an empty set without a lookup."""
     if not processes:
         return set()
-    conn = None
-    try:
-        conn = engine_nexora_db.raw_connection()
-        cursor = conn.cursor()
-        placeholders = ",".join(["?"] * len(processes))
-        cursor.execute(
-            f"SELECT * FROM SearchConfig WHERE ProcessName IN ({placeholders})",
-            list(processes),
-        )
-        names = [d[0].lower() for d in cursor.description]
-        mapped = set()
-        for row in cursor.fetchall():
-            for name, val in zip(names, row, strict=True):
-                if val is not None and name.startswith("col_"):
-                    mapped.add(name)
-        return mapped
-    except Exception as e:
-        current_app.logger.error(f"Error fetching per-process search columns: {e}")
-        return None
-    finally:
-        if conn:
-            conn.close()
+    return mapping_config.field_keys_for_processes(processes)
 
 
 def _norm_field_token(s):
@@ -281,63 +328,33 @@ def drop_sensitive_options(search_options, blocked_keys):
 
 
 def get_sensitive_field_keys():
-    """Lowercased FieldKeys flagged IsSensitive=1 in Search_Field_Labels, or
-    None when the lookup fails. Cached for an hour, but ONLY on success --
-    caching the error fallback used to pin a fail-open empty set for a full
-    hour (same trap get_valid_search_columns already avoids). Callers decide
-    the failure posture: the in-app wrappers below coerce None to set()
-    (fail-open behind session permissions, the historical behaviour); the
-    external API (nx_lib/views/api_external.py) fails CLOSED on None -- its
-    contract is unconditional blocking with no permission fallback."""
-    cached = cache.get("sensitive_field_keys")
-    if cached is not None:
-        return cached
-    conn = None
-    try:
-        conn = engine_nexora_db.raw_connection()
-        cur = conn.cursor()
-        cur.execute("SELECT FieldKey FROM Search_Field_Labels WHERE IsSensitive = 1")
-        keys = {r[0].lower() for r in cur.fetchall() if r[0]}
-        cache.set("sensitive_field_keys", keys, timeout=3600)
-        return keys
-    except Exception as e:
-        current_app.logger.error(f"get_sensitive_field_keys: {e}")
-        return None
-    finally:
-        if conn:
-            conn.close()
+    """Lowercased FieldKeys flagged sensitive in the mapping_config label
+    registry (#98 phase 2), or None when the lookup fails. Caching
+    (success-only) now lives in mapping_config.registry() itself. Callers
+    decide the failure posture: the in-app wrappers below coerce None to
+    set() (fail-open behind session permissions, the historical behaviour);
+    the external API (nx_lib/views/api_external.py) fails CLOSED on None --
+    its contract is unconditional blocking with no permission fallback."""
+    return mapping_config.sensitive_field_keys()
 
 
 def get_sensitive_field_tokens():
     """Normalized name-tokens (FieldKey + all four language labels) of sensitive
     fields, for matching against Octo extraction field names shown in the detail
-    panel / CSV export. None on any error -- cached only on success; see
-    get_sensitive_field_keys for the failure-posture contract."""
-    cached = cache.get("sensitive_field_tokens")
-    if cached is not None:
-        return cached
-    conn = None
-    try:
-        conn = engine_nexora_db.raw_connection()
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT FieldKey, EnglishLabel, GermanLabel, FrenchLabel, ItalianLabel "
-            "FROM Search_Field_Labels WHERE IsSensitive = 1"
-        )
-        tokens = set()
-        for row in cur.fetchall():
-            for val in row:
-                t = _norm_field_token(val)
-                if t:
-                    tokens.add(t)
-        cache.set("sensitive_field_tokens", tokens, timeout=3600)
-        return tokens
-    except Exception as e:
-        current_app.logger.error(f"get_sensitive_field_tokens: {e}")
+    panel / CSV export. None on any error; see get_sensitive_field_keys for the
+    failure-posture contract."""
+    lbls = mapping_config.labels()
+    if lbls is None:
         return None
-    finally:
-        if conn:
-            conn.close()
+    tokens = set()
+    for key, meta in lbls.items():
+        if not meta.get("sensitive"):
+            continue
+        for val in (key, meta.get("en"), meta.get("de"), meta.get("fr"), meta.get("it")):
+            t = _norm_field_token(val)
+            if t:
+                tokens.add(t)
+    return tokens
 
 
 def sensitive_blocked_keys():
@@ -382,8 +399,8 @@ def _strip_export_fields(details_map, blocked_tokens):
             detail["fields"] = strip_sensitive_fields(detail["fields"], blocked_tokens)
 
 
-# The 'ms02' SearchConfig col_<field> whose value is the personal-number (PID)
-# EAV "Name" in the MS02 doc-field index. Owner-seeded (col_pid='<EAV Name>').
+# The 'ms02' ProcessFieldMappings field key whose column value is the
+# personal-number (PID) EAV "Name" in the MS02 doc-field index. Owner-seeded.
 _MS02_PID_SEARCH_FIELD = "pid"
 
 
@@ -402,73 +419,48 @@ def _ms02_target_processes():
 
 def _ms02_pid_specs(target_processes):
     """Columnar specs for resolving personal numbers (PIDs) against the MS02
-    statistik table: ``[(table, id_col, pid_col, time_filter), ...]`` read from
-    the 'ms02' SearchConfig col_pid rows for the given processes (whitelisted
-    column, ClientCode='ms02', ProcessName IN (target_processes) -- NEVER a
-    hardcoded process key). ``time_filter`` is None: the PID lookup is an exact
-    match that must surface ALL matching workitems, unbounded by time. Returns []
-    when unseeded."""
-    col = f"col_{_MS02_PID_SEARCH_FIELD}"
-    if col not in get_valid_search_columns() or not target_processes:
+    statistik table: ``[(table, id_col, pid_col, time_filter, pid_column_type,
+    id_column_type), ...]`` read from the 'ms02' ProcessFieldMappings 'pid'
+    rows for the given processes (mapping_config registry, ClientCode='ms02',
+    ProcessName IN (target_processes) -- NEVER a hardcoded process key).
+    ``time_filter`` is None: the PID lookup is an exact match that must
+    surface ALL matching workitems, unbounded by time.
+
+    ``pid_column_type`` (FieldMapping.column_type, #98 Task 12) types the
+    ``pid_col = ANY(%s)`` comparisons in resolve_ms02_pid_ids /
+    resolve_ms02_pid_to_wids; ``id_column_type`` (ProcessSource.id_column_type)
+    types the DIFFERENT ``id_col = ANY(%s)`` comparison in
+    resolve_ms02_wids_to_pids -- deliberately two separate type fields since
+    they describe two different columns. Returns [] when unseeded."""
+    if not target_processes:
         return []
-    conn = None
-    cur = None
-    try:
-        conn = engine_nexora_db.raw_connection()
-        cur = conn.cursor()
-        placeholders = ",".join(["?"] * len(target_processes))
-        cur.execute(
-            f"SELECT TableName, TableAlias, JoinCondition, {col} FROM SearchConfig "
-            f"WHERE {col} IS NOT NULL AND ClientCode = 'ms02' "
-            f"AND ProcessName IN ({placeholders})",
-            target_processes,
-        )
-        specs = []
-        for table_name, alias, join_cond, pid_col in cur.fetchall():
-            if not (table_name and pid_col):
-                continue
-            id_col = _ms02_id_column(join_cond, alias)
-            if not id_col:
-                continue
-            specs.append((table_name, id_col, pid_col, None))
-        return specs
-    except Exception as e:
-        current_app.logger.error(f"_ms02_pid_specs: {e}")
+    mappings = mapping_config.mappings_for(
+        "ms02", target_processes, field_keys={_MS02_PID_SEARCH_FIELD}
+    )
+    if not mappings:
         return []
-    finally:
-        if cur:
-            cur.close()
-        if conn:
-            conn.close()
+    sources = {s.process: s for s in mapping_config.sources_for("ms02", target_processes)}
+    specs = []
+    for m in mappings:
+        src = sources.get(m.process)
+        if src is None or not src.table or not m.column:
+            continue
+        id_col = _ms02_id_column(src.join_condition, src.alias)
+        if not id_col:
+            continue
+        specs.append((src.table, id_col, m.column, None, m.column_type, src.id_column_type))
+    return specs
 
 
 def _ms02_prepared_docs_processes():
     """The MS02 processes for which the Prepared Documents register is relevant:
-    the 'ms02' SearchConfig rows that carry a col_pid mapping (single source of
-    truth, NEVER a hardcoded process key -- currently just ['sydoc.05_PDBS']).
-    The Workitems toolbar link is gated to these processes. Returns [] when
-    unseeded or on error so the caller degrades to hiding the link."""
-    col = f"col_{_MS02_PID_SEARCH_FIELD}"
-    if col not in get_valid_search_columns():
-        return []
-    conn = None
-    cur = None
-    try:
-        conn = engine_nexora_db.raw_connection()
-        cur = conn.cursor()
-        cur.execute(
-            f"SELECT DISTINCT ProcessName FROM SearchConfig "
-            f"WHERE {col} IS NOT NULL AND ClientCode = 'ms02' AND ProcessName IS NOT NULL"
-        )
-        return [r[0] for r in cur.fetchall() if r[0]]
-    except Exception as e:
-        current_app.logger.error(f"_ms02_prepared_docs_processes: {e}")
-        return []
-    finally:
-        if cur:
-            cur.close()
-        if conn:
-            conn.close()
+    the 'ms02' ProcessFieldMappings rows that carry a 'pid' mapping (single
+    source of truth, NEVER a hardcoded process key -- currently just
+    ['sydoc.05_PDBS']). The Workitems toolbar link is gated to these processes.
+    Returns [] when unseeded or on error so the caller degrades to hiding the
+    link."""
+    mappings = mapping_config.mappings_for("ms02", None, field_keys={_MS02_PID_SEARCH_FIELD})
+    return sorted({m.process for m in mappings if m.process})
 
 
 # Hard ceiling on a CSV export. It used to be 5000 with no signal to the user,
@@ -625,7 +617,7 @@ def _get_workitems_data(args, export_all=False, scope=None):
         if per_page not in (40, 100, 200, 500, 1000):
             per_page = 40
         offset = (page - 1) * per_page
-    activity_instances_to_ignore = get_activity_instances_to_ignore()
+    activity_ignore_map = get_activity_instances_to_ignore()
 
     allowed_processes_set = scope["allowed"]
 
@@ -659,130 +651,161 @@ def _get_workitems_data(args, export_all=False, scope=None):
         valid_db_columns = get_valid_search_columns()
         blocked_docfields = scope["sensitive_blocked"]
 
-        conn_nex = None
-        cursor_nex = None
-        try:
-            conn_nex = engine_nexora_db.raw_connection()
-            cursor_nex = conn_nex.cursor()
+        # One registry read per leg (#98 phase-3 perf) instead of one SearchConfig
+        # query per pair: mapping_config.registry() is cached in-process, so this
+        # is zero NexoraDB round-trips on a warm cache, vs. len(docfields) before.
+        default_mappings = mapping_config.mappings_for("default", target_processes)
+        default_sources = {
+            s.process: s for s in mapping_config.sources_for("default", target_processes)
+        }
+        _default_id_col_cache = {}
 
-            for pair_idx, (docfield, docvalue) in enumerate(
-                zip(docfields, docvalues, strict=False)
-            ):
-                docfield = (docfield or "").lower().strip()
-                docvalue = (docvalue or "").strip()
+        def _default_id_col(src):
+            # Same JoinCondition/alias regex the legacy SearchConfig-row path
+            # used, cached per (leg, process) rather than re-derived per pair.
+            if src.process not in _default_id_col_cache:
+                id_col = None
+                for part in re.split(r"\s*=\s*", (src.join_condition or "").strip()):
+                    if src.alias and re.match(
+                        rf"^{re.escape(src.alias)}\.\w+$", part.strip(), re.IGNORECASE
+                    ):
+                        id_col = part.strip()
+                        break
+                if not id_col:
+                    current_app.logger.warning(
+                        f"Could not extract ID col from JoinCondition: {src.join_condition}"
+                    )
+                _default_id_col_cache[src.process] = id_col
+            return _default_id_col_cache[src.process]
 
-                if not docvalue:
-                    continue
+        # Result cache (#98 Task 13): key on the target processes plus the
+        # pairs that actually drive resolution (sensitive-blocked/invalid
+        # pairs already dropped by _docfield_pairs_normalized, so the key
+        # itself is permission-scoped). ("v", result) sentinel distinguishes
+        # a resolved-but-empty set from a cache miss.
+        _default_pairs_normalized = _docfield_pairs_normalized(
+            docfields, docvalues, docops, doccombs, valid_db_columns, blocked_docfields
+        )
+        _default_cache_key = _docfield_ids_cache_key(
+            "default", target_processes, _default_pairs_normalized
+        )
+        _default_cached = cache.get(_default_cache_key)
+        if (
+            isinstance(_default_cached, tuple)
+            and len(_default_cached) == 2
+            and _default_cached[0] == "v"
+        ):
+            docfield_ids = _default_cached[1]
+        else:
+            _default_had_error = False
+            try:
+                for pair_idx, (docfield, docvalue) in enumerate(
+                    zip(docfields, docvalues, strict=False)
+                ):
+                    docfield = (docfield or "").lower().strip()
+                    docvalue = (docvalue or "").strip()
 
-                if docfield:
-                    target_cols = [f"col_{docfield}"]
-                    if target_cols[0] not in valid_db_columns:
+                    if not docvalue:
                         continue
-                    if docfield in blocked_docfields:
-                        continue
-                else:
-                    # Value-first search (issue #148): no field picked -> OR the
-                    # value across every permitted, non-sensitive field. The
-                    # UNION below already ORs across configs, so widening it to
-                    # multiple columns keeps the same shape.
-                    target_cols = [
-                        c
-                        for c in valid_db_columns
-                        if c.removeprefix("col_") not in blocked_docfields
-                    ]
-                    if not target_cols:
-                        continue
 
-                op_sql, op_param = DOCFIELD_OPS[_docfield_op(docops, pair_idx)]
-
-                placeholders = ",".join(["?"] * len(target_processes))
-                # target_cols come from get_valid_search_columns() (whitelist) --
-                # safe to interpolate.
-                non_null = " OR ".join(f"{c} IS NOT NULL" for c in target_cols)
-                query = f"""
-                    SELECT ProcessName, TableName, TableAlias, JoinCondition, TimeFilter, {", ".join(target_cols)}
-                    FROM SearchConfig
-                    WHERE ({non_null})
-                    AND ClientCode = 'default'
-                    AND ProcessName IN ({placeholders})
-                """
-                configs = cursor_nex.execute(query, target_processes).fetchall()
-
-                if not configs:
-                    # Field unmapped for every targeted default process -> this
-                    # pair cannot match here -> force zero rows for THIS pair.
-                    # No early break (an OR-joined later pair may still widen
-                    # the result); the fold below preserves AND semantics.
-                    pair_ids = set()
-                else:
-                    id_parts = []
-                    id_params = []
-                    for config in configs:
-                        tbl = config.TableName
-                        alias = config.TableAlias
-                        time_filter = config.TimeFilter
-
-                        id_col = None
-                        for part in re.split(r"\s*=\s*", (config.JoinCondition or "").strip()):
-                            if re.match(rf"^{re.escape(alias)}\.\w+$", part.strip(), re.IGNORECASE):
-                                id_col = part.strip()
-                                break
-
-                        if not id_col:
-                            current_app.logger.warning(
-                                f"Could not extract ID col from JoinCondition: {config.JoinCondition}"
-                            )
+                    if docfield:
+                        if docfield not in valid_db_columns:
+                            continue
+                        if docfield in blocked_docfields:
+                            continue
+                        target_field_keys = {docfield}
+                    else:
+                        # Value-first search (issue #148): no field picked -> OR the
+                        # value across every permitted, non-sensitive field. The
+                        # UNION below already ORs across configs, so widening it to
+                        # multiple fields keeps the same shape.
+                        target_field_keys = {
+                            c for c in valid_db_columns if c not in blocked_docfields
+                        }
+                        if not target_field_keys:
                             continue
 
-                        for target_config_col in target_cols:
-                            db_column = getattr(config, target_config_col)
+                    op_key = _docfield_op(docops, pair_idx)
+
+                    configs = [m for m in default_mappings if m.field_key in target_field_keys]
+
+                    if not configs:
+                        # Field unmapped for every targeted default process -> this
+                        # pair cannot match here -> force zero rows for THIS pair.
+                        # No early break (an OR-joined later pair may still widen
+                        # the result); the fold below preserves AND semantics.
+                        pair_ids = set()
+                    else:
+                        id_parts = []
+                        id_params = []
+                        for config in configs:
+                            src = default_sources.get(config.process)
+                            if src is None or not src.table:
+                                continue
+                            tbl = src.table
+                            alias = src.alias
+                            time_filter = src.time_filter
+
+                            id_col = _default_id_col(src)
+                            if not id_col:
+                                continue
+
+                            db_column = config.column
                             if not db_column:
                                 continue
-                            safe_col = f"CAST({alias}.{db_column} AS NVARCHAR(MAX))"
+                            # Sargable predicate from ColumnType (#98 Task 12) --
+                            # bare-column/native-int compare when the type is
+                            # known-safe, else the legacy CAST+COLLATE fallback.
+                            pred_sql, pred_params = _docfield_predicate(
+                                alias, db_column, config.column_type, op_key, docvalue
+                            )
                             id_parts.append(f"""
                                 SELECT DISTINCT {id_col} AS id
                                 FROM {tbl} {alias}
-                                WHERE {safe_col} COLLATE DATABASE_DEFAULT {op_sql} ?
+                                WHERE {pred_sql}
                                 AND {time_filter}
                             """)
-                            id_params.append(op_param(docvalue))
+                            id_params.extend(pred_params)
 
-                    if not id_parts:
-                        continue  # mapping rows exist but unusable -> tolerant skip
+                        if not id_parts:
+                            continue  # mapping rows exist but unusable -> tolerant skip
 
-                    stat_conn = None
-                    try:
-                        stat_conn = engine_statistics_db.raw_connection()
-                        stat_cur = stat_conn.cursor()
-                        union_sql = " UNION ALL ".join(id_parts)
-                        stat_cur.execute(f"SELECT DISTINCT id FROM ({union_sql}) t", id_params)
-                        matching_ids = [row[0] for row in stat_cur.fetchall()]
-                    except Exception as e:
-                        current_app.logger.error(f"Error pre-fetching docfield IDs: {e}")
-                        matching_ids = None
-                    finally:
-                        if stat_conn:
-                            stat_conn.close()
+                        stat_conn = None
+                        try:
+                            stat_conn = engine_statistics_db.raw_connection()
+                            stat_cur = stat_conn.cursor()
+                            union_sql = " UNION ALL ".join(id_parts)
+                            stat_cur.execute(f"SELECT DISTINCT id FROM ({union_sql}) t", id_params)
+                            matching_ids = [row[0] for row in stat_cur.fetchall()]
+                        except Exception as e:
+                            current_app.logger.error(f"Error pre-fetching docfield IDs: {e}")
+                            matching_ids = None
+                            _default_had_error = True
+                        finally:
+                            if stat_conn:
+                                stat_conn.close()
 
-                    # StatisticsDB error -> this pair cannot be checked. Fail
-                    # CLOSED for the pair (empty set), never unconstrained.
-                    pair_ids = set() if matching_ids is None else set(matching_ids)
+                        # StatisticsDB error -> this pair cannot be checked. Fail
+                        # CLOSED for the pair (empty set), never unconstrained.
+                        pair_ids = set() if matching_ids is None else set(matching_ids)
 
-                comb = _docfield_comb(doccombs, pair_idx)
-                if docfield_ids is None:
-                    docfield_ids = pair_ids
-                elif comb == "or":
-                    docfield_ids = docfield_ids | pair_ids
-                else:
-                    docfield_ids = docfield_ids & pair_ids
+                    comb = _docfield_comb(doccombs, pair_idx)
+                    if docfield_ids is None:
+                        docfield_ids = pair_ids
+                    elif comb == "or":
+                        docfield_ids = docfield_ids | pair_ids
+                    else:
+                        docfield_ids = docfield_ids & pair_ids
 
-        except Exception as e:
-            current_app.logger.error(f"Error in docfield pre-fetch block: {e}")
-        finally:
-            if cursor_nex:
-                cursor_nex.close()
-            if conn_nex:
-                conn_nex.close()
+            except Exception as e:
+                current_app.logger.error(f"Error in docfield pre-fetch block: {e}")
+                _default_had_error = True
+
+            # Never cache an error/None-path result (D7): a StatisticsDB
+            # failure fails the PAIR closed (set()) without raising, so an
+            # error flag -- not just "no exception" -- gates the write.
+            if not _default_had_error:
+                cache.set(_default_cache_key, ("v", docfield_ids), timeout=60)
 
     # --- MS02 columnar doc-field pre-resolution (sibling to the default block) ---
     # Resolves through the SAME SearchConfig mapping but against the separate
@@ -794,104 +817,121 @@ def _get_workitems_data(args, export_all=False, scope=None):
     if scope["can_docfields"] and target_processes and engine_ms02_docfields_pg is not None:
         valid_db_columns = get_valid_search_columns()
         blocked_docfields = scope["sensitive_blocked"]
-        conn_nex2 = None
-        cursor_nex2 = None
-        try:
-            conn_nex2 = engine_nexora_db.raw_connection()
-            cursor_nex2 = conn_nex2.cursor()
-            pairs = []
-            for pair_idx, (docfield, docvalue) in enumerate(
-                zip(docfields, docvalues, strict=False)
-            ):
-                docfield = (docfield or "").lower().strip()
-                docvalue = (docvalue or "").strip()
-                if not docvalue:
-                    continue
-                if docfield:
-                    # Whitelist the column name (same guard the default path uses)
-                    # before interpolating it -- blocks injection via `docfield`.
-                    target_cols = [f"col_{docfield}"]
-                    if target_cols[0] not in valid_db_columns:
+
+        # One registry read per leg (#98 phase-3 perf), mirroring the default
+        # leg above -- see its comment for the round-trip-elimination rationale.
+        ms02_mappings = mapping_config.mappings_for("ms02", target_processes)
+        ms02_sources = {s.process: s for s in mapping_config.sources_for("ms02", target_processes)}
+        _ms02_id_col_cache = {}
+
+        def _cached_ms02_id_col(src):
+            if src.process not in _ms02_id_col_cache:
+                _ms02_id_col_cache[src.process] = _ms02_id_column(src.join_condition, src.alias)
+            return _ms02_id_col_cache[src.process]
+
+        # Result cache (#98 Task 13) -- see the default leg above for the key
+        # shape and the fail-closed rationale; identical treatment here.
+        _ms02_pairs_normalized = _docfield_pairs_normalized(
+            docfields, docvalues, docops, doccombs, valid_db_columns, blocked_docfields
+        )
+        _ms02_cache_key = _docfield_ids_cache_key("ms02", target_processes, _ms02_pairs_normalized)
+        _ms02_cached = cache.get(_ms02_cache_key)
+        if isinstance(_ms02_cached, tuple) and len(_ms02_cached) == 2 and _ms02_cached[0] == "v":
+            ms02_docfield_ids = _ms02_cached[1]
+        else:
+            _ms02_had_error = False
+            try:
+                pairs = []
+                for pair_idx, (docfield, docvalue) in enumerate(
+                    zip(docfields, docvalues, strict=False)
+                ):
+                    docfield = (docfield or "").lower().strip()
+                    docvalue = (docvalue or "").strip()
+                    if not docvalue:
                         continue
-                    if docfield in blocked_docfields:
+                    if docfield:
+                        # Whitelist the field key (same guard the default path uses)
+                        # before it drives a mapping_config lookup -- blocks an
+                        # unknown/injected `docfield` from reaching the resolver.
+                        if docfield not in valid_db_columns:
+                            continue
+                        if docfield in blocked_docfields:
+                            continue
+                        target_field_keys = {docfield}
+                    else:
+                        # Value-first search (issue #148): no field picked -> specs
+                        # spanning every permitted field; the resolver ORs specs
+                        # within a pair, so this is OR-across-fields for free.
+                        target_field_keys = {
+                            c for c in valid_db_columns if c not in blocked_docfields
+                        }
+                        if not target_field_keys:
+                            continue
+
+                    # Each matching FieldMapping maps a docfield to a COLUMN in a wide
+                    # statistik table (column = the column name); build one columnar
+                    # spec per mapping (specs within a pair are OR'd in the resolver).
+                    config_rows = [m for m in ms02_mappings if m.field_key in target_field_keys]
+                    if not config_rows:
+                        # Field unmapped for every targeted ms02 process -> this
+                        # pair cannot match here -> forced-empty pair (empty specs;
+                        # the resolver folds it as set()). No early break (mirrors
+                        # the default leg): an OR-joined later pair may still widen.
+                        pairs.append(
+                            (
+                                [],
+                                docvalue,
+                                _docfield_op(docops, pair_idx),
+                                _docfield_comb(doccombs, pair_idx),
+                            )
+                        )
                         continue
-                else:
-                    # Value-first search (issue #148): no field picked -> specs
-                    # spanning every permitted column; the resolver ORs specs
-                    # within a pair, so this is OR-across-fields for free.
-                    target_cols = [
-                        c
-                        for c in valid_db_columns
-                        if c.removeprefix("col_") not in blocked_docfields
-                    ]
-                    if not target_cols:
-                        continue
-                placeholders = ",".join(["?"] * len(target_processes))
-                non_null = " OR ".join(f"{c} IS NOT NULL" for c in target_cols)
-                cursor_nex2.execute(
-                    f"SELECT TableName, TableAlias, JoinCondition, TimeFilter, {', '.join(target_cols)} "
-                    f"FROM SearchConfig "
-                    f"WHERE ({non_null}) "
-                    f"AND ClientCode = 'ms02' "
-                    f"AND ProcessName IN ({placeholders})",
-                    target_processes,
-                )
-                # Each ms02 row maps a docfield to a COLUMN in a wide statistik
-                # table (col_<field> = the column name); build one columnar spec
-                # per (row, column) (specs within a pair are OR'd in the resolver).
-                config_rows = cursor_nex2.fetchall()
-                if not config_rows:
-                    # Field unmapped for every targeted ms02 process -> this
-                    # pair cannot match here -> forced-empty pair (empty specs;
-                    # the resolver folds it as set()). No early break (mirrors
-                    # the default leg): an OR-joined later pair may still widen.
+                    specs = []
+                    for m in config_rows:
+                        src = ms02_sources.get(m.process)
+                        if src is None or not src.table:
+                            continue
+                        id_col = _cached_ms02_id_col(src)
+                        if not id_col:
+                            continue
+                        field_col = m.column
+                        if not field_col:
+                            continue
+                        # 5-tuple (#98 Task 12): field_type drives the typed
+                        # int-eq fast path in resolve_ms02_docfield_ids.
+                        specs.append((src.table, id_col, field_col, src.time_filter, m.column_type))
+                    if not specs:
+                        continue  # mapping rows exist but unusable -> tolerant no-constraint
                     pairs.append(
                         (
-                            [],
+                            specs,
                             docvalue,
                             _docfield_op(docops, pair_idx),
                             _docfield_comb(doccombs, pair_idx),
                         )
                     )
-                    continue
-                specs = []
-                for r in config_rows:
-                    if not r.TableName:
-                        continue
-                    id_col = _ms02_id_column(r.JoinCondition, r.TableAlias)
-                    if not id_col:
-                        continue
-                    for target_config_col in target_cols:
-                        field_col = getattr(r, target_config_col)
-                        if not field_col:
-                            continue
-                        specs.append((r.TableName, id_col, field_col, r.TimeFilter))
-                if not specs:
-                    continue  # mapping rows exist but unusable -> tolerant no-constraint
-                pairs.append(
-                    (
-                        specs,
-                        docvalue,
-                        _docfield_op(docops, pair_idx),
-                        _docfield_comb(doccombs, pair_idx),
-                    )
-                )
-            if pairs:
-                if any(entry[0] for entry in pairs):
-                    ms02_docfield_ids = resolve_ms02_docfield_ids(engine_ms02_docfields_pg, pairs)
-                else:
-                    # Every active pair is unmapped for ms02 -> zero MS02 rows
-                    # without a resolver round-trip (also keeps the "resolver
-                    # must not run without mapping rows" contract).
-                    ms02_docfield_ids = set()
-        except Exception as e:
-            current_app.logger.error(f"Error in MS02 docfield pre-fetch block: {e}")
-            ms02_docfield_ids = None
-        finally:
-            if cursor_nex2:
-                cursor_nex2.close()
-            if conn_nex2:
-                conn_nex2.close()
+                if pairs:
+                    if any(entry[0] for entry in pairs):
+                        ms02_docfield_ids = resolve_ms02_docfield_ids(
+                            engine_ms02_docfields_pg, pairs
+                        )
+                        if ms02_docfield_ids is None:
+                            # resolve_ms02_docfield_ids never raises -- it fails
+                            # closed to None on error, so a None result here IS
+                            # the error path (D7): must not be cached.
+                            _ms02_had_error = True
+                    else:
+                        # Every active pair is unmapped for ms02 -> zero MS02 rows
+                        # without a resolver round-trip (also keeps the "resolver
+                        # must not run without mapping rows" contract).
+                        ms02_docfield_ids = set()
+            except Exception as e:
+                current_app.logger.error(f"Error in MS02 docfield pre-fetch block: {e}")
+                _ms02_had_error = True
+                ms02_docfield_ids = None
+
+            if not _ms02_had_error:
+                cache.set(_ms02_cache_key, ("v", ms02_docfield_ids), timeout=60)
 
     # Fail CLOSED: an active doc-field search must never leave a source
     # unconstrained. Every unresolved path -- absent MS02 engine, resolver/DB
@@ -924,7 +964,7 @@ def _get_workitems_data(args, export_all=False, scope=None):
         status_map["Deleted"] = 2
     filt = WorkitemFilter(
         client_process_pairs=client_process_pairs,
-        activity_ignore_csv=activity_instances_to_ignore,
+        activity_ignore_map=activity_ignore_map,
         status_code=status_map.get(status) if (status and scope["can_status"]) else None,
         stage=stage if (stage in WORKITEM_STAGES and scope["can_stage"]) else None,
         search_id=search_term if (search_term and scope["can_search_id"]) else None,
@@ -959,7 +999,7 @@ def _docfield_values_all_fields(target_processes, q):
     non-sensitive field, so the UI can show which field a value lives in and
     lock the pair on pick. The field-specific path keeps its flat string list."""
     blocked = sensitive_blocked_keys()
-    target_cols = [c for c in get_valid_search_columns() if c.removeprefix("col_") not in blocked]
+    target_cols = [c for c in get_valid_search_columns() if c not in blocked]
     if not target_cols:
         return jsonify([])
 
@@ -971,47 +1011,43 @@ def _docfield_values_all_fields(target_processes, q):
     try:
         pairs = cache.get(cache_key)
         if pairs is None:
-            conn = None
-            cur = None
-            try:
-                conn = engine_nexora_db.raw_connection()
-                cur = conn.cursor()
-                placeholders = ",".join("?" for _ in target_processes)
-                non_null = " OR ".join(f"{c} IS NOT NULL" for c in target_cols)
-                configs = cur.execute(
-                    f"SELECT * FROM SearchConfig WHERE ({non_null}) "
-                    f"AND ProcessName IN ({placeholders})",
-                    list(target_processes),
-                ).fetchall()
-            finally:
-                if cur:
-                    cur.close()
-                if conn:
-                    conn.close()
+            default_mappings = mapping_config.mappings_for(
+                "default", target_processes, field_keys=target_cols
+            )
+            default_sources = {
+                s.process: s for s in mapping_config.sources_for("default", target_processes)
+            }
+            ms02_mappings = mapping_config.mappings_for(
+                "ms02", target_processes, field_keys=target_cols
+            )
+            ms02_sources = {
+                s.process: s for s in mapping_config.sources_for("ms02", target_processes)
+            }
 
             default_parts = []
             ms02_specs = []  # (table, column, field_key, suggestion_time_filter)
-            for c in configs:
-                client = getattr(c, "ClientCode", "default") or "default"
-                for col in target_cols:
-                    col_val = getattr(c, col, None)
-                    if not col_val or not c.TableName:
-                        continue
-                    fkey = col.removeprefix("col_")
-                    if client == "ms02":
-                        if _MS02_IDENT.match(col_val):
-                            ms02_specs.append((c.TableName, col_val, fkey, c.SuggestionTimeFilter))
-                    else:
-                        safe_col = f"CAST({col_val} AS NVARCHAR(MAX))"
-                        # fkey derives from the whitelisted col_* names -- safe
-                        # to inline as a literal.
-                        default_parts.append(f"""
-                            SELECT {safe_col} COLLATE DATABASE_DEFAULT AS Val, '{fkey}' AS FieldKey
-                            FROM [{DB_STATISTICS}].{c.TableName}
-                            WHERE {col_val} IS NOT NULL
-                              AND {safe_col} <> ''
-                              AND {c.SuggestionTimeFilter}
-                        """)
+            for m in default_mappings:
+                src = default_sources.get(m.process)
+                if src is None or not src.table or not m.column:
+                    continue
+                safe_col = f"CAST({m.column} AS NVARCHAR(MAX))"
+                # m.field_key derives from the whitelisted mapping_config field
+                # keys -- safe to inline as a literal.
+                default_parts.append(f"""
+                    SELECT {safe_col} COLLATE DATABASE_DEFAULT AS Val, '{m.field_key}' AS FieldKey
+                    FROM [{DB_STATISTICS}].{src.table}
+                    WHERE {m.column} IS NOT NULL
+                      AND {safe_col} <> ''
+                      AND {src.suggestion_time_filter}
+                """)
+            for m in ms02_mappings:
+                src = ms02_sources.get(m.process)
+                if src is None or not src.table or not m.column:
+                    continue
+                if _MS02_IDENT.match(m.column):
+                    ms02_specs.append(
+                        (src.table, m.column, m.field_key, src.suggestion_time_filter)
+                    )
 
             vals = set()
             if default_parts:
@@ -1076,13 +1112,12 @@ def api_docfield_values():
     field = (request.args.get("field", "") or "").lower().strip()
     q = (request.args.get("q", "") or "").strip()
 
-    target_col_name = f"col_{field}"
-    # Whitelist the column name before interpolating it into the SearchConfig SQL
-    # below (the same guard the workitems search path uses) -- `field` is a raw
-    # request arg, so without this it is a SQL-injection vector against NexoraDB.
-    # No field at all = value-first mode, handled after the process gating.
+    # Whitelist `field` against the known registry field keys before it drives
+    # any mapping_config lookup or cache key below (the same guard the
+    # workitems search path uses) -- it is a raw request arg. No field at all
+    # = value-first mode, handled after the process gating.
     if field:
-        if target_col_name not in get_valid_search_columns():
+        if field not in get_valid_search_columns():
             return jsonify([])
         if field in sensitive_blocked_keys():
             return jsonify([])
@@ -1094,7 +1129,7 @@ def api_docfield_values():
     # workitems.filter.process.<p> grant for. Reuse _ms02_target_processes(),
     # the existing workitems.filter.process.* allow-list helper, rather than
     # re-deriving it; "all" narrows to the caller's own allowed set rather
-    # than every process configured in SearchConfig.
+    # than every process configured in the mapping_config registry.
     allowed_processes_set = set(_ms02_target_processes())
 
     # `process` is "all" or a comma-joined multi-selection (issue #150);
@@ -1107,35 +1142,21 @@ def api_docfield_values():
     if not field:
         return _docfield_values_all_fields(target_processes, q)
 
-    conn = None
-    cur = None
     try:
-        conn = engine_nexora_db.raw_connection()
-        cur = conn.cursor()
-
-        placeholders = ",".join("?" for _ in target_processes)
-        query = (
-            f"SELECT * FROM SearchConfig WHERE {target_col_name} IS NOT NULL "
-            f"AND ProcessName IN ({placeholders})"
-        )
-        db_params = list(target_processes)
-
-        configs = cur.execute(query, db_params).fetchall()
-
-        if not configs:
-            return jsonify([])
-
         # MS02 processes resolve suggestions from the separate doc-field DB, not
-        # [DB_STATISTICS]. An 'ms02' row carries the COLUMN name in col_<field> of
-        # a wide statistik table (TableName); query DISTINCT values of that column.
-        # `SELECT * FROM SearchConfig` already surfaces ClientCode/TableName.
-        ms02_configs = [
-            c
-            for c in configs
-            if (getattr(c, "ClientCode", "default") or "default") == "ms02"
-            and getattr(c, target_col_name)
-            and c.TableName
-        ]
+        # [DB_STATISTICS]: a 'ms02' ProcessFieldMappings row carries the wide
+        # statistik-table COLUMN name for this field. Mirrors the two-leg
+        # default/ms02 split the workitems search resolution uses above --
+        # when this field is mapped for ms02 on ANY targeted process, ms02 is
+        # the sole source of suggestions for it (matches the legacy behaviour).
+        ms02_sources = {s.process: s for s in mapping_config.sources_for("ms02", target_processes)}
+        ms02_configs = []  # (table, column, suggestion_time_filter)
+        for m in mapping_config.mappings_for("ms02", target_processes, field_keys={field}):
+            src = ms02_sources.get(m.process)
+            if src is None or not src.table or not m.column:
+                continue
+            ms02_configs.append((src.table, m.column, src.suggestion_time_filter))
+
         if ms02_configs:
             if engine_ms02_docfields_pg is None:
                 return jsonify([])
@@ -1147,13 +1168,11 @@ def api_docfield_values():
                 try:
                     df_conn = engine_ms02_docfields_pg.raw_connection()
                     df_cur = df_conn.cursor()
-                    for c in ms02_configs:
-                        col = getattr(c, target_col_name)
+                    for table, col, stf in ms02_configs:
                         if not _MS02_IDENT.match(col):  # defense-in-depth on the column
                             continue
-                        stf = c.SuggestionTimeFilter
                         sql = (
-                            f'SELECT DISTINCT "{col}"::text AS v FROM {c.TableName} '
+                            f'SELECT DISTINCT "{col}"::text AS v FROM {table} '
                             f'WHERE "{col}"::text IS NOT NULL AND "{col}"::text <> %s'
                         )
                         if stf:
@@ -1177,18 +1196,21 @@ def api_docfield_values():
         all_vals = cache.get(cache_key)
 
         if all_vals is None:
+            default_sources = {
+                s.process: s for s in mapping_config.sources_for("default", target_processes)
+            }
             parts = []
-            for config in configs:
-                tbl = config.TableName
-                col_name = getattr(config, target_col_name)
-                time_filter = config.SuggestionTimeFilter
-                safe_col = f"CAST({col_name} AS NVARCHAR(MAX))"
+            for m in mapping_config.mappings_for("default", target_processes, field_keys={field}):
+                src = default_sources.get(m.process)
+                if src is None or not src.table or not m.column:
+                    continue
+                safe_col = f"CAST({m.column} AS NVARCHAR(MAX))"
                 parts.append(f"""
                     SELECT {safe_col} COLLATE DATABASE_DEFAULT AS Val
-                    FROM [{DB_STATISTICS}].{tbl}
-                    WHERE {col_name} IS NOT NULL
+                    FROM [{DB_STATISTICS}].{src.table}
+                    WHERE {m.column} IS NOT NULL
                       AND {safe_col} <> ''
-                      AND {time_filter}
+                      AND {src.suggestion_time_filter}
                 """)
 
             raw_vals = []
@@ -1220,11 +1242,6 @@ def api_docfield_values():
     except Exception as e:
         current_app.logger.error(f"/api/docfield_values error: {e}")
         return jsonify({"error": _("Could not fetch values")}), 500
-    finally:
-        if cur:
-            cur.close()
-        if conn:
-            conn.close()
 
 
 @require_permission("workitems.view")
@@ -1665,12 +1682,12 @@ def workitems_overview():
             search=search_term,
             status=status,
             stage=stage,
-            startDate=start_date,
-            endDate=end_date,
+            start_date=start_date,
+            end_date=end_date,
             docfield=docfields[0] if docfields else "",
             docvalue=docvalues[0] if docvalues else "",
             docop=docops[0] if docops else "contains",
-            pageV=page_visibility(),
+            page_visibility=page_visibility(),
             allowed_processes=allowed_processes,
             search_term_perm=search_term_perm,
             status_perm=status_perm,
@@ -2120,51 +2137,7 @@ def api_workitems_page_init():
     _fields_key = f"config_fields_{'_'.join(sorted(allowed_processes))}_{current_lang}_s{int(_sees_sensitive)}"
     field_config = cache.get(_fields_key)
     if field_config is None:
-        lang_column_map = {
-            "de": "GermanLabel",
-            "fr": "FrenchLabel",
-            "it": "ItalianLabel",
-            "en": "EnglishLabel",
-        }
-        target_column = lang_column_map.get(current_lang, "EnglishLabel")
-        search_options = {}
-        db_labels_map = {}
-        conn = None
-        try:
-            conn = engine_nexora_db.raw_connection()
-            cursor = conn.cursor()
-            try:
-                cursor.execute(
-                    "SELECT FieldKey, EnglishLabel, GermanLabel, FrenchLabel, ItalianLabel FROM Search_Field_Labels"
-                )
-                for row in cursor.fetchall():
-                    translated_label = getattr(row, target_column) or row.EnglishLabel
-                    db_labels_map[row.FieldKey] = translated_label
-            except Exception:
-                pass
-            cursor.execute("SELECT TOP 0 * FROM SearchConfig")
-            cols = [c[0] for c in cursor.description if c[0].startswith("col_")]
-            query = f"SELECT ProcessName, {','.join(cols)} FROM SearchConfig"
-            cursor.execute(query)
-            for row in cursor.fetchall():
-                proc_name = row.ProcessName
-                if proc_name not in allowed_processes:
-                    continue
-                fields = []
-                for i, col_name in enumerate(cols):
-                    if row[i + 1]:
-                        field_key = col_name.replace("col_", "")
-                        nice_label = db_labels_map.get(
-                            field_key, field_key.replace("_", " ").title()
-                        )
-                        fields.append({"value": field_key, "label": nice_label})
-                fields.sort(key=lambda x: x["label"])
-                search_options[proc_name] = fields
-        except Exception as e:
-            current_app.logger.error(f"page_init: failed to fetch field config: {e}")
-        finally:
-            if conn:
-                conn.close()
+        search_options, db_labels_map = _build_field_config(allowed_processes, current_lang)
         blocked = sensitive_blocked_keys()
         if blocked:
             search_options = drop_sensitive_options(search_options, blocked)
@@ -2310,7 +2283,7 @@ def prepared_documents():
         filter_args=filter_args,
         prepared_import_perm=has_permission("workitems.import.preparedaudit"),
         ms02_active=ms02_active,
-        pageV=page_visibility(),
+        page_visibility=page_visibility(),
         details_view_perm=details_view_perm,
         details_images_perm=details_images_perm,
         details_audit_perm=details_audit_perm,

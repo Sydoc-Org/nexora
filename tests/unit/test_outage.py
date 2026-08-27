@@ -73,9 +73,32 @@ def test_errors_outside_the_window_are_ignored():
     assert outage.detect_error_storms(text, LOCAL_NOW, window_min=15, min_count=10) == []
 
 
-def test_warnings_do_not_count_as_a_storm():
+def test_warnings_need_their_own_much_higher_bar():
+    """50 warnings clear the ERROR bar but not the warning bar -- warnings are routine."""
     text = "\n".join(_log(LOCAL_NOW, "WARNING", "slow query") for _ in range(50))
     assert outage.detect_error_storms(text, LOCAL_NOW, window_min=15, min_count=10) == []
+
+
+def test_warning_storm_detected_once_it_passes_the_warning_threshold():
+    """The reporting catalog warned on every request for months and nothing watched."""
+    text = "\n".join(
+        _log(LOCAL_NOW - timedelta(minutes=i % 10), "WARNING", "reporting catalog: X unavailable")
+        for i in range(70)
+    )
+    storms = outage.detect_error_storms(text, LOCAL_NOW, window_min=15, min_count=10)
+    assert len(storms) == 1
+    assert storms[0]["count"] == 70
+    assert storms[0]["level"] == "WARNING"
+    assert storms[0]["label"].startswith("warn storm")
+
+
+def test_one_stray_warning_does_not_raise_an_error_storms_bar():
+    """Same signature at both levels stays an ERROR storm, judged at the ERROR bar."""
+    lines = [_log(LOCAL_NOW, "ERROR", "Invalid object name") for _ in range(11)]
+    lines.append(_log(LOCAL_NOW, "WARNING", "Invalid object name"))
+    storms = outage.detect_error_storms("\n".join(lines), LOCAL_NOW, min_count=10)
+    assert len(storms) == 1
+    assert storms[0]["level"] == "ERROR"
 
 
 def test_storm_label_names_the_screaming_code_site():

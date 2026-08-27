@@ -116,9 +116,9 @@ def startpage_redirect_to(page_v):
         "generaliPagePerm": "generali_evaluation",
         "generaliDocumentsPerm": "generali_documents",
         "generaliReportingPerm": "generali_reporting",
-        "generaliAdditionalServicesPerm": "generali_additionalServices",
-        "generaliBaseServicesPerm": "generali_baseServices",
-        "generaliProjectManagementPerm": "generali_projectManagement",
+        "generaliAdditionalServicesPerm": "generali_additional_services",
+        "generaliBaseServicesPerm": "generali_base_services",
+        "generaliProjectManagementPerm": "generali_project_management",
         "generaliPDQMPerm": "generali_pdqm",
         "adminPagePerm": "admin_dashboard",
         "apiDocsPagePerm": "api_docs",
@@ -150,6 +150,8 @@ def page_visibility():
         "adminMaintenanceViewPerm": has_permission("admin.maintenance.view"),
         "adminMaintenanceEditPerm": has_permission("admin.maintenance.edit"),
         "adminMaintenanceBypassPerm": has_permission("admin.maintenance.bypass"),
+        "adminClientsPagePerm": has_permission("admin.view.clients"),
+        "adminProcessesPagePerm": has_permission("admin.view.processes"),
     }
 
 
@@ -158,7 +160,7 @@ def _revoke_session_by_id(session_id):
     Returns True if the DB row existed.
 
     The before_request hook also enforces revocation by re-checking
-    ActiveSessions on every request, so stale session files alone cannot keep
+    ActiveSessions on every request (via a short per-process cache), so stale session files alone cannot keep
     someone logged in.
     """
     deleted = 0

@@ -163,7 +163,7 @@ html.dark .log-method--DELETE { color: #f87171; }
 .status-item--outage   { background: color-mix(in srgb, var(--nx-l-red) 55%, transparent); }
 .status-item--degraded { background: color-mix(in srgb, var(--nx-l-amber) 45%, transparent); }
 .status-item--outage, .status-item--degraded { border-radius: calc(var(--nx-radius-scale, 1) * 6px); border-bottom-color: transparent; }
-.status-row { display: grid; grid-template-columns: minmax(180px, 1.4fr) minmax(140px, 1fr) 108px; align-items: center; gap: 18px; padding: 9px 8px; }
+.status-row { display: grid; grid-template-columns: minmax(170px, 1.3fr) minmax(96px, 0.6fr) minmax(130px, 1fr) 108px; align-items: center; gap: 18px; padding: 9px 8px; }
 .status-row-name { display: flex; align-items: baseline; gap: 9px; min-width: 0; font-size: 13px; color: var(--nx-text); }
 .status-row-label { font-weight: 500; flex: none; }
 /* Probe evidence is secondary: one truncated line, full text on hover. */
@@ -176,6 +176,20 @@ html.dark .log-method--DELETE { color: #f87171; }
 .status-dot--operational { background: var(--nx-l-green-fg); }
 .status-dot--degraded    { background: var(--nx-l-amber-fg); }
 .status-dot--outage      { background: var(--nx-danger); }
+
+/* Latency sparkline: 24 hourly buckets, each component scaled to its own range
+   (a shared axis would flatten every line but the slowest). The stroke stays
+   1.5px at any column width via vector-effect, so the SVG can be stretched. */
+.status-spark { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.status-spark svg { width: 100%; height: 22px; min-width: 0; overflow: visible; }
+.status-spark polyline { fill: none; stroke: var(--nx-accent); stroke-width: 1.5px; stroke-linejoin: round; stroke-linecap: round; }
+.status-spark-dot { fill: var(--nx-accent); }
+/* Shape as well as colour: a failed probe must survive a greyscale print. */
+.status-spark-fail { fill: var(--nx-danger); }
+.status-spark-value { font-family: var(--nx-mono); font-variant-numeric: tabular-nums; font-size: 11px; color: var(--nx-text-sec); white-space: nowrap; flex: none; }
+.status-spark-unit { color: var(--nx-text-meta); }
+.status-spark-empty { font-size: 11px; color: var(--nx-text-meta); white-space: nowrap; }
+.status-spark-key { width: 14px; height: 0; border-top: 1.5px solid var(--nx-accent); display: inline-block; }
 
 /* One cell per day, oldest left. Capped width: at full width the 30 grey
    "no data" cells were the loudest thing on a page where they say nothing. */
@@ -200,6 +214,10 @@ html.dark .log-method--DELETE { color: #f87171; }
     .status-hero-counts { width: 100%; justify-content: flex-start; gap: 24px; }
     .status-row { grid-template-columns: 1fr 100px; row-gap: 8px; }
     .status-strip { grid-column: 1 / -1; max-width: none; justify-self: start; }
+    /* Below 860px the row is already two columns deep; the sparkline gets its
+       own full-width line rather than being squeezed to a few pixels. */
+    .status-spark { grid-column: 1 / -1; }
+    .status-spark svg { height: 26px; }
     .status-evidence { max-width: 220px; }
 }
 

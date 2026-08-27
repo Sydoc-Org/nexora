@@ -21,6 +21,12 @@ encoding=utf-8
 In HTML/Jinja templates: `{{ _('string1') }}`, `{{ _('string2') }}`
 In Python: `_('string1')` or `gettext('string1')`
 
+**Not in `static/js/*.js`.** The extractor only reads `**/templates/**.html`
+and Python, so a `_()` in a static JS file is never extracted and never
+translated. Those files (see #191) are paired with a small inline shim in
+`templates/js/` that renders an `I18N` / `NX_*` object literal — add the string
+there as `key: {{ _("…")|tojson }}` and read `I18N.key` from the `.js`.
+
 ## Extract → init → update → translate → compile
 
 Get all marked strings into `messages.pot`:

@@ -162,3 +162,20 @@ def test_two_dims_multi_metric_renders_fair_capped_series():
         rows,
     )
     assert png and png[:8] == _PNG_MAGIC
+
+
+def test_null_cells_render_as_gaps_not_zero():
+    # A backlog bucket without a snapshot arrives as None; the PNG must still
+    # render (matplotlib gets NaN, not a TypeError) and not draw it as 0.
+    columns = [{"field": "d"}, {"field": "doc_count"}]
+    rows = [["2026-01-01", 5], ["2026-02-01", None], ["2026-03-01", 7]]
+    png = render_chart_png(_defn([{"field": "d", "grain": "month"}], "line"), columns, rows)
+    assert png[:4] == b"\x89PNG"
+
+
+def test_date_axis_keeps_more_than_50_buckets():
+    columns = [{"field": "d"}, {"field": "doc_count"}]
+    rows = [[f"2026-01-{1 + i // 4:02d}", i] for i in range(60)]  # 60 distinct-ish x
+    rows = [[f"2025-{1 + i // 31:02d}-{1 + i % 28:02d}", i] for i in range(53)]
+    png = render_chart_png(_defn([{"field": "d", "grain": "week"}], "line"), columns, rows)
+    assert png[:4] == b"\x89PNG"

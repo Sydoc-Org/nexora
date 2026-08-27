@@ -44,6 +44,7 @@ from flask import (
 from flask_babel import gettext as _
 from markdown_it import MarkdownIt
 
+from .. import mapping_config
 from ..db import (
     engine_generali_db,
     engine_nexora_db,
@@ -54,6 +55,7 @@ from ..db import (
 )
 from ..extensions import limiter
 from ..i18n import get_locale
+from ..reporting import db_schema
 from ..reporting.ai import (
     _AGENT_EXPLAIN_SUFFIX,
     _AGENT_SYSTEM,
@@ -64,17 +66,19 @@ from ..reporting.ai import (
     AiError,
     ask_agentic,
     ask_agentic_iter,
+    stage_preview,
 )
 from ..reporting.ai import _make_agent_step as make_agent_step
 from ..reporting.ai import ask as ai_ask
 from ..reporting.ai import ask_definition as ai_ask_definition
 from ..reporting.ai import caption as ai_caption
 from ..reporting.ai_schema import serialize_schema, serialize_sources_catalog
-from ..reporting.ai_tools import TOOL_SPECS, ToolRegistry
+from ..reporting.ai_tools import RUN_DEFINITION_ROW_CAP, TOOL_SPECS, ToolRegistry
 from ..reporting.catalog import fetch_docprocessing_catalog
 from ..reporting.export import rows_to_csv, rows_to_xlsx
 from ..reporting.forecast import compute_forecast, forecast_export_rows
 from ..reporting.query import QueryBuildError, build_table_query
+from ..reporting.runner import execute_definition
 from ..reporting.sandbox import (
     MAX_SQL_LEN,
     SqlSandboxError,
@@ -265,18 +269,38 @@ def _metric_label(m):
     return (m.get(attr) if attr else None) or m["label"]
 
 
-def _metrics_for_source(source_id):
-    """Enabled metrics bound to `source_id` as {code: {aggregation, base_field}}."""
+def _metrics_for_source(source_id, locale=None):
+    """Enabled metrics bound to `source_id` as {code: {aggregation, base_field}}.
+
+    `label` is the metric's display name, used as the result column header so a
+    run never shows the raw code (`docs_imported`). It is only locale-swapped
+    when `locale` is passed — the scheduler calls this outside a request, where
+    get_locale() would raise, so it keeps the English label.
+    """
+    attr = _METRIC_LABEL_ATTRS.get(str(locale)) if locale else None
     return {
         code: {
             "aggregation": m["aggregation"],
             "base_field": m["base_field"],
             "total_mode": m.get("total_mode", "sum"),
             "anchor": m.get("anchor"),
+            "label": (m.get(attr) if attr else None) or m["label"],
         }
         for code, m in _load_db_metrics().items()
         if m["source_id"] == source_id
     }
+
+
+def metric_result_columns(resolved_metrics, source_metrics):
+    """Result columns for a run's metric projection — the metric codes the
+    aggregate query appends after the dims, headered with their labels."""
+    return [
+        {
+            "field": m["code"],
+            "header": (source_metrics.get(m["code"]) or {}).get("label") or m["code"],
+        }
+        for m in resolved_metrics or []
+    ]
 
 
 def _accessible_metrics():
@@ -439,6 +463,7 @@ def _accessible_curated_sources():
                 "label": m["label"],
                 "aggregation": m["aggregation"],
                 "base_field": m["base_field"],
+                "anchor": m.get("anchor"),
             }
         )
     out = []
@@ -711,62 +736,64 @@ def _allowed_processes():
 
 
 def _load_process_configs(target_processes):
-    """Load Statconfig rows for the target processes as plain dicts."""
+    """ProcessSource rows (mapping_config #98 registry) for the target
+    processes, scoped to non-ms02 clients, as plain dicts (build_table_query's
+    expected shape) -- successor to the direct Statconfig cursor read.
+
+    Raises if the registry itself failed to load: a genuine NexoraDB/config
+    outage must surface as an error here (via _prepare_run's generic-exception
+    500, or _ai_schema_text's own try/except), never be silently reshaped into
+    an empty catalog / a QueryBuildError("no processes in scope") 400 that
+    misrepresents a system failure as bad input -- the contract the legacy
+    per-call SELECT gave for free by always hitting NexoraDB directly. See
+    nx_lib/views/dashboard.py's `_statconfig_sources` for the same pattern.
+    """
     if not target_processes:
         return []
-    conn = engine_nexora_db.raw_connection()
-    try:
-        cur = conn.cursor()
-        ph = ",".join(["?"] * len(target_processes))
-        # SELECT * so a pre-0020 Statconfig (no WorkitemColumn yet) still
-        # serves the date columns; WorkitemColumn is read defensively.
-        cur.execute(
-            f"SELECT * FROM Statconfig WHERE ProcessName IN ({ph}) AND ISNULL(ClientCode, 'default') <> 'ms02'",
-            target_processes,
-        )
-        return [
-            {
-                "process": r.ProcessName,
-                "table": r.TableName,
-                "export_col": r.ExportColumn,
-                "import_col": r.ImportColumn,
-                "condition": r.additionalCondition or "",
-                "workitem_col": getattr(r, "WorkitemColumn", None),
-            }
-            for r in cur.fetchall()
-        ]
-    finally:
-        conn.close()
+    if mapping_config.registry() is None:
+        raise RuntimeError("mapping_config registry unavailable")
+    sources = [
+        s
+        for s in mapping_config.sources_for(None, target_processes)
+        if (s.client or "default") != "ms02"
+    ]
+    return [
+        {
+            "process": s.process,
+            "table": s.table,
+            "export_col": s.export_column,
+            "import_col": s.import_column,
+            "condition": s.extra_condition or "",
+            "workitem_col": s.workitem_column,
+        }
+        for s in sources
+    ]
 
 
 def _load_field_col_maps(target_processes):
-    """Load per-process {field_key: actual_column} maps from SearchConfig."""
+    """Per-process {field_key: actual_column} maps from the mapping_config
+    #98 registry's ProcessFieldMappings -- successor to the direct
+    SearchConfig col_* cursor read. Same fail-loud contract as
+    `_load_process_configs` (registry load failure raises, never degrades to
+    an empty map that looks like "no fields configured").
+
+    The legacy SELECT had no ClientCode filter (SearchConfig's ProcessName
+    already disambiguates within a client's rows), so this reads across all
+    clients too -- mappings_for() requires one client per call, so build the
+    dict by iterating every client present in the registry's sources rather
+    than guessing which ones matter.
+    """
     maps = {}
     if not target_processes:
         return maps
-    conn = engine_nexora_db.raw_connection()
-    try:
-        cur = conn.cursor()
-        cur.execute("SELECT TOP 0 * FROM SearchConfig")
-        cols = [c[0] for c in cur.description if c[0].startswith("col_")]
-        if not cols:
-            return maps
-        select_cols = ", ".join(cols)
-        ph = ",".join(["?"] * len(target_processes))
-        cur.execute(
-            f"SELECT ProcessName, {select_cols} FROM SearchConfig WHERE ProcessName IN ({ph})",
-            target_processes,
-        )
-        for row in cur.fetchall():
-            m = {}
-            for i, col in enumerate(cols):
-                val = row[i + 1]
-                if val:
-                    m[col[len("col_") :]] = val
-            maps[row.ProcessName] = m
-        return maps
-    finally:
-        conn.close()
+    reg = mapping_config.registry()
+    if reg is None:
+        raise RuntimeError("mapping_config registry unavailable")
+    clients = {client for client, _process in reg.sources}
+    for client in clients:
+        for m in mapping_config.mappings_for(client, target_processes):
+            maps.setdefault(m.process, {})[m.field_key] = m.column
+    return maps
 
 
 def _client_of(process):
@@ -874,7 +901,7 @@ def _prepare_run(rd):
     if provider == "docprocessing":
         catalog, catalog_fields, filterable, sortable = _catalog_for_source(source)
         grainable = {f["field"] for f in catalog if f.get("grainable")}
-        source_metrics = _metrics_for_source(source["id"])
+        source_metrics = _metrics_for_source(source["id"], get_locale())
         validate_report_definition(
             rd,
             catalog_fields,
@@ -930,14 +957,14 @@ def _prepare_run(rd):
         )
         rd_columns = rd.get("columns") or []
         out_columns = (
-            rd_columns + [{"field": m["code"]} for m in resolved] if resolved else rd_columns
+            rd_columns + metric_result_columns(resolved, source_metrics) if resolved else rd_columns
         )
         return out_columns, sql, params, engine_statistics_db
 
     if provider == "table":
         catalog, catalog_fields, filterable, sortable = _catalog_for_source(source)
         grainable = {f["field"] for f in catalog if f.get("grainable")}
-        source_metrics = _metrics_for_source(source["id"])
+        source_metrics = _metrics_for_source(source["id"], get_locale())
         validate_report_definition(
             rd,
             catalog_fields,
@@ -975,7 +1002,7 @@ def _prepare_run(rd):
             raise ReportDefinitionError("source engine is not configured")
         rd_columns = rd.get("columns") or []
         out_columns = (
-            rd_columns + [{"field": m["code"]} for m in resolved] if resolved else rd_columns
+            rd_columns + metric_result_columns(resolved, source_metrics) if resolved else rd_columns
         )
         return out_columns, sql, params, engine
 
@@ -1010,7 +1037,25 @@ def _forecast_for(rd, columns, rows):
             fit_columns, fit_rows = w_columns, _execute(w_engine, w_sql, w_params)
         except Exception as e:
             current_app.logger.warning(f"reporting forecast lookback skipped: {e}")
-    return compute_forecast(rd, fit_columns, fit_rows, visible_rows=rows)
+    return compute_forecast(
+        rd, fit_columns, fit_rows, visible_rows=rows, carry_forward=_level_metric_indexes(rd)
+    )
+
+
+def _level_metric_indexes(rd):
+    """Indexes (within rd['metrics']) of latest-mode metrics — levels such as
+    the backlog, whose missing buckets the forecast carries forward rather
+    than zero-fills. Empty for anything that can't be resolved."""
+    try:
+        source = _get_effective_source(rd.get("source"))
+        modes = _metrics_for_source(source["id"]) if source else {}
+        return {
+            i
+            for i, m in enumerate(rd.get("metrics") or [])
+            if (modes.get(m.get("metric")) or {}).get("total_mode") == "latest"
+        }
+    except Exception:
+        return set()
 
 
 def _json_safe(value):
@@ -1145,7 +1190,7 @@ def reporting_guide():
         guide_toc=guide_toc,
         logged_in_user=session.get("username", "Unknown"),
         fullname=session.get("fullname"),
-        pageV=page_visibility(),
+        page_visibility=page_visibility(),
     )
 
 
@@ -1156,7 +1201,7 @@ def reporting():
         logged_in_user=session.get("username", "Unknown"),
         userid=session.get("userid", "Unknown"),
         fullname=session.get("fullname"),
-        pageV=page_visibility(),
+        page_visibility=page_visibility(),
         ai_enabled=has_permission("reporting.ai.use"),
         ai_caption_enabled=has_permission("reporting.ai.explain_data"),
         details_images_perm=has_permission("workitems.details.view.images"),
@@ -1441,7 +1486,7 @@ def api_ai_ask():
             "error",
             int((time.monotonic() - start) * 1000),
         )
-        return jsonify({"error": _("The AI assistant could not answer right now")}), 502
+        return jsonify({"error": _("Eddard could not answer right now")}), 502
 
     duration_ms = int((time.monotonic() - start) * 1000)
     _audit_ai(
@@ -1587,7 +1632,7 @@ def api_ai_build():
                 "error",
                 int((time.monotonic() - start) * 1000),
             )
-            return jsonify({"error": _("The AI assistant could not answer right now")}), 502
+            return jsonify({"error": _("Eddard could not answer right now")}), 502
         valid, prior_error = _validate_definition_for_user(result.definition)
         if valid:
             break
@@ -1621,15 +1666,16 @@ def api_ai_build():
 def _extract_agent_artifacts(tool_trace):
     """Pull the last validated definition / SQL out of the loop's tool trace.
 
-    A build_definition call that returned ok=True carries a runnable definition in
-    its args; a validate_sql ok=True carries gate-approved SQL. These let the UI
+    A build_definition OR run_definition call that returned ok=True carries a
+    runnable definition in its args (run_definition validates the same way before
+    executing); a validate_sql ok=True carries gate-approved SQL. These let the UI
     offer one-click 'Open in builder' / 'Insert SQL' just like Surfaces A/B.
     """
     definition, sql = None, None
     for step in tool_trace:
         if not (step.get("result") or {}).get("ok"):
             continue
-        if step.get("name") == "build_definition":
+        if step.get("name") in ("build_definition", "run_definition"):
             d = (step.get("args") or {}).get("definition")
             if isinstance(d, dict):
                 definition = _normalize_definition(dict(d))
@@ -1744,8 +1790,26 @@ def api_ai_agent():
     if has_sql:
         tool_names.add("validate_sql")
     if explain:
-        tool_names.update({"run_sql", "compute_stats"})
+        tool_names.update({"run_sql", "compute_stats", "run_definition"})
     tools = [t for t in TOOL_SPECS if t["name"] in tool_names]
+
+    run_definition_bound = None
+    if explain:
+
+        def run_definition_bound(definition):
+            """Run a v1 definition for real and hand back its rows, so the agent
+            can quote actual numbers instead of stopping at "definition built,
+            not run". Same repair/validate pass as build_definition (a near-miss
+            draft is coerced, not bounced), then the exact query the interactive
+            builder would run. Capped so one runaway (ungrouped) definition can't
+            blow the tool-result context — grouped/anchored reports are naturally
+            small (a handful of buckets)."""
+            ok, error = _validate_definition_for_user(definition)
+            if not ok:
+                raise ReportDefinitionError(error or "invalid definition")
+            perms = set(session.get("permissions") or [])
+            columns, rows = execute_definition(definition, perms, userid, username, get_locale())
+            return columns, rows[:RUN_DEFINITION_ROW_CAP]
 
     run_sql_bound = None
     if explain:
@@ -1775,7 +1839,9 @@ def api_ai_agent():
             return _run_sql(target, sql, userid=userid, username=username)
 
     registry = ToolRegistry(
-        run_sql=run_sql_bound, validate_definition=_validate_definition_for_user
+        run_sql=run_sql_bound,
+        validate_definition=_validate_definition_for_user,
+        run_definition=run_definition_bound,
     )
 
     grounding = (
@@ -1931,6 +1997,17 @@ def api_ai_agent():
                         if "result" in event:
                             result = event["result"]
                             break
+                        if event.get("phase") == "tool_result":
+                            # Raw tool output never reaches the client from a
+                            # progress line -- distill it into the tiny
+                            # build-stage preview (real title/total/series for
+                            # Eddard's mock report) or drop it.
+                            preview = stage_preview(
+                                event.get("name"), event.get("args"), event.get("output")
+                            )
+                            if preview:
+                                yield json.dumps({"phase": "preview", **preview}) + "\n"
+                            continue
                         yield json.dumps(event) + "\n"
                 except Exception as e:
                     current_app.logger.error(f"/api/reporting/ai/agent provider error: {e}")
@@ -1939,7 +2016,7 @@ def api_ai_agent():
                         json.dumps(
                             {
                                 "done": True,
-                                "error": _("The AI assistant could not answer right now"),
+                                "error": _("Eddard could not answer right now"),
                             }
                         )
                         + "\n"
@@ -1963,7 +2040,7 @@ def api_ai_agent():
     except Exception as e:
         current_app.logger.error(f"/api/reporting/ai/agent provider error: {e}")
         _audit_failure("error")
-        return jsonify({"error": _("The AI assistant could not answer right now")}), 502
+        return jsonify({"error": _("Eddard could not answer right now")}), 502
 
     return jsonify(_finish(result))
 
@@ -1994,10 +2071,11 @@ def api_ai_caption():
     are the actual values a Simple/Advanced result is displaying, so it is
     gated by reporting.ai.explain_data (the data-egress grant) rather than the
     weaker reporting.ai.use. It still counts toward the shared daily AI cap and
-    is rate limited like the other AI endpoints. Rows are capped at
-    CAPTION_MAX_ROWS before ever reaching the model — a caption summarizes a
-    glance, not a full export. Fired by fireCaption() (Task 13): the Simple
-    tab after every successful run render, the Advanced tab on chart mount.
+    is rate limited like the other AI endpoints. Rows never reach the model
+    raw: caption() reduces the WHOLE grid to a fact sheet
+    (nx_lib/reporting/caption_facts) — CAPTION_MAX_ROWS only bounds the request
+    payload. Fired by fireCaption() (Task 13): the Simple tab after every
+    successful run render, the Advanced tab on chart mount.
     """
     body = request.get_json(silent=True)
     if not isinstance(body, dict):
@@ -2010,6 +2088,17 @@ def api_ai_caption():
     rows = [list(r) if isinstance(r, list | tuple) else [r] for r in rows[:CAPTION_MAX_ROWS]]
     title = (body.get("title") or "").strip() or None
     date_label = (body.get("dateLabel") or "").strip() or None
+    # Client-side facts about the grid the model can't see (partial current
+    # bucket, NULL = no snapshot); bounded like title.
+    notes = str(body.get("notes") or "").strip()[:400] or None
+    # Level measures (backlog): the fact sheet headlines their latest value
+    # instead of summing buckets. Names only, bounded.
+    raw_levels = body.get("levelFields")
+    level_fields = (
+        tuple(str(x)[:100] for x in raw_levels[:20] if isinstance(x, str))
+        if isinstance(raw_levels, list)
+        else ()
+    )
 
     cfg = _ai_config()
     if cfg.get("provider") == "none" or not cfg.get("api_key"):
@@ -2049,6 +2138,8 @@ def api_ai_caption():
             rows,
             title,
             date_label,
+            notes=notes,
+            level_fields=level_fields,
             locale=str(get_locale()),
             cfg=cfg,
         )
@@ -2085,7 +2176,7 @@ def api_ai_caption():
             "error",
             int((time.monotonic() - start) * 1000),
         )
-        return jsonify({"error": _("The AI assistant could not answer right now")}), 502
+        return jsonify({"error": _("Eddard could not answer right now")}), 502
 
     duration_ms = int((time.monotonic() - start) * 1000)
     _audit_ai(
@@ -2205,6 +2296,48 @@ def api_export_grid():
     )
 
 
+def _preview_summary(defn):
+    """Shape facts a library card can show next to its thumbnail.
+
+    Ids and counts only -- the labels are resolved client-side against the
+    source catalog so they stay translated. Type-guarded for the same reason
+    _preview_kind is: a malformed saved definition must not take the listing
+    down. The raw definition still never leaves this endpoint.
+    """
+    if not isinstance(defn, dict):
+        return {}
+    if defn.get("kind") == "dashboard":
+        # Dashboard library card: a compact layout sketch ({t: card type,
+        # s: 12-col span} per card) so the client can draw a true miniature of
+        # the dashboard instead of a generic placeholder. Type-guarded like
+        # everything else here — a malformed card is skipped, not fatal.
+        cards = defn.get("cards") if isinstance(defn.get("cards"), list) else []
+        mini = []
+        for c in cards[:12]:
+            if not isinstance(c, dict):
+                continue
+            t = c.get("type") if isinstance(c.get("type"), str) else "bar"
+            try:
+                s = int(c.get("span") or 6)
+            except (TypeError, ValueError):
+                s = 6
+            mini.append({"t": t, "s": max(1, min(12, s))})
+        return {"cards": mini, "cardCount": len(cards)}
+    cols = defn.get("columns") if isinstance(defn.get("columns"), list) else []
+    grain = ""
+    for c in cols:
+        if isinstance(c, dict) and isinstance(c.get("grain"), str):
+            grain = c["grain"]
+            break
+    return {
+        "source": defn.get("source") if isinstance(defn.get("source"), str) else "",
+        "grain": grain,
+        "dimensions": len(cols),
+        "metrics": len(defn["metrics"]) if isinstance(defn.get("metrics"), list) else 0,
+        "filters": len(defn["filters"]) if isinstance(defn.get("filters"), list) else 0,
+    }
+
+
 def _preview_kind(defn):
     """Derive the library card badge/preview kind from a report definition.
 
@@ -2244,7 +2377,8 @@ def api_reports_list():
 
     A report is visible when the caller owns it, its Visibility is 'shared'
     (everyone with reporting.view), or it is explicitly shared with the caller.
-    Each row is tagged owned / canEdit and carries the owner's name, plus a
+    Each row is tagged owned / canEdit and carries the owner's name, the
+    owner-only sharedCount (explicit per-user grants), plus a
     server-computed previewKind for the library card badge/thumbnail (derived
     from DefinitionJSON — the raw definition itself is never sent here).
     """
@@ -2259,7 +2393,9 @@ def api_reports_list():
             "       r.DefinitionJSON, "
             "       CASE WHEN r.OwnerUserID = ? THEN 1 ELSE 0 END AS Owned, "
             "       CASE WHEN r.OwnerUserID = ? THEN 1 "
-            "            WHEN s.CanEdit = 1 THEN 1 ELSE 0 END AS CanEdit "
+            "            WHEN s.CanEdit = 1 THEN 1 ELSE 0 END AS CanEdit, "
+            "       (SELECT COUNT(*) FROM dbo.ReportShares sc "
+            "         WHERE sc.ReportID = r.ReportID) AS ShareCount "
             "FROM dbo.Reports r "
             "JOIN dbo.Users u ON u.userID = r.OwnerUserID "
             "LEFT JOIN dbo.ReportShares s "
@@ -2290,7 +2426,12 @@ def api_reports_list():
                         "owned": bool(r.Owned),
                         "canEdit": bool(r.CanEdit),
                         "ownerName": r.OwnerName,
+                        # Owner-only: how many colleagues it is shared with,
+                        # so the library can tag a report that is shared by
+                        # explicit grant while Visibility is still private.
+                        "sharedCount": int(r.ShareCount) if r.Owned else 0,
                         "previewKind": _preview_kind(defn),
+                        "summary": _preview_summary(defn),
                     }
                 )
             except Exception as row_err:
@@ -2767,6 +2908,180 @@ def api_reports_schedules_delete(report_id, schedule_id):
         conn.close()
 
 
+@require_permission("reporting.schedule")
+def api_schedules_all():
+    """Every schedule the caller owns, across all reports — feeds the
+    Console 'Scheduled' screen. Owner-scoped like the per-report routes."""
+    userid = session.get("userid")
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT s.ScheduleID, s.ReportID, r.Name AS ReportName, s.Recipients, "
+            "s.Format, s.Frequency, s.Hour, s.Minute, s.Weekday, s.DayOfMonth, "
+            "s.Enabled, s.LastRunAt, s.NextRunAt, s.AlertOp, s.AlertThreshold "
+            "FROM dbo.ReportSchedules s "
+            "JOIN dbo.Reports r ON r.ReportID = s.ReportID "
+            "WHERE r.OwnerUserID = ? "
+            "ORDER BY s.NextRunAt, s.ScheduleID",
+            (userid,),
+        )
+        out = []
+        for r in cur.fetchall():
+            d = _serialize_schedule(r)
+            d["reportId"] = r.ReportID
+            d["reportName"] = r.ReportName
+            out.append(d)
+        return jsonify(out)
+    except Exception as e:
+        current_app.logger.error(f"reporting schedules overview error: {e}")
+        return jsonify({"error": _("Could not list schedules")}), 500
+    finally:
+        conn.close()
+
+
+@require_permission("reporting.view")
+@limiter.limit("30 per minute")
+def api_share_targets():
+    """Typeahead for the share modal: up to 8 users matching by username,
+    full name or email. Returns only username + display name — the share
+    POST already accepts the username."""
+    q = (request.args.get("q") or "").strip()
+    if len(q) < 2:
+        return jsonify([])
+    like = f"%{q}%"
+    conn = engine_nexora_db.raw_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT TOP 8 username, Fullname FROM dbo.Users "
+            "WHERE username LIKE ? OR Fullname LIKE ? OR Email LIKE ? "
+            "ORDER BY username",
+            (like, like, like),
+        )
+        return jsonify(
+            [{"username": r.username, "name": r.Fullname or r.username} for r in cur.fetchall()]
+        )
+    except Exception as e:
+        current_app.logger.error(f"reporting share targets error: {e}")
+        return jsonify([])
+    finally:
+        conn.close()
+
+
+# ---- Source health (Console sources rail) ---------------------------------
+
+
+def _probe_engine(engine):
+    """(ok, latency_ms, db_name) for one probe round-trip; DB_NAME() rides
+    along because the engines are built from odbc_connect strings whose
+    SQLAlchemy URL carries no database attribute."""
+    if engine is None:
+        return False, None, None
+    t0 = time.perf_counter()
+    try:
+        conn = engine.raw_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT DB_NAME()")
+            row = cur.fetchone()
+        finally:
+            conn.close()
+        return True, (time.perf_counter() - t0) * 1000.0, (row[0] if row else None)
+    except Exception:
+        return False, None, None
+
+
+@require_permission("reporting.view")
+def api_sources_health():
+    """Live status dot + latency per accessible source (Console rail).
+    One SELECT-1 probe per distinct engine, shared across sources."""
+    perms = set(session.get("permissions", []))
+    sources = accessible(_effective_sources(), perms)
+    probes = {}  # id(engine) -> (ok, ms)
+
+    def probe(engine):
+        key = id(engine)
+        if key not in probes:
+            probes[key] = _probe_engine(engine)
+        return probes[key]
+
+    out = []
+    for s in sources:
+        if s["kind"] == "sql":
+            engine = _SQL_TARGET_ENGINES.get(s.get("target", "statistics"))
+        else:
+            engine = _CURATED_ENGINES.get(s.get("engine"), engine_statistics_db)
+        ok, ms, db_name = probe(engine)
+        out.append(
+            {
+                "id": s["id"],
+                "ok": ok,
+                "latencyMs": round(ms, 1) if ms is not None else None,
+                "db": db_name,
+            }
+        )
+    return jsonify({"sources": out})
+
+
+def _source_used_tables(src):
+    """Qualified table names the reporting layer actually reads for `src`.
+
+    Two registries know this: the source's own `BaseObject` (the generic
+    `table` provider's target) and `dbo.ProcessSources.TableName` (the
+    statistik table per client/process, migration 0074). Names from a
+    different database simply won't match anything when the payload is
+    filtered, so all of them can be thrown in together.
+    """
+    names = set()
+    if src.get("baseObject"):
+        names.add(src["baseObject"])
+    reg = mapping_config.registry()
+    if reg is not None:
+        names |= {ps.table for ps in reg.sources.values() if ps.table}
+    return names
+
+
+@require_permission("reporting.sources.schema")
+def api_source_schema(source_id):
+    """Tables, columns and foreign keys of the database behind one source.
+
+    Feeds the Console's source visualizer (click a rail card): a filterable
+    table list and an ER diagram. Read-only catalog queries on the same engine
+    the source itself reads from, so no new credential surface -- but the
+    schema of a whole database is more than the source's own fields, hence its
+    own grant on top of the source's permission.
+    """
+    perms = set(session.get("permissions", []))
+    src = next(
+        (s for s in accessible(_effective_sources(), perms) if s.get("id") == source_id),
+        None,
+    )
+    if src is None:
+        return jsonify({"error": _("Not authorized for this source")}), 403
+    if src["kind"] == "sql":
+        engine = _SQL_TARGET_ENGINES.get(src.get("target", "statistics"))
+    else:
+        engine = _CURATED_ENGINES.get(src.get("engine"), engine_statistics_db)
+    if engine is None:
+        return jsonify({"error": _("This source's database is not configured.")}), 503
+    try:
+        conn = engine.raw_connection()
+    except Exception as e:
+        current_app.logger.warning(f"reporting schema: connect failed for {source_id}: {e}")
+        return jsonify({"error": _("Could not reach this database.")}), 503
+    try:
+        payload = db_schema.filter_used(db_schema.introspect(conn), _source_used_tables(src))
+    except Exception as e:
+        current_app.logger.error(f"reporting schema: introspection failed for {source_id}: {e}")
+        return jsonify({"error": _("Could not read this database's schema.")}), 502
+    finally:
+        conn.close()
+    payload["source"] = source_id
+    payload["label"] = src.get("label")
+    return jsonify(payload)
+
+
 # ---- Source-registry admin (reporting.admin.sources) ----------------------
 
 _SOURCE_CODE_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
@@ -2862,7 +3177,7 @@ def reporting_sources_admin():
         "reporting_sources.html",
         logged_in_user=session.get("username", "Unknown"),
         fullname=session.get("fullname"),
-        pageV=page_visibility(),
+        page_visibility=page_visibility(),
     )
 
 
@@ -2981,7 +3296,7 @@ def reporting_metrics_admin():
         "reporting_metrics.html",
         logged_in_user=session.get("username", "Unknown"),
         fullname=session.get("fullname"),
-        pageV=page_visibility(),
+        page_visibility=page_visibility(),
     )
 
 
@@ -3361,6 +3676,26 @@ def register_routes(app):
         endpoint="reporting_reports_shares_delete",
         view_func=api_reports_shares_delete,
         methods=["DELETE"],
+    )
+    app.add_url_rule(
+        "/api/reporting/schedules",
+        endpoint="reporting_schedules_all",
+        view_func=api_schedules_all,
+    )
+    app.add_url_rule(
+        "/api/reporting/sources/health",
+        endpoint="reporting_sources_health",
+        view_func=api_sources_health,
+    )
+    app.add_url_rule(
+        "/api/reporting/sources/<source_id>/schema",
+        endpoint="reporting_source_schema",
+        view_func=api_source_schema,
+    )
+    app.add_url_rule(
+        "/api/reporting/share_targets",
+        endpoint="reporting_share_targets",
+        view_func=api_share_targets,
     )
     app.add_url_rule(
         "/api/reporting/reports/<int:report_id>/schedules",

@@ -1,0 +1,211 @@
+<script nonce="{{ csp_nonce() }}">
+// Console "Scheduled" screen: every schedule the user owns across all reports
+// (GET /api/reporting/schedules), with an on/off toggle per row, a row menu
+// (delete), and the New-schedule modal (report picker + cadence + recipients
+// + format). Only in the DOM for reporting.schedule holders.
+(function () {
+  var csrf = document.querySelector('meta[name="csrf-token"]').content;
+  var API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+
+  var I18N = {
+    daily: {{ _("Daily")|tojson }},
+    monthlyDay: {{ _("Day {n} of month")|tojson }},
+    weekdays: [
+      {{ _("Monday")|tojson }}, {{ _("Tuesday")|tojson }}, {{ _("Wednesday")|tojson }},
+      {{ _("Thursday")|tojson }}, {{ _("Friday")|tojson }}, {{ _("Saturday")|tojson }},
+      {{ _("Sunday")|tojson }}
+    ],
+    colReport: {{ _("Report")|tojson }},
+    colCadence: {{ _("Cadence")|tojson }},
+    colDelivers: {{ _("Delivers to")|tojson }},
+    colFormat: {{ _("Format")|tojson }},
+    colLastRun: {{ _("Last run")|tojson }},
+    colNextRun: {{ _("Next run")|tojson }},
+    never: {{ _("never")|tojson }},
+    empty: {{ _("No schedules yet — pick a report and click “New schedule”.")|tojson }},
+    deleteConfirm: {{ _("Delete this schedule?")|tojson }},
+    deleteRow: {{ _("Delete schedule")|tojson }},
+    couldNotLoad: {{ _("Could not list schedules")|tojson }},
+    couldNotSave: {{ _("Could not save schedule")|tojson }},
+    noOwnedReports: {{ _("You don't own any saved reports yet — save one first.")|tojson }},
+    oneSchedule: {{ _("1 schedule")|tojson }},
+    nSchedules: {{ _("{n} schedules")|tojson }},
+    toggleLabel: {{ _("Enable or disable this schedule")|tojson }}
+  };
+
+  var state = { schedules: [], loaded: false, openMenu: null };
+
+  function el(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  async function api(url, opts) {
+    if (url.startsWith('/')) url = API_PREFIX + url.slice(1);
+    opts = opts || {};
+    var res;
+    try {
+      res = await fetch(url, Object.assign(
+        { headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf } }, opts));
+    } catch (e) { return { ok: false, status: 0, data: null }; }
+    var data = null;
+    try { data = await res.json(); } catch (e) { /* non-JSON */ }
+    return { ok: res.ok, status: res.status, data: data };
+  }
+
+  function two(n) { return (n < 10 ? '0' : '') + n; }
+  function cadenceText(s) {
+    var t = two(s.hour) + ':' + two(s.minute);
+    if (s.frequency === 'weekly' && s.weekday != null) {
+      return I18N.weekdays[s.weekday] + ' · ' + t;
+    }
+    if (s.frequency === 'monthly' && s.dayOfMonth != null) {
+      return I18N.monthlyDay.replace('{n}', String(s.dayOfMonth)) + ' · ' + t;
+    }
+    return I18N.daily + ' · ' + t;
+  }
+  function shortDt(iso) {
+    if (!iso) return null;
+    var d = new Date(iso.replace(' ', 'T'));
+    if (isNaN(d)) return iso;
+    return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
+      + ' · ' + two(d.getHours()) + ':' + two(d.getMinutes());
+  }
+
+  function render() {
+    var wrap = el('rcSchedTable');
+    var pill = el('rcSchedCountPill');
+    var n = state.schedules.length;
+    if (pill) {
+      pill.textContent = n === 1 ? I18N.oneSchedule : I18N.nSchedules.replace('{n}', String(n));
+      pill.hidden = !n;
+    }
+    document.dispatchEvent(new CustomEvent('rc:schedloaded', { detail: { count: n } }));
+    if (!n) {
+      wrap.innerHTML = '<div class="rc-sched-empty">' + esc(I18N.empty) + '</div>';
+      return;
+    }
+    var html = '<div class="rc-sched-grid"><div class="rc-sched-hrow"><span></span>' +
+      ['colReport', 'colCadence', 'colDelivers', 'colFormat', 'colLastRun', 'colNextRun']
+        .map(function (k) { return '<span>' + esc(I18N[k]) + '</span>'; }).join('') +
+      '<span></span></div>';
+    state.schedules.forEach(function (s, i) {
+      html += '<div class="rc-sched-row' + (s.enabled ? '' : ' is-off') + '" data-testid="rc-sched-row">' +
+        '<span class="rc-sched-center"><button type="button" class="rc-tog' + (s.enabled ? ' is-on' : '') + '"' +
+          ' data-i="' + i + '" data-act="toggle" data-testid="rc-sched-toggle"' +
+          ' role="switch" aria-checked="' + (s.enabled ? 'true' : 'false') + '"' +
+          ' aria-label="' + esc(I18N.toggleLabel) + '"></button></span>' +
+        '<span class="rc-sched-name">' + esc(s.reportName) + '</span>' +
+        '<span>' + esc(cadenceText(s)) + '</span>' +
+        '<span class="rc-sched-ellip" title="' + esc(s.recipients) + '">' + esc(s.recipients) + '</span>' +
+        '<span><span class="rc-sched-fmt">' + esc(String(s.format || '').toUpperCase()) + '</span></span>' +
+        '<span>' + (s.lastRunAt ? '<span class="rc-sched-okdot"></span>' + esc(shortDt(s.lastRunAt)) : esc(I18N.never)) + '</span>' +
+        '<span>' + esc(shortDt(s.nextRunAt) || '—') + '</span>' +
+        '<span class="rc-sched-center"><button type="button" class="rc-kebab" data-i="' + i + '" data-act="delete"' +
+          ' title="' + esc(I18N.deleteRow) + '" aria-label="' + esc(I18N.deleteRow) + '"' +
+          ' data-testid="rc-sched-delete"><i class="fas fa-trash-can" aria-hidden="true"></i></button></span>' +
+        '</div>';
+    });
+    html += '</div>';
+    wrap.innerHTML = html;
+  }
+
+  async function load() {
+    var res = await api('/api/reporting/schedules');
+    if (!res.ok || !Array.isArray(res.data)) return;
+    state.schedules = res.data;
+    state.loaded = true;
+    render();
+  }
+
+  async function toggle(s) {
+    var body = {
+      recipients: s.recipients, format: s.format, frequency: s.frequency,
+      hour: s.hour, minute: s.minute, weekday: s.weekday, dayOfMonth: s.dayOfMonth,
+      enabled: !s.enabled, alertOp: s.alertOp, alertThreshold: s.alertThreshold
+    };
+    s.enabled = !s.enabled;   // flip instantly (design), reconcile on reload
+    render();
+    var res = await api('/api/reporting/reports/' + s.reportId + '/schedules/' + s.id,
+      { method: 'PUT', body: JSON.stringify(body) });
+    if (!res.ok) { s.enabled = !s.enabled; render(); }
+  }
+
+  el('rcSchedTable').addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-act]');
+    if (!btn) return;
+    var s = state.schedules[Number(btn.dataset.i)];
+    if (!s) return;
+    if (btn.dataset.act === 'toggle') { toggle(s); return; }
+    if (btn.dataset.act === 'delete') {
+      if (!window.confirm(I18N.deleteConfirm)) return;
+      api('/api/reporting/reports/' + s.reportId + '/schedules/' + s.id, { method: 'DELETE' })
+        .then(load);
+    }
+  });
+
+  // ---------- New-schedule modal ----------
+  function syncFreqFields() {
+    var f = el('rcSchedFreq').value;
+    el('rcSchedWeekdayWrap').hidden = f !== 'weekly';
+    el('rcSchedDomWrap').hidden = f !== 'monthly';
+  }
+  el('rcSchedFreq').addEventListener('change', syncFreqFields);
+
+  async function openModal() {
+    el('rcSchedError').hidden = true;
+    var res = await api('/api/reporting/reports');
+    var owned = (res.ok && Array.isArray(res.data))
+      ? res.data.filter(function (r) { return r.owned && r.kind !== 'sql'; }) : [];
+    var sel = el('rcSchedReport');
+    sel.innerHTML = owned.map(function (r) {
+      return '<option value="' + r.id + '">' + esc(r.name) + '</option>';
+    }).join('');
+    if (!owned.length) {
+      el('rcSchedError').textContent = I18N.noOwnedReports;
+      el('rcSchedError').hidden = false;
+    }
+    syncFreqFields();
+    el('rcSchedModal').hidden = false;
+  }
+  function closeModal() { el('rcSchedModal').hidden = true; }
+
+  el('rcSchedNew').addEventListener('click', openModal);
+  el('rcSchedCancel').addEventListener('click', closeModal);
+  el('rcSchedModal').addEventListener('click', function (e) {
+    if (e.target === this) closeModal();
+  });
+  el('rcSchedCreate').addEventListener('click', async function () {
+    var reportId = el('rcSchedReport').value;
+    if (!reportId) return;
+    var hm = (el('rcSchedTime').value || '08:00').split(':');
+    var body = {
+      recipients: el('rcSchedRecipients').value.trim(),
+      format: el('rcSchedFormat').value,
+      frequency: el('rcSchedFreq').value,
+      hour: parseInt(hm[0], 10) || 0,
+      minute: parseInt(hm[1], 10) || 0,
+      weekday: el('rcSchedFreq').value === 'weekly' ? parseInt(el('rcSchedWeekday').value, 10) : null,
+      dayOfMonth: el('rcSchedFreq').value === 'monthly' ? parseInt(el('rcSchedDom').value, 10) : null,
+      enabled: true
+    };
+    var res = await api('/api/reporting/reports/' + reportId + '/schedules',
+      { method: 'POST', body: JSON.stringify(body) });
+    if (!res.ok) {
+      el('rcSchedError').textContent = (res.data && res.data.error) || I18N.couldNotSave;
+      el('rcSchedError').hidden = false;
+      return;
+    }
+    closeModal();
+    load();
+  });
+
+  // Load once at boot (feeds the nav-rail count) and refresh when the screen
+  // is shown again.
+  document.addEventListener('rc:screenshown', function (e) {
+    if (e.detail.screen === 'scheduled' && state.loaded) load();
+  });
+  load();
+}());
+</script>

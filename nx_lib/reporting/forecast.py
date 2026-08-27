@@ -213,7 +213,7 @@ def _bucket_count(rows, grain):
     return len(filled)
 
 
-def compute_forecast(definition, columns, rows, visible_rows=None):
+def compute_forecast(definition, columns, rows, visible_rows=None, carry_forward=()):
     """Forecast block for one run result, or {"unavailable": reason}.
 
     Applies only to the single-date-dimension aggregate shape (D2): exactly
@@ -228,7 +228,13 @@ def compute_forecast(definition, columns, rows, visible_rows=None):
     still resolves from what's on screen, not from the wider fit window.
     Omit (or pass the same rows) when there is no widening — the auto
     horizon then resolves from `rows` itself, unchanged from before.
+
+    `carry_forward`: metric indexes (0-based within `metrics`) that are LEVELS
+    (a backlog snapshot), not event counts. A missing bucket or NULL cell
+    for those repeats the last known value instead of dropping to 0 — a
+    weekend nobody measured is not an empty warehouse.
     """
+    carry_forward = set(carry_forward or ())
     dims = definition.get("columns") or []
     metrics = definition.get("metrics") or []
     grain = dims[0].get("grain") if len(dims) == 1 and isinstance(dims[0], dict) else None
@@ -265,20 +271,46 @@ def compute_forecast(definition, columns, rows, visible_rows=None):
         if visible_n is not None:
             horizon_n = visible_n
     horizon = _resolve_horizon((definition.get("forecast") or {}).get("horizon"), horizon_n)
+    # The bucket containing today is still filling up — fitting on it reads a
+    # half month as a collapse. Fit on finished buckets only; the projection
+    # then starts right after the partial one (which stays on the chart as-is).
+    today = datetime.date.today()
+    partial_last = len(dates) > MIN_POINTS and dates[-1] <= today < _step(dates[-1], grain)
+    fit_n = len(dates) - 1 if partial_last else len(dates)
     series_out, future, method = [], None, None
     for mi in range(len(metrics)):
         values = []
+        level = mi in carry_forward
         for bucket in dates:
             row = by_bucket.get(bucket)
-            cell = row[metric_start + mi] if row is not None else 0
+            cell = row[metric_start + mi] if row is not None else None
             try:
-                values.append(float(cell if cell is not None else 0))
+                v = float(cell) if cell is not None else None
             except (TypeError, ValueError):
-                values.append(0.0)
-        fit = forecast_series(dates, values, grain, horizon)
+                v = None
+            if v is None:
+                v = values[-1] if (level and values) else 0.0
+            values.append(v)
+        if level:
+            # Leading unknowns took 0.0 above — backfill them flat from the
+            # first real snapshot so they can't fake a climb from nothing.
+            first = next(
+                (
+                    i
+                    for i, bucket in enumerate(dates)
+                    if by_bucket.get(bucket) is not None
+                    and by_bucket[bucket][metric_start + mi] is not None
+                ),
+                None,
+            )
+            if first:
+                values[:first] = [values[first]] * first
+        fit = forecast_series(dates[:fit_n], values[:fit_n], grain, horizon + int(partial_last))
         if fit is None:
             return {"unavailable": "insufficient_history"}
         future, yhat, lower, upper, method = fit
+        if partial_last:  # the first projected bucket IS the partial one — drop it
+            future, yhat, lower, upper = future[1:], yhat[1:], lower[1:], upper[1:]
         field = (
             columns[metric_start + mi].get("field")
             if isinstance(columns[metric_start + mi], dict)

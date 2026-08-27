@@ -15,10 +15,10 @@ IF OBJECT_ID('dbo.fnUserHasPermission', 'FN') IS NOT NULL DROP FUNCTION dbo.fnUs
 GO
 
 -- Drop tables in FK-safe order (children first).
--- Reporting tables are dropped here too: dbo.Reports has an FK to dbo.Users, so
--- it must go before Users or the reset fails on re-run (they are recreated near
--- the bottom of this file). ReportingSqlAudit/Ack have no FK but are dropped for
--- a clean, fully idempotent reset.
+-- This list no longer needs maintaining: scripts/test_db_reset.py drops every
+-- user object (FKs first) before it applies this file, so a table missing from
+-- here can no longer wedge the reset. It stays so that running this file by hand
+-- against a populated NEXORA_TEST still works.
 IF OBJECT_ID('dbo.ReportSchedules', 'U') IS NOT NULL DROP TABLE dbo.ReportSchedules;
 IF OBJECT_ID('dbo.ReportingMetrics', 'U') IS NOT NULL DROP TABLE dbo.ReportingMetrics;
 IF OBJECT_ID('dbo.ReportingSources', 'U') IS NOT NULL DROP TABLE dbo.ReportingSources;

@@ -1,4 +1,5 @@
-"""Reset NEXORA_TEST to a known state: applies sql/test/schema.sql then sql/test/seed.sql.
+"""Reset NEXORA_TEST to a known state: wipes it, then applies sql/test/schema.sql
+and sql/test/seed.sql.
 
 Uses pyodbc instead of sqlcmd so it runs anywhere pyodbc does (i.e. anywhere
 nexora itself runs) without needing SQL Server Command Line Tools installed.
@@ -36,6 +37,61 @@ def parse_env(path: Path) -> dict[str, str]:
         k, v = line.split("=", 1)
         out[k.strip()] = v.strip().strip('"').strip("'")
     return out
+
+
+# Everything NEXORA_TEST needs is recreated from schema.sql + seed.sql, so anything
+# still standing when a reset starts is stale -- an object schema.sql stopped
+# creating, or a table a parallel session applied its own migration for. Dropping
+# the lot is what makes this script's "known state" claim true: a hand-maintained
+# FK-safe DROP order inside schema.sql cannot know about tables it has never heard
+# of, and has wedged the reset twice (dbo.Clients / dbo.KundenmagazinIssue* holding
+# FKs into dbo.Organizations was the latest).
+WIPE_SQL = """
+DECLARE @sql nvarchar(max);
+
+SET @sql = N'';
+SELECT @sql = @sql + N'ALTER TABLE ' + QUOTENAME(SCHEMA_NAME(t.schema_id)) + N'.'
+       + QUOTENAME(t.name) + N' DROP CONSTRAINT ' + QUOTENAME(fk.name) + N';'
+FROM sys.foreign_keys fk
+JOIN sys.tables t ON t.object_id = fk.parent_object_id;
+EXEC sp_executesql @sql;
+
+SET @sql = N'';
+SELECT @sql = @sql + N'DROP VIEW ' + QUOTENAME(SCHEMA_NAME(schema_id)) + N'.'
+       + QUOTENAME(name) + N';'
+FROM sys.views WHERE is_ms_shipped = 0;
+EXEC sp_executesql @sql;
+
+SET @sql = N'';
+SELECT @sql = @sql + N'DROP TABLE ' + QUOTENAME(SCHEMA_NAME(schema_id)) + N'.'
+       + QUOTENAME(name) + N';'
+FROM sys.tables WHERE is_ms_shipped = 0;
+EXEC sp_executesql @sql;
+
+SET @sql = N'';
+SELECT @sql = @sql + N'DROP ' + CASE type WHEN 'P' THEN N'PROCEDURE ' ELSE N'FUNCTION ' END
+       + QUOTENAME(SCHEMA_NAME(schema_id)) + N'.' + QUOTENAME(name) + N';'
+FROM sys.objects WHERE type IN ('P', 'FN', 'IF', 'TF') AND is_ms_shipped = 0;
+EXEC sp_executesql @sql;
+"""
+
+
+def wipe_database(cursor: pyodbc.Cursor) -> tuple[int, int]:
+    """Drop every user object. Re-checks DB_NAME() first: the caller's TEST.env
+    guard reads a file, this reads the connection actually about to be emptied."""
+    live = cursor.execute("SELECT DB_NAME()").fetchone()
+    name = live[0] if live else None
+    if name != "NEXORA_TEST":
+        raise RuntimeError(f"refusing to wipe '{name}': connection is not NEXORA_TEST")
+    counts = cursor.execute(
+        "SELECT (SELECT COUNT(*) FROM sys.tables WHERE is_ms_shipped = 0),"
+        " (SELECT COUNT(*) FROM sys.objects WHERE type IN ('P','FN','IF','TF','V')"
+        "  AND is_ms_shipped = 0)"
+    ).fetchone()
+    cursor.execute(WIPE_SQL)
+    while cursor.nextset():
+        pass
+    return int(counts[0]), int(counts[1])
 
 
 def execute_sql_file(cursor: pyodbc.Cursor, path: Path) -> None:
@@ -101,6 +157,8 @@ def main() -> int:
     conn = pyodbc.connect(conn_str, autocommit=True)
     try:
         cursor = conn.cursor()
+        tables, progs = wipe_database(cursor)
+        print(f"Wiped {db} on {server} ({tables} tables, {progs} views/procs/functions)")
         print(f"Applying schema to {db} on {server}...")
         execute_sql_file(cursor, SCHEMA_SQL)
         print(f"Applying seed to {db} on {server}...")
