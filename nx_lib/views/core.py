@@ -1,8 +1,22 @@
 """Core routes that don't fit a larger domain: landing page, jdvance,
-public maintenance view, session liveness probe, API documentation page."""
+public maintenance view, session liveness probe, API documentation page,
+org-branding logo serve."""
 
-from flask import current_app, jsonify, redirect, render_template, session, url_for
+import os
 
+from flask import (
+    abort,
+    current_app,
+    jsonify,
+    redirect,
+    render_template,
+    send_from_directory,
+    session,
+    url_for,
+)
+
+from ..branding import brand_for_org
+from ..config import PATHS
 from ..db import engine_nexora_db
 from ..maintenance import _get_blocking_maintenance, _maintenance_iso
 from ..security import page_visibility, require_permission, startpage_redirect_to
@@ -111,6 +125,39 @@ def api_maintenance_active():
             conn.close()
 
 
+def branding_logo(orgcode):
+    """Serve an organization's uploaded logo from var/branding/ (#98 phase 4).
+
+    Permission-free beyond requiring a logged-in session -- any logged-in
+    user must be able to see their (or another visible org's) brand image,
+    same idiom as /avatar/<user_id>. The upload side lands in Task 11; this
+    is the minimal read side so Task 10's header <img src> has a live
+    endpoint to point at.
+
+    Path-traversal hardening: ``orgcode`` never touches the filesystem
+    directly -- it is only ever used as a dict key into branding.brand_for_org,
+    so a hostile value simply misses (404) instead of resolving a path. The
+    stored BrandLogoFile name is defended too (os.path.basename), even though
+    Task 11's upload path is expected to only ever write ``<orgcode>.<ext>``.
+
+    Served with a sandboxed CSP + nosniff (spec D9): SVG is allowed and is
+    script-capable, so the response must never be treated as same-origin
+    executable content.
+    """
+    if "userid" not in session:
+        abort(401)
+    brand = brand_for_org(orgcode)
+    if not brand or not brand.get("logo_file"):
+        abort(404)
+    filename = os.path.basename(brand["logo_file"])
+    if not filename or not (PATHS.branding / filename).is_file():
+        abort(404)
+    resp = send_from_directory(PATHS.branding, filename)
+    resp.headers["Content-Security-Policy"] = "sandbox"
+    resp.headers["X-Content-Type-Options"] = "nosniff"
+    return resp
+
+
 def session_heartbeat():
     """Lightweight liveness probe. Authenticated pages poll this every few
     seconds; if the session was revoked, enforce_active_session has already
@@ -134,3 +181,4 @@ def register_routes(app):
     app.add_url_rule(
         "/api/session/heartbeat", endpoint="session_heartbeat", view_func=session_heartbeat
     )
+    app.add_url_rule("/branding/<orgcode>/logo", endpoint="branding_logo", view_func=branding_logo)

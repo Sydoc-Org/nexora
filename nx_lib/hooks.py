@@ -18,6 +18,7 @@ from flask import (
 )
 
 from . import user_cache
+from .branding import brand_for_org
 from .config import IS_PROD, PATHS
 from .db import engine_nexora_db
 from .i18n import get_locale
@@ -275,6 +276,15 @@ def _inject_ui_prefs():
     return {"ui_prefs": session.get("ui_prefs") or {}}
 
 
+def _inject_brand():
+    """Header badge/wordmark/accent-default source: the viewer's organization
+    brand (#98 phase 4). Read fresh per render behind branding.registry()'s
+    own 60s cache -- never cached in the session (D5, #155 — a session cache
+    races the cookie and sticks until re-login). A load failure or an org
+    with no branding both degrade to {}, which renders today's markup."""
+    return {"brand": brand_for_org(session.get("organizationcode")) or {}}
+
+
 def _utility_processor():
     return dict(
         get_user_icon_url=resolve_user_icon_url, has_permission=has_permission, is_prod=IS_PROD
@@ -312,6 +322,7 @@ def init_app(app):
 
     app.context_processor(_inject_current_lang)
     app.context_processor(_inject_ui_prefs)
+    app.context_processor(_inject_brand)
     app.context_processor(_utility_processor)
     app.context_processor(_inject_app_version)
     app.context_processor(_inject_whats_new)

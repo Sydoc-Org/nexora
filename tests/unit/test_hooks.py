@@ -11,6 +11,7 @@ from nx_lib.hooks import (
     _enforce_maintenance_lockout,
     _forbidden_page,
     _handle_permission_denied,
+    _inject_brand,
     _inject_current_lang,
     _internal_error,
     _load_user_locale,
@@ -452,6 +453,34 @@ def test_utility_processor_exposes_helpers(app):
         assert callable(ctx["get_user_icon_url"])
 
 
+def test_inject_brand_returns_empty_dict_when_no_org_in_session(app):
+    with app.test_request_context("/"):
+        assert _inject_brand() == {"brand": {}}
+
+
+def test_inject_brand_reads_fresh_per_render_not_from_session(app, monkeypatch):
+    """#155: branding must never be cached in flask.session -- it's read fresh
+    (behind branding.registry()'s own 60s cache) on every render."""
+    monkeypatch.setattr(
+        "nx_lib.hooks.brand_for_org",
+        lambda code: {"name": "Provera", "accent_hex": "#336699", "logo_file": "PRVR.png"},
+    )
+    with app.test_request_context("/"):
+        session["organizationcode"] = "PRVR"
+        ctx = _inject_brand()
+        assert ctx == {
+            "brand": {"name": "Provera", "accent_hex": "#336699", "logo_file": "PRVR.png"}
+        }
+        assert "brand" not in session
+
+
+def test_inject_brand_degrades_to_empty_dict_on_registry_failure(app, monkeypatch):
+    monkeypatch.setattr("nx_lib.hooks.brand_for_org", lambda code: None)
+    with app.test_request_context("/"):
+        session["organizationcode"] = "PRVR"
+        assert _inject_brand() == {"brand": {}}
+
+
 # ---------- init_app ----------
 
 
@@ -495,6 +524,7 @@ def test_init_app_registers_context_processors(app):
     proc_names = {p.__name__ for p in procs}
     assert "_inject_current_lang" in proc_names
     assert "_utility_processor" in proc_names
+    assert "_inject_brand" in proc_names
 
 
 # ---------- error handlers: /api/v1 JSON branch ----------

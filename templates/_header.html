@@ -31,6 +31,7 @@
            back to the legacy localStorage keys, then to the defaults. */
         (function () {
             var stored = {{ ui_prefs | tojson }};
+            var brand = {{ brand | tojson }};
             var d = document.documentElement;
             var ls = function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } };
             /* Resilience: if a save never reached the server (offline, 401),
@@ -40,8 +41,8 @@
             } catch (e) {}
             var eff = {
                 theme:      stored.theme      || (ls('nexora-theme') === 'dark' ? 'dark' : 'light'),
-                accent:     stored.accent     || 'indigo',
-                accentHex:  stored.accentHex  || '#4f46e5',
+                accent:     stored.accent     || (brand.accent_hex ? 'custom' : 'indigo'),
+                accentHex:  stored.accentHex  || brand.accent_hex || '#4f46e5',
                 motion:     stored.motion     || 'full',
                 entrance:   stored.entrance   || 'rise',
                 animspeed:  stored.animspeed  || 'normal',

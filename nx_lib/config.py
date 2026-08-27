@@ -88,6 +88,10 @@ class PATHS:
     screenshots = VAR_DIR / "screenshots"
     backups = VAR_DIR / "backups"
     test_results = VAR_DIR / "test-results"
+    # Uploaded org logos (#98 phase 4). Not under uploads/ -- unrelated
+    # lifecycle/permission model. Created lazily on first upload (Task 11),
+    # mirroring uploads/avatars/; nothing to read before that exists.
+    branding = VAR_DIR / "branding"
 
 
 # Only mkdir the dirs Flask actively writes to. screenshots/, backups/, and

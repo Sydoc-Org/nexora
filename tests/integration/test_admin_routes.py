@@ -32,6 +32,7 @@ Sections:
 - /api/admin/permissions/*  CRUD
 """
 
+import re
 import types as _types
 import uuid
 from unittest.mock import MagicMock
@@ -2154,3 +2155,162 @@ def test_api_admin_permission_crud_roundtrip(admin_client, admin_all_perms, db_c
     finally:
         del_resp = admin_client.delete(f"/api/admin/permissions/delete/{perm_id}")
         assert del_resp.status_code == 200
+
+
+# ============================ header brand injection (#98 phase 4, Task 10) ===
+#
+# TEST_ORG_CODE ("TEST", seeded by sql/test/seed.sql) has no BrandName/
+# BrandAccentHex/BrandLogoFile row content -- and the NEXORA_TEST database's
+# Organizations table predates those columns entirely (nx_lib/branding.py's
+# _is_missing_column_error path), so registry() already degrades to None on
+# every real request here. That gives the "no branding" and "registry
+# failure" cases the same natural coverage; the "org has branding" case is
+# exercised by monkeypatching nx_lib.hooks.brand_for_org directly.
+
+
+def _logo_block(html_bytes):
+    html = html_bytes.decode("utf-8")
+    m = re.search(r'<a[^>]*data-testid="nexora-logo-home".*?</a>', html, re.DOTALL)
+    assert m, "nexora-logo-home block not found in rendered page"
+    return m.group(0)
+
+
+def _expected_unbranded_logo_block(href):
+    """Today's pre-Task-10 markup, byte-for-byte -- an org with no branding
+    (or a branding.registry() failure) must reproduce this exactly."""
+    return (
+        f'<a href="{href}" class="brand title-wrap flex items-center gap-3" '
+        'data-testid="nexora-logo-home">\n'
+        '  <div class="bh" aria-hidden="true">\n'
+        '    <div class="bh-penumbra" aria-hidden="true"></div>\n'
+        '    <div class="bh-core"></div>\n'
+        '    <div class="bh-einstein-ring"></div>\n'
+        '    <div class="bh-disk"></div>\n'
+        '    <div class="bh-sparks" aria-hidden="true">\n'
+        "      <i></i><i></i>\n"
+        "    </div>\n"
+        "  </div>\n"
+        '  <div class="flex flex-col items-start">\n'
+        '    <h1 class="nexora-title text-3xl font-semibold tracking-tight">nexora</h1>\n'
+        '    <h2 class="nexora-subtitle text-xs font-semibold tracking-tight mt-1">powered by '
+        "sydoc</h2>\n"
+        "  </div>\n"
+        "</a>"
+    )
+
+
+def test_header_logo_unbranded_org_renders_todays_markup(admin_client, app):
+    """TEST org has no branding columns populated -- must be byte-identical
+    to the pre-Task-10 fallback markup."""
+    resp = admin_client.get("/admin")
+    assert resp.status_code == 200
+    block = _logo_block(resp.data)
+    with app.test_request_context("/admin"):
+        from flask import url_for
+
+        href = url_for("index")
+    assert block == _expected_unbranded_logo_block(href)
+
+
+def test_header_logo_registry_failure_renders_todays_markup(admin_client, app, monkeypatch):
+    """A branding.registry() failure (mirrored here as brand_for_org
+    returning None) must also degrade to today's exact markup -- never a
+    blank header."""
+    monkeypatch.setattr("nx_lib.hooks.brand_for_org", lambda code: None)
+    resp = admin_client.get("/admin")
+    assert resp.status_code == 200
+    block = _logo_block(resp.data)
+    with app.test_request_context("/admin"):
+        from flask import url_for
+
+        href = url_for("index")
+    assert block == _expected_unbranded_logo_block(href)
+
+
+def test_header_logo_branded_org_shows_brand_name_and_logo(admin_client, monkeypatch):
+    monkeypatch.setattr(
+        "nx_lib.hooks.brand_for_org",
+        lambda code: {"name": "Provera", "accent_hex": "#336699", "logo_file": "TEST.png"},
+    )
+    resp = admin_client.get("/admin")
+    assert resp.status_code == 200
+    block = _logo_block(resp.data)
+    assert "Provera" in block
+    assert ">nexora<" not in block
+    assert "<img" in block
+    assert "/branding/TEST/logo" in block or "TEST.png" in block
+
+
+def test_header_prepaint_injects_brand_json_and_accent_fallback(admin_client, monkeypatch):
+    monkeypatch.setattr(
+        "nx_lib.hooks.brand_for_org",
+        lambda code: {"name": "Provera", "accent_hex": "#336699", "logo_file": "TEST.png"},
+    )
+    resp = admin_client.get("/admin")
+    body = resp.data.decode("utf-8")
+    assert '"accent_hex": "#336699"' in body or '"accent_hex":"#336699"' in body
+    assert "var brand = " in body
+
+
+def test_header_prepaint_accent_fallback_source_uses_brand_then_hardcoded():
+    """Regression guard for D4 (spec): the *user's own* stored accent must
+    still win over the org brand accent, which itself only replaces the
+    previously-hardcoded default. Asserted against the template source since
+    exercising the inline pre-paint script needs a JS engine."""
+    with open("templates/_header.html", encoding="utf-8") as f:
+        src = f.read()
+    assert "accent:     stored.accent     || (brand.accent_hex ? 'custom' : 'indigo')," in src
+    assert "accentHex:  stored.accentHex  || brand.accent_hex || '#4f46e5'," in src
+
+
+# ============================ /branding/<orgcode>/logo route ==================
+
+
+def test_branding_logo_anonymous_is_rejected(client):
+    resp = client.get("/branding/TEST/logo")
+    assert resp.status_code in (401, 404)
+
+
+def test_branding_logo_unknown_org_is_404(admin_client):
+    resp = admin_client.get("/branding/NOPE/logo")
+    assert resp.status_code == 404
+
+
+def test_branding_logo_known_org_without_logo_file_is_404(admin_client, monkeypatch):
+    monkeypatch.setattr("nx_lib.views.core.brand_for_org", lambda code: {"logo_file": None})
+    resp = admin_client.get("/branding/TEST/logo")
+    assert resp.status_code == 404
+
+
+def test_branding_logo_missing_file_on_disk_is_404(admin_client, monkeypatch):
+    monkeypatch.setattr(
+        "nx_lib.views.core.brand_for_org", lambda code: {"logo_file": "TEST-missing.png"}
+    )
+    resp = admin_client.get("/branding/TEST/logo")
+    assert resp.status_code == 404
+
+
+def test_branding_logo_serves_file_with_hardening_headers(admin_client, monkeypatch, tmp_path):
+    monkeypatch.setattr("nx_lib.views.core.PATHS.branding", tmp_path)
+    (tmp_path / "TEST.png").write_bytes(b"\x89PNG\r\n\x1a\n")
+    monkeypatch.setattr("nx_lib.views.core.brand_for_org", lambda code: {"logo_file": "TEST.png"})
+    resp = admin_client.get("/branding/TEST/logo")
+    assert resp.status_code == 200
+    assert resp.headers.get("Content-Security-Policy") == "sandbox"
+    assert resp.headers.get("X-Content-Type-Options") == "nosniff"
+
+
+def test_branding_logo_path_traversal_via_logo_file_is_blocked(admin_client, monkeypatch, tmp_path):
+    """A hostile BrandLogoFile value must never escape var/branding/ -- even
+    though Task 11's upload path is expected to only ever write
+    <orgcode>.<ext>, defend the read side independently."""
+    secret_dir = tmp_path.parent / "secret"
+    secret_dir.mkdir()
+    (secret_dir / "hidden.png").write_bytes(b"top-secret")
+    monkeypatch.setattr("nx_lib.views.core.PATHS.branding", tmp_path)
+    monkeypatch.setattr(
+        "nx_lib.views.core.brand_for_org",
+        lambda code: {"logo_file": "../secret/hidden.png"},
+    )
+    resp = admin_client.get("/branding/TEST/logo")
+    assert resp.status_code == 404
