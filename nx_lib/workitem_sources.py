@@ -40,7 +40,10 @@ class WorkitemFilter:
     # independent IN-lists authorizes their full cross product (a caller
     # granted only (A, P1) and (B, P2) would also read (A, P2) and (B, P1)).
     client_process_pairs: list
-    activity_ignore_csv: str  # "'A','B'" string from ActivityInstancesToIgnore
+    # (client, process) -> frozenset of ActivityInstanceName to hide, scoped per
+    # process (see process_helpers.get_activity_instances_to_ignore) -- never a
+    # global list, a rule for one process must not hide another's activity.
+    activity_ignore_map: dict
     status_code: int | None = None
     search_id: str | None = None  # workitem id prefix to match (e.g. "11" -> 11, 110, 1199, ...)
     start_date: object = None
@@ -152,9 +155,12 @@ class SqlServerSource:
         where_clauses = [f"({pair_sql})"]
         if filt.status_code != _STATUS_DELETED:
             where_clauses.append("twi.Status <> 2")
-        if filt.activity_ignore_csv:
-            where_clauses.append(f"tai.ActivityInstanceName not in ({filt.activity_ignore_csv})")
-        params = list(pair_params)
+        ignore_sql, ignore_params = _activity_ignore_predicate(
+            filt.activity_ignore_map, "tp.ClientName", "tp.Name", "tai.ActivityInstanceName", "?"
+        )
+        if ignore_sql:
+            where_clauses.append(ignore_sql)
+        params = list(pair_params) + ignore_params
 
         if filt.status_code is not None:
             # The display CASE maps 0 -> Ready, 5 -> Done and EVERYTHING ELSE to
@@ -283,7 +289,7 @@ class SqlServerSource:
         finally:
             conn.close()
 
-    def recent_rows(self, pairs, activity_ignore_csv, top=3):
+    def recent_rows(self, pairs, activity_ignore_map, top=3):
         conn = self.engine.raw_connection()
         try:
             cur = conn.cursor()
@@ -292,8 +298,11 @@ class SqlServerSource:
                 "twi.Status <> 2",
                 f"({pair_sql})",
             ]
-            if activity_ignore_csv:
-                where_clauses.append(f"tai.ActivityInstanceName NOT IN ({activity_ignore_csv})")
+            ignore_sql, ignore_params = _activity_ignore_predicate(
+                activity_ignore_map, "tp.ClientName", "tp.Name", "tai.ActivityInstanceName", "?"
+            )
+            if ignore_sql:
+                where_clauses.append(ignore_sql)
             where = " AND ".join(where_clauses)
             cur.execute(
                 f"""
@@ -304,7 +313,7 @@ class SqlServerSource:
                 WHERE {where}
                 ORDER BY twi.ModifiedAt DESC
                 """,
-                pair_params,
+                pair_params + ignore_params,
             )
             return [
                 {
@@ -362,6 +371,34 @@ def _pair_predicate(pairs, client_expr, process_expr, marker):
     sql = " OR ".join(f"({client_expr} = {marker} AND {process_expr} = {marker})" for _ in pairs)
     params = [value for pair in pairs for value in pair]
     return sql, params
+
+
+def _activity_ignore_predicate(ignore_map, client_expr, process_expr, activity_expr, marker):
+    """Build a parameterized NOT(...) predicate excluding rows whose
+    (client, process, activity) matches an ActivityInstancesToIgnore rule --
+    e.g. "NOT ((tp.ClientName = ? AND tp.Name = ? AND tai.ActivityInstanceName
+    IN (?, ?)) OR (...))". Scoped per (client, process) key: a rule configured
+    for one process never hides a differently-named activity on another
+    process. Returns (sql, params); sql is None when ignore_map is falsy/empty
+    (omit the clause entirely rather than render NOT() of nothing)."""
+    if not ignore_map:
+        return None, []
+    clauses = []
+    params = []
+    for (client, process), names in ignore_map.items():
+        if not names:
+            continue
+        placeholders = ", ".join([marker] * len(names))
+        clauses.append(
+            f"({client_expr} = {marker} AND {process_expr} = {marker} "
+            f"AND {activity_expr} IN ({placeholders}))"
+        )
+        params.append(client)
+        params.append(process)
+        params.extend(sorted(names))
+    if not clauses:
+        return None, []
+    return "NOT (" + " OR ".join(clauses) + ")", params
 
 
 # OWNER-CONFIRMED doc-field index identifiers (see the plan's Owner-actions).
@@ -1082,9 +1119,16 @@ class PostgresSource:
         if filt.status_code != _STATUS_DELETED:
             clauses.append('twi."Status" <> 2')
         params = list(pair_params)
-        # activity_ignore_csv is a literal "'A','B'" list (already escaped upstream).
-        if filt.activity_ignore_csv:
-            clauses.append(f'tai."ActivityInstanceName" NOT IN ({filt.activity_ignore_csv})')
+        ignore_sql, ignore_params = _activity_ignore_predicate(
+            filt.activity_ignore_map,
+            'tp."ClientName"',
+            'tp."Name"',
+            'tai."ActivityInstanceName"',
+            "%s",
+        )
+        if ignore_sql:
+            clauses.append(ignore_sql)
+            params.extend(ignore_params)
         if filt.status_code is not None:
             # Same In-Progress bucket semantics as the SQL Server source.
             if filt.status_code == _STATUS_IN_PROGRESS:
@@ -1200,7 +1244,7 @@ class PostgresSource:
 
         return rows, total
 
-    def recent_rows(self, pairs, activity_ignore_csv, top=3):
+    def recent_rows(self, pairs, activity_ignore_map, top=3):
         conn = self.engine.raw_connection()
         try:
             cur = conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor)
@@ -1210,8 +1254,16 @@ class PostgresSource:
                 f"({pair_sql})",
             ]
             params = list(pair_params)
-            if activity_ignore_csv:
-                clauses.append(f'tai."ActivityInstanceName" NOT IN ({activity_ignore_csv})')
+            ignore_sql, ignore_params = _activity_ignore_predicate(
+                activity_ignore_map,
+                'tp."ClientName"',
+                'tp."Name"',
+                'tai."ActivityInstanceName"',
+                "%s",
+            )
+            if ignore_sql:
+                clauses.append(ignore_sql)
+                params.extend(ignore_params)
             where = " AND ".join(clauses)
             cur.execute(
                 f"""
@@ -1504,7 +1556,7 @@ def fetch_merged_page(filt, offset, limit):
     return page, total, degraded
 
 
-def recent_activity_rows(pairs, activity_ignore_csv, top=3):
+def recent_activity_rows(pairs, activity_ignore_map, top=3):
     """Top-N most recently modified workitems across all sources, merged.
     Each row: {id, modifiedat, process, client}.
 
@@ -1514,7 +1566,7 @@ def recent_activity_rows(pairs, activity_ignore_csv, top=3):
     out = []
     for src in active_sources():
         try:
-            out.extend(src.recent_rows(pairs, activity_ignore_csv, top))
+            out.extend(src.recent_rows(pairs, activity_ignore_map, top))
         except Exception as e:
             current_app.logger.error(f"recent_activity_rows {src.code}: {e}")
     out.sort(key=lambda r: r["modifiedat"], reverse=True)

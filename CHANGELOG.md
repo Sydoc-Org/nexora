@@ -181,6 +181,16 @@ Work toward the next release.
   `DB_NAME() = 'NEXORA_TEST'` on the live connection first. Third time this
   drop list has broken; it no longer needs maintaining.
 
+- **`ActivityInstancesToIgnore` rules were applied globally instead of
+  per-process.** The table has a `ProcessName` column precisely so an admin
+  can hide a `Deletion Marker`-style activity on one process without
+  affecting another, but the loader read `ActivityInstanceName` only and
+  discarded `ProcessName` — every configured rule was silently OR'd across
+  every process's workitem list and Recent Validations feed. The predicate is
+  now built per `(client, process)` (`_activity_ignore_predicate` in
+  `nx_lib/workitem_sources.py`), and is fully parameterized instead of
+  string-spliced into the SQL (no more manual quote-escaping).
+
 - **Reporting library: dashboard cards said "Delete report"** (#214). A
   library card's `…` menu now reads "Delete dashboard" when the card is a
   dashboard (`r.kind === 'dashboard'`), matching the "DASHBOARD" tag already

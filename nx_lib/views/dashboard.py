@@ -810,8 +810,8 @@ def api_recent_activity():
         # (client, process) pairs, NOT two independent client/process
         # IN-lists -- see _pair_predicate's docstring in workitem_sources.py.
         pairs = sorted({(p.split(".")[0], p.split(".")[-1]) for p in target_processes if "." in p})
-        activity_instances_to_ignore = get_activity_instances_to_ignore()
-        raw_rows = recent_activity_rows(pairs, activity_instances_to_ignore, top=3)
+        activity_ignore_map = get_activity_instances_to_ignore()
+        raw_rows = recent_activity_rows(pairs, activity_ignore_map, top=3)
 
         # Same sensitive-doc-field gate enforced at every other surface that
         # shows doc-fields (workitems.filter.documentfields.sensitive) --

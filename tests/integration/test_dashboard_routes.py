@@ -140,7 +140,7 @@ def test_recent_activity_forwards_row_client_as_hint(user_client, monkeypatch):
         "load_permissions_for_user",
         lambda uid: ["dashboard.view", "dashboard.filter.process.ms02.TestProc"],
     )
-    monkeypatch.setattr(dv, "get_activity_instances_to_ignore", lambda: "")
+    monkeypatch.setattr(dv, "get_activity_instances_to_ignore", lambda: {})
 
     row = {
         "id": 1216,
@@ -188,7 +188,7 @@ def test_recent_activity_skips_row_when_workitemdata_lookup_fails(user_client, m
         "load_permissions_for_user",
         lambda uid: ["dashboard.view", "dashboard.filter.process.sydoc.TestProc"],
     )
-    monkeypatch.setattr(dv, "get_activity_instances_to_ignore", lambda: "")
+    monkeypatch.setattr(dv, "get_activity_instances_to_ignore", lambda: {})
 
     good_row = {
         "id": 111,
@@ -241,7 +241,7 @@ def test_recent_activity_strips_sensitive_fields_without_perm(user_client, monke
         "load_permissions_for_user",
         lambda uid: ["dashboard.view", "dashboard.filter.process.sydoc.TestProc"],
     )
-    monkeypatch.setattr(dv, "get_activity_instances_to_ignore", lambda: "")
+    monkeypatch.setattr(dv, "get_activity_instances_to_ignore", lambda: {})
     monkeypatch.setattr(wv, "get_sensitive_field_tokens", lambda: {"pid"})
 
     row = {
@@ -288,7 +288,7 @@ def test_recent_activity_rows_include_client_key(user_client, monkeypatch):
         "load_permissions_for_user",
         lambda uid: ["dashboard.view", "dashboard.filter.process.ms02.TestProc"],
     )
-    monkeypatch.setattr(dv, "get_activity_instances_to_ignore", lambda: "")
+    monkeypatch.setattr(dv, "get_activity_instances_to_ignore", lambda: {})
 
     row = {
         "id": 1216,
@@ -333,11 +333,11 @@ def test_recent_activity_route_derives_granted_pairs_not_cross_product(user_clie
             "dashboard.filter.process.B.P2",
         ],
     )
-    monkeypatch.setattr(dv, "get_activity_instances_to_ignore", lambda: "")
+    monkeypatch.setattr(dv, "get_activity_instances_to_ignore", lambda: {})
 
     calls = []
 
-    def _fake_recent_activity_rows(pairs, activity_ignore_csv, top=3):
+    def _fake_recent_activity_rows(pairs, activity_ignore_map, top=3):
         calls.append(pairs)
         return []
 
