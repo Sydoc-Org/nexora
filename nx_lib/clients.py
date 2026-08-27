@@ -96,6 +96,7 @@ def _build_clients():
         rows = cur.fetchall()
 
         result = {}
+        default_skip_reason = None
         for r in rows:
             if not r.IsActive:
                 continue
@@ -103,6 +104,13 @@ def _build_clients():
             env_domain, client_id, secret, grant_type = _creds_for(r.SecretRef)
             octo_domain = r.OctoDomain or env_domain
             if runtime_engine is None or not octo_domain:
+                if r.ClientCode == "default":
+                    reasons = []
+                    if runtime_engine is None:
+                        reasons.append(f"unresolved RuntimeEngineKey {r.RuntimeEngineKey!r}")
+                    if not octo_domain:
+                        reasons.append("no resolvable Octo domain")
+                    default_skip_reason = " and ".join(reasons)
                 continue
             result[r.ClientCode] = ClientConfig(
                 code=r.ClientCode,
@@ -122,6 +130,11 @@ def _build_clients():
         # applied to MS02 (D5: preserve today's degradation verbatim), and
         # workitem_sources.py indexes CLIENTS["default"] unguarded.
         if "default" not in result:
+            if default_skip_reason:
+                logger.warning(
+                    f"clients registry: active 'default' row skipped ({default_skip_reason}); "
+                    "substituting hardcoded default"
+                )
             result.update(_hardcoded_default())
         return result
     except Exception as e:

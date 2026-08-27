@@ -6,6 +6,7 @@ back to a hardcoded default-only registry so the app still boots (e.g. on TEST, 
 has no dbo.Clients).
 """
 
+import logging
 import types
 from unittest.mock import MagicMock
 
@@ -183,6 +184,39 @@ def test_default_survives_engine_and_domain_degradation(monkeypatch):
 
     assert "default" in result
     assert result["default"].code == "default"
+
+
+def test_default_row_skipped_logs_warning(monkeypatch, caplog):
+    """Case 2 (active 'default' row present but dropped by the skip guard) must
+    log a warning naming what was wrong -- an admin saving a bad 'default' row
+    through the phase-B UI should not be silently swapped to stale env config."""
+    monkeypatch.setattr(clients, "engine_octo_db", None)
+    monkeypatch.setattr(clients.cfg, "OCTO_DOMAIN", None)
+    eng, _ = _engine_with([_row(runtime_engine_key="engine_octo_db", octo_domain=None)])
+    monkeypatch.setattr(clients, "engine_nexora_db", eng)
+
+    with caplog.at_level(logging.WARNING, logger="nx_lib.clients"):
+        result = clients._build_clients()
+
+    assert "default" in result
+    assert any(
+        "default" in rec.message and "unresolved" in rec.message.lower() for rec in caplog.records
+    )
+
+
+def test_no_default_row_at_all_logs_no_warning(monkeypatch, caplog):
+    """Case 1 (dbo.Clients simply has no 'default' row) is benign -- the
+    hardcoded fallback is exactly right and must stay silent."""
+    monkeypatch.setattr(clients, "engine_octo_db", "ENGINE_OCTO")
+    monkeypatch.setattr(clients, "engine_statistics_db", "ENGINE_STATS")
+    eng, _ = _engine_with([])  # no rows at all
+    monkeypatch.setattr(clients, "engine_nexora_db", eng)
+
+    with caplog.at_level(logging.WARNING, logger="nx_lib.clients"):
+        result = clients._build_clients()
+
+    assert "default" in result
+    assert caplog.records == []
 
 
 def test_build_clients_prefers_db_octo_domain_over_env(monkeypatch):
