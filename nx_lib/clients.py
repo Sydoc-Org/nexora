@@ -19,6 +19,19 @@ from .db import (
 
 logger = logging.getLogger(__name__)
 
+# Why a module attribute and not just the logger: _build_clients() runs at
+# import time, BEFORE Flask configures logging, so the logger.error() below
+# reaches stderr (waitress-stdout*) but never app.log and nothing surfaces it
+# in the UI. When dbo.Clients cannot be read the registry silently collapses to
+# 'default' only -- every non-default runtime (MS02) disappears for the whole
+# process lifetime, until the next app-pool recycle. Recording the reason here
+# lets /admin/clients and /admin/status show an operator that what they are
+# looking at is not what the app is actually running on.
+#
+# Deliberately NOT a retry loop or a TTL: CLIENTS staying import-time-only is a
+# locked decision (spec D4) -- this only makes the degradation visible.
+REGISTRY_DEGRADED_REASON = None
+
 
 def _engines():
     """{RuntimeEngineKey/StatsEngineKey/DocfieldsEngineKey -> engine object}.
@@ -100,6 +113,8 @@ def _build_clients():
     Any load failure (e.g. dbo.Clients missing, as on TEST) falls back to the
     hardcoded default-only registry so the app still boots.
     """
+    global REGISTRY_DEGRADED_REASON
+    REGISTRY_DEGRADED_REASON = None
     engines = _engines()
 
     conn = None
@@ -156,6 +171,9 @@ def _build_clients():
             result.update(_hardcoded_default())
         return result
     except Exception as e:
+        # Record the degradation on the module BEFORE logging: this must not
+        # depend on logging having been configured (it has not been, yet).
+        REGISTRY_DEGRADED_REASON = f"{type(e).__name__}: {e}"
         logger.error(f"clients registry load: {e}")
         return _hardcoded_default()
     finally:

@@ -49,6 +49,20 @@
             icon='fa-heart-pulse'
         ) }}
 
+        {% if clients_registry_degraded_reason %}
+        {# Not something the outage monitor can see: it happened once, at import,
+           before Flask configured logging. Surfaced here because this is the page
+           an operator opens when something is wrong. #}
+        <div class="nx-card nx-bg-lred" style="margin-bottom:16px;padding:12px 16px" data-testid="status-clients-degraded">
+            <strong class="nx-c-danger"><i class="fas fa-triangle-exclamation"></i>
+                {{ _("Client registry degraded") }}</strong>
+            <p class="nx-c-sec" style="font-size:0.85rem;margin:4px 0 0">
+                {{ _("dbo.Clients could not be read at startup, so this process is running on the built-in 'default' client only. Fix the database access and recycle the app pool.") }}
+                <span class="nx-mono">{{ clients_registry_degraded_reason }}</span>
+            </p>
+        </div>
+        {% endif %}
+
         <!-- Headline state + how-bad-is-it counts -->
         <div class="nx-card status-hero status-hero--{{ status.overall }} nx-rise">
             <span class="status-hero-icon"><i class="fas {{ state_icons[status.overall] }}"></i></span>

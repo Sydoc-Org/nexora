@@ -42,6 +42,9 @@ from unittest.mock import MagicMock
 import pyodbc
 import pytest
 
+import nx_lib.views.admin as admin_module
+import nx_lib.views.core as core_views
+
 
 @pytest.fixture()
 def admin_all_perms(monkeypatch):
@@ -522,6 +525,72 @@ def test_admin_clients_view_only_gets_no_edit_affordances(
     assert "admin-client-delete-ms02" not in html
 
 
+# ---- configured state vs resolved state -------------------------------------
+#
+# 0079's seed is unconditional, so PROD gets an 'ms02' row whether or not
+# env/PROD.env carries the MS02_* keys. Without them _build_clients() skips the
+# row and the page would still say "Active: Yes" for a runtime that serves
+# nothing.
+
+
+def test_admin_clients_marks_a_row_the_registry_did_not_load(
+    admin_client, admin_all_perms, fake_clients_db, monkeypatch
+):
+    monkeypatch.setattr("nx_lib.views.admin.has_permission", lambda code: True)
+    monkeypatch.setattr(
+        admin_module.clients_registry, "CLIENTS", {"default": object()}, raising=False
+    )
+    html = admin_client.get("/admin/clients").data.decode()
+    ms02 = html.split('data-testid="admin-client-loaded-ms02"')[1].split("</td>")[0]
+    default = html.split('data-testid="admin-client-loaded-default"')[1].split("</td>")[0]
+    assert "Configured, not loaded" in ms02
+    assert "Configured, not loaded" not in default
+    assert "Loaded" in default
+
+
+def test_admin_clients_marks_every_row_loaded_when_the_registry_holds_them(
+    admin_client, admin_all_perms, fake_clients_db, monkeypatch
+):
+    monkeypatch.setattr("nx_lib.views.admin.has_permission", lambda code: True)
+    monkeypatch.setattr(
+        admin_module.clients_registry,
+        "CLIENTS",
+        {"default": object(), "ms02": object()},
+        raising=False,
+    )
+    html = admin_client.get("/admin/clients").data.decode()
+    assert "Configured, not loaded" not in html
+
+
+def test_admin_clients_shows_a_banner_when_the_registry_is_degraded(
+    admin_client, admin_all_perms, fake_clients_db, monkeypatch
+):
+    """A boot-time dbo.Clients failure drops every non-default runtime for the
+    whole process lifetime, and its only other signal is a stderr line written
+    before Flask configured logging."""
+    monkeypatch.setattr("nx_lib.views.admin.has_permission", lambda code: True)
+    monkeypatch.setattr(
+        admin_module.clients_registry,
+        "REGISTRY_DEGRADED_REASON",
+        "RuntimeError: NexoraDB down",
+        raising=False,
+    )
+    html = admin_client.get("/admin/clients").data.decode()
+    assert 'data-testid="admin-clients-degraded"' in html
+    assert "NexoraDB down" in html
+
+
+def test_admin_clients_has_no_banner_when_the_registry_is_healthy(
+    admin_client, admin_all_perms, fake_clients_db, monkeypatch
+):
+    monkeypatch.setattr("nx_lib.views.admin.has_permission", lambda code: True)
+    monkeypatch.setattr(
+        admin_module.clients_registry, "REGISTRY_DEGRADED_REASON", None, raising=False
+    )
+    html = admin_client.get("/admin/clients").data.decode()
+    assert 'data-testid="admin-clients-degraded"' not in html
+
+
 def test_admin_clients_add_gated(noperm_client):
     resp = noperm_client.post("/admin/clients/add", json={})
     assert resp.status_code == 403
@@ -809,13 +878,15 @@ def test_api_admin_processes_list_returns_503_on_registry_none(
 class _FakeMappingDb:
     """Tiny in-memory stand-in for the three tables the write endpoints touch."""
 
-    def __init__(self, sources=(), mappings=(), permissions=()):
+    def __init__(self, sources=(), mappings=(), permissions=(), clients=("default", "ms02")):
         self.sources = set(sources)
         self.mappings = set(mappings)
         self.permissions = set(permissions)
+        self.clients = set(clients)
         self.calls = []  # ordered log of ("SQL", params) plus ("COMMIT", None)
         self.rowcount = 0
         self._last = ""
+        self._fetchall = []
 
     # -- DBAPI-ish surface -------------------------------------------------
     def raw_connection(self):
@@ -833,14 +904,25 @@ class _FakeMappingDb:
     def fetchone(self):
         return self._fetchone
 
+    def fetchall(self):
+        return self._fetchall
+
     def execute(self, sql, params=None):
         self.calls.append((sql, params))
         self._last = sql
         self._fetchone = None
+        self._fetchall = []
         self.rowcount = 0
         flat = " ".join(sql.split())
 
-        if flat.startswith("INSERT INTO dbo.ProcessSources"):
+        if flat.startswith("SELECT ClientCode, ProcessName FROM dbo.ProcessSources"):
+            # The reduction-collision scan run before every source INSERT.
+            self._fetchall = sorted(self.sources)
+        elif flat.startswith("SELECT ClientCode FROM dbo.Clients"):
+            self._fetchall = [(c,) for c in sorted(self.clients)]
+        elif flat.startswith("SELECT COUNT(*) FROM dbo.Clients"):
+            self._fetchone = (1 if params[0] in self.clients else 0,)
+        elif flat.startswith("INSERT INTO dbo.ProcessSources"):
             key = (params[0], params[1])
             if key in self.sources:
                 raise pyodbc.IntegrityError("23000", "PK_ProcessSources")
@@ -1021,6 +1103,173 @@ def test_process_source_add_permission_provisioning_is_idempotent(
 
 
 # ---- cache invalidation on every write path (D8) ----------------------------
+
+
+# ---- ProcessName shape: the entitlement invariant ---------------------------
+#
+# Every consumer of workitems.filter.process.<ProcessName> derives the process
+# name back out of the permission code as exactly the last two dot-segments
+# (nx_lib/views/workitems.py, nx_lib/process_helpers.py). Before this page
+# existed the two-segment invariant held because process names were
+# migration-controlled; now an admin types them, so the endpoint has to enforce
+# it -- every shape below fails SILENTLY at runtime otherwise.
+
+
+def _derive_process_from_permission(code):
+    """Exactly what workitems.py / process_helpers.py do to a permission code."""
+    parts = code.split(".")
+    return f"{parts[-2]}.{parts[-1]}"
+
+
+@pytest.mark.parametrize(
+    "bad_name",
+    [
+        "Invoice",  # no dot -> derives as "process.Invoice", grant never matches
+        "acme.eu.01_Invoice",  # three parts -> derives as "eu.01_Invoice"
+        "a.b.c.d",
+        ".leading",
+        "trailing.",
+        "two..dots",
+    ],
+)
+def test_process_source_add_rejects_names_the_permission_layer_misparses(
+    admin_client, admin_all_perms, fake_mapping_db, spy_invalidate, bad_name
+):
+    resp = admin_client.post(
+        "/admin/processes/sources/add", json=dict(_VALID_SOURCE, ProcessName=bad_name)
+    )
+    assert resp.status_code == 400, resp.get_json()
+    assert "<customer>.<process>" in resp.get_json()["message"]
+    # Nothing written, nothing provisioned, nothing invalidated.
+    assert not any(n for _c, n in fake_mapping_db.sources if n == bad_name)
+    assert f"workitems.filter.process.{bad_name}" not in fake_mapping_db.permissions
+    assert spy_invalidate == []
+
+
+@pytest.mark.parametrize("bad_name", ["Invoice", "acme.eu.01_Invoice"])
+def test_the_rejected_shapes_really_would_have_mis_derived(bad_name):
+    """Guard the premise of the test above rather than just asserting a regex:
+    these names do NOT round-trip through the permission code."""
+    assert _derive_process_from_permission(f"workitems.filter.process.{bad_name}") != bad_name
+
+
+def test_two_segment_names_round_trip_through_the_permission_code():
+    for name in ("acme.01_Invoice", "privera.02_Posteingang", "sydoc.05_PDBS", "a-b.c_d"):
+        assert admin_module._PROCESS_NAME_RE.match(name), name
+        assert _derive_process_from_permission(f"workitems.filter.process.{name}") == name
+
+
+def test_every_process_name_on_int_still_passes_the_tightened_pattern():
+    """The pattern may not reject config that already exists. Every ProcessName
+    literal that appears in sql/_migrations/NexoraDB/*.sql."""
+    for name in (
+        "sydoc.05_PDBS",
+        "sydoc.praesidialdepartement_bs",
+        "privera.02_Posteingang",
+        "privera.02_InitialScan",
+        "privera.03_Invoice_New",
+        "compass.01_Invoice_SAP",
+        "elektromaterial.02_Invoice",
+    ):
+        assert admin_module._PROCESS_NAME_RE.match(name), name
+
+
+def test_field_key_keeps_the_looser_shape(
+    admin_client, admin_all_perms, fake_mapping_db, spy_invalidate
+):
+    """FieldKey never becomes a permission code, so tightening ProcessName must
+    not have tightened it too -- 'doctype' has no dot."""
+    resp = admin_client.post(
+        "/admin/processes/fields/add", json=dict(_VALID_FIELD, FieldKey="doc.type.long")
+    )
+    assert resp.status_code == 200, resp.get_json()
+
+
+def test_process_source_add_rejects_a_name_that_reduces_onto_an_existing_grant(
+    admin_client, admin_all_perms, spy_invalidate, monkeypatch
+):
+    """A legacy three-segment row 'x.acme.01_Invoice' reduces to
+    'acme.01_Invoice'. Adding that two-segment name would silently share one
+    entitlement with a different customer's process."""
+    db = _FakeMappingDb(sources={("ms02", "x.acme.01_Eingang")})
+    monkeypatch.setattr(admin_module, "engine_nexora_db", db)
+
+    resp = admin_client.post("/admin/processes/sources/add", json=_VALID_SOURCE)
+    assert resp.status_code == 409, resp.get_json()
+    assert "x.acme.01_Eingang" in resp.get_json()["message"]
+    assert ("default", "acme.01_Eingang") not in db.sources
+    assert spy_invalidate == []
+
+
+def test_process_source_add_rejects_the_same_name_under_a_different_client(
+    admin_client, admin_all_perms, spy_invalidate, monkeypatch
+):
+    """The permission code carries no ClientCode, so the same ProcessName under
+    two clients is one shared entitlement, not two."""
+    db = _FakeMappingDb(sources={("ms02", "acme.01_Eingang")})
+    monkeypatch.setattr(admin_module, "engine_nexora_db", db)
+
+    resp = admin_client.post("/admin/processes/sources/add", json=_VALID_SOURCE)
+    assert resp.status_code == 409, resp.get_json()
+    assert ("default", "acme.01_Eingang") not in db.sources
+
+
+def test_process_source_add_allows_a_non_colliding_name(
+    admin_client, admin_all_perms, fake_mapping_db, spy_invalidate
+):
+    """The collision check must not turn into a blanket refusal."""
+    resp = admin_client.post("/admin/processes/sources/add", json=_VALID_SOURCE)
+    assert resp.status_code == 200, resp.get_json()
+    assert ("default", "acme.01_Eingang") in fake_mapping_db.sources
+
+
+# ---- ClientCode must be a real dbo.Clients row ------------------------------
+
+
+def test_process_source_add_rejects_an_unknown_client_code(
+    admin_client, admin_all_perms, fake_mapping_db, spy_invalidate
+):
+    """No FK ties ProcessSources.ClientCode to dbo.Clients (0079 adds none on
+    purpose), so a typo would otherwise create config that never resolves."""
+    resp = admin_client.post(
+        "/admin/processes/sources/add", json=dict(_VALID_SOURCE, ClientCode="defualt")
+    )
+    assert resp.status_code == 400, resp.get_json()
+    assert "defualt" in resp.get_json()["message"]
+    assert ("defualt", "acme.01_Eingang") not in fake_mapping_db.sources
+    assert "workitems.filter.process.acme.01_Eingang" not in fake_mapping_db.permissions
+    assert spy_invalidate == []
+
+
+def test_process_source_add_checks_the_client_before_writing_anything(
+    admin_client, admin_all_perms, fake_mapping_db
+):
+    admin_client.post("/admin/processes/sources/add", json=dict(_VALID_SOURCE, ClientCode="nope"))
+    assert not any(st.startswith("INSERT") for st in fake_mapping_db.statements())
+    assert ("COMMIT", None) not in fake_mapping_db.calls
+
+
+def test_processes_page_offers_a_client_picker_not_free_text(
+    admin_client, admin_all_perms, mapping_config_with_six_rows, monkeypatch
+):
+    monkeypatch.setattr("nx_lib.views.admin.has_permission", lambda code: True)
+    monkeypatch.setattr(admin_module, "_client_codes", lambda: ["default", "ms02"])
+    resp = admin_client.get("/admin/processes")
+    html = resp.get_data(as_text=True)
+    assert 'id="ClientCode"' in html
+    assert '<select id="ClientCode"' in html
+    assert '<option value="ms02">' in html
+
+
+def test_processes_page_falls_back_to_free_text_when_clients_unreadable(
+    admin_client, admin_all_perms, mapping_config_with_six_rows, monkeypatch
+):
+    """An unreadable dbo.Clients must not leave an empty picker that blocks
+    every add."""
+    monkeypatch.setattr("nx_lib.views.admin.has_permission", lambda code: True)
+    monkeypatch.setattr(admin_module, "_client_codes", lambda: [])
+    html = admin_client.get("/admin/processes").get_data(as_text=True)
+    assert '<input type="text" id="ClientCode"' in html
 
 
 def test_every_process_write_path_invalidates_mapping_config(
@@ -2388,6 +2637,18 @@ def test_branding_logo_serves_file_with_hardening_headers(admin_client, monkeypa
     assert resp.status_code == 200
     assert resp.headers.get("Content-Security-Policy") == "sandbox"
     assert resp.headers.get("X-Content-Type-Options") == "nosniff"
+
+
+def test_branding_logo_is_cacheable(admin_client, monkeypatch, tmp_path):
+    """The header fetches this on every page load of a branded org. Flask's
+    default max_age is None -- a conditional round-trip per page view."""
+    monkeypatch.setattr("nx_lib.views.core.PATHS.branding", tmp_path)
+    (tmp_path / "TEST.png").write_bytes(b"\x89PNG\r\n\x1a\n")
+    monkeypatch.setattr("nx_lib.views.core.brand_for_org", lambda code: {"logo_file": "TEST.png"})
+    resp = admin_client.get("/branding/TEST/logo")
+    assert resp.status_code == 200
+    assert "max-age=" in (resp.headers.get("Cache-Control") or "")
+    assert resp.cache_control.max_age == core_views.BRANDING_LOGO_MAX_AGE > 0
 
 
 # ---- the same assertion, but with Talisman active (i.e. the way PROD runs) ---

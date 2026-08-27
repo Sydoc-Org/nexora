@@ -116,7 +116,7 @@ def _reload_user_permissions():
     the per-process TTL cache (nx_lib/user_cache.py) so ~500 users no longer
     mean one spGetUserPermissions round-trip per click and per heartbeat.
     _invalidate_user_cache() drops entries the moment an admin writes."""
-    if request.path.startswith(("/static", "/avatar")):
+    if request.path.startswith(("/static", "/avatar", "/branding")):
         return
     if "userid" in session:
         uid = str(session["userid"])
@@ -150,7 +150,7 @@ def _load_user_ui_prefs():
     old prefs, making saves look non-persistent (#155). A process-local dict has
     no such race, and POST /profile/ui_prefs drops the user's entry
     (_invalidate_user_cache) so a save shows on the very next request."""
-    if request.path.startswith(("/static", "/avatar")):
+    if request.path.startswith(("/static", "/avatar", "/branding")):
         return
     if "userid" in session:
         uid = session["userid"]
@@ -195,7 +195,7 @@ def _enforce_maintenance_lockout():
 
 
 def _log_every_request(response):
-    if request.path.startswith(("/static", "/avatar")):
+    if request.path.startswith(("/static", "/avatar", "/branding")):
         return response
     duration = time.time() - request.start_time if hasattr(request, "start_time") else 0
 

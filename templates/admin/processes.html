@@ -27,7 +27,7 @@
 
         <p class="nx-c-meta" style="font-size:0.85rem;margin:-8px 0 8px" data-testid="admin-processes-help">
             <i class="fas fa-circle-info"></i>
-            {{ _("\"Client\" here is a runtime source (default/ms02, see Clients) -- not a customer organization. Process names are customer-prefixed by convention only (e.g. privera.02_Posteingang); this page never parses that prefix.") }}
+            {{ _("\"Client\" here is a runtime source (default/ms02, see Clients) -- not a customer organization. A process name must be exactly <customer>.<process> (e.g. privera.02_Posteingang): the permission that grants access to it is derived from those two parts, so any other shape can never be granted.") }}
         </p>
 
         {% if can_edit %}
@@ -137,11 +137,25 @@
                 <div class="space-y-4">
                     <div>
                         <label for="ClientCode" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Client Code (runtime source)") }}</label>
+                        {# Nothing in the schema ties ProcessSources.ClientCode to dbo.Clients,
+                           so a free-text typo used to create config that can never resolve.
+                           The picker is the first line of defence; the add endpoint re-checks.
+                           If dbo.Clients could not be read the picker would be empty and block
+                           every add, so fall back to the old free-text input in that case. #}
+                        {% if client_codes %}
+                        <select id="ClientCode" name="ClientCode" class="nx-select" required data-testid="admin-process-source-client">
+                            <option value="">{{ _("Select a client...") }}</option>
+                            {% for code in client_codes %}
+                            <option value="{{ code }}">{{ code }}</option>
+                            {% endfor %}
+                        </select>
+                        {% else %}
                         <input type="text" id="ClientCode" name="ClientCode" class="nx-input" pattern="[a-z0-9_]{2,50}" required data-testid="admin-process-source-client">
+                        {% endif %}
                     </div>
                     <div>
                         <label for="ProcessName" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Process Name") }}</label>
-                        <input type="text" id="ProcessName" name="ProcessName" class="nx-input" pattern="[A-Za-z0-9_.\-]{1,100}" placeholder="privera.02_Posteingang" required data-testid="admin-process-source-process">
+                        <input type="text" id="ProcessName" name="ProcessName" class="nx-input" pattern="[A-Za-z0-9_\-]{1,49}\.[A-Za-z0-9_\-]{1,50}" title="{{ _('Exactly <customer>.<process> -- two parts separated by a single dot, e.g. acme.01_Invoice.') }}" placeholder="privera.02_Posteingang" required data-testid="admin-process-source-process">
                     </div>
                     <div>
                         <label for="TableName" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Table Name") }}</label>

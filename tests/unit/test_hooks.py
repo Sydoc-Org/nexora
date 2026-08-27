@@ -15,6 +15,7 @@ from nx_lib.hooks import (
     _inject_current_lang,
     _internal_error,
     _load_user_locale,
+    _load_user_ui_prefs,
     _log_every_request,
     _page_not_found,
     _reload_user_permissions,
@@ -571,3 +572,40 @@ def test_permission_denied_api_v1_returns_json(app):
         body, status = _handle_permission_denied(PermissionDenied())
         assert status == 403
         assert body.get_json() == {"error": "Forbidden"}
+
+
+# ---------- /branding is skipped like /avatar ----------
+#
+# The header fetches /branding/<orgcode>/logo on every page load of a branded
+# org, exactly like /avatar/<id>. Without the skip it costs a permission
+# refresh, a ui-prefs refresh and one extra CSV row in var/logs/user/ per page
+# view -- roughly doubling the request log and skewing /admin/logs.
+
+
+def test_reload_user_permissions_skips_branding(app):
+    with app.test_request_context("/branding/ACME/logo"):
+        session["userid"] = 42
+        with patch.object(hooks_mod, "load_permissions_for_user") as loader:
+            _reload_user_permissions()
+        loader.assert_not_called()
+
+
+def test_load_user_ui_prefs_skips_branding(app):
+    with app.test_request_context("/branding/ACME/logo"):
+        session["userid"] = 42
+        with patch.object(hooks_mod, "load_ui_prefs") as loader:
+            _load_user_ui_prefs()
+        loader.assert_not_called()
+
+
+def test_log_every_request_skips_branding(app, tmp_path, monkeypatch):
+    fake_paths = MagicMock()
+    fake_paths.logs = tmp_path
+    monkeypatch.setattr(hooks_mod, "PATHS", fake_paths)
+    fake_response = MagicMock(status_code=200)
+
+    with app.test_request_context("/branding/ACME/logo"):
+        result = _log_every_request(fake_response)
+
+    assert result is fake_response
+    assert not list(tmp_path.rglob("nexora_logs.csv"))

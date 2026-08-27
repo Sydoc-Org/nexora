@@ -82,6 +82,28 @@
         document.getElementById('sourceModalCancelBtn').addEventListener('click', () => closeModal(sourceModal));
         document.getElementById('fieldModalCancelBtn').addEventListener('click', () => closeModal(fieldModal));
 
+        // ClientCode is a <select> populated from dbo.Clients, except when that
+        // read failed, when the template falls back to a text input -- so set
+        // and lock it through one helper instead of assuming a tag. A select
+        // cannot be readOnly; locking it means disabling it, which drops it from
+        // the FormData -- harmless, because the edit endpoint takes identity
+        // from the URL and ignores the payload's ClientCode. An orphan client
+        // code (a ProcessSources row whose dbo.Clients row is gone) gets an
+        // option added on the fly so edit still shows the truth.
+        function setSourceClient(value, locked) {
+            const el = document.getElementById('ClientCode');
+            if (el.tagName === 'SELECT') {
+                if (value && !Array.from(el.options).some(o => o.value === value)) {
+                    el.add(new Option(value, value));
+                }
+                el.value = value || '';
+                el.disabled = locked;
+            } else {
+                el.value = value || '';
+                el.readOnly = locked;
+            }
+        }
+
         // Bound by the delegated data-nx-click handler in _header.html, so it has
         // to be a window global.
         window.openAddProcessSourceModal = function () {
@@ -89,7 +111,7 @@
             document.getElementById('sourceModalTitle').textContent = `{{ _("Add a process source") }}`;
             document.getElementById('sourceOriginalClient').value = '';
             document.getElementById('sourceOriginalProcess').value = '';
-            document.getElementById('ClientCode').readOnly = false;
+            setSourceClient('', false);
             document.getElementById('ProcessName').readOnly = false;
             openModal(sourceModal);
         };
@@ -101,8 +123,7 @@
             document.getElementById('sourceOriginalProcess').value = source.process;
             // (ClientCode, ProcessName) is the primary key and the suffix of the
             // process permission -- a rename here would strand both.
-            document.getElementById('ClientCode').value = source.client;
-            document.getElementById('ClientCode').readOnly = true;
+            setSourceClient(source.client, true);
             document.getElementById('ProcessName').value = source.process;
             document.getElementById('ProcessName').readOnly = true;
             document.getElementById('TableName').value = source.table || '';

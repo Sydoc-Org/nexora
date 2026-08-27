@@ -28,6 +28,7 @@ from flask_babel import gettext as _
 from werkzeug.exceptions import HTTPException
 from werkzeug.utils import secure_filename
 
+from .. import clients as clients_registry
 from .. import mapping_config, status
 from ..branding import _HEX_RE, invalidate_branding
 from ..branding import registry as branding_registry
@@ -517,10 +518,19 @@ def admin_clients_view():
             dict(zip([column[0] for column in cursor.description], row, strict=False))
             for row in cursor.fetchall()
         ]
+        # Configured state (the table) is not resolved state (what the process
+        # actually runs on). 0079's seed is unconditional, so PROD gets an
+        # 'ms02' row whether or not env/PROD.env carries the MS02_* keys -- and
+        # without them _build_clients() skips it, leaving the page cheerfully
+        # reporting "Active: Yes" for a runtime that does not exist. Mark each
+        # row with whether the live registry actually holds it.
+        for client in clients:
+            client["loaded"] = client.get("ClientCode") in clients_registry.CLIENTS
 
         return render_template(
             "admin/clients.html",
             clients=clients,
+            registry_degraded_reason=clients_registry.REGISTRY_DEGRADED_REASON,
             can_edit=has_permission("admin.edit.clients"),
             logged_in_user=session.get("username"),
             userid=session.get("userid"),
@@ -795,6 +805,7 @@ def admin_processes_view():
         mapping_config_available=reg is not None,
         can_edit=has_permission("admin.edit.processes"),
         clients_data=clients_data,
+        client_codes=_client_codes(),
         logged_in_user=session.get("username"),
         userid=session.get("userid"),
         page_visibility=page_visibility(),
@@ -826,10 +837,23 @@ def api_admin_processes_list():
 
 # --------------------- processes (mapping config, writes) -------------------------- #
 
-# ProcessName / FieldKey. Process names are customer-prefixed by convention
-# only (privera.02_Posteingang) -- the dot is just a character here, never
-# parsed or split on.
-_PROCESS_NAME_RE = re.compile(r"^[A-Za-z0-9_.\-]{1,100}$")
+# ProcessName MUST be exactly <customer>.<process> -- two dot-separated
+# segments, no more, no fewer. This is NOT cosmetic and NOT "convention only":
+# every consumer of the auto-provisioned workitems.filter.process.<ProcessName>
+# permission reconstructs the process name from the permission code as exactly
+# the LAST TWO dot-segments (nx_lib/views/workitems.py, nx_lib/process_helpers.py
+# `parts[-2], parts[-1]`). A one-segment name ("Invoice") derives back as
+# "process.Invoice" and the grant silently never matches; a three-segment name
+# ("acme.eu.01_Invoice") derives back as "eu.01_Invoice", same silent dead end;
+# and worse, "x.acme.01_Invoice" reduces to "acme.01_Invoice", so it would
+# piggyback on another customer's existing grant. Until this page existed the
+# invariant held only because process names were migration-controlled -- now an
+# admin types them, so it is enforced here.
+_PROCESS_NAME_RE = re.compile(r"^[A-Za-z0-9_\-]{1,49}\.[A-Za-z0-9_\-]{1,50}$")
+
+# FieldKey is a plain mapping key (doctype, invoice_no) -- it is never turned
+# into a permission code, so it keeps the looser shape.
+_FIELD_KEY_RE = re.compile(r"^[A-Za-z0-9_.\-]{1,100}$")
 
 # TableName / TableAlias / ColumnName / Export|Import|WorkitemColumn are
 # INTERPOLATED into SQL by the downstream query builders (f-strings in
@@ -877,8 +901,15 @@ def _validate_process_identity(client_code, process_name, errors, field_key=None
     if not _CLIENT_CODE_RE.match(client_code or ""):
         errors.append(_("Client code must be 2-50 lowercase letters, digits or underscores."))
     if not _PROCESS_NAME_RE.match(process_name or ""):
-        errors.append(_("Process name must be 1-100 letters, digits, dots, dashes or underscores."))
-    if field_key is not None and not _PROCESS_NAME_RE.match(field_key or ""):
+        errors.append(
+            _(
+                "Process name must be exactly <customer>.<process> -- two parts separated "
+                "by a single dot (e.g. acme.01_Invoice), letters, digits, dashes or "
+                "underscores only. The permission that grants access to this process is "
+                "derived from those two parts, so any other shape can never be granted."
+            )
+        )
+    if field_key is not None and not _FIELD_KEY_RE.match(field_key or ""):
         errors.append(_("Field key must be 1-100 letters, digits, dots, dashes or underscores."))
 
 
@@ -928,6 +959,64 @@ def _validation_error(errors):
     return jsonify({"success": False, "message": " ".join(str(e) for e in errors)}), 400
 
 
+def _permission_reduction(process_name):
+    """The (customer, process) pair every consumer derives back out of a
+    ``workitems.filter.process.<ProcessName>`` code -- the last two dot
+    segments. Two process names sharing a reduction share an entitlement,
+    whatever their ClientCode: the permission code carries no client."""
+    return ".".join((process_name or "").split(".")[-2:])
+
+
+def _reduction_conflict(cursor, client_code, process_name):
+    """The existing (ClientCode, ProcessName) whose permission reduction
+    collides with ``process_name``, or None.
+
+    _PROCESS_NAME_RE already forces new names to two segments, so the new name
+    IS its own reduction -- but rows written before this page existed (or by a
+    migration) may have more, and a legacy 'x.acme.01_Invoice' reduces onto a
+    freshly typed 'acme.01_Invoice'. The exact same pair is not a conflict: the
+    PK insert below turns that into the usual 409 "already exists".
+    """
+    reduction = _permission_reduction(process_name)
+    cursor.execute("SELECT ClientCode, ProcessName FROM dbo.ProcessSources")
+    for row in cursor.fetchall():
+        existing = (row[0], row[1])
+        if existing == (client_code, process_name):
+            continue
+        if _permission_reduction(row[1]) == reduction:
+            return existing
+    return None
+
+
+def _client_code_exists(cursor, client_code):
+    cursor.execute("SELECT COUNT(*) FROM dbo.Clients WHERE ClientCode = ?", (client_code,))
+    row = cursor.fetchone()
+    return bool(row and row[0])
+
+
+def _client_codes():
+    """ClientCodes from dbo.Clients, for the /admin/processes picker. Read from
+    the table rather than from the resolved CLIENTS registry on purpose: a row
+    that is configured but not loaded (missing env keys) is still a legitimate
+    target for process config. Degrades to [] -- the picker then falls back to
+    free text rather than blocking the page."""
+    conn = None
+    cursor = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT ClientCode FROM dbo.Clients ORDER BY ClientCode")
+        return [row[0] for row in cursor.fetchall()]
+    except Exception as e:
+        current_app.logger.error(f"Failed to fetch client codes: {e}")
+        return []
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
 @require_permission("admin.edit.processes")
 def api_admin_process_source_add():
     """Add a dbo.ProcessSources row (migration 0074) AND provision its
@@ -951,6 +1040,41 @@ def api_admin_process_source_add():
     try:
         conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
+        # Nothing in the schema ties ProcessSources.ClientCode to dbo.Clients
+        # (migration 0079 deliberately adds no FK -- ProcessSources predates the
+        # table), so a typo like 'defualt' would otherwise create a process
+        # source, auto-provision its permission, and yield config that can never
+        # resolve. Check it here instead.
+        if not _client_code_exists(cursor, client_code):
+            return _validation_error(
+                [
+                    _(
+                        "Unknown client code %(code)s -- it must be an existing "
+                        "runtime source from the Clients page.",
+                        code=client_code,
+                    )
+                ]
+            )
+        conflict = _reduction_conflict(cursor, client_code, process_name)
+        if conflict:
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "message": _(
+                            "Process name %(name)s collides with the existing "
+                            "%(other_client)s / %(other)s: both resolve to the same "
+                            "permission %(code)s, so a grant for one would entitle the "
+                            "other. Pick a different name.",
+                            name=process_name,
+                            other_client=conflict[0],
+                            other=conflict[1],
+                            code=f"{_PROCESS_PERMISSION_PREFIX}{_permission_reduction(process_name)}",
+                        ),
+                    }
+                ),
+                409,
+            )
         cursor.execute(
             "INSERT INTO dbo.ProcessSources (ClientCode, ProcessName, TableName, TableAlias, "
             "ExportColumn, ImportColumn, WorkitemColumn, IdColumnType) VALUES (?,?,?,?,?,?,?,?)",
@@ -1237,6 +1361,10 @@ def admin_status_view():
     return render_template(
         "admin/status.html",
         status=data,
+        # Import-time degradation of the client registry (nx_lib/clients.py):
+        # its only other signal is a logger.error that fires before Flask has
+        # configured logging, so it never reaches app.log.
+        clients_registry_degraded_reason=clients_registry.REGISTRY_DEGRADED_REASON,
         stale_after_min=status.DEFAULT_STALE_AFTER_S // 60,
         logged_in_user=session.get("username"),
         userid=session.get("userid"),

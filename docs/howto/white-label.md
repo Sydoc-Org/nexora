@@ -61,6 +61,23 @@ A `dbo.Clients` row whose engine or Octo domain is missing/unresolvable is silen
 registry is built (same degrade-gracefully contract the hardcoded dict had), and a DB error at boot
 degrades the whole registry to `default`-only.
 
+**Configured is not loaded.** The table on this page is `dbo.Clients` — what is *configured*. The
+**Runtime state** column is the resolved truth: whether the running process actually holds that code
+in its `CLIENTS` registry. They diverge routinely, because migration `0079`'s seed is unconditional
+and PROD therefore gets an `ms02` row whether or not `env/PROD.env` carries the `MS02_*` keys. Without
+them `_build_clients()` skips the row and the client is **"Configured, not loaded"** — `Active: Yes`
+in the table, serving nothing. Same for an unresolvable engine key or Octo domain, and for any row
+after a registry-wide load failure.
+
+**Registry-wide degradation is surfaced, not just logged.** If reading `dbo.Clients` at import fails
+outright, `nx_lib/clients.py` records the reason in its module-level `REGISTRY_DEGRADED_REASON` and
+the app runs on the hardcoded `default`-only registry for the rest of the process lifetime — every
+other runtime source is gone until the next app-pool recycle. The `logger.error` on that path fires
+*before* Flask configures logging, so it reaches stderr (`var/logs/system/waitress-stdout*`) but never
+`app.log`; the recorded reason is what `/admin/clients` and `/admin/status` render as a red banner.
+There is deliberately no retry loop and no TTL — `CLIENTS` being import-time-only is a locked design
+decision; this only makes the degradation visible.
+
 ## `/admin/processes` — process sources and field mappings
 
 Permissions: `admin.view.processes` (read), `admin.edit.processes` (add/edit/delete). Both granted to
@@ -86,6 +103,35 @@ deliberately looser pattern (`_COLUMN_TYPE_RE` in `nx_lib/views/admin.py`) that 
 they are never interpolated into SQL, only compared against literal type buckets such as
 `character varying`.
 
+`ClientCode` is additionally checked against `dbo.Clients` — it must be an existing runtime source,
+and the form offers a picker rather than a free-text box. There is no database FK (`ProcessSources`
+predates `dbo.Clients`, and migration `0079` deliberately adds none), so this server-side existence
+check is the only thing stopping a typo like `defualt` from creating a process source, provisioning
+its permission, and yielding config that can never resolve.
+
+### `ProcessName` must be exactly `<customer>.<process>` — a hard rule, not a convention
+
+This used to be described as "customer-prefixed by convention only". That is **wrong**, and the
+admin UI made the mistake reachable. The permission auto-provisioned for a process is
+`workitems.filter.process.<ProcessName>`, and every consumer reconstructs the process name out of
+that code as **exactly the last two dot-segments** (`nx_lib/views/workitems.py`,
+`nx_lib/process_helpers.py`: `parts[-2], parts[-1]`). So the name must be two segments — no more, no
+fewer:
+
+| Typed name | Derived back as | Result |
+|---|---|---|
+| `acme.01_Invoice` | `acme.01_Invoice` | correct |
+| `Invoice` | `process.Invoice` | grant never matches — silent, permanent, no error |
+| `acme.eu.01_Invoice` | `eu.01_Invoice` | grant never matches — same silent dead end |
+| `x.acme.01_Invoice` | `acme.01_Invoice` | **collides** with another customer's grant |
+
+`_PROCESS_NAME_RE` (`nx_lib/views/admin.py`) therefore enforces
+`^[A-Za-z0-9_\-]{1,49}\.[A-Za-z0-9_\-]{1,50}$`, matched by the form's `pattern` attribute, and the
+add endpoint additionally rejects with **409** any name whose two-segment reduction already belongs
+to a different `(ClientCode, ProcessName)` pair — the permission code carries no client, so two
+process names that reduce alike share one entitlement. `FieldKey` keeps the looser
+`_FIELD_KEY_RE` shape: it never becomes a permission code.
+
 **Adding a process source auto-provisions its permission.** Saving a new `(ClientCode, ProcessName)`
 row also creates a `workitems.filter.process.<ProcessName>` permission row in the same request, in
 one transaction — otherwise step 3 of the onboarding table below would still require a migration and
@@ -97,6 +143,20 @@ idempotent, mirroring migration `0059`'s shape).
 
 Deleting a process source is refused with **409** while it still has field mappings — remove those
 first.
+
+### `admin.edit.processes` is a high-trust permission
+
+Read the identifier validation above as *injection* hardening, not as a security boundary between
+customers. It is not one. `admin.edit.processes` lets a holder rewrite `TableName` on an **existing**
+process source, and `_IDENT` accepts any qualified identifier in either dialect. A holder can
+therefore repoint an already-granted `workitems.filter.process.privera.02_Posteingang` at a different
+customer's statistik table: no new grant is needed, no permission changes, and nothing is audited.
+The practical meaning of the permission is **"can point any granted process at any table in the
+runtime database"** — which is inherent to an editable config surface, not a defect to be patched.
+
+Grant it accordingly. Migration `0080` hands it to every access profile that already holds
+`admin.view.organizations` (`enterpriseAdmin`, `globalAdmin`); treat adding anyone else to that set
+as the cross-tenant data-access decision it is.
 
 ### Scope limits — deliberately not editable here
 
@@ -115,8 +175,10 @@ For the common case — a new customer riding the shared `default` runtime, no n
    is the customer, e.g. `organizationcode = ACME`.
 2. **Skip `/admin/clients`** — `default` already exists and this customer uses it. Only create a new
    client row here if the customer is bringing its own database (see below).
-3. **Add a process source** at `/admin/processes` — `ClientCode = default`, `ProcessName` (by
-   convention prefixed with the customer, e.g. `acme.01_Invoice`), and its table/column mapping. This
+3. **Add a process source** at `/admin/processes` — `ClientCode = default` (picked from the list of
+   existing clients), `ProcessName` in the **required** `<customer>.<process>` shape, e.g.
+   `acme.01_Invoice` (see the hard rule above — any other shape is rejected), and its
+   table/column mapping. This
    step auto-creates the `workitems.filter.process.acme.01_Invoice` permission, granted to nobody.
 4. **Add field mappings** for that process source on the same page, one row per doc-field.
 5. **Grant the permission** at `/admin/access-control` — attach

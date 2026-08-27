@@ -19,7 +19,19 @@ Work toward the next release.
   `dbo.ProcessSources`) and `/admin/processes` (view/edit `ProcessSources`
   and their field mappings per client through the cached
   `nx_lib/mapping_config.py` registry, with strict identifier validation on
-  every value interpolated into SQL). Adding a process source
+  every value interpolated into SQL). `ProcessName` must be exactly
+  `<customer>.<process>` — the permission that grants access to a process is
+  derived from those two dot-segments, so any other shape could never be
+  granted (and a three-segment name could piggyback on another customer's
+  grant); a name whose two-segment reduction already belongs to another
+  process is refused with 409. `ClientCode` is picked from `dbo.Clients`
+  and checked server-side, so a typo can no longer create config that never
+  resolves. `/admin/clients` shows resolved state next to configured state —
+  a row the running registry did not load reads "Configured, not loaded" —
+  and a boot-time `dbo.Clients` failure (which silently drops every
+  non-`default` runtime for the process lifetime) now raises a banner on
+  `/admin/clients` and `/admin/status` instead of only a stderr line written
+  before logging was configured. Adding a process source
   auto-provisions its `workitems.filter.process.<name>` permission,
   granted to nobody until deliberately assigned at `/admin/access-control`;
   every write invalidates the mapping-config cache. New permissions
@@ -56,7 +68,10 @@ Work toward the next release.
   only replaces the built-in `indigo` / `#4f46e5`. Logos are served from
   `GET /branding/<orgcode>/logo` with `Content-Security-Policy: sandbox` and
   `X-Content-Type-Options: nosniff`, because SVG is allowed and is
-  script-capable. The login page, the error pages and scheduled-report emails
+  script-capable. It is served with a one-hour `max-age` and skipped by the
+  per-request hooks the same way `/avatar/<id>` is — the header fetches it on
+  every page load of a branded org, which would otherwise double the request
+  log and skew `/admin/logs`. The login page, the error pages and scheduled-report emails
   stay Nexora-branded by design — login is pre-session, so there is no user and
   therefore no organization; the context processor is gated on a logged-in
   session, because `logout()` leaves `organizationcode` behind and keying on it

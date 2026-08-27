@@ -276,6 +276,61 @@ def test_build_clients_falls_back_to_hardcoded_default_on_db_error(monkeypatch):
     assert result["default"].runtime_engine is clients.engine_octo_db
 
 
+# ---- degraded-state signal --------------------------------------------------
+#
+# _build_clients() runs at import, before Flask configures logging: its
+# logger.error reaches stderr (waitress-stdout*) but never app.log, and nothing
+# surfaces it in the UI. The recorded reason is what /admin/clients and
+# /admin/status render, so it must not depend on logging at all.
+
+
+def test_db_error_records_a_degraded_reason_on_the_module(monkeypatch):
+    monkeypatch.setattr(clients, "engine_nexora_db", _dead_engine("NexoraDB down"))
+    monkeypatch.setattr(clients, "REGISTRY_DEGRADED_REASON", None)
+
+    clients._build_clients()
+
+    assert clients.REGISTRY_DEGRADED_REASON
+    assert "NexoraDB down" in clients.REGISTRY_DEGRADED_REASON
+
+
+def test_degraded_reason_is_recorded_even_with_logging_disabled(monkeypatch):
+    """Nothing may be logged this early -- the flag still has to be set."""
+    monkeypatch.setattr(clients, "engine_nexora_db", _dead_engine("no logging yet"))
+    monkeypatch.setattr(clients, "REGISTRY_DEGRADED_REASON", None)
+    logging.disable(logging.CRITICAL)
+    try:
+        clients._build_clients()
+    finally:
+        logging.disable(logging.NOTSET)
+
+    assert "no logging yet" in clients.REGISTRY_DEGRADED_REASON
+
+
+def test_successful_load_clears_the_degraded_reason(monkeypatch):
+    eng, _conn = _engine_with([_row()])
+    monkeypatch.setattr(clients, "engine_nexora_db", eng)
+    monkeypatch.setattr(clients, "REGISTRY_DEGRADED_REASON", "stale from an earlier build")
+
+    clients._build_clients()
+
+    assert clients.REGISTRY_DEGRADED_REASON is None
+
+
+def test_a_skipped_row_is_not_a_registry_wide_degradation(monkeypatch):
+    """A single unresolvable row is the documented degrade-gracefully contract,
+    not a registry failure -- /admin/clients marks that row 'configured, not
+    loaded' instead of showing the red banner."""
+    eng, _conn = _engine_with([_row(), _row(client_code="ms02", runtime_engine_key="nope")])
+    monkeypatch.setattr(clients, "engine_nexora_db", eng)
+    monkeypatch.setattr(clients, "REGISTRY_DEGRADED_REASON", None)
+
+    result = clients._build_clients()
+
+    assert set(result) == {"default"}
+    assert clients.REGISTRY_DEGRADED_REASON is None
+
+
 def test_secret_ref_resolves_ms02_prefixed_env_keys(monkeypatch):
     from nx_lib import config as cfg
 

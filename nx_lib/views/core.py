@@ -154,7 +154,13 @@ def branding_logo(orgcode):
     filename = os.path.basename(brand["logo_file"])
     if not filename or not (PATHS.branding / filename).is_file():
         abort(404)
-    resp = send_from_directory(PATHS.branding, filename)
+    # The header fetches this on every page load of a branded org, so it must
+    # not cost a conditional round-trip per view. Flask's default max_age is
+    # None (revalidate every time); one hour is short enough that replacing a
+    # logo shows up the same working day and long enough to keep the header
+    # image out of the request log entirely (nx_lib/hooks.py skips /branding
+    # the same way it skips /avatar).
+    resp = send_from_directory(PATHS.branding, filename, max_age=BRANDING_LOGO_MAX_AGE)
     resp.headers["Content-Security-Policy"] = BRANDING_LOGO_CSP
     resp.headers["X-Content-Type-Options"] = "nosniff"
     return resp
@@ -182,6 +188,9 @@ def branding_logo(orgcode):
 # Talisman renders a dict policy as "<section> <content>", i.e. "sandbox " with
 # a trailing space; the view sets the bare token. Compare stripped.
 BRANDING_LOGO_CSP = "sandbox"
+
+# Cache-Control max-age for the served brand logo, in seconds (one hour).
+BRANDING_LOGO_MAX_AGE = 3600
 branding_logo.talisman_view_options = {  # type: ignore[attr-defined]
     "content_security_policy": {BRANDING_LOGO_CSP: ""},
     "content_security_policy_nonce_in": [],

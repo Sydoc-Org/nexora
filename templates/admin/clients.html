@@ -25,6 +25,21 @@
             icon='fa-server'
         ) }}
 
+        {% if registry_degraded_reason %}
+        {# The registry is built once, at import, from dbo.Clients. If that read
+           failed the process is running on a hardcoded default-only registry --
+           every non-default runtime is gone until the next app-pool recycle, and
+           the only other signal is a stderr line in waitress-stdout*. #}
+        <div class="nx-card nx-bg-lred" style="margin:-8px 0 16px;padding:12px 16px" data-testid="admin-clients-degraded">
+            <strong class="nx-c-danger"><i class="fas fa-triangle-exclamation"></i>
+                {{ _("Client registry degraded") }}</strong>
+            <p class="nx-c-sec" style="font-size:0.85rem;margin:4px 0 0">
+                {{ _("dbo.Clients could not be read at startup, so this process is running on the built-in 'default' client only -- every other runtime source below is configured but NOT active, whatever this table says. Fix the database access and recycle the app pool.") }}
+                <span class="nx-mono">{{ registry_degraded_reason }}</span>
+            </p>
+        </div>
+        {% endif %}
+
         <p class="nx-c-meta" style="font-size:0.85rem;margin:-8px 0 16px" data-testid="admin-clients-help">
             <i class="fas fa-circle-info"></i>
             {{ _("A new or edited client is read once at startup: it takes effect only after an app-pool recycle. A client bringing its own database also needs the matching env/{ENV}.env keys added by hand -- adding a row here does not create them.") }}
@@ -39,7 +54,8 @@
                     {'label': _('Display name')},
                     {'label': _('Dialect'), 'width': '110px'},
                     {'label': _('Runtime engine')},
-                    {'label': _('Active'), 'width': '90px'}
+                    {'label': _('Active'), 'width': '90px'},
+                    {'label': _('Runtime state'), 'width': '190px'}
                 ] + ([{'label': _('Actions'), 'align': 'right', 'width': '180px'}] if can_edit else [])) }}
                 <tbody id="clients-tbody">
                     {% for client in clients %}
@@ -49,6 +65,18 @@
                         <td>{{ client.Dialect }}</td>
                         <td><span class="nx-mono">{{ client.RuntimeEngineKey }}</span></td>
                         <td>{{ _('Yes') if client.IsActive else _('No') }}</td>
+                        {# Configured state (this table) is not resolved state. A row whose
+                           env keys are missing on this machine is skipped when the registry
+                           is built, so it can read "Active: Yes" while serving nothing. #}
+                        <td data-testid="admin-client-loaded-{{ client.ClientCode }}">
+                            {% if client.loaded %}
+                            <span class="nx-c-sec"><i class="fas fa-circle-check"></i> {{ _('Loaded') }}</span>
+                            {% else %}
+                            <span class="nx-c-danger" title="{{ _('This row exists in dbo.Clients but the running process did not load it -- usually missing env/{ENV}.env keys, an unresolvable engine key or Octo domain, or a registry that failed to load at startup. Nothing routes to it until that is fixed and the app pool is recycled.') }}">
+                                <i class="fas fa-triangle-exclamation"></i> {{ _('Configured, not loaded') }}
+                            </span>
+                            {% endif %}
+                        </td>
                         {% if can_edit %}
                         <td class="align-right">
                             <button data-client='{{ client|tojson|safe }}' class="edit-client-btn nx-btn nx-btn--ghost nx-btn--sm" type="button" data-testid="admin-client-edit-{{ client.ClientCode }}">{{ _("Edit") }}</button>
