@@ -39,6 +39,8 @@ SQLAlchemy engines with pyodbc, defined in `nx_lib/db.py`. Credentials come from
 
 **Multi-source workitems (MS02)** live in `nx_lib/workitem_sources.py` (adapters + probe-then-cache routing) and `nx_lib/clients.py` (client registry). Statistics and doc-field search route per-client through `nx_lib/mapping_config.py`'s cached registry over `dbo.ProcessSources`/`ProcessFieldMappings`/`FieldLabels`/`FieldAliases` (migration `0074`; the legacy `SearchConfig`/`StatConfig`/`IndexFieldMappings`/`Search_Field_Labels` tables were decapitated by `0075`); for MS02 both read wide **columnar** statistik tables (e.g. `public."DossierStatistik"`), *not* an EAV index. **Engines, migrations `0023`–`0033`, `0074`–`0075`, resolvers, permission gates, gotchas: `docs/design/ms02-multisource.md`.**
 
+**Onboarding a new client/customer** (the `ClientCode` runtime-source vs. `Organizations` customer split, `dbo.Clients` registry, `/admin/clients` + `/admin/processes` admin pages): `docs/howto/white-label.md`.
+
 **Schema changes always go through a migration.** DDL under `sql/` mirrors SSMS Object Explorer; the **live INT database is the source of truth** and the per-object files under `sql/<Database>/` are auto-generated — **never hand-edit them**. Only the two app-owned DBs are tracked (`StatisticsDB` and `OctoDB` are vendor/runtime surfaces).
 
 - New change → new file `sql/_migrations/<Db>/NNNN_short_description.sql`, `GO`-separated, ideally idempotent.

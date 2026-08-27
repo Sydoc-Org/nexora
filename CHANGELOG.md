@@ -10,6 +10,25 @@ Work toward the next release.
 
 ### Added
 
+- **Self-service client/process onboarding admin UI** (#98 phase 4). A new
+  `dbo.Clients` runtime-source registry (migration `0079`) replaces the
+  hardcoded `CLIENTS` dict in `nx_lib/clients.py`, seeded from today's two
+  values (`default`, `ms02`); a new client still needs an app-pool recycle
+  to take effect. New pages `/admin/clients` (CRUD over the registry, with
+  delete refused when a `ClientCode` is still referenced by
+  `dbo.ProcessSources`) and `/admin/processes` (view/edit `ProcessSources`
+  and their field mappings per client through the cached
+  `nx_lib/mapping_config.py` registry, with strict identifier validation on
+  every value interpolated into SQL). Adding a process source
+  auto-provisions its `workitems.filter.process.<name>` permission,
+  granted to nobody until deliberately assigned at `/admin/access-control`;
+  every write invalidates the mapping-config cache. New permissions
+  `admin.view.clients`, `admin.edit.clients`, `admin.view.processes`,
+  `admin.edit.processes` (migration `0080`), granted to `enterpriseAdmin`
+  and `globalAdmin`. Onboarding a customer riding the shared `default`
+  runtime is now fully self-service — no migration, no deploy. See
+  `docs/howto/white-label.md`.
+
 - **Sidebar restyled toward a minimal, GitHub-inspired look** (#213). Same
   icons and labels, different treatment: the active page is marked by a thin
   accent-coloured bar on the left edge instead of a filled accent-tinted
