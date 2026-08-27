@@ -125,6 +125,16 @@ Work toward the next release.
 
 ### Fixed
 
+- **`ActivityInstancesToIgnore` rules were applied globally instead of
+  per-process.** The table has a `ProcessName` column precisely so an admin
+  can hide a `Deletion Marker`-style activity on one process without
+  affecting another, but the loader read `ActivityInstanceName` only and
+  discarded `ProcessName` — every configured rule was silently OR'd across
+  every process's workitem list and Recent Validations feed. The predicate is
+  now built per `(client, process)` (`_activity_ignore_predicate` in
+  `nx_lib/workitem_sources.py`), and is fully parameterized instead of
+  string-spliced into the SQL (no more manual quote-escaping).
+
 - **Workitem detail panel: line-item tables are tables again** (#199). Each
   extracted table (`TabVat`, `TabOrder`, …) was rendered as a stack of
   label-over-value rows inside the narrow Document Details column, so line-item

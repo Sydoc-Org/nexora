@@ -107,6 +107,12 @@ def prepare_process_selection_lists(prefix, process_name):
 
 
 def get_activity_instances_to_ignore():
+    """(client, process) -> frozenset of ActivityInstanceName values to hide
+    from the workitem list for that process only. ``ProcessName`` in
+    ActivityInstancesToIgnore is a ``<client>.<process>`` compound string, same
+    convention as everywhere else in this module -- a rule configured for one
+    process must never hide a differently-named activity on another process.
+    """
     cached = cache.get("activity_instances_ignore")
     if cached is not None:
         return cached
@@ -117,12 +123,19 @@ def get_activity_instances_to_ignore():
         cursor = conn.cursor()
         cursor.execute("SELECT ProcessName, ActivityInstanceName FROM ActivityInstancesToIgnore")
         rows = cursor.fetchall()
-        result = ", ".join("'" + row.ActivityInstanceName.replace("'", "''") + "'" for row in rows)
+        grouped = {}
+        for row in rows:
+            if "." not in row.ProcessName:
+                continue
+            parts = row.ProcessName.split(".")
+            key = (parts[0], parts[-1])
+            grouped.setdefault(key, set()).add(row.ActivityInstanceName)
+        result = {key: frozenset(names) for key, names in grouped.items()}
         cache.set("activity_instances_ignore", result, timeout=3600)
         return result
     except Exception as e:
         current_app.logger.error(f"Failed to load activity instances to ignore: {e}")
-        return ""
+        return {}
     finally:
         if cursor:
             cursor.close()

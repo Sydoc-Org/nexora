@@ -617,7 +617,7 @@ def _get_workitems_data(args, export_all=False, scope=None):
         if per_page not in (40, 100, 200, 500, 1000):
             per_page = 40
         offset = (page - 1) * per_page
-    activity_instances_to_ignore = get_activity_instances_to_ignore()
+    activity_ignore_map = get_activity_instances_to_ignore()
 
     allowed_processes_set = scope["allowed"]
 
@@ -964,7 +964,7 @@ def _get_workitems_data(args, export_all=False, scope=None):
         status_map["Deleted"] = 2
     filt = WorkitemFilter(
         client_process_pairs=client_process_pairs,
-        activity_ignore_csv=activity_instances_to_ignore,
+        activity_ignore_map=activity_ignore_map,
         status_code=status_map.get(status) if (status and scope["can_status"]) else None,
         stage=stage if (stage in WORKITEM_STAGES and scope["can_stage"]) else None,
         search_id=search_term if (search_term and scope["can_search_id"]) else None,

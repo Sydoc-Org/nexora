@@ -194,21 +194,30 @@ def test_normalize_process_selection_empty_allowed_set():
 # ---------- get_activity_instances_to_ignore ----------
 
 
+def _row(process_name, activity_instance_name):
+    return MagicMock(ProcessName=process_name, ActivityInstanceName=activity_instance_name)
+
+
 def test_get_activity_instances_to_ignore_uses_cache(app):
     """When cache.get returns a value, the DB is not touched."""
     from nx_lib.extensions import cache
 
     with app.app_context():
-        cache.set("activity_instances_ignore", "cached-value")
+        cache.set("activity_instances_ignore", {("A", "P1"): frozenset({"Cached"})})
         result = get_activity_instances_to_ignore()
-    assert result == "cached-value"
+    assert result == {("A", "P1"): frozenset({"Cached"})}
 
 
-def test_get_activity_instances_to_ignore_returns_joined_quoted(app):
+def test_get_activity_instances_to_ignore_groups_by_client_and_process(app):
+    """ProcessName is a `<client>.<process>` compound string (same convention
+    used everywhere else) -- rows must group into a per-(client, process) map,
+    NOT a single flat list. A rule scoped to one process must never leak into
+    another process's ignore set."""
     fake_cursor = MagicMock()
     fake_cursor.fetchall.return_value = [
-        MagicMock(ActivityInstanceName="Approval"),
-        MagicMock(ActivityInstanceName="Index"),
+        _row("compass.01_Invoice_SAP", "COM 01 Deletion Marker Mail"),
+        _row("privera.02_Posteingang", "Deletion Marker Privera Posteingang C+A"),
+        _row("privera.02_Posteingang", "Deletion Marker ohne PDF PP_END"),
     ]
     fake_conn = MagicMock()
     fake_conn.cursor.return_value = fake_cursor
@@ -220,17 +229,24 @@ def test_get_activity_instances_to_ignore_returns_joined_quoted(app):
         mock_engine.raw_connection.return_value = fake_conn
         result = get_activity_instances_to_ignore()
 
-    assert result == "'Approval', 'Index'"
+    assert result == {
+        ("compass", "01_Invoice_SAP"): frozenset({"COM 01 Deletion Marker Mail"}),
+        ("privera", "02_Posteingang"): frozenset(
+            {"Deletion Marker Privera Posteingang C+A", "Deletion Marker ohne PDF PP_END"}
+        ),
+    }
+    # compass's activity must never appear under privera's key or vice versa.
+    assert "COM 01 Deletion Marker Mail" not in result[("privera", "02_Posteingang")]
 
 
-def test_get_activity_instances_to_ignore_escapes_embedded_quotes(app):
-    """A name containing a literal single quote (e.g. "O'Brien"-style) must
-    have it doubled per SQL string-literal escaping, so the raw-spliced
-    `NOT IN ({csv})` fragment stays syntactically valid instead of breaking
-    (or injecting) on the unescaped quote."""
+def test_get_activity_instances_to_ignore_skips_rows_without_a_client_process_dot(app):
+    """A ProcessName with no '.' can't be split into (client, process) -- drop
+    it rather than guess, same tolerant-skip convention used elsewhere for
+    unusable config rows."""
     fake_cursor = MagicMock()
     fake_cursor.fetchall.return_value = [
-        MagicMock(ActivityInstanceName="O'Brien Review"),
+        _row("NoClientPrefix", "Some Activity"),
+        _row("compass.01_Invoice_SAP", "COM 01 Deletion Marker Mail"),
     ]
     fake_conn = MagicMock()
     fake_conn.cursor.return_value = fake_cursor
@@ -242,23 +258,41 @@ def test_get_activity_instances_to_ignore_escapes_embedded_quotes(app):
         mock_engine.raw_connection.return_value = fake_conn
         result = get_activity_instances_to_ignore()
 
-    assert result == "'O''Brien Review'"
-    # A naive split on "'" around an unescaped quote would leave an odd
-    # number of quotes (unbalanced literal); doubling keeps it even/paired.
-    assert result.count("'") % 2 == 0
+    assert result == {("compass", "01_Invoice_SAP"): frozenset({"COM 01 Deletion Marker Mail"})}
 
 
-def test_get_activity_instances_to_ignore_returns_empty_string_on_db_error(app):
-    """If raw_connection raises, the function logs and returns "" explicitly
-    (not None) -- callers treat the ignore-csv as a string, and an implicit
-    None previously risked `NOT IN (None)`-style misuse downstream."""
+def test_get_activity_instances_to_ignore_no_escaping_needed(app):
+    """A name containing a literal single quote (e.g. "O'Brien"-style) passes
+    through unmodified -- values are now bound as query parameters, not
+    string-spliced into SQL, so no manual escaping is needed or performed."""
+    fake_cursor = MagicMock()
+    fake_cursor.fetchall.return_value = [
+        _row("privera.02_Posteingang", "O'Brien Review"),
+    ]
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cursor
+
+    with (
+        patch.object(ph_mod, "engine_nexora_db") as mock_engine,
+        app.app_context(),
+    ):
+        mock_engine.raw_connection.return_value = fake_conn
+        result = get_activity_instances_to_ignore()
+
+    assert result == {("privera", "02_Posteingang"): frozenset({"O'Brien Review"})}
+
+
+def test_get_activity_instances_to_ignore_returns_empty_dict_on_db_error(app):
+    """If raw_connection raises, the function logs and returns {} explicitly
+    (not None) -- callers treat this as a dict, and an implicit None would
+    risk an AttributeError downstream instead of just omitting the filter."""
     with (
         patch.object(ph_mod, "engine_nexora_db") as mock_engine,
         app.app_context(),
     ):
         mock_engine.raw_connection.side_effect = RuntimeError("DB down")
         result = get_activity_instances_to_ignore()
-    assert result == ""
+    assert result == {}
 
 
 # ---------- get_params_from_process_list ----------
