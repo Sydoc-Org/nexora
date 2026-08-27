@@ -151,12 +151,13 @@ def valid_field_keys() -> set[str]:
 
 
 def field_keys_for_processes(processes) -> set[str] | None:
-    """Field keys available to the given (client, process) pairs.
+    """Field keys available to the given processes.
 
-    ``processes`` is an iterable of ``"client.process"`` strings (matching the
-    permission-scoped selection format elsewhere in nx_lib). None on failure --
-    the external API surface fails CLOSED on None rather than falling back to
-    an unrestricted or empty set.
+    ``processes`` is an iterable of bare process names, compared directly
+    against each mapping's ``m.process`` (matching ``mappings_for``'s
+    convention -- NOT a ``"client.process"`` compound string). None on
+    failure -- the external API surface fails CLOSED on None rather than
+    falling back to an unrestricted or empty set.
     """
     reg = registry()
     if reg is None:

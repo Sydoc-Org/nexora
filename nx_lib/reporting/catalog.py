@@ -100,8 +100,9 @@ def build_catalog(meta_rows, label_rows, availability, *, lang_col):
     """Merge availability + labels + optional metadata into a sorted field list.
 
     Each entry: {field, label, type, aggregable, sortable, filterable, processes}.
-    The field set is defined by `availability` (the col_* a permitted process
-    exposes), NOT by FieldMetadata: a field present in `availability` always
+    The field set is defined by `availability` (the field keys a permitted
+    process exposes, per nx_lib/mapping_config.py's ProcessFieldMappings-backed
+    registry), NOT by FieldMetadata: a field present in `availability` always
     appears (with defaults when no FieldMetadata row backs it), and a field with
     only a FieldMetadata row but no availability is excluded. FieldMetadata, when
     present, enriches type/aggregable/sortable. Filterable is always True (every
@@ -230,7 +231,7 @@ def fetch_docprocessing_catalog(allowed_processes, locale_str):
     # Synthetic fields from ProcessSources (a different table from
     # ProcessFieldMappings): import_date / export_date as first-class date
     # fields, workitem_id from workitem_column. Non-ms02 clients only, same
-    # scope as the legacy Statconfig read.
+    # scope as mapping_config.sources_for()'s ProcessSources read.
     if mapping_config.registry() is None:
         current_app.logger.warning("reporting catalog: ProcessSources unavailable")
         sources = []

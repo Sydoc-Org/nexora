@@ -1098,6 +1098,78 @@ def test_docfield_ops_map_shapes():
     assert _docfield_comb([], 5) == "and"
 
 
+def test_docfield_pairs_normalized_identical_requests_same_key():
+    """(I3, #98 Task 13) The cache-key-input builder must be deterministic:
+    two calls with identical arguments produce identical normalized pairs,
+    and therefore identical cache keys -- this is the "same caller, same
+    request, cache hit" half of the security contract."""
+    from nx_lib.views.workitems import _docfield_ids_cache_key, _docfield_pairs_normalized
+
+    valid_db_columns = {"validationuser", "amount", "secretfield"}
+    blocked_docfields = {"secretfield"}
+
+    pairs_a = _docfield_pairs_normalized(
+        ["validationuser"], ["alice"], [], [], valid_db_columns, blocked_docfields
+    )
+    pairs_b = _docfield_pairs_normalized(
+        ["validationuser"], ["alice"], [], [], valid_db_columns, blocked_docfields
+    )
+    assert pairs_a == pairs_b
+
+    key_a = _docfield_ids_cache_key("default", ["sydoc.test_proc"], pairs_a)
+    key_b = _docfield_ids_cache_key("default", ["sydoc.test_proc"], pairs_b)
+    assert key_a == key_b
+
+
+def test_docfield_pairs_normalized_different_blocked_sets_different_key():
+    """(I3, #98 Task 13) This is the actual vulnerability the cache-key
+    logic exists to prevent: two callers issuing the SAME value-first
+    (no explicit field) search but with DIFFERENT ``blocked_docfields``
+    (i.e. different sensitive-field permissions) must resolve to different
+    field_keys tuples and therefore DIFFERENT cache keys -- a low-privilege
+    caller must never be able to read a high-privilege caller's cached
+    allow-set."""
+    from nx_lib.views.workitems import _docfield_ids_cache_key, _docfield_pairs_normalized
+
+    valid_db_columns = {"validationuser", "amount", "secretfield"}
+
+    # Caller A: nothing blocked (sees secretfield).
+    pairs_a = _docfield_pairs_normalized([""], ["alice"], [], [], valid_db_columns, set())
+    # Caller B: secretfield blocked (low-privilege).
+    pairs_b = _docfield_pairs_normalized([""], ["alice"], [], [], valid_db_columns, {"secretfield"})
+
+    assert pairs_a != pairs_b
+
+    key_a = _docfield_ids_cache_key("default", ["sydoc.test_proc"], pairs_a)
+    key_b = _docfield_ids_cache_key("default", ["sydoc.test_proc"], pairs_b)
+    assert key_a != key_b
+
+
+def test_docfield_pairs_normalized_drops_blocked_pair_before_hashing():
+    """(I3, #98 Task 13) A pair naming an explicitly-blocked field must be
+    DROPPED from the normalized pairs entirely -- not retained-but-masked --
+    so it never contributes to the cache key or the resolution loop. Verified
+    two ways: the blocked pair is absent from the output, and a request that
+    is ONLY the blocked pair produces the identical key/pairs as a request
+    with no pairs at all (empty docvalue)."""
+    from nx_lib.views.workitems import _docfield_ids_cache_key, _docfield_pairs_normalized
+
+    valid_db_columns = {"validationuser", "secretfield"}
+    blocked_docfields = {"secretfield"}
+
+    pairs_only_blocked = _docfield_pairs_normalized(
+        ["secretfield"], ["topsecret"], [], [], valid_db_columns, blocked_docfields
+    )
+    assert pairs_only_blocked == ()
+
+    pairs_none = _docfield_pairs_normalized([], [], [], [], valid_db_columns, blocked_docfields)
+    assert pairs_only_blocked == pairs_none
+
+    key_only_blocked = _docfield_ids_cache_key("default", ["sydoc.test_proc"], pairs_only_blocked)
+    key_none = _docfield_ids_cache_key("default", ["sydoc.test_proc"], pairs_none)
+    assert key_only_blocked == key_none
+
+
 def test_docfield_unknown_op_and_comb_are_whitelisted(
     user_client, workitems_all_perms, monkeypatch
 ):

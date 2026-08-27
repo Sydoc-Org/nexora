@@ -40,10 +40,10 @@ _WORKITEM_FIELD_COL = {"workitem_id": "workitem_col"}
 
 
 def _date_base(col_expr):
-    """Normalize a Statconfig date column to a DATE-typed expression, mirroring
+    """Normalize a ProcessSources date column to a DATE-typed expression, mirroring
     the dashboard: a value already containing CONVERT(...) is trusted as-is;
     otherwise wrap with CAST(... AS date). The expression originates only from
-    Statconfig (server config), never the client."""
+    ProcessSources (server config, nx_lib/mapping_config.py), never the client."""
     return col_expr if "convert" in col_expr.lower() else f"CAST({col_expr} AS date)"
 
 
@@ -77,8 +77,8 @@ def _date_exprs_for(cfg, grain_by_field):
 
 def _workitem_exprs_for(cfg):
     """{workitem_field: sql_expr} when this process maps a workitem column.
-    The column name originates only from Statconfig (server config), never the
-    client — the same SQL-injection boundary as the date expressions."""
+    The column name originates only from ProcessSources (server config,
+    nx_lib/mapping_config.py), never the client — the same SQL-injection boundary as the date expressions."""
     out = {}
     for field, cfg_key in _WORKITEM_FIELD_COL.items():
         col = cfg.get(cfg_key)
@@ -98,8 +98,8 @@ def _bracket_object(name):
     """Validate + bracket-quote a possibly schema-qualified object name
     part-by-part: 'dbo.X' -> '[dbo].[X]', 'X' -> '[X]'. Bracketing the whole
     dotted string as one identifier would make SQL Server look up a table
-    literally named 'dbo.X'. Names originate from Statconfig (server config),
-    never the client; the identifier check is defence in depth."""
+    literally named 'dbo.X'. Names originate from ProcessSources (server config,
+    nx_lib/mapping_config.py), never the client; the identifier check is defence in depth."""
     parts = str(name or "").split(".")
     if not 1 <= len(parts) <= 3 or not all(_IDENT.match(p) for p in parts):
         raise QueryBuildError(f"unsafe table name: {name!r}")
@@ -185,8 +185,8 @@ def _scope_by_processname(process_configs, filters):
     return result
 
 
-# Date-anchored measures: shared time-axis field + anchor -> Statconfig date
-# column key. The 'backlog' anchor reads dbo.BacklogHistory (same Statistics
+# Date-anchored measures: shared time-axis field + anchor -> ProcessSources
+# date column key. The 'backlog' anchor reads dbo.BacklogHistory (same Statistics
 # engine) as one more UNION leg.
 ACTIVITY_FIELD = "activity_date"
 _ANCHOR_DATE_KEY = {"import_date": "import_col", "export_date": "export_col"}

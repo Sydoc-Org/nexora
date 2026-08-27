@@ -705,9 +705,10 @@ def resolve_ms02_pid_ids(engine, specs, pid_values):
 
     Typed fast path (#98 Task 12): when a spec's ``pid_column_type`` is
     int-typed (``_MS02_INT_TYPES``), the PID list is parsed to ints and
-    compared with a bare, sargable ``"<pid_col>" = ANY(%s)``. If ANY PID in
-    the list fails to parse, that spec is skipped entirely (contributes
-    nothing) -- other specs are unaffected.
+    compared with a bare, sargable ``"<pid_col>" = ANY(%s)``. An individual
+    PID that fails to parse is dropped from that spec's batch (I2) -- valid
+    PIDs in the same batch still match; the spec is skipped entirely only
+    when EVERY PID in the batch is unparseable. Other specs are unaffected.
 
     Three-way contract (mirrors resolve_ms02_docfield_ids):
       * None      -> no constraint (engine absent, no specs, no PIDs, or error).
@@ -767,9 +768,11 @@ def resolve_ms02_pid_to_wids(engine, specs, pid_values):
     spec's ``pid_column_type`` (5th tuple element, #98 Task 12) is int-typed
     (``_MS02_INT_TYPES``), in which case both the projection and the ``= ANY``
     comparison stay bare/native-int (sargable), and the bound PID list is
-    parsed to ints -- an unparseable PID skips that one spec, same as
-    resolve_ms02_pid_ids. A bare 4-tuple spec is still accepted
-    (``pid_column_type=None``, always the ``::text`` fallback).
+    parsed to ints -- an individual unparseable PID is dropped from that
+    spec's batch (I2), same as resolve_ms02_pid_ids; the spec itself is
+    skipped only when every PID in the batch is unparseable. A bare 4-tuple
+    spec is still accepted (``pid_column_type=None``, always the ``::text``
+    fallback).
 
     Three-way contract (mirrors resolve_ms02_pid_ids):
       * None        -> no constraint (engine absent, no specs, no PIDs, error).

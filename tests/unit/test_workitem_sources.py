@@ -1040,6 +1040,25 @@ def test_resolve_ms02_pid_ids_query_error_returns_none(app):
         assert ws.resolve_ms02_pid_ids(engine, [_PID_SPEC], ["1"]) is None
 
 
+def test_resolve_ms02_pid_ids_mixed_batch_drops_only_unparseable(app):
+    """(I2, #98 Task 12) A batch mixing valid ints with one unparseable value
+    must keep the valid ones and drop only the bad value -- NOT skip the
+    whole spec. Regression test for the docstring/code drift I4 flagged:
+    the previous docstring wording ("if ANY PID fails to parse, that spec is
+    skipped entirely") was already fixed in code but never had a direct
+    test."""
+    int_spec = ('public."DossierStatistik"', "WorkItemID", "DossierNummer", None, "int")
+    engine = MagicMock()
+    cur = engine.raw_connection.return_value.cursor.return_value
+    cur.fetchall.return_value = [(1,), (2,), (4,)]
+    with app.app_context():
+        result = ws.resolve_ms02_pid_ids(engine, [int_spec], ["1", "2", "not-a-number", "4"])
+    assert result == {1, 2, 4}
+    # only the parseable ints are bound -- the bad value never reaches SQL
+    args = cur.execute.call_args[0]
+    assert sorted(args[1][0]) == [1, 2, 4]
+
+
 # ---------------- resolve_ms02_pid_to_wids (per-PID mapping) ---------------- #
 
 

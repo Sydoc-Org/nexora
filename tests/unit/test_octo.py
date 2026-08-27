@@ -15,7 +15,6 @@ from nx_lib.octo import (
     get_access_token,
     get_activity_type_name,
     get_extensions_urls_fields,
-    get_index_field_mappings,
     get_media,
     get_workitemdata_param,
     pdf_src_bytes,
@@ -203,28 +202,11 @@ def test_get_workitemdata_param_returns_none_on_missing_document_id(app):
 # ---------- get_index_field_mappings ----------
 
 
-def test_get_index_field_mappings_returns_dict_on_success(app, monkeypatch):
-    monkeypatch.setattr(
-        octo_mod.mapping_config,
-        "field_aliases",
-        lambda: {"Invoice_Date": "invoice_date", "Supplier_Name": "supplier"},
-    )
-
-    with app.app_context():
-        mappings = get_index_field_mappings()
-
-    assert mappings == {"Invoice_Date": "invoice_date", "Supplier_Name": "supplier"}
-
-
-def test_get_index_field_mappings_returns_empty_on_db_error(app, monkeypatch):
-    # mapping_config.field_aliases() itself degrades to {} on a registry
-    # load failure (never caches the failure -- see mapping_config.registry());
-    # get_index_field_mappings is a thin pass-through onto that contract.
-    monkeypatch.setattr(octo_mod.mapping_config, "field_aliases", lambda: {})
-
-    with app.app_context():
-        mappings = get_index_field_mappings()
-    assert mappings == {}
+# get_index_field_mappings is a one-line pass-through onto
+# mapping_config.field_aliases() (nx_lib/octo.py); real coverage for that
+# contract (success + registry-load-failure degrade to {}) lives in
+# tests/unit/test_mapping_config.py::test_field_aliases_empty_on_failure and
+# friends.
 
 
 # ---------- get_extensions_urls_fields ----------
