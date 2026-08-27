@@ -164,6 +164,11 @@ Work toward the next release.
 
 ### Fixed
 
+- **Reporting library: dashboard cards said "Delete report"** (#214). A
+  library card's `…` menu now reads "Delete dashboard" when the card is a
+  dashboard (`r.kind === 'dashboard'`), matching the "DASHBOARD" tag already
+  on the card.
+
 - **Workitem detail panel: line-item tables are tables again** (#199). Each
   extracted table (`TabVat`, `TabOrder`, …) was rendered as a stack of
   label-over-value rows inside the narrow Document Details column, so line-item

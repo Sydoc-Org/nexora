@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-27 10:10+0200\n"
+"POT-Creation-Date: 2026-08-27 10:24+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -1932,7 +1932,7 @@ msgstr ""
 "serie colorata."
 
 #: templates/_reporting_simple.html:99
-#: templates/js/_reporting_simple_js.html:128
+#: templates/js/_reporting_simple_js.html:129
 msgid "Time range"
 msgstr "Intervallo di tempo"
 
@@ -1971,7 +1971,7 @@ msgid "Show result"
 msgstr "Mostra risultato"
 
 #: templates/_reporting_simple.html:129
-#: templates/js/_reporting_simple_js.html:129
+#: templates/js/_reporting_simple_js.html:130
 msgid "So far"
 msgstr "Finora"
 
@@ -2030,13 +2030,13 @@ msgid "More actions"
 msgstr "Altre azioni"
 
 #: templates/_reporting_simple.html:186
-#: templates/js/_reporting_simple_js.html:93
+#: templates/js/_reporting_simple_js.html:94
 msgid "Open in Advanced"
 msgstr "Apri in Avanzato"
 
 #: templates/_reporting_simple.html:188 templates/js/_reporting_ai_js.html:37
 #: templates/js/_reporting_js.html:506
-#: templates/js/_reporting_simple_js.html:94 templates/reporting.html:346
+#: templates/js/_reporting_simple_js.html:95 templates/reporting.html:346
 msgid "Show query"
 msgstr "Mostra query"
 
@@ -3259,7 +3259,7 @@ msgstr "Volume di elaborazione giornaliero"
 #: templates/js/_generali_dashboard_js.html:25
 #: templates/js/_reporting_dashboard_js.html:33
 #: templates/js/_reporting_js.html:510
-#: templates/js/_reporting_simple_js.html:110
+#: templates/js/_reporting_simple_js.html:111
 #: templates/js/_reporting_viz_js.html:557
 #: templates/js/_reporting_viz_js.html:619
 #: templates/js/_reporting_viz_js.html:675
@@ -4580,7 +4580,7 @@ msgid "Source"
 msgstr "Origine"
 
 #: templates/js/_reporting_simple_js.html:51
-#: templates/js/_reporting_simple_js.html:126 templates/reporting.html:303
+#: templates/js/_reporting_simple_js.html:127 templates/reporting.html:303
 msgid "Processes"
 msgstr "Processi"
 
@@ -4625,7 +4625,7 @@ msgstr "Carica"
 msgid "Share the selected report you own"
 msgstr "Condividi il report selezionato di tua proprietà"
 
-#: templates/js/_reporting_simple_js.html:88 templates/reporting.html:333
+#: templates/js/_reporting_simple_js.html:89 templates/reporting.html:333
 msgid "Share"
 msgstr "Condividi"
 
@@ -5238,14 +5238,14 @@ msgstr "Tutti i campi"
 
 #: templates/js/_reporting_dashboard_js.html:24
 #: templates/js/_reporting_js.html:501
-#: templates/js/_reporting_simple_js.html:100
+#: templates/js/_reporting_simple_js.html:101
 #: templates/workitems_overview.html:232 templates/workitems_overview.html:291
 msgid "contains"
 msgstr "contiene"
 
 #: templates/js/_reporting_dashboard_js.html:25
 #: templates/js/_reporting_js.html:502
-#: templates/js/_reporting_simple_js.html:101
+#: templates/js/_reporting_simple_js.html:102
 #: templates/workitems_overview.html:235 templates/workitems_overview.html:294
 msgid "starts with"
 msgstr "inizia con"
@@ -5337,7 +5337,7 @@ msgstr "ID Workitem, Stato, Fase, Ultimo movimento"
 msgid "Optional extras"
 msgstr "Extra opzionali"
 
-#: templates/js/_reporting_simple_js.html:132
+#: templates/js/_reporting_simple_js.html:133
 #: templates/workitems_overview.html:545
 msgid "Document fields"
 msgstr ""
@@ -5732,7 +5732,7 @@ msgstr "Data di fine"
 
 #: templates/admin/logs.html:96 templates/admin/logs.html:131
 #: templates/admin/user_detail.html:226
-#: templates/js/_reporting_simple_js.html:131
+#: templates/js/_reporting_simple_js.html:132
 msgid "Time"
 msgstr "Ora"
 
@@ -6680,7 +6680,7 @@ msgid "Insert into SQL editor"
 msgstr "Inserisci nell'editor SQL"
 
 #: templates/js/_reporting_ai_js.html:38 templates/js/_reporting_js.html:507
-#: templates/js/_reporting_simple_js.html:96
+#: templates/js/_reporting_simple_js.html:97
 msgid "Hide query"
 msgstr "Nascondi query"
 
@@ -6807,13 +6807,13 @@ msgstr "Valore"
 
 #: templates/js/_reporting_dashboard_js.html:26
 #: templates/js/_reporting_js.html:503
-#: templates/js/_reporting_simple_js.html:102
+#: templates/js/_reporting_simple_js.html:103
 msgid "is empty"
 msgstr "è vuoto"
 
 #: templates/js/_reporting_dashboard_js.html:27
 #: templates/js/_reporting_js.html:504
-#: templates/js/_reporting_simple_js.html:103
+#: templates/js/_reporting_simple_js.html:104
 msgid "is not empty"
 msgstr "non è vuoto"
 
@@ -7033,7 +7033,7 @@ msgid "Running your report…"
 msgstr "Esecuzione del report in corso…"
 
 #: templates/js/_reporting_js.html:488
-#: templates/js/_reporting_simple_js.html:107
+#: templates/js/_reporting_simple_js.html:108
 #, python-brace-format
 msgid "{rows} rows · {ms} ms"
 msgstr "{rows} righe · {ms} ms"
@@ -7047,27 +7047,27 @@ msgid "SQL report"
 msgstr "Report SQL"
 
 #: templates/js/_reporting_js.html:498
-#: templates/js/_reporting_simple_js.html:97
+#: templates/js/_reporting_simple_js.html:98
 msgid "between"
 msgstr "tra"
 
 #: templates/js/_reporting_js.html:499
-#: templates/js/_reporting_simple_js.html:98
+#: templates/js/_reporting_simple_js.html:99
 msgid "is one of"
 msgstr "è uno di"
 
 #: templates/js/_reporting_js.html:500
-#: templates/js/_reporting_simple_js.html:99
+#: templates/js/_reporting_simple_js.html:100
 msgid "is not one of"
 msgstr "non è uno di"
 
 #: templates/js/_reporting_js.html:508
-#: templates/js/_reporting_simple_js.html:104
+#: templates/js/_reporting_simple_js.html:105
 msgid "Copied"
 msgstr "Copiato"
 
 #: templates/js/_reporting_js.html:509
-#: templates/js/_reporting_simple_js.html:95
+#: templates/js/_reporting_simple_js.html:96
 #, python-brace-format
 msgid ""
 "Showing the first {n} rows — narrow the filters or time range to see the "
@@ -7077,17 +7077,17 @@ msgstr ""
 "di tempo per vedere il resto."
 
 #: templates/js/_reporting_js.html:511
-#: templates/js/_reporting_simple_js.html:119
+#: templates/js/_reporting_simple_js.html:120
 msgid "Buckets"
 msgstr "Gruppi"
 
 #: templates/js/_reporting_js.html:512
-#: templates/js/_reporting_simple_js.html:120
+#: templates/js/_reporting_simple_js.html:121
 msgid "Avg per bucket"
 msgstr "Media per gruppo"
 
 #: templates/js/_reporting_js.html:513
-#: templates/js/_reporting_simple_js.html:135
+#: templates/js/_reporting_simple_js.html:136
 msgid "AI"
 msgstr "IA"
 
@@ -7122,7 +7122,7 @@ msgid "Could not load metrics"
 msgstr "Impossibile caricare le metriche"
 
 #: templates/js/_reporting_js.html:1532
-#: templates/js/_reporting_simple_js.html:137
+#: templates/js/_reporting_simple_js.html:138
 msgid "shared"
 msgstr "condiviso"
 
@@ -7143,7 +7143,7 @@ msgid "Delete this saved report?"
 msgstr "Eliminare questo report salvato?"
 
 #: templates/js/_reporting_js.html:1682
-#: templates/js/_reporting_simple_js.html:92
+#: templates/js/_reporting_simple_js.html:93
 msgid "Delete failed"
 msgstr "Eliminazione non riuscita"
 
@@ -7488,39 +7488,43 @@ msgid "Gaps are periods without a backlog snapshot."
 msgstr "Le lacune sono periodi senza istantanea del backlog."
 
 #: templates/js/_reporting_simple_js.html:84
+msgid "Delete dashboard"
+msgstr "Elimina dashboard"
+
+#: templates/js/_reporting_simple_js.html:85
 msgid "Report actions"
 msgstr "Azioni del report"
 
-#: templates/js/_reporting_simple_js.html:85
+#: templates/js/_reporting_simple_js.html:86
 #, python-brace-format
 msgid "{label} down {pct} vs previous"
 msgstr "{label} in calo del {pct} rispetto al precedente"
 
-#: templates/js/_reporting_simple_js.html:86
+#: templates/js/_reporting_simple_js.html:87
 #, python-brace-format
 msgid "{label} up {pct} vs previous"
 msgstr "{label} in aumento del {pct} rispetto al precedente"
 
-#: templates/js/_reporting_simple_js.html:87
+#: templates/js/_reporting_simple_js.html:88
 #, python-brace-format
 msgid "{label} peak — {bucket}"
 msgstr "{label} picco — {bucket}"
 
-#: templates/js/_reporting_simple_js.html:89
+#: templates/js/_reporting_simple_js.html:90
 msgid "1 report"
 msgstr "1 report"
 
-#: templates/js/_reporting_simple_js.html:90
+#: templates/js/_reporting_simple_js.html:91
 #, python-brace-format
 msgid "{n} reports"
 msgstr "{n} report"
 
-#: templates/js/_reporting_simple_js.html:91
+#: templates/js/_reporting_simple_js.html:92
 #, python-brace-format
 msgid "Delete “{name}”? This cannot be undone."
 msgstr "Eliminare «{name}»? L’operazione non può essere annullata."
 
-#: templates/js/_reporting_simple_js.html:105
+#: templates/js/_reporting_simple_js.html:106
 #, python-brace-format
 msgid ""
 "Only {n} of {m} selected processes provide this field — documents from "
@@ -7530,7 +7534,7 @@ msgstr ""
 "documenti degli altri processi appaiono qui con un valore vuoto. Fornito "
 "da:"
 
-#: templates/js/_reporting_simple_js.html:106
+#: templates/js/_reporting_simple_js.html:107
 #, python-brace-format
 msgid ""
 "Only {n} of {m} processes provide this field — the measure only counts "
@@ -7539,76 +7543,76 @@ msgstr ""
 "Solo {n} su {m} processi forniscono questo campo — la metrica conta solo "
 "i documenti di questi processi:"
 
-#: templates/js/_reporting_simple_js.html:108
+#: templates/js/_reporting_simple_js.html:109
 #, python-brace-format
 msgid "{rows} rows · {ms} ms · {when}"
 msgstr "{rows} righe · {ms} ms · {when}"
 
-#: templates/js/_reporting_simple_js.html:109
+#: templates/js/_reporting_simple_js.html:110
 msgid "run just now"
 msgstr "proprio ora"
 
-#: templates/js/_reporting_simple_js.html:114
+#: templates/js/_reporting_simple_js.html:115
 msgid "last bucket"
 msgstr "ultimo gruppo"
 
-#: templates/js/_reporting_simple_js.html:115
+#: templates/js/_reporting_simple_js.html:116
 msgid "sum over the period"
 msgstr "somma sul periodo"
 
-#: templates/js/_reporting_simple_js.html:116
+#: templates/js/_reporting_simple_js.html:117
 msgid "periods in the range"
 msgstr "periodi nell'intervallo"
 
-#: templates/js/_reporting_simple_js.html:117
+#: templates/js/_reporting_simple_js.html:118
 msgid "total ÷ buckets"
 msgstr "totale ÷ periodi"
 
-#: templates/js/_reporting_simple_js.html:118
+#: templates/js/_reporting_simple_js.html:119
 msgid "grand total"
 msgstr "totale complessivo"
 
-#: templates/js/_reporting_simple_js.html:121
+#: templates/js/_reporting_simple_js.html:122
 msgid "Peak"
 msgstr "Picco"
 
-#: templates/js/_reporting_simple_js.html:122
+#: templates/js/_reporting_simple_js.html:123
 msgid "vs"
 msgstr "vs"
 
-#: templates/js/_reporting_simple_js.html:123
+#: templates/js/_reporting_simple_js.html:124
 #, python-brace-format
 msgid "{n} rows"
 msgstr "{n} righe"
 
-#: templates/js/_reporting_simple_js.html:124
+#: templates/js/_reporting_simple_js.html:125
 #, python-brace-format
 msgid "Step {n} of 4"
 msgstr "Passo {n} di 4"
 
-#: templates/js/_reporting_simple_js.html:125
+#: templates/js/_reporting_simple_js.html:126
 msgid "Measure"
 msgstr "Misura"
 
-#: templates/js/_reporting_simple_js.html:127
+#: templates/js/_reporting_simple_js.html:128
 msgid "Breakdown"
 msgstr "Suddivisione"
 
-#: templates/js/_reporting_simple_js.html:130
+#: templates/js/_reporting_simple_js.html:131
 #, python-brace-format
 msgid "{n} of {m} selected"
 msgstr "{n} di {m} selezionati"
 
-#: templates/js/_reporting_simple_js.html:133
+#: templates/js/_reporting_simple_js.html:134
 msgid "Or"
 msgstr "O"
 
-#: templates/js/_reporting_simple_js.html:134
+#: templates/js/_reporting_simple_js.html:135
 #, python-brace-format
 msgid "{n} of 3 picked"
 msgstr "{n} di 3 selezionati"
 
-#: templates/js/_reporting_simple_js.html:136
+#: templates/js/_reporting_simple_js.html:137
 msgid "Loading values…"
 msgstr "Caricamento valori…"
 

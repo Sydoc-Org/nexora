@@ -115,7 +115,16 @@ def test_dashboard_report_in_library_routes_to_builder(nexora_server, page):
     )
 
     page.goto(f"{nexora_server}/reporting?tab=simple")
-    page.get_by_test_id("rs-card").first.click()
+
+    # #214: the library card's own "..." menu must say "Delete dashboard",
+    # not "Delete report", for a dashboard-kind card. The kebab/menu are
+    # siblings of the card button inside .rs-card-wrap, not descendants of it.
+    card = page.get_by_test_id("rs-card").first
+    page.get_by_test_id("rs-card-kebab").first.click()
+    expect(page.get_by_test_id("rs-card-delete").first).to_have_text("Delete dashboard")
+    page.get_by_test_id("rs-card-kebab").first.click()  # close before navigating away
+
+    card.click()
     expect(page.get_by_test_id("rs-dashboard")).to_be_visible()
     expect(page.get_by_test_id("rs-result")).to_be_hidden()
 

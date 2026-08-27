@@ -435,7 +435,8 @@
     del.className = 'rs-card-menu-row rs-card-menu-row--danger';
     del.setAttribute('role', 'menuitem');
     del.setAttribute('data-testid', 'rs-card-delete');
-    del.innerHTML = '<i class="fas fa-trash-can" aria-hidden="true"></i>' + esc(I18N.deleteReport);
+    del.innerHTML = '<i class="fas fa-trash-can" aria-hidden="true"></i>' +
+      esc(r.kind === 'dashboard' ? I18N.deleteDashboard : I18N.deleteReport);
     del.addEventListener('click', function (e) { e.stopPropagation(); closeCardMenu(); deleteReport(r.id, r.name); });
     menu.appendChild(share);
     var hr = document.createElement('div');
