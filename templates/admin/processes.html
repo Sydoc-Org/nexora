@@ -19,15 +19,23 @@
     <main class="nx-main">
         {{ a.page_header(
             title=_('Processes'),
-            subtitle=_('Process sources and field mappings per client -- read-only (dbo.ProcessSources / dbo.ProcessFieldMappings)'),
+            subtitle=_('Process sources and field mappings per client (dbo.ProcessSources / dbo.ProcessFieldMappings)'),
             back_url=url_for('admin_dashboard'),
+            actions=[{'label': _('Add process source'), 'icon': 'fa-plus', 'onclick': 'openAddProcessSourceModal()', 'variant': 'primary', 'testid': 'add-process-source'}] if can_edit else None,
             icon='fa-diagram-project'
         ) }}
 
-        <p class="nx-c-meta" style="font-size:0.85rem;margin:-8px 0 16px" data-testid="admin-processes-help">
+        <p class="nx-c-meta" style="font-size:0.85rem;margin:-8px 0 8px" data-testid="admin-processes-help">
             <i class="fas fa-circle-info"></i>
             {{ _("\"Client\" here is a runtime source (default/ms02, see Clients) -- not a customer organization. Process names are customer-prefixed by convention only (e.g. privera.02_Posteingang); this page never parses that prefix.") }}
         </p>
+
+        {% if can_edit %}
+        <p class="nx-c-meta" style="font-size:0.85rem;margin:0 0 16px" data-testid="admin-processes-help-writes">
+            <i class="fas fa-shield-halved"></i>
+            {{ _("Adding a process source also creates its workitems.filter.process.<name> permission, granted to nobody -- grant it under Access Control. The join condition, time filters and extra condition are free-form SQL fragments and stay read-only here: they are editable only by a database migration.") }}
+        </p>
+        {% endif %}
 
         {% if not mapping_config_available %}
         <div class="nx-card admin-empty" data-testid="admin-processes-unavailable">
@@ -52,24 +60,39 @@
                         <span class="nx-c-meta" style="font-size:0.8rem">
                             {{ _('Table:') }} <span class="nx-mono">{{ process.table or '—' }}</span>
                         </span>
+                        {% if can_edit %}
+                        <span>
+                            <button type="button" class="edit-source-btn nx-btn nx-btn--ghost nx-btn--sm" data-source='{{ process|tojson|safe }}' data-testid="admin-process-source-edit-{{ group.client }}-{{ process.process }}">{{ _("Edit") }}</button>
+                            <button type="button" class="add-field-btn nx-btn nx-btn--ghost nx-btn--sm" data-client="{{ group.client }}" data-process="{{ process.process }}" data-testid="admin-process-field-add-{{ group.client }}-{{ process.process }}">{{ _("Add field") }}</button>
+                            <button type="button" class="delete-source-btn nx-btn nx-btn--ghost nx-btn--sm nx-c-danger" data-client="{{ group.client }}" data-process="{{ process.process }}" data-testid="admin-process-source-delete-{{ group.client }}-{{ process.process }}">{{ _("Delete") }}</button>
+                        </span>
+                        {% endif %}
                     </div>
 
                     <div class="nx-table-wrap" style="margin-top:8px">
                         <table class="nx-table">
-                            {{ a.table_header([
-                                {'label': _('Field key')},
-                                {'label': _('Column')},
-                                {'label': _('Column type'), 'width': '140px'}
-                            ]) }}
+                            {{ a.table_header(
+                                [
+                                    {'label': _('Field key')},
+                                    {'label': _('Column')},
+                                    {'label': _('Column type'), 'width': '140px'}
+                                ] + ([{'label': _('Actions'), 'align': 'right', 'width': '160px'}] if can_edit else [])
+                            ) }}
                             <tbody>
                                 {% for field in process.fields %}
                                 <tr data-testid="admin-processes-field-{{ group.client }}-{{ process.process }}-{{ field.field_key }}">
                                     <td class="nx-mono">{{ field.field_key }}</td>
                                     <td class="nx-mono">{{ field.column }}</td>
                                     <td>{{ field.column_type or '—' }}</td>
+                                    {% if can_edit %}
+                                    <td class="align-right">
+                                        <button type="button" class="edit-field-btn nx-btn nx-btn--ghost nx-btn--sm" data-client="{{ group.client }}" data-process="{{ process.process }}" data-field='{{ field|tojson|safe }}' data-testid="admin-process-field-edit-{{ group.client }}-{{ process.process }}-{{ field.field_key }}">{{ _("Edit") }}</button>
+                                        <button type="button" class="delete-field-btn nx-btn nx-btn--ghost nx-btn--sm nx-c-danger" data-client="{{ group.client }}" data-process="{{ process.process }}" data-fieldkey="{{ field.field_key }}" data-testid="admin-process-field-delete-{{ group.client }}-{{ process.process }}-{{ field.field_key }}">{{ _("Delete") }}</button>
+                                    </td>
+                                    {% endif %}
                                 </tr>
                                 {% else %}
-                                {{ a.empty_state('fa-table-cells', _('No field mappings for this process.'), 3) }}
+                                {{ a.empty_state('fa-table-cells', _('No field mappings for this process.'), 4 if can_edit else 3) }}
                                 {% endfor %}
                             </tbody>
                         </table>
@@ -86,6 +109,113 @@
         </div>
         {% endif %}
     </main>
+
+    {% if can_edit %}
+    <div id="confirmationModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 hidden opacity-0 transition-opacity duration-300 ease-in-out">
+        <div class="modal-content nx-card w-full max-w-sm text-center transform scale-95 transition-transform duration-300 ease-in-out">
+            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full nx-bg-lred">
+                <i class="fas fa-exclamation-triangle fa-lg nx-c-danger"></i>
+            </div>
+            <h3 class="nx-section mt-4">{{ _("Confirm deletion") }}</h3>
+            <div class="mt-2">
+                <p class="text-sm nx-c-sec" id="confirmMessage"></p>
+            </div>
+            <div class="mt-6 flex justify-center space-x-4">
+                <button id="cancelBtn" type="button" class="nx-btn nx-btn--secondary" data-testid="admin-processes-confirmation-cancel">{{ _("Cancel") }}</button>
+                <button id="confirmBtn" type="button" class="nx-btn nx-btn--danger" data-testid="admin-processes-confirmation-confirm">{{ _("Confirm") }}</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="sourceModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden opacity-0 transition-opacity duration-300 ease-in-out">
+        <div class="modal-content nx-card w-full max-w-md transform scale-95 transition-transform duration-300 ease-in-out">
+            <h3 id="sourceModalTitle" class="nx-section mb-4">{{ _("Add a process source") }}</h3>
+            <form id="sourceForm" data-testid="admin-process-source-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" id="sourceOriginalClient">
+                <input type="hidden" id="sourceOriginalProcess">
+                <div class="space-y-4">
+                    <div>
+                        <label for="ClientCode" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Client Code (runtime source)") }}</label>
+                        <input type="text" id="ClientCode" name="ClientCode" class="nx-input" pattern="[a-z0-9_]{2,50}" required data-testid="admin-process-source-client">
+                    </div>
+                    <div>
+                        <label for="ProcessName" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Process Name") }}</label>
+                        <input type="text" id="ProcessName" name="ProcessName" class="nx-input" pattern="[A-Za-z0-9_.\-]{1,100}" placeholder="privera.02_Posteingang" required data-testid="admin-process-source-process">
+                    </div>
+                    <div>
+                        <label for="TableName" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Table Name") }}</label>
+                        <input type="text" id="TableName" name="TableName" class="nx-input" placeholder="dbo.tblAlpha" required data-testid="admin-process-source-table">
+                    </div>
+                    <div>
+                        <label for="TableAlias" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Table Alias (optional)") }}</label>
+                        <input type="text" id="TableAlias" name="TableAlias" class="nx-input" maxlength="10" data-testid="admin-process-source-alias">
+                    </div>
+                    <div>
+                        <label for="ExportColumn" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Export Column (optional)") }}</label>
+                        <input type="text" id="ExportColumn" name="ExportColumn" class="nx-input" data-testid="admin-process-source-export-column">
+                    </div>
+                    <div>
+                        <label for="ImportColumn" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Import Column (optional)") }}</label>
+                        <input type="text" id="ImportColumn" name="ImportColumn" class="nx-input" data-testid="admin-process-source-import-column">
+                    </div>
+                    <div>
+                        <label for="WorkitemColumn" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Workitem Column (optional)") }}</label>
+                        <input type="text" id="WorkitemColumn" name="WorkitemColumn" class="nx-input" data-testid="admin-process-source-workitem-column">
+                    </div>
+                    <div>
+                        <label for="IdColumnType" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Id Column Type (optional)") }}</label>
+                        <input type="text" id="IdColumnType" name="IdColumnType" class="nx-input" placeholder="bigint" data-testid="admin-process-source-id-column-type">
+                    </div>
+                </div>
+                <p class="nx-c-meta mt-4" style="font-size:0.8rem">
+                    <i class="fas fa-lock"></i>
+                    {{ _("Join condition, time filters and extra condition are free-form SQL and are not editable here -- change them with a migration.") }}
+                </p>
+                <div class="flex justify-end mt-6 gap-2">
+                    <button type="button" id="sourceModalCancelBtn" class="nx-btn nx-btn--secondary" data-testid="admin-process-source-cancel">{{ _("Cancel") }}</button>
+                    <button type="submit" class="nx-btn nx-btn--primary" data-testid="admin-process-source-save">{{ _("Save") }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="fieldModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden opacity-0 transition-opacity duration-300 ease-in-out">
+        <div class="modal-content nx-card w-full max-w-md transform scale-95 transition-transform duration-300 ease-in-out">
+            <h3 id="fieldModalTitle" class="nx-section mb-4">{{ _("Add a field mapping") }}</h3>
+            <form id="fieldForm" data-testid="admin-process-field-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" id="fieldOriginalKey">
+                <div class="space-y-4">
+                    <div>
+                        <label for="fieldClientCode" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Client Code (runtime source)") }}</label>
+                        <input type="text" id="fieldClientCode" name="ClientCode" class="nx-input" readonly data-testid="admin-process-field-client">
+                    </div>
+                    <div>
+                        <label for="fieldProcessName" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Process Name") }}</label>
+                        <input type="text" id="fieldProcessName" name="ProcessName" class="nx-input" readonly data-testid="admin-process-field-process">
+                    </div>
+                    <div>
+                        <label for="FieldKey" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Field Key") }}</label>
+                        <input type="text" id="FieldKey" name="FieldKey" class="nx-input" pattern="[A-Za-z0-9_.\-]{1,100}" required data-testid="admin-process-field-key">
+                    </div>
+                    <div>
+                        <label for="ColumnName" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Column Name") }}</label>
+                        <input type="text" id="ColumnName" name="ColumnName" class="nx-input" required data-testid="admin-process-field-column">
+                    </div>
+                    <div>
+                        <label for="ColumnType" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Column Type (optional)") }}</label>
+                        <input type="text" id="ColumnType" name="ColumnType" class="nx-input" placeholder="nvarchar" data-testid="admin-process-field-column-type">
+                    </div>
+                </div>
+                <div class="flex justify-end mt-6 gap-2">
+                    <button type="button" id="fieldModalCancelBtn" class="nx-btn nx-btn--secondary" data-testid="admin-process-field-cancel">{{ _("Cancel") }}</button>
+                    <button type="submit" class="nx-btn nx-btn--primary" data-testid="admin-process-field-save">{{ _("Save") }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
 
     {% include 'js/admin/_processes_js.html' %}
 </body>

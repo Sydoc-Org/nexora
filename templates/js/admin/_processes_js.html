@@ -8,10 +8,11 @@
 
 <body>
     <script nonce="{{ csp_nonce() }}">
-        // #98 phase 4 task 6: read-only /admin/processes. Write endpoints (add/edit
-        // source, add/edit/delete field mapping) land in task 7 and extend this
-        // same shim -- keep API_PREFIX + delegated-click plumbing here even though
-        // nothing calls them yet.
+        // #98 phase 4 tasks 6-7: /admin/processes -- read-only list plus
+        // add/edit/delete for dbo.ProcessSources and dbo.ProcessFieldMappings.
+        // JoinCondition / TimeFilter / SuggestionTimeFilter / ExtraCondition are
+        // free-form SQL fragments and are deliberately absent from both forms:
+        // they stay migration-only.
         const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
 
         document.addEventListener('DOMContentLoaded', function () {
@@ -29,13 +30,220 @@
             input.addEventListener('input', applyFilter);
         });
 
-        // #193 finding 10: onclick="" attribute handlers aren't nonce-covered by CSP --
-        // delegate through data-nx-click instead, once task 7 adds actions here.
-        document.addEventListener('click', (e) => {
-            const target = e.target.closest('[data-nx-click]');
-            if (!target) return;
-            // No actions wired yet on this read-only page.
+        {% if can_edit %}
+        const sourceModal = document.getElementById('sourceModal');
+        const sourceForm = document.getElementById('sourceForm');
+        const fieldModal = document.getElementById('fieldModal');
+        const fieldForm = document.getElementById('fieldForm');
+        const confirmationModal = document.getElementById('confirmationModal');
+        const confirmMessage = document.getElementById('confirmMessage');
+
+        function showNotification(message, type = 'success') {
+            const container = document.getElementById('notification-container');
+            if (!container) return;
+
+            const notification = document.createElement('div');
+            const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+            const icon = type === 'success'
+                ? '<i class="fas fa-check-circle"></i>'
+                : '<i class="fas fa-exclamation-circle"></i>';
+
+            notification.className = `flex items-center w-full p-4 text-white ${bgColor} rounded-lg shadow-lg transform transition-all duration-300 opacity-0 translate-x-full`;
+            notification.innerHTML = `<div class="text-xl">${icon}</div><div class="ml-3 text-sm font-medium"></div>`;
+            // textContent, not innerHTML: server messages echo admin-supplied
+            // process/column names back at us.
+            notification.lastElementChild.textContent = message;
+
+            container.appendChild(notification);
+            setTimeout(() => notification.classList.remove('opacity-0', 'translate-x-full'), 10);
+            setTimeout(() => {
+                notification.classList.add('opacity-0', 'translate-x-full');
+                setTimeout(() => notification.remove(), 300);
+            }, 6000);
+        }
+
+        function openModal(modal) {
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.querySelector('.modal-content').classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeModal(modal) {
+            modal.classList.add('opacity-0');
+            modal.querySelector('.modal-content').classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        // #193 finding 10: onclick="" attribute handlers aren't nonce-covered by CSP.
+        sourceModal.addEventListener('click', (e) => { if (e.target === sourceModal) closeModal(sourceModal); });
+        fieldModal.addEventListener('click', (e) => { if (e.target === fieldModal) closeModal(fieldModal); });
+        document.getElementById('sourceModalCancelBtn').addEventListener('click', () => closeModal(sourceModal));
+        document.getElementById('fieldModalCancelBtn').addEventListener('click', () => closeModal(fieldModal));
+
+        // Bound by the delegated data-nx-click handler in _header.html, so it has
+        // to be a window global.
+        window.openAddProcessSourceModal = function () {
+            sourceForm.reset();
+            document.getElementById('sourceModalTitle').textContent = `{{ _("Add a process source") }}`;
+            document.getElementById('sourceOriginalClient').value = '';
+            document.getElementById('sourceOriginalProcess').value = '';
+            document.getElementById('ClientCode').readOnly = false;
+            document.getElementById('ProcessName').readOnly = false;
+            openModal(sourceModal);
+        };
+
+        function openEditSourceModal(source) {
+            sourceForm.reset();
+            document.getElementById('sourceModalTitle').textContent = `{{ _("Edit process source") }}`;
+            document.getElementById('sourceOriginalClient').value = source.client;
+            document.getElementById('sourceOriginalProcess').value = source.process;
+            // (ClientCode, ProcessName) is the primary key and the suffix of the
+            // process permission -- a rename here would strand both.
+            document.getElementById('ClientCode').value = source.client;
+            document.getElementById('ClientCode').readOnly = true;
+            document.getElementById('ProcessName').value = source.process;
+            document.getElementById('ProcessName').readOnly = true;
+            document.getElementById('TableName').value = source.table || '';
+            document.getElementById('TableAlias').value = source.alias || '';
+            document.getElementById('ExportColumn').value = source.export_column || '';
+            document.getElementById('ImportColumn').value = source.import_column || '';
+            document.getElementById('WorkitemColumn').value = source.workitem_column || '';
+            document.getElementById('IdColumnType').value = source.id_column_type || '';
+            openModal(sourceModal);
+        }
+
+        function openAddFieldModal(client, process) {
+            fieldForm.reset();
+            document.getElementById('fieldModalTitle').textContent = `{{ _("Add a field mapping") }}`;
+            document.getElementById('fieldOriginalKey').value = '';
+            document.getElementById('fieldClientCode').value = client;
+            document.getElementById('fieldProcessName').value = process;
+            document.getElementById('FieldKey').readOnly = false;
+            openModal(fieldModal);
+        }
+
+        function openEditFieldModal(client, process, field) {
+            fieldForm.reset();
+            document.getElementById('fieldModalTitle').textContent = `{{ _("Edit field mapping") }}`;
+            document.getElementById('fieldOriginalKey').value = field.field_key;
+            document.getElementById('fieldClientCode').value = client;
+            document.getElementById('fieldProcessName').value = process;
+            document.getElementById('FieldKey').value = field.field_key;
+            // FieldKey is part of the primary key -- renaming one is a delete
+            // plus an add, not an update.
+            document.getElementById('FieldKey').readOnly = true;
+            document.getElementById('ColumnName').value = field.column || '';
+            document.getElementById('ColumnType').value = field.column_type || '';
+            openModal(fieldModal);
+        }
+
+        async function submitWrite(url, method, payload, modal) {
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: payload ? JSON.stringify(payload) : undefined
+                });
+
+                if (response.status === 403) {
+                    showNotification(`{{ _("You do not have permission to perform this action.") }}`, 'error');
+                    return;
+                }
+
+                const result = await response.json();
+                if (response.ok) {
+                    if (modal) closeModal(modal);
+                    showNotification(result.message || `{{ _("Success") }}`);
+                    // The page renders server-side from the mapping-config
+                    // registry (already invalidated by the write), so a reload is
+                    // the cheapest way to show the new state.
+                    setTimeout(() => window.location.reload(), 800);
+                } else {
+                    showNotification(`{{ _("Error:") }} ${result.message || ''}`, 'error');
+                }
+            } catch (error) {
+                console.error('Process write error:', error);
+                showNotification(`{{ _("An unexpected network error occurred.") }}`, 'error');
+            }
+        }
+
+        sourceForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+            const data = Object.fromEntries(new FormData(sourceForm).entries());
+            delete data.csrf_token;
+            const client = document.getElementById('sourceOriginalClient').value;
+            const process = document.getElementById('sourceOriginalProcess').value;
+            const url = client
+                ? `${API_PREFIX}admin/processes/sources/edit/${encodeURIComponent(client)}/${encodeURIComponent(process)}`
+                : `${API_PREFIX}admin/processes/sources/add`;
+            submitWrite(url, 'POST', data, sourceModal);
         });
+
+        fieldForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+            const data = Object.fromEntries(new FormData(fieldForm).entries());
+            delete data.csrf_token;
+            const originalKey = document.getElementById('fieldOriginalKey').value;
+            const url = originalKey
+                ? `${API_PREFIX}admin/processes/fields/edit/${encodeURIComponent(data.ClientCode)}/${encodeURIComponent(data.ProcessName)}/${encodeURIComponent(originalKey)}`
+                : `${API_PREFIX}admin/processes/fields/add`;
+            submitWrite(url, 'POST', data, fieldModal);
+        });
+
+        let confirmCallback = null;
+
+        function showConfirmationModal(message, onConfirm) {
+            confirmMessage.textContent = message;
+            confirmCallback = onConfirm;
+            openModal(confirmationModal);
+        }
+
+        document.getElementById('confirmBtn').addEventListener('click', () => {
+            if (confirmCallback) confirmCallback();
+            closeModal(confirmationModal);
+        });
+        document.getElementById('cancelBtn').addEventListener('click', () => closeModal(confirmationModal));
+
+        document.addEventListener('click', (e) => {
+            const editSource = e.target.closest('.edit-source-btn');
+            if (editSource) {
+                openEditSourceModal(JSON.parse(editSource.dataset.source));
+                return;
+            }
+            const addField = e.target.closest('.add-field-btn');
+            if (addField) {
+                openAddFieldModal(addField.dataset.client, addField.dataset.process);
+                return;
+            }
+            const editField = e.target.closest('.edit-field-btn');
+            if (editField) {
+                openEditFieldModal(editField.dataset.client, editField.dataset.process, JSON.parse(editField.dataset.field));
+                return;
+            }
+            const deleteSource = e.target.closest('.delete-source-btn');
+            if (deleteSource) {
+                const client = deleteSource.dataset.client;
+                const process = deleteSource.dataset.process;
+                showConfirmationModal(
+                    `{{ _("Delete this process source? Its field mappings must be removed first, and its permission row is kept.") }}`,
+                    () => submitWrite(`${API_PREFIX}admin/processes/sources/delete/${encodeURIComponent(client)}/${encodeURIComponent(process)}`, 'DELETE', null, null)
+                );
+                return;
+            }
+            const deleteField = e.target.closest('.delete-field-btn');
+            if (deleteField) {
+                const client = deleteField.dataset.client;
+                const process = deleteField.dataset.process;
+                const key = deleteField.dataset.fieldkey;
+                showConfirmationModal(
+                    `{{ _("Delete this field mapping? This action cannot be undone.") }}`,
+                    () => submitWrite(`${API_PREFIX}admin/processes/fields/delete/${encodeURIComponent(client)}/${encodeURIComponent(process)}/${encodeURIComponent(key)}`, 'DELETE', null, null)
+                );
+            }
+        });
+        {% endif %}
     </script>
 </body>
 

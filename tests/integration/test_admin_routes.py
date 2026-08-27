@@ -36,6 +36,7 @@ import types as _types
 import uuid
 from unittest.mock import MagicMock
 
+import pyodbc
 import pytest
 
 
@@ -448,6 +449,458 @@ def test_api_admin_processes_list_returns_503_on_registry_none(
     assert resp.status_code == 503
     with app.app_context():
         mc.invalidate_mapping_config()
+
+
+# ==================== processes: writes + permission auto-provisioning =======
+
+# dbo.ProcessSources / ProcessFieldMappings / Permission writes cannot run
+# against NEXORA_TEST (sql/test/schema.sql has no mapping tables), so the write
+# endpoints run against _FakeMappingDb below. It is not a bare stub: it
+# emulates the three constraints these endpoints must respect --
+# PK_ProcessSources, PK_ProcessFieldMappings and the UNIQUE index on
+# dbo.Permission.Code -- plus the WHERE NOT EXISTS guard, so a non-idempotent
+# or unguarded implementation fails these tests rather than passing them.
+
+
+class _FakeMappingDb:
+    """Tiny in-memory stand-in for the three tables the write endpoints touch."""
+
+    def __init__(self, sources=(), mappings=(), permissions=()):
+        self.sources = set(sources)
+        self.mappings = set(mappings)
+        self.permissions = set(permissions)
+        self.calls = []  # ordered log of ("SQL", params) plus ("COMMIT", None)
+        self.rowcount = 0
+        self._last = ""
+
+    # -- DBAPI-ish surface -------------------------------------------------
+    def raw_connection(self):
+        return self
+
+    def cursor(self):
+        return self
+
+    def close(self):
+        pass
+
+    def commit(self):
+        self.calls.append(("COMMIT", None))
+
+    def fetchone(self):
+        return self._fetchone
+
+    def execute(self, sql, params=None):
+        self.calls.append((sql, params))
+        self._last = sql
+        self._fetchone = None
+        self.rowcount = 0
+        flat = " ".join(sql.split())
+
+        if flat.startswith("INSERT INTO dbo.ProcessSources"):
+            key = (params[0], params[1])
+            if key in self.sources:
+                raise pyodbc.IntegrityError("23000", "PK_ProcessSources")
+            self.sources.add(key)
+            self.rowcount = 1
+        elif flat.startswith("UPDATE dbo.ProcessSources"):
+            key = (params[-2], params[-1])
+            self.rowcount = 1 if key in self.sources else 0
+        elif flat.startswith("DELETE FROM dbo.ProcessSources"):
+            key = (params[0], params[1])
+            self.rowcount = 1 if key in self.sources else 0
+            self.sources.discard(key)
+        elif flat.startswith("SELECT COUNT(*) FROM dbo.ProcessFieldMappings"):
+            self._fetchone = (
+                sum(1 for m in self.mappings if (m[0], m[1]) == (params[0], params[1])),
+            )
+        elif flat.startswith("SELECT COUNT(*) FROM dbo.ProcessSources"):
+            self._fetchone = (1 if (params[0], params[1]) in self.sources else 0,)
+        elif flat.startswith("INSERT INTO dbo.ProcessFieldMappings"):
+            key = (params[0], params[1], params[2])
+            if key in self.mappings:
+                raise pyodbc.IntegrityError("23000", "PK_ProcessFieldMappings")
+            self.mappings.add(key)
+            self.rowcount = 1
+        elif flat.startswith("UPDATE dbo.ProcessFieldMappings"):
+            key = (params[-3], params[-2], params[-1])
+            self.rowcount = 1 if key in self.mappings else 0
+        elif flat.startswith("DELETE FROM dbo.ProcessFieldMappings"):
+            key = (params[0], params[1], params[2])
+            self.rowcount = 1 if key in self.mappings else 0
+            self.mappings.discard(key)
+        elif flat.startswith("INSERT INTO dbo.Permission"):
+            code = params[0]
+            guarded = "WHERE NOT EXISTS" in flat
+            if code in self.permissions:
+                if not guarded:  # UNIQUE (Code) -- what SQL Server would do
+                    raise pyodbc.IntegrityError("23000", "UQ_Permission_Code")
+                self.rowcount = 0
+            else:
+                self.permissions.add(code)
+                self.rowcount = 1
+        else:
+            raise AssertionError(f"unexpected query: {sql}")
+
+    # -- assertions helpers ------------------------------------------------
+    def statements(self):
+        return [" ".join(sql.split()) for sql, _ in self.calls]
+
+    def params_for(self, prefix):
+        return [p for sql, p in self.calls if " ".join(sql.split()).startswith(prefix)]
+
+
+@pytest.fixture
+def fake_mapping_db(monkeypatch):
+    """Point the admin write endpoints at _FakeMappingDb and neutralise the
+    mapping-config cache invalidation so it can be asserted per test."""
+    import nx_lib.views.admin as admin_module
+
+    db = _FakeMappingDb(
+        sources={("ms02", "privera.02_Posteingang")},
+        mappings={("ms02", "privera.02_Posteingang", "doctype")},
+        permissions={"workitems.filter.process.privera.02_Posteingang"},
+    )
+    monkeypatch.setattr(admin_module, "engine_nexora_db", db)
+    return db
+
+
+@pytest.fixture
+def spy_invalidate(monkeypatch):
+    calls = []
+    monkeypatch.setattr("nx_lib.views.admin.invalidate_mapping_config", lambda: calls.append(1))
+    return calls
+
+
+_VALID_SOURCE = {
+    "ClientCode": "default",
+    "ProcessName": "acme.01_Eingang",
+    "TableName": "dbo.tblAcme",
+    "TableAlias": "a",
+    "ExportColumn": "ExportDate",
+    "ImportColumn": "ImportDate",
+    "WorkitemColumn": "WorkitemId",
+    "IdColumnType": "int",
+}
+
+_VALID_FIELD = {
+    "ClientCode": "ms02",
+    "ProcessName": "privera.02_Posteingang",
+    "FieldKey": "invoice_no",
+    "ColumnName": "InvoiceNo",
+    "ColumnType": "nvarchar",
+}
+
+
+# ---- permission gates -------------------------------------------------------
+
+
+def test_admin_process_source_add_gated(noperm_client):
+    assert noperm_client.post("/admin/processes/sources/add", json={}).status_code == 403
+
+
+def test_admin_process_source_edit_gated(noperm_client):
+    resp = noperm_client.post("/admin/processes/sources/edit/ms02/p", json={})
+    assert resp.status_code == 403
+
+
+def test_admin_process_source_delete_gated(noperm_client):
+    assert noperm_client.delete("/admin/processes/sources/delete/ms02/p").status_code == 403
+
+
+def test_admin_field_mapping_add_gated(noperm_client):
+    assert noperm_client.post("/admin/processes/fields/add", json={}).status_code == 403
+
+
+def test_admin_field_mapping_edit_gated(noperm_client):
+    resp = noperm_client.post("/admin/processes/fields/edit/ms02/p/doctype", json={})
+    assert resp.status_code == 403
+
+
+def test_admin_field_mapping_delete_gated(noperm_client):
+    resp = noperm_client.delete("/admin/processes/fields/delete/ms02/p/doctype")
+    assert resp.status_code == 403
+
+
+# ---- permission auto-provisioning (D7) --------------------------------------
+
+
+def test_process_source_add_provisions_permission_exactly_once(
+    admin_client, admin_all_perms, fake_mapping_db, spy_invalidate
+):
+    resp = admin_client.post("/admin/processes/sources/add", json=_VALID_SOURCE)
+    assert resp.status_code == 200, resp.get_json()
+
+    perm_params = fake_mapping_db.params_for("INSERT INTO dbo.Permission")
+    assert len(perm_params) == 1
+    assert perm_params[0][0] == "workitems.filter.process.acme.01_Eingang"
+    assert "workitems.filter.process.acme.01_Eingang" in fake_mapping_db.permissions
+
+
+def test_process_source_add_provisions_permission_granted_to_nobody(
+    admin_client, admin_all_perms, fake_mapping_db, spy_invalidate
+):
+    """Granting stays a deliberate act at /admin/access-control -- the endpoint
+    must never write AccessProfilePermission or UserPermissionOverride."""
+    admin_client.post("/admin/processes/sources/add", json=_VALID_SOURCE)
+    joined = " ".join(fake_mapping_db.statements())
+    assert "AccessProfilePermission" not in joined
+    assert "UserPermissionOverride" not in joined
+
+
+def test_process_source_add_provisions_permission_in_same_transaction(
+    admin_client, admin_all_perms, fake_mapping_db, spy_invalidate
+):
+    admin_client.post("/admin/processes/sources/add", json=_VALID_SOURCE)
+    statements = fake_mapping_db.statements()
+    first_commit = statements.index("COMMIT")
+    before = statements[:first_commit]
+    assert any(s.startswith("INSERT INTO dbo.ProcessSources") for s in before)
+    assert any(s.startswith("INSERT INTO dbo.Permission") for s in before)
+
+
+def test_process_source_add_permission_provisioning_is_idempotent(
+    admin_client, admin_all_perms, fake_mapping_db, spy_invalidate
+):
+    """Re-adding a process whose permission row survived an earlier delete must
+    not blow up on the UNIQUE index on dbo.Permission.Code."""
+
+    def add():
+        return admin_client.post("/admin/processes/sources/add", json=_VALID_SOURCE)
+
+    assert add().status_code == 200
+    assert (
+        admin_client.delete("/admin/processes/sources/delete/default/acme.01_Eingang").status_code
+        == 200
+    )
+    assert add().status_code == 200
+    assert sum(1 for c in fake_mapping_db.permissions if c.endswith("acme.01_Eingang")) == 1
+
+
+# ---- cache invalidation on every write path (D8) ----------------------------
+
+
+def test_every_process_write_path_invalidates_mapping_config(
+    admin_client, admin_all_perms, fake_mapping_db, spy_invalidate
+):
+    """Miss invalidate_mapping_config() on one path and that edit looks broken
+    for up to the registry's 60s TTL."""
+    calls = [
+        ("POST", "/admin/processes/sources/add", _VALID_SOURCE),
+        (
+            "POST",
+            "/admin/processes/sources/edit/ms02/privera.02_Posteingang",
+            dict(_VALID_SOURCE, ClientCode="ms02", ProcessName="privera.02_Posteingang"),
+        ),
+        ("POST", "/admin/processes/fields/add", dict(_VALID_FIELD, FieldKey="amount")),
+        (
+            "POST",
+            "/admin/processes/fields/edit/ms02/privera.02_Posteingang/doctype",
+            _VALID_FIELD,
+        ),
+        ("DELETE", "/admin/processes/fields/delete/ms02/privera.02_Posteingang/doctype", None),
+        ("DELETE", "/admin/processes/sources/delete/default/acme.01_Eingang", None),
+    ]
+    for i, (method, url, payload) in enumerate(calls, start=1):
+        if method == "POST":
+            resp = admin_client.post(url, json=payload)
+        else:
+            resp = admin_client.delete(url)
+        assert resp.status_code == 200, (url, resp.get_json())
+        assert len(spy_invalidate) == i, f"{url} did not invalidate the mapping config"
+
+
+def test_failed_process_write_does_not_invalidate(
+    admin_client, admin_all_perms, fake_mapping_db, spy_invalidate
+):
+    resp = admin_client.post(
+        "/admin/processes/sources/add", json=dict(_VALID_SOURCE, ProcessName="bad name!")
+    )
+    assert resp.status_code == 400
+    assert spy_invalidate == []
+
+
+# ---- constraint violations surface as 409, never 500 ------------------------
+
+
+def test_process_source_delete_refused_while_field_mappings_reference_it(
+    admin_client, admin_all_perms, fake_mapping_db, spy_invalidate
+):
+    resp = admin_client.delete("/admin/processes/sources/delete/ms02/privera.02_Posteingang")
+    assert resp.status_code == 409
+    assert ("ms02", "privera.02_Posteingang") in fake_mapping_db.sources
+    assert spy_invalidate == []
+
+
+def test_process_source_add_duplicate_is_409(
+    admin_client, admin_all_perms, fake_mapping_db, spy_invalidate
+):
+    resp = admin_client.post(
+        "/admin/processes/sources/add",
+        json=dict(_VALID_SOURCE, ClientCode="ms02", ProcessName="privera.02_Posteingang"),
+    )
+    assert resp.status_code == 409
+
+
+def test_field_mapping_add_duplicate_is_409(
+    admin_client, admin_all_perms, fake_mapping_db, spy_invalidate
+):
+    """PK_ProcessFieldMappings (ClientCode, ProcessName, FieldKey)."""
+    resp = admin_client.post(
+        "/admin/processes/fields/add", json=dict(_VALID_FIELD, FieldKey="doctype")
+    )
+    assert resp.status_code == 409
+
+
+def test_process_source_edit_missing_row_is_404(
+    admin_client, admin_all_perms, fake_mapping_db, spy_invalidate
+):
+    resp = admin_client.post(
+        "/admin/processes/sources/edit/ms02/nope.01",
+        json=dict(_VALID_SOURCE, ClientCode="ms02", ProcessName="nope.01"),
+    )
+    assert resp.status_code == 404
+
+
+def test_field_mapping_delete_missing_row_is_404(
+    admin_client, admin_all_perms, fake_mapping_db, spy_invalidate
+):
+    resp = admin_client.delete("/admin/processes/fields/delete/ms02/privera.02_Posteingang/nope")
+    assert resp.status_code == 404
+
+
+# ---- server-side validation -------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "bad",
+    ["bad name!", "a" * 101, "", "p; DROP TABLE dbo.Users--", "p'or'1'='1"],
+)
+def test_process_name_must_match_the_strict_pattern(
+    admin_client, admin_all_perms, fake_mapping_db, spy_invalidate, bad
+):
+    resp = admin_client.post(
+        "/admin/processes/sources/add", json=dict(_VALID_SOURCE, ProcessName=bad)
+    )
+    assert resp.status_code == 400
+    assert fake_mapping_db.calls == []
+
+
+@pytest.mark.parametrize("bad", ["bad key!", "a" * 101, "", "k; DROP TABLE dbo.Users--"])
+def test_field_key_must_match_the_strict_pattern(
+    admin_client, admin_all_perms, fake_mapping_db, spy_invalidate, bad
+):
+    resp = admin_client.post("/admin/processes/fields/add", json=dict(_VALID_FIELD, FieldKey=bad))
+    assert resp.status_code == 400
+    assert fake_mapping_db.calls == []
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        "dbo.tbl; DROP TABLE dbo.Users--",
+        "dbo.tbl WHERE 1=1",
+        "1tbl",
+        "tbl'",
+        "tbl)--",
+        "a" * 101,
+    ],
+)
+def test_table_name_rejected_unless_strict_identifier(
+    admin_client, admin_all_perms, fake_mapping_db, spy_invalidate, bad
+):
+    """TableName is interpolated into SQL by the downstream query builders
+    (nx_lib/views/dashboard.py f-strings) -- it is config, not a bind param."""
+    resp = admin_client.post(
+        "/admin/processes/sources/add", json=dict(_VALID_SOURCE, TableName=bad)
+    )
+    assert resp.status_code == 400
+    assert fake_mapping_db.calls == []
+
+
+@pytest.mark.parametrize(
+    "bad", ["Col; DROP TABLE dbo.Users--", "Col FROM x", "1Col", "Col'", "a" * 101]
+)
+def test_column_name_rejected_unless_strict_identifier(
+    admin_client, admin_all_perms, fake_mapping_db, spy_invalidate, bad
+):
+    resp = admin_client.post("/admin/processes/fields/add", json=dict(_VALID_FIELD, ColumnName=bad))
+    assert resp.status_code == 400
+    assert fake_mapping_db.calls == []
+
+
+@pytest.mark.parametrize("field", ["TableAlias", "ExportColumn", "ImportColumn", "WorkitemColumn"])
+def test_every_interpolated_source_column_is_identifier_validated(
+    admin_client, admin_all_perms, fake_mapping_db, spy_invalidate, field
+):
+    """dashboard.py f-strings these straight into SQL alongside TableName."""
+    resp = admin_client.post(
+        "/admin/processes/sources/add", json=dict(_VALID_SOURCE, **{field: "x; DROP TABLE y--"})
+    )
+    assert resp.status_code == 400
+    assert fake_mapping_db.calls == []
+
+
+def test_valid_identifiers_with_brackets_and_quotes_are_accepted(
+    admin_client, admin_all_perms, fake_mapping_db, spy_invalidate
+):
+    """The real config holds quoted PG identifiers (public."DossierStatistik")
+    and bracketed T-SQL ones -- the pattern must not reject those."""
+    resp = admin_client.post(
+        "/admin/processes/sources/add",
+        json=dict(
+            _VALID_SOURCE,
+            ProcessName="acme.02_Quoted",
+            TableName='public."DossierStatistik"',
+        ),
+    )
+    assert resp.status_code == 200, resp.get_json()
+
+
+def test_unknown_client_code_shape_is_rejected(
+    admin_client, admin_all_perms, fake_mapping_db, spy_invalidate
+):
+    resp = admin_client.post(
+        "/admin/processes/sources/add", json=dict(_VALID_SOURCE, ClientCode="Not Valid!")
+    )
+    assert resp.status_code == 400
+    assert fake_mapping_db.calls == []
+
+
+# ---- free-form SQL fragment columns stay out of the write surface -----------
+
+
+def test_free_form_sql_fragment_columns_are_never_written(
+    admin_client, admin_all_perms, fake_mapping_db, spy_invalidate
+):
+    """JoinCondition / TimeFilter / SuggestionTimeFilter / ExtraCondition are
+    free-form SQL by design and stay migration-only -- a payload carrying them
+    must not reach the INSERT."""
+    payload = dict(
+        _VALID_SOURCE,
+        JoinCondition="1=1 OR 1=1",
+        TimeFilter="1=1",
+        SuggestionTimeFilter="1=1",
+        ExtraCondition="1=1",
+    )
+    assert admin_client.post("/admin/processes/sources/add", json=payload).status_code == 200
+
+    insert = next(
+        s for s in fake_mapping_db.statements() if s.startswith("INSERT INTO dbo.Process")
+    )
+    for column in ("JoinCondition", "TimeFilter", "SuggestionTimeFilter", "ExtraCondition"):
+        assert column not in insert
+    params = fake_mapping_db.params_for("INSERT INTO dbo.ProcessSources")[0]
+    assert "1=1 OR 1=1" not in params
+    assert "1=1" not in params
+
+
+def test_processes_page_exposes_no_free_form_sql_inputs(
+    admin_client, admin_all_perms, mapping_config_with_six_rows
+):
+    html = admin_client.get("/admin/processes").get_data(as_text=True)
+    for column in ("JoinCondition", "TimeFilter", "SuggestionTimeFilter", "ExtraCondition"):
+        assert f'name="{column}"' not in html
+        assert f'id="{column}"' not in html
 
 
 # ============================ maintenance banner =============================

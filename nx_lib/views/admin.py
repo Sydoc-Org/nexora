@@ -45,6 +45,7 @@ from ..maintenance import (
     _maintenance_parse_payload,
     _maintenance_row_to_dict,
 )
+from ..mapping_config import invalidate_mapping_config
 from ..security import (
     _revoke_session_by_id,
     has_permission,
@@ -526,7 +527,7 @@ def api_admin_clients_delete(clientcode):
             conn.close()
 
 
-# ----------------------------------- processes (mapping config, read-only) --------- #
+# ----------------------------------- processes (mapping config) -------------------- #
 
 
 def _process_field_dict(field_mapping):
@@ -565,8 +566,10 @@ def admin_processes_view():
 
     registry() returning None means the config failed to load (a load error
     is never cached) -- render an explicit "unavailable" state rather than an
-    empty-looking success. Write endpoints for sources/mappings land in a
-    later task; this page is deliberately read-only."""
+    empty-looking success. The edit affordances render only for
+    admin.edit.processes; the free-form SQL fragment columns (JoinCondition,
+    TimeFilter, SuggestionTimeFilter, ExtraCondition) stay read-only for
+    everybody -- they are editable only by a migration."""
     reg = mapping_config.registry()
     clients_data = []
     if reg is not None:
@@ -591,6 +594,7 @@ def admin_processes_view():
     return render_template(
         "admin/processes.html",
         mapping_config_available=reg is not None,
+        can_edit=has_permission("admin.edit.processes"),
         clients_data=clients_data,
         logged_in_user=session.get("username"),
         userid=session.get("userid"),
@@ -619,6 +623,395 @@ def api_admin_processes_list():
         processes.append(_process_source_dict(source, fields))
 
     return jsonify({"client": client, "processes": processes})
+
+
+# --------------------- processes (mapping config, writes) -------------------------- #
+
+# ProcessName / FieldKey. Process names are customer-prefixed by convention
+# only (privera.02_Posteingang) -- the dot is just a character here, never
+# parsed or split on.
+_PROCESS_NAME_RE = re.compile(r"^[A-Za-z0-9_.\-]{1,100}$")
+
+# TableName / TableAlias / ColumnName / Export|Import|WorkitemColumn are
+# INTERPOLATED into SQL by the downstream query builders (f-strings in
+# nx_lib/views/dashboard.py and nx_lib/workitem_sources.py) -- they are config,
+# not bind parameters. Every admin-editable field that reaches a builder is
+# validated on the way in, here, server-side. Quotes and brackets are allowed
+# because the live config holds qualified identifiers in both dialects
+# (dbo.tblAlpha, public."DossierStatistik") -- spaces, semicolons, parentheses
+# and comment markers are not.
+_IDENT = re.compile(r'^[A-Za-z_][A-Za-z0-9_."\[\]]{0,99}$')
+
+# ColumnType / IdColumnType are never interpolated -- they are only compared
+# against the literal type buckets in workitems.py / workitem_sources.py (e.g.
+# 'nvarchar', 'character varying'), hence the space.
+_COLUMN_TYPE_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_ ]{0,29}$")
+
+# ProcessSources.JoinCondition / TimeFilter / SuggestionTimeFilter /
+# ExtraCondition are free-form SQL fragments by design and are deliberately NOT
+# writable here: no validator can make an arbitrary predicate safe, so they
+# stay migration-only. They appear in no INSERT/UPDATE and in no form below --
+# a payload carrying them is ignored, not applied.
+_PROCESS_PERMISSION_PREFIX = "workitems.filter.process."
+
+
+def _validate_identifier_fields(data, fields, errors, *, required=()):
+    """Append an error for every ``fields`` entry that is present but is not a
+    plain SQL identifier (and for every ``required`` entry that is missing)."""
+    for field in fields:
+        value = (data.get(field) or "").strip()
+        if not value:
+            if field in required:
+                errors.append(_("%(field)s is required.", field=field))
+            continue
+        if not _IDENT.match(value):
+            errors.append(
+                _(
+                    "%(field)s must be a plain SQL identifier (letters, digits, "
+                    "underscores, dots, quotes or brackets).",
+                    field=field,
+                )
+            )
+
+
+def _validate_process_identity(client_code, process_name, errors, field_key=None):
+    if not _CLIENT_CODE_RE.match(client_code or ""):
+        errors.append(_("Client code must be 2-50 lowercase letters, digits or underscores."))
+    if not _PROCESS_NAME_RE.match(process_name or ""):
+        errors.append(_("Process name must be 1-100 letters, digits, dots, dashes or underscores."))
+    if field_key is not None and not _PROCESS_NAME_RE.match(field_key or ""):
+        errors.append(_("Field key must be 1-100 letters, digits, dots, dashes or underscores."))
+
+
+def _validate_process_source_payload(data, client_code, process_name):
+    """Server-side validation for the process-source write endpoints -- never
+    trust the client-side checks in templates/js/admin/_processes_js.html."""
+    errors = []
+    _validate_process_identity(client_code, process_name, errors)
+    _validate_identifier_fields(
+        data,
+        ("TableName", "TableAlias", "ExportColumn", "ImportColumn", "WorkitemColumn"),
+        errors,
+        required=("TableName",),
+    )
+    if len((data.get("TableAlias") or "").strip()) > 10:
+        errors.append(_("Table alias must be at most 10 characters."))
+    id_column_type = (data.get("IdColumnType") or "").strip()
+    if id_column_type and not _COLUMN_TYPE_RE.match(id_column_type):
+        errors.append(_("Id column type must be a plain SQL type name."))
+    return errors
+
+
+def _validate_field_mapping_payload(data, client_code, process_name, field_key):
+    errors = []
+    _validate_process_identity(client_code, process_name, errors, field_key=field_key)
+    _validate_identifier_fields(data, ("ColumnName",), errors, required=("ColumnName",))
+    column_type = (data.get("ColumnType") or "").strip()
+    if column_type and not _COLUMN_TYPE_RE.match(column_type):
+        errors.append(_("Column type must be a plain SQL type name."))
+    return errors
+
+
+def _process_source_values(data):
+    """The six writable ProcessSources columns, in INSERT/UPDATE order. The
+    free-form SQL fragment columns are absent on purpose."""
+    return (
+        (data.get("TableName") or "").strip(),
+        (data.get("TableAlias") or "").strip() or None,
+        (data.get("ExportColumn") or "").strip() or None,
+        (data.get("ImportColumn") or "").strip() or None,
+        (data.get("WorkitemColumn") or "").strip() or None,
+        (data.get("IdColumnType") or "").strip() or None,
+    )
+
+
+def _validation_error(errors):
+    return jsonify({"success": False, "message": " ".join(str(e) for e in errors)}), 400
+
+
+@require_permission("admin.edit.processes")
+def api_admin_process_source_add():
+    """Add a dbo.ProcessSources row (migration 0074) AND provision its
+    ``workitems.filter.process.<ProcessName>`` permission in the same
+    transaction -- self-service onboarding is the whole point of this page, and
+    a process nobody can be granted is a half-created process.
+
+    The permission is created granted to NOBODY: granting stays a deliberate
+    act at /admin/access-control. The insert mirrors migration 0059's
+    idempotent WHERE NOT EXISTS shape, so re-adding a process whose permission
+    row outlived an earlier delete is a no-op rather than a unique-key error."""
+    data = request.get_json() or {}
+    client_code = (data.get("ClientCode") or "").strip()
+    process_name = (data.get("ProcessName") or "").strip()
+    errors = _validate_process_source_payload(data, client_code, process_name)
+    if errors:
+        return _validation_error(errors)
+
+    conn = None
+    cursor = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO dbo.ProcessSources (ClientCode, ProcessName, TableName, TableAlias, "
+            "ExportColumn, ImportColumn, WorkitemColumn, IdColumnType) VALUES (?,?,?,?,?,?,?,?)",
+            (client_code, process_name, *_process_source_values(data)),
+        )
+        code = f"{_PROCESS_PERMISSION_PREFIX}{process_name}"
+        cursor.execute(
+            "INSERT INTO dbo.Permission (Code, Description) SELECT ?, ? "
+            "WHERE NOT EXISTS (SELECT 1 FROM dbo.Permission p WHERE p.Code = ?)",
+            (code, f"View {process_name} workitems"[:200], code),
+        )
+        conn.commit()
+        invalidate_mapping_config()
+        return jsonify(
+            {
+                "success": True,
+                "message": _(
+                    "Process source created. Its permission %(code)s was created but "
+                    "granted to nobody -- grant it under Access Control.",
+                    code=code,
+                ),
+            }
+        )
+    except pyodbc.IntegrityError:
+        return (
+            jsonify({"success": False, "message": _("This process source already exists.")}),
+            409,
+        )
+    except Exception as e:
+        current_app.logger.error(f"Error adding process source {client_code}/{process_name}: {e}")
+        return jsonify({"success": False, "message": _("An unexpected error occurred.")}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@require_permission("admin.edit.processes")
+def api_admin_process_source_edit(clientcode, processname):
+    """Edit the identifier columns of a dbo.ProcessSources row. Identity
+    (ClientCode, ProcessName) comes from the URL and is never rewritten -- a
+    rename would strand the process's field mappings and its permission."""
+    data = request.get_json() or {}
+    errors = _validate_process_source_payload(data, clientcode, processname)
+    if errors:
+        return _validation_error(errors)
+
+    conn = None
+    cursor = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE dbo.ProcessSources SET TableName=?, TableAlias=?, ExportColumn=?, "
+            "ImportColumn=?, WorkitemColumn=?, IdColumnType=? "
+            "WHERE ClientCode=? AND ProcessName=?",
+            (*_process_source_values(data), clientcode, processname),
+        )
+        conn.commit()
+        if cursor.rowcount == 0:
+            return jsonify({"success": False, "message": _("Process source not found.")}), 404
+        invalidate_mapping_config()
+        return jsonify({"success": True, "message": _("Process source updated successfully.")})
+    except Exception as e:
+        current_app.logger.error(f"Error editing process source {clientcode}/{processname}: {e}")
+        return jsonify({"success": False, "message": _("An error occurred.")}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@require_permission("admin.edit.processes")
+def api_admin_process_source_delete(clientcode, processname):
+    """Delete a dbo.ProcessSources row. Refused with 409 while field mappings
+    still reference it -- FK_ProcessFieldMappings_ProcessSources would raise
+    anyway, and a 500 tells the admin nothing about what to do next.
+
+    The ``workitems.filter.process.<name>`` permission row is deliberately left
+    behind: dropping it would silently revoke access the admin never asked to
+    change, and re-adding the process re-uses it (see the add endpoint)."""
+    conn = None
+    cursor = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT COUNT(*) FROM dbo.ProcessFieldMappings WHERE ClientCode = ? "
+            "AND ProcessName = ?",
+            (clientcode, processname),
+        )
+        row = cursor.fetchone()
+        if row and row[0]:
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "message": _(
+                            "This process source still has field mappings and cannot be "
+                            "deleted. Remove them first."
+                        ),
+                    }
+                ),
+                409,
+            )
+
+        cursor.execute(
+            "DELETE FROM dbo.ProcessSources WHERE ClientCode=? AND ProcessName=?",
+            (clientcode, processname),
+        )
+        conn.commit()
+        if cursor.rowcount == 0:
+            return jsonify({"success": False, "message": _("Process source not found.")}), 404
+        invalidate_mapping_config()
+        return jsonify({"success": True, "message": _("Process source deleted successfully.")})
+    except pyodbc.IntegrityError:
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "message": _("This process source is still referenced and cannot be deleted."),
+                }
+            ),
+            409,
+        )
+    except Exception as e:
+        current_app.logger.error(f"Error deleting process source {clientcode}/{processname}: {e}")
+        return jsonify({"success": False, "message": _("An error occurred.")}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@require_permission("admin.edit.processes")
+def api_admin_field_mapping_add():
+    """Add a dbo.ProcessFieldMappings row -- one doc-field of one process."""
+    data = request.get_json() or {}
+    client_code = (data.get("ClientCode") or "").strip()
+    process_name = (data.get("ProcessName") or "").strip()
+    field_key = (data.get("FieldKey") or "").strip()
+    errors = _validate_field_mapping_payload(data, client_code, process_name, field_key)
+    if errors:
+        return _validation_error(errors)
+
+    conn = None
+    cursor = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO dbo.ProcessFieldMappings (ClientCode, ProcessName, FieldKey, "
+            "ColumnName, ColumnType) VALUES (?,?,?,?,?)",
+            (
+                client_code,
+                process_name,
+                field_key,
+                (data.get("ColumnName") or "").strip(),
+                (data.get("ColumnType") or "").strip() or None,
+            ),
+        )
+        conn.commit()
+        invalidate_mapping_config()
+        return jsonify({"success": True, "message": _("Field mapping created successfully.")})
+    except pyodbc.IntegrityError:
+        # PK_ProcessFieldMappings, or FK_ProcessFieldMappings_ProcessSources
+        # when the parent process source does not exist.
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "message": _(
+                        "This field mapping already exists, or its process source does not."
+                    ),
+                }
+            ),
+            409,
+        )
+    except Exception as e:
+        current_app.logger.error(f"Error adding field mapping {client_code}/{process_name}: {e}")
+        return jsonify({"success": False, "message": _("An unexpected error occurred.")}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@require_permission("admin.edit.processes")
+def api_admin_field_mapping_edit(clientcode, processname, fieldkey):
+    """Edit a field mapping's column. Identity comes from the URL -- renaming a
+    FieldKey is a delete plus an add, not an update."""
+    data = request.get_json() or {}
+    errors = _validate_field_mapping_payload(data, clientcode, processname, fieldkey)
+    if errors:
+        return _validation_error(errors)
+
+    conn = None
+    cursor = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE dbo.ProcessFieldMappings SET ColumnName=?, ColumnType=? "
+            "WHERE ClientCode=? AND ProcessName=? AND FieldKey=?",
+            (
+                (data.get("ColumnName") or "").strip(),
+                (data.get("ColumnType") or "").strip() or None,
+                clientcode,
+                processname,
+                fieldkey,
+            ),
+        )
+        conn.commit()
+        if cursor.rowcount == 0:
+            return jsonify({"success": False, "message": _("Field mapping not found.")}), 404
+        invalidate_mapping_config()
+        return jsonify({"success": True, "message": _("Field mapping updated successfully.")})
+    except Exception as e:
+        current_app.logger.error(
+            f"Error editing field mapping {clientcode}/{processname}/{fieldkey}: {e}"
+        )
+        return jsonify({"success": False, "message": _("An error occurred.")}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@require_permission("admin.edit.processes")
+def api_admin_field_mapping_delete(clientcode, processname, fieldkey):
+    conn = None
+    cursor = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "DELETE FROM dbo.ProcessFieldMappings WHERE ClientCode=? AND ProcessName=? "
+            "AND FieldKey=?",
+            (clientcode, processname, fieldkey),
+        )
+        conn.commit()
+        if cursor.rowcount == 0:
+            return jsonify({"success": False, "message": _("Field mapping not found.")}), 404
+        invalidate_mapping_config()
+        return jsonify({"success": True, "message": _("Field mapping deleted successfully.")})
+    except Exception as e:
+        current_app.logger.error(
+            f"Error deleting field mapping {clientcode}/{processname}/{fieldkey}: {e}"
+        )
+        return jsonify({"success": False, "message": _("An error occurred.")}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 
 # ----------------------------------- status page ---------------------------------- #
@@ -2522,7 +2915,7 @@ def register_routes(app):
         methods=["DELETE"],
     )
 
-    # processes (mapping config, read-only)
+    # processes (mapping config)
     app.add_url_rule(
         "/admin/processes", endpoint="admin_processes_view", view_func=admin_processes_view
     )
@@ -2530,6 +2923,42 @@ def register_routes(app):
         "/api/admin/processes/list",
         endpoint="api_admin_processes_list",
         view_func=api_admin_processes_list,
+    )
+    app.add_url_rule(
+        "/admin/processes/sources/add",
+        endpoint="api_admin_process_source_add",
+        view_func=api_admin_process_source_add,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/admin/processes/sources/edit/<clientcode>/<processname>",
+        endpoint="api_admin_process_source_edit",
+        view_func=api_admin_process_source_edit,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/admin/processes/sources/delete/<clientcode>/<processname>",
+        endpoint="api_admin_process_source_delete",
+        view_func=api_admin_process_source_delete,
+        methods=["DELETE"],
+    )
+    app.add_url_rule(
+        "/admin/processes/fields/add",
+        endpoint="api_admin_field_mapping_add",
+        view_func=api_admin_field_mapping_add,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/admin/processes/fields/edit/<clientcode>/<processname>/<fieldkey>",
+        endpoint="api_admin_field_mapping_edit",
+        view_func=api_admin_field_mapping_edit,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        "/admin/processes/fields/delete/<clientcode>/<processname>/<fieldkey>",
+        endpoint="api_admin_field_mapping_delete",
+        view_func=api_admin_field_mapping_delete,
+        methods=["DELETE"],
     )
 
     # status page
