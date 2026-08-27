@@ -237,6 +237,14 @@ The stored filename is derived from the organization code, never from the upload
   Because SVG is allowed and SVG is script-capable, every response carries
   `Content-Security-Policy: sandbox` and `X-Content-Type-Options: nosniff` (spec D9) — it must never
   be treated as same-origin executable content.
+- **The sandbox CSP is set twice, on purpose.** CSP is PROD-only, and PROD's Talisman
+  `after_request` assigns `Content-Security-Policy` *unconditionally* — it would silently replace the
+  header the view sets, handing the response the global policy whose `script-src` allows jsdelivr /
+  cdnjs / tailwindcss. So the view sets the header (the whole story on INT/dev/TEST, where there is
+  no Talisman) **and** `branding_logo.talisman_view_options` declares the sandbox policy through
+  Talisman's own per-view override, which wins on PROD. `tests/integration/test_admin_routes.py`
+  asserts this against a second app with Talisman installed the way `nx_lib/__init__.py` does —
+  asserting it in TEST alone passes vacuously.
 
 ### Editing a brand
 
@@ -278,10 +286,15 @@ Small, known, and left for a later pass rather than discovered by the next perso
 - **Changing a logo's file format orphans the old file.** Uploading `PRVR.png` over an existing
   `PRVR.svg` writes the new file and repoints `BrandLogoFile`; the old `PRVR.svg` stays on disk
   forever. It is never served (the serve route reads `BrandLogoFile`, not the directory), so this is
-  disk litter, not a leak.
+  disk litter, not a leak — and deleting the organization sweeps every `<code>.<ext>` for the four
+  allowed extensions, so the litter does not survive the org.
 - **There is no "remove logo" button.** A brand name and an accent can be cleared by emptying the
   field; a logo can only be replaced. Clearing one today means a manual `UPDATE` plus
   `invalidate_branding()` (or waiting out the 60-second TTL).
 - **The file write is not atomic with the DB commit.** `target.write_bytes(...)` happens before
   `conn.commit()`, so a commit failure leaves the new image on disk with the old filename still in
   the row. Same "never served" consequence as above; worth fixing if this ever grows a delete path.
+
+Deleting an organization (`DELETE /admin/organizations/delete/<code>`) removes its logo files and
+calls `invalidate_branding()` — otherwise the dead org keeps its brand, and `/branding/<code>/logo`
+keeps serving its image, for up to the registry's 60-second TTL.

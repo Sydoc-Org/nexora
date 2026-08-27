@@ -178,6 +178,30 @@ Work toward the next release.
 
 ### Fixed
 
+- **Brand-logo sandbox CSP now survives Talisman on PROD** (#98 phase 4).
+  `branding_logo` set `Content-Security-Policy: sandbox` from inside the view,
+  but Talisman (installed in PROD only) assigns that header unconditionally in
+  its `after_request` and silently replaced it with the global policy — whose
+  `script-src` allows jsdelivr / cdnjs / tailwindcss. The one control that makes
+  script-capable SVG safe to serve therefore existed on INT, where there is no
+  CSP anyway, and was missing on PROD. The endpoint now also declares the
+  sandbox policy through Talisman's per-view override
+  (`talisman_view_options`), and the test asserts it against an app with
+  Talisman actually installed.
+
+- **Deleting an organization drops its branding** (#98 phase 4). The delete
+  neither invalidated the branding cache nor removed the uploaded logo, so for
+  up to 60 seconds the registry still served the dead org's brand and
+  `/branding/<code>/logo` still returned its image — and the file was then
+  orphaned in `var/branding/` forever, to be re-exposed verbatim if the same org
+  code was ever created again. It now sweeps every `<code>.<ext>` logo (a
+  missing file is not an error) and calls `invalidate_branding()`.
+
+- **A wide customer logo can no longer push the header** (#98 phase 4). The
+  `.nx-brand-logo` class had no CSS rule at all: only `height="48"` bounded the
+  image, so an SVG with no intrinsic size and no `viewBox` fell back to the
+  300px default. It now caps both axes and letterboxes with `object-fit`.
+
 - **Workitem detail panel: line-item tables are tables again** (#199). Each
   extracted table (`TabVat`, `TabOrder`, …) was rendered as a stack of
   label-over-value rows inside the narrow Document Details column, so line-item

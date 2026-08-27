@@ -159,6 +159,79 @@ def test_admin_delete_organization_unknown_returns_404(admin_client, admin_all_p
     assert resp.status_code in (200, 404, 500)
 
 
+# ---- deleting an org must also drop its branding (#98 phase 4) --------------
+#
+# A delete mutates the branding registry exactly like a save does. Without the
+# invalidation the dead org keeps its brand -- and /branding/<code>/logo keeps
+# serving its image -- for up to the registry's 60s TTL; without the unlink the
+# file is orphaned forever and would be re-exposed verbatim if the same org
+# code is created again. These reuse the branding_write fixture (defined with
+# the other branding tests below) for the stubbed engine + tmp var/branding.
+
+
+def test_delete_organization_removes_logo_and_invalidates(
+    admin_client, admin_all_perms, branding_write
+):
+    tmp_path, _cursor, calls = branding_write
+    (tmp_path / "TEST.png").write_bytes(b"\x89PNG\r\n\x1a\n")
+    # An earlier format switch left this behind alongside the current one.
+    (tmp_path / "TEST.svg").write_bytes(b"<svg/>")
+    (tmp_path / "OTHER.png").write_bytes(b"keep me")
+
+    resp = admin_client.delete("/admin/organizations/delete/TEST")
+
+    assert resp.status_code == 200
+    assert [p.name for p in tmp_path.iterdir()] == ["OTHER.png"]
+    assert calls == [1]
+
+
+def test_delete_organization_without_a_logo_still_invalidates(
+    admin_client, admin_all_perms, branding_write
+):
+    """NULL BrandLogoFile / nothing on disk: a missing file is not an error,
+    and the registry still has to be dropped."""
+    tmp_path, _cursor, calls = branding_write
+
+    resp = admin_client.delete("/admin/organizations/delete/TEST")
+
+    assert resp.status_code == 200
+    assert list(tmp_path.iterdir()) == []
+    assert calls == [1]
+
+
+def test_delete_organization_not_found_touches_nothing(
+    admin_client, admin_all_perms, branding_write, monkeypatch
+):
+    """No row deleted -> no cache invalidation and no file removed."""
+    tmp_path, cursor, calls = branding_write
+    cursor.rowcount = 0
+    (tmp_path / "TEST.png").write_bytes(b"\x89PNG\r\n\x1a\n")
+
+    resp = admin_client.delete("/admin/organizations/delete/TEST")
+
+    assert resp.status_code == 404
+    assert [p.name for p in tmp_path.iterdir()] == ["TEST.png"]
+    assert calls == []
+
+
+def test_delete_branding_logo_refuses_a_hostile_org_code(monkeypatch, tmp_path):
+    """The unlink derives its path from the org code, so the code is validated
+    against the same _ORG_CODE_RE the upload uses -- nothing outside
+    var/branding/ may ever be removed."""
+    from nx_lib.views import admin as admin_views
+
+    branding_dir = tmp_path / "branding"
+    branding_dir.mkdir()
+    outside = tmp_path / "secret.png"
+    outside.write_bytes(b"top-secret")
+    monkeypatch.setattr("nx_lib.views.admin.PATHS.branding", branding_dir)
+
+    for hostile in ("../secret", "..\\secret", "", None, "a/b"):
+        admin_views._delete_branding_logo(hostile)
+
+    assert outside.is_file()
+
+
 def test_api_admin_organizations_list(admin_client, admin_all_perms):
     resp = admin_client.get("/api/admin/organizations/list")
     assert resp.status_code == 200
@@ -2265,6 +2338,21 @@ def test_header_prepaint_accent_fallback_source_uses_brand_then_hardcoded():
     assert "accentHex:  stored.accentHex  || brand.accent_hex || '#4f46e5'," in src
 
 
+def test_brand_logo_class_bounds_both_axes():
+    """height="48" on the <img> bounds one axis only -- an SVG with no intrinsic
+    size and no viewBox falls back to 300px wide. The header must not be
+    pushable by a customer-uploaded logo, so .nx-brand-logo needs a real rule in
+    the stylesheet the logo partial loads."""
+    with open("templates/nexora_logo/_nexora_logo.html", encoding="utf-8") as f:
+        assert 'class="nx-brand-logo"' in f.read()
+    with open("static/css/_nexoraLogo.css", encoding="utf-8") as f:
+        css = f.read()
+    assert ".nx-brand-logo" in css
+    rule = css.split(".nx-brand-logo", 1)[1].split("}", 1)[0]
+    assert "max-width" in rule
+    assert "object-fit" in rule
+
+
 # ============================ /branding/<orgcode>/logo route ==================
 
 
@@ -2299,6 +2387,62 @@ def test_branding_logo_serves_file_with_hardening_headers(admin_client, monkeypa
     resp = admin_client.get("/branding/TEST/logo")
     assert resp.status_code == 200
     assert resp.headers.get("Content-Security-Policy") == "sandbox"
+    assert resp.headers.get("X-Content-Type-Options") == "nosniff"
+
+
+# ---- the same assertion, but with Talisman active (i.e. the way PROD runs) ---
+#
+# Talisman is installed ONLY in PROD (nx_lib/__init__.py) and its after_request
+# assigns Content-Security-Policy unconditionally. The test above therefore
+# passes vacuously: it runs in TEST, where nothing can overwrite the view's
+# header. These build a second app wired exactly like PROD so a regression --
+# dropping branding_logo.talisman_view_options -- actually fails.
+
+
+@pytest.fixture(scope="module")
+def prod_csp_app():
+    from flask_talisman import Talisman
+
+    from nx_lib import config as _cfg
+    from nx_lib import create_app as _create_app
+
+    prod_app = _create_app()
+    prod_app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
+    Talisman(
+        prod_app, content_security_policy=_cfg.CSP, content_security_policy_nonce_in=["script-src"]
+    )
+    return prod_app
+
+
+@pytest.fixture()
+def prod_csp_client(prod_csp_app):
+    c = prod_csp_app.test_client()
+    with c.session_transaction() as sess:
+        sess["userid"] = 1
+        sess["username"] = "admin@test.local"
+    return c
+
+
+def test_talisman_is_actually_active_on_the_prod_shaped_app(prod_csp_client):
+    """Control: without this, the next test could pass for the wrong reason."""
+    resp = prod_csp_client.get("/login", base_url="https://localhost")
+    csp = resp.headers.get("Content-Security-Policy") or ""
+    assert "script-src" in csp and "cdn.jsdelivr.net" in csp
+
+
+def test_branding_logo_sandbox_csp_survives_talisman(prod_csp_client, monkeypatch, tmp_path):
+    """The one control that makes script-capable SVG safe (spec D9) must reach
+    the client on PROD, not just on INT."""
+    monkeypatch.setattr("nx_lib.views.core.PATHS.branding", tmp_path)
+    (tmp_path / "TEST.svg").write_bytes(b'<svg xmlns="http://www.w3.org/2000/svg"/>')
+    monkeypatch.setattr("nx_lib.views.core.brand_for_org", lambda code: {"logo_file": "TEST.svg"})
+    resp = prod_csp_client.get("/branding/TEST/logo", base_url="https://localhost")
+    assert resp.status_code == 200
+    csp = resp.headers.get("Content-Security-Policy") or ""
+    # Talisman renders a dict policy as "<section> <content>" -> "sandbox ".
+    assert csp.strip() == "sandbox"
+    assert "script-src" not in csp
+    assert "nonce-" not in csp
     assert resp.headers.get("X-Content-Type-Options") == "nosniff"
 
 

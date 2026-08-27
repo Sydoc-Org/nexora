@@ -466,6 +466,9 @@ def test_inject_brand_reads_fresh_per_render_not_from_session(app, monkeypatch):
         lambda code: {"name": "Provera", "accent_hex": "#336699", "logo_file": "PRVR.png"},
     )
     with app.test_request_context("/"):
+        # Gated on a logged-in session: logout() leaves organizationcode behind,
+        # so _inject_brand() keys on userid too (see its docstring).
+        session["userid"] = 1
         session["organizationcode"] = "PRVR"
         ctx = _inject_brand()
         assert ctx == {
@@ -476,6 +479,18 @@ def test_inject_brand_reads_fresh_per_render_not_from_session(app, monkeypatch):
 
 def test_inject_brand_degrades_to_empty_dict_on_registry_failure(app, monkeypatch):
     monkeypatch.setattr("nx_lib.hooks.brand_for_org", lambda code: None)
+    with app.test_request_context("/"):
+        session["userid"] = 1
+        session["organizationcode"] = "PRVR"
+        assert _inject_brand() == {"brand": {}}
+
+
+def test_inject_brand_is_gated_on_a_logged_in_session(app, monkeypatch):
+    """logout() pops userid but leaves organizationcode behind, so keying on
+    organizationcode alone kept branding the post-logout landing page."""
+    monkeypatch.setattr(
+        "nx_lib.hooks.brand_for_org", lambda code: {"name": "Provera", "logo_file": "PRVR.png"}
+    )
     with app.test_request_context("/"):
         session["organizationcode"] = "PRVR"
         assert _inject_brand() == {"brand": {}}

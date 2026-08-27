@@ -276,6 +276,14 @@ def admin_delete_organization(organizationcode):
         if cursor.rowcount == 0:
             return jsonify({"success": False, "message": _("Organization not found.")}), 404
 
+        # A delete mutates the branding registry exactly like a save does: skip
+        # this and the dead org keeps its brand -- and /branding/<code>/logo
+        # keeps serving its image -- for up to the 60s TTL. The file has to go
+        # too, or it is orphaned forever and would be re-exposed verbatim if the
+        # same org code is ever created again (#98 phase 4).
+        _delete_branding_logo(organizationcode)
+        invalidate_branding()
+
         return jsonify({"success": True, "message": _("Organization deleted successfully.")})
     except Exception as e:
         current_app.logger.error(f"Error deleting Organization {organizationcode}: {e}")
@@ -326,6 +334,41 @@ BRANDING_LOGO_EXTS = ("svg", "png", "jpg", "jpeg")
 # The org code is used to build a filename, so it must be a plain code. Task 10's
 # serve route defends itself independently (os.path.basename on the stored name).
 _ORG_CODE_RE = re.compile(r"^[A-Za-z0-9]{1,16}$")
+
+
+def _branding_logo_target(branding_dir: Path, filename: str) -> Path | None:
+    """Resolve ``filename`` inside ``branding_dir``, or None if it escapes it.
+
+    The single path derivation + traversal check shared by the upload and the
+    delete side (the serve side in nx_lib/views/core.py defends itself with the
+    same basename/containment idiom against a hostile stored value)."""
+    target = (branding_dir / os.path.basename(filename)).resolve()
+    if target.parent != branding_dir.resolve():
+        return None
+    return target
+
+
+def _delete_branding_logo(organizationcode: str) -> None:
+    """Remove the logo files an organization's uploads left in var/branding/.
+
+    Sweeps every allowed extension rather than trusting BrandLogoFile: the row
+    is already gone by the time this runs, a NULL BrandLogoFile can still
+    coexist with a file on disk (switching formats leaves the old extension
+    behind), and every upload writes exactly ``<orgcode>.<ext>``. A missing
+    file is not an error."""
+    if not _ORG_CODE_RE.match(organizationcode or ""):
+        return
+    branding_dir = Path(PATHS.branding)
+    for ext in BRANDING_LOGO_EXTS:
+        target = _branding_logo_target(branding_dir, f"{organizationcode}.{ext}")
+        if target is None:
+            continue
+        try:
+            target.unlink()
+        except FileNotFoundError:
+            pass
+        except OSError as e:
+            current_app.logger.warning(f"branding logo unlink failed for {target}: {e}")
 
 
 def _org_exists(cursor, organizationcode):
@@ -410,8 +453,8 @@ def api_admin_organization_branding_save(organizationcode):
         if logo_bytes is not None:
             branding_dir = Path(PATHS.branding)
             branding_dir.mkdir(parents=True, exist_ok=True)
-            target = (branding_dir / logo_filename).resolve()
-            if target.parent != branding_dir.resolve():
+            target = _branding_logo_target(branding_dir, logo_filename)
+            if target is None:
                 return jsonify({"success": False, "message": _("Organization not found.")}), 404
             target.write_bytes(logo_bytes)
             cursor.execute(

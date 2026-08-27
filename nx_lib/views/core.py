@@ -143,6 +143,8 @@ def branding_logo(orgcode):
     Served with a sandboxed CSP + nosniff (spec D9): SVG is allowed and is
     script-capable, so the response must never be treated as same-origin
     executable content.
+
+    The sandbox CSP is set twice on purpose, see BRANDING_LOGO_CSP below.
     """
     if "userid" not in session:
         abort(401)
@@ -153,9 +155,37 @@ def branding_logo(orgcode):
     if not filename or not (PATHS.branding / filename).is_file():
         abort(404)
     resp = send_from_directory(PATHS.branding, filename)
-    resp.headers["Content-Security-Policy"] = "sandbox"
+    resp.headers["Content-Security-Policy"] = BRANDING_LOGO_CSP
     resp.headers["X-Content-Type-Options"] = "nosniff"
     return resp
+
+
+# The one control that makes script-capable SVG safe to serve (spec D9), so it
+# has to reach the client in BOTH environments -- and the two environments need
+# two different mechanisms:
+#
+# * INT/dev/TEST have no CSP at all: the header the view sets above is the whole
+#   story, and nothing overwrites it.
+# * PROD installs Talisman (nx_lib/__init__.py), whose after_request assigns
+#   Content-Security-Policy *unconditionally* -- no setdefault, no
+#   already-present guard. It runs after the view, so the view's header would be
+#   silently replaced by the global policy, whose script-src permits jsdelivr /
+#   cdnjs / tailwindcss. An uploaded SVG navigated to directly could then pull
+#   attacker-chosen remote code onto the app origin.
+#
+# talisman_view_options is Talisman's own per-view override hook (what its
+# @talisman(...) decorator sets): _get_local_options() reads it off the resolved
+# view function, so the sandbox policy wins over the global one for this
+# endpoint only. content_security_policy_nonce_in is emptied so no script-src
+# nonce is appended to a policy that has no script-src.
+#
+# Talisman renders a dict policy as "<section> <content>", i.e. "sandbox " with
+# a trailing space; the view sets the bare token. Compare stripped.
+BRANDING_LOGO_CSP = "sandbox"
+branding_logo.talisman_view_options = {  # type: ignore[attr-defined]
+    "content_security_policy": {BRANDING_LOGO_CSP: ""},
+    "content_security_policy_nonce_in": [],
+}
 
 
 def session_heartbeat():
