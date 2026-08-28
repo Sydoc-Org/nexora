@@ -8,6 +8,19 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Changed
+
+- **The pre-push gate no longer runs the whole e2e suite.** Every push ran all
+  228 Playwright tests after the 1,878 unit/integration tests — about 18
+  minutes, two-thirds of it browsers the diff could not affect. Pushes now run
+  the fast tier plus only the e2e specs the changed paths map to
+  (`scripts/select_e2e.py`), so an ordinary push is ~5 minutes. The selector
+  errs towards running more: shared files, unrecognised paths, or any failure
+  to resolve the diff fall back to the full tier, and docs- or migration-only
+  pushes skip e2e. Coverage is unchanged where it matters — CI's `test` job
+  still runs everything and `deploy` needs it, so nothing reaches PROD
+  unexercised (#223).
+
 ## [3.2.3] - 2026-08-27
 
 ### Added
