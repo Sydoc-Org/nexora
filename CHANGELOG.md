@@ -10,6 +10,11 @@ Work toward the next release.
 
 ### Changed
 
+- **The default accent color is now Amber, not Indigo.** Anyone who never
+  touched the accent picker on `/appearance`, or who had explicitly picked
+  indigo, moves to amber (migration `0083`); explicit dark-mode preferences
+  are left alone. The old indigo swatch stays available, now labeled
+  "Classic".
 - **The pre-push gate no longer runs the e2e suite.** Every push ran all
   ~228 Playwright tests locally even though CI's `test` job runs the full
   suite anyway on the PR and again on `main` before deploy — three runs of
@@ -26,6 +31,21 @@ Work toward the next release.
   no-op there.
 
 ### Fixed
+
+- **A flaky auth test no longer reddens CI at random.**
+  `_without_csrf_token()` in `tests/integration/test_auth_routes.py` blanked
+  the CSRF token in the `<meta>` tag but not the one in the form's hidden
+  input, so the two "a registered and an unregistered address must look
+  identical" comparisons failed whenever their two requests straddled a
+  1-second boundary — the token is re-signed with an itsdangerous timestamp
+  of that granularity. Both spots are blanked now.
+
+- **`scripts/test_db_reset.py` no longer hardcodes ODBC Driver 17.** It now
+  picks the best installed SQL Server ODBC driver (18, then 17, then Native
+  Client 11.0, then the legacy `SQL Server` driver), so resetting
+  `NEXORA_TEST` works on machines that ship Driver 18 only. Previously the
+  hardcoded driver made the reset impossible there, failing with `IM002`
+  (#230).
 
 - **An aborted deploy can no longer leave PROD's schema ahead of its code**
   (#228). The IIS preflight in `.github/workflows/deploy.yml` ran *after*
