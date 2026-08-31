@@ -1583,13 +1583,17 @@ when `AZURE_OPENAI_DEPLOYMENT` starts with a known reasoning prefix (`gpt-5`,
 `o1`, `o3`, `o4`), because every other Azure model rejects it with a 400; a
 deployment named off-pattern silently keeps the API default.
 
-The agent surface also lets the **user** pick, via the answer-depth control
-that slides in above the chat composer (`#rpChatEffort` in
-`templates/reporting.html`, behaviour in `templates/js/_reporting_ai_js.html`,
-styles `.rp-effort` in `static/css/reporting.css`). Quick / Balanced / Deep
-map to `low` / `medium` / `high` and ride along as `effort` in the
-`/api/reporting/ai/agent` body; an unknown level falls back to `EFFORT_AGENT`
-rather than 400.
+The agent surface also lets the **user** pick. The chat composer is one
+rounded container (`.rp-composer`) holding the textarea over a control bar;
+the depth picker is a trigger pill (`#rpChatEffortBtn`) that opens a popover
+(`#rpChatEffortMenu`) at bottom-left, with the send button at bottom-right —
+the shape a model picker takes. Markup in `templates/reporting.html`,
+behaviour in `templates/js/_reporting_ai_js.html`, styles `.rp-composer` /
+`.rp-effort*` in `static/css/reporting.css`. Each level carries a three-bar
+meter (`data-bars`) rather than a glyph, because the choice is a scale.
+Quick / Balanced / Deep map to `low` / `medium` / `high` and ride along as
+`effort` in the `/api/reporting/ai/agent` body; an unknown level falls back
+to `EFFORT_AGENT` rather than 400.
 
 The control is capability-gated by `supports_effort(provider, model)`: the
 page passes `ai_effort_enabled` and the markup is simply absent when the

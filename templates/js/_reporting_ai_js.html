@@ -424,11 +424,11 @@
   // ponytail: the choice lives for the life of the panel only. Persisting it
   // means an `aieffort` key in UI_PREF_CHOICES (nx_lib/ui_prefs.py) -- add it
   // if users start re-picking every visit.
-  var effortWrap = document.getElementById("rpChatEffortWrap");
-  var effortBox = document.getElementById("rpChatEffort");
-  var effortThumb = effortBox && effortBox.querySelector(".rp-effort__thumb");
-  var effortOpts = effortBox
-    ? Array.prototype.slice.call(effortBox.querySelectorAll(".rp-effort__opt"))
+  var effortBtn = document.getElementById("rpChatEffortBtn");
+  var effortMenu = document.getElementById("rpChatEffortMenu");
+  var effortLabel = document.getElementById("rpChatEffortLabel");
+  var effortOpts = effortMenu
+    ? Array.prototype.slice.call(effortMenu.querySelectorAll(".rp-effort__opt"))
     : [];
 
   function currentEffort() {
@@ -440,46 +440,54 @@
     return null;
   }
 
-  // The thumb is absolutely positioned, so it can only be placed once the
-  // buttons have a layout -- i.e. after .is-open has un-collapsed the strip.
-  function moveThumb() {
-    if (!effortThumb) return;
-    for (var i = 0; i < effortOpts.length; i++) {
-      if (effortOpts[i].getAttribute("aria-checked") === "true") {
-        effortThumb.style.width = effortOpts[i].offsetWidth + "px";
-        effortThumb.style.transform = "translateX(" + effortOpts[i].offsetLeft + "px)";
-        return;
-      }
-    }
-  }
-
   function openEffort(open) {
-    if (!effortWrap) return;
-    effortWrap.classList.toggle("is-open", !!open);
-    if (open) requestAnimationFrame(moveThumb);
+    if (!effortBtn) return;
+    effortMenu.hidden = !open;
+    effortBtn.setAttribute("aria-expanded", open ? "true" : "false");
   }
 
-  if (effortBox) {
+  if (effortBtn) {
+    effortBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      openEffort(effortMenu.hidden);
+    });
+
     effortOpts.forEach(function (opt) {
       opt.addEventListener("click", function () {
         effortOpts.forEach(function (o) {
           o.setAttribute("aria-checked", String(o === opt));
         });
-        moveThumb();
+        // Mirror the pick onto the trigger: label plus how many bars are lit.
+        effortLabel.textContent = opt.getAttribute("data-label");
+        var srcMeter = opt.querySelector(".rp-effort__meter");
+        var btnMeter = effortBtn.querySelector(".rp-effort__meter");
+        if (srcMeter && btnMeter) {
+          btnMeter.setAttribute("data-bars", srcMeter.getAttribute("data-bars"));
+        }
+        openEffort(false);
         input.focus();
       });
     });
-    // Reveal while the user is composing; hide again once focus leaves the
-    // composer for good (a click on the strip itself keeps it open).
-    input.addEventListener("focus", function () { openEffort(true); });
-    input.addEventListener("blur", function () {
+
+    // Dismiss on focus leaving the picker, NOT on a document-level click:
+    // tests/unit/test_ui_chrome_regressions.py forbids a document click handler
+    // in this file, because one previously closed the whole panel on any click
+    // on the page once the backdrop was removed. Deferring a tick and reading
+    // activeElement also survives the mousedown-blur that would otherwise close
+    // the menu before an option's click could land.
+    var effortRoot = effortBtn.closest(".rp-effort");
+    effortRoot.addEventListener("focusout", function () {
       setTimeout(function () {
-        var a = document.activeElement;
-        if (!effortBox.contains(a) && a !== input) openEffort(false);
+        if (!effortMenu.hidden && !effortRoot.contains(document.activeElement)) {
+          openEffort(false);
+        }
       }, 120);
     });
-    window.addEventListener("resize", function () {
-      if (effortWrap.classList.contains("is-open")) moveThumb();
+    effortRoot.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && !effortMenu.hidden) {
+        openEffort(false);
+        effortBtn.focus();
+      }
     });
   }
 

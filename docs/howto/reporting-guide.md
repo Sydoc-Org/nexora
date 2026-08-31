@@ -226,13 +226,13 @@ the starter chips in the empty panel. The answer arrives in the same panel.
   reaches the builder if you need it.
 - It remembers the conversation, so "…now only this quarter" works as a
   follow-up. Three follow-up chips are offered for you.
-- Click into the input and an **answer depth** picker slides in above it:
-  **Quick**, **Balanced** (the default) or **Deep**. Quick trades
-  deliberation for speed — right for a straight count you already know the
-  shape of. Deep lets Eddard think longer before answering; use it when a
-  question spans several sources or the first answer came back wrong. The
-  picker only appears when the configured assistant model supports it, so
-  not every environment shows it.
+- The composer carries an **answer depth** control at its bottom-left, next
+  to the send button — click it for **Quick**, **Balanced** (the default) or
+  **Deep**. Quick trades deliberation for speed, right for a straight count
+  you already know the shape of. Deep lets Eddard think longer before
+  answering; use it when a question spans several sources or the first
+  answer came back wrong. The control only appears when the configured
+  assistant model supports it, so not every environment shows it.
 
 Eddard does not get to bypass anything: he can only build a report you were
 already allowed to run, and the report still runs through the normal path with

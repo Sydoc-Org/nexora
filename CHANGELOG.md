@@ -32,6 +32,13 @@ Work toward the next release.
   not yet exported. Each was run against the live agent and returns a real
   report definition.
 
+- **The Eddard composer is now one surface.** The textarea, the depth
+  picker and send used to be three stacked widgets; they are now a single
+  rounded container that owns the focus ring, with the depth control as a
+  trigger pill at bottom-left and send at bottom-right — the shape a model
+  picker takes. Choosing a depth opens a popover listing each level with
+  its meter and a one-line description.
+
 - **Eddard's send button is an arrow, not a paper plane**, and circular like
   every other current chat composer. It lifts on hover and launches on send,
   which gives a 7-55s agent run a visible starting gun; while the request is

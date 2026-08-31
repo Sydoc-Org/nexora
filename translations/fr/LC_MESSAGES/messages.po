@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-31 20:02+0200\n"
+"POT-Creation-Date: 2026-08-31 20:31+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -1304,7 +1304,7 @@ msgstr "Impossible d'exporter la requête"
 #: nx_lib/views/reporting.py:2254 nx_lib/views/reporting.py:2282
 #: nx_lib/views/reporting.py:2316 templates/hero.html:165
 #: templates/js/_reporting_js.html:490
-#: templates/js/_reporting_scheduled_js.html:18 templates/reporting.html:543
+#: templates/js/_reporting_scheduled_js.html:18 templates/reporting.html:569
 msgid "Report"
 msgstr "Rapport"
 
@@ -1314,7 +1314,7 @@ msgstr "Impossible d'exporter le rapport"
 
 #: nx_lib/views/reporting.py:2275 templates/_reporting_simple.html:235
 #: templates/js/_reporting_js.html:514 templates/js/_reporting_simple_js.html:5
-#: templates/js/_reporting_viz_js.html:264 templates/reporting.html:403
+#: templates/js/_reporting_viz_js.html:264 templates/reporting.html:429
 msgid "Forecast"
 msgstr "Prévision"
 
@@ -1692,7 +1692,7 @@ msgstr "Clients"
 
 #: templates/_header.html:265 templates/admin/processes.html:21
 #: templates/js/_reporting_simple_js.html:51
-#: templates/js/_reporting_simple_js.html:127 templates/reporting.html:336
+#: templates/js/_reporting_simple_js.html:127 templates/reporting.html:362
 msgid "Processes"
 msgstr "Processus"
 
@@ -2156,14 +2156,10 @@ msgstr ""
 
 #: templates/_reporting_help.html:50
 msgid ""
-"Click into the input to reveal the answer-depth picker: Quick for a fast "
-"number, Balanced for everyday questions, Deep when the question is hard "
-"and you can wait."
-msgstr ""
-"Cliquez dans le champ de saisie pour afficher le sélecteur de profondeur "
-"de réponse : Rapide pour un chiffre immédiat, Équilibré pour les "
-"questions courantes, Approfondi lorsque la question est difficile et que "
-"vous pouvez attendre."
+"The answer-depth control sits at the bottom-left of the composer: Quick "
+"for a fast number, Balanced for everyday questions, Deep when the "
+"question is hard and you can wait."
+msgstr "Le réglage de la profondeur de réponse se trouve en bas à gauche de la zone de saisie : Rapide pour un chiffre immédiat, Équilibré pour les questions courantes, Approfondi lorsque la question est difficile et que vous pouvez attendre."
 
 #: templates/_reporting_help.html:58
 msgid "Full guide"
@@ -2173,9 +2169,9 @@ msgstr "Guide complet"
 #: templates/js/_reporting_drill_js.html:16
 #: templates/prepared_documents.html:253 templates/prepared_documents.html:265
 #: templates/reporting.html:148 templates/reporting.html:180
-#: templates/reporting.html:248 templates/reporting.html:258
-#: templates/reporting.html:495 templates/reporting.html:531
-#: templates/reporting.html:605 templates/workitems_overview.html:613
+#: templates/reporting.html:274 templates/reporting.html:284
+#: templates/reporting.html:521 templates/reporting.html:557
+#: templates/reporting.html:631 templates/workitems_overview.html:613
 msgid "Close"
 msgstr "Fermer"
 
@@ -2328,7 +2324,7 @@ msgstr "Retour"
 
 #: templates/_reporting_simple.html:119 templates/_reporting_simple.html:120
 #: templates/_reporting_simple.html:121 templates/init_reset.html:136
-#: templates/js/_reporting_ai_js.html:40
+#: templates/js/_reporting_ai_js.html:44
 msgid "Continue"
 msgstr "Continuer"
 
@@ -2349,7 +2345,7 @@ msgid "Saved"
 msgstr "Enregistré"
 
 #: templates/_reporting_simple.html:154
-#: templates/js/_reporting_dashboard_js.html:5 templates/reporting.html:363
+#: templates/js/_reporting_dashboard_js.html:5 templates/reporting.html:389
 msgid "Rename"
 msgstr "Renommer"
 
@@ -2365,17 +2361,17 @@ msgstr "Réexécuter"
 msgid "Adjust"
 msgstr "Ajuster"
 
-#: templates/_reporting_simple.html:170 templates/reporting.html:381
+#: templates/_reporting_simple.html:170 templates/reporting.html:407
 msgid "Export format"
 msgstr "Format d'export"
 
-#: templates/_reporting_simple.html:171 templates/reporting.html:382
-#: templates/reporting.html:517 templates/reporting.html:556
+#: templates/_reporting_simple.html:171 templates/reporting.html:408
+#: templates/reporting.html:543 templates/reporting.html:582
 msgid "Excel"
 msgstr "Excel"
 
 #: templates/_reporting_simple.html:174
-#: templates/js/_reporting_dashboard_js.html:10 templates/reporting.html:386
+#: templates/js/_reporting_dashboard_js.html:10 templates/reporting.html:412
 msgid "Export"
 msgstr "Exporter"
 
@@ -2386,8 +2382,8 @@ msgstr "Exporter"
 #: templates/generali_baseservices.html:273 templates/generali_pdqm.html:348
 #: templates/generali_projectmanagement.html:259
 #: templates/generali_reporting.html:316
-#: templates/js/_generali_reporting_js.html:803 templates/reporting.html:376
-#: templates/reporting.html:576 templates/reporting_metrics.html:77
+#: templates/js/_generali_reporting_js.html:803 templates/reporting.html:402
+#: templates/reporting.html:602 templates/reporting_metrics.html:77
 #: templates/reporting_sources.html:88
 msgid "Save"
 msgstr "Enregistrer"
@@ -2401,9 +2397,9 @@ msgstr "Autres actions"
 msgid "Open in Advanced"
 msgstr "Ouvrir dans Avancé"
 
-#: templates/_reporting_simple.html:188 templates/js/_reporting_ai_js.html:37
+#: templates/_reporting_simple.html:188 templates/js/_reporting_ai_js.html:41
 #: templates/js/_reporting_js.html:506
-#: templates/js/_reporting_simple_js.html:95 templates/reporting.html:379
+#: templates/js/_reporting_simple_js.html:95 templates/reporting.html:405
 msgid "Show query"
 msgstr "Afficher la requête"
 
@@ -2440,11 +2436,11 @@ msgstr "Graphique en anneau"
 msgid "Download chart as image"
 msgstr "Télécharger le graphique en image"
 
-#: templates/_reporting_simple.html:236 templates/reporting.html:405
+#: templates/_reporting_simple.html:236 templates/reporting.html:431
 msgid "Forecast horizon"
 msgstr "Horizon de prévision"
 
-#: templates/_reporting_simple.html:237 templates/reporting.html:406
+#: templates/_reporting_simple.html:237 templates/reporting.html:432
 msgid "Auto"
 msgstr "Automatique"
 
@@ -2486,12 +2482,12 @@ msgstr "Requête"
 #: templates/api_docs.html:372 templates/api_docs.html:386
 #: templates/api_docs.html:392 templates/api_docs.html:412
 #: templates/api_docs.html:418 templates/api_docs.html:462
-#: templates/api_docs.html:468 templates/reporting.html:433
+#: templates/api_docs.html:468 templates/reporting.html:459
 msgid "Copy"
 msgstr "Copier"
 
 #: templates/_reporting_simple.html:296
-#: templates/js/_reporting_dashboard_js.html:39 templates/reporting.html:352
+#: templates/js/_reporting_dashboard_js.html:39 templates/reporting.html:378
 msgid "Table"
 msgstr "Tableau"
 
@@ -3179,7 +3175,7 @@ msgstr "Uni"
 msgid "Aurora"
 msgstr "Aurore"
 
-#: templates/appearance.html:112 templates/reporting.html:398
+#: templates/appearance.html:112 templates/reporting.html:424
 msgid "Grid"
 msgstr "Grille"
 
@@ -3413,7 +3409,7 @@ msgstr "Dernière connexion : %(when)s"
 msgid "Process"
 msgstr "Processus"
 
-#: templates/dashboard.html:48 templates/reporting.html:343
+#: templates/dashboard.html:48 templates/reporting.html:369
 #: templates/workitems_overview.html:90
 msgid "Filter by client and process"
 msgstr "Filtrer par client et processus"
@@ -3926,8 +3922,8 @@ msgstr "Effort (heures)"
 #: templates/generali_projectmanagement.html:280
 #: templates/generali_reporting.html:229 templates/generali_reporting.html:312
 #: templates/generali_reporting.html:337
-#: templates/js/_reporting_dashboard_js.html:23 templates/reporting.html:465
-#: templates/reporting.html:562 templates/reporting.html:575
+#: templates/js/_reporting_dashboard_js.html:23 templates/reporting.html:491
+#: templates/reporting.html:588 templates/reporting.html:601
 #: templates/workitems_overview.html:504 templates/workitems_overview.html:600
 msgid "Cancel"
 msgstr "Annuler"
@@ -3984,7 +3980,7 @@ msgstr "Cette action est irréversible."
 #: templates/js/admin/_access_control_js.html:659
 #: templates/js/admin/_maintenance_js.html:151
 #: templates/js/admin/_organizations_js.html:116
-#: templates/js/admin/_user_management_js.html:115 templates/reporting.html:364
+#: templates/js/admin/_user_management_js.html:115 templates/reporting.html:390
 msgid "Delete"
 msgstr "Supprimer"
 
@@ -4729,28 +4725,28 @@ msgstr "Précédent"
 msgid "Next"
 msgstr "Suivant"
 
-#: templates/prepared_documents.html:251 templates/reporting.html:246
+#: templates/prepared_documents.html:251 templates/reporting.html:272
 msgid "Workitem preview"
 msgstr "Aperçu du workitem"
 
-#: templates/prepared_documents.html:271 templates/reporting.html:264
+#: templates/prepared_documents.html:271 templates/reporting.html:290
 #: templates/workitems_overview.html:619
 msgid "Show where extracted values were found on the document"
 msgstr "Afficher où les valeurs extraites ont été trouvées dans le document"
 
 #: templates/js/_workitem_detail_panel_js.html:570
-#: templates/prepared_documents.html:273 templates/reporting.html:266
+#: templates/prepared_documents.html:273 templates/reporting.html:292
 #: templates/workitems_overview.html:622
 msgid "Show sources"
 msgstr "Afficher les sources"
 
-#: templates/prepared_documents.html:275 templates/reporting.html:268
+#: templates/prepared_documents.html:275 templates/reporting.html:294
 #: templates/workitems_overview.html:624
 msgid "Document page preview"
 msgstr "Aperçu de la page du document"
 
 #: templates/prepared_documents.html:280 templates/prepared_documents.html:281
-#: templates/reporting.html:273 templates/reporting.html:274
+#: templates/reporting.html:299 templates/reporting.html:300
 #: templates/workitems_overview.html:630 templates/workitems_overview.html:631
 msgid "Extracted values"
 msgstr "Valeurs extraites"
@@ -4898,7 +4894,7 @@ msgid "Dashboards"
 msgstr "Tableaux de bord"
 
 #: templates/js/admin/_maintenance_js.html:65 templates/reporting.html:109
-#: templates/reporting.html:317
+#: templates/reporting.html:343
 msgid "Scheduled"
 msgstr "Planifié"
 
@@ -4937,47 +4933,47 @@ msgstr "documents par processus ce trimestre"
 msgid "imported but not yet exported"
 msgstr "importés mais pas encore exportés"
 
-#: templates/reporting.html:210
+#: templates/reporting.html:212
 msgid "Quick"
 msgstr "Rapide"
 
-#: templates/reporting.html:210
+#: templates/reporting.html:212
 msgid "Fastest answer, least deliberation"
 msgstr "Réponse la plus rapide, réflexion minimale"
 
-#: templates/reporting.html:211
+#: templates/reporting.html:213 templates/reporting.html:230
 msgid "Balanced"
 msgstr "Équilibré"
 
-#: templates/reporting.html:211
+#: templates/reporting.html:213
 msgid "A balance of speed and depth"
 msgstr "Un équilibre entre rapidité et profondeur"
 
-#: templates/reporting.html:212
+#: templates/reporting.html:214
 msgid "Deep"
 msgstr "Approfondi"
 
-#: templates/reporting.html:212
+#: templates/reporting.html:214
 msgid "Slowest and most thorough, for hard questions"
 msgstr "Le plus lent et le plus approfondi, pour les questions difficiles"
 
-#: templates/reporting.html:216
-msgid "Answer depth"
-msgstr "Profondeur de la réponse"
-
-#: templates/reporting.html:230
+#: templates/reporting.html:220
 msgid "Ask about your data…"
 msgstr "Posez une question sur vos données…"
 
-#: templates/reporting.html:232 templates/reporting.html:518
+#: templates/reporting.html:226 templates/reporting.html:234
+msgid "Answer depth"
+msgstr "Profondeur de la réponse"
+
+#: templates/reporting.html:256 templates/reporting.html:544
 msgid "Send"
 msgstr "Envoyer"
 
-#: templates/reporting.html:321 templates/reporting.html:541
+#: templates/reporting.html:347 templates/reporting.html:567
 msgid "New schedule"
 msgstr "Nouvelle planification"
 
-#: templates/reporting.html:323
+#: templates/reporting.html:349
 msgid "Reports run automatically and get delivered to your inbox or team."
 msgstr ""
 "Les rapports s'exécutent automatiquement et sont livrés dans votre boîte "
@@ -4985,89 +4981,89 @@ msgstr ""
 
 #: templates/admin/permission_matrix.html:57
 #: templates/admin/user_detail.html:124
-#: templates/js/admin/_access_control_js.html:735 templates/reporting.html:333
+#: templates/js/admin/_access_control_js.html:735 templates/reporting.html:359
 #: templates/reporting_metrics.html:41 templates/reporting_metrics.html:53
 msgid "Source"
 msgstr "Source"
 
 #: templates/js/_reporting_js.html:214 templates/js/_reporting_js.html:241
-#: templates/js/_reporting_simple_js.html:70 templates/reporting.html:339
+#: templates/js/_reporting_simple_js.html:70 templates/reporting.html:365
 msgid "All processes"
 msgstr "Tous les processus"
 
-#: templates/reporting.html:345
+#: templates/reporting.html:371
 msgid "Search fields…"
 msgstr "Rechercher des champs…"
 
-#: templates/reporting.html:351
+#: templates/reporting.html:377
 msgid "Report mode"
 msgstr "Mode du rapport"
 
-#: templates/reporting.html:353
+#: templates/reporting.html:379
 msgid "Requires the reporting.sql.run permission"
 msgstr "Nécessite la permission reporting.sql.run"
 
-#: templates/reporting.html:353
+#: templates/reporting.html:379
 msgid "SQL"
 msgstr "SQL"
 
-#: templates/js/_reporting_js.html:491 templates/reporting.html:355
+#: templates/js/_reporting_js.html:491 templates/reporting.html:381
 msgid "Untitled report"
 msgstr "Rapport sans titre"
 
-#: templates/reporting.html:356
+#: templates/reporting.html:382
 msgid "Report title"
 msgstr "Titre du rapport"
 
-#: templates/js/_reporting_js.html:1522 templates/reporting.html:359
+#: templates/js/_reporting_js.html:1522 templates/reporting.html:385
 msgid "Saved reports…"
 msgstr "Rapports enregistrés…"
 
-#: templates/reporting.html:361
+#: templates/reporting.html:387
 msgid "Load"
 msgstr "Charger"
 
-#: templates/reporting.html:366
+#: templates/reporting.html:392
 msgid "Share the selected report you own"
 msgstr "Partager le rapport sélectionné que vous possédez"
 
-#: templates/js/_reporting_simple_js.html:89 templates/reporting.html:366
+#: templates/js/_reporting_simple_js.html:89 templates/reporting.html:392
 msgid "Share"
 msgstr "Partager"
 
-#: templates/reporting.html:369
+#: templates/reporting.html:395
 msgid "Schedule the selected report you own"
 msgstr "Planifier le rapport sélectionné que vous possédez"
 
-#: templates/reporting.html:369
+#: templates/reporting.html:395
 msgid "Schedule"
 msgstr "Planifier"
 
-#: templates/reporting.html:375
+#: templates/reporting.html:401
 msgid "Run"
 msgstr "Exécuter"
 
-#: templates/reporting.html:377
+#: templates/reporting.html:403
 msgid "Save as"
 msgstr "Enregistrer sous"
 
-#: templates/reporting.html:391
+#: templates/reporting.html:417
 msgid "Target"
 msgstr "Cible"
 
-#: templates/js/_reporting_dashboard_js.html:37 templates/reporting.html:399
+#: templates/js/_reporting_dashboard_js.html:37 templates/reporting.html:425
 msgid "Chart"
 msgstr "Graphique"
 
-#: templates/reporting.html:400
+#: templates/reporting.html:426
 msgid "Pivot"
 msgstr "Pivot"
 
-#: templates/reporting.html:416
+#: templates/reporting.html:442
 msgid "Build a report to see results"
 msgstr "Créez un rapport pour voir les résultats"
 
-#: templates/reporting.html:417
+#: templates/reporting.html:443
 msgid ""
 "Choose a source on the left, add columns and filters, then press Run — or"
 " ask Eddard to draft one in plain language."
@@ -5076,61 +5072,61 @@ msgstr ""
 " appuyez sur Exécuter — ou demandez à Eddard d'en rédiger un en langage "
 "courant."
 
-#: templates/reporting.html:432
+#: templates/reporting.html:458
 msgid "Query sent to the database"
 msgstr "Requête envoyée à la base de données"
 
-#: templates/reporting.html:440
+#: templates/reporting.html:466
 msgid "Metrics"
 msgstr "Métriques"
 
-#: templates/js/_reporting_metrics_js.html:110 templates/reporting.html:442
+#: templates/js/_reporting_metrics_js.html:110 templates/reporting.html:468
 #: templates/reporting_metrics.html:50
 msgid "Add metric"
 msgstr "Ajouter une métrique"
 
-#: templates/reporting.html:443
+#: templates/reporting.html:469
 msgid "With a metric selected, the Columns above become the grouping."
 msgstr ""
 "Lorsqu'une métrique est sélectionnée, les colonnes ci-dessus deviennent "
 "le regroupement."
 
-#: templates/js/_reporting_viz_js.html:721 templates/reporting.html:445
+#: templates/js/_reporting_viz_js.html:721 templates/reporting.html:471
 msgid "Columns"
 msgstr "Colonnes"
 
-#: templates/js/_reporting_simple_js.html:50 templates/reporting.html:446
+#: templates/js/_reporting_simple_js.html:50 templates/reporting.html:472
 msgid "Filters"
 msgstr "Filtres"
 
-#: templates/js/_reporting_dashboard_js.html:16 templates/reporting.html:447
+#: templates/js/_reporting_dashboard_js.html:16 templates/reporting.html:473
 #: templates/workitems_overview.html:324
 msgid "Add filter"
 msgstr "Ajouter un filtre"
 
-#: templates/reporting.html:448
+#: templates/reporting.html:474
 msgid "Sort"
 msgstr "Tri"
 
-#: templates/reporting.html:449
+#: templates/reporting.html:475
 msgid "Add sort"
 msgstr "Ajouter un tri"
 
-#: templates/js/_reporting_scheduled_js.html:21 templates/reporting.html:450
-#: templates/reporting.html:516 templates/reporting.html:555
+#: templates/js/_reporting_scheduled_js.html:21 templates/reporting.html:476
+#: templates/reporting.html:542 templates/reporting.html:581
 #: templates/reporting_metrics.html:67
 msgid "Format"
 msgstr "Format"
 
-#: templates/reporting.html:451
+#: templates/reporting.html:477
 msgid "Subtitle"
 msgstr "Sous-titre"
 
-#: templates/reporting.html:462
+#: templates/reporting.html:488
 msgid "Live SQL — read-only"
 msgstr "SQL en direct — lecture seule"
 
-#: templates/reporting.html:463
+#: templates/reporting.html:489
 msgid ""
 "You are about to run read-only SQL against a live reporting database. "
 "Queries cannot modify data, and every run is logged. Double-check your "
@@ -5141,134 +5137,134 @@ msgstr ""
 " les données, et chaque exécution est journalisée. Vérifiez votre requête"
 " avant de l'exécuter."
 
-#: templates/reporting.html:466
+#: templates/reporting.html:492
 msgid "I understand"
 msgstr "Je comprends"
 
-#: templates/reporting.html:473
+#: templates/reporting.html:499
 msgid "Share report"
 msgstr "Partager le rapport"
 
-#: templates/reporting.html:476
+#: templates/reporting.html:502
 msgid "Private — only me"
 msgstr "Privé — moi uniquement"
 
-#: templates/reporting.html:478
+#: templates/reporting.html:504
 msgid "Shared with everyone who can use Reporting"
 msgstr "Partagé avec tous ceux qui peuvent utiliser Reporting"
 
-#: templates/reporting.html:480
+#: templates/reporting.html:506
 msgid "Shared with specific people"
 msgstr "Partagé avec des personnes spécifiques"
 
-#: templates/reporting.html:488
+#: templates/reporting.html:514
 msgid "Search people by name or email…"
 msgstr "Rechercher des personnes par nom ou e-mail…"
 
-#: templates/reporting.html:491
+#: templates/reporting.html:517
 msgid "Can edit"
 msgstr "Peut modifier"
 
-#: templates/reporting.html:492
+#: templates/reporting.html:518
 msgid "Add"
 msgstr "Ajouter"
 
-#: templates/reporting.html:502
+#: templates/reporting.html:528
 msgid "Schedule report"
 msgstr "Planifier le rapport"
 
-#: templates/reporting.html:505 templates/reporting.html:544
+#: templates/reporting.html:531 templates/reporting.html:570
 msgid "Frequency"
 msgstr "Fréquence"
 
 #: templates/js/_reporting_js.html:1799
-#: templates/js/_reporting_scheduled_js.html:11 templates/reporting.html:506
-#: templates/reporting.html:545
+#: templates/js/_reporting_scheduled_js.html:11 templates/reporting.html:532
+#: templates/reporting.html:571
 msgid "Daily"
 msgstr "Quotidien"
 
-#: templates/js/_reporting_js.html:1799 templates/reporting.html:507
-#: templates/reporting.html:546
+#: templates/js/_reporting_js.html:1799 templates/reporting.html:533
+#: templates/reporting.html:572
 msgid "Weekly"
 msgstr "Hebdomadaire"
 
-#: templates/js/_reporting_js.html:1799 templates/reporting.html:508
-#: templates/reporting.html:547
+#: templates/js/_reporting_js.html:1799 templates/reporting.html:534
+#: templates/reporting.html:573
 msgid "Monthly"
 msgstr "Mensuel"
 
-#: templates/reporting.html:509 templates/reporting.html:548
+#: templates/reporting.html:535 templates/reporting.html:574
 msgid "Time (UTC)"
 msgstr "Heure (UTC)"
 
-#: templates/reporting.html:510 templates/reporting.html:549
+#: templates/reporting.html:536 templates/reporting.html:575
 msgid "Weekday"
 msgstr "Jour de la semaine"
 
-#: templates/js/_reporting_scheduled_js.html:14 templates/reporting.html:511
-#: templates/reporting.html:550
+#: templates/js/_reporting_scheduled_js.html:14 templates/reporting.html:537
+#: templates/reporting.html:576
 msgid "Monday"
 msgstr "Lundi"
 
-#: templates/js/_reporting_scheduled_js.html:14 templates/reporting.html:511
-#: templates/reporting.html:550
+#: templates/js/_reporting_scheduled_js.html:14 templates/reporting.html:537
+#: templates/reporting.html:576
 msgid "Tuesday"
 msgstr "Mardi"
 
-#: templates/js/_reporting_scheduled_js.html:14 templates/reporting.html:512
-#: templates/reporting.html:551
+#: templates/js/_reporting_scheduled_js.html:14 templates/reporting.html:538
+#: templates/reporting.html:577
 msgid "Wednesday"
 msgstr "Mercredi"
 
-#: templates/js/_reporting_scheduled_js.html:15 templates/reporting.html:512
-#: templates/reporting.html:551
+#: templates/js/_reporting_scheduled_js.html:15 templates/reporting.html:538
+#: templates/reporting.html:577
 msgid "Thursday"
 msgstr "Jeudi"
 
-#: templates/js/_reporting_scheduled_js.html:15 templates/reporting.html:513
-#: templates/reporting.html:552
+#: templates/js/_reporting_scheduled_js.html:15 templates/reporting.html:539
+#: templates/reporting.html:578
 msgid "Friday"
 msgstr "Vendredi"
 
-#: templates/js/_reporting_scheduled_js.html:15 templates/reporting.html:513
-#: templates/reporting.html:552
+#: templates/js/_reporting_scheduled_js.html:15 templates/reporting.html:539
+#: templates/reporting.html:578
 msgid "Saturday"
 msgstr "Samedi"
 
-#: templates/js/_reporting_scheduled_js.html:16 templates/reporting.html:514
-#: templates/reporting.html:553
+#: templates/js/_reporting_scheduled_js.html:16 templates/reporting.html:540
+#: templates/reporting.html:579
 msgid "Sunday"
 msgstr "Dimanche"
 
-#: templates/reporting.html:515 templates/reporting.html:554
+#: templates/reporting.html:541 templates/reporting.html:580
 msgid "Day of month"
 msgstr "Jour du mois"
 
-#: templates/reporting.html:519
+#: templates/reporting.html:545
 msgid "Always"
 msgstr "Toujours"
 
-#: templates/reporting.html:520
+#: templates/reporting.html:546
 msgid "Only when the total is above…"
 msgstr "Seulement quand le total est supérieur à…"
 
-#: templates/reporting.html:521
+#: templates/reporting.html:547
 msgid "Only when the total is at least…"
 msgstr "Seulement quand le total est au moins…"
 
-#: templates/reporting.html:522
+#: templates/reporting.html:548
 msgid "Only when the total is below…"
 msgstr "Seulement quand le total est inférieur à…"
 
-#: templates/reporting.html:523
+#: templates/reporting.html:549
 msgid "Only when the total is at most…"
 msgstr "Seulement quand le total est au plus…"
 
-#: templates/reporting.html:524
+#: templates/reporting.html:550
 msgid "Threshold"
 msgstr "Seuil"
 
-#: templates/reporting.html:526
+#: templates/reporting.html:552
 msgid ""
 "The threshold is checked against the report's grand total (or its row "
 "count when the report has no measure)."
@@ -5276,47 +5272,47 @@ msgstr ""
 "Le seuil est vérifié par rapport au total général du rapport (ou au "
 "nombre de lignes lorsque le rapport n'a pas de mesure)."
 
-#: templates/reporting.html:527
+#: templates/reporting.html:553
 msgid "Recipients (comma-separated)"
 msgstr "Destinataires (séparés par des virgules)"
 
-#: templates/reporting.html:530
+#: templates/reporting.html:556
 msgid "Add schedule"
 msgstr "Ajouter une planification"
 
-#: templates/reporting.html:558
+#: templates/reporting.html:584
 msgid "Deliver to (comma-separated)"
 msgstr "Livrer à (séparé par des virgules)"
 
-#: templates/reporting.html:563
+#: templates/reporting.html:589
 msgid "Create schedule"
 msgstr "Créer la planification"
 
-#: templates/reporting.html:588
+#: templates/reporting.html:614
 msgid "Database structure"
 msgstr "Structure de la base de données"
 
-#: templates/reporting.html:600
+#: templates/reporting.html:626
 msgid "List"
 msgstr "Liste"
 
-#: templates/reporting.html:602
+#: templates/reporting.html:628
 msgid "Diagram"
 msgstr "Diagramme"
 
-#: templates/reporting.html:615
+#: templates/reporting.html:641
 msgid "Filter tables and columns…"
 msgstr "Filtrer tables et colonnes…"
 
-#: templates/reporting.html:621
+#: templates/reporting.html:647
 msgid "Zoom out"
 msgstr "Dézoomer"
 
-#: templates/reporting.html:624
+#: templates/reporting.html:650
 msgid "Fit"
 msgstr "Ajuster"
 
-#: templates/reporting.html:625
+#: templates/reporting.html:651
 msgid "Zoom in"
 msgstr "Zoomer"
 
@@ -7422,38 +7418,38 @@ msgstr "Les mots de passe correspondent"
 msgid "At least 8 characters required"
 msgstr "Au moins 8 caractères requis"
 
-#: templates/js/_reporting_ai_js.html:31
+#: templates/js/_reporting_ai_js.html:35
 msgid "(no answer)"
 msgstr "(aucune réponse)"
 
-#: templates/js/_reporting_ai_js.html:32
+#: templates/js/_reporting_ai_js.html:36
 msgid "How the agent worked"
 msgstr "Comment l'agent a procédé"
 
-#: templates/js/_reporting_ai_js.html:33
+#: templates/js/_reporting_ai_js.html:37
 msgid "steps"
 msgstr "étapes"
 
-#: templates/js/_reporting_ai_js.html:34
+#: templates/js/_reporting_ai_js.html:38
 #: templates/js/_reporting_schema_js.html:9
 #: templates/js/_workitem_detail_panel_js.html:249
 msgid "rows"
 msgstr "lignes"
 
-#: templates/js/_reporting_ai_js.html:35
+#: templates/js/_reporting_ai_js.html:39
 msgid "Open report"
 msgstr "Ouvrir le rapport"
 
-#: templates/js/_reporting_ai_js.html:36
+#: templates/js/_reporting_ai_js.html:40
 msgid "Insert into SQL editor"
 msgstr "Insérer dans l'éditeur SQL"
 
-#: templates/js/_reporting_ai_js.html:38 templates/js/_reporting_js.html:507
+#: templates/js/_reporting_ai_js.html:42 templates/js/_reporting_js.html:507
 #: templates/js/_reporting_simple_js.html:97
 msgid "Hide query"
 msgstr "Masquer la requête"
 
-#: templates/js/_reporting_ai_js.html:39
+#: templates/js/_reporting_ai_js.html:43
 #: templates/js/admin/_access_control_js.html:316
 #: templates/js/admin/_access_control_js.html:570
 #: templates/js/admin/_access_control_js.html:793
@@ -7465,60 +7461,60 @@ msgstr "Masquer la requête"
 msgid "Network error"
 msgstr "Erreur réseau"
 
-#: templates/js/_reporting_ai_js.html:41
+#: templates/js/_reporting_ai_js.html:45
 msgid "Continuing…"
 msgstr "Poursuite en cours…"
 
-#: templates/js/_reporting_ai_js.html:42 templates/js/_reporting_js.html:493
+#: templates/js/_reporting_ai_js.html:46 templates/js/_reporting_js.html:493
 msgid "AI report"
 msgstr "Rapport IA"
 
-#: templates/js/_reporting_ai_js.html:44
+#: templates/js/_reporting_ai_js.html:48
 msgid "Only this quarter"
 msgstr "Seulement ce trimestre"
 
-#: templates/js/_reporting_ai_js.html:45
+#: templates/js/_reporting_ai_js.html:49
 msgid "Break down by process"
 msgstr "Ventiler par processus"
 
-#: templates/js/_reporting_ai_js.html:46
+#: templates/js/_reporting_ai_js.html:50
 msgid "Show it as a chart"
 msgstr "Afficher sous forme de graphique"
 
-#: templates/js/_reporting_ai_js.html:51
+#: templates/js/_reporting_ai_js.html:55
 #: templates/js/_reporting_simple_js.html:58
 msgid "Asking Eddard…"
 msgstr "Interroger Eddard"
 
-#: templates/js/_reporting_ai_js.html:52
+#: templates/js/_reporting_ai_js.html:56
 msgid "Thinking…"
 msgstr "Réflexion…"
 
-#: templates/js/_reporting_ai_js.html:53
+#: templates/js/_reporting_ai_js.html:57
 msgid "Working…"
 msgstr "Traitement…"
 
-#: templates/js/_reporting_ai_js.html:54
+#: templates/js/_reporting_ai_js.html:58
 msgid "Building your report…"
 msgstr "Création de votre rapport…"
 
-#: templates/js/_reporting_ai_js.html:56
+#: templates/js/_reporting_ai_js.html:60
 msgid "Building the report…"
 msgstr "Création du rapport…"
 
-#: templates/js/_reporting_ai_js.html:57
+#: templates/js/_reporting_ai_js.html:61
 msgid "Running the report…"
 msgstr "Exécution du rapport…"
 
-#: templates/js/_reporting_ai_js.html:58
+#: templates/js/_reporting_ai_js.html:62
 msgid "Checking the query…"
 msgstr "Vérification de la requête…"
 
-#: templates/js/_reporting_ai_js.html:59
+#: templates/js/_reporting_ai_js.html:63
 msgid "Running the query…"
 msgstr "Exécution de la requête…"
 
-#: templates/js/_reporting_ai_js.html:60
+#: templates/js/_reporting_ai_js.html:64
 msgid "Crunching the numbers…"
 msgstr "Analyse des chiffres…"
 
