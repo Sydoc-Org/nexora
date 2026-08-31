@@ -3,14 +3,12 @@
 
     let currentPage = 1;
 
+    // formatDate/formatDateTime: shared with nx_core.js (Task 12). This page
+    // keeps seconds precision (Task 9's `{ seconds: true }` option) since the
+    // local copy formatted to substring(0, 19), i.e. HH:MM:SS.
+    const formatDate = window.NX.formatDate;
     function formatDateTime(dtStr) {
-        if (!dtStr) return '—';
-        return dtStr.replace('T', ' ').substring(0, 19);
-    }
-
-    function formatDate(dtStr) {
-        if (!dtStr) return '—';
-        return dtStr.split('T')[0];
+        return window.NX.formatDateTime(dtStr, { seconds: true });
     }
 
     const STATUS_META = {

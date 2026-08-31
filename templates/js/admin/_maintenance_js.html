@@ -8,29 +8,10 @@
         critical: {{ _("Critical") | tojson }},
     };
 
-    function showNotification(message, type = 'success') {
-        const container = document.getElementById('notification-container');
-        if (!container) return;
-        const div = document.createElement('div');
-        const bg = type === 'success' ? 'bg-green-500' : 'bg-red-500';
-        div.className = `flex items-center w-full p-4 text-white ${bg} rounded-lg shadow-lg transform transition-all duration-300 opacity-0 translate-x-full`;
-        const iconWrap = document.createElement('div');
-        iconWrap.className = 'text-xl';
-        const icon = document.createElement('i');
-        icon.className = type === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-circle';
-        iconWrap.appendChild(icon);
-        const msg = document.createElement('div');
-        msg.className = 'ml-3 text-sm font-medium';
-        msg.textContent = message;
-        div.appendChild(iconWrap);
-        div.appendChild(msg);
-        container.appendChild(div);
-        setTimeout(() => div.classList.remove('opacity-0', 'translate-x-full'), 10);
-        setTimeout(() => {
-            div.classList.add('opacity-0', 'translate-x-full');
-            setTimeout(() => div.remove(), 300);
-        }, 5000);
-    }
+    // showNotification: shared with nx_core.js (Task 12) -- the top-slide
+    // banner is replaced by NX.toast's bottom-center pill (deliberate UI
+    // consolidation, not a preserve-exact-behavior substitution).
+    const showNotification = window.NX.toast;
 
     function formatRange(startISO, endISO) {
         const fmt = s => s ? s.replace('T', ' ').substring(0, 16) : '—';

@@ -2,9 +2,8 @@
     (function () {
         const API_PREFIX = window.API_PREFIX;
 
-        function escapeHtml(s) {
-            return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-        }
+        // escapeHtml: shared with nx_core.js (Task 12).
+        const escapeHtml = window.NX.esc;
 
         const sourceLabel = {
             'override-allow': {{ _('User override')|tojson }},

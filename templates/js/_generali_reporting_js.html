@@ -37,15 +37,9 @@
         return '<span class="nx-label nx-label--red nx-label--nodot">&#10007; {{ _("Late") }}</span>';
     }
 
-    function formatDate(dateStr) {
-        if (!dateStr) return '—';
-        return dateStr.split('T')[0];
-    }
-
-    function formatDateTime(dtStr) {
-        if (!dtStr) return '—';
-        return dtStr.replace('T', ' ').substring(0, 16);
-    }
+    // formatDate/formatDateTime: shared with nx_core.js (Task 12).
+    const formatDate = window.NX.formatDate;
+    const formatDateTime = window.NX.formatDateTime;
 
     // ----------------------------- latest delivery formula ----------------------------- //
     // if weekend → next Tuesday 12:00

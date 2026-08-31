@@ -12,10 +12,8 @@
     // edit takes over.
     let presetRangeOverride = null;
 
-    function escapeHtml(str) {
-        if (str == null) return '';
-        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-    }
+    // escapeHtml: shared with nx_core.js (Task 12).
+    const escapeHtml = window.NX.esc;
 
     async function fetchLogs(page) {
         currentPage = page;

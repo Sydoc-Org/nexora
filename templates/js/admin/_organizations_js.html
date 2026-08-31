@@ -24,35 +24,10 @@
             brand_logo_file: {{ organization.brand_logo_file | tojson }}
         };
         {% endfor %}
-        function showNotification(message, type = 'success') {
-            const container = document.getElementById('notification-container');
-
-            const notification = document.createElement('div');
-            const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
-            const icon = type === 'success'
-                ? '<i class="fas fa-check-circle"></i>'
-                : '<i class="fas fa-exclamation-circle"></i>';
-
-            notification.className = `flex items-center w-full p-4 text-white ${bgColor} rounded-lg shadow-lg transform transition-all duration-300 opacity-0 translate-x-full`;
-
-            notification.innerHTML = `
-                <div class="text-xl">${icon}</div>
-                <div class="ml-3 text-sm font-medium">${message}</div>
-            `;
-
-            container.appendChild(notification);
-
-            setTimeout(() => {
-                notification.classList.remove('opacity-0', 'translate-x-full');
-            }, 10);
-
-            setTimeout(() => {
-                notification.classList.add('opacity-0', 'translate-x-full');
-                setTimeout(() => {
-                    notification.remove();
-                }, 300);
-            }, 5000);
-        }
+        // showNotification: shared with nx_core.js (Task 12) -- the top-slide
+        // banner is replaced by NX.toast's bottom-center pill (deliberate UI
+        // consolidation, not a preserve-exact-behavior substitution).
+        const showNotification = window.NX.toast;
 
         function openModal() {
             organizationModal.classList.remove('hidden');
@@ -90,10 +65,8 @@
             openModal();
         }
 
-        function escapeHtml(str) {
-            if (str == null) return '';
-            return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-        }
+        // escapeHtml: shared with nx_core.js (Task 12).
+        const escapeHtml = window.NX.esc;
 
         function renderOrgRow(org) {
             const orgJson = JSON.stringify(org).replace(/"/g, '&quot;');

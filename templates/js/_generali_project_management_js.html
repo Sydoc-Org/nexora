@@ -25,20 +25,10 @@
     let currentPage = 1;
     let _currentRecords = [];
 
-    function formatDate(dateStr) {
-        if (!dateStr) return '—';
-        return dateStr.split('T')[0];
-    }
-
-    function formatDateTime(dtStr) {
-        if (!dtStr) return '—';
-        return dtStr.replace('T', ' ').substring(0, 16);
-    }
-
-    function formatHours(h) {
-        if (h === null || h === undefined) return '—';
-        return Number(h) % 1 === 0 ? Number(h).toFixed(0) : Number(h).toFixed(1);
-    }
+    // formatDate/formatDateTime/formatHours: shared with nx_core.js (Task 12).
+    const formatDate = window.NX.formatDate;
+    const formatDateTime = window.NX.formatDateTime;
+    const formatHours = window.NX.formatHours;
 
     function escapeHtml(str) {
         if (!str) return '';
