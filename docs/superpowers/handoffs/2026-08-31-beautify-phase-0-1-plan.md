@@ -36,6 +36,12 @@ dashboard tests blocking a deploy — status unknown to this session, v3.2.3 may
    Task 1. Work in a worktree cut from `v3.2.4.1` (plan's Context section has the command).
 2. Owner, separately: **revoke the June autopilot PAT** (plan's Owner actions — deleting the
    directory does not revoke the token).
+3. **The full campaign queue is planned** (commit `f60909bd`), execute in this order after 0+1:
+   `2026-08-31-beautify-phase-2a-backend-splits.md` (reporting/workitems splits),
+   `2026-08-31-beautify-phase-2b-frontend-shims.md` (#191 shim-ification + reporting_simple split),
+   `2026-08-31-beautify-phase-2c-perf-mediums.md` (independent — may run parallel in own worktree),
+   `2026-08-31-beautify-phase-3-typing-ratchet.md` (last). Re-grep all anchors at execution time.
+4. Passkey login is captured as issue #237 — sequenced after the campaign, post-Cloudflare cutover.
 
 ## Gotchas & notes
 
