@@ -15,6 +15,9 @@ Work toward the next release.
   to effort `low` / `medium` / `high` on the `/api/reporting/ai/agent`
   call. Quick trades deliberation for speed on straightforward counts;
   Deep gives the agent more room on hard, multi-source questions.
+  Each segment carries a three-bar level meter (one, two or three bars lit)
+  rather than three unrelated glyphs, since the thing being chosen is a
+  scale; the bars rise in sequence when you pick a level.
   The control is capability-gated — it is absent, not greyed out, when the
   configured model cannot honour an effort level (`supports_effort()`),
   because Claude Haiku 4.5 and the non-reasoning Azure models reject the
@@ -28,6 +31,12 @@ Work toward the next release.
   exported over 30 days, documents by process this quarter, and imported but
   not yet exported. Each was run against the live agent and returns a real
   report definition.
+
+- **Eddard's send button is an arrow, not a paper plane**, and circular like
+  every other current chat composer. It lifts on hover and launches on send,
+  which gives a 7-55s agent run a visible starting gun; while the request is
+  in flight the button breathes rather than sitting dead. Styles are scoped to
+  a local `.rp-chat-send` skin so the shared `.nx-btn--primary` is untouched.
 
 ### Changed
 

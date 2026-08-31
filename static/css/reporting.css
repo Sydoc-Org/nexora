@@ -1600,6 +1600,10 @@ html.dark .rp-chat-starter { border-color: var(--nx-border); background: transpa
 }
 .rp-effort-wrap.is-open { max-height: 48px; opacity: 1; margin-bottom: 8px; }
 .rp-effort {
+  /* Slight overshoot so the thumb settles rather than stops dead -- the one
+     place in this control where a spring reads as quality instead of noise. */
+  --rp-effort-spring: cubic-bezier(.34, 1.32, .48, 1);
+  --rp-effort-spring-dur: 260ms;
   position: relative; display: flex; gap: 2px;
   padding: 4px;
   border-radius: 999px;
@@ -1611,7 +1615,8 @@ html.dark .rp-chat-starter { border-color: var(--nx-border); background: transpa
   border-radius: 999px;
   background: var(--nx-card);
   box-shadow: 0 1px 2px rgba(0, 0, 0, .10), 0 0 0 1px rgba(0, 0, 0, .04);
-  transition: transform var(--nx-dur) var(--nx-ease), width var(--nx-dur) var(--nx-ease);
+  transition: transform var(--rp-effort-spring-dur) var(--rp-effort-spring),
+              width var(--rp-effort-spring-dur) var(--rp-effort-spring);
   pointer-events: none;
 }
 .rp-effort__opt {
@@ -1623,14 +1628,61 @@ html.dark .rp-chat-starter { border-color: var(--nx-border); background: transpa
   font: 12px/1 var(--nx-font); white-space: nowrap;
   transition: color var(--nx-dur) var(--nx-ease), transform var(--nx-dur) var(--nx-ease);
 }
-.rp-effort__opt i {
-  font-size: 12px; width: 12px; text-align: center;
-  color: var(--nx-text-sec);
-  transition: color var(--nx-dur) var(--nx-ease);
+/* Level meter: three bars, the first `data-bars` of them lit. One mark with
+   three states beats three unrelated glyphs, because the thing being chosen is
+   a scale. Bars are plain spans, not an icon font -- they need to animate
+   independently and take theme tokens. */
+.rp-effort__meter {
+  display: inline-flex; align-items: flex-end; gap: 2px; height: 12px;
 }
+.rp-effort__meter i {
+  width: 3px; border-radius: 1px; transform-origin: bottom;
+  background: var(--nx-text-sec); opacity: .28;
+  transition: background var(--nx-dur) var(--nx-ease),
+              opacity var(--nx-dur) var(--nx-ease);
+}
+.rp-effort__meter i:nth-child(1) { height: 5px; }
+.rp-effort__meter i:nth-child(2) { height: 9px; }
+.rp-effort__meter i:nth-child(3) { height: 13px; }
+
+/* Lit bars while the segment is merely idle. */
+.rp-effort__opt[data-bars="1"] .rp-effort__meter i:nth-child(-n+1),
+.rp-effort__opt[data-bars="2"] .rp-effort__meter i:nth-child(-n+2),
+.rp-effort__opt[data-bars="3"] .rp-effort__meter i:nth-child(-n+3) { opacity: .6; }
+
 .rp-effort__opt:hover { color: var(--nx-text); }
 .rp-effort__opt[aria-checked="true"] { color: var(--nx-text); font-weight: 600; }
-.rp-effort__opt[aria-checked="true"] i { color: var(--nx-accent); }
+
+/* Lit bars on the selected segment take the accent and rise into place, one
+   after the next, so picking a deeper level literally reads as filling up. */
+.rp-effort__opt[aria-checked="true"][data-bars="1"] .rp-effort__meter i:nth-child(-n+1),
+.rp-effort__opt[aria-checked="true"][data-bars="2"] .rp-effort__meter i:nth-child(-n+2),
+.rp-effort__opt[aria-checked="true"][data-bars="3"] .rp-effort__meter i:nth-child(-n+3) {
+  background: var(--nx-accent); opacity: 1;
+  /* fill-mode backwards, never both -- `both` leaves a transform on the
+     element and creates a stacking context that buries popovers. */
+  animation: rp-effort-rise var(--rp-effort-spring-dur) var(--rp-effort-spring) backwards;
+}
+.rp-effort__opt[aria-checked="true"] .rp-effort__meter i:nth-child(2) { animation-delay: 45ms; }
+.rp-effort__opt[aria-checked="true"] .rp-effort__meter i:nth-child(3) { animation-delay: 90ms; }
+
+@keyframes rp-effort-rise {
+  from { transform: scaleY(.2); opacity: .25; }
+  to   { transform: scaleY(1); opacity: 1; }
+}
+
+/* Segments fan in when the strip opens (40ms apart) so the reveal has a
+   direction instead of appearing all at once. The thumb is child 1. */
+.rp-effort-wrap.is-open .rp-effort__opt {
+  animation: rp-effort-in 220ms var(--nx-ease) backwards;
+}
+.rp-effort-wrap.is-open .rp-effort__opt:nth-child(3) { animation-delay: 40ms; }
+.rp-effort-wrap.is-open .rp-effort__opt:nth-child(4) { animation-delay: 80ms; }
+
+@keyframes rp-effort-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: none; }
+}
 /* Pressed feedback without moving the thumb or reflowing the strip. */
 .rp-effort__opt:active { transform: scale(.96); }
 /* Inset so the ring is not clipped by the track's overflow:hidden. */
@@ -1643,13 +1695,63 @@ html.dark .rp-effort__thumb {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rp-effort-wrap, .rp-effort__thumb, .rp-effort__opt, .rp-effort__opt i { transition: none; }
+  .rp-effort-wrap, .rp-effort__thumb, .rp-effort__opt,
+  .rp-effort__meter i { transition: none; }
   .rp-effort__opt:active { transform: none; }
+  .rp-effort-wrap.is-open .rp-effort__opt,
+  .rp-effort__opt[aria-checked="true"] .rp-effort__meter i { animation: none; }
 }
 .nx-motion-reduced .rp-effort-wrap,
 .nx-motion-reduced .rp-effort__thumb,
 .nx-motion-reduced .rp-effort__opt,
-.nx-motion-reduced .rp-effort__opt i { transition: none; }
+.nx-motion-reduced .rp-effort__meter i { transition: none; }
+.nx-motion-reduced .rp-effort-wrap.is-open .rp-effort__opt,
+.nx-motion-reduced .rp-effort__opt[aria-checked="true"] .rp-effort__meter i { animation: none; }
+
+/* --- Chat send button. A local skin over the shared .nx-btn--primary (which is
+   used across the app and must not be restyled from here): circular, and the
+   arrow carries the motion. Hover lifts it a hair; sending launches it off the
+   top while the replacement fades up from below, which gives the 7-55s wait a
+   definite starting gun. Disabled-while-busy keeps a steady breath so the
+   button reads as working rather than dead. */
+/* Specificity note: .nx-btn ships its own radius/padding from a later
+   stylesheet, so the box properties are re-asserted at .nx-btn.rp-chat-send.
+   The single-class rules below only add what .nx-btn does not set. */
+.nx-btn.rp-chat-send {
+  flex-shrink: 0;
+  width: 36px; height: 36px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  overflow: hidden;
+}
+.rp-chat-send i {
+  font-size: 13px; line-height: 1;
+  transition: transform var(--nx-dur) var(--nx-ease);
+}
+.rp-chat-send:hover:not(:disabled) i { transform: translateY(-2px); }
+.rp-chat-send:active:not(:disabled) i { transform: translateY(0) scale(.9); }
+.rp-chat-send.is-sending i { animation: rp-send-launch 420ms var(--nx-ease); }
+.rp-chat-send:disabled { animation: rp-send-breathe 1.6s ease-in-out infinite; }
+
+@keyframes rp-send-launch {
+  0%   { transform: translateY(0); opacity: 1; }
+  45%  { transform: translateY(-18px); opacity: 0; }
+  46%  { transform: translateY(14px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+@keyframes rp-send-breathe {
+  0%, 100% { opacity: .45; }
+  50%      { opacity: .75; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rp-chat-send i { transition: none; }
+  .rp-chat-send.is-sending i,
+  .rp-chat-send:disabled { animation: none; }
+}
+.nx-motion-reduced .rp-chat-send i { transition: none; }
+.nx-motion-reduced .rp-chat-send.is-sending i,
+.nx-motion-reduced .rp-chat-send:disabled { animation: none; }
 
 /* --- Workitem detail panel modal, opened from a .reporting-drill-wi-link
    row in the drill drawer (templates/js/_reporting_drill_js.html

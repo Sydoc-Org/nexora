@@ -27,6 +27,10 @@
   var sqlPanel = document.getElementById("rpSqlPanel");
   var sqlEditor = document.getElementById("rpSqlEditor");
 
+  sendBtn.addEventListener("animationend", function (e) {
+    if (e.animationName === "rp-send-launch") sendBtn.classList.remove("is-sending");
+  });
+
   var I18N = {
     noAnswer: {{ _("(no answer)")|tojson }},
     howWorked: {{ _("How the agent worked")|tojson }},
@@ -494,6 +498,9 @@
       : escapeHtml(text).replace(/\n/g, "<br>"));
     input.value = ""; input.style.height = "";
     chat.busy = true; sendBtn.disabled = true; startTicker();
+    // Launch the arrow. Class is removed on animationend so a rapid second
+    // send re-triggers it instead of being swallowed.
+    sendBtn.classList.add("is-sending");
     fetch(API_PREFIX + "api/reporting/ai/agent", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken() },
