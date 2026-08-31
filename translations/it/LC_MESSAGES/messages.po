@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-27 18:43+0200\n"
+"POT-Creation-Date: 2026-08-31 20:32+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -3119,8 +3119,8 @@ msgid "Pick a preset or choose any color you like."
 msgstr "Scegli una preimpostazione o un colore a piacere."
 
 #: templates/appearance.html:80
-msgid "Indigo"
-msgstr "Indaco"
+msgid "Classic"
+msgstr "Classico"
 
 #: templates/appearance.html:82
 msgid "Violet"
@@ -9548,4 +9548,7 @@ msgstr ""
 #~ "migrazione del database e un deploy. "
 #~ "Aggiungendo un processo la relativa "
 #~ "autorizzazione viene creata automaticamente."
+
+#~ msgid "Indigo"
+#~ msgstr "Indaco"
 

@@ -10,6 +10,11 @@ Work toward the next release.
 
 ### Changed
 
+- **The default accent color is now Amber, not Indigo.** Anyone who never
+  touched the accent picker on `/appearance`, or who had explicitly picked
+  indigo, moves to amber (migration `0083`); explicit dark-mode preferences
+  are left alone. The old indigo swatch stays available, now labeled
+  "Classic".
 - **The pre-push gate no longer runs the e2e suite.** Every push ran all
   ~228 Playwright tests locally even though CI's `test` job runs the full
   suite anyway on the PR and again on `main` before deploy — three runs of
