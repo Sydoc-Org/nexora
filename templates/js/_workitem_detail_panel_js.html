@@ -1,7 +1,6 @@
 <script nonce="{{ csp_nonce() }}">
     (function () {
-      const API_PREFIX = window.API_PREFIX
-        || (window.location.href.includes("nexora") ? "/nexora/" : "/");
+      const API_PREFIX = window.API_PREFIX;
       const csrfToken = document.getElementById("csrfToken")?.value || "";
 
       window.fieldConfig = window.fieldConfig || { search_options: {}, labels: {} };

@@ -1,5 +1,5 @@
     <script nonce="{{ csp_nonce() }}">
-        const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+        const API_PREFIX = window.API_PREFIX;
         // Smallest perPage the filter/pagination controls offer. Doubles as the
         // "fast chunk" size in fetchAndUpdateWorkitems (further down this same
         // script): when a larger perPage is picked (e.g. 1000), it fires a
