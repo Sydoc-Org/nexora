@@ -1,11 +1,18 @@
-"""Generali tenant: Reporting."""
+"""Generali tenant: Reporting.
 
-from datetime import date, timedelta
+Reporting is the outlier of the five CRUD tables: it has no per-user "book for
+someone else" flow, its add endpoint enforces a one-report-per-day/category rule,
+and its edit takes the record id in the PUT body instead of the URL. Those three
+views (plus the page) stay hand-written; the families that genuinely match the
+siblings -- month report, organizations, filter users, list and delete -- are
+generated from the ``REPORTING`` descriptor by ``._crud`` and bound below under
+their original function names (see that module's docstring).
+"""
 
 from flask import current_app, jsonify, redirect, render_template, request, session, url_for
 from flask_babel import gettext as _
 
-from ...db import engine_generali_db, engine_nexora_db
+from ...db import engine_generali_db
 from ...security import (
     _check_add_deadline,
     _check_generali_record_org,
@@ -14,7 +21,14 @@ from ...security import (
     require_any_permission,
     require_permission,
 )
-from ._scope import _generali_orgs_for_userids, _generali_scope_where
+from ._crud import (
+    SCOPE,
+    CrudList,
+    CrudMonthReport,
+    CrudTable,
+    Filter,
+    register_crud,
+)
 
 # ----------------------------- Generali Reporting --------------------------- #
 REPORTING_CATEGORIES = {
@@ -58,293 +72,118 @@ def generali_reporting():
         return render_template("handlers/500.html"), 500
 
 
-@require_permission("generali.reporting.view")
-def generali_reporting_monthreport():
-    try:
-        if "username" not in session:
-            return redirect(url_for("login"))
-
-        today = date.today()
-        try:
-            year = int(request.args.get("year", today.year))
-            month = int(request.args.get("month", today.month))
-        except (TypeError, ValueError):
-            year, month = today.year, today.month
-        month = max(1, min(12, month))
-        year = max(2000, min(today.year, year))
-
-        first_day = date(year, month, 1)
-        if month == 12:
-            last_day = date(year + 1, 1, 1) - timedelta(days=1)
-        else:
-            last_day = date(year, month + 1, 1) - timedelta(days=1)
-
-        prev_month = month - 1 if month > 1 else 12
-        prev_year = year if month > 1 else year - 1
-        next_month = month + 1 if month < 12 else 1
-        next_year = year if month < 12 else year + 1
-        is_current_month = year == today.year and month == today.month
-        month_label = first_day.strftime("%B %Y")
-
-        conn = None
-        conn = engine_generali_db.raw_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            SELECT category,
-                   COUNT(*) AS entries,
-                   SUM(CAST(ontime AS INT)) AS on_time_count
-            FROM [dbo].[reportingiss]
-            WHERE ReportForDate >= ? AND ReportForDate <= ?
-            GROUP BY category
-            ORDER BY category
-        """,
-            [str(first_day), str(last_day)],
-        )
-        rows_raw = cursor.fetchall()
-        cursor.close()
-
-        rows = [
-            {
-                "category": REPORTING_CATEGORY_LABELS.get(r[0], r[0]),
-                "entries": r[1],
-                "on_time": r[2] or 0,
-                "late": r[1] - (r[2] or 0),
-                "pct": round((r[2] or 0) / r[1] * 100, 1) if r[1] else 0.0,
-            }
-            for r in rows_raw
-        ]
-
-        total_on_time = sum(r["on_time"] for r in rows)
-        total_entries = sum(r["entries"] for r in rows)
-        summary = {
-            "total_entries": total_entries,
-            "on_time": total_on_time,
-            "late": total_entries - total_on_time,
-            "pct_on_time": round(total_on_time / total_entries * 100, 1) if total_entries else 0.0,
-        }
-
-        return render_template(
-            "generali_monthreport.html",
-            logged_in_user=session.get("username"),
-            page_visibility=page_visibility(),
-            section="reporting",
-            section_title="Generali Reporting",
-            back_url=url_for("generali_reporting"),
-            year=year,
-            month=month,
-            month_label=month_label,
-            prev_year=prev_year,
-            prev_month=prev_month,
-            next_year=next_year,
-            next_month=next_month,
-            is_current_month=is_current_month,
-            summary=summary,
-            rows=rows,
-        )
-    except Exception as e:
-        current_app.logger.error(f"Error loading Generali Reporting Month Report: {e}")
-        return render_template("handlers/500.html"), 500
-    finally:
-        if conn:
-            conn.close()
+def _monthreport_row(r):
+    return {
+        "category": REPORTING_CATEGORY_LABELS.get(r[0], r[0]),
+        "entries": r[1],
+        "on_time": r[2] or 0,
+        "late": r[1] - (r[2] or 0),
+        "pct": round((r[2] or 0) / r[1] * 100, 1) if r[1] else 0.0,
+    }
 
 
-@require_permission("generali.reporting.view")
-def api_generali_reporting_organizations():
-    conn = None
-    try:
-        conn = engine_generali_db.raw_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT DISTINCT ReportByUserID FROM [dbo].[reportingiss] WHERE ReportByUserID IS NOT NULL"
-        )
-        user_ids = [r[0] for r in cursor.fetchall()]
-        cursor.close()
-        return jsonify({"success": True, "organizations": _generali_orgs_for_userids(user_ids)})
-    except Exception as e:
-        current_app.logger.error(f"Generali Reporting Organizations Error: {e}")
-        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
-    finally:
-        if conn:
-            conn.close()
+def _monthreport_summary(rows):
+    total_on_time = sum(r["on_time"] for r in rows)
+    total_entries = sum(r["entries"] for r in rows)
+    return {
+        "total_entries": total_entries,
+        "on_time": total_on_time,
+        "late": total_entries - total_on_time,
+        "pct_on_time": round(total_on_time / total_entries * 100, 1) if total_entries else 0.0,
+    }
 
 
-@require_permission("generali.reporting.view")
-def api_generali_reporting_filter_users():
-    try:
-        transorg = has_permission("generali.reporting.edit.transorganizational")
-        org_edit = has_permission("generali.reporting.edit.organizational")
-        if not transorg and not org_edit:
-            return jsonify({"success": True, "users": []})
-        gen_conn = engine_generali_db.raw_connection()
-        gen_cur = gen_conn.cursor()
-        gen_cur.execute(
-            "SELECT DISTINCT ReportByUserID FROM [dbo].[reportingiss] WHERE ReportByUserID IS NOT NULL"
-        )
-        user_ids = [r[0] for r in gen_cur.fetchall()]
-        gen_cur.close()
-        gen_conn.close()
-        if not user_ids:
-            return jsonify({"success": True, "users": []})
-        placeholders = ",".join(["?"] * len(user_ids))
-        conn = engine_nexora_db.raw_connection()
-        cursor = conn.cursor()
-        if transorg:
-            cursor.execute(
-                f"SELECT userid, fullname FROM Users WHERE userid IN ({placeholders}) ORDER BY fullname",
-                user_ids,
-            )
-        else:
-            cursor.execute(
-                f"SELECT userid, fullname FROM Users WHERE userid IN ({placeholders}) AND organizationcode = ? ORDER BY fullname",
-                [*user_ids, session.get("organizationcode")],
-            )
-        users = [{"userId": row[0], "fullname": row[1]} for row in cursor.fetchall()]
-        cursor.close()
-        conn.close()
-        return jsonify({"success": True, "users": users})
-    except Exception as e:
-        current_app.logger.error(f"Generali Reporting FilterUsers Error: {e}")
-        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
+def _list_record(r, user_info):
+    # , email_rcvd, delivery_ts, latest_ts, mailroom_ts
+    rec_id, report_date, report_ts, user_id, ontime, cat = r
+    return {
+        "id": rec_id,
+        "reportForDate": str(report_date) if report_date else None,
+        "reportTimeStamp": report_ts.isoformat() if report_ts else None,
+        "reportByUserID": user_id,
+        "fullname": user_info.get("fullname"),
+        "orgCode": user_info.get("orgCode"),
+        "ontime": bool(ontime),
+        "category": cat,
+    }
+    # 'emailReceivedTimeStamp':   email_rcvd.isoformat() if email_rcvd else None,
+    #     'deliveryTimeStamp':        delivery_ts.isoformat() if delivery_ts else None,
+    #     'latestDeliveryTimeStamp':  latest_ts.isoformat() if latest_ts else None,
+    #     'mailRoomRequestTimeStamp': mailroom_ts.isoformat() if mailroom_ts else None,
 
 
-@require_permission("generali.reporting.view")
-def api_generali_reporting_list():
-    conn = None
-    try:
-        # local import: re-resolve against the live package object so test
-        # monkeypatching of gv.engine_generali_db / gv.engine_nexora_db still
-        # works post-split (nx_lib/views/generali/__init__.py owns these
-        # names; the top-of-file import above would bind a stale copy at
-        # import time for this call path).
-        from . import engine_generali_db, engine_nexora_db
+REPORTING = CrudTable(
+    slug="reporting",
+    table="[dbo].[reportingiss]",
+    user_column="ReportByUserID",
+    perm_prefix="generali.reporting",
+    view_perm="generali.reporting.view",
+    api_base="/api/generali/reporting",
+    label="Generali Reporting",
+    user_lookup_label="reporting",
+    # Reporting books only for the caller, so it has no orgUsers picker, and
+    # its organizations list is deliberately NOT restricted to own records.
+    has_org_users=False,
+    organizations_restrict=False,
+    monthreport_url="/generali/reporting/monthreport",
+    monthreport_endpoint="generali_reporting_monthreport",
+    monthreport=CrudMonthReport(
+        section="reporting",
+        section_title="Generali Reporting",
+        back_endpoint="generali_reporting",
+        date_column="ReportForDate",
+        group_column="category",
+        # on-time ratio, not an effort/quantity total
+        measures="COUNT(*) AS entries, SUM(CAST(ontime AS INT)) AS on_time_count",
+        row_builder=_monthreport_row,
+        summary=_monthreport_summary,
+        # the month report is org-wide for every viewer, unlike the siblings'
+        self_restrict=False,
+    ),
+    list_spec=CrudList(
+        select=(
+            "ID, ReportForDate, ReportTimeStamp, ReportByUserID, ontime, category\n"
+            "--,EmailReceivedTimeStamp, DeliveryTimeStamp, LatestDeliveryTimeStamp,"
+            " MailRoomRequestTimeStamp"
+        ),
+        order_by="ReportForDate DESC, ReportTimeStamp DESC",
+        filters=(
+            Filter("startDate", "ReportForDate", "gte"),
+            Filter("endDate", "ReportForDate", "lte"),
+            Filter("category", "category", "eq_in_set", REPORTING_CATEGORIES),
+            Filter("userId", "ReportByUserID"),
+            Filter("onTime", "ontime", "bool"),
+            SCOPE,
+        ),
+        # no effort/quantity column: the list reports counts only
+        aggregate=None,
+        user_index=3,
+        record=_list_record,
+    ),
+)
 
-        page = max(1, int(request.args.get("page", 1)))
-        per_page = 20
-        offset = (page - 1) * per_page
+api_generali_reporting_organizations = REPORTING.views["organizations"]
+api_generali_reporting_filter_users = REPORTING.views["filter_users"]
+api_generali_reporting_list = REPORTING.views["list"]
+api_generali_reporting_delete = REPORTING.views["delete"]
+generali_reporting_monthreport = REPORTING.views["monthreport"]
 
-        start_date = request.args.get("startDate", "").strip()
-        end_date = request.args.get("endDate", "").strip()
-        category = request.args.get("category", "").strip()
-        org_code = request.args.get("organizationcode", "").strip()
-        user_id = request.args.get("userId", "").strip()
-        on_time_str = request.args.get("onTime", "").strip().lower()
-
-        where_clauses = []
-        params = []
-
-        if start_date:
-            where_clauses.append("ReportForDate >= ?")
-            params.append(start_date)
-        if end_date:
-            where_clauses.append("ReportForDate <= ?")
-            params.append(end_date)
-        if category and category in REPORTING_CATEGORIES:
-            where_clauses.append("category = ?")
-            params.append(category)
-        if user_id:
-            where_clauses.append("ReportByUserID = ?")
-            params.append(user_id)
-        if on_time_str in ("true", "false"):
-            where_clauses.append("ontime = ?")
-            params.append(1 if on_time_str == "true" else 0)
-
-        scope_clauses, scope_params = _generali_scope_where(
-            "generali.reporting", "ReportByUserID", org_code
-        )
-        where_clauses.extend(scope_clauses)
-        params.extend(scope_params)
-
-        where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
-
-        conn = engine_generali_db.raw_connection()
-        cursor = conn.cursor()
-
-        cursor.execute(f"SELECT COUNT(*) FROM [dbo].[reportingiss] {where_sql}", params)
-        total_records = cursor.fetchone()[0]
-        total_pages = max(1, -(-total_records // per_page))
-
-        fetch_all = request.args.get("all", "").lower() == "true"
-        pagination_sql = "" if fetch_all else "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
-        sql_params = params if fetch_all else [*params, offset, per_page]
-        cursor.execute(
-            f"""
-            SELECT ID, ReportForDate, ReportTimeStamp, ReportByUserID, ontime, category
-                   --,EmailReceivedTimeStamp, DeliveryTimeStamp, LatestDeliveryTimeStamp, MailRoomRequestTimeStamp
-            FROM [dbo].[reportingiss]
-            {where_sql}
-            ORDER BY ReportForDate DESC, ReportTimeStamp DESC
-            {pagination_sql}
-        """,
-            sql_params,
-        )
-
-        rows = cursor.fetchall()
-        cursor.close()
-
-        user_ids = list({r[3] for r in rows if r[3] is not None})
-        user_map = {}
-        if user_ids:
-            try:
-                nx_conn = engine_nexora_db.raw_connection()
-                nx_cur = nx_conn.cursor()
-                placeholders = ",".join(["?"] * len(user_ids))
-                nx_cur.execute(
-                    f"SELECT userid, fullname, organizationcode FROM Users WHERE userid IN ({placeholders})",
-                    user_ids,
-                )
-                for uid, fullname, orgcode in nx_cur.fetchall():
-                    user_map[uid] = {"fullname": fullname, "orgCode": orgcode}
-                nx_cur.close()
-                nx_conn.close()
-            except Exception as ue:
-                current_app.logger.warning(f"User lookup failed for reporting: {ue}")
-
-        records = []
-        for r in rows:
-            # , email_rcvd, delivery_ts, latest_ts, mailroom_ts
-            rec_id, report_date, report_ts, user_id, ontime, cat = r
-            user_info = user_map.get(user_id, {})
-            records.append(
-                {
-                    "id": rec_id,
-                    "reportForDate": str(report_date) if report_date else None,
-                    "reportTimeStamp": report_ts.isoformat() if report_ts else None,
-                    "reportByUserID": user_id,
-                    "fullname": user_info.get("fullname"),
-                    "orgCode": user_info.get("orgCode"),
-                    "ontime": bool(ontime),
-                    "category": cat,
-                }
-            )
-            # 'emailReceivedTimeStamp':   email_rcvd.isoformat() if email_rcvd else None,
-            #     'deliveryTimeStamp':        delivery_ts.isoformat() if delivery_ts else None,
-            #     'latestDeliveryTimeStamp':  latest_ts.isoformat() if latest_ts else None,
-            #     'mailRoomRequestTimeStamp': mailroom_ts.isoformat() if mailroom_ts else None,
-
-        return jsonify(
-            {
-                "success": True,
-                "records": records,
-                "pagination": {
-                    "page": page,
-                    "per_page": per_page,
-                    "total_records": total_records,
-                    "total_pages": total_pages,
-                },
-            }
-        )
-    except Exception as e:
-        current_app.logger.error(f"Generali Reporting List Error: {e}")
-        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
-    finally:
-        if conn:
-            conn.close()
+for _name, _fn in (
+    ("api_generali_reporting_organizations", api_generali_reporting_organizations),
+    ("api_generali_reporting_filter_users", api_generali_reporting_filter_users),
+    ("api_generali_reporting_list", api_generali_reporting_list),
+    ("api_generali_reporting_delete", api_generali_reporting_delete),
+    ("generali_reporting_monthreport", generali_reporting_monthreport),
+):
+    _fn.__name__ = _name
+    _fn.__qualname__ = _name
+del _name, _fn
 
 
 @require_permission("generali.reporting.add")
 def api_generali_reporting_add():
+    """Hand-written: books only for the caller and rejects a duplicate report for
+    the same date+category, which no sibling table does."""
     conn = None
     try:
         body = request.get_json(force=True)
@@ -423,6 +262,8 @@ def api_generali_reporting_add():
     "generali.reporting.edit.organizational", "generali.reporting.edit.transorganizational"
 )
 def api_generali_reporting_edit():
+    """Hand-written: PUTs to the collection URL and takes the record id in the
+    body, unlike every sibling's PUT /<int:record_id>."""
     conn = None
     try:
         body = request.get_json(force=True)
@@ -475,54 +316,9 @@ def api_generali_reporting_edit():
             conn.close()
 
 
-@require_any_permission(
-    "generali.reporting.delete.organizational", "generali.reporting.delete.transorganizational"
-)
-def api_generali_reporting_delete(record_id):
-    conn = None
-    try:
-        conn = engine_generali_db.raw_connection()
-        cursor = conn.cursor()
-        if not has_permission("generali.reporting.delete.transorganizational"):
-            _check_generali_record_org(cursor, "[dbo].[reportingiss]", "ReportByUserID", record_id)
-        cursor.execute("DELETE FROM [dbo].[reportingiss] WHERE ID = ?", [record_id])
-        conn.commit()
-        cursor.close()
-        return jsonify({"success": True})
-    except Exception as e:
-        current_app.logger.error(f"Generali Reporting Delete Error: {e}")
-        return jsonify({"success": False, "error": _("An unexpected error occurred")}), 500
-    finally:
-        if conn:
-            conn.close()
-
-
 def register_routes(app):
     app.add_url_rule(
         "/generali/reporting", endpoint="generali_reporting", view_func=generali_reporting
-    )
-    app.add_url_rule(
-        "/generali/reporting/monthreport",
-        endpoint="generali_reporting_monthreport",
-        view_func=generali_reporting_monthreport,
-    )
-    app.add_url_rule(
-        "/api/generali/reporting/organizations",
-        endpoint="api_generali_reporting_organizations",
-        view_func=api_generali_reporting_organizations,
-        methods=["GET"],
-    )
-    app.add_url_rule(
-        "/api/generali/reporting/filterUsers",
-        endpoint="api_generali_reporting_filter_users",
-        view_func=api_generali_reporting_filter_users,
-        methods=["GET"],
-    )
-    app.add_url_rule(
-        "/api/generali/reporting",
-        endpoint="api_generali_reporting_list",
-        view_func=api_generali_reporting_list,
-        methods=["GET"],
     )
     app.add_url_rule(
         "/api/generali/reporting",
@@ -536,9 +332,4 @@ def register_routes(app):
         view_func=api_generali_reporting_edit,
         methods=["PUT"],
     )
-    app.add_url_rule(
-        "/api/generali/reporting/<int:record_id>",
-        endpoint="api_generali_reporting_delete",
-        view_func=api_generali_reporting_delete,
-        methods=["DELETE"],
-    )
+    register_crud(app, REPORTING)
