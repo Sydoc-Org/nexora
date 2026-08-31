@@ -62,7 +62,7 @@ def registry() -> MappingRegistry | None:
     """Cached (60s) registry of the four 0074 tables. None on load failure,
     never cached. An empty-but-successfully-loaded registry IS a valid
     success and gets cached."""
-    reg = cache.get(_CACHE_KEY)
+    reg: MappingRegistry | None = cache.get(_CACHE_KEY)
     if reg is not None:
         return reg
     conn = None

@@ -158,6 +158,7 @@ def user_avatar(user_id):
         if (avatars_dir / filename).exists():
             return send_from_directory(avatars_dir, filename)
     abort(404)
+    return None
 
 
 def change_password():
@@ -215,9 +216,8 @@ def change_password():
 
                 flash(_("Password updated successfully!"), "success_changePW")
                 return redirect(url_for("profile"))
-            else:
-                flash(_("Current password is incorrect"), "failure_changePW")
-                return redirect(url_for("profile"))
+            flash(_("Current password is incorrect"), "failure_changePW")
+            return redirect(url_for("profile"))
 
         return redirect(url_for("profile"))
     except Exception:

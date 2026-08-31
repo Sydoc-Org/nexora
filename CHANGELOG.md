@@ -28,6 +28,18 @@ Work toward the next release.
 
 ### Changed
 
+- **Ruff now lints `RET`/`C4`/`PIE` too, and mypy checks for `Any` leaking
+  through a typed return.** `[tool.ruff.lint].select` gained the
+  flake8-return, flake8-comprehensions, and flake8-pie rulesets; the
+  resulting sweep (redundant `else` after `return`, `dict()`/dict-literal
+  cleanups, `str.startswith` tuple-arg merges, a couple of missing explicit
+  `return None`s) touched ~20 files with no behavior change. `mypy`'s
+  `warn_return_any` caught three call sites
+  (`nx_lib/mapping_config.py`, `nx_lib/branding.py`, `nx_lib/octo.py`)
+  returning an untyped cache/`requests.json()` value through a typed
+  signature; each now narrows or casts explicitly. CI's `deploy.yml` now
+  also lints `scripts/` and runs `mypy nx_lib nx_main.py` as its own step,
+  matching the pre-commit hook that already covered both.
 - **The pre-push gate no longer runs the e2e suite.** Every push ran all
   ~228 Playwright tests locally even though CI's `test` job runs the full
   suite anyway on the PR and again on `main` before deploy — three runs of

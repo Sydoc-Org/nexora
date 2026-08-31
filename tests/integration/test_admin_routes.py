@@ -1267,7 +1267,7 @@ def test_processes_page_falls_back_to_free_text_when_clients_unreadable(
     """An unreadable dbo.Clients must not leave an empty picker that blocks
     every add."""
     monkeypatch.setattr("nx_lib.views.admin.has_permission", lambda code: True)
-    monkeypatch.setattr(admin_module, "_client_codes", lambda: [])
+    monkeypatch.setattr(admin_module, "_client_codes", list)
     html = admin_client.get("/admin/processes").get_data(as_text=True)
     assert '<input type="text" id="ClientCode"' in html
 

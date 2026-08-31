@@ -252,7 +252,7 @@ def compute_forecast(definition, columns, rows, visible_rows=None, carry_forward
         return {"unavailable": "insufficient_history"}
 
     metric_start = len(columns) - len(metrics)
-    by_bucket = {d: r for d, r in parsed}
+    by_bucket = dict(parsed)
     # ponytail: fill min..max of the data only — leading zeros before the
     # first real bucket would fake a longer, flatter history.
     dates, d = [], parsed[0][0]

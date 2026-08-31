@@ -101,7 +101,7 @@ def _process(conn, row, now, dry_run):
                     f"[dry-run] schedule {row.ScheduleID} '{row.Name}': alert "
                     f"{row.AlertOp} {row.AlertThreshold} not tripped (value={value}); no mail"
                 )
-                return
+                return None
             app.logger.info(
                 f"schedule {row.ScheduleID}: alert not tripped (value={value}), mail skipped"
             )
@@ -151,7 +151,7 @@ def _process(conn, row, now, dry_run):
             f"[dry-run] schedule {row.ScheduleID} '{row.Name}' -> {recipients} "
             f"({len(rows)} rows, {fmt}, chart={'yes' if png else 'no'})"
         )
-        return
+        return None
     subject = f"nexora report: {row.Name}"
     body = (
         f"<p>Attached is your scheduled report "
