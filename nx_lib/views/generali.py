@@ -524,17 +524,6 @@ def _generali_scope_where(perm_prefix, user_column, requested_org_code):
     return [f"{user_column} IN ({placeholders})"], list(ids)
 
 
-def _empty_paginated_response(extra=None):
-    payload = {
-        "success": True,
-        "records": [],
-        "pagination": {"page": 1, "per_page": 20, "total_records": 0, "total_pages": 1},
-    }
-    if extra:
-        payload.update(extra)
-    return jsonify(payload)
-
-
 # ----------------------------- Generali Reporting --------------------------- #
 REPORTING_CATEGORIES = {
     "export_post",
