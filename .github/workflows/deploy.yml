@@ -257,7 +257,7 @@ jobs:
           if (-not (Get-WebGlobalModule | Where-Object Name -eq 'httpPlatformHandler')) {
             throw "IIS module 'httpPlatformHandler' is not installed on SYAPP01 -- install HttpPlatformHandler v1.2 x64 (docs/howto/iis.md) before deploying."
           }
-          D:\sydoc\tools\py\python.exe -c "import waitress; print('waitress', waitress.__version__)"
+          D:\sydoc\tools\py\python.exe -c "import waitress, importlib.metadata as md; print('waitress', md.version('waitress'))"
           if ($LASTEXITCODE -ne 0) {
             throw "waitress is not importable from D:\sydoc\tools\py -- the 'pip install -r requirements.txt' step above should have installed it."
           }

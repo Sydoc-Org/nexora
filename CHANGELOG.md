@@ -8,6 +8,23 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Changed
+
+- **The pre-push gate no longer runs the e2e suite.** Every push ran all
+  ~228 Playwright tests locally even though CI's `test` job runs the full
+  suite anyway on the PR and again on `main` before deploy — three runs of
+  the same ~12 minutes. Pushes now run unit + integration only (~5 min);
+  e2e coverage is unchanged where it gates: nothing merges or deploys
+  without the full suite green in CI.
+
+### Removed
+
+- Migration `0082` drops the four synonyms (`SearchConfig`, `StatConfig`,
+  `IndexFieldMappings`, `Search_Field_Labels`) hand-added on PROD during the
+  2026-08-28 half-deploy rescue (#228). The deployed app reads the new
+  mapping tables only; INT never had the synonyms, so the migration is a
+  no-op there.
+
 ### Fixed
 
 - **`scripts/test_db_reset.py` no longer hardcodes ODBC Driver 17.** It now
