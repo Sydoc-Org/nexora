@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-27 18:43+0200\n"
+"POT-Creation-Date: 2026-08-31 19:06+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -2318,10 +2318,7 @@ msgid "Date field"
 msgstr "Datumsfeld"
 
 #: templates/_reporting_simple.html:116 templates/admin/_admin_helpers.html:12
-#: templates/generali_monthreport.html:35 templates/js/archive/_tour_js.html:16
-#: templates/js/archive/_tour_js.html:63 templates/js/archive/_tour_js.html:163
-#: templates/js/archive/_tour_js.html:213
-#: templates/js/archive/_tour_js.html:241
+#: templates/generali_monthreport.html:35
 msgid "Back"
 msgstr "Zurück"
 
@@ -3760,8 +3757,7 @@ msgstr "Unterkategorie"
 
 #: templates/admin/access_control.html:66
 #: templates/admin/access_control.html:97
-#: templates/admin/access_control.html:213
-#: templates/admin/archive/user_management.html:41 templates/admin/logs.html:74
+#: templates/admin/access_control.html:213 templates/admin/logs.html:74
 #: templates/admin/modals/_user_modals.html:61
 #: templates/admin/permission_matrix.html:56
 #: templates/admin/user_detail.html:65
@@ -3822,11 +3818,9 @@ msgid "Recorded At"
 msgstr "Erfasst am"
 
 #: templates/admin/access_control.html:99
-#: templates/admin/access_control.html:131
-#: templates/admin/archive/user_management.html:42
-#: templates/admin/clients.html:59 templates/admin/maintenance.html:41
-#: templates/admin/organizations.html:35 templates/admin/processes.html:79
-#: templates/admin/sessions.html:33
+#: templates/admin/access_control.html:131 templates/admin/clients.html:59
+#: templates/admin/maintenance.html:41 templates/admin/organizations.html:35
+#: templates/admin/processes.html:79 templates/admin/sessions.html:33
 #: templates/generali_additionalservices.html:167
 #: templates/generali_baseservices.html:141 templates/generali_pdqm.html:165
 #: templates/generali_projectmanagement.html:129
@@ -3956,11 +3950,10 @@ msgstr "Eintrag löschen"
 msgid "This action cannot be undone."
 msgstr "Diese Aktion kann nicht rückgängig gemacht werden."
 
-#: templates/admin/access_control.html:248
-#: templates/admin/archive/user_management.html:55
-#: templates/admin/clients.html:83 templates/admin/maintenance.html:132
-#: templates/admin/organizations.html:47 templates/admin/processes.html:67
-#: templates/admin/processes.html:90 templates/admin/user_detail.html:285
+#: templates/admin/access_control.html:248 templates/admin/clients.html:83
+#: templates/admin/maintenance.html:132 templates/admin/organizations.html:47
+#: templates/admin/processes.html:67 templates/admin/processes.html:90
+#: templates/admin/user_detail.html:285
 #: templates/generali_additionalservices.html:349
 #: templates/generali_baseservices.html:298 templates/generali_pdqm.html:373
 #: templates/generali_projectmanagement.html:284
@@ -4481,8 +4474,7 @@ msgstr "Jetzt auf Ihr Portal zugreifen"
 msgid "Login - nexora"
 msgstr "Anmeldung - nexora"
 
-#: templates/admin/access_control.html:191
-#: templates/admin/archive/user_management.html:37 templates/admin/logs.html:44
+#: templates/admin/access_control.html:191 templates/admin/logs.html:44
 #: templates/admin/modals/_user_modals.html:32 templates/admin/sessions.html:29
 #: templates/admin/user_detail.html:37 templates/index.html:98
 #: templates/profile.html:137
@@ -4721,7 +4713,7 @@ msgstr "Vorherige"
 #: templates/js/_generali_documents_js.html:278
 #: templates/js/_generali_reporting_js.html:268
 #: templates/js/_workitems_overview_js.html:1123
-#: templates/js/archive/_tour_js.html:17 templates/prepared_documents.html:240
+#: templates/prepared_documents.html:240
 msgid "Next"
 msgstr "Nächste"
 
@@ -4800,7 +4792,6 @@ msgid "Your username cannot be changed."
 msgstr "Ihr Benutzername kann nicht geändert werden."
 
 #: templates/admin/access_control.html:195
-#: templates/admin/archive/user_management.html:38
 #: templates/admin/modals/_user_modals.html:39
 #: templates/admin/user_detail.html:41 templates/profile.html:143
 msgid "Full name"
@@ -5778,7 +5769,6 @@ msgid "Users, permissions and access profiles"
 msgstr "Benutzer, Berechtigungen und Zugriffsprofile"
 
 #: templates/admin/access_control.html:31
-#: templates/admin/archive/user_management.html:23
 msgid "Users"
 msgstr "Benutzer"
 
@@ -5809,7 +5799,6 @@ msgstr "Benutzer hinzufügen"
 
 #: templates/admin/access_control.html:96
 #: templates/admin/access_control.html:205
-#: templates/admin/archive/user_management.html:40
 #: templates/admin/modals/_user_modals.html:51
 msgid "Access Profile"
 msgstr "Zugriffsprofil"
@@ -5860,10 +5849,9 @@ msgstr "Profile"
 msgid "Add Profile"
 msgstr "Profil hinzufügen"
 
-#: templates/admin/access_control.html:160
-#: templates/admin/archive/user_management.html:54
-#: templates/admin/clients.html:82 templates/admin/organizations.html:43
-#: templates/admin/processes.html:65 templates/admin/processes.html:89
+#: templates/admin/access_control.html:160 templates/admin/clients.html:82
+#: templates/admin/organizations.html:43 templates/admin/processes.html:65
+#: templates/admin/processes.html:89
 #: templates/js/_reporting_dashboard_js.html:7
 #: templates/js/_reporting_metrics_js.html:58
 #: templates/js/_reporting_sources_js.html:46
@@ -5879,7 +5867,6 @@ msgid "user(s)"
 msgstr "Benutzer"
 
 #: templates/admin/access_control.html:200
-#: templates/admin/archive/user_management.html:39
 #: templates/admin/modals/_user_modals.html:45
 #: templates/admin/user_detail.html:45
 msgid "Email"
@@ -6915,20 +6902,6 @@ msgstr "Benutzer löschen"
 msgid "Delete user?"
 msgstr "Benutzer löschen?"
 
-#: templates/admin/archive/user_management.html:6
-msgid "User Management - nexora"
-msgstr "Benutzerverwaltung - nexora"
-
-#: templates/admin/archive/user_management.html:24
-msgid "Manage user accounts."
-msgstr "Benutzerkonten verwalten."
-
-#: templates/admin/archive/user_management.html:28
-#: templates/admin/modals/_user_modals.html:26
-#: templates/js/admin/_user_management_js.html:72
-msgid "Add new user"
-msgstr "Neuen Benutzer hinzufügen"
-
 #: templates/admin/modals/_organizations_modals.html:6
 msgid "Delete Organization"
 msgstr "Organisation löschen"
@@ -6945,6 +6918,11 @@ msgstr "Organisationsname"
 #: templates/admin/modals/_organizations_modals.html:42
 msgid "Save Organization"
 msgstr "Organisation speichern"
+
+#: templates/admin/modals/_user_modals.html:26
+#: templates/js/admin/_user_management_js.html:72
+msgid "Add new user"
+msgstr "Neuen Benutzer hinzufügen"
 
 #: templates/admin/modals/_user_modals.html:74
 msgid "Leave blank to keep password."
@@ -8458,7 +8436,6 @@ msgid "History"
 msgstr "Historie"
 
 #: templates/js/_workitem_detail_panel_js.html:41
-#: templates/js/archive/_tour_js.html:152
 msgid "Document Details"
 msgstr "Dokumentdetails"
 
@@ -9112,292 +9089,6 @@ msgstr ""
 "Sind Sie sicher, dass Sie diesen Benutzer löschen möchten? Diese Aktion "
 "kann nicht rückgängig gemacht werden."
 
-#: templates/js/archive/_tour_js.html:30
-msgid "Welcome to the Dashboard!"
-msgstr "Willkommen im Dashboard!"
-
-#: templates/js/archive/_tour_js.html:31
-msgid "This is your central hub. Let's take a quick look at the key features."
-msgstr ""
-"Dies ist Ihr zentrales Steuerungszentrum. Lassen Sie uns einen kurzen "
-"Blick auf die wichtigsten Funktionen werfen."
-
-#: templates/js/archive/_tour_js.html:32 templates/js/archive/_tour_js.html:80
-#: templates/js/archive/_tour_js.html:187
-#: templates/js/archive/_tour_js.html:227
-msgid "Start Tour"
-msgstr "Tour starten"
-
-#: templates/js/archive/_tour_js.html:36
-msgid "Process Filter"
-msgstr "Prozessfilter"
-
-#: templates/js/archive/_tour_js.html:37
-msgid ""
-"Use this dropdown to filter all the data on this page by a specific "
-"document process, like 'Inbox' or 'Invoice'."
-msgstr ""
-"Verwenden Sie diese Dropdown-Liste, um alle Daten auf dieser Seite nach "
-"einem bestimmten Dokumentprozess zu filtern, z. B. 'Posteingang' oder "
-"'Rechnung'."
-
-#: templates/js/archive/_tour_js.html:42
-msgid "Key Metrics"
-msgstr "Wichtige Kennzahlen"
-
-#: templates/js/archive/_tour_js.html:43
-msgid ""
-"These cards show a live summary of your documents: Processed Today, "
-"Processed This Week, and the Current Backlog."
-msgstr ""
-"Diese Karten zeigen eine Live-Zusammenfassung Ihrer Dokumente: Heute "
-"verarbeitet, Diese Woche verarbeitet und den aktuellen Rückstand."
-
-#: templates/js/archive/_tour_js.html:48
-msgid "Analytics"
-msgstr "Analysen"
-
-#: templates/js/archive/_tour_js.html:49
-msgid ""
-"Visualize your throughput and status distribution with these interactive "
-"charts."
-msgstr ""
-"Visualisieren Sie Ihren Durchsatz und Ihre Statusverteilung mit diesen "
-"interaktiven Diagrammen."
-
-#: templates/js/archive/_tour_js.html:54
-msgid "Active Document Timeline"
-msgstr "Aktive Dokumentzeitleiste"
-
-#: templates/js/archive/_tour_js.html:55
-msgid ""
-"This section provides a real-time view of the specific steps documents "
-"are actively going through right now."
-msgstr ""
-"Dieser Abschnitt bietet eine Echtzeit-Ansicht der spezifischen Schritte, "
-"die Dokumente gerade aktiv durchlaufen."
-
-#: templates/js/archive/_tour_js.html:60
-msgid "Recent Activity"
-msgstr "Aktuelle Aktivität"
-
-#: templates/js/archive/_tour_js.html:61
-msgid "Here you'll find a feed of the latest status changes for your documents."
-msgstr ""
-"Hier finden Sie einen Feed der neuesten Statusänderungen für Ihre "
-"Dokumente."
-
-#: templates/js/archive/_tour_js.html:63 templates/js/archive/_tour_js.html:172
-#: templates/js/archive/_tour_js.html:214
-#: templates/js/archive/_tour_js.html:242
-msgid "Finish"
-msgstr "Beenden"
-
-#: templates/js/archive/_tour_js.html:78
-msgid "Workitems Overview"
-msgstr "Workitems-Übersicht"
-
-#: templates/js/archive/_tour_js.html:79
-msgid "This page lets you search, view, and manage all your workitems in detail."
-msgstr ""
-"Auf dieser Seite können Sie alle Ihre Workitems detailliert suchen, "
-"anzeigen und verwalten."
-
-#: templates/js/archive/_tour_js.html:84 templates/js/archive/_tour_js.html:231
-msgid "Search & Filter"
-msgstr "Suchen & Filtern"
-
-#: templates/js/archive/_tour_js.html:85
-msgid ""
-"Use this powerful form to find specific workitems by process, search "
-"terms, or tags."
-msgstr ""
-"Verwenden Sie dieses leistungsstarke Formular, um bestimmte "
-"Arbeitselemente nach Prozess, Suchbegriffen oder Tags zu finden."
-
-#: templates/js/archive/_tour_js.html:90
-msgid "Advanced Filters"
-msgstr "Erweiterte Filter"
-
-#: templates/js/archive/_tour_js.html:91
-msgid ""
-"Need more specific results? Click here to filter by date range, priority,"
-" assigned user, or specific document field values."
-msgstr ""
-"Benötigen Sie spezifischere Ergebnisse? Klicken Sie hier, um nach "
-"Datumsbereich, Priorität, zugewiesenem Benutzer oder bestimmten "
-"Dokumentfeldwerten zu filtern."
-
-#: templates/js/archive/_tour_js.html:96
-msgid "Workitems Table"
-msgstr "Workitems-Tabelle"
-
-#: templates/js/archive/_tour_js.html:97
-msgid ""
-"Your filtered results appear here. You can sort columns by clicking on "
-"their headers."
-msgstr ""
-"Ihre gefilterten Ergebnisse werden hier angezeigt. Sie können Spalten "
-"sortieren, indem Sie auf deren Überschriften klicken."
-
-#: templates/js/archive/_tour_js.html:102
-msgid "View Details"
-msgstr "Details anzeigen"
-
-#: templates/js/archive/_tour_js.html:103
-msgid ""
-"Click this arrow button to expand a workitem. The tour will do this "
-"automatically for the next step."
-msgstr ""
-"Klicken Sie auf diese Pfeilschaltfläche, um ein Arbeitselement zu "
-"erweitern. Die Tour führt dies automatisch für den nächsten Schritt "
-"durch."
-
-#: templates/js/archive/_tour_js.html:119
-msgid "Process Timeline"
-msgstr "Prozesszeitleiste"
-
-#: templates/js/archive/_tour_js.html:120
-msgid ""
-"Track the exact stage of your document (Import, Extraction, Validation, "
-"Delivery) with this visual progress bar."
-msgstr ""
-"Verfolgen Sie den genauen Stand Ihres Dokuments (Import, Extraktion, "
-"Validierung, Lieferung) mit diesem visuellen Fortschrittsbalken."
-
-#: templates/js/archive/_tour_js.html:138
-msgid "Media Viewer"
-msgstr "Medien-Viewer"
-
-#: templates/js/archive/_tour_js.html:139
-msgid ""
-"View the document image here. If permitted, you can interact with the "
-"file."
-msgstr ""
-"Sehen Sie sich das Dokumentbild hier an. Wenn erlaubt, können Sie mit der"
-" Datei interagieren."
-
-#: templates/js/archive/_tour_js.html:145
-msgid "History & Audit"
-msgstr "Historie & Prüfung"
-
-#: templates/js/archive/_tour_js.html:146
-msgid "See the complete audit trail and history of this specific document."
-msgstr ""
-"Sehen Sie den vollständigen Prüfpfad und die Historie dieses spezifischen"
-" Dokuments."
-
-#: templates/js/archive/_tour_js.html:153
-msgid "Review all extracted data fields and values associated with this document."
-msgstr ""
-"Überprüfen Sie alle extrahierten Datenfelder und Werte, die mit diesem "
-"Dokument verknüpft sind."
-
-#: templates/js/archive/_tour_js.html:159
-msgid "Collaboration Tools"
-msgstr "Zusammenarbeitswerkzeuge"
-
-#: templates/js/archive/_tour_js.html:160
-msgid ""
-"Here you can set a priority level, assign the workitem to a colleague, "
-"add tags, and leave comments for your team."
-msgstr ""
-"Hier können Sie eine Prioritätsstufe festlegen, das Arbeitselement einem "
-"Kollegen zuweisen, Tags hinzufügen und Kommentare für Ihr Team "
-"hinterlassen."
-
-#: templates/js/archive/_tour_js.html:185
-msgid "Welcome to the Team Board!"
-msgstr "Willkommen beim Team-Board!"
-
-#: templates/js/archive/_tour_js.html:186
-msgid ""
-"This Kanban-style board helps you visualize the workload and task "
-"distribution across your entire team."
-msgstr ""
-"Dieses Kanban-Board hilft Ihnen, die Arbeitsbelastung und "
-"Aufgabenverteilung im gesamten Team zu visualisieren."
-
-#: templates/js/archive/_tour_js.html:191
-msgid "Filter Tasks"
-msgstr "Aufgaben filtern"
-
-#: templates/js/archive/_tour_js.html:192
-msgid ""
-"Quickly find what you're looking for by filtering tasks by process or "
-"priority level."
-msgstr ""
-"Finden Sie schnell, was Sie suchen, indem Sie Aufgaben nach Prozess oder "
-"Prioritätsstufe filtern."
-
-#: templates/js/archive/_tour_js.html:197
-msgid "User Columns"
-msgstr "Benutzerspalten"
-
-#: templates/js/archive/_tour_js.html:198
-msgid ""
-"Each column represents a team member. All tasks assigned to them will "
-"appear here."
-msgstr ""
-"Jede Spalte repräsentiert ein Teammitglied. Alle ihnen zugewiesenen "
-"Aufgaben werden hier angezeigt."
-
-#: templates/js/archive/_tour_js.html:203
-msgid "Workload at a Glance"
-msgstr "Arbeitsbelastung auf einen Blick"
-
-#: templates/js/archive/_tour_js.html:204
-msgid ""
-"The header shows the team member's name and the total number of tasks "
-"currently assigned to them."
-msgstr ""
-"Die Überschrift zeigt den Namen des Teammitglieds und die Gesamtzahl der "
-"ihm aktuell zugewiesenen Aufgaben."
-
-#: templates/js/archive/_tour_js.html:209
-msgid "Task Cards"
-msgstr "Aufgabenkarten"
-
-#: templates/js/archive/_tour_js.html:210
-msgid ""
-"Each card is a workitem. It shows key details like the barcode, last "
-"modification time, and priority. Click a card to jump to its detailed "
-"view."
-msgstr ""
-"Jede Karte ist ein Arbeitselement. Sie zeigt wichtige Details wie den "
-"Barcode, die letzte Änderungszeit und die Priorität. Klicken Sie auf eine"
-" Karte, um zur Detailansicht zu springen."
-
-#: templates/js/archive/_tour_js.html:225
-msgid "My Invoices"
-msgstr "Meine Rechnungen"
-
-#: templates/js/archive/_tour_js.html:226
-msgid "View your billing history and manage your past invoices."
-msgstr ""
-"Sehen Sie Ihre Abrechnungshistorie und verwalten Sie Ihre vergangenen "
-"Rechnungen."
-
-#: templates/js/archive/_tour_js.html:232
-msgid ""
-"Locate specific invoices by searching for the invoice number, selecting a"
-" date range, or filtering by payment status."
-msgstr ""
-"Suchen Sie nach bestimmten Rechnungen, indem Sie die Rechnungsnummer "
-"suchen, einen Datumsbereich auswählen oder nach Zahlungsstatus filtern."
-
-#: templates/js/archive/_tour_js.html:237
-msgid "Invoices List"
-msgstr "Rechnungsliste"
-
-#: templates/js/archive/_tour_js.html:238
-msgid ""
-"Your filtered invoices appear here. You can view details, amounts, and "
-"download PDF copies from the Actions column."
-msgstr ""
-"Ihre gefilterten Rechnungen werden hier angezeigt. Sie können Details, "
-"Beträge einsehen und PDF-Kopien aus der Aktionsspalte herunterladen."
-
 #~ msgid ""
 #~ "Your key's process scope, echoed for "
 #~ "debugging. An empty scope returns "
@@ -9592,4 +9283,303 @@ msgstr ""
 #~ "Deployment nötig waren. Beim Anlegen "
 #~ "eines Prozesses wird die zugehörige "
 #~ "Berechtigung automatisch erstellt."
+
+#~ msgid "User Management - nexora"
+#~ msgstr "Benutzerverwaltung - nexora"
+
+#~ msgid "Manage user accounts."
+#~ msgstr "Benutzerkonten verwalten."
+
+#~ msgid "Welcome to the Dashboard!"
+#~ msgstr "Willkommen im Dashboard!"
+
+#~ msgid "This is your central hub. Let's take a quick look at the key features."
+#~ msgstr ""
+#~ "Dies ist Ihr zentrales Steuerungszentrum. "
+#~ "Lassen Sie uns einen kurzen Blick "
+#~ "auf die wichtigsten Funktionen werfen."
+
+#~ msgid "Start Tour"
+#~ msgstr "Tour starten"
+
+#~ msgid "Process Filter"
+#~ msgstr "Prozessfilter"
+
+#~ msgid ""
+#~ "Use this dropdown to filter all "
+#~ "the data on this page by a "
+#~ "specific document process, like 'Inbox' "
+#~ "or 'Invoice'."
+#~ msgstr ""
+#~ "Verwenden Sie diese Dropdown-Liste, um"
+#~ " alle Daten auf dieser Seite nach "
+#~ "einem bestimmten Dokumentprozess zu filtern,"
+#~ " z. B. 'Posteingang' oder 'Rechnung'."
+
+#~ msgid "Key Metrics"
+#~ msgstr "Wichtige Kennzahlen"
+
+#~ msgid ""
+#~ "These cards show a live summary of"
+#~ " your documents: Processed Today, Processed"
+#~ " This Week, and the Current Backlog."
+#~ msgstr ""
+#~ "Diese Karten zeigen eine Live-"
+#~ "Zusammenfassung Ihrer Dokumente: Heute "
+#~ "verarbeitet, Diese Woche verarbeitet und "
+#~ "den aktuellen Rückstand."
+
+#~ msgid "Analytics"
+#~ msgstr "Analysen"
+
+#~ msgid ""
+#~ "Visualize your throughput and status "
+#~ "distribution with these interactive charts."
+#~ msgstr ""
+#~ "Visualisieren Sie Ihren Durchsatz und "
+#~ "Ihre Statusverteilung mit diesen interaktiven"
+#~ " Diagrammen."
+
+#~ msgid "Active Document Timeline"
+#~ msgstr "Aktive Dokumentzeitleiste"
+
+#~ msgid ""
+#~ "This section provides a real-time "
+#~ "view of the specific steps documents "
+#~ "are actively going through right now."
+#~ msgstr ""
+#~ "Dieser Abschnitt bietet eine Echtzeit-"
+#~ "Ansicht der spezifischen Schritte, die "
+#~ "Dokumente gerade aktiv durchlaufen."
+
+#~ msgid "Recent Activity"
+#~ msgstr "Aktuelle Aktivität"
+
+#~ msgid ""
+#~ "Here you'll find a feed of the "
+#~ "latest status changes for your "
+#~ "documents."
+#~ msgstr ""
+#~ "Hier finden Sie einen Feed der "
+#~ "neuesten Statusänderungen für Ihre Dokumente."
+
+#~ msgid "Finish"
+#~ msgstr "Beenden"
+
+#~ msgid "Workitems Overview"
+#~ msgstr "Workitems-Übersicht"
+
+#~ msgid ""
+#~ "This page lets you search, view, "
+#~ "and manage all your workitems in "
+#~ "detail."
+#~ msgstr ""
+#~ "Auf dieser Seite können Sie alle "
+#~ "Ihre Workitems detailliert suchen, anzeigen"
+#~ " und verwalten."
+
+#~ msgid "Search & Filter"
+#~ msgstr "Suchen & Filtern"
+
+#~ msgid ""
+#~ "Use this powerful form to find "
+#~ "specific workitems by process, search "
+#~ "terms, or tags."
+#~ msgstr ""
+#~ "Verwenden Sie dieses leistungsstarke Formular,"
+#~ " um bestimmte Arbeitselemente nach Prozess,"
+#~ " Suchbegriffen oder Tags zu finden."
+
+#~ msgid "Advanced Filters"
+#~ msgstr "Erweiterte Filter"
+
+#~ msgid ""
+#~ "Need more specific results? Click here"
+#~ " to filter by date range, priority,"
+#~ " assigned user, or specific document "
+#~ "field values."
+#~ msgstr ""
+#~ "Benötigen Sie spezifischere Ergebnisse? "
+#~ "Klicken Sie hier, um nach Datumsbereich,"
+#~ " Priorität, zugewiesenem Benutzer oder "
+#~ "bestimmten Dokumentfeldwerten zu filtern."
+
+#~ msgid "Workitems Table"
+#~ msgstr "Workitems-Tabelle"
+
+#~ msgid ""
+#~ "Your filtered results appear here. You"
+#~ " can sort columns by clicking on "
+#~ "their headers."
+#~ msgstr ""
+#~ "Ihre gefilterten Ergebnisse werden hier "
+#~ "angezeigt. Sie können Spalten sortieren, "
+#~ "indem Sie auf deren Überschriften "
+#~ "klicken."
+
+#~ msgid "View Details"
+#~ msgstr "Details anzeigen"
+
+#~ msgid ""
+#~ "Click this arrow button to expand "
+#~ "a workitem. The tour will do this"
+#~ " automatically for the next step."
+#~ msgstr ""
+#~ "Klicken Sie auf diese Pfeilschaltfläche, "
+#~ "um ein Arbeitselement zu erweitern. Die"
+#~ " Tour führt dies automatisch für den"
+#~ " nächsten Schritt durch."
+
+#~ msgid "Process Timeline"
+#~ msgstr "Prozesszeitleiste"
+
+#~ msgid ""
+#~ "Track the exact stage of your "
+#~ "document (Import, Extraction, Validation, "
+#~ "Delivery) with this visual progress bar."
+#~ msgstr ""
+#~ "Verfolgen Sie den genauen Stand Ihres"
+#~ " Dokuments (Import, Extraktion, Validierung, "
+#~ "Lieferung) mit diesem visuellen "
+#~ "Fortschrittsbalken."
+
+#~ msgid "Media Viewer"
+#~ msgstr "Medien-Viewer"
+
+#~ msgid ""
+#~ "View the document image here. If "
+#~ "permitted, you can interact with the "
+#~ "file."
+#~ msgstr ""
+#~ "Sehen Sie sich das Dokumentbild hier "
+#~ "an. Wenn erlaubt, können Sie mit "
+#~ "der Datei interagieren."
+
+#~ msgid "History & Audit"
+#~ msgstr "Historie & Prüfung"
+
+#~ msgid "See the complete audit trail and history of this specific document."
+#~ msgstr ""
+#~ "Sehen Sie den vollständigen Prüfpfad und"
+#~ " die Historie dieses spezifischen "
+#~ "Dokuments."
+
+#~ msgid ""
+#~ "Review all extracted data fields and "
+#~ "values associated with this document."
+#~ msgstr ""
+#~ "Überprüfen Sie alle extrahierten Datenfelder"
+#~ " und Werte, die mit diesem Dokument"
+#~ " verknüpft sind."
+
+#~ msgid "Collaboration Tools"
+#~ msgstr "Zusammenarbeitswerkzeuge"
+
+#~ msgid ""
+#~ "Here you can set a priority level,"
+#~ " assign the workitem to a colleague,"
+#~ " add tags, and leave comments for "
+#~ "your team."
+#~ msgstr ""
+#~ "Hier können Sie eine Prioritätsstufe "
+#~ "festlegen, das Arbeitselement einem Kollegen"
+#~ " zuweisen, Tags hinzufügen und Kommentare"
+#~ " für Ihr Team hinterlassen."
+
+#~ msgid "Welcome to the Team Board!"
+#~ msgstr "Willkommen beim Team-Board!"
+
+#~ msgid ""
+#~ "This Kanban-style board helps you "
+#~ "visualize the workload and task "
+#~ "distribution across your entire team."
+#~ msgstr ""
+#~ "Dieses Kanban-Board hilft Ihnen, die "
+#~ "Arbeitsbelastung und Aufgabenverteilung im "
+#~ "gesamten Team zu visualisieren."
+
+#~ msgid "Filter Tasks"
+#~ msgstr "Aufgaben filtern"
+
+#~ msgid ""
+#~ "Quickly find what you're looking for "
+#~ "by filtering tasks by process or "
+#~ "priority level."
+#~ msgstr ""
+#~ "Finden Sie schnell, was Sie suchen, "
+#~ "indem Sie Aufgaben nach Prozess oder "
+#~ "Prioritätsstufe filtern."
+
+#~ msgid "User Columns"
+#~ msgstr "Benutzerspalten"
+
+#~ msgid ""
+#~ "Each column represents a team member."
+#~ " All tasks assigned to them will "
+#~ "appear here."
+#~ msgstr ""
+#~ "Jede Spalte repräsentiert ein Teammitglied."
+#~ " Alle ihnen zugewiesenen Aufgaben werden"
+#~ " hier angezeigt."
+
+#~ msgid "Workload at a Glance"
+#~ msgstr "Arbeitsbelastung auf einen Blick"
+
+#~ msgid ""
+#~ "The header shows the team member's "
+#~ "name and the total number of tasks"
+#~ " currently assigned to them."
+#~ msgstr ""
+#~ "Die Überschrift zeigt den Namen des "
+#~ "Teammitglieds und die Gesamtzahl der ihm"
+#~ " aktuell zugewiesenen Aufgaben."
+
+#~ msgid "Task Cards"
+#~ msgstr "Aufgabenkarten"
+
+#~ msgid ""
+#~ "Each card is a workitem. It shows"
+#~ " key details like the barcode, last"
+#~ " modification time, and priority. Click "
+#~ "a card to jump to its detailed "
+#~ "view."
+#~ msgstr ""
+#~ "Jede Karte ist ein Arbeitselement. Sie"
+#~ " zeigt wichtige Details wie den "
+#~ "Barcode, die letzte Änderungszeit und "
+#~ "die Priorität. Klicken Sie auf eine "
+#~ "Karte, um zur Detailansicht zu springen."
+
+#~ msgid "My Invoices"
+#~ msgstr "Meine Rechnungen"
+
+#~ msgid "View your billing history and manage your past invoices."
+#~ msgstr ""
+#~ "Sehen Sie Ihre Abrechnungshistorie und "
+#~ "verwalten Sie Ihre vergangenen Rechnungen."
+
+#~ msgid ""
+#~ "Locate specific invoices by searching "
+#~ "for the invoice number, selecting a "
+#~ "date range, or filtering by payment "
+#~ "status."
+#~ msgstr ""
+#~ "Suchen Sie nach bestimmten Rechnungen, "
+#~ "indem Sie die Rechnungsnummer suchen, "
+#~ "einen Datumsbereich auswählen oder nach "
+#~ "Zahlungsstatus filtern."
+
+#~ msgid "Invoices List"
+#~ msgstr "Rechnungsliste"
+
+#~ msgid ""
+#~ "Your filtered invoices appear here. You"
+#~ " can view details, amounts, and "
+#~ "download PDF copies from the Actions "
+#~ "column."
+#~ msgstr ""
+#~ "Ihre gefilterten Rechnungen werden hier "
+#~ "angezeigt. Sie können Details, Beträge "
+#~ "einsehen und PDF-Kopien aus der "
+#~ "Aktionsspalte herunterladen."
 
