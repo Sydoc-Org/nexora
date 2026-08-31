@@ -25,6 +25,16 @@ Work toward the next release.
   mapping tables only; INT never had the synonyms, so the migration is a
   no-op there.
 
+### Fixed
+
+- **A flaky auth test no longer reddens CI at random.**
+  `_without_csrf_token()` in `tests/integration/test_auth_routes.py` blanked
+  the CSRF token in the `<meta>` tag but not the one in the form's hidden
+  input, so the two "a registered and an unregistered address must look
+  identical" comparisons failed whenever their two requests straddled a
+  1-second boundary — the token is re-signed with an itsdangerous timestamp
+  of that granularity. Both spots are blanked now.
+
 ## [3.2.3] - 2026-08-27
 
 ### Added
