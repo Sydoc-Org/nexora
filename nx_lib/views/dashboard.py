@@ -843,7 +843,10 @@ def api_recent_activity():
 
         return jsonify(activity)
     except Exception as e:
-        current_app.logger.error(f"Activity feed error: {e}")
+        # exc_info: the bare message alone ("'NoneType' object has no attribute
+        # 'get'") named neither the file nor the workitem, which is what made
+        # the Octo null-body crash so slow to place.
+        current_app.logger.error(f"Activity feed error: {e}", exc_info=True)
         return jsonify([])
 
 

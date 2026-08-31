@@ -8,6 +8,17 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Fixed
+
+- **The dashboard activity feed no longer dies on a null Octo document.**
+  `items_of()` assumed the thin-document JSON was always a dict, so an Octo
+  reply of HTTP 200 with a `null` body — or a container whose
+  `ChildDocuments` carried a null entry — raised `'NoneType' object has no
+  attribute 'get'` from outside the caller's `try`, blanking the whole feed
+  instead of skipping the one bad workitem. Non-dict input now yields no
+  leaves. The handler also logs a traceback, since the bare message named
+  neither the file nor the workitem (#228 follow-up).
+
 ## [3.2.3] - 2026-08-27
 
 ### Added
