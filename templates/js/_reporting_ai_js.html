@@ -412,6 +412,73 @@
     });
   }
 
+  // ----- Answer depth (Quick / Balanced / Deep) -----
+
+  // Absent from the DOM entirely when the configured model cannot honour an
+  // effort level (see supports_effort in nx_lib/reporting/ai.py), so every
+  // reference below is optional and `send` falls back to the server default.
+  // ponytail: the choice lives for the life of the panel only. Persisting it
+  // means an `aieffort` key in UI_PREF_CHOICES (nx_lib/ui_prefs.py) -- add it
+  // if users start re-picking every visit.
+  var effortWrap = document.getElementById("rpChatEffortWrap");
+  var effortBox = document.getElementById("rpChatEffort");
+  var effortThumb = effortBox && effortBox.querySelector(".rp-effort__thumb");
+  var effortOpts = effortBox
+    ? Array.prototype.slice.call(effortBox.querySelectorAll(".rp-effort__opt"))
+    : [];
+
+  function currentEffort() {
+    for (var i = 0; i < effortOpts.length; i++) {
+      if (effortOpts[i].getAttribute("aria-checked") === "true") {
+        return effortOpts[i].getAttribute("data-effort");
+      }
+    }
+    return null;
+  }
+
+  // The thumb is absolutely positioned, so it can only be placed once the
+  // buttons have a layout -- i.e. after .is-open has un-collapsed the strip.
+  function moveThumb() {
+    if (!effortThumb) return;
+    for (var i = 0; i < effortOpts.length; i++) {
+      if (effortOpts[i].getAttribute("aria-checked") === "true") {
+        effortThumb.style.width = effortOpts[i].offsetWidth + "px";
+        effortThumb.style.transform = "translateX(" + effortOpts[i].offsetLeft + "px)";
+        return;
+      }
+    }
+  }
+
+  function openEffort(open) {
+    if (!effortWrap) return;
+    effortWrap.classList.toggle("is-open", !!open);
+    if (open) requestAnimationFrame(moveThumb);
+  }
+
+  if (effortBox) {
+    effortOpts.forEach(function (opt) {
+      opt.addEventListener("click", function () {
+        effortOpts.forEach(function (o) {
+          o.setAttribute("aria-checked", String(o === opt));
+        });
+        moveThumb();
+        input.focus();
+      });
+    });
+    // Reveal while the user is composing; hide again once focus leaves the
+    // composer for good (a click on the strip itself keeps it open).
+    input.addEventListener("focus", function () { openEffort(true); });
+    input.addEventListener("blur", function () {
+      setTimeout(function () {
+        var a = document.activeElement;
+        if (!effortBox.contains(a) && a !== input) openEffort(false);
+      }, 120);
+    });
+    window.addEventListener("resize", function () {
+      if (effortWrap.classList.contains("is-open")) moveThumb();
+    });
+  }
+
   // ----- Send -----
 
   // `continueAttempt` is 0 for a normal question; > 0 when re-sent via the
@@ -439,7 +506,10 @@
         stream: true,
         // Active source lets the server gate run_sql to sources it can reach.
         source: (document.getElementById("rpSource") || {}).value || null,
-        continueAttempt: continueAttempt
+        continueAttempt: continueAttempt,
+        // null when the picker is absent; the server then uses its own
+        // default rather than trusting a level the model cannot honour.
+        effort: currentEffort()
       })
     }).then(function (r) {
       var ct = r.headers.get("content-type") || "";

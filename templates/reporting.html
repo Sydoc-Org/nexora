@@ -183,15 +183,48 @@
       <div id="rpChatEmpty" class="reporting-chat-empty">
         {{ eddard.mark(88, cls='reporting-chat-mascot ed--track', testid='reporting-chat-mascot', sparks=true) }}
         <p>{{ _("Hi, I'm Eddard. Ask about your data in plain language. I can build reports, draft SQL, and — with the right permission — run read-only queries and report real numbers.") }}</p>
-        <button type="button" class="rp-chat-starter" data-testid="rp-chat-starter">{{ _("documents per month this year") }}</button>
-        <button type="button" class="rp-chat-starter" data-testid="rp-chat-starter">{{ _("invoices by process, last 3 months") }}</button>
-        <button type="button" class="rp-chat-starter" data-testid="rp-chat-starter">{{ _("pages processed per week") }}</button>
+        {# Starters are deliberately the questions this stack answers best: the
+           docprocessing source anchors imported / exported / Backlog metrics and
+           a Process dimension, so each of these resolves to a real report rather
+           than a hedge. All four were run against the live agent before being
+           put here -- change one, re-run it. #}
+        <button type="button" class="rp-chat-starter" data-testid="rp-chat-starter">{{ _("documents imported per month this year") }}</button>
+        <button type="button" class="rp-chat-starter" data-testid="rp-chat-starter">{{ _("imported vs exported, last 30 days") }}</button>
+        <button type="button" class="rp-chat-starter" data-testid="rp-chat-starter">{{ _("documents by process this quarter") }}</button>
+        <button type="button" class="rp-chat-starter" data-testid="rp-chat-starter">{{ _("imported but not yet exported") }}</button>
       </div>
     </div>
     {# Cloned into the progress ticker while a request runs: Eddard flings a
        report together (title -> KPI -> bars -> trend -> Ready) beside the real
        agent steps. Kept in the macro instead of duplicating the SVG in JS. #}
     <template id="rpChatWorkingMascot">{{ eddard.stage(testid='reporting-chat-build-stage') }}</template>
+    {# Answer-depth picker. Rendered only when the configured model can honour
+       an effort level (ai_effort_enabled -> nx_lib/reporting/ai.py
+       supports_effort); Haiku 4.5, gpt-4o and friends get no dead control.
+       The outer wrapper does the reveal via grid-template-rows 0fr->1fr, which
+       animates without thrashing layout the way max-height does. Styles:
+       .rp-effort* in static/css/reporting.css; behaviour in
+       js/_reporting_ai_js.html. #}
+    {% if ai_effort_enabled %}
+    {% set effort_opts = [
+         ('low',    _('Quick'),    'fa-bolt',  _('Fastest answer, least deliberation')),
+         ('medium', _('Balanced'), 'fa-gauge', _('A balance of speed and depth')),
+         ('high',   _('Deep'),     'fa-brain', _('Slowest and most thorough, for hard questions'))
+       ] %}
+    <div id="rpChatEffortWrap" class="rp-effort-wrap">
+      <div id="rpChatEffort" class="rp-effort" role="radiogroup"
+           aria-label="{{ _('Answer depth') }}" data-testid="reporting-chat-effort">
+        <span class="rp-effort__thumb" aria-hidden="true"></span>
+        {% for level, label, icon, hint in effort_opts %}
+        <button type="button" class="rp-effort__opt" role="radio" data-effort="{{ level }}"
+                aria-checked="{{ 'true' if level == ai_effort_default else 'false' }}"
+                title="{{ hint }}" data-testid="reporting-chat-effort-{{ level }}">
+          <i class="fas {{ icon }}" aria-hidden="true"></i><span>{{ label }}</span>
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
     <form id="rpChatForm" class="reporting-chat-form">
       <textarea id="rpChatInput" class="reporting-chat-input" rows="1"
                 placeholder="{{ _('Ask about your data…') }}" data-testid="reporting-chat-input"></textarea>

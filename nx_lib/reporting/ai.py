@@ -45,6 +45,12 @@ EFFORT_AGENT = "medium"
 # gets today's behaviour (no param, API default). If someone names a
 # reasoning deployment 'eddard', add an AZURE_REASONING_EFFORT env override.
 _REASONING_DEPLOYMENT_PREFIXES = ("gpt-5", "o1", "o3", "o4")
+# Anthropic spells the same knob `output_config.effort`, and honours it only
+# on the Opus / Sonnet-5 / Fable class - Haiku 4.5 rejects it outright.
+_EFFORT_ANTHROPIC_PREFIXES = ("claude-opus", "claude-sonnet-5", "claude-fable")
+# The levels a user may pick in the chat composer (Quick / Balanced / Deep),
+# cheapest first. Every provider that supports effort accepts these names.
+EFFORT_CHOICES = ("low", "medium", "high")
 
 _SQL_FENCE = re.compile(r"```(?:sql|json)?\s*(.+?)```", re.IGNORECASE | re.DOTALL)
 
@@ -93,12 +99,24 @@ def _user_prompt(question, schema_text):
     )
 
 
-def _call_anthropic(system, user, *, model, api_key, url, max_tokens, timeout, transport):
+def _call_anthropic(
+    system,
+    user,
+    *,
+    model,
+    api_key,
+    url,
+    max_tokens,
+    timeout,
+    transport,
+    effort=EFFORT_SINGLE_SHOT,
+):
     body = {
         "model": model,
         "max_tokens": max_tokens,
         "system": system,
         "messages": [{"role": "user", "content": user}],
+        **_effort_body("anthropic", model, effort),
     }
     headers = {
         "x-api-key": api_key,
@@ -115,12 +133,33 @@ def _call_anthropic(system, user, *, model, api_key, url, max_tokens, timeout, t
     return text, usage.get("input_tokens"), usage.get("output_tokens")
 
 
-def _reasoning_body(deployment, effort):
-    """`{"reasoning_effort": effort}` for reasoning deployments, else `{}`."""
-    name = (deployment or "").lower()
-    if effort and name.startswith(_REASONING_DEPLOYMENT_PREFIXES):
+def supports_effort(provider, model):
+    """True when `model` on `provider` accepts an effort level.
+
+    Drives two things that must agree: the wire body below, and whether the
+    chat composer renders its Quick/Balanced/Deep picker at all. A model that
+    cannot honour the choice is never offered it.
+    """
+    name = (model or "").lower()
+    provider = (provider or "").lower()
+    if provider == "azure":
+        return name.startswith(_REASONING_DEPLOYMENT_PREFIXES)
+    if provider == "anthropic":
+        return name.startswith(_EFFORT_ANTHROPIC_PREFIXES)
+    return False
+
+
+def _effort_body(provider, model, effort):
+    """Provider-shaped effort parameter, or `{}` when it cannot be honoured.
+
+    Silently empty rather than raising: an unsupported model should answer the
+    question at its own pace, not 400 because a stale client sent a level.
+    """
+    if not effort or not supports_effort(provider, model):
+        return {}
+    if (provider or "").lower() == "azure":
         return {"reasoning_effort": effort}
-    return {}
+    return {"output_config": {"effort": effort}}
 
 
 def _call_azure(
@@ -151,7 +190,7 @@ def _call_azure(
             {"role": "system", "content": system},
             {"role": "user", "content": user},
         ],
-        **_reasoning_body(deployment, effort),
+        **_effort_body("azure", deployment, effort),
     }
     headers = {"api-key": api_key, "content-type": "application/json"}
     data = transport(url, headers, body, timeout)
@@ -191,6 +230,7 @@ def _dispatch(
             max_tokens=max_tokens,
             timeout=timeout,
             transport=transport,
+            effort=effort,
         )
     if provider == "azure":
         return _call_azure(
@@ -1123,7 +1163,7 @@ def _make_agent_step(
                 "max_completion_tokens": max_tokens,
                 "messages": _to_azure_messages(system, messages),
                 "tools": azure_tools,
-                **_reasoning_body(deployment, effort),
+                **_effort_body("azure", deployment, effort),
             }
             return _parse_azure_turn(transport(azure_url, headers, body, timeout))
 
@@ -1145,6 +1185,7 @@ def _make_agent_step(
                 "system": system,
                 "messages": _to_anthropic_messages(messages),
                 "tools": anthropic_tools,
+                **_effort_body("anthropic", model, effort),
             }
             return _parse_anthropic_turn(transport(anthropic_url, headers, body, timeout))
 

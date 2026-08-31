@@ -8,6 +8,27 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Added
+
+- **Answer-depth picker in the Eddard chat composer.** Click into the
+  input and a Quick / Balanced / Deep control slides in above it, mapping
+  to effort `low` / `medium` / `high` on the `/api/reporting/ai/agent`
+  call. Quick trades deliberation for speed on straightforward counts;
+  Deep gives the agent more room on hard, multi-source questions.
+  The control is capability-gated — it is absent, not greyed out, when the
+  configured model cannot honour an effort level (`supports_effort()`),
+  because Claude Haiku 4.5 and the non-reasoning Azure models reject the
+  parameter outright. The choice lasts for the life of the panel.
+
+- **Eddard's starter chips now lead with what the stack does best.** The empty
+  chat panel offered generic prompts (one of them, "invoices by process",
+  named a source that does not exist). It now offers four questions built on
+  the `docprocessing` source's anchored imported / exported / Backlog metrics
+  and its Process dimension: imported per month this year, imported vs
+  exported over 30 days, documents by process this quarter, and imported but
+  not yet exported. Each was run against the live agent and returns a real
+  report definition.
+
 ### Changed
 
 - **Eddard now sets `reasoning_effort` per surface on Azure GPT-5

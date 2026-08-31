@@ -1583,6 +1583,26 @@ when `AZURE_OPENAI_DEPLOYMENT` starts with a known reasoning prefix (`gpt-5`,
 `o1`, `o3`, `o4`), because every other Azure model rejects it with a 400; a
 deployment named off-pattern silently keeps the API default.
 
+The agent surface also lets the **user** pick, via the answer-depth control
+that slides in above the chat composer (`#rpChatEffort` in
+`templates/reporting.html`, behaviour in `templates/js/_reporting_ai_js.html`,
+styles `.rp-effort` in `static/css/reporting.css`). Quick / Balanced / Deep
+map to `low` / `medium` / `high` and ride along as `effort` in the
+`/api/reporting/ai/agent` body; an unknown level falls back to `EFFORT_AGENT`
+rather than 400.
+
+The control is capability-gated by `supports_effort(provider, model)`: the
+page passes `ai_effort_enabled` and the markup is simply absent when the
+configured model cannot honour a level. Anthropic spells the same knob
+`output_config.effort` and accepts it only on the Opus / Sonnet-5 / Fable
+class — **Claude Haiku 4.5 rejects it**, which is why the picker has to
+disappear rather than grey out. `_effort_body()` drops the field a second
+time server-side, so a stale client cannot 400 a question.
+
+The pick lives for the life of the panel and resets to Balanced on reload;
+persisting it would mean an `aieffort` key in `UI_PREF_CHOICES`
+(`nx_lib/ui_prefs.py`).
+
 ### Safety & privacy
 
 - **Schema-only egress:** the model receives the user's question and schema

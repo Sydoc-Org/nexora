@@ -62,11 +62,14 @@ from ..reporting.ai import (
     CAPTION_MAX_ROWS,
     CONTINUE_BUDGET_S,
     CONTINUE_MAX_TURNS,
+    EFFORT_AGENT,
+    EFFORT_CHOICES,
     MAX_CONTINUE_ATTEMPTS,
     AiError,
     ask_agentic,
     ask_agentic_iter,
     stage_preview,
+    supports_effort,
 )
 from ..reporting.ai import _make_agent_step as make_agent_step
 from ..reporting.ai import ask as ai_ask
@@ -388,6 +391,12 @@ def _ai_config():
             "api_version": os.environ.get("AZURE_OPENAI_API_VERSION", "2024-10-21"),
         }
     return {"provider": "none", "api_key": None}
+
+
+def _ai_effort_enabled():
+    """True when the configured model honours an effort level (composer gate)."""
+    cfg = _ai_config()
+    return supports_effort(cfg.get("provider"), cfg.get("model"))
 
 
 def _accessible_sql_targets():
@@ -1204,6 +1213,10 @@ def reporting():
         page_visibility=page_visibility(),
         ai_enabled=has_permission("reporting.ai.use"),
         ai_caption_enabled=has_permission("reporting.ai.explain_data"),
+        # The composer only offers Quick/Balanced/Deep when the configured
+        # model can actually honour it (GPT-5 family, Claude Opus/Sonnet 5).
+        ai_effort_enabled=_ai_effort_enabled(),
+        ai_effort_default=EFFORT_AGENT,
         details_images_perm=has_permission("workitems.details.view.images"),
         details_audit_perm=has_permission("workitems.details.view.audit"),
         details_fields_perm=has_permission("workitems.details.view.fields"),
@@ -1728,6 +1741,13 @@ def api_ai_agent():
     except (TypeError, ValueError):
         continue_attempt = 0
     continue_attempt = max(0, min(continue_attempt, MAX_CONTINUE_ATTEMPTS))
+
+    # Composer effort picker. An unknown level falls back to the loop default
+    # rather than 400 - a stale or tampered client must not be able to break a
+    # question, and _effort_body drops it again if the model cannot honour it.
+    effort = body.get("effort")
+    if effort not in EFFORT_CHOICES:
+        effort = EFFORT_AGENT
     agent_max_turns = CONTINUE_MAX_TURNS if continue_attempt else None
     agent_budget_s = CONTINUE_BUDGET_S if continue_attempt else None
 
@@ -1976,6 +1996,7 @@ def api_ai_agent():
             deployment=cfg.get("deployment"),
             api_version=cfg.get("api_version", "2024-10-21"),
             url=cfg.get("url"),
+            effort=effort,
         )
         # Streaming mode: the client asked to watch the loop work. NDJSON, one
         # object per line — {"phase": ...} progress events as they happen, then
