@@ -1,5 +1,5 @@
 <script nonce="{{ csp_nonce() }}">
-    const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+    const API_PREFIX = window.API_PREFIX;
     const canEdit         = document.getElementById('recordsTable').dataset.canEdit === 'true';
     const canEditTransOrg  = document.getElementById('recordsTable').dataset.canEditTransorg === 'true';
     const currentOrgCode   = document.getElementById('recordsTable').dataset.orgCode || null;
