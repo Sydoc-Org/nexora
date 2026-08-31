@@ -108,22 +108,5 @@ work on the current cycle branch instead.
 ## Pull requests
 
 - Target `main`
+- Pre-push hook runs the test suite; CI re-runs it before deploy
 - Keep PRs small and focused. The repo prefers many small PRs over one large one.
-
-### Which tests run when
-
-| When | What runs | Roughly |
-|---|---|---|
-| Pre-push | Unit + integration (`pytest tests --ignore=tests/e2e`) | ~5 min |
-| Pre-push | Only the e2e specs your diff can affect (`scripts/select_e2e.py`) | 0–12 min |
-| CI, before deploy | Everything, including the full e2e tier | ~18 min |
-
-The e2e selector maps changed paths to specs. It deliberately errs towards
-running more: a shared file (`templates/_header.html`, `nx_lib/hooks.py`, the
-test fixtures), an unrecognised path, or any failure to work out the diff all
-fall back to the whole tier. Docs-only and migration-only pushes skip e2e
-entirely. Nothing reaches PROD unexercised either way — CI's `test` job runs the
-complete suite and `deploy` needs it.
-
-Adding a feature area? Add a rule to `RULES` in `scripts/select_e2e.py`.
-Forgetting to is safe: an unmapped path runs every spec.
