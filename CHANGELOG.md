@@ -47,6 +47,21 @@ Work toward the next release.
   hardcoded driver made the reset impossible there, failing with `IM002`
   (#230).
 
+- **An aborted deploy can no longer leave PROD's schema ahead of its code**
+  (#228). The IIS preflight in `.github/workflows/deploy.yml` ran *after*
+  "Apply DB migrations to PROD", so a failure there committed migrations to the
+  production database and then skipped the code sync. That is exactly what
+  happened on 2026-08-27: two merges applied `0070`–`0081`, aborted at the
+  preflight, and left the deployed app querying `SearchConfig` / `StatConfig` /
+  `IndexFieldMappings` / `Search_Field_Labels` after `0075` had renamed them —
+  taking Workitems "Erweitert", the dashboard KPIs and the reporting catalog
+  down until four SQL synonyms were added by hand. The preflight now runs
+  before the migration step, so anything that can abort a deploy leaves PROD
+  wholly untouched.
+
+  The preflight probe that did the aborting (`waitress.__version__`, an
+  attribute waitress does not ship) is fixed separately in #226.
+
 ## [3.2.3] - 2026-08-27
 
 ### Added

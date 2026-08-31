@@ -193,6 +193,31 @@ jobs:
             throw "Aborting deploy: neither $prodEnvFile nor $legacyProdEnvFile exists. The app will fail to load secrets without one of them."
           }
 
+      # MUST stay ahead of "Apply DB migrations to PROD". Migrations commit to
+      # the production database; every step after them either finishes the
+      # deploy or strands PROD with its schema ahead of its code. That is what
+      # happened on 2026-08-27 (#228): this preflight failed *after* 0070-0081
+      # had applied, the code sync was skipped, and the tables 0075 renamed took
+      # the running app down until synonyms were added by hand. Anything that
+      # can abort a deploy belongs in front of the migration step.
+      - name: Preflight IIS host (HttpPlatformHandler + waitress)
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # web.config hands the site to IIS's HttpPlatformHandler, which runs
+          # waitress from the prod interpreter. Both are host installs (not in
+          # git); a missing one would 500 the whole site the moment robocopy
+          # lands, so fail here while the old app is still serving.
+          # Setup: docs/howto/iis.md.
+          Import-Module WebAdministration
+          if (-not (Get-WebGlobalModule | Where-Object Name -eq 'httpPlatformHandler')) {
+            throw "IIS module 'httpPlatformHandler' is not installed on SYAPP01 -- install HttpPlatformHandler v1.2 x64 (docs/howto/iis.md) before deploying."
+          }
+          D:\sydoc\tools\py\python.exe -c "import waitress, importlib.metadata as md; print('waitress', md.version('waitress'))"
+          if ($LASTEXITCODE -ne 0) {
+            throw "waitress is not importable from D:\sydoc\tools\py -- the 'pip install -r requirements.txt' step above should have installed it."
+          }
+
       # db-migrate.py checksums raw file bytes; the persistent runner can carry
       # CRLF .sql from before *.sql got `text eol=lf`, which makes an
       # already-applied migration look "edited" and aborts the migrate step.
@@ -242,24 +267,6 @@ jobs:
             D:\sydoc\tools\py\python.exe scripts/db-migrate.py --env PROD --yes
           } finally {
             Remove-Item $envDst -Force -ErrorAction SilentlyContinue
-          }
-
-      - name: Preflight IIS host (HttpPlatformHandler + waitress)
-        shell: powershell
-        run: |
-          $ErrorActionPreference = 'Stop'
-          # web.config hands the site to IIS's HttpPlatformHandler, which runs
-          # waitress from the prod interpreter. Both are host installs (not in
-          # git); a missing one would 500 the whole site the moment robocopy
-          # lands, so fail here while the old app is still serving.
-          # Setup: docs/howto/iis.md.
-          Import-Module WebAdministration
-          if (-not (Get-WebGlobalModule | Where-Object Name -eq 'httpPlatformHandler')) {
-            throw "IIS module 'httpPlatformHandler' is not installed on SYAPP01 -- install HttpPlatformHandler v1.2 x64 (docs/howto/iis.md) before deploying."
-          }
-          D:\sydoc\tools\py\python.exe -c "import waitress, importlib.metadata as md; print('waitress', md.version('waitress'))"
-          if ($LASTEXITCODE -ne 0) {
-            throw "waitress is not importable from D:\sydoc\tools\py -- the 'pip install -r requirements.txt' step above should have installed it."
           }
 
       - name: Stop app pool and service
