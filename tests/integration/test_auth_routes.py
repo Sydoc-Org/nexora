@@ -31,11 +31,15 @@ def _without_csrf_token(body):
     Flask-WTF re-signs the session's CSRF secret on every request with an
     itsdangerous timestamp, and those have 1-second granularity -- so two
     otherwise byte-identical responses rendered either side of a second
-    boundary differ, at exactly one place, by that token. It is per-request
+    boundary differ, everywhere that token is rendered. It is per-request
     noise, not part of the "a registered and an unregistered address must
     look identical" contract the callers are asserting.
     """
-    return re.sub(rb'(?<=name="csrf-token" content=")[^"]*', b"", body)
+    body = re.sub(rb'(?<=name="csrf-token" content=")[^"]*', b"", body)
+    # The page carries the same token twice: the <meta> tag above and the
+    # form's hidden input. Blanking only the first left the second to differ
+    # across a second boundary -- the exact flake this helper exists to stop.
+    return re.sub(rb'(?<=name="csrf_token" value=")[^"]*', b"", body)
 
 
 def _clear_reset_token_marker(client, token):
