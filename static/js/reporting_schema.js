@@ -18,13 +18,9 @@
   var API_PREFIX = window.API_PREFIX;
   var I18N = window.NX_I18N_REPORTING_SCHEMA || {};
 
-  function el(id) { return document.getElementById(id); }
-
-  function esc(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
+  // el/esc: shared with nx_core.js (Task 11).
+  var el = window.NX.el;
+  var esc = window.NX.esc;
 
   var nf = new Intl.NumberFormat(document.documentElement.lang || 'en');
   function num(n) { return n == null ? '—' : nf.format(n); }

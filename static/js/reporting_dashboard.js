@@ -16,45 +16,13 @@
   var csrf = document.querySelector('meta[name="csrf-token"]').content;
   var API_PREFIX = window.API_PREFIX;
 
-  // Same shape as the Simple pane's api() helper (templates/js/_reporting_simple_js.html):
-  // never throws, always resolves to {ok, status, data}.
-  async function api(url, opts) {
-    if (url.startsWith('/')) url = API_PREFIX + url.slice(1);
-    opts = opts || {};
-    var res;
-    try {
-      res = await fetch(url, Object.assign(
-        { headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf } }, opts));
-    } catch (e) {
-      return { ok: false, status: 0, data: null };
-    }
-    var data = null;
-    try { data = await res.json(); } catch (e) { /* non-JSON */ }
-    return { ok: res.ok, status: res.status, data: data };
-  }
-
-  function el(id) { return document.getElementById(id); }
-
-  function esc(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
-
-  // In-page toast -- same DOM/CSS contract as the Advanced tab's private
-  // toast() (.reporting-toast / data-testid="reporting-toast", defined in
-  // _reporting_js.html): this module is self-contained so it draws its own,
-  // reusing the existing shared CSS class rather than a new one.
-  function toast(msg, isError) {
-    var t = document.createElement('div');
-    t.className = 'reporting-toast' + (isError ? ' reporting-toast--error' : '');
-    t.setAttribute('role', 'status');
-    t.setAttribute('data-testid', 'reporting-toast');
-    t.textContent = msg;
-    document.body.appendChild(t);
-    setTimeout(function () { t.classList.add('is-gone'); }, 2600);
-    setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 3000);
-  }
+  // el/api/esc/toast: shared with nx_core.js (Task 11) -- this file's api()
+  // never throws (resolves to {ok,status,data}), so it aliases NX.apiSafe,
+  // not NX.api.
+  var api = window.NX.apiSafe;
+  var el = window.NX.el;
+  var esc = window.NX.esc;
+  var toast = window.NX.toast;
 
   var I18N = window.NX_I18N_REPORTING_DASHBOARD;
 
