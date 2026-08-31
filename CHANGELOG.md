@@ -10,6 +10,14 @@ Work toward the next release.
 
 ### Performance
 
+- **The reporting source/metric registry is cached for 60 seconds.**
+  `_load_db_sources()`/`_load_db_metrics()` in `nx_lib/views/reporting.py`
+  hit `dbo.ReportingSources`/`dbo.ReportingMetrics` on every call — up to
+  ~8x per report run. Both now use the house TTL-cache pattern (mirrors
+  `nx_lib/mapping_config.py`: success-only caching, a load error re-queries
+  next call rather than caching the failure). Every admin CRUD route that
+  writes those tables invalidates the cache immediately, so an admin edit is
+  still visible without waiting out the TTL.
 - **Static assets (CSS/JS/images) now cache for a year in the browser.**
   Every template asset tag was swept from raw `url_for('static', ...)` to
   `static_v(...)` (#191's mtime-busted `?v=` helper), so
