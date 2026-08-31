@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="{{ url_for('static', filename='css/_nexoraLogo.css') }}">
+<link rel="stylesheet" href="{{ static_v('css/_nexoraLogo.css') }}">
 <a href="{{ url_for('index') }}" class="brand title-wrap flex items-center gap-3" data-testid="nexora-logo-home">
 {%- if brand and brand.logo_file %}
   <img src="{{ url_for('branding_logo', orgcode=session.get('organizationcode')) }}" alt="{{ brand.name or 'nexora' }}" class="nx-brand-logo" height="48">

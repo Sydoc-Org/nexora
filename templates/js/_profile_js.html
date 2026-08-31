@@ -1,6 +1,6 @@
 <script nonce="{{ csp_nonce() }}">
 (function () {
-    const DEFAULT_ICON = "{{ url_for('static', filename='images/default-Icon.png') }}";
+    const DEFAULT_ICON = "{{ static_v('images/default-Icon.png') }}";
     const I18N_MATCH    = "{{ _('Passwords match') }}";
     const I18N_NOMATCH  = "{{ _('Passwords do not match') }}";
     const I18N_TOOSHORT = "{{ _('At least 8 characters required') }}";

@@ -8,6 +8,16 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Performance
+
+- **Static assets (CSS/JS/images) now cache for a year in the browser.**
+  Every template asset tag was swept from raw `url_for('static', ...)` to
+  `static_v(...)` (#191's mtime-busted `?v=` helper), so
+  `SEND_FILE_MAX_AGE_DEFAULT` can safely go from Flask's no-cache default to
+  365 days — a changed file gets a new URL, so a stale cache is never
+  served past the next deploy. A new lint test bans raw
+  `url_for('static'` in `templates/**` to keep it that way.
+
 ### Changed
 
 - **The pre-push gate no longer runs the e2e suite.** Every push ran all

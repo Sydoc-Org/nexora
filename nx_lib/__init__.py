@@ -66,18 +66,23 @@ def create_app():
     # violate.
     app.jinja_env.globals.setdefault("csp_nonce", lambda: "")
 
+    # Every template asset tag now goes through static_v() below, so the
+    # ?v=<mtime> query string is what invalidates a browser's cache on
+    # deploy -- safe to let Flask serve /static with a long, cacheable
+    # max-age instead of the no-cache default (#191 follow-up).
+    app.config["SEND_FILE_MAX_AGE_DEFAULT"] = timedelta(days=365)
+
     @app.template_global()
     def static_v(filename):
         """url_for('static') with an mtime cache-buster (#191).
 
         The JS partials under templates/js/ now ship their behaviour as real
         files under static/js/, so the browser can cache them across
-        navigations -- which only works if a deploy changes the URL.
-        Flask 3 serves /static with no-cache + ETag, so today each of these
-        still costs one 304 per navigation -- cheap, and the body and the
-        parse are what mattered. The ?v= is what makes it safe to go further:
-        once the CSS/image tags use static_v() too, SEND_FILE_MAX_AGE_DEFAULT
-        can go long and the 304s disappear.
+        navigations -- which only works if a deploy changes the URL. Every
+        CSS/image/JS tag in templates/ uses this helper, so SEND_FILE_MAX_AGE_DEFAULT
+        above is set long: the ?v= query string is what makes that safe --
+        a changed asset gets a new URL, so a year-long Cache-Control never
+        serves a stale file.
 
         ponytail: one stat() per tag per render, uncached; the OS caches the
         inode and a page carries a handful of these. Cache it if a profile
