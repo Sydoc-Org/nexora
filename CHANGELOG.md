@@ -40,6 +40,13 @@ Work toward the next release.
   1-second boundary — the token is re-signed with an itsdangerous timestamp
   of that granularity. Both spots are blanked now.
 
+- **`scripts/test_db_reset.py` no longer hardcodes ODBC Driver 17.** It now
+  picks the best installed SQL Server ODBC driver (18, then 17, then Native
+  Client 11.0, then the legacy `SQL Server` driver), so resetting
+  `NEXORA_TEST` works on machines that ship Driver 18 only. Previously the
+  hardcoded driver made the reset impossible there, failing with `IM002`
+  (#230).
+
 ## [3.2.3] - 2026-08-27
 
 ### Added

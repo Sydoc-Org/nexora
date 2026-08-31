@@ -111,6 +111,25 @@ def execute_sql_file(cursor: pyodbc.Cursor, path: Path) -> None:
             ) from e
 
 
+def _pick_sqlserver_driver() -> str | None:
+    """Best installed SQL Server ODBC driver, newest first.
+
+    Mirrors what a developer would put in DB_ODBC_DRIVER by hand; the legacy
+    "SQL Server" driver is last because it lacks Encrypt/TrustServerCertificate
+    support (see the _TLS_SUFFIX note in nx_lib/db.py).
+    """
+    installed = pyodbc.drivers()
+    for candidate in (
+        "ODBC Driver 18 for SQL Server",
+        "ODBC Driver 17 for SQL Server",
+        "SQL Server Native Client 11.0",
+        "SQL Server",
+    ):
+        if candidate in installed:
+            return candidate
+    return None
+
+
 def main() -> int:
     if not TEST_ENV.exists():
         print(
@@ -147,13 +166,29 @@ def main() -> int:
             print(f"Missing: {p}", file=sys.stderr)
             return 1
 
-    # Use the same driver nexora itself uses. autocommit so each batch commits
-    # immediately (schema.sql can't run inside an explicit transaction anyway
-    # because it does CREATE/DROP).
-    conn_str = (
-        f"DRIVER={{ODBC Driver 17 for SQL Server}};"
-        f"SERVER={server};DATABASE={db};UID={uid};PWD={pwd};"
-    )
+    # Use the same driver nexora itself uses -- DB_ODBC_DRIVER from the env file,
+    # exactly like nx_lib/db.py, falling back to whatever SQL Server driver is
+    # actually installed. This used to hardcode "ODBC Driver 17 for SQL Server",
+    # which made the script unusable on any box that ships 18 (or only the legacy
+    # "SQL Server") even though its docstring promises it runs anywhere pyodbc
+    # does. autocommit so each batch commits immediately (schema.sql can't run
+    # inside an explicit transaction anyway because it does CREATE/DROP).
+    driver = env.get("DB_ODBC_DRIVER") or _pick_sqlserver_driver()
+    if not driver:
+        print(
+            "No SQL Server ODBC driver found. Install one, or set DB_ODBC_DRIVER "
+            f"in env/TEST.env. Available: {pyodbc.drivers()}",
+            file=sys.stderr,
+        )
+        return 1
+
+    # Driver 17/18 understand (and 18 defaults to requiring) TLS, and reject a
+    # self-signed server cert unless told to trust it. The legacy "SQL Server"
+    # driver errors on these keywords outright, so they're only added for the
+    # modern ones -- same conditional as _TLS_SUFFIX in nx_lib/db.py.
+    tls = "Encrypt=yes;TrustServerCertificate=yes;" if driver.startswith("ODBC Driver") else ""
+    conn_str = f"DRIVER={{{driver}}};SERVER={server};DATABASE={db};UID={uid};PWD={pwd};{tls}"
+    print(f"Using ODBC driver: {driver}")
     conn = pyodbc.connect(conn_str, autocommit=True)
     try:
         cursor = conn.cursor()
