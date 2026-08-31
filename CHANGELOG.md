@@ -10,6 +10,16 @@ Work toward the next release.
 
 ### Changed
 
+- **Eddard now sets `reasoning_effort` per surface on Azure GPT-5
+  deployments.** Nothing set it, so gpt-5-mini deliberated at the API default
+  (`medium`) on every call — including one-line chart captions. Measured on
+  INT (`dbo.ReportingAiAudit`, 235 calls): captions took 8.0 s against
+  gpt-4o-mini's 0.9 s, and agent runs 54.8 s against 7.7 s, with the slowest
+  run at 210 s brushing the 180 s `AI_AGENT_BUDGET_S` ceiling. Single-shot
+  surfaces (caption, definition, sql) now ask for `low`; the agentic chat loop
+  keeps `medium`. The parameter is sent only for deployments named `gpt-5*` /
+  `o1*` / `o3*` / `o4*` — every other Azure model 400s on it.
+
 - **The pre-push gate no longer runs the e2e suite.** Every push ran all
   ~228 Playwright tests locally even though CI's `test` job runs the full
   suite anyway on the PR and again on `main` before deploy — three runs of

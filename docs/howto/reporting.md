@@ -1571,6 +1571,18 @@ Set these in `env/INT.env` and `env/PROD.env`:
 Until `AI_PROVIDER` is set (or is `none`) the route returns **503** and the tab
 does not render. Sanitised key names are committed in `env/*.env.example`.
 
+**Reasoning effort (Azure GPT-5 family).** Reasoning deployments run at the API
+default (`medium`) unless told otherwise, which is far more deliberation than a
+one-line chart caption needs — on INT that cost 8 s per caption and 55 s per
+agent run against gpt-4o-mini's 0.9 s / 7.7 s. `nx_lib/reporting/ai.py` therefore
+sends `reasoning_effort` per surface: `low` for the single-shot surfaces
+(caption, definition, sql) and `medium` for the agentic chat loop, which chains
+tool calls and earns the extra thinking. There is no env var — the levels are
+`EFFORT_SINGLE_SHOT` / `EFFORT_AGENT` in that module. The parameter is sent only
+when `AZURE_OPENAI_DEPLOYMENT` starts with a known reasoning prefix (`gpt-5`,
+`o1`, `o3`, `o4`), because every other Azure model rejects it with a 400; a
+deployment named off-pattern silently keeps the API default.
+
 ### Safety & privacy
 
 - **Schema-only egress:** the model receives the user's question and schema

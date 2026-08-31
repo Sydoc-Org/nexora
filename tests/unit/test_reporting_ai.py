@@ -238,3 +238,86 @@ def test_caption_notes_reach_the_prompt():
     user_msg = captured["body"]["messages"][0]["content"]
     assert "Notes: The bucket 2026-08-01 is the current" in user_msg
     assert "NO measurement are missing data" in captured["body"]["system"]
+
+
+def _capturing_transport(payload):
+    """Transport that records the request body it was handed."""
+    seen = {}
+
+    def transport(url, headers, body, timeout):
+        seen.update(body)
+        return payload
+
+    return transport, seen
+
+
+def test_azure_reasoning_effort_low_on_single_shot():
+    # A caption/definition/sql round-trip needs no deliberation: gpt-5-mini at the
+    # API default (medium) took 8s to label one line.
+    payload = {
+        "choices": [{"message": {"content": '{"sql": "SELECT 1 AS X", "explanation": "c"}'}}],
+        "usage": {"prompt_tokens": 5, "completion_tokens": 1},
+    }
+    transport, seen = _capturing_transport(payload)
+    ai.ask(
+        "q",
+        "(* no schema *)",
+        provider="azure",
+        model="gpt-5-mini",
+        api_key="k",
+        endpoint="https://x.openai.azure.com",
+        deployment="gpt-5-mini",
+        transport=transport,
+    )
+    assert seen["reasoning_effort"] == ai.EFFORT_SINGLE_SHOT
+
+
+def test_azure_reasoning_effort_omitted_for_non_reasoning_deployment():
+    # gpt-4o-mini 400s on reasoning_effort — it must not be sent at all.
+    payload = {
+        "choices": [{"message": {"content": '{"sql": "SELECT 1 AS X", "explanation": "c"}'}}],
+        "usage": {"prompt_tokens": 5, "completion_tokens": 1},
+    }
+    transport, seen = _capturing_transport(payload)
+    ai.ask(
+        "q",
+        "(* no schema *)",
+        provider="azure",
+        model="gpt-4o-mini",
+        api_key="k",
+        endpoint="https://x.openai.azure.com",
+        deployment="gpt-4o-mini",
+        transport=transport,
+    )
+    assert "reasoning_effort" not in seen
+
+
+def test_azure_agent_step_keeps_medium_effort():
+    # The agent loop chains tool calls and does earn the extra thinking.
+    payload = {"choices": [{"message": {"content": "done"}}], "usage": {}}
+    transport, seen = _capturing_transport(payload)
+    step = ai._make_agent_step(
+        system="s",
+        tools=[],
+        provider="azure",
+        model="gpt-5-mini",
+        api_key="k",
+        endpoint="https://x.openai.azure.com",
+        deployment="gpt-5-mini",
+        transport=transport,
+    )
+    step([{"role": "user", "content": "q"}])
+    assert seen["reasoning_effort"] == ai.EFFORT_AGENT
+
+
+def test_anthropic_never_gets_reasoning_effort():
+    # reasoning_effort is an Azure/OpenAI parameter; Anthropic 400s on unknown keys.
+    payload = {
+        "content": [{"type": "text", "text": '{"sql": "SELECT 1 AS X", "explanation": "c"}'}],
+        "usage": {"input_tokens": 5, "output_tokens": 1},
+    }
+    transport, seen = _capturing_transport(payload)
+    ai.ask(
+        "q", "(* no schema *)", provider="anthropic", model="m", api_key="k", transport=transport
+    )
+    assert "reasoning_effort" not in seen

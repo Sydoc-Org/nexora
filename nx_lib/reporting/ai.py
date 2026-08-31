@@ -30,6 +30,21 @@ DEFAULT_TIMEOUT_S = int(os.environ.get("AI_TIMEOUT_S") or 120)
 # Wall-clock ceiling for a whole agentic loop, so a slow model can't pin a
 # worker for max_turns * DEFAULT_TIMEOUT_S.
 DEFAULT_BUDGET_S = int(os.environ.get("AI_AGENT_BUDGET_S") or 180)
+# Reasoning effort for Azure GPT-5-family deployments. Left unset, they run at
+# the API default (medium) on every call: gpt-5-mini averaged 54.8s per agent
+# run and 8.0s to caption a one-line label, 7-9x the gpt-4o-mini it replaced.
+# Single-shot surfaces (caption/definition/sql) need no deliberation; only the
+# agent loop, which chains tool calls, earns the extra thinking.
+EFFORT_SINGLE_SHOT = "low"
+EFFORT_AGENT = "medium"
+# `reasoning_effort` is accepted by GPT-5/o-series deployments and rejected
+# with a 400 by everything else (gpt-4o-mini included), so it can't be sent
+# unconditionally the way `max_completion_tokens` is. The deployment name is
+# the only signal available client-side.
+# ponytail: prefix match on the deployment name — an off-pattern name just
+# gets today's behaviour (no param, API default). If someone names a
+# reasoning deployment 'eddard', add an AZURE_REASONING_EFFORT env override.
+_REASONING_DEPLOYMENT_PREFIXES = ("gpt-5", "o1", "o3", "o4")
 
 _SQL_FENCE = re.compile(r"```(?:sql|json)?\s*(.+?)```", re.IGNORECASE | re.DOTALL)
 
@@ -100,6 +115,14 @@ def _call_anthropic(system, user, *, model, api_key, url, max_tokens, timeout, t
     return text, usage.get("input_tokens"), usage.get("output_tokens")
 
 
+def _reasoning_body(deployment, effort):
+    """`{"reasoning_effort": effort}` for reasoning deployments, else `{}`."""
+    name = (deployment or "").lower()
+    if effort and name.startswith(_REASONING_DEPLOYMENT_PREFIXES):
+        return {"reasoning_effort": effort}
+    return {}
+
+
 def _call_azure(
     system,
     user,
@@ -112,6 +135,7 @@ def _call_azure(
     max_tokens,
     timeout,
     transport,
+    effort=EFFORT_SINGLE_SHOT,
 ):
     if not endpoint or not deployment:
         raise AiError("Azure OpenAI requires endpoint and deployment")
@@ -127,6 +151,7 @@ def _call_azure(
             {"role": "system", "content": system},
             {"role": "user", "content": user},
         ],
+        **_reasoning_body(deployment, effort),
     }
     headers = {"api-key": api_key, "content-type": "application/json"}
     data = transport(url, headers, body, timeout)
@@ -150,6 +175,7 @@ def _dispatch(
     max_tokens=DEFAULT_MAX_TOKENS,
     timeout=DEFAULT_TIMEOUT_S,
     transport=_http_post,
+    effort=EFFORT_SINGLE_SHOT,
 ):
     """Provider-agnostic single round-trip. Returns (text, tokens_in, tokens_out)."""
     if not api_key:
@@ -178,6 +204,7 @@ def _dispatch(
             max_tokens=max_tokens,
             timeout=timeout,
             transport=transport,
+            effort=effort,
         )
     raise AiError(f"unknown AI provider: {provider!r}")
 
@@ -1069,6 +1096,7 @@ def _make_agent_step(
     max_tokens=DEFAULT_MAX_TOKENS,
     timeout=DEFAULT_TIMEOUT_S,
     transport=_http_post,
+    effort=EFFORT_AGENT,
 ):
     """Build an `agent_step(messages) -> AssistantTurn` bound to a provider.
 
@@ -1095,6 +1123,7 @@ def _make_agent_step(
                 "max_completion_tokens": max_tokens,
                 "messages": _to_azure_messages(system, messages),
                 "tools": azure_tools,
+                **_reasoning_body(deployment, effort),
             }
             return _parse_azure_turn(transport(azure_url, headers, body, timeout))
 
