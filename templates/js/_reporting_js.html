@@ -1,7 +1,7 @@
 <script nonce="{{ csp_nonce() }}">
 (function () {
   const csrf = document.querySelector('meta[name="csrf-token"]').content;
-  const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+  const API_PREFIX = window.API_PREFIX;
   const state = {
     source: null, fields: [], columns: [], filters: [], sort: [],
     // Process scope. `allProcesses` is the caller's allowed '<client>.<process>'

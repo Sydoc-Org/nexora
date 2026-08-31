@@ -15,7 +15,7 @@
 (function () {
   'use strict';
   var csrf = document.querySelector('meta[name="csrf-token"]').content;
-  var API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+  var API_PREFIX = window.API_PREFIX;
   var I18N = window.NX_I18N_REPORTING_SCHEMA || {};
 
   function el(id) { return document.getElementById(id); }

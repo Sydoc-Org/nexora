@@ -7,7 +7,7 @@
    so the Simple tab (Task 4) can route its own "ask AI" affordances here. */
 (function () {
   "use strict";
-  var API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+  var API_PREFIX = window.API_PREFIX;
 
   var toggleBtn = document.getElementById("rpChatToggle");
   var panel = document.getElementById("rpChatPanel");

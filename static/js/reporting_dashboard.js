@@ -14,7 +14,7 @@
 (function () {
   'use strict';
   var csrf = document.querySelector('meta[name="csrf-token"]').content;
-  var API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+  var API_PREFIX = window.API_PREFIX;
 
   // Same shape as the Simple pane's api() helper (templates/js/_reporting_simple_js.html):
   // never throws, always resolves to {ok, status, data}.

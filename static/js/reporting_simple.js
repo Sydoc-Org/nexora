@@ -4,7 +4,7 @@
 // chart singleton); the result view owns a private Chart.js instance.
 (function () {
   var csrf = document.querySelector('meta[name="csrf-token"]').content;
-  var API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+  var API_PREFIX = window.API_PREFIX;
   var EXPORT_ALLOWED = !!document.getElementById('rsExport');
 
   var I18N = window.NX_I18N_REPORTING_SIMPLE;

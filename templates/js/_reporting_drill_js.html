@@ -4,7 +4,7 @@
 window.ReportingDrill = (function () {
   'use strict';
   var csrf = document.querySelector('meta[name="csrf-token"]').content;
-  var API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+  var API_PREFIX = window.API_PREFIX;
   var I18N = {
     title: {{ _("Rows behind this number")|tojson }},
     distinctNote: {{ _("Rows contributing to this number — the distinct count may be smaller.")|tojson }},
