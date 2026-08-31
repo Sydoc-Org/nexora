@@ -7,7 +7,12 @@ Rectangle / Rectangles {Left,Top,Width,Height} in image pixels; page via
 Location.PageIndex; degenerate {0,0,0,0} rects are un-locatable.
 """
 
-from nx_lib.field_locations import _count_image_media, _rect_from_octo, extract_field_locations
+from nx_lib.field_locations import (
+    _count_image_media,
+    _rect_from_octo,
+    extract_field_locations,
+    items_of,
+)
 
 # --- _rect_from_octo -------------------------------------------------------
 
@@ -352,3 +357,33 @@ def test_confidence_present_on_unlocatable_field():
     doc = {"IndexFields": [_field_conf("DocNo", "INV", 0.6, location=None)]}
     out = extract_field_locations(doc, MAPPING)
     assert out[0]["locations"] == [] and out[0]["confidence"] == 0.6
+
+
+# --- items_of: container flattening / malformed input ----------------------
+
+
+def test_items_single_document_is_its_own_leaf():
+    doc = {"Id": "a"}
+    assert items_of(doc) == [doc]
+
+
+def test_items_flattens_nested_containers_in_order():
+    leaf1, leaf2, leaf3 = {"Id": "1"}, {"Id": "2"}, {"Id": "3"}
+    doc = {"ChildDocuments": [{"ChildDocuments": [leaf1, leaf2]}, leaf3]}
+    assert items_of(doc) == [leaf1, leaf2, leaf3]
+
+
+def test_items_none_document_yields_no_leaves():
+    # Octo can answer 200 with a null body; this used to raise
+    # "'NoneType' object has no attribute 'get'" into the activity feed.
+    assert items_of(None) == []
+
+
+def test_items_non_dict_document_yields_no_leaves():
+    assert items_of([]) == []
+    assert items_of("nope") == []
+
+
+def test_items_skips_null_child_entries():
+    leaf = {"Id": "ok"}
+    assert items_of({"ChildDocuments": [None, leaf]}) == [leaf]
