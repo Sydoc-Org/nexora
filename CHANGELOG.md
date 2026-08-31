@@ -8,6 +8,14 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Removed
+
+- Migration `0082` drops the four synonyms (`SearchConfig`, `StatConfig`,
+  `IndexFieldMappings`, `Search_Field_Labels`) hand-added on PROD during the
+  2026-08-28 half-deploy rescue (#228). The deployed app reads the new
+  mapping tables only; INT never had the synonyms, so the migration is a
+  no-op there.
+
 ## [3.2.3] - 2026-08-27
 
 ### Added
