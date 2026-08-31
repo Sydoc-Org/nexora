@@ -1,6 +1,6 @@
     <script nonce="{{ csp_nonce() }}">
         // #98 phase 4 task 5: add/edit/delete for dbo.Clients (runtime sources).
-        const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+        const API_PREFIX = window.API_PREFIX;
 
         const clientModal = document.getElementById('clientModal');
         const clientModalTitle = document.getElementById('clientModalTitle');

@@ -1,6 +1,6 @@
     <script nonce="{{ csp_nonce() }}">
     (function () {
-        const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+        const API_PREFIX = window.API_PREFIX;
 
         function escapeHtml(s) {
             return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

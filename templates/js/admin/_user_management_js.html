@@ -11,7 +11,7 @@
         const confirmBtn = document.getElementById('confirmBtn');
         const cancelBtn = document.getElementById('cancelBtn');
 
-        const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+        const API_PREFIX = window.API_PREFIX;
         function showNotification(message, type = 'success') {
             const container = document.getElementById('notification-container');
 

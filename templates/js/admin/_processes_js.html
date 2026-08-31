@@ -4,7 +4,7 @@
         // JoinCondition / TimeFilter / SuggestionTimeFilter / ExtraCondition are
         // free-form SQL fragments and are deliberately absent from both forms:
         // they stay migration-only.
-        const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+        const API_PREFIX = window.API_PREFIX;
 
         document.addEventListener('DOMContentLoaded', function () {
             const input = document.getElementById('processSearchInput');

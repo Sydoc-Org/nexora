@@ -1,7 +1,7 @@
 <script nonce="{{ csp_nonce() }}">
     let currentPage = 1;
     let fetchedLogsData = [];
-    const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+    const API_PREFIX = window.API_PREFIX;
 
     // Sub-day presets (e.g. "Last hour") need minute-level precision, but
     // filterStart/filterEnd are native <input type="date"> fields that can

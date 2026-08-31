@@ -337,7 +337,7 @@
         const input = document.getElementById('switchUserInput');
         const list = document.getElementById('switchUserList');
         if (!btn || !overlay || !input || !list) return;
-        const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+        const API_PREFIX = window.API_PREFIX;
 
         let usernames = [];
 
