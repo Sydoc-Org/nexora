@@ -89,13 +89,10 @@ repos:
         stages: [pre-push]
         always_run: true
 
-      # Two tiers, cheap first (default collection order is alphabetical, so
-      # a single `pytest tests` ran e2e browsers BEFORE unit tests). fail_fast
-      # stops the push before the 10-minute e2e tier when the fast tier fails.
-      # E2E retries are armed by tests/e2e/conftest.py (pytest.mark.flaky),
-      # not CLI flags: --only-rerun is an error-text regex, and
-      # "--only-rerun flaky_e2e" never matched anything, so no test was
-      # ever actually retried.
+      # Fast tier only: unit + integration. The e2e suite runs exclusively in
+      # CI (`test` job in deploy.yml, which PR merges and `deploy` both need),
+      # so nothing reaches PROD unexercised — pre-push e2e was a third
+      # redundant run of the same ~12-minute suite.
       - id: pytest-fast-pre-push
         name: Unit + integration tests (pre-push gate)
         entry: python -m pytest tests --ignore=tests/e2e
@@ -104,11 +101,3 @@ repos:
         stages: [pre-push]
         always_run: true
         fail_fast: true
-
-      - id: pytest-e2e-pre-push
-        name: E2E test suite (pre-push gate)
-        entry: python -m pytest tests/e2e
-        language: system
-        pass_filenames: false
-        stages: [pre-push]
-        always_run: true

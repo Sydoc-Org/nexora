@@ -108,5 +108,6 @@ work on the current cycle branch instead.
 ## Pull requests
 
 - Target `main`
-- Pre-push hook runs the test suite; CI re-runs it before deploy
+- Pre-push hook runs unit + integration tests (~5 min); the full suite
+  including e2e runs in CI, which PR merges and `deploy` both require
 - Keep PRs small and focused. The repo prefers many small PRs over one large one.
