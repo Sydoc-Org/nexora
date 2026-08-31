@@ -55,14 +55,14 @@ directly — only `-md` won't move your shell.
 | `-d`, `--down` | Stop the port-8000 instance |
 | `--down-all` | Stop **all** nexora instances, whatever port they run on (matches `nx_main.py` processes, so it also catches instances started outside `nx`) |
 | `-r`, `--restart` | Stop then start |
-| `-s`, `--status` | Show running status (PID, env, port) + any in-flight autopilot build |
+| `-s`, `--status` | Show running status (PID, env, port) |
 | `-l`, `--logs` | Stream live logs (requires a running instance) |
 | `-md`, `--maindir` | cd into the nexora project directory *(needs the profile wrapper)* |
 | `--routes[:<regex>]` | List Flask routes, optionally filtered by regex |
 | `--doctor` | Run preflight health checks (env, DBs, migrations, services) |
 
 With no command, `nx` defaults to `--status` (or opens the browser if `-b` /
-`--loginas` was given). When an autopilot build is in progress, `status` also prints `autopilot: #<n> <title>  -- building <elapsed> (<phase>)`.
+`--loginas` was given).
 
 ## Options
 
@@ -132,7 +132,7 @@ REPL commands (the leading slash is optional — `up` and `/up` both work):
 | `up [env]` | Start nexora (`env` = `int` \| `staging`) |
 | `down` | Stop nexora |
 | `restart [env]` | Restart nexora |
-| `status` | Show running status + in-flight autopilot build |
+| `status` | Show running status |
 | `logs` | Stream live logs (Ctrl+C returns to the prompt) |
 | `routes [regex]` | List Flask routes, optional regex filter |
 | `doctor [--fast] [--fix]` | Preflight checks |

@@ -19,6 +19,13 @@ Work toward the next release.
 
 ### Removed
 
+- **The dormant `tools/autopilot` orchestrator and its `nx.ps1` CLI
+  plumbing.** Unused since 2026-06-15 (owner-approved deletion, recoverable
+  from git history); `bin/nx.ps1` loses `--invoke-workflow`, `--kill-workflow`,
+  `--workflow-logs`, `--queue`, `--body`, and the in-flight-build line in
+  `status`. Everything else in `nx.ps1` is unchanged. This does **not**
+  revoke the GitHub PAT exposed in the June transcript — that is a separate
+  owner-only action.
 - Migration `0082` drops the four synonyms (`SearchConfig`, `StatConfig`,
   `IndexFieldMappings`, `Search_Field_Labels`) hand-added on PROD during the
   2026-08-28 half-deploy rescue (#228). The deployed app reads the new
