@@ -1,12 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-
-<body>
     <script nonce="{{ csp_nonce() }}">
         const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
         // Smallest perPage the filter/pagination controls offer. Doubles as the
@@ -86,39 +77,6 @@
                     notification.remove();
                 }, 700);
             }, 5000);
-        }
-
-        function cancelAllAnimations() {
-            animationTimeouts.forEach(clearTimeout);
-            animationTimeouts = [];
-
-            const allRows = document.querySelectorAll('#workitemsTable tbody tr.workitem-row');
-            allRows.forEach(row => {
-                row.classList.remove('opacity-0');
-                row.style.transform = '';
-            });
-        }
-
-        function closeAllDetails() {
-            document.querySelectorAll("[id^='details-row-']").forEach((detailsRow) => {
-                detailsRow.classList.remove('open');
-                detailsRow.setAttribute('hidden', true);
-            });
-
-            document.querySelectorAll(".indicator").forEach((chevron) => {
-                chevron.classList.remove('open');
-                chevron.classList.remove('glyphicon-chevron-down-custom');
-                chevron.classList.add('glyphicon-chevron-up-custom');
-            });
-        }
-
-        function getCurrentFilterOrSearch() {
-            const statusFilter = document.getElementById("statusFilter");
-            const searchInput = document.getElementById("searchInput");
-            return {
-                status: statusFilter.value,
-                search: searchInput.value,
-            };
         }
 
         async function toggleDetailsAndLoadImages(event) {
@@ -375,27 +333,6 @@ async function uploadBatchFiles(files, processName) {
                 ['startDate', 'endDate'].forEach(id => {
                     document.getElementById(id)?.addEventListener('input', () => { datePreset.value = ''; });
                 });
-            }
-
-            async function fetchFieldConfig() {
-                try {
-                    const res = await fetch(`${API_PREFIX}api/config/fields`, {
-                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
-                    });
-                    if (!res.ok) throw new Error('Failed to fetch field config');
-
-                    const data = await res.json();
-                    fieldConfig = data;
-                    window.fieldConfig = fieldConfig;
-
-                    const process = document.getElementById('prcfW')?.value || 'all';
-                    document.querySelectorAll('.doc-filter-field').forEach(hiddenInput => {
-                        fillDocFieldSelect(hiddenInput, process);
-                    });
-
-                } catch (e) {
-                    console.error("Error loading field config:", e);
-                }
             }
 
             function fillDocFieldSelect(hiddenInput, process) {
@@ -1715,6 +1652,3 @@ async function uploadBatchFiles(files, processName) {
             }).catch(() => { /* bar just stays hidden */ });
         });
     </script>
-</body>
-
-</html>

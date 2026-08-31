@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-31 19:06+0200\n"
+"POT-Creation-Date: 2026-08-31 19:46+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -562,25 +562,25 @@ msgstr "Organisation erfolgreich gelöscht."
 #: nx_lib/views/dashboard.py:598 nx_lib/views/dashboard.py:676
 #: nx_lib/views/dashboard.py:714 nx_lib/views/generali.py:228
 #: nx_lib/views/generali.py:257 nx_lib/views/generali.py:426
-#: nx_lib/views/generali.py:455 nx_lib/views/generali.py:686
-#: nx_lib/views/generali.py:728 nx_lib/views/generali.py:852
-#: nx_lib/views/generali.py:928 nx_lib/views/generali.py:984
-#: nx_lib/views/generali.py:1006 nx_lib/views/generali.py:1175
-#: nx_lib/views/generali.py:1206 nx_lib/views/generali.py:1235
-#: nx_lib/views/generali.py:1277 nx_lib/views/generali.py:1402
-#: nx_lib/views/generali.py:1473 nx_lib/views/generali.py:1519
-#: nx_lib/views/generali.py:1542 nx_lib/views/generali.py:1696
-#: nx_lib/views/generali.py:1725 nx_lib/views/generali.py:1767
-#: nx_lib/views/generali.py:1887 nx_lib/views/generali.py:1961
-#: nx_lib/views/generali.py:2009 nx_lib/views/generali.py:2035
-#: nx_lib/views/generali.py:2182 nx_lib/views/generali.py:2211
-#: nx_lib/views/generali.py:2253 nx_lib/views/generali.py:2370
-#: nx_lib/views/generali.py:2442 nx_lib/views/generali.py:2490
-#: nx_lib/views/generali.py:2516 nx_lib/views/generali.py:2668
-#: nx_lib/views/generali.py:2718 nx_lib/views/generali.py:2747
-#: nx_lib/views/generali.py:2789 nx_lib/views/generali.py:2921
-#: nx_lib/views/generali.py:2995 nx_lib/views/generali.py:3044
-#: nx_lib/views/generali.py:3067 nx_lib/views/generali.py:3175
+#: nx_lib/views/generali.py:455 nx_lib/views/generali.py:675
+#: nx_lib/views/generali.py:717 nx_lib/views/generali.py:841
+#: nx_lib/views/generali.py:917 nx_lib/views/generali.py:973
+#: nx_lib/views/generali.py:995 nx_lib/views/generali.py:1164
+#: nx_lib/views/generali.py:1195 nx_lib/views/generali.py:1224
+#: nx_lib/views/generali.py:1266 nx_lib/views/generali.py:1391
+#: nx_lib/views/generali.py:1462 nx_lib/views/generali.py:1508
+#: nx_lib/views/generali.py:1531 nx_lib/views/generali.py:1685
+#: nx_lib/views/generali.py:1714 nx_lib/views/generali.py:1756
+#: nx_lib/views/generali.py:1876 nx_lib/views/generali.py:1950
+#: nx_lib/views/generali.py:1998 nx_lib/views/generali.py:2024
+#: nx_lib/views/generali.py:2171 nx_lib/views/generali.py:2200
+#: nx_lib/views/generali.py:2242 nx_lib/views/generali.py:2359
+#: nx_lib/views/generali.py:2431 nx_lib/views/generali.py:2479
+#: nx_lib/views/generali.py:2505 nx_lib/views/generali.py:2657
+#: nx_lib/views/generali.py:2707 nx_lib/views/generali.py:2736
+#: nx_lib/views/generali.py:2778 nx_lib/views/generali.py:2910
+#: nx_lib/views/generali.py:2984 nx_lib/views/generali.py:3033
+#: nx_lib/views/generali.py:3056 nx_lib/views/generali.py:3164
 #: nx_lib/views/workitems.py:2121
 msgid "An unexpected error occurred"
 msgstr "Ein unerwarteter Fehler ist aufgetreten"
@@ -593,11 +593,11 @@ msgstr "Die Akzentfarbe muss ein Hex-Wert wie #336699 sein."
 msgid "Logo must be an SVG, PNG or JPEG image."
 msgstr "Das Logo muss eine SVG-, PNG- oder JPEG-Grafik sein."
 
-#: nx_lib/views/admin.py:433 templates/js/admin/_organizations_js.html:332
+#: nx_lib/views/admin.py:433 templates/js/admin/_organizations_js.html:323
 msgid "Logo is too large (max 512 KB)."
 msgstr "Das Logo ist zu gross (max. 512 KB)."
 
-#: nx_lib/views/admin.py:487 templates/js/admin/_organizations_js.html:369
+#: nx_lib/views/admin.py:487 templates/js/admin/_organizations_js.html:360
 msgid "Branding saved."
 msgstr "Branding gespeichert."
 
@@ -2382,7 +2382,7 @@ msgstr "Exportieren"
 #: templates/generali_baseservices.html:273 templates/generali_pdqm.html:348
 #: templates/generali_projectmanagement.html:259
 #: templates/generali_reporting.html:316
-#: templates/js/_generali_reporting_js.html:803 templates/reporting.html:343
+#: templates/js/_generali_reporting_js.html:772 templates/reporting.html:343
 #: templates/reporting.html:543 templates/reporting_metrics.html:77
 #: templates/reporting_sources.html:88
 msgid "Save"
@@ -3966,14 +3966,14 @@ msgstr "Diese Aktion kann nicht rückgängig gemacht werden."
 #: templates/js/_generali_pdqm_js.html:649
 #: templates/js/_generali_project_management_js.html:397
 #: templates/js/_generali_project_management_js.html:411
-#: templates/js/_generali_reporting_js.html:846
-#: templates/js/_generali_reporting_js.html:860
+#: templates/js/_generali_reporting_js.html:815
+#: templates/js/_generali_reporting_js.html:829
 #: templates/js/_reporting_metrics_js.html:62
 #: templates/js/_reporting_sources_js.html:50
 #: templates/js/admin/_access_control_js.html:659
 #: templates/js/admin/_maintenance_js.html:151
-#: templates/js/admin/_organizations_js.html:116
-#: templates/js/admin/_user_management_js.html:115 templates/reporting.html:331
+#: templates/js/admin/_organizations_js.html:107
+#: templates/js/admin/_user_management_js.html:106 templates/reporting.html:331
 msgid "Delete"
 msgstr "Löschen"
 
@@ -4092,13 +4092,13 @@ msgstr "CSV-Importe in die Dokumentdatenbank"
 
 #: templates/generali_importstatus.html:55
 #: templates/js/_generali_import_status_js.html:17
-#: templates/js/admin/_clients_js.html:137
-#: templates/js/admin/_clients_js.html:191
-#: templates/js/admin/_organizations_js.html:157
-#: templates/js/admin/_organizations_js.html:211
-#: templates/js/admin/_processes_js.html:179
-#: templates/js/admin/_user_management_js.html:156
-#: templates/js/admin/_user_management_js.html:206
+#: templates/js/admin/_clients_js.html:128
+#: templates/js/admin/_clients_js.html:182
+#: templates/js/admin/_organizations_js.html:148
+#: templates/js/admin/_organizations_js.html:202
+#: templates/js/admin/_processes_js.html:170
+#: templates/js/admin/_user_management_js.html:147
+#: templates/js/admin/_user_management_js.html:197
 msgid "Success"
 msgstr "Erfolgreich"
 
@@ -4155,7 +4155,7 @@ msgstr "Einträge gesamt"
 #: templates/js/_generali_reporting_js.html:35
 #: templates/js/_generali_reporting_js.html:303
 #: templates/js/_generali_reporting_js.html:311
-#: templates/js/_generali_reporting_js.html:706
+#: templates/js/_generali_reporting_js.html:675
 msgid "On Time"
 msgstr "Pünktlich"
 
@@ -4165,7 +4165,7 @@ msgstr "Pünktlich"
 #: templates/js/_generali_reporting_js.html:37
 #: templates/js/_generali_reporting_js.html:303
 #: templates/js/_generali_reporting_js.html:311
-#: templates/js/_generali_reporting_js.html:706
+#: templates/js/_generali_reporting_js.html:675
 msgid "Late"
 msgstr "Verspätet"
 
@@ -4248,7 +4248,7 @@ msgstr "Projektaufwand"
 #: templates/admin/maintenance.html:59
 #: templates/generali_projectmanagement.html:207
 #: templates/generali_projectmanagement.html:246
-#: templates/js/_workitems_overview_js.html:1508
+#: templates/js/_workitems_overview_js.html:1445
 msgid "optional"
 msgstr "optional"
 
@@ -4327,8 +4327,7 @@ msgstr "Berichtsdatum"
 #: templates/generali_reporting.html:293
 #: templates/js/_generali_reporting_js.html:350
 #: templates/js/_generali_reporting_js.html:387
-#: templates/js/_generali_reporting_js.html:651
-#: templates/js/_generali_reporting_js.html:736
+#: templates/js/_generali_reporting_js.html:705
 msgid "Email Received"
 msgstr "E-Mail erhalten"
 
@@ -4405,7 +4404,7 @@ msgstr ""
 "Unser automatisiertes System verarbeitet jeden Schritt präzise und "
 "sicher. Verfolgen Sie in Echtzeit, wie ein Dokument verarbeitet wird."
 
-#: templates/hero.html:203 templates/js/_workitems_overview_js.html:287
+#: templates/hero.html:203 templates/js/_workitems_overview_js.html:245
 #: templates/workitems_overview.html:370
 msgid "Import"
 msgstr "Import"
@@ -4704,7 +4703,7 @@ msgstr ""
 
 #: templates/admin/logs.html:108 templates/admin/user_detail.html:238
 #: templates/js/_generali_documents_js.html:274
-#: templates/js/_workitems_overview_js.html:1117
+#: templates/js/_workitems_overview_js.html:1054
 #: templates/prepared_documents.html:234
 msgid "Previous"
 msgstr "Vorherige"
@@ -4712,7 +4711,7 @@ msgstr "Vorherige"
 #: templates/admin/logs.html:109 templates/admin/user_detail.html:239
 #: templates/js/_generali_documents_js.html:278
 #: templates/js/_generali_reporting_js.html:268
-#: templates/js/_workitems_overview_js.html:1123
+#: templates/js/_workitems_overview_js.html:1060
 #: templates/prepared_documents.html:240
 msgid "Next"
 msgstr "Nächste"
@@ -5598,7 +5597,7 @@ msgstr "Dieser Monat"
 msgid "Document Value Search"
 msgstr "Dokumentwert-Suche"
 
-#: templates/js/_workitems_overview_js.html:454
+#: templates/js/_workitems_overview_js.html:391
 #: templates/workitems_overview.html:220 templates/workitems_overview.html:281
 msgid "All fields"
 msgstr "Alle Felder"
@@ -5658,7 +5657,7 @@ msgstr "Letzte Bewegung am"
 msgid "Loading workitems..."
 msgstr "Workitems werden geladen..."
 
-#: templates/js/_workitems_overview_js.html:922
+#: templates/js/_workitems_overview_js.html:859
 #: templates/workitems_overview.html:449
 msgid "selected"
 msgstr "ausgewählt"
@@ -5683,7 +5682,7 @@ msgstr "Prozess auswählen..."
 msgid "Please select a valid process."
 msgstr "Bitte wählen Sie einen gültigen Prozess aus."
 
-#: templates/js/_workitems_overview_js.html:291
+#: templates/js/_workitems_overview_js.html:249
 #: templates/workitems_overview.html:508
 msgid "Import File"
 msgstr "Datei importieren"
@@ -5813,8 +5812,8 @@ msgstr "Überschreibungen"
 #: templates/admin/sessions.html:36 templates/admin/user_detail.html:128
 #: templates/admin/user_detail.html:232
 #: templates/js/admin/_access_control_js.html:693
-#: templates/js/admin/_permission_matrix_js.html:53
-#: templates/js/admin/_permission_matrix_js.html:80
+#: templates/js/admin/_permission_matrix_js.html:44
+#: templates/js/admin/_permission_matrix_js.html:71
 #: templates/js/admin/_sessions_js.html:39
 #: templates/js/admin/_user_detail_js.html:443
 #: templates/js/admin/_user_detail_js.html:556
@@ -5857,8 +5856,8 @@ msgstr "Profil hinzufügen"
 #: templates/js/_reporting_sources_js.html:46
 #: templates/js/admin/_access_control_js.html:656
 #: templates/js/admin/_maintenance_js.html:145
-#: templates/js/admin/_organizations_js.html:114
-#: templates/js/admin/_user_management_js.html:114
+#: templates/js/admin/_organizations_js.html:105
+#: templates/js/admin/_user_management_js.html:105
 msgid "Edit"
 msgstr "Bearbeiten"
 
@@ -6146,7 +6145,7 @@ msgstr "Client löschen"
 msgid "Confirm"
 msgstr "Bestätigen"
 
-#: templates/admin/clients.html:111 templates/js/admin/_clients_js.html:70
+#: templates/admin/clients.html:111 templates/js/admin/_clients_js.html:61
 msgid "Add a new Client"
 msgstr "Neuen Client hinzufügen"
 
@@ -6369,7 +6368,7 @@ msgid "Search organizations..."
 msgstr "Organisationen suchen..."
 
 #: templates/admin/organizations.html:45 templates/admin/organizations.html:59
-#: templates/js/admin/_organizations_js.html:115
+#: templates/js/admin/_organizations_js.html:106
 msgid "Branding"
 msgstr "Branding"
 
@@ -6532,7 +6531,7 @@ msgstr "Keine Prozessquellen konfiguriert."
 msgid "Confirm deletion"
 msgstr "Löschen bestätigen"
 
-#: templates/admin/processes.html:132 templates/js/admin/_processes_js.html:111
+#: templates/admin/processes.html:132 templates/js/admin/_processes_js.html:102
 msgid "Add a process source"
 msgstr "Prozessquelle hinzufügen"
 
@@ -6588,7 +6587,7 @@ msgstr ""
 "Join-Bedingung, Zeitfilter und Zusatzbedingung sind freies SQL und hier "
 "nicht editierbar -- ändern Sie sie über eine Migration."
 
-#: templates/admin/processes.html:199 templates/js/admin/_processes_js.html:140
+#: templates/admin/processes.html:199 templates/js/admin/_processes_js.html:131
 msgid "Add a field mapping"
 msgstr "Feldzuordnung hinzufügen"
 
@@ -6831,7 +6830,7 @@ msgid "No profile"
 msgstr "Kein Profil"
 
 #: templates/admin/user_detail.html:49
-#: templates/js/admin/_permission_matrix_js.html:20
+#: templates/js/admin/_permission_matrix_js.html:11
 msgid "Access profile"
 msgstr "Zugriffsprofil"
 
@@ -6907,7 +6906,7 @@ msgid "Delete Organization"
 msgstr "Organisation löschen"
 
 #: templates/admin/modals/_organizations_modals.html:26
-#: templates/js/admin/_organizations_js.html:87
+#: templates/js/admin/_organizations_js.html:78
 msgid "Add a new Organization"
 msgstr "Neue Organisation hinzufügen"
 
@@ -6920,7 +6919,7 @@ msgid "Save Organization"
 msgstr "Organisation speichern"
 
 #: templates/admin/modals/_user_modals.html:26
-#: templates/js/admin/_user_management_js.html:72
+#: templates/js/admin/_user_management_js.html:63
 msgid "Add new user"
 msgstr "Neuen Benutzer hinzufügen"
 
@@ -7057,7 +7056,7 @@ msgstr "Keine Einträge gefunden."
 #: templates/js/_generali_pdqm_js.html:261
 #: templates/js/_generali_project_management_js.html:138
 #: templates/js/_generali_reporting_js.html:176
-#: templates/js/_workitems_overview_js.html:1036
+#: templates/js/_workitems_overview_js.html:973
 msgid "Try adjusting your filters or resetting the search."
 msgstr "Versuchen Sie, Ihre Filter anzupassen oder die Suche zurückzusetzen."
 
@@ -7099,7 +7098,7 @@ msgstr "Netzwerkfehler."
 #: templates/js/_generali_base_services_js.html:416
 #: templates/js/_generali_pdqm_js.html:626
 #: templates/js/_generali_project_management_js.html:389
-#: templates/js/_generali_reporting_js.html:838
+#: templates/js/_generali_reporting_js.html:807
 msgid "Deleting…"
 msgstr "Löschen…"
 
@@ -7107,7 +7106,7 @@ msgstr "Löschen…"
 #: templates/js/_generali_base_services_js.html:430
 #: templates/js/_generali_pdqm_js.html:642
 #: templates/js/_generali_project_management_js.html:404
-#: templates/js/_generali_reporting_js.html:853
+#: templates/js/_generali_reporting_js.html:822
 msgid "Error deleting record."
 msgstr "Fehler beim Löschen des Eintrags."
 
@@ -7115,7 +7114,7 @@ msgstr "Fehler beim Löschen des Eintrags."
 #: templates/js/_generali_base_services_js.html:487
 #: templates/js/_generali_pdqm_js.html:700
 #: templates/js/_generali_project_management_js.html:460
-#: templates/js/_generali_reporting_js.html:926
+#: templates/js/_generali_reporting_js.html:895
 msgid "Export failed."
 msgstr "Export fehlgeschlagen."
 
@@ -7126,7 +7125,7 @@ msgstr "Dokumente"
 
 #: templates/js/_generali_documents_js.html:66
 #: templates/js/_generali_reporting_js.html:162
-#: templates/js/_workitems_overview_js.html:907
+#: templates/js/_workitems_overview_js.html:844
 msgid "Failed to load data. Please try again."
 msgstr "Daten konnten nicht geladen werden. Bitte versuchen Sie es erneut."
 
@@ -7207,8 +7206,7 @@ msgid "Select category…"
 msgstr "Kategorie auswählen…"
 
 #: templates/js/_generali_reporting_js.html:388
-#: templates/js/_generali_reporting_js.html:651
-#: templates/js/_generali_reporting_js.html:736
+#: templates/js/_generali_reporting_js.html:705
 msgid "Mailroom Request"
 msgstr "Poststelle-Anfrage"
 
@@ -7248,23 +7246,15 @@ msgstr "Wird übermittelt…"
 msgid "Network error for"
 msgstr "Netzwerkfehler für"
 
-#: templates/js/_generali_reporting_js.html:649
-msgid "Provision Archive Details"
-msgstr "Details zum Bereitstellungsarchiv"
-
-#: templates/js/_generali_reporting_js.html:649
-msgid "Stray Document Details"
-msgstr "Irrläufer-Details"
-
-#: templates/js/_generali_reporting_js.html:766
+#: templates/js/_generali_reporting_js.html:735
 msgid "Report date is required."
 msgstr "Berichtsdatum ist erforderlich."
 
-#: templates/js/_generali_reporting_js.html:786
+#: templates/js/_generali_reporting_js.html:755
 msgid "Saving…"
 msgstr "Speichern…"
 
-#: templates/js/_generali_reporting_js.html:799
+#: templates/js/_generali_reporting_js.html:768
 msgid "Save failed. Please try again."
 msgstr "Speichern fehlgeschlagen. Bitte versuchen Sie es erneut."
 
@@ -7305,11 +7295,11 @@ msgstr "Schnellaktion"
 msgid "Account"
 msgstr "Konto"
 
-#: templates/js/_hero_js.html:118
+#: templates/js/_hero_js.html:110
 msgid "Waiting for new document..."
 msgstr "Warten auf neues Dokument..."
 
-#: templates/js/_hero_js.html:152
+#: templates/js/_hero_js.html:144
 msgid "Process Complete!"
 msgstr "Verarbeitung abgeschlossen!"
 
@@ -8509,72 +8499,72 @@ msgstr "Im Register"
 msgid "Hide sources"
 msgstr "Quellen ausblenden"
 
-#: templates/js/_workitems_overview_js.html:184
+#: templates/js/_workitems_overview_js.html:142
 msgid "Please select valid PDF files."
 msgstr "Bitte wählen Sie gültige PDF-Dateien aus."
 
-#: templates/js/_workitems_overview_js.html:197
+#: templates/js/_workitems_overview_js.html:155
 msgid "files selected"
 msgstr "Dateien ausgewählt"
 
-#: templates/js/_workitems_overview_js.html:418
+#: templates/js/_workitems_overview_js.html:355
 msgid "No fields available"
 msgstr "Keine Felder verfügbar"
 
-#: templates/js/_workitems_overview_js.html:799
+#: templates/js/_workitems_overview_js.html:736
 msgid "primary"
 msgstr "primär"
 
-#: templates/js/_workitems_overview_js.html:801
+#: templates/js/_workitems_overview_js.html:738
 msgid "Some workitems are temporarily unavailable:"
 msgstr "Einige Workitems sind vorübergehend nicht verfügbar:"
 
-#: templates/js/_workitems_overview_js.html:846
+#: templates/js/_workitems_overview_js.html:783
 msgid "Loading the rest in the background…"
 msgstr "Rest wird im Hintergrund geladen…"
 
-#: templates/js/_workitems_overview_js.html:950
+#: templates/js/_workitems_overview_js.html:887
 msgid "selected workitems will be exported"
 msgstr "ausgewählte Workitems werden exportiert"
 
-#: templates/js/_workitems_overview_js.html:951
+#: templates/js/_workitems_overview_js.html:888
 msgid "All workitems matching current filters will be exported"
 msgstr "Alle Workitems, die den aktuellen Filtern entsprechen, werden exportiert"
 
-#: templates/js/_workitems_overview_js.html:1016
+#: templates/js/_workitems_overview_js.html:953
 msgid "Export failed. Please try again."
 msgstr "Export fehlgeschlagen. Bitte versuchen Sie es erneut."
 
-#: templates/js/_workitems_overview_js.html:1035
+#: templates/js/_workitems_overview_js.html:972
 msgid "No workitems found"
 msgstr "Keine Workitems gefunden"
 
-#: templates/js/_workitems_overview_js.html:1391
-#: templates/js/_workitems_overview_js.html:1402
-#: templates/js/_workitems_overview_js.html:1440
+#: templates/js/_workitems_overview_js.html:1328
+#: templates/js/_workitems_overview_js.html:1339
+#: templates/js/_workitems_overview_js.html:1377
 msgid "Deselect view"
 msgstr "Ansicht abwählen"
 
-#: templates/js/_workitems_overview_js.html:1391
-#: templates/js/_workitems_overview_js.html:1440
+#: templates/js/_workitems_overview_js.html:1328
+#: templates/js/_workitems_overview_js.html:1377
 msgid "Apply view"
 msgstr "Ansicht anwenden"
 
-#: templates/js/_workitems_overview_js.html:1399
-#: templates/js/_workitems_overview_js.html:1444
+#: templates/js/_workitems_overview_js.html:1336
+#: templates/js/_workitems_overview_js.html:1381
 msgid "Edit view"
 msgstr "Ansicht bearbeiten"
 
-#: templates/js/_workitems_overview_js.html:1497
+#: templates/js/_workitems_overview_js.html:1434
 msgid "View name…"
 msgstr "Name der Ansicht…"
 
-#: templates/js/_workitems_overview_js.html:1563
-#: templates/js/_workitems_overview_js.html:1564
+#: templates/js/_workitems_overview_js.html:1500
+#: templates/js/_workitems_overview_js.html:1501
 msgid "Delete view"
 msgstr "Ansicht löschen"
 
-#: templates/js/_workitems_overview_js.html:1589
+#: templates/js/_workitems_overview_js.html:1526
 msgid "View saved."
 msgstr "Ansicht gespeichert."
 
@@ -8665,14 +8655,14 @@ msgid "You do not have permission to create users."
 msgstr "Sie haben keine Berechtigung, Benutzer zu erstellen."
 
 #: templates/js/admin/_access_control_js.html:567
-#: templates/js/admin/_clients_js.html:140
-#: templates/js/admin/_clients_js.html:194
-#: templates/js/admin/_organizations_js.html:160
-#: templates/js/admin/_organizations_js.html:214
-#: templates/js/admin/_organizations_js.html:371
-#: templates/js/admin/_processes_js.html:185
-#: templates/js/admin/_user_management_js.html:159
-#: templates/js/admin/_user_management_js.html:209
+#: templates/js/admin/_clients_js.html:131
+#: templates/js/admin/_clients_js.html:185
+#: templates/js/admin/_organizations_js.html:151
+#: templates/js/admin/_organizations_js.html:205
+#: templates/js/admin/_organizations_js.html:362
+#: templates/js/admin/_processes_js.html:176
+#: templates/js/admin/_user_management_js.html:150
+#: templates/js/admin/_user_management_js.html:200
 msgid "Error:"
 msgstr "Fehler:"
 
@@ -8733,34 +8723,34 @@ msgstr "Profil · Verweigern"
 msgid "No assignment"
 msgstr "Keine Zuweisung"
 
-#: templates/js/admin/_clients_js.html:79
+#: templates/js/admin/_clients_js.html:70
 msgid "Edit Client"
 msgstr "Client bearbeiten"
 
-#: templates/js/admin/_clients_js.html:130
-#: templates/js/admin/_organizations_js.html:150
-#: templates/js/admin/_organizations_js.html:355
-#: templates/js/admin/_processes_js.html:172
-#: templates/js/admin/_user_management_js.html:149
+#: templates/js/admin/_clients_js.html:121
+#: templates/js/admin/_organizations_js.html:141
+#: templates/js/admin/_organizations_js.html:346
+#: templates/js/admin/_processes_js.html:163
+#: templates/js/admin/_user_management_js.html:140
 msgid "You do not have permission to perform this action."
 msgstr "Sie haben keine Berechtigung, diese Aktion durchzuführen."
 
-#: templates/js/admin/_clients_js.html:144
-#: templates/js/admin/_clients_js.html:198
-#: templates/js/admin/_organizations_js.html:164
-#: templates/js/admin/_organizations_js.html:218
-#: templates/js/admin/_organizations_js.html:375
-#: templates/js/admin/_processes_js.html:189
-#: templates/js/admin/_user_management_js.html:163
-#: templates/js/admin/_user_management_js.html:213
+#: templates/js/admin/_clients_js.html:135
+#: templates/js/admin/_clients_js.html:189
+#: templates/js/admin/_organizations_js.html:155
+#: templates/js/admin/_organizations_js.html:209
+#: templates/js/admin/_organizations_js.html:366
+#: templates/js/admin/_processes_js.html:180
+#: templates/js/admin/_user_management_js.html:154
+#: templates/js/admin/_user_management_js.html:204
 msgid "An unexpected network error occurred."
 msgstr "Ein unerwarteter Netzwerkfehler ist aufgetreten."
 
-#: templates/js/admin/_clients_js.html:185
+#: templates/js/admin/_clients_js.html:176
 msgid "You do not have permission to delete this client."
 msgstr "Sie haben keine Berechtigung, diesen Client zu löschen."
 
-#: templates/js/admin/_clients_js.html:201
+#: templates/js/admin/_clients_js.html:192
 msgid "Are you sure you want to delete this client? This action cannot be undone."
 msgstr ""
 "Sind Sie sicher, dass Sie diesen Client löschen möchten? Diese Aktion "
@@ -8850,15 +8840,15 @@ msgstr "Banner erstellt."
 msgid "Banner deleted."
 msgstr "Banner gelöscht."
 
-#: templates/js/admin/_organizations_js.html:94
+#: templates/js/admin/_organizations_js.html:85
 msgid "Edit Organization"
 msgstr "Organisation bearbeiten"
 
-#: templates/js/admin/_organizations_js.html:205
+#: templates/js/admin/_organizations_js.html:196
 msgid "You do not have permission to delete this Organization."
 msgstr "Sie haben keine Berechtigung, diese Organisation zu löschen."
 
-#: templates/js/admin/_organizations_js.html:221
+#: templates/js/admin/_organizations_js.html:212
 msgid ""
 "Are you sure you want to delete this Organization? This action cannot be "
 "undone."
@@ -8866,43 +8856,43 @@ msgstr ""
 "Sind Sie sicher, dass Sie diese Organisation löschen möchten? Diese "
 "Aktion kann nicht rückgängig gemacht werden."
 
-#: templates/js/admin/_permission_matrix_js.html:19
+#: templates/js/admin/_permission_matrix_js.html:10
 msgid "User override"
 msgstr "Benutzer-Override"
 
-#: templates/js/admin/_permission_matrix_js.html:58
+#: templates/js/admin/_permission_matrix_js.html:49
 msgid "No one holds this permission."
 msgstr "Niemand besitzt diese Berechtigung."
 
-#: templates/js/admin/_permission_matrix_js.html:66
+#: templates/js/admin/_permission_matrix_js.html:57
 msgid "Manage"
 msgstr "Verwalten"
 
-#: templates/js/admin/_permission_matrix_js.html:70
+#: templates/js/admin/_permission_matrix_js.html:61
 msgid "Could not load holders."
 msgstr "Inhaber konnten nicht geladen werden."
 
-#: templates/js/admin/_permission_matrix_js.html:85
+#: templates/js/admin/_permission_matrix_js.html:76
 msgid "This user holds no permissions."
 msgstr "Dieser Benutzer besitzt keine Berechtigungen."
 
-#: templates/js/admin/_permission_matrix_js.html:110
+#: templates/js/admin/_permission_matrix_js.html:101
 msgid "Manage overrides"
 msgstr "Overrides verwalten"
 
-#: templates/js/admin/_permission_matrix_js.html:112
+#: templates/js/admin/_permission_matrix_js.html:103
 msgid "Could not load permissions."
 msgstr "Berechtigungen konnten nicht geladen werden."
 
-#: templates/js/admin/_processes_js.html:121
+#: templates/js/admin/_processes_js.html:112
 msgid "Edit process source"
 msgstr "Prozessquelle bearbeiten"
 
-#: templates/js/admin/_processes_js.html:150
+#: templates/js/admin/_processes_js.html:141
 msgid "Edit field mapping"
 msgstr "Feldzuordnung bearbeiten"
 
-#: templates/js/admin/_processes_js.html:251
+#: templates/js/admin/_processes_js.html:242
 msgid ""
 "Delete this process source? Its field mappings must be removed first, and"
 " its permission row is kept."
@@ -8910,7 +8900,7 @@ msgstr ""
 "Diese Prozessquelle löschen? Ihre Feldzuordnungen müssen zuerst entfernt "
 "werden, und die Berechtigungszeile bleibt erhalten."
 
-#: templates/js/admin/_processes_js.html:262
+#: templates/js/admin/_processes_js.html:253
 msgid "Delete this field mapping? This action cannot be undone."
 msgstr ""
 "Diese Feldzuordnung löschen? Diese Aktion kann nicht rückgängig gemacht "
@@ -9075,15 +9065,15 @@ msgstr "Keine Aktivität in den letzten 7 Tagen."
 msgid "entries"
 msgstr "Einträge"
 
-#: templates/js/admin/_user_management_js.html:85
+#: templates/js/admin/_user_management_js.html:76
 msgid "Edit user"
 msgstr "Benutzer bearbeiten"
 
-#: templates/js/admin/_user_management_js.html:200
+#: templates/js/admin/_user_management_js.html:191
 msgid "You do not have permission to delete this user."
 msgstr "Sie haben keine Berechtigung, diesen Benutzer zu löschen."
 
-#: templates/js/admin/_user_management_js.html:216
+#: templates/js/admin/_user_management_js.html:207
 msgid "Are you sure you want to delete this user? This action cannot be undone."
 msgstr ""
 "Sind Sie sicher, dass Sie diesen Benutzer löschen möchten? Diese Aktion "
@@ -9582,4 +9572,10 @@ msgstr ""
 #~ "angezeigt. Sie können Details, Beträge "
 #~ "einsehen und PDF-Kopien aus der "
 #~ "Aktionsspalte herunterladen."
+
+#~ msgid "Provision Archive Details"
+#~ msgstr "Details zum Bereitstellungsarchiv"
+
+#~ msgid "Stray Document Details"
+#~ msgstr "Irrläufer-Details"
 

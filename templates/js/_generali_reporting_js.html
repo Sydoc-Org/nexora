@@ -639,37 +639,6 @@
         modalError.classList.remove('hidden');
     }
 
-    // ----------------------------- details modal (disabled) ----------------------------- //
-    // Provision Archive / Stray Document detail modals are no longer used.
-    // const detailsModal = document.getElementById('detailsModal');
-    //
-    // function openDetailsModal(r) {
-    //     const isProvision = r.category === 'provision_archive';
-    //     document.querySelector('#detailsModal h3').textContent =
-    //         isProvision ? {{ _("Provision Archive Details") | tojson }} : {{ _("Stray Document Details") | tojson }};
-    //     document.getElementById('detailRequestLabel').textContent =
-    //         isProvision ? {{ _("Email Received") | tojson }} : {{ _("Mailroom Request") | tojson }};
-    //     document.getElementById('detailEmailRcvd').textContent =
-    //         formatDateTime(isProvision ? r.emailReceivedTimeStamp : r.mailRoomRequestTimeStamp);
-    //     document.getElementById('detailLatestDelivery').textContent = formatDateTime(r.latestDeliveryTimeStamp);
-    //     document.getElementById('detailDelivery').textContent       = formatDateTime(r.deliveryTimeStamp);
-    //     detailsModal.classList.remove('hidden');
-    //     detailsModal.classList.add('flex');
-    // }
-    //
-    // function closeDetailsModal() {
-    //     detailsModal.classList.add('hidden');
-    //     detailsModal.classList.remove('flex');
-    // }
-    //
-    // if (detailsModal) {
-    //     detailsModal.addEventListener('click', e => { if (e.target === detailsModal) closeDetailsModal(); });
-    // }
-    // ['closeDetailsBtn', 'closeDetailsBtnFooter'].forEach(id => {
-    //     const el = document.getElementById(id);
-    //     if (el) el.addEventListener('click', closeDetailsModal);
-    // });
-
     // ----------------------------- edit modal ----------------------------- //
     const editModal         = document.getElementById('editModal');
     const editOntimeBtn     = document.getElementById('editOntimeBtn');
