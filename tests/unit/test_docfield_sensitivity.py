@@ -1,3 +1,4 @@
+import nx_lib.views.workitems as wv
 from nx_lib.views.workitems import (
     _norm_field_token,
     drop_sensitive_options,
@@ -87,3 +88,24 @@ def test_strip_sensitive_from_detail_strips_fields_and_field_sources():
 def test_strip_sensitive_from_detail_empty_blockset_is_noop():
     data = {"fields": {"Amount": "50"}, "field_sources": [{"key": "Amount"}]}
     assert sensitivity.strip_sensitive_from_detail(data, set()) is data
+
+
+def test_sensitive_blocked_wrapper_matches_core(monkeypatch):
+    """nx_lib.views.workitems.sensitive_blocked_keys/tokens (the 0-arg,
+    session-reading wrappers) duplicate -- rather than delegate to --
+    nx_lib.workitems.sensitivity.sensitive_blocked_keys/tokens (the pure core,
+    which takes the already-resolved permission bool explicitly, D4). That
+    duplication is deliberate, but nothing else asserts the two stay in sync;
+    this guards against a silent divergence for both permission states."""
+    # Patch both bindings: the wrapper imported these names directly (`from
+    # ..workitems.sensitivity import get_sensitive_field_keys, ...`), so it
+    # holds its own reference independent of sensitivity's module attribute.
+    monkeypatch.setattr(sensitivity, "get_sensitive_field_keys", lambda: {"validationuser"})
+    monkeypatch.setattr(sensitivity, "get_sensitive_field_tokens", lambda: {"validationuser"})
+    monkeypatch.setattr(wv, "get_sensitive_field_keys", lambda: {"validationuser"})
+    monkeypatch.setattr(wv, "get_sensitive_field_tokens", lambda: {"validationuser"})
+
+    for has_perm in (True, False):
+        monkeypatch.setattr(wv, "has_permission", lambda code, _v=has_perm: _v)
+        assert wv.sensitive_blocked_keys() == sensitivity.sensitive_blocked_keys(has_perm)
+        assert wv.sensitive_blocked_tokens() == sensitivity.sensitive_blocked_tokens(has_perm)
