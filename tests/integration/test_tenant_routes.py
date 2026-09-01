@@ -235,6 +235,20 @@ def test_api_list_403_without_view_permission(user_client, monkeypatch):
     assert resp.status_code == 403
 
 
+def test_api_list_registry_unavailable_returns_503_not_404(user_client, monkeypatch):
+    """A registry load failure (registry() returns None -- never cached) must
+    surface as 503 unavailable, not the same 404 an actually-unknown
+    tenant/page gets -- _resolve_page_entity checks registry() before ever
+    calling tenant()/pages_for(), mirroring tenant_page's own upfront check."""
+    monkeypatch.setattr(tv, "has_permission", lambda code: True)
+    monkeypatch.setattr(tv, "registry", lambda: None)
+
+    resp = user_client.get(f"/api/t/{TENANT_CODE}/dossiers")
+
+    assert resp.status_code == 503
+    assert resp.get_json() == {"success": False, "unavailable": True}
+
+
 def test_api_list_engine_missing_returns_503_not_empty(user_client, monkeypatch):
     monkeypatch.setattr(tv, "has_permission", lambda code: True)
     _stub_registry(
@@ -287,6 +301,19 @@ def test_api_write_403_without_edit_permission(user_client, monkeypatch):
     monkeypatch.setattr(tv, "has_permission", lambda code: False)
     resp = user_client.post(f"/api/t/{TENANT_CODE}/dossiers", json={"Status": "open"})
     assert resp.status_code == 403
+
+
+def test_api_write_registry_unavailable_returns_503_not_404(user_client, monkeypatch):
+    """Same distinction as the list API's registry-down test, exercised on the
+    require_entries=True path every write endpoint shares via
+    _resolve_page_entity."""
+    monkeypatch.setattr(tv, "has_permission", lambda code: True)
+    monkeypatch.setattr(tv, "registry", lambda: None)
+
+    resp = user_client.post(f"/api/t/{TENANT_CODE}/dossiers", json={"Status": "open"})
+
+    assert resp.status_code == 503
+    assert resp.get_json() == {"success": False, "unavailable": True}
 
 
 def test_api_write_404_for_documents_entity(user_client, monkeypatch):
@@ -426,3 +453,13 @@ def test_api_tenant_export_returns_xlsx(user_client, monkeypatch):
     assert resp.status_code == 200
     assert resp.mimetype == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     assert "attachment" in resp.headers.get("Content-Disposition", "")
+
+
+def test_api_export_registry_unavailable_returns_503_not_404(user_client, monkeypatch):
+    monkeypatch.setattr(tv, "has_permission", lambda code: True)
+    monkeypatch.setattr(tv, "registry", lambda: None)
+
+    resp = user_client.get(f"/api/t/{TENANT_CODE}/dossiers/export")
+
+    assert resp.status_code == 503
+    assert resp.get_json() == {"success": False, "unavailable": True}

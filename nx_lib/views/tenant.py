@@ -95,11 +95,25 @@ def _resolve_client_engine(t, entity):
 
 
 def _resolve_page_entity(tenant_code, page_key, *, require_entries=False):
-    """(tenant, page, entity, visible_fields) for (tenant_code, page_key), or
-    aborts 404 -- unknown tenant/page, a custom page (no entity), a page whose
-    entity row is missing, or (when ``require_entries``) an entity whose Kind
+    """(unavailable, tenant, page, entity, visible_fields) for
+    (tenant_code, page_key).
+
+    ``unavailable`` is True only when the registry itself failed to load
+    (``registry()`` returned None -- a load error is never cached, see
+    ``nx_lib/tenant/registry.py``) -- checked *before* ``tenant()``/
+    ``pages_for()`` so a registry outage never collapses into the same 404 an
+    actually-unknown tenant/page gets (mirrors ``tenant_page``'s own
+    upfront ``registry()`` check). Callers must turn ``unavailable`` into a
+    503 ``{"success": False, "unavailable": True}``, never a 404 -- the
+    tenant/page/entity may well exist once the registry is back.
+
+    Every other failure -- unknown tenant/page, a custom page (no entity), a
+    missing entity row, or (when ``require_entries``) an entity whose Kind
     isn't 'entries' (documents/lookup boxes are read/CRUD-linked, never
-    row-written directly -- CRUD is entries-only)."""
+    row-written directly -- CRUD is entries-only) -- aborts 404 directly and
+    never returns for those cases."""
+    if registry() is None:
+        return True, None, None, None, None
     t = tenant(tenant_code)
     pages = pages_for(tenant_code)
     page = next((p for p in pages if p.key == page_key), None)
@@ -111,7 +125,7 @@ def _resolve_page_entity(tenant_code, page_key, *, require_entries=False):
     if require_entries and entity.kind != "entries":
         abort(404)
     fields = [f for f in fields_for(tenant_code, page.entity) if f.visible]
-    return t, page, entity, fields
+    return False, t, page, entity, fields
 
 
 def _writable_columns(entity, fields):
@@ -185,6 +199,11 @@ def _parse_sort(args, allowed_columns):
 
 
 def _parse_pagination(args):
+    """(offset, limit) from ``?offset=&limit=`` query params -- a missing or
+    unparseable value falls back to its default (``offset=0``,
+    ``limit=_DEFAULT_LIMIT``) rather than 400ing; ``offset`` is floored at 0
+    and ``limit`` is clamped to ``[1, _MAX_LIMIT]`` so a caller can't request
+    a negative offset or an unbounded page."""
     try:
         offset = int(args.get("offset", 0))
     except (TypeError, ValueError):
@@ -338,7 +357,10 @@ def api_tenant_list(tenant_code, page_key):
     if not has_permission(f"tenant.{tenant_code}.view"):
         raise PermissionDenied()
 
-    t, _page, entity, fields = _resolve_page_entity(tenant_code, page_key)
+    unavailable, t, _page, entity, fields = _resolve_page_entity(tenant_code, page_key)
+    if unavailable:
+        return jsonify({"success": False, "unavailable": True}), 503
+
     engine, dialect = _resolve_client_engine(t, entity)
     if engine is None:
         return jsonify({"success": False, "unavailable": True}), 503
@@ -400,7 +422,12 @@ def api_tenant_add(tenant_code, page_key):
     if not has_permission(f"tenant.{tenant_code}.edit"):
         raise PermissionDenied()
 
-    t, _page, entity, fields = _resolve_page_entity(tenant_code, page_key, require_entries=True)
+    unavailable, t, _page, entity, fields = _resolve_page_entity(
+        tenant_code, page_key, require_entries=True
+    )
+    if unavailable:
+        return jsonify({"success": False, "unavailable": True}), 503
+
     engine, dialect = _resolve_client_engine(t, entity)
     if engine is None:
         return jsonify({"success": False, "unavailable": True}), 503
@@ -437,7 +464,12 @@ def api_tenant_edit(tenant_code, page_key, record_id):
     if not has_permission(f"tenant.{tenant_code}.edit"):
         raise PermissionDenied()
 
-    t, _page, entity, fields = _resolve_page_entity(tenant_code, page_key, require_entries=True)
+    unavailable, t, _page, entity, fields = _resolve_page_entity(
+        tenant_code, page_key, require_entries=True
+    )
+    if unavailable:
+        return jsonify({"success": False, "unavailable": True}), 503
+
     engine, dialect = _resolve_client_engine(t, entity)
     if engine is None:
         return jsonify({"success": False, "unavailable": True}), 503
@@ -477,7 +509,12 @@ def api_tenant_delete(tenant_code, page_key, record_id):
     if not has_permission(f"tenant.{tenant_code}.edit"):
         raise PermissionDenied()
 
-    t, _page, entity, _fields = _resolve_page_entity(tenant_code, page_key, require_entries=True)
+    unavailable, t, _page, entity, _fields = _resolve_page_entity(
+        tenant_code, page_key, require_entries=True
+    )
+    if unavailable:
+        return jsonify({"success": False, "unavailable": True}), 503
+
     engine, dialect = _resolve_client_engine(t, entity)
     if engine is None:
         return jsonify({"success": False, "unavailable": True}), 503
@@ -507,7 +544,10 @@ def api_tenant_export(tenant_code, page_key):
     if not has_permission(f"tenant.{tenant_code}.view"):
         raise PermissionDenied()
 
-    t, page, entity, fields = _resolve_page_entity(tenant_code, page_key)
+    unavailable, t, page, entity, fields = _resolve_page_entity(tenant_code, page_key)
+    if unavailable:
+        return jsonify({"success": False, "unavailable": True}), 503
+
     engine, dialect = _resolve_client_engine(t, entity)
     if engine is None:
         return jsonify({"success": False, "unavailable": True}), 503
