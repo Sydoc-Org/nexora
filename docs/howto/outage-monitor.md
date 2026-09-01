@@ -136,7 +136,7 @@ is one of the things this monitor exists to report, so a failed write prints a
 warning and the alert mail still goes out. `var/outage-state.json` — not the DB —
 remains the working state for hysteresis, for the same reason.
 
-The page (`nx_lib/views/admin.py` → `admin_status_view`, permission
+The page (`nx_lib/views/admin/system.py` → `admin_status_view`, permission
 `admin.status.view`) never probes on page load. The question it answers is "what
 has been true since yesterday evening", which a request-scoped ping cannot. The
 flip side is that it is only as fresh as the scheduled task: when nothing has

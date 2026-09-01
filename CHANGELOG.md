@@ -28,6 +28,53 @@ Work toward the next release.
 
 ### Changed
 
+- **`nx_lib/views/generali.py` and `admin.py` are now packages.** Each
+  ~1.5k–3.4k line module became `nx_lib/views/generali/` and
+  `nx_lib/views/admin/` (8 submodules apiece — e.g. `generali/reporting.py`,
+  `generali/baseservices.py`, `admin/processes.py`, `admin/organizations.py`,
+  `admin/system.py`, `admin/overview.py`); each package's `__init__.py`
+  re-exports every public name (including everything the test suite
+  monkeypatches) so URLs, endpoint names, and `gv.<fn>`/`av.<fn>` call sites
+  are unchanged — no Blueprints, no renames, no behavior change.
+- **Generali's 8 duplicated CRUD endpoint families collapsed into one shared
+  factory.** BaseServices, Attendance, ProjectManagement, PDQM, and Reporting
+  each carried near-identical copies of monthreport/org-users/organizations/
+  filter-users/list/add/edit/delete. `nx_lib/views/generali/_crud.py` now
+  generates all eight from a `CrudTable` descriptor (table, permission
+  prefix, columns, filters, writable-field validators, and each table's
+  historical log-label text, preserved verbatim even where siblings
+  disagreed). Every generated view is bound under its original function name
+  and re-exported unchanged. **Known gap:** a 175-case parity harness proved
+  the migrated BaseServices/Attendance/ProjectManagement tables out before
+  this branch, but that harness was not committed — porting it into
+  `tests/integration/test_generali_crud_factory.py` is a recommended
+  follow-up, since those three tables currently have no automated coverage
+  of their own.
+- **New `static/js/nx_core.js` shared helper surface (`window.NX`).**
+  `esc`/`el`/`api`/`apiSafe`/`toast`/`formatDate`/`formatDateTime`/
+  `formatHours`/`csrfToken`, loaded once in `_header.html` before any
+  consumer. Landed additively, then the reporting, generali, admin, and
+  workitems-overview JS families were migrated onto it one file at a time,
+  each verified against its real call sites (the throwing `NX.api` vs.
+  non-throwing `NX.apiSafe` flavour was checked per file, not assumed from
+  the filename). Net effect: 37 duplicated `API_PREFIX` copies removed, plus
+  the `esc`/`el`/`api`/`toast` copies across the reporting JS family and the
+  `formatDate`/`formatDateTime`/`formatHours`/`showNotification`/
+  `escapeHtml` copies across generali/admin JS. Two deliberate behavior
+  changes came out of the dedup, both confirmed with the coordinator before
+  landing: `_reporting_drill_js.html`'s local `esc()` under-escaped `"`/`'`
+  (unsafe inside a double-quoted HTML attribute) and now uses `NX.esc`'s
+  full attribute-safe escaping; and `showNotification`'s top-slide banner is
+  replaced everywhere by `NX.toast`'s bottom-center pill (a UI
+  consolidation onto one shared notification component, not a
+  preserve-exact-behavior swap).
+- **New `static/js/generali_crud.js` shared module for the CRUD-clone
+  partials.** The `loadRecords`/`canEditRecord`/`canDeleteRecord`/
+  `exportToExcel`/`getAddMinDate`/pagination mechanics duplicated across
+  BaseServices, AdditionalServices, ProjectManagement, and PDQM partials are
+  now one module driven by a per-page descriptor; each of the four partials
+  is a thin shim that supplies only its genuinely per-page bits
+  (`renderRow`, `buildParams`, modal wiring).
 - **Ruff now lints `RET`/`C4`/`PIE` too, and mypy checks for `Any` leaking
   through a typed return.** `[tool.ruff.lint].select` gained the
   flake8-return, flake8-comprehensions, and flake8-pie rulesets; the
@@ -61,6 +108,16 @@ Work toward the next release.
   2026-08-28 half-deploy rescue (#228). The deployed app reads the new
   mapping tables only; INT never had the synonyms, so the migration is a
   no-op there.
+
+### Known gaps carried out of this campaign (not fixed here)
+
+- An unauthorized target-user booking in generali's add endpoints returns a
+  generic 500 instead of a 403, because `PermissionDenied` is raised inside a
+  bare `except Exception` block. Pre-existing, left alone per scope
+  discipline — now fixable in one place (`_crud.py`) instead of five,
+  worth its own issue.
+- `templates/js/admin/_user_management_js.html` appears to be genuinely
+  dead/unreferenced code — a candidate for a future cleanup pass.
 
 ## [3.2.3] - 2026-08-27
 
