@@ -1,5 +1,5 @@
 <script nonce="{{ csp_nonce() }}">
-    const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+    const API_PREFIX = window.API_PREFIX;
 
     // Drawer & modal DOM refs
     const permissionDrawer  = document.getElementById('permissionDrawer');
@@ -36,22 +36,12 @@
     }
 
     // ── Generic helpers ───────────────────────────────────────────────
-    function showNotification(message, type = 'success') {
-        const container = document.getElementById('notification-container');
-        const n = document.createElement('div');
-        const bg = type === 'success' ? 'bg-green-500' : 'bg-red-500';
-        n.className = `flex items-center w-full p-4 text-white ${bg} rounded-lg shadow-lg mb-2`;
-        n.innerHTML = `<span class="flex-1 text-sm">${message}</span>`;
-        container.appendChild(n);
-        setTimeout(() => n.remove(), 4000);
-    }
-
-    function escapeHtml(str) {
-        if (str == null) return '';
-        return String(str)
-            .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-            .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
-    }
+    // showNotification/escapeHtml: shared with nx_core.js (Task 12) --
+    // showNotification's top-slide banner is replaced by NX.toast's
+    // bottom-center pill (deliberate UI consolidation, not a
+    // preserve-exact-behavior substitution).
+    const showNotification = window.NX.toast;
+    const escapeHtml = window.NX.esc;
 
     function setDrawerImpact(text) {
         const el = document.getElementById('drawerImpactCount');

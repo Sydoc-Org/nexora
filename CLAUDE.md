@@ -77,8 +77,8 @@ One line each; **the full detail lives in `docs/design/architecture-conventions.
 - **Response compression** — `nx_lib/compression.py` gzips text responses > 1 KB (stdlib, no `flask-compress`). Covers `/static`. Do **not** suffix the `ETag` — it breaks `If-None-Match`.
 - **Logging** — every non-static request appended as a CSV row under `var/logs/user/`; app logger writes `var/logs/system/app.log`.
 - **Outage detection** — `ops/outage_monitor.py` on Task Scheduler, pure logic in `nx_lib/outage.py`. See `docs/howto/outage-monitor.md`.
-- **Routing** — routes in `nx_lib/views/`; templates flat under `templates/` plus `admin/`, `handlers/`, `js/`, `js/archive/`, `jd/`, `nexora_logo/`. Page `foo.html` pairs with `templates/js/_foo_js.html`.
-- **Static JS partials (#191)** — the three biggest partials are shims: inline `<script nonce>` holds only Jinja-rendered data, behaviour lives in `static/js/<name>.js` loaded via `static_v()`. Translated strings must stay in the shim and be read off `window`; a `.js` file has no `url_for()` — build URLs with the `API_PREFIX` idiom.
+- **Routing** — routes in `nx_lib/views/`, either a single module or a package (`generali/`, `admin/`) of submodules re-exported from `__init__.py`; templates flat under `templates/` plus `admin/`, `handlers/`, `js/`, `jd/`, `nexora_logo/`. Page `foo.html` pairs with `templates/js/_foo_js.html`.
+- **Static JS partials (#191)** — the three biggest partials are shims: inline `<script nonce>` holds only Jinja-rendered data, behaviour lives in `static/js/<name>.js` loaded via `static_v()`. Translated strings must stay in the shim and be read off `window`; a `.js` file has no `url_for()` — build URLs with the `API_PREFIX` idiom. `static/js/nx_core.js` loads first, before any other script, on every page (`templates/_header.html`) and defines `window.NX` (`esc`/`api`/`apiSafe`/`toast`/`formatDate`/`formatDateTime`/`formatHours`) plus the canonical `window.API_PREFIX` — new JS should use these instead of reimplementing them.
 - **Error pages** — `templates/handlers/*.html`; raise `PermissionDenied` for a 403 from inside a route.
 - **Rate limiting** — `flask_limiter` configured globally; apply `@limiter.limit(...)` per route.
 - **File uploads** — `secure_filename` + `magic` MIME sniffing; never trust the client content type.
@@ -102,12 +102,6 @@ Playwright screenshot artifacts go in `var/screenshots/`, never the repo root.
 ## Translations (Flask-Babel)
 
 Mark strings `{{ _('...') }}` in templates, `_('...')` / `gettext(...)` in Python. English is the source locale and has no `.po`. `babel.cfg` extracts from `nx_lib/**.py`, root `*.py`, and `templates/**.html`.
-
-```
-pybabel extract -F babel.cfg -o messages.pot .
-pybabel update -i messages.pot -d translations      # or init -l de the first time
-pybabel compile -d translations
-```
 
 `test_translations.py` enforces that `messages.pot` is in sync and every msgid is translated (non-fuzzy) in de/fr/it. Details: `docs/howto/babel.md`.
 
@@ -140,4 +134,5 @@ Read-only git commands are always allowed without authorization on any branch: `
 ## Response style
 
 - Use **bold text** for section breaks, not `#`/`##`/`###` markdown headers.
+- **Close with a one-line recap** prefixed `※ recap:` — `Goal:` what was being attempted, then what actually landed (including anything deliberately not done, and why), then `Next:` the next step. Prose, not bullets; no header, no emoji.
 - Use `AskUserQuestion` for yes/no and multiple-choice prompts so the user can click instead of type.

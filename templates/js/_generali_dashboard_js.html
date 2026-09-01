@@ -1,5 +1,5 @@
 <script nonce="{{ csp_nonce() }}">
-    const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+    const API_PREFIX = window.API_PREFIX;
 
     // Re-render Chart.js charts when dark mode is toggled so token-based
     // canvas text (see nkSumLabels) repaints for the active theme.

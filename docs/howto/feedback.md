@@ -32,7 +32,7 @@ deliberately.
   chosen over `document.referrer` since some browsers/privacy settings
   strip it), `nexora_version`/`nx_lib/version.py`'s `BUILD_STAMP`, and
   `ENVIRONMENT` (same `os.environ.get("ENVIRONMENT", "?")` idiom
-  `nx_lib/views/admin.py` uses for its `current_env`).
+  `nx_lib/views/admin/overview.py` uses for its `current_env`).
 - **Screenshot:** optional, image-only. Validated with the same
   `nx_lib/files.py` `is_file_allowed()` MIME sniff every other upload in
   the app uses (narrowed here to PNG/JPEG — its table also allows

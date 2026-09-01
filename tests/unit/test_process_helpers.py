@@ -1,15 +1,12 @@
 """Unit tests for nx_lib.process_helpers — stat-query builders."""
 
-from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from nx_lib import process_helpers as ph_mod
 from nx_lib.process_helpers import (
-    build_stat_query,
     get_activity_instances_to_ignore,
-    get_params_from_process_list,
     prepare_process_selection_lists,
     prepare_process_selection_sql,
 )
@@ -293,67 +290,3 @@ def test_get_activity_instances_to_ignore_returns_empty_dict_on_db_error(app):
         mock_engine.raw_connection.side_effect = RuntimeError("DB down")
         result = get_activity_instances_to_ignore()
     assert result == {}
-
-
-# ---------- get_params_from_process_list ----------
-
-
-def test_get_params_from_process_list_empty():
-    params, proc_ph, client_ph = get_params_from_process_list([])
-    assert params == []
-    assert proc_ph == ""
-    assert client_ph == ""
-
-
-def test_get_params_from_process_list_filters_non_dotted_entries():
-    params, proc_ph, client_ph = get_params_from_process_list(
-        ["Privera.Invoices", "nodot", "Sydoc.Workitems"]
-    )
-    # Procs: Invoices, Workitems. Clients: Privera, Sydoc.
-    assert params == ["Invoices", "Workitems", "Privera", "Sydoc"]
-    assert proc_ph == "?, ?"
-    assert client_ph == "?, ?"
-
-
-def test_get_params_from_process_list_dedups_and_sorts():
-    params, proc_ph, client_ph = get_params_from_process_list(
-        ["Privera.Invoices", "Privera.Invoices", "Sydoc.Invoices"]
-    )
-    # Procs unique: ['Invoices']. Clients unique: ['Privera', 'Sydoc']
-    assert params == ["Invoices", "Privera", "Sydoc"]
-    assert proc_ph == "?"
-    assert client_ph == "?, ?"
-
-
-# ---------- build_stat_query ----------
-
-
-def test_build_stat_query_returns_row(app, monkeypatch):
-    fake_source = SimpleNamespace(
-        table="Workitems", export_column="Status,Date", extra_condition="WHERE foo=1"
-    )
-    captured = {}
-
-    def fake_sources_for(client, processes=None):
-        captured["client"] = client
-        captured["processes"] = processes
-        return [fake_source]
-
-    monkeypatch.setattr(ph_mod.mapping_config, "sources_for", fake_sources_for)
-
-    with app.app_context():
-        result = build_stat_query("Invoices")
-
-    assert result == ("Workitems", "Status,Date", "WHERE foo=1")
-    assert captured == {"client": None, "processes": ["Invoices"]}
-
-
-def test_build_stat_query_returns_none_on_db_error(app, monkeypatch):
-    # mapping_config.sources_for degrades to [] on a registry load failure
-    # (see mapping_config.registry()'s failure contract) -- build_stat_query
-    # must return None in that case, matching the legacy except-block.
-    monkeypatch.setattr(ph_mod.mapping_config, "sources_for", lambda client, processes=None: [])
-
-    with app.app_context():
-        result = build_stat_query("Invoices")
-    assert result is None

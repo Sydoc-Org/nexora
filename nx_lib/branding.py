@@ -21,6 +21,7 @@ admin edits and is out of scope here (see Task 10).
 """
 
 import re
+from typing import Any
 
 from flask import current_app
 
@@ -47,13 +48,13 @@ def _is_missing_column_error(exc: Exception) -> bool:
     return "Invalid column name" in str(exc)
 
 
-def registry() -> dict | None:
+def registry() -> dict[str, dict] | None:
     """Cached (60s) {organizationcode: {"name","accent_hex","logo_file"}}.
 
     None on load failure -- including the TEST database's Organizations
     table, which predates the BrandName/BrandAccentHex/BrandLogoFile
     columns -- and never cached."""
-    reg = cache.get(_CACHE_KEY)
+    reg: dict[str, dict] | None = cache.get(_CACHE_KEY)
     if reg is not None:
         return reg
     conn = None
@@ -92,7 +93,7 @@ def invalidate_branding() -> None:
     cache.delete(_CACHE_KEY)
 
 
-def brand_for_org(code: str) -> dict | None:
+def brand_for_org(code: str) -> dict[str, Any] | None:
     """Branding for organization ``code``, or None on failure/unknown code."""
     reg = registry()
     if reg is None:

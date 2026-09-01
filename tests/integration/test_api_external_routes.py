@@ -854,7 +854,7 @@ def test_workitems_real_data_path_and_docfield_fail_closed(client, monkeypatch):
         return [], 0, []
 
     monkeypatch.setattr(wi, "fetch_merged_page", _fake_fetch)
-    monkeypatch.setattr(wi, "get_activity_instances_to_ignore", lambda: {})
+    monkeypatch.setattr(wi, "get_activity_instances_to_ignore", dict)
     monkeypatch.setattr(wi, "get_valid_search_columns", lambda: ["invoicenr"])
     # No mapping_config rows for the field -> the resolution blocks' upfront
     # mappings_for/sources_for reads (#98 phase 3) come back empty, same as

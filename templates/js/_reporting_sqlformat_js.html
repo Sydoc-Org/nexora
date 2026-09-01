@@ -13,11 +13,8 @@ window.ReportingSqlFormat = (function () {
    'DATEADD DATEDIFF GETDATE IIF')
     .split(' ').forEach(function (k) { KEYWORDS[k] = 1; });
 
-  function esc(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
+  // esc: shared with nx_core.js (Task 11).
+  var esc = window.NX.esc;
 
   /* Tokenize the RAW sql and escape each piece as it is emitted, so no
      unescaped input ever reaches innerHTML. Alternatives, in order:

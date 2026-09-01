@@ -1,6 +1,8 @@
 """Integration tests verifying that @require_permission denies unauthorised users."""
 
-ADMIN_ROUTE = "/admin"  # guarded by @require_permission("admin.view") in nx_lib/views/admin.py
+ADMIN_ROUTE = (
+    "/admin"  # guarded by @require_permission("admin.view") in nx_lib/views/admin/overview.py
+)
 
 
 def test_protected_route_denies_noperm_user(login):

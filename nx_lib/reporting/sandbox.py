@@ -272,7 +272,7 @@ def _strip_for_scan(sql):
 
     def repl(m):
         tok = m.group(0)
-        if tok.startswith("/*") or tok.startswith("--"):
+        if tok.startswith(("/*", "--")):
             return " "
         if tok[0] in '["':
             return tok

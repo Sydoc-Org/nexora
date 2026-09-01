@@ -7,7 +7,7 @@
    so the Simple tab (Task 4) can route its own "ask AI" affordances here. */
 (function () {
   "use strict";
-  var API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+  var API_PREFIX = window.API_PREFIX;
 
   var toggleBtn = document.getElementById("rpChatToggle");
   var panel = document.getElementById("rpChatPanel");
@@ -26,6 +26,10 @@
   var modeSql = document.getElementById("rpModeSql");
   var sqlPanel = document.getElementById("rpSqlPanel");
   var sqlEditor = document.getElementById("rpSqlEditor");
+
+  sendBtn.addEventListener("animationend", function (e) {
+    if (e.animationName === "rp-send-launch") sendBtn.classList.remove("is-sending");
+  });
 
   var I18N = {
     noAnswer: {{ _("(no answer)")|tojson }},
@@ -412,6 +416,81 @@
     });
   }
 
+  // ----- Answer depth (Quick / Balanced / Deep) -----
+
+  // Absent from the DOM entirely when the configured model cannot honour an
+  // effort level (see supports_effort in nx_lib/reporting/ai.py), so every
+  // reference below is optional and `send` falls back to the server default.
+  // ponytail: the choice lives for the life of the panel only. Persisting it
+  // means an `aieffort` key in UI_PREF_CHOICES (nx_lib/ui_prefs.py) -- add it
+  // if users start re-picking every visit.
+  var effortBtn = document.getElementById("rpChatEffortBtn");
+  var effortMenu = document.getElementById("rpChatEffortMenu");
+  var effortLabel = document.getElementById("rpChatEffortLabel");
+  var effortOpts = effortMenu
+    ? Array.prototype.slice.call(effortMenu.querySelectorAll(".rp-effort__opt"))
+    : [];
+
+  function currentEffort() {
+    for (var i = 0; i < effortOpts.length; i++) {
+      if (effortOpts[i].getAttribute("aria-checked") === "true") {
+        return effortOpts[i].getAttribute("data-effort");
+      }
+    }
+    return null;
+  }
+
+  function openEffort(open) {
+    if (!effortBtn) return;
+    effortMenu.hidden = !open;
+    effortBtn.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+
+  if (effortBtn) {
+    effortBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      openEffort(effortMenu.hidden);
+    });
+
+    effortOpts.forEach(function (opt) {
+      opt.addEventListener("click", function () {
+        effortOpts.forEach(function (o) {
+          o.setAttribute("aria-checked", String(o === opt));
+        });
+        // Mirror the pick onto the trigger: label plus how many bars are lit.
+        effortLabel.textContent = opt.getAttribute("data-label");
+        var srcMeter = opt.querySelector(".rp-effort__meter");
+        var btnMeter = effortBtn.querySelector(".rp-effort__meter");
+        if (srcMeter && btnMeter) {
+          btnMeter.setAttribute("data-bars", srcMeter.getAttribute("data-bars"));
+        }
+        openEffort(false);
+        input.focus();
+      });
+    });
+
+    // Dismiss on focus leaving the picker, NOT on a document-level click:
+    // tests/unit/test_ui_chrome_regressions.py forbids a document click handler
+    // in this file, because one previously closed the whole panel on any click
+    // on the page once the backdrop was removed. Deferring a tick and reading
+    // activeElement also survives the mousedown-blur that would otherwise close
+    // the menu before an option's click could land.
+    var effortRoot = effortBtn.closest(".rp-effort");
+    effortRoot.addEventListener("focusout", function () {
+      setTimeout(function () {
+        if (!effortMenu.hidden && !effortRoot.contains(document.activeElement)) {
+          openEffort(false);
+        }
+      }, 120);
+    });
+    effortRoot.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && !effortMenu.hidden) {
+        openEffort(false);
+        effortBtn.focus();
+      }
+    });
+  }
+
   // ----- Send -----
 
   // `continueAttempt` is 0 for a normal question; > 0 when re-sent via the
@@ -427,6 +506,9 @@
       : escapeHtml(text).replace(/\n/g, "<br>"));
     input.value = ""; input.style.height = "";
     chat.busy = true; sendBtn.disabled = true; startTicker();
+    // Launch the arrow. Class is removed on animationend so a rapid second
+    // send re-triggers it instead of being swallowed.
+    sendBtn.classList.add("is-sending");
     fetch(API_PREFIX + "api/reporting/ai/agent", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken() },
@@ -439,7 +521,10 @@
         stream: true,
         // Active source lets the server gate run_sql to sources it can reach.
         source: (document.getElementById("rpSource") || {}).value || null,
-        continueAttempt: continueAttempt
+        continueAttempt: continueAttempt,
+        // null when the picker is absent; the server then uses its own
+        // default rather than trusting a level the model cannot honour.
+        effort: currentEffort()
       })
     }).then(function (r) {
       var ct = r.headers.get("content-type") || "";

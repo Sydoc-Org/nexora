@@ -599,7 +599,7 @@ def test_get_workitems_data_queries_nonsensitive_docfield_search(
 
     def _spy_resolve(engine, pairs):
         captured_ms02["pairs"] = pairs
-        return None
+        return
 
     monkeypatch.setattr(wv, "resolve_ms02_docfield_ids", _spy_resolve)
     monkeypatch.setattr(wv, "fetch_merged_page", lambda filt, offset, per_page: ([], 0, []))
@@ -2364,7 +2364,7 @@ def test_import_prepared_audit_persists_even_without_pid_specs(
     monkeypatch.setattr(wv, "is_file_allowed", lambda name, stream: True)
     # No PID specs configured.
     monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [])
-    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: [])
+    monkeypatch.setattr(wv, "_ms02_target_processes", list)
     monkeypatch.setattr(
         wv,
         "upsert_prepared_documents",
@@ -2803,7 +2803,7 @@ def test_prepared_documents_modal_wires_shared_renderer(
     monkeypatch.setattr(
         wv, "fetch_prepared_documents_page", lambda offset, limit, pid=None, **kw: []
     )
-    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: [])
+    monkeypatch.setattr(wv, "_ms02_target_processes", list)
     monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [])
     monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: None)
     resp = user_client.get("/prepared_documents")
@@ -2890,7 +2890,7 @@ def test_prepared_documents_pid_filter_passes_through(
             ]
         ),
     )
-    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: [])
+    monkeypatch.setattr(wv, "_ms02_target_processes", list)
     monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [])
     monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: None)
     resp = user_client.get("/prepared_documents?pid=100")
@@ -2928,7 +2928,7 @@ def test_prepared_documents_collected_prepared_group_by_per_page_pass_through(
             or []
         ),
     )
-    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: [])
+    monkeypatch.setattr(wv, "_ms02_target_processes", list)
     monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [])
     monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: None)
 
@@ -2964,7 +2964,7 @@ def test_prepared_documents_per_page_rejects_unknown_value(
         "fetch_prepared_documents_page",
         lambda offset, limit, **kw: (seen.__setitem__("limit", limit) or []),
     )
-    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: [])
+    monkeypatch.setattr(wv, "_ms02_target_processes", list)
     monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [])
     monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: None)
 
@@ -2991,7 +2991,7 @@ def test_prepared_documents_group_by_rejects_unknown_column(
         "fetch_prepared_documents_page",
         lambda offset, limit, group_by=None, **kw: (seen.__setitem__("group_by", group_by) or []),
     )
-    monkeypatch.setattr(wv, "_ms02_target_processes", lambda: [])
+    monkeypatch.setattr(wv, "_ms02_target_processes", list)
     monkeypatch.setattr(wv, "_ms02_pid_specs", lambda procs: [])
     monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: None)
 

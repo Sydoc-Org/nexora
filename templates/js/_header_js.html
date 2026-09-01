@@ -3,7 +3,7 @@
   // Ctrl+K command list, the url_for() endpoints and the few strings the
   // behaviour needs. Babel still extracts from templates/**.html.
   window.NX_HEADER = {
-    defaultAvatar: {{ url_for('static',filename='images/default-Icon.png')|tojson }},
+    defaultAvatar: {{ static_v('images/default-Icon.png')|tojson }},
     heartbeatUrl: {{ url_for('session_heartbeat')|tojson }},
     loginUrl: {{ url_for('login')|tojson }},
     i18n: {

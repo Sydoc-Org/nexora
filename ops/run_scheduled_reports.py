@@ -39,6 +39,7 @@ from nx_lib.reporting.schedule import (
     utcnow,
 )
 from nx_lib.security import load_permissions_for_user
+from nx_lib.views.reporting import invalidate_reporting_metrics, invalidate_reporting_sources
 from nx_main import app
 
 _XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -100,7 +101,7 @@ def _process(conn, row, now, dry_run):
                     f"[dry-run] schedule {row.ScheduleID} '{row.Name}': alert "
                     f"{row.AlertOp} {row.AlertThreshold} not tripped (value={value}); no mail"
                 )
-                return
+                return None
             app.logger.info(
                 f"schedule {row.ScheduleID}: alert not tripped (value={value}), mail skipped"
             )
@@ -150,7 +151,7 @@ def _process(conn, row, now, dry_run):
             f"[dry-run] schedule {row.ScheduleID} '{row.Name}' -> {recipients} "
             f"({len(rows)} rows, {fmt}, chart={'yes' if png else 'no'})"
         )
-        return
+        return None
     subject = f"nexora report: {row.Name}"
     body = (
         f"<p>Attached is your scheduled report "
@@ -172,6 +173,11 @@ def run_once(dry_run=False):
     now = utcnow()
     sent = failed = 0
     with app.app_context():
+        # This is a fresh process each cron tick, so a stale 60s cache buys nothing here --
+        # start from a guaranteed-fresh registry rather than trusting whatever a prior
+        # in-process run (e.g. a long-lived test session reusing this module's `app`) cached.
+        invalidate_reporting_sources()
+        invalidate_reporting_metrics()
         conn = engine_nexora_db.raw_connection()
         try:
             due = _due_schedules(conn, now)

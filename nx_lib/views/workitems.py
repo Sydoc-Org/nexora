@@ -1985,9 +1985,11 @@ def api_get_media_raw(workitem_id, media_index):
             _pdf_cache_key = _wi_cache_key(f"media_raw_pdfpage_{media_index}", workitem_id, domain)
             cached_jpeg = cache.get(_pdf_cache_key)
             if cached_jpeg is not None:
-                return send_file(
+                resp = send_file(
                     io.BytesIO(cached_jpeg), mimetype="image/jpeg", as_attachment=False
                 )
+                resp.headers["Cache-Control"] = "private, max-age=3600"
+                return resp
             base_url, _sep, frag = target_url.partition("#")
             page_index = 0
             if frag.startswith("page="):
@@ -2002,15 +2004,19 @@ def api_get_media_raw(workitem_id, media_index):
                 print(f"PDF page render failed: {e}")
                 return _("Failed to render PDF page"), 500
             cache.set(_pdf_cache_key, jpeg_bytes, timeout=3600)
-            return send_file(io.BytesIO(jpeg_bytes), mimetype="image/jpeg", as_attachment=False)
+            resp = send_file(io.BytesIO(jpeg_bytes), mimetype="image/jpeg", as_attachment=False)
+            resp.headers["Cache-Control"] = "private, max-age=3600"
+            return resp
 
         if target_extension == ".tif":
             _tif_cache_key = _wi_cache_key(f"media_raw_tif_{media_index}", workitem_id, domain)
             cached_jpeg = cache.get(_tif_cache_key)
             if cached_jpeg is not None:
-                return send_file(
+                resp = send_file(
                     io.BytesIO(cached_jpeg), mimetype="image/jpeg", as_attachment=False
                 )
+                resp.headers["Cache-Control"] = "private, max-age=3600"
+                return resp
 
             raw_media_bytes = get_media(target_url, domain)
             try:
@@ -2022,9 +2028,11 @@ def api_get_media_raw(workitem_id, media_index):
                     img.save(buffer, format="JPEG", quality=85)
                     jpeg_bytes = buffer.getvalue()
                     cache.set(_tif_cache_key, jpeg_bytes, timeout=3600)
-                    return send_file(
+                    resp = send_file(
                         io.BytesIO(jpeg_bytes), mimetype="image/jpeg", as_attachment=False
                     )
+                    resp.headers["Cache-Control"] = "private, max-age=3600"
+                    return resp
             except Exception as e:
                 print(f"An error occurred during TIFF conversion: {e}")
                 return _("Failed to process TIFF image"), 500

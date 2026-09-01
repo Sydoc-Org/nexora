@@ -6,7 +6,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   {% include '_theme_prepaint.html' %}
-  <link rel="stylesheet" href="{{ url_for('static',filename='css/nexora-ui.css') }}">
+  <link rel="stylesheet" href="{{ static_v('css/nexora-ui.css') }}">
   <title>{{ _("Reporting - nexora") }}</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" integrity="sha384-RkASv+6KfBMW9eknReJIJ6b3UnjKOKC5bOUaNgIY778NFbQ8MtWq9Lr/khUgqtTt" crossorigin="anonymous">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13" integrity="sha384-5JqMv4L/Xa0hfvtF06qboNdhvuYXUku9ZrhZh3bSk8VXF0A/RuSLHpLsSV9Zqhl6" crossorigin="anonymous"></script>
@@ -16,10 +16,10 @@
   </script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
-  <link rel="stylesheet" href="{{ url_for('static',filename='css/reporting.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static',filename='css/reporting-console.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static',filename='css/eddard.css') }}">
-  <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
+  <link rel="stylesheet" href="{{ static_v('css/reporting.css') }}">
+  <link rel="stylesheet" href="{{ static_v('css/reporting-console.css') }}">
+  <link rel="stylesheet" href="{{ static_v('css/eddard.css') }}">
+  <link rel="icon" type="image/x-icon" href="{{ static_v('images/favicon.ico') }}">
   {% if details_images_perm or details_fields_perm %}
   {# The drill-drawer workitem panel (below, near the drill include) reuses
      templates/js/_workitem_detail_panel_js.html verbatim -- same partial as
@@ -30,8 +30,8 @@
      detail permissions never pay for it. #}
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.0" integrity="sha384-AIH1kL7JmmReCxSwiSyaRNwzSFO7h4Ir4F/PO28EKezqFza1LwIMgEPLd83KwmZ4" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1.0.22" integrity="sha384-E7dy6eN+cKffMM/2+QF5MMP1q8KS0AT4IlmT4v3mG2mNZ7ISeLRPdlHrlWJK/8yx" crossorigin="anonymous" type="module"></script>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/workitems_overview.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/source-highlight.css') }}">
+  <link rel="stylesheet" href="{{ static_v('css/workitems_overview.css') }}">
+  <link rel="stylesheet" href="{{ static_v('css/source-highlight.css') }}">
   {% endif %}
   <script nonce="{{ csp_nonce() }}">
     // Resolve the initial screen synchronously (?tab= > localStorage >
@@ -183,20 +183,79 @@
       <div id="rpChatEmpty" class="reporting-chat-empty">
         {{ eddard.mark(88, cls='reporting-chat-mascot ed--track', testid='reporting-chat-mascot', sparks=true) }}
         <p>{{ _("Hi, I'm Eddard. Ask about your data in plain language. I can build reports, draft SQL, and — with the right permission — run read-only queries and report real numbers.") }}</p>
-        <button type="button" class="rp-chat-starter" data-testid="rp-chat-starter">{{ _("documents per month this year") }}</button>
-        <button type="button" class="rp-chat-starter" data-testid="rp-chat-starter">{{ _("invoices by process, last 3 months") }}</button>
-        <button type="button" class="rp-chat-starter" data-testid="rp-chat-starter">{{ _("pages processed per week") }}</button>
+        {# Starters are deliberately the questions this stack answers best: the
+           docprocessing source anchors imported / exported / Backlog metrics and
+           a Process dimension, so each of these resolves to a real report rather
+           than a hedge. All four were run against the live agent before being
+           put here -- change one, re-run it. #}
+        <button type="button" class="rp-chat-starter" data-testid="rp-chat-starter">{{ _("documents imported per month this year") }}</button>
+        <button type="button" class="rp-chat-starter" data-testid="rp-chat-starter">{{ _("imported vs exported, last 30 days") }}</button>
+        <button type="button" class="rp-chat-starter" data-testid="rp-chat-starter">{{ _("documents by process this quarter") }}</button>
+        <button type="button" class="rp-chat-starter" data-testid="rp-chat-starter">{{ _("imported but not yet exported") }}</button>
       </div>
     </div>
     {# Cloned into the progress ticker while a request runs: Eddard flings a
        report together (title -> KPI -> bars -> trend -> Ready) beside the real
        agent steps. Kept in the macro instead of duplicating the SVG in JS. #}
     <template id="rpChatWorkingMascot">{{ eddard.stage(testid='reporting-chat-build-stage') }}</template>
+    {# Composer. One rounded container holds the textarea and a control bar, so
+       focus, depth and send read as a single surface instead of three stacked
+       widgets. The depth picker is a trigger pill + popover -- the shape a model
+       picker takes -- and is emitted only when the configured model can honour
+       an effort level (ai_effort_enabled -> nx_lib/reporting/ai.py
+       supports_effort). Styles: .rp-composer / .rp-effort* in
+       static/css/reporting.css; behaviour in js/_reporting_ai_js.html. #}
+    {% if ai_effort_enabled %}
+    {# level = how many of the three meter bars are lit, so the mark reads as one
+       continuous scale rather than three unrelated metaphors. #}
+    {% set effort_opts = [
+         ('low',    _('Quick'),    1, _('Fastest answer, least deliberation')),
+         ('medium', _('Balanced'), 2, _('A balance of speed and depth')),
+         ('high',   _('Deep'),     3, _('Slowest and most thorough, for hard questions'))
+       ] %}
+    {% endif %}
     <form id="rpChatForm" class="reporting-chat-form">
-      <textarea id="rpChatInput" class="reporting-chat-input" rows="1"
-                placeholder="{{ _('Ask about your data…') }}" data-testid="reporting-chat-input"></textarea>
-      <button id="rpChatSend" type="submit" class="nx-btn nx-btn--primary" data-testid="reporting-chat-send"
-              aria-label="{{ _('Send') }}"><i class="fas fa-paper-plane" aria-hidden="true"></i></button>
+      <div class="rp-composer" data-testid="reporting-chat-composer">
+        <textarea id="rpChatInput" class="reporting-chat-input" rows="1"
+                  placeholder="{{ _('Ask about your data…') }}" data-testid="reporting-chat-input"></textarea>
+        <div class="rp-composer__bar">
+          {% if ai_effort_enabled %}
+          <div class="rp-effort" data-testid="reporting-chat-effort">
+            <button type="button" id="rpChatEffortBtn" class="rp-effort__trigger"
+                    aria-haspopup="true" aria-expanded="false" aria-controls="rpChatEffortMenu"
+                    aria-label="{{ _('Answer depth') }}"
+                    data-testid="reporting-chat-effort-trigger">
+              <span class="rp-effort__meter" data-bars="{{ 2 if ai_effort_default == 'medium' else 1 }}"
+                    aria-hidden="true"><i></i><i></i><i></i></span>
+              <span id="rpChatEffortLabel">{{ _('Balanced') }}</span>
+              <i class="fas fa-chevron-down rp-effort__caret" aria-hidden="true"></i>
+            </button>
+            <div id="rpChatEffortMenu" class="rp-effort__menu" role="radiogroup"
+                 aria-label="{{ _('Answer depth') }}" hidden>
+              {% for level, label, bars, hint in effort_opts %}
+              <button type="button" class="rp-effort__opt" role="radio" data-effort="{{ level }}"
+                      data-label="{{ label }}"
+                      aria-checked="{{ 'true' if level == ai_effort_default else 'false' }}"
+                      data-testid="reporting-chat-effort-{{ level }}">
+                <span class="rp-effort__meter" data-bars="{{ bars }}" aria-hidden="true"><i></i><i></i><i></i></span>
+                <span class="rp-effort__opt-text">
+                  <span class="rp-effort__opt-label">{{ label }}</span>
+                  <span class="rp-effort__opt-hint">{{ hint }}</span>
+                </span>
+                <i class="fas fa-check rp-effort__tick" aria-hidden="true"></i>
+              </button>
+              {% endfor %}
+            </div>
+          </div>
+          {% else %}<span></span>{% endif %}
+          {# Arrow-up, not a paper plane: every current chat composer uses an
+             upward arrow, and it also gives the send a direction to animate
+             along. .rp-chat-send is a local skin over .nx-btn--primary -- the
+             shared class is used app-wide and must not be restyled here. #}
+          <button id="rpChatSend" type="submit" class="nx-btn nx-btn--primary rp-chat-send" data-testid="reporting-chat-send"
+                  aria-label="{{ _('Send') }}"><i class="fas fa-arrow-up" aria-hidden="true"></i></button>
+        </div>
+      </div>
     </form>
   </aside>
   {% endif %}

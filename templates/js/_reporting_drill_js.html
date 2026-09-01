@@ -4,7 +4,7 @@
 window.ReportingDrill = (function () {
   'use strict';
   var csrf = document.querySelector('meta[name="csrf-token"]').content;
-  var API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+  var API_PREFIX = window.API_PREFIX;
   var I18N = {
     title: {{ _("Rows behind this number")|tojson }},
     distinctNote: {{ _("Rows contributing to this number — the distinct count may be smaller.")|tojson }},
@@ -77,23 +77,11 @@ window.ReportingDrill = (function () {
     return anchors.length === 1 && anchors[0] !== 'backlog' ? anchors[0] : null;
   }
 
-  // In-page toast -- same DOM/CSS contract as the Advanced tab's private
-  // toast() (.reporting-toast / data-testid="reporting-toast", defined in
-  // _reporting_js.html): this module is self-contained (like the dashboard
-  // builder's own toast()) so it draws its own, reusing the shared CSS class
-  // rather than a new one. Used when a drill can't be safely opened (Task 35:
-  // an unparseable grain bucket with no raw value to fall back on) -- the
-  // drawer must never proceed unfiltered, so we tell the user instead.
-  function toast(msg, isError) {
-    var t = document.createElement('div');
-    t.className = 'reporting-toast' + (isError ? ' reporting-toast--error' : '');
-    t.setAttribute('role', 'status');
-    t.setAttribute('data-testid', 'reporting-toast');
-    t.textContent = msg;
-    document.body.appendChild(t);
-    setTimeout(function () { t.classList.add('is-gone'); }, 2600);
-    setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 3000);
-  }
+  // toast: shared with nx_core.js (Task 11). Used when a drill can't be
+  // safely opened (Task 35: an unparseable grain bucket with no raw value to
+  // fall back on) -- the drawer must never proceed unfiltered, so we tell the
+  // user instead.
+  var toast = window.NX.toast;
 
   function addGrainUpper(startStr, grain) {
     var s = String(startStr).slice(0, 10);
@@ -199,12 +187,13 @@ window.ReportingDrill = (function () {
     return dd;
   }
 
-  function el(id) { return document.getElementById(id); }
-  function esc(s) {
-    var d = document.createElement('div');
-    d.textContent = s == null ? '' : String(s);
-    return d.innerHTML;
-  }
+  var el = window.NX.el;
+  // esc: shared with nx_core.js (Task 11) -- D6 behaviour fix. The previous
+  // local esc() did a textContent/innerHTML round-trip that under-escaped
+  // `"` and `'`, so it was unsafe wherever the escaped value lands inside a
+  // double-quoted HTML attribute (renderRows()'s data-wid="..." below).
+  // NX.esc is the full attribute-safe escaper (& < > " ').
+  var esc = window.NX.esc;
 
   var current = null;   // {definition} of the open drill, for export
 

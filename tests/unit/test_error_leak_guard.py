@@ -17,7 +17,11 @@ _VIEW_FILES = ["generali", "dashboard", "admin"]
 
 @pytest.mark.parametrize("view", _VIEW_FILES)
 def test_no_raw_exception_in_json_error_response(view):
-    src = Path(f"nx_lib/views/{view}.py").read_text(encoding="utf-8")
+    view_dir = Path(f"nx_lib/views/{view}")
+    if view_dir.is_dir():
+        src = "\n".join(p.read_text(encoding="utf-8") for p in sorted(view_dir.glob("*.py")))
+    else:
+        src = Path(f"nx_lib/views/{view}.py").read_text(encoding="utf-8")
     assert '"error": str(e)' not in src, (
         f"nx_lib/views/{view}.py returns raw str(e) to the client -- return a "
         f"generic message and log the detail server-side instead (#193)."

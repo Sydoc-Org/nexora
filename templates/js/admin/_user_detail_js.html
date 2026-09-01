@@ -1,5 +1,5 @@
 <script nonce="{{ csp_nonce() }}">
-    const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+    const API_PREFIX = window.API_PREFIX;
 
     function userDetailToast(msg, tone) {
         const container = document.getElementById('notification-container');

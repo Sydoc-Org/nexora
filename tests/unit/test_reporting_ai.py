@@ -238,3 +238,166 @@ def test_caption_notes_reach_the_prompt():
     user_msg = captured["body"]["messages"][0]["content"]
     assert "Notes: The bucket 2026-08-01 is the current" in user_msg
     assert "NO measurement are missing data" in captured["body"]["system"]
+
+
+def _capturing_transport(payload):
+    """Transport that records the request body it was handed."""
+    seen = {}
+
+    def transport(url, headers, body, timeout):
+        seen.update(body)
+        return payload
+
+    return transport, seen
+
+
+def test_azure_reasoning_effort_low_on_single_shot():
+    # A caption/definition/sql round-trip needs no deliberation: gpt-5-mini at the
+    # API default (medium) took 8s to label one line.
+    payload = {
+        "choices": [{"message": {"content": '{"sql": "SELECT 1 AS X", "explanation": "c"}'}}],
+        "usage": {"prompt_tokens": 5, "completion_tokens": 1},
+    }
+    transport, seen = _capturing_transport(payload)
+    ai.ask(
+        "q",
+        "(* no schema *)",
+        provider="azure",
+        model="gpt-5-mini",
+        api_key="k",
+        endpoint="https://x.openai.azure.com",
+        deployment="gpt-5-mini",
+        transport=transport,
+    )
+    assert seen["reasoning_effort"] == ai.EFFORT_SINGLE_SHOT
+
+
+def test_azure_reasoning_effort_omitted_for_non_reasoning_deployment():
+    # gpt-4o-mini 400s on reasoning_effort — it must not be sent at all.
+    payload = {
+        "choices": [{"message": {"content": '{"sql": "SELECT 1 AS X", "explanation": "c"}'}}],
+        "usage": {"prompt_tokens": 5, "completion_tokens": 1},
+    }
+    transport, seen = _capturing_transport(payload)
+    ai.ask(
+        "q",
+        "(* no schema *)",
+        provider="azure",
+        model="gpt-4o-mini",
+        api_key="k",
+        endpoint="https://x.openai.azure.com",
+        deployment="gpt-4o-mini",
+        transport=transport,
+    )
+    assert "reasoning_effort" not in seen
+
+
+def test_azure_agent_step_keeps_medium_effort():
+    # The agent loop chains tool calls and does earn the extra thinking.
+    payload = {"choices": [{"message": {"content": "done"}}], "usage": {}}
+    transport, seen = _capturing_transport(payload)
+    step = ai._make_agent_step(
+        system="s",
+        tools=[],
+        provider="azure",
+        model="gpt-5-mini",
+        api_key="k",
+        endpoint="https://x.openai.azure.com",
+        deployment="gpt-5-mini",
+        transport=transport,
+    )
+    step([{"role": "user", "content": "q"}])
+    assert seen["reasoning_effort"] == ai.EFFORT_AGENT
+
+
+def test_anthropic_never_gets_reasoning_effort():
+    # reasoning_effort is an Azure/OpenAI parameter; Anthropic 400s on unknown keys.
+    payload = {
+        "content": [{"type": "text", "text": '{"sql": "SELECT 1 AS X", "explanation": "c"}'}],
+        "usage": {"input_tokens": 5, "output_tokens": 1},
+    }
+    transport, seen = _capturing_transport(payload)
+    ai.ask(
+        "q", "(* no schema *)", provider="anthropic", model="m", api_key="k", transport=transport
+    )
+    assert "reasoning_effort" not in seen
+
+
+@pytest.mark.parametrize(
+    "provider,model,expected",
+    [
+        # Azure: only the GPT-5 / o-series reasoning deployments.
+        ("azure", "gpt-5-mini", True),
+        ("azure", "GPT-5", True),
+        ("azure", "o3-mini", True),
+        ("azure", "gpt-4o-mini", False),
+        ("azure", "eddard-deployment", False),
+        # Anthropic: Opus / Sonnet 5 / Fable honour output_config.effort.
+        ("anthropic", "claude-sonnet-5", True),
+        ("anthropic", "claude-opus-5", True),
+        # Haiku 4.5 rejects it -- this row is why the picker is capability-gated.
+        ("anthropic", "claude-haiku-4-5", False),
+        ("anthropic", "claude-sonnet-4-6", False),
+        ("none", "whatever", False),
+        (None, None, False),
+    ],
+)
+def test_supports_effort_matrix(provider, model, expected):
+    assert ai.supports_effort(provider, model) is expected
+
+
+def test_anthropic_effort_uses_output_config_when_supported():
+    payload = {
+        "content": [{"type": "text", "text": '{"sql": "SELECT 1 AS X", "explanation": "c"}'}],
+        "usage": {"input_tokens": 5, "output_tokens": 1},
+    }
+    transport, seen = _capturing_transport(payload)
+    ai.ask(
+        "q",
+        "(* no schema *)",
+        provider="anthropic",
+        model="claude-sonnet-5",
+        api_key="k",
+        transport=transport,
+    )
+    # Anthropic spells it output_config.effort, never reasoning_effort.
+    assert seen["output_config"] == {"effort": ai.EFFORT_SINGLE_SHOT}
+    assert "reasoning_effort" not in seen
+
+
+def test_haiku_gets_no_effort_parameter_at_all():
+    # The whole point of the capability gate: Haiku 4.5 400s on an effort field.
+    payload = {
+        "content": [{"type": "text", "text": '{"sql": "SELECT 1 AS X", "explanation": "c"}'}],
+        "usage": {"input_tokens": 5, "output_tokens": 1},
+    }
+    transport, seen = _capturing_transport(payload)
+    ai.ask(
+        "q",
+        "(* no schema *)",
+        provider="anthropic",
+        model="claude-haiku-4-5",
+        api_key="k",
+        transport=transport,
+    )
+    assert "output_config" not in seen and "reasoning_effort" not in seen
+
+
+def test_agent_step_honours_a_caller_supplied_effort():
+    # What the composer's Quick/Balanced/Deep picker ultimately drives.
+    payload = {"choices": [{"message": {"content": "done"}}], "usage": {}}
+    transport, seen = _capturing_transport(payload)
+    step = ai._make_agent_step(
+        system="s",
+        tools=[],
+        provider="azure",
+        model="gpt-5-mini",
+        api_key="k",
+        endpoint="https://x.openai.azure.com",
+        deployment="gpt-5-mini",
+        transport=transport,
+        effort="high",
+    )
+    step([{"role": "user", "content": "q"}])
+    assert seen["reasoning_effort"] == "high"
+    assert "high" in ai.EFFORT_CHOICES

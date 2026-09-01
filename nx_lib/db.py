@@ -8,7 +8,6 @@ the same singleton objects everywhere.
 import time
 import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
-from concurrent.futures import TimeoutError as FuturesTimeoutError
 from concurrent.futures import wait as futures_wait
 
 from sqlalchemy import create_engine
@@ -248,41 +247,6 @@ def _ping_db_probe(engine):
         cur.close()
     finally:
         conn.close()
-
-
-def ping_db(engine, label, timeout_s=2.0):
-    """Probe a SQLAlchemy engine with SELECT 1, enforcing a wall-clock timeout.
-
-    Never raises. Returns ``{'label', 'ok', 'error', 'latency_ms'}``. If the
-    probe doesn't finish within ``timeout_s``, returns ``ok=False`` with
-    ``error='timeout'`` — the underlying thread keeps running in the
-    background until the OS connect timeout fires, but the caller is unblocked.
-    """
-    start = time.monotonic()
-    future = _db_ping_executor.submit(_ping_db_probe, engine)
-    try:
-        future.result(timeout=timeout_s)
-        return {
-            "label": label,
-            "ok": True,
-            "error": None,
-            "latency_ms": int((time.monotonic() - start) * 1000),
-        }
-    except FuturesTimeoutError:
-        return {
-            "label": label,
-            "ok": False,
-            "error": "timeout",
-            "latency_ms": int(timeout_s * 1000),
-        }
-    except Exception as e:
-        msg = (str(e).splitlines()[0] if str(e) else "error")[:140]
-        return {
-            "label": label,
-            "ok": False,
-            "error": msg,
-            "latency_ms": int((time.monotonic() - start) * 1000),
-        }
 
 
 def ping_dbs_parallel(targets, timeout_s=2.0):

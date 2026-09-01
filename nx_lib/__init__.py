@@ -8,7 +8,7 @@ run`` load locally); it calls create_app() from this package.
 import os
 from datetime import timedelta
 
-from flask import Flask, url_for
+from flask import Flask, request, url_for
 from flask_session import Session
 from flask_talisman import Talisman
 
@@ -66,18 +66,40 @@ def create_app():
     # violate.
     app.jinja_env.globals.setdefault("csp_nonce", lambda: "")
 
+    # NOTE: do NOT set app.config["SEND_FILE_MAX_AGE_DEFAULT"] here (final-review
+    # fix, post-#191). That config applies to EVERY send_file()/send_from_directory()
+    # call in the app, not just Flask's built-in /static route -- it previously
+    # also stamped a public, year-long Cache-Control onto confidential workitem
+    # document JPEGs (nx_lib/views/workitems.py api_get_media_raw) and onto user
+    # avatars (nx_lib/views/profile.py user_avatar), which have no static_v()-style
+    # cache-buster and so either leaked a "safe to cache publicly" signal for
+    # confidential imagery or served a stale avatar for up to a year. The long
+    # cache lifetime below is scoped to the "static" endpoint only.
+    static_max_age_seconds = int(timedelta(days=365).total_seconds())
+
+    @app.after_request
+    def _static_cache_control(resp):
+        # Every template asset tag goes through static_v() below, so the
+        # ?v=<mtime> query string is what invalidates a browser's cache on
+        # deploy -- safe to let Flask's own /static route use a long,
+        # cacheable max-age (#191 follow-up). Every other send_file() /
+        # send_from_directory() call site must pass its own explicit max_age
+        # (see tests/unit/test_static_v_lint.py).
+        if request.endpoint == "static" and resp.status_code == 200:
+            resp.headers["Cache-Control"] = f"public, max-age={static_max_age_seconds}"
+        return resp
+
     @app.template_global()
     def static_v(filename):
         """url_for('static') with an mtime cache-buster (#191).
 
         The JS partials under templates/js/ now ship their behaviour as real
         files under static/js/, so the browser can cache them across
-        navigations -- which only works if a deploy changes the URL.
-        Flask 3 serves /static with no-cache + ETag, so today each of these
-        still costs one 304 per navigation -- cheap, and the body and the
-        parse are what mattered. The ?v= is what makes it safe to go further:
-        once the CSS/image tags use static_v() too, SEND_FILE_MAX_AGE_DEFAULT
-        can go long and the 304s disappear.
+        navigations -- which only works if a deploy changes the URL. Every
+        CSS/image/JS tag in templates/ uses this helper, so SEND_FILE_MAX_AGE_DEFAULT
+        above is set long: the ?v= query string is what makes that safe --
+        a changed asset gets a new URL, so a year-long Cache-Control never
+        serves a stale file.
 
         ponytail: one stat() per tag per render, uncached; the OS caches the
         inode and a page carries a handful of these. Cache it if a profile

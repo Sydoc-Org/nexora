@@ -35,12 +35,12 @@ All three live in `sql/test/seed.sql`. Password is `Test1234!`. All have `twoFA=
 **Unit test — pure function, no DB**
 
 ```python
-from nx_lib.process_helpers import build_stat_query
+from nx_lib.process_helpers import normalize_process_selection
 
-def test_build_stat_query_returns_expected_columns():
-    sql, params = build_stat_query({"processName": "foo", "interval": "day"})
-    assert "GROUP BY" in sql
-    assert "foo" in params
+def test_normalize_process_selection_falls_back_to_all():
+    value, targets = normalize_process_selection("", ["Sydoc.Invoices"])
+    assert value == "all"
+    assert targets == ["Sydoc.Invoices"]
 ```
 
 **Unit test — function that reads `session`**

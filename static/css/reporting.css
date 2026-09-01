@@ -1558,19 +1558,196 @@ html.dark .rp-chat-starter { border-color: var(--nx-border); background: transpa
 }
 
 .reporting-chat-form {
-  display: flex; align-items: flex-end; gap: 8px; padding: 10px 12px;
+  padding: 10px 12px 12px;
   border-top: 1px solid var(--nx-divider);
   background: var(--nx-alt);
   flex-shrink: 0;
 }
-.reporting-chat-input {
-  flex: 1; resize: none; max-height: 100px; padding: 8px 10px;
-  background: var(--nx-card); color: var(--nx-text);
-  border: 1px solid var(--nx-border); border-radius: calc(var(--nx-radius-scale, 1) * 8px);
-  font: 13px var(--nx-font);
+/* One surface: the textarea is borderless inside this box and the box owns the
+   focus ring, so typing, choosing a depth and sending all read as one control
+   rather than three widgets stacked on top of each other. */
+.rp-composer {
+  padding: 8px 8px 8px 10px;
+  border: 1px solid var(--nx-border);
+  border-radius: 16px;
+  background: var(--nx-card);
   transition: border-color var(--nx-dur) var(--nx-ease), box-shadow var(--nx-dur) var(--nx-ease);
 }
-.reporting-chat-input:focus { outline: none; border-color: var(--nx-accent); box-shadow: 0 0 0 2px var(--nx-accent-soft); }
+.rp-composer:focus-within {
+  border-color: var(--nx-accent);
+  box-shadow: 0 0 0 3px var(--nx-accent-soft);
+}
+.rp-composer__bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin-top: 6px;
+}
+.reporting-chat-input {
+  /* min-height, not rows: the box should feel like it expects a sentence, not
+     a search term, and it still auto-grows from here to max-height. */
+  display: block; width: 100%; resize: none;
+  min-height: 42px; max-height: 140px;
+  padding: 4px 2px 0; border: 0; background: none; color: var(--nx-text);
+  font: 13px/1.5 var(--nx-font);
+}
+.reporting-chat-input:focus { outline: none; border: 0; box-shadow: none; }
+
+/* --- Answer-depth picker: a trigger pill in the composer bar that opens a
+   popover, the shape a model picker takes. Emitted only when the configured
+   model honours an effort level; see supports_effort() in
+   nx_lib/reporting/ai.py.
+
+   The mark is a three-bar level meter with `data-bars` of them lit -- one mark
+   with three states, because the thing being chosen is a scale and three
+   unrelated glyphs never said that. Bars are spans, not an icon font, so they
+   take theme tokens and animate independently.
+
+   Both the OS setting and the `motion: reduced` ui_pref drop every transition
+   and keyframe below; the menu still opens, it just snaps. */
+.rp-effort { position: relative; }
+
+.rp-effort__meter {
+  display: inline-flex; align-items: flex-end; gap: 2px; height: 12px;
+  flex-shrink: 0;
+}
+.rp-effort__meter i {
+  width: 3px; border-radius: 1px; transform-origin: bottom;
+  background: var(--nx-text-sec); opacity: .26;
+  transition: background var(--nx-dur) var(--nx-ease), opacity var(--nx-dur) var(--nx-ease);
+}
+.rp-effort__meter i:nth-child(1) { height: 5px; }
+.rp-effort__meter i:nth-child(2) { height: 9px; }
+.rp-effort__meter i:nth-child(3) { height: 13px; }
+.rp-effort__meter[data-bars="1"] i:nth-child(-n+1),
+.rp-effort__meter[data-bars="2"] i:nth-child(-n+2),
+.rp-effort__meter[data-bars="3"] i:nth-child(-n+3) {
+  background: var(--nx-accent); opacity: 1;
+}
+
+/* Trigger pill: quiet at rest, a surface on hover/open. Deliberately not a
+   bordered button -- the composer already owns the box. */
+.rp-effort__trigger {
+  display: inline-flex; align-items: center; gap: 7px;
+  min-height: 30px; padding: 0 9px;
+  border: 0; border-radius: 999px; background: none;
+  color: var(--nx-text-sec); font: 12px/1 var(--nx-font);
+  cursor: pointer; white-space: nowrap;
+  transition: background var(--nx-dur) var(--nx-ease), color var(--nx-dur) var(--nx-ease);
+}
+.rp-effort__trigger:hover,
+.rp-effort__trigger[aria-expanded="true"] { background: var(--nx-alt); color: var(--nx-text); }
+.rp-effort__trigger:focus-visible { outline: 2px solid var(--nx-accent); outline-offset: 1px; }
+.rp-effort__caret {
+  font-size: 9px; opacity: .55;
+  transition: transform var(--nx-dur) var(--nx-ease);
+}
+.rp-effort__trigger[aria-expanded="true"] .rp-effort__caret { transform: rotate(180deg); }
+
+/* Popover opens upward: the composer is pinned to the bottom of the panel. */
+.rp-effort__menu {
+  position: absolute; bottom: calc(100% + 8px); left: 0; z-index: var(--z-top-2, 60);
+  min-width: 252px; padding: 6px;
+  border: 1px solid var(--nx-border); border-radius: 14px;
+  background: var(--nx-card);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .14), 0 2px 6px rgba(0, 0, 0, .06);
+  /* fill-mode backwards, never both -- `both` leaves a transform behind and the
+     stacking context it creates buries anything layered above. */
+  animation: rp-effort-pop 160ms var(--nx-ease) backwards;
+}
+html.dark .rp-effort__menu {
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .55), 0 0 0 1px rgba(255, 255, 255, .06);
+}
+@keyframes rp-effort-pop {
+  from { opacity: 0; transform: translateY(6px) scale(.98); }
+  to   { opacity: 1; transform: none; }
+}
+
+.rp-effort__opt {
+  display: flex; align-items: flex-start; gap: 10px; width: 100%;
+  padding: 8px 9px; border: 0; border-radius: 10px; background: none;
+  text-align: left; cursor: pointer; color: var(--nx-text);
+  transition: background var(--nx-dur) var(--nx-ease);
+  /* rows arrive in sequence so the menu has a direction */
+  animation: rp-effort-in 180ms var(--nx-ease) backwards;
+}
+.rp-effort__opt:nth-child(2) { animation-delay: 35ms; }
+.rp-effort__opt:nth-child(3) { animation-delay: 70ms; }
+.rp-effort__opt:hover { background: var(--nx-alt); }
+.rp-effort__opt:focus-visible { outline: 2px solid var(--nx-accent); outline-offset: -2px; }
+.rp-effort__opt .rp-effort__meter { margin-top: 3px; }
+.rp-effort__opt-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.rp-effort__opt-label { font: 600 12px/1.3 var(--nx-font); }
+.rp-effort__opt-hint { font: 11px/1.4 var(--nx-font); color: var(--nx-text-sec); white-space: normal; }
+/* Selection is carried by the tick and the label weight as well as the meter,
+   so it does not rest on colour alone. */
+.rp-effort__tick {
+  font-size: 10px; color: var(--nx-accent); margin-top: 4px;
+  opacity: 0; transition: opacity var(--nx-dur) var(--nx-ease);
+}
+.rp-effort__opt[aria-checked="true"] .rp-effort__tick { opacity: 1; }
+
+@keyframes rp-effort-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rp-composer, .rp-effort__trigger, .rp-effort__caret,
+  .rp-effort__opt, .rp-effort__tick, .rp-effort__meter i { transition: none; }
+  .rp-effort__menu, .rp-effort__opt { animation: none; }
+}
+.nx-motion-reduced .rp-composer,
+.nx-motion-reduced .rp-effort__trigger,
+.nx-motion-reduced .rp-effort__caret,
+.nx-motion-reduced .rp-effort__opt,
+.nx-motion-reduced .rp-effort__tick,
+.nx-motion-reduced .rp-effort__meter i { transition: none; }
+.nx-motion-reduced .rp-effort__menu,
+.nx-motion-reduced .rp-effort__opt { animation: none; }
+
+/* --- Chat send button. A local skin over the shared .nx-btn--primary (which is
+   used across the app and must not be restyled from here): circular, and the
+   arrow carries the motion. Hover lifts it a hair; sending launches it off the
+   top while the replacement fades up from below, which gives the 7-55s wait a
+   definite starting gun. Disabled-while-busy keeps a steady breath so the
+   button reads as working rather than dead. */
+/* Specificity note: .nx-btn ships its own radius/padding from a later
+   stylesheet, so the box properties are re-asserted at .nx-btn.rp-chat-send.
+   The single-class rules below only add what .nx-btn does not set. */
+.nx-btn.rp-chat-send {
+  flex-shrink: 0;
+  width: 36px; height: 36px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  overflow: hidden;
+}
+.rp-chat-send i {
+  font-size: 13px; line-height: 1;
+  transition: transform var(--nx-dur) var(--nx-ease);
+}
+.rp-chat-send:hover:not(:disabled) i { transform: translateY(-2px); }
+.rp-chat-send:active:not(:disabled) i { transform: translateY(0) scale(.9); }
+.rp-chat-send.is-sending i { animation: rp-send-launch 420ms var(--nx-ease); }
+.rp-chat-send:disabled { animation: rp-send-breathe 1.6s ease-in-out infinite; }
+
+@keyframes rp-send-launch {
+  0%   { transform: translateY(0); opacity: 1; }
+  45%  { transform: translateY(-18px); opacity: 0; }
+  46%  { transform: translateY(14px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+@keyframes rp-send-breathe {
+  0%, 100% { opacity: .45; }
+  50%      { opacity: .75; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rp-chat-send i { transition: none; }
+  .rp-chat-send.is-sending i,
+  .rp-chat-send:disabled { animation: none; }
+}
+.nx-motion-reduced .rp-chat-send i { transition: none; }
+.nx-motion-reduced .rp-chat-send.is-sending i,
+.nx-motion-reduced .rp-chat-send:disabled { animation: none; }
 
 /* --- Workitem detail panel modal, opened from a .reporting-drill-wi-link
    row in the drill drawer (templates/js/_reporting_drill_js.html
