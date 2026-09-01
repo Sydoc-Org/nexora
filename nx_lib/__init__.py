@@ -8,7 +8,7 @@ run`` load locally); it calls create_app() from this package.
 import os
 from datetime import timedelta
 
-from flask import Flask, url_for
+from flask import Flask, request, url_for
 from flask_session import Session
 from flask_talisman import Talisman
 
@@ -66,11 +66,28 @@ def create_app():
     # violate.
     app.jinja_env.globals.setdefault("csp_nonce", lambda: "")
 
-    # Every template asset tag now goes through static_v() below, so the
-    # ?v=<mtime> query string is what invalidates a browser's cache on
-    # deploy -- safe to let Flask serve /static with a long, cacheable
-    # max-age instead of the no-cache default (#191 follow-up).
-    app.config["SEND_FILE_MAX_AGE_DEFAULT"] = timedelta(days=365)
+    # NOTE: do NOT set app.config["SEND_FILE_MAX_AGE_DEFAULT"] here (final-review
+    # fix, post-#191). That config applies to EVERY send_file()/send_from_directory()
+    # call in the app, not just Flask's built-in /static route -- it previously
+    # also stamped a public, year-long Cache-Control onto confidential workitem
+    # document JPEGs (nx_lib/views/workitems.py api_get_media_raw) and onto user
+    # avatars (nx_lib/views/profile.py user_avatar), which have no static_v()-style
+    # cache-buster and so either leaked a "safe to cache publicly" signal for
+    # confidential imagery or served a stale avatar for up to a year. The long
+    # cache lifetime below is scoped to the "static" endpoint only.
+    static_max_age_seconds = int(timedelta(days=365).total_seconds())
+
+    @app.after_request
+    def _static_cache_control(resp):
+        # Every template asset tag goes through static_v() below, so the
+        # ?v=<mtime> query string is what invalidates a browser's cache on
+        # deploy -- safe to let Flask's own /static route use a long,
+        # cacheable max-age (#191 follow-up). Every other send_file() /
+        # send_from_directory() call site must pass its own explicit max_age
+        # (see tests/unit/test_static_v_lint.py).
+        if request.endpoint == "static" and resp.status_code == 200:
+            resp.headers["Cache-Control"] = f"public, max-age={static_max_age_seconds}"
+        return resp
 
     @app.template_global()
     def static_v(filename):

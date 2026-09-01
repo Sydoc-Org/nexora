@@ -156,7 +156,13 @@ def user_avatar(user_id):
     avatars_dir = PATHS.uploads / "avatars"
     for filename in (f"{user_id}-icon.png", f"{user_id}-Icon.png"):
         if (avatars_dir / filename).exists():
-            return send_from_directory(avatars_dir, filename)
+            # No cache-buster in this URL (unlike static_v() assets), so this must
+            # NOT get the /static route's year-long max-age (final-review fix) --
+            # a changed avatar has to show up immediately. max_age=0 + no-cache
+            # still lets the browser revalidate via the file's ETag/Last-Modified.
+            resp = send_from_directory(avatars_dir, filename, max_age=0)
+            resp.headers["Cache-Control"] = "no-cache, private"
+            return resp
     abort(404)
     return None
 
