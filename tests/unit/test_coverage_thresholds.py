@@ -45,7 +45,16 @@ MIN_COVERAGE = {
     "views/auth.py": 65,
     "views/profile.py": 75,
     "views/dashboard.py": 25,
-    "views/admin.py": 65,
+    # views/admin.py split into views/admin/ (Task 16, beautify-phase-0-1);
+    # baselines below are the measured per-submodule values at split time.
+    "views/admin/clients.py": 85,
+    "views/admin/logs.py": 60,
+    "views/admin/organizations.py": 85,
+    "views/admin/overview.py": 70,
+    "views/admin/permissions.py": 65,
+    "views/admin/processes.py": 85,
+    "views/admin/system.py": 55,
+    "views/admin/users.py": 75,
     "views/workitems.py": 35,
     # views/generali.py intentionally excluded — covered by the Generali
     # phase-2 plan.

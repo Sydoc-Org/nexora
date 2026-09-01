@@ -52,7 +52,7 @@ def _engines():
 
 # The engine-key names dbo.Clients rows may reference -- derived from _engines()
 # rather than hand-written a second time, so adding an engine there can't leave
-# nx_lib/views/admin.py rejecting a legitimate key. Only the *keys* are frozen
+# nx_lib/views/admin/clients.py rejecting a legitimate key. Only the *keys* are frozen
 # at import; the engine objects are re-read per call by _engines().
 _ENGINE_KEYS = tuple(_engines())
 

@@ -163,7 +163,7 @@ EXPECTED_NON_GENERALI_ENDPOINTS = {
     "dashboard",
     "dashboard_set_filter",
     "api_recent_activity",
-    # views/admin.py
+    # views/admin/ (package)
     "admin_dashboard",
     "admin_organizations_view",
     "admin_add_organization",
