@@ -71,6 +71,19 @@ Work toward the next release.
   leaves. The handler also logs a traceback, since the bare message named
   neither the file nor the workitem (#228 follow-up).
 
+- **Test runs no longer corrupt each other's shared database.** One
+  `NEXORA_TEST` is shared by CI and every local run, and both the pre-push gate
+  and CI's `test` job reset it — so two overlapping runs re-seeded `dbo.Users`
+  under one another and a random login fixture died with `KeyError: 'userid'`
+  or a stray 401. A different test each time, always passing in isolation,
+  never pointing at the cause; it cost five failed CI runs in one day and
+  blocked two PRs that were entirely correct. Both the reset script and the
+  pytest session now take an exclusive `sp_getapplock` on `nexora_test_suite`
+  (`scripts/db_lock.py`), so the second run waits instead of trampling.
+  `NEXORA_TEST_LOCK_SKIP=1` bypasses it, `NEXORA_TEST_LOCK_TIMEOUT_MS`
+  overrides the 20-minute wait, and a run that cannot reach the database
+  doesn't lock at all. See CONTRIBUTING.md and #235.
+
 ## [3.2.3] - 2026-08-27
 
 ### Added
