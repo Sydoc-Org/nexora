@@ -68,7 +68,7 @@ What makes it confusing:
 
 Enforced by `tests/unit/test_permission_codes.py`: every literal passed to
 `require_permission` / `has_permission` in `nx_lib/` and `templates/`, every code in
-`sql/test/seed.sql`, and every code in migration `0085` must match
+`sql/test/seed.sql`, and every code in migration `0088` must match
 
 ```
 ^[a-z]+(\.[a-z]+)?(\.[A-Za-z0-9_]+)*\.(view|add|edit|delete|use|run|export|schedule|manage|bypass|import|restart)(\.(org|all|pastdeadline))?$
@@ -126,7 +126,7 @@ WHERE NOT EXISTS (SELECT 1 FROM dbo.UserPermissionOverride o
 ```
 
 ### `dbo.ReportingSources.Permission`
-Holds code strings; migration `0085` rewrites them with the same mapping.
+Holds code strings; migration `0088` rewrites them with the same mapping.
 
 ### `dbo.Permission`
 Unchanged shape. 144 → **112** codes (see Appendix A). One new code: `admin.permissions.edit`
@@ -135,9 +135,10 @@ Unchanged shape. 144 → **112** codes (see Appendix A). One new code: `admin.pe
 ## Migrations (NexoraDB, `GO`-separated, idempotent, data-driven)
 
 PROD's catalogue may differ from INT's (different processes, older seeds). Every step keys on
-*codes that exist*; a missing old code is skipped, never invented.
+*codes that exist*; a missing old code is skipped, never invented. Numbers are 0086–0088: the
+tenant-kernel worktree claimed 0083–0085 on 2026-09-01 and they are applied on INT.
 
-**`0083_permission_cleanup_and_rank.sql`**
+**`0086_permission_cleanup_and_rank.sql`**
 1. `DELETE dbo.AccessProfilePermission WHERE Effect='D'`.
 2. Drop `CK_AccessProfilePermission_Effect`, drop column `Effect`.
 3. Add `AccessProfile.Rank` with default 0; `UPDATE` ranks by name (table above; unknown names keep 0
@@ -147,7 +148,7 @@ PROD's catalogue may differ from INT's (different processes, older seeds). Every
    `admin.view.mobscn.processmanagement`, `admin.assign.user.accessprofile.%`.
 5. `CREATE OR ALTER` `fnUserHasPermission` and `spGetUserPermissions` as above.
 
-**`0084_process_scope.sql`**
+**`0087_process_scope.sql`**
 1. For every code matching `workitems.filter.process.%`, `dashboard.filter.process.%`,
    `reporting.scope.process.%`: derive `<client>.<name>` (the suffix after the prefix), insert
    `process.<client>.<name>.view` with description `Process <client>.<name>: workitems, dashboard
@@ -156,7 +157,7 @@ PROD's catalogue may differ from INT's (different processes, older seeds). Every
    *any* of the three old codes. User overrides: `D` if any old override is `D`, else `A`.
 3. Delete the old family codes and their grant rows.
 
-**`0085_permission_rename.sql`**
+**`0088_permission_rename.sql`**
 1. A `#map(OldCode, NewCode, NewDescription)` temp table from Appendix A.
 2. `UPDATE dbo.Permission SET Code=m.NewCode, Description=m.NewDescription` by join on `OldCode`
    (grants ride along on `PermissionID`). Guard: fail loudly if any `NewCode` already exists with a
@@ -176,7 +177,7 @@ see 403s in that window. Accepted; deploy off-hours. Nothing to sync in `env/`.
 ### Sweep (one-off)
 `scripts/rename_permissions.py` holds the Appendix A mapping, rewrites string literals in
 `nx_lib/`, `templates/`, `tests/`, `sql/test/seed.sql`, `docs/`, prints a diff summary, and is
-**deleted in the same commit** once run. The mapping stays in migration `0085` and Appendix A.
+**deleted in the same commit** once run. The mapping stays in migration `0088` and Appendix A.
 
 ### Runtime
 - `nx_lib/security.py`: `has_permission` / `require_permission` unchanged. New helper
@@ -223,7 +224,7 @@ deny), rendered with `group_permissions`. Effective-permission API unchanged.
 
 ### Tests
 - `tests/unit/test_permission_codes.py`: grammar regex over referenced literals, `seed.sql`, and
-  migration `0085` (Appendix A mapping is the fixture).
+  migration `0088` (Appendix A mapping is the fixture).
 - `tests/integration/test_admin_routes.py`: grant/revoke via the grid API; rank rule 403 on user
   add/edit when `target.Rank > actor.Rank`; catalogue edit needs `admin.permissions.edit`.
 - Existing permission-guard, workitems, dashboard, reporting, Generali tests: codes swept; the
@@ -248,9 +249,9 @@ deny), rendered with `group_permissions`. Effective-permission API unchanged.
 
 | # | commit | contents | verification |
 |---|---|---|---|
-| 1 | `refactor(permissions): drop profile-level deny, add profile rank` | 0083, fn/proc rewrite, rank checks replace assign codes, orphans deleted, seed updated | targeted integration tests, `db-migrate --dry-run` |
-| 2 | `refactor(permissions): one process scope code per (client, process)` | 0084, helpers, process auto-provisioning, tests | workitems/dashboard/reporting scope tests |
-| 3 | `refactor(permissions): rename catalogue to <area>.<object>.<action>` | 0085, sweep (script run then deleted), seed, convention test, docs, changelog | full unit + integration suite |
+| 1 | `refactor(permissions): drop profile-level deny, add profile rank` | 0086, fn/proc rewrite, rank checks replace assign codes, orphans deleted, seed updated | targeted integration tests, `db-migrate --dry-run` |
+| 2 | `refactor(permissions): one process scope code per (client, process)` | 0087, helpers, process auto-provisioning, tests | workitems/dashboard/reporting scope tests |
+| 3 | `refactor(permissions): rename catalogue to <area>.<object>.<action>` | 0088, sweep (script run then deleted), seed, convention test, docs, changelog | full unit + integration suite |
 | 4 | `feat(admin): permissions grid replaces drawer and matrix` | page, API, JS, access-control slimming, user detail grouping, e2e smoke, What's New card | Playwright screenshots sent to Ben |
 
 Each phase leaves INT migrated and the suite green. Hand-off between phases via
