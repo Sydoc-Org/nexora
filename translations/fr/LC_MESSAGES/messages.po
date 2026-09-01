@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-01 15:30+0200\n"
+"POT-Creation-Date: 2026-09-01 20:56+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -1780,109 +1780,109 @@ msgstr "PDQM"
 msgid "Data Import Status"
 msgstr "Statut d'importation"
 
-#: templates/_header.html:381 templates/_header.html:383
+#: templates/_header.html:431 templates/_header.html:433
 #: templates/appearance.html:293 templates/appearance.html:298
 #: templates/js/_header_js.html:13
 msgid "Keep sidebar open"
 msgstr "Garder la barre latérale ouverte"
 
-#: templates/_header.html:387 templates/js/_header_js.html:56
+#: templates/_header.html:437 templates/js/_header_js.html:56
 msgid "Toggle dark mode"
 msgstr "Activer/désactiver le mode sombre"
 
-#: templates/_header.html:389
+#: templates/_header.html:439
 msgid "Dark Mode"
 msgstr "Mode sombre"
 
-#: templates/_header.html:397 templates/profile.html:44
+#: templates/_header.html:447 templates/profile.html:44
 #: templates/profile.html:123
 msgid "Profile Picture"
 msgstr "Photo de profil"
 
-#: templates/_header.html:407
+#: templates/_header.html:457
 msgid "Your profile"
 msgstr "Votre profil"
 
-#: templates/_header.html:411 templates/appearance.html:34
+#: templates/_header.html:461 templates/appearance.html:34
 #: templates/js/_header_js.html:57 templates/profile.html:75
 #: templates/profile.html:317
 msgid "Appearance"
 msgstr "Apparence"
 
-#: templates/_header.html:415 templates/js/_header_js.html:58
+#: templates/_header.html:465 templates/js/_header_js.html:58
 #: templates/whats_new.html:79
 msgid "What's New"
 msgstr "Nouveautés"
 
-#: templates/_header.html:420 templates/feedback.html:34
+#: templates/_header.html:470 templates/feedback.html:34
 #: templates/js/_header_js.html:59
 msgid "Feedback"
 msgstr "Feedback"
 
-#: templates/_header.html:427 templates/_header.html:497
-#: templates/_header.html:500
+#: templates/_header.html:477 templates/_header.html:547
+#: templates/_header.html:550
 msgid "Keyboard shortcuts"
 msgstr "Raccourcis clavier"
 
-#: templates/_header.html:431 templates/_small_footer.html:28
+#: templates/_header.html:481 templates/_small_footer.html:28
 #: templates/reporting.html:86
 msgid "Help"
 msgstr "Aide"
 
-#: templates/_header.html:437 templates/_header.html:479
+#: templates/_header.html:487 templates/_header.html:529
 msgid "Switch user"
 msgstr "Changer d'utilisateur"
 
-#: templates/_header.html:443 templates/js/_header_js.html:60
+#: templates/_header.html:493 templates/js/_header_js.html:60
 #: templates/profile.html:82
 msgid "Sign out"
 msgstr "Se déconnecter"
 
-#: templates/_header.html:460
+#: templates/_header.html:510
 msgid "Command palette"
 msgstr "Palette de commandes"
 
-#: templates/_header.html:464
+#: templates/_header.html:514
 msgid "Type a command or search..."
 msgstr "Tapez une commande ou recherchez..."
 
-#: templates/_header.html:469
+#: templates/_header.html:519
 msgid "navigate"
 msgstr "naviguer"
 
-#: templates/_header.html:470
+#: templates/_header.html:520
 msgid "open"
 msgstr "ouvrir"
 
-#: templates/_header.html:471
+#: templates/_header.html:521
 msgid "close"
 msgstr "fermer"
 
-#: templates/_header.html:483
+#: templates/_header.html:533
 msgid "Switch to user..."
 msgstr "Passer à l'utilisateur ..."
 
-#: templates/_header.html:504
+#: templates/_header.html:554
 msgid "Global"
 msgstr "Global"
 
-#: templates/_header.html:506
+#: templates/_header.html:556
 msgid "Open command palette"
 msgstr "Ouvrir la palette de commandes"
 
-#: templates/_header.html:510
+#: templates/_header.html:560
 msgid "Show this shortcuts overlay"
 msgstr "Afficher cet aperçu des raccourcis"
 
-#: templates/_header.html:514
+#: templates/_header.html:564
 msgid "Close the open dialog or panel"
 msgstr "Fermer la boîte de dialogue ou le panneau ouvert"
 
-#: templates/_header.html:519
+#: templates/_header.html:569
 msgid "Document viewer"
 msgstr "Visionneuse de documents"
 
-#: templates/_header.html:521
+#: templates/_header.html:571
 msgid "Previous / next document page"
 msgstr "Page de document précédente / suivante"
 
@@ -4007,7 +4007,7 @@ msgstr "Cette action est irréversible."
 #: templates/js/_generali_reporting_js.html:823
 #: templates/js/_reporting_metrics_js.html:52
 #: templates/js/_reporting_sources_js.html:40
-#: templates/js/_tenant_page_js.html:29
+#: templates/js/_tenant_page_js.html:30
 #: templates/js/admin/_access_control_js.html:649
 #: templates/js/admin/_maintenance_js.html:132
 #: templates/js/admin/_organizations_js.html:80
@@ -4729,7 +4729,7 @@ msgstr "Statut Octo"
 msgid "Preview"
 msgstr "Aperçu"
 
-#: templates/prepared_documents.html:209
+#: templates/js/_tenant_page_js.html:31 templates/prepared_documents.html:209
 msgid "Open in Workitems"
 msgstr "Ouvrir dans Workitems"
 
@@ -5927,7 +5927,7 @@ msgstr "Ajouter un profil"
 #: templates/js/_reporting_dashboard_js.html:7
 #: templates/js/_reporting_metrics_js.html:48
 #: templates/js/_reporting_sources_js.html:36
-#: templates/js/_tenant_page_js.html:28
+#: templates/js/_tenant_page_js.html:29
 #: templates/js/admin/_access_control_js.html:646
 #: templates/js/admin/_maintenance_js.html:126
 #: templates/js/admin/_organizations_js.html:78
@@ -8473,36 +8473,36 @@ msgstr "Lignes"
 msgid "Values"
 msgstr "Valeurs"
 
-#: templates/js/_tenant_page_js.html:22
+#: templates/js/_tenant_page_js.html:23
 msgid "No records found."
 msgstr "Aucun enregistrement trouvé."
 
-#: templates/js/_tenant_page_js.html:23
+#: templates/js/_tenant_page_js.html:24
 msgid "Could not load records."
 msgstr "Impossible de charger les enregistrements."
 
-#: templates/js/_tenant_page_js.html:24
+#: templates/js/_tenant_page_js.html:25
 msgid "This tenant page is temporarily unavailable. Try again shortly."
 msgstr "Cette page tenant est temporairement indisponible. Réessayez sous peu."
 
-#: templates/js/_tenant_page_js.html:25
+#: templates/js/_tenant_page_js.html:26
 msgid "Delete this record? This action cannot be undone."
 msgstr "Supprimer cet enregistrement ? Cette action est irréversible."
 
-#: templates/js/_tenant_page_js.html:26 templates/tenant/page.html:105
+#: templates/js/_tenant_page_js.html:27 templates/tenant/page.html:105
 msgid "Add record"
 msgstr "Ajouter un enregistrement"
 
-#: templates/js/_tenant_page_js.html:27
+#: templates/js/_tenant_page_js.html:28
 msgid "Edit record"
 msgstr "Modifier l'enregistrement"
 
-#: templates/js/_tenant_page_js.html:30
+#: templates/js/_tenant_page_js.html:32
 #, python-brace-format
 msgid "{start}-{end} of {total}"
 msgstr "{start}-{end} sur {total}"
 
-#: templates/js/_tenant_page_js.html:31 templates/js/admin/_clients_js.html:116
+#: templates/js/_tenant_page_js.html:33 templates/js/admin/_clients_js.html:116
 #: templates/js/admin/_clients_js.html:170
 #: templates/js/admin/_organizations_js.html:128
 #: templates/js/admin/_organizations_js.html:182
@@ -9716,4 +9716,7 @@ msgstr "Au"
 
 #~ msgid "Indigo"
 #~ msgstr "Indigo"
+
+#~ msgid "View in workitems"
+#~ msgstr "Ouvrir dans Workitems"
 

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-01 15:30+0200\n"
+"POT-Creation-Date: 2026-09-01 20:56+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -1788,109 +1788,109 @@ msgstr "PDQM"
 msgid "Data Import Status"
 msgstr "Datenimport-Status"
 
-#: templates/_header.html:381 templates/_header.html:383
+#: templates/_header.html:431 templates/_header.html:433
 #: templates/appearance.html:293 templates/appearance.html:298
 #: templates/js/_header_js.html:13
 msgid "Keep sidebar open"
 msgstr "Seitenleiste geöffnet halten"
 
-#: templates/_header.html:387 templates/js/_header_js.html:56
+#: templates/_header.html:437 templates/js/_header_js.html:56
 msgid "Toggle dark mode"
 msgstr "Dunkelmodus umschalten"
 
-#: templates/_header.html:389
+#: templates/_header.html:439
 msgid "Dark Mode"
 msgstr "Dunkelmodus"
 
-#: templates/_header.html:397 templates/profile.html:44
+#: templates/_header.html:447 templates/profile.html:44
 #: templates/profile.html:123
 msgid "Profile Picture"
 msgstr "Profilbild"
 
-#: templates/_header.html:407
+#: templates/_header.html:457
 msgid "Your profile"
 msgstr "Ihr Profil"
 
-#: templates/_header.html:411 templates/appearance.html:34
+#: templates/_header.html:461 templates/appearance.html:34
 #: templates/js/_header_js.html:57 templates/profile.html:75
 #: templates/profile.html:317
 msgid "Appearance"
 msgstr "Darstellung"
 
-#: templates/_header.html:415 templates/js/_header_js.html:58
+#: templates/_header.html:465 templates/js/_header_js.html:58
 #: templates/whats_new.html:79
 msgid "What's New"
 msgstr "Neuigkeiten"
 
-#: templates/_header.html:420 templates/feedback.html:34
+#: templates/_header.html:470 templates/feedback.html:34
 #: templates/js/_header_js.html:59
 msgid "Feedback"
 msgstr "Feedback"
 
-#: templates/_header.html:427 templates/_header.html:497
-#: templates/_header.html:500
+#: templates/_header.html:477 templates/_header.html:547
+#: templates/_header.html:550
 msgid "Keyboard shortcuts"
 msgstr "Tastenkombinationen"
 
-#: templates/_header.html:431 templates/_small_footer.html:28
+#: templates/_header.html:481 templates/_small_footer.html:28
 #: templates/reporting.html:86
 msgid "Help"
 msgstr "Hilfe"
 
-#: templates/_header.html:437 templates/_header.html:479
+#: templates/_header.html:487 templates/_header.html:529
 msgid "Switch user"
 msgstr "Benutzer wechseln"
 
-#: templates/_header.html:443 templates/js/_header_js.html:60
+#: templates/_header.html:493 templates/js/_header_js.html:60
 #: templates/profile.html:82
 msgid "Sign out"
 msgstr "Abmelden"
 
-#: templates/_header.html:460
+#: templates/_header.html:510
 msgid "Command palette"
 msgstr "Befehlspalette"
 
-#: templates/_header.html:464
+#: templates/_header.html:514
 msgid "Type a command or search..."
 msgstr "Befehl eingeben oder suchen..."
 
-#: templates/_header.html:469
+#: templates/_header.html:519
 msgid "navigate"
 msgstr "navigieren"
 
-#: templates/_header.html:470
+#: templates/_header.html:520
 msgid "open"
 msgstr "öffnen"
 
-#: templates/_header.html:471
+#: templates/_header.html:521
 msgid "close"
 msgstr "schließen"
 
-#: templates/_header.html:483
+#: templates/_header.html:533
 msgid "Switch to user..."
 msgstr "Zu Benutzer wechseln ..."
 
-#: templates/_header.html:504
+#: templates/_header.html:554
 msgid "Global"
 msgstr "Global"
 
-#: templates/_header.html:506
+#: templates/_header.html:556
 msgid "Open command palette"
 msgstr "Befehlspalette öffnen"
 
-#: templates/_header.html:510
+#: templates/_header.html:560
 msgid "Show this shortcuts overlay"
 msgstr "Diese Übersicht anzeigen"
 
-#: templates/_header.html:514
+#: templates/_header.html:564
 msgid "Close the open dialog or panel"
 msgstr "Das offene Dialogfeld oder Panel schließen"
 
-#: templates/_header.html:519
+#: templates/_header.html:569
 msgid "Document viewer"
 msgstr "Dokumentanzeige"
 
-#: templates/_header.html:521
+#: templates/_header.html:571
 msgid "Previous / next document page"
 msgstr "Vorherige / nächste Dokumentseite"
 
@@ -4013,7 +4013,7 @@ msgstr "Diese Aktion kann nicht rückgängig gemacht werden."
 #: templates/js/_generali_reporting_js.html:823
 #: templates/js/_reporting_metrics_js.html:52
 #: templates/js/_reporting_sources_js.html:40
-#: templates/js/_tenant_page_js.html:29
+#: templates/js/_tenant_page_js.html:30
 #: templates/js/admin/_access_control_js.html:649
 #: templates/js/admin/_maintenance_js.html:132
 #: templates/js/admin/_organizations_js.html:80
@@ -4735,7 +4735,7 @@ msgstr "Octo-Status"
 msgid "Preview"
 msgstr "Vorschau"
 
-#: templates/prepared_documents.html:209
+#: templates/js/_tenant_page_js.html:31 templates/prepared_documents.html:209
 msgid "Open in Workitems"
 msgstr "In Workitems öffnen"
 
@@ -5930,7 +5930,7 @@ msgstr "Profil hinzufügen"
 #: templates/js/_reporting_dashboard_js.html:7
 #: templates/js/_reporting_metrics_js.html:48
 #: templates/js/_reporting_sources_js.html:36
-#: templates/js/_tenant_page_js.html:28
+#: templates/js/_tenant_page_js.html:29
 #: templates/js/admin/_access_control_js.html:646
 #: templates/js/admin/_maintenance_js.html:126
 #: templates/js/admin/_organizations_js.html:78
@@ -8474,40 +8474,40 @@ msgstr "Zeilen"
 msgid "Values"
 msgstr "Werte"
 
-#: templates/js/_tenant_page_js.html:22
+#: templates/js/_tenant_page_js.html:23
 msgid "No records found."
 msgstr "Keine Einträge gefunden."
 
-#: templates/js/_tenant_page_js.html:23
+#: templates/js/_tenant_page_js.html:24
 msgid "Could not load records."
 msgstr "Datensätze konnten nicht geladen werden."
 
-#: templates/js/_tenant_page_js.html:24
+#: templates/js/_tenant_page_js.html:25
 msgid "This tenant page is temporarily unavailable. Try again shortly."
 msgstr ""
-"Diese Tenant-Seite ist vorübergehend nicht verfügbar. Versuchen Sie es "
-"in Kürze erneut."
+"Diese Tenant-Seite ist vorübergehend nicht verfügbar. Versuchen Sie es in"
+" Kürze erneut."
 
-#: templates/js/_tenant_page_js.html:25
+#: templates/js/_tenant_page_js.html:26
 msgid "Delete this record? This action cannot be undone."
 msgstr ""
 "Diesen Datensatz löschen? Diese Aktion kann nicht rückgängig gemacht "
 "werden."
 
-#: templates/js/_tenant_page_js.html:26 templates/tenant/page.html:105
+#: templates/js/_tenant_page_js.html:27 templates/tenant/page.html:105
 msgid "Add record"
 msgstr "Datensatz hinzufügen"
 
-#: templates/js/_tenant_page_js.html:27
+#: templates/js/_tenant_page_js.html:28
 msgid "Edit record"
 msgstr "Datensatz bearbeiten"
 
-#: templates/js/_tenant_page_js.html:30
+#: templates/js/_tenant_page_js.html:32
 #, python-brace-format
 msgid "{start}-{end} of {total}"
 msgstr "{start}-{end} von {total}"
 
-#: templates/js/_tenant_page_js.html:31 templates/js/admin/_clients_js.html:116
+#: templates/js/_tenant_page_js.html:33 templates/js/admin/_clients_js.html:116
 #: templates/js/admin/_clients_js.html:170
 #: templates/js/admin/_organizations_js.html:128
 #: templates/js/admin/_organizations_js.html:182
@@ -9726,4 +9726,7 @@ msgstr "Bis"
 
 #~ msgid "Indigo"
 #~ msgstr "Indigo"
+
+#~ msgid "View in workitems"
+#~ msgstr "In Workitems öffnen"
 

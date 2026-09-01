@@ -30,6 +30,13 @@
     var LIST_PATH = '/api/t/' + encodeURIComponent(cfg.tenantCode) + '/' + encodeURIComponent(cfg.pageKey);
     var EXPORT_URL = window.API_PREFIX + 'api/t/' + encodeURIComponent(cfg.tenantCode) + '/' +
         encodeURIComponent(cfg.pageKey) + '/export';
+    // 'documents' entities are 1:1 with a shared-workitems row (their IdColumn
+    // is that source's WorkitemColumn -- see the TenantEntities seed) but the
+    // viewer itself is not reimplemented here (task-9 brief / plan K4/K5): it
+    // stays on the shared machinery. Link the id cell through the same
+    // fallback deep-link the brief calls for -- `/workitems?search=<id>` --
+    // rather than duplicating _workitem_detail_panel_js.html.
+    var WORKITEMS_SEARCH_URL = window.API_PREFIX + 'workitems?search=';
 
     function recordPath(id) {
         return LIST_PATH + '/' + encodeURIComponent(id);
@@ -80,7 +87,17 @@
             var id = row[cfg.idColumn];
             state.rowsById[id] = row;
             html += '<tr data-testid="tenant-row-' + esc(id) + '">';
-            html += '<td>' + esc(id) + '</td>';
+            if (cfg.entityKind === 'documents') {
+                // Same fallback deep-link prepared_documents.html's own
+                // "Open in Workitems" link uses (?search=<id> on the shared
+                // overview) -- reuses that exact translated string.
+                html += '<td><a href="' + esc(WORKITEMS_SEARCH_URL + encodeURIComponent(id)) + '" ' +
+                    'class="text-[var(--nx-accent)] underline" title="' + esc(I18N.openInWorkitems) + '" ' +
+                    'data-testid="tenant-row-view-' + esc(id) + '"><i class="fas fa-up-right-from-square mr-1"></i>' +
+                    esc(id) + '</a></td>';
+            } else {
+                html += '<td>' + esc(id) + '</td>';
+            }
             cfg.fields.forEach(function (f) {
                 html += '<td>' + formatCell(f, row[f.column]) + '</td>';
             });

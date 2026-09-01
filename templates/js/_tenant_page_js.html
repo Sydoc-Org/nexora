@@ -8,6 +8,7 @@
         pageKey: {{ page_key|tojson }},
         pageType: {{ page.page_type|tojson }},
         idColumn: {{ entity.id_column|tojson }},
+        entityKind: {{ entity.kind|tojson }},
         canEdit: {{ (can_edit and page.page_type == 'crud')|tojson }},
         fields: [
             {% for f in fields if f.column != entity.id_column %}
@@ -27,6 +28,7 @@
             editTitle: {{ _("Edit record")|tojson }},
             edit: {{ _("Edit")|tojson }},
             delete: {{ _("Delete")|tojson }},
+            openInWorkitems: {{ _("Open in Workitems")|tojson }},
             pageInfo: {{ _("{start}-{end} of {total}")|tojson }},
             genericError: {{ _("An unexpected network error occurred.")|tojson }}
         }

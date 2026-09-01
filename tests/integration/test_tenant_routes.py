@@ -485,6 +485,26 @@ def test_api_list_id_column_filter_reaches_sql_as_prefix_match(user_client, monk
     assert "11%" in all_params
 
 
+def test_tenant_page_exposes_entity_kind_for_the_view_link(user_client, monkeypatch):
+    """window.NX_TENANT.entityKind drives static/js/tenant_pages.js's
+    'documents'-only row link to the shared /workitems viewer (task-9 brief
+    parity gap: the generic list page has no viewer of its own -- K4/K5 keep
+    it on the shared machinery, so a 'documents' row links out instead)."""
+    monkeypatch.setattr(tv, "has_permission", lambda code: True)
+    _stub_registry(
+        monkeypatch,
+        tenant=_tenant(),
+        pages=[_page(key="docs", entity="docs")],
+        entity=_entity(key="docs", kind="documents", id_column="WorkItemID"),
+        fields=[_field(column="Status")],
+    )
+
+    resp = user_client.get(f"/t/{TENANT_CODE}/docs")
+
+    assert resp.status_code == 200
+    assert b'entityKind: "documents"' in resp.data
+
+
 def test_api_write_403_without_edit_permission(user_client, monkeypatch):
     monkeypatch.setattr(tv, "has_permission", lambda code: False)
     resp = user_client.post(f"/api/t/{TENANT_CODE}/dossiers", json={"Status": "open"})
