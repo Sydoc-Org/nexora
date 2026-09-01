@@ -49,7 +49,7 @@ def test_reporting_page_caption_slots_need_only_explain_data(admin_client):
 
     with (
         patch("nx_lib.security.has_permission", side_effect=_perm),
-        patch("nx_lib.views.reporting.has_permission", side_effect=_perm),
+        patch("nx_lib.views.reporting.pages.has_permission", side_effect=_perm),
     ):
         resp = admin_client.get("/reporting")
     assert resp.status_code == 200

@@ -46,15 +46,12 @@ from flask import (
     session,
 )
 from flask_babel import gettext as _
-from markdown_it import MarkdownIt
 
 from ... import mapping_config
-from ...config import REPO_ROOT
 from ...db import engine_nexora_db, engine_statistics_db
 from ...extensions import cache, limiter
 from ...i18n import get_locale
 from ...reporting import db_schema
-from ...reporting.ai import EFFORT_AGENT, supports_effort
 from ...reporting.catalog import fetch_docprocessing_catalog
 from ...reporting.export import rows_to_csv, rows_to_xlsx
 from ...reporting.forecast import compute_forecast, forecast_export_rows
@@ -78,7 +75,7 @@ from ...reporting.tokens import (
     widened_definition_for_forecast,
 )
 from ...security import has_permission, page_visibility, require_permission
-from . import ai
+from . import ai, pages
 from ._shared import (
     _CURATED_ENGINES,
     _METRIC_LABEL_ATTRS,
@@ -126,6 +123,7 @@ from .ai import (
     api_ai_build,
     api_ai_caption,
 )
+from .pages import _GUIDE_MD, _guide_render
 
 # Names imported above purely for re-export (nx_lib.views.reporting.<name> must
 # keep resolving for callers/tests/nx_lib/reporting/runner.py) rather than used
@@ -151,6 +149,8 @@ __all__ = [
     "_execute",
     "_extract_agent_artifacts",
     "_get_effective_source",
+    "_GUIDE_MD",
+    "_guide_render",
     "_has_acked",
     "_json_safe",
     "_load_db_metrics",
@@ -198,12 +198,6 @@ def _metric_label(m):
     """
     attr = _METRIC_LABEL_ATTRS.get(str(get_locale()))
     return (m.get(attr) if attr else None) or m["label"]
-
-
-def _ai_effort_enabled():
-    """True when the configured model honours an effort level (composer gate)."""
-    cfg = _ai_config()
-    return supports_effort(cfg.get("provider"), cfg.get("model"))
 
 
 def _accessible_sql_targets():
@@ -388,72 +382,6 @@ def _serialize_export(columns, rows, title, fmt, chart_png=None, forecast_start=
         ),
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f'attachment; filename="{name}.xlsx"'},
-    )
-
-
-# The user guide is authored in git as docs/howto/reporting-guide.md and
-# served in-app here (English only; the Confluence mirror stays for the team).
-# The deploy workflow copies this one docs file onto the server — see the
-# "Sync to deploy folder" step in .github/workflows/deploy.yml.
-_GUIDE_MD = REPO_ROOT / "docs" / "howto" / "reporting-guide.md"
-
-
-def _guide_render(md_text):
-    """reporting-guide.md -> (html, toc list of {slug, title}). Pure.
-
-    Drops the H1 (the page chrome carries the title), unwraps links to other
-    .md files (their targets are not routable in-app), and stamps slug ids on
-    <h2> headings so the on-page TOC can anchor-link them.
-    """
-    lines = md_text.splitlines()
-    body = [ln for i, ln in enumerate(lines) if not (ln.startswith("# ") and i < 5)]
-    text = re.sub(r"\[([^\]]+)\]\([^)\s]*\.md\)", r"\1", "\n".join(body))
-    html = MarkdownIt("commonmark").enable(["table", "strikethrough"]).render(text)
-    toc = []
-
-    def _anchor(match):
-        title = re.sub(r"<[^>]+>", "", match.group(1))
-        slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")
-        toc.append({"slug": slug, "title": title})
-        return f'<h2 id="{slug}">{match.group(1)}</h2>'
-
-    return re.sub(r"<h2>(.*?)</h2>", _anchor, html), toc
-
-
-@require_permission("reporting.view")
-def reporting_guide():
-    try:
-        guide_html, guide_toc = _guide_render(_GUIDE_MD.read_text(encoding="utf-8"))
-    except OSError:
-        current_app.logger.error("reporting guide source missing: %s", _GUIDE_MD)
-        guide_html, guide_toc = None, []
-    return render_template(
-        "reporting_guide.html",
-        guide_html=guide_html,
-        guide_toc=guide_toc,
-        logged_in_user=session.get("username", "Unknown"),
-        fullname=session.get("fullname"),
-        page_visibility=page_visibility(),
-    )
-
-
-@require_permission("reporting.view")
-def reporting():
-    return render_template(
-        "reporting.html",
-        logged_in_user=session.get("username", "Unknown"),
-        userid=session.get("userid", "Unknown"),
-        fullname=session.get("fullname"),
-        page_visibility=page_visibility(),
-        ai_enabled=has_permission("reporting.ai.use"),
-        ai_caption_enabled=has_permission("reporting.ai.explain_data"),
-        # The composer only offers Quick/Balanced/Deep when the configured
-        # model can actually honour it (GPT-5 family, Claude Opus/Sonnet 5).
-        ai_effort_enabled=_ai_effort_enabled(),
-        ai_effort_default=EFFORT_AGENT,
-        details_images_perm=has_permission("workitems.details.view.images"),
-        details_audit_perm=has_permission("workitems.details.view.audit"),
-        details_fields_perm=has_permission("workitems.details.view.fields"),
     )
 
 
@@ -1951,8 +1879,7 @@ def api_metrics():
 
 
 def register_routes(app):
-    app.add_url_rule("/reporting", endpoint="reporting", view_func=reporting)
-    app.add_url_rule("/reporting/guide", endpoint="reporting_guide", view_func=reporting_guide)
+    pages.register_routes(app)
     app.add_url_rule(
         "/reporting/sources",
         endpoint="reporting_sources_admin",
