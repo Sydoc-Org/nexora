@@ -12,7 +12,6 @@ their original function names (see that module's docstring).
 from flask import current_app, jsonify, redirect, render_template, request, session, url_for
 from flask_babel import gettext as _
 
-from ...db import engine_generali_db
 from ...security import (
     _check_add_deadline,
     _check_generali_record_org,
@@ -186,6 +185,11 @@ def api_generali_reporting_add():
     the same date+category, which no sibling table does."""
     conn = None
     try:
+        # local import: re-resolve against the live package object so test
+        # monkeypatching of gv.engine_generali_db works consistently across
+        # the generali package
+        from . import engine_generali_db
+
         body = request.get_json(force=True)
         report_for_date = body.get("reportForDate", "").strip()
         category = body.get("category", "").strip()
@@ -266,6 +270,11 @@ def api_generali_reporting_edit():
     body, unlike every sibling's PUT /<int:record_id>."""
     conn = None
     try:
+        # local import: re-resolve against the live package object so test
+        # monkeypatching of gv.engine_generali_db works consistently across
+        # the generali package
+        from . import engine_generali_db
+
         body = request.get_json(force=True)
         record_id = body.get("id")
         report_for_date = (body.get("reportForDate") or "").strip()

@@ -3,7 +3,6 @@
 from flask import current_app, jsonify, redirect, render_template, request, session, url_for
 from flask_babel import gettext as _
 
-from ...db import engine_generali_db
 from ...security import page_visibility, require_permission
 
 # ----------------------------- Generali Import Status ---------------------- #
@@ -30,6 +29,11 @@ def generali_import_status():
 def api_generali_importstatus_list():
     conn = None
     try:
+        # local import: re-resolve against the live package object so test
+        # monkeypatching of gv.engine_generali_db works consistently across
+        # the generali package
+        from . import engine_generali_db
+
         page = max(1, int(request.args.get("page", 1)))
         per_page = 20
         offset = (page - 1) * per_page

@@ -8,7 +8,6 @@ below under its original function name (see that module's docstring).
 from flask import current_app, jsonify, redirect, render_template, session, url_for
 from flask_babel import gettext as _
 
-from ...db import engine_generali_db
 from ...i18n import get_locale
 from ...security import has_permission, page_visibility, require_permission
 from ._crud import (
@@ -56,6 +55,11 @@ def generali_additional_services():
 def api_generali_attendance_categories():
     conn = None
     try:
+        # local import: re-resolve against the live package object so test
+        # monkeypatching of gv.engine_generali_db works consistently across
+        # the generali package
+        from . import engine_generali_db
+
         conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute("""

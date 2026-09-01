@@ -5,7 +5,6 @@ import math
 from flask import current_app, jsonify, redirect, render_template, request, session, url_for
 from flask_babel import gettext as _
 
-from ...db import engine_generali_db
 from ...security import page_visibility, require_permission
 
 # ----------------------------- Generali Evaluation -------------------------- #
@@ -47,6 +46,11 @@ def generali_documents():
 def api_generali_stats():
     conn = None
     try:
+        # local import: re-resolve against the live package object so test
+        # monkeypatching of gv.engine_generali_db works consistently across
+        # the generali package
+        from . import engine_generali_db
+
         raw_start_date = request.args.get("startDate")
         raw_end_date = request.args.get("endDate")
         if not raw_start_date or not raw_end_date:
@@ -216,6 +220,11 @@ def api_generali_stats():
 def api_generali_filter_options():
     conn = None
     try:
+        # local import: re-resolve against the live package object so test
+        # monkeypatching of gv.engine_generali_db works consistently across
+        # the generali package
+        from . import engine_generali_db
+
         conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
         result = {}
@@ -245,6 +254,11 @@ def api_generali_filter_options():
 def api_generali_documents():
     conn = None
     try:
+        # local import: re-resolve against the live package object so test
+        # monkeypatching of gv.engine_generali_db works consistently across
+        # the generali package
+        from . import engine_generali_db
+
         page = request.args.get("page", 1, type=int)
         per_page = request.args.get("perPage", 40, type=int)
         if per_page not in (40, 100, 200, 500, 1000):
@@ -414,6 +428,11 @@ def api_generali_documents():
 def api_generali_document_detail(doc_id):
     conn = None
     try:
+        # local import: re-resolve against the live package object so test
+        # monkeypatching of gv.engine_generali_db works consistently across
+        # the generali package
+        from . import engine_generali_db
+
         conn = engine_generali_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
