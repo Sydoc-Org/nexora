@@ -14,11 +14,12 @@ from nx_lib.reporting.ai import (
 )
 
 # The @require_permission decorator calls has_permission from nx_lib.security;
-# inline calls inside api_ai_ask use the imported name in nx_lib.views.reporting.
+# inline calls inside api_ai_ask use the name nx_lib.views.reporting.ai imports
+# for itself (moved there in beautify-phase-2a Task 1 along with the route).
 # Both must be patched together when we want to bypass the permission checks.
 _PERM_PATCHES = (
     "nx_lib.security.has_permission",
-    "nx_lib.views.reporting.has_permission",
+    "nx_lib.views.reporting.ai.has_permission",
 )
 
 
@@ -36,7 +37,7 @@ def _result(sql="SELECT TOP (5) Id FROM dbo.Foo", valid=True):
 
 
 def test_ai_ask_requires_use_permission(user_client):
-    with patch("nx_lib.views.reporting.has_permission", return_value=False):
+    with patch("nx_lib.views.reporting.ai.has_permission", return_value=False):
         resp = user_client.post("/api/reporting/ai/ask", json={"question": "hi"})
     assert resp.status_code == 403
 
@@ -44,9 +45,10 @@ def test_ai_ask_requires_use_permission(user_client):
 def test_ai_ask_503_when_provider_unconfigured(user_client):
     with (
         patch("nx_lib.security.has_permission", return_value=True),
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.ai.has_permission", return_value=True),
         patch(
-            "nx_lib.views.reporting._ai_config", return_value={"provider": "none", "api_key": None}
+            "nx_lib.views.reporting.ai._ai_config",
+            return_value={"provider": "none", "api_key": None},
         ),
     ):
         resp = user_client.post("/api/reporting/ai/ask", json={"question": "hi"})
@@ -56,14 +58,14 @@ def test_ai_ask_503_when_provider_unconfigured(user_client):
 def test_ai_ask_happy_path_returns_sql_and_audits(user_client):
     with (
         patch("nx_lib.security.has_permission", return_value=True),
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.ai.has_permission", return_value=True),
         patch(
-            "nx_lib.views.reporting._ai_config",
+            "nx_lib.views.reporting.ai._ai_config",
             return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
         ),
-        patch("nx_lib.views.reporting._ai_schema_text", return_value="TABLE dbo.Foo(Id int)"),
-        patch("nx_lib.views.reporting.ai_ask", return_value=_result()) as ask,
-        patch("nx_lib.views.reporting._audit_ai") as audit,
+        patch("nx_lib.views.reporting.ai._ai_schema_text", return_value="TABLE dbo.Foo(Id int)"),
+        patch("nx_lib.views.reporting.ai.ai_ask", return_value=_result()) as ask,
+        patch("nx_lib.views.reporting.ai._audit_ai") as audit,
     ):
         resp = user_client.post("/api/reporting/ai/ask", json={"question": "five ids"})
     assert resp.status_code == 200
@@ -78,9 +80,9 @@ def test_ai_ask_happy_path_returns_sql_and_audits(user_client):
 def test_ai_ask_rejects_empty_question(user_client):
     with (
         patch("nx_lib.security.has_permission", return_value=True),
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.ai.has_permission", return_value=True),
         patch(
-            "nx_lib.views.reporting._ai_config",
+            "nx_lib.views.reporting.ai._ai_config",
             return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
         ),
     ):
@@ -90,15 +92,15 @@ def test_ai_ask_rejects_empty_question(user_client):
 
 def test_ai_ask_502_on_provider_error(user_client):
     with (
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.ai.has_permission", return_value=True),
         patch("nx_lib.security.has_permission", return_value=True),
         patch(
-            "nx_lib.views.reporting._ai_config",
+            "nx_lib.views.reporting.ai._ai_config",
             return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
         ),
-        patch("nx_lib.views.reporting._ai_schema_text", return_value="TABLE dbo.Foo(Id int)"),
-        patch("nx_lib.views.reporting.ai_ask", side_effect=RuntimeError("boom")),
-        patch("nx_lib.views.reporting._audit_ai") as audit,
+        patch("nx_lib.views.reporting.ai._ai_schema_text", return_value="TABLE dbo.Foo(Id int)"),
+        patch("nx_lib.views.reporting.ai.ai_ask", side_effect=RuntimeError("boom")),
+        patch("nx_lib.views.reporting.ai._audit_ai") as audit,
     ):
         resp = user_client.post("/api/reporting/ai/ask", json={"question": "x"})
     assert resp.status_code == 502
@@ -112,16 +114,16 @@ def test_ai_ask_429_when_daily_limit_reached(user_client):
     # When the per-user daily cap is hit, the route blocks BEFORE calling the
     # provider (no token cost), records the throttle, and never reaches ai_ask.
     with (
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.ai.has_permission", return_value=True),
         patch("nx_lib.security.has_permission", return_value=True),
         patch(
-            "nx_lib.views.reporting._ai_config",
+            "nx_lib.views.reporting.ai._ai_config",
             return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
         ),
-        patch("nx_lib.views.reporting._ai_daily_limit", return_value=5),
-        patch("nx_lib.views.reporting._ai_asks_today", return_value=5),
-        patch("nx_lib.views.reporting.ai_ask") as ask,
-        patch("nx_lib.views.reporting._audit_ai") as audit,
+        patch("nx_lib.views.reporting.ai._ai_daily_limit", return_value=5),
+        patch("nx_lib.views.reporting.ai._ai_asks_today", return_value=5),
+        patch("nx_lib.views.reporting.ai.ai_ask") as ask,
+        patch("nx_lib.views.reporting.ai._audit_ai") as audit,
     ):
         resp = user_client.post("/api/reporting/ai/ask", json={"question": "x"})
     assert resp.status_code == 429
@@ -132,17 +134,17 @@ def test_ai_ask_429_when_daily_limit_reached(user_client):
 
 def test_ai_ask_allows_when_under_daily_limit(user_client):
     with (
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.ai.has_permission", return_value=True),
         patch("nx_lib.security.has_permission", return_value=True),
         patch(
-            "nx_lib.views.reporting._ai_config",
+            "nx_lib.views.reporting.ai._ai_config",
             return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
         ),
-        patch("nx_lib.views.reporting._ai_daily_limit", return_value=5),
-        patch("nx_lib.views.reporting._ai_asks_today", return_value=4),
-        patch("nx_lib.views.reporting._ai_schema_text", return_value="TABLE dbo.Foo(Id int)"),
-        patch("nx_lib.views.reporting.ai_ask", return_value=_result()) as ask,
-        patch("nx_lib.views.reporting._audit_ai"),
+        patch("nx_lib.views.reporting.ai._ai_daily_limit", return_value=5),
+        patch("nx_lib.views.reporting.ai._ai_asks_today", return_value=4),
+        patch("nx_lib.views.reporting.ai._ai_schema_text", return_value="TABLE dbo.Foo(Id int)"),
+        patch("nx_lib.views.reporting.ai.ai_ask", return_value=_result()) as ask,
+        patch("nx_lib.views.reporting.ai._audit_ai"),
     ):
         resp = user_client.post("/api/reporting/ai/ask", json={"question": "five ids"})
     assert resp.status_code == 200
@@ -152,17 +154,17 @@ def test_ai_ask_allows_when_under_daily_limit(user_client):
 def test_ai_ask_unlimited_when_limit_zero(user_client):
     # limit 0 disables the cap: the usage count is never queried.
     with (
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.ai.has_permission", return_value=True),
         patch("nx_lib.security.has_permission", return_value=True),
         patch(
-            "nx_lib.views.reporting._ai_config",
+            "nx_lib.views.reporting.ai._ai_config",
             return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
         ),
-        patch("nx_lib.views.reporting._ai_daily_limit", return_value=0),
-        patch("nx_lib.views.reporting._ai_asks_today") as count,
-        patch("nx_lib.views.reporting._ai_schema_text", return_value="TABLE dbo.Foo(Id int)"),
-        patch("nx_lib.views.reporting.ai_ask", return_value=_result()) as ask,
-        patch("nx_lib.views.reporting._audit_ai"),
+        patch("nx_lib.views.reporting.ai._ai_daily_limit", return_value=0),
+        patch("nx_lib.views.reporting.ai._ai_asks_today") as count,
+        patch("nx_lib.views.reporting.ai._ai_schema_text", return_value="TABLE dbo.Foo(Id int)"),
+        patch("nx_lib.views.reporting.ai.ai_ask", return_value=_result()) as ask,
+        patch("nx_lib.views.reporting.ai._audit_ai"),
     ):
         resp = user_client.post("/api/reporting/ai/ask", json={"question": "five ids"})
     assert resp.status_code == 200
@@ -193,7 +195,7 @@ def _def_result(source="gen_pdqm", definition=None, explanation="by outcome"):
 
 
 def test_ai_build_requires_use_permission(user_client):
-    with patch("nx_lib.views.reporting.has_permission", return_value=False):
+    with patch("nx_lib.views.reporting.ai.has_permission", return_value=False):
         resp = user_client.post("/api/reporting/ai/build", json={"question": "hi"})
     assert resp.status_code == 403
 
@@ -205,16 +207,16 @@ def test_ai_build_does_not_require_sql_permission(user_client):
 
     with (
         patch("nx_lib.security.has_permission", side_effect=_has),
-        patch("nx_lib.views.reporting.has_permission", side_effect=_has),
+        patch("nx_lib.views.reporting.ai.has_permission", side_effect=_has),
         patch(
-            "nx_lib.views.reporting._ai_config",
+            "nx_lib.views.reporting.ai._ai_config",
             return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
         ),
-        patch("nx_lib.views.reporting._ai_daily_limit", return_value=0),
-        patch("nx_lib.views.reporting._ai_catalog_text", return_value="SOURCE gen_pdqm ..."),
-        patch("nx_lib.views.reporting.ai_ask_definition", return_value=_def_result()),
-        patch("nx_lib.views.reporting._validate_definition_for_user", return_value=(True, None)),
-        patch("nx_lib.views.reporting._audit_ai") as audit,
+        patch("nx_lib.views.reporting.ai._ai_daily_limit", return_value=0),
+        patch("nx_lib.views.reporting.ai._ai_catalog_text", return_value="SOURCE gen_pdqm ..."),
+        patch("nx_lib.views.reporting.ai.ai_ask_definition", return_value=_def_result()),
+        patch("nx_lib.views.reporting.ai._validate_definition_for_user", return_value=(True, None)),
+        patch("nx_lib.views.reporting.ai._audit_ai") as audit,
     ):
         resp = user_client.post("/api/reporting/ai/build", json={"question": "pdqm"})
     assert resp.status_code == 200
@@ -230,20 +232,20 @@ def test_ai_build_does_not_require_sql_permission(user_client):
 def test_ai_build_retries_once_then_returns_invalid(user_client):
     # First draft fails validation; route retries once; still invalid -> valid:false (200).
     with (
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.ai.has_permission", return_value=True),
         patch("nx_lib.security.has_permission", return_value=True),
         patch(
-            "nx_lib.views.reporting._ai_config",
+            "nx_lib.views.reporting.ai._ai_config",
             return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
         ),
-        patch("nx_lib.views.reporting._ai_daily_limit", return_value=0),
-        patch("nx_lib.views.reporting._ai_catalog_text", return_value="CATALOG"),
-        patch("nx_lib.views.reporting.ai_ask_definition", return_value=_def_result()) as draft,
+        patch("nx_lib.views.reporting.ai._ai_daily_limit", return_value=0),
+        patch("nx_lib.views.reporting.ai._ai_catalog_text", return_value="CATALOG"),
+        patch("nx_lib.views.reporting.ai.ai_ask_definition", return_value=_def_result()) as draft,
         patch(
-            "nx_lib.views.reporting._validate_definition_for_user",
+            "nx_lib.views.reporting.ai._validate_definition_for_user",
             return_value=(False, "unknown column field: 'Nope'"),
         ),
-        patch("nx_lib.views.reporting._audit_ai"),
+        patch("nx_lib.views.reporting.ai._audit_ai"),
     ):
         resp = user_client.post("/api/reporting/ai/build", json={"question": "x"})
     assert resp.status_code == 200
@@ -253,10 +255,11 @@ def test_ai_build_retries_once_then_returns_invalid(user_client):
 
 def test_ai_build_503_when_provider_unconfigured(user_client):
     with (
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.ai.has_permission", return_value=True),
         patch("nx_lib.security.has_permission", return_value=True),
         patch(
-            "nx_lib.views.reporting._ai_config", return_value={"provider": "none", "api_key": None}
+            "nx_lib.views.reporting.ai._ai_config",
+            return_value={"provider": "none", "api_key": None},
         ),
     ):
         resp = user_client.post("/api/reporting/ai/build", json={"question": "hi"})
@@ -268,15 +271,15 @@ def test_ai_ask_audits_misconfig_on_aierror(user_client):
     # provider / bad endpoint) -> 503, but it leaves a 'misconfig' audit trace so a
     # broken provider is debuggable. 'misconfig' (not 'error') keeps it off the cap.
     with (
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.ai.has_permission", return_value=True),
         patch("nx_lib.security.has_permission", return_value=True),
         patch(
-            "nx_lib.views.reporting._ai_config",
+            "nx_lib.views.reporting.ai._ai_config",
             return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
         ),
-        patch("nx_lib.views.reporting._ai_schema_text", return_value="TABLE dbo.Foo(Id int)"),
-        patch("nx_lib.views.reporting.ai_ask", side_effect=AiError("unknown provider")),
-        patch("nx_lib.views.reporting._audit_ai") as audit,
+        patch("nx_lib.views.reporting.ai._ai_schema_text", return_value="TABLE dbo.Foo(Id int)"),
+        patch("nx_lib.views.reporting.ai.ai_ask", side_effect=AiError("unknown provider")),
+        patch("nx_lib.views.reporting.ai._audit_ai") as audit,
     ):
         resp = user_client.post("/api/reporting/ai/ask", json={"question": "x"})
     assert resp.status_code == 503
@@ -287,19 +290,19 @@ def test_ai_ask_audits_misconfig_on_aierror(user_client):
 
 def test_ai_build_audits_misconfig_on_aierror(user_client):
     with (
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.ai.has_permission", return_value=True),
         patch("nx_lib.security.has_permission", return_value=True),
         patch(
-            "nx_lib.views.reporting._ai_config",
+            "nx_lib.views.reporting.ai._ai_config",
             return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
         ),
-        patch("nx_lib.views.reporting._ai_daily_limit", return_value=0),
-        patch("nx_lib.views.reporting._ai_catalog_text", return_value="CATALOG"),
+        patch("nx_lib.views.reporting.ai._ai_daily_limit", return_value=0),
+        patch("nx_lib.views.reporting.ai._ai_catalog_text", return_value="CATALOG"),
         patch(
-            "nx_lib.views.reporting.ai_ask_definition",
+            "nx_lib.views.reporting.ai.ai_ask_definition",
             side_effect=AiError("Azure OpenAI requires endpoint and deployment"),
         ),
-        patch("nx_lib.views.reporting._audit_ai") as audit,
+        patch("nx_lib.views.reporting.ai._audit_ai") as audit,
     ):
         resp = user_client.post("/api/reporting/ai/build", json={"question": "x"})
     assert resp.status_code == 503
@@ -354,14 +357,14 @@ def _agent_patches(perm=True, sql_perm=True, explain_perm=False, run_perm=True):
 
     return [
         patch("nx_lib.security.has_permission", side_effect=_has),
-        patch("nx_lib.views.reporting.has_permission", side_effect=_has),
+        patch("nx_lib.views.reporting.ai.has_permission", side_effect=_has),
         patch(
-            "nx_lib.views.reporting._ai_config",
+            "nx_lib.views.reporting.ai._ai_config",
             return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
         ),
-        patch("nx_lib.views.reporting._ai_daily_limit", return_value=0),
-        patch("nx_lib.views.reporting._ai_catalog_text", return_value="SOURCE gen_pdqm ..."),
-        patch("nx_lib.views.reporting._ai_schema_text", return_value="TABLE dbo.Foo(Id int)"),
+        patch("nx_lib.views.reporting.ai._ai_daily_limit", return_value=0),
+        patch("nx_lib.views.reporting.ai._ai_catalog_text", return_value="SOURCE gen_pdqm ..."),
+        patch("nx_lib.views.reporting.ai._ai_schema_text", return_value="TABLE dbo.Foo(Id int)"),
     ]
 
 
@@ -370,32 +373,33 @@ def test_ai_agent_grounding_states_todays_date(user_client):
         for p in _agent_patches():
             es.enter_context(p)
         loop = es.enter_context(
-            patch("nx_lib.views.reporting.ask_agentic", return_value=_agentic_result())
+            patch("nx_lib.views.reporting.ai.ask_agentic", return_value=_agentic_result())
         )
         es.enter_context(
             patch(
-                "nx_lib.views.reporting._validate_definition_for_user",
+                "nx_lib.views.reporting.ai._validate_definition_for_user",
                 return_value=(True, None),
             )
         )
-        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        es.enter_context(patch("nx_lib.views.reporting.ai._audit_ai"))
         user_client.post("/api/reporting/ai/agent", json={"question": "docs last month"})
     initial = loop.call_args.args[0]
     assert initial.startswith(f"Today's date is {datetime.date.today().isoformat()}")
 
 
 def test_ai_agent_requires_use_permission(user_client):
-    with patch("nx_lib.views.reporting.has_permission", return_value=False):
+    with patch("nx_lib.views.reporting.ai.has_permission", return_value=False):
         resp = user_client.post("/api/reporting/ai/agent", json={"question": "hi"})
     assert resp.status_code == 403
 
 
 def test_ai_agent_503_when_provider_unconfigured(user_client):
     with (
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.ai.has_permission", return_value=True),
         patch("nx_lib.security.has_permission", return_value=True),
         patch(
-            "nx_lib.views.reporting._ai_config", return_value={"provider": "none", "api_key": None}
+            "nx_lib.views.reporting.ai._ai_config",
+            return_value={"provider": "none", "api_key": None},
         ),
     ):
         resp = user_client.post("/api/reporting/ai/agent", json={"question": "hi"})
@@ -404,10 +408,10 @@ def test_ai_agent_503_when_provider_unconfigured(user_client):
 
 def test_ai_agent_rejects_empty_question(user_client):
     with (
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.ai.has_permission", return_value=True),
         patch("nx_lib.security.has_permission", return_value=True),
         patch(
-            "nx_lib.views.reporting._ai_config",
+            "nx_lib.views.reporting.ai._ai_config",
             return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
         ),
     ):
@@ -420,12 +424,14 @@ def test_ai_agent_happy_path_returns_answer_and_audits(user_client):
         for p in _agent_patches():
             es.enter_context(p)
         es.enter_context(
-            patch("nx_lib.views.reporting.ask_agentic", return_value=_agentic_result())
+            patch("nx_lib.views.reporting.ai.ask_agentic", return_value=_agentic_result())
         )
         es.enter_context(
-            patch("nx_lib.views.reporting._validate_definition_for_user", return_value=(True, None))
+            patch(
+                "nx_lib.views.reporting.ai._validate_definition_for_user", return_value=(True, None)
+            )
         )
-        audit = es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        audit = es.enter_context(patch("nx_lib.views.reporting.ai._audit_ai"))
         resp = user_client.post("/api/reporting/ai/agent", json={"question": "report by outcome"})
     assert resp.status_code == 200
     data = resp.get_json()
@@ -450,14 +456,16 @@ def test_ai_agent_extracts_definition_from_run_definition_call(user_client):
             es.enter_context(p)
         es.enter_context(
             patch(
-                "nx_lib.views.reporting.ask_agentic",
+                "nx_lib.views.reporting.ai.ask_agentic",
                 return_value=_agentic_result(tool_name="run_definition"),
             )
         )
         es.enter_context(
-            patch("nx_lib.views.reporting._validate_definition_for_user", return_value=(True, None))
+            patch(
+                "nx_lib.views.reporting.ai._validate_definition_for_user", return_value=(True, None)
+            )
         )
-        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        es.enter_context(patch("nx_lib.views.reporting.ai._audit_ai"))
         resp = user_client.post("/api/reporting/ai/agent", json={"question": "report by outcome"})
     assert resp.status_code == 200
     data = resp.get_json()
@@ -475,12 +483,14 @@ def test_ai_agent_empty_answer_gets_artifact_aware_fallback(user_client):
         for p in _agent_patches():
             es.enter_context(p)
         es.enter_context(
-            patch("nx_lib.views.reporting.ask_agentic", return_value=_agentic_result(answer=""))
+            patch("nx_lib.views.reporting.ai.ask_agentic", return_value=_agentic_result(answer=""))
         )
         es.enter_context(
-            patch("nx_lib.views.reporting._validate_definition_for_user", return_value=(True, None))
+            patch(
+                "nx_lib.views.reporting.ai._validate_definition_for_user", return_value=(True, None)
+            )
         )
-        audit = es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        audit = es.enter_context(patch("nx_lib.views.reporting.ai._audit_ai"))
         resp = user_client.post("/api/reporting/ai/agent", json={"question": "report by outcome"})
     assert resp.status_code == 200
     data = resp.get_json()
@@ -504,8 +514,8 @@ def test_ai_agent_empty_answer_no_artifacts_gets_generic_fallback(user_client):
     with ExitStack() as es:
         for p in _agent_patches():
             es.enter_context(p)
-        es.enter_context(patch("nx_lib.views.reporting.ask_agentic", return_value=bare))
-        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        es.enter_context(patch("nx_lib.views.reporting.ai.ask_agentic", return_value=bare))
+        es.enter_context(patch("nx_lib.views.reporting.ai._audit_ai"))
         resp = user_client.post("/api/reporting/ai/agent", json={"question": "anything"})
     assert resp.status_code == 200
     data = resp.get_json()
@@ -522,12 +532,14 @@ def test_ai_agent_caps_history_to_8_turns_and_12000_chars(user_client):
         for p in _agent_patches():
             es.enter_context(p)
         loop = es.enter_context(
-            patch("nx_lib.views.reporting.ask_agentic", return_value=_agentic_result())
+            patch("nx_lib.views.reporting.ai.ask_agentic", return_value=_agentic_result())
         )
         es.enter_context(
-            patch("nx_lib.views.reporting._validate_definition_for_user", return_value=(True, None))
+            patch(
+                "nx_lib.views.reporting.ai._validate_definition_for_user", return_value=(True, None)
+            )
         )
-        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        es.enter_context(patch("nx_lib.views.reporting.ai._audit_ai"))
         resp = user_client.post(
             "/api/reporting/ai/agent",
             json={"question": "report by outcome", "history": history},
@@ -559,8 +571,8 @@ def test_agent_history_keeps_long_artifact_context(admin_client):
     with ExitStack() as es:
         for p in _agent_patches():
             es.enter_context(p)
-        es.enter_context(patch("nx_lib.views.reporting.make_agent_step", return_value=fake_step))
-        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        es.enter_context(patch("nx_lib.views.reporting.ai.make_agent_step", return_value=fake_step))
+        es.enter_context(patch("nx_lib.views.reporting.ai._audit_ai"))
         resp = admin_client.post(
             "/api/reporting/ai/agent",
             json={"question": "show it as a chart", "history": history},
@@ -575,10 +587,10 @@ def test_agent_history_keeps_long_artifact_context(admin_client):
 
 def test_ai_agent_rejects_non_list_history(user_client):
     with (
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.ai.has_permission", return_value=True),
         patch("nx_lib.security.has_permission", return_value=True),
         patch(
-            "nx_lib.views.reporting._ai_config",
+            "nx_lib.views.reporting.ai._ai_config",
             return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
         ),
     ):
@@ -599,12 +611,14 @@ def test_ai_agent_drops_invalid_history_entries(user_client):
         for p in _agent_patches():
             es.enter_context(p)
         loop = es.enter_context(
-            patch("nx_lib.views.reporting.ask_agentic", return_value=_agentic_result())
+            patch("nx_lib.views.reporting.ai.ask_agentic", return_value=_agentic_result())
         )
         es.enter_context(
-            patch("nx_lib.views.reporting._validate_definition_for_user", return_value=(True, None))
+            patch(
+                "nx_lib.views.reporting.ai._validate_definition_for_user", return_value=(True, None)
+            )
         )
-        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        es.enter_context(patch("nx_lib.views.reporting.ai._audit_ai"))
         resp = user_client.post(
             "/api/reporting/ai/agent",
             json={"question": "report by outcome", "history": history},
@@ -616,16 +630,16 @@ def test_ai_agent_drops_invalid_history_entries(user_client):
 
 def test_ai_agent_429_when_daily_limit_reached(user_client):
     with (
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.ai.has_permission", return_value=True),
         patch("nx_lib.security.has_permission", return_value=True),
         patch(
-            "nx_lib.views.reporting._ai_config",
+            "nx_lib.views.reporting.ai._ai_config",
             return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
         ),
-        patch("nx_lib.views.reporting._ai_daily_limit", return_value=5),
-        patch("nx_lib.views.reporting._ai_asks_today", return_value=5),
-        patch("nx_lib.views.reporting.ask_agentic") as loop,
-        patch("nx_lib.views.reporting._audit_ai") as audit,
+        patch("nx_lib.views.reporting.ai._ai_daily_limit", return_value=5),
+        patch("nx_lib.views.reporting.ai._ai_asks_today", return_value=5),
+        patch("nx_lib.views.reporting.ai.ask_agentic") as loop,
+        patch("nx_lib.views.reporting.ai._audit_ai") as audit,
     ):
         resp = user_client.post("/api/reporting/ai/agent", json={"question": "x"})
     assert resp.status_code == 429
@@ -638,9 +652,9 @@ def test_ai_agent_audits_misconfig_on_aierror(user_client):
         for p in _agent_patches():
             es.enter_context(p)
         es.enter_context(
-            patch("nx_lib.views.reporting.ask_agentic", side_effect=AiError("bad provider"))
+            patch("nx_lib.views.reporting.ai.ask_agentic", side_effect=AiError("bad provider"))
         )
-        audit = es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        audit = es.enter_context(patch("nx_lib.views.reporting.ai._audit_ai"))
         resp = user_client.post("/api/reporting/ai/agent", json={"question": "x"})
     assert resp.status_code == 503
     audit.assert_called_once()
@@ -659,15 +673,17 @@ def test_ai_agent_binds_sql_tool_only_with_sql_perm(user_client):
         for p in _agent_patches(sql_perm=False):
             es.enter_context(p)
         es.enter_context(
-            patch("nx_lib.views.reporting.make_agent_step", side_effect=fake_make_step)
+            patch("nx_lib.views.reporting.ai.make_agent_step", side_effect=fake_make_step)
         )
         es.enter_context(
-            patch("nx_lib.views.reporting.ask_agentic", return_value=_agentic_result())
+            patch("nx_lib.views.reporting.ai.ask_agentic", return_value=_agentic_result())
         )
         es.enter_context(
-            patch("nx_lib.views.reporting._validate_definition_for_user", return_value=(True, None))
+            patch(
+                "nx_lib.views.reporting.ai._validate_definition_for_user", return_value=(True, None)
+            )
         )
-        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        es.enter_context(patch("nx_lib.views.reporting.ai._audit_ai"))
         resp = user_client.post("/api/reporting/ai/agent", json={"question": "x"})
     assert resp.status_code == 200
     assert "build_definition" in captured["tools"]
@@ -693,13 +709,15 @@ def test_ai_agent_binds_data_tools_with_explain_data_permission(user_client):
         for p in _agent_patches(explain_perm=True, run_perm=True):
             es.enter_context(p)
         es.enter_context(
-            patch("nx_lib.views.reporting.make_agent_step", side_effect=fake_make_step)
+            patch("nx_lib.views.reporting.ai.make_agent_step", side_effect=fake_make_step)
         )
-        es.enter_context(patch("nx_lib.views.reporting.ask_agentic", side_effect=fake_loop))
+        es.enter_context(patch("nx_lib.views.reporting.ai.ask_agentic", side_effect=fake_loop))
         es.enter_context(
-            patch("nx_lib.views.reporting._validate_definition_for_user", return_value=(True, None))
+            patch(
+                "nx_lib.views.reporting.ai._validate_definition_for_user", return_value=(True, None)
+            )
         )
-        audit = es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        audit = es.enter_context(patch("nx_lib.views.reporting.ai._audit_ai"))
         resp = user_client.post("/api/reporting/ai/agent", json={"question": "how many?"})
     assert resp.status_code == 200
     assert resp.get_json()["explainData"] is True
@@ -730,13 +748,15 @@ def test_ai_agent_no_data_tools_without_explain_data(user_client):
         for p in _agent_patches(explain_perm=False):
             es.enter_context(p)
         es.enter_context(
-            patch("nx_lib.views.reporting.make_agent_step", side_effect=fake_make_step)
+            patch("nx_lib.views.reporting.ai.make_agent_step", side_effect=fake_make_step)
         )
-        es.enter_context(patch("nx_lib.views.reporting.ask_agentic", side_effect=fake_loop))
+        es.enter_context(patch("nx_lib.views.reporting.ai.ask_agentic", side_effect=fake_loop))
         es.enter_context(
-            patch("nx_lib.views.reporting._validate_definition_for_user", return_value=(True, None))
+            patch(
+                "nx_lib.views.reporting.ai._validate_definition_for_user", return_value=(True, None)
+            )
         )
-        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        es.enter_context(patch("nx_lib.views.reporting.ai._audit_ai"))
         resp = user_client.post("/api/reporting/ai/agent", json={"question": "how many?"})
     assert resp.status_code == 200
     assert resp.get_json()["explainData"] is False
@@ -761,15 +781,17 @@ def test_ai_agent_explain_data_inert_without_sql_run(user_client):
         for p in _agent_patches(explain_perm=True, run_perm=False):
             es.enter_context(p)
         es.enter_context(
-            patch("nx_lib.views.reporting.make_agent_step", side_effect=fake_make_step)
+            patch("nx_lib.views.reporting.ai.make_agent_step", side_effect=fake_make_step)
         )
         es.enter_context(
-            patch("nx_lib.views.reporting.ask_agentic", return_value=_agentic_result())
+            patch("nx_lib.views.reporting.ai.ask_agentic", return_value=_agentic_result())
         )
         es.enter_context(
-            patch("nx_lib.views.reporting._validate_definition_for_user", return_value=(True, None))
+            patch(
+                "nx_lib.views.reporting.ai._validate_definition_for_user", return_value=(True, None)
+            )
         )
-        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        es.enter_context(patch("nx_lib.views.reporting.ai._audit_ai"))
         resp = user_client.post("/api/reporting/ai/agent", json={"question": "x"})
     assert resp.status_code == 200
     assert resp.get_json()["explainData"] is False
@@ -797,11 +819,13 @@ def test_ai_agent_keeps_data_tools_but_flags_builder_only_source(user_client):
         for p in _agent_patches(explain_perm=True, run_perm=True):
             es.enter_context(p)
         es.enter_context(
-            patch("nx_lib.views.reporting.make_agent_step", side_effect=fake_make_step)
+            patch("nx_lib.views.reporting.ai.make_agent_step", side_effect=fake_make_step)
         )
-        es.enter_context(patch("nx_lib.views.reporting.ask_agentic", side_effect=fake_loop))
+        es.enter_context(patch("nx_lib.views.reporting.ai.ask_agentic", side_effect=fake_loop))
         es.enter_context(
-            patch("nx_lib.views.reporting._validate_definition_for_user", return_value=(True, None))
+            patch(
+                "nx_lib.views.reporting.ai._validate_definition_for_user", return_value=(True, None)
+            )
         )
         es.enter_context(
             patch(
@@ -814,7 +838,7 @@ def test_ai_agent_keeps_data_tools_but_flags_builder_only_source(user_client):
                 },
             )
         )
-        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        es.enter_context(patch("nx_lib.views.reporting.ai._audit_ai"))
         resp = user_client.post(
             "/api/reporting/ai/agent", json={"question": "how many?", "source": "gen_pdqm"}
         )
@@ -842,11 +866,13 @@ def test_ai_agent_binds_data_tools_for_run_sql_able_source(user_client):
         for p in _agent_patches(explain_perm=True, run_perm=True):
             es.enter_context(p)
         es.enter_context(
-            patch("nx_lib.views.reporting.make_agent_step", side_effect=fake_make_step)
+            patch("nx_lib.views.reporting.ai.make_agent_step", side_effect=fake_make_step)
         )
-        es.enter_context(patch("nx_lib.views.reporting.ask_agentic", side_effect=fake_loop))
+        es.enter_context(patch("nx_lib.views.reporting.ai.ask_agentic", side_effect=fake_loop))
         es.enter_context(
-            patch("nx_lib.views.reporting._validate_definition_for_user", return_value=(True, None))
+            patch(
+                "nx_lib.views.reporting.ai._validate_definition_for_user", return_value=(True, None)
+            )
         )
         es.enter_context(
             patch(
@@ -859,7 +885,7 @@ def test_ai_agent_binds_data_tools_for_run_sql_able_source(user_client):
                 },
             )
         )
-        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        es.enter_context(patch("nx_lib.views.reporting.ai._audit_ai"))
         resp = user_client.post(
             "/api/reporting/ai/agent", json={"question": "how many?", "source": "docproc"}
         )
@@ -907,7 +933,7 @@ def test_validate_definition_coerces_table_source_labels_and_defaults():
         es.enter_context(
             patch("nx_lib.views.reporting._get_effective_source", return_value=_TABLE_SOURCE)
         )
-        es.enter_context(patch("nx_lib.views.reporting.has_permission", return_value=True))
+        es.enter_context(patch("nx_lib.views.reporting.ai.has_permission", return_value=True))
         ok, err = _validate_definition_for_user(defn)
 
     assert (ok, err) == (True, None)
@@ -960,11 +986,11 @@ def test_validate_definition_accepts_metrics_and_grain_draft():
         es.enter_context(
             patch("nx_lib.views.reporting._get_effective_source", return_value=docproc_source)
         )
-        es.enter_context(patch("nx_lib.views.reporting.has_permission", return_value=True))
-        es.enter_context(patch("nx_lib.views.reporting.get_locale", return_value="en"))
+        es.enter_context(patch("nx_lib.views.reporting.ai.has_permission", return_value=True))
+        es.enter_context(patch("nx_lib.views.reporting.ai.get_locale", return_value="en"))
         es.enter_context(
             patch(
-                "nx_lib.views.reporting.fetch_docprocessing_catalog",
+                "nx_lib.views.reporting.ai.fetch_docprocessing_catalog",
                 return_value=catalog,
             )
         )
@@ -993,19 +1019,19 @@ def test_ai_build_passes_today_to_drafter(user_client):
     )
     with (
         patch("nx_lib.security.has_permission", return_value=True),
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.ai.has_permission", return_value=True),
         patch(
-            "nx_lib.views.reporting._ai_config",
+            "nx_lib.views.reporting.ai._ai_config",
             return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
         ),
-        patch("nx_lib.views.reporting._ai_daily_limit", return_value=0),
-        patch("nx_lib.views.reporting._ai_catalog_text", return_value="CATALOG"),
+        patch("nx_lib.views.reporting.ai._ai_daily_limit", return_value=0),
+        patch("nx_lib.views.reporting.ai._ai_catalog_text", return_value="CATALOG"),
         patch(
-            "nx_lib.views.reporting._validate_definition_for_user",
+            "nx_lib.views.reporting.ai._validate_definition_for_user",
             return_value=(False, "no def"),
         ),
-        patch("nx_lib.views.reporting._audit_ai"),
-        patch("nx_lib.views.reporting.ai_ask_definition", return_value=stub) as drafter,
+        patch("nx_lib.views.reporting.ai._audit_ai"),
+        patch("nx_lib.views.reporting.ai.ai_ask_definition", return_value=stub) as drafter,
     ):
         resp = user_client.post("/api/reporting/ai/build", json={"question": "docs last month"})
     assert resp.status_code == 200
@@ -1040,10 +1066,10 @@ def test_validate_definition_zero_columns_with_metric_accepted():
         es.enter_context(
             patch("nx_lib.views.reporting._get_effective_source", return_value=docproc_source)
         )
-        es.enter_context(patch("nx_lib.views.reporting.has_permission", return_value=True))
-        es.enter_context(patch("nx_lib.views.reporting.get_locale", return_value="en"))
+        es.enter_context(patch("nx_lib.views.reporting.ai.has_permission", return_value=True))
+        es.enter_context(patch("nx_lib.views.reporting.ai.get_locale", return_value="en"))
         es.enter_context(
-            patch("nx_lib.views.reporting.fetch_docprocessing_catalog", return_value=[])
+            patch("nx_lib.views.reporting.ai.fetch_docprocessing_catalog", return_value=[])
         )
         es.enter_context(
             patch("nx_lib.views.reporting._allowed_processes", return_value=["acme.inv"])
@@ -1073,18 +1099,18 @@ def _build_patches():
     )
     return stub, [
         patch("nx_lib.security.has_permission", return_value=True),
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.ai.has_permission", return_value=True),
         patch(
-            "nx_lib.views.reporting._ai_config",
+            "nx_lib.views.reporting.ai._ai_config",
             return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
         ),
-        patch("nx_lib.views.reporting._ai_daily_limit", return_value=0),
-        patch("nx_lib.views.reporting._ai_catalog_text", return_value="CATALOG"),
+        patch("nx_lib.views.reporting.ai._ai_daily_limit", return_value=0),
+        patch("nx_lib.views.reporting.ai._ai_catalog_text", return_value="CATALOG"),
         patch(
-            "nx_lib.views.reporting._validate_definition_for_user",
+            "nx_lib.views.reporting.ai._validate_definition_for_user",
             return_value=(False, "no def"),
         ),
-        patch("nx_lib.views.reporting._audit_ai"),
+        patch("nx_lib.views.reporting.ai._audit_ai"),
     ]
 
 
@@ -1098,7 +1124,7 @@ def test_ai_build_passes_refine_context_to_drafter(user_client):
         patches[4],
         patches[5],
         patches[6],
-        patch("nx_lib.views.reporting.ai_ask_definition", return_value=stub) as drafter,
+        patch("nx_lib.views.reporting.ai.ai_ask_definition", return_value=stub) as drafter,
     ):
         resp = user_client.post(
             "/api/reporting/ai/build",
@@ -1123,7 +1149,7 @@ def test_ai_build_without_refine_context_passes_none(user_client):
         patches[4],
         patches[5],
         patches[6],
-        patch("nx_lib.views.reporting.ai_ask_definition", return_value=stub) as drafter,
+        patch("nx_lib.views.reporting.ai.ai_ask_definition", return_value=stub) as drafter,
     ):
         resp = user_client.post("/api/reporting/ai/build", json={"question": "q"})
     assert resp.status_code == 200
@@ -1147,7 +1173,7 @@ def test_ai_build_rejects_malformed_refine_context(user_client):
         patches[4],
         patches[5],
         patches[6],
-        patch("nx_lib.views.reporting.ai_ask_definition", return_value=stub),
+        patch("nx_lib.views.reporting.ai.ai_ask_definition", return_value=stub),
     ):
         for body in bad_bodies:
             resp = user_client.post("/api/reporting/ai/build", json=body)
@@ -1189,20 +1215,22 @@ def test_ai_build_drops_column_shadowing_distinct_metric(user_client):
     metrics = {"workitem_count": {"aggregation": "count_distinct", "base_field": "workitem_id"}}
     with (
         patch("nx_lib.security.has_permission", return_value=True),
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.ai.has_permission", return_value=True),
         patch(
-            "nx_lib.views.reporting._ai_config",
+            "nx_lib.views.reporting.ai._ai_config",
             return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
         ),
-        patch("nx_lib.views.reporting._ai_catalog_text", return_value="SOURCE docprocessing ..."),
         patch(
-            "nx_lib.views.reporting.ai_ask_definition",
+            "nx_lib.views.reporting.ai._ai_catalog_text", return_value="SOURCE docprocessing ..."
+        ),
+        patch(
+            "nx_lib.views.reporting.ai.ai_ask_definition",
             return_value=_def_result(definition=drafted, explanation="x"),
         ),
         patch("nx_lib.views.reporting._allowed_processes", return_value=["compass.01_Invoice_SAP"]),
-        patch("nx_lib.views.reporting.fetch_docprocessing_catalog", return_value=catalog),
+        patch("nx_lib.views.reporting.ai.fetch_docprocessing_catalog", return_value=catalog),
         patch("nx_lib.views.reporting._metrics_for_source", return_value=metrics),
-        patch("nx_lib.views.reporting._audit_ai"),
+        patch("nx_lib.views.reporting.ai._audit_ai"),
     ):
         resp = user_client.post(
             "/api/reporting/ai/build", json={"question": "distinct per process"}
@@ -1219,15 +1247,15 @@ def test_ai_build_drops_column_shadowing_distinct_metric(user_client):
 def test_ai_build_accepts_prior_definition_without_question(user_client):
     with (
         patch("nx_lib.security.has_permission", return_value=True),
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.ai.has_permission", return_value=True),
         patch(
-            "nx_lib.views.reporting._ai_config",
+            "nx_lib.views.reporting.ai._ai_config",
             return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
         ),
-        patch("nx_lib.views.reporting._ai_catalog_text", return_value="SOURCE gen_pdqm ..."),
-        patch("nx_lib.views.reporting.ai_ask_definition", return_value=_def_result()) as draft,
-        patch("nx_lib.views.reporting._validate_definition_for_user", return_value=(True, None)),
-        patch("nx_lib.views.reporting._audit_ai"),
+        patch("nx_lib.views.reporting.ai._ai_catalog_text", return_value="SOURCE gen_pdqm ..."),
+        patch("nx_lib.views.reporting.ai.ai_ask_definition", return_value=_def_result()) as draft,
+        patch("nx_lib.views.reporting.ai._validate_definition_for_user", return_value=(True, None)),
+        patch("nx_lib.views.reporting.ai._audit_ai"),
     ):
         resp = user_client.post(
             "/api/reporting/ai/build",
@@ -1288,13 +1316,14 @@ def test_ai_agent_tool_trace_error_is_humanized(user_client):
         for p in _agent_patches(explain_perm=True, run_perm=True):
             es.enter_context(p)
         es.enter_context(
-            patch("nx_lib.views.reporting.make_agent_step", return_value=lambda m: next(turns))
+            patch("nx_lib.views.reporting.ai.make_agent_step", return_value=lambda m: next(turns))
         )
         # Clears the auth/ack gates so this test stays focused on humanization,
         # not D-RUNSQL's gate behavior (covered separately below).
         es.enter_context(patch("nx_lib.views.reporting._has_acked", return_value=True))
+        es.enter_context(patch("nx_lib.views.reporting._authorize_sql_target", return_value=None))
         es.enter_context(patch("nx_lib.views.reporting._run_sql", side_effect=Exception(odbc_text)))
-        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        es.enter_context(patch("nx_lib.views.reporting.ai._audit_ai"))
         resp = user_client.post("/api/reporting/ai/agent", json={"question": "how many?"})
     assert resp.status_code == 200
     trace = resp.get_json()["toolTrace"]
@@ -1339,27 +1368,27 @@ def test_ai_agent_run_sql_blocks_without_target_permission(user_client):
 
     with ExitStack() as es:
         es.enter_context(patch("nx_lib.security.has_permission", side_effect=_has))
-        es.enter_context(patch("nx_lib.views.reporting.has_permission", side_effect=_has))
+        es.enter_context(patch("nx_lib.views.reporting.ai.has_permission", side_effect=_has))
         es.enter_context(
             patch(
-                "nx_lib.views.reporting._ai_config",
+                "nx_lib.views.reporting.ai._ai_config",
                 return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
             )
         )
-        es.enter_context(patch("nx_lib.views.reporting._ai_daily_limit", return_value=0))
+        es.enter_context(patch("nx_lib.views.reporting.ai._ai_daily_limit", return_value=0))
         es.enter_context(
-            patch("nx_lib.views.reporting._ai_catalog_text", return_value="SOURCE gen_pdqm ...")
+            patch("nx_lib.views.reporting.ai._ai_catalog_text", return_value="SOURCE gen_pdqm ...")
         )
         es.enter_context(
-            patch("nx_lib.views.reporting._ai_schema_text", return_value="TABLE dbo.Foo(Id int)")
+            patch("nx_lib.views.reporting.ai._ai_schema_text", return_value="TABLE dbo.Foo(Id int)")
         )
         es.enter_context(patch("nx_lib.views.reporting._has_acked", return_value=True))
         es.enter_context(
-            patch("nx_lib.views.reporting.make_agent_step", return_value=lambda m: next(turns))
+            patch("nx_lib.views.reporting.ai.make_agent_step", return_value=lambda m: next(turns))
         )
         run_sql_spy = es.enter_context(patch("nx_lib.views.reporting._run_sql"))
         audit_spy = es.enter_context(patch("nx_lib.views.reporting._audit_sql"))
-        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        es.enter_context(patch("nx_lib.views.reporting.ai._audit_ai"))
         resp = user_client.post("/api/reporting/ai/agent", json={"question": "octopus events?"})
 
     assert resp.status_code == 200  # never a raise-through 500
@@ -1400,11 +1429,11 @@ def test_ai_agent_run_sql_blocks_without_ack(user_client):
             es.enter_context(p)
         es.enter_context(patch("nx_lib.views.reporting._has_acked", return_value=False))
         es.enter_context(
-            patch("nx_lib.views.reporting.make_agent_step", return_value=lambda m: next(turns))
+            patch("nx_lib.views.reporting.ai.make_agent_step", return_value=lambda m: next(turns))
         )
         run_sql_spy = es.enter_context(patch("nx_lib.views.reporting._run_sql"))
         audit_spy = es.enter_context(patch("nx_lib.views.reporting._audit_sql"))
-        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        es.enter_context(patch("nx_lib.views.reporting.ai._audit_ai"))
         resp = user_client.post("/api/reporting/ai/agent", json={"question": "how many?"})
 
     assert resp.status_code == 200  # never a raise-through 500
@@ -1435,16 +1464,18 @@ def test_agent_grounding_names_run_sql_targets(user_client):
 
     with (
         patch("nx_lib.security.has_permission", return_value=True),
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.ai.has_permission", return_value=True),
         patch(
-            "nx_lib.views.reporting._ai_config",
+            "nx_lib.views.reporting.ai._ai_config",
             return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
         ),
-        patch("nx_lib.views.reporting._ai_catalog_text", return_value="SOURCE docprocessing ..."),
-        patch("nx_lib.views.reporting._ai_schema_text", return_value="TABLE dbo.Foo(Id int)"),
-        patch("nx_lib.views.reporting.make_agent_step", return_value=lambda m: None),
-        patch("nx_lib.views.reporting.ask_agentic", side_effect=_fake_agentic),
-        patch("nx_lib.views.reporting._audit_ai"),
+        patch(
+            "nx_lib.views.reporting.ai._ai_catalog_text", return_value="SOURCE docprocessing ..."
+        ),
+        patch("nx_lib.views.reporting.ai._ai_schema_text", return_value="TABLE dbo.Foo(Id int)"),
+        patch("nx_lib.views.reporting.ai.make_agent_step", return_value=lambda m: None),
+        patch("nx_lib.views.reporting.ai.ask_agentic", side_effect=_fake_agentic),
+        patch("nx_lib.views.reporting.ai._audit_ai"),
     ):
         resp = user_client.post("/api/reporting/ai/agent", json={"question": "how many?"})
     assert resp.status_code == 200
@@ -1477,22 +1508,22 @@ def test_ai_caption_requires_explain_data_permission(user_client):
     # noperm@test.local (the user_client fixture) holds no reporting.* grants at
     # all, so the decorator's real has_permission check already denies this —
     # the explicit patch just matches the sibling ai/agent 403 test's shape.
-    with patch("nx_lib.views.reporting.has_permission", return_value=False):
+    with patch("nx_lib.views.reporting.ai.has_permission", return_value=False):
         resp = user_client.post("/api/reporting/ai/caption", json=_CAPTION_BODY)
     assert resp.status_code == 403
 
 
 def test_ai_caption_happy_path_returns_caption_and_audits(user_client):
     with (
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.ai.has_permission", return_value=True),
         patch("nx_lib.security.has_permission", return_value=True),
         patch(
-            "nx_lib.views.reporting._ai_config",
+            "nx_lib.views.reporting.ai._ai_config",
             return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
         ),
-        patch("nx_lib.views.reporting._ai_daily_limit", return_value=0),
-        patch("nx_lib.views.reporting.ai_caption", return_value=_caption_result()) as cap,
-        patch("nx_lib.views.reporting._audit_ai") as audit,
+        patch("nx_lib.views.reporting.ai._ai_daily_limit", return_value=0),
+        patch("nx_lib.views.reporting.ai.ai_caption", return_value=_caption_result()) as cap,
+        patch("nx_lib.views.reporting.ai._audit_ai") as audit,
     ):
         resp = user_client.post("/api/reporting/ai/caption", json=_CAPTION_BODY)
     assert resp.status_code == 200
@@ -1506,15 +1537,15 @@ def test_ai_caption_happy_path_returns_caption_and_audits(user_client):
 
 def test_ai_caption_502_on_provider_error(user_client):
     with (
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.ai.has_permission", return_value=True),
         patch("nx_lib.security.has_permission", return_value=True),
         patch(
-            "nx_lib.views.reporting._ai_config",
+            "nx_lib.views.reporting.ai._ai_config",
             return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
         ),
-        patch("nx_lib.views.reporting._ai_daily_limit", return_value=0),
-        patch("nx_lib.views.reporting.ai_caption", side_effect=RuntimeError("boom")),
-        patch("nx_lib.views.reporting._audit_ai") as audit,
+        patch("nx_lib.views.reporting.ai._ai_daily_limit", return_value=0),
+        patch("nx_lib.views.reporting.ai.ai_caption", side_effect=RuntimeError("boom")),
+        patch("nx_lib.views.reporting.ai._audit_ai") as audit,
     ):
         resp = user_client.post("/api/reporting/ai/caption", json=_CAPTION_BODY)
     assert resp.status_code == 502
@@ -1526,16 +1557,16 @@ def test_ai_caption_502_on_provider_error(user_client):
 
 def test_ai_caption_429_when_daily_limit_reached(user_client):
     with (
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.ai.has_permission", return_value=True),
         patch("nx_lib.security.has_permission", return_value=True),
         patch(
-            "nx_lib.views.reporting._ai_config",
+            "nx_lib.views.reporting.ai._ai_config",
             return_value={"provider": "anthropic", "api_key": "k", "model": "m"},
         ),
-        patch("nx_lib.views.reporting._ai_daily_limit", return_value=5),
-        patch("nx_lib.views.reporting._ai_asks_today", return_value=5),
-        patch("nx_lib.views.reporting.ai_caption") as cap,
-        patch("nx_lib.views.reporting._audit_ai") as audit,
+        patch("nx_lib.views.reporting.ai._ai_daily_limit", return_value=5),
+        patch("nx_lib.views.reporting.ai._ai_asks_today", return_value=5),
+        patch("nx_lib.views.reporting.ai.ai_caption") as cap,
+        patch("nx_lib.views.reporting.ai._audit_ai") as audit,
     ):
         resp = user_client.post("/api/reporting/ai/caption", json=_CAPTION_BODY)
     assert resp.status_code == 429
@@ -1559,15 +1590,15 @@ def test_ai_agent_streams_progress_then_done(user_client):
         for p in _agent_patches():
             es.enter_context(p)
         es.enter_context(
-            patch("nx_lib.views.reporting.ask_agentic_iter", return_value=iter(events))
+            patch("nx_lib.views.reporting.ai.ask_agentic_iter", return_value=iter(events))
         )
         es.enter_context(
             patch(
-                "nx_lib.views.reporting._validate_definition_for_user",
+                "nx_lib.views.reporting.ai._validate_definition_for_user",
                 return_value=(True, None),
             )
         )
-        audit = es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        audit = es.enter_context(patch("nx_lib.views.reporting.ai._audit_ai"))
         resp = user_client.post(
             "/api/reporting/ai/agent", json={"question": "docs last month", "stream": True}
         )
@@ -1595,8 +1626,8 @@ def test_ai_agent_stream_reports_provider_failure_in_the_done_line(user_client):
     with ExitStack() as es:
         for p in _agent_patches():
             es.enter_context(p)
-        es.enter_context(patch("nx_lib.views.reporting.ask_agentic_iter", side_effect=blow_up))
-        audit = es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        es.enter_context(patch("nx_lib.views.reporting.ai.ask_agentic_iter", side_effect=blow_up))
+        audit = es.enter_context(patch("nx_lib.views.reporting.ai._audit_ai"))
         resp = user_client.post(
             "/api/reporting/ai/agent", json={"question": "boom", "stream": True}
         )
@@ -1615,15 +1646,15 @@ def test_ai_agent_without_stream_flag_still_returns_plain_json(user_client):
         for p in _agent_patches():
             es.enter_context(p)
         es.enter_context(
-            patch("nx_lib.views.reporting.ask_agentic", return_value=_agentic_result())
+            patch("nx_lib.views.reporting.ai.ask_agentic", return_value=_agentic_result())
         )
         es.enter_context(
             patch(
-                "nx_lib.views.reporting._validate_definition_for_user",
+                "nx_lib.views.reporting.ai._validate_definition_for_user",
                 return_value=(True, None),
             )
         )
-        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        es.enter_context(patch("nx_lib.views.reporting.ai._audit_ai"))
         resp = user_client.post("/api/reporting/ai/agent", json={"question": "docs"})
     assert resp.mimetype == "application/json"
     assert resp.get_json()["answer"] == "Built a report by outcome."
@@ -1649,11 +1680,11 @@ def test_ai_agent_can_continue_when_stopped_on_max_turns(user_client):
             es.enter_context(p)
         es.enter_context(
             patch(
-                "nx_lib.views.reporting.ask_agentic",
+                "nx_lib.views.reporting.ai.ask_agentic",
                 return_value=_stopped_result("max_turns"),
             )
         )
-        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        es.enter_context(patch("nx_lib.views.reporting.ai._audit_ai"))
         resp = user_client.post("/api/reporting/ai/agent", json={"question": "hard question"})
     data = resp.get_json()
     assert data["stoppedReason"] == "max_turns"
@@ -1666,15 +1697,15 @@ def test_ai_agent_cannot_continue_when_stopped_on_final(user_client):
         for p in _agent_patches():
             es.enter_context(p)
         es.enter_context(
-            patch("nx_lib.views.reporting.ask_agentic", return_value=_agentic_result())
+            patch("nx_lib.views.reporting.ai.ask_agentic", return_value=_agentic_result())
         )
         es.enter_context(
             patch(
-                "nx_lib.views.reporting._validate_definition_for_user",
+                "nx_lib.views.reporting.ai._validate_definition_for_user",
                 return_value=(True, None),
             )
         )
-        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        es.enter_context(patch("nx_lib.views.reporting.ai._audit_ai"))
         resp = user_client.post("/api/reporting/ai/agent", json={"question": "easy question"})
     data = resp.get_json()
     assert data["stoppedReason"] == "final"
@@ -1689,11 +1720,11 @@ def test_ai_agent_continue_attempt_raises_turn_and_budget_caps(user_client):
             es.enter_context(p)
         ask = es.enter_context(
             patch(
-                "nx_lib.views.reporting.ask_agentic",
+                "nx_lib.views.reporting.ai.ask_agentic",
                 return_value=_stopped_result("budget"),
             )
         )
-        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        es.enter_context(patch("nx_lib.views.reporting.ai._audit_ai"))
         resp = user_client.post(
             "/api/reporting/ai/agent",
             json={"question": "hard question", "continueAttempt": 1},
@@ -1713,11 +1744,11 @@ def test_ai_agent_continue_attempt_clamped_to_ceiling(user_client):
             es.enter_context(p)
         es.enter_context(
             patch(
-                "nx_lib.views.reporting.ask_agentic",
+                "nx_lib.views.reporting.ai.ask_agentic",
                 return_value=_stopped_result("max_turns"),
             )
         )
-        es.enter_context(patch("nx_lib.views.reporting._audit_ai"))
+        es.enter_context(patch("nx_lib.views.reporting.ai._audit_ai"))
         resp = user_client.post(
             "/api/reporting/ai/agent",
             json={"question": "hard question", "continueAttempt": 999},
