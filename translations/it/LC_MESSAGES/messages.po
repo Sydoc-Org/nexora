@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-01 12:16+0200\n"
+"POT-Creation-Date: 2026-09-01 14:52+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -1117,6 +1117,49 @@ msgstr "Questa richiesta non è valida."
 msgid "Could not load values"
 msgstr "Impossibile caricare i valori"
 
+#: nx_lib/views/tenant.py:212
+#, python-format
+msgid "Missing value for %(field)s."
+msgstr "Valore mancante per %(field)s."
+
+#: nx_lib/views/tenant.py:219
+#, python-format
+msgid "%(field)s must be a valid date (YYYY-MM-DD)."
+msgstr "%(field)s deve essere una data valida (AAAA-MM-GG)."
+
+#: nx_lib/views/tenant.py:226
+#, python-format
+msgid "%(field)s must be numeric."
+msgstr "%(field)s deve essere numerico."
+
+#: nx_lib/views/admin/clients.py:154 nx_lib/views/admin/organizations.py:93
+#: nx_lib/views/admin/processes.py:383 nx_lib/views/admin/processes.py:536
+#: nx_lib/views/admin/users.py:116 nx_lib/views/tenant.py:369
+#: nx_lib/views/tenant.py:430 nx_lib/views/tenant.py:472
+#: nx_lib/views/tenant.py:504 nx_lib/views/tenant.py:540
+msgid "An unexpected error occurred."
+msgstr "Si è verificato un errore imprevisto."
+
+#: nx_lib/views/tenant.py:411 nx_lib/views/tenant.py:450
+msgid "This entity has no writable fields."
+msgstr "Questa entità non ha campi modificabili."
+
+#: nx_lib/views/tenant.py:427
+msgid "Record created successfully."
+msgstr "Record creato con successo."
+
+#: nx_lib/views/tenant.py:468 nx_lib/views/tenant.py:500
+msgid "Record not found."
+msgstr "Record non trovato."
+
+#: nx_lib/views/tenant.py:469
+msgid "Record updated successfully."
+msgstr "Record aggiornato con successo."
+
+#: nx_lib/views/tenant.py:501
+msgid "Record deleted successfully."
+msgstr "Record eliminato con successo."
+
 #: nx_lib/views/workitems.py:1100 nx_lib/views/workitems.py:1244
 msgid "Could not fetch values"
 msgstr "Impossibile recuperare i valori"
@@ -1304,12 +1347,6 @@ msgstr "Cliente creato con successo."
 #: nx_lib/views/admin/clients.py:151
 msgid "Client code already exists."
 msgstr "Il codice cliente esiste già."
-
-#: nx_lib/views/admin/clients.py:154 nx_lib/views/admin/organizations.py:93
-#: nx_lib/views/admin/processes.py:383 nx_lib/views/admin/processes.py:536
-#: nx_lib/views/admin/users.py:116
-msgid "An unexpected error occurred."
-msgstr "Si è verificato un errore imprevisto."
 
 #: nx_lib/views/admin/clients.py:195 nx_lib/views/admin/clients.py:240
 msgid "Client not found."
@@ -9078,6 +9115,24 @@ msgid "Are you sure you want to delete this user? This action cannot be undone."
 msgstr ""
 "Sei sicuro di voler eliminare questo utente? Questa azione non può essere"
 " annullata."
+
+#: templates/tenant/page.html:8
+msgid "Tenant page"
+msgstr "Pagina tenant"
+
+#: templates/tenant/page.html:23
+msgid "Tenant page unavailable"
+msgstr "Pagina tenant non disponibile"
+
+#: templates/tenant/page.html:26
+msgid "This tenant page is temporarily unavailable"
+msgstr "Questa pagina tenant è temporaneamente non disponibile"
+
+#: templates/tenant/page.html:28
+msgid ""
+"The tenant configuration could not be loaded. Try again shortly; if this "
+"persists, contact an administrator."
+msgstr "Non è stato possibile caricare la configurazione del tenant. Riprova a breve; se il problema persiste, contatta un amministratore."
 
 #~ msgid ""
 #~ "Your key's process scope, echoed for "
