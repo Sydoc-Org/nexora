@@ -428,11 +428,21 @@ def test_provision_tenant_permissions_inserts_view_and_edit_idempotently():
 def test_provision_tenant_permissions_never_commits():
     """Caller owns the transaction (commit/rollback) -- this only executes the
     two INSERTs on the cursor it's given, same as the process-source idiom it
-    mirrors, where the surrounding view calls conn.commit() itself afterwards."""
+    mirrors, where the surrounding view calls conn.commit() itself afterwards.
+
+    Asserts against the actual cursor passed in (not an unrelated conn mock
+    the function never touches) -- a bare MagicMock exposes .commit()/
+    .rollback() too, so this is a real signal: it fails if
+    provision_tenant_permissions ever calls anything but execute() on the
+    object it was actually given."""
     cursor = MagicMock()
-    conn = MagicMock()
-    conn.cursor.return_value = cursor
 
     tr.provision_tenant_permissions(cursor, "acme")
 
-    conn.commit.assert_not_called()
+    cursor.commit.assert_not_called()
+    cursor.rollback.assert_not_called()
+    called_methods = {call[0] for call in cursor.method_calls}
+    assert called_methods == {"execute"}, (
+        f"provision_tenant_permissions called {called_methods} on its cursor -- "
+        f"expected only execute()"
+    )

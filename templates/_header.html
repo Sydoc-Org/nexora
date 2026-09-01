@@ -391,7 +391,7 @@
                open/closed per group under a localStorage key derived from
                the group's own id, the same way generali's own key does. #}
             {% for t in tenant_nav %}
-            {% set ns = namespace(active=active_page.startswith('tenant_' ~ t.code ~ '_')) %}
+            {% set ns = namespace(active=(active_page or '').startswith('tenant_' ~ t.code ~ '_')) %}
             {% for p in t.pages if p.page_type == 'custom' and p.endpoint and active_page == p.endpoint %}
             {% set ns.active = true %}
             {% endfor %}
