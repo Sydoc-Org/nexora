@@ -345,7 +345,7 @@ def _get_workitems_data(args, export_all=False, scope=None):
         args,
         scope,
         export_all=export_all,
-        valid_db_columns=get_valid_search_columns(),
+        valid_db_columns_fn=get_valid_search_columns,
         activity_ignore_map=get_activity_instances_to_ignore(),
         engine_statistics_db=engine_statistics_db,
         engine_ms02_docfields_pg=engine_ms02_docfields_pg,

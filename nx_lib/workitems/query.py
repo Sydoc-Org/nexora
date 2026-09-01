@@ -73,7 +73,7 @@ def get_workitems_data(
     scope,
     *,
     export_all,
-    valid_db_columns,
+    valid_db_columns_fn,
     activity_ignore_map,
     engine_statistics_db,
     engine_ms02_docfields_pg,
@@ -146,6 +146,11 @@ def get_workitems_data(
     ms02_docfield_ids = None
 
     if scope["can_docfields"] and target_processes:
+        # Lazy on purpose (#98 phase 2/3 gap fix): a mapping_config registry
+        # read only when a doc-field search is actually possible for this
+        # request, not on every list/export call (including every external
+        # API hit) regardless of whether doc-field search is even in play.
+        valid_db_columns = valid_db_columns_fn()
         blocked_docfields = scope["sensitive_blocked"]
 
         # One registry read per leg (#98 phase-3 perf) instead of one SearchConfig
