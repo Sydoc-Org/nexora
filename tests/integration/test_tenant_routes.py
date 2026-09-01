@@ -195,6 +195,145 @@ def test_tenant_page_renders_unavailable_state_when_registry_none(user_client, m
 
     assert resp.status_code == 200
     assert b"tenant-page-unavailable" in resp.data
+    # The #191 shim (templates/js/_tenant_page_js.html) is only ever included
+    # from the available branch -- it dereferences entity/page/fields, which
+    # are None/[] here. Never even attempted for the unavailable state.
+    assert b"NX_TENANT" not in resp.data
+
+
+# --------------------------------------------------- tenant_page rendering --
+
+
+def test_tenant_page_renders_text_filter_input_for_category_field(user_client, monkeypatch):
+    monkeypatch.setattr(tv, "has_permission", lambda code: True)
+    _stub_registry(
+        monkeypatch,
+        tenant=_tenant(),
+        pages=[_page()],
+        entity=_entity(),
+        fields=[_field(column="Status", semantic_role="category")],
+    )
+
+    resp = user_client.get(f"/t/{TENANT_CODE}/dossiers")
+
+    assert resp.status_code == 200
+    assert b'data-testid="tenant-filter-bar"' in resp.data
+    assert b'data-testid="tenant-filter-Status"' in resp.data
+    assert b'data-filter="filter_Status"' in resp.data
+
+
+def test_tenant_page_renders_date_range_filter_for_first_date_field_only(user_client, monkeypatch):
+    monkeypatch.setattr(tv, "has_permission", lambda code: True)
+    _stub_registry(
+        monkeypatch,
+        tenant=_tenant(),
+        pages=[_page()],
+        entity=_entity(),
+        fields=[
+            _field(column="DueDate", semantic_role="date"),
+            _field(column="ClosedDate", semantic_role="date"),
+        ],
+    )
+
+    resp = user_client.get(f"/t/{TENANT_CODE}/dossiers")
+
+    assert resp.status_code == 200
+    assert b'data-filter="filter_DueDate_from"' in resp.data
+    assert b'data-filter="filter_DueDate_to"' in resp.data
+    # Only the first date-role field gets a range filter, per the brief.
+    assert b"ClosedDate_from" not in resp.data
+    assert b"ClosedDate_to" not in resp.data
+
+
+def test_tenant_page_hides_filter_row_for_non_filterable_fields(user_client, monkeypatch):
+    monkeypatch.setattr(tv, "has_permission", lambda code: True)
+    _stub_registry(
+        monkeypatch,
+        tenant=_tenant(),
+        pages=[_page()],
+        entity=_entity(),
+        fields=[_field(column="Amount", semantic_role="money")],
+    )
+
+    resp = user_client.get(f"/t/{TENANT_CODE}/dossiers")
+
+    assert resp.status_code == 200
+    assert b'data-testid="tenant-filter-bar"' not in resp.data
+
+
+def test_tenant_page_renders_pagination_and_export_controls(user_client, monkeypatch):
+    monkeypatch.setattr(tv, "has_permission", lambda code: True)
+    _stub_registry(
+        monkeypatch,
+        tenant=_tenant(),
+        pages=[_page()],
+        entity=_entity(),
+        fields=[_field(column="Status")],
+    )
+
+    resp = user_client.get(f"/t/{TENANT_CODE}/dossiers")
+
+    assert resp.status_code == 200
+    assert b'data-testid="tenant-page-prev"' in resp.data
+    assert b'data-testid="tenant-page-next"' in resp.data
+    assert b'data-testid="tenant-page-info"' in resp.data
+    assert b'data-testid="admin-helpers-page-action-tenant-export"' in resp.data
+
+
+def test_tenant_page_renders_crud_affordances_when_can_edit(user_client, monkeypatch):
+    monkeypatch.setattr(tv, "has_permission", lambda code: True)
+    _stub_registry(
+        monkeypatch,
+        tenant=_tenant(),
+        pages=[_page(page_type="crud")],
+        entity=_entity(),
+        fields=[_field(column="Status")],
+    )
+
+    resp = user_client.get(f"/t/{TENANT_CODE}/dossiers")
+
+    assert resp.status_code == 200
+    assert b'data-testid="admin-helpers-page-action-tenant-add"' in resp.data
+    assert b'data-testid="tenant-record-modal"' in resp.data
+    assert b'data-testid="tenant-record-field-Status"' in resp.data
+
+
+def test_tenant_page_hides_crud_affordances_for_list_page_type(user_client, monkeypatch):
+    monkeypatch.setattr(tv, "has_permission", lambda code: True)
+    _stub_registry(
+        monkeypatch,
+        tenant=_tenant(),
+        pages=[_page(page_type="list")],
+        entity=_entity(),
+        fields=[_field(column="Status")],
+    )
+
+    resp = user_client.get(f"/t/{TENANT_CODE}/dossiers")
+
+    assert resp.status_code == 200
+    assert b'data-testid="admin-helpers-page-action-tenant-add"' not in resp.data
+    assert b'data-testid="tenant-record-modal"' not in resp.data
+
+
+def test_tenant_page_hides_crud_affordances_without_edit_permission(user_client, monkeypatch):
+    # View allowed, edit denied -- can_edit is False so the Add button/modal
+    # must not render even though the page itself is a crud page.
+    monkeypatch.setattr(tv, "has_permission", lambda code: code.endswith(".view"))
+    _stub_registry(
+        monkeypatch,
+        tenant=_tenant(),
+        pages=[_page(page_type="crud")],
+        entity=_entity(),
+        fields=[_field(column="Status")],
+    )
+
+    resp = user_client.get(f"/t/{TENANT_CODE}/dossiers")
+
+    assert resp.status_code == 200
+    assert b'data-testid="admin-helpers-page-action-tenant-add"' not in resp.data
+    assert b'data-testid="tenant-record-modal"' not in resp.data
+    # Export stays available to any viewer, regardless of edit rights.
+    assert b'data-testid="admin-helpers-page-action-tenant-export"' in resp.data
 
 
 def test_custom_page_redirects_to_layout_endpoint(user_client, monkeypatch):

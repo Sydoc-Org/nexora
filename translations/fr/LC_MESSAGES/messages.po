@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-01 14:52+0200\n"
+"POT-Creation-Date: 2026-09-01 15:30+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -1129,46 +1129,46 @@ msgstr "Cette requête n'est pas valide."
 msgid "Could not load values"
 msgstr "Impossible de charger les valeurs"
 
-#: nx_lib/views/tenant.py:212
+#: nx_lib/views/tenant.py:231
 #, python-format
 msgid "Missing value for %(field)s."
 msgstr "Valeur manquante pour %(field)s."
 
-#: nx_lib/views/tenant.py:219
+#: nx_lib/views/tenant.py:238
 #, python-format
 msgid "%(field)s must be a valid date (YYYY-MM-DD)."
 msgstr "%(field)s doit être une date valide (AAAA-MM-JJ)."
 
-#: nx_lib/views/tenant.py:226
+#: nx_lib/views/tenant.py:245
 #, python-format
 msgid "%(field)s must be numeric."
 msgstr "%(field)s doit être numérique."
 
 #: nx_lib/views/admin/clients.py:154 nx_lib/views/admin/organizations.py:93
 #: nx_lib/views/admin/processes.py:383 nx_lib/views/admin/processes.py:536
-#: nx_lib/views/admin/users.py:116 nx_lib/views/tenant.py:369
-#: nx_lib/views/tenant.py:430 nx_lib/views/tenant.py:472
-#: nx_lib/views/tenant.py:504 nx_lib/views/tenant.py:540
+#: nx_lib/views/admin/users.py:116 nx_lib/views/tenant.py:391
+#: nx_lib/views/tenant.py:455 nx_lib/views/tenant.py:500
+#: nx_lib/views/tenant.py:535 nx_lib/views/tenant.py:574
 msgid "An unexpected error occurred."
 msgstr "Une erreur inattendue s'est produite."
 
-#: nx_lib/views/tenant.py:411 nx_lib/views/tenant.py:450
+#: nx_lib/views/tenant.py:437 nx_lib/views/tenant.py:479
 msgid "This entity has no writable fields."
 msgstr "Cette entité n'a aucun champ modifiable."
 
-#: nx_lib/views/tenant.py:427
+#: nx_lib/views/tenant.py:452
 msgid "Record created successfully."
 msgstr "Enregistrement créé avec succès."
 
-#: nx_lib/views/tenant.py:468 nx_lib/views/tenant.py:500
+#: nx_lib/views/tenant.py:496 nx_lib/views/tenant.py:531
 msgid "Record not found."
 msgstr "Enregistrement introuvable."
 
-#: nx_lib/views/tenant.py:469
+#: nx_lib/views/tenant.py:497
 msgid "Record updated successfully."
 msgstr "Enregistrement mis à jour avec succès."
 
-#: nx_lib/views/tenant.py:501
+#: nx_lib/views/tenant.py:532
 msgid "Record deleted successfully."
 msgstr "Enregistrement supprimé avec succès."
 
@@ -2404,6 +2404,7 @@ msgstr "Excel"
 
 #: templates/_reporting_simple.html:174
 #: templates/js/_reporting_dashboard_js.html:10 templates/reporting.html:412
+#: templates/tenant/page.html:43
 msgid "Export"
 msgstr "Exporter"
 
@@ -2416,7 +2417,7 @@ msgstr "Exporter"
 #: templates/generali_reporting.html:316
 #: templates/js/_generali_reporting_js.html:766 templates/reporting.html:402
 #: templates/reporting.html:602 templates/reporting_metrics.html:77
-#: templates/reporting_sources.html:88
+#: templates/reporting_sources.html:88 templates/tenant/page.html:124
 msgid "Save"
 msgstr "Enregistrer"
 
@@ -3859,7 +3860,7 @@ msgstr "Enregistré à"
 #: templates/generali_additionalservices.html:167
 #: templates/generali_baseservices.html:141 templates/generali_pdqm.html:165
 #: templates/generali_projectmanagement.html:129
-#: templates/generali_reporting.html:168
+#: templates/generali_reporting.html:168 templates/tenant/page.html:81
 msgid "Actions"
 msgstr "Actions"
 
@@ -3953,7 +3954,8 @@ msgstr "Effort (heures)"
 #: templates/generali_reporting.html:337
 #: templates/js/_reporting_dashboard_js.html:23 templates/reporting.html:491
 #: templates/reporting.html:588 templates/reporting.html:601
-#: templates/workitems_overview.html:501 templates/workitems_overview.html:597
+#: templates/tenant/page.html:123 templates/workitems_overview.html:501
+#: templates/workitems_overview.html:597
 msgid "Cancel"
 msgstr "Annuler"
 
@@ -4005,6 +4007,7 @@ msgstr "Cette action est irréversible."
 #: templates/js/_generali_reporting_js.html:823
 #: templates/js/_reporting_metrics_js.html:52
 #: templates/js/_reporting_sources_js.html:40
+#: templates/js/_tenant_page_js.html:29
 #: templates/js/admin/_access_control_js.html:649
 #: templates/js/admin/_maintenance_js.html:132
 #: templates/js/admin/_organizations_js.html:80
@@ -4739,7 +4742,7 @@ msgstr ""
 #: templates/admin/logs.html:108 templates/admin/user_detail.html:238
 #: templates/js/_generali_documents_js.html:274
 #: templates/js/_workitems_overview_js.html:1029
-#: templates/prepared_documents.html:234
+#: templates/prepared_documents.html:234 templates/tenant/page.html:90
 msgid "Previous"
 msgstr "Précédent"
 
@@ -4747,7 +4750,7 @@ msgstr "Précédent"
 #: templates/js/_generali_documents_js.html:278
 #: templates/js/_generali_reporting_js.html:262
 #: templates/js/_workitems_overview_js.html:1035
-#: templates/prepared_documents.html:240
+#: templates/prepared_documents.html:240 templates/tenant/page.html:91
 msgid "Next"
 msgstr "Suivant"
 
@@ -5190,7 +5193,7 @@ msgstr "Rechercher des personnes par nom ou e-mail…"
 msgid "Can edit"
 msgstr "Peut modifier"
 
-#: templates/reporting.html:518
+#: templates/reporting.html:518 templates/tenant/page.html:43
 msgid "Add"
 msgstr "Ajouter"
 
@@ -5924,6 +5927,7 @@ msgstr "Ajouter un profil"
 #: templates/js/_reporting_dashboard_js.html:7
 #: templates/js/_reporting_metrics_js.html:48
 #: templates/js/_reporting_sources_js.html:36
+#: templates/js/_tenant_page_js.html:28
 #: templates/js/admin/_access_control_js.html:646
 #: templates/js/admin/_maintenance_js.html:126
 #: templates/js/admin/_organizations_js.html:78
@@ -7215,7 +7219,7 @@ msgstr "Aucun document trouvé pour les critères sélectionnés."
 
 #: templates/js/_generali_documents_js.html:148
 #: templates/js/_reporting_dashboard_js.html:55
-#: templates/js/_reporting_schema_js.html:6
+#: templates/js/_reporting_schema_js.html:6 templates/tenant/page.html:88
 msgid "Loading…"
 msgstr "Chargement…"
 
@@ -8469,6 +8473,46 @@ msgstr "Lignes"
 msgid "Values"
 msgstr "Valeurs"
 
+#: templates/js/_tenant_page_js.html:22
+msgid "No records found."
+msgstr "Aucun enregistrement trouvé."
+
+#: templates/js/_tenant_page_js.html:23
+msgid "Could not load records."
+msgstr "Impossible de charger les enregistrements."
+
+#: templates/js/_tenant_page_js.html:24
+msgid "This tenant page is temporarily unavailable. Try again shortly."
+msgstr "Cette page tenant est temporairement indisponible. Réessayez sous peu."
+
+#: templates/js/_tenant_page_js.html:25
+msgid "Delete this record? This action cannot be undone."
+msgstr "Supprimer cet enregistrement ? Cette action est irréversible."
+
+#: templates/js/_tenant_page_js.html:26 templates/tenant/page.html:105
+msgid "Add record"
+msgstr "Ajouter un enregistrement"
+
+#: templates/js/_tenant_page_js.html:27
+msgid "Edit record"
+msgstr "Modifier l'enregistrement"
+
+#: templates/js/_tenant_page_js.html:30
+#, python-brace-format
+msgid "{start}-{end} of {total}"
+msgstr "{start}-{end} sur {total}"
+
+#: templates/js/_tenant_page_js.html:31 templates/js/admin/_clients_js.html:116
+#: templates/js/admin/_clients_js.html:170
+#: templates/js/admin/_organizations_js.html:128
+#: templates/js/admin/_organizations_js.html:182
+#: templates/js/admin/_organizations_js.html:339
+#: templates/js/admin/_processes_js.html:161
+#: templates/js/admin/_user_management_js.html:127
+#: templates/js/admin/_user_management_js.html:177
+msgid "An unexpected network error occurred."
+msgstr "Une erreur réseau inattendue s'est produite."
+
 #: templates/js/_workitem_detail_panel_js.html:10
 msgid "Click toggle button again to load media"
 msgstr "Cliquez à nouveau sur le bouton pour charger les médias"
@@ -8806,17 +8850,6 @@ msgstr "Modifier le client"
 #: templates/js/admin/_user_management_js.html:113
 msgid "You do not have permission to perform this action."
 msgstr "Vous n'avez pas la permission d'effectuer cette action."
-
-#: templates/js/admin/_clients_js.html:116
-#: templates/js/admin/_clients_js.html:170
-#: templates/js/admin/_organizations_js.html:128
-#: templates/js/admin/_organizations_js.html:182
-#: templates/js/admin/_organizations_js.html:339
-#: templates/js/admin/_processes_js.html:161
-#: templates/js/admin/_user_management_js.html:127
-#: templates/js/admin/_user_management_js.html:177
-msgid "An unexpected network error occurred."
-msgstr "Une erreur réseau inattendue s'est produite."
 
 #: templates/js/admin/_clients_js.html:157
 msgid "You do not have permission to delete this client."
@@ -9163,7 +9196,17 @@ msgstr "Cette page tenant est temporairement indisponible"
 msgid ""
 "The tenant configuration could not be loaded. Try again shortly; if this "
 "persists, contact an administrator."
-msgstr "La configuration du tenant n'a pas pu être chargée. Réessayez sous peu ; si le problème persiste, contactez un administrateur."
+msgstr ""
+"La configuration du tenant n'a pas pu être chargée. Réessayez sous peu ; "
+"si le problème persiste, contactez un administrateur."
+
+#: templates/tenant/page.html:66
+msgid "from"
+msgstr "Du"
+
+#: templates/tenant/page.html:70
+msgid "to"
+msgstr "Au"
 
 #~ msgid ""
 #~ "Your key's process scope, echoed for "
