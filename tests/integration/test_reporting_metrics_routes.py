@@ -212,8 +212,8 @@ def test_run_with_metric_returns_aggregated_rows(admin_client):
     # _load_process_configs, _load_field_col_maps, build_table_query) all live
     # in nx_lib.views.reporting._shared now (beautify-phase-2a, Task 2) and
     # call each other from there -- patching them on the package re-export
-    # would not reach these internal calls. _execute is still patched on the
-    # package because api_run() (in __init__.py) calls it directly.
+    # would not reach these internal calls. _execute is patched on run.py
+    # (beautify-phase-2a Task 3) because api_run() calls it directly there.
     with (
         patch("nx_lib.views.reporting._shared._get_effective_source", return_value=_DOCPROC_SOURCE),
         patch("nx_lib.views.reporting._shared.has_permission", return_value=True),
@@ -229,7 +229,7 @@ def test_run_with_metric_returns_aggregated_rows(admin_client):
             "nx_lib.views.reporting._shared.build_table_query",
             return_value=("SELECT [client], COUNT(*) AS [doc_count] FROM x GROUP BY [client]", []),
         ),
-        patch("nx_lib.views.reporting._execute", return_value=[["Acme", 30]]),
+        patch("nx_lib.views.reporting.run._execute", return_value=[["Acme", 30]]),
     ):
         resp = admin_client.post("/api/reporting/run", json=_RUN_DEF)
     assert resp.status_code == 200, resp.data

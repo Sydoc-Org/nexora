@@ -1721,7 +1721,9 @@ def test_field_values_returns_distinct_values(admin_client):
     src_id = _create_field_values_source(admin_client)
     fake_rows = [["01_EasyTax"], ["03_Invoice_New"]]
     try:
-        with patch("nx_lib.views.reporting._execute", return_value=fake_rows) as mock_execute:
+        with patch(
+            "nx_lib.views.reporting.catalog._execute", return_value=fake_rows
+        ) as mock_execute:
             resp = admin_client.post(
                 "/api/reporting/field_values",
                 json={"source": "field_values_test_src", "field": "username"},
@@ -1741,7 +1743,7 @@ def test_field_values_unknown_field_returns_400(admin_client):
     before any query executes."""
     src_id = _create_field_values_source(admin_client)
     try:
-        with patch("nx_lib.views.reporting._execute") as mock_execute:
+        with patch("nx_lib.views.reporting.catalog._execute") as mock_execute:
             resp = admin_client.post(
                 "/api/reporting/field_values",
                 json={"source": "field_values_test_src", "field": "Nope"},
@@ -1750,7 +1752,7 @@ def test_field_values_unknown_field_returns_400(admin_client):
         assert "error" in resp.get_json()
         mock_execute.assert_not_called()
 
-        with patch("nx_lib.views.reporting._execute") as mock_execute:
+        with patch("nx_lib.views.reporting.catalog._execute") as mock_execute:
             resp = admin_client.post(
                 "/api/reporting/field_values",
                 json={"source": "field_values_test_src", "field": "locale"},

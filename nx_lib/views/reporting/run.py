@@ -29,8 +29,10 @@ from ...reporting.tokens import (
     shifted_definition_for_comparison,
     widened_definition_for_forecast,
 )
-from ...security import require_permission
+from ...security import has_permission, require_permission
 from ._shared import (
+    _SQL_TARGET_ENGINES,
+    _SQL_TARGET_PERMISSION,
     _allowed_processes,
     _authorize_sql_target,
     _effective_sources,
@@ -42,6 +44,20 @@ from ._shared import (
     _prepare_run,
     _run_sql,
 )
+
+
+def _accessible_sql_targets():
+    """RO SQL targets the caller may use -> RO connection factories (gated like the
+    SQL sandbox). serialize_target() owns and closes each connection it yields."""
+    out = {}
+    for target, engine in _SQL_TARGET_ENGINES.items():
+        perm = _SQL_TARGET_PERMISSION.get(target)
+        if perm and not has_permission(perm):
+            continue
+        if engine is None:
+            continue
+        out[target] = lambda e=engine: e.raw_connection()
+    return out
 
 
 def _resolved_dates_meta(rd):
