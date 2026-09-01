@@ -1,0 +1,27 @@
+refactor(reporting): move run to views/reporting/run.py
+
+Split the sources listing, curated-report run pipeline, and live-SQL
+sandbox routes (api_sources, api_run, api_sql_run, api_sql_ack,
+_forecast_for, _level_metric_indexes, _resolved_dates_meta,
+_rows_json_safe, _sandbox_error_message) out of
+nx_lib/views/reporting/__init__.py into run.py, part of beautify-phase-2a
+Task 3. __init__.py re-exports _forecast_for/_rows_json_safe/
+_sandbox_error_message and delegates their route registration to
+run.register_routes(app).
+
+_forecast_for is also used by api_export (still in __init__.py, moves
+to export.py next), so its own _prepare_run/_execute rerun for the
+widened forecast lookback now lives in a different module than
+api_export's main query. Retargeted every patch on the moved names
+in tests/integration/test_reporting_routes.py to
+nx_lib.views.reporting.run.<name>, and split
+test_export_forecast_fits_on_widened_history_not_visible_window's
+single shared-side_effect mock into two separate per-module mocks to
+match. Dropped several always-vacuous
+nx_lib.views.reporting(.run).has_permission patches on these routes
+(has_permission is never called directly in their bodies; the real
+gate is nx_lib.security.has_permission via @require_permission).
+Verified with a break/revert probe on _prepare_run.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_018wv4n4AgHnF5UGCfphuRRG
