@@ -34,11 +34,10 @@ imports, the re-export list below, and ``register_routes``'s fan-out.
 Every name any submodule defines is re-exported here under its original
 import path (``nx_lib.views.reporting.<name>``), so nothing changes for
 callers, tests, or ``nx_lib/reporting/runner.py`` (which reads several
-attributes off this module at runtime) -- some submodules also read a
-sibling's helper back off this package (e.g. ``ai.py``'s lazy
-``from . import _accessible_sql_targets``), which is why a few names are
-imported here purely for re-export rather than any use in this module's own
-code.
+attributes off this module at runtime) -- some submodules also import a
+sibling's helper directly (e.g. ``ai.py`` imports ``_accessible_sql_targets``
+from ``run.py``), which is why a few names are imported here purely for
+re-export rather than any use in this module's own code.
 """
 
 from ...db import engine_statistics_db

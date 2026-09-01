@@ -829,7 +829,7 @@ def test_ai_agent_keeps_data_tools_but_flags_builder_only_source(user_client):
         )
         es.enter_context(
             patch(
-                "nx_lib.views.reporting._get_effective_source",
+                "nx_lib.views.reporting.ai._get_effective_source",
                 return_value={
                     "id": "gen_pdqm",
                     "kind": "curated",
@@ -876,7 +876,7 @@ def test_ai_agent_binds_data_tools_for_run_sql_able_source(user_client):
         )
         es.enter_context(
             patch(
-                "nx_lib.views.reporting._get_effective_source",
+                "nx_lib.views.reporting.ai._get_effective_source",
                 return_value={
                     "id": "docproc",
                     "kind": "curated",
@@ -931,7 +931,7 @@ def test_validate_definition_coerces_table_source_labels_and_defaults():
     }
     with ExitStack() as es:
         es.enter_context(
-            patch("nx_lib.views.reporting._get_effective_source", return_value=_TABLE_SOURCE)
+            patch("nx_lib.views.reporting.ai._get_effective_source", return_value=_TABLE_SOURCE)
         )
         es.enter_context(patch("nx_lib.views.reporting.ai.has_permission", return_value=True))
         ok, err = _validate_definition_for_user(defn)
@@ -984,7 +984,7 @@ def test_validate_definition_accepts_metrics_and_grain_draft():
     }
     with ExitStack() as es:
         es.enter_context(
-            patch("nx_lib.views.reporting._get_effective_source", return_value=docproc_source)
+            patch("nx_lib.views.reporting.ai._get_effective_source", return_value=docproc_source)
         )
         es.enter_context(patch("nx_lib.views.reporting.ai.has_permission", return_value=True))
         es.enter_context(patch("nx_lib.views.reporting.ai.get_locale", return_value="en"))
@@ -995,11 +995,11 @@ def test_validate_definition_accepts_metrics_and_grain_draft():
             )
         )
         es.enter_context(
-            patch("nx_lib.views.reporting._allowed_processes", return_value=["acme.inv"])
+            patch("nx_lib.views.reporting.ai._allowed_processes", return_value=["acme.inv"])
         )
         es.enter_context(
             patch(
-                "nx_lib.views.reporting._metrics_for_source",
+                "nx_lib.views.reporting.ai._metrics_for_source",
                 return_value={"doc_count": {"aggregation": "count", "base_field": None}},
             )
         )
@@ -1064,7 +1064,7 @@ def test_validate_definition_zero_columns_with_metric_accepted():
     }
     with ExitStack() as es:
         es.enter_context(
-            patch("nx_lib.views.reporting._get_effective_source", return_value=docproc_source)
+            patch("nx_lib.views.reporting.ai._get_effective_source", return_value=docproc_source)
         )
         es.enter_context(patch("nx_lib.views.reporting.ai.has_permission", return_value=True))
         es.enter_context(patch("nx_lib.views.reporting.ai.get_locale", return_value="en"))
@@ -1072,11 +1072,11 @@ def test_validate_definition_zero_columns_with_metric_accepted():
             patch("nx_lib.views.reporting.ai.fetch_docprocessing_catalog", return_value=[])
         )
         es.enter_context(
-            patch("nx_lib.views.reporting._allowed_processes", return_value=["acme.inv"])
+            patch("nx_lib.views.reporting.ai._allowed_processes", return_value=["acme.inv"])
         )
         es.enter_context(
             patch(
-                "nx_lib.views.reporting._metrics_for_source",
+                "nx_lib.views.reporting.ai._metrics_for_source",
                 return_value={"doc_count": {"aggregation": "count", "base_field": None}},
             )
         )
@@ -1227,9 +1227,11 @@ def test_ai_build_drops_column_shadowing_distinct_metric(user_client):
             "nx_lib.views.reporting.ai.ai_ask_definition",
             return_value=_def_result(definition=drafted, explanation="x"),
         ),
-        patch("nx_lib.views.reporting._allowed_processes", return_value=["compass.01_Invoice_SAP"]),
+        patch(
+            "nx_lib.views.reporting.ai._allowed_processes", return_value=["compass.01_Invoice_SAP"]
+        ),
         patch("nx_lib.views.reporting.ai.fetch_docprocessing_catalog", return_value=catalog),
-        patch("nx_lib.views.reporting._metrics_for_source", return_value=metrics),
+        patch("nx_lib.views.reporting.ai._metrics_for_source", return_value=metrics),
         patch("nx_lib.views.reporting.ai._audit_ai"),
     ):
         resp = user_client.post(
@@ -1320,9 +1322,13 @@ def test_ai_agent_tool_trace_error_is_humanized(user_client):
         )
         # Clears the auth/ack gates so this test stays focused on humanization,
         # not D-RUNSQL's gate behavior (covered separately below).
-        es.enter_context(patch("nx_lib.views.reporting._has_acked", return_value=True))
-        es.enter_context(patch("nx_lib.views.reporting._authorize_sql_target", return_value=None))
-        es.enter_context(patch("nx_lib.views.reporting._run_sql", side_effect=Exception(odbc_text)))
+        es.enter_context(patch("nx_lib.views.reporting.ai._has_acked", return_value=True))
+        es.enter_context(
+            patch("nx_lib.views.reporting.ai._authorize_sql_target", return_value=None)
+        )
+        es.enter_context(
+            patch("nx_lib.views.reporting.ai._run_sql", side_effect=Exception(odbc_text))
+        )
         es.enter_context(patch("nx_lib.views.reporting.ai._audit_ai"))
         resp = user_client.post("/api/reporting/ai/agent", json={"question": "how many?"})
     assert resp.status_code == 200
@@ -1382,12 +1388,12 @@ def test_ai_agent_run_sql_blocks_without_target_permission(user_client):
         es.enter_context(
             patch("nx_lib.views.reporting.ai._ai_schema_text", return_value="TABLE dbo.Foo(Id int)")
         )
-        es.enter_context(patch("nx_lib.views.reporting._has_acked", return_value=True))
+        es.enter_context(patch("nx_lib.views.reporting.ai._has_acked", return_value=True))
         es.enter_context(
             patch("nx_lib.views.reporting.ai.make_agent_step", return_value=lambda m: next(turns))
         )
-        run_sql_spy = es.enter_context(patch("nx_lib.views.reporting._run_sql"))
-        audit_spy = es.enter_context(patch("nx_lib.views.reporting._audit_sql"))
+        run_sql_spy = es.enter_context(patch("nx_lib.views.reporting.ai._run_sql"))
+        audit_spy = es.enter_context(patch("nx_lib.views.reporting.ai._audit_sql"))
         es.enter_context(patch("nx_lib.views.reporting.ai._audit_ai"))
         resp = user_client.post("/api/reporting/ai/agent", json={"question": "octopus events?"})
 
@@ -1427,12 +1433,12 @@ def test_ai_agent_run_sql_blocks_without_ack(user_client):
     with ExitStack() as es:
         for p in _agent_patches(explain_perm=True, run_perm=True):
             es.enter_context(p)
-        es.enter_context(patch("nx_lib.views.reporting._has_acked", return_value=False))
+        es.enter_context(patch("nx_lib.views.reporting.ai._has_acked", return_value=False))
         es.enter_context(
             patch("nx_lib.views.reporting.ai.make_agent_step", return_value=lambda m: next(turns))
         )
-        run_sql_spy = es.enter_context(patch("nx_lib.views.reporting._run_sql"))
-        audit_spy = es.enter_context(patch("nx_lib.views.reporting._audit_sql"))
+        run_sql_spy = es.enter_context(patch("nx_lib.views.reporting.ai._run_sql"))
+        audit_spy = es.enter_context(patch("nx_lib.views.reporting.ai._audit_sql"))
         es.enter_context(patch("nx_lib.views.reporting.ai._audit_ai"))
         resp = user_client.post("/api/reporting/ai/agent", json={"question": "how many?"})
 

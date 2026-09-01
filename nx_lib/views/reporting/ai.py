@@ -3,14 +3,17 @@
 Split out of ``nx_lib/views/reporting/__init__.py`` (beautify-phase-2a, Task 1):
 the four ``/api/reporting/ai/*`` routes plus their private helpers (provider
 config, schema/catalog grounding text, definition validation/normalization,
-audit logging, the daily-cap check). A handful of names these functions call
-still live on the package (``nx_lib.views.reporting``) — the sources/metrics
-registry helpers, the live-SQL sandbox helpers, ``_get_effective_source`` — and
-a later task moves those into a ``_shared.py``. Importing them eagerly at
-module load time would be circular (the package's ``__init__.py`` imports
-*this* module before those helpers exist as attributes on it), so each
-function that needs one does a local ``from . import ...`` instead, same
-trick as ``nx_lib/reporting/runner.py`` uses for the same class of problem.
+audit logging, the daily-cap check). The sources/metrics registry helpers and
+the live-SQL sandbox helpers these functions call now live on ``_shared.py``
+(Task 2), with two exceptions imported directly from their own cluster module
+(``_accessible_sql_targets`` from ``run.py``, ``_accessible_curated_sources``
+from ``catalog.py``) — none of those modules import back from ``ai.py`` or
+from this package's ``__init__.py``, so the imports are eager at module top,
+same as every sibling submodule. Because these are plain ``from X import
+name`` bindings, a test that wants to stub one of them out must patch it at
+its point of use — ``nx_lib.views.reporting.ai.<name>`` — not on ``_shared``,
+``run``, or ``catalog``; patching the definition module leaves this module's
+already-bound name untouched.
 """
 
 import datetime
@@ -56,6 +59,22 @@ from ...reporting.sources import DEFAULT_ROW_LIMIT, MAX_ROW_LIMIT, accessible
 from ...reporting.table_query import table_source_catalog
 from ...reporting.tokens import date_fields_from_catalog
 from ...security import has_permission, require_permission
+from ._shared import (
+    _SQL_TARGETS,
+    _accessible_metrics,
+    _allowed_processes,
+    _audit_sql,
+    _authorize_sql_target,
+    _effective_sources,
+    _get_effective_source,
+    _has_acked,
+    _load_field_col_maps,
+    _load_process_configs,
+    _metrics_for_source,
+    _run_sql,
+)
+from .catalog import _accessible_curated_sources
+from .run import _accessible_sql_targets
 
 
 def _ai_config():
@@ -82,15 +101,6 @@ def _ai_config():
 
 def _ai_schema_text():
     """Build the schema grounding text from accessible RO targets + curated catalogs + metrics."""
-    from . import (
-        _accessible_metrics,
-        _accessible_sql_targets,
-        _allowed_processes,
-        _effective_sources,
-        _load_field_col_maps,
-        _load_process_configs,
-    )
-
     targets = _accessible_sql_targets()
     perms = set(session.get("permissions", []))
     curated = []
@@ -136,8 +146,6 @@ def _ai_schema_text():
 
 def _ai_catalog_text():
     """Bounded catalog text for Surface A from the caller's accessible curated sources."""
-    from . import _accessible_curated_sources
-
     text, truncated = serialize_sources_catalog(_accessible_curated_sources())
     if truncated:
         current_app.logger.info("reporting.ai catalog truncated for user=%s", session.get("userid"))
@@ -150,8 +158,6 @@ def _validate_definition_for_user(definition):
     Returns (ok, error_message). Reuses the exact validator + source resolution
     that /api/reporting/run uses, so an accepted definition is guaranteed runnable.
     """
-    from . import _allowed_processes, _get_effective_source, _metrics_for_source
-
     if not isinstance(definition, dict):
         return False, "definition must be an object"
     try:
@@ -606,15 +612,6 @@ def api_ai_agent():
     prompt. Egress stays schema-only — run_sql / compute_stats (whose results
     would flow back to the model) are Phase 3e, behind reporting.ai.explain_data.
     """
-    from . import (
-        _SQL_TARGETS,
-        _audit_sql,
-        _authorize_sql_target,
-        _get_effective_source,
-        _has_acked,
-        _run_sql,
-    )
-
     body = request.get_json(silent=True)
     if not isinstance(body, dict):
         return jsonify({"error": _("Invalid JSON body")}), 400
