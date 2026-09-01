@@ -1214,17 +1214,22 @@ def test_docfield_or_pair_processed_without_early_break(
         return [], 0, []
 
     import nx_lib.views.workitems as wv
+    import nx_lib.workitems.fields as wf
 
     monkeypatch.setattr(wv, "fetch_merged_page", _fake_fetch_merged_page)
 
     pair_indices = []
-    _orig_docfield_op = wv._docfield_op
+    _orig_docfield_op = wf._docfield_op
 
     def _spy_docfield_op(docops, idx):
         pair_indices.append(idx)
         return _orig_docfield_op(docops, idx)
 
-    monkeypatch.setattr(wv, "_docfield_op", _spy_docfield_op)
+    # _docfield_op now lives in nx_lib.workitems.fields, called module-
+    # qualified (`fields._docfield_op`) from both _docfield_pairs_normalized
+    # (same module) and the pair-fold loop in nx_lib.workitems.query -- so
+    # patching it here on its owning module intercepts both call sites.
+    monkeypatch.setattr(wf, "_docfield_op", _spy_docfield_op)
 
     resp = user_client.get(
         "/api/workitems",
