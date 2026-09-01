@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-01 11:45+0200\n"
+"POT-Creation-Date: 2026-09-01 12:16+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2743,7 +2743,7 @@ msgid "Pick a preset or choose any color you like."
 msgstr ""
 
 #: templates/appearance.html:80
-msgid "Indigo"
+msgid "Classic"
 msgstr ""
 
 #: templates/appearance.html:82

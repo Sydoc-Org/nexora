@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-01 11:45+0200\n"
+"POT-Creation-Date: 2026-09-01 12:16+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -3127,8 +3127,8 @@ msgid "Pick a preset or choose any color you like."
 msgstr "Choisissez un préréglage ou la couleur de votre choix."
 
 #: templates/appearance.html:80
-msgid "Indigo"
-msgstr "Indigo"
+msgid "Classic"
+msgstr "Classique"
 
 #: templates/appearance.html:82
 msgid "Violet"
@@ -9615,4 +9615,7 @@ msgstr ""
 
 #~ msgid "pages processed per week"
 #~ msgstr "pages traitées par semaine"
+
+#~ msgid "Indigo"
+#~ msgstr "Indigo"
 

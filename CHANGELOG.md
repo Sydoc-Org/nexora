@@ -133,6 +133,11 @@ Work toward the next release.
   signature; each now narrows or casts explicitly. CI's `deploy.yml` now
   also lints `scripts/` and runs `mypy nx_lib nx_main.py` as its own step,
   matching the pre-commit hook that already covered both.
+- **The default accent color is now Amber, not Indigo.** Anyone who never
+  touched the accent picker on `/appearance`, or who had explicitly picked
+  indigo, moves to amber (migration `0083`); explicit dark-mode preferences
+  are left alone. The old indigo swatch stays available, now labeled
+  "Classic".
 - **The pre-push gate no longer runs the e2e suite.** Every push ran all
   ~228 Playwright tests locally even though CI's `test` job runs the full
   suite anyway on the PR and again on `main` before deploy — three runs of
@@ -154,6 +159,60 @@ Work toward the next release.
   2026-08-28 half-deploy rescue (#228). The deployed app reads the new
   mapping tables only; INT never had the synonyms, so the migration is a
   no-op there.
+
+### Fixed
+
+- **A flaky auth test no longer reddens CI at random.**
+  `_without_csrf_token()` in `tests/integration/test_auth_routes.py` blanked
+  the CSRF token in the `<meta>` tag but not the one in the form's hidden
+  input, so the two "a registered and an unregistered address must look
+  identical" comparisons failed whenever their two requests straddled a
+  1-second boundary — the token is re-signed with an itsdangerous timestamp
+  of that granularity. Both spots are blanked now.
+
+- **`scripts/test_db_reset.py` no longer hardcodes ODBC Driver 17.** It now
+  picks the best installed SQL Server ODBC driver (18, then 17, then Native
+  Client 11.0, then the legacy `SQL Server` driver), so resetting
+  `NEXORA_TEST` works on machines that ship Driver 18 only. Previously the
+  hardcoded driver made the reset impossible there, failing with `IM002`
+  (#230).
+
+- **An aborted deploy can no longer leave PROD's schema ahead of its code**
+  (#228). The IIS preflight in `.github/workflows/deploy.yml` ran *after*
+  "Apply DB migrations to PROD", so a failure there committed migrations to the
+  production database and then skipped the code sync. That is exactly what
+  happened on 2026-08-27: two merges applied `0070`–`0081`, aborted at the
+  preflight, and left the deployed app querying `SearchConfig` / `StatConfig` /
+  `IndexFieldMappings` / `Search_Field_Labels` after `0075` had renamed them —
+  taking Workitems "Erweitert", the dashboard KPIs and the reporting catalog
+  down until four SQL synonyms were added by hand. The preflight now runs
+  before the migration step, so anything that can abort a deploy leaves PROD
+  wholly untouched.
+
+  The preflight probe that did the aborting (`waitress.__version__`, an
+  attribute waitress does not ship) is fixed separately in #226.
+
+- **The dashboard activity feed no longer dies on a null Octo document.**
+  `items_of()` assumed the thin-document JSON was always a dict, so an Octo
+  reply of HTTP 200 with a `null` body — or a container whose
+  `ChildDocuments` carried a null entry — raised `'NoneType' object has no
+  attribute 'get'` from outside the caller's `try`, blanking the whole feed
+  instead of skipping the one bad workitem. Non-dict input now yields no
+  leaves. The handler also logs a traceback, since the bare message named
+  neither the file nor the workitem (#228 follow-up).
+
+- **Test runs no longer corrupt each other's shared database.** One
+  `NEXORA_TEST` is shared by CI and every local run, and both the pre-push gate
+  and CI's `test` job reset it — so two overlapping runs re-seeded `dbo.Users`
+  under one another and a random login fixture died with `KeyError: 'userid'`
+  or a stray 401. A different test each time, always passing in isolation,
+  never pointing at the cause; it cost five failed CI runs in one day and
+  blocked two PRs that were entirely correct. Both the reset script and the
+  pytest session now take an exclusive `sp_getapplock` on `nexora_test_suite`
+  (`scripts/db_lock.py`), so the second run waits instead of trampling.
+  `NEXORA_TEST_LOCK_SKIP=1` bypasses it, `NEXORA_TEST_LOCK_TIMEOUT_MS`
+  overrides the 20-minute wait, and a run that cannot reach the database
+  doesn't lock at all. See CONTRIBUTING.md and #235.
 
 ### Known gaps carried out of this campaign (not fixed here)
 

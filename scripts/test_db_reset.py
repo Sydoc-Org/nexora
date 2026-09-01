@@ -19,6 +19,15 @@ from pathlib import Path
 import pyodbc
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+
+# Run as a script (`python scripts/test_db_reset.py`) only scripts/ lands on
+# sys.path, not the repo root -- but tests/conftest.py imports this module as
+# scripts.test_db_reset. Put the root on the path so one import form works both
+# ways rather than duplicating the lock protocol in two places.
+sys.path.insert(0, str(REPO_ROOT))
+
+from scripts import db_lock  # noqa: E402
+
 TEST_ENV = REPO_ROOT / "env" / "TEST.env"
 SCHEMA_SQL = REPO_ROOT / "sql" / "test" / "schema.sql"
 SEED_SQL = REPO_ROOT / "sql" / "test" / "seed.sql"
@@ -111,14 +120,44 @@ def execute_sql_file(cursor: pyodbc.Cursor, path: Path) -> None:
             ) from e
 
 
-def main() -> int:
+def _pick_sqlserver_driver() -> str | None:
+    """Best installed SQL Server ODBC driver, newest first.
+
+    Mirrors what a developer would put in DB_ODBC_DRIVER by hand; the legacy
+    "SQL Server" driver is last because it lacks Encrypt/TrustServerCertificate
+    support (see the _TLS_SUFFIX note in nx_lib/db.py).
+    """
+    installed = pyodbc.drivers()
+    for candidate in (
+        "ODBC Driver 18 for SQL Server",
+        "ODBC Driver 17 for SQL Server",
+        "SQL Server Native Client 11.0",
+        "SQL Server",
+    ):
+        if candidate in installed:
+            return candidate
+    return None
+
+
+class TestDbUnavailableError(RuntimeError):
+    """env/TEST.env is missing, misconfigured, or no SQL Server ODBC driver exists.
+
+    Carries a printable reason -- callers surface str(e) rather than a traceback.
+    """
+
+
+def connect_test_db() -> pyodbc.Connection:
+    """Autocommit pyodbc connection to NEXORA_TEST, built from env/TEST.env.
+
+    Shared with tests/conftest.py so the suite's shared-database lock (#235)
+    reaches the same server through the same driver selection as the reset --
+    two code paths picking different drivers would contend on nothing.
+    """
     if not TEST_ENV.exists():
-        print(
+        raise TestDbUnavailableError(
             f"env/TEST.env not found at {TEST_ENV}. "
-            "Copy env/TEST.env.example to env/TEST.env and fill in values.",
-            file=sys.stderr,
+            "Copy env/TEST.env.example to env/TEST.env and fill in values."
         )
-        return 1
 
     env = parse_env(TEST_ENV)
     server = env.get("DB_SERVER_PRD")
@@ -132,37 +171,68 @@ def main() -> int:
         if not v
     ]
     if missing:
-        print(f"TEST.env is missing: {', '.join(missing)}", file=sys.stderr)
-        return 1
+        raise TestDbUnavailableError(f"TEST.env is missing: {', '.join(missing)}")
 
     if db != "NEXORA_TEST":
-        print(
-            f"Refusing to run: DB_NEXORA in TEST.env must be 'NEXORA_TEST', got '{db}'.",
-            file=sys.stderr,
+        raise TestDbUnavailableError(
+            f"Refusing to run: DB_NEXORA in TEST.env must be 'NEXORA_TEST', got '{db}'."
         )
-        return 1
 
-    for p in (SCHEMA_SQL, SEED_SQL):
-        if not p.exists():
-            print(f"Missing: {p}", file=sys.stderr)
+    # Use the same driver nexora itself uses -- DB_ODBC_DRIVER from the env file,
+    # exactly like nx_lib/db.py, falling back to whatever SQL Server driver is
+    # actually installed. This used to hardcode "ODBC Driver 17 for SQL Server",
+    # which made the script unusable on any box that ships 18 (or only the legacy
+    # "SQL Server") even though its docstring promises it runs anywhere pyodbc
+    # does. autocommit so each batch commits immediately (schema.sql can't run
+    # inside an explicit transaction anyway because it does CREATE/DROP).
+    driver = env.get("DB_ODBC_DRIVER") or _pick_sqlserver_driver()
+    if not driver:
+        raise TestDbUnavailableError(
+            "No SQL Server ODBC driver found. Install one, or set DB_ODBC_DRIVER "
+            f"in env/TEST.env. Available: {pyodbc.drivers()}"
+        )
+
+    # Driver 17/18 understand (and 18 defaults to requiring) TLS, and reject a
+    # self-signed server cert unless told to trust it. The legacy "SQL Server"
+    # driver errors on these keywords outright, so they're only added for the
+    # modern ones -- same conditional as _TLS_SUFFIX in nx_lib/db.py.
+    tls = "Encrypt=yes;TrustServerCertificate=yes;" if driver.startswith("ODBC Driver") else ""
+    conn_str = f"DRIVER={{{driver}}};SERVER={server};DATABASE={db};UID={uid};PWD={pwd};{tls}"
+    print(f"Using ODBC driver: {driver}")
+    return pyodbc.connect(conn_str, autocommit=True)
+
+
+def main() -> int:
+    for path in (SCHEMA_SQL, SEED_SQL):
+        if not path.exists():
+            print(f"Missing: {path}", file=sys.stderr)
             return 1
 
-    # Use the same driver nexora itself uses. autocommit so each batch commits
-    # immediately (schema.sql can't run inside an explicit transaction anyway
-    # because it does CREATE/DROP).
-    conn_str = (
-        f"DRIVER={{ODBC Driver 17 for SQL Server}};"
-        f"SERVER={server};DATABASE={db};UID={uid};PWD={pwd};"
-    )
-    conn = pyodbc.connect(conn_str, autocommit=True)
     try:
-        cursor = conn.cursor()
-        tables, progs = wipe_database(cursor)
-        print(f"Wiped {db} on {server} ({tables} tables, {progs} views/procs/functions)")
-        print(f"Applying schema to {db} on {server}...")
-        execute_sql_file(cursor, SCHEMA_SQL)
-        print(f"Applying seed to {db} on {server}...")
-        execute_sql_file(cursor, SEED_SQL)
+        conn = connect_test_db()
+    except TestDbUnavailableError as e:
+        print(str(e), file=sys.stderr)
+        return 1
+    except pyodbc.Error as e:
+        print(f"Could not connect to NEXORA_TEST: {e}", file=sys.stderr)
+        return 1
+
+    try:
+        # Wiping and re-seeding while someone else's suite is mid-run is exactly
+        # what #235 is about, so queue behind them rather than pull dbo.Users out
+        # from under a running test.
+        with db_lock.hold(conn, label="test_db_reset"):
+            cursor = conn.cursor()
+            server = cursor.execute("SELECT @@SERVERNAME").fetchval()
+            tables, progs = wipe_database(cursor)
+            print(f"Wiped NEXORA_TEST on {server} ({tables} tables, {progs} views/procs/functions)")
+            print(f"Applying schema to NEXORA_TEST on {server}...")
+            execute_sql_file(cursor, SCHEMA_SQL)
+            print(f"Applying seed to NEXORA_TEST on {server}...")
+            execute_sql_file(cursor, SEED_SQL)
+    except RuntimeError as e:
+        print(str(e), file=sys.stderr)
+        return 1
     finally:
         conn.close()
 
