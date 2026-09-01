@@ -36,12 +36,14 @@ MARKUP_TEMPLATES = [
 JS_PARTIALS = sorted((REPO_ROOT / "templates" / "js").glob("_reporting*.html"))
 # Widened for the #191 shim-ification (beautify phase 2b, task 1): as pages
 # move to static/js/<name>.js their behaviour must stay under this lint.
-# The glob below matches every current static/js/reporting*.js file AND the
-# ones the shim-ification plan is about to create (reporting_advanced.js,
-# reporting_viz.js, reporting_simple_chart.js, reporting_simple_library.js,
-# reporting_simple_result.js, reporting_simple_wizard.js, ...) — no glob
-# change needed as those land.
-STATIC_JS = sorted((REPO_ROOT / "static" / "js").glob("reporting*.js"))
+# Deliberately "*reporting*.js" (not just "reporting*.js"): this plan's own
+# Task 5 creates static/js/generali_reporting.js (a reporting page under the
+# Generali tenant prefix), which a startswith-only glob would miss. Not
+# widened further than that — other #191 shims outside this reporting lint's
+# scope (workitems_overview.js, admin_access_control.js,
+# workitem_detail_panel.js, ...) are intentionally not covered here.
+STATIC_JS_GLOB = "*reporting*.js"
+STATIC_JS = sorted((REPO_ROOT / "static" / "js").glob(STATIC_JS_GLOB))
 
 WORDS = re.compile(r"[A-Za-z]{2,}[ ]+[A-Za-z]{2,}")
 JINJA = re.compile(r"\{\{.*?\}\}|\{%.*?%\}|\{#.*?#\}")
@@ -69,14 +71,15 @@ ALLOWED = {
     # guard-widening task). See task-1-report.md for the full finding.
     # Follow-up: fix reporting_schema.js (drop the fallback literal, or move
     # it through gettext too) and remove these entries.
-    "Primary key": "Task 1 finding, tracked follow-up — see task-1-report.md",
-    "References {t}": "Task 1 finding, tracked follow-up — see task-1-report.md",
-    "Nothing matches that.": "Task 1 finding, tracked follow-up — see task-1-report.md",
-    "These are the tables this source reads.": "Task 1 finding, tracked follow-up — see task-1-report.md",
-    "No foreign keys defined — showing the biggest tables.": "Task 1 finding, tracked follow-up — see task-1-report.md",
-    "Showing the {n} most connected tables.": "Task 1 finding, tracked follow-up — see task-1-report.md",
-    "Could not read this database.": "Task 1 finding, tracked follow-up — see task-1-report.md",
-    "{n} more not shown": "Task 1 finding, tracked follow-up — see task-1-report.md",
+    # tracked: issue #246
+    "Primary key": "Task 1 finding, tracked follow-up — see issue #246",
+    "References {t}": "Task 1 finding, tracked follow-up — see issue #246",
+    "Nothing matches that.": "Task 1 finding, tracked follow-up — see issue #246",
+    "These are the tables this source reads.": "Task 1 finding, tracked follow-up — see issue #246",
+    "No foreign keys defined — showing the biggest tables.": "Task 1 finding, tracked follow-up — see issue #246",
+    "Showing the {n} most connected tables.": "Task 1 finding, tracked follow-up — see issue #246",
+    "Could not read this database.": "Task 1 finding, tracked follow-up — see issue #246",
+    "{n} more not shown": "Task 1 finding, tracked follow-up — see issue #246",
 }
 
 
@@ -143,8 +146,12 @@ def test_reporting_static_js_has_no_hardcoded_english():
 
 
 def test_static_js_glob_covers_future_shim_filenames():
-    """Confirm the glob is shaped to catch the files Phase B is about to
-    create, not just what happens to exist today."""
+    """Confirm the actual glob constant the module uses (STATIC_JS_GLOB) is
+    shaped to catch the files this plan is about to create — including
+    Task 5's static/js/generali_reporting.js, which does not start with
+    "reporting" — not just what happens to exist today."""
+    import fnmatch
+
     future_names = [
         "reporting_advanced.js",
         "reporting_viz.js",
@@ -152,15 +159,25 @@ def test_static_js_glob_covers_future_shim_filenames():
         "reporting_simple_library.js",
         "reporting_simple_result.js",
         "reporting_simple_wizard.js",
+        "reporting_dashboard.js",
+        "reporting_schema.js",
+        "reporting_simple.js",
+        "generali_reporting.js",
     ]
-    pattern = re.compile(r"^reporting.*\.js$")
     for name in future_names:
-        assert pattern.match(name), name
-    # and the glob object itself agrees, via its fnmatch translation
-    import fnmatch
+        assert fnmatch.fnmatch(name, STATIC_JS_GLOB), name
 
-    for name in future_names:
-        assert fnmatch.fnmatch(name, "reporting*.js"), name
+    # and unrelated #191 shims outside this reporting-specific lint's scope
+    # must NOT be swept in by the widened pattern.
+    out_of_scope_names = [
+        "workitems_overview.js",
+        "admin_access_control.js",
+        "workitem_detail_panel.js",
+        "generali_crud.js",
+        "nx_core.js",
+    ]
+    for name in out_of_scope_names:
+        assert not fnmatch.fnmatch(name, STATIC_JS_GLOB), name
 
 
 def test_js_offender_detection_catches_hardcoded_english(tmp_path):
