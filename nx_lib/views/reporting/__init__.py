@@ -44,8 +44,8 @@ from flask import (
 from flask_babel import gettext as _
 from markdown_it import MarkdownIt
 
-from .. import mapping_config
-from ..db import (
+from ... import mapping_config
+from ...db import (
     engine_generali_db,
     engine_nexora_db,
     engine_octo_db,
@@ -53,10 +53,10 @@ from ..db import (
     engine_statistics_db,
     engine_statistics_ro,
 )
-from ..extensions import cache, limiter
-from ..i18n import get_locale
-from ..reporting import db_schema
-from ..reporting.ai import (
+from ...extensions import cache, limiter
+from ...i18n import get_locale
+from ...reporting import db_schema
+from ...reporting.ai import (
     _AGENT_EXPLAIN_SUFFIX,
     _AGENT_SYSTEM,
     CAPTION_MAX_ROWS,
@@ -71,18 +71,18 @@ from ..reporting.ai import (
     stage_preview,
     supports_effort,
 )
-from ..reporting.ai import _make_agent_step as make_agent_step
-from ..reporting.ai import ask as ai_ask
-from ..reporting.ai import ask_definition as ai_ask_definition
-from ..reporting.ai import caption as ai_caption
-from ..reporting.ai_schema import serialize_schema, serialize_sources_catalog
-from ..reporting.ai_tools import RUN_DEFINITION_ROW_CAP, TOOL_SPECS, ToolRegistry
-from ..reporting.catalog import fetch_docprocessing_catalog
-from ..reporting.export import rows_to_csv, rows_to_xlsx
-from ..reporting.forecast import compute_forecast, forecast_export_rows
-from ..reporting.query import QueryBuildError, build_table_query
-from ..reporting.runner import execute_definition
-from ..reporting.sandbox import (
+from ...reporting.ai import _make_agent_step as make_agent_step
+from ...reporting.ai import ask as ai_ask
+from ...reporting.ai import ask_definition as ai_ask_definition
+from ...reporting.ai import caption as ai_caption
+from ...reporting.ai_schema import serialize_schema, serialize_sources_catalog
+from ...reporting.ai_tools import RUN_DEFINITION_ROW_CAP, TOOL_SPECS, ToolRegistry
+from ...reporting.catalog import fetch_docprocessing_catalog
+from ...reporting.export import rows_to_csv, rows_to_xlsx
+from ...reporting.forecast import compute_forecast, forecast_export_rows
+from ...reporting.query import QueryBuildError, build_table_query
+from ...reporting.runner import execute_definition
+from ...reporting.sandbox import (
     MAX_SQL_LEN,
     SqlSandboxError,
     fetch_capped,
@@ -90,20 +90,20 @@ from ..reporting.sandbox import (
     validate_select,
     wrap_with_cap,
 )
-from ..reporting.schedule import compute_next_run, utcnow, validate_schedule
-from ..reporting.schema import (
+from ...reporting.schedule import compute_next_run, utcnow, validate_schedule
+from ...reporting.schema import (
     ReportDefinitionError,
     coerce_definition,
     validate_report_definition,
     validate_sql_definition,
 )
-from ..reporting.semantic import (
+from ...reporting.semantic import (
     AGGREGATIONS,
     MetricResolveError,
     drop_columns_shadowing_distinct_metrics,
     resolve_metrics,
 )
-from ..reporting.sources import (
+from ...reporting.sources import (
     DEFAULT_ROW_LIMIT,
     MAX_ROW_LIMIT,
     SQL_ROW_CAP,
@@ -112,21 +112,21 @@ from ..reporting.sources import (
     code_sources,
     merge_sources,
 )
-from ..reporting.sqlformat import format_sql, inline_sql_params
-from ..reporting.table_query import (
+from ...reporting.sqlformat import format_sql, inline_sql_params
+from ...reporting.table_query import (
     TableQueryError,
     build_distinct_query,
     build_generic_query,
     table_source_catalog,
 )
-from ..reporting.tokens import (
+from ...reporting.tokens import (
     date_fields_from_catalog,
     resolve_definition_tokens,
     resolve_token,
     shifted_definition_for_comparison,
     widened_definition_for_forecast,
 )
-from ..security import has_permission, page_visibility, require_permission
+from ...security import has_permission, page_visibility, require_permission
 
 _SCOPE_PREFIX = "reporting.scope.process."
 
