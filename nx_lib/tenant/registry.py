@@ -20,7 +20,7 @@ builders, admin writes) ever sees an unvalidated identifier.
 
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from flask import current_app
 
@@ -222,27 +222,51 @@ def tenant(code: str) -> Tenant | None:
 
 
 def pages_for(code: str) -> list[TenantPage]:
-    """Active TenantPage rows for ``code``, ordered by SortOrder. [] on failure."""
+    """Active TenantPage rows for ``code``, ordered by SortOrder. [] on failure.
+
+    Returns pages with a defensive copy of ``layout`` (same reasoning as
+    entity_for/fields_for below) so a caller can never mutate the shared
+    cached registry instance.
+    """
     reg = registry()
     if reg is None:
         return []
-    return sorted((p for p in reg.pages if p.tenant == code), key=lambda p: p.sort_order)
+    pages = sorted((p for p in reg.pages if p.tenant == code), key=lambda p: p.sort_order)
+    return [replace(p, layout=dict(p.layout) if p.layout is not None else None) for p in pages]
 
 
 def entity_for(code: str, entity_key: str) -> TenantEntity | None:
-    """The active TenantEntity for (tenant, entity_key). None on failure or not found."""
+    """The active TenantEntity for (tenant, entity_key). None on failure or not found.
+
+    ``cache`` is Flask-Caching's in-process SimpleCache -- cache.get() hands
+    back the exact object cache.set() stored, no serialization boundary in
+    between. ``frozen=True`` blocks attribute reassignment but not in-place
+    mutation of a dict *field*, so returning ``.labels`` by reference would
+    let a caller corrupt the shared cache entry for every tenant, for up to
+    _TTL seconds. Return a defensive copy of ``labels`` instead (mirrors
+    mapping_config.labels()'s per-field dict copy).
+    """
     reg = registry()
     if reg is None:
         return None
-    return reg.entities.get((code, entity_key))
+    e = reg.entities.get((code, entity_key))
+    if e is None:
+        return None
+    return replace(e, labels=dict(e.labels))
 
 
 def fields_for(code: str, entity_key: str) -> list[TenantField]:
-    """Active TenantField rows for (tenant, entity_key), ordered by SortOrder. [] on failure."""
+    """Active TenantField rows for (tenant, entity_key), ordered by SortOrder. [] on failure.
+
+    Returns fields with a defensive copy of ``labels`` (see entity_for's
+    docstring) so a caller can never mutate the shared cached registry
+    instance.
+    """
     reg = registry()
     if reg is None:
         return []
-    return sorted(
+    fields = sorted(
         (f for f in reg.fields if f.tenant == code and f.entity == entity_key),
         key=lambda f: f.sort_order,
     )
+    return [replace(f, labels=dict(f.labels)) for f in fields]
