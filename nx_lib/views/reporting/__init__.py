@@ -93,7 +93,13 @@ from .ai import (
 from .catalog import _accessible_curated_sources, _labeled_field_values
 from .pages import _GUIDE_MD, _guide_render
 from .reports import _preview_kind, _preview_summary
-from .run import _accessible_sql_targets, _forecast_for, _rows_json_safe, _sandbox_error_message
+from .run import (
+    _accessible_sql_targets,
+    _forecast_for,
+    _resolved_dates_meta,
+    _rows_json_safe,
+    _sandbox_error_message,
+)
 
 # Names imported above purely for re-export (nx_lib.views.reporting.<name> must
 # keep resolving for callers/tests/nx_lib/reporting/runner.py) rather than used
@@ -141,6 +147,7 @@ __all__ = [
     "_normalize_definition",
     "_prepare_run",
     "_resolve_definition_tokens_or_error",
+    "_resolved_dates_meta",
     "_rows_json_safe",
     "_run_sql",
     "_sandbox_error_message",
