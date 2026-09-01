@@ -25,7 +25,10 @@ IMPORT_TO_DIST = {
     "psycopg2": "psycopg2-binary",
 }
 
-FIRST_PARTY = {"nx_lib", "nx_main", "tests", "conftest"}
+# "scripts" joined the list when scripts/test_db_reset.py started importing
+# scripts/db_lock.py -- it is a directory in this repo, not a PyPI package,
+# so it can never appear in pyproject.toml.
+FIRST_PARTY = {"nx_lib", "nx_main", "tests", "conftest", "scripts"}
 
 
 def _normalize(name: str) -> str:

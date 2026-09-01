@@ -4,9 +4,6 @@
 // (delete), and the New-schedule modal (report picker + cadence + recipients
 // + format). Only in the DOM for reporting.schedule holders.
 (function () {
-  var csrf = document.querySelector('meta[name="csrf-token"]').content;
-  var API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
-
   var I18N = {
     daily: {{ _("Daily")|tojson }},
     monthlyDay: {{ _("Day {n} of month")|tojson }},
@@ -35,24 +32,12 @@
 
   var state = { schedules: [], loaded: false, openMenu: null };
 
-  function el(id) { return document.getElementById(id); }
-  function esc(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
-  async function api(url, opts) {
-    if (url.startsWith('/')) url = API_PREFIX + url.slice(1);
-    opts = opts || {};
-    var res;
-    try {
-      res = await fetch(url, Object.assign(
-        { headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf } }, opts));
-    } catch (e) { return { ok: false, status: 0, data: null }; }
-    var data = null;
-    try { data = await res.json(); } catch (e) { /* non-JSON */ }
-    return { ok: res.ok, status: res.status, data: data };
-  }
+  // el/esc/api: shared with nx_core.js (Task 11) -- this file's api() never
+  // throws (resolves to {ok,status,data}), so it aliases NX.apiSafe, not
+  // NX.api.
+  var el = window.NX.el;
+  var esc = window.NX.esc;
+  var api = window.NX.apiSafe;
 
   function two(n) { return (n < 10 ? '0' : '') + n; }
   function cadenceText(s) {

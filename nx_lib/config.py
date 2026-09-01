@@ -201,8 +201,6 @@ MS02_DOCFIELDS_DB_USER = os.environ.get("MS02_DOCFIELDS_DB_USER", MS02_DB_USER)
 MS02_DOCFIELDS_DB_PWD = os.environ.get("MS02_DOCFIELDS_DB_PWD", MS02_DB_PWD)
 MS02_DOCFIELDS_DB_PORT = os.environ.get("MS02_DOCFIELDS_DB_PORT", MS02_DB_PORT)
 
-BEXIO_PAT = os.environ.get("BEXIO_PAT")
-
 CSP = {
     "default-src": "'self'",
     "base-uri": "'self'",

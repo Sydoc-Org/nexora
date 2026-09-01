@@ -48,13 +48,7 @@ $gitCommon = git rev-parse --git-common-dir
 # $gitDir -ne $gitCommon → already in a worktree
 ```
 
-**Autopilot lane exception:** if the environment variable `AUTOPILOT_LANE` is set (the autopilot is
-already building this issue inside a dedicated `auto/issue-NN` worktree), do **NOT** create a nested worktree
-even if a condition below is true — proceed in the current directory. The autopilot owns the
-merge-back via its serialized `merge-back.ps1`; a nested `plan/<slug>` worktree would be merged into
-the parent branch by `--merge-worktree` outside that serialization.
-
-**Otherwise, if either condition is true**, create an isolated worktree for the planning work:
+**If either condition is true**, create an isolated worktree for the planning work:
 
 ```powershell
 $worktreePath = ".claude/worktrees/plan-$slug"

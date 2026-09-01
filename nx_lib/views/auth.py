@@ -146,7 +146,7 @@ def _build_reset_email_message(email, invite=False):
     logo_url = "https://nexora.sydoc.ch/nexora/static/images/nexora-logo.gif"
     logo_banner_url = "https://nexora.sydoc.ch/nexora/static/images/sydoc-logo-banner.png"
 
-    body = {
+    return {
         "message": {
             "subject": subject,
             "body": {
@@ -228,7 +228,6 @@ def _build_reset_email_message(email, invite=False):
         },
         "saveToSentItems": True,
     }
-    return body
 
 
 def send_reset_email(email, message=None):
@@ -299,7 +298,7 @@ def init_2fa():
         session["temp_2fa_secret"] = secret
         return render_template("init_2FA.html", qr_code=qr_b64, secret=secret)
 
-    elif request.method == "POST":
+    if request.method == "POST":
         code = request.form.get("code")
         secret = session.get("temp_2fa_secret")
 
@@ -366,6 +365,7 @@ def init_2fa():
         else:
             flash(_("Invalid code. Please try again."), "error")
             return redirect(url_for("init_2fa"))
+    return None
 
 
 @limiter.limit("30 per hour")
@@ -376,7 +376,7 @@ def verify_2fa():
     if request.method == "GET":
         return render_template("verify_2fa.html")
 
-    elif request.method == "POST":
+    if request.method == "POST":
         code = request.form.get("code")
         user_id = session["pre_2fa_userid"]
 
@@ -413,9 +413,9 @@ def verify_2fa():
                 session["locale"] = user_locale
             page_v = page_visibility()
             return redirect(url_for(startpage_redirect_to(page_v)))
-        else:
-            flash(_("Invalid code"), "error")
-            return render_template("verify_2fa.html"), 401
+        flash(_("Invalid code"), "error")
+        return render_template("verify_2fa.html"), 401
+    return None
 
 
 def init_reset():
@@ -691,13 +691,11 @@ def login():
                         session["pre_2fa_userid"] = str(stored_userid)
                         session["pre_2fa_username"] = stored_username
                         return redirect(url_for("init_2fa"))
-                    else:
-                        session.clear()
-                        session["pre_2fa_userid"] = str(stored_userid)
-                        session["pre_2fa_username"] = stored_username
-                        return redirect(url_for("verify_2fa"))
-                else:
-                    _record_login_failure(conn, cursor, stored_userid)
+                    session.clear()
+                    session["pre_2fa_userid"] = str(stored_userid)
+                    session["pre_2fa_username"] = stored_username
+                    return redirect(url_for("verify_2fa"))
+                _record_login_failure(conn, cursor, stored_userid)
             else:
                 # Unknown username: still run one bcrypt comparison against a
                 # fixed dummy hash so the response takes the same time as a

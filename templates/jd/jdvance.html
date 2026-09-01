@@ -5,7 +5,7 @@
  <meta name="csrf-token" content="{{ csrf_token() }}">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>JD Vance Screensaver</title>
-  <link rel="stylesheet" href="{{ url_for('static',filename='css/jdvance.css') }}">
+  <link rel="stylesheet" href="{{ static_v('css/jdvance.css') }}">
 </head>
 <body>
   <script nonce="{{ csp_nonce() }}">

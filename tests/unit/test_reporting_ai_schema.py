@@ -33,7 +33,7 @@ class _FakeConn:
 def _rows(*triples):
     # (TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, DATA_TYPE)
     return [
-        type("R", (), dict(TABLE_SCHEMA=s, TABLE_NAME=t, COLUMN_NAME=c, DATA_TYPE=d))()
+        type("R", (), {"TABLE_SCHEMA": s, "TABLE_NAME": t, "COLUMN_NAME": c, "DATA_TYPE": d})()
         for (s, t, c, d) in triples
     ]
 

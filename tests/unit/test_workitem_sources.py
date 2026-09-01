@@ -406,7 +406,7 @@ def test_get_source_for_workitem_probes_then_caches(app, monkeypatch):
 
 def test_get_source_for_workitem_defaults_when_no_match(app, monkeypatch):
     monkeypatch.setattr(ws, "_cache_lookup", lambda wid: None)
-    monkeypatch.setattr(ws, "non_default_source_instances", lambda: [])
+    monkeypatch.setattr(ws, "non_default_source_instances", list)
     with app.app_context():
         assert ws.get_source_for_workitem(5) == "default"
 

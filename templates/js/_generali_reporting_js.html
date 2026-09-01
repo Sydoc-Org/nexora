@@ -1,5 +1,5 @@
 <script nonce="{{ csp_nonce() }}">
-    const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+    const API_PREFIX = window.API_PREFIX;
     const canEdit        = document.getElementById('reportingTable').dataset.canEdit === 'true';
     const canEditTransOrg = document.getElementById('reportingTable').dataset.canEditTransorg === 'true';
     const currentOrgCode  = document.getElementById('reportingTable').dataset.orgCode || null;
@@ -37,15 +37,9 @@
         return '<span class="nx-label nx-label--red nx-label--nodot">&#10007; {{ _("Late") }}</span>';
     }
 
-    function formatDate(dateStr) {
-        if (!dateStr) return '—';
-        return dateStr.split('T')[0];
-    }
-
-    function formatDateTime(dtStr) {
-        if (!dtStr) return '—';
-        return dtStr.replace('T', ' ').substring(0, 16);
-    }
+    // formatDate/formatDateTime: shared with nx_core.js (Task 12).
+    const formatDate = window.NX.formatDate;
+    const formatDateTime = window.NX.formatDateTime;
 
     // ----------------------------- latest delivery formula ----------------------------- //
     // if weekend → next Tuesday 12:00
@@ -638,37 +632,6 @@
         document.getElementById('modalErrorText').textContent = msg;
         modalError.classList.remove('hidden');
     }
-
-    // ----------------------------- details modal (disabled) ----------------------------- //
-    // Provision Archive / Stray Document detail modals are no longer used.
-    // const detailsModal = document.getElementById('detailsModal');
-    //
-    // function openDetailsModal(r) {
-    //     const isProvision = r.category === 'provision_archive';
-    //     document.querySelector('#detailsModal h3').textContent =
-    //         isProvision ? {{ _("Provision Archive Details") | tojson }} : {{ _("Stray Document Details") | tojson }};
-    //     document.getElementById('detailRequestLabel').textContent =
-    //         isProvision ? {{ _("Email Received") | tojson }} : {{ _("Mailroom Request") | tojson }};
-    //     document.getElementById('detailEmailRcvd').textContent =
-    //         formatDateTime(isProvision ? r.emailReceivedTimeStamp : r.mailRoomRequestTimeStamp);
-    //     document.getElementById('detailLatestDelivery').textContent = formatDateTime(r.latestDeliveryTimeStamp);
-    //     document.getElementById('detailDelivery').textContent       = formatDateTime(r.deliveryTimeStamp);
-    //     detailsModal.classList.remove('hidden');
-    //     detailsModal.classList.add('flex');
-    // }
-    //
-    // function closeDetailsModal() {
-    //     detailsModal.classList.add('hidden');
-    //     detailsModal.classList.remove('flex');
-    // }
-    //
-    // if (detailsModal) {
-    //     detailsModal.addEventListener('click', e => { if (e.target === detailsModal) closeDetailsModal(); });
-    // }
-    // ['closeDetailsBtn', 'closeDetailsBtnFooter'].forEach(id => {
-    //     const el = document.getElementById(id);
-    //     if (el) el.addEventListener('click', closeDetailsModal);
-    // });
 
     // ----------------------------- edit modal ----------------------------- //
     const editModal         = document.getElementById('editModal');

@@ -53,7 +53,7 @@ from ..db import (
     engine_statistics_db,
     engine_statistics_ro,
 )
-from ..extensions import limiter
+from ..extensions import cache, limiter
 from ..i18n import get_locale
 from ..reporting import db_schema
 from ..reporting.ai import (
@@ -62,11 +62,14 @@ from ..reporting.ai import (
     CAPTION_MAX_ROWS,
     CONTINUE_BUDGET_S,
     CONTINUE_MAX_TURNS,
+    EFFORT_AGENT,
+    EFFORT_CHOICES,
     MAX_CONTINUE_ATTEMPTS,
     AiError,
     ask_agentic,
     ask_agentic_iter,
     stage_preview,
+    supports_effort,
 )
 from ..reporting.ai import _make_agent_step as make_agent_step
 from ..reporting.ai import ask as ai_ask
@@ -151,12 +154,24 @@ _CURATED_ENGINES = {
 }
 
 
+_SOURCES_CACHE_KEY = "reporting_sources_registry"
+_METRICS_CACHE_KEY = "reporting_metrics_registry"
+_REGISTRY_TTL = 60  # seconds; admin CRUD invalidates explicitly, so this only bounds staleness
+
+
 def _load_db_sources():
     """Read dbo.ReportingSources registry rows as descriptor dicts (best-effort).
 
-    A missing table or read error yields an empty list, so the page degrades to
-    the code-defined defaults rather than 500-ing.
+    Cached 60s (house TTL pattern, mirrors nx_lib/mapping_config.py) --
+    success-only: a load error is logged and answered with the code-defined
+    fallback (an empty list, so the page degrades to the code-defined defaults
+    rather than 500-ing) but is NEVER cached, so the next call re-queries
+    rather than pinning the outage for the full TTL. Admin CRUD routes call
+    invalidate_reporting_sources() so an edit is visible immediately.
     """
+    cached = cache.get(_SOURCES_CACHE_KEY)
+    if cached is not None:
+        return cached
     try:
         conn = engine_nexora_db.raw_connection()
     except Exception as e:
@@ -191,12 +206,18 @@ def _load_db_sources():
                     "sortOrder": r.SortOrder,
                 }
             )
+        cache.set(_SOURCES_CACHE_KEY, rows, timeout=_REGISTRY_TTL)  # success-only, incl. empty
         return rows
     except Exception as e:
         current_app.logger.warning(f"reporting sources: registry read failed: {e}")
         return []
     finally:
         conn.close()
+
+
+def invalidate_reporting_sources() -> None:
+    """Drop the cached sources registry so the next _load_db_sources() re-queries."""
+    cache.delete(_SOURCES_CACHE_KEY)
 
 
 def _effective_sources():
@@ -214,9 +235,15 @@ def _get_effective_source(source_id):
 def _load_db_metrics():
     """Read enabled dbo.ReportingMetrics as {code: {...}} (best-effort).
 
-    A missing table or read error yields an empty dict, so the page degrades to
-    "no metrics" rather than 500-ing — mirrors _load_db_sources.
+    Cached 60s (house TTL pattern, mirrors nx_lib/mapping_config.py) --
+    success-only: a load error is logged and answered with the fallback (an
+    empty dict, so the page degrades to "no metrics" rather than 500-ing —
+    mirrors _load_db_sources) but is NEVER cached. Admin CRUD routes call
+    invalidate_reporting_metrics() so an edit is visible immediately.
     """
+    cached = cache.get(_METRICS_CACHE_KEY)
+    if cached is not None:
+        return cached
     try:
         conn = engine_nexora_db.raw_connection()
     except Exception as e:
@@ -247,12 +274,18 @@ def _load_db_metrics():
                 "total_mode": (getattr(r, "TotalMode", None) or "sum"),
                 "anchor": getattr(r, "DateAnchor", None),
             }
+        cache.set(_METRICS_CACHE_KEY, out, timeout=_REGISTRY_TTL)  # success-only, incl. empty
         return out
     except Exception as e:
         current_app.logger.warning(f"reporting metrics: registry read failed: {e}")
         return {}
     finally:
         conn.close()
+
+
+def invalidate_reporting_metrics() -> None:
+    """Drop the cached metrics registry so the next _load_db_metrics() re-queries."""
+    cache.delete(_METRICS_CACHE_KEY)
 
 
 _METRIC_LABEL_ATTRS = {"de": "label_de", "fr": "label_fr", "it": "label_it"}
@@ -388,6 +421,12 @@ def _ai_config():
             "api_version": os.environ.get("AZURE_OPENAI_API_VERSION", "2024-10-21"),
         }
     return {"provider": "none", "api_key": None}
+
+
+def _ai_effort_enabled():
+    """True when the configured model honours an effort level (composer gate)."""
+    cfg = _ai_config()
+    return supports_effort(cfg.get("provider"), cfg.get("model"))
 
 
 def _accessible_sql_targets():
@@ -1204,6 +1243,10 @@ def reporting():
         page_visibility=page_visibility(),
         ai_enabled=has_permission("reporting.ai.use"),
         ai_caption_enabled=has_permission("reporting.ai.explain_data"),
+        # The composer only offers Quick/Balanced/Deep when the configured
+        # model can actually honour it (GPT-5 family, Claude Opus/Sonnet 5).
+        ai_effort_enabled=_ai_effort_enabled(),
+        ai_effort_default=EFFORT_AGENT,
         details_images_perm=has_permission("workitems.details.view.images"),
         details_audit_perm=has_permission("workitems.details.view.audit"),
         details_fields_perm=has_permission("workitems.details.view.fields"),
@@ -1728,6 +1771,13 @@ def api_ai_agent():
     except (TypeError, ValueError):
         continue_attempt = 0
     continue_attempt = max(0, min(continue_attempt, MAX_CONTINUE_ATTEMPTS))
+
+    # Composer effort picker. An unknown level falls back to the loop default
+    # rather than 400 - a stale or tampered client must not be able to break a
+    # question, and _effort_body drops it again if the model cannot honour it.
+    effort = body.get("effort")
+    if effort not in EFFORT_CHOICES:
+        effort = EFFORT_AGENT
     agent_max_turns = CONTINUE_MAX_TURNS if continue_attempt else None
     agent_budget_s = CONTINUE_BUDGET_S if continue_attempt else None
 
@@ -1976,6 +2026,7 @@ def api_ai_agent():
             deployment=cfg.get("deployment"),
             api_version=cfg.get("api_version", "2024-10-21"),
             url=cfg.get("url"),
+            effort=effort,
         )
         # Streaming mode: the client asked to watch the loop work. NDJSON, one
         # object per line — {"phase": ...} progress events as they happen, then
@@ -3235,6 +3286,7 @@ def api_admin_sources_create():
         )
         new_id = cur.fetchone()[0]
         conn.commit()
+        invalidate_reporting_sources()
         return jsonify({"id": new_id, "ok": True})
     except Exception as e:
         current_app.logger.error(f"reporting admin sources create error: {e}")
@@ -3264,6 +3316,7 @@ def api_admin_sources_update(source_id):
         conn.commit()
         if not affected:
             return jsonify({"error": _("Not found")}), 404
+        invalidate_reporting_sources()
         return jsonify({"ok": True})
     except Exception as e:
         current_app.logger.error(f"reporting admin sources update error: {e}")
@@ -3282,6 +3335,7 @@ def api_admin_sources_delete(source_id):
         conn.commit()
         if not affected:
             return jsonify({"error": _("Not found")}), 404
+        invalidate_reporting_sources()
         return jsonify({"ok": True})
     except Exception as e:
         current_app.logger.error(f"reporting admin sources delete error: {e}")
@@ -3356,6 +3410,7 @@ def api_admin_metrics_create():
         )
         new_id = cur.fetchone()[0]
         conn.commit()
+        invalidate_reporting_metrics()
         return jsonify({"id": new_id, "ok": True})
     except Exception as e:
         current_app.logger.error(f"reporting admin metrics create error: {e}")
@@ -3385,6 +3440,7 @@ def api_admin_metrics_update(metric_id):
         conn.commit()
         if not affected:
             return jsonify({"error": _("Not found")}), 404
+        invalidate_reporting_metrics()
         return jsonify({"ok": True})
     except Exception as e:
         current_app.logger.error(f"reporting admin metrics update error: {e}")
@@ -3403,6 +3459,7 @@ def api_admin_metrics_delete(metric_id):
         conn.commit()
         if not affected:
             return jsonify({"error": _("Not found")}), 404
+        invalidate_reporting_metrics()
         return jsonify({"ok": True})
     except Exception as e:
         current_app.logger.error(f"reporting admin metrics delete error: {e}")

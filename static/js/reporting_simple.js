@@ -4,7 +4,7 @@
 // chart singleton); the result view owns a private Chart.js instance.
 (function () {
   var csrf = document.querySelector('meta[name="csrf-token"]').content;
-  var API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+  var API_PREFIX = window.API_PREFIX;
   var EXPORT_ALLOWED = !!document.getElementById('rsExport');
 
   var I18N = window.NX_I18N_REPORTING_SIMPLE;
@@ -36,28 +36,12 @@
     }())
   };
 
-  function el(id) { return document.getElementById(id); }
-
-  async function api(url, opts) {
-    if (url.startsWith('/')) url = API_PREFIX + url.slice(1);
-    opts = opts || {};
-    var res;
-    try {
-      res = await fetch(url, Object.assign(
-        { headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf } }, opts));
-    } catch (e) {
-      return { ok: false, status: 0, data: null };  // network-level failure
-    }
-    var data = null;
-    try { data = await res.json(); } catch (e) { /* non-JSON */ }
-    return { ok: res.ok, status: res.status, data: data };
-  }
-
-  function esc(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
+  // el/api/esc: shared with nx_core.js (Task 11) -- this file's api() never
+  // throws (resolves to {ok,status,data}), so it aliases NX.apiSafe, not
+  // NX.api.
+  var el = window.NX.el;
+  var api = window.NX.apiSafe;
+  var esc = window.NX.esc;
 
   function relTime(iso) {
     var d = new Date(iso); if (isNaN(d)) return '';

@@ -1,8 +1,17 @@
 """Pure-logic tests for the What's New helpers (#169)."""
 
 import re
+from unittest.mock import MagicMock, patch
 
-from nx_lib.whats_new import RELEASES, _ver, has_unseen, visible_releases
+from nx_lib import user_cache
+from nx_lib.whats_new import (
+    RELEASES,
+    _ver,
+    has_unseen,
+    load_seen_version,
+    mark_seen,
+    visible_releases,
+)
 
 
 def test_releases_data_is_well_formed():
@@ -41,6 +50,42 @@ def test_visible_releases_drops_empty_releases():
     only_admin = visible_releases(lambda code: code == "admin.status.view")
     for rel in only_admin:
         assert rel["entries"]
+
+
+def _mock_conn(seen_version):
+    conn = MagicMock()
+    cursor = conn.cursor.return_value
+    cursor.fetchone.return_value = (seen_version,) if seen_version is not None else None
+    return conn
+
+
+def test_load_seen_version_is_cached(monkeypatch):
+    """A second call within the TTL must not hit the engine at all."""
+    user_cache.clear()
+    monkeypatch.setenv("NEXORA_USER_CACHE_TTL", "30")
+    with patch("nx_lib.whats_new.engine_nexora_db.raw_connection") as raw_conn:
+        raw_conn.return_value = _mock_conn("3.1")
+        assert load_seen_version(99) == "3.1"
+        assert load_seen_version(99) == "3.1"
+        assert raw_conn.call_count == 1  # second call served from the TTL cache
+
+
+def test_mark_seen_busts_the_cache(monkeypatch, app):
+    """mark_seen's UPDATE must invalidate the cached seen-version so the very
+    next read reflects the new value instead of the stale cached one."""
+    user_cache.clear()
+    monkeypatch.setenv("NEXORA_USER_CACHE_TTL", "30")
+    with patch("nx_lib.whats_new.engine_nexora_db.raw_connection") as raw_conn:
+        raw_conn.return_value = _mock_conn("3.1")
+        assert load_seen_version(99) == "3.1"
+        assert raw_conn.call_count == 1
+
+        raw_conn.return_value = _mock_conn("3.2.3")
+        with app.test_request_context("/whats_new"):
+            mark_seen(99)
+
+        assert load_seen_version(99) == "3.2.3"
+        assert raw_conn.call_count == 3  # mark_seen's UPDATE + the reloaded SELECT
 
 
 def test_has_unseen():

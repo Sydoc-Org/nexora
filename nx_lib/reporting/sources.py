@@ -41,11 +41,6 @@ _SOURCES = {
 }
 
 
-def get_source(source_id):
-    """Return the code-default source descriptor dict, or None if unknown."""
-    return _SOURCES.get(source_id)
-
-
 def code_sources():
     """The code-defined default source descriptors (a fresh copy of each)."""
     return [dict(s) for s in _SOURCES.values()]
@@ -79,12 +74,3 @@ def merge_sources(defaults, db_rows):
 def accessible(sources, permissions):
     """Filter effective `sources` to those the holder of `permissions` may use."""
     return [s for s in sources if s.get("permission") in permissions]
-
-
-def list_accessible_sources(permissions):
-    """Code-default sources the holder of `permissions` (a set) may use.
-
-    Kept for callers/tests that don't load the DB registry; the view layer uses
-    merge_sources(code_sources(), db_rows) + accessible() for the effective set.
-    """
-    return [s for s in _SOURCES.values() if s["permission"] in permissions]

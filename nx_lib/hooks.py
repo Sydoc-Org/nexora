@@ -71,12 +71,12 @@ def _enforce_active_session():
     Also bumps LastSeenAt (at most once per cache TTL) so the admin "active
     sessions" view reflects recent activity rather than just login time (#109)."""
     if request.path.startswith(_SESSION_ENFORCE_SKIP_PATHS):
-        return
+        return None
     if "userid" not in session:
-        return
+        return None
     sid = getattr(session, "sid", None) or session.get("_dev_sid")
     if not sid:
-        return
+        return None
 
     def _check_and_bump():
         conn = engine_nexora_db.raw_connection()
@@ -102,9 +102,9 @@ def _enforce_active_session():
         alive = user_cache.get_or_load("session_alive", sid, _check_and_bump)
     except Exception as e:
         current_app.logger.warning(f"enforce_active_session check failed: {e}")
-        return  # Fail open — never lock users out due to a transient DB blip
+        return None  # Fail open — never lock users out due to a transient DB blip
     if alive:
-        return
+        return None
     session.clear()
     if request.path.startswith("/api/") or request.is_json:
         return jsonify({"error": "Session revoked", "reason": "revoked"}), 401
@@ -175,17 +175,17 @@ def _enforce_maintenance_lockout():
     """When a banner with BlockAccess=1 is in its window, kick non-bypass users
     out of every route except a tiny allowlist (login is handled inside login())."""
     if request.path.startswith(_MAINTENANCE_LOCKOUT_SKIP_PATHS):
-        return
+        return None
     blocking = _get_blocking_maintenance()
     if not blocking:
-        return
+        return None
     # Established session
     if has_permission("admin.maintenance.bypass"):
-        return
+        return None
     # Mid-login flow (after bcrypt success, before perms are loaded into session)
     pending_uid = session.get("pre_2fa_userid") or session.get("pre_auth_userid")
     if pending_uid and _user_has_maintenance_bypass(pending_uid):
-        return
+        return None
     # Drop their session so they can't keep working anywhere
     if "userid" in session:
         session.clear()
@@ -241,7 +241,7 @@ def _is_external_api_path(path):
     # sandbox twin) gets JSON error bodies (same idiom as the session-
     # revoked/maintenance hooks above). NOT gated on /api/ broadly, so the
     # legacy internal /api/* surfaces keep their current HTML behavior.
-    return path.startswith("/api/v1") or path.startswith("/api/test/v1")
+    return path.startswith(("/api/v1", "/api/test/v1"))
 
 
 def _page_not_found(e):
@@ -295,9 +295,11 @@ def _inject_brand():
 
 
 def _utility_processor():
-    return dict(
-        get_user_icon_url=resolve_user_icon_url, has_permission=has_permission, is_prod=IS_PROD
-    )
+    return {
+        "get_user_icon_url": resolve_user_icon_url,
+        "has_permission": has_permission,
+        "is_prod": IS_PROD,
+    }
 
 
 def _inject_app_version():

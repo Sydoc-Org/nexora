@@ -1,21 +1,11 @@
 <script nonce="{{ csp_nonce() }}">
 (function () {
-  const csrf = document.querySelector('meta[name="csrf-token"]').content;
-  const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
   let editingId = null;
   let sources = [];
 
-  async function api(url, opts) {
-    if (url.startsWith('/')) url = API_PREFIX + url.slice(1);
-    opts = opts || {};
-    const res = await fetch(url, Object.assign(
-      { headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf } }, opts));
-    if (!res.ok) {
-      const b = await res.json().catch(function () { return {}; });
-      throw new Error(b.error || res.statusText);
-    }
-    return res;
-  }
+  // api: shared with nx_core.js (Task 11) -- this file's api() throws on a
+  // non-2xx response, so it aliases NX.api, not NX.apiSafe.
+  const api = window.NX.api;
 
   function td(text) {
     var t = document.createElement('td');

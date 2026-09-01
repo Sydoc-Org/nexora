@@ -14,6 +14,7 @@ permissions can see. Opening ``/whats_new`` stamps the current app version.
 from flask import current_app
 from flask_babel import lazy_gettext as _
 
+from . import user_cache
 from .db import engine_nexora_db
 from .version import __version__
 
@@ -441,8 +442,7 @@ def has_unseen(last_seen, has_perm):
     return any(_ver(rel["version"]) > seen for rel in visible_releases(has_perm))
 
 
-def load_seen_version(userid):
-    """The user's stored seen-marker; None when never stamped or on DB error."""
+def _load_seen_version(userid):
     conn = None
     try:
         conn = engine_nexora_db.raw_connection()
@@ -457,6 +457,16 @@ def load_seen_version(userid):
     finally:
         if conn:
             conn.close()
+
+
+def load_seen_version(userid):
+    """The user's stored seen-marker; None when never stamped or on DB error.
+
+    Called from ``_inject_whats_new`` on every HTML render, so it is read
+    through the same per-process TTL cache as permissions/ui_prefs
+    (nx_lib/user_cache.py) rather than hitting NexoraDB every time.
+    """
+    return user_cache.get_or_load("whats_new_seen", userid, lambda: _load_seen_version(userid))
 
 
 def mark_seen(userid):
@@ -476,3 +486,4 @@ def mark_seen(userid):
     finally:
         if conn:
             conn.close()
+        user_cache.forget(userid)

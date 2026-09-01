@@ -82,9 +82,9 @@ def test_admin_dashboard_with_perm_renders(admin_client):
 def no_restart_perm(monkeypatch):
     """Drop admin.restart the way STAGING does (#198): it resolves NexoraDB to
     the prod server, where migration 0059 never ran. Patches the binding inside
-    views.admin only, so the admin.view gate in security.require_permission —
+    views.admin.system only, so the admin.view gate in security.require_permission —
     which looks up its own module global — still lets the page render."""
-    monkeypatch.setattr("nx_lib.views.admin.has_permission", lambda code: False)
+    monkeypatch.setattr("nx_lib.views.admin.system.has_permission", lambda code: False)
     yield
 
 
@@ -227,7 +227,7 @@ def test_delete_branding_logo_refuses_a_hostile_org_code(monkeypatch, tmp_path):
     branding_dir.mkdir()
     outside = tmp_path / "secret.png"
     outside.write_bytes(b"top-secret")
-    monkeypatch.setattr("nx_lib.views.admin.PATHS.branding", branding_dir)
+    monkeypatch.setattr("nx_lib.views.admin.organizations.PATHS.branding", branding_dir)
 
     for hostile in ("../secret", "..\\secret", "", None, "a/b"):
         admin_views._delete_branding_logo(hostile)
@@ -358,7 +358,7 @@ class _FakeClientsDb:
 @pytest.fixture
 def fake_clients_db(monkeypatch):
     db = _FakeClientsDb(rows=_SEEDED_CLIENTS)
-    monkeypatch.setattr("nx_lib.views.admin.engine_nexora_db", db)
+    monkeypatch.setattr("nx_lib.views.admin.clients.engine_nexora_db", db)
     return db
 
 
@@ -484,7 +484,7 @@ def test_admin_clients_view_renders_rows(
     technique as fake_mapping_db below). Asserted at a hard 200 with the seeded
     rows visible -- the old 200-or-500 tuple-match could not fail, so a Jinja
     error in clients.html would have shipped green."""
-    monkeypatch.setattr("nx_lib.views.admin.has_permission", lambda code: True)
+    monkeypatch.setattr("nx_lib.views.admin.clients.has_permission", lambda code: True)
     resp = admin_client.get("/admin/clients")
     assert resp.status_code == 200
     html = resp.data.decode()
@@ -501,7 +501,7 @@ def test_admin_clients_form_covers_every_writable_column(
     editing a display name silently NULLs StatsEngineKey / StatsDialect /
     DocfieldsEngineKey / DocfieldsDialect (MS02 statistics break, doc-field
     search fails closed after the next app-pool recycle)."""
-    monkeypatch.setattr("nx_lib.views.admin.has_permission", lambda code: True)
+    monkeypatch.setattr("nx_lib.views.admin.clients.has_permission", lambda code: True)
     html = admin_client.get("/admin/clients").data.decode()
     for column in _CLIENTS_COLUMNS:
         assert f'id="{column}"' in html, f"{column} has no form input"
@@ -514,7 +514,7 @@ def test_admin_clients_view_only_gets_no_edit_affordances(
     """admin.view.clients without admin.edit.clients: the page renders, but no
     Add/Edit/Delete button -- clicking one only ever produced a 403 toast."""
     monkeypatch.setattr(
-        "nx_lib.views.admin.has_permission", lambda code: code != "admin.edit.clients"
+        "nx_lib.views.admin.clients.has_permission", lambda code: code != "admin.edit.clients"
     )
     resp = admin_client.get("/admin/clients")
     assert resp.status_code == 200
@@ -536,7 +536,7 @@ def test_admin_clients_view_only_gets_no_edit_affordances(
 def test_admin_clients_marks_a_row_the_registry_did_not_load(
     admin_client, admin_all_perms, fake_clients_db, monkeypatch
 ):
-    monkeypatch.setattr("nx_lib.views.admin.has_permission", lambda code: True)
+    monkeypatch.setattr("nx_lib.views.admin.clients.has_permission", lambda code: True)
     monkeypatch.setattr(
         admin_module.clients_registry, "CLIENTS", {"default": object()}, raising=False
     )
@@ -551,7 +551,7 @@ def test_admin_clients_marks_a_row_the_registry_did_not_load(
 def test_admin_clients_marks_every_row_loaded_when_the_registry_holds_them(
     admin_client, admin_all_perms, fake_clients_db, monkeypatch
 ):
-    monkeypatch.setattr("nx_lib.views.admin.has_permission", lambda code: True)
+    monkeypatch.setattr("nx_lib.views.admin.clients.has_permission", lambda code: True)
     monkeypatch.setattr(
         admin_module.clients_registry,
         "CLIENTS",
@@ -568,7 +568,7 @@ def test_admin_clients_shows_a_banner_when_the_registry_is_degraded(
     """A boot-time dbo.Clients failure drops every non-default runtime for the
     whole process lifetime, and its only other signal is a stderr line written
     before Flask configured logging."""
-    monkeypatch.setattr("nx_lib.views.admin.has_permission", lambda code: True)
+    monkeypatch.setattr("nx_lib.views.admin.clients.has_permission", lambda code: True)
     monkeypatch.setattr(
         admin_module.clients_registry,
         "REGISTRY_DEGRADED_REASON",
@@ -583,7 +583,7 @@ def test_admin_clients_shows_a_banner_when_the_registry_is_degraded(
 def test_admin_clients_has_no_banner_when_the_registry_is_healthy(
     admin_client, admin_all_perms, fake_clients_db, monkeypatch
 ):
-    monkeypatch.setattr("nx_lib.views.admin.has_permission", lambda code: True)
+    monkeypatch.setattr("nx_lib.views.admin.clients.has_permission", lambda code: True)
     monkeypatch.setattr(
         admin_module.clients_registry, "REGISTRY_DEGRADED_REASON", None, raising=False
     )
@@ -986,14 +986,16 @@ def fake_mapping_db(monkeypatch):
         mappings={("ms02", "privera.02_Posteingang", "doctype")},
         permissions={"workitems.filter.process.privera.02_Posteingang"},
     )
-    monkeypatch.setattr(admin_module, "engine_nexora_db", db)
+    monkeypatch.setattr(admin_module.processes, "engine_nexora_db", db)
     return db
 
 
 @pytest.fixture
 def spy_invalidate(monkeypatch):
     calls = []
-    monkeypatch.setattr("nx_lib.views.admin.invalidate_mapping_config", lambda: calls.append(1))
+    monkeypatch.setattr(
+        "nx_lib.views.admin.processes.invalidate_mapping_config", lambda: calls.append(1)
+    )
     return calls
 
 
@@ -1192,7 +1194,7 @@ def test_process_source_add_rejects_a_name_that_reduces_onto_an_existing_grant(
     'acme.01_Invoice'. Adding that two-segment name would silently share one
     entitlement with a different customer's process."""
     db = _FakeMappingDb(sources={("ms02", "x.acme.01_Eingang")})
-    monkeypatch.setattr(admin_module, "engine_nexora_db", db)
+    monkeypatch.setattr(admin_module.processes, "engine_nexora_db", db)
 
     resp = admin_client.post("/admin/processes/sources/add", json=_VALID_SOURCE)
     assert resp.status_code == 409, resp.get_json()
@@ -1207,7 +1209,7 @@ def test_process_source_add_rejects_the_same_name_under_a_different_client(
     """The permission code carries no ClientCode, so the same ProcessName under
     two clients is one shared entitlement, not two."""
     db = _FakeMappingDb(sources={("ms02", "acme.01_Eingang")})
-    monkeypatch.setattr(admin_module, "engine_nexora_db", db)
+    monkeypatch.setattr(admin_module.processes, "engine_nexora_db", db)
 
     resp = admin_client.post("/admin/processes/sources/add", json=_VALID_SOURCE)
     assert resp.status_code == 409, resp.get_json()
@@ -1252,8 +1254,8 @@ def test_process_source_add_checks_the_client_before_writing_anything(
 def test_processes_page_offers_a_client_picker_not_free_text(
     admin_client, admin_all_perms, mapping_config_with_six_rows, monkeypatch
 ):
-    monkeypatch.setattr("nx_lib.views.admin.has_permission", lambda code: True)
-    monkeypatch.setattr(admin_module, "_client_codes", lambda: ["default", "ms02"])
+    monkeypatch.setattr("nx_lib.views.admin.processes.has_permission", lambda code: True)
+    monkeypatch.setattr(admin_module.processes, "_client_codes", lambda: ["default", "ms02"])
     resp = admin_client.get("/admin/processes")
     html = resp.get_data(as_text=True)
     assert 'id="ClientCode"' in html
@@ -1266,8 +1268,8 @@ def test_processes_page_falls_back_to_free_text_when_clients_unreadable(
 ):
     """An unreadable dbo.Clients must not leave an empty picker that blocks
     every add."""
-    monkeypatch.setattr("nx_lib.views.admin.has_permission", lambda code: True)
-    monkeypatch.setattr(admin_module, "_client_codes", lambda: [])
+    monkeypatch.setattr("nx_lib.views.admin.processes.has_permission", lambda code: True)
+    monkeypatch.setattr(admin_module.processes, "_client_codes", list)
     html = admin_client.get("/admin/processes").get_data(as_text=True)
     assert '<input type="text" id="ClientCode"' in html
 
@@ -1646,11 +1648,11 @@ def test_admin_add_user_duplicate_returns_409_or_500(admin_client, admin_all_per
     admin_all_perms only patches nx_lib.security.has_permission (reached by the
     @require_permission decorator's dynamic lookup); it does NOT reach the
     inline admin.assign.user.accessprofile.* gate added to admin_add_user,
-    which resolves nx_lib.views.admin.has_permission (bound at import time).
-    Patch that binding too so this test keeps exercising the duplicate-409
-    path instead of newly dying on the 403 gate.
+    which resolves nx_lib.views.admin.users.has_permission (bound at import
+    time). Patch that binding too so this test keeps exercising the
+    duplicate-409 path instead of newly dying on the 403 gate.
     """
-    monkeypatch.setattr("nx_lib.views.admin.has_permission", lambda code: True)
+    monkeypatch.setattr("nx_lib.views.admin.users.has_permission", lambda code: True)
     resp = admin_client.post(
         "/admin/users/add",
         json={
@@ -1672,14 +1674,14 @@ def test_admin_add_user_without_assign_permission_returns_403(admin_client, monk
     nx_lib.security.has_permission at call time — TestAdmin (admin@test.local)
     is seeded with every permission, so that check still passes. Only the
     inline admin.assign.user.accessprofile.<profile> gate is denied here, by
-    patching the nx_lib.views.admin module-level binding (the one the inline
-    call inside admin_add_user actually resolves — patching
+    patching the nx_lib.views.admin.users module-level binding (the one the
+    inline call inside admin_add_user actually resolves — patching
     nx_lib.security.has_permission would NOT reach it).
     """
     from sqlalchemy import text
 
     monkeypatch.setattr(
-        "nx_lib.views.admin.has_permission",
+        "nx_lib.views.admin.users.has_permission",
         lambda code: not code.startswith("admin.assign.user.accessprofile."),
     )
     username = "task5-deny@test.local"
@@ -1707,13 +1709,13 @@ def test_admin_add_user_with_assign_permission_returns_200(admin_client, monkeyp
 
     Deliberately does NOT use admin_all_perms — that fixture patches
     nx_lib.security.has_permission, which the inline gate in admin_add_user
-    (bound as nx_lib.views.admin.has_permission at import time) cannot see.
+    (bound as nx_lib.views.admin.users.has_permission at import time) cannot see.
     """
     from sqlalchemy import text
 
     from nx_lib.db import engine_nexora_db
 
-    monkeypatch.setattr("nx_lib.views.admin.has_permission", lambda code: True)
+    monkeypatch.setattr("nx_lib.views.admin.users.has_permission", lambda code: True)
     username = f"task5-allow-{uuid.uuid4().hex[:8]}@test.local"
     user_id = None
     try:
@@ -1786,7 +1788,7 @@ def test_admin_add_user_invite_generates_password_and_mails_link(
     from nx_lib.db import engine_nexora_db
     from nx_lib.views.auth import _load_reset_token
 
-    monkeypatch.setattr("nx_lib.views.admin.has_permission", lambda code: True)
+    monkeypatch.setattr("nx_lib.views.admin.users.has_permission", lambda code: True)
 
     sent = {}
 
@@ -1862,7 +1864,7 @@ def test_admin_edit_user_nonexistent(admin_client, admin_all_perms):
 # profile is outside that set (e.g. a lesser admin viewing a user who holds a
 # super-admin-only profile), no <option> is `selected`, the browser defaults
 # to submitting the first option, and saving any unrelated field silently
-# reassigns the profile. These tests patch nx_lib.views.admin.has_permission
+# reassigns the profile. These tests patch nx_lib.views.admin.users.has_permission
 # (the module-level binding the inline gate in admin_edit_user actually
 # resolves — see test_admin_add_user_without_assign_permission_returns_403's
 # docstring above) to simulate an admin who cannot assign 'TestUser' or
@@ -1879,7 +1881,7 @@ def test_admin_edit_user_unchanged_unassignable_profile_roundtrips(
     from sqlalchemy import text
 
     monkeypatch.setattr(
-        "nx_lib.views.admin.has_permission",
+        "nx_lib.views.admin.users.has_permission",
         lambda code: code
         not in (
             "admin.assign.user.accessprofile.testuser",
@@ -1922,7 +1924,7 @@ def test_admin_edit_user_changed_to_unassignable_profile_returns_403(
     from sqlalchemy import text
 
     monkeypatch.setattr(
-        "nx_lib.views.admin.has_permission",
+        "nx_lib.views.admin.users.has_permission",
         lambda code: code
         not in (
             "admin.assign.user.accessprofile.testuser",
@@ -1980,7 +1982,7 @@ def test_admin_edit_user_missing_accessprofile_key_saves_other_fields(
     from sqlalchemy import text
 
     monkeypatch.setattr(
-        "nx_lib.views.admin.has_permission",
+        "nx_lib.views.admin.users.has_permission",
         lambda code: code
         not in (
             "admin.assign.user.accessprofile.testuser",
@@ -2027,7 +2029,7 @@ def test_admin_user_detail_current_unassignable_option_not_disabled(
     from sqlalchemy import text
 
     monkeypatch.setattr(
-        "nx_lib.views.admin.has_permission",
+        "nx_lib.views.admin.users.has_permission",
         lambda code: code
         not in (
             "admin.assign.user.accessprofile.testuser",
@@ -2583,7 +2585,7 @@ def test_header_prepaint_accent_fallback_source_uses_brand_then_hardcoded():
     exercising the inline pre-paint script needs a JS engine."""
     with open("templates/_header.html", encoding="utf-8") as f:
         src = f.read()
-    assert "accent:     stored.accent     || (brand.accent_hex ? 'custom' : 'indigo')," in src
+    assert "accent:     stored.accent     || (brand.accent_hex ? 'custom' : 'amber')," in src
     assert "accentHex:  stored.accentHex  || brand.accent_hex || '#4f46e5'," in src
 
 
@@ -2755,9 +2757,11 @@ def branding_write(monkeypatch, tmp_path):
     invalidate_branding() calls. Yields (tmp_path, cursor, calls)."""
     engine, _conn, cursor = _fake_nexora_engine()
     calls = []
-    monkeypatch.setattr("nx_lib.views.admin.engine_nexora_db", engine)
-    monkeypatch.setattr("nx_lib.views.admin.PATHS.branding", tmp_path)
-    monkeypatch.setattr("nx_lib.views.admin.invalidate_branding", lambda: calls.append(1))
+    monkeypatch.setattr("nx_lib.views.admin.organizations.engine_nexora_db", engine)
+    monkeypatch.setattr("nx_lib.views.admin.organizations.PATHS.branding", tmp_path)
+    monkeypatch.setattr(
+        "nx_lib.views.admin.organizations.invalidate_branding", lambda: calls.append(1)
+    )
     yield tmp_path, cursor, calls
 
 
@@ -2889,7 +2893,7 @@ def test_branding_save_rejects_traversal_shaped_orgcode(
 
 
 def test_branding_save_unknown_org_is_404(admin_client, admin_all_perms, monkeypatch, tmp_path):
-    monkeypatch.setattr("nx_lib.views.admin.PATHS.branding", tmp_path)
+    monkeypatch.setattr("nx_lib.views.admin.organizations.PATHS.branding", tmp_path)
     resp = admin_client.post("/admin/organizations/NOPE/branding", json={"brand_name": "Provera"})
     assert resp.status_code == 404
 
@@ -2897,9 +2901,9 @@ def test_branding_save_unknown_org_is_404(admin_client, admin_all_perms, monkeyp
 def test_organizations_page_shows_branding_panel_with_perm(
     admin_client, admin_all_perms, monkeypatch
 ):
-    # can_edit_branding is resolved through views.admin's own has_permission
-    # binding, which admin_all_perms (nx_lib.security) doesn't cover.
-    monkeypatch.setattr("nx_lib.views.admin.has_permission", lambda code: True)
+    # can_edit_branding is resolved through views.admin.organizations' own
+    # has_permission binding, which admin_all_perms (nx_lib.security) doesn't cover.
+    monkeypatch.setattr("nx_lib.views.admin.organizations.has_permission", lambda code: True)
     resp = admin_client.get("/admin/organizations")
     assert resp.status_code == 200
     assert b'data-testid="admin-org-branding-panel"' in resp.data
@@ -2912,7 +2916,8 @@ def test_organizations_page_hides_branding_panel_without_perm(admin_client, monk
         "nx_lib.security.has_permission", lambda code: code == "admin.view.organizations"
     )
     monkeypatch.setattr(
-        "nx_lib.views.admin.has_permission", lambda code: code == "admin.view.organizations"
+        "nx_lib.views.admin.organizations.has_permission",
+        lambda code: code == "admin.view.organizations",
     )
     resp = admin_client.get("/admin/organizations")
     assert resp.status_code == 200

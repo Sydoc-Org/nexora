@@ -50,66 +50,6 @@ function Write-Warn ($msg) { Write-Host "  ⚠  $msg" -ForegroundColor DarkYello
 function Write-Info ($msg) { Write-Host "  →  $msg" -ForegroundColor Blue       }
 function Write-Dim  ($msg) { Write-Host "     $msg" -ForegroundColor Gray       }
 
-function Test-AutopilotClaudeAlive {
-    # Same probe lock.ps1 uses: an autopilot run's claude runs with -p or stream-json,
-    # and is NOT the interactive --remote-control session. Keep in sync with lock.ps1.
-    try {
-        return [bool](Get-CimInstance Win32_Process -Filter "Name='claude.exe'" -ErrorAction SilentlyContinue |
-            Where-Object { ($_.CommandLine -like '* -p *' -or $_.CommandLine -like '*stream-json*') -and $_.CommandLine -notlike '*--remote-control*' })
-    } catch { return $false }
-}
-
-function Get-AutopilotStatusLine {
-    # Returns "#<n> <title>  -- building <Xm> (<phase>)" for a single-lane build, or
-    # "#<n> <title> (<phase>, <age>m, lane <K>); ..." for concurrent lanes.
-    # Elapsed is computed from the file's LastWriteTime -- never via ISO-string parsing
-    # (datetime minus datetimeoffset has no op_Subtraction overload, so parsing $state.ts
-    # would throw at runtime). Staleness: 3-min grace then require a live run; hard cap 3h.
-    # Concurrent lanes: staleness uses semaphore slot K (not the host-wide claude probe,
-    # which is always true with 3 simultaneous lanes and would never flag stale).
-    $semScript = Join-Path $AppDir 'tools\autopilot\semaphore.ps1'
-
-    # Per-lane run-states (concurrent mode). Each lives at var\autopilot\lanes\lane-K\run-state.json.
-    $lanesDir = Join-Path $AppDir 'var\autopilot\lanes'
-    if (Test-Path $lanesDir) {
-        $laneLines = @()
-        $laneStatePaths = @(Get-ChildItem $lanesDir -Filter 'run-state.json' -Recurse -ErrorAction SilentlyContinue)
-        foreach ($lsp in $laneStatePaths) {
-            try {
-                $state = Get-Content $lsp.FullName -Raw | ConvertFrom-Json
-                $age = (Get-Date) - $lsp.LastWriteTime
-                $slot = -1
-                if ($lsp.DirectoryName -match 'lane-(\d+)$') { $slot = [int]$Matches[1] }
-                $slotHeld = $false
-                if ($slot -ge 0 -and (Test-Path $semScript)) {
-                    try {
-                        $sm = (& $semScript -Action check 2>$null | Select-Object -Last 1 | ConvertFrom-Json)
-                        if ($sm -and $sm.slots) { $slotHeld = [bool](@($sm.slots) | Where-Object { [int]$_.slot -eq $slot }) }
-                    } catch {}
-                }
-                $stale = ($age.TotalHours -ge 3.0) -or ($age.TotalMinutes -ge 3 -and -not $slotHeld -and -not (Test-AutopilotClaudeAlive))
-                if (-not $stale) {
-                    $mins  = [math]::Round($age.TotalMinutes)
-                    $title = if ($state.title) { $state.title } else { '(title unknown)' }
-                    $laneLines += "#$($state.number) $title ($($state.phase), ${mins}m, lane $slot)"
-                }
-            } catch {}
-        }
-        if ($laneLines.Count -gt 0) { return ($laneLines -join '; ') }
-    }
-
-    # Legacy fallback: single run-state.json (single-lane mode).
-    $statePath = Join-Path $AppDir 'var\autopilot\run-state.json'
-    if (-not (Test-Path $statePath)) { return $null }
-    try { $state = Get-Content $statePath -Raw | ConvertFrom-Json } catch { return $null }
-    $age   = (Get-Date) - (Get-Item $statePath).LastWriteTime
-    $stale = ($age.TotalHours -ge 3.0) -or ($age.TotalMinutes -ge 3 -and -not (Test-AutopilotClaudeAlive))
-    if ($stale) { return $null }
-    $mins  = [math]::Round($age.TotalMinutes)
-    $title = if ($state.title) { $state.title } else { '(title unknown)' }
-    return "#$($state.number) $title  -- building ${mins}m ($($state.phase))"
-}
-
 function Show-Help {
     Write-Host ""
     Write-Host "  nexora dev CLI" -ForegroundColor Blue
@@ -123,18 +63,13 @@ function Show-Help {
     Write-Host "    -d, --down            Stop nexora (port 8000 instance)"
     Write-Host "    --down-all            Stop ALL nexora instances (any port)"
     Write-Host "    -r, --restart         Restart nexora"
-    Write-Host "    -s, --status          Show running status (PID, env, port) + in-flight autopilot issue"
+    Write-Host "    -s, --status          Show running status (PID, env, port)"
     Write-Host "    -l, --logs            Stream live logs  " -NoNewline
     Write-Host "(requires a running instance)" -ForegroundColor Gray
     Write-Host "    -md, --maindir        cd into the nexora project directory"
     Write-Host "    --routes[:<regex>]    List Flask routes (optional regex filter)"
     Write-Host "    --doctor              Run preflight health checks " -NoNewline
     Write-Host "(env, DBs, migrations, services)" -ForegroundColor Gray
-    Write-Host "    --invoke-workflow     Start the n8n workflow editor in the background"
-    Write-Host "    --kill-workflow       Stop the background n8n workflow editor"
-    Write-Host "    --workflow-logs       Tail the live autopilot run (what the agent is doing)"
-    Write-Host "    --queue:<title>       Queue an autopilot feature " -NoNewline
-    Write-Host "(creates a labelled GitHub issue)" -ForegroundColor Gray
     Write-Host ""
     Write-Host "  Options:" -ForegroundColor Gray
     Write-Host "    -?, --help                 Show this help"
@@ -143,8 +78,6 @@ function Show-Help {
     Write-Host "(standalone or with -u / -r; optional route path)" -ForegroundColor Gray
     Write-Host "    --loginas:<username>       Switch to user in browser  " -NoNewline
     Write-Host "(any INT username, implies -b)" -ForegroundColor Gray
-    Write-Host "    --body:<text>              Issue body for --queue  " -NoNewline
-    Write-Host "(defaults to the title)" -ForegroundColor Gray
     Write-Host "    --no-conflict              Use the first free port from 8001 up  " -NoNewline
     Write-Host "(run alongside any already-running instances)" -ForegroundColor Gray
     Write-Host "    --port:<n>                 Target a specific instance's port  (with -u / -r / -d)"
@@ -170,11 +103,6 @@ function Show-Help {
     Write-Host "    nx --doctor                          full preflight (env, DBs, migrations, services)"
     Write-Host "    nx --doctor --fast                   skip external service calls"
     Write-Host "    nx --doctor --fix                    auto-repair fixable warnings"
-    Write-Host "    nx --invoke-workflow                 start n8n in the background (then exits)"
-    Write-Host "    nx --kill-workflow                   stop the background n8n"
-    Write-Host "    nx --workflow-logs                   watch the live autopilot run"
-    Write-Host "    nx --queue:'add a dark-mode toggle'  queue a feature for autopilot"
-    Write-Host "    nx --queue:'csv export' --body:'add CSV download to the report page'"
     Write-Host "    nx --env                             show current env from .env"
     Write-Host "    nx -u --env:staging                  start with STAGING env"
     Write-Host "    nx --loginas:username                switch browser session to username"
@@ -195,8 +123,6 @@ $envOverride   = $null
 $portOverride  = $null
 $doctorFast    = $false
 $doctorFix     = $false
-$queueTitle    = $null
-$queueBody     = $null
 $noConflict    = $false
 $unknown       = @()
 
@@ -265,17 +191,6 @@ for ($i = 0; $i -lt $args.Count; $i++) {
         $doctorFix = $true
         continue
     }
-    # --queue[:<title>]  queue an autopilot feature (creates a labelled GitHub issue)
-    if ($arg -match '^--queue(?::(.*))?$') {
-        $action = 'queue'
-        if ($Matches[1]) { $queueTitle = $Matches[1] }
-        continue
-    }
-    # --body:<text>  issue body for --queue
-    if ($arg -match '^--body:(.*)$') {
-        $queueBody = $Matches[1]
-        continue
-    }
     # --no-conflict  run on port 8001 so an instance on 8000 (e.g. Claude's) is untouched
     if ($arg -match '^--no-conflict$') {
         $noConflict = $true
@@ -295,9 +210,6 @@ for ($i = 0; $i -lt $args.Count; $i++) {
         '--status'  { $action = 'status'  }
         '-md'       { $action = 'maindir' }
         '--maindir' { $action = 'maindir' }
-        '--invoke-workflow' { $action = 'invoke-workflow' }
-        '--kill-workflow'   { $action = 'kill-workflow'   }
-        '--workflow-logs'   { $action = 'workflow-logs'  }
         '-v'        { $verbose = $true      }
         '--verbose' { $verbose = $true      }
         '-?'        { Show-Help; exit 0     }
@@ -356,11 +268,6 @@ if ($verbose -and $action -notin @('start', 'restart')) {
 
 if (($doctorFast -or $doctorFix) -and $action -ne 'doctor') {
     Write-Fail "--fast / --fix can only be used with --doctor"
-    exit 1
-}
-
-if ($queueBody -and $action -ne 'queue') {
-    Write-Fail "--body can only be used with --queue"
     exit 1
 }
 
@@ -596,43 +503,6 @@ function Watch-Logs {
     }
 }
 
-function Watch-WorkflowLogs {
-    # Live, human-readable tail of the autopilot run stream (run-phase.ps1 writes stream-json
-    # events here). Formatting happens on read, so this never affects the running workflow.
-    $wfLog = Join-Path $AppDir 'var\autopilot\logs\run.log'
-    if (-not (Test-Path $wfLog)) { Write-Warn "No autopilot run yet — log will appear at $wfLog"; return }
-    Write-Dim "Tailing autopilot run — Ctrl+C to stop watching (the run keeps going)"
-    Write-Host ""
-    Get-Content -Path $wfLog -Wait -Tail 40 | ForEach-Object {
-        $line = $_
-        if ([string]::IsNullOrWhiteSpace($line)) { return }
-        if ($line.StartsWith('===')) { Write-Host $line -ForegroundColor Blue; return }
-        try {
-            $e = $line | ConvertFrom-Json -ErrorAction Stop
-            switch ($e.type) {
-                'assistant' {
-                    foreach ($b in @($e.message.content)) {
-                        if ($b.type -eq 'text') {
-                            $tx = ($b.text -replace '\s+', ' ').Trim()
-                            if ($tx) { if ($tx.Length -gt 160) { $tx = $tx.Substring(0, 160) + '…' }; Write-Host "  $tx" }
-                        } elseif ($b.type -eq 'tool_use') {
-                            Write-Host "  → $($b.name)" -ForegroundColor DarkCyan
-                        }
-                    }
-                }
-                'result' {
-                    $cost = try { [math]::Round([double]$e.total_cost_usd, 2) } catch { '?' }
-                    Write-Host "  ■ done: $($e.subtype)  turns=$($e.num_turns)  `$$cost" -ForegroundColor DarkGreen
-                }
-                default { }  # skip system/hook/user-tool-result noise
-            }
-        } catch {
-            # non-JSON line (e.g. stderr) — show dim
-            Write-Host "  $line" -ForegroundColor DarkGray
-        }
-    }
-}
-
 # ── actions ───────────────────────────────────────────────────────────────────
 switch ($action) {
     'start' {
@@ -696,10 +566,6 @@ switch ($action) {
         } else {
             Write-Warn "Not running  — use -u / --up to start"
         }
-        # Autopilot build status is independent of the dev server (a build can run while
-        # nexora is down), so report it regardless of $p.
-        $apLine = Get-AutopilotStatusLine
-        if ($apLine) { Write-Info "autopilot: $apLine" }
     }
     'routes' { Show-Routes -Pattern $routesPattern }
     'doctor' {
@@ -707,67 +573,5 @@ switch ($action) {
         # $LASTEXITCODE was set by the python subprocess inside Run-Doctor
         # and survives the function return (script-scope automatic variable).
         exit $LASTEXITCODE
-    }
-    'invoke-workflow' {
-        $conn = Get-NetTCPConnection -LocalPort 5678 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($conn) {
-            Write-Warn "n8n already running on :5678 (PID $($conn.OwningProcess)) — http://localhost:5678/"
-            break
-        }
-        $iwScript = Join-Path $AppDir 'tools\autopilot\start-n8n.ps1'
-        if (-not (Test-Path $iwScript)) {
-            Write-Fail "workflow launcher not found at $iwScript"
-            exit 1
-        }
-        $n8nOut = Join-Path $LogDir 'n8n.out.log'
-        $n8nErr = Join-Path $LogDir 'n8n.err.log'
-        Write-Info "Starting n8n in background..."
-        # Detached child pwsh runs start-n8n.ps1 (env scoped there). nx returns; n8n keeps running.
-        $p = Start-Process -FilePath 'pwsh' `
-                 -ArgumentList '-NoProfile', '-File', $iwScript `
-                 -WindowStyle Hidden `
-                 -RedirectStandardOutput $n8nOut `
-                 -RedirectStandardError  $n8nErr `
-                 -PassThru
-        $deadline = (Get-Date).AddSeconds(30)
-        $ready = $false
-        while ((Get-Date) -lt $deadline) {
-            if ($p.HasExited) { break }
-            try { $t = [System.Net.Sockets.TcpClient]::new(); $t.Connect('127.0.0.1', 5678); $t.Close(); $ready = $true; break } catch { }
-            Start-Sleep -Milliseconds 500
-        }
-        if     ($ready)        { Write-Ok   "n8n is up — http://localhost:5678/" }
-        elseif ($p.HasExited)  { Write-Fail "n8n exited on startup — check $n8nErr"; exit 1 }
-        else                    { Write-Warn "n8n still starting (give it a moment) — http://localhost:5678/" }
-        Write-Dim "stays running after this command. stop with: nx --kill-workflow"
-    }
-    'kill-workflow' {
-        $conn = Get-NetTCPConnection -LocalPort 5678 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($conn) {
-            $wfPid = $conn.OwningProcess
-            try {
-                Get-Process -Id $wfPid -ErrorAction Stop | Stop-Process -Force
-                Write-Ok "Stopped n8n (PID $wfPid)"
-            } catch { Write-Fail "Could not stop PID $wfPid : $($_.Exception.Message)" }
-        } else {
-            Write-Warn "n8n is not running on :5678"
-        }
-    }
-    'workflow-logs' { Watch-WorkflowLogs }
-    'queue' {
-        if (-not $queueTitle) {
-            Write-Fail "--queue needs a title, e.g.  nx --queue:'add a dark-mode toggle'"
-            exit 1
-        }
-        $body = if ($queueBody) { $queueBody } else { $queueTitle }
-        Write-Info "Queuing autopilot feature on Sydoc-Code/nexora..."
-        $url = & gh issue create --repo Sydoc-Code/nexora --title $queueTitle --body $body --label autopilot
-        if ($LASTEXITCODE -eq 0) {
-            Write-Ok "Queued: $url"
-            Write-Dim "Autopilot picks it up on the next poll (or run the workflow manually)."
-        } else {
-            Write-Fail "gh issue create failed (exit $LASTEXITCODE) — is gh authed? (gh auth status)"
-            exit $LASTEXITCODE
-        }
     }
 }

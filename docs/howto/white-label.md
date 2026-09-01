@@ -99,7 +99,7 @@ admin staring at a stale page wondering if the save worked.
 Every identifier that gets interpolated into SQL elsewhere (`ClientCode`, `ProcessName`, `FieldKey`,
 `TableName`, `TableAlias`, column names) is validated server-side against a strict identifier
 pattern before it is written. Column types (`ColumnType`, `IdColumnType`) are checked against a
-deliberately looser pattern (`_COLUMN_TYPE_RE` in `nx_lib/views/admin.py`) that also permits spaces —
+deliberately looser pattern (`_COLUMN_TYPE_RE` in `nx_lib/views/admin/processes.py`) that also permits spaces —
 they are never interpolated into SQL, only compared against literal type buckets such as
 `character varying`.
 
@@ -125,7 +125,7 @@ fewer:
 | `acme.eu.01_Invoice` | `eu.01_Invoice` | grant never matches — same silent dead end |
 | `x.acme.01_Invoice` | `acme.01_Invoice` | **collides** with another customer's grant |
 
-`_PROCESS_NAME_RE` (`nx_lib/views/admin.py`) therefore enforces
+`_PROCESS_NAME_RE` (`nx_lib/views/admin/processes.py`) therefore enforces
 `^[A-Za-z0-9_\-]{1,49}\.[A-Za-z0-9_\-]{1,50}$`, matched by the form's `pattern` attribute, and the
 add endpoint additionally rejects with **409** any name whose two-segment reduction already belongs
 to a different `(ClientCode, ProcessName)` pair — the permission code carries no client, so two
@@ -286,7 +286,7 @@ Uploaded logos live in **`var/branding/<orgcode>.<ext>`** (`PATHS.branding` in `
 The stored filename is derived from the organization code, never from the uploaded filename.
 
 - **Allowed types: SVG, PNG, JPEG. Cap: 512 KB.** Enforced server-side in
-  `nx_lib/views/admin.py::api_admin_organization_branding_save` — extension check first, then the
+  `nx_lib/views/admin/organizations.py::api_admin_organization_branding_save` — extension check first, then the
   size check, then `nx_lib/files.py::is_file_allowed` (`secure_filename` + a libmagic sniff of the
   actual bytes). The client-declared content type is never consulted, and nothing touches the disk
   until all three checks pass.
