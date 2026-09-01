@@ -382,7 +382,7 @@ def test_reports_list_skips_row_when_preview_kind_still_raises(admin_client):
     assert boom_resp.status_code == 200, boom_resp.data
     boom_rid = boom_resp.get_json()["id"]
 
-    from nx_lib.views.reporting import _preview_kind as real_preview_kind
+    from nx_lib.views.reporting.reports import _preview_kind as real_preview_kind
 
     def _boom_preview_kind(defn):
         if isinstance(defn, dict) and defn.get("marker") == "boom":
@@ -390,7 +390,7 @@ def test_reports_list_skips_row_when_preview_kind_still_raises(admin_client):
         return real_preview_kind(defn)
 
     try:
-        with patch("nx_lib.views.reporting._preview_kind", side_effect=_boom_preview_kind):
+        with patch("nx_lib.views.reporting.reports._preview_kind", side_effect=_boom_preview_kind):
             resp = admin_client.get("/api/reporting/reports")
         assert resp.status_code == 200
         ids = {row["id"] for row in resp.get_json()}
