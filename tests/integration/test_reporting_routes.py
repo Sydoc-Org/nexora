@@ -133,10 +133,10 @@ def test_export_sql_target_coerces_bytes_and_control_char_cells(user_client):
     rows = [[b"caf\xc3\xa9", "bell\x07ringer"]]
     with (
         patch("nx_lib.security.has_permission", return_value=True),
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
-        patch("nx_lib.views.reporting._has_acked", return_value=True),
-        patch("nx_lib.views.reporting._authorize_sql_target"),
-        patch("nx_lib.views.reporting._run_sql", return_value=(columns, rows)),
+        patch("nx_lib.views.reporting.export.has_permission", return_value=True),
+        patch("nx_lib.views.reporting.export._has_acked", return_value=True),
+        patch("nx_lib.views.reporting.export._authorize_sql_target"),
+        patch("nx_lib.views.reporting.export._run_sql", return_value=(columns, rows)),
     ):
         resp = user_client.post(
             "/api/reporting/export",
@@ -1260,10 +1260,12 @@ def test_export_xlsx_embeds_chart_image(admin_client):
         "chartImage": "data:image/png;base64," + _TINY_PNG_B64,
     }
     with (
-        patch("nx_lib.views.reporting._prepare_run", return_value=(fake_cols, fake_sql, [], None)),
-        patch("nx_lib.views.reporting._execute", return_value=fake_rows),
+        patch(
+            "nx_lib.views.reporting.export._prepare_run",
+            return_value=(fake_cols, fake_sql, [], None),
+        ),
+        patch("nx_lib.views.reporting.export._execute", return_value=fake_rows),
         patch("nx_lib.security.has_permission", return_value=True),
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
     ):
         resp = admin_client.post("/api/reporting/export", json=body)
     assert resp.status_code == 200
@@ -1283,11 +1285,11 @@ def test_export_ignores_garbage_chart_image(admin_client):
     }
     with (
         patch(
-            "nx_lib.views.reporting._prepare_run", return_value=(fake_cols, "SELECT 1", [], None)
+            "nx_lib.views.reporting.export._prepare_run",
+            return_value=(fake_cols, "SELECT 1", [], None),
         ),
-        patch("nx_lib.views.reporting._execute", return_value=fake_rows),
+        patch("nx_lib.views.reporting.export._execute", return_value=fake_rows),
         patch("nx_lib.security.has_permission", return_value=True),
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
     ):
         resp = admin_client.post("/api/reporting/export", json=body)
     assert resp.status_code == 200
@@ -1477,10 +1479,10 @@ def test_export_forecast_appends_marker_rows(admin_client):
     body = dict(_FC_DEF, format="csv")
     with (
         patch(
-            "nx_lib.views.reporting._prepare_run",
+            "nx_lib.views.reporting.export._prepare_run",
             return_value=(_FC_COLS, "SELECT 1", [], None),
         ),
-        patch("nx_lib.views.reporting._execute", return_value=_FC_ROWS),
+        patch("nx_lib.views.reporting.export._execute", return_value=_FC_ROWS),
     ):
         resp = admin_client.post("/api/reporting/export", json=body)
     assert resp.status_code == 200
@@ -1562,10 +1564,10 @@ def test_export_forecast_fits_on_widened_history_not_visible_window(admin_client
     body = dict(_FC_WIDE_DEF, format="csv")
     with (
         patch(
-            "nx_lib.views.reporting._prepare_run",
+            "nx_lib.views.reporting.export._prepare_run",
             return_value=(_FC_WIDE_COLS, "SELECT 1", [], None),
         ),
-        patch("nx_lib.views.reporting._execute", return_value=_FC_WIDE_VISIBLE_ROWS),
+        patch("nx_lib.views.reporting.export._execute", return_value=_FC_WIDE_VISIBLE_ROWS),
         patch(
             "nx_lib.views.reporting.run._prepare_run",
             return_value=(_FC_WIDE_COLS, "SELECT 2", [], None),
