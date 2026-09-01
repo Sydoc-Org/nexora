@@ -90,6 +90,17 @@ Work toward the next release.
   `__init__.py` re-exports every public name so URLs, endpoint names, and
   monkeypatch targets are unchanged — no Blueprints, no renames, no
   behavior change.
+- **`nx_lib/views/workitems.py`'s non-route logic extracted into a new,
+  Flask-free package `nx_lib/workitems/`.** Field/table value helpers
+  (`fields.py`, incl. `DOCFIELD_OPS`), sensitive-field redaction
+  (`sensitivity.py`, incl. `strip_sensitive_fields`), media loading/cache-key
+  helpers (`media.py`), and the DB-query helpers behind `_get_workitems_data`
+  including the MS02 prepared-docs/pid-spec helpers (`query.py`) now live
+  outside the view module. `nx_lib/views/workitems.py` keeps only route
+  handlers plus Flask-aware wrapper functions; `nx_lib/views/api_external.py`
+  and `nx_lib/views/dashboard.py` are rewired to import the Flask-free
+  symbols directly from `nx_lib/workitems/*` instead of through the view
+  module. No Blueprints, no renames, no behavior change.
 - **Generali's 8 duplicated CRUD endpoint families collapsed into one shared
   factory.** BaseServices, Attendance, ProjectManagement, PDQM, and Reporting
   each carried near-identical copies of monthreport/org-users/organizations/
