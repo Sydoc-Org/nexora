@@ -142,7 +142,7 @@ def test_get_workitems_data_returns_process_name_without_touching_session(logger
         _FakeArgs({"prcfW": "all"}),
         _base_scope(),
         export_all=False,
-        valid_db_columns=[],
+        valid_db_columns_fn=list,
         activity_ignore_map={},
         engine_statistics_db=None,
         engine_ms02_docfields_pg=None,
@@ -168,7 +168,10 @@ def test_get_workitems_data_active_docfield_search_fails_closed_without_mapping(
     monkeypatch.setattr(mapping_config, "mappings_for", lambda client, procs, field_keys=None: [])
     monkeypatch.setattr(mapping_config, "sources_for", lambda client, procs=None: [])
 
+    captured = {}
+
     def _fetch_merged_page(filt, offset, per_page):
+        captured["filt"] = filt
         return [], 0, []
 
     result = get_workitems_data(
@@ -178,7 +181,7 @@ def test_get_workitems_data_active_docfield_search_fails_closed_without_mapping(
         ),
         _base_scope(can_docfields=True),
         export_all=False,
-        valid_db_columns=["unmapped"],
+        valid_db_columns_fn=lambda: ["unmapped"],
         activity_ignore_map={},
         engine_statistics_db=None,
         engine_ms02_docfields_pg=None,
@@ -190,6 +193,8 @@ def test_get_workitems_data_active_docfield_search_fails_closed_without_mapping(
         workitem_stages=("Import", "Extraction", "Validation", "Delivery"),
     )
     assert result["workitems"] == []
+    assert captured["filt"].docfield_ids == set()
+    assert captured["filt"].ms02_docfield_ids == set()
 
 
 def test_get_workitems_data_deleted_status_hidden_without_permission(logger):
@@ -206,7 +211,7 @@ def test_get_workitems_data_deleted_status_hidden_without_permission(logger):
         _FakeArgs({"prcfW": "all", "status": "Deleted"}),
         _base_scope(can_deleted=False),
         export_all=False,
-        valid_db_columns=[],
+        valid_db_columns_fn=list,
         activity_ignore_map={},
         engine_statistics_db=None,
         engine_ms02_docfields_pg=None,
