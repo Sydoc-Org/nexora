@@ -16,6 +16,7 @@ from .registry import (
     fields_for,
     invalidate_tenant_config,
     pages_for,
+    provision_tenant_permissions,
     registry,
     tenant,
 )
@@ -31,6 +32,7 @@ __all__ = [
     "fields_for",
     "invalidate_tenant_config",
     "pages_for",
+    "provision_tenant_permissions",
     "registry",
     "tenant",
 ]

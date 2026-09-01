@@ -397,3 +397,42 @@ def test_pages_for_returns_defensive_copy_of_layout(app, monkeypatch):
         second = tr.pages_for("ms02")
 
     assert second[0].layout["endpoint"] == "/x"
+
+
+# ------------------------------------------------- provision_tenant_permissions --
+
+
+def test_provision_tenant_permissions_inserts_view_and_edit_idempotently():
+    """Mirrors nx_lib/views/admin/processes.py's api_admin_process_source_add
+    idempotent-insert shape: INSERT ... SELECT ... WHERE NOT EXISTS (SELECT 1
+    FROM dbo.Permission p WHERE p.Code = ?), one call per permission code, so
+    a second call (or a re-run of the seed migration) is a no-op rather than
+    a duplicate-key error."""
+    cursor = MagicMock()
+
+    tr.provision_tenant_permissions(cursor, "ms02")
+
+    assert cursor.execute.call_count == 2
+    seen_codes = set()
+    for call in cursor.execute.call_args_list:
+        sql, params = call.args
+        assert sql.startswith("INSERT INTO dbo.Permission")
+        assert "WHERE NOT EXISTS (SELECT 1 FROM dbo.Permission p WHERE p.Code = ?)" in sql
+        code, description, code_again = params
+        assert code == code_again  # same code bound to both the insert and the guard
+        assert isinstance(description, str) and description
+        seen_codes.add(code)
+    assert seen_codes == {"tenant.ms02.view", "tenant.ms02.edit"}
+
+
+def test_provision_tenant_permissions_never_commits():
+    """Caller owns the transaction (commit/rollback) -- this only executes the
+    two INSERTs on the cursor it's given, same as the process-source idiom it
+    mirrors, where the surrounding view calls conn.commit() itself afterwards."""
+    cursor = MagicMock()
+    conn = MagicMock()
+    conn.cursor.return_value = cursor
+
+    tr.provision_tenant_permissions(cursor, "acme")
+
+    conn.commit.assert_not_called()

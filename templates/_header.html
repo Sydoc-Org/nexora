@@ -372,6 +372,45 @@
                 </div>
             </div>
             {% endif %}
+
+            {# Per-tenant nav groups (tenant kernel, Task 6): one group per
+               registry tenant the session holds tenant.<code>.view for
+               (nx_lib/hooks.py's _inject_tenant_nav -> visible_tenant_nav()),
+               one subitem per page. Modeled on the generali group above --
+               same sidebar-nav-group/sidebar-nav-subitems shape and chevron
+               markup -- but the generali block itself is untouched. #}
+            {% for t in tenant_nav %}
+            {% set ns = namespace(active=active_page.startswith('tenant_' ~ t.code ~ '_')) %}
+            {% for p in t.pages if p.page_type == 'custom' and p.endpoint and active_page == p.endpoint %}
+            {% set ns.active = true %}
+            {% endfor %}
+            <div class="sidebar-nav-group" id="tenantNavGroup-{{ t.code }}" data-active="{{ 'true' if ns.active else 'false' }}">
+                <button class="sidebar-nav-item sidebar-nav-group-header {{ 'sidebar-nav-item--active' if ns.active else '' }}" id="tenantNavHeader-{{ t.code }}" data-testid="header-nav-tenant-{{ t.code }}-toggle">
+                    <i class="fas fa-building sidebar-nav-icon"></i>
+                    <span class="sidebar-label [flex:1]!">{{ t.label }}</span>
+                    <i class="fas fa-chevron-right sidebar-label sidebar-generali-chevron"></i>
+                </button>
+                <div class="sidebar-nav-subitems">
+                    {% for p in t.pages %}
+                    {% if p.page_type == 'custom' %}
+                    {% if p.endpoint %}
+                    <a href="{{ url_for(p.endpoint) }}"
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == p.endpoint else '' }}" data-testid="header-nav-tenant-{{ t.code }}-{{ p.key }}">
+                        <i class="fas fa-arrow-up-right-from-square sidebar-nav-icon sidebar-subitem-icon"></i>
+                        <span class="sidebar-label">{{ p.key }}</span>
+                    </a>
+                    {% endif %}
+                    {% else %}
+                    <a href="{{ url_for('tenant_page', tenant_code=t.code, page_key=p.key) }}"
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == ('tenant_' ~ t.code ~ '_' ~ p.key) else '' }}" data-testid="header-nav-tenant-{{ t.code }}-{{ p.key }}">
+                        <i class="fas fa-table-list sidebar-nav-icon sidebar-subitem-icon"></i>
+                        <span class="sidebar-label">{{ p.key }}</span>
+                    </a>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
         </nav>
 
         <!-- Bottom actions -->

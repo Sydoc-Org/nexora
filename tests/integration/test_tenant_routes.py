@@ -20,6 +20,8 @@ filter/sort column allow-list), not the registry's DB-loading code
 (``tests/unit/test_tenant_queries.py``).
 """
 
+import types
+
 import nx_lib.views.tenant as tv
 from nx_lib.clients import CLIENTS, ClientConfig
 from nx_lib.tenant.registry import Tenant, TenantEntity, TenantField, TenantPage
@@ -35,6 +37,12 @@ def _tenant(client_code=TENANT_CODE):
         client_code=client_code,
         active=True,
     )
+
+
+def _fake_registry(tenants):
+    """Stand-in for the real TenantRegistry -- visible_tenant_nav() only ever
+    reads .tenants off whatever registry() returns."""
+    return types.SimpleNamespace(tenants=tenants)
 
 
 def _page(key="dossiers", page_type="list", entity="dossiers", layout=None, sort_order=100):
@@ -76,10 +84,19 @@ def _field(column="Status", semantic_role="category", visible=True):
 
 def _stub_registry(monkeypatch, *, tenant=None, pages=None, entity=None, fields=None):
     """Patch the registry-layer collaborators nx_lib.views.tenant imports by
-    name -- these tests are the route layer's own, not the registry's."""
+    name -- these tests are the route layer's own, not the registry's.
+
+    ``registry()`` used to be stubbed as a bare ``object()`` sentinel (only
+    ever used for its ``is not None`` truthiness by the route layer under
+    test here). Since Task 6, ``nx_lib/hooks.py``'s ``_inject_tenant_nav``
+    context processor runs on *every* render_template() call for a logged-in
+    session -- including handlers/404.html on these very tests' 404 paths --
+    and calls visible_tenant_nav(), which reads ``reg.tenants``. The sentinel
+    has to be duck-type compatible with that now, not just non-None."""
     pages = pages or []
     fields = fields or []
-    monkeypatch.setattr(tv, "registry", lambda: object())
+    tenants = {TENANT_CODE: tenant} if tenant is not None else {}
+    monkeypatch.setattr(tv, "registry", lambda: _fake_registry(tenants))
     monkeypatch.setattr(tv, "tenant", lambda code: tenant if code == TENANT_CODE else None)
     monkeypatch.setattr(tv, "pages_for", lambda code: pages if code == TENANT_CODE else [])
     monkeypatch.setattr(tv, "entity_for", lambda code, key: entity)
@@ -602,3 +619,91 @@ def test_api_export_registry_unavailable_returns_503_not_404(user_client, monkey
 
     assert resp.status_code == 503
     assert resp.get_json() == {"success": False, "unavailable": True}
+
+
+# ---------------------------------------------------------- visible_tenant_nav --
+#
+# Task 6: [{"code", "label", "pages": [...]}] for every tenant the session
+# holds tenant.<code>.view for -- consumed by nx_lib/hooks.py's
+# _inject_tenant_nav context processor, which the header rendering tests
+# below exercise end-to-end.
+
+
+def test_visible_tenant_nav_empty_when_registry_unavailable(monkeypatch):
+    monkeypatch.setattr(tv, "registry", lambda: None)
+    assert tv.visible_tenant_nav() == []
+
+
+def test_visible_tenant_nav_filters_by_view_permission(monkeypatch):
+    acme = _tenant()
+    other = Tenant(
+        code="other",
+        display_name="Other Co",
+        organization_code="OTH",
+        client_code="other",
+        active=True,
+    )
+    monkeypatch.setattr(tv, "registry", lambda: _fake_registry({TENANT_CODE: acme, "other": other}))
+    monkeypatch.setattr(
+        tv, "pages_for", lambda code: [_page(key="dossiers")] if code == TENANT_CODE else []
+    )
+    # Only acme's view permission is held -- other's group must not appear.
+    monkeypatch.setattr(tv, "has_permission", lambda code: code == f"tenant.{TENANT_CODE}.view")
+
+    nav = tv.visible_tenant_nav()
+
+    assert [n["code"] for n in nav] == [TENANT_CODE]
+    assert nav[0]["label"] == acme.display_name
+    assert nav[0]["pages"] == [{"key": "dossiers", "page_type": "list", "endpoint": None}]
+
+
+def test_visible_tenant_nav_custom_page_carries_layout_endpoint(monkeypatch):
+    acme = _tenant()
+    monkeypatch.setattr(tv, "registry", lambda: _fake_registry({TENANT_CODE: acme}))
+    monkeypatch.setattr(
+        tv,
+        "pages_for",
+        lambda code: [
+            _page(key="dash", page_type="custom", entity=None, layout={"endpoint": "dashboard"})
+        ],
+    )
+    monkeypatch.setattr(tv, "has_permission", lambda code: True)
+
+    nav = tv.visible_tenant_nav()
+
+    assert nav[0]["pages"] == [{"key": "dash", "page_type": "custom", "endpoint": "dashboard"}]
+
+
+# ------------------------------------------------------- header sidebar nav --
+#
+# End-to-end through nx_lib/hooks.py's _inject_tenant_nav context processor
+# and templates/_header.html's per-tenant nav group -- driven via a real page
+# render (GET /dashboard, dashboard.view-gated, which user@test.local holds)
+# rather than /t/<tenant>/<page> itself, so the header's own tenant.<code>.view
+# gate is exercised independently of tenant_page()'s own gate.
+
+
+def test_header_shows_tenant_nav_group_with_view_permission(user_client, monkeypatch):
+    acme = _tenant()
+    monkeypatch.setattr(tv, "registry", lambda: _fake_registry({TENANT_CODE: acme}))
+    monkeypatch.setattr(tv, "pages_for", lambda code: [_page(key="dossiers")])
+    monkeypatch.setattr(tv, "has_permission", lambda code: code == f"tenant.{TENANT_CODE}.view")
+
+    resp = user_client.get("/dashboard")
+
+    assert resp.status_code == 200
+    assert f'id="tenantNavGroup-{TENANT_CODE}"'.encode() in resp.data
+    assert f'data-testid="header-nav-tenant-{TENANT_CODE}-toggle"'.encode() in resp.data
+    assert f'data-testid="header-nav-tenant-{TENANT_CODE}-dossiers"'.encode() in resp.data
+
+
+def test_header_hides_tenant_nav_group_without_view_permission(user_client, monkeypatch):
+    acme = _tenant()
+    monkeypatch.setattr(tv, "registry", lambda: _fake_registry({TENANT_CODE: acme}))
+    monkeypatch.setattr(tv, "pages_for", lambda code: [_page(key="dossiers")])
+    monkeypatch.setattr(tv, "has_permission", lambda code: False)
+
+    resp = user_client.get("/dashboard")
+
+    assert resp.status_code == 200
+    assert b"tenantNavGroup-" not in resp.data

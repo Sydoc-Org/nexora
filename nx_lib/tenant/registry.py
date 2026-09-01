@@ -270,3 +270,33 @@ def fields_for(code: str, entity_key: str) -> list[TenantField]:
         key=lambda f: f.sort_order,
     )
     return [replace(f, labels=dict(f.labels)) for f in fields]
+
+
+def provision_tenant_permissions(cursor, code: str) -> None:
+    """Idempotently insert the ``tenant.<code>.view`` / ``tenant.<code>.edit``
+    rows into dbo.Permission -- granted to nobody; granting happens at
+    /admin/access-control (K7: the kernel only ever has one tenant to create,
+    by migration, so this is exposed for sub-project 2's future admin UI to
+    reuse rather than being wired into a route itself).
+
+    Mirrors the idempotent
+    ``INSERT ... SELECT ... WHERE NOT EXISTS (SELECT 1 FROM dbo.Permission p
+    WHERE p.Code = ?)`` shape ``nx_lib/views/admin/processes.py``'s
+    ``api_admin_process_source_add`` uses for its own dbo.Permission row --
+    same table, same guard, so a second call (or a re-run of the same seed
+    migration) is a no-op rather than a duplicate-key error.
+
+    Takes a cursor, not a connection: like the process-source insert it
+    mirrors, this only executes the two INSERTs -- committing (and owning the
+    surrounding transaction) is the caller's responsibility.
+    """
+    for suffix, description in (
+        ("view", f"View {code} tenant records"),
+        ("edit", f"Edit {code} tenant records"),
+    ):
+        perm_code = f"tenant.{code}.{suffix}"
+        cursor.execute(
+            "INSERT INTO dbo.Permission (Code, Description) SELECT ?, ? "
+            "WHERE NOT EXISTS (SELECT 1 FROM dbo.Permission p WHERE p.Code = ?)",
+            (perm_code, description[:200], perm_code),
+        )
