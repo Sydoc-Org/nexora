@@ -33,6 +33,7 @@ Routes covered (13 endpoints):
 import concurrent.futures
 import csv
 import io
+from pathlib import Path
 
 import pytest
 import requests
@@ -104,11 +105,20 @@ def test_workitems_overview_with_perms(user_client, workitems_all_perms):
 
 
 def test_workitems_overview_uses_shared_detail_panel(user_client, workitems_all_perms):
-    """The workitems page wires the shared renderer."""
+    """The workitems page wires the shared renderer. Since #191 shim-ified both
+    _workitem_detail_panel_js.html and _workitems_overview_js.html, the actual
+    `NexoraWorkitemDetail.render` call now lives in static/js/workitems_overview.js,
+    not the page's inline HTML -- assert the page loads that script, and that the
+    script itself makes the call."""
     resp = user_client.get("/workitems")
-    # 200 or 500-fallback possible in CI; the partial markers live in template body.
+    # 200 or 500-fallback possible in CI; the include markers live in template body.
     if resp.status_code == 200:
-        assert b"NexoraWorkitemDetail.render" in resp.data
+        assert b"workitems_overview.js" in resp.data
+        assert b"workitem_detail_panel.js" in resp.data
+    static_js = (
+        Path(__file__).resolve().parents[2] / "static" / "js" / "workitems_overview.js"
+    ).read_text(encoding="utf-8")
+    assert "NexoraWorkitemDetail.render" in static_js
 
 
 # ============================ API: config/data ===============================
