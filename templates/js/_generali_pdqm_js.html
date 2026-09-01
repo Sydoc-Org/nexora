@@ -1,27 +1,10 @@
+<script src="{{ static_v('js/generali_crud.js') }}"></script>
 <script nonce="{{ csp_nonce() }}">
-    const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
-    const canEdit         = document.getElementById('pdqmTable').dataset.canEdit === 'true';
-    const canEditTransOrg  = document.getElementById('pdqmTable').dataset.canEditTransorg === 'true';
-    const currentOrgCode   = document.getElementById('pdqmTable').dataset.orgCode || null;
-    const canAdd           = document.getElementById('pdqmTable').dataset.canAdd  === 'true';
-    const canAddForOrg     = document.getElementById('pdqmTable').dataset.canAddForOrg === 'true';
-    const canAddTransOrg   = document.getElementById('pdqmTable').dataset.canAddTransorg === 'true';
-    const canDelete        = document.getElementById('pdqmTable').dataset.canDelete === 'true';
-    const canDeleteTransOrg      = document.getElementById('pdqmTable').dataset.canDeleteTransorg === 'true';
-    const canAddBypassDeadline   = document.getElementById('pdqmTable').dataset.canAddBypassDeadline === 'true';
-    function getAddMinDate() {
-        if (canAddBypassDeadline) return null;
-        const t = new Date();
-        return t.getDate() <= 3
-            ? new Date(t.getFullYear(), t.getMonth() - 1, 1)
-            : new Date(t.getFullYear(), t.getMonth(), 1);
-    }
-    const colSpan = (canEdit || canDelete) ? 8 : 7;
-    function canEditRecord(r)   { return canEdit   && (canEditTransOrg   || r.orgCode === currentOrgCode); }
-    function canDeleteRecord(r) { return canDelete && (canDeleteTransOrg || r.orgCode === currentOrgCode); }
+    const API_PREFIX = window.API_PREFIX;
+    // formatDate/formatDateTime: shared with nx_core.js (Task 12).
+    const formatDate = window.NX.formatDate;
+    const formatDateTime = window.NX.formatDateTime;
 
-    let currentPage = 1;
-    let _currentRecords = [];
     // categoriesData shape: { "Parent": { "": ["Sub1"], "ParentSub": ["Sub2"] } }
     // "" key means the DB row had NULL for ParentSubCategory
     let categoriesData = {};
@@ -129,21 +112,10 @@
                 populateParentSelect(document.getElementById('filterParentCategory'));
                 document.getElementById('filterParentCategory').options[0].textContent = {{ _("All") | tojson }};
 
-                if (canAdd) populateParentSelect(document.getElementById('addParentCategory'));
+                if (crud.canAdd) populateParentSelect(document.getElementById('addParentCategory'));
                 populateParentSelect(document.getElementById('editParentCategory'));
             })
             .catch(e => console.error('Failed to load PDQM categories', e));
-    }
-
-    // ----------------------------- formatting ----------------------------- //
-    function formatDate(dateStr) {
-        if (!dateStr) return '—';
-        return dateStr.split('T')[0];
-    }
-
-    function formatDateTime(dtStr) {
-        if (!dtStr) return '—';
-        return dtStr.replace('T', ' ').substring(0, 16);
     }
 
     // ----------------------------- fetch / render ----------------------------- //
@@ -197,14 +169,14 @@
             ? '<span style="color:var(--nx-text-meta)">—</span>'
             : `<span>${tParentSub}</span>`;
 
-        const editable  = canEditRecord(r);
-        const deletable = canDeleteRecord(r);
-        const showActions = canEdit || canDelete;
+        const editable  = crud.canEditRecord(r);
+        const deletable = crud.canDeleteRecord(r);
+        const showActions = crud.canEdit || crud.canDelete;
         let actionBtns = '';
         // #193 finding 10: onclick="" attribute handlers aren't nonce-covered by CSP —
         // row actions go through the delegated tbody listener below instead.
-        if (canEdit)   actionBtns += `<button ${editable  ? '' : 'disabled'} class="edit-record-btn inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg transition mr-1 ${editable  ? 'text-[var(--nx-accent)] hover:text-[var(--nx-accent-hover)] hover:bg-[var(--nx-accent-tint)]' : 'text-gray-300 cursor-not-allowed'}" data-id="${r.id}" data-testid="generali-pdqm-row-edit-${r.id}"><i class="fas fa-pen text-xs"></i></button>`;
-        if (canDelete) actionBtns += `<button ${deletable ? '' : 'disabled'} class="delete-record-btn inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg transition ${deletable ? 'text-red-500 hover:text-red-700 hover:bg-red-50' : 'text-gray-300 cursor-not-allowed'}" data-id="${r.id}" data-testid="generali-pdqm-row-delete-${r.id}"><i class="fas fa-trash text-xs"></i></button>`;
+        if (crud.canEdit)   actionBtns += `<button ${editable  ? '' : 'disabled'} class="edit-record-btn inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg transition mr-1 ${editable  ? 'text-[var(--nx-accent)] hover:text-[var(--nx-accent-hover)] hover:bg-[var(--nx-accent-tint)]' : 'text-gray-300 cursor-not-allowed'}" data-id="${r.id}" data-testid="generali-pdqm-row-edit-${r.id}"><i class="fas fa-pen text-xs"></i></button>`;
+        if (crud.canDelete) actionBtns += `<button ${deletable ? '' : 'disabled'} class="delete-record-btn inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg transition ${deletable ? 'text-red-500 hover:text-red-700 hover:bg-red-50' : 'text-gray-300 cursor-not-allowed'}" data-id="${r.id}" data-testid="generali-pdqm-row-delete-${r.id}"><i class="fas fa-trash text-xs"></i></button>`;
         const actionsCell = showActions ? `<td class="align-center whitespace-nowrap">${actionBtns}</td>` : '';
 
         const parentSubValue = r.parentSubCategory !== null && r.parentSubCategory !== undefined ? r.parentSubCategory : '';
@@ -239,85 +211,48 @@
         </tr>`;
     }
 
-    function loadRecords(page) {
-        currentPage = page;
-        const tbody = document.getElementById('pdqmTbody');
-        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center py-16"><i class="fas fa-spinner fa-spin text-3xl text-[var(--nx-accent)]"></i></td></tr>`;
-
-        const params = buildParams(page);
-        fetch(API_PREFIX + 'api/generali/pdqm?' + params.toString(), { headers: { 'X-CSRFToken': csrfToken } })
-            .then(r => r.json())
-            .then(data => {
-                if (!data.success) {
-                    tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center py-10 text-sm" style="color:var(--nx-danger)">${data.error || 'Error'}</td></tr>`;
-                    return;
-                }
-
-                document.getElementById('totalQuantityDisplay').textContent =
-                    data.totalQuantity !== undefined ? data.totalQuantity : '—';
-
-                _currentRecords = data.records;
-                if (!data.records.length) {
-                    tbody.innerHTML = `<tr><td colspan="${colSpan}"><div class="nx-empty"><div class="nx-empty__art"><i class="fas fa-inbox"></i></div><p class="nx-empty__title">{{ _("No records found") }}</p><p class="nx-empty__sub">{{ _("Try adjusting your filters or resetting the search.") }}</p></div></td></tr>`;
-                } else {
-                    tbody.innerHTML = data.records.map(renderRow).join('');
-                }
-
-                const pg = data.pagination;
-                const showing = Math.min((pg.page - 1) * pg.per_page + data.records.length, pg.total_records);
-                document.getElementById('showingCount').textContent = showing;
-                document.getElementById('totalCount').textContent = pg.total_records;
-                renderPagination(pg.page, pg.total_pages);
-            })
-            .catch(e => {
-                tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center py-10 text-sm" style="color:var(--nx-danger)">Network error</td></tr>`;
-                console.error(e);
-            });
+    function showExportError(msg) {
+        const errDiv = document.createElement('div');
+        errDiv.className = 'fixed bottom-4 right-4 z-50 text-white text-sm font-semibold px-4 py-3 rounded-xl shadow-lg';
+        errDiv.style.background = 'var(--nx-danger)';
+        errDiv.textContent = msg;
+        document.body.appendChild(errDiv);
+        setTimeout(() => errDiv.remove(), 4000);
     }
 
-    // ----------------------------- pagination ----------------------------- //
-    function renderPagination(page, totalPages) {
-        const container = document.getElementById('paginationControls');
-        container.innerHTML = '';
-        if (totalPages <= 1) return;
-
-        function btn(label, targetPage, disabled, active) {
-            const b = document.createElement('button');
-            b.innerHTML = label;
-            b.disabled = disabled;
-            b.className = [
-                'nx-btn nx-btn--sm',
-                active   ? 'nx-btn--primary' : 'nx-btn--secondary',
-                disabled ? 'opacity-40 cursor-not-allowed' : ''
-            ].join(' ');
-            if (!disabled) b.onclick = () => loadRecords(targetPage);
-            return b;
-        }
-
-        container.appendChild(btn('<i class="fas fa-chevron-left"></i>', page - 1, page === 1, false));
-
-        const pages = new Set([1, totalPages, page]);
-        if (page > 2) pages.add(page - 1);
-        if (page < totalPages - 1) pages.add(page + 1);
-
-        let prev = 0;
-        [...pages].sort((a, b) => a - b).forEach(p => {
-            if (p - prev > 1) {
-                const dots = document.createElement('span');
-                dots.textContent = '…';
-                dots.className = 'px-2 text-gray-400 text-sm';
-                container.appendChild(dots);
-            }
-            container.appendChild(btn(p, p, false, p === page));
-            prev = p;
-        });
-
-        container.appendChild(btn('<i class="fas fa-chevron-right"></i>', page + 1, page === totalPages, false));
-    }
+    const crud = window.NX.generaliCrud.create({
+        tableElementId: 'pdqmTable',
+        tbodyId: 'pdqmTbody',
+        paginationContainerId: 'paginationControls',
+        showingCountId: 'showingCount',
+        totalCountId: 'totalCount',
+        recordsEndpoint: API_PREFIX + 'api/generali/pdqm',
+        colSpanBase: 7,
+        renderRow: renderRow,
+        buildParams: buildParams,
+        emptyTitle: {{ _("No records found") | tojson }},
+        emptySub: {{ _("Try adjusting your filters or resetting the search.") | tojson }},
+        totalDisplay: { elementId: 'totalQuantityDisplay', field: 'totalQuantity' },
+        exportRowMapper: r => ({
+            'ID':               r.id,
+            'Date':             r.forDate ? r.forDate.split('T')[0] : '',
+            'Full Name':        r.fullname,
+            'User ID':          r.userId,
+            'Category':         r.parentCategory,
+            'Sub Category':     r.parentSubCategory,
+            'Sub-Sub Category': r.subCategory,
+            'Quantity':         r.quantity,
+            'Recorded At':      r.recordDateTime ? r.recordDateTime.replace('T', ' ').substring(0, 16) : ''
+        }),
+        exportSheetName: 'PDQM',
+        exportFilenamePrefix: 'generali_pdqm',
+        exportFailedText: {{ _("Export failed.") | tojson }},
+        showExportError: showExportError
+    });
 
     // ----------------------------- filters ----------------------------- //
     let _filterTimer;
-    const applyFiltersSoon = () => { clearTimeout(_filterTimer); _filterTimer = setTimeout(() => loadRecords(1), 350); };
+    const applyFiltersSoon = () => { clearTimeout(_filterTimer); _filterTimer = setTimeout(() => crud.loadRecords(1), 350); };
     document.querySelectorAll('.nx-filter select').forEach(s => s.addEventListener('change', applyFiltersSoon));
 
     document.getElementById('resetFilterBtn').addEventListener('click', () => {
@@ -335,7 +270,7 @@
         document.getElementById('filterOrganizationCode').value = '';
         const fu = document.getElementById('filterUserId');
         if (fu) fu.value = '';
-        loadRecords(1);
+        crud.loadRecords(1);
     });
 
     document.getElementById('filterParentCategory').addEventListener('change', function() {
@@ -413,7 +348,7 @@
         populateSubSelect(document.getElementById('addSubCategory'), parent, this.value);
     });
 
-    flatpickr('#addForDate', { dateFormat: 'Y-m-d', allowInput: true, maxDate: 'today', minDate: getAddMinDate() });
+    flatpickr('#addForDate', { dateFormat: 'Y-m-d', allowInput: true, maxDate: 'today', minDate: crud.getAddMinDate() });
 
     {% if can_add_for_org or can_add_transorg %}
     function loadOrgUsers() {
@@ -475,7 +410,7 @@
             this.disabled = false;
             if (data.success) {
                 closeAddModal();
-                loadRecords(1);
+                crud.loadRecords(1);
             } else {
                 errTextEl.textContent = data.error || {{ _("Error saving record.") | tojson }};
                 errEl.classList.remove('hidden');
@@ -578,7 +513,7 @@
             this.disabled = false;
             if (data.success) {
                 closeEditModal();
-                loadRecords(currentPage);
+                crud.loadRecords(crud.getCurrentPage());
             } else {
                 errEl.textContent = data.error || {{ _("Error saving record.") | tojson }};
                 errEl.classList.remove('hidden');
@@ -634,7 +569,7 @@
             this.innerHTML = {{ _("Delete") | tojson }};
             closeDeleteModal();
             if (data.success) {
-                loadRecords(currentPage);
+                crud.loadRecords(crud.getCurrentPage());
             } else {
                 const errDiv = document.createElement('div');
                 errDiv.className = 'fixed bottom-4 right-4 z-50 text-white text-sm font-semibold px-4 py-3 rounded-xl shadow-lg';
@@ -651,62 +586,9 @@
         });
     });
 
-    // ----------------------------- excel export ----------------------------- //
-    function showExportError(msg) {
-        const errDiv = document.createElement('div');
-        errDiv.className = 'fixed bottom-4 right-4 z-50 text-white text-sm font-semibold px-4 py-3 rounded-xl shadow-lg';
-        errDiv.style.background = 'var(--nx-danger)';
-        errDiv.textContent = msg;
-        document.body.appendChild(errDiv);
-        setTimeout(() => errDiv.remove(), 4000);
-    }
-    document.getElementById('exportExcelBtn')?.addEventListener('click', exportToExcel); // #193 finding 10
-
-
-    async function exportToExcel() {
-        const btn = document.getElementById('exportExcelBtn');
-        const icon = btn ? btn.querySelector('i') : null;
-        const originalIconClass = icon ? icon.className : '';
-        if (btn) btn.disabled = true;
-        if (icon) icon.className = 'fas fa-spinner fa-spin';
-        try {
-            const params = buildParams(1);
-            params.set('all', 'true');
-            const res = await fetch(API_PREFIX + 'api/generali/pdqm?' + params.toString(), {
-                headers: { 'X-CSRFToken': csrfToken }
-            });
-            const data = await res.json();
-            if (!data.success) throw new Error(data.error || 'Export failed');
-            const records = data.records || [];
-            if (!records.length) return;
-            const today = new Date().toISOString().split('T')[0];
-            const rows = records.map(r => ({
-                'ID':               r.id,
-                'Date':             r.forDate ? r.forDate.split('T')[0] : '',
-                'Full Name':        r.fullname,
-                'User ID':          r.userId,
-                'Category':         r.parentCategory,
-                'Sub Category':     r.parentSubCategory,
-                'Sub-Sub Category': r.subCategory,
-                'Quantity':         r.quantity,
-                'Recorded At':      r.recordDateTime ? r.recordDateTime.replace('T', ' ').substring(0, 16) : ''
-            }));
-            const ws = XLSX.utils.json_to_sheet(rows);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'PDQM');
-            XLSX.writeFile(wb, `generali_pdqm_${today}.xlsx`);
-        } catch (e) {
-            console.error('Export failed:', e);
-            showExportError({{ _("Export failed.") | tojson }});
-        } finally {
-            if (btn) btn.disabled = false;
-            if (icon) icon.className = originalIconClass;
-        }
-    }
-
     // ----------------------------- init ----------------------------- //
     loadCategories();
     loadOrganizations();
     nxUserFilter.init(API_PREFIX + 'api/generali/pdqm/filterUsers', applyFiltersSoon);
-    loadRecords(1);
+    crud.loadRecords(1);
 </script>

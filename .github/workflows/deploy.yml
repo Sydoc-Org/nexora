@@ -76,11 +76,15 @@ jobs:
 
       - name: Ruff lint
         shell: powershell
-        run: D:\sydoc\tools\py\python.exe -m ruff check nx_lib nx_main.py tests
+        run: D:\sydoc\tools\py\python.exe -m ruff check nx_lib nx_main.py scripts tests
 
       - name: Ruff format check
         shell: powershell
-        run: D:\sydoc\tools\py\python.exe -m ruff format --check nx_lib nx_main.py tests
+        run: D:\sydoc\tools\py\python.exe -m ruff format --check nx_lib nx_main.py scripts tests
+
+      - name: Mypy
+        shell: powershell
+        run: D:\sydoc\tools\py\python.exe -m mypy nx_lib nx_main.py
 
       - name: Install Playwright chromium
         shell: powershell

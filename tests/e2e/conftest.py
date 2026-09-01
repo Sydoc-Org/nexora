@@ -106,7 +106,7 @@ def seed_user_ids():
 
     with engine_nexora_db.connect() as conn:
         rows = conn.execute(text("SELECT username, userid FROM Users")).fetchall()
-    return {username: uid for username, uid in rows}
+    return dict(rows)
 
 
 @pytest.fixture(scope="session")

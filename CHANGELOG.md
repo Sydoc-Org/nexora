@@ -45,6 +45,24 @@ Work toward the next release.
   in flight the button breathes rather than sitting dead. Styles are scoped to
   a local `.rp-chat-send` skin so the shared `.nx-btn--primary` is untouched.
 
+### Performance
+
+- **The reporting source/metric registry is cached for 60 seconds.**
+  `_load_db_sources()`/`_load_db_metrics()` in `nx_lib/views/reporting.py`
+  hit `dbo.ReportingSources`/`dbo.ReportingMetrics` on every call — up to
+  ~8x per report run. Both now use the house TTL-cache pattern (mirrors
+  `nx_lib/mapping_config.py`: success-only caching, a load error re-queries
+  next call rather than caching the failure). Every admin CRUD route that
+  writes those tables invalidates the cache immediately, so an admin edit is
+  still visible without waiting out the TTL.
+- **Static assets (CSS/JS/images) now cache for a year in the browser.**
+  Every template asset tag was swept from raw `url_for('static', ...)` to
+  `static_v(...)` (#191's mtime-busted `?v=` helper), so
+  `SEND_FILE_MAX_AGE_DEFAULT` can safely go from Flask's no-cache default to
+  365 days — a changed file gets a new URL, so a stale cache is never
+  served past the next deploy. A new lint test bans raw
+  `url_for('static'` in `templates/**` to keep it that way.
+
 ### Changed
 
 - **Eddard now sets `reasoning_effort` per surface on Azure GPT-5
@@ -56,7 +74,65 @@ Work toward the next release.
   surfaces (caption, definition, sql) now ask for `low`; the agentic chat loop
   keeps `medium`. The parameter is sent only for deployments named `gpt-5*` /
   `o1*` / `o3*` / `o4*` — every other Azure model 400s on it.
-
+- **`nx_lib/views/generali.py` and `admin.py` are now packages.** Each
+  ~1.5k–3.4k line module became `nx_lib/views/generali/` and
+  `nx_lib/views/admin/` (8 submodules apiece — e.g. `generali/reporting.py`,
+  `generali/baseservices.py`, `admin/processes.py`, `admin/organizations.py`,
+  `admin/system.py`, `admin/overview.py`); each package's `__init__.py`
+  re-exports every public name (including everything the test suite
+  monkeypatches) so URLs, endpoint names, and `gv.<fn>`/`av.<fn>` call sites
+  are unchanged — no Blueprints, no renames, no behavior change.
+- **Generali's 8 duplicated CRUD endpoint families collapsed into one shared
+  factory.** BaseServices, Attendance, ProjectManagement, PDQM, and Reporting
+  each carried near-identical copies of monthreport/org-users/organizations/
+  filter-users/list/add/edit/delete. `nx_lib/views/generali/_crud.py` now
+  generates all eight from a `CrudTable` descriptor (table, permission
+  prefix, columns, filters, writable-field validators, and each table's
+  historical log-label text, preserved verbatim even where siblings
+  disagreed). Every generated view is bound under its original function name
+  and re-exported unchanged. **Known gap:** a 175-case parity harness proved
+  the migrated BaseServices/Attendance/ProjectManagement tables out before
+  this branch, but that harness was not committed — porting it into
+  `tests/integration/test_generali_crud_factory.py` is a recommended
+  follow-up, since those three tables currently have no automated coverage
+  of their own.
+- **New `static/js/nx_core.js` shared helper surface (`window.NX`).**
+  `esc`/`el`/`api`/`apiSafe`/`toast`/`formatDate`/`formatDateTime`/
+  `formatHours`/`csrfToken`, loaded once in `_header.html` before any
+  consumer. Landed additively, then the reporting, generali, admin, and
+  workitems-overview JS families were migrated onto it one file at a time,
+  each verified against its real call sites (the throwing `NX.api` vs.
+  non-throwing `NX.apiSafe` flavour was checked per file, not assumed from
+  the filename). Net effect: 37 duplicated `API_PREFIX` copies removed, plus
+  the `esc`/`el`/`api`/`toast` copies across the reporting JS family and the
+  `formatDate`/`formatDateTime`/`formatHours`/`showNotification`/
+  `escapeHtml` copies across generali/admin JS. Two deliberate behavior
+  changes came out of the dedup, both confirmed with the coordinator before
+  landing: `_reporting_drill_js.html`'s local `esc()` under-escaped `"`/`'`
+  (unsafe inside a double-quoted HTML attribute) and now uses `NX.esc`'s
+  full attribute-safe escaping; and `showNotification`'s top-slide banner is
+  replaced everywhere by `NX.toast`'s bottom-center pill (a UI
+  consolidation onto one shared notification component, not a
+  preserve-exact-behavior swap).
+- **New `static/js/generali_crud.js` shared module for the CRUD-clone
+  partials.** The `loadRecords`/`canEditRecord`/`canDeleteRecord`/
+  `exportToExcel`/`getAddMinDate`/pagination mechanics duplicated across
+  BaseServices, AdditionalServices, ProjectManagement, and PDQM partials are
+  now one module driven by a per-page descriptor; each of the four partials
+  is a thin shim that supplies only its genuinely per-page bits
+  (`renderRow`, `buildParams`, modal wiring).
+- **Ruff now lints `RET`/`C4`/`PIE` too, and mypy checks for `Any` leaking
+  through a typed return.** `[tool.ruff.lint].select` gained the
+  flake8-return, flake8-comprehensions, and flake8-pie rulesets; the
+  resulting sweep (redundant `else` after `return`, `dict()`/dict-literal
+  cleanups, `str.startswith` tuple-arg merges, a couple of missing explicit
+  `return None`s) touched ~20 files with no behavior change. `mypy`'s
+  `warn_return_any` caught three call sites
+  (`nx_lib/mapping_config.py`, `nx_lib/branding.py`, `nx_lib/octo.py`)
+  returning an untyped cache/`requests.json()` value through a typed
+  signature; each now narrows or casts explicitly. CI's `deploy.yml` now
+  also lints `scripts/` and runs `mypy nx_lib nx_main.py` as its own step,
+  matching the pre-commit hook that already covered both.
 - **The pre-push gate no longer runs the e2e suite.** Every push ran all
   ~228 Playwright tests locally even though CI's `test` job runs the full
   suite anyway on the PR and again on `main` before deploy — three runs of
@@ -66,11 +142,28 @@ Work toward the next release.
 
 ### Removed
 
+- **The dormant `tools/autopilot` orchestrator and its `nx.ps1` CLI
+  plumbing.** Unused since 2026-06-15 (owner-approved deletion, recoverable
+  from git history); `bin/nx.ps1` loses `--invoke-workflow`, `--kill-workflow`,
+  `--workflow-logs`, `--queue`, `--body`, and the in-flight-build line in
+  `status`. Everything else in `nx.ps1` is unchanged. This does **not**
+  revoke the GitHub PAT exposed in the June transcript — that is a separate
+  owner-only action.
 - Migration `0082` drops the four synonyms (`SearchConfig`, `StatConfig`,
   `IndexFieldMappings`, `Search_Field_Labels`) hand-added on PROD during the
   2026-08-28 half-deploy rescue (#228). The deployed app reads the new
   mapping tables only; INT never had the synonyms, so the migration is a
   no-op there.
+
+### Known gaps carried out of this campaign (not fixed here)
+
+- An unauthorized target-user booking in generali's add endpoints returns a
+  generic 500 instead of a 403, because `PermissionDenied` is raised inside a
+  bare `except Exception` block. Pre-existing, left alone per scope
+  discipline — now fixable in one place (`_crud.py`) instead of five,
+  worth its own issue.
+- `templates/js/admin/_user_management_js.html` appears to be genuinely
+  dead/unreferenced code — a candidate for a future cleanup pass.
 
 ## [3.2.3] - 2026-08-27
 

@@ -1,11 +1,9 @@
 <script nonce="{{ csp_nonce() }}">
-        const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+        const API_PREFIX = window.API_PREFIX;
         // csrfToken is declared globally in _header_js.html
 
-        function escapeHtml(str) {
-            if (str == null) return '';
-            return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-        }
+        // escapeHtml: shared with nx_core.js (Task 12).
+        const escapeHtml = window.NX.esc;
 
          function timeAgo(date) {
                 let seconds = Math.floor((new Date() - new Date(date)) / 1000);

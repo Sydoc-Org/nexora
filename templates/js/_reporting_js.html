@@ -1,7 +1,7 @@
 <script nonce="{{ csp_nonce() }}">
 (function () {
   const csrf = document.querySelector('meta[name="csrf-token"]').content;
-  const API_PREFIX = window.location.href.includes("nexora") ? "/nexora/" : "/";
+  const API_PREFIX = window.API_PREFIX;
   const state = {
     source: null, fields: [], columns: [], filters: [], sort: [],
     // Process scope. `allProcesses` is the caller's allowed '<client>.<process>'
@@ -38,19 +38,9 @@
   ];
   var CUSTOM_DATES_LABEL = {{ _("Custom dates…")|tojson }};
 
-  async function api(url, opts) {
-    if (url.startsWith('/')) url = API_PREFIX + url.slice(1);
-    opts = opts || {};
-    const res = await fetch(url, Object.assign(
-      { headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf } },
-      opts
-    ));
-    if (!res.ok) {
-      const body = await res.json().catch(function () { return {}; });
-      throw new Error(body.error || (I18N_REQUEST_FAILED + ' (HTTP ' + res.status + ')'));
-    }
-    return res;
-  }
+  // api: shared with nx_core.js (Task 11) -- this file's api() throws on a
+  // non-2xx response, so it aliases NX.api, not NX.apiSafe.
+  const api = window.NX.api;
 
   // ---- Process scope (client / process picker) -------------------------------
   // Processes are '<client>.<process>'; the client is the text before the first
@@ -929,19 +919,10 @@
     document.querySelector('.reporting-main').classList.toggle('reporting-main--single', sqlOn);
   }
 
-  // In-page toast — replaces window.alert for non-blocking feedback (browser
-  // alerts were the last unstyled chrome on the page). window.confirm() stays
-  // native: it needs a blocking answer.
-  function toast(msg, isError) {
-    var t = document.createElement('div');
-    t.className = 'reporting-toast' + (isError ? ' reporting-toast--error' : '');
-    t.setAttribute('role', 'status');
-    t.setAttribute('data-testid', 'reporting-toast');
-    t.textContent = msg;
-    document.body.appendChild(t);
-    setTimeout(function () { t.classList.add('is-gone'); }, 2600);
-    setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 3000);
-  }
+  // toast: shared with nx_core.js (Task 11) -- replaces window.alert for
+  // non-blocking feedback. window.confirm() stays native: it needs a
+  // blocking answer.
+  const toast = window.NX.toast;
 
   function showError(msg) {
     var wrap = document.getElementById('rpResults');

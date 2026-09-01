@@ -136,8 +136,7 @@ def strip_pg_quoting(table):
     t = table.strip()
     if t.lower().startswith("public."):
         t = t[len("public.") :]
-    t = t.strip('"')
-    return t
+    return t.strip('"')
 
 
 def sql_escape(s):

@@ -16,3 +16,4 @@ def get_timezone():
     user = getattr(g, "user", None)
     if user is not None:
         return user.timezone
+    return None
