@@ -48,7 +48,7 @@ Work toward the next release.
 ### Performance
 
 - **The reporting source/metric registry is cached for 60 seconds.**
-  `_load_db_sources()`/`_load_db_metrics()` in `nx_lib/views/reporting.py`
+  `_load_db_sources()`/`_load_db_metrics()` in `nx_lib/views/reporting/_shared.py`
   hit `dbo.ReportingSources`/`dbo.ReportingMetrics` on every call — up to
   ~8x per report run. Both now use the house TTL-cache pattern (mirrors
   `nx_lib/mapping_config.py`: success-only caching, a load error re-queries
@@ -82,6 +82,14 @@ Work toward the next release.
   re-exports every public name (including everything the test suite
   monkeypatches) so URLs, endpoint names, and `gv.<fn>`/`av.<fn>` call sites
   are unchanged — no Blueprints, no renames, no behavior change.
+- **`nx_lib/views/reporting.py` is now a package.** The ~4k-line module became
+  `nx_lib/views/reporting/`, split by feature cluster (`ai.py`, `pages.py`,
+  `run.py`, `export.py`, `reports.py`, `schedules.py`, `admin_registry.py`,
+  `health.py`, `catalog.py`) plus a shared core (`_shared.py`) for helpers
+  used across clusters (e.g. `_load_db_sources()`/`_load_db_metrics()`).
+  `__init__.py` re-exports every public name so URLs, endpoint names, and
+  monkeypatch targets are unchanged — no Blueprints, no renames, no
+  behavior change.
 - **Generali's 8 duplicated CRUD endpoint families collapsed into one shared
   factory.** BaseServices, Attendance, ProjectManagement, PDQM, and Reporting
   each carried near-identical copies of monthreport/org-users/organizations/
