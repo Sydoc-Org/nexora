@@ -33,7 +33,8 @@ from ..workitem_sources import (
     recent_activity_rows,
     total_backlog_count,
 )
-from .workitems import sensitive_blocked_tokens, strip_sensitive_fields
+from ..workitems.sensitivity import strip_sensitive_fields
+from .workitems import sensitive_blocked_tokens
 
 
 def make_cache_key(*args, **kwargs):

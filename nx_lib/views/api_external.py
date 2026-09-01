@@ -80,6 +80,15 @@ from ..workitem_sources import (
     process_pair_for_workitem,
     total_backlog_count,
 )
+from ..workitems.fields import DOCFIELD_OPS
+from ..workitems.sensitivity import (
+    _norm_field_token,
+    get_search_columns_for_processes,
+    get_sensitive_field_keys,
+    get_sensitive_field_tokens,
+    get_valid_search_columns,
+    strip_sensitive_from_detail,
+)
 from .dashboard import (
     compute_avg_processing_time,
     compute_today_stats,
@@ -88,16 +97,9 @@ from .dashboard import (
     resolve_import_datetimes,
 )
 from .workitems import (
-    DOCFIELD_OPS,
     WORKITEM_STAGES,
     _get_workitems_data,
     _load_media_info,
-    _norm_field_token,
-    get_search_columns_for_processes,
-    get_sensitive_field_keys,
-    get_sensitive_field_tokens,
-    get_valid_search_columns,
-    strip_sensitive_from_detail,
 )
 
 # The only accepted ?days= values (issue #196) -- validated as strings so no
