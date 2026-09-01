@@ -155,14 +155,22 @@ def _coerce_record_id(raw):
         return raw
 
 
-def _parse_filters(args, fields_by_column):
+def _parse_filters(args, fields_by_column, id_column=None):
     """[(column, op, value)] from ``?filter_<column>=...`` query params --
     only for columns present in ``fields_by_column`` (the entity's own
-    visible fields; see module docstring). A date field uses a
-    ``filter_<column>_from`` / ``_to`` range instead of a single value; a
-    value that fails to parse is dropped silently (degrades to "no filter"
-    rather than 400ing the whole list for one bad query param)."""
+    visible fields; see module docstring), plus ``id_column`` itself when
+    given (a prefix match, ``filter_<id_column>=...`` -- the id column has no
+    TenantFields row/semantic_role of its own, so it isn't reachable through
+    the loop below; mirrors ``/workitems``' own id-prefix search, see
+    ``workitem_sources.py``'s ``search_id``, task-9 brief parity gap). A date
+    field uses a ``filter_<column>_from`` / ``_to`` range instead of a single
+    value; a value that fails to parse is dropped silently (degrades to "no
+    filter" rather than 400ing the whole list for one bad query param)."""
     filters = []
+    if id_column and id_column not in fields_by_column:
+        value = args.get(f"filter_{id_column}")
+        if value and value.strip():
+            filters.append((id_column, "startswith", value.strip()))
     for column, field in fields_by_column.items():
         if field.semantic_role == "date":
             date_from = args.get(f"filter_{column}_from")
@@ -367,7 +375,7 @@ def api_tenant_list(tenant_code, page_key):
 
     fields_by_column = {f.column: f for f in fields}
     allowed_columns = set(fields_by_column) | {entity.id_column}
-    filters = _parse_filters(request.args, fields_by_column)
+    filters = _parse_filters(request.args, fields_by_column, id_column=entity.id_column)
     sort = _parse_sort(request.args, allowed_columns)
     offset, limit = _parse_pagination(request.args)
 
@@ -554,7 +562,7 @@ def api_tenant_export(tenant_code, page_key):
 
     fields_by_column = {f.column: f for f in fields}
     allowed_columns = set(fields_by_column) | {entity.id_column}
-    filters = _parse_filters(request.args, fields_by_column)
+    filters = _parse_filters(request.args, fields_by_column, id_column=entity.id_column)
     sort = _parse_sort(request.args, allowed_columns)
 
     _count_sql, page_sql, (_count_params, page_params) = build_list_query(

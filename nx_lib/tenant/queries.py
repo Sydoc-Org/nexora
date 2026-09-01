@@ -33,7 +33,7 @@ _POSTGRES = "postgres"
 _MARKERS = {_TSQL: "?", _POSTGRES: "%s"}
 
 # Filter operators accepted by build_list_query's `filters` argument.
-_FILTER_OPS = {"eq", "contains", "gte", "lt"}
+_FILTER_OPS = {"eq", "contains", "startswith", "gte", "lt"}
 
 
 def _marker(dialect: str) -> str:
@@ -64,11 +64,14 @@ def quote_ident(name: str, dialect: str) -> str:
 def _filter_clause(column: str, op: str, value: object, dialect: str) -> tuple[str, object]:
     """(sql_fragment, bound_value) for one ``(column, op, value)`` filter.
 
-    'contains' wraps the value in ``%...%`` on the PARAMETER, never in the SQL
-    text -- the SQL only ever carries a bare ``LIKE``/``ILIKE <marker>``, so a
-    caller's value can never inject its own wildcards into the clause shape.
-    postgres uses ``ILIKE`` (case-insensitive, matching tsql's default
-    case-insensitive collation); tsql uses plain ``LIKE``.
+    'contains'/'startswith' wrap the value in ``%...%``/``...%`` on the
+    PARAMETER, never in the SQL text -- the SQL only ever carries a bare
+    ``LIKE``/``ILIKE <marker>``, so a caller's value can never inject its own
+    wildcards into the clause shape. postgres uses ``ILIKE`` (case-
+    insensitive, matching tsql's default case-insensitive collation); tsql
+    uses plain ``LIKE``. 'startswith' mirrors workitem_sources.py's own
+    id-prefix search semantics (``CAST(id AS ...) LIKE 'id%'``) -- added for
+    the tenant list page's id-column filter (task-9 brief parity gap).
     """
     if op not in _FILTER_OPS:
         raise ValueError(f"unsupported filter op: {op!r}")
@@ -80,8 +83,10 @@ def _filter_clause(column: str, op: str, value: object, dialect: str) -> tuple[s
         return f"{col} >= {marker}", value
     if op == "lt":
         return f"{col} < {marker}", value
-    # contains
     keyword = "ILIKE" if dialect == _POSTGRES else "LIKE"
+    if op == "startswith":
+        return f"{col} {keyword} {marker}", f"{value}%"
+    # contains
     return f"{col} {keyword} {marker}", f"%{value}%"
 
 

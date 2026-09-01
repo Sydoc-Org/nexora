@@ -179,6 +179,33 @@ def test_contains_filter_uses_ilike_on_postgres():
     assert count_params == ["%foo%"]
 
 
+def test_startswith_filter_binds_prefix_like_parameter():
+    # Mirrors workitem_sources.py's own id-prefix search semantics
+    # (task-9 brief parity gap: the tenant list page's id-column filter).
+    entity = _entity(source_object="dbo.Dossier", id_column="Id")
+    fields = [_field(column="Name", semantic_role="text")]
+
+    count_sql, _, (count_params, _) = q.build_list_query(
+        entity, fields, "tsql", filters=[("Id", "startswith", "11")]
+    )
+
+    assert "[Id] LIKE ?" in count_sql
+    assert "11%" not in count_sql  # never interpolated into the SQL text
+    assert count_params == ["11%"]
+
+
+def test_startswith_filter_uses_ilike_on_postgres():
+    entity = _entity(source_object='public."Dossier"', id_column="Id")
+    fields = [_field(column="Name", semantic_role="text")]
+
+    count_sql, _, (count_params, _) = q.build_list_query(
+        entity, fields, "postgres", filters=[("Id", "startswith", "11")]
+    )
+
+    assert '"Id" ILIKE %s' in count_sql
+    assert count_params == ["11%"]
+
+
 def test_eq_gte_lt_filters_are_anded_and_bound():
     entity = _entity(source_object="dbo.Dossier", id_column="Id")
     fields = [_field(column="Status", semantic_role="category")]

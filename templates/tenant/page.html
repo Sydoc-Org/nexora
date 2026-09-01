@@ -49,9 +49,20 @@
             icon='fa-table'
         ) }}
 
-        {% if text_filter_fields or first_date_field %}
+        {# The id column is always filterable (mirrors _order_by's own
+           id_column fallback in queries.py -- sortable, so filterable too;
+           task-9 brief parity gap: /workitems' id-prefix search had no
+           tenant-page equivalent) -- shown unconditionally, unlike the
+           descriptor-driven field filters below. #}
         <div class="nx-filter mb-6" data-testid="tenant-filter-bar">
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                    <label for="tenant-filter-{{ entity.id_column }}" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ entity.id_column }}</label>
+                    <div class="nx-input-icon">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="tenant-filter-{{ entity.id_column }}" class="nx-input tenant-filter-input" data-filter="filter_{{ entity.id_column }}" data-testid="tenant-filter-{{ entity.id_column }}">
+                    </div>
+                </div>
                 {% for f in text_filter_fields %}
                 <div>
                     <label for="tenant-filter-{{ f.column }}" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ f.labels.get(current_lang) or f.labels.get('en') or f.column }}</label>
@@ -73,7 +84,6 @@
                 {% endif %}
             </div>
         </div>
-        {% endif %}
 
         <div id="tenant-page-root" data-testid="tenant-page-root" data-tenant="{{ tenant_code }}" data-page="{{ page_key }}" data-entity="{{ entity.key }}">
             <div class="nx-table-wrap">

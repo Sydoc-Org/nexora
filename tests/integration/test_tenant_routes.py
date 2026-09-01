@@ -262,20 +262,28 @@ def test_tenant_page_renders_date_range_filter_for_first_date_field_only(user_cl
     assert b"ClosedDate_to" not in resp.data
 
 
-def test_tenant_page_hides_filter_row_for_non_filterable_fields(user_client, monkeypatch):
+def test_tenant_page_id_column_filter_always_renders(user_client, monkeypatch):
+    """The filter bar itself is always present now (task-9 brief parity gap:
+    /workitems' id-prefix search had no tenant-page equivalent) -- even an
+    entity with no filterable descriptor fields at all still gets an
+    id-column filter input, though a non-filterable field (money) gets none
+    of its own."""
     monkeypatch.setattr(tv, "has_permission", lambda code: True)
     _stub_registry(
         monkeypatch,
         tenant=_tenant(),
         pages=[_page()],
-        entity=_entity(),
+        entity=_entity(id_column="Id"),
         fields=[_field(column="Amount", semantic_role="money")],
     )
 
     resp = user_client.get(f"/t/{TENANT_CODE}/dossiers")
 
     assert resp.status_code == 200
-    assert b'data-testid="tenant-filter-bar"' not in resp.data
+    assert b'data-testid="tenant-filter-bar"' in resp.data
+    assert b'data-testid="tenant-filter-Id"' in resp.data
+    assert b'data-filter="filter_Id"' in resp.data
+    assert b'data-testid="tenant-filter-Amount"' not in resp.data
 
 
 def test_tenant_page_renders_pagination_and_export_controls(user_client, monkeypatch):
@@ -451,6 +459,30 @@ def test_api_list_success_returns_rows_and_ignores_unknown_filter_column(user_cl
 
 
 # --------------------------------------------------------------- api write --
+
+
+def test_api_list_id_column_filter_reaches_sql_as_prefix_match(user_client, monkeypatch):
+    """?filter_<id_column>=... has no TenantFields row of its own (the id
+    column isn't a descriptor field) -- _parse_filters must still forward it
+    to build_list_query as a 'startswith' filter (task-9 brief parity gap)."""
+    monkeypatch.setattr(tv, "has_permission", lambda code: True)
+    _stub_registry(
+        monkeypatch,
+        tenant=_tenant(),
+        pages=[_page()],
+        entity=_entity(id_column="Id"),
+        fields=[_field(column="Status")],
+    )
+    cursor = _FakeCursor(count=1, rows=[(11, "open")], cols=["Id", "Status"])
+    monkeypatch.setitem(CLIENTS, TENANT_CODE, _client_with_engine(_FakeEngine(cursor)))
+
+    resp = user_client.get(f"/api/t/{TENANT_CODE}/dossiers?filter_Id=11")
+
+    assert resp.status_code == 200
+    all_sql = " ".join(sql for sql, _params in cursor.executed)
+    assert "[Id] LIKE ?" in all_sql
+    all_params = [p for _sql, params in cursor.executed for p in params]
+    assert "11%" in all_params
 
 
 def test_api_write_403_without_edit_permission(user_client, monkeypatch):
