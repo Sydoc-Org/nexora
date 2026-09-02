@@ -381,7 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (filtered.length === 0) {
                 const div = document.createElement('div');
                 div.className = 'px-4 py-2 text-sm text-gray-500 italic';
-                div.textContent = 'No results';
+                div.textContent = I18N.noResults;
                 dropdown.appendChild(div);
             } else {
                 filtered.forEach(f => {

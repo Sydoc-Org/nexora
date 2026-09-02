@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-01 21:50+0200\n"
+"POT-Creation-Date: 2026-09-02 07:29+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -4236,7 +4236,7 @@ msgstr "Sforzo di progetto"
 #: templates/admin/maintenance.html:57
 #: templates/generali_projectmanagement.html:207
 #: templates/generali_projectmanagement.html:246
-#: templates/js/_workitems_overview_js.html:36
+#: templates/js/_workitems_overview_js.html:37
 msgid "optional"
 msgstr "opzionale"
 
@@ -4679,7 +4679,7 @@ msgstr "Nessun documento preparato ancora. Carica un file Excel per iniziare."
 
 #: templates/admin/logs.html:108 templates/admin/user_detail.html:238
 #: templates/js/_generali_documents_js.html:274
-#: templates/js/_workitems_overview_js.html:30
+#: templates/js/_workitems_overview_js.html:31
 #: templates/prepared_documents.html:234
 msgid "Previous"
 msgstr "Precedente"
@@ -4687,7 +4687,7 @@ msgstr "Precedente"
 #: templates/admin/logs.html:109 templates/admin/user_detail.html:239
 #: templates/js/_generali_documents_js.html:278
 #: templates/js/_generali_reporting_js.html:18
-#: templates/js/_workitems_overview_js.html:31
+#: templates/js/_workitems_overview_js.html:32
 #: templates/prepared_documents.html:240
 msgid "Next"
 msgstr "Successivo"
@@ -5598,7 +5598,7 @@ msgstr "Questo mese"
 msgid "Document Value Search"
 msgstr "Ricerca per valore di documento"
 
-#: templates/js/_workitems_overview_js.html:19
+#: templates/js/_workitems_overview_js.html:20
 #: templates/workitems_overview.html:217 templates/workitems_overview.html:278
 msgid "All fields"
 msgstr "Tutti i campi"
@@ -5658,7 +5658,7 @@ msgstr "Ultimo movimento il"
 msgid "Loading workitems..."
 msgstr "Caricamento Workitems..."
 
-#: templates/js/_workitems_overview_js.html:24
+#: templates/js/_workitems_overview_js.html:25
 #: templates/workitems_overview.html:446
 msgid "selected"
 msgstr "selezionato"
@@ -7059,7 +7059,7 @@ msgstr "Nessun record trovato."
 #: templates/js/_generali_pdqm_js.html:234
 #: templates/js/_generali_project_management_js.html:104
 #: templates/js/_generali_reporting_js.html:14
-#: templates/js/_workitems_overview_js.html:29
+#: templates/js/_workitems_overview_js.html:30
 msgid "Try adjusting your filters or resetting the search."
 msgstr "Prova a modificare i filtri o a reimpostare la ricerca."
 
@@ -7128,7 +7128,7 @@ msgstr "Documenti"
 
 #: templates/js/_generali_documents_js.html:66
 #: templates/js/_generali_reporting_js.html:12
-#: templates/js/_workitems_overview_js.html:23
+#: templates/js/_workitems_overview_js.html:24
 msgid "Failed to load data. Please try again."
 msgstr "Impossibile caricare i dati. Riprova."
 
@@ -8492,55 +8492,59 @@ msgstr "file selezionati"
 msgid "No fields available"
 msgstr "Nessun campo disponibile"
 
-#: templates/js/_workitems_overview_js.html:20
+#: templates/js/_workitems_overview_js.html:19
+msgid "No results"
+msgstr "Nessun risultato"
+
+#: templates/js/_workitems_overview_js.html:21
 msgid "primary"
 msgstr "principale"
 
-#: templates/js/_workitems_overview_js.html:21
+#: templates/js/_workitems_overview_js.html:22
 msgid "Some workitems are temporarily unavailable:"
 msgstr "Alcuni workitem sono temporaneamente non disponibili:"
 
-#: templates/js/_workitems_overview_js.html:22
+#: templates/js/_workitems_overview_js.html:23
 msgid "Loading the rest in the background…"
 msgstr "Caricamento del resto in background…"
 
-#: templates/js/_workitems_overview_js.html:25
+#: templates/js/_workitems_overview_js.html:26
 msgid "selected workitems will be exported"
 msgstr "Workitems selezionati verranno esportati"
 
-#: templates/js/_workitems_overview_js.html:26
+#: templates/js/_workitems_overview_js.html:27
 msgid "All workitems matching current filters will be exported"
 msgstr "Tutti i Workitems corrispondenti ai filtri attuali verranno esportati"
 
-#: templates/js/_workitems_overview_js.html:27
+#: templates/js/_workitems_overview_js.html:28
 msgid "Export failed. Please try again."
 msgstr "Esportazione fallita. Riprova."
 
-#: templates/js/_workitems_overview_js.html:28
+#: templates/js/_workitems_overview_js.html:29
 msgid "No workitems found"
 msgstr "Nessun Workitem trovato"
 
-#: templates/js/_workitems_overview_js.html:32
+#: templates/js/_workitems_overview_js.html:33
 msgid "Deselect view"
 msgstr "Deseleziona vista"
 
-#: templates/js/_workitems_overview_js.html:33
+#: templates/js/_workitems_overview_js.html:34
 msgid "Apply view"
 msgstr "Applica vista"
 
-#: templates/js/_workitems_overview_js.html:34
+#: templates/js/_workitems_overview_js.html:35
 msgid "Edit view"
 msgstr "Modifica vista"
 
-#: templates/js/_workitems_overview_js.html:35
+#: templates/js/_workitems_overview_js.html:36
 msgid "View name…"
 msgstr "Nome della vista…"
 
-#: templates/js/_workitems_overview_js.html:37
+#: templates/js/_workitems_overview_js.html:38
 msgid "Delete view"
 msgstr "Elimina vista"
 
-#: templates/js/_workitems_overview_js.html:38
+#: templates/js/_workitems_overview_js.html:39
 msgid "View saved."
 msgstr "Vista salvata."
 
