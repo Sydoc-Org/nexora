@@ -69,8 +69,77 @@ Work toward the next release.
   `dashboard.py`'s existing `@cache.cached` house pattern — a per-user (and,
   for stats, per-date-range-filter) cache key, and a `response_filter` that
   never pins an error or validation-failure response for the full TTL.
+  Measured on real INT Generali data: cold 1.780s median → warm (cached)
+  0.064s median, ~28x faster within the 120s window.
+- **`fetch_merged_page`'s per-row source-routing cache write is now one
+  batched `MERGE`, not up to 1000 sequential ones.** The warm loop used to
+  call `get_source_for_workitem` per uncached row, each doing its own
+  MERGE + commit round-trip; a new `_cache_store_many` collects a page's
+  resolved `(WorkItemID, ClientCode)` pairs and writes them in a single
+  multi-row `MERGE ... USING (VALUES ...)` statement (chunked at 1000
+  rows/2000 params). Isolated benchmark against the real NexoraDB, 300
+  uncached ids: 300x sequential `_cache_store` calls, 19.436s median →
+  1x `_cache_store_many` call, 0.088s median — **~221x faster** for the
+  store step. (A real end-to-end page timing wasn't a usable instrument on
+  this INT dataset: MS02's id range sits almost entirely inside the
+  default source's, so nearly every previously-uncached row resolves
+  ambiguous and was never cached in either version — see the isolated
+  number above for the mechanism this actually fixes.)
+- **Prepared Documents' per-page Octo stage lookup is now one query, not
+  one per row.** `prepared_documents()` called
+  `_resolve_prepared_doc_wid_stage` once per pid on the page (up to
+  200/page) against the MS02 Postgres runtime. A new
+  `_resolve_octo_wid_stage_pg_batch` resolves the whole page's wids in one
+  `WHERE twi."ID" = ANY(%s)` query; a missing wid still degrades to the
+  same empty stage sentinel as before. Measured against a real MS02
+  Postgres instance, 200 wids: 200x per-wid queries, 9.021s median → 1x
+  batched query, 0.047s median — **~193x faster**.
+- **`engineNexoraDB`'s connection pool is sized for a full waitress thread
+  complement, and NexoraDB connects fail fast.** `pool_size` 10→32,
+  `max_overflow` 20→16 (every request touches NexoraDB via the
+  session/permission hooks, so the pool used to be smaller than PROD's 32
+  waitress threads); a new `LoginTimeout=5` on the NexoraDB connection
+  string makes a downed DB fail in ~5s instead of the ODBC driver's ~15s
+  default. No single before/after number here — this is headroom, not a
+  hot-path speedup — but verified with 60 concurrent authenticated
+  `/dashboard` requests against the new pool sizing: all 60 returned 200,
+  zero pool-exhaustion warnings in `app.log`/`app_stderr.log`. The
+  `/api/reporting/sources/health` probe was also parallelized (bounded
+  0.8s deadline instead of sequential unbounded per-engine probes), so N
+  down data sources cost ~0.8s total instead of N sequential timeouts.
+- **The permissions/UI-prefs session hooks skip the write when nothing
+  changed.** `_reload_user_permissions`/`_load_user_ui_prefs` still read
+  fresh from the TTL cache every request (unchanged), but now only assign
+  into `session[...]` when the freshly-read value differs from what's
+  already there — Flask marks a session dirty on every assignment
+  regardless of whether the value changed, which meant a filesystem write
+  + `Set-Cookie` on every single request on PROD's Flask-Session
+  filesystem backend. Verified locally via `session.modified` staying
+  `False` on an unchanged-value request and `True` on a real change
+  (permission grant/revoke, pref edit still propagate on the next
+  request); the actual disk-I/O/header-count reduction is PROD-only
+  (Flask-Session's filesystem backend is deliberately off in local dev)
+  and wasn't independently measurable in this environment.
 
 ### Changed
+
+- **`/api/workitems` paging's `total` count is now read off the page query
+  itself (`COUNT(*) OVER()`) instead of a second, separate `COUNT(*)`
+  query** — one query per page request instead of two, in the common case
+  of a non-empty page (an empty page still falls back to the old
+  separate-COUNT query, to keep the exact same reported total when the
+  requested offset lands past the end of the results). Functionally
+  identical `total`/rows in both SQL Server and Postgres dialects (89 unit
+  + 127 integration tests, all green). **Flagged rather than claimed as a
+  win:** isolated raw-SQL A/B measurement on this dev machine's SQL Server
+  instance showed the new single-query form is ~12% *slower*, not faster
+  (118.2ms → 132.4ms median) — `COUNT(*) OVER()` with no `PARTITION BY`
+  makes the engine build a window spool over the whole matching set before
+  it can apply `OFFSET`/`FETCH`, which was pricier than two independent
+  scans on this instance's plan. This still needs verification against
+  INT's real query plan/data shape before it can be trusted as a net
+  win; treat it as a correctness-preserving refactor (fewer round trips on
+  paper) with unverified — and possibly negative — production performance.
 
 - **Generali list exports (`?all=true`) are now capped at 100,000 rows.**
   The five generated Generali list endpoints (Attendance, Base Services,
