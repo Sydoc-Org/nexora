@@ -2567,8 +2567,8 @@ def test_prepared_documents_octo_status_false_when_stage_not_found(
     monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: {"100": [42]})
     monkeypatch.setattr(
         wv,
-        "_resolve_prepared_doc_wid_stage",
-        lambda w: {"status": None, "current_stage": None},
+        "_resolve_prepared_doc_wid_stages",
+        lambda wids: {w: {"status": None, "current_stage": None} for w in wids},
     )
 
     captured = {}
@@ -2654,12 +2654,12 @@ def test_prepared_documents_resolves_stage_against_owning_client_engine(
         calls.append(("default", engine))
         return {"status": "Ready", "current_stage": "Extraction"}
 
-    def fake_pg_resolve(engine, wid):
+    def fake_pg_batch_resolve(engine, wids):
         calls.append(("ms02", engine))
-        return {"status": "Done", "current_stage": "Delivery"}
+        return {int(w): {"status": "Done", "current_stage": "Delivery"} for w in wids}
 
     monkeypatch.setattr(wv, "resolve_octo_wid_stage", fake_default_resolve)
-    monkeypatch.setattr(wv, "_resolve_octo_wid_stage_pg", fake_pg_resolve)
+    monkeypatch.setattr(wv, "_resolve_octo_wid_stage_pg_batch", fake_pg_batch_resolve)
 
     captured = {}
     real_render_template = wv.render_template
@@ -2785,8 +2785,8 @@ def test_prepared_documents_preview_button_requires_details_view(
     monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: {"100": [42]})
     monkeypatch.setattr(
         wv,
-        "_resolve_prepared_doc_wid_stage",
-        lambda w: {"status": "Ready", "current_stage": "Import"},
+        "_resolve_prepared_doc_wid_stages",
+        lambda wids: {w: {"status": "Ready", "current_stage": "Import"} for w in wids},
     )
 
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
@@ -3278,8 +3278,8 @@ def test_prepared_docs_preview_button_carries_stage(user_client, workitems_all_p
     monkeypatch.setattr(wv, "resolve_ms02_pid_to_wids", lambda e, s, p: {"100": [42]})
     monkeypatch.setattr(
         wv,
-        "_resolve_prepared_doc_wid_stage",
-        lambda w: {"status": "In Progress", "current_stage": "Validation"},
+        "_resolve_prepared_doc_wid_stages",
+        lambda wids: {w: {"status": "In Progress", "current_stage": "Validation"} for w in wids},
     )
     monkeypatch.setattr(wv, "has_permission", lambda code: True)
     resp = user_client.get("/prepared_documents")

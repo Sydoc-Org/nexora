@@ -224,3 +224,88 @@ def test_fetch_page_unknown_group_by_falls_back_to_id_desc(monkeypatch):
     pd.fetch_prepared_documents_page(0, 40, group_by="not_a_real_column")
     sql_used = cur.execute.call_args.args[0]
     assert "ORDER BY ID DESC" in sql_used
+
+
+# ==================== _resolve_prepared_doc_wid_stages (batch) ====================
+# nx_lib.views.workitems._resolve_prepared_doc_wid_stages resolves a whole
+# prepared-documents page's wids in ONE query instead of one per PID (up to
+# 200/page). Kept here alongside the rest of the prepared-documents coverage.
+
+
+def test_resolve_prepared_doc_wid_stages_batches_into_one_pg_query(monkeypatch, app):
+    """N wids -> exactly ONE _resolve_octo_wid_stage_pg_batch call (not N),
+    and each wid's resolved stage matches what the old per-wid loop over
+    _resolve_octo_wid_stage_pg would have produced."""
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS, ClientConfig
+
+    ms02_engine = object()
+    ms02_client = ClientConfig(
+        code="ms02",
+        runtime_engine=ms02_engine,
+        dialect="postgres",
+        octo_domain="ms02.example",
+        octo_client_id="id",
+        octo_secret="secret",
+        octo_grant_type="client_credentials",
+    )
+    monkeypatch.setitem(CLIENTS, "ms02", ms02_client)
+
+    calls = []
+
+    def fake_pg_batch(engine, wids):
+        calls.append((engine, list(wids)))
+        return {
+            42: {"status": "Ready", "current_stage": "Import"},
+            43: {"status": "Done", "current_stage": "Delivery"},
+            # 44 intentionally missing -- a wid with no DB match.
+        }
+
+    monkeypatch.setattr(wv, "_resolve_octo_wid_stage_pg_batch", fake_pg_batch)
+
+    with app.app_context():
+        result = wv._resolve_prepared_doc_wid_stages([42, 43, 44])
+
+    assert len(calls) == 1  # ONE round-trip for all 3 wids, not 3.
+    assert calls[0][0] is ms02_engine
+    assert result == {
+        42: {"status": "Ready", "current_stage": "Import"},
+        43: {"status": "Done", "current_stage": "Delivery"},
+        # A wid missing from the batch result degrades to the same empty
+        # stage the single-wid resolver returns for a miss -- never absent
+        # from the returned dict, so callers can always index by wid.
+        44: {"status": None, "current_stage": None},
+    }
+
+
+def test_resolve_prepared_doc_wid_stages_empty_input_short_circuits(app):
+    import nx_lib.views.workitems as wv
+
+    with app.app_context():
+        assert wv._resolve_prepared_doc_wid_stages([]) == {}
+
+
+def test_resolve_prepared_doc_wid_stages_fails_closed_without_ms02_client(monkeypatch, app):
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.delitem(CLIENTS, "ms02", raising=False)
+    with app.app_context():
+        assert wv._resolve_prepared_doc_wid_stages([1, 2]) == {
+            1: {"status": None, "current_stage": None},
+            2: {"status": None, "current_stage": None},
+        }
+
+
+def test_resolve_prepared_doc_wid_stages_fails_closed_on_malformed_client(monkeypatch, app):
+    """A malformed CLIENTS['ms02'] entry (e.g. missing .dialect) must not
+    raise -- same fail-closed contract as the single-wid resolver."""
+    import nx_lib.views.workitems as wv
+    from nx_lib.clients import CLIENTS
+
+    monkeypatch.setitem(CLIENTS, "ms02", object())
+    with app.app_context():
+        assert wv._resolve_prepared_doc_wid_stages([1, 2]) == {
+            1: {"status": None, "current_stage": None},
+            2: {"status": None, "current_stage": None},
+        }

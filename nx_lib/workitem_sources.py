@@ -1005,6 +1005,69 @@ def _resolve_octo_wid_stage_pg(engine, wid):
             conn.close()
 
 
+def _resolve_octo_wid_stage_pg_batch(engine, wids):
+    """Batch twin of _resolve_octo_wid_stage_pg: resolves (status, current_stage)
+    for MANY wids in a single round trip via WHERE twi."ID" = ANY(%s), instead
+    of one ranked-CTE query per wid (the prepared-documents page's stage N+1,
+    up to 200 queries/page before this). Returns {wid_int: {"status":...,
+    "current_stage":...}} -- only for wids that actually matched; a wid with
+    no row in t_WorkItems/t_ActivityInstances is simply absent from the dict,
+    same as the single-wid resolver returning its empty stage for a miss
+    (caller fills in the {"status": None, "current_stage": None} default for
+    any wid missing from this result). Never raises: on absent engine, an
+    empty/all-invalid wid list, or a DB error, returns {}."""
+    if engine is None:
+        return {}
+    wid_ints = []
+    for w in wids:
+        try:
+            wid_ints.append(int(w))
+        except (TypeError, ValueError):
+            continue
+    if not wid_ints:
+        return {}
+    conn = None
+    try:
+        conn = engine.raw_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            WITH WorkitemCTE AS (
+                SELECT
+                    twi."ID" AS wid,
+                    CASE
+                        WHEN twi."Status" = 0 THEN 'Ready' WHEN twi."Status" = 5 THEN 'Done' ELSE 'In Progress'
+                    END AS status,
+                    CASE
+                        WHEN twi."Status" = 5 THEN 'Delivery'
+                        WHEN tai."ActivityInstanceName" LIKE '%%C+A%%' THEN 'Validation'
+                        WHEN tai."ActivityInstanceName" LIKE '%%Export%%' OR tai."ActivityInstanceName" LIKE '%%Exp%%' THEN 'Delivery'
+                        WHEN tai."ActivityInstanceName" LIKE '%%Import%%' OR tai."ActivityInstanceName" LIKE '%%Imp%%' THEN 'Import'
+                        WHEN tai."ActivityInstanceName" LIKE '%%Extract%%' OR tai."ActivityInstanceName" LIKE '%%OCR%%' THEN 'Extraction'
+                        WHEN tai."ActivityInstanceName" LIKE '%%Pause%%' OR tai."ActivityInstanceName" LIKE '%%Deletion%%' OR tai."ActivityInstanceName" LIKE '%%Lieferung%%' THEN 'Delivery'
+                        ELSE 'Extraction'
+                    END AS current_stage,
+                    ROW_NUMBER() OVER (PARTITION BY twi."ID" ORDER BY twi."ModifiedAt" DESC) AS rn
+                FROM "t_WorkItems" twi
+                JOIN "t_ActivityInstances" tai ON twi."ActivityInstanceID" = tai."ID"
+                WHERE twi."ID" = ANY(%s)
+            )
+            SELECT wid, status, current_stage FROM WorkitemCTE WHERE rn = 1
+            """,
+            [wid_ints],
+        )
+        result = {}
+        for row in cur.fetchall():
+            result[row[0]] = {"status": row[1], "current_stage": row[2]}
+        return result
+    except Exception as e:
+        current_app.logger.error(f"_resolve_octo_wid_stage_pg_batch: {e}")
+        return {}
+    finally:
+        if conn is not None:
+            conn.close()
+
+
 def resolve_ms02_wids_to_pids(engine, specs, wids):
     """Inverse of resolve_ms02_pid_to_wids: map workitem ids -> their PID (col_pid)
     value, columnar. Used by the reverse 'In register' chip to learn each visible

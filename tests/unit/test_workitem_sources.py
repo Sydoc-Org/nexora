@@ -1511,6 +1511,64 @@ def test_resolve_octo_wid_stage_pg_returns_empty_when_not_found(app):
         }
 
 
+def test_resolve_octo_wid_stage_pg_batch_returns_empty_without_engine(app):
+    with app.app_context():
+        assert ws._resolve_octo_wid_stage_pg_batch(None, [1, 2, 3]) == {}
+
+
+def test_resolve_octo_wid_stage_pg_batch_returns_empty_with_no_valid_wids(app):
+    from unittest.mock import MagicMock
+
+    eng = MagicMock()
+    with app.app_context():
+        assert ws._resolve_octo_wid_stage_pg_batch(eng, ["not-an-int", None]) == {}
+    # No round-trip attempted at all when there's nothing valid to ask for.
+    eng.raw_connection.assert_not_called()
+
+
+def test_resolve_octo_wid_stage_pg_batch_degrades_to_empty_on_error(app):
+    class Boom:
+        def raw_connection(self):
+            raise RuntimeError("pg down")
+
+    with app.app_context():
+        assert ws._resolve_octo_wid_stage_pg_batch(Boom(), [1, 2]) == {}
+
+
+def test_resolve_octo_wid_stage_pg_batch_issues_one_query_for_many_wids(app):
+    """N wids -> exactly ONE execute() call (ANY(%s) array param), not N --
+    this is the fix for the prepared-documents page's stage N+1. Same SQL
+    vocabulary/column mapping as the single-wid twin, plus the wid column."""
+    from unittest.mock import MagicMock
+
+    fake_cur = MagicMock()
+    fake_cur.fetchall.return_value = [
+        (42, "In Progress", "Validation"),
+        (43, "Done", "Delivery"),
+    ]
+    fake_conn = MagicMock()
+    fake_conn.cursor.return_value = fake_cur
+    eng = MagicMock()
+    eng.raw_connection.return_value = fake_conn
+
+    with app.app_context():
+        result = ws._resolve_octo_wid_stage_pg_batch(eng, [42, 43, 44])
+
+    assert fake_cur.execute.call_count == 1
+    sql, params = fake_cur.execute.call_args[0]
+    assert '"t_WorkItems"' in sql
+    assert '"t_ActivityInstances"' in sql
+    assert "= ANY(%s)" in sql
+    assert params == [[42, 43, 44]]
+    # wid 44 had no matching row -- simply absent from the result, exactly
+    # like the single-wid resolver returning its empty stage for a miss.
+    assert result == {
+        42: {"status": "In Progress", "current_stage": "Validation"},
+        43: {"status": "Done", "current_stage": "Delivery"},
+    }
+    assert 44 not in result
+
+
 def test_cache_lookup_many_issues_one_query_and_maps_hits(app):
     """Batched lookup for multiple ids does exactly ONE query (per <=1000 id
     chunk) and returns unambiguous hits keyed by id string."""

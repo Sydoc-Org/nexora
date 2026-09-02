@@ -68,6 +68,7 @@ from ..security import (
 from ..workitem_sources import (
     _MS02_IDENT,
     _resolve_octo_wid_stage_pg,
+    _resolve_octo_wid_stage_pg_batch,
     fetch_merged_page,
     get_domain_for_workitem,
     parse_prepared_xlsx,
@@ -1444,6 +1445,39 @@ def _resolve_prepared_doc_wid_stage(wid):
         return empty
 
 
+def _resolve_prepared_doc_wid_stages(wids):
+    """Batch variant of _resolve_prepared_doc_wid_stage: resolves an entire
+    prepared-documents page's wids (up to 200) in ONE round-trip instead of
+    one ranked-CTE query per wid -- the page's stage N+1. Same client-
+    routing (CLIENTS['ms02'], dialect-gated) and fail-closed contract as the
+    single-wid resolver; returns {wid: {"status":.., "current_stage":..}}
+    for EVERY wid passed in, filling in the empty stage for any wid that
+    didn't resolve (no CLIENTS['ms02'], no DB match, or an error) -- so a
+    caller iterating the result sees the exact same per-wid shape the old
+    per-PID loop produced, never a missing key."""
+    empty = {"status": None, "current_stage": None}
+    wids = list(wids)
+    if not wids:
+        return {}
+    try:
+        client = CLIENTS.get("ms02")
+        if client is None:
+            return {wid: empty for wid in wids}
+        if client.dialect == "postgres":
+            resolved = _resolve_octo_wid_stage_pg_batch(client.runtime_engine, wids)
+            out = {}
+            for wid in wids:
+                try:
+                    out[wid] = resolved.get(int(wid), empty)
+                except (TypeError, ValueError):
+                    out[wid] = empty
+            return out
+        return {wid: resolve_octo_wid_stage(client.runtime_engine, wid) for wid in wids}
+    except Exception as e:
+        current_app.logger.error(f"_resolve_prepared_doc_wid_stages({wids}): {e}")
+        return {wid: empty for wid in wids}
+
+
 @require_permission("workitems.import.preparedaudit")
 def prepared_documents():
     """MS02-only standalone 'prepared documents' register page. Reads a real
@@ -1506,16 +1540,17 @@ def prepared_documents():
             else None
         )
         if pid_to_wids:
-            for pid, wids in pid_to_wids.items():
-                if wids:
-                    wid = wids[0]
-                    stage = _resolve_prepared_doc_wid_stage(wid)
-                    octo_status[pid] = {
-                        "in_octo": bool(stage and stage.get("status")),
-                        "wid": wid,
-                        "status": stage["status"] or "",
-                        "current_stage": stage["current_stage"] or "",
-                    }
+            pid_first_wid = {pid: wids[0] for pid, wids in pid_to_wids.items() if wids}
+            stages = _resolve_prepared_doc_wid_stages(pid_first_wid.values())
+            empty_stage = {"status": None, "current_stage": None}
+            for pid, wid in pid_first_wid.items():
+                stage = stages.get(wid, empty_stage)
+                octo_status[pid] = {
+                    "in_octo": bool(stage and stage.get("status")),
+                    "wid": wid,
+                    "status": stage["status"] or "",
+                    "current_stage": stage["current_stage"] or "",
+                }
 
     total_pages = math.ceil(total_items / per_page) if per_page else 0
     pagination = {
