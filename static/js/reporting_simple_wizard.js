@@ -29,6 +29,14 @@
   // html), so this fallback is safe regardless of script order; core's own
   // later `RS.el = window.NX.el` is a harmless no-op re-assignment.
   RS.el = RS.el || window.NX.el;
+  // Same load-order problem, extended to the other two nx_core.js aliases and
+  // to RS.state -- see reporting_simple.js's top-of-file comment for what
+  // those normally hold. Nothing in this file reads them at module-load time
+  // today, but the fallback keeps that an invariant rather than a thing to
+  // remember next time someone adds top-level code here.
+  RS.esc = RS.esc || window.NX.esc;
+  RS.api = RS.api || window.NX.apiSafe;
+  RS.state = RS.state || {};
 
   // Wizard category-dimension curation (docprocessing only). Process first
   // (each Octo process = an actual client, so this is the per-client

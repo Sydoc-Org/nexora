@@ -12,6 +12,14 @@
 // actually invoked (a user action), reporting_simple.js has already run.
 (function () {
   window.RS = window.RS || {};
+  // Defensive fallback (see reporting_simple.js's top-of-file comment for
+  // the RS.state/RS.el/RS.esc/RS.api/RS.I18N contract, and
+  // reporting_simple_wizard.js's top-of-file comment for why this matters
+  // even though nothing here reads them at module-load time today). Keeps
+  // the load-order invariant structural rather than something to remember.
+  RS.esc = RS.esc || window.NX.esc;
+  RS.api = RS.api || window.NX.apiSafe;
+  RS.state = RS.state || {};
 
   function destroyChart() {
     if (RS.state.chart) { RS.state.chart.destroy(); RS.state.chart = null; }
