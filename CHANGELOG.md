@@ -162,6 +162,20 @@ Work toward the next release.
 
 ### Fixed
 
+- **The Generali dashboard's daily average no longer rewards missing data.**
+  `api_generali_stats` built the trend x-axis -- and the average's
+  denominator -- from the rows the trend query returned, so days with no
+  rows did not exist. July 2026 is missing 11 days (04.07.-14.07.), so its
+  119'670 documents were divided by 20 instead of 31: 5'983.5/day, *higher*
+  than complete June's 5'715.9 despite 30% fewer documents, with the arrow
+  contradicting the total right beside it. The worse a month's coverage, the
+  better it scored. Both now run over every calendar day in the selected
+  range (`days_in_range()`), so the average reads 3'860.3 and falls with the
+  total, and the chart plots empty days as zero instead of drawing 03.07
+  adjacent to 15.07 and hiding the outage. The response also carries
+  `days_in_range` / `days_with_data` so the UI can qualify the figure
+  (#249).
+
 - **A flaky auth test no longer reddens CI at random.**
   `_without_csrf_token()` in `tests/integration/test_auth_routes.py` blanked
   the CSRF token in the `<meta>` tag but not the one in the form's hidden
