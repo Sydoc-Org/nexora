@@ -390,9 +390,15 @@
                the three existing group-specific -open classes) and persists
                open/closed per group under a localStorage key derived from
                the group's own id, the same way generali's own key does. #}
+            {# Each p.url below comes pre-resolved from visible_tenant_nav()
+               (nx_lib/views/tenant.py) -- the template never calls url_for()
+               on registry-sourced data itself, so a bad LayoutJSON endpoint
+               can never BuildError here and 500 every page for every
+               logged-in user; an unresolvable custom page is simply absent
+               from t.pages already. #}
             {% for t in tenant_nav %}
             {% set ns = namespace(active=(active_page or '').startswith('tenant_' ~ t.code ~ '_')) %}
-            {% for p in t.pages if p.page_type == 'custom' and p.endpoint and active_page == p.endpoint %}
+            {% for p in t.pages if p.page_type == 'custom' and active_page == p.endpoint %}
             {% set ns.active = true %}
             {% endfor %}
             <div class="sidebar-nav-group" id="tenantNavGroup-{{ t.code }}" data-active="{{ 'true' if ns.active else 'false' }}" data-nx-nav-group="tenant">
@@ -404,18 +410,16 @@
                 <div class="sidebar-nav-subitems">
                     {% for p in t.pages %}
                     {% if p.page_type == 'custom' %}
-                    {% if p.endpoint %}
-                    <a href="{{ url_for(p.endpoint) }}"
+                    <a href="{{ p.url }}"
                         class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == p.endpoint else '' }}" data-testid="header-nav-tenant-{{ t.code }}-{{ p.key }}">
                         <i class="fas fa-arrow-up-right-from-square sidebar-nav-icon sidebar-subitem-icon"></i>
-                        <span class="sidebar-label">{{ p.key }}</span>
+                        <span class="sidebar-label">{{ p.label }}</span>
                     </a>
-                    {% endif %}
                     {% else %}
-                    <a href="{{ url_for('tenant_page', tenant_code=t.code, page_key=p.key) }}"
+                    <a href="{{ p.url }}"
                         class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == ('tenant_' ~ t.code ~ '_' ~ p.key) else '' }}" data-testid="header-nav-tenant-{{ t.code }}-{{ p.key }}">
                         <i class="fas fa-table-list sidebar-nav-icon sidebar-subitem-icon"></i>
-                        <span class="sidebar-label">{{ p.key }}</span>
+                        <span class="sidebar-label">{{ p.label }}</span>
                     </a>
                     {% endif %}
                     {% endfor %}

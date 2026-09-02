@@ -22,6 +22,8 @@ filter/sort column allow-list), not the registry's DB-loading code
 
 import types
 
+from flask import url_for
+
 import nx_lib.views.tenant as tv
 from nx_lib.clients import CLIENTS, ClientConfig
 from nx_lib.tenant.registry import Tenant, TenantEntity, TenantField, TenantPage
@@ -41,8 +43,12 @@ def _tenant(client_code=TENANT_CODE):
 
 def _fake_registry(tenants):
     """Stand-in for the real TenantRegistry -- visible_tenant_nav() only ever
-    reads .tenants off whatever registry() returns."""
-    return types.SimpleNamespace(tenants=tenants)
+    reads .tenants off whatever registry() returns. ``entities`` is an empty
+    dict, not omitted -- visible_tenant_nav() also calls the real
+    entity_for(code, key) for list/crud pages' nav label (unless a test
+    monkeypatches tv.entity_for itself), and the real entity_for() does
+    ``reg.entities.get(...)`` on whatever registry() returns."""
+    return types.SimpleNamespace(tenants=tenants, entities={})
 
 
 def _page(key="dossiers", page_type="list", entity="dossiers", layout=None, sort_order=100):
@@ -686,7 +692,7 @@ def test_visible_tenant_nav_empty_when_registry_unavailable(monkeypatch):
     assert tv.visible_tenant_nav() == []
 
 
-def test_visible_tenant_nav_filters_by_view_permission(monkeypatch):
+def test_visible_tenant_nav_filters_by_view_permission(app, monkeypatch):
     acme = _tenant()
     other = Tenant(
         code="other",
@@ -702,14 +708,28 @@ def test_visible_tenant_nav_filters_by_view_permission(monkeypatch):
     # Only acme's view permission is held -- other's group must not appear.
     monkeypatch.setattr(tv, "has_permission", lambda code: code == f"tenant.{TENANT_CODE}.view")
 
-    nav = tv.visible_tenant_nav()
+    with app.test_request_context("/"):
+        nav = tv.visible_tenant_nav()
+        expected_url = url_for("tenant_page", tenant_code=TENANT_CODE, page_key="dossiers")
 
     assert [n["code"] for n in nav] == [TENANT_CODE]
     assert nav[0]["label"] == acme.display_name
-    assert nav[0]["pages"] == [{"key": "dossiers", "page_type": "list", "endpoint": None}]
+    # No TenantEntity resolves for "dossiers" (the fake registry's .entities
+    # is empty) -- label falls back to the raw PageKey, same as before this
+    # fix wave's label enhancement (see the dedicated label-fallback tests
+    # below for the entity-label case).
+    assert nav[0]["pages"] == [
+        {
+            "key": "dossiers",
+            "page_type": "list",
+            "endpoint": None,
+            "url": expected_url,
+            "label": "dossiers",
+        }
+    ]
 
 
-def test_visible_tenant_nav_custom_page_carries_layout_endpoint(monkeypatch):
+def test_visible_tenant_nav_custom_page_carries_layout_endpoint(app, monkeypatch):
     acme = _tenant()
     monkeypatch.setattr(tv, "registry", lambda: _fake_registry({TENANT_CODE: acme}))
     monkeypatch.setattr(
@@ -721,9 +741,86 @@ def test_visible_tenant_nav_custom_page_carries_layout_endpoint(monkeypatch):
     )
     monkeypatch.setattr(tv, "has_permission", lambda code: True)
 
-    nav = tv.visible_tenant_nav()
+    with app.test_request_context("/"):
+        nav = tv.visible_tenant_nav()
+        expected_url = url_for("dashboard")
 
-    assert nav[0]["pages"] == [{"key": "dash", "page_type": "custom", "endpoint": "dashboard"}]
+    assert nav[0]["pages"] == [
+        {
+            "key": "dash",
+            "page_type": "custom",
+            "endpoint": "dashboard",
+            "url": expected_url,
+            "label": "dash",
+        }
+    ]
+
+
+def test_visible_tenant_nav_custom_page_with_unresolvable_endpoint_is_dropped(app, monkeypatch):
+    """Gap (b): an endpoint that doesn't resolve (typo, removed route, an
+    endpoint needing URL args this call can't supply) must never raise
+    url_for's BuildError up through visible_tenant_nav() -- the page is
+    simply omitted from the returned list."""
+    acme = _tenant()
+    monkeypatch.setattr(tv, "registry", lambda: _fake_registry({TENANT_CODE: acme}))
+    monkeypatch.setattr(
+        tv,
+        "pages_for",
+        lambda code: [
+            _page(
+                key="broken",
+                page_type="custom",
+                entity=None,
+                layout={"endpoint": "no_such_endpoint_xyz"},
+            )
+        ],
+    )
+    monkeypatch.setattr(tv, "has_permission", lambda code: True)
+
+    with app.test_request_context("/"):
+        nav = tv.visible_tenant_nav()
+
+    assert nav == [{"code": TENANT_CODE, "label": acme.display_name, "pages": []}]
+
+
+def test_visible_tenant_nav_list_page_label_uses_entity_locale_label(app, monkeypatch):
+    """Promoted minor: a list/crud page's nav label falls back to its
+    entity's own locale label (TenantEntity.labels) rather than the raw
+    PageKey slug -- MS02's seeded PageKey is the literal ProcessName
+    ('sydoc.05_PDBS'), not something a user should ever read in a sidebar."""
+    acme = _tenant()
+    entity = _entity(key="sydoc.05_PDBS")  # labels={"en": "Dossiers", ...}
+    monkeypatch.setattr(tv, "registry", lambda: _fake_registry({TENANT_CODE: acme}))
+    monkeypatch.setattr(
+        tv,
+        "pages_for",
+        lambda code: [_page(key="sydoc.05_PDBS", page_type="list", entity="sydoc.05_PDBS")],
+    )
+    monkeypatch.setattr(
+        tv, "entity_for", lambda code, key: entity if key == "sydoc.05_PDBS" else None
+    )
+    monkeypatch.setattr(tv, "has_permission", lambda code: True)
+
+    with app.test_request_context("/"):
+        nav = tv.visible_tenant_nav()
+
+    assert nav[0]["pages"][0]["key"] == "sydoc.05_PDBS"
+    assert nav[0]["pages"][0]["label"] == "Dossiers"
+
+
+def test_visible_tenant_nav_list_page_label_falls_back_to_page_key_without_entity(app, monkeypatch):
+    acme = _tenant()
+    monkeypatch.setattr(tv, "registry", lambda: _fake_registry({TENANT_CODE: acme}))
+    monkeypatch.setattr(
+        tv, "pages_for", lambda code: [_page(key="dossiers", page_type="list", entity="dossiers")]
+    )
+    monkeypatch.setattr(tv, "entity_for", lambda code, key: None)
+    monkeypatch.setattr(tv, "has_permission", lambda code: True)
+
+    with app.test_request_context("/"):
+        nav = tv.visible_tenant_nav()
+
+    assert nav[0]["pages"][0]["label"] == "dossiers"
 
 
 # ------------------------------------------------------- header sidebar nav --
@@ -759,3 +856,54 @@ def test_header_hides_tenant_nav_group_without_view_permission(user_client, monk
 
     assert resp.status_code == 200
     assert b"tenantNavGroup-" not in resp.data
+
+
+def test_header_shows_custom_page_link_with_resolved_url(user_client, monkeypatch):
+    """No test previously exercised the page_type=='custom' nav branch
+    end-to-end through Jinja/url_for -- only visible_tenant_nav()'s dict
+    shape was unit-tested. This drives a real render and asserts the
+    resolved <a href> actually appears."""
+    acme = _tenant()
+    monkeypatch.setattr(tv, "registry", lambda: _fake_registry({TENANT_CODE: acme}))
+    monkeypatch.setattr(
+        tv,
+        "pages_for",
+        lambda code: [
+            _page(key="dash", page_type="custom", entity=None, layout={"endpoint": "dashboard"})
+        ],
+    )
+    monkeypatch.setattr(tv, "has_permission", lambda code: code == f"tenant.{TENANT_CODE}.view")
+
+    resp = user_client.get("/dashboard")
+
+    assert resp.status_code == 200
+    assert f'data-testid="header-nav-tenant-{TENANT_CODE}-dash"'.encode() in resp.data
+    assert b'href="/dashboard"' in resp.data
+
+
+def test_header_omits_custom_page_with_unresolvable_endpoint(user_client, monkeypatch):
+    """Gap (b), end-to-end: a bad LayoutJSON endpoint (typo, removed route)
+    must never raise url_for's BuildError inside _header.html and 500 the
+    whole page for a user who holds the tenant's view permission -- the page
+    renders fine and the broken nav entry is simply absent."""
+    acme = _tenant()
+    monkeypatch.setattr(tv, "registry", lambda: _fake_registry({TENANT_CODE: acme}))
+    monkeypatch.setattr(
+        tv,
+        "pages_for",
+        lambda code: [
+            _page(
+                key="broken",
+                page_type="custom",
+                entity=None,
+                layout={"endpoint": "no_such_endpoint_xyz"},
+            )
+        ],
+    )
+    monkeypatch.setattr(tv, "has_permission", lambda code: code == f"tenant.{TENANT_CODE}.view")
+
+    resp = user_client.get("/dashboard")
+
+    assert resp.status_code == 200
+    assert f'id="tenantNavGroup-{TENANT_CODE}"'.encode() in resp.data
+    assert f'data-testid="header-nav-tenant-{TENANT_CODE}-broken"'.encode() not in resp.data

@@ -21,7 +21,11 @@ already-validated ``TenantEntity``/``TenantField`` rows) is re-validated
 against ``_IDENT_RE`` here too: the registry drops unsafe rows at load time,
 but ``quote_ident`` raises on a miss as a second, independent gate before any
 of these strings reach a query -- belt-and-braces, same reasoning as
-``registry.py``'s own validation.
+``registry.py``'s own validation. ``entity.source_object`` gets the same
+second gate via ``_safe_source`` -- it is schema-qualified (``dbo.Foo``,
+``public."Foo"``) and used unquoted/pre-formed as-is, so it can't go through
+``quote_ident`` itself, but every function that interpolates it validates it
+first, the same as every column name does.
 """
 
 from .registry import _IDENT_RE, TenantEntity, TenantField
@@ -59,6 +63,29 @@ def quote_ident(name: str, dialect: str) -> str:
     if not _IDENT_RE.match(name):
         raise ValueError(f"quote_ident: unsafe identifier {name!r}")
     return f'"{name}"' if dialect == _POSTGRES else f"[{name}]"
+
+
+def _safe_source(entity: TenantEntity) -> str:
+    """Validate ``entity.source_object`` against ``_IDENT_RE`` and hand it
+    back unchanged.
+
+    ``source_object`` is schema-qualified (``dbo.SomeTable``,
+    ``public."SomeTable"``) and every function below interpolates it
+    unquoted/pre-formed as-is -- unlike a plain column name, it never goes
+    through ``quote_ident`` (which would wrap the whole qualified string in a
+    single pair of brackets/quotes and break it). That meant it never hit
+    ``quote_ident``'s ``_IDENT_RE`` re-check either, even though the module
+    docstring's "every identifier gets a second, independent gate" claim was
+    supposed to cover it too -- the registry's load-time validation was the
+    only gate in practice. Not exploitable today (that load-time check plus
+    ``_IDENT_RE``'s restrictive character class already rule out injection),
+    but this closes the gap so the invariant the docstring claims is actually
+    true, and so a future write path built on this module can't skip it by
+    construction. Raises ``ValueError`` on a miss.
+    """
+    if not _IDENT_RE.match(entity.source_object):
+        raise ValueError(f"unsafe source_object: {entity.source_object!r}")
+    return entity.source_object
 
 
 def _filter_clause(column: str, op: str, value: object, dialect: str) -> tuple[str, object]:
@@ -140,6 +167,7 @@ def build_list_query(
     ``build_insert``/``build_update``, which are write paths and always
     restrict themselves to visible, non-id columns).
     """
+    source = _safe_source(entity)
     if dialect not in _MARKERS:
         raise ValueError(f"build_list_query: unknown dialect {dialect!r}")
     offset = int(offset)
@@ -153,7 +181,7 @@ def build_list_query(
         count_params.append(param)
     where_sql = f" WHERE {' AND '.join(where_parts)}" if where_parts else ""
 
-    count_sql = f"SELECT COUNT(*) FROM {entity.source_object}{where_sql}"
+    count_sql = f"SELECT COUNT(*) FROM {source}{where_sql}"
 
     select_cols = [entity.id_column] + [f.column for f in fields if f.column != entity.id_column]
     cols_sql = ", ".join(quote_ident(c, dialect) for c in select_cols)
@@ -161,13 +189,13 @@ def build_list_query(
 
     if dialect == _POSTGRES:
         page_sql = (
-            f"SELECT {cols_sql} FROM {entity.source_object}{where_sql} "
+            f"SELECT {cols_sql} FROM {source}{where_sql} "
             f"ORDER BY {order_sql} LIMIT %s OFFSET %s"
         )
         page_params = [*count_params, limit, offset]
     else:
         page_sql = (
-            f"SELECT {cols_sql} FROM {entity.source_object}{where_sql} "
+            f"SELECT {cols_sql} FROM {source}{where_sql} "
             f"ORDER BY {order_sql} OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
         )
         page_params = [*count_params, offset, limit]
@@ -197,6 +225,7 @@ def build_insert(entity: TenantEntity, fields: list[TenantField], dialect: str) 
     otherwise. Every value is a bound parameter, in the same order as the
     returned column list.
     """
+    source = _safe_source(entity)
     _require_entries_kind(entity, "build_insert")
     cols = _writable_columns(entity, fields)
     if not cols:
@@ -204,13 +233,14 @@ def build_insert(entity: TenantEntity, fields: list[TenantField], dialect: str) 
     marker = _marker(dialect)
     col_sql = ", ".join(quote_ident(c, dialect) for c in cols)
     val_sql = ", ".join([marker] * len(cols))
-    return f"INSERT INTO {entity.source_object} ({col_sql}) VALUES ({val_sql})"
+    return f"INSERT INTO {source} ({col_sql}) VALUES ({val_sql})"
 
 
 def build_update(entity: TenantEntity, fields: list[TenantField], dialect: str) -> str:
     """UPDATE statement over ``entity``'s visible, non-id columns, keyed by
     ``id_column``. Only valid for ``Kind='entries'`` entities -- raises
     ``ValueError`` otherwise."""
+    source = _safe_source(entity)
     _require_entries_kind(entity, "build_update")
     cols = _writable_columns(entity, fields)
     if not cols:
@@ -218,13 +248,14 @@ def build_update(entity: TenantEntity, fields: list[TenantField], dialect: str) 
     marker = _marker(dialect)
     set_sql = ", ".join(f"{quote_ident(c, dialect)} = {marker}" for c in cols)
     id_sql = quote_ident(entity.id_column, dialect)
-    return f"UPDATE {entity.source_object} SET {set_sql} WHERE {id_sql} = {marker}"
+    return f"UPDATE {source} SET {set_sql} WHERE {id_sql} = {marker}"
 
 
 def build_delete(entity: TenantEntity, dialect: str) -> str:
     """DELETE statement over ``entity``, keyed by ``id_column``. Only valid
     for ``Kind='entries'`` entities -- raises ``ValueError`` otherwise."""
+    source = _safe_source(entity)
     _require_entries_kind(entity, "build_delete")
     marker = _marker(dialect)
     id_sql = quote_ident(entity.id_column, dialect)
-    return f"DELETE FROM {entity.source_object} WHERE {id_sql} = {marker}"
+    return f"DELETE FROM {source} WHERE {id_sql} = {marker}"

@@ -82,6 +82,56 @@ def test_quote_ident_reuses_registry_ident_re():
     assert q._IDENT_RE is _IDENT_RE
 
 
+# -- _safe_source (final-review fix wave, Finding 1) ----------------------
+#
+# entity.source_object never went through _IDENT_RE inside this module --
+# every column name gets a second, independent validation gate via
+# quote_ident, but source_object (schema-qualified, used unquoted/pre-formed
+# as-is) was the one exception to the module docstring's own "belt-and-
+# braces" claim. Not exploitable today (the registry's load-time validation
+# plus _IDENT_RE's restrictive character class already rule out injection),
+# but every function that interpolates source_object must now validate it
+# itself rather than trusting the registry alone.
+
+
+def test_safe_source_returns_valid_source_object_unchanged():
+    entity = _entity(source_object='public."Dossier"')
+    assert q._safe_source(entity) == 'public."Dossier"'
+
+
+def test_safe_source_raises_on_unsafe_source_object():
+    entity = _entity(source_object="dbo.Dossier; DROP TABLE Users--")
+    with pytest.raises(ValueError):
+        q._safe_source(entity)
+
+
+def test_build_list_query_raises_on_unsafe_source_object():
+    entity = _entity(source_object="dbo.Dossier; DROP TABLE Users--")
+    fields = [_field()]
+    with pytest.raises(ValueError):
+        q.build_list_query(entity, fields, "tsql")
+
+
+def test_build_insert_raises_on_unsafe_source_object():
+    entity = _entity(source_object="dbo.Dossier; DROP TABLE Users--", kind="entries")
+    fields = [_field(column="Name", visible=True)]
+    with pytest.raises(ValueError):
+        q.build_insert(entity, fields, "tsql")
+
+
+def test_build_update_raises_on_unsafe_source_object():
+    entity = _entity(source_object="dbo.Dossier; DROP TABLE Users--", kind="entries")
+    fields = [_field(column="Name", visible=True)]
+    with pytest.raises(ValueError):
+        q.build_update(entity, fields, "tsql")
+
+
+def test_build_delete_raises_on_unsafe_source_object():
+    entity = _entity(source_object="dbo.Dossier; DROP TABLE Users--", kind="entries")
+    with pytest.raises(ValueError):
+        q.build_delete(entity, "tsql")
+
+
 # -- build_list_query: tsql ----------------------------------------------
 
 

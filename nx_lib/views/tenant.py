@@ -36,6 +36,7 @@ from flask import (
     url_for,
 )
 from flask_babel import gettext as _
+from werkzeug.routing import BuildError
 
 from ..clients import CLIENTS
 from ..i18n import get_locale
@@ -256,38 +257,96 @@ def _validate_values(entity, fields, data):
     return values, errors
 
 
+def _tenant_nav_page(code, p, locale):
+    """One nav entry dict for TenantPage ``p``, or ``None`` to omit it from
+    the sidebar entirely.
+
+    Endpoint resolution (and, for list/crud pages, the label lookup) lives
+    here rather than in ``templates/_header.html`` -- that template renders
+    on every page for every logged-in user, so a bad ``LayoutJSON`` value (a
+    typo'd endpoint, a removed route, an endpoint that needs URL args this
+    call can't supply) must never raise ``url_for``'s ``BuildError`` *inside
+    the template* and 500 the whole app. ``url_for`` is called here, inside a
+    try/except, and a page whose endpoint doesn't resolve is dropped (returns
+    ``None``) rather than handed to the template with a broken/absent URL.
+
+    Gap (a) -- a 'custom' page's target endpoint can require its own
+    permission beyond ``tenant.<code>.view`` (e.g. MS02's seeded 'workitems'
+    page points at ``workitems_overview``, gated on ``workitems.view``, which
+    the ``tenant.ms02.view``/``.edit`` pair migration 0085 provisions does
+    NOT grant) -- this function does NOT check that. There is no
+    descriptor-level field for it yet: ``TenantPage``/``LayoutJSON`` (migration
+    0085, immutable) only ever carries ``{"endpoint": ...}``, no permission
+    key, so there is nothing here to check against without inventing an
+    unfounded lookup mechanism (e.g. hardcoding endpoint->permission pairs
+    for the two seeded custom pages) that would silently rot the moment a
+    third custom page is seeded. TODO (sub-project 2, admin UI): let
+    LayoutJSON declare a "permission" key so a custom page's own required
+    permission can be checked here too, alongside ``tenant.<code>.view``.
+    Until then a real MS02-tenant-only user can see a 'workitems'/'prepared'
+    sidebar link that 403s if they lack the target permission -- a known,
+    tracked gap, not a crash.
+    """
+    if p.page_type == "custom":
+        endpoint = (p.layout or {}).get("endpoint")
+        if not endpoint:
+            return None
+        try:
+            url = url_for(endpoint)
+        except BuildError:
+            current_app.logger.warning(
+                f"visible_tenant_nav: tenant {code!r} page {p.key!r} custom endpoint "
+                f"{endpoint!r} does not resolve -- omitting nav entry"
+            )
+            return None
+        return {
+            "key": p.key,
+            "page_type": p.page_type,
+            "endpoint": endpoint,
+            "url": url,
+            "label": p.key,
+        }
+
+    # list/crud pages always link the generated tenant_page route, which only
+    # ever takes (tenant_code, page_key) string args -- both drawn straight
+    # from the registry, so this url_for can't BuildError the way a custom
+    # page's arbitrary endpoint can.
+    url = url_for("tenant_page", tenant_code=code, page_key=p.key)
+    entity = entity_for(code, p.entity) if p.entity else None
+    label = (entity.labels.get(locale) or entity.labels.get("en")) if entity else None
+    return {
+        "key": p.key,
+        "page_type": p.page_type,
+        "endpoint": None,
+        "url": url,
+        "label": label or p.key,
+    }
+
+
 def visible_tenant_nav() -> list[dict]:
     """[{"code", "label", "pages": [...]}] for every tenant the current
     session holds ``tenant.<code>.view`` for -- [] when the registry itself
     is unavailable (never a partial/unsafe result, same fail-closed contract
     as the registry module itself). Consumed by Task 6's sidebar nav context
-    processor; each page entry carries enough to build its own link
-    (list/crud pages link ``tenant_page``, custom pages link their layout
-    endpoint)."""
+    processor; each page entry carries an already-resolved ``url`` (never
+    ``None`` -- an unresolvable page is omitted, see ``_tenant_nav_page``) and
+    a display ``label`` -- the template never calls ``url_for`` on registry
+    data itself."""
     reg = registry()
     if reg is None:
         return []
+    locale = get_locale() or "en"
     nav = []
     for code in sorted(reg.tenants):
         t = reg.tenants[code]
         if not has_permission(f"tenant.{code}.view"):
             continue
-        nav.append(
-            {
-                "code": t.code,
-                "label": t.display_name,
-                "pages": [
-                    {
-                        "key": p.key,
-                        "page_type": p.page_type,
-                        "endpoint": (
-                            (p.layout or {}).get("endpoint") if p.page_type == "custom" else None
-                        ),
-                    }
-                    for p in pages_for(code)
-                ],
-            }
-        )
+        pages = [
+            entry
+            for p in pages_for(code)
+            if (entry := _tenant_nav_page(code, p, locale)) is not None
+        ]
+        nav.append({"code": t.code, "label": t.display_name, "pages": pages})
     return nav
 
 
