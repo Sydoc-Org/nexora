@@ -344,7 +344,7 @@ def get_workitems_data(
         else:
             _ms02_had_error = False
             try:
-                pairs = []
+                pairs: list[tuple] = []
                 for pair_idx, (docfield, docvalue) in enumerate(
                     zip(docfields, docvalues, strict=False)
                 ):
@@ -559,7 +559,7 @@ def docfield_suggestions_any_field(
         if _MS02_IDENT.match(m.column):
             ms02_specs.append((src.table, m.column, m.field_key, src.suggestion_time_filter))
 
-    vals = set()
+    vals: set[tuple] = set()
     if default_parts:
         stat_conn = None
         try:

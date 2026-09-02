@@ -694,7 +694,7 @@ def parse_prepared_xlsx(data):
         prep_i = assigned.get("prepared_flag")
         pby_i = assigned.get("prepared_by")
 
-        out = []
+        out: list[dict] = []
         seen = set()
         for row in rows_iter:
             if len(out) >= _PREPARED_MAX_ROWS:
@@ -764,6 +764,7 @@ def resolve_ms02_pid_ids(engine, specs, pid_values):
         for spec in specs:
             table, id_col, pid_col, time_filter = spec[0], spec[1], spec[2], spec[3]
             field_type = spec[4] if len(spec) > 4 else None
+            values: list
             if field_type in _MS02_INT_TYPES:
                 # An unparseable PID can't match an int column -- drop just
                 # that value (I2), not the whole spec's batch of valid PIDs.
@@ -837,6 +838,7 @@ def resolve_ms02_pid_to_wids(engine, specs, pid_values):
                     f"resolve_ms02_pid_to_wids: unsafe identifier {(id_col, pid_col)}"
                 )
                 continue
+            values: list
             if field_type in _MS02_INT_TYPES:
                 # An unparseable PID can't match an int column -- drop just
                 # that value (I2), not the whole spec's batch of valid PIDs.
@@ -1095,6 +1097,7 @@ def resolve_ms02_wids_to_pids(engine, specs, wids):
                     f"resolve_ms02_wids_to_pids: unsafe identifier {(id_col, pid_col)}"
                 )
                 continue
+            id_values: list[int] | list[str]
             if id_column_type in _MS02_INT_TYPES:
                 sql = (
                     f'SELECT DISTINCT "{id_col}", "{pid_col}"::text'
@@ -1438,7 +1441,7 @@ def _cache_lookup_many(workitem_ids):
     conn = engine_nexora_db.raw_connection()
     try:
         cur = conn.cursor()
-        seen_counts = {}
+        seen_counts: dict[str, int] = {}
         for i in range(0, len(ids), 1000):
             chunk = ids[i : i + 1000]
             placeholders = ",".join("?" for _ in chunk)
@@ -1484,7 +1487,7 @@ def _cache_store_many(pairs):
     practice. Chunked at 1000 rows (2000 params) to stay under SQL Server's
     2100-parameter ceiling; a single page is always far smaller than that, so
     in practice this is exactly one execute() call."""
-    seen = {}
+    seen: dict[str, str] = {}
     for workitem_id, client_code in pairs:
         if client_code == "default":
             continue

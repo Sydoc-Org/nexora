@@ -25,7 +25,7 @@ def _build_field_config(allowed_processes, current_lang):
     lbls = mapping_config.labels() or {}
     db_labels_map = {key: (meta.get(target_lang) or meta.get("en")) for key, meta in lbls.items()}
 
-    process_fields = {}
+    process_fields: dict[str, dict] = {}
     reg = mapping_config.registry()
     if reg is not None:
         for m in reg.mappings:

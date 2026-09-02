@@ -122,7 +122,7 @@ def get_activity_instances_to_ignore():
         cursor = conn.cursor()
         cursor.execute("SELECT ProcessName, ActivityInstanceName FROM ActivityInstancesToIgnore")
         rows = cursor.fetchall()
-        grouped = {}
+        grouped: dict[tuple, set] = {}
         for row in rows:
             if "." not in row.ProcessName:
                 continue
