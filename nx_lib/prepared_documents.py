@@ -103,7 +103,7 @@ def _filter_clause(pid, collected, prepared):
     """Build a shared WHERE clause + params for count/fetch (kept in lockstep
     so the pagination total always matches what fetch actually returns)."""
     clauses = []
-    params = []
+    params: list = []
     if pid:
         clauses.append("PID = ?")
         params.append(str(pid))

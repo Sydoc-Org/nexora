@@ -126,7 +126,10 @@ def spark_geometry(series, width=100.0, height=24.0, pad=2.0):
     step = width / max(len(points) - 1, 1)
     inner = height - 2 * pad
 
-    segments, current, marks, dots = [], [], [], []
+    segments: list[list[str]] = []
+    current: list[str] = []
+    marks: list[dict] = []
+    dots: list[dict] = []
 
     def _flush(run):
         """A run of one point draws no polyline -- keep it as a dot.
@@ -488,7 +491,7 @@ def load_status(
     rows = [(*r[:4], _as_dt(r[4]), _as_dt(r[5]), _as_dt(r[6])) for r in rows]
     incidents = [(r[0], r[1], _as_dt(r[2]), _as_dt(r[3]), r[4], r[5]) for r in incidents]
 
-    samples_by_component = {}
+    samples_by_component: dict[str, list[tuple]] = {}
     try:
         sample_rows = _fetch(
             engine,
@@ -509,7 +512,7 @@ def load_status(
             (_as_dt(sampled_at), int(latency_ms), bool(ok))
         )
 
-    by_component = {}
+    by_component: dict[str, list[dict]] = {}
     for key, name, started, ended, detail, excerpt in incidents:
         by_component.setdefault(key, []).append(
             {
