@@ -775,8 +775,9 @@ def dashboard_set_filter():
             if perm.startswith(prefix)
         }
     )
+    payload = request.get_json(silent=True) or {}
     process_name = normalize_process_selection(
-        request.json.get("process_name", "all"), allowed_processes
+        payload.get("process_name", "all"), allowed_processes
     )[0]
     session["process_name_dashboard"] = process_name
     return jsonify({"ok": True, "process_name": process_name})
