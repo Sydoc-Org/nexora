@@ -534,3 +534,45 @@
             localStorage.setItem('nexora-dev-nav', nowOpen ? 'true' : 'false');
         });
     });
+
+    // Generic expand/collapse wiring for dynamically-rendered nav groups
+    // (currently: the tenant kernel's per-tenant loop in _header.html, one
+    // group per registry tenant) that can't get their own hardcoded
+    // getElementById block above -- their count and ids aren't known at
+    // template-author time, unlike generali/admin/dev. Mirrors
+    // those three blocks' own behaviour (measure full subitems height,
+    // auto-open when active or previously left open, toggle + persist on
+    // click) but generically:
+    //   - one shared CSS class (nx-nav-open) instead of a per-group class
+    //     name, since CSS can't be generated per tenant at build time (see
+    //     the matching rule in _header.css -- purely additive, the three
+    //     existing generali-open/admin-open/dev-open rules are untouched).
+    //   - localStorage keyed by the group's own DOM id (nexora-nav-<id>) so
+    //     each group's open/closed state persists independently, the same
+    //     way generali's does under its own fixed key.
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.sidebar-nav-group[data-nx-nav-group]').forEach((group) => {
+            const header = group.querySelector('.sidebar-nav-group-header');
+            const subitems = group.querySelector('.sidebar-nav-subitems');
+            if (!group.id || !header || !subitems) return;
+
+            function setSubitemsHeight() {
+                subitems.style.maxHeight = 'none';
+                const h = subitems.scrollHeight;
+                subitems.style.maxHeight = '';
+                group.style.setProperty('--nx-nav-subitems-height', h + 'px');
+            }
+
+            setSubitemsHeight();
+
+            const storageKey = `nexora-nav-${group.id}`;
+            const isActive = group.dataset.active === 'true';
+            const savedOpen = localStorage.getItem(storageKey) === 'true';
+            if (isActive || savedOpen) group.classList.add('nx-nav-open');
+
+            header.addEventListener('click', () => {
+                const nowOpen = group.classList.toggle('nx-nav-open');
+                localStorage.setItem(storageKey, nowOpen ? 'true' : 'false');
+            });
+        });
+    });

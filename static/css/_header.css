@@ -250,6 +250,15 @@ html.sidebar-pinned #nexora-sidebar #adminNavGroup.admin-open .sidebar-nav-subit
 html.sidebar-pinned #nexora-sidebar #devNavGroup.dev-open .sidebar-nav-subitems {
     max-height: var(--dev-subitems-height, 9999px);
 }
+/* Generic group expand, additive -- for nav groups rendered dynamically
+   (tenant kernel), which can't get their own hardcoded #id.xxx-open rule
+   above because their ids aren't known at build time. Keyed on the shared
+   nx-nav-open class (static/js/header.js's generic wiring block) rather
+   than a per-group class name. Does not replace the three rules above. */
+#nexora-sidebar:is(:hover, .pinned) .sidebar-nav-group.nx-nav-open .sidebar-nav-subitems,
+html.sidebar-pinned #nexora-sidebar .sidebar-nav-group.nx-nav-open .sidebar-nav-subitems {
+    max-height: var(--nx-nav-subitems-height, 9999px);
+}
 .sidebar-nav-subitem {
     padding-left: 20px;
 }
@@ -269,6 +278,11 @@ html.sidebar-pinned #nexora-sidebar #devNavGroup.dev-open .sidebar-nav-subitems 
     transform: rotate(90deg);
 }
 #devNavGroup.dev-open .sidebar-generali-chevron {
+    transform: rotate(90deg);
+}
+/* Generic group chevron, additive -- pairs with the generic expand rule
+   above. */
+.sidebar-nav-group.nx-nav-open .sidebar-generali-chevron {
     transform: rotate(90deg);
 }
 /* html.dark .sidebar-nav-group-header:hover hardcode removed -- see the
@@ -608,6 +622,12 @@ html.dark .sidebar-toggle-btn {
     }
     #nexora-sidebar.open #devNavGroup.dev-open .sidebar-nav-subitems {
         max-height: var(--dev-subitems-height, 9999px);
+    }
+    /* Generic group expand (mobile drawer), additive -- mirrors the three
+       rules above for dynamically-rendered nav groups (see the desktop
+       hover/pinned rule earlier in this file for the full explanation). */
+    #nexora-sidebar.open .sidebar-nav-group.nx-nav-open .sidebar-nav-subitems {
+        max-height: var(--nx-nav-subitems-height, 9999px);
     }
 
     .sidebar-backdrop.open {

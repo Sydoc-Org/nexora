@@ -1,0 +1,37 @@
+<script nonce="{{ csp_nonce() }}">
+    // Jinja-rendered data + translated strings for static/js/tenant_pages.js
+    // (#191) -- the generic /t/<tenant_code>/<page_key> page. Only ever
+    // included from the non-unavailable branch of templates/tenant/page.html,
+    // where tenant/page/entity/fields are guaranteed non-None.
+    window.NX_TENANT = {
+        tenantCode: {{ tenant_code|tojson }},
+        pageKey: {{ page_key|tojson }},
+        pageType: {{ page.page_type|tojson }},
+        idColumn: {{ entity.id_column|tojson }},
+        entityKind: {{ entity.kind|tojson }},
+        canEdit: {{ (can_edit and page.page_type == 'crud')|tojson }},
+        fields: [
+            {% for f in fields if f.column != entity.id_column %}
+            {
+                column: {{ f.column|tojson }},
+                label: {{ (f.labels.get(current_lang) or f.labels.get('en') or f.column)|tojson }},
+                role: {{ f.semantic_role|tojson }}
+            }{{ "," if not loop.last }}
+            {% endfor %}
+        ],
+        i18n: {
+            noRecords: {{ _("No records found.")|tojson }},
+            loadFailed: {{ _("Could not load records.")|tojson }},
+            unavailable: {{ _("This tenant page is temporarily unavailable. Try again shortly.")|tojson }},
+            deleteConfirm: {{ _("Delete this record? This action cannot be undone.")|tojson }},
+            addTitle: {{ _("Add record")|tojson }},
+            editTitle: {{ _("Edit record")|tojson }},
+            edit: {{ _("Edit")|tojson }},
+            delete: {{ _("Delete")|tojson }},
+            openInWorkitems: {{ _("Open in Workitems")|tojson }},
+            pageInfo: {{ _("{start}-{end} of {total}")|tojson }},
+            genericError: {{ _("An unexpected network error occurred.")|tojson }}
+        }
+    };
+</script>
+<script src="{{ static_v('js/tenant_pages.js') }}"></script>
