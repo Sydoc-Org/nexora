@@ -70,7 +70,7 @@ def api_generali_attendance_categories():
         rows = cursor.fetchall()
         cursor.close()
 
-        grouped = {}
+        grouped: dict[str, list] = {}
         for parent, sub in rows:
             if parent not in grouped:
                 grouped[parent] = []

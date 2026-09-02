@@ -71,7 +71,7 @@ def api_generali_pdqm_categories():
         cursor.close()
 
         # nested: { parent: { parentSub_or_"": [sub, ...] } }
-        grouped = {}
+        grouped: dict[str, dict] = {}
         for parent, parent_sub, sub in rows:
             if parent not in grouped:
                 grouped[parent] = {}

@@ -192,7 +192,7 @@ def _lookup_users(user_ids, label):
 
     Never fatal: a failed lookup degrades to unnamed rows, as before.
     """
-    user_map = {}
+    user_map: dict = {}
     if not user_ids:
         return user_map
     from . import engine_nexora_db

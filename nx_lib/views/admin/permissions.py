@@ -460,8 +460,8 @@ def api_admin_user_effective_permissions(user_id):
             (u.AccessID, user_id),
         )
 
-        granted = []
-        denied = []
+        granted: list = []
+        denied: list = []
         for r in cursor.fetchall():
             override = r.OverrideEffect
             profile = r.ProfileEffect
