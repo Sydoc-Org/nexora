@@ -20,7 +20,7 @@ from .version import __version__
 
 # Newest first. Entry keys: title, body, perm (None = everyone),
 # endpoint (url_for name, None = no link), icon (fontawesome, no "fa-" prefix).
-RELEASES = [
+RELEASES: list[dict] = [
     {
         "version": "3.2.3",
         "date": "2026-08-27",

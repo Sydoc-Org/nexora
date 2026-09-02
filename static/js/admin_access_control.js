@@ -1,0 +1,892 @@
+/* Admin Access Control page behaviour (#191 shim-ification). Jinja-rendered
+   i18n lives in the paired shim, templates/js/admin/_access_control_js.html,
+   as window.NX_I18N_ADMIN_ACCESS_CONTROL. This file reads from that global
+   -- it carries no Jinja of its own and never will. `profilesMap` and
+   `csrfToken` remain page-level globals declared by other inline
+   <script nonce> blocks (templates/admin/access_control.html and
+   static/js/header.js respectively) that load before this file. */
+(function () {
+const API_PREFIX = window.API_PREFIX;
+const I18N = window.NX_I18N_ADMIN_ACCESS_CONTROL;
+
+// Drawer & modal DOM refs
+const permissionDrawer  = document.getElementById('permissionDrawer');
+const drawerOverlay     = document.getElementById('drawerOverlay');
+const permMetaModal     = document.getElementById('permissionMetaModal');
+const confirmDeleteModal= document.getElementById('confirmDeleteModal');
+const userModal         = document.getElementById('userModal');
+
+// State
+let currentMode      = 'profile';
+let allUsersData     = [];
+let allPermissionsData = [];
+let expandedPermId   = null;
+let permMetaMode     = 'add';
+let pendingDeleteCallback = null;
+const permissionsMap = {};
+const usersMap       = {};
+
+// ── Profile badge colours (cycled by AccessProfileID) ────────────
+const PROFILE_COLORS = [
+    'bg-indigo-100 text-indigo-700 border-indigo-200',
+    'bg-emerald-100 text-emerald-700 border-emerald-200',
+    'bg-blue-100 text-blue-700 border-blue-200',
+    'bg-violet-100 text-violet-700 border-violet-200',
+    'bg-orange-100 text-orange-700 border-orange-200',
+    'bg-teal-100 text-teal-700 border-teal-200',
+    'bg-rose-100 text-rose-700 border-rose-200',
+    'bg-amber-100 text-amber-700 border-amber-200',
+];
+function profileBadge(name, accessId) {
+    if (!name) return `<span class="text-xs italic text-red-400">${I18N.noProfile}</span>`;
+    const c = PROFILE_COLORS[(accessId || 0) % PROFILE_COLORS.length];
+    return `<span class="px-2.5 py-0.5 rounded-full text-xs font-medium border ${c}">${escapeHtml(name)}</span>`;
+}
+
+// ── Generic helpers ───────────────────────────────────────────────
+// showNotification/escapeHtml: shared with nx_core.js (Task 12) --
+// showNotification's top-slide banner is replaced by NX.toast's
+// bottom-center pill (deliberate UI consolidation, not a
+// preserve-exact-behavior substitution).
+const showNotification = window.NX.toast;
+const escapeHtml = window.NX.esc;
+
+function setDrawerImpact(text) {
+    const el = document.getElementById('drawerImpactCount');
+    if (el) el.textContent = text || '';
+}
+
+function openCenterModal(el) {
+    el.classList.remove('hidden');
+    setTimeout(() => {
+        el.classList.remove('opacity-0');
+        const inner = el.querySelector('.modal-content, div.transform');
+        if (inner) inner.classList.remove('scale-95');
+    }, 10);
+}
+function closeCenterModal(el) {
+    el.classList.add('opacity-0');
+    const inner = el.querySelector('.modal-content, div.transform');
+    if (inner) inner.classList.add('scale-95');
+    setTimeout(() => el.classList.add('hidden'), 300);
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────
+const TAB_IDS = ['users', 'permissions', 'profiles'];
+
+function switchTab(tabName) {
+    TAB_IDS.forEach(id => {
+        document.getElementById(`tab-${id}`).classList.add('hidden');
+        const btn = document.getElementById(`tab-${id}-btn`);
+        if (btn) btn.classList.remove('is-active');
+    });
+    document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+    const ab = document.getElementById(`tab-${tabName}-btn`);
+    if (ab) ab.classList.add('is-active');
+}
+
+// ── DRAWER (permission editor, replaces center modal) ─────────────
+function openDrawer(title, subtitle, mode) {
+    currentMode = mode;
+
+    document.getElementById('drawerTitle').innerText    = title;
+    document.getElementById('drawerSubtitle').innerText = subtitle || '';
+    document.getElementById('drawerPermSearch').value   = '';
+    filterDrawerPerms();
+
+    const inheritHeader = document.getElementById('drawerInheritHeader');
+    const inheritCells  = document.querySelectorAll('#permissionDrawer tbody td:nth-child(2)');
+
+    // Every permission defaults to the neutral/inherit state (no explicit
+    // row) until the admin actively picks Allow or Deny. An absent
+    // AccessProfilePermission row is already read back as "not set" (see
+    // get_profile_details), and fnUserHasPermission already treats an
+    // absent row the same as an explicit Deny -- so pre-checking Deny here
+    // only added noise rows that then blocked Permission deletion.
+    document.querySelectorAll('#permissionDrawer input[type=radio][value="None"]').forEach(r => r.checked = true);
+    // The "None" column is the only way to click a permission back to the
+    // neutral/unset state (see the default-checked block above) -- it must
+    // stay visible in every mode, profile included, or an admin who wants
+    // to explicitly clear a permission they'd set to Allow/Deny has no way
+    // back to neutral, re-creating the noise-row problem this was meant
+    // to fix.
+    if (inheritHeader) inheritHeader.style.display = '';
+    inheritCells.forEach(td => td.style.display = '');
+    if (mode === 'profile') {
+        document.getElementById('drawerProfileMeta').classList.remove('hidden');
+    } else {
+        document.getElementById('drawerProfileMeta').classList.add('hidden');
+    }
+
+    document.querySelectorAll('#permissionDrawer input[type=radio]').forEach(r => {
+        r.disabled = false;
+    });
+
+    setupAutoPermissionLogic();
+    updateDrawerSelectedCount();
+    const _gwTbody = document.querySelector('#permissionDrawer tbody');
+    if (_gwTbody) setupViewGating(_gwTbody, mode === 'user');
+
+    drawerOverlay.classList.remove('hidden');
+    setTimeout(() => drawerOverlay.classList.remove('opacity-0'), 10);
+    permissionDrawer.classList.remove('translate-x-full');
+}
+
+function closeDrawer() {
+    permissionDrawer.classList.add('translate-x-full');
+    drawerOverlay.classList.add('opacity-0');
+    setTimeout(() => drawerOverlay.classList.add('hidden'), 300);
+}
+
+function permGroupToggle(tr) {
+    const wasCollapsed = tr.dataset.collapsed === '1';
+    tr.dataset.collapsed = wasCollapsed ? '0' : '1';
+    const icon = tr.querySelector('.perm-chevron');
+    if (icon) icon.style.transform = wasCollapsed ? '' : 'rotate(-90deg)';
+    const isGroup = tr.hasAttribute('data-perm-group');
+    let next = tr.nextElementSibling;
+    while (next) {
+        if (isGroup && next.hasAttribute('data-perm-group')) break;
+        if (!isGroup && (next.hasAttribute('data-perm-group') || next.hasAttribute('data-perm-sub-group'))) break;
+        if (wasCollapsed) {
+            if (next.hasAttribute('data-perm-sub-group')) {
+                next.style.display = '';
+            } else {
+                let prev = next.previousElementSibling, parentSubCollapsed = false;
+                while (prev) {
+                    if (prev.hasAttribute('data-perm-sub-group')) { parentSubCollapsed = prev.dataset.collapsed === '1'; break; }
+                    if (prev.hasAttribute('data-perm-group')) break;
+                    prev = prev.previousElementSibling;
+                }
+                if (!parentSubCollapsed) next.style.display = '';
+            }
+        } else {
+            next.style.display = 'none';
+        }
+        next = next.nextElementSibling;
+    }
+}
+
+function filterDrawerPerms() {
+    const q = document.getElementById('drawerPermSearch').value.toLowerCase();
+    if (q) {
+        document.querySelectorAll('#permissionDrawer tr[data-perm-group], #permissionDrawer tr[data-perm-sub-group]').forEach(h => h.style.display = '');
+        document.querySelectorAll('.permission-row').forEach(row => {
+            const code = (row.dataset.permCode || '').toLowerCase();
+            const desc = row.querySelector('.text-gray-500')?.innerText.toLowerCase() || '';
+            row.style.display = (code.includes(q) || desc.includes(q)) ? '' : 'none';
+        });
+    } else {
+        document.querySelectorAll('#permissionDrawer tbody tr').forEach(tr => tr.style.display = '');
+        document.querySelectorAll('#permissionDrawer tr[data-perm-group][data-collapsed="1"]').forEach(h => {
+            let next = h.nextElementSibling;
+            while (next && !next.hasAttribute('data-perm-group')) { next.style.display = 'none'; next = next.nextElementSibling; }
+        });
+        document.querySelectorAll('#permissionDrawer tr[data-perm-sub-group][data-collapsed="1"]').forEach(h => {
+            if (h.style.display === 'none') return;
+            let next = h.nextElementSibling;
+            while (next && !next.hasAttribute('data-perm-group') && !next.hasAttribute('data-perm-sub-group')) { next.style.display = 'none'; next = next.nextElementSibling; }
+        });
+    }
+}
+
+function updateDrawerSelectedCount() {
+    let allow = 0, deny = 0;
+    document.querySelectorAll('.permission-row').forEach(row => {
+        const permId = row.dataset.permId;
+        const checked = row.querySelector(`input[name="perm_${permId}"]:checked`);
+        if (checked?.value === 'A') allow++;
+        else if (checked?.value === 'D') deny++;
+    });
+    const el = document.getElementById('drawerSelectedCount');
+    if (el) el.innerText = `${allow} ${I18N.allowed}, ${deny} ${I18N.denied}`;
+}
+
+document.getElementById('permissionForm')?.addEventListener('change', updateDrawerSelectedCount);
+
+// ── Profile drawer ────────────────────────────────────────────────
+function openProfileDrawer() {
+    openDrawer(I18N.createNewAccessProfile, '', 'profile');
+    setDrawerImpact(I18N.willAffectZeroNewProfile);
+    document.getElementById('editTargetId').value = 0;
+    document.getElementById('profileName').value  = '';
+    document.getElementById('profileDesc').value  = '';
+}
+
+async function editProfile(id) {
+    const p = profilesMap[id] || {};
+    openDrawer(`${I18N.editProfilePrefix} ${p.name || ''}`, I18N.adjustPermissionsProfile, 'profile');
+    document.getElementById('editTargetId').value = id;
+    document.getElementById('profileName').value  = p.name || '';
+    document.getElementById('profileDesc').value  = p.desc || '';
+    const _affected = p.userCount != null ? p.userCount : 0;
+    setDrawerImpact(`${I18N.willAffect} ${_affected} ${_affected === 1 ? I18N.user : I18N.users}`);
+    try {
+        const res = await fetch(`${API_PREFIX}api/admin/access_profile/${id}/details`, {
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+        });
+        const data = await res.json();
+        if (data.success) {
+            data.permissions.forEach(p => {
+                const r = document.querySelector(`input[name="perm_${p.PermissionID}"][value="${p.Effect}"]`);
+                if (r) r.checked = true;
+            });
+            updateDrawerSelectedCount();
+            const _ep = document.querySelector('#permissionDrawer tbody');
+            if (_ep) setupViewGating(_ep, false);
+        }
+    } catch (e) { console.error(e); }
+}
+
+// ── User override drawer ──────────────────────────────────────────
+async function openUserOverrideModal(userId) {
+    const u = usersMap[userId] || {};
+    openDrawer(
+        `${I18N.overridesForPrefix} ${u.username || userId}`,
+        I18N.overridesTakePriority,
+        'user'
+    );
+    document.getElementById('editTargetId').value = userId;
+    const _u = usersMap[userId] || {};
+    setDrawerImpact(`${I18N.willAffectOneUserPrefix} ${_u.username || ''}`);
+    try {
+        const res = await fetch(`${API_PREFIX}api/admin/user_overrides/${userId}`, {
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+        });
+        const data = await res.json();
+        if (data.success) {
+            for (const [permId, effect] of Object.entries(data.overrides)) {
+                const r = document.querySelector(`input[name="perm_${permId}"][value="${effect}"]`);
+                if (r) r.checked = true;
+            }
+            updateDrawerSelectedCount();
+            const _uo = document.querySelector('#permissionDrawer tbody');
+            if (_uo) setupViewGating(_uo, true);
+        }
+    } catch (e) { console.error(e); }
+}
+
+async function savePermissions() {
+    const targetId    = document.getElementById('editTargetId').value;
+    const permissions = [];
+    document.querySelectorAll('.permission-row').forEach(row => {
+        const permId  = row.dataset.permId;
+        const checked = row.querySelector(`input[name="perm_${permId}"]:checked`);
+        if (checked && checked.value !== 'None') {
+            permissions.push({ PermissionID: permId, Effect: checked.value });
+        }
+    });
+
+    let url, payload;
+    if (currentMode === 'profile') {
+        url     = `${API_PREFIX}api/admin/access_profile/save`;
+        payload = {
+            accessId:    targetId == 0 ? null : targetId,
+            name:        document.getElementById('profileName').value,
+            description: document.getElementById('profileDesc').value,
+            permissions
+        };
+    } else {
+        url     = `${API_PREFIX}api/admin/user_overrides/save`;
+        payload = { userId: targetId, overrides: permissions };
+    }
+
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify(payload)
+        });
+        const result = await res.json();
+        if (result.success) {
+            showNotification(result.message);
+            closeDrawer();
+            if (currentMode === 'profile') {
+                localStorage.setItem('acl_tab', 'profiles');
+                setTimeout(() => location.reload(), 800);
+            } else {
+                await fetchAllUsers();
+            }
+        } else {
+            showNotification(result.message, 'error');
+        }
+    } catch (e) {
+        showNotification(I18N.networkError, 'error');
+    }
+}
+
+// ── View permission gating ────────────────────────────────────────
+function setupViewGating(tbody, isOverrideMode) {
+    function groupOf(code) {
+        const p = code.split('.');
+        return p[0] === 'generali' ? p.slice(0,2).join('.') : p[0];
+    }
+    function applyGating() {
+        const viewState = {};
+        Array.from(tbody.children).forEach(tr => {
+            const code = tr.dataset.permCode;
+            if (!code || !tr.dataset.permId) return;
+            const group = groupOf(code);
+            if (code !== group + '.view') return;
+            const permId = tr.dataset.permId;
+            const checked = tr.querySelector(`input[name="perm_${permId}"]:checked`);
+            const val = checked ? checked.value : null;
+            viewState[group] = isOverrideMode ? (val !== 'D') : (val === 'A');
+        });
+        Array.from(tbody.children).forEach(tr => {
+            const code = tr.dataset.permCode;
+            if (!code || !tr.dataset.permId) return;
+            const group = groupOf(code);
+            if (!(group in viewState)) return;
+            if (code === group + '.view') return;
+            const ok = viewState[group];
+            const radios = tr.querySelectorAll('input[type=radio]');
+            if (ok) {
+                radios.forEach(r => { r.disabled = false; });
+                tr.style.opacity = '';
+                tr.removeAttribute('title');
+            } else {
+                radios.forEach(r => { r.disabled = true; });
+                tr.style.opacity = '0.4';
+                tr.title = I18N.requiresViewPermission;
+            }
+        });
+    }
+    if (tbody._viewGatingHandler) tbody.removeEventListener('change', tbody._viewGatingHandler);
+    tbody._viewGatingHandler = e => { if (e.target.type === 'radio') applyGating(); };
+    tbody.addEventListener('change', tbody._viewGatingHandler);
+    applyGating();
+}
+
+// ── Auto permission logic (view/process filter sync) ──────────────
+function setupAutoPermissionLogic() {
+    const table = document.querySelector('#permissionForm table');
+    if (!table || table.dataset.hasListener) return;
+    table.addEventListener('change', e => {
+        if (e.target.type === 'radio') {
+            const row = e.target.closest('tr');
+            if (row && validateViewActivation(row, e.target)) {
+                syncParentChildPermissions(row);
+            }
+        }
+    });
+    table.dataset.hasListener = 'true';
+}
+
+function validateViewActivation(changedRow, input) {
+    if (input.value !== 'A') return true;
+    const code = changedRow.querySelector('.font-medium')?.innerText.trim();
+    const match = code?.match(/^(\w+)\.view$/);
+    if (!match) return true;
+    const prefix = match[1];
+    let hasFilters = false, anyAllowed = false;
+    document.querySelectorAll('.permission-row').forEach(row => {
+        const rc = row.querySelector('.font-medium')?.innerText.trim();
+        const pid = row.dataset.permId;
+        if (rc?.startsWith(`${prefix}.filter.process.`)) {
+            hasFilters = true;
+            if (row.querySelector(`input[name="perm_${pid}"][value="A"]`)?.checked) anyAllowed = true;
+        }
+    });
+    if (hasFilters && !anyAllowed) {
+        changedRow.querySelector('input[value="D"]').checked = true;
+        showNotification(`${I18N.cannotActivate} ${code}. ${I18N.enableProcessFilterFirst}`, 'error');
+        return false;
+    }
+    return true;
+}
+
+function syncParentChildPermissions(changedRow) {
+    const code  = changedRow.querySelector('.font-medium')?.innerText.trim();
+    const match = code?.match(/^(\w+)\.filter\.process\./);
+    if (!match) return;
+    const prefix      = match[1];
+    const viewCode    = `${prefix}.view`;
+    let viewRow = null, anyAllowed = false, allDenied = true, hasSiblings = false;
+    document.querySelectorAll('.permission-row').forEach(row => {
+        const rc  = row.querySelector('.font-medium')?.innerText.trim();
+        const pid = row.dataset.permId;
+        if (rc === viewCode) viewRow = row;
+        if (rc?.startsWith(`${prefix}.filter.process.`)) {
+            hasSiblings = true;
+            if (row.querySelector(`input[name="perm_${pid}"][value="A"]`)?.checked) anyAllowed = true;
+            if (!row.querySelector(`input[name="perm_${pid}"][value="D"]`)?.checked) allDenied = false;
+        }
+    });
+    if (!viewRow || !hasSiblings) return;
+    const vpid = viewRow.dataset.permId;
+    if (anyAllowed) {
+        const r = viewRow.querySelector(`input[name="perm_${vpid}"][value="A"]`);
+        if (r && !r.checked) { r.checked = true; flashRow(viewRow, 'green'); showNotification(`${I18N.autoEnabled} ${viewCode}`); }
+    } else if (allDenied) {
+        const r = viewRow.querySelector(`input[name="perm_${vpid}"][value="D"]`);
+        if (r && !r.checked) { r.checked = true; flashRow(viewRow, 'red'); showNotification(`${I18N.autoDenied} ${viewCode}`); }
+    }
+}
+
+function flashRow(row, color) {
+    const cls = color === 'green' ? 'bg-green-50' : 'bg-red-50';
+    row.classList.add(cls);
+    setTimeout(() => row.classList.remove(cls), 900);
+}
+
+// ── USERS TAB ─────────────────────────────────────────────────────
+async function fetchAllUsers() {
+    try {
+        const profileEl = document.getElementById('userProfileFilter');
+        const orgEl     = document.getElementById('userOrgFilter');
+        const params = new URLSearchParams();
+        if (profileEl && profileEl.value) params.set('profile', profileEl.value);
+        if (orgEl && orgEl.value)         params.set('organization', orgEl.value);
+
+        const url = `${API_PREFIX}api/admin/users${params.toString() ? '?' + params.toString() : ''}`;
+        const res = await fetch(url, {
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+        });
+        if (!res.ok) throw new Error();
+        allUsersData = await res.json();
+        renderUsersTable(allUsersData);
+        // Re-apply the client-side text filter if there's a search query already typed
+        filterUsersTable();
+    } catch {
+        document.getElementById('usersTableBody').innerHTML =
+            `<tr><td colspan="6" class="admin-empty" style="color:var(--nx-danger)">${I18N.errorLoadingData}</td></tr>`;
+    }
+}
+
+function renderUsersTable(users) {
+    const tbody = document.getElementById('usersTableBody');
+    if (!users.length) {
+        tbody.innerHTML = `<tr><td colspan="6" class="admin-empty">${I18N.noUsersFound}</td></tr>`;
+        return;
+    }
+    tbody.innerHTML = '';
+    users.forEach(u => {
+        usersMap[u.userID] = u;
+        const badge = profileBadge(u.AccessProfileName, u.AccessProfileID);
+        const overrideBadge = u.OverrideCount > 0
+            ? `<span class="px-2 py-0.5 text-xs font-medium text-yellow-700 bg-yellow-100 rounded-full border border-yellow-200 whitespace-nowrap">${u.OverrideCount} ${I18N.overrides}</span>`
+            : `<span class="px-2 py-0.5 text-xs text-gray-400 bg-gray-100 rounded-full whitespace-nowrap">${I18N.defaultLabel}</span>`;
+
+        const tr = document.createElement('tr');
+        tr.className = 'is-clickable';
+        tr.id = `user-row-${u.userID}`;
+        tr.onclick = () => { window.location.href = `${API_PREFIX}admin/users/${encodeURIComponent(u.userID)}`; };
+        tr.setAttribute('data-testid', `admin-ac-user-row-${u.userID}`);
+        tr.innerHTML = `
+            <td></td>
+            <td>
+                <div class="font-medium text-gray-900 text-sm">${escapeHtml(u.fullname)}</div>
+                <div class="text-xs text-gray-400">@${escapeHtml(u.username)}</div>
+                <div class="text-xs text-gray-400">${escapeHtml(u.email || '')}</div>
+            </td>
+            <td>${badge}</td>
+            <td class="text-sm text-gray-600">${escapeHtml(u.organization || '—')}</td>
+            <td class="text-center">${overrideBadge}</td>
+            <td class="align-right"><i class="fas fa-chevron-right" style="color:var(--nx-text-meta);font-size:12px"></i></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function clearUserFilters() {
+    const search = document.getElementById('userSearchInput');
+    const prof   = document.getElementById('userProfileFilter');
+    const org    = document.getElementById('userOrgFilter');
+    if (search) search.value = '';
+    if (prof)   prof.value   = '';
+    if (org)    org.value    = '';
+    updateClearFilterVisibility();
+    fetchAllUsers();
+}
+
+function updateClearFilterVisibility() {
+    const wrap = document.getElementById('userClearFiltersWrap');
+    if (!wrap) return;
+    const hasAny =
+        (document.getElementById('userSearchInput')?.value || '').trim() !== '' ||
+        (document.getElementById('userProfileFilter')?.value || '') !== '' ||
+        (document.getElementById('userOrgFilter')?.value || '') !== '';
+    wrap.style.display = hasAny ? '' : 'none';
+}
+
+function filterUsersTable() {
+    const q = document.getElementById('userSearchInput').value.toLowerCase();
+    renderUsersTable(allUsersData.filter(u =>
+        (u.fullname || '').toLowerCase().includes(q) ||
+        (u.username || '').toLowerCase().includes(q) ||
+        (u.email || '').toLowerCase().includes(q) ||
+        (u.AccessProfileName || '').toLowerCase().includes(q) ||
+        (u.organization || '').toLowerCase().includes(q)
+    ));
+}
+
+// ── USER CRUD ─────────────────────────────────────────────────────
+// Ticked (the default) = the backend generates the password and mails a
+// set-password link, so the field is neither shown nor required.
+function syncInviteToggle() {
+    const invite = document.getElementById('send_invite').checked;
+    document.getElementById('passwordField').classList.toggle('hidden', invite);
+    const pw = document.getElementById('password');
+    pw.required = !invite;
+    if (invite) pw.value = '';
+}
+
+document.getElementById('send_invite')?.addEventListener('change', syncInviteToggle);
+
+function openAddUserModal() {
+    document.getElementById('userForm').reset();
+    syncInviteToggle();
+    openCenterModal(userModal);
+}
+
+function closeUserModal() { closeCenterModal(userModal); }
+
+document.getElementById('userForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(this).entries());
+
+    try {
+        const res = await fetch(`${API_PREFIX}admin/users/add`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify(data)
+        });
+        if (res.status === 403) {
+            showNotification(I18N.noPermissionCreateUsers, 'error');
+            return;
+        }
+        const result = await res.json();
+        if (res.ok && result.success) {
+            closeUserModal();
+            showNotification(result.message || I18N.userCreatedSuccessfully);
+            fetchAllUsers();
+        } else {
+            showNotification(`${I18N.errorPrefix} ${result.message}`, 'error');
+        }
+    } catch {
+        showNotification(I18N.networkError, 'error');
+    }
+});
+
+// ── PERMISSIONS TAB ───────────────────────────────────────────────
+async function fetchAllPermissions() {
+    try {
+        const res = await fetch(`${API_PREFIX}api/admin/permissions/list`, {
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+        });
+        if (!res.ok) throw new Error();
+        allPermissionsData = await res.json();
+        renderPermissionsTable(allPermissionsData);
+    } catch {
+        document.getElementById('permissionsTableBody').innerHTML =
+            `<tr><td colspan="6" class="px-6 py-8 text-center text-red-400">${I18N.errorLoadingData}</td></tr>`;
+    }
+}
+
+function _makePermHeader(tag, colspan, cls, style, text) {
+    const tr = document.createElement('tr');
+    tr.setAttribute(tag, text);
+    /* Toggling is bound by the delegated drawerPermsBody listener; an
+       inline onclick would be CSP-blocked (#193 finding 10) anyway. */
+    tr.style.cssText = (style || '') + ';cursor:pointer;user-select:none';
+    tr.className = cls;
+    const td = document.createElement('td');
+    td.setAttribute('colspan', String(colspan));
+    const chevron = document.createElement('span');
+    chevron.className = 'perm-chevron';
+    chevron.style.cssText = 'display:inline-block;margin-right:5px;transition:transform 0.15s';
+    chevron.textContent = '▾';
+    td.appendChild(chevron);
+    td.appendChild(document.createTextNode(text));
+    tr.appendChild(td);
+    return tr;
+}
+
+function renderPermissionsTable(perms) {
+    const tbody = document.getElementById('permissionsTableBody');
+    if (!perms.length) {
+        tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-gray-400">${I18N.noPermissionsFound}</td></tr>`;
+        return;
+    }
+    tbody.innerHTML = '';
+    let prevGroup = '', prevSub = '';
+    perms.forEach(p => {
+        permissionsMap[p.PermissionID] = p;
+        const parts = p.Code.split('.');
+        const group = parts[0];
+        const action = parts.length > 1 ? parts[1] : '';
+        const sub = group + '.' + action;
+
+        if (group !== prevGroup) {
+            prevGroup = group; prevSub = '';
+            const htr = _makePermHeader('data-perm-group', 6, 'bg-gray-100 border-b border-gray-200', '', group);
+            htr.querySelector('td').className = 'px-4 py-1.5 text-xs font-bold text-gray-500 uppercase tracking-wider';
+            tbody.appendChild(htr);
+        }
+        if (action && sub !== prevSub) {
+            prevSub = sub;
+            const shtr = _makePermHeader('data-perm-sub-group', 6, 'bg-gray-50 border-b border-gray-100', '', action);
+            shtr.querySelector('td').className = 'px-8 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wide';
+            tbody.appendChild(shtr);
+        }
+
+        const tr = document.createElement('tr');
+        tr.className = "bg-white border-b hover:bg-gray-50 transition";
+        tr.id = `perm-row-${p.PermissionID}`;
+        tr.innerHTML = `
+            <td class="px-4 py-4">
+                <button class="perm-expand-btn text-gray-400 hover:text-[var(--nx-accent)] w-6 h-6 flex items-center justify-center" data-permission-id="${p.PermissionID}" data-testid="admin-ac-perm-expand-${p.PermissionID}">
+                    <i class="fas fa-chevron-right text-xs transition-transform duration-200" id="perm-expand-icon-${p.PermissionID}"></i>
+                </button>
+            </td>
+            <td class="px-6 py-4 pl-12">
+                <div class="font-mono text-sm font-medium text-gray-900">${escapeHtml(p.Code)}</div>
+            </td>
+            <td class="px-6 py-4 text-sm text-gray-600">${escapeHtml(p.Description)}</td>
+            <td class="px-6 py-4 text-center">
+                <span class="px-2 py-0.5 text-xs rounded-full ${p.ProfileCount > 0 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}">${p.ProfileCount}</span>
+            </td>
+            <td class="px-6 py-4 text-center">
+                <span class="px-2 py-0.5 text-xs rounded-full ${p.OverrideCount > 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-500'}">${p.OverrideCount}</span>
+            </td>
+            <td class="px-6 py-4 text-right space-x-3">
+                <button class="perm-edit-btn text-[var(--nx-accent)] hover:text-[var(--nx-accent-hover)] text-sm" data-permission-id="${p.PermissionID}" title="${I18N.editLabel}" data-testid="admin-ac-perm-edit-${p.PermissionID}">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="perm-delete-btn text-red-300 hover:text-red-600 text-sm" data-permission-id="${p.PermissionID}" title="${I18N.deleteLabel}" data-testid="admin-ac-perm-delete-${p.PermissionID}">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+function filterPermissionsTable() {
+    const q = document.getElementById('permSearchInput').value.toLowerCase();
+    renderPermissionsTable(allPermissionsData.filter(p =>
+        p.Code.toLowerCase().includes(q) || p.Description.toLowerCase().includes(q)
+    ));
+}
+
+async function togglePermExpand(permId) {
+    const icon = document.getElementById(`perm-expand-icon-${permId}`);
+    if (document.getElementById(`perm-detail-row-${permId}`)) {
+        document.getElementById(`perm-detail-row-${permId}`).remove();
+        icon.style.transform = ''; icon.classList.remove('text-[var(--nx-accent)]');
+        expandedPermId = null; return;
+    }
+    if (expandedPermId !== null) {
+        const prev = document.getElementById(`perm-detail-row-${expandedPermId}`);
+        if (prev) prev.remove();
+        const pi = document.getElementById(`perm-expand-icon-${expandedPermId}`);
+        if (pi) { pi.style.transform = ''; pi.classList.remove('text-[var(--nx-accent)]'); }
+    }
+    expandedPermId = permId;
+    icon.style.transform = 'rotate(90deg)'; icon.classList.add('text-[var(--nx-accent)]');
+
+    const permRow   = document.getElementById(`perm-row-${permId}`);
+    const detailRow = document.createElement('tr');
+    detailRow.id    = `perm-detail-row-${permId}`;
+    detailRow.innerHTML = `<td colspan="6" class="bg-green-50 px-8 py-4 text-center text-sm text-gray-400">${I18N.loading}</td>`;
+    permRow.insertAdjacentElement('afterend', detailRow);
+
+    try {
+        const res  = await fetch(`${API_PREFIX}api/admin/permissions/${permId}/users`, {
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
+
+        const withPerm  = data.users.filter(u => u.HasPermission);
+        const explDenied= data.users.filter(u => !u.HasPermission && (u.OverrideEffect === 'D' || u.ProfileEffect === 'D'));
+
+        const rows = [...withPerm, ...explDenied].map(u => {
+            const src    = sourceLabel(u.OverrideEffect, u.ProfileEffect);
+            const status = u.HasPermission
+                ? `<span class="text-green-600 font-medium text-xs"><i class="fas fa-check-circle mr-1"></i>${I18N.yes}</span>`
+                : `<span class="text-red-400 text-xs"><i class="fas fa-times-circle mr-1"></i>${I18N.deniedStatus}</span>`;
+            return `<tr class="border-t border-gray-100 ${u.HasPermission ? '' : 'opacity-60'}">
+                <td class="px-4 py-2 text-xs">
+                    <div class="font-medium text-gray-800">${escapeHtml(u.fullname)}</div>
+                    <div class="text-gray-400">@${escapeHtml(u.username)}</div>
+                </td>
+                <td class="px-4 py-2 text-xs text-gray-600">${escapeHtml(u.AccessProfileName || '—')}</td>
+                <td class="px-4 py-2 text-xs">${src}</td>
+                <td class="px-4 py-2 text-center">${status}</td>
+            </tr>`;
+        }).join('') || `<tr><td colspan="4" class="px-4 py-3 text-center text-gray-400 text-xs">${I18N.noUsersHavePermission}</td></tr>`;
+
+        detailRow.innerHTML = `<td colspan="6" class="bg-green-50 px-6 py-3 border-b border-green-100">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-semibold text-green-800">
+                    ${I18N.usersWithThisPermission}: ${withPerm.length}
+                    ${explDenied.length ? `<span class="ml-2 font-normal text-gray-500">+ ${explDenied.length} ${I18N.explicitlyDenied}</span>` : ''}
+                </span>
+            </div>
+            <div class="overflow-x-auto rounded border border-green-200 bg-white">
+                <table class="w-full text-left">
+                    <thead class="bg-green-100 text-green-700 uppercase text-xs">
+                        <tr>
+                            <th class="px-4 py-2">${I18N.userColumn}</th>
+                            <th class="px-4 py-2">${I18N.profileColumn}</th>
+                            <th class="px-4 py-2">${I18N.sourceColumn}</th>
+                            <th class="px-4 py-2 text-center">${I18N.hasPermissionColumn}</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>
+        </td>`;
+    } catch {
+        detailRow.innerHTML = `<td colspan="6" class="bg-red-50 px-6 py-3 text-sm text-red-400">${I18N.errorLoadingData}</td>`;
+    }
+}
+
+// ── ADD / EDIT PERMISSION META ────────────────────────────────────
+function openAddPermissionModal() {
+    permMetaMode = 'add';
+    document.getElementById('permMetaModalTitle').innerText = I18N.addPermission;
+    ['permMetaId','permMetaCode','permMetaDescription'].forEach(id => {
+        document.getElementById(id).value = '';
+    });
+    openCenterModal(permMetaModal);
+}
+
+function openEditPermissionModal(id) {
+    const p = permissionsMap[id]; if (!p) return;
+    permMetaMode = 'edit';
+    document.getElementById('permMetaModalTitle').innerText = I18N.editPermission;
+    document.getElementById('permMetaId').value          = id;
+    document.getElementById('permMetaCode').value        = p.Code;
+    document.getElementById('permMetaDescription').value = p.Description;
+    openCenterModal(permMetaModal);
+}
+
+function closePermMetaModal() { closeCenterModal(permMetaModal); }
+
+async function savePermissionMeta() {
+    const code        = document.getElementById('permMetaCode').value.trim();
+    const description = document.getElementById('permMetaDescription').value.trim();
+    const id          = document.getElementById('permMetaId').value;
+    if (!code || !description) {
+        showNotification(I18N.codeDescRequired, 'error'); return;
+    }
+    const url = permMetaMode === 'add'
+        ? `${API_PREFIX}api/admin/permissions/add`
+        : `${API_PREFIX}api/admin/permissions/edit/${id}`;
+    try {
+        const res    = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({ code, description })
+        });
+        const result = await res.json();
+        if (result.success) {
+            showNotification(result.message);
+            closePermMetaModal();
+            localStorage.setItem('acl_tab', 'permissions');
+            setTimeout(() => location.reload(), 800);
+        } else { showNotification(result.message, 'error'); }
+    } catch { showNotification(I18N.networkError, 'error'); }
+}
+
+// ── DELETE PERMISSION ─────────────────────────────────────────────
+function confirmDeletePermission(permId) {
+    const p = permissionsMap[permId];
+    document.getElementById('confirmDeleteMessage').innerText =
+        `${I18N.confirmDeletePrefix} "${p ? p.Code : permId}"?`;
+    pendingDeleteCallback = async () => {
+        try {
+            const res    = await fetch(`${API_PREFIX}api/admin/permissions/delete/${permId}`, {
+                method: 'DELETE', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+            });
+            const result = await res.json();
+            if (result.success) { showNotification(result.message); fetchAllPermissions(); }
+            else showNotification(result.message, 'error');
+        } catch { showNotification(I18N.networkError, 'error'); }
+    };
+    document.getElementById('confirmDeleteBtn').onclick = () => { closeConfirmDeleteModal(); pendingDeleteCallback(); };
+    openCenterModal(confirmDeleteModal);
+}
+
+function closeConfirmDeleteModal() { closeCenterModal(confirmDeleteModal); }
+
+// ── SHARED SOURCE LABEL ───────────────────────────────────────────
+function sourceLabel(overrideEffect, profileEffect) {
+    if (overrideEffect === 'A') return `<span class="text-purple-700 font-medium text-xs"><i class="fas fa-user-check mr-1"></i>${I18N.overrideAllow}</span>`;
+    if (overrideEffect === 'D') return `<span class="text-red-700 font-medium text-xs"><i class="fas fa-user-times mr-1"></i>${I18N.overrideDeny}</span>`;
+    if (profileEffect  === 'A') return `<span class="text-blue-600 text-xs"><i class="fas fa-id-badge mr-1"></i>${I18N.profileAllow}</span>`;
+    if (profileEffect  === 'D') return `<span class="text-orange-600 text-xs"><i class="fas fa-ban mr-1"></i>${I18N.profileDeny}</span>`;
+    return `<span class="text-gray-400 text-xs">${I18N.noAssignment}</span>`;
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    // #193 finding 10: onclick/oninput="" attribute handlers aren't
+    // nonce-covered by CSP; bind them here instead.
+    document.getElementById('tab-users-btn')?.addEventListener('click', () => switchTab('users'));
+    document.getElementById('tab-permissions-btn')?.addEventListener('click', () => switchTab('permissions'));
+    document.getElementById('tab-profiles-btn')?.addEventListener('click', () => switchTab('profiles'));
+    document.getElementById('userSearchInput')?.addEventListener('input', () => {
+        filterUsersTable();
+        updateClearFilterVisibility();
+    });
+    document.getElementById('userClearFiltersBtn')?.addEventListener('click', clearUserFilters);
+    document.querySelector('[data-testid="admin-ac-add-user"]')?.addEventListener('click', openAddUserModal);
+    document.getElementById('permSearchInput')?.addEventListener('input', filterPermissionsTable);
+    document.querySelector('[data-testid="admin-ac-add-permission"]')?.addEventListener('click', openAddPermissionModal);
+    document.querySelector('[data-testid="admin-ac-add-profile"]')?.addEventListener('click', openProfileDrawer);
+    document.querySelector('[data-testid="admin-ac-user-modal-close"]')?.addEventListener('click', closeUserModal);
+    document.querySelector('[data-testid="admin-ac-user-modal-cancel"]')?.addEventListener('click', closeUserModal);
+    document.querySelector('[data-testid="admin-ac-confirm-delete-cancel"]')?.addEventListener('click', closeConfirmDeleteModal);
+    document.querySelector('[data-testid="admin-ac-perm-modal-close"]')?.addEventListener('click', closePermMetaModal);
+    document.querySelector('[data-testid="admin-ac-perm-modal-cancel"]')?.addEventListener('click', closePermMetaModal);
+    document.querySelector('[data-testid="admin-ac-perm-modal-save"]')?.addEventListener('click', savePermissionMeta);
+    document.getElementById('drawerOverlay')?.addEventListener('click', closeDrawer);
+    document.querySelector('[data-testid="admin-ac-drawer-close"]')?.addEventListener('click', closeDrawer);
+    document.getElementById('drawerPermSearch')?.addEventListener('input', filterDrawerPerms);
+    document.querySelector('[data-testid="admin-ac-drawer-cancel"]')?.addEventListener('click', closeDrawer);
+    document.querySelector('[data-testid="admin-ac-drawer-save"]')?.addEventListener('click', savePermissions);
+    document.getElementById('drawerPermsBody')?.addEventListener('click', (e) => {
+        const tr = e.target.closest('tr[data-perm-group], tr[data-perm-sub-group]');
+        if (tr) permGroupToggle(tr);
+    });
+    document.getElementById('permissionsTableBody')?.addEventListener('click', (e) => {
+        const expandBtn = e.target.closest('.perm-expand-btn');
+        if (expandBtn) return togglePermExpand(Number(expandBtn.dataset.permissionId));
+        const editBtn = e.target.closest('.perm-edit-btn');
+        if (editBtn) return openEditPermissionModal(Number(editBtn.dataset.permissionId));
+        const deleteBtn = e.target.closest('.perm-delete-btn');
+        if (deleteBtn) confirmDeletePermission(Number(deleteBtn.dataset.permissionId));
+    });
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.edit-access-profile-btn');
+        if (btn) editProfile(Number(btn.dataset.accessId));
+    });
+
+    fetchAllUsers();
+    fetchAllPermissions();
+
+    const saved = localStorage.getItem('acl_tab');
+    if (saved && TAB_IDS.includes(saved)) {
+        switchTab(saved);
+        localStorage.removeItem('acl_tab');
+    }
+
+    ['userProfileFilter', 'userOrgFilter'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', () => {
+            updateClearFilterVisibility();
+            fetchAllUsers();
+        });
+    });
+
+    // Deep-link from command palette: /admin/access_control#add-user
+    if (window.location.hash === '#add-user' && typeof openAddUserModal === 'function') {
+        switchTab('users');
+        openAddUserModal();
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+});
+}());

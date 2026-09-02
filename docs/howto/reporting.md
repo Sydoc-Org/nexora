@@ -4,7 +4,7 @@
 > architecture reference. The plain-language, task-shaped user guide is
 > [`reporting-guide.md`](reporting-guide.md) — keep it current whenever you
 > change user-visible behaviour here. That guide is **served in-app** at
-> `/reporting/guide` (rendered server-side by `nx_lib/views/reporting.py`
+> `/reporting/guide` (rendered server-side by `nx_lib/views/reporting/pages.py`
 > with markdown-it-py; the deploy workflow copies the one docs file to the
 > server, and a guide-only push to `main` still triggers a deploy). The
 > page's **Help** button opens an in-app tips panel
@@ -99,7 +99,7 @@ content area. `templates/js/_reporting_tabs_js.html` is the nav controller
   for zero-row or non-numeric results. Every caption names the measure it
   belongs to: the label is the result column's own `header`, which
   `_prepare_run` fills from the metrics registry (`metric_result_columns` in
-  `views/reporting.py`), so a run's table, export and KPI band all read
+  `views/reporting/_shared.py`), so a run's table, export and KPI band all read
   "Documents imported" rather than `docs_imported`. A bare "Total" used to
   hold whichever metric happened to come first, with nothing saying which.
   - **Totals are the server's, not the browser's.** The band renders
@@ -1183,7 +1183,7 @@ render as 0.
    `nx_lib/mapping_config.py`'s registry (`dbo.ProcessFieldMappings`), never
    from user input.
 
-4. **Wire the catalog + query into the view** (`nx_lib/views/reporting.py`).
+4. **Wire the catalog + query into the view** (`nx_lib/views/reporting/run.py`).
    The `/api/reporting/sources` endpoint returns the catalog for each source
    the caller has access to; add a branch for the new source id.
 
@@ -1338,7 +1338,7 @@ backdrop, or **Escape**.
 conversation as `history`: an array of `{role: "user"|"assistant", content}`
 pairs, one entry per prior turn (the current question is sent separately as
 `question`, never folded into `history`). The client keeps the whole session's
-history in memory; the server (`nx_lib/views/reporting.py: api_ai_agent`)
+history in memory; the server (`nx_lib/views/reporting/ai.py: api_ai_agent`)
 **caps what it actually uses** to the **last 8 entries**, then trims further
 from the front until the total character count of the kept entries is at most
 **12000** — so a long-running chat degrades to "recent context only" rather
@@ -1728,7 +1728,10 @@ live schema grounding and scheduled-report delivery.
   whenever user-visible behaviour changes here.
 - `nx_lib/reporting/` — engine package (`schema.py`, `catalog.py`, `sources.py`,
   `query.py`, `export.py`, `sandbox.py`, `ai.py`, `ai_schema.py`).
-- `nx_lib/views/reporting.py` — Flask routes.
+- `nx_lib/views/reporting/` — Flask routes, split by feature cluster
+  (`ai.py`, `pages.py`, `run.py`, `export.py`, `reports.py`, `schedules.py`,
+  `admin_registry.py`, `health.py`, `catalog.py`) plus shared helpers in
+  `_shared.py`.
 - `templates/js/_reporting_js.html` — builder UI; `templates/js/_reporting_viz_js.html`
   — chart + drag-and-drop pivot (`window.ReportingViz`);
   `templates/js/_reporting_ai_js.html` — the AI chat panel (`window.ReportingChat`);

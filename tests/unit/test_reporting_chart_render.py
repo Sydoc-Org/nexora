@@ -147,10 +147,11 @@ def test_two_dims_multi_metric_renders_fair_capped_series():
         "metrics": [{"metric": "docs_imported"}, {"metric": "docs_exported"}],
         "columns": [{"field": "activity_date", "grain": "month"}, {"field": "processname"}],
     }
-    rows = []
-    for month in ("2026-01-01", "2026-02-01"):
-        for p in range(10):  # 10 processes x 2 metrics = 20 series > MAX_SERIES
-            rows.append([month, f"proc{p}", 1000 + p, 5 + p])
+    rows = [
+        [month, f"proc{p}", 1000 + p, 5 + p]
+        for month in ("2026-01-01", "2026-02-01")
+        for p in range(10)  # 10 processes x 2 metrics = 20 series > MAX_SERIES
+    ]
     png = render_chart_png(
         d,
         [

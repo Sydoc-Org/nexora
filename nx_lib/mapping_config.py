@@ -14,6 +14,7 @@ Failure contract (inherited from the legacy helpers, do not weaken):
   sensitive_field_keys).
 """
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 
 from flask import current_app
@@ -150,7 +151,7 @@ def valid_field_keys() -> set[str]:
     return {m.field_key for m in reg.mappings}
 
 
-def field_keys_for_processes(processes) -> set[str] | None:
+def field_keys_for_processes(processes: Iterable[str]) -> set[str] | None:
     """Field keys available to the given processes.
 
     ``processes`` is an iterable of bare process names, compared directly
@@ -198,7 +199,7 @@ def field_aliases() -> dict[str, str]:
     return dict(reg.aliases)
 
 
-def sources_for(client, processes=None) -> list[ProcessSource]:
+def sources_for(client: str | None, processes: Iterable[str] | None = None) -> list[ProcessSource]:
     """ProcessSource rows for ``client``, optionally restricted to ``processes``.
 
     ``client=None`` skips the client filter and returns sources across every
@@ -216,7 +217,11 @@ def sources_for(client, processes=None) -> list[ProcessSource]:
     ]
 
 
-def mappings_for(client, processes=None, field_keys=None) -> list[FieldMapping]:
+def mappings_for(
+    client: str,
+    processes: Iterable[str] | None = None,
+    field_keys: Iterable[str] | None = None,
+) -> list[FieldMapping]:
     """FieldMapping rows for ``client``, optionally restricted to ``processes``
     (None means all processes for that client), and optionally further
     restricted to ``field_keys`` (matched case-insensitively)."""

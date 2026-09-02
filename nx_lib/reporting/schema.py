@@ -162,6 +162,7 @@ def validate_report_definition(
     # dims + metric codes), e.g. a category breakdown sorted by doc_count.
     sort_targets = set(sortable_fields)
     if has_metrics:
+        assert isinstance(metrics_list, list)  # has_metrics already confirmed this
         sort_targets |= {m.get("metric") for m in metrics_list if isinstance(m, dict)}
     for s in rd.get("sort") or []:
         if not isinstance(s, dict) or s.get("field") not in sort_targets:
@@ -269,7 +270,7 @@ def coerce_definition(
 
     # label (casefolded) -> field key, dropping ambiguous labels and bare keys.
     keys = set()
-    label_to_key = {}
+    label_to_key: dict = {}
     ambiguous = set()
     for c in catalog or []:
         key = c.get("field")

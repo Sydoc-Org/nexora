@@ -73,6 +73,7 @@ def test_pot_is_in_sync(tmp_path):
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
+        check=False,
     )
     assert result.returncode == 0, f"pybabel extract failed:\n{result.stderr}"
 
@@ -134,15 +135,13 @@ def test_all_strings_translated(locale):
         lines = [f"[{locale}] translations incomplete in {po_path.relative_to(REPO_ROOT)}:", ""]
         if untranslated:
             lines.append(f"UNTRANSLATED ({len(untranslated)}):")
-            for mid in untranslated[:20]:
-                lines.append(f"  - {mid!r}")
+            lines.extend(f"  - {mid!r}" for mid in untranslated[:20])
             if len(untranslated) > 20:
                 lines.append(f"  ... and {len(untranslated) - 20} more")
             lines.append("")
         if fuzzy:
             lines.append(f"FUZZY (needs review, remove #, fuzzy after editing) ({len(fuzzy)}):")
-            for mid in fuzzy[:20]:
-                lines.append(f"  - {mid!r}")
+            lines.extend(f"  - {mid!r}" for mid in fuzzy[:20])
             if len(fuzzy) > 20:
                 lines.append(f"  ... and {len(fuzzy) - 20} more")
         pytest.fail("\n".join(lines))

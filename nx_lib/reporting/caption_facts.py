@@ -92,7 +92,7 @@ def _group(labels, values):
     A second dimension (week x process) repeats labels; summing per label gives
     the same numbers the chart's stacked view shows.
     """
-    out = {}
+    out: dict = {}
     for lab, v in zip(labels, values, strict=True):
         if lab not in out:
             out[lab] = None

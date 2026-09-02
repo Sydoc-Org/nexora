@@ -114,7 +114,7 @@ def detect_error_storms(
     descending -- ``key`` is the stable component id used for incident state.
     """
     cutoff = now_local - timedelta(minutes=window_min)
-    groups = {}
+    groups: dict[str, dict] = {}
     for ts, level, message in parse_log_lines(text):
         if level not in levels or ts < cutoff:
             continue

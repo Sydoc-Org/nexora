@@ -883,7 +883,8 @@ def ask_agentic_iter(
     consumer can just read until it sees `"result"`.
     """
     messages = [*(history or []), {"role": "user", "content": question}]
-    trace, tin, tout, turns, stopped = [], 0, 0, 0, "max_turns"
+    trace: list = []
+    tin, tout, turns, stopped = 0, 0, 0, "max_turns"
     nudged = False
     deadline = time.monotonic() + budget_s if budget_s else None
     while turns < max_turns:
@@ -1016,14 +1017,14 @@ def _to_azure_messages(system, messages):
     for m in messages:
         role = m["role"]
         if role == "tool":
-            for r in m["content"]:
-                out.append(
-                    {
-                        "role": "tool",
-                        "tool_call_id": r.get("tool_call_id"),
-                        "content": json.dumps(r.get("result"), default=str),
-                    }
-                )
+            out.extend(
+                {
+                    "role": "tool",
+                    "tool_call_id": r.get("tool_call_id"),
+                    "content": json.dumps(r.get("result"), default=str),
+                }
+                for r in m["content"]
+            )
         elif role == "assistant" and m.get("tool_calls"):
             out.append(
                 {
@@ -1069,15 +1070,15 @@ def _to_anthropic_messages(messages):
             content = []
             if m.get("content"):
                 content.append({"type": "text", "text": m["content"]})
-            for c in m["tool_calls"]:
-                content.append(
-                    {
-                        "type": "tool_use",
-                        "id": c["id"],
-                        "name": c["name"],
-                        "input": c.get("args") or {},
-                    }
-                )
+            content.extend(
+                {
+                    "type": "tool_use",
+                    "id": c["id"],
+                    "name": c["name"],
+                    "input": c.get("args") or {},
+                }
+                for c in m["tool_calls"]
+            )
             out.append({"role": "assistant", "content": content})
         else:
             out.append({"role": role, "content": m.get("content") or ""})

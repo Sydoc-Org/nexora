@@ -404,6 +404,7 @@ def _check_migrations() -> list[CheckResult]:
             text=True,
             timeout=30,
             cwd=str(APP_DIR),
+            check=False,
         )
     except subprocess.TimeoutExpired:
         return [CheckResult("schema migrations", "fail", "migrate --check timed out")]
@@ -456,6 +457,7 @@ def _check_drift() -> list[CheckResult]:
             text=True,
             timeout=180,
             cwd=str(APP_DIR),
+            check=False,
         )
     except subprocess.TimeoutExpired:
         return [CheckResult("schema dump", "fail", "sync --check timed out")]
@@ -683,7 +685,7 @@ def _print_section(title: str, results: list[CheckResult]) -> None:
     for r in results:
         glyph = _GLYPH.get(r.status, "?")
         name = f"{r.name:<{width}}"
-        if r.status == "ok" or r.status == "skip":
+        if r.status in ("ok", "skip"):
             sys.stdout.write(f"    {glyph}  {name}  {C_DIM}{r.detail}{C_OFF}\n")
         else:
             sys.stdout.write(f"    {glyph}  {name}  {r.detail}\n")
@@ -803,6 +805,7 @@ def run(fast: bool = False, fix: bool = False) -> int:
                 if fid in seen:
                     continue
                 seen.add(fid)
+                assert r.fix is not None  # filtered into `fixable` above
                 try:
                     res = r.fix()
                 except Exception as exc:

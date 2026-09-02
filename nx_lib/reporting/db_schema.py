@@ -108,7 +108,7 @@ def introspect(conn, *, max_tables=MAX_TABLES):
     db_name = row[0] if row else None
 
     cur.execute(_OBJECTS_SQL)
-    tables = {}
+    tables: dict = {}
     for r in cur.fetchall():
         key = f"{r.sch}.{r.tbl}"
         t = tables.get(key)
@@ -136,7 +136,7 @@ def introspect(conn, *, max_tables=MAX_TABLES):
             t["rows"] = int(r.rowcnt or 0)
 
     cur.execute(_FK_SQL)
-    relations = {}
+    relations: dict = {}
     for r in cur.fetchall():
         src, dst = f"{r.from_sch}.{r.from_tbl}", f"{r.to_sch}.{r.to_tbl}"
         rel = relations.get(r.fkname)

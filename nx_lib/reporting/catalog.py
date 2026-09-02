@@ -36,7 +36,7 @@ def date_availability(sources, allowed_processes):
     mapping_config.ProcessSource rows (or any object exposing .process /
     .import_column / .export_column)."""
     allowed = set(allowed_processes)
-    out = {}
+    out: dict[str, list] = {}
     for s in sources:
         if s.process not in allowed:
             continue
@@ -218,7 +218,7 @@ def fetch_docprocessing_catalog(allowed_processes, locale_str):
     # catalog too -- a field that only exists for MS02 would show up as
     # "available" in the default docprocessing source's catalog, even though
     # the default runner (StatisticsDB) can't resolve it.
-    availability = {}
+    availability: dict[str, list] = {}
     allowed = set(allowed_processes)
     for m in mapping_config.mappings_for("default", allowed_processes):
         if m.process not in allowed:

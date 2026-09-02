@@ -5,7 +5,7 @@ technical knowledge assumed. If you want to know how the thing is *built*
 instead, read [`reporting.md`](reporting.md) — that one is for developers.
 
 <!-- Maintainers: this file is END-USER-FACING at runtime — the app renders it
-  at /reporting/guide (nx_lib/views/reporting.py), and the deploy workflow
+  at /reporting/guide (nx_lib/views/reporting/pages.py), and the deploy workflow
   copies it to the server. Keep it current: if you change how Reporting
   *behaves* for a user, update this file AND the in-app tips panel
   (templates/_reporting_help.html, the Help button) in the same commit. See

@@ -9,9 +9,10 @@ import time
 import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import wait as futures_wait
+from typing import Any
 
 from sqlalchemy import create_engine
-from sqlalchemy.engine import URL
+from sqlalchemy.engine import URL, Engine
 
 from . import config as cfg
 
@@ -22,8 +23,9 @@ from . import config as cfg
 _TLS_SUFFIX = "Encrypt=yes;TrustServerCertificate=yes;" if cfg.DB_ODBC_ENCRYPT else ""
 
 
-def get_db_url(d, s=None):
+def get_db_url(d: str | None, s: str | None = None, login_timeout: int | None = None) -> str:
     server = s if s is not None else cfg.DB_SERVER_PRD
+    login_timeout_suffix = f"LoginTimeout={login_timeout};" if login_timeout is not None else ""
     params = urllib.parse.quote_plus(
         f"DRIVER={{{cfg.DB_ODBC_DRIVER}}};"
         f"SERVER={server},1433;"
@@ -31,11 +33,14 @@ def get_db_url(d, s=None):
         f"UID={cfg.DB_UID};"
         f"PWD={cfg.DB_PWD};"
         f"{_TLS_SUFFIX}"
+        f"{login_timeout_suffix}"
     )
     return f"mssql+pyodbc:///?odbc_connect={params}"
 
 
-def get_ro_db_url(d, s=None, uid=None, pwd=None):
+def get_ro_db_url(
+    d: str, s: str | None = None, uid: str | None = None, pwd: str | None = None
+) -> str:
     """Build a connection URL using a dedicated read-only reporting login.
 
     Defaults to the Statistics RO login (``DB_REPORTING_RO_*``); pass ``uid`` /
@@ -55,7 +60,15 @@ def get_ro_db_url(d, s=None, uid=None, pwd=None):
     return f"mssql+pyodbc:///?odbc_connect={params}"
 
 
-def get_pg_url(host, db, uid, pwd, port="5432", sslmode="require", sslrootcert=None):
+def get_pg_url(
+    host: str,
+    db: str,
+    uid: str,
+    pwd: str,
+    port: str = "5432",
+    sslmode: str = "require",
+    sslrootcert: str | None = None,
+) -> URL:
     """Build a SQLAlchemy URL for an Azure Postgres DB over psycopg2 with TLS.
 
     Uses ``URL.create`` so special characters in the password are handled
@@ -90,10 +103,17 @@ engine_octo_db = create_engine(
     pool_recycle=1800,
     pool_pre_ping=True,
 )
+
+# NexoraDB is touched by every request (session/permission hooks), so its pool
+# is sized to never make the 32 waitress threads queue: pool_size=32 covers a
+# full thread complement, max_overflow=16 gives headroom for a burst.
+# LoginTimeout=5 makes a downed DB fail fast (~5s) instead of the ODBC driver's
+# ~15s default -- other engines are per-feature, not per-request, so they keep
+# the driver default and are deliberately left unchanged.
 engine_nexora_db = create_engine(
-    get_db_url(cfg.DB_NEXORA),
-    pool_size=10,
-    max_overflow=20,
+    get_db_url(cfg.DB_NEXORA, login_timeout=5),
+    pool_size=32,
+    max_overflow=16,
     pool_timeout=30,
     pool_recycle=1800,
     pool_pre_ping=True,
@@ -119,7 +139,7 @@ engine_generali_db = create_engine(
 # provisioned, so dev/test boxes without MS02 credentials boot normally — same
 # graceful-degrade pattern as engine_statistics_ro / engine_octo_ro.
 if cfg.MS02_DB_HOST and cfg.MS02_DB_NAME and cfg.MS02_DB_USER and cfg.MS02_DB_PWD:
-    engine_ms02_pg = create_engine(
+    engine_ms02_pg: Engine | None = create_engine(
         get_pg_url(
             cfg.MS02_DB_HOST,
             cfg.MS02_DB_NAME,
@@ -147,7 +167,7 @@ if (
     and cfg.MS02_STATS_DB_USER
     and cfg.MS02_STATS_DB_PWD
 ):
-    engine_ms02_stats_pg = create_engine(
+    engine_ms02_stats_pg: Engine | None = create_engine(
         get_pg_url(
             cfg.MS02_STATS_DB_HOST,
             cfg.MS02_STATS_DB_NAME,
@@ -179,7 +199,7 @@ if (
     and cfg.MS02_DOCFIELDS_DB_USER
     and cfg.MS02_DOCFIELDS_DB_PWD
 ):
-    engine_ms02_docfields_pg = create_engine(
+    engine_ms02_docfields_pg: Engine | None = create_engine(
         get_pg_url(
             cfg.MS02_DOCFIELDS_DB_HOST,
             cfg.MS02_DOCFIELDS_DB_NAME,
@@ -203,7 +223,7 @@ else:
 # credentials are not provisioned, so the SQL source simply degrades to
 # "unavailable" rather than breaking startup on dev/test boxes.
 if cfg.DB_REPORTING_RO_USER and cfg.DB_REPORTING_RO_PWD and cfg.DB_STATISTICS:
-    engine_statistics_ro = create_engine(
+    engine_statistics_ro: Engine | None = create_engine(
         get_ro_db_url(cfg.DB_STATISTICS),
         pool_size=5,
         max_overflow=10,
@@ -219,7 +239,7 @@ else:
 # runtime DB. Stays None until those credentials are provisioned, so the
 # Octopus SQL target degrades to "unavailable" rather than breaking startup.
 if cfg.DB_REPORTING_OCTO_RO_USER and cfg.DB_REPORTING_OCTO_RO_PWD and cfg.DB_OCTO_RUNTIME:
-    engine_octo_ro = create_engine(
+    engine_octo_ro: Engine | None = create_engine(
         get_ro_db_url(
             cfg.DB_OCTO_RUNTIME,
             uid=cfg.DB_REPORTING_OCTO_RO_USER,
@@ -238,7 +258,7 @@ else:
 _db_ping_executor = ThreadPoolExecutor(max_workers=8, thread_name_prefix="db-ping")
 
 
-def _ping_db_probe(engine):
+def _ping_db_probe(engine: Engine) -> None:
     conn = engine.raw_connection()
     try:
         cur = conn.cursor()
@@ -249,7 +269,9 @@ def _ping_db_probe(engine):
         conn.close()
 
 
-def ping_dbs_parallel(targets, timeout_s=2.0):
+def ping_dbs_parallel(
+    targets: list[tuple[Engine, str]], timeout_s: float = 2.0
+) -> list[dict[str, Any]]:
     """Ping several engines concurrently. ``targets`` is ``[(engine, label), ...]``.
 
     Total wall time is bounded by ~timeout_s regardless of how many are down:

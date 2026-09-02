@@ -81,7 +81,7 @@ extend-exclude = [
 ]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "RUF", "RET", "C4", "PIE"]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "RUF", "RET", "C4", "PIE", "PERF", "PLW1510", "PLR1714", "PLR1730", "PLR0124"]
 ignore = [
     "E501",   # line length handled by formatter
     "B008",   # function calls in default args (Flask pattern)
@@ -104,14 +104,31 @@ line-ending = "lf"
 [tool.mypy]
 python_version = "3.13"
 ignore_missing_imports = true
-# Flask/SQLAlchemy globals are legitimately Optional-until-configured here;
-# strict-optional would flag ~12 known-safe sites. Revisit if those get typed.
-strict_optional = false
-check_untyped_defs = false
+strict_optional = true
+check_untyped_defs = true
 warn_return_any = true
 warn_unused_ignores = true
 warn_redundant_casts = true
 exclude = ["^translations/", "^static/", "^sql/", "^var/", "^\\.venv/"]
+
+# disallow_untyped_defs ratchet (phase 3 D2, #beautify-phase-3): starts on
+# already-clean small modules and grows one module at a time. A module added
+# here NEVER leaves the list -- see CONTRIBUTING.md's "typing ratchet" note.
+# New modules must ship typed from the start rather than waiting to be added.
+[[tool.mypy.overrides]]
+module = [
+    "nx_lib.branding",
+    "nx_lib.clients",
+    "nx_lib.config",
+    "nx_lib.db",
+    "nx_lib.mapping_config",
+    "nx_lib.reporting",
+    "nx_lib.ui_prefs",
+    "nx_lib.version",
+    "nx_lib.views",
+    "nx_lib.workitems",
+]
+disallow_untyped_defs = true
 
 [tool.pytest.ini_options]
 minversion = "8.0"

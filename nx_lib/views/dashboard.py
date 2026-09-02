@@ -33,7 +33,8 @@ from ..workitem_sources import (
     recent_activity_rows,
     total_backlog_count,
 )
-from .workitems import sensitive_blocked_tokens, strip_sensitive_fields
+from ..workitems.sensitivity import strip_sensitive_fields
+from .workitems import sensitive_blocked_tokens
 
 
 def make_cache_key(*args, **kwargs):
@@ -496,7 +497,7 @@ def dashboard_processed_over_time():
                 GROUP BY {date_col}
             """)
 
-        counts = {}
+        counts: dict = {}
         if sub_queries:
             full_query = f"""
                 SELECT d, SUM(c) as total_count
@@ -641,7 +642,7 @@ def dashboard_hourly_stats():
                 GROUP BY DATEPART(hour, {row.export_column})
             """)
 
-        hourly = {}
+        hourly: dict = {}
 
         if sub_queries:
             full_query = f"""
@@ -774,8 +775,9 @@ def dashboard_set_filter():
             if perm.startswith(prefix)
         }
     )
+    payload = request.get_json(silent=True) or {}
     process_name = normalize_process_selection(
-        request.json.get("process_name", "all"), allowed_processes
+        payload.get("process_name", "all"), allowed_processes
     )[0]
     session["process_name_dashboard"] = process_name
     return jsonify({"ok": True, "process_name": process_name})

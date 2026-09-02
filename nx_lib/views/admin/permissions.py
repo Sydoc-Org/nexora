@@ -70,9 +70,11 @@ def admin_access_control():
                 dict(zip([column[0] for column in cursor.description], row, strict=False))
                 for row in cursor.fetchall()
             ]
-            for ap in all_ap:
-                if has_permission(f'admin.assign.user.accessprofile.{str(ap["profile"]).lower()}'):
-                    assignable_profiles.append(ap)
+            assignable_profiles = [
+                ap
+                for ap in all_ap
+                if has_permission(f'admin.assign.user.accessprofile.{str(ap["profile"]).lower()}')
+            ]
 
         return render_template(
             "admin/access_control.html",
@@ -349,7 +351,9 @@ def save_access_profile():
                 "INSERT INTO AccessProfile (Name, Description) OUTPUT INSERTED.AccessID VALUES (?, ?)",
                 (name, description),
             )
-            access_id = cursor.fetchone()[0]
+            inserted = cursor.fetchone()
+            assert inserted is not None  # INSERT ... OUTPUT always returns the new row
+            access_id = inserted[0]
 
         if permissions:
             params = [(access_id, p["PermissionID"], p["Effect"]) for p in permissions]
@@ -460,8 +464,8 @@ def api_admin_user_effective_permissions(user_id):
             (u.AccessID, user_id),
         )
 
-        granted = []
-        denied = []
+        granted: list = []
+        denied: list = []
         for r in cursor.fetchall():
             override = r.OverrideEffect
             profile = r.ProfileEffect
@@ -693,7 +697,9 @@ def api_admin_permission_add():
             "INSERT INTO Permission (Code, Description) OUTPUT INSERTED.PermissionID VALUES (?, ?)",
             (code, description),
         )
-        new_id = cursor.fetchone()[0]
+        inserted = cursor.fetchone()
+        assert inserted is not None  # INSERT ... OUTPUT always returns the new row
+        new_id = inserted[0]
         conn.commit()
         return jsonify(
             {
@@ -756,11 +762,15 @@ def api_admin_permission_delete(perm_id):
         cursor.execute(
             "SELECT COUNT(*) FROM AccessProfilePermission WHERE PermissionID=?", (perm_id,)
         )
-        profile_refs = cursor.fetchone()[0]
+        profile_refs_row = cursor.fetchone()
+        assert profile_refs_row is not None  # SELECT COUNT(*) always returns exactly one row
+        profile_refs = profile_refs_row[0]
         cursor.execute(
             "SELECT COUNT(*) FROM UserPermissionOverride WHERE PermissionID=?", (perm_id,)
         )
-        override_refs = cursor.fetchone()[0]
+        override_refs_row = cursor.fetchone()
+        assert override_refs_row is not None  # SELECT COUNT(*) always returns exactly one row
+        override_refs = override_refs_row[0]
         if profile_refs > 0 or override_refs > 0:
             return jsonify(
                 {

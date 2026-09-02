@@ -62,6 +62,16 @@ uv export --format requirements-txt --no-hashes          -o requirements-dev.txt
 `tests/unit/test_dependencies.py` fails if `nx_lib/`, `scripts/` or `ops/`
 imports a package that `pyproject.toml` does not declare.
 
+## Type checking
+
+`[tool.mypy]` in `pyproject.toml` applies `check_untyped_defs` + `strict_optional`
+repo-wide; `disallow_untyped_defs` (every function fully annotated) arrives
+per-module via `[[tool.mypy.overrides]]`, never as a single repo-wide flip. **A
+module added to that overrides list never leaves it; new modules ship typed.**
+Grow the list by picking an already-clean or small, contract-heavy module,
+annotating it fully, adding its dotted path to the overrides `module` list, and
+confirming `python -m mypy nx_lib nx_main.py` is still green.
+
 ## Naming conventions
 
 **Python:**

@@ -227,7 +227,9 @@ def api_generali_reporting_add():
             """,
                 [report_for_date, user_id, category],
             )
-            if cursor.fetchone()[0] > 0:
+            count_row = cursor.fetchone()
+            assert count_row is not None  # SELECT COUNT(*) always returns exactly one row
+            if count_row[0] > 0:
                 return jsonify(
                     {
                         "success": False,
