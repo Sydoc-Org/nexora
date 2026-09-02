@@ -883,7 +883,8 @@ def ask_agentic_iter(
     consumer can just read until it sees `"result"`.
     """
     messages = [*(history or []), {"role": "user", "content": question}]
-    trace, tin, tout, turns, stopped = [], 0, 0, 0, "max_turns"
+    trace: list = []
+    tin, tout, turns, stopped = 0, 0, 0, "max_turns"
     nudged = False
     deadline = time.monotonic() + budget_s if budget_s else None
     while turns < max_turns:

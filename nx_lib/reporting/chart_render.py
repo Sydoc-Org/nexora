@@ -143,7 +143,10 @@ def render_chart_png(definition, columns, rows, *, width=8.0, height=4.5, dpi=11
             # pivot: x = dim1 (row order), series = remaining dims joined
             # ("Process · Source", 12 largest by total) — mirrors the Simple-pane
             # client mountChart composite series key.
-            x_order, series_tot, cell, series_metric = [], {}, {}, {}
+            x_order: list = []
+            series_tot: dict = {}
+            cell: dict = {}
+            series_metric: dict = {}
             for r in rows:
                 x = _label(r[0])
                 base = " · ".join(_label(v) for v in r[1 : len(dims)])
