@@ -62,6 +62,42 @@ uv export --format requirements-txt --no-hashes          -o requirements-dev.txt
 `tests/unit/test_dependencies.py` fails if `nx_lib/`, `scripts/` or `ops/`
 imports a package that `pyproject.toml` does not declare.
 
+## The shared test database
+
+There is exactly one `NEXORA_TEST`, on `INTSQL01`, and CI and every developer's
+local run share it. Both the pre-push gate and CI's `test` job reset it, so two
+overlapping runs used to corrupt each other: whichever started second re-seeded
+`dbo.Users` under the one already going, and a random login fixture died with
+`KeyError: 'userid'` or a stray 401 — a different test every time, always
+passing in isolation, never pointing at the real cause (issue #235).
+
+Runs now serialise on a SQL Server application lock (`scripts/db_lock.py`).
+Both the reset script and the pytest session take `nexora_test_suite`
+exclusively, so a second run **waits** instead of trampling:
+
+```
+[db-lock] another test run holds nexora_test_suite; waiting up to 20 min (pytest).
+[db-lock] acquired after 47s
+```
+
+That wait is the feature — do not kill it. The lock is `@LockOwner='Session'`,
+so a killed run releases it when SQL Server reaps the session; there is never a
+stale lock to clear by hand.
+
+| Variable | Effect |
+|---|---|
+| `NEXORA_TEST_LOCK_SKIP=1` | Don't lock at all. For when the lock itself is the problem. |
+| `NEXORA_TEST_LOCK_TIMEOUT_MS` | Override the 20-minute wait before giving up. |
+
+Skipping means you can corrupt someone else's in-flight run, and they cannot
+tell it was you — so prefer waiting. A run that cannot reach the database
+doesn't lock at all (it can't corrupt anything either), which keeps pure-unit
+runs working offline.
+
+Do not use elapsed time to judge whether a run was contended. A brief collision
+reddens a suite without slowing it — the deploy that exposed this failed in
+3m54s, inside the normal ~5m.
+
 ## Naming conventions
 
 **Python:**

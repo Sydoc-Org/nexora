@@ -92,7 +92,17 @@ def _items(doc_json):
     literal type name flattens both the same way, so the page images and field
     values of the leaf documents surface on the parent workitem regardless of
     how the client names its container types. One-level batches and plain
-    single documents are unaffected (same leaves, same order)."""
+    single documents are unaffected (same leaves, same order).
+
+    Non-dict input yields no leaves. Octo can answer a thin-document fetch with
+    HTTP 200 and a ``null`` body (seen alongside the intermittent 401/400s on
+    ``LoadMediaStreams=true``), and a container's ``ChildDocuments`` can carry a
+    null entry. Both used to raise ``'NoneType' object has no attribute 'get'``
+    out of here — from outside the caller's ``try``, so it surfaced as an opaque
+    dashboard activity-feed error rather than the skipped workitem it should be
+    (#228 follow-up)."""
+    if not isinstance(doc_json, dict):
+        return []
     children = doc_json.get("ChildDocuments")
     if children:
         leaves = []

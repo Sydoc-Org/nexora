@@ -5,6 +5,7 @@ nx_lib.config would load whatever environment is currently active.
 """
 
 import os
+import sys
 
 # CRITICAL: set BEFORE importing nx_lib. setdefault avoids overwriting if a
 # caller deliberately set a different environment (e.g. for debug).
@@ -29,6 +30,52 @@ TOTP_SECRETS = {
 }
 
 TEST_PASSWORD = "Test1234!"
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _shared_test_db_lock(request):
+    """Serialise this whole pytest session against other runs (#235).
+
+    One NEXORA_TEST is shared by CI and every local run, and both sides reset
+    it. Holding the lock for the session -- not just the reset -- is the point:
+    the collisions that cost a day were a peer's reset landing in the middle of
+    a suite, not two resets racing.
+
+    Fails OPEN when the database is unreachable. A run that cannot connect
+    cannot corrupt anyone, and pure-unit runs should not start needing a
+    server. Anything that genuinely needs the DB fails later on its own terms.
+    """
+    try:
+        from scripts.db_lock import hold
+        from scripts.test_db_reset import connect_test_db
+    except ImportError as e:  # pragma: no cover - repo layout changed
+        print(f"[db-lock] helper unavailable, not serialising: {e}", file=sys.stderr)
+        yield
+        return
+
+    try:
+        conn = connect_test_db()
+    except Exception as e:
+        print(f"[db-lock] no NEXORA_TEST connection, not serialising: {e}", file=sys.stderr)
+        yield
+        return
+
+    # pytest captures stderr, so hold()'s "waiting for a peer" line would never
+    # reach the terminal and a 20-minute wait would look like a freeze.
+    capman = request.config.pluginmanager.getplugin("capturemanager")
+
+    def notify(msg):
+        if capman is None:
+            print(msg, file=sys.stderr, flush=True)
+            return
+        with capman.global_and_fixture_disabled():
+            print(msg, file=sys.stderr, flush=True)
+
+    try:
+        with hold(conn, label="pytest", notify=notify):
+            yield
+    finally:
+        conn.close()
 
 
 @pytest.fixture(scope="session")

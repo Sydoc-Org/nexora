@@ -42,7 +42,7 @@
             } catch (e) {}
             var eff = {
                 theme:      stored.theme      || (ls('nexora-theme') === 'dark' ? 'dark' : 'light'),
-                accent:     stored.accent     || (brand.accent_hex ? 'custom' : 'indigo'),
+                accent:     stored.accent     || (brand.accent_hex ? 'custom' : 'amber'),
                 accentHex:  stored.accentHex  || brand.accent_hex || '#4f46e5',
                 motion:     stored.motion     || 'full',
                 entrance:   stored.entrance   || 'rise',
@@ -372,6 +372,60 @@
                 </div>
             </div>
             {% endif %}
+
+            {# Per-tenant nav groups (tenant kernel, Task 6): one group per
+               registry tenant the session holds tenant.<code>.view for
+               (nx_lib/hooks.py's _inject_tenant_nav -> visible_tenant_nav()),
+               one subitem per page. Modeled on the generali group above --
+               same sidebar-nav-group/sidebar-nav-subitems shape and chevron
+               markup -- but the generali block itself is untouched.
+
+               Unlike the generali/admin/dev groups, a tenant's id isn't
+               known ahead of time (one per registry row, N of them), so it
+               can't get its own hardcoded getElementById wiring in
+               header.js. data-nx-nav-group="tenant" on the group + its
+               header button is what the generic wiring block in header.js
+               selects instead -- it toggles the shared nx-nav-open class
+               (see _header.css's generic rule, mirroring but not replacing
+               the three existing group-specific -open classes) and persists
+               open/closed per group under a localStorage key derived from
+               the group's own id, the same way generali's own key does. #}
+            {# Each p.url below comes pre-resolved from visible_tenant_nav()
+               (nx_lib/views/tenant.py) -- the template never calls url_for()
+               on registry-sourced data itself, so a bad LayoutJSON endpoint
+               can never BuildError here and 500 every page for every
+               logged-in user; an unresolvable custom page is simply absent
+               from t.pages already. #}
+            {% for t in tenant_nav %}
+            {% set ns = namespace(active=(active_page or '').startswith('tenant_' ~ t.code ~ '_')) %}
+            {% for p in t.pages if p.page_type == 'custom' and active_page == p.endpoint %}
+            {% set ns.active = true %}
+            {% endfor %}
+            <div class="sidebar-nav-group" id="tenantNavGroup-{{ t.code }}" data-active="{{ 'true' if ns.active else 'false' }}" data-nx-nav-group="tenant">
+                <button class="sidebar-nav-item sidebar-nav-group-header {{ 'sidebar-nav-item--active' if ns.active else '' }}" id="tenantNavHeader-{{ t.code }}" data-testid="header-nav-tenant-{{ t.code }}-toggle" data-nx-nav-group="tenant">
+                    <i class="fas fa-building sidebar-nav-icon"></i>
+                    <span class="sidebar-label [flex:1]!">{{ t.label }}</span>
+                    <i class="fas fa-chevron-right sidebar-label sidebar-generali-chevron"></i>
+                </button>
+                <div class="sidebar-nav-subitems">
+                    {% for p in t.pages %}
+                    {% if p.page_type == 'custom' %}
+                    <a href="{{ p.url }}"
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == p.endpoint else '' }}" data-testid="header-nav-tenant-{{ t.code }}-{{ p.key }}">
+                        <i class="fas fa-arrow-up-right-from-square sidebar-nav-icon sidebar-subitem-icon"></i>
+                        <span class="sidebar-label">{{ p.label }}</span>
+                    </a>
+                    {% else %}
+                    <a href="{{ p.url }}"
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == ('tenant_' ~ t.code ~ '_' ~ p.key) else '' }}" data-testid="header-nav-tenant-{{ t.code }}-{{ p.key }}">
+                        <i class="fas fa-table-list sidebar-nav-icon sidebar-subitem-icon"></i>
+                        <span class="sidebar-label">{{ p.label }}</span>
+                    </a>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
         </nav>
 
         <!-- Bottom actions -->
