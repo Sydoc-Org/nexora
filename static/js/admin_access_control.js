@@ -5,6 +5,7 @@
    `csrfToken` remain page-level globals declared by other inline
    <script nonce> blocks (templates/admin/access_control.html and
    static/js/header.js respectively) that load before this file. */
+(function () {
 const API_PREFIX = window.API_PREFIX;
 const I18N = window.NX_I18N_ADMIN_ACCESS_CONTROL;
 
@@ -888,3 +889,4 @@ document.addEventListener('DOMContentLoaded', () => {
         history.replaceState(null, '', window.location.pathname + window.location.search);
     }
 });
+}());

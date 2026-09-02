@@ -2,6 +2,7 @@
    data/config/i18n lives in the paired shim, templates/js/_workitems_overview_js.html,
    as window.NX_WORKITEMS_OVERVIEW ({ perms, docfield, i18n }). This file reads
    from that global -- it carries no Jinja of its own and never will. */
+(function () {
 const API_PREFIX = window.API_PREFIX;
 const NX_WO = window.NX_WORKITEMS_OVERVIEW;
 const I18N = NX_WO.i18n;
@@ -1631,3 +1632,4 @@ modalConfirmBtn.addEventListener('click', () => {
         renderSavedViews();
     }).catch(() => { /* bar just stays hidden */ });
 });
+}());
