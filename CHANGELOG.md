@@ -148,7 +148,12 @@ Work toward the next release.
   a request whose filters match more than 100,000 rows is now truncated to
   the export ceiling instead of returning every matching row. No scheduled
   export script in `ops/`/`scripts/` calls these endpoints — every caller is
-  the "Export to Excel" button in the Generali admin UI.
+  the "Export to Excel" button in the Generali admin UI. The truncation is
+  now surfaced instead of silent: a capped response carries `truncated: true`
+  and `capped_at: 100000` alongside the (still-uncapped) aggregate/total, and
+  `exportToExcel()` in `static/js/generali_crud.js` /
+  `static/js/generali_reporting.js` shows an `NX.toast` warning naming the
+  row limit when it fires.
 - **Eddard now sets `reasoning_effort` per surface on Azure GPT-5
   deployments.** Nothing set it, so gpt-5-mini deliberated at the API default
   (`medium`) on every call — including one-line chart captions. Measured on

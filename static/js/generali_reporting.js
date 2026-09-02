@@ -881,6 +881,11 @@
             if (!data.success) throw new Error(data.error || I18N.exportFailed);
             const records = data.records || [];
             if (!records.length) return;
+            if (data.truncated) {
+                window.NX.toast(
+                    `Export limited to the first ${(data.capped_at || records.length).toLocaleString()} rows (more rows matched your filters).`
+                );
+            }
             const today = new Date().toISOString().split('T')[0];
             const rows = records.map(r => ({
                 'ID':          r.id,

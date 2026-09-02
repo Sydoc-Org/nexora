@@ -147,6 +147,7 @@ def test_all_true_below_cap_is_unaffected(user_client, monkeypatch):
     assert body["success"] is True
     assert len(body["records"]) == 500
     assert body["pagination"]["total_records"] == 500
+    assert "truncated" not in body
 
     select_calls = [c for c in log if c[0].startswith("SELECT ID, EffortInHours")]
     assert len(select_calls) == 1
@@ -171,6 +172,9 @@ def test_all_true_above_cap_is_capped_at_exactly_100k(user_client, monkeypatch):
     # total_records still reports the true count -- pagination metadata isn't
     # lied about, only the row payload is capped.
     assert body["pagination"]["total_records"] == 150_000
+    # The truncation is now surfaced to the caller instead of being silent.
+    assert body["truncated"] is True
+    assert body["capped_at"] == ALL_EXPORT_CAP
 
     select_calls = [c for c in log if c[0].startswith("SELECT ID, EffortInHours")]
     assert len(select_calls) == 1
@@ -190,6 +194,7 @@ def test_all_true_exactly_at_cap_is_unaffected(user_client, monkeypatch):
     assert resp.status_code == 200
     body = resp.get_json()
     assert len(body["records"]) == ALL_EXPORT_CAP
+    assert "truncated" not in body
 
     select_calls = [c for c in log if c[0].startswith("SELECT ID, EffortInHours")]
     normalized_sql, _params = select_calls[0]
@@ -207,3 +212,4 @@ def test_normal_pagination_unaffected_by_cap(user_client, monkeypatch):
     body = resp.get_json()
     assert len(body["records"]) == 20  # per_page, unrelated to the cap
     assert body["pagination"]["total_records"] == 150_000
+    assert "truncated" not in body

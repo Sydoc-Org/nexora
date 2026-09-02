@@ -613,7 +613,8 @@ def _make_list(d):
             # Cap ?all=true at the export ceiling instead of returning every
             # matching row: non-breaking when total_records <= the cap (same
             # SQL as before), only the pathological case gets bounded.
-            if requested_all and total_records > ALL_EXPORT_CAP:
+            truncated = requested_all and total_records > ALL_EXPORT_CAP
+            if truncated:
                 pagination_sql = "OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY"
                 sql_params = [*params, ALL_EXPORT_CAP]
             elif requested_all:
@@ -642,6 +643,9 @@ def _make_list(d):
             records = [spec.record(r, user_map.get(r[spec.user_index], {})) for r in rows]
 
             payload = {"success": True, "records": records}
+            if truncated:
+                payload["truncated"] = True
+                payload["capped_at"] = ALL_EXPORT_CAP
             if spec.aggregate:
                 payload[spec.aggregate[1]] = spec.aggregate[2](agg[1])
             payload["pagination"] = {

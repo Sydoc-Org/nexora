@@ -200,6 +200,12 @@
                 if (!data.success) throw new Error(data.error || 'Export failed');
                 var records = data.records || [];
                 if (!records.length) return;
+                if (data.truncated) {
+                    window.NX.toast(
+                        'Export limited to the first ' + (data.capped_at || records.length).toLocaleString() +
+                        ' rows (more rows matched your filters).'
+                    );
+                }
                 var today = new Date().toISOString().split('T')[0];
                 var rows = records.map(descriptor.exportRowMapper);
                 var ws = XLSX.utils.json_to_sheet(rows);
