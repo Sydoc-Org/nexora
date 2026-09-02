@@ -63,11 +63,17 @@ def admin_add_user():
         conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute("select accessid from accessprofile where name = ?", accessprofile)
-        accessid = cursor.fetchone()[0]
+        accessprofile_row = cursor.fetchone()
+        if accessprofile_row is None:
+            return jsonify({"success": False, "message": _("Unknown access profile.")}), 400
+        accessid = accessprofile_row[0]
         cursor.execute(
             "select organizationcode from organizations where organization = ?", organization
         )
-        organizationcode = cursor.fetchone()[0]
+        organization_row = cursor.fetchone()
+        if organization_row is None:
+            return jsonify({"success": False, "message": _("Unknown organization.")}), 400
+        organizationcode = organization_row[0]
         cursor.execute(
             "INSERT INTO Users (username, password, fullname, email, organizationcode, accessid, InitReset) VALUES (?, ?, ?, ?, ?, ?, ?)",
             (
@@ -171,11 +177,17 @@ def admin_edit_user(user_id):
             ), 403
 
         cursor.execute("select accessid from accessprofile where name = ?", accessprofile)
-        accessid = cursor.fetchone()[0]
+        accessprofile_row = cursor.fetchone()
+        if accessprofile_row is None:
+            return jsonify({"success": False, "message": _("Unknown access profile.")}), 400
+        accessid = accessprofile_row[0]
         cursor.execute(
             "select organizationcode from organizations where organization = ?", organization
         )
-        organizationcode = cursor.fetchone()[0]
+        organization_row = cursor.fetchone()
+        if organization_row is None:
+            return jsonify({"success": False, "message": _("Unknown organization.")}), 400
+        organizationcode = organization_row[0]
 
         if password:
             hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode(
