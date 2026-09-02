@@ -109,5 +109,6 @@ work on the current cycle branch instead.
 
 - Target `main`
 - Pre-push hook runs unit + integration tests (~5 min); the full suite
-  including e2e runs in CI, which PR merges and `deploy` both require
+  including e2e runs in CI on the **PR**. The post-merge run on `main` that
+  gates `deploy` re-runs only the fast tier — e2e is not repeated
 - Keep PRs small and focused. The repo prefers many small PRs over one large one.

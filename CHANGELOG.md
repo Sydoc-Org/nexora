@@ -65,6 +65,15 @@ Work toward the next release.
 
 ### Changed
 
+- **The deploy pipeline stopped testing everything twice.** Every commit
+  reaching `main` arrives through a PR whose CI run already executed the full
+  suite; the post-merge run on `main` then executed it again before deploying,
+  so a merge cost ~42 min of CI for a `deploy` job that itself takes 31 s. The
+  e2e suite (14m51s of the 21-minute test job, plus its Playwright chromium
+  install) is now PR-only. The merge commit — the one artifact the PR run never
+  saw — is still gated by lint, mypy and the unit/integration tier, cutting the
+  path from merge to PROD to roughly 6 minutes.
+
 - **Eddard now sets `reasoning_effort` per surface on Azure GPT-5
   deployments.** Nothing set it, so gpt-5-mini deliberated at the API default
   (`medium`) on every call — including one-line chart captions. Measured on

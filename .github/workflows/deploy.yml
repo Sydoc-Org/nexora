@@ -87,6 +87,7 @@ jobs:
         run: D:\sydoc\tools\py\python.exe -m mypy nx_lib nx_main.py
 
       - name: Install Playwright chromium
+        if: github.event_name == 'pull_request'
         shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
@@ -122,6 +123,8 @@ jobs:
       # `pytest tests` used to run the 10-minute e2e suite BEFORE unit tests —
       # a trivial unit failure surfaced last. Fast tier covers everything
       # except tests/e2e (including root-level test files).
+      #
+      # The fast tier runs on both events; e2e is PR-only (see its `if`).
       - name: Run unit + integration tests
         shell: powershell
         env:
@@ -134,7 +137,14 @@ jobs:
             --junitxml=var/test-results/junit-fast.xml `
             --html=var/test-results/report-fast.html
 
+      # e2e is ~15 min of the ~21 min test job, and every commit reaching main
+      # arrives through a PR that already ran it. Running it a second time on
+      # the merge commit doubled the deploy path for no new information, so it
+      # is PR-only. The fast tier above still guards the merge commit itself
+      # (the one thing the PR run never saw) — if a merge silently breaks
+      # something only e2e catches, it lands on PROD; revert and fix forward.
       - name: Run E2E tests
+        if: github.event_name == 'pull_request'
         shell: powershell
         env:
           ENVIRONMENT: TEST
