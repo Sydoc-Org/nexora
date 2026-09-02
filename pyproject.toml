@@ -107,7 +107,7 @@ ignore_missing_imports = true
 # Flask/SQLAlchemy globals are legitimately Optional-until-configured here;
 # strict-optional would flag ~12 known-safe sites. Revisit if those get typed.
 strict_optional = false
-check_untyped_defs = false
+check_untyped_defs = true
 warn_return_any = true
 warn_unused_ignores = true
 warn_redundant_casts = true

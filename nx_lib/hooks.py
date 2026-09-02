@@ -60,7 +60,7 @@ def get_ip():
 
 
 def _start_timer():
-    request.start_time = time.time()
+    request.start_time = time.time()  # type: ignore[attr-defined]
 
 
 def _enforce_active_session():

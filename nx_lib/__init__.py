@@ -158,6 +158,6 @@ def create_app():
     if cfg.IS_PROD:
         from .middleware import PrefixMiddleware
 
-        app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix="/nexora")
+        app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix="/nexora")  # type: ignore[method-assign]
 
     return app

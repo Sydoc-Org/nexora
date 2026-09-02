@@ -459,7 +459,7 @@ def api_docfield_values():
             all_vals = cache.get(ms02_cache_key)
             if all_vals is None:
                 df_conn = None
-                raw_vals = []
+                raw_vals: list = []
                 try:
                     df_conn = engine_ms02_docfields_pg.raw_connection()
                     df_cur = df_conn.cursor()
@@ -645,10 +645,10 @@ def export_workitems_csv():
     _include_fields = include_fields
     _include_history = include_history
     _include_images = include_images
-    _app = current_app._get_current_object()
+    _app = current_app._get_current_object()  # type: ignore[attr-defined]
 
     def _fetch(wid, client):
-        detail = {"fields": {}, "history": [], "images": []}
+        detail: dict = {"fields": {}, "history": [], "images": []}
         domain = domains.get((client, wid), OCTO_DOMAIN)
         with _app.app_context():
             if _include_fields or _include_images:
@@ -1362,7 +1362,7 @@ def get_audithistory(workitem_id):
         # get_activity_type_name is memoized, but a cold cache (first time an
         # activity is seen) still means one Octo round trip per step -- fetch
         # cold misses concurrently instead of sum-of-latencies.
-        _app = current_app._get_current_object()
+        _app = current_app._get_current_object()  # type: ignore[attr-defined]
 
         def _name_for(activity_id):
             with _app.app_context():

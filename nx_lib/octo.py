@@ -176,7 +176,7 @@ def get_extensions_urls_fields(workitemdata, document_id, domain=None, with_tabl
     # Resolve every distinct PDF concurrently instead.
     pdf_page_count_by_url = {}
     if pdf_urls_to_count:
-        _app = current_app._get_current_object()
+        _app = current_app._get_current_object()  # type: ignore[attr-defined]
 
         def _count_pdf(pdf_url):
             with _app.app_context():
