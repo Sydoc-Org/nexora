@@ -436,7 +436,7 @@ def _load_field_col_maps(target_processes):
     dict by iterating every client present in the registry's sources rather
     than guessing which ones matter.
     """
-    maps = {}
+    maps: dict = {}
     if not target_processes:
         return maps
     reg = mapping_config.registry()

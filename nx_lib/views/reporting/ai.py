@@ -114,7 +114,7 @@ def _ai_schema_text():
     # answering company-wide questions from whichever single one it found in the
     # flat INFORMATION_SCHEMA dump (issue #128). Statconfig being unavailable just
     # drops the block — never a 500.
-    partial_tables = {}
+    partial_tables: dict = {}
     try:
         allowed = _allowed_processes()
         field_maps = _load_field_col_maps(allowed)

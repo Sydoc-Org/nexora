@@ -383,7 +383,7 @@ def api_v1_workitems():
     blocked_keys = get_sensitive_field_keys()
     if blocked_keys is None:
         return jsonify({"error": "Workitems backend unavailable"}), 500
-    scoped_columns = frozenset()
+    scoped_columns: set | frozenset = frozenset()
     if request.args.getlist("field"):
         # Only resolved when field pairs are present (one extra PK-range read);
         # None = lookup failure -> fail closed like the sensitive set above.

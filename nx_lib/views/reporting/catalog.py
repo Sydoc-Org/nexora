@@ -49,7 +49,7 @@ def _accessible_curated_sources():
     allowed_processes = _allowed_processes()
     # Canonical metrics per source so the model can draft metric definitions
     # (the serializer renders them as a per-source `metrics:` line).
-    metrics_by_source = {}
+    metrics_by_source: dict[str, list] = {}
     for m in _load_db_metrics().values():
         metrics_by_source.setdefault(m["source_id"], []).append(
             {
@@ -167,7 +167,7 @@ def api_metrics():
     # same source gate so we keep the format field for the builder.
     perms = set(session.get("permissions", []))
     allowed_sources = {s["id"] for s in accessible(_effective_sources(), perms)}
-    out = {}
+    out: dict[str, list] = {}
     for m in _load_db_metrics().values():
         sid = m["source_id"]
         if sid not in allowed_sources:

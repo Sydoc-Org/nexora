@@ -497,7 +497,7 @@ def dashboard_processed_over_time():
                 GROUP BY {date_col}
             """)
 
-        counts = {}
+        counts: dict = {}
         if sub_queries:
             full_query = f"""
                 SELECT d, SUM(c) as total_count
@@ -642,7 +642,7 @@ def dashboard_hourly_stats():
                 GROUP BY DATEPART(hour, {row.export_column})
             """)
 
-        hourly = {}
+        hourly: dict = {}
 
         if sub_queries:
             full_query = f"""
