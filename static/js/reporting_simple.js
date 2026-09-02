@@ -3,11 +3,12 @@
 // Never touches the Advanced builder's DOM or ReportingViz (the builder's
 // chart singleton); the result view owns a private Chart.js instance.
 (function () {
+  window.RS = window.RS || {};
   var csrf = document.querySelector('meta[name="csrf-token"]').content;
   var API_PREFIX = window.API_PREFIX;
   var EXPORT_ALLOWED = !!document.getElementById('rsExport');
 
-  var I18N = window.NX_I18N_REPORTING_SIMPLE;
+  RS.I18N = window.NX_I18N_REPORTING_SIMPLE;
 
   // Wizard category-dimension curation (docprocessing only). Process first
   // (each Octo process = an actual client, so this is the per-client
@@ -18,7 +19,7 @@
   var DOCPROC_DIM_HIDE = { bankpk: 1, crdno: 1, docbarcode: 1,
                            docdate: 1, workitem_id: 1 };
 
-  var state = {
+  RS.state = {
     reports: [],            // /api/reporting/reports rows (kind!=='sql')
     sources: null,          // /api/reporting/sources cache
     metricsBySource: null,  // /api/reporting/metrics cache
@@ -36,35 +37,35 @@
     }())
   };
 
-  // el/api/esc: shared with nx_core.js (Task 11) -- this file's api() never
+  // el/api/esc: shared with nx_core.js (Task 11) -- this file's RS.api() never
   // throws (resolves to {ok,status,data}), so it aliases NX.apiSafe, not
   // NX.api.
-  var el = window.NX.el;
-  var api = window.NX.apiSafe;
-  var esc = window.NX.esc;
+  RS.el = window.NX.el;
+  RS.api = window.NX.apiSafe;
+  RS.esc = window.NX.esc;
 
   function relTime(iso) {
     var d = new Date(iso); if (isNaN(d)) return '';
     var days = Math.floor((Date.now() - d.getTime()) / 86400000);
-    if (days <= 0) return I18N.today;
-    if (days === 1) return I18N.yesterday;
-    if (days < 7) return days + ' ' + I18N.daysAgo;
+    if (days <= 0) return RS.I18N.today;
+    if (days === 1) return RS.I18N.yesterday;
+    if (days < 7) return days + ' ' + RS.I18N.daysAgo;
     var w = Math.floor(days / 7);
-    return w + ' ' + (w === 1 ? I18N.weekAgo : I18N.weeksAgo);
+    return w + ' ' + (w === 1 ? RS.I18N.weekAgo : RS.I18N.weeksAgo);
   }
 
   function setView(view) {
-    state.view = view;
-    el('rsLibrary').hidden = view !== 'library';  // #rsSearch nests under it now
-    el('rsWizard').hidden = view !== 'wizard';
-    el('rsResult').hidden = view !== 'result';
-    el('rsDashboard').hidden = view !== 'dashboard';
+    RS.state.view = view;
+    RS.el('rsLibrary').hidden = view !== 'library';  // #rsSearch nests under it now
+    RS.el('rsWizard').hidden = view !== 'wizard';
+    RS.el('rsResult').hidden = view !== 'result';
+    RS.el('rsDashboard').hidden = view !== 'dashboard';
     if (view !== 'result') {
       // Only the Chart.js instance is torn down; the rest of the result DOM
       // (KPI band, table, caption, chips, query card) stays rendered so the
       // Results nav item can restore the last result without re-querying
       // (Console design intent #8) — restoreResult() re-mounts the chart
-      // from state.lastRun.
+      // from RS.state.lastRun.
       destroyChart();
       hideTimingBadge();
       toggleMoreMenu(false);
@@ -76,7 +77,7 @@
   // Console "Results" nav: bring back the last rendered result from cache.
   // Returns false when this session has no rendered result yet.
   function restoreResult() {
-    var cur = state.current, lr = state.lastRun;
+    var cur = RS.state.current, lr = RS.state.lastRun;
     if (!cur || !lr) return false;
     setView('result');
     if (lr.hasMetrics && lr.dims) {
@@ -89,21 +90,21 @@
   // Entry point for the Console nav rail (js/_reporting_tabs_js.html).
   function navTo(screen) {
     if (screen === 'library') {
-      if (state.view !== 'library') { setView('library'); loadLibrary(); }
+      if (RS.state.view !== 'library') { setView('library'); loadLibrary(); }
       return;
     }
     if (screen === 'results') {
-      if (state.view === 'result') return;
+      if (RS.state.view === 'result') return;
       if (restoreResult()) return;
       // Nothing rendered yet this session: open the most recent report so
-      // Results never shows an empty state.
-      var r = (state.reports || []).filter(function (x) { return x.kind !== 'dashboard'; })[0];
+      // Results never shows an empty RS.state.
+      var r = (RS.state.reports || []).filter(function (x) { return x.kind !== 'dashboard'; })[0];
       if (r) openReport(r); else setView('library');
       return;
     }
     if (screen === 'dashboards') {
-      if (state.view === 'dashboard') return;
-      var d = (state.reports || []).filter(function (x) { return x.kind === 'dashboard'; })[0];
+      if (RS.state.view === 'dashboard') return;
+      var d = (RS.state.reports || []).filter(function (x) { return x.kind === 'dashboard'; })[0];
       if (d) { openDashboard(d); return; }
       setView('dashboard');
       window.ReportingDashboard.openNew();
@@ -115,7 +116,7 @@
   // must keep its badge across Simple-pane view changes.
   function hideTimingBadge() {
     if (!(window.ReportingTabs && window.ReportingTabs.current() === 'simple')) return;
-    var timing = el('reportingTiming');
+    var timing = RS.el('reportingTiming');
     if (timing) timing.hidden = true;
   }
 
@@ -125,8 +126,8 @@
   // trigger. Click-to-toggle, outside-click and Escape wiring live at the
   // bottom of this file, next to the other header button bindings.
   function toggleMoreMenu(open) {
-    var menu = el('rsMoreMenu');
-    var btn = el('rsMore');
+    var menu = RS.el('rsMoreMenu');
+    var btn = RS.el('rsMore');
     if (!menu || !btn) return;
     var willOpen = (open === undefined) ? menu.hidden : open;
     menu.hidden = !willOpen;
@@ -134,7 +135,7 @@
   }
 
   function destroyChart() {
-    if (state.chart) { state.chart.destroy(); state.chart = null; }
+    if (RS.state.chart) { RS.state.chart.destroy(); RS.state.chart = null; }
   }
 
   // ---------- Library ----------
@@ -287,8 +288,8 @@
       var metricLabel = (r.definition && r.definition.metrics && r.definition.metrics[0]
         && r.definition.metrics[0].label) || '—';
       body = real
-        ? '<div class="rs-card-total">' + esc(fmtNumber(cache.v)) + '</div>'
-        : '<div class="rs-card-total rs-card-total-label">' + esc(metricLabel) + '</div>';
+        ? '<div class="rs-card-total">' + RS.esc(fmtNumber(cache.v)) + '</div>'
+        : '<div class="rs-card-total rs-card-total-label">' + RS.esc(metricLabel) + '</div>';
     } else if (kind === 'dash') {
       body = previewSvgDash((r.summary || {}).cards);
     } else {
@@ -314,26 +315,26 @@
     var facts = [];
     function fact(icon, text, title, wide) {
       facts.push('<span class="rs-card-fact' + (wide ? ' rs-card-fact--wide' : '') +
-        '" title="' + esc(title) + '">' +
-        '<i class="fas ' + icon + '" aria-hidden="true"></i>' + esc(text) + '</span>');
+        '" title="' + RS.esc(title) + '">' +
+        '<i class="fas ' + icon + '" aria-hidden="true"></i>' + RS.esc(text) + '</span>');
     }
     if (sm.source) {
       // The real database behind the source, same as the sources rail names
       // (published by _reporting_tabs_js once its health probe lands); the
       // registry label is the fallback until then.
-      var src = (state.sources || []).find(function (x) { return x.id === sm.source; });
+      var src = (RS.state.sources || []).find(function (x) { return x.id === sm.source; });
       var db = (window.ReportingSourceDb || {})[sm.source] || (src && src.label) || sm.source;
       fact('fa-database', db, db, true);
     }
-    var GRAINS = { day: I18N.grainDay, week: I18N.grainWeek, month: I18N.grainMonth,
-                   quarter: I18N.grainQuarter, year: I18N.grainYear };
-    if (sm.grain && GRAINS[sm.grain]) fact('fa-calendar-day', GRAINS[sm.grain], I18N.granularity);
-    if (sm.metrics) fact('fa-hashtag', String(sm.metrics), I18N.wizMeasure);
-    if (sm.dimensions) fact('fa-layer-group', String(sm.dimensions), I18N.wizBreakdown);
-    if (sm.filters) fact('fa-filter', String(sm.filters), I18N.aiFilters);
+    var GRAINS = { day: RS.I18N.grainDay, week: RS.I18N.grainWeek, month: RS.I18N.grainMonth,
+                   quarter: RS.I18N.grainQuarter, year: RS.I18N.grainYear };
+    if (sm.grain && GRAINS[sm.grain]) fact('fa-calendar-day', GRAINS[sm.grain], RS.I18N.granularity);
+    if (sm.metrics) fact('fa-hashtag', String(sm.metrics), RS.I18N.wizMeasure);
+    if (sm.dimensions) fact('fa-layer-group', String(sm.dimensions), RS.I18N.wizBreakdown);
+    if (sm.filters) fact('fa-filter', String(sm.filters), RS.I18N.aiFilters);
     // Dashboard cards: the one fact a dashboard has (its summary carries no
     // source/grain/metrics -- see _preview_summary's dashboard branch).
-    if (sm.cardCount) fact('fa-table-cells-large', String(sm.cardCount), I18N.cardsLabel);
+    if (sm.cardCount) fact('fa-table-cells-large', String(sm.cardCount), RS.I18N.cardsLabel);
     if (!facts.length) return '';
     return '<div class="rs-card-facts">' + facts.join('') + '</div>';
   }
@@ -370,15 +371,15 @@
         '<span class="rs-card-tag' + (kind === 'dash' ? ' rs-card-tag--gray' : '') + '">' +
           '<i class="fas ' + badge.icon + '" aria-hidden="true"></i>' + badge.label + '</span>' +
       '</div>' +
-      '<p class="rs-card-name" title="' + esc(r.name) + '">' + esc(r.name) + '</p>' +
+      '<p class="rs-card-name" title="' + RS.esc(r.name) + '">' + RS.esc(r.name) + '</p>' +
       previewBandHtml(r) +
       '<div class="rs-card-meta">' +
-        '<span class="rs-card-avatar">' + esc(initialsOf(r.ownerName)) + '</span>' +
-        '<span class="rs-card-metatext">' + esc(r.ownerName || '') + ' · ' + esc(relTime(r.updatedAt)) +
+        '<span class="rs-card-avatar">' + RS.esc(initialsOf(r.ownerName)) + '</span>' +
+        '<span class="rs-card-metatext">' + RS.esc(r.ownerName || '') + ' · ' + RS.esc(relTime(r.updatedAt)) +
           // Owner-side 'shared' tag: an explicit per-user grant leaves
           // Visibility = 'private', so the card would otherwise look
           // identical to a private one.
-          (r.owned && (r.visibility === 'shared' || r.sharedCount) ? ' · ' + I18N.shared : '') +
+          (r.owned && (r.visibility === 'shared' || r.sharedCount) ? ' · ' + RS.I18N.shared : '') +
           '</span>' +
         '<i class="fas fa-play rs-card-play" aria-hidden="true"></i>' +
       '</div>';
@@ -397,7 +398,7 @@
     kebab.setAttribute('data-testid', 'rs-card-kebab');
     kebab.setAttribute('aria-haspopup', 'true');
     kebab.setAttribute('aria-expanded', 'false');
-    kebab.setAttribute('aria-label', I18N.cardMenu + ': ' + r.name);
+    kebab.setAttribute('aria-label', RS.I18N.cardMenu + ': ' + r.name);
     kebab.innerHTML = '<i class="fas fa-ellipsis" aria-hidden="true"></i>';
     var menu = document.createElement('div');
     menu.className = 'rs-card-menu';
@@ -408,7 +409,7 @@
     share.className = 'rs-card-menu-row';
     share.setAttribute('role', 'menuitem');
     share.setAttribute('data-testid', 'rs-card-share');
-    share.innerHTML = '<i class="fas fa-arrow-up-from-bracket" aria-hidden="true"></i>' + esc(I18N.share);
+    share.innerHTML = '<i class="fas fa-arrow-up-from-bracket" aria-hidden="true"></i>' + RS.esc(RS.I18N.share);
     share.addEventListener('click', function (e) {
       e.stopPropagation();
       closeCardMenu();
@@ -420,7 +421,7 @@
     del.setAttribute('role', 'menuitem');
     del.setAttribute('data-testid', 'rs-card-delete');
     del.innerHTML = '<i class="fas fa-trash-can" aria-hidden="true"></i>' +
-      esc(r.kind === 'dashboard' ? I18N.deleteDashboard : I18N.deleteReport);
+      RS.esc(r.kind === 'dashboard' ? RS.I18N.deleteDashboard : RS.I18N.deleteReport);
     del.addEventListener('click', function (e) { e.stopPropagation(); closeCardMenu(); deleteReport(r.id, r.name); });
     menu.appendChild(share);
     var hr = document.createElement('div');
@@ -446,11 +447,11 @@
   // ponytail: window.confirm, same as the Advanced tab's delete — swap for a
   // styled dialog when one exists for the page.
   async function deleteReport(id, name) {
-    if (!window.confirm(I18N.deleteConfirm.replace('{name}', name || ''))) return;
-    var res = await api('/api/reporting/reports/' + id, { method: 'DELETE' });
-    if (!res.ok) { showResultError(I18N.deleteFailed); return; }
-    if (state.current && String(state.current.reportId) === String(id)) {
-      state.current = null;
+    if (!window.confirm(RS.I18N.deleteConfirm.replace('{name}', name || ''))) return;
+    var res = await RS.api('/api/reporting/reports/' + id, { method: 'DELETE' });
+    if (!res.ok) { showResultError(RS.I18N.deleteFailed); return; }
+    if (RS.state.current && String(RS.state.current.reportId) === String(id)) {
+      RS.state.current = null;
       toggleMoreMenu(false);
       setView('library');
     }
@@ -458,15 +459,15 @@
   }
 
   function renderLibrary() {
-    var q = (el('rsSearch').value || '').toLowerCase();
-    var groups = { shared: el('rsGroupShared'), mine: el('rsGroupMine'), direct: el('rsGroupDirect') };
+    var q = (RS.el('rsSearch').value || '').toLowerCase();
+    var groups = { shared: RS.el('rsGroupShared'), mine: RS.el('rsGroupMine'), direct: RS.el('rsGroupDirect') };
     var counts = { shared: 0, mine: 0, direct: 0 };
     Object.keys(groups).forEach(function (k) {
       groups[k].innerHTML = '';
-      groups[k].classList.toggle('is-cols-4', state.layout === '4');
+      groups[k].classList.toggle('is-cols-4', RS.state.layout === '4');
     });
-    var list = state.reports.slice();
-    if (state.sort === 'name') {
+    var list = RS.state.reports.slice();
+    if (RS.state.sort === 'name') {
       list.sort(function (a, b) { return String(a.name).localeCompare(String(b.name)); });
     }  // 'updated' keeps the server order (Owned DESC, UpdatedAt DESC)
     // --i drives the staggered entrance + sparkline draw-in (reporting-console
@@ -481,61 +482,61 @@
       groups[g].appendChild(c);
       counts[g]++;
     });
-    var all = el('rsCountAll');
+    var all = RS.el('rsCountAll');
     if (all) {
       var total = counts.shared + counts.mine + counts.direct;
-      all.textContent = total === 1 ? I18N.oneReport : I18N.nReports.replace('{n}', String(total));
+      all.textContent = total === 1 ? RS.I18N.oneReport : RS.I18N.nReports.replace('{n}', String(total));
     }
-    var pills = { mine: el('rsCountMine'), shared: el('rsCountShared'), direct: el('rsCountDirect') };
+    var pills = { mine: RS.el('rsCountMine'), shared: RS.el('rsCountShared'), direct: RS.el('rsCountDirect') };
     // The empty-state name line reuses the group's own header string (already
     // translated above the grid); the hint line reuses the existing
     // emptyMine/emptyShared/emptyDirect copy — no new translated sentences.
     var groupEmpty = {
-      mine: { name: I18N.groupNameMine, hint: I18N.emptyMine },
-      shared: { name: I18N.groupNameShared, hint: I18N.emptyShared },
-      direct: { name: I18N.groupNameDirect, hint: I18N.emptyDirect }
+      mine: { name: RS.I18N.groupNameMine, hint: RS.I18N.emptyMine },
+      shared: { name: RS.I18N.groupNameShared, hint: RS.I18N.emptyShared },
+      direct: { name: RS.I18N.groupNameDirect, hint: RS.I18N.emptyDirect }
     };
     Object.keys(groups).forEach(function (k) {
       if (pills[k]) pills[k].textContent = String(counts[k]);
       if (!counts[k]) {
         groups[k].innerHTML = '<div class="rs-group-empty">' +
-          '<p class="rs-group-empty-name">' + esc(groupEmpty[k].name) + '</p>' +
-          '<p class="rs-group-empty-hint">' + esc(groupEmpty[k].hint) + '</p></div>';
+          '<p class="rs-group-empty-name">' + RS.esc(groupEmpty[k].name) + '</p>' +
+          '<p class="rs-group-empty-hint">' + RS.esc(groupEmpty[k].hint) + '</p></div>';
       }
     });
   }
 
   async function loadLibrary() {
-    var res = await api('/api/reporting/reports');
+    var res = await RS.api('/api/reporting/reports');
     if (!res.ok || !Array.isArray(res.data)) return;
     // Viewers can't run sql-kind reports (/api/reporting/run rejects them);
     // they stay fully usable in Advanced.
-    state.reports = res.data.filter(function (r) { return r.kind !== 'sql'; });
+    RS.state.reports = res.data.filter(function (r) { return r.kind !== 'sql'; });
     renderLibrary();
     // Card facts name the source, so redraw once the catalog lands -- until
     // then they'd read as raw ids.
-    if (!state.sources) loadSourcesCatalog().then(renderLibrary);
+    if (!RS.state.sources) loadSourcesCatalog().then(renderLibrary);
     // …and again when the rail's health probe reports the real database names,
     // which is what the cards would rather show than the registry label.
     if (!window.ReportingSourceDb) {
       document.addEventListener('rc:sourcehealth', function once() {
         document.removeEventListener('rc:sourcehealth', once);
-        if (state.reports) renderLibrary();
+        if (RS.state.reports) renderLibrary();
       });
     }
     // Feeds the Console nav-rail counts (Library / Dashboards).
     document.dispatchEvent(new CustomEvent('rs:libraryloaded',
-      { detail: { reports: state.reports } }));
+      { detail: { reports: RS.state.reports } }));
   }
 
   async function openReport(r) {
-    var res = await api('/api/reporting/reports/' + r.id);
+    var res = await RS.api('/api/reporting/reports/' + r.id);
     if (!res.ok || !res.data || !res.data.definition) {
-      showResultError(I18N.couldNotLoad); return;
+      showResultError(RS.I18N.couldNotLoad); return;
     }
     await loadSourcesCatalog();
-    if (!state.metricsBySource) await loadMetricsCatalog();
-    state.current = {
+    if (!RS.state.metricsBySource) await loadMetricsCatalog();
+    RS.state.current = {
       def: res.data.definition, name: res.data.name, reportId: r.id,
       owned: !!res.data.owned, canEdit: !!res.data.canEdit, fromWizard: false,
       origin: 'library'
@@ -547,8 +548,8 @@
   // Simple result view -- openReport minus the saved-report id.
   async function openDefinition(def, name) {
     await loadSourcesCatalog();
-    if (!state.metricsBySource) await loadMetricsCatalog();
-    state.current = {
+    if (!RS.state.metricsBySource) await loadMetricsCatalog();
+    RS.state.current = {
       def: def, name: name || def.title || '', reportId: null,
       owned: true, canEdit: true, fromWizard: false, origin: 'ai'
     };
@@ -561,9 +562,9 @@
   // response payload IS the {id, name, definition, owned, canEdit} shape
   // window.ReportingDashboard.open() expects.
   async function openDashboard(r) {
-    var res = await api('/api/reporting/reports/' + r.id);
+    var res = await RS.api('/api/reporting/reports/' + r.id);
     if (!res.ok || !res.data || !res.data.definition) {
-      showResultError(I18N.couldNotLoad); return;
+      showResultError(RS.I18N.couldNotLoad); return;
     }
     setView('dashboard');
     window.ReportingDashboard.open(res.data);
@@ -571,7 +572,7 @@
 
   async function loadMetricsCatalog() {
     try {
-      state.metricsBySource = await ReportingCatalog.metrics();
+      RS.state.metricsBySource = await ReportingCatalog.metrics();
     } catch (e) { /* non-fatal: the panes treat a missing map as "no metrics" */ }
   }
 
@@ -580,8 +581,8 @@
   // rows for — disabled while the result pane shows an error, re-enabled the
   // moment a run actually succeeds.
   function setHeaderActionsEnabled(enabled) {
-    el('rsSave').disabled = !enabled;
-    if (EXPORT_ALLOWED) el('rsExport').disabled = !enabled;
+    RS.el('rsSave').disabled = !enabled;
+    if (EXPORT_ALLOWED) RS.el('rsExport').disabled = !enabled;
   }
 
   // The Open-in-Advanced escape hatch rendered under rsError (only when the
@@ -597,44 +598,44 @@
     btn.id = 'rsErrorOpenAdvanced';
     btn.className = 'reporting-btn nx-btn nx-btn--secondary';
     btn.setAttribute('data-testid', 'rs-error-open-advanced');
-    btn.textContent = I18N.openInAdvanced;
-    btn.addEventListener('click', function () { el('rsOpenAdvanced').click(); });
-    el('rsError').insertAdjacentElement('afterend', btn);
+    btn.textContent = RS.I18N.openInAdvanced;
+    btn.addEventListener('click', function () { RS.el('rsOpenAdvanced').click(); });
+    RS.el('rsError').insertAdjacentElement('afterend', btn);
   }
 
   function showResultError(msg, opts) {
-    el('rsRunLoading').hidden = true;
-    if (el('rsChips')) el('rsChips').hidden = true;
+    RS.el('rsRunLoading').hidden = true;
+    if (RS.el('rsChips')) RS.el('rsChips').hidden = true;
     setView('result');
     hideTimingBadge();
     toggleMoreMenu(false);
-    el('rsResultTitle').textContent = (opts && opts.title) || '';
-    el('rsResultTitle').style.color = '';
-    el('rsCrumbName').textContent = (opts && opts.title) || '';
-    el('rsSavedChip').hidden = true;
-    el('rsResultMeta').textContent = '';
-    el('rsTableRowCount').textContent = '';
-    el('rsMsg').hidden = true;
-    el('rsSaveName').hidden = true;
-    el('rsError').textContent = msg;
-    el('rsError').hidden = false;
+    RS.el('rsResultTitle').textContent = (opts && opts.title) || '';
+    RS.el('rsResultTitle').style.color = '';
+    RS.el('rsCrumbName').textContent = (opts && opts.title) || '';
+    RS.el('rsSavedChip').hidden = true;
+    RS.el('rsResultMeta').textContent = '';
+    RS.el('rsTableRowCount').textContent = '';
+    RS.el('rsMsg').hidden = true;
+    RS.el('rsSaveName').hidden = true;
+    RS.el('rsError').textContent = msg;
+    RS.el('rsError').hidden = false;
     renderErrorOpenAdvanced(!!(opts && opts.openAdvanced));
     setHeaderActionsEnabled(false);
-    el('rsChartCard').hidden = true;
-    el('rsTableCard').hidden = true;
-    el('rsChartNote').hidden = true;
-    el('rsChartTools').hidden = true;
-    el('rsTableToggle').hidden = true;
-    el('rsTableWrap').hidden = true;
-    el('rsSqlView').hidden = true;
-    el('rsShowSql').hidden = true;
-    el('rsDrillHint').hidden = true;
+    RS.el('rsChartCard').hidden = true;
+    RS.el('rsTableCard').hidden = true;
+    RS.el('rsChartNote').hidden = true;
+    RS.el('rsChartTools').hidden = true;
+    RS.el('rsTableToggle').hidden = true;
+    RS.el('rsTableWrap').hidden = true;
+    RS.el('rsSqlView').hidden = true;
+    RS.el('rsShowSql').hidden = true;
+    RS.el('rsDrillHint').hidden = true;
     // Same stale-caption guard as runCurrent()'s run-start block — a failed
     // run must not leave the PREVIOUS run's caption sentence sitting under
     // the error message.
-    var rsCaptionErrBox = el('rsCaption');
+    var rsCaptionErrBox = RS.el('rsCaption');
     if (rsCaptionErrBox) { rsCaptionErrBox.hidden = true; rsCaptionErrBox.textContent = ''; }
-    var anomErrCard = el('rsAnomCard');
+    var anomErrCard = RS.el('rsAnomCard');
     if (anomErrCard) anomErrCard.hidden = true;
   }
 
@@ -642,12 +643,12 @@
   // unknown metric: 'x'") over the generic 400 fallback, so a stale saved
   // report's actual problem is visible instead of a canned line.
   function friendlyRunError(status, data) {
-    if (status === 403) return I18N.noAccess;
+    if (status === 403) return RS.I18N.noAccess;
     if (status === 400) {
       if (data && data.error) return data.error + (data.detail ? ' — ' + data.detail : '');
-      return I18N.outdated;
+      return RS.I18N.outdated;
     }
-    return (data && data.error) || I18N.couldNotRun;
+    return (data && data.error) || RS.I18N.couldNotRun;
   }
 
   var APP_LANG = document.documentElement.lang || undefined;
@@ -671,16 +672,16 @@
     var msTxt = String(Math.round(elapsedMs));
     var badge = document.getElementById('reportingTiming');
     if (badge) {
-      badge.textContent = I18N.timingBadge.replace('{rows}', rowsTxt).replace('{ms}', msTxt);
+      badge.textContent = RS.I18N.timingBadge.replace('{rows}', rowsTxt).replace('{ms}', msTxt);
       badge.hidden = false;
     }
-    var meta = el('rsResultMeta');
+    var meta = RS.el('rsResultMeta');
     if (meta) {
-      meta.textContent = I18N.resultMeta
-        .replace('{rows}', rowsTxt).replace('{ms}', msTxt).replace('{when}', I18N.runJustNow);
+      meta.textContent = RS.I18N.resultMeta
+        .replace('{rows}', rowsTxt).replace('{ms}', msTxt).replace('{when}', RS.I18N.runJustNow);
     }
-    var tableCount = el('rsTableRowCount');
-    if (tableCount) tableCount.textContent = ' · ' + I18N.tableRowCount.replace('{n}', rowsTxt);
+    var tableCount = RS.el('rsTableRowCount');
+    if (tableCount) tableCount.textContent = ' · ' + RS.I18N.tableRowCount.replace('{n}', rowsTxt);
   }
 
   // Same numeric check fmtNumber uses (Number(v) + isNaN), guarded against
@@ -748,9 +749,9 @@
     if (prior == null || !isFinite(current)) return '';
     var d = computeDelta(current, prior);
     var arrow = d.dir === 'up' ? '↑' : d.dir === 'down' ? '↓' : '—';
-    var title = I18N.deltaVs + ' ' + priorStart + ' – ' + priorEnd;
+    var title = RS.I18N.deltaVs + ' ' + priorStart + ' – ' + priorEnd;
     return '<span class="rp-delta rp-delta--' + d.dir + '" data-testid="rp-delta"' +
-      ' title="' + esc(title) + '" aria-label="' + esc(title) + '">' +
+      ' title="' + RS.esc(title) + '" aria-label="' + RS.esc(title) + '">' +
       arrow + ' ' + Math.round(d.pct) + '%</span>';
   }
 
@@ -813,24 +814,24 @@
   // renders even when empty.
   function kpiBlock(testid, caption, value, deltaHtml, sub) {
     return '<div class="reporting-ledger-kpi" data-testid="' + testid + '">' +
-      '<span class="reporting-ledger-caption">' + esc(caption) + '</span>' +
+      '<span class="reporting-ledger-caption">' + RS.esc(caption) + '</span>' +
       '<span class="rs-kpi-value-wrap">' +
         '<span class="reporting-ledger-kpi-value" data-count-target="' + Number(value) + '">0</span>' +
         (deltaHtml || '') +
       '</span>' +
-      '<span class="reporting-ledger-kpi-sub">' + esc(sub || '') + '</span></div>';
+      '<span class="reporting-ledger-kpi-sub">' + RS.esc(sub || '') + '</span></div>';
   }
 
   // Peak row's sub is the winning bucket's label (empty for the
   // zero-dimension case, where there is none).
   function kpiPeakBlock(testid, caption, label, value, deltaHtml) {
     return '<div class="reporting-ledger-kpi" id="rsKpiPeak" data-testid="' + testid + '">' +
-      '<span class="reporting-ledger-caption">' + esc(caption) + '</span>' +
+      '<span class="reporting-ledger-caption">' + RS.esc(caption) + '</span>' +
       '<span class="rs-kpi-value-wrap">' +
         '<span class="reporting-ledger-kpi-value" data-count-target="' + Number(value) + '">0</span>' +
         (deltaHtml || '') +
       '</span>' +
-      '<span class="reporting-ledger-kpi-sub">' + esc(label || '') + '</span>' +
+      '<span class="reporting-ledger-kpi-sub">' + RS.esc(label || '') + '</span>' +
       '</div>';
   }
 
@@ -848,7 +849,7 @@
   // numeric metric column. DOM-free -- shared with the dashboard's whole-
   // report card via window.ReportingSimple, so it must never touch #rs*
   // elements; a card passes its OWN zero-column run through `grandTotals`
-  // rather than inheriting the Simple pane's state.
+  // rather than inheriting the Simple pane's RS.state.
   function kpiBandHtml(dims, rows, comparison, def, columns, grandTotals) {
     var kpi = computeKpiBand(dims, rows);
     if (!kpi) return '';
@@ -874,7 +875,7 @@
     if (priorKpi) applyLatestTotal(def, priorKpi, priorRows);
     var totalDelta = '', avgDelta = '', peakDelta = '', deltaNote = '';
     if (priorKpi) {
-      deltaNote = I18N.deltaVs + ' ' + comparison.priorStart + ' – ' + comparison.priorEnd;
+      deltaNote = RS.I18N.deltaVs + ' ' + comparison.priorStart + ' – ' + comparison.priorEnd;
       totalDelta = deltaChipHtml(kpi.total, priorKpi.total, comparison.priorStart, comparison.priorEnd);
       // Bucket-count mismatch guard: shifted_definition_for_comparison shifts
       // the prior window back by the CURRENT window's length in DAYS, not by
@@ -907,10 +908,10 @@
     var statsHtml = dims ? (
       '<div class="rs-kpi-stats-card">' +
         '<span class="rs-kpi-stats-title" data-testid="rs-kpi-stats-title">' +
-          esc(measureLabel(columns, kpi.idx)) + '</span>' +
-        kpiBlock('rs-kpi-buckets', I18N.kpiBuckets, kpi.buckets, '', I18N.kpiBucketsSub) +
-        kpiBlock('rs-kpi-avg', I18N.kpiAvg, kpi.avg, avgDelta, I18N.kpiAvgSub) +
-        kpiPeakBlock('rs-kpi-peak', I18N.kpiPeak, kpi.peakLabel, kpi.peak, peakDelta) +
+          RS.esc(measureLabel(columns, kpi.idx)) + '</span>' +
+        kpiBlock('rs-kpi-buckets', RS.I18N.kpiBuckets, kpi.buckets, '', RS.I18N.kpiBucketsSub) +
+        kpiBlock('rs-kpi-avg', RS.I18N.kpiAvg, kpi.avg, avgDelta, RS.I18N.kpiAvgSub) +
+        kpiPeakBlock('rs-kpi-peak', RS.I18N.kpiPeak, kpi.peakLabel, kpi.peak, peakDelta) +
       '</div>') : '';
     return measures.map(function (m, i) {
       var first = i === 0;
@@ -920,20 +921,20 @@
       return '<div class="rs-kpi-total-card' + (first ? '' : ' rs-kpi-total-card--alt') + '"' +
         ' data-testid="' + (first ? 'rs-kpi-total' : 'rs-kpi-total-extra') + '">' +
         '<span class="reporting-ledger-caption" title="' +
-          esc(I18N.kpiTotal + (m.label ? ' · ' + m.label : '')) + '">' +
-          esc(I18N.kpiTotal) + (m.label ? ' · ' + esc(m.label) : '') +
+          RS.esc(RS.I18N.kpiTotal + (m.label ? ' · ' + m.label : '')) + '">' +
+          RS.esc(RS.I18N.kpiTotal) + (m.label ? ' · ' + RS.esc(m.label) : '') +
         '</span>' +
         '<span class="rs-kpi-value-wrap">' +
           '<span class="reporting-ledger-kpi-value" data-count-target="' + Number(m.total) + '">0</span>' +
           (first && seriesIsHeadline ? totalDelta : '') +
         '</span>' +
         '<span class="reporting-ledger-kpi-sub">' +
-          esc(m.latestKey
-            ? I18N.kpiLatestSuffix + ' ' + String(m.latestKey).slice(0, 16)
-            : I18N.kpiSumSub) +
+          RS.esc(m.latestKey
+            ? RS.I18N.kpiLatestSuffix + ' ' + String(m.latestKey).slice(0, 16)
+            : RS.I18N.kpiSumSub) +
           // The delta chip's "vs <prior range>" was tooltip-only, so the
           // percentage read as a bare number with nothing to compare against.
-          (first && seriesIsHeadline && totalDelta ? ' · ' + esc(deltaNote) : '') +
+          (first && seriesIsHeadline && totalDelta ? ' · ' + RS.esc(deltaNote) : '') +
         '</span>' +
         (first && seriesIsHeadline ? sparkHtml : '') +
         '</div>';
@@ -941,7 +942,7 @@
   }
 
   function renderKpiBand(dims, rows, comparison, def, columns) {
-    var band = el('rsKpiBand');
+    var band = RS.el('rsKpiBand');
     var html = kpiBandHtml(dims, rows, comparison, def, columns);
     if (!html) { band.hidden = true; band.innerHTML = ''; return; }
     band.innerHTML = html;
@@ -957,10 +958,10 @@
   // axis). ponytail: ±15% swing heuristic; a real detector belongs
   // server-side if this ever needs to be smarter.
   function renderAnomalies(def, columns, rows) {
-    var card = el('rsAnomCard');
+    var card = RS.el('rsAnomCard');
     if (!card) return;
     card.hidden = true;
-    el('rsAnomRows').innerHTML = '';
+    RS.el('rsAnomRows').innerHTML = '';
     var dims = (def.columns || []).length;
     var hasMetrics = Array.isArray(def.metrics) && def.metrics.length > 0;
     if (!hasMetrics || dims !== 1 || !rows || rows.length < 3) return;
@@ -985,7 +986,7 @@
         if (Math.abs(pct) >= 0.15) {
           out.push({
             cls: pct < 0 ? 'rs-anom-dot--down' : 'rs-anom-dot--up',
-            text: (pct < 0 ? I18N.anomDown : I18N.anomUp)
+            text: (pct < 0 ? RS.I18N.anomDown : RS.I18N.anomUp)
               .replace('{label}', label)
               .replace('{pct}', Math.round(Math.abs(pct) * 100) + '%'),
             value: fmtNumber(last)
@@ -997,7 +998,7 @@
       if (vals[maxI] > 0 && maxI !== vals.length - 1) {
         out.push({
           cls: 'rs-anom-dot--peak',
-          text: I18N.anomPeak.replace('{label}', label)
+          text: RS.I18N.anomPeak.replace('{label}', label)
             .replace('{bucket}', String(body[maxI][0]).slice(0, 10)),
           value: fmtNumber(vals[maxI])
         });
@@ -1005,16 +1006,16 @@
     }
     out = out.slice(0, 3);
     if (!out.length) return;
-    el('rsAnomRows').innerHTML = out.map(function (a) {
+    RS.el('rsAnomRows').innerHTML = out.map(function (a) {
       return '<div class="rs-anom-row"><span class="rs-anom-dot ' + a.cls + '"></span>' +
-        '<span class="rs-anom-text">' + esc(a.text) + '</span>' +
-        '<span class="rs-anom-val">' + esc(a.value) + '</span></div>';
+        '<span class="rs-anom-text">' + RS.esc(a.text) + '</span>' +
+        '<span class="rs-anom-val">' + RS.esc(a.value) + '</span></div>';
     }).join('');
     card.hidden = false;
   }
 
   function metricLabelsFor(def) {
-    var list = (state.metricsBySource || {})[def.source] || [];
+    var list = (RS.state.metricsBySource || {})[def.source] || [];
     return (def.metrics || []).map(function (m) {
       var hit = list.find(function (x) { return x.code === m.metric; });
       return hit ? hit.label : m.metric;
@@ -1027,7 +1028,7 @@
   // the browser only happens to be right for additive metrics, and would
   // quietly double-count a count_distinct or average an average.
   function setGrandTotals(rowVals) {
-    state.grandTotals = Array.isArray(rowVals) ? rowVals : null;
+    RS.state.grandTotals = Array.isArray(rowVals) ? rowVals : null;
   }
 
   // The metric's aggregation (sum/avg/count/count_distinct/…), used to decide
@@ -1036,7 +1037,7 @@
   function metricAggFor(def) {
     var m = (def.metrics && def.metrics[0]) || null;
     if (!m) return '';
-    var list = (state.metricsBySource || {})[def.source] || [];
+    var list = (RS.state.metricsBySource || {})[def.source] || [];
     var hit = list.find(function (x) { return x.code === m.metric; });
     return hit ? hit.aggregation : '';
   }
@@ -1044,14 +1045,14 @@
   function metricTotalModeFor(def) {
     var m = (def.metrics && def.metrics[0]) || null;
     if (!m) return 'sum';
-    var list = (state.metricsBySource || {})[def.source] || [];
+    var list = (RS.state.metricsBySource || {})[def.source] || [];
     var hit = list.find(function (x) { return x.code === m.metric; });
     return (hit && hit.totalMode) || 'sum';
   }
 
   // One totalMode per def.metrics entry ('sum' | 'latest').
   function metricTotalModes(def) {
-    var list = (state.metricsBySource || {})[def.source] || [];
+    var list = (RS.state.metricsBySource || {})[def.source] || [];
     return (def.metrics || []).map(function (m) {
       var hit = list.find(function (x) { return x.code === m.metric; });
       return (hit && hit.totalMode) || 'sum';
@@ -1106,7 +1107,7 @@
 
   // One labelled total per metric, in def.metrics order — the aggregate query
   // projects the metrics after the dimensions, so measure n lives at dims + n.
-  // Prefers the authoritative grand total (state.grandTotals); otherwise falls
+  // Prefers the authoritative grand total (RS.state.grandTotals); otherwise falls
   // back to this pane's own arithmetic, which honours each measure's total
   // mode so a level (the backlog) reports its latest snapshot rather than a
   // meaningless sum across buckets. A definition with no semantic metrics
@@ -1118,7 +1119,7 @@
       return kpi ? [{ idx: kpi.idx, label: measureLabel(columns, kpi.idx),
                       total: kpi.total, latestKey: null }] : [];
     }
-    var grand = grandTotals === undefined ? state.grandTotals : grandTotals;
+    var grand = grandTotals === undefined ? RS.state.grandTotals : grandTotals;
     return modes.map(function (mode, n) {
       var idx = dims + n;
       var exact = grand && isNumericCell(grand[n]);
@@ -1147,21 +1148,21 @@
   // Maps a definition's leading columns (dimensions come first in the result
   // row) to ReportingDrill's {field, grain, value} shape.
   function clickedFor(rowValues) {
-    return ((state.current && state.current.def && state.current.def.columns) || [])
+    return ((RS.state.current && RS.state.current.def && RS.state.current.def.columns) || [])
       .map(function (c, i) {
         return { field: c.field, grain: c.grain || null, value: rowValues[i] };
       });
   }
 
   function openDrill(clicked) {
-    var cur = state.current;
+    var cur = RS.state.current;
     if (!cur || !cur.def) return;
-    var src = (state.sources || []).find(function (s) { return s.id === cur.def.source; });
+    var src = (RS.state.sources || []).find(function (s) { return s.id === cur.def.source; });
     if (!src) return;
     var header = clicked.map(function (c) {
       var f = (src.fields || []).find(function (x) { return x.field === c.field; });
       var v = (c.value === null || c.value === undefined || c.value === '')
-        ? ReportingDrill.I18N.nullLabel : String(c.value).slice(0, 60);
+        ? ReportingDrill.RS.I18N.nullLabel : String(c.value).slice(0, 60);
       return ((f && f.label) || c.field) + ' = ' + v;
     }).join(' · ');
     var isDistinct = /distinct/i.test(String(metricAggFor(cur.def) || ''));
@@ -1175,12 +1176,12 @@
   // only engages for aggregate results (a definition with at least one metric
   // and at least one dimension) — raw-row grids never reach mountChart/here.
   function drillFromChart(index, datasetIndex) {
-    var cur = state.current;
+    var cur = RS.state.current;
     if (!cur || !cur.def) return;
     if (!(cur.def.metrics || []).length) return;
     var dims = cur.def.columns || [];
     if (!dims.length) return;
-    var cd = state.chartData || {};
+    var cd = RS.state.chartData || {};
     var clicked = [{
       field: dims[0].field, grain: dims[0].grain || null,
       value: (cd.rawX || cd.labels || [])[index]
@@ -1205,7 +1206,7 @@
   function tableHtml(columns, rows, forecast, drillable) {
     var html = '<table class="reporting-table' + (drillable ? ' reporting-drill-clickable' : '') +
       '"><thead><tr>';
-    columns.forEach(function (c) { html += '<th>' + esc(c.header || c.field) + '</th>'; });
+    columns.forEach(function (c) { html += '<th>' + RS.esc(c.header || c.field) + '</th>'; });
     html += '</tr></thead><tbody>';
     // Data bars (Task 7): one column max per column index, computed once
     // over cells the same isNumericCell check already accepts — mirrors
@@ -1227,9 +1228,9 @@
         if (isNumericCell(v)) {
           var max = colMax[i];
           var pct = max > 0 ? (Math.abs(Number(v)) / max * 100) : 0;
-          html += '<td class="reporting-ledger-num rp-cell-num" style="--bar:' + pct + '%">' + esc(v) + '</td>';
+          html += '<td class="reporting-ledger-num rp-cell-num" style="--bar:' + pct + '%">' + RS.esc(v) + '</td>';
         } else {
-          html += '<td>' + esc(v == null ? '' : v) + '</td>';
+          html += '<td>' + RS.esc(v == null ? '' : v) + '</td>';
         }
       });
       html += '</tr>';
@@ -1242,12 +1243,12 @@
         html += '<tr class="is-forecast" data-testid="rs-forecast-row">';
         for (var ci = 0; ci < columns.length; ci++) {
           if (ci === 0) {
-            html += '<td>' + esc(String(b).slice(0, 10)) +
-              ' <span class="rp-forecast-badge">' + esc(I18N.forecastLabel) + '</span></td>';
+            html += '<td>' + RS.esc(String(b).slice(0, 10)) +
+              ' <span class="rp-forecast-badge">' + RS.esc(RS.I18N.forecastLabel) + '</span></td>';
           } else if (ci >= mStart) {
             var sv = fcRows.series[ci - mStart];
             html += '<td class="reporting-ledger-num">' +
-              esc(fmtChartTooltip(sv.values[bi])) + '</td>';
+              RS.esc(fmtChartTooltip(sv.values[bi])) + '</td>';
           } else {
             html += '<td></td>';
           }
@@ -1260,21 +1261,21 @@
   }
 
   function renderTable(columns, rows, forecast) {
-    var cur = state.current;
+    var cur = RS.state.current;
     var def = (cur && cur.def) || {};
     var hasMetrics = Array.isArray(def.metrics) && def.metrics.length > 0;
     var dims = (def.columns || []).length;
-    var src = (state.sources || []).find(function (s) { return s.id === def.source; });
+    var src = (RS.state.sources || []).find(function (s) { return s.id === def.source; });
     // Drillable only for aggregate results (metric + dimension) whose leading
     // columns resolve to a valid drill definition — probed once with the
     // first row rather than assumed, so e.g. non-filterable dimensions don't
     // get a false affordance.
     var drillable = !!(hasMetrics && dims && src && rows.length &&
       ReportingDrill.buildDrillDefinition(def, src.fields || [], clickedFor(rows[0])));
-    el('rsTableWrap').innerHTML = tableHtml(columns, rows, forecast, drillable);
+    RS.el('rsTableWrap').innerHTML = tableHtml(columns, rows, forecast, drillable);
     if (drillable) {
       Array.prototype.forEach.call(
-        el('rsTableWrap').querySelectorAll('tbody tr:not(.is-forecast)'), function (tr, i) {
+        RS.el('rsTableWrap').querySelectorAll('tbody tr:not(.is-forecast)'), function (tr, i) {
           var rowValues = rows[i];
           tr.tabIndex = 0;
           tr.addEventListener('click', function () { openDrill(clickedFor(rowValues)); });
@@ -1283,18 +1284,18 @@
           });
         });
     }
-    el('rsDrillHint').hidden = !drillable;
+    RS.el('rsDrillHint').hidden = !drillable;
   }
 
   // Simple owns its OWN Chart.js instance on a private canvas. It must never
   // call ReportingViz.mountChart: that module is a singleton wired to the
   // Advanced pane's hardcoded element ids, so concurrent mounts are unsafe.
   function chartCardNote(msg) {
-    el('rsChartCanvas').hidden = true;
-    el('rsChartTools').hidden = true;
-    el('rsChartNote').textContent = msg;
-    el('rsChartNote').hidden = false;
-    el('rsChartCard').hidden = false;
+    RS.el('rsChartCanvas').hidden = true;
+    RS.el('rsChartTools').hidden = true;
+    RS.el('rsChartNote').textContent = msg;
+    RS.el('rsChartNote').hidden = false;
+    RS.el('rsChartCard').hidden = false;
   }
 
   // Same palette ReportingViz's mountChart() uses for pie/doughnut segments
@@ -1333,11 +1334,11 @@
   // style = { colors: {seriesKey: '#rrggbb'}, titleColor: '#rrggbb',
   //           rightAxis: [seriesKey] } -- saved with the report like forecast.
   function styleOf() {
-    var cur = state.current;
+    var cur = RS.state.current;
     return (cur && cur.def && cur.def.style) || {};
   }
   function ensureStyle() {
-    var cur = state.current;
+    var cur = RS.state.current;
     if (!cur.def.style) cur.def.style = {};
     return cur.def.style;
   }
@@ -1380,7 +1381,7 @@
     }).join('');
   }
   function applyTitleStyle() {
-    el('rsResultTitle').style.color = styleOf().titleColor || '';
+    RS.el('rsResultTitle').style.color = styleOf().titleColor || '';
   }
 
   // Console x-axis: compact bucket labels ("Jan 25", "Q2 25", "2025",
@@ -1520,7 +1521,7 @@
         // its right-axis placement), so the dotted tail stays readable.
         var own = overrides[seriesKey(base || {}, multi)];
         var fcColor = own || (typeof styled.borderColor === 'string' ? styled.borderColor : fcAccent);
-        var fcLabel = (base ? base.label : s.field) + ' · ' + I18N.forecastLabel;
+        var fcLabel = (base ? base.label : s.field) + ' · ' + RS.I18N.forecastLabel;
         // Bar charts get the forecast as translucent bars of the same colour
         // (dashed lines over bars read as a stray series); line charts keep
         // the dashed tail + confidence band.
@@ -1624,26 +1625,26 @@
   }
 
   function renderChart(type) {
-    var d = state.chartData;
+    var d = RS.state.chartData;
     if (!d) return;
     destroyChart();
-    var built = chartConfigFor(d, type, (state.current && state.current.def) || {},
+    var built = chartConfigFor(d, type, (RS.state.current && RS.state.current.def) || {},
                                { onDrill: drillFromChart });
     type = built.type;
-    state.chartType = type;
+    RS.state.chartType = type;
     var multi = built.multi, circular = built.circular;
-    state.chart = new Chart(el('rsChartCanvas'), built.config);
-    el('rsChartTools').querySelector('[data-type="pie"]').hidden = multi;
-    el('rsChartTools').querySelector('[data-type="doughnut"]').hidden = multi;
+    RS.state.chart = new Chart(RS.el('rsChartCanvas'), built.config);
+    RS.el('rsChartTools').querySelector('[data-type="pie"]').hidden = multi;
+    RS.el('rsChartTools').querySelector('[data-type="doughnut"]').hidden = multi;
     // Forecast only draws on line/bar — grey the toggle out on pie/doughnut
     // (syncForecastCtl owns the shape-based disable after each run).
-    var fcBtn = el('rsForecastToggle');
-    if (circular) { fcBtn.disabled = true; fcBtn.title = I18N.forecastNeedsLineBar; }
-    else if (state.current && forecastEligible(state.current.def)) { fcBtn.disabled = false; fcBtn.title = I18N.forecastLabel; }
-    el('rsChartTools').querySelector('[data-type="stacked"]').hidden = !multi;
-    el('rsChartCanvas').dataset.series = String(d.datasets.length);
+    var fcBtn = RS.el('rsForecastToggle');
+    if (circular) { fcBtn.disabled = true; fcBtn.title = RS.I18N.forecastNeedsLineBar; }
+    else if (RS.state.current && forecastEligible(RS.state.current.def)) { fcBtn.disabled = false; fcBtn.title = RS.I18N.forecastLabel; }
+    RS.el('rsChartTools').querySelector('[data-type="stacked"]').hidden = !multi;
+    RS.el('rsChartCanvas').dataset.series = String(d.datasets.length);
     Array.prototype.forEach.call(
-      el('rsChartTools').querySelectorAll('button'), function (b) {
+      RS.el('rsChartTools').querySelectorAll('button'), function (b) {
         b.classList.toggle('is-selected', b.dataset.type === type);
         b.setAttribute('aria-pressed', b.dataset.type === type ? 'true' : 'false');
       });
@@ -1749,8 +1750,8 @@
     // year of days); only categorical axes keep the 50-row cut.
     var xCap = isDate ? 400 : 50;
     if (dims === 1 && rows.length > xCap) {
-      if (isDate) return { data: null, note: I18N.noChartTooManyPoints };
-      addNote(I18N.chartFirst50.replace('{n}', String(rows.length)));
+      if (isDate) return { data: null, note: RS.I18N.noChartTooManyPoints };
+      addNote(RS.I18N.chartFirst50.replace('{n}', String(rows.length)));
       rows = rows.slice(0, 50);
     }
     if (dims >= 2) {
@@ -1798,7 +1799,7 @@
           seriesMetric[s] = mi;
         }
       });
-      if (xOrder.length > xCap) return { data: null, note: I18N.noChartTooManyPoints };
+      if (xOrder.length > xCap) return { data: null, note: RS.I18N.noChartTooManyPoints };
       var allSeries = Object.keys(seriesTot);
       var byTot = function (a, b) { return seriesTot[b] - seriesTot[a]; };
       var series;
@@ -1817,7 +1818,7 @@
         series = allSeries.sort(byTot).slice(0, 12);
       }
       if (allSeries.length > series.length) {
-        addNote(I18N.chartSeriesCapped
+        addNote(RS.I18N.chartSeriesCapped
           .replace('{shown}', String(series.length)).replace('{n}', String(allSeries.length)));
       }
       noteDataQuality(def, rows, isDate).forEach(addNote);
@@ -1891,29 +1892,29 @@
 
   function mountChart(def, columns, rows, forecast) {
     destroyChart();
-    state.chartData = null;
-    el('rsChartNote').hidden = true;
-    el('rsChartTools').hidden = true;
+    RS.state.chartData = null;
+    RS.el('rsChartNote').hidden = true;
+    RS.el('rsChartTools').hidden = true;
     toggleStylePop(false);
-    el('rsChartCanvas').hidden = false;
+    RS.el('rsChartCanvas').hidden = false;
     var dims = (def.columns || []).length;
-    if (!dims || !rows.length) { el('rsChartCard').hidden = true; return false; }
-    if (!window.Chart) { chartCardNote(I18N.noChartLib); return false; }
+    if (!dims || !rows.length) { RS.el('rsChartCard').hidden = true; return false; }
+    if (!window.Chart) { chartCardNote(RS.I18N.noChartLib); return false; }
     var built = buildChartData(def, columns, rows, forecast);
-    if (!built.data) { chartCardNote(built.note || I18N.noChartTooManyPoints); return false; }
+    if (!built.data) { chartCardNote(built.note || RS.I18N.noChartTooManyPoints); return false; }
     if (built.note) {
-      el('rsChartNote').textContent = built.note;
-      el('rsChartNote').hidden = false;
+      RS.el('rsChartNote').textContent = built.note;
+      RS.el('rsChartNote').hidden = false;
     }
-    state.chartData = built.data;
-    el('rsChartCard').hidden = false;
-    el('rsChartTools').hidden = false;
-    renderChart(state.chartData.type);
+    RS.state.chartData = built.data;
+    RS.el('rsChartCard').hidden = false;
+    RS.el('rsChartTools').hidden = false;
+    renderChart(RS.state.chartData.type);
     return true;
   }
 
   function appendChartNote(txt) {
-    var n = el('rsChartNote');
+    var n = RS.el('rsChartNote');
     n.textContent = (!n.hidden && n.textContent) ? n.textContent + ' — ' + txt : txt;
     n.hidden = false;
   }
@@ -1927,13 +1928,13 @@
     if (!isDate || !c0 || !c0.grain) return out;
     var cur = currentBucketStart(c0.grain);
     if (rows.some(function (r) { return String(r[0] == null ? '' : r[0]).slice(0, 10) === cur; })) {
-      out.push(I18N.partialBucketNote);
+      out.push(RS.I18N.partialBucketNote);
     }
     var metricIdx = (def.columns || []).length, modes = metricTotalModes(def);
     var gaps = rows.some(function (r) {
       return modes.some(function (m, i) { return m === 'latest' && r[metricIdx + i] == null; });
     });
-    if (gaps) out.push(I18N.gapNote);
+    if (gaps) out.push(RS.I18N.gapNote);
     return out;
   }
 
@@ -1944,12 +1945,12 @@
   // Relative-date tokens (nx_lib/reporting/tokens.py) — humanized labels for
   // chips/summary lines. A token value is {token: '<name>'[, n: <int>]}.
   var TOKEN_LABELS = {
-    today: I18N.tokenToday, yesterday: I18N.tokenYesterday,
-    this_week: I18N.thisWeek, last_week: I18N.lastWeek,
-    this_month: I18N.thisMonth, last_month: I18N.lastMonth,
-    this_quarter: I18N.thisQuarter, last_quarter: I18N.lastQuarter,
-    last_3_months: I18N.last3Months, this_year: I18N.thisYear,
-    last_year: I18N.lastYear, last_n_days: I18N.lastNDays
+    today: RS.I18N.tokenToday, yesterday: RS.I18N.tokenYesterday,
+    this_week: RS.I18N.thisWeek, last_week: RS.I18N.lastWeek,
+    this_month: RS.I18N.thisMonth, last_month: RS.I18N.lastMonth,
+    this_quarter: RS.I18N.thisQuarter, last_quarter: RS.I18N.lastQuarter,
+    last_3_months: RS.I18N.last3Months, this_year: RS.I18N.thisYear,
+    last_year: RS.I18N.lastYear, last_n_days: RS.I18N.lastNDays
   };
   function isTokenValue(v) {
     return !!v && typeof v === 'object' && !Array.isArray(v) && typeof v.token === 'string';
@@ -1962,7 +1963,7 @@
 
   // ----- Editable AI chips -----
   function fieldMetaFor(def, fieldKey) {
-    var src = (state.sources || []).find(function (s) { return s.id === def.source; });
+    var src = (RS.state.sources || []).find(function (s) { return s.id === def.source; });
     return ((src && src.fields) || []).find(function (f) { return f.field === fieldKey; });
   }
 
@@ -1978,9 +1979,9 @@
   // with the same msgids, so the two maps can never translate apart.
   var OP_LABELS = {
     eq: '=', ne: '≠', gt: '>', gte: '≥', lt: '<', lte: '≤',
-    between: I18N.opBetween, 'in': I18N.opIn, not_in: I18N.opNotIn,
-    contains: I18N.opContains, starts_with: I18N.opStartsWith,
-    is_null: I18N.opIsEmpty, is_not_null: I18N.opIsNotEmpty
+    between: RS.I18N.opBetween, 'in': RS.I18N.opIn, not_in: RS.I18N.opNotIn,
+    contains: RS.I18N.opContains, starts_with: RS.I18N.opStartsWith,
+    is_null: RS.I18N.opIsEmpty, is_not_null: RS.I18N.opIsNotEmpty
   };
 
   function chip(text, onEdit, onRemove) {
@@ -2059,14 +2060,14 @@
     var box = document.createElement('span');
     box.className = 'rs-chip rs-chip-editor';
     box.setAttribute('data-testid', 'rs-chip-values');
-    box.textContent = I18N.loadingValues;
+    box.textContent = RS.I18N.loadingValues;
     openChipEditor(chipEl, box);
-    var src = (state.sources || []).find(function (s) { return s.id === cur.def.source; });
+    var src = (RS.state.sources || []).find(function (s) { return s.id === cur.def.source; });
     var values = [], labels = {};
     if (f.field === 'processname' && src && (src.processes || []).length) {
       values = src.processes.slice();
     } else {
-      var res = await api('/api/reporting/field_values', {
+      var res = await RS.api('/api/reporting/field_values', {
         method: 'POST',
         body: JSON.stringify({ source: cur.def.source, field: f.field })
       });
@@ -2095,7 +2096,7 @@
     var ok = document.createElement('button');
     ok.className = 'reporting-btn';
     ok.setAttribute('data-testid', 'rs-chip-apply');
-    ok.textContent = I18N.chipApply;
+    ok.textContent = RS.I18N.chipApply;
     ok.addEventListener('click', function () {
       var picked = inputs.filter(function (c) { return c.checked; })
                          .map(function (c) { return c.value; });
@@ -2124,7 +2125,7 @@
       preset.setAttribute('data-testid', 'rs-chip-preset');
       var co = document.createElement('option');
       co.value = '';
-      co.textContent = I18N.custom;
+      co.textContent = RS.I18N.custom;
       preset.appendChild(co);
       Object.keys(TOKEN_LABELS).forEach(function (k) {
         if (k === 'last_n_days') return;
@@ -2148,7 +2149,7 @@
     var ok = document.createElement('button');
     ok.className = 'reporting-btn';
     ok.setAttribute('data-testid', 'rs-chip-apply');
-    ok.textContent = I18N.chipApply;
+    ok.textContent = RS.I18N.chipApply;
     ok.addEventListener('click', function () {
       if (preset && preset.value) {
         f.op = 'between';
@@ -2183,7 +2184,7 @@
   async function processChipEditor(cur, chipEl) {
     await loadSourcesCatalog();
     if (!chipEl.isConnected) return;
-    var src = (state.sources || []).find(function (s) { return s.id === cur.def.source; });
+    var src = (RS.state.sources || []).find(function (s) { return s.id === cur.def.source; });
     var all = (src && src.processes) || [];
     if (!all.length) return;
     var box = document.createElement('span');
@@ -2204,7 +2205,7 @@
     var ok = document.createElement('button');
     ok.className = 'reporting-btn';
     ok.setAttribute('data-testid', 'rs-chip-apply');
-    ok.textContent = I18N.chipApply;
+    ok.textContent = RS.I18N.chipApply;
     ok.addEventListener('click', function () {
       var picked = inputs.filter(function (c) { return c.checked; })
                          .map(function (c) { return c.value; });
@@ -2222,8 +2223,8 @@
     box.setAttribute('data-testid', 'rs-chip-grain');
     var sel = document.createElement('select');
     sel.className = 'reporting-input';
-    [['day', I18N.grainDay], ['week', I18N.grainWeek], ['month', I18N.grainMonth],
-     ['quarter', I18N.grainQuarter], ['year', I18N.grainYear]].forEach(function (g) {
+    [['day', RS.I18N.grainDay], ['week', RS.I18N.grainWeek], ['month', RS.I18N.grainMonth],
+     ['quarter', RS.I18N.grainQuarter], ['year', RS.I18N.grainYear]].forEach(function (g) {
       var o = document.createElement('option');
       o.value = g[0]; o.textContent = g[1];
       sel.appendChild(o);
@@ -2232,7 +2233,7 @@
     var ok = document.createElement('button');
     ok.className = 'reporting-btn';
     ok.setAttribute('data-testid', 'rs-chip-grain-apply');
-    ok.textContent = I18N.chipApply;
+    ok.textContent = RS.I18N.chipApply;
     ok.addEventListener('click', function () {
       col.grain = sel.value;
       runCurrent();
@@ -2243,7 +2244,7 @@
   }
 
   function renderAiChips(cur) {
-    var wrap = el('rsChips');
+    var wrap = RS.el('rsChips');
     if (!wrap) return;
     wrap.innerHTML = '';
     // Chips are definition-driven — every Simple result (AI, wizard, library)
@@ -2257,7 +2258,7 @@
     // carry their process restriction as a plain in-filter on the
     // processFieldFor field. Render THAT as the process chip instead of a
     // duplicate filter chip next to a lying "Processes: all" (#178).
-    var chipSrc = (state.sources || []).find(function (s) { return s.id === def.source; });
+    var chipSrc = (RS.state.sources || []).find(function (s) { return s.id === def.source; });
     var pf = chipSrc ? processFieldFor(chipSrc) : null;
     var pfFilter = pf ? (def.filters || []).find(function (ft) {
       return ft.op === 'in' && ft.field === pf.field;
@@ -2281,13 +2282,13 @@
     if (!(def.filters || []).length) {
       var none = document.createElement('span');
       none.className = 'rs-chip rs-chip--empty';
-      none.textContent = I18N.aiNoFilters;
+      none.textContent = RS.I18N.aiNoFilters;
       wrap.appendChild(none);
     }
     if (pf) {
       var pfVals = (pfFilter && pfFilter.value) || [];
       wrap.appendChild(chip(
-        I18N.aiProcesses + ': ' + (pfVals.length ? pfVals.join(', ') : I18N.allProcesses),
+        RS.I18N.aiProcesses + ': ' + (pfVals.length ? pfVals.join(', ') : RS.I18N.allProcesses),
         function (chipEl) {
           var f = pfFilter || { field: pf.field, op: 'in', value: [] };
           valueListChipEditor(cur, f, chipEl, {
@@ -2302,7 +2303,7 @@
     } else {
       var procs = (def.scope && def.scope.processes) || [];
       wrap.appendChild(chip(
-        I18N.aiProcesses + ': ' + (procs.length ? procs.join(', ') : I18N.allProcesses),
+        RS.I18N.aiProcesses + ': ' + (procs.length ? procs.join(', ') : RS.I18N.allProcesses),
         function (chipEl) { processChipEditor(cur, chipEl); },
         null
       ));
@@ -2315,10 +2316,10 @@
       }) || null;
     }
     if (grainedCol) {
-      var GRAIN_LABELS = { day: I18N.grainDay, week: I18N.grainWeek, month: I18N.grainMonth,
-                           quarter: I18N.grainQuarter, year: I18N.grainYear };
+      var GRAIN_LABELS = { day: RS.I18N.grainDay, week: RS.I18N.grainWeek, month: RS.I18N.grainMonth,
+                           quarter: RS.I18N.grainQuarter, year: RS.I18N.grainYear };
       wrap.appendChild(chip(
-        I18N.granularity + ': ' + (GRAIN_LABELS[grainedCol.grain] || I18N.grainDay),
+        RS.I18N.granularity + ': ' + (GRAIN_LABELS[grainedCol.grain] || RS.I18N.grainDay),
         function (chipEl) { grainChipEditor(cur, grainedCol, chipEl); },
         null
       ));
@@ -2387,7 +2388,7 @@
   }
 
   function fireCaption(boxId, columns, rows, title, dateLabel, notes, levelFields) {
-    var box = el(boxId);
+    var box = RS.el(boxId);
     if (!box) return;
     var seq = ++captionSeq;
     box.hidden = false;
@@ -2413,7 +2414,7 @@
       box.classList.remove('rp-caption--loading');
       var chip = document.createElement('span');
       chip.className = 'rp-caption-chip';
-      chip.textContent = I18N.aiChip;
+      chip.textContent = RS.I18N.aiChip;
       box.appendChild(chip);
       box.appendChild(document.createTextNode(' ' + data.caption));
     }).catch(function () {
@@ -2429,7 +2430,7 @@
   var runSeq = 0;
 
   async function runCurrent() {
-    var cur = state.current;
+    var cur = RS.state.current;
     var seq = ++runSeq;
     setHeaderActionsEnabled(false);
     // A new run supersedes any open drill drawer — it shows rows behind the
@@ -2438,7 +2439,7 @@
     if (window.ReportingDrill) ReportingDrill.close();
     // Fire-and-forget: not every runCurrent() caller already awaits
     // loadSourcesCatalog() first, so warm it here too for the drill
-    // affordance (openDrill/renderTable read state.sources). Idempotent — a
+    // affordance (openDrill/renderTable read RS.state.sources). Idempotent — a
     // cache hit resolves immediately, and drill just stays unavailable until
     // this settles on a cold session.
     loadSourcesCatalog().then(function () {
@@ -2448,45 +2449,45 @@
       // The editor guard keeps a slow resolve from wiping an open chip editor
       // mid-edit (rs-chip-apply vanished between fill and click on slow CI);
       // labels catch up on the next runCurrent() repaint anyway.
-      var wrap = el('rsChips');
-      if (seq === runSeq && state.current === cur
+      var wrap = RS.el('rsChips');
+      if (seq === runSeq && RS.state.current === cur
           && !(wrap && wrap.querySelector('.rs-chip-editor'))) renderAiChips(cur);
     });
     setView('result');
-    el('rsError').hidden = true;
+    RS.el('rsError').hidden = true;
     renderErrorOpenAdvanced(false);
     toggleMoreMenu(false);
-    el('rsMsg').hidden = true;
-    el('rsResultTitle').textContent = cur.name || cur.def.title || '';
-    el('rsCrumbName').textContent = cur.name || cur.def.title || '';
-    el('rsSavedChip').hidden = !cur.reportId;
+    RS.el('rsMsg').hidden = true;
+    RS.el('rsResultTitle').textContent = cur.name || cur.def.title || '';
+    RS.el('rsCrumbName').textContent = cur.name || cur.def.title || '';
+    RS.el('rsSavedChip').hidden = !cur.reportId;
     applyTitleStyle();
-    el('rsDeleteReport').hidden = !(cur.owned && cur.reportId);
-    el('rsSaveCopy').hidden = !cur.reportId;
+    RS.el('rsDeleteReport').hidden = !(cur.owned && cur.reportId);
+    RS.el('rsSaveCopy').hidden = !cur.reportId;
     saveAsCopy = false;
     renderAiChips(cur);
-    var adjustBtn = el('rsAdjustWizard');
+    var adjustBtn = RS.el('rsAdjustWizard');
     if (adjustBtn) {
       adjustBtn.hidden = cur.builtBy !== 'wizard' && !wizardStateFromDefinition(cur.def);
     }
-    el('rsSaveName').hidden = true;
+    RS.el('rsSaveName').hidden = true;
     setGrandTotals(null);
-    el('rsChartCard').hidden = true;
-    el('rsTableCard').hidden = true;
-    el('rsTableToggle').hidden = true;
-    el('rsTableWrap').hidden = true;
-    el('rsRunLoading').innerHTML = resultSkeletonHtml();
-    el('rsRunLoading').hidden = false;
-    el('rsDrillHint').hidden = true;
-    el('rsKpiBand').hidden = true;
+    RS.el('rsChartCard').hidden = true;
+    RS.el('rsTableCard').hidden = true;
+    RS.el('rsTableToggle').hidden = true;
+    RS.el('rsTableWrap').hidden = true;
+    RS.el('rsRunLoading').innerHTML = resultSkeletonHtml();
+    RS.el('rsRunLoading').hidden = false;
+    RS.el('rsDrillHint').hidden = true;
+    RS.el('rsKpiBand').hidden = true;
     // A prior run's caption sentence must never linger over the new run's
     // (still-loading, possibly failed or empty) result — hidden here just
     // like every other result element above, cleared again by fireCaption()
     // once (and if) the new run actually succeeds. Guarded: the box only
     // exists in the DOM for a reporting.ai.explain_data holder.
-    var rsCaptionBox = el('rsCaption');
+    var rsCaptionBox = RS.el('rsCaption');
     if (rsCaptionBox) { rsCaptionBox.hidden = true; rsCaptionBox.textContent = ''; }
-    var anomCard = el('rsAnomCard');
+    var anomCard = RS.el('rsAnomCard');
     if (anomCard) { anomCard.hidden = true; }
 
     var def = cur.def;
@@ -2494,7 +2495,7 @@
     var dims = (def.columns || []).length;
     // Console chart-card title: what is plotted (the metric labels), not the
     // report name — that one is already in the result header.
-    var chartTitle = el('rsChartTitle');
+    var chartTitle = RS.el('rsChartTitle');
     if (chartTitle) {
       chartTitle.textContent = hasMetrics
         ? metricLabelsFor(def).join(' · ') : (cur.name || def.title || '');
@@ -2517,7 +2518,7 @@
       // one whose comparison drives renderKpiBand's delta chips; asking
       // the backend to also diff THIS zero-column clone's own prior period
       // would be a fully wasted extra query.
-      var t = await api('/api/reporting/run', { method: 'POST', body: JSON.stringify(totalDef) });
+      var t = await RS.api('/api/reporting/run', { method: 'POST', body: JSON.stringify(totalDef) });
       if (seq !== runSeq) return;
       if (t.ok && t.data && t.data.rows && t.data.rows.length) {
         setGrandTotals(t.data.rows[0]);
@@ -2528,14 +2529,14 @@
     // compare: true is added to a shallow copy of the posted body only --
     // `def` (== cur.def) must stay exactly what the wizard/library built,
     // since it's reused for Save/Adjust-in-wizard/export.
-    var res = await api('/api/reporting/run', {
+    var res = await RS.api('/api/reporting/run', {
       method: 'POST',
       body: JSON.stringify(Object.assign({}, def, { compare: true }))
     });
     if (seq !== runSeq) return;
     // Hide only after the staleness guard: a slow stale response must never
     // hide the indicator a newer run just showed.
-    el('rsRunLoading').hidden = true;
+    RS.el('rsRunLoading').hidden = true;
     if (!res.ok) {
       showResultError(friendlyRunError(res.status, res.data),
         { title: cur.name || cur.def.title || '', openAdvanced: true });
@@ -2545,23 +2546,23 @@
       return;
     }
     setHeaderActionsEnabled(true);
-    el('rsTableCard').hidden = false;
+    RS.el('rsTableCard').hidden = false;
     showTiming(res.data.rowCount, performance.now() - runT0);
-    state.current.sql = res.data.sql || null;
-    state.current.sqlPretty = res.data.sqlPretty || null;
-    state.current.sqlDisplay = res.data.sqlDisplay || null;
-    state.current.params = res.data.params || [];
+    RS.state.current.sql = res.data.sql || null;
+    RS.state.current.sqlPretty = res.data.sqlPretty || null;
+    RS.state.current.sqlDisplay = res.data.sqlDisplay || null;
+    RS.state.current.params = res.data.params || [];
     // Console: the Query card sits in the result's side column and is always
     // visible when the run produced SQL — no reveal toggle anymore.
-    el('rsSqlView').hidden = !state.current.sql;
-    if (state.current.sql) {
-      ReportingSqlFormat.render(el('rsSqlText'), ReportingSqlFormat.displayText(state.current));
+    RS.el('rsSqlView').hidden = !RS.state.current.sql;
+    if (RS.state.current.sql) {
+      ReportingSqlFormat.render(RS.el('rsSqlText'), ReportingSqlFormat.displayText(RS.state.current));
     }
-    el('rsShowSql').hidden = !state.current.sql;
-    el('rsShowSql').textContent = I18N.showQuery;
-    var peek = el('rsSqlPeek');
-    if (state.current.sqlDisplay) {
-      peek.textContent = state.current.sqlDisplay.split('\n')[0] + '…';
+    RS.el('rsShowSql').hidden = !RS.state.current.sql;
+    RS.el('rsShowSql').textContent = RS.I18N.showQuery;
+    var peek = RS.el('rsSqlPeek');
+    if (RS.state.current.sqlDisplay) {
+      peek.textContent = RS.state.current.sqlDisplay.split('\n')[0] + '…';
       peek.hidden = false;
     } else {
       peek.hidden = true;
@@ -2580,30 +2581,30 @@
       resolvedTxt = rdates.map(function (d) {
         return tokenLabel(d) + ' (' + d.start + ' → ' + d.end + ')';
       }).join(' · ');
-      var msg = el('rsMsg');
+      var msg = RS.el('rsMsg');
       msg.textContent = msg.hidden || !msg.textContent
         ? resolvedTxt : msg.textContent + ' — ' + resolvedTxt;
       msg.hidden = false;
     }
     if (res.data.truncated && res.data.rowCount) {
-      var tNote = el('rsMsg');
-      var tTxt = I18N.truncatedNote.replace('{n}', String(res.data.rowCount));
+      var tNote = RS.el('rsMsg');
+      var tTxt = RS.I18N.truncatedNote.replace('{n}', String(res.data.rowCount));
       tNote.textContent = (!tNote.hidden && tNote.textContent)
         ? tNote.textContent + ' — ' + tTxt : tTxt;
       tNote.hidden = false;
     }
     if (hasMetrics && !dims && rows.length) {
-      var totMsg = el('rsMsg');
+      var totMsg = RS.el('rsMsg');
       totMsg.textContent = (!totMsg.hidden && totMsg.textContent)
-        ? totMsg.textContent + ' — ' + I18N.noChartTotalOnly : I18N.noChartTotalOnly;
+        ? totMsg.textContent + ' — ' + RS.I18N.noChartTotalOnly : RS.I18N.noChartTotalOnly;
       totMsg.hidden = false;
     }
     if (!rows.length) {
-      el('rsTableWrap').innerHTML =
+      RS.el('rsTableWrap').innerHTML =
         '<div class="nx-empty"><div class="nx-empty__art"><i class="fas fa-inbox" aria-hidden="true"></i></div>' +
-        '<p class="nx-empty__title">' + esc(I18N.noData) + '</p>' +
-        '<p class="nx-empty__hint">' + esc(I18N.noDataHint) + '</p></div>';
-      el('rsTableWrap').hidden = false;
+        '<p class="nx-empty__title">' + RS.esc(RS.I18N.noData) + '</p>' +
+        '<p class="nx-empty__hint">' + RS.esc(RS.I18N.noDataHint) + '</p></div>';
+      RS.el('rsTableWrap').hidden = false;
       syncForecastCtl(def, null, false);
       return;
     }
@@ -2625,7 +2626,7 @@
     }
     // Kept so switching the forecast OFF can re-render from this result
     // without another (slow, lookback-widened) server run.
-    state.lastRun = { def: def, columns: columns, rows: rows, hasMetrics: hasMetrics,
+    RS.state.lastRun = { def: def, columns: columns, rows: rows, hasMetrics: hasMetrics,
                       dims: dims, forecast: res.data.forecast || null };
     var charted = (hasMetrics && dims)
       ? !!mountChart(def, columns, rows, res.data.forecast || null) : false;
@@ -2638,11 +2639,11 @@
     // surface showing the result AND the only drill-through target left, so it
     // must be visible immediately.
     if (hasMetrics && (charted || !dims)) {
-      el('rsTableToggle').hidden = false;
-      el('rsTableToggle').textContent = I18N.showTable;
-      el('rsTableWrap').hidden = true;
+      RS.el('rsTableToggle').hidden = false;
+      RS.el('rsTableToggle').textContent = RS.I18N.showTable;
+      RS.el('rsTableWrap').hidden = true;
     } else {
-      el('rsTableWrap').hidden = false;   // plain table reports: grid directly
+      RS.el('rsTableWrap').hidden = false;   // plain table reports: grid directly
     }
     writePreviewCache(dims, hasMetrics, rows);
     // Task 13: auto AI caption over the result that just rendered. Placed
@@ -2653,21 +2654,21 @@
   }
 
   // Step 5 — refresh the library card's preview thumbnail from the result
-  // that's actually on screen. Only for a SAVED report (state.current.reportId
+  // that's actually on screen. Only for a SAVED report (RS.state.current.reportId
   // set) — an unsaved ad-hoc result has no card to feed. Wrapped in try/catch:
   // a localStorage quota error (or a browser with storage disabled) must
   // never break a run.
   function writePreviewCache(dims, hasMetrics, rows) {
-    var reportId = state.current && state.current.reportId;
+    var reportId = RS.state.current && RS.state.current.reportId;
     if (!reportId) return;
     try {
       var payload;
       if (hasMetrics && !dims && rows.length) {
         payload = { t: 'total', v: Number(rows[0][0]) || 0, ts: Date.now() };
-      } else if (hasMetrics && dims && state.chartData) {
-        var series = (state.chartData.datasets[0] || {}).data || [];
+      } else if (hasMetrics && dims && RS.state.chartData) {
+        var series = (RS.state.chartData.datasets[0] || {}).data || [];
         payload = {
-          t: state.chartData.type === 'line' ? 'line' : 'bar',
+          t: RS.state.chartData.type === 'line' ? 'line' : 'bar',
           v: series.slice(0, 16),
           ts: Date.now()
         };
@@ -2678,19 +2679,19 @@
     } catch (e) { /* quota or storage disabled — never break a run */ }
   }
 
-  el('rsTableToggle').addEventListener('click', function () {
-    var w = el('rsTableWrap');
+  RS.el('rsTableToggle').addEventListener('click', function () {
+    var w = RS.el('rsTableWrap');
     w.hidden = !w.hidden;
-    el('rsTableToggle').textContent = w.hidden ? I18N.showTable : I18N.hideTable;
+    RS.el('rsTableToggle').textContent = w.hidden ? RS.I18N.showTable : RS.I18N.hideTable;
   });
 
-  el('rsChartTools').addEventListener('click', function (e) {
+  RS.el('rsChartTools').addEventListener('click', function (e) {
     var btn = e.target.closest('button[data-type]');
-    if (!btn || !state.chartData) return;
+    if (!btn || !RS.state.chartData) return;
     // 'stacked' is a UI-only virtual type; don't persist it as a chartType since
     // it maps to 'bar' with stacked scales and is not a valid Chart.js type.
-    if (state.current && state.current.def && btn.dataset.type !== 'stacked') {
-      state.current.def.chartType = btn.dataset.type;
+    if (RS.state.current && RS.state.current.def && btn.dataset.type !== 'stacked') {
+      RS.state.current.def.chartType = btn.dataset.type;
     }
     renderChart(btn.dataset.type);
   });
@@ -2701,7 +2702,7 @@
       Array.isArray(def.metrics) && def.metrics.length > 0;
   }
   function syncForecastCtl(def, forecast, charted) {
-    var btn = el('rsForecastToggle'), sel = el('rsForecastHorizon');
+    var btn = RS.el('rsForecastToggle'), sel = RS.el('rsForecastHorizon');
     if (!btn) return;
     var eligible = forecastEligible(def);
     // Mirrors Advanced's syncForecastCtl (_reporting_js.html): a saved/shared
@@ -2711,7 +2712,7 @@
     if (!eligible) delete def.forecast;
     var on = eligible && !!(def.forecast && def.forecast.enabled);
     btn.disabled = !eligible;
-    btn.title = eligible ? I18N.forecastLabel : I18N.forecastNeedsShape;
+    btn.title = eligible ? RS.I18N.forecastLabel : RS.I18N.forecastNeedsShape;
     btn.setAttribute('aria-pressed', on ? 'true' : 'false');
     btn.classList.toggle('is-selected', on);
     sel.hidden = !on;
@@ -2722,19 +2723,19 @@
     // chartCardNote(...) — clobbering that here would silently destroy it,
     // and there's nothing forecast-related to disclaim if there's no chart.
     if (charted && on && forecast && forecast.unavailable) {
-      appendChartNote(I18N.forecastUnavailable);
+      appendChartNote(RS.I18N.forecastUnavailable);
     } else if (charted && on) {
-      appendChartNote(I18N.forecastNote);
+      appendChartNote(RS.I18N.forecastNote);
     }
   }
-  el('rsForecastToggle').addEventListener('click', function () {
-    var cur = state.current;
+  RS.el('rsForecastToggle').addEventListener('click', function () {
+    var cur = RS.state.current;
     if (!cur || !cur.def || this.disabled) return;
     if (cur.def.forecast && cur.def.forecast.enabled) {
       delete cur.def.forecast;
       // Off = drop the forecast block from the last result and repaint; the
       // rows are already on hand, no need to hit the server again.
-      var lr = state.lastRun;
+      var lr = RS.state.lastRun;
       if (lr && lr.def === cur.def) {
         var charted = (lr.hasMetrics && lr.dims) ? !!mountChart(cur.def, lr.columns, lr.rows, null) : false;
         syncForecastCtl(cur.def, null, charted);
@@ -2742,13 +2743,13 @@
         return;
       }
     } else {
-      var h = el('rsForecastHorizon').value;
+      var h = RS.el('rsForecastHorizon').value;
       cur.def.forecast = { enabled: true, horizon: h === 'auto' ? 'auto' : parseInt(h, 10) };
     }
     runCurrent();
   });
-  el('rsForecastHorizon').addEventListener('change', function () {
-    var cur = state.current;
+  RS.el('rsForecastHorizon').addEventListener('change', function () {
+    var cur = RS.state.current;
     if (!cur || !cur.def || !cur.def.forecast) return;
     var h = this.value;
     cur.def.forecast.horizon = h === 'auto' ? 'auto' : parseInt(h, 10);
@@ -2756,13 +2757,13 @@
   });
 
   // The rail's breakdown summary names the grain — keep it live.
-  el('rsGrain').addEventListener('change', renderWizardRail);
+  RS.el('rsGrain').addEventListener('change', renderWizardRail);
 
   // ----- Colours & axes popover -----
   // Client-side only: edits def.style and re-renders the mounted chart (no
   // re-run); Save persists it with the report like chartType/forecast.
   function toggleStylePop(open) {
-    var pop = el('rsStylePop'), btn = el('rsStyleToggle');
+    var pop = RS.el('rsStylePop'), btn = RS.el('rsStyleToggle');
     if (!pop || !btn) return;
     pop.hidden = !open;
     btn.setAttribute('aria-expanded', open ? 'true' : 'false');
@@ -2777,33 +2778,33 @@
     return /^#[0-9a-f]{6}$/i.test(c || '') ? c : '#4f46e5';
   }
   function syncStyleCtl() {
-    var d = state.chartData;
+    var d = RS.state.chartData;
     if (!d) return;
     var style = styleOf(), colors = style.colors || {};
     var multi = !!d.multiSeries;
-    var circular = state.chartType === 'pie' || state.chartType === 'doughnut';
+    var circular = RS.state.chartType === 'pie' || RS.state.chartType === 'doughnut';
     var rightKeys = circular ? [] : rightAxisKeys(d, style);
     var html = '';
     d.datasets.forEach(function (ds, i) {
       var key = seriesKey(ds, multi);
       var onRight = rightKeys.indexOf(key) >= 0;
-      html += '<div class="rs-style-row" data-key="' + esc(key) + '">' +
-        '<input type="color" value="' + esc(colors[key] || defaultSeriesColor(d, i)) +
-        '" aria-label="' + esc(ds.label) + '" data-testid="rs-style-color">' +
-        '<span>' + esc(ds.label) + '</span>' +
+      html += '<div class="rs-style-row" data-key="' + RS.esc(key) + '">' +
+        '<input type="color" value="' + RS.esc(colors[key] || defaultSeriesColor(d, i)) +
+        '" aria-label="' + RS.esc(ds.label) + '" data-testid="rs-style-color">' +
+        '<span>' + RS.esc(ds.label) + '</span>' +
         (!circular && d.datasets.length > 1
           ? '<span class="rs-axis-seg" role="group">' +
             '<button type="button" class="rs-axis-btn" data-axis="left" aria-pressed="' + (!onRight) +
-            '" title="' + esc(I18N.styleLeftAxis) + '" data-testid="rs-style-axis-left">' + esc(I18N.axisShortLeft) + '</button>' +
+            '" title="' + RS.esc(RS.I18N.styleLeftAxis) + '" data-testid="rs-style-axis-left">' + RS.esc(RS.I18N.axisShortLeft) + '</button>' +
             '<button type="button" class="rs-axis-btn" data-axis="right" aria-pressed="' + onRight +
-            '" title="' + esc(I18N.styleRightAxis) + '" data-testid="rs-style-axis-right">' + esc(I18N.axisShortRight) + '</button>' +
+            '" title="' + RS.esc(RS.I18N.styleRightAxis) + '" data-testid="rs-style-axis-right">' + RS.esc(RS.I18N.axisShortRight) + '</button>' +
             '</span>'
           : '') +
         '</div>';
     });
-    el('rsStyleRows').innerHTML = html;
-    el('rsStyleTitleColor').value = style.titleColor ||
-      rgbToHex(getComputedStyle(el('rsResultTitle')).color);
+    RS.el('rsStyleRows').innerHTML = html;
+    RS.el('rsStyleTitleColor').value = style.titleColor ||
+      rgbToHex(getComputedStyle(RS.el('rsResultTitle')).color);
   }
   // Colour inputs fire `input` continuously while dragging the picker —
   // coalesce to one chart rebuild per frame.
@@ -2812,15 +2813,15 @@
     if (styleRaf) return;
     styleRaf = requestAnimationFrame(function () {
       styleRaf = 0;
-      if (state.chartData) renderChart(state.chartType || state.chartData.type);
+      if (RS.state.chartData) renderChart(RS.state.chartType || RS.state.chartData.type);
       applyTitleStyle();
     });
   }
-  el('rsStyleToggle').addEventListener('click', function () {
-    toggleStylePop(el('rsStylePop').hidden);
+  RS.el('rsStyleToggle').addEventListener('click', function () {
+    toggleStylePop(RS.el('rsStylePop').hidden);
   });
-  el('rsStyleRows').addEventListener('input', function (e) {
-    var cur = state.current, d = state.chartData;
+  RS.el('rsStyleRows').addEventListener('input', function (e) {
+    var cur = RS.state.current, d = RS.state.chartData;
     if (!cur || !cur.def || !d || e.target.type !== 'color') return;
     var row = e.target.closest('.rs-style-row');
     if (!row) return;
@@ -2829,9 +2830,9 @@
     style.colors[row.dataset.key] = e.target.value;
     rerenderStyled();
   });
-  el('rsStyleRows').addEventListener('click', function (e) {
+  RS.el('rsStyleRows').addEventListener('click', function (e) {
     var btn = e.target.closest('.rs-axis-btn');
-    var cur = state.current, d = state.chartData;
+    var cur = RS.state.current, d = RS.state.chartData;
     if (!btn || !cur || !cur.def || !d) return;
     var key = btn.closest('.rs-style-row').dataset.key, style = ensureStyle();
     // Materialise the defaults first so moving a default right-axis series
@@ -2844,45 +2845,45 @@
     rerenderStyled();
     syncStyleCtl();
   });
-  el('rsStyleTitleColor').addEventListener('input', function () {
-    var cur = state.current;
+  RS.el('rsStyleTitleColor').addEventListener('input', function () {
+    var cur = RS.state.current;
     if (!cur || !cur.def) return;
     ensureStyle().titleColor = this.value;
     rerenderStyled();
   });
-  el('rsStyleReset').addEventListener('click', function () {
-    var cur = state.current;
+  RS.el('rsStyleReset').addEventListener('click', function () {
+    var cur = RS.state.current;
     if (!cur || !cur.def) return;
     delete cur.def.style;
     rerenderStyled();
     syncStyleCtl();
   });
 
-  el('rsShowSql').addEventListener('click', function () {
+  RS.el('rsShowSql').addEventListener('click', function () {
     // Console: the Query card is already visible in the side column — this
     // menu item just makes sure it's rendered and brings it into view.
-    var cur = state.current;
+    var cur = RS.state.current;
     if (!cur || !cur.sql) return;
-    var view = el('rsSqlView');
+    var view = RS.el('rsSqlView');
     view.hidden = false;
     // sqlDisplay = pretty SQL with the parameter literals inlined
     // server-side (display + copy only; execution stays parameterized).
-    ReportingSqlFormat.render(el('rsSqlText'), ReportingSqlFormat.displayText(cur));
+    ReportingSqlFormat.render(RS.el('rsSqlText'), ReportingSqlFormat.displayText(cur));
     view.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   });
-  el('rsSqlPeek').addEventListener('click', function () {
+  RS.el('rsSqlPeek').addEventListener('click', function () {
     // Same reveal path as the Show-query button — no duplicated panel-fill
     // logic (L9): the peek footer just delegates the click.
-    el('rsShowSql').click();
+    RS.el('rsShowSql').click();
   });
-  el('rsSqlCopy').addEventListener('click', function () {
-    var cur = state.current;
+  RS.el('rsSqlCopy').addEventListener('click', function () {
+    var cur = RS.state.current;
     if (!cur || !cur.sql) return;
     var text = ReportingSqlFormat.copyText(cur);
     var btn = this;
     navigator.clipboard.writeText(text).then(function () {
       var prev = btn.textContent;
-      btn.textContent = I18N.copied;
+      btn.textContent = RS.I18N.copied;
       setTimeout(function () { btn.textContent = prev; }, 1200);
     }).catch(function () { /* clipboard unavailable (non-HTTPS / unfocused) */ });
   });
@@ -2890,10 +2891,10 @@
   // Reveal the inline rename/save-name input (the pencil, "Save as copy", and
   // Save on a not-yet-saved result all land here).
   function revealSaveNameInput(value) {
-    if (!state.current) return;  // error view without a loaded report
-    var nameInput = el('rsSaveName');
+    if (!RS.state.current) return;  // error view without a loaded report
+    var nameInput = RS.el('rsSaveName');
     nameInput.hidden = false;
-    nameInput.value = value || state.current.name || state.current.def.title || '';
+    nameInput.value = value || RS.state.current.name || RS.state.current.def.title || '';
     nameInput.focus();
     nameInput.select();
   }
@@ -2902,7 +2903,7 @@
   // owner, or a colleague holding a CanEdit share (the same pair the PUT
   // endpoint accepts).
   function canUpdateCurrent() {
-    var cur = state.current;
+    var cur = RS.state.current;
     return !!(cur && cur.reportId && (cur.owned || cur.canEdit));
   }
 
@@ -2914,18 +2915,18 @@
   // new one. Renaming is the same call with a different name -- that is what
   // stops the pencil from spawning a duplicate under the new name.
   async function persistCurrent(name) {
-    var cur = state.current;
+    var cur = RS.state.current;
     var update = !saveAsCopy && canUpdateCurrent();
     var res = update
-      ? await api('/api/reporting/reports/' + cur.reportId, {
+      ? await RS.api('/api/reporting/reports/' + cur.reportId, {
           method: 'PUT', body: JSON.stringify({ name: name, definition: cur.def })
         })
-      : await api('/api/reporting/reports', {
+      : await RS.api('/api/reporting/reports', {
           method: 'POST', body: JSON.stringify({ name: name, definition: cur.def })
         });
     if (!res.ok) {
-      el('rsError').textContent = (res.data && res.data.error) || I18N.couldNotSave;
-      el('rsError').hidden = false;
+      RS.el('rsError').textContent = (res.data && res.data.error) || RS.I18N.couldNotSave;
+      RS.el('rsError').hidden = false;
       return;
     }
     cur.name = name;
@@ -2937,23 +2938,23 @@
       cur.canEdit = true;
     }
     saveAsCopy = false;
-    el('rsSaveName').hidden = true;
-    el('rsResultTitle').textContent = name;
-    el('rsCrumbName').textContent = name;
-    el('rsSavedChip').hidden = !cur.reportId;
-    el('rsDeleteReport').hidden = !(cur.owned && cur.reportId);
-    el('rsSaveCopy').hidden = !cur.reportId;
-    el('rsError').hidden = true;
-    el('rsMsg').textContent = update ? I18N.savedChanges : I18N.savedToMine;
-    el('rsMsg').hidden = false;
+    RS.el('rsSaveName').hidden = true;
+    RS.el('rsResultTitle').textContent = name;
+    RS.el('rsCrumbName').textContent = name;
+    RS.el('rsSavedChip').hidden = !cur.reportId;
+    RS.el('rsDeleteReport').hidden = !(cur.owned && cur.reportId);
+    RS.el('rsSaveCopy').hidden = !cur.reportId;
+    RS.el('rsError').hidden = true;
+    RS.el('rsMsg').textContent = update ? RS.I18N.savedChanges : RS.I18N.savedToMine;
+    RS.el('rsMsg').hidden = false;
     loadLibrary();
   }
 
-  el('rsRenamePencil').addEventListener('click', function () { revealSaveNameInput(); });
+  RS.el('rsRenamePencil').addEventListener('click', function () { revealSaveNameInput(); });
 
-  el('rsSave').addEventListener('click', function () {
-    if (!state.current) return;  // error view without a loaded report
-    var nameInput = el('rsSaveName');
+  RS.el('rsSave').addEventListener('click', function () {
+    if (!RS.state.current) return;  // error view without a loaded report
+    var nameInput = RS.el('rsSaveName');
     if (!nameInput.hidden) {          // naming a new report, or renaming this one
       var typed = nameInput.value.trim();
       if (typed) persistCurrent(typed);
@@ -2961,50 +2962,50 @@
     }
     // A saved report keeps its name and takes the edit; anything else has to
     // be named first.
-    if (canUpdateCurrent()) persistCurrent(state.current.name || state.current.def.title || '');
+    if (canUpdateCurrent()) persistCurrent(RS.state.current.name || RS.state.current.def.title || '');
     else revealSaveNameInput();
   });
 
-  el('rsSaveName').addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') { e.preventDefault(); el('rsSave').click(); }
-    else if (e.key === 'Escape') { this.hidden = true; saveAsCopy = false; el('rsSave').focus(); }
+  RS.el('rsSaveName').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); RS.el('rsSave').click(); }
+    else if (e.key === 'Escape') { this.hidden = true; saveAsCopy = false; RS.el('rsSave').focus(); }
   });
 
-  el('rsSaveCopy').addEventListener('click', function () {
-    if (!state.current) return;
+  RS.el('rsSaveCopy').addEventListener('click', function () {
+    if (!RS.state.current) return;
     saveAsCopy = true;
     toggleMoreMenu(false);
-    revealSaveNameInput(I18N.copyOf.replace('{name}', state.current.name || state.current.def.title || ''));
+    revealSaveNameInput(RS.I18N.copyOf.replace('{name}', RS.state.current.name || RS.state.current.def.title || ''));
   });
 
   // Open in Advanced. id:null for non-owned reports is LOAD-BEARING: CanEdit
   // shares mutate shared reports in place; a null id makes Advanced's Save
   // default to create-a-copy.
-  el('rsAdjustWizard').addEventListener('click', adjustInWizard);
+  RS.el('rsAdjustWizard').addEventListener('click', adjustInWizard);
 
   // ⋯ overflow menu: toggle on the button, close on Escape or an outside
   // click — same idiom as the Advanced tab's process-scope dropdown
   // (rpScopeBtn/#rpScopeWrap wiring at the bottom of _reporting_js.html).
-  var rsMoreBtn = el('rsMore');
+  var rsMoreBtn = RS.el('rsMore');
   if (rsMoreBtn) {
     rsMoreBtn.addEventListener('click', function (e) { e.stopPropagation(); toggleMoreMenu(); });
     document.addEventListener('click', function (e) {
-      var wrap = el('rsMoreWrap');
+      var wrap = RS.el('rsMoreWrap');
       if (wrap && !wrap.contains(e.target)) toggleMoreMenu(false);
     });
-    el('rsMoreWrap').addEventListener('keydown', function (e) {
+    RS.el('rsMoreWrap').addEventListener('keydown', function (e) {
       if (e.key === 'Escape') { toggleMoreMenu(false); rsMoreBtn.focus(); }
     });
   }
 
-  el('rsDeleteReport').addEventListener('click', function () {
-    var cur = state.current;
+  RS.el('rsDeleteReport').addEventListener('click', function () {
+    var cur = RS.state.current;
     if (!cur || !cur.reportId) return;
     deleteReport(cur.reportId, cur.name || cur.def.title);
   });
 
-  el('rsOpenAdvanced').addEventListener('click', function () {
-    var cur = state.current;
+  RS.el('rsOpenAdvanced').addEventListener('click', function () {
+    var cur = RS.state.current;
     if (!cur || !window.Reporting || !window.Reporting.applyDefinition) return;
     var id = (cur.owned && cur.canEdit) ? cur.reportId : null;
     window.Reporting.applyDefinition(cur.def, cur.name || cur.def.title, id);
@@ -3016,8 +3017,8 @@
   });
 
   function chartPngDataUrl() {
-    if (!state.chart) return null;
-    var src = el('rsChartCanvas');
+    if (!RS.state.chart) return null;
+    var src = RS.el('rsChartCanvas');
     var c = document.createElement('canvas');
     c.width = src.width; c.height = src.height;
     var ctx = c.getContext('2d');
@@ -3027,21 +3028,21 @@
     return c.toDataURL('image/png');
   }
 
-  el('rsChartPng').addEventListener('click', function () {
+  RS.el('rsChartPng').addEventListener('click', function () {
     var url = chartPngDataUrl();
     if (!url) return;
     var a = document.createElement('a');
     a.href = url;
-    a.download = ((state.current && state.current.name) || 'report') + '-chart.png';
+    a.download = ((RS.state.current && RS.state.current.name) || 'report') + '-chart.png';
     a.click();
   });
 
   if (EXPORT_ALLOWED) {
-    el('rsExport').addEventListener('click', async function () {
-      if (!state.current) return;  // error view without a loaded report
-      var fmtSel = el('rsExportFormat');
+    RS.el('rsExport').addEventListener('click', async function () {
+      if (!RS.state.current) return;  // error view without a loaded report
+      var fmtSel = RS.el('rsExportFormat');
       var fmt = (fmtSel && fmtSel.value === 'csv') ? 'csv' : 'xlsx';
-      var body = Object.assign({}, state.current.def, { format: fmt });
+      var body = Object.assign({}, RS.state.current.def, { format: fmt });
       var png = fmt === 'xlsx' ? chartPngDataUrl() : null;
       if (png) body.chartImage = png;
       var res;
@@ -3053,14 +3054,14 @@
         });
       } catch (e) { res = { ok: false }; }
       if (!res.ok) {
-        el('rsError').textContent = I18N.couldNotExport;
-        el('rsError').hidden = false;
+        RS.el('rsError').textContent = RS.I18N.couldNotExport;
+        RS.el('rsError').hidden = false;
         return;
       }
       var blob = await res.blob();
       var a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = (state.current.name || 'report') + '.' + fmt;
+      a.download = (RS.state.current.name || 'report') + '.' + fmt;
       a.click();
       URL.revokeObjectURL(a.href);
     });
@@ -3068,19 +3069,19 @@
 
   // ---------- Wizard ----------
   // Progress rail (Task 5): a fixed 4-row list mirroring the 4 step divs.
-  // Rows are presentational only -- they read state.wiz + the steps' own
+  // Rows are presentational only -- they read RS.state.wiz + the steps' own
   // `hidden` flags, never drive the click flow (renderMeasureStep and co.
   // are untouched and remain the single source of truth for what's shown).
   var WIZ_STEPS = [
-    { id: 'rsStepMeasure', label: I18N.wizMeasure },
-    { id: 'rsStepScope', label: I18N.wizScope },
-    { id: 'rsStepBreakdown', label: I18N.wizBreakdown },
-    { id: 'rsStepTime', label: I18N.wizTime }
+    { id: 'rsStepMeasure', label: RS.I18N.wizMeasure },
+    { id: 'rsStepScope', label: RS.I18N.wizScope },
+    { id: 'rsStepBreakdown', label: RS.I18N.wizBreakdown },
+    { id: 'rsStepTime', label: RS.I18N.wizTime }
   ];
   var WIZ_TIME_TOKEN_LABELS = {
-    this_week: I18N.thisWeek, this_month: I18N.thisMonth, last_month: I18N.lastMonth,
-    this_quarter: I18N.thisQuarter, last_quarter: I18N.lastQuarter,
-    last_3_months: I18N.last3Months, this_year: I18N.thisYear, last_year: I18N.lastYear
+    this_week: RS.I18N.thisWeek, this_month: RS.I18N.thisMonth, last_month: RS.I18N.lastMonth,
+    this_quarter: RS.I18N.thisQuarter, last_quarter: RS.I18N.lastQuarter,
+    last_3_months: RS.I18N.last3Months, this_year: RS.I18N.thisYear, last_year: RS.I18N.lastYear
   };
 
   // The accordion never re-hides an earlier step once shown (only cascades
@@ -3091,7 +3092,7 @@
   function wizStepIndex() {
     var i;
     for (i = WIZ_STEPS.length - 1; i >= 0; i--) {
-      var stepEl = el(WIZ_STEPS[i].id);
+      var stepEl = RS.el(WIZ_STEPS[i].id);
       if (stepEl && !stepEl.hidden) return i;
     }
     return 0;
@@ -3102,11 +3103,11 @@
   }
 
   // One short summary string per WIZ_STEPS row, in order, from the exact
-  // fields the step renderers themselves read/write on state.wiz. Blank
+  // fields the step renderers themselves read/write on RS.state.wiz. Blank
   // until that part of the state is meaningful (no source picked yet, or
   // this source has no processes to scope).
   function wizSummaries() {
-    var w = state.wiz || {};
+    var w = RS.state.wiz || {};
     var out = ['', '', '', ''];
     if ((w.measures || []).length) {
       out[0] = w.measures.map(function (m) { return m.label; }).join(' + ');
@@ -3114,28 +3115,28 @@
     var allProcs = (w.source && w.source.processes) || [];
     if (allProcs.length) {
       var chosen = (w.scopeProcs || []).length || allProcs.length;
-      out[1] = (chosen === allProcs.length) ? I18N.allProcesses
-        : I18N.wizScopeCount.replace('{n}', chosen).replace('{m}', allProcs.length);
+      out[1] = (chosen === allProcs.length) ? RS.I18N.allProcesses
+        : RS.I18N.wizScopeCount.replace('{n}', chosen).replace('{m}', allProcs.length);
     }
     if (!allProcs.length && w.fieldScope) {
       var n = w.fieldScope.picked.length, m = w.fieldScope.values.length;
-      out[1] = n === m ? I18N.allProcesses
-        : I18N.wizScopeCount.replace('{n}', n).replace('{m}', m);
+      out[1] = n === m ? RS.I18N.allProcesses
+        : RS.I18N.wizScopeCount.replace('{n}', n).replace('{m}', m);
     }
     if (w.source) {
       if ((w.breakdowns || []).length) {
-        var grainSel = el('rsGrain');
+        var grainSel = RS.el('rsGrain');
         var grainTxt = grainSel ? grainSel.options[grainSel.selectedIndex].text : '';
         out[2] = w.breakdowns.map(function (b) {
-          if (!b.field) return I18N.justTotal;
+          if (!b.field) return RS.I18N.justTotal;
           return b.kind === 'date' ? (b.field.label + ' (' + grainTxt + ')') : b.field.label;
         }).join(', ');
       } else {
-        out[2] = I18N.justTotal;
+        out[2] = RS.I18N.justTotal;
       }
-      if (Array.isArray(w.range)) out[3] = I18N.custom;
+      if (Array.isArray(w.range)) out[3] = RS.I18N.custom;
       else if (w.range && w.range.token) out[3] = wizTimeLabel(w.range.token);
-      else out[3] = I18N.allTime;
+      else out[3] = RS.I18N.allTime;
     }
     return out;
   }
@@ -3147,7 +3148,7 @@
     // Console: horizontal step chips (active = accent tint, done = check dot)
     // + the "So far" summary panel beside the step card.
     var idx = wizStepIndex();
-    el('rsWizardStepNo').textContent = I18N.stepNof4.replace('{n}', idx + 1);
+    RS.el('rsWizardStepNo').textContent = RS.I18N.stepNof4.replace('{n}', idx + 1);
     var sums = wizSummaries();
     var html = '';
     WIZ_STEPS.forEach(function (step, i) {
@@ -3155,16 +3156,16 @@
       var dot = i < idx ? '<i class="fas fa-check" aria-hidden="true"></i>' : String(i + 1);
       html += '<span class="rs-rail-step ' + cls + '">'
         + '<span class="rs-rail-dot">' + dot + '</span>'
-        + '<span class="rs-rail-title">' + esc(step.label) + '</span></span>';
+        + '<span class="rs-rail-title">' + RS.esc(step.label) + '</span></span>';
       if (i < WIZ_STEPS.length - 1) html += '<span class="rs-rail-line"></span>';
     });
-    el('rsWizardRail').innerHTML = html;
-    var sm = el('rsWizSummary');
+    RS.el('rsWizardRail').innerHTML = html;
+    var sm = RS.el('rsWizSummary');
     if (sm) {
       sm.innerHTML = WIZ_STEPS.map(function (step, i) {
         var v = (i <= idx && sums[i]) ? sums[i] : '';
-        return '<div class="rs-wizsum-row"><span class="rs-wizsum-k">' + esc(step.label) + '</span>'
-          + '<span class="rs-wizsum-v' + (v ? '' : ' is-empty') + '">' + esc(v || '—') + '</span></div>';
+        return '<div class="rs-wizsum-row"><span class="rs-wizsum-k">' + RS.esc(step.label) + '</span>'
+          + '<span class="rs-wizsum-v' + (v ? '' : ' is-empty') + '">' + RS.esc(v || '—') + '</span></div>';
       }).join('');
     }
   }
@@ -3209,11 +3210,11 @@
   }
 
   async function loadSourcesCatalog() {
-    if (state.sources) return state.sources;
+    if (RS.state.sources) return RS.state.sources;
     var list = null;
     try { list = await ReportingCatalog.sources(); } catch (e) { list = null; }
-    state.sources = Array.isArray(list) ? list : [];
-    return state.sources;
+    RS.state.sources = Array.isArray(list) ? list : [];
+    return RS.state.sources;
   }
 
   // Warms the two catalogs the shared builders read through state
@@ -3222,20 +3223,20 @@
   // whole-report card, which renders while the Simple result view is idle.
   async function ensureCatalogs() {
     await loadSourcesCatalog();
-    if (!state.metricsBySource) await loadMetricsCatalog();
+    if (!RS.state.metricsBySource) await loadMetricsCatalog();
   }
 
   async function startWizard() {
     await loadSourcesCatalog();
-    if (!state.metricsBySource) await loadMetricsCatalog();
-    state.wiz = { measures: [], source: null, breakdowns: [],
+    if (!RS.state.metricsBySource) await loadMetricsCatalog();
+    RS.state.wiz = { measures: [], source: null, breakdowns: [],
                   scopeProcs: [], range: null, dateField: null, _fp: null,
                   fieldScope: null };
     setView('wizard');
-    el('rsStepScope').hidden = true;
-    el('rsStepBreakdown').hidden = true;
-    el('rsStepTime').hidden = true;
-    el('rsWizardRun').hidden = true;
+    RS.el('rsStepScope').hidden = true;
+    RS.el('rsStepBreakdown').hidden = true;
+    RS.el('rsStepTime').hidden = true;
+    RS.el('rsWizardRun').hidden = true;
     renderMeasureStep();
   }
 
@@ -3249,7 +3250,7 @@
   }
 
   function toggleMeasure(m, src) {
-    var w = state.wiz;
+    var w = RS.state.wiz;
     if (w.source && w.source.id !== src.id) return;   // disabled chip
     if (anchorMismatch(w, m)) return;                 // disabled chip
     var idx = -1, i;
@@ -3264,25 +3265,25 @@
       w.source = src;
     }
     // Any change re-gates the later steps behind Continue.
-    el('rsStepScope').hidden = true;
-    el('rsStepBreakdown').hidden = true;
-    el('rsStepTime').hidden = true;
-    el('rsWizardRun').hidden = true;
+    RS.el('rsStepScope').hidden = true;
+    RS.el('rsStepBreakdown').hidden = true;
+    RS.el('rsStepTime').hidden = true;
+    RS.el('rsWizardRun').hidden = true;
     renderMeasureStep();
   }
 
   function renderMeasureStep() {
-    var list = el('rsMeasureList');
+    var list = RS.el('rsMeasureList');
     list.innerHTML = '';
-    var w = state.wiz;
+    var w = RS.state.wiz;
     if (!Array.isArray(w.measures)) w.measures = [];
-    var bySource = state.metricsBySource || {};
+    var bySource = RS.state.metricsBySource || {};
     var visible = Object.keys(bySource).filter(function (sid) {
-      return (state.sources || []).some(function (s) { return s.id === sid; });
+      return (RS.state.sources || []).some(function (s) { return s.id === sid; });
     });
     var multi = visible.length > 1;
     visible.forEach(function (sid) {
-      var src = state.sources.find(function (s) { return s.id === sid; });
+      var src = RS.state.sources.find(function (s) { return s.id === sid; });
       (bySource[sid] || []).forEach(function (m) {
         // Sources without metrics never appear; admins grow the wizard's
         // reach by adding rows in the metrics registry, zero code change.
@@ -3305,16 +3306,16 @@
         if (fld && fld.processes && fld.processes.length && srcProcs.length
             && fld.processes.length < srcProcs.length) {
           btn.appendChild(covBadge(fld.processes.length, srcProcs.length));
-          btn.title = I18N.measureCoverage.replace('{n}', fld.processes.length)
+          btn.title = RS.I18N.measureCoverage.replace('{n}', fld.processes.length)
             .replace('{m}', srcProcs.length) + '\n' + fld.processes.join('\n');
         }
         list.appendChild(btn);
       });
     });
     if (!list.children.length) {
-      list.innerHTML = '<p class="reporting-simple-empty">' + esc(I18N.noMeasures) + '</p>';
+      list.innerHTML = '<p class="reporting-simple-empty">' + RS.esc(RS.I18N.noMeasures) + '</p>';
     }
-    el('rsMeasureNext').hidden = !w.measures.length;
+    RS.el('rsMeasureNext').hidden = !w.measures.length;
     renderWizardRail();
   }
 
@@ -3335,17 +3336,17 @@
   }
 
   function renderScopeStep() {
-    var w = state.wiz;
+    var w = RS.state.wiz;
     var procs = w.source.processes || [];
-    var step = el('rsStepScope');
+    var step = RS.el('rsStepScope');
     var pf = processFieldFor(w.source);
     if (!procs.length && !pf) { step.hidden = true; renderBreakdownStep(); return; }
     if (!procs.length && pf) { renderFieldScopeStep(step, pf); return; }
     step.hidden = false;
-    el('rsStepBreakdown').hidden = true;
-    el('rsStepTime').hidden = true;
-    el('rsWizardRun').hidden = true;
-    var box = el('rsScopeList');
+    RS.el('rsStepBreakdown').hidden = true;
+    RS.el('rsStepTime').hidden = true;
+    RS.el('rsWizardRun').hidden = true;
+    var box = RS.el('rsScopeList');
     box.innerHTML = '';
     var prior = w.scopeProcs || [];
     procs.forEach(function (p) {
@@ -3358,7 +3359,7 @@
           box.querySelectorAll('input:checked'), function (c) { return c.value; });
         // The chip list follows the scope live when the breakdown step is
         // already open (reopened wizard / user stepped back).
-        if (!el('rsStepBreakdown').hidden) renderBreakdownStep();
+        if (!RS.el('rsStepBreakdown').hidden) renderBreakdownStep();
       });
       lbl.appendChild(cb);
       lbl.appendChild(document.createTextNode(' ' + p));
@@ -3369,19 +3370,19 @@
   }
 
   async function renderFieldScopeStep(step, pf) {
-    var w = state.wiz;
+    var w = RS.state.wiz;
     step.hidden = false;
-    el('rsStepBreakdown').hidden = true;
-    el('rsStepTime').hidden = true;
-    el('rsWizardRun').hidden = true;
-    var box = el('rsScopeList');
-    box.innerHTML = '<p class="reporting-simple-hint">' + esc(I18N.loadingValues) + '</p>';
+    RS.el('rsStepBreakdown').hidden = true;
+    RS.el('rsStepTime').hidden = true;
+    RS.el('rsWizardRun').hidden = true;
+    var box = RS.el('rsScopeList');
+    box.innerHTML = '<p class="reporting-simple-hint">' + RS.esc(RS.I18N.loadingValues) + '</p>';
     renderWizardRail();
-    var res = await api('/api/reporting/field_values', {
+    var res = await RS.api('/api/reporting/field_values', {
       method: 'POST',
       body: JSON.stringify({ source: w.source.id, field: pf.field })
     });
-    if (state.view !== 'wizard' || el('rsStepScope').hidden) {
+    if (RS.state.view !== 'wizard' || RS.el('rsStepScope').hidden) {
       // User stepped away mid-fetch (e.g. back to the measure step) --
       // clear the stale "Loading values..." hint so a later re-entry to this
       // step doesn't show it frozen until the NEXT fetch resolves (#178).
@@ -3418,10 +3419,10 @@
   }
 
   function renderBreakdownStep() {
-    el('rsStepBreakdown').hidden = false;
-    el('rsStepTime').hidden = true;
-    el('rsWizardRun').hidden = true;
-    var w = state.wiz;
+    RS.el('rsStepBreakdown').hidden = false;
+    RS.el('rsStepTime').hidden = true;
+    RS.el('rsWizardRun').hidden = true;
+    var w = RS.state.wiz;
     if (!Array.isArray(w.breakdowns)) w.breakdowns = [];
     var allProcs = w.source.processes || [];
     var sourceHasDates = (w.source.fields || []).some(function (f) { return f.grainable; });
@@ -3437,7 +3438,7 @@
     }
 
     function refreshChips() {
-      var chips = el('rsBreakdownList').querySelectorAll('button[data-bd-kind]');
+      var chips = RS.el('rsBreakdownList').querySelectorAll('button[data-bd-kind]');
       var ci;
       for (ci = 0; ci < chips.length; ci++) {
         var btn = chips[ci];
@@ -3451,9 +3452,9 @@
       for (ci = 0; ci < w.breakdowns.length; ci++) {
         if (w.breakdowns[ci].kind === 'date') { hasDate = true; break; }
       }
-      el('rsGrainWrap').hidden = !sourceHasDates;
-      el('rsGrain').disabled = !hasDate;
-      el('rsGrainWrap').title = hasDate ? '' : I18N.grainNeedsDate;
+      RS.el('rsGrainWrap').hidden = !sourceHasDates;
+      RS.el('rsGrain').disabled = !hasDate;
+      RS.el('rsGrainWrap').title = hasDate ? '' : RS.I18N.grainNeedsDate;
       updatePickedCount();
     }
 
@@ -3502,7 +3503,7 @@
       var cov = coveredBy(f);
       if (cov === null || cov.length >= scopeSel().length) return;
       btn.appendChild(covBadge(cov.length, scopeSel().length));
-      btn.title = I18N.chipCoverage.replace('{n}', cov.length).replace('{m}', scopeSel().length)
+      btn.title = RS.I18N.chipCoverage.replace('{n}', cov.length).replace('{m}', scopeSel().length)
         + '\n' + cov.join('\n');
     }
 
@@ -3510,7 +3511,7 @@
     // footer itself is shared across all four steps -- visibility is a pure
     // CSS :has() shim keyed on #rsStepBreakdown[hidden], see reporting.css).
     function updatePickedCount() {
-      el('rsPickedCount').textContent = I18N.pickedCount.replace('{n}', String(w.breakdowns.length));
+      RS.el('rsPickedCount').textContent = RS.I18N.pickedCount.replace('{n}', String(w.breakdowns.length));
     }
 
     function groupLabel(text) {
@@ -3524,7 +3525,7 @@
     // whose field no selected process provides is hidden and its selection
     // pruned (the query would only produce NULL groups for it).
     function renderChipList() {
-      var list = el('rsBreakdownList');
+      var list = RS.el('rsBreakdownList');
       list.innerHTML = '';
       var fields = w.source.fields || [];
       // Anchored measures use ONLY the shared activity_date axis; plain
@@ -3560,10 +3561,10 @@
       // Scope narrowing can strand a selected breakdown on a hidden field.
       w.breakdowns = w.breakdowns.filter(function (b) { return !b.field || inScope(b.field); });
 
-      if (dateFields.length) list.appendChild(groupLabel(I18N.groupTime));
+      if (dateFields.length) list.appendChild(groupLabel(RS.I18N.groupTime));
       dateFields.forEach(function (f) {
         var bd = { kind: 'date', field: f };
-        var btn = choiceBtn(I18N.overTime + ' (' + f.label + ')', function () {
+        var btn = choiceBtn(RS.I18N.overTime + ' (' + f.label + ')', function () {
           toggleBreakdown(bd);
         }, isSelected(bd));
         btn.dataset.bdKind = 'date';
@@ -3574,7 +3575,7 @@
       // No cap: everything the Advanced tab offers is available here — the
       // coverage sort keeps rarely-provided fields at the bottom, and the
       // hide-list still filters the noise.
-      if (catFields.length) list.appendChild(groupLabel(I18N.groupFields));
+      if (catFields.length) list.appendChild(groupLabel(RS.I18N.groupFields));
       catFields.forEach(function (f) {
         var bd = { kind: 'category', field: f };
         var btn = choiceBtn(f.label, function () {
@@ -3585,8 +3586,8 @@
         applyCoverageBadge(btn, f);
         list.appendChild(btn);
       });
-      list.appendChild(groupLabel(I18N.groupOr));
-      var noneBtn = choiceBtn(I18N.justTotal, function () {
+      list.appendChild(groupLabel(RS.I18N.groupOr));
+      var noneBtn = choiceBtn(RS.I18N.justTotal, function () {
         toggleBreakdown({ kind: 'none' });
       }, w.breakdowns.length === 0);
       noneBtn.dataset.bdKind = 'none';
@@ -3598,7 +3599,7 @@
     refreshChips();
 
     // Wire Continue button
-    var nextBtn = el('rsBreakdownNext');
+    var nextBtn = RS.el('rsBreakdownNext');
     if (nextBtn) {
       nextBtn.onclick = function () { renderTimeStep(); };
     }
@@ -3615,96 +3616,96 @@
   // Custom choiceBtn handler and the restore-from-definition path below), so
   // the mode/format/onChange options exist in exactly one place.
   function ensureRangePicker() {
-    if (!state.wiz._fp && window.flatpickr) {
-      state.wiz._fp = flatpickr(el('rsTimeRange'), {
+    if (!RS.state.wiz._fp && window.flatpickr) {
+      RS.state.wiz._fp = flatpickr(RS.el('rsTimeRange'), {
         mode: 'range', dateFormat: 'Y-m-d',
         onChange: function (picked) {
           if (picked.length === 2) {
-            state.wiz.range = [isoDate(picked[0]), isoDate(picked[1])];
+            RS.state.wiz.range = [isoDate(picked[0]), isoDate(picked[1])];
           }
         }
       });
     }
-    return state.wiz._fp;
+    return RS.state.wiz._fp;
   }
 
   function renderTimeStep() {
-    el('rsStepTime').hidden = false;
-    el('rsWizardRun').hidden = false;
-    el('rsTimeCustom').hidden = !Array.isArray(state.wiz.range);
+    RS.el('rsStepTime').hidden = false;
+    RS.el('rsWizardRun').hidden = false;
+    RS.el('rsTimeCustom').hidden = !Array.isArray(RS.state.wiz.range);
     // A restored definition's literal range (adjustInWizard) must be visible
     // in the picker, not just applied silently on Show result — seed it here
     // (display = state, no change event) rather than waiting for the user to
     // click Custom themselves.
-    if (Array.isArray(state.wiz.range) && window.flatpickr) {
+    if (Array.isArray(RS.state.wiz.range) && window.flatpickr) {
       ensureRangePicker();
-      if (state.wiz._fp) state.wiz._fp.setDate(state.wiz.range, false);
+      if (RS.state.wiz._fp) RS.state.wiz._fp.setDate(RS.state.wiz.range, false);
     }
-    var fields = state.wiz.source.fields || [];
-    var anchoredTime = !!(state.wiz.measures.length && state.wiz.measures[0].anchor);
+    var fields = RS.state.wiz.source.fields || [];
+    var anchoredTime = !!(RS.state.wiz.measures.length && RS.state.wiz.measures[0].anchor);
     var dateFields = fields.filter(function (f) { return f.grainable; })
       .filter(function (f) {
         return anchoredTime ? f.field === 'activity_date' : f.field !== 'activity_date';
       });
-    var list = el('rsTimeList');
+    var list = RS.el('rsTimeList');
     // Skipped when the source exposes no date field.
     if (!dateFields.length) {
-      list.innerHTML = '<p class="reporting-simple-empty">' + esc(I18N.noDateField) + '</p>';
-      el('rsTimeFieldWrap').hidden = true;
-      state.wiz.range = null;
-      el('rsAllTimeHint').hidden = true;
+      list.innerHTML = '<p class="reporting-simple-empty">' + RS.esc(RS.I18N.noDateField) + '</p>';
+      RS.el('rsTimeFieldWrap').hidden = true;
+      RS.state.wiz.range = null;
+      RS.el('rsAllTimeHint').hidden = true;
       renderWizardRail();
       return;
     }
     // Date field defaults to import_date, switchable to export_date.
-    var sel = el('rsTimeField');
+    var sel = RS.el('rsTimeField');
     sel.innerHTML = '';
     dateFields.forEach(function (f) {
       var o = document.createElement('option');
       o.value = f.field; o.textContent = f.label;
       sel.appendChild(o);
     });
-    if (state.wiz.dateField
-        && dateFields.some(function (f) { return f.field === state.wiz.dateField; })) {
-      sel.value = state.wiz.dateField;
+    if (RS.state.wiz.dateField
+        && dateFields.some(function (f) { return f.field === RS.state.wiz.dateField; })) {
+      sel.value = RS.state.wiz.dateField;
     } else if (dateFields.some(function (f) { return f.field === 'import_date'; })) {
       sel.value = 'import_date';
     }
-    el('rsTimeFieldWrap').hidden = dateFields.length < 2;
-    state.wiz.dateField = sel.value;
-    sel.onchange = function () { state.wiz.dateField = sel.value; };
+    RS.el('rsTimeFieldWrap').hidden = dateFields.length < 2;
+    RS.state.wiz.dateField = sel.value;
+    sel.onchange = function () { RS.state.wiz.dateField = sel.value; };
 
     list.innerHTML = '';
-    [['this_week', I18N.thisWeek], ['this_month', I18N.thisMonth],
-     ['last_month', I18N.lastMonth], ['this_quarter', I18N.thisQuarter],
-     ['last_quarter', I18N.lastQuarter], ['last_3_months', I18N.last3Months],
-     ['this_year', I18N.thisYear], ['last_year', I18N.lastYear],
-     ['all_time', I18N.allTime], ['custom', I18N.custom]].forEach(function (p) {
+    [['this_week', RS.I18N.thisWeek], ['this_month', RS.I18N.thisMonth],
+     ['last_month', RS.I18N.lastMonth], ['this_quarter', RS.I18N.thisQuarter],
+     ['last_quarter', RS.I18N.lastQuarter], ['last_3_months', RS.I18N.last3Months],
+     ['this_year', RS.I18N.thisYear], ['last_year', RS.I18N.lastYear],
+     ['all_time', RS.I18N.allTime], ['custom', RS.I18N.custom]].forEach(function (p) {
       list.appendChild(choiceBtn(p[1], function () {
-        el('rsTimeCustom').hidden = p[0] !== 'custom';
+        RS.el('rsTimeCustom').hidden = p[0] !== 'custom';
         if (p[0] === 'custom') {
           ensureRangePicker();
           // Re-selecting Custom keeps whatever range the picker still shows
           // (display and state must agree); empty picker = no filter yet.
-          var fp = state.wiz._fp;
-          state.wiz.range = (fp && fp.selectedDates && fp.selectedDates.length === 2)
+          var fp = RS.state.wiz._fp;
+          RS.state.wiz.range = (fp && fp.selectedDates && fp.selectedDates.length === 2)
             ? [isoDate(fp.selectedDates[0]), isoDate(fp.selectedDates[1])]
             : null;
         } else {
           // Preset = relative-date token: resolved server-side on every run.
           // all_time = no filter.
-          state.wiz.range = p[0] === 'all_time' ? null : { token: p[0] };
+          RS.state.wiz.range = p[0] === 'all_time' ? null : { token: p[0] };
         }
-        el('rsAllTimeHint').hidden = state.wiz.range !== null;
+        RS.el('rsAllTimeHint').hidden = RS.state.wiz.range !== null;
         renderWizardRail();
-      }, state.wiz.range === p[0] ||
-         (state.wiz.range && state.wiz.range.token === p[0]) ||
-         (p[0] === 'custom' && Array.isArray(state.wiz.range)) ||
-         (p[0] === 'all_time' && state.wiz.range === null)));
+      }, RS.state.wiz.range === p[0] ||
+         (RS.state.wiz.range && RS.state.wiz.range.token === p[0]) ||
+         (p[0] === 'custom' && Array.isArray(RS.state.wiz.range)) ||
+         (p[0] === 'all_time' && RS.state.wiz.range === null)));
     });
     // Only default to all-time if no prior choice is being restored.
-    if (!state.wiz.range) state.wiz.range = null;
-    el('rsAllTimeHint').hidden = state.wiz.range !== null;
+    if (!RS.state.wiz.range) RS.state.wiz.range = null;
+    RS.el('rsAllTimeHint').hidden = RS.state.wiz.range !== null;
     renderWizardRail();
   }
 
@@ -3713,7 +3714,7 @@
   // metric codes from the registry; the between filter always targets the
   // RAW date field (the Spec-1 contract), never the bucketed expression.
   function wizardDefinition() {
-    var w = state.wiz;
+    var w = RS.state.wiz;
     var columns = [], sort = [], filters = [];
     var title = w.measures.map(function (m) { return m.label; }).join(' + ');
     var bds = (w.breakdowns || []).slice();
@@ -3721,7 +3722,7 @@
     bds.sort(function (a, b) {
       return (a.kind === 'date' ? 0 : 1) - (b.kind === 'date' ? 0 : 1);
     });
-    var grain = el('rsGrain').value || 'month';
+    var grain = RS.el('rsGrain').value || 'month';
     var titleParts = [];
     var hasDate = false;
     var nDates = bds.filter(function (b) { return b.kind === 'date'; }).length;
@@ -3732,7 +3733,7 @@
         sort.push({ field: b.field.field, dir: 'asc' });
         // With two date breakdowns "per month / per month" is meaningless —
         // name the field so the two axes stay distinguishable (#164).
-        var per = I18N.per + ' ' + el('rsGrain').options[el('rsGrain').selectedIndex].text.toLowerCase();
+        var per = RS.I18N.per + ' ' + RS.el('rsGrain').options[RS.el('rsGrain').selectedIndex].text.toLowerCase();
         titleParts.push(nDates > 1 ? (b.field.label + ' ' + per) : per);
       } else if (b.kind === 'category') {
         columns.push({ field: b.field.field, header: b.field.label });
@@ -3746,7 +3747,7 @@
       if (hasDate && bds.length === 1) {
         title += ' ' + titleParts.join(' / ');
       } else {
-        title += ' ' + I18N.by + ' ' + titleParts.join(' / ');
+        title += ' ' + RS.I18N.by + ' ' + titleParts.join(' / ');
       }
     }
     if (w.range && w.dateField) {
@@ -3780,8 +3781,8 @@
   // (multiple columns/filters/metrics, exotic ops, client scope).
   function wizardStateFromDefinition(def) {
     if (!def || !Array.isArray(def.metrics) || !def.metrics.length) return null;
-    var src = (state.sources || []).find(function (s) { return s.id === def.source; });
-    var mlist = (state.metricsBySource || {})[def.source] || [];
+    var src = (RS.state.sources || []).find(function (s) { return s.id === def.source; });
+    var mlist = (RS.state.metricsBySource || {})[def.source] || [];
     var measures = [];
     for (var mi = 0; mi < def.metrics.length; mi++) {
       var code = def.metrics[mi].metric;
@@ -3853,24 +3854,24 @@
   }
 
   async function adjustInWizard() {
-    var cur = state.current;
+    var cur = RS.state.current;
     if (!cur) return;
-    if (cur.builtBy === 'wizard' && state.wiz && (state.wiz.measures || []).length) {
+    if (cur.builtBy === 'wizard' && RS.state.wiz && (RS.state.wiz.measures || []).length) {
       reopenWizard(); return;
     }
     await loadSourcesCatalog();
-    if (!state.metricsBySource) await loadMetricsCatalog();
+    if (!RS.state.metricsBySource) await loadMetricsCatalog();
     var mapped = wizardStateFromDefinition(cur.def);
     if (!mapped) return;
-    state.wiz = mapped.wiz;
-    if (mapped.grain) el('rsGrain').value = mapped.grain;
+    RS.state.wiz = mapped.wiz;
+    if (mapped.grain) RS.el('rsGrain').value = mapped.grain;
     reopenWizard();
   }
 
   async function reopenWizard() {
-    if (!state.wiz || !(state.wiz.measures || []).length) { startWizard(); return; }
+    if (!RS.state.wiz || !(RS.state.wiz.measures || []).length) { startWizard(); return; }
     await loadSourcesCatalog();
-    if (!state.metricsBySource) await loadMetricsCatalog();
+    if (!RS.state.metricsBySource) await loadMetricsCatalog();
     setView('wizard');
     renderMeasureStep();
     renderScopeStep();
@@ -3878,42 +3879,42 @@
     renderTimeStep();
   }
 
-  el('rsNewReport').addEventListener('click', startWizard);
-  el('rsNewDashboard').addEventListener('click', function () {
+  RS.el('rsNewReport').addEventListener('click', startWizard);
+  RS.el('rsNewDashboard').addEventListener('click', function () {
     setView('dashboard');
     window.ReportingDashboard.openNew();
   });
-  el('rsMeasureNext').addEventListener('click', function () { renderScopeStep(); });
-  el('rsScopeNext').addEventListener('click', function () { renderBreakdownStep(); });
-  // Back steps one wizard step backwards (picks are preserved in state.wiz);
+  RS.el('rsMeasureNext').addEventListener('click', function () { renderScopeStep(); });
+  RS.el('rsScopeNext').addEventListener('click', function () { renderBreakdownStep(); });
+  // Back steps one wizard step backwards (picks are preserved in RS.state.wiz);
   // only from step 1 does it exit. The ✕ stays the explicit exit at any point.
-  el('rsWizardBack').addEventListener('click', function () {
-    if (!el('rsStepTime').hidden) {           // time -> breakdown
-      el('rsStepTime').hidden = true;
-      el('rsWizardRun').hidden = true;
+  RS.el('rsWizardBack').addEventListener('click', function () {
+    if (!RS.el('rsStepTime').hidden) {           // time -> breakdown
+      RS.el('rsStepTime').hidden = true;
+      RS.el('rsWizardRun').hidden = true;
       renderWizardRail();
       return;
     }
-    if (!el('rsStepBreakdown').hidden) {      // breakdown -> scope (or measure)
-      el('rsStepBreakdown').hidden = true;
-      if (!el('rsStepScope').hidden) { renderWizardRail(); return; }  // scope step stays visible above
+    if (!RS.el('rsStepBreakdown').hidden) {      // breakdown -> scope (or measure)
+      RS.el('rsStepBreakdown').hidden = true;
+      if (!RS.el('rsStepScope').hidden) { renderWizardRail(); return; }  // scope step stays visible above
       // no scope step for this source: renderScopeStep would have skipped it
-      var procs = (state.wiz && state.wiz.source && state.wiz.source.processes) || [];
-      if (procs.length) el('rsStepScope').hidden = false;
+      var procs = (RS.state.wiz && RS.state.wiz.source && RS.state.wiz.source.processes) || [];
+      if (procs.length) RS.el('rsStepScope').hidden = false;
       renderWizardRail();
       return;
     }
-    if (!el('rsStepScope').hidden) {          // scope -> measure
-      el('rsStepScope').hidden = true;
+    if (!RS.el('rsStepScope').hidden) {          // scope -> measure
+      RS.el('rsStepScope').hidden = true;
       renderWizardRail();
       return;
     }
     setView('library');                       // measure -> out
   });
-  el('rsWizardRun').addEventListener('click', function () {
-    if (!state.wiz || !(state.wiz.measures || []).length) return;
+  RS.el('rsWizardRun').addEventListener('click', function () {
+    if (!RS.state.wiz || !(RS.state.wiz.measures || []).length) return;
     var def = wizardDefinition();
-    state.current = { def: def, name: def.title, reportId: null,
+    RS.state.current = { def: def, name: def.title, reportId: null,
                       owned: true, canEdit: true, fromWizard: true,
                       builtBy: 'wizard', origin: 'wizard' };
     runCurrent();
@@ -3924,52 +3925,52 @@
 
   // ---------- init ----------
   function initOnce() {
-    if (state.loaded) return;
-    state.loaded = true;
+    if (RS.state.loaded) return;
+    RS.state.loaded = true;
     loadMetricsCatalog();
     loadLibrary();
     syncLayoutToggle();
   }
 
-  el('rsSearch').addEventListener('input', renderLibrary);
-  el('rsSort').addEventListener('change', function () {
-    state.sort = this.value === 'name' ? 'name' : 'updated';
+  RS.el('rsSearch').addEventListener('input', renderLibrary);
+  RS.el('rsSort').addEventListener('change', function () {
+    RS.state.sort = this.value === 'name' ? 'name' : 'updated';
     renderLibrary();
   });
   function syncLayoutToggle() {
-    el('rsLayout2').classList.toggle('is-active', state.layout === '2');
-    el('rsLayout4').classList.toggle('is-active', state.layout === '4');
+    RS.el('rsLayout2').classList.toggle('is-active', RS.state.layout === '2');
+    RS.el('rsLayout4').classList.toggle('is-active', RS.state.layout === '4');
   }
   function setLayout(n) {
-    state.layout = n;
+    RS.state.layout = n;
     try { localStorage.setItem('nx.reporting.layout', n); } catch (e) {}
     syncLayoutToggle();
     renderLibrary();
   }
-  el('rsLayout2').addEventListener('click', function () { setLayout('2'); });
-  el('rsLayout4').addEventListener('click', function () { setLayout('4'); });
+  RS.el('rsLayout2').addEventListener('click', function () { setLayout('2'); });
+  RS.el('rsLayout4').addEventListener('click', function () { setLayout('4'); });
   function exitToLibrary() { setView('library'); loadLibrary(); }
 
   // Back on a result returns to the result's origin: a wizard-built (or
   // wizard-reopened) result goes back into the wizard adjustment; a
   // library-opened or Ask-AI result goes back to the library. The X is
   // always the explicit way out to the library, regardless of origin.
-  el('rsBack').addEventListener('click', function () {
-    var cur = state.current;
+  RS.el('rsBack').addEventListener('click', function () {
+    var cur = RS.state.current;
     if (cur && cur.origin === 'wizard') { adjustInWizard(); return; }
     exitToLibrary();
   });
-  el('rsExit').addEventListener('click', exitToLibrary);
-  el('rsWizardClose').addEventListener('click', exitToLibrary);
-  el('rsWizardClose2').addEventListener('click', exitToLibrary);
+  RS.el('rsExit').addEventListener('click', exitToLibrary);
+  RS.el('rsWizardClose').addEventListener('click', exitToLibrary);
+  RS.el('rsWizardClose2').addEventListener('click', exitToLibrary);
 
   // The dashboard builder module is self-contained and never calls setView
   // itself -- it announces intent via a custom event instead of reaching
   // into this module's functions (D3).
   document.addEventListener('rs:dashboard-closed', exitToLibrary);
 
-  el('rsRunAgain').addEventListener('click', function () {
-    if (state.current) runCurrent();
+  RS.el('rsRunAgain').addEventListener('click', function () {
+    if (RS.state.current) runCurrent();
   });
 
   // Result builders shared with the dashboard's whole-report card
