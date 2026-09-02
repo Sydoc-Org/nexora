@@ -187,8 +187,11 @@ def api_metrics():
 
 
 def register_routes(app):
+    # Not "/metrics": EasyPrivacy ships the generic filter "/reporting/metrics",
+    # so ad blockers silently kill that fetch on PROD (the Simple wizard then
+    # shows "no measures configured"). The admin CRUD path above is not matched.
     app.add_url_rule(
-        "/api/reporting/metrics",
+        "/api/reporting/measures",
         endpoint="reporting_metrics",
         view_func=api_metrics,
     )
