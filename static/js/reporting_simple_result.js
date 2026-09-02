@@ -12,6 +12,14 @@
 // functions is actually invoked (a user action), every file has already run.
 (function () {
   window.RS = window.RS || {};
+  // Defensive fallback (see reporting_simple.js's top-of-file comment for
+  // the RS.state/RS.el/RS.esc/RS.api/RS.I18N contract, and
+  // reporting_simple_wizard.js's top-of-file comment for why this matters
+  // even though nothing here reads them at module-load time today). Keeps
+  // the load-order invariant structural rather than something to remember.
+  RS.esc = RS.esc || window.NX.esc;
+  RS.api = RS.api || window.NX.apiSafe;
+  RS.state = RS.state || {};
 
   // ---------- Result view ----------
   // Save/Export must never act on a definition the last run couldn't produce
@@ -611,7 +619,7 @@
     var header = clicked.map(function (c) {
       var f = (src.fields || []).find(function (x) { return x.field === c.field; });
       var v = (c.value === null || c.value === undefined || c.value === '')
-        ? ReportingDrill.RS.I18N.nullLabel : String(c.value).slice(0, 60);
+        ? ReportingDrill.I18N.nullLabel : String(c.value).slice(0, 60);
       return ((f && f.label) || c.field) + ' = ' + v;
     }).join(' · ');
     var isDistinct = /distinct/i.test(String(metricAggFor(cur.def) || ''));

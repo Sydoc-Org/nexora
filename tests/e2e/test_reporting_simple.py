@@ -2700,6 +2700,86 @@ def test_drill_row_opens_panel(nexora_server, page):
         )
 
 
+def test_drill_row_null_value_uses_null_label(nexora_server, page):
+    """Regression: Task 7's blanket `\\bI18N\\.` -> `RS.I18N.` rename regex
+    (Beautification Phase 2b) matched inside `ReportingDrill.I18N.nullLabel`
+    too (the `\\b` word boundary sits between the `.` and `I`), corrupting
+    RS.openDrill's header-building code (reporting_simple_result.js) into
+    `ReportingDrill.RS.I18N.nullLabel` -- ReportingDrill has no `.RS`
+    property, so this threw a TypeError whenever a drilled dimension value
+    was null/undefined/empty. Drives the real RS.openDrill (the function the
+    Simple pane's row-click/chart-click handlers actually call), not
+    ReportingDrill.open directly, so it exercises the corrupted line --
+    unlike the existing null-bucket drill tests (e.g.
+    test_drill_transform_null_group_uses_is_null,
+    test_drill_null_grain_bucket_opens_with_is_null_filter), which pass a
+    literal `header: 'test'` straight into ReportingDrill.open() and never
+    reach this header-building code at all."""
+    _login(page, nexora_server)
+    ids = page.evaluate(
+        """async () => {
+          const csrf = document.querySelector('meta[name="csrf-token"]').content;
+          const post = (url, body) => fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify(body)
+          }).then(r => r.json());
+          const src = await post('/api/reporting/admin/sources', {
+            code: 'wiz_drill_null', kind: 'curated', label: 'Wizard Drill Null',
+            permission: 'reporting.source.docprocessing', provider: 'table',
+            engine: 'nexora', baseObject: 'dbo.Users',
+            columns: [{field: 'username', label: 'Username', type: 'string',
+                       filterable: true, sortable: true}],
+            enabled: true, sortOrder: 33});
+          const met = await post('/api/reporting/admin/metrics', {
+            code: 'wiz_drill_null_count', sourceId: 'wiz_drill_null',
+            label: 'Wizard drill null count', aggregation: 'count', format: 'int'});
+          return {src: src.id, met: met.id};
+        }"""
+    )
+    try:
+        _stub_run_ok(page)
+        # Same wizard-walk pattern as test_drill_row_opens_panel, to get
+        # RS.state.current/RS.state.sources populated the way a real drill
+        # click would find them.
+        page.goto(f"{nexora_server}/reporting?tab=simple")
+        page.get_by_test_id("rs-new-report").click()
+        page.get_by_test_id("rs-measure-list").get_by_text("Wizard drill null count").click()
+        page.get_by_test_id("rs-measure-next").click()
+        page.get_by_test_id("rs-breakdown-list").get_by_text("Username", exact=True).click()
+        page.get_by_test_id("rs-breakdown-next").click()
+        page.get_by_test_id("rs-wizard-run").click()
+        expect(page.get_by_test_id("rs-result")).to_be_visible()
+
+        # A null/empty dimension value is exactly what a click on the
+        # chart/table's own "(empty)" bucket would pass in. page.evaluate
+        # re-raises a JS exception as a Python error -- pre-fix this call
+        # itself fails with the TypeError from the corrupted RS.RS.I18N read.
+        title = page.evaluate(
+            """() => {
+              RS.openDrill([{field: 'username', value: null}]);
+              return document.getElementById('rdTitle').textContent;
+            }"""
+        )
+        assert (
+            "(empty)" in title
+        ), f"expected the null-label text in the drill header, got: {title!r}"
+        panel = page.get_by_test_id("reporting-drill-panel")
+        expect(panel).to_be_visible()
+        page.keyboard.press("Escape")
+        expect(panel).to_be_hidden()
+    finally:
+        page.evaluate(
+            """async (ids) => {
+              const csrf = document.querySelector('meta[name="csrf-token"]').content;
+              const del = url => fetch(url, {method: 'DELETE', headers: {'X-CSRFToken': csrf}});
+              await del('/api/reporting/admin/metrics/' + ids.met);
+              await del('/api/reporting/admin/sources/' + ids.src);
+            }""",
+            ids,
+        )
+
+
 def test_drill_row_opens_panel_with_context_chips(nexora_server, page):
     """Task 9 restyle: opening a drill renders #rdChips (testid
     reporting-drill-chips) with at least one .reporting-drill-chip -- one
