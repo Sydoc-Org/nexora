@@ -125,21 +125,20 @@ Work toward the next release.
 
 - **`/api/workitems` paging's `total` count is now read off the page query
   itself (`COUNT(*) OVER()`) instead of a second, separate `COUNT(*)`
-  query** — one query per page request instead of two, in the common case
-  of a non-empty page (an empty page still falls back to the old
-  separate-COUNT query, to keep the exact same reported total when the
-  requested offset lands past the end of the results). Functionally
-  identical `total`/rows in both SQL Server and Postgres dialects (89 unit
-  + 127 integration tests, all green). **Flagged rather than claimed as a
-  win:** isolated raw-SQL A/B measurement on this dev machine's SQL Server
-  instance showed the new single-query form is ~12% *slower*, not faster
-  (118.2ms → 132.4ms median) — `COUNT(*) OVER()` with no `PARTITION BY`
-  makes the engine build a window spool over the whole matching set before
-  it can apply `OFFSET`/`FETCH`, which was pricier than two independent
-  scans on this instance's plan. This still needs verification against
-  INT's real query plan/data shape before it can be trusted as a net
-  win; treat it as a correctness-preserving refactor (fewer round trips on
-  paper) with unverified — and possibly negative — production performance.
+  query — PostgreSQL (MS02) only.** `PostgresSource.list_workitems` reads
+  `total` from the paged query's own `COUNT(*) OVER()` column (falling back
+  to the old separate-COUNT query only on an empty page, to keep the exact
+  same reported total when the requested offset lands past the end of the
+  results); the real round-trip saved here is plausible and has no measured
+  regression. `SqlServerSource.list_workitems` was converted the same way
+  and then **reverted back to the original two-query form** after isolated
+  raw-SQL A/B measurement on a real SQL Server instance showed the
+  single-query form is ~12% *slower*, not faster (118.2ms → 132.4ms
+  median) — `COUNT(*) OVER()` with no `PARTITION BY` makes the engine build
+  a window spool over the whole matching set before it can apply
+  `OFFSET`/`FETCH`, pricier than two independent scans on this instance's
+  plan. Net effect: SQL Server paging is unchanged from before this plan;
+  PostgreSQL paging is one query per page request instead of two.
 
 - **Generali list exports (`?all=true`) are now capped at 100,000 rows.**
   The five generated Generali list endpoints (Attendance, Base Services,

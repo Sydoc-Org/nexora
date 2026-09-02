@@ -48,16 +48,16 @@ def _mk_filter():
 
 
 def test_sqlserver_source_normalizes_rows(app):
-    # total rides along on every row via COUNT(*) OVER() -- no separate count
-    # query for the non-empty-page path.
+    # Two-query pattern: a separate COUNT(*) plus the paged query.
+    count_row = [3]
     data_row = MagicMock(
         ModifiedAt=datetime(2026, 6, 16, 9, 0, 0),
         WorkItemID=7,
         Status="Ready",
         CurrentStage="Extraction",
-        TotalCount=3,
     )
     fake_cur = MagicMock()
+    fake_cur.fetchone.return_value = count_row
     fake_cur.fetchall.return_value = [data_row]
     fake_conn = MagicMock()
     fake_conn.cursor.return_value = fake_cur
@@ -72,33 +72,10 @@ def test_sqlserver_source_normalizes_rows(app):
     assert rows[0]["client"] == "default"
     assert "priority" not in rows[0]
     assert "tags" not in rows[0]
-    # Single query: COUNT(*) OVER() in the page query, no separate COUNT(*).
-    assert fake_cur.execute.call_count == 1
-    executed_sql = str(fake_cur.execute.call_args_list[0].args[0])
-    assert "COUNT(*) OVER()" in executed_sql
-
-
-def test_sqlserver_source_zero_rows_falls_back_to_count_query(app):
-    """An empty page (offset past the end, or genuinely no matches) has no row
-    for COUNT(*) OVER() to ride on -- must fall back to a plain COUNT query to
-    tell the two cases apart, exactly like the old always-run count did."""
-    fake_cur = MagicMock()
-    fake_cur.fetchall.return_value = []
-    fake_cur.fetchone.return_value = [5]
-    fake_conn = MagicMock()
-    fake_conn.cursor.return_value = fake_cur
-
-    src = SqlServerSource()
-    with patch.object(src, "engine") as eng, app.app_context():
-        eng.raw_connection.return_value = fake_conn
-        rows, total = src.list_workitems(_mk_filter(), offset=1000, limit=40)
-
-    assert rows == []
-    assert total == 5
+    # Two queries: a separate COUNT(*) then the page query, no COUNT(*) OVER().
     assert fake_cur.execute.call_count == 2
-    fallback_sql = str(fake_cur.execute.call_args_list[1].args[0])
-    assert "COUNT(*)" in fallback_sql
-    assert "OVER()" not in fallback_sql
+    executed_sql = " ".join(str(c.args[0]) for c in fake_cur.execute.call_args_list)
+    assert "COUNT(*) OVER()" not in executed_sql
 
 
 def test_postgres_source_builds_pg_sql(app):
