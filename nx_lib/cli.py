@@ -168,6 +168,9 @@ def _build_logo() -> str:
 
             # — Composite: painter's algorithm by depth —
             if sphere_col is not None and ring_col is not None:
+                # sphere_depth/ring_depth are set together with their *_col
+                # sibling in the blocks above.
+                assert sphere_depth is not None and ring_depth is not None
                 pixels[y][x] = ring_col if ring_depth > sphere_depth else sphere_col
             elif sphere_col is not None:
                 pixels[y][x] = sphere_col
@@ -205,6 +208,7 @@ def _build_logo() -> str:
                     last_fg, last_bg, last_mode = top, None, "top"
                 parts.append("▀")
             else:  # bot is not None
+                assert bot is not None  # the three prior branches exhaust every other case
                 if last_mode != "bot" or bot != last_fg:
                     parts.append(f"{OFF}\x1b[38;2;{bot[0]};{bot[1]};{bot[2]}m")
                     last_fg, last_bg, last_mode = bot, None, "bot"

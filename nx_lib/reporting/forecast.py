@@ -326,6 +326,9 @@ def compute_forecast(definition, columns, rows, visible_rows=None, carry_forward
                 "upper": [round(v, 4) for v in upper],
             }
         )
+    # metrics is non-empty (guarded above), so the loop ran at least once and
+    # future was assigned before any exit past this point.
+    assert future is not None
     return {
         "anchor": dates[-1].isoformat(),
         "grain": grain,

@@ -123,7 +123,9 @@ def api_reports_schedules_create(report_id):
                 alert_thr,
             ),
         )
-        new_id = cur.fetchone()[0]
+        inserted = cur.fetchone()
+        assert inserted is not None  # INSERT ... OUTPUT always returns the new row
+        new_id = inserted[0]
         conn.commit()
         return jsonify({"id": new_id, "ok": True})
     except Exception as e:

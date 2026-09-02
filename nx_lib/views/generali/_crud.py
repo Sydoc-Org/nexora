@@ -353,7 +353,7 @@ def _make_monthreport(d):
             ctx = _month_window()
 
             where_clauses = [f"{spec.date_column} >= ?", f"{spec.date_column} <= ?"]
-            params = [str(ctx["first_day"]), str(ctx["last_day"])]
+            params: list = [str(ctx["first_day"]), str(ctx["last_day"])]
             if (
                 spec.self_restrict
                 and not has_permission(f"{d.perm_prefix}.edit.organizational")
@@ -606,6 +606,7 @@ def _make_list(d):
                 agg_cols += f", {spec.aggregate[0]}"
             cursor.execute(f"SELECT {agg_cols} FROM {d.table} {where_sql}", params)
             agg = cursor.fetchone()
+            assert agg is not None  # aggregate SELECT always returns exactly one row
             total_records = agg[0] or 0
             total_pages = max(1, -(-total_records // per_page))
 

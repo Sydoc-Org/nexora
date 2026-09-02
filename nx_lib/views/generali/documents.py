@@ -121,6 +121,7 @@ def api_generali_stats():
             date_params,
         )
         kpi_row = cursor.fetchone()
+        assert kpi_row is not None  # aggregate SELECT always returns exactly one row
         total = kpi_row[0] or 0
         kpis = {
             "total_docs": total,
@@ -397,7 +398,9 @@ def api_generali_documents():
         cursor.execute(
             f"SELECT COUNT(*) FROM [dbo].[v_ReportJobJoinDefinitions] WHERE {where_sql}", params
         )
-        total_items = cursor.fetchone()[0]
+        count_row = cursor.fetchone()
+        assert count_row is not None  # SELECT COUNT(*) always returns exactly one row
+        total_items = count_row[0]
         total_pages = math.ceil(total_items / per_page)
 
         cursor.execute(

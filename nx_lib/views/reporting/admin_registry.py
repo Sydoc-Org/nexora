@@ -185,7 +185,9 @@ def api_admin_sources_create():
             "OUTPUT INSERTED.SourceID VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             _source_insert_params(p),
         )
-        new_id = cur.fetchone()[0]
+        inserted = cur.fetchone()
+        assert inserted is not None  # INSERT ... OUTPUT always returns the new row
+        new_id = inserted[0]
         conn.commit()
         invalidate_reporting_sources()
         return jsonify({"id": new_id, "ok": True})
@@ -309,7 +311,9 @@ def api_admin_metrics_create():
             "OUTPUT INSERTED.MetricID VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             _metric_insert_params(p),
         )
-        new_id = cur.fetchone()[0]
+        inserted = cur.fetchone()
+        assert inserted is not None  # INSERT ... OUTPUT always returns the new row
+        new_id = inserted[0]
         conn.commit()
         invalidate_reporting_metrics()
         return jsonify({"id": new_id, "ok": True})

@@ -65,7 +65,9 @@ def api_generali_importstatus_list():
         cursor = conn.cursor()
 
         cursor.execute(f"SELECT COUNT(*) FROM [Generali].[dbo].[CSVImportLog] {where_sql}", params)
-        total_records = cursor.fetchone()[0] or 0
+        count_row = cursor.fetchone()
+        assert count_row is not None  # SELECT COUNT(*) always returns exactly one row
+        total_records = count_row[0] or 0
         total_pages = max(1, -(-total_records // per_page))
 
         cursor.execute(

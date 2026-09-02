@@ -336,6 +336,7 @@ def _run_sql(target, sql, *, userid, username):
     start = time.monotonic()
     conn = engine.raw_connection()
     try:
+        assert conn.dbapi_connection is not None  # fresh from the pool, not invalidated
         conn.dbapi_connection.timeout = SQL_TIMEOUT_S  # pyodbc query timeout (seconds)
         cur = conn.cursor()
         cur.execute(wrapped)
@@ -550,7 +551,7 @@ def _prepare_run(rd):
         anchored = [m for m in (resolved or []) if m.get("anchor")]
         col_fields = {c.get("field") for c in rd.get("columns") or []}
         filt_fields = {f.get("field") for f in rd.get("filters") or []}
-        if anchored and len(anchored) != len(resolved):
+        if anchored and len(anchored) != len(resolved or []):
             raise ReportDefinitionError(
                 "anchored measures (imported/exported/backlog) cannot be mixed "
                 "with unanchored ones — pick one kind"

@@ -33,7 +33,8 @@ def _preview_summary(defn):
         # s: 12-col span} per card) so the client can draw a true miniature of
         # the dashboard instead of a generic placeholder. Type-guarded like
         # everything else here — a malformed card is skipped, not fatal.
-        cards = defn.get("cards") if isinstance(defn.get("cards"), list) else []
+        cards_raw = defn.get("cards")
+        cards = cards_raw if isinstance(cards_raw, list) else []
         mini = []
         for c in cards[:12]:
             if not isinstance(c, dict):
@@ -45,7 +46,8 @@ def _preview_summary(defn):
                 s = 6
             mini.append({"t": t, "s": max(1, min(12, s))})
         return {"cards": mini, "cardCount": len(cards)}
-    cols = defn.get("columns") if isinstance(defn.get("columns"), list) else []
+    cols_raw = defn.get("columns")
+    cols = cols_raw if isinstance(cols_raw, list) else []
     grain = ""
     for c in cols:
         if isinstance(c, dict) and isinstance(c.get("grain"), str):
@@ -226,7 +228,9 @@ def api_reports_create():
             "INSERT INTO Reports (OwnerUserID, Name, DefinitionJSON) OUTPUT INSERTED.ReportID VALUES (?, ?, ?)",
             (userid, name, definition_json),
         )
-        new_id = cur.fetchone()[0]
+        inserted = cur.fetchone()
+        assert inserted is not None  # INSERT ... OUTPUT always returns the new row
+        new_id = inserted[0]
         conn.commit()
         return jsonify({"id": new_id, "ok": True})
     except Exception as e:

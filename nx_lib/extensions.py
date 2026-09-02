@@ -47,6 +47,7 @@ csrf = CSRFProtect()
 
 # Token signer for password-reset links. Safe to construct here because
 # nexora.config has already been imported and the secret is loaded.
+assert cfg.SECRET_KEY, "FLASK_SECRET_KEY is required (see env/*.env.example)"
 s = URLSafeTimedSerializer(cfg.SECRET_KEY)
 
 

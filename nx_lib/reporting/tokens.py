@@ -106,7 +106,9 @@ def resolve_token(value, today=None):
         today = datetime.date.today()
     if value["token"] == "last_n_days":
         return today - datetime.timedelta(days=value["n"] - 1), today
-    return RELATIVE_DATE_TOKENS[value["token"]](today)
+    resolver = RELATIVE_DATE_TOKENS[value["token"]]
+    assert resolver is not None  # last_n_days (the only None entry) is handled above
+    return resolver(today)
 
 
 def resolve_definition_tokens(rd, today=None):
@@ -191,7 +193,7 @@ def widened_definition_for_forecast(rd, today=None):
     """
     cols = (rd or {}).get("columns") or []
     grain = cols[0].get("grain") if len(cols) == 1 and isinstance(cols[0], dict) else None
-    lookback = _FORECAST_LOOKBACK_DAYS.get(grain)
+    lookback = _FORECAST_LOOKBACK_DAYS.get(grain) if grain is not None else None
     if lookback is None:
         return None
     filters = rd.get("filters") or []

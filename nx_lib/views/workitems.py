@@ -1477,7 +1477,7 @@ def prepared_documents():
 
     def _bool_arg(name):
         val = request.args.get(name)
-        return {"1": True, "0": False}.get(val)
+        return {"1": True, "0": False}.get(val) if val is not None else None
 
     collected_filter = _bool_arg("collected")
     prepared_filter = _bool_arg("prepared")
@@ -1686,7 +1686,9 @@ def save_workitem_filter_view():
                 cursor.execute(
                     "SELECT COUNT(*) FROM WorkitemFilterViews WHERE UserID = ?", (userid,)
                 )
-                if cursor.fetchone()[0] >= MAX_FILTER_VIEWS:
+                count_row = cursor.fetchone()
+                assert count_row is not None  # SELECT COUNT(*) always returns exactly one row
+                if count_row[0] >= MAX_FILTER_VIEWS:
                     conn.rollback()
                     return jsonify({"error": _("Too many saved views — delete one first.")}), 400
                 cursor.execute(
@@ -1698,7 +1700,9 @@ def save_workitem_filter_view():
                 "SELECT ID FROM WorkitemFilterViews WHERE UserID = ? AND Name = ?",
                 (userid, name),
             )
-            view_id = cursor.fetchone()[0]
+            view_row = cursor.fetchone()
+            assert view_row is not None  # the row was just inserted/updated above
+            view_id = view_row[0]
         conn.commit()
         return jsonify({"id": view_id, "name": name, "folder": folder})
     except pyodbc.IntegrityError:

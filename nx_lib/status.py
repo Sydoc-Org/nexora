@@ -75,8 +75,8 @@ def spark_series(samples, now, window_h=SPARK_WINDOW_H, buckets=SPARK_BUCKETS):
     span = timedelta(hours=window_h)
     start = now - span
     width = span / buckets
-    slots = [None] * buckets
-    failed = [False] * buckets
+    slots: list[float | None] = [None] * buckets
+    failed: list[bool] = [False] * buckets
     seen = 0
     for sampled_at, latency_ms, ok in samples:
         if sampled_at < start or sampled_at > now:

@@ -39,7 +39,8 @@ def admin_organizations_view():
         # predates migration 0081) -- degrade to "nothing branded", never error.
         brands = branding_registry() or {}
         for org in organizations:
-            brand = brands.get(org.get("organizationcode")) or {}
+            org_code = org.get("organizationcode")
+            brand = (brands.get(org_code) if isinstance(org_code, str) else None) or {}
             org["brand_name"] = brand.get("name")
             org["brand_accent_hex"] = brand.get("accent_hex")
             org["brand_logo_file"] = brand.get("logo_file")
@@ -310,6 +311,7 @@ def api_admin_organization_branding_save(organizationcode):
             return jsonify({"success": False, "message": _("Organization not found.")}), 404
 
         if logo_bytes is not None:
+            assert logo_filename is not None  # set together with logo_bytes above
             branding_dir = Path(PATHS.branding)
             branding_dir.mkdir(parents=True, exist_ok=True)
             target = _branding_logo_target(branding_dir, logo_filename)

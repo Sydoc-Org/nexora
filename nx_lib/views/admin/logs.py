@@ -107,7 +107,9 @@ def api_admin_logs_search():
         cursor = conn.cursor()
 
         cursor.execute(f"SELECT COUNT(*) FROM Logs WHERE {where_clause}", params)
-        total_count = cursor.fetchone()[0]
+        count_row = cursor.fetchone()
+        assert count_row is not None  # SELECT COUNT(*) always returns exactly one row
+        total_count = count_row[0]
 
         sql = f"""
             SELECT LogID, Timestamp, Username, HttpRequestMethod, Path,

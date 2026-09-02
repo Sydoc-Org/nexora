@@ -305,7 +305,10 @@ def _inject_brand():
     (branding_logo aborts 401 without a userid). Mirror that route's gate."""
     if "userid" not in session:
         return {"brand": {}}
-    return {"brand": brand_for_org(session.get("organizationcode")) or {}}
+    org_code = session.get("organizationcode")
+    if not isinstance(org_code, str):
+        return {"brand": {}}
+    return {"brand": brand_for_org(org_code) or {}}
 
 
 def _utility_processor():

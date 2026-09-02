@@ -803,6 +803,7 @@ def run(fast: bool = False, fix: bool = False) -> int:
                 if fid in seen:
                     continue
                 seen.add(fid)
+                assert r.fix is not None  # filtered into `fixable` above
                 try:
                     res = r.fix()
                 except Exception as exc:

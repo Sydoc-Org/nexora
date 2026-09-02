@@ -1144,6 +1144,7 @@ class PostgresSource:
         self.engine = client.runtime_engine if client else None
 
     def has_workitem(self, workitem_id):
+        assert self.engine is not None  # guaranteed by the client registry for a registered code
         conn = self.engine.raw_connection()
         try:
             cur = conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor)
@@ -1158,6 +1159,7 @@ class PostgresSource:
     def process_of(self, workitem_id):
         """(ClientName, ProcessName) for a workitem, or None. PG dialect of the
         SqlServerSource.process_of entitlement lookup (#193)."""
+        assert self.engine is not None  # guaranteed by the client registry for a registered code
         conn = self.engine.raw_connection()
         try:
             cur = conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor)
@@ -1232,6 +1234,7 @@ class PostgresSource:
         if not filt.client_process_pairs:
             return [], 0
         where, params = self._build_where(filt)
+        assert self.engine is not None  # guaranteed by the client registry for a registered code
         conn = self.engine.raw_connection()
         try:
             cur = conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor)
@@ -1323,6 +1326,7 @@ class PostgresSource:
         return rows, total
 
     def recent_rows(self, pairs, activity_ignore_map, top=3):
+        assert self.engine is not None  # guaranteed by the client registry for a registered code
         conn = self.engine.raw_connection()
         try:
             cur = conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor)
@@ -1366,6 +1370,7 @@ class PostgresSource:
             conn.close()
 
     def backlog_count(self, pairs):
+        assert self.engine is not None  # guaranteed by the client registry for a registered code
         conn = self.engine.raw_connection()
         try:
             cur = conn.cursor(cursor_factory=psycopg2.extras.NamedTupleCursor)

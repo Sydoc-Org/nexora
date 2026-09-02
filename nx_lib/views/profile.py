@@ -199,6 +199,9 @@ def change_password():
 
             cursor.execute("SELECT password FROM Users WHERE username = ?", username)
             row = cursor.fetchone()
+            if row is None:
+                flash(_("Unexpected Error"), "failure_changePW")
+                return redirect(url_for("profile"))
             stored_hash = row[0]
 
             if isinstance(stored_hash, str):
@@ -375,7 +378,7 @@ def submit_feedback():
 
     category_labels = {"bug": _("Bug"), "idea": _("Idea"), "question": _("Question")}
     category_label = category_labels.get(category, category)
-    fullname = session.get("fullname") or session.get("username", "Unknown")
+    fullname = session.get("fullname") or session.get("username") or "Unknown"
     username = session.get("username", "Unknown")
     environment = os.environ.get("ENVIRONMENT", "?")
     version_str = f"{__version__} ({BUILD_STAMP})" if BUILD_STAMP else __version__

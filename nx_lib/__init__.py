@@ -106,6 +106,7 @@ def create_app():
         ever says otherwise.
         """
         try:
+            assert app.static_folder is not None  # always configured for this app
             version = int(os.stat(os.path.join(app.static_folder, filename)).st_mtime)
         except OSError:
             version = 0

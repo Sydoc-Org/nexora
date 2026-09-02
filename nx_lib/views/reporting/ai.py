@@ -554,6 +554,9 @@ def api_ai_build():
         if valid:
             break
 
+    # Every loop iteration either returns early (on an exception) or assigns
+    # `result`, so reaching here means the last iteration assigned it.
+    assert result is not None
     duration_ms = int((time.monotonic() - start) * 1000)
     definition = _normalize_definition(result.definition) if result.definition else None
     _audit_ai(

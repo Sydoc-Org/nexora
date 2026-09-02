@@ -11,7 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import wait as futures_wait
 
 from sqlalchemy import create_engine
-from sqlalchemy.engine import URL
+from sqlalchemy.engine import URL, Engine
 
 from . import config as cfg
 
@@ -128,7 +128,7 @@ engine_generali_db = create_engine(
 # provisioned, so dev/test boxes without MS02 credentials boot normally — same
 # graceful-degrade pattern as engine_statistics_ro / engine_octo_ro.
 if cfg.MS02_DB_HOST and cfg.MS02_DB_NAME and cfg.MS02_DB_USER and cfg.MS02_DB_PWD:
-    engine_ms02_pg = create_engine(
+    engine_ms02_pg: Engine | None = create_engine(
         get_pg_url(
             cfg.MS02_DB_HOST,
             cfg.MS02_DB_NAME,
@@ -156,7 +156,7 @@ if (
     and cfg.MS02_STATS_DB_USER
     and cfg.MS02_STATS_DB_PWD
 ):
-    engine_ms02_stats_pg = create_engine(
+    engine_ms02_stats_pg: Engine | None = create_engine(
         get_pg_url(
             cfg.MS02_STATS_DB_HOST,
             cfg.MS02_STATS_DB_NAME,
@@ -188,7 +188,7 @@ if (
     and cfg.MS02_DOCFIELDS_DB_USER
     and cfg.MS02_DOCFIELDS_DB_PWD
 ):
-    engine_ms02_docfields_pg = create_engine(
+    engine_ms02_docfields_pg: Engine | None = create_engine(
         get_pg_url(
             cfg.MS02_DOCFIELDS_DB_HOST,
             cfg.MS02_DOCFIELDS_DB_NAME,
@@ -212,7 +212,7 @@ else:
 # credentials are not provisioned, so the SQL source simply degrades to
 # "unavailable" rather than breaking startup on dev/test boxes.
 if cfg.DB_REPORTING_RO_USER and cfg.DB_REPORTING_RO_PWD and cfg.DB_STATISTICS:
-    engine_statistics_ro = create_engine(
+    engine_statistics_ro: Engine | None = create_engine(
         get_ro_db_url(cfg.DB_STATISTICS),
         pool_size=5,
         max_overflow=10,
@@ -228,7 +228,7 @@ else:
 # runtime DB. Stays None until those credentials are provisioned, so the
 # Octopus SQL target degrades to "unavailable" rather than breaking startup.
 if cfg.DB_REPORTING_OCTO_RO_USER and cfg.DB_REPORTING_OCTO_RO_PWD and cfg.DB_OCTO_RUNTIME:
-    engine_octo_ro = create_engine(
+    engine_octo_ro: Engine | None = create_engine(
         get_ro_db_url(
             cfg.DB_OCTO_RUNTIME,
             uid=cfg.DB_REPORTING_OCTO_RO_USER,

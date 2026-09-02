@@ -349,7 +349,9 @@ def save_access_profile():
                 "INSERT INTO AccessProfile (Name, Description) OUTPUT INSERTED.AccessID VALUES (?, ?)",
                 (name, description),
             )
-            access_id = cursor.fetchone()[0]
+            inserted = cursor.fetchone()
+            assert inserted is not None  # INSERT ... OUTPUT always returns the new row
+            access_id = inserted[0]
 
         if permissions:
             params = [(access_id, p["PermissionID"], p["Effect"]) for p in permissions]
@@ -693,7 +695,9 @@ def api_admin_permission_add():
             "INSERT INTO Permission (Code, Description) OUTPUT INSERTED.PermissionID VALUES (?, ?)",
             (code, description),
         )
-        new_id = cursor.fetchone()[0]
+        inserted = cursor.fetchone()
+        assert inserted is not None  # INSERT ... OUTPUT always returns the new row
+        new_id = inserted[0]
         conn.commit()
         return jsonify(
             {
@@ -756,11 +760,15 @@ def api_admin_permission_delete(perm_id):
         cursor.execute(
             "SELECT COUNT(*) FROM AccessProfilePermission WHERE PermissionID=?", (perm_id,)
         )
-        profile_refs = cursor.fetchone()[0]
+        profile_refs_row = cursor.fetchone()
+        assert profile_refs_row is not None  # SELECT COUNT(*) always returns exactly one row
+        profile_refs = profile_refs_row[0]
         cursor.execute(
             "SELECT COUNT(*) FROM UserPermissionOverride WHERE PermissionID=?", (perm_id,)
         )
-        override_refs = cursor.fetchone()[0]
+        override_refs_row = cursor.fetchone()
+        assert override_refs_row is not None  # SELECT COUNT(*) always returns exactly one row
+        override_refs = override_refs_row[0]
         if profile_refs > 0 or override_refs > 0:
             return jsonify(
                 {

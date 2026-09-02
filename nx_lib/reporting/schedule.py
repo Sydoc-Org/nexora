@@ -37,9 +37,13 @@ def validate_schedule(p):
         return "invalid body"
     if p.get("frequency") not in FREQUENCIES:
         return "frequency must be daily, weekly or monthly"
+    hour_raw = p.get("hour")
+    minute_raw = p.get("minute", 0)
+    if hour_raw is None or minute_raw is None:
+        return "hour and minute must be integers"
     try:
-        hour = int(p.get("hour"))
-        minute = int(p.get("minute", 0))
+        hour = int(hour_raw)
+        minute = int(minute_raw)
     except (TypeError, ValueError):
         return "hour and minute must be integers"
     if not 0 <= hour <= 23:
@@ -52,6 +56,8 @@ def validate_schedule(p):
         return "recipients must be one or more valid email addresses"
     if p.get("frequency") == "weekly":
         wd = p.get("weekday")
+        if wd is None:
+            return "weekday must be 0-6 (Mon-Sun) for a weekly schedule"
         try:
             wd = int(wd)
         except (TypeError, ValueError):
@@ -60,6 +66,8 @@ def validate_schedule(p):
             return "weekday must be 0-6 (Mon-Sun) for a weekly schedule"
     if p.get("frequency") == "monthly":
         dom = p.get("dayOfMonth")
+        if dom is None:
+            return "dayOfMonth must be 1-28 for a monthly schedule"
         try:
             dom = int(dom)
         except (TypeError, ValueError):
