@@ -1419,24 +1419,77 @@ def _cache_store(workitem_id, client_code):
     """Idempotent upsert of id -> client_code. Only non-default ids are cached."""
     if client_code == "default":
         return
+    _cache_store_many([(workitem_id, client_code)])
+
+
+def _cache_store_many(pairs):
+    """Idempotent batched upsert of [(workitem_id, client_code), ...] -- ONE
+    MERGE (a multi-row VALUES USING clause) + ONE commit for the whole list,
+    instead of one MERGE+commit per pair. Pairs with client_code == 'default'
+    are dropped (never cached), matching _cache_store's single-row contract.
+    Duplicate workitem_ids are collapsed to their first occurrence -- a MERGE
+    whose USING rows target the same key twice raises at the server, and a
+    page's rows are unique ids to begin with, so this is a defensive no-op in
+    practice. Chunked at 1000 rows (2000 params) to stay under SQL Server's
+    2100-parameter ceiling; a single page is always far smaller than that, so
+    in practice this is exactly one execute() call."""
+    seen = {}
+    for workitem_id, client_code in pairs:
+        if client_code == "default":
+            continue
+        seen.setdefault(str(workitem_id), client_code)
+    if not seen:
+        return
+    items = list(seen.items())
     conn = engine_nexora_db.raw_connection()
     try:
         cur = conn.cursor()
-        cur.execute(
-            """
-            MERGE dbo.WorkitemSourceCache AS tgt
-            USING (SELECT ? AS WorkItemID, ? AS ClientCode) AS src
-            ON tgt.WorkItemID = src.WorkItemID AND tgt.ClientCode = src.ClientCode
-            WHEN MATCHED THEN UPDATE SET ClientCode = src.ClientCode, ResolvedAt = SYSUTCDATETIME()
-            WHEN NOT MATCHED THEN INSERT (WorkItemID, ClientCode) VALUES (src.WorkItemID, src.ClientCode);
-            """,
-            (str(workitem_id), client_code),
-        )
+        for i in range(0, len(items), 1000):
+            chunk = items[i : i + 1000]
+            values_sql = ",".join("(?,?)" for _ in chunk)
+            params = [v for pair in chunk for v in pair]
+            cur.execute(
+                f"""
+                MERGE dbo.WorkitemSourceCache AS tgt
+                USING (VALUES {values_sql}) AS src (WorkItemID, ClientCode)
+                ON tgt.WorkItemID = src.WorkItemID AND tgt.ClientCode = src.ClientCode
+                WHEN MATCHED THEN UPDATE SET ClientCode = src.ClientCode, ResolvedAt = SYSUTCDATETIME()
+                WHEN NOT MATCHED THEN INSERT (WorkItemID, ClientCode) VALUES (src.WorkItemID, src.ClientCode);
+                """,
+                params,
+            )
         conn.commit()
     except Exception as e:
-        current_app.logger.error(f"WorkitemSourceCache store({workitem_id}): {e}")
+        current_app.logger.error(f"WorkitemSourceCache store_many({len(items)} rows): {e}")
     finally:
         conn.close()
+
+
+def _resolve_source_claimers(workitem_id, sources):
+    """Probe ALL sources, INCLUDING the default one, for ``workitem_id``.
+    Returns ``(code, claimers)``: exactly one claimant -> that client (the
+    caller may cache it); zero claimants -> 'default'; more than one ->
+    logs the collision loudly and falls back to 'default'. Caching is the
+    caller's call -- this function only decides the fail-safe outcome, so
+    ``get_source_for_workitem`` can cache one row at a time while
+    ``fetch_merged_page`` batches a whole page's worth."""
+    claimers = []
+    for src in sources if sources is not None else active_sources():
+        try:
+            if src.has_workitem(workitem_id):
+                claimers.append(src.code)
+        except Exception as e:
+            current_app.logger.error(f"probe {src.code} for {workitem_id}: {e}")
+
+    if len(claimers) > 1:
+        current_app.logger.error(
+            f"AMBIGUOUS workitem routing: id {workitem_id} claimed by {claimers}. "
+            "ID spaces are no longer disjoint — falling back to 'default'. Switch "
+            "to UI-carried client tags (compound identity) to disambiguate."
+        )
+    if len(claimers) == 1:
+        return claimers[0], claimers
+    return "default", claimers
 
 
 def get_source_for_workitem(workitem_id, client_hint=None, sources=None):
@@ -1468,24 +1521,10 @@ def get_source_for_workitem(workitem_id, client_hint=None, sources=None):
     if cached:
         return cached
 
-    claimers = []
-    for src in sources if sources is not None else active_sources():
-        try:
-            if src.has_workitem(workitem_id):
-                claimers.append(src.code)
-        except Exception as e:
-            current_app.logger.error(f"probe {src.code} for {workitem_id}: {e}")
-
+    code, claimers = _resolve_source_claimers(workitem_id, sources)
     if len(claimers) == 1:
-        _cache_store(workitem_id, claimers[0])
-        return claimers[0]
-    if len(claimers) > 1:
-        current_app.logger.error(
-            f"AMBIGUOUS workitem routing: id {workitem_id} claimed by {claimers}. "
-            "ID spaces are no longer disjoint — falling back to 'default'. Switch "
-            "to UI-carried client tags (compound identity) to disambiguate."
-        )
-    return "default"
+        _cache_store(workitem_id, code)
+    return code
 
 
 def get_domain_for_workitem(workitem_id, client_hint=None):
@@ -1558,24 +1597,30 @@ def fetch_merged_page(filt, offset, limit):
     # batched cache lookup for every non-default id on the page (instead of
     # up to `limit` sequential round-trips). Ids that come back missing --
     # not cached yet, or ambiguous per _cache_lookup_many's own fail-safe --
-    # fall through to get_source_for_workitem's collision fail-safe (not a
-    # direct _cache_store) so a colliding id -- claimed by more than one
-    # source -- is left uncached instead of being pinned to whichever
-    # client's page happened to list it first during this warm pass. Pass
-    # the ``sources`` list this function already built above -- avoids
-    # get_source_for_workitem constructing a second fresh set of source
-    # instances (2 extra objects) for every non-default row on the page; the
-    # live has_workitem probes themselves are unchanged, since
-    # list_workitems' permission/date/status-filtered, offset+limit-capped
-    # rows are not proof of exclusive ownership the way an unscoped
-    # has_workitem check is -- skipping the probe based on this page's own
-    # row shape would risk under-detecting a real collision whose twin row
-    # didn't happen to surface in this particular filtered fetch.
+    # are resolved via the same collision fail-safe get_source_for_workitem
+    # uses (_resolve_source_claimers), but the resulting cache write is
+    # collected instead of stored immediately: a colliding id -- claimed by
+    # more than one source -- is left uncached exactly as before, and every
+    # unambiguous id is written in ONE batched MERGE + ONE commit after the
+    # loop, instead of a MERGE+commit per row. Pass the ``sources`` list
+    # this function already built above -- avoids constructing a second
+    # fresh set of source instances (2 extra objects) for every non-default
+    # row on the page; the live has_workitem probes themselves are
+    # unchanged, since list_workitems' permission/date/status-filtered,
+    # offset+limit-capped rows are not proof of exclusive ownership the way
+    # an unscoped has_workitem check is -- skipping the probe based on this
+    # page's own row shape would risk under-detecting a real collision whose
+    # twin row didn't happen to surface in this particular filtered fetch.
     non_default_ids = [r["workitemid"] for r in page if r["client"] != "default"]
     cached_map = _cache_lookup_many(non_default_ids)
+    to_cache = []
     for wid in non_default_ids:
         if str(wid) not in cached_map:
-            get_source_for_workitem(wid, sources=sources)
+            code, claimers = _resolve_source_claimers(wid, sources)
+            if len(claimers) == 1:
+                to_cache.append((wid, code))
+    if to_cache:
+        _cache_store_many(to_cache)
 
     return page, total, degraded
 

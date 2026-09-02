@@ -587,15 +587,15 @@ def test_fetch_merged_page_warm_loop_does_not_blind_cache_colliding_id(app, monk
     monkeypatch.setattr(s1, "has_workitem", lambda wid: True)
     monkeypatch.setattr(s2, "has_workitem", lambda wid: True)
     monkeypatch.setattr(ws, "_cache_lookup", lambda wid: None)
-    stored = []
-    monkeypatch.setattr(ws, "_cache_store", lambda wid, code: stored.append((wid, code)))
+    store_calls = []
+    monkeypatch.setattr(ws, "_cache_store_many", lambda pairs: store_calls.append(list(pairs)))
 
     with app.app_context():
         rows, total, degraded = ws.fetch_merged_page(_mk_filter(), offset=0, limit=40)
 
     assert [r["workitemid"] for r in rows] == [1216, 1216]  # both rows still render
     assert degraded == []
-    assert stored == [], "colliding id must not be blind-cached by the warm loop"
+    assert store_calls == [], "colliding id must not be blind-cached by the batched warm loop"
 
 
 def test_fetch_merged_page_warm_loop_caches_a_single_claimant_id(app, monkeypatch):
@@ -627,19 +627,110 @@ def test_fetch_merged_page_warm_loop_caches_a_single_claimant_id(app, monkeypatc
     monkeypatch.setattr(s1, "has_workitem", lambda wid: False)
     monkeypatch.setattr(s2, "has_workitem", lambda wid: wid == 1001)
     monkeypatch.setattr(ws, "_cache_lookup", lambda wid: None)
-    stored = []
-    monkeypatch.setattr(ws, "_cache_store", lambda wid, code: stored.append((wid, code)))
+    store_calls = []
+    monkeypatch.setattr(ws, "_cache_store_many", lambda pairs: store_calls.append(list(pairs)))
 
     with app.app_context():
         rows, total, degraded = ws.fetch_merged_page(_mk_filter(), offset=0, limit=40)
 
     assert [r["workitemid"] for r in rows] == [5, 1001]
     assert degraded == []
-    assert stored == [(1001, "ms02")], "unambiguous id must be warmed into the cache"
+    # One batched call for the whole page, not one per row.
+    assert store_calls == [[(1001, "ms02")]], "unambiguous id must be warmed into the cache"
     # Exactly one active_sources() call total (fetch_merged_page's own, at the
     # top of the function) -- get_source_for_workitem must not construct a
     # second fresh set of source instances per probed row.
     assert active_sources_calls == [1]
+
+
+def test_fetch_merged_page_warm_loop_batches_all_uncached_rows_into_one_store_call(
+    app, monkeypatch
+):
+    """N uncached, unambiguous rows on a page must produce exactly ONE
+    _cache_store_many call carrying all N pairs -- not N per-row calls. This
+    is the batching behaviour Task 2 exists to prove: the old code called
+    get_source_for_workitem (and therefore _cache_store, one MERGE+commit)
+    once per uncached row."""
+    s1, s2 = SqlServerSource(), SqlServerSource()
+    s2.code = "ms02"
+    monkeypatch.setattr(ws, "active_sources", lambda: [s1, s2])
+    ms02_ids = {1001, 1002, 1003, 1004}
+    monkeypatch.setattr(
+        s1,
+        "list_workitems",
+        lambda filt, offset, limit: ([_row(5, 30, client="default")], 1),
+    )
+    monkeypatch.setattr(
+        s2,
+        "list_workitems",
+        lambda filt, offset, limit: (
+            [_row(wid, 20 + i, client="ms02") for i, wid in enumerate(sorted(ms02_ids))],
+            len(ms02_ids),
+        ),
+    )
+    monkeypatch.setattr(s1, "has_workitem", lambda wid: False)
+    monkeypatch.setattr(s2, "has_workitem", lambda wid: wid in ms02_ids)
+    monkeypatch.setattr(ws, "_cache_lookup_many", lambda ids: {})
+    store_calls = []
+    monkeypatch.setattr(ws, "_cache_store_many", lambda pairs: store_calls.append(list(pairs)))
+
+    with app.app_context():
+        ws.fetch_merged_page(_mk_filter(), offset=0, limit=40)
+
+    assert len(store_calls) == 1, "must batch every uncached row's cache write into one call"
+    assert sorted(store_calls[0]) == [(wid, "ms02") for wid in sorted(ms02_ids)]
+
+
+def test_cache_store_many_issues_one_merge_and_one_commit(app):
+    """The batched upsert itself: N pairs -> exactly one cursor.execute (one
+    multi-row MERGE) and one commit, not N."""
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_conn.cursor.return_value = mock_cursor
+    with (
+        app.app_context(),
+        patch.object(ws.engine_nexora_db, "raw_connection", return_value=mock_conn),
+    ):
+        ws._cache_store_many([(1, "ms02"), (2, "ms02"), (3, "ms02")])
+
+    assert mock_cursor.execute.call_count == 1
+    sql, params = mock_cursor.execute.call_args[0]
+    assert sql.count("MERGE") == 1
+    assert params == ["1", "ms02", "2", "ms02", "3", "ms02"]
+    assert mock_conn.commit.call_count == 1
+    mock_conn.close.assert_called_once()
+
+
+def test_cache_store_many_drops_default_and_dedupes_by_id(app):
+    """'default' pairs are never cached (matches _cache_store's contract) and
+    a duplicate id collapses to its first occurrence before the MERGE runs,
+    since a MERGE cannot target the same key twice in one USING clause."""
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_conn.cursor.return_value = mock_cursor
+    with (
+        app.app_context(),
+        patch.object(ws.engine_nexora_db, "raw_connection", return_value=mock_conn),
+    ):
+        ws._cache_store_many(
+            [(1, "default"), (2, "ms02"), (2, "generali")]  # (2, "generali") ignored, dup id
+        )
+
+    assert mock_cursor.execute.call_count == 1
+    sql, params = mock_cursor.execute.call_args[0]
+    assert params == ["2", "ms02"]
+
+
+def test_cache_store_many_empty_input_short_circuits(app):
+    with app.app_context(), patch.object(ws.engine_nexora_db, "raw_connection") as mock_raw:
+        ws._cache_store_many([])
+    mock_raw.assert_not_called()
+
+
+def test_cache_store_many_all_default_short_circuits(app):
+    with app.app_context(), patch.object(ws.engine_nexora_db, "raw_connection") as mock_raw:
+        ws._cache_store_many([(1, "default"), (2, "default")])
+    mock_raw.assert_not_called()
 
 
 # ---------------- dashboard source-awareness (Task 14) ---------------- #
