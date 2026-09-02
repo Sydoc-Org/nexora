@@ -259,22 +259,34 @@ class SqlServerSource:
                 else "ORDER BY ModifiedAt DESC"
             )
 
-            cur.execute(
-                cte_sql + f"SELECT COUNT(*) FROM LatestCTE {stage_clause}",
-                [*params, *stage_params],
-            )
-            total = cur.fetchone()[0] or 0
-
+            # Single pass: COUNT(*) OVER() rides along on every row of the
+            # page query, so the total comes from row 0 instead of a second
+            # full scan of the same CTE.
             cur.execute(
                 cte_sql
                 + f"""
-                SELECT ModifiedAt, WorkItemID, Status, CurrentStage
+                SELECT ModifiedAt, WorkItemID, Status, CurrentStage, COUNT(*) OVER() AS TotalCount
                 FROM LatestCTE {stage_clause}
                 {order_clause}
                 OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
             """,
                 [*params, *stage_params, offset, limit],
             )
+            fetched = cur.fetchall()
+            if fetched:
+                total = fetched[0].TotalCount
+            else:
+                # The window function has no row to ride on when the page
+                # itself is empty -- which happens both for "no matches at
+                # all" and "matches exist but offset paged past the end".
+                # Tell them apart with a cheap COUNT-only fallback over the
+                # same filtered/deduped set (same shape as the old always-run
+                # count query, just no longer paid on every request).
+                cur.execute(
+                    cte_sql + f"SELECT COUNT(*) FROM LatestCTE {stage_clause}",
+                    [*params, *stage_params],
+                )
+                total = cur.fetchone()[0] or 0
             rows = [
                 {
                     "modifiedat": r.ModifiedAt,
@@ -283,7 +295,7 @@ class SqlServerSource:
                     "current_stage": r.CurrentStage,
                     "client": "default",
                 }
-                for r in cur.fetchall()
+                for r in fetched
             ]
             return rows, total
         finally:
@@ -1213,22 +1225,34 @@ class PostgresSource:
                 else "ORDER BY modifiedat DESC"
             )
 
-            cur.execute(
-                cte_sql + f"SELECT COUNT(*) FROM latest {stage_clause}",
-                [*params, *stage_params],
-            )
-            total = cur.fetchone()[0] or 0
-
+            # Single pass: COUNT(*) OVER() rides along on every row of the
+            # page query, so the total comes from row 0 instead of a second
+            # full scan of the same CTE.
             cur.execute(
                 cte_sql
                 + f"""
-                SELECT modifiedat, workitemid, status, currentstage
+                SELECT modifiedat, workitemid, status, currentstage, COUNT(*) OVER() AS totalcount
                 FROM latest {stage_clause}
                 {order_clause}
                 LIMIT %s OFFSET %s
                 """,
                 [*params, *stage_params, limit, offset],
             )
+            fetched = cur.fetchall()
+            if fetched:
+                total = fetched[0].totalcount
+            else:
+                # The window function has no row to ride on when the page
+                # itself is empty -- which happens both for "no matches at
+                # all" and "matches exist but offset paged past the end".
+                # Tell them apart with a cheap COUNT-only fallback over the
+                # same filtered/deduped set (same shape as the old always-run
+                # count query, just no longer paid on every request).
+                cur.execute(
+                    cte_sql + f"SELECT COUNT(*) FROM latest {stage_clause}",
+                    [*params, *stage_params],
+                )
+                total = cur.fetchone()[0] or 0
             rows = [
                 {
                     "modifiedat": r.modifiedat,
@@ -1237,7 +1261,7 @@ class PostgresSource:
                     "current_stage": r.currentstage,
                     "client": self.code,
                 }
-                for r in cur.fetchall()
+                for r in fetched
             ]
         finally:
             conn.close()
