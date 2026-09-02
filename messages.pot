@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-02 07:29+0200\n"
+"POT-Creation-Date: 2026-09-02 20:19+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -469,61 +469,61 @@ msgstr ""
 msgid "Invalid code"
 msgstr ""
 
-#: nx_lib/views/auth.py:431 nx_lib/views/auth.py:772
+#: nx_lib/views/auth.py:431 nx_lib/views/auth.py:776
 #: templates/js/_profile_js.html:5
 msgid "Passwords do not match"
 msgstr ""
 
-#: nx_lib/views/auth.py:433 nx_lib/views/auth.py:774
+#: nx_lib/views/auth.py:433 nx_lib/views/auth.py:778
 msgid "All Fields must be filled"
 msgstr ""
 
-#: nx_lib/views/auth.py:437 nx_lib/views/auth.py:778
+#: nx_lib/views/auth.py:437 nx_lib/views/auth.py:782
 #: nx_lib/views/profile.py:193
 msgid "New password has to be atleast 8 characters long, with no whitespaces"
 msgstr ""
 
-#: nx_lib/views/auth.py:457 nx_lib/views/auth.py:796
+#: nx_lib/views/auth.py:461 nx_lib/views/auth.py:803
 msgid "New Password musn't be previously used password"
 msgstr ""
 
-#: nx_lib/views/auth.py:490 nx_lib/views/auth.py:843
+#: nx_lib/views/auth.py:494 nx_lib/views/auth.py:850
 msgid "Something went wrong, please try again"
 msgstr ""
 
-#: nx_lib/views/auth.py:642 nx_lib/views/auth.py:706
+#: nx_lib/views/auth.py:646 nx_lib/views/auth.py:710
 msgid "Invalid credentials"
 msgstr ""
 
-#: nx_lib/views/auth.py:671
+#: nx_lib/views/auth.py:675
 #, python-format
 msgid "Too many failed attempts. Try again in %(minutes)d minute(s)."
 msgstr ""
 
-#: nx_lib/views/auth.py:710
+#: nx_lib/views/auth.py:714
 msgid "Login temporarily unavailable"
 msgstr ""
 
-#: nx_lib/views/auth.py:828
+#: nx_lib/views/auth.py:835
 msgid "Password set. You can now sign in."
 msgstr ""
 
-#: nx_lib/views/auth.py:830
+#: nx_lib/views/auth.py:837
 msgid "Password changed"
 msgstr ""
 
-#: nx_lib/views/auth.py:973
+#: nx_lib/views/auth.py:980
 msgid "If that email is registered, a reset link has been sent."
 msgstr ""
 
-#: nx_lib/views/auth.py:977
+#: nx_lib/views/auth.py:984
 msgid "Unexpected error occurred"
 msgstr ""
 
-#: nx_lib/views/admin/permissions.py:245 nx_lib/views/admin/permissions.py:555
-#: nx_lib/views/admin/permissions.py:597 nx_lib/views/admin/permissions.py:642
-#: nx_lib/views/admin/permissions.py:681 nx_lib/views/admin/permissions.py:718
-#: nx_lib/views/admin/permissions.py:750 nx_lib/views/dashboard.py:462
+#: nx_lib/views/admin/permissions.py:247 nx_lib/views/admin/permissions.py:559
+#: nx_lib/views/admin/permissions.py:601 nx_lib/views/admin/permissions.py:646
+#: nx_lib/views/admin/permissions.py:685 nx_lib/views/admin/permissions.py:724
+#: nx_lib/views/admin/permissions.py:756 nx_lib/views/dashboard.py:462
 #: nx_lib/views/dashboard.py:555 nx_lib/views/dashboard.py:610
 #: nx_lib/views/dashboard.py:688 nx_lib/views/workitems.py:404
 #: nx_lib/views/workitems.py:1123 nx_lib/views/workitems.py:1125
@@ -531,21 +531,21 @@ msgstr ""
 msgid "Not authorized"
 msgstr ""
 
-#: nx_lib/views/admin/logs.py:153 nx_lib/views/admin/organizations.py:179
-#: nx_lib/views/admin/permissions.py:586 nx_lib/views/admin/system.py:148
-#: nx_lib/views/admin/system.py:189 nx_lib/views/admin/system.py:232
-#: nx_lib/views/admin/system.py:252 nx_lib/views/admin/users.py:372
-#: nx_lib/views/admin/users.py:524 nx_lib/views/dashboard.py:544
+#: nx_lib/views/admin/logs.py:154 nx_lib/views/admin/organizations.py:180
+#: nx_lib/views/admin/permissions.py:590 nx_lib/views/admin/system.py:148
+#: nx_lib/views/admin/system.py:191 nx_lib/views/admin/system.py:234
+#: nx_lib/views/admin/system.py:254 nx_lib/views/admin/users.py:384
+#: nx_lib/views/admin/users.py:536 nx_lib/views/dashboard.py:544
 #: nx_lib/views/dashboard.py:599 nx_lib/views/dashboard.py:677
-#: nx_lib/views/dashboard.py:715 nx_lib/views/generali/_crud.py:180
-#: nx_lib/views/generali/attendance.py:99
-#: nx_lib/views/generali/documents.py:213
+#: nx_lib/views/dashboard.py:715 nx_lib/views/generali/_crud.py:187
+#: nx_lib/views/generali/attendance.py:98
 #: nx_lib/views/generali/documents.py:247
-#: nx_lib/views/generali/documents.py:421
-#: nx_lib/views/generali/documents.py:455
-#: nx_lib/views/generali/importstatus.py:117 nx_lib/views/generali/pdqm.py:103
-#: nx_lib/views/generali/reporting.py:259
-#: nx_lib/views/generali/reporting.py:322 nx_lib/views/workitems.py:1393
+#: nx_lib/views/generali/documents.py:286
+#: nx_lib/views/generali/documents.py:462
+#: nx_lib/views/generali/documents.py:496
+#: nx_lib/views/generali/importstatus.py:119 nx_lib/views/generali/pdqm.py:102
+#: nx_lib/views/generali/reporting.py:261
+#: nx_lib/views/generali/reporting.py:324 nx_lib/views/workitems.py:1393
 msgid "An unexpected error occurred"
 msgstr ""
 
@@ -577,64 +577,64 @@ msgstr ""
 msgid "All fields must be filled"
 msgstr ""
 
-#: nx_lib/views/profile.py:223
-msgid "Password updated successfully!"
-msgstr ""
-
-#: nx_lib/views/profile.py:225
-msgid "Current password is incorrect"
-msgstr ""
-
-#: nx_lib/views/profile.py:230 nx_lib/views/profile.py:243
-#: nx_lib/views/profile.py:256
+#: nx_lib/views/profile.py:203 nx_lib/views/profile.py:233
+#: nx_lib/views/profile.py:246 nx_lib/views/profile.py:259
 msgid "Unexpected Error"
 msgstr ""
 
-#: nx_lib/views/profile.py:252
+#: nx_lib/views/profile.py:226
+msgid "Password updated successfully!"
+msgstr ""
+
+#: nx_lib/views/profile.py:228
+msgid "Current password is incorrect"
+msgstr ""
+
+#: nx_lib/views/profile.py:255
 msgid "Language changed successfully!"
 msgstr ""
 
-#: nx_lib/views/profile.py:340
+#: nx_lib/views/profile.py:343
 msgid "Unauthorized"
 msgstr ""
 
-#: nx_lib/views/profile.py:347
+#: nx_lib/views/profile.py:350
 msgid "Please choose a category."
 msgstr ""
 
-#: nx_lib/views/profile.py:349 templates/js/_feedback_js.html:149
+#: nx_lib/views/profile.py:352 templates/js/_feedback_js.html:149
 msgid "Please describe the problem or idea."
 msgstr ""
 
-#: nx_lib/views/profile.py:351
+#: nx_lib/views/profile.py:354
 msgid "Message is too long."
 msgstr ""
 
-#: nx_lib/views/profile.py:364 templates/js/_feedback_js.html:84
+#: nx_lib/views/profile.py:367 templates/js/_feedback_js.html:84
 msgid "Screenshot must be a PNG or JPEG image."
 msgstr ""
 
-#: nx_lib/views/profile.py:367 templates/js/_feedback_js.html:89
+#: nx_lib/views/profile.py:370 templates/js/_feedback_js.html:89
 msgid "Screenshot is too large (max 5 MB)."
 msgstr ""
 
-#: nx_lib/views/profile.py:374
+#: nx_lib/views/profile.py:377
 msgid "Feedback is not configured on this environment."
 msgstr ""
 
-#: nx_lib/views/profile.py:376 templates/feedback.html:60
+#: nx_lib/views/profile.py:379 templates/feedback.html:60
 msgid "Bug"
 msgstr ""
 
-#: nx_lib/views/profile.py:376 templates/feedback.html:63
+#: nx_lib/views/profile.py:379 templates/feedback.html:63
 msgid "Idea"
 msgstr ""
 
-#: nx_lib/views/profile.py:376 templates/feedback.html:66
+#: nx_lib/views/profile.py:379 templates/feedback.html:66
 msgid "Question"
 msgstr ""
 
-#: nx_lib/views/profile.py:399 templates/js/_feedback_js.html:169
+#: nx_lib/views/profile.py:402 templates/js/_feedback_js.html:169
 #: templates/js/_feedback_js.html:175
 msgid "Could not send feedback. Please try again later."
 msgstr ""
@@ -700,7 +700,7 @@ msgstr ""
 msgid "Invalid file type. Please upload a valid PDF."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1081 nx_lib/views/workitems.py:1572
+#: nx_lib/views/workitems.py:1081 nx_lib/views/workitems.py:1580
 msgid "This import is only available for the MS02 client."
 msgstr ""
 
@@ -740,39 +740,39 @@ msgstr ""
 msgid "Failed to fetch audit history"
 msgstr ""
 
-#: nx_lib/views/workitems.py:1455
+#: nx_lib/views/workitems.py:1462
 msgid "This page is only available for the MS02 client."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1578
+#: nx_lib/views/workitems.py:1586
 msgid "Could not clear the prepared documents. Please try again."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1639
+#: nx_lib/views/workitems.py:1647
 msgid "Could not load saved views."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1653 nx_lib/views/workitems.py:1656
+#: nx_lib/views/workitems.py:1661 nx_lib/views/workitems.py:1664
 msgid "Invalid view name or filters."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1670 nx_lib/views/workitems.py:1719
+#: nx_lib/views/workitems.py:1678 nx_lib/views/workitems.py:1731
 msgid "View not found."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1683
+#: nx_lib/views/workitems.py:1693
 msgid "Too many saved views — delete one first."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1698
+#: nx_lib/views/workitems.py:1710
 msgid "A view with this name already exists."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1701
+#: nx_lib/views/workitems.py:1713
 msgid "Could not save the view."
 msgstr ""
 
-#: nx_lib/views/workitems.py:1723
+#: nx_lib/views/workitems.py:1735
 msgid "Could not delete the view."
 msgstr ""
 
@@ -817,9 +817,9 @@ msgstr ""
 msgid "Client code already exists."
 msgstr ""
 
-#: nx_lib/views/admin/clients.py:154 nx_lib/views/admin/organizations.py:93
+#: nx_lib/views/admin/clients.py:154 nx_lib/views/admin/organizations.py:94
 #: nx_lib/views/admin/processes.py:383 nx_lib/views/admin/processes.py:536
-#: nx_lib/views/admin/users.py:116
+#: nx_lib/views/admin/users.py:122
 msgid "An unexpected error occurred."
 msgstr ""
 
@@ -832,12 +832,12 @@ msgid "Client updated successfully."
 msgstr ""
 
 #: nx_lib/views/admin/clients.py:200 nx_lib/views/admin/clients.py:245
-#: nx_lib/views/admin/organizations.py:120
-#: nx_lib/views/admin/organizations.py:152
-#: nx_lib/views/admin/organizations.py:332 nx_lib/views/admin/processes.py:419
+#: nx_lib/views/admin/organizations.py:121
+#: nx_lib/views/admin/organizations.py:153
+#: nx_lib/views/admin/organizations.py:334 nx_lib/views/admin/processes.py:419
 #: nx_lib/views/admin/processes.py:482 nx_lib/views/admin/processes.py:578
-#: nx_lib/views/admin/processes.py:607 nx_lib/views/admin/users.py:198
-#: nx_lib/views/admin/users.py:446
+#: nx_lib/views/admin/processes.py:607 nx_lib/views/admin/users.py:210
+#: nx_lib/views/admin/users.py:458
 msgid "An error occurred."
 msgstr ""
 
@@ -849,93 +849,93 @@ msgstr ""
 msgid "Client deleted successfully."
 msgstr ""
 
-#: nx_lib/views/admin/organizations.py:73 nx_lib/views/admin/users.py:48
+#: nx_lib/views/admin/organizations.py:74 nx_lib/views/admin/users.py:48
 msgid "All fields are required."
 msgstr ""
 
-#: nx_lib/views/admin/organizations.py:88
+#: nx_lib/views/admin/organizations.py:89
 msgid "Organization created successfully."
 msgstr ""
 
-#: nx_lib/views/admin/organizations.py:90
+#: nx_lib/views/admin/organizations.py:91
 msgid "Organization already exists."
 msgstr ""
 
-#: nx_lib/views/admin/organizations.py:117
+#: nx_lib/views/admin/organizations.py:118
 msgid "Organization updated successfully."
 msgstr ""
 
-#: nx_lib/views/admin/organizations.py:139
-#: nx_lib/views/admin/organizations.py:258
-#: nx_lib/views/admin/organizations.py:310
-#: nx_lib/views/admin/organizations.py:317
+#: nx_lib/views/admin/organizations.py:140
+#: nx_lib/views/admin/organizations.py:259
+#: nx_lib/views/admin/organizations.py:311
+#: nx_lib/views/admin/organizations.py:319
 msgid "Organization not found."
 msgstr ""
 
-#: nx_lib/views/admin/organizations.py:149
+#: nx_lib/views/admin/organizations.py:150
 msgid "Organization deleted successfully."
 msgstr ""
 
-#: nx_lib/views/admin/organizations.py:267
+#: nx_lib/views/admin/organizations.py:268
 msgid "Accent colour must be a hex value like #336699."
 msgstr ""
 
-#: nx_lib/views/admin/organizations.py:281
-#: nx_lib/views/admin/organizations.py:297
+#: nx_lib/views/admin/organizations.py:282
+#: nx_lib/views/admin/organizations.py:298
 msgid "Logo must be an SVG, PNG or JPEG image."
 msgstr ""
 
-#: nx_lib/views/admin/organizations.py:291
+#: nx_lib/views/admin/organizations.py:292
 #: templates/js/admin/_organizations_js.html:296
 msgid "Logo is too large (max 512 KB)."
 msgstr ""
 
-#: nx_lib/views/admin/organizations.py:345
+#: nx_lib/views/admin/organizations.py:347
 #: templates/js/admin/_organizations_js.html:333
 msgid "Branding saved."
 msgstr ""
 
-#: nx_lib/views/admin/permissions.py:288
+#: nx_lib/views/admin/permissions.py:290
 msgid "Could not fetch users"
 msgstr ""
 
-#: nx_lib/views/admin/permissions.py:334
+#: nx_lib/views/admin/permissions.py:336
 msgid "Name is required"
 msgstr ""
 
-#: nx_lib/views/admin/permissions.py:362
+#: nx_lib/views/admin/permissions.py:366
 msgid "Profile saved successfully"
 msgstr ""
 
-#: nx_lib/views/admin/permissions.py:541
+#: nx_lib/views/admin/permissions.py:545
 msgid "Overrides updated successfully"
 msgstr ""
 
-#: nx_lib/views/admin/permissions.py:606 nx_lib/views/admin/permissions.py:734
-#: nx_lib/views/admin/permissions.py:776
+#: nx_lib/views/admin/permissions.py:610 nx_lib/views/admin/permissions.py:740
+#: nx_lib/views/admin/permissions.py:786
 msgid "Permission not found"
 msgstr ""
 
-#: nx_lib/views/admin/permissions.py:686 nx_lib/views/admin/permissions.py:723
+#: nx_lib/views/admin/permissions.py:690 nx_lib/views/admin/permissions.py:729
 msgid "Code and description are required"
 msgstr ""
 
-#: nx_lib/views/admin/permissions.py:701
+#: nx_lib/views/admin/permissions.py:707
 msgid "Permission created successfully"
 msgstr ""
 
-#: nx_lib/views/admin/permissions.py:736
+#: nx_lib/views/admin/permissions.py:742
 msgid "Permission updated successfully"
 msgstr ""
 
-#: nx_lib/views/admin/permissions.py:769
+#: nx_lib/views/admin/permissions.py:779
 #, python-format
 msgid ""
 "Cannot delete: used in %(p)d profile(s) and %(o)d override(s). Remove all"
 " assignments first."
 msgstr ""
 
-#: nx_lib/views/admin/permissions.py:778
+#: nx_lib/views/admin/permissions.py:788
 msgid "Permission deleted successfully"
 msgstr ""
 
@@ -1051,54 +1051,62 @@ msgstr ""
 msgid "Unknown environment."
 msgstr ""
 
-#: nx_lib/views/admin/users.py:56 nx_lib/views/admin/users.py:170
+#: nx_lib/views/admin/users.py:56 nx_lib/views/admin/users.py:176
 msgid "Permission Denied for this action."
 msgstr ""
 
-#: nx_lib/views/admin/users.py:104
+#: nx_lib/views/admin/users.py:68 nx_lib/views/admin/users.py:182
+msgid "Unknown access profile."
+msgstr ""
+
+#: nx_lib/views/admin/users.py:75 nx_lib/views/admin/users.py:189
+msgid "Unknown organization."
+msgstr ""
+
+#: nx_lib/views/admin/users.py:110
 msgid ""
 "User created, but the email could not be sent. Ask them to use 'Forgot "
 "password'."
 msgstr ""
 
-#: nx_lib/views/admin/users.py:109
+#: nx_lib/views/admin/users.py:115
 msgid "User created and email sent."
 msgstr ""
 
-#: nx_lib/views/admin/users.py:111
+#: nx_lib/views/admin/users.py:117
 #: templates/js/admin/_access_control_js.html:25
 msgid "User created successfully."
 msgstr ""
 
-#: nx_lib/views/admin/users.py:113
+#: nx_lib/views/admin/users.py:119
 msgid "Username or email already exists."
 msgstr ""
 
-#: nx_lib/views/admin/users.py:195
+#: nx_lib/views/admin/users.py:207
 msgid "User updated successfully."
 msgstr ""
 
-#: nx_lib/views/admin/users.py:392
+#: nx_lib/views/admin/users.py:404
 msgid "You cannot delete your own account."
 msgstr ""
 
-#: nx_lib/views/admin/users.py:438
+#: nx_lib/views/admin/users.py:450
 msgid "User not found."
 msgstr ""
 
-#: nx_lib/views/admin/users.py:440
+#: nx_lib/views/admin/users.py:452
 msgid "User deleted successfully."
 msgstr ""
 
-#: nx_lib/views/admin/users.py:569
+#: nx_lib/views/admin/users.py:581
 msgid "Could not fetch logs"
 msgstr ""
 
-#: nx_lib/views/admin/users.py:613
+#: nx_lib/views/admin/users.py:624
 msgid "Could not fetch sessions"
 msgstr ""
 
-#: nx_lib/views/generali/documents.py:58
+#: nx_lib/views/generali/documents.py:91
 msgid "startDate and endDate are required"
 msgstr ""
 
@@ -1148,126 +1156,126 @@ msgstr ""
 msgid "Could not list sources"
 msgstr ""
 
-#: nx_lib/views/reporting/admin_registry.py:194
+#: nx_lib/views/reporting/admin_registry.py:196
 msgid "Could not save source (code already exists?)"
 msgstr ""
 
-#: nx_lib/views/reporting/admin_registry.py:219
-#: nx_lib/views/reporting/admin_registry.py:238
-#: nx_lib/views/reporting/admin_registry.py:343
-#: nx_lib/views/reporting/admin_registry.py:362
-#: nx_lib/views/reporting/reports.py:192 nx_lib/views/reporting/reports.py:267
-#: nx_lib/views/reporting/reports.py:289 nx_lib/views/reporting/reports.py:365
-#: nx_lib/views/reporting/reports.py:375 nx_lib/views/reporting/reports.py:425
+#: nx_lib/views/reporting/admin_registry.py:221
+#: nx_lib/views/reporting/admin_registry.py:240
+#: nx_lib/views/reporting/admin_registry.py:347
+#: nx_lib/views/reporting/admin_registry.py:366
+#: nx_lib/views/reporting/reports.py:194 nx_lib/views/reporting/reports.py:271
+#: nx_lib/views/reporting/reports.py:293 nx_lib/views/reporting/reports.py:369
+#: nx_lib/views/reporting/reports.py:379 nx_lib/views/reporting/reports.py:429
 #: nx_lib/views/reporting/schedules.py:70
 #: nx_lib/views/reporting/schedules.py:94
-#: nx_lib/views/reporting/schedules.py:141
-#: nx_lib/views/reporting/schedules.py:176
-#: nx_lib/views/reporting/schedules.py:189
-#: nx_lib/views/reporting/schedules.py:200
+#: nx_lib/views/reporting/schedules.py:143
+#: nx_lib/views/reporting/schedules.py:178
+#: nx_lib/views/reporting/schedules.py:191
+#: nx_lib/views/reporting/schedules.py:202
 msgid "Not found"
 msgstr ""
 
-#: nx_lib/views/reporting/admin_registry.py:224
+#: nx_lib/views/reporting/admin_registry.py:226
 msgid "Could not update source"
 msgstr ""
 
-#: nx_lib/views/reporting/admin_registry.py:243
+#: nx_lib/views/reporting/admin_registry.py:245
 msgid "Could not delete source"
 msgstr ""
 
-#: nx_lib/views/reporting/admin_registry.py:288
+#: nx_lib/views/reporting/admin_registry.py:290
 msgid "Could not list metrics"
 msgstr ""
 
-#: nx_lib/views/reporting/admin_registry.py:318
+#: nx_lib/views/reporting/admin_registry.py:322
 msgid "Could not save metric (code already exists?)"
 msgstr ""
 
-#: nx_lib/views/reporting/admin_registry.py:348
+#: nx_lib/views/reporting/admin_registry.py:352
 msgid "Could not update metric"
 msgstr ""
 
-#: nx_lib/views/reporting/admin_registry.py:367
+#: nx_lib/views/reporting/admin_registry.py:371
 msgid "Could not delete metric"
 msgstr ""
 
-#: nx_lib/views/reporting/ai.py:311 nx_lib/views/reporting/ai.py:439
-#: nx_lib/views/reporting/ai.py:617 nx_lib/views/reporting/ai.py:1007
+#: nx_lib/views/reporting/ai.py:310 nx_lib/views/reporting/ai.py:438
+#: nx_lib/views/reporting/ai.py:619 nx_lib/views/reporting/ai.py:1010
 #: nx_lib/views/reporting/catalog.py:123 nx_lib/views/reporting/export.py:94
 #: nx_lib/views/reporting/export.py:169 nx_lib/views/reporting/run.py:166
 #: nx_lib/views/reporting/run.py:254
 msgid "Invalid JSON body"
 msgstr ""
 
-#: nx_lib/views/reporting/ai.py:314 nx_lib/views/reporting/ai.py:442
-#: nx_lib/views/reporting/ai.py:620
+#: nx_lib/views/reporting/ai.py:313 nx_lib/views/reporting/ai.py:441
+#: nx_lib/views/reporting/ai.py:622
 msgid "A question is required"
 msgstr ""
 
-#: nx_lib/views/reporting/ai.py:317
+#: nx_lib/views/reporting/ai.py:316
 msgid "Not authorized to receive AI-drafted SQL"
 msgstr ""
 
-#: nx_lib/views/reporting/ai.py:321 nx_lib/views/reporting/ai.py:389
-#: nx_lib/views/reporting/ai.py:446 nx_lib/views/reporting/ai.py:535
-#: nx_lib/views/reporting/ai.py:660 nx_lib/views/reporting/ai.py:964
-#: nx_lib/views/reporting/ai.py:1030 nx_lib/views/reporting/ai.py:1087
+#: nx_lib/views/reporting/ai.py:320 nx_lib/views/reporting/ai.py:388
+#: nx_lib/views/reporting/ai.py:445 nx_lib/views/reporting/ai.py:534
+#: nx_lib/views/reporting/ai.py:663 nx_lib/views/reporting/ai.py:967
+#: nx_lib/views/reporting/ai.py:1033 nx_lib/views/reporting/ai.py:1090
 msgid "The AI assistant is not configured"
 msgstr ""
 
-#: nx_lib/views/reporting/ai.py:349 nx_lib/views/reporting/ai.py:468
-#: nx_lib/views/reporting/ai.py:682 nx_lib/views/reporting/ai.py:1052
+#: nx_lib/views/reporting/ai.py:348 nx_lib/views/reporting/ai.py:467
+#: nx_lib/views/reporting/ai.py:685 nx_lib/views/reporting/ai.py:1055
 #, python-format
 msgid ""
 "You have reached the daily AI request limit (%(limit)s). Please try again"
 " tomorrow."
 msgstr ""
 
-#: nx_lib/views/reporting/ai.py:406 nx_lib/views/reporting/ai.py:552
-#: nx_lib/views/reporting/ai.py:944 nx_lib/views/reporting/ai.py:968
-#: nx_lib/views/reporting/ai.py:1104
+#: nx_lib/views/reporting/ai.py:405 nx_lib/views/reporting/ai.py:551
+#: nx_lib/views/reporting/ai.py:947 nx_lib/views/reporting/ai.py:971
+#: nx_lib/views/reporting/ai.py:1107
 msgid "Eddard could not answer right now"
 msgstr ""
 
-#: nx_lib/views/reporting/ai.py:484 nx_lib/views/reporting/ai.py:487
-#: nx_lib/views/reporting/ai.py:491 nx_lib/views/reporting/ai.py:493
+#: nx_lib/views/reporting/ai.py:483 nx_lib/views/reporting/ai.py:486
+#: nx_lib/views/reporting/ai.py:490 nx_lib/views/reporting/ai.py:492
 msgid "Invalid refine context"
 msgstr ""
 
-#: nx_lib/views/reporting/ai.py:578
+#: nx_lib/views/reporting/ai.py:580
 msgid "Could not build a valid report"
 msgstr ""
 
-#: nx_lib/views/reporting/ai.py:624
+#: nx_lib/views/reporting/ai.py:626
 msgid "Invalid history"
 msgstr ""
 
-#: nx_lib/views/reporting/ai.py:842
+#: nx_lib/views/reporting/ai.py:845
 msgid ""
 "I couldn't write a summary this time, but I did produce a report draft "
 "and a validated SQL query — use the actions below to open them."
 msgstr ""
 
-#: nx_lib/views/reporting/ai.py:848
+#: nx_lib/views/reporting/ai.py:851
 msgid ""
 "I couldn't write a summary this time, but I did produce a report draft — "
 "use “Open report” below to run it."
 msgstr ""
 
-#: nx_lib/views/reporting/ai.py:853
+#: nx_lib/views/reporting/ai.py:856
 msgid ""
 "I couldn't write a summary this time, but I did draft a SQL query — use "
 "the actions below to review it."
 msgstr ""
 
-#: nx_lib/views/reporting/ai.py:858
+#: nx_lib/views/reporting/ai.py:861
 msgid ""
 "I couldn't complete this request. Please try rephrasing the question or "
 "narrowing it down."
 msgstr ""
 
-#: nx_lib/views/reporting/ai.py:1011 nx_lib/views/reporting/export.py:174
+#: nx_lib/views/reporting/ai.py:1014 nx_lib/views/reporting/export.py:174
 msgid "columns and rows are required"
 msgstr ""
 
@@ -1276,7 +1284,7 @@ msgid "Unknown or unsupported source"
 msgstr ""
 
 #: nx_lib/views/reporting/catalog.py:132 nx_lib/views/reporting/export.py:129
-#: nx_lib/views/reporting/health.py:109 nx_lib/views/reporting/run.py:170
+#: nx_lib/views/reporting/health.py:167 nx_lib/views/reporting/run.py:170
 msgid "Not authorized for this source"
 msgstr ""
 
@@ -1337,59 +1345,59 @@ msgstr ""
 msgid "Forecast"
 msgstr ""
 
-#: nx_lib/views/reporting/health.py:115
+#: nx_lib/views/reporting/health.py:173
 msgid "This source's database is not configured."
 msgstr ""
 
-#: nx_lib/views/reporting/health.py:120
+#: nx_lib/views/reporting/health.py:178
 msgid "Could not reach this database."
 msgstr ""
 
-#: nx_lib/views/reporting/health.py:125
+#: nx_lib/views/reporting/health.py:183
 msgid "Could not read this database's schema."
 msgstr ""
 
-#: nx_lib/views/reporting/reports.py:167
+#: nx_lib/views/reporting/reports.py:169
 msgid "Could not list reports"
 msgstr ""
 
-#: nx_lib/views/reporting/reports.py:205
+#: nx_lib/views/reporting/reports.py:207
 msgid "Could not load report"
 msgstr ""
 
-#: nx_lib/views/reporting/reports.py:218 nx_lib/views/reporting/reports.py:247
+#: nx_lib/views/reporting/reports.py:220 nx_lib/views/reporting/reports.py:251
 msgid "name and definition are required"
 msgstr ""
 
-#: nx_lib/views/reporting/reports.py:221 nx_lib/views/reporting/reports.py:250
+#: nx_lib/views/reporting/reports.py:223 nx_lib/views/reporting/reports.py:254
 msgid "Report definition too large"
 msgstr ""
 
-#: nx_lib/views/reporting/reports.py:234
+#: nx_lib/views/reporting/reports.py:238
 msgid "Could not save report"
 msgstr ""
 
-#: nx_lib/views/reporting/reports.py:271
+#: nx_lib/views/reporting/reports.py:275
 msgid "Could not update report"
 msgstr ""
 
-#: nx_lib/views/reporting/reports.py:293
+#: nx_lib/views/reporting/reports.py:297
 msgid "Could not delete report"
 msgstr ""
 
-#: nx_lib/views/reporting/reports.py:383
+#: nx_lib/views/reporting/reports.py:387
 msgid "Invalid visibility"
 msgstr ""
 
-#: nx_lib/views/reporting/reports.py:392
+#: nx_lib/views/reporting/reports.py:396
 msgid "User not found"
 msgstr ""
 
-#: nx_lib/views/reporting/reports.py:394
+#: nx_lib/views/reporting/reports.py:398
 msgid "Cannot share a report with yourself"
 msgstr ""
 
-#: nx_lib/views/reporting/reports.py:415 nx_lib/views/reporting/reports.py:436
+#: nx_lib/views/reporting/reports.py:419 nx_lib/views/reporting/reports.py:440
 msgid "Could not update sharing"
 msgstr ""
 
@@ -1449,21 +1457,21 @@ msgid "Could not record acknowledgment"
 msgstr ""
 
 #: nx_lib/views/reporting/schedules.py:84
-#: nx_lib/views/reporting/schedules.py:236
+#: nx_lib/views/reporting/schedules.py:238
 #: templates/js/_reporting_scheduled_js.html:25
 msgid "Could not list schedules"
 msgstr ""
 
-#: nx_lib/views/reporting/schedules.py:131
+#: nx_lib/views/reporting/schedules.py:133
 #: templates/js/_reporting_scheduled_js.html:26
 msgid "Could not save schedule"
 msgstr ""
 
-#: nx_lib/views/reporting/schedules.py:180
+#: nx_lib/views/reporting/schedules.py:182
 msgid "Could not update schedule"
 msgstr ""
 
-#: nx_lib/views/reporting/schedules.py:204
+#: nx_lib/views/reporting/schedules.py:206
 msgid "Could not delete schedule"
 msgstr ""
 
