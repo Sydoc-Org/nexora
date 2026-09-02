@@ -2,22 +2,23 @@
 // existing REST endpoints plus window.Reporting / window.ReportingTabs.
 // Never touches the Advanced builder's DOM or ReportingViz (the builder's
 // chart singleton); the result view owns a private Chart.js instance.
+//
+// Split across five files (#191, Beautification Phase 2b Tasks 7-8):
+// reporting_simple_chart.js (chart trio), reporting_simple_library.js
+// (report grid), reporting_simple_result.js (KPI band/anomalies/drill/
+// table), reporting_simple_wizard.js (chip editors + 4-step wizard), and
+// THIS file -- the entry point. It keeps state/runCurrent/save/init plus
+// the window.ReportingSimple export, and loads LAST (see
+// _reporting_simple_js.html) since its top-level code wires event
+// listeners that call into every other file via RS.*.
 (function () {
   window.RS = window.RS || {};
   var csrf = document.querySelector('meta[name="csrf-token"]').content;
   var API_PREFIX = window.API_PREFIX;
   var EXPORT_ALLOWED = !!document.getElementById('rsExport');
+  RS.EXPORT_ALLOWED = EXPORT_ALLOWED;
 
   RS.I18N = window.NX_I18N_REPORTING_SIMPLE;
-
-  // Wizard category-dimension curation (docprocessing only). Process first
-  // (each Octo process = an actual client, so this is the per-client
-  // breakdown), then the preferred business dimensions; noise hidden;
-  // table sources are untouched.
-  var DOCPROC_DIM_ORDER = ['processname', 'docsource', 'doctype', 'forwarding',
-                           'ownernr', 'propertynr', 'registered', 'tenancynr'];
-  var DOCPROC_DIM_HIDE = { bankpk: 1, crdno: 1, docbarcode: 1,
-                           docdate: 1, workitem_id: 1 };
 
   RS.state = {
     reports: [],            // /api/reporting/reports rows (kind!=='sql')
@@ -44,16 +45,6 @@
   RS.api = window.NX.apiSafe;
   RS.esc = window.NX.esc;
 
-  function relTime(iso) {
-    var d = new Date(iso); if (isNaN(d)) return '';
-    var days = Math.floor((Date.now() - d.getTime()) / 86400000);
-    if (days <= 0) return RS.I18N.today;
-    if (days === 1) return RS.I18N.yesterday;
-    if (days < 7) return days + ' ' + RS.I18N.daysAgo;
-    var w = Math.floor(days / 7);
-    return w + ' ' + (w === 1 ? RS.I18N.weekAgo : RS.I18N.weeksAgo);
-  }
-
   function setView(view) {
     RS.state.view = view;
     RS.el('rsLibrary').hidden = view !== 'library';  // #rsSearch nests under it now
@@ -73,6 +64,7 @@
     // The Console nav rail follows the Simple pane's internal view.
     document.dispatchEvent(new CustomEvent('rs:viewchanged', { detail: { view: view } }));
   }
+  RS.setView = setView;
 
   // Console "Results" nav: bring back the last rendered result from cache.
   // Returns false when this session has no rendered result yet.
@@ -81,7 +73,7 @@
     if (!cur || !lr) return false;
     setView('result');
     if (lr.hasMetrics && lr.dims) {
-      mountChart(cur.def, lr.columns, lr.rows,
+      RS.mountChart(cur.def, lr.columns, lr.rows,
         (cur.def.forecast && cur.def.forecast.enabled) ? (lr.forecast || null) : null);
     }
     return true;
@@ -90,7 +82,7 @@
   // Entry point for the Console nav rail (js/_reporting_tabs_js.html).
   function navTo(screen) {
     if (screen === 'library') {
-      if (RS.state.view !== 'library') { setView('library'); loadLibrary(); }
+      if (RS.state.view !== 'library') { setView('library'); RS.loadLibrary(); }
       return;
     }
     if (screen === 'results') {
@@ -99,13 +91,13 @@
       // Nothing rendered yet this session: open the most recent report so
       // Results never shows an empty RS.state.
       var r = (RS.state.reports || []).filter(function (x) { return x.kind !== 'dashboard'; })[0];
-      if (r) openReport(r); else setView('library');
+      if (r) RS.openReport(r); else setView('library');
       return;
     }
     if (screen === 'dashboards') {
       if (RS.state.view === 'dashboard') return;
       var d = (RS.state.reports || []).filter(function (x) { return x.kind === 'dashboard'; })[0];
-      if (d) { openDashboard(d); return; }
+      if (d) { RS.openDashboard(d); return; }
       setView('dashboard');
       window.ReportingDashboard.openNew();
     }
@@ -119,6 +111,7 @@
     var timing = RS.el('reportingTiming');
     if (timing) timing.hidden = true;
   }
+  RS.hideTimingBadge = hideTimingBadge;
 
   // Result-header ⋯ overflow menu (Task 7) — same open/close idiom as the
   // Advanced tab's process-scope dropdown (toggleScopeMenu/#rpScopeMenu in
@@ -133,1588 +126,7 @@
     menu.hidden = !willOpen;
     btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
   }
-
-  // ---------- Library ----------
-  // Preview cache (D5 contract): 'nx.reporting.preview.<reportId>' =
-  // {t:'line'|'bar'|'donut'|'total', v:number[]|number, ts}. Written after a
-  // successful run of a SAVED report (writePreviewCache, below); read here to
-  // feed the card's inline-SVG thumbnail with real numbers when available.
-  function previewCacheGet(id) {
-    try { return JSON.parse(localStorage.getItem('nx.reporting.preview.' + id) || 'null'); }
-    catch (e) { return null; }
-  }
-
-  // Badge/thumbnail kind. The list endpoint computes this server-side
-  // (previewKind, derived from DefinitionJSON) so the client just consumes it.
-  function previewKindOf(r) {
-    if (r.kind === 'dashboard') return 'dash';
-    return r.previewKind || 'bar';
-  }
-
-  // Shared by the line preview: polyline point list, pure. Scaled between the
-  // series' own min and max, not 0..max -- eight values that only differ by a
-  // few percent drew as a flat hairline when they were measured off zero.
-  function sparkPath(vals, w, h) {
-    var min = Math.min.apply(null, vals), max = Math.max.apply(null, vals);
-    var span = max - min;
-    return vals.map(function (v, i) {
-      // A dead-flat series has no shape to show -- centre it instead of /0.
-      var t = span ? (v - min) / span : 0.5;
-      return (i / (vals.length - 1) * w).toFixed(1) + ',' + (h - 4 - t * (h - 10)).toFixed(1);
-    }).join(' ');
-  }
-
-  // Deterministic decorative fallback (D5) for reports with no run-cache yet
-  // — same id always draws the same shape instead of jittering on refresh.
-  // Ids are ints in prod but strings in tests, so fold to an int first.
-  function seededVals(id, n) {
-    var s = String(id), h = 0, i;
-    for (i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-    var vals = [], x = (h * 2654435761) % 977;
-    for (i = 0; i < n; i++) { x = (x * 48271) % 2147483647; vals.push(40 + (x % 60)); }
-    return vals;
-  }
-
-  var PREVIEW_BADGE = {
-    line: { icon: 'fa-chart-line', label: 'LINE' },
-    bar: { icon: 'fa-chart-column', label: 'BAR' },
-    donut: { icon: 'fa-chart-pie', label: 'DONUT' },
-    total: { icon: 'fa-hashtag', label: 'TOTAL' },
-    dash: { icon: 'fa-table-cells-large', label: 'DASHBOARD' }
-  };
-
-  function previewSvgLine(vals) {
-    // Hover behavior (Console intent #5): the area fill and endpoint dot are
-    // invisible at rest and fade in on card hover — CSS transitions on
-    // .rs-spark-area / .rs-spark-dot in reporting-console.css. Nothing moves.
-    var w = 200, h = 60;
-    var pts = sparkPath(vals, w, h).split(' ');
-    var last = pts[pts.length - 1].split(',');
-    var area = pts.join(' ') + ' ' + w.toFixed(1) + ',' + h + ' 0,' + h;
-    return '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" class="rs-card-svg">' +
-      '<polygon class="rs-spark-area" points="' + area + '" fill="var(--nx-accent, #4f46e5)"></polygon>' +
-      '<polyline points="' + pts.join(' ') + '" fill="none" stroke="var(--nx-accent, #4f46e5)"' +
-        // preserveAspectRatio="none" squashes the stroke to a hairline when the
-        // 200x60 box is drawn wide and short -- non-scaling-stroke keeps it an
-        // even 2px whatever the card width.
-        ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round"' +
-        ' vector-effect="non-scaling-stroke"></polyline>' +
-      '<circle class="rs-spark-dot" cx="' + last[0] + '" cy="' + last[1] + '" r="3" fill="var(--nx-accent, #4f46e5)"></circle>' +
-      '</svg>';
-  }
-
-  function previewSvgBar(vals) {
-    var w = 200, h = 60, n = vals.length, gap = 6;
-    var bw = (w - gap * (n - 1)) / n;
-    var max = Math.max.apply(null, vals) || 1;
-    var maxIdx = 0;
-    vals.forEach(function (v, i) { if (v > vals[maxIdx]) maxIdx = i; });
-    var bars = vals.map(function (v, i) {
-      var bh = Math.max(4, (v / max) * (h - 8));
-      var x = i * (bw + gap);
-      return '<rect x="' + x.toFixed(1) + '" y="' + (h - bh).toFixed(1) + '" width="' + bw.toFixed(1) +
-        '" height="' + bh.toFixed(1) + '" rx="2.5" fill="' + (i === maxIdx ? '#7c3aed' : '#a5b4fc') + '"></rect>';
-    }).join('');
-    return '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" class="rs-card-svg">' + bars + '</svg>';
-  }
-
-  function previewSvgDonut(vals) {
-    var cx = 30, cy = 30, r = 22, circ = 2 * Math.PI * r;
-    var total = (Number(vals[0]) || 0) + (Number(vals[1]) || 0) || 1;
-    var seg1 = (Number(vals[0]) || 0) / total * circ;
-    return '<svg viewBox="0 0 60 60" class="rs-card-svg rs-card-svg-donut">' +
-      '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#e0e7ff" stroke-width="8"></circle>' +
-      '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#4f46e5" stroke-width="8" ' +
-      'stroke-dasharray="' + seg1.toFixed(1) + ' ' + circ.toFixed(1) + '" ' +
-      'transform="rotate(-90 ' + cx + ' ' + cy + ')"></circle></svg>';
-  }
-
-  // Dashboard miniature: the card's real layout, packed into 12-col rows the
-  // same way the builder grid does -- plain soft tiles, no per-type glyphs
-  // (tried, too busy at this size). Falls back to the old generic 2x2 when
-  // the dashboard has no cards (or an old cached list payload has no summary).
-  function previewSvgDash(cards) {
-    if (!cards || !cards.length) {
-      var s = 22, gap0 = 6, x0 = 5, y0 = 5, cells = '';
-      [[0, 0], [1, 0], [0, 1], [1, 1]].forEach(function (p) {
-        cells += '<rect x="' + (x0 + p[0] * (s + gap0)) + '" y="' + (y0 + p[1] * (s + gap0)) +
-          '" width="' + s + '" height="' + s + '" rx="4" fill="var(--nx-accent, #4f46e5)" opacity="0.14"></rect>';
-      });
-      return '<svg viewBox="0 0 60 60" class="rs-card-svg rs-card-svg-dash">' + cells + '</svg>';
-    }
-    // Pack spans into rows of 12, like the real grid; cap at 3 rows.
-    var rows = [], cur = [], used = 0;
-    cards.forEach(function (c) {
-      var sp = Math.max(1, Math.min(12, parseInt(c.s, 10) || 6));
-      if (used + sp > 12 && cur.length) { rows.push(cur); cur = []; used = 0; }
-      cur.push({ t: c.t, s: sp, x: used });
-      used += sp;
-    });
-    if (cur.length) rows.push(cur);
-    var clipped = rows.length > 3;
-    rows = rows.slice(0, 3);
-    var w = 200, h = 60, gap = 4;
-    var rh = (h - gap * (rows.length - 1)) / rows.length;
-    var body = '';
-    rows.forEach(function (row, ri) {
-      var y = ri * (rh + gap);
-      row.forEach(function (c) {
-        var x = c.x / 12 * (w + gap);
-        var cw = c.s / 12 * (w + gap) - gap;
-        body += '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + cw.toFixed(1) +
-          '" height="' + rh.toFixed(1) + '" rx="3" fill="var(--nx-accent, #4f46e5)" opacity="0.14"></rect>';
-      });
-    });
-    if (clipped) {
-      body += '<text x="' + (w - 4) + '" y="' + (h - 3) + '" text-anchor="end" font-size="9" ' +
-        'fill="var(--nx-text-meta, #64748b)">…</text>';
-    }
-    return '<svg viewBox="0 0 ' + w + ' ' + h + '" class="rs-card-svg rs-card-svg-dash">' + body + '</svg>';
-  }
-
-  // Preview strip: slim thumbnail (real cache values when the kind matches,
-  // else the seeded decorative fallback). The type badge lives in the card's
-  // top row (Console), not over the preview.
-  function previewBandHtml(r) {
-    var kind = previewKindOf(r);
-    var cache = previewCacheGet(r.id);
-    var real = cache && cache.t === kind;
-    var body;
-    if (kind === 'total') {
-      var metricLabel = (r.definition && r.definition.metrics && r.definition.metrics[0]
-        && r.definition.metrics[0].label) || '—';
-      body = real
-        ? '<div class="rs-card-total">' + RS.esc(fmtNumber(cache.v)) + '</div>'
-        : '<div class="rs-card-total rs-card-total-label">' + RS.esc(metricLabel) + '</div>';
-    } else if (kind === 'dash') {
-      body = previewSvgDash((r.summary || {}).cards);
-    } else {
-      var n = kind === 'donut' ? 2 : 8;
-      var vals = real ? (Array.isArray(cache.v) ? cache.v : [cache.v]) : seededVals(r.id, n);
-      body = kind === 'line' ? previewSvgLine(vals)
-        : kind === 'bar' ? previewSvgBar(vals) : previewSvgDonut(vals);
-    }
-    return '<div class="rs-card-preview" data-kind="' + kind + '">' +
-      cardFactsHtml(r) +
-      '<div class="rs-card-thumb">' + body + '</div>' +
-      '</div>';
-  }
-
-  // The thumbnail alone left the preview row mostly empty, and a line stretched
-  // across the whole card read as a flat smear. It now shares the row with the
-  // facts that actually tell reports apart: which source it reads, how it is
-  // bucketed, and how narrowed it is. Server-computed (see _preview_summary);
-  // labels resolve here so they stay translated, and each fact is dropped
-  // rather than guessed when the definition doesn't have it.
-  function cardFactsHtml(r) {
-    var sm = r.summary || {};
-    var facts = [];
-    function fact(icon, text, title, wide) {
-      facts.push('<span class="rs-card-fact' + (wide ? ' rs-card-fact--wide' : '') +
-        '" title="' + RS.esc(title) + '">' +
-        '<i class="fas ' + icon + '" aria-hidden="true"></i>' + RS.esc(text) + '</span>');
-    }
-    if (sm.source) {
-      // The real database behind the source, same as the sources rail names
-      // (published by _reporting_tabs_js once its health probe lands); the
-      // registry label is the fallback until then.
-      var src = (RS.state.sources || []).find(function (x) { return x.id === sm.source; });
-      var db = (window.ReportingSourceDb || {})[sm.source] || (src && src.label) || sm.source;
-      fact('fa-database', db, db, true);
-    }
-    var GRAINS = { day: RS.I18N.grainDay, week: RS.I18N.grainWeek, month: RS.I18N.grainMonth,
-                   quarter: RS.I18N.grainQuarter, year: RS.I18N.grainYear };
-    if (sm.grain && GRAINS[sm.grain]) fact('fa-calendar-day', GRAINS[sm.grain], RS.I18N.granularity);
-    if (sm.metrics) fact('fa-hashtag', String(sm.metrics), RS.I18N.wizMeasure);
-    if (sm.dimensions) fact('fa-layer-group', String(sm.dimensions), RS.I18N.wizBreakdown);
-    if (sm.filters) fact('fa-filter', String(sm.filters), RS.I18N.aiFilters);
-    // Dashboard cards: the one fact a dashboard has (its summary carries no
-    // source/grain/metrics -- see _preview_summary's dashboard branch).
-    if (sm.cardCount) fact('fa-table-cells-large', String(sm.cardCount), RS.I18N.cardsLabel);
-    if (!facts.length) return '';
-    return '<div class="rs-card-facts">' + facts.join('') + '</div>';
-  }
-
-  function initialsOf(name) {
-    var parts = String(name || '').trim().split(/\s+/).filter(Boolean);
-    if (!parts.length) return '?';
-    return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
-  }
-
-  // One open card menu at a time (Console intent #6).
-  var openCardMenu = null;
-  function closeCardMenu() {
-    if (!openCardMenu) return;
-    openCardMenu.menu.hidden = true;
-    openCardMenu.btn.setAttribute('aria-expanded', 'false');
-    openCardMenu = null;
-  }
-  document.addEventListener('click', function (e) {
-    if (openCardMenu && !openCardMenu.wrap.contains(e.target)) closeCardMenu();
-  });
-
-  function card(r) {
-    var kind = previewKindOf(r);
-    var badge = PREVIEW_BADGE[kind] || PREVIEW_BADGE.bar;
-    var wrap = document.createElement('div');
-    wrap.className = 'rs-card-wrap';
-    var b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'rs-card';
-    b.setAttribute('data-testid', 'rs-card');
-    b.innerHTML =
-      '<div class="rs-card-top">' +
-        '<span class="rs-card-tag' + (kind === 'dash' ? ' rs-card-tag--gray' : '') + '">' +
-          '<i class="fas ' + badge.icon + '" aria-hidden="true"></i>' + badge.label + '</span>' +
-      '</div>' +
-      '<p class="rs-card-name" title="' + RS.esc(r.name) + '">' + RS.esc(r.name) + '</p>' +
-      previewBandHtml(r) +
-      '<div class="rs-card-meta">' +
-        '<span class="rs-card-avatar">' + RS.esc(initialsOf(r.ownerName)) + '</span>' +
-        '<span class="rs-card-metatext">' + RS.esc(r.ownerName || '') + ' · ' + RS.esc(relTime(r.updatedAt)) +
-          // Owner-side 'shared' tag: an explicit per-user grant leaves
-          // Visibility = 'private', so the card would otherwise look
-          // identical to a private one.
-          (r.owned && (r.visibility === 'shared' || r.sharedCount) ? ' · ' + RS.I18N.shared : '') +
-          '</span>' +
-        '<i class="fas fa-play rs-card-play" aria-hidden="true"></i>' +
-      '</div>';
-    b.addEventListener('click', function () {
-      // D17: a dashboard-kind report routes to the builder view instead of
-      // the normal single-report result view.
-      if (r.kind === 'dashboard') { openDashboard(r); return; }
-      openReport(r);
-    });
-    wrap.appendChild(b);
-    if (!r.owned) return wrap;
-    // Owner-only "…" menu: Share / Delete (both owner-scoped server-side too).
-    var kebab = document.createElement('button');
-    kebab.type = 'button';
-    kebab.className = 'rs-card-kebab';
-    kebab.setAttribute('data-testid', 'rs-card-kebab');
-    kebab.setAttribute('aria-haspopup', 'true');
-    kebab.setAttribute('aria-expanded', 'false');
-    kebab.setAttribute('aria-label', RS.I18N.cardMenu + ': ' + r.name);
-    kebab.innerHTML = '<i class="fas fa-ellipsis" aria-hidden="true"></i>';
-    var menu = document.createElement('div');
-    menu.className = 'rs-card-menu';
-    menu.hidden = true;
-    menu.setAttribute('role', 'menu');
-    var share = document.createElement('button');
-    share.type = 'button';
-    share.className = 'rs-card-menu-row';
-    share.setAttribute('role', 'menuitem');
-    share.setAttribute('data-testid', 'rs-card-share');
-    share.innerHTML = '<i class="fas fa-arrow-up-from-bracket" aria-hidden="true"></i>' + RS.esc(RS.I18N.share);
-    share.addEventListener('click', function (e) {
-      e.stopPropagation();
-      closeCardMenu();
-      if (window.Reporting && window.Reporting.openShareFor) window.Reporting.openShareFor(r.id);
-    });
-    var del = document.createElement('button');
-    del.type = 'button';
-    del.className = 'rs-card-menu-row rs-card-menu-row--danger';
-    del.setAttribute('role', 'menuitem');
-    del.setAttribute('data-testid', 'rs-card-delete');
-    del.innerHTML = '<i class="fas fa-trash-can" aria-hidden="true"></i>' +
-      RS.esc(r.kind === 'dashboard' ? RS.I18N.deleteDashboard : RS.I18N.deleteReport);
-    del.addEventListener('click', function (e) { e.stopPropagation(); closeCardMenu(); deleteReport(r.id, r.name); });
-    menu.appendChild(share);
-    var hr = document.createElement('div');
-    hr.className = 'rs-card-menu-sep';
-    menu.appendChild(hr);
-    menu.appendChild(del);
-    kebab.addEventListener('click', function (e) {
-      e.stopPropagation();
-      var isOpen = openCardMenu && openCardMenu.menu === menu;
-      closeCardMenu();
-      if (!isOpen) {
-        menu.hidden = false;
-        kebab.setAttribute('aria-expanded', 'true');
-        openCardMenu = { wrap: wrap, menu: menu, btn: kebab };
-      }
-    });
-    wrap.appendChild(kebab);
-    wrap.appendChild(menu);
-    return wrap;
-  }
-
-  // Shared by the card trash button and the result view's "More actions" row.
-  // ponytail: window.confirm, same as the Advanced tab's delete — swap for a
-  // styled dialog when one exists for the page.
-  async function deleteReport(id, name) {
-    if (!window.confirm(RS.I18N.deleteConfirm.replace('{name}', name || ''))) return;
-    var res = await RS.api('/api/reporting/reports/' + id, { method: 'DELETE' });
-    if (!res.ok) { showResultError(RS.I18N.deleteFailed); return; }
-    if (RS.state.current && String(RS.state.current.reportId) === String(id)) {
-      RS.state.current = null;
-      toggleMoreMenu(false);
-      setView('library');
-    }
-    loadLibrary();
-  }
-
-  function renderLibrary() {
-    var q = (RS.el('rsSearch').value || '').toLowerCase();
-    var groups = { shared: RS.el('rsGroupShared'), mine: RS.el('rsGroupMine'), direct: RS.el('rsGroupDirect') };
-    var counts = { shared: 0, mine: 0, direct: 0 };
-    Object.keys(groups).forEach(function (k) {
-      groups[k].innerHTML = '';
-      groups[k].classList.toggle('is-cols-4', RS.state.layout === '4');
-    });
-    var list = RS.state.reports.slice();
-    if (RS.state.sort === 'name') {
-      list.sort(function (a, b) { return String(a.name).localeCompare(String(b.name)); });
-    }  // 'updated' keeps the server order (Owned DESC, UpdatedAt DESC)
-    // --i drives the staggered entrance + sparkline draw-in (reporting-console
-    // .css). Capped so a large library still finishes settling in under a
-    // second instead of trickling in card by card.
-    var idx = 0;
-    list.forEach(function (r) {
-      if (q && r.name.toLowerCase().indexOf(q) === -1) return;
-      var g = r.visibility === 'shared' ? 'shared' : (r.owned ? 'mine' : 'direct');
-      var c = card(r);
-      c.style.setProperty('--i', String(Math.min(idx++, 11)));
-      groups[g].appendChild(c);
-      counts[g]++;
-    });
-    var all = RS.el('rsCountAll');
-    if (all) {
-      var total = counts.shared + counts.mine + counts.direct;
-      all.textContent = total === 1 ? RS.I18N.oneReport : RS.I18N.nReports.replace('{n}', String(total));
-    }
-    var pills = { mine: RS.el('rsCountMine'), shared: RS.el('rsCountShared'), direct: RS.el('rsCountDirect') };
-    // The empty-state name line reuses the group's own header string (already
-    // translated above the grid); the hint line reuses the existing
-    // emptyMine/emptyShared/emptyDirect copy — no new translated sentences.
-    var groupEmpty = {
-      mine: { name: RS.I18N.groupNameMine, hint: RS.I18N.emptyMine },
-      shared: { name: RS.I18N.groupNameShared, hint: RS.I18N.emptyShared },
-      direct: { name: RS.I18N.groupNameDirect, hint: RS.I18N.emptyDirect }
-    };
-    Object.keys(groups).forEach(function (k) {
-      if (pills[k]) pills[k].textContent = String(counts[k]);
-      if (!counts[k]) {
-        groups[k].innerHTML = '<div class="rs-group-empty">' +
-          '<p class="rs-group-empty-name">' + RS.esc(groupEmpty[k].name) + '</p>' +
-          '<p class="rs-group-empty-hint">' + RS.esc(groupEmpty[k].hint) + '</p></div>';
-      }
-    });
-  }
-
-  async function loadLibrary() {
-    var res = await RS.api('/api/reporting/reports');
-    if (!res.ok || !Array.isArray(res.data)) return;
-    // Viewers can't run sql-kind reports (/api/reporting/run rejects them);
-    // they stay fully usable in Advanced.
-    RS.state.reports = res.data.filter(function (r) { return r.kind !== 'sql'; });
-    renderLibrary();
-    // Card facts name the source, so redraw once the catalog lands -- until
-    // then they'd read as raw ids.
-    if (!RS.state.sources) loadSourcesCatalog().then(renderLibrary);
-    // …and again when the rail's health probe reports the real database names,
-    // which is what the cards would rather show than the registry label.
-    if (!window.ReportingSourceDb) {
-      document.addEventListener('rc:sourcehealth', function once() {
-        document.removeEventListener('rc:sourcehealth', once);
-        if (RS.state.reports) renderLibrary();
-      });
-    }
-    // Feeds the Console nav-rail counts (Library / Dashboards).
-    document.dispatchEvent(new CustomEvent('rs:libraryloaded',
-      { detail: { reports: RS.state.reports } }));
-  }
-
-  async function openReport(r) {
-    var res = await RS.api('/api/reporting/reports/' + r.id);
-    if (!res.ok || !res.data || !res.data.definition) {
-      showResultError(RS.I18N.couldNotLoad); return;
-    }
-    await loadSourcesCatalog();
-    if (!RS.state.metricsBySource) await loadMetricsCatalog();
-    RS.state.current = {
-      def: res.data.definition, name: res.data.name, reportId: r.id,
-      owned: !!res.data.owned, canEdit: !!res.data.canEdit, fromWizard: false,
-      origin: 'library'
-    };
-    runCurrent();
-  }
-
-  // #178 A4: open a raw definition (from the AI chat) straight into the
-  // Simple result view -- openReport minus the saved-report id.
-  async function openDefinition(def, name) {
-    await loadSourcesCatalog();
-    if (!RS.state.metricsBySource) await loadMetricsCatalog();
-    RS.state.current = {
-      def: def, name: name || def.title || '', reportId: null,
-      owned: true, canEdit: true, fromWizard: false, origin: 'ai'
-    };
-    runCurrent();
-  }
-
-  // D3/D17: a dashboard-kind library card opens the builder view (a fourth
-  // Simple-pane view, window.ReportingDashboard) instead of the normal
-  // single-report result view -- same GET-by-id endpoint as openReport, the
-  // response payload IS the {id, name, definition, owned, canEdit} shape
-  // window.ReportingDashboard.open() expects.
-  async function openDashboard(r) {
-    var res = await RS.api('/api/reporting/reports/' + r.id);
-    if (!res.ok || !res.data || !res.data.definition) {
-      showResultError(RS.I18N.couldNotLoad); return;
-    }
-    setView('dashboard');
-    window.ReportingDashboard.open(res.data);
-  }
-
-  async function loadMetricsCatalog() {
-    try {
-      RS.state.metricsBySource = await ReportingCatalog.metrics();
-    } catch (e) { /* non-fatal: the panes treat a missing map as "no metrics" */ }
-  }
-
-  // ---------- Result view ----------
-  // Save/Export must never act on a definition the last run couldn't produce
-  // rows for — disabled while the result pane shows an error, re-enabled the
-  // moment a run actually succeeds.
-  function setHeaderActionsEnabled(enabled) {
-    RS.el('rsSave').disabled = !enabled;
-    if (EXPORT_ALLOWED) RS.el('rsExport').disabled = !enabled;
-  }
-
-  // The Open-in-Advanced escape hatch rendered under rsError (only when the
-  // caller passes opts.openAdvanced — e.g. a failed run whose definition can
-  // still be fixed up in Advanced). Delegates to the header button's own
-  // handler rather than duplicating it.
-  function renderErrorOpenAdvanced(show) {
-    var existing = document.getElementById('rsErrorOpenAdvanced');
-    if (existing) existing.remove();
-    if (!show) return;
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.id = 'rsErrorOpenAdvanced';
-    btn.className = 'reporting-btn nx-btn nx-btn--secondary';
-    btn.setAttribute('data-testid', 'rs-error-open-advanced');
-    btn.textContent = RS.I18N.openInAdvanced;
-    btn.addEventListener('click', function () { RS.el('rsOpenAdvanced').click(); });
-    RS.el('rsError').insertAdjacentElement('afterend', btn);
-  }
-
-  function showResultError(msg, opts) {
-    RS.el('rsRunLoading').hidden = true;
-    if (RS.el('rsChips')) RS.el('rsChips').hidden = true;
-    setView('result');
-    hideTimingBadge();
-    toggleMoreMenu(false);
-    RS.el('rsResultTitle').textContent = (opts && opts.title) || '';
-    RS.el('rsResultTitle').style.color = '';
-    RS.el('rsCrumbName').textContent = (opts && opts.title) || '';
-    RS.el('rsSavedChip').hidden = true;
-    RS.el('rsResultMeta').textContent = '';
-    RS.el('rsTableRowCount').textContent = '';
-    RS.el('rsMsg').hidden = true;
-    RS.el('rsSaveName').hidden = true;
-    RS.el('rsError').textContent = msg;
-    RS.el('rsError').hidden = false;
-    renderErrorOpenAdvanced(!!(opts && opts.openAdvanced));
-    setHeaderActionsEnabled(false);
-    RS.el('rsChartCard').hidden = true;
-    RS.el('rsTableCard').hidden = true;
-    RS.el('rsChartNote').hidden = true;
-    RS.el('rsChartTools').hidden = true;
-    RS.el('rsTableToggle').hidden = true;
-    RS.el('rsTableWrap').hidden = true;
-    RS.el('rsSqlView').hidden = true;
-    RS.el('rsShowSql').hidden = true;
-    RS.el('rsDrillHint').hidden = true;
-    // Same stale-caption guard as runCurrent()'s run-start block — a failed
-    // run must not leave the PREVIOUS run's caption sentence sitting under
-    // the error message.
-    var rsCaptionErrBox = RS.el('rsCaption');
-    if (rsCaptionErrBox) { rsCaptionErrBox.hidden = true; rsCaptionErrBox.textContent = ''; }
-    var anomErrCard = RS.el('rsAnomCard');
-    if (anomErrCard) anomErrCard.hidden = true;
-  }
-
-  // Prefers the server's own error + detail (e.g. "…invalid or outdated. —
-  // unknown metric: 'x'") over the generic 400 fallback, so a stale saved
-  // report's actual problem is visible instead of a canned line.
-  function friendlyRunError(status, data) {
-    if (status === 403) return RS.I18N.noAccess;
-    if (status === 400) {
-      if (data && data.error) return data.error + (data.detail ? ' — ' + data.detail : '');
-      return RS.I18N.outdated;
-    }
-    return (data && data.error) || RS.I18N.couldNotRun;
-  }
-
-  var APP_LANG = document.documentElement.lang || undefined;
-  function fmtNumber(v) {
-    if (v == null) return '–';
-    var n = Number(v);
-    // App locale (html lang attr), not browser locale — a German UI shows
-    // 1'234/1.234 shapes consistently regardless of the OS language. An
-    // empty lang attr degrades to the browser locale (undefined arg).
-    return isNaN(n) ? String(v) : n.toLocaleString(APP_LANG);
-  }
-
-  // Masthead timing badge, shared with _reporting_js.html's own showTiming
-  // (same #reportingTiming element, same "N rows · M ms" shape). Hidden until
-  // the first successful run in either pane. #rsResultMeta (Task 7) renders
-  // the same rowCount/ms values inline under the result title, and the
-  // table card's head row (Task 8) renders the row count a third time —
-  // no separate computation, just further formats of the same rowsTxt.
-  function showTiming(rows, elapsedMs) {
-    var rowsTxt = String(rows == null ? 0 : rows);
-    var msTxt = String(Math.round(elapsedMs));
-    var badge = document.getElementById('reportingTiming');
-    if (badge) {
-      badge.textContent = RS.I18N.timingBadge.replace('{rows}', rowsTxt).replace('{ms}', msTxt);
-      badge.hidden = false;
-    }
-    var meta = RS.el('rsResultMeta');
-    if (meta) {
-      meta.textContent = RS.I18N.resultMeta
-        .replace('{rows}', rowsTxt).replace('{ms}', msTxt).replace('{when}', RS.I18N.runJustNow);
-    }
-    var tableCount = RS.el('rsTableRowCount');
-    if (tableCount) tableCount.textContent = ' · ' + RS.I18N.tableRowCount.replace('{n}', rowsTxt);
-  }
-
-  // Same numeric check fmtNumber uses (Number(v) + isNaN), guarded against
-  // null/empty so blank dimension cells never misclassify as numeric — used
-  // to tag result-table cells reporting-ledger-num (mono/tabular-nums/
-  // right-aligned) at render time, mirrored in _reporting_js.html.
-  function isNumericCell(v) {
-    if (v == null || v === '') return false;
-    var n = Number(v);
-    return !isNaN(n) && isFinite(n);
-  }
-
-  // KPI stat band (L7 locked decision): total/buckets/avg computed
-  // client-side from the rows the pane already has — no second query. The
-  // first numeric column after the definition's dimension columns is
-  // treated as the measure (every row's value must be finite); hidden when
-  // there are no rows or no such column. Mirrored in _reporting_js.html's
-  // own computeKpiBand/renderKpiBand for the Advanced grid.
-  // Peak: the single row with the largest metric value -- its leading
-  // dimension column(s) become the label (e.g. "bob" for a per-user
-  // breakdown). Zero-dimension runs (dims === 0, the grand-total-only
-  // case) have no bucket to label, so peakLabel is just left blank.
-  function computeKpiBand(dims, rows) {
-    if (!rows.length) return null;
-    var idx = -1;
-    // First numeric metric column; NULL cells are allowed (a level such as
-    // the backlog has no value in buckets nobody measured) but skipped below.
-    for (var i = dims; i < rows[0].length; i++) {
-      var anyNum = rows.some(function (r) { return isNumericCell(r[i]); });
-      if (anyNum && rows.every(function (r) { return r[i] == null || isNumericCell(r[i]); })) { idx = i; break; }
-    }
-    if (idx === -1) return null;
-    var total = 0, peak = -Infinity, peakRow = rows[0], buckets = 0;
-    rows.forEach(function (r) {
-      if (r[idx] == null) return;
-      var v = Number(r[idx]);
-      total += v;
-      buckets++;
-      if (v > peak) { peak = v; peakRow = r; }
-    });
-    var peakLabel = dims ? Array.prototype.slice.call(peakRow, 0, dims).map(function (v) {
-      return String(v).replace(/[T ]00:00:00(\.0+)?$/, '');
-    }).join(' · ') : '';
-    return { total: total, buckets: buckets, avg: buckets ? total / buckets : 0,
-             peak: peak, peakLabel: peakLabel, idx: idx };
-  }
-
-  // Delta chips vs the prior period (Task 11 / D-COMPARE). The backend's
-  // `comparison` block (compare: true) reruns the SAME definition over a
-  // window shifted back by the CURRENT window's own length -- not
-  // necessarily the previous *calendar* period (a 31-day month shifted back
-  // 31 days lands one day short of the 1st of a 30-day prior month). So the
-  // chip's only honest claim is the literal priorStart-priorEnd range, never
-  // a calendar name like "last month" -- see shifted_definition_for_comparison.
-  // Flat when the prior value is 0 (no percentage is meaningful) or the
-  // magnitude of change is under 0.5%.
-  function computeDelta(current, prior) {
-    if (!prior || !isFinite(prior)) return { dir: 'flat', pct: 0 };
-    var pct = ((current - prior) / Math.abs(prior)) * 100;
-    if (Math.abs(pct) < 0.5) return { dir: 'flat', pct: 0 };
-    return { dir: pct > 0 ? 'up' : 'down', pct: Math.abs(pct) };
-  }
-
-  function deltaChipHtml(current, prior, priorStart, priorEnd) {
-    if (prior == null || !isFinite(current)) return '';
-    var d = computeDelta(current, prior);
-    var arrow = d.dir === 'up' ? '↑' : d.dir === 'down' ? '↓' : '—';
-    var title = RS.I18N.deltaVs + ' ' + priorStart + ' – ' + priorEnd;
-    return '<span class="rp-delta rp-delta--' + d.dir + '" data-testid="rp-delta"' +
-      ' title="' + RS.esc(title) + '" aria-label="' + RS.esc(title) + '">' +
-      arrow + ' ' + Math.round(d.pct) + '%</span>';
-  }
-
-  // Inline sparkline (Task 11): a hand-rolled SVG polyline of the metric
-  // series into the total tile -- no second Chart.js instance just for a KPI
-  // accent. Gated to the same single-dimension date-grain case bucketSeq/
-  // zeroFillDateBuckets already special-case (see the ponytail note there);
-  // `rows` here has already been through that zero-fill, so gaps read as
-  // real zeros rather than a misleadingly straight line.
-  function sparklineHtml(def, rows, kpi) {
-    var cols = def.columns || [];
-    if (cols.length !== 1 || !cols[0].grain) return '';
-    if (!kpi || kpi.idx == null || rows.length < 2) return '';
-    var series = rows.map(function (r) { return r[kpi.idx]; })
-      .filter(function (v) { return v != null; }).map(Number);
-    if (series.length < 2 || series.some(function (v) { return isNaN(v); })) return '';
-    var w = 120, h = 32, pad = 2;
-    var min = Math.min.apply(null, series), max = Math.max.apply(null, series);
-    var span = (max - min) || 1;
-    var step = (w - pad * 2) / (series.length - 1);
-    var pts = series.map(function (v, i) {
-      var x = pad + i * step;
-      var y = h - pad - ((v - min) / span) * (h - pad * 2);
-      return x.toFixed(1) + ',' + y.toFixed(1);
-    }).join(' ');
-    return '<svg class="rp-sparkline" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none"' +
-      ' aria-hidden="true" data-testid="rp-sparkline">' +
-      '<polyline points="' + pts + '" fill="none" stroke="currentColor" stroke-width="2"' +
-      ' stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  }
-
-  // Count-up (Task 7): 0 -> value over ~500ms via requestAnimationFrame
-  // (stays in step with the browser's paint cycle, unlike setInterval).
-  // Skipped under prefers-reduced-motion -- the final value is written
-  // directly, same gate every other motion helper on this page uses.
-  var PREFERS_REDUCED_MOTION = !!(window.matchMedia &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-  function animateValue(el, target, fmt) {
-    var n = Number(target);
-    if (isNaN(n) || PREFERS_REDUCED_MOTION) { el.textContent = fmt(target); return; }
-    var t0 = null;
-    function tick(now) {
-      if (t0 === null) t0 = now;
-      var p = Math.min(1, (now - t0) / 500);
-      el.textContent = fmt(n * p);
-      if (p < 1) requestAnimationFrame(tick);
-    }
-    requestAnimationFrame(tick);
-  }
-
-  // Every value span below carries its real target in data-count-target and
-  // starts at "0" text -- renderKpiBand animates them all in one pass once
-  // the whole band is in the DOM (see the querySelectorAll loop there).
-  // Value + delta chip share one flex item (.rs-kpi-value-wrap) so the row's
-  // caption/value space-between layout still sees exactly two top-level
-  // children -- a bare 3rd sibling would split away from the value under
-  // flex-wrap instead of hugging it.
-  // Console KPI cards are a fixed three-row structure (label / value / sub)
-  // so every value sits on the same baseline across the row — the sub span
-  // renders even when empty.
-  function kpiBlock(testid, caption, value, deltaHtml, sub) {
-    return '<div class="reporting-ledger-kpi" data-testid="' + testid + '">' +
-      '<span class="reporting-ledger-caption">' + RS.esc(caption) + '</span>' +
-      '<span class="rs-kpi-value-wrap">' +
-        '<span class="reporting-ledger-kpi-value" data-count-target="' + Number(value) + '">0</span>' +
-        (deltaHtml || '') +
-      '</span>' +
-      '<span class="reporting-ledger-kpi-sub">' + RS.esc(sub || '') + '</span></div>';
-  }
-
-  // Peak row's sub is the winning bucket's label (empty for the
-  // zero-dimension case, where there is none).
-  function kpiPeakBlock(testid, caption, label, value, deltaHtml) {
-    return '<div class="reporting-ledger-kpi" id="rsKpiPeak" data-testid="' + testid + '">' +
-      '<span class="reporting-ledger-caption">' + RS.esc(caption) + '</span>' +
-      '<span class="rs-kpi-value-wrap">' +
-        '<span class="reporting-ledger-kpi-value" data-count-target="' + Number(value) + '">0</span>' +
-        (deltaHtml || '') +
-      '</span>' +
-      '<span class="reporting-ledger-kpi-sub">' + RS.esc(label || '') + '</span>' +
-      '</div>';
-  }
-
-  // Left-rail layout (studio result body): one labelled total card per metric
-  // (the first gets the gradient, a delta chip and the sparkline), then the
-  // Buckets/Avg/Peak rows stacked into a card headed with the measure they
-  // describe -- all inside the one #rsKpiBand container computeKpiBand
-  // already owned (see the CSS for the ID-scoped override that turns the
-  // Advanced pane's shared flat .reporting-ledger-kpis row into this stack
-  // for Simple only). Nothing here says a bare "Total" any more: on a
-  // multi-metric run that number was one arbitrary metric's, and the reader
-  // had no way to tell which. The grand totals used to be repeated in a
-  // separate rsStatCard above the band; they live here now.
-  // Pure HTML builder for the band above. Returns '' when the rows carry no
-  // numeric metric column. DOM-free -- shared with the dashboard's whole-
-  // report card via window.ReportingSimple, so it must never touch #rs*
-  // elements; a card passes its OWN zero-column run through `grandTotals`
-  // rather than inheriting the Simple pane's RS.state.
-  function kpiBandHtml(dims, rows, comparison, def, columns, grandTotals) {
-    var kpi = computeKpiBand(dims, rows);
-    if (!kpi) return '';
-    // Prior-period KPIs via the SAME computeKpiBand, fed comparison.rows --
-    // no separate delta math to keep in sync. comparison.rows comes straight
-    // off the backend's GROUP BY and omits empty date buckets exactly like
-    // the current run's raw rows do, so it needs the SAME zero-fill the
-    // current run's rows already got (see the call in runCurrent) before
-    // `buckets` (and therefore `avg`) is computed -- otherwise the two
-    // periods' bucket counts can disagree whenever either has a sparse
-    // bucket, which skews the avg delta chip (Task 11 follow-up fix). The
-    // prior window is a length-based shift, not calendar-aligned (see the
-    // comment above computeDelta), so priorStart/priorEnd -- not def's own
-    // date range -- are the correct fill bounds here.
-    var priorRows = (comparison && comparison.rows && def)
-      ? RS.zeroFillDateBuckets(def, comparison.rows, [], [comparison.priorStart, comparison.priorEnd])
-      : (comparison ? comparison.rows : null);
-    var priorKpi = priorRows ? computeKpiBand(dims, priorRows) : null;
-    // kpi.total only feeds the delta chip now (the cards render their own
-    // per-measure totals), but it still has to be the same kind of number the
-    // prior period's is -- a level's latest bucket, not its sum.
-    applyLatestTotal(def, kpi, rows);
-    if (priorKpi) applyLatestTotal(def, priorKpi, priorRows);
-    var totalDelta = '', avgDelta = '', peakDelta = '', deltaNote = '';
-    if (priorKpi) {
-      deltaNote = RS.I18N.deltaVs + ' ' + comparison.priorStart + ' – ' + comparison.priorEnd;
-      totalDelta = deltaChipHtml(kpi.total, priorKpi.total, comparison.priorStart, comparison.priorEnd);
-      // Bucket-count mismatch guard: shifted_definition_for_comparison shifts
-      // the prior window back by the CURRENT window's length in DAYS, not by
-      // an integer number of grain periods -- for a window whose day-length
-      // isn't grain-aligned (e.g. a calendar-quarter preset against a month
-      // grain), the shifted priorStart can land mid-month and zero-fill to a
-      // different number of buckets than the current period (see Finding 2,
-      // Phase 3 review). Averaging total/bucket-count across two genuinely
-      // different-length periods would fabricate a percentage, so only the
-      // avg chip is suppressed here -- total/peak are unaffected (an extra
-      // all-zero bucket contributes 0 to both) and keep rendering normally.
-      if (kpi.buckets === priorKpi.buckets) {
-        avgDelta = deltaChipHtml(kpi.avg, priorKpi.avg, comparison.priorStart, comparison.priorEnd);
-      }
-      peakDelta = deltaChipHtml(kpi.peak, priorKpi.peak, comparison.priorStart, comparison.priorEnd);
-    }
-    var sparkHtml = def ? sparklineHtml(def, rows, kpi) : '';
-    var measures = measureTotals(def, columns, rows, dims, kpi, grandTotals);
-    // The delta chip and the sparkline both describe the series at kpi.idx,
-    // so they only belong on the headline card when that is the measure it
-    // shows -- and only while the shown figure IS this pane's own sum of that
-    // series. An authoritative grand total (a distinct count, an average)
-    // can't be diffed against a client-side sum of the prior period without
-    // inventing a percentage.
-    var headline = measures[0] || null;
-    var seriesIsHeadline = !!headline && headline.idx === kpi.idx &&
-      Math.abs(Number(headline.total) - Number(kpi.total)) < 0.5;
-    // Buckets/Avg/Peak describe a distribution across the breakdown; a
-    // zero-dimension run is a single grand total with nothing to distribute.
-    var statsHtml = dims ? (
-      '<div class="rs-kpi-stats-card">' +
-        '<span class="rs-kpi-stats-title" data-testid="rs-kpi-stats-title">' +
-          RS.esc(measureLabel(columns, kpi.idx)) + '</span>' +
-        kpiBlock('rs-kpi-buckets', RS.I18N.kpiBuckets, kpi.buckets, '', RS.I18N.kpiBucketsSub) +
-        kpiBlock('rs-kpi-avg', RS.I18N.kpiAvg, kpi.avg, avgDelta, RS.I18N.kpiAvgSub) +
-        kpiPeakBlock('rs-kpi-peak', RS.I18N.kpiPeak, kpi.peakLabel, kpi.peak, peakDelta) +
-      '</div>') : '';
-    return measures.map(function (m, i) {
-      var first = i === 0;
-      // Console card: caption keeps the "Total · <measure>" contract; the
-      // explainer (last-bucket note for levels, sum-over-period otherwise)
-      // moves to the sub line so every value sits on one baseline.
-      return '<div class="rs-kpi-total-card' + (first ? '' : ' rs-kpi-total-card--alt') + '"' +
-        ' data-testid="' + (first ? 'rs-kpi-total' : 'rs-kpi-total-extra') + '">' +
-        '<span class="reporting-ledger-caption" title="' +
-          RS.esc(RS.I18N.kpiTotal + (m.label ? ' · ' + m.label : '')) + '">' +
-          RS.esc(RS.I18N.kpiTotal) + (m.label ? ' · ' + RS.esc(m.label) : '') +
-        '</span>' +
-        '<span class="rs-kpi-value-wrap">' +
-          '<span class="reporting-ledger-kpi-value" data-count-target="' + Number(m.total) + '">0</span>' +
-          (first && seriesIsHeadline ? totalDelta : '') +
-        '</span>' +
-        '<span class="reporting-ledger-kpi-sub">' +
-          RS.esc(m.latestKey
-            ? RS.I18N.kpiLatestSuffix + ' ' + String(m.latestKey).slice(0, 16)
-            : RS.I18N.kpiSumSub) +
-          // The delta chip's "vs <prior range>" was tooltip-only, so the
-          // percentage read as a bare number with nothing to compare against.
-          (first && seriesIsHeadline && totalDelta ? ' · ' + RS.esc(deltaNote) : '') +
-        '</span>' +
-        (first && seriesIsHeadline ? sparkHtml : '') +
-        '</div>';
-    }).join('') + statsHtml;
-  }
-
-  function renderKpiBand(dims, rows, comparison, def, columns) {
-    var band = RS.el('rsKpiBand');
-    var html = kpiBandHtml(dims, rows, comparison, def, columns);
-    if (!html) { band.hidden = true; band.innerHTML = ''; return; }
-    band.innerHTML = html;
-    band.hidden = false;
-    Array.prototype.forEach.call(band.querySelectorAll('[data-count-target]'), function (span) {
-      animateValue(span, Number(span.getAttribute('data-count-target')), fmtNumber);
-    });
-  }
-
-  // Console "Anomalies" card: cheap client-side outlier notes over the rows
-  // already rendered — the latest complete bucket's swing per series, plus
-  // each series' peak bucket. Only for a single-dimension result (one clean
-  // axis). ponytail: ±15% swing heuristic; a real detector belongs
-  // server-side if this ever needs to be smarter.
-  function renderAnomalies(def, columns, rows) {
-    var card = RS.el('rsAnomCard');
-    if (!card) return;
-    card.hidden = true;
-    RS.el('rsAnomRows').innerHTML = '';
-    var dims = (def.columns || []).length;
-    var hasMetrics = Array.isArray(def.metrics) && def.metrics.length > 0;
-    if (!hasMetrics || dims !== 1 || !rows || rows.length < 3) return;
-    var grain = def.columns[0].grain || null;
-    var body = rows.slice();
-    // Ignore a trailing partial bucket — comparing it against a full one
-    // would fabricate a drop (same reasoning as the chart's faded bucket).
-    if (grain && body.length &&
-        String(body[body.length - 1][0] || '').slice(0, 10) >= RS.currentBucketStart(grain)) {
-      body = body.slice(0, -1);
-    }
-    if (body.length < 3) return;
-    var out = [];
-    var mlabels = metricLabelsFor(def);
-    for (var mi = dims; mi < columns.length; mi++) {
-      var vals = body.map(function (r) { return Number(r[mi]) || 0; });
-      var label = mlabels[mi - dims] || columns[mi].header || columns[mi].field;
-      var last = vals[vals.length - 1], prev = vals[vals.length - 2];
-      // prev >= 5: a swing between single-digit buckets is noise, not signal
-      if (prev >= 5) {
-        var pct = (last - prev) / prev;
-        if (Math.abs(pct) >= 0.15) {
-          out.push({
-            cls: pct < 0 ? 'rs-anom-dot--down' : 'rs-anom-dot--up',
-            text: (pct < 0 ? RS.I18N.anomDown : RS.I18N.anomUp)
-              .replace('{label}', label)
-              .replace('{pct}', Math.round(Math.abs(pct) * 100) + '%'),
-            value: fmtNumber(last)
-          });
-        }
-      }
-      var maxI = 0;
-      vals.forEach(function (v, i) { if (v > vals[maxI]) maxI = i; });
-      if (vals[maxI] > 0 && maxI !== vals.length - 1) {
-        out.push({
-          cls: 'rs-anom-dot--peak',
-          text: RS.I18N.anomPeak.replace('{label}', label)
-            .replace('{bucket}', String(body[maxI][0]).slice(0, 10)),
-          value: fmtNumber(vals[maxI])
-        });
-      }
-    }
-    out = out.slice(0, 3);
-    if (!out.length) return;
-    RS.el('rsAnomRows').innerHTML = out.map(function (a) {
-      return '<div class="rs-anom-row"><span class="rs-anom-dot ' + a.cls + '"></span>' +
-        '<span class="rs-anom-text">' + RS.esc(a.text) + '</span>' +
-        '<span class="rs-anom-val">' + RS.esc(a.value) + '</span></div>';
-    }).join('');
-    card.hidden = false;
-  }
-
-  function metricLabelsFor(def) {
-    var list = (RS.state.metricsBySource || {})[def.source] || [];
-    return (def.metrics || []).map(function (m) {
-      var hit = list.find(function (x) { return x.code === m.metric; });
-      return hit ? hit.label : m.metric;
-    });
-  }
-  RS.metricLabelsFor = metricLabelsFor;
-
-  // Authoritative per-metric grand totals (one cell per def.metrics entry),
-  // from the zero-column clone run — or from the single row of a zero-dim run,
-  // which IS that total. The band renders them; summing the grouped rows in
-  // the browser only happens to be right for additive metrics, and would
-  // quietly double-count a count_distinct or average an average.
-  function setGrandTotals(rowVals) {
-    RS.state.grandTotals = Array.isArray(rowVals) ? rowVals : null;
-  }
-
-  // The metric's aggregation (sum/avg/count/count_distinct/…), used to decide
-  // whether a drilled-into set of rows is a strict "contributing to this
-  // number" count (distinct aggregations) vs. an exact breakdown.
-  function metricAggFor(def) {
-    var m = (def.metrics && def.metrics[0]) || null;
-    if (!m) return '';
-    var list = (RS.state.metricsBySource || {})[def.source] || [];
-    var hit = list.find(function (x) { return x.code === m.metric; });
-    return hit ? hit.aggregation : '';
-  }
-
-  function metricTotalModeFor(def) {
-    var m = (def.metrics && def.metrics[0]) || null;
-    if (!m) return 'sum';
-    var list = (RS.state.metricsBySource || {})[def.source] || [];
-    var hit = list.find(function (x) { return x.code === m.metric; });
-    return (hit && hit.totalMode) || 'sum';
-  }
-
-  // One totalMode per def.metrics entry ('sum' | 'latest').
-  function metricTotalModes(def) {
-    var list = (RS.state.metricsBySource || {})[def.source] || [];
-    return (def.metrics || []).map(function (m) {
-      var hit = list.find(function (x) { return x.code === m.metric; });
-      return (hit && hit.totalMode) || 'sum';
-    });
-  }
-  RS.metricTotalModes = metricTotalModes;
-
-  // #178 C10: for a latest-mode metric the "total" is the newest date
-  // bucket's sum, not the sum over all buckets -- a level (the backlog) added
-  // up across twelve months is a number nobody can spend. Returns
-  // {total, key} for column `idx`, or null when there is no date dimension.
-  function latestBucketTotal(def, rows, idx) {
-    var cols = def.columns || [];
-    var dateIdx = -1;
-    for (var i = 0; i < cols.length; i++) {
-      var m = fieldMetaFor(def, cols[i].field);
-      if (cols[i].grain || (m && m.grainable)) { dateIdx = i; break; }
-    }
-    if (dateIdx === -1) return null;
-    var maxKey = null;
-    rows.forEach(function (r) {
-      if (r[idx] == null) return;   // no snapshot in this bucket
-      var k = String(r[dateIdx]);
-      if (maxKey === null || k > maxKey) maxKey = k;
-    });
-    if (maxKey === null) return null;
-    var t = 0;
-    rows.forEach(function (r) {
-      if (String(r[dateIdx]) === maxKey) t += Number(r[idx]) || 0;
-    });
-    return { total: t, key: maxKey };
-  }
-
-  // Rewrites kpi.total in place for a latest-mode primary metric; returns the
-  // bucket label it used, or null when not applicable.
-  function applyLatestTotal(def, kpi, rows) {
-    if (!kpi || metricTotalModeFor(def) !== 'latest') return null;
-    var latest = latestBucketTotal(def, rows, kpi.idx);
-    if (!latest) return null;
-    kpi.total = latest.total;
-    return latest.key;
-  }
-
-  // Result-column header for a measure, e.g. "Documents imported" -- what the
-  // /run payload already carries for every projected column (metric columns
-  // included, since _prepare_run headers them from the registry label). This
-  // is what makes a KPI say WHAT it totals; without it the band just reads
-  // "Total" and the reader has to guess which of the metrics it means.
-  function measureLabel(columns, idx) {
-    var c = (columns || [])[idx];
-    return (c && (c.header || c.field)) || '';
-  }
-
-  // One labelled total per metric, in def.metrics order — the aggregate query
-  // projects the metrics after the dimensions, so measure n lives at dims + n.
-  // Prefers the authoritative grand total (RS.state.grandTotals); otherwise falls
-  // back to this pane's own arithmetic, which honours each measure's total
-  // mode so a level (the backlog) reports its latest snapshot rather than a
-  // meaningless sum across buckets. A definition with no semantic metrics
-  // (SQL / plain grid) has exactly one measure: whatever numeric column
-  // computeKpiBand locked onto.
-  function measureTotals(def, columns, rows, dims, kpi, grandTotals) {
-    var modes = def ? metricTotalModes(def) : [];
-    if (!modes.length) {
-      return kpi ? [{ idx: kpi.idx, label: measureLabel(columns, kpi.idx),
-                      total: kpi.total, latestKey: null }] : [];
-    }
-    var grand = grandTotals === undefined ? RS.state.grandTotals : grandTotals;
-    return modes.map(function (mode, n) {
-      var idx = dims + n;
-      var exact = grand && isNumericCell(grand[n]);
-      // Computed even when the grand total is authoritative: its bucket key
-      // is what the caption annotates ("· last bucket 2026-08-06"), so the
-      // reader knows a level is a snapshot and not a period sum.
-      var latest = mode === 'latest' ? latestBucketTotal(def, rows, idx) : null;
-      var total = 0;
-      if (exact) {
-        total = Number(grand[n]);
-      } else if (latest) {
-        total = latest.total;
-      } else {
-        rows.forEach(function (r) { if (isNumericCell(r[idx])) total += Number(r[idx]); });
-      }
-      return {
-        idx: idx,
-        label: measureLabel(columns, idx),
-        total: total,
-        latestKey: latest ? latest.key : null,
-      };
-    });
-  }
-
-  // ----- Drill-through (Simple: chart clicks + table rows) -----
-  // Maps a definition's leading columns (dimensions come first in the result
-  // row) to ReportingDrill's {field, grain, value} shape.
-  function clickedFor(rowValues) {
-    return ((RS.state.current && RS.state.current.def && RS.state.current.def.columns) || [])
-      .map(function (c, i) {
-        return { field: c.field, grain: c.grain || null, value: rowValues[i] };
-      });
-  }
-
-  function openDrill(clicked) {
-    var cur = RS.state.current;
-    if (!cur || !cur.def) return;
-    var src = (RS.state.sources || []).find(function (s) { return s.id === cur.def.source; });
-    if (!src) return;
-    var header = clicked.map(function (c) {
-      var f = (src.fields || []).find(function (x) { return x.field === c.field; });
-      var v = (c.value === null || c.value === undefined || c.value === '')
-        ? ReportingDrill.RS.I18N.nullLabel : String(c.value).slice(0, 60);
-      return ((f && f.label) || c.field) + ' = ' + v;
-    }).join(' · ');
-    var isDistinct = /distinct/i.test(String(metricAggFor(cur.def) || ''));
-    ReportingDrill.open({
-      definition: cur.def, fields: src.fields || [],
-      clicked: clicked, header: header, isDistinct: isDistinct
-    });
-  }
-
-  // index/datasetIndex are Chart.js element coordinates from onClick. Drill
-  // only engages for aggregate results (a definition with at least one metric
-  // and at least one dimension) — raw-row grids never reach mountChart/here.
-  function drillFromChart(index, datasetIndex) {
-    var cur = RS.state.current;
-    if (!cur || !cur.def) return;
-    if (!(cur.def.metrics || []).length) return;
-    var dims = cur.def.columns || [];
-    if (!dims.length) return;
-    var cd = RS.state.chartData || {};
-    var clicked = [{
-      field: dims[0].field, grain: dims[0].grain || null,
-      value: (cd.rawX || cd.labels || [])[index]
-    }];
-    if (cd.multiSeries && dims.length > 1) {
-      // rawSeries entries are per-dim value arrays (["Process", "Source"]) —
-      // one filter per remaining breakdown.
-      var parts = (cd.rawSeries || [])[datasetIndex] || [];
-      for (var d = 1; d < dims.length; d++) {
-        // Grain matters on non-leading dims too now that a second DATE
-        // breakdown is allowed (#164) — a bucket must drill to its range,
-        // not to an equality on the bucket-start value.
-        clicked.push({ field: dims[d].field, grain: dims[d].grain || null, value: parts[d - 1] });
-      }
-    }
-    openDrill(clicked);
-  }
-  RS.drillFromChart = drillFromChart;
-
-  // Pure HTML builder for the result grid (data bars + forecast rows).
-  // `drillable` only adds the clickable class -- the caller binds the row
-  // handlers. Shared with the dashboard's whole-report card.
-  function tableHtml(columns, rows, forecast, drillable) {
-    var html = '<table class="reporting-table' + (drillable ? ' reporting-drill-clickable' : '') +
-      '"><thead><tr>';
-    columns.forEach(function (c) { html += '<th>' + RS.esc(c.header || c.field) + '</th>'; });
-    html += '</tr></thead><tbody>';
-    // Data bars (Task 7): one column max per column index, computed once
-    // over cells the same isNumericCell check already accepts — mirrors
-    // _reporting_js.html's renderResults so both panes' grids get the same
-    // treatment.
-    var colMax = columns.map(function (_, i) {
-      var max = 0;
-      rows.forEach(function (r) {
-        if (isNumericCell(r[i])) {
-          var n = Math.abs(Number(r[i]));
-          if (n > max) max = n;
-        }
-      });
-      return max;
-    });
-    rows.forEach(function (r) {
-      html += '<tr>';
-      r.forEach(function (v, i) {
-        if (isNumericCell(v)) {
-          var max = colMax[i];
-          var pct = max > 0 ? (Math.abs(Number(v)) / max * 100) : 0;
-          html += '<td class="reporting-ledger-num rp-cell-num" style="--bar:' + pct + '%">' + RS.esc(v) + '</td>';
-        } else {
-          html += '<td>' + RS.esc(v == null ? '' : v) + '</td>';
-        }
-      });
-      html += '</tr>';
-    });
-    var fcRows = (forecast && !forecast.unavailable && (forecast.buckets || []).length)
-      ? forecast : null;
-    if (fcRows) {
-      var mStart = columns.length - fcRows.series.length;
-      fcRows.buckets.forEach(function (b, bi) {
-        html += '<tr class="is-forecast" data-testid="rs-forecast-row">';
-        for (var ci = 0; ci < columns.length; ci++) {
-          if (ci === 0) {
-            html += '<td>' + RS.esc(String(b).slice(0, 10)) +
-              ' <span class="rp-forecast-badge">' + RS.esc(RS.I18N.forecastLabel) + '</span></td>';
-          } else if (ci >= mStart) {
-            var sv = fcRows.series[ci - mStart];
-            html += '<td class="reporting-ledger-num">' +
-              RS.esc(RS.fmtChartTooltip(sv.values[bi])) + '</td>';
-          } else {
-            html += '<td></td>';
-          }
-        }
-        html += '</tr>';
-      });
-    }
-    html += '</tbody></table>';
-    return html;
-  }
-
-  function renderTable(columns, rows, forecast) {
-    var cur = RS.state.current;
-    var def = (cur && cur.def) || {};
-    var hasMetrics = Array.isArray(def.metrics) && def.metrics.length > 0;
-    var dims = (def.columns || []).length;
-    var src = (RS.state.sources || []).find(function (s) { return s.id === def.source; });
-    // Drillable only for aggregate results (metric + dimension) whose leading
-    // columns resolve to a valid drill definition — probed once with the
-    // first row rather than assumed, so e.g. non-filterable dimensions don't
-    // get a false affordance.
-    var drillable = !!(hasMetrics && dims && src && rows.length &&
-      ReportingDrill.buildDrillDefinition(def, src.fields || [], clickedFor(rows[0])));
-    RS.el('rsTableWrap').innerHTML = tableHtml(columns, rows, forecast, drillable);
-    if (drillable) {
-      Array.prototype.forEach.call(
-        RS.el('rsTableWrap').querySelectorAll('tbody tr:not(.is-forecast)'), function (tr, i) {
-          var rowValues = rows[i];
-          tr.tabIndex = 0;
-          tr.addEventListener('click', function () { openDrill(clickedFor(rowValues)); });
-          tr.addEventListener('keydown', function (e) {
-            if (e.key === 'Enter') openDrill(clickedFor(rowValues));
-          });
-        });
-    }
-    RS.el('rsDrillHint').hidden = !drillable;
-  }
-
-  // ----- Colours & axes overrides (def.style, Simple tab only) -----
-  // style = { colors: {seriesKey: '#rrggbb'}, titleColor: '#rrggbb',
-  //           rightAxis: [seriesKey] } -- saved with the report like forecast.
-  function styleOf() {
-    var cur = RS.state.current;
-    return (cur && cur.def && cur.def.style) || {};
-  }
-  function ensureStyle() {
-    var cur = RS.state.current;
-    if (!cur.def.style) cur.def.style = {};
-    return cur.def.style;
-  }
-  // Metric code for measure series (locale-stable); the pivoted label for
-  // multi-breakdown series, where several series share one measure code.
-  function seriesKey(ds, multi) { return (!multi && ds.field) || ds.label; }
-  RS.seriesKey = seriesKey;
-  // ponytail: backlog detection by metric code; make it registry-driven if a
-  // second level-type measure ever appears.
-  function rightAxisKeys(d, style) {
-    if (Array.isArray(style.rightAxis)) return style.rightAxis;
-    if (!d || d.datasets.length < 2) return [];
-    return d.datasets.filter(function (ds) { return /backlog/i.test(ds.field || ''); })
-      .map(function (ds) { return seriesKey(ds, !!d.multiSeries); });
-  }
-  RS.rightAxisKeys = rightAxisKeys;
-  function rgbToHex(rgb) {
-    var m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(rgb || '');
-    if (!m) return '#1f2937';
-    return '#' + [m[1], m[2], m[3]].map(function (v) {
-      return ('0' + parseInt(v, 10).toString(16)).slice(-2);
-    }).join('');
-  }
-  function applyTitleStyle() {
-    RS.el('rsResultTitle').style.color = styleOf().titleColor || '';
-  }
-
-  function appendChartNote(txt) {
-    var n = RS.el('rsChartNote');
-    n.textContent = (!n.hidden && n.textContent) ? n.textContent + ' — ' + txt : txt;
-    n.hidden = false;
-  }
-
-  // One-line transparency note under the title of AI-built reports: the
-  // model's own explanation plus the filters/scope it chose, so a wrong guess
-  // (bad date range, wrong process) is visible instead of silently rendering
-  // an empty table.
-  // Relative-date tokens (nx_lib/reporting/tokens.py) — humanized labels for
-  // chips/summary lines. A token value is {token: '<name>'[, n: <int>]}.
-  var TOKEN_LABELS = {
-    today: RS.I18N.tokenToday, yesterday: RS.I18N.tokenYesterday,
-    this_week: RS.I18N.thisWeek, last_week: RS.I18N.lastWeek,
-    this_month: RS.I18N.thisMonth, last_month: RS.I18N.lastMonth,
-    this_quarter: RS.I18N.thisQuarter, last_quarter: RS.I18N.lastQuarter,
-    last_3_months: RS.I18N.last3Months, this_year: RS.I18N.thisYear,
-    last_year: RS.I18N.lastYear, last_n_days: RS.I18N.lastNDays
-  };
-  function isTokenValue(v) {
-    return !!v && typeof v === 'object' && !Array.isArray(v) && typeof v.token === 'string';
-  }
-  function tokenLabel(v) {
-    if (!v || typeof v.token !== 'string') return '';
-    var lbl = TOKEN_LABELS[v.token] || v.token;
-    return v.token === 'last_n_days' ? lbl.replace('{n}', v.n) : lbl;
-  }
-
-  // ----- Editable AI chips -----
-  function fieldMetaFor(def, fieldKey) {
-    var src = (RS.state.sources || []).find(function (s) { return s.id === def.source; });
-    return ((src && src.fields) || []).find(function (f) { return f.field === fieldKey; });
-  }
-
-  function chipValueLabel(v, op) {
-    if (isTokenValue(v)) return tokenLabel(v);
-    // 'in'/'not_in' carry a value LIST, not a range — a comma reads honestly;
-    // '→' is reserved for an actual between-range so the two can't be confused.
-    if (Array.isArray(v)) return v.join(op === 'in' || op === 'not_in' ? ', ' : ' → ');
-    return v === null || v === undefined ? '' : String(v);
-  }
-
-  // Filter-op labels for chips — mirrored in _reporting_js.html's OP_LABELS
-  // with the same msgids, so the two maps can never translate apart.
-  var OP_LABELS = {
-    eq: '=', ne: '≠', gt: '>', gte: '≥', lt: '<', lte: '≤',
-    between: RS.I18N.opBetween, 'in': RS.I18N.opIn, not_in: RS.I18N.opNotIn,
-    contains: RS.I18N.opContains, starts_with: RS.I18N.opStartsWith,
-    is_null: RS.I18N.opIsEmpty, is_not_null: RS.I18N.opIsNotEmpty
-  };
-
-  function chip(text, onEdit, onRemove) {
-    var c = document.createElement('span');
-    c.className = 'rs-chip';
-    c.setAttribute('data-testid', 'rs-chip');
-    var t = document.createElement('span');
-    t.textContent = text;
-    c.appendChild(t);
-    if (onRemove) {
-      var x = document.createElement('span');
-      x.className = 'rs-chip-x';
-      x.setAttribute('data-testid', 'rs-chip-remove');
-      x.textContent = '×';
-      x.addEventListener('click', function (e) { e.stopPropagation(); onRemove(); });
-      c.appendChild(x);
-    }
-    if (onEdit) {
-      // A clickable <span> is invisible to the keyboard — give it button
-      // semantics so Tab reaches it and Enter/Space opens the editor.
-      c.tabIndex = 0;
-      c.setAttribute('role', 'button');
-      c.addEventListener('click', function () { onEdit(c); });
-      c.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEdit(c); }
-      });
-    }
-    return c;
-  }
-
-  // Swap a chip for its inline editor and give the editor a way out. Without
-  // this the only exits were Apply or a full re-render — clicking elsewhere or
-  // pressing Escape left the popover stuck open (escape-routes, modal-escape).
-  function openChipEditor(chipEl, box) {
-    chipEl.replaceWith(box);
-    function close() {
-      document.removeEventListener('mousedown', onDoc, true);
-      document.removeEventListener('keydown', onKey, true);
-      if (box.isConnected) box.replaceWith(chipEl);
-    }
-    function onDoc(e) {
-      // Apply re-renders the chip row, which disconnects the box — drop the
-      // listeners rather than resurrecting a stale chip over the new row.
-      if (!box.isConnected) {
-        document.removeEventListener('mousedown', onDoc, true);
-        document.removeEventListener('keydown', onKey, true);
-        return;
-      }
-      if (!box.contains(e.target)) close();
-    }
-    function onKey(e) {
-      if (e.key === 'Escape') { e.stopPropagation(); close(); }
-    }
-    document.addEventListener('mousedown', onDoc, true);
-    document.addEventListener('keydown', onKey, true);
-  }
-
-  function filterChipEditor(cur, f, chipEl) {
-    // Value-LIST ops get a checkbox picker of the field's known values
-    // (typing comma-separated process names by hand is hostile); every other
-    // op keeps the text/preset editor.
-    if (f.op === 'in' || f.op === 'not_in') {
-      valueListChipEditor(cur, f, chipEl, null);
-      return;
-    }
-    textChipEditor(cur, f, chipEl);
-  }
-
-  // Checkbox picker for 'in'/'not_in' values. Values come from the source's
-  // process registry (processname) or /api/reporting/field_values (table
-  // sources); falls back to the text editor when neither yields values.
-  // opts: {allMeansNoFilter, onApply} — used by the process chip, which
-  // treats "everything picked" as "no filter" and may add the filter lazily.
-  async function valueListChipEditor(cur, f, chipEl, opts) {
-    opts = opts || {};
-    var box = document.createElement('span');
-    box.className = 'rs-chip rs-chip-editor';
-    box.setAttribute('data-testid', 'rs-chip-values');
-    box.textContent = RS.I18N.loadingValues;
-    openChipEditor(chipEl, box);
-    var src = (RS.state.sources || []).find(function (s) { return s.id === cur.def.source; });
-    var values = [], labels = {};
-    if (f.field === 'processname' && src && (src.processes || []).length) {
-      values = src.processes.slice();
-    } else {
-      var res = await RS.api('/api/reporting/field_values', {
-        method: 'POST',
-        body: JSON.stringify({ source: cur.def.source, field: f.field })
-      });
-      values = (res.ok && res.data && res.data.values) || [];
-      labels = (res.ok && res.data && res.data.labels) || {};
-    }
-    if (!box.isConnected) return;
-    if (!values.length) { textChipEditor(cur, f, box); return; }
-    var selected = Array.isArray(f.value) ? f.value.slice()
-      : (f.value === null || f.value === undefined ? [] : [f.value]);
-    // A previously typed value the column no longer holds must stay pickable.
-    selected.forEach(function (v) { if (values.indexOf(v) === -1) values.push(v); });
-    box.textContent = '';
-    var inputs = values.map(function (p) {
-      var lbl = document.createElement('label');
-      var cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.value = p;
-      cb.checked = opts.allMeansNoFilter && !selected.length
-        ? true : selected.indexOf(p) !== -1;
-      lbl.appendChild(cb);
-      lbl.appendChild(document.createTextNode(' ' + (labels[p] || p)));
-      box.appendChild(lbl);
-      return cb;
-    });
-    var ok = document.createElement('button');
-    ok.className = 'reporting-btn';
-    ok.setAttribute('data-testid', 'rs-chip-apply');
-    ok.textContent = RS.I18N.chipApply;
-    ok.addEventListener('click', function () {
-      var picked = inputs.filter(function (c) { return c.checked; })
-                         .map(function (c) { return c.value; });
-      if (opts.allMeansNoFilter && picked.length === values.length) {
-        var at = cur.def.filters.indexOf(f);
-        if (at !== -1) cur.def.filters.splice(at, 1);
-        runCurrent();
-        return;
-      }
-      if (!picked.length) return;   // an empty IN () matches nothing — keep editing
-      f.value = picked;
-      if (opts.onApply) opts.onApply(f);
-      runCurrent();
-    });
-    box.appendChild(ok);
-  }
-
-  function textChipEditor(cur, f, chipEl) {
-    var box = document.createElement('span');
-    box.className = 'rs-chip rs-chip-editor';
-    var meta = fieldMetaFor(cur.def, f.field);
-    var isDateField = !!(meta && (meta.grainable || /date/i.test(meta.type || '')));
-    var preset = null;
-    if (isDateField && typeof TOKEN_LABELS !== 'undefined') {
-      preset = document.createElement('select');
-      preset.setAttribute('data-testid', 'rs-chip-preset');
-      var co = document.createElement('option');
-      co.value = '';
-      co.textContent = RS.I18N.custom;
-      preset.appendChild(co);
-      Object.keys(TOKEN_LABELS).forEach(function (k) {
-        if (k === 'last_n_days') return;
-        var o = document.createElement('option');
-        o.value = k;
-        o.textContent = TOKEN_LABELS[k];
-        preset.appendChild(o);
-      });
-      if (isTokenValue(f.value)) preset.value = f.value.token;
-      box.appendChild(preset);
-    }
-    var input = document.createElement('input');
-    input.className = 'reporting-input';
-    input.setAttribute('data-testid', 'rs-chip-input');
-    input.value = Array.isArray(f.value) ? chipValueLabel(f.value, f.op)
-      : isTokenValue(f.value) ? '' : chipValueLabel(f.value, f.op);
-    input.hidden = !!(preset && preset.value);
-    if (preset) {
-      preset.onchange = function () { input.hidden = !!preset.value; };
-    }
-    var ok = document.createElement('button');
-    ok.className = 'reporting-btn';
-    ok.setAttribute('data-testid', 'rs-chip-apply');
-    ok.textContent = RS.I18N.chipApply;
-    ok.addEventListener('click', function () {
-      if (preset && preset.value) {
-        f.op = 'between';
-        f.value = { token: preset.value };
-        runCurrent();
-        return;
-      }
-      var v = input.value.trim();
-      if (f.op === 'in' || f.op === 'not_in') {
-        // Value LIST, not a range — keep op as-is, split back into a list.
-        // Comma-separated (see chipValueLabel); tolerate a stray '→' too so
-        // re-editing an older arrow-joined display doesn't lose values.
-        var listParts = v.split(/[,→]/).map(function (s) { return s.trim(); }).filter(Boolean);
-        if (listParts.length) f.value = listParts;
-        // else empty input: leave value unchanged
-      } else if (isTokenValue(f.value) || Array.isArray(f.value) || f.op === 'between') {
-        var parts = v.split('→').map(function (s) { return s.trim(); }).filter(Boolean);
-        if (parts.length === 2) { f.op = 'between'; f.value = parts; }
-        else if (parts.length === 1) { f.op = 'eq'; f.value = parts[0]; }
-        // else empty input: leave value unchanged
-      } else {
-        f.value = v;
-      }
-      runCurrent();
-    });
-    box.appendChild(input);
-    box.appendChild(ok);
-    openChipEditor(chipEl, box);
-    if (!input.hidden) input.focus();
-  }
-
-  async function processChipEditor(cur, chipEl) {
-    await loadSourcesCatalog();
-    if (!chipEl.isConnected) return;
-    var src = (RS.state.sources || []).find(function (s) { return s.id === cur.def.source; });
-    var all = (src && src.processes) || [];
-    if (!all.length) return;
-    var box = document.createElement('span');
-    box.className = 'rs-chip rs-chip-editor';
-    box.setAttribute('data-testid', 'rs-chip-procs');
-    var selected = ((cur.def.scope || {}).processes || []);
-    var inputs = all.map(function (p) {
-      var lbl = document.createElement('label');
-      var cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.value = p;
-      cb.checked = !selected.length || selected.indexOf(p) !== -1;
-      lbl.appendChild(cb);
-      lbl.appendChild(document.createTextNode(' ' + p));
-      box.appendChild(lbl);
-      return cb;
-    });
-    var ok = document.createElement('button');
-    ok.className = 'reporting-btn';
-    ok.setAttribute('data-testid', 'rs-chip-apply');
-    ok.textContent = RS.I18N.chipApply;
-    ok.addEventListener('click', function () {
-      var picked = inputs.filter(function (c) { return c.checked; })
-                         .map(function (c) { return c.value; });
-      cur.def.scope = cur.def.scope || { clients: [], processes: [] };
-      cur.def.scope.processes = picked.length === all.length ? [] : picked;
-      runCurrent();
-    });
-    box.appendChild(ok);
-    openChipEditor(chipEl, box);
-  }
-
-  function grainChipEditor(cur, col, chipEl) {
-    var box = document.createElement('span');
-    box.className = 'rs-chip rs-chip-editor';
-    box.setAttribute('data-testid', 'rs-chip-grain');
-    var sel = document.createElement('select');
-    sel.className = 'reporting-input';
-    [['day', RS.I18N.grainDay], ['week', RS.I18N.grainWeek], ['month', RS.I18N.grainMonth],
-     ['quarter', RS.I18N.grainQuarter], ['year', RS.I18N.grainYear]].forEach(function (g) {
-      var o = document.createElement('option');
-      o.value = g[0]; o.textContent = g[1];
-      sel.appendChild(o);
-    });
-    if (col.grain) sel.value = col.grain;
-    var ok = document.createElement('button');
-    ok.className = 'reporting-btn';
-    ok.setAttribute('data-testid', 'rs-chip-grain-apply');
-    ok.textContent = RS.I18N.chipApply;
-    ok.addEventListener('click', function () {
-      col.grain = sel.value;
-      runCurrent();
-    });
-    box.appendChild(sel);
-    box.appendChild(ok);
-    openChipEditor(chipEl, box);
-  }
-
-  function renderAiChips(cur) {
-    var wrap = RS.el('rsChips');
-    if (!wrap) return;
-    wrap.innerHTML = '';
-    // Chips are definition-driven — every Simple result (AI, wizard, library)
-    // gets them; edits mutate the in-memory copy only (Save creates a new row).
-    var hasDef = !!(cur && cur.def);
-    wrap.hidden = !hasDef;
-    if (!hasDef) return;
-    var def = cur.def || {};
-    def.filters = def.filters || [];
-    // Sources without a process registry (table sources, e.g. backlog_history)
-    // carry their process restriction as a plain in-filter on the
-    // processFieldFor field. Render THAT as the process chip instead of a
-    // duplicate filter chip next to a lying "Processes: all" (#178).
-    var chipSrc = (RS.state.sources || []).find(function (s) { return s.id === def.source; });
-    var pf = chipSrc ? processFieldFor(chipSrc) : null;
-    var pfFilter = pf ? (def.filters || []).find(function (ft) {
-      return ft.op === 'in' && ft.field === pf.field;
-    }) || null : null;
-    (def.filters || []).forEach(function (f) {
-      if (f === pfFilter) return;
-      var meta = fieldMetaFor(def, f.field);
-      var parts = [(meta && meta.label) || f.field, OP_LABELS[f.op] || f.op];
-      var vl = chipValueLabel(f.value, f.op);
-      if (vl) parts.push(vl);        // is_null/is_not_null carry no value
-      var label = parts.join(' ');
-      wrap.appendChild(chip(
-        label,
-        function (chipEl) { filterChipEditor(cur, f, chipEl); },
-        function () {
-          def.filters.splice(def.filters.indexOf(f), 1);
-          runCurrent();
-        }
-      ));
-    });
-    if (!(def.filters || []).length) {
-      var none = document.createElement('span');
-      none.className = 'rs-chip rs-chip--empty';
-      none.textContent = RS.I18N.aiNoFilters;
-      wrap.appendChild(none);
-    }
-    if (pf) {
-      var pfVals = (pfFilter && pfFilter.value) || [];
-      wrap.appendChild(chip(
-        RS.I18N.aiProcesses + ': ' + (pfVals.length ? pfVals.join(', ') : RS.I18N.allProcesses),
-        function (chipEl) {
-          var f = pfFilter || { field: pf.field, op: 'in', value: [] };
-          valueListChipEditor(cur, f, chipEl, {
-            allMeansNoFilter: true,
-            onApply: function (ft) {
-              if (def.filters.indexOf(ft) === -1) def.filters.push(ft);
-            }
-          });
-        },
-        null
-      ));
-    } else {
-      var procs = (def.scope && def.scope.processes) || [];
-      wrap.appendChild(chip(
-        RS.I18N.aiProcesses + ': ' + (procs.length ? procs.join(', ') : RS.I18N.allProcesses),
-        function (chipEl) { processChipEditor(cur, chipEl); },
-        null
-      ));
-    }
-    var grainedCol = (def.columns || []).find(function (c) { return c.grain; });
-    if (!grainedCol) {
-      grainedCol = (def.columns || []).find(function (c) {
-        var m = fieldMetaFor(def, c.field);
-        return m && m.grainable;
-      }) || null;
-    }
-    if (grainedCol) {
-      var GRAIN_LABELS = { day: RS.I18N.grainDay, week: RS.I18N.grainWeek, month: RS.I18N.grainMonth,
-                           quarter: RS.I18N.grainQuarter, year: RS.I18N.grainYear };
-      wrap.appendChild(chip(
-        RS.I18N.granularity + ': ' + (GRAIN_LABELS[grainedCol.grain] || RS.I18N.grainDay),
-        function (chipEl) { grainChipEditor(cur, grainedCol, chipEl); },
-        null
-      ));
-    }
-  }
+  RS.toggleMoreMenu = toggleMoreMenu;
 
   // In-flight skeleton (Task 7): a KPI-band-shaped + table-shaped
   // placeholder injected into #rsRunLoading while a run is in flight —
@@ -1758,7 +170,7 @@
                  'do not compare it with finished periods or call it a drop.');
       }
     }
-    var modes = metricTotalModes(def), labels = metricLabelsFor(def), metricIdx = (def.columns || []).length;
+    var modes = RS.metricTotalModes(def), labels = RS.metricLabelsFor(def), metricIdx = (def.columns || []).length;
     modes.forEach(function (m, i) {
       if (m !== 'latest') return;
       out.push('"' + labels[i] + '" is a point-in-time level: never sum it across periods; its total is the latest value.');
@@ -1772,8 +184,8 @@
   // Level metrics (backlog): tell the server which measures must be headlined
   // by their latest value, not a sum over buckets (caption_facts.build_facts).
   function captionLevelFields(def) {
-    var labels = metricLabelsFor(def);
-    return metricTotalModes(def).map(function (m, i) { return m === 'latest' ? labels[i] : null; })
+    var labels = RS.metricLabelsFor(def);
+    return RS.metricTotalModes(def).map(function (m, i) { return m === 'latest' ? labels[i] : null; })
       .filter(Boolean);
   }
 
@@ -1822,7 +234,7 @@
   async function runCurrent() {
     var cur = RS.state.current;
     var seq = ++runSeq;
-    setHeaderActionsEnabled(false);
+    RS.setHeaderActionsEnabled(false);
     // A new run supersedes any open drill drawer — it shows rows behind the
     // PREVIOUS result and would sit stale over the new one (e.g. after a
     // chip edit).
@@ -1832,7 +244,7 @@
     // affordance (openDrill/renderTable read RS.state.sources). Idempotent — a
     // cache hit resolves immediately, and drill just stays unavailable until
     // this settles on a cold session.
-    loadSourcesCatalog().then(function () {
+    RS.loadSourcesCatalog().then(function () {
       // Chip labels resolve field keys against the catalog — re-render once it
       // lands (the first paint may fall back to raw keys on a cold session).
       // The seq guard keeps a stale resolve from repainting a newer result.
@@ -1841,27 +253,27 @@
       // labels catch up on the next runCurrent() repaint anyway.
       var wrap = RS.el('rsChips');
       if (seq === runSeq && RS.state.current === cur
-          && !(wrap && wrap.querySelector('.rs-chip-editor'))) renderAiChips(cur);
+          && !(wrap && wrap.querySelector('.rs-chip-editor'))) RS.renderAiChips(cur);
     });
     setView('result');
     RS.el('rsError').hidden = true;
-    renderErrorOpenAdvanced(false);
+    RS.renderErrorOpenAdvanced(false);
     toggleMoreMenu(false);
     RS.el('rsMsg').hidden = true;
     RS.el('rsResultTitle').textContent = cur.name || cur.def.title || '';
     RS.el('rsCrumbName').textContent = cur.name || cur.def.title || '';
     RS.el('rsSavedChip').hidden = !cur.reportId;
-    applyTitleStyle();
+    RS.applyTitleStyle();
     RS.el('rsDeleteReport').hidden = !(cur.owned && cur.reportId);
     RS.el('rsSaveCopy').hidden = !cur.reportId;
     saveAsCopy = false;
-    renderAiChips(cur);
+    RS.renderAiChips(cur);
     var adjustBtn = RS.el('rsAdjustWizard');
     if (adjustBtn) {
-      adjustBtn.hidden = cur.builtBy !== 'wizard' && !wizardStateFromDefinition(cur.def);
+      adjustBtn.hidden = cur.builtBy !== 'wizard' && !RS.wizardStateFromDefinition(cur.def);
     }
     RS.el('rsSaveName').hidden = true;
-    setGrandTotals(null);
+    RS.setGrandTotals(null);
     RS.el('rsChartCard').hidden = true;
     RS.el('rsTableCard').hidden = true;
     RS.el('rsTableToggle').hidden = true;
@@ -1888,7 +300,7 @@
     var chartTitle = RS.el('rsChartTitle');
     if (chartTitle) {
       chartTitle.textContent = hasMetrics
-        ? metricLabelsFor(def).join(' · ') : (cur.name || def.title || '');
+        ? RS.metricLabelsFor(def).join(' · ') : (cur.name || def.title || '');
     }
     // Timing badge: measures the full round-trip (both the optional grand-total
     // call below and the main run), from just before the first request fires
@@ -1911,7 +323,7 @@
       var t = await RS.api('/api/reporting/run', { method: 'POST', body: JSON.stringify(totalDef) });
       if (seq !== runSeq) return;
       if (t.ok && t.data && t.data.rows && t.data.rows.length) {
-        setGrandTotals(t.data.rows[0]);
+        RS.setGrandTotals(t.data.rows[0]);
       }
     }
 
@@ -1928,16 +340,16 @@
     // hide the indicator a newer run just showed.
     RS.el('rsRunLoading').hidden = true;
     if (!res.ok) {
-      showResultError(friendlyRunError(res.status, res.data),
+      RS.showResultError(RS.friendlyRunError(res.status, res.data),
         { title: cur.name || cur.def.title || '', openAdvanced: true });
       // The toggle must not keep showing the PREVIOUS successful run's
       // forecast-eligible/charted state once this run has errored out.
       syncForecastCtl(def, null, false);
       return;
     }
-    setHeaderActionsEnabled(true);
+    RS.setHeaderActionsEnabled(true);
     RS.el('rsTableCard').hidden = false;
-    showTiming(res.data.rowCount, performance.now() - runT0);
+    RS.showTiming(res.data.rowCount, performance.now() - runT0);
     RS.state.current.sql = res.data.sql || null;
     RS.state.current.sqlPretty = res.data.sqlPretty || null;
     RS.state.current.sqlDisplay = res.data.sqlDisplay || null;
@@ -1960,8 +372,8 @@
     var columns = res.data.columns || [], rows = res.data.rows || [];
     rows = RS.zeroFillDateBuckets(def, rows, res.data.resolvedDates || []);
     // A zero-dim run's single row is itself the per-metric grand total.
-    if (hasMetrics && !dims && rows.length) setGrandTotals(rows[0]);
-    renderKpiBand(dims, rows, res.data.comparison || null, def, columns);
+    if (hasMetrics && !dims && rows.length) RS.setGrandTotals(rows[0]);
+    RS.renderKpiBand(dims, rows, res.data.comparison || null, def, columns);
     var rdates = res.data.resolvedDates || [];
     // Hoisted out of the `if` below (Task 13): fireCaption() at the end of
     // this function needs the same resolved-dates label the message line
@@ -1969,7 +381,7 @@
     var resolvedTxt = null;
     if (rdates.length) {
       resolvedTxt = rdates.map(function (d) {
-        return tokenLabel(d) + ' (' + d.start + ' → ' + d.end + ')';
+        return RS.tokenLabel(d) + ' (' + d.start + ' → ' + d.end + ')';
       }).join(' · ');
       var msg = RS.el('rsMsg');
       msg.textContent = msg.hidden || !msg.textContent
@@ -2021,8 +433,8 @@
     var charted = (hasMetrics && dims)
       ? !!RS.mountChart(def, columns, rows, res.data.forecast || null) : false;
     syncForecastCtl(def, res.data.forecast || null, charted);
-    renderTable(columns, rows, res.data.forecast || null);
-    renderAnomalies(def, columns, rows);
+    RS.renderTable(columns, rows, res.data.forecast || null);
+    RS.renderAnomalies(def, columns, rows);
     // Collapse the table behind the toggle only when a chart actually rendered
     // (or the stat card carries a dimensionless total). When mountChart bails
     // — three breakdowns, too many points, no Chart.js — the table is the only
@@ -2042,6 +454,7 @@
     fireCaption('rsCaption', columns, rows, cur.name || cur.def.title || '', resolvedTxt,
       captionNotes(def, rows), captionLevelFields(def));
   }
+  RS.runCurrent = runCurrent;
 
   // Step 5 — refresh the library card's preview thumbnail from the result
   // that's actually on screen. Only for a SAVED report (RS.state.current.reportId
@@ -2114,9 +527,9 @@
     // chartCardNote(...) — clobbering that here would silently destroy it,
     // and there's nothing forecast-related to disclaim if there's no chart.
     if (charted && on && forecast && forecast.unavailable) {
-      appendChartNote(RS.I18N.forecastUnavailable);
+      RS.appendChartNote(RS.I18N.forecastUnavailable);
     } else if (charted && on) {
-      appendChartNote(RS.I18N.forecastNote);
+      RS.appendChartNote(RS.I18N.forecastNote);
     }
   }
   RS.el('rsForecastToggle').addEventListener('click', function () {
@@ -2130,7 +543,7 @@
       if (lr && lr.def === cur.def) {
         var charted = (lr.hasMetrics && lr.dims) ? !!RS.mountChart(cur.def, lr.columns, lr.rows, null) : false;
         syncForecastCtl(cur.def, null, charted);
-        renderTable(lr.columns, lr.rows, null);
+        RS.renderTable(lr.columns, lr.rows, null);
         return;
       }
     } else {
@@ -2148,7 +561,7 @@
   });
 
   // The rail's breakdown summary names the grain — keep it live.
-  RS.el('rsGrain').addEventListener('change', renderWizardRail);
+  RS.el('rsGrain').addEventListener('change', RS.renderWizardRail);
 
   // ----- Colours & axes popover -----
   // Client-side only: edits def.style and re-renders the mounted chart (no
@@ -2172,13 +585,13 @@
   function syncStyleCtl() {
     var d = RS.state.chartData;
     if (!d) return;
-    var style = styleOf(), colors = style.colors || {};
+    var style = RS.styleOf(), colors = style.colors || {};
     var multi = !!d.multiSeries;
     var circular = RS.state.chartType === 'pie' || RS.state.chartType === 'doughnut';
-    var rightKeys = circular ? [] : rightAxisKeys(d, style);
+    var rightKeys = circular ? [] : RS.rightAxisKeys(d, style);
     var html = '';
     d.datasets.forEach(function (ds, i) {
-      var key = seriesKey(ds, multi);
+      var key = RS.seriesKey(ds, multi);
       var onRight = rightKeys.indexOf(key) >= 0;
       html += '<div class="rs-style-row" data-key="' + RS.esc(key) + '">' +
         '<input type="color" value="' + RS.esc(colors[key] || defaultSeriesColor(d, i)) +
@@ -2196,7 +609,7 @@
     });
     RS.el('rsStyleRows').innerHTML = html;
     RS.el('rsStyleTitleColor').value = style.titleColor ||
-      rgbToHex(getComputedStyle(RS.el('rsResultTitle')).color);
+      RS.rgbToHex(getComputedStyle(RS.el('rsResultTitle')).color);
   }
   // Colour inputs fire `input` continuously while dragging the picker —
   // coalesce to one chart rebuild per frame.
@@ -2206,7 +619,7 @@
     styleRaf = requestAnimationFrame(function () {
       styleRaf = 0;
       if (RS.state.chartData) RS.renderChart(RS.state.chartType || RS.state.chartData.type);
-      applyTitleStyle();
+      RS.applyTitleStyle();
     });
   }
   RS.el('rsStyleToggle').addEventListener('click', function () {
@@ -2217,7 +630,7 @@
     if (!cur || !cur.def || !d || e.target.type !== 'color') return;
     var row = e.target.closest('.rs-style-row');
     if (!row) return;
-    var style = ensureStyle();
+    var style = RS.ensureStyle();
     style.colors = style.colors || {};
     style.colors[row.dataset.key] = e.target.value;
     rerenderStyled();
@@ -2226,10 +639,10 @@
     var btn = e.target.closest('.rs-axis-btn');
     var cur = RS.state.current, d = RS.state.chartData;
     if (!btn || !cur || !cur.def || !d) return;
-    var key = btn.closest('.rs-style-row').dataset.key, style = ensureStyle();
+    var key = btn.closest('.rs-style-row').dataset.key, style = RS.ensureStyle();
     // Materialise the defaults first so moving a default right-axis series
     // (backlog) back to the left is remembered as an explicit choice.
-    var keys = rightAxisKeys(d, style).slice();
+    var keys = RS.rightAxisKeys(d, style).slice();
     var at = keys.indexOf(key);
     if (btn.dataset.axis === 'right' && at < 0) keys.push(key);
     if (btn.dataset.axis === 'left' && at >= 0) keys.splice(at, 1);
@@ -2240,7 +653,7 @@
   RS.el('rsStyleTitleColor').addEventListener('input', function () {
     var cur = RS.state.current;
     if (!cur || !cur.def) return;
-    ensureStyle().titleColor = this.value;
+    RS.ensureStyle().titleColor = this.value;
     rerenderStyled();
   });
   RS.el('rsStyleReset').addEventListener('click', function () {
@@ -2339,7 +752,7 @@
     RS.el('rsError').hidden = true;
     RS.el('rsMsg').textContent = update ? RS.I18N.savedChanges : RS.I18N.savedToMine;
     RS.el('rsMsg').hidden = false;
-    loadLibrary();
+    RS.loadLibrary();
   }
 
   RS.el('rsRenamePencil').addEventListener('click', function () { revealSaveNameInput(); });
@@ -2373,7 +786,7 @@
   // Open in Advanced. id:null for non-owned reports is LOAD-BEARING: CanEdit
   // shares mutate shared reports in place; a null id makes Advanced's Save
   // default to create-a-copy.
-  RS.el('rsAdjustWizard').addEventListener('click', adjustInWizard);
+  RS.el('rsAdjustWizard').addEventListener('click', RS.adjustInWizard);
 
   // ⋯ overflow menu: toggle on the button, close on Escape or an outside
   // click — same idiom as the Advanced tab's process-scope dropdown
@@ -2393,7 +806,7 @@
   RS.el('rsDeleteReport').addEventListener('click', function () {
     var cur = RS.state.current;
     if (!cur || !cur.reportId) return;
-    deleteReport(cur.reportId, cur.name || cur.def.title);
+    RS.deleteReport(cur.reportId, cur.name || cur.def.title);
   });
 
   RS.el('rsOpenAdvanced').addEventListener('click', function () {
@@ -2459,875 +872,19 @@
     });
   }
 
-  // ---------- Wizard ----------
-  // Progress rail (Task 5): a fixed 4-row list mirroring the 4 step divs.
-  // Rows are presentational only -- they read RS.state.wiz + the steps' own
-  // `hidden` flags, never drive the click flow (renderMeasureStep and co.
-  // are untouched and remain the single source of truth for what's shown).
-  var WIZ_STEPS = [
-    { id: 'rsStepMeasure', label: RS.I18N.wizMeasure },
-    { id: 'rsStepScope', label: RS.I18N.wizScope },
-    { id: 'rsStepBreakdown', label: RS.I18N.wizBreakdown },
-    { id: 'rsStepTime', label: RS.I18N.wizTime }
-  ];
-  var WIZ_TIME_TOKEN_LABELS = {
-    this_week: RS.I18N.thisWeek, this_month: RS.I18N.thisMonth, last_month: RS.I18N.lastMonth,
-    this_quarter: RS.I18N.thisQuarter, last_quarter: RS.I18N.lastQuarter,
-    last_3_months: RS.I18N.last3Months, this_year: RS.I18N.thisYear, last_year: RS.I18N.lastYear
-  };
-
-  // The accordion never re-hides an earlier step once shown (only cascades
-  // hidden=true onto LATER steps when an earlier answer changes), so the
-  // "current" step is the deepest (highest-index) visible row -- scan from
-  // the end. A source with no processes skips rsStepScope entirely, which
-  // still yields the right "of 4" position (jumps straight to Breakdown).
-  function wizStepIndex() {
-    var i;
-    for (i = WIZ_STEPS.length - 1; i >= 0; i--) {
-      var stepEl = RS.el(WIZ_STEPS[i].id);
-      if (stepEl && !stepEl.hidden) return i;
-    }
-    return 0;
-  }
-
-  function wizTimeLabel(token) {
-    return WIZ_TIME_TOKEN_LABELS[token] || token;
-  }
-
-  // One short summary string per WIZ_STEPS row, in order, from the exact
-  // fields the step renderers themselves read/write on RS.state.wiz. Blank
-  // until that part of the state is meaningful (no source picked yet, or
-  // this source has no processes to scope).
-  function wizSummaries() {
-    var w = RS.state.wiz || {};
-    var out = ['', '', '', ''];
-    if ((w.measures || []).length) {
-      out[0] = w.measures.map(function (m) { return m.label; }).join(' + ');
-    }
-    var allProcs = (w.source && w.source.processes) || [];
-    if (allProcs.length) {
-      var chosen = (w.scopeProcs || []).length || allProcs.length;
-      out[1] = (chosen === allProcs.length) ? RS.I18N.allProcesses
-        : RS.I18N.wizScopeCount.replace('{n}', chosen).replace('{m}', allProcs.length);
-    }
-    if (!allProcs.length && w.fieldScope) {
-      var n = w.fieldScope.picked.length, m = w.fieldScope.values.length;
-      out[1] = n === m ? RS.I18N.allProcesses
-        : RS.I18N.wizScopeCount.replace('{n}', n).replace('{m}', m);
-    }
-    if (w.source) {
-      if ((w.breakdowns || []).length) {
-        var grainSel = RS.el('rsGrain');
-        var grainTxt = grainSel ? grainSel.options[grainSel.selectedIndex].text : '';
-        out[2] = w.breakdowns.map(function (b) {
-          if (!b.field) return RS.I18N.justTotal;
-          return b.kind === 'date' ? (b.field.label + ' (' + grainTxt + ')') : b.field.label;
-        }).join(', ');
-      } else {
-        out[2] = RS.I18N.justTotal;
-      }
-      if (Array.isArray(w.range)) out[3] = RS.I18N.custom;
-      else if (w.range && w.range.token) out[3] = wizTimeLabel(w.range.token);
-      else out[3] = RS.I18N.allTime;
-    }
-    return out;
-  }
-
-  // Called from every point that shows/hides a wizard step (renderMeasureStep,
-  // renderScopeStep, renderBreakdownStep, renderTimeStep and the Back button
-  // handler) so the header step counter + rail always match the visible step.
-  function renderWizardRail() {
-    // Console: horizontal step chips (active = accent tint, done = check dot)
-    // + the "So far" summary panel beside the step card.
-    var idx = wizStepIndex();
-    RS.el('rsWizardStepNo').textContent = RS.I18N.stepNof4.replace('{n}', idx + 1);
-    var sums = wizSummaries();
-    var html = '';
-    WIZ_STEPS.forEach(function (step, i) {
-      var cls = i < idx ? 'is-done' : (i === idx ? 'is-active' : '');
-      var dot = i < idx ? '<i class="fas fa-check" aria-hidden="true"></i>' : String(i + 1);
-      html += '<span class="rs-rail-step ' + cls + '">'
-        + '<span class="rs-rail-dot">' + dot + '</span>'
-        + '<span class="rs-rail-title">' + RS.esc(step.label) + '</span></span>';
-      if (i < WIZ_STEPS.length - 1) html += '<span class="rs-rail-line"></span>';
-    });
-    RS.el('rsWizardRail').innerHTML = html;
-    var sm = RS.el('rsWizSummary');
-    if (sm) {
-      sm.innerHTML = WIZ_STEPS.map(function (step, i) {
-        var v = (i <= idx && sums[i]) ? sums[i] : '';
-        return '<div class="rs-wizsum-row"><span class="rs-wizsum-k">' + RS.esc(step.label) + '</span>'
-          + '<span class="rs-wizsum-v' + (v ? '' : ' is-empty') + '">' + RS.esc(v || '—') + '</span></div>';
-      }).join('');
-    }
-  }
-
-  // In-chip coverage bar: n of m allowed/selected processes provide this
-  // field or metric's base field. Same three colour tiers everywhere it's
-  // used (renderMeasureStep, applyCoverageBadge in renderBreakdownStep);
-  // the caller is still responsible for the (unchanged) tooltip text.
-  function covBadge(n, m) {
-    var frac = n / m;
-    var tier = frac <= 1 / 3 ? 'is-cov-low' : (frac >= 0.8 ? 'is-cov-high' : 'is-cov-mid');
-    var b = document.createElement('span');
-    b.className = 'reporting-simple-chip-cov ' + tier;
-    var bar = document.createElement('span');
-    bar.className = 'rs-cov-bar';
-    var fill = document.createElement('span');
-    fill.className = 'rs-cov-fill';
-    fill.style.width = Math.round(frac * 100) + '%';
-    bar.appendChild(fill);
-    b.appendChild(bar);
-    b.appendChild(document.createTextNode(n + '/' + m));
-    return b;
-  }
-
-  function choiceBtn(label, onpick, selected) {
-    var b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'reporting-simple-choice';
-    if (selected) b.classList.add('is-selected');
-    b.setAttribute('aria-pressed', selected ? 'true' : 'false');
-    b.textContent = label;
-    b.addEventListener('click', function () {
-      Array.prototype.forEach.call(b.parentNode.children, function (s) {
-        s.classList.remove('is-selected');
-        if (s.setAttribute) s.setAttribute('aria-pressed', 'false');
-      });
-      b.classList.add('is-selected');
-      b.setAttribute('aria-pressed', 'true');
-      onpick();
-    });
-    return b;
-  }
-
-  async function loadSourcesCatalog() {
-    if (RS.state.sources) return RS.state.sources;
-    var list = null;
-    try { list = await ReportingCatalog.sources(); } catch (e) { list = null; }
-    RS.state.sources = Array.isArray(list) ? list : [];
-    return RS.state.sources;
-  }
-
-  // Warms the two catalogs the shared builders read through state
-  // (metricLabelsFor, applyLatestTotal, fieldMetaFor). Idempotent -- both
-  // loaders short-circuit once filled. Exposed for the dashboard's
-  // whole-report card, which renders while the Simple result view is idle.
-  async function ensureCatalogs() {
-    await loadSourcesCatalog();
-    if (!RS.state.metricsBySource) await loadMetricsCatalog();
-  }
-
-  async function startWizard() {
-    await loadSourcesCatalog();
-    if (!RS.state.metricsBySource) await loadMetricsCatalog();
-    RS.state.wiz = { measures: [], source: null, breakdowns: [],
-                  scopeProcs: [], range: null, dateField: null, _fp: null,
-                  fieldScope: null };
-    setView('wizard');
-    RS.el('rsStepScope').hidden = true;
-    RS.el('rsStepBreakdown').hidden = true;
-    RS.el('rsStepTime').hidden = true;
-    RS.el('rsWizardRun').hidden = true;
-    renderMeasureStep();
-  }
-
-  // Measures are toggle-select; the first pick pins the source (the query
-  // engine is single-source), other sources' chips gray out until empty.
-  // Anchored measures (imported/exported/backlog, m.anchor set) plot on the
-  // shared activity_date axis and can't mix with plain measures — the server
-  // rejects such definitions, so don't let the wizard build one.
-  function anchorMismatch(w, m) {
-    return !!(w.measures.length && (!!m.anchor) !== (!!w.measures[0].anchor));
-  }
-
-  function toggleMeasure(m, src) {
-    var w = RS.state.wiz;
-    if (w.source && w.source.id !== src.id) return;   // disabled chip
-    if (anchorMismatch(w, m)) return;                 // disabled chip
-    var idx = -1, i;
-    for (i = 0; i < w.measures.length; i++) {
-      if (w.measures[i].code === m.code) { idx = i; break; }
-    }
-    if (idx !== -1) { w.measures.splice(idx, 1); } else { w.measures.push(m); }
-    if (!w.measures.length) {
-      // Unpinning the source invalidates everything downstream.
-      w.source = null; w.scopeProcs = []; w.breakdowns = [];
-    } else {
-      w.source = src;
-    }
-    // Any change re-gates the later steps behind Continue.
-    RS.el('rsStepScope').hidden = true;
-    RS.el('rsStepBreakdown').hidden = true;
-    RS.el('rsStepTime').hidden = true;
-    RS.el('rsWizardRun').hidden = true;
-    renderMeasureStep();
-  }
-
-  function renderMeasureStep() {
-    var list = RS.el('rsMeasureList');
-    list.innerHTML = '';
-    var w = RS.state.wiz;
-    if (!Array.isArray(w.measures)) w.measures = [];
-    var bySource = RS.state.metricsBySource || {};
-    var visible = Object.keys(bySource).filter(function (sid) {
-      return (RS.state.sources || []).some(function (s) { return s.id === sid; });
-    });
-    var multi = visible.length > 1;
-    visible.forEach(function (sid) {
-      var src = RS.state.sources.find(function (s) { return s.id === sid; });
-      (bySource[sid] || []).forEach(function (m) {
-        // Sources without metrics never appear; admins grow the wizard's
-        // reach by adding rows in the metrics registry, zero code change.
-        var srcProcs = src.processes || [];
-        var fld = m.baseField
-          ? (src.fields || []).find(function (f) { return f.field === m.baseField; })
-          : null;
-        // A metric whose base field no allowed process provides can never run
-        // for this user (resolve_metrics 400s) — don't offer it.
-        if (m.baseField && !fld) return;
-        var label = multi ? (m.label + ' · ' + src.label) : m.label;
-        var btn = choiceBtn(label, function () {
-          toggleMeasure(m, src);
-        }, !!(w.source && w.source.id === src.id
-              && w.measures.some(function (x) { return x.code === m.code; })));
-        if (w.source && w.source.id !== src.id) btn.disabled = true;
-        if (anchorMismatch(w, m)) btn.disabled = true;
-        // Partial coverage (vs ALL allowed processes — no scope exists yet at
-        // this step): same badge as the breakdown chips.
-        if (fld && fld.processes && fld.processes.length && srcProcs.length
-            && fld.processes.length < srcProcs.length) {
-          btn.appendChild(covBadge(fld.processes.length, srcProcs.length));
-          btn.title = RS.I18N.measureCoverage.replace('{n}', fld.processes.length)
-            .replace('{m}', srcProcs.length) + '\n' + fld.processes.join('\n');
-        }
-        list.appendChild(btn);
-      });
-    });
-    if (!list.children.length) {
-      list.innerHTML = '<p class="reporting-simple-empty">' + RS.esc(RS.I18N.noMeasures) + '</p>';
-    }
-    RS.el('rsMeasureNext').hidden = !w.measures.length;
-    renderWizardRail();
-  }
-
-  // Own wizard step between measure and breakdown: sources without processes
-  // (table sources) skip straight to the breakdown step. Emits the same
-  // scope serialisation as before; empty/full selection = all allowed (the
-  // server clamps to grants either way).
-  // #178 B8: a table source without a process registry still gets a
-  // process step when it carries a filterable string field named like one
-  // (backlog_history.ProcessName). Selection serializes to a plain
-  // in-filter, not scope.processes.
-  function processFieldFor(src) {
-    if ((src.processes || []).length) return null;
-    return (src.fields || []).find(function (f) {
-      return f.type === 'string' && f.filterable &&
-        /process/i.test(f.field + ' ' + (f.label || ''));
-    }) || null;
-  }
-
-  function renderScopeStep() {
-    var w = RS.state.wiz;
-    var procs = w.source.processes || [];
-    var step = RS.el('rsStepScope');
-    var pf = processFieldFor(w.source);
-    if (!procs.length && !pf) { step.hidden = true; renderBreakdownStep(); return; }
-    if (!procs.length && pf) { renderFieldScopeStep(step, pf); return; }
-    step.hidden = false;
-    RS.el('rsStepBreakdown').hidden = true;
-    RS.el('rsStepTime').hidden = true;
-    RS.el('rsWizardRun').hidden = true;
-    var box = RS.el('rsScopeList');
-    box.innerHTML = '';
-    var prior = w.scopeProcs || [];
-    procs.forEach(function (p) {
-      var lbl = document.createElement('label');
-      var cb = document.createElement('input');
-      cb.type = 'checkbox'; cb.value = p;
-      cb.checked = !prior.length || prior.indexOf(p) !== -1;
-      cb.addEventListener('change', function () {
-        w.scopeProcs = Array.prototype.map.call(
-          box.querySelectorAll('input:checked'), function (c) { return c.value; });
-        // The chip list follows the scope live when the breakdown step is
-        // already open (reopened wizard / user stepped back).
-        if (!RS.el('rsStepBreakdown').hidden) renderBreakdownStep();
-      });
-      lbl.appendChild(cb);
-      lbl.appendChild(document.createTextNode(' ' + p));
-      box.appendChild(lbl);
-    });
-    if (!prior.length) w.scopeProcs = procs.slice();
-    renderWizardRail();
-  }
-
-  async function renderFieldScopeStep(step, pf) {
-    var w = RS.state.wiz;
-    step.hidden = false;
-    RS.el('rsStepBreakdown').hidden = true;
-    RS.el('rsStepTime').hidden = true;
-    RS.el('rsWizardRun').hidden = true;
-    var box = RS.el('rsScopeList');
-    box.innerHTML = '<p class="reporting-simple-hint">' + RS.esc(RS.I18N.loadingValues) + '</p>';
-    renderWizardRail();
-    var res = await RS.api('/api/reporting/field_values', {
-      method: 'POST',
-      body: JSON.stringify({ source: w.source.id, field: pf.field })
-    });
-    if (RS.state.view !== 'wizard' || RS.el('rsStepScope').hidden) {
-      // User stepped away mid-fetch (e.g. back to the measure step) --
-      // clear the stale "Loading values..." hint so a later re-entry to this
-      // step doesn't show it frozen until the NEXT fetch resolves (#178).
-      box.innerHTML = '';
-      return;
-    }
-    var values = (res.ok && res.data && res.data.values) || [];
-    var valueLabels = (res.ok && res.data && res.data.labels) || {};
-    if (!values.length) {  // endpoint down or empty column: skip the step
-      w.fieldScope = null;
-      step.hidden = true;
-      renderBreakdownStep();
-      return;
-    }
-    var prior = (w.fieldScope && w.fieldScope.picked) || [];
-    w.fieldScope = { field: pf.field, label: pf.label || pf.field,
-                     values: values, picked: prior.length ? prior : values.slice() };
-    box.innerHTML = '';
-    values.forEach(function (p) {
-      var lbl = document.createElement('label');
-      var cb = document.createElement('input');
-      cb.type = 'checkbox'; cb.value = p;
-      cb.checked = w.fieldScope.picked.indexOf(p) !== -1;
-      cb.addEventListener('change', function () {
-        w.fieldScope.picked = Array.prototype.map.call(
-          box.querySelectorAll('input:checked'), function (c) { return c.value; });
-      });
-      lbl.appendChild(cb);
-      // labelWith companion (e.g. "privera.03_Invoice_New"); value stays bare.
-      lbl.appendChild(document.createTextNode(' ' + (valueLabels[p] || p)));
-      box.appendChild(lbl);
-    });
-    renderWizardRail();
-  }
-
-  function renderBreakdownStep() {
-    RS.el('rsStepBreakdown').hidden = false;
-    RS.el('rsStepTime').hidden = true;
-    RS.el('rsWizardRun').hidden = true;
-    var w = RS.state.wiz;
-    if (!Array.isArray(w.breakdowns)) w.breakdowns = [];
-    var allProcs = w.source.processes || [];
-    var sourceHasDates = (w.source.fields || []).some(function (f) { return f.grainable; });
-
-    function isSelected(bd) {
-      if (bd.kind === 'none') return w.breakdowns.length === 0;
-      var i;
-      for (i = 0; i < w.breakdowns.length; i++) {
-        var b = w.breakdowns[i];
-        if (b.kind === bd.kind && b.field && bd.field && b.field.field === bd.field.field) return true;
-      }
-      return false;
-    }
-
-    function refreshChips() {
-      var chips = RS.el('rsBreakdownList').querySelectorAll('button[data-bd-kind]');
-      var ci;
-      for (ci = 0; ci < chips.length; ci++) {
-        var btn = chips[ci];
-        var bd = { kind: btn.dataset.bdKind,
-                   field: btn.dataset.bdField ? { field: btn.dataset.bdField } : null };
-        var sel = isSelected(bd);
-        btn.classList.toggle('is-selected', sel);
-        btn.setAttribute('aria-pressed', String(sel));
-      }
-      var hasDate = false;
-      for (ci = 0; ci < w.breakdowns.length; ci++) {
-        if (w.breakdowns[ci].kind === 'date') { hasDate = true; break; }
-      }
-      RS.el('rsGrainWrap').hidden = !sourceHasDates;
-      RS.el('rsGrain').disabled = !hasDate;
-      RS.el('rsGrainWrap').title = hasDate ? '' : RS.I18N.grainNeedsDate;
-      updatePickedCount();
-    }
-
-    function toggleBreakdown(bd) {
-      if (bd.kind === 'none') {
-        w.breakdowns = [];
-        refreshChips();
-        return;
-      }
-      var idx = -1, i;
-      for (i = 0; i < w.breakdowns.length; i++) {
-        var b = w.breakdowns[i];
-        if (b.kind === bd.kind && b.field && bd.field && b.field.field === bd.field.field) {
-          idx = i; break;
-        }
-      }
-      if (idx !== -1) { w.breakdowns.splice(idx, 1); refreshChips(); renderWizardRail(); return; }
-      // ponytail: date breakdowns are no longer mutually exclusive (#164) --
-      // export+import date together is a plain 2-dim group-by, which the query
-      // builder already supports (grain is per-column server-side). They share
-      // the single rsGrain select; per-date grains would need a second control.
-      if (w.breakdowns.length >= 3) { refreshChips(); return; }
-      w.breakdowns.push(bd);
-      refreshChips();
-      renderWizardRail();
-    }
-
-    // --- process coverage (docprocessing) --------------------------------
-    // Mirrors the Advanced tab's isFieldAvailable(): a field with no
-    // `processes` tag (table sources) is universal. The effective scope is
-    // the picker selection; empty selection = all allowed (the same
-    // convention the definition serializer uses).
-    function scopeSel() {
-      return (w.scopeProcs && w.scopeProcs.length) ? w.scopeProcs : allProcs;
-    }
-    function coveredBy(f) {
-      if (!allProcs.length || !f.processes || !f.processes.length) return null;
-      var sel = scopeSel();
-      return f.processes.filter(function (p) { return sel.indexOf(p) !== -1; });
-    }
-    function inScope(f) {
-      var cov = coveredBy(f);
-      return cov === null || cov.length > 0;
-    }
-    function applyCoverageBadge(btn, f) {
-      var cov = coveredBy(f);
-      if (cov === null || cov.length >= scopeSel().length) return;
-      btn.appendChild(covBadge(cov.length, scopeSel().length));
-      btn.title = RS.I18N.chipCoverage.replace('{n}', cov.length).replace('{m}', scopeSel().length)
-        + '\n' + cov.join('\n');
-    }
-
-    // Task 6: "{n} of 3 picked" footer counter, breakdown step only (the
-    // footer itself is shared across all four steps -- visibility is a pure
-    // CSS :has() shim keyed on #rsStepBreakdown[hidden], see reporting.css).
-    function updatePickedCount() {
-      RS.el('rsPickedCount').textContent = RS.I18N.pickedCount.replace('{n}', String(w.breakdowns.length));
-    }
-
-    function groupLabel(text) {
-      var l = document.createElement('div');
-      l.className = 'rs-choice-group-label';
-      l.textContent = text;
-      return l;
-    }
-
-    // The chip list is re-rendered whenever the process scope changes: a chip
-    // whose field no selected process provides is hidden and its selection
-    // pruned (the query would only produce NULL groups for it).
-    function renderChipList() {
-      var list = RS.el('rsBreakdownList');
-      list.innerHTML = '';
-      var fields = w.source.fields || [];
-      // Anchored measures use ONLY the shared activity_date axis; plain
-      // measures never do (each anchored metric buckets its own date onto it).
-      var anchoredWiz = !!(w.measures.length && w.measures[0].anchor);
-      var dateFields = fields.filter(function (f) { return f.grainable; }).filter(inScope)
-        .filter(function (f) {
-          return anchoredWiz ? f.field === 'activity_date' : f.field !== 'activity_date';
-        });
-      var catFields = fields.filter(function (f) {
-        return f.type === 'string' && f.filterable;
-      }).filter(inScope);
-
-      if (w.source.id === 'docprocessing') {
-        catFields = catFields.filter(function (f) { return !DOCPROC_DIM_HIDE[f.field]; });
-        // Coverage first (full-coverage chips on top, 1/x at the bottom,
-        // recomputed against the CURRENT process scope), curated order and
-        // label only break ties within the same coverage.
-        var fracOf = function (f) {
-          var cov = coveredBy(f);
-          return cov === null ? 1 : cov.length / scopeSel().length;
-        };
-        catFields.sort(function (a, b) {
-          var fa = fracOf(a), fb = fracOf(b);
-          if (fa !== fb) return fb - fa;
-          var ia = DOCPROC_DIM_ORDER.indexOf(a.field), ib = DOCPROC_DIM_ORDER.indexOf(b.field);
-          if (ia === -1) ia = DOCPROC_DIM_ORDER.length;
-          if (ib === -1) ib = DOCPROC_DIM_ORDER.length;
-          return (ia - ib) || a.label.localeCompare(b.label);
-        });
-      }
-
-      // Scope narrowing can strand a selected breakdown on a hidden field.
-      w.breakdowns = w.breakdowns.filter(function (b) { return !b.field || inScope(b.field); });
-
-      if (dateFields.length) list.appendChild(groupLabel(RS.I18N.groupTime));
-      dateFields.forEach(function (f) {
-        var bd = { kind: 'date', field: f };
-        var btn = choiceBtn(RS.I18N.overTime + ' (' + f.label + ')', function () {
-          toggleBreakdown(bd);
-        }, isSelected(bd));
-        btn.dataset.bdKind = 'date';
-        btn.dataset.bdField = f.field;
-        applyCoverageBadge(btn, f);
-        list.appendChild(btn);
-      });
-      // No cap: everything the Advanced tab offers is available here — the
-      // coverage sort keeps rarely-provided fields at the bottom, and the
-      // hide-list still filters the noise.
-      if (catFields.length) list.appendChild(groupLabel(RS.I18N.groupFields));
-      catFields.forEach(function (f) {
-        var bd = { kind: 'category', field: f };
-        var btn = choiceBtn(f.label, function () {
-          toggleBreakdown(bd);
-        }, isSelected(bd));
-        btn.dataset.bdKind = 'category';
-        btn.dataset.bdField = f.field;
-        applyCoverageBadge(btn, f);
-        list.appendChild(btn);
-      });
-      list.appendChild(groupLabel(RS.I18N.groupOr));
-      var noneBtn = choiceBtn(RS.I18N.justTotal, function () {
-        toggleBreakdown({ kind: 'none' });
-      }, w.breakdowns.length === 0);
-      noneBtn.dataset.bdKind = 'none';
-      noneBtn.classList.add('rs-choice-none');
-      list.appendChild(noneBtn);
-    }
-
-    renderChipList();
-    refreshChips();
-
-    // Wire Continue button
-    var nextBtn = RS.el('rsBreakdownNext');
-    if (nextBtn) {
-      nextBtn.onclick = function () { renderTimeStep(); };
-    }
-    renderWizardRail();
-  }
-
-  function isoDate(d) {
-    return d.getFullYear() + '-' +
-      String(d.getMonth() + 1).padStart(2, '0') + '-' +
-      String(d.getDate()).padStart(2, '0');
-  }
-
-  // Lazily creates the Custom-range flatpickr on rsTimeRange (shared by the
-  // Custom choiceBtn handler and the restore-from-definition path below), so
-  // the mode/format/onChange options exist in exactly one place.
-  function ensureRangePicker() {
-    if (!RS.state.wiz._fp && window.flatpickr) {
-      RS.state.wiz._fp = flatpickr(RS.el('rsTimeRange'), {
-        mode: 'range', dateFormat: 'Y-m-d',
-        onChange: function (picked) {
-          if (picked.length === 2) {
-            RS.state.wiz.range = [isoDate(picked[0]), isoDate(picked[1])];
-          }
-        }
-      });
-    }
-    return RS.state.wiz._fp;
-  }
-
-  function renderTimeStep() {
-    RS.el('rsStepTime').hidden = false;
-    RS.el('rsWizardRun').hidden = false;
-    RS.el('rsTimeCustom').hidden = !Array.isArray(RS.state.wiz.range);
-    // A restored definition's literal range (adjustInWizard) must be visible
-    // in the picker, not just applied silently on Show result — seed it here
-    // (display = state, no change event) rather than waiting for the user to
-    // click Custom themselves.
-    if (Array.isArray(RS.state.wiz.range) && window.flatpickr) {
-      ensureRangePicker();
-      if (RS.state.wiz._fp) RS.state.wiz._fp.setDate(RS.state.wiz.range, false);
-    }
-    var fields = RS.state.wiz.source.fields || [];
-    var anchoredTime = !!(RS.state.wiz.measures.length && RS.state.wiz.measures[0].anchor);
-    var dateFields = fields.filter(function (f) { return f.grainable; })
-      .filter(function (f) {
-        return anchoredTime ? f.field === 'activity_date' : f.field !== 'activity_date';
-      });
-    var list = RS.el('rsTimeList');
-    // Skipped when the source exposes no date field.
-    if (!dateFields.length) {
-      list.innerHTML = '<p class="reporting-simple-empty">' + RS.esc(RS.I18N.noDateField) + '</p>';
-      RS.el('rsTimeFieldWrap').hidden = true;
-      RS.state.wiz.range = null;
-      RS.el('rsAllTimeHint').hidden = true;
-      renderWizardRail();
-      return;
-    }
-    // Date field defaults to import_date, switchable to export_date.
-    var sel = RS.el('rsTimeField');
-    sel.innerHTML = '';
-    dateFields.forEach(function (f) {
-      var o = document.createElement('option');
-      o.value = f.field; o.textContent = f.label;
-      sel.appendChild(o);
-    });
-    if (RS.state.wiz.dateField
-        && dateFields.some(function (f) { return f.field === RS.state.wiz.dateField; })) {
-      sel.value = RS.state.wiz.dateField;
-    } else if (dateFields.some(function (f) { return f.field === 'import_date'; })) {
-      sel.value = 'import_date';
-    }
-    RS.el('rsTimeFieldWrap').hidden = dateFields.length < 2;
-    RS.state.wiz.dateField = sel.value;
-    sel.onchange = function () { RS.state.wiz.dateField = sel.value; };
-
-    list.innerHTML = '';
-    [['this_week', RS.I18N.thisWeek], ['this_month', RS.I18N.thisMonth],
-     ['last_month', RS.I18N.lastMonth], ['this_quarter', RS.I18N.thisQuarter],
-     ['last_quarter', RS.I18N.lastQuarter], ['last_3_months', RS.I18N.last3Months],
-     ['this_year', RS.I18N.thisYear], ['last_year', RS.I18N.lastYear],
-     ['all_time', RS.I18N.allTime], ['custom', RS.I18N.custom]].forEach(function (p) {
-      list.appendChild(choiceBtn(p[1], function () {
-        RS.el('rsTimeCustom').hidden = p[0] !== 'custom';
-        if (p[0] === 'custom') {
-          ensureRangePicker();
-          // Re-selecting Custom keeps whatever range the picker still shows
-          // (display and state must agree); empty picker = no filter yet.
-          var fp = RS.state.wiz._fp;
-          RS.state.wiz.range = (fp && fp.selectedDates && fp.selectedDates.length === 2)
-            ? [isoDate(fp.selectedDates[0]), isoDate(fp.selectedDates[1])]
-            : null;
-        } else {
-          // Preset = relative-date token: resolved server-side on every run.
-          // all_time = no filter.
-          RS.state.wiz.range = p[0] === 'all_time' ? null : { token: p[0] };
-        }
-        RS.el('rsAllTimeHint').hidden = RS.state.wiz.range !== null;
-        renderWizardRail();
-      }, RS.state.wiz.range === p[0] ||
-         (RS.state.wiz.range && RS.state.wiz.range.token === p[0]) ||
-         (p[0] === 'custom' && Array.isArray(RS.state.wiz.range)) ||
-         (p[0] === 'all_time' && RS.state.wiz.range === null)));
-    });
-    // Only default to all-time if no prior choice is being restored.
-    if (!RS.state.wiz.range) RS.state.wiz.range = null;
-    RS.el('rsAllTimeHint').hidden = RS.state.wiz.range !== null;
-    renderWizardRail();
-  }
-
-  // Wizard invariants (validator-enforced server-side): sort fields are among
-  // the selected columns or metric codes; grain only on grainable fields;
-  // metric codes from the registry; the between filter always targets the
-  // RAW date field (the Spec-1 contract), never the bucketed expression.
-  function wizardDefinition() {
-    var w = RS.state.wiz;
-    var columns = [], sort = [], filters = [];
-    var title = w.measures.map(function (m) { return m.label; }).join(' + ');
-    var bds = (w.breakdowns || []).slice();
-    // date first: it becomes the chart axis (X)
-    bds.sort(function (a, b) {
-      return (a.kind === 'date' ? 0 : 1) - (b.kind === 'date' ? 0 : 1);
-    });
-    var grain = RS.el('rsGrain').value || 'month';
-    var titleParts = [];
-    var hasDate = false;
-    var nDates = bds.filter(function (b) { return b.kind === 'date'; }).length;
-    bds.slice(0, 3).forEach(function (b) {
-      if (b.kind === 'date') {
-        hasDate = true;
-        columns.push({ field: b.field.field, header: b.field.label, grain: grain });
-        sort.push({ field: b.field.field, dir: 'asc' });
-        // With two date breakdowns "per month / per month" is meaningless —
-        // name the field so the two axes stay distinguishable (#164).
-        var per = RS.I18N.per + ' ' + RS.el('rsGrain').options[RS.el('rsGrain').selectedIndex].text.toLowerCase();
-        titleParts.push(nDates > 1 ? (b.field.label + ' ' + per) : per);
-      } else if (b.kind === 'category') {
-        columns.push({ field: b.field.field, header: b.field.label });
-        titleParts.push(b.field.label);
-      }
-    });
-    if (!sort.length && columns.length) {
-      sort.push({ field: w.measures[0].code, dir: 'desc' });
-    }
-    if (titleParts.length) {
-      if (hasDate && bds.length === 1) {
-        title += ' ' + titleParts.join(' / ');
-      } else {
-        title += ' ' + RS.I18N.by + ' ' + titleParts.join(' / ');
-      }
-    }
-    if (w.range && w.dateField) {
-      filters.push({ field: w.dateField, op: 'between', value: w.range });
-    }
-    if (w.fieldScope && w.fieldScope.picked.length &&
-        w.fieldScope.picked.length < w.fieldScope.values.length) {
-      filters.push({ field: w.fieldScope.field, op: 'in', value: w.fieldScope.picked.slice() });
-    }
-    var scope = { clients: [], processes: [] };
-    var allProcs = w.source.processes || [];
-    if (allProcs.length && w.scopeProcs.length && w.scopeProcs.length < allProcs.length) {
-      scope.processes = w.scopeProcs.slice();
-    }
-    return {
-      schemaVersion: 1, source: w.source.id, visualization: 'table',
-      title: title, subtitle: null,
-      columns: columns,
-      metrics: w.measures.map(function (m) { return { metric: m.code }; }),
-      filters: filters, sort: sort, scope: scope, rowLimit: 5000
-    };
-  }
-
-  // Wizard presets that renderTimeStep offers; other tokens (e.g. last_n_days,
-  // last_week) can't be represented in the wizard UI, so such defs don't map.
-  var WIZ_TOKENS = ['this_week', 'this_month', 'last_month', 'this_quarter',
-                    'last_quarter', 'last_3_months', 'this_year', 'last_year'];
-
-  // Inverse of wizardDefinition(): returns {wiz, grain} for wizard-shaped
-  // definitions, or null when the def can't be represented in the wizard
-  // (multiple columns/filters/metrics, exotic ops, client scope).
-  function wizardStateFromDefinition(def) {
-    if (!def || !Array.isArray(def.metrics) || !def.metrics.length) return null;
-    var src = (RS.state.sources || []).find(function (s) { return s.id === def.source; });
-    var mlist = (RS.state.metricsBySource || {})[def.source] || [];
-    var measures = [];
-    for (var mi = 0; mi < def.metrics.length; mi++) {
-      var code = def.metrics[mi].metric;
-      var hit = mlist.find(function (x) { return x.code === code; });
-      if (!hit) return null;
-      measures.push(hit);
-    }
-    if (!src) return null;
-    var cols = def.columns || [];
-    if (cols.length > 3) return null;
-    var breakdowns = [], grain = null;
-    var ci;
-    for (ci = 0; ci < cols.length; ci++) {
-      var f = (src.fields || []).find(function (x) { return x.field === cols[ci].field; });
-      if (!f) return null;
-      if (cols[ci].grain) {
-        // Several date columns are fine (#164), but the wizard has ONE grain
-        // select — a def whose date columns disagree can't be represented.
-        if (!f.grainable || (grain && cols[ci].grain !== grain)) return null;
-        breakdowns.push({ kind: 'date', field: f });
-        grain = cols[ci].grain;
-      } else {
-        breakdowns.push({ kind: 'category', field: f });
-      }
-    }
-    var filters = def.filters || [];
-    // Only a filter on the SAME field processFieldFor(src) would offer can be
-    // the wizard's field-scope pick — matching any string in-filter would
-    // silently swallow (registry-process sources) or misattribute
-    // (multi-string-field sources) an unrelated filter (#178 review finding).
-    var pf = processFieldFor(src);
-    var fieldScopeFilter = null;
-    var rest = [];
-    filters.forEach(function (ft) {
-      if (!fieldScopeFilter && ft.op === 'in' && pf && ft.field === pf.field) {
-        fieldScopeFilter = ft;
-      } else {
-        rest.push(ft);
-      }
-    });
-    filters = rest;
-    if (filters.length > 1) return null;
-    var range = null, dateField = null;
-    if (filters.length === 1) {
-      var ft = filters[0];
-      if (ft.op !== 'between') return null;
-      var df = (src.fields || []).find(function (x) {
-        return x.field === ft.field && x.grainable;
-      });
-      if (!df) return null;
-      dateField = ft.field;
-      if (ft.value && ft.value.token) {
-        if (WIZ_TOKENS.indexOf(ft.value.token) === -1) return null;
-        range = { token: ft.value.token };
-      } else if (Array.isArray(ft.value) && ft.value.length === 2) {
-        range = ft.value.slice();
-      } else { return null; }
-    }
-    var scope = def.scope || {};
-    if ((scope.clients || []).length) return null;
-    return { wiz: { measures: measures, source: src, breakdowns: breakdowns,
-                    scopeProcs: (scope.processes || []).slice(),
-                    range: range, dateField: dateField, _fp: null,
-                    fieldScope: fieldScopeFilter
-                      ? { field: fieldScopeFilter.field, label: fieldScopeFilter.field,
-                          values: fieldScopeFilter.value.slice(), picked: fieldScopeFilter.value.slice() }
-                      : null },
-             grain: grain };
-  }
-
-  async function adjustInWizard() {
-    var cur = RS.state.current;
-    if (!cur) return;
-    if (cur.builtBy === 'wizard' && RS.state.wiz && (RS.state.wiz.measures || []).length) {
-      reopenWizard(); return;
-    }
-    await loadSourcesCatalog();
-    if (!RS.state.metricsBySource) await loadMetricsCatalog();
-    var mapped = wizardStateFromDefinition(cur.def);
-    if (!mapped) return;
-    RS.state.wiz = mapped.wiz;
-    if (mapped.grain) RS.el('rsGrain').value = mapped.grain;
-    reopenWizard();
-  }
-
-  async function reopenWizard() {
-    if (!RS.state.wiz || !(RS.state.wiz.measures || []).length) { startWizard(); return; }
-    await loadSourcesCatalog();
-    if (!RS.state.metricsBySource) await loadMetricsCatalog();
-    setView('wizard');
-    renderMeasureStep();
-    renderScopeStep();
-    renderBreakdownStep();
-    renderTimeStep();
-  }
-
-  RS.el('rsNewReport').addEventListener('click', startWizard);
-  RS.el('rsNewDashboard').addEventListener('click', function () {
-    setView('dashboard');
-    window.ReportingDashboard.openNew();
-  });
-  RS.el('rsMeasureNext').addEventListener('click', function () { renderScopeStep(); });
-  RS.el('rsScopeNext').addEventListener('click', function () { renderBreakdownStep(); });
-  // Back steps one wizard step backwards (picks are preserved in RS.state.wiz);
-  // only from step 1 does it exit. The ✕ stays the explicit exit at any point.
-  RS.el('rsWizardBack').addEventListener('click', function () {
-    if (!RS.el('rsStepTime').hidden) {           // time -> breakdown
-      RS.el('rsStepTime').hidden = true;
-      RS.el('rsWizardRun').hidden = true;
-      renderWizardRail();
-      return;
-    }
-    if (!RS.el('rsStepBreakdown').hidden) {      // breakdown -> scope (or measure)
-      RS.el('rsStepBreakdown').hidden = true;
-      if (!RS.el('rsStepScope').hidden) { renderWizardRail(); return; }  // scope step stays visible above
-      // no scope step for this source: renderScopeStep would have skipped it
-      var procs = (RS.state.wiz && RS.state.wiz.source && RS.state.wiz.source.processes) || [];
-      if (procs.length) RS.el('rsStepScope').hidden = false;
-      renderWizardRail();
-      return;
-    }
-    if (!RS.el('rsStepScope').hidden) {          // scope -> measure
-      RS.el('rsStepScope').hidden = true;
-      renderWizardRail();
-      return;
-    }
-    setView('library');                       // measure -> out
-  });
-  RS.el('rsWizardRun').addEventListener('click', function () {
-    if (!RS.state.wiz || !(RS.state.wiz.measures || []).length) return;
-    var def = wizardDefinition();
-    RS.state.current = { def: def, name: def.title, reportId: null,
-                      owned: true, canEdit: true, fromWizard: true,
-                      builtBy: 'wizard', origin: 'wizard' };
-    runCurrent();
-  });
-
-  // (The old hero Ask-AI bar is gone — Console intent #1. The AI entry point
-  // is the top-bar "AI chat" button; window.ReportingChat owns that panel.)
-
   // ---------- init ----------
   function initOnce() {
     if (RS.state.loaded) return;
     RS.state.loaded = true;
-    loadMetricsCatalog();
-    loadLibrary();
+    RS.loadMetricsCatalog();
+    RS.loadLibrary();
     syncLayoutToggle();
   }
 
-  RS.el('rsSearch').addEventListener('input', renderLibrary);
+  RS.el('rsSearch').addEventListener('input', RS.renderLibrary);
   RS.el('rsSort').addEventListener('change', function () {
     RS.state.sort = this.value === 'name' ? 'name' : 'updated';
-    renderLibrary();
+    RS.renderLibrary();
   });
   function syncLayoutToggle() {
     RS.el('rsLayout2').classList.toggle('is-active', RS.state.layout === '2');
@@ -3337,11 +894,11 @@
     RS.state.layout = n;
     try { localStorage.setItem('nx.reporting.layout', n); } catch (e) {}
     syncLayoutToggle();
-    renderLibrary();
+    RS.renderLibrary();
   }
   RS.el('rsLayout2').addEventListener('click', function () { setLayout('2'); });
   RS.el('rsLayout4').addEventListener('click', function () { setLayout('4'); });
-  function exitToLibrary() { setView('library'); loadLibrary(); }
+  function exitToLibrary() { setView('library'); RS.loadLibrary(); }
 
   // Back on a result returns to the result's origin: a wizard-built (or
   // wizard-reopened) result goes back into the wizard adjustment; a
@@ -3349,7 +906,7 @@
   // always the explicit way out to the library, regardless of origin.
   RS.el('rsBack').addEventListener('click', function () {
     var cur = RS.state.current;
-    if (cur && cur.origin === 'wizard') { adjustInWizard(); return; }
+    if (cur && cur.origin === 'wizard') { RS.adjustInWizard(); return; }
     exitToLibrary();
   });
   RS.el('rsExit').addEventListener('click', exitToLibrary);
@@ -3372,15 +929,15 @@
   // the Simple pane's own elements, so a card can call them while #rsResult
   // is hidden.
   window.ReportingSimple = {
-    openDefinition: openDefinition,
+    openDefinition: RS.openDefinition,
     navTo: navTo,
-    ensureCatalogs: ensureCatalogs,
-    fmtNumber: fmtNumber,
+    ensureCatalogs: RS.ensureCatalogs,
+    fmtNumber: RS.fmtNumber,
     zeroFillDateBuckets: RS.zeroFillDateBuckets,
-    kpiBandHtml: kpiBandHtml,
+    kpiBandHtml: RS.kpiBandHtml,
     buildChartData: RS.buildChartData,
     chartConfigFor: RS.chartConfigFor,
-    tableHtml: tableHtml
+    tableHtml: RS.tableHtml
   };
 
   document.addEventListener('rp:tabshown', function (e) {
