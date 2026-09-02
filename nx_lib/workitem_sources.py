@@ -263,7 +263,7 @@ class SqlServerSource:
                 cte_sql + f"SELECT COUNT(*) FROM LatestCTE {stage_clause}",
                 [*params, *stage_params],
             )
-            total = cur.fetchone()[0] or 0
+            total = (cur.fetchone() or (0,))[0] or 0
 
             cur.execute(
                 cte_sql
@@ -345,7 +345,7 @@ class SqlServerSource:
                 """,
                 pair_params,
             )
-            return cur.fetchone()[0] or 0
+            return (cur.fetchone() or (0,))[0] or 0
         except Exception as e:
             current_app.logger.error(f"SqlServerSource.backlog_count: {e}")
             return 0
@@ -1309,7 +1309,7 @@ class PostgresSource:
                     cte_sql + f"SELECT COUNT(*) FROM latest {stage_clause}",
                     [*params, *stage_params],
                 )
-                total = cur.fetchone()[0] or 0
+                total = (cur.fetchone() or (0,))[0] or 0
             rows = [
                 {
                     "modifiedat": r.modifiedat,
@@ -1385,7 +1385,7 @@ class PostgresSource:
                 """,
                 pair_params,
             )
-            return cur.fetchone()[0] or 0
+            return (cur.fetchone() or (0,))[0] or 0
         except Exception as e:
             current_app.logger.error(f"PostgresSource.backlog_count: {e}")
             return 0

@@ -111,6 +111,25 @@ warn_unused_ignores = true
 warn_redundant_casts = true
 exclude = ["^translations/", "^static/", "^sql/", "^var/", "^\\.venv/"]
 
+# disallow_untyped_defs ratchet (phase 3 D2, #beautify-phase-3): starts on
+# already-clean small modules and grows one module at a time. A module added
+# here NEVER leaves the list -- see CONTRIBUTING.md's "typing ratchet" note.
+# New modules must ship typed from the start rather than waiting to be added.
+[[tool.mypy.overrides]]
+module = [
+    "nx_lib.branding",
+    "nx_lib.clients",
+    "nx_lib.config",
+    "nx_lib.db",
+    "nx_lib.mapping_config",
+    "nx_lib.reporting",
+    "nx_lib.ui_prefs",
+    "nx_lib.version",
+    "nx_lib.views",
+    "nx_lib.workitems",
+]
+disallow_untyped_defs = true
+
 [tool.pytest.ini_options]
 minversion = "8.0"
 testpaths = ["tests"]

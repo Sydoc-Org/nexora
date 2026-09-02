@@ -9,6 +9,7 @@ import time
 import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import wait as futures_wait
+from typing import Any
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine import URL, Engine
@@ -22,7 +23,7 @@ from . import config as cfg
 _TLS_SUFFIX = "Encrypt=yes;TrustServerCertificate=yes;" if cfg.DB_ODBC_ENCRYPT else ""
 
 
-def get_db_url(d, s=None, login_timeout=None):
+def get_db_url(d: str | None, s: str | None = None, login_timeout: int | None = None) -> str:
     server = s if s is not None else cfg.DB_SERVER_PRD
     login_timeout_suffix = f"LoginTimeout={login_timeout};" if login_timeout is not None else ""
     params = urllib.parse.quote_plus(
@@ -37,7 +38,9 @@ def get_db_url(d, s=None, login_timeout=None):
     return f"mssql+pyodbc:///?odbc_connect={params}"
 
 
-def get_ro_db_url(d, s=None, uid=None, pwd=None):
+def get_ro_db_url(
+    d: str, s: str | None = None, uid: str | None = None, pwd: str | None = None
+) -> str:
     """Build a connection URL using a dedicated read-only reporting login.
 
     Defaults to the Statistics RO login (``DB_REPORTING_RO_*``); pass ``uid`` /
@@ -57,7 +60,15 @@ def get_ro_db_url(d, s=None, uid=None, pwd=None):
     return f"mssql+pyodbc:///?odbc_connect={params}"
 
 
-def get_pg_url(host, db, uid, pwd, port="5432", sslmode="require", sslrootcert=None):
+def get_pg_url(
+    host: str,
+    db: str,
+    uid: str,
+    pwd: str,
+    port: str = "5432",
+    sslmode: str = "require",
+    sslrootcert: str | None = None,
+) -> URL:
     """Build a SQLAlchemy URL for an Azure Postgres DB over psycopg2 with TLS.
 
     Uses ``URL.create`` so special characters in the password are handled
@@ -247,7 +258,7 @@ else:
 _db_ping_executor = ThreadPoolExecutor(max_workers=8, thread_name_prefix="db-ping")
 
 
-def _ping_db_probe(engine):
+def _ping_db_probe(engine: Engine) -> None:
     conn = engine.raw_connection()
     try:
         cur = conn.cursor()
@@ -258,7 +269,9 @@ def _ping_db_probe(engine):
         conn.close()
 
 
-def ping_dbs_parallel(targets, timeout_s=2.0):
+def ping_dbs_parallel(
+    targets: list[tuple[Engine, str]], timeout_s: float = 2.0
+) -> list[dict[str, Any]]:
     """Ping several engines concurrently. ``targets`` is ``[(engine, label), ...]``.
 
     Total wall time is bounded by ~timeout_s regardless of how many are down:
