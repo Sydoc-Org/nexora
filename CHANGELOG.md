@@ -158,6 +158,38 @@ Work toward the next release.
   the same ~12 minutes. Pushes now run unit + integration only (~5 min);
   e2e coverage is unchanged where it gates: nothing merges or deploys
   without the full suite green in CI.
+- **6 more JS-heavy partials converted to #191 shims.**
+  `templates/js/_workitems_overview_js.html`, `_reporting_js.html`
+  (the Advanced tab), `_workitem_detail_panel_js.html` (the panel shared by
+  Workitems, Reporting's drill-through drawer, and Prepared Documents),
+  `_reporting_viz_js.html`, `_generali_reporting_js.html`, and
+  `admin/_access_control_js.html` now hold only a small inline
+  `<script nonce>` with Jinja-rendered data/i18n, loaded via `static_v()`;
+  their behaviour moved to `static/js/workitems_overview.js`,
+  `reporting_advanced.js`, `workitem_detail_panel.js`, `reporting_viz.js`,
+  `generali_reporting.js`, and `admin_access_control.js` respectively. No
+  behavior change — verified per file against integration tests, a
+  Playwright pass on a `--no-conflict` dev instance, and (for
+  `admin_access_control.js`, which gates real permission grants) a live
+  grant/revoke round-trip on a throwaway test user. Two genuine bugs
+  surfaced and were fixed alongside the moves: the workitems overview
+  doc-field filter's hardcoded English "No results" string (moved into the
+  shim's `I18N` map and translated for de/fr/it), and both `_js.html`
+  survivors missing the classic-script IIFE wrap the other four already
+  had, a latent global-scope collision risk.
+- **`static/js/reporting_simple.js` (~4k lines) split into five files
+  behind a new `window.RS` shared namespace.** The monolith's
+  `state`/`el`/`api`/`esc`/`I18N` closures became `RS.state`/`RS.el`/
+  `RS.api`/`RS.esc`/`RS.I18N` (pure rename, no logic change), then the
+  chart/Chart.js layer, the report/dashboard library grid, the KPI/
+  anomalies/drill/result-table layer, and the AI-chip + 4-step wizard each
+  moved out to their own file (`reporting_simple_chart.js`,
+  `_library.js`, `_result.js`, `_wizard.js`), calling back into each other
+  through `window.RS` and into the now much smaller
+  `reporting_simple.js` core (state, `runCurrent`, `save`, `init`, the
+  `window.ReportingSimple` export). `templates/js/_reporting_simple_js.html`
+  loads them in dependency order (chart, library, result, wizard, then
+  core) after its i18n shim, which stays the first script on the page.
 
 ### Removed
 
