@@ -22,8 +22,9 @@ from . import config as cfg
 _TLS_SUFFIX = "Encrypt=yes;TrustServerCertificate=yes;" if cfg.DB_ODBC_ENCRYPT else ""
 
 
-def get_db_url(d, s=None):
+def get_db_url(d, s=None, login_timeout=None):
     server = s if s is not None else cfg.DB_SERVER_PRD
+    login_timeout_suffix = f"LoginTimeout={login_timeout};" if login_timeout is not None else ""
     params = urllib.parse.quote_plus(
         f"DRIVER={{{cfg.DB_ODBC_DRIVER}}};"
         f"SERVER={server},1433;"
@@ -31,6 +32,7 @@ def get_db_url(d, s=None):
         f"UID={cfg.DB_UID};"
         f"PWD={cfg.DB_PWD};"
         f"{_TLS_SUFFIX}"
+        f"{login_timeout_suffix}"
     )
     return f"mssql+pyodbc:///?odbc_connect={params}"
 
@@ -90,10 +92,17 @@ engine_octo_db = create_engine(
     pool_recycle=1800,
     pool_pre_ping=True,
 )
+
+# NexoraDB is touched by every request (session/permission hooks), so its pool
+# is sized to never make the 32 waitress threads queue: pool_size=32 covers a
+# full thread complement, max_overflow=16 gives headroom for a burst.
+# LoginTimeout=5 makes a downed DB fail fast (~5s) instead of the ODBC driver's
+# ~15s default -- other engines are per-feature, not per-request, so they keep
+# the driver default and are deliberately left unchanged.
 engine_nexora_db = create_engine(
-    get_db_url(cfg.DB_NEXORA),
-    pool_size=10,
-    max_overflow=20,
+    get_db_url(cfg.DB_NEXORA, login_timeout=5),
+    pool_size=32,
+    max_overflow=16,
     pool_timeout=30,
     pool_recycle=1800,
     pool_pre_ping=True,

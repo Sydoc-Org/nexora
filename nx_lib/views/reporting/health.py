@@ -8,6 +8,8 @@ the package's overall shape.
 """
 
 import time
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import wait as futures_wait
 
 from flask import current_app, jsonify, session
 from flask_babel import gettext as _
@@ -18,6 +20,15 @@ from ...reporting import db_schema
 from ...reporting.sources import accessible
 from ...security import require_permission
 from ._shared import _CURATED_ENGINES, _SQL_TARGET_ENGINES, _effective_sources
+
+# Health-probe budget (Console rail): every distinct engine is probed
+# concurrently against ONE shared deadline (same bounded-parallel idiom as
+# nx_lib.db.ping_dbs_parallel) so N down engines cost ~0.8s total, never N
+# sequential unbounded driver-timeout waits. A dedicated small pool keeps this
+# route's probes off ping_dbs_parallel's own executor (used by the admin
+# overview / outage monitor / doctor health checks).
+_HEALTH_PROBE_TIMEOUT_S = 0.8
+_health_probe_executor = ThreadPoolExecutor(max_workers=8, thread_name_prefix="reporting-health")
 
 
 def _probe_engine(engine):
@@ -40,27 +51,47 @@ def _probe_engine(engine):
         return False, None, None
 
 
+def _probe_engines_parallel(engines, timeout_s=_HEALTH_PROBE_TIMEOUT_S):
+    """Probe each distinct engine in ``engines`` concurrently, bounded by one
+    shared deadline. Returns {id(engine): (ok, latency_ms, db_name)}; an
+    engine still running past the deadline reports as not-ok/timed-out rather
+    than blocking the request."""
+    entries = [(engine, _health_probe_executor.submit(_probe_engine, engine)) for engine in engines]
+    _done, not_done = futures_wait([fut for _engine, fut in entries], timeout=timeout_s)
+    results = {}
+    for engine, fut in entries:
+        if fut in not_done:
+            fut.cancel()
+            results[id(engine)] = (False, None, None)
+        else:
+            results[id(engine)] = fut.result()
+    return results
+
+
 @require_permission("reporting.view")
 def api_sources_health():
     """Live status dot + latency per accessible source (Console rail).
-    One SELECT-1 probe per distinct engine, shared across sources."""
+    One DB_NAME() probe per distinct engine, shared across sources, all
+    fired concurrently with a shared 0.8s deadline."""
     perms = set(session.get("permissions", []))
     sources = accessible(_effective_sources(), perms)
-    probes = {}  # id(engine) -> (ok, ms)
 
-    def probe(engine):
-        key = id(engine)
-        if key not in probes:
-            probes[key] = _probe_engine(engine)
-        return probes[key]
-
-    out = []
+    engines_by_id = {}  # id(engine) -> engine
+    engine_id_for_source = {}  # source id -> id(engine)
     for s in sources:
         if s["kind"] == "sql":
             engine = _SQL_TARGET_ENGINES.get(s.get("target", "statistics"))
         else:
             engine = _CURATED_ENGINES.get(s.get("engine"), engine_statistics_db)
-        ok, ms, db_name = probe(engine)
+        engines_by_id[id(engine)] = engine
+        engine_id_for_source[s["id"]] = id(engine)
+
+    probe_results = _probe_engines_parallel([e for e in engines_by_id.values() if e is not None])
+
+    out = []
+    for s in sources:
+        engine_id = engine_id_for_source[s["id"]]
+        ok, ms, db_name = probe_results.get(engine_id, (False, None, None))
         out.append(
             {
                 "id": s["id"],
