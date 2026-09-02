@@ -324,7 +324,7 @@ def _build_anchored_query(rd, process_configs, field_col_maps, resolved_metrics,
         # Newest snapshot instant only — per bucket when the axis is bucketed,
         # globally otherwise (raw-grain axis needs no restriction). The MAX
         # subquery repeats the activity filters, so its params come last.
-        sub_params = []
+        sub_params: list = []
         for f in act_filters:
             sub_where.append(_filter_clause(snap, f["op"], f.get("value"), sub_params))
         if ACTIVITY_FIELD in columns and act_grain is not None:

@@ -269,7 +269,7 @@ def coerce_definition(
 
     # label (casefolded) -> field key, dropping ambiguous labels and bare keys.
     keys = set()
-    label_to_key = {}
+    label_to_key: dict = {}
     ambiguous = set()
     for c in catalog or []:
         key = c.get("field")
