@@ -174,6 +174,21 @@ Work toward the next release.
   mapping tables only; INT never had the synonyms, so the migration is a
   no-op there.
 
+### Fixed
+
+- **The Simple reporting tab threw on every load.** Beautification Phase 2b's
+  wizard extraction (`reporting_simple_wizard.js`) moved a bottom-of-file
+  event-listener wiring block that calls `RS.el(...)` at top level
+  (module-load time), but `RS.el` is normally set by `reporting_simple.js`,
+  which loads *last* (`_reporting_simple_js.html`'s script order is chart,
+  library, result, wizard, then core) — so `RS.el` was still undefined when
+  wizard.js ran, throwing `TypeError: RS.el is not a function` on every
+  `/reporting` page load. Found during the deferred e2e/browser catch-up for
+  Tasks 7-8 once INT's SQL Server came back up. Fixed the same way the file
+  already handled the analogous `RS.I18N` load-order gap: a same-file
+  fallback, `RS.el = RS.el || window.NX.el`. Regression test:
+  `tests/e2e/test_reporting_simple.py::test_simple_tab_load_has_no_console_errors`.
+
 ### Known gaps carried out of this campaign (not fixed here)
 
 - An unauthorized target-user booking in generali's add endpoints returns a

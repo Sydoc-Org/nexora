@@ -21,6 +21,14 @@
 (function () {
   window.RS = window.RS || {};
   RS.I18N = RS.I18N || window.NX_I18N_REPORTING_SIMPLE;
+  // Same load-order problem as RS.I18N above: this file's own bottom-of-file
+  // event-listener wiring block calls RS.el(...) at top level (module-load
+  // time), before reporting_simple.js (which normally sets RS.el) has run --
+  // it loads last (see _reporting_simple_js.html). window.NX.el is nx_core.js's
+  // real implementation and nx_core.js always loads first (templates/_header.
+  // html), so this fallback is safe regardless of script order; core's own
+  // later `RS.el = window.NX.el` is a harmless no-op re-assignment.
+  RS.el = RS.el || window.NX.el;
 
   // Wizard category-dimension curation (docprocessing only). Process first
   // (each Octo process = an actual client, so this is the per-client

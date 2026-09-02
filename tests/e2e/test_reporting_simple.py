@@ -18,6 +18,31 @@ def test_default_tab_is_simple(nexora_server, page):
     expect(page.get_by_test_id("reporting-field-panel")).to_be_hidden()
 
 
+def test_simple_tab_load_has_no_console_errors(nexora_server, page):
+    """A plain Simple-tab page load must not throw at script-load time.
+
+    Regression for the RS namespace split (Beautification Phase 2b, Tasks
+    7-8): reporting_simple_wizard.js's bottom-of-file event-listener wiring
+    block calls RS.el(...) at top level (module-load time), and wizard.js
+    loads BEFORE reporting_simple.js (the file that normally sets RS.el) --
+    see _reporting_simple_js.html's script order. Without a same-file
+    fallback (`RS.el = RS.el || window.NX.el`), every /reporting page load
+    threw `TypeError: RS.el is not a function` before a user could interact
+    with anything."""
+    console_errors = []
+    page_errors = []
+    page.on(
+        "console",
+        lambda msg: console_errors.append(msg.text) if msg.type == "error" else None,
+    )
+    page.on("pageerror", lambda exc: page_errors.append(str(exc)))
+    _login(page, nexora_server)
+    page.goto(f"{nexora_server}/reporting")
+    expect(page.get_by_test_id("reporting-simple")).to_be_visible()
+    assert console_errors == [], f"unexpected console errors: {console_errors}"
+    assert page_errors == [], f"unexpected uncaught exceptions: {page_errors}"
+
+
 def test_tab_param_overrides_to_advanced(nexora_server, page):
     _login(page, nexora_server)
     page.goto(f"{nexora_server}/reporting?tab=advanced")
