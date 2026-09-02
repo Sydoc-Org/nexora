@@ -67,7 +67,6 @@ from ..security import (
 )
 from ..workitem_sources import (
     _MS02_IDENT,
-    _resolve_octo_wid_stage_pg,
     _resolve_octo_wid_stage_pg_batch,
     fetch_merged_page,
     get_domain_for_workitem,
@@ -1421,40 +1420,14 @@ def api_workitems_page_init():
     return jsonify({"field_config": field_config})
 
 
-def _resolve_prepared_doc_wid_stage(wid):
-    """dbo.PreparedDocuments is an MS02-only register (see prepared_documents's
-    ms02_active gate), so every visible wid is owned by the 'ms02' client's
-    runtime -- never the default one. Workitem identity is (client, id) and
-    ids collide across runtimes (docs/design/ms02-multisource.md): resolving
-    against CLIENTS['default'] can silently surface a DIFFERENT client's
-    status/stage for a colliding id. Dialect-safe: resolve_octo_wid_stage is
-    SQL-Server-shaped, so route through the Postgres-side twin when the
-    owning client's dialect says so. Fails closed (empty stage -> in_octo=
-    False) on any lookup/resolution error -- a bad wid or malformed CLIENTS
-    entry must never raise and 500 the register page."""
-    empty = {"status": None, "current_stage": None}
-    try:
-        client = CLIENTS.get("ms02")
-        if client is None:
-            return empty
-        if client.dialect == "postgres":
-            return _resolve_octo_wid_stage_pg(client.runtime_engine, wid)
-        return resolve_octo_wid_stage(client.runtime_engine, wid)
-    except Exception as e:
-        current_app.logger.error(f"_resolve_prepared_doc_wid_stage({wid}): {e}")
-        return empty
-
-
 def _resolve_prepared_doc_wid_stages(wids):
-    """Batch variant of _resolve_prepared_doc_wid_stage: resolves an entire
-    prepared-documents page's wids (up to 200) in ONE round-trip instead of
-    one ranked-CTE query per wid -- the page's stage N+1. Same client-
-    routing (CLIENTS['ms02'], dialect-gated) and fail-closed contract as the
-    single-wid resolver; returns {wid: {"status":.., "current_stage":..}}
-    for EVERY wid passed in, filling in the empty stage for any wid that
-    didn't resolve (no CLIENTS['ms02'], no DB match, or an error) -- so a
-    caller iterating the result sees the exact same per-wid shape the old
-    per-PID loop produced, never a missing key."""
+    """Resolves an entire prepared-documents page's wids (up to 200) in ONE
+    round-trip instead of one ranked-CTE query per wid -- the page's stage
+    N+1. Client-routing (CLIENTS['ms02'], dialect-gated) and fail-closed
+    contract: returns {wid: {"status":.., "current_stage":..}} for EVERY wid
+    passed in, filling in the empty stage for any wid that didn't resolve
+    (no CLIENTS['ms02'], no DB match, or an error) -- so a caller iterating
+    the result sees a consistent per-wid shape, never a missing key."""
     empty = {"status": None, "current_stage": None}
     wids = list(wids)
     if not wids:
