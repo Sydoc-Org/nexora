@@ -11,6 +11,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import wait as futures_wait
 
+import pyodbc
 from flask import current_app, jsonify, session
 from flask_babel import gettext as _
 
@@ -28,18 +29,44 @@ from ._shared import _CURATED_ENGINES, _SQL_TARGET_ENGINES, _effective_sources
 # route's probes off ping_dbs_parallel's own executor (used by the admin
 # overview / outage monitor / doctor health checks).
 _HEALTH_PROBE_TIMEOUT_S = 0.8
+
+# Per-probe ODBC login timeout (seconds). Only nx_lib/db.py's engine_nexora_db
+# has a permanent LoginTimeout baked into its connection string (Task 4, D3 --
+# every other engine's pool config is deliberately unchanged). Without a
+# bound here, a probe against any OTHER down engine can occupy a worker in
+# _health_probe_executor's small pool for the ODBC driver's ~15s default --
+# with 2+ down engines and the Console's repeated polling, the 8-worker pool
+# saturates and a probe for a genuinely healthy engine that never gets a
+# worker inside the 0.8s deadline incorrectly reports ok=False. This is a
+# probe-specific bound (health checks only), not a change to any engine's own
+# pool/connection settings -- narrower than, and does not conflict with, D3's
+# "other engines unchanged" call on POOL SIZING.
+_PROBE_LOGIN_TIMEOUT_S = 5
 _health_probe_executor = ThreadPoolExecutor(max_workers=8, thread_name_prefix="reporting-health")
 
 
-def _probe_engine(engine):
+def _probe_engine(engine, login_timeout_s=_PROBE_LOGIN_TIMEOUT_S):
     """(ok, latency_ms, db_name) for one probe round-trip; DB_NAME() rides
     along because the engines are built from odbc_connect strings whose
-    SQLAlchemy URL carries no database attribute."""
+    SQLAlchemy URL carries no database attribute.
+
+    Connects directly via pyodbc with a bounded login timeout instead of
+    going through the engine's pool (``engine.raw_connection()``) -- same
+    idea as engine_nexora_db's own ``LoginTimeout=5``, just applied per-probe
+    instead of baked into the engine permanently. Falls back to
+    ``engine.raw_connection()`` for an engine that isn't ODBC-based (no
+    ``odbc_connect`` in its URL), which keeps the old unbounded behavior for
+    that engine rather than guessing at a dialect-appropriate timeout param.
+    """
     if engine is None:
         return False, None, None
     t0 = time.perf_counter()
     try:
-        conn = engine.raw_connection()
+        odbc_connect = engine.url.query.get("odbc_connect")
+        if odbc_connect:
+            conn = pyodbc.connect(odbc_connect, timeout=login_timeout_s)
+        else:
+            conn = engine.raw_connection()
         try:
             cur = conn.cursor()
             cur.execute("SELECT DB_NAME()")
