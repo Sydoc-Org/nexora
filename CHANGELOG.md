@@ -123,6 +123,25 @@ Work toward the next release.
 
 ### Changed
 
+- **Beautification Phase 3: tighter mypy and ruff configuration, plus a
+  per-module typing ratchet.** `check_untyped_defs` was enabled repo-wide
+  first (annotation fallout only, no bugs found), then `strict_optional`
+  (found and fixed two real production bugs — see Fixed: admin
+  add/edit-user's unknown accessprofile/org 500, and dashboard
+  `set_filter`'s empty-body 500/415). Ruff gained the `PL` cherry-picks
+  (`PLW1510`, `PLR1714`, `PLR1730`, `PLR0124`) and the full `PERF` rule
+  set; the sole `PLR0124` hit (`field_locations.py`'s `f != f` NaN check)
+  was confirmed a deliberate idiom and rewritten as `math.isnan`/
+  `math.isinf` for clarity, no behavior change. `disallow_untyped_defs`
+  (full annotation required) now applies per-module via
+  `[[tool.mypy.overrides]]` — 10 modules covered so far (`nx_lib/branding.py`,
+  `config.py`, `db.py`, `clients.py`, `mapping_config.py`, `ui_prefs.py`,
+  `version.py`, `reporting/__init__.py`, `views/__init__.py`,
+  `workitems/__init__.py`); the rule (a module never leaves the list, new
+  modules ship typed) is documented in `CONTRIBUTING.md`. CI's mypy step
+  still targets `nx_lib nx_main.py` — no file under `scripts/` was
+  type-annotated as part of this plan, so the CI target was left
+  unchanged.
 - **`/api/workitems` paging's `total` count is now read off the page query
   itself (`COUNT(*) OVER()`) instead of a second, separate `COUNT(*)`
   query — PostgreSQL (MS02) only.** `PostgresSource.list_workitems` reads
@@ -297,6 +316,15 @@ Work toward the next release.
 
 ### Fixed
 
+- **Admin add/edit-user crashed with a 500 on an unknown accessprofile or
+  organization** instead of rejecting the request cleanly. Beautification
+  Phase 3's `strict_optional` mypy flag (enabled repo-wide) surfaced the
+  missing `None` guard around the lookup; the routes now return a 400 for
+  an unrecognized accessprofile/org id.
+- **`/api/dashboard`'s `set_filter` crashed (500/415) when called with an
+  empty JSON body**, because it assumed `request.get_json()` always
+  returns a dict. Also surfaced by `strict_optional`; the endpoint now
+  falls back to "all" instead of raising.
 - **The Simple reporting tab threw on every load.** Beautification Phase 2b's
   wizard extraction (`reporting_simple_wizard.js`) moved a bottom-of-file
   event-listener wiring block that calls `RS.el(...)` at top level
