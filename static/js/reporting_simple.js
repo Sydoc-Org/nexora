@@ -21,7 +21,7 @@
   var state = {
     reports: [],            // /api/reporting/reports rows (kind!=='sql')
     sources: null,          // /api/reporting/sources cache
-    metricsBySource: null,  // /api/reporting/metrics cache
+    metricsBySource: null,  // /api/reporting/measures cache
     loaded: false,
     view: 'library',        // library | wizard | result
     current: null,          // { def, name, reportId, owned, canEdit, fromWizard }

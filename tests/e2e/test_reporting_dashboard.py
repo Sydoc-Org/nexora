@@ -314,7 +314,7 @@ def _stub_gfilter_catalog(page):
         ),
     )
     page.route(
-        "**/api/reporting/metrics",
+        "**/api/reporting/measures",
         lambda r: r.fulfill(
             status=200, content_type="application/json", body=json.dumps(GFILTER_STUB_METRICS)
         ),
@@ -1001,7 +1001,7 @@ def test_line_card_chart_click_opens_drill_panel(nexora_server, page):
         ),
     )
     page.route(
-        "**/api/reporting/metrics",
+        "**/api/reporting/measures",
         lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps({})),
     )
 
@@ -1113,7 +1113,7 @@ def test_table_card_row_click_opens_drill_panel(nexora_server, page):
         ),
     )
     page.route(
-        "**/api/reporting/metrics",
+        "**/api/reporting/measures",
         lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps({})),
     )
 
@@ -1488,7 +1488,7 @@ def test_line_card_chart_click_drills_by_date_range_not_exact_bucket(nexora_serv
         ),
     )
     page.route(
-        "**/api/reporting/metrics",
+        "**/api/reporting/measures",
         lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps({})),
     )
 
@@ -2143,7 +2143,7 @@ def test_multi_series_card_click_drills_on_axis_and_series(nexora_server, page):
         ),
     )
     page.route(
-        "**/api/reporting/metrics",
+        "**/api/reporting/measures",
         lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps({})),
     )
     _stub_multi_series_run(page)

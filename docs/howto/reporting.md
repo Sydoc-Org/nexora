@@ -52,7 +52,7 @@ content area. `templates/js/_reporting_tabs_js.html` is the nav controller
 - **One fetch per catalog per page load.** The page is five independent IIFEs
   (tabs rail, Simple, Advanced, dashboard builder, drill drawer) that cannot
   read each other's state, and each used to fetch its own copy of the same
-  registries — `GET /api/reporting/sources` **3×** and `/api/reporting/metrics`
+  registries — `GET /api/reporting/sources` **3×** and `/api/reporting/measures`
   **3×** per visit, serialised behind one another. They now share one in-flight
   promise via `window.ReportingCatalog` (`templates/js/_reporting_catalog_js.html`,
   included before every consumer): `ReportingCatalog.sources()` /
@@ -1071,7 +1071,7 @@ display hint; `Enabled` and `SortOrder` control visibility/ordering. Labels are
 DB-driven i18n: `Label` (English) plus nullable `GermanLabel`/`FrenchLabel`/
 `ItalianLabel` (migration `0039`; NULL falls back to `Label`, the same
 NULL-falls-back-to-English convention `dbo.FieldLabels` uses in
-`nx_lib/mapping_config.py`'s registry) — `/api/reporting/metrics` serves the session
+`nx_lib/mapping_config.py`'s registry) — `/api/reporting/measures` serves the session
 locale's label, while the AI catalogs deliberately keep the English `Label` for
 prompt-grounding stability. Migration `0017` seeds a worked example, `doc_count`
 (a `count` over the docprocessing source); migration `0039` adds **`page_count`**

@@ -126,11 +126,11 @@ def test_metrics_validation_400(admin_client):
     )
 
 
-# --- Builder-facing /api/reporting/metrics ---------------------------------
+# --- Builder-facing /api/reporting/measures --------------------------------
 
 
 def test_metrics_api_without_perm_403(user_client):
-    assert user_client.get("/api/reporting/metrics").status_code == 403
+    assert user_client.get("/api/reporting/measures").status_code == 403
 
 
 def test_metrics_api_groups_by_accessible_source(admin_client):
@@ -146,7 +146,7 @@ def test_metrics_api_groups_by_accessible_source(admin_client):
     )
     mid = create.get_json()["id"]
     try:
-        data = admin_client.get("/api/reporting/metrics").get_json()
+        data = admin_client.get("/api/reporting/measures").get_json()
         # TestAdmin holds reporting.source.docprocessing, so docprocessing metrics surface.
         assert "docprocessing" in data
         entry = next(m for m in data["docprocessing"] if m["code"] == "api_doc_count")
@@ -169,7 +169,7 @@ def test_metrics_payload_carries_total_mode(admin_client):
     )
     mid = create.get_json()["id"]
     try:
-        resp = admin_client.get("/api/reporting/metrics")
+        resp = admin_client.get("/api/reporting/measures")
         assert resp.status_code == 200
         items = [m for grp in resp.get_json().values() for m in grp]
         assert items and all("totalMode" in m for m in items)
@@ -381,13 +381,13 @@ def test_metrics_api_label_follows_session_locale_with_fallback(admin_client):
     try:
         with admin_client.session_transaction() as sess:
             sess["locale"] = "de"
-        data = admin_client.get("/api/reporting/metrics").get_json()
+        data = admin_client.get("/api/reporting/measures").get_json()
         entry = next(m for m in data["docprocessing"] if m["code"] == "api_l10n_pick")
         assert entry["label"] == "Verarbeitete Seiten"
         # No Italian translation -> falls back to the English Label.
         with admin_client.session_transaction() as sess:
             sess["locale"] = "it"
-        data = admin_client.get("/api/reporting/metrics").get_json()
+        data = admin_client.get("/api/reporting/measures").get_json()
         entry = next(m for m in data["docprocessing"] if m["code"] == "api_l10n_pick")
         assert entry["label"] == "Pages processed"
     finally:

@@ -539,7 +539,7 @@ def test_kpi_band_labels_every_metric_total(nexora_server, page):
     _login(page, nexora_server)
     page.emulate_media(reduced_motion="reduce")
     page.route(
-        "**/api/reporting/metrics",
+        "**/api/reporting/measures",
         lambda r: r.fulfill(
             status=200,
             content_type="application/json",
@@ -616,7 +616,7 @@ def test_kpi_band_hides_distribution_stats_for_a_grand_total(nexora_server, page
     _login(page, nexora_server)
     page.emulate_media(reduced_motion="reduce")
     page.route(
-        "**/api/reporting/metrics",
+        "**/api/reporting/measures",
         lambda r: r.fulfill(
             status=200,
             content_type="application/json",
@@ -1788,7 +1788,7 @@ def test_back_from_library_report_returns_to_library(nexora_server, page):
         ),
     )
     page.route(
-        "**/api/reporting/metrics",
+        "**/api/reporting/measures",
         lambda r: r.fulfill(
             status=200, content_type="application/json", body=json.dumps(WIZ_STUB_METRICS)
         ),
@@ -2173,7 +2173,7 @@ def _stub_catalogs(page):
         ),
     )
     page.route(
-        "**/api/reporting/metrics",
+        "**/api/reporting/measures",
         lambda r: r.fulfill(
             status=200, content_type="application/json", body=json.dumps(WIZ_STUB_METRICS)
         ),
@@ -3168,7 +3168,7 @@ def _stub_wiz_catalogs(page, sources, metrics):
         lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps(sources)),
     )
     page.route(
-        "**/api/reporting/metrics",
+        "**/api/reporting/measures",
         lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps(metrics)),
     )
 
@@ -4270,7 +4270,7 @@ def test_kpi_band_total_uses_latest_snapshot_for_latest_mode_metric(nexora_serve
     _login(page, nexora_server)
     page.emulate_media(reduced_motion="reduce")
     page.route(
-        "**/api/reporting/metrics",
+        "**/api/reporting/measures",
         lambda r: r.fulfill(
             status=200,
             content_type="application/json",

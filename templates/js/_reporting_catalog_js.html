@@ -4,7 +4,7 @@
    dashboard, drill) and each of them needs the same catalogs. Because none
    of them can read another's state, each used to fetch its own copy: a
    single /reporting load asked for /api/reporting/sources three times and
-   /api/reporting/metrics three times, all identical, all serialised behind
+   /api/reporting/measures three times, all identical, all serialised behind
    one another. This memo is the one thing they share -- not state, just the
    in-flight promise.
 
@@ -47,7 +47,7 @@
     // object would let a mutation in one pane surface in another.
     json: function (path) { return body(path).then(JSON.parse); },
     sources: function () { return window.ReportingCatalog.json('api/reporting/sources'); },
-    metrics: function () { return window.ReportingCatalog.json('api/reporting/metrics'); }
+    metrics: function () { return window.ReportingCatalog.json('api/reporting/measures'); }
   };
 }());
 </script>

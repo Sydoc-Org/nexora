@@ -155,6 +155,21 @@ Work toward the next release.
   mapping tables only; INT never had the synonyms, so the migration is a
   no-op there.
 
+### Fixed
+
+- **Reporting wizard showed "no measures configured" on PROD for users with an
+  ad blocker.** The Simple wizard's metric catalog was served at
+  `/api/reporting/metrics`, and EasyPrivacy ships the generic URL filter
+  `/reporting/metrics`; uBlock Origin, AdBlock Plus and Brave Shields therefore
+  aborted that one fetch (Firefox: "NetworkError when attempting to fetch
+  resource") while `/api/reporting/sources` loaded fine, so the Sources rail was
+  populated but step 1 of the wizard was empty. Never reproduced on dev or
+  staging because blockers leave `localhost` alone, and opening the URL directly
+  worked because filter lists only apply to sub-resource requests. The route is
+  now `/api/reporting/measures` (the admin CRUD under
+  `/api/reporting/admin/metrics` is not matched and is unchanged); a unit test
+  keeps every registered rule clear of the `/reporting/metrics` substring.
+
 ### Known gaps carried out of this campaign (not fixed here)
 
 - An unauthorized target-user booking in generali's add endpoints returns a
