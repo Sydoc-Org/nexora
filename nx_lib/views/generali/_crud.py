@@ -46,6 +46,13 @@ from ._scope import _generali_orgs_for_userids, _generali_scope_where
 # clauses are spliced in. Position matters: it fixes the SQL parameter order.
 SCOPE = "__scope__"
 
+# Export ceiling for ?all=true on the generated api_list endpoints (beautify
+# phase-2c Task 5 / D4): non-breaking below the cap -- a caller with <= this
+# many matching rows gets identical behaviour to before. Only the pathological
+# case (e.g. an unfiltered export against a multi-million-row table) is capped
+# instead of returning every row.
+ALL_EXPORT_CAP = 100_000
+
 
 # --------------------------------------------------------------------------- #
 # Descriptor pieces
@@ -602,9 +609,19 @@ def _make_list(d):
             total_records = agg[0] or 0
             total_pages = max(1, -(-total_records // per_page))
 
-            fetch_all = request.args.get("all", "").lower() == "true"
-            pagination_sql = "" if fetch_all else "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
-            sql_params = params if fetch_all else [*params, offset, per_page]
+            requested_all = request.args.get("all", "").lower() == "true"
+            # Cap ?all=true at the export ceiling instead of returning every
+            # matching row: non-breaking when total_records <= the cap (same
+            # SQL as before), only the pathological case gets bounded.
+            if requested_all and total_records > ALL_EXPORT_CAP:
+                pagination_sql = "OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY"
+                sql_params = [*params, ALL_EXPORT_CAP]
+            elif requested_all:
+                pagination_sql = ""
+                sql_params = params
+            else:
+                pagination_sql = "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
+                sql_params = [*params, offset, per_page]
             cursor.execute(
                 f"""
             SELECT {spec.select}

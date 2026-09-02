@@ -62,9 +62,25 @@ Work toward the next release.
   365 days — a changed file gets a new URL, so a stale cache is never
   served past the next deploy. A new lint test bans raw
   `url_for('static'` in `templates/**` to keep it that way.
+- **The Generali dashboard's aggregate/filter-option endpoints are cached for
+  120 seconds.** `api_generali_stats` (7 aggregate scans) and
+  `api_generali_filter_options` (7 `DISTINCT` scans) re-scanned
+  `v_ReportJobJoinDefinitions` on every dashboard load. Both now use
+  `dashboard.py`'s existing `@cache.cached` house pattern — a per-user (and,
+  for stats, per-date-range-filter) cache key, and a `response_filter` that
+  never pins an error or validation-failure response for the full TTL.
 
 ### Changed
 
+- **Generali list exports (`?all=true`) are now capped at 100,000 rows.**
+  The five generated Generali list endpoints (Attendance, Base Services,
+  Project Management, PDQM, Reporting — `nx_lib/views/generali/_crud.py`'s
+  shared `_make_list` factory) took `?all=true` literally with no upper
+  bound. Below the cap nothing changes (identical rows, identical SQL); only
+  a request whose filters match more than 100,000 rows is now truncated to
+  the export ceiling instead of returning every matching row. No scheduled
+  export script in `ops/`/`scripts/` calls these endpoints — every caller is
+  the "Export to Excel" button in the Generali admin UI.
 - **Eddard now sets `reasoning_effort` per surface on Azure GPT-5
   deployments.** Nothing set it, so gpt-5-mini deliberated at the API default
   (`medium`) on every call — including one-line chart captions. Measured on

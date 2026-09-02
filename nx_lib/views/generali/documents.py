@@ -5,9 +5,37 @@ import math
 from flask import current_app, jsonify, redirect, render_template, request, session, url_for
 from flask_babel import gettext as _
 
+from ...extensions import cache
 from ...security import page_visibility, require_permission
 
 # ----------------------------- Generali Evaluation -------------------------- #
+
+
+def _generali_stats_cache_key():
+    """Per-user + per-filter cache key for api_generali_stats, mirroring
+    dashboard.py's make_cache_key precedent (request.path + userid + the
+    request's own filter dimensions -- here startDate/endDate, the only
+    query args the view's SQL actually consumes)."""
+    return (
+        f"{request.path}_{session.get('userid')}_"
+        f"{request.args.get('startDate', '')}_{request.args.get('endDate', '')}"
+    )
+
+
+def _generali_filter_options_cache_key():
+    """Per-user cache key for api_generali_filter_options. The view takes no
+    query-string filters, so there is no filter dimension to fold in."""
+    return f"{request.path}_{session.get('userid')}"
+
+
+def _cacheable_response(rv):
+    """response_filter for @cache.cached on the two Generali dashboard
+    endpoints below -- same contract as dashboard.py's _cacheable_response:
+    never pin an error (or validation-failure) response, or a transient 500 /
+    a missing-date 400 would otherwise be served for the full TTL per
+    user+filter."""
+    status = rv[1] if isinstance(rv, tuple) and len(rv) == 2 else getattr(rv, "status_code", 200)
+    return status < 400
 
 
 @require_permission("generali.dashboard.view")
@@ -43,6 +71,11 @@ def generali_documents():
 
 
 @require_permission("generali.dashboard.view")
+@cache.cached(
+    timeout=120,
+    key_prefix=_generali_stats_cache_key,  # type: ignore[arg-type]  # callable prefix, stubs say str
+    response_filter=_cacheable_response,
+)
 def api_generali_stats():
     conn = None
     try:
@@ -217,6 +250,11 @@ def api_generali_stats():
 
 
 @require_permission("generali.documentlist.view")
+@cache.cached(
+    timeout=120,
+    key_prefix=_generali_filter_options_cache_key,  # type: ignore[arg-type]  # callable prefix, stubs say str
+    response_filter=_cacheable_response,
+)
 def api_generali_filter_options():
     conn = None
     try:
