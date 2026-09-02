@@ -153,7 +153,9 @@ def _sqlcmd_uses_f(exe: str) -> bool:
     text, whereas keeping it wrongly fails loudly.
     """
     try:
-        r = subprocess.run([exe, "--version"], capture_output=True, text=True, timeout=10)
+        r = subprocess.run(
+            [exe, "--version"], capture_output=True, text=True, timeout=10, check=False
+        )
         return "error" in (r.stdout + r.stderr).lower()
     except Exception:
         return True
@@ -195,7 +197,9 @@ def _sqlcmd_args(sqlcmd_exe: str, server: str, db: str, uid: str, pwd: str, mig:
 def apply_one(sqlcmd_exe: str, server: str, db: str, uid: str, pwd: str, mig: Path) -> None:
     """Run a migration through sqlcmd. Raises on non-zero exit."""
     cmd = _sqlcmd_args(sqlcmd_exe, server, db, uid, pwd, mig)
-    res = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
+    res = subprocess.run(
+        cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", check=False
+    )
     if res.stdout:
         sys.stdout.write(res.stdout)
     if res.returncode != 0:

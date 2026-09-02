@@ -70,9 +70,11 @@ def admin_access_control():
                 dict(zip([column[0] for column in cursor.description], row, strict=False))
                 for row in cursor.fetchall()
             ]
-            for ap in all_ap:
-                if has_permission(f'admin.assign.user.accessprofile.{str(ap["profile"]).lower()}'):
-                    assignable_profiles.append(ap)
+            assignable_profiles = [
+                ap
+                for ap in all_ap
+                if has_permission(f'admin.assign.user.accessprofile.{str(ap["profile"]).lower()}')
+            ]
 
         return render_template(
             "admin/access_control.html",

@@ -1402,11 +1402,11 @@ def active_sources():
 
 def non_default_source_instances():
     """Source instances for every registered non-default client."""
-    instances = []
-    for client in non_default_clients():
-        if client.dialect == "postgres":
-            instances.append(PostgresSource(CLIENTS_code=client.code))
-    return instances
+    return [
+        PostgresSource(CLIENTS_code=client.code)
+        for client in non_default_clients()
+        if client.dialect == "postgres"
+    ]
 
 
 def _cache_lookup(workitem_id):

@@ -605,20 +605,19 @@ def admin_active_sessions():
             WHERE a.LastSeenAt >= DATEADD(minute, -30, GETDATE())
             ORDER BY a.CreatedAt DESC
         """)
-        sessions = []
-        for r in cursor.fetchall():
-            sessions.append(
-                {
-                    "SessionID": r[0],
-                    "Userid": r[1],
-                    "Username": r[2],
-                    "IPAddress": r[3],
-                    # Emit ISO-8601 explicitly so the client can pass it straight
-                    # to `new Date(...)`. Flask's default JSON encoder uses RFC 1123
-                    # which doesn't survive the +'Z' timezone-suffix hack.
-                    "LoggedInAt": r[4].isoformat() if r[4] else None,
-                }
-            )
+        sessions = [
+            {
+                "SessionID": r[0],
+                "Userid": r[1],
+                "Username": r[2],
+                "IPAddress": r[3],
+                # Emit ISO-8601 explicitly so the client can pass it straight
+                # to `new Date(...)`. Flask's default JSON encoder uses RFC 1123
+                # which doesn't survive the +'Z' timezone-suffix hack.
+                "LoggedInAt": r[4].isoformat() if r[4] else None,
+            }
+            for r in cursor.fetchall()
+        ]
         return jsonify(sessions)
     except Exception as e:
         current_app.logger.error(f"Failed to fetch active sessions: {e}")

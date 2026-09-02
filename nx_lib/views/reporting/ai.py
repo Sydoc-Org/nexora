@@ -103,12 +103,11 @@ def _ai_schema_text():
     """Build the schema grounding text from accessible RO targets + curated catalogs + metrics."""
     targets = _accessible_sql_targets()
     perms = set(session.get("permissions", []))
-    curated = []
-    for s in accessible(_effective_sources(), perms):
-        if s.get("kind") == "curated" and s.get("provider") not in (None, "docprocessing"):
-            curated.append(
-                {"label": s.get("label"), "fields": table_source_catalog(s.get("columns"))}
-            )
+    curated = [
+        {"label": s.get("label"), "fields": table_source_catalog(s.get("columns"))}
+        for s in accessible(_effective_sources(), perms)
+        if s.get("kind") == "curated" and s.get("provider") not in (None, "docprocessing")
+    ]
     metrics = _accessible_metrics()
     # Mark the Statconfig tables as per-process partial views, so the agent stops
     # answering company-wide questions from whichever single one it found in the
@@ -625,15 +624,16 @@ def api_ai_agent():
     raw_history = body.get("history")
     if raw_history is not None and not isinstance(raw_history, list):
         return jsonify({"error": _("Invalid history")}), 400
-    history = []
-    for h in raw_history or []:
+    history = [
+        {"role": h["role"], "content": h["content"]}
+        for h in raw_history or []
         if (
             isinstance(h, dict)
             and h.get("role") in ("user", "assistant")
             and isinstance(h.get("content"), str)
             and h["content"].strip()
-        ):
-            history.append({"role": h["role"], "content": h["content"]})
+        )
+    ]
     history = history[-8:]
     while history and sum(len(h["content"]) for h in history) > 12000:
         history.pop(0)

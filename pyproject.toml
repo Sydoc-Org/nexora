@@ -81,7 +81,7 @@ extend-exclude = [
 ]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "RUF", "RET", "C4", "PIE"]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "RUF", "RET", "C4", "PIE", "PERF", "PLW1510", "PLR1714", "PLR1730", "PLR0124"]
 ignore = [
     "E501",   # line length handled by formatter
     "B008",   # function calls in default args (Flask pattern)

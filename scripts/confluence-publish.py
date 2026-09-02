@@ -87,8 +87,7 @@ def stage_docs(repo_root: Path, stage_dir: Path) -> list[StagedFile]:
         title = extract_title(data.decode("utf-8"))
         return StagedFile(source=src, staged=dst, title=title)
 
-    for name in ROOT_FILES:
-        staged.append(copy_one(repo_root / name, stage_dir / name))
+    staged.extend(copy_one(repo_root / name, stage_dir / name) for name in ROOT_FILES)
 
     for src_dir, dst_name in DIR_MAP.items():
         entries: list[tuple[str, str]] = []
@@ -137,7 +136,7 @@ def convert_local(stage_dir: Path) -> None:
         "--domain",
         "dummy.atlassian.net",
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True, cwd=REPO_ROOT)
+    result = subprocess.run(cmd, capture_output=True, text=True, cwd=REPO_ROOT, check=False)
     if result.returncode != 0:
         print("[publish] ERROR: local conversion failed:", file=sys.stderr)
         print(result.stdout, file=sys.stderr)
@@ -340,7 +339,7 @@ def run_md2conf(stage_dir: Path, root_page_id: str, env: dict[str, str]) -> None
         "--skip-update",
     ]
     merged = {**os.environ, **env, "CONFLUENCE_PATH": env.get("CONFLUENCE_PATH", "/wiki/")}
-    result = subprocess.run(cmd, env=merged, cwd=REPO_ROOT)
+    result = subprocess.run(cmd, env=merged, cwd=REPO_ROOT, check=False)
     if result.returncode != 0:
         print("[publish] ERROR: md2conf publish failed (see output above).", file=sys.stderr)
         raise SystemExit(1)

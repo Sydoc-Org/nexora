@@ -121,26 +121,25 @@ def api_admin_logs_search():
         """
         cursor.execute(sql, [*params, offset, per_page])
 
-        logs = []
-        for row in cursor.fetchall():
-            logs.append(
-                {
-                    "LogID": row.LogID,
-                    # Emit ISO-8601 explicitly so the client can pass it straight
-                    # to `new Date(...)`. Flask's default JSON encoder uses RFC 1123
-                    # which doesn't survive the +'Z' timezone-suffix hack.
-                    "Timestamp": row.Timestamp.isoformat()
-                    if hasattr(row.Timestamp, "isoformat")
-                    else row.Timestamp,
-                    "Username": row.Username,
-                    "HttpRequestMethod": row.HttpRequestMethod,
-                    "Path": row.Path,
-                    "HttpResponseCode": row.HttpResponseCode,
-                    "Args": row.Args,
-                    "RequestIpAddress": row.RequestIpAddress,
-                    "durationSeconds": row.durationSeconds,
-                }
-            )
+        logs = [
+            {
+                "LogID": row.LogID,
+                # Emit ISO-8601 explicitly so the client can pass it straight
+                # to `new Date(...)`. Flask's default JSON encoder uses RFC 1123
+                # which doesn't survive the +'Z' timezone-suffix hack.
+                "Timestamp": row.Timestamp.isoformat()
+                if hasattr(row.Timestamp, "isoformat")
+                else row.Timestamp,
+                "Username": row.Username,
+                "HttpRequestMethod": row.HttpRequestMethod,
+                "Path": row.Path,
+                "HttpResponseCode": row.HttpResponseCode,
+                "Args": row.Args,
+                "RequestIpAddress": row.RequestIpAddress,
+                "durationSeconds": row.durationSeconds,
+            }
+            for row in cursor.fetchall()
+        ]
 
         return jsonify(
             {

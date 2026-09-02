@@ -93,8 +93,7 @@ def api_generali_pdqm_categories():
             """,
                 [locale],
             )
-            for orig, trans in cursor2.fetchall():
-                translations[orig] = trans
+            translations = dict(cursor2.fetchall())
             cursor2.close()
 
         return jsonify({"success": True, "categories": grouped, "translations": translations})
