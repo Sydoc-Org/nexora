@@ -389,7 +389,7 @@ def tenant_page(tenant_code, page_key):
     entity = entity_for(tenant_code, page.entity) if page.entity else None
     if entity is None:
         abort(404)
-    fields = [f for f in fields_for(tenant_code, page.entity) if f.visible]
+    fields = [f for f in fields_for(tenant_code, entity.key) if f.visible]
 
     # Built here, not in the template: Jinja's expression language has no
     # list-comprehension syntax, only the {% for %} statement tag.

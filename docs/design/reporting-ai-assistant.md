@@ -232,7 +232,7 @@ slide-over panel (`templates/js/_reporting_ai_js.html`, now the chat module,
 
 **History contract (multi-turn conversation).** The request body gained a
 `history` field: an array of `{role: "user"|"assistant", content}` entries, one
-per prior turn. Server-side (`api_ai_agent` in `nx_lib/views/reporting.py`):
+per prior turn. Server-side (`api_ai_agent` in `nx_lib/views/reporting/ai.py`):
 
 - Anything not shaped like `{role: "user"|"assistant", content: <non-empty str>}`
   is dropped outright (`Invalid history` → 400 if `history` isn't a list at all).
@@ -414,7 +414,7 @@ nx_lib/reporting/ai.py            NEW — provider client, prompt assembly,
 nx_lib/reporting/ai_tools.py      NEW — the tool implementations (wrap existing
                                   validate_select / run / table_query)
 nx_lib/reporting/semantic.py      NEW (Tier 4) — metric/dimension model → SQL
-nx_lib/views/reporting.py         + POST /api/reporting/ai/ask  (NL → {definition|sql|answer})
+nx_lib/views/reporting/ai.py      + POST /api/reporting/ai/ask  (NL → {definition|sql|answer})
                                   + POST /api/reporting/ai/explain (gated, sends rows)
                                   (execution REUSES /api/reporting/sql/run + /run)
 templates/js/_reporting_ai_js.html  NEW — the "Ask AI" panel (vanilla JS, matches

@@ -20,8 +20,20 @@ what the endpoint's local `from . import engine_generali_db` re-resolves.
 
 from datetime import date
 
+import pytest
+
 import nx_lib.hooks as hooks
 import nx_lib.views.generali as gv
+from nx_lib.extensions import cache
+
+
+@pytest.fixture(autouse=True)
+def _clear_response_cache(app):
+    """The stats endpoint is @cache.cached per user+filter (60 s); these tests
+    re-wire the data between calls. Same fixture as test_generali_stats_routes."""
+    with app.app_context():
+        cache.clear()
+    yield
 
 
 def _grant_perms(monkeypatch, perms):

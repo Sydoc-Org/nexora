@@ -57,7 +57,7 @@ def admin_processes_view():
     reg = mapping_config.registry()
     clients_data = []
     if reg is not None:
-        by_client = {}
+        by_client: dict = {}
         for (client, process), source in reg.sources.items():
             fields = sorted(
                 (m for m in reg.mappings if m.client == client and m.process == process),
@@ -191,7 +191,7 @@ def _validate_process_identity(client_code, process_name, errors, field_key=None
 def _validate_process_source_payload(data, client_code, process_name):
     """Server-side validation for the process-source write endpoints -- never
     trust the client-side checks in templates/js/admin/_processes_js.html."""
-    errors = []
+    errors: list = []
     _validate_process_identity(client_code, process_name, errors)
     _validate_identifier_fields(
         data,
@@ -208,7 +208,7 @@ def _validate_process_source_payload(data, client_code, process_name):
 
 
 def _validate_field_mapping_payload(data, client_code, process_name, field_key):
-    errors = []
+    errors: list = []
     _validate_process_identity(client_code, process_name, errors, field_key=field_key)
     _validate_identifier_fields(data, ("ColumnName",), errors, required=("ColumnName",))
     column_type = (data.get("ColumnType") or "").strip()

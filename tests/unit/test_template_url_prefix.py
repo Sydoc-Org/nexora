@@ -43,9 +43,11 @@ def _offenders():
     for tpl in sorted(TEMPLATES.rglob("*.html")) + sorted(STATIC_JS.rglob("*.js")):
         text = tpl.read_text(encoding="utf-8", errors="replace")
         for lineno, line in enumerate(text.splitlines(), start=1):
-            for rx in BAD_PATTERNS:
-                if rx.search(line):
-                    found.append(f"{tpl.relative_to(REPO_ROOT)}:{lineno}: {line.strip()}")
+            found.extend(
+                f"{tpl.relative_to(REPO_ROOT)}:{lineno}: {line.strip()}"
+                for rx in BAD_PATTERNS
+                if rx.search(line)
+            )
     return found
 
 

@@ -446,7 +446,7 @@ def test_advanced_caption_does_not_survive_a_failed_run(nexora_server, page):
 # Forecast eligibility needs a real single-grained-date-column + metric
 # definition (forecastEligibleDef), which the semantic-metrics registry has
 # nothing seeded for in TEST (sql/test/seed.sql carries no metric rows) --
-# so this stubs /api/reporting/sources + /api/reporting/metrics with a
+# so this stubs /api/reporting/sources + /api/reporting/measures with a
 # minimal one-field/one-metric catalog (same WIZ_STUB_SOURCES/METRICS shape
 # test_reporting_simple.py uses for its own builder-catalog stubs), driving
 # the real field-picker + Add metric UI rather than faking builder state.
@@ -523,7 +523,7 @@ def test_advanced_forecast_toggle_and_grid_rows(nexora_server, page):
         ),
     )
     page.route(
-        "**/api/reporting/metrics",
+        "**/api/reporting/measures",
         lambda r: r.fulfill(
             status=200, content_type="application/json", body=json.dumps(ADV_FC_STUB_METRICS)
         ),

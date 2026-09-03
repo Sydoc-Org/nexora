@@ -122,8 +122,7 @@ def _build_logo() -> str:
         half = (R_RING_OUT - R_RING_IN) * 0.5
         # Soft falloff: 1.0 at mid-ring, 0 at inner/outer edges
         t = 1.0 - abs(r_obj - mid) / half
-        if t < 0.0:
-            t = 0.0
+        t = max(t, 0.0)
         t = t**0.55  # gentler curve, more luminous body
         if t >= 0.7:
             col = lerp(RING_BASE, RING_LIGHT, (t - 0.7) / 0.3)
@@ -168,6 +167,9 @@ def _build_logo() -> str:
 
             # — Composite: painter's algorithm by depth —
             if sphere_col is not None and ring_col is not None:
+                # sphere_depth/ring_depth are set together with their *_col
+                # sibling in the blocks above.
+                assert sphere_depth is not None and ring_depth is not None
                 pixels[y][x] = ring_col if ring_depth > sphere_depth else sphere_col
             elif sphere_col is not None:
                 pixels[y][x] = sphere_col
@@ -205,6 +207,7 @@ def _build_logo() -> str:
                     last_fg, last_bg, last_mode = top, None, "top"
                 parts.append("▀")
             else:  # bot is not None
+                assert bot is not None  # the three prior branches exhaust every other case
                 if last_mode != "bot" or bot != last_fg:
                     parts.append(f"{OFF}\x1b[38;2;{bot[0]};{bot[1]};{bot[2]}m")
                     last_fg, last_bg, last_mode = bot, None, "bot"
@@ -306,6 +309,7 @@ def _port_pid(port: int = 8000) -> int | None:
             capture_output=True,
             text=True,
             timeout=4,
+            check=False,
         ).stdout.strip()
         _port_pid_val = int(out) if out.isdigit() else None
     except Exception:
@@ -757,8 +761,7 @@ def _build_splash() -> str:
     if user:
         left_lines.append(_center_visible(f"{BRIGHT}Welcome back, {user}!{OFF}", LEFT_INNER))
     left_lines.append("")
-    for ln in logo_lines:
-        left_lines.append(_center_visible(ln, LEFT_INNER))
+    left_lines.extend(_center_visible(ln, LEFT_INNER) for ln in logo_lines)
     left_lines.append("")
     left_lines.append(
         _center_visible(f"{BRIGHT}nexora{OFF} {DIM}·{OFF} {BRIGHT}{env}{OFF}", LEFT_INNER)

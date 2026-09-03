@@ -188,6 +188,43 @@ def test_reload_user_permissions_swallows_error(app):
             _reload_user_permissions()  # must not raise
 
 
+def test_reload_user_permissions_unchanged_value_leaves_session_unmodified(app):
+    """Perf fix: assigning the same value into session['permissions'] every
+    request marks the session dirty (filesystem write + Set-Cookie on PROD)
+    even when nothing changed. The fresh read must still happen every request
+    (#155) -- only the write is now conditional."""
+    with app.test_request_context("/dashboard"):
+        session["userid"] = 42
+        session["permissions"] = ["a", "b"]
+        session.modified = False  # simulate a settled session from a prior request
+        loader = MagicMock(return_value=["a", "b"])
+        with patch.object(hooks_mod, "load_permissions_for_user", loader):
+            _reload_user_permissions()
+        # The read still ran fresh (never skipped) ...
+        loader.assert_called_once()
+        # ... but since the value didn't change, the session was not touched.
+        assert session["permissions"] == ["a", "b"]
+        assert session.modified is False
+
+
+def test_reload_user_permissions_changed_value_still_propagates(app):
+    """A real permission grant must still show up in the session within the
+    same request (TTL cache is disabled in tests, so this is the very next
+    read)."""
+    with app.test_request_context("/dashboard"):
+        session["userid"] = 42
+        session["permissions"] = ["a"]
+        session.modified = False
+        with patch.object(
+            hooks_mod,
+            "load_permissions_for_user",
+            return_value=["a", "b"],
+        ):
+            _reload_user_permissions()
+        assert session["permissions"] == ["a", "b"]
+        assert session.modified is True
+
+
 # ---------- _load_user_locale ----------
 
 
@@ -621,6 +658,33 @@ def test_load_user_ui_prefs_skips_branding(app):
         with patch.object(hooks_mod, "load_ui_prefs") as loader:
             _load_user_ui_prefs()
         loader.assert_not_called()
+
+
+# ---------- _load_user_ui_prefs: conditional session write (perf) ----------
+
+
+def test_load_user_ui_prefs_unchanged_value_leaves_session_unmodified(app):
+    with app.test_request_context("/dashboard"):
+        session["userid"] = 42
+        session["ui_prefs"] = {"theme": "dark"}
+        session.modified = False
+        loader = MagicMock(return_value={"theme": "dark"})
+        with patch.object(hooks_mod, "load_ui_prefs", loader):
+            _load_user_ui_prefs()
+        loader.assert_called_once()  # fresh read still happens every request
+        assert session["ui_prefs"] == {"theme": "dark"}
+        assert session.modified is False
+
+
+def test_load_user_ui_prefs_changed_value_still_propagates(app):
+    with app.test_request_context("/dashboard"):
+        session["userid"] = 42
+        session["ui_prefs"] = {"theme": "dark"}
+        session.modified = False
+        with patch.object(hooks_mod, "load_ui_prefs", return_value={"theme": "light"}):
+            _load_user_ui_prefs()
+        assert session["ui_prefs"] == {"theme": "light"}
+        assert session.modified is True
 
 
 def test_log_every_request_skips_branding(app, tmp_path, monkeypatch):

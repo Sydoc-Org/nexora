@@ -126,11 +126,11 @@ def test_metrics_validation_400(admin_client):
     )
 
 
-# --- Builder-facing /api/reporting/metrics ---------------------------------
+# --- Builder-facing /api/reporting/measures --------------------------------
 
 
 def test_metrics_api_without_perm_403(user_client):
-    assert user_client.get("/api/reporting/metrics").status_code == 403
+    assert user_client.get("/api/reporting/measures").status_code == 403
 
 
 def test_metrics_api_groups_by_accessible_source(admin_client):
@@ -146,7 +146,7 @@ def test_metrics_api_groups_by_accessible_source(admin_client):
     )
     mid = create.get_json()["id"]
     try:
-        data = admin_client.get("/api/reporting/metrics").get_json()
+        data = admin_client.get("/api/reporting/measures").get_json()
         # TestAdmin holds reporting.source.docprocessing, so docprocessing metrics surface.
         assert "docprocessing" in data
         entry = next(m for m in data["docprocessing"] if m["code"] == "api_doc_count")
@@ -169,7 +169,7 @@ def test_metrics_payload_carries_total_mode(admin_client):
     )
     mid = create.get_json()["id"]
     try:
-        resp = admin_client.get("/api/reporting/metrics")
+        resp = admin_client.get("/api/reporting/measures")
         assert resp.status_code == 200
         items = [m for grp in resp.get_json().values() for m in grp]
         assert items and all("totalMode" in m for m in items)
@@ -207,22 +207,29 @@ _CATALOG = [
 
 
 def test_run_with_metric_returns_aggregated_rows(admin_client):
+    # _prepare_run and its collaborators (_get_effective_source, has_permission,
+    # _metrics_for_source, fetch_docprocessing_catalog, _allowed_processes,
+    # _load_process_configs, _load_field_col_maps, build_table_query) all live
+    # in nx_lib.views.reporting._shared now (beautify-phase-2a, Task 2) and
+    # call each other from there -- patching them on the package re-export
+    # would not reach these internal calls. _execute is patched on run.py
+    # (beautify-phase-2a Task 3) because api_run() calls it directly there.
     with (
-        patch("nx_lib.views.reporting._get_effective_source", return_value=_DOCPROC_SOURCE),
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting._shared._get_effective_source", return_value=_DOCPROC_SOURCE),
+        patch("nx_lib.views.reporting._shared.has_permission", return_value=True),
         patch(
-            "nx_lib.views.reporting._metrics_for_source",
+            "nx_lib.views.reporting._shared._metrics_for_source",
             return_value={"doc_count": {"aggregation": "count", "base_field": None}},
         ),
-        patch("nx_lib.views.reporting.fetch_docprocessing_catalog", return_value=_CATALOG),
-        patch("nx_lib.views.reporting._allowed_processes", return_value=["acme.invoice"]),
-        patch("nx_lib.views.reporting._load_process_configs", return_value=[]),
-        patch("nx_lib.views.reporting._load_field_col_maps", return_value={}),
+        patch("nx_lib.views.reporting._shared.fetch_docprocessing_catalog", return_value=_CATALOG),
+        patch("nx_lib.views.reporting._shared._allowed_processes", return_value=["acme.invoice"]),
+        patch("nx_lib.views.reporting._shared._load_process_configs", return_value=[]),
+        patch("nx_lib.views.reporting._shared._load_field_col_maps", return_value={}),
         patch(
-            "nx_lib.views.reporting.build_table_query",
+            "nx_lib.views.reporting._shared.build_table_query",
             return_value=("SELECT [client], COUNT(*) AS [doc_count] FROM x GROUP BY [client]", []),
         ),
-        patch("nx_lib.views.reporting._execute", return_value=[["Acme", 30]]),
+        patch("nx_lib.views.reporting.run._execute", return_value=[["Acme", 30]]),
     ):
         resp = admin_client.post("/api/reporting/run", json=_RUN_DEF)
     assert resp.status_code == 200, resp.data
@@ -236,14 +243,14 @@ def test_run_with_metric_returns_aggregated_rows(admin_client):
 def test_run_with_unknown_metric_returns_400(admin_client):
     bad = {**_RUN_DEF, "metrics": [{"metric": "ghost_metric"}]}
     with (
-        patch("nx_lib.views.reporting._get_effective_source", return_value=_DOCPROC_SOURCE),
-        patch("nx_lib.views.reporting.has_permission", return_value=True),
+        patch("nx_lib.views.reporting._shared._get_effective_source", return_value=_DOCPROC_SOURCE),
+        patch("nx_lib.views.reporting._shared.has_permission", return_value=True),
         patch(
-            "nx_lib.views.reporting._metrics_for_source",
+            "nx_lib.views.reporting._shared._metrics_for_source",
             return_value={"doc_count": {"aggregation": "count", "base_field": None}},
         ),
-        patch("nx_lib.views.reporting.fetch_docprocessing_catalog", return_value=_CATALOG),
-        patch("nx_lib.views.reporting._allowed_processes", return_value=["acme.invoice"]),
+        patch("nx_lib.views.reporting._shared.fetch_docprocessing_catalog", return_value=_CATALOG),
+        patch("nx_lib.views.reporting._shared._allowed_processes", return_value=["acme.invoice"]),
     ):
         resp = admin_client.post("/api/reporting/run", json=bad)
     # validate_report_definition rejects an unknown metric code (not in metric_codes).
@@ -381,13 +388,13 @@ def test_metrics_api_label_follows_session_locale_with_fallback(admin_client):
     try:
         with admin_client.session_transaction() as sess:
             sess["locale"] = "de"
-        data = admin_client.get("/api/reporting/metrics").get_json()
+        data = admin_client.get("/api/reporting/measures").get_json()
         entry = next(m for m in data["docprocessing"] if m["code"] == "api_l10n_pick")
         assert entry["label"] == "Verarbeitete Seiten"
         # No Italian translation -> falls back to the English Label.
         with admin_client.session_transaction() as sess:
             sess["locale"] = "it"
-        data = admin_client.get("/api/reporting/metrics").get_json()
+        data = admin_client.get("/api/reporting/measures").get_json()
         entry = next(m for m in data["docprocessing"] if m["code"] == "api_l10n_pick")
         assert entry["label"] == "Pages processed"
     finally:

@@ -19,7 +19,7 @@ WATCHED_PREFIXES = (
     "templates/reporting_sources.html",
     "templates/js/_reporting_",
     "static/js/reporting_",  # bodies lifted out of the partials above (#191)
-    "nx_lib/views/reporting.py",
+    "nx_lib/views/reporting/",  # split into a package (phase 2a) - any submodule
 )
 # ... and the two places that document it for end users.
 HELP_FILES = (

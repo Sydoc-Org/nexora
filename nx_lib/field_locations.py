@@ -9,6 +9,8 @@ page image's ``naturalWidth`` / ``naturalHeight``. See the design spec's
 "Verified coordinate shape" section.
 """
 
+import math
+
 # Mirror the image extensions used by octo.get_extensions_urls_fields so that
 # our page indices line up with the order media URLs are collected.
 IMG_EXTS = (".jpg", ".jpeg", ".png", ".tif")
@@ -20,7 +22,7 @@ def _num(v):
         f = float(v)
     except (TypeError, ValueError):
         return None
-    if f != f or f in (float("inf"), float("-inf")):  # NaN / inf
+    if math.isnan(f) or math.isinf(f):
         return None
     return f
 
@@ -178,13 +180,14 @@ def extract_field_locations(doc_json, field_mapping, pdf_page_counts=None):
                 continue
             seen.add(key)
             loc = fobj.get("Location") or fobj.get("CapturedLocation")
-            locations = []
+            locations: list[dict] = []
             if isinstance(loc, dict):
                 page_index = _num(loc.get("PageIndex"))
                 if page_index is not None:
                     page = media_offset + int(page_index)
-                    for rect in _rects_from_location(loc):
-                        locations.append({"page": page, "rect": rect})
+                    locations.extend(
+                        {"page": page, "rect": rect} for rect in _rects_from_location(loc)
+                    )
             entry = {"key": key, "label": key, "value": value, "locations": locations}
             conf = _confidence(fobj)
             if conf is not None:

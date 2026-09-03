@@ -129,7 +129,7 @@ def forecast_series(dates, values, grain, horizon):
     dof = n - 2
     if period is not None and n >= 2 * period:
         positions = [_season_pos(d, grain) for d in dates]
-        by_pos = {}
+        by_pos: dict = {}
         for p, dv in zip(
             positions, (y - t for y, t in zip(values, trend, strict=False)), strict=False
         ):
@@ -201,7 +201,8 @@ def _bucket_count(rows, grain):
     if not ds:
         return None
     ds.sort()
-    filled, d = [], ds[0]
+    filled: list = []
+    d = ds[0]
     last = ds[-1]
     while d <= last:
         if len(filled) > 2000:
@@ -255,7 +256,8 @@ def compute_forecast(definition, columns, rows, visible_rows=None, carry_forward
     by_bucket = dict(parsed)
     # ponytail: fill min..max of the data only — leading zeros before the
     # first real bucket would fake a longer, flatter history.
-    dates, d = [], parsed[0][0]
+    dates: list = []
+    d = parsed[0][0]
     last = parsed[-1][0]
     while d <= last:
         if len(dates) > 2000:  # absurd range guard (day grain over years)
@@ -279,7 +281,7 @@ def compute_forecast(definition, columns, rows, visible_rows=None, carry_forward
     fit_n = len(dates) - 1 if partial_last else len(dates)
     series_out, future, method = [], None, None
     for mi in range(len(metrics)):
-        values = []
+        values: list = []
         level = mi in carry_forward
         for bucket in dates:
             row = by_bucket.get(bucket)
@@ -324,6 +326,9 @@ def compute_forecast(definition, columns, rows, visible_rows=None, carry_forward
                 "upper": [round(v, 4) for v in upper],
             }
         )
+    # metrics is non-empty (guarded above), so the loop ran at least once and
+    # future was assigned before any exit past this point.
+    assert future is not None
     return {
         "anchor": dates[-1].isoformat(),
         "grain": grain,

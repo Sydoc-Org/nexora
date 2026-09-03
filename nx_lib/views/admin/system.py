@@ -180,7 +180,9 @@ def api_admin_maintenance_add():
                 session.get("userid"),
             ],
         )
-        new_id = cursor.fetchone()[0]
+        inserted = cursor.fetchone()
+        assert inserted is not None  # INSERT ... OUTPUT always returns the new row
+        new_id = inserted[0]
         conn.commit()
         _MAINTENANCE_BLOCK_CACHE["expires_at"] = 0.0
         return jsonify({"success": True, "id": int(new_id)})

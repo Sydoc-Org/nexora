@@ -7,6 +7,8 @@ import clients; clients imports neither.
 import logging
 from dataclasses import dataclass
 
+from sqlalchemy.engine import Engine
+
 from . import config as cfg
 from .db import (
     engine_ms02_docfields_pg,
@@ -33,7 +35,7 @@ logger = logging.getLogger(__name__)
 REGISTRY_DEGRADED_REASON = None
 
 
-def _engines():
+def _engines() -> dict[str, Engine | None]:
     """{RuntimeEngineKey/StatsEngineKey/DocfieldsEngineKey -> engine object}.
 
     Built fresh on every call (not hoisted to a module-level dict) so it reads
@@ -60,19 +62,19 @@ _ENGINE_KEYS = tuple(_engines())
 @dataclass(frozen=True)
 class ClientConfig:
     code: str
-    runtime_engine: object
+    runtime_engine: Engine
     dialect: str  # "tsql" | "postgres"
     octo_domain: str | None
     octo_client_id: str | None
     octo_secret: str | None
     octo_grant_type: str | None
-    stats_engine: object = None
+    stats_engine: Engine | None = None
     stats_dialect: str = "tsql"
-    docfields_engine: object = None
+    docfields_engine: Engine | None = None
     docfields_dialect: str = "tsql"
 
 
-def _hardcoded_default():
+def _hardcoded_default() -> dict[str, "ClientConfig"]:
     """The pre-0079 hardcoded 'default'-only registry, used as a fallback when
     dbo.Clients can't be loaded (e.g. the TEST environment has no such table)."""
     return {
@@ -92,7 +94,9 @@ def _hardcoded_default():
     }
 
 
-def _creds_for(secret_ref):
+def _creds_for(
+    secret_ref: str | None,
+) -> tuple[str | None, str | None, str | None, str | None]:
     """(domain, client_id, secret, grant_type) for an env-key prefix; None ref = unprefixed."""
     p = f"{secret_ref}_" if secret_ref else ""
     return (
@@ -103,7 +107,7 @@ def _creds_for(secret_ref):
     )
 
 
-def _build_clients():
+def _build_clients() -> dict[str, "ClientConfig"]:
     """Active rows of dbo.Clients (migration 0079), each resolved to a runtime
     engine object (by RuntimeEngineKey) and Octo creds (by SecretRef prefix).
     A row is skipped when its runtime engine is unavailable (None) or its
@@ -184,7 +188,7 @@ def _build_clients():
 CLIENTS = _build_clients()
 
 
-def octo_creds_for_domain(domain):
+def octo_creds_for_domain(domain: str) -> tuple[str | None, str | None, str | None]:
     """Resolve (client_id, secret, grant_type) for the client owning ``domain``.
 
     Falls back to the default client's creds for an unknown domain so existing
@@ -196,6 +200,6 @@ def octo_creds_for_domain(domain):
     return cfg.OCTO_CLIENT_ID, cfg.OCTO_CLIENT_SECRET, cfg.OCTO_GRANT_TYPE
 
 
-def non_default_clients():
+def non_default_clients() -> list["ClientConfig"]:
     """Active clients other than 'default', in registration order."""
     return [c for code, c in CLIENTS.items() if code != "default"]

@@ -261,17 +261,17 @@ def _collect(config):
         results.append((key, key, ok, detail, None))
 
     storms = _probe_log_storms(config["now_local"])
-    for storm in storms:
-        results.append(
-            (
-                storm["key"],
-                storm["label"],
-                False,
-                f"{storm['count']}x in {outage.DEFAULT_STORM_WINDOW_MIN} min: "
-                f"{storm['signature'][:160]}",
-                storm["sample"],
-            )
+    results.extend(
+        (
+            storm["key"],
+            storm["label"],
+            False,
+            f"{storm['count']}x in {outage.DEFAULT_STORM_WINDOW_MIN} min: "
+            f"{storm['signature'][:160]}",
+            storm["sample"],
         )
+        for storm in storms
+    )
     # A storm key that was open and is no longer in the scan window has stopped
     # -- feed it an explicit ok so the incident can recover instead of hanging
     # open forever.

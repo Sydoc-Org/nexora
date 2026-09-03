@@ -77,7 +77,7 @@ repos:
         entry: python scripts/check-reporting-help-sync.py
         language: system
         pass_filenames: false
-        files: '^(templates/(reporting\.html|_reporting_simple\.html|reporting_metrics\.html|reporting_sources\.html|js/_reporting_)|static/js/reporting_|nx_lib/views/reporting\.py)'
+        files: '^(templates/(reporting\.html|_reporting_simple\.html|reporting_metrics\.html|reporting_sources\.html|js/_reporting_)|static/js/reporting_|nx_lib/views/reporting/.*\.py)'
         verbose: true
         stages: [pre-commit]
 

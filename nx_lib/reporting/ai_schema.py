@@ -36,7 +36,7 @@ def serialize_target(target_name, conn_factory, *, max_tables=MAX_TABLES_PER_TAR
         rows = cur.fetchall()
     finally:
         conn.close()
-    tables = {}
+    tables: dict[str, list] = {}
     for r in rows:
         key = f"{r.TABLE_SCHEMA}.{r.TABLE_NAME}"
         tables.setdefault(key, []).append(f"{r.COLUMN_NAME} {r.DATA_TYPE}")
