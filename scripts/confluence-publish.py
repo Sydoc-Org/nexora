@@ -36,7 +36,7 @@ INDEX_TITLES = {"howto": "How-to guides", "design": "Design docs"}
 
 GENERATED_BY = (
     "This page is generated from the nexora git repo "
-    "(https://github.com/Sydoc-Code/nexora) - do not edit here; "
+    "(https://github.com/Sydoc-Org/nexora) - do not edit here; "
     "changes will be overwritten by the next sync. To change it, edit the "
     "corresponding Markdown file in git."
 )

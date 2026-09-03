@@ -6,7 +6,7 @@ Flask 3 / Python 3.13 / SQL Server / IIS (PROD).
 ## Quick start
 
 ```powershell
-git clone https://github.com/Sydoc-Code/nexora.git C:\dev\nexora    # not under OneDrive
+git clone https://github.com/Sydoc-Org/nexora.git C:\dev\nexora    # not under OneDrive
 cd C:\dev\nexora
 .\bootstrap.ps1
 # follow the printed checklist (edit env\INT.env, reset NEXORA_TEST, etc.)

@@ -10,6 +10,12 @@ Work toward the next release.
 
 ### Changed
 
+- **Repository moved to the `Sydoc-Org` GitHub organization** (from the
+  personal `Sydoc-Code` account, 2026-09-03). GitHub redirects the old URL,
+  but update your remote:
+  `git remote set-url origin https://github.com/Sydoc-Org/nexora.git`.
+  The org is still on GitHub Free, so branch protection remains the local
+  pre-push guard until the org moves to GitHub Team (see CONTRIBUTING.md).
 - **Branching model: short-lived topic branches instead of version branches**
   (#253). Nothing is pushed to `main` directly any more — everything lands via
   PR, review optional so either developer can merge their own once CI is green

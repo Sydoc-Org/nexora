@@ -156,17 +156,24 @@ Anything else is refused at push time.
 - Target `main`. **Never push to `main` directly** — everything lands via PR.
   The pre-push hook refuses it (`git push --no-verify` bypasses, as always).
   That local guard is the enforcement, because GitHub's is not for sale here:
-  the repo is private on GitHub Free, where branch protection and rulesets are
-  both unavailable (the API answers `403 Upgrade to GitHub Pro or make this
-  repository public`), and `Sydoc-Code` is a personal account, so only its owner
-  could set it anyway. If the repo ever goes Pro or public, make it real
-  server-side too:
+  the repo is private under the `Sydoc-Org` organization, which is on GitHub
+  Free for organizations, where branch protection and rulesets are both
+  unavailable (the API answers `403 Upgrade to GitHub Pro or make this
+  repository public`). Upgrading the org to GitHub Team unlocks them; the day
+  that happens, make the rule real server-side too (PR required, zero
+  approvals, CI job `test` green, no force-push, no deletion, admins included):
 
   ```
-  gh api -X PUT repos/Sydoc-Code/nexora/branches/main/protection \
-    -F required_pull_request_reviews.required_approving_review_count=0 \
-    -F enforce_admins=false -F required_status_checks=null \
-    -F restrictions=null -F allow_force_pushes=false -F allow_deletions=false
+  gh api -X PUT repos/Sydoc-Org/nexora/branches/main/protection --input - <<'JSON'
+  {
+    "required_pull_request_reviews": {"required_approving_review_count": 0},
+    "required_status_checks": {"strict": false, "contexts": ["test"]},
+    "enforce_admins": true,
+    "restrictions": null,
+    "allow_force_pushes": false,
+    "allow_deletions": false
+  }
+  JSON
   ```
 
 - **Review is optional, not required.** Once CI is green you may merge your own
