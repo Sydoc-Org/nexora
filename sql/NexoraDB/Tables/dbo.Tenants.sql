@@ -15,7 +15,7 @@ GO
 CREATE TABLE [dbo].[Tenants](
 	[TenantCode] [nvarchar](50) NOT NULL,
 	[DisplayName] [nvarchar](100) NOT NULL,
-	[OrganizationCode] [nvarchar](5) NOT NULL,
+	[OrganizationCode] [nvarchar](5) NULL,
 	[ClientCode] [nvarchar](50) NOT NULL,
 	[IsActive] [bit] NOT NULL,
  CONSTRAINT [PK_Tenants] PRIMARY KEY CLUSTERED 

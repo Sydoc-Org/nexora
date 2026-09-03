@@ -446,3 +446,33 @@ def test_provision_tenant_permissions_never_commits():
         f"provision_tenant_permissions called {called_methods} on its cursor -- "
         f"expected only execute()"
     )
+
+
+# ---------------------------------------------------------------- organization_tenant --
+
+
+def _org_engine(rows):
+    cur = MagicMock()
+    cur.fetchall.return_value = rows
+    conn = MagicMock()
+    conn.cursor.return_value = cur
+    eng = MagicMock()
+    eng.raw_connection.return_value = conn
+    return eng
+
+
+def test_organization_tenant_maps_org_to_its_tenant_and_caches(app, monkeypatch):
+    eng = _org_engine([types.SimpleNamespace(organizationcode="PDBS", TenantCode="ms02")])
+    monkeypatch.setattr(tr, "engine_nexora_db", eng)
+    with app.app_context():
+        assert tr.organization_tenant("PDBS") == "ms02"
+        assert tr.organization_tenant("SYDC") is None  # not in a tenant
+        assert tr.organization_tenant(None) is None
+        assert tr.organization_tenant("PDBS") == "ms02"
+    assert eng.raw_connection.call_count == 1  # second lookups hit the cache
+
+
+def test_organization_tenant_fails_closed_to_not_scoped(app, monkeypatch):
+    monkeypatch.setattr(tr, "engine_nexora_db", _dead_engine())
+    with app.app_context():
+        assert tr.organization_tenant("PDBS") is None

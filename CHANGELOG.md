@@ -65,6 +65,27 @@ Work toward the next release.
 
 ### Changed
 
+- **The Sydoc tenant** (#257, migration `0094`): ElektroMaterial, Privera
+  and Compass — the customers sydoc hosts on the shared `default` runtime —
+  form the tenant `sydoc`, with the same three mounted pages as Mobscn.
+  Compass finally gets an organization row (`CMPS`) and its
+  `compass.01_Invoice_SAP` source. `Tenants.OrganizationCode`, the pre-0090
+  single-organization pointer, is nullable now — a tenant with several
+  organizations has no single answer; `Organizations.TenantCode` is the
+  relation that counts. `tenant.sydoc.view` goes to the profiles bound to
+  the member organizations and to `globalAdmin`. Left alone on purpose:
+  `compassUser` stays global (a `demo` user holds it), and sydoc AG, ISS
+  and demo stay outside any tenant.
+- **Tenant-scoped navigation** (#257, migration `0093`). A user whose
+  organization belongs to a tenant sees that tenant's group instead of the
+  global Dashboard / Reporting / Workitems links — the same pages reached
+  through the tenant's mounted pages, not twice. Users of organizations
+  outside any tenant (sydoc staff) keep the global navigation. Mobscn's
+  group is now Dashboard, Workitems and Prepared Documents with proper
+  labels and icons; the generated "PDBS Dossiers" list page is set to
+  `draft` (kept, not served). `nx_lib/tenant/registry.py::organization_tenant`
+  answers "which tenant is this organization in", cached 60 s and failing
+  closed to *not scoped*.
 - **Generali is a tenant** (#257, migrations `0091`/`0092`). A `generali`
   data connection (`engine_generali_db`, no Octo), a `GNRL` organization, the
   `generali` tenant and one `custom` page per existing Generali page — so the

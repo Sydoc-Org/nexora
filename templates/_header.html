@@ -316,7 +316,11 @@
 {'perm': page_visibility.workitemsPagePerm, 'url': url_for('workitems_overview'),  'icon': 'fa-layer-group',         'label': _('Workitems'),              'active': active_page == 'workitems_overview'},
             ] %}
 
-            {% for item in nav_items %}
+            {# A tenant-scoped user (their organization belongs to a tenant, see
+               hooks._inject_tenant_nav) reaches Dashboard/Workitems/... through
+               the tenant group's mounted pages below; the global links would be
+               the same pages twice, so they are only rendered for everyone else. #}
+            {% for item in nav_items if not tenant_scoped %}
             {% if item.perm %}
             <a href="{{ item.url }}"
                 class="sidebar-nav-item {{ 'sidebar-nav-item--active' if item.active else '' }}" data-testid="header-nav-item-{{ loop.index }}">

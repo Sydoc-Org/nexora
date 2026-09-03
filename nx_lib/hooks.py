@@ -307,10 +307,18 @@ def _inject_tenant_nav():
     ``nx_lib.views.tenant`` to resolve while ``nx_lib.hooks`` is still mid
     -import."""
     if "userid" not in session:
-        return {"tenant_nav": []}
+        return {"tenant_nav": [], "tenant_scoped": None}
+    from .tenant.registry import organization_tenant
     from .views.tenant import visible_tenant_nav
 
-    return {"tenant_nav": visible_tenant_nav()}
+    # A user whose organization belongs to a tenant lives inside that tenant:
+    # the sidebar shows the tenant group(s) instead of the global workspace
+    # links (#257). Users of organizations outside any tenant (sydoc staff)
+    # keep the global navigation.
+    return {
+        "tenant_nav": visible_tenant_nav(),
+        "tenant_scoped": organization_tenant(session.get("organizationcode")),
+    }
 
 
 def _utility_processor():

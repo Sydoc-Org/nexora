@@ -42,7 +42,9 @@ _IDENT_RE = re.compile(r'^[A-Za-z_][A-Za-z0-9_."\[\]]{0,99}$')
 class Tenant:
     code: str
     display_name: str
-    organization_code: str
+    organization_code: (
+        str | None
+    )  # pre-0090 single-org pointer; NULL since 0094 for multi-org tenants
     client_code: str
     active: bool
 
@@ -211,6 +213,38 @@ def registry() -> TenantRegistry | None:
 def invalidate_tenant_config() -> None:
     """Drop the cached registry so the next registry() call re-queries."""
     cache.delete(_CACHE_KEY)
+    cache.delete(_ORG_CACHE_KEY)
+
+
+_ORG_CACHE_KEY = "tenant_org_map"
+
+
+def organization_tenant(org_code: str | None) -> str | None:
+    """TenantCode of the organization ``org_code`` belongs to (0090,
+    ``Organizations.TenantCode``), or None -- also None when the map cannot be
+    loaded (fail closed = the user is treated as *not* tenant-scoped and keeps
+    the global navigation, never the other way round). Same 60 s cache as the
+    registry; a failed load is never cached."""
+    if not org_code:
+        return None
+    m: dict[str, str] | None = cache.get(_ORG_CACHE_KEY)
+    if m is None:
+        conn = None
+        try:
+            conn = engine_nexora_db.raw_connection()
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT organizationcode, TenantCode FROM Organizations WHERE TenantCode IS NOT NULL"
+            )
+            m = {r.organizationcode: r.TenantCode for r in cur.fetchall()}
+            cache.set(_ORG_CACHE_KEY, m, timeout=_TTL)
+        except Exception as e:
+            current_app.logger.error(f"tenant_org_map load: {e}")
+            return None
+        finally:
+            if conn:
+                conn.close()
+    return m.get(org_code)
 
 
 def tenant(code: str) -> Tenant | None:
