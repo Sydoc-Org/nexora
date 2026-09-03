@@ -8,6 +8,18 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Work toward the next release.
 
+### Changed
+
+- **Branching model: short-lived topic branches instead of version branches**
+  (#253). `main` is now protected — no direct pushes, everything lands via PR,
+  review optional so either developer can merge their own once CI is green. A
+  branch is `<type>/<slug>` (`fix/253-collab-rules`), cut from `main` and gone
+  within a day or two; `v<x.y.z.n>` branches are legacy and still accepted only
+  so in-flight work can push. Releases become a **tag on `main`** rather than a
+  branch. `scripts/git-hooks/branch-name-guard.ps1` enforces the new names, and
+  `CONTRIBUTING.md` gains "Working in parallel" (the migration-number claim
+  rule and the generated-file conflict hotspots) and "Releases".
+
 ## [3.2.4] - 2026-09-03
 
 ### Added
