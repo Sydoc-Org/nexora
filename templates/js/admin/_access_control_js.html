@@ -203,6 +203,7 @@
         document.getElementById('editTargetId').value = 0;
         document.getElementById('profileName').value  = '';
         document.getElementById('profileDesc').value  = '';
+        document.getElementById('profileOrg').value   = '';
     }
 
     async function editProfile(id) {
@@ -211,6 +212,7 @@
         document.getElementById('editTargetId').value = id;
         document.getElementById('profileName').value  = p.name || '';
         document.getElementById('profileDesc').value  = p.desc || '';
+        document.getElementById('profileOrg').value   = p.org || '';
         const _affected = p.userCount != null ? p.userCount : 0;
         setDrawerImpact(`{{ _("will affect") }} ${_affected} ${_affected === 1 ? '{{ _("user") }}' : '{{ _("users") }}'}`);
         try {
@@ -276,6 +278,7 @@
                 accessId:    targetId == 0 ? null : targetId,
                 name:        document.getElementById('profileName').value,
                 description: document.getElementById('profileDesc').value,
+                organizationCode: document.getElementById('profileOrg').value || null,
                 permissions
             };
         } else {
@@ -526,9 +529,28 @@
 
     document.getElementById('send_invite')?.addEventListener('change', syncInviteToggle);
 
+    // 0090: a profile bound to an organization is only offered for users of that
+    // organization; global profiles (no org) always. The server re-checks on save.
+    function filterProfilesByOrg(orgId, profileId) {
+        const orgSel  = document.getElementById(orgId);
+        const profSel = document.getElementById(profileId);
+        if (!orgSel || !profSel) return;
+        const code = orgSel.selectedOptions[0]?.dataset.code || '';
+        let firstVisible = null;
+        Array.from(profSel.options).forEach(opt => {
+            const ok = !opt.dataset.org || opt.dataset.org === code;
+            opt.hidden = !ok;
+            opt.disabled = !ok;
+            if (ok && firstVisible === null) firstVisible = opt;
+        });
+        if (profSel.selectedOptions[0]?.disabled && firstVisible) profSel.value = firstVisible.value;
+    }
+    document.getElementById('organization')?.addEventListener('change', () => filterProfilesByOrg('organization', 'accessprofile'));
+
     function openAddUserModal() {
         document.getElementById('userForm').reset();
         syncInviteToggle();
+        filterProfilesByOrg('organization', 'accessprofile');
         openCenterModal(userModal);
     }
 

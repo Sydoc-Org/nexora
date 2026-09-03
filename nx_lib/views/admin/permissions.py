@@ -23,10 +23,12 @@ def admin_access_control():
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT ap.AccessID, ap.Name, ap.Description, COUNT(u.userID) AS UserCount
+            SELECT ap.AccessID, ap.Name, ap.Description, ap.OrganizationCode,
+                   o.organization AS OrganizationName, COUNT(u.userID) AS UserCount
             FROM AccessProfile ap
             LEFT JOIN Users u ON u.accessID = ap.AccessID
-            GROUP BY ap.AccessID, ap.Name, ap.Description
+            LEFT JOIN Organizations o ON o.organizationcode = ap.OrganizationCode
+            GROUP BY ap.AccessID, ap.Name, ap.Description, ap.OrganizationCode, o.organization
             ORDER BY ap.Name
         """)
         profiles = [
@@ -64,7 +66,8 @@ def admin_access_control():
                 for row in cursor.fetchall()
             ]
             cursor.execute(
-                "SELECT ap.name profile, ap.accessid accessid FROM AccessProfile ap ORDER BY ap.name"
+                "SELECT ap.name profile, ap.accessid accessid, ap.OrganizationCode organizationcode "
+                "FROM AccessProfile ap ORDER BY ap.name"
             )
             all_ap = [
                 dict(zip([column[0] for column in cursor.description], row, strict=False))
@@ -329,6 +332,8 @@ def save_access_profile():
     name = data.get("name")
     description = data.get("description")
     permissions = data.get("permissions")
+    # 0090: the organization this profile is bound to; NULL = global profile.
+    organization_code = (data.get("organizationCode") or "").strip() or None
 
     if not name:
         return jsonify({"success": False, "message": _("Name is required")}), 400
@@ -339,15 +344,36 @@ def save_access_profile():
         conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         if access_id:
+            # Binding a profile to an organization must not strand users elsewhere
+            # who already hold it -- refuse with the offending count.
+            if organization_code:
+                cursor.execute(
+                    "SELECT COUNT(*) FROM Users WHERE accessid=? AND "
+                    "(organizationCode IS NULL OR organizationCode <> ?)",
+                    (access_id, organization_code),
+                )
+                stranded = cursor.fetchone()[0]
+                if stranded:
+                    return jsonify(
+                        {
+                            "success": False,
+                            "message": _(
+                                "%(n)d user(s) outside %(org)s hold this profile. Move them first.",
+                                n=stranded,
+                                org=organization_code,
+                            ),
+                        }
+                    ), 409
             cursor.execute(
-                "UPDATE AccessProfile SET Name=?, Description=? WHERE AccessID=?",
-                (name, description, access_id),
+                "UPDATE AccessProfile SET Name=?, Description=?, OrganizationCode=? WHERE AccessID=?",
+                (name, description, organization_code, access_id),
             )
             cursor.execute("DELETE FROM AccessProfilePermission WHERE AccessID=?", (access_id,))
         else:
             cursor.execute(
-                "INSERT INTO AccessProfile (Name, Description) OUTPUT INSERTED.AccessID VALUES (?, ?)",
-                (name, description),
+                "INSERT INTO AccessProfile (Name, Description, OrganizationCode) "
+                "OUTPUT INSERTED.AccessID VALUES (?, ?, ?)",
+                (name, description, organization_code),
             )
             access_id = cursor.fetchone()[0]
 

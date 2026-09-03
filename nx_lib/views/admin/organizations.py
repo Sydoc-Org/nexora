@@ -29,7 +29,10 @@ def admin_organizations_view():
     try:
         conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
-        cursor.execute("select organizationcode, organization from organizations")
+        cursor.execute(
+            "SELECT organizationcode, organization, TenantCode AS tenant_code, "
+            "ClientCode AS client_code FROM organizations ORDER BY organization"
+        )
         organizations = [
             dict(zip([column[0] for column in cursor.description], row, strict=False))
             for row in cursor.fetchall()
@@ -45,21 +48,33 @@ def admin_organizations_view():
             org["brand_accent_hex"] = brand.get("accent_hex")
             org["brand_logo_file"] = brand.get("logo_file")
 
-        # Which tenant (if any) this customer is the organization of -- the
-        # overview page (/admin/tenants) is where the full picture lives; this
-        # column is the way back to it. None when the registry is unavailable.
+        # 0090: tenant display names come from the cached registry (None when
+        # dbo.Tenants is unavailable, e.g. on TEST -- the code is shown instead).
         treg = tenant_registry()
-        tenant_by_org = {}
-        for t in sorted((treg.tenants.values() if treg else []), key=lambda t: t.code):
-            tenant_by_org.setdefault(t.organization_code, t)
         for org in organizations:
-            t = tenant_by_org.get(org.get("organizationcode"))
-            org["tenant_code"] = t.code if t else None
+            t = (
+                treg.tenants.get(org.get("tenant_code"))
+                if treg and org.get("tenant_code")
+                else None
+            )
             org["tenant_name"] = t.display_name if t else None
+
+        # Pickers for the edit modal: an organization belongs to a tenant and
+        # rides a data connection. Either table being unreadable empties its
+        # picker rather than failing the page.
+        tenants = [
+            {"code": t.code, "name": t.display_name}
+            for t in sorted(
+                (treg.tenants.values() if treg else []), key=lambda t: t.display_name.lower()
+            )
+        ]
+        clients = _client_options(cursor)
 
         return render_template(
             "admin/organizations.html",
             organizations=organizations,
+            tenants=tenants,
+            clients=clients,
             can_edit_branding=has_permission("admin.edit.organization.branding"),
             logged_in_user=session.get("username"),
             userid=session.get("userid"),
@@ -73,6 +88,31 @@ def admin_organizations_view():
             cursor.close()
         if conn:
             conn.close()
+
+
+def _client_options(cursor):
+    """[{code, name}] from dbo.Clients for the Data connection picker; [] when
+    the table cannot be read (TEST has none) -- the picker then offers only
+    "None", and existing values still round-trip because the <select> keeps
+    whatever the row already carries."""
+    try:
+        cursor.execute(
+            "SELECT ClientCode, DisplayName FROM dbo.Clients WHERE IsActive = 1 ORDER BY ClientCode"
+        )
+        return [{"code": r.ClientCode, "name": r.DisplayName} for r in cursor.fetchall()]
+    except Exception as e:  # degrade to an empty picker, never 500 the page
+        current_app.logger.warning(f"dbo.Clients unavailable for the Customers picker: {e}")
+        return []
+
+
+def _tenancy_fields(data):
+    """(TenantCode, ClientCode) from the modal payload -- empty picks become NULL,
+    i.e. "not in a tenant" / "no connection". Referential validity is the two FKs'
+    job (FK_Organizations_Tenants / FK_Organizations_Clients, migration 0090)."""
+    return (
+        (data.get("tenantcode") or "").strip() or None,
+        (data.get("clientcode") or "").strip() or None,
+    )
 
 
 @require_permission("admin.add.organization")
@@ -96,7 +136,11 @@ def admin_add_organization():
     try:
         conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO organizations VALUES(?,?)", (organizationcode, organization))
+        cursor.execute(
+            "INSERT INTO organizations (organizationcode, organization, TenantCode, ClientCode) "
+            "VALUES (?,?,?,?)",
+            (organizationcode, organization, *_tenancy_fields(data)),
+        )
         conn.commit()
         return jsonify({"success": True, "message": _("Organization created successfully.")})
     except pyodbc.IntegrityError:
@@ -123,8 +167,9 @@ def admin_edit_organization(organizationcode):
         conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "UPDATE organizations SET organization=? WHERE organizationcode=?",
-            (organization, organizationcode),
+            "UPDATE organizations SET organization=?, TenantCode=?, ClientCode=? "
+            "WHERE organizationcode=?",
+            (organization, *_tenancy_fields(data), organizationcode),
         )
         conn.commit()
         return jsonify({"success": True, "message": _("Organization updated successfully.")})

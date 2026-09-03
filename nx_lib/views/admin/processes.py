@@ -36,6 +36,7 @@ def _process_source_dict(source, fields):
         "workitem_column": source.workitem_column,
         "extra_condition": source.extra_condition,
         "id_column_type": source.id_column_type,
+        "organization": source.organization,
         "fields": [_process_field_dict(m) for m in fields],
     }
 
@@ -81,6 +82,7 @@ def admin_processes_view():
         can_edit=has_permission("admin.edit.processes"),
         clients_data=clients_data,
         client_codes=_client_codes(),
+        organizations=_organization_options(),
         logged_in_user=session.get("username"),
         userid=session.get("userid"),
         page_visibility=page_visibility(),
@@ -204,7 +206,24 @@ def _validate_process_source_payload(data, client_code, process_name):
     id_column_type = (data.get("IdColumnType") or "").strip()
     if id_column_type and not _COLUMN_TYPE_RE.match(id_column_type):
         errors.append(_("Id column type must be a plain SQL type name."))
+    org = (data.get("OrganizationCode") or "").strip()
+    if org and not _ORG_CODE_RE.match(org):
+        errors.append(_("Organization code must be 1-5 letters or digits."))
     return errors
+
+
+_ORG_CODE_RE = re.compile(r"^[A-Za-z0-9]{1,5}$")
+
+
+def _organization_code(data):
+    """ProcessSources.OrganizationCode (0090): the customer this source belongs to,
+    or NULL. Validated by shape here and by FK_ProcessSources_Organizations on write."""
+    return (data.get("OrganizationCode") or "").strip() or None
+
+
+def _organizations(cursor):
+    cursor.execute("SELECT organizationcode, organization FROM Organizations ORDER BY organization")
+    return [{"code": r.organizationcode, "name": r.organization} for r in cursor.fetchall()]
 
 
 def _validate_field_mapping_payload(data, client_code, process_name, field_key):
@@ -267,6 +286,21 @@ def _client_code_exists(cursor, client_code):
     cursor.execute("SELECT COUNT(*) FROM dbo.Clients WHERE ClientCode = ?", (client_code,))
     row = cursor.fetchone()
     return bool(row and row[0])
+
+
+def _organization_options():
+    """[{code, name}] for the process-source modal's Organization picker; [] when
+    the table cannot be read (the picker then offers only "unassigned")."""
+    conn = None
+    try:
+        conn = engine_nexora_db.raw_connection()
+        return _organizations(conn.cursor())
+    except Exception as e:  # degrade to an empty picker, never 500 the page
+        current_app.logger.warning(f"organizations for process-source picker unavailable: {e}")
+        return []
+    finally:
+        if conn:
+            conn.close()
 
 
 def _client_codes():
@@ -352,8 +386,9 @@ def api_admin_process_source_add():
             )
         cursor.execute(
             "INSERT INTO dbo.ProcessSources (ClientCode, ProcessName, TableName, TableAlias, "
-            "ExportColumn, ImportColumn, WorkitemColumn, IdColumnType) VALUES (?,?,?,?,?,?,?,?)",
-            (client_code, process_name, *_process_source_values(data)),
+            "ExportColumn, ImportColumn, WorkitemColumn, IdColumnType, OrganizationCode) "
+            "VALUES (?,?,?,?,?,?,?,?,?)",
+            (client_code, process_name, *_process_source_values(data), _organization_code(data)),
         )
         code = f"{_PROCESS_PERMISSION_PREFIX}{process_name}"
         cursor.execute(
@@ -405,9 +440,9 @@ def api_admin_process_source_edit(clientcode, processname):
         cursor = conn.cursor()
         cursor.execute(
             "UPDATE dbo.ProcessSources SET TableName=?, TableAlias=?, ExportColumn=?, "
-            "ImportColumn=?, WorkitemColumn=?, IdColumnType=? "
+            "ImportColumn=?, WorkitemColumn=?, IdColumnType=?, OrganizationCode=? "
             "WHERE ClientCode=? AND ProcessName=?",
-            (*_process_source_values(data), clientcode, processname),
+            (*_process_source_values(data), _organization_code(data), clientcode, processname),
         )
         conn.commit()
         if cursor.rowcount == 0:

@@ -57,7 +57,7 @@
                         <option value="{{ user.AccessProfileName }}" selected data-testid="admin-userdetail-accessprofile-current">{{ user.AccessProfileName }} ({{ _('current, not assignable') }})</option>
                         {% endif %}
                         {% for p in assignable_profiles %}
-                        <option value="{{ p.profile }}" {% if p.profile == user.AccessProfileName %}selected{% endif %}>{{ p.profile }}</option>
+                        <option value="{{ p.profile }}" data-org="{{ p.organizationcode or '' }}" {% if p.profile == user.AccessProfileName %}selected{% endif %}>{{ p.profile }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -65,7 +65,7 @@
                     <label class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta" for="fld-org">{{ _('Organization') }}</label>
                     <select id="fld-org" name="organization" class="nx-select" {% if not can_edit_user %}disabled{% endif %} data-testid="admin-userdetail-organization">
                         {% for o in organizations %}
-                        <option value="{{ o.organization }}" {% if o.organizationcode == user.organizationcode %}selected{% endif %}>{{ o.organization }}</option>
+                        <option value="{{ o.organization }}" data-code="{{ o.organizationcode }}" {% if o.organizationcode == user.organizationcode %}selected{% endif %}>{{ o.organization }}</option>
                         {% endfor %}
                     </select>
                 </div>

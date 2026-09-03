@@ -640,4 +640,23 @@
         nextBtn.addEventListener('click', () => load(currentPage + 1));
         document.addEventListener('DOMContentLoaded', () => load(1));
     })();
+
+    // 0090: a profile bound to an organization is only offered for users of that
+    // organization; global profiles (no org) always. The server re-checks on save.
+    function filterProfilesByOrg(orgId, profileId) {
+        const orgSel  = document.getElementById(orgId);
+        const profSel = document.getElementById(profileId);
+        if (!orgSel || !profSel) return;
+        const code = orgSel.selectedOptions[0]?.dataset.code || '';
+        let firstVisible = null;
+        Array.from(profSel.options).forEach(opt => {
+            const ok = !opt.dataset.org || opt.dataset.org === code;
+            opt.hidden = !ok;
+            opt.disabled = !ok;
+            if (ok && firstVisible === null) firstVisible = opt;
+        });
+        if (profSel.selectedOptions[0]?.disabled && firstVisible) profSel.value = firstVisible.value;
+    }
+    document.getElementById('fld-org')?.addEventListener('change', () => filterProfilesByOrg('fld-org', 'fld-profile'));
+    filterProfilesByOrg('fld-org', 'fld-profile');
 </script>

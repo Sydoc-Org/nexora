@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-03 13:45+0200\n"
+"POT-Creation-Date: 2026-09-03 14:21+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -631,10 +631,10 @@ msgstr ""
 msgid "Unexpected error occurred"
 msgstr "Si è verificato un errore imprevisto"
 
-#: nx_lib/views/admin/permissions.py:245 nx_lib/views/admin/permissions.py:555
-#: nx_lib/views/admin/permissions.py:597 nx_lib/views/admin/permissions.py:642
-#: nx_lib/views/admin/permissions.py:681 nx_lib/views/admin/permissions.py:718
-#: nx_lib/views/admin/permissions.py:750 nx_lib/views/dashboard.py:461
+#: nx_lib/views/admin/permissions.py:248 nx_lib/views/admin/permissions.py:581
+#: nx_lib/views/admin/permissions.py:623 nx_lib/views/admin/permissions.py:668
+#: nx_lib/views/admin/permissions.py:707 nx_lib/views/admin/permissions.py:744
+#: nx_lib/views/admin/permissions.py:776 nx_lib/views/dashboard.py:461
 #: nx_lib/views/dashboard.py:554 nx_lib/views/dashboard.py:609
 #: nx_lib/views/dashboard.py:687 nx_lib/views/workitems.py:1109
 #: nx_lib/views/workitems.py:1828 nx_lib/views/workitems.py:1830
@@ -642,11 +642,11 @@ msgstr "Si è verificato un errore imprevisto"
 msgid "Not authorized"
 msgstr "Non autorizzato"
 
-#: nx_lib/views/admin/logs.py:153 nx_lib/views/admin/organizations.py:192
-#: nx_lib/views/admin/permissions.py:586 nx_lib/views/admin/system.py:148
+#: nx_lib/views/admin/logs.py:153 nx_lib/views/admin/organizations.py:212
+#: nx_lib/views/admin/permissions.py:612 nx_lib/views/admin/system.py:148
 #: nx_lib/views/admin/system.py:189 nx_lib/views/admin/system.py:232
-#: nx_lib/views/admin/system.py:252 nx_lib/views/admin/users.py:372
-#: nx_lib/views/admin/users.py:524 nx_lib/views/dashboard.py:543
+#: nx_lib/views/admin/system.py:252 nx_lib/views/admin/users.py:402
+#: nx_lib/views/admin/users.py:554 nx_lib/views/dashboard.py:543
 #: nx_lib/views/dashboard.py:598 nx_lib/views/dashboard.py:676
 #: nx_lib/views/dashboard.py:714 nx_lib/views/generali/_crud.py:180
 #: nx_lib/views/generali/attendance.py:99
@@ -1132,9 +1132,9 @@ msgstr "%(field)s deve essere una data valida (AAAA-MM-GG)."
 msgid "%(field)s must be numeric."
 msgstr "%(field)s deve essere numerico."
 
-#: nx_lib/views/admin/clients.py:154 nx_lib/views/admin/organizations.py:106
-#: nx_lib/views/admin/processes.py:383 nx_lib/views/admin/processes.py:536
-#: nx_lib/views/admin/users.py:116 nx_lib/views/tenant.py:458
+#: nx_lib/views/admin/clients.py:154 nx_lib/views/admin/organizations.py:125
+#: nx_lib/views/admin/processes.py:418 nx_lib/views/admin/processes.py:571
+#: nx_lib/views/admin/users.py:142 nx_lib/views/tenant.py:458
 #: nx_lib/views/tenant.py:522 nx_lib/views/tenant.py:567
 #: nx_lib/views/tenant.py:602 nx_lib/views/tenant.py:641
 msgid "An unexpected error occurred."
@@ -1303,7 +1303,7 @@ msgstr "Impossibile salvare la vista."
 msgid "Could not delete the view."
 msgstr "Impossibile eliminare la vista."
 
-#: nx_lib/views/admin/clients.py:81 nx_lib/views/admin/processes.py:177
+#: nx_lib/views/admin/clients.py:81 nx_lib/views/admin/processes.py:179
 msgid "Client code must be 2-50 lowercase letters, digits or underscores."
 msgstr ""
 "Il codice cliente deve contenere 2-50 lettere minuscole, cifre o trattini"
@@ -1357,12 +1357,12 @@ msgid "Client updated successfully."
 msgstr "Cliente aggiornato con successo."
 
 #: nx_lib/views/admin/clients.py:200 nx_lib/views/admin/clients.py:245
-#: nx_lib/views/admin/organizations.py:133
-#: nx_lib/views/admin/organizations.py:165
-#: nx_lib/views/admin/organizations.py:345 nx_lib/views/admin/processes.py:419
-#: nx_lib/views/admin/processes.py:482 nx_lib/views/admin/processes.py:578
-#: nx_lib/views/admin/processes.py:607 nx_lib/views/admin/users.py:198
-#: nx_lib/views/admin/users.py:446
+#: nx_lib/views/admin/organizations.py:153
+#: nx_lib/views/admin/organizations.py:185
+#: nx_lib/views/admin/organizations.py:365 nx_lib/views/admin/processes.py:454
+#: nx_lib/views/admin/processes.py:517 nx_lib/views/admin/processes.py:613
+#: nx_lib/views/admin/processes.py:642 nx_lib/views/admin/users.py:227
+#: nx_lib/views/admin/users.py:476
 msgid "An error occurred."
 msgstr "Si è verificato un errore."
 
@@ -1376,86 +1376,93 @@ msgstr ""
 msgid "Client deleted successfully."
 msgstr "Cliente eliminato con successo."
 
-#: nx_lib/views/admin/organizations.py:86 nx_lib/views/admin/users.py:48
+#: nx_lib/views/admin/organizations.py:101 nx_lib/views/admin/users.py:71
 msgid "All fields are required."
 msgstr "Tutti i campi sono obbligatori."
 
-#: nx_lib/views/admin/organizations.py:101
+#: nx_lib/views/admin/organizations.py:120
 msgid "Organization created successfully."
 msgstr "Organizzazione creata con successo."
 
-#: nx_lib/views/admin/organizations.py:103
+#: nx_lib/views/admin/organizations.py:122
 msgid "Organization already exists."
 msgstr "L'organizzazione esiste già."
 
-#: nx_lib/views/admin/organizations.py:130
+#: nx_lib/views/admin/organizations.py:150
 msgid "Organization updated successfully."
 msgstr "Organizzazione aggiornata con successo."
 
-#: nx_lib/views/admin/organizations.py:152
-#: nx_lib/views/admin/organizations.py:271
-#: nx_lib/views/admin/organizations.py:323
-#: nx_lib/views/admin/organizations.py:330
+#: nx_lib/views/admin/organizations.py:172
+#: nx_lib/views/admin/organizations.py:291
+#: nx_lib/views/admin/organizations.py:343
+#: nx_lib/views/admin/organizations.py:350
 msgid "Organization not found."
 msgstr "Organizzazione non trovata."
 
-#: nx_lib/views/admin/organizations.py:162
+#: nx_lib/views/admin/organizations.py:182
 msgid "Organization deleted successfully."
 msgstr "Organizzazione eliminata con successo."
 
-#: nx_lib/views/admin/organizations.py:280
+#: nx_lib/views/admin/organizations.py:300
 msgid "Accent colour must be a hex value like #336699."
 msgstr "Il colore d'accento deve essere un valore esadecimale come #336699."
 
-#: nx_lib/views/admin/organizations.py:294
-#: nx_lib/views/admin/organizations.py:310
+#: nx_lib/views/admin/organizations.py:314
+#: nx_lib/views/admin/organizations.py:330
 msgid "Logo must be an SVG, PNG or JPEG image."
 msgstr "Il logo deve essere un'immagine SVG, PNG o JPEG."
 
-#: nx_lib/views/admin/organizations.py:304
-#: templates/js/admin/_organizations_js.html:275
+#: nx_lib/views/admin/organizations.py:324
+#: templates/js/admin/_organizations_js.html:279
 msgid "Logo is too large (max 512 KB)."
 msgstr "Il logo è troppo grande (max 512 KB)."
 
-#: nx_lib/views/admin/organizations.py:358
-#: templates/js/admin/_organizations_js.html:312
+#: nx_lib/views/admin/organizations.py:378
+#: templates/js/admin/_organizations_js.html:316
 msgid "Branding saved."
 msgstr "Branding salvato."
 
-#: nx_lib/views/admin/permissions.py:288
+#: nx_lib/views/admin/permissions.py:291
 msgid "Could not fetch users"
 msgstr "Impossibile recuperare gli utenti"
 
-#: nx_lib/views/admin/permissions.py:334
+#: nx_lib/views/admin/permissions.py:339
 msgid "Name is required"
 msgstr "Il nome è obbligatorio"
 
-#: nx_lib/views/admin/permissions.py:362
+#: nx_lib/views/admin/permissions.py:361
+#, python-format
+msgid "%(n)d user(s) outside %(org)s hold this profile. Move them first."
+msgstr ""
+"%(n)d utente/i al di fuori di %(org)s hanno questo profilo. Spostarli "
+"prima."
+
+#: nx_lib/views/admin/permissions.py:388
 msgid "Profile saved successfully"
 msgstr "Profilo salvato con successo"
 
-#: nx_lib/views/admin/permissions.py:541
+#: nx_lib/views/admin/permissions.py:567
 msgid "Overrides updated successfully"
 msgstr "Override aggiornati con successo"
 
-#: nx_lib/views/admin/permissions.py:606 nx_lib/views/admin/permissions.py:734
-#: nx_lib/views/admin/permissions.py:776
+#: nx_lib/views/admin/permissions.py:632 nx_lib/views/admin/permissions.py:760
+#: nx_lib/views/admin/permissions.py:802
 msgid "Permission not found"
 msgstr "Autorizzazione non trovata"
 
-#: nx_lib/views/admin/permissions.py:686 nx_lib/views/admin/permissions.py:723
+#: nx_lib/views/admin/permissions.py:712 nx_lib/views/admin/permissions.py:749
 msgid "Code and description are required"
 msgstr "Codice e descrizione sono obbligatori"
 
-#: nx_lib/views/admin/permissions.py:701
+#: nx_lib/views/admin/permissions.py:727
 msgid "Permission created successfully"
 msgstr "Autorizzazione creata con successo"
 
-#: nx_lib/views/admin/permissions.py:736
+#: nx_lib/views/admin/permissions.py:762
 msgid "Permission updated successfully"
 msgstr "Autorizzazione aggiornata con successo"
 
-#: nx_lib/views/admin/permissions.py:769
+#: nx_lib/views/admin/permissions.py:795
 #, python-format
 msgid ""
 "Cannot delete: used in %(p)d profile(s) and %(o)d override(s). Remove all"
@@ -1464,20 +1471,20 @@ msgstr ""
 "Impossibile eliminare: utilizzato in %(p)d profilo/i e %(o)d "
 "sostituzione/i. Rimuovere prima tutte le assegnazioni."
 
-#: nx_lib/views/admin/permissions.py:778
+#: nx_lib/views/admin/permissions.py:804
 msgid "Permission deleted successfully"
 msgstr "Autorizzazione eliminata con successo"
 
-#: nx_lib/views/admin/processes.py:99
+#: nx_lib/views/admin/processes.py:101
 msgid "Mapping config is currently unavailable."
 msgstr "La configurazione di mappatura non è al momento disponibile."
 
-#: nx_lib/views/admin/processes.py:163
+#: nx_lib/views/admin/processes.py:165
 #, python-format
 msgid "%(field)s is required."
 msgstr "%(field)s è obbligatorio."
 
-#: nx_lib/views/admin/processes.py:168
+#: nx_lib/views/admin/processes.py:170
 #, python-format
 msgid ""
 "%(field)s must be a plain SQL identifier (letters, digits, underscores, "
@@ -1486,7 +1493,7 @@ msgstr ""
 "%(field)s deve essere un identificatore SQL semplice (lettere, cifre, "
 "trattini bassi, punti, virgolette o parentesi)."
 
-#: nx_lib/views/admin/processes.py:181
+#: nx_lib/views/admin/processes.py:183
 msgid ""
 "Process name must be exactly <customer>.<process> -- two parts separated "
 "by a single dot (e.g. acme.01_Invoice), letters, digits, dashes or "
@@ -1499,25 +1506,29 @@ msgstr ""
 "a questo processo deriva da quelle due parti, quindi qualsiasi altra "
 "forma non potrà mai essere concessa."
 
-#: nx_lib/views/admin/processes.py:188
+#: nx_lib/views/admin/processes.py:190
 msgid "Field key must be 1-100 letters, digits, dots, dashes or underscores."
 msgstr ""
 "La chiave del campo deve contenere 1-100 lettere, cifre, punti, trattini "
 "o trattini bassi."
 
-#: nx_lib/views/admin/processes.py:203
+#: nx_lib/views/admin/processes.py:205
 msgid "Table alias must be at most 10 characters."
 msgstr "L'alias della tabella non deve superare i 10 caratteri."
 
-#: nx_lib/views/admin/processes.py:206
+#: nx_lib/views/admin/processes.py:208
 msgid "Id column type must be a plain SQL type name."
 msgstr "Il tipo della colonna Id deve essere un nome di tipo SQL semplice."
 
-#: nx_lib/views/admin/processes.py:216
+#: nx_lib/views/admin/processes.py:211
+msgid "Organization code must be 1-5 letters or digits."
+msgstr "Il codice organizzazione deve essere di 1-5 lettere o cifre."
+
+#: nx_lib/views/admin/processes.py:235
 msgid "Column type must be a plain SQL type name."
 msgstr "Il tipo di colonna deve essere un nome di tipo SQL semplice."
 
-#: nx_lib/views/admin/processes.py:327
+#: nx_lib/views/admin/processes.py:361
 #, python-format
 msgid ""
 "Unknown client code %(code)s -- it must be an existing runtime source "
@@ -1526,7 +1537,7 @@ msgstr ""
 "Codice client %(code)s sconosciuto – deve essere una sorgente runtime "
 "esistente nella pagina Clients."
 
-#: nx_lib/views/admin/processes.py:340
+#: nx_lib/views/admin/processes.py:374
 #, python-format
 msgid ""
 "Process name %(name)s collides with the existing %(other_client)s / "
@@ -1538,7 +1549,7 @@ msgstr ""
 "autorizzazione %(code)s, quindi concederne uno darebbe diritto anche "
 "all'altro. Scegliere un nome diverso."
 
-#: nx_lib/views/admin/processes.py:370
+#: nx_lib/views/admin/processes.py:405
 #, python-format
 msgid ""
 "Process source created. Its permission %(code)s was created but granted "
@@ -1547,19 +1558,19 @@ msgstr ""
 "Fonte di processo creata. Il permesso %(code)s è stato creato ma non è "
 "assegnato a nessuno -- assegnalo in Controllo accessi."
 
-#: nx_lib/views/admin/processes.py:378
+#: nx_lib/views/admin/processes.py:413
 msgid "This process source already exists."
 msgstr "Questa fonte di processo esiste già."
 
-#: nx_lib/views/admin/processes.py:414 nx_lib/views/admin/processes.py:467
+#: nx_lib/views/admin/processes.py:449 nx_lib/views/admin/processes.py:502
 msgid "Process source not found."
 msgstr "Fonte di processo non trovata."
 
-#: nx_lib/views/admin/processes.py:416
+#: nx_lib/views/admin/processes.py:451
 msgid "Process source updated successfully."
 msgstr "Fonte di processo aggiornata con successo."
 
-#: nx_lib/views/admin/processes.py:453
+#: nx_lib/views/admin/processes.py:488
 msgid ""
 "This process source still has field mappings and cannot be deleted. "
 "Remove them first."
@@ -1567,33 +1578,33 @@ msgstr ""
 "Questa fonte di processo ha ancora mappature di campo e non può essere "
 "eliminata. Rimuovile prima."
 
-#: nx_lib/views/admin/processes.py:469
+#: nx_lib/views/admin/processes.py:504
 msgid "Process source deleted successfully."
 msgstr "Fonte di processo eliminata con successo."
 
-#: nx_lib/views/admin/processes.py:475
+#: nx_lib/views/admin/processes.py:510
 msgid "This process source is still referenced and cannot be deleted."
 msgstr "Questa fonte di processo è ancora referenziata e non può essere eliminata."
 
-#: nx_lib/views/admin/processes.py:519
+#: nx_lib/views/admin/processes.py:554
 msgid "Field mapping created successfully."
 msgstr "Mappatura del campo creata con successo."
 
-#: nx_lib/views/admin/processes.py:528
+#: nx_lib/views/admin/processes.py:563
 msgid "This field mapping already exists, or its process source does not."
 msgstr ""
 "Questa mappatura del campo esiste già, oppure la sua fonte di processo "
 "non esiste."
 
-#: nx_lib/views/admin/processes.py:571 nx_lib/views/admin/processes.py:600
+#: nx_lib/views/admin/processes.py:606 nx_lib/views/admin/processes.py:635
 msgid "Field mapping not found."
 msgstr "Mappatura del campo non trovata."
 
-#: nx_lib/views/admin/processes.py:573
+#: nx_lib/views/admin/processes.py:608
 msgid "Field mapping updated successfully."
 msgstr "Mappatura del campo aggiornata con successo."
 
-#: nx_lib/views/admin/processes.py:602
+#: nx_lib/views/admin/processes.py:637
 msgid "Field mapping deleted successfully."
 msgstr "Mappatura del campo eliminata con successo."
 
@@ -1601,11 +1612,20 @@ msgstr "Mappatura del campo eliminata con successo."
 msgid "Unknown environment."
 msgstr "Ambiente sconosciuto."
 
-#: nx_lib/views/admin/users.py:56 nx_lib/views/admin/users.py:170
+#: nx_lib/views/admin/users.py:39
+#, python-format
+msgid ""
+"Profile %(profile)s belongs to organization %(org)s and cannot be "
+"assigned to a user of %(user_org)s."
+msgstr ""
+"Il profilo %(profile)s appartiene all’organizzazione %(org)s e non può "
+"essere assegnato a un utente di %(user_org)s."
+
+#: nx_lib/views/admin/users.py:79 nx_lib/views/admin/users.py:196
 msgid "Permission Denied for this action."
 msgstr "Autorizzazione negata per questa azione."
 
-#: nx_lib/views/admin/users.py:104
+#: nx_lib/views/admin/users.py:130
 msgid ""
 "User created, but the email could not be sent. Ask them to use 'Forgot "
 "password'."
@@ -1613,40 +1633,40 @@ msgstr ""
 "Utente creato, ma non è stato possibile inviare l'e-mail. Chiedigli di "
 "usare la funzione 'Password dimenticata'."
 
-#: nx_lib/views/admin/users.py:109
+#: nx_lib/views/admin/users.py:135
 msgid "User created and email sent."
 msgstr "Utente creato ed e-mail inviata."
 
-#: nx_lib/views/admin/users.py:111
-#: templates/js/admin/_access_control_js.html:554
+#: nx_lib/views/admin/users.py:137
+#: templates/js/admin/_access_control_js.html:576
 msgid "User created successfully."
 msgstr "Utente creato con successo."
 
-#: nx_lib/views/admin/users.py:113
+#: nx_lib/views/admin/users.py:139
 msgid "Username or email already exists."
 msgstr "Nome utente o e-mail già esistente."
 
-#: nx_lib/views/admin/users.py:195
+#: nx_lib/views/admin/users.py:224
 msgid "User updated successfully."
 msgstr "Utente aggiornato con successo."
 
-#: nx_lib/views/admin/users.py:392
+#: nx_lib/views/admin/users.py:422
 msgid "You cannot delete your own account."
 msgstr "Non puoi eliminare il tuo account."
 
-#: nx_lib/views/admin/users.py:438
+#: nx_lib/views/admin/users.py:468
 msgid "User not found."
 msgstr "Utente non trovato."
 
-#: nx_lib/views/admin/users.py:440
+#: nx_lib/views/admin/users.py:470
 msgid "User deleted successfully."
 msgstr "Utente eliminato con successo."
 
-#: nx_lib/views/admin/users.py:569
+#: nx_lib/views/admin/users.py:599
 msgid "Could not fetch logs"
 msgstr "Impossibile recuperare i log"
 
-#: nx_lib/views/admin/users.py:613
+#: nx_lib/views/admin/users.py:643
 msgid "Could not fetch sessions"
 msgstr "Impossibile recuperare le sessioni"
 
@@ -1700,7 +1720,7 @@ msgstr "Stato"
 msgid "Maintenance"
 msgstr "Manutenzione"
 
-#: templates/_header.html:261 templates/admin/tenants.html:77
+#: templates/_header.html:261 templates/admin/tenants.html:150
 msgid "Tenants"
 msgstr "Tenants"
 
@@ -1852,7 +1872,7 @@ msgstr "chiudi"
 msgid "Switch to user..."
 msgstr "Passa all'utente ..."
 
-#: templates/_header.html:580
+#: templates/_header.html:580 templates/admin/access_control.html:167
 msgid "Global"
 msgstr "Globale"
 
@@ -2398,9 +2418,9 @@ msgstr "Excel"
 msgid "Export"
 msgstr "Esporta"
 
-#: templates/_reporting_simple.html:177 templates/admin/access_control.html:276
-#: templates/admin/maintenance.html:114 templates/admin/processes.html:189
-#: templates/admin/processes.html:225
+#: templates/_reporting_simple.html:177 templates/admin/access_control.html:279
+#: templates/admin/maintenance.html:114 templates/admin/processes.html:208
+#: templates/admin/processes.html:244
 #: templates/generali_additionalservices.html:324
 #: templates/generali_baseservices.html:273 templates/generali_pdqm.html:348
 #: templates/generali_projectmanagement.html:259
@@ -3667,7 +3687,7 @@ msgstr "Comunicazione"
 msgid "Select all"
 msgstr "Seleziona tutto"
 
-#: templates/admin/organizations.html:80 templates/generali-dashboard.html:158
+#: templates/admin/organizations.html:84 templates/generali-dashboard.html:158
 msgid "Clear"
 msgstr "Cancella"
 
@@ -3787,7 +3807,8 @@ msgstr "Sottocategoria"
 
 #: templates/admin/access_control.html:64
 #: templates/admin/access_control.html:95
-#: templates/admin/access_control.html:211 templates/admin/logs.html:74
+#: templates/admin/access_control.html:214
+#: templates/admin/access_control.html:315 templates/admin/logs.html:74
 #: templates/admin/modals/_user_modals.html:61
 #: templates/admin/permission_matrix.html:56
 #: templates/admin/user_detail.html:65
@@ -3818,7 +3839,7 @@ msgstr "Tutte le organizzazioni"
 #: templates/generali_projectmanagement.html:124
 #: templates/generali_projectmanagement.html:172
 #: templates/generali_reporting.html:104 templates/generali_reporting.html:155
-#: templates/js/admin/_access_control_js.html:723
+#: templates/js/admin/_access_control_js.html:745
 msgid "User"
 msgstr "Utente"
 
@@ -3849,8 +3870,8 @@ msgstr "Registrato alle"
 
 #: templates/admin/access_control.html:97
 #: templates/admin/access_control.html:129 templates/admin/clients.html:57
-#: templates/admin/maintenance.html:39 templates/admin/organizations.html:34
-#: templates/admin/processes.html:77 templates/admin/sessions.html:33
+#: templates/admin/maintenance.html:39 templates/admin/organizations.html:35
+#: templates/admin/processes.html:78 templates/admin/sessions.html:33
 #: templates/generali_additionalservices.html:167
 #: templates/generali_baseservices.html:141 templates/generali_pdqm.html:165
 #: templates/generali_projectmanagement.html:129
@@ -3921,18 +3942,18 @@ msgstr "Seleziona prima la categoria principale"
 msgid "Effort (hours)"
 msgstr "Sforzo (ore)"
 
-#: templates/admin/access_control.html:228
-#: templates/admin/access_control.html:245
-#: templates/admin/access_control.html:275
-#: templates/admin/access_control.html:394 templates/admin/clients.html:101
+#: templates/admin/access_control.html:231
+#: templates/admin/access_control.html:248
+#: templates/admin/access_control.html:278
+#: templates/admin/access_control.html:407 templates/admin/clients.html:101
 #: templates/admin/clients.html:176 templates/admin/maintenance.html:113
 #: templates/admin/maintenance.html:129
 #: templates/admin/modals/_organizations_modals.html:13
-#: templates/admin/modals/_organizations_modals.html:40
+#: templates/admin/modals/_organizations_modals.html:60
 #: templates/admin/modals/_user_modals.html:13
 #: templates/admin/modals/_user_modals.html:80
-#: templates/admin/organizations.html:98 templates/admin/processes.html:122
-#: templates/admin/processes.html:188 templates/admin/processes.html:224
+#: templates/admin/organizations.html:102 templates/admin/processes.html:123
+#: templates/admin/processes.html:207 templates/admin/processes.html:243
 #: templates/admin/user_detail.html:78 templates/admin/user_detail.html:282
 #: templates/generali_additionalservices.html:261
 #: templates/generali_additionalservices.html:320
@@ -3981,9 +4002,9 @@ msgstr "Elimina voce"
 msgid "This action cannot be undone."
 msgstr "Questa azione non può essere annullata."
 
-#: templates/admin/access_control.html:246 templates/admin/clients.html:81
-#: templates/admin/maintenance.html:130 templates/admin/organizations.html:53
-#: templates/admin/processes.html:65 templates/admin/processes.html:88
+#: templates/admin/access_control.html:249 templates/admin/clients.html:81
+#: templates/admin/maintenance.html:130 templates/admin/organizations.html:57
+#: templates/admin/processes.html:66 templates/admin/processes.html:89
 #: templates/admin/user_detail.html:285
 #: templates/generali_additionalservices.html:349
 #: templates/generali_baseservices.html:298 templates/generali_pdqm.html:373
@@ -4002,7 +4023,7 @@ msgstr "Questa azione non può essere annullata."
 #: templates/js/_reporting_metrics_js.html:52
 #: templates/js/_reporting_sources_js.html:40
 #: templates/js/_tenant_page_js.html:30
-#: templates/js/admin/_access_control_js.html:649
+#: templates/js/admin/_access_control_js.html:671
 #: templates/js/admin/_maintenance_js.html:132
 #: templates/js/admin/_user_management_js.html:79 templates/reporting.html:390
 msgid "Delete"
@@ -4125,9 +4146,9 @@ msgstr "Importazioni CSV nel database dei documenti"
 #: templates/js/_generali_import_status_js.html:15
 #: templates/js/admin/_clients_js.html:109
 #: templates/js/admin/_clients_js.html:163
-#: templates/js/admin/_organizations_js.html:100
-#: templates/js/admin/_organizations_js.html:154
-#: templates/js/admin/_processes_js.html:151
+#: templates/js/admin/_organizations_js.html:104
+#: templates/js/admin/_organizations_js.html:158
+#: templates/js/admin/_processes_js.html:152
 #: templates/js/admin/_user_management_js.html:120
 #: templates/js/admin/_user_management_js.html:170
 msgid "Success"
@@ -4503,7 +4524,7 @@ msgstr "Accedi ora al tuo portale"
 msgid "Login - nexora"
 msgstr "Accesso - nexora"
 
-#: templates/admin/access_control.html:189 templates/admin/logs.html:44
+#: templates/admin/access_control.html:192 templates/admin/logs.html:44
 #: templates/admin/modals/_user_modals.html:32 templates/admin/sessions.html:29
 #: templates/admin/user_detail.html:37 templates/index.html:98
 #: templates/profile.html:137
@@ -4514,7 +4535,7 @@ msgstr "Nome utente"
 msgid "Your Username"
 msgstr "Il tuo nome utente"
 
-#: templates/admin/access_control.html:224
+#: templates/admin/access_control.html:227
 #: templates/admin/modals/_user_modals.html:71 templates/index.html:109
 #: templates/profile.html:65 templates/set_password.html:106
 msgid "Password"
@@ -4670,7 +4691,7 @@ msgid "Any"
 msgstr "Qualsiasi"
 
 #: templates/admin/clients.html:65
-#: templates/js/admin/_access_control_js.html:699
+#: templates/js/admin/_access_control_js.html:721
 #: templates/prepared_documents.html:94 templates/prepared_documents.html:109
 msgid "Yes"
 msgstr "Sì"
@@ -4688,8 +4709,9 @@ msgstr "Preparato"
 msgid "Group by"
 msgstr "Raggruppa per"
 
-#: templates/admin/access_control.html:333 templates/admin/user_detail.html:156
-#: templates/prepared_documents.html:123
+#: templates/admin/access_control.html:346
+#: templates/admin/modals/_organizations_modals.html:50
+#: templates/admin/user_detail.html:156 templates/prepared_documents.html:123
 msgid "None"
 msgstr "Nessuno"
 
@@ -4715,7 +4737,7 @@ msgstr "Applica"
 msgid "Octo status"
 msgstr "Stato Octo"
 
-#: templates/admin/organizations.html:89 templates/prepared_documents.html:204
+#: templates/admin/organizations.html:93 templates/prepared_documents.html:204
 msgid "Preview"
 msgstr "Anteprima"
 
@@ -4789,7 +4811,7 @@ msgid "Settings sections"
 msgstr "Sezioni delle impostazioni"
 
 #: templates/admin/access_control.html:55 templates/admin/user_detail.html:29
-#: templates/js/admin/_access_control_js.html:724
+#: templates/js/admin/_access_control_js.html:746
 #: templates/js/admin/_user_detail_js.html:335 templates/profile.html:60
 msgid "Profile"
 msgstr "Profilo"
@@ -4814,7 +4836,7 @@ msgstr "JPG o PNG · le immagini quadrate sono le più adatte"
 msgid "Your username cannot be changed."
 msgstr "Il nome utente non può essere modificato."
 
-#: templates/admin/access_control.html:193
+#: templates/admin/access_control.html:196
 #: templates/admin/modals/_user_modals.html:39
 #: templates/admin/user_detail.html:41 templates/profile.html:143
 msgid "Full name"
@@ -4996,7 +5018,7 @@ msgstr ""
 
 #: templates/admin/permission_matrix.html:57
 #: templates/admin/user_detail.html:124
-#: templates/js/admin/_access_control_js.html:725 templates/reporting.html:359
+#: templates/js/admin/_access_control_js.html:747 templates/reporting.html:359
 #: templates/reporting_metrics.html:41 templates/reporting_metrics.html:53
 msgid "Source"
 msgstr "Origine"
@@ -5463,7 +5485,7 @@ msgstr "Predefinite integrate"
 msgid "Kind"
 msgstr "Tipo"
 
-#: templates/admin/access_control.html:332 templates/admin/user_detail.html:123
+#: templates/admin/access_control.html:345 templates/admin/user_detail.html:123
 #: templates/admin/user_detail.html:155 templates/reporting_sources.html:42
 #: templates/reporting_sources.html:53 templates/reporting_sources.html:67
 msgid "Permission"
@@ -5823,7 +5845,7 @@ msgstr "Controllo accessi - nexora"
 msgid "Users, permissions and access profiles"
 msgstr "Utenti, permessi e profili d'accesso"
 
-#: templates/admin/access_control.html:29
+#: templates/admin/access_control.html:29 templates/admin/tenants.html:129
 msgid "Users"
 msgstr "Utenti"
 
@@ -5848,12 +5870,12 @@ msgid "Clear filters"
 msgstr "Cancella filtri"
 
 #: templates/admin/access_control.html:82
-#: templates/admin/access_control.html:180
+#: templates/admin/access_control.html:183
 msgid "Add User"
 msgstr "Aggiungi utente"
 
 #: templates/admin/access_control.html:94
-#: templates/admin/access_control.html:203
+#: templates/admin/access_control.html:206
 #: templates/admin/modals/_user_modals.html:51
 msgid "Access Profile"
 msgstr "Profilo di accesso"
@@ -5867,7 +5889,7 @@ msgstr "Override"
 #: templates/admin/access_control.html:133 templates/admin/logs.html:106
 #: templates/admin/sessions.html:36 templates/admin/user_detail.html:128
 #: templates/admin/user_detail.html:232
-#: templates/js/admin/_access_control_js.html:683
+#: templates/js/admin/_access_control_js.html:705
 #: templates/js/admin/_permission_matrix_js.html:43
 #: templates/js/admin/_permission_matrix_js.html:70
 #: templates/js/admin/_sessions_js.html:37
@@ -5881,14 +5903,14 @@ msgid "Search permissions..."
 msgstr "Cerca permessi..."
 
 #: templates/admin/access_control.html:116
-#: templates/admin/access_control.html:258
-#: templates/js/admin/_access_control_js.html:741
+#: templates/admin/access_control.html:261
+#: templates/js/admin/_access_control_js.html:763
 msgid "Add Permission"
 msgstr "Aggiungi permesso"
 
 #: templates/admin/access_control.html:126
-#: templates/admin/access_control.html:270
-#: templates/admin/access_control.html:308
+#: templates/admin/access_control.html:273
+#: templates/admin/access_control.html:311
 msgid "Description"
 msgstr "Descrizione"
 
@@ -5905,13 +5927,13 @@ msgid "Add Profile"
 msgstr "Aggiungi profilo"
 
 #: templates/admin/access_control.html:158 templates/admin/clients.html:80
-#: templates/admin/organizations.html:49 templates/admin/processes.html:63
-#: templates/admin/processes.html:87
+#: templates/admin/organizations.html:53 templates/admin/processes.html:64
+#: templates/admin/processes.html:88
 #: templates/js/_reporting_dashboard_js.html:7
 #: templates/js/_reporting_metrics_js.html:48
 #: templates/js/_reporting_sources_js.html:36
 #: templates/js/_tenant_page_js.html:29
-#: templates/js/admin/_access_control_js.html:646
+#: templates/js/admin/_access_control_js.html:668
 #: templates/js/admin/_maintenance_js.html:126
 #: templates/js/admin/_user_management_js.html:78
 msgid "Edit"
@@ -5921,50 +5943,60 @@ msgstr "Modifica"
 msgid "user(s)"
 msgstr "utente/i"
 
-#: templates/admin/access_control.html:198
+#: templates/admin/access_control.html:201
 #: templates/admin/modals/_user_modals.html:45
 #: templates/admin/user_detail.html:45
 msgid "Email"
 msgstr "E-mail"
 
-#: templates/admin/access_control.html:221
+#: templates/admin/access_control.html:224
 msgid "Email the user a link to set their own password"
 msgstr "Invia all'utente un link per impostare la propria password"
 
-#: templates/admin/access_control.html:229
+#: templates/admin/access_control.html:232
 msgid "Create"
 msgstr "Crea"
 
-#: templates/admin/access_control.html:242
+#: templates/admin/access_control.html:245
 msgid "Confirm Delete"
 msgstr "Conferma eliminazione"
 
-#: templates/admin/access_control.html:266
+#: templates/admin/access_control.html:269
 msgid "Permission Code"
 msgstr "Codice del permesso"
 
-#: templates/admin/access_control.html:271
+#: templates/admin/access_control.html:274
 msgid "Short description"
 msgstr "Descrizione breve"
 
-#: templates/admin/access_control.html:304
+#: templates/admin/access_control.html:307
 msgid "Profile Name"
 msgstr "Nome profilo"
 
-#: templates/admin/access_control.html:320 templates/admin/user_detail.html:115
+#: templates/admin/access_control.html:317
+msgid "Global (any organization)"
+msgstr "Globale (qualsiasi organizzazione)"
+
+#: templates/admin/access_control.html:322
+msgid "A bound profile can only be assigned to users of that organization."
+msgstr ""
+"Un profilo vincolato può essere assegnato solo agli utenti di "
+"quell’organizzazione."
+
+#: templates/admin/access_control.html:333 templates/admin/user_detail.html:115
 #: templates/admin/user_detail.html:148
 msgid "Filter permissions..."
 msgstr "Filtra permessi..."
 
-#: templates/admin/access_control.html:334 templates/admin/user_detail.html:157
+#: templates/admin/access_control.html:347 templates/admin/user_detail.html:157
 msgid "Deny"
 msgstr "Nega"
 
-#: templates/admin/access_control.html:335 templates/admin/user_detail.html:158
+#: templates/admin/access_control.html:348 templates/admin/user_detail.html:158
 msgid "Allow"
 msgstr "Consenti"
 
-#: templates/admin/access_control.html:395
+#: templates/admin/access_control.html:408
 msgid "Save Changes"
 msgstr "Salva modifiche"
 
@@ -6009,7 +6041,7 @@ msgid "Database health"
 msgstr "Stato del database"
 
 #: templates/admin/admin_overview.html:79
-#: templates/js/admin/_access_control_js.html:215
+#: templates/js/admin/_access_control_js.html:217
 msgid "users"
 msgstr "utenti"
 
@@ -6152,25 +6184,25 @@ msgid "Display name"
 msgstr "Nome visualizzato"
 
 #: templates/admin/clients.html:53 templates/admin/clients.html:123
-#: templates/admin/tenants.html:62
+#: templates/admin/tenants.html:65
 msgid "Dialect"
 msgstr "Dialetto"
 
-#: templates/admin/clients.html:54 templates/admin/tenants.html:63
+#: templates/admin/clients.html:54 templates/admin/tenants.html:66
 msgid "Runtime engine"
 msgstr "Motore di runtime"
 
 #: templates/admin/clients.html:55 templates/admin/clients.html:172
 #: templates/admin/maintenance.html:38 templates/admin/maintenance.html:95
-#: templates/admin/tenants.html:110
+#: templates/admin/tenants.html:175
 msgid "Active"
 msgstr "Attivo"
 
-#: templates/admin/clients.html:56 templates/admin/tenants.html:64
+#: templates/admin/clients.html:56 templates/admin/tenants.html:67
 msgid "Runtime state"
 msgstr "Stato runtime"
 
-#: templates/admin/clients.html:71 templates/admin/tenants.html:67
+#: templates/admin/clients.html:71 templates/admin/tenants.html:70
 msgid "Loaded"
 msgstr "Caricato"
 
@@ -6188,7 +6220,7 @@ msgstr ""
 "riuscito a caricarsi all'avvio. Nulla viene instradato verso di essa "
 "finché il problema non è risolto e l'app pool riciclato."
 
-#: templates/admin/clients.html:74 templates/admin/tenants.html:69
+#: templates/admin/clients.html:74 templates/admin/tenants.html:72
 msgid "Configured, not loaded"
 msgstr "Configurato, non caricato"
 
@@ -6199,7 +6231,7 @@ msgstr "Elimina cliente"
 #: templates/admin/clients.html:102
 #: templates/admin/modals/_organizations_modals.html:16
 #: templates/admin/modals/_user_modals.html:16
-#: templates/admin/processes.html:123
+#: templates/admin/processes.html:124
 msgid "Confirm"
 msgstr "Conferma"
 
@@ -6425,15 +6457,21 @@ msgstr "Aggiungi cliente"
 msgid "Search customers..."
 msgstr "Cerca clienti..."
 
+#: templates/admin/modals/_organizations_modals.html:39
 #: templates/admin/organizations.html:33
 msgid "Tenant"
 msgstr "Tenant"
 
-#: templates/admin/organizations.html:51 templates/admin/organizations.html:65
+#: templates/admin/modals/_organizations_modals.html:48
+#: templates/admin/organizations.html:34 templates/admin/tenants.html:137
+msgid "Data connection"
+msgstr "Connessione dati"
+
+#: templates/admin/organizations.html:55 templates/admin/organizations.html:69
 msgid "Branding"
 msgstr "Branding"
 
-#: templates/admin/organizations.html:66
+#: templates/admin/organizations.html:70
 msgid ""
 "Applies to this customer organization and everyone in it. Leave a field "
 "empty to fall back to nexora branding."
@@ -6441,27 +6479,27 @@ msgstr ""
 "Si applica a questa organizzazione cliente e a tutti i suoi membri. "
 "Lasciare un campo vuoto per tornare al branding nexora."
 
-#: templates/admin/organizations.html:72
+#: templates/admin/organizations.html:76
 msgid "Brand name"
 msgstr "Nome del marchio"
 
-#: templates/admin/organizations.html:76
+#: templates/admin/organizations.html:80
 msgid "Accent colour"
 msgstr "Colore d'accento"
 
-#: templates/admin/organizations.html:84
+#: templates/admin/organizations.html:88
 msgid "Logo"
 msgstr "Logo"
 
-#: templates/admin/organizations.html:86
+#: templates/admin/organizations.html:90
 msgid "SVG, PNG or JPEG, up to 512 KB."
 msgstr "SVG, PNG o JPEG, fino a 512 KB."
 
-#: templates/admin/organizations.html:92
+#: templates/admin/organizations.html:96
 msgid "Logo preview"
 msgstr "Anteprima del logo"
 
-#: templates/admin/organizations.html:99
+#: templates/admin/organizations.html:103
 msgid "Save branding"
 msgstr "Salva branding"
 
@@ -6565,51 +6603,56 @@ msgstr "Cerca cliente o processo..."
 msgid "Table:"
 msgstr "Tabella:"
 
-#: templates/admin/processes.html:64
+#: templates/admin/processes.html:60 templates/admin/processes.html:160
+#: templates/admin/processes.html:169
+msgid "Organization (customer)"
+msgstr "Organizzazione (cliente)"
+
+#: templates/admin/processes.html:65
 msgid "Add field"
 msgstr "Aggiungi campo"
 
-#: templates/admin/processes.html:74
+#: templates/admin/processes.html:75
 msgid "Field key"
 msgstr "Chiave del campo"
 
-#: templates/admin/processes.html:75
+#: templates/admin/processes.html:76
 msgid "Column"
 msgstr "Colonna"
 
-#: templates/admin/processes.html:76
+#: templates/admin/processes.html:77
 msgid "Column type"
 msgstr "Tipo di colonna"
 
-#: templates/admin/processes.html:93
+#: templates/admin/processes.html:94
 msgid "No field mappings for this process."
 msgstr "Nessuna mappatura dei campi per questo processo."
 
-#: templates/admin/processes.html:104
+#: templates/admin/processes.html:105
 msgid "No process sources configured."
 msgstr "Nessuna fonte di processo configurata."
 
-#: templates/admin/processes.html:117
+#: templates/admin/processes.html:118
 msgid "Confirm deletion"
 msgstr "Conferma eliminazione"
 
-#: templates/admin/processes.html:130 templates/js/admin/_processes_js.html:83
+#: templates/admin/processes.html:131 templates/js/admin/_processes_js.html:83
 msgid "Add a process source"
 msgstr "Aggiungi una fonte di processo"
 
-#: templates/admin/processes.html:137 templates/admin/processes.html:203
+#: templates/admin/processes.html:138 templates/admin/processes.html:222
 msgid "Client Code (runtime source)"
 msgstr "Codice cliente (fonte di runtime)"
 
-#: templates/admin/processes.html:145
+#: templates/admin/processes.html:146
 msgid "Select a client..."
 msgstr "Seleziona un client..."
 
-#: templates/admin/processes.html:155 templates/admin/processes.html:207
+#: templates/admin/processes.html:156 templates/admin/processes.html:226
 msgid "Process Name"
 msgstr "Nome del processo"
 
-#: templates/admin/processes.html:156
+#: templates/admin/processes.html:157
 msgid ""
 "Exactly <customer>.<process> -- two parts separated by a single dot, e.g."
 " acme.01_Invoice."
@@ -6617,31 +6660,35 @@ msgstr ""
 "Esattamente <cliente>.<processo> – due parti separate da un solo punto, "
 "ad es. acme.01_Invoice."
 
-#: templates/admin/processes.html:159
+#: templates/admin/processes.html:162 templates/admin/processes.html:171
+msgid "Unassigned"
+msgstr "Non assegnato"
+
+#: templates/admin/processes.html:178
 msgid "Table Name"
 msgstr "Nome della tabella"
 
-#: templates/admin/processes.html:163
+#: templates/admin/processes.html:182
 msgid "Table Alias (optional)"
 msgstr "Alias della tabella (opzionale)"
 
-#: templates/admin/processes.html:167
+#: templates/admin/processes.html:186
 msgid "Export Column (optional)"
 msgstr "Colonna di esportazione (opzionale)"
 
-#: templates/admin/processes.html:171
+#: templates/admin/processes.html:190
 msgid "Import Column (optional)"
 msgstr "Colonna di importazione (opzionale)"
 
-#: templates/admin/processes.html:175
+#: templates/admin/processes.html:194
 msgid "Workitem Column (optional)"
 msgstr "Colonna workitem (opzionale)"
 
-#: templates/admin/processes.html:179
+#: templates/admin/processes.html:198
 msgid "Id Column Type (optional)"
 msgstr "Tipo della colonna Id (opzionale)"
 
-#: templates/admin/processes.html:185
+#: templates/admin/processes.html:204
 msgid ""
 "Join condition, time filters and extra condition are free-form SQL and "
 "are not editable here -- change them with a migration."
@@ -6650,19 +6697,19 @@ msgstr ""
 " SQL libero e non sono modificabili qui -- modificali tramite una "
 "migrazione."
 
-#: templates/admin/processes.html:197 templates/js/admin/_processes_js.html:112
+#: templates/admin/processes.html:216 templates/js/admin/_processes_js.html:113
 msgid "Add a field mapping"
 msgstr "Aggiungi una mappatura del campo"
 
-#: templates/admin/processes.html:211
+#: templates/admin/processes.html:230
 msgid "Field Key"
 msgstr "Chiave del campo"
 
-#: templates/admin/processes.html:215
+#: templates/admin/processes.html:234
 msgid "Column Name"
 msgstr "Nome della colonna"
 
-#: templates/admin/processes.html:219
+#: templates/admin/processes.html:238
 msgid "Column Type (optional)"
 msgstr "Tipo di colonna (opzionale)"
 
@@ -6890,38 +6937,75 @@ msgstr "Nessun incidente registrato."
 msgid "Tenants - nexora"
 msgstr "Tenants - nexora"
 
-#: templates/admin/tenants.html:31
+#: templates/admin/tenants.html:34
 msgid "No users"
 msgstr "Nessun utente"
 
-#: templates/admin/tenants.html:35
-msgid "Access profiles:"
-msgstr "Profili di accesso:"
+#: templates/admin/tenants.html:46
+msgid "No profile bound to this organization"
+msgstr "Nessun profilo vincolato a questa organizzazione"
 
 #: templates/admin/tenants.html:50
+msgid "Global profiles in use:"
+msgstr "Profili globali in uso:"
+
+#: templates/admin/tenants.html:58
+msgid "Requires admin.view.clients"
+msgstr "Richiede admin.view.clients"
+
+#: templates/admin/tenants.html:77
+#, python-format
+msgid "Client %(code)s is missing"
+msgstr "Il client %(code)s manca"
+
+#: templates/admin/tenants.html:79
+msgid "No data connection"
+msgstr "Nessuna connessione dati"
+
+#: templates/admin/tenants.html:92
 #, python-format
 msgid "%(num)d field"
 msgid_plural "%(num)d fields"
 msgstr[0] "%(num)d campo"
 msgstr[1] "%(num)d campi"
 
-#: templates/admin/tenants.html:56
-msgid "No process sources"
-msgstr "Nessuna fonte di processo"
+#: templates/admin/tenants.html:103
+msgid "Requires admin.view.processes"
+msgstr "Richiede admin.view.processes"
 
-#: templates/admin/tenants.html:78
+#: templates/admin/tenants.html:105
+msgid "Mapping configuration unavailable"
+msgstr "Configurazione di mappatura non disponibile"
+
+#: templates/admin/tenants.html:108
+msgid "No process configuration assigned"
+msgstr "Nessuna configurazione di processo assegnata"
+
+#: templates/admin/tenants.html:109
+msgid "Open Process Configurations"
+msgstr "Apri Configurazioni di processo"
+
+#: templates/admin/tenants.html:133
+msgid "Access profiles"
+msgstr "Profili di accesso"
+
+#: templates/admin/tenants.html:141
+msgid "Process configurations"
+msgstr "Configurazioni di processo"
+
+#: templates/admin/tenants.html:151
 msgid ""
-"Each tenant with its customer and users, its data connection, its process"
-" configurations and its pages"
+"Each tenant with its organizations, and per organization its users, "
+"access profiles, data connection and process configurations"
 msgstr ""
-"Ogni tenant con il suo cliente e i relativi utenti, la sua connessione "
-"dati, le sue configurazioni di processo e le sue pagine"
+"Ogni tenant con le sue organizzazioni e, per organizzazione, i relativi "
+"utenti, profili di accesso, connessione dati e configurazioni di processo"
 
-#: templates/admin/tenants.html:85
+#: templates/admin/tenants.html:158
 msgid "Tenant registry unavailable"
 msgstr "Registro dei tenant non disponibile"
 
-#: templates/admin/tenants.html:86
+#: templates/admin/tenants.html:159
 msgid ""
 "dbo.Tenants could not be read, so no tenant is shown below -- only the "
 "customers and connections that exist regardless. Check app.log."
@@ -6930,95 +7014,72 @@ msgstr ""
 "alcun tenant -- solo i clienti e le connessioni che esistono comunque. "
 "Vedi app.log."
 
-#: templates/admin/tenants.html:90
-msgid "Search tenant, customer, user, connection or process..."
-msgstr "Cerca tenant, cliente, utente, connessione o processo..."
+#: templates/admin/tenants.html:163
+msgid "Search tenant, customer, user, profile, connection or process..."
+msgstr "Cerca tenant, cliente, utente, profilo, connessione o processo..."
 
-#: templates/admin/tenants.html:110
+#: templates/admin/tenants.html:175
 msgid "Inactive"
 msgstr "Inattivo"
 
-#: templates/admin/tenants.html:111
+#: templates/admin/tenants.html:176
+#, python-format
+msgid "%(num)d organization"
+msgid_plural "%(num)d organizations"
+msgstr[0] "%(num)d organizzazione"
+msgstr[1] "%(num)d organizzazioni"
+
+#: templates/admin/tenants.html:177
 msgid "Permission that grants access to this tenant's pages"
 msgstr "Permesso che concede l’accesso alle pagine di questo tenant"
 
-#: templates/admin/tenants.html:117
-msgid "Customer"
-msgstr "Cliente"
+#: templates/admin/tenants.html:184
+msgid ""
+"No organization belongs to this tenant yet -- assign one on the Customers"
+" page."
+msgstr ""
+"Nessuna organizzazione appartiene ancora a questo tenant -- assegnarne "
+"una nella pagina Clienti."
 
-#: templates/admin/tenants.html:125
-#, python-format
-msgid "Organization %(code)s is missing"
-msgstr "L’organizzazione %(code)s manca"
-
-#: templates/admin/tenants.html:130
-msgid "Data connection"
-msgstr "Connessione dati"
-
-#: templates/admin/tenants.html:132 templates/admin/tenants.html:207
-msgid "Requires admin.view.clients"
-msgstr "Richiede admin.view.clients"
-
-#: templates/admin/tenants.html:140
-#, python-format
-msgid "Client %(code)s is missing"
-msgstr "Il client %(code)s manca"
-
-#: templates/admin/tenants.html:145 templates/admin/tenants.html:217
-msgid "Process configurations"
-msgstr "Configurazioni di processo"
-
-#: templates/admin/tenants.html:147
-msgid "Requires admin.view.processes"
-msgstr "Richiede admin.view.processes"
-
-#: templates/admin/tenants.html:149
-msgid "Mapping configuration unavailable"
-msgstr "Configurazione di mappatura non disponibile"
-
-#: templates/admin/tenants.html:152
-msgid "Open Process Configurations"
-msgstr "Apri Configurazioni di processo"
-
-#: templates/admin/tenants.html:160
+#: templates/admin/tenants.html:188
 msgid "Pages"
 msgstr "Pagine"
 
-#: templates/admin/tenants.html:168
+#: templates/admin/tenants.html:196
 msgid "No pages"
 msgstr "Nessuna pagina"
 
-#: templates/admin/tenants.html:176
+#: templates/admin/tenants.html:204
 msgid ""
-"No tenants yet. A tenant pairs a customer with a data connection; today "
-"they are created by migration."
+"No tenants yet. A tenant groups customer organizations; today tenants are"
+" created by migration."
 msgstr ""
-"Ancora nessun tenant. Un tenant abbina un cliente a una connessione dati;"
-" oggi vengono creati tramite migrazione."
+"Ancora nessun tenant. Un tenant raggruppa organizzazioni clienti; oggi i "
+"tenant vengono creati tramite migrazione."
 
-#: templates/admin/tenants.html:182
-msgid "Not in a tenant"
-msgstr "Non in un tenant"
+#: templates/admin/tenants.html:210
+msgid "Customers not in a tenant"
+msgstr "Clienti non in un tenant"
 
-#: templates/admin/tenants.html:185
-msgid "Customers without a tenant"
-msgstr "Clienti senza tenant"
+#: templates/admin/tenants.html:219
+msgid "Shared across organizations"
+msgstr "Condiviso tra le organizzazioni"
 
-#: templates/admin/tenants.html:194
-msgid "Process sources named after this customer:"
-msgstr "Fonti di processo intitolate a questo cliente:"
+#: templates/admin/tenants.html:223
+msgid "Data connections no customer rides"
+msgstr "Connessioni dati non usate da alcun cliente"
 
-#: templates/admin/tenants.html:200
-msgid "Every customer belongs to a tenant."
-msgstr "Ogni cliente appartiene a un tenant."
+#: templates/admin/tenants.html:228
+msgid "Process configurations not assigned to a customer"
+msgstr "Configurazioni di processo non assegnate a un cliente"
 
-#: templates/admin/tenants.html:205
-msgid "Data connections without a tenant"
-msgstr "Connessioni dati senza tenant"
+#: templates/admin/tenants.html:237
+msgid "Global access profiles"
+msgstr "Profili di accesso globali"
 
-#: templates/admin/tenants.html:222
-msgid "Every data connection belongs to a tenant."
-msgstr "Ogni connessione dati appartiene a un tenant."
+#: templates/admin/tenants.html:238
+msgid "Not bound to an organization -- assignable to any user."
+msgstr "Non vincolati a un’organizzazione -- assegnabili a qualsiasi utente."
 
 #: templates/admin/user_detail.html:8
 msgid "User detail"
@@ -7105,6 +7166,7 @@ msgid "Delete Customer"
 msgstr "Elimina cliente"
 
 #: templates/admin/modals/_organizations_modals.html:26
+#: templates/js/admin/_organizations_js.html:55
 msgid "Add a new Customer"
 msgstr "Aggiungi nuovo cliente"
 
@@ -7112,7 +7174,11 @@ msgstr "Aggiungi nuovo cliente"
 msgid "Organization Name"
 msgstr "Nome organizzazione"
 
-#: templates/admin/modals/_organizations_modals.html:42
+#: templates/admin/modals/_organizations_modals.html:41
+msgid "Not in a tenant"
+msgstr "Non in un tenant"
+
+#: templates/admin/modals/_organizations_modals.html:62
 msgid "Save Customer"
 msgstr "Salva cliente"
 
@@ -7575,10 +7641,10 @@ msgid "Hide query"
 msgstr "Nascondi query"
 
 #: templates/js/_reporting_ai_js.html:43
-#: templates/js/admin/_access_control_js.html:306
-#: templates/js/admin/_access_control_js.html:560
-#: templates/js/admin/_access_control_js.html:783
-#: templates/js/admin/_access_control_js.html:799
+#: templates/js/admin/_access_control_js.html:309
+#: templates/js/admin/_access_control_js.html:582
+#: templates/js/admin/_access_control_js.html:805
+#: templates/js/admin/_access_control_js.html:821
 #: templates/js/admin/_user_detail_js.html:62
 #: templates/js/admin/_user_detail_js.html:166
 #: templates/js/admin/_user_detail_js.html:288
@@ -8614,10 +8680,10 @@ msgstr "{start}-{end} di {total}"
 
 #: templates/js/_tenant_page_js.html:33 templates/js/admin/_clients_js.html:116
 #: templates/js/admin/_clients_js.html:170
-#: templates/js/admin/_organizations_js.html:107
-#: templates/js/admin/_organizations_js.html:161
-#: templates/js/admin/_organizations_js.html:318
-#: templates/js/admin/_processes_js.html:161
+#: templates/js/admin/_organizations_js.html:111
+#: templates/js/admin/_organizations_js.html:165
+#: templates/js/admin/_organizations_js.html:322
+#: templates/js/admin/_processes_js.html:162
 #: templates/js/admin/_user_management_js.html:127
 #: templates/js/admin/_user_management_js.html:177
 msgid "An unexpected network error occurred."
@@ -8814,138 +8880,138 @@ msgstr "Crea nuovo profilo di accesso"
 msgid "will affect 0 users (new profile)"
 msgstr "interesserà 0 utenti (nuovo profilo)"
 
-#: templates/js/admin/_access_control_js.html:210
+#: templates/js/admin/_access_control_js.html:211
 msgid "Edit Profile:"
 msgstr "Modifica profilo:"
 
-#: templates/js/admin/_access_control_js.html:210
+#: templates/js/admin/_access_control_js.html:211
 msgid "Adjust permissions assigned to this profile"
 msgstr "Regola i permessi assegnati a questo profilo"
 
-#: templates/js/admin/_access_control_js.html:215
+#: templates/js/admin/_access_control_js.html:217
 msgid "will affect"
 msgstr "interesserà"
 
-#: templates/js/admin/_access_control_js.html:215
+#: templates/js/admin/_access_control_js.html:217
 msgid "user"
 msgstr "utente"
 
-#: templates/js/admin/_access_control_js.html:237
+#: templates/js/admin/_access_control_js.html:239
 msgid "Overrides for"
 msgstr "Sostituzioni per"
 
-#: templates/js/admin/_access_control_js.html:238
+#: templates/js/admin/_access_control_js.html:240
 msgid "Overrides take priority over the user's access profile"
 msgstr "Le sostituzioni hanno priorità sul profilo d'accesso dell'utente"
 
-#: templates/js/admin/_access_control_js.html:243
+#: templates/js/admin/_access_control_js.html:245
 msgid "will affect 1 user:"
 msgstr "interesserà 1 utente:"
 
-#: templates/js/admin/_access_control_js.html:385
+#: templates/js/admin/_access_control_js.html:388
 msgid "Cannot activate"
 msgstr "Impossibile attivare"
 
-#: templates/js/admin/_access_control_js.html:385
+#: templates/js/admin/_access_control_js.html:388
 msgid "Enable at least one process filter first."
 msgstr "Abilita prima almeno un filtro di processo."
 
-#: templates/js/admin/_access_control_js.html:412
+#: templates/js/admin/_access_control_js.html:415
 msgid "Auto-enabled"
 msgstr "Abilitato automaticamente"
 
-#: templates/js/admin/_access_control_js.html:415
+#: templates/js/admin/_access_control_js.html:418
 msgid "Auto-denied"
 msgstr "Negato automaticamente"
 
-#: templates/js/admin/_access_control_js.html:445
-#: templates/js/admin/_access_control_js.html:575
-#: templates/js/admin/_access_control_js.html:734
+#: templates/js/admin/_access_control_js.html:448
+#: templates/js/admin/_access_control_js.html:597
+#: templates/js/admin/_access_control_js.html:756
 msgid "Error loading data."
 msgstr "Errore nel caricamento dei dati."
 
-#: templates/js/admin/_access_control_js.html:452
+#: templates/js/admin/_access_control_js.html:455
 msgid "No users found."
 msgstr "Nessun utente trovato."
 
-#: templates/js/admin/_access_control_js.html:460
+#: templates/js/admin/_access_control_js.html:463
 msgid "overrides"
 msgstr "sostituzioni"
 
-#: templates/js/admin/_access_control_js.html:461
+#: templates/js/admin/_access_control_js.html:464
 msgid "default"
 msgstr "predefinito"
 
-#: templates/js/admin/_access_control_js.html:548
+#: templates/js/admin/_access_control_js.html:570
 msgid "You do not have permission to create users."
 msgstr "Non hai i permessi per creare utenti."
 
-#: templates/js/admin/_access_control_js.html:557
+#: templates/js/admin/_access_control_js.html:579
 #: templates/js/admin/_clients_js.html:112
 #: templates/js/admin/_clients_js.html:166
-#: templates/js/admin/_organizations_js.html:103
-#: templates/js/admin/_organizations_js.html:157
-#: templates/js/admin/_organizations_js.html:314
-#: templates/js/admin/_processes_js.html:157
+#: templates/js/admin/_organizations_js.html:107
+#: templates/js/admin/_organizations_js.html:161
+#: templates/js/admin/_organizations_js.html:318
+#: templates/js/admin/_processes_js.html:158
 #: templates/js/admin/_user_management_js.html:123
 #: templates/js/admin/_user_management_js.html:173
 msgid "Error:"
 msgstr "Errore:"
 
-#: templates/js/admin/_access_control_js.html:601
+#: templates/js/admin/_access_control_js.html:623
 msgid "No permissions found."
 msgstr "Nessun permesso trovato."
 
-#: templates/js/admin/_access_control_js.html:700
+#: templates/js/admin/_access_control_js.html:722
 #: templates/js/admin/_user_detail_js.html:396
 msgid "Denied"
 msgstr "Negato"
 
-#: templates/js/admin/_access_control_js.html:710
+#: templates/js/admin/_access_control_js.html:732
 msgid "No users have this permission assigned."
 msgstr "A nessun utente è assegnato questo permesso."
 
-#: templates/js/admin/_access_control_js.html:715
+#: templates/js/admin/_access_control_js.html:737
 msgid "Users with this permission"
 msgstr "Utenti con questo permesso"
 
-#: templates/js/admin/_access_control_js.html:716
+#: templates/js/admin/_access_control_js.html:738
 msgid "explicitly denied"
 msgstr "esplicitamente negato"
 
-#: templates/js/admin/_access_control_js.html:726
+#: templates/js/admin/_access_control_js.html:748
 msgid "Has Permission"
 msgstr "Ha il permesso"
 
-#: templates/js/admin/_access_control_js.html:751
+#: templates/js/admin/_access_control_js.html:773
 msgid "Edit Permission"
 msgstr "Modifica permesso"
 
-#: templates/js/admin/_access_control_js.html:765
+#: templates/js/admin/_access_control_js.html:787
 msgid "Code and description are required."
 msgstr "Codice e descrizione sono obbligatori."
 
-#: templates/js/admin/_access_control_js.html:790
+#: templates/js/admin/_access_control_js.html:812
 msgid "Are you sure you want to delete"
 msgstr "Sei sicuro di voler eliminare"
 
-#: templates/js/admin/_access_control_js.html:809
+#: templates/js/admin/_access_control_js.html:831
 msgid "Override Allow"
 msgstr "Sostituzione · Consenti"
 
-#: templates/js/admin/_access_control_js.html:810
+#: templates/js/admin/_access_control_js.html:832
 msgid "Override Deny"
 msgstr "Sostituzione · Nega"
 
-#: templates/js/admin/_access_control_js.html:811
+#: templates/js/admin/_access_control_js.html:833
 msgid "Profile Allow"
 msgstr "Profilo · Consenti"
 
-#: templates/js/admin/_access_control_js.html:812
+#: templates/js/admin/_access_control_js.html:834
 msgid "Profile Deny"
 msgstr "Profilo · Nega"
 
-#: templates/js/admin/_access_control_js.html:813
+#: templates/js/admin/_access_control_js.html:835
 msgid "No assignment"
 msgstr "Nessuna assegnazione"
 
@@ -8954,9 +9020,9 @@ msgid "Edit Client"
 msgstr "Modifica cliente"
 
 #: templates/js/admin/_clients_js.html:102
-#: templates/js/admin/_organizations_js.html:93
-#: templates/js/admin/_organizations_js.html:298
-#: templates/js/admin/_processes_js.html:144
+#: templates/js/admin/_organizations_js.html:97
+#: templates/js/admin/_organizations_js.html:302
+#: templates/js/admin/_processes_js.html:145
 #: templates/js/admin/_user_management_js.html:113
 msgid "You do not have permission to perform this action."
 msgstr "Non hai l'autorizzazione per eseguire questa azione."
@@ -9055,19 +9121,15 @@ msgstr "Banner creato."
 msgid "Banner deleted."
 msgstr "Banner eliminato."
 
-#: templates/js/admin/_organizations_js.html:53
-msgid "Add a new Organization"
-msgstr "Aggiungi una nuova organizzazione"
+#: templates/js/admin/_organizations_js.html:62
+msgid "Edit Customer"
+msgstr "Modifica cliente"
 
-#: templates/js/admin/_organizations_js.html:60
-msgid "Edit Organization"
-msgstr "Modifica organizzazione"
-
-#: templates/js/admin/_organizations_js.html:148
+#: templates/js/admin/_organizations_js.html:152
 msgid "You do not have permission to delete this Organization."
 msgstr "Non hai l'autorizzazione per eliminare questa organizzazione."
 
-#: templates/js/admin/_organizations_js.html:164
+#: templates/js/admin/_organizations_js.html:168
 msgid ""
 "Are you sure you want to delete this Organization? This action cannot be "
 "undone."
@@ -9107,11 +9169,11 @@ msgstr "Impossibile caricare i permessi."
 msgid "Edit process source"
 msgstr "Modifica fonte di processo"
 
-#: templates/js/admin/_processes_js.html:122
+#: templates/js/admin/_processes_js.html:123
 msgid "Edit field mapping"
 msgstr "Modifica mappatura del campo"
 
-#: templates/js/admin/_processes_js.html:223
+#: templates/js/admin/_processes_js.html:224
 msgid ""
 "Delete this process source? Its field mappings must be removed first, and"
 " its permission row is kept."
@@ -9119,7 +9181,7 @@ msgstr ""
 "Eliminare questa fonte di processo? Le sue mappature dei campi devono "
 "essere rimosse prima, e la riga del permesso viene mantenuta."
 
-#: templates/js/admin/_processes_js.html:234
+#: templates/js/admin/_processes_js.html:235
 msgid "Delete this field mapping? This action cannot be undone."
 msgstr ""
 "Eliminare questa mappatura del campo? Questa azione non può essere "
@@ -9888,4 +9950,34 @@ msgstr "A"
 #~ msgstr ""
 #~ "Campi del\n"
 #~ "documento"
+
+#~ msgid "Access profiles:"
+#~ msgstr "Profili di accesso:"
+
+#~ msgid "No process sources"
+#~ msgstr "Nessuna fonte di processo"
+
+#~ msgid "Customer"
+#~ msgstr "Cliente"
+
+#~ msgid "Organization %(code)s is missing"
+#~ msgstr "L’organizzazione %(code)s manca"
+
+#~ msgid "Process sources named after this customer:"
+#~ msgstr "Fonti di processo intitolate a questo cliente:"
+
+#~ msgid "Every customer belongs to a tenant."
+#~ msgstr "Ogni cliente appartiene a un tenant."
+
+#~ msgid "Data connections without a tenant"
+#~ msgstr "Connessioni dati senza tenant"
+
+#~ msgid "Every data connection belongs to a tenant."
+#~ msgstr "Ogni connessione dati appartiene a un tenant."
+
+#~ msgid "Add a new Organization"
+#~ msgstr "Aggiungi una nuova organizzazione"
+
+#~ msgid "Edit Organization"
+#~ msgstr "Modifica organizzazione"
 

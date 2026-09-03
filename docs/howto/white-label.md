@@ -43,6 +43,15 @@ Note the last one is Octo-specific: `dbo.ProcessSources` describes Octo processe
 tenant (a plain table or view, `TenantEntities.Kind = 'entries'`/`'lookup'`) needs an axis-1 client
 row and tenant descriptors but no process source at all.
 
+**Since migration `0090` (#257) the organization is the hub that ties the axes together.**
+`dbo.Organizations` carries `TenantCode` (axis 3), `ClientCode` (axis 1) and is referenced by
+`ProcessSources.OrganizationCode` and `AccessProfile.OrganizationCode`. A profile bound to an
+organization is assignable only to that organization's users (`nx_lib/views/admin/users.py::
+_profile_org_mismatch`); a profile with `OrganizationCode = NULL` is global (`globalAdmin`,
+`enterpriseAdmin`, `nexoraSupervisor`). `/admin/tenants` renders exactly this tree and flags what
+is still unassigned. `Tenants.OrganizationCode` is legacy — the registry still reads it, a later
+migration drops it.
+
 **Most customers ride the shared `default` runtime.** Privera, ElektroMaterial and Compass all do.
 A customer needs a new `ClientCode` only when they bring their own database — so far that has
 happened exactly once, for MS02. This is exactly why onboarding a `default`-riding customer needs

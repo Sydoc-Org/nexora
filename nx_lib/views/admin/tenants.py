@@ -1,17 +1,22 @@
-"""Admin tenants overview (#256, read-only phase): the connected picture.
+"""Admin tenants overview (#256 read-only phase, organization-centric since #257).
 
-One card per ``dbo.Tenants`` row, joining the four things the other admin pages
-show in isolation -- the customer organization (and the users in it), the data
-connection (``dbo.Clients`` + whether the running process actually loaded it),
-that connection's document-field process sources, and the tenant's generated
-pages. A trailing section lists the organizations and connections no tenant
-points at, so nothing is invisible just because it is not a tenant yet.
+    Tenant
+      └─ Organization ─┬─ Users
+                       ├─ Access profiles (bound to the organization; NULL = global)
+                       ├─ Data connection (Organizations.ClientCode)
+                       └─ Process configurations (ProcessSources.OrganizationCode)
 
-Everything is read through the cached registries the rest of the app uses
+One card per ``dbo.Tenants`` row listing the organizations that belong to it
+(``Organizations.TenantCode``, migration 0090) and, per organization, the four
+boxes above -- everything the other admin pages show in isolation, joined. A
+trailing section lists the organizations no tenant owns and the connections no
+organization rides, so nothing is invisible just because it is not wired up yet.
+
+Reads go through the cached registries the rest of the app uses
 (``nx_lib/tenant/registry.py``, ``nx_lib/mapping_config.py``,
-``nx_lib/clients.py::CLIENTS``); the only raw SQL is the three plain listing
-queries the Customers and Data Connections pages already run. Writes belong to
-those pages -- this one links out to them.
+``nx_lib/clients.py::CLIENTS``) plus the plain listing queries the Customers,
+Data Connections and Access Control pages already run. Writes belong to those
+pages -- this one links out to them.
 """
 
 from flask import current_app, render_template, session
@@ -26,99 +31,108 @@ from ...tenant.registry import registry as tenant_registry
 from ..tenant import _tenant_nav_page
 
 
-def _process_customer_key(process_name):
-    """The ``<customer>`` half of a ``<customer>.<process>`` process name --
-    the shape ``_PROCESS_NAME_RE`` (views/admin/processes.py) enforces on
-    every source. Nothing in the schema ties it to an organization, so the
-    overview uses it only as a *named-after* hint, never as a join."""
-    return (process_name or "").split(".", 1)[0].lower()
+def _rows(cursor, sql):
+    cursor.execute(sql)
+    cols = [c[0] for c in cursor.description]
+    return [dict(zip(cols, row, strict=False)) for row in cursor.fetchall()]
 
 
-def build_tenant_tree(tenants, organizations, users, clients, loaded_codes, sources, pages):
+def build_tenant_tree(
+    tenants, organizations, users, clients, loaded_codes, sources, pages, profiles
+):
     """Assemble the overview from plain rows -- Flask-free so it is testable.
 
-    tenants        iterable of objects with .code/.display_name/.organization_code/
-                   .client_code/.active (the tenant registry's Tenant dataclass)
-    organizations  [{organizationcode, organization}]
+    tenants        objects with .code/.display_name/.organization_code/.client_code/.active
+                   (the tenant registry's Tenant dataclass)
+    organizations  [{organizationcode, organization, tenant_code, client_code}]
     users          [{userID, username, fullname, organizationCode, profile}]
     clients        [{ClientCode, DisplayName, Dialect, RuntimeEngineKey, IsActive}]
     loaded_codes   set of ClientCodes the running CLIENTS registry holds
-    sources        [{client, process, table, field_count}]
+    sources        [{client, process, table, field_count, organization}]
     pages          {tenant_code: [{key, page_type, url, label}]}
+    profiles       [{AccessID, Name, OrganizationCode}] -- every access profile
 
-    Returns {"tenants": [...], "orphan_organizations": [...], "orphan_clients": [...]}.
-    A tenant whose organization or client row is missing still renders, with
-    that slot None -- a dangling FK is exactly what an overview should show.
+    Returns {"tenants", "orphan_organizations", "orphan_clients", "global_profiles"}.
+    Missing rows never crash the page: a tenant with no organizations, an
+    organization whose connection row is gone, a profile bound to a deleted
+    organization -- each renders as the gap it is.
     """
     users_by_org: dict = {}
     for u in users:
         users_by_org.setdefault(u.get("organizationCode"), []).append(u)
 
-    sources_by_client: dict = {}
-    for s in sources:
-        sources_by_client.setdefault(s["client"], []).append(s)
-    for lst in sources_by_client.values():
-        lst.sort(key=lambda s: s["process"])
+    sources_by_org: dict = {}
+    unassigned_by_client: dict = {}
+    for s in sorted(sources, key=lambda s: (s["client"], s["process"])):
+        if s.get("organization"):
+            sources_by_org.setdefault(s["organization"], []).append(s)
+        else:
+            unassigned_by_client.setdefault(s["client"], []).append(s)
+
+    bound_profiles: dict = {}
+    for p in profiles:
+        if p.get("OrganizationCode"):
+            bound_profiles.setdefault(p["OrganizationCode"], []).append(p["Name"])
+    global_profiles = sorted(
+        (p["Name"] for p in profiles if not p.get("OrganizationCode")), key=str.lower
+    )
+
+    conns = {
+        c["ClientCode"]: {
+            **c,
+            "loaded": c["ClientCode"] in loaded_codes,
+            "unassigned_sources": unassigned_by_client.get(c["ClientCode"], []),
+        }
+        for c in clients
+    }
 
     orgs = {}
     for o in organizations:
         code = o["organizationcode"]
-        name = o.get("organization") or ""
-        # Soft link (see _process_customer_key): sources named after this
-        # customer, across every connection. A hint for the reader, not data.
-        named_after = [
-            s
-            for lst in sources_by_client.values()
-            for s in lst
-            if _process_customer_key(s["process"]) in {code.lower(), name.lower()}
-        ]
         org_users = users_by_org.get(code, [])
-        # Access profiles in use inside this organization (AccessProfile.Name
-        # via Users.accessid), with headcount -- the fourth box of the picture.
-        profile_counts: dict = {}
+        in_use: dict = {}
         for u in org_users:
             if u.get("profile"):
-                profile_counts[u["profile"]] = profile_counts.get(u["profile"], 0) + 1
+                in_use[u["profile"]] = in_use.get(u["profile"], 0) + 1
         orgs[code] = {
             **o,
             "users": org_users,
-            "profiles": [
-                {"name": n, "count": profile_counts[n]}
-                for n in sorted(profile_counts, key=str.lower)
+            "profiles_in_use": [
+                {"name": n, "count": in_use[n]} for n in sorted(in_use, key=str.lower)
             ],
-            "named_sources": sorted(named_after, key=lambda s: (s["client"], s["process"])),
+            "bound_profiles": sorted(bound_profiles.get(code, []), key=str.lower),
+            "client": conns.get(o.get("client_code")) if o.get("client_code") else None,
+            "sources": sources_by_org.get(code, []),
         }
 
-    conns = {}
-    for c in clients:
-        code = c["ClientCode"]
-        conns[code] = {
-            **c,
-            "loaded": code in loaded_codes,
-            "processes": sources_by_client.get(code, []),
-        }
+    def _org_sort_key(code):
+        return (orgs[code]["organization"] or code).lower()
 
-    used_orgs, used_clients, cards = set(), set(), []
+    claimed_orgs, cards = set(), []
     for t in sorted(tenants, key=lambda t: (t.display_name or t.code).lower()):
-        used_orgs.add(t.organization_code)
-        used_clients.add(t.client_code)
+        member_codes = [c for c in orgs if orgs[c].get("tenant_code") == t.code]
+        # Pre-0090 pointer (Tenants.OrganizationCode) as a fallback, so a tenant
+        # whose organization row was never re-pointed still shows its customer.
+        if not member_codes and t.organization_code in orgs:
+            member_codes = [t.organization_code]
+        member_codes.sort(key=_org_sort_key)
+        claimed_orgs.update(member_codes)
         cards.append(
             {
                 "tenant": t,
-                "organization": orgs.get(t.organization_code),
-                "client": conns.get(t.client_code),
+                "organizations": [orgs[c] for c in member_codes],
                 "pages": pages.get(t.code, []),
             }
         )
 
+    used_clients = {o.get("client_code") for o in orgs.values() if o.get("client_code")}
     return {
         "tenants": cards,
         "orphan_organizations": [
-            orgs[k]
-            for k in sorted(orgs, key=lambda k: (orgs[k]["organization"] or k).lower())
-            if k not in used_orgs
+            orgs[c] for c in sorted(orgs, key=_org_sort_key) if c not in claimed_orgs
         ],
         "orphan_clients": [conns[k] for k in sorted(conns) if k not in used_clients],
+        "global_profiles": global_profiles,
     }
 
 
@@ -135,6 +149,7 @@ def _source_rows(reg):
             "process": process,
             "table": src.table,
             "field_count": counts.get((client, process), 0),
+            "organization": getattr(src, "organization", None),
         }
         for (client, process), src in reg.sources.items()
     ]
@@ -146,20 +161,20 @@ def _page_rows(reg):
     if reg is None:
         return {}
     locale = get_locale() or "en"
-    out = {}
-    for code in reg.tenants:
-        out[code] = [
+    return {
+        code: [
             entry
             for p in pages_for(code)
             if (entry := _tenant_nav_page(code, p, locale)) is not None
         ]
-    return out
+        for code in reg.tenants
+    }
 
 
 @require_permission("admin.view.organizations")
 def admin_tenants_view():
     """Gated like Customers: the page lists users by organization. The data-
-    connection and document-field columns additionally hide behind the
+    connection and process-configuration boxes additionally hide behind the
     permissions their own pages use, so this overview never shows someone
     more than the pages it links to would."""
     conn = None
@@ -168,29 +183,28 @@ def admin_tenants_view():
         conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
 
-        cursor.execute("SELECT organizationcode, organization FROM organizations")
-        organizations = [
-            dict(zip([c[0] for c in cursor.description], row, strict=False))
-            for row in cursor.fetchall()
-        ]
-        cursor.execute(
+        organizations = _rows(
+            cursor,
+            "SELECT organizationcode, organization, TenantCode AS tenant_code, "
+            "ClientCode AS client_code FROM organizations",
+        )
+        users = _rows(
+            cursor,
             "SELECT u.userID, u.username, u.Fullname AS fullname, u.organizationCode, "
             "ap.Name AS profile FROM Users u "
             "LEFT JOIN AccessProfile ap ON ap.AccessID = u.accessid "
-            "ORDER BY u.Fullname, u.username"
+            "ORDER BY u.Fullname, u.username",
         )
-        users = [
-            dict(zip([c[0] for c in cursor.description], row, strict=False))
-            for row in cursor.fetchall()
-        ]
-        cursor.execute(
-            "SELECT ClientCode, DisplayName, Dialect, RuntimeEngineKey, IsActive "
-            "FROM dbo.Clients ORDER BY ClientCode"
-        )
-        clients = [
-            dict(zip([c[0] for c in cursor.description], row, strict=False))
-            for row in cursor.fetchall()
-        ]
+        try:
+            clients = _rows(
+                cursor,
+                "SELECT ClientCode, DisplayName, Dialect, RuntimeEngineKey, IsActive "
+                "FROM dbo.Clients ORDER BY ClientCode",
+            )
+        except Exception as e:  # dbo.Clients absent (TEST): every connection box shows the gap
+            current_app.logger.warning(f"dbo.Clients unavailable for the tenants overview: {e}")
+            clients = []
+        profiles = _rows(cursor, "SELECT AccessID, Name, OrganizationCode FROM AccessProfile")
 
         treg = tenant_registry()
         mreg = mapping_config.registry()
@@ -202,6 +216,7 @@ def admin_tenants_view():
             loaded_codes=set(clients_registry.CLIENTS),
             sources=_source_rows(mreg),
             pages=_page_rows(treg),
+            profiles=profiles,
         )
         return render_template(
             "admin/tenants.html",

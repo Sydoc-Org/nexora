@@ -24,6 +24,29 @@ def admin_sessions_view():
     )
 
 
+def _profile_org_mismatch(cursor, accessid, organizationcode):
+    """0090: an access profile bound to an organization may only be held by that
+    organization's users; a NULL binding is a global profile. Returns the 400
+    response to send, or None when the pair is allowed."""
+    cursor.execute("SELECT Name, OrganizationCode FROM AccessProfile WHERE AccessID = ?", accessid)
+    row = cursor.fetchone()
+    bound_to = row.OrganizationCode if row else None
+    if bound_to and bound_to != organizationcode:
+        return jsonify(
+            {
+                "success": False,
+                "message": _(
+                    "Profile %(profile)s belongs to organization %(org)s and cannot be "
+                    "assigned to a user of %(user_org)s.",
+                    profile=row.Name,
+                    org=bound_to,
+                    user_org=organizationcode,
+                ),
+            }
+        ), 400
+    return None
+
+
 @require_permission("admin.create.user")
 def admin_add_user():
     from ..auth import _build_reset_email_message, send_reset_email
@@ -68,6 +91,9 @@ def admin_add_user():
             "select organizationcode from organizations where organization = ?", organization
         )
         organizationcode = cursor.fetchone()[0]
+        denied = _profile_org_mismatch(cursor, accessid, organizationcode)
+        if denied:
+            return denied
         cursor.execute(
             "INSERT INTO Users (username, password, fullname, email, organizationcode, accessid, InitReset) VALUES (?, ?, ?, ?, ?, ?, ?)",
             (
@@ -176,6 +202,9 @@ def admin_edit_user(user_id):
             "select organizationcode from organizations where organization = ?", organization
         )
         organizationcode = cursor.fetchone()[0]
+        denied = _profile_org_mismatch(cursor, accessid, organizationcode)
+        if denied:
+            return denied
 
         if password:
             hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode(
@@ -240,7 +269,8 @@ def admin_user_detail(user_id):
         ]
 
         cursor.execute(
-            "SELECT ap.name profile, ap.accessid accessid FROM AccessProfile ap ORDER BY ap.name"
+            "SELECT ap.name profile, ap.accessid accessid, ap.OrganizationCode organizationcode "
+            "FROM AccessProfile ap ORDER BY ap.name"
         )
         all_ap = [
             dict(zip([c[0] for c in cursor.description], r, strict=False))

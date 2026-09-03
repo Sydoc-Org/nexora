@@ -65,6 +65,27 @@ Work toward the next release.
 
 ### Changed
 
+- **Organization-centric tenancy** (#257, migration `0090`). The organization
+  is the hub now: it belongs to a tenant (`Organizations.TenantCode`), rides a
+  data connection (`Organizations.ClientCode`, `default` for everyone who
+  never had one), owns its process configurations
+  (`ProcessSources.OrganizationCode`) and its access profiles
+  (`AccessProfile.OrganizationCode`, NULL = global). All four columns are
+  nullable FKs backfilled from the conventions the data already followed —
+  the tenant pointer, the `<customer>.<process>` name prefix, the
+  `priveraUser`-style profile names — so nothing changed meaning.
+  **Rule:** a profile bound to an organization can only be held by that
+  organization's users; the user add/edit endpoints refuse a mismatch (400),
+  binding a profile that users elsewhere already hold is refused (409), and
+  the profile pickers on Access Control and the user page only offer
+  global profiles plus the chosen organization's own. Customers' edit modal
+  gained Tenant + Data connection, Process Configurations gained
+  Organization, the Access Control profile drawer gained Organization, and
+  `/admin/tenants` now reads tenant → organizations → users / access
+  profiles / data connection / process configurations, with the unassigned
+  leftovers (e.g. `compass.*`, `compassUser`) called out.
+  `Tenants.OrganizationCode` stays until the tenant registry stops reading
+  it; a later migration drops it.
 - **Tenants overview page** at `/admin/tenants` (#256, read-only phase).
   One card per tenant, joining what the other admin pages show in
   isolation: the customer organization and the users in it, the data

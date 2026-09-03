@@ -50,18 +50,22 @@
 
         function openAddOrganizationModal() {
             organizationForm.reset();
-            modalTitle.textContent = `{{ _("Add a new Organization") }}`;
+            // a new customer rides the shared connection unless told otherwise
+            document.getElementById('clientcode').value = 'default';
+            modalTitle.textContent = `{{ _("Add a new Customer") }}`;
             document.getElementById('organizationname').required = true;
             openModal();
         }
 
         function openEditOrganizationModal(organization) {
             organizationForm.reset();
-            modalTitle.textContent = `{{ _("Edit Organization") }}`;
+            modalTitle.textContent = `{{ _("Edit Customer") }}`;
 
             organizationcodeInput.value = organization.organizationcode;
 
             document.getElementById('organizationname').value = organization.organization;
+            document.getElementById('tenantcode').value = organization.tenant_code || '';
+            document.getElementById('clientcode').value = organization.client_code || '';
             openModal();
         }
 

@@ -163,6 +163,9 @@
                 <div style="display:flex;align-items:center;gap:6px;padding-top:8px;border-top:1px solid var(--nx-border);font-size:11px;color:var(--nx-text-meta);text-transform:uppercase;letter-spacing:0.6px">
                     <i class="fas fa-users" style="font-size:10px"></i>
                     {{ profile.UserCount }} {{ _("user(s)") }}
+                    <span style="margin-left:auto" data-testid="admin-ac-profile-org-{{ profile.AccessID }}">
+                        {% if profile.OrganizationCode %}<i class="fas fa-building" style="font-size:10px"></i> {{ profile.OrganizationName or profile.OrganizationCode }}{% else %}<i class="fas fa-globe" style="font-size:10px"></i> {{ _("Global") }}{% endif %}
+                    </span>
                 </div>
             </div>
             {% endfor %}
@@ -203,7 +206,7 @@
                     <label class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Access Profile") }}</label>
                     <select id="accessprofile" name="accessprofile" required class="nx-select" data-testid="admin-ac-user-accessprofile">
                         {% for profile in assignable_profiles %}
-                        <option value="{{ profile.profile }}">{{ profile.profile }}</option>
+                        <option value="{{ profile.profile }}" data-org="{{ profile.organizationcode or '' }}">{{ profile.profile }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -211,7 +214,7 @@
                     <label class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Organization") }}</label>
                     <select id="organization" name="organization" required class="nx-select" data-testid="admin-ac-user-organization">
                         {% for org in organizations %}
-                        <option value="{{ org.organization }}">{{ org.organization }}</option>
+                        <option value="{{ org.organization }}" data-code="{{ org.organizationcode }}">{{ org.organization }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -308,6 +311,16 @@
                 <label class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Description") }}</label>
                 <input type="text" id="profileDesc" class="nx-input" data-testid="admin-ac-profile-desc">
             </div>
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta" for="profileOrg">{{ _("Organization") }}</label>
+                <select id="profileOrg" class="nx-select" data-testid="admin-ac-profile-org">
+                    <option value="">{{ _("Global (any organization)") }}</option>
+                    {% for org in organizations %}
+                    <option value="{{ org.organizationcode }}">{{ org.organization }}</option>
+                    {% endfor %}
+                </select>
+                <p class="nx-c-meta" style="font-size:11px;margin:4px 0 0">{{ _("A bound profile can only be assigned to users of that organization.") }}</p>
+            </div>
         </div>
     </div>
 
@@ -401,7 +414,7 @@
 <script nonce="{{ csp_nonce() }}">
     const profilesMap = {
         {% for profile in profiles %}
-        {{ profile.AccessID }}: { name: {{ profile.Name | tojson }}, desc: {{ (profile.Description or '') | tojson }}, userCount: {{ profile.UserCount }} }{% if not loop.last %},{% endif %}
+        {{ profile.AccessID }}: { name: {{ profile.Name | tojson }}, desc: {{ (profile.Description or '') | tojson }}, org: {{ (profile.OrganizationCode or '') | tojson }}, userCount: {{ profile.UserCount }} }{% if not loop.last %},{% endif %}
         {% endfor %}
     };
 </script>

@@ -53,7 +53,9 @@ GO
 -- Organizations (parent of Users)
 CREATE TABLE dbo.Organizations (
     organizationcode NVARCHAR(5) NOT NULL PRIMARY KEY,
-    Organization NVARCHAR(200) NULL
+    Organization NVARCHAR(200) NULL,
+    TenantCode NVARCHAR(50) NULL,   -- 0090; no dbo.Tenants on TEST, so no FK here
+    ClientCode NVARCHAR(50) NULL    -- 0090; no dbo.Clients on TEST, so no FK here
 );
 GO
 
@@ -61,7 +63,8 @@ GO
 CREATE TABLE dbo.AccessProfile (
     AccessID INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
     Name NVARCHAR(50) NOT NULL UNIQUE,
-    Description NVARCHAR(200) NULL
+    Description NVARCHAR(200) NULL,
+    OrganizationCode NVARCHAR(5) NULL   -- 0090: bound to one organization; NULL = global
 );
 GO
 
