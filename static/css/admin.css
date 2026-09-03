@@ -223,3 +223,39 @@ html.dark .log-method--DELETE { color: #f87171; }
 
 /* Access control permission drawer: row hover (can't use nx-table here — drawer uses raw <table>) */
 .permission-row:hover { background: var(--nx-alt); }
+
+/* Tenants overview (#256): one card per tenant, its four connections side by
+   side. Column titles reuse .nx-meta; the tree feel comes from the thin left
+   rule on each column, not from extra chrome. */
+.tenant-card { margin-bottom: 20px; }
+.tenant-card__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.tenant-card__title { margin: 0; display: flex; align-items: center; gap: 8px; }
+.tenant-card__badges { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+.tenant-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+.tenant-grid--orphans { align-items: start; }
+.tenant-col { padding-left: 14px; border-left: 2px solid var(--nx-border); min-width: 0; }
+.tenant-col h3, .tenant-pages h3, .tenant-orphan h4 { margin: 0 0 8px; }
+.tenant-col__lead { margin: 0 0 8px; font-weight: 600; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.tenant-col__lead a, .tenant-list a { color: inherit; text-decoration: none; }
+.tenant-col__lead a:hover, .tenant-list a:hover { text-decoration: underline; }
+.tenant-col__foot { margin: 10px 0 0; font-size: 12px; }
+.tenant-col__foot a { color: var(--nx-accent); text-decoration: none; }
+.tenant-col__foot a:hover { text-decoration: underline; }
+.tenant-dim { color: var(--nx-text-meta); font-size: 12px; }
+.tenant-hint { margin: 8px 0 0; line-height: 1.6; }
+.tenant-profile { color: inherit; text-decoration: none; border-bottom: 1px dotted var(--nx-text-meta); }
+.tenant-profile:hover { border-bottom-style: solid; }
+.tenant-list { list-style: none; margin: 0; padding: 0; font-size: 13px; line-height: 1.7; }
+.tenant-list li { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.tenant-list__icon { font-size: 10px; width: 14px; color: var(--nx-text-meta); }
+.tenant-facts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 0; font-size: 12px; }
+.tenant-facts dt { color: var(--nx-text-meta); }
+.tenant-facts dd { margin: 0; }
+.tenant-pages { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--nx-border); }
+.tenant-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.tenant-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid var(--nx-border); border-radius: 999px; font-size: 12px; color: inherit; text-decoration: none; transition: border-color 150ms ease, background 150ms ease; }
+.tenant-chip:hover { border-color: var(--nx-accent); }
+.tenant-chip__type { font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--nx-text-meta); }
+.tenant-orphans__title { margin: 28px 0 12px; }
+.tenant-orphan + .tenant-orphan { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--nx-border); }
+@media (prefers-reduced-motion: reduce) { .tenant-chip { transition: none; } }

@@ -160,7 +160,9 @@ def _translations_map(catalog):
         if not msg.id:
             continue
         key = (msg.id if isinstance(msg.id, str) else tuple(msg.id), msg.context)
-        if isinstance(msg.string, tuple):
+        # read_po hands plural msgstrs back as a tuple, read_mo as a list --
+        # normalise, or the first ngettext() string in the app fails this test.
+        if isinstance(msg.string, tuple | list):
             if not any(msg.string):
                 continue
             out[key] = tuple(msg.string)

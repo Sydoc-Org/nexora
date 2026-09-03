@@ -19,6 +19,7 @@ from ...config import PATHS
 from ...db import engine_nexora_db
 from ...files import is_file_allowed
 from ...security import has_permission, page_visibility, require_permission
+from ...tenant.registry import registry as tenant_registry
 
 
 @require_permission("admin.view.organizations")
@@ -43,6 +44,18 @@ def admin_organizations_view():
             org["brand_name"] = brand.get("name")
             org["brand_accent_hex"] = brand.get("accent_hex")
             org["brand_logo_file"] = brand.get("logo_file")
+
+        # Which tenant (if any) this customer is the organization of -- the
+        # overview page (/admin/tenants) is where the full picture lives; this
+        # column is the way back to it. None when the registry is unavailable.
+        treg = tenant_registry()
+        tenant_by_org = {}
+        for t in sorted((treg.tenants.values() if treg else []), key=lambda t: t.code):
+            tenant_by_org.setdefault(t.organization_code, t)
+        for org in organizations:
+            t = tenant_by_org.get(org.get("organizationcode"))
+            org["tenant_code"] = t.code if t else None
+            org["tenant_name"] = t.display_name if t else None
 
         return render_template(
             "admin/organizations.html",

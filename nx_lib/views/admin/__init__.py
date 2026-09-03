@@ -44,7 +44,17 @@ from ...security import (
     page_visibility,
     require_permission,
 )
-from . import clients, logs, organizations, overview, permissions, processes, system, users
+from . import (
+    clients,
+    logs,
+    organizations,
+    overview,
+    permissions,
+    processes,
+    system,
+    tenants,
+    users,
+)
 from .clients import (
     _CLIENT_CODE_RE,
     _CLIENTS_ALLOWED_DIALECTS,
@@ -131,6 +141,7 @@ from .system import (
     api_admin_maintenance_list,
     api_admin_restart,
 )
+from .tenants import admin_tenants_view
 from .users import (
     admin_active_sessions,
     admin_add_user,
@@ -207,6 +218,7 @@ __all__ = [
     "admin_revoke_session",
     "admin_sessions_view",
     "admin_status_view",
+    "admin_tenants_view",
     "admin_user_detail",
     "api_admin_clients_add",
     "api_admin_clients_delete",
@@ -272,6 +284,7 @@ def register_routes(app):
     organizations.register_routes(app)
     clients.register_routes(app)
     processes.register_routes(app)
+    tenants.register_routes(app)
     system.register_routes(app)
     logs.register_routes(app)
     users.register_routes(app)

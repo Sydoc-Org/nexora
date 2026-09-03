@@ -68,31 +68,10 @@
         // escapeHtml: shared with nx_core.js (Task 12).
         const escapeHtml = window.NX.esc;
 
-        function renderOrgRow(org) {
-            const orgJson = JSON.stringify(org).replace(/"/g, '&quot;');
-            const search = (String(org.organizationcode || '') + ' ' + String(org.organization || '')).toLowerCase();
-            return `<tr data-search="${escapeHtml(search)}" data-testid="admin-org-row-${escapeHtml(org.organizationcode)}">
-                <td><span class="nx-mono">${escapeHtml(org.organizationcode)}</span></td>
-                <td>${escapeHtml(org.organization)}</td>
-                <td class="align-right">
-                    <button data-organization="${orgJson}" class="edit-organization-btn nx-btn nx-btn--ghost nx-btn--sm" type="button" data-testid="admin-org-edit-${escapeHtml(org.organizationcode)}">{{ _("Edit") }}</button>
-                    ${canEditBranding ? `<button class="branding-organization-btn nx-btn nx-btn--ghost nx-btn--sm" type="button" data-organizationcode="${escapeHtml(org.organizationcode)}" data-testid="admin-org-branding-${escapeHtml(org.organizationcode)}">{{ _("Branding") }}</button>` : ''}
-                    <button class="delete-organization-btn nx-btn nx-btn--ghost nx-btn--sm" style="color:var(--nx-danger)" type="button" data-organizationcode="${escapeHtml(org.organizationcode)}" data-testid="admin-org-delete-${escapeHtml(org.organizationcode)}">{{ _("Delete") }}</button>
-                </td>
-            </tr>`;
-        }
-
-        async function refreshOrgsTable() {
-            try {
-                const response = await fetch(`${API_PREFIX}api/admin/organizations/list`, {
-                    headers: { 'X-CSRFToken': csrfToken }
-                });
-                if (!response.ok) return;
-                const orgs = await response.json();
-                document.getElementById('orgs-tbody').innerHTML = orgs.map(renderOrgRow).join('');
-            } catch (error) {
-                console.error('Failed to refresh organizations table:', error);
-            }
+        // Rows carry a server-resolved Tenant column now; rebuilding them
+        // client-side would mean a second copy of that lookup. Reload instead.
+        function refreshOrgsTable() {
+            window.location.reload();
         }
 
         organizationForm.addEventListener('submit', async function(event) {

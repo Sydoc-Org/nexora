@@ -34,9 +34,10 @@ in a collapsible **Tenants** group in the admin sidebar:
 
 | Route | UI label | Axis |
 |---|---|---|
+| `/admin/tenants` | **Overview** (Tenants) | read-only join of all three: tenant → customer + users, data connection, process configurations, pages; plus what is not in a tenant (#256 phase 1) |
 | `/admin/organizations` | **Customers** | 2 — who the users work for |
 | `/admin/clients` | **Data Connections** | 1 — where the data lives |
-| `/admin/processes` | **Document Fields** | Octo process sources + their field mappings |
+| `/admin/processes` | **Process Configurations** | Octo process sources + their field mappings |
 
 Note the last one is Octo-specific: `dbo.ProcessSources` describes Octo processes, so a **data-only**
 tenant (a plain table or view, `TenantEntities.Kind = 'entries'`/`'lookup'`) needs an axis-1 client

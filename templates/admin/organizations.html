@@ -28,17 +28,25 @@
         <div class="nx-table-wrap">
             <table class="nx-table">
                 {{ a.table_header([
-                    {'label': _('Code'), 'width': '200px'},
+                    {'label': _('Code'), 'width': '160px'},
                     {'label': _('Name')},
+                    {'label': _('Tenant'), 'width': '220px'},
                     {'label': _('Actions'), 'align': 'right', 'width': '180px'}
                 ]) }}
                 <tbody id="orgs-tbody">
                     {% for organization in organizations %}
-                    <tr data-search="{{ (organization.organizationcode ~ ' ' ~ organization.organization)|lower }}" data-testid="admin-org-row-{{ organization.organizationcode }}">
+                    <tr id="org-{{ organization.organizationcode }}" data-search="{{ (organization.organizationcode ~ ' ' ~ organization.organization ~ ' ' ~ (organization.tenant_name or ''))|lower }}" data-testid="admin-org-row-{{ organization.organizationcode }}">
                         <td><span class="nx-mono">{{ organization.organizationcode }}</span></td>
                         <td>{{ organization.organization }}</td>
+                        <td data-testid="admin-org-tenant-{{ organization.organizationcode }}">
+                            {% if organization.tenant_code %}
+                            <a href="{{ url_for('admin_tenants_view') }}#tenant-{{ organization.tenant_code }}"><i class="fas fa-cubes"></i> {{ organization.tenant_name }}</a>
+                            {% else %}
+                            <span class="nx-c-meta">—</span>
+                            {% endif %}
+                        </td>
                         <td class="align-right">
-                            <button data-organization='{{ organization|tojson|safe }}' class="edit-organization-btn nx-btn nx-btn--ghost nx-btn--sm" type="button" data-testid="admin-org-edit-{{ organization.organizationcode }}">{{ _("Edit") }}</button>
+                            <button data-organization='{{ {'organizationcode': organization.organizationcode, 'organization': organization.organization}|tojson|safe }}' class="edit-organization-btn nx-btn nx-btn--ghost nx-btn--sm" type="button" data-testid="admin-org-edit-{{ organization.organizationcode }}">{{ _("Edit") }}</button>
                             {% if can_edit_branding %}
                             <button class="branding-organization-btn nx-btn nx-btn--ghost nx-btn--sm" type="button" data-organizationcode="{{ organization.organizationcode }}" data-testid="admin-org-branding-{{ organization.organizationcode }}">{{ _("Branding") }}</button>
                             {% endif %}

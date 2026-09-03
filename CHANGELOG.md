@@ -65,9 +65,20 @@ Work toward the next release.
 
 ### Changed
 
+- **Tenants overview page** at `/admin/tenants` (#256, read-only phase).
+  One card per tenant, joining what the other admin pages show in
+  isolation: the customer organization and the users in it, the data
+  connection and whether the running process loaded it, its process
+  configurations (sources + document-field mappings), and the tenant's generated pages. A trailing "Not in a
+  tenant" section lists the customers and connections no tenant points at
+  — with a *named-after* hint tying `<customer>.<process>` sources to the
+  customer they are named for. Gated like Customers (`admin.view.organizations`);
+  the connection and process-configuration columns additionally respect
+  `admin.view.clients` / `admin.view.processes`. Customers gained a
+  **Tenant** column linking back to it.
 - **Admin nav renamed after what the pages do, not the tables behind them**
   (#255). `Clients` is now **Data Connections** (engine, dialect and Octo
-  domain per client code), `Processes` is **Document Fields** (its
+  domain per client code), `Processes` is **Process Configurations** (its
   `dbo.ProcessSources` / `dbo.ProcessFieldMappings` mappings) and
   `Organizations` is **Customers**. The three sit together in a new
   collapsible **Tenants** group inside the admin sidebar, since together

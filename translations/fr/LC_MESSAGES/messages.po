@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-03 12:52+0200\n"
+"POT-Creation-Date: 2026-09-03 13:45+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -651,7 +651,7 @@ msgstr "Une erreur inattendue s'est produite"
 msgid "Not authorized"
 msgstr "Non autorisé"
 
-#: nx_lib/views/admin/logs.py:153 nx_lib/views/admin/organizations.py:179
+#: nx_lib/views/admin/logs.py:153 nx_lib/views/admin/organizations.py:192
 #: nx_lib/views/admin/permissions.py:586 nx_lib/views/admin/system.py:148
 #: nx_lib/views/admin/system.py:189 nx_lib/views/admin/system.py:232
 #: nx_lib/views/admin/system.py:252 nx_lib/views/admin/users.py:372
@@ -1144,7 +1144,7 @@ msgstr "%(field)s doit être une date valide (AAAA-MM-JJ)."
 msgid "%(field)s must be numeric."
 msgstr "%(field)s doit être numérique."
 
-#: nx_lib/views/admin/clients.py:154 nx_lib/views/admin/organizations.py:93
+#: nx_lib/views/admin/clients.py:154 nx_lib/views/admin/organizations.py:106
 #: nx_lib/views/admin/processes.py:383 nx_lib/views/admin/processes.py:536
 #: nx_lib/views/admin/users.py:116 nx_lib/views/tenant.py:458
 #: nx_lib/views/tenant.py:522 nx_lib/views/tenant.py:567
@@ -1369,9 +1369,9 @@ msgid "Client updated successfully."
 msgstr "Client mis à jour avec succès."
 
 #: nx_lib/views/admin/clients.py:200 nx_lib/views/admin/clients.py:245
-#: nx_lib/views/admin/organizations.py:120
-#: nx_lib/views/admin/organizations.py:152
-#: nx_lib/views/admin/organizations.py:332 nx_lib/views/admin/processes.py:419
+#: nx_lib/views/admin/organizations.py:133
+#: nx_lib/views/admin/organizations.py:165
+#: nx_lib/views/admin/organizations.py:345 nx_lib/views/admin/processes.py:419
 #: nx_lib/views/admin/processes.py:482 nx_lib/views/admin/processes.py:578
 #: nx_lib/views/admin/processes.py:607 nx_lib/views/admin/users.py:198
 #: nx_lib/views/admin/users.py:446
@@ -1388,49 +1388,49 @@ msgstr ""
 msgid "Client deleted successfully."
 msgstr "Client supprimé avec succès."
 
-#: nx_lib/views/admin/organizations.py:73 nx_lib/views/admin/users.py:48
+#: nx_lib/views/admin/organizations.py:86 nx_lib/views/admin/users.py:48
 msgid "All fields are required."
 msgstr "Tous les champs sont obligatoires."
 
-#: nx_lib/views/admin/organizations.py:88
+#: nx_lib/views/admin/organizations.py:101
 msgid "Organization created successfully."
 msgstr "Organisation créée avec succès."
 
-#: nx_lib/views/admin/organizations.py:90
+#: nx_lib/views/admin/organizations.py:103
 msgid "Organization already exists."
 msgstr "L'organisation existe déjà."
 
-#: nx_lib/views/admin/organizations.py:117
+#: nx_lib/views/admin/organizations.py:130
 msgid "Organization updated successfully."
 msgstr "Organisation mise à jour avec succès."
 
-#: nx_lib/views/admin/organizations.py:139
-#: nx_lib/views/admin/organizations.py:258
-#: nx_lib/views/admin/organizations.py:310
-#: nx_lib/views/admin/organizations.py:317
+#: nx_lib/views/admin/organizations.py:152
+#: nx_lib/views/admin/organizations.py:271
+#: nx_lib/views/admin/organizations.py:323
+#: nx_lib/views/admin/organizations.py:330
 msgid "Organization not found."
 msgstr "Organisation introuvable."
 
-#: nx_lib/views/admin/organizations.py:149
+#: nx_lib/views/admin/organizations.py:162
 msgid "Organization deleted successfully."
 msgstr "Organisation supprimée avec succès."
 
-#: nx_lib/views/admin/organizations.py:267
+#: nx_lib/views/admin/organizations.py:280
 msgid "Accent colour must be a hex value like #336699."
 msgstr "La couleur d'accent doit être une valeur hexadécimale comme #336699."
 
-#: nx_lib/views/admin/organizations.py:281
-#: nx_lib/views/admin/organizations.py:297
+#: nx_lib/views/admin/organizations.py:294
+#: nx_lib/views/admin/organizations.py:310
 msgid "Logo must be an SVG, PNG or JPEG image."
 msgstr "Le logo doit être une image SVG, PNG ou JPEG."
 
-#: nx_lib/views/admin/organizations.py:291
-#: templates/js/admin/_organizations_js.html:296
+#: nx_lib/views/admin/organizations.py:304
+#: templates/js/admin/_organizations_js.html:275
 msgid "Logo is too large (max 512 KB)."
 msgstr "Le logo est trop volumineux (max. 512 Ko)."
 
-#: nx_lib/views/admin/organizations.py:345
-#: templates/js/admin/_organizations_js.html:333
+#: nx_lib/views/admin/organizations.py:358
+#: templates/js/admin/_organizations_js.html:312
 msgid "Branding saved."
 msgstr "Branding enregistré."
 
@@ -1676,7 +1676,7 @@ msgstr "Ouvrir le menu de navigation"
 msgid "Admin"
 msgstr "Admin"
 
-#: templates/_header.html:214
+#: templates/_header.html:214 templates/_header.html:268
 msgid "Overview"
 msgstr "Vue d'ensemble"
 
@@ -1712,39 +1712,39 @@ msgstr "Statut"
 msgid "Maintenance"
 msgstr "Maintenance"
 
-#: templates/_header.html:260
+#: templates/_header.html:261 templates/admin/tenants.html:77
 msgid "Tenants"
 msgstr "Tenants"
 
-#: templates/_header.html:267 templates/admin/admin_overview.html:95
+#: templates/_header.html:273 templates/admin/admin_overview.html:95
 #: templates/admin/organizations.html:19 templates/js/_header_js.html:19
 msgid "Customers"
 msgstr "Clients"
 
-#: templates/_header.html:273 templates/admin/clients.html:19
+#: templates/_header.html:279 templates/admin/clients.html:19
 msgid "Data Connections"
 msgstr "Connexions de données"
 
-#: templates/_header.html:280 templates/admin/processes.html:19
-msgid "Document Fields"
-msgstr "Champs de document"
+#: templates/_header.html:286 templates/admin/processes.html:19
+msgid "Process Configurations"
+msgstr "Configurations de processus"
 
-#: templates/_header.html:294
+#: templates/_header.html:300
 msgid "Development"
 msgstr "Développement"
 
-#: templates/_header.html:301 templates/api_docs.html:76
+#: templates/_header.html:307 templates/api_docs.html:76
 msgid "API Documentation"
 msgstr "Documentation API"
 
-#: templates/_header.html:308 templates/_header.html:336
+#: templates/_header.html:314 templates/_header.html:342
 #: templates/appearance.html:329 templates/dashboard.html:28
 #: templates/generali_documents.html:41 templates/generali_reporting.html:56
 #: templates/js/_header_js.html:30 templates/js/_header_js.html:36
 msgid "Dashboard"
 msgstr "Tableau de bord"
 
-#: templates/_header.html:309 templates/_header.html:350
+#: templates/_header.html:315 templates/_header.html:356
 #: templates/generali-dashboard.html:69
 #: templates/generali_additionalservices.html:52
 #: templates/generali_baseservices.html:52 templates/generali_documents.html:45
@@ -1753,138 +1753,138 @@ msgstr "Tableau de bord"
 msgid "Reporting"
 msgstr "Rapports"
 
-#: templates/_header.html:310
+#: templates/_header.html:316
 msgid "Workitems"
 msgstr "Workitems"
 
-#: templates/_header.html:343 templates/generali-dashboard.html:65
+#: templates/_header.html:349 templates/generali-dashboard.html:65
 #: templates/generali_reporting.html:48 templates/js/_header_js.html:39
 msgid "Document List"
 msgstr "Liste des documents"
 
-#: templates/_header.html:357 templates/js/_header_js.html:45
+#: templates/_header.html:363 templates/js/_header_js.html:45
 msgid "Additional Services"
 msgstr "Services supplémentaires"
 
-#: templates/_header.html:364 templates/js/_header_js.html:48
+#: templates/_header.html:370 templates/js/_header_js.html:48
 msgid "Base Services"
 msgstr "Services de base"
 
-#: templates/_header.html:371 templates/js/_header_js.html:51
+#: templates/_header.html:377 templates/js/_header_js.html:51
 msgid "Project Management"
 msgstr "Gestion de projet"
 
-#: templates/_header.html:378 templates/js/_header_js.html:54
+#: templates/_header.html:384 templates/js/_header_js.html:54
 msgid "PDQM"
 msgstr "PDQM"
 
-#: templates/_header.html:385 templates/generali_importstatus.html:29
+#: templates/_header.html:391 templates/generali_importstatus.html:29
 msgid "Data Import Status"
 msgstr "Statut d'importation"
 
-#: templates/_header.html:451 templates/_header.html:453
+#: templates/_header.html:457 templates/_header.html:459
 #: templates/appearance.html:293 templates/appearance.html:298
 #: templates/js/_header_js.html:13
 msgid "Keep sidebar open"
 msgstr "Garder la barre latérale ouverte"
 
-#: templates/_header.html:457 templates/js/_header_js.html:56
+#: templates/_header.html:463 templates/js/_header_js.html:56
 msgid "Toggle dark mode"
 msgstr "Activer/désactiver le mode sombre"
 
-#: templates/_header.html:459
+#: templates/_header.html:465
 msgid "Dark Mode"
 msgstr "Mode sombre"
 
-#: templates/_header.html:467 templates/profile.html:44
+#: templates/_header.html:473 templates/profile.html:44
 #: templates/profile.html:123
 msgid "Profile Picture"
 msgstr "Photo de profil"
 
-#: templates/_header.html:477
+#: templates/_header.html:483
 msgid "Your profile"
 msgstr "Votre profil"
 
-#: templates/_header.html:481 templates/appearance.html:34
+#: templates/_header.html:487 templates/appearance.html:34
 #: templates/js/_header_js.html:57 templates/profile.html:75
 #: templates/profile.html:317
 msgid "Appearance"
 msgstr "Apparence"
 
-#: templates/_header.html:485 templates/js/_header_js.html:58
+#: templates/_header.html:491 templates/js/_header_js.html:58
 #: templates/whats_new.html:79
 msgid "What's New"
 msgstr "Nouveautés"
 
-#: templates/_header.html:490 templates/feedback.html:34
+#: templates/_header.html:496 templates/feedback.html:34
 #: templates/js/_header_js.html:59
 msgid "Feedback"
 msgstr "Feedback"
 
-#: templates/_header.html:497 templates/_header.html:567
-#: templates/_header.html:570
+#: templates/_header.html:503 templates/_header.html:573
+#: templates/_header.html:576
 msgid "Keyboard shortcuts"
 msgstr "Raccourcis clavier"
 
-#: templates/_header.html:501 templates/_small_footer.html:28
+#: templates/_header.html:507 templates/_small_footer.html:28
 #: templates/reporting.html:86
 msgid "Help"
 msgstr "Aide"
 
-#: templates/_header.html:507 templates/_header.html:549
+#: templates/_header.html:513 templates/_header.html:555
 msgid "Switch user"
 msgstr "Changer d'utilisateur"
 
-#: templates/_header.html:513 templates/js/_header_js.html:60
+#: templates/_header.html:519 templates/js/_header_js.html:60
 #: templates/profile.html:82
 msgid "Sign out"
 msgstr "Se déconnecter"
 
-#: templates/_header.html:530
+#: templates/_header.html:536
 msgid "Command palette"
 msgstr "Palette de commandes"
 
-#: templates/_header.html:534
+#: templates/_header.html:540
 msgid "Type a command or search..."
 msgstr "Tapez une commande ou recherchez..."
 
-#: templates/_header.html:539
+#: templates/_header.html:545
 msgid "navigate"
 msgstr "naviguer"
 
-#: templates/_header.html:540
+#: templates/_header.html:546
 msgid "open"
 msgstr "ouvrir"
 
-#: templates/_header.html:541
+#: templates/_header.html:547
 msgid "close"
 msgstr "fermer"
 
-#: templates/_header.html:553
+#: templates/_header.html:559
 msgid "Switch to user..."
 msgstr "Passer à l'utilisateur ..."
 
-#: templates/_header.html:574
+#: templates/_header.html:580
 msgid "Global"
 msgstr "Global"
 
-#: templates/_header.html:576
+#: templates/_header.html:582
 msgid "Open command palette"
 msgstr "Ouvrir la palette de commandes"
 
-#: templates/_header.html:580
+#: templates/_header.html:586
 msgid "Show this shortcuts overlay"
 msgstr "Afficher cet aperçu des raccourcis"
 
-#: templates/_header.html:584
+#: templates/_header.html:590
 msgid "Close the open dialog or panel"
 msgstr "Fermer la boîte de dialogue ou le panneau ouvert"
 
-#: templates/_header.html:589
+#: templates/_header.html:595
 msgid "Document viewer"
 msgstr "Visionneuse de documents"
 
-#: templates/_header.html:591
+#: templates/_header.html:597
 msgid "Previous / next document page"
 msgstr "Page de document précédente / suivante"
 
@@ -3675,7 +3675,7 @@ msgstr "Communication"
 msgid "Select all"
 msgstr "Tout sélectionner"
 
-#: templates/admin/organizations.html:72 templates/generali-dashboard.html:158
+#: templates/admin/organizations.html:80 templates/generali-dashboard.html:158
 msgid "Clear"
 msgstr "Effacer"
 
@@ -3857,7 +3857,7 @@ msgstr "Enregistré à"
 
 #: templates/admin/access_control.html:97
 #: templates/admin/access_control.html:129 templates/admin/clients.html:57
-#: templates/admin/maintenance.html:39 templates/admin/organizations.html:33
+#: templates/admin/maintenance.html:39 templates/admin/organizations.html:34
 #: templates/admin/processes.html:77 templates/admin/sessions.html:33
 #: templates/generali_additionalservices.html:167
 #: templates/generali_baseservices.html:141 templates/generali_pdqm.html:165
@@ -3939,7 +3939,7 @@ msgstr "Effort (heures)"
 #: templates/admin/modals/_organizations_modals.html:40
 #: templates/admin/modals/_user_modals.html:13
 #: templates/admin/modals/_user_modals.html:80
-#: templates/admin/organizations.html:90 templates/admin/processes.html:122
+#: templates/admin/organizations.html:98 templates/admin/processes.html:122
 #: templates/admin/processes.html:188 templates/admin/processes.html:224
 #: templates/admin/user_detail.html:78 templates/admin/user_detail.html:282
 #: templates/generali_additionalservices.html:261
@@ -3990,7 +3990,7 @@ msgid "This action cannot be undone."
 msgstr "Cette action est irréversible."
 
 #: templates/admin/access_control.html:246 templates/admin/clients.html:81
-#: templates/admin/maintenance.html:130 templates/admin/organizations.html:45
+#: templates/admin/maintenance.html:130 templates/admin/organizations.html:53
 #: templates/admin/processes.html:65 templates/admin/processes.html:88
 #: templates/admin/user_detail.html:285
 #: templates/generali_additionalservices.html:349
@@ -4012,7 +4012,6 @@ msgstr "Cette action est irréversible."
 #: templates/js/_tenant_page_js.html:30
 #: templates/js/admin/_access_control_js.html:649
 #: templates/js/admin/_maintenance_js.html:132
-#: templates/js/admin/_organizations_js.html:80
 #: templates/js/admin/_user_management_js.html:79 templates/reporting.html:390
 msgid "Delete"
 msgstr "Supprimer"
@@ -4134,8 +4133,8 @@ msgstr "Importations CSV dans la base de données des documents"
 #: templates/js/_generali_import_status_js.html:15
 #: templates/js/admin/_clients_js.html:109
 #: templates/js/admin/_clients_js.html:163
-#: templates/js/admin/_organizations_js.html:121
-#: templates/js/admin/_organizations_js.html:175
+#: templates/js/admin/_organizations_js.html:100
+#: templates/js/admin/_organizations_js.html:154
 #: templates/js/admin/_processes_js.html:151
 #: templates/js/admin/_user_management_js.html:120
 #: templates/js/admin/_user_management_js.html:170
@@ -4727,7 +4726,7 @@ msgstr "Appliquer"
 msgid "Octo status"
 msgstr "Statut Octo"
 
-#: templates/admin/organizations.html:81 templates/prepared_documents.html:204
+#: templates/admin/organizations.html:89 templates/prepared_documents.html:204
 msgid "Preview"
 msgstr "Aperçu"
 
@@ -5929,7 +5928,7 @@ msgid "Add Profile"
 msgstr "Ajouter un profil"
 
 #: templates/admin/access_control.html:158 templates/admin/clients.html:80
-#: templates/admin/organizations.html:41 templates/admin/processes.html:63
+#: templates/admin/organizations.html:49 templates/admin/processes.html:63
 #: templates/admin/processes.html:87
 #: templates/js/_reporting_dashboard_js.html:7
 #: templates/js/_reporting_metrics_js.html:48
@@ -5937,7 +5936,6 @@ msgstr "Ajouter un profil"
 #: templates/js/_tenant_page_js.html:29
 #: templates/js/admin/_access_control_js.html:646
 #: templates/js/admin/_maintenance_js.html:126
-#: templates/js/admin/_organizations_js.html:78
 #: templates/js/admin/_user_management_js.html:78
 msgid "Edit"
 msgstr "Modifier"
@@ -6177,23 +6175,25 @@ msgid "Display name"
 msgstr "Nom d'affichage"
 
 #: templates/admin/clients.html:53 templates/admin/clients.html:123
+#: templates/admin/tenants.html:62
 msgid "Dialect"
 msgstr "Dialecte"
 
-#: templates/admin/clients.html:54
+#: templates/admin/clients.html:54 templates/admin/tenants.html:63
 msgid "Runtime engine"
 msgstr "Moteur d'exécution"
 
 #: templates/admin/clients.html:55 templates/admin/clients.html:172
 #: templates/admin/maintenance.html:38 templates/admin/maintenance.html:95
+#: templates/admin/tenants.html:110
 msgid "Active"
 msgstr "Actif"
 
-#: templates/admin/clients.html:56
+#: templates/admin/clients.html:56 templates/admin/tenants.html:64
 msgid "Runtime state"
 msgstr "État d'exécution"
 
-#: templates/admin/clients.html:71
+#: templates/admin/clients.html:71 templates/admin/tenants.html:67
 msgid "Loaded"
 msgstr "Chargé"
 
@@ -6211,7 +6211,7 @@ msgstr ""
 "pas pu se charger au démarrage. Rien n'y est acheminé tant que cela n'est"
 " pas corrigé et le pool d'applications recyclé."
 
-#: templates/admin/clients.html:74
+#: templates/admin/clients.html:74 templates/admin/tenants.html:69
 msgid "Configured, not loaded"
 msgstr "Configuré, non chargé"
 
@@ -6450,12 +6450,15 @@ msgstr "Ajouter un client"
 msgid "Search customers..."
 msgstr "Rechercher des clients..."
 
-#: templates/admin/organizations.html:43 templates/admin/organizations.html:57
-#: templates/js/admin/_organizations_js.html:79
+#: templates/admin/organizations.html:33
+msgid "Tenant"
+msgstr "Tenant"
+
+#: templates/admin/organizations.html:51 templates/admin/organizations.html:65
 msgid "Branding"
 msgstr "Branding"
 
-#: templates/admin/organizations.html:58
+#: templates/admin/organizations.html:66
 msgid ""
 "Applies to this customer organization and everyone in it. Leave a field "
 "empty to fall back to nexora branding."
@@ -6463,27 +6466,27 @@ msgstr ""
 "S'applique à cette organisation cliente et à tous ses membres. Laissez un"
 " champ vide pour revenir au branding nexora."
 
-#: templates/admin/organizations.html:64
+#: templates/admin/organizations.html:72
 msgid "Brand name"
 msgstr "Nom de la marque"
 
-#: templates/admin/organizations.html:68
+#: templates/admin/organizations.html:76
 msgid "Accent colour"
 msgstr "Couleur d'accent"
 
-#: templates/admin/organizations.html:76
+#: templates/admin/organizations.html:84
 msgid "Logo"
 msgstr "Logo"
 
-#: templates/admin/organizations.html:78
+#: templates/admin/organizations.html:86
 msgid "SVG, PNG or JPEG, up to 512 KB."
 msgstr "SVG, PNG ou JPEG, jusqu'à 512 Ko."
 
-#: templates/admin/organizations.html:84
+#: templates/admin/organizations.html:92
 msgid "Logo preview"
 msgstr "Aperçu du logo"
 
-#: templates/admin/organizations.html:91
+#: templates/admin/organizations.html:99
 msgid "Save branding"
 msgstr "Enregistrer le branding"
 
@@ -6526,15 +6529,15 @@ msgstr ""
 "effectives."
 
 #: templates/admin/processes.html:8
-msgid "Document Fields - nexora"
-msgstr "Champs de document - nexora"
+msgid "Process Configurations - nexora"
+msgstr "Configurations de processus - nexora"
 
 #: templates/admin/processes.html:20
 msgid ""
-"Document-field mappings per process source and client (dbo.ProcessSources"
-" / dbo.ProcessFieldMappings)"
+"Process sources and their document-field mappings per client "
+"(dbo.ProcessSources / dbo.ProcessFieldMappings)"
 msgstr ""
-"Mappages de champs de document par source de processus et client "
+"Sources de processus et leurs mappages de champs de document par client "
 "(dbo.ProcessSources / dbo.ProcessFieldMappings)"
 
 #: templates/admin/processes.html:22
@@ -6908,6 +6911,142 @@ msgstr "En cours"
 #: templates/admin/status.html:241
 msgid "No incidents recorded."
 msgstr "Aucun incident enregistré."
+
+#: templates/admin/tenants.html:8
+msgid "Tenants - nexora"
+msgstr "Tenants - nexora"
+
+#: templates/admin/tenants.html:31
+msgid "No users"
+msgstr "Aucun utilisateur"
+
+#: templates/admin/tenants.html:35
+msgid "Access profiles:"
+msgstr "Profils d’accès :"
+
+#: templates/admin/tenants.html:50
+#, python-format
+msgid "%(num)d field"
+msgid_plural "%(num)d fields"
+msgstr[0] "%(num)d champ"
+msgstr[1] "%(num)d champs"
+
+#: templates/admin/tenants.html:56
+msgid "No process sources"
+msgstr "Aucune source de processus"
+
+#: templates/admin/tenants.html:78
+msgid ""
+"Each tenant with its customer and users, its data connection, its process"
+" configurations and its pages"
+msgstr ""
+"Chaque tenant avec son client et ses utilisateurs, sa connexion de "
+"données, ses configurations de processus et ses pages"
+
+#: templates/admin/tenants.html:85
+msgid "Tenant registry unavailable"
+msgstr "Registre des tenants indisponible"
+
+#: templates/admin/tenants.html:86
+msgid ""
+"dbo.Tenants could not be read, so no tenant is shown below -- only the "
+"customers and connections that exist regardless. Check app.log."
+msgstr ""
+"dbo.Tenants n’a pas pu être lu : aucun tenant n’est affiché ci-dessous --"
+" seulement les clients et connexions qui existent indépendamment. Voir "
+"app.log."
+
+#: templates/admin/tenants.html:90
+msgid "Search tenant, customer, user, connection or process..."
+msgstr ""
+"Rechercher un tenant, un client, un utilisateur, une connexion ou un "
+"processus..."
+
+#: templates/admin/tenants.html:110
+msgid "Inactive"
+msgstr "Inactif"
+
+#: templates/admin/tenants.html:111
+msgid "Permission that grants access to this tenant's pages"
+msgstr "Autorisation donnant accès aux pages de ce tenant"
+
+#: templates/admin/tenants.html:117
+msgid "Customer"
+msgstr "Client"
+
+#: templates/admin/tenants.html:125
+#, python-format
+msgid "Organization %(code)s is missing"
+msgstr "L’organisation %(code)s est manquante"
+
+#: templates/admin/tenants.html:130
+msgid "Data connection"
+msgstr "Connexion de données"
+
+#: templates/admin/tenants.html:132 templates/admin/tenants.html:207
+msgid "Requires admin.view.clients"
+msgstr "Nécessite admin.view.clients"
+
+#: templates/admin/tenants.html:140
+#, python-format
+msgid "Client %(code)s is missing"
+msgstr "Le client %(code)s est manquant"
+
+#: templates/admin/tenants.html:145 templates/admin/tenants.html:217
+msgid "Process configurations"
+msgstr "Configurations de processus"
+
+#: templates/admin/tenants.html:147
+msgid "Requires admin.view.processes"
+msgstr "Nécessite admin.view.processes"
+
+#: templates/admin/tenants.html:149
+msgid "Mapping configuration unavailable"
+msgstr "Configuration de mappage indisponible"
+
+#: templates/admin/tenants.html:152
+msgid "Open Process Configurations"
+msgstr "Ouvrir Configurations de processus"
+
+#: templates/admin/tenants.html:160
+msgid "Pages"
+msgstr "Pages"
+
+#: templates/admin/tenants.html:168
+msgid "No pages"
+msgstr "Aucune page"
+
+#: templates/admin/tenants.html:176
+msgid ""
+"No tenants yet. A tenant pairs a customer with a data connection; today "
+"they are created by migration."
+msgstr ""
+"Aucun tenant pour l’instant. Un tenant associe un client à une connexion "
+"de données ; aujourd’hui ils sont créés par migration."
+
+#: templates/admin/tenants.html:182
+msgid "Not in a tenant"
+msgstr "Hors tenant"
+
+#: templates/admin/tenants.html:185
+msgid "Customers without a tenant"
+msgstr "Clients sans tenant"
+
+#: templates/admin/tenants.html:194
+msgid "Process sources named after this customer:"
+msgstr "Sources de processus nommées d’après ce client :"
+
+#: templates/admin/tenants.html:200
+msgid "Every customer belongs to a tenant."
+msgstr "Chaque client appartient à un tenant."
+
+#: templates/admin/tenants.html:205
+msgid "Data connections without a tenant"
+msgstr "Connexions de données sans tenant"
+
+#: templates/admin/tenants.html:222
+msgid "Every data connection belongs to a tenant."
+msgstr "Chaque connexion de données appartient à un tenant."
 
 #: templates/admin/user_detail.html:8
 msgid "User detail"
@@ -8511,9 +8650,9 @@ msgstr "{start}-{end} sur {total}"
 
 #: templates/js/_tenant_page_js.html:33 templates/js/admin/_clients_js.html:116
 #: templates/js/admin/_clients_js.html:170
-#: templates/js/admin/_organizations_js.html:128
-#: templates/js/admin/_organizations_js.html:182
-#: templates/js/admin/_organizations_js.html:339
+#: templates/js/admin/_organizations_js.html:107
+#: templates/js/admin/_organizations_js.html:161
+#: templates/js/admin/_organizations_js.html:318
 #: templates/js/admin/_processes_js.html:161
 #: templates/js/admin/_user_management_js.html:127
 #: templates/js/admin/_user_management_js.html:177
@@ -8780,9 +8919,9 @@ msgstr "Vous n'avez pas la permission de créer des utilisateurs."
 #: templates/js/admin/_access_control_js.html:557
 #: templates/js/admin/_clients_js.html:112
 #: templates/js/admin/_clients_js.html:166
-#: templates/js/admin/_organizations_js.html:124
-#: templates/js/admin/_organizations_js.html:178
-#: templates/js/admin/_organizations_js.html:335
+#: templates/js/admin/_organizations_js.html:103
+#: templates/js/admin/_organizations_js.html:157
+#: templates/js/admin/_organizations_js.html:314
 #: templates/js/admin/_processes_js.html:157
 #: templates/js/admin/_user_management_js.html:123
 #: templates/js/admin/_user_management_js.html:173
@@ -8851,8 +8990,8 @@ msgid "Edit Client"
 msgstr "Modifier le client"
 
 #: templates/js/admin/_clients_js.html:102
-#: templates/js/admin/_organizations_js.html:114
-#: templates/js/admin/_organizations_js.html:319
+#: templates/js/admin/_organizations_js.html:93
+#: templates/js/admin/_organizations_js.html:298
 #: templates/js/admin/_processes_js.html:144
 #: templates/js/admin/_user_management_js.html:113
 msgid "You do not have permission to perform this action."
@@ -8958,11 +9097,11 @@ msgstr "Ajouter une nouvelle organisation"
 msgid "Edit Organization"
 msgstr "Modifier l'organisation"
 
-#: templates/js/admin/_organizations_js.html:169
+#: templates/js/admin/_organizations_js.html:148
 msgid "You do not have permission to delete this Organization."
 msgstr "Vous n'avez pas la permission de supprimer cette organisation."
 
-#: templates/js/admin/_organizations_js.html:185
+#: templates/js/admin/_organizations_js.html:164
 msgid ""
 "Are you sure you want to delete this Organization? This action cannot be "
 "undone."
@@ -9767,4 +9906,21 @@ msgstr "Au"
 
 #~ msgid "Save Organization"
 #~ msgstr "Enregistrer l'organisation"
+
+#~ msgid "Document Fields"
+#~ msgstr "Champs de document"
+
+#~ msgid "Document Fields - nexora"
+#~ msgstr "Champs de document - nexora"
+
+#~ msgid ""
+#~ "Each tenant with its customer and "
+#~ "users, its data connection, its document"
+#~ " fields and its pages"
+#~ msgstr ""
+
+#~ msgid "Open Document Fields"
+#~ msgstr ""
+#~ "Champs du\n"
+#~ "document"
 
