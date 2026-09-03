@@ -25,7 +25,7 @@
 
         <p class="nx-c-meta" style="font-size:0.85rem;margin:-8px 0 8px" data-testid="admin-processes-help">
             <i class="fas fa-circle-info"></i>
-            {{ _("\"Client\" here is a runtime source (default/ms02, see Data Connections) -- not a customer. A process name must be exactly &lt;customer&gt;.&lt;process&gt; (e.g. privera.02_Posteingang): the permission that grants access to it is derived from those two parts, so any other shape can never be granted.") }}
+            {{ _("\"Client\" here is a runtime source (default/ms02, see Data Connections) -- not an organization. A process name must be exactly &lt;customer&gt;.&lt;process&gt; (e.g. privera.02_Posteingang): the permission that grants access to it is derived from those two parts, so any other shape can never be granted.") }}
         </p>
 
         {% if can_edit %}
@@ -57,7 +57,7 @@
                         <h3 class="nx-subtitle" style="margin:0">{{ process.process }}</h3>
                         <span class="nx-c-meta" style="font-size:0.8rem">
                             {{ _('Table:') }} <span class="nx-mono">{{ process.table or '—' }}</span>
-                                {% if process.organization %}<span class="nx-mono nx-c-meta" title="{{ _('Organization (customer)') }}" data-testid="admin-processes-org-{{ group.client }}-{{ process.process }}"><i class="fas fa-building"></i> {{ process.organization }}</span>{% endif %}
+                                {% if process.organization %}<span class="nx-mono nx-c-meta" title="{{ _('Organization') }}" data-testid="admin-processes-org-{{ group.client }}-{{ process.process }}"><i class="fas fa-building"></i> {{ process.organization }}</span>{% endif %}
                         </span>
                         {% if can_edit %}
                         <span>
@@ -157,7 +157,7 @@
                         <input type="text" id="ProcessName" name="ProcessName" class="nx-input" pattern="[A-Za-z0-9_\-]{1,49}\.[A-Za-z0-9_\-]{1,50}" title="{{ _('Exactly <customer>.<process> -- two parts separated by a single dot, e.g. acme.01_Invoice.') }}" placeholder="privera.02_Posteingang" required data-testid="admin-process-source-process">
                     </div>
                     <div>
-                        <label for="OrganizationCode" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Organization (customer)") }}</label>
+                        <label for="OrganizationCode" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Organization") }}</label>
                         <select id="OrganizationCode" name="OrganizationCode" class="nx-select" data-testid="admin-process-source-organization">
                             <option value="">{{ _("Unassigned") }}</option>
                             {% for o in organizations %}
@@ -166,7 +166,7 @@
                         </select>
                     </div>
                     <div>
-                        <label for="OrganizationCode" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Organization (customer)") }}</label>
+                        <label for="OrganizationCode" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Organization") }}</label>
                         <select id="OrganizationCode" name="OrganizationCode" class="nx-select" data-testid="admin-process-source-organization">
                             <option value="">{{ _("Unassigned") }}</option>
                             {% for o in organizations %}

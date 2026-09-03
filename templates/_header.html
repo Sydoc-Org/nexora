@@ -248,7 +248,7 @@
                     </a>
                     {% endif %}
                     {# Tenancy config, collapsed into its own nested group (#255): the three
-                       pages that describe a tenant -- who its users are (Customers), where its
+                       pages that describe a tenant -- who its users are (Organizations), where its
                        data lives (Data Connections) and how its document fields map (Process
                        Configurations). Uses the generic data-nx-nav-group wiring in static/js/header.js
                        rather than a fourth hardcoded id/class pair; _header.css lifts the
@@ -270,7 +270,7 @@
                             <a href="{{ url_for('admin_organizations_view') }}"
                                 class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'organizations' else '' }}" data-testid="header-nav-admin-organizations">
                                 <i class="fas fa-building sidebar-nav-icon sidebar-subitem-icon"></i>
-                                <span class="sidebar-label">{{ _('Customers') }}</span>
+                                <span class="sidebar-label">{{ _('Organizations') }}</span>
                             </a>
                             {% if page_visibility.adminClientsPagePerm %}
                             <a href="{{ url_for('admin_clients_view') }}"

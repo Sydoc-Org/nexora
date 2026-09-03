@@ -78,7 +78,7 @@ Work toward the next release.
   organization's users; the user add/edit endpoints refuse a mismatch (400),
   binding a profile that users elsewhere already hold is refused (409), and
   the profile pickers on Access Control and the user page only offer
-  global profiles plus the chosen organization's own. Customers' edit modal
+  global profiles plus the chosen organization's own. Organizations' edit modal
   gained Tenant + Data connection, Process Configurations gained
   Organization, the Access Control profile drawer gained Organization, and
   `/admin/tenants` now reads tenant → organizations → users / access
@@ -91,17 +91,17 @@ Work toward the next release.
   isolation: the customer organization and the users in it, the data
   connection and whether the running process loaded it, its process
   configurations (sources + document-field mappings), and the tenant's generated pages. A trailing "Not in a
-  tenant" section lists the customers and connections no tenant points at
+  tenant" section lists the organizations and connections no tenant points at
   — with a *named-after* hint tying `<customer>.<process>` sources to the
-  customer they are named for. Gated like Customers (`admin.view.organizations`);
+  organization they are named for. Gated like Organizations (`admin.view.organizations`);
   the connection and process-configuration columns additionally respect
-  `admin.view.clients` / `admin.view.processes`. Customers gained a
+  `admin.view.clients` / `admin.view.processes`. Organizations gained a
   **Tenant** column linking back to it.
 - **Admin nav renamed after what the pages do, not the tables behind them**
   (#255). `Clients` is now **Data Connections** (engine, dialect and Octo
   domain per client code), `Processes` is **Process Configurations** (its
-  `dbo.ProcessSources` / `dbo.ProcessFieldMappings` mappings) and
-  `Organizations` is **Customers**. The three sit together in a new
+  `dbo.ProcessSources` / `dbo.ProcessFieldMappings` mappings); `Organizations`
+  keeps its name. The three sit together in a new
   collapsible **Tenants** group inside the admin sidebar, since together
   they are what describes a tenant. Routes, `data-testid`s, permission
   codes and DB columns are unchanged — labels only, plus de/fr/it.

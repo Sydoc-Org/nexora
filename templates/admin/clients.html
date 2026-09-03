@@ -17,7 +17,7 @@
     <main class="nx-main">
         {{ a.page_header(
             title=_('Data Connections'),
-            subtitle=_("Where tenant data lives: DB, SQL dialect and Octo domain per client code -- not the customer itself (see Customers)"),
+            subtitle=_("Where tenant data lives: DB, SQL dialect and Octo domain per client code -- not the organization itself (see Organizations)"),
             back_url=url_for('admin_dashboard'),
             actions=([{'label': _('Add connection'), 'icon': 'fa-plus', 'onclick': 'openAddClientModal()', 'variant': 'primary', 'testid': 'add-client'}] if can_edit else None),
             icon='fa-server'

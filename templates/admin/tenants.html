@@ -156,11 +156,11 @@
         {% if not tenant_registry_available %}
         <div class="nx-card nx-bg-lred" style="margin:-8px 0 16px;padding:12px 16px" data-testid="admin-tenants-unavailable">
             <strong class="nx-c-danger"><i class="fas fa-triangle-exclamation"></i> {{ _("Tenant registry unavailable") }}</strong>
-            <p class="nx-c-sec" style="font-size:0.85rem;margin:4px 0 0">{{ _("dbo.Tenants could not be read, so no tenant is shown below -- only the customers and connections that exist regardless. Check app.log.") }}</p>
+            <p class="nx-c-sec" style="font-size:0.85rem;margin:4px 0 0">{{ _("dbo.Tenants could not be read, so no tenant is shown below -- only the organizations and connections that exist regardless. Check app.log.") }}</p>
         </div>
         {% endif %}
 
-        {{ a.toolbar(search_id='tenantSearchInput', search_placeholder=_('Search tenant, customer, user, profile, connection or process...')) }}
+        {{ a.toolbar(search_id='tenantSearchInput', search_placeholder=_('Search tenant, organization, user, profile, connection or process...')) }}
 
         <div id="tenant-cards">
             {% for card in tree.tenants %}
@@ -181,7 +181,7 @@
                 {% for org in card.organizations %}
                 {{ org_block(org) }}
                 {% else %}
-                <p class="tenant-dim" data-testid="admin-tenants-no-orgs-{{ t.code }}">{{ _('No organization belongs to this tenant yet -- assign one on the Customers page.') }}</p>
+                <p class="tenant-dim" data-testid="admin-tenants-no-orgs-{{ t.code }}">{{ _('No organization belongs to this tenant yet -- assign one on the Organizations page.') }}</p>
                 {% endfor %}
 
                 <div class="tenant-pages" data-testid="admin-tenants-pages-{{ t.code }}">
@@ -201,13 +201,13 @@
 
             {% if tenant_registry_available and not tree.tenants %}
             <div class="nx-card admin-empty" data-testid="admin-tenants-empty">
-                <i class="fas fa-cubes"></i> &nbsp; {{ _('No tenants yet. A tenant groups customer organizations; today tenants are created by migration.') }}
+                <i class="fas fa-cubes"></i> &nbsp; {{ _('No tenants yet. A tenant groups organizations; today tenants are created by migration.') }}
             </div>
             {% endif %}
         </div>
 
         {% if tree.orphan_organizations %}
-        <h2 class="nx-section tenant-orphans__title">{{ _('Customers not in a tenant') }}</h2>
+        <h2 class="nx-section tenant-orphans__title">{{ _('Organizations not in a tenant') }}</h2>
         <section class="nx-card tenant-card" data-search="" data-testid="admin-tenants-orphan-organizations">
             {% for org in tree.orphan_organizations %}
             {{ org_block(org) }}
@@ -220,12 +220,12 @@
         <div class="tenant-grid tenant-grid--orphans">
             {% if tree.orphan_clients %}
             <section class="nx-card tenant-card" data-search="{{ (tree.orphan_clients | map(attribute='ClientCode') | join(' ') ~ ' ' ~ (tree.orphan_clients | map(attribute='DisplayName') | join(' '))) | lower }}" data-testid="admin-tenants-orphan-clients">
-                <h3 class="nx-meta"><i class="fas fa-server"></i> {{ _('Data connections no customer rides') }}</h3>
+                <h3 class="nx-meta"><i class="fas fa-server"></i> {{ _('Data connections no organization rides') }}</h3>
                 {% for client in tree.orphan_clients %}
                 <div class="tenant-orphan" data-search="{{ (client.ClientCode ~ ' ' ~ client.DisplayName) | lower }}" data-testid="admin-tenants-orphan-client-{{ client.ClientCode }}">
                     {{ connection_box(client) }}
                     {% if can_view_processes and client.unassigned_sources %}
-                    <h4 class="nx-meta"><i class="fas fa-diagram-project"></i> {{ _('Process configurations not assigned to a customer') }}</h4>
+                    <h4 class="nx-meta"><i class="fas fa-diagram-project"></i> {{ _('Process configurations not assigned to an organization') }}</h4>
                     {{ sources_list(client.unassigned_sources, 'admin-tenants-unassigned-' ~ client.ClientCode) }}
                     {% endif %}
                 </div>

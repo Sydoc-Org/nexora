@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-03 14:21+0200\n"
+"POT-Creation-Date: 2026-09-03 14:50+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -531,7 +531,7 @@ msgstr ""
 msgid "Not authorized"
 msgstr ""
 
-#: nx_lib/views/admin/logs.py:153 nx_lib/views/admin/organizations.py:212
+#: nx_lib/views/admin/logs.py:153 nx_lib/views/admin/organizations.py:237
 #: nx_lib/views/admin/permissions.py:612 nx_lib/views/admin/system.py:148
 #: nx_lib/views/admin/system.py:189 nx_lib/views/admin/system.py:232
 #: nx_lib/views/admin/system.py:252 nx_lib/views/admin/users.py:402
@@ -1010,7 +1010,7 @@ msgstr ""
 msgid "%(field)s must be numeric."
 msgstr ""
 
-#: nx_lib/views/admin/clients.py:154 nx_lib/views/admin/organizations.py:125
+#: nx_lib/views/admin/clients.py:154 nx_lib/views/admin/organizations.py:150
 #: nx_lib/views/admin/processes.py:418 nx_lib/views/admin/processes.py:571
 #: nx_lib/views/admin/users.py:142 nx_lib/views/tenant.py:458
 #: nx_lib/views/tenant.py:522 nx_lib/views/tenant.py:567
@@ -1225,9 +1225,9 @@ msgid "Client updated successfully."
 msgstr ""
 
 #: nx_lib/views/admin/clients.py:200 nx_lib/views/admin/clients.py:245
-#: nx_lib/views/admin/organizations.py:153
-#: nx_lib/views/admin/organizations.py:185
-#: nx_lib/views/admin/organizations.py:365 nx_lib/views/admin/processes.py:454
+#: nx_lib/views/admin/organizations.py:178
+#: nx_lib/views/admin/organizations.py:210
+#: nx_lib/views/admin/organizations.py:390 nx_lib/views/admin/processes.py:454
 #: nx_lib/views/admin/processes.py:517 nx_lib/views/admin/processes.py:613
 #: nx_lib/views/admin/processes.py:642 nx_lib/views/admin/users.py:227
 #: nx_lib/views/admin/users.py:476
@@ -1242,48 +1242,48 @@ msgstr ""
 msgid "Client deleted successfully."
 msgstr ""
 
-#: nx_lib/views/admin/organizations.py:101 nx_lib/views/admin/users.py:71
+#: nx_lib/views/admin/organizations.py:126 nx_lib/views/admin/users.py:71
 msgid "All fields are required."
 msgstr ""
 
-#: nx_lib/views/admin/organizations.py:120
+#: nx_lib/views/admin/organizations.py:145
 msgid "Organization created successfully."
 msgstr ""
 
-#: nx_lib/views/admin/organizations.py:122
+#: nx_lib/views/admin/organizations.py:147
 msgid "Organization already exists."
 msgstr ""
 
-#: nx_lib/views/admin/organizations.py:150
+#: nx_lib/views/admin/organizations.py:175
 msgid "Organization updated successfully."
 msgstr ""
 
-#: nx_lib/views/admin/organizations.py:172
-#: nx_lib/views/admin/organizations.py:291
-#: nx_lib/views/admin/organizations.py:343
-#: nx_lib/views/admin/organizations.py:350
+#: nx_lib/views/admin/organizations.py:197
+#: nx_lib/views/admin/organizations.py:316
+#: nx_lib/views/admin/organizations.py:368
+#: nx_lib/views/admin/organizations.py:375
 msgid "Organization not found."
 msgstr ""
 
-#: nx_lib/views/admin/organizations.py:182
+#: nx_lib/views/admin/organizations.py:207
 msgid "Organization deleted successfully."
 msgstr ""
 
-#: nx_lib/views/admin/organizations.py:300
+#: nx_lib/views/admin/organizations.py:325
 msgid "Accent colour must be a hex value like #336699."
 msgstr ""
 
-#: nx_lib/views/admin/organizations.py:314
-#: nx_lib/views/admin/organizations.py:330
+#: nx_lib/views/admin/organizations.py:339
+#: nx_lib/views/admin/organizations.py:355
 msgid "Logo must be an SVG, PNG or JPEG image."
 msgstr ""
 
-#: nx_lib/views/admin/organizations.py:324
+#: nx_lib/views/admin/organizations.py:349
 #: templates/js/admin/_organizations_js.html:279
 msgid "Logo is too large (max 512 KB)."
 msgstr ""
 
-#: nx_lib/views/admin/organizations.py:378
+#: nx_lib/views/admin/organizations.py:403
 #: templates/js/admin/_organizations_js.html:316
 msgid "Branding saved."
 msgstr ""
@@ -1563,7 +1563,7 @@ msgstr ""
 
 #: templates/_header.html:273 templates/admin/admin_overview.html:95
 #: templates/admin/organizations.html:19 templates/js/_header_js.html:19
-msgid "Customers"
+msgid "Organizations"
 msgstr ""
 
 #: templates/_header.html:279 templates/admin/clients.html:19
@@ -3418,7 +3418,8 @@ msgstr ""
 #: templates/admin/access_control.html:214
 #: templates/admin/access_control.html:315 templates/admin/logs.html:74
 #: templates/admin/modals/_user_modals.html:61
-#: templates/admin/permission_matrix.html:56
+#: templates/admin/permission_matrix.html:56 templates/admin/processes.html:60
+#: templates/admin/processes.html:160 templates/admin/processes.html:169
 #: templates/admin/user_detail.html:65
 #: templates/generali_additionalservices.html:95
 #: templates/generali_baseservices.html:83 templates/generali_pdqm.html:103
@@ -5560,7 +5561,7 @@ msgid "Administration"
 msgstr ""
 
 #: templates/admin/admin_overview.html:20
-msgid "Users, customers, sessions and logs."
+msgid "Users, organizations, sessions and logs."
 msgstr ""
 
 #: templates/admin/admin_overview.html:33
@@ -5610,12 +5611,11 @@ msgid "Who can see what, filterable both ways"
 msgstr ""
 
 #: templates/admin/admin_overview.html:99
-msgid "customers"
+msgid "organizations"
 msgstr ""
 
 #: templates/admin/admin_overview.html:100
-#: templates/admin/organizations.html:20
-msgid "Customers and their organization codes"
+msgid "Organizations and their codes"
 msgstr ""
 
 #: templates/admin/admin_overview.html:105
@@ -5685,7 +5685,7 @@ msgstr ""
 #: templates/admin/clients.html:20
 msgid ""
 "Where tenant data lives: DB, SQL dialect and Octo domain per client code "
-"-- not the customer itself (see Customers)"
+"-- not the organization itself (see Organizations)"
 msgstr ""
 
 #: templates/admin/clients.html:22
@@ -5975,15 +5975,19 @@ msgid "Delete banner"
 msgstr ""
 
 #: templates/admin/organizations.html:8
-msgid "Customers - nexora"
+msgid "Organizations - nexora"
+msgstr ""
+
+#: templates/admin/organizations.html:20
+msgid "Organizations, their codes, tenant and data connection"
 msgstr ""
 
 #: templates/admin/organizations.html:22 templates/js/_header_js.html:27
-msgid "Add customer"
+msgid "Add organization"
 msgstr ""
 
 #: templates/admin/organizations.html:26
-msgid "Search customers..."
+msgid "Search organizations..."
 msgstr ""
 
 #: templates/admin/modals/_organizations_modals.html:39
@@ -6081,7 +6085,7 @@ msgstr ""
 #: templates/admin/processes.html:28
 msgid ""
 "\"Client\" here is a runtime source (default/ms02, see Data Connections) "
-"-- not a customer. A process name must be exactly "
+"-- not an organization. A process name must be exactly "
 "&lt;customer&gt;.&lt;process&gt; (e.g. privera.02_Posteingang): the "
 "permission that grants access to it is derived from those two parts, so "
 "any other shape can never be granted."
@@ -6109,11 +6113,6 @@ msgstr ""
 
 #: templates/admin/processes.html:59
 msgid "Table:"
-msgstr ""
-
-#: templates/admin/processes.html:60 templates/admin/processes.html:160
-#: templates/admin/processes.html:169
-msgid "Organization (customer)"
 msgstr ""
 
 #: templates/admin/processes.html:65
@@ -6496,11 +6495,11 @@ msgstr ""
 #: templates/admin/tenants.html:159
 msgid ""
 "dbo.Tenants could not be read, so no tenant is shown below -- only the "
-"customers and connections that exist regardless. Check app.log."
+"organizations and connections that exist regardless. Check app.log."
 msgstr ""
 
 #: templates/admin/tenants.html:163
-msgid "Search tenant, customer, user, profile, connection or process..."
+msgid "Search tenant, organization, user, profile, connection or process..."
 msgstr ""
 
 #: templates/admin/tenants.html:175
@@ -6520,8 +6519,8 @@ msgstr ""
 
 #: templates/admin/tenants.html:184
 msgid ""
-"No organization belongs to this tenant yet -- assign one on the Customers"
-" page."
+"No organization belongs to this tenant yet -- assign one on the "
+"Organizations page."
 msgstr ""
 
 #: templates/admin/tenants.html:188
@@ -6534,12 +6533,12 @@ msgstr ""
 
 #: templates/admin/tenants.html:204
 msgid ""
-"No tenants yet. A tenant groups customer organizations; today tenants are"
-" created by migration."
+"No tenants yet. A tenant groups organizations; today tenants are created "
+"by migration."
 msgstr ""
 
 #: templates/admin/tenants.html:210
-msgid "Customers not in a tenant"
+msgid "Organizations not in a tenant"
 msgstr ""
 
 #: templates/admin/tenants.html:219
@@ -6547,11 +6546,11 @@ msgid "Shared across organizations"
 msgstr ""
 
 #: templates/admin/tenants.html:223
-msgid "Data connections no customer rides"
+msgid "Data connections no organization rides"
 msgstr ""
 
 #: templates/admin/tenants.html:228
-msgid "Process configurations not assigned to a customer"
+msgid "Process configurations not assigned to an organization"
 msgstr ""
 
 #: templates/admin/tenants.html:237
@@ -6637,12 +6636,12 @@ msgid "Delete user?"
 msgstr ""
 
 #: templates/admin/modals/_organizations_modals.html:6
-msgid "Delete Customer"
+msgid "Delete Organization"
 msgstr ""
 
 #: templates/admin/modals/_organizations_modals.html:26
 #: templates/js/admin/_organizations_js.html:55
-msgid "Add a new Customer"
+msgid "Add a new Organization"
 msgstr ""
 
 #: templates/admin/modals/_organizations_modals.html:32
@@ -6654,7 +6653,7 @@ msgid "Not in a tenant"
 msgstr ""
 
 #: templates/admin/modals/_organizations_modals.html:62
-msgid "Save Customer"
+msgid "Save Organization"
 msgstr ""
 
 #: templates/admin/modals/_user_modals.html:26
@@ -8564,7 +8563,7 @@ msgid "Banner deleted."
 msgstr ""
 
 #: templates/js/admin/_organizations_js.html:62
-msgid "Edit Customer"
+msgid "Edit Organization"
 msgstr ""
 
 #: templates/js/admin/_organizations_js.html:152

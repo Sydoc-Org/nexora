@@ -52,14 +52,14 @@
             organizationForm.reset();
             // a new customer rides the shared connection unless told otherwise
             document.getElementById('clientcode').value = 'default';
-            modalTitle.textContent = `{{ _("Add a new Customer") }}`;
+            modalTitle.textContent = `{{ _("Add a new Organization") }}`;
             document.getElementById('organizationname').required = true;
             openModal();
         }
 
         function openEditOrganizationModal(organization) {
             organizationForm.reset();
-            modalTitle.textContent = `{{ _("Edit Customer") }}`;
+            modalTitle.textContent = `{{ _("Edit Organization") }}`;
 
             organizationcodeInput.value = organization.organizationcode;
 

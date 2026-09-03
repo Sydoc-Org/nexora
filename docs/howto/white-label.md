@@ -34,8 +34,8 @@ in a collapsible **Tenants** group in the admin sidebar:
 
 | Route | UI label | Axis |
 |---|---|---|
-| `/admin/tenants` | **Overview** (Tenants) | read-only join of all three: tenant → customer + users, data connection, process configurations, pages; plus what is not in a tenant (#256 phase 1) |
-| `/admin/organizations` | **Customers** | 2 — who the users work for |
+| `/admin/tenants` | **Overview** (Tenants) | read-only join of all three: tenant → organizations → users, access profiles, data connection, process configurations; plus pages; plus what is not in a tenant (#256 phase 1) |
+| `/admin/organizations` | **Organizations** (name kept) | 2 — who the users work for |
 | `/admin/clients` | **Data Connections** | 1 — where the data lives |
 | `/admin/processes` | **Process Configurations** | Octo process sources + their field mappings |
 
