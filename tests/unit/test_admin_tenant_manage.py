@@ -15,7 +15,6 @@ def test_tenant_payload_ok():
     data = {
         "TenantCode": "acme",
         "DisplayName": "Acme",
-        "ClientCode": "default",
         "organizations": ["ACME", "acm2"],
     }
     assert validate_tenant_payload(data, require_code=True) == []
@@ -27,16 +26,15 @@ def test_tenant_payload_rejects_bad_code_missing_name_and_bad_orgs(app):
             {
                 "TenantCode": "Bad Code!",
                 "DisplayName": "",
-                "ClientCode": "",
                 "organizations": "ACME",
             },
             require_code=True,
         )
-    assert len(errors) == 4  # code, name, connection, organizations
+    assert len(errors) == 3  # code, name, organizations
 
 
 def test_tenant_payload_code_optional_on_edit():
-    data = {"DisplayName": "Acme", "ClientCode": "default", "organizations": []}
+    data = {"DisplayName": "Acme", "organizations": []}
     assert validate_tenant_payload(data, require_code=False) == []
 
 

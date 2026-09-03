@@ -53,10 +53,12 @@
         {% endif %}
     {% endmacro %}
 
-    {% macro connection_box(client, missing_code=None) %}
+    {% macro connection_box(client) %}
         {% if not can_view_clients %}
         <p class="tenant-dim"><i class="fas fa-lock"></i> {{ _('Requires admin.view.clients') }}</p>
-        {% elif client %}
+        {% elif client.missing %}
+        <p class="nx-c-danger"><i class="fas fa-triangle-exclamation"></i> {{ _('Client %(code)s is missing', code=client.ClientCode) }}</p>
+        {% else %}
         <p class="tenant-col__lead">
             <a href="{{ url_for('admin_clients_view') }}">{{ client.DisplayName }}</a>
             <span class="nx-mono tenant-dim">{{ client.ClientCode }}</span>
@@ -73,10 +75,6 @@
                 {% endif %}
             </dd>
         </dl>
-        {% elif missing_code %}
-        <p class="nx-c-danger"><i class="fas fa-triangle-exclamation"></i> {{ _('Client %(code)s is missing', code=missing_code) }}</p>
-        {% else %}
-        <p class="tenant-dim">{{ _('No data connection') }}</p>
         {% endif %}
     {% endmacro %}
 
@@ -116,7 +114,8 @@
                            org.users | map(attribute='username') | join(' '),
                            org.users | map(attribute='fullname') | select | join(' '),
                            org.bound_profiles | join(' '),
-                           org.client.ClientCode if org.client else '', org.client.DisplayName if org.client else '',
+                           org.clients | map(attribute='ClientCode') | join(' '),
+                           org.clients | map(attribute='DisplayName') | select | join(' '),
                            org.sources | map(attribute='process') | join(' ')] %}
         <div class="tenant-org" data-search="{{ (haystack | join(' ')) | lower }}" data-testid="admin-tenants-org-{{ org.organizationcode }}">
             <h3 class="tenant-org__title">
@@ -135,7 +134,7 @@
                 </div>
                 <div class="tenant-col" data-testid="admin-tenants-connection-{{ org.organizationcode }}">
                     <h4 class="nx-meta"><i class="fas fa-server"></i> {{ _('Data connection') }}</h4>
-                    {{ connection_box(org.client, org.client_code if not org.client else None) }}
+                    {% for c in org.clients %}{{ connection_box(c) }}{% else %}<p class="tenant-dim">{{ _('No data connection') }}</p>{% endfor %}
                 </div>
                 <div class="tenant-col">
                     <h4 class="nx-meta"><i class="fas fa-diagram-project"></i> {{ _('Process configurations') }}</h4>

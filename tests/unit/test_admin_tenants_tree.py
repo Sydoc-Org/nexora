@@ -6,19 +6,12 @@ import types
 from nx_lib.views.admin.tenants import build_tenant_tree
 
 
-def _tenant(code="ms02", org="PDBS", client="ms02", name="Mobscn", active=True):
-    return types.SimpleNamespace(
-        code=code, display_name=name, organization_code=org, client_code=client, active=active
-    )
+def _tenant(code="ms02", name="Mobscn", active=True):
+    return types.SimpleNamespace(code=code, display_name=name, active=active)
 
 
-def _org(code, name, tenant=None, client=None):
-    return {
-        "organizationcode": code,
-        "organization": name,
-        "tenant_code": tenant,
-        "client_code": client,
-    }
+def _org(code, name, tenant=None):
+    return {"organizationcode": code, "organization": name, "tenant_code": tenant}
 
 
 def _user(uid, username, org, profile, fullname=None):
@@ -52,8 +45,8 @@ def _source(client, process, org, table="dbo.T", fields=1):
 
 
 ORGS = [
-    _org("PDBS", "Praesidialdepartement", tenant="ms02", client="ms02"),
-    _org("PRVR", "Privera", client="default"),
+    _org("PDBS", "Praesidialdepartement", tenant="ms02"),
+    _org("PRVR", "Privera"),
     _org("LKTR", "ElektroMaterial"),
 ]
 USERS = [
@@ -105,22 +98,34 @@ def test_tenant_card_lists_its_organizations_with_all_four_boxes():
     assert [u["username"] for u in org["users"]] == ["anna"]
     assert org["profiles_in_use"] == [{"name": "pdbsUser", "count": 1}]
     assert org["bound_profiles"] == ["pdbsUser"]
-    assert org["client"]["ClientCode"] == "ms02" and org["client"]["loaded"] is True
+    # 0096: connections are derived from the organization's process configurations
+    assert [c["ClientCode"] for c in org["clients"]] == ["ms02"]
+    assert org["clients"][0]["loaded"] is True
     assert [s["process"] for s in org["sources"]] == ["sydoc.05_PDBS"]
     assert card["pages"] == PAGES["ms02"]
 
 
 def test_membership_comes_from_organizations_tenant_code():
-    two = [*ORGS, _org("SSIX", "ISS", tenant="ms02", client="ms02")]
+    two = [*ORGS, _org("SSIX", "ISS", tenant="ms02")]
     card = _tree(organizations=two)["tenants"][0]
     assert [o["organizationcode"] for o in card["organizations"]] == ["SSIX", "PDBS"]  # by name
 
 
-def test_legacy_tenants_organization_code_is_a_fallback_only():
-    legacy = [dict(o, tenant_code=None) for o in ORGS]  # nobody re-pointed yet
-    tree = _tree(organizations=legacy)
-    assert [o["organizationcode"] for o in tree["tenants"][0]["organizations"]] == ["PDBS"]
-    assert "PDBS" not in [o["organizationcode"] for o in tree["orphan_organizations"]]
+def test_connection_row_missing_from_clients_renders_the_gap():
+    sources = [*SOURCES, _source("ghost", "x.01_Gone", "PRVR")]
+    tree = build_tenant_tree(
+        tenants=[_tenant()],
+        organizations=ORGS,
+        users=USERS,
+        clients=CLIENTS,
+        loaded_codes=set(),
+        sources=sources,
+        pages=PAGES,
+        profiles=PROFILES,
+    )
+    privera = tree["orphan_organizations"][1]
+    assert [c["ClientCode"] for c in privera["clients"]] == ["default", "ghost"]
+    assert privera["clients"][1] == {"ClientCode": "ghost", "DisplayName": None, "missing": True}
 
 
 def test_orphans_are_organizations_without_tenant_and_connections_nobody_rides():
@@ -128,14 +133,14 @@ def test_orphans_are_organizations_without_tenant_and_connections_nobody_rides()
     assert [o["organizationcode"] for o in tree["orphan_organizations"]] == ["LKTR", "PRVR"]
     assert [c["ClientCode"] for c in tree["orphan_clients"]] == ["spare"]
     privera = tree["orphan_organizations"][1]
-    assert privera["client"]["ClientCode"] == "default"
+    assert [c["ClientCode"] for c in privera["clients"]] == ["default"]
     assert [s["process"] for s in privera["sources"]] == ["privera.02_Posteingang"]
-    # an organization with no connection renders the gap, not a crash
-    assert tree["orphan_organizations"][0]["client"] is None
+    # an organization with no process configuration rides no connection
+    assert tree["orphan_organizations"][0]["clients"] == []
 
 
 def test_unassigned_sources_hang_off_their_connection():
-    default = _tree()["orphan_organizations"][1]["client"]
+    default = _tree()["orphan_organizations"][1]["clients"][0]
     assert [s["process"] for s in default["unassigned_sources"]] == ["compass.01_Invoice"]
 
 
@@ -152,7 +157,7 @@ def test_profiles_bound_vs_in_use_and_global_list():
 
 def test_not_loaded_is_reported():
     org = _tree(loaded=frozenset())["tenants"][0]["organizations"][0]
-    assert org["client"]["loaded"] is False
+    assert org["clients"][0]["loaded"] is False
 
 
 def test_no_tenants_means_every_organization_is_orphaned():

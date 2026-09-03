@@ -54,8 +54,7 @@ GO
 CREATE TABLE dbo.Organizations (
     organizationcode NVARCHAR(5) NOT NULL PRIMARY KEY,
     Organization NVARCHAR(200) NULL,
-    TenantCode NVARCHAR(50) NULL,   -- 0090; no dbo.Tenants on TEST, so no FK here
-    ClientCode NVARCHAR(50) NULL    -- 0090; no dbo.Clients on TEST, so no FK here
+    TenantCode NVARCHAR(50) NULL    -- 0090; no dbo.Tenants on TEST, so no FK here (ClientCode dropped by 0096)
 );
 GO
 

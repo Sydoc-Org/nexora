@@ -17,7 +17,7 @@
     <main class="nx-main">
         {{ a.page_header(
             title=_('Organizations'),
-            subtitle=_('Organizations, their codes, tenant and data connection'),
+            subtitle=_('Organizations, their codes and tenant'),
             back_url=url_for('admin_dashboard'),
             actions=[{'label': _('Add organization'), 'icon': 'fa-plus', 'onclick': 'openAddOrganizationModal()', 'variant': 'primary'}],
             icon='fa-building'
@@ -31,7 +31,6 @@
                     {'label': _('Code'), 'width': '160px'},
                     {'label': _('Name')},
                     {'label': _('Tenant'), 'width': '180px'},
-                    {'label': _('Data connection'), 'width': '160px'},
                     {'label': _('Actions'), 'align': 'right', 'width': '180px'}
                 ]) }}
                 <tbody id="orgs-tbody">
@@ -46,11 +45,8 @@
                             <span class="nx-c-meta">—</span>
                             {% endif %}
                         </td>
-                        <td data-testid="admin-org-client-{{ organization.organizationcode }}">
-                            {% if organization.client_code %}<span class="nx-mono">{{ organization.client_code }}</span>{% else %}<span class="nx-c-meta">—</span>{% endif %}
-                        </td>
                         <td class="align-right">
-                            <button data-organization='{{ {'organizationcode': organization.organizationcode, 'organization': organization.organization, 'tenant_code': organization.tenant_code, 'client_code': organization.client_code}|tojson|safe }}' class="edit-organization-btn nx-btn nx-btn--ghost nx-btn--sm" type="button" data-testid="admin-org-edit-{{ organization.organizationcode }}">{{ _("Edit") }}</button>
+                            <button data-organization='{{ {'organizationcode': organization.organizationcode, 'organization': organization.organization, 'tenant_code': organization.tenant_code}|tojson|safe }}' class="edit-organization-btn nx-btn nx-btn--ghost nx-btn--sm" type="button" data-testid="admin-org-edit-{{ organization.organizationcode }}">{{ _("Edit") }}</button>
                             {% if can_edit_branding %}
                             <button class="branding-organization-btn nx-btn nx-btn--ghost nx-btn--sm" type="button" data-organizationcode="{{ organization.organizationcode }}" data-testid="admin-org-branding-{{ organization.organizationcode }}">{{ _("Branding") }}</button>
                             {% endif %}

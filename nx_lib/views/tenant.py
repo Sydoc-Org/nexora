@@ -5,10 +5,12 @@ cached registry (``nx_lib/tenant/registry.py``, Task 2) and the
 descriptor->SQL builders (``nx_lib/tenant/queries.py``, Task 3) -- no
 per-tenant view code, no Blueprints (house rule: routes register via
 ``add_url_rule`` so every ``url_for(...)`` in templates keeps working
-unchanged). Permission is dynamic -- the tenant code lives in the URL, so the
-permission code (``tenant.<code>.view`` / ``.edit``) is dynamic too -- so it
-is checked *inside* each view, never via ``@require_permission``, which only
-ever takes a static string literal.
+unchanged). Access is dynamic -- the tenant code lives in the URL -- so it is
+checked *inside* each view (``_can_view``), never via ``@require_permission``,
+which only ever takes a static string literal. Viewing is *membership or
+grant*: a user whose organization belongs to the tenant
+(``Organizations.TenantCode``) sees it by right; anyone else needs
+``tenant.<code>.view``. Editing stays an explicit ``tenant.<code>.edit`` grant.
 
 Security invariant this module owns (carried from Task 3's dispatch note):
 ``queries.py``'s filter/sort column names are identifier-valid but never
@@ -43,6 +45,7 @@ from ..i18n import get_locale
 from ..security import PermissionDenied, has_permission, page_visibility
 from ..tenant import entity_for, fields_for, pages_for, registry, tenant
 from ..tenant.queries import build_delete, build_insert, build_list_query, build_update
+from ..tenant.registry import organization_tenant
 
 _DEFAULT_LIMIT = 50
 _MAX_LIMIT = 200
@@ -81,12 +84,21 @@ def _dialect_for_role(client, role):
     return client.dialect
 
 
-def _resolve_client_engine(t, entity):
-    """(engine, dialect) for ``entity``'s ``engine_role`` on tenant ``t``'s
-    client -- ``(None, None)`` when the client row itself or its engine for
-    that role is unavailable (K3: engines resolve via import-time CLIENTS,
-    same degrade-to-None contract as every other engine in this codebase)."""
-    client = CLIENTS.get(t.client_code)
+def _can_view(tenant_code):
+    """Membership or grant (0096): the session user's organization belongs to
+    the tenant, or the session holds ``tenant.<code>.view``."""
+    return organization_tenant(session.get("organizationcode")) == tenant_code or has_permission(
+        f"tenant.{tenant_code}.view"
+    )
+
+
+def _resolve_client_engine(entity):
+    """(engine, dialect) for ``entity``'s ``engine_role`` on the entity's own
+    client (``TenantEntities.ClientCode``, 0096) -- ``(None, None)`` when the
+    client row itself or its engine for that role is unavailable (K3: engines
+    resolve via import-time CLIENTS, same degrade-to-None contract as every
+    other engine in this codebase)."""
+    client = CLIENTS.get(entity.client_code)
     if client is None:
         return None, None
     engine = _engine_for_role(client, entity.engine_role)
@@ -331,7 +343,7 @@ def _tenant_nav_page(code, p, locale):
 
 def visible_tenant_nav() -> list[dict]:
     """[{"code", "label", "pages": [...]}] for every tenant the current
-    session holds ``tenant.<code>.view`` for -- [] when the registry itself
+    session can view (``_can_view``: membership or grant) -- [] when the registry itself
     is unavailable (never a partial/unsafe result, same fail-closed contract
     as the registry module itself). Consumed by Task 6's sidebar nav context
     processor; each page entry carries an already-resolved ``url`` (never
@@ -345,7 +357,7 @@ def visible_tenant_nav() -> list[dict]:
     nav = []
     for code in sorted(reg.tenants):
         t = reg.tenants[code]
-        if not has_permission(f"tenant.{code}.view"):
+        if not _can_view(code):
             continue
         pages = [
             entry
@@ -360,7 +372,7 @@ def visible_tenant_nav() -> list[dict]:
 
 
 def tenant_page(tenant_code, page_key):
-    if not has_permission(f"tenant.{tenant_code}.view"):
+    if not _can_view(tenant_code):
         raise PermissionDenied()
 
     reg = registry()
@@ -427,14 +439,14 @@ def tenant_page(tenant_code, page_key):
 
 
 def api_tenant_list(tenant_code, page_key):
-    if not has_permission(f"tenant.{tenant_code}.view"):
+    if not _can_view(tenant_code):
         raise PermissionDenied()
 
     unavailable, t, _page, entity, fields = _resolve_page_entity(tenant_code, page_key)
     if unavailable:
         return jsonify({"success": False, "unavailable": True}), 503
 
-    engine, dialect = _resolve_client_engine(t, entity)
+    engine, dialect = _resolve_client_engine(entity)
     if engine is None:
         return jsonify({"success": False, "unavailable": True}), 503
 
@@ -501,7 +513,7 @@ def api_tenant_add(tenant_code, page_key):
     if unavailable:
         return jsonify({"success": False, "unavailable": True}), 503
 
-    engine, dialect = _resolve_client_engine(t, entity)
+    engine, dialect = _resolve_client_engine(entity)
     if engine is None:
         return jsonify({"success": False, "unavailable": True}), 503
 
@@ -543,7 +555,7 @@ def api_tenant_edit(tenant_code, page_key, record_id):
     if unavailable:
         return jsonify({"success": False, "unavailable": True}), 503
 
-    engine, dialect = _resolve_client_engine(t, entity)
+    engine, dialect = _resolve_client_engine(entity)
     if engine is None:
         return jsonify({"success": False, "unavailable": True}), 503
 
@@ -588,7 +600,7 @@ def api_tenant_delete(tenant_code, page_key, record_id):
     if unavailable:
         return jsonify({"success": False, "unavailable": True}), 503
 
-    engine, dialect = _resolve_client_engine(t, entity)
+    engine, dialect = _resolve_client_engine(entity)
     if engine is None:
         return jsonify({"success": False, "unavailable": True}), 503
 
@@ -614,14 +626,14 @@ def api_tenant_delete(tenant_code, page_key, record_id):
 
 
 def api_tenant_export(tenant_code, page_key):
-    if not has_permission(f"tenant.{tenant_code}.view"):
+    if not _can_view(tenant_code):
         raise PermissionDenied()
 
     unavailable, t, page, entity, fields = _resolve_page_entity(tenant_code, page_key)
     if unavailable:
         return jsonify({"success": False, "unavailable": True}), 503
 
-    engine, dialect = _resolve_client_engine(t, entity)
+    engine, dialect = _resolve_client_engine(entity)
     if engine is None:
         return jsonify({"success": False, "unavailable": True}), 503
 

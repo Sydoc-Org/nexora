@@ -35,7 +35,6 @@
                 {{ a.table_header([
                     {'label': _('Code'), 'width': '140px'},
                     {'label': _('Display name')},
-                    {'label': _('Data connection'), 'width': '150px'},
                     {'label': _('Organizations')},
                     {'label': _('Pages'), 'width': '90px'},
                     {'label': _('Active'), 'width': '80px'}
@@ -45,7 +44,6 @@
                     <tr data-search="{{ (t.TenantCode ~ ' ' ~ t.DisplayName ~ ' ' ~ (t.organizations | map(attribute='organization') | join(' ')))|lower }}" data-testid="admin-tenant-row-{{ t.TenantCode }}">
                         <td><span class="nx-mono">{{ t.TenantCode }}</span></td>
                         <td>{{ t.DisplayName }}</td>
-                        <td><span class="nx-mono">{{ t.ClientCode }}</span></td>
                         <td>
                             {% for o in t.organizations %}<span class="tenant-chip tenant-chip--mini" title="{{ o.organizationcode }}">{{ o.organization }}</span> {% else %}<span class="nx-c-meta">—</span>{% endfor %}
                         </td>
@@ -53,7 +51,7 @@
                         <td>{{ _('Yes') if t.IsActive else _('No') }}</td>
                         {% if can_edit %}
                         <td class="align-right">
-                            <button type="button" class="edit-tenant-btn nx-btn nx-btn--ghost nx-btn--sm" data-tenant='{{ {"TenantCode": t.TenantCode, "DisplayName": t.DisplayName, "ClientCode": t.ClientCode, "IsActive": t.IsActive, "organizations": t.organizations | map(attribute="organizationcode") | list}|tojson|safe }}' data-testid="admin-tenant-edit-{{ t.TenantCode }}">{{ _("Edit") }}</button>
+                            <button type="button" class="edit-tenant-btn nx-btn nx-btn--ghost nx-btn--sm" data-tenant='{{ {"TenantCode": t.TenantCode, "DisplayName": t.DisplayName, "IsActive": t.IsActive, "organizations": t.organizations | map(attribute="organizationcode") | list}|tojson|safe }}' data-testid="admin-tenant-edit-{{ t.TenantCode }}">{{ _("Edit") }}</button>
                             <button type="button" class="pages-tenant-btn nx-btn nx-btn--ghost nx-btn--sm" data-tenant="{{ t.TenantCode }}" data-testid="admin-tenant-pages-{{ t.TenantCode }}">{{ _("Pages") }}</button>
                             <button type="button" class="delete-tenant-btn nx-btn nx-btn--ghost nx-btn--sm nx-c-danger" data-tenant="{{ t.TenantCode }}" data-testid="admin-tenant-delete-{{ t.TenantCode }}">{{ _("Delete") }}</button>
                         </td>
@@ -155,16 +153,8 @@
                             <input type="text" id="DisplayName" name="DisplayName" class="nx-input" maxlength="100" required data-testid="admin-tenant-modal-name">
                         </div>
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label for="ClientCode" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Data connection") }}</label>
-                            <select id="ClientCode" name="ClientCode" class="nx-select" required data-testid="admin-tenant-modal-client">
-                                {% for c in clients %}<option value="{{ c.ClientCode }}">{{ c.DisplayName }} ({{ c.ClientCode }})</option>{% endfor %}
-                            </select>
-                        </div>
-                        <div style="display:flex;align-items:flex-end">
-                            <label class="flex items-center gap-2 text-sm" style="padding-bottom:6px"><input type="checkbox" id="IsActive" name="IsActive" data-testid="admin-tenant-modal-active"> {{ _("Active") }}</label>
-                        </div>
+                    <div>
+                        <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="IsActive" name="IsActive" data-testid="admin-tenant-modal-active"> {{ _("Active") }}</label>
                     </div>
                     <div>
                         <div class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Organizations in this tenant") }}</div>

@@ -3,7 +3,7 @@
     Tenant
       └─ Organization ─┬─ Users
                        ├─ Access profiles (bound to the organization; NULL = global)
-                       ├─ Data connection (Organizations.ClientCode)
+                       ├─ Data connections (derived: what its process configurations ride)
                        └─ Process configurations (ProcessSources.OrganizationCode)
 
 One card per ``dbo.Tenants`` row listing the organizations that belong to it
@@ -42,9 +42,8 @@ def build_tenant_tree(
 ):
     """Assemble the overview from plain rows -- Flask-free so it is testable.
 
-    tenants        objects with .code/.display_name/.organization_code/.client_code/.active
-                   (the tenant registry's Tenant dataclass)
-    organizations  [{organizationcode, organization, tenant_code, client_code}]
+    tenants        objects with .code/.display_name/.active (the registry's Tenant dataclass)
+    organizations  [{organizationcode, organization, tenant_code}]
     users          [{userID, username, fullname, organizationCode, profile}]
     clients        [{ClientCode, DisplayName, Dialect, RuntimeEngineKey, IsActive}]
     loaded_codes   set of ClientCodes the running CLIENTS registry holds
@@ -90,6 +89,7 @@ def build_tenant_tree(
     for o in organizations:
         code = o["organizationcode"]
         org_users = users_by_org.get(code, [])
+        org_sources = sources_by_org.get(code, [])
         in_use: dict = {}
         for u in org_users:
             if u.get("profile"):
@@ -101,8 +101,13 @@ def build_tenant_tree(
                 {"name": n, "count": in_use[n]} for n in sorted(in_use, key=str.lower)
             ],
             "bound_profiles": sorted(bound_profiles.get(code, []), key=str.lower),
-            "client": conns.get(o.get("client_code")) if o.get("client_code") else None,
-            "sources": sources_by_org.get(code, []),
+            "sources": org_sources,
+            # 0096: an organization rides whatever connections its process
+            # configurations read from -- nothing is stored on the row itself.
+            "clients": [
+                conns.get(c) or {"ClientCode": c, "DisplayName": None, "missing": True}
+                for c in sorted({s["client"] for s in org_sources})
+            ],
         }
 
     def _org_sort_key(code):
@@ -110,12 +115,9 @@ def build_tenant_tree(
 
     claimed_orgs, cards = set(), []
     for t in sorted(tenants, key=lambda t: (t.display_name or t.code).lower()):
-        member_codes = [c for c in orgs if orgs[c].get("tenant_code") == t.code]
-        # Pre-0090 pointer (Tenants.OrganizationCode) as a fallback, so a tenant
-        # whose organization row was never re-pointed still shows its customer.
-        if not member_codes and t.organization_code in orgs:
-            member_codes = [t.organization_code]
-        member_codes.sort(key=_org_sort_key)
+        member_codes = sorted(
+            (c for c in orgs if orgs[c].get("tenant_code") == t.code), key=_org_sort_key
+        )
         claimed_orgs.update(member_codes)
         cards.append(
             {
@@ -125,7 +127,7 @@ def build_tenant_tree(
             }
         )
 
-    used_clients = {o.get("client_code") for o in orgs.values() if o.get("client_code")}
+    used_clients = {c["ClientCode"] for o in orgs.values() for c in o["clients"]}
     return {
         "tenants": cards,
         "orphan_organizations": [
@@ -185,8 +187,7 @@ def admin_tenants_view():
 
         organizations = _rows(
             cursor,
-            "SELECT organizationcode, organization, TenantCode AS tenant_code, "
-            "ClientCode AS client_code FROM organizations",
+            "SELECT organizationcode, organization, TenantCode AS tenant_code FROM organizations",
         )
         users = _rows(
             cursor,

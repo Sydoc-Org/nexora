@@ -296,7 +296,8 @@ def _inject_brand():
 
 def _inject_tenant_nav():
     """Sidebar data source for the per-tenant nav group (Task 6): the
-    registry's tenants the current session holds ``tenant.<code>.view`` for,
+    registry's tenants the current session can view -- its own organization's
+    tenant by membership, any other by a ``tenant.<code>.view`` grant --
     each with its own page list -- ``[]`` when the registry itself is
     unavailable or nobody is logged in. ``visible_tenant_nav()`` lives in
     ``nx_lib/views/tenant.py`` (the tenant kernel's route module, which

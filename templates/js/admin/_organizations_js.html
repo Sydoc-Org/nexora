@@ -50,8 +50,6 @@
 
         function openAddOrganizationModal() {
             organizationForm.reset();
-            // a new customer rides the shared connection unless told otherwise
-            document.getElementById('clientcode').value = 'default';
             modalTitle.textContent = `{{ _("Add a new Organization") }}`;
             document.getElementById('organizationname').required = true;
             openModal();
@@ -65,7 +63,6 @@
 
             document.getElementById('organizationname').value = organization.organization;
             document.getElementById('tenantcode').value = organization.tenant_code || '';
-            document.getElementById('clientcode').value = organization.client_code || '';
             openModal();
         }
 

@@ -59,7 +59,6 @@
             // TenantCode is the primary key and the middle of tenant.<code>.view -- not editable.
             tenantCodeInput.disabled = true;
             document.getElementById('DisplayName').value = t.DisplayName || '';
-            document.getElementById('ClientCode').value = t.ClientCode || '';
             document.getElementById('IsActive').checked = !!t.IsActive;
             setOrganizations(t.organizations || [], t.TenantCode);
             openModal();
@@ -91,7 +90,6 @@
             const data = {
                 TenantCode: tenantCodeInput.value,
                 DisplayName: document.getElementById('DisplayName').value,
-                ClientCode: document.getElementById('ClientCode').value,
                 IsActive: document.getElementById('IsActive').checked,
                 organizations: Array.from(tenantForm.querySelectorAll('input[name="organizations"]:checked')).map(cb => cb.value),
             };

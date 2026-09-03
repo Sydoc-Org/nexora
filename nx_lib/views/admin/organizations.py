@@ -30,8 +30,8 @@ def admin_organizations_view():
         conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT organizationcode, organization, TenantCode AS tenant_code, "
-            "ClientCode AS client_code FROM organizations ORDER BY organization"
+            "SELECT organizationcode, organization, TenantCode AS tenant_code "
+            "FROM organizations ORDER BY organization"
         )
         organizations = [
             dict(zip([column[0] for column in cursor.description], row, strict=False))
@@ -59,22 +59,19 @@ def admin_organizations_view():
             )
             org["tenant_name"] = t.display_name if t else None
 
-        # Pickers for the edit modal: an organization belongs to a tenant and
-        # rides a data connection. Either table being unreadable empties its
-        # picker rather than failing the page.
+        # Picker for the edit modal: an organization belongs to a tenant (or
+        # none). An unreadable registry empties the picker, never fails the page.
         tenants = [
             {"code": t.code, "name": t.display_name}
             for t in sorted(
                 (treg.tenants.values() if treg else []), key=lambda t: t.display_name.lower()
             )
         ]
-        clients = _client_options(cursor)
 
         return render_template(
             "admin/organizations.html",
             organizations=organizations,
             tenants=tenants,
-            clients=clients,
             can_edit_branding=has_permission("admin.edit.organization.branding"),
             logged_in_user=session.get("username"),
             userid=session.get("userid"),
@@ -90,29 +87,10 @@ def admin_organizations_view():
             conn.close()
 
 
-def _client_options(cursor):
-    """[{code, name}] from dbo.Clients for the Data connection picker; [] when
-    the table cannot be read (TEST has none) -- the picker then offers only
-    "None", and existing values still round-trip because the <select> keeps
-    whatever the row already carries."""
-    try:
-        cursor.execute(
-            "SELECT ClientCode, DisplayName FROM dbo.Clients WHERE IsActive = 1 ORDER BY ClientCode"
-        )
-        return [{"code": r.ClientCode, "name": r.DisplayName} for r in cursor.fetchall()]
-    except Exception as e:  # degrade to an empty picker, never 500 the page
-        current_app.logger.warning(f"dbo.Clients unavailable for the Customers picker: {e}")
-        return []
-
-
-def _tenancy_fields(data):
-    """(TenantCode, ClientCode) from the modal payload -- empty picks become NULL,
-    i.e. "not in a tenant" / "no connection". Referential validity is the two FKs'
-    job (FK_Organizations_Tenants / FK_Organizations_Clients, migration 0090)."""
-    return (
-        (data.get("tenantcode") or "").strip() or None,
-        (data.get("clientcode") or "").strip() or None,
-    )
+def _tenant_code(data):
+    """TenantCode from the modal payload -- an empty pick becomes NULL, i.e. "not
+    in a tenant". Referential validity is FK_Organizations_Tenants' job (0090)."""
+    return (data.get("tenantcode") or "").strip() or None
 
 
 @require_permission("admin.add.organization")
@@ -137,9 +115,8 @@ def admin_add_organization():
         conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO organizations (organizationcode, organization, TenantCode, ClientCode) "
-            "VALUES (?,?,?,?)",
-            (organizationcode, organization, *_tenancy_fields(data)),
+            "INSERT INTO organizations (organizationcode, organization, TenantCode) VALUES (?,?,?)",
+            (organizationcode, organization, _tenant_code(data)),
         )
         conn.commit()
         return jsonify({"success": True, "message": _("Organization created successfully.")})
@@ -167,9 +144,8 @@ def admin_edit_organization(organizationcode):
         conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "UPDATE organizations SET organization=?, TenantCode=?, ClientCode=? "
-            "WHERE organizationcode=?",
-            (organization, *_tenancy_fields(data), organizationcode),
+            "UPDATE organizations SET organization=?, TenantCode=? WHERE organizationcode=?",
+            (organization, _tenant_code(data), organizationcode),
         )
         conn.commit()
         return jsonify({"success": True, "message": _("Organization updated successfully.")})

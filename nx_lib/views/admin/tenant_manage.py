@@ -62,8 +62,8 @@ def mountable_endpoints(url_map):
 
 
 def validate_tenant_payload(data, *, require_code):
-    """Error messages for a tenant add/edit payload; [] when valid. Referential
-    checks (client exists, organizations exist) happen against the DB in the
+    """Error messages for a tenant add/edit payload; [] when valid. The
+    referential check (organizations exist) happens against the DB in the
     endpoint -- this is the shape check."""
     errors = []
     code = (data.get("TenantCode") or "").strip()
@@ -72,8 +72,6 @@ def validate_tenant_payload(data, *, require_code):
     name = (data.get("DisplayName") or "").strip()
     if not name or len(name) > 100:
         errors.append(_("Display name is required (max. 100 characters)."))
-    if not (data.get("ClientCode") or "").strip():
-        errors.append(_("A data connection is required."))
     orgs = data.get("organizations") or []
     if not isinstance(orgs, list) or any(
         not isinstance(o, str) or not _ORG_CODE_RE.match(o) for o in orgs
@@ -166,7 +164,7 @@ def admin_tenants_manage_view():
         cursor = conn.cursor()
         tenants = _rows(
             cursor,
-            "SELECT TenantCode, DisplayName, ClientCode, IsActive FROM Tenants ORDER BY DisplayName",
+            "SELECT TenantCode, DisplayName, IsActive FROM Tenants ORDER BY DisplayName",
         )
         organizations = _rows(
             cursor,
@@ -177,15 +175,6 @@ def admin_tenants_manage_view():
             "SELECT TenantCode, PageKey, PageType, EntityKey, LayoutJSON, SortOrder, Status "
             "FROM TenantPages ORDER BY TenantCode, SortOrder, PageKey",
         )
-        try:
-            clients = _rows(
-                cursor,
-                "SELECT ClientCode, DisplayName FROM dbo.Clients WHERE IsActive = 1 ORDER BY ClientCode",
-            )
-        except Exception as e:  # dbo.Clients absent (TEST): empty picker, page still renders
-            current_app.logger.warning(f"dbo.Clients unavailable for tenant management: {e}")
-            clients = []
-
         for p in pages:
             try:
                 p["layout"] = json.loads(p["LayoutJSON"]) if p["LayoutJSON"] else {}
@@ -200,7 +189,6 @@ def admin_tenants_manage_view():
             "admin/tenants_manage.html",
             tenants=tenants,
             organizations=organizations,
-            clients=clients,
             endpoints=mountable_endpoints(current_app.url_map),
             can_edit=has_permission("admin.edit.tenants"),
             logged_in_user=session.get("username"),
@@ -220,13 +208,6 @@ def admin_tenants_manage_view():
 # -------------------------------------------------------------- tenants --
 
 
-def _client_exists(cursor, client_code):
-    cursor.execute(
-        "SELECT 1 FROM dbo.Clients WHERE ClientCode = ? AND IsActive = 1", (client_code,)
-    )
-    return cursor.fetchone() is not None
-
-
 @require_permission("admin.edit.tenants")
 def api_admin_tenants_add():
     data = request.get_json() or {}
@@ -240,8 +221,6 @@ def api_admin_tenants_add():
     try:
         conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
-        if not _client_exists(cursor, data["ClientCode"].strip()):
-            return _error([_("Unknown data connection.")])
         cursor.execute("SELECT 1 FROM Tenants WHERE TenantCode = ?", (code,))
         if cursor.fetchone():
             return _error([_("Tenant already exists.")], 409)
@@ -249,15 +228,8 @@ def api_admin_tenants_add():
         if missing:
             return _error([_("%(n)d organization code(s) do not exist.", n=missing)])
         cursor.execute(
-            "INSERT INTO Tenants (TenantCode, DisplayName, OrganizationCode, ClientCode, IsActive) "
-            "VALUES (?, ?, ?, ?, ?)",
-            (
-                code,
-                data["DisplayName"].strip(),
-                org_codes[0] if len(org_codes) == 1 else None,  # legacy single-org pointer
-                data["ClientCode"].strip(),
-                1 if data.get("IsActive", True) else 0,
-            ),
+            "INSERT INTO Tenants (TenantCode, DisplayName, IsActive) VALUES (?, ?, ?)",
+            (code, data["DisplayName"].strip(), 1 if data.get("IsActive", True) else 0),
         )
         _set_memberships(cursor, code, org_codes)
         provision_tenant_permissions(cursor, code)
@@ -267,8 +239,8 @@ def api_admin_tenants_add():
             {
                 "success": True,
                 "message": _(
-                    "Tenant created. Grant tenant.%(code)s.view under Access Control to make "
-                    "its pages visible.",
+                    "Tenant created. Users of its organizations see it right away; grant "
+                    "tenant.%(code)s.view under Access Control to let other staff in.",
                     code=code,
                 ),
             }
@@ -295,21 +267,12 @@ def api_admin_tenants_edit(tenantcode):
     try:
         conn = engine_nexora_db.raw_connection()
         cursor = conn.cursor()
-        if not _client_exists(cursor, data["ClientCode"].strip()):
-            return _error([_("Unknown data connection.")])
         missing = _missing_organizations(cursor, org_codes)
         if missing:
             return _error([_("%(n)d organization code(s) do not exist.", n=missing)])
         cursor.execute(
-            "UPDATE Tenants SET DisplayName = ?, ClientCode = ?, IsActive = ?, OrganizationCode = ? "
-            "WHERE TenantCode = ?",
-            (
-                data["DisplayName"].strip(),
-                data["ClientCode"].strip(),
-                1 if data.get("IsActive", True) else 0,
-                org_codes[0] if len(org_codes) == 1 else None,
-                tenantcode,
-            ),
+            "UPDATE Tenants SET DisplayName = ?, IsActive = ? WHERE TenantCode = ?",
+            (data["DisplayName"].strip(), 1 if data.get("IsActive", True) else 0, tenantcode),
         )
         if cursor.rowcount == 0:
             return _error([_("Tenant not found.")], 404)

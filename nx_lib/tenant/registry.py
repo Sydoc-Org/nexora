@@ -40,12 +40,12 @@ _IDENT_RE = re.compile(r'^[A-Za-z_][A-Za-z0-9_."\[\]]{0,99}$')
 
 @dataclass(frozen=True)
 class Tenant:
+    """A branded portal: the organizations whose ``Organizations.TenantCode``
+    points here share its navigation group. Where data lives is not a tenant
+    property -- each entity carries its own ``client_code`` (0096)."""
+
     code: str
     display_name: str
-    organization_code: (
-        str | None
-    )  # pre-0090 single-org pointer; NULL since 0094 for multi-org tenants
-    client_code: str
     active: bool
 
 
@@ -54,6 +54,7 @@ class TenantEntity:
     tenant: str
     key: str
     source_object: str
+    client_code: str  # the dbo.Clients row whose engine holds source_object (0096)
     kind: str
     engine_role: str
     id_column: str
@@ -105,23 +106,18 @@ def registry() -> TenantRegistry | None:
         conn = engine_nexora_db.raw_connection()
         cur = conn.cursor()
 
-        cur.execute(
-            "SELECT TenantCode, DisplayName, OrganizationCode, ClientCode, IsActive "
-            "FROM Tenants WHERE IsActive = 1"
-        )
+        cur.execute("SELECT TenantCode, DisplayName, IsActive FROM Tenants WHERE IsActive = 1")
         tenants = {
             r.TenantCode: Tenant(
                 code=r.TenantCode,
                 display_name=r.DisplayName,
-                organization_code=r.OrganizationCode,
-                client_code=r.ClientCode,
                 active=bool(r.IsActive),
             )
             for r in cur.fetchall()
         }
 
         cur.execute(
-            "SELECT TenantCode, EntityKey, SourceObject, Kind, EngineRole, IdColumn, "
+            "SELECT TenantCode, EntityKey, SourceObject, ClientCode, Kind, EngineRole, IdColumn, "
             "LabelEn, LabelDe, LabelFr, LabelIt, SortOrder FROM TenantEntities "
             "WHERE Status = 'active'"
         )
@@ -138,6 +134,7 @@ def registry() -> TenantRegistry | None:
                 tenant=r.TenantCode,
                 key=r.EntityKey,
                 source_object=r.SourceObject,
+                client_code=r.ClientCode,
                 kind=r.Kind,
                 engine_role=r.EngineRole,
                 id_column=r.IdColumn,

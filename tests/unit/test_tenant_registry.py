@@ -35,26 +35,15 @@ def clear_cache(app):
         cache.clear()
 
 
-def _tenant_row(
-    code="ms02",
-    display_name="MS02 Client",
-    organization_code="MS02",
-    client_code="ms02",
-    is_active=True,
-):
-    return types.SimpleNamespace(
-        TenantCode=code,
-        DisplayName=display_name,
-        OrganizationCode=organization_code,
-        ClientCode=client_code,
-        IsActive=is_active,
-    )
+def _tenant_row(code="ms02", display_name="MS02 Client", is_active=True):
+    return types.SimpleNamespace(TenantCode=code, DisplayName=display_name, IsActive=is_active)
 
 
 def _entity_row(
     tenant="ms02",
     entity_key="dossiers",
     source_object='public."Dossier"',
+    client_code="ms02",
     kind="documents",
     engine_role="runtime",
     id_column="Id",
@@ -69,6 +58,7 @@ def _entity_row(
         TenantCode=tenant,
         EntityKey=entity_key,
         SourceObject=source_object,
+        ClientCode=client_code,
         Kind=kind,
         EngineRole=engine_role,
         IdColumn=id_column,

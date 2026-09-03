@@ -44,15 +44,6 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div>
-                        <label for="clientcode" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Data connection") }}</label>
-                        <select id="clientcode" name="clientcode" class="nx-select" data-testid="admin-org-modal-client">
-                            <option value="">{{ _("None") }}</option>
-                            {% for c in clients %}
-                            <option value="{{ c.code }}">{{ c.name }} ({{ c.code }})</option>
-                            {% endfor %}
-                        </select>
-                    </div>
                 </div>
             </div>
             <div class="flex justify-end mt-6 gap-2">

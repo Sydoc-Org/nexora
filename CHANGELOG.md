@@ -65,9 +65,26 @@ Work toward the next release.
 
 ### Changed
 
+- **A tenant is a portal, not a data connection** (migration `0096`). Three
+  tenants in, every `ClientCode` pointer — on `Tenants`, on `Organizations`,
+  on `ProcessSources` — agreed in every row, and "tenant" meant a partner
+  (Mobscn), a customer (Generali) or an operator (Sydoc) depending on the
+  row. Decision: a tenant is the set of organizations that share one
+  navigation group (`Organizations.TenantCode`), nothing more. Where data
+  lives belongs to the thing that reads it — a process configuration already
+  carried its connection; a generated entity now does too
+  (`TenantEntities.ClientCode`, backfilled from its tenant). Dropped:
+  `Tenants.ClientCode`, `Tenants.OrganizationCode`, `Organizations.ClientCode`.
+  The Organizations overview derives an organization's connections from its
+  process configurations; the tenant and organization edit modals lost their
+  connection pickers. **Visibility is membership or grant:** a user whose
+  organization belongs to a tenant sees its group and pages by right (a
+  member without `tenant.<code>.view` no longer gets an empty sidebar);
+  `tenant.<code>.view` remains the grant for non-members — sydoc staff working
+  Generali — and `tenant.<code>.edit` stays an explicit grant.
 - **Tenant management page** at `/admin/tenants/manage` (#256 phase 2,
-  migration `0095`). Create and edit tenants (display name, data connection,
-  active flag), decide which organizations belong to them (ticking an
+  migration `0095`). Create and edit tenants (display name, active flag),
+  decide which organizations belong to them (ticking an
   organization owned by another tenant moves it), mount existing pages into
   a tenant's sidebar group (endpoint picked from the app's argument-less GET
   routes, with label, icon, active marker and sort order), set pages to
@@ -113,11 +130,10 @@ Work toward the next release.
   workitem routing. Custom tenant pages can carry `label`, `icon` and
   `active` in `LayoutJSON` for the sidebar.
 - **Organization-centric tenancy** (#257, migration `0090`). The organization
-  is the hub now: it belongs to a tenant (`Organizations.TenantCode`), rides a
-  data connection (`Organizations.ClientCode`, `default` for everyone who
-  never had one), owns its process configurations
-  (`ProcessSources.OrganizationCode`) and its access profiles
-  (`AccessProfile.OrganizationCode`, NULL = global). All four columns are
+  is the hub now: it belongs to a tenant (`Organizations.TenantCode`), owns
+  its process configurations (`ProcessSources.OrganizationCode`) and its
+  access profiles (`AccessProfile.OrganizationCode`, NULL = global). The
+  columns are
   nullable FKs backfilled from the conventions the data already followed —
   the tenant pointer, the `<customer>.<process>` name prefix, the
   `priveraUser`-style profile names — so nothing changed meaning.
@@ -126,7 +142,7 @@ Work toward the next release.
   binding a profile that users elsewhere already hold is refused (409), and
   the profile pickers on Access Control and the user page only offer
   global profiles plus the chosen organization's own. Organizations' edit modal
-  gained Tenant + Data connection, Process Configurations gained
+  gained Tenant, Process Configurations gained
   Organization, the Access Control profile drawer gained Organization, and
   `/admin/tenants` now reads tenant → organizations → users / access
   profiles / data connection / process configurations, with the unassigned

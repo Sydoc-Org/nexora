@@ -13,20 +13,32 @@ Three different things get informally called "the client", and conflating them i
 to get this wrong.
 
 **Axis 1 — `ClientCode` (runtime source).** Answers *"which runtime DB, which SQL dialect, which
-Octo tenant?"*. Values today: `default`, `ms02`. Infrastructure-level, changes almost never. Lives in
-`dbo.Clients` (migration `0079`) and is read into `nx_lib/clients.py::CLIENTS` at app start. It is
-also the `ClientCode` column on `dbo.ProcessSources`, `dbo.ProcessFieldMappings` and
-`dbo.WorkitemSourceCache`.
+Octo tenant?"*. Values today: `default`, `ms02`, `generali`. Infrastructure-level, changes almost
+never. Lives in `dbo.Clients` (migration `0079`) and is read into `nx_lib/clients.py::CLIENTS` at
+app start. It is also the `ClientCode` column on `dbo.ProcessSources`, `dbo.ProcessFieldMappings`,
+`dbo.WorkitemSourceCache` and, since `0096`, `dbo.TenantEntities` — a generated entity's table
+lives in exactly one database, so the entity names it.
 
 **Axis 2 — `Organizations.organizationcode` (the customer).** Answers *"who does this user work
 for?"* — `PRVR`, `LKTR`, … Self-service today at `/admin/organizations`.
 
-**Axis 3 — `Tenants.TenantCode` (the surface).** Answers *"which pages does this customer get,
-over which tables?"*. One row in `dbo.Tenants` (migration `0084`) pairs an axis-2 organization with
-an axis-1 client, and its `TenantEntities`/`TenantFields`/`TenantPages` children describe the
-generated `/t/<code>/<page>` surface. Today exactly one row exists: `ms02`, labelled **Mobscn**
-(migration `0089`). There is **no admin page for it yet** — tenants are seeded by migration only.
-Full detail: `docs/design/ms02-multisource.md`.
+**Axis 3 — `Tenants.TenantCode` (the portal).** Answers *"which organizations share one branded
+navigation, and which pages does it show?"*. A tenant is **not** a data connection: since migration
+`0096` a `dbo.Tenants` row is just `TenantCode`, `DisplayName`, `IsActive`, and the organizations
+whose `Organizations.TenantCode` points at it are its members. Its `TenantEntities`/`TenantFields`/
+`TenantPages` children describe the generated `/t/<code>/<page>` surface, and each entity names the
+axis-1 connection its table lives in (`TenantEntities.ClientCode`) — so one tenant may span
+connections and one connection may serve several tenants. Three tenants exist on INT: `ms02`
+**Mobscn** (PDBS), `generali` (GNRL) and `sydoc` (ElektroMaterial, Privera, Compass). Tenants, their
+members and their custom pages are edited at `/admin/tenants/manage`; entities and fields are still
+seeded by migration. Full detail: `docs/design/ms02-multisource.md`.
+
+**Who sees a tenant — membership or grant.** A user whose organization belongs to the tenant sees
+its sidebar group and its generated pages by right (`nx_lib/views/tenant.py::_can_view`); anyone
+else — sydoc staff working Generali, say — needs `tenant.<code>.view`. Editing generated records is
+always the explicit `tenant.<code>.edit` grant. A tenant-scoped user (`tenant_scoped`, set in
+`nx_lib/hooks.py`) sees only their tenant group in place of the global Dashboard / Reporting /
+Workitems links; sydoc staff (SYDC, no tenant) keep the global navigation.
 
 **The admin UI names these by role, not by table (#255).** The routes, `data-testid`s, permission
 codes and DB columns keep their original names; only the labels changed, and the three pages now sit
@@ -45,13 +57,15 @@ tenant (a plain table or view, `TenantEntities.Kind = 'entries'`/`'lookup'`) nee
 row and tenant descriptors but no process source at all.
 
 **Since migration `0090` (#257) the organization is the hub that ties the axes together.**
-`dbo.Organizations` carries `TenantCode` (axis 3), `ClientCode` (axis 1) and is referenced by
-`ProcessSources.OrganizationCode` and `AccessProfile.OrganizationCode`. A profile bound to an
-organization is assignable only to that organization's users (`nx_lib/views/admin/users.py::
-_profile_org_mismatch`); a profile with `OrganizationCode = NULL` is global (`globalAdmin`,
-`enterpriseAdmin`, `nexoraSupervisor`). `/admin/tenants` renders exactly this tree and flags what
-is still unassigned. `Tenants.OrganizationCode` is legacy — the registry still reads it, a later
-migration drops it.
+`dbo.Organizations` carries `TenantCode` (axis 3) and is referenced by
+`ProcessSources.OrganizationCode` and `AccessProfile.OrganizationCode`. Which axis-1 connections an
+organization rides is **derived, never stored**: it is the set of `ClientCode`s on its process
+configurations (migration `0096` dropped the `Organizations.ClientCode` copy, together with
+`Tenants.ClientCode` and the pre-0090 `Tenants.OrganizationCode` pointer — all three agreed with the
+process sources in every row and only waited to drift). A profile bound to an organization is
+assignable only to that organization's users (`nx_lib/views/admin/users.py::_profile_org_mismatch`);
+a profile with `OrganizationCode = NULL` is global (`globalAdmin`, `enterpriseAdmin`,
+`nexoraSupervisor`). `/admin/tenants` renders exactly this tree and flags what is still unassigned.
 
 **Data-only connections.** A `dbo.Clients` row without an Octo domain is a *data-only* connection
 (Generali: `generali` → `engine_generali_db`, migration `0091`): it loads into `CLIENTS` with
