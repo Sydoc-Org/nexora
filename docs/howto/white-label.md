@@ -7,9 +7,9 @@ the branding section at the bottom).
 
 Design background: `docs/superpowers/specs/2026-08-27-white-label-admin-ui-design.md`.
 
-## The two axes
+## The three axes
 
-Two different things are both informally called "the client", and conflating them is the easiest way
+Three different things get informally called "the client", and conflating them is the easiest way
 to get this wrong.
 
 **Axis 1 — `ClientCode` (runtime source).** Answers *"which runtime DB, which SQL dialect, which
@@ -20,6 +20,27 @@ also the `ClientCode` column on `dbo.ProcessSources`, `dbo.ProcessFieldMappings`
 
 **Axis 2 — `Organizations.organizationcode` (the customer).** Answers *"who does this user work
 for?"* — `PRVR`, `LKTR`, … Self-service today at `/admin/organizations`.
+
+**Axis 3 — `Tenants.TenantCode` (the surface).** Answers *"which pages does this customer get,
+over which tables?"*. One row in `dbo.Tenants` (migration `0084`) pairs an axis-2 organization with
+an axis-1 client, and its `TenantEntities`/`TenantFields`/`TenantPages` children describe the
+generated `/t/<code>/<page>` surface. Today exactly one row exists: `ms02`, labelled **Mobscn**
+(migration `0089`). There is **no admin page for it yet** — tenants are seeded by migration only.
+Full detail: `docs/design/ms02-multisource.md`.
+
+**The admin UI names these by role, not by table (#255).** The routes, `data-testid`s, permission
+codes and DB columns keep their original names; only the labels changed, and the three pages now sit
+in a collapsible **Tenants** group in the admin sidebar:
+
+| Route | UI label | Axis |
+|---|---|---|
+| `/admin/organizations` | **Customers** | 2 — who the users work for |
+| `/admin/clients` | **Data Connections** | 1 — where the data lives |
+| `/admin/processes` | **Document Fields** | Octo process sources + their field mappings |
+
+Note the last one is Octo-specific: `dbo.ProcessSources` describes Octo processes, so a **data-only**
+tenant (a plain table or view, `TenantEntities.Kind = 'entries'`/`'lookup'`) needs an axis-1 client
+row and tenant descriptors but no process source at all.
 
 **Most customers ride the shared `default` runtime.** Privera, ElektroMaterial and Compass all do.
 A customer needs a new `ClientCode` only when they bring their own database — so far that has

@@ -17,7 +17,7 @@
     <main class="nx-main">
         {{ a.page_header(
             title=_('Administration'),
-            subtitle=_('Users, organizations, sessions and logs.'),
+            subtitle=_('Users, customers, sessions and logs.'),
             icon='fa-shield-halved'
         ) }}
 
@@ -92,12 +92,12 @@
 
             <a href="{{ url_for('admin_organizations_view') }}" class="nx-card nx-card--link admin-overview-card" data-testid="admin-overview-organizations">
                 <div class="admin-overview-card-top">
-                    <div class="nx-meta">{{ _('Organizations') }}</div>
+                    <div class="nx-meta">{{ _('Customers') }}</div>
                     <i class="fas fa-building admin-overview-card-icon"></i>
                 </div>
                 <div class="admin-overview-card-number">{{ org_count }}</div>
-                <div class="admin-overview-card-label">{{ _('organizations') }}</div>
-                <p class="admin-overview-card-desc">{{ _('Tenant organizations and their codes') }}</p>
+                <div class="admin-overview-card-label">{{ _('customers') }}</div>
+                <p class="admin-overview-card-desc">{{ _('Customers and their organization codes') }}</p>
             </a>
 
             <a href="{{ url_for('admin_sessions_view') }}" class="nx-card nx-card--link admin-overview-card" data-testid="admin-overview-sessions">

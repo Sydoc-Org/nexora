@@ -65,6 +65,22 @@ Work toward the next release.
 
 ### Changed
 
+- **Admin nav renamed after what the pages do, not the tables behind them**
+  (#255). `Clients` is now **Data Connections** (engine, dialect and Octo
+  domain per client code), `Processes` is **Document Fields** (its
+  `dbo.ProcessSources` / `dbo.ProcessFieldMappings` mappings) and
+  `Organizations` is **Customers**. The three sit together in a new
+  collapsible **Tenants** group inside the admin sidebar, since together
+  they are what describes a tenant. Routes, `data-testid`s, permission
+  codes and DB columns are unchanged — labels only, plus de/fr/it.
+  Reporting keeps its own `Processes` label (a report scope, different
+  thing).
+- **The `ms02` runtime source and tenant are labelled "Mobscn"** (migration
+  `0089`). Display names only: the code stays `ms02` because it is the PK
+  referenced by `dbo.ProcessSources`, `dbo.ProcessFieldMappings`,
+  `dbo.WorkitemSourceCache` and `dbo.Tenants`, names the `MS02_*` env keys,
+  and is baked into the `tenant.ms02.*` permission codes.
+
 - **Eddard now sets `reasoning_effort` per surface on Azure GPT-5
   deployments.** Nothing set it, so gpt-5-mini deliberated at the API default
   (`medium`) on every call — including one-line chart captions. Measured on

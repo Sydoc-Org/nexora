@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     {% include '_theme_prepaint.html' %}
     <link rel="stylesheet" href="{{ static_v('css/nexora-ui.css') }}">
-    <title>{{ _("Processes - nexora") }}</title>
+    <title>{{ _("Document Fields - nexora") }}</title>
     <link rel="stylesheet" href="{{ static_v('css/admin.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
 </head>
@@ -16,8 +16,8 @@
 
     <main class="nx-main">
         {{ a.page_header(
-            title=_('Processes'),
-            subtitle=_('Process sources and field mappings per client (dbo.ProcessSources / dbo.ProcessFieldMappings)'),
+            title=_('Document Fields'),
+            subtitle=_('Document-field mappings per process source and client (dbo.ProcessSources / dbo.ProcessFieldMappings)'),
             back_url=url_for('admin_dashboard'),
             actions=[{'label': _('Add process source'), 'icon': 'fa-plus', 'onclick': 'openAddProcessSourceModal()', 'variant': 'primary', 'testid': 'add-process-source'}] if can_edit else None,
             icon='fa-diagram-project'
@@ -25,13 +25,13 @@
 
         <p class="nx-c-meta" style="font-size:0.85rem;margin:-8px 0 8px" data-testid="admin-processes-help">
             <i class="fas fa-circle-info"></i>
-            {{ _("\"Client\" here is a runtime source (default/ms02, see Clients) -- not a customer organization. A process name must be exactly <customer>.<process> (e.g. privera.02_Posteingang): the permission that grants access to it is derived from those two parts, so any other shape can never be granted.") }}
+            {{ _("\"Client\" here is a runtime source (default/ms02, see Data Connections) -- not a customer. A process name must be exactly &lt;customer&gt;.&lt;process&gt; (e.g. privera.02_Posteingang): the permission that grants access to it is derived from those two parts, so any other shape can never be granted.") }}
         </p>
 
         {% if can_edit %}
         <p class="nx-c-meta" style="font-size:0.85rem;margin:0 0 16px" data-testid="admin-processes-help-writes">
             <i class="fas fa-shield-halved"></i>
-            {{ _("Adding a process source also creates its workitems.filter.process.<name> permission, granted to nobody -- grant it under Access Control. The join condition, time filters and extra condition are free-form SQL fragments and stay read-only here: they are editable only by a database migration.") }}
+            {{ _("Adding a process source also creates its workitems.filter.process.&lt;name&gt; permission, granted to nobody -- grant it under Access Control. The join condition, time filters and extra condition are free-form SQL fragments and stay read-only here: they are editable only by a database migration.") }}
         </p>
         {% endif %}
 
