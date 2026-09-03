@@ -153,7 +153,20 @@ Anything else is refused at push time.
 
 ## Pull requests
 
-- Target `main`. `main` is protected: no direct pushes, everything lands via PR.
+- Target `main`. **Never push to `main` directly** — everything lands via PR.
+  This one is convention rather than enforcement: the repo is private on GitHub
+  Free, where branch protection and rulesets are both unavailable (the API
+  answers `403 Upgrade to GitHub Pro or make this repository public`), and
+  `Sydoc-Code` is a personal account, so only its owner could set it anyway. If
+  the repo ever goes Pro or public, make it real:
+
+  ```
+  gh api -X PUT repos/Sydoc-Code/nexora/branches/main/protection \
+    -F required_pull_request_reviews.required_approving_review_count=0 \
+    -F enforce_admins=false -F required_status_checks=null \
+    -F restrictions=null -F allow_force_pushes=false -F allow_deletions=false
+  ```
+
 - **Review is optional, not required.** Once CI is green you may merge your own
   PR. Ask for a look when the change is risky or crosses someone else's area;
   do not sit blocked waiting for one.
