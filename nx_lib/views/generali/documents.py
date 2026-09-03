@@ -1,12 +1,36 @@
 """Generali tenant: Evaluation/Documents (dashboard, document list, stats API)."""
 
 import math
+from datetime import date, timedelta
 
 from flask import current_app, jsonify, redirect, render_template, request, session, url_for
 from flask_babel import gettext as _
 
 from ...extensions import cache
 from ...security import page_visibility, require_permission
+
+
+def days_in_range(start_date, end_date):
+    """Every calendar day in ``[start_date, end_date]`` as ``YYYY-MM-DD`` strings.
+
+    The dashboard's daily average and its trend x-axis both have to run over
+    the days the user *selected*, not the days that happened to return rows --
+    see ``api_generali_stats``. Accepts either bound with or without a time
+    part (``2026-07-01`` / ``2026-07-01 00:00:00``).
+
+    Returns ``[]`` for an unparsable bound or an inverted range, so callers
+    fall back to the observed days instead of crashing on a shape we did not
+    anticipate.
+    """
+    try:
+        start = date.fromisoformat(str(start_date)[:10])
+        end = date.fromisoformat(str(end_date)[:10])
+    except (TypeError, ValueError):
+        return []
+    if end < start:
+        return []
+    return [(start + timedelta(days=i)).isoformat() for i in range((end - start).days + 1)]
+
 
 # ----------------------------- Generali Evaluation -------------------------- #
 
@@ -147,12 +171,25 @@ def api_generali_stats():
         )
         trend_rows = cursor.fetchall()
 
-        labels = sorted({str(r[0]) for r in trend_rows})
+        observed = {str(r[0]) for r in trend_rows}
+        # Every day in the selected range, including the ones with no rows.
+        # Deriving the axis from the result set instead produced two bugs
+        # (#249): a month missing 11 days was divided by 20 and so scored a
+        # HIGHER daily average than a complete month -- the worse the
+        # coverage, the better the KPI looked -- and the chart drew 03.07
+        # adjacent to 15.07 as though they were consecutive, hiding the gap.
+        # Falls back to the observed days if the bounds will not parse.
+        labels = days_in_range(start_date, end_date) or sorted(observed)
         label_index = {d: i for i, d in enumerate(labels)}
         totals = [0] * len(labels)
         by_komm = {}
         for d, k, c in trend_rows:
-            i = label_index[str(d)]
+            # A row outside the parsed range is dropped rather than raising:
+            # labels no longer come from these rows, so membership is not
+            # guaranteed the way it was when the axis was built from them.
+            i = label_index.get(str(d))
+            if i is None:
+                continue
             totals[i] += c
             if k not in by_komm:
                 by_komm[k] = [0] * len(labels)
@@ -161,6 +198,10 @@ def api_generali_stats():
         trend_data = {"labels": labels, "values": totals, "byKommunikation": by_komm}
 
         kpis["avg_daily"] = round(total / len(labels), 1) if total > 0 and labels else 0
+        # Coverage of the selected range, so the UI can qualify the average
+        # rather than presenting a gap-inflated number as comparable.
+        kpis["days_in_range"] = len(labels)
+        kpis["days_with_data"] = len(observed.intersection(labels))
 
         cursor.execute(
             f"""

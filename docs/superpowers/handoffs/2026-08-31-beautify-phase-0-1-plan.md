@@ -1,3 +1,7 @@
+> **Newer same-date handoff:** the tenant-platform planning session wrote
+> [`2026-08-31-tenant-kernel-ms02-pilot-plan.md`](2026-08-31-tenant-kernel-ms02-pilot-plan.md)
+> after this one. This beautify campaign is already executing in its own session/branch.
+
 # Handoff — beautification Phase 0+1 planned, ready for /execute-plan
 
 **Date:** 2026-08-31 · **Branch:** `v3.2.4.1` (main checkout, no worktree) · **2 commits ahead of

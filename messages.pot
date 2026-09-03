@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-02 20:19+0200\n"
+"POT-Creation-Date: 2026-09-03 09:44+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -30,10 +30,53 @@ msgid "Date is outside the allowed entry window"
 msgstr ""
 
 #: nx_lib/whats_new.py:29
-msgid "Reporting has a new home screen"
+msgid "Choose how deeply Eddard thinks"
 msgstr ""
 
 #: nx_lib/whats_new.py:31
+msgid ""
+"Click into the chat box and pick Quick, Balanced or Deep. Quick answers "
+"straightforward counts fast; Deep gives Eddard more room on hard, multi-"
+"source questions. Shown only when the configured model supports it."
+msgstr ""
+
+#: nx_lib/whats_new.py:41
+msgid "Faster pages everywhere"
+msgstr ""
+
+#: nx_lib/whats_new.py:43
+msgid ""
+"The reporting registry, the Generali dashboard filters and the static "
+"assets are now cached, and several heavy pages make one database query "
+"where they used to make one per row."
+msgstr ""
+
+#: nx_lib/whats_new.py:52
+msgid "Generali daily average counts every day"
+msgstr ""
+
+#: nx_lib/whats_new.py:54
+msgid ""
+"The dashboard's daily average now divides by the days in the selected "
+"range, not only by the days that had data, so quiet days no longer "
+"inflate the figure."
+msgstr ""
+
+#: nx_lib/whats_new.py:63
+msgid "Amber is the new default accent"
+msgstr ""
+
+#: nx_lib/whats_new.py:65
+msgid ""
+"New users and anyone who never picked a colour now see Amber instead of "
+"Indigo. Your own choice in Settings is untouched."
+msgstr ""
+
+#: nx_lib/whats_new.py:79
+msgid "Reporting has a new home screen"
+msgstr ""
+
+#: nx_lib/whats_new.py:81
 msgid ""
 "The reporting page is now a workbench: a Library of every report you can "
 "see, a Results screen that brings back your last result without re-"
@@ -41,22 +84,22 @@ msgid ""
 "showing each data source with its live response time."
 msgstr ""
 
-#: nx_lib/whats_new.py:42
+#: nx_lib/whats_new.py:92
 msgid "Look inside a data source"
 msgstr ""
 
-#: nx_lib/whats_new.py:44
+#: nx_lib/whats_new.py:94
 msgid ""
 "Click a card in the Sources rail to see the database behind it: the "
 "tables that source actually reads, their columns and types, and a diagram"
 " of how they connect. Structure only — no data is shown."
 msgstr ""
 
-#: nx_lib/whats_new.py:54
+#: nx_lib/whats_new.py:104
 msgid "Dashboards you can arrange"
 msgstr ""
 
-#: nx_lib/whats_new.py:56
+#: nx_lib/whats_new.py:106
 msgid ""
 "Adding a card asks everything in one dialog — which saved report, how to "
 "draw it, its title and its size. In edit mode drag a tile anywhere and "
@@ -64,22 +107,22 @@ msgid ""
 "report exactly as the Library does."
 msgstr ""
 
-#: nx_lib/whats_new.py:67
+#: nx_lib/whats_new.py:117
 msgid "Meet Eddard"
 msgstr ""
 
-#: nx_lib/whats_new.py:69
+#: nx_lib/whats_new.py:119
 msgid ""
 "The reporting assistant has a name and a face — the little black hole in "
 "the top bar. Ask it a question in plain language and open what it built "
 "in the builder before you trust the number."
 msgstr ""
 
-#: nx_lib/whats_new.py:79
+#: nx_lib/whats_new.py:129
 msgid "Charts in your colours"
 msgstr ""
 
-#: nx_lib/whats_new.py:81
+#: nx_lib/whats_new.py:131
 msgid ""
 "The palette button in the chart toolbar recolours each series and the "
 "title, and can move a series onto its own right-hand axis so a few "
@@ -87,43 +130,43 @@ msgid ""
 "with the report."
 msgstr ""
 
-#: nx_lib/whats_new.py:91
+#: nx_lib/whats_new.py:141
 msgid "Press ? for the shortcuts"
 msgstr ""
 
-#: nx_lib/whats_new.py:93
+#: nx_lib/whats_new.py:143
 msgid ""
 "A cheatsheet of every keyboard shortcut on the page, one keypress away. "
 "Press ? anywhere outside a text box."
 msgstr ""
 
-#: nx_lib/whats_new.py:101
+#: nx_lib/whats_new.py:151
 msgid "Everything loads quicker"
 msgstr ""
 
-#: nx_lib/whats_new.py:103
+#: nx_lib/whats_new.py:153
 msgid ""
 "Pages are compressed in transit, their scripts are cached between visits,"
 " and the reporting page stopped fetching the same lists eight times per "
 "load."
 msgstr ""
 
-#: nx_lib/whats_new.py:112
+#: nx_lib/whats_new.py:162
 msgid "Who can do what, on one page"
 msgstr ""
 
-#: nx_lib/whats_new.py:114
+#: nx_lib/whats_new.py:164
 msgid ""
 "The new permission matrix under Admin shows every access profile against "
 "every permission in a single grid, so a missing grant is something you "
 "can see instead of hunt."
 msgstr ""
 
-#: nx_lib/whats_new.py:129
+#: nx_lib/whats_new.py:179
 msgid "Imports, exports and backlog on one chart"
 msgstr ""
 
-#: nx_lib/whats_new.py:131
+#: nx_lib/whats_new.py:181
 msgid ""
 "Document Processing gained date-anchored measures: pick documents or "
 "pages imported, exported and the backlog together over time and they all "
@@ -131,74 +174,74 @@ msgid ""
 "retired — the new Backlog measure replaces it."
 msgstr ""
 
-#: nx_lib/whats_new.py:142
+#: nx_lib/whats_new.py:192
 msgid "The reporting AI panel gets out of your way"
 msgstr ""
 
-#: nx_lib/whats_new.py:144
+#: nx_lib/whats_new.py:194
 msgid ""
 "The chat panel now floats instead of blocking the page: drag it by its "
 "header, keep working behind it, and select or copy any answer or "
 "generated SQL."
 msgstr ""
 
-#: nx_lib/whats_new.py:153
+#: nx_lib/whats_new.py:203
 msgid "Large workitem searches load faster"
 msgstr ""
 
-#: nx_lib/whats_new.py:155
+#: nx_lib/whats_new.py:205
 msgid ""
 "Big result sets arrive in two phases, so the first rows show up right "
 "away. Typing a partial id now matches by prefix and the closest hits are "
 "ranked first."
 msgstr ""
 
-#: nx_lib/whats_new.py:164
+#: nx_lib/whats_new.py:214
 msgid "Tell us what you think"
 msgstr ""
 
-#: nx_lib/whats_new.py:166
+#: nx_lib/whats_new.py:216
 msgid ""
 "The new Feedback page (profile dropdown → Feedback) sends your praise, "
 "gripes and ideas straight to the nexora team."
 msgstr ""
 
-#: nx_lib/whats_new.py:174
+#: nx_lib/whats_new.py:224
 msgid "Dark mode, polished"
 msgstr ""
 
-#: nx_lib/whats_new.py:176
+#: nx_lib/whats_new.py:226
 msgid ""
 "The light flash on page loads is gone, checkboxes, menus and tables "
 "follow the theme everywhere, and Appearance adds a \"Fireflies\" page "
 "background."
 msgstr ""
 
-#: nx_lib/whats_new.py:191
+#: nx_lib/whats_new.py:241
 msgid "Filters apply instantly"
 msgstr ""
 
-#: nx_lib/whats_new.py:193
+#: nx_lib/whats_new.py:243
 msgid ""
 "The Apply button is gone from the Generali filter bars — changing any "
 "filter or date reloads the list right away."
 msgstr ""
 
-#: nx_lib/whats_new.py:201
+#: nx_lib/whats_new.py:251
 msgid "Type to find a user in the filters"
 msgstr ""
 
-#: nx_lib/whats_new.py:203
+#: nx_lib/whats_new.py:253
 msgid ""
 "The user filter on the Generali pages is now a search box: type a few "
 "letters, pick the name, and the list filters instantly."
 msgstr ""
 
-#: nx_lib/whats_new.py:218
+#: nx_lib/whats_new.py:268
 msgid "Forecast your report trends"
 msgstr ""
 
-#: nx_lib/whats_new.py:220
+#: nx_lib/whats_new.py:270
 msgid ""
 "Reports charted over a single date breakdown (per week, month, …) gain a "
 "Forecast toggle: the chart extends with a dashed prediction line and a "
@@ -206,53 +249,53 @@ msgid ""
 "too."
 msgstr ""
 
-#: nx_lib/whats_new.py:230
+#: nx_lib/whats_new.py:280
 msgid "Compare with the prior period"
 msgstr ""
 
-#: nx_lib/whats_new.py:232
+#: nx_lib/whats_new.py:282
 msgid ""
 "Simple-tab reports with a relative date range now show ↑/↓ change chips "
 "and a small trend sparkline against the equivalent prior period — see at "
 "a glance whether numbers went up or down."
 msgstr ""
 
-#: nx_lib/whats_new.py:242
+#: nx_lib/whats_new.py:292
 msgid "Backlog over time"
 msgstr ""
 
-#: nx_lib/whats_new.py:244
+#: nx_lib/whats_new.py:294
 msgid ""
 "Reporting has a new Backlog measure — track how the open backlog develops"
 " per client or process, week by week."
 msgstr ""
 
-#: nx_lib/whats_new.py:254
+#: nx_lib/whats_new.py:304
 msgid "Chat with the reporting AI"
 msgstr ""
 
-#: nx_lib/whats_new.py:256
+#: nx_lib/whats_new.py:306
 msgid ""
 "The one-shot Ask AI is now a full chat panel on both Reporting tabs — ask"
 " follow-up questions in context, watch live progress while the agent "
 "works, and continue or retry a run that stopped early."
 msgstr ""
 
-#: nx_lib/whats_new.py:266
+#: nx_lib/whats_new.py:316
 msgid "Filter several processes at once"
 msgstr ""
 
-#: nx_lib/whats_new.py:268
+#: nx_lib/whats_new.py:318
 msgid ""
 "The process filter on Dashboard and Workitems is now a multi-select — "
 "combine two or three processes in one view."
 msgstr ""
 
-#: nx_lib/whats_new.py:276
+#: nx_lib/whats_new.py:326
 msgid "Smarter document value search"
 msgstr ""
 
-#: nx_lib/whats_new.py:278
+#: nx_lib/whats_new.py:328
 msgid ""
 "Search workitems by document value without picking a field first — "
 "matches are found across every field you may see. Each search row now has"
@@ -260,41 +303,41 @@ msgid ""
 "with AND/OR."
 msgstr ""
 
-#: nx_lib/whats_new.py:288
+#: nx_lib/whats_new.py:338
 msgid "Date-range presets"
 msgstr ""
 
-#: nx_lib/whats_new.py:290
+#: nx_lib/whats_new.py:340
 msgid ""
 "Today, Yesterday, This week, Last 7 days, This month — one click in the "
 "Workitems advanced filter instead of typing dates."
 msgstr ""
 
-#: nx_lib/whats_new.py:298
+#: nx_lib/whats_new.py:348
 msgid "Filter workitems by stage"
 msgstr ""
 
-#: nx_lib/whats_new.py:300
+#: nx_lib/whats_new.py:350
 msgid ""
 "A new Stage filter (Import, Extraction, Validation, Delivery) narrows the"
 " list to workitems currently in that step."
 msgstr ""
 
-#: nx_lib/whats_new.py:308
+#: nx_lib/whats_new.py:358
 msgid "See deleted workitems"
 msgstr ""
 
-#: nx_lib/whats_new.py:310
+#: nx_lib/whats_new.py:360
 msgid ""
 "The status filter gains a Deleted option — workitems that were deleted, "
 "previously hidden entirely, can now be shown on demand, badged red."
 msgstr ""
 
-#: nx_lib/whats_new.py:319
+#: nx_lib/whats_new.py:369
 msgid "Make nexora look your way"
 msgstr ""
 
-#: nx_lib/whats_new.py:321
+#: nx_lib/whats_new.py:371
 msgid ""
 "The new Appearance page has a live preview and more choices: light, dark "
 "or system theme, custom accent color, font size, corner style, high "
@@ -302,11 +345,11 @@ msgid ""
 "settings follow your account on every device."
 msgstr ""
 
-#: nx_lib/whats_new.py:332
+#: nx_lib/whats_new.py:382
 msgid "API documentation in the app"
 msgstr ""
 
-#: nx_lib/whats_new.py:334
+#: nx_lib/whats_new.py:384
 msgid ""
 "The external API is now documented on the new API Documentation page — "
 "authentication, endpoints and copyable examples included. Every endpoint "
@@ -314,65 +357,65 @@ msgid ""
 "integrate without touching production."
 msgstr ""
 
-#: nx_lib/whats_new.py:344
+#: nx_lib/whats_new.py:394
 msgid "System status at a glance for admins"
 msgstr ""
 
-#: nx_lib/whats_new.py:346
+#: nx_lib/whats_new.py:396
 msgid ""
 "The new Status page shows each component's health, a 30-day uptime strip "
 "and the incident history — checked every few minutes by the outage "
 "monitor, with a clear warning if the data ever goes stale."
 msgstr ""
 
-#: nx_lib/whats_new.py:356
+#: nx_lib/whats_new.py:406
 msgid "Chat, notifications and workitem tags retired"
 msgstr ""
 
-#: nx_lib/whats_new.py:358
+#: nx_lib/whats_new.py:408
 msgid ""
 "The chat page, the notification bell, and workitem tags, priority, "
 "assignment and comments have been removed to keep nexora focused on "
 "document processing. Existing data is preserved."
 msgstr ""
 
-#: nx_lib/whats_new.py:374
+#: nx_lib/whats_new.py:424
 msgid "Build multi-card dashboards"
 msgstr ""
 
-#: nx_lib/whats_new.py:376
+#: nx_lib/whats_new.py:426
 msgid ""
 "Save several reports as one dashboard: combine KPI, chart and table "
 "cards, drag to rearrange, set global filters with per-card overrides, and"
 " export or drill through from any card."
 msgstr ""
 
-#: nx_lib/whats_new.py:385
+#: nx_lib/whats_new.py:435
 msgid "Drill through to the documents"
 msgstr ""
 
-#: nx_lib/whats_new.py:387
+#: nx_lib/whats_new.py:437
 msgid ""
 "Click a chart element or result row in Reporting to open the underlying "
 "document rows, with workitem links and export."
 msgstr ""
 
-#: nx_lib/whats_new.py:395
+#: nx_lib/whats_new.py:445
 msgid "Combine measures in one report"
 msgstr ""
 
-#: nx_lib/whats_new.py:397
+#: nx_lib/whats_new.py:447
 msgid ""
 "The guided report builder now takes several measures at once (from the "
 "same source) and has its own process step, with coverage badges showing "
 "which processes provide each field."
 msgstr ""
 
-#: nx_lib/whats_new.py:406
+#: nx_lib/whats_new.py:456
 msgid "Machine-to-machine API"
 msgstr ""
 
-#: nx_lib/whats_new.py:408
+#: nx_lib/whats_new.py:458
 msgid ""
 "External clients can fetch KPI numbers — like today's imported and "
 "processed counts — over the new authenticated /api/v1 interface."
@@ -539,10 +582,10 @@ msgstr ""
 #: nx_lib/views/dashboard.py:599 nx_lib/views/dashboard.py:677
 #: nx_lib/views/dashboard.py:715 nx_lib/views/generali/_crud.py:187
 #: nx_lib/views/generali/attendance.py:98
-#: nx_lib/views/generali/documents.py:247
-#: nx_lib/views/generali/documents.py:286
-#: nx_lib/views/generali/documents.py:462
-#: nx_lib/views/generali/documents.py:496
+#: nx_lib/views/generali/documents.py:288
+#: nx_lib/views/generali/documents.py:327
+#: nx_lib/views/generali/documents.py:503
+#: nx_lib/views/generali/documents.py:537
 #: nx_lib/views/generali/importstatus.py:119 nx_lib/views/generali/pdqm.py:102
 #: nx_lib/views/generali/reporting.py:261
 #: nx_lib/views/generali/reporting.py:324 nx_lib/views/workitems.py:1393
@@ -637,6 +680,49 @@ msgstr ""
 #: nx_lib/views/profile.py:402 templates/js/_feedback_js.html:169
 #: templates/js/_feedback_js.html:175
 msgid "Could not send feedback. Please try again later."
+msgstr ""
+
+#: nx_lib/views/tenant.py:240
+#, python-format
+msgid "Missing value for %(field)s."
+msgstr ""
+
+#: nx_lib/views/tenant.py:247
+#, python-format
+msgid "%(field)s must be a valid date (YYYY-MM-DD)."
+msgstr ""
+
+#: nx_lib/views/tenant.py:254
+#, python-format
+msgid "%(field)s must be numeric."
+msgstr ""
+
+#: nx_lib/views/admin/clients.py:154 nx_lib/views/admin/organizations.py:94
+#: nx_lib/views/admin/processes.py:383 nx_lib/views/admin/processes.py:536
+#: nx_lib/views/admin/users.py:122 nx_lib/views/tenant.py:458
+#: nx_lib/views/tenant.py:522 nx_lib/views/tenant.py:567
+#: nx_lib/views/tenant.py:602 nx_lib/views/tenant.py:641
+msgid "An unexpected error occurred."
+msgstr ""
+
+#: nx_lib/views/tenant.py:504 nx_lib/views/tenant.py:546
+msgid "This entity has no writable fields."
+msgstr ""
+
+#: nx_lib/views/tenant.py:519
+msgid "Record created successfully."
+msgstr ""
+
+#: nx_lib/views/tenant.py:563 nx_lib/views/tenant.py:598
+msgid "Record not found."
+msgstr ""
+
+#: nx_lib/views/tenant.py:564
+msgid "Record updated successfully."
+msgstr ""
+
+#: nx_lib/views/tenant.py:599
+msgid "Record deleted successfully."
 msgstr ""
 
 #: nx_lib/views/workitems.py:390 nx_lib/views/workitems.py:539
@@ -815,12 +901,6 @@ msgstr ""
 
 #: nx_lib/views/admin/clients.py:151
 msgid "Client code already exists."
-msgstr ""
-
-#: nx_lib/views/admin/clients.py:154 nx_lib/views/admin/organizations.py:94
-#: nx_lib/views/admin/processes.py:383 nx_lib/views/admin/processes.py:536
-#: nx_lib/views/admin/users.py:122
-msgid "An unexpected error occurred."
 msgstr ""
 
 #: nx_lib/views/admin/clients.py:195 nx_lib/views/admin/clients.py:240
@@ -1106,7 +1186,7 @@ msgstr ""
 msgid "Could not fetch sessions"
 msgstr ""
 
-#: nx_lib/views/generali/documents.py:91
+#: nx_lib/views/generali/documents.py:115
 msgid "startDate and endDate are required"
 msgstr ""
 
@@ -1589,109 +1669,109 @@ msgstr ""
 msgid "Data Import Status"
 msgstr ""
 
-#: templates/_header.html:381 templates/_header.html:383
+#: templates/_header.html:435 templates/_header.html:437
 #: templates/appearance.html:293 templates/appearance.html:298
 #: templates/js/_header_js.html:13
 msgid "Keep sidebar open"
 msgstr ""
 
-#: templates/_header.html:387 templates/js/_header_js.html:56
+#: templates/_header.html:441 templates/js/_header_js.html:56
 msgid "Toggle dark mode"
 msgstr ""
 
-#: templates/_header.html:389
+#: templates/_header.html:443
 msgid "Dark Mode"
 msgstr ""
 
-#: templates/_header.html:397 templates/profile.html:44
+#: templates/_header.html:451 templates/profile.html:44
 #: templates/profile.html:123
 msgid "Profile Picture"
 msgstr ""
 
-#: templates/_header.html:407
+#: templates/_header.html:461
 msgid "Your profile"
 msgstr ""
 
-#: templates/_header.html:411 templates/appearance.html:34
+#: templates/_header.html:465 templates/appearance.html:34
 #: templates/js/_header_js.html:57 templates/profile.html:75
 #: templates/profile.html:317
 msgid "Appearance"
 msgstr ""
 
-#: templates/_header.html:415 templates/js/_header_js.html:58
+#: templates/_header.html:469 templates/js/_header_js.html:58
 #: templates/whats_new.html:79
 msgid "What's New"
 msgstr ""
 
-#: templates/_header.html:420 templates/feedback.html:34
+#: templates/_header.html:474 templates/feedback.html:34
 #: templates/js/_header_js.html:59
 msgid "Feedback"
 msgstr ""
 
-#: templates/_header.html:427 templates/_header.html:497
-#: templates/_header.html:500
+#: templates/_header.html:481 templates/_header.html:551
+#: templates/_header.html:554
 msgid "Keyboard shortcuts"
 msgstr ""
 
-#: templates/_header.html:431 templates/_small_footer.html:28
+#: templates/_header.html:485 templates/_small_footer.html:28
 #: templates/reporting.html:86
 msgid "Help"
 msgstr ""
 
-#: templates/_header.html:437 templates/_header.html:479
+#: templates/_header.html:491 templates/_header.html:533
 msgid "Switch user"
 msgstr ""
 
-#: templates/_header.html:443 templates/js/_header_js.html:60
+#: templates/_header.html:497 templates/js/_header_js.html:60
 #: templates/profile.html:82
 msgid "Sign out"
 msgstr ""
 
-#: templates/_header.html:460
+#: templates/_header.html:514
 msgid "Command palette"
 msgstr ""
 
-#: templates/_header.html:464
+#: templates/_header.html:518
 msgid "Type a command or search..."
 msgstr ""
 
-#: templates/_header.html:469
+#: templates/_header.html:523
 msgid "navigate"
 msgstr ""
 
-#: templates/_header.html:470
+#: templates/_header.html:524
 msgid "open"
 msgstr ""
 
-#: templates/_header.html:471
+#: templates/_header.html:525
 msgid "close"
 msgstr ""
 
-#: templates/_header.html:483
+#: templates/_header.html:537
 msgid "Switch to user..."
 msgstr ""
 
-#: templates/_header.html:504
+#: templates/_header.html:558
 msgid "Global"
 msgstr ""
 
-#: templates/_header.html:506
+#: templates/_header.html:560
 msgid "Open command palette"
 msgstr ""
 
-#: templates/_header.html:510
+#: templates/_header.html:564
 msgid "Show this shortcuts overlay"
 msgstr ""
 
-#: templates/_header.html:514
+#: templates/_header.html:568
 msgid "Close the open dialog or panel"
 msgstr ""
 
-#: templates/_header.html:519
+#: templates/_header.html:573
 msgid "Document viewer"
 msgstr ""
 
-#: templates/_header.html:521
+#: templates/_header.html:575
 msgid "Previous / next document page"
 msgstr ""
 
@@ -2116,6 +2196,7 @@ msgstr ""
 
 #: templates/_reporting_simple.html:174
 #: templates/js/_reporting_dashboard_js.html:10 templates/reporting.html:412
+#: templates/tenant/page.html:43
 msgid "Export"
 msgstr ""
 
@@ -2128,7 +2209,7 @@ msgstr ""
 #: templates/generali_reporting.html:316
 #: templates/js/_generali_reporting_js.html:37 templates/reporting.html:402
 #: templates/reporting.html:602 templates/reporting_metrics.html:77
-#: templates/reporting_sources.html:88
+#: templates/reporting_sources.html:88 templates/tenant/page.html:134
 msgid "Save"
 msgstr ""
 
@@ -2760,7 +2841,7 @@ msgid "Pick a preset or choose any color you like."
 msgstr ""
 
 #: templates/appearance.html:80
-msgid "Indigo"
+msgid "Classic"
 msgstr ""
 
 #: templates/appearance.html:82
@@ -3439,7 +3520,7 @@ msgstr ""
 #: templates/generali_additionalservices.html:167
 #: templates/generali_baseservices.html:141 templates/generali_pdqm.html:165
 #: templates/generali_projectmanagement.html:129
-#: templates/generali_reporting.html:168
+#: templates/generali_reporting.html:168 templates/tenant/page.html:91
 msgid "Actions"
 msgstr ""
 
@@ -3533,7 +3614,8 @@ msgstr ""
 #: templates/generali_reporting.html:337
 #: templates/js/_reporting_dashboard_js.html:23 templates/reporting.html:491
 #: templates/reporting.html:588 templates/reporting.html:601
-#: templates/workitems_overview.html:501 templates/workitems_overview.html:597
+#: templates/tenant/page.html:133 templates/workitems_overview.html:501
+#: templates/workitems_overview.html:597
 msgid "Cancel"
 msgstr ""
 
@@ -3584,6 +3666,7 @@ msgstr ""
 #: templates/js/_generali_reporting_js.html:40
 #: templates/js/_reporting_metrics_js.html:52
 #: templates/js/_reporting_sources_js.html:40
+#: templates/js/_tenant_page_js.html:30
 #: templates/js/admin/_access_control_js.html:29
 #: templates/js/admin/_maintenance_js.html:132
 #: templates/js/admin/_organizations_js.html:80
@@ -4272,7 +4355,7 @@ msgstr ""
 msgid "Preview"
 msgstr ""
 
-#: templates/prepared_documents.html:209
+#: templates/js/_tenant_page_js.html:31 templates/prepared_documents.html:209
 msgid "Open in Workitems"
 msgstr ""
 
@@ -4283,7 +4366,7 @@ msgstr ""
 #: templates/admin/logs.html:108 templates/admin/user_detail.html:238
 #: templates/js/_generali_documents_js.html:274
 #: templates/js/_workitems_overview_js.html:31
-#: templates/prepared_documents.html:234
+#: templates/prepared_documents.html:234 templates/tenant/page.html:100
 msgid "Previous"
 msgstr ""
 
@@ -4291,7 +4374,7 @@ msgstr ""
 #: templates/js/_generali_documents_js.html:278
 #: templates/js/_generali_reporting_js.html:18
 #: templates/js/_workitems_overview_js.html:32
-#: templates/prepared_documents.html:240
+#: templates/prepared_documents.html:240 templates/tenant/page.html:101
 msgid "Next"
 msgstr ""
 
@@ -4717,7 +4800,7 @@ msgstr ""
 msgid "Can edit"
 msgstr ""
 
-#: templates/reporting.html:518
+#: templates/reporting.html:518 templates/tenant/page.html:43
 msgid "Add"
 msgstr ""
 
@@ -5420,6 +5503,7 @@ msgstr ""
 #: templates/js/_reporting_dashboard_js.html:7
 #: templates/js/_reporting_metrics_js.html:48
 #: templates/js/_reporting_sources_js.html:36
+#: templates/js/_tenant_page_js.html:29
 #: templates/js/admin/_access_control_js.html:28
 #: templates/js/admin/_maintenance_js.html:126
 #: templates/js/admin/_organizations_js.html:78
@@ -6637,7 +6721,7 @@ msgstr ""
 
 #: templates/js/_generali_documents_js.html:148
 #: templates/js/_reporting_dashboard_js.html:55
-#: templates/js/_reporting_schema_js.html:6
+#: templates/js/_reporting_schema_js.html:6 templates/tenant/page.html:98
 msgid "Loading…"
 msgstr ""
 
@@ -7848,6 +7932,46 @@ msgstr ""
 msgid "Values"
 msgstr ""
 
+#: templates/js/_tenant_page_js.html:23
+msgid "No records found."
+msgstr ""
+
+#: templates/js/_tenant_page_js.html:24
+msgid "Could not load records."
+msgstr ""
+
+#: templates/js/_tenant_page_js.html:25
+msgid "This tenant page is temporarily unavailable. Try again shortly."
+msgstr ""
+
+#: templates/js/_tenant_page_js.html:26
+msgid "Delete this record? This action cannot be undone."
+msgstr ""
+
+#: templates/js/_tenant_page_js.html:27 templates/tenant/page.html:115
+msgid "Add record"
+msgstr ""
+
+#: templates/js/_tenant_page_js.html:28
+msgid "Edit record"
+msgstr ""
+
+#: templates/js/_tenant_page_js.html:32
+#, python-brace-format
+msgid "{start}-{end} of {total}"
+msgstr ""
+
+#: templates/js/_tenant_page_js.html:33 templates/js/admin/_clients_js.html:116
+#: templates/js/admin/_clients_js.html:170
+#: templates/js/admin/_organizations_js.html:128
+#: templates/js/admin/_organizations_js.html:182
+#: templates/js/admin/_organizations_js.html:339
+#: templates/js/admin/_processes_js.html:161
+#: templates/js/admin/_user_management_js.html:127
+#: templates/js/admin/_user_management_js.html:177
+msgid "An unexpected network error occurred."
+msgstr ""
+
 #: templates/js/_workitem_detail_panel_js.html:7
 msgid "Click toggle button again to load media"
 msgstr ""
@@ -8185,17 +8309,6 @@ msgstr ""
 msgid "You do not have permission to perform this action."
 msgstr ""
 
-#: templates/js/admin/_clients_js.html:116
-#: templates/js/admin/_clients_js.html:170
-#: templates/js/admin/_organizations_js.html:128
-#: templates/js/admin/_organizations_js.html:182
-#: templates/js/admin/_organizations_js.html:339
-#: templates/js/admin/_processes_js.html:161
-#: templates/js/admin/_user_management_js.html:127
-#: templates/js/admin/_user_management_js.html:177
-msgid "An unexpected network error occurred."
-msgstr ""
-
 #: templates/js/admin/_clients_js.html:157
 msgid "You do not have permission to delete this client."
 msgstr ""
@@ -8517,5 +8630,31 @@ msgstr ""
 
 #: templates/js/admin/_user_management_js.html:180
 msgid "Are you sure you want to delete this user? This action cannot be undone."
+msgstr ""
+
+#: templates/tenant/page.html:8
+msgid "Tenant page"
+msgstr ""
+
+#: templates/tenant/page.html:23
+msgid "Tenant page unavailable"
+msgstr ""
+
+#: templates/tenant/page.html:26
+msgid "This tenant page is temporarily unavailable"
+msgstr ""
+
+#: templates/tenant/page.html:28
+msgid ""
+"The tenant configuration could not be loaded. Try again shortly; if this "
+"persists, contact an administrator."
+msgstr ""
+
+#: templates/tenant/page.html:77
+msgid "from"
+msgstr ""
+
+#: templates/tenant/page.html:81
+msgid "to"
 msgstr ""
 

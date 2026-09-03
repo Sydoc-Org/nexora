@@ -17,7 +17,7 @@ from .db import engine_nexora_db
 # first value here).
 UI_PREF_CHOICES = {
     "theme": ("light", "dark", "system"),
-    "accent": ("indigo", "violet", "emerald", "amber", "rose", "sky", "custom"),
+    "accent": ("amber", "indigo", "violet", "emerald", "rose", "sky", "custom"),
     "motion": ("full", "reduced"),
     "entrance": ("rise", "slide", "pop", "fade", "blur", "none"),
     "animspeed": ("normal", "relaxed", "snappy"),

@@ -13,6 +13,7 @@ from nx_lib.hooks import (
     _handle_permission_denied,
     _inject_brand,
     _inject_current_lang,
+    _inject_tenant_nav,
     _internal_error,
     _load_user_locale,
     _load_user_ui_prefs,
@@ -523,6 +524,29 @@ def test_inject_brand_degrades_to_empty_dict_on_registry_failure(app, monkeypatc
         assert _inject_brand() == {"brand": {}}
 
 
+def test_inject_tenant_nav_empty_when_no_session(app):
+    """Same gate as _inject_brand: pre-login pages never call into the tenant
+    registry (has_permission() would read an empty session anyway, but this
+    avoids the registry lookup entirely for anonymous requests)."""
+    with app.test_request_context("/"):
+        assert _inject_tenant_nav() == {"tenant_nav": []}
+
+
+def test_inject_tenant_nav_delegates_to_visible_tenant_nav(app, monkeypatch):
+    """visible_tenant_nav() lives in nx_lib/views/tenant.py -- imported
+    locally inside _inject_tenant_nav to avoid a circular import at
+    hooks.py's own module-load time (see its docstring)."""
+    monkeypatch.setattr(
+        "nx_lib.views.tenant.visible_tenant_nav",
+        lambda: [{"code": "ms02", "label": "MS02", "pages": []}],
+    )
+    with app.test_request_context("/"):
+        session["userid"] = 1
+        assert _inject_tenant_nav() == {
+            "tenant_nav": [{"code": "ms02", "label": "MS02", "pages": []}]
+        }
+
+
 def test_inject_brand_is_gated_on_a_logged_in_session(app, monkeypatch):
     """logout() pops userid but leaves organizationcode behind, so keying on
     organizationcode alone kept branding the post-logout landing page."""
@@ -578,6 +602,7 @@ def test_init_app_registers_context_processors(app):
     assert "_inject_current_lang" in proc_names
     assert "_utility_processor" in proc_names
     assert "_inject_brand" in proc_names
+    assert "_inject_tenant_nav" in proc_names
 
 
 # ---------- error handlers: /api/v1 JSON branch ----------

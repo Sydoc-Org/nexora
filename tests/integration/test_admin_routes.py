@@ -2585,7 +2585,7 @@ def test_header_prepaint_accent_fallback_source_uses_brand_then_hardcoded():
     exercising the inline pre-paint script needs a JS engine."""
     with open("templates/_header.html", encoding="utf-8") as f:
         src = f.read()
-    assert "accent:     stored.accent     || (brand.accent_hex ? 'custom' : 'indigo')," in src
+    assert "accent:     stored.accent     || (brand.accent_hex ? 'custom' : 'amber')," in src
     assert "accentHex:  stored.accentHex  || brand.accent_hex || '#4f46e5'," in src
 
 

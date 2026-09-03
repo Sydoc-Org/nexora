@@ -143,6 +143,7 @@ def create_app():
         generali,
         profile,
         reporting,
+        tenant,
         workitems,
     )
 
@@ -154,6 +155,7 @@ def create_app():
     reporting.register_routes(app)
     workitems.register_routes(app)
     generali.register_routes(app)
+    tenant.register_routes(app)  # /t/<tenant_code>/<page_key> generated tenant pages
     api_external.register_routes(app)  # machine-to-machine API (Bearer key, no session)
 
     if cfg.IS_PROD:

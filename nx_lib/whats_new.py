@@ -22,6 +22,56 @@ from .version import __version__
 # endpoint (url_for name, None = no link), icon (fontawesome, no "fa-" prefix).
 RELEASES: list[dict] = [
     {
+        "version": "3.2.4",
+        "date": "2026-09-03",
+        "entries": [
+            {
+                "title": _("Choose how deeply Eddard thinks"),
+                "body": _(
+                    "Click into the chat box and pick Quick, Balanced or Deep. "
+                    "Quick answers straightforward counts fast; Deep gives Eddard "
+                    "more room on hard, multi-source questions. Shown only when "
+                    "the configured model supports it."
+                ),
+                "perm": "reporting.ai.use",
+                "endpoint": "reporting",
+                "icon": "gauge-high",
+            },
+            {
+                "title": _("Faster pages everywhere"),
+                "body": _(
+                    "The reporting registry, the Generali dashboard filters and "
+                    "the static assets are now cached, and several heavy pages "
+                    "make one database query where they used to make one per row."
+                ),
+                "perm": None,
+                "endpoint": None,
+                "icon": "bolt",
+            },
+            {
+                "title": _("Generali daily average counts every day"),
+                "body": _(
+                    "The dashboard's daily average now divides by the days in the "
+                    "selected range, not only by the days that had data, so quiet "
+                    "days no longer inflate the figure."
+                ),
+                "perm": None,
+                "endpoint": "generali_documents",
+                "icon": "chart-line",
+            },
+            {
+                "title": _("Amber is the new default accent"),
+                "body": _(
+                    "New users and anyone who never picked a colour now see Amber "
+                    "instead of Indigo. Your own choice in Settings is untouched."
+                ),
+                "perm": None,
+                "endpoint": None,
+                "icon": "palette",
+            },
+        ],
+    },
+    {
         "version": "3.2.3",
         "date": "2026-08-27",
         "entries": [

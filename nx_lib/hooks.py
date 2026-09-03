@@ -311,6 +311,25 @@ def _inject_brand():
     return {"brand": brand_for_org(org_code) or {}}
 
 
+def _inject_tenant_nav():
+    """Sidebar data source for the per-tenant nav group (Task 6): the
+    registry's tenants the current session holds ``tenant.<code>.view`` for,
+    each with its own page list -- ``[]`` when the registry itself is
+    unavailable or nobody is logged in. ``visible_tenant_nav()`` lives in
+    ``nx_lib/views/tenant.py`` (the tenant kernel's route module, which
+    already imports the registry accessors this needs); imported locally
+    here rather than at module load time -- ``nx_lib/__init__.py`` imports
+    ``hooks`` before it lazily imports ``nx_lib.views.*`` inside
+    ``create_app()``, so a top-level import here would need
+    ``nx_lib.views.tenant`` to resolve while ``nx_lib.hooks`` is still mid
+    -import."""
+    if "userid" not in session:
+        return {"tenant_nav": []}
+    from .views.tenant import visible_tenant_nav
+
+    return {"tenant_nav": visible_tenant_nav()}
+
+
 def _utility_processor():
     return {
         "get_user_icon_url": resolve_user_icon_url,
@@ -351,6 +370,7 @@ def init_app(app):
     app.context_processor(_inject_current_lang)
     app.context_processor(_inject_ui_prefs)
     app.context_processor(_inject_brand)
+    app.context_processor(_inject_tenant_nav)
     app.context_processor(_utility_processor)
     app.context_processor(_inject_app_version)
     app.context_processor(_inject_whats_new)
