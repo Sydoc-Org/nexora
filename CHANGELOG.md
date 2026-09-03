@@ -28,6 +28,33 @@ Work toward the next release.
   `CONTRIBUTING.md` gains "Working in parallel" (the migration-number claim
   rule and the generated-file conflict hotspots) and "Releases".
 
+### Fixed
+
+- **The Generali dashboard's date filter is usable again.** The time fields
+  defaulted to the current clock, so picking a day quietly truncated it and
+  there was no obvious way to ask for the whole thing. The picker is now
+  date-only and supplies the boundaries itself: midnight to 23:59:59, except
+  when the end is today, where it follows the wall clock rather than asking
+  for hours that have not happened. The two fields also constrain each other
+  -- the end can no longer precede the start -- and neither accepts a future
+  date.
+
+- **Import lag no longer reads as an outage on the Generali dashboard.**
+  "Not imported yet" and "that day produced nothing" were counted as the same
+  thing, so a range running to today reported the un-imported tail as empty
+  days and kept the warning up until the end date was dragged back behind the
+  last genuinely empty day. The stats response now carries `days_settled` /
+  `days_pending` beside `days_with_data`, and the two are reported separately.
+
+- **The date picker and tables are legible in dark mode.** flatpickr ships a
+  light-only stylesheet and the existing overrides pinned near-black text, so
+  the calendar stayed white on a dark page; it is now painted from the
+  `--nx-*` tokens and follows the accent. In tables, `--nx-divider` and
+  `--nx-alt` sit within a few steps of `--nx-card` in dark, leaving row rules,
+  the header band and hover nearly invisible with header text around 3:1 --
+  those surfaces are now separated for `html.dark` rather than by moving the
+  shared tokens, which would repaint every component that depends on them.
+
 ## [3.2.4] - 2026-09-03
 
 ### Added

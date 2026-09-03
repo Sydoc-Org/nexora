@@ -379,6 +379,30 @@ a.nx-card:hover, .nx-card--link:hover {
 .nx-table thead th.text-center { text-align: center; }
 .nx-table thead th.text-right { text-align: right; }
 
+/* Dark-mode table legibility.
+   The shared tokens are tuned for the light palette, where --nx-divider and
+   --nx-alt sit a comfortable distance from the white card. In dark they land
+   within a few steps of --nx-card (#273449 against #1e293b), so row rules, the
+   header band and row hover all but disappear, and header text on
+   --nx-text-meta measures roughly 3:1 — under AA for 11px uppercase.
+   Separate the surfaces explicitly here rather than moving the tokens, which
+   would repaint every other component that depends on them. */
+html.dark .nx-table thead th {
+  background: #16212f;
+  color: var(--nx-text-sec);
+  border-bottom: 1px solid var(--nx-border-strong);
+}
+html.dark .nx-table tbody td { border-bottom-color: #33425a; }
+html.dark .nx-table tbody tr.is-clickable:hover,
+html.dark .nx-table tbody tr:not(.details-row):hover { background: #2b3a52; }
+html.dark .nx-table-wrap { border-color: var(--nx-border-strong); }
+/* Striping is a ratio of --nx-alt, which is nearly --nx-card in dark; give it
+   its own step so alternating rows are actually distinguishable. */
+html.dark.nx-stripes .nx-table tbody tr:not(.details-row):nth-child(even) td,
+html.dark.nx-stripes .admin-table tbody tr:not(.details-row):nth-child(even) td {
+  background: #223046;
+}
+
 /* Skeleton loading bars (workitems loader, #189) — accent-tinted shimmer;
    the global reduced-motion kill-switch above freezes the animation. */
 .nx-skel {

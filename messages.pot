@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-03 09:44+0200\n"
+"POT-Creation-Date: 2026-09-04 09:25+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -582,10 +582,10 @@ msgstr ""
 #: nx_lib/views/dashboard.py:599 nx_lib/views/dashboard.py:677
 #: nx_lib/views/dashboard.py:715 nx_lib/views/generali/_crud.py:187
 #: nx_lib/views/generali/attendance.py:98
-#: nx_lib/views/generali/documents.py:288
-#: nx_lib/views/generali/documents.py:327
-#: nx_lib/views/generali/documents.py:503
-#: nx_lib/views/generali/documents.py:537
+#: nx_lib/views/generali/documents.py:316
+#: nx_lib/views/generali/documents.py:355
+#: nx_lib/views/generali/documents.py:531
+#: nx_lib/views/generali/documents.py:565
 #: nx_lib/views/generali/importstatus.py:119 nx_lib/views/generali/pdqm.py:102
 #: nx_lib/views/generali/reporting.py:261
 #: nx_lib/views/generali/reporting.py:324 nx_lib/views/workitems.py:1393
@@ -3287,31 +3287,31 @@ msgstr ""
 msgid "Reset"
 msgstr ""
 
-#: templates/generali-dashboard.html:101
+#: templates/generali-dashboard.html:108
 msgid "Total Documents"
 msgstr ""
 
-#: templates/generali-dashboard.html:108
+#: templates/generali-dashboard.html:115
 msgid "NK1 Pass Rate"
 msgstr ""
 
-#: templates/generali-dashboard.html:115
+#: templates/generali-dashboard.html:122
 msgid "NK2 Pass Rate"
 msgstr ""
 
-#: templates/generali-dashboard.html:122
+#: templates/generali-dashboard.html:129
 msgid "NK1 & NK2 Pass Rate"
 msgstr ""
 
-#: templates/generali-dashboard.html:129
+#: templates/generali-dashboard.html:136
 msgid "Avg Daily Documents"
 msgstr ""
 
-#: templates/generali-dashboard.html:140
+#: templates/generali-dashboard.html:147
 msgid "Daily Processing Volume"
 msgstr ""
 
-#: templates/generali-dashboard.html:144 templates/generali_documents.html:36
+#: templates/generali-dashboard.html:151 templates/generali_documents.html:36
 #: templates/js/_generali_dashboard_js.html:25
 #: templates/js/_reporting_dashboard_js.html:33
 #: templates/js/_reporting_js.html:50
@@ -3321,40 +3321,40 @@ msgstr ""
 msgid "Total"
 msgstr ""
 
-#: templates/generali-dashboard.html:147
+#: templates/generali-dashboard.html:154
 #: templates/js/_generali_dashboard_js.html:26
 msgid "Expected"
 msgstr ""
 
-#: templates/generali-dashboard.html:151
+#: templates/generali-dashboard.html:158
 msgid "Kommunikation"
 msgstr ""
 
-#: templates/generali-dashboard.html:157 templates/workitems_overview.html:391
+#: templates/generali-dashboard.html:164 templates/workitems_overview.html:391
 msgid "Select all"
 msgstr ""
 
-#: templates/admin/organizations.html:72 templates/generali-dashboard.html:158
+#: templates/admin/organizations.html:72 templates/generali-dashboard.html:165
 msgid "Clear"
 msgstr ""
 
-#: templates/generali-dashboard.html:169
+#: templates/generali-dashboard.html:176
 msgid "Document Type Distribution"
 msgstr ""
 
-#: templates/generali-dashboard.html:179
+#: templates/generali-dashboard.html:186
 msgid "Recipient Distribution"
 msgstr ""
 
-#: templates/generali-dashboard.html:185
+#: templates/generali-dashboard.html:192
 msgid "NK1 / NK2 Quality Control"
 msgstr ""
 
-#: templates/generali-dashboard.html:195
+#: templates/generali-dashboard.html:202
 msgid "Language Distribution"
 msgstr ""
 
-#: templates/generali-dashboard.html:201
+#: templates/generali-dashboard.html:208
 msgid "Entry Channel"
 msgstr ""
 
@@ -6700,8 +6700,20 @@ msgstr ""
 msgid "Error deleting record."
 msgstr ""
 
-#: templates/js/_generali_dashboard_js.html:138
-#: templates/js/_generali_dashboard_js.html:214
+#: templates/js/_generali_dashboard_js.html:120
+#, python-brace-format
+msgid ""
+"Data currently reaches {day}; the {pending} day(s) after it are still "
+"being imported and are not counted as empty."
+msgstr ""
+
+#: templates/js/_generali_dashboard_js.html:121
+#, python-brace-format
+msgid "{count} day(s) in this range produced no documents at all."
+msgstr ""
+
+#: templates/js/_generali_dashboard_js.html:207
+#: templates/js/_generali_dashboard_js.html:283
 msgid "Documents"
 msgstr ""
 
