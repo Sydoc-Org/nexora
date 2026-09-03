@@ -26,7 +26,6 @@ def _allowed_pattern() -> re.Pattern[str]:
 @pytest.mark.parametrize(
     "branch",
     [
-        "main",
         "fix/253-collab-rules",
         "feat/241-dashboard-overwork",
         "docs/nx-cli-reference",
@@ -46,6 +45,7 @@ def test_accepts(branch: str) -> None:
 @pytest.mark.parametrize(
     "branch",
     [
+        "main",  # PRs only; the script also refuses it by name, with its own message
         "hotfix/urgent",  # not a Conventional-Commit type
         "wip",
         "fix/",  # empty slug
@@ -57,3 +57,10 @@ def test_accepts(branch: str) -> None:
 )
 def test_refuses(branch: str) -> None:
     assert not _allowed_pattern().match(branch), f"{branch} should be refused"
+
+
+def test_main_is_refused_by_name_with_its_own_message() -> None:
+    """The regex alone would give the generic "must be <type>/<slug>" advice."""
+    body = GUARD.read_text(encoding="utf-8")
+    assert "if ($branch -eq 'main')" in body
+    assert "nothing is pushed to 'main' directly" in body

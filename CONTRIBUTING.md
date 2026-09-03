@@ -154,11 +154,13 @@ Anything else is refused at push time.
 ## Pull requests
 
 - Target `main`. **Never push to `main` directly** — everything lands via PR.
-  This one is convention rather than enforcement: the repo is private on GitHub
-  Free, where branch protection and rulesets are both unavailable (the API
-  answers `403 Upgrade to GitHub Pro or make this repository public`), and
-  `Sydoc-Code` is a personal account, so only its owner could set it anyway. If
-  the repo ever goes Pro or public, make it real:
+  The pre-push hook refuses it (`git push --no-verify` bypasses, as always).
+  That local guard is the enforcement, because GitHub's is not for sale here:
+  the repo is private on GitHub Free, where branch protection and rulesets are
+  both unavailable (the API answers `403 Upgrade to GitHub Pro or make this
+  repository public`), and `Sydoc-Code` is a personal account, so only its owner
+  could set it anyway. If the repo ever goes Pro or public, make it real
+  server-side too:
 
   ```
   gh api -X PUT repos/Sydoc-Code/nexora/branches/main/protection \

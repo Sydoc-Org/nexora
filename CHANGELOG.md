@@ -13,8 +13,8 @@ Work toward the next release.
 - **Branching model: short-lived topic branches instead of version branches**
   (#253). Nothing is pushed to `main` directly any more — everything lands via
   PR, review optional so either developer can merge their own once CI is green
-  (convention, not enforcement: branch protection needs a plan this private repo
-  does not have). A
+  (the pre-push hook refuses a push from `main`, since branch protection needs
+  a plan this private repo does not have). A
   branch is `<type>/<slug>` (`fix/253-collab-rules`), cut from `main` and gone
   within a day or two; `v<x.y.z.n>` branches are legacy and still accepted only
   so in-flight work can push. Releases become a **tag on `main`** rather than a
