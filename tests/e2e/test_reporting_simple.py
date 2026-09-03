@@ -30,15 +30,18 @@ def test_simple_tab_load_has_no_console_errors(nexora_server, page):
     threw `TypeError: RS.el is not a function` before a user could interact
     with anything."""
     _login(page, nexora_server)
-    # Listen only from here: login lands on /dashboard, whose background
-    # polling fetches abort when we navigate away and log "Failed to fetch"
-    # console errors that have nothing to do with the /reporting load.
+    # Login lands on /dashboard, whose background polling fetches abort when
+    # we navigate away and log "Failed to fetch" console errors (on the CI
+    # runner, every time). Those come from the dashboard page, not from the
+    # /reporting load this test guards, so drop errors by their source URL.
     console_errors = []
     page_errors = []
-    page.on(
-        "console",
-        lambda msg: console_errors.append(msg.text) if msg.type == "error" else None,
-    )
+
+    def _on_console(msg):
+        if msg.type == "error" and "/dashboard" not in (msg.location or {}).get("url", ""):
+            console_errors.append(msg.text)
+
+    page.on("console", _on_console)
     page.on("pageerror", lambda exc: page_errors.append(str(exc)))
     page.goto(f"{nexora_server}/reporting")
     expect(page.get_by_test_id("reporting-simple")).to_be_visible()
