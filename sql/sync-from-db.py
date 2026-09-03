@@ -45,23 +45,23 @@ SQL_ROOT = REPO_ROOT / "sql"
 # Which nx_lib.config attribute holds each DB name  ->  on-disk folder under sql/
 # Resolved via nx_lib/config.py so defaults (e.g. DB_GENERALI -> "Generali") match the app.
 TRACKED_DATABASES = [
-    ("DB_NEXORA",   "NexoraDB"),
+    ("DB_NEXORA", "NexoraDB"),
     ("DB_GENERALI", "GeneraliDB"),
 ]
 
 # mssql-scripter encodes type in the filename:  schema.object.<Type>.sql
 # This maps that <Type> token to the SSMS-mirroring destination folder.
 TYPE_TO_FOLDER = {
-    "Table":                "Tables",
-    "View":                 "Views",
-    "StoredProcedure":      "Programmability/StoredProcedures",
-    "UserDefinedFunction":  "Programmability/Functions",
-    "Trigger":              "Programmability/Triggers",
+    "Table": "Tables",
+    "View": "Views",
+    "StoredProcedure": "Programmability/StoredProcedures",
+    "UserDefinedFunction": "Programmability/Functions",
+    "Trigger": "Programmability/Triggers",
     "UserDefinedTableType": "Programmability/Types",
-    "UserDefinedDataType":  "Programmability/Types",
-    "Schema":               "Security/Schemas",
-    "User":                 "Security/Users",
-    "Role":                 "Security/Roles",
+    "UserDefinedDataType": "Programmability/Types",
+    "Schema": "Security/Schemas",
+    "User": "Security/Users",
+    "Role": "Security/Roles",
     # Skip: "Database" (the database itself — no useful DDL for our purposes)
 }
 
@@ -71,8 +71,7 @@ def find_scripter() -> str:
     exe = shutil.which("mssql-scripter") or shutil.which("mssql-scripter.exe")
     if not exe:
         raise RuntimeError(
-            "mssql-scripter not found. Install with:\n"
-            "    pip install -r sql/requirements.txt"
+            "mssql-scripter not found. Install with:\n" "    pip install -r sql/requirements.txt"
         )
     return exe
 
@@ -93,15 +92,21 @@ def script_database(exe: str, server: str, db: str, uid: str, pwd: str, out_dir:
     """Invoke mssql-scripter: one .sql per object, drop+create, no header noise."""
     cmd = [
         exe,
-        "-S", f"{server},1433",
-        "-d", db,
-        "-U", uid,
-        "-P", pwd,
-        "-f", str(out_dir),
+        "-S",
+        f"{server},1433",
+        "-d",
+        db,
+        "-U",
+        uid,
+        "-P",
+        pwd,
+        "-f",
+        str(out_dir),
         "--file-per-object",
         "--script-drop-create",
         "--exclude-headers",
-        "--target-server-version", "vNext",
+        "--target-server-version",
+        "vNext",
     ]
     res = subprocess.run(cmd, capture_output=True, text=True)
     if res.returncode != 0:
@@ -134,7 +139,11 @@ def organize(raw_dir: Path, target: Path) -> int:
             continue
         dest_dir = target / sub
         dest_dir.mkdir(parents=True, exist_ok=True)
-        shutil.move(str(fp), str(dest_dir / f"{basename}.sql"))
+        # mssql-scripter emits CRLF; the repo pins *.sql to eol=lf, so a raw
+        # move leaves every table file "modified" (bytes differ, content
+        # identical) after each pre-commit --check run. Normalise on the way in.
+        (dest_dir / f"{basename}.sql").write_bytes(fp.read_bytes().replace(b"\r\n", b"\n"))
+        fp.unlink()
         moved += 1
     if skipped_types:
         print(f"  skipped types: {', '.join(sorted(skipped_types))}")
@@ -188,9 +197,9 @@ def rmtree_robust(p: Path, attempts: int = 5, required: bool = True) -> bool:
 
 def sync_one(exe: str, db: str, folder: str, server: str, uid: str, pwd: str) -> None:
     print(f"[{folder}] db={db}")
-    target  = SQL_ROOT / folder
+    target = SQL_ROOT / folder
     staging = SQL_ROOT / f".{folder}.staging"
-    backup  = SQL_ROOT / f".{folder}.bak"
+    backup = SQL_ROOT / f".{folder}.bak"
 
     rmtree_robust(staging)
     rmtree_robust(backup)
@@ -234,26 +243,42 @@ def git_unstaged_under_sql() -> str:
     """Return only true drift under sql/: worktree differs from index, plus
     any new untracked files the sync produced. Already-staged changes are not
     drift — they're what the user is about to commit."""
-    modified = subprocess.run(
-        ["git", "diff", "--name-only", "--", "sql/"],
-        capture_output=True, text=True, cwd=str(REPO_ROOT),
-    ).stdout.strip().splitlines()
-    untracked = subprocess.run(
-        ["git", "ls-files", "--others", "--exclude-standard", "--", "sql/"],
-        capture_output=True, text=True, cwd=str(REPO_ROOT),
-    ).stdout.strip().splitlines()
+    modified = (
+        subprocess.run(
+            ["git", "diff", "--name-only", "--", "sql/"],
+            capture_output=True,
+            text=True,
+            cwd=str(REPO_ROOT),
+        )
+        .stdout.strip()
+        .splitlines()
+    )
+    untracked = (
+        subprocess.run(
+            ["git", "ls-files", "--others", "--exclude-standard", "--", "sql/"],
+            capture_output=True,
+            text=True,
+            cwd=str(REPO_ROOT),
+        )
+        .stdout.strip()
+        .splitlines()
+    )
     lines = [f" M {p}" for p in modified] + [f"?? {p}" for p in untracked]
     return "\n".join(lines)
 
 
 def main() -> int:
     p = argparse.ArgumentParser()
-    p.add_argument("--env", default="INT", choices=("INT", "PROD"),
-                   help="Which .env file to load (default: INT)")
-    p.add_argument("--db", default=None,
-                   help="Sync only one DB (NexoraDB|GeneraliDB)")
-    p.add_argument("--check", action="store_true",
-                   help="Pre-commit mode: exit 1 if sql/ drifted after sync")
+    p.add_argument(
+        "--env",
+        default="INT",
+        choices=("INT", "PROD"),
+        help="Which .env file to load (default: INT)",
+    )
+    p.add_argument("--db", default=None, help="Sync only one DB (NexoraDB|GeneraliDB)")
+    p.add_argument(
+        "--check", action="store_true", help="Pre-commit mode: exit 1 if sql/ drifted after sync"
+    )
     args = p.parse_args()
 
     if args.check and os.environ.get("SQL_SYNC_SKIP") == "1":
@@ -267,8 +292,9 @@ def main() -> int:
         sys.stderr.write("Missing DB_SERVER_PRD / DB_UID / DB_PWD in env\n")
         return 2
 
-    targets = [(attr, folder) for attr, folder in TRACKED_DATABASES
-               if not args.db or folder == args.db]
+    targets = [
+        (attr, folder) for attr, folder in TRACKED_DATABASES if not args.db or folder == args.db
+    ]
     if not targets:
         sys.stderr.write(f"Unknown --db value: {args.db}\n")
         return 2
@@ -284,7 +310,9 @@ def main() -> int:
         drift = git_unstaged_under_sql()
         if drift:
             print("\n[sync] sql/ drifted from INT — regenerated files are unstaged.")
-            print("Review, `git add sql/`, and re-commit. Skip with SQL_SYNC_SKIP=1 or --no-verify.\n")
+            print(
+                "Review, `git add sql/`, and re-commit. Skip with SQL_SYNC_SKIP=1 or --no-verify.\n"
+            )
             print(drift)
             return 1
 
