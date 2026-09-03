@@ -1437,7 +1437,7 @@ def get_source_for_workitem(workitem_id, client_hint=None, sources=None):
     a fresh set of source instances per probed row. Defaults to a fresh
     ``active_sources()`` call when omitted, unchanged from before.
     """
-    if client_hint and client_hint in CLIENTS:
+    if client_hint and client_hint in CLIENTS and CLIENTS[client_hint].octo_domain:
         return client_hint
 
     cached = _cache_lookup(workitem_id)

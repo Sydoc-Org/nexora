@@ -299,12 +299,18 @@ def _tenant_nav_page(code, p, locale):
                 f"{endpoint!r} does not resolve -- omitting nav entry"
             )
             return None
+        layout = p.layout or {}
         return {
             "key": p.key,
             "page_type": p.page_type,
             "endpoint": endpoint,
             "url": url,
-            "label": p.key,
+            # Optional presentation keys (#257, Generali): a human label, a
+            # Font Awesome icon class and the active_page value the target
+            # page sets (which need not equal its endpoint name).
+            "label": layout.get("label") or p.key,
+            "icon": layout.get("icon") or "fa-arrow-up-right-from-square",
+            "active": layout.get("active") or endpoint,
         }
 
     # list/crud pages always link the generated tenant_page route, which only

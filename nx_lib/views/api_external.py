@@ -73,7 +73,7 @@ from flask import current_app, g, jsonify, request
 from werkzeug.datastructures import MultiDict
 
 from ..api_auth import require_api_key
-from ..clients import CLIENTS
+from ..clients import workitem_clients
 from ..extensions import limiter
 from ..workitem_sources import (
     get_domain_for_workitem,
@@ -522,7 +522,7 @@ def api_v1_workitem_detail(workitem_id):
         # default-source document (deterministic; such keys should be split).
         code = None
         pair = None
-        for candidate in CLIENTS:
+        for candidate in workitem_clients():
             p = process_pair_for_workitem(workitem_id, client_hint=candidate)
             if p is not None and (p[0].lower(), p[1].lower()) in key_pairs:
                 code, pair = candidate, p

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-03 14:50+0200\n"
+"POT-Creation-Date: 2026-09-03 15:02+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -1146,29 +1146,29 @@ msgstr "%(field)s doit être numérique."
 
 #: nx_lib/views/admin/clients.py:154 nx_lib/views/admin/organizations.py:150
 #: nx_lib/views/admin/processes.py:418 nx_lib/views/admin/processes.py:571
-#: nx_lib/views/admin/users.py:142 nx_lib/views/tenant.py:458
-#: nx_lib/views/tenant.py:522 nx_lib/views/tenant.py:567
-#: nx_lib/views/tenant.py:602 nx_lib/views/tenant.py:641
+#: nx_lib/views/admin/users.py:142 nx_lib/views/tenant.py:464
+#: nx_lib/views/tenant.py:528 nx_lib/views/tenant.py:573
+#: nx_lib/views/tenant.py:608 nx_lib/views/tenant.py:647
 msgid "An unexpected error occurred."
 msgstr "Une erreur inattendue s'est produite."
 
-#: nx_lib/views/tenant.py:504 nx_lib/views/tenant.py:546
+#: nx_lib/views/tenant.py:510 nx_lib/views/tenant.py:552
 msgid "This entity has no writable fields."
 msgstr "Cette entité n'a aucun champ modifiable."
 
-#: nx_lib/views/tenant.py:519
+#: nx_lib/views/tenant.py:525
 msgid "Record created successfully."
 msgstr "Enregistrement créé avec succès."
 
-#: nx_lib/views/tenant.py:563 nx_lib/views/tenant.py:598
+#: nx_lib/views/tenant.py:569 nx_lib/views/tenant.py:604
 msgid "Record not found."
 msgstr "Enregistrement introuvable."
 
-#: nx_lib/views/tenant.py:564
+#: nx_lib/views/tenant.py:570
 msgid "Record updated successfully."
 msgstr "Enregistrement mis à jour avec succès."
 
-#: nx_lib/views/tenant.py:599
+#: nx_lib/views/tenant.py:605
 msgid "Record deleted successfully."
 msgstr "Enregistrement supprimé avec succès."
 
@@ -1757,15 +1757,14 @@ msgstr "Développement"
 msgid "API Documentation"
 msgstr "Documentation API"
 
-#: templates/_header.html:314 templates/_header.html:342
-#: templates/appearance.html:329 templates/dashboard.html:28
-#: templates/generali_documents.html:41 templates/generali_reporting.html:56
-#: templates/js/_header_js.html:30 templates/js/_header_js.html:36
+#: templates/_header.html:314 templates/appearance.html:329
+#: templates/dashboard.html:28 templates/generali_documents.html:41
+#: templates/generali_reporting.html:56 templates/js/_header_js.html:30
+#: templates/js/_header_js.html:36
 msgid "Dashboard"
 msgstr "Tableau de bord"
 
-#: templates/_header.html:315 templates/_header.html:356
-#: templates/generali-dashboard.html:69
+#: templates/_header.html:315 templates/generali-dashboard.html:69
 #: templates/generali_additionalservices.html:52
 #: templates/generali_baseservices.html:52 templates/generali_documents.html:45
 #: templates/generali_projectmanagement.html:52 templates/js/_header_js.html:42
@@ -1777,134 +1776,109 @@ msgstr "Rapports"
 msgid "Workitems"
 msgstr "Workitems"
 
-#: templates/_header.html:349 templates/generali-dashboard.html:65
-#: templates/generali_reporting.html:48 templates/js/_header_js.html:39
-msgid "Document List"
-msgstr "Liste des documents"
-
-#: templates/_header.html:363 templates/js/_header_js.html:45
-msgid "Additional Services"
-msgstr "Services supplémentaires"
-
-#: templates/_header.html:370 templates/js/_header_js.html:48
-msgid "Base Services"
-msgstr "Services de base"
-
-#: templates/_header.html:377 templates/js/_header_js.html:51
-msgid "Project Management"
-msgstr "Gestion de projet"
-
-#: templates/_header.html:384 templates/js/_header_js.html:54
-msgid "PDQM"
-msgstr "PDQM"
-
-#: templates/_header.html:391 templates/generali_importstatus.html:29
-msgid "Data Import Status"
-msgstr "Statut d'importation"
-
-#: templates/_header.html:457 templates/_header.html:459
+#: templates/_header.html:392 templates/_header.html:394
 #: templates/appearance.html:293 templates/appearance.html:298
 #: templates/js/_header_js.html:13
 msgid "Keep sidebar open"
 msgstr "Garder la barre latérale ouverte"
 
-#: templates/_header.html:463 templates/js/_header_js.html:56
+#: templates/_header.html:398 templates/js/_header_js.html:56
 msgid "Toggle dark mode"
 msgstr "Activer/désactiver le mode sombre"
 
-#: templates/_header.html:465
+#: templates/_header.html:400
 msgid "Dark Mode"
 msgstr "Mode sombre"
 
-#: templates/_header.html:473 templates/profile.html:44
+#: templates/_header.html:408 templates/profile.html:44
 #: templates/profile.html:123
 msgid "Profile Picture"
 msgstr "Photo de profil"
 
-#: templates/_header.html:483
+#: templates/_header.html:418
 msgid "Your profile"
 msgstr "Votre profil"
 
-#: templates/_header.html:487 templates/appearance.html:34
+#: templates/_header.html:422 templates/appearance.html:34
 #: templates/js/_header_js.html:57 templates/profile.html:75
 #: templates/profile.html:317
 msgid "Appearance"
 msgstr "Apparence"
 
-#: templates/_header.html:491 templates/js/_header_js.html:58
+#: templates/_header.html:426 templates/js/_header_js.html:58
 #: templates/whats_new.html:79
 msgid "What's New"
 msgstr "Nouveautés"
 
-#: templates/_header.html:496 templates/feedback.html:34
+#: templates/_header.html:431 templates/feedback.html:34
 #: templates/js/_header_js.html:59
 msgid "Feedback"
 msgstr "Feedback"
 
-#: templates/_header.html:503 templates/_header.html:573
-#: templates/_header.html:576
+#: templates/_header.html:438 templates/_header.html:508
+#: templates/_header.html:511
 msgid "Keyboard shortcuts"
 msgstr "Raccourcis clavier"
 
-#: templates/_header.html:507 templates/_small_footer.html:28
+#: templates/_header.html:442 templates/_small_footer.html:28
 #: templates/reporting.html:86
 msgid "Help"
 msgstr "Aide"
 
-#: templates/_header.html:513 templates/_header.html:555
+#: templates/_header.html:448 templates/_header.html:490
 msgid "Switch user"
 msgstr "Changer d'utilisateur"
 
-#: templates/_header.html:519 templates/js/_header_js.html:60
+#: templates/_header.html:454 templates/js/_header_js.html:60
 #: templates/profile.html:82
 msgid "Sign out"
 msgstr "Se déconnecter"
 
-#: templates/_header.html:536
+#: templates/_header.html:471
 msgid "Command palette"
 msgstr "Palette de commandes"
 
-#: templates/_header.html:540
+#: templates/_header.html:475
 msgid "Type a command or search..."
 msgstr "Tapez une commande ou recherchez..."
 
-#: templates/_header.html:545
+#: templates/_header.html:480
 msgid "navigate"
 msgstr "naviguer"
 
-#: templates/_header.html:546
+#: templates/_header.html:481
 msgid "open"
 msgstr "ouvrir"
 
-#: templates/_header.html:547
+#: templates/_header.html:482
 msgid "close"
 msgstr "fermer"
 
-#: templates/_header.html:559
+#: templates/_header.html:494
 msgid "Switch to user..."
 msgstr "Passer à l'utilisateur ..."
 
-#: templates/_header.html:580 templates/admin/access_control.html:167
+#: templates/_header.html:515 templates/admin/access_control.html:167
 msgid "Global"
 msgstr "Global"
 
-#: templates/_header.html:582
+#: templates/_header.html:517
 msgid "Open command palette"
 msgstr "Ouvrir la palette de commandes"
 
-#: templates/_header.html:586
+#: templates/_header.html:521
 msgid "Show this shortcuts overlay"
 msgstr "Afficher cet aperçu des raccourcis"
 
-#: templates/_header.html:590
+#: templates/_header.html:525
 msgid "Close the open dialog or panel"
 msgstr "Fermer la boîte de dialogue ou le panneau ouvert"
 
-#: templates/_header.html:595
+#: templates/_header.html:530
 msgid "Document viewer"
 msgstr "Visionneuse de documents"
 
-#: templates/_header.html:597
+#: templates/_header.html:532
 msgid "Previous / next document page"
 msgstr "Page de document précédente / suivante"
 
@@ -3626,6 +3600,11 @@ msgstr "Tableau de bord Generali"
 msgid "Dashboard for Generali Document processing"
 msgstr "Tableau de bord pour le traitement des documents Generali"
 
+#: templates/generali-dashboard.html:65 templates/generali_reporting.html:48
+#: templates/js/_header_js.html:39
+msgid "Document List"
+msgstr "Liste des documents"
+
 #: templates/generali-dashboard.html:77
 msgid "From"
 msgstr "Du"
@@ -4146,6 +4125,10 @@ msgstr "Montant"
 #: templates/generali_importstatus.html:8
 msgid "Data Import Status - nexora"
 msgstr "Statut d'importation - nexora"
+
+#: templates/generali_importstatus.html:29
+msgid "Data Import Status"
+msgstr "Statut d'importation"
 
 #: templates/generali_importstatus.html:30
 msgid "CSV imports into the document database"
@@ -7577,6 +7560,22 @@ msgstr "Ajouter un utilisateur"
 #: templates/js/_header_js.html:33
 msgid "Work items"
 msgstr "Workitems"
+
+#: templates/js/_header_js.html:45
+msgid "Additional Services"
+msgstr "Services supplémentaires"
+
+#: templates/js/_header_js.html:48
+msgid "Base Services"
+msgstr "Services de base"
+
+#: templates/js/_header_js.html:51
+msgid "Project Management"
+msgstr "Gestion de projet"
+
+#: templates/js/_header_js.html:54
+msgid "PDQM"
+msgstr "PDQM"
 
 #: templates/js/_header_js.html:56 templates/js/_header_js.html:57
 #: templates/js/_header_js.html:58 templates/js/_header_js.html:59

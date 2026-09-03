@@ -65,6 +65,20 @@ Work toward the next release.
 
 ### Changed
 
+- **Generali is a tenant** (#257, migrations `0091`/`0092`). A `generali`
+  data connection (`engine_generali_db`, no Octo), a `GNRL` organization, the
+  `generali` tenant and one `custom` page per existing Generali page — so the
+  Generali sidebar group now comes from the tenant registry like Mobscn's,
+  and the hardcoded block in `_header.html` is gone. `tenant.generali.view`
+  goes to every profile or user that already reaches a Generali page. The
+  pages, their CRUD code and the 46 `generali.*` permissions are untouched;
+  folding those into `tenant.generali.*` is #238's job. To make this
+  possible, `nx_lib/clients.py` now loads a connection **without an Octo
+  domain** as a data-only connection (only `default` still requires one),
+  and the workitem paths (`api_external`, client-hint routing) consult
+  `workitem_clients()` so a data-only connection never takes part in
+  workitem routing. Custom tenant pages can carry `label`, `icon` and
+  `active` in `LayoutJSON` for the sidebar.
 - **Organization-centric tenancy** (#257, migration `0090`). The organization
   is the hub now: it belongs to a tenant (`Organizations.TenantCode`), rides a
   data connection (`Organizations.ClientCode`, `default` for everyone who

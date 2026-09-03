@@ -52,6 +52,12 @@ _profile_org_mismatch`); a profile with `OrganizationCode = NULL` is global (`gl
 is still unassigned. `Tenants.OrganizationCode` is legacy — the registry still reads it, a later
 migration drops it.
 
+**Data-only connections.** A `dbo.Clients` row without an Octo domain is a *data-only* connection
+(Generali: `generali` → `engine_generali_db`, migration `0091`): it loads into `CLIENTS` with
+`octo_domain = None` and serves tenant pages, but `nx_lib/clients.py::workitem_clients()` excludes it
+from workitem routing. Only `default` still needs a domain. Adding a new database means one line in
+`_engines()` plus a `dbo.Clients` row.
+
 **Most customers ride the shared `default` runtime.** Privera, ElektroMaterial and Compass all do.
 A customer needs a new `ClientCode` only when they bring their own database — so far that has
 happened exactly once, for MS02. This is exactly why onboarding a `default`-riding customer needs

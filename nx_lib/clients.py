@@ -9,6 +9,7 @@ from dataclasses import dataclass
 
 from . import config as cfg
 from .db import (
+    engine_generali_db,
     engine_ms02_docfields_pg,
     engine_ms02_pg,
     engine_ms02_stats_pg,
@@ -47,6 +48,8 @@ def _engines():
         "engine_ms02_pg": engine_ms02_pg,
         "engine_ms02_stats_pg": engine_ms02_stats_pg,
         "engine_ms02_docfields_pg": engine_ms02_docfields_pg,
+        # Data-only connection (no Octo): Generali's own database (#257).
+        "engine_generali_db": engine_generali_db,
     }
 
 
@@ -136,7 +139,14 @@ def _build_clients():
             runtime_engine = engines.get(r.RuntimeEngineKey)
             env_domain, client_id, secret, grant_type = _creds_for(r.SecretRef)
             octo_domain = r.OctoDomain or env_domain
-            if runtime_engine is None or not octo_domain:
+            # A row needs its runtime engine. It needs an Octo domain only when
+            # it is 'default' -- workitem routing indexes CLIENTS["default"]
+            # unguarded and calls Octo on it. Any other row without a domain is a
+            # data-only connection (Generali, #257): it loads with octo_domain
+            # None, and the workitem paths skip it (non_default_source_instances
+            # builds sources by dialect, api_external iterates only clients that
+            # have a domain).
+            if runtime_engine is None or (r.ClientCode == "default" and not octo_domain):
                 if r.ClientCode == "default":
                     reasons = []
                     if runtime_engine is None:
@@ -194,6 +204,12 @@ def octo_creds_for_domain(domain):
         if c.octo_domain and c.octo_domain == domain:
             return c.octo_client_id, c.octo_secret, c.octo_grant_type
     return cfg.OCTO_CLIENT_ID, cfg.OCTO_CLIENT_SECRET, cfg.OCTO_GRANT_TYPE
+
+
+def workitem_clients():
+    """Client codes that take part in workitem routing -- those with an Octo
+    domain. Data-only connections (octo_domain None) are for tenant pages."""
+    return [code for code, c in CLIENTS.items() if c.octo_domain]
 
 
 def non_default_clients():
