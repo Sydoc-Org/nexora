@@ -34,6 +34,7 @@ in a collapsible **Tenants** group in the admin sidebar:
 
 | Route | UI label | Axis |
 |---|---|---|
+| `/admin/tenants/manage` | **Manage** (Tenants) | create/edit tenants, their organizations and mounted pages (`admin.view.tenants` / `admin.edit.tenants`, migration `0095`); entities/fields stay migration-only |
 | `/admin/tenants` | **Overview** (Tenants) | read-only join of all three: tenant → organizations → users, access profiles, data connection, process configurations; plus pages; plus what is not in a tenant (#256 phase 1) |
 | `/admin/organizations` | **Organizations** (name kept) | 2 — who the users work for |
 | `/admin/clients` | **Data Connections** | 1 — where the data lives |

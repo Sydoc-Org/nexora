@@ -152,6 +152,7 @@ def page_visibility():
         "adminMaintenanceBypassPerm": has_permission("admin.maintenance.bypass"),
         "adminClientsPagePerm": has_permission("admin.view.clients"),
         "adminProcessesPagePerm": has_permission("admin.view.processes"),
+        "adminTenantsPagePerm": has_permission("admin.view.tenants"),
     }
 
 

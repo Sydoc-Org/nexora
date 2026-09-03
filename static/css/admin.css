@@ -268,3 +268,6 @@ html.dark .log-method--DELETE { color: #f87171; }
 .tenant-org__title a:hover { text-decoration: underline; }
 .tenant-grid--four { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 .tenant-chip--mini { padding: 1px 7px; font-size: 10px; line-height: 1.4; }
+
+/* Tenant management (#256): organization picker in the tenant modal */
+.tenant-org-picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px 14px; max-height: 220px; overflow: auto; padding: 8px 10px; border: 1px solid var(--nx-border); border-radius: 8px; }

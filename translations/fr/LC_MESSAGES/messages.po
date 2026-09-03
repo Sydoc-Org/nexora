@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-03 15:02+0200\n"
+"POT-Creation-Date: 2026-09-03 15:45+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -1373,7 +1373,12 @@ msgstr "Client mis à jour avec succès."
 #: nx_lib/views/admin/organizations.py:210
 #: nx_lib/views/admin/organizations.py:390 nx_lib/views/admin/processes.py:454
 #: nx_lib/views/admin/processes.py:517 nx_lib/views/admin/processes.py:613
-#: nx_lib/views/admin/processes.py:642 nx_lib/views/admin/users.py:227
+#: nx_lib/views/admin/processes.py:642 nx_lib/views/admin/tenant_manage.py:274
+#: nx_lib/views/admin/tenant_manage.py:318
+#: nx_lib/views/admin/tenant_manage.py:356
+#: nx_lib/views/admin/tenant_manage.py:403
+#: nx_lib/views/admin/tenant_manage.py:433
+#: nx_lib/views/admin/tenant_manage.py:458 nx_lib/views/admin/users.py:227
 #: nx_lib/views/admin/users.py:476
 msgid "An error occurred."
 msgstr "Une erreur s'est produite."
@@ -1624,6 +1629,123 @@ msgstr "Mappage de champ supprimé avec succès."
 msgid "Unknown environment."
 msgstr "Environnement inconnu."
 
+#: nx_lib/views/admin/tenant_manage.py:71
+msgid "Tenant code must be 2-50 lowercase letters, digits or underscores."
+msgstr ""
+"Le code tenant doit comporter 2 à 50 lettres minuscules, chiffres ou "
+"tirets bas."
+
+#: nx_lib/views/admin/tenant_manage.py:74
+msgid "Display name is required (max. 100 characters)."
+msgstr "Le nom d’affichage est obligatoire (100 caractères max.)."
+
+#: nx_lib/views/admin/tenant_manage.py:76
+msgid "A data connection is required."
+msgstr "Une connexion de données est requise."
+
+#: nx_lib/views/admin/tenant_manage.py:81
+msgid "Organizations must be a list of organization codes."
+msgstr "Les organisations doivent être une liste de codes d’organisation."
+
+#: nx_lib/views/admin/tenant_manage.py:91
+msgid "Page key must be 1-100 lowercase letters, digits, '.', '_' or '-'."
+msgstr ""
+"La clé de page doit comporter 1 à 100 lettres minuscules, chiffres, '.', "
+"'_' ou '-'."
+
+#: nx_lib/views/admin/tenant_manage.py:94
+#: nx_lib/views/admin/tenant_manage.py:377
+msgid "Endpoint is not a mountable page."
+msgstr "Le point de terminaison n’est pas une page montable."
+
+#: nx_lib/views/admin/tenant_manage.py:97
+msgid "Label is required (max. 100 characters)."
+msgstr "Le libellé est obligatoire (100 caractères max.)."
+
+#: nx_lib/views/admin/tenant_manage.py:100
+msgid "Icon must be a Font Awesome class like fa-chart-line."
+msgstr "L’icône doit être une classe Font Awesome comme fa-chart-line."
+
+#: nx_lib/views/admin/tenant_manage.py:103
+msgid "Active marker may only contain letters, digits, '_' or '-'."
+msgstr ""
+"Le marqueur actif ne peut contenir que des lettres, des chiffres, '_' ou "
+"'-'."
+
+#: nx_lib/views/admin/tenant_manage.py:107
+msgid "Sort order must be a number."
+msgstr "L’ordre de tri doit être un nombre."
+
+#: nx_lib/views/admin/tenant_manage.py:240
+#: nx_lib/views/admin/tenant_manage.py:295
+msgid "Unknown data connection."
+msgstr "Connexion de données inconnue."
+
+#: nx_lib/views/admin/tenant_manage.py:243
+msgid "Tenant already exists."
+msgstr "Le tenant existe déjà."
+
+#: nx_lib/views/admin/tenant_manage.py:258
+#: nx_lib/views/admin/tenant_manage.py:312
+#, python-format
+msgid "%(n)d organization code(s) do not exist."
+msgstr "%(n)d code(s) d’organisation n’existent pas."
+
+#: nx_lib/views/admin/tenant_manage.py:266
+#, python-format
+msgid ""
+"Tenant created. Grant tenant.%(code)s.view under Access Control to make "
+"its pages visible."
+msgstr ""
+"Tenant créé. Accordez tenant.%(code)s.view dans le contrôle d’accès pour "
+"rendre ses pages visibles."
+
+#: nx_lib/views/admin/tenant_manage.py:308
+#: nx_lib/views/admin/tenant_manage.py:352
+#: nx_lib/views/admin/tenant_manage.py:385
+msgid "Tenant not found."
+msgstr "Tenant introuvable."
+
+#: nx_lib/views/admin/tenant_manage.py:315
+msgid "Tenant updated."
+msgstr "Tenant mis à jour."
+
+#: nx_lib/views/admin/tenant_manage.py:341
+#, python-format
+msgid "%(n)d organization(s) still belong to this tenant. Move them first."
+msgstr ""
+"%(n)d organisation(s) appartiennent encore à ce tenant. Déplacez-les "
+"d’abord."
+
+#: nx_lib/views/admin/tenant_manage.py:353
+msgid "Tenant deleted."
+msgstr "Tenant supprimé."
+
+#: nx_lib/views/admin/tenant_manage.py:398
+msgid "Page added."
+msgstr "Page ajoutée."
+
+#: nx_lib/views/admin/tenant_manage.py:401
+msgid "A page with this key already exists."
+msgstr "Une page avec cette clé existe déjà."
+
+#: nx_lib/views/admin/tenant_manage.py:416
+msgid "Status must be 'active' or 'draft'."
+msgstr "Le statut doit être 'active' ou 'draft'."
+
+#: nx_lib/views/admin/tenant_manage.py:429
+#: nx_lib/views/admin/tenant_manage.py:454
+msgid "Page not found."
+msgstr "Page introuvable."
+
+#: nx_lib/views/admin/tenant_manage.py:430
+msgid "Page updated."
+msgstr "Page mise à jour."
+
+#: nx_lib/views/admin/tenant_manage.py:455
+msgid "Page removed."
+msgstr "Page retirée."
+
 #: nx_lib/views/admin/users.py:39
 #, python-format
 msgid ""
@@ -1719,9 +1841,9 @@ msgid "Logs"
 msgstr "Journaux"
 
 #: templates/_header.html:240 templates/admin/logs.html:66
-#: templates/admin/logs.html:99 templates/admin/user_detail.html:228
-#: templates/api_docs.html:189 templates/appearance.html:360
-#: templates/generali_importstatus.html:50
+#: templates/admin/logs.html:99 templates/admin/tenants_manage.html:80
+#: templates/admin/user_detail.html:228 templates/api_docs.html:189
+#: templates/appearance.html:360 templates/generali_importstatus.html:50
 #: templates/generali_importstatus.html:106
 #: templates/generali_reporting.html:116 templates/workitems_overview.html:130
 #: templates/workitems_overview.html:405
@@ -1736,35 +1858,40 @@ msgstr "Maintenance"
 msgid "Tenants"
 msgstr "Tenants"
 
-#: templates/_header.html:273 templates/admin/admin_overview.html:95
-#: templates/admin/organizations.html:19 templates/js/_header_js.html:19
+#: templates/_header.html:274 templates/js/admin/_permission_matrix_js.html:56
+msgid "Manage"
+msgstr "Gérer"
+
+#: templates/_header.html:280 templates/admin/admin_overview.html:95
+#: templates/admin/organizations.html:19 templates/admin/tenants_manage.html:39
+#: templates/js/_header_js.html:19
 msgid "Organizations"
 msgstr "Organisations"
 
-#: templates/_header.html:279 templates/admin/clients.html:19
+#: templates/_header.html:286 templates/admin/clients.html:19
 msgid "Data Connections"
 msgstr "Connexions de données"
 
-#: templates/_header.html:286 templates/admin/processes.html:19
+#: templates/_header.html:293 templates/admin/processes.html:19
 msgid "Process Configurations"
 msgstr "Configurations de processus"
 
-#: templates/_header.html:300
+#: templates/_header.html:307
 msgid "Development"
 msgstr "Développement"
 
-#: templates/_header.html:307 templates/api_docs.html:76
+#: templates/_header.html:314 templates/api_docs.html:76
 msgid "API Documentation"
 msgstr "Documentation API"
 
-#: templates/_header.html:314 templates/appearance.html:329
+#: templates/_header.html:321 templates/appearance.html:329
 #: templates/dashboard.html:28 templates/generali_documents.html:41
 #: templates/generali_reporting.html:56 templates/js/_header_js.html:30
 #: templates/js/_header_js.html:36
 msgid "Dashboard"
 msgstr "Tableau de bord"
 
-#: templates/_header.html:315 templates/generali-dashboard.html:69
+#: templates/_header.html:322 templates/generali-dashboard.html:69
 #: templates/generali_additionalservices.html:52
 #: templates/generali_baseservices.html:52 templates/generali_documents.html:45
 #: templates/generali_projectmanagement.html:52 templates/js/_header_js.html:42
@@ -1772,113 +1899,113 @@ msgstr "Tableau de bord"
 msgid "Reporting"
 msgstr "Rapports"
 
-#: templates/_header.html:316
+#: templates/_header.html:323
 msgid "Workitems"
 msgstr "Workitems"
 
-#: templates/_header.html:392 templates/_header.html:394
+#: templates/_header.html:403 templates/_header.html:405
 #: templates/appearance.html:293 templates/appearance.html:298
 #: templates/js/_header_js.html:13
 msgid "Keep sidebar open"
 msgstr "Garder la barre latérale ouverte"
 
-#: templates/_header.html:398 templates/js/_header_js.html:56
+#: templates/_header.html:409 templates/js/_header_js.html:56
 msgid "Toggle dark mode"
 msgstr "Activer/désactiver le mode sombre"
 
-#: templates/_header.html:400
+#: templates/_header.html:411
 msgid "Dark Mode"
 msgstr "Mode sombre"
 
-#: templates/_header.html:408 templates/profile.html:44
+#: templates/_header.html:419 templates/profile.html:44
 #: templates/profile.html:123
 msgid "Profile Picture"
 msgstr "Photo de profil"
 
-#: templates/_header.html:418
+#: templates/_header.html:429
 msgid "Your profile"
 msgstr "Votre profil"
 
-#: templates/_header.html:422 templates/appearance.html:34
+#: templates/_header.html:433 templates/appearance.html:34
 #: templates/js/_header_js.html:57 templates/profile.html:75
 #: templates/profile.html:317
 msgid "Appearance"
 msgstr "Apparence"
 
-#: templates/_header.html:426 templates/js/_header_js.html:58
+#: templates/_header.html:437 templates/js/_header_js.html:58
 #: templates/whats_new.html:79
 msgid "What's New"
 msgstr "Nouveautés"
 
-#: templates/_header.html:431 templates/feedback.html:34
+#: templates/_header.html:442 templates/feedback.html:34
 #: templates/js/_header_js.html:59
 msgid "Feedback"
 msgstr "Feedback"
 
-#: templates/_header.html:438 templates/_header.html:508
-#: templates/_header.html:511
+#: templates/_header.html:449 templates/_header.html:519
+#: templates/_header.html:522
 msgid "Keyboard shortcuts"
 msgstr "Raccourcis clavier"
 
-#: templates/_header.html:442 templates/_small_footer.html:28
+#: templates/_header.html:453 templates/_small_footer.html:28
 #: templates/reporting.html:86
 msgid "Help"
 msgstr "Aide"
 
-#: templates/_header.html:448 templates/_header.html:490
+#: templates/_header.html:459 templates/_header.html:501
 msgid "Switch user"
 msgstr "Changer d'utilisateur"
 
-#: templates/_header.html:454 templates/js/_header_js.html:60
+#: templates/_header.html:465 templates/js/_header_js.html:60
 #: templates/profile.html:82
 msgid "Sign out"
 msgstr "Se déconnecter"
 
-#: templates/_header.html:471
+#: templates/_header.html:482
 msgid "Command palette"
 msgstr "Palette de commandes"
 
-#: templates/_header.html:475
+#: templates/_header.html:486
 msgid "Type a command or search..."
 msgstr "Tapez une commande ou recherchez..."
 
-#: templates/_header.html:480
+#: templates/_header.html:491
 msgid "navigate"
 msgstr "naviguer"
 
-#: templates/_header.html:481
+#: templates/_header.html:492
 msgid "open"
 msgstr "ouvrir"
 
-#: templates/_header.html:482
+#: templates/_header.html:493
 msgid "close"
 msgstr "fermer"
 
-#: templates/_header.html:494
+#: templates/_header.html:505
 msgid "Switch to user..."
 msgstr "Passer à l'utilisateur ..."
 
-#: templates/_header.html:515 templates/admin/access_control.html:167
+#: templates/_header.html:526 templates/admin/access_control.html:167
 msgid "Global"
 msgstr "Global"
 
-#: templates/_header.html:517
+#: templates/_header.html:528
 msgid "Open command palette"
 msgstr "Ouvrir la palette de commandes"
 
-#: templates/_header.html:521
+#: templates/_header.html:532
 msgid "Show this shortcuts overlay"
 msgstr "Afficher cet aperçu des raccourcis"
 
-#: templates/_header.html:525
+#: templates/_header.html:536
 msgid "Close the open dialog or panel"
 msgstr "Fermer la boîte de dialogue ou le panneau ouvert"
 
-#: templates/_header.html:530
+#: templates/_header.html:541
 msgid "Document viewer"
 msgstr "Visionneuse de documents"
 
-#: templates/_header.html:532
+#: templates/_header.html:543
 msgid "Previous / next document page"
 msgstr "Page de document précédente / suivante"
 
@@ -2824,9 +2951,10 @@ msgstr "Champs de réponse"
 msgid "Field"
 msgstr "Champ"
 
-#: templates/api_docs.html:230 templates/api_docs.html:262
-#: templates/api_docs.html:271 templates/api_docs.html:303
-#: templates/api_docs.html:446 templates/generali_documents.html:228
+#: templates/admin/tenants_manage.html:76 templates/api_docs.html:230
+#: templates/api_docs.html:262 templates/api_docs.html:271
+#: templates/api_docs.html:303 templates/api_docs.html:446
+#: templates/generali_documents.html:228
 #: templates/js/_reporting_viz_js.html:166
 msgid "Type"
 msgstr "Type"
@@ -3860,6 +3988,8 @@ msgstr "Enregistré à"
 #: templates/admin/access_control.html:129 templates/admin/clients.html:57
 #: templates/admin/maintenance.html:39 templates/admin/organizations.html:35
 #: templates/admin/processes.html:78 templates/admin/sessions.html:33
+#: templates/admin/tenants_manage.html:42
+#: templates/admin/tenants_manage.html:81
 #: templates/generali_additionalservices.html:167
 #: templates/generali_baseservices.html:141 templates/generali_pdqm.html:165
 #: templates/generali_projectmanagement.html:129
@@ -3942,7 +4072,9 @@ msgstr "Effort (heures)"
 #: templates/admin/modals/_user_modals.html:80
 #: templates/admin/organizations.html:102 templates/admin/processes.html:123
 #: templates/admin/processes.html:207 templates/admin/processes.html:243
-#: templates/admin/user_detail.html:78 templates/admin/user_detail.html:282
+#: templates/admin/tenants_manage.html:135
+#: templates/admin/tenants_manage.html:184 templates/admin/user_detail.html:78
+#: templates/admin/user_detail.html:282
 #: templates/generali_additionalservices.html:261
 #: templates/generali_additionalservices.html:320
 #: templates/generali_additionalservices.html:345
@@ -3993,7 +4125,7 @@ msgstr "Cette action est irréversible."
 #: templates/admin/access_control.html:249 templates/admin/clients.html:81
 #: templates/admin/maintenance.html:130 templates/admin/organizations.html:57
 #: templates/admin/processes.html:66 templates/admin/processes.html:89
-#: templates/admin/user_detail.html:285
+#: templates/admin/tenants_manage.html:58 templates/admin/user_detail.html:285
 #: templates/generali_additionalservices.html:349
 #: templates/generali_baseservices.html:298 templates/generali_pdqm.html:373
 #: templates/generali_projectmanagement.html:284
@@ -4141,6 +4273,7 @@ msgstr "Importations CSV dans la base de données des documents"
 #: templates/js/admin/_organizations_js.html:104
 #: templates/js/admin/_organizations_js.html:158
 #: templates/js/admin/_processes_js.html:152
+#: templates/js/admin/_tenants_manage_js.html:78
 #: templates/js/admin/_user_management_js.html:120
 #: templates/js/admin/_user_management_js.html:170
 msgid "Success"
@@ -4685,14 +4818,14 @@ msgstr "Collecté"
 msgid "Any"
 msgstr "Tous"
 
-#: templates/admin/clients.html:65
+#: templates/admin/clients.html:65 templates/admin/tenants_manage.html:53
 #: templates/js/admin/_access_control_js.html:721
 #: templates/prepared_documents.html:94 templates/prepared_documents.html:109
 msgid "Yes"
 msgstr "Oui"
 
-#: templates/admin/clients.html:65 templates/prepared_documents.html:95
-#: templates/prepared_documents.html:110
+#: templates/admin/clients.html:65 templates/admin/tenants_manage.html:53
+#: templates/prepared_documents.html:95 templates/prepared_documents.html:110
 msgid "No"
 msgstr "Non"
 
@@ -5087,7 +5220,7 @@ msgstr "Exécuter"
 msgid "Save as"
 msgstr "Enregistrer sous"
 
-#: templates/reporting.html:417
+#: templates/admin/tenants_manage.html:78 templates/reporting.html:417
 msgid "Target"
 msgstr "Cible"
 
@@ -5144,7 +5277,7 @@ msgstr "Filtres"
 msgid "Add filter"
 msgstr "Ajouter un filtre"
 
-#: templates/reporting.html:474
+#: templates/admin/tenants_manage.html:79 templates/reporting.html:474
 msgid "Sort"
 msgstr "Tri"
 
@@ -5205,7 +5338,8 @@ msgstr "Rechercher des personnes par nom ou e-mail…"
 msgid "Can edit"
 msgstr "Peut modifier"
 
-#: templates/reporting.html:518 templates/tenant/page.html:43
+#: templates/admin/tenants_manage.html:118 templates/reporting.html:518
+#: templates/tenant/page.html:43
 msgid "Add"
 msgstr "Ajouter"
 
@@ -5409,15 +5543,17 @@ msgid "Registered metrics"
 msgstr "Métriques enregistrées"
 
 #: templates/admin/access_control.html:125 templates/admin/clients.html:51
-#: templates/admin/organizations.html:31 templates/reporting_metrics.html:41
-#: templates/reporting_metrics.html:52 templates/reporting_sources.html:41
-#: templates/reporting_sources.html:52 templates/reporting_sources.html:63
+#: templates/admin/organizations.html:31 templates/admin/tenants_manage.html:36
+#: templates/reporting_metrics.html:41 templates/reporting_metrics.html:52
+#: templates/reporting_sources.html:41 templates/reporting_sources.html:52
+#: templates/reporting_sources.html:63
 msgid "Code"
 msgstr "Code"
 
-#: templates/reporting_metrics.html:41 templates/reporting_metrics.html:54
-#: templates/reporting_sources.html:41 templates/reporting_sources.html:52
-#: templates/reporting_sources.html:66
+#: templates/admin/tenants_manage.html:77
+#: templates/admin/tenants_manage.html:113 templates/reporting_metrics.html:41
+#: templates/reporting_metrics.html:54 templates/reporting_sources.html:41
+#: templates/reporting_sources.html:52 templates/reporting_sources.html:66
 msgid "Label"
 msgstr "Libellé"
 
@@ -5935,7 +6071,7 @@ msgstr "Ajouter un profil"
 
 #: templates/admin/access_control.html:158 templates/admin/clients.html:80
 #: templates/admin/organizations.html:53 templates/admin/processes.html:64
-#: templates/admin/processes.html:88
+#: templates/admin/processes.html:88 templates/admin/tenants_manage.html:56
 #: templates/js/_reporting_dashboard_js.html:7
 #: templates/js/_reporting_metrics_js.html:48
 #: templates/js/_reporting_sources_js.html:36
@@ -6185,7 +6321,7 @@ msgstr ""
 msgid "Search clients..."
 msgstr "Rechercher des clients..."
 
-#: templates/admin/clients.html:52
+#: templates/admin/clients.html:52 templates/admin/tenants_manage.html:37
 msgid "Display name"
 msgstr "Nom d'affichage"
 
@@ -6200,7 +6336,8 @@ msgstr "Moteur d'exécution"
 
 #: templates/admin/clients.html:55 templates/admin/clients.html:172
 #: templates/admin/maintenance.html:38 templates/admin/maintenance.html:95
-#: templates/admin/tenants.html:175
+#: templates/admin/tenants.html:175 templates/admin/tenants_manage.html:41
+#: templates/admin/tenants_manage.html:166
 msgid "Active"
 msgstr "Actif"
 
@@ -6237,7 +6374,7 @@ msgstr "Supprimer le client"
 #: templates/admin/clients.html:102
 #: templates/admin/modals/_organizations_modals.html:16
 #: templates/admin/modals/_user_modals.html:16
-#: templates/admin/processes.html:124
+#: templates/admin/processes.html:124 templates/admin/tenants_manage.html:136
 msgid "Confirm"
 msgstr "Confirmer"
 
@@ -6249,7 +6386,7 @@ msgstr "Ajouter un nouveau client"
 msgid "Client Code"
 msgstr "Code client"
 
-#: templates/admin/clients.html:119
+#: templates/admin/clients.html:119 templates/admin/tenants_manage.html:154
 msgid "Display Name"
 msgstr "Nom d'affichage"
 
@@ -6476,6 +6613,8 @@ msgstr "Tenant"
 
 #: templates/admin/modals/_organizations_modals.html:48
 #: templates/admin/organizations.html:34 templates/admin/tenants.html:137
+#: templates/admin/tenants_manage.html:38
+#: templates/admin/tenants_manage.html:160
 msgid "Data connection"
 msgstr "Connexion de données"
 
@@ -7052,7 +7191,8 @@ msgstr ""
 "Aucune organisation n’appartient encore à ce tenant -- attribuez-en une "
 "sur la page Organisations."
 
-#: templates/admin/tenants.html:188
+#: templates/admin/tenants.html:188 templates/admin/tenants_manage.html:40
+#: templates/admin/tenants_manage.html:57
 msgid "Pages"
 msgstr "Pages"
 
@@ -7091,6 +7231,121 @@ msgstr "Profils d’accès globaux"
 #: templates/admin/tenants.html:238
 msgid "Not bound to an organization -- assignable to any user."
 msgstr "Non liés à une organisation -- attribuables à tout utilisateur."
+
+#: templates/admin/tenants_manage.html:8
+msgid "Manage Tenants - nexora"
+msgstr "Gérer les tenants - nexora"
+
+#: templates/admin/tenants_manage.html:19
+msgid "Manage Tenants"
+msgstr "Gérer les tenants"
+
+#: templates/admin/tenants_manage.html:20
+msgid ""
+"Create tenants, decide which organizations belong to them and mount their"
+" pages"
+msgstr ""
+"Créer des tenants, décider quelles organisations en font partie et monter"
+" leurs pages"
+
+#: templates/admin/tenants_manage.html:22
+msgid "Add tenant"
+msgstr "Ajouter un tenant"
+
+#: templates/admin/tenants_manage.html:28
+msgid ""
+"A tenant groups organizations; its users see the tenant's pages instead "
+"of the global navigation. Mounted pages point at existing nexora pages. "
+"Generated list/crud pages and their entities come from migrations and are"
+" shown read-only here."
+msgstr ""
+"Un tenant regroupe des organisations ; ses utilisateurs voient les pages "
+"du tenant au lieu de la navigation globale. Les pages montées pointent "
+"vers des pages nexora existantes. Les pages list/crud générées et leurs "
+"entités proviennent de migrations et sont affichées ici en lecture seule."
+
+#: templates/admin/tenants_manage.html:31
+msgid "Search tenants..."
+msgstr "Rechercher des tenants..."
+
+#: templates/admin/tenants_manage.html:63
+msgid "No tenants yet."
+msgstr "Aucun tenant pour l’instant."
+
+#: templates/admin/tenants_manage.html:72
+msgid "Pages of"
+msgstr "Pages de"
+
+#: templates/admin/tenants_manage.html:75
+msgid "Key"
+msgstr "Clé"
+
+#: templates/admin/tenants_manage.html:88
+msgid "entity"
+msgstr "entité"
+
+#: templates/admin/tenants_manage.html:93
+msgid "Set draft"
+msgstr "Passer en brouillon"
+
+#: templates/admin/tenants_manage.html:93
+msgid "Activate"
+msgstr "Activer"
+
+#: templates/admin/tenants_manage.html:94
+#: templates/js/_reporting_dashboard_js.html:35
+#: templates/js/_reporting_js.html:1705 templates/js/_reporting_js.html:1846
+msgid "Remove"
+msgstr "Supprimer"
+
+#: templates/admin/tenants_manage.html:99
+msgid "No pages yet."
+msgstr "Aucune page pour l’instant."
+
+#: templates/admin/tenants_manage.html:106
+msgid "Mount an existing page"
+msgstr "Monter une page existante"
+
+#: templates/admin/tenants_manage.html:108
+msgid "key, e.g. dashboard"
+msgstr "clé, p. ex. dashboard"
+
+#: templates/admin/tenants_manage.html:110
+msgid "Page..."
+msgstr "Page..."
+
+#: templates/admin/tenants_manage.html:115
+msgid "active_page (optional)"
+msgstr "active_page (facultatif)"
+
+#: templates/admin/tenants_manage.html:132
+msgid "Please confirm"
+msgstr "Veuillez confirmer"
+
+#: templates/admin/tenants_manage.html:143
+#: templates/js/admin/_tenants_manage_js.html:47
+msgid "Add a new Tenant"
+msgstr "Ajouter un nouveau tenant"
+
+#: templates/admin/tenants_manage.html:150
+msgid "Tenant Code"
+msgstr "Code tenant"
+
+#: templates/admin/tenants_manage.html:170
+msgid "Organizations in this tenant"
+msgstr "Organisations de ce tenant"
+
+#: templates/admin/tenants_manage.html:176
+msgid "currently in"
+msgstr "actuellement dans"
+
+#: templates/admin/tenants_manage.html:180
+msgid "Ticking an organization that belongs to another tenant moves it here."
+msgstr "Cocher une organisation appartenant à un autre tenant la déplace ici."
+
+#: templates/admin/tenants_manage.html:185
+msgid "Save Tenant"
+msgstr "Enregistrer le tenant"
 
 #: templates/admin/user_detail.html:8
 msgid "User detail"
@@ -7824,11 +8079,6 @@ msgstr "Autres"
 #: templates/js/_reporting_dashboard_js.html:34
 msgid "Duplicate"
 msgstr "Dupliquer"
-
-#: templates/js/_reporting_dashboard_js.html:35
-#: templates/js/_reporting_js.html:1705 templates/js/_reporting_js.html:1846
-msgid "Remove"
-msgstr "Supprimer"
 
 #: templates/js/_reporting_dashboard_js.html:36
 msgid "Add a card"
@@ -8719,6 +8969,7 @@ msgstr "{start}-{end} sur {total}"
 #: templates/js/admin/_organizations_js.html:165
 #: templates/js/admin/_organizations_js.html:322
 #: templates/js/admin/_processes_js.html:162
+#: templates/js/admin/_tenants_manage_js.html:83
 #: templates/js/admin/_user_management_js.html:127
 #: templates/js/admin/_user_management_js.html:177
 msgid "An unexpected network error occurred."
@@ -8988,6 +9239,7 @@ msgstr "Vous n'avez pas la permission de créer des utilisateurs."
 #: templates/js/admin/_organizations_js.html:161
 #: templates/js/admin/_organizations_js.html:318
 #: templates/js/admin/_processes_js.html:158
+#: templates/js/admin/_tenants_manage_js.html:79
 #: templates/js/admin/_user_management_js.html:123
 #: templates/js/admin/_user_management_js.html:173
 msgid "Error:"
@@ -9058,6 +9310,8 @@ msgstr "Modifier le client"
 #: templates/js/admin/_organizations_js.html:97
 #: templates/js/admin/_organizations_js.html:302
 #: templates/js/admin/_processes_js.html:145
+#: templates/js/admin/_tenants_manage_js.html:103
+#: templates/js/admin/_tenants_manage_js.html:127
 #: templates/js/admin/_user_management_js.html:113
 msgid "You do not have permission to perform this action."
 msgstr "Vous n'avez pas la permission d'effectuer cette action."
@@ -9178,10 +9432,6 @@ msgstr "Remplacement utilisateur"
 msgid "No one holds this permission."
 msgstr "Personne ne détient cette autorisation."
 
-#: templates/js/admin/_permission_matrix_js.html:56
-msgid "Manage"
-msgstr "Gérer"
-
 #: templates/js/admin/_permission_matrix_js.html:60
 msgid "Could not load holders."
 msgstr "Impossible de charger les détenteurs."
@@ -9265,6 +9515,22 @@ msgstr "Révoquer la session active pour"
 #: templates/js/admin/_sessions_js.html:126
 msgid "Could not revoke session."
 msgstr "Impossible de révoquer la session."
+
+#: templates/js/admin/_tenants_manage_js.html:57
+msgid "Edit Tenant"
+msgstr "Modifier le tenant"
+
+#: templates/js/admin/_tenants_manage_js.html:144
+msgid ""
+"Delete this tenant and its page descriptors? Organizations must be moved "
+"out first."
+msgstr ""
+"Supprimer ce tenant et ses descripteurs de pages ? Les organisations "
+"doivent d’abord être déplacées."
+
+#: templates/js/admin/_tenants_manage_js.html:159
+msgid "Remove this page from the tenant?"
+msgstr "Retirer cette page du tenant ?"
 
 #: templates/js/admin/_user_detail_js.html:53
 msgid "User saved."

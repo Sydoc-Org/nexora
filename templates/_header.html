@@ -200,7 +200,7 @@
 
         <nav class="sidebar-nav">
             {% if page_visibility.adminPagePerm or page_visibility.adminMaintenanceViewPerm or page_visibility.adminStatusPagePerm or page_visibility.adminClientsPagePerm or page_visibility.adminProcessesPagePerm %}
-            {% set admin_active = active_page in ['adminOverview','organizations','admin_access','admin_logs','admin_sessions','admin_user_detail','maintenance','admin_status','clients','processes','admin_tenants'] %}
+            {% set admin_active = active_page in ['adminOverview','organizations','admin_access','admin_logs','admin_sessions','admin_user_detail','maintenance','admin_status','clients','processes','admin_tenants','admin_tenants_manage'] %}
             <div class="sidebar-nav-group" id="adminNavGroup" data-active="{{ 'true' if admin_active else 'false' }}">
                 <button class="sidebar-nav-item sidebar-nav-group-header {{ 'sidebar-nav-item--active' if admin_active else '' }}" id="adminNavHeader" type="button" data-testid="header-nav-admin-toggle">
                     <i class="fas fa-shield-halved sidebar-nav-icon"></i>
@@ -254,7 +254,7 @@
                        rather than a fourth hardcoded id/class pair; _header.css lifts the
                        enclosing admin group's max-height while this one is open, which would
                        otherwise clip it. #}
-                    {% set tenants_active = active_page in ['admin_tenants','organizations','clients','processes'] %}
+                    {% set tenants_active = active_page in ['admin_tenants','admin_tenants_manage','organizations','clients','processes'] %}
                     <div class="sidebar-nav-group sidebar-nav-group--nested" id="adminTenantsNavGroup" data-active="{{ 'true' if tenants_active else 'false' }}" data-nx-nav-group="tenants">
                         <button class="sidebar-nav-item sidebar-nav-subitem sidebar-nav-group-header {{ 'sidebar-nav-item--active' if tenants_active else '' }}" id="adminTenantsNavHeader" type="button" data-testid="header-nav-admin-tenants-toggle">
                             <i class="fas fa-cubes sidebar-nav-icon sidebar-subitem-icon"></i>
@@ -267,6 +267,13 @@
                                 <i class="fas fa-sitemap sidebar-nav-icon sidebar-subitem-icon"></i>
                                 <span class="sidebar-label">{{ _('Overview') }}</span>
                             </a>
+                            {% if page_visibility.adminTenantsPagePerm %}
+                            <a href="{{ url_for('admin_tenants_manage_view') }}"
+                                class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'admin_tenants_manage' else '' }}" data-testid="header-nav-admin-tenants-manage">
+                                <i class="fas fa-cubes sidebar-nav-icon sidebar-subitem-icon"></i>
+                                <span class="sidebar-label">{{ _('Manage') }}</span>
+                            </a>
+                            {% endif %}
                             <a href="{{ url_for('admin_organizations_view') }}"
                                 class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'organizations' else '' }}" data-testid="header-nav-admin-organizations">
                                 <i class="fas fa-building sidebar-nav-icon sidebar-subitem-icon"></i>

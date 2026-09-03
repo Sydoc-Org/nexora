@@ -65,6 +65,18 @@ Work toward the next release.
 
 ### Changed
 
+- **Tenant management page** at `/admin/tenants/manage` (#256 phase 2,
+  migration `0095`). Create and edit tenants (display name, data connection,
+  active flag), decide which organizations belong to them (ticking an
+  organization owned by another tenant moves it), mount existing pages into
+  a tenant's sidebar group (endpoint picked from the app's argument-less GET
+  routes, with label, icon, active marker and sort order), set pages to
+  draft or active, remove them, and delete a tenant once no organization
+  belongs to it. Creating a tenant provisions its `tenant.<code>.view/.edit`
+  permissions (granted to nobody). Entities, fields and the generated
+  list/crud pages stay migration-only and are shown read-only. New
+  permissions `admin.view.tenants` / `admin.edit.tenants`, seeded like
+  `0080` to every profile holding `admin.view.organizations`.
 - **The Sydoc tenant** (#257, migration `0094`): ElektroMaterial, Privera
   and Compass — the customers sydoc hosts on the shared `default` runtime —
   form the tenant `sydoc`, with the same three mounted pages as Mobscn.

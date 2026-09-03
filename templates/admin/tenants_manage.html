@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale }}">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    {% include '_theme_prepaint.html' %}
+    <link rel="stylesheet" href="{{ static_v('css/nexora-ui.css') }}">
+    <title>{{ _("Manage Tenants - nexora") }}</title>
+    <link rel="stylesheet" href="{{ static_v('css/admin.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous" />
+</head>
+<body class="nx-app">
+    {% set active_page = 'admin_tenants_manage' %}
+    {% include '_header.html' %}
+    {% import 'admin/_admin_helpers.html' as a %}
+
+    <main class="nx-main">
+        {{ a.page_header(
+            title=_('Manage Tenants'),
+            subtitle=_('Create tenants, decide which organizations belong to them and mount their pages'),
+            back_url=url_for('admin_tenants_view'),
+            actions=([{'label': _('Add tenant'), 'icon': 'fa-plus', 'onclick': 'openAddTenantModal()', 'variant': 'primary', 'testid': 'add-tenant'}] if can_edit else None),
+            icon='fa-cubes'
+        ) }}
+
+        <p class="nx-c-meta" style="font-size:0.85rem;margin:-8px 0 16px" data-testid="admin-tenants-manage-help">
+            <i class="fas fa-circle-info"></i>
+            {{ _("A tenant groups organizations; its users see the tenant's pages instead of the global navigation. Mounted pages point at existing nexora pages. Generated list/crud pages and their entities come from migrations and are shown read-only here.") }}
+        </p>
+
+        {{ a.toolbar(search_id='tenantManageSearch', search_placeholder=_('Search tenants...')) }}
+
+        <div class="nx-table-wrap">
+            <table class="nx-table">
+                {{ a.table_header([
+                    {'label': _('Code'), 'width': '140px'},
+                    {'label': _('Display name')},
+                    {'label': _('Data connection'), 'width': '150px'},
+                    {'label': _('Organizations')},
+                    {'label': _('Pages'), 'width': '90px'},
+                    {'label': _('Active'), 'width': '80px'}
+                ] + ([{'label': _('Actions'), 'align': 'right', 'width': '230px'}] if can_edit else [])) }}
+                <tbody id="tenants-tbody">
+                    {% for t in tenants %}
+                    <tr data-search="{{ (t.TenantCode ~ ' ' ~ t.DisplayName ~ ' ' ~ (t.organizations | map(attribute='organization') | join(' ')))|lower }}" data-testid="admin-tenant-row-{{ t.TenantCode }}">
+                        <td><span class="nx-mono">{{ t.TenantCode }}</span></td>
+                        <td>{{ t.DisplayName }}</td>
+                        <td><span class="nx-mono">{{ t.ClientCode }}</span></td>
+                        <td>
+                            {% for o in t.organizations %}<span class="tenant-chip tenant-chip--mini" title="{{ o.organizationcode }}">{{ o.organization }}</span> {% else %}<span class="nx-c-meta">—</span>{% endfor %}
+                        </td>
+                        <td data-testid="admin-tenant-pages-count-{{ t.TenantCode }}">{{ t.pages | selectattr('Status', 'equalto', 'active') | list | length }} / {{ t.pages | length }}</td>
+                        <td>{{ _('Yes') if t.IsActive else _('No') }}</td>
+                        {% if can_edit %}
+                        <td class="align-right">
+                            <button type="button" class="edit-tenant-btn nx-btn nx-btn--ghost nx-btn--sm" data-tenant='{{ {"TenantCode": t.TenantCode, "DisplayName": t.DisplayName, "ClientCode": t.ClientCode, "IsActive": t.IsActive, "organizations": t.organizations | map(attribute="organizationcode") | list}|tojson|safe }}' data-testid="admin-tenant-edit-{{ t.TenantCode }}">{{ _("Edit") }}</button>
+                            <button type="button" class="pages-tenant-btn nx-btn nx-btn--ghost nx-btn--sm" data-tenant="{{ t.TenantCode }}" data-testid="admin-tenant-pages-{{ t.TenantCode }}">{{ _("Pages") }}</button>
+                            <button type="button" class="delete-tenant-btn nx-btn nx-btn--ghost nx-btn--sm nx-c-danger" data-tenant="{{ t.TenantCode }}" data-testid="admin-tenant-delete-{{ t.TenantCode }}">{{ _("Delete") }}</button>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% else %}
+                    {{ a.empty_state('fa-cubes', _('No tenants yet.'), colspan=7) }}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {# One hidden pages panel per tenant; the JS shows the one whose button was clicked. #}
+        {% for t in tenants %}
+        <section class="nx-card tenant-pages-panel hidden" id="pages-panel-{{ t.TenantCode }}" data-testid="admin-tenant-pages-panel-{{ t.TenantCode }}" style="margin-top:20px">
+            <h2 class="nx-section" style="margin-bottom:12px">{{ _('Pages of') }} {{ t.DisplayName }} <span class="nx-mono tenant-dim">{{ t.TenantCode }}</span></h2>
+            <table class="nx-table">
+                {{ a.table_header([
+                    {'label': _('Key'), 'width': '180px'},
+                    {'label': _('Type'), 'width': '90px'},
+                    {'label': _('Label')},
+                    {'label': _('Target')},
+                    {'label': _('Sort'), 'width': '70px'},
+                    {'label': _('Status'), 'width': '90px'}
+                ] + ([{'label': _('Actions'), 'align': 'right', 'width': '180px'}] if can_edit else [])) }}
+                <tbody>
+                    {% for p in t.pages %}
+                    <tr data-testid="admin-tenant-page-{{ t.TenantCode }}-{{ p.PageKey }}">
+                        <td><span class="nx-mono">{{ p.PageKey }}</span></td>
+                        <td>{{ p.PageType }}</td>
+                        <td>{{ p.layout.label or p.PageKey }}</td>
+                        <td><span class="nx-mono">{% if p.PageType == 'custom' %}{{ p.layout.endpoint }}{% else %}{{ _('entity') }} {{ p.EntityKey }}{% endif %}</span></td>
+                        <td>{{ p.SortOrder }}</td>
+                        <td>{{ a.badge(p.Status, 'green' if p.Status == 'active' else 'gray') }}</td>
+                        {% if can_edit %}
+                        <td class="align-right">
+                            <button type="button" class="toggle-page-btn nx-btn nx-btn--ghost nx-btn--sm" data-tenant="{{ t.TenantCode }}" data-page="{{ p.PageKey }}" data-next="{{ 'draft' if p.Status == 'active' else 'active' }}" data-testid="admin-tenant-page-toggle-{{ t.TenantCode }}-{{ p.PageKey }}">{{ _('Set draft') if p.Status == 'active' else _('Activate') }}</button>
+                            <button type="button" class="delete-page-btn nx-btn nx-btn--ghost nx-btn--sm nx-c-danger" data-tenant="{{ t.TenantCode }}" data-page="{{ p.PageKey }}" data-testid="admin-tenant-page-delete-{{ t.TenantCode }}-{{ p.PageKey }}">{{ _('Remove') }}</button>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% else %}
+                    {{ a.empty_state('fa-window-restore', _('No pages yet.'), colspan=7) }}
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% if can_edit %}
+            <form class="add-page-form" data-tenant="{{ t.TenantCode }}" data-testid="admin-tenant-page-add-form-{{ t.TenantCode }}" style="margin-top:16px">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <h3 class="nx-meta" style="margin-bottom:8px">{{ _('Mount an existing page') }}</h3>
+                <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
+                    <input type="text" name="PageKey" class="nx-input" placeholder="{{ _('key, e.g. dashboard') }}" pattern="[a-z0-9_.\-]{1,100}" required data-testid="admin-tenant-page-key-{{ t.TenantCode }}">
+                    <select name="endpoint" class="nx-select" required data-testid="admin-tenant-page-endpoint-{{ t.TenantCode }}">
+                        <option value="">{{ _('Page...') }}</option>
+                        {% for ep in endpoints %}<option value="{{ ep }}">{{ ep }}</option>{% endfor %}
+                    </select>
+                    <input type="text" name="label" class="nx-input" placeholder="{{ _('Label') }}" maxlength="100" required data-testid="admin-tenant-page-label-{{ t.TenantCode }}">
+                    <input type="text" name="icon" class="nx-input" placeholder="fa-chart-line" pattern="fa-[a-z0-9\-]{1,40}" data-testid="admin-tenant-page-icon-{{ t.TenantCode }}">
+                    <input type="text" name="active" class="nx-input" placeholder="{{ _('active_page (optional)') }}" pattern="[A-Za-z0-9_\-]{0,60}" data-testid="admin-tenant-page-active-{{ t.TenantCode }}">
+                    <div class="flex gap-2">
+                        <input type="number" name="SortOrder" class="nx-input" value="100" style="width:80px" data-testid="admin-tenant-page-sort-{{ t.TenantCode }}">
+                        <button type="submit" class="nx-btn nx-btn--primary" data-testid="admin-tenant-page-add-{{ t.TenantCode }}">{{ _('Add') }}</button>
+                    </div>
+                </div>
+            </form>
+            {% endif %}
+        </section>
+        {% endfor %}
+    </main>
+
+    <div id="confirmationModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 hidden opacity-0 transition-opacity duration-300 ease-in-out">
+        <div class="modal-content nx-card w-full max-w-sm text-center transform scale-95 transition-transform duration-300 ease-in-out">
+            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full nx-bg-lred">
+                <i class="fas fa-exclamation-triangle fa-lg nx-c-danger"></i>
+            </div>
+            <h3 class="nx-section mt-4" id="confirmTitle">{{ _("Please confirm") }}</h3>
+            <div class="mt-2"><p class="text-sm nx-c-sec" id="confirmMessage"></p></div>
+            <div class="mt-6 flex justify-center space-x-4">
+                <button id="cancelBtn" type="button" class="nx-btn nx-btn--secondary" data-testid="admin-tenant-confirm-cancel">{{ _("Cancel") }}</button>
+                <button id="confirmBtn" type="button" class="nx-btn nx-btn--danger" data-testid="admin-tenant-confirm-confirm">{{ _("Confirm") }}</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="tenantModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden opacity-0 transition-opacity duration-300 ease-in-out">
+        <div class="modal-content nx-card w-full max-w-lg transform scale-95 transition-transform duration-300 ease-in-out">
+            <h3 id="tenantModalTitle" class="nx-section mb-4">{{ _("Add a new Tenant") }}</h3>
+            <form id="tenantForm" data-testid="admin-tenant-modal-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" id="tenantOriginalCode" name="tenantOriginalCode">
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="TenantCode" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Tenant Code") }}</label>
+                            <input type="text" id="TenantCode" name="TenantCode" class="nx-input" pattern="[a-z0-9_]{2,50}" required data-testid="admin-tenant-modal-code">
+                        </div>
+                        <div>
+                            <label for="DisplayName" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Display Name") }}</label>
+                            <input type="text" id="DisplayName" name="DisplayName" class="nx-input" maxlength="100" required data-testid="admin-tenant-modal-name">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="ClientCode" class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Data connection") }}</label>
+                            <select id="ClientCode" name="ClientCode" class="nx-select" required data-testid="admin-tenant-modal-client">
+                                {% for c in clients %}<option value="{{ c.ClientCode }}">{{ c.DisplayName }} ({{ c.ClientCode }})</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div style="display:flex;align-items:flex-end">
+                            <label class="flex items-center gap-2 text-sm" style="padding-bottom:6px"><input type="checkbox" id="IsActive" name="IsActive" data-testid="admin-tenant-modal-active"> {{ _("Active") }}</label>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="block text-xs font-bold uppercase tracking-widest mb-1 nx-c-meta">{{ _("Organizations in this tenant") }}</div>
+                        <div class="tenant-org-picker" data-testid="admin-tenant-modal-organizations">
+                            {% for o in organizations %}
+                            <label class="flex items-center gap-2 text-sm">
+                                <input type="checkbox" name="organizations" value="{{ o.organizationcode }}" data-current-tenant="{{ o.TenantCode or '' }}">
+                                {{ o.organization }} <span class="nx-mono nx-c-meta">{{ o.organizationcode }}</span>
+                                <span class="nx-c-meta org-elsewhere hidden" style="font-size:11px">{{ _('currently in') }} <span class="org-elsewhere-name"></span></span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                        <p class="nx-c-meta" style="font-size:11px;margin:6px 0 0">{{ _("Ticking an organization that belongs to another tenant moves it here.") }}</p>
+                    </div>
+                </div>
+                <div class="flex justify-end mt-6 gap-2">
+                    <button type="button" id="tenantModalCancelBtn" class="nx-btn nx-btn--secondary" data-testid="admin-tenant-modal-cancel">{{ _("Cancel") }}</button>
+                    <button type="submit" class="nx-btn nx-btn--primary" data-testid="admin-tenant-modal-save">{{ _("Save Tenant") }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% include 'js/admin/_tenants_manage_js.html' %}
+</body>
+</html>

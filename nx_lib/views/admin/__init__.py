@@ -52,6 +52,7 @@ from . import (
     permissions,
     processes,
     system,
+    tenant_manage,
     tenants,
     users,
 )
@@ -141,6 +142,7 @@ from .system import (
     api_admin_maintenance_list,
     api_admin_restart,
 )
+from .tenant_manage import admin_tenants_manage_view
 from .tenants import admin_tenants_view
 from .users import (
     admin_active_sessions,
@@ -218,6 +220,7 @@ __all__ = [
     "admin_revoke_session",
     "admin_sessions_view",
     "admin_status_view",
+    "admin_tenants_manage_view",
     "admin_tenants_view",
     "admin_user_detail",
     "api_admin_clients_add",
@@ -285,6 +288,7 @@ def register_routes(app):
     clients.register_routes(app)
     processes.register_routes(app)
     tenants.register_routes(app)
+    tenant_manage.register_routes(app)
     system.register_routes(app)
     logs.register_routes(app)
     users.register_routes(app)
