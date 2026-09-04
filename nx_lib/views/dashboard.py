@@ -845,6 +845,68 @@ def dashboard_avg_processing_time():
         return jsonify({"error": _("An unexpected error occurred")}), 500
 
 
+_BACKLOG_SERIES_CAP = 4
+
+
+@require_permission("dashboard.view")
+@cache.cached(
+    timeout=300,
+    key_prefix=make_cache_key,  # type: ignore[arg-type]  # callable prefix, stubs say str
+    response_filter=_cacheable_response,
+)
+def dashboard_backlog_trend():
+    if "username" not in session:
+        return jsonify({"error": _("Not authorized")}), 401
+
+    empty = {"labels": [], "series": [], "total": 0, "prev_total": 0}
+    allowed_processes = _allowed_processes()
+    process_name = session.get("process_name_dashboard", "all")
+    target_processes = normalize_process_selection(process_name, allowed_processes)[1]
+    if not target_processes:
+        return jsonify(empty)
+
+    days = normalize_range(request.args.get("range") or session.get("dashboard_range"))
+
+    try:
+        history = _backlog_history(target_processes, days)
+        if not history:
+            return jsonify(empty)
+
+        today = datetime.now().date()
+        window = [today - timedelta(days=i) for i in range(days - 1, -1, -1)]
+
+        current = history.get(max(history), {})
+        ranked = sorted(current, key=lambda n: (-current[n], n))
+        if len(target_processes) == 1:
+            groups = [(_("Backlog"), list(current))]
+        elif len(ranked) > _BACKLOG_SERIES_CAP:
+            groups = [(n, [n]) for n in ranked[:_BACKLOG_SERIES_CAP]]
+            groups.append((_("Other"), ranked[_BACKLOG_SERIES_CAP:]))
+        else:
+            groups = [(n, [n]) for n in ranked]
+
+        series = [
+            {
+                "name": label,
+                "values": [sum(history.get(d, {}).get(n, 0) for n in members) for d in window],
+                "current": sum(current.get(n, 0) for n in members),
+            }
+            for label, members in groups
+        ]
+        totals = [sum(s["values"][i] for s in series) for i in range(len(window))]
+        return jsonify(
+            {
+                "labels": [d.isoformat() for d in window],
+                "series": series,
+                "total": totals[-1] if totals else 0,
+                "prev_total": totals[-2] if len(totals) > 1 else 0,
+            }
+        )
+    except Exception as e:
+        current_app.logger.error(f"Failed to fetch backlog_trend: {e}")
+        return jsonify({"error": _("An unexpected error occurred")}), 500
+
+
 # ----------------------------- dashboard page + filter ----------------------------- #
 
 
@@ -977,6 +1039,11 @@ def register_routes(app):
         "/api/dashboard/avg_processing_time",
         endpoint="dashboard_avg_processing_time",
         view_func=dashboard_avg_processing_time,
+    )
+    app.add_url_rule(
+        "/api/dashboard/backlog_trend",
+        endpoint="dashboard_backlog_trend",
+        view_func=dashboard_backlog_trend,
     )
 
     # dashboard page + filter

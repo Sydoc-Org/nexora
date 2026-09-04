@@ -160,6 +160,7 @@ EXPECTED_NON_GENERALI_ENDPOINTS = {
     "dashboard_kpi_stats",
     "dashboard_hourly_stats",
     "dashboard_avg_processing_time",
+    "dashboard_backlog_trend",
     "dashboard",
     "dashboard_set_filter",
     "api_recent_activity",

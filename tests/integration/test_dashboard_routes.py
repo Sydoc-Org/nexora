@@ -498,3 +498,54 @@ def test_dashboard_defaults_to_the_users_own_tenant(user_client, monkeypatch):
     assert b"Acme Dashboard" in resp.data
     with user_client.session_transaction() as sess:
         assert sess.get("tenant_scope") == "acme"
+
+
+def test_backlog_trend_returns_labels_and_capped_series(user_client, monkeypatch):
+    """Five processes -> four named series plus one folded "Other"; labels are
+    the zero-filled day window, oldest first."""
+    from datetime import date, timedelta
+
+    today = date.today()
+    names = [f"c.p{i}" for i in range(5)]
+    monkeypatch.setattr(dv, "_allowed_processes", lambda: names)
+    monkeypatch.setattr(
+        dv,
+        "_backlog_history",
+        lambda tp, days: {
+            today - timedelta(days=1): {n: 10 * (i + 1) for i, n in enumerate(names)},
+            today: {n: 100 * (i + 1) for i, n in enumerate(names)},
+        },
+    )
+
+    resp = user_client.get("/api/dashboard/backlog_trend?range=14")
+    assert resp.status_code == 200
+    body = resp.get_json()
+
+    assert len(body["labels"]) == 14
+    assert body["labels"][-1] == today.isoformat()
+    assert [s["name"] for s in body["series"]] == ["c.p4", "c.p3", "c.p2", "c.p1", "Other"]
+    assert body["series"][0]["values"][-1] == 500
+    assert body["series"][-1]["values"][-1] == 100  # the folded remainder
+    assert body["total"] == 1500
+    assert body["prev_total"] == 150
+
+
+def test_backlog_trend_collapses_to_one_series_for_a_single_process(user_client, monkeypatch):
+    from datetime import date
+
+    today = date.today()
+    monkeypatch.setattr(dv, "_allowed_processes", lambda: ["c.p1"])
+    monkeypatch.setattr(dv, "_backlog_history", lambda tp, days: {today: {"c.p1": 77}})
+
+    resp = user_client.get("/api/dashboard/backlog_trend")
+    body = resp.get_json()
+    assert [s["name"] for s in body["series"]] == ["Backlog"]
+    assert body["series"][0]["values"][-1] == 77
+
+
+def test_backlog_trend_empty_when_nothing_is_granted(noperm_client):
+    """No grants -> empty payload, not a 500 and not somebody else's numbers."""
+    resp = noperm_client.get("/api/dashboard/backlog_trend")
+    assert resp.status_code in (200, 403)
+    if resp.status_code == 200:
+        assert resp.get_json() == {"labels": [], "series": [], "total": 0, "prev_total": 0}
