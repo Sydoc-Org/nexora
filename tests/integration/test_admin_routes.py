@@ -704,6 +704,7 @@ def _processes_source_row(client, process, table="dbo.tblAlpha"):
         WorkitemColumn=None,
         ExtraCondition=None,
         IdColumnType=None,
+        OrganizationCode=None,  # 0090: unassigned
     )
 
 

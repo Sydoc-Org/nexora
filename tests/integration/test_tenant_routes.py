@@ -741,6 +741,9 @@ def test_visible_tenant_nav_custom_page_carries_layout_endpoint(app, monkeypatch
             "endpoint": "dashboard",
             "url": expected_url,
             "label": "dash",
+            # presentation keys default when LayoutJSON carries none (07782e01)
+            "icon": "fa-arrow-up-right-from-square",
+            "active": "dashboard",
         }
     ]
 
