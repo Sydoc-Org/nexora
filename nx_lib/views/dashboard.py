@@ -248,6 +248,71 @@ def compute_today_stats(target_processes, *, strict=False):
     return imported_today, processed_today
 
 
+def _kpi_daily_counts(target_processes, days):
+    """{date: {"imported": n, "processed": n}} for the trailing ``days`` days,
+    zero-filled so a sparse client still draws a continuous sparkline.
+
+    Per-day generalization of compute_today_stats using its EXACT predicates:
+    the default T-SQL leg groups by import date (imported = every row in scope,
+    processed = the subset exported that same day), the MS02 leg counts each
+    column independently. That equality is the point -- each sparkline's last
+    point is then the same number as the KPI above it.
+
+    ponytail: a sibling rather than a refactor of compute_today_stats -- eight
+    tests fake _default_stat_rows with bare (imported, processed) 2-tuples and
+    would break on a changed row shape. Upgrade path: fold the two together
+    when those fakes are rewritten to yield dated rows.
+    """
+    days = max(1, int(days))
+    out = {}
+
+    configs = _statconfig_sources(target_processes)
+    default_configs, ms02_rows = _split_stat_configs(configs)
+
+    sub_queries = []
+    for row in default_configs:
+        condition = f" {row.extra_condition}" if row.extra_condition else ""
+        sub_queries.append(f"""
+            SELECT CAST({row.import_column} AS DATE) as d,
+                   COUNT(*) as imported,
+                   SUM(CASE WHEN CAST({row.export_column} AS DATE) = CAST({row.import_column} AS DATE)
+                            THEN 1 ELSE 0 END) as processed
+            FROM [{DB_STATISTICS}].{row.table}
+            WHERE CAST({row.import_column} AS DATE) >= CAST(DATEADD(day, -{days - 1}, GETDATE()) AS DATE)
+            {condition}
+            GROUP BY CAST({row.import_column} AS DATE)
+        """)
+
+    if sub_queries:
+        full_query = f"""
+            SELECT d, SUM(imported), SUM(processed)
+            FROM ({" UNION ALL ".join(sub_queries)}) as combined
+            GROUP BY d
+        """
+        for row in _default_stat_rows(full_query):
+            d = row[0] if isinstance(row[0], date) else date.fromisoformat(str(row[0])[:10])
+            cell = out.setdefault(d, {"imported": 0, "processed": 0})
+            cell["imported"] += row[1] or 0
+            cell["processed"] += row[2] or 0
+
+    ms02_src = _ms02_source(ms02_rows)
+    if ms02_src:
+        tbl, exp, imp = ms02_src
+        for col, key in ((imp, "imported"), (exp, "processed")):
+            for d, c in _ms02_stat_rows(
+                f"SELECT {col}::date AS d, COUNT(*) AS c "
+                f"FROM {tbl} "
+                f"WHERE {col} >= CURRENT_DATE - {days - 1} "
+                f"GROUP BY {col}::date"
+            ):
+                out.setdefault(d, {"imported": 0, "processed": 0})[key] += c or 0
+
+    today = datetime.now().date()
+    for i in range(days):
+        out.setdefault(today - timedelta(days=i), {"imported": 0, "processed": 0})
+    return {d: out[d] for d in sorted(out) if d >= today - timedelta(days=days - 1)}
+
+
 def compute_avg_processing_time(target_processes, *, strict=False):
     """Session-free average processing-time computation shared by the dashboard
     KPI card (dashboard_avg_processing_time) and the external API v1

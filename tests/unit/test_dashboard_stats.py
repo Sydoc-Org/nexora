@@ -530,3 +530,50 @@ def test_compute_today_stats_non_strict_default_still_degrades(app, monkeypatch)
     monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [(5, 2)])
     with app.app_context():
         assert dv.compute_today_stats(["sydoc.Alpha", "sydoc.05_PDBS"]) == (2, 5)
+
+
+def test_kpi_daily_counts_sums_both_legs_and_zero_fills(app, monkeypatch):
+    """Same predicates as compute_today_stats, one row per day. The default leg
+    groups by import date (imported = every row, processed = those exported the
+    same day); the MS02 leg counts each column independently."""
+    today = date.today()
+    monkeypatch.setattr(
+        dv,
+        "_statconfig_sources",
+        lambda tp: [
+            _row("default", "t1", "dbo.t1", "ExportDate", "ImportDate"),
+            _row("ms02", "p", 'public."D"', "DatumInTempExport", "ImportDate"),
+        ],
+    )
+    monkeypatch.setattr(
+        dv,
+        "_default_stat_rows",
+        lambda sql: [(today, 10, 4), (today - timedelta(days=1), 6, 6)],
+    )
+    monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [(today, 3)])
+
+    with app.test_request_context():
+        out = dv._kpi_daily_counts(["c.p"], 3)
+
+    assert len(out) == 3  # zero-filled window
+    assert out[today] == {"imported": 13, "processed": 7}  # 10+3 imported, 4+3 processed
+    assert out[today - timedelta(days=1)] == {"imported": 6, "processed": 6}
+    assert out[today - timedelta(days=2)] == {"imported": 0, "processed": 0}
+
+
+def test_kpi_daily_counts_normalizes_str_typed_dates(app, monkeypatch):
+    """The legacy `DRIVER={SQL Server}` pyodbc driver returns DATE columns as
+    str on PROD -- same trap dashboard_processed_over_time already guards."""
+    today = date.today()
+    monkeypatch.setattr(
+        dv,
+        "_statconfig_sources",
+        lambda tp: [_row("default", "t1", "dbo.t1", "ExportDate", "ImportDate")],
+    )
+    monkeypatch.setattr(dv, "_default_stat_rows", lambda sql: [(today.isoformat(), 5, 2)])
+    monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [])
+
+    with app.test_request_context():
+        out = dv._kpi_daily_counts(["c.p"], 2)
+
+    assert out[today] == {"imported": 5, "processed": 2}
