@@ -48,8 +48,14 @@ guide as an app page.
   current month on every run and in every scheduled mail. Schedule times are
   UTC.
 - To see **which document fields extraction gets right**, pick the "Field
-  extraction quality (EM)" measure **"Extraction correct %"** and break down by
+  extraction quality" measure **"Extraction correct %"** and break down by
   **Field**. Sort by the measure ascending and the worst field is the top row.
+- That source now covers **all seven customers**, so break down by **Customer**
+  to compare them, or add a Customer filter to look at one. Field names are
+  translated to a shared vocabulary first, which is what makes the comparison
+  meaningful: whatever each customer calls its invoice number, it lands on the
+  same "Invoice number" row. **Stream** splits a customer that runs more than
+  one document flow — Privera has three.
 - Two traps on that source. Use **"Extraction correct %"**, not "Extracted %":
   the latter only asks whether the machine put *anything* in the box, and
   everything Octo fills in automatically comes back fully extracted. And stay

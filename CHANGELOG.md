@@ -14,12 +14,17 @@ Work toward the next release.
   writing per-field extraction telemetry into the statistics DB for years —
   one row per document field, with what the machine read, what the validator
   ended up with, and the extractor's confidence — and nothing looked at it.
-  A new Reporting source, **Field extraction quality (EM)**, puts it on the
+  A new Reporting source, **Field extraction quality**, puts it on the
   page: break down by Field and rank by "Extraction correct %", "User
   corrected %" or "Avg. confidence %" to see which fields extraction handles
   well and which cost validators the most time. Nine measures, gated by
-  `reporting.source.field_quality`. ElektroMaterial is the pilot; the six other
-  clients have identically shaped tables and follow the same recipe.
+  `reporting.source.field_quality`. It covers **all seven customer streams** —
+  Bucherer, Compass, ElektroMaterial, Geberit and Privera's three — as one
+  source with a Customer breakdown rather than seven separate ones, which is
+  what lets you rank the *same* field across customers: field names are
+  normalised to a shared vocabulary first, so whatever each customer calls its
+  invoice number lands on the same row. A Stream dimension splits a customer
+  running more than one document flow.
   Raw field values and the validating user are deliberately not exposed — the
   source answers "which fields extract well", not "what did this invoice say"
   or "who fixed it". Octo's ~630 raw field names are translated through the

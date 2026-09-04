@@ -985,7 +985,7 @@ catalog, and a `Permission` — then grant that permission. A `Kind=sql` row add
 SQL-sandbox source over an existing target. Use the code path below only when a
 source needs bespoke query logic the `table` provider can't express.
 
-### Field extraction quality (`em_field_quality`)
+### Field extraction quality (`field_quality`)
 
 The Octo runtime writes per-field extraction telemetry into the statistics DB —
 one `<Client>_Collect_Field_Attributes` table per client, one row per (workitem,
@@ -993,13 +993,26 @@ document field), carrying what the machine extracted, what the validator ended
 up with, and the extractor's confidence in its best and second-best candidate.
 It had accumulated for years unread (#254).
 
-Migration `0097` registers the **EM** table as a curated `table` source over
-`NexoraDB.dbo.vEmFieldExtractionQuality`, gated by
-`reporting.source.field_quality`. EM is the pilot; Compass, PriveraPost,
-PriveraInvoice, PriveraInvoice2025, Bucherer and Geberit have identically shaped
-tables and follow the same recipe.
+Migration `0097` registered the **EM** table as the pilot; `0100` unions all
+**seven** tables into `NexoraDB.dbo.vFieldExtractionQuality` and renames the
+source `em_field_quality` → `field_quality`. It is a curated `table` source
+gated by `reporting.source.field_quality`.
 
-Three things about that view are load-bearing:
+**One source with a `Customer` dimension, not seven sources.** All seven tables
+are column-identical, and `dbo.FieldAliases` is a *flat, global* map — so
+"Rechnungsnummer" at one customer and "InvoiceNo" at another both land on the
+canonical key `invoicenr`. Unioning is the whole point: it is what lets you rank
+the same field across customers (on INT, `esrreference` reads 77% at Compass and
+44% at EM). Seven sources could not answer that, and would have meant 63
+duplicated measure rows to keep in step.
+
+| dimension  | values |
+|---|---|
+| `Customer` | `Bucherer`, `Compass`, `ElektroMaterial`, `Geberit`, `Privera` — matching `dbo.Organizations.Organization` where a row exists. Hardcoded as literals in the view *on purpose*: joining `Organizations` would couple it to the tenancy tables being reshaped in #255, to earn two labels. |
+| `Stream`   | one per telemetry table (`em`, `compass`, `priverainvoice2025`, …). Privera has three. |
+| `Process`  | Octo's own process name, straight off the row. |
+
+Four things about that view are load-bearing:
 
 - **Rates are `0`/`100` floats, not `0`/`1` ints.** `semantic.py` emits a bare
   `AVG(col)`, and T-SQL integer-divides `AVG` over an `int` column — every rate
@@ -1011,9 +1024,26 @@ Three things about that view are load-bearing:
   `OctoDb` as sqlcmd `-v` variables that any migration may reference as
   `$(Name)`. Living in NexoraDB is what lets the view join `FieldAliases` and
   `FieldLabels` to translate Octo's raw field names into nexora's vocabulary.
-- **`EM_Invoice` is collapsed to one row per workitem before the join.** A few
-  workitems have duplicate invoice rows (3 of 6786 on INT); joining raw would
-  double them and quietly inflate every average.
+- **Each header table is collapsed to one row per workitem before the join.**
+  A few workitems have duplicate header rows (3 of 6786 in `EM_Invoice` on INT);
+  joining raw would double them and quietly inflate every average.
+- **The date join is keyed on `Stream`, never on `Customer`.** Privera has three
+  telemetry tables across *two* header tables, so a workitem id present in both
+  `PriveraInvoice` and `PriveraPosteingang` would match twice under a
+  `Customer` key. Keyed on `Stream` the join is 1:1 by construction.
+  `test_date_join_is_keyed_on_stream_not_customer` guards this; the definitive
+  check is that view rows == base-table rows per stream (69,576 on INT).
+
+**Dates come from `dbo.ProcessSources`** where it documents the process (Compass,
+EM, PriveraPost, PriveraInvoice). Bucherer and Geberit are not in
+`ProcessSources`; their header tables have Compass's column shape, so they use
+the same `ImportDate` / `UploadDatetime` pair. **Every join is `LEFT`** — a
+stream whose header table doesn't line up still reports its quality numbers and
+simply carries no date, dropping out of over-time breakdowns instead of out of
+the source. On INT that matters: `Bucherer_Invoice` matches 0 of its 2 workitems
+and `PriveraInvoice` is a thin 1,051-row sample that covers only 20 of
+`priverainvoice2025`'s 129 workitems. Both are INT being a partial copy, not a
+wrong mapping — PROD's header tables are complete.
 
 Octo emits ~630 distinct "fields" for EM, most of them internal bookkeeping
 (`DocFilename`, `Val_State`, `ImportDatetime`) that it always fills in perfectly,
@@ -1068,7 +1098,9 @@ keeps the ~4% of telemetry whose workitem has no invoice row), the two agree
 **exactly on all 21 fields** for both the correctness rate and the confidence.
 That equivalence is the real regression test for the view's arithmetic — it
 needs a live DB, so it is not in `tests/unit/`; re-run it by hand if the view
-changes.
+changes. The `0100` union was checked the same way and left EM untouched:
+51.026% correct / 10.586% deviation / 53.914% extracted over 17,107 rows, the
+same figures to three decimals as the EM-only view.
 
 ## Source visualizer (`reporting.sources.schema`)
 
