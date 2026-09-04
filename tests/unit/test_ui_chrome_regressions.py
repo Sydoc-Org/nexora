@@ -97,12 +97,12 @@ def test_workitems_search_icon_does_not_swallow_clicks():
 
 
 def test_scope_picker_checkbox_has_an_explicit_size():
-    """nexora-ui.css draws its own checkbox chrome with appearance:none, and
-    deliberately leaves sizing to each caller (see the comment above the
-    input[type=checkbox] rules). The scope picker builds its rows in JS with no
-    utility classes, so if this rule omits width/height the box collapses to a
-    few pixels and every process reads as an unlabelled dot -- selected and
-    unselected become indistinguishable (issue #206)."""
+    """nexora-ui.css draws its own checkbox chrome with appearance:none, which
+    drops the widget's intrinsic size. There is now a global 16px floor (see
+    test_checkbox_chrome_has_a_global_size_floor), but the scope picker asks
+    for 18px on purpose: rows are built in JS with no utility classes, and at
+    the floor size every process read as an unlabelled dot -- selected and
+    unselected became indistinguishable (issue #206)."""
     block = _rule_body((CSS / "nexora-ui.css").read_text(encoding="utf-8"), ".nx-scope-row input")
     assert block is not None, ".nx-scope-row input rule disappeared from nexora-ui.css"
 
@@ -114,6 +114,53 @@ def test_scope_picker_checkbox_has_an_explicit_size():
         )
         pixels = float(re.match(r"([\d.]+)px", value).group(1))
         assert pixels >= 14, f"{prop} of {value} is too small to read as a checkbox"
+
+
+def test_checkbox_chrome_has_a_global_size_floor():
+    """appearance:none takes the widget's intrinsic size with it, so any
+    checkbox or radio that does not size itself renders as a ~2px speck. That
+    was 15 of them (reporting's forecast + share controls, the admin
+    clients/tenants/maintenance modals, user_detail's override radios) before
+    the base rule grew a floor. min-* rather than width/height on purpose:
+    Tailwind's h-4/w-4 sit in @layer utilities and lose to this unlayered
+    file, so a hard size here would override every caller."""
+    css = (CSS / "nexora-ui.css").read_text(encoding="utf-8")
+    match = re.search(
+        r'body\.nx-app input\[type="checkbox"\],\s*'
+        r'body\.nx-app input\[type="radio"\]\s*\{([^}]*)\}',
+        css,
+    )
+    assert match, "the shared checkbox/radio chrome rule is gone"
+    # The block carries a long comment; drop it so a commented-out
+    # declaration cannot satisfy the assertions below.
+    block = re.sub(r"/\*.*?\*/", "", match.group(1), flags=re.S)
+    for prop in ("min-width", "min-height"):
+        value = _declaration(block, prop)
+        assert value is not None, (
+            f"the checkbox/radio chrome lost its {prop} floor; unsized "
+            f"checkboxes collapse to an invisible speck again"
+        )
+        assert (
+            float(re.match(r"([\d.]+)px", value).group(1)) >= 14
+        ), f"{prop} of {value} is too small to read as a checkbox"
+
+
+def test_hidden_switch_inputs_opt_out_of_the_floor():
+    """Counterpart guard. .ml-toggle replaces the input with a slider span and
+    collapses the input itself; the global floor would re-inflate it to 16px
+    inside a 36x20 label, so the opt-out has to out-specify the base rule --
+    body.nx-app input[type=checkbox] and body.nx-app .ml-toggle input tie, and
+    nexora-ui.css loads last."""
+    block = _rule_body(
+        (CSS / "admin.css").read_text(encoding="utf-8"),
+        'body.nx-app label.ml-toggle input[type="checkbox"]',
+    )
+    assert block is not None, ".ml-toggle's input opt-out is gone from admin.css"
+    for prop in ("min-width", "min-height"):
+        assert _declaration(block, prop) == "0", (
+            f".ml-toggle input does not reset {prop}; the global floor will "
+            f"give the hidden input a 16px box inside the 36x20 switch"
+        )
 
 
 # --------------------------------------------------------------------------
