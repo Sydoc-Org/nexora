@@ -24,6 +24,7 @@ import pytest
 
 import nx_lib.hooks
 import nx_lib.views.dashboard as dv
+import nx_lib.views.tenant as tv
 import nx_lib.views.workitems as wv
 from nx_lib.extensions import cache
 
@@ -439,43 +440,61 @@ def _acme(code):
 
 
 def test_dashboard_unknown_tenant_param_404(user_client, monkeypatch):
-    monkeypatch.setattr(dv, "tenant_by_code", lambda code: None)
+    monkeypatch.setattr(tv, "tenant", lambda code: None)
     assert user_client.get("/dashboard?tenant=nope").status_code == 404
 
 
 def test_dashboard_tenant_param_without_membership_or_grant_403(user_client, monkeypatch):
-    monkeypatch.setattr(dv, "tenant_by_code", _acme)
-    monkeypatch.setattr(dv, "can_view_tenant", lambda code: False)
+    monkeypatch.setattr(tv, "tenant", _acme)
+    monkeypatch.setattr(tv, "can_view_tenant", lambda code: False)
     assert user_client.get("/dashboard?tenant=acme").status_code == 403
 
 
-def test_dashboard_tenant_param_scopes_the_session_and_bare_url_resets(user_client, monkeypatch):
-    monkeypatch.setattr(dv, "tenant_by_code", _acme)
-    monkeypatch.setattr(dv, "can_view_tenant", lambda code: True)
-    monkeypatch.setattr(dv, "tenant_processes", lambda code: set())
-    monkeypatch.setattr(dv, "organization_tenant", lambda org: None)  # staff, no own tenant
+def test_dashboard_tenant_scope_sticks_until_the_global_entry_clears_it(user_client, monkeypatch):
+    monkeypatch.setattr(tv, "tenant", _acme)
+    monkeypatch.setattr(tv, "can_view_tenant", lambda code: True)
+    monkeypatch.setattr("nx_lib.process_helpers.tenant_processes", lambda code: set())
+    monkeypatch.setattr(tv, "organization_tenant", lambda org: None)  # staff, no own tenant
 
     resp = user_client.get("/dashboard?tenant=acme")
     assert resp.status_code == 200
     assert b"Acme Dashboard" in resp.data
     with user_client.session_transaction() as sess:
-        assert sess.get("dashboard_tenant") == "acme"
+        assert sess.get("tenant_scope") == "acme"
 
+    # no parameter keeps the scope (a page may rewrite its own URL)
+    resp = user_client.get("/dashboard")
+    assert resp.status_code == 200
+    assert b"Acme Dashboard" in resp.data
+
+    # the global sidebar entry sends an explicit empty tenant
+    resp = user_client.get("/dashboard?tenant=")
+    assert resp.status_code == 200
+    assert b"Global Dashboard" in resp.data
+    with user_client.session_transaction() as sess:
+        assert sess.get("tenant_scope") is None
+
+
+def test_dashboard_stale_scope_is_dropped_silently(user_client, monkeypatch):
+    monkeypatch.setattr(tv, "tenant", lambda code: None)  # remembered tenant vanished
+    monkeypatch.setattr(tv, "organization_tenant", lambda org: None)
+    with user_client.session_transaction() as sess:
+        sess["tenant_scope"] = "gone"
     resp = user_client.get("/dashboard")
     assert resp.status_code == 200
     assert b"Global Dashboard" in resp.data
     with user_client.session_transaction() as sess:
-        assert sess.get("dashboard_tenant") is None
+        assert sess.get("tenant_scope") is None
 
 
 def test_dashboard_defaults_to_the_users_own_tenant(user_client, monkeypatch):
-    monkeypatch.setattr(dv, "tenant_by_code", _acme)
-    monkeypatch.setattr(dv, "can_view_tenant", lambda code: True)
-    monkeypatch.setattr(dv, "tenant_processes", lambda code: set())
-    monkeypatch.setattr(dv, "organization_tenant", lambda org: "acme")
+    monkeypatch.setattr(tv, "tenant", _acme)
+    monkeypatch.setattr(tv, "can_view_tenant", lambda code: True)
+    monkeypatch.setattr("nx_lib.process_helpers.tenant_processes", lambda code: set())
+    monkeypatch.setattr(tv, "organization_tenant", lambda org: "acme")
 
     resp = user_client.get("/dashboard")
     assert resp.status_code == 200
     assert b"Acme Dashboard" in resp.data
     with user_client.session_transaction() as sess:
-        assert sess.get("dashboard_tenant") == "acme"
+        assert sess.get("tenant_scope") == "acme"

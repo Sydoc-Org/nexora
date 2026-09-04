@@ -93,6 +93,42 @@ def can_view_tenant(tenant_code):
     )
 
 
+def apply_tenant_scope():
+    """Which tenant is the current page about? Remembered in
+    ``session['tenant_scope']`` so the page's API calls narrow the same way
+    (``nx_lib/process_helpers.py::granted_processes``).
+
+    ``?tenant=<code>`` picks one -- a mounted tenant page links that way;
+    ``?tenant=`` (present, empty) is the global view -- the global sidebar
+    entries link that way; **no parameter keeps the current scope** (the
+    workitems page rewrites its own URL with the filter state, and a
+    dashboard chip may link into the list -- neither must drop the tenant).
+    Without a scope a user inside a tenant defaults to their own, anyone
+    else gets the global view. An explicit unknown tenant -> 404, one the
+    session may not view -> 403; a remembered scope that no longer resolves
+    is dropped silently. Returns the Tenant or None. Call it *before* a
+    view's catch-all ``try`` so the 404/403 are not swallowed."""
+    raw = request.args.get("tenant")
+    explicit = raw is not None
+    if explicit:
+        code = raw.strip() or None
+    else:
+        code = session.get("tenant_scope") or organization_tenant(session.get("organizationcode"))
+    if not code:
+        session.pop("tenant_scope", None)
+        return None
+    t = tenant(code)
+    if t is None or not can_view_tenant(code):
+        if explicit:
+            if t is None:
+                abort(404)
+            raise PermissionDenied()
+        session.pop("tenant_scope", None)
+        return None
+    session["tenant_scope"] = code
+    return t
+
+
 def _resolve_client_engine(entity):
     """(engine, dialect) for ``entity``'s ``engine_role`` on the entity's own
     client (``TenantEntities.ClientCode``, 0096) -- ``(None, None)`` when the

@@ -318,9 +318,9 @@
             {% endif %}
 
             {% set nav_items = [
-                {'perm': page_visibility.dashboardPagePerm,  'url': url_for('dashboard'),           'icon': 'fa-gauge-high',          'label': _('Global Dashboard'),              'active': active_page == 'dashboard'},
+                {'perm': page_visibility.dashboardPagePerm,  'url': url_for('dashboard', tenant=''), 'icon': 'fa-gauge-high',          'label': _('Global Dashboard'),              'active': active_page == 'dashboard'},
                 {'perm': page_visibility.reportingPagePerm, 'url': url_for('reporting'),           'icon': 'fa-chart-column',        'label': _('Reporting'),              'active': active_page == 'reporting'},
-{'perm': page_visibility.workitemsPagePerm, 'url': url_for('workitems_overview'),  'icon': 'fa-layer-group',         'label': _('Workitems'),              'active': active_page == 'workitems_overview'},
+{'perm': page_visibility.workitemsPagePerm, 'url': url_for('workitems_overview', tenant=''), 'icon': 'fa-layer-group',         'label': _('Global Workitems'),              'active': active_page == 'workitems_overview'},
             ] %}
 
             {# A tenant-scoped user (their organization belongs to a tenant, see
@@ -545,7 +545,7 @@
                     <span><kbd class="cmdk-kbd">Esc</kbd></span>
                 </div>
 
-                {% if active_page in ('workitems_overview', 'reporting', 'prepared_documents') %}
+                {% if active_page in ('workitems_overview', 'reporting', 'prepared_documents') or (active_page or '').endswith('_workitems') %}
                 <div class="shortcuts-section-title">{{ _('Document viewer') }}</div>
                 <div class="shortcuts-row">
                     <span>{{ _('Previous / next document page') }}</span>

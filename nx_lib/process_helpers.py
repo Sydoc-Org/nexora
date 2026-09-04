@@ -8,16 +8,35 @@ from flask import current_app, session
 
 from .db import engine_nexora_db
 from .extensions import cache
-from .security import has_permission
+from .tenant.registry import tenant_processes
+
+
+def granted_processes(prefix):
+    """``{'<client>.<process>', ...}`` the session holds ``<prefix><client>.<process>``
+    grants for, narrowed to the tenant the session is scoped to
+    (``session['tenant_scope']``, set by ``nx_lib/views/tenant.py::
+    apply_tenant_scope`` -- 0097/0098). A scope whose process list cannot be
+    resolved narrows to nothing, never to everything. Every process allow-list
+    on the dashboard and the workitems pages comes through here."""
+    perms = session.get("permissions", [])
+    allowed = {
+        perm.split(".")[-2] + "." + perm.split(".")[-1] for perm in perms if perm.startswith(prefix)
+    }
+    scope = session.get("tenant_scope")
+    if scope:
+        allowed &= tenant_processes(scope) or set()
+    return allowed
 
 
 def _selected_pairs(prefix, process_name):
-    """Granted (client, process) pairs for a comma-joined selection."""
+    """Granted (client, process) pairs for a comma-joined selection -- inside
+    the session's tenant scope, like every other allow-list here."""
+    allowed = granted_processes(prefix)
     pairs = set()
     for name in process_name.split(","):
         name = name.strip()
         parts = name.split(".")
-        if len(parts) >= 2 and has_permission(f"{prefix}{name}"):
+        if len(parts) >= 2 and name in allowed:
             pairs.add((parts[0], parts[1]))
     return sorted(pairs)
 
@@ -55,17 +74,9 @@ def prepare_process_selection_sql(prefix, process_name):
     authorized for (A, P2) and (B, P1), neither of which was ever granted.
     """
     try:
-        perms = session.get("permissions", [])
         pairs = []
         if process_name == "all":
-            unique_pairs = set()
-            for perm in perms:
-                if perm.startswith(prefix):
-                    parts = perm.split(".")
-                    client = parts[-2]
-                    proc = parts[-1]
-                    unique_pairs.add((client, proc))
-            pairs = sorted(unique_pairs)
+            pairs = sorted(tuple(n.split(".")[-2:]) for n in granted_processes(prefix))
         else:
             pairs = _selected_pairs(prefix, process_name)
         predicate = " OR ".join("(client = ? AND process = ?)" for _ in pairs)
@@ -88,15 +99,9 @@ def prepare_process_selection_lists(prefix, process_name):
     lists were spliced into independent IN-lists downstream.
     """
     try:
-        perms = session.get("permissions", [])
         pairs = []
         if process_name == "all":
-            unique_pairs = set()
-            for perm in perms:
-                if perm.startswith(prefix):
-                    parts = perm.split(".")
-                    unique_pairs.add((parts[-2], parts[-1]))
-            pairs = sorted(unique_pairs)
+            pairs = sorted(tuple(n.split(".")[-2:]) for n in granted_processes(prefix))
         else:
             pairs = _selected_pairs(prefix, process_name)
         return pairs

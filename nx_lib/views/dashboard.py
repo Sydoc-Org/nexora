@@ -8,7 +8,6 @@ environment."""
 from datetime import date, datetime, timedelta
 
 from flask import (
-    abort,
     current_app,
     jsonify,
     redirect,
@@ -26,42 +25,27 @@ from ..extensions import cache
 from ..octo import get_extensions_urls_fields, get_workitemdata_param
 from ..process_helpers import (
     get_activity_instances_to_ignore,
+    granted_processes,
     normalize_process_selection,
 )
-from ..security import PermissionDenied, page_visibility, require_permission
-from ..tenant.registry import organization_tenant, tenant_processes
-from ..tenant.registry import tenant as tenant_by_code
+from ..security import page_visibility, require_permission
 from ..workitem_sources import (
     get_domain_for_workitem,
     recent_activity_rows,
     total_backlog_count,
 )
-from .tenant import can_view_tenant
+from .tenant import apply_tenant_scope
 from .workitems import sensitive_blocked_tokens, strip_sensitive_fields
-
-_PROCESS_PERM_PREFIX = "dashboard.filter.process."
 
 
 def _allowed_processes():
-    """Processes the session may see on the dashboard: its
-    ``dashboard.filter.process.<name>`` grants, narrowed to the tenant the
-    dashboard is scoped to (``session['dashboard_tenant']``, set by
-    ``/dashboard?tenant=<code>`` -- 0097). A scope whose process list cannot
-    be resolved narrows to nothing, never to everything."""
-    perms = session.get("permissions", [])
-    allowed = {
-        perm.split(".")[-2] + "." + perm.split(".")[-1]
-        for perm in perms
-        if perm.startswith(_PROCESS_PERM_PREFIX)
-    }
-    scope = session.get("dashboard_tenant")
-    if scope:
-        allowed &= tenant_processes(scope) or set()
-    return sorted(allowed)
+    """Sorted ``dashboard.filter.process.*`` grants inside the session's tenant
+    scope (0097) -- see process_helpers.granted_processes."""
+    return sorted(granted_processes("dashboard.filter.process."))
 
 
 def make_cache_key(*args, **kwargs):
-    return f"{request.path}_{session.get('userid')}_{session.get('process_name_dashboard','all')}_{session.get('dashboard_tenant','')}"
+    return f"{request.path}_{session.get('userid')}_{session.get('process_name_dashboard','all')}_{session.get('tenant_scope','')}"
 
 
 def _cacheable_response(rv):
@@ -562,7 +546,7 @@ def dashboard_processed_over_time():
 @require_permission("dashboard.view")
 @cache.cached(
     timeout=60,
-    key_prefix=lambda: f"kpi_stats_{session.get('userid')}_{session.get('process_name_dashboard','all')}_{session.get('dashboard_tenant','')}",  # type: ignore[arg-type]
+    key_prefix=lambda: f"kpi_stats_{session.get('userid')}_{session.get('process_name_dashboard','all')}_{session.get('tenant_scope','')}",  # type: ignore[arg-type]
     response_filter=_cacheable_response,
 )
 def dashboard_kpi_stats():
@@ -609,7 +593,7 @@ def dashboard_kpi_stats():
 @require_permission("dashboard.view")
 @cache.cached(
     timeout=120,
-    key_prefix=lambda: f"hourly_stats_{session.get('userid')}_{session.get('process_name_dashboard','all')}_{session.get('dashboard_tenant','')}",  # type: ignore[arg-type]
+    key_prefix=lambda: f"hourly_stats_{session.get('userid')}_{session.get('process_name_dashboard','all')}_{session.get('tenant_scope','')}",  # type: ignore[arg-type]
     response_filter=_cacheable_response,
 )
 def dashboard_hourly_stats():
@@ -679,7 +663,7 @@ def dashboard_hourly_stats():
 @require_permission("dashboard.view")
 @cache.cached(
     timeout=300,
-    key_prefix=lambda: f"avg_proc_time_{session.get('userid')}_{session.get('process_name_dashboard','all')}_{session.get('dashboard_tenant','')}",  # type: ignore[arg-type]
+    key_prefix=lambda: f"avg_proc_time_{session.get('userid')}_{session.get('process_name_dashboard','all')}_{session.get('tenant_scope','')}",  # type: ignore[arg-type]
     response_filter=_cacheable_response,
 )
 def dashboard_avg_processing_time():
@@ -711,24 +695,7 @@ def dashboard_avg_processing_time():
 
 @require_permission("dashboard.view")
 def dashboard():
-    # 0097: which tenant is this dashboard about? ``?tenant=<code>`` picks one
-    # (a mounted tenant Dashboard page links that way), a user inside a tenant
-    # defaults to their own, staff without a pick get the global view. The
-    # choice sticks in the session so the KPI endpoints narrow the same way.
-    # Resolved before the try so a 404/403 is not swallowed into the 500 page.
-    tenant_code = (request.args.get("tenant") or "").strip() or organization_tenant(
-        session.get("organizationcode")
-    )
-    scoped_tenant = None
-    if tenant_code:
-        scoped_tenant = tenant_by_code(tenant_code)
-        if scoped_tenant is None:
-            abort(404)
-        if not can_view_tenant(tenant_code):
-            raise PermissionDenied()
-        session["dashboard_tenant"] = tenant_code
-    else:
-        session.pop("dashboard_tenant", None)
+    scoped_tenant = apply_tenant_scope()  # 0097; before the try, see its docstring
     try:
         if "username" not in session:
             return redirect(url_for("login"))
@@ -782,7 +749,7 @@ def dashboard_set_filter():
 @require_permission("dashboard.view")
 @cache.cached(
     timeout=120,
-    key_prefix=lambda: f"recent_activity_{session.get('userid')}_{session.get('process_name_dashboard','all')}_{session.get('dashboard_tenant','')}",  # type: ignore[arg-type]
+    key_prefix=lambda: f"recent_activity_{session.get('userid')}_{session.get('process_name_dashboard','all')}_{session.get('tenant_scope','')}",  # type: ignore[arg-type]
 )
 def api_recent_activity():
     try:

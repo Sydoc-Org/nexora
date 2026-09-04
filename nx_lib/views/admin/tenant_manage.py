@@ -106,6 +106,10 @@ def validate_page_payload(data, mountable):
     return errors
 
 
+# endpoint -> active-marker suffix for pages that take a ?tenant= scope
+_SCOPED_ENDPOINTS = {"dashboard": "dashboard", "workitems_overview": "workitems"}
+
+
 def _layout_json(data, tenant_code):
     layout = {
         "endpoint": (data.get("endpoint") or "").strip(),
@@ -115,11 +119,13 @@ def _layout_json(data, tenant_code):
     active = (data.get("active") or "").strip()
     if active:
         layout["active"] = active
-    if layout["endpoint"] == "dashboard":
-        # 0097: a mounted Dashboard opens the tenant-scoped dashboard and owns
-        # its active marker -- the same shape migration 0097 gives seeded rows.
+    marker = _SCOPED_ENDPOINTS.get(layout["endpoint"])
+    if marker:
+        # 0097/0098: a mounted Dashboard or Workitems page opens the page scoped
+        # to this tenant and owns its active marker -- the shape the seed
+        # migrations give existing rows.
         layout["query"] = {"tenant": tenant_code}
-        layout["active"] = f"tenant_{tenant_code}_dashboard"
+        layout["active"] = f"tenant_{tenant_code}_{marker}"
     return json.dumps(layout)
 
 
