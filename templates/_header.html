@@ -257,7 +257,7 @@
                     {% set tenants_active = active_page in ['admin_tenants','admin_tenants_manage','organizations','clients','processes'] %}
                     <div class="sidebar-nav-group sidebar-nav-group--nested" id="adminTenantsNavGroup" data-active="{{ 'true' if tenants_active else 'false' }}" data-nx-nav-group="tenants">
                         <button class="sidebar-nav-item sidebar-nav-subitem sidebar-nav-group-header {{ 'sidebar-nav-item--active' if tenants_active else '' }}" id="adminTenantsNavHeader" type="button" data-testid="header-nav-admin-tenants-toggle">
-                            <i class="fas fa-cubes sidebar-nav-icon sidebar-subitem-icon"></i>
+                            <i class="fas fa-city sidebar-nav-icon sidebar-subitem-icon"></i>
                             <span class="sidebar-label [flex:1]!">{{ _('Tenants') }}</span>
                             <i class="fas fa-chevron-right sidebar-label sidebar-generali-chevron"></i>
                         </button>
@@ -270,7 +270,7 @@
                             {% if page_visibility.adminTenantsPagePerm %}
                             <a href="{{ url_for('admin_tenants_manage_view') }}"
                                 class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if active_page == 'admin_tenants_manage' else '' }}" data-testid="header-nav-admin-tenants-manage">
-                                <i class="fas fa-cubes sidebar-nav-icon sidebar-subitem-icon"></i>
+                                <i class="fas fa-sliders sidebar-nav-icon sidebar-subitem-icon"></i>
                                 <span class="sidebar-label">{{ _('Manage') }}</span>
                             </a>
                             {% endif %}

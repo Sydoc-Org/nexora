@@ -40,7 +40,7 @@
                         <td>{{ organization.organization }}</td>
                         <td data-testid="admin-org-tenant-{{ organization.organizationcode }}">
                             {% if organization.tenant_code %}
-                            <a href="{{ url_for('admin_tenants_view') }}#tenant-{{ organization.tenant_code }}"><i class="fas fa-cubes"></i> {{ organization.tenant_name or organization.tenant_code }}</a>
+                            <a href="{{ url_for('admin_tenants_view') }}#tenant-{{ organization.tenant_code }}"><i class="fas fa-city"></i> {{ organization.tenant_name or organization.tenant_code }}</a>
                             {% else %}
                             <span class="nx-c-meta">—</span>
                             {% endif %}
