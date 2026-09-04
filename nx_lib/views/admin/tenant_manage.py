@@ -106,7 +106,7 @@ def validate_page_payload(data, mountable):
     return errors
 
 
-def _layout_json(data):
+def _layout_json(data, tenant_code):
     layout = {
         "endpoint": (data.get("endpoint") or "").strip(),
         "label": (data.get("label") or "").strip(),
@@ -115,6 +115,11 @@ def _layout_json(data):
     active = (data.get("active") or "").strip()
     if active:
         layout["active"] = active
+    if layout["endpoint"] == "dashboard":
+        # 0097: a mounted Dashboard opens the tenant-scoped dashboard and owns
+        # its active marker -- the same shape migration 0097 gives seeded rows.
+        layout["query"] = {"tenant": tenant_code}
+        layout["active"] = f"tenant_{tenant_code}_dashboard"
     return json.dumps(layout)
 
 
@@ -356,7 +361,7 @@ def api_admin_tenant_page_add(tenantcode):
             (
                 tenantcode,
                 data["PageKey"].strip(),
-                _layout_json(data),
+                _layout_json(data, tenantcode),
                 int(data.get("SortOrder") or 100),
             ),
         )

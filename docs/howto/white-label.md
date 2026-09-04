@@ -40,6 +40,19 @@ always the explicit `tenant.<code>.edit` grant. A tenant-scoped user (`tenant_sc
 `nx_lib/hooks.py`) sees only their tenant group in place of the global Dashboard / Reporting /
 Workitems links; sydoc staff (SYDC, no tenant) keep the global navigation.
 
+**Mounted pages and the tenant dashboard.** A `custom` row in `dbo.TenantPages` carries a
+`LayoutJSON` with `endpoint` (an argument-less GET route), `label`, `icon`, an optional `active`
+marker (the `active_page` value the target sets) and an optional `query` object of string pairs that
+becomes the link's query string. The mounted **Dashboard** uses exactly that: since migration `0097`
+it links `/dashboard?tenant=<code>`, the view stores the tenant in `session['dashboard_tenant']` and
+every dashboard query narrows the user's `dashboard.filter.process.*` grants to the processes whose
+organization belongs to that tenant (`nx_lib/tenant/registry.py::tenant_processes`, intersected in
+`nx_lib/views/dashboard.py::_allowed_processes`). A user inside a tenant lands on their tenant's
+dashboard by default; staff without a pick get the **Global Dashboard** (every process they may see,
+across tenants), and a bare `/dashboard` clears the scope. The scoped page renders
+`active_page = tenant_<code>_dashboard`, so only that tenant's entry lights up in the sidebar.
+Workitems and Prepared Documents inside a tenant group are not scoped this way yet.
+
 **The admin UI names these by role, not by table (#255).** The routes, `data-testid`s, permission
 codes and DB columns keep their original names; only the labels changed, and the three pages now sit
 in a collapsible **Tenants** group in the admin sidebar:

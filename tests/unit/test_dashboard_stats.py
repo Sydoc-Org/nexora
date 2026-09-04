@@ -530,3 +530,36 @@ def test_compute_today_stats_non_strict_default_still_degrades(app, monkeypatch)
     monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [(5, 2)])
     with app.app_context():
         assert dv.compute_today_stats(["sydoc.Alpha", "sydoc.05_PDBS"]) == (2, 5)
+
+
+# ------------------------------------------------- _allowed_processes (0097) --
+
+_GRANTS = [
+    "dashboard.view",
+    "dashboard.filter.process.privera.02_Posteingang",
+    "dashboard.filter.process.sydoc.05_PDBS",
+]
+
+
+def test_allowed_processes_without_scope_is_the_grant_list(app):
+    with app.test_request_context("/"):
+        session["permissions"] = list(_GRANTS)
+        assert dv._allowed_processes() == ["privera.02_Posteingang", "sydoc.05_PDBS"]
+
+
+def test_allowed_processes_narrows_to_the_scoped_tenant(app, monkeypatch):
+    monkeypatch.setattr(
+        dv, "tenant_processes", lambda code: {"sydoc.05_PDBS"} if code == "ms02" else set()
+    )
+    with app.test_request_context("/"):
+        session["permissions"] = list(_GRANTS)
+        session["dashboard_tenant"] = "ms02"
+        assert dv._allowed_processes() == ["sydoc.05_PDBS"]
+
+
+def test_allowed_processes_fails_closed_when_the_scope_cannot_resolve(app, monkeypatch):
+    monkeypatch.setattr(dv, "tenant_processes", lambda code: None)
+    with app.test_request_context("/"):
+        session["permissions"] = list(_GRANTS)
+        session["dashboard_tenant"] = "ms02"
+        assert dv._allowed_processes() == []

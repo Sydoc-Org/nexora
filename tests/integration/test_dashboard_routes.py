@@ -17,6 +17,7 @@ Routes covered:
 - GET  /api/dashboard/recent_activity        early-empty (returns [])
 """
 
+import types
 from datetime import datetime
 
 import pytest
@@ -428,3 +429,53 @@ def test_processed_over_time_error_response_is_not_cached(user_client, monkeypat
     resp2 = user_client.get("/api/dashboard/processed_over_time")
     assert resp2.status_code == 200
     assert resp2.get_json() == {"labels": [], "data": []}
+
+
+# ------------------------------------------------ tenant-scoped dashboard (0097) --
+
+
+def _acme(code):
+    return types.SimpleNamespace(code=code, display_name="Acme", active=True)
+
+
+def test_dashboard_unknown_tenant_param_404(user_client, monkeypatch):
+    monkeypatch.setattr(dv, "tenant_by_code", lambda code: None)
+    assert user_client.get("/dashboard?tenant=nope").status_code == 404
+
+
+def test_dashboard_tenant_param_without_membership_or_grant_403(user_client, monkeypatch):
+    monkeypatch.setattr(dv, "tenant_by_code", _acme)
+    monkeypatch.setattr(dv, "can_view_tenant", lambda code: False)
+    assert user_client.get("/dashboard?tenant=acme").status_code == 403
+
+
+def test_dashboard_tenant_param_scopes_the_session_and_bare_url_resets(user_client, monkeypatch):
+    monkeypatch.setattr(dv, "tenant_by_code", _acme)
+    monkeypatch.setattr(dv, "can_view_tenant", lambda code: True)
+    monkeypatch.setattr(dv, "tenant_processes", lambda code: set())
+    monkeypatch.setattr(dv, "organization_tenant", lambda org: None)  # staff, no own tenant
+
+    resp = user_client.get("/dashboard?tenant=acme")
+    assert resp.status_code == 200
+    assert b"Acme Dashboard" in resp.data
+    with user_client.session_transaction() as sess:
+        assert sess.get("dashboard_tenant") == "acme"
+
+    resp = user_client.get("/dashboard")
+    assert resp.status_code == 200
+    assert b"Global Dashboard" in resp.data
+    with user_client.session_transaction() as sess:
+        assert sess.get("dashboard_tenant") is None
+
+
+def test_dashboard_defaults_to_the_users_own_tenant(user_client, monkeypatch):
+    monkeypatch.setattr(dv, "tenant_by_code", _acme)
+    monkeypatch.setattr(dv, "can_view_tenant", lambda code: True)
+    monkeypatch.setattr(dv, "tenant_processes", lambda code: set())
+    monkeypatch.setattr(dv, "organization_tenant", lambda org: "acme")
+
+    resp = user_client.get("/dashboard")
+    assert resp.status_code == 200
+    assert b"Acme Dashboard" in resp.data
+    with user_client.session_transaction() as sess:
+        assert sess.get("dashboard_tenant") == "acme"

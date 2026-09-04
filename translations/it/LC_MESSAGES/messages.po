@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-04 20:10+0200\n"
+"POT-Creation-Date: 2026-09-04 21:03+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
@@ -634,8 +634,8 @@ msgstr "Si è verificato un errore imprevisto"
 #: nx_lib/views/admin/permissions.py:248 nx_lib/views/admin/permissions.py:581
 #: nx_lib/views/admin/permissions.py:623 nx_lib/views/admin/permissions.py:668
 #: nx_lib/views/admin/permissions.py:707 nx_lib/views/admin/permissions.py:744
-#: nx_lib/views/admin/permissions.py:776 nx_lib/views/dashboard.py:461
-#: nx_lib/views/dashboard.py:554 nx_lib/views/dashboard.py:609
+#: nx_lib/views/admin/permissions.py:776 nx_lib/views/dashboard.py:485
+#: nx_lib/views/dashboard.py:570 nx_lib/views/dashboard.py:617
 #: nx_lib/views/dashboard.py:687 nx_lib/views/workitems.py:1109
 #: nx_lib/views/workitems.py:1828 nx_lib/views/workitems.py:1830
 #: nx_lib/views/workitems.py:1956 nx_lib/views/workitems.py:2068
@@ -646,9 +646,9 @@ msgstr "Non autorizzato"
 #: nx_lib/views/admin/permissions.py:612 nx_lib/views/admin/system.py:148
 #: nx_lib/views/admin/system.py:189 nx_lib/views/admin/system.py:232
 #: nx_lib/views/admin/system.py:252 nx_lib/views/admin/users.py:402
-#: nx_lib/views/admin/users.py:554 nx_lib/views/dashboard.py:543
-#: nx_lib/views/dashboard.py:598 nx_lib/views/dashboard.py:676
-#: nx_lib/views/dashboard.py:714 nx_lib/views/generali/_crud.py:180
+#: nx_lib/views/admin/users.py:554 nx_lib/views/dashboard.py:559
+#: nx_lib/views/dashboard.py:606 nx_lib/views/dashboard.py:676
+#: nx_lib/views/dashboard.py:706 nx_lib/views/generali/_crud.py:180
 #: nx_lib/views/generali/attendance.py:99
 #: nx_lib/views/generali/documents.py:254
 #: nx_lib/views/generali/documents.py:288
@@ -1117,46 +1117,46 @@ msgstr "Questa richiesta non è valida."
 msgid "Could not load values"
 msgstr "Impossibile caricare i valori"
 
-#: nx_lib/views/tenant.py:252
+#: nx_lib/views/tenant.py:253
 #, python-format
 msgid "Missing value for %(field)s."
 msgstr "Valore mancante per %(field)s."
 
-#: nx_lib/views/tenant.py:259
+#: nx_lib/views/tenant.py:260
 #, python-format
 msgid "%(field)s must be a valid date (YYYY-MM-DD)."
 msgstr "%(field)s deve essere una data valida (AAAA-MM-GG)."
 
-#: nx_lib/views/tenant.py:266
+#: nx_lib/views/tenant.py:267
 #, python-format
 msgid "%(field)s must be numeric."
 msgstr "%(field)s deve essere numerico."
 
 #: nx_lib/views/admin/clients.py:154 nx_lib/views/admin/organizations.py:127
 #: nx_lib/views/admin/processes.py:418 nx_lib/views/admin/processes.py:571
-#: nx_lib/views/admin/users.py:142 nx_lib/views/tenant.py:476
-#: nx_lib/views/tenant.py:540 nx_lib/views/tenant.py:585
-#: nx_lib/views/tenant.py:620 nx_lib/views/tenant.py:659
+#: nx_lib/views/admin/users.py:142 nx_lib/views/tenant.py:487
+#: nx_lib/views/tenant.py:551 nx_lib/views/tenant.py:596
+#: nx_lib/views/tenant.py:631 nx_lib/views/tenant.py:670
 msgid "An unexpected error occurred."
 msgstr "Si è verificato un errore imprevisto."
 
-#: nx_lib/views/tenant.py:522 nx_lib/views/tenant.py:564
+#: nx_lib/views/tenant.py:533 nx_lib/views/tenant.py:575
 msgid "This entity has no writable fields."
 msgstr "Questa entità non ha campi modificabili."
 
-#: nx_lib/views/tenant.py:537
+#: nx_lib/views/tenant.py:548
 msgid "Record created successfully."
 msgstr "Record creato con successo."
 
-#: nx_lib/views/tenant.py:581 nx_lib/views/tenant.py:616
+#: nx_lib/views/tenant.py:592 nx_lib/views/tenant.py:627
 msgid "Record not found."
 msgstr "Record non trovato."
 
-#: nx_lib/views/tenant.py:582
+#: nx_lib/views/tenant.py:593
 msgid "Record updated successfully."
 msgstr "Record aggiornato con successo."
 
-#: nx_lib/views/tenant.py:617
+#: nx_lib/views/tenant.py:628
 msgid "Record deleted successfully."
 msgstr "Record eliminato con successo."
 
@@ -1361,12 +1361,12 @@ msgstr "Cliente aggiornato con successo."
 #: nx_lib/views/admin/organizations.py:186
 #: nx_lib/views/admin/organizations.py:366 nx_lib/views/admin/processes.py:454
 #: nx_lib/views/admin/processes.py:517 nx_lib/views/admin/processes.py:613
-#: nx_lib/views/admin/processes.py:642 nx_lib/views/admin/tenant_manage.py:250
-#: nx_lib/views/admin/tenant_manage.py:285
-#: nx_lib/views/admin/tenant_manage.py:323
-#: nx_lib/views/admin/tenant_manage.py:370
-#: nx_lib/views/admin/tenant_manage.py:400
-#: nx_lib/views/admin/tenant_manage.py:425 nx_lib/views/admin/users.py:227
+#: nx_lib/views/admin/processes.py:642 nx_lib/views/admin/tenant_manage.py:255
+#: nx_lib/views/admin/tenant_manage.py:290
+#: nx_lib/views/admin/tenant_manage.py:328
+#: nx_lib/views/admin/tenant_manage.py:375
+#: nx_lib/views/admin/tenant_manage.py:405
+#: nx_lib/views/admin/tenant_manage.py:430 nx_lib/views/admin/users.py:227
 #: nx_lib/views/admin/users.py:476
 msgid "An error occurred."
 msgstr "Si è verificato un errore."
@@ -1638,7 +1638,7 @@ msgstr ""
 "'.', '_' o '-'."
 
 #: nx_lib/views/admin/tenant_manage.py:92
-#: nx_lib/views/admin/tenant_manage.py:344
+#: nx_lib/views/admin/tenant_manage.py:349
 msgid "Endpoint is not a mountable page."
 msgstr "L’endpoint non è una pagina montabile."
 
@@ -1658,17 +1658,17 @@ msgstr "Il marcatore attivo può contenere solo lettere, cifre, '_' o '-'."
 msgid "Sort order must be a number."
 msgstr "L’ordinamento deve essere un numero."
 
-#: nx_lib/views/admin/tenant_manage.py:226
+#: nx_lib/views/admin/tenant_manage.py:231
 msgid "Tenant already exists."
 msgstr "Il tenant esiste già."
 
-#: nx_lib/views/admin/tenant_manage.py:229
-#: nx_lib/views/admin/tenant_manage.py:272
+#: nx_lib/views/admin/tenant_manage.py:234
+#: nx_lib/views/admin/tenant_manage.py:277
 #, python-format
 msgid "%(n)d organization code(s) do not exist."
 msgstr "%(n)d codice/i organizzazione non esistono."
 
-#: nx_lib/views/admin/tenant_manage.py:242
+#: nx_lib/views/admin/tenant_manage.py:247
 #, python-format
 msgid ""
 "Tenant created. Users of its organizations see it right away; grant "
@@ -1678,49 +1678,49 @@ msgstr ""
 "concedere tenant.%(code)s.view nel Controllo accessi per ammettere altri "
 "collaboratori."
 
-#: nx_lib/views/admin/tenant_manage.py:278
-#: nx_lib/views/admin/tenant_manage.py:319
-#: nx_lib/views/admin/tenant_manage.py:352
+#: nx_lib/views/admin/tenant_manage.py:283
+#: nx_lib/views/admin/tenant_manage.py:324
+#: nx_lib/views/admin/tenant_manage.py:357
 msgid "Tenant not found."
 msgstr "Tenant non trovato."
 
-#: nx_lib/views/admin/tenant_manage.py:282
+#: nx_lib/views/admin/tenant_manage.py:287
 msgid "Tenant updated."
 msgstr "Tenant aggiornato."
 
-#: nx_lib/views/admin/tenant_manage.py:308
+#: nx_lib/views/admin/tenant_manage.py:313
 #, python-format
 msgid "%(n)d organization(s) still belong to this tenant. Move them first."
 msgstr ""
 "%(n)d organizzazione/i appartengono ancora a questo tenant. Spostarle "
 "prima."
 
-#: nx_lib/views/admin/tenant_manage.py:320
+#: nx_lib/views/admin/tenant_manage.py:325
 msgid "Tenant deleted."
 msgstr "Tenant eliminato."
 
-#: nx_lib/views/admin/tenant_manage.py:365
+#: nx_lib/views/admin/tenant_manage.py:370
 msgid "Page added."
 msgstr "Pagina aggiunta."
 
-#: nx_lib/views/admin/tenant_manage.py:368
+#: nx_lib/views/admin/tenant_manage.py:373
 msgid "A page with this key already exists."
 msgstr "Esiste già una pagina con questa chiave."
 
-#: nx_lib/views/admin/tenant_manage.py:383
+#: nx_lib/views/admin/tenant_manage.py:388
 msgid "Status must be 'active' or 'draft'."
 msgstr "Lo stato deve essere 'active' o 'draft'."
 
-#: nx_lib/views/admin/tenant_manage.py:396
-#: nx_lib/views/admin/tenant_manage.py:421
+#: nx_lib/views/admin/tenant_manage.py:401
+#: nx_lib/views/admin/tenant_manage.py:426
 msgid "Page not found."
 msgstr "Pagina non trovata."
 
-#: nx_lib/views/admin/tenant_manage.py:397
+#: nx_lib/views/admin/tenant_manage.py:402
 msgid "Page updated."
 msgstr "Pagina aggiornata."
 
-#: nx_lib/views/admin/tenant_manage.py:422
+#: nx_lib/views/admin/tenant_manage.py:427
 msgid "Page removed."
 msgstr "Pagina rimossa."
 
@@ -1862,12 +1862,9 @@ msgstr "Sviluppo"
 msgid "API Documentation"
 msgstr "Documentazione API"
 
-#: templates/_header.html:321 templates/appearance.html:329
-#: templates/dashboard.html:28 templates/generali_documents.html:41
-#: templates/generali_reporting.html:56 templates/js/_header_js.html:30
-#: templates/js/_header_js.html:36
-msgid "Dashboard"
-msgstr "Dashboard"
+#: templates/_header.html:321 templates/dashboard.html:33
+msgid "Global Dashboard"
+msgstr "Dashboard globale"
 
 #: templates/_header.html:322 templates/generali-dashboard.html:69
 #: templates/generali_additionalservices.html:52
@@ -1881,109 +1878,109 @@ msgstr "Reporting"
 msgid "Workitems"
 msgstr "Workitems"
 
-#: templates/_header.html:403 templates/_header.html:405
+#: templates/_header.html:411 templates/_header.html:413
 #: templates/appearance.html:293 templates/appearance.html:298
 #: templates/js/_header_js.html:13
 msgid "Keep sidebar open"
 msgstr "Mantieni la barra laterale aperta"
 
-#: templates/_header.html:409 templates/js/_header_js.html:56
+#: templates/_header.html:417 templates/js/_header_js.html:56
 msgid "Toggle dark mode"
 msgstr "Attiva/disattiva modalità scura"
 
-#: templates/_header.html:411
+#: templates/_header.html:419
 msgid "Dark Mode"
 msgstr "Modalità scura"
 
-#: templates/_header.html:419 templates/profile.html:44
+#: templates/_header.html:427 templates/profile.html:44
 #: templates/profile.html:123
 msgid "Profile Picture"
 msgstr "Foto profilo"
 
-#: templates/_header.html:429
+#: templates/_header.html:437
 msgid "Your profile"
 msgstr "Il tuo profilo"
 
-#: templates/_header.html:433 templates/appearance.html:34
+#: templates/_header.html:441 templates/appearance.html:34
 #: templates/js/_header_js.html:57 templates/profile.html:75
 #: templates/profile.html:317
 msgid "Appearance"
 msgstr "Aspetto"
 
-#: templates/_header.html:437 templates/js/_header_js.html:58
+#: templates/_header.html:445 templates/js/_header_js.html:58
 #: templates/whats_new.html:79
 msgid "What's New"
 msgstr "Novità"
 
-#: templates/_header.html:442 templates/feedback.html:34
+#: templates/_header.html:450 templates/feedback.html:34
 #: templates/js/_header_js.html:59
 msgid "Feedback"
 msgstr "Feedback"
 
-#: templates/_header.html:449 templates/_header.html:519
-#: templates/_header.html:522
+#: templates/_header.html:457 templates/_header.html:527
+#: templates/_header.html:530
 msgid "Keyboard shortcuts"
 msgstr "Scorciatoie da tastiera"
 
-#: templates/_header.html:453 templates/_small_footer.html:28
+#: templates/_header.html:461 templates/_small_footer.html:28
 #: templates/reporting.html:86
 msgid "Help"
 msgstr "Aiuto"
 
-#: templates/_header.html:459 templates/_header.html:501
+#: templates/_header.html:467 templates/_header.html:509
 msgid "Switch user"
 msgstr "Cambia utente"
 
-#: templates/_header.html:465 templates/js/_header_js.html:60
+#: templates/_header.html:473 templates/js/_header_js.html:60
 #: templates/profile.html:82
 msgid "Sign out"
 msgstr "Disconnetti"
 
-#: templates/_header.html:482
+#: templates/_header.html:490
 msgid "Command palette"
 msgstr "Tavolozza dei comandi"
 
-#: templates/_header.html:486
+#: templates/_header.html:494
 msgid "Type a command or search..."
 msgstr "Digita un comando o cerca..."
 
-#: templates/_header.html:491
+#: templates/_header.html:499
 msgid "navigate"
 msgstr "naviga"
 
-#: templates/_header.html:492
+#: templates/_header.html:500
 msgid "open"
 msgstr "apri"
 
-#: templates/_header.html:493
+#: templates/_header.html:501
 msgid "close"
 msgstr "chiudi"
 
-#: templates/_header.html:505
+#: templates/_header.html:513
 msgid "Switch to user..."
 msgstr "Passa all'utente ..."
 
-#: templates/_header.html:526 templates/admin/access_control.html:167
+#: templates/_header.html:534 templates/admin/access_control.html:167
 msgid "Global"
 msgstr "Globale"
 
-#: templates/_header.html:528
+#: templates/_header.html:536
 msgid "Open command palette"
 msgstr "Apri la tavolozza dei comandi"
 
-#: templates/_header.html:532
+#: templates/_header.html:540
 msgid "Show this shortcuts overlay"
 msgstr "Mostra questa panoramica scorciatoie"
 
-#: templates/_header.html:536
+#: templates/_header.html:544
 msgid "Close the open dialog or panel"
 msgstr "Chiudi la finestra di dialogo o il pannello aperto"
 
-#: templates/_header.html:541
+#: templates/_header.html:549
 msgid "Document viewer"
 msgstr "Visualizzatore documenti"
 
-#: templates/_header.html:543
+#: templates/_header.html:551
 msgid "Previous / next document page"
 msgstr "Pagina documento precedente / successiva"
 
@@ -3497,6 +3494,12 @@ msgstr "Anteprima dal vivo"
 msgid "Replay"
 msgstr "Riproduci"
 
+#: templates/appearance.html:329 templates/generali_documents.html:41
+#: templates/generali_reporting.html:56 templates/js/_header_js.html:30
+#: templates/js/_header_js.html:36
+msgid "Dashboard"
+msgstr "Dashboard"
+
 #: templates/appearance.html:330
 msgid "Today at a glance"
 msgstr "Oggi in sintesi"
@@ -3530,60 +3533,67 @@ msgstr "Filtra"
 msgid "Dashboard - nexora"
 msgstr "Dashboard - nexora"
 
-#: templates/dashboard.html:29
-msgid "Here's a real-time overview of your document processing activity."
-msgstr ""
-"Ecco una panoramica in tempo reale dell'attività di elaborazione "
-"documenti."
+#: templates/dashboard.html:30
+#, python-format
+msgid "%(tenant)s Dashboard"
+msgstr "Dashboard %(tenant)s"
 
 #: templates/dashboard.html:31
+msgid "Real-time overview of this tenant's document processing only."
+msgstr "Panoramica in tempo reale della sola elaborazione documenti di questo tenant."
+
+#: templates/dashboard.html:34
+msgid "Every process you may see, across all tenants."
+msgstr "Tutti i processi che puoi vedere, in tutti i tenant."
+
+#: templates/dashboard.html:37
 #, python-format
 msgid "Signed in as %(name)s"
 msgstr "Accesso effettuato come %(name)s"
 
-#: templates/dashboard.html:31
+#: templates/dashboard.html:37
 #, python-format
 msgid "Last sign-in: %(when)s"
 msgstr "Ultimo accesso: %(when)s"
 
-#: templates/dashboard.html:39 templates/workitems_overview.html:76
+#: templates/dashboard.html:45 templates/workitems_overview.html:76
 msgid "Process"
 msgstr "Processo"
 
-#: templates/dashboard.html:48 templates/reporting.html:369
+#: templates/dashboard.html:54 templates/reporting.html:369
 #: templates/workitems_overview.html:87
 msgid "Filter by client and process"
 msgstr "Filtra per cliente e processo"
 
-#: templates/dashboard.html:56
+#: templates/dashboard.html:62
 msgid "Imported Today"
 msgstr "Importati oggi"
 
-#: templates/dashboard.html:63
+#: templates/dashboard.html:69
 msgid "Processed Today"
 msgstr "Elaborati oggi"
 
-#: templates/dashboard.html:70
+#: templates/dashboard.html:76
 msgid "Current Backlog"
 msgstr "Arretrato attuale"
 
-#: templates/dashboard.html:77
+#: templates/dashboard.html:83
 msgid "Avg. Processing Time"
 msgstr "Tempo medio di elaborazione"
 
-#: templates/dashboard.html:89
+#: templates/dashboard.html:95
 msgid "Documents Processed Over Time"
 msgstr "Documenti elaborati nel tempo"
 
-#: templates/dashboard.html:99
+#: templates/dashboard.html:105
 msgid "Recent Validations"
 msgstr "Validazioni recenti"
 
-#: templates/dashboard.html:114
+#: templates/dashboard.html:120
 msgid "Documents Processed by Hour (Today)"
 msgstr "Documenti elaborati per ora (oggi)"
 
-#: templates/dashboard.html:119
+#: templates/dashboard.html:125
 msgid "No documents processed yet today."
 msgstr "Nessun documento elaborato ancora oggi."
 

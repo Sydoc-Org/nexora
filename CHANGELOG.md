@@ -10,6 +10,17 @@ Work toward the next release.
 
 ### Added
 
+- **The tenant Dashboard is the tenant's dashboard** (migration `0097`). The
+  Dashboard entry inside a tenant's sidebar group now opens
+  `/dashboard?tenant=<code>`: the page narrows your process grants to the
+  processes whose organization belongs to that tenant, titles itself
+  "<Tenant> Dashboard", and lights up only that tenant's entry. A user inside
+  a tenant lands there by default. Staff who see several groups get the
+  unscoped view under its real name, **Global Dashboard** — every process
+  you may see, across tenants — from the global entry, which is relabelled
+  accordingly. A custom page's `LayoutJSON` may now carry a `query` object of
+  string pairs that becomes the link's query string; mounting `dashboard`
+  from the tenant management page adds it automatically.
 - **Answer-depth picker in the Eddard chat composer.** Click into the
   input and a Quick / Balanced / Deep control slides in above it, mapping
   to effort `low` / `medium` / `high` on the `/api/reporting/ai/agent`

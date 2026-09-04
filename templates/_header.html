@@ -318,7 +318,7 @@
             {% endif %}
 
             {% set nav_items = [
-                {'perm': page_visibility.dashboardPagePerm,  'url': url_for('dashboard'),           'icon': 'fa-gauge-high',          'label': _('Dashboard'),              'active': active_page == 'dashboard'},
+                {'perm': page_visibility.dashboardPagePerm,  'url': url_for('dashboard'),           'icon': 'fa-gauge-high',          'label': _('Global Dashboard'),              'active': active_page == 'dashboard'},
                 {'perm': page_visibility.reportingPagePerm, 'url': url_for('reporting'),           'icon': 'fa-chart-column',        'label': _('Reporting'),              'active': active_page == 'reporting'},
 {'perm': page_visibility.workitemsPagePerm, 'url': url_for('workitems_overview'),  'icon': 'fa-layer-group',         'label': _('Workitems'),              'active': active_page == 'workitems_overview'},
             ] %}
@@ -366,12 +366,15 @@
                from t.pages already. #}
             {% for t in tenant_nav %}
             {# A mounted custom page reuses a global endpoint (every tenant mounts
-               'dashboard'), so it can only mark the group of the user's OWN
-               tenant as active -- otherwise a staffer who sees several groups by
-               grant would light every one of them on /dashboard. Generated
-               list/crud pages carry the tenant code in active_page already. #}
+               'dashboard'), so an endpoint match only counts inside the user's
+               OWN tenant group -- otherwise a staffer who sees several groups by
+               grant would light every one of them on /dashboard. A page whose
+               LayoutJSON 'active' marker is tenant-specific (the scoped
+               Dashboard renders active_page = tenant_<code>_dashboard, 0097)
+               matches exactly, for anyone. Generated list/crud pages carry the
+               tenant code in active_page already. #}
             {% set ns = namespace(active=(active_page or '').startswith('tenant_' ~ t.code ~ '_')) %}
-            {% for p in t.pages if p.page_type == 'custom' and tenant_scoped == t.code and active_page in (p.endpoint, p.active) %}
+            {% for p in t.pages if p.page_type == 'custom' and ((active_page == p.active and p.active != p.endpoint) or (tenant_scoped == t.code and active_page in (p.endpoint, p.active))) %}
             {% set ns.active = true %}
             {% endfor %}
             <div class="sidebar-nav-group" id="tenantNavGroup-{{ t.code }}" data-active="{{ 'true' if ns.active else 'false' }}" data-nx-nav-group="tenant">
@@ -384,7 +387,7 @@
                     {% for p in t.pages %}
                     {% if p.page_type == 'custom' %}
                     <a href="{{ p.url }}"
-                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if tenant_scoped == t.code and active_page in (p.endpoint, p.active) else '' }}" data-testid="header-nav-tenant-{{ t.code }}-{{ p.key }}">
+                        class="sidebar-nav-item sidebar-nav-subitem {{ 'sidebar-nav-item--active' if (active_page == p.active and p.active != p.endpoint) or (tenant_scoped == t.code and active_page in (p.endpoint, p.active)) else '' }}" data-testid="header-nav-tenant-{{ t.code }}-{{ p.key }}">
                         <i class="fas {{ p.icon }} sidebar-nav-icon sidebar-subitem-icon"></i>
                         <span class="sidebar-label">{{ p.label }}</span>
                     </a>
