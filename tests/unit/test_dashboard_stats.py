@@ -401,7 +401,7 @@ def test_hourly_stats_serves_ms02_when_statistics_db_dead(app, monkeypatch):
 def test_avg_processing_time_serves_ms02_when_statistics_db_dead(app, monkeypatch):
     _stub_sources(monkeypatch, _CONFIGS)
     monkeypatch.setattr(dv, "engine_statistics_db", _dead_engine())
-    monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [(120.0,)])
+    monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql: [(date.today(), 120.0)])
 
     with app.test_request_context("/api/dashboard/avg_processing_time"):
         session["username"] = "u"
@@ -577,3 +577,41 @@ def test_kpi_daily_counts_normalizes_str_typed_dates(app, monkeypatch):
         out = dv._kpi_daily_counts(["c.p"], 2)
 
     assert out[today] == {"imported": 5, "processed": 2}
+
+
+def test_avg_processing_by_day_groups_and_means_the_legs(app, monkeypatch):
+    today = date.today()
+    monkeypatch.setattr(
+        dv,
+        "_statconfig_sources",
+        lambda tp: [
+            _row("default", "t1", "dbo.t1", "ExportDate", "ImportDate"),
+            _row("ms02", "p", 'public."D"', "DatumInTempExport", "ImportDate"),
+        ],
+    )
+    monkeypatch.setattr(
+        dv,
+        "_default_stat_rows",
+        lambda sql, *a, **k: [(today, 100.0), (today - timedelta(days=1), 200.0)],
+    )
+    monkeypatch.setattr(dv, "_ms02_stat_rows", lambda sql, *a, **k: [(today, 300.0)])
+
+    with app.test_request_context():
+        out = dv._avg_processing_by_day(["c.p"], 3)
+
+    assert out[today] == 200.0  # mean-of-means: (100 + 300) / 2
+    assert out[today - timedelta(days=1)] == 200.0  # single leg contributes alone
+    assert (today - timedelta(days=2)) not in out  # gaps stay gaps, not zeros
+
+
+def test_compute_avg_processing_time_still_returns_todays_scalar(app, monkeypatch):
+    """The external API's contract (float seconds or None) is unchanged."""
+    monkeypatch.setattr(
+        dv, "_avg_processing_by_day", lambda tp, days, strict=False: {date.today(): 42.0}
+    )
+    with app.test_request_context():
+        assert dv.compute_avg_processing_time(["c.p"]) == 42.0
+
+    monkeypatch.setattr(dv, "_avg_processing_by_day", lambda tp, days, strict=False: {})
+    with app.test_request_context():
+        assert dv.compute_avg_processing_time(["c.p"]) is None

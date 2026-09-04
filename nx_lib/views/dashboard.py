@@ -313,6 +313,72 @@ def _kpi_daily_counts(target_processes, days):
     return {d: out[d] for d in sorted(out) if d >= today - timedelta(days=days - 1)}
 
 
+def _avg_processing_by_day(target_processes, days, *, strict=False):
+    """{date: avg_seconds} over the trailing ``days`` days -- per source,
+    AVG(export - import) grouped by export date; the default-client and MS02
+    buckets then contribute one average each per day, combined as a plain
+    mean-of-means (NOT weighted by row count). Days with no matching rows are
+    ABSENT rather than zero: a zero average would draw a cliff in the
+    sparkline where the truth is "no documents finished that day"."""
+    days = max(1, int(days))
+    per_day = {}
+
+    configs = _statconfig_sources(target_processes)
+    default_configs, ms02_rows = _split_stat_configs(configs)
+
+    sub_queries = []
+    for row in default_configs:
+        if not row.import_column:
+            continue
+        condition = f" {row.extra_condition}" if row.extra_condition else ""
+        sub_queries.append(f"""
+            SELECT CAST({row.export_column} AS DATE) as d,
+                   AVG(CAST(DATEDIFF(second, {row.import_column}, {row.export_column}) AS FLOAT)) as avg_sec
+            FROM [{DB_STATISTICS}].{row.table}
+            WHERE CAST({row.export_column} AS DATE) >= CAST(DATEADD(day, -{days - 1}, GETDATE()) AS DATE)
+            AND {row.import_column} IS NOT NULL
+            AND {row.export_column} > {row.import_column}
+            {condition}
+            GROUP BY CAST({row.export_column} AS DATE)
+        """)
+
+    if sub_queries:
+        full_query = f"""
+            SELECT d, AVG(avg_sec) as overall_avg
+            FROM ({' UNION ALL '.join(sub_queries)}) as combined
+            WHERE avg_sec IS NOT NULL
+            GROUP BY d
+        """
+        srows = (
+            _default_stat_rows(full_query, strict=True)
+            if strict
+            else _default_stat_rows(full_query)
+        )
+        for row in srows:
+            if row[1] is None:
+                continue
+            d = row[0] if isinstance(row[0], date) else date.fromisoformat(str(row[0])[:10])
+            per_day.setdefault(d, []).append(float(row[1]))
+
+    ms02_src = _ms02_source(ms02_rows)
+    if ms02_src:
+        tbl, exp, imp = ms02_src
+        ms02_sql = (
+            f"SELECT {exp}::date AS d, AVG(EXTRACT(EPOCH FROM ({exp} - {imp}))) "
+            f"FROM {tbl} "
+            f"WHERE {exp} >= CURRENT_DATE - {days - 1} "
+            f"AND {imp} IS NOT NULL AND {exp} > {imp} "
+            f"GROUP BY {exp}::date"
+        )
+        mrows = _ms02_stat_rows(ms02_sql, strict=True) if strict else _ms02_stat_rows(ms02_sql)
+        for row in mrows:
+            if row[1] is None:
+                continue
+            per_day.setdefault(row[0], []).append(float(row[1]))
+
+    return {d: sum(v) / len(v) for d, v in per_day.items()}
+
+
 def compute_avg_processing_time(target_processes, *, strict=False):
     """Session-free average processing-time computation shared by the dashboard
     KPI card (dashboard_avg_processing_time) and the external API v1
@@ -325,60 +391,11 @@ def compute_avg_processing_time(target_processes, *, strict=False):
     None if no matching rows exist. Per source, AVG(export - import) is taken
     across matching rows; the default-client and MS02 sources then contribute
     one average each, combined as a plain mean-of-means (NOT weighted by row
-    count) -- a source with 2000 rows counts the same as one with 2."""
-    configs = _statconfig_sources(target_processes)
-    default_configs, ms02_rows = _split_stat_configs(configs)
+    count) -- a source with 2000 rows counts the same as one with 2.
 
-    sub_queries = []
-    for row in default_configs:
-        if not row.import_column:
-            continue
-        condition = f" {row.extra_condition}" if row.extra_condition else ""
-        sub_queries.append(f"""
-            SELECT AVG(CAST(DATEDIFF(second, {row.import_column}, {row.export_column}) AS FLOAT)) as avg_sec
-            FROM [{DB_STATISTICS}].{row.table}
-            WHERE CAST({row.export_column} AS DATE) = CAST(GETDATE() AS DATE)
-            AND {row.import_column} IS NOT NULL
-            AND {row.export_column} > {row.import_column}
-            {condition}
-        """)
-
-    avg_values = []
-
-    if sub_queries:
-        full_query = f"""
-            SELECT AVG(avg_sec) as overall_avg
-            FROM ({' UNION ALL '.join(sub_queries)}) as combined
-            WHERE avg_sec IS NOT NULL
-        """
-        srows = (
-            _default_stat_rows(full_query, strict=True)
-            if strict
-            else _default_stat_rows(full_query)
-        )
-        if srows and srows[0][0] is not None:
-            avg_values.append(srows[0][0])
-
-    # MS02 contributes one client-level average (export - import seconds),
-    # weighted equally with the default bucket -- same mean-of-means the
-    # default path already applies across its processes.
-    ms02_src = _ms02_source(ms02_rows)
-    if ms02_src:
-        tbl, exp, imp = ms02_src
-        ms02_sql = (
-            f"SELECT AVG(EXTRACT(EPOCH FROM ({exp} - {imp}))) "
-            f"FROM {tbl} "
-            f"WHERE {exp}::date = CURRENT_DATE "
-            f"AND {imp} IS NOT NULL AND {exp} > {imp}"
-        )
-        mrows = _ms02_stat_rows(ms02_sql, strict=True) if strict else _ms02_stat_rows(ms02_sql)
-        if mrows and mrows[0][0] is not None:
-            avg_values.append(float(mrows[0][0]))
-
-    if not avg_values:
-        return None
-
-    return sum(avg_values) / len(avg_values)
+    Today's slice of _avg_processing_by_day -- one implementation, so the KPI
+    number and its sparkline can never disagree."""
+    return _avg_processing_by_day(target_processes, 1, strict=strict).get(datetime.now().date())
 
 
 def format_avg_processing_display(avg_sec):
