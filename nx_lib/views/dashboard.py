@@ -59,7 +59,18 @@ def _allowed_processes():
 
 
 def make_cache_key(*args, **kwargs):
-    return f"{request.path}_{session.get('userid')}_{session.get('process_name_dashboard','all')}_{session.get('tenant_scope','')}"
+    """Cache key for the range-aware JSON endpoints.
+
+    The resolved window is part of the key: without it ``?range=14`` and
+    ``?range=90`` would share one 300-second entry and the second range a user
+    clicks would silently serve the first one's data. Flask-Caching evaluates
+    ``key_prefix`` during request handling, so ``request.args`` is available."""
+    days = normalize_range(request.args.get("range") or session.get("dashboard_range"))
+    return (
+        f"{request.path}_{session.get('userid')}_"
+        f"{session.get('process_name_dashboard','all')}_"
+        f"{session.get('tenant_scope','')}_{days}"
+    )
 
 
 def _cacheable_response(rv):
@@ -631,6 +642,8 @@ def dashboard_processed_over_time():
     if not target_processes:
         return jsonify({"labels": [], "data": []})
 
+    days = normalize_range(request.args.get("range") or session.get("dashboard_range"))
+
     try:
         configs = _statconfig_sources(target_processes)
 
@@ -647,7 +660,7 @@ def dashboard_processed_over_time():
             sub_queries.append(f"""
                 SELECT {date_col} as d, COUNT(*) as c
                 FROM [{DB_STATISTICS}].{row.table}
-                WHERE {row.export_column} >= DATEADD(day, -14, GETDATE()) {condition}
+                WHERE {row.export_column} >= DATEADD(day, -{days - 1}, GETDATE()) {condition}
                 GROUP BY {date_col}
             """)
 
@@ -673,16 +686,17 @@ def dashboard_processed_over_time():
             for d, c in _ms02_stat_rows(
                 f"SELECT {exp}::date AS d, COUNT(*) AS c "
                 f"FROM {tbl} "
-                f"WHERE {exp} >= CURRENT_DATE - 14 "
+                f"WHERE {exp} >= CURRENT_DATE - {days - 1} "
                 f"GROUP BY {exp}::date"
             ):
                 counts[d] = counts.get(d, 0) + c
 
-        # Zero-fill the trailing 14-day window so a sparse client (e.g. a freshly
-        # onboarded MS02 with only today's rows) renders a continuous trend line
-        # instead of a single, invisible point — the chart was "showing only the date".
+        # Zero-fill the trailing ``days``-day window so a sparse client (e.g. a
+        # freshly onboarded MS02 with only today's rows) renders a continuous trend
+        # line instead of a single, invisible point — the chart was "showing only
+        # the date". The response always carries exactly ``days`` labels.
         today = datetime.now().date()
-        for i in range(15):
+        for i in range(days):
             counts.setdefault(today - timedelta(days=i), 0)
 
         sorted_dates = sorted(counts.keys())
@@ -701,7 +715,7 @@ def dashboard_processed_over_time():
 @require_permission("dashboard.view")
 @cache.cached(
     timeout=60,
-    key_prefix=lambda: f"kpi_stats_{session.get('userid')}_{session.get('process_name_dashboard','all')}_{session.get('tenant_scope','')}",  # type: ignore[arg-type]
+    key_prefix=lambda: f"kpi_stats_{session.get('userid')}_{session.get('process_name_dashboard','all')}_{session.get('tenant_scope','')}_{normalize_range(session.get('dashboard_range'))}",  # type: ignore[arg-type]
     response_filter=_cacheable_response,
 )
 def dashboard_kpi_stats():
@@ -777,7 +791,7 @@ def dashboard_kpi_stats():
 @require_permission("dashboard.view")
 @cache.cached(
     timeout=120,
-    key_prefix=lambda: f"hourly_stats_{session.get('userid')}_{session.get('process_name_dashboard','all')}_{session.get('tenant_scope','')}",  # type: ignore[arg-type]
+    key_prefix=lambda: f"hourly_stats_{session.get('userid')}_{session.get('process_name_dashboard','all')}_{session.get('tenant_scope','')}_{normalize_range(session.get('dashboard_range'))}",  # type: ignore[arg-type]
     response_filter=_cacheable_response,
 )
 def dashboard_hourly_stats():
@@ -847,7 +861,7 @@ def dashboard_hourly_stats():
 @require_permission("dashboard.view")
 @cache.cached(
     timeout=300,
-    key_prefix=lambda: f"avg_proc_time_{session.get('userid')}_{session.get('process_name_dashboard','all')}_{session.get('tenant_scope','')}",  # type: ignore[arg-type]
+    key_prefix=lambda: f"avg_proc_time_{session.get('userid')}_{session.get('process_name_dashboard','all')}_{session.get('tenant_scope','')}_{normalize_range(session.get('dashboard_range'))}",  # type: ignore[arg-type]
     response_filter=_cacheable_response,
 )
 def dashboard_avg_processing_time():
@@ -990,6 +1004,7 @@ def dashboard():
             logged_in_user=logged_in_user,
             userid=userid,
             process_name=process_name,
+            dash_range=normalize_range(session.get("dashboard_range")),
             allowed_processes=allowed_processes,
             dashboard_tenant=scoped_tenant,
             page_visibility=page_visibility(),
@@ -1010,7 +1025,18 @@ def dashboard_set_filter():
         request.json.get("process_name", "all"), allowed_processes
     )[0]
     session["process_name_dashboard"] = process_name
-    return jsonify({"ok": True, "process_name": process_name})
+    # ponytail: the range rides the session, like the process filter above it --
+    # not nx_lib/ui_prefs.py, which is the pre-paint appearance allowlist. Move
+    # it there if users ask for the choice to follow them across devices.
+    if "range" in (request.json or {}):
+        session["dashboard_range"] = normalize_range(request.json.get("range"))
+    return jsonify(
+        {
+            "ok": True,
+            "process_name": process_name,
+            "range": session.get("dashboard_range", RANGE_CHOICES[0]),
+        }
+    )
 
 
 # ----------------------------- recent activity ----------------------------- #

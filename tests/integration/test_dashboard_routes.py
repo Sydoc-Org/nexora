@@ -602,3 +602,35 @@ def test_avg_processing_time_carries_previous_day_and_series(user_client, monkey
     assert len(body["series"]) == 7
     assert body["series"][-1] == 60.0
     assert body["series"][0] is None  # no data that day -> a gap, not a zero
+
+
+def test_processed_over_time_honours_the_range_parameter(user_client, monkeypatch):
+    """?range= widens the zero-filled window; an unlisted value falls back to 14.
+
+    ``_split_stat_configs`` is faked to ([], []) so neither SQL leg runs and the
+    response is pure zero-fill -- the label count IS the window under test.
+    ``_statconfig_sources`` must stay truthy: an empty config list short-circuits
+    to {"labels": [], "data": []} before the window is ever built.
+    """
+    monkeypatch.setattr(dv, "_allowed_processes", lambda: ["c.p1"])
+    monkeypatch.setattr(dv, "_statconfig_sources", lambda tp: [object()])
+    monkeypatch.setattr(dv, "_split_stat_configs", lambda configs: ([], []))
+
+    body = user_client.get("/api/dashboard/processed_over_time?range=30").get_json()
+    assert len(body["labels"]) == 30
+
+    body = user_client.get("/api/dashboard/processed_over_time?range=7").get_json()
+    assert len(body["labels"]) == 14  # not an allowed choice -> default
+
+
+def test_set_filter_persists_the_range_in_the_session(user_client, monkeypatch):
+    monkeypatch.setattr(dv, "_allowed_processes", lambda: ["c.p1"])
+    monkeypatch.setattr(dv, "_statconfig_sources", lambda tp: [object()])
+    monkeypatch.setattr(dv, "_split_stat_configs", lambda configs: ([], []))
+
+    resp = user_client.post("/api/dashboard/set_filter", json={"process_name": "all", "range": 90})
+    assert resp.get_json()["range"] == 90
+
+    # the next request needs no ?range= to stay on 90 days
+    body = user_client.get("/api/dashboard/processed_over_time").get_json()
+    assert len(body["labels"]) == 90
