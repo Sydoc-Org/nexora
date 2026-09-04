@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-03 09:44+0200\n"
+"POT-Creation-Date: 2026-09-04 10:53+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -561,6 +561,16 @@ msgstr ""
 
 #: nx_lib/views/auth.py:984
 msgid "Unexpected error occurred"
+msgstr ""
+
+#: nx_lib/views/core.py:38 templates/_header.html:474
+#: templates/_small_footer.html:28
+msgid "Terms of Service"
+msgstr ""
+
+#: nx_lib/views/core.py:47 templates/_header.html:478
+#: templates/_small_footer.html:32
+msgid "Privacy Policy"
 msgstr ""
 
 #: nx_lib/views/admin/permissions.py:247 nx_lib/views/admin/permissions.py:559
@@ -1703,75 +1713,75 @@ msgstr ""
 msgid "What's New"
 msgstr ""
 
-#: templates/_header.html:474 templates/feedback.html:34
+#: templates/_header.html:482 templates/feedback.html:34
 #: templates/js/_header_js.html:59
 msgid "Feedback"
 msgstr ""
 
-#: templates/_header.html:481 templates/_header.html:551
-#: templates/_header.html:554
+#: templates/_header.html:489 templates/_header.html:559
+#: templates/_header.html:562
 msgid "Keyboard shortcuts"
 msgstr ""
 
-#: templates/_header.html:485 templates/_small_footer.html:28
+#: templates/_header.html:493 templates/_small_footer.html:36
 #: templates/reporting.html:86
 msgid "Help"
 msgstr ""
 
-#: templates/_header.html:491 templates/_header.html:533
+#: templates/_header.html:499 templates/_header.html:541
 msgid "Switch user"
 msgstr ""
 
-#: templates/_header.html:497 templates/js/_header_js.html:60
+#: templates/_header.html:505 templates/js/_header_js.html:60
 #: templates/profile.html:82
 msgid "Sign out"
 msgstr ""
 
-#: templates/_header.html:514
+#: templates/_header.html:522
 msgid "Command palette"
 msgstr ""
 
-#: templates/_header.html:518
+#: templates/_header.html:526
 msgid "Type a command or search..."
 msgstr ""
 
-#: templates/_header.html:523
+#: templates/_header.html:531
 msgid "navigate"
 msgstr ""
 
-#: templates/_header.html:524
+#: templates/_header.html:532
 msgid "open"
 msgstr ""
 
-#: templates/_header.html:525
+#: templates/_header.html:533
 msgid "close"
 msgstr ""
 
-#: templates/_header.html:537
+#: templates/_header.html:545
 msgid "Switch to user..."
 msgstr ""
 
-#: templates/_header.html:558
+#: templates/_header.html:566
 msgid "Global"
 msgstr ""
 
-#: templates/_header.html:560
+#: templates/_header.html:568
 msgid "Open command palette"
 msgstr ""
 
-#: templates/_header.html:564
+#: templates/_header.html:572
 msgid "Show this shortcuts overlay"
 msgstr ""
 
-#: templates/_header.html:568
+#: templates/_header.html:576
 msgid "Close the open dialog or panel"
 msgstr ""
 
-#: templates/_header.html:573
+#: templates/_header.html:581
 msgid "Document viewer"
 msgstr ""
 
-#: templates/_header.html:575
+#: templates/_header.html:583
 msgid "Previous / next document page"
 msgstr ""
 
@@ -4242,6 +4252,120 @@ msgstr ""
 
 #: templates/init_reset.html:125 templates/reset_password.html:125
 msgid "Confirm your new password"
+msgstr ""
+
+#: templates/legal.html:58
+msgid "Back to nexora"
+msgstr ""
+
+#: templates/legal.html:62
+msgid "Sydoc AG"
+msgstr ""
+
+#: templates/legal.html:70
+msgid "Draft — not yet in force."
+msgstr ""
+
+#: templates/legal.html:71
+msgid ""
+"This page is a skeleton prepared for legal review. The factual sections "
+"describing what the system stores were read from the application itself "
+"and are accurate; the wording, the legal bases, the retention periods and"
+" the contact details still have to be written and approved before this is"
+" published."
+msgstr ""
+
+#: templates/legal.html:76
+msgid "Who is responsible"
+msgstr ""
+
+#: templates/legal.html:79
+msgid "What nexora stores about you"
+msgstr ""
+
+#: templates/legal.html:80
+msgid ""
+"The following is read from the application and is factually accurate as "
+"of this release:"
+msgstr ""
+
+#: templates/legal.html:82
+msgid ""
+"Account details: name, username, e-mail address, organisation, language "
+"and interface preferences."
+msgstr ""
+
+#: templates/legal.html:83
+msgid "Sign-in security: a password hash and, where enabled, a two-factor secret."
+msgstr ""
+
+#: templates/legal.html:84
+msgid ""
+"Active sessions: a session identifier, your IP address, and the times the"
+" session was created and last used. These rows are deleted automatically "
+"eight days after last use."
+msgstr ""
+
+#: templates/legal.html:85
+msgid ""
+"Request log: for each page or API call, the time, the path, the method "
+"and the account that made it."
+msgstr ""
+
+#: templates/legal.html:86
+msgid ""
+"Business documents and their index fields, on behalf of the organisation "
+"whose data is being processed."
+msgstr ""
+
+#: templates/legal.html:89
+msgid "Why it is stored"
+msgstr ""
+
+#: templates/legal.html:92
+msgid "How long it is kept"
+msgstr ""
+
+#: templates/legal.html:93
+msgid ""
+"Session rows are removed eight days after last use. Everything else "
+"currently has no defined retention period."
+msgstr ""
+
+#: templates/legal.html:96
+msgid "Who it is shared with"
+msgstr ""
+
+#: templates/legal.html:99
+msgid "Your rights"
+msgstr ""
+
+#: templates/legal.html:102
+msgid "Scope"
+msgstr ""
+
+#: templates/legal.html:105
+msgid "Acceptable use"
+msgstr ""
+
+#: templates/legal.html:108
+msgid "Availability"
+msgstr ""
+
+#: templates/legal.html:111
+msgid "Confidentiality"
+msgstr ""
+
+#: templates/legal.html:114
+msgid "Liability"
+msgstr ""
+
+#: templates/legal.html:117
+msgid "Governing law"
+msgstr ""
+
+#: templates/legal.html:121
+msgid "Changes to this document"
 msgstr ""
 
 #: templates/maintenance.html:6

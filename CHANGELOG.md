@@ -28,6 +28,23 @@ Work toward the next release.
   `CONTRIBUTING.md` gains "Working in parallel" (the migration-number claim
   rule and the generated-file conflict hotspots) and "Releases".
 
+### Added
+
+- **Terms of Service and Privacy Policy pages** at `/terms` and `/privacy`,
+  linked from the user menu and from the footer that the login and 2FA
+  screens carry. Both are public on purpose: a privacy notice readable only
+  after signing in cannot inform the decision to sign in, and neither page
+  renders any user data.
+
+  **They ship as a skeleton for legal review, and say so prominently.** The
+  headings are the ones a Swiss DSG / GDPR text needs; the wording, legal
+  bases, retention periods and contact details are marked as outstanding.
+  What *is* written is factual and was read from the application: the
+  privacy page lists the account fields, the session row (identifier, IP,
+  timestamps, deleted after eight days per #227) and the per-request log.
+  Filling in the rest needs someone qualified to write it -- publishing
+  plausible-sounding legal text would be worse than publishing none.
+
 ## [3.2.4] - 2026-09-03
 
 ### Added

@@ -24,6 +24,14 @@
                 {{ _('Contact') }}
             </a>
 
+            <a href="{{ url_for('legal_terms') }}" class="text-sm text-gray-600 dark:text-slate-400 transition-colors duration-300 hover:text-indigo-600 dark:hover:text-indigo-400" data-testid="footer-terms">
+                {{ _('Terms of Service') }}
+            </a>
+
+            <a href="{{ url_for('legal_privacy') }}" class="text-sm text-gray-600 dark:text-slate-400 transition-colors duration-300 hover:text-indigo-600 dark:hover:text-indigo-400" data-testid="footer-privacy">
+                {{ _('Privacy Policy') }}
+            </a>
+
             <a href="mailto:support.helpdesk@sydoc.ch" class="text-sm text-gray-600 dark:text-slate-400 transition-colors duration-300 hover:text-indigo-600 dark:hover:text-indigo-400 " data-testid="footer-help">
                 {{ _('Help') }}
             </a>

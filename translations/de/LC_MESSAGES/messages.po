@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-03 09:44+0200\n"
+"POT-Creation-Date: 2026-09-04 10:53+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -697,6 +697,16 @@ msgstr ""
 #: nx_lib/views/auth.py:984
 msgid "Unexpected error occurred"
 msgstr "Ein unerwarteter Fehler ist aufgetreten"
+
+#: nx_lib/views/core.py:38 templates/_header.html:474
+#: templates/_small_footer.html:28
+msgid "Terms of Service"
+msgstr "Nutzungsbedingungen"
+
+#: nx_lib/views/core.py:47 templates/_header.html:478
+#: templates/_small_footer.html:32
+msgid "Privacy Policy"
+msgstr "Datenschutzerklärung"
 
 #: nx_lib/views/admin/permissions.py:247 nx_lib/views/admin/permissions.py:559
 #: nx_lib/views/admin/permissions.py:601 nx_lib/views/admin/permissions.py:646
@@ -1895,75 +1905,75 @@ msgstr "Darstellung"
 msgid "What's New"
 msgstr "Neuigkeiten"
 
-#: templates/_header.html:474 templates/feedback.html:34
+#: templates/_header.html:482 templates/feedback.html:34
 #: templates/js/_header_js.html:59
 msgid "Feedback"
 msgstr "Feedback"
 
-#: templates/_header.html:481 templates/_header.html:551
-#: templates/_header.html:554
+#: templates/_header.html:489 templates/_header.html:559
+#: templates/_header.html:562
 msgid "Keyboard shortcuts"
 msgstr "Tastenkombinationen"
 
-#: templates/_header.html:485 templates/_small_footer.html:28
+#: templates/_header.html:493 templates/_small_footer.html:36
 #: templates/reporting.html:86
 msgid "Help"
 msgstr "Hilfe"
 
-#: templates/_header.html:491 templates/_header.html:533
+#: templates/_header.html:499 templates/_header.html:541
 msgid "Switch user"
 msgstr "Benutzer wechseln"
 
-#: templates/_header.html:497 templates/js/_header_js.html:60
+#: templates/_header.html:505 templates/js/_header_js.html:60
 #: templates/profile.html:82
 msgid "Sign out"
 msgstr "Abmelden"
 
-#: templates/_header.html:514
+#: templates/_header.html:522
 msgid "Command palette"
 msgstr "Befehlspalette"
 
-#: templates/_header.html:518
+#: templates/_header.html:526
 msgid "Type a command or search..."
 msgstr "Befehl eingeben oder suchen..."
 
-#: templates/_header.html:523
+#: templates/_header.html:531
 msgid "navigate"
 msgstr "navigieren"
 
-#: templates/_header.html:524
+#: templates/_header.html:532
 msgid "open"
 msgstr "öffnen"
 
-#: templates/_header.html:525
+#: templates/_header.html:533
 msgid "close"
 msgstr "schließen"
 
-#: templates/_header.html:537
+#: templates/_header.html:545
 msgid "Switch to user..."
 msgstr "Zu Benutzer wechseln ..."
 
-#: templates/_header.html:558
+#: templates/_header.html:566
 msgid "Global"
 msgstr "Global"
 
-#: templates/_header.html:560
+#: templates/_header.html:568
 msgid "Open command palette"
 msgstr "Befehlspalette öffnen"
 
-#: templates/_header.html:564
+#: templates/_header.html:572
 msgid "Show this shortcuts overlay"
 msgstr "Diese Übersicht anzeigen"
 
-#: templates/_header.html:568
+#: templates/_header.html:576
 msgid "Close the open dialog or panel"
 msgstr "Das offene Dialogfeld oder Panel schließen"
 
-#: templates/_header.html:573
+#: templates/_header.html:581
 msgid "Document viewer"
 msgstr "Dokumentanzeige"
 
-#: templates/_header.html:575
+#: templates/_header.html:583
 msgid "Previous / next document page"
 msgstr "Vorherige / nächste Dokumentseite"
 
@@ -4676,6 +4686,120 @@ msgstr "Neues Passwort bestätigen"
 #: templates/init_reset.html:125 templates/reset_password.html:125
 msgid "Confirm your new password"
 msgstr "Neues Passwort bestätigen"
+
+#: templates/legal.html:58
+msgid "Back to nexora"
+msgstr "Zurück zu nexora"
+
+#: templates/legal.html:62
+msgid "Sydoc AG"
+msgstr "Sydoc AG"
+
+#: templates/legal.html:70
+msgid "Draft — not yet in force."
+msgstr "Entwurf – noch nicht in Kraft."
+
+#: templates/legal.html:71
+msgid ""
+"This page is a skeleton prepared for legal review. The factual sections "
+"describing what the system stores were read from the application itself "
+"and are accurate; the wording, the legal bases, the retention periods and"
+" the contact details still have to be written and approved before this is"
+" published."
+msgstr "Diese Seite ist ein Gerüst für die rechtliche Prüfung. Die Abschnitte, die beschreiben, was das System speichert, wurden aus der Anwendung selbst ausgelesen und sind zutreffend; Formulierung, Rechtsgrundlagen, Aufbewahrungsfristen und Kontaktangaben müssen vor der Veröffentlichung noch verfasst und freigegeben werden."
+
+#: templates/legal.html:76
+msgid "Who is responsible"
+msgstr "Verantwortliche Stelle"
+
+#: templates/legal.html:79
+msgid "What nexora stores about you"
+msgstr "Was nexora über Sie speichert"
+
+#: templates/legal.html:80
+msgid ""
+"The following is read from the application and is factually accurate as "
+"of this release:"
+msgstr "Das Folgende wurde aus der Anwendung ausgelesen und ist für diese Version zutreffend:"
+
+#: templates/legal.html:82
+msgid ""
+"Account details: name, username, e-mail address, organisation, language "
+"and interface preferences."
+msgstr "Kontodaten: Name, Benutzername, E-Mail-Adresse, Organisation, Sprache und Oberflächeneinstellungen."
+
+#: templates/legal.html:83
+msgid "Sign-in security: a password hash and, where enabled, a two-factor secret."
+msgstr "Anmeldesicherheit: ein Passwort-Hash und, sofern aktiviert, ein Zwei-Faktor-Schlüssel."
+
+#: templates/legal.html:84
+msgid ""
+"Active sessions: a session identifier, your IP address, and the times the"
+" session was created and last used. These rows are deleted automatically "
+"eight days after last use."
+msgstr "Aktive Sitzungen: eine Sitzungskennung, Ihre IP-Adresse sowie die Zeitpunkte, zu denen die Sitzung erstellt und zuletzt genutzt wurde. Diese Einträge werden acht Tage nach der letzten Nutzung automatisch gelöscht."
+
+#: templates/legal.html:85
+msgid ""
+"Request log: for each page or API call, the time, the path, the method "
+"and the account that made it."
+msgstr "Zugriffsprotokoll: für jeden Seiten- oder API-Aufruf Zeitpunkt, Pfad, Methode und das ausführende Konto."
+
+#: templates/legal.html:86
+msgid ""
+"Business documents and their index fields, on behalf of the organisation "
+"whose data is being processed."
+msgstr "Geschäftsdokumente und ihre Indexfelder, im Auftrag der Organisation, deren Daten verarbeitet werden."
+
+#: templates/legal.html:89
+msgid "Why it is stored"
+msgstr "Warum es gespeichert wird"
+
+#: templates/legal.html:92
+msgid "How long it is kept"
+msgstr "Wie lange es aufbewahrt wird"
+
+#: templates/legal.html:93
+msgid ""
+"Session rows are removed eight days after last use. Everything else "
+"currently has no defined retention period."
+msgstr "Sitzungseinträge werden acht Tage nach der letzten Nutzung entfernt. Für alles Übrige ist derzeit keine Aufbewahrungsfrist festgelegt."
+
+#: templates/legal.html:96
+msgid "Who it is shared with"
+msgstr "An wen die Daten weitergegeben werden"
+
+#: templates/legal.html:99
+msgid "Your rights"
+msgstr "Ihre Rechte"
+
+#: templates/legal.html:102
+msgid "Scope"
+msgstr "Geltungsbereich"
+
+#: templates/legal.html:105
+msgid "Acceptable use"
+msgstr "Zulässige Nutzung"
+
+#: templates/legal.html:108
+msgid "Availability"
+msgstr "Verfügbarkeit"
+
+#: templates/legal.html:111
+msgid "Confidentiality"
+msgstr "Vertraulichkeit"
+
+#: templates/legal.html:114
+msgid "Liability"
+msgstr "Haftung"
+
+#: templates/legal.html:117
+msgid "Governing law"
+msgstr "Anwendbares Recht"
+
+#: templates/legal.html:121
+msgid "Changes to this document"
+msgstr "Änderungen an diesem Dokument"
 
 #: templates/maintenance.html:6
 msgid "Maintenance - nexora"
@@ -9775,4 +9899,71 @@ msgstr "Bis"
 
 #~ msgid "View in workitems"
 #~ msgstr "In Workitems öffnen"
+
+#~ msgid ""
+#~ "To be completed: legal entity, address,"
+#~ " and the contact point for data-"
+#~ "protection questions."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "To be completed: the purpose and "
+#~ "legal basis for each category above. "
+#~ "Note that the request log and the"
+#~ " IP addresses in the session table"
+#~ " currently have no stated purpose or"
+#~ " retention period."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "To be completed: a retention period "
+#~ "for the request log, for document "
+#~ "data, and for closed accounts."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "To be completed: sub-processors and "
+#~ "hosting, including Microsoft Graph for "
+#~ "mail and any cloud database regions "
+#~ "used."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "To be completed: access, correction, "
+#~ "deletion and objection, and how to "
+#~ "exercise them."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "To be completed: who may use "
+#~ "nexora, and on whose authority an "
+#~ "account is issued."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "To be completed: permitted use, account"
+#~ " sharing, and what happens to an "
+#~ "account on misuse."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "To be completed: any uptime commitment,"
+#~ " planned maintenance, and how outages "
+#~ "are communicated."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "To be completed: obligations covering "
+#~ "the documents and data visible through"
+#~ " the platform."
+#~ msgstr ""
+
+#~ msgid "To be completed: limitation of liability."
+#~ msgstr ""
+
+#~ msgid "To be completed: applicable law and place of jurisdiction."
+#~ msgstr ""
+
+#~ msgid "To be completed: how changes are announced and when they take effect."
+#~ msgstr ""
 

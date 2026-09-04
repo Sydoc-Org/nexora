@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale }}">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{{ page_title }} - nexora</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous">
+    <link rel="icon" type="image/x-icon" href="{{ static_v('images/favicon.ico') }}">
+    <link rel="stylesheet" href="{{ static_v('css/nexora-ui.css') }}">
+    {# Theme only, and deliberately not the full prefs pre-paint: this page is
+       reachable signed out, so the server has no prefs to hand over, and the
+       localStorage mirror _header.html writes is the only source. Dark/light
+       decides whether the text is readable; the accent has almost no surface
+       on a page that is prose and one back-link, so the 40 lines of accent
+       derivation would be copied for nothing. Same keys and same fallback
+       order as hero.html. #}
+    <script nonce="{{ csp_nonce() }}">
+        (function () {
+            try {
+                var ls = function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } };
+                var stored = {};
+                try { stored = JSON.parse(ls('nexora-ui-prefs')) || {}; } catch (e) {}
+                var theme = stored.theme || (ls('nexora-theme') === 'dark' ? 'dark' : 'light');
+                if (theme === 'dark' ||
+                    (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                    document.documentElement.classList.add('dark');
+                }
+            } catch (e) {}
+        })();
+    </script>
+    <style>
+        body { background: var(--nx-page); color: var(--nx-text); font-family: var(--nx-font); }
+        .legal-wrap { max-width: 46rem; margin: 0 auto; padding: 3rem 1.5rem 4rem; }
+        .legal-wrap h1 { font-size: 1.75rem; font-weight: 600; letter-spacing: -0.3px; margin: 0 0 0.5rem; }
+        .legal-wrap h2 { font-size: 1.05rem; font-weight: 600; margin: 2rem 0 0.6rem; }
+        .legal-wrap p, .legal-wrap li { font-size: 0.9rem; line-height: 1.65; color: var(--nx-text-sec); }
+        .legal-wrap ul { padding-left: 1.15rem; }
+        .legal-wrap li { margin-bottom: 0.35rem; }
+        .legal-meta { font-size: 0.8rem; color: var(--nx-text-meta); margin: 0 0 2rem; }
+        .legal-todo { background: var(--nx-l-amber); border: 1px solid var(--nx-l-amber-fg);
+                      border-radius: var(--nx-radius); padding: 1rem 1.15rem; margin: 0 0 2rem; }
+        .legal-todo p { color: var(--nx-l-amber-fg); margin: 0; font-size: 0.875rem; }
+        .legal-todo strong { font-weight: 600; }
+        .legal-gap { border-left: 3px solid var(--nx-border-strong); padding: 0.15rem 0 0.15rem 0.9rem;
+                     margin: 0.75rem 0; color: var(--nx-text-meta); font-style: italic; font-size: 0.85rem; }
+        .legal-back { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem;
+                      color: var(--nx-accent); text-decoration: none; margin-bottom: 1.5rem; }
+        .legal-back:hover { color: var(--nx-accent-hover); }
+    </style>
+</head>
+
+<body class="nx-app">
+    <div class="legal-wrap">
+        <a href="{{ url_for('index') }}" class="legal-back" data-testid="legal-back">
+            <i class="fas fa-arrow-left"></i>{{ _('Back to nexora') }}
+        </a>
+
+        <h1>{{ page_title }}</h1>
+        <p class="legal-meta">{{ _('Sydoc AG') }}</p>
+
+        {# Deliberately prominent and deliberately not styled as fine print. This
+           document is a skeleton: the headings are the ones a Swiss DSG / GDPR
+           text needs, and the factual sections below were read off the schema,
+           but nothing here has been reviewed by anyone qualified to write it. #}
+        <div class="legal-todo" data-testid="legal-draft-notice">
+            <p>
+                <strong>{{ _('Draft — not yet in force.') }}</strong>
+                {{ _('This page is a skeleton prepared for legal review. The factual sections describing what the system stores were read from the application itself and are accurate; the wording, the legal bases, the retention periods and the contact details still have to be written and approved before this is published.') }}
+            </p>
+        </div>
+
+        {% if doc == 'privacy' %}
+            <h2>{{ _('Who is responsible') }}</h2>
+            <div class="legal-gap">To be completed: legal entity, address, and the contact point for data-protection questions.</div>
+
+            <h2>{{ _('What nexora stores about you') }}</h2>
+            <p>{{ _('The following is read from the application and is factually accurate as of this release:') }}</p>
+            <ul>
+                <li>{{ _('Account details: name, username, e-mail address, organisation, language and interface preferences.') }}</li>
+                <li>{{ _('Sign-in security: a password hash and, where enabled, a two-factor secret.') }}</li>
+                <li>{{ _('Active sessions: a session identifier, your IP address, and the times the session was created and last used. These rows are deleted automatically eight days after last use.') }}</li>
+                <li>{{ _('Request log: for each page or API call, the time, the path, the method and the account that made it.') }}</li>
+                <li>{{ _('Business documents and their index fields, on behalf of the organisation whose data is being processed.') }}</li>
+            </ul>
+
+            <h2>{{ _('Why it is stored') }}</h2>
+            <div class="legal-gap">To be completed: the purpose and legal basis for each category above. Note that the request log and the IP addresses in the session table currently have no stated purpose or retention period.</div>
+
+            <h2>{{ _('How long it is kept') }}</h2>
+            <p>{{ _('Session rows are removed eight days after last use. Everything else currently has no defined retention period.') }}</p>
+            <div class="legal-gap">To be completed: a retention period for the request log, for document data, and for closed accounts.</div>
+
+            <h2>{{ _('Who it is shared with') }}</h2>
+            <div class="legal-gap">To be completed: sub-processors and hosting, including Microsoft Graph for mail and any cloud database regions used.</div>
+
+            <h2>{{ _('Your rights') }}</h2>
+            <div class="legal-gap">To be completed: access, correction, deletion and objection, and how to exercise them.</div>
+        {% else %}
+            <h2>{{ _('Scope') }}</h2>
+            <div class="legal-gap">To be completed: who may use nexora, and on whose authority an account is issued.</div>
+
+            <h2>{{ _('Acceptable use') }}</h2>
+            <div class="legal-gap">To be completed: permitted use, account sharing, and what happens to an account on misuse.</div>
+
+            <h2>{{ _('Availability') }}</h2>
+            <div class="legal-gap">To be completed: any uptime commitment, planned maintenance, and how outages are communicated.</div>
+
+            <h2>{{ _('Confidentiality') }}</h2>
+            <div class="legal-gap">To be completed: obligations covering the documents and data visible through the platform.</div>
+
+            <h2>{{ _('Liability') }}</h2>
+            <div class="legal-gap">To be completed: limitation of liability.</div>
+
+            <h2>{{ _('Governing law') }}</h2>
+            <div class="legal-gap">To be completed: applicable law and place of jurisdiction.</div>
+        {% endif %}
+
+        <h2>{{ _('Changes to this document') }}</h2>
+        <div class="legal-gap">To be completed: how changes are announced and when they take effect.</div>
+    </div>
+
+    {% include '_small_footer.html' %}
+</body>
+
+</html>

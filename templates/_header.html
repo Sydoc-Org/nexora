@@ -469,6 +469,14 @@
                         <i class="fas fa-bullhorn w-4"></i> {{ _("What's New") }}
                         {% if whats_new_unseen %}<span class="ml-auto w-2 h-2 rounded-full bg-rose-500" data-testid="header-whatsnew-dot"></span>{% endif %}
                     </a>
+                    <a href="{{ url_for('legal_terms') }}"
+                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-slate-300 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-[var(--nx-accent)] transition-colors" data-testid="header-terms-link">
+                        <i class="fas fa-file-contract w-4"></i> {{ _('Terms of Service') }}
+                    </a>
+                    <a href="{{ url_for('legal_privacy') }}"
+                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-slate-300 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-[var(--nx-accent)] transition-colors" data-testid="header-privacy-link">
+                        <i class="fas fa-user-shield w-4"></i> {{ _('Privacy Policy') }}
+                    </a>
                     <a href="{{ url_for('feedback', from=request.path) }}"
                         class="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-slate-300 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-[var(--nx-accent)] transition-colors" data-testid="header-feedback-link">
                         <i class="fas fa-comment-dots w-4"></i> {{ _("Feedback") }}
