@@ -12,6 +12,16 @@
        collapses out of its flex layout. Same CDN the other standalone pages
        use (hero.html, verify_2fa.html). #}
     <script src="https://cdn.tailwindcss.com"></script>
+    {# Must come AFTER the CDN script -- setting tailwind.config before it is
+       silently discarded (see the same note in hero.html). Without
+       darkMode:'class', Tailwind defaults to 'media', so every dark: utility
+       follows the OS prefers-color-scheme instead of this page's .dark class:
+       on a machine with a dark OS theme the footer logo's
+       `dark:brightness-0 dark:invert` fires while the page is still light,
+       and the logo renders inverted on a white background. #}
+    <script nonce="{{ csp_nonce() }}">
+        tailwind.config = { darkMode: 'class' };
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha384-blOohCVdhjmtROpu8+CfTnUWham9nkX7P7OZQMst+RUnhtoY/9qemFAkIKOYxDI3" crossorigin="anonymous">
     <link rel="icon" type="image/x-icon" href="{{ static_v('images/favicon.ico') }}">
