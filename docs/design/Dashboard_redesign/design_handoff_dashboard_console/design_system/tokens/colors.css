@@ -1,0 +1,59 @@
+/* Colors — lifted verbatim from nexora/static/css/nexora-ui.css (:root).
+   Base values first, semantic aliases at the bottom. */
+:root {
+  /* Surfaces */
+  --nx-page:        #f9fafb;
+  --nx-card:        #ffffff;
+  --nx-alt:         #f9fafb;   /* table head, row hover, insets */
+  --nx-sunken:      #f3f4f6;
+
+  /* Lines */
+  --nx-border:        #e5e7eb;
+  --nx-border-strong: #d1d5db;
+  --nx-divider:       #f3f4f6;
+
+  /* Text */
+  --nx-text:      #1f2937;
+  --nx-text-sec:  #6b7280;
+  --nx-text-meta: #9ca3af;
+
+  /* Accent — the slim system ships amber as the default operations accent.
+     Indigo remains available as html[data-accent="indigo"]. */
+  --nx-accent:        #d97706;
+  --nx-accent-hover:  #b45309;
+  --nx-accent-soft:   rgba(217,119,6,0.12);
+  --nx-accent-tint:   #fef7ed;
+  --nx-violet:        #ea580c;
+  --nx-brand-grad:    linear-gradient(135deg, #d97706 0%, #ea580c 100%);
+
+  /* Status */
+  --nx-success: #059669;
+  --nx-warning: #d97706;
+  --nx-danger:  #dc2626;
+
+  /* Label pastels (bg / fg pairs) */
+  --nx-l-indigo: #eef2ff;  --nx-l-indigo-fg: #4338ca;
+  --nx-l-green:  #d1fae5;  --nx-l-green-fg:  #065f46;
+  --nx-l-amber:  #fef3c7;  --nx-l-amber-fg:  #92400e;
+  --nx-l-red:    #fee2e2;  --nx-l-red-fg:    #991b1b;
+  --nx-l-gray:   #f3f4f6;  --nx-l-gray-fg:   #4b5563;
+  --nx-l-blue:   #dbeafe;  --nx-l-blue-fg:   #1e40af;
+
+  /* Chart series — 4 hues that stay separable at 1.5px stroke and in dark mode */
+  --nx-series-1: #d97706;
+  --nx-series-2: #7c3aed;
+  --nx-series-3: #0891b2;
+  --nx-series-4: #db2777;
+  --nx-series-5: #059669;
+
+  /* Semantic aliases — prefer these in new work */
+  --surface-page:   var(--nx-page);
+  --surface-raised: var(--nx-card);   /* menus, modals, sheets only */
+  --surface-inset:  var(--nx-sunken);
+  --rule:           var(--nx-border);  /* section separators */
+  --hairline:       var(--nx-divider); /* inside a group: KPI cells, rows */
+  --text-body:      var(--nx-text);
+  --text-sec:       var(--nx-text-sec);
+  --text-meta:      var(--nx-text-meta);
+  --text-accent:    var(--nx-accent-hover);
+}
