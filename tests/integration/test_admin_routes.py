@@ -2353,6 +2353,50 @@ def test_save_access_profile_missing_body(admin_client, admin_all_perms):
     assert resp.status_code in (200, 400, 500)
 
 
+def test_save_access_profile_stores_only_allow_rows(admin_client, admin_all_perms, db_conn):
+    """Profile grants are allow-only rows (#238 Task 4): a 'D' entry in the
+    save payload must simply not be persisted, not stored as a deny row."""
+    from sqlalchemy import text
+
+    access_id = db_conn.execute(
+        text("SELECT AccessID FROM dbo.AccessProfile WHERE Name = 'TestNoPerm'")
+    ).scalar()
+    api_docs, jd = (
+        row[0]
+        for row in db_conn.execute(
+            text(
+                "SELECT PermissionID FROM dbo.Permission WHERE Code IN "
+                "('jd.view', 'api.docs.view') ORDER BY Code"
+            )
+        ).fetchall()
+    )
+    try:
+        resp = admin_client.post(
+            "/api/admin/access_profile/save",
+            json={
+                "accessId": access_id,
+                "name": "TestNoPerm",
+                "description": "Test no-permission profile",
+                "permissions": [
+                    {"PermissionID": jd, "Effect": "A"},
+                    {"PermissionID": api_docs, "Effect": "D"},
+                ],
+            },
+        )
+        assert resp.status_code == 200
+        remaining = db_conn.execute(
+            text("SELECT PermissionID FROM dbo.AccessProfilePermission WHERE AccessID = :aid"),
+            {"aid": access_id},
+        ).fetchall()
+        assert [row[0] for row in remaining] == [jd]
+    finally:
+        db_conn.execute(
+            text("DELETE FROM dbo.AccessProfilePermission WHERE AccessID = :aid"),
+            {"aid": access_id},
+        )
+        db_conn.commit()
+
+
 def test_get_user_overrides_seeded(admin_client, admin_all_perms, db_conn):
     from sqlalchemy import text
 

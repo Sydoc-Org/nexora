@@ -177,7 +177,7 @@ def api_admin_permission_holders(permission_id):
         cursor.execute(
             """
             SELECT u.userID, u.username, u.Fullname, u.organizationCode, o.organization,
-                   ap_perm.Effect AS ProfileEffect,
+                   CASE WHEN ap_perm.PermissionID IS NULL THEN NULL ELSE 'A' END AS ProfileEffect,
                    uo.Effect      AS OverrideEffect
             FROM Users u
             LEFT JOIN Organizations o ON o.organizationcode = u.organizationCode
@@ -302,7 +302,7 @@ def get_profile_details(access_id):
         cursor = conn.cursor()
         cursor.execute(
             """
-            SELECT PermissionID, Effect
+            SELECT PermissionID, 'A' AS Effect
             FROM AccessProfilePermission
             WHERE AccessID = ?
             """,
@@ -354,11 +354,12 @@ def save_access_profile():
             access_id = inserted[0]
 
         if permissions:
-            params = [(access_id, p["PermissionID"], p["Effect"]) for p in permissions]
-            cursor.executemany(
-                "INSERT INTO AccessProfilePermission (AccessID, PermissionID, Effect) VALUES (?, ?, ?)",
-                params,
-            )
+            params = [(access_id, p["PermissionID"]) for p in permissions if p.get("Effect") == "A"]
+            if params:
+                cursor.executemany(
+                    "INSERT INTO AccessProfilePermission (AccessID, PermissionID) VALUES (?, ?)",
+                    params,
+                )
         conn.commit()
         session["permissions"] = load_permissions_for_user(session["userid"])
         return jsonify({"success": True, "message": _("Profile saved successfully")})
@@ -391,7 +392,7 @@ def get_user_overrides(user_id):
         base_perms = {}
         if base_access_id:
             cursor.execute(
-                "SELECT PermissionID, Effect FROM AccessProfilePermission WHERE AccessID = ?",
+                "SELECT PermissionID, 'A' AS Effect FROM AccessProfilePermission WHERE AccessID = ?",
                 (base_access_id,),
             )
             base_perms = {row.PermissionID: row.Effect for row in cursor.fetchall()}
@@ -438,7 +439,7 @@ def api_admin_user_effective_permissions(user_id):
         cursor.execute(
             """
             SELECT p.PermissionID, p.Code, p.Description,
-                   ap_perm.Effect AS ProfileEffect,
+                   CASE WHEN ap_perm.PermissionID IS NULL THEN NULL ELSE 'A' END AS ProfileEffect,
                    uo.Effect      AS OverrideEffect
             FROM Permission p
             LEFT JOIN AccessProfilePermission ap_perm
@@ -614,7 +615,7 @@ def api_admin_permission_users(perm_id):
                 ap.Name AS AccessProfileName,
                 CAST(dbo.fnUserHasPermission(u.userID, ?) AS INT) AS HasPermission,
                 upo.Effect AS OverrideEffect,
-                app.Effect AS ProfileEffect
+                CASE WHEN app.PermissionID IS NULL THEN NULL ELSE 'A' END AS ProfileEffect
             FROM Users u
             LEFT JOIN AccessProfile ap ON ap.AccessID = u.accessID
             LEFT JOIN UserPermissionOverride upo ON upo.UserID = u.userID AND upo.PermissionID = ?
@@ -653,7 +654,7 @@ def api_admin_user_all_permissions(user_id):
                 p.PermissionID, p.Code, p.Description,
                 CAST(dbo.fnUserHasPermission(?, p.Code) AS INT) AS IsEffective,
                 upo.Effect AS OverrideEffect,
-                app.Effect AS ProfileEffect
+                CASE WHEN app.PermissionID IS NULL THEN NULL ELSE 'A' END AS ProfileEffect
             FROM Permission p
             LEFT JOIN Users u ON u.userID = ?
             LEFT JOIN UserPermissionOverride upo ON upo.UserID = ? AND upo.PermissionID = p.PermissionID
