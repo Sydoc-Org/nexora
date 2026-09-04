@@ -345,9 +345,29 @@ def save_access_profile():
             )
             cursor.execute("DELETE FROM AccessProfilePermission WHERE AccessID=?", (access_id,))
         else:
+            # A new profile's Rank must default to the creating actor's own
+            # Rank, not the column's DEFAULT 0 (#238 Phase 1 review finding):
+            # since assignable_profile_ids() treats Rank<=own-Rank as
+            # assignable, a Rank-0 profile would be assignable by every
+            # profiled actor, including one just granted powerful
+            # permissions. Self-limiting per spec D5 -- an actor can never
+            # create a profile ranked above their own. Fails closed to 0
+            # only if the actor genuinely has no profile of their own; a
+            # lookup problem here must not block profile creation.
             cursor.execute(
-                "INSERT INTO AccessProfile (Name, Description) OUTPUT INSERTED.AccessID VALUES (?, ?)",
-                (name, description),
+                """
+                SELECT ISNULL(MAX(me.Rank), 0)
+                FROM dbo.Users u JOIN dbo.AccessProfile me ON me.AccessID = u.accessid
+                WHERE u.userID = ?
+                """,
+                (session.get("userid"),),
+            )
+            rank_row = cursor.fetchone()
+            creator_rank = rank_row[0] if rank_row and rank_row[0] is not None else 0
+            cursor.execute(
+                "INSERT INTO AccessProfile (Name, Description, Rank) "
+                "OUTPUT INSERTED.AccessID VALUES (?, ?, ?)",
+                (name, description, creator_rank),
             )
             inserted = cursor.fetchone()
             assert inserted is not None  # INSERT ... OUTPUT always returns the new row

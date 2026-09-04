@@ -2397,6 +2397,56 @@ def test_save_access_profile_stores_only_allow_rows(admin_client, admin_all_perm
         db_conn.commit()
 
 
+def test_save_access_profile_new_profile_inherits_creator_rank(
+    admin_client, admin_all_perms, db_conn
+):
+    """#238 Phase 1 review finding: a brand-new profile (no accessId in the
+    save payload) must inherit the creating actor's own Rank rather than
+    fall through to the AccessProfile.Rank column default of 0. A Rank-0
+    profile is assignable by every profiled actor per
+    security.assignable_profile_ids() -- strictly weaker than the deleted
+    admin.assign.user.accessprofile.* codes it replaced."""
+    from sqlalchemy import text
+
+    creator_rank = db_conn.execute(
+        text(
+            "SELECT ap.Rank FROM dbo.Users u "
+            "JOIN dbo.AccessProfile ap ON ap.AccessID = u.accessid "
+            "WHERE u.username = 'admin@test.local'"
+        )
+    ).scalar()
+    assert creator_rank == 100  # seeded TestAdmin profile Rank (sql/test/seed.sql)
+
+    name = f"task-rank-inherit-{uuid.uuid4().hex[:8]}"
+    access_id = None
+    try:
+        resp = admin_client.post(
+            "/api/admin/access_profile/save",
+            json={"name": name, "description": "probe for creator-rank inheritance"},
+        )
+        assert resp.status_code == 200
+
+        row = db_conn.execute(
+            text("SELECT AccessID, Rank FROM dbo.AccessProfile WHERE Name = :name"),
+            {"name": name},
+        ).fetchone()
+        assert row is not None
+        access_id, rank = row
+        assert rank == creator_rank
+        assert rank != 0
+    finally:
+        if access_id is not None:
+            db_conn.execute(
+                text("DELETE FROM dbo.AccessProfilePermission WHERE AccessID = :aid"),
+                {"aid": access_id},
+            )
+            db_conn.execute(
+                text("DELETE FROM dbo.AccessProfile WHERE AccessID = :aid"),
+                {"aid": access_id},
+            )
+            db_conn.commit()
+
+
 def test_get_user_overrides_seeded(admin_client, admin_all_perms, db_conn):
     from sqlalchemy import text
 
