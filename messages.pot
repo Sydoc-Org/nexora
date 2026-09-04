@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-04 09:25+0200\n"
+"POT-Creation-Date: 2026-09-04 15:00+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -3287,31 +3287,27 @@ msgstr ""
 msgid "Reset"
 msgstr ""
 
-#: templates/generali-dashboard.html:108
-msgid "Total Documents"
-msgstr ""
-
-#: templates/generali-dashboard.html:115
+#: templates/generali-dashboard.html:100
 msgid "NK1 Pass Rate"
 msgstr ""
 
-#: templates/generali-dashboard.html:122
+#: templates/generali-dashboard.html:107
 msgid "NK2 Pass Rate"
 msgstr ""
 
-#: templates/generali-dashboard.html:129
+#: templates/generali-dashboard.html:114
 msgid "NK1 & NK2 Pass Rate"
 msgstr ""
 
-#: templates/generali-dashboard.html:136
+#: templates/generali-dashboard.html:121
 msgid "Avg Daily Documents"
 msgstr ""
 
-#: templates/generali-dashboard.html:147
+#: templates/generali-dashboard.html:132
 msgid "Daily Processing Volume"
 msgstr ""
 
-#: templates/generali-dashboard.html:151 templates/generali_documents.html:36
+#: templates/generali-dashboard.html:136 templates/generali_documents.html:36
 #: templates/js/_generali_dashboard_js.html:25
 #: templates/js/_reporting_dashboard_js.html:33
 #: templates/js/_reporting_js.html:50
@@ -3321,40 +3317,40 @@ msgstr ""
 msgid "Total"
 msgstr ""
 
-#: templates/generali-dashboard.html:154
+#: templates/generali-dashboard.html:139
 #: templates/js/_generali_dashboard_js.html:26
 msgid "Expected"
 msgstr ""
 
-#: templates/generali-dashboard.html:158
+#: templates/generali-dashboard.html:143
 msgid "Kommunikation"
 msgstr ""
 
-#: templates/generali-dashboard.html:164 templates/workitems_overview.html:391
+#: templates/generali-dashboard.html:149 templates/workitems_overview.html:391
 msgid "Select all"
 msgstr ""
 
-#: templates/admin/organizations.html:72 templates/generali-dashboard.html:165
+#: templates/admin/organizations.html:72 templates/generali-dashboard.html:150
 msgid "Clear"
 msgstr ""
 
-#: templates/generali-dashboard.html:176
+#: templates/generali-dashboard.html:161
 msgid "Document Type Distribution"
 msgstr ""
 
-#: templates/generali-dashboard.html:186
+#: templates/generali-dashboard.html:171
 msgid "Recipient Distribution"
 msgstr ""
 
-#: templates/generali-dashboard.html:192
+#: templates/generali-dashboard.html:177
 msgid "NK1 / NK2 Quality Control"
 msgstr ""
 
-#: templates/generali-dashboard.html:202
+#: templates/generali-dashboard.html:187
 msgid "Language Distribution"
 msgstr ""
 
-#: templates/generali-dashboard.html:208
+#: templates/generali-dashboard.html:193
 msgid "Entry Channel"
 msgstr ""
 
@@ -6700,20 +6696,8 @@ msgstr ""
 msgid "Error deleting record."
 msgstr ""
 
-#: templates/js/_generali_dashboard_js.html:120
-#, python-brace-format
-msgid ""
-"Data currently reaches {day}; the {pending} day(s) after it are still "
-"being imported and are not counted as empty."
-msgstr ""
-
-#: templates/js/_generali_dashboard_js.html:121
-#, python-brace-format
-msgid "{count} day(s) in this range produced no documents at all."
-msgstr ""
-
-#: templates/js/_generali_dashboard_js.html:207
-#: templates/js/_generali_dashboard_js.html:283
+#: templates/js/_generali_dashboard_js.html:172
+#: templates/js/_generali_dashboard_js.html:248
 msgid "Documents"
 msgstr ""
 

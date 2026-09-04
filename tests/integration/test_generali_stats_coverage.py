@@ -221,7 +221,6 @@ def test_dashboard_page_renders(user_client, monkeypatch):
 
     assert resp.status_code == 200, resp.get_data(as_text=True)[:400]
     body = resp.get_data(as_text=True)
-    assert "rangeNotice" in body
     assert "filterStartDate" in body
 
 

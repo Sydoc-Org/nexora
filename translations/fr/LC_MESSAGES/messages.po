@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-04 09:25+0200\n"
+"POT-Creation-Date: 2026-09-04 15:00+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -3697,31 +3697,27 @@ msgstr "Au"
 msgid "Reset"
 msgstr "Réinitialiser"
 
-#: templates/generali-dashboard.html:108
-msgid "Total Documents"
-msgstr "Total des documents"
-
-#: templates/generali-dashboard.html:115
+#: templates/generali-dashboard.html:100
 msgid "NK1 Pass Rate"
 msgstr "Taux de réussite NK1"
 
-#: templates/generali-dashboard.html:122
+#: templates/generali-dashboard.html:107
 msgid "NK2 Pass Rate"
 msgstr "Taux de réussite NK2"
 
-#: templates/generali-dashboard.html:129
+#: templates/generali-dashboard.html:114
 msgid "NK1 & NK2 Pass Rate"
 msgstr "Taux de réussite NK1 & NK2"
 
-#: templates/generali-dashboard.html:136
+#: templates/generali-dashboard.html:121
 msgid "Avg Daily Documents"
 msgstr "Moyenne journalière de documents"
 
-#: templates/generali-dashboard.html:147
+#: templates/generali-dashboard.html:132
 msgid "Daily Processing Volume"
 msgstr "Volume de traitement journalier"
 
-#: templates/generali-dashboard.html:151 templates/generali_documents.html:36
+#: templates/generali-dashboard.html:136 templates/generali_documents.html:36
 #: templates/js/_generali_dashboard_js.html:25
 #: templates/js/_reporting_dashboard_js.html:33
 #: templates/js/_reporting_js.html:50
@@ -3731,40 +3727,40 @@ msgstr "Volume de traitement journalier"
 msgid "Total"
 msgstr "Total"
 
-#: templates/generali-dashboard.html:154
+#: templates/generali-dashboard.html:139
 #: templates/js/_generali_dashboard_js.html:26
 msgid "Expected"
 msgstr "Prévu"
 
-#: templates/generali-dashboard.html:158
+#: templates/generali-dashboard.html:143
 msgid "Kommunikation"
 msgstr "Communication"
 
-#: templates/generali-dashboard.html:164 templates/workitems_overview.html:391
+#: templates/generali-dashboard.html:149 templates/workitems_overview.html:391
 msgid "Select all"
 msgstr "Tout sélectionner"
 
-#: templates/admin/organizations.html:72 templates/generali-dashboard.html:165
+#: templates/admin/organizations.html:72 templates/generali-dashboard.html:150
 msgid "Clear"
 msgstr "Effacer"
 
-#: templates/generali-dashboard.html:176
+#: templates/generali-dashboard.html:161
 msgid "Document Type Distribution"
 msgstr "Répartition par type de document"
 
-#: templates/generali-dashboard.html:186
+#: templates/generali-dashboard.html:171
 msgid "Recipient Distribution"
 msgstr "Répartition par destinataire"
 
-#: templates/generali-dashboard.html:192
+#: templates/generali-dashboard.html:177
 msgid "NK1 / NK2 Quality Control"
 msgstr "Contrôle qualité NK1 / NK2"
 
-#: templates/generali-dashboard.html:202
+#: templates/generali-dashboard.html:187
 msgid "Language Distribution"
 msgstr "Répartition par langue"
 
-#: templates/generali-dashboard.html:208
+#: templates/generali-dashboard.html:193
 msgid "Entry Channel"
 msgstr "Canal d'entrée"
 
@@ -7254,20 +7250,8 @@ msgstr "Suppression…"
 msgid "Error deleting record."
 msgstr "Erreur lors de la suppression."
 
-#: templates/js/_generali_dashboard_js.html:120
-#, python-brace-format
-msgid ""
-"Data currently reaches {day}; the {pending} day(s) after it are still "
-"being imported and are not counted as empty."
-msgstr "Les données vont actuellement jusqu'au {day} ; les {pending} jour(s) suivants sont encore en cours d'import et ne comptent pas comme vides."
-
-#: templates/js/_generali_dashboard_js.html:121
-#, python-brace-format
-msgid "{count} day(s) in this range produced no documents at all."
-msgstr "{count} jour(s) de cette période n'ont produit aucun document."
-
-#: templates/js/_generali_dashboard_js.html:207
-#: templates/js/_generali_dashboard_js.html:283
+#: templates/js/_generali_dashboard_js.html:172
+#: templates/js/_generali_dashboard_js.html:248
 msgid "Documents"
 msgstr "Documents"
 
@@ -9778,4 +9762,21 @@ msgstr "Au"
 
 #~ msgid "View in workitems"
 #~ msgstr "Ouvrir dans Workitems"
+
+#~ msgid "{count} day(s) in this range produced no documents at all."
+#~ msgstr "{count} jour(s) de cette période n'ont produit aucun document."
+
+#~ msgid "Total Documents"
+#~ msgstr "Total des documents"
+
+#~ msgid ""
+#~ "Data currently reaches {day}; the "
+#~ "{pending} day(s) after it are still "
+#~ "being imported and are not counted "
+#~ "as empty."
+#~ msgstr ""
+#~ "Les données vont actuellement jusqu'au "
+#~ "{day} ; les {pending} jour(s) suivants"
+#~ " sont encore en cours d'import et "
+#~ "ne comptent pas comme vides."
 

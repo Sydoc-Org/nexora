@@ -39,12 +39,13 @@ Work toward the next release.
   -- the end can no longer precede the start -- and neither accepts a future
   date.
 
-- **Import lag no longer reads as an outage on the Generali dashboard.**
-  "Not imported yet" and "that day produced nothing" were counted as the same
-  thing, so a range running to today reported the un-imported tail as empty
-  days and kept the warning up until the end date was dragged back behind the
-  last genuinely empty day. The stats response now carries `days_settled` /
-  `days_pending` beside `days_with_data`, and the two are reported separately.
+- **The Generali stats response reports data coverage.** `days_settled`,
+  `days_pending` and `latest_data_day` beside `days_with_data`, so a day
+  still awaiting the daily import can be told apart from a day that was
+  imported and genuinely held nothing. No UI consumes them yet -- an
+  on-page warning was tried and removed: it counted Sundays, which produce
+  nothing routinely, so on any month-long range it fired every time. How
+  the lag should be surfaced is #265.
 
 - **The date picker and tables are legible in dark mode.** flatpickr ships a
   light-only stylesheet and the existing overrides pinned near-black text, so

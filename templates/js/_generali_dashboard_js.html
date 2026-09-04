@@ -110,40 +110,6 @@
         if (e) fpStart.set('maxDate', e);
     }
 
-    // Warn when the chosen range reaches past the newest imported day, or
-    // when days inside it produced nothing. Both make the totals look like a
-    // drop in volume when they are really an absence of data.
-    // Brace placeholders, not %(name)s: flask_babel's gettext() runs the
-    // result through %-formatting, so a msgid carrying %(day)s with no
-    // variables raises KeyError and 500s the whole page. These are filled in
-    // by JS below, so the substitution must survive gettext untouched.
-    const NOTICE_LAG = {{ _("Data currently reaches {day}; the {pending} day(s) after it are still being imported and are not counted as empty.")|tojson }};
-    const NOTICE_GAPS = {{ _("{count} day(s) in this range produced no documents at all.")|tojson }};
-
-    function renderRangeNotice(kpis) {
-        const box = document.getElementById('rangeNotice');
-        const text = document.getElementById('rangeNoticeText');
-        if (!box || !text || !kpis) return;
-
-        const parts = [];
-        // Two distinct facts, deliberately not merged: days still awaiting
-        // import, and days that were imported and genuinely held nothing.
-        // Reporting the first as the second made the warning look like an
-        // outage and kept it up until the end date cleared both.
-        const pending = kpis.days_pending || 0;
-        if (kpis.latest_data_day && pending > 0) {
-            parts.push(NOTICE_LAG.replace('{day}', kpis.latest_data_day).replace('{pending}', pending));
-        }
-        const settled = kpis.days_settled != null ? kpis.days_settled : (kpis.days_in_range || 0);
-        const missing = settled - (kpis.days_with_data || 0);
-        if (missing > 0) {
-            parts.push(NOTICE_GAPS.replace('{count}', missing));
-        }
-
-        text.textContent = parts.join(' ');
-        box.classList.toggle('hidden', parts.length === 0);
-    }
-
     function setDefaultDates() {
         const end = new Date();
         const start = new Date();
@@ -178,7 +144,6 @@
             setRate('kpi-nk2', data.kpis.nk2_rate);
             setRate('kpi-nk1_nk2', data.kpis.nk1_nk2_rate);
             document.getElementById('kpi-avg').textContent = data.kpis.avg_daily.toLocaleString();
-            renderRangeNotice(data.kpis);
 
             destroyCharts();
 
