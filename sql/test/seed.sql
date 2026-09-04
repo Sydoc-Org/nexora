@@ -36,7 +36,6 @@ INSERT INTO dbo.Permission (Code, Description) VALUES
     ('admin.view', 'View admin dashboard'),
     ('admin.users.manage', 'Manage user accounts'),
     ('admin.view.users', 'View users'),
-    ('admin.interact.users.all', 'Interact with all users'),
     ('admin.create.user', 'Create user'),
     ('admin.edit.user', 'Edit user'),
     ('admin.delete.user', 'Delete user'),
@@ -105,22 +104,22 @@ INSERT INTO dbo.Permission (Code, Description) VALUES
 GO
 
 -- Access profiles
-INSERT INTO dbo.AccessProfile (Name, Description) VALUES
-    ('TestAdmin',  'Test admin profile — has admin.view + admin.users.manage + dashboard.view'),
-    ('TestUser',   'Test user profile — has dashboard.view only'),
-    ('TestNoPerm', 'Test no-permission profile');
+INSERT INTO dbo.AccessProfile (Name, Description, Rank) VALUES
+    ('TestAdmin',  'Test admin profile — has admin.view + admin.users.manage + dashboard.view', 100),
+    ('TestUser',   'Test user profile — has dashboard.view only', 10),
+    ('TestNoPerm', 'Test no-permission profile', 0);
 GO
 
 -- Wire permissions to access profiles.
 -- TestAdmin gets EVERY permission (omnipotent test admin) so E2E flows can
 -- reach and exercise every page. TestUser keeps dashboard.view only.
-INSERT INTO dbo.AccessProfilePermission (AccessID, PermissionID, Effect)
-SELECT ap.AccessID, p.PermissionID, 'A'
+INSERT INTO dbo.AccessProfilePermission (AccessID, PermissionID)
+SELECT ap.AccessID, p.PermissionID
 FROM dbo.AccessProfile ap, dbo.Permission p
 WHERE ap.Name = 'TestAdmin';
 
-INSERT INTO dbo.AccessProfilePermission (AccessID, PermissionID, Effect)
-SELECT ap.AccessID, p.PermissionID, 'A'
+INSERT INTO dbo.AccessProfilePermission (AccessID, PermissionID)
+SELECT ap.AccessID, p.PermissionID
 FROM dbo.AccessProfile ap, dbo.Permission p
 WHERE ap.Name = 'TestUser' AND p.Code = 'dashboard.view';
 -- TestNoPerm gets no rows
