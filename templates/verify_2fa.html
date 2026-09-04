@@ -12,6 +12,19 @@
     <link rel="icon" type="image/x-icon" href="{{ static_v('images/favicon.ico') }}">
     <link rel="stylesheet" href="{{ static_v('css/nexora-ui.css') }}">
     <link rel="stylesheet" href="{{ static_v('css/auth.css') }}">
+    {# The shield gradient, the submit button, the focus rings and the page
+       backdrop all read --nx-accent* from nexora-ui.css / auth.css, but this
+       page never set data-accent, so they stayed on the indigo defaults
+       whatever the user had chosen (#243).
+
+       Included after the stylesheets and before <body> so the tokens are
+       pinned before first paint. The server has no prefs to give here -- the
+       session holds pre_2fa_userid, not userid -- so the block falls through
+       to its localStorage mirror, written by the last signed-in page load in
+       this browser. #}
+    <script nonce="{{ csp_nonce() }}">
+        {% include '_ui_prefs_prepaint.html' %}
+    </script>
 </head>
 
 <body class="bg-white flex flex-col min-h-screen">

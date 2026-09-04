@@ -28,6 +28,21 @@ Work toward the next release.
   `CONTRIBUTING.md` gains "Working in parallel" (the migration-number claim
   rule and the generated-file conflict hotspots) and "Releases".
 
+### Fixed
+
+- **The 2FA screen follows your accent colour** (#243). The shield gradient,
+  the submit button, the focus rings and the page backdrop all read
+  `--nx-accent*`, but `verify_2fa.html` never set `data-accent`, so they sat
+  on the indigo defaults whatever you had chosen. The server cannot help
+  there -- mid-2FA the session holds `pre_2fa_userid`, not `userid`, so prefs
+  are deliberately not loaded -- so the page now reuses the same pre-paint
+  block, which falls through to its `localStorage` mirror from the last
+  signed-in page load. No database read on the login path, nothing about the
+  account rendered into the page, and no stored prefs still means the amber
+  default. The block moved to `templates/_ui_prefs_prepaint.html`, included
+  verbatim by `_header.html`, so two copies of the accent derivation cannot
+  drift apart.
+
 ## [3.2.4] - 2026-09-03
 
 ### Added

@@ -869,3 +869,43 @@ def test_verify_2fa_rate_limit_eventually_429(client, reset_limiter):
         statuses.append(resp.status_code)
     assert statuses[:30] == [401] * 30, statuses
     assert statuses[30] == 429, statuses
+
+
+def test_verify_2fa_applies_ui_pref_prepaint(client):
+    """The 2FA page must carry the UI-prefs pre-paint (#243).
+
+    The shield gradient, submit button, focus rings and page backdrop all read
+    --nx-accent* from nexora-ui.css / auth.css, but the page never set
+    data-accent, so they stayed indigo whatever the user had chosen. The server
+    cannot help here -- the session holds pre_2fa_userid, not userid, so
+    _load_user_ui_prefs() does not run -- which is exactly why the block falls
+    through to its localStorage mirror instead.
+    """
+    with client.session_transaction() as sess:
+        sess["pre_2fa_userid"] = "1001"
+
+    resp = client.get("/verify_2fa")
+
+    assert resp.status_code == 200
+    body = resp.get_data(as_text=True)
+    assert "applyCustomAccent" in body, "accent derivation missing"
+    assert "nexora-ui-prefs" in body, "localStorage mirror missing"
+    assert "data-accent" in body, "accent attribute never applied"
+
+
+def test_ui_pref_prepaint_is_shared_not_duplicated():
+    """_header.html must include the partial rather than inline its own copy.
+
+    Two copies of the accent derivation would drift silently -- a wrong tint
+    still looks plausible, so nothing would fail to tell us.
+    """
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2]
+    header = (root / "templates" / "_header.html").read_text(encoding="utf-8")
+    twofa = (root / "templates" / "verify_2fa.html").read_text(encoding="utf-8")
+
+    assert "_ui_prefs_prepaint.html" in header
+    assert "_ui_prefs_prepaint.html" in twofa
+    assert "applyCustomAccent" not in header, "header still holds its own copy"
+    assert "applyCustomAccent" not in twofa, "2FA page inlined a copy"
